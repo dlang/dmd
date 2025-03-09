@@ -3,7 +3,7 @@
  *
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  *              Some portions copyright (c) 1994-1995 by Symantec
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -341,8 +341,8 @@ unittest
  *     The null-terminator is inside the bounds of the array.
  *     If cp could not be resolved, null is returned.
  */
-private char[] lookupInEnvironment(scope const(char)* cp) nothrow {
-
+private char[] lookupInEnvironment(scope const(char)* cp) nothrow
+{
     import core.stdc.stdlib: getenv;
     import core.stdc.string: strlen;
     import dmd.root.rmem: mem;

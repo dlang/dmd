@@ -10,7 +10,7 @@ module core.internal.qsort;
 
 //debug=qsort;
 
-import core.stdc.stdlib;
+debug (qsort) import core.stdc.stdio : printf;
 
 version (OSX)
     version = Darwin;
@@ -148,6 +148,8 @@ else version (CRuntime_UClibc)
 }
 else
 {
+    import core.stdc.stdlib : qsort;
+
     private TypeInfo tiglobal;
 
     extern (C) void[] _adSort(return scope void[] a, TypeInfo ti)
@@ -164,7 +166,6 @@ else
 
 unittest
 {
-    debug(qsort) import core.stdc.stdio;
     debug(qsort) printf("array.sort.unittest()\n");
 
     int[] a = new int[10];

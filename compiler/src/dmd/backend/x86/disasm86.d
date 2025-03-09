@@ -3,7 +3,7 @@
  * x87 FPU instructions and vector instructions.
  *
  * Copyright:   Copyright (C) 1982-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/x86/disasm86.d, backend/cod1.d)
@@ -82,6 +82,7 @@ bool jmpTarget(ubyte[] code, ref addr c, out addr offset)
  *      model = memory model, 16/32/64
  *      nearptr = use 'near ptr' when writing memory references
  *      bObjectcode = also prepend hex characters of object code
+ *      bURL = append URL (if any) to output
  *      mem = if not null, then function that returns a string
  *          representing the label for the memory address. Parameters are `c`
  *          for the address of the memory reference in `code[]`, `sz` for the
@@ -107,7 +108,7 @@ bool jmpTarget(ubyte[] code, ref addr c, out addr offset)
 @trusted
 public
 void getopstring(void delegate(char) nothrow @nogc put, ubyte[] code, uint c, addr siz,
-        uint model, int nearptr, ubyte bObjectcode,
+        uint model, int nearptr, ubyte bObjectcode, ubyte bURL,
         const(char)*function(uint c, uint sz, uint offset) nothrow @nogc mem,
         const(char)*function(ubyte[] code, uint c, int sz) nothrow @nogc immed16,
         const(char)*function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc labelcode,
@@ -116,7 +117,7 @@ void getopstring(void delegate(char) nothrow @nogc put, ubyte[] code, uint c, ad
 {
     assert(model == 16 || model == 32 || model == 64);
     auto disasm = Disasm(put, code, siz,
-                model, nearptr, bObjectcode,
+                model, nearptr, bObjectcode, bURL,
                 mem, immed16, labelcode, shortlabel);
     disasm.disassemble(c);
 }
@@ -143,7 +144,7 @@ struct Disasm
 
     @trusted
     this(void delegate(char) nothrow @nogc put, ubyte[] code, addr siz,
-        uint model, int nearptr, ubyte bObjectcode,
+        uint model, int nearptr, ubyte bObjectcode, ubyte bURL,
         const(char)*function(uint c, uint sz, uint offset) nothrow @nogc mem,
         const(char)*function(ubyte[] code, uint c, int sz) nothrow @nogc immed16,
         const(char)*function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc labelcode,
@@ -156,6 +157,7 @@ struct Disasm
         this.model = model;
         this.nearptr = nearptr;
         this.bObjectcode = bObjectcode;
+        this.bURL = bURL;
 
         /* Set null function pointers to default functions
          */
@@ -193,6 +195,7 @@ struct Disasm
     addr siz;
     int nearptr;
     ubyte bObjectcode;
+    ubyte bURL;
     bool defopsize;             // default value for opsize
     char defadsize;             // default value for adsize
     bool opsize;                // if 0, then 32 bit operand
@@ -249,6 +252,9 @@ addr calccodsize(addr c, out addr pc)
     ubyte rex = 0;
 
     op = code[c] & 0xFF;
+    //printf("c: x%02x op: x%02x\n", cast(int)c, op);
+    if (op == 0 && c + 1 == code.length)        // skip zero padding
+        return 1;
 
     // if VEX prefix
     if (op == 0xC4 || op == 0xC5)
@@ -479,12 +485,12 @@ addr EAbytes(uint c)
  */
 
 
-char *getEAxmm(ubyte rex, uint c)
+char* getEAxmm(ubyte rex, uint c)
 {
     return getEAimpl(rex, c, 1, 128);
 }
 
-char *getEAxmmymm(ubyte rex, uint c, uint vlen)
+char* getEAxmmymm(ubyte rex, uint c, uint vlen)
 {
     return getEAimpl(rex, c, 2, vlen);
 }
@@ -504,7 +510,7 @@ const(char)* getEAvec(ubyte rex, uint c)
     return p;
 }
 
-char *getEA(ubyte rex, uint c)
+char* getEA(ubyte rex, uint c)
 {
     return getEAimpl(rex, c, 0, 128);
 }
@@ -513,7 +519,7 @@ char *getEA(ubyte rex, uint c)
  * Params:
  *      vlen = 128: XMM, 256: YMM
  */
-char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
+char* getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
 {
     ubyte modrgrm,mod,reg,rm;
     uint opcode;
@@ -528,7 +534,7 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
     uint xmm;           // != 0 if xmm opcode
     uint r32;           // != 0 if r32
 
-    char *displacement(addr w, const(char)* postfix)
+    char* displacement(addr w, const(char)* postfix)
     {
         const(char)* s = "".ptr;
         if (cast(short) w < 0)
@@ -537,7 +543,7 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
             s = "-".ptr;
         }
         w &= 0xFFFF;
-        snprintf(EAb.ptr, EAb.length, ((w < 10) ? "%s%s%s%ld%s" : "%s%s%s0%lXh%s"),
+        snprintf(EAb.ptr, EAb.length, ((w < 10) ? "%s%s%s%d%s" : "%s%s%s0%Xh%s"),
                 segover,ptr[ptri],s,w,postfix);
 
         segover = "".ptr;
@@ -545,7 +551,7 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
         return EAb.ptr;
     }
 
-    char *displacementFixup(addr c, uint sz, const(char)* postfix)
+    char* displacementFixup(addr c, uint sz, const(char)* postfix)
     {
         uint value = sz == 2 ? word(code, c) : dword(code, c);
         auto p = mem(c, sz, value);
@@ -645,7 +651,8 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
                 return displacementFixup(c + 2, 2, rmstr[rm]);
 
             case 3:
-                switch (opcode) {
+                switch (opcode)
+                {
                 case 0x8c:
                 case 0x8e:
                     p = wordreg[rm];
@@ -909,7 +916,7 @@ int prefixbyte(uint c)
  *      p0 = hex bytes dump
  */
 
-void getVEXstring(addr c, addr siz, char *p0)
+void getVEXstring(addr c, addr siz, char* p0)
 {
     /* Parse VEX prefix,
      * fill in the following variables,
@@ -1072,7 +1079,7 @@ void getVEXstring(addr c, addr siz, char *p0)
             case 0x71:
             {   __gshared const char*[8] reg71 =
                 [ null, null, "vpsrlw", null, "vpsraw", null, "vpslw", null ];
-                const char *p = reg71[reg];
+                const char* p = reg71[reg];
                 if (!p)
                     goto Ldefault;
                 p1 = p;
@@ -1081,7 +1088,7 @@ void getVEXstring(addr c, addr siz, char *p0)
             case 0x72:
             {   __gshared const char*[8] reg72 =
                 [ null, null, "vpsrld", null, "vpsrad", null, "vpslld", null ];
-                const char *p = reg72[reg];
+                const char* p = reg72[reg];
                 if (!p)
                     goto Ldefault;
                 p1 = p;
@@ -1090,7 +1097,7 @@ void getVEXstring(addr c, addr siz, char *p0)
             case 0x73:
             {   __gshared const char*[8] reg73 =
                 [ null, null, "vpsrlq", "vpsrldq", null, null, "vpsllq", "vpslldq" ];
-                const char *p = reg73[reg];
+                const char* p = reg73[reg];
                 if (!p)
                     goto Ldefault;
                 p1 = p;
@@ -1466,11 +1473,11 @@ Ldone:
     }
 
     puts(p0);
-    put('t');
+    puts("    ");
     puts(p1);
     if (*p2)
     {
-        put('t');
+        puts("    ");
         puts(p2);
         if (*p3)
         {
@@ -1497,7 +1504,7 @@ Ldone:
  *      waitflag        if 1 then generate FWAIT form of instruction
  */
 
-void get87string(addr c,char *p0,int waitflag)
+void get87string(addr c,char* p0,int waitflag)
 {
     uint opcode,reg,modrgrm,mod;
     const(char)* p1, p2, p3;
@@ -1751,14 +1758,16 @@ L2:
     }
 
     puts(p0);
-    put('\t');
-    if (waitflag)
+    put(' ');
+    if (0 && waitflag)
         puts(p1 + 2);
     else
         puts(p1);
     if (*p2)
     {
-        put('\t');
+        for (int len1 = cast(int)strlen(p1); len1 < 9; ++len1)
+            put(' ');
+        put(' ');
         if (*mfp)
         {
             puts(mfp);
@@ -1876,8 +1885,12 @@ void disassemble(uint c)
     s3 = s2;
     opcode = code[c];
     p0[0]='\0';
-    if (bObjectcode) {
-        for (i=0; i<siz; i++) {
+    if (opcode == 0 && c + 1 >= code.length)
+        return;
+    if (bObjectcode)
+    {
+        for (i=0; i<siz; i++)
+        {
             snprintf( buf.ptr, buf.length, "%02X ", code[c+i] );
             strcat( p0.ptr, buf.ptr );
         }
@@ -1912,7 +1925,8 @@ void disassemble(uint c)
         }
     }
     if (inssize[opcode] & M)    /* if modregrm byte             */
-    {   reg = (code[c + 1] >> 3) & 7;
+    {
+        reg = (code[c + 1] >> 3) & 7;
         if (rex & REX_R)
             reg |= 8;
     }
@@ -3613,7 +3627,7 @@ __gshared const
 unittest
 {
     int line16 = __LINE__;
-    string[20] cases16 =      // 16 bit code gen
+    string[21] cases16 =      // 16 bit code gen
     [
         "      55            push    BP",
         "      8B EC         mov     BP,SP",
@@ -3635,6 +3649,7 @@ unittest
         "26    03 07         add     AX,ES:[BX]",
         "      03 06 00 00   add     AX,[00h]",
         "      31 C0         xor     AX,AX",
+        "      00                ",
     ];
 
     int line32 = __LINE__;
@@ -3659,7 +3674,7 @@ unittest
     ];
 
     int line64 = __LINE__;
-    string[26] cases64 =      // 64 bit code gen
+    string[27] cases64 =      // 64 bit code gen
     [
         "31 C0               xor  EAX,EAX",
         "48 89 4C 24 08      mov  8[RSP],RCX",
@@ -3687,6 +3702,7 @@ unittest
         "66 0F 73 FF 99      pslldq    XMM7,099h",
         "F3 0F 1E FB         endbr32",
         "F3 0F 1E FA         endbr64",
+        "DD 1C 24            fnstp  qword ptr [RSP]",
     ];
 
     char[BUFMAX] buf;
@@ -3705,7 +3721,7 @@ unittest
 
         auto output = Output!char(buf[]);
         getopstring(&output.put, code, 0, length,
-                size, 0, 0, null, null, null, null);
+                size, 0, 0, 0, null, null, null, null);
         auto result = output.peek();
 
         static bool compareEqual(const(char)[] result, const(char)[] expected)

@@ -2,7 +2,7 @@
 /**
  * Dynamic array implementation.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/array.d, root/_array.d)
@@ -52,7 +52,7 @@ public:
     ~this() pure nothrow
     {
         debug (stomp) memset(data.ptr, 0xFF, data.length);
-        if (data.ptr != &smallarray[0])
+        if (data.ptr && data.ptr != &smallarray[0])
             mem.xfree(data.ptr);
     }
     ///returns elements comma separated in []

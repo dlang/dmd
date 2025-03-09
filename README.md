@@ -4,7 +4,6 @@
 # DMD
 [![GitHub tag](https://img.shields.io/github/tag-date/dlang/dmd.svg?maxAge=86400&style=flat)](https://github.com/dlang/dmd/releases)
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400&style=flat)](https://codecov.io/gh/dlang/dmd)
-[![Bugzilla Issues](https://img.shields.io/badge/issues-Bugzilla-green.svg?style=flat)](https://issues.dlang.org/buglist.cgi?component=dmd&list_id=220151&product=D&resolution=---)
 [![license](https://img.shields.io/github/license/dlang/dmd.svg?style=flat)](https://github.com/dlang/dmd/blob/master/LICENSE.txt)
 
 [![Build status](https://img.shields.io/cirrus/github/dlang/dmd/master?label=Cirrus%20CI&logo=Cirrus%20CI)](https://cirrus-ci.com/github/dlang/dmd/master)
@@ -34,7 +33,6 @@ Refer to their respective `README.md` for more in-depth information.
 | [compiler/test](compiler/test)       | tests and testing infrastructure                  |
 | [compiler/docs](compiler/docs)       | man pages and internal documentation              |
 | [compiler/ini](compiler/ini)         | predefined `dmd.conf` files                       |
-| [compiler/samples](compiler/samples) | Various code examples                             |
 | [druntime](druntime)                 | root of all runtime related code                  |
 
 With a D compiler and dub installed, dmd can be built with:

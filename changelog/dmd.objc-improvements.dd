@@ -1,0 +1,38 @@
+Objective-C selectors are now automatically generated when not specified with `@selector`.
+
+Additionally, the Objective-C selector generation rules have changed, following these steps:
+1. Functions marked with `@property` will generate `setXYZ:` for the setters.
+2. For property functions with names starting with `is`, that prefix will be stripped off in the setter.
+3. Selector generation now uses the names of the function parameters instead of their D-mangled types.
+
+Selectors may still be specified with the `@selector` UDA, in which case it takes precedence over the
+automatically generated selectors.
+
+These new rules apply both for `extern` and non-`extern` Objective-C classes and protocols.
+
+---
+extern(Objective-C)
+extern class NSObject {
+    static NSObject alloc(); // Generates as `alloc`
+    NSObject init(); // Generates as `init`
+}
+
+extern(Objective-C)
+class Fox : NSObject {
+    bool fluffy;
+
+    @property bool isFluffy() => fluffy; // `isFluffy`
+    @property void isFluffy(bool value) { fluffy = value; } // `setFluffy:`
+
+    void yip(int a) @selector("bark:") { // `bark:`
+        // ...
+    }
+
+    void doSomething(int a, int b, int c) { // `doSomething:b:c:`
+        // ...
+    }
+}
+---
+
+These changes should not break any existing code because the automatic selector generation
+was not present before. And automatic selector generation only applies to `extern(Objective-C)` methods.

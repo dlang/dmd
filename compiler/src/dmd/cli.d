@@ -5,7 +5,7 @@
  * However, this file will be used to generate the
  * $(LINK2 https://dlang.org/dmd-linux.html, online documentation) and MAN pages.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cli.d, _cli.d)
@@ -375,6 +375,27 @@ dmd -cov -unittest myprog.d
             "generate position independent executables",
             cast(TargetOS) (TargetOS.all & ~(TargetOS.Windows | TargetOS.OSX))
         ),
+        Option("ftime-trace",
+            "turn on compile time profiler, generate JSON file with results",
+            "Per function, the time to analyze it, call it from CTFE, generate code for it etc. will be measured,
+            and events with a time longer than 500 microseconds (adjustable with `-ftime-trace-granularity`)
+            will be recorded.
+            The profiling result is output in the Chrome Trace Event Format,
+            $(LINK2 https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview, described here).
+            This can be turned into a more readable text file with the included tool `timetrace2txt`, or inspected
+            with an interactive viewer such as $(LINK2 https://ui.perfetto.dev/, Perfetto)."
+        ),
+        Option("ftime-trace-granularity=",
+            "Minimum time granularity (in microseconds) traced by time profiler (default: 500)",
+            "Measured events shorter than the specified time will be discarded from the output.
+            Set it too high, and interesting events may not show up in the output.
+            Set too low, and the profiler overhead will be larger, and the output will be cluttered with tiny events."
+        ),
+        Option("ftime-trace-file=<filename>",
+            "specify output file for -ftime-trace",
+            "By default, the output name is the same as the first object file name, but with the `.time-trace` extension appended.
+            A different filename can be chosen with this option, including a path relative to the current directory or an absolute path."
+        ),
         Option("g",
             "add symbolic debug info",
             `$(WINDOWS
@@ -669,6 +690,12 @@ dmd -cov -unittest myprog.d
             off when generating an object, interface, or Ddoc file
             name. $(SWLINK -op) will leave it on.`,
         ),
+        Option("oq",
+            "Write object files with fully qualified file names",
+            `When compiling pkg/app.d, the resulting object file name will be pkg_app.obj
+            instead of app.o. This helps to prevent name conflicts when compiling multiple
+            packages in the same directory with the $(SWLINK -od) flag.`,
+        ),
         Option("os=<os>",
             "sets target operating system to <os>",
             `Set the target operating system as other than the host.
@@ -798,13 +825,14 @@ dmd -cov -unittest myprog.d
         Option("vcolumns",
             "print character (column) numbers in diagnostics"
         ),
-        Option("verror-style=[digitalmars|gnu]",
+        Option("verror-style=[digitalmars|gnu|sarif]",
             "set the style for file/line number annotations on compiler messages",
             `Set the style for file/line number annotations on compiler messages,
             where:
             $(DL
             $(DT digitalmars)$(DD 'file(line[,column]): message'. This is the default.)
             $(DT gnu)$(DD 'file:line[:column]: message', conforming to the GNU standard used by gcc and clang.)
+            $(DT sarif)$(DD 'Generates JSON output conforming to the SARIF (Static Analysis Results Interchange Format) standard, useful for integration with tools like GitHub and other SARIF readers.')
             )`,
         ),
         Option("verror-supplements=<num>",
@@ -813,8 +841,13 @@ dmd -cov -unittest myprog.d
         Option("verrors=<num>",
             "limit the number of error/deprecation messages (0 means unlimited)"
         ),
-        Option("verrors=context",
-            "show error messages with the context of the erroring source line"
+        Option("verrors=[context|simple]",
+            "set the verbosity of error messages",
+            `Set the verbosity of error messages:
+            $(DL
+            $(DT context)$(DD Show error messages with the context of the erroring source line (including caret).)
+            $(DT simple)$(DD Show error messages without the context of the erroring source line.)
+            )`,
         ),
         Option("verrors=spec",
             "show errors from speculative compiles such as __traits(compiles,...)"
@@ -944,6 +977,9 @@ dmd -cov -unittest myprog.d
         Feature("rvaluerefparam", "rvalueRefParam",
             "enable rvalue arguments to ref parameters",
             "https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a"),
+        Feature("safer", "safer",
+            "more safety checks by default",
+            "https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md", true, false),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects",
             "https://dlang.org/spec/const3.html#shared"),

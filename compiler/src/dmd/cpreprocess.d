@@ -3,7 +3,7 @@
  *
  * Specification: C11
  *
- * Copyright:   Copyright (C) 2022-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2022-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cpreprocess.d, _cpreprocess.d)
@@ -47,11 +47,11 @@ version (Windows) version = runPreprocessor;
  *      the text of the preprocessed file
  */
 extern (C++)
-DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defines)
+DArray!ubyte preprocess(FileName csrcfile, Loc loc, ref OutBuffer defines)
 {
     /* Look for "importc.h" by searching along import path.
      */
-    const(char)* importc_h = findImportcH(global.path[]);
+    const(char)* importc_h = findImportcH(global.importPaths[]);
 
     if (importc_h)
     {
@@ -110,7 +110,7 @@ const(char)* findImportcH(const(char)*[] path)
  */
 private const(char)[] cppCommand()
 {
-    if (auto p = getenv("CPPCMD"))
+    if (const p = getenv("CPPCMD"))
         return toDString(p);
 
     version (Windows)
@@ -119,7 +119,7 @@ private const(char)[] cppCommand()
         {
             VSOptions vsopt;
             vsopt.initialize();
-            auto path = vsopt.compilerPath(target.isX86_64);
+            const path = vsopt.compilerPath(target.isX86_64);
             return toDString(path);
         }
         // Perhaps we are cross-compiling.

@@ -21,6 +21,7 @@ import dmd.attrib;
 import dmd.dinterpret;
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.dsymbolsem : include;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
@@ -40,10 +41,10 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
 {
     import dmd.aggregate;
     import dmd.common.outbuffer;
-    import dmd.dmangle;
     import dmd.dmodule;
     import dmd.dsymbolsem;
     import dmd.identifier;
+    import dmd.mangle : isValidMangling;
     import dmd.root.rmem;
     import dmd.root.utf;
     import dmd.target;
@@ -510,10 +511,9 @@ package PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args)
     const opt = e.toBool();
     if (opt.isEmpty())
         return PINLINE.default_;
-    else if (opt.get())
+    if (opt.get())
         return PINLINE.always;
-    else
-        return PINLINE.never;
+    return PINLINE.never;
 }
 
 /**
@@ -565,11 +565,9 @@ private bool pragmaMsgSemantic(Loc loc, Scope* sc, Expressions* args)
     OutBuffer buf;
     if (expressionsToString(buf, sc, args, loc, "while evaluating `pragma(msg, %s)`", false))
         return false;
-    else
-    {
-        buf.writestring("\n");
-        fprintf(stderr, "%s", buf.extractChars);
-    }
+
+    buf.writestring("\n");
+    fprintf(stderr, "%s", buf.extractChars);
     return true;
 }
 

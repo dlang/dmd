@@ -14,7 +14,7 @@
  * - Protection (`private`, `public`)
  * - Deprecated declarations (`@deprecated`)
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/attrib.d, _attrib.d)
@@ -32,8 +32,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.errors;
+import dmd.dsymbolsem : include;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -58,27 +57,20 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     extern (D) this(Dsymbols* decl) @safe
     {
+        super(DSYM.attribDeclaration);
         this.decl = decl;
     }
 
-    extern (D) this(const ref Loc loc, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, Dsymbols* decl) @safe
     {
-        super(loc, null);
+        super(DSYM.attribDeclaration, loc, null);
         this.decl = decl;
     }
 
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, Identifier ident, Dsymbols* decl) @safe
     {
-        super(loc, ident);
+        super(DSYM.attribDeclaration, loc, ident);
         this.decl = decl;
-    }
-
-    Dsymbols* include(Scope* sc)
-    {
-        if (errors)
-            return null;
-
-        return decl;
     }
 
     /****************************************
@@ -87,7 +79,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      * If the returned scope != sc, the caller should pop
      * the scope after it used.
      */
-    extern (D) static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
+    extern (D) static Scope* createNewScope(Scope* sc, STC stc, LINK linkage,
         CPPMANGLE cppmangle, Visibility visibility, int explicitVisibility,
         AlignDeclaration aligndecl, PragmaDeclaration inlining)
     {
@@ -113,48 +105,14 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return sc2;
     }
 
-    /****************************************
-     * A hook point to supply scope for members.
-     * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
-     */
-    Scope* newScope(Scope* sc)
-    {
-        return sc;
-    }
-
-    override void addComment(const(char)* comment)
-    {
-        //printf("AttribDeclaration::addComment %s\n", comment);
-        if (comment)
-        {
-            include(null).foreachDsymbol( s => s.addComment(comment) );
-        }
-    }
-
     override const(char)* kind() const
     {
         return "attribute";
     }
 
-    override bool oneMember(out Dsymbol ps, Identifier ident)
-    {
-        Dsymbols* d = include(null);
-        return Dsymbol.oneMembers(d, ps, ident);
-    }
-
     override final bool hasPointers()
     {
-        return include(null).foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
-    }
-
-    override final bool hasStaticCtorOrDtor()
-    {
-        return include(null).foreachDsymbol( (s) { return s.hasStaticCtorOrDtor(); } ) != 0;
-    }
-
-    override final void checkCtorConstInit()
-    {
-        include(null).foreachDsymbol( s => s.checkCtorConstInit() );
+        return this.include(null).foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
     }
 
     /****************************************
@@ -162,11 +120,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
     override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
     {
         objc.addSymbols(this, classes, categories);
-    }
-
-    override inout(AttribDeclaration) isAttribDeclaration() inout pure @safe
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -182,78 +135,26 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
  */
 extern (C++) class StorageClassDeclaration : AttribDeclaration
 {
-    StorageClass stc;
+    STC stc;
 
-    extern (D) this(StorageClass stc, Dsymbols* decl) @safe
+    extern (D) this(STC stc, Dsymbols* decl) @safe
     {
         super(decl);
         this.stc = stc;
+        this.dsym = DSYM.storageClassDeclaration;
     }
 
-    extern (D) this(const ref Loc loc, StorageClass stc, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, STC stc, Dsymbols* decl) @safe
     {
         super(loc, decl);
         this.stc = stc;
+        this.dsym = DSYM.storageClassDeclaration;
     }
 
     override StorageClassDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new StorageClassDeclaration(stc, Dsymbol.arraySyntaxCopy(decl));
-    }
-
-    override Scope* newScope(Scope* sc)
-    {
-        StorageClass scstc = sc.stc;
-        /* These sets of storage classes are mutually exclusive,
-         * so choose the innermost or most recent one.
-         */
-        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest))
-            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest);
-        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared))
-            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared);
-        if (stc & (STC.const_ | STC.immutable_ | STC.manifest))
-            scstc &= ~(STC.const_ | STC.immutable_ | STC.manifest);
-        if (stc & (STC.gshared | STC.shared_))
-            scstc &= ~(STC.gshared | STC.shared_);
-        if (stc & (STC.safe | STC.trusted | STC.system))
-            scstc &= ~(STC.safe | STC.trusted | STC.system);
-        scstc |= stc;
-        //printf("scstc = x%llx\n", scstc);
-        return createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
-            sc.visibility, sc.explicitVisibility, sc.aligndecl, sc.inlining);
-    }
-
-    override final bool oneMember(out Dsymbol ps, Identifier ident)
-    {
-        bool t = Dsymbol.oneMembers(decl, ps, ident);
-        if (t && ps)
-        {
-            /* This is to deal with the following case:
-             * struct Tick {
-             *   template to(T) { const T to() { ... } }
-             * }
-             * For eponymous function templates, the 'const' needs to get attached to 'to'
-             * before the semantic analysis of 'to', so that template overloading based on the
-             * 'this' pointer can be successful.
-             */
-            FuncDeclaration fd = ps.isFuncDeclaration();
-            if (fd)
-            {
-                /* Use storage_class2 instead of storage_class otherwise when we do .di generation
-                 * we'll wind up with 'const const' rather than 'const'.
-                 */
-                /* Don't think we need to worry about mutually exclusive storage classes here
-                 */
-                fd.storage_class2 |= stc;
-            }
-        }
-        return t;
-    }
-
-    override inout(StorageClassDeclaration) isStorageClassDeclaration() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -287,25 +188,6 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
         return new DeprecatedDeclaration(msg.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl));
     }
 
-    /**
-     * Provides a new scope with `STC.deprecated_` and `Scope.depdecl` set
-     *
-     * Calls `StorageClassDeclaration.newScope` (as it must be called or copied
-     * in any function overriding `newScope`), then set the `Scope`'s depdecl.
-     *
-     * Returns:
-     *   Always a new scope, to use for this `DeprecatedDeclaration`'s members.
-     */
-    override Scope* newScope(Scope* sc)
-    {
-        auto scx = super.newScope(sc);
-        // The enclosing scope is deprecated as well
-        if (scx == sc)
-            scx = sc.push();
-        scx.depdecl = this;
-        return scx;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -322,14 +204,15 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
 {
     LINK linkage; /// either explicitly set or `default_`
 
-    extern (D) this(const ref Loc loc, LINK linkage, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, LINK linkage, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
         //printf("LinkDeclaration(linkage = %d, decl = %p)\n", linkage, decl);
         this.linkage = linkage;
+        this.dsym = DSYM.linkDeclaration;
     }
 
-    static LinkDeclaration create(const ref Loc loc, LINK p, Dsymbols* decl) @safe
+    static LinkDeclaration create(Loc loc, LINK p, Dsymbols* decl) @safe
     {
         return new LinkDeclaration(loc, p, decl);
     }
@@ -338,22 +221,6 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
     {
         assert(!s);
         return new LinkDeclaration(loc, linkage, Dsymbol.arraySyntaxCopy(decl));
-    }
-
-    override Scope* newScope(Scope* sc)
-    {
-        return createNewScope(sc, sc.stc, this.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility,
-            sc.aligndecl, sc.inlining);
-    }
-
-    override const(char)* toChars() const
-    {
-        return toString().ptr;
-    }
-
-    extern(D) override const(char)[] toString() const
-    {
-        return "extern ()";
     }
 
     override void accept(Visitor v)
@@ -374,33 +241,18 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
 {
     CPPMANGLE cppmangle;
 
-    extern (D) this(const ref Loc loc, CPPMANGLE cppmangle, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, CPPMANGLE cppmangle, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
         //printf("CPPMangleDeclaration(cppmangle = %d, decl = %p)\n", cppmangle, decl);
         this.cppmangle = cppmangle;
+        this.dsym = DSYM.cppMangleDeclaration;
     }
 
     override CPPMangleDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new CPPMangleDeclaration(loc, cppmangle, Dsymbol.arraySyntaxCopy(decl));
-    }
-
-    override Scope* newScope(Scope* sc)
-    {
-        return createNewScope(sc, sc.stc, LINK.cpp, cppmangle, sc.visibility, sc.explicitVisibility,
-            sc.aligndecl, sc.inlining);
-    }
-
-    override const(char)* toChars() const
-    {
-        return toString().ptr;
-    }
-
-    extern(D) override const(char)[] toString() const
-    {
-        return "extern ()";
     }
 
     override void accept(Visitor v)
@@ -437,21 +289,24 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
     /// CTFE-able expression, resolving to `TupleExp` or `StringExp`
     Expression exp;
 
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, Identifier ident, Dsymbols* decl) @safe
     {
         super(loc, ident, decl);
+        this.dsym = DSYM.cppNamespaceDeclaration;
     }
 
-    extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, Expression exp, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
+        this.dsym = DSYM.cppNamespaceDeclaration;
         this.exp = exp;
     }
 
-    extern (D) this(const ref Loc loc, Identifier ident, Expression exp, Dsymbols* decl,
+    extern (D) this(Loc loc, Identifier ident, Expression exp, Dsymbols* decl,
                     CPPNamespaceDeclaration parent) @safe
     {
         super(loc, ident, decl);
+        this.dsym = DSYM.cppNamespaceDeclaration;
         this.exp = exp;
         this.cppnamespace = parent;
     }
@@ -463,34 +318,10 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
             this.loc, this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl), this.cppnamespace);
     }
 
-    /**
-     * Returns:
-     *   A copy of the parent scope, with `this` as `namespace` and C++ linkage
-     */
-    override Scope* newScope(Scope* sc)
-    {
-        auto scx = sc.copy();
-        scx.linkage = LINK.cpp;
-        scx.namespace = this;
-        return scx;
-    }
-
-    override const(char)* toChars() const
-    {
-        return toString().ptr;
-    }
-
-    extern(D) override const(char)[] toString() const
-    {
-        return "extern (C++, `namespace`)";
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
     }
-
-    override inout(CPPNamespaceDeclaration) isCPPNamespaceDeclaration() inout { return this; }
 }
 
 /***********************************************************
@@ -510,9 +341,10 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
      *  visibility = visibility attribute data
      *  decl = declarations which are affected by this visibility attribute
      */
-    extern (D) this(const ref Loc loc, Visibility visibility, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, Visibility visibility, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
+        this.dsym = DSYM.visibilityDeclaration;
         this.visibility = visibility;
         //printf("decl = %p\n", decl);
     }
@@ -523,9 +355,10 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
      *  pkg_identifiers = list of identifiers for a qualified package name
      *  decl = declarations which are affected by this visibility attribute
      */
-    extern (D) this(const ref Loc loc, Identifier[] pkg_identifiers, Dsymbols* decl)
+    extern (D) this(Loc loc, Identifier[] pkg_identifiers, Dsymbols* decl)
     {
         super(loc, null, decl);
+        this.dsym = DSYM.visibilityDeclaration;
         this.visibility.kind = Visibility.Kind.package_;
         this.pkg_identifiers = pkg_identifiers;
         if (pkg_identifiers.length > 0)
@@ -546,13 +379,6 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
             return new VisibilityDeclaration(this.loc, visibility, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override Scope* newScope(Scope* sc)
-    {
-        if (pkg_identifiers)
-            dsymbolSemantic(this, sc);
-        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.visibility, 1, sc.aligndecl, sc.inlining);
-    }
-
     override const(char)* kind() const
     {
         return "visibility attribute";
@@ -564,11 +390,6 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
         OutBuffer buf;
         visibilityToBuffer(buf, visibility);
         return buf.extractChars();
-    }
-
-    override inout(VisibilityDeclaration) isVisibilityDeclaration() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -592,9 +413,10 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     structalign_t salign;
 
 
-    extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
+    extern (D) this(Loc loc, Expression exp, Dsymbols* decl)
     {
         super(loc, null, decl);
+        this.dsym = DSYM.alignDeclaration;
         if (exp)
         {
             exps = new Expressions();
@@ -602,15 +424,17 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         }
     }
 
-    extern (D) this(const ref Loc loc, Expressions* exps, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, Expressions* exps, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
+        this.dsym = DSYM.alignDeclaration;
         this.exps = exps;
     }
 
-    extern (D) this(const ref Loc loc, structalign_t salign, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, structalign_t salign, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
+        this.dsym = DSYM.alignDeclaration;
         this.salign = salign;
     }
 
@@ -620,11 +444,6 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         return new AlignDeclaration(loc,
             Expression.arraySyntaxCopy(exps),
             Dsymbol.arraySyntaxCopy(decl));
-    }
-
-    override Scope* newScope(Scope* sc)
-    {
-        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, this, sc.inlining);
     }
 
     override void accept(Visitor v)
@@ -644,9 +463,10 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
     uint anonstructsize;    /// size of anonymous struct
     uint anonalignsize;     /// size of anonymous struct for alignment purposes
 
-    extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, bool isunion, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
+        this.dsym = DSYM.anonDeclaration;
         this.isunion = isunion;
     }
 
@@ -659,11 +479,6 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
     override const(char)* kind() const
     {
         return (isunion ? "anonymous union" : "anonymous struct");
-    }
-
-    override inout(AnonDeclaration) isAnonDeclaration() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -682,9 +497,10 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
 {
     Expressions* args;      /// parameters of this pragma
 
-    extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, Identifier ident, Expressions* args, Dsymbols* decl) @safe
     {
         super(loc, ident, decl);
+        this.dsym = DSYM.pragmaDeclaration;
         this.args = args;
     }
 
@@ -693,17 +509,6 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
         //printf("PragmaDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
         return new PragmaDeclaration(loc, ident, Expression.arraySyntaxCopy(args), Dsymbol.arraySyntaxCopy(decl));
-    }
-
-    override Scope* newScope(Scope* sc)
-    {
-        if (ident == Id.Pinline)
-        {
-            // We keep track of this pragma inside scopes,
-            // then it's evaluated on demand in function semantic
-            return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, this);
-        }
-        return sc;
     }
 
     override const(char)* kind() const
@@ -728,9 +533,10 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     Condition condition;    /// condition deciding whether decl or elsedecl applies
     Dsymbols* elsedecl;     /// array of Dsymbol's for else block
 
-    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) @safe
+    extern (D) this(Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) @safe
     {
         super(loc, null, decl);
+        this.dsym = DSYM.conditionalDeclaration;
         //printf("ConditionalDeclaration::ConditionalDeclaration()\n");
         this.condition = condition;
         this.elsedecl = elsedecl;
@@ -740,48 +546,6 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     {
         assert(!s);
         return new ConditionalDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
-    }
-
-    override final bool oneMember(out Dsymbol ps, Identifier ident)
-    {
-        //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition.inc);
-        if (condition.inc != Include.notComputed)
-        {
-            Dsymbols* d = condition.include(null) ? decl : elsedecl;
-            return Dsymbol.oneMembers(d, ps, ident);
-        }
-        else
-        {
-            bool res = (Dsymbol.oneMembers(decl, ps, ident) && ps is null && Dsymbol.oneMembers(elsedecl, ps, ident) && ps is null);
-            ps = null;
-            return res;
-        }
-    }
-
-    // Decide if 'then' or 'else' code should be included
-    override Dsymbols* include(Scope* sc)
-    {
-        //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
-
-        if (errors)
-            return null;
-
-        assert(condition);
-        return condition.include(_scope ? _scope : sc) ? decl : elsedecl;
-    }
-
-    override final void addComment(const(char)* comment)
-    {
-        /* Because addComment is called by the parser, if we called
-         * include() it would define a version before it was used.
-         * But it's no problem to drill down to both decl and elsedecl,
-         * so that's the workaround.
-         */
-        if (comment)
-        {
-            decl    .foreachDsymbol( s => s.addComment(comment) );
-            elsedecl.foreachDsymbol( s => s.addComment(comment) );
-        }
     }
 
     override void accept(Visitor v)
@@ -798,12 +562,13 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
 extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 {
     ScopeDsymbol scopesym;          /// enclosing symbol (e.g. module) where symbols will be inserted
-    private bool addisdone = false; /// true if members have been added to scope
-    private bool onStack = false;   /// true if a call to `include` is currently active
+    bool addisdone = false; /// true if members have been added to scope
+    bool onStack = false;   /// true if a call to `include` is currently active
 
-    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) @safe
+    extern (D) this(Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) @safe
     {
         super(loc, condition, decl, elsedecl);
+        this.dsym = DSYM.staticIfDeclaration;
         //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
     }
 
@@ -813,50 +578,9 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         return new StaticIfDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
-    /****************************************
-     * Different from other AttribDeclaration subclasses, include() call requires
-     * the completion of addMember and setScope phases.
-     */
-    override Dsymbols* include(Scope* sc)
-    {
-        //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
-
-        if (errors || onStack)
-            return null;
-        onStack = true;
-        scope(exit) onStack = false;
-
-        if (sc && condition.inc == Include.notComputed)
-        {
-            assert(scopesym); // addMember is already done
-            assert(_scope); // setScope is already done
-            Dsymbols* d = ConditionalDeclaration.include(_scope);
-            if (d && !addisdone)
-            {
-                // Add members lazily.
-                d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
-
-                // Set the member scopes lazily.
-                d.foreachDsymbol( s => s.setScope(_scope) );
-
-                addisdone = true;
-            }
-            return d;
-        }
-        else
-        {
-            return ConditionalDeclaration.include(sc);
-        }
-    }
-
     override const(char)* kind() const
     {
         return "static if";
-    }
-
-    override inout(StaticIfDeclaration) isStaticIfDeclaration() inout pure @safe
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -889,6 +613,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
     extern (D) this(StaticForeach sfe, Dsymbols* decl) @safe
     {
         super(sfe.loc, null, decl);
+        this.dsym = DSYM.staticForeachDeclaration;
         this.sfe = sfe;
     }
 
@@ -898,64 +623,6 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         return new StaticForeachDeclaration(
             sfe.syntaxCopy(),
             Dsymbol.arraySyntaxCopy(decl));
-    }
-
-    override bool oneMember(out Dsymbol ps, Identifier ident)
-    {
-        // Required to support IFTI on a template that contains a
-        // `static foreach` declaration.  `super.oneMember` calls
-        // include with a `null` scope.  As `static foreach` requires
-        // the scope for expansion, `oneMember` can only return a
-        // precise result once `static foreach` has been expanded.
-        if (cached)
-        {
-            return super.oneMember(ps, ident);
-        }
-        ps = null; // a `static foreach` declaration may in general expand to multiple symbols
-        return false;
-    }
-
-    override Dsymbols* include(Scope* sc)
-    {
-        if (errors || onStack)
-            return null;
-        if (cached)
-        {
-            assert(!onStack);
-            return cache;
-        }
-        onStack = true;
-        scope(exit) onStack = false;
-
-        if (_scope)
-        {
-            sfe.prepare(_scope); // lower static foreach aggregate
-        }
-        if (!sfe.ready())
-        {
-            return null; // TODO: ok?
-        }
-
-        // expand static foreach
-        import dmd.statementsem: makeTupleForeach;
-        Dsymbols* d = makeTupleForeach(_scope, true, true, sfe.aggrfe, decl, sfe.needExpansion).decl;
-        if (d) // process generated declarations
-        {
-            // Add members lazily.
-            d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
-
-            // Set the member scopes lazily.
-            d.foreachDsymbol( s => s.setScope(_scope) );
-        }
-        cached = true;
-        cache = d;
-        return d;
-    }
-
-    override void addComment(const(char)* comment)
-    {
-        // do nothing
-        // change this to give semantics to documentation comments on static foreach declarations
     }
 
     override const(char)* kind() const
@@ -984,7 +651,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
  *          pragma(msg, mixin("x" ~ to!string(i))); // ok, all 10 symbols are visible as they were forwarded to the global scope
  *      }
  *
- *      static assert (!is(typeof(i))); // loop index variable is not visible outside of the static foreach loop
+ *      static assert(!is(typeof(i))); // loop index variable is not visible outside of the static foreach loop
  *
  * A StaticForeachDeclaration generates one
  * ForwardingAttribDeclaration for each expansion of its body.  The
@@ -1002,21 +669,9 @@ extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
     this(Dsymbols* decl) @safe
     {
         super(decl);
+        this.dsym = DSYM.forwardingAttribDeclaration;
         sym = new ForwardingScopeDsymbol();
         sym.symtab = new DsymbolTable();
-    }
-
-    /**************************************
-     * Use the ForwardingScopeDsymbol as the parent symbol for members.
-     */
-    override Scope* newScope(Scope* sc)
-    {
-        return sc.push(sym);
-    }
-
-    override inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -1024,7 +679,6 @@ extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
         v.visit(this);
     }
 }
-
 
 /***********************************************************
  * Mixin declarations, like:
@@ -1038,10 +692,11 @@ extern (C++) final class MixinDeclaration : AttribDeclaration
     ScopeDsymbol scopesym;
     bool compiled;
 
-    extern (D) this(const ref Loc loc, Expressions* exps) @safe
+    extern (D) this(Loc loc, Expressions* exps) @safe
     {
         super(loc, null, null);
         //printf("MixinDeclaration(loc = %d)\n", loc.linnum);
+        this.dsym = DSYM.mixinDeclaration;
         this.exps = exps;
     }
 
@@ -1054,11 +709,6 @@ extern (C++) final class MixinDeclaration : AttribDeclaration
     override const(char)* kind() const
     {
         return "mixin";
-    }
-
-    override inout(MixinDeclaration) isMixinDeclaration() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -1079,6 +729,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     extern (D) this(Expressions* atts, Dsymbols* decl) @safe
     {
         super(decl);
+        this.dsym = DSYM.userAttributeDeclaration;
         this.atts = atts;
     }
 
@@ -1087,18 +738,6 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         //printf("UserAttributeDeclaration::syntaxCopy('%s')\n", toChars());
         assert(!s);
         return new UserAttributeDeclaration(Expression.arraySyntaxCopy(this.atts), Dsymbol.arraySyntaxCopy(decl));
-    }
-
-    override Scope* newScope(Scope* sc)
-    {
-        Scope* sc2 = sc;
-        if (atts && atts.length)
-        {
-            // create new one for changes
-            sc2 = sc.copy();
-            sc2.userAttribDecl = this;
-        }
-        return sc2;
     }
 
     extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
@@ -1128,70 +767,6 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    /**
-     * Check if the provided expression references `core.attribute.gnuAbiTag`
-     *
-     * This should be called after semantic has been run on the expression.
-     * Semantic on UDA happens in semantic2 (see `dmd.semantic2`).
-     *
-     * Params:
-     *   e = Expression to check (usually from `UserAttributeDeclaration.atts`)
-     *
-     * Returns:
-     *   `true` if the expression references the compiler-recognized `gnuAbiTag`
-     */
-    static bool isGNUABITag(Expression e)
-    {
-        if (global.params.cplusplus < CppStdRevision.cpp11)
-            return false;
-
-        auto ts = e.type ? e.type.isTypeStruct() : null;
-        if (!ts)
-            return false;
-        if (ts.sym.ident != Id.udaGNUAbiTag || !ts.sym.parent)
-            return false;
-        // Can only be defined in druntime
-        Module m = ts.sym.parent.isModule();
-        if (!m || !m.isCoreModule(Id.attribute))
-            return false;
-        return true;
-    }
-
-    /**
-     * Called from a symbol's semantic to check if `gnuAbiTag` UDA
-     * can be applied to them
-     *
-     * Directly emits an error if the UDA doesn't work with this symbol
-     *
-     * Params:
-     *   sym = symbol to check for `gnuAbiTag`
-     *   linkage = Linkage of the symbol (Declaration.link or sc.link)
-     */
-    static void checkGNUABITag(Dsymbol sym, LINK linkage)
-    {
-        if (global.params.cplusplus < CppStdRevision.cpp11)
-            return;
-
-        foreachUdaNoSemantic(sym, (exp) {
-            if (isGNUABITag(exp))
-            {
-                if (sym.isCPPNamespaceDeclaration() || sym.isNspace())
-                {
-                    .error(exp.loc, "`@%s` cannot be applied to namespaces", Id.udaGNUAbiTag.toChars());
-                    sym.errors = true;
-                }
-                else if (linkage != LINK.cpp)
-                {
-                    .error(exp.loc, "`@%s` can only apply to C++ symbols", Id.udaGNUAbiTag.toChars());
-                    sym.errors = true;
-                }
-                // Only one `@gnuAbiTag` is allowed by semantic2
-                return 1; // break
-            }
-            return 0; // continue
-        });
     }
 }
 
@@ -1243,7 +818,6 @@ int foreachUdaNoSemantic(Dsymbol sym, int delegate(Expression) dg)
 
     return 0;
 }
-
 
 /**
  * Returns: true if the given expression is an enum from `core.attribute` named `id`

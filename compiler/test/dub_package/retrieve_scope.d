@@ -67,7 +67,7 @@ int main()
     global.path.push((dmdParentDir ~ "/druntime/import" ~ '\0').ptr);
 
     // comment for error output in parsing & semantic
-    diagnosticHandler = (const ref Loc location,
+    diagnosticHandler = (const ref SourceLoc location,
                             Color headerColor,
                             const(char)* header,
                             const(char)* messageFormat,

@@ -1,0 +1,65 @@
+New segfault handler showing backtraces for null access / call stack overflow on linux
+
+While buffer overflows are usually caught by array bounds checks, there are still other situations where a segmentation fault occurs in D programs:
+
+- `null` pointer dereference
+- Corrupted or dangling pointer dereference in `@system` code
+- Call stack overflow (infinite recursion)
+
+These result in an uninformative runtime error such as:
+
+$(CONSOLE
+[1]    37856 segmentation fault (core dumped)  ./app
+)
+
+In order to find the cause of the error, the program needs to be run again in a debugger like GDB.
+
+There is the `registerMemoryErrorHandler` function in `etc.linux.memoryerror`, which catches `SIGSEGV` signals and transforms them into a thrown `InvalidPointerError`, providing a better message.
+However, it doesn't work on call stack overflow, because it uses stack memory itself, so the segfault handler segfaults.
+It also relies on inline assembly, limiting it to the x86 architecture.
+
+A new function `registerMemoryAssertHandler` has been introduced, which does handle stack overflow by setting up an [altstack](https://man7.org/linux/man-pages/man2/sigaltstack.2.html).
+It uses `assert(0)` instead of throwing an `Error` object, so the result corresponds to the chosen `-checkaction` setting.
+
+Example:
+
+---
+void main()
+{
+    version (linux)
+    {
+        import etc.linux.memoryerror;
+        registerMemoryAssertHandler();
+    }
+    int* p = null;
+    int* q = cast(int*) 0xDEADBEEF;
+
+    // int a = *p; // segmentation fault: null pointer read/write operation
+    // int b = *q; // segmentation fault: invalid pointer read/write operation
+    recurse();     // segmentation fault: call stack overflow
+}
+
+void recurse()
+{
+    recurse();
+}
+---
+
+Output with `dmd -g -run app.d`:
+
+$(CONSOLE
+core.exception.AssertError@src/etc/linux/memoryerror.d(82): segmentation fault: call stack overflow
+$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)
+src/core/exception.d:587 onAssertErrorMsg [0x58e270d2802d]
+src/core/exception.d:803 _d_assert_msg [0x58e270d1fb64]
+src/etc/linux/memoryerror.d:82 _d_handleSignalAssert [0x58e270d1f48d]
+??:? [0x7004139e876f]
+./app.d:16 void scratch.recurse() [0x58e270d1d757]
+./app.d:18 void scratch.recurse() [0x58e270d1d75c]
+./app.d:18 void scratch.recurse() [0x58e270d1d75c]
+./app.d:18 void scratch.recurse() [0x58e270d1d75c]
+./app.d:18 void scratch.recurse() [0x58e270d1d75c]
+...
+...
+...
+)

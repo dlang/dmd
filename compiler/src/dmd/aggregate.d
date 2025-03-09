@@ -4,7 +4,7 @@
  * Specification: $(LINK2 https://dlang.org/spec/struct.html, Structs, Unions),
  *                $(LINK2 https://dlang.org/spec/class.html, Class).
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/aggregate.d, _aggregate.d)
@@ -25,7 +25,7 @@ import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
+import dmd.dsymbolsem : dsymbolSemantic, determineFields, search, determineSize, include;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -96,10 +96,10 @@ struct MangleOverride
 extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 {
     Type type;                  ///
-    StorageClass storage_class; ///
+    STC storage_class;          ///
     uint structsize;            /// size of struct
     uint alignsize;             /// size of struct for alignment purposes
-    VarDeclarations fields;     /// VarDeclaration fields
+    VarDeclarations fields;     /// VarDeclaration fields including flattened AnonDeclaration members
     Dsymbol deferred;           /// any deferred semantic2() or semantic3() symbol
 
     /// specifies whether this is a D, C++, Objective-C or anonymous struct/class/interface
@@ -154,7 +154,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     bool disableNew;                /// disallow allocations using `new`
     Sizeok sizeok = Sizeok.none;    /// set when structsize contains valid data
 
-    final extern (D) this(const ref Loc loc, Identifier id)
+    final extern (D) this(Loc loc, Identifier id)
     {
         super(loc, id);
         visibility = Visibility(Visibility.Kind.public_);
@@ -187,70 +187,12 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         return fields.length - isNested() - (vthis2 !is null);
     }
 
-    /***************************************
-     * Collect all instance fields, then determine instance size.
-     * Returns:
-     *      false if failed to determine the size.
-     */
-    extern (D) final bool determineSize(const ref Loc loc)
-    {
-        //printf("AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
-
-        // The previous instance size finalizing had:
-        if (type.ty == Terror || errors)
-            return false;   // failed already
-        if (sizeok == Sizeok.done)
-            return true;    // succeeded
-
-        if (!members)
-        {
-            .error(loc, "%s `%s` unknown size", kind, toPrettyChars);
-            return false;
-        }
-
-        if (_scope)
-            dsymbolSemantic(this, null);
-
-        // Determine the instance size of base class first.
-        if (auto cd = isClassDeclaration())
-        {
-            cd = cd.baseClass;
-            if (cd && !cd.determineSize(loc))
-                goto Lfail;
-        }
-
-        // Determine instance fields when sizeok == Sizeok.none
-        if (!this.determineFields())
-            goto Lfail;
-        if (sizeok != Sizeok.done)
-            finalizeSize();
-
-        // this aggregate type has:
-        if (type.ty == Terror)
-            return false;   // marked as invalid during the finalizing.
-        if (sizeok == Sizeok.done)
-            return true;    // succeeded to calculate instance size.
-
-    Lfail:
-        // There's unresolvable forward reference.
-        if (type != Type.terror)
-            error(loc, "%s `%s` no size because of forward reference", kind, toPrettyChars);
-        // Don't cache errors from speculative semantic, might be resolvable later.
-        // https://issues.dlang.org/show_bug.cgi?id=16574
-        if (!global.gag)
-        {
-            type = Type.terror;
-            errors = true;
-        }
-        return false;
-    }
-
     abstract void finalizeSize();
 
-    override final uinteger_t size(const ref Loc loc)
+    override final uinteger_t size(Loc loc)
     {
         //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-        bool ok = determineSize(loc);
+        bool ok = determineSize(this, loc);
         //printf("-AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
         return ok ? structsize : SIZE_INVALID;
     }
@@ -334,161 +276,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             }
         }
         return errors;
-    }
-
-    /***************************************
-     * Fill out remainder of elements[] with default initializers for fields[].
-     * Params:
-     *      loc         = location
-     *      elements    = explicit arguments which given to construct object.
-     *      ctorinit    = true if the elements will be used for default initialization.
-     * Returns:
-     *      false if any errors occur.
-     *      Otherwise, returns true and the missing arguments will be pushed in elements[].
-     */
-    final bool fill(const ref Loc loc, ref Expressions elements, bool ctorinit)
-    {
-        //printf("AggregateDeclaration::fill() %s\n", toChars());
-        assert(sizeok == Sizeok.done);
-        const nfields = nonHiddenFields();
-        bool errors = false;
-
-        size_t dim = elements.length;
-        elements.setDim(nfields);
-        foreach (size_t i; dim .. nfields)
-            elements[i] = null;
-
-        // Fill in missing any elements with default initializers
-        foreach (i; 0 .. nfields)
-        {
-            if (elements[i])
-                continue;
-
-            auto vd = fields[i];
-            auto vx = vd;
-            if (vd._init && vd._init.isVoidInitializer())
-                vx = null;
-
-            // Find overlapped fields with the hole [vd.offset .. vd.offset.size()].
-            size_t fieldi = i;
-            foreach (j; 0 .. nfields)
-            {
-                if (i == j)
-                    continue;
-                auto v2 = fields[j];
-                if (!vd.isOverlappedWith(v2))
-                    continue;
-
-                if (elements[j])
-                {
-                    vx = null;
-                    break;
-                }
-                if (v2._init && v2._init.isVoidInitializer())
-                    continue;
-
-                version (all)
-                {
-                    /* Prefer first found non-void-initialized field
-                     * union U { int a; int b = 2; }
-                     * U u;    // Error: overlapping initialization for field a and b
-                     */
-                    if (!vx)
-                    {
-                        vx = v2;
-                        fieldi = j;
-                    }
-                    else if (v2._init)
-                    {
-                        .error(loc, "overlapping initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
-                        errors = true;
-                    }
-                }
-                else
-                {
-                    // fixes https://issues.dlang.org/show_bug.cgi?id=1432 by enabling this path always
-
-                    /* Prefer explicitly initialized field
-                     * union U { int a; int b = 2; }
-                     * U u;    // OK (u.b == 2)
-                     */
-                    if (!vx || !vx._init && v2._init)
-                    {
-                        vx = v2;
-                        fieldi = j;
-                    }
-                    else if (vx != vd && !vx.isOverlappedWith(v2))
-                    {
-                        // Both vx and v2 fills vd, but vx and v2 does not overlap
-                    }
-                    else if (vx._init && v2._init)
-                    {
-                        .error(loc, "overlapping default initialization for field `%s` and `%s`",
-                            v2.toChars(), vd.toChars());
-                        errors = true;
-                    }
-                    else
-                        assert(vx._init || !vx._init && !v2._init);
-                }
-            }
-            if (vx)
-            {
-                Expression e;
-                if (vx.type.size() == 0)
-                {
-                    e = null;
-                }
-                else if (vx._init)
-                {
-                    assert(!vx._init.isVoidInitializer());
-                    if (vx.inuse)   // https://issues.dlang.org/show_bug.cgi?id=18057
-                    {
-                        .error(loc, "%s `%s` recursive initialization of field", vx.kind(), vx.toPrettyChars());
-                        errors = true;
-                    }
-                    else
-                        e = vx.getConstInitializer(false);
-                }
-                else
-                {
-                    if ((vx.storage_class & STC.nodefaultctor) && !ctorinit)
-                    {
-                        .error(loc, "field `%s.%s` must be initialized because it has no default constructor",
-                            type.toChars(), vx.toChars());
-                        errors = true;
-                    }
-                    /* https://issues.dlang.org/show_bug.cgi?id=12509
-                     * Get the element of static array type.
-                     */
-                    Type telem = vx.type;
-                    if (telem.ty == Tsarray)
-                    {
-                        /* We cannot use Type::baseElemOf() here.
-                         * If the bottom of the Tsarray is an enum type, baseElemOf()
-                         * will return the base of the enum, and its default initializer
-                         * would be different from the enum's.
-                         */
-                        TypeSArray tsa;
-                        while ((tsa = telem.toBasetype().isTypeSArray()) !is null)
-                            telem = tsa.next;
-                        if (telem.ty == Tvoid)
-                            telem = Type.tuns8.addMod(telem.mod);
-                    }
-                    if (telem.needsNested() && ctorinit)
-                        e = telem.defaultInit(loc);
-                    else
-                        e = telem.defaultInitLiteral(loc);
-                }
-                elements[fieldi] = e;
-            }
-        }
-        foreach (e; elements)
-        {
-            if (e && e.op == EXP.error)
-                return false;
-        }
-
-        return !errors;
     }
 
     override final Type getType()
@@ -660,7 +447,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                   s.isTemplateDeclaration() ||
                   s.isOverloadSet()))
             {
-                .error(s.loc, "%s `%s` is not a constructor; identifiers starting with `__` are reserved for the implementation", s.kind(), s.toPrettyChars());
+                error(s.loc, "%s name `__ctor` is not allowed", s.kind);
+                errorSupplemental(s.loc, "identifiers starting with `__` are reserved for internal use");
                 errors = true;
                 s = null;
             }
@@ -706,11 +494,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     // Back end
     void* sinit;  /// initializer symbol
-
-    override final inout(AggregateDeclaration) isAggregateDeclaration() inout
-    {
-        return this;
-    }
 
     override void accept(Visitor v)
     {
@@ -793,6 +576,7 @@ public uint alignmember(structalign_t alignment, uint memalignsize, uint offset)
 /****************************************
  * Place a field (mem) into an aggregate (agg), which can be a struct, union or class
  * Params:
+ *    loc           = source location for error messages
  *    nextoffset    = location just past the end of the previous field in the aggregate.
  *                    Updated to be just past the end of this field to be placed, i.e. the future nextoffset
  *    memsize       = size of field
@@ -805,8 +589,8 @@ public uint alignmember(structalign_t alignment, uint memalignsize, uint offset)
  *    aligned offset to place field at
  *
  */
-public uint placeField(ref uint nextoffset, uint memsize, uint memalignsize,
-    structalign_t alignment, ref uint aggsize, ref uint aggalignsize, bool isunion) @safe pure nothrow
+public uint placeField(Loc loc, ref uint nextoffset, uint memsize, uint memalignsize,
+    structalign_t alignment, ref uint aggsize, ref uint aggalignsize, bool isunion) @trusted nothrow
 {
     static if (0)
     {
@@ -829,7 +613,12 @@ public uint placeField(ref uint nextoffset, uint memsize, uint memalignsize,
     bool overflow;
     const sz = addu(memsize, actualAlignment, overflow);
     addu(ofs, sz, overflow);
-    if (overflow) assert(0);
+    if (overflow)
+    {
+        error(loc, "max object size %u exceeded from adding field size %u + alignment adjustment %u + field offset %u when placing field in aggregate",
+                uint.max, memsize, actualAlignment, ofs);
+        return 0;
+    }
 
     // Skip no-op for noreturn without custom aligment
     if (memalignsize != 0 || !alignment.isDefault())

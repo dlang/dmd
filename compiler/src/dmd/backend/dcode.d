@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1987-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dcode.d, backend/dcode.d)
@@ -29,18 +29,18 @@ nothrow:
 @safe:
 
 __gshared
-code *code_list = null;
+code* code_list = null;
 
 /************************************
  * Allocate a chunk of code's and add them to
  * code_list.
  */
 @trusted
-code *code_chunk_alloc()
+code* code_chunk_alloc()
 {
     const size_t n = 4096 / code.sizeof;
     //printf("code_chunk_alloc() n = %d\n", n);
-    code *chunk = cast(code *)mem_fmalloc(n * code.sizeof);
+    code* chunk = cast(code*)mem_fmalloc(n * code.sizeof);
     for (size_t i = 0; i < n - 1; ++i)
     {
         chunk[i].next = &chunk[i + 1];
@@ -55,10 +55,10 @@ code *code_chunk_alloc()
  */
 
 @trusted
-code *code_calloc()
+code* code_calloc()
 {
     //printf("code %d\n", code.sizeof);
-    code *c = code_list ? code_list : code_chunk_alloc();
+    code* c = code_list ? code_list : code_chunk_alloc();
     code_list = code_next(c);
     memset(c, 0, code.sizeof);
 
@@ -72,18 +72,18 @@ code *code_calloc()
  */
 
 @trusted
-void code_free(code *cstart)
+void code_free(code* cstart)
 {
     if (cstart)
     {
-        code *c = cstart;
+        code* c = cstart;
         while (1)
         {
             if (c.Iop == ASM)
             {
                 mem_free(c.IEV1.bytes);
             }
-            code *cnext = code_next(c);
+            code* cnext = code_next(c);
             if (!cnext)
                 break;
             c = cnext;
@@ -100,7 +100,7 @@ void code_term()
 {
 static if (TERMCODE)
 {
-    code *cn;
+    code* cn;
     int count = 0;
 
     while (code_list)
@@ -117,7 +117,7 @@ debug
 {
     int count = 0;
 
-    for (code *cn = code_list; cn; cn = code_next(cn))
+    for (code* cn = code_list; cn; cn = code_next(cn))
         count++;
     printf("Max # of codes = %d\n",count);
 }

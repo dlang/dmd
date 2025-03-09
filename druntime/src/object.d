@@ -1324,8 +1324,16 @@ class TypeInfo_AssociativeArray : TypeInfo
     override @property inout(TypeInfo) next() nothrow pure inout { return value; }
     override @property uint flags() nothrow pure const { return 1; }
 
+    // TypeInfo entry is generated from the type of this template to help rt/aaA.d
+    static struct Entry(K, V)
+    {
+        K key;
+        V value;
+    }
+
     TypeInfo value;
     TypeInfo key;
+    TypeInfo entry;
 
     override @property size_t talign() nothrow pure const
     {
@@ -3191,6 +3199,10 @@ auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
         sum += v;
 
     assert(sum == 3);
+
+    foreach (ref v; dict.byValue)
+        v++;
+    assert(dict == ["k1": 2, "k2": 3]);
 }
 
 /***********************************
@@ -3214,7 +3226,7 @@ auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
  *---
  *
  * Note that this is a low-level interface to iterating over the associative
- * array and is not compatible withth the
+ * array and is not compatible with the
  * $(LINK2 $(ROOT_DIR)phobos/std_typecons.html#.Tuple,`Tuple`) type in Phobos.
  * For compatibility with `Tuple`, use
  * $(LINK2 $(ROOT_DIR)phobos/std_array.html#.byPair,std.array.byPair) instead.
@@ -3278,8 +3290,11 @@ auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
         assert(e.key[1] == e.value + '0');
         sum += e.value;
     }
-
     assert(sum == 3);
+
+    foreach (e; dict.byKeyValue)
+        e.value++;
+    assert(dict == ["k1": 2, "k2": 3]);
 }
 
 /***********************************
@@ -3451,8 +3466,8 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
 }
 
 /***********************************
- * Looks up key; if it exists returns corresponding value else evaluates and
- * returns defaultValue.
+ * If `key` is in `aa`, returns corresponding value; otherwise it evaluates and
+ * returns `defaultValue`.
  * Params:
  *      aa =     The associative array.
  *      key =    The key.
@@ -3481,8 +3496,8 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
 }
 
 /***********************************
- * Looks up key; if it exists returns corresponding value else evaluates
- * value, adds it to the associative array and returns it.
+ * If `key` is in `aa`, returns corresponding value; otherwise it evaluates
+ * `value`, adds it to the associative array and returns it.
  * Params:
  *      aa =     The associative array.
  *      key =    The key.
@@ -3762,15 +3777,10 @@ template RTInfoImpl(size_t[] pointerBitmap)
     immutable size_t[pointerBitmap.length] RTInfoImpl = pointerBitmap[];
 }
 
-template NoPointersBitmapPayload(size_t N)
-{
-    enum size_t[N] NoPointersBitmapPayload = 0;
-}
-
 template RTInfo(T)
 {
     enum pointerBitmap = __traits(getPointerBitmap, T);
-    static if (pointerBitmap[1 .. $] == NoPointersBitmapPayload!(pointerBitmap.length - 1))
+    static if (pointerBitmap[1 .. $] == size_t[pointerBitmap.length - 1].init)
         enum RTInfo = rtinfoNoPointers;
     else
         enum RTInfo = RTInfoImpl!(pointerBitmap).ptr;

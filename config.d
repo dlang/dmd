@@ -20,16 +20,14 @@ void main(const string[] args)
     const outputDirectory = args[1];
     const versionFile = args[2];
 
-    version (Posix)
-        const sysConfigDirectory = args[3];
-
     mkdirRecurse(outputDirectory);
     const version_ = generateVersion(versionFile);
 
     updateIfChanged(buildPath(outputDirectory, "VERSION"), version_);
 
-    version (Posix)
+    if (args.length > 3)
     {
+        const sysConfigDirectory = args[3];
         const path = buildPath(outputDirectory, "SYSCONFDIR.imp");
         updateIfChanged(path, sysConfigDirectory);
     }

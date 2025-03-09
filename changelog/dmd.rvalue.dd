@@ -1,0 +1,27 @@
+New keyword `__rvalue`
+
+The newly added primary expression of the form `__rvalue(expression)`
+evaluates to `expression`, except that it is treated as an rvalue,
+even if would be an lvalue otherwise.
+
+Overloads on `ref`:
+```
+foo(    S s); // selected if the argument is an rvalue
+foo(ref S s); // selected if the argument is an lvalue
+
+S s;
+S bar();
+...
+foo(s); // selects foo(ref S)
+foo(bar()); // selects foo(S)
+```
+With this change:
+```
+foo(__rvalue(s)); // selects foo(S)
+```
+This also applies to constructors and assignments, meaning move constructors and
+move assignments are enabled. Moving instead of copying can be much more resource
+efficient, as, say, a string can be moved rather than copied/deleted.
+
+A moved object can still be destructed, so take that into account when moving
+a field - set it to a benign value that can be destructed.

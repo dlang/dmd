@@ -3,7 +3,7 @@
  * Generate exception handling tables.
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/eh.d, _eh.d)
@@ -39,7 +39,7 @@ package(dmd) @property @nogc nothrow auto @trusted NPTRSIZE() { return _tysize[T
  */
 
 @trusted
-Symbol *except_gentables()
+Symbol* except_gentables()
 {
     //printf("except_gentables()\n");
     if (config.ehmethod == EHmethod.EH_DM && !(funcsym_p.Sfunc.Fflags3 & Feh_none))
@@ -47,13 +47,13 @@ Symbol *except_gentables()
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
         if (cgstate.Alloca.size)
-            error(null, 0, 0, "cannot mix `core.std.stdlib.alloca()` and exception handling in `%s()`", &funcsym_p.Sident[0]);
+            error(Srcpos.init, "cannot mix `core.std.stdlib.alloca()` and exception handling in `%s()`", &funcsym_p.Sident[0]);
 
         char[13+5+1] name = void;
         __gshared int tmpnum;
         const len = snprintf(name.ptr, name.length, "_HandlerTable%d", tmpnum++);
 
-        Symbol *s = symbol_name(name[0 .. len],SC.static_,tstypes[TYint]);
+        Symbol* s = symbol_name(name[0 .. len],SC.static_,tstypes[TYint]);
         symbol_keep(s);
         //symbol_debug(s);
 
@@ -81,11 +81,11 @@ Symbol *except_gentables()
  *    }
  *    int last_index;             // previous index (enclosing guarded section)
  *    uint catchoffset;           // offset to catch block from Symbol
- *    void *finally;              // finally code to execute
+ *    void* finally;              // finally code to execute
  * }
  */
 @trusted
-void except_fillInEHTable(Symbol *s)
+void except_fillInEHTable(Symbol* s)
 {
     uint fsize = NPTRSIZE;             // target size of function pointer
     auto dtb = DtBuilder(0);
@@ -98,9 +98,9 @@ void except_fillInEHTable(Symbol *s)
         Guard guard[];          // sorted such that the enclosing guarded sections come first
       catchoffset:
         uint ncatches;          // number of catch blocks
-        {   void *type;         // Symbol representing type
+        {   void* type;         // Symbol representing type
             uint bpoffset;      // EBP offset of catch variable
-            void *handler;      // catch handler code
+            void* handler;      // catch handler code
         } catch[];
      */
 
@@ -139,14 +139,14 @@ void except_fillInEHTable(Symbol *s)
     // First, calculate starting catch offset
     int guarddim = 0;                               // max dimension of guard[]
     int ndctors = 0;                                // number of PSOP.dctor's
-    foreach (b; BlockRange(startblock))
+    foreach (b; BlockRange(bo.startblock))
     {
-        if (b.BC == BC_try && b.Bscope_index >= guarddim)
+        if (b.bc == BC._try && b.Bscope_index >= guarddim)
             guarddim = b.Bscope_index + 1;
-//      printf("b.BC = %2d, Bscope_index = %2d, last_index = %2d, offset = x%x\n",
-//              b.BC, b.Bscope_index, b.Blast_index, b.Boffset);
+//      printf("b.bc = %2d, Bscope_index = %2d, last_index = %2d, offset = x%x\n",
+//              b.bc, b.Bscope_index, b.Blast_index, b.Boffset);
         if (cgstate.usednteh & EHcleanup)
-            for (code *c = b.Bcode; c; c = code_next(c))
+            for (code* c = b.Bcode; c; c = code_next(c))
             {
                 if (c.Iop == PSOP.ddtor)
                     ndctors++;
@@ -164,10 +164,10 @@ void except_fillInEHTable(Symbol *s)
 
     // Generate guard[]
     int i = 0;
-    foreach (b; BlockRange(startblock))
+    foreach (b; BlockRange(bo.startblock))
     {
         //printf("b = %p, b.Btry = %p, b.offset = %x\n", b, b.Btry, b.Boffset);
-        if (b.BC == BC_try)
+        if (b.bc == BC._try)
         {
             assert(b.Bscope_index >= i);
             if (i < b.Bscope_index)
@@ -182,16 +182,16 @@ void except_fillInEHTable(Symbol *s)
             if (config.ehmethod == EHmethod.EH_DM)
             {
             //printf("DHandlerInfo: offset = %x", cast(int)(b.Boffset - startblock.Boffset));
-            dtb.dword(cast(int)(b.Boffset - startblock.Boffset));    // offset to start of block
+            dtb.dword(cast(int)(b.Boffset - bo.startblock.Boffset));    // offset to start of block
 
             // Compute ending offset
             uint endoffset;
-            for (block *bn = b.Bnext; 1; bn = bn.Bnext)
+            for (block* bn = b.Bnext; 1; bn = bn.Bnext)
             {
                 //printf("\tbn = %p, bn.Btry = %p, bn.offset = %x\n", bn, bn.Btry, bn.Boffset);
                 assert(bn);
                 if (bn.Btry == b.Btry)
-                {    endoffset = cast(uint)(bn.Boffset - startblock.Boffset);
+                {    endoffset = cast(uint)(bn.Boffset - bo.startblock.Boffset);
                      break;
                 }
             }
@@ -213,15 +213,15 @@ void except_fillInEHTable(Symbol *s)
             {
                 assert(nsucc == 2);
                 dtb.dword(0);           // no catch offset
-                block *bhandler = b.nthSucc(1);
-                assert(bhandler.BC == BC_finally);
-                // To successor of BC_finally block
+                block* bhandler = b.nthSucc(1);
+                assert(bhandler.bc == BC._finally);
+                // To successor of BC._finally block
                 bhandler = bhandler.nthSucc(0);
                 // finally handler address
                 if (config.ehmethod == EHmethod.EH_DM)
                 {
-                    assert(bhandler.Boffset > startblock.Boffset);
-                    dtb.size(bhandler.Boffset - startblock.Boffset);    // finally handler offset
+                    assert(bhandler.Boffset > bo.startblock.Boffset);
+                    dtb.size(bhandler.Boffset - bo.startblock.Boffset);    // finally handler offset
                 }
                 else
                     dtb.coff(cast(uint)bhandler.Boffset);
@@ -239,22 +239,22 @@ void except_fillInEHTable(Symbol *s)
         Barray!int stack;
 
     int scopeindex = guarddim;
-    foreach (b; BlockRange(startblock))
+    foreach (b; BlockRange(bo.startblock))
     {
         /* Set up stack of scope indices
          */
         stack.push(b.Btry ? b.Btry.Bscope_index : -1);
 
         uint boffset = cast(uint)b.Boffset;
-        for (code *c = b.Bcode; c; c = code_next(c))
+        for (code* c = b.Bcode; c; c = code_next(c))
         {
             if (c.Iop == PSOP.dctor)
             {
-                code *c2 = code_next(c);
+                code* c2 = code_next(c);
                 if (config.ehmethod == EHmethod.EH_WIN32)
                     nteh_patchindex(c2, scopeindex);
                 if (config.ehmethod == EHmethod.EH_DM)
-                    dtb.dword(cast(int)(boffset - startblock.Boffset)); // guard offset
+                    dtb.dword(cast(int)(boffset - bo.startblock.Boffset)); // guard offset
                 // Find corresponding ddtor instruction
                 int n = 0;
                 uint eoffset = boffset;
@@ -273,7 +273,7 @@ void except_fillInEHTable(Symbol *s)
                         else
                         {
                             foffset = eoffset;
-                            code *cf = code_next(c2);
+                            code* cf = code_next(c2);
                             if (config.ehmethod == EHmethod.EH_WIN32)
                             {
                                 nteh_patchindex(cf, stack[stack.length - 1]);
@@ -290,7 +290,7 @@ void except_fillInEHTable(Symbol *s)
                             //cf = code_next(cf);
                             //foffset += calccodsize(cf);
                             if (config.ehmethod == EHmethod.EH_DM)
-                                dtb.dword(cast(int)(eoffset - startblock.Boffset)); // guard offset
+                                dtb.dword(cast(int)(eoffset - bo.startblock.Boffset)); // guard offset
                             break;
                         }
                     }
@@ -306,8 +306,8 @@ void except_fillInEHTable(Symbol *s)
                 dtb.dword(0);           // no catch offset
                 if (config.ehmethod == EHmethod.EH_DM)
                 {
-                    assert(foffset > startblock.Boffset);
-                    dtb.size(foffset - startblock.Boffset);    // finally handler offset
+                    assert(foffset > bo.startblock.Boffset);
+                    dtb.size(foffset - bo.startblock.Boffset);    // finally handler offset
                 }
                 else
                     dtb.coff(foffset);  // finally handler address
@@ -328,9 +328,9 @@ void except_fillInEHTable(Symbol *s)
     }
 
     // Generate catch[]
-    foreach (b; BlockRange(startblock))
+    foreach (b; BlockRange(bo.startblock))
     {
-        if (b.BC == BC_try && b.jcatchvar)         // if try-catch
+        if (b.bc == BC._try && b.jcatchvar)         // if try-catch
         {
             int nsucc = b.numSucc();
             dtb.size(nsucc - 1);           // # of catch blocks
@@ -338,7 +338,7 @@ void except_fillInEHTable(Symbol *s)
 
             for (int j = 1; j < nsucc; ++j)
             {
-                block *bcatch = b.nthSucc(j);
+                block* bcatch = b.nthSucc(j);
 
                 dtb.xoff(bcatch.Bcatchtype,0,TYnptr);
 
@@ -347,8 +347,8 @@ void except_fillInEHTable(Symbol *s)
                 // catch handler address
                 if (config.ehmethod == EHmethod.EH_DM)
                 {
-                    assert(bcatch.Boffset > startblock.Boffset);
-                    dtb.size(bcatch.Boffset - startblock.Boffset);  // catch handler offset
+                    assert(bcatch.Boffset > bo.startblock.Boffset);
+                    dtb.size(bcatch.Boffset - bo.startblock.Boffset);  // catch handler offset
                 }
                 else
                     dtb.coff(cast(uint)bcatch.Boffset);

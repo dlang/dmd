@@ -50,3 +50,5 @@ struct Issue24592a { unsigned long long a:20, b:20, c:24; };
 struct Issue24592b { unsigned int x; unsigned long long a:20, b:20, c:24; };
 struct Issue24592c { unsigned long long a:20, b:32, c:32, d:32, e:32, f:32; };
 struct Issue24592d { unsigned long long a:10, b:16, c:16, d:16, e:16, f:16; };
+struct Issue24651a { unsigned long long a:48, b:17; };
+struct Issue24651b { unsigned long long a:48, b:48; };

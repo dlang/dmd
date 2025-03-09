@@ -11,7 +11,7 @@
 module dmd.astbase;
 
 import dmd.astenums;
-import dmd.parsetimevisitor;
+import dmd.visitor.parsetime;
 import dmd.tokens : EXP;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
@@ -81,7 +81,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        final extern (D) this(const ref Loc loc, Identifier ident)
+        final extern (D) this(Loc loc, Identifier ident)
         {
             this.loc = loc;
             this.ident = ident;
@@ -266,7 +266,7 @@ struct ASTBase
     {
         Identifier ident;
 
-        extern (D) this(const ref Loc loc, Identifier ident)
+        extern (D) this(Loc loc, Identifier ident)
         {
             super(null);
             this.loc = loc;
@@ -285,7 +285,7 @@ struct ASTBase
         Type type;
         Dsymbol aliassym;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Type type, Dsymbol aliassym)
+        extern (D) this(Loc loc, Identifier ident, Type type, Dsymbol aliassym)
         {
             super(null);
             this.loc = loc;
@@ -318,7 +318,7 @@ struct ASTBase
         final extern (D) this(Identifier id)
         {
             super(id);
-            storage_class = STC.undefined_;
+            storage_class = STC.none;
             visibility = Visibility(Visibility.Kind.undefined);
             linkage = LINK.default_;
         }
@@ -342,7 +342,7 @@ struct ASTBase
         {
             super(id);
         }
-        final extern (D) this(const ref Loc loc, Identifier ident)
+        final extern (D) this(Loc loc, Identifier ident)
         {
             super(loc, ident);
         }
@@ -364,7 +364,7 @@ struct ASTBase
         Identifiers names;
         Identifiers aliases;
 
-        extern (D) this(const ref Loc loc, Identifier[] packages, Identifier id, Identifier aliasId, int isstatic)
+        extern (D) this(Loc loc, Identifier[] packages, Identifier id, Identifier aliasId, int isstatic)
         {
             super(null);
             this.loc = loc;
@@ -390,16 +390,6 @@ struct ASTBase
                 this.ident = id;
             }
         }
-        void addAlias(Identifier name, Identifier _alias)
-        {
-            if (isstatic)
-                error(loc, "cannot have an import bind list");
-            if (!aliasId)
-                this.ident = null;
-
-            names.push(name);
-            aliases.push(_alias);
-        }
 
         override void accept(Visitor v)
         {
@@ -411,12 +401,12 @@ struct ASTBase
     {
         Dsymbols* decl;
 
-        final extern (D) this(Dsymbols *decl)
+        final extern (D) this(Dsymbols* decl)
         {
             this.decl = decl;
         }
 
-        final extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
+        final extern (D) this(Loc loc, Identifier ident, Dsymbols* decl)
         {
             super(loc, ident);
             this.decl = decl;
@@ -438,7 +428,7 @@ struct ASTBase
         Expression exp;
         Expressions* msgs;
 
-        extern (D) this(const ref Loc loc, Expression exp, Expression msg)
+        extern (D) this(Loc loc, Expression exp, Expression msg)
         {
             super(loc, Id.empty);
             this.exp = exp;
@@ -446,7 +436,7 @@ struct ASTBase
             (*this.msgs)[0] = msg;
         }
 
-        extern (D) this(const ref Loc loc, Expression exp, Expressions* msgs)
+        extern (D) this(Loc loc, Expression exp, Expressions* msgs)
         {
             super(loc, Id.empty);
             this.exp = exp;
@@ -461,16 +451,13 @@ struct ASTBase
 
     extern (C++) final class DebugSymbol : Dsymbol
     {
-        uint level;
-
-        extern (D) this(const ref Loc loc, Identifier ident)
+        extern (D) this(Loc loc, Identifier ident)
         {
             super(ident);
             this.loc = loc;
         }
-        extern (D) this(const ref Loc loc, uint level)
+        extern (D) this(Loc loc)
         {
-            this.level = level;
             this.loc = loc;
         }
 
@@ -482,16 +469,13 @@ struct ASTBase
 
     extern (C++) final class VersionSymbol : Dsymbol
     {
-        uint level;
-
-        extern (D) this(const ref Loc loc, Identifier ident)
+        extern (D) this(Loc loc, Identifier ident)
         {
             super(ident);
             this.loc = loc;
         }
-        extern (D) this(const ref Loc loc, uint level)
+        extern (D) this(Loc loc)
         {
-            this.level = level;
             this.loc = loc;
         }
 
@@ -525,7 +509,7 @@ struct ASTBase
         uint ctfeAdrOnStack;
         uint sequenceNumber;
 
-        final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass st = STC.undefined_)
+        final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass st = STC.none)
         {
             super(id);
             this.type = type;
@@ -553,9 +537,9 @@ struct ASTBase
         uint fieldWidth;
         uint bitOffset;
 
-        final extern (D) this(const ref Loc loc, Type type, Identifier id, Expression width)
+        final extern (D) this(Loc loc, Type type, Identifier id, Expression width)
         {
-            super(loc, type, id, cast(Initializer)null, cast(StorageClass)STC.undefined_);
+            super(loc, type, id, cast(Initializer)null, cast(StorageClass)STC.none);
 
             this.width = width;
             this.storage_class |= STC.field;
@@ -590,7 +574,7 @@ struct ASTBase
         ForeachStatement fes;
         FuncDeclaration overnext0;
 
-        final extern (D) this(const ref Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type, bool noreturn = false)
+        final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type, bool noreturn = false)
         {
             super(id);
             this.storage_class = storage_class;
@@ -631,14 +615,14 @@ struct ASTBase
     {
         Dsymbol aliassym;
 
-        extern (D) this(const ref Loc loc, Identifier id, Dsymbol s)
+        extern (D) this(Loc loc, Identifier id, Dsymbol s)
         {
             super(id);
             this.loc = loc;
             this.aliassym = s;
         }
 
-        extern (D) this(const ref Loc loc, Identifier id, Type type)
+        extern (D) this(Loc loc, Identifier id, Type type)
         {
             super(id);
             this.loc = loc;
@@ -662,7 +646,7 @@ struct ASTBase
     {
         Objects* objects;
 
-        extern (D) this(const ref Loc loc, Identifier id, Objects* objects)
+        extern (D) this(Loc loc, Identifier id, Objects* objects)
         {
             super(id);
             this.loc = loc;
@@ -679,7 +663,7 @@ struct ASTBase
     {
         TOK tok;
 
-        extern (D) this(const ref Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.undefined_)
+        extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.none)
         {
             super(loc, endloc, null, storage_class, type);
             this.ident = id ? id : Id.empty;
@@ -700,7 +684,7 @@ struct ASTBase
 
     extern (C++) final class PostBlitDeclaration : FuncDeclaration
     {
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Identifier id)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
         {
             super(loc, endloc, id, stc, null);
         }
@@ -713,7 +697,7 @@ struct ASTBase
 
     extern (C++) final class CtorDeclaration : FuncDeclaration
     {
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Type type, bool isCopyCtor = false)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, Type type, bool isCopyCtor = false)
         {
             super(loc, endloc, Id.ctor, stc, type);
         }
@@ -731,11 +715,11 @@ struct ASTBase
 
     extern (C++) final class DtorDeclaration : FuncDeclaration
     {
-        extern (D) this(const ref Loc loc, Loc endloc)
+        extern (D) this(Loc loc, Loc endloc)
         {
-            super(loc, endloc, Id.dtor, STC.undefined_, null);
+            super(loc, endloc, Id.dtor, STC.none, null);
         }
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Identifier id)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
         {
             super(loc, endloc, id, stc, null);
         }
@@ -753,7 +737,7 @@ struct ASTBase
 
     extern (C++) final class InvariantDeclaration : FuncDeclaration
     {
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Identifier id, Statement fbody)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id, Statement fbody)
         {
             super(loc, endloc, id ? id : Identifier.generateIdWithLoc("__invariant", loc), stc, null);
             this.fbody = fbody;
@@ -769,7 +753,7 @@ struct ASTBase
     {
         char* codedoc;
 
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, char* codedoc)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, char* codedoc)
         {
             super(loc, endloc, Identifier.generateIdWithLoc("__unittest", loc), stc, null);
             this.codedoc = codedoc;
@@ -783,7 +767,7 @@ struct ASTBase
 
     extern (C++) final class NewDeclaration : FuncDeclaration
     {
-        extern (D) this(const ref Loc loc, StorageClass stc)
+        extern (D) this(Loc loc, StorageClass stc)
         {
             super(loc, Loc.initial, Id.classNew, STC.static_ | stc, null);
         }
@@ -796,11 +780,11 @@ struct ASTBase
 
     extern (C++) class StaticCtorDeclaration : FuncDeclaration
     {
-        final extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc)
+        final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
         {
             super(loc, endloc, Identifier.generateIdWithLoc("_staticCtor", loc), STC.static_ | stc, null);
         }
-        final extern (D) this(const ref Loc loc, Loc endloc, string name, StorageClass stc)
+        final extern (D) this(Loc loc, Loc endloc, string name, StorageClass stc)
         {
             super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
         }
@@ -817,7 +801,7 @@ struct ASTBase
         {
             super(loc, endloc, Identifier.generateIdWithLoc("__staticDtor", loc), STC.static_ | stc, null);
         }
-        final extern (D) this(const ref Loc loc, Loc endloc, string name, StorageClass stc)
+        final extern (D) this(Loc loc, Loc endloc, string name, StorageClass stc)
         {
             super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
         }
@@ -830,7 +814,7 @@ struct ASTBase
 
     extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
     {
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc)
         {
             super(loc, endloc, "_sharedStaticCtor", stc);
         }
@@ -843,7 +827,7 @@ struct ASTBase
 
     extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
     {
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc)
         {
             super(loc, endloc, "_sharedStaticDtor", stc);
         }
@@ -859,7 +843,7 @@ struct ASTBase
         PKG isPkgMod;
         uint tag;
 
-        final extern (D) this(const ref Loc loc, Identifier ident)
+        final extern (D) this(Loc loc, Identifier ident)
         {
             super(loc, ident);
             this.isPkgMod = PKG.unknown;
@@ -879,7 +863,7 @@ struct ASTBase
         Type memtype;
         Visibility visibility;
 
-        extern (D) this(const ref Loc loc, Identifier id, Type memtype)
+        extern (D) this(Loc loc, Identifier id, Type memtype)
         {
             super(id);
             this.loc = loc;
@@ -900,7 +884,7 @@ struct ASTBase
         Sizeok sizeok;
         Type type;
 
-        final extern (D) this(const ref Loc loc, Identifier id)
+        final extern (D) this(Loc loc, Identifier id)
         {
             super(id);
             this.loc = loc;
@@ -930,7 +914,7 @@ struct ASTBase
         Visibility visibility;
         Dsymbol onemember;
 
-        extern (D) this(const ref Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
+        extern (D) this(Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
         {
             super(id);
             this.loc = loc;
@@ -979,7 +963,7 @@ struct ASTBase
         bool havetempdecl;
         TemplateInstance inst;
 
-        final extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs)
+        final extern (D) this(Loc loc, Identifier ident, Objects* tiargs)
         {
             super(null);
             this.loc = loc;
@@ -987,7 +971,7 @@ struct ASTBase
             this.tiargs = tiargs;
         }
 
-        final extern (D) this(const ref Loc loc, TemplateDeclaration td, Objects* tiargs)
+        final extern (D) this(Loc loc, TemplateDeclaration td, Objects* tiargs)
         {
             super(null);
             this.loc = loc;
@@ -1050,7 +1034,7 @@ struct ASTBase
          */
         Expression identExp;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Expression identExp, Dsymbols* members)
+        extern (D) this(Loc loc, Identifier ident, Expression identExp, Dsymbols* members)
         {
             super(ident);
             this.loc = loc;
@@ -1068,7 +1052,7 @@ struct ASTBase
     {
         Expressions* exps;
 
-        extern (D) this(const ref Loc loc, Expressions* exps)
+        extern (D) this(Loc loc, Expressions* exps)
         {
             super(null);
             this.loc = loc;
@@ -1132,7 +1116,7 @@ struct ASTBase
     {
         LINK linkage;
 
-        extern (D) this(const ref Loc loc, LINK p, Dsymbols* decl)
+        extern (D) this(Loc loc, LINK p, Dsymbols* decl)
         {
             super(loc, null, decl);
             this.linkage = p;
@@ -1148,7 +1132,7 @@ struct ASTBase
     {
         bool isunion;
 
-        extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl)
+        extern (D) this(Loc loc, bool isunion, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
@@ -1166,7 +1150,7 @@ struct ASTBase
         Expressions* exps;
         structalign_t salign;
 
-        extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
+        extern (D) this(Loc loc, Expression exp, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
@@ -1177,7 +1161,7 @@ struct ASTBase
             }
         }
 
-        extern (D) this(const ref Loc loc, Expressions* exps, Dsymbols* decl)
+        extern (D) this(Loc loc, Expressions* exps, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
@@ -1194,7 +1178,7 @@ struct ASTBase
     {
         CPPMANGLE cppmangle;
 
-        extern (D) this(const ref Loc loc, CPPMANGLE p, Dsymbols* decl)
+        extern (D) this(Loc loc, CPPMANGLE p, Dsymbols* decl)
         {
             super(loc, null, decl);
             cppmangle = p;
@@ -1210,12 +1194,12 @@ struct ASTBase
     {
         Expression exp;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
+        extern (D) this(Loc loc, Identifier ident, Dsymbols* decl)
         {
             super(loc, ident, decl);
         }
 
-        extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
+        extern (D) this(Loc loc, Expression exp, Dsymbols* decl)
         {
             super(loc, null, decl);
             this.exp = exp;
@@ -1232,13 +1216,13 @@ struct ASTBase
         Visibility visibility;
         Identifier[] pkg_identifiers;
 
-        extern (D) this(const ref Loc loc, Visibility v, Dsymbols* decl)
+        extern (D) this(Loc loc, Visibility v, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
             this.visibility = v;
         }
-        extern (D) this(const ref Loc loc, Identifier[] pkg_identifiers, Dsymbols* decl)
+        extern (D) this(Loc loc, Identifier[] pkg_identifiers, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
@@ -1257,7 +1241,7 @@ struct ASTBase
     {
         Expressions* args;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
+        extern (D) this(Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
@@ -1281,7 +1265,7 @@ struct ASTBase
             this.stc = stc;
         }
 
-        final extern (D) this(const ref Loc loc, StorageClass stc, Dsymbols* decl)
+        final extern (D) this(Loc loc, StorageClass stc, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
@@ -1304,7 +1288,7 @@ struct ASTBase
         Condition condition;
         Dsymbols* elsedecl;
 
-        final extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+        final extern (D) this(Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
         {
             super(loc, null, decl);
             this.condition = condition;
@@ -1335,7 +1319,7 @@ struct ASTBase
 
     extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     {
-        extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+        extern (D) this(Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
         {
             super(loc, condition, decl, elsedecl);
         }
@@ -1369,14 +1353,14 @@ struct ASTBase
 
         @property ref value() { return (cast(ExpInitializer)_init).exp; }
 
-        extern (D) this(const ref Loc loc, Identifier id, Expression value, Type origType)
+        extern (D) this(Loc loc, Identifier id, Expression value, Type origType)
         {
             super(loc, null, id ? id : Id.empty, new ExpInitializer(loc, value));
             this.origValue = value;
             this.origType = origType;
         }
 
-        extern(D) this(const ref Loc loc, Identifier id, Expression value, Type memtype,
+        extern(D) this(Loc loc, Identifier id, Expression value, Type memtype,
             StorageClass stc, UserAttributeDeclaration uad, DeprecatedDeclaration dd)
         {
             this(loc, id, value, memtype);
@@ -1399,7 +1383,7 @@ struct ASTBase
         const(char)[] arg;
         Edition edition = Edition.legacy;
 
-        extern (D) this(const ref Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
+        extern (D) this(Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
         {
             super(loc, ident);
             this.arg = filename;
@@ -1424,7 +1408,7 @@ struct ASTBase
         int zeroInit;
         ThreeState ispod;
 
-        final extern (D) this(const ref Loc loc, Identifier id, bool inObject)
+        final extern (D) this(Loc loc, Identifier id, bool inObject)
         {
             super(loc, id);
             zeroInit = 0;
@@ -1450,7 +1434,7 @@ struct ASTBase
 
     extern (C++) final class UnionDeclaration : StructDeclaration
     {
-        extern (D) this(const ref Loc loc, Identifier id)
+        extern (D) this(Loc loc, Identifier id)
         {
             super(loc, id, false);
         }
@@ -1481,7 +1465,7 @@ struct ASTBase
         BaseClasses* baseclasses;
         Baseok baseok;
 
-        final extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
+        final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
         {
             if(!id)
                 id = Identifier.generateId("__anonclass");
@@ -1667,7 +1651,7 @@ struct ASTBase
 
     extern (C++) class InterfaceDeclaration : ClassDeclaration
     {
-        final extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses)
+        final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses)
         {
             super(loc, id, baseclasses, null, false);
         }
@@ -1682,7 +1666,7 @@ struct ASTBase
     {
         TypeQualified tqual;
 
-        extern (D) this(const ref Loc loc, Identifier ident, TypeQualified tqual, Objects *tiargs)
+        extern (D) this(Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)
         {
             super(loc,
                   tqual.idents.length ? cast(Identifier)tqual.idents[tqual.idents.length - 1] : (cast(TypeIdentifier)tqual).ident,
@@ -1703,7 +1687,7 @@ struct ASTBase
         StorageClass stc;                   // storage class of ...
         VarArg varargs = VarArg.none;
 
-        this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = 0)
+        this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = STC.none)
         {
             this.parameters = parameters;
             this.varargs = varargs;
@@ -1722,7 +1706,7 @@ struct ASTBase
 
         extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param);
 
-        final extern (D) this(const ref Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
+        final extern (D) this(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
         {
             this.storageClass = storageClass;
             this.type = type;
@@ -1822,7 +1806,7 @@ struct ASTBase
         Loc loc;
         STMT stmt;
 
-        final extern (D) this(const ref Loc loc, STMT stmt)
+        final extern (D) this(Loc loc, STMT stmt)
         {
             this.loc = loc;
             this.stmt = stmt;
@@ -1850,7 +1834,7 @@ struct ASTBase
     {
         Dsymbols* imports;
 
-        extern (D) this(const ref Loc loc, Dsymbols* imports)
+        extern (D) this(Loc loc, Dsymbols* imports)
         {
             super(loc, STMT.Import);
             this.imports = imports;
@@ -1867,7 +1851,7 @@ struct ASTBase
         Statement statement;
         Loc endloc;
 
-        extern (D) this(const ref Loc loc, Statement s, Loc endloc)
+        extern (D) this(Loc loc, Statement s, Loc endloc)
         {
             super(loc, STMT.Scope);
             this.statement = s;
@@ -1884,7 +1868,7 @@ struct ASTBase
     {
         Expression exp;
 
-        extern (D) this(const ref Loc loc, Expression exp)
+        extern (D) this(Loc loc, Expression exp)
         {
             super(loc, STMT.Return);
             this.exp = exp;
@@ -1901,7 +1885,7 @@ struct ASTBase
         Identifier ident;
         Statement statement;
 
-        final extern (D) this(const ref Loc loc, Identifier ident, Statement statement)
+        final extern (D) this(Loc loc, Identifier ident, Statement statement)
         {
             super(loc, STMT.Label);
             this.ident = ident;
@@ -1934,7 +1918,7 @@ struct ASTBase
     {
         Expressions* exps;
 
-        final extern (D) this(const ref Loc loc, Expressions* exps)
+        final extern (D) this(Loc loc, Expressions* exps)
         {
             super(loc, STMT.Mixin);
             this.exps = exps;
@@ -1953,7 +1937,7 @@ struct ASTBase
         Statement _body;
         Loc endloc;
 
-        extern (D) this(const ref Loc loc, Expression c, Statement b, Loc endloc, Parameter param = null)
+        extern (D) this(Loc loc, Expression c, Statement b, Loc endloc, Parameter param = null)
         {
             super(loc, STMT.While);
             condition = c;
@@ -1975,7 +1959,7 @@ struct ASTBase
         Statement _body;
         Loc endloc;
 
-        extern (D) this(const ref Loc loc, Statement _init, Expression condition, Expression increment, Statement _body, Loc endloc)
+        extern (D) this(Loc loc, Statement _init, Expression condition, Expression increment, Statement _body, Loc endloc)
         {
             super(loc, STMT.For);
             this._init = _init;
@@ -1997,7 +1981,7 @@ struct ASTBase
         Expression condition;
         Loc endloc;
 
-        extern (D) this(const ref Loc loc, Statement b, Expression c, Loc endloc)
+        extern (D) this(Loc loc, Statement b, Expression c, Loc endloc)
         {
             super(loc, STMT.Do);
             _body = b;
@@ -2014,18 +1998,18 @@ struct ASTBase
     extern (C++) final class ForeachRangeStatement : Statement
     {
         TOK op;                 // TOK.foreach_ or TOK.foreach_reverse_
-        Parameter prm;          // loop index variable
+        Parameter param;          // loop index variable
         Expression lwr;
         Expression upr;
         Statement _body;
         Loc endloc;             // location of closing curly bracket
 
 
-        extern (D) this(const ref Loc loc, TOK op, Parameter prm, Expression lwr, Expression upr, Statement _body, Loc endloc)
+        extern (D) this(Loc loc, TOK op, Parameter param, Expression lwr, Expression upr, Statement _body, Loc endloc)
         {
             super(loc, STMT.ForeachRange);
             this.op = op;
-            this.prm = prm;
+            this.param = param;
             this.lwr = lwr;
             this.upr = upr;
             this._body = _body;
@@ -2046,7 +2030,7 @@ struct ASTBase
         Statement _body;
         Loc endloc;                 // location of closing curly bracket
 
-        extern (D) this(const ref Loc loc, TOK op, Parameters* parameters, Expression aggr, Statement _body, Loc endloc)
+        extern (D) this(Loc loc, TOK op, Parameters* parameters, Expression aggr, Statement _body, Loc endloc)
         {
             super(loc, STMT.Foreach);
             this.op = op;
@@ -2064,17 +2048,17 @@ struct ASTBase
 
     extern (C++) final class IfStatement : Statement
     {
-        Parameter prm;
+        Parameter param;
         Expression condition;
         Statement ifbody;
         Statement elsebody;
         VarDeclaration match;   // for MatchExpression results
         Loc endloc;                 // location of closing curly bracket
 
-        extern (D) this(const ref Loc loc, Parameter prm, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
+        extern (D) this(Loc loc, Parameter param, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
         {
             super(loc, STMT.If);
-            this.prm = prm;
+            this.param = param;
             this.condition = condition;
             this.ifbody = ifbody;
             this.elsebody = elsebody;
@@ -2092,7 +2076,7 @@ struct ASTBase
         TOK tok;
         Statement statement;
 
-        extern (D) this(const ref Loc loc, TOK tok, Statement statement)
+        extern (D) this(Loc loc, TOK tok, Statement statement)
         {
             super(loc, STMT.ScopeGuard);
             this.tok = tok;
@@ -2111,7 +2095,7 @@ struct ASTBase
         Statement ifbody;
         Statement elsebody;
 
-        extern (D) this(const ref Loc loc, Condition condition, Statement ifbody, Statement elsebody)
+        extern (D) this(Loc loc, Condition condition, Statement ifbody, Statement elsebody)
         {
             super(loc, STMT.Conditional);
             this.condition = condition;
@@ -2129,7 +2113,7 @@ struct ASTBase
     {
         StaticForeach sfe;
 
-        extern (D) this(const ref Loc loc, StaticForeach sfe)
+        extern (D) this(Loc loc, StaticForeach sfe)
         {
             super(loc, STMT.StaticForeach);
             this.sfe = sfe;
@@ -2147,7 +2131,7 @@ struct ASTBase
         Expressions* args;      // array of Expression's
         Statement _body;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Statement _body)
+        extern (D) this(Loc loc, Identifier ident, Expressions* args, Statement _body)
         {
             super(loc, STMT.Pragma);
             this.ident = ident;
@@ -2169,7 +2153,7 @@ struct ASTBase
         bool isFinal;
         Loc endloc;             // location of closing curly bracket
 
-        extern (D) this(const ref Loc loc, Parameter param, Expression c, Statement b, bool isFinal, Loc endloc)
+        extern (D) this(Loc loc, Parameter param, Expression c, Statement b, bool isFinal, Loc endloc)
         {
             super(loc, STMT.Switch);
             this.param = param;
@@ -2191,7 +2175,7 @@ struct ASTBase
         Expression last;
         Statement statement;
 
-        extern (D) this(const ref Loc loc, Expression first, Expression last, Statement s)
+        extern (D) this(Loc loc, Expression first, Expression last, Statement s)
         {
             super(loc, STMT.CaseRange);
             this.first = first;
@@ -2210,7 +2194,7 @@ struct ASTBase
         Expression exp;
         Statement statement;
 
-        extern (D) this(const ref Loc loc, Expression exp, Statement s)
+        extern (D) this(Loc loc, Expression exp, Statement s)
         {
             super(loc, STMT.Case);
             this.exp = exp;
@@ -2227,7 +2211,7 @@ struct ASTBase
     {
         Statement statement;
 
-        extern (D) this(const ref Loc loc, Statement s)
+        extern (D) this(Loc loc, Statement s)
         {
             super(loc, STMT.Default);
             this.statement = s;
@@ -2243,7 +2227,7 @@ struct ASTBase
     {
         Identifier ident;
 
-        extern (D) this(const ref Loc loc, Identifier ident)
+        extern (D) this(Loc loc, Identifier ident)
         {
             super(loc, STMT.Break);
             this.ident = ident;
@@ -2259,7 +2243,7 @@ struct ASTBase
     {
         Identifier ident;
 
-        extern (D) this(const ref Loc loc, Identifier ident)
+        extern (D) this(Loc loc, Identifier ident)
         {
             super(loc, STMT.Continue);
             this.ident = ident;
@@ -2273,7 +2257,7 @@ struct ASTBase
 
     extern (C++) final class GotoDefaultStatement : Statement
     {
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc, STMT.GotoDefault);
         }
@@ -2288,7 +2272,7 @@ struct ASTBase
     {
         Expression exp;
 
-        extern (D) this(const ref Loc loc, Expression exp)
+        extern (D) this(Loc loc, Expression exp)
         {
             super(loc, STMT.GotoCase);
             this.exp = exp;
@@ -2304,7 +2288,7 @@ struct ASTBase
     {
         Identifier ident;
 
-        extern (D) this(const ref Loc loc, Identifier ident)
+        extern (D) this(Loc loc, Identifier ident)
         {
             super(loc, STMT.Goto);
             this.ident = ident;
@@ -2321,7 +2305,7 @@ struct ASTBase
         Expression exp;
         Statement _body;
 
-        extern (D) this(const ref Loc loc, Expression exp, Statement _body)
+        extern (D) this(Loc loc, Expression exp, Statement _body)
         {
             super(loc, STMT.Synchronized);
             this.exp = exp;
@@ -2340,7 +2324,7 @@ struct ASTBase
         Statement _body;
         Loc endloc;
 
-        extern (D) this(const ref Loc loc, Expression exp, Statement _body, Loc endloc)
+        extern (D) this(Loc loc, Expression exp, Statement _body, Loc endloc)
         {
             super(loc, STMT.With);
             this.exp = exp;
@@ -2359,7 +2343,7 @@ struct ASTBase
         Statement _body;
         Catches* catches;
 
-        extern (D) this(const ref Loc loc, Statement _body, Catches* catches)
+        extern (D) this(Loc loc, Statement _body, Catches* catches)
         {
             super(loc, STMT.TryCatch);
             this._body = _body;
@@ -2377,7 +2361,7 @@ struct ASTBase
         Statement _body;
         Statement finalbody;
 
-        extern (D) this(const ref Loc loc, Statement _body, Statement finalbody)
+        extern (D) this(Loc loc, Statement _body, Statement finalbody)
         {
             super(loc, STMT.TryFinally);
             this._body = _body;
@@ -2394,7 +2378,7 @@ struct ASTBase
     {
         Expression exp;
 
-        extern (D) this(const ref Loc loc, Expression exp)
+        extern (D) this(Loc loc, Expression exp)
         {
             super(loc, STMT.Throw);
             this.exp = exp;
@@ -2411,13 +2395,13 @@ struct ASTBase
         Token* tokens;
         bool caseSensitive;
 
-        extern (D) this(const ref Loc loc, Token* tokens)
+        extern (D) this(Loc loc, Token* tokens)
         {
             super(loc, STMT.Asm);
             this.tokens = tokens;
         }
 
-        extern (D) this(const ref Loc loc, Token* tokens, STMT stmt)
+        extern (D) this(Loc loc, Token* tokens, STMT stmt)
         {
             super(loc, stmt);
             this.tokens = tokens;
@@ -2431,7 +2415,7 @@ struct ASTBase
 
     extern (C++) final class InlineAsmStatement : AsmStatement
     {
-        extern (D) this(const ref Loc loc, Token* tokens)
+        extern (D) this(Loc loc, Token* tokens)
         {
             super(loc, tokens, STMT.InlineAsm);
         }
@@ -2444,7 +2428,7 @@ struct ASTBase
 
     extern (C++) final class GccAsmStatement : AsmStatement
     {
-        extern (D) this(const ref Loc loc, Token* tokens)
+        extern (D) this(Loc loc, Token* tokens)
         {
             super(loc, tokens, STMT.GccAsm);
         }
@@ -2459,12 +2443,12 @@ struct ASTBase
     {
         Expression exp;
 
-        final extern (D) this(const ref Loc loc, Expression exp)
+        final extern (D) this(Loc loc, Expression exp)
         {
             super(loc, STMT.Exp);
             this.exp = exp;
         }
-        final extern (D) this(const ref Loc loc, Dsymbol declaration)
+        final extern (D) this(Loc loc, Dsymbol declaration)
         {
             super(loc, STMT.Exp);
             this.exp = new DeclarationExp(loc, declaration);
@@ -2480,19 +2464,19 @@ struct ASTBase
     {
         Statements* statements;
 
-        final extern (D) this(const ref Loc loc, Statements* statements)
+        final extern (D) this(Loc loc, Statements* statements)
         {
             super(loc, STMT.Compound);
             this.statements = statements;
         }
 
-        final extern (D) this(const ref Loc loc, Statements* statements, STMT stmt)
+        final extern (D) this(Loc loc, Statements* statements, STMT stmt)
         {
             super(loc, stmt);
             this.statements = statements;
         }
 
-        final extern (D) this(const ref Loc loc, Statement[] sts...)
+        final extern (D) this(Loc loc, Statement[] sts...)
         {
             super(loc, STMT.Compound);
             statements = new Statements();
@@ -2523,7 +2507,7 @@ struct ASTBase
 
     extern (C++) final class CompoundDeclarationStatement : CompoundStatement
     {
-        final extern (D) this(const ref Loc loc, Statements* statements)
+        final extern (D) this(Loc loc, Statements* statements)
         {
             super(loc, statements, STMT.CompoundDeclaration);
         }
@@ -2538,7 +2522,7 @@ struct ASTBase
     {
         StorageClass stc;
 
-        final extern (D) this(const ref Loc loc, Statements* s, StorageClass stc)
+        final extern (D) this(Loc loc, Statements* s, StorageClass stc)
         {
             super(loc, s, STMT.CompoundAsm);
             this.stc = stc;
@@ -2557,7 +2541,7 @@ struct ASTBase
         Identifier ident;
         Statement handler;
 
-        extern (D) this(const ref Loc loc, Type t, Identifier id, Statement handler)
+        extern (D) this(Loc loc, Type t, Identifier id, Statement handler)
         {
             this.loc = loc;
             this.type = t;
@@ -2571,7 +2555,7 @@ struct ASTBase
      */
     static StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
     {
-        StorageClass stc = 0;
+        StorageClass stc = STC.none;
         if (mod & MODFlags.immutable_)
             stc |= STC.immutable_;
         if (mod & MODFlags.const_)
@@ -3385,7 +3369,7 @@ struct ASTBase
         }
 
         // TypeBasic, TypeVector, TypePointer, TypeEnum override this method
-        bool isscalar()
+        bool isScalar()
         {
             return false;
         }
@@ -3416,7 +3400,7 @@ struct ASTBase
             return null;
         }
 
-        final pure inout nothrow @nogc @safe
+        final pure inout nothrow @nogc @trusted
         {
             inout(TypeError)      isTypeError()      { return ty == Terror     ? cast(typeof(return))this : null; }
             inout(TypeVector)     isTypeVector()     { return ty == Tvector    ? cast(typeof(return))this : null; }
@@ -3589,7 +3573,7 @@ struct ASTBase
             merge();
         }
 
-        override bool isscalar()
+        override bool isScalar()
         {
             return (flags & (TFlags.integral | TFlags.floating)) != 0;
         }
@@ -3718,8 +3702,8 @@ struct ASTBase
                 {
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
-                        e.error("cannot form sequence of sequences");
-                    auto arg = new Parameter(e.loc, STC.undefined_, e.type, null, null, null);
+                        error(e.loc, "cannot form sequence of sequences");
+                    auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null);
                     (*arguments)[i] = arg;
                 }
             }
@@ -3797,7 +3781,7 @@ struct ASTBase
         Type resolved;
         MOD mod;
 
-        extern (D) this(const ref Loc loc, TOK tok, Identifier id, structalign_t packalign, Type base, Dsymbols* members)
+        extern (D) this(Loc loc, TOK tok, Identifier id, structalign_t packalign, Type base, Dsymbols* members)
         {
             //printf("TypeTag %p\n", this);
             super(Ttag);
@@ -3950,15 +3934,15 @@ struct ASTBase
         private enum FunctionFlag : uint
         {
             none            = 0,
-            isnothrow       = 0x0001, // nothrow
-            isnogc          = 0x0002, // is @nogc
-            isproperty      = 0x0004, // can be called without parentheses
-            isref           = 0x0008, // returns a reference
-            isreturn        = 0x0010, // 'this' is returned by ref
-            isscope         = 0x0020, // 'this' is scope
-            isreturninferred= 0x0040, // 'this' is return from inference
-            isscopeinferred = 0x0080, // 'this' is scope from inference
-            islive          = 0x0100, // is @live
+            isNothrow       = 0x0001, // nothrow
+            isNogc          = 0x0002, // is @nogc
+            isProperty      = 0x0004, // can be called without parentheses
+            isRef           = 0x0008, // returns a reference
+            isReturn        = 0x0010, // 'this' is returned by ref
+            isScope         = 0x0020, // 'this' is scope
+            isReturnInferred= 0x0040, // 'this' is return from inference
+            isScopeInferred = 0x0080, // 'this' is scope from inference
+            isLive          = 0x0100, // is @live
             incomplete      = 0x0200, // return type or default arguments removed
             inoutParam      = 0x0400, // inout on the parameters
             inoutQual       = 0x0800, // inout on the qualifier
@@ -3971,7 +3955,7 @@ struct ASTBase
         byte inuse;
         Expressions* fargs;         // function arguments
 
-        extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
+        extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = STC.none)
         {
             super(Tfunction, treturn);
             assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.max);
@@ -3981,18 +3965,18 @@ struct ASTBase
             if (stc & STC.pure_)
                 this.purity = PURE.fwdref;
             if (stc & STC.nothrow_)
-                this.isnothrow = true;
+                this.isNothrow = true;
             if (stc & STC.nogc)
-                this.isnogc = true;
+                this.isNogc = true;
             if (stc & STC.property)
-                this.isproperty = true;
+                this.isProperty = true;
             if (stc & STC.live)
-                this.islive = true;
+                this.isLive = true;
 
             if (stc & STC.ref_)
-                this.isref = true;
+                this.isRef = true;
             if (stc & STC.return_)
-                this.isreturn = true;
+                this.isReturn = true;
             if (stc & STC.scope_)
                 this.isScopeQual = true;
 
@@ -4011,15 +3995,15 @@ struct ASTBase
             Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
             auto t = new TypeFunction(ParameterList(params, parameterList.varargs), treturn, linkage);
             t.mod = mod;
-            t.isnothrow = isnothrow;
-            t.isnogc = isnogc;
+            t.isNothrow = isNothrow;
+            t.isNogc = isNogc;
             t.purity = purity;
-            t.isproperty = isproperty;
-            t.isref = isref;
-            t.isreturn = isreturn;
+            t.isProperty = isProperty;
+            t.isRef = isRef;
+            t.isReturn = isReturn;
             t.isScopeQual = isScopeQual;
-            t.isreturninferred = isreturninferred;
-            t.isscopeinferred = isscopeinferred;
+            t.isReturnInferred = isReturnInferred;
+            t.isScopeInferred = isScopeInferred;
             t.isInOutParam = isInOutParam;
             t.isInOutQual = isInOutQual;
             t.trust = trust;
@@ -4028,111 +4012,111 @@ struct ASTBase
         }
 
         /// set or get if the function has the `nothrow` attribute
-        bool isnothrow() const pure nothrow @safe @nogc
+        bool isNothrow() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isnothrow) != 0;
+            return (funcFlags & FunctionFlag.isNothrow) != 0;
         }
         /// ditto
-        void isnothrow(bool v) pure nothrow @safe @nogc
+        void isNothrow(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isnothrow;
-            else funcFlags &= ~FunctionFlag.isnothrow;
+            if (v) funcFlags |= FunctionFlag.isNothrow;
+            else funcFlags &= ~FunctionFlag.isNothrow;
         }
 
         /// set or get if the function has the `@nogc` attribute
-        bool isnogc() const pure nothrow @safe @nogc
+        bool isNogc() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isnogc) != 0;
+            return (funcFlags & FunctionFlag.isNogc) != 0;
         }
         /// ditto
-        void isnogc(bool v) pure nothrow @safe @nogc
+        void isNogc(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isnogc;
-            else funcFlags &= ~FunctionFlag.isnogc;
+            if (v) funcFlags |= FunctionFlag.isNogc;
+            else funcFlags &= ~FunctionFlag.isNogc;
         }
 
         /// set or get if the function has the `@property` attribute
-        bool isproperty() const pure nothrow @safe @nogc
+        bool isProperty() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isproperty) != 0;
+            return (funcFlags & FunctionFlag.isProperty) != 0;
         }
         /// ditto
-        void isproperty(bool v) pure nothrow @safe @nogc
+        void isProperty(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isproperty;
-            else funcFlags &= ~FunctionFlag.isproperty;
+            if (v) funcFlags |= FunctionFlag.isProperty;
+            else funcFlags &= ~FunctionFlag.isProperty;
         }
 
         /// set or get if the function has the `ref` attribute
-        bool isref() const pure nothrow @safe @nogc
+        bool isRef() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isref) != 0;
+            return (funcFlags & FunctionFlag.isRef) != 0;
         }
         /// ditto
-        void isref(bool v) pure nothrow @safe @nogc
+        void isRef(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isref;
-            else funcFlags &= ~FunctionFlag.isref;
+            if (v) funcFlags |= FunctionFlag.isRef;
+            else funcFlags &= ~FunctionFlag.isRef;
         }
 
         /// set or get if the function has the `return` attribute
-        bool isreturn() const pure nothrow @safe @nogc
+        bool isReturn() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isreturn) != 0;
+            return (funcFlags & FunctionFlag.isReturn) != 0;
         }
         /// ditto
-        void isreturn(bool v) pure nothrow @safe @nogc
+        void isReturn(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isreturn;
-            else funcFlags &= ~FunctionFlag.isreturn;
+            if (v) funcFlags |= FunctionFlag.isReturn;
+            else funcFlags &= ~FunctionFlag.isReturn;
         }
 
         /// set or get if the function has the `scope` attribute
         bool isScopeQual() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isscope) != 0;
+            return (funcFlags & FunctionFlag.isScope) != 0;
         }
         /// ditto
         void isScopeQual(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isscope;
-            else funcFlags &= ~FunctionFlag.isscope;
+            if (v) funcFlags |= FunctionFlag.isScope;
+            else funcFlags &= ~FunctionFlag.isScope;
         }
 
         /// set or get if the function has the `return` attribute inferred
-        bool isreturninferred() const pure nothrow @safe @nogc
+        bool isReturnInferred() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isreturninferred) != 0;
+            return (funcFlags & FunctionFlag.isReturnInferred) != 0;
         }
         /// ditto
-        void isreturninferred(bool v) pure nothrow @safe @nogc
+        void isReturnInferred(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isreturninferred;
-            else funcFlags &= ~FunctionFlag.isreturninferred;
+            if (v) funcFlags |= FunctionFlag.isReturnInferred;
+            else funcFlags &= ~FunctionFlag.isReturnInferred;
         }
 
         /// set or get if the function has the `scope` attribute inferred
-        bool isscopeinferred() const pure nothrow @safe @nogc
+        bool isScopeInferred() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isscopeinferred) != 0;
+            return (funcFlags & FunctionFlag.isScopeInferred) != 0;
         }
         /// ditoo
-        void isscopeinferred(bool v) pure nothrow @safe @nogc
+        void isScopeInferred(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isscopeinferred;
-            else funcFlags &= ~FunctionFlag.isscopeinferred;
+            if (v) funcFlags |= FunctionFlag.isScopeInferred;
+            else funcFlags &= ~FunctionFlag.isScopeInferred;
         }
 
         /// set or get if the function has the `@live` attribute
-        bool islive() const pure nothrow @safe @nogc
+        bool isLive() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.islive) != 0;
+            return (funcFlags & FunctionFlag.isLive) != 0;
         }
         /// ditto
-        void islive(bool v) pure nothrow @safe @nogc
+        void isLive(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.islive;
-            else funcFlags &= ~FunctionFlag.islive;
+            if (v) funcFlags |= FunctionFlag.isLive;
+            else funcFlags &= ~FunctionFlag.isLive;
         }
 
         /// set or get if the return type or the default arguments are removed
@@ -4244,11 +4228,9 @@ struct ASTBase
 
         override Expression toExpression()
         {
-            Expression e = next.toExpression();
-            if (e)
+            if (Expression e = next.toExpression())
             {
-                Expression ei = index.toExpression();
-                if (ei)
+                if (Expression ei = index.toExpression())
                     return new ArrayExp(loc, e, ei);
             }
             return null;
@@ -4393,7 +4375,7 @@ struct ASTBase
         TraitsExp exp;
         Loc loc;
 
-        extern (D) this(const ref Loc loc, TraitsExp exp)
+        extern (D) this(Loc loc, TraitsExp exp)
         {
             super(Tident);
             this.loc = loc;
@@ -4420,7 +4402,7 @@ struct ASTBase
         Expressions* exps;
         RootObject obj;
 
-        extern (D) this(const ref Loc loc, Expressions* exps)
+        extern (D) this(Loc loc, Expressions* exps)
         {
             super(Tmixin);
             this.loc = loc;
@@ -4456,7 +4438,7 @@ struct ASTBase
     {
         Identifier ident;
 
-        extern (D) this(const ref Loc loc, Identifier ident)
+        extern (D) this(Loc loc, Identifier ident)
         {
             super(Tident, loc);
             this.ident = ident;
@@ -4483,7 +4465,7 @@ struct ASTBase
 
     extern (C++) final class TypeReturn : TypeQualified
     {
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(Treturn, loc);
         }
@@ -4506,7 +4488,7 @@ struct ASTBase
     {
         Expression exp;
 
-        extern (D) this(const ref Loc loc, Expression exp)
+        extern (D) this(Loc loc, Expression exp)
         {
             super(Ttypeof, loc);
             this.exp = exp;
@@ -4530,7 +4512,7 @@ struct ASTBase
     {
         TemplateInstance tempinst;
 
-        final extern (D) this(const ref Loc loc, TemplateInstance tempinst)
+        final extern (D) this(Loc loc, TemplateInstance tempinst)
         {
             super(Tinstance, loc);
             this.tempinst = tempinst;
@@ -4560,10 +4542,11 @@ struct ASTBase
         EXP op;
         ubyte size;
         ubyte parens;
+        ubyte rvalue;              // consider this an rvalue, even if it is an lvalue
         Type type;
         Loc loc;
 
-        final extern (D) this(const ref Loc loc, EXP op, int size)
+        final extern (D) this(Loc loc, EXP op, int size)
         {
             this.loc = loc;
             this.op = op;
@@ -4573,17 +4556,6 @@ struct ASTBase
         Expression syntaxCopy()
         {
             return copy();
-        }
-
-        final void error(const(char)* format, ...) const
-        {
-            if (type != Type.terror)
-            {
-                va_list ap;
-                va_start(ap, format);
-                verrorReport(loc, format, ap, ErrorKind.error);
-                va_end(ap);
-            }
         }
 
         final Expression copy()
@@ -4602,7 +4574,7 @@ struct ASTBase
             return DYNCAST.expression;
         }
 
-        final pure inout nothrow @nogc @safe
+        final pure inout nothrow @nogc @trusted
         {
             inout(IntegerExp)   isIntegerExp() { return op == EXP.int64 ? cast(typeof(return))this : null; }
             inout(ErrorExp)     isErrorExp() { return op == EXP.error ? cast(typeof(return))this : null; }
@@ -4628,7 +4600,7 @@ struct ASTBase
             inout(DeclarationExp) isDeclarationExp() { return op == EXP.declaration ? cast(typeof(return))this : null; }
             inout(TypeidExp)    isTypeidExp() { return op == EXP.typeid_ ? cast(typeof(return))this : null; }
             inout(TraitsExp)    isTraitsExp() { return op == EXP.traits ? cast(typeof(return))this : null; }
-            inout(IsExp)        isExp() { return op == EXP.is_ ? cast(typeof(return))this : null; }
+            inout(IsExp)        isIsExp() { return op == EXP.is_ ? cast(typeof(return))this : null; }
             inout(MixinExp)     isMixinExp() { return op == EXP.mixin_ ? cast(typeof(return))this : null; }
             inout(ImportExp)    isImportExp() { return op == EXP.import_ ? cast(typeof(return))this : null; }
             inout(AssertExp)    isAssertExp() { return op == EXP.assert_ ? cast(typeof(return))this : null; }
@@ -4730,7 +4702,7 @@ struct ASTBase
     {
         Dsymbol declaration;
 
-        extern (D) this(const ref Loc loc, Dsymbol declaration)
+        extern (D) this(Loc loc, Dsymbol declaration)
         {
             super(loc, EXP.declaration, __traits(classInstanceSize, DeclarationExp));
             this.declaration = declaration;
@@ -4746,14 +4718,14 @@ struct ASTBase
     {
         dinteger_t value;
 
-        extern (D) this(const ref Loc loc, dinteger_t value, Type type)
+        extern (D) this(Loc loc, dinteger_t value, Type type)
         {
             super(loc, EXP.int64, __traits(classInstanceSize, IntegerExp));
             assert(type);
-            if (!type.isscalar())
+            if (!type.isScalar())
             {
                 if (type.ty != Terror)
-                    error("integral constant must be scalar type, not %s", type.toChars());
+                    error(loc, "integral constant must be scalar type, not %s", type.toChars());
                 type = Type.terror;
             }
             this.type = type;
@@ -4836,10 +4808,12 @@ struct ASTBase
         Expression thisexp;     // if !=null, 'this' for class being allocated
         ClassDeclaration cd;    // class being instantiated
         Expressions* arguments; // Array of Expression's to call class constructor
+        Expression placement;   // if != null, then PlacementExpression
 
-        extern (D) this(const ref Loc loc, Expression thisexp, ClassDeclaration cd, Expressions* arguments)
+        extern (D) this(Loc loc, Expression placement, Expression thisexp, ClassDeclaration cd, Expressions* arguments)
         {
             super(loc, EXP.newAnonymousClass, __traits(classInstanceSize, NewAnonClassExp));
+            this.placement = placement;
             this.thisexp = thisexp;
             this.cd = cd;
             this.arguments = arguments;
@@ -4860,7 +4834,7 @@ struct ASTBase
         TOK tok;            // ':' or '=='
         TOK tok2;           // 'struct', 'union', etc.
 
-        extern (D) this(const ref Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters)
+        extern (D) this(Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters)
         {
             super(loc, EXP.is_, __traits(classInstanceSize, IsExp));
             this.targ = targ;
@@ -4881,7 +4855,7 @@ struct ASTBase
     {
         real_t value;
 
-        extern (D) this(const ref Loc loc, real_t value, Type type)
+        extern (D) this(Loc loc, real_t value, Type type)
         {
             super(loc, EXP.float64, __traits(classInstanceSize, RealExp));
             this.value = value;
@@ -4896,7 +4870,7 @@ struct ASTBase
 
     extern (C++) final class NullExp : Expression
     {
-        extern (D) this(const ref Loc loc, Type type = null)
+        extern (D) this(Loc loc, Type type = null)
         {
             super(loc, EXP.null_, __traits(classInstanceSize, NullExp));
             this.type = type;
@@ -4912,7 +4886,7 @@ struct ASTBase
     {
         RootObject obj;
 
-        extern (D) this(const ref Loc loc, RootObject o)
+        extern (D) this(Loc loc, RootObject o)
         {
             super(loc, EXP.typeid_, __traits(classInstanceSize, TypeidExp));
             this.obj = o;
@@ -4929,7 +4903,7 @@ struct ASTBase
         Identifier ident;
         Objects* args;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Objects* args)
+        extern (D) this(Loc loc, Identifier ident, Objects* args)
         {
             super(loc, EXP.traits, __traits(classInstanceSize, TraitsExp));
             this.ident = ident;
@@ -4952,7 +4926,7 @@ struct ASTBase
         InterpolatedSet* interpolatedSet;
         char postfix = 0;   // 'c', 'w', 'd'
 
-        extern (D) this(const ref Loc loc, InterpolatedSet* interpolatedSet, char postfix = 0)
+        extern (D) this(Loc loc, InterpolatedSet* interpolatedSet, char postfix = 0)
         {
             super(loc, EXP.interpolated, __traits(classInstanceSize, InterpExp));
             this.interpolatedSet = interpolatedSet;
@@ -4981,7 +4955,7 @@ struct ASTBase
         /// If the string is parsed from a hex string literal
         bool hexString = false;
 
-        extern (D) this(const ref Loc loc, const(void)[] string)
+        extern (D) this(Loc loc, const(void)[] string)
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string.ptr;
@@ -4989,7 +4963,7 @@ struct ASTBase
             this.sz = 1;                    // work around LDC bug #1286
         }
 
-        extern (D) this(const ref Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = 0)
+        extern (D) this(Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = 0)
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string;
@@ -5048,10 +5022,12 @@ struct ASTBase
         Type newtype;
         Expressions* arguments;     // Array of Expression's
         Identifiers* names;         // Array of names corresponding to expressions
+        Expression placement;       // if != null, then PlacementExpression
 
-        extern (D) this(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments, Identifiers* names = null)
+        extern (D) this(Loc loc, Expression placement, Expression thisexp, Type newtype, Expressions* arguments, Identifiers* names = null)
         {
             super(loc, EXP.new_, __traits(classInstanceSize, NewExp));
+            this.placement = placement;
             this.thisexp = thisexp;
             this.newtype = newtype;
             this.arguments = arguments;
@@ -5069,7 +5045,7 @@ struct ASTBase
         Expressions* keys;
         Expressions* values;
 
-        extern (D) this(const ref Loc loc, Expressions* keys, Expressions* values)
+        extern (D) this(Loc loc, Expressions* keys, Expressions* values)
         {
             super(loc, EXP.assocArrayLiteral, __traits(classInstanceSize, AssocArrayLiteralExp));
             assert(keys.length == values.length);
@@ -5088,20 +5064,20 @@ struct ASTBase
         Expression basis;
         Expressions* elements;
 
-        extern (D) this(const ref Loc loc, Expressions* elements)
+        extern (D) this(Loc loc, Expressions* elements)
         {
             super(loc, EXP.arrayLiteral, __traits(classInstanceSize, ArrayLiteralExp));
             this.elements = elements;
         }
 
-        extern (D) this(const ref Loc loc, Expression e)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.arrayLiteral, __traits(classInstanceSize, ArrayLiteralExp));
             elements = new Expressions();
             elements.push(e);
         }
 
-        extern (D) this(const ref Loc loc, Expression basis, Expressions* elements)
+        extern (D) this(Loc loc, Expression basis, Expressions* elements)
         {
             super(loc, EXP.arrayLiteral, __traits(classInstanceSize, ArrayLiteralExp));
             this.basis = basis;
@@ -5120,7 +5096,7 @@ struct ASTBase
         TemplateDeclaration td;
         TOK tok;
 
-        extern (D) this(const ref Loc loc, Dsymbol s)
+        extern (D) this(Loc loc, Dsymbol s)
         {
             super(loc, EXP.function_, __traits(classInstanceSize, FuncExp));
             this.td = s.isTemplateDeclaration();
@@ -5146,7 +5122,7 @@ struct ASTBase
         Expression lwr;
         Expression upr;
 
-        extern (D) this(const ref Loc loc, Expression lwr, Expression upr)
+        extern (D) this(Loc loc, Expression lwr, Expression upr)
         {
             super(loc, EXP.interval, __traits(classInstanceSize, IntervalExp));
             this.lwr = lwr;
@@ -5161,7 +5137,7 @@ struct ASTBase
 
     extern (C++) final class TypeExp : Expression
     {
-        extern (D) this(const ref Loc loc, Type type)
+        extern (D) this(Loc loc, Type type)
         {
             super(loc, EXP.type, __traits(classInstanceSize, TypeExp));
             this.type = type;
@@ -5177,7 +5153,7 @@ struct ASTBase
     {
         ScopeDsymbol sds;
 
-        extern (D) this(const ref Loc loc, ScopeDsymbol sds)
+        extern (D) this(Loc loc, ScopeDsymbol sds)
         {
             super(loc, EXP.scope_, __traits(classInstanceSize, ScopeExp));
             this.sds = sds;
@@ -5194,7 +5170,7 @@ struct ASTBase
     {
         Identifier ident;
 
-        final extern (D) this(const ref Loc loc, Identifier ident)
+        final extern (D) this(Loc loc, Identifier ident)
         {
             super(loc, EXP.identifier, __traits(classInstanceSize, IdentifierExp));
             this.ident = ident;
@@ -5210,7 +5186,7 @@ struct ASTBase
     {
         Expression e1;
 
-        final extern (D) this(const ref Loc loc, EXP op, int size, Expression e1)
+        final extern (D) this(Loc loc, EXP op, int size, Expression e1)
         {
             super(loc, op, size);
             this.e1 = e1;
@@ -5224,7 +5200,7 @@ struct ASTBase
 
     extern (C++) class DefaultInitExp : Expression
     {
-        final extern (D) this(const ref Loc loc, EXP op, int size)
+        final extern (D) this(Loc loc, EXP op, int size)
         {
             super(loc, op, size);
         }
@@ -5240,7 +5216,7 @@ struct ASTBase
         Expression e1;
         Expression e2;
 
-        final extern (D) this(const ref Loc loc, EXP op, int size, Expression e1, Expression e2)
+        final extern (D) this(Loc loc, EXP op, int size, Expression e1, Expression e2)
         {
             super(loc, op, size);
             this.e1 = e1;
@@ -5258,7 +5234,7 @@ struct ASTBase
         Dsymbol s;
         bool hasOverloads;
 
-        extern (D) this(const ref Loc loc, Dsymbol s, bool hasOverloads = true)
+        extern (D) this(Loc loc, Dsymbol s, bool hasOverloads = true)
         {
             super(loc, EXP.dSymbol, __traits(classInstanceSize, DsymbolExp));
             this.s = s;
@@ -5276,7 +5252,7 @@ struct ASTBase
         TemplateDeclaration td;
         FuncDeclaration fd;
 
-        extern (D) this(const ref Loc loc, TemplateDeclaration td, FuncDeclaration fd = null)
+        extern (D) this(Loc loc, TemplateDeclaration td, FuncDeclaration fd = null)
         {
             super(loc, EXP.template_, __traits(classInstanceSize, TemplateExp));
             //printf("TemplateExp(): %s\n", td.toChars());
@@ -5295,7 +5271,7 @@ struct ASTBase
         Declaration var;
         bool hasOverloads;
 
-        final extern (D) this(const ref Loc loc, EXP op, int size, Declaration var, bool hasOverloads)
+        final extern (D) this(Loc loc, EXP op, int size, Declaration var, bool hasOverloads)
         {
             super(loc, op, size);
             assert(var);
@@ -5311,7 +5287,7 @@ struct ASTBase
 
     extern (C++) final class VarExp : SymbolExp
     {
-        extern (D) this(const ref Loc loc, Declaration var, bool hasOverloads = true)
+        extern (D) this(Loc loc, Declaration var, bool hasOverloads = true)
         {
             if (var.isVarDeclaration())
                 hasOverloads = false;
@@ -5331,7 +5307,7 @@ struct ASTBase
         Expression e0;
         Expressions* exps;
 
-        extern (D) this(const ref Loc loc, Expression e0, Expressions* exps)
+        extern (D) this(Loc loc, Expression e0, Expressions* exps)
         {
             super(loc, EXP.tuple, __traits(classInstanceSize, TupleExp));
             //printf("TupleExp(this = %p)\n", this);
@@ -5339,14 +5315,14 @@ struct ASTBase
             this.exps = exps;
         }
 
-        extern (D) this(const ref Loc loc, Expressions* exps)
+        extern (D) this(Loc loc, Expressions* exps)
         {
             super(loc, EXP.tuple, __traits(classInstanceSize, TupleExp));
             //printf("TupleExp(this = %p)\n", this);
             this.exps = exps;
         }
 
-        extern (D) this(const ref Loc loc, TupleDeclaration tup)
+        extern (D) this(Loc loc, TupleDeclaration tup)
         {
             super(loc, EXP.tuple, __traits(classInstanceSize, TupleExp));
             this.exps = new Expressions();
@@ -5375,7 +5351,7 @@ struct ASTBase
                         this.exps.push(e);
                         break;
                     default:
-                        error("%s is not an expression", o.toChars());
+                        error(loc, "%s is not an expression", o.toChars());
                         break;
                     }
                 }
@@ -5392,8 +5368,7 @@ struct ASTBase
         extern (C++) Dsymbol getDsymbol(RootObject oarg)
         {
             Dsymbol sa;
-            Expression ea = isExpression(oarg);
-            if (ea)
+            if (Expression ea = isExpression(oarg))
             {
                 // Try to convert Expression to symbol
                 if (ea.op == EXP.variable)
@@ -5413,8 +5388,7 @@ struct ASTBase
             else
             {
                 // Try to convert Type to symbol
-                Type ta = isType(oarg);
-                if (ta)
+                if (Type ta = isType(oarg))
                     sa = ta.toDsymbol(null);
                 else
                     sa = isDsymbol(oarg); // if already a symbol
@@ -5430,7 +5404,7 @@ struct ASTBase
 
     extern (C++) final class DollarExp : IdentifierExp
     {
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc, Id.dollar);
         }
@@ -5443,7 +5417,7 @@ struct ASTBase
 
     extern (C++) class ThisExp : Expression
     {
-        final extern (D) this(const ref Loc loc)
+        final extern (D) this(Loc loc)
         {
             super(loc, EXP.this_, __traits(classInstanceSize, ThisExp));
         }
@@ -5456,7 +5430,7 @@ struct ASTBase
 
     extern (C++) final class SuperExp : ThisExp
     {
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc);
             op = EXP.super_;
@@ -5470,7 +5444,7 @@ struct ASTBase
 
     extern (C++) final class AddrExp : UnaExp
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.address, __traits(classInstanceSize, AddrExp), e);
         }
@@ -5496,11 +5470,11 @@ struct ASTBase
 
     extern (C++) final class PtrExp : UnaExp
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.star, __traits(classInstanceSize, PtrExp), e);
         }
-        extern (D) this(const ref Loc loc, Expression e, Type t)
+        extern (D) this(Loc loc, Expression e, Type t)
         {
             super(loc, EXP.star, __traits(classInstanceSize, PtrExp), e);
             type = t;
@@ -5514,7 +5488,7 @@ struct ASTBase
 
     extern (C++) final class NegExp : UnaExp
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.negate, __traits(classInstanceSize, NegExp), e);
         }
@@ -5527,7 +5501,7 @@ struct ASTBase
 
     extern (C++) final class UAddExp : UnaExp
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.uadd, __traits(classInstanceSize, UAddExp), e);
         }
@@ -5540,7 +5514,7 @@ struct ASTBase
 
     extern (C++) final class NotExp : UnaExp
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.not, __traits(classInstanceSize, NotExp), e);
         }
@@ -5553,7 +5527,7 @@ struct ASTBase
 
     extern (C++) final class ComExp : UnaExp
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.tilde, __traits(classInstanceSize, ComExp), e);
         }
@@ -5568,7 +5542,7 @@ struct ASTBase
     {
         bool isRAII;
 
-        extern (D) this(const ref Loc loc, Expression e, bool isRAII)
+        extern (D) this(Loc loc, Expression e, bool isRAII)
         {
             super(loc, EXP.delete_, __traits(classInstanceSize, DeleteExp), e);
             this.isRAII = isRAII;
@@ -5585,12 +5559,12 @@ struct ASTBase
         Type to;
         ubyte mod = cast(ubyte)~0;
 
-        extern (D) this(const ref Loc loc, Expression e, Type t)
+        extern (D) this(Loc loc, Expression e, Type t)
         {
             super(loc, EXP.cast_, __traits(classInstanceSize, CastExp), e);
             this.to = t;
         }
-        extern (D) this(const ref Loc loc, Expression e, ubyte mod)
+        extern (D) this(Loc loc, Expression e, ubyte mod)
         {
             super(loc, EXP.cast_, __traits(classInstanceSize, CastExp), e);
             this.mod = mod;
@@ -5607,19 +5581,19 @@ struct ASTBase
         Expressions* arguments;
         Identifiers* names;
 
-        extern (D) this(const ref Loc loc, Expression e, Expressions* exps, Identifiers* names = null)
+        extern (D) this(Loc loc, Expression e, Expressions* exps, Identifiers* names = null)
         {
             super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
             this.arguments = exps;
             this.names = names;
         }
 
-        extern (D) this(const ref Loc loc, Expression e)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
         }
 
-        extern (D) this(const ref Loc loc, Expression e, Expression earg1)
+        extern (D) this(Loc loc, Expression e, Expression earg1)
         {
             super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
             auto arguments = new Expressions(earg1 ? 1 : 0);
@@ -5628,7 +5602,7 @@ struct ASTBase
             this.arguments = arguments;
         }
 
-        extern (D) this(const ref Loc loc, Expression e, Expression earg1, Expression earg2)
+        extern (D) this(Loc loc, Expression e, Expression earg1, Expression earg2)
         {
             super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
             auto arguments = new Expressions(2);
@@ -5647,7 +5621,7 @@ struct ASTBase
     {
         Identifier ident;
 
-        extern (D) this(const ref Loc loc, Expression e, Identifier ident)
+        extern (D) this(Loc loc, Expression e, Identifier ident)
         {
             super(loc, EXP.dotIdentifier, __traits(classInstanceSize, DotIdExp), e);
             this.ident = ident;
@@ -5663,7 +5637,7 @@ struct ASTBase
     {
         Expression msg;
 
-        extern (D) this(const ref Loc loc, Expression e, Expression msg = null)
+        extern (D) this(Loc loc, Expression e, Expression msg = null)
         {
             super(loc, EXP.assert_, __traits(classInstanceSize, AssertExp), e);
             this.msg = msg;
@@ -5677,7 +5651,7 @@ struct ASTBase
 
     extern (C++) final class ThrowExp : UnaExp
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.throw_, __traits(classInstanceSize, ThrowExp), e);
             this.type = Type.tnoreturn;
@@ -5698,7 +5672,7 @@ struct ASTBase
     {
         Expressions* exps;
 
-        extern (D) this(const ref Loc loc, Expressions* exps)
+        extern (D) this(Loc loc, Expressions* exps)
         {
             super(loc, EXP.mixin_, __traits(classInstanceSize, MixinExp));
             this.exps = exps;
@@ -5712,7 +5686,7 @@ struct ASTBase
 
     extern (C++) final class ImportExp : UnaExp
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.import_, __traits(classInstanceSize, ImportExp), e);
         }
@@ -5727,12 +5701,12 @@ struct ASTBase
     {
         TemplateInstance ti;
 
-        extern (D) this(const ref Loc loc, Expression e, Identifier name, Objects* tiargs)
+        extern (D) this(Loc loc, Expression e, Identifier name, Objects* tiargs)
         {
             super(loc, EXP.dotTemplateInstance, __traits(classInstanceSize, DotTemplateInstanceExp), e);
             this.ti = new TemplateInstance(loc, name, tiargs);
         }
-        extern (D) this(const ref Loc loc, Expression e, TemplateInstance ti)
+        extern (D) this(Loc loc, Expression e, TemplateInstance ti)
         {
             super(loc, EXP.dotTemplateInstance, __traits(classInstanceSize, DotTemplateInstanceExp), e);
             this.ti = ti;
@@ -5748,7 +5722,7 @@ struct ASTBase
     {
         Expressions* arguments;
 
-        extern (D) this(const ref Loc loc, Expression e1, Expression index = null)
+        extern (D) this(Loc loc, Expression e1, Expression index = null)
         {
             super(loc, EXP.array, __traits(classInstanceSize, ArrayExp), e1);
             arguments = new Expressions();
@@ -5756,7 +5730,7 @@ struct ASTBase
                 arguments.push(index);
         }
 
-        extern (D) this(const ref Loc loc, Expression e1, Expressions* args)
+        extern (D) this(Loc loc, Expression e1, Expressions* args)
         {
             super(loc, EXP.array, __traits(classInstanceSize, ArrayExp), e1);
             arguments = args;
@@ -5770,7 +5744,7 @@ struct ASTBase
 
     extern (C++) final class FuncInitExp : DefaultInitExp
     {
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc, EXP.functionString, __traits(classInstanceSize, FuncInitExp));
         }
@@ -5783,7 +5757,7 @@ struct ASTBase
 
     extern (C++) final class PrettyFuncInitExp : DefaultInitExp
     {
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc, EXP.prettyFunction, __traits(classInstanceSize, PrettyFuncInitExp));
         }
@@ -5796,7 +5770,7 @@ struct ASTBase
 
     extern (C++) final class FileInitExp : DefaultInitExp
     {
-        extern (D) this(const ref Loc loc, EXP tok)
+        extern (D) this(Loc loc, EXP tok)
         {
             super(loc, tok, __traits(classInstanceSize, FileInitExp));
         }
@@ -5809,7 +5783,7 @@ struct ASTBase
 
     extern (C++) final class LineInitExp : DefaultInitExp
     {
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc, EXP.line, __traits(classInstanceSize, LineInitExp));
         }
@@ -5822,7 +5796,7 @@ struct ASTBase
 
     extern (C++) final class ModuleInitExp : DefaultInitExp
     {
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc, EXP.moduleString, __traits(classInstanceSize, ModuleInitExp));
         }
@@ -5838,7 +5812,7 @@ struct ASTBase
         const bool isGenerated;
         bool allowCommaExp;
 
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2, bool generated = true)
+        extern (D) this(Loc loc, Expression e1, Expression e2, bool generated = true)
         {
             super(loc, EXP.comma, __traits(classInstanceSize, CommaExp), e1, e2);
             allowCommaExp = isGenerated = generated;
@@ -5865,7 +5839,7 @@ struct ASTBase
 
     extern (C++) final class PowExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.pow, __traits(classInstanceSize, PowExp), e1, e2);
         }
@@ -5878,7 +5852,7 @@ struct ASTBase
 
     extern (C++) final class MulExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.mul, __traits(classInstanceSize, MulExp), e1, e2);
         }
@@ -5891,7 +5865,7 @@ struct ASTBase
 
     extern (C++) final class DivExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.div, __traits(classInstanceSize, DivExp), e1, e2);
         }
@@ -5904,7 +5878,7 @@ struct ASTBase
 
     extern (C++) final class ModExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.mod, __traits(classInstanceSize, ModExp), e1, e2);
         }
@@ -5917,7 +5891,7 @@ struct ASTBase
 
     extern (C++) final class AddExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.add, __traits(classInstanceSize, AddExp), e1, e2);
         }
@@ -5930,7 +5904,7 @@ struct ASTBase
 
     extern (C++) final class MinExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.min, __traits(classInstanceSize, MinExp), e1, e2);
         }
@@ -5943,7 +5917,7 @@ struct ASTBase
 
     extern (C++) final class CatExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.concatenate, __traits(classInstanceSize, CatExp), e1, e2);
         }
@@ -5956,7 +5930,7 @@ struct ASTBase
 
     extern (C++) final class ShlExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.leftShift, __traits(classInstanceSize, ShlExp), e1, e2);
         }
@@ -5969,7 +5943,7 @@ struct ASTBase
 
     extern (C++) final class ShrExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.rightShift, __traits(classInstanceSize, ShrExp), e1, e2);
         }
@@ -5982,7 +5956,7 @@ struct ASTBase
 
     extern (C++) final class UshrExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.unsignedRightShift, __traits(classInstanceSize, UshrExp), e1, e2);
         }
@@ -6009,7 +5983,7 @@ struct ASTBase
 
     extern (C++) final class InExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.in_, __traits(classInstanceSize, InExp), e1, e2);
         }
@@ -6048,7 +6022,7 @@ struct ASTBase
 
     extern (C++) final class AndExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.and, __traits(classInstanceSize, AndExp), e1, e2);
         }
@@ -6061,7 +6035,7 @@ struct ASTBase
 
     extern (C++) final class XorExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.xor, __traits(classInstanceSize, XorExp), e1, e2);
         }
@@ -6074,7 +6048,7 @@ struct ASTBase
 
     extern (C++) final class OrExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.or, __traits(classInstanceSize, OrExp), e1, e2);
         }
@@ -6087,7 +6061,7 @@ struct ASTBase
 
     extern (C++) final class LogicalExp : BinExp
     {
-        extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2)
+        extern (D) this(Loc loc, EXP op, Expression e1, Expression e2)
         {
             super(loc, op, __traits(classInstanceSize, LogicalExp), e1, e2);
         }
@@ -6102,7 +6076,7 @@ struct ASTBase
     {
         Expression econd;
 
-        extern (D) this(const ref Loc loc, Expression econd, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression econd, Expression e1, Expression e2)
         {
             super(loc, EXP.question, __traits(classInstanceSize, CondExp), e1, e2);
             this.econd = econd;
@@ -6116,7 +6090,7 @@ struct ASTBase
 
     extern (C++) final class AssignExp : BinExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.assign, __traits(classInstanceSize, AssignExp), e1, e2);
         }
@@ -6129,7 +6103,7 @@ struct ASTBase
 
     extern (C++) class BinAssignExp : BinExp
     {
-        final extern (D) this(const ref Loc loc, EXP op, int size, Expression e1, Expression e2)
+        final extern (D) this(Loc loc, EXP op, int size, Expression e1, Expression e2)
         {
             super(loc, op, size, e1, e2);
         }
@@ -6142,7 +6116,7 @@ struct ASTBase
 
     extern (C++) final class AddAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.addAssign, __traits(classInstanceSize, AddAssignExp), e1, e2);
         }
@@ -6155,7 +6129,7 @@ struct ASTBase
 
     extern (C++) final class MinAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.minAssign, __traits(classInstanceSize, MinAssignExp), e1, e2);
         }
@@ -6168,7 +6142,7 @@ struct ASTBase
 
     extern (C++) final class MulAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.mulAssign, __traits(classInstanceSize, MulAssignExp), e1, e2);
         }
@@ -6181,7 +6155,7 @@ struct ASTBase
 
     extern (C++) final class DivAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.divAssign, __traits(classInstanceSize, DivAssignExp), e1, e2);
         }
@@ -6194,7 +6168,7 @@ struct ASTBase
 
     extern (C++) final class ModAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.modAssign, __traits(classInstanceSize, ModAssignExp), e1, e2);
         }
@@ -6207,7 +6181,7 @@ struct ASTBase
 
     extern (C++) final class PowAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.powAssign, __traits(classInstanceSize, PowAssignExp), e1, e2);
         }
@@ -6220,7 +6194,7 @@ struct ASTBase
 
     extern (C++) final class AndAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.andAssign, __traits(classInstanceSize, AndAssignExp), e1, e2);
         }
@@ -6233,7 +6207,7 @@ struct ASTBase
 
     extern (C++) final class OrAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.orAssign, __traits(classInstanceSize, OrAssignExp), e1, e2);
         }
@@ -6246,7 +6220,7 @@ struct ASTBase
 
     extern (C++) final class XorAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.xorAssign, __traits(classInstanceSize, XorAssignExp), e1, e2);
         }
@@ -6259,7 +6233,7 @@ struct ASTBase
 
     extern (C++) final class ShlAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.leftShiftAssign, __traits(classInstanceSize, ShlAssignExp), e1, e2);
         }
@@ -6272,7 +6246,7 @@ struct ASTBase
 
     extern (C++) final class ShrAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.rightShiftAssign, __traits(classInstanceSize, ShrAssignExp), e1, e2);
         }
@@ -6285,7 +6259,7 @@ struct ASTBase
 
     extern (C++) final class UshrAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.unsignedRightShiftAssign, __traits(classInstanceSize, UshrAssignExp), e1, e2);
         }
@@ -6298,12 +6272,12 @@ struct ASTBase
 
     extern (C++) class CatAssignExp : BinAssignExp
     {
-        extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.concatenateAssign, __traits(classInstanceSize, CatAssignExp), e1, e2);
         }
 
-        extern (D) this(const ref Loc loc, EXP tok, Expression e1, Expression e2)
+        extern (D) this(Loc loc, EXP tok, Expression e1, Expression e2)
         {
             super(loc, tok, __traits(classInstanceSize, CatAssignExp), e1, e2);
         }
@@ -6316,7 +6290,7 @@ struct ASTBase
 
     extern (C++) final class CatElemAssignExp : CatAssignExp
     {
-        extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Type type, Expression e1, Expression e2)
         {
             super(loc, EXP.concatenateElemAssign, e1, e2);
             this.type = type;
@@ -6330,7 +6304,7 @@ struct ASTBase
 
     extern (C++) final class CatDcharAssignExp : CatAssignExp
     {
-        extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Type type, Expression e1, Expression e2)
         {
             super(loc, EXP.concatenateDcharAssign, e1, e2);
             this.type = type;
@@ -6348,7 +6322,7 @@ struct ASTBase
         Types* types;
         Expressions* exps;
 
-        extern (D) this(const ref Loc loc, Expression cntlExp, Types* types, Expressions* exps)
+        extern (D) this(Loc loc, Expression cntlExp, Types* types, Expressions* exps)
         {
             super(loc, EXP._Generic, __traits(classInstanceSize, GenericExp));
             this.cntlExp = cntlExp;
@@ -6381,7 +6355,7 @@ struct ASTBase
                 * and we need to set the error count to prevent bogus code
                 * generation. At least give a message.
                 */
-                dmd.errors.error(Loc.initial, "unknown, please file report on issues.dlang.org");
+                dmd.errors.error(Loc.initial, "unknown, please file report at https://github.com/dlang/dmd/issues/new");
             }
 
             return errorexp;
@@ -6400,7 +6374,7 @@ struct ASTBase
         Loc loc;
         Identifier ident;
 
-        final extern (D) this(const ref Loc loc, Identifier ident)
+        final extern (D) this(Loc loc, Identifier ident)
         {
             this.loc = loc;
             this.ident = ident;
@@ -6420,7 +6394,7 @@ struct ASTBase
         RootObject specAlias;
         RootObject defaultAlias;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
+        extern (D) this(Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
         {
             super(loc, ident);
             this.ident = ident;
@@ -6440,7 +6414,7 @@ struct ASTBase
         Type specType;
         Type defaultType;
 
-        final extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType)
+        final extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
         {
             super(loc, ident);
             this.ident = ident;
@@ -6456,7 +6430,7 @@ struct ASTBase
 
     extern (C++) final class TemplateTupleParameter : TemplateParameter
     {
-        extern (D) this(const ref Loc loc, Identifier ident)
+        extern (D) this(Loc loc, Identifier ident)
         {
             super(loc, ident);
             this.ident = ident;
@@ -6474,7 +6448,7 @@ struct ASTBase
         Expression specValue;
         Expression defaultValue;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Type valType,
+        extern (D) this(Loc loc, Identifier ident, Type valType,
             Expression specValue, Expression defaultValue)
         {
             super(loc, ident);
@@ -6492,7 +6466,7 @@ struct ASTBase
 
     extern (C++) final class TemplateThisParameter : TemplateTypeParameter
     {
-        extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType)
+        extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
         {
             super(loc, ident, specType, defaultType);
         }
@@ -6507,7 +6481,7 @@ struct ASTBase
     {
         Loc loc;
 
-        final extern (D) this(const ref Loc loc)
+        final extern (D) this(Loc loc)
         {
             this.loc = loc;
         }
@@ -6530,7 +6504,7 @@ struct ASTBase
         ForeachStatement aggrfe;
         ForeachRangeStatement rangefe;
 
-        final extern (D) this(const ref Loc loc, ForeachStatement aggrfe, ForeachRangeStatement rangefe)
+        final extern (D) this(Loc loc, ForeachStatement aggrfe, ForeachRangeStatement rangefe)
         in
         {
             assert(!!aggrfe ^ !!rangefe);
@@ -6547,7 +6521,7 @@ struct ASTBase
     {
         Expression exp;
 
-        final extern (D) this(const ref Loc loc, Expression exp)
+        final extern (D) this(Loc loc, Expression exp)
         {
             super(loc);
             this.exp = exp;
@@ -6566,11 +6540,10 @@ struct ASTBase
 
     extern (C++) class DVCondition : Condition
     {
-        uint level;
         Identifier ident;
         Module mod;
 
-        final extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
+        final extern (D) this(Loc loc, Module mod, Identifier ident)
         {
             super(loc);
             this.mod = mod;
@@ -6585,9 +6558,9 @@ struct ASTBase
 
     extern (C++) final class DebugCondition : DVCondition
     {
-        extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
+        extern (D) this(Loc loc, Module mod, Identifier ident)
         {
-            super(loc, mod, level, ident);
+            super(loc, mod, ident);
         }
 
         override void accept(Visitor v)
@@ -6598,9 +6571,9 @@ struct ASTBase
 
     extern (C++) final class VersionCondition : DVCondition
     {
-        extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
+        extern (D) this(Loc loc, Module mod, Identifier ident)
         {
-            super(loc, mod, level, ident);
+            super(loc, mod, ident);
         }
 
         override void accept(Visitor v)
@@ -6614,7 +6587,7 @@ struct ASTBase
         Loc loc;
         InitKind kind;
 
-        final extern (D) this(const ref Loc loc, InitKind kind)
+        final extern (D) this(Loc loc, InitKind kind)
         {
             this.loc = loc;
             this.kind = kind;
@@ -6641,7 +6614,7 @@ struct ASTBase
     {
         Expression exp;
 
-        extern (D) this(const ref Loc loc, Expression exp)
+        extern (D) this(Loc loc, Expression exp)
         {
             super(loc, InitKind.exp);
             this.exp = exp;
@@ -6658,7 +6631,7 @@ struct ASTBase
         Identifiers field;
         Initializers value;
 
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc, InitKind.struct_);
         }
@@ -6682,7 +6655,7 @@ struct ASTBase
         uint dim;
         Type type;
 
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc, InitKind.array);
         }
@@ -6703,7 +6676,7 @@ struct ASTBase
 
     extern (C++) final class VoidInitializer : Initializer
     {
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc, InitKind.void_);
         }
@@ -6716,7 +6689,7 @@ struct ASTBase
 
     extern (C++) final class DefaultInitializer : Initializer
     {
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc, InitKind.default_);
         }
@@ -6746,7 +6719,7 @@ struct ASTBase
     {
         DesigInits initializerList; /// initializer-list
 
-        extern (D) this(const ref Loc loc)
+        extern (D) this(Loc loc)
         {
             super(loc, InitKind.C_);
         }
@@ -6786,7 +6759,7 @@ struct ASTBase
         bool isdeprecated;
         Expression msg;
 
-        extern (D) this(const ref Loc loc, Identifier[] packages, Identifier id, Expression msg, bool isdeprecated)
+        extern (D) this(Loc loc, Identifier[] packages, Identifier id, Expression msg, bool isdeprecated)
         {
             this.loc = loc;
             this.packages = packages;
@@ -6991,7 +6964,8 @@ struct ASTBase
     }
 }
 
-private immutable ubyte[EXP.max + 1] exptab =
+private:
+immutable ubyte[EXP.max + 1] exptab =
 () {
     ubyte[EXP.max + 1] tab;
     with (EXPFLAGS)
@@ -7003,14 +6977,14 @@ private immutable ubyte[EXP.max + 1] exptab =
     return tab;
 } ();
 
-private enum EXPFLAGS : ubyte
+enum EXPFLAGS : ubyte
 {
     unary = 1,
     binary = 2,
     binaryAssign = 4,
 }
 
-private static immutable Eunary =
+enum Eunary =
     [
         EXP.import_, EXP.assert_, EXP.throw_, EXP.dotIdentifier, EXP.dotTemplateDeclaration,
         EXP.dotVariable, EXP.dotTemplateInstance, EXP.delegate_, EXP.dotType, EXP.call,
@@ -7019,7 +6993,7 @@ private static immutable Eunary =
         EXP.delegateFunctionPointer, EXP.preMinusMinus, EXP.prePlusPlus,
     ];
 
-private static immutable Ebinary =
+enum Ebinary =
     [
         EXP.dot, EXP.comma, EXP.index, EXP.minusMinus, EXP.plusPlus, EXP.assign,
         EXP.add, EXP.min, EXP.concatenate, EXP.mul, EXP.div, EXP.mod, EXP.pow, EXP.leftShift,
@@ -7030,7 +7004,7 @@ private static immutable Ebinary =
         EXP.construct, EXP.blit,
     ];
 
-private static immutable EbinaryAssign =
+enum EbinaryAssign =
     [
         EXP.addAssign, EXP.minAssign, EXP.mulAssign, EXP.divAssign, EXP.modAssign,
         EXP.andAssign, EXP.orAssign, EXP.xorAssign, EXP.powAssign,

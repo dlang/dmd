@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/evalu8.d, backend/evalu8.d)
@@ -44,7 +44,7 @@ import dmd.backend.fp : testFE, clearFE, statusFE, have_float_except;
  * Return boolean result of constant elem.
  */
 
-int boolres(elem *e)
+int boolres(elem* e)
 {   int b;
 
     //printf("boolres()\n");
@@ -210,7 +210,7 @@ int boolres(elem *e)
  */
 
 @trusted
-int iftrue(elem *e)
+int iftrue(elem* e)
 {
     while (1)
     {
@@ -242,7 +242,7 @@ int iftrue(elem *e)
  */
 
 @trusted
-int iffalse(elem *e)
+int iffalse(elem* e)
 {
     while (1)
     {
@@ -274,7 +274,7 @@ int iffalse(elem *e)
  */
 
 @trusted
-elem * evalu8(elem *e, Goal goal)
+elem* evalu8(elem* e, Goal goal)
 {
     elem* e1;
     elem* e2;
@@ -1096,11 +1096,11 @@ static if (0)
             if (!boolres(e2))
             {
                 div0:
-                    error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero");
+                    error(e.Esrcpos, "divide by zero");
                     break;
 
                 overflow:
-                    error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "integer overflow");
+                    error(e.Esrcpos, "integer overflow");
                     break;
             }
         }
@@ -1834,8 +1834,7 @@ static if (0) // && MARS
          */
         if (l1 >= 0 && l1 < 4096)
         {
-            error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum,
-                "dereference of null pointer");
+            error(e.Esrcpos, "dereference of null pointer");
             e.E1.Vlong = 4096;     // suppress redundant messages
         }
 }
@@ -1942,7 +1941,7 @@ static if (0) // && MARS
  * instead of the soft long double ones.
  */
 
-extern (D) targ_ldouble el_toldoubled(elem *e)
+extern (D) targ_ldouble el_toldoubled(elem* e)
 {
     targ_ldouble result;
 

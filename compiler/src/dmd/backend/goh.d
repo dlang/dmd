@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              https://www.boost.org/LICENSE_1_0.txt
@@ -92,7 +92,6 @@ struct GlobalOptimizer
     vec_t vptrkill;     // vector of AEs killed by an access
 }
 
-public import dmd.backend.var : go;
 public import dmd.backend.gdag : builddags, boolopt;
 public import dmd.backend.gflow : flowrd, flowlv, flowvbe, flowcp, flowae, genkillae;
 public import dmd.backend.glocal : localize;

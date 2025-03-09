@@ -1,0 +1,18 @@
+Case fallthough for multivalued cases is an error now
+
+This used to give a deprecation and now gives an error:
+```
+int i;
+switch (0)
+{
+    case 0, 1: i = 20;
+    default: assert(0); // Error: switch case fallthrough - use 'goto default;' if intended
+}
+
+switch (0)
+{
+    default:
+    case 0, 1: i = 20;
+    case 2, 3: i = 30; // Error: switch case fallthrough - use 'goto case;' if intended
+}
+```

@@ -14,7 +14,7 @@ fail_compilation/fail13902.d(33): Error: returning `&s1.v` escapes a reference t
 fail_compilation/fail13902.d(38): Error: returning `& sa1` escapes a reference to local variable `sa1`
 fail_compilation/fail13902.d(39): Error: returning `& sa2` escapes a reference to local variable `sa2`
 fail_compilation/fail13902.d(40): Error: returning `& x` escapes a reference to local variable `x`
-fail_compilation/fail13902.d(41): Error: returning `(& x+4)` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(41): Error: returning `(& x + 4)` escapes a reference to local variable `x`
 fail_compilation/fail13902.d(42): Error: returning `& x + cast(long)x * 4L` escapes a reference to local variable `x`
 fail_compilation/fail13902.d(45): Error: returning `& y` escapes a reference to local variable `y`
 ---
@@ -59,7 +59,7 @@ fail_compilation/fail13902.d(76): Error: returning `&s1.v` escapes a reference t
 fail_compilation/fail13902.d(81): Error: returning `& sa1` escapes a reference to parameter `sa1`
 fail_compilation/fail13902.d(82): Error: returning `& sa2` escapes a reference to parameter `sa2`
 fail_compilation/fail13902.d(83): Error: returning `& x` escapes a reference to parameter `x`
-fail_compilation/fail13902.d(84): Error: returning `(& x+4)` escapes a reference to parameter `x`
+fail_compilation/fail13902.d(84): Error: returning `(& x + 4)` escapes a reference to parameter `x`
 fail_compilation/fail13902.d(85): Error: returning `& x + cast(long)x * 4L` escapes a reference to parameter `x`
 fail_compilation/fail13902.d(88): Error: returning `& y` escapes a reference to parameter `y`
 ---
@@ -323,9 +323,9 @@ int[] testSlice2() { int[3] sa; int n; return sa[n..2][1..2]; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(324): Error: returning `vda[0]` escapes a reference to parameter `vda`
+fail_compilation/fail13902.d(324): Error: returning `vda[0]` escapes a reference to variadic parameter `vda`
+fail_compilation/fail13902.d(325): Error: returning `vda[]` escapes a reference to variadic parameter `vda`
 ---
-
 */
 ref int testDynamicArrayVariadic1(int[] vda...) { return vda[0]; }
 @safe int[]   testDynamicArrayVariadic2(int[] vda...) { return vda[]; }
@@ -335,9 +335,28 @@ int[3]  testDynamicArrayVariadic3(int[] vda...) { return vda[0..3]; }   // no er
 TEST_OUTPUT:
 ---
 fail_compilation/fail13902.d(335): Error: returning `vsa[0]` escapes a reference to parameter `vsa`
-fail_compilation/fail13902.d(336): Error: returning `vsa[]` escapes a reference to variadic parameter `vsa`
+fail_compilation/fail13902.d(336): Error: returning `vsa[]` escapes a reference to parameter `vsa`
 ---
 */
 ref int testStaticArrayVariadic1(int[3] vsa...) { return vsa[0]; }
 int[]   testStaticArrayVariadic2(int[3] vsa...) { return vsa[]; }
 int[3]  testStaticArrayVariadic3(int[3] vsa...) { return vsa[0..3]; }   // no error
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail13902.d(355): Error: returning `match(st)` escapes a reference to local variable `st`
+---
+*/
+
+// This was reduced from a `static assert(!__traits(compiles, {...}))` test in `std.sumtype`
+// which was asserting that matchers couldn't escape sumtype members.
+// This should give an error even without `@safe` or `-preview=dip1000`
+
+int* match(return ref int i) { return &i; }
+
+int* escape()
+{
+    int st;
+    return match(st);
+}

@@ -123,6 +123,11 @@ test_dmd() {
         local args=(ARGS="-O -inline -release")
     fi
 
+    if type -P apk &>/dev/null; then
+        # Alpine: no TLS variables support with gdb, https://gitlab.alpinelinux.org/alpine/aports/-/issues/11154
+        rm compiler/test/runnable/gdb4181.d
+    fi
+
     $build_path/dmd -g -i -Icompiler/test -release compiler/test/run.d -ofgenerated/run
     generated/run -j$N --environment MODEL=$MODEL HOST_DMD=$build_path/dmd "${args[@]}"
 }
@@ -262,6 +267,11 @@ install_host_compiler() {
         echo "export DMD=gdmd-$gdc_version" > ~/dlang/gdc-$gdc_version/activate
         echo "deactivate(){ echo;}" >> ~/dlang/gdc-$gdc_version/activate
     fi
+  elif type -P apk &>/dev/null; then
+    # fake install script and create a fake 'activate' script
+    mkdir -p ~/dlang/$HOST_DMD
+    echo "export DMD=$HOST_DMD" > ~/dlang/$HOST_DMD/activate
+    echo "deactivate(){ echo;}" >> ~/dlang/$HOST_DMD/activate
   else
     local install_sh="install.sh"
     download_install_sh "$install_sh"

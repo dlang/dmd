@@ -13,15 +13,15 @@ fail_compilation/e15876_3.d(29): Error: found `End of File` instead of statement
 fail_compilation/e15876_3.d(29): Error: matching `}` expected following compound statement, not `End of File`
 fail_compilation/e15876_3.d(28):        unmatched `{`
 fail_compilation/e15876_3.d(29): Error: found `End of File` when expecting `)`
-fail_compilation/e15876_3.d(29): Error: no identifier for declarator `d(_error_ = ()
+fail_compilation/e15876_3.d(29): Error: variable name expected after type `d(_error_ = ()
 {
 for (__error__
- 0; 0)
+ __error; __error)
 {
 __error__
 }
 }
-)`
+)`, not `End of File`
 fail_compilation/e15876_3.d(29): Error: semicolon expected following function declaration, not `End of File`
 ---
 */

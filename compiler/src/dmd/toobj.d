@@ -1,7 +1,7 @@
 /**
  * Convert an AST that went through all semantic phases into an object file.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _toobj.d)
@@ -35,6 +35,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : hasStaticCtorOrDtor, include, isFuncHidden;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
@@ -90,12 +91,12 @@ void genModuleInfo(Module m)
         ObjectNotFound(m.loc, Id.ModuleInfo);
     }
 
-    Symbol *msym = toSymbol(m);
+    Symbol* msym = toSymbol(m);
 
     //////////////////////////////////////////////
 
     m.csym.Sclass = SC.global;
-    m.csym.Sfl = FLdata;
+    m.csym.Sfl = FL.data;
 
     auto dtb = DtBuilder(0);
 
@@ -179,7 +180,7 @@ void genModuleInfo(Module m)
             if (!mod.needmoduleinfo)
                 continue;
 
-            Symbol *s = toSymbol(mod);
+            Symbol* s = toSymbol(mod);
 
             /* Weak references don't pull objects in from the library,
              * they resolve to 0 if not pulled in by something else.
@@ -204,7 +205,7 @@ void genModuleInfo(Module m)
         m.nameoffset = dtb.length();
         const(char) *name = m.toPrettyChars();
         m.namelen = strlen(name);
-        dtb.nbytes(cast(uint)m.namelen + 1, name);
+        dtb.nbytes(name[0 .. m.namelen + 1]);
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
@@ -228,7 +229,7 @@ void genModuleInfo(Module m)
  *      s      = symbol that contains the data
  *      offset = offset of the data inside the Symbol's memory
  */
-void write_pointers(Type type, Symbol *s, uint offset)
+void write_pointers(Type type, Symbol* s, uint offset)
 {
     uint ty = type.toBasetype().ty;
     if (ty == Tclass)
@@ -245,7 +246,7 @@ void write_pointers(Type type, Symbol *s, uint offset)
 *      s      = symbol that contains the data
 *      offset = offset of the data inside the Symbol's memory
 */
-void write_instance_pointers(Type type, Symbol *s, uint offset)
+void write_instance_pointers(Type type, Symbol* s, uint offset)
 {
     import dmd.typesem : hasPointers;
     if (!type.hasPointers())
@@ -280,7 +281,7 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
  *      loc = the location for reporting line numbers in errors
  *      t   = the type to generate the `TypeInfo` object for
  */
-void TypeInfo_toObjFile(Expression e, const ref Loc loc, Type t)
+void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
 {
     // printf("TypeInfo_toObjFIle() %s\n", torig.toChars());
     if (genTypeInfo(e, loc, t, null))
@@ -384,14 +385,14 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (genclassinfo)
                 toSymbol(cd);                           // __ClassZ symbol
             toVtblSymbol(cd, genclassinfo);             // __vtblZ symbol
-            Symbol *sinit = toInitializer(cd);          // __initZ symbol
+            Symbol* sinit = toInitializer(cd);          // __initZ symbol
 
             //////////////////////////////////////////////
 
             // Generate static initializer
             {
                 sinit.Sclass = scclass;
-                sinit.Sfl = FLdata;
+                sinit.Sfl = FL.data;
                 auto dtb = DtBuilder(0);
                 ClassDeclaration_toDt(cd, dtb);
                 sinit.Sdt = dtb.finish();
@@ -442,7 +443,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             cd.vtblsym.csym.Sdt = dtbv.finish();
             cd.vtblsym.csym.Sclass = scclass;
-            cd.vtblsym.csym.Sfl = FLdata;
+            cd.vtblsym.csym.Sfl = FL.data;
             out_readonly(cd.vtblsym.csym);
             outdata(cd.vtblsym.csym);
             if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
@@ -532,7 +533,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 {
                     if (sinit == bzeroSymbol) assert(0);
                     sinit.Sclass = sd.isInstantiated() ? SC.comdat : SC.global;
-                    sinit.Sfl = FLdata;
+                    sinit.Sfl = FL.data;
                     auto dtb = DtBuilder(0);
                     StructDeclaration_toDt(sd, dtb);
                     sinit.Sdt = dtb.finish();
@@ -597,7 +598,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (!vd.isDataseg() || vd.storage_class & STC.extern_)
                 return;
 
-            Symbol *s = toSymbol(vd);
+            Symbol* s = toSymbol(vd);
             const sz64 = vd.type.size(vd.loc);
             if (sz64 == SIZE_INVALID)
             {
@@ -631,7 +632,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 }
                 parent = parent.parent;
             } while (parent);
-            s.Sfl = FLdata;
+            s.Sfl = FL.data;
 
             // Size 0 should only be possible for T[0] and noreturn
             if (!sz)
@@ -710,6 +711,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 TypeInfo_toObjFile(null, ed.loc, ed.type);
 
             TypeEnum tc = ed.type.isTypeEnum();
+            import dmd.typesem : isZeroInit;
             if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))
             {
             }
@@ -722,7 +724,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 // Generate static initializer
                 toInitializer(ed);
                 ed.sinit.Sclass = scclass;
-                ed.sinit.Sfl = FLdata;
+                ed.sinit.Sfl = FL.data;
                 auto dtb = DtBuilder(0);
                 Expression_toDt(tc.sym.defaultval, dtb);
                 ed.sinit.Sdt = dtb.finish();
@@ -746,9 +748,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            Symbol *s = toSymbol(tid);
+            Symbol* s = toSymbol(tid);
             s.Sclass = SC.comdat;
-            s.Sfl = FLdata;
+            s.Sfl = FL.data;
 
             auto dtb = DtBuilder(0);
             TypeInfo_toDt(dtb, tid);
@@ -770,7 +772,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(AttribDeclaration ad)
         {
-            Dsymbols *d = ad.include(null);
+            Dsymbols* d = ad.include(null);
 
             if (d)
             {
@@ -784,7 +786,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(PragmaDeclaration pd)
         {
-            if (pd.ident == Id.lib)
+            if (pd.ident == Id.lib || pd.ident == Id.linkerDirective)
             {
                 assert(pd.args && pd.args.length == 1);
 
@@ -793,20 +795,26 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 assert(e.op == EXP.string_);
 
                 StringExp se = e.isStringExp();
-                char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
+                char* name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
+
                 se.writeTo(name, true);
 
-                /* Embed the library names into the object file.
-                 * The linker will then automatically
-                 * search that library, too.
-                 */
-                if (!obj_includelib(name[0 .. strlen(name)]))
+                if (pd.ident == Id.linkerDirective)
+                    obj_linkerdirective(name);
+                else
                 {
-                    /* The format does not allow embedded library names,
-                     * so instead append the library name to the list to be passed
-                     * to the linker.
+                    /* Embed the library names into the object file.
+                     * The linker will then automatically
+                     * search that library, too.
                      */
-                    global.params.libfiles.push(name);
+                    if (!obj_includelib(name[0 .. strlen(name)]))
+                    {
+                        /* The format does not allow embedded library names,
+                         * so instead append the library name to the list to be passed
+                         * to the linker.
+                         */
+                        global.params.libfiles.push(name);
+                    }
                 }
             }
             else if (pd.ident == Id.startaddress)
@@ -816,26 +824,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 Dsymbol sa = getDsymbol(e);
                 FuncDeclaration f = sa.isFuncDeclaration();
                 assert(f);
-                Symbol *s = toSymbol(f);
+                Symbol* s = toSymbol(f);
                 obj_startaddress(s);
-            }
-            else if (pd.ident == Id.linkerDirective)
-            {
-                assert(pd.args && pd.args.length == 1);
-
-                Expression e = (*pd.args)[0];
-
-                assert(e.op == EXP.string_);
-
-                StringExp se = e.isStringExp();
-                size_t length = se.numberOfCodeUnits() + 1;
-                debug enum LEN = 2; else enum LEN = 20;
-                char[LEN] buffer = void;
-                SmallBuffer!char directive = SmallBuffer!char(length, buffer);
-
-                se.writeTo(directive.ptr, true);
-
-                obj_linkerdirective(directive.ptr);
             }
 
             visit(cast(AttribDeclaration)pd);
@@ -956,11 +946,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
          *      sz = data size of s
          *      dtb = where to put the data
          */
-        static void tlsToDt(VarDeclaration vd, Symbol *s, uint sz, ref DtBuilder dtb, bool isCfile)
+        static void tlsToDt(VarDeclaration vd, Symbol* s, uint sz, ref DtBuilder dtb, bool isCfile)
         {
             assert(config.objfmt == OBJ_MACH && target.isX86_64 && (s.Stype.Tty & mTYLINK) == mTYthread);
 
-            Symbol *tlvInit = createTLVDataSymbol(vd, s);
+            Symbol* tlvInit = createTLVDataSymbol(vd, s);
             auto tlvInitDtb = DtBuilder(0);
 
             if (sz == 0)
@@ -991,7 +981,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
          *
          * Returns: the newly created symbol
          */
-        static Symbol *createTLVDataSymbol(VarDeclaration vd, Symbol *s)
+        static Symbol* createTLVDataSymbol(VarDeclaration vd, Symbol* s)
         {
             assert(config.objfmt == OBJ_MACH && target.isX86_64 && (s.Stype.Tty & mTYLINK) == mTYthread);
 
@@ -1002,11 +992,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
             const(char)[] tlvInitName = buffer[];
 
             // Compute type for tlv symbol
-            type *t = type_fake(vd.type.ty);
+            type* t = type_fake(vd.type.ty);
             type_setty(&t, t.Tty | mTYthreadData);
             type_setmangle(&t, mangle(vd));
 
-            Symbol *tlvInit = symbol_name(tlvInitName, SC.static_, t);
+            Symbol* tlvInit = symbol_name(tlvInitName, SC.static_, t);
             tlvInit.Sdt = null;
             tlvInit.Salignment = type_alignsize(s.Stype);
             if (vd._linkage == LINK.cpp)
@@ -1127,7 +1117,7 @@ private bool finishVtbl(ClassDeclaration cd)
  * Returns ~0 if not this csym.
  */
 
-uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
+uint baseVtblOffset(ClassDeclaration cd, BaseClass* bc)
 {
     //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
     uint csymoffset = target.classinfosize;    // must be ClassInfo.size
@@ -1135,7 +1125,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
 
     for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
     {
-        BaseClass *b = (*cd.vtblInterfaces)[i];
+        BaseClass* b = (*cd.vtblInterfaces)[i];
 
         if (b == bc)
             return csymoffset;
@@ -1151,7 +1141,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
     {
         foreach (k; 0 .. cd2.vtblInterfaces.length)
         {
-            BaseClass *bs = (*cd2.vtblInterfaces)[k];
+            BaseClass* bs = (*cd2.vtblInterfaces)[k];
             if (bs.fillVtbl(cd, null, 0))
             {
                 if (bc == bs)
@@ -1178,7 +1168,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
  * Returns:
  *    number of bytes emitted
  */
-private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bvtbl, ClassDeclaration pc, size_t k)
+private size_t emitVtbl(ref DtBuilder dtb, BaseClass* b, ref FuncDeclarations bvtbl, ClassDeclaration pc, size_t k)
 {
     //printf("\toverriding vtbl[] for %s\n", b.sym.toChars());
     ClassDeclaration id = b.sym;
@@ -1196,8 +1186,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
 
     foreach (j; jstart .. id_vtbl_dim)
     {
-        FuncDeclaration fd = bvtbl[j];
-        if (fd)
+        if (FuncDeclaration fd = bvtbl[j])
         {
             auto offset2 = b.offset;
             if (fd.interfaceVirtual)
@@ -1237,7 +1226,7 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
     SC scclass = SC.comdat;
     cd.csym.Sclass = scclass;
-    cd.csym.Sfl = FLdata;
+    cd.csym.Sfl = FL.data;
 
     auto dtb = DtBuilder(0);
 
@@ -1302,7 +1291,7 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
         namelen = strlen(name);
     }
     dtb.size(namelen);
-    dt_t *pdtname = dtb.xoffpatch(cd.csym, 0, TYnptr);
+    dt_t* pdtname = dtb.xoffpatch(cd.csym, 0, TYnptr);
 
     // vtbl[]
     dtb.size(cd.vtbl.length);
@@ -1410,7 +1399,7 @@ Louter:
         import dmd.common.blake3;
         const hash = blake3((cast(ubyte*)name)[0 .. namelen]);
         //truncate and use the first 16 bytes only
-        dtb.nbytes(16, cast(char*)hash.ptr);
+        dtb.nbytes(hash[0 .. 16]);
     }
 
     //////////////////////////////////////////////
@@ -1421,7 +1410,7 @@ Louter:
     offset += cd.vtblInterfaces.length * (4 * target.ptrsize);
     for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
     {
-        BaseClass *b = (*cd.vtblInterfaces)[i];
+        BaseClass* b = (*cd.vtblInterfaces)[i];
         ClassDeclaration id = b.sym;
 
         /* The layout is:
@@ -1452,7 +1441,7 @@ Louter:
     //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces.length, toChars());
     foreach (i; 0 .. cd.vtblInterfaces.length)
     {
-        BaseClass *b = (*cd.vtblInterfaces)[i];
+        BaseClass* b = (*cd.vtblInterfaces)[i];
         offset += emitVtbl(dtb, b, b.vtbl, cd, i);
     }
 
@@ -1463,7 +1452,7 @@ Louter:
     {
         foreach (i; 0 .. pc.vtblInterfaces.length)
         {
-            BaseClass *b = (*pc.vtblInterfaces)[i];
+            BaseClass* b = (*pc.vtblInterfaces)[i];
             FuncDeclarations bvtbl;
             if (b.fillVtbl(cd, &bvtbl, 0))
             {
@@ -1476,7 +1465,7 @@ Louter:
 
     dtpatchoffset(pdtname, offset);
 
-    dtb.nbytes(cast(uint)(namelen + 1), name);
+    dtb.nbytes(name[0 .. namelen + 1]);
     const size_t namepad = -(namelen + 1) & (target.ptrsize - 1); // align
     dtb.nzeros(cast(uint)namepad);
 }
@@ -1493,7 +1482,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
 
     // Put out the ClassInfo
     id.csym.Sclass = scclass;
-    id.csym.Sfl = FLdata;
+    id.csym.Sfl = FL.data;
 
     auto dtb = DtBuilder(0);
 
@@ -1550,7 +1539,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     const(char) *name = id.toPrettyChars(/*QualifyTypes=*/ true);
     size_t namelen = strlen(name);
     dtb.size(namelen);
-    dt_t *pdtname = dtb.xoffpatch(id.csym, 0, TYnptr);
+    dt_t* pdtname = dtb.xoffpatch(id.csym, 0, TYnptr);
 
     // vtbl[]
     dtb.size(0);
@@ -1619,7 +1608,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
         import dmd.common.blake3;
         const hash = blake3((cast(ubyte*)name)[0 .. namelen]);
         //only use the first 16 bytes
-        dtb.nbytes(16, cast(char*)hash.ptr);
+        dtb.nbytes(hash[0 .. 16]);
     }
 
     //////////////////////////////////////////////
@@ -1630,7 +1619,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     offset += id.vtblInterfaces.length * (4 * target.ptrsize);
     for (size_t i = 0; i < id.vtblInterfaces.length; i++)
     {
-        BaseClass *b = (*id.vtblInterfaces)[i];
+        BaseClass* b = (*id.vtblInterfaces)[i];
         ClassDeclaration base = b.sym;
 
         // classinfo
@@ -1648,7 +1637,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
 
     dtpatchoffset(pdtname, offset);
 
-    dtb.nbytes(cast(uint)(namelen + 1), name);
+    dtb.nbytes(name[0 .. namelen + 1]);
     const size_t namepad =  -(namelen + 1) & (target.ptrsize - 1); // align
     dtb.nzeros(cast(uint)namepad);
 }

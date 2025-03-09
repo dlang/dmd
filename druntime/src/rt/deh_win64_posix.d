@@ -138,7 +138,7 @@ immutable(FuncTable)* __eh_finddata(void *address)
 
 immutable(FuncTable)* __eh_finddata(void *address, immutable(FuncTable)* pstart, immutable(FuncTable)* pend)
 {
-    debug(PRINTF) printf("FuncTable.sizeof = %p\n", FuncTable.sizeof);
+    debug(PRINTF) printf("FuncTable.sizeof = %#zx\n", FuncTable.sizeof);
     debug(PRINTF) printf("__eh_finddata(address = %p)\n", address);
     debug(PRINTF) printf("_deh_beg = %p, _deh_end = %p\n", pstart, pend);
 
@@ -268,7 +268,7 @@ extern (C) void _d_throwc(Throwable h)
             break;
         }
 
-        debug(PRINTF) printf("found caller, EBP = %p, retaddr = %p\n", regebp, retaddr);
+        debug(PRINTF) printf("found caller, EBP = %#zx, retaddr = %#zx\n", regebp, retaddr);
 //if (++count == 12) *(char*)0=0;
         auto func_table = __eh_finddata(cast(void *)retaddr);   // find static data associated with function
         auto handler_table = func_table ? func_table.handlertable : null;
@@ -294,8 +294,8 @@ extern (C) void _d_throwc(Throwable h)
 
         debug(PRINTF)
         {
-            printf("retaddr = %p\n", retaddr);
-            printf("regebp=%p, funcoffset=%p, spoff=x%x, retoffset=x%x\n",
+            printf("retaddr = %#zx\n", retaddr);
+            printf("regebp=%#zx, funcoffset=%#zx, spoff=x%x, retoffset=x%x\n",
             regebp,funcoffset,spoff,retoffset);
         }
 
@@ -304,11 +304,11 @@ extern (C) void _d_throwc(Throwable h)
 
         debug(PRINTF)
         {
-            printf("handler_info[%d]:\n", dim);
+            printf("handler_info[%zd]:\n", dim);
             for (uint i = 0; i < dim; i++)
             {
                 auto phi = &handler_table.handler_info.ptr[i];
-                printf("\t[%d]: offset = x%04x, endoffset = x%04x, prev_index = %d, cioffset = x%04x, finally_offset = %x\n",
+                printf("\t[%d]: offset = x%04x, endoffset = x%04x, prev_index = %d, cioffset = x%04x, finally_offset = %zx\n",
                         i, phi.offset, phi.endoffset, phi.prev_index, phi.cioffset, phi.finally_offset);
             }
         }
@@ -318,7 +318,7 @@ extern (C) void _d_throwc(Throwable h)
         {
             auto phi = &handler_table.handler_info.ptr[i];
 
-            debug(PRINTF) printf("i = %d, phi.offset = %04x\n", i, funcoffset + phi.offset);
+            debug(PRINTF) printf("i = %d, phi.offset = %04zx\n", i, funcoffset + phi.offset);
             if (retaddr > funcoffset + phi.offset &&
                 retaddr <= funcoffset + phi.endoffset)
                 index = i;
@@ -328,7 +328,7 @@ extern (C) void _d_throwc(Throwable h)
         if (dim)
         {
             auto phi = &handler_table.handler_info.ptr[index+1];
-            debug(PRINTF) printf("next finally_offset %p\n", phi.finally_offset);
+            debug(PRINTF) printf("next finally_offset %#zx\n", phi.finally_offset);
             auto prev = cast(InFlight*) &__inflight;
             auto curr = prev.next;
 
@@ -418,7 +418,7 @@ extern (C) void _d_throwc(Throwable h)
                 // Call finally block
                 // Note that it is unnecessary to adjust the ESP, as the finally block
                 // accesses all items on the stack as relative to EBP.
-                debug(PRINTF) printf("calling finally_offset %p\n", phi.finally_offset);
+                debug(PRINTF) printf("calling finally_offset %#zx\n", phi.finally_offset);
 
                 auto     blockaddr = cast(void*)(funcoffset + phi.finally_offset);
                 InFlight inflight;

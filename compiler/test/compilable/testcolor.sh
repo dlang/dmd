@@ -15,17 +15,24 @@ compare()
     fi
 }
 
-normalize() { tr -d "\n\r" ; }
+normalize()
+{
+    if uname | grep -qi "freebsd"; then
+        tr -d "\n\r" | sed 's/void foo() {} void main() { goo(); }//; s/[[:space:]]\+\^$//'
+    else
+        tr -d "\n\r" | sed -E 's/void foo\(\) \{\} void main\(\) \{ goo\(\); \}//; s/\s+\^$//'
+    fi
+}
 
 check()
 {
     local actual expected
-    actual=$(echo "$2" | ("$DMD" -c -o- "$1" - 2>&1 || true) | normalize)
+    actual=$(echo "$2" | ("$DMD" -c -o- -verrors=simple "$1" - 2>&1 || true) | normalize)
     compare "$actual" "$3"
 }
 
-expectedWithoutColor=__stdin.d\(2\):\ Error:\ no\ identifier\ for\ declarator\ \`test\`
-expectedWithColor=$'\033'\[1m__stdin.d\(2\):\ $'\033'\[1\;31mError:\ $'\033'\[mno\ identifier\ for\ declarator\ \`$'\033'\[0\;36m$'\033'\[m$'\033'\[1mtest$'\033'\[0\;36m$'\033'\[m\`
+expectedWithoutColor='__stdin.d(2): Error: variable name expected after type `test`, not `End of File`'
+expectedWithColor=$'\E[1m__stdin.d(2): \E[1;31mError: \E[mvariable name expected after type `\E[0;36m\E[m\E[1mtest\E[0;36m\E[m`, not `\E[0;36m\E[m\E[1mEnd\E[0;36m \E[m\E[1mof\E[0;36m \E[m\E[1mFile\E[0;36m\E[m`'
 
 check -c "test" "$expectedWithoutColor"
 check -color=auto "test" "$expectedWithoutColor"
@@ -40,7 +47,7 @@ check -color=off "$gooCode" "$gooExpectedWithoutColor"
 
 if [[ "$(script --version)" == script\ from\ util-linux\ * ]]
 then
-    actual="$(SHELL="$(command -v bash)" TERM="faketerm" script -q -c "echo test | ( $DMD -c -o- -)" /dev/null | normalize)" || true
+    actual="$(SHELL="$(command -v bash)" TERM="faketerm" script -q -c "echo test | ( $DMD -c -o- -verrors=simple -)" /dev/null | normalize)" || true
 
     # Weird results for WSL, probably some environmental issue
     if uname -a | grep -i linux | grep -i microsoft &> /dev/null

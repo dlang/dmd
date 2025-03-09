@@ -2,7 +2,7 @@
  * This module contains the implementation of the C++ header generation available through
  * the command line switch -Hc.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtohd, _dtoh.d)
@@ -512,7 +512,7 @@ public:
             }
         }
 
-        if (global.params.warnings != DiagnosticReporting.off || canFix)
+        if (global.params.useWarnings != DiagnosticReporting.off || canFix)
         {
             // Warn about identifiers that are keywords in C++.
             if (auto kc = keywordClass(ident))
@@ -976,7 +976,8 @@ public:
         {
             EnumKind kind = getEnumKind(type);
 
-            if (vd.visibility.kind == AST.Visibility.Kind.none || vd.visibility.kind == AST.Visibility.Kind.private_) {
+            if (vd.visibility.kind == AST.Visibility.Kind.none || vd.visibility.kind == AST.Visibility.Kind.private_)
+            {
                 ignored("enum `%s` because it is `%s`.", vd.toPrettyChars(), AST.visibilityToChars(vd.visibility.kind));
                 return;
             }
@@ -2324,7 +2325,7 @@ public:
             assert(tf.next, fd.loc.toChars().toDString());
 
             tf.next == AST.Type.tsize_t ? originalType.next.accept(this) : tf.next.accept(this);
-            if (tf.isref)
+            if (tf.isRef)
                 buf.writeByte('&');
             buf.writeByte(' ');
 
@@ -2796,7 +2797,7 @@ public:
     {
         if (vd._init && !vd._init.isVoidInitializer())
             return AST.initializerToExpression(vd._init);
-        else if (auto ts = vd.type.isTypeStruct())
+        if (auto ts = vd.type.isTypeStruct())
         {
             if (!ts.sym.noDefaultCtor && !ts.sym.isUnionDeclaration())
             {

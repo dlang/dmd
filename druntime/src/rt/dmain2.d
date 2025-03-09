@@ -11,22 +11,24 @@
 
 module rt.dmain2;
 
+import core.atomic;
+import core.internal.parseoptions : rt_parseOption;
+import core.stdc.errno : errno;
+import core.stdc.stdio : fflush, fprintf, fwrite, stderr, stdout;
+import core.stdc.stdlib : alloca, EXIT_FAILURE, EXIT_SUCCESS, free, malloc, realloc;
+import core.stdc.string : strerror;
+import rt.config : rt_cmdline_enabled, rt_configOption;
 import rt.memory;
 import rt.sections;
-import core.atomic;
-import core.stdc.stddef;
-import core.stdc.stdlib;
-import core.stdc.string;
-import core.stdc.stdio;   // for printf()
-import core.stdc.errno : errno;
 
 version (Windows)
 {
-    import core.stdc.wchar_;
+    import core.stdc.stdio : fileno;
+    import core.stdc.wchar_ : wcslen;
     import core.sys.windows.basetsd : HANDLE;
     import core.sys.windows.shellapi : CommandLineToArgvW;
-    import core.sys.windows.winbase : FreeLibrary, GetCommandLineW, GetProcAddress,
-        IsDebuggerPresent, LoadLibraryW, LocalFree, WriteFile;
+    import core.sys.windows.winbase : FreeLibrary, GetCommandLineW, GetProcAddress, IsDebuggerPresent, LoadLibraryW,
+        LocalFree, WriteFile;
     import core.sys.windows.wincon : CONSOLE_SCREEN_BUFFER_INFO, GetConsoleOutputCP,
         GetConsoleScreenBufferInfo;
     import core.sys.windows.winnls : CP_UTF8, MultiByteToWideChar, WideCharToMultiByte;
@@ -34,19 +36,12 @@ version (Windows)
     import core.sys.windows.winuser : MB_ICONERROR, MessageBoxW;
 
     pragma(lib, "shell32.lib"); // needed for CommandLineToArgvW
-}
 
-version (FreeBSD)
-{
-    import core.stdc.fenv;
+    import core.stdc.stdio : _get_osfhandle;
 }
-version (NetBSD)
+else version (Posix)
 {
-    import core.stdc.fenv;
-}
-version (DragonFlyBSD)
-{
-    import core.stdc.fenv;
+    import core.stdc.string : strlen;
 }
 
 // not sure why we can't define this in one place, but this is to keep this
@@ -423,6 +418,14 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
                 pop     EAX;
             }
         }
+        else version (GNU_InlineAsm)
+        {
+            size_t fpu_cw;
+            asm { "fstcw %0" : "=m" (fpu_cw); }
+            fpu_cw |= 0b11_00_111111;  // 11: use 64 bit extended-precision
+                                       // 111111: mask all FP exceptions
+            asm { "fldcw %0" : "=m" (fpu_cw); }
+        }
     }
 
     /* Create a copy of args[] on the stack to be used for main, so that rt_args()
@@ -436,7 +439,6 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
         char[][] argsCopy = buff[0 .. args.length];
         auto argBuff = cast(char*) (buff + args.length);
         size_t j = 0;
-        import rt.config : rt_cmdline_enabled;
         bool parseOpts = rt_cmdline_enabled!();
         foreach (arg; args)
         {
@@ -458,6 +460,13 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
     {
         if (IsDebuggerPresent())
             useExceptionTrap = false;
+    }
+
+    version (none)
+    {
+        // Causes test failures related to Fibers, not enabled by default yet
+        import etc.linux.memoryerror;
+        cast(void) registerMemoryAssertHandler();
     }
 
     void tryExec(scope void delegate() dg)
@@ -572,8 +581,6 @@ private void formatThrowable(Throwable t, scope void delegate(in char[] s) nothr
 
 private auto parseExceptionOptions()
 {
-    import rt.config : rt_configOption;
-    import core.internal.parseoptions : rt_parseOption;
     const optName = "trapExceptions";
     auto option = rt_configOption(optName);
     auto trap = rt_trapExceptions;
@@ -596,7 +603,7 @@ extern (C) void _d_print_throwable(Throwable t)
             void sink(in char[] s) scope nothrow
             {
                 if (!s.length) return;
-                int swlen = MultiByteToWideChar(
+                const swlen = MultiByteToWideChar(
                         CP_UTF8, 0, s.ptr, cast(int)s.length, null, 0);
                 if (!swlen) return;
 
@@ -604,7 +611,7 @@ extern (C) void _d_print_throwable(Throwable t)
                         (this.len + swlen + 1) * WCHAR.sizeof);
                 if (!newPtr) return;
                 ptr = newPtr;
-                auto written = MultiByteToWideChar(
+                const written = MultiByteToWideChar(
                         CP_UTF8, 0, s.ptr, cast(int)s.length, ptr+len, swlen);
                 len += written;
             }
@@ -616,15 +623,8 @@ extern (C) void _d_print_throwable(Throwable t)
 
         HANDLE windowsHandle(int fd)
         {
-            version (CRuntime_Microsoft)
-                return cast(HANDLE)_get_osfhandle(fd);
-            else
-                return _fdToHandle(fd);
+            return cast(HANDLE)_get_osfhandle(fd);
         }
-
-        auto hStdErr = windowsHandle(fileno(stderr));
-        CONSOLE_SCREEN_BUFFER_INFO sbi;
-        bool isConsole = GetConsoleScreenBufferInfo(hStdErr, &sbi) != 0;
 
         // ensure the exception is shown at the beginning of the line, while also
         // checking whether stderr is a valid file
@@ -642,22 +642,22 @@ extern (C) void _d_print_throwable(Throwable t)
 
                 // Avoid static user32.dll dependency for console applications
                 // by loading it dynamically as needed
-                auto user32 = LoadLibraryW("user32.dll");
-                if (user32)
+                if (auto user32 = LoadLibraryW("user32.dll"))
                 {
                     alias typeof(&MessageBoxW) PMessageBoxW;
-                    auto pMessageBoxW = cast(PMessageBoxW)
-                        GetProcAddress(user32, "MessageBoxW");
-                    if (pMessageBoxW)
+                    if (auto pMessageBoxW = cast(PMessageBoxW) GetProcAddress(user32, "MessageBoxW"))
                         pMessageBoxW(null, buf.get(), caption.get(), MB_ICONERROR);
+                    FreeLibrary(user32);
                 }
-                FreeLibrary(user32);
                 caption.free();
                 buf.free();
             }
             return;
         }
-        else if (isConsole)
+        auto hStdErr = windowsHandle(fileno(stderr));
+        CONSOLE_SCREEN_BUFFER_INFO sbi = void;
+        const isConsole = GetConsoleScreenBufferInfo(hStdErr, &sbi) != 0;
+        if (isConsole)
         {
             WSink buf;
             formatThrowable(t, &buf.sink);
@@ -665,10 +665,9 @@ extern (C) void _d_print_throwable(Throwable t)
             if (buf.ptr)
             {
                 uint codepage = GetConsoleOutputCP();
-                int slen = WideCharToMultiByte(codepage, 0,
+                const slen = WideCharToMultiByte(codepage, 0,
                         buf.ptr, cast(int)buf.len, null, 0, null, null);
-                auto sptr = cast(char*)malloc(slen * char.sizeof);
-                if (sptr)
+                if (auto sptr = cast(char*)malloc(slen * char.sizeof))
                 {
                     WideCharToMultiByte(codepage, 0,
                         buf.ptr, cast(int)buf.len, sptr, slen, null, null);

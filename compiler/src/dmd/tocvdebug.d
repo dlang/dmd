@@ -1,7 +1,7 @@
 /**
  * Generate debug info in the CV4 debug format.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocvdebug.d)
@@ -69,10 +69,10 @@ uint visibilityToCVAttr(Visibility.Kind vis) pure nothrow @safe @nogc
     final switch (vis)
     {
         case Visibility.Kind.private_:       attribute = 1;  break;
-        case Visibility.Kind.package_:       attribute = 2;  break;
-        case Visibility.Kind.protected_:     attribute = 2;  break;
-        case Visibility.Kind.public_:        attribute = 3;  break;
-        case Visibility.Kind.export_:        attribute = 3;  break;
+        case Visibility.Kind.package_,
+             Visibility.Kind.protected_:     attribute = 2;  break;
+        case Visibility.Kind.public_,
+             Visibility.Kind.export_:        attribute = 3;  break;
 
         case Visibility.Kind.undefined:
         case Visibility.Kind.none:
@@ -86,7 +86,7 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
 {
     //printf("cv4_memfunctypidx(fd = '%s')\n", fd.toChars());
 
-    type *t = Type_toCtype(fd.type);
+    type* t = Type_toCtype(fd.type);
     AggregateDeclaration ad = fd.isMemberLocal();
     if (!ad)
          return cv4_typidx(t);
@@ -108,7 +108,7 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
         case CV4:
         {
             debtyp_t* d = debtyp_alloc(18);
-            ubyte *p = &d.data[0];
+            ubyte* p = &d.data[0];
             TOWORD(p,LF_MFUNCTION);
             TOWORD(p + 2,cv4_typidx(t.Tnext));
             TOWORD(p + 4,cv4_typidx(Type_toCtype(ad.type)));
@@ -123,7 +123,7 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
         case CV8:
         {
             debtyp_t* d = debtyp_alloc(26);
-            ubyte *p = &d.data[0];
+            ubyte* p = &d.data[0];
             TOWORD(p,0x1009);
             TOLONG(p + 2,cv4_typidx(t.Tnext));
             TOLONG(p + 6,cv4_typidx(Type_toCtype(ad.type)));
@@ -146,12 +146,12 @@ enum CV8_NAMELENMAX = 0xffff;                   // length record is 16-bit only
 uint cv4_Denum(EnumDeclaration e)
 {
     //dbg_printf("cv4_Denum(%s)\n", e.toChars());
-    const uint property = (!e.members || !e.memtype || !e.memtype.isintegral())
+    const uint property = !e.members || !e.memtype || !e.memtype.isIntegral()
         ? 0x80               // enum is forward referenced or non-integer
         : 0;
 
     // Compute the number of fields, and the length of the fieldlist record
-    CvFieldList mc = CvFieldList(0, 0);
+    auto mc = CvFieldList(0, 0);
     if (!property)
     {
         for (size_t i = 0; i < e.members.length; i++)
@@ -172,7 +172,7 @@ uint cv4_Denum(EnumDeclaration e)
 
     const id = e.toPrettyChars();
     uint len;
-    debtyp_t *d;
+    debtyp_t* d;
     const uint memtype = e.memtype ? cv4_typidx(Type_toCtype(e.memtype)) : 0;
     switch (config.fulltypes)
     {
@@ -251,7 +251,7 @@ uint cv4_Denum(EnumDeclaration e)
  * Returns:
  *      aligned count
  */
-uint cv_align(ubyte *p, uint n)
+uint cv_align(ubyte* p, uint n)
 {
     if (config.fulltypes == CV8)
     {
@@ -282,7 +282,7 @@ void cv_udt(const char* id, uint typidx)
         return cv8_udt(id, typidx);
 
     const len = strlen(id);
-    ubyte *debsym = cast(ubyte *) alloca(39 + IDOHD + len);
+    ubyte* debsym = cast(ubyte *) alloca(39 + IDOHD + len);
 
     // Output a 'user-defined type' for the tag name
     TOWORD(debsym + 2,S_UDT);
@@ -346,7 +346,7 @@ struct CvFieldList
     {
         uint length;    // accumulated during "count" phase
 
-        debtyp_t *dt;
+        debtyp_t* dt;
         uint writepos;  // write position in dt
     }
 
@@ -456,7 +456,7 @@ int cv_mem_count(Dsymbol s, void* ctx)
 int cv_mem_p(Dsymbol s, void* ctx)
 {
     auto pmc = cast(CvFieldList *) ctx;
-    ubyte *p = pmc.writePtr();
+    ubyte* p = pmc.writePtr();
     uint len = cvMember(s, p);
     pmc.written(len);
     return 0;
@@ -500,7 +500,7 @@ void toDebug(StructDeclaration sd)
 //    if (st.Sopeq && !(st.Sopeq.Sfunc.Fflags & Fnodebug))
 //      property |= 0x20;               // class has overloaded assignment
 
-    const char *id = sd.toPrettyChars(true);
+    const char* id = sd.toPrettyChars(true);
 
     uint leaf = sd.isUnionDeclaration() ? LF_UNION : LF_STRUCTURE;
     if (config.fulltypes == CV8)
@@ -516,7 +516,7 @@ void toDebug(StructDeclaration sd)
     }
 
     const len1 = numidx + cv4_numericbytes(cast(uint)size);
-    debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(id));
+    debtyp_t* d = debtyp_alloc(len1 + cv_stringbytes(id));
     cv4_storenumeric(d.data.ptr + numidx, cast(uint)size);
     cv_namestring(d.data.ptr + len1, id);
 
@@ -641,7 +641,7 @@ void toDebug(ClassDeclaration cd)
 
     const uint numidx = (leaf == LF_CLASS_V3) ? 18 : 12;
     const uint len1 = numidx + cv4_numericbytes(cast(uint)size);
-    debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(id));
+    debtyp_t* d = debtyp_alloc(len1 + cv_stringbytes(id));
     cv4_storenumeric(d.data.ptr + numidx, cast(uint)size);
     cv_namestring(d.data.ptr + len1, id);
 
@@ -651,7 +651,7 @@ void toDebug(ClassDeclaration cd)
         const size_t dim = cd.vtbl.length;              // number of virtual functions
         if (dim)
         {   // 4 bits per descriptor
-            debtyp_t *vshape = debtyp_alloc(cast(uint)(4 + (dim + 1) / 2));
+            debtyp_t* vshape = debtyp_alloc(cast(uint)(4 + (dim + 1) / 2));
             TOWORD(vshape.data.ptr,LF_VTSHAPE);
             TOWORD(vshape.data.ptr + 2, cast(uint)dim);
 
@@ -746,7 +746,7 @@ void toDebug(ClassDeclaration cd)
             // Add in base classes
             for (size_t i = 0; i < cd.baseclasses.length; i++)
             {
-                BaseClass *bc = (*cd.baseclasses)[i];
+                BaseClass* bc = (*cd.baseclasses)[i];
                 const idx_t typidx2 = cv4_typidx(Type_toCtype(bc.sym.type).Tnext);
                 const uint attribute = visibilityToCVAttr(Visibility.Kind.public_);
 
@@ -837,7 +837,7 @@ void toDebugClosure(Symbol* closstru)
     const char* closname = closstru.Sident.ptr;
 
     const len1 = numidx + cv4_numericbytes(structsize);
-    debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(closname));
+    debtyp_t* d = debtyp_alloc(len1 + cv_stringbytes(closname));
     cv4_storenumeric(d.data.ptr + numidx, structsize);
     cv_namestring(d.data.ptr + len1, closname);
 
@@ -865,7 +865,7 @@ void toDebugClosure(Symbol* closstru)
     uint flistlen = 2;
     for (auto sl = closstru.Sstruct.Sfldlst; sl; sl = list_next(sl))
     {
-        Symbol *sf = list_symbol(sl);
+        Symbol* sf = list_symbol(sl);
         uint thislen = (config.fulltypes == CV8 ? 8 : 6);
         thislen += cv4_signednumericbytes(cast(uint)sf.Smemoff);
         thislen += cv_stringbytes(sf.Sident.ptr);
@@ -879,15 +879,15 @@ void toDebugClosure(Symbol* closstru)
     }
 
     // Generate fieldlist type record
-    debtyp_t *dt = debtyp_alloc(flistlen);
-    ubyte *p = dt.data.ptr;
+    debtyp_t* dt = debtyp_alloc(flistlen);
+    ubyte* p = dt.data.ptr;
 
     // And fill it in
     TOWORD(p, config.fulltypes == CV8 ? LF_FIELDLIST_V2 : LF_FIELDLIST);
     uint flistoff = 2;
     for (auto sl = closstru.Sstruct.Sfldlst; sl && flistoff < flistlen; sl = list_next(sl))
     {
-        Symbol *sf = list_symbol(sl);
+        Symbol* sf = list_symbol(sl);
         idx_t vtypidx = cv_typidx(sf.Stype);
         flistoff += writeField(p + flistoff, sf.Sident.ptr, 3 /*public*/, vtypidx, cast(uint)sf.Smemoff);
     }
@@ -920,7 +920,7 @@ void toDebugClosure(Symbol* closstru)
  *      number of bytes written, or that would be written if p==null
  */
 
-int cvMember(Dsymbol s, ubyte *p)
+int cvMember(Dsymbol s, ubyte* p)
 {
     scope v = new CVMember(p);
     s.accept(v);
@@ -928,10 +928,10 @@ int cvMember(Dsymbol s, ubyte *p)
 }
 private extern (C++) class CVMember : Visitor
 {
-    ubyte *p;
+    ubyte* p;
     int result;
 
-    this(ubyte *p) @safe
+    this(ubyte* p) @safe
     {
         this.p = p;
         result = 0;
@@ -1030,8 +1030,8 @@ private extern (C++) class CVMember : Visitor
             }
 
             // Allocate and fill it in
-            debtyp_t *d = debtyp_alloc(mlen);
-            ubyte *q = d.data.ptr;
+            debtyp_t* d = debtyp_alloc(mlen);
+            ubyte* q = d.data.ptr;
             TOWORD(q,config.fulltypes == CV8 ? LF_METHODLIST_V2 : LF_METHODLIST);
             q += 2;
     //      for (s = sf; s; s = s.Sfunc.Foversym)

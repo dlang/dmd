@@ -1,4 +1,4 @@
-import core.stdc.stdio;
+import core.stdc.stdio : fprintf, stderr;
 
 // Make sure basic stuff works with future Throwable.message
 class NoMessage : Throwable

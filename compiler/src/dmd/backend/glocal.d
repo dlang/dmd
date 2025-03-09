@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1993-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/glocal.d, backend/glocal.d)
@@ -55,7 +55,7 @@ enum
 
 struct loc_t
 {
-    elem *e;
+    elem* e;
     int flags;  // LFxxxxx
 }
 
@@ -73,7 +73,7 @@ struct loc_t
 // temporary generation and register usage.
 
 @trusted
-void localize()
+void localize(ref GlobalOptimizer go)
 {
     if (debugc) printf("localize()\n");
 
@@ -82,7 +82,7 @@ void localize()
     // Table should not get any larger than the symbol table
     loctab.setLength(globsym.length);
 
-    foreach (b; BlockRange(startblock))       // for each block
+    foreach (b; BlockRange(bo.startblock))       // for each block
     {
         loctab.setLength(0);                     // start over for each block
         if (b.Belem &&
@@ -95,7 +95,7 @@ void localize()
              */
             !b.Btry)
         {
-            local_exp(loctab,b.Belem,0);
+            local_exp(go, loctab,b.Belem,0);
         }
     }
 }
@@ -106,9 +106,9 @@ void localize()
 //
 
 @trusted
-private void local_exp(ref Barray!loc_t lt, elem *e, int goal)
+private void local_exp(ref GlobalOptimizer go, ref Barray!loc_t lt, elem* e, int goal)
 {
-    elem *e1;
+    elem* e1;
     OPER op1;
 
 Loop:
@@ -117,13 +117,13 @@ Loop:
     switch (op)
     {
         case OPcomma:
-            local_exp(lt,e.E1,0);
+            local_exp(go, lt,e.E1,0);
             e = e.E2;
             goto Loop;
 
         case OPandand:
         case OPoror:
-            local_exp(lt,e.E1,1);
+            local_exp(go, lt,e.E1,1);
             lt.setLength(0);         // we can do better than this, fix later
             break;
 
@@ -149,7 +149,7 @@ Loop:
         case OPddtor:
             lt.setLength(0);         // don't move expressions across ctor/dtor
                                 // boundaries, it would goof up EH cleanup
-            local_exp(lt,e.E1,0);
+            local_exp(go, lt,e.E1,0);
             lt.setLength(0);
             break;
 
@@ -157,7 +157,7 @@ Loop:
         case OPstreq:
         case OPvecsto:
             e1 = e.E1;
-            local_exp(lt,e.E2,1);
+            local_exp(go, lt,e.E2,1);
             if (e1.Eoper == OPvar)
             {
                 const s = e1.Vsym;
@@ -172,9 +172,9 @@ Loop:
             else
             {
                 assert(!OTleaf(e1.Eoper));
-                local_exp(lt,e1.E1,1);
+                local_exp(go, lt,e1.E1,1);
                 if (OTbinary(e1.Eoper))
-                    local_exp(lt,e1.E2,1);
+                    local_exp(go, lt,e1.E2,1);
                 local_ambigdef(lt);
             }
             break;
@@ -194,15 +194,15 @@ Loop:
         case OPorass:
         case OPcmpxchg:
             if (ERTOL(e))
-            {   local_exp(lt,e.E2,1);
+            {   local_exp(go, lt,e.E2,1);
         case OPnegass:
                 e1 = e.E1;
                 op1 = e1.Eoper;
                 if (op1 != OPvar)
                 {
-                    local_exp(lt,e1.E1,1);
+                    local_exp(go, lt,e1.E1,1);
                     if (OTbinary(op1))
-                        local_exp(lt,e1.E2,1);
+                        local_exp(go, lt,e1.E2,1);
                 }
                 else if (lt.length && (op == OPaddass || op == OPxorass))
                 {
@@ -243,9 +243,9 @@ Loop:
                 op1 = e1.Eoper;
                 if (op1 != OPvar)
                 {
-                    local_exp(lt,e1.E1,1);
+                    local_exp(go, lt,e1.E1,1);
                     if (OTbinary(op1))
-                        local_exp(lt,e1.E2,1);
+                        local_exp(go, lt,e1.E2,1);
                 }
                 if (lt.length)
                 {
@@ -256,7 +256,7 @@ Loop:
                     else
                         local_ambigref(lt);
                 }
-                local_exp(lt,e.E2,1);
+                local_exp(go, lt,e.E2,1);
             }
 
             Symbol* s;
@@ -275,15 +275,15 @@ Loop:
 
         case OPstrlen:
         case OPind:
-            local_exp(lt,e.E1,1);
+            local_exp(go, lt,e.E1,1);
             local_ambigref(lt);
             break;
 
         case OPstrcmp:
         case OPmemcmp:
         case OPbt:
-            local_exp(lt,e.E1,1);
-            local_exp(lt,e.E2,1);
+            local_exp(go, lt,e.E1,1);
+            local_exp(go, lt,e.E2,1);
             local_ambigref(lt);
             break;
 
@@ -292,21 +292,21 @@ Loop:
         case OPstrcat:
         case OPcall:
         case OPcallns:
-            local_exp(lt,e.E2,1);
-            local_exp(lt,e.E1,1);
+            local_exp(go, lt,e.E2,1);
+            local_exp(go, lt,e.E1,1);
             goto Lrd;
 
         case OPstrctor:
         case OPucall:
         case OPucallns:
-            local_exp(lt,e.E1,1);
+            local_exp(go, lt,e.E1,1);
             goto Lrd;
 
         case OPbtc:
         case OPbtr:
         case OPbts:
-            local_exp(lt,e.E1,1);
-            local_exp(lt,e.E2,1);
+            local_exp(go, lt,e.E1,1);
+            local_exp(go, lt,e.E2,1);
             goto Lrd;
 
         case OPasm:
@@ -315,7 +315,7 @@ Loop:
             break;
 
         case OPmemset:
-            local_exp(lt,e.E2,1);
+            local_exp(go, lt,e.E2,1);
             if (e.E1.Eoper == OPvar)
             {
                 /* Don't want to rearrange (p = get(); p memset 0;)
@@ -328,7 +328,7 @@ Loop:
                     local_ambigref(lt);     // ambiguous reference
             }
             else
-                local_exp(lt,e.E1,1);
+                local_exp(go, lt,e.E1,1);
             local_ambigdef(lt);
             break;
 
@@ -430,7 +430,7 @@ Loop:
             }
         case_bin:
             if (OTbinary(e.Eoper))
-            {   local_exp(lt,e.E1,1);
+            {   local_exp(go, lt,e.E1,1);
                 goal = 1;
                 e = e.E2;
                 goto Loop;
@@ -477,7 +477,7 @@ private bool local_chkrem(const elem* e, const(elem)* eu)
 // Add entry e to lt[]
 
 @trusted
-private void local_ins(ref Barray!loc_t lt, elem *e)
+private void local_ins(ref Barray!loc_t lt, elem* e)
 {
     elem_debug(e);
     if (e.E1.Eoper == OPvar)

@@ -48,7 +48,7 @@ Tret _d_arraycatnTX(Tret, Tarr...)(auto ref Tarr froms) @trusted
     {
         // TODO: forward file, line, name from _d_arraycatnTXTrace
         _d_arraysetlengthTImpl!(typeof(res))._d_arraysetlengthTTrace(
-            __FILE__, __LINE__, "_d_arraycatnTX", res, totalLen);
+            res, totalLen, __FILE__, __LINE__, __FUNCTION__);
     }
     else
     {
@@ -62,7 +62,7 @@ Tret _d_arraycatnTX(Tret, Tarr...)(auto ref Tarr froms) @trusted
     {
         size_t i = 0;
         foreach (ref from; froms)
-            static if (is (typeof(from) : T))
+            static if (is(typeof(from) : T))
                 copyEmplace(cast(T) from, res[i++]);
             else
             {
@@ -178,7 +178,7 @@ version (D_ProfileGC)
     /**
     * TraceGC wrapper around $(REF _d_arraycatnTX, core,internal,array,concatenation).
     */
-    Tret _d_arraycatnTXTrace(Tret, Tarr...)(string file, int line, string funcname, scope auto ref Tarr froms) @trusted
+    Tret _d_arraycatnTXTrace(Tret, Tarr...)(scope auto ref Tarr froms, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
     {
         version (D_TypeInfo)
         {

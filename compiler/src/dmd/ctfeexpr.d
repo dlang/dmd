@@ -1,7 +1,7 @@
 /**
  * CTFE for expressions involving pointers, slices, array concatenation etc.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/ctfeexpr.d, _ctfeexpr.d)
@@ -465,8 +465,7 @@ Expression resolveSlice(Expression e, UnionExp* pue = null)
         *pue = Slice(e.type, se.e1, se.lwr, se.upr);
         return pue.exp();
     }
-    else
-        return Slice(e.type, se.e1, se.lwr, se.upr).copy();
+    return Slice(e.type, se.e1, se.lwr, se.upr).copy();
 }
 
 /* Determine the array length, without interpreting it.
@@ -523,7 +522,7 @@ uinteger_t resolveArrayLength(Expression e)
  * Returns:
  *      Constructed ArrayLiteralExp
  */
-ArrayLiteralExp createBlockDuplicatedArrayLiteral(UnionExp* pue, const ref Loc loc, Type type, Expression elem, size_t dim)
+ArrayLiteralExp createBlockDuplicatedArrayLiteral(UnionExp* pue, Loc loc, Type type, Expression elem, size_t dim)
 {
     if (type.ty == Tsarray && type.nextOf().ty == Tsarray && elem.type.ty != Tsarray)
     {
@@ -554,7 +553,7 @@ ArrayLiteralExp createBlockDuplicatedArrayLiteral(UnionExp* pue, const ref Loc l
  * Helper for NewExp
  * Create a string literal consisting of 'value' duplicated 'dim' times.
  */
-StringExp createBlockDuplicatedStringLiteral(UnionExp* pue, const ref Loc loc, Type type, dchar value, size_t dim, ubyte sz)
+StringExp createBlockDuplicatedStringLiteral(UnionExp* pue, Loc loc, Type type, dchar value, size_t dim, ubyte sz)
 {
     auto s = cast(char*)mem.xcalloc(dim, sz);
     foreach (elemi; 0 .. dim)
@@ -661,7 +660,7 @@ bool isSafePointerCast(Type srcPointee, Type destPointee)
         srcPointee = srcPointee.baseElemOf();
         destPointee = destPointee.baseElemOf();
     }
-    return srcPointee.isintegral() && destPointee.isintegral() && srcPointee.size() == destPointee.size();
+    return srcPointee.isIntegral() && destPointee.isIntegral() && srcPointee.size() == destPointee.size();
 }
 
 Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
@@ -689,7 +688,7 @@ Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
     if (auto ie = e.isIndexExp())
     {
         // Note that each AA element is part of its own memory block
-        if ((ie.e1.type.ty == Tarray || ie.e1.type.ty == Tsarray || ie.e1.op == EXP.string_ || ie.e1.op == EXP.arrayLiteral) && ie.e2.op == EXP.int64)
+        if ((ie.e1.type.isStaticOrDynamicArray() || ie.e1.op == EXP.string_ || ie.e1.op == EXP.arrayLiteral) && ie.e2.op == EXP.int64)
         {
             *ofs = ie.e2.toInteger();
             return ie.e1;
@@ -698,7 +697,7 @@ Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
     if (auto se = e.isSliceExp())
     {
         if (se && e.type.toBasetype().ty == Tsarray &&
-           (se.e1.type.ty == Tarray || se.e1.type.ty == Tsarray || se.e1.op == EXP.string_ || se.e1.op == EXP.arrayLiteral) && se.lwr.op == EXP.int64)
+           (se.e1.type.isStaticOrDynamicArray() || se.e1.op == EXP.string_ || se.e1.op == EXP.arrayLiteral) && se.lwr.op == EXP.int64)
         {
             *ofs = se.lwr.toInteger();
             return se.e1;
@@ -742,7 +741,7 @@ bool pointToSameMemoryBlock(Expression agg1, Expression agg2)
 }
 
 // return e1 - e2 as an integer, or error if not possible
-Expression pointerDifference(UnionExp* pue, const ref Loc loc, Type type, Expression e1, Expression e2)
+Expression pointerDifference(UnionExp* pue, Loc loc, Type type, Expression e1, Expression e2)
 {
     dinteger_t ofs1, ofs2;
     Expression agg1 = getAggregateFromPointer(e1, &ofs1);
@@ -775,7 +774,7 @@ Expression pointerDifference(UnionExp* pue, const ref Loc loc, Type type, Expres
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
 // and op is EXP.add or EXP.min
-Expression pointerArithmetic(UnionExp* pue, const ref Loc loc, EXP op, Type type, Expression eptr, Expression e2)
+Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expression eptr, Expression e2)
 {
     if (eptr.type.nextOf().ty == Tvoid)
     {
@@ -951,7 +950,7 @@ int comparePointers(EXP op, Expression agg1, dinteger_t ofs1, Expression agg2, d
 // floating point -> integer or integer -> floating point
 bool isFloatIntPaint(Type to, Type from)
 {
-    return from.size() == to.size() && (from.isintegral() && to.isfloating() || from.isfloating() && to.isintegral());
+    return from.size() == to.size() && (from.isIntegral() && to.isFloating() || from.isFloating() && to.isIntegral());
 }
 
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
@@ -1053,7 +1052,7 @@ bool realCmp(EXP op, real_t r1, real_t r2) @safe nothrow
  * Returns:
  *      -1,0,1
  */
-private int ctfeCmpArrays(const ref Loc loc, Expression e1, Expression e2, uinteger_t len)
+private int ctfeCmpArrays(Loc loc, Expression e1, Expression e2, uinteger_t len)
 {
     // Resolve slices, if necessary
     uinteger_t lo1 = 0;
@@ -1088,7 +1087,7 @@ private int ctfeCmpArrays(const ref Loc loc, Expression e1, Expression e2, uinte
     // Comparing two array literals. This case is potentially recursive.
     // If they aren't strings, we just need an equality check rather than
     // a full cmp.
-    const bool needCmp = ae1.type.nextOf().isintegral();
+    const bool needCmp = ae1.type.nextOf().isIntegral();
     foreach (size_t i; 0 .. cast(size_t)len)
     {
         Expression ee1 = (*ae1.elements)[cast(size_t)(lo1 + i)];
@@ -1139,7 +1138,7 @@ private bool isArray(const Expression e) @safe nothrow
  * For strings, return <0 if e1 < e2, 0 if e1==e2, >0 if e1 > e2.
  * For all other types, return 0 if e1 == e2, !=0 if e1 != e2.
  */
-private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool identity = false)
+private int ctfeRawCmp(Loc loc, Expression e1, Expression e2, bool identity = false)
 {
     if (e1.op == EXP.classReference || e2.op == EXP.classReference)
     {
@@ -1213,26 +1212,23 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
         }
         return cast(int)(len1 - len2);
     }
-    if (e1.type.isintegral())
+    if (e1.type.isIntegral())
     {
         return e1.toInteger() != e2.toInteger();
     }
-    if (identity && e1.type.isfloating())
+    if (identity && e1.type.isFloating())
         return !e1.isIdentical(e2);
-    if (e1.type.isreal() || e1.type.isimaginary())
+    if (e1.type.isReal() || e1.type.isImaginary())
     {
-        real_t r1 = e1.type.isreal() ? e1.toReal() : e1.toImaginary();
-        real_t r2 = e1.type.isreal() ? e2.toReal() : e2.toImaginary();
+        real_t r1 = e1.type.isReal() ? e1.toReal() : e1.toImaginary();
+        real_t r2 = e1.type.isReal() ? e2.toReal() : e2.toImaginary();
         if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
         {
             return 1;   // they are not equal
         }
-        else
-        {
-            return (r1 != r2);
-        }
+        return (r1 != r2);
     }
-    else if (e1.type.iscomplex())
+    else if (e1.type.isComplex())
     {
         return e1.toComplex() != e2.toComplex();
     }
@@ -1243,33 +1239,30 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
         // For structs, we only need to return 0 or 1 (< and > aren't legal).
         if (es1.sd != es2.sd)
             return 1;
-        else if ((!es1.elements || !es1.elements.length) && (!es2.elements || !es2.elements.length))
+        if ((!es1.elements || !es1.elements.length) && (!es2.elements || !es2.elements.length))
             return 0; // both arrays are empty
-        else if (!es1.elements || !es2.elements)
+        if (!es1.elements || !es2.elements)
             return 1;
-        else if (es1.elements.length != es2.elements.length)
+        if (es1.elements.length != es2.elements.length)
             return 1;
-        else
+        foreach (size_t i; 0 .. es1.elements.length)
         {
-            foreach (size_t i; 0 .. es1.elements.length)
-            {
-                Expression ee1 = (*es1.elements)[i];
-                Expression ee2 = (*es2.elements)[i];
+            Expression ee1 = (*es1.elements)[i];
+            Expression ee2 = (*es2.elements)[i];
 
-                // https://issues.dlang.org/show_bug.cgi?id=16284
-                if (ee1.op == EXP.void_ && ee2.op == EXP.void_) // if both are VoidInitExp
-                    continue;
+            // https://issues.dlang.org/show_bug.cgi?id=16284
+            if (ee1.op == EXP.void_ && ee2.op == EXP.void_) // if both are VoidInitExp
+                continue;
 
-                if (ee1 == ee2)
-                    continue;
-                if (!ee1 || !ee2)
-                    return 1;
-                const int cmp = ctfeRawCmp(loc, ee1, ee2, identity);
-                if (cmp)
-                    return 1;
-            }
-            return 0; // All elements are equal
+            if (ee1 == ee2)
+                continue;
+            if (!ee1 || !ee2)
+                return 1;
+            const int cmp = ctfeRawCmp(loc, ee1, ee2, identity);
+            if (cmp)
+                return 1;
         }
+        return 0; // All elements are equal
     }
     if (e1.op == EXP.assocArrayLiteral && e2.op == EXP.assocArrayLiteral)
     {
@@ -1317,13 +1310,13 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
 }
 
 /// Evaluate ==, !=.  Resolves slices before comparing. Returns 0 or 1
-bool ctfeEqual(const ref Loc loc, EXP op, Expression e1, Expression e2)
+bool ctfeEqual(Loc loc, EXP op, Expression e1, Expression e2)
 {
     return !ctfeRawCmp(loc, e1, e2) ^ (op == EXP.notEqual);
 }
 
 /// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
-bool ctfeIdentity(const ref Loc loc, EXP op, Expression e1, Expression e2)
+bool ctfeIdentity(Loc loc, EXP op, Expression e1, Expression e2)
 {
     //printf("ctfeIdentity %s %s\n", e1.toChars(), e2.toChars());
     //printf("ctfeIdentity op = '%s', e1 = %s %s, e2 = %s %s\n", EXPtoString(op).ptr,
@@ -1343,7 +1336,7 @@ bool ctfeIdentity(const ref Loc loc, EXP op, Expression e1, Expression e2)
         SymOffExp es2 = e2.isSymOffExp();
         cmp = (es1.var == es2.var && es1.offset == es2.offset);
     }
-    else if (e1.type.isfloating())
+    else if (e1.type.isFloating())
         cmp = e1.isIdentical(e2);
     else
     {
@@ -1355,29 +1348,29 @@ bool ctfeIdentity(const ref Loc loc, EXP op, Expression e1, Expression e2)
 }
 
 /// Evaluate >,<=, etc. Resolves slices before comparing. Returns 0 or 1
-bool ctfeCmp(const ref Loc loc, EXP op, Expression e1, Expression e2)
+bool ctfeCmp(Loc loc, EXP op, Expression e1, Expression e2)
 {
     Type t1 = e1.type.toBasetype();
     Type t2 = e2.type.toBasetype();
 
     if (t1.isString() && t2.isString())
         return specificCmp(op, ctfeRawCmp(loc, e1, e2));
-    else if (t1.isreal())
+    if (t1.isReal())
         return realCmp(op, e1.toReal(), e2.toReal());
-    else if (t1.isimaginary())
+    if (t1.isImaginary())
         return realCmp(op, e1.toImaginary(), e2.toImaginary());
-    else if (t1.isunsigned() || t2.isunsigned())
+    if (t1.isUnsigned() || t2.isUnsigned())
         return intUnsignedCmp(op, e1.toInteger(), e2.toInteger());
     else
         return intSignedCmp(op, e1.toInteger(), e2.toInteger());
 }
 
-UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
 {
     Type t1 = e1.type.toBasetype();
     Type t2 = e2.type.toBasetype();
     UnionExp ue;
-    if (e2.op == EXP.string_ && e1.op == EXP.arrayLiteral && t1.nextOf().isintegral())
+    if (e2.op == EXP.string_ && e1.op == EXP.arrayLiteral && t1.nextOf().isIntegral())
     {
         // [chars] ~ string => string (only valid for CTFE)
         StringExp es1 = e2.isStringExp();
@@ -1406,7 +1399,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         es.type = type;
         return ue;
     }
-    if (e1.op == EXP.string_ && e2.op == EXP.arrayLiteral && t2.nextOf().isintegral())
+    if (e1.op == EXP.string_ && e2.op == EXP.arrayLiteral && t2.nextOf().isIntegral())
     {
         // string ~ [chars] => string (only valid for CTFE)
         // Concatenate the strings
@@ -1466,7 +1459,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
 /*  Given an AA literal 'ae', and a key 'e2':
  *  Return ae[e2] if present, or NULL if not found.
  */
-Expression findKeyInAA(const ref Loc loc, AssocArrayLiteralExp ae, Expression e2)
+Expression findKeyInAA(Loc loc, AssocArrayLiteralExp ae, Expression e2)
 {
     /* Search the keys backwards, in case there are duplicate keys
      */
@@ -1487,7 +1480,7 @@ Expression findKeyInAA(const ref Loc loc, AssocArrayLiteralExp ae, Expression e2
  * dynamic arrays, and strings. We know that e1 is an
  * interpreted CTFE expression, so it cannot have side-effects.
  */
-Expression ctfeIndex(UnionExp* pue, const ref Loc loc, Type type, Expression e1, uinteger_t indx)
+Expression ctfeIndex(UnionExp* pue, Loc loc, Type type, Expression e1, uinteger_t indx)
 {
     //printf("ctfeIndex(e1 = %s)\n", e1.toChars());
     assert(e1.type);
@@ -1516,7 +1509,7 @@ Expression ctfeIndex(UnionExp* pue, const ref Loc loc, Type type, Expression e1,
     assert(0);
 }
 
-Expression ctfeCast(UnionExp* pue, const ref Loc loc, Type type, Type to, Expression e, bool explicitCast = false)
+Expression ctfeCast(UnionExp* pue, Loc loc, Type type, Type to, Expression e, bool explicitCast = false)
 {
     Expression paint()
     {
@@ -1536,11 +1529,9 @@ Expression ctfeCast(UnionExp* pue, const ref Loc loc, Type type, Type to, Expres
                                   : tclass.implicitConvTo(to.mutableOf());
         if (match)
             return paint();
-        else
-        {
-            emplaceExp!(NullExp)(pue, loc, to);
-            return pue.exp();
-        }
+
+        emplaceExp!(NullExp)(pue, loc, to);
+        return pue.exp();
     }
 
     // Allow TypeInfo type painting
@@ -1658,7 +1649,7 @@ void assignInPlace(Expression dest, Expression src)
 }
 
 // Given an AA literal aae,  set aae[index] = newval and return newval.
-Expression assignAssocArrayElement(const ref Loc loc, AssocArrayLiteralExp aae, Expression index, Expression newval)
+Expression assignAssocArrayElement(Loc loc, AssocArrayLiteralExp aae, Expression index, Expression newval)
 {
     /* Create new associative array literal reflecting updated key/value
      */
@@ -1688,7 +1679,7 @@ Expression assignAssocArrayElement(const ref Loc loc, AssocArrayLiteralExp aae, 
 /// Given array literal oldval of type ArrayLiteralExp or StringExp, of length
 /// oldlen, change its length to newlen. If the newlen is longer than oldlen,
 /// all new elements will be set to the default initializer for the element type.
-Expression changeArrayLiteralLength(UnionExp* pue, const ref Loc loc, TypeArray arrayType, Expression oldval, size_t oldlen, size_t newlen)
+Expression changeArrayLiteralLength(UnionExp* pue, Loc loc, TypeArray arrayType, Expression oldval, size_t oldlen, size_t newlen)
 {
     Type elemType = arrayType.next;
     assert(elemType);
@@ -1775,7 +1766,7 @@ bool isCtfeValueValid(Expression newval)
         case EXP.int64:
         case EXP.float64:
         case EXP.complex80:
-            return tb.isscalar();
+            return tb.isScalar();
 
         case EXP.null_:
             return tb.ty == Tnull    ||
@@ -1850,7 +1841,7 @@ bool isCtfeValueValid(Expression newval)
             const SliceExp se = newval.isSliceExp();
             assert(se.lwr && se.lwr.op == EXP.int64);
             assert(se.upr && se.upr.op == EXP.int64);
-            return (tb.ty == Tarray || tb.ty == Tsarray) && (se.e1.op == EXP.string_ || se.e1.op == EXP.arrayLiteral);
+            return tb.isStaticOrDynamicArray() && (se.e1.op == EXP.string_ || se.e1.op == EXP.arrayLiteral);
         }
 
         case EXP.void_:

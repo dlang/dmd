@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -54,7 +54,6 @@ enum class TOK : unsigned char
     false_,
     throw_,
     new_,
-    delete_,
     variable,
     slice,
     version_,
@@ -258,6 +257,7 @@ enum class TOK : unsigned char
     wchar_tLiteral,
     endOfLine,  // \n, \r, \u2028, \u2029
     whitespace,
+    rvalue,
 
     // C only keywords
     inline_,

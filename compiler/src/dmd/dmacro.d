@@ -1,7 +1,7 @@
 /**
  * Text macro processor for Ddoc.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmacro.d, _dmacro.d)
@@ -15,8 +15,6 @@ import core.stdc.ctype;
 import core.stdc.string;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
-
-@trusted:
 
 struct MacroTable
 {
@@ -303,7 +301,7 @@ struct Macro
  *      copy allocated with mem.xmalloc()
  */
 
-char[] memdup(const(char)[] p) nothrow pure
+char[] memdup(const(char)[] p) nothrow pure @trusted
 {
     size_t len = p.length;
     return (cast(char*)memcpy(mem.xmalloc(len), p.ptr, len))[0 .. len];
@@ -318,7 +316,7 @@ char[] memdup(const(char)[] p) nothrow pure
  *              1..9:   get nth argument
  *              -1:     get 2nd through end
  */
-size_t extractArgN(const(char)[] buf, out const(char)[] marg, int n) @nogc nothrow pure
+size_t extractArgN(const(char)[] buf, out const(char)[] marg, int n) @nogc nothrow pure @safe
 {
     /* Scan forward for matching right parenthesis.
      * Nest parentheses.
@@ -334,7 +332,7 @@ size_t extractArgN(const(char)[] buf, out const(char)[] marg, int n) @nogc nothr
     uint inexp = 0;
     uint argn = 0;
     size_t v = 0;
-    const p = buf.ptr;
+    const p = buf;
     const end = buf.length;
 Largstart:
     // Skip first space, if any, to find the start of the macro argument

@@ -5,7 +5,7 @@
  * The serialization is a string which contains the type of the parameters and the string
  * represantation of the lambda expression.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lamdbacomp.d, _lambdacomp.d)
@@ -26,8 +26,8 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.func;
-import dmd.dmangle;
 import dmd.hdrgen;
+import dmd.mangle;
 import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
@@ -240,39 +240,39 @@ public:
         auto id = exp.ident.toChars();
 
         // If it's not an argument
-        if (!checkArgument(id))
+        if (checkArgument(id))
+            return;
+
+        // we must check what the identifier expression is.
+        Dsymbol scopesym;
+        Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
+
+        // If it's an unknown symbol, consider the function incomparable
+        if (!s)
         {
-            // we must check what the identifier expression is.
-            Dsymbol scopesym;
-            Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
-            if (s)
-            {
-                auto v = s.isVarDeclaration();
-                // If it's a VarDeclaration, it must be a manifest constant
-                if (v && (v.storage_class & STC.manifest))
-                {
-                    v.getConstInitializer.accept(this);
-                }
-                else if (auto em = s.isEnumDeclaration())
-                {
-                    d = em;
-                    et = ExpType.EnumDecl;
-                }
-                else if (auto fd = s.isFuncDeclaration())
-                {
-                    writeMangledName(fd);
-                }
-                // For anything else, the function is deemed uncomparable
-                else
-                {
-                    buf.setsize(0);
-                }
-            }
-            // If it's an unknown symbol, consider the function incomparable
-            else
-            {
-                buf.setsize(0);
-            }
+            buf.setsize(0);
+            return;
+        }
+
+        auto v = s.isVarDeclaration();
+        // If it's a VarDeclaration, it must be a manifest constant
+        if (v && (v.storage_class & STC.manifest))
+        {
+            v.getConstInitializer.accept(this);
+        }
+        else if (auto em = s.isEnumDeclaration())
+        {
+            d = em;
+            et = ExpType.EnumDecl;
+        }
+        else if (auto fd = s.isFuncDeclaration())
+        {
+            writeMangledName(fd);
+        }
+        // For anything else, the function is deemed uncomparable
+        else
+        {
+            buf.setsize(0);
         }
     }
 
@@ -445,26 +445,28 @@ public:
             visitType(p.type);
     }
 
-    override void visit(StructLiteralExp e) {
+    override void visit(StructLiteralExp e)
+    {
         static if (LOG)
             printf("StructLiteralExp: %s\n", e.toChars);
 
         auto ty = cast(TypeStruct)e.stype;
-        if (ty)
+        if (!ty)
         {
-            writeMangledName(ty.sym);
-            auto dim = e.elements.length;
-            foreach (i; 0..dim)
-            {
-                auto elem = (*e.elements)[i];
-                if (elem)
-                    elem.accept(this);
-                else
-                    buf.writestring("null_");
-            }
-        }
-        else
             buf.setsize(0);
+            return;
+        }
+
+        writeMangledName(ty.sym);
+        auto dim = e.elements.length;
+        foreach (i; 0..dim)
+        {
+            auto elem = (*e.elements)[i];
+            if (elem)
+                elem.accept(this);
+            else
+                buf.writestring("null_");
+        }
     }
 
     override void visit(ArrayLiteralExp) { buf.setsize(0); }

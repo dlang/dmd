@@ -17,5 +17,8 @@ jobs:
             - name: Install Host D compiler
               uses: dlang-community/setup-dlang@v1
 
-            - name: Invoke dub
+            - name: Build and run compiler
               run: dub run dmd:compiler -- --version
+
+            - name: Build frontend library
+              run: dub build dmd:frontend

@@ -2,7 +2,7 @@
  * Control the various text mode attributes, such as color, when writing text
  * to the console.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/console.d, _console.d)
@@ -90,7 +90,7 @@ private final class WindowsConsole : Console
     HANDLE handle;
     FILE* _fp;
 
-    static HANDLE getStdHandle(FILE *fp)
+    static HANDLE getStdHandle(FILE* fp)
     {
         /* Determine if stream fp is a console
          */
@@ -111,10 +111,9 @@ private final class WindowsConsole : Console
 
         if (fp == stdout)
             return GetStdHandle(STD_OUTPUT_HANDLE);
-        else if (fp == stderr)
+        if (fp == stderr)
             return GetStdHandle(STD_ERROR_HANDLE);
-        else
-            return null;
+        return null;
     }
 
   public:

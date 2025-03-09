@@ -1,0 +1,8 @@
+The folder *samples* has been removed from DMD installations
+
+Every DMD release has included a folder with small D code examples.
+These examples are quite old, and not a good representation of modern D.
+They're also hard to discover, since D compilers are often installed through an installer or package manager.
+
+Since there are better resources available online nowadays, these samples have
+been moved to the [undeaD](https://github.com/dlang/undeaD) repository.

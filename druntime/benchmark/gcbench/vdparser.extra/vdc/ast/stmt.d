@@ -38,8 +38,7 @@ class Statement : Node
     {
         foreach(m; members)
         {
-            Value v = m.interpret(sc);
-            if(v)
+            if (Value v = m.interpret(sc))
                 return v;
         }
         return null;

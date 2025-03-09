@@ -7,7 +7,7 @@
  * Compute common subexpressions for non-optimized builds.
  *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcs.d
@@ -23,6 +23,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.el;
+import dmd.backend.goh : GlobalOptimizer;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.ty;
@@ -41,11 +42,11 @@ nothrow:
  */
 
 @trusted
-public void comsubs()
+public void comsubs(ref GlobalOptimizer go)
 {
-    debug if (debugx) printf("comsubs(%p)\n",startblock);
+    debug if (debugx) printf("comsubs(%p)\n",bo.startblock);
 
-    comsubs2(startblock, cgcsdata);
+    comsubs2(bo.startblock, cgcsdata, go);
 
     debug if (debugx)
         printf("done with comsubs()\n");
@@ -73,10 +74,10 @@ alias hash_t = uint;    // for hash values
  * String together as many blocks as we can.
  */
 @trusted
-void comsubs2(block* startblock, ref CGCS cgcs)
+void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go)
 {
     // No longer just compute Bcount - eliminate unreachable blocks too
-    block_compbcount();                   // eliminate unreachable blocks
+    block_compbcount(go);                 // eliminate unreachable blocks
 
     cgcs.start();
 
@@ -91,11 +92,11 @@ void comsubs2(block* startblock, ref CGCS cgcs)
         int n = 1;                      // always at least one block in EBB
         auto blc = bl;
         while (bln && list_nitems(bln.Bpred) == 1 &&
-               ((blc.BC == BCiftrue &&
+               ((blc.bc == BC.iftrue &&
                  blc.nthSucc(1) == bln) ||
-                (blc.BC == BCgoto && blc.nthSucc(0) == bln)
+                (blc.bc == BC.goto_ && blc.nthSucc(0) == bln)
                ) &&
-               bln.BC != BCasm         // no CSE's extending across ASM blocks
+               bln.bc != BC.asm_         // no CSE's extending across ASM blocks
               )
         {
             n++;                    // add block to EBB
@@ -186,7 +187,7 @@ struct CGCS
      * Add an elem to the common subexpression table.
      */
 
-    void push(elem *e, hash_t hash)
+    void push(elem* e, hash_t hash)
     {
         hcstab.push(HCS(e, hash));
     }
@@ -550,7 +551,7 @@ void ecom(ref CGCS cgcs, ref elem* pe)
  */
 
 @trusted
-hash_t cs_comphash(const elem *e)
+hash_t cs_comphash(const elem* e)
 {
     elem_debug(e);
     const op = e.Eoper;
@@ -723,7 +724,7 @@ void touchstar(ref CGCS cgcs)
  */
 
 @trusted
-void touchaccess(ref Barray!HCS hcstab, const elem *ev) pure nothrow
+void touchaccess(ref Barray!HCS hcstab, const elem* ev) pure nothrow
 {
     const ev1 = ev.E1;
     foreach (ref hcs; hcstab[])

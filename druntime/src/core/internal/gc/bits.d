@@ -10,9 +10,9 @@ module core.internal.gc.bits;
 import core.internal.gc.os : os_mem_map, os_mem_unmap, HaveFork;
 
 import core.bitop;
-import core.stdc.string;
-import core.stdc.stdlib;
 import core.exception : onOutOfMemoryError;
+import core.stdc.stdlib : calloc, free;
+import core.stdc.string : memcpy, memset;
 
 // use version gcbitsSingleBitOperation to disable optimizations that use
 //  word operands on bulk operation copyRange, setRange, clrRange, etc.
@@ -134,7 +134,7 @@ struct GCBits
         }
         else
         {
-            auto pos = i >> BITS_SHIFT;
+            const pos = i >> BITS_SHIFT;
             auto pdata = cast(shared)(data + pos);
             auto mask = BITS_1 << (i & BITS_MASK);
             auto state = *pdata;

@@ -1,7 +1,7 @@
 /**
  * Read a file from disk and store it in memory.
  *
- * Copyright: Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/file_manager.d, _file_manager.d)
  * Documentation:  https://dlang.org/phobos/dmd_file_manager.html
@@ -101,8 +101,10 @@ private struct PathCache
          */
         bool exists = true;
         auto st = PathStack(filespec);
-        while (st.up) {
-            if (auto cached = pathStatus.lookup(st.cur)) {
+        while (st.up)
+        {
+            if (auto cached = pathStatus.lookup(st.cur))
+            {
                 exists = cached.value;
                 break;
             }
@@ -112,7 +114,8 @@ private struct PathCache
          * Once a directory is found to not exist, all the directories
          * to the right of it do not exist
          */
-        while (st.down) {
+        while (st.down)
+        {
             if (!exists)
                 pathStatus.insert(st.cur, false);
             else
@@ -159,16 +162,20 @@ nothrow:
     * Does not open the file.
     * Params:
     *      filename = as supplied by the user
-    *      paths = paths to look for filename
+    *      pathsInfo = pathsInfo to look for filename with metadata
+    *      whichPathFoundThis = Which path from `path` was used in determining the output path, or -1 if unknown.
     * Returns:
     *      the found file name or
     *      `null` if it is not different from filename.
     */
-    const(char)[] lookForSourceFile(const char[] filename, const char*[] paths)
+    const(char)[] lookForSourceFile(const char[] filename, const ImportPathInfo[] pathsInfo, out ptrdiff_t whichPathFoundThis)
     {
         //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
-        /* Search along paths[] for .di file, then .d file.
+        /* Search along pathsInfo[] for .di file, then .d file.
         */
+
+        whichPathFoundThis = -1;
+
         // see if we should check for the module locally.
         bool checkLocal = pathCache.pathExists(filename);
         const sdi = FileName.forceExt(filename, hdr_ext);
@@ -206,25 +213,28 @@ nothrow:
 
         if (FileName.absolute(filename))
             return null;
-        if (!paths.length)
+        if (!pathsInfo.length)
             return null;
-        foreach (entry; paths)
+        foreach (pathIndex, entry; pathsInfo)
         {
-            const p = entry.toDString();
+            const p = entry.path.toDString();
 
             const(char)[] n = FileName.combine(p, sdi);
 
-            if (!pathCache.pathExists(n)) {
+            if (!pathCache.pathExists(n))
+            {
                 FileName.free(n.ptr);
                 continue; // no need to check for anything else.
             }
-            if (FileName.exists(n) == 1) {
+            if (FileName.exists(n) == 1)
                 return n;
-            }
+
             FileName.free(n.ptr);
 
             n = FileName.combine(p, sd);
-            if (FileName.exists(n) == 1) {
+            if (FileName.exists(n) == 1)
+            {
+                whichPathFoundThis = pathIndex;
                 return n;
             }
             FileName.free(n.ptr);
@@ -237,10 +247,16 @@ nothrow:
             {
                 const n2i = FileName.combine(n, package_di);
                 if (FileName.exists(n2i) == 1)
+                {
+                    whichPathFoundThis = pathIndex;
                     return n2i;
+                }
+
                 FileName.free(n2i.ptr);
                 const n2 = FileName.combine(n, package_d);
-                if (FileName.exists(n2) == 1) {
+                if (FileName.exists(n2) == 1)
+                {
+                    whichPathFoundThis = pathIndex;
                     return n2;
                 }
                 FileName.free(n2.ptr);
@@ -258,18 +274,22 @@ nothrow:
         if (FileName.exists(sc) == 1)
             return sc;
         scope(exit) FileName.free(sc.ptr);
-        foreach (entry; paths)
+        foreach (pathIndex, entry; pathsInfo)
         {
-            const p = entry.toDString();
+            const p = entry.path.toDString();
 
             const(char)[] n = FileName.combine(p, si);
-            if (FileName.exists(n) == 1) {
+            if (FileName.exists(n) == 1)
+            {
+                whichPathFoundThis = pathIndex;
                 return n;
             }
             FileName.free(n.ptr);
 
             n = FileName.combine(p, sc);
-            if (FileName.exists(n) == 1) {
+            if (FileName.exists(n) == 1)
+            {
+                whichPathFoundThis = pathIndex;
                 return n;
             }
             FileName.free(n.ptr);

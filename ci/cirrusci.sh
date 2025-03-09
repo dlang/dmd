@@ -15,18 +15,28 @@ if [ ! -z ${HOST_DC+x} ] ; then HOST_DMD=${HOST_DC}; fi
 if [ -z ${HOST_DMD+x} ] ; then echo "Variable 'HOST_DMD' needs to be set."; exit 1; fi
 
 if [ "$OS_NAME" == "linux" ]; then
-  export DEBIAN_FRONTEND=noninteractive
-  packages="git-core make g++ gdb gnupg curl libcurl4 tzdata zip unzip xz-utils llvm valgrind libc6-dbg"
-  if [ "$MODEL" == "32" ]; then
-    dpkg --add-architecture i386
-    packages="$packages g++-multilib libcurl4:i386 libc6-dbg:i386"
+  if type -P apk &>/dev/null; then
+    # Alpine
+    apk add git make g++ ldc \
+      bash grep coreutils diffutils curl gdb linux-headers dub
+  else
+    export DEBIAN_FRONTEND=noninteractive
+    packages="git-core make g++ gdb gnupg curl libcurl4 tzdata zip unzip xz-utils llvm valgrind libc6-dbg"
+    if [ "$MODEL" == "32" ]; then
+      dpkg --add-architecture i386
+      packages="$packages g++-multilib libcurl4:i386 libc6-dbg:i386"
+    fi
+    if [ "${HOST_DMD:0:4}" == "gdmd" ]; then
+      # ci/run.sh uses `sudo add-apt-repository ...` to add a PPA repo
+      packages="$packages sudo software-properties-common"
+    fi
+    apt-get -q update
+    apt-get install -yq $packages
   fi
-  if [ "${HOST_DMD:0:4}" == "gdmd" ]; then
-    # ci/run.sh uses `sudo add-apt-repository ...` to add a PPA repo
-    packages="$packages sudo software-properties-common"
-  fi
-  apt-get -q update
-  apt-get install -yq $packages
+elif [ "$OS_NAME" == "osx" ]; then
+  # upgrade GNU make
+  brew install make
+  sudo ln -s /usr/local/opt/make/libexec/gnubin/make /usr/local/bin/make
 elif [ "$OS_NAME" == "freebsd" ]; then
   packages="git gmake devel/llvm12"
   if [ "$HOST_DMD" == "dmd-2.079.0" ] ; then

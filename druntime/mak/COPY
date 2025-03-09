@@ -62,7 +62,6 @@ COPY=\
 	\
 	$(IMPDIR)\core\internal\backtrace\dwarf.d \
 	$(IMPDIR)\core\internal\backtrace\elf.d \
-	$(IMPDIR)\core\internal\backtrace\handler.d \
 	$(IMPDIR)\core\internal\backtrace\libunwind.d \
 	$(IMPDIR)\core\internal\backtrace\macho.d \
 	$(IMPDIR)\core\internal\backtrace\unwind.d \
@@ -71,6 +70,8 @@ COPY=\
 	$(IMPDIR)\core\internal\elf\io.d \
 	\
 	$(IMPDIR)\core\internal\gc\bits.d \
+	$(IMPDIR)\core\internal\gc\blkcache.d \
+	$(IMPDIR)\core\internal\gc\blockmeta.d \
 	$(IMPDIR)\core\internal\gc\os.d \
 	$(IMPDIR)\core\internal\gc\pooltable.d \
 	$(IMPDIR)\core\internal\gc\proxy.d \
@@ -387,6 +388,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\aclui.d \
 	$(IMPDIR)\core\sys\windows\basetsd.d \
 	$(IMPDIR)\core\sys\windows\basetyps.d \
+	$(IMPDIR)\core\sys\windows\bcrypt.d \
 	$(IMPDIR)\core\sys\windows\cderr.d \
 	$(IMPDIR)\core\sys\windows\cguid.d \
 	$(IMPDIR)\core\sys\windows\com.d \
@@ -552,7 +554,8 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\wtypes.d \
 	\
 	$(IMPDIR)\core\thread\context.d \
-	$(IMPDIR)\core\thread\fiber.d \
+	$(IMPDIR)\core\thread\fiber\base.d \
+	$(IMPDIR)\core\thread\fiber\package.d \
 	$(IMPDIR)\core\thread\types.d \
 	$(IMPDIR)\core\thread\threadgroup.d \
 	$(IMPDIR)\core\thread\threadbase.d \

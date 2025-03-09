@@ -6,34 +6,34 @@
  * Copyright: Copyright Digital Mars 2015 - 2018.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Yazan Dabain
- * Source: $(DRUNTIMESRC rt/backtrace/elf.d)
+ * Source: $(DRUNTIMESRC core/internal/backtrace/elf.d)
  */
 
 module core.internal.backtrace.elf;
 
 version (linux)
 {
-    import core.sys.linux.elf;
+    import core.sys.linux.elf : SHF_COMPRESSED, ET_DYN;
     version = LinuxOrBSD;
 }
 else version (FreeBSD)
 {
-    import core.sys.freebsd.sys.elf;
+    import core.sys.freebsd.sys.elf : SHF_COMPRESSED, ET_DYN;
     version = LinuxOrBSD;
 }
 else version (DragonFlyBSD)
 {
-    import core.sys.dragonflybsd.sys.elf;
+    import core.sys.dragonflybsd.sys.elf : SHF_COMPRESSED, ET_DYN;
     version = LinuxOrBSD;
 }
 else version (OpenBSD)
 {
-    import core.sys.openbsd.sys.elf;
+    import core.sys.openbsd.sys.elf : SHF_COMPRESSED, ET_DYN;
     version = LinuxOrBSD;
 }
 else version (Solaris)
 {
-    import core.sys.solaris.sys.elf;
+    import core.sys.solaris.sys.elf : SHF_COMPRESSED, ET_DYN;
     version = LinuxOrBSD;
 }
 

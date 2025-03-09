@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/var.d, backend/var.d)
@@ -35,7 +35,6 @@ __gshared:
 /* Global flags:
  */
 
-char PARSER = 0;                    // indicate we're in the parser
 char OPTIMIZER = 0;                 // indicate we're in the optimizer
 int structalign;                /* alignment for members of structures  */
 char dbcs = 0;                      // current double byte character set
@@ -66,17 +65,14 @@ char debugy = 0; /// watch output to il buffer
 
 /* File variables: */
 
-char *argv0;                    // argv[0] (program name)
-extern (C)
-{
-FILE *fdep = null;              // dependency file stream pointer
-FILE *flst = null;              // list file stream pointer
-FILE *fin = null;               // input file
-}
+char* argv0;                    // argv[0] (program name)
+FILE* fdep = null;              // dependency file stream pointer
+FILE* flst = null;              // list file stream pointer
+FILE* fin = null;               // input file
 
 // htod
-char *fdmodulename = null;
-extern (C) FILE *fdmodule = null;
+char* fdmodulename = null;
+FILE* fdmodule = null;
 
 char*   foutdir = null,       // directory to place output files in
         finname = null,
@@ -108,7 +104,7 @@ int level = 0;                  /* declaration level                    */
                                 /* 2: function local declarations       */
                                 /* 3+: compound statement decls         */
 
-param_t *paramlst = null;       /* function parameter list              */
+param_t* paramlst = null;       /* function parameter list              */
 tym_t pointertype = TYnptr;     /* default data pointer type            */
 
 /* From util.c */
@@ -164,7 +160,7 @@ char[SCMAX] sytab =
     /* adl */      0                ,      /* list of ADL symbols for overloading  */
 ];
 
-extern (C) int controlc_saw = 0;              /* a control C was seen         */
+int controlc_saw = 0;              /* a control C was seen         */
 symtab_t globsym;               /* global symbol table                  */
 Pstate pstate;                  // parser state
 Cstate cstate;                  // compiler state
@@ -181,7 +177,7 @@ const(char)*[32] regstring = ["AX","CX","DX","BX","SP","BP","SI","DI",
 
 /* From nwc.c */
 
-type *chartype;                 /* default 'char' type                  */
+type* chartype;                 /* default 'char' type                  */
 
 Obj objmod = null;
 
@@ -216,7 +212,7 @@ extern (D) private enum tytab_init =
 } ();
 
 /// Give an ascii string for a type
-extern (C) __gshared const(char)*[TYMAX] tystring =
+__gshared const(char)*[TYMAX] tystring =
 () {
     const(char)*[TYMAX] ret = [
         TYbool    : "bool",

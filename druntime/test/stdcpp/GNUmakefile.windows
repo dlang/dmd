@@ -1,0 +1,56 @@
+TESTS:=allocator array memory new string utility vector
+
+CC := cl
+
+msc_ver:=$(strip $(shell $(CC) /nologo /EP msc_ver.c))
+ifeq (1,$(intcmp $(msc_ver),1900,0,1,1))
+    extra_cxxflags += /std:c++17
+    extra_dflags += -extern-std=c++17
+    TESTS+=string_view
+endif
+
+TESTS := $(TESTS:=_mt) $(TESTS:=_md) $(TESTS:=_mtd) $(TESTS:=_mdd)
+
+include ../common.mak
+
+CXX := cl
+OUTPUT_FLAG := /Fo
+TARGET_ARCH :=
+extra_cxxflags += /nologo /EHsc
+extra_dflags += -main -unittest -version=CoreUnittest -version=_MSC_VER_$(msc_ver)
+
+$(OBJDIR)/%_mt_cpp$(DOTOBJ): %.cpp | $(OBJDIR)
+	$(COMPILE.cpp) $(OUTPUT_OPTION) $< $(extra_sources)
+$(OBJDIR)/%_mt_cpp$(DOTOBJ): private extra_cxxflags += /MT
+$(OBJDIR)/%_md_cpp$(DOTOBJ): %.cpp | $(OBJDIR)
+	$(COMPILE.cpp) $(OUTPUT_OPTION) $< $(extra_sources)
+$(OBJDIR)/%_md_cpp$(DOTOBJ): private extra_cxxflags += /MD
+$(OBJDIR)/%_mtd_cpp$(DOTOBJ): %.cpp | $(OBJDIR)
+	$(COMPILE.cpp) $(OUTPUT_OPTION) $< $(extra_sources)
+$(OBJDIR)/%_mtd_cpp$(DOTOBJ): private extra_cxxflags += /MTd
+$(OBJDIR)/%_mdd_cpp$(DOTOBJ): %.cpp | $(OBJDIR)
+	$(COMPILE.cpp) $(OUTPUT_OPTION) $< $(extra_sources)
+$(OBJDIR)/%_mdd_cpp$(DOTOBJ): private extra_cxxflags += /MDd
+
+# Change the PDB file output to avoid collisions:
+# fatal error C1041: cannot open program database '...\test\stdcpp\vc140.pdb'; if multiple CL.EXE write to the same .PDB file, please use /FS.
+$(OBJDIR)/%_cpp$(DOTOBJ): private extra_cxxflags += /Fd$(@:$(DOTOBJ)=)
+
+$(OBJDIR)/%_mt$(DOTEXE): %_test.d $(OBJDIR)/%_mt_cpp$(DOTOBJ) $(DMD_DEP) $(DRUNTIME_DEP)
+	$(LINK.d) $< $(OBJDIR)/$*_mt_cpp$(DOTOBJ) $(extra_sources) $(extra_ldlibs.d) $(LDLIBS.d) $(OUTPUT_OPTION.d)
+$(OBJDIR)/%_mt$(DOTEXE): private extra_ldflags.d += -mscrtlib=libcmt
+$(OBJDIR)/%_md$(DOTEXE): %_test.d $(OBJDIR)/%_md_cpp$(DOTOBJ) $(DMD_DEP) $(DRUNTIME_DEP)
+	$(LINK.d) $< $(OBJDIR)/$*_md_cpp$(DOTOBJ) $(extra_sources) $(extra_ldlibs.d) $(LDLIBS.d) $(OUTPUT_OPTION.d)
+$(OBJDIR)/%_md$(DOTEXE): private extra_ldflags.d += -mscrtlib=msvcrt
+$(OBJDIR)/%_mtd$(DOTEXE): %_test.d $(OBJDIR)/%_mtd_cpp$(DOTOBJ) $(DMD_DEP) $(DRUNTIME_DEP)
+	$(LINK.d) $< $(OBJDIR)/$*_mtd_cpp$(DOTOBJ) $(extra_sources) $(extra_ldlibs.d) $(LDLIBS.d) $(OUTPUT_OPTION.d)
+$(OBJDIR)/%_mtd$(DOTEXE): private extra_ldflags.d += -mscrtlib=libcmtd
+$(OBJDIR)/%_mdd$(DOTEXE): %_test.d $(OBJDIR)/%_mdd_cpp$(DOTOBJ) $(DMD_DEP) $(DRUNTIME_DEP)
+	$(LINK.d) $< $(OBJDIR)/$*_mdd_cpp$(DOTOBJ) $(extra_sources) $(extra_ldlibs.d) $(LDLIBS.d) $(OUTPUT_OPTION.d)
+$(OBJDIR)/%_mdd$(DOTEXE): private extra_ldflags.d += -mscrtlib=msvcrtd
+
+short_test_names = mt md mtd mdd
+.NOTINTERMEDIATE: \
+    $(short_test_names:%=$(OBJDIR)/\%_%_cpp$(DOTOBJ)) \
+    $(short_test_names:%=$(OBJDIR)/\%_%$(DOTEXE))
+# .NOTINTERMEDIATE: $(OBJDIR)/%_mt_cpp$(DOTOBJ) $(OBJDIR)/%_$(DOTEXE) ...

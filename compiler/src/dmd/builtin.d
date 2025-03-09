@@ -3,7 +3,7 @@
  *
  * Currently includes functions from `std.math`, `core.math` and `core.bitop`.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/builtin.d, _builtin.d)
@@ -15,12 +15,12 @@ module dmd.builtin;
 
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.dmangle;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
 import dmd.location;
+import dmd.mangle;
 import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.tokens;
@@ -44,7 +44,7 @@ public extern (C++) BUILTIN isBuiltin(FuncDeclaration fd)
  * Evaluate builtin function.
  * Return result; NULL if cannot evaluate it.
  */
-public extern (C++) Expression eval_builtin(const ref Loc loc, FuncDeclaration fd, Expressions* arguments)
+public extern (C++) Expression eval_builtin(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     if (fd.builtin == BUILTIN.unimp)
         return null;
@@ -151,8 +151,8 @@ BUILTIN determine_builtin(FuncDeclaration func)
     // Only match pow(fp,fp) where fp is a floating point type
     if (id3 == Id._pow)
     {
-        if ((*fd.parameters)[0].type.isfloating() &&
-            (*fd.parameters)[1].type.isfloating())
+        if ((*fd.parameters)[0].type.isFloating() &&
+            (*fd.parameters)[1].type.isFloating())
             return BUILTIN.pow;
         return BUILTIN.unimp;
     }

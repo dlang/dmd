@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/el.d, backend/el.d)
@@ -98,7 +98,7 @@ struct elem
         struct
         {
             targ_size_t Voffset;// offset from symbol
-            Symbol *Vsym;       // pointer to symbol table
+            Symbol* Vsym;       // pointer to symbol table
             union
             {
                 param_t* Vtal;  // template-argument-list for SCfunctempl,
@@ -157,7 +157,7 @@ struct elem
         }
     }
 
-    type *ET;            // pointer to type of elem if TYstruct | TYarray
+    type* ET;            // pointer to type of elem if TYstruct | TYarray
     Srcpos Esrcpos;      // source file position
 }
 
@@ -181,7 +181,7 @@ FL el_fl(const elem* e) { return e.Vsym.Sfl; }
 inout(elem)* list_elem(inout list_t list) { return cast(inout(elem)*)list_ptr(list); }
 
 @trusted
-void list_setelem(list_t list, void* ptr) { list.ptr = cast(elem *)ptr; }
+void list_setelem(list_t list, void* ptr) { list.ptr = cast(elem*)ptr; }
 
 public import dmd.backend.elem;
 public import dmd.backend.elpicpie : el_var, el_ptr;

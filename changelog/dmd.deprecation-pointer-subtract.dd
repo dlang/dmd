@@ -1,0 +1,11 @@
+An error is now given for subtracting pointers of different types
+
+The following code now gives errors:
+```
+static assert(cast(void*)8 - cast(int*) 0 == 2L);
+static assert(cast(int*) 8 - cast(void*)0 == 8L);
+void test()
+{
+     auto foo = (ushort*).init - (ubyte*).init;
+}
+```

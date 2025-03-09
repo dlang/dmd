@@ -1,7 +1,7 @@
 /**
  * Check the arguments to `printf` and `scanf` against the `format` string.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/chkformat.d, _chkformat.d)
@@ -63,7 +63,7 @@ import dmd.target;
  * https://www.cplusplus.com/reference/cstdio/printf/
  */
 public
-bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list, ErrorSink eSink)
+bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list, ErrorSink eSink)
 {
     //printf("checkPrintFormat('%.*s')\n", cast(int)format.length, format.ptr);
     size_t n;    // index in args
@@ -174,13 +174,13 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
 
             case Format.lu:     // unsigned long int
             case Format.ld:     // long int
-                if (!(t.isintegral() && t.size() == c_longsize))
+                if (!(t.isIntegral() && t.size() == c_longsize))
                 {
                     if (fmt == Format.lu)
                         errorMsg(null, e, (c_longsize == 4 ? "uint" : "ulong"), t);
                     else
                         errorMsg(null, e, (c_longsize == 4 ? "int" : "long"), t);
-                    if (t.isintegral() && t.size() != c_longsize)
+                    if (t.isIntegral() && t.size() != c_longsize)
                         eSink.errorSupplemental(e.loc, "C `long` is %d bytes on your system", c_longsize);
                 }
                 break;
@@ -203,12 +203,12 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.zd:     // size_t
-                if (!(t.isintegral() && t.size() == ptrsize))
+                if (!(t.isIntegral() && t.size() == ptrsize))
                     errorMsg(null, e, "size_t", t);
                 break;
 
             case Format.td:     // ptrdiff_t
-                if (!(t.isintegral() && t.size() == ptrsize))
+                if (!(t.isIntegral() && t.size() == ptrsize))
                     errorMsg(null, e, "ptrdiff_t", t);
                 break;
 
@@ -234,7 +234,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.ln:     // pointer to long int
-                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.size() == c_longsize))
+                if (!(t.ty == Tpointer && tnext.isIntegral() && tnext.size() == c_longsize))
                     errorMsg(null, e, (c_longsize == 4 ? "int*" : "long*"), t);
                 break;
 
@@ -259,12 +259,12 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.zn:     // pointer to size_t
-                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.isunsigned() && tnext.size() == ptrsize))
+                if (!(t.ty == Tpointer && tnext.isIntegral() && tnext.isUnsigned() && tnext.size() == ptrsize))
                     errorMsg(null, e, "size_t*", t);
                 break;
 
             case Format.tn:     // pointer to ptrdiff_t
-                if (!(t.ty == Tpointer && tnext.isintegral() && !tnext.isunsigned() && tnext.size() == ptrsize))
+                if (!(t.ty == Tpointer && tnext.isIntegral() && !tnext.isUnsigned() && tnext.size() == ptrsize))
                     errorMsg(null, e, "ptrdiff_t*", t);
                 break;
 
@@ -339,7 +339,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
  * https://www.cplusplus.com/reference/cstdio/scanf/
  */
 public
-bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list, ErrorSink eSink)
+bool checkScanfFormat(Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list, ErrorSink eSink)
 {
     size_t n = 0;
     for (size_t i = 0; i < format.length;)
@@ -414,7 +414,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
 
             case Format.ln:
             case Format.ld:     // pointer to long int
-                if (!(t.ty == Tpointer && tnext.isintegral() && !tnext.isunsigned() && tnext.size() == c_longsize))
+                if (!(t.ty == Tpointer && tnext.isIntegral() && !tnext.isUnsigned() && tnext.size() == c_longsize))
                     errorMsg(null, e, (c_longsize == 4 ? "int*" : "long*"), t);
                 break;
 
@@ -432,13 +432,13 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
 
             case Format.zn:
             case Format.zd:     // pointer to size_t
-                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.isunsigned() && tnext.size() == ptrsize))
+                if (!(t.ty == Tpointer && tnext.isIntegral() && tnext.isUnsigned() && tnext.size() == ptrsize))
                     errorMsg(null, e, "size_t*", t);
                 break;
 
             case Format.tn:
             case Format.td:     // pointer to ptrdiff_t
-                if (!(t.ty == Tpointer && tnext.isintegral() && !tnext.isunsigned() && tnext.size() == ptrsize))
+                if (!(t.ty == Tpointer && tnext.isIntegral() && !tnext.isUnsigned() && tnext.size() == ptrsize))
                     errorMsg(null, e, "ptrdiff_t*", t);
                 break;
 
@@ -458,7 +458,7 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                 break;
 
             case Format.lu:     // pointer to unsigned long int
-                if (!(t.ty == Tpointer && tnext.isintegral() && tnext.isunsigned() && tnext.size() == c_longsize))
+                if (!(t.ty == Tpointer && tnext.isIntegral() && tnext.isUnsigned() && tnext.size() == c_longsize))
                     errorMsg(null, e, (c_longsize == 4 ? "uint*" : "ulong*"), t);
                 break;
 

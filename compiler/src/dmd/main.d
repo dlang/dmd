@@ -6,7 +6,7 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/main.d, _main.d)
@@ -30,6 +30,7 @@ import dmd.compiler;
 import dmd.cond;
 import dmd.console;
 import dmd.cpreprocess;
+import dmd.deps;
 import dmd.dinifile;
 import dmd.dinterpret;
 import dmd.dmdparams;
@@ -63,9 +64,11 @@ import dmd.root.response;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.root.stringtable;
+import dmd.root.array;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.target;
+import dmd.timetrace;
 import dmd.utils;
 import dmd.vsoptions;
 
@@ -133,7 +136,9 @@ extern (C) int _Dmain(char[][])
         dmd_coverDestPath(sourcePath);
         dmd_coverSetMerge(true);
     }
-    scope(failure) stderr.printInternalFailure;
+    version (D_Exceptions)
+        scope(failure) stderr.printInternalFailure;
+
     auto args = Runtime.cArgs();
     return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
 }
@@ -158,16 +163,32 @@ private:
 private int tryMain(size_t argc, const(char)** argv, ref Param params)
 {
     import dmd.common.charactertables;
+    import dmd.sarif;
+    import core.stdc.stdarg;
 
     Strings files;
     Strings libmodules;
     global._init();
+
+    scope(exit)
+    {
+        // If we are here then compilation has ended
+        // gracefully as opposed to with `fatal`
+        global.plugErrorSinks();
+
+        if (global.errors == 0 && global.params.v.messageStyle == MessageStyle.sarif)
+        {
+            generateSarifReport(true);
+        }
+    }
+
     target.setTargetBuildDefaults();
 
     if (parseCommandlineAndConfig(argc, argv, params, files))
         return EXIT_FAILURE;
 
     global.compileEnv.previewIn        = global.params.previewIn;
+    global.compileEnv.transitionIn     = global.params.v.vin;
     global.compileEnv.ddocOutput       = global.params.ddoc.doOutput;
 
     final switch(global.params.cIdentifierTable)
@@ -377,7 +398,30 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // Build import search path
 
-    static void buildPath(ref Strings imppath, ref Strings result)
+    static void buildImportPath(ref Array!ImportPathInfo imppath, ref Array!ImportPathInfo result, ref Strings pathsOnlyResult)
+    {
+        Array!ImportPathInfo array;
+        Strings pathsOnlyArray;
+
+        foreach (entry; imppath)
+        {
+            int sink(const(char)* p) nothrow
+            {
+                ImportPathInfo temp = entry;
+                temp.path = p;
+                array.push(temp);
+                return 0;
+            }
+
+            FileName.splitPath(&sink, entry.path);
+            FileName.appendSplitPath(entry.path, pathsOnlyArray);
+        }
+
+        result.append(&array);
+        pathsOnlyResult.append(&pathsOnlyArray);
+    }
+
+    static void buildFileImportPath(ref Strings imppath, ref Strings result)
     {
         Strings array;
         foreach (const path; imppath)
@@ -393,13 +437,19 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         atexit(&flushMixins); // see comment for flushMixins
     }
     scope(exit) flushMixins();
-    buildPath(params.imppath, global.path);
-    buildPath(params.fileImppath, global.filePath);
+    buildImportPath(params.imppath, global.path, global.importPaths);
+    buildFileImportPath(params.fileImppath, global.filePath);
+
+    if (params.timeTrace)
+    {
+        import dmd.timetrace;
+        initializeTimeTrace(params.timeTraceGranularityUs, argv[0]);
+    }
 
     // Create Modules
     Modules modules;
     modules.reserve(files.length);
-    if (createModules(files, libmodules, target, global.errorSink, modules))
+    if (createModules(files, libmodules, params, target, global.errorSink, modules))
         fatal();
 
     // Read files
@@ -414,7 +464,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     /* Read ddoc macro files named by the DDOCFILE environment variable and command line
      * and concatenate the text into ddocbuf
      */
-    void readDdocFiles(ref const Loc loc, ref const Strings ddocfiles, ref OutBuffer ddocbuf)
+    void readDdocFiles(Loc loc, ref const Strings ddocfiles, ref OutBuffer ddocbuf)
     {
         foreach (file; ddocfiles)
         {
@@ -426,9 +476,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         ddocbufIsRead = true;
     }
 
-    // Parse files
     bool anydocfiles = false;
     OutBuffer ddocOutputText;
+    {
+    // Parse files
+    timeTraceBeginEvent(TimeTraceEventType.parseGeneral);
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.parseGeneral);
     size_t filecount = modules.length;
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
@@ -442,6 +495,17 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 //            m.deleteObjFile();
 
         m.parse();
+
+        // Finalize output filenames. Update if `-oq` was specified (only feasible after parsing).
+        if (params.fullyQualifiedObjectFiles && m.md)
+        {
+            m.objfile = m.setOutfilename(params.objname, params.objdir, m.arg, FileName.ext(m.objfile.toString()));
+            if (m.docfile)
+                m.setDocfile();
+            if (m.hdrfile)
+                m.hdrfile = m.setOutfilename(params.dihdr.name, params.dihdr.dir, m.arg, hdr_ext);
+        }
+
         if (m.filetype == FileType.dhdr)
         {
             // Remove m's object file from list of object files
@@ -484,6 +548,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 driverParams.link = false;
         }
     }
+    }
 
     if (anydocfiles && modules.length && (driverParams.oneobj || params.objname))
     {
@@ -516,6 +581,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
+
+    {
+    timeTraceBeginEvent(TimeTraceEventType.semaGeneral);
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.semaGeneral);
 
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
@@ -623,6 +692,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         else
             printf("%.*s", cast(int)data.length, data.ptr);
     }
+    }
 
     printCtfePerformanceStats();
     printTemplateStats(global.params.v.templatesListInstances, global.errorSink);
@@ -682,9 +752,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             params.objfiles.push(mainModule.objfile.toChars());
     }
 
-    generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
-                         driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
-                         params.v.verbose);
+    {
+        timeTraceBeginEvent(TimeTraceEventType.codegenGlobal);
+        scope (exit) timeTraceEndEvent(TimeTraceEventType.codegenGlobal);
+        generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
+                            driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
+                            params.v.verbose);
+    }
 
     backend_term();
 
@@ -699,7 +773,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     else
     {
         if (driverParams.link)
+        {
+            timeTraceBeginEvent(TimeTraceEventType.link);
+            scope (exit) timeTraceEndEvent(TimeTraceEventType.link);
             status = runLINK(global.params.v.verbose, global.errorSink);
+        }
         if (params.run)
         {
             if (!status)
@@ -719,9 +797,59 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
 
+    if (params.timeTrace)
+    {
+        import dmd.timetrace;
+        auto fileName = params.timeTraceFile.toDString();
+        if (!fileName)
+        {
+            if (global.params.objfiles.length)
+            {
+                fileName = global.params.objfiles[0].toDString() ~ ".time-trace";
+            }
+            else
+            {
+                fileName = "out.time-trace";
+            }
+        }
+
+        OutBuffer buf;
+        timeTraceProfiler.writeToBuffer(buf);
+        if (fileName == "-")
+        {
+            // Write to stdout
+            import core.stdc.stdio : fwrite, stdout;
+
+            size_t n = fwrite(buf[].ptr, 1, buf.length, stdout);
+            if (n != buf.length)
+            {
+                error(Loc.initial, "Error writing -ftime-trace profile to stdout");
+            }
+        }
+        else if (!File.write(fileName, buf[]))
+        {
+            error(Loc.initial,
+                "Error writing -ftime-trace profile: could not open '%*.s'",
+                cast(int) fileName.length, fileName.ptr);
+        }
+
+        deinitializeTimeTrace();
+    }
+
     // Output the makefile dependencies
     if (params.makeDeps.doOutput)
-        emitMakeDeps(params);
+    {
+        OutBuffer buf;
+        writeMakeDeps(buf, params, driverParams.link, driverParams.lib, target.lib_ext);
+        const data = buf[];
+        if (params.makeDeps.name)
+        {
+            if (!writeFile(Loc.initial, params.makeDeps.name, data))
+                fatal();
+        }
+        else
+            printf("%.*s", cast(int) data.length, data.ptr);
+    }
 
     if (global.warnings)
         errorOnWarning();
@@ -842,7 +970,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     if (char* p = getenv("DDOCFILE"))
         global.params.ddoc.files.shift(p);
 
-    if (target.isX86_64 != isX86_64)
+    if (target.isX86_64 != isX86_64 && !target.isAArch64)
         error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
               envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
 
@@ -850,63 +978,6 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     return false;
 }
 
-/// Emit the makefile dependencies for the -makedeps switch
-void emitMakeDeps(ref Param params)
-{
-    assert(params.makeDeps.doOutput);
-
-    OutBuffer buf;
-
-    // start by resolving and writing the target (which is sometimes resolved during link phase)
-    if (driverParams.link && params.exefile)
-    {
-        buf.writeEscapedMakePath(&params.exefile[0]);
-    }
-    else if (driverParams.lib)
-    {
-        const(char)[] libname = params.libname ? params.libname : FileName.name(params.objfiles[0].toDString);
-        libname = FileName.forceExt(libname,target.lib_ext);
-
-        buf.writeEscapedMakePath(&libname[0]);
-    }
-    else if (params.objname)
-    {
-        buf.writeEscapedMakePath(&params.objname[0]);
-    }
-    else if (params.objfiles.length)
-    {
-        buf.writeEscapedMakePath(params.objfiles[0]);
-        foreach (of; params.objfiles[1 .. $])
-        {
-            buf.writestring(" ");
-            buf.writeEscapedMakePath(of);
-        }
-    }
-    else
-    {
-        assert(false, "cannot resolve makedeps target");
-    }
-
-    buf.writestring(":");
-
-    // then output every dependency
-    foreach (dep; params.makeDeps.files)
-    {
-        buf.writestringln(" \\");
-        buf.writestring("  ");
-        buf.writeEscapedMakePath(dep);
-    }
-    buf.writenl();
-
-    const data = buf[];
-    if (params.makeDeps.name)
-    {
-        if (!writeFile(Loc.initial, params.makeDeps.name, data))
-            fatal();
-    }
-    else
-        printf("%.*s", cast(int) data.length, data.ptr);
-}
 
 // in druntime:
 alias MainFunc = extern(C) int function(char[][] args);

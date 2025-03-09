@@ -83,9 +83,9 @@ void runMain(string[] args)
     bool calledFromMake = false;
     auto res = getopt(args,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
-        "v|verbose", "Verbose command output", (cast(bool*) &verbose),
-        "f|force", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
-        "d|dry-run", "Print commands instead of executing them", (cast(bool*) &dryRun),
+        "v|verbose", "Verbose command output", cast(bool*) &verbose,
+        "f|force", "Force run (ignore timestamps and always run all tests)", cast(bool*) &force,
+        "d|dry-run", "Print commands instead of executing them", cast(bool*) &dryRun,
         "called-from-make", "Calling the build script from the Makefile", &calledFromMake
     );
     void showHelp()
@@ -394,7 +394,7 @@ alias versionFile = makeRule!((builder, rule) {
                 {
                     if ('0' <= version_[i] && version_[i] <= '9')
                         continue;
-                    else if (version_[i] == '.')
+                    if (version_[i] == '.')
                         break;
                     return false;
                 }
@@ -1559,22 +1559,25 @@ auto sourceFiles()
             dmsc.d e2ir.d iasmdmd.d glue.d objc_glue.d
             s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
-        driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d
-            link.d mars.d main.d scanelf.d scanmach.d scanmscoff.d vsoptions.d
+        driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib/package.d lib/elf.d lib/mach.d lib/mscoff.d
+            link.d mars.d main.d sarif.d lib/scanelf.d lib/scanmach.d lib/scanmscoff.d timetrace.d vsoptions.d
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
-            arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d attribsem.d basicmangle.d blockexit.d builtin.d canthrow.d chkformat.d
-            cli.d clone.d compiler.d cond.d constfold.d cppmangle.d cppmanglewin.d cpreprocess.d ctfeexpr.d
-            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d
-            dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
+            arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d attribsem.d blockexit.d builtin.d canthrow.d chkformat.d
+            cli.d clone.d compiler.d cond.d constfold.d  cpreprocess.d ctfeexpr.d
+            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d deps.d dimport.d
+            dinterpret.d dmacro.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
             dtemplate.d dtoh.d dversion.d enumsem.d escape.d expression.d expressionsem.d func.d funcsem.d hdrgen.d iasm.d iasmgcc.d
             impcnvtab.d imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
             mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
-            parse.d parsetimevisitor.d permissivevisitor.d postordervisitor.d pragmasem.d printast.d rootobject.d safe.d sapply.d
-            semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
+            parse.d pragmasem.d printast.d rootobject.d safe.d
+            semantic2.d semantic3.d sideeffect.d statement.d
             statementsem.d staticassert.d staticcond.d stmtstate.d target.d templatesem.d templateparamsem.d traits.d
-            transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
+            typesem.d typinf.d utils.d
+            mangle/package.d mangle/basic.d mangle/cpp.d mangle/cppwin.d
+            visitor/package.d visitor/foreachvar.d visitor/parsetime.d visitor/permissive.d visitor/postorder.d visitor/statement_rewrite_walker.d
+            visitor/strict.d visitor/transitive.d
             cparse.d
         "),
         backendHeaders: fileArray(env["C"], "
@@ -1619,8 +1622,8 @@ auto sourceFiles()
         "),
         backend: fileArray(env["C"], "
             bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
-            dout.d inliner.d eh.d filespec.d cgobj.d aarray.d
-            gloop.d compress.d cgelem.d cgcs.d ee.d blockopt.d mem.d cg.d
+            dout.d inliner.d eh.d aarray.d
+            gloop.d cgelem.d cgcs.d ee.d blockopt.d mem.d cg.d
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d
             pdata.d util2.d var.d backconfig.d drtlsym.d ptrntab.d
             dvarstats.d cgen.d goh.d barray.d cgcse.d elpicpie.d
@@ -1628,7 +1631,7 @@ auto sourceFiles()
             machobj.d elfobj.d mscoffobj.d
             x86/nteh.d x86/cgreg.d x86/cg87.d x86/cgxmm.d x86/disasm86.d
             x86/cgcod.d x86/cod1.d x86/cod2.d x86/cod3.d x86/cod4.d x86/cod5.d
-            arm/disasmarm.d
+            arm/disasmarm.d arm/instr.d arm/cod1.d arm/cod2.d arm/cod3.d arm/cod4.d
             "
         ),
     };
@@ -1723,7 +1726,7 @@ string detectModel()
     else
         uname = ["uname", "-m"].execute.output;
 
-    if (uname.canFind("x86_64", "amd64", "arm64", "64-bit", "64-Bit", "64 bit"))
+    if (uname.canFind("x86_64", "amd64", "aarch64", "arm64", "64-bit", "64-Bit", "64 bit"))
         return "64";
     if (uname.canFind("i386", "i586", "i686", "32-bit", "32-Bit", "32 bit"))
         return "32";
@@ -2351,7 +2354,7 @@ void installRelativeFiles(T)(string targetDir, string sourceBase, T files, uint 
     {
         string name;
         string relativeName;
-        string toString() { return relativeName; }
+        string toString() const { return relativeName; }
     }
     FileToCopy[][string] filesByDir;
     foreach (file; files)

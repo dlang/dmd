@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -inline -wi
+REQUIRED_ARGS: -verrors=simple -inline -wi
 TEST_OUTPUT:
 ---
 compilable/pragmainline2.d(14): Warning: cannot inline function `pragmainline2.foo`

@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cdef.d, backend/_cdef.d)
@@ -180,7 +180,7 @@ enum
     DGROUPIDX = 1,     // group index of DGROUP
 }
 
-enum REGMAX = 32;      // registers are numbered 0...31
+enum REGMAX = 57;      // registers are numbered 0...63
 enum reg_t NOREG = REGMAX;  // no register
 
 alias tym_t = uint;    // data type big enough for type masks
@@ -228,6 +228,7 @@ enum
     TARGET_PentiumMMX       = 6,
     TARGET_PentiumPro       = 7,
     TARGET_PentiumII        = 8,
+    TARGET_AArch64          = 9,
 }
 
 // Symbolic debug info

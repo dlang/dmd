@@ -14,21 +14,21 @@ module rt.sections_win64;
 
 version (CRuntime_Microsoft):
 
-// debug = PRINTF;
-debug(PRINTF) import core.stdc.stdio;
-import core.memory;
-import core.stdc.stdlib : calloc, malloc, free;
-import core.sys.windows.winbase : FreeLibrary, GetCurrentThreadId, GetModuleHandleExW,
-    GetProcAddress, LoadLibraryA, LoadLibraryW,
-    GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
-import core.sys.windows.winnt : WCHAR, IMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE, IMAGE_FILE_HEADER,
-    IMAGE_NT_HEADERS, IMAGE_SECTION_HEADER, IMAGE_TLS_DIRECTORY, IMAGE_DIRECTORY_ENTRY_TLS;
-import core.sys.windows.threadaux;
-import core.thread;
-import rt.deh, rt.minfo;
-import core.internal.container.array;
-
 version (DigitalMars) version (Win64) version = hasEHTables;
+
+// debug = PRINTF;
+
+import core.internal.container.array;
+import core.memory;
+import core.stdc.stdlib : calloc, free, malloc;
+import core.sys.windows.threadaux;
+import core.sys.windows.winbase : FreeLibrary, GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, GetModuleHandleExW, GetProcAddress, LoadLibraryA, LoadLibraryW;
+import core.sys.windows.winnt : IMAGE_DIRECTORY_ENTRY_TLS, IMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE, IMAGE_NT_HEADERS, IMAGE_SECTION_HEADER, IMAGE_TLS_DIRECTORY, WCHAR;
+import core.thread;
+import rt.deh;
+import rt.minfo;
+
+debug (PRINTF) import core.stdc.stdio : printf;
 
 struct SectionGroup
 {
@@ -93,7 +93,7 @@ void initSections() nothrow @nogc
 
 void initSections(void* handle) nothrow @nogc
 {
-    auto sectionGroup = cast(SectionGroup*)calloc(1, SectionGroup.sizeof);
+    auto sectionGroup = cast(SectionGroup*).calloc(1, SectionGroup.sizeof);
     sectionGroup._moduleGroup = ModuleGroup(getModuleInfos(handle));
     sectionGroup._handle = handle;
     version (hasEHTables)
@@ -124,7 +124,7 @@ void initSections(void* handle) nothrow @nogc
 
     if (conservative)
     {
-        sectionGroup._gcRanges = (cast(void[]*) malloc((void[]).sizeof))[0..1];
+        sectionGroup._gcRanges = (cast(void[]*).malloc((void[]).sizeof))[0..1];
         sectionGroup._gcRanges[0] = dataSection;
     }
     else
@@ -132,9 +132,9 @@ void initSections(void* handle) nothrow @nogc
         // consolidate GC ranges for pointers in the .data segment
         void[] dpSection = findImageSection(handle, ".dp");
         debug(PRINTF) printf("found .dp section: [%p,+%llx]\n", dpSection.ptr,
-                             cast(ulong)dpSsection.length);
+                             cast(ulong)dpSection.length);
         auto dp = cast(uint[]) dpSection;
-        auto ranges = cast(void[]*) malloc(dp.length * (void[]).sizeof);
+        auto ranges = cast(void[]*).malloc(dp.length * (void[]).sizeof);
         size_t r = 0;
         void* prev = null;
         foreach (off; dp)
@@ -215,7 +215,7 @@ version (Shared)
                 auto size = tlsdir.EndAddressOfRawData - tlsdir.StartAddressOfRawData + tlsdir.SizeOfZeroFill;
 
                 if (conservative)
-                    dg( beg, beg + size);
+                    dg(beg, beg + size);
                 else
                     scanTLSPrecise(cast(uint*)&sec._tpSection[0], cast(uint*)&sec._tpSection[$], beg, dg);
             }
@@ -435,8 +435,7 @@ void* initLibrary(void* mod)
     // (What? LoadLibrary() is a Windows API call, it shouldn't call rt_init().)
     if (mod is null)
         return mod;
-    gcSetFn gcSet = cast(gcSetFn) GetProcAddress(mod, "gc_setProxy");
-    if (gcSet !is null)
+    if (auto gcSet = cast(gcSetFn) GetProcAddress(mod, "gc_setProxy"))
     {   // BUG: Set proxy, but too late
         gcSet(gc_getProxy());
     }
@@ -453,8 +452,7 @@ void* initLibrary(void* mod)
  */
 extern (C) int rt_unloadLibrary(void* ptr)
 {
-    gcClrFn gcClr  = cast(gcClrFn) GetProcAddress(ptr, "gc_clrProxy");
-    if (gcClr !is null)
+    if (auto gcClr = cast(gcClrFn) GetProcAddress(ptr, "gc_clrProxy"))
         gcClr();
     return FreeLibrary(ptr) != 0;
 }

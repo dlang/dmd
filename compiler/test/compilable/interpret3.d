@@ -1,8 +1,9 @@
 // PERMUTE_ARGS: -inline
+// REQUIRED_ARGS: -verrors=simple
 /*
 TEST_OUTPUT:
 ---
-compilable/interpret3.d(6350): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+compilable/interpret3.d(6351): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
 ---
 */
 
@@ -6239,9 +6240,9 @@ struct Coord13831
 
 struct Chunk13831
 {
-    this(Coord13831)
+    this(Coord13831 coord)
     {
-        coord = coord;
+        this.coord = coord;
     }
 
     Coord13831 coord;

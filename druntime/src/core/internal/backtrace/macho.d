@@ -4,7 +4,7 @@
  * Copyright: Copyright Jacob Carlborg 2018.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Jacob Carlborg
- * Source:    $(DRUNTIMESRC rt/backtrace/macho.d)
+ * Source:    $(DRUNTIMESRC core/internal/backtrace/macho.d)
  */
 module core.internal.backtrace.macho;
 
@@ -20,9 +20,8 @@ else version (WatchOS)
 version (Darwin):
 
 import core.stdc.config : c_ulong;
-import core.sys.darwin.crt_externs;
-import core.sys.darwin.mach.getsect;
-import core.sys.darwin.mach.loader;
+import core.sys.darwin.crt_externs : _NSGetMachExecuteHeader;
+import core.sys.darwin.mach.getsect : mach_header_64, getsectiondata;
 
 struct Image
 {

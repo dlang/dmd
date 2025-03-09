@@ -33,7 +33,7 @@ unittest
 
             bool created = false;
 
-            extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses)
+            extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses)
             {
                 super(loc, id, baseclasses, null, false);
                 created = true;
@@ -115,7 +115,7 @@ unittest
 
     string[] diagnosticMessages;
 
-    nothrow bool diagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
+    nothrow bool diagnosticHandler(const ref SourceLoc loc, Color headerColor, const(char)* header,
                                    const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
     {
         OutBuffer tmp;
@@ -251,7 +251,7 @@ unittest
 
     string[] diagnosticMessages;
 
-    nothrow bool diagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
+    nothrow bool diagnosticHandler(const ref SourceLoc loc, Color headerColor, const(char)* header,
                                    const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
     {
         OutBuffer tmp;
@@ -271,7 +271,7 @@ unittest
         }
     });
 
-    assert(endsWith(diagnosticMessages[0], "no identifier for declarator `temp`"));
+    assert(endsWith(diagnosticMessages[0], "variable name expected after type `temp`, not `==`"));
     assert(endsWith(diagnosticMessages[1], "found `==` instead of statement"));
 }
 
@@ -368,7 +368,7 @@ unittest
 
     string[] diagnosticMessages;
 
-    nothrow bool diagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
+    nothrow bool diagnosticHandler(const ref SourceLoc loc, Color headerColor, const(char)* header,
                                    const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
     {
         OutBuffer tmp;

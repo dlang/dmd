@@ -4,7 +4,7 @@
  *
  * Simple bit vector implementation.
  *
- * Copyright:   Copyright (C) 2013-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2013-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dvec.d, backend/dvec.d)
@@ -19,8 +19,6 @@ import core.stdc.string;
 import core.bitop;
 
 import dmd.backend.global : err_nomem;
-
-extern (C):
 
 nothrow:
 @nogc:
@@ -70,10 +68,10 @@ struct VecGlobal
 
             foreach (size_t i; 0 .. freelist.length)
             {
-                void **vn;
-                for (void** v = cast(void **)freelist[i]; v; v = vn)
+                void** vn;
+                for (void** v = cast(void**)freelist[i]; v; v = vn)
                 {
-                    vn = cast(void **)(*v);
+                    vn = cast(void**)(*v);
                     //mem_free(v);
                     .free(v);
                 }
@@ -91,7 +89,7 @@ struct VecGlobal
         vec_t v;
         if (dim < freelist.length && (v = freelist[dim]) != null)
         {
-            freelist[dim] = *cast(vec_t *)v;
+            freelist[dim] = *cast(vec_t*)v;
             v += 2;
             switch (dim)
             {
@@ -140,7 +138,7 @@ struct VecGlobal
         vec_t result;
         if (dim < freelist.length && (vc = freelist[dim]) != null)
         {
-            freelist[dim] = *cast(vec_t *)vc;
+            freelist[dim] = *cast(vec_t*)vc;
             goto L1;
         }
         else
@@ -171,7 +169,7 @@ struct VecGlobal
             v -= 2;
             if (dim < freelist.length)
             {
-                *cast(vec_t *)v = freelist[dim];
+                *cast(vec_t*)v = freelist[dim];
                 freelist[dim] = v;
             }
             else

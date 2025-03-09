@@ -3,7 +3,7 @@
  *
  * Specification: C11
  *
- * Copyright:   Copyright (C) 2021-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2021-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/importc.d, _importc.d)
@@ -41,7 +41,7 @@ import dmd.typesem;
  */
 Type cAdjustParamType(Type t, Scope* sc)
 {
-    if (!(sc.flags & SCOPE.Cfile))
+    if (!sc.inCfile)
         return t;
 
     Type tb = t.toBasetype();
@@ -77,7 +77,7 @@ Type cAdjustParamType(Type t, Scope* sc)
 Expression arrayFuncConv(Expression e, Scope* sc)
 {
     //printf("arrayFuncConv() %s\n", e.toChars());
-    if (!(sc.flags & SCOPE.Cfile))
+    if (!sc.inCfile)
         return e;
 
     auto t = e.type.toBasetype();
@@ -121,7 +121,6 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
     if (e.isErrorExp())
         return e;
 
-    Dsymbol s;
     auto t = e.type;
     if (t.isTypePointer())
     {
@@ -131,6 +130,7 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
             error(e.loc, "since `%s` is a pointer, use `%s->%s` instead of `%s.%s`", pe, pe, id.toChars(), pe, id.toChars());
         e = new PtrExp(e.loc, e);
     }
+    Dsymbol s;
     if (auto ts = t.isTypeStruct())
         s = ts.sym.search(e.loc, id, 0);
     if (!s)
@@ -154,7 +154,7 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
  */
 Expression carraySemantic(ArrayExp ae, Scope* sc)
 {
-    if (!(sc.flags & SCOPE.Cfile))
+    if (!sc.inCfile)
         return null;
 
     auto e1 = ae.e1.expressionSemantic(sc);
@@ -166,7 +166,7 @@ Expression carraySemantic(ArrayExp ae, Scope* sc)
      * So, rewrite as an IndexExp if we can.
      */
     auto t1 = e1.type.toBasetype();
-    if (t1.isTypeDArray() || t1.isTypeSArray())
+    if (t1.isStaticOrDynamicArray())
     {
         e2 = e2.expressionSemantic(sc).arrayFuncConv(sc);
         // C doesn't do array bounds checking, so `true` turns it off
@@ -176,7 +176,7 @@ Expression carraySemantic(ArrayExp ae, Scope* sc)
     e1 = e1.arrayFuncConv(sc);   // e1 might still be a function call
     e2 = e2.expressionSemantic(sc);
     auto t2 = e2.type.toBasetype();
-    if (t2.isTypeDArray() || t2.isTypeSArray())
+    if (t2.isStaticOrDynamicArray())
     {
         return new IndexExp(ae.loc, e2, e1, true).expressionSemantic(sc); // swap operands
     }

@@ -3,6 +3,7 @@ description "The DMD compiler"
 authors "Walter Bright"
 copyright "Copyright © 1999-2018, The D Language Foundation"
 license "BSL-1.0"
+toolchainRequirements dub=">=1.29.0" # can use $DUB_EXE etc. in custom commands
 
 targetType "none"
 dependency ":frontend" version="*"
@@ -42,6 +43,7 @@ subPackage {
     "compiler/src/dmd/identifier.d" \
     "compiler/src/dmd/lexer.d" \
     "compiler/src/dmd/location.d" \
+    "compiler/src/dmd/sarif.d" \
     "compiler/src/dmd/tokens.d" \
     "compiler/src/dmd/utils.d" \
     "compiler/src/dmd/errorsink.d"
@@ -50,17 +52,9 @@ subPackage {
     "CallbackAPI" \
     "DMDLIB"
 
-  preGenerateCommands `
-    "$${DUB_EXE}" \
-    --arch=$${DUB_ARCH} \
-    --compiler=$${DC} \
-    --single "$${DUB_PACKAGE_DIR}config.d" \
-    -- "$${DUB_PACKAGE_DIR}generated/dub" \
-    "$${DUB_PACKAGE_DIR}VERSION" \
-    /etc
-   ` platform="posix"
-
-  preGenerateCommands `"%DUB_EXE%" --arch=%DUB_ARCH% --compiler="%DC%" --single "%DUB_PACKAGE_DIR%config.d" -- "%DUB_PACKAGE_DIR%generated/dub" "%DUB_PACKAGE_DIR%VERSION"` platform="windows"
+  # generate files `generated/dub/{VERSION,SYSCONFDIR.imp}` for string-imports
+  # by building & running the config.d tool
+  preGenerateCommands `"$DUB_EXE" "--compiler=$DC" --single "${DUB_PACKAGE_DIR}config.d" -- "${DUB_PACKAGE_DIR}generated/dub" "${DUB_PACKAGE_DIR}VERSION" /etc`
 
   stringImportPaths \
     "compiler/src/dmd/res" \
@@ -78,9 +72,9 @@ subPackage {
   sourceFiles \
     "compiler/src/dmd/astbase.d" \
     "compiler/src/dmd/parse.d" \
-    "compiler/src/dmd/transitivevisitor.d" \
-    "compiler/src/dmd/permissivevisitor.d" \
-    "compiler/src/dmd/strictvisitor.d"
+    "compiler/src/dmd/visitor/transitive.d" \
+    "compiler/src/dmd/visitor/permissive.d" \
+    "compiler/src/dmd/visitor/strict.d"
 
   versions "CallbackAPI"
 
@@ -115,12 +109,12 @@ subPackage {
     identifier,\
     lexer,\
     parse,\
-    permissivevisitor,\
-    strictvisitor,\
     tokens,\
-    transitivevisitor,\
     utf,\
-    utils\
+    utils,\
+    visitor/permissive,\
+    visitor/strict,\
+    visitor/transitive,\
   }.d"
   excludedSourceFiles "compiler/src/dmd/{\
     dmsc,\
@@ -130,16 +124,16 @@ subPackage {
     iasmdmd,\
     iasmgcc,\
     irstate,\
-    lib,\
-    libelf,\
-    libmach,\
-    libmscoff,\
+    lib/package,\
+    lib/elf,\
+    lib/mach,\
+    lib/mscoff,\
+    lib/scanelf,\
+    lib/scanmach,\
+    lib/scanmscoff,\
     link,\
     objc_glue,\
     s2ir,\
-    scanelf,\
-    scanmach,\
-    scanmscoff,\
     tocsym,\
     toctype,\
     tocvdebug,\

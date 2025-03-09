@@ -1,7 +1,7 @@
 /**
  * Invoke the linker as a separate process.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _link.d)
@@ -948,7 +948,7 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
  * Returns:
  *    error status, 0 for success
  */
-public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
+public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
     bool verbose, ErrorSink eSink, ref OutBuffer defines, out DArray!ubyte text)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
@@ -1064,18 +1064,21 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                     if (!vsopt.VSInstallDir)
                         vsopt.initialize();
 
-                    if (auto vcincludedir = vsopt.getVCIncludeDir()) {
+                    if (auto vcincludedir = vsopt.getVCIncludeDir())
                         includePaths.push(vcincludedir);
-                    } else {
+                    else
                         return STATUS_FAILED;
-                    }
-                    if (auto sdkincludedir = vsopt.getSDKIncludePath()) {
+
+                    if (auto sdkincludedir = vsopt.getSDKIncludePath())
+                    {
                         includePaths.push(FileName.combine(sdkincludedir, "ucrt"));
                         includePaths.push(FileName.combine(sdkincludedir, "shared"));
                         includePaths.push(FileName.combine(sdkincludedir, "um"));
                         includePaths.push(FileName.combine(sdkincludedir, "winrt"));
                         includePaths.push(FileName.combine(sdkincludedir, "cppwinrt"));
-                    } else {
+                    }
+                    else
+                    {
                         includePaths = Strings.init;
                         return STATUS_FAILED;
                     }
@@ -1193,13 +1196,15 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
 
         // pipe so we can read the output of the preprocssor
         int[2] pipefd;      // [0] is read, [1] is write
-        if (pipe(&pipefd[0]) == -1) {
+        if (pipe(&pipefd[0]) == -1)
+        {
             perror("pipe");     // failed to create pipe
             return STATUS_FAILED;
         }
 
         pid_t childpid = fork();
-        if (childpid == -1) {
+        if (childpid == -1)
+        {
             perror("fork failed");     // fork failed
             return STATUS_FAILED;
         }
@@ -1223,11 +1228,11 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
         OutBuffer buffer;
         ubyte[1024] tmp = void;
         ptrdiff_t nread;
-        while ((nread = read(pipefd[0], tmp.ptr, tmp.length)) > 0) {
+        while ((nread = read(pipefd[0], tmp.ptr, tmp.length)) > 0)
             buffer.write(tmp[0 .. nread]);
-        }
 
-        if (nread == -1) {
+        if (nread == -1)
+        {
             perror("read");
             return STATUS_FAILED;
         }
@@ -1569,7 +1574,7 @@ ld: Undefined symbols:
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
 `;
 
-    class ErrorSinkTest : ErrorSink
+    class ErrorSinkTest : ErrorSinkNull
     {
         public int errorCount = 0;
         string expectedFormat = "undefined reference to `%.*s`";
@@ -1577,27 +1582,19 @@ clang: error: linker command failed with exit code 1 (use -v to see invocation)
 
         extern(C++): override:
 
-        void error(const ref Loc loc, const(char)* format, ...)
+        void verror(Loc loc, const(char)* format, va_list ap)
         {
             assert(format[0 .. strlen(format)] == expectedFormat);
-            va_list ap;
-            va_start(ap, format);
             const expectedSymbol = expectedSymbols[errorCount++];
             assert(va_arg!int(ap) == expectedSymbol.length);
             const actualSymbol = va_arg!(char*)(ap)[0 .. expectedSymbol.length];
             assert(actualSymbol == expectedSymbol, "expected " ~ expectedSymbol ~ ", not " ~ actualSymbol);
         }
 
-        void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+        void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
         {
             assert(format.startsWith("perhaps") || format.startsWith("referenced from "));
         }
-
-        void warning(const ref Loc loc, const(char)* format, ...) {}
-        void warningSupplemental(const ref Loc loc, const(char)* format, ...) {}
-        void message(const ref Loc loc, const(char)* format, ...) {}
-        void deprecation(const ref Loc loc, const(char)* format, ...) {}
-        void deprecationSupplemental(const ref Loc loc, const(char)* format, ...) {}
     }
 
     void test(T...)(string linkerName, string output, T expectedSymbols)

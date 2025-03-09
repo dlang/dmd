@@ -1,7 +1,7 @@
 /**
  * This module defines some utility functions for DMD.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/utils.d, _utils.d)
@@ -124,7 +124,7 @@ bool ensurePathToNameExists(Loc loc, const(char)[] name)
  *   buf = Buffer to write the escaped path to
  *   fname = Path to escape
  */
-void escapePath(OutBuffer* buf, const(char)* fname)
+void escapePath(OutBuffer* buf, const(char)* fname) pure
 {
     while (1)
     {
@@ -143,78 +143,6 @@ void escapePath(OutBuffer* buf, const(char)* fname)
         }
         fname++;
     }
-}
-
-/**
- * Takes a path, and make it compatible with GNU Makefile format.
- *
- * GNU make uses a weird quoting scheme for white space.
- * A space or tab preceded by 2N+1 backslashes represents N backslashes followed by space;
- * a space or tab preceded by 2N backslashes represents N backslashes at the end of a file name;
- * and backslashes in other contexts should not be doubled.
- *
- * Params:
- *   buf = Buffer to write the escaped path to
- *   fname = Path to escape
- */
-void writeEscapedMakePath(ref OutBuffer buf, const(char)* fname)
-{
-    uint slashes;
-
-    while (*fname)
-    {
-        switch (*fname)
-        {
-        case '\\':
-            slashes++;
-            break;
-        case '$':
-            buf.writeByte('$');
-            goto default;
-        case ' ':
-        case '\t':
-            while (slashes--)
-                buf.writeByte('\\');
-            goto case;
-        case '#':
-            buf.writeByte('\\');
-            goto default;
-        case ':':
-            // ':' not escaped on Windows because it can
-            // create problems with absolute paths (e.g. C:\Project)
-            version (Windows) {}
-            else
-            {
-                buf.writeByte('\\');
-            }
-            goto default;
-        default:
-            slashes = 0;
-            break;
-        }
-
-        buf.writeByte(*fname);
-        fname++;
-    }
-}
-
-///
-unittest
-{
-    version (Windows)
-    {
-        enum input = `C:\My Project\file#4$.ext`;
-        enum expected = `C:\My\ Project\file\#4$$.ext`;
-    }
-    else
-    {
-        enum input = `/foo\bar/weird$.:name#\ with spaces.ext`;
-        enum expected = `/foo\bar/weird$$.\:name\#\\\ with\ spaces.ext`;
-    }
-
-    OutBuffer buf;
-    buf.writeEscapedMakePath(input);
-    assert(buf[] == expected);
 }
 
 /**
@@ -309,7 +237,7 @@ bool parseDigits(T)(ref T val, const(char)[] p, const T max = T.max)
  *   size = 1 for ubyte[], 2 for ushort[], 4 for uint[], 8 for ulong[]
  * Returns: copy of `data`, with bytes shuffled if compiled for `version(LittleEndian)`
  */
-ubyte[] arrayCastBigEndian(const ubyte[] data, size_t size)
+ubyte[] arrayCastBigEndian(const ubyte[] data, size_t size) @safe
 {
     ubyte[] impl(T)()
     {

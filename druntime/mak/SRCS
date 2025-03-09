@@ -60,7 +60,6 @@ SRCS=\
 	\
 	src\core\internal\backtrace\dwarf.d \
 	src\core\internal\backtrace\elf.d \
-	src\core\internal\backtrace\handler.d \
 	src\core\internal\backtrace\libunwind.d \
 	src\core\internal\backtrace\macho.d \
 	src\core\internal\backtrace\unwind.d \
@@ -74,6 +73,8 @@ SRCS=\
 	src\core\internal\elf\io.d \
 	\
 	src\core\internal\gc\bits.d \
+	src\core\internal\gc\blkcache.d \
+	src\core\internal\gc\blockmeta.d \
 	src\core\internal\gc\os.d \
 	src\core\internal\gc\pooltable.d \
 	src\core\internal\gc\proxy.d \
@@ -381,6 +382,7 @@ SRCS=\
 	src\core\sys\windows\aclui.d \
 	src\core\sys\windows\basetsd.d \
 	src\core\sys\windows\basetyps.d \
+	src\core\sys\windows\bcrypt.d \
 	src\core\sys\windows\cderr.d \
 	src\core\sys\windows\cguid.d \
 	src\core\sys\windows\com.d \
@@ -545,7 +547,8 @@ SRCS=\
 	src\core\sys\windows\wtsapi32.d \
 	src\core\sys\windows\wtypes.d \
 	\
-	src\core\thread\fiber.d \
+	src\core\thread\fiber\base.d \
+	src\core\thread\fiber\package.d \
 	src\core\thread\types.d \
 	src\core\thread\threadgroup.d \
 	src\core\thread\threadbase.d \

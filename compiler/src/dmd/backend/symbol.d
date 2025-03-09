@@ -5,16 +5,13 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.d
  */
 
 module dmd.backend.symbol;
-
-enum HYDRATE = false;
-enum DEHYDRATE = false;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -40,12 +37,12 @@ nothrow:
 
 import dmd.backend.x86.code_x86;
 
-void struct_free(struct_t *st) { }
+void struct_free(struct_t* st) { }
 
 @trusted @nogc
 func_t* func_calloc()
 {
-    func_t* f = cast(func_t *) calloc(1, func_t.sizeof);
+    func_t* f = cast(func_t*) calloc(1, func_t.sizeof);
     if (!f)
         err_nomem();
     return f;
@@ -92,7 +89,7 @@ debug
  * Terminate use of symbol table.
  */
 
-private __gshared Symbol *keep;
+private __gshared Symbol* keep;
 
 @trusted
 void symbol_term()
@@ -107,7 +104,7 @@ void symbol_term()
 static if (TERMCODE)
 {
 
-void symbol_keep(Symbol *s)
+void symbol_keep(Symbol* s)
 {
     symbol_debug(s);
     s.Sr = keep;       // use Sr so symbol_free() doesn't nest
@@ -243,11 +240,10 @@ const(char)* symbol_ident(return ref const Symbol s)
  */
 
 @trusted @nogc
-extern (C)
-Symbol * symbol_calloc(const(char)[] id)
+Symbol* symbol_calloc(const(char)[] id)
 {
     //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)id.length);
-    Symbol* s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - Symbol.Sident.length + id.length + 1 + 5);
+    Symbol* s = cast(Symbol*) mem_fmalloc(Symbol.sizeof - Symbol.Sident.length + id.length + 1 + 5);
     memset(s,0,Symbol.sizeof - s.Sident.length);
     memcpy(s.Sident.ptr,id.ptr,id.length);
     s.Sident.ptr[id.length] = 0;
@@ -268,11 +264,10 @@ Symbol * symbol_calloc(const(char)[] id)
  */
 
 @nogc
-extern (C)
-Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
+Symbol* symbol_name(const(char)[] name, SC sclass, type* t)
 {
     type_debug(t);
-    Symbol *s = symbol_calloc(name);
+    Symbol* s = symbol_calloc(name);
     s.Sclass = sclass;
     s.Stype = t;
     s.Stype.Tcount++;
@@ -287,13 +282,13 @@ Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
  */
 
 @trusted
-Funcsym *symbol_funcalias(Funcsym *sf)
+Funcsym* symbol_funcalias(Funcsym* sf)
 {
     symbol_debug(sf);
     assert(tyfunc(sf.Stype.Tty));
     if (sf.Sclass == SC.funcalias)
         sf = sf.Sfunc.Falias;
-    auto s = cast(Funcsym *)symbol_name(sf.Sident.ptr[0 .. strlen(sf.Sident.ptr)],SC.funcalias,sf.Stype);
+    auto s = cast(Funcsym*)symbol_name(sf.Sident.ptr[0 .. strlen(sf.Sident.ptr)],SC.funcalias,sf.Stype);
     s.Sfunc.Falias = sf;
 
     return s;
@@ -304,14 +299,14 @@ Funcsym *symbol_funcalias(Funcsym *sf)
  */
 
 @trusted @nogc
-Symbol * symbol_generate(SC sclass,type *t)
+Symbol* symbol_generate(SC sclass,type* t)
 {
     __gshared int tmpnum;
     char[4 + tmpnum.sizeof * 3 + 1] name = void;
 
     //printf("symbol_generate(_TMP%d)\n", tmpnum);
     const length = snprintf(name.ptr,name.length,"_TMP%d",tmpnum++);
-    Symbol *s = symbol_name(name.ptr[0 .. length],sclass,t);
+    Symbol* s = symbol_name(name.ptr[0 .. length],sclass,t);
     //symbol_print(s);
 
     s.Sflags |= SFLnodebug | SFLartifical;
@@ -335,7 +330,7 @@ Symbol* symbol_genauto(type* t)
  * Generate symbol into which we can copy the contents of expression e.
  */
 
-Symbol *symbol_genauto(elem *e)
+Symbol* symbol_genauto(elem* e)
 {
     return symbol_genauto(type_fake(e.Ety));
 }
@@ -344,7 +339,7 @@ Symbol *symbol_genauto(elem *e)
  * Generate symbol into which we can copy the contents of expression e.
  */
 
-Symbol *symbol_genauto(tym_t ty)
+Symbol* symbol_genauto(tym_t ty)
 {
     return symbol_genauto(type_fake(ty));
 }
@@ -358,11 +353,11 @@ void symbol_func(ref Symbol s)
 {
     //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, fregsaved);
     symbol_debug(&s);
-    s.Sfl = FLfunc;
+    s.Sfl = FL.func;
     // Interrupt functions modify all registers
     // BUG: do interrupt functions really save BP?
     // Note that fregsaved may not be set yet
-    s.Sregsaved = (s.Stype && tybasic(s.Stype.Tty) == TYifunc) ? cast(regm_t) mBP : fregsaved;
+    s.Sregsaved = s.Stype && tybasic(s.Stype.Tty) == TYifunc ? cast(regm_t) mBP : fregsaved;
     s.Sseg = UNKNOWN;          // don't know what segment it is in
     if (!s.Sfunc)
         s.Sfunc = func_calloc();
@@ -378,9 +373,9 @@ void symbol_func(ref Symbol s)
  */
 
 @trusted
-void symbol_struct_addField(ref Symbol s, const(char)* name, type *t, uint offset)
+void symbol_struct_addField(ref Symbol s, const(char)* name, type* t, uint offset)
 {
-    Symbol *s2 = symbol_name(name[0 .. strlen(name)], SC.member, t);
+    Symbol* s2 = symbol_name(name[0 .. strlen(name)], SC.member, t);
     s2.Smemoff = offset;
     list_append(&s.Sstruct.Sfldlst, s2);
 }
@@ -397,10 +392,10 @@ void symbol_struct_addField(ref Symbol s, const(char)* name, type *t, uint offse
  */
 
 @trusted
-void symbol_struct_addBitField(ref Symbol s, const(char)* name, type *t, uint offset, uint fieldWidth, uint bitOffset)
+void symbol_struct_addBitField(ref Symbol s, const(char)* name, type* t, uint offset, uint fieldWidth, uint bitOffset)
 {
     //printf("symbol_struct_addBitField() s: %s\n", s.Sident.ptr);
-    Symbol *s2 = symbol_name(name[0 .. strlen(name)], SC.field, t);
+    Symbol* s2 = symbol_name(name[0 .. strlen(name)], SC.field, t);
     s2.Smemoff = offset;
     s2.Swidth = cast(ubyte)fieldWidth;
     s2.Sbit = cast(ubyte)bitOffset;
@@ -428,7 +423,7 @@ void symbol_struct_hasBitFields(ref Symbol s)
  */
 
 @trusted
-void symbol_struct_addBaseClass(ref Symbol s, type *t, uint offset)
+void symbol_struct_addBaseClass(ref Symbol s, type* t, uint offset)
 {
     assert(t && t.Tty == TYstruct);
     auto bc = cast(baseclass_t*)mem_fmalloc(baseclass_t.sizeof);
@@ -476,32 +471,17 @@ void symbol_tree_check(const(Symbol)* s)
 
 static if (0)
 {
-Symbol * lookupsym(const(char)* p)
+Symbol* lookupsym(const(char)* p)
 {
     return scope_search(p,SCTglobal | SCTlocal);
 }
 }
 
-/*********************************
- * Delete symbol from symbol table, taking care to delete
- * all children of a symbol.
- * Make sure there are no more forward references (labels, tags).
- * Input:
- *      pointer to a symbol
- */
-
 @trusted
-void meminit_free(meminit_t *m)         /* helper for symbol_free()     */
-{
-    list_free(&m.MIelemlist,cast(list_free_fp)&el_free);
-    mem_free(m);
-}
-
-@trusted
-void symbol_free(Symbol *s)
+void symbol_free(Symbol* s)
 {
     while (s)                           /* if symbol exists             */
-    {   Symbol *sr;
+    {   Symbol* sr;
 
 debug
 {
@@ -510,13 +490,13 @@ debug
         symbol_debug(s);
         assert(/*s.Sclass != SC.unde &&*/ cast(int) s.Sclass < cast(int) SCMAX);
 }
-        {   type *t = s.Stype;
+        {   type* t = s.Stype;
 
             if (t)
                 type_debug(t);
             if (t && tyfunc(t.Tty) && s.Sfunc)
             {
-                func_t *f = s.Sfunc;
+                func_t* f = s.Sfunc;
 
                 debug assert(f);
                 blocklist_free(&f.Fstartblock);
@@ -565,8 +545,6 @@ debug
 
 
                 el_free(f.Fbaseinit);
-                if (f.Fthunk && !(f.Fflags & Finstance))
-                    mem_free(f.Fthunk);
                 list_free(&f.Fthunks,cast(list_free_fp)&symbol_free);
               }
                 list_free(&f.Fsymtree,cast(list_free_fp)&symbol_free);
@@ -658,7 +636,7 @@ private void symbol_undef(ref Symbol s)
  */
 
 @trusted
-SYMIDX symbol_add(Symbol *s)
+SYMIDX symbol_add(Symbol* s)
 {
     return symbol_add(*cstate.CSpsymtab, s);
 }
@@ -718,7 +696,7 @@ SYMIDX symbol_insert(ref symtab_t symtab, Symbol* s, SYMIDX n)
  */
 
 @trusted
-void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
+void freesymtab(Symbol** stab,SYMIDX n1,SYMIDX n2)
 {
     if (!stab)
         return;
@@ -751,9 +729,9 @@ void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
  */
 
 @trusted
-Symbol * symbol_copy(ref Symbol s)
-{   Symbol *scopy;
-    type *t;
+Symbol* symbol_copy(ref Symbol s)
+{   Symbol* scopy;
+    type* t;
 
     symbol_debug(&s);
     /*printf("symbol_copy(%s)\n",s.Sident.ptr);*/
@@ -777,698 +755,6 @@ Symbol * symbol_copy(ref Symbol s)
     return scopy;
 }
 
-/*******************************************
- * Hydrate a symbol tree.
- */
-
-static if (HYDRATE)
-{
-@trusted
-void symbol_tree_hydrate(Symbol **ps)
-{
-    while (isdehydrated(*ps))           /* if symbol is dehydrated      */
-    {
-        auto s = symbol_hydrate(ps);
-        symbol_debug(s);
-        if (s.Scover)
-            symbol_hydrate(&s.Scover);
-        symbol_tree_hydrate(&s.Sl);
-        ps = &s.Sr;
-    }
-
-}
-}
-
-/*******************************************
- * Dehydrate a symbol tree.
- */
-
-static if (DEHYDRATE)
-{
-@trusted
-void symbol_tree_dehydrate(Symbol **ps)
-{   Symbol *s;
-
-    while ((s = *ps) != null && !isdehydrated(s)) /* if symbol exists   */
-    {
-        symbol_debug(s);
-        symbol_dehydrate(ps);
-version (DEBUG_XSYMGEN)
-{
-        if (xsym_gen && ph_in_head(s))
-            return;
-}
-        symbol_dehydrate(&s.Scover);
-        symbol_tree_dehydrate(&s.Sl);
-        ps = &s.Sr;
-    }
-}
-}
-
-/*******************************************
- * Hydrate a symbol.
- */
-
-static if (HYDRATE)
-{
-@trusted
-Symbol *symbol_hydrate(Symbol **ps)
-{   Symbol *s;
-
-    s = *ps;
-    if (isdehydrated(s))                /* if symbol is dehydrated      */
-    {   type *t;
-        struct_t *st;
-
-        s = cast(Symbol *) ph_hydrate(cast(void**)ps);
-
-        debug debugy && printf("symbol_hydrate('%s')\n",s.Sident.ptr);
-
-        symbol_debug(s);
-        if (!isdehydrated(s.Stype))    // if this symbol is already dehydrated
-            return s;                   // no need to do it again
-        if (pstate.SThflag != FLAG_INPLACE && s.Sfl != FLreg)
-            s.Sxtrnnum = 0;            // not written to .OBJ file yet
-        type_hydrate(&s.Stype);
-        //printf("symbol_hydrate(%p, '%s', t = %p)\n",s,s.Sident.ptr,s.Stype);
-        t = s.Stype;
-        if (t)
-            type_debug(t);
-
-        if (t && tyfunc(t.Tty) && ph_hydrate(cast(void**)&s.Sfunc))
-        {
-            func_t *f = s.Sfunc;
-            SYMIDX si;
-
-            debug assert(f);
-
-            list_hydrate(&f.Fsymtree,cast(list_free_fp)&symbol_tree_hydrate);
-            blocklist_hydrate(&f.Fstartblock);
-
-            ph_hydrate(cast(void**)&f.Flocsym.tab);
-            for (si = 0; si < f.Flocsym.length; si++)
-                symbol_hydrate(&f.Flocsym[].ptr[si]);
-
-            srcpos_hydrate(&f.Fstartline);
-            srcpos_hydrate(&f.Fendline);
-
-            symbol_hydrate(&f.F__func__);
-
-            if (CPP)
-            {
-                symbol_hydrate(&f.Fparsescope);
-                Classsym_hydrate(&f.Fclass);
-                symbol_hydrate(&f.Foversym);
-                symbol_hydrate(&f.Fexplicitspec);
-                symbol_hydrate(&f.Fsurrogatesym);
-
-                list_hydrate(&f.Fclassfriends,cast(list_free_fp)&symbol_hydrate);
-                el_hydrate(&f.Fbaseinit);
-                token_hydrate(&f.Fbody);
-                symbol_hydrate(&f.Falias);
-                list_hydrate(&f.Fthunks,cast(list_free_fp)&symbol_hydrate);
-                if (f.Fflags & Finstance)
-                    symbol_hydrate(&f.Ftempl);
-                else
-                    thunk_hydrate(&f.Fthunk);
-                param_hydrate(&f.Farglist);
-                param_hydrate(&f.Fptal);
-                list_hydrate(&f.Ffwdrefinstances,cast(list_free_fp)&symbol_hydrate);
-                list_hydrate(&f.Fexcspec,cast(list_free_fp)&type_hydrate);
-            }
-        }
-        if (CPP)
-            symbol_hydrate(&s.Sscope);
-        switch (s.Sclass)
-        {
-            case SC.struct_:
-              if (CPP)
-              {
-                st = cast(struct_t *) ph_hydrate(cast(void**)&s.Sstruct);
-                assert(st);
-                symbol_tree_hydrate(&st.Sroot);
-                ph_hydrate(cast(void**)&st.Spvirtder);
-                list_hydrate(&st.Sfldlst,cast(list_free_fp)&symbol_hydrate);
-                list_hydrate(&st.Svirtual,cast(list_free_fp)&mptr_hydrate);
-                list_hydrate(&st.Sopoverload,cast(list_free_fp)&symbol_hydrate);
-                list_hydrate(&st.Scastoverload,cast(list_free_fp)&symbol_hydrate);
-                list_hydrate(&st.Sclassfriends,cast(list_free_fp)&symbol_hydrate);
-                list_hydrate(&st.Sfriendclass,cast(list_free_fp)&symbol_hydrate);
-                list_hydrate(&st.Sfriendfuncs,cast(list_free_fp)&symbol_hydrate);
-                assert(!st.Sinlinefuncs);
-
-                baseclass_hydrate(&st.Sbase);
-                baseclass_hydrate(&st.Svirtbase);
-                baseclass_hydrate(&st.Smptrbase);
-                baseclass_hydrate(&st.Sprimary);
-                baseclass_hydrate(&st.Svbptrbase);
-
-                ph_hydrate(cast(void**)&st.Svecctor);
-                ph_hydrate(cast(void**)&st.Sctor);
-                ph_hydrate(cast(void**)&st.Sdtor);
-                ph_hydrate(cast(void**)&st.Sprimdtor);
-                ph_hydrate(cast(void**)&st.Spriminv);
-                ph_hydrate(cast(void**)&st.Sscaldeldtor);
-                ph_hydrate(cast(void**)&st.Sinvariant);
-                ph_hydrate(cast(void**)&st.Svptr);
-                ph_hydrate(cast(void**)&st.Svtbl);
-                ph_hydrate(cast(void**)&st.Sopeq);
-                ph_hydrate(cast(void**)&st.Sopeq2);
-                ph_hydrate(cast(void**)&st.Scpct);
-                ph_hydrate(cast(void**)&st.Sveccpct);
-                ph_hydrate(cast(void**)&st.Salias);
-                ph_hydrate(cast(void**)&st.Stempsym);
-                param_hydrate(&st.Sarglist);
-                param_hydrate(&st.Spr_arglist);
-                ph_hydrate(cast(void**)&st.Svbptr);
-                ph_hydrate(cast(void**)&st.Svbptr_parent);
-                ph_hydrate(cast(void**)&st.Svbtbl);
-              }
-              else
-              {
-                ph_hydrate(cast(void**)&s.Sstruct);
-                symbol_tree_hydrate(&s.Sstruct.Sroot);
-                list_hydrate(&s.Sstruct.Sfldlst,cast(list_free_fp)&symbol_hydrate);
-              }
-                break;
-
-            case SC.enum_:
-                assert(s.Senum);
-                ph_hydrate(cast(void**)&s.Senum);
-                if (CPP)
-                {   ph_hydrate(cast(void**)&s.Senum.SEalias);
-                    list_hydrate(&s.Senum.SEenumlist,cast(list_free_fp)&symbol_hydrate);
-                }
-                break;
-
-            case SC.template_:
-            {   template_t *tm;
-
-                tm = cast(template_t *) ph_hydrate(cast(void**)&s.Stemplate);
-                list_hydrate(&tm.TMinstances,cast(list_free_fp)&symbol_hydrate);
-                list_hydrate(&tm.TMfriends,cast(list_free_fp)&symbol_hydrate);
-                param_hydrate(&tm.TMptpl);
-                param_hydrate(&tm.TMptal);
-                token_hydrate(&tm.TMbody);
-                list_hydrate(&tm.TMmemberfuncs,cast(list_free_fp)&tmf_hydrate);
-                list_hydrate(&tm.TMexplicit,cast(list_free_fp)&tme_hydrate);
-                list_hydrate(&tm.TMnestedexplicit,cast(list_free_fp)&tmne_hydrate);
-                list_hydrate(&tm.TMnestedfriends,cast(list_free_fp)&tmnf_hydrate);
-                ph_hydrate(cast(void**)&tm.TMnext);
-                symbol_hydrate(&tm.TMpartial);
-                symbol_hydrate(&tm.TMprimary);
-                break;
-            }
-
-            case SC.namespace:
-                symbol_tree_hydrate(&s.Snameroot);
-                list_hydrate(&s.Susing,cast(list_free_fp)&symbol_hydrate);
-                break;
-
-            case SC.memalias:
-            case SC.funcalias:
-            case SC.adl:
-                list_hydrate(&s.Spath,cast(list_free_fp)&symbol_hydrate);
-                goto case SC.alias_;
-
-            case SC.alias_:
-                ph_hydrate(cast(void**)&s.Smemalias);
-                break;
-
-            default:
-                if (s.Sflags & (SFLvalue | SFLdtorexp))
-                    el_hydrate(&s.Svalue);
-                break;
-        }
-        {   dt_t **pdt;
-            dt_t *dt;
-
-            for (pdt = &s.Sdt; isdehydrated(*pdt); pdt = &dt.DTnext)
-            {
-                dt = cast(dt_t *) ph_hydrate(cast(void**)pdt);
-                switch (dt.dt)
-                {   case DT_abytes:
-                    case DT_nbytes:
-                        ph_hydrate(cast(void**)&dt.DTpbytes);
-                        break;
-                    case DT_xoff:
-                        symbol_hydrate(&dt.DTsym);
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-        }
-        if (s.Scover)
-            symbol_hydrate(&s.Scover);
-    }
-    return s;
-}
-}
-
-/*******************************************
- * Dehydrate a symbol.
- */
-
-static if (DEHYDRATE)
-{
-@trusted
-void symbol_dehydrate(Symbol **ps)
-{
-    Symbol *s;
-
-    if ((s = *ps) != null && !isdehydrated(s)) /* if symbol exists      */
-    {   type *t;
-        struct_t *st;
-
-        debug
-        if (debugy)
-            printf("symbol_dehydrate('%s')\n",s.Sident.ptr);
-
-        ph_dehydrate(ps);
-version (DEBUG_XSYMGEN)
-{
-        if (xsym_gen && ph_in_head(s))
-            return;
-}
-        symbol_debug(s);
-        t = s.Stype;
-        if (isdehydrated(t))
-            return;
-        type_dehydrate(&s.Stype);
-
-        if (tyfunc(t.Tty) && !isdehydrated(s.Sfunc))
-        {
-            func_t *f = s.Sfunc;
-            SYMIDX si;
-
-            debug assert(f);
-            ph_dehydrate(&s.Sfunc);
-
-            list_dehydrate(&f.Fsymtree,cast(list_free_fp)&symbol_tree_dehydrate);
-            blocklist_dehydrate(&f.Fstartblock);
-            assert(!isdehydrated(&f.Flocsym.tab));
-
-version (DEBUG_XSYMGEN)
-{
-            if (!xsym_gen || !ph_in_head(f.Flocsym[].ptr))
-                for (si = 0; si < f.Flocsym.length; si++)
-                    symbol_dehydrate(&f.Flocsym.tab[si]);
-}
-else
-{
-            for (si = 0; si < f.Flocsym.length; si++)
-                symbol_dehydrate(&f.Flocsym.tab[si]);
-}
-            ph_dehydrate(&f.Flocsym.tab);
-
-            srcpos_dehydrate(&f.Fstartline);
-            srcpos_dehydrate(&f.Fendline);
-            symbol_dehydrate(&f.F__func__);
-            if (CPP)
-            {
-            symbol_dehydrate(&f.Fparsescope);
-            ph_dehydrate(&f.Fclass);
-            symbol_dehydrate(&f.Foversym);
-            symbol_dehydrate(&f.Fexplicitspec);
-            symbol_dehydrate(&f.Fsurrogatesym);
-
-            list_dehydrate(&f.Fclassfriends,FPNULL);
-            el_dehydrate(&f.Fbaseinit);
-version (DEBUG_XSYMGEN)
-{
-            if (xsym_gen && s.Sclass == SC.functempl)
-                ph_dehydrate(&f.Fbody);
-            else
-                token_dehydrate(&f.Fbody);
-}
-else
-            token_dehydrate(&f.Fbody);
-
-            symbol_dehydrate(&f.Falias);
-            list_dehydrate(&f.Fthunks,cast(list_free_fp)&symbol_dehydrate);
-            if (f.Fflags & Finstance)
-                symbol_dehydrate(&f.Ftempl);
-            else
-                thunk_dehydrate(&f.Fthunk);
-//#if !TX86 && DEBUG_XSYMGEN
-//            if (xsym_gen && s.Sclass == SCfunctempl)
-//                ph_dehydrate(&f.Farglist);
-//            else
-//#endif
-            param_dehydrate(&f.Farglist);
-            param_dehydrate(&f.Fptal);
-            list_dehydrate(&f.Ffwdrefinstances,cast(list_free_fp)&symbol_dehydrate);
-            list_dehydrate(&f.Fexcspec,cast(list_free_fp)&type_dehydrate);
-            }
-        }
-        if (CPP)
-            ph_dehydrate(&s.Sscope);
-        switch (s.Sclass)
-        {
-            case SC.struct_:
-              if (CPP)
-              {
-                st = s.Sstruct;
-                if (isdehydrated(st))
-                    break;
-                ph_dehydrate(&s.Sstruct);
-                assert(st);
-                symbol_tree_dehydrate(&st.Sroot);
-                ph_dehydrate(&st.Spvirtder);
-                list_dehydrate(&st.Sfldlst,cast(list_free_fp)&symbol_dehydrate);
-                list_dehydrate(&st.Svirtual,cast(list_free_fp)&mptr_dehydrate);
-                list_dehydrate(&st.Sopoverload,cast(list_free_fp)&symbol_dehydrate);
-                list_dehydrate(&st.Scastoverload,cast(list_free_fp)&symbol_dehydrate);
-                list_dehydrate(&st.Sclassfriends,cast(list_free_fp)&symbol_dehydrate);
-                list_dehydrate(&st.Sfriendclass,cast(list_free_fp)&ph_dehydrate);
-                list_dehydrate(&st.Sfriendfuncs,cast(list_free_fp)&ph_dehydrate);
-                assert(!st.Sinlinefuncs);
-
-                baseclass_dehydrate(&st.Sbase);
-                baseclass_dehydrate(&st.Svirtbase);
-                baseclass_dehydrate(&st.Smptrbase);
-                baseclass_dehydrate(&st.Sprimary);
-                baseclass_dehydrate(&st.Svbptrbase);
-
-                ph_dehydrate(&st.Svecctor);
-                ph_dehydrate(&st.Sctor);
-                ph_dehydrate(&st.Sdtor);
-                ph_dehydrate(&st.Sprimdtor);
-                ph_dehydrate(&st.Spriminv);
-                ph_dehydrate(&st.Sscaldeldtor);
-                ph_dehydrate(&st.Sinvariant);
-                ph_dehydrate(&st.Svptr);
-                ph_dehydrate(&st.Svtbl);
-                ph_dehydrate(&st.Sopeq);
-                ph_dehydrate(&st.Sopeq2);
-                ph_dehydrate(&st.Scpct);
-                ph_dehydrate(&st.Sveccpct);
-                ph_dehydrate(&st.Salias);
-                ph_dehydrate(&st.Stempsym);
-                param_dehydrate(&st.Sarglist);
-                param_dehydrate(&st.Spr_arglist);
-                ph_dehydrate(&st.Svbptr);
-                ph_dehydrate(&st.Svbptr_parent);
-                ph_dehydrate(&st.Svbtbl);
-              }
-              else
-              {
-                symbol_tree_dehydrate(&s.Sstruct.Sroot);
-                list_dehydrate(&s.Sstruct.Sfldlst,cast(list_free_fp)&symbol_dehydrate);
-                ph_dehydrate(&s.Sstruct);
-              }
-                break;
-
-            case SC.enum_:
-                assert(s.Senum);
-                if (!isdehydrated(s.Senum))
-                {
-                    if (CPP)
-                    {   ph_dehydrate(&s.Senum.SEalias);
-                        list_dehydrate(&s.Senumlist,cast(list_free_fp)&ph_dehydrate);
-                    }
-                    ph_dehydrate(&s.Senum);
-                }
-                break;
-
-            case SC.template_:
-            {   template_t *tm;
-
-                tm = s.Stemplate;
-                if (!isdehydrated(tm))
-                {
-                    ph_dehydrate(&s.Stemplate);
-                    list_dehydrate(&tm.TMinstances,cast(list_free_fp)&symbol_dehydrate);
-                    list_dehydrate(&tm.TMfriends,cast(list_free_fp)&symbol_dehydrate);
-                    list_dehydrate(&tm.TMnestedfriends,cast(list_free_fp)&tmnf_dehydrate);
-                    param_dehydrate(&tm.TMptpl);
-                    param_dehydrate(&tm.TMptal);
-                    token_dehydrate(&tm.TMbody);
-                    list_dehydrate(&tm.TMmemberfuncs,cast(list_free_fp)&tmf_dehydrate);
-                    list_dehydrate(&tm.TMexplicit,cast(list_free_fp)&tme_dehydrate);
-                    list_dehydrate(&tm.TMnestedexplicit,cast(list_free_fp)&tmne_dehydrate);
-                    ph_dehydrate(&tm.TMnext);
-                    symbol_dehydrate(&tm.TMpartial);
-                    symbol_dehydrate(&tm.TMprimary);
-                }
-                break;
-            }
-
-            case SC.namespace_:
-                symbol_tree_dehydrate(&s.Snameroot);
-                list_dehydrate(&s.Susing,cast(list_free_fp)&symbol_dehydrate);
-                break;
-
-            case SC.memalias:
-            case SC.funcalias:
-            case SC.adl:
-                list_dehydrate(&s.Spath,cast(list_free_fp)&symbol_dehydrate);
-            case SC.alias_:
-                ph_dehydrate(&s.Smemalias);
-                break;
-
-            default:
-                if (s.Sflags & (SFLvalue | SFLdtorexp))
-                    el_dehydrate(&s.Svalue);
-                break;
-        }
-        {   dt_t **pdt;
-            dt_t *dt;
-
-            for (pdt = &s.Sdt;
-                 (dt = *pdt) != null && !isdehydrated(dt);
-                 pdt = &dt.DTnext)
-            {
-                ph_dehydrate(pdt);
-                switch (dt.dt)
-                {   case DT_abytes:
-                    case DT_nbytes:
-                        ph_dehydrate(&dt.DTpbytes);
-                        break;
-                    case DT_xoff:
-                        symbol_dehydrate(&dt.DTsym);
-                        break;
-                }
-            }
-        }
-        if (s.Scover)
-            symbol_dehydrate(&s.Scover);
-    }
-}
-}
-
-/***************************
- * Dehydrate threaded list of symbols.
- */
-
-static if (DEHYDRATE)
-{
-@trusted
-void symbol_symdefs_dehydrate(Symbol **ps)
-{
-    Symbol *s;
-
-    for (; *ps; ps = &s.Snext)
-    {
-        s = *ps;
-        symbol_debug(s);
-        //printf("symbol_symdefs_dehydrate(%p, '%s')\n",s,s.Sident.ptr);
-        symbol_dehydrate(ps);
-    }
-}
-}
-
-
-static if (0)
-{
-
-/*************************************
- * Put symbol table s into parent symbol table.
- */
-
-void symboltable_hydrate(Symbol *s,Symbol **parent)
-{
-    while (s)
-    {   Symbol* sl,sr;
-        char *p;
-
-        symbol_debug(s);
-
-        sl = s.Sl;
-        sr = s.Sr;
-        p = s.Sident.ptr;
-
-        //printf("symboltable_hydrate('%s')\n",p);
-
-        /* Put symbol s into symbol table       */
-        {   Symbol **ps;
-            Symbol *rover;
-            int c = *p;
-
-            ps = parent;
-            while ((rover = *ps) != null)
-            {   int cmp;
-
-                if ((cmp = c - rover.Sident[0]) == 0)
-                {   cmp = strcmp(p,rover.Sident.ptr); /* compare identifier strings */
-                    if (cmp == 0)
-                    {
-                        if (CPP && tyfunc(s.Stype.Tty) && tyfunc(rover.Stype.Tty))
-                        {   Symbol **ps;
-                            Symbol *sn;
-
-                            do
-                            {
-                                // Tack onto end of overloaded function list
-                                for (ps = &rover; *ps; ps = &(*ps).Sfunc.Foversym)
-                                {   if (cpp_funccmp(s, *ps))
-                                        goto L2;
-                                }
-                                s.Sl = s.Sr = null;
-                                *ps = s;
-                            L2:
-                                sn = s.Sfunc.Foversym;
-                                s.Sfunc.Foversym = null;
-                                s = sn;
-                            } while (s);
-                        }
-                        else
-                        {
-                            if (!typematch(s.Stype,rover.Stype,0))
-                            {
-                                // cpp_predefine() will define this again
-                                if (type_struct(rover.Stype) &&
-                                    rover.Sstruct.Sflags & STRpredef)
-                                {   s.Sl = s.Sr = null;
-                                    symbol_keep(s);
-                                }
-                                else
-                                    synerr(EM_multiple_def,p);  // already defined
-                            }
-                        }
-                        goto L1;
-                    }
-                }
-                ps = (cmp < 0) ?        /* if we go down left side      */
-                    &rover.Sl :
-                    &rover.Sr;
-            }
-            {
-                s.Sl = s.Sr = null;
-                *ps = s;
-            }
-        }
-    L1:
-        symboltable_hydrate(sl,parent);
-        s = sr;
-    }
-}
-
-}
-
-
-/************************************
- * Hydrate/dehydrate an mptr_t.
- */
-
-static if (HYDRATE)
-{
-@trusted
-private void mptr_hydrate(mptr_t **pm)
-{   mptr_t *m;
-
-    m = cast(mptr_t *) ph_hydrate(cast(void**)pm);
-    symbol_hydrate(&m.MPf);
-    symbol_hydrate(&m.MPparent);
-}
-}
-
-static if (DEHYDRATE)
-{
-@trusted
-private void mptr_dehydrate(mptr_t **pm)
-{   mptr_t *m;
-
-    m = *pm;
-    if (m && !isdehydrated(m))
-    {
-        ph_dehydrate(pm);
-version (DEBUG_XSYMGEN)
-{
-        if (xsym_gen && ph_in_head(m.MPf))
-            ph_dehydrate(&m.MPf);
-        else
-            symbol_dehydrate(&m.MPf);
-}
-else
-        symbol_dehydrate(&m.MPf);
-
-        symbol_dehydrate(&m.MPparent);
-    }
-}
-}
-
-/************************************
- * Hydrate/dehydrate a baseclass_t.
- */
-
-static if (HYDRATE)
-{
-@trusted
-private void baseclass_hydrate(baseclass_t **pb)
-{   baseclass_t *b;
-
-    assert(pb);
-    while (isdehydrated(*pb))
-    {
-        b = cast(baseclass_t *) ph_hydrate(cast(void**)pb);
-
-        ph_hydrate(cast(void**)&b.BCbase);
-        ph_hydrate(cast(void**)&b.BCpbase);
-        list_hydrate(&b.BCpublics,cast(list_free_fp)&symbol_hydrate);
-        list_hydrate(&b.BCmptrlist,cast(list_free_fp)&mptr_hydrate);
-        symbol_hydrate(&b.BCvtbl);
-        Classsym_hydrate(&b.BCparent);
-
-        pb = &b.BCnext;
-    }
-}
-}
-
-/**********************************
- * Dehydrate a baseclass_t.
- */
-
-static if (DEHYDRATE)
-{
-@trusted
-private void baseclass_dehydrate(baseclass_t **pb)
-{   baseclass_t *b;
-
-    while ((b = *pb) != null && !isdehydrated(b))
-    {
-        ph_dehydrate(pb);
-
-version (DEBUG_XSYMGEN)
-{
-        if (xsym_gen && ph_in_head(b))
-            return;
-}
-
-        ph_dehydrate(&b.BCbase);
-        ph_dehydrate(&b.BCpbase);
-        list_dehydrate(&b.BCpublics,cast(list_free_fp)&symbol_dehydrate);
-        list_dehydrate(&b.BCmptrlist,cast(list_free_fp)&mptr_dehydrate);
-        symbol_dehydrate(&b.BCvtbl);
-        Classsym_dehydrate(&b.BCparent);
-
-        pb = &b.BCnext;
-    }
-}
-}
-
 /***************************
  * Look down baseclass list to find sbase.
  * Returns:
@@ -1476,7 +762,7 @@ version (DEBUG_XSYMGEN)
  *      pointer to baseclass
  */
 
-baseclass_t *baseclass_find(baseclass_t *bm,Classsym *sbase)
+baseclass_t* baseclass_find(baseclass_t* bm,Classsym* sbase)
 {
     symbol_debug(sbase);
     for (; bm; bm = bm.BCnext)
@@ -1486,7 +772,7 @@ baseclass_t *baseclass_find(baseclass_t *bm,Classsym *sbase)
 }
 
 @trusted
-baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase)
+baseclass_t* baseclass_find_nest(baseclass_t* bm,Classsym* sbase)
 {
     symbol_debug(sbase);
     for (; bm; bm = bm.BCnext)
@@ -1502,7 +788,7 @@ baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase)
  * Calculate number of baseclasses in list.
  */
 
-int baseclass_nitems(baseclass_t *b)
+int baseclass_nitems(baseclass_t* b)
 {   int i;
 
     for (i = 0; b; b = b.BCnext)
@@ -1521,9 +807,9 @@ void symbol_reset(ref Symbol s)
     s.Sflags &= ~(STRoutdef | SFLweak);
     s.Sdw_ref_idx = 0;
     if (s.Sclass == SC.global || s.Sclass == SC.comdat ||
-        s.Sfl == FLudata || s.Sclass == SC.static_)
+        s.Sfl == FL.udata || s.Sclass == SC.static_)
     {   s.Sclass = SC.extern_;
-        s.Sfl = FLextern;
+        s.Sfl = FL.extern_;
     }
 }
 

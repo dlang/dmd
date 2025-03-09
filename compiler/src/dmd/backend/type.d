@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/type.d, backend/_type.d)
@@ -53,7 +53,6 @@ enum
                             // TYmptr: the Stag is TYident type
     TFfuncret     = 0x20,   // C++,tyfunc(): overload based on function return value
     TFfuncparam   = 0x20,   // TYarray: top level function parameter
-    TFhydrated    = 0x20,   // type data already hydrated
     TFstatic      = 0x40,   // TYarray: static dimension
     TFvla         = 0x80,   // TYarray: variable length array
     TFemptyexc    = 0x100,  // tyfunc(): empty exception specification
@@ -92,7 +91,7 @@ struct TYPE
     }
 
     list_t Texcspec;        // tyfunc(): list of types of exception specification
-    Symbol *Ttypedef;       // if this type came from a typedef, this is
+    Symbol* Ttypedef;       // if this type came from a typedef, this is
                             // the typedef symbol
 }
 
@@ -103,7 +102,7 @@ struct typetemp_t
     /* Tsym should really be part of a derived class, as we only
         allocate room for it if TYtemplate
      */
-    Symbol *Tsym;               // primary class template symbol
+    Symbol* Tsym;               // primary class template symbol
 }
 
 void type_debug(const type* t)
@@ -112,10 +111,10 @@ void type_debug(const type* t)
 }
 
 // Return name mangling of type
-Mangle type_mangle(const type *t) { return t.Tmangle; }
+Mangle type_mangle(const type* t) { return t.Tmangle; }
 
 // Return true if function type has a variable number of arguments
-bool variadic(const type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
+bool variadic(const type* t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
 
 public import dmd.backend.var : chartype;
 

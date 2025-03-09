@@ -29,7 +29,7 @@ unittest
     {
         int errorCount;
 
-        override bool error(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
+        override bool error(const ref SourceLoc, const(char)*, va_list, const(char)*, const(char)*)
         {
             errorCount++;
             return true;
@@ -52,7 +52,7 @@ unittest
     {
         int supplementalCount;
 
-        override bool errorSupplemental(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
+        override bool errorSupplemental(const ref SourceLoc, const(char)*, va_list, const(char)*, const(char)*)
         {
             supplementalCount++;
             return true;
@@ -79,14 +79,14 @@ unittest
     {
         int warningCount;
 
-        override bool warning(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
+        override bool warning(const ref SourceLoc, const(char)*, va_list, const(char)*, const(char)*)
         {
             warningCount++;
             return true;
         }
     }
 
-    global.params.warnings = DiagnosticReporting.inform;
+    global.params.useWarnings = DiagnosticReporting.inform;
     scope reporter = new WarningCountingDiagnosticReporter;
 
     parseModule("test.d", q{

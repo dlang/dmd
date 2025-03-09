@@ -4,7 +4,7 @@
  * The AST is traversed, and every function call is considered for inlining using `inlinecost.d`.
  * The function call is then inlined if this cost is below a threshold.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/inline.d, _inline.d)
@@ -26,12 +26,15 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : include;
 import dmd.dtemplate;
 import dmd.expression;
+import dmd.expressionsem : semanticTypeInfo;
 import dmd.errors;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -40,11 +43,11 @@ import dmd.location;
 import dmd.mtype;
 import dmd.opover;
 import dmd.printast;
-import dmd.postordervisitor;
 import dmd.statement;
 import dmd.tokens;
 import dmd.typesem : pointerTo, sarrayOf;
 import dmd.visitor;
+import dmd.visitor.postorder;
 import dmd.inlinecost;
 
 /***********************************************************
@@ -105,7 +108,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
             return de.copy();
         }
     }
-    int cost = inlineCostExpression(e);
+    const cost = inlineCostExpression(e);
     if (cost >= COST_MAX)
     {
         error(e.loc, "cannot inline default argument `%s`", e.toChars());
@@ -311,7 +314,7 @@ public:
 
     override void visit(IfStatement s)
     {
-        assert(!s.prm);
+        assert(!s.param);
         auto econd = doInlineAs!Expression(s.condition, ids);
         assert(econd);
 
@@ -323,7 +326,7 @@ public:
 
         static if (asStatements)
         {
-            result = new IfStatement(s.loc, s.prm, econd, ifbody, elsebody, s.endloc);
+            result = new IfStatement(s.loc, s.param, econd, ifbody, elsebody, s.endloc);
         }
         else
         {
@@ -734,6 +737,7 @@ public:
                         goto LhasLowering;
                     }
 
+            ne.placement = doInlineAs!Expression(e.placement, ids);
             ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
             ne.argprefix = doInlineAs!Expression(e.argprefix, ids);
             ne.arguments = arrayExpressionDoInline(e.arguments);
@@ -820,7 +824,7 @@ public:
             visit(cast(BinExp)e);
 
             Type t1 = e.e1.type.toBasetype();
-            if (t1.ty == Tarray || t1.ty == Tsarray)
+            if (t1.isStaticOrDynamicArray())
             {
                 Type t = t1.nextOf().toBasetype();
                 while (t.toBasetype().nextOf())
@@ -999,7 +1003,7 @@ public:
     {
         static if (LOG)
         {
-            printf("ExpStatement.inlineScan(%s)\n", s.toChars());
+            printf("ExpStatement.inlineScan(%s)\n", toChars(s));
         }
         if (!s.exp)
             return;
@@ -1239,11 +1243,9 @@ public:
     void scanVar(Dsymbol s)
     {
         //printf("scanVar(%s %s)\n", s.kind(), s.toPrettyChars());
-        VarDeclaration vd = s.isVarDeclaration();
-        if (vd)
+        if (VarDeclaration vd = s.isVarDeclaration())
         {
-            TupleDeclaration td = vd.toAlias().isTupleDeclaration();
-            if (td)
+            if (TupleDeclaration td = vd.toAlias().isTupleDeclaration())
             {
                 td.foreachVar((s)
                 {
@@ -1555,10 +1557,10 @@ public:
     override void visit(StructLiteralExp e)
     {
         //printf("StructLiteralExp.inlineScan()\n");
-        if (e.stageflags & stageInlineScan)
+        if (e.stageflags & StructLiteralExp.StageFlags.inlineScan)
             return;
         const old = e.stageflags;
-        e.stageflags |= stageInlineScan;
+        e.stageflags |= StructLiteralExp.StageFlags.inlineScan;
         arrayInlineScan(e.elements);
         e.stageflags = old;
     }
@@ -1819,7 +1821,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
             /* for the isTypeSArray() case see https://github.com/dlang/dmd/pull/16145#issuecomment-1932776873
              */
             if (tfnext.ty != Tvoid &&
-                (!(fd.hasReturnExp & 1) ||
+                (!fd.hasReturnExp ||
                  hasDtor(tfnext) && (statementsToo || tfnext.isTypeSArray())) &&
                 !hdrscan)
             {
@@ -1865,7 +1867,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
 
     // cannot inline functions as statement if they have multiple
     //  return statements
-    if ((fd.hasReturnExp & 16) && statementsToo)
+    if (fd.hasMultipleReturnExp && statementsToo)
     {
         static if (CANINLINE_LOG)
         {
@@ -1924,7 +1926,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     return true;
 
 Lno:
-    if (fd.inlining == PINLINE.always && global.params.warnings == DiagnosticReporting.inform)
+    if (fd.inlining == PINLINE.always && global.params.useWarnings == DiagnosticReporting.inform)
         warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
 
     if (!hdrscan) // Don't modify inlineStatus for header content scan
@@ -2020,7 +2022,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         {
             auto tmp = Identifier.generateId("__retvar");
             vret = new VarDeclaration(fd.loc, fd.nrvo_var.type, tmp, new VoidInitializer(fd.loc));
-            assert(!tf.isref);
+            assert(!tf.isRef);
             vret.storage_class = STC.temp | STC.rvalue;
             vret._linkage = tf.linkage;
             vret.parent = parent;
@@ -2202,7 +2204,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
         static if (EXPANDINLINE_LOG)
             printf("\n[%s] %s expandInline sresult =\n%s\n",
-                callLoc.toChars(), fd.toPrettyChars(), sresult.toChars());
+                callLoc.toChars(), fd.toPrettyChars(), toChars(sresult));
     }
     else
     {
@@ -2216,7 +2218,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
         import dmd.expressionsem : toLvalue;
         // https://issues.dlang.org/show_bug.cgi?id=11322
-        if (tf.isref)
+        if (tf.isRef)
             e = e.toLvalue(null, "`ref` return");
 
         /* If the inlined function returns a copy of a struct,
@@ -2243,7 +2245,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             auto ei = new ExpInitializer(callLoc, e);
             auto tmp = Identifier.generateId("__inlineretval");
             auto vd = new VarDeclaration(callLoc, tf.next, tmp, ei);
-            vd.storage_class = STC.temp | (tf.isref ? STC.ref_ : STC.rvalue);
+            vd.storage_class = STC.temp | (tf.isRef ? STC.ref_ : STC.rvalue);
             vd._linkage = tf.linkage;
             vd.parent = parent;
 
@@ -2417,7 +2419,7 @@ private bool expNeedsDtor(Expression exp)
                 s = s.toAlias();
                 if (s != vd)
                     return Dsymbol_needsDtor(s);
-                else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.gshared | STC.manifest))
+                if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.gshared | STC.manifest))
                     return;
                 if (vd.needsScopeDtor())
                 {

@@ -14,6 +14,7 @@
 # -Xf=<filename>
 
 src_file=${OUTPUT_BASE}/src.d
+src_file_in_pkg=${OUTPUT_BASE}/pkg/src.d
 
 clean()
 {
@@ -26,6 +27,8 @@ prepare()
     mkdir -p ${OUTPUT_BASE}
     echo "module mymod;" > ${OUTPUT_BASE}/mymod.d
     echo "module src; import mymod;" > ${src_file}
+    mkdir ${OUTPUT_BASE}/pkg
+    echo "module pkg.src;" > ${src_file_in_pkg}
 }
 
 die()
@@ -59,7 +62,9 @@ $DMD -o- -od=${OUTPUT_BASE} -D -Df=${OUTPUT_BASE}/src.html -Hf=${OUTPUT_BASE}/sr
 checkFiles;
 
 prepare;
-$DMD -o- -od=${OUTPUT_BASE} -D -Dd=${OUTPUT_BASE} -Hd=${OUTPUT_BASE} -I=${OUTPUT_BASE} -L=-v -Xf=${OUTPUT_BASE}/json.json ${src_file}
+$DMD -o- -oq -od=${OUTPUT_BASE} -D -Dd=${OUTPUT_BASE} -Hd=${OUTPUT_BASE} -I=${OUTPUT_BASE} -L=-v -Xf=${OUTPUT_BASE}/json.json ${src_file} ${src_file_in_pkg}
 checkFiles;
+checkFile ${OUTPUT_BASE}/pkg.src.di
+checkFile ${OUTPUT_BASE}/pkg.src.html
 
 clean;

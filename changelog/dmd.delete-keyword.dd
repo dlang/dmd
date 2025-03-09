@@ -1,0 +1,15 @@
+Remove `delete` as a keyword
+
+After being superseded by `destroy()`, deprecated, and turned into an error, `delete` can now be used as an identifier:
+
+---
+enum Action
+{
+    add, delete
+}
+
+void delete(T)(T obj)
+{
+
+}
+---

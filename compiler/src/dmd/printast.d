@@ -1,7 +1,7 @@
 /**
  * Provides an AST printer for debugging.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/printast.d, _printast.d)
@@ -49,6 +49,12 @@ extern (C++) final class PrintASTVisitor : Visitor
         printIndent(indent);
         auto s = EXPtoString(e.op);
         printf("%.*s %s\n", cast(int)s.length, s.ptr, e.type ? e.type.toChars() : "");
+    }
+
+    override void visit(IdentifierExp e)
+    {
+        printIndent(indent);
+        printf("Identifier `%s` %s\n", e.ident.toChars(), e.type ? e.type.toChars() : "");
     }
 
     override void visit(IntegerExp e)

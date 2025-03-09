@@ -372,16 +372,16 @@ void test_types()
     StorageClass stc = STCnothrow|STCproperty|STCreturn|STCreturninferred|STCtrusted;
     TypeFunction *tfunction = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::d, stc);
 
-    assert(tfunction->isnothrow());
-    assert(!tfunction->isnogc());
-    assert(tfunction->isproperty());
-    assert(!tfunction->isref());
-    tfunction->isref(true);
-    assert(tfunction->isref());
-    assert(tfunction->isreturn());
+    assert(tfunction->isNothrow());
+    assert(!tfunction->isNogc());
+    assert(tfunction->isProperty());
+    assert(!tfunction->isRef());
+    tfunction->isRef(true);
+    assert(tfunction->isRef());
+    assert(tfunction->isReturn());
     assert(!tfunction->isScopeQual());
-    assert(tfunction->isreturninferred());
-    assert(!tfunction->isscopeinferred());
+    assert(tfunction->isReturnInferred());
+    assert(!tfunction->isScopeInferred());
     assert(tfunction->linkage == LINK::d);
     assert(tfunction->trust == TRUST::trusted);
     assert(tfunction->purity == PURE::impure);
@@ -391,16 +391,9 @@ void test_types()
 
 void test_location()
 {
-    Loc loc1 = Loc("test.d", 24, 42);
-    assert(loc1.equals(Loc("test.d", 24, 42)));
-    assert(strcmp(loc1.toChars(true, MessageStyle::digitalmars), "test.d(24,42)") == 0);
-    assert(strcmp(loc1.toChars(true, MessageStyle::gnu), "test.d:24:42") == 0);
-
-    assert(strcmp(loc1.toChars(), "test.d(24)") == 0);
-    Loc::set(true, MessageStyle::digitalmars);
-    assert(strcmp(loc1.toChars(), "test.d(24,42)") == 0);
-    Loc::set(false, MessageStyle::gnu);
-    assert(strcmp(loc1.toChars(), "test.d:24") == 0);
+    Loc loc = Loc::singleFilename("app.d");
+    assert(strcmp(loc.toChars(true, MessageStyle::digitalmars), "app.d") == 0);
+    assert(strcmp(loc.toChars(true, MessageStyle::gnu), "app.d") == 0);
 }
 
 /**********************************/
@@ -634,7 +627,7 @@ public:
     }
     void visit(TypeSArray *t) override
     {
-        if (t->dim->isConst() && t->dim->type->isintegral())
+        if (t->dim->isConst() && t->dim->type->isIntegral())
         {
             (void)t->dim->toUInteger();
             t->next->accept(this);
@@ -672,7 +665,7 @@ public:
         if (t->next != NULL)
         {
             t->next->accept(this);
-            (void)t->isref();
+            (void)t->isRef();
         }
         (void)t->ctype;
         switch (t->linkage)
@@ -792,7 +785,7 @@ public:
                 }
                 if (AttribDeclaration *attrib = sym->isAttribDeclaration())
                 {
-                    (void)attrib->include(NULL);
+                    dmd::include(attrib, NULL);
                     continue;
                 }
                 if (sym->isTemplateMixin() || sym->isNspace())
@@ -854,7 +847,7 @@ public:
                 }
                 if (AttribDeclaration *attrib = sym->isAttribDeclaration())
                 {
-                    (void)attrib->include(NULL);
+                    dmd::include(attrib, NULL);
                     continue;
                 }
                 if (sym->isTemplateMixin() || sym->isNspace())
@@ -958,7 +951,7 @@ public:
         s->getRelatedLabeled()->accept(this);
         s->condition->accept(this);
         Type *condtype = s->condition->type->toBasetype();
-        if (!condtype->isscalar())
+        if (!condtype->isScalar())
             assert(0);
         if (s->cases)
         {
@@ -976,7 +969,7 @@ public:
     void visit(CaseStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
-        if (s->exp->type->isscalar())
+        if (s->exp->type->isScalar())
             s->exp->accept(this);
         else
             (void)s->index;
@@ -1173,7 +1166,7 @@ public:
     void visit(Dsymbol *) override { assert(0); }
     void visit(Module *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->members)
         {
@@ -1199,11 +1192,11 @@ public:
             (void)d->stest;
             (void)d->needmoduleinfo;
         }
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(Import *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->isstatic)
             return;
@@ -1217,7 +1210,7 @@ public:
         }
         else
             d->mod->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(TupleDeclaration *d) override
     {
@@ -1234,7 +1227,8 @@ public:
     }
     void visit(AttribDeclaration *d) override
     {
-        Dsymbols *ds = d->include(NULL);
+        Dsymbols *ds = dmd::include(d, NULL);
+
         if (!ds)
             return;
         for (size_t i = 0; i < ds->length; i++)
@@ -1289,7 +1283,7 @@ public:
     }
     void visit(StructDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->type->ty == TY::Terror)
             return;
@@ -1298,7 +1292,7 @@ public:
             return;
         (void)d->sinit;
         StructLiteralExp *sle = StructLiteralExp::create(d->loc, d, NULL);
-        if (!d->fill(d->loc, *sle->elements, true))
+        if (!dmd::fill(d, d->loc, *sle->elements, true))
             assert(0);
         sle->type = d->type;
         sle->accept(this);
@@ -1310,11 +1304,11 @@ public:
             d->xcmp->accept(this);
         if (d->xhash)
             d->xhash->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(ClassDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->type->ty == TY::Terror)
             return;
@@ -1329,7 +1323,7 @@ public:
                 continue;
             if (!dmd::functionSemantic(fd))
                 return;
-            if (!d->isFuncHidden(fd) || fd->isFuture())
+            if (!dmd::isFuncHidden(d, fd) || fd->isFuture())
                 continue;
             for (size_t j = 1; j < d->vtbl.length; j++)
             {
@@ -1348,9 +1342,9 @@ public:
             }
         }
         (void)d->csym;
-        (void)d->vtblSymbol()->csym;
+        (void)dmd::vtblSymbol(d)->csym;
         (void)d->sinit;
-        NewExp *ne = NewExp::create(d->loc, NULL, d->type, NULL);
+        NewExp *ne = NewExp::create(d->loc, NULL, NULL, d->type, NULL);
         ne->type = d->type;
         Expression *e = dmd::ctfeInterpret(ne);
         assert(e->op == EXP::classReference);
@@ -1407,11 +1401,11 @@ public:
                 visitDeclaration(fd);
         }
         d->type->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(InterfaceDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->type->ty == TY::Terror)
             return;
@@ -1421,24 +1415,24 @@ public:
             (*d->members)[i]->accept(this);
         (void)d->csym;
         d->type->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(EnumDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
-        if (d->errors || d->type->ty == TY::Terror)
+        if (d->errors() || d->type->ty == TY::Terror)
             return;
         if (d->isAnonymous())
             return;
         TypeEnum *tc = d->type->isTypeEnum();
-        if (tc->sym->members && !d->type->isZeroInit())
+        if (tc->sym->members && !dmd::isZeroInit(d->type))
         {
             (void)d->sinit;
             tc->sym->defaultval->accept(this);
         }
         d->type->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visitDeclaration(Declaration *decl)
     {
@@ -1531,7 +1525,7 @@ public:
     }
     void visit(VarDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->type->ty == TY::Terror)
             return;
@@ -1552,7 +1546,7 @@ public:
         }
         if (!d->canTakeAddressOf())
         {
-            if (!d->type->isscalar())
+            if (!d->type->isScalar())
                 visitDeclaration(d);
         }
         else if (d->isDataseg() && !(d->storage_class & STCextern))
@@ -1585,18 +1579,18 @@ public:
             }
         }
         d->type->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(TypeInfoDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         visitDeclaration(d);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(FuncDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->isUnitTestDeclaration())
             return;
@@ -1619,7 +1613,7 @@ public:
                     return;
             }
         }
-        if (d->semanticRun < PASS::semantic3)
+        if (d->semanticRun() < PASS::semantic3)
         {
             dmd::functionSemantic3(d);
             Module::runDeferredSemantic3();
@@ -1629,8 +1623,8 @@ public:
         visitDeclaration(d);
         if (!d->fbody)
             return;
-        assert(d->semanticRun == PASS::semantic3done);
-        d->semanticRun = PASS::obj;
+        assert(d->semanticRun() == PASS::semantic3done);
+        d->semanticRun(PASS::obj);
         if (d->vthis)
             visitDeclaration(d->vthis);
         if (d->v_arguments)
@@ -1684,6 +1678,12 @@ void test_backend(FuncDeclaration *f, Type *t)
     f->fbody->accept(&v);
 }
 
+void test_import_paths(const char *path, const char *imppath)
+{
+  global.path.push(path);
+  global.params.imppath.shift(imppath);
+}
+
 /**********************************/
 
 int main(int argc, char **argv)
@@ -1730,7 +1730,7 @@ void argtypes_h(Type *t)
     //dmd::isHFVA(t);
 }
 
-void declaration_h(FuncDeclaration *fd, const Loc &loc, Expressions* args)
+void declaration_h(FuncDeclaration *fd, Loc loc, Expressions* args)
 {
     dmd::functionSemantic(fd);
     dmd::functionSemantic3(fd);
@@ -1744,7 +1744,7 @@ void doc_h(Module *m, const char *ptr, d_size_t length, const char *date,
     dmd::gendocfile(m, ptr, length, date, sink, buf);
 }
 
-void dsymbol_h(Dsymbol *d, Scope *sc, ScopeDsymbol *sds, const Loc &loc, Identifier *ident)
+void dsymbol_h(Dsymbol *d, Scope *sc, ScopeDsymbol *sds, Loc loc, Identifier *ident)
 {
     dmd::dsymbolSemantic(d, sc);
     dmd::semantic2(d, sc);
@@ -1755,7 +1755,7 @@ void dsymbol_h(Dsymbol *d, Scope *sc, ScopeDsymbol *sds, const Loc &loc, Identif
     dmd::importAll(d, sc);
 }
 
-void expression_h(Expression *e, Scope *sc, Type *t, const Loc &loc, Expressions *es)
+void expression_h(Expression *e, Scope *sc, Type *t, Loc loc, Expressions *es)
 {
     dmd::expressionSemantic(e, sc);
     dmd::defaultInit(t, loc);
@@ -1808,7 +1808,7 @@ void module_h(Module *m, Array<ClassDeclaration* >& acs, ScopeDsymbol *sds)
     dmd::findGetMembers(sds);
 }
 
-void mtype_h(Type *t1, Type *t2, const Loc &loc, Scope *sc, int *p)
+void mtype_h(Type *t1, Type *t2, Loc loc, Scope *sc, int *p)
 {
     dmd::typeSemantic(t1, loc, sc);
     dmd::merge(t1);
@@ -1862,7 +1862,7 @@ void template_h(TemplateParameter *tp, Scope *sc, TemplateParameters *tps,
     dmd::printTemplateStats(true, sink);
 }
 
-void typinf_h(Expression *e, const Loc &loc, Type *t, Scope *sc)
+void typinf_h(Expression *e, Loc loc, Type *t, Scope *sc)
 {
     dmd::genTypeInfo(e, loc, t, sc);
     ::getTypeInfoType(loc, t, sc);

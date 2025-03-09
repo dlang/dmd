@@ -10,7 +10,7 @@
  *         different lists to 'share' a common tail.
  *
  * Copyright:   Copyright (C) 1986-1990 by Northwest Software
- *              Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dlist.d, backend/dlist.d)
@@ -80,7 +80,7 @@ int list_data(list_t list) { return list.data; }
  * Prepend integer item to list.
  */
 
-void list_prependdata(list_t *plist,int d)
+void list_prependdata(list_t* plist,int d)
 {
     list_prepend(plist, null).data = d;
 }
@@ -136,7 +136,7 @@ void list_free(list_t* plist, list_free_fp freeptr)
     }
 }
 
-void list_free(list_t *l)
+void list_free(list_t* l)
 {
      list_free(l, FPNULL);
 }
@@ -174,9 +174,9 @@ void* list_subtract(list_t* plist, void* ptr)
 }
 
 /***************************
- * Remove first element in list pointed to by *plist.
+ * Remove first element in list pointed to by* plist.
  * Returns:
- *      First element, null if *plist is null
+ *      First element, null if* plist is null
  */
 
 void* list_pop(list_t* plist)
@@ -185,7 +185,7 @@ void* list_pop(list_t* plist)
 }
 
 /*************************
- * Append ptr to *plist.
+ * Append ptr to* plist.
  * Returns:
  *      pointer to list item created.
  *      null if out of memory
@@ -209,14 +209,14 @@ list_t list_append(list_t* plist, void* ptr)
 }
 
 /*************************
- * Prepend ptr to *plist.
+ * Prepend ptr to* plist.
  * Returns:
  *      pointer to list item created (which is also the start of the list).
  *      null if out of memory
  */
 
 @trusted
-list_t list_prepend(list_t *plist, void *ptr)
+list_t list_prepend(list_t* plist, void* ptr)
 {
     list_t list = list_alloc();
     if (list)

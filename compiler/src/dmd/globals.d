@@ -1,7 +1,7 @@
 /**
  * Stores command line options and contains other miscellaneous declarations.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
@@ -82,6 +82,13 @@ enum CLIIdentifierTable : ubyte
     All      = 4, /// The least restrictive set of all other tables
 }
 
+/// Specifies the mode for error printing
+enum ErrorPrintMode : ubyte
+{
+    simpleError,      // Print errors without squiggles and carets
+    printErrorContext, // Print errors with context (source line and caret)
+}
+
 extern(C++) struct Output
 {
     bool doOutput;      // Output is enabled
@@ -126,15 +133,15 @@ extern(C++) struct Verbose
     bool complex = true;    // identify complex/imaginary type usage
     bool vin;               // identify 'in' parameters
     bool showGaggedErrors;  // print gagged errors anyway
-    bool printErrorContext; // print errors with the error context (the error line in the source file)
     bool logo;              // print compiler logo
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
+    ErrorPrintMode errorPrintMode; // enum for error printing mode
     MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
     uint errorLimit = 20;
     uint errorSupplementLimit = 6;      // Limit the number of supplemental messages for each error (0 means unlimited)
 
-    uint errorSupplementCount()
+    uint errorSupplementCount() @safe
     {
         if (verbose)
             return uint.max;
@@ -142,6 +149,10 @@ extern(C++) struct Verbose
             return uint.max;
         return errorSupplementLimit;
     }
+}
+
+extern (C++) struct ImportPathInfo {
+    const(char)* path; // char*'s of where to look for import modules
 }
 
 /// Put command line switches in here
@@ -157,7 +168,7 @@ extern (C++) struct Param
     bool useInline = false;     // inline expand functions
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    DiagnosticReporting warnings = DiagnosticReporting.off;  // how compiler warnings are handled
+    DiagnosticReporting useWarnings = DiagnosticReporting.off;  // how compiler warnings are handled
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool ctfe_cov = false;  // generate coverage data for ctfe
@@ -188,6 +199,8 @@ extern (C++) struct Param
                                  // https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a
                                  // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
                                  // Implementation: https://github.com/dlang/dmd/pull/9817
+    FeatureState safer;          // safer by default (more @safe checks in unattributed code)
+                                 // https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md
     FeatureState noSharedAccess; // read/write access to shared memory objects
     bool previewIn;              // `in` means `[ref] scope const`, accepts rvalues
     bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
@@ -214,7 +227,7 @@ extern (C++) struct Param
 
     const(char)[] argv0;                // program name
     Array!(const(char)*) modFileAliasStrings; // array of char*'s of -I module filename alias strings
-    Array!(const(char)*) imppath;       // array of char*'s of where to look for import modules
+    Array!(ImportPathInfo) imppath;       // array of import path information of where to look for import modules
     Array!(const(char)*) fileImppath;   // array of char*'s of where to look for file import modules
     const(char)[] objdir;                // .obj/.lib file output directory
     const(char)[] objname;               // .obj file output name
@@ -229,8 +242,7 @@ extern (C++) struct Param
     Output mixinOut;                    // write expanded mixins for debugging
     Output moduleDeps;                  // Generate `.deps` module dependencies
 
-    uint debuglevel;                    // debug level
-    uint versionlevel;                  // version level
+    bool debugEnabled;                  // Global -debug flag (no -debug=XXX) is active
 
     bool run; // run resulting executable
     Strings runargs; // arguments for executable
@@ -248,8 +260,15 @@ extern (C++) struct Param
     const(char)[] exefile;
     const(char)[] mapfile;
 
+    bool fullyQualifiedObjectFiles; // prepend module names to object files to prevent name conflicts with -od
+
+    // Time tracing
+    bool timeTrace = false; /// Whether profiling of compile time is enabled
+    uint timeTraceGranularityUs = 500; /// In microseconds, minimum event size to report
+    const(char)* timeTraceFile; /// File path of output file
+
     ///
-    bool parsingUnittestsRequired()
+    bool parsingUnittestsRequired() @safe
     {
         return useUnitTests || ddoc.doOutput || dihdr.doOutput;
     }
@@ -272,10 +291,11 @@ extern (C++) struct Global
 {
     const(char)[] inifilename; /// filename of configuration file as given by `-conf=`, or default value
 
-    string copyright = "Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved";
+    string copyright = "Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
-    Array!(const(char)*) path;         /// Array of char*'s which form the import lookup path
+    Array!(ImportPathInfo) path;       /// Array of path informations which form the import lookup path
+    Array!(const(char)*) importPaths;  /// Array of char*'s which form the import lookup path without metadata
     Array!(const(char)*) filePath;     /// Array of char*'s which form the file import lookup path
 
     private enum string _version = import("VERSION");
@@ -306,7 +326,7 @@ extern (C++) struct Global
     ErrorSink errorSink;       /// where the error messages go
     ErrorSink errorSinkNull;   /// where the error messages are ignored
 
-    extern (C++) DArray!ubyte function(FileName, ref const Loc, ref OutBuffer) preprocess;
+    extern (C++) DArray!ubyte function(FileName, Loc, ref OutBuffer) preprocess;
 
   nothrow:
 
@@ -376,7 +396,16 @@ extern (C++) struct Global
         {
             compileEnv.vendor = "GNU D";
         }
-        compileEnv.versionNumber = parseVersionNumber(_version);
+        else version (IN_LLVM)
+        {
+            compileEnv.vendor = "LDC";
+
+            import dmd.console : detectTerminal;
+            params.v.color = detectTerminal();
+        }
+
+        params.v.errorPrintMode = ErrorPrintMode.printErrorContext; // Enable error context globally by default
+        compileEnv.versionNumber = parseVersionNumber(versionString());
 
         /* Initialize date, time, and timestamp
          */
@@ -450,6 +479,17 @@ extern (C++) struct Global
                 break;
         }
         return major * 1000 + minor;
+    }
+
+    /**
+     * Indicate to stateful error sinks that no more errors can be produced.
+     * This is to support error sinks that collect information to produce a
+     * single (say) report.
+     */
+    extern(C++) void plugErrorSinks()
+    {
+        global.errorSink.plugSink();
+        global.errorSinkNull.plugSink();
     }
 
     /**

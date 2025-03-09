@@ -2,7 +2,7 @@
  * Put initializers and objects created from CTFE into a `dt_t` data structure
  * so the backend puts them into the data segment.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/todt.d, _todt.d)
@@ -306,11 +306,8 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
     void visitInteger(IntegerExp e)
     {
         //printf("IntegerExp.toDt() %d\n", e.op);
-        const sz = cast(uint)e.type.size();
-        if (auto value = e.getInteger())
-            dtb.nbytes(sz, cast(char*)&value);
-        else
-            dtb.nzeros(sz);
+        auto value = e.getInteger();
+        dtb.nbytes((cast(ubyte*) &value)[0 .. cast(size_t) e.type.size()]);
     }
 
     void visitReal(RealExp e)
@@ -322,7 +319,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             case Timaginary32:
             {
                 auto fvalue = cast(float)e.value;
-                dtb.nbytes(4, cast(char*)&fvalue);
+                dtb.nbytes((cast(ubyte*)&fvalue)[0 .. 4]);
                 break;
             }
 
@@ -330,7 +327,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             case Timaginary64:
             {
                 auto dvalue = cast(double)e.value;
-                dtb.nbytes(8, cast(char*)&dvalue);
+                dtb.nbytes((cast(ubyte*)&dvalue)[0 .. 8]);
                 break;
             }
 
@@ -338,7 +335,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             case Timaginary80:
             {
                 auto evalue = e.value;
-                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nbytes((cast(ubyte*)&evalue)[0 .. target.realsize - target.realpad]);
                 dtb.nzeros(target.realpad);
                 break;
             }
@@ -357,28 +354,28 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             case Tcomplex32:
             {
                 auto fvalue = cast(float)creall(e.value);
-                dtb.nbytes(4, cast(char*)&fvalue);
+                dtb.nbytes((cast(ubyte*)&fvalue)[0 .. 4]);
                 fvalue = cast(float)cimagl(e.value);
-                dtb.nbytes(4, cast(char*)&fvalue);
+                dtb.nbytes((cast(ubyte*)&fvalue)[0 .. 4]);
                 break;
             }
 
             case Tcomplex64:
             {
                 auto dvalue = cast(double)creall(e.value);
-                dtb.nbytes(8, cast(char*)&dvalue);
+                dtb.nbytes((cast(ubyte*)&dvalue)[0 .. 8]);
                 dvalue = cast(double)cimagl(e.value);
-                dtb.nbytes(8, cast(char*)&dvalue);
+                dtb.nbytes((cast(ubyte*)&dvalue)[0 .. 8]);
                 break;
             }
 
             case Tcomplex80:
             {
                 auto evalue = creall(e.value);
-                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nbytes((cast(ubyte*)&evalue)[0 .. target.realsize - target.realpad]);
                 dtb.nzeros(target.realpad);
                 evalue = cimagl(e.value);
-                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nbytes((cast(ubyte*)&evalue)[0 .. target.realsize - target.realpad]);
                 dtb.nzeros(target.realpad);
                 break;
             }
@@ -430,7 +427,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                 {
                     import core.bitop : bsr;
                     const pow2 = cast(ubyte) bsr(e.sz);
-                    dtb.abytes(0, n * e.sz, p, cast(uint) e.sz, pow2);
+                    dtb.abytes(0, p[0 .. n * e.sz], cast(uint) e.sz, pow2);
                 }
                 break;
 
@@ -438,7 +435,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             {
                 auto tsa = t.isTypeSArray();
 
-                dtb.nbytes(n * e.sz, p);
+                dtb.nbytes((cast(ubyte*) p)[0 .. n * e.sz]);
                 if (tsa.dim)
                 {
                     dinteger_t dim = tsa.dim.toInteger();
@@ -480,14 +477,12 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                 goto case Tpointer;
 
             case Tpointer:
-            {
                 if (auto d = dtbarray.finish())
                     dtb.dtoff(d, 0);
                 else
                     dtb.size(0);
 
                 break;
-            }
 
             default:
                 assert(0);
@@ -573,7 +568,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             e.fd.tok = TOK.function_;
             e.fd.vthis = null;
         }
-        Symbol *s = toSymbol(e.fd);
+        Symbol* s = toSymbol(e.fd);
         toObjFile(e.fd, false);
         if (e.fd.tok == TOK.delegate_)
             dtb.size(0);
@@ -615,7 +610,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         if (Type t = isType(e.obj))
         {
             TypeInfo_toObjFile(e, e.loc, t);
-            Symbol *s = toSymbol(t.vtinfo);
+            Symbol* s = toSymbol(t.vtinfo);
             dtb.xoff(s, 0);
             return;
         }
@@ -691,7 +686,7 @@ void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
         dtb.size(0);             // monitor
 
     // Create symbol for C++ type info
-    Symbol *s = toSymbolCppTypeInfo(cd);
+    Symbol* s = toSymbolCppTypeInfo(cd);
 
     // Put in address of cd's C++ type info
     dtb.xoff(s, 0);
@@ -860,7 +855,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                 offset = bitByteOffset;
             }
 
-            dtb.nbytes(bitFieldSize, cast(char*)&bitFieldValue);
+            dtb.nbytes((cast(ubyte*) &bitFieldValue)[0 .. bitFieldSize]);
             offset += bitFieldSize;
             bitOffset = 0;
             bitFieldValue = 0;
@@ -1085,7 +1080,7 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCt
         Type tnext = tsa.next;
         Type tbn = tnext.toBasetype();
         Type ten = e ? e.type : null;
-        if (ten && (ten.ty == Tsarray || ten.ty == Tarray))
+        if (ten && ten.isStaticOrDynamicArray())
             ten = ten.nextOf();
         while (tbn.ty == Tsarray && (!e || !tbn.equivalent(ten)))
         {
@@ -1285,7 +1280,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
 
         // Put out name[] immediately following TypeInfo_Enum
-        dtb.nbytes(cast(uint)(namelen + 1), name);
+        dtb.nbytes(name[0 .. namelen + 1]);
     }
 
     override void visit(TypeInfoPointerDeclaration d)
@@ -1353,7 +1348,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoAssociativeArrayDeclaration d)
     {
         //printf("TypeInfoAssociativeArrayDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfoassociativearray, 4 * target.ptrsize);
+        verifyStructSize(Type.typeinfoassociativearray, 5 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
         if (Type.typeinfoassociativearray.hasMonitor())
@@ -1366,6 +1361,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         TypeInfo_toObjFile(null, d.loc, tc.index);
         dtb.xoff(toSymbol(tc.index.vtinfo), 0);  // TypeInfo for array of type
+
+        TypeInfo_toObjFile(null, d.loc, d.entry);
+        dtb.xoff(toSymbol(d.entry.vtinfo), 0);  // TypeInfo for key,value-pair
     }
 
     override void visit(TypeInfoFunctionDeclaration d)
@@ -1389,7 +1387,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(d.csym, Type.typeinfofunction.structsize);
 
         // Put out name[] immediately following TypeInfo_Function
-        dtb.nbytes(cast(uint)(namelen + 1), name);
+        dtb.nbytes(name[0 .. namelen + 1]);
     }
 
     override void visit(TypeInfoDelegateDeclaration d)
@@ -1413,13 +1411,13 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(d.csym, Type.typeinfodelegate.structsize);
 
         // Put out name[] immediately following TypeInfo_Delegate
-        dtb.nbytes(cast(uint)(namelen + 1), name);
+        dtb.nbytes(name[0 .. namelen + 1]);
     }
 
     override void visit(TypeInfoStructDeclaration d)
     {
         //printf("TypeInfoStructDeclaration.toDt() '%s'\n", d.toChars());
-        if (target.isX86_64)
+        if (target.isX86_64 || target.isAArch64)
             verifyStructSize(Type.typeinfostruct, 17 * target.ptrsize);
         else
             verifyStructSize(Type.typeinfostruct, 15 * target.ptrsize);
@@ -1551,7 +1549,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         // uint m_align;
         dtb.size(tc.alignsize());
 
-        if (target.isX86_64)
+        if (target.isX86_64 || target.isAArch64)
         {
             foreach (i; 0 .. 2)
             {
@@ -1577,7 +1575,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);
 
         // Put out mangledName[] immediately following TypeInfo_Struct
-        dtb.nbytes(cast(uint)(mangledNameLen + 1), mangledName);
+        dtb.nbytes(mangledName[0 .. mangledNameLen + 1]);
     }
 
     override void visit(TypeInfoClassDeclaration d)

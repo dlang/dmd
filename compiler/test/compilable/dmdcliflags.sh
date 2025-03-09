@@ -159,4 +159,4 @@ echo "$output" | grep "Only a number between 0 and 100 can be passed to \`-cov=<
 
 output="$(! $DMD -verrors=foo 2>&1)"
 echo "$output" | grep "Error: switch \`-verrors=foo\` is invalid"
-echo "$output" | grep "Only number, \`spec\`, or \`context\` are allowed for \`-verrors\`"
+echo "$output" | grep "Only a number, \`spec\`, \`simple\`, or \`context\` are allowed for \`-verrors\`"

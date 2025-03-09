@@ -6,48 +6,48 @@
  * Copyright: Copyright Digital Mars 2015 - 2018.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Yazan Dabain, Martin Kinkelin
- * Source: $(DRUNTIMESRC core/elf/io.d)
+ * Source: $(DRUNTIMESRC core/internal/elf/io.d)
  */
 
 module core.internal.elf.io;
 
 version (Posix):
 
-import core.memory : pageSize;
 import core.lifetime : move;
-import core.stdc.stdlib : malloc, free;
-import core.sys.posix.fcntl;
-import core.sys.posix.sys.mman;
-import core.sys.posix.unistd;
+import core.memory : pageSize;
+import core.stdc.stdlib : free, malloc;
+import core.sys.posix.fcntl : O_RDONLY, open;
+import core.sys.posix.sys.mman : MAP_FAILED, MAP_PRIVATE, mmap, munmap, PROT_READ;
+import core.sys.posix.unistd : close, lseek, readlink;
 
 version (linux)
 {
-    import core.sys.linux.link;
+    import core.sys.linux.link : ElfW;
     version = LinuxOrBSD;
 }
 else version (FreeBSD)
 {
-    import core.sys.freebsd.sys.link_elf;
+    import core.sys.freebsd.sys.link_elf : ElfW;
     version = LinuxOrBSD;
 }
 else version (DragonFlyBSD)
 {
-    import core.sys.dragonflybsd.sys.link_elf;
+    import core.sys.dragonflybsd.sys.link_elf : ElfW;
     version = LinuxOrBSD;
 }
 else version (NetBSD)
 {
-    import core.sys.netbsd.sys.link_elf;
+    import core.sys.netbsd.sys.link_elf : ElfW;
     version = LinuxOrBSD;
 }
 else version (OpenBSD)
 {
-    import core.sys.openbsd.sys.link_elf;
+    import core.sys.openbsd.sys.link_elf : ElfW;
     version = LinuxOrBSD;
 }
 else version (Solaris)
 {
-    import core.sys.solaris.link;
+    import core.sys.solaris.link : ElfW;
     version = LinuxOrBSD;
 }
 
@@ -374,9 +374,6 @@ private struct MMapRegion
 
 @nogc nothrow:
 
-version (OpenBSD)
-private extern(C) const(char)* getprogname();
-
 /// Returns the path to the process' executable as newly allocated C string
 /// (free() when done), or null on error.
 version (LinuxOrBSD)
@@ -403,23 +400,24 @@ char* thisExePath()
     {
         // there's apparently no proper way :/
         import core.stdc.string : strdup;
+        import core.sys.openbsd.stdlib : getprogname;
         return strdup(getprogname());
     }
     else
     {
         version (DragonFlyBSD)
         {
-            import core.sys.dragonflybsd.sys.sysctl : sysctl, CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME;
+            import core.sys.dragonflybsd.sys.sysctl : CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, sysctl;
             int[4] mib = [CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1];
         }
         else version (FreeBSD)
         {
-            import core.sys.freebsd.sys.sysctl : sysctl, CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME;
+            import core.sys.freebsd.sys.sysctl : CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, sysctl;
             int[4] mib = [CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1];
         }
         else version (NetBSD)
         {
-            import core.sys.netbsd.sys.sysctl : sysctl, CTL_KERN, KERN_PROC_ARGS, KERN_PROC_PATHNAME;
+            import core.sys.netbsd.sys.sysctl : CTL_KERN, KERN_PROC_ARGS, KERN_PROC_PATHNAME, sysctl;
             int[4] mib = [CTL_KERN, KERN_PROC_ARGS, -1, KERN_PROC_PATHNAME];
         }
         else

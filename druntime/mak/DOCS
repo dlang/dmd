@@ -65,7 +65,6 @@ DOCS=\
 	\
 	$(DOCDIR)\core_internal_backtrace_dwarf.html \
 	$(DOCDIR)\core_internal_backtrace_elf.html \
-	$(DOCDIR)\core_internal_backtrace_handler.html \
 	$(DOCDIR)\core_internal_backtrace_libunwind.html \
 	$(DOCDIR)\core_internal_backtrace_macho.html \
 	$(DOCDIR)\core_internal_backtrace_unwind.html \
@@ -344,6 +343,7 @@ DOCS=\
 	\
 	$(DOCDIR)\core_sys_windows_aclapi.html \
 	$(DOCDIR)\core_sys_windows_basetsd.html \
+	$(DOCDIR)\core_sys_windows_bcrypt.html \
 	$(DOCDIR)\core_sys_windows_cderr.html \
 	$(DOCDIR)\core_sys_windows_com.html \
 	$(DOCDIR)\core_sys_windows_core.html \
@@ -513,10 +513,12 @@ DOCS=\
 	$(DOCDIR)\core_sys_windows_stdc_time.html \
 	\
 	$(DOCDIR)\core_thread_context.html \
+	$(DOCDIR)\core_thread_fiber_base.html \
+	$(DOCDIR)\core_thread_fiber_package.html \
+	$(DOCDIR)\core_thread_fiber.html \
 	$(DOCDIR)\core_thread_package.html \
 	$(DOCDIR)\core_thread_threadgroup.html \
 	$(DOCDIR)\core_thread_types.html \
-	$(DOCDIR)\core_thread_fiber.html \
 	$(DOCDIR)\core_thread_osthread.html \
 	$(DOCDIR)\core_thread_threadbase.html \
 	$(DOCDIR)\core_thread.html \
@@ -526,6 +528,8 @@ DOCS=\
 	$(DOCDIR)\etc_linux_memoryerror.html \
 	\
 	$(DOCDIR)\core_internal_gc_bits.html \
+	$(DOCDIR)\core_internal_gc_blkcache.html \
+	$(DOCDIR)\core_internal_gc_blockmeta.html \
 	$(DOCDIR)\core_internal_gc_os.html \
 	$(DOCDIR)\core_internal_gc_pooltable.html \
 	$(DOCDIR)\core_internal_gc_proxy.html \

@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gdag.d, backend/gdag.d)
@@ -47,7 +47,7 @@ bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.E1.Eoper == OPvar; }
  */
 
 @trusted
-private bool cse_float(elem *e)
+private bool cse_float(elem* e)
 {
     // Don't CSE floating stuff if generating
     // inline 8087 code, the code generator
@@ -70,13 +70,13 @@ private bool cse_float(elem *e)
  *              (this is generally target-dependent)
  */
 @trusted
-void builddags()
+void builddags(ref GlobalOptimizer go)
 {
     vec_t aevec;
 
     debug if (debugc) printf("builddags()\n");
-    assert(dfo);
-    flowae();                       /* compute available expressions */
+    assert(bo.dfo);
+    flowae(go);                       /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
         return;
     aetype = Aetype.cse;
@@ -109,13 +109,13 @@ void builddags()
                     printf("dfo[%d] = %p\n",i,b);
                     printf("b.Bin   "); vec_println(b.Bin,go.exptop);
                     printf("b.Bout  "); vec_println(b.Bout,go.exptop);
-                    aewalk(&(b.Belem),b.Bin);
+                    aewalk(go, &(b.Belem),b.Bin);
                     printf("b.Bin   "); vec_println(b.Bin,go.exptop);
                     printf("b.Bout  "); vec_println(b.Bout,go.exptop);
                 }
                 else
                 {
-                    aewalk(&(b.Belem),b.Bin);
+                    aewalk(go, &(b.Belem),b.Bin);
                 }
                 /* Bin and Bout would be equal at this point  */
                 /* except that we deleted some elems from     */
@@ -130,31 +130,31 @@ void builddags()
         /* the code generator can only track register contents          */
         /* properly across extended basic blocks.                       */
         aevec = vec_calloc(go.exptop);
-        foreach (i, b; dfo[])
+        foreach (i, b; bo.dfo[])
         {
             /* if not first block and (there are more than one      */
             /* predecessor or the only predecessor is not the       */
             /* previous block), then zero out the available         */
             /* expressions.                                         */
             if ((i != 0 &&
-                 (list_block(b.Bpred) != dfo[i - 1] ||
+                 (list_block(b.Bpred) != bo.dfo[i - 1] ||
                   list_next(b.Bpred) != null))
-                || b.BC == BCasm
-                || b.BC == BC_finally
-                || b.BC == BC_lpad
-                || b.BC == BCcatch
-                || b.BC == BCjcatch
+                || b.bc == BC.asm_
+                || b.bc == BC._finally
+                || b.bc == BC._lpad
+                || b.bc == BC.catch_
+                || b.bc == BC.jcatch
                )
                 vec_clear(aevec);
             if (b.Belem)           /* if there is an expression    */
-                aewalk(&(b.Belem),aevec);
+                aewalk(go, &(b.Belem),aevec);
         }
         vec_free(aevec);
     }
 
     // Need 2 passes to converge on solution
     foreach (j; 0 .. 2)
-        foreach (b; dfo[])
+        foreach (b; bo.dfo[])
         {
             if (b.Belem)
             {
@@ -166,13 +166,14 @@ void builddags()
 
 
 /****************************
- * Walk tree, rewriting *pn into a DAG as we go.
+ * Walk tree, rewriting* pn into a DAG as we go.
  * Params:
+ *      go = GlobalOptimizer
  *      pn = pointer to expression tree to convert to DAG
  *      ae = vector of available expressions
  */
 @trusted
-private void aewalk(elem **pn,vec_t ae)
+private void aewalk(ref GlobalOptimizer go, elem** pn, vec_t ae)
 {
     elem* n = *pn;
     assert(n && ae);
@@ -185,7 +186,7 @@ private void aewalk(elem **pn,vec_t ae)
         if (aetype == Aetype.cse)
         {
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i)
-            {   elem *e = go.expnod[i];
+            {   elem* e = go.expnod[i];
 
                 // Attempt to replace n with e
                 if (e == null)              // if elem no longer exists
@@ -201,7 +202,7 @@ private void aewalk(elem **pn,vec_t ae)
                     e.Ecount++;
                     debug assert(e.Ecount != 0);
 
-                    void aeclear(elem *n)
+                    void aeclear(elem* n)
                     {
                         while (1)
                         {
@@ -235,7 +236,7 @@ private void aewalk(elem **pn,vec_t ae)
         }
     }
 
-    elem *t;
+    elem* t;
     switch (op)
     {
         case OPcolon:
@@ -244,8 +245,8 @@ private void aewalk(elem **pn,vec_t ae)
             // ae = ae & ael & aer
             // AEs gened by ael and aer are mutually exclusive
             vec_t aer = vec_clone(ae);
-            aewalk(&(n.E1),ae);
-            aewalk(&(n.E2),aer);
+            aewalk(go, &(n.E1),ae);
+            aewalk(go, &(n.E2),aer);
             vec_andass(ae,aer);
             vec_free(aer);
             break;
@@ -254,10 +255,10 @@ private void aewalk(elem **pn,vec_t ae)
         case OPandand:
         case OPoror:
         {
-            aewalk(&(n.E1),ae);
+            aewalk(go, &(n.E1),ae);
             /* ae &= aer    */
             vec_t aer = vec_clone(ae);
-            aewalk(&(n.E2),aer);
+            aewalk(go, &(n.E2),aer);
             if (el_returns(n.E2))
                 vec_andass(ae,aer);
             vec_free(aer);
@@ -267,7 +268,7 @@ private void aewalk(elem **pn,vec_t ae)
         case OPnegass:
             t = n.E1;
             if (t.Eoper == OPind)
-                aewalk(&(t.E1),ae);
+                aewalk(go, &(t.E1),ae);
             break;
 
         case OPctor:
@@ -294,23 +295,23 @@ private void aewalk(elem **pn,vec_t ae)
                        )
                     {   }
                     else
-                        aewalk(&(n.E2),ae);
+                        aewalk(go, &(n.E2),ae);
                 }
                 if (OTassign(op))
                 {
                     t = n.E1;
                     if (t.Eoper == OPind)
-                        aewalk(&(t.E1),ae);
+                        aewalk(go, &(t.E1),ae);
                 }
                 else
-                    aewalk(&(n.E1),ae);
+                    aewalk(go, &(n.E1),ae);
                 if (!ERTOL(n))
-                    aewalk(&(n.E2),ae);
+                    aewalk(go, &(n.E2),ae);
             }
             else if (OTunary(op))
             {
                 assert(op != OPnegass);
-                aewalk(&(n.E1),ae);
+                aewalk(go, &(n.E1),ae);
             }
     }
 
@@ -326,7 +327,7 @@ private void aewalk(elem **pn,vec_t ae)
                 vec_subass(ae,go.starkill);
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
             {
-                elem *e = go.expnod[i];
+                elem* e = go.expnod[i];
 
                 if (!e) continue;
                 if (OTunary(e.Eoper))
@@ -384,9 +385,9 @@ private void aewalk(elem **pn,vec_t ae)
  *      *pe
  */
 @trusted
-private elem * delcse(elem **pe)
+private elem* delcse(elem** pe)
 {
-    elem *e;
+    elem* e;
 
     e = el_calloc();
     el_copy(e,*pe);
@@ -403,7 +404,7 @@ private elem * delcse(elem **pe)
     {
         if (e.E1.Ecount == 0xFF-1)
         {
-            elem *ereplace;
+            elem* ereplace;
             ereplace = el_calloc();
             el_copy(ereplace,e.E1);
             e.E1 = ereplace;
@@ -418,7 +419,7 @@ private elem * delcse(elem **pe)
         {
             if (e.E2.Ecount == 0xFF-1)
             {
-                elem *ereplace;
+                elem* ereplace;
                 ereplace = el_calloc();
                 el_copy(ereplace,e.E2);
                 e.E2 = ereplace;
@@ -436,7 +437,7 @@ private elem * delcse(elem **pe)
     (*pe).Nflags |= NFLdelcse;     // not generating node
     e.Ecount = 0;
     *pe = e;
-    return *pe;
+    return* pe;
 }
 
 
@@ -446,7 +447,7 @@ private elem * delcse(elem **pe)
  */
 
 @trusted
-private void removecses(elem **pe)
+private void removecses(elem** pe)
 {
 L1:
     elem* e = *pe;
@@ -464,7 +465,7 @@ L1:
         if (op == OPind)
         {
             bool scaledIndex = I32 || I64;      // if scaled index addressing mode support
-            elem *e1 = e.E1;
+            elem* e1 = e.E1;
             if (e1.Eoper == OPadd &&
                 e1.Ecount
                )
@@ -527,7 +528,7 @@ L1:
                 delcse(&e1.E1);              // the <<. operator
             }
 
-            // Remove *e1 where it's a double
+            // Remove* e1 where it's a double
             if (e.Ecount && tyfloating(e.Ety))
                 e = delcse(pe);
         }
@@ -543,7 +544,7 @@ L1:
                  (op == OP64_32 || op == OP128_64 || op == OPmsw) &&
                  e.E1.Ecount == 0)
         {   // Convert back to OPdiv or OPmod
-            elem *e1 = e.E1;
+            elem* e1 = e.E1;
             e.Eoper = (op == OPmsw) ? OPmod : OPdiv;
             e.E1 = e1.E1;
             e.E2 = e1.E2;
@@ -591,15 +592,15 @@ L1:
  */
 
 @trusted
-void boolopt()
+void boolopt(ref GlobalOptimizer go)
 {
     vec_t aevec;
     vec_t aevecval;
 
     debug if (debugc) printf("boolopt()\n");
-    if (!dfo.length)
-        compdfo(dfo, startblock);
-    flowae();                       /* compute available expressions */
+    if (!bo.dfo.length)
+        compdfo(bo.dfo, bo.startblock);
+    flowae(go);                       /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
         return;
     static if (0)
@@ -620,7 +621,7 @@ void boolopt()
     // Mark each expression that we know starts off with a non-zero value
     foreach (const i; 0 .. go.exptop)
     {
-        elem *e = go.expnod[i];
+        elem* e = go.expnod[i];
         if (e)
         {
             elem_debug(e);
@@ -632,24 +633,24 @@ void boolopt()
         }
     }
 
-    foreach (i, b; dfo[])
+    foreach (i, b; bo.dfo[])
     {
         /* if not first block and (there are more than one      */
         /* predecessor or the only predecessor is not the       */
         /* previous block), then zero out the available         */
         /* expressions.                                         */
         if ((i != 0 &&
-             (list_block(b.Bpred) != dfo[i - 1] ||
+             (list_block(b.Bpred) != bo.dfo[i - 1] ||
               list_next(b.Bpred) != null))
-            || b.BC == BCasm
-            || b.BC == BC_finally
-            || b.BC == BC_lpad
-            || b.BC == BCcatch
-            || b.BC == BCjcatch
+            || b.bc == BC.asm_
+            || b.bc == BC._finally
+            || b.bc == BC._lpad
+            || b.bc == BC.catch_
+            || b.bc == BC.jcatch
            )
             vec_clear(aevec);
         if (b.Belem)           /* if there is an expression    */
-            abewalk(b.Belem,aevec,aevecval);
+            abewalk(go, b.Belem, aevec, aevecval);
     }
     vec_free(aevec);
     vec_free(aevecval);
@@ -664,9 +665,9 @@ void boolopt()
  */
 
 @trusted
-private void abewalk(elem *n,vec_t ae,vec_t aeval)
+private void abewalk(ref GlobalOptimizer go, elem* n, vec_t ae, vec_t aeval)
 {
-    elem *t;
+    elem* t;
 
     assert(n && ae);
     elem_debug(n);
@@ -678,33 +679,33 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
         case OPcond:
         {
             assert(n.E2.Eoper == OPcolon || n.E2.Eoper == OPcolon2);
-            abewalk(n.E1,ae,aeval);
-            abeboolres(n.E1,ae,aeval);
+            abewalk(go, n.E1, ae, aeval);
+            abeboolres(go, n.E1, ae, aeval);
             vec_t aer = vec_clone(ae);
             vec_t aerval = vec_clone(aeval);
             if (!el_returns(n.E2.E1))
             {
-                abeset(n.E1,aer,aerval,true);
-                abewalk(n.E2.E1,aer,aerval);
-                abeset(n.E1,ae,aeval,false);
-                abewalk(n.E2.E2,ae,aeval);
+                abeset(go, n.E1, aer, aerval, true);
+                abewalk(go, n.E2.E1, aer, aerval);
+                abeset(go, n.E1,ae, aeval, false);
+                abewalk(go, n.E2.E2, ae, aeval);
             }
             else if (!el_returns(n.E2.E2))
             {
-                abeset(n.E1,ae,aeval,true);
-                abewalk(n.E2.E1,ae,aeval);
-                abeset(n.E1,aer,aerval,false);
-                abewalk(n.E2.E2,aer,aerval);
+                abeset(go, n.E1,ae, aeval, true);
+                abewalk(go, n.E2.E1, ae,aeval);
+                abeset(go, n.E1,aer, aerval, false);
+                abewalk(go, n.E2.E2, aer, aerval);
             }
             else
             {
                 /* ae = ae & ael & aer
                  * AEs gened by ael and aer are mutually exclusive
                  */
-                abeset(n.E1,aer,aerval,true);
-                abewalk(n.E2.E1,aer,aerval);
-                abeset(n.E1,ae,aeval,false);
-                abewalk(n.E2.E2,ae,aeval);
+                abeset(go, n.E1, aer, aerval, true);
+                abewalk(go, n.E2.E1, aer, aerval);
+                abeset(go, n.E1, ae, aeval, false);
+                abewalk(go, n.E2.E2, ae, aeval);
 
                 vec_xorass(aerval,aeval);
                 vec_subass(aer,aerval);
@@ -723,22 +724,22 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
         case OPoror:
         {
             //printf("test1 %p: ", n); WReqn(n); printf("\n");
-            abewalk(n.E1,ae,aeval);
-            abeboolres(n.E1,ae,aeval);
+            abewalk(go, n.E1, ae, aeval);
+            abeboolres(go, n.E1, ae, aeval);
             vec_t aer = vec_clone(ae);
             vec_t aerval = vec_clone(aeval);
             if (!el_returns(n.E2))
             {
-                abeset(n.E1,aer,aerval,(op == OPandand));
-                abewalk(n.E2,aer,aerval);
-                abeset(n.E1,ae,aeval,(op != OPandand));
+                abeset(go, n.E1, aer, aerval, (op == OPandand));
+                abewalk(go, n.E2, aer, aerval);
+                abeset(go, n.E1, ae, aeval, (op != OPandand));
             }
             else
             {
                 /* ae &= aer
                  */
-                abeset(n.E1,aer,aerval,(op == OPandand));
-                abewalk(n.E2,aer,aerval);
+                abeset(go, n.E1, aer, aerval, (op == OPandand));
+                abewalk(go, n.E2, aer, aerval);
 
                 vec_xorass(aerval,aeval);
                 vec_subass(aer,aerval);
@@ -752,8 +753,8 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
 
         case OPbool:
         case OPnot:
-            abewalk(n.E1,ae,aeval);
-            abeboolres(n.E1,ae,aeval);
+            abewalk(go, n.E1, ae, aeval);
+            abeboolres(go, n.E1, ae, aeval);
             break;
 
         case OPeqeq:
@@ -767,15 +768,15 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
         case OPngt:     case OPnge:     case OPnlt:     case OPnle:
         case OPord:     case OPnlg:     case OPnleg:    case OPnule:
         case OPnul:     case OPnuge:    case OPnug:     case OPnue:
-            abewalk(n.E1,ae,aeval);
-            abewalk(n.E2,ae,aeval);
-            abeboolres(n,ae,aeval);
+            abewalk(go, n.E1, ae, aeval);
+            abewalk(go, n.E2, ae, aeval);
+            abeboolres(go, n, ae, aeval);
             break;
 
         case OPnegass:
             t = n.E1;
             if (t.Eoper == OPind)
-                abewalk(t.E1,ae,aeval);
+                abewalk(go, t.E1, ae, aeval);
             break;
 
         case OPasm:
@@ -785,19 +786,19 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
         default:
             if (OTbinary(op))
             {   if (ERTOL(n))
-                    abewalk(n.E2,ae,aeval);
+                    abewalk(go, n.E2, ae, aeval);
                 if (OTassign(op))
                 {   t = n.E1;
                     if (t.Eoper == OPind)
-                        abewalk(t.E1,ae,aeval);
+                        abewalk(go, t.E1, ae, aeval);
                 }
                 else
-                        abewalk(n.E1,ae,aeval);
+                        abewalk(go, n.E1, ae, aeval);
                 if (!ERTOL(n))
-                    abewalk(n.E2,ae,aeval);
+                    abewalk(go, n.E2,ae, aeval);
             }
             else if (OTunary(op))
-                abewalk(n.E1,ae,aeval);
+                abewalk(go, n.E1, ae, aeval);
             break;
     }
 
@@ -807,7 +808,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
         /* remove all AEs that could be affected by this def    */
         if (Eunambig(n))        /* if unambiguous definition    */
         {
-            Symbol *s;
+            Symbol* s;
 
             assert(t.Eoper == OPvar);
             s = t.Vsym;
@@ -815,7 +816,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
                 vec_subass(ae,go.starkill);
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
             {
-                elem *e = go.expnod[i];
+                elem* e = go.expnod[i];
 
                 if (!e) continue;
                 if (el_appears(e,s))
@@ -860,7 +861,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
  */
 
 @trusted
-private void abeboolres(elem *n,vec_t ae,vec_t aeval)
+private void abeboolres(ref GlobalOptimizer go, elem* n,vec_t ae,vec_t aeval)
 {
     //printf("abeboolres()[%d %p] ", n.Eexp, go.expnod[n.Eexp]); WReqn(n); printf("\n");
     elem_debug(n);
@@ -869,7 +870,7 @@ private void abeboolres(elem *n,vec_t ae,vec_t aeval)
         assert(go.expnod[n.Eexp] == n);
         uint i;
         for (i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
-        {   elem *e = go.expnod[i];
+        {   elem* e = go.expnod[i];
 
             // Attempt to replace n with the boolean result of e
             //printf("Looking at go.expnod[%d] = %p\n",i,e);
@@ -883,7 +884,7 @@ private void abeboolres(elem *n,vec_t ae,vec_t aeval)
                     printf(" is replaced by %d\n",vec_testbit(i,aeval) != 0);
                 }
 
-                abefree(n,ae);
+                abefree(go, n, ae);
                 n.Vlong = vec_testbit(i,aeval) != 0;
                 n.Eoper = OPconst;
                 n.Ety = TYint;
@@ -899,7 +900,7 @@ private void abeboolres(elem *n,vec_t ae,vec_t aeval)
  */
 
 @trusted
-private void abefree(elem *e,vec_t ae)
+private void abefree(ref GlobalOptimizer go, elem* e,vec_t ae)
 {
     //printf("abefree [%d %p]: ", e.Eexp, e); WReqn(e); printf("\n");
     assert(e.Eexp);
@@ -909,11 +910,11 @@ private void abefree(elem *e,vec_t ae)
     {
         if (OTbinary(e.Eoper))
         {
-            abefree(e.E2,ae);
+            abefree(go, e.E2,ae);
             el_free(e.E2);
             e.E2 = null;
         }
-        abefree(e.E1,ae);
+        abefree(go, e.E1,ae);
         el_free(e.E1);
         e.E1 = null;
     }
@@ -925,7 +926,7 @@ private void abefree(elem *e,vec_t ae)
  */
 
 @trusted
-private void abeset(elem *e,vec_t ae,vec_t aeval,int flag)
+private void abeset(ref GlobalOptimizer go, elem* e, vec_t ae, vec_t aeval, int flag)
 {
     while (1)
     {

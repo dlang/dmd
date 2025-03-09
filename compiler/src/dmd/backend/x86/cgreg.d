@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgreg.c, backend/cgreg.d)
@@ -60,13 +60,13 @@ void cgreg_init()
 
     // Use calloc() instead because sometimes the alloc is too large
     //printf("1weights: dfo.length = %d, globsym.length = %d\n", dfo.length, globsym.length);
-    weights.setLength(dfo.length * globsym.length);
+    weights.setLength(bo.dfo.length * globsym.length);
     weights[] = 0;
 
     nretblocks = 0;
-    foreach (bi, b; dfo[])
+    foreach (bi, b; bo.dfo[])
     {
-        if (b.BC == BCret || b.BC == BCretexp)
+        if (b.bc == BC.ret || b.bc == BC.retexp)
             nretblocks++;
         if (b.Belem)
         {
@@ -82,7 +82,7 @@ void cgreg_init()
         //printf("considering candidate '%s' for register\n", s.Sident.ptr);
 
         if (s.Srange)
-            s.Srange = vec_realloc(s.Srange,dfo.length);
+            s.Srange = vec_realloc(s.Srange,bo.dfo.length);
 
         // Determine symbols that are not candidates
         uint sz;
@@ -133,10 +133,10 @@ void cgreg_init()
             s.Sflags |= GTbyte;
 
         if (!s.Slvreg)
-            s.Slvreg = vec_calloc(dfo.length);
+            s.Slvreg = vec_calloc(bo.dfo.length);
 
         //printf("dfo.length = %d, numbits = %d\n",dfo.length,vec_numbits(s.Srange));
-        assert(vec_numbits(s.Srange) == dfo.length);
+        assert(vec_numbits(s.Srange) == bo.dfo.length);
     }
 }
 
@@ -177,7 +177,7 @@ void cgreg_reset()
 {
     foreach (ref r; regrange[])
         if (!r)
-            r = vec_calloc(dfo.length);
+            r = vec_calloc(bo.dfo.length);
         else
             vec_clear(r);
 }
@@ -201,7 +201,7 @@ void cgreg_used(uint bi,regm_t used)
  */
 
 @trusted
-private void el_weights(int bi,elem *e,uint weight)
+private void el_weights(int bi,elem* e,uint weight)
 {
     while (1)
     {   elem_debug(e);
@@ -236,7 +236,7 @@ private void el_weights(int bi,elem *e,uint weight)
             switch (op)
             {
                 case OPvar:
-                    Symbol *s = e.Vsym;
+                    Symbol* s = e.Vsym;
                     if (s.Ssymnum != SYMIDX.max && s.Sflags & GTregcand)
                     {
                         s.Sweight += weight;
@@ -261,11 +261,11 @@ private void el_weights(int bi,elem *e,uint weight)
  */
 
 @trusted
-private int cgreg_benefit(Symbol *s, reg_t reg, Symbol *retsym)
+private int cgreg_benefit(Symbol* s, reg_t reg, Symbol* retsym)
 {
     int benefit;
     int benefit2;
-    block *b;
+    block* b;
     int bi;
     int gotoepilog;
     int retsym_cnt;
@@ -297,19 +297,19 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
     if (fregsaved & (1UL << reg) & cgstate.mfuncreg)
         benefit -= 1 + nretblocks;
 
-    for (bi = 0; (bi = cast(uint) vec_index(bi, s.Srange)) < dfo.length; ++bi)
+    for (bi = 0; (bi = cast(uint) vec_index(bi, s.Srange)) < bo.dfo.length; ++bi)
     {   int inoutp;
         int inout_;
 
-        b = dfo[bi];
-        switch (b.BC)
+        b = bo.dfo[bi];
+        switch (b.bc)
         {
-            case BCjcatch:
-            case BCcatch:
-            case BC_except:
-            case BC_finally:
-            case BC_lpad:
-            case BC_ret:
+            case BC.jcatch:
+            case BC.catch_:
+            case BC._except:
+            case BC._finally:
+            case BC._lpad:
+            case BC._ret:
                 s.Sflags &= ~GTregcand;
                 goto Lcant;             // can't assign to register
 
@@ -321,11 +321,11 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
             //printf("WEIGHTS(%d,%d) = %d, benefit = %d\n",bi,si,WEIGHTS(bi,si),benefit);
             inout_ = 1;
 
-            if (s == retsym && (reg == dst_integer_reg || reg == dst_float_reg) && b.BC == BCretexp)
+            if (s == retsym && (reg == dst_integer_reg || reg == dst_float_reg) && b.bc == BC.retexp)
             {   benefit += 1;
                 retsym_cnt++;
                 //printf("retsym, benefit = %d\n",benefit);
-                if (s.Sfl == FLreg && !vec_disjoint(s.Srange,regrange[reg]))
+                if (s.Sfl == FL.reg && !vec_disjoint(s.Srange,regrange[reg]))
                     goto Lcant;                         // don't spill if already in register
             }
         }
@@ -339,11 +339,11 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
         benefit2 = 0;
         foreach (bl; ListRange(b.Bpred))
         {
-            block *bp = list_block(bl);
+            block* bp = list_block(bl);
             int bpi = bp.Bdfoidx;
             if (!vec_testbit(bpi,s.Srange))
                 continue;
-            if (gotoepilog && bp.BC == BCgoto)
+            if (gotoepilog && bp.bc == BC.goto_)
             {
                 if (vec_testbit(bpi,s.Slvreg))
                 {
@@ -443,7 +443,7 @@ Lcant:
  * or by prolog (0).
  */
 
-int cgreg_gotoepilog(block *b,Symbol *s)
+int cgreg_gotoepilog(block* b,Symbol* s)
 {
     int bi = b.Bdfoidx;
 
@@ -458,7 +458,7 @@ int cgreg_gotoepilog(block *b,Symbol *s)
     int inoutp = 0;
     foreach (bl; ListRange(b.Bpred))
     {
-        block *bp = list_block(bl);
+        block* bp = list_block(bl);
         int bpi = bp.Bdfoidx;
         if (!vec_testbit(bpi,s.Srange))
             continue;
@@ -528,7 +528,7 @@ Lcant:
  *      cdbstore = append store code to this
  *      cdbload = append load code to this
  */
-void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeBuilder cdbload)
+void cgreg_spillreg_prolog(block* b,Symbol* s,ref CodeBuilder cdbstore,ref CodeBuilder cdbload)
 {
     const int bi = b.Bdfoidx;
 
@@ -602,11 +602,11 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeB
  *      cdbstore = append store code to this
  *      cdbload = append load code to this
  */
-void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref CodeBuilder cdbload)
+void cgreg_spillreg_epilog(block* b,Symbol* s,ref CodeBuilder cdbstore, ref CodeBuilder cdbload)
 {
     const bi = b.Bdfoidx;
     //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s.Sident.ptr);
-    //assert(b.BC == BCgoto);
+    //assert(b.bc == BC.goto_);
     if (!cgreg_gotoepilog(b.nthSucc(0), s))
         return;
 
@@ -646,7 +646,7 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref Code
  */
 
 @trusted
-private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
+private void cgreg_map(Symbol* s, reg_t regmsw, reg_t reglsw)
 {
     //assert(I64 || reglsw < 8);
 
@@ -654,7 +654,7 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
         (regmsw == NOREG || vec_disjoint(s.Srange,regrange[regmsw]))
        )
     {
-        s.Sfl = FLreg;
+        s.Sfl = FL.reg;
         vec_copy(s.Slvreg,s.Srange);
     }
     else
@@ -664,29 +664,29 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
         // Already computed by cgreg_benefit()
         //vec_sub(s.Slvreg,s.Srange,regrange[reglsw]);
 
-        if (s.Sfl == FLreg)            // if reassigned
+        if (s.Sfl == FL.reg)            // if reassigned
         {
             switch (s.Sclass)
             {
                 case SC.auto_:
                 case SC.register:
-                    s.Sfl = FLauto;
+                    s.Sfl = FL.auto_;
                     break;
                 case SC.fastpar:
-                    s.Sfl = FLfast;
+                    s.Sfl = FL.fast;
                     break;
                 case SC.bprel:
-                    s.Sfl = FLbprel;
+                    s.Sfl = FL.bprel;
                     break;
                 case SC.shadowreg:
                 case SC.parameter:
-                    s.Sfl = FLpara;
+                    s.Sfl = FL.para;
                     break;
                 case SC.pseudo:
-                    s.Sfl = FLpseudo;
+                    s.Sfl = FL.pseudo;
                     break;
                 case SC.stack:
-                    s.Sfl = FLstack;
+                    s.Sfl = FL.stack;
                     break;
                 default:
                     symbol_print(*s);
@@ -746,7 +746,7 @@ void cgreg_unregister(regm_t conflict)
         cgstate.pass = BackendPass.reg;                         // have to codegen at least one more time
     foreach (s; globsym[])
     {
-        if (s.Sfl == FLreg && s.Sregm & conflict)
+        if (s.Sfl == FL.reg && s.Sregm & conflict)
         {
             s.Sflags |= GTunregister;
         }
@@ -762,14 +762,14 @@ void cgreg_unregister(regm_t conflict)
 
 struct Reg              // data for trial register assignment
 {
-    Symbol *sym;
+    Symbol* sym;
     int benefit;
     reg_t reglsw;
     reg_t regmsw;
 }
 
 @trusted
-int cgreg_assign(Symbol *retsym)
+int cgreg_assign(Symbol* retsym)
 {
     int flag = false;                   // assume no changes
 
@@ -791,29 +791,29 @@ int cgreg_assign(Symbol *retsym)
 
             flag = true;
             s.Sflags &= ~(GTregcand | GTunregister | SFLspill);
-            if (s.Sfl == FLreg)
+            if (s.Sfl == FL.reg)
             {
                 switch (s.Sclass)
                 {
                     case SC.auto_:
                     case SC.register:
-                        s.Sfl = FLauto;
+                        s.Sfl = FL.auto_;
                         break;
                     case SC.fastpar:
-                        s.Sfl = FLfast;
+                        s.Sfl = FL.fast;
                         break;
                     case SC.bprel:
-                        s.Sfl = FLbprel;
+                        s.Sfl = FL.bprel;
                         break;
                     case SC.shadowreg:
                     case SC.parameter:
-                        s.Sfl = FLpara;
+                        s.Sfl = FL.para;
                         break;
                     case SC.pseudo:
-                        s.Sfl = FLpseudo;
+                        s.Sfl = FL.pseudo;
                         break;
                     case SC.stack:
-                        s.Sfl = FLstack;
+                        s.Sfl = FL.stack;
                         break;
                     default:
                         debug symbol_print(*s);
@@ -823,7 +823,7 @@ int cgreg_assign(Symbol *retsym)
         }
     }
 
-    vec_t v = vec_calloc(dfo.length);
+    vec_t v = vec_calloc(bo.dfo.length);
 
     reg_t dst_integer_reg;
     reg_t dst_float_reg;
@@ -843,10 +843,18 @@ int cgreg_assign(Symbol *retsym)
     /* Disallow parameters being put in registers that are used by the 64 bit
      * prolog generated by prolog_getvarargs()
      */
-    const regm_t variadicPrologRegs = (I64 && variadic(funcsym_p.Stype))
+    regm_t variadicPrologRegs = (I64 && variadic(funcsym_p.Stype))
         ? (mAX | mR11) |   // these are used by the prolog code
           ((mDI | mSI | mDX | mCX | mR8 | mR9 | XMMREGS) & ~regparams) // unnamed register arguments
         : 0;
+
+    if (cgstate.AArch64)
+    {
+        variadicPrologRegs = variadic(funcsym_p.Stype)
+            ? (mask(11)) |   // these are used by the prolog code
+              ((0xFF_0000_00FF) & ~regparams) // unnamed register arguments R0..R7 and Q32..Q39
+            : 0;
+    }
 
     // Find symbol t, which is the most 'deserving' symbol that should be
     // placed into a register.
@@ -860,12 +868,12 @@ int cgreg_assign(Symbol *retsym)
         if (!(s.Sflags & GTregcand) ||
             s.Sflags & SFLspill ||
             // Keep trying to reassign retsym into destination register
-            (s.Sfl == FLreg && !(s == retsym && s.Sregm != dst_integer_mask && s.Sregm != dst_float_mask))
+            (s.Sfl == FL.reg && !(s == retsym && s.Sregm != dst_integer_mask && s.Sregm != dst_float_mask))
            )
         {
             debug if (debugr)
             {
-                if (s.Sfl == FLreg)
+                if (s.Sfl == FL.reg)
                 {
                     printf("symbol '%s' is in reg %s\n",s.Sident.ptr,regm_str(s.Sregm));
                 }
@@ -1009,7 +1017,7 @@ Ltried:
     {
         foreach (s; globsym[])
         {
-            if (s.Sfl == FLreg &&                // if assigned to register
+            if (s.Sfl == FL.reg &&                // if assigned to register
                 (1UL << s.Sreglsw) & fregsaved &&   // and that register is not scratch
                 type_size(s.Stype) <= REGSIZE && // don't bother with register pairs
                 !tyfloating(s.ty()))             // don't assign floating regs to non-floating regs

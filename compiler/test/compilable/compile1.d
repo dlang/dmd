@@ -1,9 +1,10 @@
 // COMPILABLE_MATH_TEST
 // PERMUTE_ARGS:
+// REQUIRED_ARGS: -verrors=simple
 // EXTRA_FILES: imports/a12506.d
 /* TEST_OUTPUT:
 ---
-compilable/compile1.d(230): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
+compilable/compile1.d(231): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
 ---
 */
 
@@ -861,7 +862,7 @@ S14166 s14166;
 
 struct X14166 { this(int) { } X14166 opAssign(int) { return this; } }
 X14166[int] aa14166;
-X14166[int] makeAA14166() { return aa14166; }
+ref X14166[int] makeAA14166() { return aa14166; }
 
 struct Tup14166(T...) { T field; alias field this; }
 Tup14166!(int, int) tup14166;

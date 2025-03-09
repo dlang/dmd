@@ -11,12 +11,9 @@
 
 module rt.adi;
 
-//debug=adi;            // uncomment to turn on debugging printf's
+// debug = adi; // uncomment to turn on debugging printf's
 
-private
-{
-    debug(adi) import core.stdc.stdio;
-}
+debug (adi) import core.stdc.stdio : printf;
 
 /***************************************
  * Support for array equality test.
@@ -27,7 +24,7 @@ private
 
 extern (C) int _adEq2(void[] a1, void[] a2, TypeInfo ti)
 {
-    debug(adi) printf("_adEq2(a1.length = %d, a2.length = %d)\n", a1.length, a2.length);
+    debug(adi) printf("_adEq2(a1.length = %zd, a2.length = %zd)\n", a1.length, a2.length);
     if (a1.length != a2.length)
         return 0;               // not equal
     if (!ti.equals(&a1, &a2))

@@ -1,7 +1,7 @@
 /**
  * Semantic analysis of template parameters.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/templateparamsem.d, _templateparamsem.d)
@@ -170,7 +170,7 @@ RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplatePara
         Dsymbol s = ta.toDsymbol(sc);
         if (s)
             return s;
-        else if (TypeInstance ti = ta.isTypeInstance())
+        if (TypeInstance ti = ta.isTypeInstance())
         {
             Type t;
             const errors = global.errors;
@@ -183,14 +183,13 @@ RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplatePara
             // see https://issues.dlang.org/show_bug.cgi?id=16472
             if (t)
                 return t.typeSemantic(loc, sc);
-            else if (ea)
+            if (ea)
             {
                 return eaCTFE();
             }
-            else if (s)
+            if (s)
                 return s;
-            else
-                assert(0);
+            assert(0);
         }
         else
             return ta.typeSemantic(loc, sc);

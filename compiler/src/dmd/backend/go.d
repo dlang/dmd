@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              https://www.boost.org/LICENSE_1_0.txt
@@ -50,7 +50,7 @@ nothrow:
 
 
 @trusted
-void go_term()
+void go_term(ref GlobalOptimizer go)
 {
     vec_free(go.defkill);
     vec_free(go.starkill);
@@ -89,7 +89,7 @@ else
  *      !=0     recognized
  */
 @trusted
-int go_flag(char *cp)
+int go_flag(ref GlobalOptimizer go, char* cp)
 {
     enum GL     // indices of various flags in flagtab[]
     {
@@ -197,9 +197,9 @@ badflag:
 
 debug (DEBUG_TREES)
 {
-void dbg_optprint(char *title)
+void dbg_optprint(char* title)
 {
-    block *b;
+    block* b;
     for (b = startblock; b; b = b.Bnext)
         if (b.Belem)
         {
@@ -214,30 +214,30 @@ void dbg_optprint(char *title)
  */
 
 @trusted
-void optfunc()
+void optfunc(ref GlobalOptimizer go)
 {
     if (debugc) printf("optfunc()\n");
     dbg_optprint("optfunc\n");
 
     debug if (debugb)
     {
-        WRfunc("before optimization", funcsym_p, startblock);
+        WRfunc("before optimization", funcsym_p, bo.startblock);
     }
 
     if (localgot)
     {   // Initialize with:
         //      localgot = OPgot;
-        elem *e = el_long(TYnptr, 0);
+        elem* e = el_long(TYnptr, 0);
         e.Eoper = OPgot;
         e = el_bin(OPeq, TYnptr, el_var(localgot), e);
-        startblock.Belem = el_combine(e, startblock.Belem);
+        bo.startblock.Belem = el_combine(e, bo.startblock.Belem);
     }
 
     // Each pass through the loop can reduce only one level of comma expression.
     // The infinite loop check needs to take this into account.
     // Add 100 just to give optimizer more rope to try to converge.
     int iterationLimit = 100;
-    for (block* b = startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (!b.Belem)
             continue;
@@ -261,7 +261,7 @@ void optfunc()
 
         //printf("optelem\n");
         /* canonicalize the trees        */
-        foreach (b; BlockRange(startblock))
+        foreach (b; BlockRange(bo.startblock))
             if (b.Belem)
             {
                 debug if (debuge)
@@ -271,7 +271,7 @@ void optfunc()
                     //el_check(b.Belem);
                 }
 
-                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | Goal.again);
+                b.Belem = doptelem(b.Belem, bc_goal(b.bc) | Goal.again);
 
                 debug if (0 && debugf)
                 {
@@ -288,53 +288,53 @@ void optfunc()
             scanForInlines(funcsym_p);
 
         if (go.mfoptim & MFdc)
-            blockopt(0);                // do block optimization
+            blockopt(go, 0);            // do block optimization
         out_regcand(&globsym);          // recompute register candidates
         go.changes = 0;                 // no changes yet
-        sliceStructs(globsym, startblock);
+        sliceStructs(globsym, bo.startblock);
         if (go.mfoptim & MFcnp)
-            constprop();                /* make relationals unsigned     */
+            constprop(go);              /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))
-            loopopt();                  /* remove loop invariants and    */
+            loopopt(go);                /* remove loop invariants and    */
                                         /* induction vars                */
                                         /* do loop rotation              */
         else
-            foreach (b; BlockRange(startblock))
+            foreach (b; BlockRange(bo.startblock))
                 b.Bweight = 1;
         dbg_optprint("boolopt\n");
 
         if (go.mfoptim & MFcnp)
-            boolopt();                  // optimize boolean values
+            boolopt(go);                  // optimize boolean values
         if (go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC)
             continue;
 
         if (go.mfoptim & MFcnp)
-            constprop();                /* constant propagation          */
+            constprop(go);              /* constant propagation          */
         if (go.mfoptim & MFcp)
-            copyprop();                 /* do copy propagation           */
+            copyprop(go);               /* do copy propagation           */
 
         /* Floating point constants and string literals need to be
          * replaced with loads from variables in read-only data.
          * This can result in localgot getting needed.
          */
-        Symbol *localgotsave = localgot;
-        for (block* b = startblock; b; b = b.Bnext)
+        Symbol* localgotsave = localgot;
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             if (b.Belem)
             {
-                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | Goal.struct_);
+                b.Belem = doptelem(b.Belem, bc_goal(b.bc) | Goal.struct_);
                 if (b.Belem)
-                    b.Belem = el_convert(b.Belem);
+                    b.Belem = el_convert(go, b.Belem);
             }
         }
         if (localgot != localgotsave)
         {   /* Looks like we did need localgot, initialize with:
              *  localgot = OPgot;
              */
-            elem *e = el_long(TYnptr, 0);
+            elem* e = el_long(TYnptr, 0);
             e.Eoper = OPgot;
             e = el_bin(OPeq, TYnptr, el_var(localgot), e);
-            startblock.Belem = el_combine(e, startblock.Belem);
+            bo.startblock.Belem = el_combine(e, bo.startblock.Belem);
         }
 
         /* localize() is after localgot, otherwise we wind up with
@@ -342,9 +342,9 @@ void optfunc()
          * code generation which assumes at most one (localgotoffset).
          */
         if (go.mfoptim & MFlocal)
-            localize();                 // improve expression locality
+            localize(go);                 // improve expression locality
         if (go.mfoptim & MFda)
-            rmdeadass();                /* remove dead assignments       */
+            rmdeadass(go);                /* remove dead assignments       */
 
         if (debugc) printf("changes = %d\n", go.changes);
         if (!(go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC))
@@ -353,27 +353,27 @@ void optfunc()
     if (debugc) printf("%d iterations\n",iter);
 
     if (go.mfoptim & MFdc)
-        blockopt(1);                    // do block optimization
+        blockopt(go, 1);                // do block optimization
 
-    for (block* b = startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (b.Belem)
             postoptelem(b.Belem);
     }
     if (go.mfoptim & MFvbe)
-        verybusyexp();              /* very busy expressions         */
+        verybusyexp(go);              /* very busy expressions         */
     if (go.mfoptim & MFcse)
-        builddags();                /* common subexpressions         */
+        builddags(go);                /* common subexpressions         */
     if (go.mfoptim & MFdv)
         deadvar();                  /* eliminate dead variables      */
 
     debug if (debugb)
     {
-        WRfunc("after optimization", funcsym_p, startblock);
+        WRfunc("after optimization", funcsym_p, bo.startblock);
     }
 
     // Prepare for code generator
-    for (block* b = startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         block_optimizer_free(b);
     }

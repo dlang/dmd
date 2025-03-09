@@ -1,7 +1,7 @@
 /**
  * Find side-effects of expressions.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/sideeffect.d, _sideeffect.d)
@@ -20,14 +20,15 @@ import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
-import dmd.postordervisitor;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.visitor.postorder;
 
 /**************************************************
  * Front-end expression rewriting should create temporary variables for
@@ -113,7 +114,7 @@ int callSideEffectLevel(FuncDeclaration f)
         return 0;
     assert(f.type.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)f.type;
-    if (!tf.isnothrow)
+    if (!tf.isNothrow)
         return 0;
     final switch (f.isPure())
     {
@@ -123,7 +124,7 @@ int callSideEffectLevel(FuncDeclaration f)
         return 0;
 
     case PURE.const_:
-        return mutabilityOfType(tf.isref, tf.next) == 2 ? 2 : 1;
+        return mutabilityOfType(tf.isRef, tf.next) == 2 ? 2 : 1;
     }
 }
 
@@ -138,7 +139,7 @@ int callSideEffectLevel(Type t)
         assert(t.ty == Tfunction);
         tf = cast(TypeFunction)t;
     }
-    if (!tf.isnothrow)  // function can throw
+    if (!tf.isNothrow)  // function can throw
         return 0;
 
     tf.purityLevel();
@@ -152,7 +153,7 @@ int callSideEffectLevel(Type t)
     }
 
     if (purity == PURE.const_)
-        return mutabilityOfType(tf.isref, tf.next) == 2 ? 2 : 1;
+        return mutabilityOfType(tf.isRef, tf.next) == 2 ? 2 : 1;
 
     return 0;
 }
@@ -346,12 +347,13 @@ bool discardValue(Expression e)
         BinExp tmp = e.isBinExp();
         assert(tmp);
 
-        error(e.loc, "the result of the equality expression `%s` is discarded", e.toChars());
+        error(e.loc, "the result of the equality expression `%s` is discarded", e.toErrMsg());
         bool seenSideEffect = false;
         foreach(expr; [tmp.e1, tmp.e2])
         {
-            if (hasSideEffect(expr)) {
-                errorSupplemental(expr.loc, "note that `%s` may have a side effect", expr.toChars());
+            if (hasSideEffect(expr))
+            {
+                errorSupplemental(expr.loc, "note that `%s` may have a side effect", expr.toErrMsg());
                 seenSideEffect |= true;
             }
         }
@@ -359,7 +361,7 @@ bool discardValue(Expression e)
     default:
         break;
     }
-    error(e.loc, "`%s` has no effect", e.toChars());
+    error(e.loc, "`%s` has no effect", e.toErrMsg());
     return true;
 }
 
@@ -372,7 +374,7 @@ bool discardValue(Expression e)
  * Returns:
  *  Newly created temporary variable.
  */
-VarDeclaration copyToTemp(StorageClass stc, const char[] name, Expression e)
+VarDeclaration copyToTemp(STC stc, const char[] name, Expression e)
 {
     assert(name[0] == '_' && name[1] == '_');
     auto vd = new VarDeclaration(e.loc, e.type,
@@ -408,10 +410,10 @@ Expression extractSideEffect(Scope* sc, const char[] name,
      * https://issues.dlang.org/show_bug.cgi?id=17145
      */
     if (!alwaysCopy &&
-        ((sc.flags & SCOPE.ctfe) ? !hasSideEffect(e) : isTrivialExp(e)))
+        (sc.ctfe ? !hasSideEffect(e) : isTrivialExp(e)))
         return e;
 
-    auto vd = copyToTemp(0, name, e);
+    auto vd = copyToTemp(STC.none, name, e);
     vd.storage_class |= e.isLvalue() ? STC.ref_ : STC.rvalue;
 
     e0 = Expression.combine(e0, new DeclarationExp(vd.loc, vd)

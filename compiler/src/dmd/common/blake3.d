@@ -51,7 +51,7 @@ public ubyte[32] blake3(scope const ubyte[] data)
         with(state)
         {
             //can't be end since we handle the last block separately below
-            uint flag = blocksCompressed == 0 ? ChunkStartFlag : 0;
+            const flag = blocksCompressed == 0 ? ChunkStartFlag : 0;
             uint[16] compressed = compress(chainingValue, blockWords, 64, //full block
                                            chunkCounter, flag);
             chainingValue = compressed[0 .. 8];
@@ -61,7 +61,7 @@ public ubyte[32] blake3(scope const ubyte[] data)
     }
 
     //handle last block, which could be the first block too
-    uint flag = ChunkEndFlag | (state.blocksCompressed == 0 ? ChunkStartFlag : 0);
+    const flag = ChunkEndFlag | (state.blocksCompressed == 0 ? ChunkStartFlag : 0);
 
     //cast is safe bc this must be <= BlockLength
     const remainingBytes = cast(uint)(data.length - cursor);

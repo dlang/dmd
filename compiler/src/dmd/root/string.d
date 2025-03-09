@@ -1,7 +1,7 @@
 /**
  * Contains various string related functions.
  *
- * Copyright: Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/string.d, root/_string.d)
@@ -18,6 +18,27 @@ inout(char)[] toDString (inout(char)* s) pure nothrow @nogc
 {
     import core.stdc.string : strlen;
     return s ? s[0 .. strlen(s)] : null;
+}
+
+private struct FTuple(T...)
+{
+    T expand;
+}
+
+/// Returns: a (length, ptr) tuple for passing a D string to `printf`-style functions with the format string `%.*s`
+auto fTuple(const(char)[] str)
+{
+    return FTuple!(int, const(char)*)(cast(int) str.length, str.ptr);
+}
+
+///
+unittest
+{
+    import core.stdc.stdio: snprintf;
+    char[6] buf = '.';
+    const(char)[] str = "cutoff"[0..4];
+    snprintf(buf.ptr, buf.length, "%.*s", str.fTuple.expand);
+    assert(buf[] == "cuto\0.");
 }
 
 /**
@@ -344,13 +365,23 @@ auto splitLines(const char[] text)
         public this(const char[] text)
         {
             this.text = text;
+            this.index = 0;
+            this.eolIndex = 0;
+            this.nextIndex = 0;
         }
 
-        public bool empty() { return index == text.length; }
+        public bool empty() { advance(); return index >= text.length; }
 
         public void popFront() { advance(); index = nextIndex; }
 
-        public const(char)[] front() { advance(); return text[index .. eolIndex]; }
+        public const(char)[] front()
+        {
+            advance();
+            if (index > eolIndex || index >= text.length)
+                return "";
+
+            return text[index .. eolIndex];
+        }
 
         private void advance()
         {
@@ -397,7 +428,7 @@ auto splitLines(const char[] text)
                         if (i + 2 < text.length &&
                             text[i + 1] == 0x80 &&
                             (text[i + 2] == 0xA8 || text[i + 2] == 0xA9)
-                           )
+                        )
                         {
                             eolIndex = i;
                             nextIndex = i + 3;
@@ -409,6 +440,10 @@ auto splitLines(const char[] text)
                         break;
                 }
             }
+
+            // No newline found; set indices to the end of the text
+            eolIndex = text.length;
+            nextIndex = text.length;
         }
     }
 
@@ -433,7 +468,7 @@ Returns:
    a `FindSplit` object that casts to `true` iff `needle` was found inside `str`.
    In that case, `split[1]` is the needle, and `split[0]`/`split[2]` are before/after the needle.
 */
-FindSplit findSplit(return scope const(char)[] str, scope const(char)[] needle)
+FindSplit findSplit(return scope const(char)[] str, scope const(char)[] needle) @safe
 {
     if (needle.length > str.length)
         return FindSplit([str, null, null]);
@@ -469,7 +504,7 @@ Params:
 Returns:
    substring of `str` inbetween `l` and `r`
 */
-const(char)[] findBetween(const(char)[] str, const(char)[] l, const(char)[] r)
+const(char)[] findBetween(const(char)[] str, const(char)[] l, const(char)[] r) @safe
 {
     if (auto s0 = str.findSplit(l))
         if (auto s1 = s0[2].findSplit(r))

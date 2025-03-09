@@ -1,0 +1,16 @@
+Build time profiling has been added to DMD
+
+The `-ftime-trace` switch that the LDC compiler already has, is now also available in dmd.
+It can be used to figure out which parts of your code take the longest to compile, so you can optimize your build times.
+
+$(CONSOLE
+dmd -ftime-trace app.d
+)
+
+This will output `app.o.time-trace`.
+
+A different output file can be selected with `-ftime-trace-file=trace.json`.
+
+The output is in Google Chrome's profiler format, which can be viewed in an interactive viewer like [ui.perfetto.dev](https://ui.perfetto.dev).
+
+See also the YouTube tutorial [*Easily Reduce Build Times by Profiling the D Compiler*](https://www.youtube.com/watch?v=b8wZqU5t9vs).

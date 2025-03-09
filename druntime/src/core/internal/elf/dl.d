@@ -13,32 +13,32 @@ module core.internal.elf.dl;
 
 version (linux)
 {
-    import core.sys.linux.link;
+    import core.sys.linux.link : dl_iterate_phdr, dl_phdr_info, ElfW;
     version = LinuxOrBSD;
 }
 else version (FreeBSD)
 {
-    import core.sys.freebsd.sys.link_elf;
+    import core.sys.freebsd.sys.link_elf : _rtld_addr_phdr, dl_iterate_phdr, dl_phdr_info, ElfW;
     version = LinuxOrBSD;
 }
 else version (DragonFlyBSD)
 {
-    import core.sys.dragonflybsd.sys.link_elf;
+    import core.sys.dragonflybsd.sys.link_elf : _rtld_addr_phdr, dl_iterate_phdr, dl_phdr_info, ElfW;
     version = LinuxOrBSD;
 }
 else version (NetBSD)
 {
-    import core.sys.netbsd.sys.link_elf;
+    import core.sys.netbsd.sys.link_elf : dl_iterate_phdr, dl_phdr_info, ElfW;
     version = LinuxOrBSD;
 }
 else version (OpenBSD)
 {
-    import core.sys.openbsd.sys.link_elf;
+    import core.sys.openbsd.sys.link_elf : dl_iterate_phdr, dl_phdr_info, ElfW;
     version = LinuxOrBSD;
 }
 else version (Solaris)
 {
-    import core.sys.solaris.link;
+    import core.sys.solaris.link : dl_iterate_phdr, dl_phdr_info, ElfW;
     version = LinuxOrBSD;
 }
 
@@ -146,7 +146,9 @@ struct SharedObject
     char[] getPath(size_t N)(ref char[N] buffer) const
     if (N > 1)
     {
-        import core.stdc.stdio, core.stdc.string, core.sys.posix.unistd;
+        import core.stdc.stdio : fclose, fgets, fopen, snprintf, sscanf;
+        import core.stdc.string : strlen;
+        import core.sys.posix.unistd : getpid;
 
         char[N + 128] lineBuffer = void;
 
@@ -219,7 +221,7 @@ version (Linux_Use_GNU)
 {
     const(char)* getprogname()
     {
-        import core.sys.linux.errno;
+        import core.sys.linux.errno : program_invocation_name;
         return program_invocation_name;
     }
 }
@@ -230,7 +232,7 @@ else // Bionic, BSDs
 
 unittest
 {
-    import core.stdc.stdio;
+    import core.stdc.stdio : printf;
 
     char[512] buffer = void;
     foreach (object; SharedObjects)

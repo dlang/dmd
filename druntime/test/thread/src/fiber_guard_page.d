@@ -1,5 +1,5 @@
+import core.sys.posix.sys.mman : MAP_ANON, MAP_PRIVATE, mmap, PROT_READ, PROT_WRITE;
 import core.thread;
-import core.sys.posix.sys.mman;
 
 version (LDC) import ldc.attributes;
 else struct optStrategy { string a; }

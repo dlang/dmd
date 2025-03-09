@@ -108,7 +108,6 @@ else
 install: $(BUILD_EXE)
 	$(BUILD_EXE) man
 	$(BUILD_EXE) install INSTALL_DIR='$(if $(findstring $(OS),windows),$(shell cygpath -w '$(INSTALL_DIR)'),$(INSTALL_DIR))'
-	cp -r compiler/samples '$(INSTALL_DIR)'
 	mkdir -p '$(INSTALL_DIR)'/man
 	cp -r $(GENERATED)/docs/man/* '$(INSTALL_DIR)'/man/
 	$(QUIET)$(MAKE) -C druntime install INSTALL_DIR='$(INSTALL_DIR)'

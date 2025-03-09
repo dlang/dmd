@@ -1,0 +1,16 @@
+Initializing a field with itself has been deprecated
+
+This is to prevent a common mistake when a field and a parameter ought to have the same name,
+but one is misspelled where it's declared:
+
+---
+struct S
+{
+    int field;
+
+    this(int feild) // supposed to be: this(int field)
+    {
+        this.field = field; // equal to this.field = this.field
+    }
+}
+---

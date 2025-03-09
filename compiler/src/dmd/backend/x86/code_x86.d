@@ -2,7 +2,7 @@
  * Constants and data structures specific to the x86 platform.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/x86/code_x86.d, backend/code_x86.d)
@@ -294,11 +294,15 @@ enum
 
     CFSEG       = CFes | CFss | CFds | CFcs | CFfs | CFgs,
     CFPREFIX    = CFSEG | CFopsize | CFaddrsize,
+
+    // AArch64
+    CFadd       = 0x1000_0000,
+    CFfixup     = 0x2000_0000,   // needs a fixup
 }
 
 struct code
 {
-    code *next;
+    code* next;
     code_flags_t Iflags;
 
     union
@@ -355,6 +359,13 @@ struct code
             ubyte Isib;         // SIB byte
             ubyte Irex;         // REX prefix
         }
+        struct                  // AArch64 EA information
+        {
+            reg_t reg;          // EA is register
+            reg_t base;         // base register
+            reg_t index;        // index register
+            ubyte Sextend;      // S is bit 3, extend is bits 2..0
+        }
     }
 
     /* IFL1 and IEV1 are the first operand, which usually winds up being the offset to the Effective
@@ -362,7 +373,7 @@ struct code
      * operand, usually for immediate instructions.
      */
 
-    FL IFL1,IFL2;         // FLavors of 1st, 2nd operands
+    FL IFL1,IFL2;         // FL.avors of 1st, 2nd operands
     evc IEV1;             // 1st operand, if any
     evc IEV2;             // 2nd operand, if any
 
@@ -454,34 +465,38 @@ enum
 
     ASM     = SEGSS,   // string of asm bytes
 
-    //PSOP.root  = SEGDS,  // marker that special information is here
-                       // (Iop2 is the type of special information)
     ENDBR32 = 0xF30F1EFB,
     ENDBR64 = 0xF30F1EFA,
 }
 
 
 /* Pseudo instructions inserted into the code stream to trigger special
- * behaviors in the code generator
+ * behaviors in the code generator.
+ * Pick them so they are neither valid x86 nor AArch64 opcodes.
  */
-enum PSOP : ushort
+enum PSOP : uint
 {
-    root     = SEGDS,            // unused instruction used to identify a PSOP
-    mask     = 0xFF,             // used to determine if this is an actual PSOP
-    linnum   = (1 << 8)  | root, // line number information
-    ctor     = (2 << 8)  | root, // object is constructed
-    dtor     = (3 << 8)  | root, // object is destructed
-    mark     = (4 << 8)  | root, // mark eh stack
-    release  = (5 << 8)  | root, // release eh stack
-    offset   = (6 << 8)  | root, // set code offset for eh
-    adjesp   = (7 << 8)  | root, // adjust ESP by IEV2.Vint
-    mark2    = (8 << 8)  | root, // mark eh stack
-    release2 = (9 << 8)  | root, // release eh stack
-    frameptr = (10 << 8) | root, // replace with load of frame pointer
-    dctor    = (11 << 8) | root, // D object is constructed
-    ddtor    = (12 << 8) | root, // D object is destructed
-    adjfpu   = (13 << 8) | root, // adjust fpustackused by IEV2.Vint
-    fixesp   = (14 << 8) | root, // reset ESP to end of local frame
+    //uint Rt:5, Rn:5, op:6, root:16;
+    root     = 0x6100_0000,      // unused instruction used to identify a PSOP
+    mask     = 0xFFFF_0000,      // ((Iop & mask) == root) determines if this is a PSOP
+    operator = 0xFF00_0000 | (0x3F << 10),
+    linnum   = ( 1 << 10) | root, // line number information
+    ctor     = ( 2 << 10) | root, // object is constructed
+    dtor     = ( 3 << 10) | root, // object is destructed
+    mark     = ( 4 << 10) | root, // mark eh stack
+    release  = ( 5 << 10) | root, // release eh stack
+    offset   = ( 6 << 10) | root, // set code offset for eh
+    adjesp   = ( 7 << 10) | root, // adjust ESP by IEV2.Vint
+    mark2    = ( 8 << 10) | root, // mark eh stack
+    release2 = ( 9 << 10) | root, // release eh stack
+    frameptr = (10 << 10) | root, // replace with load of frame pointer
+    dctor    = (11 << 10) | root, // D object is constructed
+    ddtor    = (12 << 10) | root, // D object is destructed
+    adjfpu   = (13 << 10) | root, // adjust fpustackused by IEV2.Vint
+    fixesp   = (14 << 10) | root, // reset ESP to end of local frame
+    // bottom 10 bits gives us a place to put two reg_t numbers
+    ldr      = (15 << 10) | root, // load register from memory
+    str      = (16 << 10) | root, // store register into memory
 }
 
 /*********************************
@@ -550,7 +565,7 @@ bool ADDFWAIT() { return config.target_cpu <= TARGET_80286; }
 
 struct NDP
 {
-    elem *e;                    // which elem is stored here (NULL if none)
+    elem* e;                    // which elem is stored here (NULL if none)
     uint offset;            // offset from e (used for complex numbers)
 }
 

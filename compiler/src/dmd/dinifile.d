@@ -2,7 +2,7 @@
  * Parses compiler settings from a .ini file.
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dinifile.d, _dinifile.d)
@@ -91,7 +91,7 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
         {
             printf("\tPATH='%s'\n", p);
         }
-        auto abspath = FileName.searchPath(p, argv0, false);
+        const abspath = FileName.searchPath(p, argv0, false);
         if (abspath)
         {
             auto absname = FileName.replaceName(abspath, inifile);
@@ -372,8 +372,7 @@ bool parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, 
                     auto pns = cast(char*)Mem.check(strdup(pn));
                     if (!writeToEnv(environment, pns))
                     {
-                        const loc = Loc(filename.xarraydup.ptr, lineNum, 0); // TODO: use r-value when `error` supports it
-                        error(loc, "use `NAME=value` syntax, not `%s`", pn);
+                        error(filename.xarraydup.ptr, lineNum, 0, "use `NAME=value` syntax, not `%s`", pn);
                         return true;
                     }
                     static if (LOG)

@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#lazy-params, Lazy Parameters)
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/delegatize.d, _delegatize.d)
@@ -25,10 +25,10 @@ import dmd.init;
 import dmd.initsem;
 import dmd.location;
 import dmd.mtype;
-import dmd.postordervisitor;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
+import dmd.visitor.postorder;
 
 
 /*********************************
@@ -215,15 +215,13 @@ bool lambdaCheckForNestedRef(Expression e, Scope* sc)
 
         override void visit(SymOffExp e)
         {
-            VarDeclaration v = e.var.isVarDeclaration();
-            if (v)
+            if (VarDeclaration v = e.var.isVarDeclaration())
                 result = v.checkNestedReference(sc, Loc.initial);
         }
 
         override void visit(VarExp e)
         {
-            VarDeclaration v = e.var.isVarDeclaration();
-            if (v)
+            if (VarDeclaration v = e.var.isVarDeclaration())
                 result = v.checkNestedReference(sc, Loc.initial);
         }
 
@@ -235,8 +233,7 @@ bool lambdaCheckForNestedRef(Expression e, Scope* sc)
 
         override void visit(DeclarationExp e)
         {
-            VarDeclaration v = e.declaration.isVarDeclaration();
-            if (v)
+            if (VarDeclaration v = e.declaration.isVarDeclaration())
             {
                 result = v.checkNestedReference(sc, Loc.initial);
                 if (result)

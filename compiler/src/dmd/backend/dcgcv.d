@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dcgcv.d, backend/dcgcv.d)
@@ -45,7 +45,7 @@ nothrow:
 @safe:
 
 @trusted
-extern (C) void TOOFFSET(void* p, targ_size_t value)
+void TOOFFSET(void* p, targ_size_t value)
 {
     switch (_tysize[TYnptr])
     {
@@ -74,7 +74,7 @@ enum DEBTYPVECDIM = 16_001;   //8009 //3001     // dimension of debtypvec (shoul
 enum DEBTYPHASHDIM = 1009;
 private uint[DEBTYPHASHDIM] debtyphash;
 
-private OutBuffer *reset_symbuf; // Keep pointers to reset symbols
+private OutBuffer* reset_symbuf; // Keep pointers to reset symbols
 
 @trusted
 idx_t DEB_NULL() { return cgcv.deb_offset; }        // index of null debug type record
@@ -119,7 +119,7 @@ int cv_stringbytes(const(char)* name)
  */
 
 @trusted
-int cv_namestring(ubyte *p, const(char)* name, int length = -1)
+int cv_namestring(ubyte* p, const(char)* name, int length = -1)
 {
     size_t len = (length >= 0) ? length : strlen(name);
     if (config.fulltypes == CV8)
@@ -162,7 +162,7 @@ int cv_namestring(ubyte *p, const(char)* name, int length = -1)
  */
 
 @trusted
-private int cv_regnum(Symbol *s)
+private int cv_regnum(Symbol* s)
 {
     uint reg = s.Sreglsw;
     if (s.Sclass == SC.pseudo)
@@ -171,7 +171,7 @@ private int cv_regnum(Symbol *s)
     else
     {
         assert(reg < 8);
-        assert(s.Sfl == FLreg);
+        assert(s.Sfl == FL.reg);
         switch (type_size(s.Stype))
         {
             case LONGSIZE:
@@ -208,9 +208,9 @@ static if (0)
  * Allocate a debtyp_t.
  */
 @trusted
-debtyp_t * debtyp_alloc(uint length)
+debtyp_t* debtyp_alloc(uint length)
 {
-    debtyp_t *d;
+    debtyp_t* d;
     uint pad = 0;
 
     //printf("len = %u, x%x\n", length, length);
@@ -226,13 +226,13 @@ debtyp_t * debtyp_alloc(uint length)
     const len = debtyp_t.sizeof - (d.data).sizeof + length;
 debug
 {
-    d = cast(debtyp_t *) mem_malloc(len /*+ 1*/);
+    d = cast(debtyp_t*) mem_malloc(len /*+ 1*/);
     memset(d, 0xAA, len);
 //    (cast(char*)d)[len] = 0x2E;
 }
 else
 {
-    d = cast(debtyp_t *) malloc(debtyp_t.sizeof - (d.data).sizeof + length);
+    d = cast(debtyp_t*) malloc(debtyp_t.sizeof - (d.data).sizeof + length);
     if (!d)
         err_nomem();
 }
@@ -251,7 +251,7 @@ else
  */
 
 @trusted
-private void debtyp_free(debtyp_t *d)
+private void debtyp_free(debtyp_t* d)
 {
     //printf("debtyp_free(length = %d, %p)\n", d.length, d);
     //fflush(stdout);
@@ -271,7 +271,7 @@ else
 
 static if (0)
 {
-void debtyp_check(debtyp_t *d,int linnum)
+void debtyp_check(debtyp_t* d,int linnum)
 {   int i;
     __gshared char c;
 
@@ -296,7 +296,7 @@ void debtyp_check(debtyp_t* d) { }
  */
 
 @trusted
-idx_t cv_debtyp(debtyp_t *d)
+idx_t cv_debtyp(debtyp_t* d)
 {
     uint hashi;
 
@@ -362,14 +362,14 @@ idx_t cv_numdebtypes()
 
 @trusted
 void cv_init()
-{   debtyp_t *d;
+{   debtyp_t* d;
 
     //printf("cv_init()\n");
 
     // Initialize statics
     debtyp.setLength(0);
     if (!ftdbname)
-        ftdbname = cast(char *)"symc.tdb".ptr;
+        ftdbname = cast(char*)"symc.tdb".ptr;
 
     memset(&cgcv,0,cgcv.sizeof);
     cgcv.sz_idx = 2;
@@ -381,8 +381,8 @@ void cv_init()
 
     if (reset_symbuf)
     {
-        Symbol **p = cast(Symbol **)reset_symbuf.buf;
-        const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
+        Symbol** p = cast(Symbol**)reset_symbuf.buf;
+        const size_t n = reset_symbuf.length() / (Symbol*).sizeof;
         for (size_t i = 0; i < n; ++i)
             symbol_reset(*p[i]);
         reset_symbuf.reset();
@@ -461,7 +461,7 @@ void cv_init()
 
             default:
             {   const(char)* x = "1MYS";
-                cgcv.signature = *cast(int *) x;
+                cgcv.signature = *cast(int*) x;
                 break;
             }
         }
@@ -509,6 +509,8 @@ void cv_init()
             case TARGET_PentiumPro:
             case TARGET_PentiumII:
                                 debsym[4] = 6;  break;
+            case TARGET_AArch64:
+                                debsym[4] = 7;  break; // made that up
             default:    assert(0);
         }
         debsym[5] = (CPP != 0);         // 0==C, 1==C++
@@ -558,7 +560,7 @@ uint cv4_numericbytes(uint value)
  */
 
 @trusted
-void cv4_storenumeric(ubyte *p, uint value)
+void cv4_storenumeric(ubyte* p, uint value)
 {
     if (value < 0x8000)
         TOWORD(p,value);
@@ -569,7 +571,7 @@ void cv4_storenumeric(ubyte *p, uint value)
     }
     else
     {   TOWORD(p,LF_ULONG);
-        *cast(targ_ulong *)(p + 2) = cast(uint) value;
+        *cast(targ_ulong*)(p + 2) = cast(uint) value;
     }
 }
 
@@ -600,7 +602,7 @@ uint cv4_signednumericbytes(int value)
  *   value = value to store
  */
 @trusted
-void cv4_storesignednumeric(ubyte *p, int value)
+void cv4_storesignednumeric(ubyte* p, int value)
 {
     if (value >= 0 && value < 0x8000)
         TOWORD(p, value);
@@ -621,12 +623,12 @@ void cv4_storesignednumeric(ubyte *p, int value)
  */
 
 @trusted
-idx_t cv4_arglist(type *t,uint *pnparam)
+idx_t cv4_arglist(type* t,uint* pnparam)
 {   uint u;
     uint nparam;
     idx_t paramidx;
-    debtyp_t *d;
-    param_t *p;
+    debtyp_t* d;
+    param_t* p;
 
     // Compute nparam, number of parameters
     nparam = 0;
@@ -705,20 +707,20 @@ idx_t cv4_arglist(type *t,uint *pnparam)
  */
 
 @trusted
-idx_t cv4_struct(Classsym *s,int flags)
+idx_t cv4_struct(Classsym* s,int flags)
 {   targ_size_t size;
     debtyp_t* d,dt;
     uint len;
     uint nfields,fnamelen;
     idx_t typidx;
-    type *t;
-    struct_t *st;
+    type* t;
+    struct_t* st;
     const(char)* id;
     uint numidx;
     uint leaf;
     uint property;
     uint attribute;
-    ubyte *p;
+    ubyte* p;
     int refonly;
     int i;
     int count;                  // COUNT field in LF_CLASS
@@ -855,7 +857,7 @@ idx_t cv4_struct(Classsym *s,int flags)
     fnamelen = 2;
     count = nfields;
     foreach (sl; ListRange(st.Sfldlst))
-    {   Symbol *sf = list_symbol(sl);
+    {   Symbol* sf = list_symbol(sl);
         targ_size_t offset;
 
         symbol_debug(sf);
@@ -894,7 +896,7 @@ idx_t cv4_struct(Classsym *s,int flags)
     // And fill it in
     p += 2;
     foreach (sl; ListRange(s.Sstruct.Sfldlst))
-    {   Symbol *sf = list_symbol(sl);
+    {   Symbol* sf = list_symbol(sl);
         targ_size_t offset;
 
         symbol_debug(sf);
@@ -902,7 +904,7 @@ idx_t cv4_struct(Classsym *s,int flags)
         switch (sf.Sclass)
         {
             case SC.field:
-            {   debtyp_t *db;
+            {   debtyp_t* db;
 
                 if (config.fulltypes == CV4)
                 {   db = debtyp_alloc(6);
@@ -998,7 +1000,7 @@ private uint cv4_fwdenum(type* t)
  * Return 'calling convention' type of function.
  */
 
-ubyte cv4_callconv(type *t)
+ubyte cv4_callconv(type* t)
 {   ubyte call;
 
     switch (tybasic(t.Tty))
@@ -1024,7 +1026,7 @@ ubyte cv4_callconv(type *t)
 /**********************************************
  * Return type index for the type of a symbol.
  */
-private uint cv4_symtypidx(Symbol *s)
+private uint cv4_symtypidx(Symbol* s)
 {
     return cv4_typidx(s.Stype);
 }
@@ -1034,17 +1036,17 @@ private uint cv4_symtypidx(Symbol *s)
  */
 
 @trusted
-uint cv4_typidx(type *t)
+uint cv4_typidx(type* t)
 {   uint typidx;
     uint u;
     uint next;
     uint key;
-    debtyp_t *d;
+    debtyp_t* d;
     targ_size_t size;
     tym_t tym;
     tym_t tycv;
     tym_t tymnext;
-    type *tv;
+    type* tv;
     uint dt;
     uint attribute;
     ubyte call;
@@ -1358,7 +1360,7 @@ else
         case TYjfunc:
         case TYifunc:
         {
-            param_t *p;
+            param_t* p;
             uint nparam;
             idx_t paramidx;
 
@@ -1520,15 +1522,15 @@ else
  */
 
 @trusted
-private void cv4_outsym(Symbol *s)
+private void cv4_outsym(Symbol* s)
 {
     uint len;
-    type *t;
+    type* t;
     uint length;
     uint u;
     tym_t tym;
     const(char)* id;
-    ubyte *debsym = null;
+    ubyte* debsym = null;
     ubyte[64] buf = void;
 
     //printf("cv4_outsym(%s)\n",s.Sident.ptr);
@@ -1550,7 +1552,7 @@ private void cv4_outsym(Symbol *s)
 
         // Length of record
         length = 2 + 2 + 4 * 3 + _tysize[TYint] * 4 + 2 + cgcv.sz_idx + 1;
-        debsym = (length + len <= (buf).sizeof) ? buf.ptr : cast(ubyte *) malloc(length + len);
+        debsym = (length + len <= (buf).sizeof) ? buf.ptr : cast(ubyte*) malloc(length + len);
         if (!debsym)
             err_nomem();
         memset(debsym,0,length + len);
@@ -1623,25 +1625,25 @@ private void cv4_outsym(Symbol *s)
         typidx = cv4_typidx(t);
         id = s.prettyIdent ? s.prettyIdent : prettyident(s);
         len = cast(uint)strlen(id);
-        debsym = (39 + IDOHD + len <= (buf).sizeof) ? buf.ptr : cast(ubyte *) malloc(39 + IDOHD + len);
+        debsym = (39 + IDOHD + len <= (buf).sizeof) ? buf.ptr : cast(ubyte*) malloc(39 + IDOHD + len);
         if (!debsym)
             err_nomem();
         switch (s.Sclass)
         {
             case SC.parameter:
             case SC.regpar:
-                if (s.Sfl == FLreg)
+                if (s.Sfl == FL.reg)
                 {
-                    s.Sfl = FLpara;
+                    s.Sfl = FL.para;
                     cv4_outsym(s);
-                    s.Sfl = FLreg;
+                    s.Sfl = FL.reg;
                     goto case_register;
                 }
                 base = cgstate.Para.size - cgstate.BPoff;    // cancel out add of BPoff
                 goto L1;
 
             case SC.auto_:
-                if (s.Sfl == FLreg)
+                if (s.Sfl == FL.reg)
                     goto case_register;
             case_auto:
                 base = cgstate.Auto.size;
@@ -1667,14 +1669,14 @@ private void cv4_outsym(Symbol *s)
                 goto L1;
 
             case SC.fastpar:
-                if (s.Sfl != FLreg)
+                if (s.Sfl != FL.reg)
                 {   base = cgstate.Fast.size;
                     goto L1;
                 }
                 goto case_register;
 
             case SC.register:
-                if (s.Sfl != FLreg)
+                if (s.Sfl != FL.reg)
                     goto case_auto;
                 goto case_register;
 
@@ -1760,10 +1762,8 @@ private void cv4_outsym(Symbol *s)
                  */
                 assert(length <= 0x1000);
                 if (idx2 != 0)
-                {   uint offset = cast(uint)Offset(DEBSYM);
-                    objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
-                    objmod.write_long(DEBSYM,offset + fixoff,cast(uint)s.Soffset,
-                        cgcv.LCFDpointer + fd,idx1,idx2);
+                {
+                    assert(0);
                 }
                 goto Lret;
 
@@ -1792,7 +1792,7 @@ static if (1)
 
             case SC.const_:
                 // The only constants are enum members
-                value = cast(uint)el_tolongt(s.Svalue);
+                value = cast(uint)el_tolong(s.Svalue);
                 TOWORD(debsym + 2,S_CONST);
                 TOIDX(debsym + 4,typidx);
                 length = 4 + cgcv.sz_idx;
@@ -1821,7 +1821,7 @@ Lret:
 private void cv_outlist()
 {
     while (cgcv.list)
-        cv_outsym(cast(Symbol *) list_pop(&cgcv.list));
+        cv_outsym(cast(Symbol*) list_pop(&cgcv.list));
 }
 
 /******************************************
@@ -1829,7 +1829,7 @@ private void cv_outlist()
  */
 
 @trusted
-private void cv4_func(Funcsym *s, ref symtab_t symtab)
+private void cv4_func(Funcsym* s, ref symtab_t symtab)
 {
     int endarg;
 
@@ -2085,9 +2085,9 @@ void cv_term()
             if (debtyp.length != 1 || config.fulltypes == CV8)
             {
                 for (uint u = 0; u < debtyp.length; u++)
-                {   debtyp_t *d = debtyp[u];
+                {   debtyp_t* d = debtyp[u];
 
-                    objmod.write_bytes(SegData[typeseg],(cast(void *)d)[uint.sizeof .. uint.sizeof + 2 + d.length]);
+                    objmod.write_bytes(SegData[typeseg],(cast(void*)d)[uint.sizeof .. uint.sizeof + 2 + d.length]);
                     debtyp_free(d);
                 }
             }
@@ -2112,7 +2112,7 @@ void cv_term()
  */
 
 @trusted
-void cv_func(Funcsym *s)
+void cv_func(Funcsym* s)
 {
 
     //printf("cv_func('%s')\n",s.Sident.ptr);
@@ -2137,7 +2137,7 @@ void cv_func(Funcsym *s)
  */
 
 @trusted
-void cv_outsym(Symbol *s)
+void cv_outsym(Symbol* s)
 {
     //printf("cv_outsym('%s')\n",s.Sident.ptr);
     symbol_debug(s);
@@ -2165,7 +2165,7 @@ void cv_outsym(Symbol *s)
  */
 
 @trusted
-uint cv_typidx(type *t)
+uint cv_typidx(type* t)
 {   uint ti;
 
     //printf("cv_typidx(%p)\n",t);

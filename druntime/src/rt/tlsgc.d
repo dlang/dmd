@@ -13,9 +13,9 @@
  */
 module rt.tlsgc;
 
-import core.stdc.stdlib;
-
-static import rt.lifetime, rt.sections;
+import core.exception : onOutOfMemoryError;
+import core.stdc.stdlib : free, malloc;
+static import rt.sections;
 
 /**
  * Per thread record to store thread associated data for garbage collection.
@@ -23,7 +23,6 @@ static import rt.lifetime, rt.sections;
 struct Data
 {
     typeof(rt.sections.initTLSRanges()) tlsRanges;
-    rt.lifetime.BlkInfo** blockInfoCache;
 }
 
 /**
@@ -33,14 +32,11 @@ struct Data
 void* init() nothrow @nogc
 {
     auto data = cast(Data*).malloc(Data.sizeof);
-    import core.exception;
-    if ( data is null ) core.exception.onOutOfMemoryError();
+    if ( data is null ) onOutOfMemoryError();
     *data = Data.init;
 
     // do module specific initialization
     data.tlsRanges = rt.sections.initTLSRanges();
-    data.blockInfoCache = &rt.lifetime.__blkcache_storage;
-
     return data;
 }
 
@@ -66,17 +62,4 @@ void scan(void* data, scope ScanDg dg) nothrow
 {
     // do module specific marking
     rt.sections.scanTLSRanges((cast(Data*)data).tlsRanges, dg);
-}
-
-alias int delegate(void* addr) nothrow IsMarkedDg;
-
-/**
- * GC sweep hook, called FOR each thread. Can be used to free
- * additional thread local memory or associated data structures. Note
- * that only memory allocated from the GC can have marks.
- */
-void processGCMarks(void* data, scope IsMarkedDg dg) nothrow
-{
-    // do module specific sweeping
-    rt.lifetime.processGCMarks(*(cast(Data*)data).blockInfoCache, dg);
 }

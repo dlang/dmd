@@ -1,7 +1,7 @@
 /**
  * Glue code for Objective-C interop.
  *
- * Copyright:   Copyright (C) 2015-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/objc_glue.d, _objc_glue.d)
@@ -557,7 +557,7 @@ static:
 
         // create data
         auto dtb = DtBuilder(0);
-        dtb.nbytes(cast(uint) (str.length + 1), str.toStringz());
+        dtb.nbytes(str.toStringz()[0 .. str.length + 1]);
 
         // find segment
         auto seg = Segments[segment];
@@ -604,8 +604,8 @@ static:
     {
         if (hasHiddenArgument)
             return setMsgSendSymbol!("_objc_msgSendSuper_stret")(TYhfunc);
-        else
-            return setMsgSendSymbol!("_objc_msgSendSuper")(TYnfunc);
+
+        return setMsgSendSymbol!("_objc_msgSendSuper")(TYnfunc);
     }
 
     Symbol* getImageInfo()
@@ -877,7 +877,7 @@ static:
         if (!symbol)
         {
             symbol = getGlobal(name);
-            symbol.Sfl |= FLextern;
+            symbol.Sfl |= FL.extern_;
             stringValue.value = symbol;
         }
 
@@ -889,7 +889,7 @@ static:
 
         symbol.Sdt = dtb.finish();
         symbol.Sseg = Segments[Segments.Id.ivar];
-        symbol.Sfl &= ~FLextern;
+        symbol.Sfl &= ~cast(int)FL.extern_; // FIXME: this is likely a bug, FL is not a bit flag
 
         outdata(symbol);
 
@@ -1209,12 +1209,11 @@ private:
         if (var.toParent() is classDeclaration)
             return Symbols.getIVarOffset(classDeclaration, var, false);
 
-        else if (classDeclaration.baseClass)
+        if (classDeclaration.baseClass)
             return ObjcClassDeclaration(classDeclaration.baseClass, false)
                 .getIVarOffset(var);
 
-        else
-            assert(false, "Trying to get the base class of a root class");
+        assert(false, "Trying to get the base class of a root class");
     }
 
     /**

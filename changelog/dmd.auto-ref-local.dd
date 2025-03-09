@@ -1,0 +1,19 @@
+Storage classes `ref` and `auto ref` can now be applied to local, static, extern, and global variables
+
+For example, one can now write:
+```
+struct S { int a; }
+
+void main()
+{
+    S s;
+    ref int r = s.a;
+    r = 3;
+    assert(s.a == 3);
+
+    auto ref x = 0;
+    auto ref y = x;
+    static assert(!__traits(isRef, x));
+    static assert( __traits(isRef, y));
+}
+```

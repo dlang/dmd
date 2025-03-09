@@ -1,6 +1,5 @@
 import core.runtime;
-import core.stdc.stdio;
-import core.stdc.string;
+import core.stdc.string : strrchr;
 import core.thread;
 
 void runTest()
@@ -33,7 +32,7 @@ extern (C) alias SetFinalizeCounter = void function(shared(size_t*));
 
 void main(string[] args)
 {
-    import utils : dllExt, loadSym;
+    import utils : dllExt, isDlcloseNoop, loadSym;
 
     auto name = args[0] ~ '\0';
     const pathlen = strrchr(name.ptr, '/') - name.ptr + 1;
@@ -45,7 +44,7 @@ void main(string[] args)
     auto nf1 = new NoFinalize;
     auto nf2 = new NoFinalizeBig;
 
-    shared size_t finalizeCounter;
+    static shared size_t finalizeCounter;
     SetFinalizeCounter setFinalizeCounter;
     loadSym(h, setFinalizeCounter, "setFinalizeCounter");
     setFinalizeCounter(&finalizeCounter);
@@ -58,8 +57,11 @@ void main(string[] args)
     auto r = Runtime.unloadLibrary(h);
     if (!r)
         assert(0);
-    if (finalizeCounter != 4)
-        assert(0);
+    static if (!isDlcloseNoop)
+    {
+        if (finalizeCounter != 4)
+            assert(0);
+    }
     if (nf1._finalizeCounter)
         assert(0);
     if (nf2._finalizeCounter)

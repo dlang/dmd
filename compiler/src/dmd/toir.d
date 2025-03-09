@@ -1,7 +1,7 @@
 /**
  * Convert to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
@@ -37,7 +37,6 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.dclass;
 import dmd.declaration;
-import dmd.dmangle;
 import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
@@ -53,6 +52,7 @@ import dmd.identifier;
 import dmd.id;
 import dmd.location;
 import dmd.mtype;
+import dmd.semantic3 : checkClosure;
 import dmd.typesem;
 import dmd.target;
 import dmd.tocvdebug;
@@ -64,7 +64,7 @@ import dmd.tocsym;
 
 struct Label
 {
-    block *lblock;      // The block to which the label is defined.
+    block* lblock;      // The block to which the label is defined.
 }
 
 /***********************************************************
@@ -119,31 +119,25 @@ struct IRState
     {
         if (m.filetype == FileType.c)
             return false;
-        bool result;
         final switch (params.useArrayBounds)
         {
         case CHECKENABLE.off:
-            result = false;
-            break;
+            return false;
         case CHECKENABLE.on:
-            result = true;
-            break;
+            return true;
         case CHECKENABLE.safeonly:
             {
-                result = false;
-                FuncDeclaration fd = getFunc();
-                if (fd)
+                if (FuncDeclaration fd = getFunc())
                 {
                     Type t = fd.type;
                     if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
-                        result = true;
+                        return true;
                 }
-                break;
+                return false;
             }
         case CHECKENABLE._default:
             assert(0);
         }
-        return result;
     }
 
     /****************************
@@ -168,7 +162,7 @@ struct IRState
  * References:
  * https://dlang.org/dmd-windows.html#switch-cov
  */
-extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc)
+extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
 {
     uint linnum = loc.linnum;
 
@@ -193,7 +187,7 @@ extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc)
 
     /* Generate: *(m.cov + linnum * 4) += 1
      */
-    elem *e;
+    elem* e;
     e = el_ptr(m.cov);
     e = el_bin(OPadd, TYnptr, e, el_long(TYuint, linnum * 4));
     e = el_una(OPind, TYuint, e);
@@ -209,9 +203,9 @@ extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc)
  * 'origSc' is the original scope we inlined from.
  * This routine is critical for implementing nested functions.
  */
-elem *getEthis(const ref Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null)
+elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null)
 {
-    elem *ethis;
+    elem* ethis;
     FuncDeclaration thisfd = irs.getFunc();
     Dsymbol ctxt0 = fdp ? fdp : fd;                     // follow either of these two
     Dsymbol ctxt1 = origSc ? origSc.toParent2() : null; // contexts from template arguments
@@ -288,7 +282,7 @@ elem *getEthis(const ref Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = nul
                     /* https://issues.dlang.org/show_bug.cgi?id=7517: If fdp is declared in interface, offset the
                      * 'this' pointer to get correct interface type reference.
                      */
-                    Symbol *stmp = symbol_genauto(TYnptr);
+                    Symbol* stmp = symbol_genauto(TYnptr);
                     ethis = el_bin(OPadd, TYnptr, el_var(irs.sthis), el_long(TYsize_t, offset));
                     ethis = el_bin(OPeq, TYnptr, el_var(stmp), ethis);
                     ethis = el_combine(ethis, el_ptr(stmp));
@@ -424,7 +418,7 @@ elem *getEthis(const ref Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = nul
  * Returns:
  *      *(ethis + offset);
  */
-elem *fixEthis2(elem *ethis, FuncDeclaration fd, bool ctxt2 = false)
+elem* fixEthis2(elem* ethis, FuncDeclaration fd, bool ctxt2 = false)
 {
     if (fd && fd.hasDualContext())
     {
@@ -441,9 +435,9 @@ elem *fixEthis2(elem *ethis, FuncDeclaration fd, bool ctxt2 = false)
  * Returns:
  *      *(ey + (ethis2 ? ad.vthis2 : ad.vthis).offset) = this;
  */
-elem *setEthis(const ref Loc loc, ref IRState irs, elem *ey, AggregateDeclaration ad, bool setthis2 = false)
+elem* setEthis(Loc loc, ref IRState irs, elem* ey, AggregateDeclaration ad, bool setthis2 = false)
 {
-    elem *ethis;
+    elem* ethis;
     FuncDeclaration thisfd = irs.getFunc();
     int offset = 0;
     Dsymbol adp = setthis2 ? ad.toParent2(): ad.toParentLocal();     // class/func we're nested in
@@ -630,15 +624,15 @@ Lva_start:
  * Returns:
  *      expression that initializes 'length'
  */
-elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
+elem* resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
 {
     //printf("resolveLengthVar()\n");
-    elem *einit = null;
+    elem* einit = null;
 
     if (lengthVar && !(lengthVar.storage_class & STC.const_))
     {
-        elem *elength;
-        Symbol *slength;
+        elem* elength;
+        Symbol* slength;
 
         if (t1.ty == Tsarray)
         {
@@ -818,19 +812,19 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
         //printf("FuncDeclaration.buildClosure() %s\n", fd.toChars());
 
         /* Generate type name for closure struct */
-        const char *name1 = "CLOSURE.";
-        const char *name2 = fd.toPrettyChars();
+        const char* name1 = "CLOSURE.";
+        const char* name2 = fd.toPrettyChars();
         size_t namesize = strlen(name1)+strlen(name2)+1;
-        char *closname = cast(char *)Mem.check(calloc(namesize, char.sizeof));
+        char* closname = cast(char *)Mem.check(calloc(namesize, char.sizeof));
         strcat(strcat(closname, name1), name2);
 
         /* Build type for closure */
-        type *Closstru = type_struct_class(closname, target.ptrsize, 0, null, null, false, false, true, false);
+        type* Closstru = type_struct_class(closname, target.ptrsize, 0, null, null, false, false, true, false);
         free(closname);
         auto chaintype = getParentClosureType(irs.sthis, fd);
         symbol_struct_addField(*Closstru.Ttag, "__chain", chaintype, 0);
 
-        Symbol *sclosure;
+        Symbol* sclosure;
         sclosure = symbol_name("__closptr", SC.auto_, type_pointer(Closstru));
         sclosure.Sflags |= SFLtrue | SFLfree;
         symbol_add(sclosure);
@@ -862,7 +856,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
             }
 
             /* Set Sscope to closure */
-            Symbol *vsym = toSymbol(v);
+            Symbol* vsym = toSymbol(v);
             assert(vsym.Sscope == null);
             vsym.Sscope = sclosure;
 
@@ -897,7 +891,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
             structsize += aggAlignment - GC_ALIGN;
 
         // Allocate memory for the closure
-        elem *e = el_long(TYsize_t, structsize);
+        elem* e = el_long(TYsize_t, structsize);
         e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM.ALLOCMEMORY)), e);
         toTraceGC(irs, e, fd.loc);
 
@@ -915,12 +909,12 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
 
         // Set the first element to sthis
         //    *(sclosure + 0) = sthis;
-        elem *ethis;
+        elem* ethis;
         if (irs.sthis)
             ethis = el_var(irs.sthis);
         else
             ethis = el_long(TYnptr, 0);
-        elem *ex = el_una(OPind, TYnptr, el_var(sclosure));
+        elem* ex = el_una(OPind, TYnptr, el_var(sclosure));
         ex = el_bin(OPeq, TYnptr, ex, ethis);
         e = el_combine(e, ex);
 
@@ -942,7 +936,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
                 tym = TYdelegate;
             ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYsize_t, v.offset));
             ex = el_una(OPind, tym, ex);
-            elem *ev = el_var(toSymbol(v));
+            elem* ev = el_var(toSymbol(v));
             if (x64ref)
             {
                 ev.Ety = TYnref;
@@ -952,7 +946,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
             }
             if (tybasic(ex.Ety) == TYstruct || tybasic(ex.Ety) == TYarray)
             {
-                .type *t = Type_toCtype(v.type);
+                .type* t = Type_toCtype(v.type);
                 ex.ET = t;
                 ex = el_bin(OPstreq, tym, ex, ev);
                 ex.ET = t;
@@ -1068,17 +1062,17 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
     auto aggAlignment = setAlignSectionVarOffset(fd);
 
     /* Generate type name for align closure struct */
-    const char *name1 = "ALIGNSECTION.";
-    const char *name2 = fd.toPrettyChars();
+    const char* name1 = "ALIGNSECTION.";
+    const char* name2 = fd.toPrettyChars();
     size_t namesize = strlen(name1)+strlen(name2)+1;
-    char *closname = cast(char *)Mem.check(calloc(namesize, char.sizeof));
+    char* closname = cast(char *)Mem.check(calloc(namesize, char.sizeof));
     strcat(strcat(closname, name1), name2);
 
     /* Build type for aligned section */
-    type *Closstru = type_struct_class(closname, stackAlign, 0, null, null, false, false, true, false);
+    type* Closstru = type_struct_class(closname, stackAlign, 0, null, null, false, false, true, false);
     free(closname);
 
-    Symbol *sclosure;
+    Symbol* sclosure;
     type* t = type_pointer(Closstru);
     type_setcv(&t, t.Tty | mTYvolatile);        // so optimizer doesn't delete it
     sclosure = symbol_name("__alignsecptr", SC.auto_, t);
@@ -1094,7 +1088,7 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
         if (log) printf("align section var %s\n", v.toChars());
         v.inAlignSection = true;
 
-        Symbol *vsym = toSymbol(v);
+        Symbol* vsym = toSymbol(v);
         assert(vsym.Sscope == null);
         vsym.Sscope = sclosure;
 
@@ -1124,11 +1118,11 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
         toDebugClosure(Closstru.Ttag);
 
     // Create Symbol that is an instance of the align closure
-    Symbol *salignSectionInstance = symbol_name("__alignsec", SC.auto_, Closstru);
+    Symbol* salignSectionInstance = symbol_name("__alignsec", SC.auto_, Closstru);
     salignSectionInstance.Sflags |= SFLtrue | SFLfree;
     symbol_add(salignSectionInstance);
 
-    elem *e = el_ptr(salignSectionInstance);
+    elem* e = el_ptr(salignSectionInstance);
 
     /* Align it
      * e + (aggAlignment - 1) & ~(aggAlignment - 1)
@@ -1160,19 +1154,19 @@ void buildCapture(FuncDeclaration fd)
     if (fd.closureVars.length && !fd.needsClosure)
     {
         /* Generate type name for struct with captured variables */
-        const char *name1 = "CAPTURE.";
-        const char *name2 = fd.toPrettyChars();
+        const char* name1 = "CAPTURE.";
+        const char* name2 = fd.toPrettyChars();
         size_t namesize = strlen(name1)+strlen(name2)+1;
-        char *capturename = cast(char *)Mem.check(calloc(namesize, char.sizeof));
+        char* capturename = cast(char *)Mem.check(calloc(namesize, char.sizeof));
         strcat(strcat(capturename, name1), name2);
 
         /* Build type for struct */
-        type *capturestru = type_struct_class(capturename, target.ptrsize, 0, null, null, false, false, true, false);
+        type* capturestru = type_struct_class(capturename, target.ptrsize, 0, null, null, false, false, true, false);
         free(capturename);
 
         foreach (v; fd.closureVars)
         {
-            Symbol *vsym = toSymbol(v);
+            Symbol* vsym = toSymbol(v);
 
             /* Add variable as capture type member */
             auto soffset = vsym.Soffset;
@@ -1183,7 +1177,7 @@ void buildCapture(FuncDeclaration fd)
         }
 
         // generate pseudo symbol to put into functions' Sscope
-        Symbol *scapture = symbol_name("__captureptr", SC.alias_, type_pointer(capturestru));
+        Symbol* scapture = symbol_name("__captureptr", SC.alias_, type_pointer(capturestru));
         scapture.Sflags |= SFLtrue | SFLfree;
         //symbol_add(scapture);
         fd.csym.Sscope = scapture;

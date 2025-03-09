@@ -8,7 +8,26 @@
  */
 module rt.monitor_;
 
-import core.atomic, core.stdc.stdlib, core.stdc.string;
+import core.atomic;
+import core.stdc.stdlib : calloc, free, realloc;
+import core.stdc.string : memmove;
+
+version (Windows)
+{
+    import core.sys.windows.winbase /+: CRITICAL_SECTION, DeleteCriticalSection,
+        EnterCriticalSection, InitializeCriticalSection, LeaveCriticalSection+/;
+}
+else version (Posix)
+{
+    import core.sys.posix.pthread : pthread_mutex_destroy, pthread_mutex_init, pthread_mutex_lock,
+        PTHREAD_MUTEX_RECURSIVE, pthread_mutex_unlock, pthread_mutexattr_destroy, pthread_mutexattr_init,
+        pthread_mutexattr_settype;
+    import core.sys.posix.sys.types : pthread_mutex_t, pthread_mutexattr_t;
+}
+else
+{
+    static assert(0, "Unsupported platform");
+}
 
 // NOTE: The dtor callback feature is only supported for monitors that are not
 //       supplied by the user.  The assumption is that any object with a user-
@@ -27,7 +46,7 @@ do
     auto m = ensureMonitor(cast(Object) owner);
     if (m.impl is null)
     {
-        atomicOp!("+=")(m.refs, cast(size_t) 1);
+        atomicOp!"+="(m.refs, size_t(1));
     }
     // Assume the monitor is garbage collected and simply copy the reference.
     ownee.__monitor = owner.__monitor;
@@ -44,7 +63,7 @@ extern (C) void _d_monitordelete(Object h, bool det)
         // let the GC collect the monitor
         setMonitor(h, null);
     }
-    else if (!atomicOp!("-=")(m.refs, cast(size_t) 1))
+    else if (!atomicOp!"-="(m.refs, size_t(1)))
     {
         // refcount == 0 means unshared => no synchronization required
         disposeEvent(cast(Monitor*) m, h);
@@ -65,7 +84,7 @@ extern (C) void _d_monitordelete_nogc(Object h) @nogc nothrow
         // let the GC collect the monitor
         setMonitor(h, null);
     }
-    else if (!atomicOp!("-=")(m.refs, cast(size_t) 1))
+    else if (!atomicOp!"-="(m.refs, size_t(1)))
     {
         // refcount == 0 means unshared => no synchronization required
         deleteMonitor(cast(Monitor*) m);
@@ -173,9 +192,6 @@ alias DEvent = void delegate(Object);
 
 version (Windows)
 {
-    import core.sys.windows.winbase /+: CRITICAL_SECTION, DeleteCriticalSection,
-        EnterCriticalSection, InitializeCriticalSection, LeaveCriticalSection+/;
-
     alias Mutex = CRITICAL_SECTION;
 
     alias initMutex = InitializeCriticalSection;
@@ -185,8 +201,6 @@ version (Windows)
 }
 else version (Posix)
 {
-    import core.sys.posix.pthread;
-
 @nogc:
     alias Mutex = pthread_mutex_t;
     __gshared pthread_mutexattr_t gattr;
@@ -211,10 +225,6 @@ else version (Posix)
         pthread_mutex_unlock(mtx) && assert(0);
     }
 }
-else
-{
-    static assert(0, "Unsupported platform");
-}
 
 struct Monitor
 {
@@ -226,12 +236,14 @@ struct Monitor
 
 private:
 
+__gshared Mutex gmtx;
+
 @property ref shared(Monitor*) monitor(return scope Object h) pure nothrow @nogc
 {
     return *cast(shared Monitor**)&h.__monitor;
 }
 
-private shared(Monitor)* getMonitor(Object h) pure @nogc
+shared(Monitor)* getMonitor(Object h) pure @nogc
 {
     return atomicLoad!(MemoryOrder.acq)(h.monitor);
 }
@@ -240,8 +252,6 @@ void setMonitor(Object h, shared(Monitor)* m) pure @nogc
 {
     atomicStore!(MemoryOrder.rel)(h.monitor, m);
 }
-
-__gshared Mutex gmtx;
 
 shared(Monitor)* ensureMonitor(Object h)
 {

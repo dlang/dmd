@@ -337,6 +337,13 @@ The following is a list of all available settings:
                                             of -Xi (see test/tools/sanitize_json.d)
                                             arguments: none
 
+                        - sanitize_timetrace: Parse output of -ftime-trace profiling data,
+                                            extract event name / detail strings, and sort them.
+                                            Raw profiler output can't be tested against because it
+                                            contains non-deterministic timing data, or implementation
+                                            details such as semantic analysis order and memory usage,
+                                            so use this when writing a test for -ftime-trace.
+
                         - remove_lines:     Remove lines matching a given regex
                                             arguments: the regex
                                             note: patterns containing ')' must be quoted

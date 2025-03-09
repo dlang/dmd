@@ -432,6 +432,14 @@ else version (CRuntime_Musl)
         }
         alias ushort fexcept_t;
     }
+    else version (LoongArch64)
+    {
+        struct fenv_t
+        {
+            uint __cw;
+        }
+        alias uint fexcept_t;
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -959,7 +967,7 @@ version (CRuntime_Microsoft) // supported since MSVCRT 12 (VS 2013) only
             double num;
             double denom;
         }
-        static __gshared immutable(Entry[5]) table =
+        static immutable Entry[5] table =
         [ // Raise exception by evaluating num / denom:
             { FE_INVALID,   0.0,    0.0    },
             { FE_DIVBYZERO, 1.0,    0.0    },

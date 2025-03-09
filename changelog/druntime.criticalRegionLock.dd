@@ -1,0 +1,5 @@
+Remove `criticalRegionLock`
+
+The `criticalRegionLock` feature suffer from a serious design flaw: $(LINK https://issues.dlang.org/show_bug.cgi?id=24741)
+
+It turns out it is not used, so rather than fixing the flaw, the feature was removed.

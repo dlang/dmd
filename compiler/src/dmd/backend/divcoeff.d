@@ -5,7 +5,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2013-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2013-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/divcoeff.d, backend/divcoeff.d)
@@ -45,7 +45,7 @@ bool XltY128(ullong xh, ullong xl, ullong yh, ullong yl)
     return xh < yh || (xh == yh && xl < yl);
 }
 
-void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong *pqh, ullong *pql)
+void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong* pqh, ullong* pql)
 {
     /* Use auld skool shift & subtract algorithm.
      * Not very efficient.
@@ -117,7 +117,7 @@ void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong *pqh, ullong *pq
  */
 
 @trusted
-extern (C) bool choose_multiplier(int N, ullong d, int prec, ullong *pm, int *pshpost)
+bool choose_multiplier(int N, ullong d, int prec, ullong* pm, int* pshpost)
 {
     assert(N == 32 || N == 64);
     assert(prec <= N);
@@ -233,7 +233,7 @@ extern (C) bool choose_multiplier(int N, ullong d, int prec, ullong *pm, int *ps
  *              q = SRL(MULUH(m, SRL(n, shpre)), shpost)
  */
 
-extern (C) bool udiv_coefficients(int N, ullong d, int *pshpre, ullong *pm, int *pshpost)
+bool udiv_coefficients(int N, ullong d, int* pshpre, ullong* pm, int* pshpost)
 {
     bool mhighbit = choose_multiplier(N, d, N, pm, pshpost);
     if (mhighbit && (d & 1) == 0)

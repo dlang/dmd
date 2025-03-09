@@ -245,7 +245,7 @@ unittest
     import dmd.errors;
 
     const(char)[][2][] diagnosticMessages;
-    nothrow bool diagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
+    nothrow bool diagnosticHandler(const ref SourceLoc loc, Color headerColor, const(char)* header,
                                    const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
     {
         OutBuffer tmp;

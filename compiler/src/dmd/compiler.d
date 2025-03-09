@@ -1,7 +1,7 @@
 /**
  * Describes a back-end compiler and implements compiler-specific actions.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/compiler.d, _compiler.d)
@@ -138,7 +138,7 @@ extern (C++) struct Compiler
      */
     extern(C++) static bool onImport(Module m)
     {
-        if (includeImports && m.filetype == FileType.d)
+        if (includeImports && (m.filetype == FileType.d || m.filetype == FileType.c))
         {
             if (includeImportedModuleCheck(ModuleComponentRange(
                 m.md ? m.md.packages : [], m.ident, m.isPackageFile)))
@@ -164,14 +164,14 @@ extern (C++) struct Compiler
          * semantic analysis of a statement when importing DMD as a library
          */
         __gshared OnStatementSemanticStart onStatementSemanticStart
-                    = function void(Statement s, Scope *sc) {};
+                    = function void(Statement s, Scope* sc) {};
 
         /**
          * Used to insert functionality after the end of the
          * semantic analysis of a statement when importing DMD as a library
          */
         __gshared OnStatementSemanticDone onStatementSemanticDone
-                    = function void(Statement s, Scope *sc) {};
+                    = function void(Statement s, Scope* sc) {};
     }
 }
 
@@ -194,8 +194,7 @@ private struct ModuleComponentRange
             return packages[index];
         if (index == packages.length)
             return name;
-        else
-            return Identifier.idPool("package");
+        return Identifier.idPool("package");
     }
     void popFront() @safe { index++; }
 }
@@ -299,38 +298,36 @@ private void createMatchNodes()
         return index;
     }
 
-    if (matchNodes.length == 0)
+    if (matchNodes.length != 0)
+        return;
+    foreach (modulePattern; includeModulePatterns)
     {
-        foreach (modulePattern; includeModulePatterns)
+        const depth = parseModulePatternDepth(modulePattern[0 .. strlen(modulePattern)]);
+        const entryIndex = findSortedIndexToAddForDepth(depth);
+        matchNodes.split(entryIndex, depth + 1);
+        parseModulePattern(modulePattern, &matchNodes[entryIndex], depth);
+        // if at least 1 "include pattern" is given, then it is assumed the
+        // user only wants to include modules that were explicitly given, which
+        // changes the default behavior from inclusion to exclusion.
+        if (includeByDefault && !matchNodes[entryIndex].isExclude)
         {
-            auto depth = parseModulePatternDepth(modulePattern[0 .. strlen(modulePattern)]);
-            auto entryIndex = findSortedIndexToAddForDepth(depth);
-            matchNodes.split(entryIndex, depth + 1);
-            parseModulePattern(modulePattern, &matchNodes[entryIndex], depth);
-            // if at least 1 "include pattern" is given, then it is assumed the
-            // user only wants to include modules that were explicitly given, which
-            // changes the default behavior from inclusion to exclusion.
-            if (includeByDefault && !matchNodes[entryIndex].isExclude)
-            {
-                //printf("Matcher: found 'include pattern', switching default behavior to exclusion\n");
-                includeByDefault = false;
-            }
-        }
-
-        // Add the default 1 depth matchers
-        MatcherNode[8] defaultDepth1MatchNodes = [
-            MatcherNode(true, 1), MatcherNode(Id.std),
-            MatcherNode(true, 1), MatcherNode(Id.core),
-            MatcherNode(true, 1), MatcherNode(Id.etc),
-            MatcherNode(true, 1), MatcherNode(Id.object),
-        ];
-        {
-            auto index = findSortedIndexToAddForDepth(1);
-            matchNodes.split(index, defaultDepth1MatchNodes.length);
-            auto slice = matchNodes[];
-            slice[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
+             //printf("Matcher: found 'include pattern', switching default behavior to exclusion\n");
+            includeByDefault = false;
         }
     }
+
+    // Add the default 1 depth matchers
+    MatcherNode[8] defaultDepth1MatchNodes = [
+         MatcherNode(true, 1), MatcherNode(Id.std),
+        MatcherNode(true, 1), MatcherNode(Id.core),
+        MatcherNode(true, 1), MatcherNode(Id.etc),
+        MatcherNode(true, 1), MatcherNode(Id.object),
+    ];
+
+    const index = findSortedIndexToAddForDepth(1);
+    matchNodes.split(index, defaultDepth1MatchNodes.length);
+    auto slice = matchNodes[];
+    slice[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
 }
 
 /*
@@ -344,7 +341,7 @@ pure @safe
 private ushort parseModulePatternDepth(const char[] modulePattern)
 {
     const length = modulePattern.length;
-    size_t i = (length && modulePattern[0] == '-'); // skip past leading '-'
+    size_t i = length && modulePattern[0] == '-'; // skip past leading '-'
 
     // handle special case
     if (i + 1 == length && modulePattern[i] == '.')

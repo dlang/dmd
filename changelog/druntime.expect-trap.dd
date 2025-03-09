@@ -1,0 +1,7 @@
+Adds `expect`, `likely`, `unlikely`, and `trap` to `core.builtins`
+
+Adds the functions `expect` and `likely`/`unlikely` for branch and value hints for the LDC/GDC compilers.
+DMD ignores these hints.
+
+Adds the function `trap` to be lowered to the target-dependent trap instruction.
+If the target does not have a trap instruction, this intrinsic will be lowered to a call of the `abort` function.

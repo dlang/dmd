@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2013-2025 by The D Language Foundation, All Rights Reserved
  * written by Iain Buclaw
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -156,6 +156,7 @@ struct Target
 
     DString architectureName;    // name of the platform architecture (e.g. X86_64)
     CPU cpu;                // CPU instruction set to target
+    d_bool isAArch64;         // generate 64 bit Arm code
     d_bool isX86_64;          // generate 64 bit code for x86_64; true by default for 64 bit dmd
     d_bool isX86;             // generate 32 bit Intel x86 code
     d_bool isLP64;            // pointers are 64 bits
@@ -196,7 +197,7 @@ public:
     // Type sizes and support.
     unsigned alignsize(Type *type);
     unsigned fieldalign(Type *type);
-    Type *va_listType(const Loc &loc, Scope *sc);  // get type of va_list
+    Type *va_listType(Loc loc, Scope *sc);  // get type of va_list
     int isVectorTypeSupported(int sz, Type *type);
     bool isVectorOpSupported(Type *type, EXP op, Type *t2 = nullptr);
     // ABI and backend.
@@ -204,7 +205,7 @@ public:
     TypeTuple *toArgTypes(Type *t);
     bool isReturnOnStack(TypeFunction *tf, bool needsThis);
     bool preferPassByRef(Type *t);
-    Expression *getTargetInfo(const char* name, const Loc& loc);
+    Expression *getTargetInfo(const char* name, Loc loc);
     bool isCalleeDestroyingArgs(TypeFunction* tf);
     bool libraryObjectMonitors(FuncDeclaration *fd, Statement *fbody);
     bool supportsLinkerDirective() const;

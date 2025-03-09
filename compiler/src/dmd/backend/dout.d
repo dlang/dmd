@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dout.d, backend/dout.d)
@@ -52,8 +52,8 @@ bool symbol_iscomdat2(Symbol* s)
  * Output function thunk.
  */
 @trusted
-extern (C) void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
-        targ_size_t d,int i,targ_size_t d2)
+void outthunk(Symbol* sthunk, Symbol* sfunc, uint p, tym_t thisty,
+        targ_size_t d, int i, targ_size_t d2)
 {
     sthunk.Sseg = cseg;
     cod3_thunk(sthunk,sfunc,p,thisty,cast(uint)d,i,cast(uint)d2);
@@ -68,7 +68,7 @@ extern (C) void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
  *      s               symbol to be initialized
  */
 @trusted
-void outdata(Symbol *s)
+void outdata(Symbol* s)
 {
     int seg;
     targ_size_t offset;
@@ -86,17 +86,17 @@ void outdata(Symbol *s)
     // Data segment variables are always live on exit from a function
     s.Sflags |= SFLlivexit;
 
-    dt_t *dtstart = s.Sdt;
+    dt_t* dtstart = s.Sdt;
     s.Sdt = null;                      // it will be free'd
     targ_size_t datasize = 0;
     tym_t ty = s.ty();
     if (ty & mTYexport && config.wflags & WFexpdef && s.Sclass != SC.static_)
         objmod.export_symbol(s,0);        // export data definition
-    for (dt_t *dt = dtstart; dt; dt = dt.DTnext)
+    for (dt_t* dt = dtstart; dt; dt = dt.DTnext)
     {
         //printf("\tdt = %p, dt = %d\n",dt,dt.dt);
         switch (dt.dt)
-        {   case DT_abytes:
+        {   case DT.abytes:
             {   // Put out the data for the string, and
                 // reserve a spot for a pointer to that string
                 datasize += size(dt.Dty);      // reserve spot for pointer to string
@@ -115,24 +115,24 @@ void outdata(Symbol *s)
                 else
                 {
                     alignOffset(CDATA, 1 << dt.DTalign);
-                    dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes,dt.DTnbytes,&dt.DTseg);
+                    dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes, cast(uint) dt.DTnbytes,&dt.DTseg);
                 }
                 break;
             }
 
-            case DT_ibytes:
+            case DT.ibytes:
                 datasize += dt.DTn;
                 break;
 
-            case DT_nbytes:
-                //printf("DT_nbytes %d\n", dt.DTnbytes);
+            case DT.nbytes:
+                //printf("DT.nbytes %d\n", dt.DTnbytes);
                 datasize += dt.DTnbytes;
                 break;
 
-            case DT_azeros:
+            case DT.azeros:
                 /* A block of zeros
                  */
-                //printf("DT_azeros %d\n", dt.DTazeros);
+                //printf("DT.azeros %d\n", dt.DTazeros);
                 datasize += dt.DTazeros;
                 if (dt == dtstart && !dt.DTnext && s.Sclass != SC.comdat &&
                     (s.Sseg == UNKNOWN || s.Sseg <= UDATA))
@@ -145,21 +145,21 @@ void outdata(Symbol *s)
                             Offset(codeseg) = _align(datasize,Offset(codeseg));
                             s.Soffset = Offset(codeseg);
                             Offset(codeseg) += datasize;
-                            s.Sfl = FLcsdata;
+                            s.Sfl = FL.csdata;
                             break;
 
                         case mTYthreadData:
                             assert(config.objfmt == OBJ_MACH && I64);
                             goto case;
                         case mTYthread:
-                        {   seg_data *pseg = objmod.tlsseg_bss();
+                        {   seg_data* pseg = objmod.tlsseg_bss();
                             s.Sseg = pseg.SDseg;
                             objmod.data_start(s, datasize, pseg.SDseg);
                             if (config.objfmt == OBJ_OMF)
                                 pseg.SDoffset += datasize;
                             else
                                 objmod.lidata(pseg.SDseg, pseg.SDoffset, datasize);
-                            s.Sfl = FLtlsdata;
+                            s.Sfl = FL.tlsdata;
                             break;
                         }
 
@@ -167,7 +167,7 @@ void outdata(Symbol *s)
                             s.Sseg = UDATA;
                             objmod.data_start(s,datasize,UDATA);
                             objmod.lidata(s.Sseg,s.Soffset,datasize);
-                            s.Sfl = FLudata;           // uninitialized data
+                            s.Sfl = FL.udata;           // uninitialized data
                             break;
                     }
                     assert(s.Sseg && s.Sseg != UNKNOWN);
@@ -185,13 +185,13 @@ void outdata(Symbol *s)
                 }
                 break;
 
-            case DT_common:
+            case DT.common:
                 assert(!dt.DTnext);
                 outcommon(s,dt.DTazeros);
                 goto Lret;
 
-            case DT_xoff:
-            {   Symbol *sb = dt.DTsym;
+            case DT.xoff:
+            {   Symbol* sb = dt.DTsym;
 
                 if (tyfunc(sb.ty()))
                 {
@@ -202,7 +202,7 @@ void outdata(Symbol *s)
 }
             }
                 goto case;
-            case DT_coff:
+            case DT.coff:
                 datasize += size(dt.Dty);
                 break;
             default:
@@ -218,24 +218,24 @@ void outdata(Symbol *s)
         switch (ty & mTYLINK)
         {
             case mTYfar:                // if far data
-                s.Sfl = FLfardata;
+                s.Sfl = FL.fardata;
                 break;
 
             case mTYcs:
-                s.Sfl = FLcsdata;
+                s.Sfl = FL.csdata;
                 break;
 
             case mTYnear:
             case 0:
-                s.Sfl = FLdata;        // initialized data
+                s.Sfl = FL.data;        // initialized data
                 break;
 
             case mTYthread:
-                s.Sfl = FLtlsdata;
+                s.Sfl = FL.tlsdata;
                 break;
 
             case mTYweakLinkage:
-                s.Sfl = FLdata;        // initialized data
+                s.Sfl = FL.data;        // initialized data
                 break;
 
             default:
@@ -250,27 +250,27 @@ void outdata(Symbol *s)
             seg = codeseg;
             Offset(codeseg) = _align(datasize,Offset(codeseg));
             s.Soffset = Offset(codeseg);
-            s.Sfl = FLcsdata;
+            s.Sfl = FL.csdata;
             break;
 
         case mTYthreadData:
         {
             assert(config.objfmt == OBJ_MACH && I64);
 
-            seg_data *pseg = objmod.tlsseg_data();
+            seg_data* pseg = objmod.tlsseg_data();
             s.Sseg = pseg.SDseg;
             objmod.data_start(s, datasize, s.Sseg);
             seg = pseg.SDseg;
-            s.Sfl = FLtlsdata;
+            s.Sfl = FL.tlsdata;
             break;
         }
         case mTYthread:
         {
-            seg_data *pseg = objmod.tlsseg();
+            seg_data* pseg = objmod.tlsseg();
             s.Sseg = pseg.SDseg;
             objmod.data_start(s, datasize, s.Sseg);
             seg = pseg.SDseg;
-            s.Sfl = FLtlsdata;
+            s.Sfl = FL.tlsdata;
             break;
         }
         case mTYnear:
@@ -280,7 +280,7 @@ void outdata(Symbol *s)
                 s.Sseg == UNKNOWN)
                 s.Sseg = DATA;
             seg = objmod.data_start(s,datasize,DATA);
-            s.Sfl = FLdata;            // initialized data
+            s.Sfl = FL.data;            // initialized data
             break;
 
         default:
@@ -329,13 +329,13 @@ Lret:
  */
 
 @trusted
-void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset)
+void dt_writeToObj(Obj objmod, dt_t* dt, int seg, ref targ_size_t offset)
 {
     for (; dt; dt = dt.DTnext)
     {
         switch (dt.dt)
         {
-            case DT_abytes:
+            case DT.abytes:
             {
                 int flags;
                 if (tyreg(dt.Dty))
@@ -361,7 +361,7 @@ else
                         if (dt.DTseg == CDATA)
                             objmod.reftodatseg(seg,offset,dt.DTabytes,CDATA,flags);
                         else
-                            objmod.reftofarseg(seg,offset,dt.DTabytes,dt.DTseg,flags);
+                            assert(0);
                     }
 }
                 }
@@ -369,26 +369,26 @@ else
                 break;
             }
 
-            case DT_ibytes:
+            case DT.ibytes:
                 objmod.bytes(seg,offset,dt.DTn,dt.DTdata.ptr);
                 offset += dt.DTn;
                 break;
 
-            case DT_nbytes:
+            case DT.nbytes:
                 objmod.bytes(seg,offset,dt.DTnbytes,dt.DTpbytes);
                 offset += dt.DTnbytes;
                 break;
 
-            case DT_azeros:
+            case DT.azeros:
                 //printf("objmod.lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt.DTazeros);
                 SegData[seg].SDoffset = offset;
                 objmod.lidata(seg,offset,dt.DTazeros);
                 offset = SegData[seg].SDoffset;
                 break;
 
-            case DT_xoff:
+            case DT.xoff:
             {
-                Symbol *sb = dt.DTsym;          // get external symbol pointer
+                Symbol* sb = dt.DTsym;          // get external symbol pointer
                 targ_size_t a = dt.DToffset;    // offset from it
                 int flags;
                 if (tyreg(dt.Dty))
@@ -401,7 +401,7 @@ else
                 break;
             }
 
-            case DT_coff:
+            case DT.coff:
                 objmod.reftocodeseg(seg,offset,dt.DToffset);
                 offset += _tysize[TYint];
                 break;
@@ -419,7 +419,7 @@ else
  */
 
 @trusted
-void outcommon(Symbol *s,targ_size_t n)
+void outcommon(Symbol* s,targ_size_t n)
 {
     //printf("outcommon('%s',%d)\n",s.Sident.ptr,n);
     if (n != 0)
@@ -461,11 +461,10 @@ void outcommon(Symbol *s,targ_size_t n)
             {
                 s.Sxtrnnum = objmod.common_block(s,(s.ty() & mTYfar) == 0,n,1);
                 if (s.ty() & mTYfar)
-                    s.Sfl = FLfardata;
+                    s.Sfl = FL.fardata;
                 else
-                    s.Sfl = FLextern;
+                    s.Sfl = FL.extern_;
                 s.Sseg = UNKNOWN;
-                pstate.STflags |= PFLcomdef;
             }
             else
                 objmod.common_block(s, 0, n, 1);
@@ -485,7 +484,7 @@ void outcommon(Symbol *s,targ_size_t n)
  */
 
 @trusted
-void out_readonly(Symbol *s)
+void out_readonly(Symbol* s)
 {
     if (config.flags2 & CFG2noreadonly)
         return;
@@ -517,7 +516,7 @@ void out_readonly(Symbol *s)
  * Returns: a Symbol pointing to it.
  */
 @trusted
-Symbol *out_string_literal(const(char)* str, uint len, uint sz)
+Symbol* out_string_literal(const(char)* str, uint len, uint sz)
 {
     tym_t ty = TYchar;
     if (sz == 2)
@@ -527,7 +526,7 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
     else if (sz == 8)
         ty = TYulong;
 
-    Symbol *s = symbol_generate(SC.static_,type_static_array(len, tstypes[ty]));
+    Symbol* s = symbol_generate(SC.static_,type_static_array(len, tstypes[ty]));
     switch (config.objfmt)
     {
         case OBJ_ELF:
@@ -592,10 +591,10 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
     }
 
     auto dtb = DtBuilder(0);
-    dtb.nbytes(cast(uint)(len * sz), str);
+    dtb.nbytes(str[0 .. len * sz]);
     dtb.nzeros(cast(uint)sz);       // include terminating 0
     s.Sdt = dtb.finish();
-    s.Sfl = FLdata;
+    s.Sfl = FL.data;
     s.Salignment = sz;
     outdata(s);
     return s;
@@ -608,11 +607,11 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
  */
 
 @trusted
-/*private*/ void outelem(elem *e, ref bool addressOfParam)
+/*private*/ void outelem(elem* e, ref bool addressOfParam)
 {
-    Symbol *s;
+    Symbol* s;
     tym_t tym;
-    elem *e1;
+    elem* e1;
 
 again:
     assert(e);
@@ -721,12 +720,12 @@ debug
  */
 
 @trusted
-void out_regcand(symtab_t *psymtab)
+void out_regcand(symtab_t* psymtab)
 {
     //printf("out_regcand()\n");
     const bool ifunc = (tybasic(funcsym_p.ty()) == TYifunc);
     for (SYMIDX si = 0; si < psymtab.length; si++)
-    {   Symbol *s = (*psymtab)[si];
+    {   Symbol* s = (*psymtab)[si];
 
         symbol_debug(s);
         //assert(sytab[s.Sclass] & SCSS);      // only stack variables
@@ -740,13 +739,13 @@ void out_regcand(symtab_t *psymtab)
     }
 
     bool addressOfParam = false;                  // haven't taken addr of param yet
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (b.Belem)
             out_regcand_walk(b.Belem, addressOfParam);
 
         // Any assembler blocks make everything ambiguous
-        if (b.BC == BCasm)
+        if (b.bc == BC.asm_)
             for (SYMIDX si = 0; si < psymtab.length; si++)
                 (*psymtab)[si].Sflags &= ~(SFLunambig | GTregcand);
     }
@@ -763,7 +762,7 @@ void out_regcand(symtab_t *psymtab)
 }
 
 @trusted
-private void out_regcand_walk(elem *e, ref bool addressOfParam)
+private void out_regcand_walk(elem* e, ref bool addressOfParam)
 {
     while (1)
     {   elem_debug(e);
@@ -772,12 +771,12 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
         {   if (e.Eoper == OPstreq)
             {   if (e.E1.Eoper == OPvar)
                 {
-                    Symbol *s = e.E1.Vsym;
+                    Symbol* s = e.E1.Vsym;
                     s.Sflags &= ~(SFLunambig | GTregcand);
                 }
                 if (e.E2.Eoper == OPvar)
                 {
-                    Symbol *s = e.E2.Vsym;
+                    Symbol* s = e.E2.Vsym;
                     s.Sflags &= ~(SFLunambig | GTregcand);
                 }
             }
@@ -789,7 +788,7 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
             // Don't put 'this' pointers in registers if we need
             // them for EH stack cleanup.
             if (e.Eoper == OPctor)
-            {   elem *e1 = e.E1;
+            {   elem* e1 = e.E1;
 
                 if (e1.Eoper == OPadd)
                     e1 = e1.E1;
@@ -801,7 +800,7 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
         else
         {   if (e.Eoper == OPrelconst)
             {
-                Symbol *s = e.Vsym;
+                Symbol* s = e.Vsym;
                 assert(s);
                 symbol_debug(s);
                 switch (s.Sclass)
@@ -849,17 +848,18 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
  */
 
 @trusted
-void writefunc(Symbol *sfunc)
+void writefunc(Symbol* sfunc)
 {
+    import dmd.backend.var : go;
     cstate.CSpsymtab = &globsym;
-    writefunc2(sfunc);
+    writefunc2(sfunc, go);
     cstate.CSpsymtab = null;
 }
 
 @trusted
-private void writefunc2(Symbol *sfunc)
+private void writefunc2(Symbol* sfunc, ref GlobalOptimizer go)
 {
-    func_t *f = sfunc.Sfunc;
+    func_t* f = sfunc.Sfunc;
 
     debugb && printf("=========== writefunc %s ==================\n",sfunc.Sident.ptr);
     //symbol_print(sfunc);
@@ -882,10 +882,10 @@ private void writefunc2(Symbol *sfunc)
     foreach (si; 0 .. nsymbols)
         globsym[si] = f.Flocsym[si];
 
-    assert(startblock == null);
-    startblock = sfunc.Sfunc.Fstartblock;
+    assert(bo.startblock == null);
+    bo.startblock = sfunc.Sfunc.Fstartblock;
     sfunc.Sfunc.Fstartblock = null;
-    assert(startblock);
+    assert(bo.startblock);
 
     assert(funcsym_p == null);
     funcsym_p = sfunc;
@@ -906,22 +906,22 @@ private void writefunc2(Symbol *sfunc)
         switch (s.Sclass)
         {
             case SC.bprel:
-                s.Sfl = FLbprel;
+                s.Sfl = FL.bprel;
                 goto L3;
 
             case SC.auto_:
             case SC.register:
-                s.Sfl = FLauto;
+                s.Sfl = FL.auto_;
                 goto L3;
 
             case SC.fastpar:
-                s.Sfl = FLfast;
+                s.Sfl = FL.fast;
                 goto L3;
 
             case SC.regpar:
             case SC.parameter:
             case SC.shadowreg:
-                s.Sfl = FLpara;
+                s.Sfl = FL.para;
                 if (tyf == TYifunc)
                 {   s.Sflags |= SFLlivexit;
                     break;
@@ -932,14 +932,14 @@ private void writefunc2(Symbol *sfunc)
                 break;
 
             case SC.pseudo:
-                s.Sfl = FLpseudo;
+                s.Sfl = FL.pseudo;
                 break;
 
             case SC.static_:
                 break;                  // already taken care of by datadef()
 
             case SC.stack:
-                s.Sfl = FLstack;
+                s.Sfl = FL.stack;
                 break;
 
             default:
@@ -950,25 +950,24 @@ private void writefunc2(Symbol *sfunc)
 
     bool addressOfParam = false;  // see if any parameters get their address taken
     bool anyasm = false;
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         memset(&b._BLU,0,block.sizeof - block._BLU.offsetof);
         if (b.Belem)
         {   outelem(b.Belem, addressOfParam);
             if (b.Belem.Eoper == OPhalt)
-            {   b.BC = BCexit;
+            {   b.bc = BC.exit;
                 list_free(&b.Bsucc,FPNULL);
             }
         }
-        if (b.BC == BCasm)
+        if (b.bc == BC.asm_)
             anyasm = true;
-        if (sfunc.Sflags & SFLexit && (b.BC == BCret || b.BC == BCretexp))
-        {   b.BC = BCexit;
+        if (sfunc.Sflags & SFLexit && (b.bc == BC.ret || b.bc == BC.retexp))
+        {   b.bc = BC.exit;
             list_free(&b.Bsucc,FPNULL);
         }
         assert(b != b.Bnext);
     }
-    PARSER = 0;
     if (eecontext.EEelem)
     {
         const marksi = globsym.length;
@@ -989,25 +988,26 @@ private void writefunc2(Symbol *sfunc)
     }
 
     block_pred();                       // compute predecessors to blocks
-    block_compbcount();                 // eliminate unreachable blocks
+    block_compbcount(go);               // eliminate unreachable blocks
 
     debug { } else
     {
         if (debugb)
         {
-            WRfunc("codegen", funcsym_p, startblock);
+            WRfunc("codegen", funcsym_p, bo.startblock);
         }
     }
 
     if (go.mfoptim)
-    {   OPTIMIZER = 1;
-        optfunc();                      /* optimize function            */
+    {
+        OPTIMIZER = 1;
+        optfunc(go);                    /* optimize function            */
         OPTIMIZER = 0;
     }
     else
     {
         //printf("blockopt()\n");
-        blockopt(0);                    /* optimize                     */
+        blockopt(go, 0);                /* optimize                     */
     }
 
     assert(funcsym_p == sfunc);
@@ -1033,16 +1033,16 @@ private void writefunc2(Symbol *sfunc)
     //printf("codgen()\n");
     codgen(sfunc);                  // generate code
     //printf("after codgen for %s Coffset %x\n",sfunc.Sident.ptr,Offset(cseg));
-    sfunc.Sfunc.Fstartblock = startblock;
+    sfunc.Sfunc.Fstartblock = bo.startblock;
     bool saveForInlining = canInlineFunction(sfunc);
     if (saveForInlining)
     {
-        startblock = null;
+        bo.startblock = null;
     }
     else
     {
         sfunc.Sfunc.Fstartblock = null;
-        blocklist_free(&startblock);
+        blocklist_free(&bo.startblock);
     }
 
     objmod.func_term(sfunc);
@@ -1106,13 +1106,13 @@ private void writefunc2(Symbol *sfunc)
     {
 version (LittleEndian)
 {
-        short *p = cast(short *) sfunc.Sident.ptr;
+        short* p = cast(short*) sfunc.Sident.ptr;
         if (p[0] == (('S' << 8) | '_') && (p[1] == (('I' << 8) | 'T') || p[1] == (('D' << 8) | 'T')))
             objmod.setModuleCtorDtor(sfunc, sfunc.Sident.ptr[3] == 'I');
 }
 else
 {
-        char *p = sfunc.Sident.ptr;
+        char* p = sfunc.Sident.ptr;
         if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
             (p[3] == 'I' || p[3] == 'D'))
             objmod.setModuleCtorDtor(sfunc, sfunc.Sident.ptr[3] == 'I');
@@ -1162,7 +1162,7 @@ void alignOffset(int seg,targ_size_t datasize)
 enum ROMAX = 32;
 struct Readonly
 {
-    Symbol *sym;
+    Symbol* sym;
     size_t length;
     ubyte[ROMAX] p;
 }
@@ -1183,7 +1183,7 @@ void out_reset()
 }
 
 @trusted
-Symbol *out_readonly_sym(tym_t ty, void *p, int len)
+Symbol* out_readonly_sym(tym_t ty, void* p, int len)
 {
 static if (0)
 {
@@ -1194,12 +1194,12 @@ static if (0)
     // Look for previous symbol we can reuse
     for (int i = 0; i < readonly_length; i++)
     {
-        Readonly *r = &readonly[i];
+        Readonly* r = &readonly[i];
         if (r.length == len && memcmp(p, r.p.ptr, len) == 0)
             return r.sym;
     }
 
-    Symbol *s;
+    Symbol* s;
 
     bool cdata = config.objfmt == OBJ_ELF ||
                  config.objfmt == OBJ_OMF ||
@@ -1209,7 +1209,7 @@ static if (0)
         /* MACHOBJ can't go here, because the const data segment goes into
          * the _TEXT segment, and one cannot have a fixup from _TEXT to _TEXT.
          */
-        s = objmod.sym_cdata(ty, cast(char *)p, len);
+        s = objmod.sym_cdata(ty, cast(char*)p, len);
     }
     else
     {
@@ -1223,7 +1223,7 @@ static if (0)
     }
 
     if (len <= ROMAX)
-    {   Readonly *r;
+    {   Readonly* r;
 
         if (readonly_length < RMAX)
         {
@@ -1252,7 +1252,7 @@ static if (0)
  *      nzeros = number of trailing zeros to append
  */
 @trusted
-void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
+void out_readonly_comdat(Symbol* s, const(void)* p, uint len, uint nzeros)
 {
     objmod.readonly_comdat(s);         // create comdat segment
     objmod.write_bytes(SegData[s.Sseg], p[0 .. len]);

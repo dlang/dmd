@@ -30,6 +30,8 @@ jobs:
 
         git config --global diff.wsErrorHighlight "all"
     - uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
     - uses: pre-commit/action@v3.0.1
     - name: Check changelog entries
       run: |

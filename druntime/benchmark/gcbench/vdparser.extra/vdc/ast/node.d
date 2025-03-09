@@ -180,7 +180,7 @@ class Node
     int semanticSearches;
     Scope scop;
 
-    version(COUNT) static __gshared int countNodes;
+    version(COUNT) __gshared int countNodes;
 
     this()
     {
@@ -346,7 +346,7 @@ class Node
 
     void expandNonScopeSimple(Scope sc, size_t i, size_t j)
     {
-        Node[1] narray;
+        Node[1] narray = void;
         for(size_t m = i; m < j; )
         {
             Node n = members[m];
@@ -522,7 +522,7 @@ class Node
 
     ////////////////////////////////////////////////////////////
     version(COUNT) {} else // invariant does not work with destructor
-    invariant()
+    invariant
     {
         if(!__ctfe)
         foreach(m; members)

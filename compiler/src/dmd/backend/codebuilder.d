@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/codebuilder.d, backend/_codebuilder.d)
@@ -31,13 +31,16 @@ struct CodeBuilder
 {
   private:
 
-    code *head;
-    code **pTail;
+    code* head;
+    code** pTail;
+
+    enum BADINS = 0x1234_5678;
+//    enum BADINS = 0xF900_0FA0;
 
   nothrow:
   public:
     //this() { pTail = &head; }
-    //this(code *c);
+    //this(code* c);
 
     @trusted
     void ctor()
@@ -52,12 +55,12 @@ struct CodeBuilder
         pTail = c ? &code_last(c).next : &head;
     }
 
-    code *finish()
+    code* finish()
     {
         return head;
     }
 
-    code *peek() { return head; }       // non-destructively look at the list
+    code* peek() { return head; }       // non-destructively look at the list
 
     @trusted
     void reset() { head = null; pTail = &head; }
@@ -102,7 +105,7 @@ struct CodeBuilder
     }
 
     @trusted
-    void append(code *c)
+    void append(code* c)
     {
         if (c)
         {
@@ -112,10 +115,11 @@ struct CodeBuilder
         }
     }
 
-    void gen(code *cs)
+    void gen(code* cs)
     {
         /* this is a high usage routine */
         debug assert(cs);
+assert(cs.Iop != BADINS);
         assert(I64 || cs.Irex == 0);
         code* ce = code_malloc();
         *ce = *cs;
@@ -131,7 +135,9 @@ struct CodeBuilder
 
     void gen1(opcode_t op)
     {
-        code *ce = code_calloc();
+        //debug printf("gen1(%08x)\n", op);
+assert(op != BADINS);
+        code* ce = code_calloc();
         ce.Iop = op;
         ccheck(ce);
         assert(op != LEA);
@@ -142,7 +148,8 @@ struct CodeBuilder
 
     void gen2(opcode_t op, uint rm)
     {
-        code *ce = code_calloc();
+assert(op != BADINS);
+        code* ce = code_calloc();
         ce.Iop = op;
         ce.Iea = rm;
         ccheck(ce);
@@ -156,13 +163,14 @@ struct CodeBuilder
      */
     void genf2(opcode_t op, uint rm)
     {
+assert(op != BADINS);
         genfwait(this);
         gen2(op, rm);
     }
 
     void gen2sib(opcode_t op, uint rm, uint sib)
     {
-        code *ce = code_calloc();
+        code* ce = code_calloc();
         ce.Iop = op;
         ce.Irm = cast(ubyte)rm;
         ce.Isib = cast(ubyte)sib;
@@ -181,11 +189,11 @@ struct CodeBuilder
     @trusted
     void genasm(const ubyte[] bytes)
     {
-        code *ce = code_calloc();
+        code* ce = code_calloc();
         ce.Iop = ASM;
-        ce.IFL1 = FLasm;
+        ce.IFL1 = FL.asm_;
         ce.IEV1.len = bytes.length;
-        ce.IEV1.bytes = cast(char *) mem_malloc(bytes.length);
+        ce.IEV1.bytes = cast(char*) mem_malloc(bytes.length);
         memcpy(ce.IEV1.bytes,bytes.ptr,bytes.length);
 
         *pTail = ce;
@@ -193,12 +201,12 @@ struct CodeBuilder
     }
 
     @trusted
-    void genasm(_LabelDsymbol *label)
+    void genasm(_LabelDsymbol* label)
     {
-        code *ce = code_calloc();
+        code* ce = code_calloc();
         ce.Iop = ASM;
         ce.Iflags = CFaddrsize;
-        ce.IFL1 = FLblockoff;
+        ce.IFL1 = FL.blockoff;
         ce.IEV1.Vsym = cast(Symbol*)label;
 
         *pTail = ce;
@@ -206,12 +214,12 @@ struct CodeBuilder
     }
 
     @trusted
-    void genasm(block *label)
+    void genasm(block* label)
     {
-        code *ce = code_calloc();
+        code* ce = code_calloc();
         ce.Iop = ASM;
         ce.Iflags = CFaddrsize;
-        ce.IFL1 = FLblockoff;
+        ce.IFL1 = FL.blockoff;
         ce.IEV1.Vblock = label;
         label.Bflags |= BFL.label;
 
@@ -220,8 +228,25 @@ struct CodeBuilder
     }
 
     @trusted
-    void gencs(opcode_t op, uint ea, FL FL2, Symbol *s)
+    void gencs1(opcode_t op, uint ea, FL FL1, Symbol* s)
     {
+assert(op != BADINS);
+        code cs;
+        cs.Iop = op;
+        cs.Iflags = 0;
+        cs.Iea = ea;
+        ccheck(&cs);
+        cs.IFL1 = FL1;
+        cs.IEV1.Vsym = s;
+        cs.IEV1.Voffset = 0;
+
+        gen(&cs);
+    }
+
+    @trusted
+    void gencs(opcode_t op, uint ea, FL FL2, Symbol* s)
+    {
+assert(op != BADINS);
         code cs;
         cs.Iop = op;
         cs.Iflags = 0;
@@ -237,13 +262,14 @@ struct CodeBuilder
     @trusted
     void genc2(opcode_t op, uint ea, targ_size_t EV2)
     {
+assert(op != BADINS);
         code cs;
         cs.Iop = op;
         cs.Iflags = 0;
         cs.Iea = ea;
         ccheck(&cs);
         cs.Iflags = CFoff;
-        cs.IFL2 = FLconst;
+        cs.IFL2 = FL.const_;
         cs.IEV2.Vsize_t = EV2;
 
         gen(&cs);
@@ -252,8 +278,9 @@ struct CodeBuilder
     @trusted
     void genc1(opcode_t op, uint ea, FL FL1, targ_size_t EV1)
     {
+assert(op != BADINS);
         code cs;
-        assert(FL1 < FLMAX);
+        assert(FL1 < FL.max + 1);
         cs.Iop = op;
         cs.Iflags = CFoff;
         cs.Iea = ea;
@@ -267,15 +294,16 @@ struct CodeBuilder
     @trusted
     void genc(opcode_t op, uint ea, FL FL1, targ_size_t EV1, FL FL2, targ_size_t EV2)
     {
+assert(op != BADINS);
         code cs;
-        assert(FL1 < FLMAX);
+        assert(FL1 < FL.max + 1);
         cs.Iop = op;
         cs.Iea = ea;
         ccheck(&cs);
         cs.Iflags = CFoff;
         cs.IFL1 = FL1;
         cs.IEV1.Vsize_t = EV1;
-        assert(FL2 < FLMAX);
+        assert(FL2 < FL.max + 1);
         cs.IFL2 = FL2;
         cs.IEV2.Vsize_t = EV2;
 
@@ -348,7 +376,7 @@ struct CodeBuilder
         cgstate.reflocal = true;
         if ((opcode & ~7) == 0xD8)
             genfwait(this);
-        genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
+        genc1(opcode,modregxrm(2,reg,BPRM),FL.fltreg,offset);
     }
 
     @trusted
@@ -357,7 +385,7 @@ struct CodeBuilder
         assert(isXMMreg(xreg));
         cgstate.floatreg = true;
         cgstate.reflocal = true;
-        genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
+        genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FL.fltreg,offset);
         checkSetVex(last(), tym);
     }
 
@@ -366,22 +394,33 @@ struct CodeBuilder
      *  code that pTail points to
      */
     @trusted
-    code *last()
+    code* last()
     {
         // g++ and clang++ complain about offsetof() because of the code::code() constructor.
         // return (code *)((char *)pTail - offsetof(code, next));
         // So do our own.
-        return cast(code *)(cast(void *)pTail - (cast(void*)&(*pTail).next - cast(void*)*pTail));
+        return cast(code*)(cast(void*)pTail - (cast(void*)&(*pTail).next - cast(void*)*pTail));
     }
 
     /*************************************
      * Handy function to answer the question: who the heck is generating this piece of code?
      */
-    static void ccheck(code *cs)
+    static void ccheck(code* cs)
     {
     //    if (cs.Iop == LEA && (cs.Irm & 0x3F) == 0x34 && cs.Isib == 7) *(char*)0=0;
     //    if (cs.Iop == 0x31) *(char*)0=0;
     //    if (cs.Irm == 0x3D) *(char*)0=0;
     //    if (cs.Iop == LEA && cs.Irm == 0xCB) *(char*)0=0;
+    }
+
+    /***********
+     * Print opcodes
+     */
+    @trusted
+    void print()
+    {
+        printf("---\n");
+        for (code* c = head; c; c = c.next)
+            printf("%02x\n", c.Iop);
     }
 }
