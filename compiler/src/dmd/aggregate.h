@@ -50,6 +50,7 @@ namespace dmd
     Dsymbol* vtblSymbol(ClassDeclaration *cd);
 }
 
+
 enum class ClassKind : uint8_t
 {
   /// the aggregate is a d(efault) struct/class/interface
@@ -101,7 +102,10 @@ public:
 
     // default constructor - should have no arguments, because
     // it would be stored in TypeInfo_Class.defaultConstructor
-    CtorDeclaration *defaultCtor;
+    CtorDeclaration *defaultCtor; // Ensure default constructor is recognized
+    bool hasRegularCtor(bool checkDisabled = false); // Check for regular constructors
+
+
 
     AliasThis *aliasthis;       // forward unresolved lookups to aliasthis
 
@@ -196,7 +200,8 @@ public:
 
     unsigned numArgTypes() const;
     Type *argType(unsigned index);
-    bool hasRegularCtor(bool checkDisabled = false);
+    bool hasRegularCtor(bool checkDisabled = false); // Check for regular constructors
+
 };
 
 class UnionDeclaration final : public StructDeclaration
