@@ -309,6 +309,8 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
         {
             buildCommand = [
                 hostDMD,
+                // Do not depend on linking Phobos, especially for `dshell_prebuilt`
+                "-checkaction=D",
                 "-m"~env["MODEL"],
                 "-of"~targetBin,
                 sourceFile
