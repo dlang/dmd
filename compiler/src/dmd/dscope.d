@@ -114,7 +114,7 @@ private struct Previews
         this.in_ = params.previewIn;
         this.inclusiveInContracts = params.inclusiveInContracts;
         this.noSharedAccess = params.noSharedAccess == FeatureState.enabled;
-        this.rvalueRefParam = params.rvalueRefParam == FeatureState.enabled;
+        this.rvalueRefParam = params.rvalueRefParam != FeatureState.disabled;
         this.safer = params.safer == FeatureState.enabled;
         this.systemVariables = params.systemVariables;
         this.fieldwise = params.fieldwise == FeatureState.enabled;
