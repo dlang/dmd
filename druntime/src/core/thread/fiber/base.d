@@ -558,7 +558,7 @@ protected:
         //       of the executing thread.
         static ucontext_t       sm_utxt = void;
         ucontext_t              m_utxt  = void;
-        ucontext_t*             m_ucur  = null;
+        package ucontext_t*     m_ucur  = null;
     }
 
 
