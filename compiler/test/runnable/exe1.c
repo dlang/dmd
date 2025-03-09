@@ -1417,8 +1417,8 @@ void regmath()
 
 void regmath_386()
 {
-        long int j,k;
-        long i;
+        long long int j,k;
+        long long i;
 
 /*      time_0();*/
 
