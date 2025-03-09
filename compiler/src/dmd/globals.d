@@ -153,6 +153,7 @@ extern(C++) struct Verbose
 
 extern (C++) struct ImportPathInfo {
     const(char)* path; // char*'s of where to look for import modules
+    bool moduleInfoDisabled;
 }
 
 /// Put command line switches in here
