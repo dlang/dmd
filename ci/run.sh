@@ -66,9 +66,7 @@ clone() {
 # build dmd (incl. building and running the unittests), druntime, phobos
 build() {
     local unittest=${1:-1}
-    if [ "$OS_NAME" != "windows" ]; then
-        source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
-    fi
+    activate_host_compiler
     $DMD compiler/src/build.d -ofgenerated/build
     if [ $unittest -eq 1 ]; then
         generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
@@ -76,9 +74,7 @@ build() {
     generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
     make -j$N -C druntime MODEL=$MODEL
     make -j$N -C ../phobos MODEL=$MODEL
-    if [ "$OS_NAME" != "windows" ]; then
-        deactivate # deactivate host compiler
-    fi
+    deactivate_host_compiler
 }
 
 # self-compile dmd
@@ -176,7 +172,7 @@ test_phobos() {
     elif [ "$HOST_DMD" == "dmd-2.079.0" ]; then
         echo "Skipping publictests with DMD v2.079 host compiler (dub too old)"
     else
-        source ~/dlang/*/activate # activate host compiler - need dub
+        activate_host_compiler # need dub
 
         make -j$N -C ../phobos MODEL=$MODEL publictests
         make -j$N -C ../phobos MODEL=$MODEL publictests NO_BOUNDSCHECKS=1
@@ -187,15 +183,13 @@ test_phobos() {
             make -j$N -C ../phobos MODEL=$MODEL betterc
         fi
 
-        deactivate # deactivate host compiler
+        deactivate_host_compiler
     fi
 }
 
 # test dub package
 test_dub_package() {
-    if [ "$OS_NAME" != "windows" ]; then
-        source ~/dlang/*/activate # activate host compiler
-    fi
+    activate_host_compiler
     # GDC's standard library is too old for some example scripts
     if [[ "${DMD:-dmd}" =~ "gdmd" ]] ; then
         echo "Skipping DUB examples on GDC."
@@ -217,9 +211,7 @@ test_dub_package() {
         # Test rdmd build
         "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
     fi
-    if [ "$OS_NAME" != "windows" ]; then
-        deactivate
-    fi
+    deactivate_host_compiler
 }
 
 # clone phobos repos if not already available
@@ -301,6 +293,30 @@ install_host_compiler() {
     download_install_sh "$install_sh"
     CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$HOST_DMD"
   fi
+}
+
+# activate D host compiler (set PATH and DMD environment variables)
+activate_host_compiler()
+{
+    if [ "$OS_NAME" == "windows" ]; then
+        # PATH is already set
+        if [ "${HOST_DMD:0:4}" == "ldc-" ]; then
+            export DMD="ldmd2"
+        else
+            export DMD="dmd"
+        fi
+    else
+        source ~/dlang/*/activate
+    fi
+}
+
+deactivate_host_compiler()
+{
+    if [ "$OS_NAME" == "windows" ]; then
+        unset DMD
+    else
+        deactivate
+    fi
 }
 
 # Upload coverage reports
