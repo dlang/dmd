@@ -5893,6 +5893,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("CallExp::semantic() %s\n", exp.toChars());
         }
 
+        scope (exit)
+        {
+            if (TypeFunction tf = exp.f ? cast(TypeFunction)exp.f.type : null)
+            {
+                result.rvalue = tf.isRvalue;
+                if (tf.isRvalue && !tf.isRef)
+                {
+                    error(exp.f.loc, "`__rvalue` only valid on functions that return by `ref`");
+                    setError();
+                }
+            }
+        }
+
         Objects* tiargs = null; // initial list of template arguments
         Expression ethis = null;
         Type tthis = null;
@@ -10839,7 +10852,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 return;
                             }
                         }
-                        else if (sd.hasMoveCtor && !e2x.isCallExp() && !e2x.isStructLiteralExp())
+                        else if (sd.hasMoveCtor && (!e2x.isCallExp() || e2x.rvalue) && !e2x.isStructLiteralExp())
                         {
                             // #move
                             /* The !e2x.isCallExp() is because it is already an rvalue
