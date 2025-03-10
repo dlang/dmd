@@ -2422,7 +2422,7 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
         }
         ---
 
-        $(P For class objects:)
+        $(DDOC_DEPRECATED For class objects:)
 
         ---
         int tesla(int x, C c ...)
