@@ -497,8 +497,6 @@ package
  *
  * The ARM implementation is meant to be used as a kind of documented example implementation.
  * Look there for a concrete example.
- *
- * FIXME: fiber_entrypoint might benefit from a @noreturn attribute, but D doesn't have one.
  */
 
 /**
