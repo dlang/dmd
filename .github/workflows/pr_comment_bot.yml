@@ -12,6 +12,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Set up D programming language
+      uses: dlang-community/setup-dlang@v1.3.0
+      with:
+        compiler: dmd
+
     - name: Set up environment
       run: |
         echo "N=$(nproc)" >> $GITHUB_ENV
