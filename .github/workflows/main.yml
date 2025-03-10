@@ -157,9 +157,6 @@ jobs:
           arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
       - name: Build
         run: ${{ matrix.disable_debug_for_dmd_unittests && 'ENABLE_DEBUG=0' || '' }} ci/run.sh build
-        env:
-          # on Windows, `ci/run.sh build` expects the DMD env var to be set to the DMD-CLI-compatible host compiler
-          DMD: ${{ runner.os == 'Windows' && (startsWith(matrix.host_dmd, 'ldc') && 'ldmd2' || 'dmd') || '' }}
       - name: Rebuild dmd (with enabled coverage)
         if: matrix.coverage
         run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ci/run.sh rebuild
