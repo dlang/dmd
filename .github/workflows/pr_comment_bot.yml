@@ -1,0 +1,54 @@
+name: PR Comment Bot
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up environment
+      run: |
+        echo "N=$(nproc)" >> $GITHUB_ENV
+        echo "HOST_DMD=dmd" >> $GITHUB_ENV
+        echo "MODEL=64" >> $GITHUB_ENV
+
+    - name: Install dependencies
+      run: sudo apt-get install -y build-essential
+
+    - name: Build project
+      run: |
+        start_time=$(date +%s)
+        /usr/bin/time -v make -j$N MODEL=$MODEL HOST_DMD=$HOST_DMD
+        end_time=$(date +%s)
+        runtime=$((end_time - start_time))
+        echo "RUNTIME=$runtime" >> $GITHUB_ENV
+
+    - name: Get RAM usage
+      run: |
+        ram_usage=$(free -m | awk '/Mem:/ {print $3}')
+        echo "RAM_USAGE=$ram_usage" >> $GITHUB_ENV
+
+    - name: Comment on PR
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { RUNTIME, RAM_USAGE } = process.env;
+          const comment = `
+          ### Build Statistics
+          - **Runtime:** ${RUNTIME} seconds
+          - **RAM Usage:** ${RAM_USAGE} MB
+          `;
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
