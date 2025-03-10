@@ -173,25 +173,6 @@ jobs:
       - name: Test druntime
         if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_druntime
-      - name: 'Windows: Add libcurl.dll to PATH (required for Phobos unittests)'
-        if: runner.os == 'Windows' && !matrix.coverage && (success() || failure())
-        run: |
-          set -euxo pipefail
-          if [[ "$MODEL" == '32' ]]; then
-            # LDC
-            echo "$(dirname "$(which $DC)")/../lib32" >> $GITHUB_PATH
-            # DMD
-            echo "$(dirname "$(which $DC)")/../bin" >> $GITHUB_PATH
-          elif [[ '${{ matrix.host_dmd }}' == 'dmd-2.079.0' ]]; then
-            # libcurl bundled with bootstrap compiler is too old...
-            curl -fsSL https://downloads.dlang.org/other/libcurl-7.65.3-2-WinSSL-zlib-x86-x64.zip -o libcurl.zip
-            mkdir libcurl
-            cd libcurl
-            7z x ../libcurl.zip > /dev/null
-            cp dmd2/windows/bin64/libcurl.dll "$(dirname "$(which $DC)")"/../bin64/
-            cd ..
-            rm -rf libcurl libcurl.zip
-          fi
       - name: Test phobos
         if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_phobos

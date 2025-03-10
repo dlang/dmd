@@ -39,6 +39,13 @@ else
   fi
 fi
 
+# download a file
+download() {
+    local url="$1"
+    local path="$2"
+    curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 --retry 5 --retry-delay 5 "$url" -o "$path"
+}
+
 # clone a repo
 clone() {
     local url="$1"
@@ -139,6 +146,27 @@ test_druntime() {
 
 # build and run Phobos unit tests
 test_phobos() {
+    if [ "$OS_NAME" == "windows" ]; then
+        # make sure proper libcurl.dll is in PATH
+        dc_bin_dir="$(dirname "$(which $DC)")"
+        if [ "$MODEL" == "32" ]; then
+            if [ "${HOST_DMD:0:4}" == "ldc-" ]; then
+                export PATH="$dc_bin_dir/../lib32:$PATH"
+            else
+                export PATH="$dc_bin_dir/../bin:$PATH"
+            fi
+        elif [[ "$HOST_DMD" == "dmd-2.079.0" ]]; then
+            # libcurl bundled with bootstrap compiler is too old...
+            download https://downloads.dlang.org/other/libcurl-7.65.3-2-WinSSL-zlib-x86-x64.zip libcurl.zip
+            mkdir libcurl
+            cd libcurl
+            7z x ../libcurl.zip > /dev/null
+            cp dmd2/windows/bin64/libcurl.dll "$dc_bin_dir/../bin64/"
+            cd ..
+            rm -rf libcurl libcurl.zip
+        fi
+    fi
+
     make -j$N -C ../phobos MODEL=$MODEL unittest
 
     if [ "$OS_NAME" == "windows" ]; then
@@ -220,14 +248,9 @@ testsuite() {
 
 download_install_sh() {
   if command -v gpg > /dev/null; then
-    curl -fsSL \
-      -A "$CURL_USER_AGENT" \
-      --connect-timeout 5 \
-      --speed-time 30 \
-      --speed-limit 1024 \
-      --retry 5 \
-      --retry-delay 5 \
-      https://dlang.org/d-keyring.gpg | gpg --import /dev/stdin
+    download https://dlang.org/d-keyring.gpg d-keyring.gpg
+    gpg --import d-keyring.gpg
+    rm d-keyring.gpg
   fi
 
   local mirrors location
@@ -243,7 +266,7 @@ download_install_sh() {
   fi
   for i in {0..4}; do
     for mirror in "${mirrors[@]}" ; do
-        if curl -fsS -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 "$mirror" -o "$location" ; then
+        if download "$mirror" "$location" ; then
             break 2
         fi
     done
@@ -260,8 +283,9 @@ install_host_compiler() {
         sudo apt-get update
         sudo apt-get install -y gdc-$gdc_version
         # fetch the gdmd wrapper for CLI compatibility with dmd
-        sudo curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 --retry 5 --retry-delay 5 https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -o /usr/bin/gdmd-$gdc_version
-        sudo chmod +x /usr/bin/gdmd-$gdc_version
+        download https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script dmd-script
+        chmod +x dmd-script
+        sudo mv dmd-script /usr/bin/gdmd-$gdc_version
         # fake install script and create a fake 'activate' script
         mkdir -p ~/dlang/gdc-$gdc_version
         echo "export DMD=gdmd-$gdc_version" > ~/dlang/gdc-$gdc_version/activate
