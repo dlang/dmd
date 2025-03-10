@@ -1556,6 +1556,8 @@ $(H4 $(LNAME2 cast_struct, Structs))
           the target type `S`. The data sizes must match.
         * Otherwise, it is an error.
 
+        $(NOTE The following examples assume a `LittleEndian` byte order.)
+
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         struct S
