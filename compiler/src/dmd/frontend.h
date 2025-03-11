@@ -6574,7 +6574,6 @@ public:
     Include inc;
     DYNCAST dyncast() const final override;
     virtual Condition* syntaxCopy() = 0;
-    virtual int32_t include(Scope* sc) = 0;
     virtual DebugCondition* isDebugCondition();
     virtual VersionCondition* isVersionCondition();
     virtual StaticIfCondition* isStaticIfCondition();
@@ -6603,7 +6602,6 @@ class DebugCondition final : public DVCondition
 {
 public:
     static void addGlobalIdent(const char* ident);
-    int32_t include(Scope* sc) override;
     DebugCondition* isDebugCondition() override;
     void accept(Visitor* v) override;
 };
@@ -6613,7 +6611,6 @@ class VersionCondition final : public DVCondition
 public:
     static void addGlobalIdent(const char* ident);
     static void addPredefinedGlobalIdent(const char* ident);
-    int32_t include(Scope* sc) override;
     VersionCondition* isVersionCondition() override;
     void accept(Visitor* v) override;
 };
@@ -6623,7 +6620,6 @@ class StaticIfCondition final : public Condition
 public:
     Expression* exp;
     StaticIfCondition* syntaxCopy() override;
-    int32_t include(Scope* sc) override;
     void accept(Visitor* v) override;
     StaticIfCondition* isStaticIfCondition() override;
 };
@@ -7520,13 +7516,13 @@ public:
 
 extern Array<Dsymbol* >* include(Dsymbol* d, Scope* sc);
 
-class IncludeVisitor : public Visitor
+class ConditionIncludeVisitor : public Visitor
 {
 public:
     using Visitor::visit;
     Scope* sc;
     Array<Dsymbol* >* symbols;
-    IncludeVisitor(Scope* sc);
+    ConditionIncludeVisitor(Scope* sc);
     void visit(AttribDeclaration* ad) override;
     void visit(ConditionalDeclaration* cdc) override;
     void visit(StaticIfDeclaration* sif) override;
@@ -7552,6 +7548,8 @@ extern bool hasStaticCtorOrDtor(Dsymbol* d);
 extern bool isFuncHidden(ClassDeclaration* cd, FuncDeclaration* fd);
 
 extern void lowerNonArrayAggregate(StaticForeach* sfe, Scope* sc);
+
+extern int32_t include(Condition* c, Scope* sc);
 
 class NrvoWalker final : public StatementRewriteWalker
 {
