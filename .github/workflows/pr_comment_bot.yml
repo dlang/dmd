@@ -40,22 +40,34 @@ jobs:
           echo "RAM_USAGE=$ram_usage" >> $GITHUB_ENV
 
       - name: Generate build statistics
-        run: ./scripts/ci/summary_comment.sh | tee NEW_OUTPUT.txt
+        run: |
+          echo "### ✅ Build Statistics" > NEW_OUTPUT.txt
+          echo "**Execution Time:** \`$RUNTIME\` seconds" >> NEW_OUTPUT.txt
+          echo "**RAM Usage:** \`$RAM_USAGE\` MB" >> NEW_OUTPUT.txt
+          echo "" >> NEW_OUTPUT.txt
+          ./scripts/ci/summary_comment.sh >> NEW_OUTPUT.txt
 
       - name: Generate comment diff
-        run: ./scripts/ci/summary_comment_diff.sh OLD_OUTPUT.txt NEW_OUTPUT.txt | tee comment.txt
+        run: |
+          echo "### 🔍 Build Statistics Diff" > comment.txt
+          echo "**Execution Time:** \`$RUNTIME\` seconds" >> comment.txt
+          echo "**RAM Usage:** \`$RAM_USAGE\` MB" >> comment.txt
+          echo "" >> comment.txt
+          ./scripts/ci/summary_comment_diff.sh OLD_OUTPUT.txt NEW_OUTPUT.txt >> comment.txt
 
-      - name: Debug comment.txt contents
+      - name: "Debug: Check comment.txt contents"
         run: cat comment.txt || echo "comment.txt is empty"
 
-      - name: Comment on PR
+      - name: Post Comment on PR
         uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           script: |
             const fs = require('fs');
             const path = 'comment.txt';
 
-            // Check if comment.txt exists and is not empty
+            // Ensure comment file exists and is not empty
             if (!fs.existsSync(path) || fs.statSync(path).size === 0) {
               console.log("No comment generated, skipping PR comment.");
               return;
@@ -73,5 +85,3 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
