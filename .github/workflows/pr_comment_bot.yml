@@ -45,7 +45,7 @@ jobs:
           echo "**Execution Time:** \`$RUNTIME\` seconds" >> NEW_OUTPUT.txt
           echo "**RAM Usage:** \`$RAM_USAGE\` MB" >> NEW_OUTPUT.txt
           echo "" >> NEW_OUTPUT.txt
-          ./scripts/ci/summary_comment.sh >> NEW_OUTPUT.txt
+          ./ci/summary_comment.sh >> NEW_OUTPUT.txt
 
       - name: Generate comment diff
         run: |
@@ -53,7 +53,7 @@ jobs:
           echo "**Execution Time:** \`$RUNTIME\` seconds" >> comment.txt
           echo "**RAM Usage:** \`$RAM_USAGE\` MB" >> comment.txt
           echo "" >> comment.txt
-          ./scripts/ci/summary_comment_diff.sh OLD_OUTPUT.txt NEW_OUTPUT.txt >> comment.txt
+          ./ci/summary_comment_diff.sh OLD_OUTPUT.txt NEW_OUTPUT.txt >> comment.txt
 
       - name: "Debug: Check comment.txt contents"
         run: cat comment.txt || echo "comment.txt is empty"
