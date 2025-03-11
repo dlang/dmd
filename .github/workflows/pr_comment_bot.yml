@@ -39,21 +39,28 @@ jobs:
           ram_usage=$(free -m | awk '/Mem:/ {print $3}')
           echo "RAM_USAGE=$ram_usage" >> $GITHUB_ENV
 
+      - name: Make build scripts executable
+        run: |
+          chmod +x ./ci/summary_comment.sh
+          chmod +x ./ci/summary_comment_diff.sh
+
       - name: Generate build statistics
         run: |
           echo "### ✅ Build Statistics" > NEW_OUTPUT.txt
-          echo "**Execution Time:** \`$RUNTIME\` seconds" >> NEW_OUTPUT.txt
-          echo "**RAM Usage:** \`$RAM_USAGE\` MB" >> NEW_OUTPUT.txt
+          echo "This build's statistics are calculated as follows:" >> NEW_OUTPUT.txt
+          echo "- **Execution Time:** The total time taken to build the project. Value: \`$RUNTIME\` seconds." >> NEW_OUTPUT.txt
+          echo "- **RAM Usage:** The amount of memory (in megabytes) used during the build. Value: \`$RAM_USAGE\` MB." >> NEW_OUTPUT.txt
           echo "" >> NEW_OUTPUT.txt
-          ./ci/summary_comment.sh >> NEW_OUTPUT.txt
+          ./ci/summary_comment.sh >> NEW_OUTPUT.txt || echo "No additional build stats provided."
 
       - name: Generate comment diff
         run: |
           echo "### 🔍 Build Statistics Diff" > comment.txt
-          echo "**Execution Time:** \`$RUNTIME\` seconds" >> comment.txt
-          echo "**RAM Usage:** \`$RAM_USAGE\` MB" >> comment.txt
+          echo "Comparing previous build statistics with the current build:" >> comment.txt
+          echo "- **Execution Time:** \`$RUNTIME\` seconds" >> comment.txt
+          echo "- **RAM Usage:** \`$RAM_USAGE\` MB" >> comment.txt
           echo "" >> comment.txt
-          ./ci/summary_comment_diff.sh OLD_OUTPUT.txt NEW_OUTPUT.txt >> comment.txt
+          ./ci/summary_comment_diff.sh OLD_OUTPUT.txt NEW_OUTPUT.txt >> comment.txt || echo "No diff available."
 
       - name: "Debug: Check comment.txt contents"
         run: cat comment.txt || echo "comment.txt is empty"
