@@ -3596,6 +3596,23 @@ void oops()
 
     $(P $(I RvalueExpression)s enable the use of $(I move constructor)s and $(I move assignment)s.)
 
+$(H4 $(LNAME2 __rvalue-function-attribute, As a function attribute))
+
+    $(P It is also allowed to use the $(CODE __rvalue) keyword as a function attribute. The presence of this
+    attribute will infer the $(I RvalueExpression) upon the function call expression at the call-site,
+    as if applied to the function's return value. This is only accepted on functions that return by reference.
+    )
+
+---
+ref S fun(return ref S s) __rvalue
+{
+    return s;
+}
+
+S s;
+S t = fun(s); // call inferred as: __rvalue(fun(s))
+---
+
 $(H3 $(LNAME2 specialkeywords, Special Keywords))
 
 $(GRAMMAR

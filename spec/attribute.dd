@@ -30,6 +30,7 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 override, $(D override))
     $(RELATIVE_LINK2 ref, $(D ref))
     $(RELATIVE_LINK2 return, $(D return))
+    $(RELATIVE_LINK2 __rvalue, $(D __rvalue))
     $(RELATIVE_LINK2 scope, $(D scope))
     $(RELATIVE_LINK2 shared, $(D shared))
     $(RELATIVE_LINK2 static, $(D static))
@@ -732,6 +733,10 @@ $(H2 $(LNAME2 return, $(D return) Attribute))
 
     * $(DDSUBLINK spec/function, return-ref-parameters, Return Ref Parameters).
     * $(DDSUBLINK spec/function, return-scope-parameters, Return Scope Parameters).
+
+$(H2 $(LNAME2 __rvalue, $(D __rvalue) Attribute))
+
+    * $(DDSUBLINK spec/expression, __rvalue-function-attribute, $(I RvalueExpression)).
 
 $(H2 $(LNAME2 static, $(D static) Attribute))
 
