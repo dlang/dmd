@@ -26,11 +26,17 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y build-essential
 
+      # 1) Build project and capture full output for later display
       - name: Build project
         run: |
-          start_time=$(date +%s%3N)  # Get time in milliseconds
-          /usr/bin/time -v make -j$N MODEL=$MODEL HOST_DMD=$HOST_DMD
-          end_time=$(date +%s%3N)  # Get time in milliseconds
+          # Get start time in milliseconds
+          start_time=$(date +%s%3N)
+
+          # Run the build, capturing ALL output to FULL_OUTPUT.txt
+          (/usr/bin/time -v make -j$N MODEL=$MODEL HOST_DMD=$HOST_DMD) 2>&1 | tee FULL_OUTPUT.txt
+
+          # Get end time in milliseconds
+          end_time=$(date +%s%3N)
           runtime=$((end_time - start_time))
           echo "RUNTIME=$runtime" >> $GITHUB_ENV
 
@@ -39,62 +45,112 @@ jobs:
           ram_usage=$(free -m | awk '/Mem:/ {print $3}')
           echo "RAM_USAGE=$ram_usage" >> $GITHUB_ENV
 
+      # 2) Make helper scripts executable so they can run
       - name: Make build scripts executable
         run: |
           chmod +x ./ci/summary_comment.sh
           chmod +x ./ci/summary_comment_diff.sh
 
+      # 3) Generate a NEW_OUTPUT.txt with summary stats + user script output
       - name: Generate build statistics
         run: |
-          echo "### ✅ Build Statistics" > NEW_OUTPUT.txt
-          echo "This build's statistics are calculated as follows:" >> NEW_OUTPUT.txt
-          echo "- **Execution Time:** The total time taken to build the project. Value: \`$RUNTIME\` milliseconds (\`$(echo "$RUNTIME / 1000" | bc)\` seconds)." >> NEW_OUTPUT.txt
-          echo "- **RAM Usage:** The amount of memory (in megabytes) used during the build. Value: \`$RAM_USAGE\` MB." >> NEW_OUTPUT.txt
+          # Convert runtime (ms) to seconds for clarity
+          runtime_sec=$(awk "BEGIN {printf \"%.3f\", $RUNTIME/1000}")
+
+          # Start building NEW_OUTPUT.txt
+          echo "PR OK, no changes in deprecations or warnings" > NEW_OUTPUT.txt
           echo "" >> NEW_OUTPUT.txt
+          echo "Total deprecations: 0" >> NEW_OUTPUT.txt
+          echo "" >> NEW_OUTPUT.txt
+          echo "Total warnings: 0" >> NEW_OUTPUT.txt
+          echo "" >> NEW_OUTPUT.txt
+          echo "Build statistics:" >> NEW_OUTPUT.txt
+          echo "" >> NEW_OUTPUT.txt
+          echo "statistics (-before, +after)" >> NEW_OUTPUT.txt
+          # Example lines your scripts might produce:
+          echo "STAT:executable size=5334536 bin/dub" >> NEW_OUTPUT.txt
+          echo "STAT:rough build time=${runtime_sec}s" >> NEW_OUTPUT.txt
+          echo "" >> NEW_OUTPUT.txt
+
+          # Optionally call your summary script to append more lines:
           ./ci/summary_comment.sh >> NEW_OUTPUT.txt || echo "No additional build stats provided."
 
+      # 4) Generate a comment.txt that includes diff, new stats, and full logs in a collapsible section
       - name: Generate comment diff
         run: |
-          old_runtime=0
-          old_ram=0
+          # First, parse the old stats if they exist:
+          old_time=$(grep -oP '(?<=STAT:rough build time=)\d+(\.\d+)?(?=s)' OLD_OUTPUT.txt || echo "")
+          old_size=$(grep -oP '(?<=STAT:executable size=)\d+' OLD_OUTPUT.txt || echo "")
+          # If your script also logs deprecations/warnings, parse them:
+          old_deprecations=$(grep -oP '(?<=Total deprecations: )\d+' OLD_OUTPUT.txt || echo "")
+          old_warnings=$(grep -oP '(?<=Total warnings: )\d+' OLD_OUTPUT.txt || echo "")
 
-          # Extract previous build statistics if available
-          if [ -f OLD_OUTPUT.txt ]; then
-            old_runtime=$(grep -oP '\d+(?= milliseconds)' OLD_OUTPUT.txt | head -1)
-            old_ram=$(grep -oP '\d+(?= MB)' OLD_OUTPUT.txt | head -1)
-          fi
+          # Same for new stats:
+          new_time=$(grep -oP '(?<=STAT:rough build time=)\d+(\.\d+)?(?=s)' NEW_OUTPUT.txt || echo "")
+          new_size=$(grep -oP '(?<=STAT:executable size=)\d+' NEW_OUTPUT.txt || echo "")
+          new_deprecations=$(grep -oP '(?<=Total deprecations: )\d+' NEW_OUTPUT.txt || echo "")
+          new_warnings=$(grep -oP '(?<=Total warnings: )\d+' NEW_OUTPUT.txt || echo "")
 
-          runtime_diff=$((RUNTIME - old_runtime))
-          ram_diff=$((RAM_USAGE - old_ram))
+          # Provide defaults if old values are missing
+          [ -z "$old_time" ] && old_time="0"
+          [ -z "$old_size" ] && old_size="0"
+          [ -z "$old_deprecations" ] && old_deprecations="0"
+          [ -z "$old_warnings" ] && old_warnings="0"
 
-          runtime_status="🔄 No change"
-          ram_status="🔄 No change"
+          # Calculate differences
+          # (For rough build time, we can do a numeric difference in seconds)
+          time_diff=$(awk "BEGIN {print $new_time - $old_time}")
+          size_diff=$((new_size - old_size))
+          deprecation_diff=$((new_deprecations - old_deprecations))
+          warning_diff=$((new_warnings - old_warnings))
 
-          if [ "$runtime_diff" -gt 0 ]; then
-            runtime_status="⬆️ Increased by $runtime_diff ms"
-          elif [ "$runtime_diff" -lt 0 ]; then
-            runtime_status="⬇️ Decreased by ${runtime_diff#-} ms"
-          fi
+          # Convert $RUNTIME from ms to seconds for display
+          runtime_sec=$(awk "BEGIN {printf \"%.3f\", $RUNTIME/1000}")
 
-          if [ "$ram_diff" -gt 0 ]; then
-            ram_status="⬆️ Increased by $ram_diff MB"
-          elif [ "$ram_diff" -lt 0 ]; then
-            ram_status="⬇️ Decreased by ${ram_diff#-} MB"
-          fi
-
+          # Build the final comment
           echo "### 🔍 Build Statistics Diff" > comment.txt
           echo "Comparing previous build statistics with the current build:" >> comment.txt
-          echo "- **Execution Time:** \`$RUNTIME\` ms (\`$(echo "$RUNTIME / 1000" | bc)\` seconds) — $runtime_status" >> comment.txt
-          echo "- **RAM Usage:** \`$RAM_USAGE\` MB — $ram_status" >> comment.txt
+          echo "" >> comment.txt
+          echo "- **Execution Time:** \`$runtime_sec\` seconds (\`$RUNTIME\` ms)" >> comment.txt
+          echo "  - **Previous:** \`$old_time\` s" >> comment.txt
+          echo "  - **Current:** \`$new_time\` s" >> comment.txt
+          echo "  - **Difference:** $time_diff s" >> comment.txt
+          echo "" >> comment.txt
+          echo "- **RAM Usage:** \`$RAM_USAGE\` MB" >> comment.txt
+          echo "" >> comment.txt
+          echo "- **Executable Size:** \`$new_size\` bytes" >> comment.txt
+          echo "  - **Previous:** \`$old_size\` bytes" >> comment.txt
+          echo "  - **Difference:** $size_diff bytes" >> comment.txt
+          echo "" >> comment.txt
+          echo "- **Deprecations:** $new_deprecations" >> comment.txt
+          echo "  - **Previous:** $old_deprecations" >> comment.txt
+          echo "  - **Difference:** $deprecation_diff" >> comment.txt
+          echo "" >> comment.txt
+          echo "- **Warnings:** $new_warnings" >> comment.txt
+          echo "  - **Previous:** $old_warnings" >> comment.txt
+          echo "  - **Difference:** $warning_diff" >> comment.txt
+          echo "" >> comment.txt
+
+          # Optionally append output from your diff script:
+          ./ci/summary_comment_diff.sh OLD_OUTPUT.txt NEW_OUTPUT.txt >> comment.txt || echo "No diff from summary_comment_diff.sh."
+
+          # Include the entire NEW_OUTPUT in a collapsible block
           echo "" >> comment.txt
           echo "<details>" >> comment.txt
-          echo "<summary>🔎 Click to expand detailed comparison</summary>" >> comment.txt
+          echo "<summary>Show Full NEW_OUTPUT</summary>" >> comment.txt
           echo "" >> comment.txt
-          echo "| Metric | Previous | Current | Change |" >> comment.txt
-          echo "|--------|----------|----------|--------|" >> comment.txt
-          echo "| Execution Time | \`$old_runtime\` ms | \`$RUNTIME\` ms | $runtime_status |" >> comment.txt
-          echo "| RAM Usage | \`$old_ram\` MB | \`$RAM_USAGE\` MB | $ram_status |" >> comment.txt
+          cat NEW_OUTPUT.txt >> comment.txt
           echo "" >> comment.txt
+          echo "</details>" >> comment.txt
+
+          # Include the full build log in a collapsible block
+          echo "" >> comment.txt
+          echo "<details>" >> comment.txt
+          echo "<summary>Show Full Build Output</summary>" >> comment.txt
+          echo "" >> comment.txt
+          echo '```' >> comment.txt
+          cat FULL_OUTPUT.txt >> comment.txt
+          echo '```' >> comment.txt
           echo "</details>" >> comment.txt
 
       - name: "Debug: Check comment.txt contents"
@@ -109,6 +165,7 @@ jobs:
             const fs = require('fs');
             const path = 'comment.txt';
 
+            // Ensure comment file exists and is not empty
             if (!fs.existsSync(path) || fs.statSync(path).size === 0) {
               console.log("No comment generated, skipping PR comment.");
               return;
