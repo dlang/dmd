@@ -28,9 +28,9 @@ jobs:
 
       - name: Build project
         run: |
-          start_time=$(date +%s)
+          start_time=$(date +%s%3N)  # Get time in milliseconds
           /usr/bin/time -v make -j$N MODEL=$MODEL HOST_DMD=$HOST_DMD
-          end_time=$(date +%s)
+          end_time=$(date +%s%3N)  # Get time in milliseconds
           runtime=$((end_time - start_time))
           echo "RUNTIME=$runtime" >> $GITHUB_ENV
 
@@ -48,19 +48,54 @@ jobs:
         run: |
           echo "### ✅ Build Statistics" > NEW_OUTPUT.txt
           echo "This build's statistics are calculated as follows:" >> NEW_OUTPUT.txt
-          echo "- **Execution Time:** The total time taken to build the project. Value: \`$RUNTIME\` seconds." >> NEW_OUTPUT.txt
+          echo "- **Execution Time:** The total time taken to build the project. Value: \`$RUNTIME\` milliseconds (\`$(echo "$RUNTIME / 1000" | bc)\` seconds)." >> NEW_OUTPUT.txt
           echo "- **RAM Usage:** The amount of memory (in megabytes) used during the build. Value: \`$RAM_USAGE\` MB." >> NEW_OUTPUT.txt
           echo "" >> NEW_OUTPUT.txt
           ./ci/summary_comment.sh >> NEW_OUTPUT.txt || echo "No additional build stats provided."
 
       - name: Generate comment diff
         run: |
+          old_runtime=0
+          old_ram=0
+
+          # Extract previous build statistics if available
+          if [ -f OLD_OUTPUT.txt ]; then
+            old_runtime=$(grep -oP '\d+(?= milliseconds)' OLD_OUTPUT.txt | head -1)
+            old_ram=$(grep -oP '\d+(?= MB)' OLD_OUTPUT.txt | head -1)
+          fi
+
+          runtime_diff=$((RUNTIME - old_runtime))
+          ram_diff=$((RAM_USAGE - old_ram))
+
+          runtime_status="🔄 No change"
+          ram_status="🔄 No change"
+
+          if [ "$runtime_diff" -gt 0 ]; then
+            runtime_status="⬆️ Increased by $runtime_diff ms"
+          elif [ "$runtime_diff" -lt 0 ]; then
+            runtime_status="⬇️ Decreased by ${runtime_diff#-} ms"
+          fi
+
+          if [ "$ram_diff" -gt 0 ]; then
+            ram_status="⬆️ Increased by $ram_diff MB"
+          elif [ "$ram_diff" -lt 0 ]; then
+            ram_status="⬇️ Decreased by ${ram_diff#-} MB"
+          fi
+
           echo "### 🔍 Build Statistics Diff" > comment.txt
           echo "Comparing previous build statistics with the current build:" >> comment.txt
-          echo "- **Execution Time:** \`$RUNTIME\` seconds" >> comment.txt
-          echo "- **RAM Usage:** \`$RAM_USAGE\` MB" >> comment.txt
+          echo "- **Execution Time:** \`$RUNTIME\` ms (\`$(echo "$RUNTIME / 1000" | bc)\` seconds) — $runtime_status" >> comment.txt
+          echo "- **RAM Usage:** \`$RAM_USAGE\` MB — $ram_status" >> comment.txt
           echo "" >> comment.txt
-          ./ci/summary_comment_diff.sh OLD_OUTPUT.txt NEW_OUTPUT.txt >> comment.txt || echo "No diff available."
+          echo "<details>" >> comment.txt
+          echo "<summary>🔎 Click to expand detailed comparison</summary>" >> comment.txt
+          echo "" >> comment.txt
+          echo "| Metric | Previous | Current | Change |" >> comment.txt
+          echo "|--------|----------|----------|--------|" >> comment.txt
+          echo "| Execution Time | \`$old_runtime\` ms | \`$RUNTIME\` ms | $runtime_status |" >> comment.txt
+          echo "| RAM Usage | \`$old_ram\` MB | \`$RAM_USAGE\` MB | $ram_status |" >> comment.txt
+          echo "" >> comment.txt
+          echo "</details>" >> comment.txt
 
       - name: "Debug: Check comment.txt contents"
         run: cat comment.txt || echo "comment.txt is empty"
@@ -74,7 +109,6 @@ jobs:
             const fs = require('fs');
             const path = 'comment.txt';
 
-            // Ensure comment file exists and is not empty
             if (!fs.existsSync(path) || fs.statSync(path).size === 0) {
               console.log("No comment generated, skipping PR comment.");
               return;
