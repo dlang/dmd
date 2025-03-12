@@ -124,6 +124,12 @@ nothrow:
         return this.index - locFileTable[i].startIndex;
     }
 
+    /// Returns: this location as a SourceLoc
+    extern (C++) SourceLoc toSourceLoc() const @nogc @safe
+    {
+        return SourceLoc(this);
+    }
+
     /**
      * Checks for equivalence by comparing the filename contents (not the pointer) and character location.
      *
@@ -131,7 +137,7 @@ nothrow:
      *  - Uses case-insensitive comparison on Windows
      *  - Ignores `charnum` if `Columns` is false.
      */
-    extern (C++) bool equals(ref const(Loc) loc) const
+    extern (C++) bool equals(Loc loc) const
     {
         SourceLoc lhs = SourceLoc(this);
         SourceLoc rhs = SourceLoc(loc);

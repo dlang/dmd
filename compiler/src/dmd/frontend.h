@@ -377,6 +377,22 @@ enum class MessageStyle : uint8_t
     sarif = 2u,
 };
 
+struct SourceLoc final
+{
+    _d_dynamicArray< const char > filename;
+    uint32_t line;
+    uint32_t column;
+    uint32_t fileOffset;
+    const char* toChars(bool showColumns = Loc::showColumns, MessageStyle messageStyle = Loc::messageStyle) const;
+    SourceLoc() :
+        filename(),
+        line(),
+        column(),
+        fileOffset()
+    {
+    }
+};
+
 struct Loc final
 {
 private:
@@ -390,7 +406,8 @@ public:
     uint32_t linnum() const;
     const char* filename() const;
     const char* toChars(bool showColumns = Loc::showColumns, MessageStyle messageStyle = Loc::messageStyle) const;
-    bool equals(const Loc& loc) const;
+    SourceLoc toSourceLoc() const;
+    bool equals(Loc loc) const;
     Loc() :
         index(0u)
     {
