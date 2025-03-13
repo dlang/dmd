@@ -64,8 +64,9 @@ jobs:
         hyperfine \
           --warmup 1 \
           --runs 5 \
-          --prepare 'rm -f *.o' \
+          --show-output \
           --export-json benchmark_results.json \
+          --prepare 'rm -f *.o' \
           "../pr-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d" \
           "../master-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d"
 
@@ -78,11 +79,11 @@ jobs:
           exit 1
         fi
 
-        # Extract raw values with error checking
-        pr_time=$(jq -r '.results[0].mean' benchmark-phobos/benchmark_results.json)
-        master_time=$(jq -r '.results[1].mean' benchmark-phobos/benchmark_results.json)
-        pr_mem=$(jq -r '.results[0].max_rss' benchmark-phobos/benchmark_results.json)
-        master_mem=$(jq -r '.results[1].max_rss' benchmark-phobos/benchmark_results.json)
+        # Extract values with null handling
+        pr_time=$(jq -r '.results[0].mean // empty' benchmark-phobos/benchmark_results.json)
+        master_time=$(jq -r '.results[1].mean // empty' benchmark-phobos/benchmark_results.json)
+        pr_mem=$(jq -r '.results[0].max_rss // 0' benchmark-phobos/benchmark_results.json)
+        master_mem=$(jq -r '.results[1].max_rss // 0' benchmark-phobos/benchmark_results.json)
 
         # Debug output
         echo "Raw values:"
@@ -91,40 +92,33 @@ jobs:
         echo "pr_mem: $pr_mem"
         echo "master_mem: $master_mem"
 
-        # Handle potential zero values using awk for floating point comparison
+        # Calculate time metrics
+        time_diff=$(awk -v pt="$pr_time" -v mt="$master_time" 'BEGIN {printf "%.3f", pt - mt}')
         time_pct=$(awk -v pt="$pr_time" -v mt="$master_time" '
           BEGIN {
-            if (mt == 0) {
-              print "NaN"
-              exit 1
-            }
+            if (mt == 0) {print "NaN"; exit 0}
             printf "%.2f", (pt/mt - 1) * 100
           }')
 
-        mem_pct=$(awk -v pm="$pr_mem" -v mm="$master_mem" '
-          BEGIN {
-            if (mm == 0) {
-              print "NaN"
-              exit 1
-            }
-            printf "%.2f", (pm/mm - 1) * 100
-          }')
-
-        # Calculate other values
-        time_diff=$(awk -v pt="$pr_time" -v mt="$master_time" 'BEGIN {print pt - mt}')
+        # Calculate memory metrics
         pr_mem_mb=$(awk -v pm="$pr_mem" 'BEGIN {printf "%.2f", pm/1024}')
         master_mem_mb=$(awk -v mm="$master_mem" 'BEGIN {printf "%.2f", mm/1024}')
         mem_diff_mb=$(awk -v pm="$pr_mem" -v mm="$master_mem" 'BEGIN {printf "%.2f", (pm - mm)/1024}')
+        mem_pct=$(awk -v pm="$pr_mem" -v mm="$master_mem" '
+          BEGIN {
+            if (mm == 0) {print "NaN"; exit 0}
+            printf "%.2f", (pm/mm - 1) * 100
+          }')
 
         # Set outputs
         echo "pr_time=$pr_time" >> $GITHUB_OUTPUT
         echo "master_time=$master_time" >> $GITHUB_OUTPUT
         echo "time_diff=$time_diff" >> $GITHUB_OUTPUT
-        echo "time_pct=${time_pct:-NaN}" >> $GITHUB_OUTPUT
-        echo "pr_mem=${pr_mem_mb:-NaN}" >> $GITHUB_OUTPUT
-        echo "master_mem=${master_mem_mb:-NaN}" >> $GITHUB_OUTPUT
-        echo "mem_diff=${mem_diff_mb:-NaN}" >> $GITHUB_OUTPUT
-        echo "mem_pct=${mem_pct:-NaN}" >> $GITHUB_OUTPUT
+        echo "time_pct=$time_pct" >> $GITHUB_OUTPUT
+        echo "pr_mem=$pr_mem_mb" >> $GITHUB_OUTPUT
+        echo "master_mem=$master_mem_mb" >> $GITHUB_OUTPUT
+        echo "mem_diff=$mem_diff_mb" >> $GITHUB_OUTPUT
+        echo "mem_pct=$mem_pct" >> $GITHUB_OUTPUT
 
     - name: Create comment
       run: |
