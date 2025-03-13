@@ -81,18 +81,21 @@ jobs:
         time_diff=$(awk "BEGIN {print $pr_time - $master_time}")
         time_pct=$(awk "BEGIN {printf \"%.2f\", ($pr_time / $master_time - 1) * 100}")
 
+        # Convert memory to MB during parsing
         pr_mem=$(jq -r '.results[0].max_rss' benchmark-phobos/benchmark_results.json)
         master_mem=$(jq -r '.results[1].max_rss' benchmark-phobos/benchmark_results.json)
-        mem_diff=$(awk "BEGIN {print $pr_mem - $master_mem}")
+        pr_mem_mb=$(awk "BEGIN {printf \"%.2f\", $pr_mem / 1024}")
+        master_mem_mb=$(awk "BEGIN {printf \"%.2f\", $master_mem / 1024}")
+        mem_diff_mb=$(awk "BEGIN {printf \"%.2f\", ($pr_mem - $master_mem) / 1024}")
         mem_pct=$(awk "BEGIN {printf \"%.2f\", ($pr_mem / $master_mem - 1) * 100}")
 
         echo "pr_time=$pr_time" >> $GITHUB_OUTPUT
         echo "master_time=$master_time" >> $GITHUB_OUTPUT
         echo "time_diff=$time_diff" >> $GITHUB_OUTPUT
         echo "time_pct=$time_pct" >> $GITHUB_OUTPUT
-        echo "pr_mem=$pr_mem" >> $GITHUB_OUTPUT
-        echo "master_mem=$master_mem" >> $GITHUB_OUTPUT
-        echo "mem_diff=$mem_diff" >> $GITHUB_OUTPUT
+        echo "pr_mem=$pr_mem_mb" >> $GITHUB_OUTPUT
+        echo "master_mem=$master_mem_mb" >> $GITHUB_OUTPUT
+        echo "mem_diff=$mem_diff_mb" >> $GITHUB_OUTPUT
         echo "mem_pct=$mem_pct" >> $GITHUB_OUTPUT
 
     - name: Create comment
@@ -103,8 +106,8 @@ jobs:
         **Comparison between PR and master branch:**
         | Metric | PR | Master | Difference | Change |
         |--------|----|--------|------------|--------|
-        | Time (s) | ${{ steps.results.outputs.pr_time | printf: "%.3f" }} | ${{ steps.results.outputs.master_time | printf: "%.3f" }} | ${{ steps.results.outputs.time_diff | printf: "%.3f" }} | ${{ steps.results.outputs.time_pct }}% |
-        | Memory (MB) | ${{ steps.results.outputs.pr_mem | divided_by: 1024 | printf: "%.2f" }} | ${{ steps.results.outputs.master_mem | divided_by: 1024 | printf: "%.2f" }} | ${{ steps.results.outputs.mem_diff | divided_by: 1024 | printf: "%.2f" }} | ${{ steps.results.outputs.mem_pct }}% |
+        | Time (s) | ${{ format('%.3f', steps.results.outputs.pr_time) }} | ${{ format('%.3f', steps.results.outputs.master_time) }} | ${{ format('%.3f', steps.results.outputs.time_diff) }} | ${{ format('%.2f', steps.results.outputs.time_pct) }}% |
+        | Memory (MB) | ${{ format('%.2f', steps.results.outputs.pr_mem) }} | ${{ format('%.2f', steps.results.outputs.master_mem) }} | ${{ format('%.2f', steps.results.outputs.mem_diff) }} | ${{ format('%.2f', steps.results.outputs.mem_pct) }}% |
 
         **Details:**
         - Benchmark project: Phobos@${{ env.BENCHMARK_REF }}
