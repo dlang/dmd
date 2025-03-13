@@ -119,11 +119,18 @@ jobs:
         master_time_runs=$(printf "%.3f, " "${master_times[@]}" | sed 's/, $//')
         master_mem_runs=$(for m in "${master_mem[@]}"; do printf "%.1f MB, " "$(echo "$m/1024" | bc -l)"; done | sed 's/, $//')
 
-        # Calculate averages
-        pr_time_avg=$(jq -r '.results[0].mean // "NaN"' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
-        pr_time_stddev=$(jq -r '.results[0].stddev // "NaN"' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
-        master_time_avg=$(jq -r '.results[1].mean // "NaN"' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
-        master_time_stddev=$(jq -r '.results[1].stddev // "NaN"' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
+        # Calculate averages and stats
+        pr_time_avg=$(jq -r '.results[0].mean' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
+        pr_time_stddev=$(jq -r '.results[0].stddev' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
+        master_time_avg=$(jq -r '.results[1].mean' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
+        master_time_stddev=$(jq -r '.results[1].stddev' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
+
+        pr_mem_avg=$(echo "${pr_mem[@]}" | tr ' ' '\n' | awk '{sum += $1} END {printf "%.1f", sum/NR/1024}')
+        master_mem_avg=$(echo "${master_mem[@]}" | tr ' ' '\n' | awk '{sum += $1} END {printf "%.1f", sum/NR/1024}')
+        time_diff=$(awk -v pt="$pr_time_avg" -v mt="$master_time_avg" 'BEGIN {printf "%.3f", pt - mt}')
+        time_pct=$(awk -v pt="$pr_time_avg" -v mt="$master_time_avg" 'BEGIN {printf "%+.2f%%", ((pt/mt)-1)*100}')
+        mem_diff=$(awk -v pm="$pr_mem_avg" -v mm="$master_mem_avg" 'BEGIN {printf "%+.1f", pm - mm}')
+        mem_pct=$(awk -v pm="$pr_mem_avg" -v mm="$master_mem_avg" 'BEGIN {printf "%+.2f%%", ((pm/mm)-1)*100}')
 
         # Set outputs
         echo "pr_time_runs=${pr_time_runs}" >> $GITHUB_OUTPUT
@@ -132,6 +139,12 @@ jobs:
         echo "master_mem_runs=${master_mem_runs}" >> $GITHUB_OUTPUT
         echo "pr_time_avg=${pr_time_avg} ± ${pr_time_stddev}" >> $GITHUB_OUTPUT
         echo "master_time_avg=${master_time_avg} ± ${master_time_stddev}" >> $GITHUB_OUTPUT
+        echo "pr_mem_avg=${pr_mem_avg}" >> $GITHUB_OUTPUT
+        echo "master_mem_avg=${master_mem_avg}" >> $GITHUB_OUTPUT
+        echo "time_diff=${time_diff}" >> $GITHUB_OUTPUT
+        echo "time_pct=${time_pct}" >> $GITHUB_OUTPUT
+        echo "mem_diff=${mem_diff}" >> $GITHUB_OUTPUT
+        echo "mem_pct=${mem_pct}" >> $GITHUB_OUTPUT
         echo "binary_diff=${{ steps.diff_check.outputs.DIFF_RESULT }}" >> $GITHUB_OUTPUT
 
     - name: Create comment
@@ -143,19 +156,20 @@ jobs:
         | Run | PR Time (s) | Master Time (s) | PR Memory (MB) | Master Memory (MB) |
         |-----|-------------|-----------------|----------------|---------------------|
         $(
-          pr_times=(${pr_time_runs//, / })
-          master_times=(${master_time_runs//, / })
-          pr_mems=(${pr_mem_runs//, / })
-          master_mems=(${master_mem_runs//, / })
+          IFS=', ' read -ra pr_times <<< "${{ steps.results.outputs.pr_time_runs }}"
+          IFS=', ' read -ra master_times <<< "${{ steps.results.outputs.master_time_runs }}"
+          IFS=', ' read -ra pr_mems <<< "${{ steps.results.outputs.pr_mem_runs }}"
+          IFS=', ' read -ra master_mems <<< "${{ steps.results.outputs.master_mem_runs }}"
           for i in {0..4}; do
             printf "| %d | ${pr_times[$i]:-N/A} | ${master_times[$i]:-N/A} | ${pr_mems[$i]:-N/A} | ${master_mems[$i]:-N/A} |\\n" $((i+1))
           done
         )
 
         **Summary Statistics:**
-        | Metric | PR | Master |
-        |--------|----|--------|
-        | ⏱️ Time (s) | ${{ steps.results.outputs.pr_time_avg }} | ${{ steps.results.outputs.master_time_avg }} |
+        | Metric          | PR                    | Master                 | Difference       | Change          |
+        |-----------------|-----------------------|------------------------|------------------|-----------------|
+        | ⏱️ Time (s)     | ${{ steps.results.outputs.pr_time_avg }} | ${{ steps.results.outputs.master_time_avg }} | ${{ steps.results.outputs.time_diff }} | ${{ steps.results.outputs.time_pct }} |
+        | 🧠 Memory (MB)  | ${{ steps.results.outputs.pr_mem_avg }}      | ${{ steps.results.outputs.master_mem_avg }}      | ${{ steps.results.outputs.mem_diff }}  | ${{ steps.results.outputs.mem_pct }}  |
 
         **Binary Comparison:**
         ${{ steps.results.outputs.binary_diff }}
@@ -163,10 +177,12 @@ jobs:
         <details>
         <summary>📊 Additional Details</summary>
 
-        - Benchmark target: Phobos@${{ env.BENCHMARK_REF }}
-        - Runs: 5 (after 1 warmup)
-        - Hyperfine version: \`$(hyperfine --version)\`
-        - Executed on: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+        - **Benchmark target**: Phobos@${{ env.BENCHMARK_REF }}
+        - **Runs**: 5 measurements after 1 warmup
+        - **Environment**: Ubuntu Latest (GitHub Actions)
+        - **Hyperfine version**: \`$(hyperfine --version)\`
+        - **Execution date**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+        - **Compiler model**: ${{ env.MODEL }}-bit
         </details>
         EOF
         )
