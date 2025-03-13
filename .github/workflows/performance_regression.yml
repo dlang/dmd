@@ -95,37 +95,77 @@ jobs:
         # Extract values with error handling
         pr_time=$(jq -r '.results[0].mean // empty' benchmark-phobos/benchmark_results.json)
         master_time=$(jq -r '.results[1].mean // empty' benchmark-phobos/benchmark_results.json)
-        pr_time_var=$(jq -r '.results[0].stddev // empty' benchmark-phobos/benchmark_results.json)
-        master_time_var=$(jq -r '.results[1].stddev // empty' benchmark-phobos/benchmark_results.json)
+        pr_time_var=$(jq -r '.results[0].stddev // 0' benchmark-phobos/benchmark_results.json)
+        master_time_var=$(jq -r '.results[1].stddev // 0' benchmark-phobos/benchmark_results.json)
         pr_mem=$(jq -r '.results[0].max_rss // 0' benchmark-phobos/benchmark_results.json)
         master_mem=$(jq -r '.results[1].max_rss // 0' benchmark-phobos/benchmark_results.json)
         pr_mem_var=$(jq -r '.results[0].variance // 0' benchmark-phobos/benchmark_results.json)
         master_mem_var=$(jq -r '.results[1].variance // 0' benchmark-phobos/benchmark_results.json)
 
-        # Calculate metrics with scientific notation handling
-        calc() { awk "BEGIN { printf \"%.2f\", $* }"; }
+        # Debug output
+        echo "Raw values:"
+        echo "pr_time: $pr_time | master_time: $master_time"
+        echo "pr_mem: $pr_mem | master_mem: $master_mem"
+        echo "variances: time($pr_time_var, $master_time_var) mem($pr_mem_var, $master_mem_var)"
 
-        time_diff=$(calc "$pr_time - $master_time")
-        time_pct=$(calc "($pr_time/$master_time - 1) * 100")
-        time_sig=$(calc "$time_diff / sqrt($pr_time_var^2 + $master_time_var^2)")
+        # Calculation functions with error handling
+        safe_calc() {
+          awk -v a="$1" -v b="$2" '
+            BEGIN {
+              if (b == 0) {
+                if (a == 0) print "NaN"
+                else print "Inf"
+                exit 0
+              }
+              printf "%.2f", a / b
+            }'
+        }
 
-        pr_mem_mb=$(calc "$pr_mem / 1024")
-        master_mem_mb=$(calc "$master_mem / 1024")
-        mem_diff_mb=$(calc "($pr_mem - $master_mem) / 1024")
-        mem_pct=$(calc "($pr_mem/$master_mem - 1) * 100")
-        mem_sig=$(calc "($pr_mem - $master_mem) / sqrt($pr_mem_var + $master_mem_var)")
+        safe_diff() {
+          awk -v a="$1" -v b="$2" 'BEGIN {printf "%.2f", a - b}'
+        }
 
-        # Set outputs
-        echo "pr_time=$pr_time" >> $GITHUB_OUTPUT
-        echo "master_time=$master_time" >> $GITHUB_OUTPUT
-        echo "time_diff=$time_diff" >> $GITHUB_OUTPUT
-        echo "time_pct=$time_pct" >> $GITHUB_OUTPUT
-        echo "time_sig=$time_sig" >> $GITHUB_OUTPUT
-        echo "pr_mem=$pr_mem_mb" >> $GITHUB_OUTPUT
-        echo "master_mem=$master_mem_mb" >> $GITHUB_OUTPUT
-        echo "mem_diff=$mem_diff_mb" >> $GITHUB_OUTPUT
-        echo "mem_pct=$mem_pct" >> $GITHUB_OUTPUT
-        echo "mem_sig=$mem_sig" >> $GITHUB_OUTPUT
+        # Time calculations
+        time_diff=$(safe_diff "$pr_time" "$master_time")
+        time_pct=$(awk -v pt="$pr_time" -v mt="$master_time" '
+          BEGIN {
+            if (mt == 0) { print "NaN"; exit 0 }
+            printf "%.2f", (pt/mt - 1) * 100
+          }')
+        time_sig=$(awk -v diff="$time_diff" -v var1="$pr_time_var" -v var2="$master_time_var" '
+          BEGIN {
+            denominator = sqrt(var1^2 + var2^2)
+            if (denominator == 0) { print "NaN"; exit 0 }
+            printf "%.2f", diff / denominator
+          }')
+
+        # Memory calculations
+        pr_mem_mb=$(awk -v pm="$pr_mem" 'BEGIN {printf "%.2f", pm/1024}')
+        master_mem_mb=$(awk -v mm="$master_mem" 'BEGIN {printf "%.2f", mm/1024}')
+        mem_diff_mb=$(safe_diff "$pr_mem_mb" "$master_mem_mb")
+        mem_pct=$(awk -v pm="$pr_mem" -v mm="$master_mem" '
+          BEGIN {
+            if (mm == 0) { print "NaN"; exit 0 }
+            printf "%.2f", (pm/mm - 1) * 100
+          }')
+        mem_sig=$(awk -v diff="$pr_mem" -v var1="$pr_mem_var" -v var2="$master_mem_var" '
+          BEGIN {
+            denominator = sqrt(var1 + var2)
+            if (denominator == 0) { print "NaN"; exit 0 }
+            printf "%.2f", (diff) / denominator
+          }')
+
+        # Set outputs with NaN handling
+        echo "pr_time=${pr_time:-NaN}" >> $GITHUB_OUTPUT
+        echo "master_time=${master_time:-NaN}" >> $GITHUB_OUTPUT
+        echo "time_diff=${time_diff:-NaN}" >> $GITHUB_OUTPUT
+        echo "time_pct=${time_pct:-NaN}" >> $GITHUB_OUTPUT
+        echo "time_sig=${time_sig:-NaN}" >> $GITHUB_OUTPUT
+        echo "pr_mem=${pr_mem_mb:-NaN}" >> $GITHUB_OUTPUT
+        echo "master_mem=${master_mem_mb:-NaN}" >> $GITHUB_OUTPUT
+        echo "mem_diff=${mem_diff_mb:-NaN}" >> $GITHUB_OUTPUT
+        echo "mem_pct=${mem_pct:-NaN}" >> $GITHUB_OUTPUT
+        echo "mem_sig=${mem_sig:-NaN}" >> $GITHUB_OUTPUT
 
     - name: Create comment
       run: |
