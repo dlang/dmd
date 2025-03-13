@@ -72,18 +72,41 @@ jobs:
     - name: Parse results
       id: results
       run: |
+        # Check if benchmark file exists
+        if [ ! -f benchmark-phobos/benchmark_results.json ]; then
+          echo "Error: benchmark results file not found!"
+          exit 1
+        fi
+
+        # Extract times with validation
         pr_time=$(jq -r '.results[0].mean' benchmark-phobos/benchmark_results.json)
         master_time=$(jq -r '.results[1].mean' benchmark-phobos/benchmark_results.json)
+
+        # Handle division by zero for time percentages
+        if (( $(echo "$master_time == 0" | bc -l) )); then
+          echo "Error: Master time is zero, cannot calculate percentage difference"
+          exit 1
+        fi
         time_diff=$(awk "BEGIN {print $pr_time - $master_time}")
         time_pct=$(awk "BEGIN {printf \"%.2f\", ($pr_time / $master_time - 1) * 100}")
 
+        # Extract memory values
         pr_mem=$(jq -r '.results[0].max_rss' benchmark-phobos/benchmark_results.json)
         master_mem=$(jq -r '.results[1].max_rss' benchmark-phobos/benchmark_results.json)
+
+        # Handle division by zero for memory percentages
+        if (( $(echo "$master_mem == 0" | bc -l) )); then
+          echo "Error: Master memory is zero, cannot calculate percentage difference"
+          exit 1
+        fi
+
+        # Convert memory to MB
         pr_mem_mb=$(awk "BEGIN {printf \"%.2f\", $pr_mem / 1024}")
         master_mem_mb=$(awk "BEGIN {printf \"%.2f\", $master_mem / 1024}")
         mem_diff_mb=$(awk "BEGIN {printf \"%.2f\", ($pr_mem - $master_mem) / 1024}")
         mem_pct=$(awk "BEGIN {printf \"%.2f\", ($pr_mem / $master_mem - 1) * 100}")
 
+        # Set outputs
         echo "pr_time=$pr_time" >> $GITHUB_OUTPUT
         echo "master_time=$master_time" >> $GITHUB_OUTPUT
         echo "time_diff=$time_diff" >> $GITHUB_OUTPUT
@@ -101,8 +124,8 @@ jobs:
         **Comparison between PR and master branch:**
         | Metric | PR | Master | Difference | Change |
         |--------|----|--------|------------|--------|
-        | Time (s) | ${{ format('%.3f', steps.results.outputs.pr_time) }} | ${{ format('%.3f', steps.results.outputs.master_time) }} | ${{ format('%.3f', steps.results.outputs.time_diff) }} | ${{ format('%.2f', steps.results.outputs.time_pct) }}% |
-        | Memory (MB) | ${{ format('%.2f', steps.results.outputs.pr_mem) }} | ${{ format('%.2f', steps.results.outputs.master_mem) }} | ${{ format('%.2f', steps.results.outputs.mem_diff) }} | ${{ format('%.2f', steps.results.outputs.mem_pct) }}% |
+        | Time (s) | ${{ steps.results.outputs.pr_time }} | ${{ steps.results.outputs.master_time }} | ${{ steps.results.outputs.time_diff }} | ${{ steps.results.outputs.time_pct }}% |
+        | Memory (MB) | ${{ steps.results.outputs.pr_mem }} | ${{ steps.results.outputs.master_mem }} | ${{ steps.results.outputs.mem_diff }} | ${{ steps.results.outputs.mem_pct }}% |
 
         **Details:**
         - Benchmark project: Phobos@${{ env.BENCHMARK_REF }}
