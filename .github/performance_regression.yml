@@ -1,0 +1,146 @@
+name: Performance Regression Check
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      MODEL: 64
+      HOST_DMD: dmd-latest
+      BENCHMARK_REPO: https://github.com/dlang/phobos
+      BENCHMARK_REF: master
+
+    steps:
+    - name: Checkout PR code
+      uses: actions/checkout@v4
+      with:
+        path: pr-dmd
+
+    - name: Checkout master code
+      uses: actions/checkout@v4
+      with:
+        repository: dlang/dmd
+        ref: master
+        path: master-dmd
+
+    - name: Setup PR compiler
+      uses: dlang-community/setup-dlang@v1.3.0
+      with:
+        compiler: dmd-latest
+
+    - name: Build PR compiler
+      working-directory: ./pr-dmd
+      run: |
+        make -j$(nproc) MODEL=$MODEL HOST_DMD=$HOST_DMD
+
+    - name: Setup master compiler
+      uses: dlang-community/setup-dlang@v1.3.0
+      with:
+        compiler: dmd-latest
+
+    - name: Build master compiler
+      working-directory: ./master-dmd
+      run: |
+        make -j$(nproc) MODEL=$MODEL HOST_DMD=$HOST_DMD
+
+    - name: Checkout benchmark project
+      uses: actions/checkout@v4
+      with:
+        repository: dlang/phobos
+        ref: ${{ env.BENCHMARK_REF }}
+        path: benchmark-phobos
+
+    - name: Install hyperfine
+      run: sudo apt-get install -y hyperfine
+
+    - name: Warmup build cache
+      working-directory: ./benchmark-phobos
+      run: |
+        ../pr-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d || true
+        rm -f *.o
+
+    - name: Run benchmarks
+      working-directory: ./benchmark-phobos
+      run: |
+        hyperfine \
+          --warmup 1 \
+          --runs 5 \
+          --prepare 'rm -f *.o' \
+          --export-json benchmark_results.json \
+          "../pr-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d" \
+          "../master-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d"
+
+    - name: Parse results
+      id: results
+      run: |
+        pr_time=$(jq -r '.results[0].mean' benchmark-phobos/benchmark_results.json)
+        master_time=$(jq -r '.results[1].mean' benchmark-phobos/benchmark_results.json)
+        time_diff=$(awk "BEGIN {print $pr_time - $master_time}")
+        time_pct=$(awk "BEGIN {printf \"%.2f\", ($pr_time / $master_time - 1) * 100}")
+
+        pr_mem=$(jq -r '.results[0].max_rss' benchmark-phobos/benchmark_results.json)
+        master_mem=$(jq -r '.results[1].max_rss' benchmark-phobos/benchmark_results.json)
+        mem_diff=$(awk "BEGIN {print $pr_mem - $master_mem}")
+        mem_pct=$(awk "BEGIN {printf \"%.2f\", ($pr_mem / $master_mem - 1) * 100}")
+
+        echo "pr_time=$pr_time" >> $GITHUB_OUTPUT
+        echo "master_time=$master_time" >> $GITHUB_OUTPUT
+        echo "time_diff=$time_diff" >> $GITHUB_OUTPUT
+        echo "time_pct=$time_pct" >> $GITHUB_OUTPUT
+        echo "pr_mem=$pr_mem" >> $GITHUB_OUTPUT
+        echo "master_mem=$master_mem" >> $GITHUB_OUTPUT
+        echo "mem_diff=$mem_diff" >> $GITHUB_OUTPUT
+        echo "mem_pct=$mem_pct" >> $GITHUB_OUTPUT
+
+    - name: Create comment
+      run: |
+        PERFORMANCE_COMMENT=$(cat << EOF
+        ### 🚀 Performance Benchmark Results
+
+        **Comparison between PR and master branch:**
+        | Metric | PR | Master | Difference | Change |
+        |--------|----|--------|------------|--------|
+        | Time (s) | ${{ steps.results.outputs.pr_time | printf: "%.3f" }} | ${{ steps.results.outputs.master_time | printf: "%.3f" }} | ${{ steps.results.outputs.time_diff | printf: "%.3f" }} | ${{ steps.results.outputs.time_pct }}% |
+        | Memory (MB) | ${{ steps.results.outputs.pr_mem | divided_by: 1024 | printf: "%.2f" }} | ${{ steps.results.outputs.master_mem | divided_by: 1024 | printf: "%.2f" }} | ${{ steps.results.outputs.mem_diff | divided_by: 1024 | printf: "%.2f" }} | ${{ steps.results.outputs.mem_pct }}% |
+
+        **Details:**
+        - Benchmark project: Phobos@${{ env.BENCHMARK_REF }}
+        - 5 runs averaged using [hyperfine](https://github.com/sharkdp/hyperfine)
+        - Clean build between runs
+        EOF
+        )
+        echo "$PERFORMANCE_COMMENT" > performance_comment.md
+
+    - name: Post comment
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          const comment = fs.readFileSync('performance_comment.md', 'utf8');
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const existingComment = comments.find(c => c.body.includes('🚀 Performance Benchmark Results'));
+
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: comment,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment,
+            });
+          }
