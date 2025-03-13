@@ -7,7 +7,6 @@ on:
 jobs:
   comment:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,15 +25,12 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y build-essential
 
-      # 1) Build project and capture full output for later display
       - name: Build project
         run: |
           # Get start time in milliseconds
           start_time=$(date +%s%3N)
-
           # Run the build, capturing ALL output to FULL_OUTPUT.txt
           (/usr/bin/time -v make -j$N MODEL=$MODEL HOST_DMD=$HOST_DMD) 2>&1 | tee FULL_OUTPUT.txt
-
           # Get end time in milliseconds
           end_time=$(date +%s%3N)
           runtime=$((end_time - start_time))
@@ -42,21 +38,18 @@ jobs:
 
       - name: Get RAM usage
         run: |
-          ram_usage=$(free -m | awk '/Mem:/ {print $3}')
+          ram_usage=$(free -m | awk '/Mem:/{print $3}')
           echo "RAM_USAGE=$ram_usage" >> $GITHUB_ENV
 
-      # 2) Make helper scripts executable so they can run
       - name: Make build scripts executable
         run: |
           chmod +x ./ci/summary_comment.sh
           chmod +x ./ci/summary_comment_diff.sh
 
-      # 3) Generate a NEW_OUTPUT.txt with summary stats + user script output
       - name: Generate build statistics
         run: |
           # Convert runtime (ms) to seconds for clarity
           runtime_sec=$(awk "BEGIN {printf \"%.3f\", $RUNTIME/1000}")
-
           # Start building NEW_OUTPUT.txt
           echo "PR OK, no changes in deprecations or warnings" > NEW_OUTPUT.txt
           echo "" >> NEW_OUTPUT.txt
@@ -66,74 +59,74 @@ jobs:
           echo "" >> NEW_OUTPUT.txt
           echo "Build statistics:" >> NEW_OUTPUT.txt
           echo "" >> NEW_OUTPUT.txt
-          echo "statistics (-before, +after)" >> NEW_OUTPUT.txt
+          echo "statistics (-before, +after):" >> NEW_OUTPUT.txt
           # Example lines your scripts might produce:
           echo "STAT:executable size=5334536 bin/dub" >> NEW_OUTPUT.txt
-          echo "STAT:rough build time=${runtime_sec}s" >> NEW_OUTPUT.txt
+          echo "STAT:rough build time=${runtime_sec}s ($RUNTIME ms)" >> NEW_OUTPUT.txt
           echo "" >> NEW_OUTPUT.txt
-
           # Optionally call your summary script to append more lines:
           ./ci/summary_comment.sh >> NEW_OUTPUT.txt || echo "No additional build stats provided."
 
-      # 4) Generate a comment.txt that includes diff, new stats, and full logs in a collapsible section
+      - name: Fetch previous build statistics from master
+        run: |
+          git fetch origin master
+          if git show origin/master:OLD_OUTPUT.txt > OLD_OUTPUT.txt 2>/dev/null; then
+            echo "Fetched OLD_OUTPUT.txt from master."
+          else
+            echo "No OLD_OUTPUT.txt found in master branch. Creating empty OLD_OUTPUT.txt."
+            touch OLD_OUTPUT.txt
+          fi
+
       - name: Generate comment diff
         run: |
           # First, parse the old stats if they exist:
           old_time=$(grep -oP '(?<=STAT:rough build time=)\d+(\.\d+)?(?=s)' OLD_OUTPUT.txt || echo "")
           old_size=$(grep -oP '(?<=STAT:executable size=)\d+' OLD_OUTPUT.txt || echo "")
           # If your script also logs deprecations/warnings, parse them:
-          old_deprecations=$(grep -oP '(?<=Total deprecations: )\d+' OLD_OUTPUT.txt || echo "")
-          old_warnings=$(grep -oP '(?<=Total warnings: )\d+' OLD_OUTPUT.txt || echo "")
-
+          old_deprecations=$(grep -oP '(?<=Total deprecations:)\d+' OLD_OUTPUT.txt || echo "")
+          old_warnings=$(grep -oP '(?<=Total warnings:)\d+' OLD_OUTPUT.txt || echo "")
           # Same for new stats:
           new_time=$(grep -oP '(?<=STAT:rough build time=)\d+(\.\d+)?(?=s)' NEW_OUTPUT.txt || echo "")
           new_size=$(grep -oP '(?<=STAT:executable size=)\d+' NEW_OUTPUT.txt || echo "")
-          new_deprecations=$(grep -oP '(?<=Total deprecations: )\d+' NEW_OUTPUT.txt || echo "")
-          new_warnings=$(grep -oP '(?<=Total warnings: )\d+' NEW_OUTPUT.txt || echo "")
-
+          new_deprecations=$(grep -oP '(?<=Total deprecations:)\d+' NEW_OUTPUT.txt || echo "")
+          new_warnings=$(grep -oP '(?<=Total warnings:)\d+' NEW_OUTPUT.txt || echo "")
           # Provide defaults if old values are missing
           [ -z "$old_time" ] && old_time="0"
           [ -z "$old_size" ] && old_size="0"
           [ -z "$old_deprecations" ] && old_deprecations="0"
           [ -z "$old_warnings" ] && old_warnings="0"
-
           # Calculate differences
-          # (For rough build time, we can do a numeric difference in seconds)
           time_diff=$(awk "BEGIN {print $new_time - $old_time}")
           size_diff=$((new_size - old_size))
           deprecation_diff=$((new_deprecations - old_deprecations))
           warning_diff=$((new_warnings - old_warnings))
-
           # Convert $RUNTIME from ms to seconds for display
           runtime_sec=$(awk "BEGIN {printf \"%.3f\", $RUNTIME/1000}")
-
           # Build the final comment
           echo "### 🔍 Build Statistics Diff" > comment.txt
           echo "Comparing previous build statistics with the current build:" >> comment.txt
           echo "" >> comment.txt
           echo "- **Execution Time:** \`$runtime_sec\` seconds (\`$RUNTIME\` ms)" >> comment.txt
-          echo "  - **Previous:** \`$old_time\` s" >> comment.txt
-          echo "  - **Current:** \`$new_time\` s" >> comment.txt
-          echo "  - **Difference:** $time_diff s" >> comment.txt
+          echo "- **Previous:** \`$old_time\` s" >> comment.txt
+          echo "- **Current:** \`$new_time\` s" >> comment.txt
+          echo "- **Difference:** $time_diff s" >> comment.txt
           echo "" >> comment.txt
           echo "- **RAM Usage:** \`$RAM_USAGE\` MB" >> comment.txt
           echo "" >> comment.txt
           echo "- **Executable Size:** \`$new_size\` bytes" >> comment.txt
-          echo "  - **Previous:** \`$old_size\` bytes" >> comment.txt
-          echo "  - **Difference:** $size_diff bytes" >> comment.txt
+          echo "- **Previous:** \`$old_size\` bytes" >> comment.txt
+          echo "- **Difference:** $size_diff bytes" >> comment.txt
           echo "" >> comment.txt
           echo "- **Deprecations:** $new_deprecations" >> comment.txt
-          echo "  - **Previous:** $old_deprecations" >> comment.txt
-          echo "  - **Difference:** $deprecation_diff" >> comment.txt
+          echo "- **Previous:** $old_deprecations" >> comment.txt
+          echo "- **Difference:** $deprecation_diff" >> comment.txt
           echo "" >> comment.txt
           echo "- **Warnings:** $new_warnings" >> comment.txt
-          echo "  - **Previous:** $old_warnings" >> comment.txt
-          echo "  - **Difference:** $warning_diff" >> comment.txt
+          echo "- **Previous:** $old_warnings" >> comment.txt
+          echo "- **Difference:** $warning_diff" >> comment.txt
           echo "" >> comment.txt
-
           # Optionally append output from your diff script:
           ./ci/summary_comment_diff.sh OLD_OUTPUT.txt NEW_OUTPUT.txt >> comment.txt || echo "No diff from summary_comment_diff.sh."
-
           # Include the entire NEW_OUTPUT in a collapsible block
           echo "" >> comment.txt
           echo "<details>" >> comment.txt
@@ -142,7 +135,6 @@ jobs:
           cat NEW_OUTPUT.txt >> comment.txt
           echo "" >> comment.txt
           echo "</details>" >> comment.txt
-
           # Include the full build log in a collapsible block
           echo "" >> comment.txt
           echo "<details>" >> comment.txt
@@ -164,19 +156,13 @@ jobs:
           script: |
             const fs = require('fs');
             const path = 'comment.txt';
-
-            // Ensure comment file exists and is not empty
             if (!fs.existsSync(path) || fs.statSync(path).size === 0) {
-              console.log("No comment generated, skipping PR comment.");
               return;
             }
-
             const comment = fs.readFileSync(path, 'utf8').trim();
             if (!comment) {
-              console.log("Comment is empty, skipping PR comment.");
               return;
             }
-
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
