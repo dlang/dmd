@@ -9,7 +9,6 @@ jobs:
     timeout-minutes: 45
     env:
       MODEL: 64
-      HOST_DMD: dmd-latest
       BENCHMARK_REPO: https://github.com/dlang/phobos
       BENCHMARK_REF: master
 
@@ -25,31 +24,25 @@ jobs:
         repository: dlang/dmd
         ref: master
         path: master-dmd
-    - name: Setup PR compiler
+
+    - name: Setup D compiler
       uses: dlang-community/setup-dlang@v1.3.0
       with:
-        compiler: dmd
-        version: latest
+        compiler: dmd-latest
 
     - name: Build PR compiler
       working-directory: ./pr-dmd
       run: |
         make -j$(nproc) MODEL=$MODEL HOST_DMD=$DC
         mkdir -p generated/linux/release/$MODEL
-        cp -f compiler/src/dmd generated/linux/release/$MODEL/
-
-    - name: Setup master compiler
-      uses: dlang-community/setup-dlang@v1.3.0
-      with:
-        compiler: dmd
-        version: latest
+        cp -f generated/linux/release/$MODEL/dmd generated/linux/release/$MODEL/dmd
 
     - name: Build master compiler
       working-directory: ./master-dmd
       run: |
         make -j$(nproc) MODEL=$MODEL HOST_DMD=$DC
         mkdir -p generated/linux/release/$MODEL
-        cp -f compiler/src/dmd generated/linux/release/$MODEL/
+        cp -f generated/linux/release/$MODEL/dmd generated/linux/release/$MODEL/dmd
 
     - name: Checkout benchmark project
       uses: actions/checkout@v4
