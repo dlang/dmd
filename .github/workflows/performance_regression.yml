@@ -6,7 +6,10 @@ on:
 jobs:
   benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      pull-requests: write
     env:
       MODEL: 64
       BENCHMARK_REPO: https://github.com/dlang/phobos
@@ -48,14 +51,13 @@ jobs:
         pr_compiler="./pr-dmd/generated/linux/release/$MODEL/dmd"
         master_compiler="./master-dmd/generated/linux/release/$MODEL/dmd"
 
-        # Generate MD5 checksums
         pr_md5=$(md5sum "$pr_compiler" | cut -d' ' -f1)
         master_md5=$(md5sum "$master_compiler" | cut -d' ' -f1)
 
-        if [ "$pr_md5" = "$master_md5" ]; then
-          echo "DIFF_RESULT=Binaries are identical (MD5: ${pr_md5:0:8})" >> $GITHUB_OUTPUT
+        if diff -q "$pr_compiler" "$master_compiler" >/dev/null; then
+          echo "DIFF_RESULT=✅ Binaries are identical (MD5: ${pr_md5:0:8})" >> $GITHUB_OUTPUT
         else
-          echo "DIFF_RESULT=Binaries differ (PR MD5: ${pr_md5:0:8}, Master MD5: ${master_md5:0:8})" >> $GITHUB_OUTPUT
+          echo "DIFF_RESULT=❌ Binaries differ (PR MD5: ${pr_md5:0:8}, Master MD5: ${master_md5:0:8})" >> $GITHUB_OUTPUT
         fi
 
     - name: Checkout benchmark project
@@ -89,164 +91,93 @@ jobs:
     - name: Parse results
       id: results
       run: |
-        # Check if benchmark file exists
         if [ ! -f benchmark-phobos/benchmark_results.json ]; then
           echo "Error: Benchmark results file not found!"
           exit 1
         fi
 
-        # Extract values with error handling
-        extract_value() {
-          jq -r "$1 // $2" benchmark-phobos/benchmark_results.json
-        }
+        # Extract raw data
+        pr_times=($(jq -r '.results[0].times[] | tonumber | @text' benchmark-phobos/benchmark_results.json))
+        pr_mem=($(jq -r '.results[0].max_rss[] | tonumber | @text' benchmark-phobos/benchmark_results.json))
+        master_times=($(jq -r '.results[1].times[] | tonumber | @text' benchmark-phobos/benchmark_results.json))
+        master_mem=($(jq -r '.results[1].max_rss[] | tonumber | @text' benchmark-phobos/benchmark_results.json))
 
-        pr_time=$(extract_value '.results[0].mean' 'null')
-        master_time=$(extract_value '.results[1].mean' 'null')
-        pr_time_stddev=$(extract_value '.results[0].stddev' 0)
-        master_time_stddev=$(extract_value '.results[1].stddev' 0)
-        pr_mem=$(extract_value '.results[0].max_rss' 0)
-        master_mem=$(extract_value '.results[1].max_rss' 0)
-        pr_mem_stddev=$(extract_value '.results[0].variance' 0 | awk '{print sqrt($1)}')
-        master_mem_stddev=$(extract_value '.results[1].variance' 0 | awk '{print sqrt($1)}')
+        # Format individual runs
+        pr_time_runs=$(printf "%.3f, " "${pr_times[@]}" | sed 's/, $//')
+        pr_mem_runs=$(printf "%.1f MB, " "${pr_mem[@]/%//1024}" | bc -l | sed 's/, $//')
+        master_time_runs=$(printf "%.3f, " "${master_times[@]}" | sed 's/, $//')
+        master_mem_runs=$(printf "%.1f MB, " "${master_mem[@]/%//1024}" | bc -l | sed 's/, $//')
 
-        # Calculation functions with error handling
-        safe_calc() {
-          awk -v a="$1" -v b="$2" '
-            BEGIN {
-              if (b == 0) {
-                if (a == 0) print "NaN"
-                else print "Inf"
-                exit 0
-              }
-              printf "%.2f", a / b
-            }'
-        }
+        # Calculate averages
+        pr_time_avg=$(jq -r '.results[0].mean' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
+        pr_time_stddev=$(jq -r '.results[0].stddev' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
+        master_time_avg=$(jq -r '.results[1].mean' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
+        master_time_stddev=$(jq -r '.results[1].stddev' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
 
-        safe_diff() {
-          awk -v a="$1" -v b="$2" 'BEGIN {printf "%.2f", a - b}'
-        }
+        pr_mem_avg=$(echo "${pr_mem[@]}" | tr ' ' '\n' | awk '{sum += $1} END {printf "%.1f", sum/NR/1024}')
+        pr_mem_stddev=$(echo "${pr_mem[@]}" | tr ' ' '\n' | awk '{sum += $1; sumsq += ($1)^2} END {printf "%.1f", sqrt(sumsq/NR - (sum/NR)^2)/1024}')
+        master_mem_avg=$(echo "${master_mem[@]}" | tr ' ' '\n' | awk '{sum += $1} END {printf "%.1f", sum/NR/1024}')
+        master_mem_stddev=$(echo "${master_mem[@]}" | tr ' ' '\n' | awk '{sum += $1; sumsq += ($1)^2} END {printf "%.1f", sqrt(sumsq/NR - (sum/NR)^2)/1024}')
 
-        # Time calculations
-        time_diff=$(safe_diff "$pr_time" "$master_time")
-        time_pct=$(awk -v pt="$pr_time" -v mt="$master_time" '
-          BEGIN {
-            if (mt == 0) { print "NaN"; exit 0 }
-            printf "%.2f", (pt/mt - 1) * 100
-          }')
-        time_sig=$(awk -v diff="$time_diff" -v std1="$pr_time_stddev" -v std2="$master_time_stddev" '
-          BEGIN {
-            denominator = sqrt(std1^2 + std2^2)
-            if (denominator == 0) { print "NaN"; exit 0 }
-            printf "%.2f", diff / denominator
-          }')
+        # Set outputs
+        echo "pr_time_runs=${pr_time_runs}" >> $GITHUB_OUTPUT
+        echo "pr_mem_runs=${pr_mem_runs}" >> $GITHUB_OUTPUT
+        echo "master_time_runs=${master_time_runs}" >> $GITHUB_OUTPUT
+        echo "master_mem_runs=${master_mem_runs}" >> $GITHUB_OUTPUT
+        echo "pr_time_avg=${pr_time_avg} ± ${pr_time_stddev}" >> $GITHUB_OUTPUT
+        echo "master_time_avg=${master_time_avg} ± ${master_time_stddev}" >> $GITHUB_OUTPUT
+        echo "pr_mem_avg=${pr_mem_avg} ± ${pr_mem_stddev}" >> $GITHUB_OUTPUT
+        echo "master_mem_avg=${master_mem_avg} ± ${master_mem_stddev}" >> $GITHUB_OUTPUT
+        echo "binary_diff=${{ steps.diff_check.outputs.DIFF_RESULT }}" >> $GITHUB_OUTPUT
 
-        # Memory calculations
-        pr_mem_mb=$(awk -v pm="$pr_mem" 'BEGIN {printf "%.2f", pm/1024}')
-        master_mem_mb=$(awk -v mm="$master_mem" 'BEGIN {printf "%.2f", mm/1024}')
-        mem_diff_mb=$(safe_diff "$pr_mem_mb" "$master_mem_mb")
-        mem_pct=$(awk -v pm="$pr_mem" -v mm="$master_mem" '
-          BEGIN {
-            if (mm == 0) { print "NaN"; exit 0 }
-            printf "%.2f", (pm/mm - 1) * 100
-          }')
-        mem_sig=$(awk -v diff="$pr_mem" -v std1="$pr_mem_stddev" -v std2="$master_mem_stddev" '
-          BEGIN {
-            denominator = sqrt(std1^2 + std2^2)
-            if (denominator == 0) { print "NaN"; exit 0 }
-            printf "%.2f", (diff) / denominator
-          }')
-
-        # Set outputs with NaN handling
-        echo "pr_time=${pr_time:-NaN}" >> $GITHUB_OUTPUT
-        echo "master_time=${master_time:-NaN}" >> $GITHUB_OUTPUT
-        echo "time_diff=${time_diff:-NaN}" >> $GITHUB_OUTPUT
-        echo "time_pct=${time_pct:-NaN}" >> $GITHUB_OUTPUT
-        echo "time_sig=${time_sig:-NaN}" >> $GITHUB_OUTPUT
-        echo "pr_mem=${pr_mem_mb:-NaN}" >> $GITHUB_OUTPUT
-        echo "master_mem=${master_mem_mb:-NaN}" >> $GITHUB_OUTPUT
-        echo "mem_diff=${mem_diff_mb:-NaN}" >> $GITHUB_OUTPUT
-        echo "mem_pct=${mem_pct:-NaN}" >> $GITHUB_OUTPUT
-        echo "mem_sig=${mem_sig:-NaN}" >> $GITHUB_OUTPUT
-        echo "pr_time_stddev=${pr_time_stddev:-0}" >> $GITHUB_OUTPUT
-        echo "master_time_stddev=${master_time_stddev:-0}" >> $GITHUB_OUTPUT
-        echo "pr_mem_stddev=${pr_mem_stddev:-0}" >> $GITHUB_OUTPUT
-        echo "master_mem_stddev=${master_mem_stddev:-0}" >> $GITHUB_OUTPUT
-
-    - name: Create comment
-      run: |
-        PERFORMANCE_COMMENT=$(cat << EOF
-        ### 🚀 Performance Benchmark Results
-
-        **Core Metrics:**
-        | Metric          | PR               | Master           | Difference       | Change          |
-        |-----------------|------------------|------------------|------------------|-----------------|
-        | ⏱️ Time (s)     | ${{ format('%.3f ±%.3f', steps.results.outputs.pr_time, steps.results.outputs.pr_time_stddev) }} | ${{ format('%.3f ±%.3f', steps.results.outputs.master_time, steps.results.outputs.master_time_stddev) }} | ${{ format('%+.3f', steps.results.outputs.time_diff) }} | ${{ format('%+.2f', steps.results.outputs.time_pct) }}% |
-        | 🧠 Memory (MB)  | ${{ format('%.1f ±%.1f', steps.results.outputs.pr_mem, steps.results.outputs.pr_mem_stddev) }} | ${{ format('%.1f ±%.1f', steps.results.outputs.master_mem, steps.results.outputs.master_mem_stddev) }} | ${{ format('%+.1f', steps.results.outputs.mem_diff) }} | ${{ format('%+.2f', steps.results.outputs.mem_pct) }}% |
-
-        **Statistical Significance:**
-        - Time: σ-score = ${{ format('%.2f', steps.results.outputs.time_sig) }} (🔔 |σ| > 2 = significant)
-        - Memory: σ-score = ${{ format('%.2f', steps.results.outputs.mem_sig) }} (🔔 |σ| > 2 = significant)
-
-        <details>
-        <summary>📊 Detailed Metrics</summary>
-
-        **Execution Details:**
-        - Benchmark target: \`Phobos@${{ env.BENCHMARK_REF }}\`
-        - Runs: 5 (after 1 warmup)
-        - Clean builds between runs
-        - Hyperfine version: \`$(hyperfine --version)\`
-
-        **Binary Comparison:**
-        ${{ steps.diff_check.outputs.DIFF_RESULT }}
-
-        **Variance Analysis:**
-        | Metric          | PR Variance      | Master Variance  | Pooled Stddev    |
-        |-----------------|------------------|------------------|------------------|
-        | Time (s)        | ${{ format('%.3f', steps.results.outputs.pr_time_stddev) }} | ${{ format('%.3f', steps.results.outputs.master_time_stddev) }} | ${{ format('%.3f', steps.results.outputs.time_sig) }} |
-        | Memory (MB)     | ${{ format('%.1f', steps.results.outputs.pr_mem_stddev) }} | ${{ format('%.1f', steps.results.outputs.master_mem_stddev) }} | ${{ format('%.2f', steps.results.outputs.mem_sig) }} |
-        </details>
-
-        <details>
-        <summary>📈 Interpretation Guide</summary>
-
-        - **σ-score**: Measures significance of difference relative to variability
-          - \`|σ| < 1\`: Not significant
-          - \`1 ≤ |σ| < 2\`: Possibly significant
-          - \`|σ| ≥ 2\`: Likely significant
-        - **Variance**: Shows run-to-run consistency (lower = more consistent)
-        - **Change %**: Relative difference from master
-        </details>
-        EOF
-        )
-        echo "$PERFORMANCE_COMMENT" > performance_comment.md
-
-    - name: Post comment
+    - name: Create performance comment
       uses: actions/github-script@v6
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const fs = require('fs');
-          const comment = fs.readFileSync('performance_comment.md', 'utf8');
-          const { data: comments } = await github.rest.issues.listComments({
+          const formatRun = (runs, index) => {
+            const values = runs.split(', ');
+            return values[index] || 'N/A';
+          };
+
+          const prTimes = process.env.PR_TIME_RUNS.split(', ');
+          const prMem = process.env.PR_MEM_RUNS.split(', ');
+          const masterTimes = process.env.MASTER_TIME_RUNS.split(', ');
+          const masterMem = process.env.MASTER_MEM_RUNS.split(', ');
+
+          let runTables = '';
+          for (let i = 0; i < 5; i++) {
+            runTables += `
+            | ${i+1} | ${formatRun(process.env.PR_TIME_RUNS, i)} | ${formatRun(process.env.MASTER_TIME_RUNS, i)} | ${formatRun(process.env.PR_MEM_RUNS, i)} | ${formatRun(process.env.MASTER_MEM_RUNS, i)} |`;
+          }
+
+          const output = `### 🚀 Performance Benchmark Results
+
+          **Individual Runs:**
+          | Run | PR Time (s) | Master Time (s) | PR Memory (MB) | Master Memory (MB) |
+          |-----|-------------|-----------------|----------------|---------------------|${runTables}
+
+          **Summary Statistics:**
+          | Metric | PR | Master |
+          |--------|----|--------|
+          | ⏱️ Time (s) | ${process.env.PR_TIME_AVG} | ${process.env.MASTER_TIME_AVG} |
+          | 🧠 Memory (MB) | ${process.env.PR_MEM_AVG} | ${process.env.MASTER_MEM_AVG} |
+
+          **Binary Comparison:**
+          ${process.env.BINARY_DIFF}
+
+          <details>
+          <summary>📊 Additional Details</summary>
+
+          - Benchmark target: Phobos@${process.env.BENCHMARK_REF}
+          - Runs: 5 (after 1 warmup)
+          - Hyperfine version: \`$(hyperfine --version)\`
+          - Executed on: ${new Date().toUTCString()}
+          </details>`;
+
+          github.rest.issues.createComment({
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: context.issue.number,
+            body: output
           });
-
-          const existingComment = comments.find(c => c.body.includes('🚀 Performance Benchmark Results'));
-
-          if (existingComment) {
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: existingComment.id,
-              body: comment,
-            });
-          } else {
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: comment,
-            });
-          }
