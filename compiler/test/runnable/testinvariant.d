@@ -246,7 +246,6 @@ extern(D) class D
 void test20924()
 {
     import core.exception : AssertError;
-    
     // Test extern(C++) class invariant
     try
     {
