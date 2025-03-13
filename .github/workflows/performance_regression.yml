@@ -42,6 +42,19 @@ jobs:
         make -j$(nproc) MODEL=$MODEL HOST_DMD=$DC
         mkdir -p generated/linux/release/$MODEL
 
+    - name: Compare compiler binaries
+      id: diff_check
+      run: |
+        pr_compiler="./pr-dmd/generated/linux/release/$MODEL/dmd"
+        master_compiler="./master-dmd/generated/linux/release/$MODEL/dmd"
+
+        if diff -q "$pr_compiler" "$master_compiler" >/dev/null; then
+          echo "DIFF_RESULT=Binaries are identical" >> $GITHUB_OUTPUT
+        else
+          echo "DIFF_RESULT=Binaries differ" >> $GITHUB_OUTPUT
+          diff -u "$pr_compiler" "$master_compiler" || true
+        fi
+
     - name: Checkout benchmark project
       uses: actions/checkout@v4
       with:
@@ -50,7 +63,7 @@ jobs:
         path: benchmark-phobos
 
     - name: Install hyperfine
-      run: sudo apt-get install -y hyperfine
+      run: sudo apt-get install -y hyperfine jq
 
     - name: Warmup build cache
       working-directory: ./benchmark-phobos
@@ -79,46 +92,40 @@ jobs:
           exit 1
         fi
 
-        # Extract values with null handling
+        # Extract values with error handling
         pr_time=$(jq -r '.results[0].mean // empty' benchmark-phobos/benchmark_results.json)
         master_time=$(jq -r '.results[1].mean // empty' benchmark-phobos/benchmark_results.json)
+        pr_time_var=$(jq -r '.results[0].stddev // empty' benchmark-phobos/benchmark_results.json)
+        master_time_var=$(jq -r '.results[1].stddev // empty' benchmark-phobos/benchmark_results.json)
         pr_mem=$(jq -r '.results[0].max_rss // 0' benchmark-phobos/benchmark_results.json)
         master_mem=$(jq -r '.results[1].max_rss // 0' benchmark-phobos/benchmark_results.json)
+        pr_mem_var=$(jq -r '.results[0].variance // 0' benchmark-phobos/benchmark_results.json)
+        master_mem_var=$(jq -r '.results[1].variance // 0' benchmark-phobos/benchmark_results.json)
 
-        # Debug output
-        echo "Raw values:"
-        echo "pr_time: $pr_time"
-        echo "master_time: $master_time"
-        echo "pr_mem: $pr_mem"
-        echo "master_mem: $master_mem"
+        # Calculate metrics with scientific notation handling
+        calc() { awk "BEGIN { printf \"%.2f\", $* }"; }
 
-        # Calculate time metrics
-        time_diff=$(awk -v pt="$pr_time" -v mt="$master_time" 'BEGIN {printf "%.3f", pt - mt}')
-        time_pct=$(awk -v pt="$pr_time" -v mt="$master_time" '
-          BEGIN {
-            if (mt == 0) {print "NaN"; exit 0}
-            printf "%.2f", (pt/mt - 1) * 100
-          }')
+        time_diff=$(calc "$pr_time - $master_time")
+        time_pct=$(calc "($pr_time/$master_time - 1) * 100")
+        time_sig=$(calc "$time_diff / sqrt($pr_time_var^2 + $master_time_var^2)")
 
-        # Calculate memory metrics
-        pr_mem_mb=$(awk -v pm="$pr_mem" 'BEGIN {printf "%.2f", pm/1024}')
-        master_mem_mb=$(awk -v mm="$master_mem" 'BEGIN {printf "%.2f", mm/1024}')
-        mem_diff_mb=$(awk -v pm="$pr_mem" -v mm="$master_mem" 'BEGIN {printf "%.2f", (pm - mm)/1024}')
-        mem_pct=$(awk -v pm="$pr_mem" -v mm="$master_mem" '
-          BEGIN {
-            if (mm == 0) {print "NaN"; exit 0}
-            printf "%.2f", (pm/mm - 1) * 100
-          }')
+        pr_mem_mb=$(calc "$pr_mem / 1024")
+        master_mem_mb=$(calc "$master_mem / 1024")
+        mem_diff_mb=$(calc "($pr_mem - $master_mem) / 1024")
+        mem_pct=$(calc "($pr_mem/$master_mem - 1) * 100")
+        mem_sig=$(calc "($pr_mem - $master_mem) / sqrt($pr_mem_var + $master_mem_var)")
 
         # Set outputs
         echo "pr_time=$pr_time" >> $GITHUB_OUTPUT
         echo "master_time=$master_time" >> $GITHUB_OUTPUT
         echo "time_diff=$time_diff" >> $GITHUB_OUTPUT
         echo "time_pct=$time_pct" >> $GITHUB_OUTPUT
+        echo "time_sig=$time_sig" >> $GITHUB_OUTPUT
         echo "pr_mem=$pr_mem_mb" >> $GITHUB_OUTPUT
         echo "master_mem=$master_mem_mb" >> $GITHUB_OUTPUT
         echo "mem_diff=$mem_diff_mb" >> $GITHUB_OUTPUT
         echo "mem_pct=$mem_pct" >> $GITHUB_OUTPUT
+        echo "mem_sig=$mem_sig" >> $GITHUB_OUTPUT
 
     - name: Create comment
       run: |
@@ -126,15 +133,23 @@ jobs:
         ### 🚀 Performance Benchmark Results
 
         **Comparison between PR and master branch:**
-        | Metric | PR | Master | Difference | Change |
-        |--------|----|--------|------------|--------|
-        | Time (s) | ${{ steps.results.outputs.pr_time }} | ${{ steps.results.outputs.master_time }} | ${{ steps.results.outputs.time_diff }} | ${{ steps.results.outputs.time_pct }}% |
-        | Memory (MB) | ${{ steps.results.outputs.pr_mem }} | ${{ steps.results.outputs.master_mem }} | ${{ steps.results.outputs.mem_diff }} | ${{ steps.results.outputs.mem_pct }}% |
+        | Metric          | PR        | Master    | Difference | Change  | Variance | σ        |
+        |-----------------|-----------|-----------|------------|---------|----------|----------|
+        | Time (s)        | ${{ format('%.3f', steps.results.outputs.pr_time) }} | ${{ format('%.3f', steps.results.outputs.master_time) }} | ${{ format('%.3f', steps.results.outputs.time_diff) }} | ${{ format('%.2f', steps.results.outputs.time_pct) }}% | ±${{ format('%.3f', steps.results.outputs.time_var) }} | σ=${{ format('%.2f', steps.results.outputs.time_sig) }} |
+        | Memory (MB)     | ${{ format('%.2f', steps.results.outputs.pr_mem) }} | ${{ format('%.2f', steps.results.outputs.master_mem) }} | ${{ format('%.2f', steps.results.outputs.mem_diff) }} | ${{ format('%.2f', steps.results.outputs.mem_pct) }}% | ±${{ format('%.0f', steps.results.outputs.mem_var) }} | σ=${{ format('%.2f', steps.results.outputs.mem_sig) }} |
+
+        **Statistical Significance:**
+        - Time: σ-score of ${{ format('%.2f', steps.results.outputs.time_sig) }} (|σ| > 2 is significant)
+        - Memory: σ-score of ${{ format('%.2f', steps.results.outputs.mem_sig) }} (|σ| > 2 is significant)
+
+        **Executable Comparison:**
+        ${{ steps.diff_check.outputs.DIFF_RESULT }}
 
         **Details:**
         - Benchmark project: Phobos@${{ env.BENCHMARK_REF }}
         - 5 runs averaged using [hyperfine](https://github.com/sharkdp/hyperfine)
         - Clean build between runs
+        - Variance calculated using pooled standard deviation
         EOF
         )
         echo "$PERFORMANCE_COMMENT" > performance_comment.md
