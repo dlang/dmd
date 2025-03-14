@@ -65,21 +65,24 @@ jobs:
         if diff -q "$pr_compiler" "$master_compiler" >/dev/null; then
           echo "DIFF_RESULT=✅ Binaries are identical (MD5: $pr_md5)" >> $GITHUB_OUTPUT
         else
-          # Create temporary files for hex dumps
           xxd "$pr_compiler" > pr_hex
           xxd "$master_compiler" > master_hex
           diff_output=$(diff -u pr_hex master_hex | head -50)
 
+          # Use quoted heredoc to preserve formatting
+          {
+            echo "DIFF_DETAILS<<EOF"
+            echo "**Binary Differences:**"
+            echo "- PR Size: $pr_size bytes | Master Size: $master_size bytes"
+            echo "- PR Version: $pr_version"
+            echo "- Master Version: $master_version"
+            echo '```diff'
+            cat pr_hex | diff -u - master_hex | head -50
+            echo '```'
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
           echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)" >> $GITHUB_OUTPUT
-          echo "DIFF_DETAILS<<EOF" >> $GITHUB_OUTPUT
-          echo "**Binary Differences:**" >> $GITHUB_OUTPUT
-          echo "- PR Size: $pr_size bytes | Master Size: $master_size bytes" >> $GITHUB_OUTPUT
-          echo "- PR Version: $pr_version" >> $GITHUB_OUTPUT
-          echo "- Master Version: $master_version" >> $GITHUB_OUTPUT
-          echo "\`\`\`diff" >> $GITHUB_OUTPUT
-          echo "$diff_output" >> $GITHUB_OUTPUT
-          echo "\`\`\`" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
         fi
 
     - name: Checkout benchmark project
@@ -314,12 +317,8 @@ jobs:
         # Process diff details safely
         diff_details=""
         if [[ -n "${{ steps.diff_check.outputs.DIFF_DETAILS }}" ]]; then
-          # Store the raw diff output in a variable
-          diff_raw="${{ steps.diff_check.outputs.DIFF_DETAILS }}"
-          # Escape backticks to prevent unintended command substitution
-          diff_raw=$(echo "$diff_raw" | sed 's/`/\\`/g')
-          diff_details=$'<details>\n<summary>🔍 Binary Diff Details</summary>\n\n'
-          diff_details+="$diff_raw"
+          diff_details=$'\n<details>\n<summary>🔍 Binary Diff Details</summary>\n\n'
+          diff_details+="${{ steps.diff_check.outputs.DIFF_DETAILS }}"
           diff_details+=$'\n</details>'
         fi
 
@@ -360,6 +359,9 @@ jobs:
         - **Hyperfine version**: \`$(hyperfine --version)\`
         EOF
         )
+
+        # Evaluate variables after heredoc processing
+        PERFORMANCE_COMMENT=$(eval "echo \"$PERFORMANCE_COMMENT\"")
         echo "$PERFORMANCE_COMMENT" > performance_comment.md
 
     - name: Post comment
