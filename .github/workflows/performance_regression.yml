@@ -313,11 +313,24 @@ jobs:
 
         # Add diff details if available
         diff_details=""
-        if [[ "${{ steps.diff_check.outputs.DIFF_DETAILS }}" != "" ]]; then
+        if [[ -n "${{ steps.diff_check.outputs.DIFF_DETAILS }}" ]]; then
           diff_details=$'<details>\n<summary>🔍 Binary Diff Details</summary>\n\n'
           diff_details+="${{ steps.diff_check.outputs.DIFF_DETAILS }}"
           diff_details+=$'\n</details>'
+          # Escape backticks to prevent them from triggering command substitution
+          diff_details=$(echo "$diff_details" | sed 's/`/\\`/g')
         fi
+
+        # Generate individual runs table rows in a separate variable
+        individual_runs=$(
+          IFS=', ' read -ra pr_times <<< "${{ steps.results.outputs.pr_time_runs }}"
+          IFS=', ' read -ra master_times <<< "${{ steps.results.outputs.master_time_runs }}"
+          IFS=', ' read -ra pr_mems <<< "${{ steps.results.outputs.pr_mem_runs }}"
+          IFS=', ' read -ra master_mems <<< "${{ steps.results.outputs.master_mem_runs }}"
+          for i in {0..4}; do
+            printf "| %d | ${pr_times[$i]:-N/A} | ${master_times[$i]:-N/A} | ${pr_mems[$i]:-N/A} | ${master_mems[$i]:-N/A} |\n" $((i+1))
+          done
+        )
 
         PERFORMANCE_COMMENT=$(cat << EOF | sed 's/^        //g'
         ### 🚀 Performance Benchmark Results
@@ -325,15 +338,7 @@ jobs:
         **Individual Runs:**
         | Run | PR Time (s) | Master Time (s) | PR Memory (MB) | Master Memory (MB) |
         |-----|-------------|-----------------|----------------|---------------------|
-        $(
-          IFS=', ' read -ra pr_times <<< "${{ steps.results.outputs.pr_time_runs }}"
-          IFS=', ' read -ra master_times <<< "${{ steps.results.outputs.master_time_runs }}"
-          IFS=', ' read -ra pr_mems <<< "${{ steps.results.outputs.pr_mem_runs }}"
-          IFS=', ' read -ra master_mems <<< "${{ steps.results.outputs.master_mem_runs }}"
-          for i in {0..4}; do
-            printf "| %d | ${pr_times[$i]:-N/A} | ${master_times[$i]:-N/A} | ${pr_mems[$i]:-N/A} | ${master_mems[$i]:-N/A} |\\n" $((i+1))
-          done
-        )
+        ${individual_runs}
 
         **Summary Statistics:**
         | Metric          | PR                    | Master                 | Difference       | Change          | Significance  |
