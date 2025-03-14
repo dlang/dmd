@@ -608,7 +608,7 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t earegm = mask(cs.base) | mask(cs.index);
     regm_t retregs;
     reg_t reg;
-    if (cs.reg)
+    if (cs.reg != NOREG)
     {
         reg = cs.reg;
         retregs = mask(reg);
@@ -759,7 +759,7 @@ void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t earegm = mask(cs.base) | mask(cs.index);
     regm_t retregs;
     reg_t Rshiftee;
-    if (cs.reg)
+    if (cs.reg != NOREG)
     {
         Rshiftee = cs.reg;
         retregs = mask(Rshiftee);
@@ -793,11 +793,12 @@ void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     uint opcode;
     switch (e.Eoper)
     {
-        case OPshl:     opcode = 0x8;   break;
-        case OPshr:     opcode = 0x9;   break;
-        case OPashr:    opcode = 0xA;   break;
+        case OPshlass:  opcode = 0x8;   break;
+        case OPshrass:  opcode = 0x9;   break;
+        case OPashrass: opcode = 0xA;   break;
         //case OPror:     opcode = 0xB;   break;
         default:
+	    elem_print(e);
             assert(0);
     }
 

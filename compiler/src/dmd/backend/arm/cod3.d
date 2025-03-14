@@ -1511,10 +1511,11 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
             case FL.func:
             case FL.code:
             case FL.unde:
+	    case FL.block:
                 break;
 
             default:
-                if (0) printf("FL: %s\n", fl_str(c.IFL1));
+                if (1) printf("FL: %s\n", fl_str(c.IFL1));
                 assert(0);
         }
     }
