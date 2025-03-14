@@ -68,7 +68,7 @@ jobs:
         path: benchmark-phobos
 
     - name: Install hyperfine
-      run: sudo apt-get install -y hyperfine jq
+      run: sudo apt-get install -y hyperfine jq bc
 
     - name: Warmup build cache
       working-directory: ./benchmark-phobos
@@ -91,6 +91,7 @@ jobs:
     - name: Parse results
       id: results
       run: |
+        # Initial error checking
         if [ ! -f benchmark-phobos/benchmark_results.json ]; then
           echo "::error::Benchmark results file not found!"
           exit 1
@@ -103,53 +104,192 @@ jobs:
         fi
 
         # Extract raw data with error handling
-        pr_times=($(jq -r '.results[0].times[]? | select(. != null) | tonumber' benchmark-phobos/benchmark_results.json || true))
-        pr_mem=($(jq -r '.results[0].max_rss[]? | select(. != null) | tonumber' benchmark-phobos/benchmark_results.json || true))
-        master_times=($(jq -r '.results[1].times[]? | select(. != null) | tonumber' benchmark-phobos/benchmark_results.json || true))
-        master_mem=($(jq -r '.results[1].max_rss[]? | select(. != null) | tonumber' benchmark-phobos/benchmark_results.json || true))
+        pr_times=($(jq -r '.results[0].times[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
+        pr_mem=($(jq -r '.results[0].max_rss[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
+        master_times=($(jq -r '.results[1].times[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
+        master_mem=($(jq -r '.results[1].max_rss[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
 
+        # Safety check for empty data
         if [ ${#pr_times[@]} -eq 0 ] || [ ${#master_times[@]} -eq 0 ]; then
           echo "::error::Missing time measurements in benchmark results"
           exit 1
         fi
 
-        # Format individual runs
-        pr_time_runs=$(printf "%.3f, " "${pr_times[@]}" | sed 's/, $//')
-        pr_mem_runs=$(for m in "${pr_mem[@]}"; do printf "%.1f MB, " "$(echo "$m/1024" | bc -l)"; done | sed 's/, $//')
-        master_time_runs=$(printf "%.3f, " "${master_times[@]}" | sed 's/, $//')
-        master_mem_runs=$(for m in "${master_mem[@]}"; do printf "%.1f MB, " "$(echo "$m/1024" | bc -l)"; done | sed 's/, $//')
+        # Format individual runs safely
+        format_runs() {
+          local arr=("$@")
+          if [ ${#arr[@]} -eq 0 ]; then
+            echo "N/A"
+          else
+            printf "%.3f, " "${arr[@]}" | sed 's/, $//'
+          fi
+        }
 
-        # Calculate averages and stats
-        pr_time_avg=$(jq -r '.results[0].mean' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
-        pr_time_stddev=$(jq -r '.results[0].stddev' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
-        master_time_avg=$(jq -r '.results[1].mean' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
-        master_time_stddev=$(jq -r '.results[1].stddev' benchmark-phobos/benchmark_results.json | awk '{printf "%.3f", $1}')
+        format_mem_runs() {
+          local arr=("$@")
+          if [ ${#arr[@]} -eq 0 ]; then
+            echo "N/A"
+          else
+            for m in "${arr[@]}"; do
+              if [ "$m" != "0" ]; then
+                printf "%.1f MB, " "$(echo "$m/1024" | bc -l)"
+              else
+                printf "N/A, "
+              fi
+            done | sed 's/, $//'
+          fi
+        }
 
-        pr_mem_avg=$(echo "${pr_mem[@]}" | tr ' ' '\n' | awk '{sum += $1} END {printf "%.1f", sum/NR/1024}')
-        master_mem_avg=$(echo "${master_mem[@]}" | tr ' ' '\n' | awk '{sum += $1} END {printf "%.1f", sum/NR/1024}')
+        pr_time_runs=$(format_runs "${pr_times[@]}")
+        master_time_runs=$(format_runs "${master_times[@]}")
+
+        # Handle memory runs with protection against empty arrays
+        if [ ${#pr_mem[@]} -gt 0 ]; then
+          pr_mem_runs=$(format_mem_runs "${pr_mem[@]}")
+        else
+          pr_mem_runs="N/A"
+        fi
+
+        if [ ${#master_mem[@]} -gt 0 ]; then
+          master_mem_runs=$(format_mem_runs "${master_mem[@]}")
+        else
+          master_mem_runs="N/A"
+        fi
+
+        # Get stats from hyperfine results with safety checks
+        safe_get_value() {
+          local path="$1"
+          local default="$2"
+          local value=$(jq -r "$path // \"$default\"" benchmark-phobos/benchmark_results.json)
+          if [[ "$value" == "null" || -z "$value" ]]; then
+            echo "$default"
+          else
+            echo "$value"
+          fi
+        }
+
+        pr_time_avg=$(safe_get_value '.results[0].mean' '0')
+        pr_time_stddev=$(safe_get_value '.results[0].stddev' '0')
+        master_time_avg=$(safe_get_value '.results[1].mean' '0')
+        master_time_stddev=$(safe_get_value '.results[1].stddev' '0')
+
+        # Format time values
+        pr_time_avg_fmt=$(awk -v val="$pr_time_avg" 'BEGIN {printf "%.3f", val}')
+        pr_time_stddev_fmt=$(awk -v val="$pr_time_stddev" 'BEGIN {printf "%.3f", val}')
+        master_time_avg_fmt=$(awk -v val="$master_time_avg" 'BEGIN {printf "%.3f", val}')
+        master_time_stddev_fmt=$(awk -v val="$master_time_stddev" 'BEGIN {printf "%.3f", val}')
+
+        # Calculate memory stats with division by zero protection
+        calc_avg() {
+          local arr=("$@")
+          if [ ${#arr[@]} -eq 0 ] || [ "${arr[0]}" == "0" ]; then
+            echo "0"
+          else
+            echo "${arr[@]}" | tr ' ' '\n' | awk '{sum += $1} END {if (NR > 0) printf "%.1f", sum/NR/1024; else print "0"}'
+          fi
+        }
+
+        pr_mem_avg=$(calc_avg "${pr_mem[@]}")
+        master_mem_avg=$(calc_avg "${master_mem[@]}")
+
+        # Calculate differences with division by zero protection
         time_diff=$(awk -v pt="$pr_time_avg" -v mt="$master_time_avg" 'BEGIN {printf "%.3f", pt - mt}')
-        time_pct=$(awk -v pt="$pr_time_avg" -v mt="$master_time_avg" 'BEGIN {printf "%+.2f%%", ((pt/mt)-1)*100}')
         mem_diff=$(awk -v pm="$pr_mem_avg" -v mm="$master_mem_avg" 'BEGIN {printf "%+.1f", pm - mm}')
-        mem_pct=$(awk -v pm="$pr_mem_avg" -v mm="$master_mem_avg" 'BEGIN {printf "%+.2f%%", ((pm/mm)-1)*100}')
+
+        # Calculate percentages with division by zero protection
+        safe_percent() {
+          local value="$1"
+          local base="$2"
+          awk -v val="$value" -v base="$base" 'BEGIN {
+            if (base + 0 == 0 || base == "NaN") {
+              print "N/A"
+            } else {
+              printf "%+.2f%%", ((val/base)-1)*100
+            }
+          }'
+        }
+
+        time_pct=$(safe_percent "$pr_time_avg" "$master_time_avg")
+        mem_pct=$(safe_percent "$pr_mem_avg" "$master_mem_avg")
+
+        # Calculate statistical significance (normalized by standard deviation)
+        calc_significance() {
+          local diff="$1"
+          local sd1="$2"
+          local sd2="$3"
+          awk -v d="$diff" -v s1="$sd1" -v s2="$sd2" 'BEGIN {
+            pooled_var = (s1*s1 + s2*s2)
+            if (pooled_var <= 0) {
+              print "N/A"
+            } else {
+              printf "%.2f", d / sqrt(pooled_var)
+            }
+          }'
+        }
+
+        time_sig=$(calc_significance "$time_diff" "$pr_time_stddev" "$master_time_stddev")
 
         # Set outputs
         echo "pr_time_runs=${pr_time_runs}" >> $GITHUB_OUTPUT
         echo "pr_mem_runs=${pr_mem_runs}" >> $GITHUB_OUTPUT
         echo "master_time_runs=${master_time_runs}" >> $GITHUB_OUTPUT
         echo "master_mem_runs=${master_mem_runs}" >> $GITHUB_OUTPUT
-        echo "pr_time_avg=${pr_time_avg} ± ${pr_time_stddev}" >> $GITHUB_OUTPUT
-        echo "master_time_avg=${master_time_avg} ± ${master_time_stddev}" >> $GITHUB_OUTPUT
+        echo "pr_time_avg=${pr_time_avg_fmt} ± ${pr_time_stddev_fmt}" >> $GITHUB_OUTPUT
+        echo "master_time_avg=${master_time_avg_fmt} ± ${master_time_stddev_fmt}" >> $GITHUB_OUTPUT
         echo "pr_mem_avg=${pr_mem_avg}" >> $GITHUB_OUTPUT
         echo "master_mem_avg=${master_mem_avg}" >> $GITHUB_OUTPUT
         echo "time_diff=${time_diff}" >> $GITHUB_OUTPUT
         echo "time_pct=${time_pct}" >> $GITHUB_OUTPUT
         echo "mem_diff=${mem_diff}" >> $GITHUB_OUTPUT
         echo "mem_pct=${mem_pct}" >> $GITHUB_OUTPUT
+        echo "time_sig=${time_sig}" >> $GITHUB_OUTPUT
         echo "binary_diff=${{ steps.diff_check.outputs.DIFF_RESULT }}" >> $GITHUB_OUTPUT
 
     - name: Create comment
       run: |
-        PERFORMANCE_COMMENT=$(cat << EOF
+        # Function to handle potential "N/A" values in formatting
+        format_or_na() {
+          local value="$1"
+          local format="$2"
+          if [[ "$value" == "N/A" ]]; then
+            echo "N/A"
+          else
+            printf "$format" "$value"
+          fi
+        }
+
+        # Get significance icon
+        get_sig_icon() {
+          local sig="$1"
+          if [[ "$sig" == "N/A" ]]; then
+            echo "❓"
+          elif (( $(echo "$sig < -2" | bc -l) )); then
+            echo "🟢"
+          elif (( $(echo "$sig > 2" | bc -l) )); then
+            echo "🔴"
+          else
+            echo "⚪"
+          fi
+        }
+
+        # Get change icon
+        get_change_icon() {
+          local pct="$1"
+          if [[ "$pct" == "N/A" ]]; then
+            echo "⚠️"
+          elif [[ "$pct" == *"-"* ]]; then
+            echo "✅"
+          elif [[ "$pct" == *"+"* ]]; then
+            echo "⚠️"
+          else
+            echo "➖"
+          fi
+        }
+
+        time_sig_icon=$(get_sig_icon "${{ steps.results.outputs.time_sig }}")
+        time_change_icon=$(get_change_icon "${{ steps.results.outputs.time_pct }}")
+
+        PERFORMANCE_COMMENT=$(cat << EOF | sed 's/^        //g'
         ### 🚀 Performance Benchmark Results
 
         **Individual Runs:**
@@ -166,10 +306,10 @@ jobs:
         )
 
         **Summary Statistics:**
-        | Metric          | PR                    | Master                 | Difference       | Change          |
-        |-----------------|-----------------------|------------------------|------------------|-----------------|
-        | ⏱️ Time (s)     | ${{ steps.results.outputs.pr_time_avg }} | ${{ steps.results.outputs.master_time_avg }} | ${{ steps.results.outputs.time_diff }} | ${{ steps.results.outputs.time_pct }} |
-        | 🧠 Memory (MB)  | ${{ steps.results.outputs.pr_mem_avg }}      | ${{ steps.results.outputs.master_mem_avg }}      | ${{ steps.results.outputs.mem_diff }}  | ${{ steps.results.outputs.mem_pct }}  |
+        | Metric          | PR                    | Master                 | Difference       | Change          | Significance  |
+        |-----------------|-----------------------|------------------------|------------------|----------------|--------------|
+        | ⏱️ Time (s)     | ${{ steps.results.outputs.pr_time_avg }} | ${{ steps.results.outputs.master_time_avg }} | ${{ steps.results.outputs.time_diff }} | ${{ steps.results.outputs.time_pct }} $time_change_icon | $time_sig_icon ${{ steps.results.outputs.time_sig }}σ |
+        | 🧠 Memory (MB)  | ${{ steps.results.outputs.pr_mem_avg }}      | ${{ steps.results.outputs.master_mem_avg }}      | ${{ steps.results.outputs.mem_diff }}  | ${{ steps.results.outputs.mem_pct }}  | - |
 
         **Binary Comparison:**
         ${{ steps.results.outputs.binary_diff }}
@@ -181,9 +321,6 @@ jobs:
         - **Runs**: 5 measurements after 1 warmup
         - **Environment**: Ubuntu Latest (GitHub Actions)
         - **Hyperfine version**: \`$(hyperfine --version)\`
-        - **Execution date**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
-        - **Compiler model**: ${{ env.MODEL }}-bit
-        </details>
         EOF
         )
         echo "$PERFORMANCE_COMMENT" > performance_comment.md
@@ -194,31 +331,27 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
-          try {
-            const comment = fs.readFileSync('performance_comment.md', 'utf8');
-            const { data: comments } = await github.rest.issues.listComments({
+          const comment = fs.readFileSync('performance_comment.md', 'utf8');
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const existingComment = comments.find(c => c.body.includes('🚀 Performance Benchmark Results'));
+
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: comment,
+            });
+          } else {
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
+              body: comment,
             });
-
-            const existingComment = comments.find(c => c.body.includes('🚀 Performance Benchmark Results'));
-
-            if (existingComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existingComment.id,
-                body: comment,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: comment,
-              });
-            }
-          } catch (error) {
-            core.error('Failed to post comment: ' + error.message);
           }
