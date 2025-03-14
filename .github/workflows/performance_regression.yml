@@ -65,10 +65,11 @@ jobs:
         if diff -q "$pr_compiler" "$master_compiler" >/dev/null; then
           echo "DIFF_RESULT=✅ Binaries are identical (MD5: $pr_md5)" >> $GITHUB_OUTPUT
         else
-          # Generate diff output directly to output variable
+          # Generate diff result
+          echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)" >> $GITHUB_OUTPUT
+
+          # Generate diff details - write to a file first
           {
-            echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)"
-            echo "DIFF_DETAILS<<EOF"
             echo "**Binary Differences:**"
             echo "- PR Size: $pr_size bytes | Master Size: $master_size bytes"
             echo "- PR Version: $pr_version"
@@ -76,8 +77,12 @@ jobs:
             echo '```diff'
             xxd "$pr_compiler" | diff -u - <(xxd "$master_compiler") | head -50 || true
             echo '```'
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
+          } > diff_details.txt
+
+          # Use GitHub's multiline output syntax
+          echo "DIFF_DETAILS<<EOF" >> $GITHUB_OUTPUT
+          cat diff_details.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         fi
 
     - name: Checkout benchmark project
@@ -312,13 +317,37 @@ jobs:
         # Process diff details safely
         diff_details=""
         if [[ -n "${{ steps.diff_check.outputs.DIFF_DETAILS }}" ]]; then
-          diff_details=$'\n<details>\n<summary>🔍 Binary Diff Details</summary>\n\n'
-          diff_details+="${{ steps.diff_check.outputs.DIFF_DETAILS }}"
-          diff_details+=$'\n</details>'
+          # Use a heredoc to safely store the diff details
+          diff_details=$(cat << 'DIFFEND'
+
+        <details>
+        <summary>🔍 Binary Diff Details</summary>
+
+        ${{ steps.diff_check.outputs.DIFF_DETAILS }}
+        </details>
+        DIFFEND
+          )
         fi
 
+        # Generate individual runs table rows
+        individual_runs=""
+        IFS=', ' read -r -a pr_time_array <<< "${{ steps.results.outputs.pr_time_runs }}"
+        IFS=', ' read -r -a master_time_array <<< "${{ steps.results.outputs.master_time_runs }}"
+        IFS=', ' read -r -a pr_mem_array <<< "${{ steps.results.outputs.pr_mem_runs }}"
+        IFS=', ' read -r -a master_mem_array <<< "${{ steps.results.outputs.master_mem_runs }}"
+
+        for i in "${!pr_time_array[@]}"; do
+          run_num=$((i+1))
+          pr_time="${pr_time_array[$i]:-N/A}"
+          master_time="${master_time_array[$i]:-N/A}"
+          pr_mem="${pr_mem_array[$i]:-N/A}"
+          master_mem="${master_mem_array[$i]:-N/A}"
+
+          individual_runs+="| $run_num | $pr_time | $master_time | $pr_mem | $master_mem |"$'\n'
+        done
+
         # Generate comment with proper escaping
-        PERFORMANCE_COMMENT=$(cat << 'EOF'
+        PERFORMANCE_COMMENT=$(cat << 'COMMENTEND'
         ### 🚀 Performance Benchmark Results
 
         **Individual Runs:**
@@ -329,7 +358,7 @@ jobs:
         **Summary Statistics:**
         | Metric          | PR                    | Master                 | Difference       | Change          | Significance  |
         |-----------------|-----------------------|------------------------|------------------|----------------|--------------|
-        | ⏱️ Time (s)     | ${{ steps.results.outputs.pr_time_avg }} | ${{ steps.results.outputs.master_time_avg }} | ${{ steps.results.outputs.time_diff }} | ${{ steps.results.outputs.time_pct }} $time_change_icon | $time_sig_icon ${{ steps.results.outputs.time_sig }}σ |
+        | ⏱️ Time (s)     | ${{ steps.results.outputs.pr_time_avg }} | ${{ steps.results.outputs.master_time_avg }} | ${{ steps.results.outputs.time_diff }} | ${{ steps.results.outputs.time_pct }} ${time_change_icon} | ${time_sig_icon} ${{ steps.results.outputs.time_sig }}σ |
         | 🧠 Memory (MB)  | ${{ steps.results.outputs.pr_mem_avg }}      | ${{ steps.results.outputs.master_mem_avg }}      | ${{ steps.results.outputs.mem_diff }}  | ${{ steps.results.outputs.mem_pct }}  | - |
 
         **Binary Comparison:**
@@ -338,21 +367,21 @@ jobs:
 
         <details>
         <summary>📊 Additional Details</summary>
+
         - **Benchmark target**: Phobos@${{ env.BENCHMARK_REF }}
         - **Runs**: 5 measurements after 1 warmup
         - **Environment**: Ubuntu Latest (GitHub Actions)
-        - **Hyperfine version**: `$(hyperfine --version)`
-        EOF
+        - **Hyperfine version**: $(hyperfine --version)
+        </details>
+        COMMENTEND
         )
 
-        # Process variables safely using awk
-        PERFORMANCE_COMMENT=$(echo "$PERFORMANCE_COMMENT" | awk -v time_change_icon="$time_change_icon" -v time_sig_icon="$time_sig_icon" '
-            {
-                gsub(/\${time_change_icon}/, time_change_icon);
-                gsub(/\${time_sig_icon}/, time_sig_icon);
-                print;
-            }
-        ')
+        # Process variables using envsubst or direct variable substitution
+        PERFORMANCE_COMMENT=$(echo "$PERFORMANCE_COMMENT" |
+          sed "s/\${individual_runs}/$individual_runs/g" |
+          sed "s/\${time_change_icon}/$time_change_icon/g" |
+          sed "s/\${time_sig_icon}/$time_sig_icon/g" |
+          sed "s/\${diff_details}/$diff_details/g")
 
         echo "$PERFORMANCE_COMMENT" | sed 's/^        //' > performance_comment.md
 
