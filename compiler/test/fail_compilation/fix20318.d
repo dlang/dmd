@@ -10,11 +10,11 @@ void main() {
     // This should work - struct without pointers
     const Foo a;
     Foo b = a; // This is okay
-    
+
     // This should fail with improved diagnostic message
     const Bar c;
     Bar d = c; // Error with improved diagnostic message
-    
+
     // Test with a more complex struct with nested pointers
     const ComplexBar complex_c;
     ComplexBar complex_d = complex_c; // Give improved error message
@@ -43,4 +43,4 @@ struct ComplexBar {
     Simple simple;       // This is fine
     int data;            // This is fine
     WithPointer nested;  // This field prevents implicit conversion
-} 
+}
