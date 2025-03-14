@@ -65,7 +65,11 @@ jobs:
         if diff -q "$pr_compiler" "$master_compiler" >/dev/null; then
           echo "DIFF_RESULT=✅ Binaries are identical (MD5: $pr_md5)" >> $GITHUB_OUTPUT
         else
-          diff_output=$(diff -u <(xxd "$pr_compiler") <(xxd "$master_compiler") | head -50)
+          # Create temporary files for hex dumps
+          xxd "$pr_compiler" > pr_hex
+          xxd "$master_compiler" > master_hex
+          diff_output=$(diff -u pr_hex master_hex | head -50)
+
           echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)" >> $GITHUB_OUTPUT
           echo "DIFF_DETAILS<<EOF" >> $GITHUB_OUTPUT
           echo "**Binary Differences:**" >> $GITHUB_OUTPUT
