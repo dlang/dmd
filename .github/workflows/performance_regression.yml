@@ -65,24 +65,29 @@ jobs:
         if diff -q "$pr_compiler" "$master_compiler" >/dev/null; then
           echo "DIFF_RESULT=✅ Binaries are identical (MD5: $pr_md5)" >> $GITHUB_OUTPUT
         else
-          xxd "$pr_compiler" > pr_hex
-          xxd "$master_compiler" > master_hex
-          diff_output=$(diff -u pr_hex master_hex | head -50)
+          # Create temporary files with clean names
+          xxd "$pr_compiler" > pr.hex
+          xxd "$master_compiler" > master.hex
 
-          # Use quoted heredoc to preserve formatting
+          # Capture diff output with proper escaping
+          diff_output=$(diff -u pr.hex master.hex | head -50 | sed 's/`/\\`/g; s/\$/\\$/g')
+
+          # Clean up temporary files
+          rm pr.hex master.hex
+
+          # Write outputs with proper formatting
           {
+            echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)"
             echo "DIFF_DETAILS<<EOF"
             echo "**Binary Differences:**"
             echo "- PR Size: $pr_size bytes | Master Size: $master_size bytes"
             echo "- PR Version: $pr_version"
             echo "- Master Version: $master_version"
             echo '```diff'
-            cat pr_hex | diff -u - master_hex | head -50
+            echo "$diff_output"
             echo '```'
             echo "EOF"
           } >> $GITHUB_OUTPUT
-
-          echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)" >> $GITHUB_OUTPUT
         fi
 
     - name: Checkout benchmark project
@@ -322,18 +327,8 @@ jobs:
           diff_details+=$'\n</details>'
         fi
 
-        # Generate individual runs table rows in a separate command substitution
-        individual_runs=$(
-          IFS=', ' read -ra pr_times <<< "${{ steps.results.outputs.pr_time_runs }}"
-          IFS=', ' read -ra master_times <<< "${{ steps.results.outputs.master_time_runs }}"
-          IFS=', ' read -ra pr_mems <<< "${{ steps.results.outputs.pr_mem_runs }}"
-          IFS=', ' read -ra master_mems <<< "${{ steps.results.outputs.master_mem_runs }}"
-          for i in {0..4}; do
-            printf "| %d | %s | %s | %s | %s |\n" $((i+1)) "${pr_times[$i]:-N/A}" "${master_times[$i]:-N/A}" "${pr_mems[$i]:-N/A}" "${master_mems[$i]:-N/A}"
-          done
-        )
-
-        PERFORMANCE_COMMENT=$(cat << EOF | sed 's/^        //g'
+        # Generate comment with proper escaping
+        PERFORMANCE_COMMENT=$(cat << 'EOF'
         ### 🚀 Performance Benchmark Results
 
         **Individual Runs:**
@@ -356,13 +351,13 @@ jobs:
         - **Benchmark target**: Phobos@${{ env.BENCHMARK_REF }}
         - **Runs**: 5 measurements after 1 warmup
         - **Environment**: Ubuntu Latest (GitHub Actions)
-        - **Hyperfine version**: \`$(hyperfine --version)\`
+        - **Hyperfine version**: `$(hyperfine --version)`
         EOF
         )
 
-        # Evaluate variables after heredoc processing
+        # Process variables safely
         PERFORMANCE_COMMENT=$(eval "echo \"$PERFORMANCE_COMMENT\"")
-        echo "$PERFORMANCE_COMMENT" > performance_comment.md
+        echo "$PERFORMANCE_COMMENT" | sed 's/^        //' > performance_comment.md
 
     - name: Post comment
       uses: actions/github-script@v6
