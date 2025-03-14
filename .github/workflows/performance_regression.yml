@@ -65,17 +65,7 @@ jobs:
         if diff -q "$pr_compiler" "$master_compiler" >/dev/null; then
           echo "DIFF_RESULT=✅ Binaries are identical (MD5: $pr_md5)" >> $GITHUB_OUTPUT
         else
-          # Create temporary files with clean names
-          xxd "$pr_compiler" > pr.hex
-          xxd "$master_compiler" > master.hex
-
-          # Capture diff output with proper escaping
-          diff_output=$(diff -u pr.hex master.hex | head -50 | sed 's/`/\\`/g; s/\$/\\$/g')
-
-          # Clean up temporary files
-          rm pr.hex master.hex
-
-          # Write outputs with proper formatting
+          # Generate diff output directly to output variable
           {
             echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)"
             echo "DIFF_DETAILS<<EOF"
@@ -84,7 +74,7 @@ jobs:
             echo "- PR Version: $pr_version"
             echo "- Master Version: $master_version"
             echo '```diff'
-            echo "$diff_output"
+            xxd "$pr_compiler" | diff -u - <(xxd "$master_compiler") | head -50 || true
             echo '```'
             echo "EOF"
           } >> $GITHUB_OUTPUT
@@ -355,8 +345,15 @@ jobs:
         EOF
         )
 
-        # Process variables safely
-        PERFORMANCE_COMMENT=$(eval "echo \"$PERFORMANCE_COMMENT\"")
+        # Process variables safely using awk
+        PERFORMANCE_COMMENT=$(echo "$PERFORMANCE_COMMENT" | awk -v time_change_icon="$time_change_icon" -v time_sig_icon="$time_sig_icon" '
+            {
+                gsub(/\${time_change_icon}/, time_change_icon);
+                gsub(/\${time_sig_icon}/, time_sig_icon);
+                print;
+            }
+        ')
+
         echo "$PERFORMANCE_COMMENT" | sed 's/^        //' > performance_comment.md
 
     - name: Post comment
