@@ -149,7 +149,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 //type = type.typeSemantic(loc, sc);
                 //printf("type %s t %s\n", type.deco, t.deco);
                 auto ts = toAutoQualChars(e.type, t);
-                
+
                 // Special case for improved diagnostic when const to mutable conversion
                 // fails due to struct/union having pointers
                 if (e.type.ty == Tstruct && t.ty == Tstruct &&
