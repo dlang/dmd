@@ -51,13 +51,31 @@ jobs:
         pr_compiler="./pr-dmd/generated/linux/release/$MODEL/dmd"
         master_compiler="./master-dmd/generated/linux/release/$MODEL/dmd"
 
+        # Get checksums and sizes
         pr_md5=$(md5sum "$pr_compiler" | cut -d' ' -f1)
         master_md5=$(md5sum "$master_compiler" | cut -d' ' -f1)
+        pr_size=$(stat -c%s "$pr_compiler")
+        master_size=$(stat -c%s "$master_compiler")
 
+        # Get human-readable version info
+        pr_version=$("./pr-dmd/generated/linux/release/$MODEL/dmd" --version | head -1)
+        master_version=$("./master-dmd/generated/linux/release/$MODEL/dmd" --version | head -1)
+
+        # Get binary differences
         if diff -q "$pr_compiler" "$master_compiler" >/dev/null; then
-          echo "DIFF_RESULT=✅ Binaries are identical (MD5: ${pr_md5:0:8})" >> $GITHUB_OUTPUT
+          echo "DIFF_RESULT=✅ Binaries are identical (MD5: $pr_md5)" >> $GITHUB_OUTPUT
         else
-          echo "DIFF_RESULT=❌ Binaries differ (PR MD5: ${pr_md5:0:8}, Master MD5: ${master_md5:0:8})" >> $GITHUB_OUTPUT
+          diff_output=$(diff -u <(xxd "$pr_compiler") <(xxd "$master_compiler") | head -50)
+          echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)" >> $GITHUB_OUTPUT
+          echo "DIFF_DETAILS<<EOF" >> $GITHUB_OUTPUT
+          echo "**Binary Differences:**" >> $GITHUB_OUTPUT
+          echo "- PR Size: $pr_size bytes | Master Size: $master_size bytes" >> $GITHUB_OUTPUT
+          echo "- PR Version: $pr_version" >> $GITHUB_OUTPUT
+          echo "- Master Version: $master_version" >> $GITHUB_OUTPUT
+          echo "\`\`\`diff" >> $GITHUB_OUTPUT
+          echo "$diff_output" >> $GITHUB_OUTPUT
+          echo "\`\`\`" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         fi
 
     - name: Checkout benchmark project
@@ -289,6 +307,14 @@ jobs:
         time_sig_icon=$(get_sig_icon "${{ steps.results.outputs.time_sig }}")
         time_change_icon=$(get_change_icon "${{ steps.results.outputs.time_pct }}")
 
+        # Add diff details if available
+        diff_details=""
+        if [[ "${{ steps.diff_check.outputs.DIFF_DETAILS }}" != "" ]]; then
+          diff_details=$'<details>\n<summary>🔍 Binary Diff Details</summary>\n\n'
+          diff_details+="${{ steps.diff_check.outputs.DIFF_DETAILS }}"
+          diff_details+=$'\n</details>'
+        fi
+
         PERFORMANCE_COMMENT=$(cat << EOF | sed 's/^        //g'
         ### 🚀 Performance Benchmark Results
 
@@ -313,10 +339,10 @@ jobs:
 
         **Binary Comparison:**
         ${{ steps.results.outputs.binary_diff }}
+        ${diff_details}
 
         <details>
         <summary>📊 Additional Details</summary>
-
         - **Benchmark target**: Phobos@${{ env.BENCHMARK_REF }}
         - **Runs**: 5 measurements after 1 warmup
         - **Environment**: Ubuntu Latest (GitHub Actions)
