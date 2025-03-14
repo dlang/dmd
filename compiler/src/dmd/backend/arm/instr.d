@@ -1173,7 +1173,7 @@ struct INSTR
         // STRH Rt,[Xn,#offset]
         uint size = 1;
         uint imm12 = offset & 0xFFF;
-        return ldst_pos(0, 0, 0, imm12, Rn, Rt);
+        return ldst_pos(1, 0, 0, imm12, Rn, Rt);
     }
 
     /* STR (immediate) Unsigned offset

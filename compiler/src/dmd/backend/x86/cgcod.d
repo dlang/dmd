@@ -2095,7 +2095,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     uint byte_,sz;
 
     //printf("comsub(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
-    elem_debug(e);
+    //elem_debug(e);
 
     debug
     {
@@ -2203,7 +2203,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                 cse.flags |= CSEload;
                 if (pretregs == mPSW)  // if result in CCs only
                 {
-                    if (config.fpxmmregs && (tyxmmreg(cse.e.Ety) || tyvector(cse.e.Ety)))
+                    if (0 && config.fpxmmregs && (tyxmmreg(cse.e.Ety) || tyvector(cse.e.Ety))) // TODO AArch64
                     {
                         retregs = XMMREGS;
                         reg = allocreg(cdb,retregs,tym);
