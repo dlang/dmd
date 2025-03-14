@@ -314,19 +314,16 @@ jobs:
         time_sig_icon=$(get_sig_icon "${{ steps.results.outputs.time_sig }}")
         time_change_icon=$(get_change_icon "${{ steps.results.outputs.time_pct }}")
 
-        # Process diff details safely
-        diff_details=""
+        # Process diff details safely by writing to a file first
         if [[ -n "${{ steps.diff_check.outputs.DIFF_DETAILS }}" ]]; then
-          # Use a heredoc to safely store the diff details
-          diff_details=$(cat << 'DIFFEND'
-
-        <details>
-        <summary>🔍 Binary Diff Details</summary>
-
-        ${{ steps.diff_check.outputs.DIFF_DETAILS }}
-        </details>
-        DIFFEND
-          )
+          echo "<details>" > diff_details_file.md
+          echo "<summary>🔍 Binary Diff Details</summary>" >> diff_details_file.md
+          echo "" >> diff_details_file.md
+          echo "${{ steps.diff_check.outputs.DIFF_DETAILS }}" >> diff_details_file.md
+          echo "</details>" >> diff_details_file.md
+          diff_details=$(cat diff_details_file.md)
+        else
+          diff_details=""
         fi
 
         # Generate individual runs table rows
@@ -346,14 +343,18 @@ jobs:
           individual_runs+="| $run_num | $pr_time | $master_time | $pr_mem | $master_mem |"$'\n'
         done
 
-        # Generate comment with proper escaping
-        PERFORMANCE_COMMENT=$(cat << 'COMMENTEND'
+        # Write each section of the comment to separate files
+        cat > header.md << 'EOL'
         ### 🚀 Performance Benchmark Results
 
         **Individual Runs:**
         | Run | PR Time (s) | Master Time (s) | PR Memory (MB) | Master Memory (MB) |
         |-----|-------------|-----------------|----------------|---------------------|
-        ${individual_runs}
+        EOL
+
+        echo "$individual_runs" > runs.md
+
+        cat > summary.md << EOL
 
         **Summary Statistics:**
         | Metric          | PR                    | Master                 | Difference       | Change          | Significance  |
@@ -363,27 +364,24 @@ jobs:
 
         **Binary Comparison:**
         ${{ steps.results.outputs.binary_diff }}
-        ${diff_details}
+        EOL
+
+        cat > footer.md << 'EOL'
 
         <details>
         <summary>📊 Additional Details</summary>
 
-        - **Benchmark target**: Phobos@${{ env.BENCHMARK_REF }}
+        - **Benchmark target**: Phobos@master
         - **Runs**: 5 measurements after 1 warmup
         - **Environment**: Ubuntu Latest (GitHub Actions)
         - **Hyperfine version**: $(hyperfine --version)
         </details>
-        COMMENTEND
-        )
+        EOL
 
-        # Process variables using envsubst or direct variable substitution
-        PERFORMANCE_COMMENT=$(echo "$PERFORMANCE_COMMENT" |
-          sed "s/\${individual_runs}/$individual_runs/g" |
-          sed "s/\${time_change_icon}/$time_change_icon/g" |
-          sed "s/\${time_sig_icon}/$time_sig_icon/g" |
-          sed "s/\${diff_details}/$diff_details/g")
-
-        echo "$PERFORMANCE_COMMENT" | sed 's/^        //' > performance_comment.md
+        # Combine all sections into the final comment
+        cat header.md runs.md summary.md > performance_comment.md
+        echo "$diff_details" >> performance_comment.md
+        cat footer.md >> performance_comment.md
 
     - name: Post comment
       uses: actions/github-script@v6
