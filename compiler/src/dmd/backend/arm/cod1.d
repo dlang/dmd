@@ -56,7 +56,9 @@ nothrow:
  */
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
-    if (reg & 32)       // if floating point register
+    cs.Iop = INSTR.nop;
+    assert(reg != NOREG);
+    if (mask(reg) & INSTR.FLOATREGS)       // if floating point store
     {
         if (cs.reg != NOREG)
         {
@@ -120,7 +122,10 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
  */
 void storeToEA(ref code cs, reg_t reg, uint sz)
 {
-    if (reg & 32)       // if floating point store
+    //debug printf("storeToEA(reg: %d, sz: %d)\n", reg, sz);
+    cs.Iop = INSTR.nop;
+    assert(reg != NOREG);
+    if (mask(reg) & INSTR.FLOATREGS)       // if floating point store
     {
         if (cs.reg != NOREG)
         {
@@ -1071,7 +1076,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                  * such variables.
                  */
                 if (tyxmmreg(ty) && !(s.Sregm & XMMREGS) ||
-                    !tyxmmreg(ty) && (s.Sregm & XMMREGS))
+                    !tyxmmreg(ty) && (s.Sregm & XMMREGS))       // TODO AArch64
                     cgreg_unregister(s.Sregm);
 
                 if (
