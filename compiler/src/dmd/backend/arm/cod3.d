@@ -245,26 +245,6 @@ void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 }
 
 @trusted
-void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t slot)
-{
-    printf("gen_testcse()\n");
-    // CMP slot[BP],0
-static if (0)
-{
-    /* Since on the AArch64 this would have to allocate a register,
-       that should probably be done by the caller   TODO AArch64
-     */
-    assert(0);
-    cdb.genc(sz == 1 ? 0x80 : 0x81,modregrm(2,7,BPRM),
-                FL.cs,cast(targ_uns)slot, FL.const_,cast(targ_uns) 0);
-    if ((I64 || I32) && sz == 2)
-        cdb.last().Iflags |= CFopsize;
-    if (I64 && sz == 8)
-        code_orrex(cdb.last(), REX_W);
-}
-}
-
-@trusted
 void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 {
     //printf("gen_loadcse() tym: %s reg: %d slot: %d\n", tym_str(tym), reg, cast(int)slot);
