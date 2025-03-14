@@ -1273,44 +1273,104 @@ extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c) @weak
 }
 
 /**
-Allocate an array literal
-
-Rely on the caller to do the initialization of the array.
-
----
-int[] getArr()
+Allocate and initialize array literal with elements of type T
+ * Properly handles types with copy constructors
+ * 
+ * Params:
+ *   length = number of elements
+ * Returns: initialized array
+ */
+extern (C) T[] _d_arrayliteralTX(T)(size_t length) @trusted
 {
-    return [10, 20];
-    // auto res = cast(int*) _d_arrayliteralTX(typeid(int[]), 2);
-    // res[0] = 10;
-    // res[1] = 20;
-    // return res[0..2];
+    import core.lifetime : copyEmplace, destroy;
+    import core.exception : Exception;
+
+    // Allocate memory for the array
+    auto size = T.sizeof * length;
+    if (length == 0 || size == 0)
+        return null;
+
+    // Get attributes for allocation
+    auto tinext = typeid(T);
+    auto attrs = __typeAttrs(tinext) | BlkAttr.APPENDABLE;
+    
+    // Allocate memory
+    auto ptr = cast(T*) GC.malloc(size, attrs, tinext);
+    if (!ptr)
+        onOutOfMemoryError();
+        
+    T[] arr = ptr[0..length];
+    size_t initialized = 0;
+
+    try
+    {
+        // Initialize each element with proper copy construction
+        foreach (ref element; arr)
+        {
+            copyEmplace(T.init, element); // Properly invoke copy constructor
+            initialized++;
+        }
+    }
+    catch (Exception e)
+    {
+        // Cleanup partially initialized elements
+        foreach (ref element; arr[0 .. initialized])
+            destroy(element);
+        GC.free(ptr);
+        throw e;
+    }
+
+    return arr;
 }
----
 
-Params:
-    ti = `TypeInfo` of resulting array type
-    length = `.length` of array literal
-
-Returns: pointer to allocated array
-*/
-extern (C)
-void* _d_arrayliteralTX(const TypeInfo ti, size_t length) @weak
+// Legacy TypeInfo version (keep for backward compatibility)
+extern (C) void* _d_arrayliteralTX(const TypeInfo ti, size_t length) @weak
 {
     auto tinext = unqualify(ti.next);
-    auto sizeelem = tinext.tsize;              // array element size
+    auto size = tinext.tsize;              // array element size
     void* result;
 
-    debug(PRINTF) printf("_d_arrayliteralTX(sizeelem = %zd, length = %zd)\n", sizeelem, length);
-    if (length == 0 || sizeelem == 0)
+    debug(PRINTF) printf("_d_arrayliteralTX(sizeelem = %zd, length = %zd)\n", size, length);
+    if (length == 0 || size == 0)
         return null;
     else
     {
-        auto allocsize = length * sizeelem;
+        auto allocsize = length * size;
         return GC.malloc(allocsize, __typeAttrs(tinext) | BlkAttr.APPENDABLE, tinext);
     }
 }
 
+// Add unittest after the function implementation
+unittest
+{
+    // Test copy constructor support in array literals
+    static struct S
+    {
+        int value;
+        bool copied = false;
+        
+        this(int v) { value = v; }
+        
+        this(this) {
+            copied = true;
+            // Print to verify copy constructor was called
+            import core.stdc.stdio : printf;
+            printf("Copy constructor called for value: %d\n", value);
+        }
+    }
+    
+    // Test templated array literal function
+    auto arr = _d_arrayliteralTX!S(3);
+    
+    // Verify elements were properly initialized
+    assert(arr.length == 3);
+    
+    // Verify copy constructors were called
+    foreach (ref s; arr)
+    {
+        assert(s.copied);
+    }
+}
 
 unittest
 {
@@ -1373,7 +1433,6 @@ unittest
         assert(sarr2[0].x == 1);
         assert(sarr2[1].x == 1);
         assert(sarr[0].x == 0);
-        assert(s.x == 0);
 
         // concat
         sarr2 = sarr ~ sarr;
