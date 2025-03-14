@@ -30,6 +30,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcse;
 import dmd.backend.code;
+import dmd.backend.arm.cod1 : loadFromEA, storeToEA;
 import dmd.backend.arm.disasmarm : encodeHFD;
 import dmd.backend.x86.cgcod : disassemble;
 import dmd.backend.x86.code_x86;
@@ -207,9 +208,70 @@ COND conditionCode(elem* e)
 // cod3_ptrchk
 // cod3_useBP
 // cse_simple
-// gen_storecse
-// gen_testcse
-// gen_loadcse
+
+/**************************
+ * Store `reg` to the common subexpression save area in index `slot`.
+ * Params:
+ *      cdb = where to write code to
+ *      tym = type of value that's in `reg`
+ *      reg = register to save
+ *      slot = index into common subexpression save area
+ */
+@trusted
+void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
+{
+    //printf("gen_storecse() tym: %s reg: %d slot: %d\n", tym_str(tym), reg, cast(int)slot);
+    // MOV slot[BP],reg
+    if (tyvector(tym)) // TODO AArch64
+    {
+        assert(0);
+        //const aligned = tyvector(tym) ? STACKALIGN >= 16 : true;
+        //const op = xmmstore(tym, aligned);
+        //cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FL.cs,cast(targ_size_t)slot);
+        //return;
+    }
+    code cs;
+    cs.IFL1 = FL.cs;
+    cs.Iflags = CFoff;
+    cs.reg = NOREG;
+    cs.index = NOREG;
+    cs.base = 29;   // SP? BPRM? TODO AArch64
+    cs.Sextend = 0;
+    cs.IEV1.Vsym = null;
+    cs.IEV1.Voffset = slot;
+    storeToEA(cs, reg, tysize(tym));
+    assert(cs.Iop);
+    cdb.gen(&cs);
+}
+
+@trusted
+void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
+{
+    //printf("gen_loadcse() tym: %s reg: %d slot: %d\n", tym_str(tym), reg, cast(int)slot);
+    // MOV reg,slot[BP]
+    if (tyvector(tym)) // TODO AArch64
+    {
+        assert(0);
+        //const aligned = tyvector(tym) ? STACKALIGN >= 16 : true;
+        //const op = xmmload(tym, aligned);
+        //cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FL.cs,cast(targ_size_t)slot);
+        //return;
+    }
+    code cs;
+    cs.IFL1 = FL.cs;
+    cs.Iflags = CFoff;
+    cs.reg = NOREG;
+    cs.index = NOREG;
+    cs.base = 29;   // SP? BPRM? TODO AArch64
+    cs.Sextend = 0;
+    cs.IEV1.Vsym = null;
+    cs.IEV1.Voffset = slot;
+    uint szr = tysize(tym);
+    uint szw = szr == 8 ? 8 : 4;
+    loadFromEA(cs, reg, szw, szr);
+    cdb.gen(&cs);
+}
+
 // cdframeptr
 // cdgot
 // load_localgot
@@ -1143,6 +1205,7 @@ void assignaddrc(code* c)
     ulong offset;
     reg_t Rn, Rt;
     uint base = cgstate.EBPtoESP;
+    code* csave = c;
 
     for (; c; c = code_next(c))
     {
@@ -1230,7 +1293,7 @@ void assignaddrc(code* c)
         s = c.IEV1.Vsym;
         uint sz = 8;
         uint ins = c.Iop;
-//      if (c.IFL1 != FL.unde)
+        if (0 && c.IFL1 != FL.unde)
         {
             printf("FL: %s  ", fl_str(c.IFL1));
             disassemble(ins);
@@ -1431,10 +1494,16 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
                 break;
 
             default:
-                printf("FL: %s\n", fl_str(c.IFL1));
+                if (0) printf("FL: %s\n", fl_str(c.IFL1));
                 assert(0);
         }
     }
+    static if (0)
+        for (c = csave; c; c = code_next(c))
+        {
+            printf("Iop %08x  ", c.Iop);
+            disassemble(c.Iop);
+        }
 }
 
 /**************************
