@@ -246,26 +246,6 @@ void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 }
 
 @trusted
-void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t slot)
-{
-    printf("gen_testcse()\n");
-    // CMP slot[BP],0
-static if (0)
-{
-    /* Since on the AArch64 this would have to allocate a register,
-       that should probably be done by the caller   TODO AArch64
-     */
-    assert(0);
-    cdb.genc(sz == 1 ? 0x80 : 0x81,modregrm(2,7,BPRM),
-                FL.cs,cast(targ_uns)slot, FL.const_,cast(targ_uns) 0);
-    if ((I64 || I32) && sz == 2)
-        cdb.last().Iflags |= CFopsize;
-    if (I64 && sz == 8)
-        code_orrex(cdb.last(), REX_W);
-}
-}
-
-@trusted
 void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 {
     //printf("gen_loadcse() tym: %s reg: %d slot: %d\n", tym_str(tym), reg, cast(int)slot);
@@ -313,7 +293,7 @@ void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 {
     code cs;
-    cs.Iop = ((0x54 << 24) | cond);
+    cs.Iop = INSTR.b_cond(0, cond);     // offset is 0 for now, fix in codout()
     cs.Iflags = 0;
     cs.IFL1 = fltarg;                   // FL.block (or FL.code)
     cs.IEV1.Vblock = targ;              // target block (or code)
@@ -762,6 +742,7 @@ Lret:
 @trusted
 int branch(block* bl,int flag)
 {
+    //printf("branch() flag: %d\n", flag);
     int bytesaved;
     code* c,cn,ct;
     targ_size_t offset,disp;
@@ -1545,7 +1526,8 @@ void jmpaddr(code* c)
     while (c)
     {
         const op = c.Iop;
-        if (isBranch(op) && c.IFL1 == FL.code) // or CALL?
+        //printf("%08X ", c.Iop); disassemble(c.Iop);
+        if (isBranch(op) && c.IFL2 == FL.code) // or CALL?
         {
             ci = code_next(c);
             ctarg = c.IEV1.Vcode;  /* target code                  */
@@ -1702,9 +1684,8 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
         if (ggen.available() < 4)
             ggen.flush();
 
-        //printf("op: %08x\n", op);
-        //if ((op & 0xFC00_0000) == 0x9400_0000) // BL <label>
         if (isBranch(op) && c.IFL1 == FL.block)
+
         {
             ggen.flush();
             int ad = cast(int)(c.IEV1.Vblock.Boffset - ggen.offset);

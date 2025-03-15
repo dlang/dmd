@@ -886,6 +886,8 @@ private code* callFinallyBlock(block* bf, regm_t retregs)
 @trusted
 void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)* sflsave, Symbol** retsym, const regm_t mfuncregsave)
 {
+    //printf("outblkexitcode()\n");
+    bool AArch64 = cgstate.AArch64;
     CodeBuilder cdb2; cdb2.ctor();
     elem* e = bl.Belem;
     block* nextb;
@@ -923,7 +925,10 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
             if (nextb != bl.Bnext)
             {
                 assert(!(bl.Bflags & BFL.epilog));
-                genjmp(cdb,JMP,FL.block,nextb);
+                if (AArch64)
+                    dmd.backend.arm.cod3.genBranch(cdb,COND.al,FL.block,nextb);
+                else
+                    genjmp(cdb,JMP,FL.block,nextb);
             }
             break;
 
@@ -2619,12 +2624,20 @@ Lcant:
 }
 
 /*************************************************
- * Generate code segment to be used later to restore a cse
+ * Generate instruction to be used later to restore a cse
+ * Params:
+ *      c = fill in with instruction
+ *      e = examined to see if it can be restored with a simple instruction
+ * Returns:
+ *      true means it can be so used and c is filled in
  */
 
 @trusted
 bool cse_simple(code* c, elem* e)
 {
+    if (cgstate.AArch64)
+        return false;           // TODO AArch64
+
     regm_t regm;
     reg_t reg;
     int sz = tysize(e.Ety);
@@ -2712,9 +2725,6 @@ void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 @trusted
 void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t slot)
 {
-    if (cgstate.AArch64)
-        return dmd.backend.arm.cod3.gen_testcse(cdb,tym,sz,slot);
-
     //printf("gen_testcse()\n");
     // CMP slot[BP],0
     cdb.genc(sz == 1 ? 0x80 : 0x81,modregrm(2,7,BPRM),
