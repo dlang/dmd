@@ -27,7 +27,7 @@ int main()
         Vars.set(`DLL_LIB`, `$OUTPUT_BASE${SEP}mydll.lib`);
         // CXX should be cl
         dllCmd ~= [`/LD`, `/nologo`, `/Fe` ~ Vars.DLL];
-        mainExtra = `$DLL_LIB`;
+        mainExtra = `$DLL_LIB -dllimport=externalOnly`;
     }
     else version(OSX)
     {
@@ -44,7 +44,7 @@ int main()
     // The arguments have to be passed as an array, because run would replace '/' with '\\' otherwise.
     run(dllCmd);
 
-    run(`$DMD -m$MODEL -g -od=$OUTPUT_BASE -of=$EXE_NAME $SRC/testdll.d ` ~ mainExtra);
+    run(`$DMD -m$MODEL -g -od=$OUTPUT_BASE -of=$EXE_NAME -extI=$EXTRA_FILES${SEP}dll_cxx${SEP}external $SRC/testdll.d ` ~ mainExtra);
 
     run(`$EXE_NAME`, stdout, stderr, [`LD_LIBRARY_PATH`: Vars.OUTPUT_BASE]);
 
