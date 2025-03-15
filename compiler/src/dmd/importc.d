@@ -432,6 +432,10 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
     {
         if (log) printf(" tag is already defined\n");
 
+        if (sd.parent != sd2.parent) {  
+            return sd;  // Treat it as a separate struct
+}
+
         if (sd.kind() != sd2.kind())  // being enum/struct/union must match
             return null;              // conflict
 
