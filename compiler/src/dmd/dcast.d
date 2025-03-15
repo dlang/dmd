@@ -154,17 +154,12 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 // fails due to struct/union having pointers
                 if (e.type.ty == Tstruct && t.ty == Tstruct &&
                     e.type.isTypeStruct().sym == t.isTypeStruct().sym &&
-                    e.type.mod == MODFlags.const_ && t.mod == 0)
+                    e.type.mod == MODFlags.const_ && t.mod == 0 && e.type.hasPointers)
                 {
                     auto sym = e.type.isTypeStruct().sym;
-                    sym.determineTypeProperties();
-                    if (sym.hasPointerField)
-                    {
-                        const char* typeStr = sym.isUnionDeclaration() ? "union" : "struct";
-                        error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s` because %s `%s` contains pointers or references",
-                            e.toErrMsg(), ts[0], ts[1], typeStr, sym.toChars());
-                        return ErrorExp.get();
-                    }
+                    error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s` because %s `%s` contains pointers or references",
+                        e.toErrMsg(), ts[0], ts[1], sym.kind(), sym.toErrMsg());
+                    return ErrorExp.get();
                 }
 
                 error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`",
