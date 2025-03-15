@@ -1,4 +1,4 @@
-name: Update GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   workflow_dispatch:
@@ -11,22 +11,14 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      # 1. Check out the repository with full history.
+      # 1. Check out your repository with full history.
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2. Set up Git identity for all subsequent git commands.
-      - name: Setup git identity
-        run: |
-          git config --global user.email "github-actions@github.com"
-          git config --global user.name "GitHub Actions"
-
-      # 3. Prepare the deploy folder by copying dashboard.html to _temp/index.html.
+      # 2. Prepare the deploy folder by copying dashboard.html to _temp/index.html.
       - name: Prepare deploy folder
         run: |
           mkdir -p _temp
@@ -39,42 +31,10 @@ jobs:
             exit 1
           fi
 
-      # 4. Ensure the gh-pages branch is fully initialized.
-      - name: Initialize gh-pages branch properly
-        run: |
-          # Fetch the remote gh-pages branch if it exists (ignore errors if not)
-          git fetch origin gh-pages || true
-          if git rev-parse --verify gh-pages >/dev/null 2>&1; then
-            echo "gh-pages branch exists. Checking commit count..."
-            git checkout gh-pages
-            commit_count=$(git rev-list --count HEAD)
-            if [ "$commit_count" -eq 0 ]; then
-              echo "gh-pages branch is empty. Adding a dummy commit..."
-              echo "Dummy commit" > dummy.txt
-              git add dummy.txt
-              git commit -m "Initial commit on gh-pages branch"
-              git push origin gh-pages
-            fi
-            # Return to the original branch
-            git checkout master
-          else
-            echo "gh-pages branch does not exist. Creating it..."
-            git checkout --orphan gh-pages
-            git rm -rf . || true
-            echo "# GitHub Pages" > README.md
-            git add README.md
-            git commit -m "Initialize gh-pages branch"
-            git push origin gh-pages
-            git checkout master
-          fi
-
-      # 5. Deploy the contents of _temp to the gh-pages branch.
+      # 3. Deploy the _temp folder to the gh-pages branch using peaceiris/actions-gh-pages.
       - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          branch: gh-pages        # Target branch for deployment
-          folder: _temp           # Folder containing deployable files
-          clean: false
-          token: ${{ secrets.GITHUB_TOKEN }}
-          force: true
-          attempt-limit: 3
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _temp
+          publish_branch: gh-pages
