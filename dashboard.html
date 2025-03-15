@@ -164,28 +164,36 @@
 
   <script>
     async function fetchData() {
-      try {
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('error').style.display = 'none';
-        document.getElementById('dashboard-content').style.display = 'none';
+        try {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'none';
 
-        const response = await fetch('./benchmark_data/history.json');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
+            let data = [];
+            try {
+                const response = await fetch('./benchmark_data/history.json');
+                if (response.ok) {
+                    data = await response.json();
+                } else {
+                    console.log('No history data found, using empty dataset');
+                    // Return empty array instead of throwing error
+                }
+            } catch (error) {
+                console.log('Error fetching data:', error);
+                // Return empty array but don't show error
+            }
+
+            document.getElementById('loading').style.display = 'none';
+
+            // Show dashboard content even if data is empty
+            document.getElementById('dashboard-content').style.display = 'block';
+
+            return data;
+        } catch (error) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            return [];
         }
-
-        const data = await response.json();
-
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('dashboard-content').style.display = 'block';
-
-        return data;
-      } catch (error) {
-        console.error('Error fetching benchmark data:', error);
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').style.display = 'block';
-        return [];
-      }
     }
 
     function formatDate(dateString) {
@@ -221,117 +229,180 @@
     }
 
     function initCharts(data, period = 30) {
-      let filteredData = data;
+        // If no data at all, show empty charts with a message
+        if (data.length === 0) {
+            updateStats([]);
 
-      if (period !== 'all') {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - period);
-        filteredData = data.filter(item => new Date(item.timestamp) >= cutoffDate);
-      }
-
-      // If filtered data is empty but we have some data, show all data
-      if (filteredData.length === 0 && data.length > 0) {
-        filteredData = data;
-      }
-
-      updateStats(filteredData);
-
-      const timeCtx = document.getElementById('timeChart').getContext('2d');
-      if (window.timeChart) {
-        window.timeChart.destroy();
-      }
-
-      window.timeChart = new Chart(timeCtx, {
-        type: 'line',
-        data: {
-          labels: filteredData.map(item => formatDate(item.timestamp)),
-          datasets: [
-            {
-              label: 'Build Time (s)',
-              data: filteredData.map(item => parseFloat(item.metrics.pr_time)),
-              borderColor: 'rgb(75, 192, 192)',
-              backgroundColor: 'rgba(75, 192, 192, 0.1)',
-              tension: 0.1,
-              fill: true
+            // Create empty chart for build time
+            const timeCtx = document.getElementById('timeChart').getContext('2d');
+            if (window.timeChart) {
+            window.timeChart.destroy();
             }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: {
-              display: true,
-              text: 'Build Time Trend',
-              font: {
-                size: 16
-              }
+            window.timeChart = new Chart(timeCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                label: 'Build Time (s)',
+                data: [],
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)'
+                }]
             },
-            tooltip: {
-              callbacks: {
-                afterLabel: function(context) {
-                  const dataIndex = context.dataIndex;
-                  const pr = filteredData[dataIndex].pr;
-                  return [
-                    `PR #${pr.number}: ${pr.title}`,
-                    `Change: ${filteredData[dataIndex].metrics.time_pct}`
-                  ];
+            options: {
+                responsive: true,
+                plugins: {
+                title: {
+                    display: true,
+                    text: 'Build Time Trend (No data yet)',
+                    font: { size: 16 }
                 }
-              }
+                }
             }
-          }
-        }
-      });
+            });
 
-      const memoryCtx = document.getElementById('memoryChart').getContext('2d');
-      if (window.memoryChart) {
-        window.memoryChart.destroy();
-      }
-
-      window.memoryChart = new Chart(memoryCtx, {
-        type: 'line',
-        data: {
-          labels: filteredData.map(item => formatDate(item.timestamp)),
-          datasets: [
-            {
-              label: 'Memory Usage (MB)',
-              data: filteredData.map(item => parseFloat(item.metrics.pr_memory)),
-              borderColor: 'rgb(54, 162, 235)',
-              backgroundColor: 'rgba(54, 162, 235, 0.1)',
-              tension: 0.1,
-              fill: true
+            // Create empty chart for memory usage
+            const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+            if (window.memoryChart) {
+            window.memoryChart.destroy();
             }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: {
-              display: true,
-              text: 'Memory Usage Trend',
-              font: {
-                size: 16
-              }
+            window.memoryChart = new Chart(memoryCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                label: 'Memory Usage (MB)',
+                data: [],
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)'
+                }]
             },
-            tooltip: {
-              callbacks: {
-                afterLabel: function(context) {
-                  const dataIndex = context.dataIndex;
-                  const pr = filteredData[dataIndex].pr;
-                  return [
-                    `PR #${pr.number}: ${pr.title}`
-                  ];
+            options: {
+                responsive: true,
+                plugins: {
+                title: {
+                    display: true,
+                    text: 'Memory Usage Trend (No data yet)',
+                    font: { size: 16 }
                 }
-              }
+                }
             }
-          }
-        }
-      });
+            });
 
-      updateRecentChangesTable(filteredData.slice(-10).reverse());
-    }
+            // Clear the recent changes table
+            updateRecentChangesTable([]);
+            return;
+        }
+
+        // Filter data based on the selected period if not "all"
+        let filteredData = data;
+        if (period !== 'all') {
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - period);
+            filteredData = data.filter(item => new Date(item.timestamp) >= cutoffDate);
+        }
+
+        // If no data in the filtered result but we have data, use all available data
+        if (filteredData.length === 0 && data.length > 0) {
+            filteredData = data;
+        }
+
+        // Update dashboard statistics
+        updateStats(filteredData);
+
+        // Create or update the build time chart
+        const timeCtx = document.getElementById('timeChart').getContext('2d');
+        if (window.timeChart) {
+            window.timeChart.destroy();
+        }
+        window.timeChart = new Chart(timeCtx, {
+            type: 'line',
+            data: {
+            labels: filteredData.map(item => formatDate(item.timestamp)),
+            datasets: [{
+                label: 'Build Time (s)',
+                data: filteredData.map(item => parseFloat(item.metrics.pr_time)),
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                tension: 0.1,
+                fill: true
+            }]
+            },
+            options: {
+            responsive: true,
+            plugins: {
+                title: {
+                display: true,
+                text: 'Build Time Trend',
+                font: { size: 16 }
+                },
+                tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                    const dataIndex = context.dataIndex;
+                    const pr = filteredData[dataIndex].pr;
+                    return [
+                        `PR #${pr.number}: ${pr.title}`,
+                        `Change: ${filteredData[dataIndex].metrics.time_pct}`
+                    ];
+                    }
+                }
+                }
+            }
+            }
+        });
+
+        // Create or update the memory usage chart
+        const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+        if (window.memoryChart) {
+            window.memoryChart.destroy();
+        }
+        window.memoryChart = new Chart(memoryCtx, {
+            type: 'line',
+            data: {
+            labels: filteredData.map(item => formatDate(item.timestamp)),
+            datasets: [{
+                label: 'Memory Usage (MB)',
+                data: filteredData.map(item => parseFloat(item.metrics.pr_memory)),
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                tension: 0.1,
+                fill: true
+            }]
+            },
+            options: {
+            responsive: true,
+            plugins: {
+                title: {
+                display: true,
+                text: 'Memory Usage Trend',
+                font: { size: 16 }
+                },
+                tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                    const dataIndex = context.dataIndex;
+                    const pr = filteredData[dataIndex].pr;
+                    return [`PR #${pr.number}: ${pr.title}`];
+                    }
+                }
+                }
+            }
+            }
+        });
+
+        // Update the recent changes table with the 10 most recent entries (latest on top)
+        updateRecentChangesTable(filteredData.slice(-10).reverse());
+        }
 
     function updateStats(data) {
-      if (data.length === 0) return;
+        if (data.length === 0) {
+        document.getElementById('totalPRs').textContent = '0';
+        document.getElementById('avgTimeChange').textContent = 'N/A';
+        document.getElementById('lastUpdated').textContent = 'Never';
+        document.getElementById('trend').textContent = 'N/A';
+        return;
+    }
 
       document.getElementById('totalPRs').textContent = data.length;
 

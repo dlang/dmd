@@ -1,0 +1,86 @@
+name: Initialize Benchmark Data
+on:
+  workflow_dispatch:
+
+jobs:
+  initialize-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-repo
+
+      - name: Create benchmark data directory
+        run: |
+          mkdir -p gh-pages-repo/benchmark_data
+
+      - name: Create sample history.json
+        run: |
+          cat > gh-pages-repo/benchmark_data/history.json << 'EOF'
+          [
+            {
+              "timestamp": "2025-03-01T12:00:00Z",
+              "pr": {
+                "number": "1001",
+                "title": "Initial PR for dashboard demo",
+                "url": "https://github.com/dlang/dmd/pull/1001",
+                "commit": "abc123"
+              },
+              "metrics": {
+                "pr_time": "10.250",
+                "master_time": "10.500",
+                "pr_memory": "156.4",
+                "master_memory": "158.2",
+                "time_diff": "-0.250",
+                "time_pct": "-2.38%"
+              }
+            },
+            {
+              "timestamp": "2025-03-05T15:30:00Z",
+              "pr": {
+                "number": "1002",
+                "title": "Performance improvements in lexer",
+                "url": "https://github.com/dlang/dmd/pull/1002",
+                "commit": "def456"
+              },
+              "metrics": {
+                "pr_time": "9.800",
+                "master_time": "10.250",
+                "pr_memory": "155.8",
+                "master_memory": "156.4",
+                "time_diff": "-0.450",
+                "time_pct": "-4.39%"
+              }
+            },
+            {
+              "timestamp": "2025-03-10T09:45:00Z",
+              "pr": {
+                "number": "1003",
+                "title": "Parser optimizations",
+                "url": "https://github.com/dlang/dmd/pull/1003",
+                "commit": "ghi789"
+              },
+              "metrics": {
+                "pr_time": "9.850",
+                "master_time": "9.800",
+                "pr_memory": "156.0",
+                "master_memory": "155.8",
+                "time_diff": "0.050",
+                "time_pct": "0.51%"
+              }
+            }
+          ]
+          EOF
+
+      - name: Commit and push changes
+        run: |
+          cd gh-pages-repo
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add benchmark_data/history.json
+          git commit -m "Initialize benchmark data with samples"
+          git push origin HEAD:gh-pages
