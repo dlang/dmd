@@ -5,7 +5,6 @@ on:
       - master
     paths:
       - 'dashboard.html'
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -15,8 +14,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check for dashboard.html
+        run: |
+          if [ ! -f "dashboard.html" ]; then
+            echo "Error: dashboard.html not found in $(pwd)"
+            ls -la  # List files in the directory to diagnose
+            exit 1
+          fi
+
       - name: Setup gh-pages branch if it doesn't exist
         run: |
+          # Configure Git user identity
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+
+          # Try to fetch or create the branch
           git fetch origin gh-pages || git checkout --orphan gh-pages
           git reset --hard
           git commit --allow-empty -m "Initialize gh-pages branch"
@@ -27,13 +39,7 @@ jobs:
       - name: Copy dashboard files
         run: |
           mkdir -p _temp
-          if [ -f "dashboard.html" ]; then
-            cp dashboard.html _temp/index.html
-          else
-            echo "Error: dashboard.html not found in $(pwd)"
-            find . -name "dashboard.html" -type f  # This will help locate the file
-            exit 1
-          fi
+          cp dashboard.html _temp/index.html
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
