@@ -1,10 +1,14 @@
 name: Update GitHub Pages
 on:
+  # Add manual trigger option
+  workflow_dispatch:
+  # Keep the existing trigger
   push:
     branches:
       - master
     paths:
       - 'dashboard.html'
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -13,33 +17,31 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get all history to ensure we can see all branches
 
-      - name: Check for dashboard.html
+      - name: List repository contents
         run: |
-          if [ ! -f "dashboard.html" ]; then
-            echo "Error: dashboard.html not found in $(pwd)"
-            ls -la  # List files in the directory to diagnose
-            exit 1
-          fi
+          echo "Current directory content:"
+          ls -la
 
-      - name: Setup gh-pages branch if it doesn't exist
+      - name: Setup git identity
         run: |
-          # Configure Git user identity
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-
-          # Try to fetch or create the branch
-          git fetch origin gh-pages || git checkout --orphan gh-pages
-          git reset --hard
-          git commit --allow-empty -m "Initialize gh-pages branch"
-          git push origin gh-pages || echo "Branch may already exist"
-          git checkout ${GITHUB_REF#refs/heads/}
-        continue-on-error: true
 
       - name: Copy dashboard files
         run: |
           mkdir -p _temp
-          cp dashboard.html _temp/index.html
+          # Try to find dashboard.html even if it's not in the root
+          find_result=$(find . -name "dashboard.html" -type f | head -1)
+          if [ -n "$find_result" ]; then
+            echo "Found dashboard.html at: $find_result"
+            cp "$find_result" _temp/index.html
+          else
+            echo "Error: dashboard.html not found!"
+            exit 1
+          fi
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
