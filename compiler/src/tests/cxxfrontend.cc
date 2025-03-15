@@ -394,6 +394,12 @@ void test_location()
     Loc loc = Loc::singleFilename("app.d");
     assert(strcmp(loc.toChars(true, MessageStyle::digitalmars), "app.d") == 0);
     assert(strcmp(loc.toChars(true, MessageStyle::gnu), "app.d") == 0);
+
+    Loc loc2 = Loc::singleFilename("app2.d");
+    assert(!loc2.equals(loc));
+
+    SourceLoc sloc = loc.toSourceLoc();
+    assert(strcmp(sloc.filename.ptr, loc.filename()) == 0);
 }
 
 /**********************************/
