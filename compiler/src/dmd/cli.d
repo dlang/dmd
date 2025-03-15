@@ -618,6 +618,11 @@ dmd -cov -unittest myprog.d
             `Enable the garbage collector for the compiler, reducing the
             compiler memory requirements but increasing compile times.`,
         ),
+        Option("lsp",
+            "act as a language server, LSP through stdin and stdout",
+            `Let dmd provide intelligent go to definition / autocompletion
+            functionality to editors supporting LSP.`,
+        ),
         Option("m32",
             "generate 32 bit code",
             `$(UNIX Compile a 32 bit executable. This is the default for the 32 bit dmd.)`,

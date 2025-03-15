@@ -970,6 +970,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         {
             // ignore, already handled in C main
         }
+        else if (arg == "-lsp")
+        {
+            params.lsp = true;
+        }
         else if (arg.length > 6 && arg[0..6] == "--DRT-")
         {
             continue; // skip druntime options, e.g. used to configure the GC
