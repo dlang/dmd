@@ -39,6 +39,13 @@ else
   fi
 fi
 
+# download a file
+download() {
+    local url="$1"
+    local path="$2"
+    curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 --retry 5 --retry-delay 5 "$url" -o "$path"
+}
+
 # clone a repo
 clone() {
     local url="$1"
@@ -59,9 +66,7 @@ clone() {
 # build dmd (incl. building and running the unittests), druntime, phobos
 build() {
     local unittest=${1:-1}
-    if [ "$OS_NAME" != "windows" ]; then
-        source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
-    fi
+    activate_host_compiler
     $DMD compiler/src/build.d -ofgenerated/build
     if [ $unittest -eq 1 ]; then
         generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
@@ -69,9 +74,7 @@ build() {
     generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
     make -j$N -C druntime MODEL=$MODEL
     make -j$N -C ../phobos MODEL=$MODEL
-    if [ "$OS_NAME" != "windows" ]; then
-        deactivate # deactivate host compiler
-    fi
+    deactivate_host_compiler
 }
 
 # self-compile dmd
@@ -139,6 +142,27 @@ test_druntime() {
 
 # build and run Phobos unit tests
 test_phobos() {
+    if [ "$OS_NAME" == "windows" ]; then
+        # make sure proper libcurl.dll is in PATH
+        dc_bin_dir="$(dirname "$(which $DC)")"
+        if [ "$MODEL" == "32" ]; then
+            if [ "${HOST_DMD:0:4}" == "ldc-" ]; then
+                export PATH="$dc_bin_dir/../lib32:$PATH"
+            else
+                export PATH="$dc_bin_dir/../bin:$PATH"
+            fi
+        elif [[ "$HOST_DMD" == "dmd-2.079.0" ]]; then
+            # libcurl bundled with bootstrap compiler is too old...
+            download https://downloads.dlang.org/other/libcurl-7.65.3-2-WinSSL-zlib-x86-x64.zip libcurl.zip
+            mkdir libcurl
+            cd libcurl
+            7z x ../libcurl.zip > /dev/null
+            cp dmd2/windows/bin64/libcurl.dll "$dc_bin_dir/../bin64/"
+            cd ..
+            rm -rf libcurl libcurl.zip
+        fi
+    fi
+
     make -j$N -C ../phobos MODEL=$MODEL unittest
 
     if [ "$OS_NAME" == "windows" ]; then
@@ -148,7 +172,7 @@ test_phobos() {
     elif [ "$HOST_DMD" == "dmd-2.079.0" ]; then
         echo "Skipping publictests with DMD v2.079 host compiler (dub too old)"
     else
-        source ~/dlang/*/activate # activate host compiler - need dub
+        activate_host_compiler # need dub
 
         make -j$N -C ../phobos MODEL=$MODEL publictests
         make -j$N -C ../phobos MODEL=$MODEL publictests NO_BOUNDSCHECKS=1
@@ -159,15 +183,13 @@ test_phobos() {
             make -j$N -C ../phobos MODEL=$MODEL betterc
         fi
 
-        deactivate # deactivate host compiler
+        deactivate_host_compiler
     fi
 }
 
 # test dub package
 test_dub_package() {
-    if [ "$OS_NAME" != "windows" ]; then
-        source ~/dlang/*/activate # activate host compiler
-    fi
+    activate_host_compiler
     # GDC's standard library is too old for some example scripts
     if [[ "${DMD:-dmd}" =~ "gdmd" ]] ; then
         echo "Skipping DUB examples on GDC."
@@ -189,9 +211,7 @@ test_dub_package() {
         # Test rdmd build
         "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
     fi
-    if [ "$OS_NAME" != "windows" ]; then
-        deactivate
-    fi
+    deactivate_host_compiler
 }
 
 # clone phobos repos if not already available
@@ -220,14 +240,9 @@ testsuite() {
 
 download_install_sh() {
   if command -v gpg > /dev/null; then
-    curl -fsSL \
-      -A "$CURL_USER_AGENT" \
-      --connect-timeout 5 \
-      --speed-time 30 \
-      --speed-limit 1024 \
-      --retry 5 \
-      --retry-delay 5 \
-      https://dlang.org/d-keyring.gpg | gpg --import /dev/stdin
+    download https://dlang.org/d-keyring.gpg d-keyring.gpg
+    gpg --import d-keyring.gpg
+    rm d-keyring.gpg
   fi
 
   local mirrors location
@@ -243,7 +258,7 @@ download_install_sh() {
   fi
   for i in {0..4}; do
     for mirror in "${mirrors[@]}" ; do
-        if curl -fsS -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 "$mirror" -o "$location" ; then
+        if download "$mirror" "$location" ; then
             break 2
         fi
     done
@@ -260,8 +275,9 @@ install_host_compiler() {
         sudo apt-get update
         sudo apt-get install -y gdc-$gdc_version
         # fetch the gdmd wrapper for CLI compatibility with dmd
-        sudo curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 --retry 5 --retry-delay 5 https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -o /usr/bin/gdmd-$gdc_version
-        sudo chmod +x /usr/bin/gdmd-$gdc_version
+        download https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script dmd-script
+        chmod +x dmd-script
+        sudo mv dmd-script /usr/bin/gdmd-$gdc_version
         # fake install script and create a fake 'activate' script
         mkdir -p ~/dlang/gdc-$gdc_version
         echo "export DMD=gdmd-$gdc_version" > ~/dlang/gdc-$gdc_version/activate
@@ -277,6 +293,30 @@ install_host_compiler() {
     download_install_sh "$install_sh"
     CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$HOST_DMD"
   fi
+}
+
+# activate D host compiler (set PATH and DMD environment variables)
+activate_host_compiler()
+{
+    if [ "$OS_NAME" == "windows" ]; then
+        # PATH is already set
+        if [ "${HOST_DMD:0:4}" == "ldc-" ]; then
+            export DMD="ldmd2"
+        else
+            export DMD="dmd"
+        fi
+    else
+        source ~/dlang/*/activate
+    fi
+}
+
+deactivate_host_compiler()
+{
+    if [ "$OS_NAME" == "windows" ]; then
+        unset DMD
+    else
+        deactivate
+    fi
 }
 
 # Upload coverage reports
