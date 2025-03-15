@@ -465,7 +465,7 @@ jobs:
 
     - name: Upload benchmark data as artifact
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: benchmark_data
         path: benchmark_data/
