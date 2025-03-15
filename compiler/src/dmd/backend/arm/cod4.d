@@ -798,7 +798,7 @@ void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         case OPashrass: opcode = 0xA;   break;
         //case OPror:     opcode = 0xB;   break;
         default:
-	    elem_print(e);
+            elem_print(e);
             assert(0);
     }
 

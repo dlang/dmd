@@ -886,6 +886,8 @@ private code* callFinallyBlock(block* bf, regm_t retregs)
 @trusted
 void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)* sflsave, Symbol** retsym, const regm_t mfuncregsave)
 {
+    //printf("outblkexitcode()\n");
+    bool AArch64 = cgstate.AArch64;
     CodeBuilder cdb2; cdb2.ctor();
     elem* e = bl.Belem;
     block* nextb;
@@ -923,7 +925,10 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
             if (nextb != bl.Bnext)
             {
                 assert(!(bl.Bflags & BFL.epilog));
-                genjmp(cdb,JMP,FL.block,nextb);
+                if (AArch64)
+                    dmd.backend.arm.cod3.genBranch(cdb,COND.al,FL.block,nextb);
+                else
+                    genjmp(cdb,JMP,FL.block,nextb);
             }
             break;
 
