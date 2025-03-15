@@ -414,44 +414,59 @@ jobs:
             });
           }
 
-    - name: Store benchmark result
-      if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    - name: Store benchmark data
+      # Always run this step regardless of previous steps' success
+      if: always()
       run: |
-        # Create a timestamped result file
-        PR_NUMBER="${{ github.event.pull_request.number }}"
-        TIMESTAMP=$(date +%Y%m%d%H%M%S)
-
-        # Extract key data for historical tracking
-        jq -n \
-          --arg timestamp "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-          --arg pr_number "$PR_NUMBER" \
-          --arg pr_title "${{ github.event.pull_request.title }}" \
-          --arg pr_url "${{ github.event.pull_request.html_url }}" \
-          --arg commit "${{ github.sha }}" \
-          --arg pr_time_avg "${{ steps.results.outputs.pr_time_avg }}" \
-          --arg master_time_avg "${{ steps.results.outputs.master_time_avg }}" \
-          --arg pr_mem_avg "${{ steps.results.outputs.pr_mem_avg }}" \
-          --arg master_mem_avg "${{ steps.results.outputs.master_mem_avg }}" \
-          --arg time_diff "${{ steps.results.outputs.time_diff }}" \
-          --arg time_pct "${{ steps.results.outputs.time_pct }}" \
-          '{
-            "timestamp": $timestamp,
-            "pr": {
-              "number": $pr_number,
-              "title": $pr_title,
-              "url": $pr_url,
-              "commit": $commit
-            },
-            "metrics": {
-              "pr_time": $pr_time_avg,
-              "master_time": $master_time_avg,
-              "pr_memory": $pr_mem_avg,
-              "master_memory": $master_mem_avg,
-              "time_diff": $time_diff,
-              "time_pct": $time_pct
-            }
-          }' > "pr_${PR_NUMBER}_${TIMESTAMP}.json"
-
-        # Check if gh-pages directory exists locally
+        # Ensure directory exists
         mkdir -p benchmark_data
-        mv "pr_${PR_NUMBER}_${TIMESTAMP}.json" benchmark_data/
+
+        # Save raw benchmark data
+        if [ -f benchmark-phobos/benchmark_results.json ]; then
+          cp benchmark-phobos/benchmark_results.json benchmark_data/latest_results.json
+
+          # Create PR-specific data
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+
+          # Extract and format benchmark data
+          jq -n \
+            --arg timestamp "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            --arg pr_number "$PR_NUMBER" \
+            --arg pr_title "${{ github.event.pull_request.title }}" \
+            --arg pr_url "${{ github.event.pull_request.html_url }}" \
+            --arg commit "${{ github.sha }}" \
+            --arg pr_time_avg "${{ steps.results.outputs.pr_time_avg }}" \
+            --arg master_time_avg "${{ steps.results.outputs.master_time_avg }}" \
+            --arg pr_mem_avg "${{ steps.results.outputs.pr_mem_avg }}" \
+            --arg master_mem_avg "${{ steps.results.outputs.master_mem_avg }}" \
+            --arg time_diff "${{ steps.results.outputs.time_diff }}" \
+            --arg time_pct "${{ steps.results.outputs.time_pct }}" \
+            '{
+              "timestamp": $timestamp,
+              "pr": {
+                "number": $pr_number,
+                "title": $pr_title,
+                "url": $pr_url,
+                "commit": $commit
+              },
+              "metrics": {
+                "pr_time": $pr_time_avg,
+                "master_time": $master_time_avg,
+                "pr_memory": $pr_mem_avg,
+                "master_memory": $master_mem_avg,
+                "time_diff": $time_diff,
+                "time_pct": $time_pct
+              }
+            }' > "benchmark_data/pr_${PR_NUMBER}_${TIMESTAMP}.json"
+        else
+          echo "No benchmark results found to store"
+        fi
+
+    - name: Upload benchmark data as artifact
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark_data
+        path: benchmark_data/
+        retention-days: 30

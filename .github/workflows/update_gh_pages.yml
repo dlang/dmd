@@ -1,0 +1,37 @@
+name: Update GitHub Pages
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'dashboard.html'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup gh-pages branch if it doesn't exist
+        run: |
+          git fetch origin gh-pages || git checkout --orphan gh-pages
+          git reset --hard
+          git commit --allow-empty -m "Initialize gh-pages branch"
+          git push origin gh-pages || echo "Branch may already exist"
+          git checkout ${GITHUB_REF#refs/heads/}
+        continue-on-error: true
+
+      - name: Copy dashboard files
+        run: |
+          mkdir -p _temp
+          cp dashboard.html _temp/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: _temp
+          clean: false
