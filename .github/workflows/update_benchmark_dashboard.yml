@@ -6,7 +6,6 @@ on:
       - completed
     branches:
       - master
-
 jobs:
   update-dashboard:
     runs-on: ubuntu-latest
@@ -25,6 +24,8 @@ jobs:
         with:
           ref: gh-pages
           path: gh-pages-repo
+          # Add fetch-depth to avoid shallow clone issues
+          fetch-depth: 0
 
       - name: Download benchmark artifacts
         uses: dawidd6/action-download-artifact@v2
@@ -84,5 +85,12 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add benchmark_data index.html assets
-          git commit -m "Update benchmark dashboard [skip ci]" || echo "No changes to commit"
-          git push origin gh-pages
+
+          # Only commit if there are actual changes
+          if git status --porcelain | grep .; then
+            git commit -m "Update benchmark dashboard [skip ci]"
+            # Use force push to avoid conflicts
+            git push --force origin HEAD:gh-pages
+          else
+            echo "No changes to commit"
+          fi

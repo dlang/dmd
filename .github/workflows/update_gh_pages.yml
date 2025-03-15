@@ -1,51 +1,81 @@
 name: Update GitHub Pages
 on:
-  # Add manual trigger option
   workflow_dispatch:
-  # Keep the existing trigger
   push:
     branches:
       - master
     paths:
       - 'dashboard.html'
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout code
+      # 1. Check out the repository with full history.
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Get all history to ensure we can see all branches
+          fetch-depth: 0
 
-      - name: List repository contents
-        run: |
-          echo "Current directory content:"
-          ls -la
-
+      # 2. Set up Git identity for all subsequent git commands.
       - name: Setup git identity
         run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
 
-      - name: Copy dashboard files
+      # 3. Prepare the deploy folder by copying dashboard.html to _temp/index.html.
+      - name: Prepare deploy folder
         run: |
           mkdir -p _temp
-          # Try to find dashboard.html even if it's not in the root
-          find_result=$(find . -name "dashboard.html" -type f | head -1)
-          if [ -n "$find_result" ]; then
-            echo "Found dashboard.html at: $find_result"
-            cp "$find_result" _temp/index.html
+          dashboard_path=$(find . -name "dashboard.html" -type f | head -1)
+          if [ -n "$dashboard_path" ]; then
+            echo "Found dashboard at: $dashboard_path"
+            cp "$dashboard_path" _temp/index.html
           else
-            echo "Error: dashboard.html not found!"
+            echo "ERROR: dashboard.html not found in repository"
             exit 1
           fi
 
+      # 4. Create or update gh-pages branch - improved approach
+      - name: Create or update gh-pages branch
+        run: |
+          # First check if remote branch exists
+          if git ls-remote --heads origin gh-pages | grep gh-pages; then
+            echo "Remote gh-pages branch exists - fetching it"
+            git fetch origin gh-pages
+
+            # Try to check out the branch
+            if git checkout -b gh-pages origin/gh-pages; then
+              echo "Successfully checked out gh-pages branch"
+            else
+              echo "Creating new gh-pages branch"
+              git checkout --orphan gh-pages
+              git rm -rf . || true
+              echo "# GitHub Pages" > README.md
+              git add README.md
+              git commit -m "Initialize gh-pages branch"
+            fi
+          else
+            echo "Creating new gh-pages branch"
+            git checkout --orphan gh-pages
+            git rm -rf . || true
+            echo "# GitHub Pages" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages branch"
+          fi
+
+          # Return to original branch
+          git checkout -
+
+      # 5. Deploy using improved action configuration
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages
-          folder: _temp
+          branch: gh-pages        # Target branch for deployment
+          folder: _temp           # Folder containing deployable files
           clean: false
+          force: true
+          git-config-name: GitHub Actions
+          git-config-email: github-actions@github.com
+          commit-message: "Update dashboard [skip ci]"
