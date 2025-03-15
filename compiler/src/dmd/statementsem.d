@@ -1959,8 +1959,33 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 ed = ds.isEnumDeclaration(); // typedef'ed enum
             if (!ed && te && ((ds = te.toDsymbol(sc)) !is null))
                 ed = ds.isEnumDeclaration();
+
+            // Circular references
+            if (ed)
+            {
+                // Check if inside the initializer of one of the enum's members
+                for (Scope* scx = sc; scx; scx = scx.enclosing)
+                {
+                    if (scx.scopesym && scx.scopesym.isEnumDeclaration() && scx.scopesym == ed)
+                    {
+                        error(ss.loc, "cannot use `final switch` on enum `%s` while it is being defined", ed.toChars());
+                        sc.pop();
+                        return setError();
+                    }
+                }
+
+                // Check if enum semantic analysis is not yet complete
+                if (ed.semanticRun < PASS.semanticdone)
+                {
+                    error(ss.loc, "cannot use `final switch` on enum `%s` while it is being defined", ed.toChars());
+                    sc.pop();
+                    return setError();
+                }
+            }
+
             if (ed && ss.cases.length < ed.members.length)
             {
+                // Remove the old check for incomplete enum members
                 int missingMembers = 0;
                 const maxShown = global.params.v.errorSupplementCount();
             Lmembers:
