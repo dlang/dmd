@@ -54,9 +54,9 @@ jobs:
             container_image: alpine:3.21
             host_dmd: ldmd2
           # macOS
-          - job_name: macOS 14 x64, DMD (latest)
+          - job_name: macOS 14 arm64, LDC
             os: macos-14
-            host_dmd: dmd
+            host_dmd: ldc
           # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
           # - job_name: macOS 13 x64, DMD (coverage)
           #   os: macos-13
