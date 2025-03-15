@@ -171,22 +171,30 @@
 
             let data = [];
             try {
-                const response = await fetch('./benchmark_data/history.json');
-                if (response.ok) {
-                    data = await response.json();
-                } else {
-                    console.log('No history data found, using empty dataset');
-                    // Return empty array instead of throwing error
-                }
+            const response = await fetch('./benchmark_data/history.json');
+            if (response.ok) {
+                data = await response.json();
+                console.log('Loaded history data:', data);
+            } else {
+                console.log('No history data found, using empty dataset');
+                // Create an empty data array
+                data = [];
+            }
             } catch (error) {
-                console.log('Error fetching data:', error);
-                // Return empty array but don't show error
+            console.log('Error fetching data:', error);
+            // Return empty array but don't show error
+            data = [];
             }
 
             document.getElementById('loading').style.display = 'none';
-
-            // Show dashboard content even if data is empty
             document.getElementById('dashboard-content').style.display = 'block';
+
+            if (data.length === 0) {
+            // Show a friendly message when no data is available
+            document.getElementById('error').textContent =
+                'No performance data available yet. Data will appear after PRs are processed.';
+            document.getElementById('error').style.display = 'block';
+            }
 
             return data;
         } catch (error) {
@@ -194,7 +202,7 @@
             document.getElementById('error').style.display = 'block';
             return [];
         }
-    }
+        }
 
     function formatDate(dateString) {
       const date = new Date(dateString);

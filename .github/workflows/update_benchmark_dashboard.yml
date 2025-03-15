@@ -41,9 +41,16 @@ jobs:
           # Create directories if they don't exist
           mkdir -p gh-pages-repo/benchmark_data gh-pages-repo/assets
 
+          # Ensure history.json exists in gh-pages repo
+          if [ ! -f "gh-pages-repo/benchmark_data/history.json" ]; then
+            echo "[]" > gh-pages-repo/benchmark_data/history.json
+            echo "Created empty history.json in gh-pages repo"
+          fi
+
           # Copy benchmark data to gh-pages repo
           if [ -d "benchmark_data" ] && [ "$(ls -A benchmark_data)" ]; then
             cp -r benchmark_data/* gh-pages-repo/benchmark_data/
+            echo "Copied benchmark data to gh-pages repo"
           else
             echo "No new benchmark data found, but continuing."
           fi
@@ -51,16 +58,12 @@ jobs:
           # Process benchmark data
           cd gh-pages-repo
 
-          # Create history.json if it doesn't exist
-          if [ ! -f benchmark_data/history.json ]; then
-            echo "[]" > benchmark_data/history.json
-          fi
-
           # Process any new PR files
           for file in benchmark_data/pr_*.json; do
             if [ -f "$file" ]; then
               # Check if this is valid JSON
               if jq empty "$file" 2>/dev/null; then
+                echo "Processing benchmark file: $file"
                 # Add each new result to the array
                 jq -s '.[0] + [.[1]]' benchmark_data/history.json "$file" > benchmark_data/new_history.json
                 mv benchmark_data/new_history.json benchmark_data/history.json
@@ -75,6 +78,10 @@ jobs:
           # Sort the array by timestamp
           jq 'sort_by(.timestamp)' benchmark_data/history.json > benchmark_data/sorted_history.json
           mv benchmark_data/sorted_history.json benchmark_data/history.json
+
+          # Add debug output
+          echo "Contents of history.json:"
+          cat benchmark_data/history.json
 
           # Copy the latest dashboard HTML from the source repo
           cp ../source-repo/dashboard.html index.html

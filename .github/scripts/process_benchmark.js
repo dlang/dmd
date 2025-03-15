@@ -17,10 +17,8 @@ try {
 
   const prTimeAvg = prResults.mean.toFixed(3);
   const masterTimeAvg = masterResults.mean.toFixed(3);
-
   const prMemAvg = (prResults.max_rss ? (prResults.max_rss.reduce((a, b) => a + b, 0) / prResults.max_rss.length / 1024).toFixed(1) : 'N/A');
   const masterMemAvg = (masterResults.max_rss ? (masterResults.max_rss.reduce((a, b) => a + b, 0) / masterResults.max_rss.length / 1024).toFixed(1) : 'N/A');
-
   const timeDiff = (prResults.mean - masterResults.mean).toFixed(3);
   const timePct = ((prResults.mean / masterResults.mean - 1) * 100).toFixed(2) + '%';
 
@@ -42,10 +40,9 @@ try {
     }
   };
 
-  // Output to console for debugging
+  // This line was missing or incomplete in your original script
   console.log(JSON.stringify(result, null, 2));
 
-  // Write to file if output path is provided
   if (process.argv[7]) {
     fs.writeFileSync(process.argv[7], JSON.stringify(result, null, 2));
   }

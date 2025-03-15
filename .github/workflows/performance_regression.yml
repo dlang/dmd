@@ -429,38 +429,27 @@ jobs:
           PR_NUMBER="${{ github.event.pull_request.number }}"
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
-          # Extract and format benchmark data
-          jq -n \
-            --arg timestamp "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-            --arg pr_number "$PR_NUMBER" \
-            --arg pr_title "${{ github.event.pull_request.title }}" \
-            --arg pr_url "${{ github.event.pull_request.html_url }}" \
-            --arg commit "${{ github.sha }}" \
-            --arg pr_time_avg "${{ steps.results.outputs.pr_time_avg }}" \
-            --arg master_time_avg "${{ steps.results.outputs.master_time_avg }}" \
-            --arg pr_mem_avg "${{ steps.results.outputs.pr_mem_avg }}" \
-            --arg master_mem_avg "${{ steps.results.outputs.master_mem_avg }}" \
-            --arg time_diff "${{ steps.results.outputs.time_diff }}" \
-            --arg time_pct "${{ steps.results.outputs.time_pct }}" \
-            '{
-              "timestamp": $timestamp,
-              "pr": {
-                "number": $pr_number,
-                "title": $pr_title,
-                "url": $pr_url,
-                "commit": $commit
-              },
-              "metrics": {
-                "pr_time": $pr_time_avg,
-                "master_time": $master_time_avg,
-                "pr_memory": $pr_mem_avg,
-                "master_memory": $master_mem_avg,
-                "time_diff": $time_diff,
-                "time_pct": $time_pct
-              }
-            }' > "benchmark_data/pr_${PR_NUMBER}_${TIMESTAMP}.json"
+          # Extract and format benchmark data using our script
+          node .github/scripts/process_benchmark.js \
+            benchmark-phobos/benchmark_results.json \
+            "$PR_NUMBER" \
+            "${{ github.event.pull_request.title }}" \
+            "${{ github.event.pull_request.html_url }}" \
+            "${{ github.sha }}" \
+            "benchmark_data/pr_${PR_NUMBER}_${TIMESTAMP}.json"
+
+          # Debug log
+          echo "Created benchmark data file: pr_${PR_NUMBER}_${TIMESTAMP}.json"
+          ls -la benchmark_data/
         else
           echo "No benchmark results found to store"
+        fi
+
+        # Create an empty history.json file if none exists
+        # This ensures the dashboard can start with empty data
+        if [ ! -f benchmark_data/history.json ]; then
+          echo "[]" > benchmark_data/history.json
+          echo "Created empty history.json file"
         fi
 
     - name: Upload benchmark data as artifact
