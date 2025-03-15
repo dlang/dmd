@@ -30,29 +30,12 @@ jobs:
           echo "---------------------------------------------"
           echo "Current working directory: $(pwd)"
 
-      - name: Setup git identity first
+      - name: Setup git identity
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-      - name: Setup gh-pages branch
-        run: |
-          # Try to fetch existing branch or create new one
-          git ls-remote --exit-code --heads origin gh-pages || git checkout --orphan gh-pages
-
-          # If we created a new branch, prepare it properly
-          if [ "$(git rev-parse --abbrev-ref HEAD)" = "gh-pages" ]; then
-            git rm -rf . || true
-            touch README.md
-            echo "# Performance Dashboard" > README.md
-            git add README.md
-            git commit -m "Initialize gh-pages branch"
-            git push origin gh-pages
-            # Go back to original branch
-            git checkout -f ${GITHUB_REF#refs/heads/}
-          fi
-
-      - name: Create dashboard file
+      - name: Create and prepare _temp directory
         run: |
           mkdir -p _temp
 
@@ -87,3 +70,4 @@ jobs:
           branch: gh-pages
           folder: _temp
           clean: false
+          force: true
