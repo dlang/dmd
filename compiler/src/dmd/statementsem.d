@@ -1973,30 +1973,19 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                         return setError();
                     }
                 }
-            }
 
-            if (ed && ss.cases.length < ed.members.length)
-            {
-                // Add a check for incomplete enum declaration to prevent segfault
-                // when the enum is being defined while it's referenced in a final switch
-                bool isEnumIncomplete = false;
-                foreach (es; *ed.members)
-                {
-                    EnumMember em = es.isEnumMember();
-                    if (em && em.value is null)
-                    {
-                        isEnumIncomplete = true;
-                        break;
-                    }
-                }
-
-                if (isEnumIncomplete)
+                // Check if enum semantic analysis is not yet complete
+                if (ed.semanticRun < PASS.semanticdone)
                 {
                     error(ss.loc, "cannot use `final switch` on enum `%s` while it is being defined", ed.toChars());
                     sc.pop();
                     return setError();
                 }
+            }
 
+            if (ed && ss.cases.length < ed.members.length)
+            {
+                // Remove the old check for incomplete enum members
                 int missingMembers = 0;
                 const maxShown = global.params.v.errorSupplementCount();
             Lmembers:
