@@ -1,0 +1,95 @@
+name: Update Benchmark Dashboard
+on:
+  workflow_run:
+    workflows: ["Performance Regression Check"]
+    types:
+      - completed
+    branches:
+      - master
+
+jobs:
+  update-dashboard:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        fetch-depth: 0
+
+    - name: Create gh-pages branch if it doesn't exist
+      run: |
+        if ! git ls-remote --heads origin gh-pages | grep gh-pages; then
+          git checkout --orphan gh-pages
+          git rm -rf .
+          echo "# Performance Dashboard" > README.md
+          mkdir -p benchmark_data
+          mkdir -p assets
+          git add README.md
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -m "Initial gh-pages commit"
+          git push origin gh-pages
+        fi
+
+    - name: Download benchmark artifacts
+      uses: dawidd6/action-download-artifact@v2
+      with:
+        workflow: performance_regression.yml
+        workflow_conclusion: success
+        name: benchmark_data
+        path: benchmark_data
+        if_no_artifact_found: warn
+
+    - name: Update benchmark history
+      run: |
+        # Create directories if they don't exist
+        mkdir -p benchmark_data assets
+
+        # If no new data was downloaded, exit gracefully
+        if [ ! "$(ls -A benchmark_data)" ]; then
+          echo "No new benchmark data found, exiting."
+          exit 0
+        fi
+
+        # Combine all benchmark results into a single history file
+        if [ -f benchmark_data/history.json ]; then
+          # Extract the array from history.json
+          jq -r '.[]' benchmark_data/history.json > temp_history.json
+        else
+          # Create an empty file
+          echo "[]" > temp_history.json
+        fi
+
+        # Append new benchmark results
+        for file in benchmark_data/pr_*.json; do
+          if [ -f "$file" ]; then
+            # Add each new result to the array
+            jq -s '.[0] + [.[1]]' temp_history.json "$file" > temp_new_history.json
+            mv temp_new_history.json temp_history.json
+            # Remove the processed file to avoid duplication
+            rm "$file"
+          fi
+        done
+
+        # Sort the array by timestamp
+        jq 'sort_by(.timestamp)' temp_history.json > benchmark_data/history.json
+        rm temp_history.json
+
+        # Create index.html if it doesn't exist
+        if [ ! -f index.html ]; then
+          cp dashboard.html index.html
+        fi
+
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add benchmark_data index.html assets
+        git commit -m "Update benchmark dashboard" || echo "No changes to commit"
+        git push origin gh-pages
