@@ -292,7 +292,7 @@ void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 {
     code cs;
-    cs.Iop = ((0x54 << 24) | cond);
+    cs.Iop = INSTR.b_cond(0, cond);     // offset is 0 for now, fix in codout()
     cs.Iflags = 0;
     cs.IFL1 = fltarg;                   // FL.block (or FL.code)
     cs.IEV1.Vblock = targ;              // target block (or code)
@@ -741,6 +741,7 @@ Lret:
 @trusted
 int branch(block* bl,int flag)
 {
+    //printf("branch() flag: %d\n", flag);
     int bytesaved;
     code* c,cn,ct;
     targ_size_t offset,disp;
@@ -1491,6 +1492,7 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
             case FL.func:
             case FL.code:
             case FL.unde:
+            case FL.block:
                 break;
 
             default:
@@ -1523,7 +1525,8 @@ void jmpaddr(code* c)
     while (c)
     {
         const op = c.Iop;
-        if (isBranch(op)) // or CALL?
+        //printf("%08X ", c.Iop); disassemble(c.Iop);
+        if (isBranch(op) && c.IFL2 == FL.code) // or CALL?
         {
             ci = code_next(c);
             ctarg = c.IEV1.Vcode;  /* target code                  */
@@ -1678,9 +1681,14 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
         if (ggen.available() < 4)
             ggen.flush();
 
-        //printf("op: %08x\n", op);
-        //if ((op & 0xFC00_0000) == 0x9400_0000) // BL <label>
-        if (Symbol* s = c.IEV1.Vsym)
+        if (c.IFL1 == FL.block)  // branch to a block - compute offset
+        {
+            ggen.flush();
+            int ad = cast(int)(c.IEV1.Vblock.Boffset - ggen.offset);
+            op |= ((ad >> 2) & 0x7FFFF) << 5; // imm19 in opcode
+            ggen.gen32(op);
+        }
+        else if (Symbol* s = c.IEV1.Vsym)
         {
             switch (s.Sclass)
             {
