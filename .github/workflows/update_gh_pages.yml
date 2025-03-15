@@ -1,4 +1,5 @@
 name: Update GitHub Pages
+
 on:
   workflow_dispatch:
   push:
@@ -13,26 +14,29 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout code
+      # Check out the repository with full history
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Debug output (optional)
       - name: Debug repository structure
         run: |
           echo "Repository root contents:"
           ls -la
           echo "Current branch: $(git branch --show-current)"
 
+      # Set up Git identity for any git commands that follow
       - name: Setup git identity
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
+      # Prepare the folder that will be deployed
       - name: Prepare deploy folder
         run: |
           mkdir -p _temp
-          # Look for the dashboard.html file
           dashboard_path=$(find . -name "dashboard.html" -type f | head -1)
           if [ -n "$dashboard_path" ]; then
             echo "Found dashboard at: $dashboard_path"
@@ -42,36 +46,25 @@ jobs:
             exit 1
           fi
 
-      # Create and push a basic gh-pages branch before using the action
-      - name: Initialize gh-pages branch
+      # Initialize the gh-pages branch if it doesn't exist to avoid orphan branch issues
+      - name: Initialize gh-pages branch if not exists
         run: |
-          # Check if gh-pages exists remotely
           if ! git ls-remote --exit-code --heads origin gh-pages; then
             echo "Creating gh-pages branch..."
-            # Create orphan branch
             git checkout --orphan gh-pages
-            # Remove everything
             git rm -rf .
-            # Create a basic file
-            echo "# Dashboard Page" > README.md
+            echo "# GitHub Pages" > README.md
             git add README.md
             git commit -m "Initialize gh-pages branch"
             git push origin gh-pages
-            # Return to the original branch
-            git checkout -f ${GITHUB_REF#refs/heads/}
+            git checkout master
           else
             echo "gh-pages branch already exists"
           fi
 
-      # Alternative deployment approach using git commands directly
-      - name: Deploy to GitHub Pages manually
-        run: |
-          cd _temp
-          git init
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions@github.com"
-          git add .
-          git commit -m "Update dashboard"
-          git branch -M gh-pages
-          git remote add origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git push -f origin gh-pages
+      # Deploy the contents of _temp to the gh-pages branch
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages    # The target branch for deployment
+          folder: _temp       # The folder containing the deployable site (your dashboard)
