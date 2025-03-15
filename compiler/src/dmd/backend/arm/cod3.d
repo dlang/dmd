@@ -109,7 +109,8 @@ void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, 
 
 
 // https://www.scs.stanford.edu/~zyedidia/arm64/b_cond.html
-bool isBranch(uint ins) { return (ins & ((0xFF << 24) | (1 << 4))) == ((0x54 << 24) | (0 << 4)); }
+// https://www.scs.stanford.edu/~zyedidia/arm64/bc_cond.html
+bool isBranch(uint ins) { return (ins & 0xFF00_0000) == 0x5400_0000; }
 
 enum MARS = true;
 
@@ -1511,7 +1512,7 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
             case FL.func:
             case FL.code:
             case FL.unde:
-	    case FL.block:
+            case FL.block:
                 break;
 
             default:
@@ -1536,15 +1537,15 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
 @trusted
 void jmpaddr(code* c)
 {
-    code* ci,cn,ctarg,cstart;
-    targ_size_t ad;
-
     //printf("jmpaddr()\n");
+
+    code* ci,cn,ctarg,cstart;
+    uint ad;
     cstart = c;                           /* remember start of code       */
     while (c)
     {
         const op = c.Iop;
-        if (isBranch(op)) // or CALL?
+        if (isBranch(op) && c.IFL1 == FL.code) // or CALL?
         {
             ci = code_next(c);
             ctarg = c.IEV1.Vcode;  /* target code                  */
@@ -1556,7 +1557,7 @@ void jmpaddr(code* c)
             }
             if (!ci)
                 goto Lbackjmp;      // couldn't find it
-            c.Iop |= cast(uint)(ad >> 2) << 5;
+            c.Iop |= (ad >> 2) << 5;
             c.IFL1 = FL.unde;
         }
         if (op == LOOP && c.IFL1 == FL.code)    /* backwards refs       */
@@ -1573,7 +1574,7 @@ void jmpaddr(code* c)
                 ad += calccodsize(ci);
                 ci = code_next(ci);
             }
-            c.Iop = cast(uint)(-(ad >> 2)) << 5;
+            c.Iop = (-(ad >> 2)) << 5;
             c.IFL1 = FL.unde;
         }
         c = code_next(c);
@@ -1623,8 +1624,7 @@ uint calccodsize(code* c)
 @trusted
 uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehandleroffset)
 {
-    code* cn;
-    uint flags;
+    //printf("codout()\n");
 
     debug
     if (debugc) printf("codout(%p), Coffset = x%llx\n",c,cast(ulong)Offset(seg));
@@ -1635,6 +1635,9 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
     ggen.seg = seg;
     ggen.framehandleroffset = framehandleroffset;
     ggen.disasmBuf = disasmBuf;
+
+    code* cn;
+    uint flags;
 
     for (; c; c = code_next(c))
     {
@@ -1701,7 +1704,14 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
 
         //printf("op: %08x\n", op);
         //if ((op & 0xFC00_0000) == 0x9400_0000) // BL <label>
-        if (Symbol* s = c.IEV1.Vsym)
+        if (isBranch(op) && c.IFL1 == FL.block)
+        {
+            ggen.flush();
+            int ad = cast(int)(c.IEV1.Vblock.Boffset - ggen.offset);
+            op |= ((ad >> 2) & 0x7FFFF) << 5; // imm19 in opcode
+            ggen.gen32(op);
+        }
+        else if (Symbol* s = c.IEV1.Vsym)
         {
             switch (s.Sclass)
             {
