@@ -27,7 +27,13 @@ jobs:
       - name: Copy dashboard files
         run: |
           mkdir -p _temp
-          cp dashboard.html _temp/index.html
+          if [ -f "dashboard.html" ]; then
+            cp dashboard.html _temp/index.html
+          else
+            echo "Error: dashboard.html not found in $(pwd)"
+            find . -name "dashboard.html" -type f  # This will help locate the file
+            exit 1
+          fi
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
