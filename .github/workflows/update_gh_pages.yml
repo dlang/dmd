@@ -14,19 +14,19 @@ jobs:
     permissions:
       contents: write
     steps:
-      # Checkout the repository with full history
+      # 1. Check out the repository with full history.
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Set up Git identity for subsequent git commands
+      # 2. Set up Git identity for all subsequent git commands.
       - name: Setup git identity
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-      # Prepare the folder that will be deployed (copy dashboard.html to _temp/index.html)
+      # 3. Prepare the deploy folder by copying dashboard.html to _temp/index.html.
       - name: Prepare deploy folder
         run: |
           mkdir -p _temp
@@ -39,28 +39,28 @@ jobs:
             exit 1
           fi
 
-      # Ensure the gh-pages branch is initialized and has at least one commit.
-      - name: Ensure gh-pages branch is initialized
+      # 4. Ensure the gh-pages branch is fully initialized.
+      - name: Initialize gh-pages branch properly
         run: |
-          # Try to fetch the remote gh-pages branch (ignore error if it doesn’t exist)
+          # Fetch the remote gh-pages branch if it exists (ignore errors if not)
           git fetch origin gh-pages || true
-          if git show-ref --verify --quiet refs/heads/gh-pages; then
-            echo "gh-pages branch exists, checking commit history..."
+          if git rev-parse --verify gh-pages >/dev/null 2>&1; then
+            echo "gh-pages branch exists. Checking commit count..."
             git checkout gh-pages
-            commit_count=$(git rev-list --count HEAD || echo 0)
+            commit_count=$(git rev-list --count HEAD)
             if [ "$commit_count" -eq 0 ]; then
-              echo "gh-pages branch is empty. Creating initial commit..."
-              git rm -rf . || true
-              echo "# GitHub Pages" > README.md
-              git add README.md
-              git commit -m "Initialize gh-pages branch"
+              echo "gh-pages branch is empty. Adding a dummy commit..."
+              echo "Dummy commit" > dummy.txt
+              git add dummy.txt
+              git commit -m "Initial commit on gh-pages branch"
               git push origin gh-pages
             fi
+            # Return to the original branch
             git checkout master
           else
-            echo "gh-pages branch does not exist, creating it..."
+            echo "gh-pages branch does not exist. Creating it..."
             git checkout --orphan gh-pages
-            git rm -rf .
+            git rm -rf . || true
             echo "# GitHub Pages" > README.md
             git add README.md
             git commit -m "Initialize gh-pages branch"
@@ -68,12 +68,12 @@ jobs:
             git checkout master
           fi
 
-      # Deploy the _temp folder to the gh-pages branch
+      # 5. Deploy the contents of _temp to the gh-pages branch.
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages        # The target branch for deployment
-          folder: _temp           # The folder containing your deployable content
+          branch: gh-pages        # Target branch for deployment
+          folder: _temp           # Folder containing deployable files
           clean: false
           token: ${{ secrets.GITHUB_TOKEN }}
           force: true
