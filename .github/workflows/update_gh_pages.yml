@@ -18,29 +18,67 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Get all history to ensure we can see all branches
+          fetch-depth: 0
 
-      - name: List repository contents
+      - name: Debug repository structure
         run: |
-          echo "Current directory content:"
+          echo "Repository root contents:"
           ls -la
+          echo "---------------------------------------------"
+          echo "Finding dashboard.html in repository:"
+          find . -name "dashboard.html" -type f
+          echo "---------------------------------------------"
+          echo "Current working directory: $(pwd)"
 
-      - name: Setup git identity
+      - name: Setup git identity first
         run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
 
-      - name: Copy dashboard files
+      - name: Setup gh-pages branch
+        run: |
+          # Try to fetch existing branch or create new one
+          git ls-remote --exit-code --heads origin gh-pages || git checkout --orphan gh-pages
+
+          # If we created a new branch, prepare it properly
+          if [ "$(git rev-parse --abbrev-ref HEAD)" = "gh-pages" ]; then
+            git rm -rf . || true
+            touch README.md
+            echo "# Performance Dashboard" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages branch"
+            git push origin gh-pages
+            # Go back to original branch
+            git checkout -f ${GITHUB_REF#refs/heads/}
+          fi
+
+      - name: Create dashboard file
         run: |
           mkdir -p _temp
-          # Try to find dashboard.html even if it's not in the root
-          find_result=$(find . -name "dashboard.html" -type f | head -1)
-          if [ -n "$find_result" ]; then
-            echo "Found dashboard.html at: $find_result"
-            cp "$find_result" _temp/index.html
+
+          # Look for the dashboard.html file
+          dashboard_path=$(find . -name "dashboard.html" -type f | head -1)
+
+          if [ -n "$dashboard_path" ]; then
+            echo "Found dashboard at: $dashboard_path"
+            cp "$dashboard_path" _temp/index.html
           else
-            echo "Error: dashboard.html not found!"
-            exit 1
+            # If we can't find it, let's check the contents of dlang-dmd directory
+            if [ -d "dlang-dmd" ]; then
+              echo "Checking dlang-dmd directory:"
+              ls -la dlang-dmd/
+
+              if [ -f "dlang-dmd/dashboard.html" ]; then
+                echo "Found dashboard in dlang-dmd folder"
+                cp dlang-dmd/dashboard.html _temp/index.html
+              else
+                echo "ERROR: dashboard.html not found in repository"
+                exit 1
+              fi
+            else
+              echo "ERROR: Neither dashboard.html nor dlang-dmd directory found"
+              exit 1
+            fi
           fi
 
       - name: Deploy to GitHub Pages
