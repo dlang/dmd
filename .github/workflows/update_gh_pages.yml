@@ -6,25 +6,23 @@ on:
       - master
     paths:
       - 'dashboard.html'
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      # 1. Check out the repository with full history.
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2. Set up Git identity for all subsequent git commands.
       - name: Setup git identity
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-      # 3. Prepare the deploy folder by copying dashboard.html to _temp/index.html.
       - name: Prepare deploy folder
         run: |
           mkdir -p _temp
@@ -37,45 +35,13 @@ jobs:
             exit 1
           fi
 
-      # 4. Create or update gh-pages branch - improved approach
-      - name: Create or update gh-pages branch
-        run: |
-          # First check if remote branch exists
-          if git ls-remote --heads origin gh-pages | grep gh-pages; then
-            echo "Remote gh-pages branch exists - fetching it"
-            git fetch origin gh-pages
-
-            # Try to check out the branch
-            if git checkout -b gh-pages origin/gh-pages; then
-              echo "Successfully checked out gh-pages branch"
-            else
-              echo "Creating new gh-pages branch"
-              git checkout --orphan gh-pages
-              git rm -rf . || true
-              echo "# GitHub Pages" > README.md
-              git add README.md
-              git commit -m "Initialize gh-pages branch"
-            fi
-          else
-            echo "Creating new gh-pages branch"
-            git checkout --orphan gh-pages
-            git rm -rf . || true
-            echo "# GitHub Pages" > README.md
-            git add README.md
-            git commit -m "Initialize gh-pages branch"
-          fi
-
-          # Return to original branch
-          git checkout -
-
-      # 5. Deploy using improved action configuration
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages        # Target branch for deployment
-          folder: _temp           # Folder containing deployable files
+          branch: gh-pages
+          folder: _temp
           clean: false
           force: true
-          git-config-name: GitHub Actions
-          git-config-email: github-actions@github.com
+          git-config-name: "GitHub Actions"
+          git-config-email: "github-actions@github.com"
           commit-message: "Update dashboard [skip ci]"
