@@ -277,6 +277,19 @@ bool fill(StructDeclaration sd, Loc loc,
 }
 
 /***********************************************************
+ * func.d
+ */
+FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = STC.none)
+{
+    return FuncDeclaration.genCfunc(fparams, treturn, name, cast(STC) stc);
+}
+
+FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = STC.none)
+{
+    return FuncDeclaration.genCfunc(fparams, treturn, id, cast(STC) stc);
+}
+
+/***********************************************************
  * funcsem.d
  */
 bool functionSemantic(FuncDeclaration fd)

@@ -4052,8 +4052,6 @@ public:
     bool needsClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
-    static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, STC stc = (STC)0LLU);
-    static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, Identifier* id, STC stc = (STC)0LLU);
     virtual FuncDeclaration* toAliasFunc();
     void accept(Visitor* v) override;
 };
