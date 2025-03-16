@@ -39,65 +39,51 @@ jobs:
       - name: Update benchmark history
         run: |
           # Create directories if they don't exist
-          mkdir -p gh-pages-repo/benchmark_data gh-pages-repo/assets
+          mkdir -p gh-pages-repo/benchmark_data
 
-          # Ensure history.json exists in gh-pages repo
-          if [ ! -f "gh-pages-repo/benchmark_data/history.json" ]; then
-            echo "[]" > gh-pages-repo/benchmark_data/history.json
-            echo "Created empty history.json in gh-pages repo"
-          fi
+          # Merge new data with existing history
+          if [ -d "benchmark_data" ]; then
+            # Process all PR JSON files
+            for file in benchmark_data/pr_*.json; do
+              if [ -f "$file" ]; then
+                echo "Processing $file"
 
-          # Copy benchmark data to gh-pages repo
-          if [ -d "benchmark_data" ] && [ "$(ls -A benchmark_data)" ]; then
-            cp -r benchmark_data/* gh-pages-repo/benchmark_data/
-            echo "Copied benchmark data to gh-pages repo"
-          else
-            echo "No new benchmark data found, but continuing."
-          fi
+                # Validate JSON syntax
+                if ! jq empty "$file" 2>/dev/null; then
+                  echo "Skipping invalid JSON file: $file"
+                  continue
+                fi
 
-          # Process benchmark data
-          cd gh-pages-repo
+                # Update history.json
+                jq --slurpfile newEntry "$file" \
+                  '. += $newEntry' gh-pages-repo/benchmark_data/history.json > tmp.json
+                mv tmp.json gh-pages-repo/benchmark_data/history.json
 
-          # Process any new PR files
-          for file in benchmark_data/pr_*.json; do
-            if [ -f "$file" ]; then
-              # Check if this is valid JSON
-              if jq empty "$file" 2>/dev/null; then
-                echo "Processing benchmark file: $file"
-                # Add each new result to the array
-                jq -s '.[0] + [.[1]]' benchmark_data/history.json "$file" > benchmark_data/new_history.json
-                mv benchmark_data/new_history.json benchmark_data/history.json
-                # Remove the processed file to avoid duplication
-                rm "$file"
-              else
-                echo "Invalid JSON in $file, skipping"
+                # Also copy individual PR file
+                cp "$file" gh-pages-repo/benchmark_data/
               fi
-            fi
-          done
+            done
 
-          # Sort the array by timestamp
-          jq 'sort_by(.timestamp)' benchmark_data/history.json > benchmark_data/sorted_history.json
-          mv benchmark_data/sorted_history.json benchmark_data/history.json
+            # Sort history by timestamp
+            jq 'sort_by(.timestamp)' gh-pages-repo/benchmark_data/history.json > tmp.json
+            mv tmp.json gh-pages-repo/benchmark_data/history.json
+          fi
 
-          # Add debug output
-          echo "Contents of history.json:"
-          cat benchmark_data/history.json
-
-          # Copy the latest dashboard HTML from the source repo
-          cp ../source-repo/dashboard.html index.html
+          # Copy latest dashboard HTML
+          cp ../source-repo/dashboard.html gh-pages-repo/
 
       - name: Commit and push changes
         run: |
           cd gh-pages-repo
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add benchmark_data index.html assets
+          git add benchmark_data/ *.html
 
-          # Only commit if there are actual changes
-          if git status --porcelain | grep .; then
-            git commit -m "Update benchmark dashboard [skip ci]"
-            # Use force push to avoid conflicts
-            git push --force origin HEAD:gh-pages
+          # Check for changes using git status
+          if [ -n "$(git status --porcelain)" ]; then
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git commit -m "Update benchmark data [skip ci]"
+            git push origin HEAD:gh-pages --force
+            echo "Changes pushed successfully"
           else
             echo "No changes to commit"
           fi
