@@ -1511,7 +1511,7 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
             case FL.func:
             case FL.code:
             case FL.unde:
-	    case FL.block:
+            case FL.block:
                 break;
 
             default:

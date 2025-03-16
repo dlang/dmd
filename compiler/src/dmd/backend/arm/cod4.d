@@ -798,7 +798,7 @@ void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         case OPashrass: opcode = 0xA;   break;
         //case OPror:     opcode = 0xB;   break;
         default:
-	    elem_print(e);
+            elem_print(e);
             assert(0);
     }
 
@@ -1728,7 +1728,7 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         code cs;
         getlvalue(cdb,cs,e1,0,RM.load);
-        Extend extend = OPu8_16 ? Extend.UXTB : Extend.SXTB;
+        Extend extend = (op == OPu8_16) ? Extend.UXTB : Extend.SXTB;
         cs.Sextend = cast(ubyte)((cs.Sextend & 0x100) | extend);
         reg_t reg = allocreg(cdb,retregs,TYint);
         loadFromEA(cs,reg,4,1);
