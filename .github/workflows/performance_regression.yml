@@ -68,25 +68,28 @@ jobs:
           # Generate diff result
           echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)" >> $GITHUB_OUTPUT
 
-          # Generate diff details with error handling
+          # Generate diff details with robust error handling
+          RAND_EOF=$(openssl rand -hex 6)
           {
             echo "**Binary Differences:**"
             echo "- PR Size: $pr_size bytes | Master Size: $master_size bytes"
             echo "- PR Version: $pr_version"
             echo "- Master Version: $master_version"
             echo '```diff'
-            # Handle broken pipe errors and sanitize output
-            trap '' PIPE  # Ignore SIGPIPE errors
-            xxd "$pr_compiler" | diff -u - <(xxd "$master_compiler") | \
-              head -50 | \
-              sed -e 's/`/‛/g' -e 's/\$/\\$/g' -e 's/\\/\\\\/g' -e 's/^/ /' || true
+            # Use full path for xxd and handle large binaries safely
+            /usr/bin/xxd "$pr_compiler" |
+              diff -u - <(/usr/bin/xxd "$master_compiler") |
+              sed -e '1,50!d' -e 's/`/‛/g' -e 's/\$/＄/g' -e 's/\\/＼/g' || true
             echo '```'
-          } > diff_details.txt
+          } > diff_details.txt 2>&1
 
-          # Use unique EOF marker and base64 encoding
-          echo "DIFF_DETAILS<<EOF_DIFF_$(openssl rand -hex 4)" >> $GITHUB_OUTPUT
-          cat diff_details.txt | base64 >> $GITHUB_OUTPUT
-          echo "EOF_DIFF_$(openssl rand -hex 4)" >> $GITHUB_OUTPUT
+          # Encode and output with unique delimiter
+          {
+            echo "DIFF_DETAILS<<DIFF_EOF_${RAND_EOF}"
+            base64 -w 0 diff_details.txt  # Single-line base64 encoding
+            echo
+            echo "DIFF_EOF_${RAND_EOF}"
+          } >> $GITHUB_OUTPUT
         fi
 
     - name: Checkout benchmark project
