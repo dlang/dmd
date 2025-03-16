@@ -457,5 +457,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: benchmark_data
-        path: benchmark_data/
+        path: |
+          benchmark_data/*
+          !benchmark_data/history.json  # Exclude history.json from artifact
         retention-days: 30
