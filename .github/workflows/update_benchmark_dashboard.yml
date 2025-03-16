@@ -36,33 +36,13 @@ jobs:
           workflow_conclusion: success
           name: benchmark_data
           path: benchmark_data
-          if_no_artifact_found: warn
+          if_no_artifact_found: error
 
-      - name: Create sample data if needed
+      - name: Validate benchmark data existence
         run: |
-          # If there's no benchmark_data directory, create sample data
-          if [ ! -d "benchmark_data" ] || [ ! -f "benchmark_data/pr_*.json" ]; then
-            echo "Creating sample benchmark data"
-            mkdir -p benchmark_data
-            cat > benchmark_data/sample_pr_1001.json << 'EOF'
-            {
-              "timestamp": "2025-03-16T12:00:00Z",
-              "pr": {
-                "number": "1001",
-                "title": "Initial PR for dashboard demo",
-                "url": "https://github.com/dlang/dmd/pull/1001",
-                "commit": "abc123"
-              },
-              "metrics": {
-                "pr_time": "10.250",
-                "master_time": "10.500",
-                "pr_memory": "156.4",
-                "master_memory": "158.2",
-                "time_diff": "-0.250",
-                "time_pct": "-2.38%"
-              }
-            }
-            EOF
+          if [ ! -d "benchmark_data" ] || [ -z "$(ls -A benchmark_data/pr_*.json 2>/dev/null)" ]; then
+            echo "::error::No benchmark data found!"
+            exit 1
           fi
 
       - name: Update benchmark history
@@ -72,14 +52,18 @@ jobs:
 
           # Initialize history.json if it doesn't exist
           if [ ! -f "gh-pages-repo/benchmark_data/history.json" ]; then
-            echo "[]" > gh-pages-repo/benchmark_data/history.json
-            echo "Created new history.json file"
+              echo "[]" > gh-pages-repo/benchmark_data/history.json
+              echo "Created new history.json file"
           fi
 
           # Process benchmark data files
           if [ -d "benchmark_data" ]; then
-            # Process all PR JSON files
-            for file in benchmark_data/pr_*.json benchmark_data/sample_pr_*.json; do
+              # Add debug output
+              echo "Contents of benchmark_data:"
+              ls -la benchmark_data
+
+              # Process all PR JSON files
+              for file in benchmark_data/pr_*.json; do
               if [ -f "$file" ]; then
                 echo "Processing $file"
                 # Validate JSON syntax

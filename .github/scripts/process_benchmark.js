@@ -4,6 +4,8 @@ const prNumber = process.argv[3];
 const prTitle = process.argv[4];
 const prUrl = process.argv[5];
 const commitSha = process.argv[6];
+const path = require('path');
+const outputPath = path.resolve(process.argv[7]);
 
 if (!fs.existsSync(benchmarkFile)) {
     process.exit(1);
@@ -49,4 +51,8 @@ try {
 } catch (error) {
     console.error("Error processing benchmark data:", error);
     process.exit(1);
+}
+
+if (process.argv[7]) {
+    fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
 }

@@ -425,8 +425,8 @@ jobs:
       # Always run this step regardless of previous steps' success
       if: always()
       run: |
-        # Ensure directory exists
-        mkdir -p benchmark_data
+        # Create directory structure explicitly
+        mkdir -p gh-pages-repo/benchmark_data
 
         # Save raw benchmark data
         if [ -f benchmark-phobos/benchmark_results.json ]; then
@@ -437,13 +437,13 @@ jobs:
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
           # Extract and format benchmark data using our script
-          node pr-dmd/.github/scripts/process_benchmark.js \
+          node "$GITHUB_WORKSPACE/pr-dmd/.github/scripts/process_benchmark.js" \
           benchmark-phobos/benchmark_results.json \
           "$PR_NUMBER" \
-          "${{ github.event.pull_request.title }}" \
-          "${{ github.event.pull_request.html_url }}" \
-          "${{ github.sha }}" \
-          "benchmark_data/pr_${PR_NUMBER}_${TIMESTAMP}.json"
+          "${{github.event.pull_request.title}}" \
+          "${{github.event.pull_request.html_url}}" \
+          "${{github.sha}}" \
+          "$GITHUB_WORKSPACE/benchmark_data/pr_${PR_NUMBER}_${TIMESTAMP}.json"
 
           # Debug log
           echo "Created benchmark data file: pr_${PR_NUMBER}_${TIMESTAMP}.json"

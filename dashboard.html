@@ -172,11 +172,9 @@
                 let data = [];
                 // Try multiple possible paths to find the history.json file
                 const possiblePaths = [
-                    './benchmark_data/history.json',
-                    '/benchmark_data/history.json',
-                    '/dlang-dmd/benchmark_data/history.json',
-                    '../benchmark_data/history.json',
-                    'benchmark_data/history.json'
+                    './benchmark_data/history.json',  // Primary path
+                    '/benchmark_data/history.json',   // Absolute path
+                    'benchmark_data/history.json'     // Relative path
                 ];
 
                 let foundData = false;
