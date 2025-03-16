@@ -56,6 +56,7 @@ nothrow:
  */
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
+    //debug printf("loadFromEA() reg: %d, szw: %d, szr: %d\n", reg, szw, szr);
     cs.Iop = INSTR.nop;
     assert(reg != NOREG);
     if (mask(reg) & INSTR.FLOATREGS)       // if floating point store
@@ -83,6 +84,8 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         return;
     }
 
+    bool signExtend = (cs.Sextend & 7) == Extend.SXTB;
+
     if (cs.reg != NOREG)
     {
         if (cs.reg != reg)  // do not mov onto itself
@@ -103,9 +106,11 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
     {
         // LDRB/LDRH/LDR reg,[cs.base, #0]
         if (szr == 1)
-            cs.Iop = INSTR.ldrb_imm(szw == 8, reg, cs.base, 0);
+            cs.Iop = signExtend ? INSTR.ldrsb_imm(szw == 8, reg, cs.base, 0)
+                                : INSTR.ldrb_imm (szw == 8, reg, cs.base, 0);
         else if (szr == 2)
-            cs.Iop = INSTR.ldrh_imm(szw == 8, reg, cs.base, 0);
+            cs.Iop = signExtend ? INSTR.ldrsh_imm(szw == 8, reg, cs.base, 0)
+                                : INSTR.ldrh_imm (szw == 8, reg, cs.base, 0);
         else
             cs.Iop = INSTR.ldr_imm_gen(szw == 8, reg, cs.base, 0);
     }
