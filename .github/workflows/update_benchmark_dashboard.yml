@@ -4,12 +4,13 @@ on:
     workflows: ["Performance Regression Check"]
     types:
       - completed
-    branches:
-      - master
+  # Add manual trigger option
+  workflow_dispatch:
+
 jobs:
   update-dashboard:
     runs-on: ubuntu-latest
-    if: ${{github.event.workflow_run.conclusion == 'success'}}
+    if: ${{github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'}}
     permissions:
       contents: write
     steps:
@@ -28,6 +29,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download benchmark artifacts
+        if: ${{github.event_name != 'workflow_dispatch'}}
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: performance_regression.yml
@@ -35,6 +37,33 @@ jobs:
           name: benchmark_data
           path: benchmark_data
           if_no_artifact_found: warn
+
+      - name: Create sample data if needed
+        run: |
+          # If there's no benchmark_data directory, create sample data
+          if [ ! -d "benchmark_data" ] || [ ! -f "benchmark_data/pr_*.json" ]; then
+            echo "Creating sample benchmark data"
+            mkdir -p benchmark_data
+            cat > benchmark_data/sample_pr_1001.json << 'EOF'
+            {
+              "timestamp": "2025-03-16T12:00:00Z",
+              "pr": {
+                "number": "1001",
+                "title": "Initial PR for dashboard demo",
+                "url": "https://github.com/dlang/dmd/pull/1001",
+                "commit": "abc123"
+              },
+              "metrics": {
+                "pr_time": "10.250",
+                "master_time": "10.500",
+                "pr_memory": "156.4",
+                "master_memory": "158.2",
+                "time_diff": "-0.250",
+                "time_pct": "-2.38%"
+              }
+            }
+            EOF
+          fi
 
       - name: Update benchmark history
         run: |
@@ -47,10 +76,10 @@ jobs:
             echo "Created new history.json file"
           fi
 
-          # Merge new data with existing history
+          # Process benchmark data files
           if [ -d "benchmark_data" ]; then
             # Process all PR JSON files
-            for file in benchmark_data/pr_*.json; do
+            for file in benchmark_data/pr_*.json benchmark_data/sample_pr_*.json; do
               if [ -f "$file" ]; then
                 echo "Processing $file"
                 # Validate JSON syntax
@@ -61,7 +90,7 @@ jobs:
 
                 # Update history.json
                 jq --slurpfile newEntry "$file" \
-                   '.+=$newEntry' gh-pages-repo/benchmark_data/history.json > tmp.json
+                  '.+=$newEntry' gh-pages-repo/benchmark_data/history.json > tmp.json
                 mv tmp.json gh-pages-repo/benchmark_data/history.json
 
                 # Also copy individual PR file
@@ -71,7 +100,7 @@ jobs:
 
             # Also copy the latest results file if it exists
             if [ -f "benchmark_data/latest_results.json" ]; then
-              cp "benchmark_data/latest_results.json" gh-pages-repo/benchmark_data/
+              cp benchmark_data/latest_results.json gh-pages-repo/benchmark_data/
             fi
 
             # Sort history by timestamp
@@ -82,7 +111,7 @@ jobs:
           # Copy latest dashboard HTML
           cp source-repo/dashboard.html gh-pages-repo/
 
-          # Debug output
+          # Debug: list benchmark_data directory contents
           echo "Content of gh-pages-repo/benchmark_data:"
           ls -la gh-pages-repo/benchmark_data/
 

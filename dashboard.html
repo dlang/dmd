@@ -1,557 +1,642 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DMD Performance Dashboard</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      padding: 20px;
-      background-color: #f8f9fa;
-    }
-    .dashboard-title {
-      margin-bottom: 30px;
-      color: #343a40;
-    }
-    .chart-container {
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      padding: 20px;
-      margin-bottom: 30px;
-    }
-    .stat-card {
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      padding: 20px;
-      margin-bottom: 20px;
-      height: 100%;
-    }
-    .stat-value {
-      font-size: 24px;
-      font-weight: bold;
-      margin: 10px 0;
-    }
-    .stat-label {
-      color: #6c757d;
-      font-size: 14px;
-    }
-    .improvement {
-      color: #28a745;
-    }
-    .regression {
-      color: #dc3545;
-    }
-    .no-change {
-      color: #6c757d;
-    }
-    .table-responsive {
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      padding: 20px;
-      margin-bottom: 30px;
-    }
-    .time-filter {
-      margin-bottom: 20px;
-    }
-    #loading {
-      text-align: center;
-      padding: 50px;
-      font-size: 18px;
-    }
-    #error {
-      text-align: center;
-      padding: 50px;
-      color: #dc3545;
-      font-size: 18px;
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMD Performance Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .dashboard-title {
+            margin-bottom: 30px;
+            color: #343a40;
+        }
+        .chart-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            height: 100%;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .improvement {
+            color: #28a745;
+        }
+        .regression {
+            color: #dc3545;
+        }
+        .no-change {
+            color: #6c757d;
+        }
+        .table-responsive {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .time-filter {
+            margin-bottom: 20px;
+        }
+        #loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+        }
+        #error {
+            text-align: center;
+            padding: 50px;
+            color: #dc3545;
+            font-size: 18px;
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="row">
-      <div class="col-12">
-        <h1 class="dashboard-title text-center">DMD Performance Dashboard</h1>
-      </div>
-    </div>
-
-    <div id="loading">Loading performance data...</div>
-    <div id="error">Error loading benchmark data. Please check if the history.json file exists.</div>
-
-    <div id="dashboard-content" style="display: none;">
-      <div class="row mb-4">
-        <div class="col-md-3">
-          <div class="stat-card">
-            <div class="stat-label">PRs Analyzed</div>
-            <div class="stat-value" id="totalPRs">-</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-card">
-            <div class="stat-label">Average Time Change</div>
-            <div class="stat-value" id="avgTimeChange">-</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-card">
-            <div class="stat-label">Last Updated</div>
-            <div class="stat-value" id="lastUpdated">-</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="stat-card">
-            <div class="stat-label">Trend</div>
-            <div class="stat-value" id="trend">-</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="row mb-4">
-        <div class="col-12">
-          <div class="time-filter">
-            <div class="btn-group" role="group">
-              <button type="button" class="btn btn-outline-primary active" data-period="30">30 Days</button>
-              <button type="button" class="btn btn-outline-primary" data-period="90">90 Days</button>
-              <button type="button" class="btn btn-outline-primary" data-period="180">6 Months</button>
-              <button type="button" class="btn btn-outline-primary" data-period="365">1 Year</button>
-              <button type="button" class="btn btn-outline-primary" data-period="all">All Time</button>
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="dashboard-title text-center">DMD Performance Dashboard</h1>
             </div>
-          </div>
         </div>
-      </div>
 
-      <div class="row">
-        <div class="col-md-6">
-          <div class="chart-container">
-            <canvas id="timeChart"></canvas>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="chart-container">
-            <canvas id="memoryChart"></canvas>
-          </div>
-        </div>
-      </div>
+        <div id="loading">Loading performance data...</div>
+        <div id="error">Error loading benchmark data. Please check if the history.json file exists.</div>
 
-      <div class="row">
-        <div class="col-12">
-          <div class="table-responsive">
-            <h3>Recent Performance Changes</h3>
-            <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>PR</th>
-                  <th>Time Change</th>
-                  <th>Memory Change</th>
-                </tr>
-              </thead>
-              <tbody id="recentChanges">
-                <!-- Data will be populated by JavaScript -->
-              </tbody>
-            </table>
-          </div>
+        <div id="dashboard-content" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-label">PRs Analyzed</div>
+                        <div class="stat-value" id="totalPRs">-</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-label">Average Time Change</div>
+                        <div class="stat-value" id="avgTimeChange">-</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-label">Last Updated</div>
+                        <div class="stat-value" id="lastUpdated">-</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-label">Trend</div>
+                        <div class="stat-value" id="trend">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="time-filter">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary active" data-period="30">30 Days</button>
+                            <button type="button" class="btn btn-outline-primary" data-period="90">90 Days</button>
+                            <button type="button" class="btn btn-outline-primary" data-period="180">6 Months</button>
+                            <button type="button" class="btn btn-outline-primary" data-period="365">1 Year</button>
+                            <button type="button" class="btn btn-outline-primary" data-period="all">All Time</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="timeChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="memoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="table-responsive">
+                        <h3>Recent Performance Changes</h3>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>PR</th>
+                                    <th>Time Change</th>
+                                    <th>Memory Change</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentChanges">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <script>
-    async function fetchData() {
-        try {
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('error').style.display = 'none';
-            document.getElementById('dashboard-content').style.display = 'none';
-
-            let data = [];
+    <script>
+        async function fetchData() {
             try {
-            console.log('Fetching benchmark data...');
-            const response = await fetch('./benchmark_data/history.json');
-            console.log('Response status:', response.status);
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('dashboard-content').style.display = 'none';
 
-            if (response.ok) {
-                const text = await response.text();
-                console.log('Response text length:', text.length);
-                try {
-                data = JSON.parse(text);
-                console.log('Parsed data length:', data.length);
-                } catch (parseError) {
-                console.error('JSON parse error:', parseError);
-                document.getElementById('error').textContent = 'Error parsing JSON data. Details: ' + parseError.message;
-                document.getElementById('error').style.display = 'block';
+                let data = [];
+                // Try multiple possible paths to find the history.json file
+                const possiblePaths = [
+                    './benchmark_data/history.json',
+                    '/benchmark_data/history.json',
+                    '/dlang-dmd/benchmark_data/history.json',
+                    '../benchmark_data/history.json',
+                    'benchmark_data/history.json'
+                ];
+
+                let foundData = false;
+
+                for (const path of possiblePaths) {
+                    try {
+                        console.log(`Trying to fetch from: ${path}`);
+                        const response = await fetch(path);
+                        if (response.ok) {
+                            console.log(`Successfully fetched from: ${path}`);
+                            const text = await response.text();
+                            try {
+                                data = JSON.parse(text);
+                                foundData = true;
+                                // Store the successful path for future use
+                                localStorage.setItem('successfulDataPath', path);
+                                break;
+                            } catch (parseError) {
+                                console.error(`Error parsing JSON from ${path}:`, parseError);
+                            }
+                        } else {
+                            console.log(`Failed to fetch from ${path}: ${response.status} ${response.statusText}`);
+                        }
+                    } catch (fetchError) {
+                        console.log(`Error fetching from ${path}:`, fetchError);
+                    }
                 }
-            } else {
-                console.error('Failed to fetch data:', response.status, response.statusText);
-                document.getElementById('error').textContent = `Failed to load data: ${response.status} ${response.statusText}`;
+
+                // If we found data from a previous successful path, try that first next time
+                const savedPath = localStorage.getItem('successfulDataPath');
+                if (!foundData && savedPath && !possiblePaths.includes(savedPath)) {
+                    try {
+                        console.log(`Trying previously successful path: ${savedPath}`);
+                        const response = await fetch(savedPath);
+                        if (response.ok) {
+                            const text = await response.text();
+                            data = JSON.parse(text);
+                            foundData = true;
+                        }
+                    } catch (error) {
+                        console.error(`Failed with saved path: ${savedPath}`, error);
+                    }
+                }
+
+                // Fallback to sample data if we can't find the file
+                if (!foundData) {
+                    console.log("Using fallback sample data");
+                    // Use sample data as fallback
+                    data = [
+                        {
+                            "timestamp": "2025-03-01T12:00:00Z",
+                            "pr": {
+                                "number": "1001",
+                                "title": "Initial PR for dashboard demo",
+                                "url": "https://github.com/dlang/dmd/pull/1001",
+                                "commit": "abc123"
+                            },
+                            "metrics": {
+                                "pr_time": "10.250",
+                                "master_time": "10.500",
+                                "pr_memory": "156.4",
+                                "master_memory": "158.2",
+                                "time_diff": "-0.250",
+                                "time_pct": "-2.38%"
+                            }
+                        },
+                        {
+                            "timestamp": "2025-03-05T15:30:00Z",
+                            "pr": {
+                                "number": "1002",
+                                "title": "Performance improvements in lexer",
+                                "url": "https://github.com/dlang/dmd/pull/1002",
+                                "commit": "def456"
+                            },
+                            "metrics": {
+                                "pr_time": "9.800",
+                                "master_time": "10.250",
+                                "pr_memory": "155.8",
+                                "master_memory": "156.4",
+                                "time_diff": "-0.450",
+                                "time_pct": "-4.39%"
+                            }
+                        },
+                        {
+                            "timestamp": "2025-03-10T09:45:00Z",
+                            "pr": {
+                                "number": "1003",
+                                "title": "Parser optimizations",
+                                "url": "https://github.com/dlang/dmd/pull/1003",
+                                "commit": "ghi789"
+                            },
+                            "metrics": {
+                                "pr_time": "9.850",
+                                "master_time": "9.800",
+                                "pr_memory": "156.0",
+                                "master_memory": "155.8",
+                                "time_diff": "0.050",
+                                "time_pct": "0.51%"
+                            }
+                        }
+                    ];
+                    // Show warning instead of error
+                    document.getElementById('error').textContent = 'Could not load actual benchmark data. Showing sample data instead.';
+                    document.getElementById('error').style.display = 'block';
+                }
+
+                document.getElementById('loading').style.display = 'none';
+                if (data.length > 0) {
+                    document.getElementById('dashboard-content').style.display = 'block';
+                }
+                return data;
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').textContent = 'Error processing data: ' + error.message;
                 document.getElementById('error').style.display = 'block';
+                console.error('Error in fetchData:', error);
+                return [];
             }
-            } catch (fetchError) {
-            console.error('Fetch error:', fetchError);
-            document.getElementById('error').textContent = 'Network error loading data: ' + fetchError.message;
-            document.getElementById('error').style.display = 'block';
-            }
-
-            document.getElementById('loading').style.display = 'none';
-            if (data.length > 0) {
-            document.getElementById('dashboard-content').style.display = 'block';
-            }
-            return data;
-        } catch (error) {
-            console.error('General error:', error);
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('error').textContent = 'Error processing data: ' + error.message;
-            document.getElementById('error').style.display = 'block';
-            return [];
         }
-    }
 
-    function formatDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    }
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
 
-    function formatPercentage(value) {
-      if (!value || value === 'N/A') return 'N/A';
+        function formatPercentage(value) {
+            if (!value || value === 'N/A') return 'N/A';
 
-      // Handle string percentage values
-      let numValue;
-      if (typeof value === 'string') {
-        numValue = parseFloat(value.replace('%', ''));
-      } else {
-        numValue = value;
-      }
+            // Handle string percentage values
+            let numValue;
+            if (typeof value === 'string') {
+                numValue = parseFloat(value.replace('%', ''));
+            } else {
+                numValue = value;
+            }
 
-      if (isNaN(numValue)) return 'N/A';
+            if (isNaN(numValue)) return 'N/A';
 
-      const formatted = `${numValue > 0 ? '+' : ''}${numValue.toFixed(2)}%`;
-      if (numValue < 0) {
-        return `<span class="improvement">${formatted}</span>`;
-      } else if (numValue > 0) {
-        return `<span class="regression">${formatted}</span>`;
-      } else {
-        return `<span class="no-change">${formatted}</span>`;
-      }
-    }
+            const formatted = `${numValue > 0 ? '+' : ''}${numValue.toFixed(2)}%`;
+            if (numValue < 0) {
+                return `<span class="improvement">${formatted}</span>`;
+            } else if (numValue > 0) {
+                return `<span class="regression">${formatted}</span>`;
+            } else {
+                return `<span class="no-change">${formatted}</span>`;
+            }
+        }
 
-    function initCharts(data, period = 30) {
-        // If no data at all, show empty charts with a message
-        if (data.length === 0) {
-            updateStats([]);
+        function initCharts(data, period = 30) {
+            // If no data at all, show empty charts with a message
+            if (data.length === 0) {
+                updateStats([]);
 
-            // Create empty chart for build time
+                // Create empty chart for build time
+                const timeCtx = document.getElementById('timeChart').getContext('2d');
+                if (window.timeChart) {
+                    window.timeChart.destroy();
+                }
+                window.timeChart = new Chart(timeCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Build Time (s)',
+                            data: [],
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Build Time Trend (No data yet)',
+                                font: { size: 16 }
+                            }
+                        }
+                    }
+                });
+
+                // Create empty chart for memory usage
+                const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+                if (window.memoryChart) {
+                    window.memoryChart.destroy();
+                }
+                window.memoryChart = new Chart(memoryCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Memory Usage (MB)',
+                            data: [],
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Memory Usage Trend (No data yet)',
+                                font: { size: 16 }
+                            }
+                        }
+                    }
+                });
+
+                // Clear the recent changes table
+                updateRecentChangesTable([]);
+                return;
+            }
+
+            // Filter data based on the selected period if not "all"
+            let filteredData = data;
+            if (period !== 'all') {
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - period);
+                filteredData = data.filter(item => new Date(item.timestamp) >= cutoffDate);
+            }
+
+            // If no data in the filtered result but we have data, use all available data
+            if (filteredData.length === 0 && data.length > 0) {
+                filteredData = data;
+            }
+
+            // Update dashboard statistics
+            updateStats(filteredData);
+
+            // Create or update the build time chart
             const timeCtx = document.getElementById('timeChart').getContext('2d');
             if (window.timeChart) {
-            window.timeChart.destroy();
+                window.timeChart.destroy();
             }
             window.timeChart = new Chart(timeCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                label: 'Build Time (s)',
-                data: [],
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.1)'
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                title: {
-                    display: true,
-                    text: 'Build Time Trend (No data yet)',
-                    font: { size: 16 }
+                type: 'line',
+                data: {
+                    labels: filteredData.map(item => formatDate(item.timestamp)),
+                    datasets: [{
+                        label: 'Build Time (s)',
+                        data: filteredData.map(item => parseFloat(item.metrics.pr_time)),
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Build Time Trend',
+                            font: { size: 16 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    const pr = filteredData[dataIndex].pr;
+                                    return [
+                                        `PR #${pr.number}: ${pr.title}`,
+                                        `Change: ${filteredData[dataIndex].metrics.time_pct}`
+                                    ];
+                                }
+                            }
+                        }
+                    }
                 }
-                }
-            }
             });
 
-            // Create empty chart for memory usage
+            // Create or update the memory usage chart
             const memoryCtx = document.getElementById('memoryChart').getContext('2d');
             if (window.memoryChart) {
-            window.memoryChart.destroy();
+                window.memoryChart.destroy();
             }
             window.memoryChart = new Chart(memoryCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                label: 'Memory Usage (MB)',
-                data: [],
-                borderColor: 'rgb(54, 162, 235)',
-                backgroundColor: 'rgba(54, 162, 235, 0.1)'
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                title: {
-                    display: true,
-                    text: 'Memory Usage Trend (No data yet)',
-                    font: { size: 16 }
+                type: 'line',
+                data: {
+                    labels: filteredData.map(item => formatDate(item.timestamp)),
+                    datasets: [{
+                        label: 'Memory Usage (MB)',
+                        data: filteredData.map(item => parseFloat(item.metrics.pr_memory)),
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Memory Usage Trend',
+                            font: { size: 16 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    const pr = filteredData[dataIndex].pr;
+                                    return [`PR #${pr.number}: ${pr.title}`];
+                                }
+                            }
+                        }
+                    }
                 }
-                }
-            }
             });
 
-            // Clear the recent changes table
-            updateRecentChangesTable([]);
-            return;
+            // Update the recent changes table with the 10 most recent entries (latest on top)
+            updateRecentChangesTable(filteredData.slice(-10).reverse());
         }
 
-        // Filter data based on the selected period if not "all"
-        let filteredData = data;
-        if (period !== 'all') {
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - period);
-            filteredData = data.filter(item => new Date(item.timestamp) >= cutoffDate);
+        function updateStats(data) {
+            if (data.length === 0) {
+                document.getElementById('totalPRs').textContent = '0';
+                document.getElementById('avgTimeChange').textContent = 'N/A';
+                document.getElementById('lastUpdated').textContent = 'Never';
+                document.getElementById('trend').textContent = 'N/A';
+                return;
+            }
+
+            document.getElementById('totalPRs').textContent = data.length;
+
+            // Process time changes
+            const timeChanges = data.map(item => {
+                if (typeof item.metrics.time_pct === 'string') {
+                    return parseFloat(item.metrics.time_pct);
+                }
+                return 0;
+            });
+
+            const validTimeChanges = timeChanges.filter(val => !isNaN(val));
+            let avgTimeChange = 'N/A';
+
+            if (validTimeChanges.length > 0) {
+                const sum = validTimeChanges.reduce((a, b) => a + b, 0);
+                avgTimeChange = (sum / validTimeChanges.length).toFixed(2) + '%';
+
+                if (sum < 0) {
+                    document.getElementById('avgTimeChange').className = 'stat-value improvement';
+                } else if (sum > 0) {
+                    document.getElementById('avgTimeChange').className = 'stat-value regression';
+                }
+            }
+
+            document.getElementById('avgTimeChange').innerHTML = avgTimeChange;
+
+            const lastItem = data[data.length - 1];
+            document.getElementById('lastUpdated').textContent = formatDate(lastItem.timestamp);
+
+            const recentData = data.slice(-5);
+            if (recentData.length >= 3) {
+                const trend = analyzeTrend(recentData.map(item => parseFloat(item.metrics.pr_time)));
+                let trendText = '';
+                let trendClass = '';
+
+                if (trend < -0.1) {
+                    trendText = 'Improving ↓';
+                    trendClass = 'improvement';
+                } else if (trend > 0.1) {
+                    trendText = 'Degrading ↑';
+                    trendClass = 'regression';
+                } else {
+                    trendText = 'Stable →';
+                    trendClass = 'no-change';
+                }
+
+                document.getElementById('trend').textContent = trendText;
+                document.getElementById('trend').className = `stat-value ${trendClass}`;
+            }
         }
 
-        // If no data in the filtered result but we have data, use all available data
-        if (filteredData.length === 0 && data.length > 0) {
-            filteredData = data;
+        function analyzeTrend(values) {
+            if (values.length < 2) return 0;
+
+            const n = values.length;
+            const indices = Array.from({length: n}, (_, i) => i);
+
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+
+            for (let i = 0; i < n; i++) {
+                sumX += indices[i];
+                sumY += values[i];
+                sumXY += indices[i] * values[i];
+                sumX2 += indices[i] * indices[i];
+            }
+
+            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const avgY = sumY / n;
+
+            return slope / avgY;
         }
 
-        // Update dashboard statistics
-        updateStats(filteredData);
+        function updateRecentChangesTable(data) {
+            const tableBody = document.getElementById('recentChanges');
+            tableBody.innerHTML = '';
 
-        // Create or update the build time chart
-        const timeCtx = document.getElementById('timeChart').getContext('2d');
-        if (window.timeChart) {
-            window.timeChart.destroy();
-        }
-        window.timeChart = new Chart(timeCtx, {
-            type: 'line',
-            data: {
-            labels: filteredData.map(item => formatDate(item.timestamp)),
-            datasets: [{
-                label: 'Build Time (s)',
-                data: filteredData.map(item => parseFloat(item.metrics.pr_time)),
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                tension: 0.1,
-                fill: true
-            }]
-            },
-            options: {
-            responsive: true,
-            plugins: {
-                title: {
-                display: true,
-                text: 'Build Time Trend',
-                font: { size: 16 }
-                },
-                tooltip: {
-                callbacks: {
-                    afterLabel: function(context) {
-                    const dataIndex = context.dataIndex;
-                    const pr = filteredData[dataIndex].pr;
-                    return [
-                        `PR #${pr.number}: ${pr.title}`,
-                        `Change: ${filteredData[dataIndex].metrics.time_pct}`
-                    ];
+            data.forEach(item => {
+                const row = document.createElement('tr');
+
+                const dateCell = document.createElement('td');
+                dateCell.textContent = formatDate(item.timestamp);
+                row.appendChild(dateCell);
+
+                const prCell = document.createElement('td');
+                const prTitle = item.pr.title || 'Unknown PR';
+                prCell.innerHTML = `<a href="${item.pr.url}" target="_blank">#${item.pr.number}</a>: ${prTitle.substring(0, 50)}${prTitle.length > 50 ? '...' : ''}`;
+                row.appendChild(prCell);
+
+                const timeCell = document.createElement('td');
+                timeCell.innerHTML = formatPercentage(item.metrics.time_pct);
+                row.appendChild(timeCell);
+
+                const memCell = document.createElement('td');
+                let memChange = 'N/A';
+
+                if (item.metrics.pr_memory && item.metrics.master_memory) {
+                    const prMem = parseFloat(item.metrics.pr_memory);
+                    const masterMem = parseFloat(item.metrics.master_memory);
+
+                    if (!isNaN(prMem) && !isNaN(masterMem) && masterMem !== 0) {
+                        const memPct = ((prMem / masterMem) - 1) * 100;
+                        memChange = `${memPct > 0 ? '+' : ''}${memPct.toFixed(2)}%`;
                     }
                 }
-                }
-            }
-            }
+
+                memCell.innerHTML = formatPercentage(memChange);
+                row.appendChild(memCell);
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Add event listeners to filter buttons
+        document.querySelectorAll('.time-filter .btn').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.time-filter .btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+
+                const period = this.getAttribute('data-period');
+                fetchData().then(data => initCharts(data, period === 'all' ? 'all' : parseInt(period)));
+            });
         });
 
-        // Create or update the memory usage chart
-        const memoryCtx = document.getElementById('memoryChart').getContext('2d');
-        if (window.memoryChart) {
-            window.memoryChart.destroy();
-        }
-        window.memoryChart = new Chart(memoryCtx, {
-            type: 'line',
-            data: {
-            labels: filteredData.map(item => formatDate(item.timestamp)),
-            datasets: [{
-                label: 'Memory Usage (MB)',
-                data: filteredData.map(item => parseFloat(item.metrics.pr_memory)),
-                borderColor: 'rgb(54, 162, 235)',
-                backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                tension: 0.1,
-                fill: true
-            }]
-            },
-            options: {
-            responsive: true,
-            plugins: {
-                title: {
-                display: true,
-                text: 'Memory Usage Trend',
-                font: { size: 16 }
-                },
-                tooltip: {
-                callbacks: {
-                    afterLabel: function(context) {
-                    const dataIndex = context.dataIndex;
-                    const pr = filteredData[dataIndex].pr;
-                    return [`PR #${pr.number}: ${pr.title}`];
-                    }
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchData().then(data => {
+                if (data.length > 0) {
+                    initCharts(data, 30);
                 }
-                }
-            }
-            }
+            });
         });
-
-        // Update the recent changes table with the 10 most recent entries (latest on top)
-        updateRecentChangesTable(filteredData.slice(-10).reverse());
-        }
-
-    function updateStats(data) {
-        if (data.length === 0) {
-        document.getElementById('totalPRs').textContent = '0';
-        document.getElementById('avgTimeChange').textContent = 'N/A';
-        document.getElementById('lastUpdated').textContent = 'Never';
-        document.getElementById('trend').textContent = 'N/A';
-        return;
-    }
-
-      document.getElementById('totalPRs').textContent = data.length;
-
-      // Process time changes
-      const timeChanges = data.map(item => {
-        if (typeof item.metrics.time_pct === 'string') {
-          return parseFloat(item.metrics.time_pct);
-        }
-        return 0;
-      });
-
-      const validTimeChanges = timeChanges.filter(val => !isNaN(val));
-      let avgTimeChange = 'N/A';
-
-      if (validTimeChanges.length > 0) {
-        const sum = validTimeChanges.reduce((a, b) => a + b, 0);
-        avgTimeChange = (sum / validTimeChanges.length).toFixed(2) + '%';
-
-        if (sum < 0) {
-          document.getElementById('avgTimeChange').className = 'stat-value improvement';
-        } else if (sum > 0) {
-          document.getElementById('avgTimeChange').className = 'stat-value regression';
-        }
-      }
-
-      document.getElementById('avgTimeChange').innerHTML = avgTimeChange;
-
-      const lastItem = data[data.length - 1];
-      document.getElementById('lastUpdated').textContent = formatDate(lastItem.timestamp);
-
-      const recentData = data.slice(-5);
-      if (recentData.length >= 3) {
-        const trend = analyzeTrend(recentData.map(item => parseFloat(item.metrics.pr_time)));
-        let trendText = '';
-        let trendClass = '';
-
-        if (trend < -0.1) {
-          trendText = 'Improving ↓';
-          trendClass = 'improvement';
-        } else if (trend > 0.1) {
-          trendText = 'Degrading ↑';
-          trendClass = 'regression';
-        } else {
-          trendText = 'Stable →';
-          trendClass = 'no-change';
-        }
-
-        document.getElementById('trend').textContent = trendText;
-        document.getElementById('trend').className = `stat-value ${trendClass}`;
-      }
-    }
-
-    function analyzeTrend(values) {
-      if (values.length < 2) return 0;
-
-      const n = values.length;
-      const indices = Array.from({length: n}, (_, i) => i);
-
-      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-
-      for (let i = 0; i < n; i++) {
-        sumX += indices[i];
-        sumY += values[i];
-        sumXY += indices[i] * values[i];
-        sumX2 += indices[i] * indices[i];
-      }
-
-      const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-      const avgY = sumY / n;
-
-      return slope / avgY;
-    }
-
-    function updateRecentChangesTable(data) {
-      const tableBody = document.getElementById('recentChanges');
-      tableBody.innerHTML = '';
-
-      data.forEach(item => {
-        const row = document.createElement('tr');
-
-        const dateCell = document.createElement('td');
-        dateCell.textContent = formatDate(item.timestamp);
-        row.appendChild(dateCell);
-
-        const prCell = document.createElement('td');
-        const prTitle = item.pr.title || 'Unknown PR';
-        prCell.innerHTML = `<a href="${item.pr.url}" target="_blank">#${item.pr.number}</a>: ${prTitle.substring(0, 50)}${prTitle.length > 50 ? '...' : ''}`;
-        row.appendChild(prCell);
-
-        const timeCell = document.createElement('td');
-        timeCell.innerHTML = formatPercentage(item.metrics.time_pct);
-        row.appendChild(timeCell);
-
-        const memCell = document.createElement('td');
-        let memChange = 'N/A';
-
-        if (item.metrics.pr_memory && item.metrics.master_memory) {
-          const prMem = parseFloat(item.metrics.pr_memory);
-          const masterMem = parseFloat(item.metrics.master_memory);
-
-          if (!isNaN(prMem) && !isNaN(masterMem) && masterMem !== 0) {
-            const memPct = ((prMem / masterMem) - 1) * 100;
-            memChange = `${memPct > 0 ? '+' : ''}${memPct.toFixed(2)}%`;
-          }
-        }
-
-        memCell.innerHTML = formatPercentage(memChange);
-        row.appendChild(memCell);
-
-        tableBody.appendChild(row);
-      });
-    }
-
-    // Add event listeners to filter buttons
-    //test
-    document.querySelectorAll('.time-filter .btn').forEach(button => {
-      button.addEventListener('click', function() {
-        document.querySelectorAll('.time-filter .btn').forEach(btn => {
-          btn.classList.remove('active');
-        });
-        this.classList.add('active');
-
-        const period = this.getAttribute('data-period');
-        fetchData().then(data => initCharts(data, period === 'all' ? 'all' : parseInt(period)));
-      });
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-      fetchData().then(data => {
-        if (data.length > 0) {
-          initCharts(data, 30);
-        }
-      });
-    });
-  </script>
+    </script>
 </body>
 </html>
