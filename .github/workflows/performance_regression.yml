@@ -75,12 +75,12 @@ jobs:
             echo "- PR Version: $pr_version"
             echo "- Master Version: $master_version"
             echo '```diff'
-            xxd "$pr_compiler" | diff -u - <(xxd "$master_compiler") | head -50 || true
+            xxd "$pr_compiler" | diff -u - <(xxd "$master_compiler") | head -50 | sed 's/`/‛/g; s/$/ /' || true
             echo '```'
           } > diff_details.txt
 
           # Use GitHub's multiline output syntax
-          echo "DIFF_DETAILS<<EOF" >> $GITHUB_OUTPUT
+          echo "DIFF_DETAILS<<'EOF'" >> $GITHUB_OUTPUT
           cat diff_details.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         fi
@@ -430,13 +430,13 @@ jobs:
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
           # Extract and format benchmark data using our script
-          node .github/scripts/process_benchmark.js \
-            benchmark-phobos/benchmark_results.json \
-            "$PR_NUMBER" \
-            "${{ github.event.pull_request.title }}" \
-            "${{ github.event.pull_request.html_url }}" \
-            "${{ github.sha }}" \
-            "benchmark_data/pr_${PR_NUMBER}_${TIMESTAMP}.json"
+          node pr-dmd/.github/scripts/process_benchmark.js \
+          benchmark-phobos/benchmark_results.json \
+          "$PR_NUMBER" \
+          "${{ github.event.pull_request.title }}" \
+          "${{ github.event.pull_request.html_url }}" \
+          "${{ github.sha }}" \
+          "benchmark_data/pr_${PR_NUMBER}_${TIMESTAMP}.json"
 
           # Debug log
           echo "Created benchmark data file: pr_${PR_NUMBER}_${TIMESTAMP}.json"
