@@ -156,7 +156,20 @@ jobs:
         uses: seanmiddleditch/gha-setup-vsdevenv@v4
         with:
           arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
+      - name: 'macOS arm64: Run arm64 smoke test'
+        if: matrix.os == 'macos-14'
+        run: |
+          set -uexo pipefail
+
+          cat >hello.d <<EOF
+          version (AArch64) {} else static assert(0);
+          extern(C) int puts(const(char)* s);
+          extern(C) int main() { puts("Hello world from native arm64!"); return 0; }
+          EOF
+
+          generated/osx/release/64/dmd -betterC -arm -run hello.d
       - name: Test dmd
+        if: success() || failure()
         run: ci/run.sh test_dmd
       - name: Test druntime
         if: '!matrix.coverage && (success() || failure())'
