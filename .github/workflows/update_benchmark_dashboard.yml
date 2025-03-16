@@ -9,7 +9,7 @@ on:
 jobs:
   update-dashboard:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{github.event.workflow_run.conclusion == 'success'}}
     permissions:
       contents: write
     steps:
@@ -41,13 +41,18 @@ jobs:
           # Create directories if they don't exist
           mkdir -p gh-pages-repo/benchmark_data
 
+          # Initialize history.json if it doesn't exist
+          if [ ! -f "gh-pages-repo/benchmark_data/history.json" ]; then
+            echo "[]" > gh-pages-repo/benchmark_data/history.json
+            echo "Created new history.json file"
+          fi
+
           # Merge new data with existing history
           if [ -d "benchmark_data" ]; then
             # Process all PR JSON files
             for file in benchmark_data/pr_*.json; do
               if [ -f "$file" ]; then
                 echo "Processing $file"
-
                 # Validate JSON syntax
                 if ! jq empty "$file" 2>/dev/null; then
                   echo "Skipping invalid JSON file: $file"
@@ -56,7 +61,7 @@ jobs:
 
                 # Update history.json
                 jq --slurpfile newEntry "$file" \
-                  '. += $newEntry' gh-pages-repo/benchmark_data/history.json > tmp.json
+                   '.+=$newEntry' gh-pages-repo/benchmark_data/history.json > tmp.json
                 mv tmp.json gh-pages-repo/benchmark_data/history.json
 
                 # Also copy individual PR file
@@ -64,25 +69,34 @@ jobs:
               fi
             done
 
+            # Also copy the latest results file if it exists
+            if [ -f "benchmark_data/latest_results.json" ]; then
+              cp "benchmark_data/latest_results.json" gh-pages-repo/benchmark_data/
+            fi
+
             # Sort history by timestamp
             jq 'sort_by(.timestamp)' gh-pages-repo/benchmark_data/history.json > tmp.json
             mv tmp.json gh-pages-repo/benchmark_data/history.json
           fi
 
           # Copy latest dashboard HTML
-          cp ../source-repo/dashboard.html gh-pages-repo/
+          cp source-repo/dashboard.html gh-pages-repo/
+
+          # Debug output
+          echo "Content of gh-pages-repo/benchmark_data:"
+          ls -la gh-pages-repo/benchmark_data/
 
       - name: Commit and push changes
         run: |
           cd gh-pages-repo
-          git add benchmark_data/ *.html
+          git add benchmark_data/*.json dashboard.html
 
           # Check for changes using git status
           if [ -n "$(git status --porcelain)" ]; then
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git commit -m "Update benchmark data [skip ci]"
-            git push origin HEAD:gh-pages --force
+            git push origin HEAD:gh-pages
             echo "Changes pushed successfully"
           else
             echo "No changes to commit"

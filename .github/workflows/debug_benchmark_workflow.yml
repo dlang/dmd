@@ -1,0 +1,36 @@
+name: Debug Benchmark Data
+on:
+  workflow_dispatch:
+
+jobs:
+  debug-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Check benchmark data
+        run: |
+          echo "Checking benchmark data directory..."
+          ls -la benchmark_data/ || echo "Directory not found"
+
+          echo "Checking history.json..."
+          if [ -f "benchmark_data/history.json" ]; then
+            echo "File exists, checking content:"
+            cat benchmark_data/history.json | jq length
+            echo "First few entries:"
+            cat benchmark_data/history.json | jq '.[0:2]'
+          else
+            echo "history.json not found"
+          fi
+
+          echo "Checking dashboard.html..."
+          if [ -f "dashboard.html" ]; then
+            echo "Dashboard exists"
+          else
+            echo "dashboard.html not found"
+          fi

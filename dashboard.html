@@ -171,38 +171,45 @@
 
             let data = [];
             try {
+            console.log('Fetching benchmark data...');
             const response = await fetch('./benchmark_data/history.json');
+            console.log('Response status:', response.status);
+
             if (response.ok) {
-                data = await response.json();
-                console.log('Loaded history data:', data);
+                const text = await response.text();
+                console.log('Response text length:', text.length);
+                try {
+                data = JSON.parse(text);
+                console.log('Parsed data length:', data.length);
+                } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                document.getElementById('error').textContent = 'Error parsing JSON data. Details: ' + parseError.message;
+                document.getElementById('error').style.display = 'block';
+                }
             } else {
-                console.log('No history data found, using empty dataset');
-                // Create an empty data array
-                data = [];
+                console.error('Failed to fetch data:', response.status, response.statusText);
+                document.getElementById('error').textContent = `Failed to load data: ${response.status} ${response.statusText}`;
+                document.getElementById('error').style.display = 'block';
             }
-            } catch (error) {
-            console.log('Error fetching data:', error);
-            // Return empty array but don't show error
-            data = [];
-            }
-
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('dashboard-content').style.display = 'block';
-
-            if (data.length === 0) {
-            // Show a friendly message when no data is available
-            document.getElementById('error').textContent =
-                'No performance data available yet. Data will appear after PRs are processed.';
+            } catch (fetchError) {
+            console.error('Fetch error:', fetchError);
+            document.getElementById('error').textContent = 'Network error loading data: ' + fetchError.message;
             document.getElementById('error').style.display = 'block';
             }
 
+            document.getElementById('loading').style.display = 'none';
+            if (data.length > 0) {
+            document.getElementById('dashboard-content').style.display = 'block';
+            }
             return data;
         } catch (error) {
+            console.error('General error:', error);
             document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').textContent = 'Error processing data: ' + error.message;
             document.getElementById('error').style.display = 'block';
             return [];
         }
-        }
+    }
 
     function formatDate(dateString) {
       const date = new Date(dateString);
