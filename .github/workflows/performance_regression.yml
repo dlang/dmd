@@ -68,21 +68,25 @@ jobs:
           # Generate diff result
           echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)" >> $GITHUB_OUTPUT
 
-          # Generate diff details - write to a file first
+          # Generate diff details with error handling
           {
             echo "**Binary Differences:**"
             echo "- PR Size: $pr_size bytes | Master Size: $master_size bytes"
             echo "- PR Version: $pr_version"
             echo "- Master Version: $master_version"
             echo '```diff'
-            xxd "$pr_compiler" | diff -u - <(xxd "$master_compiler") | head -50 | sed 's/`/‛/g; s/$/ /' || true
+            # Handle broken pipe errors and sanitize output
+            trap '' PIPE  # Ignore SIGPIPE errors
+            xxd "$pr_compiler" | diff -u - <(xxd "$master_compiler") | \
+              head -50 | \
+              sed -e 's/`/‛/g' -e 's/\$/\\$/g' -e 's/\\/\\\\/g' -e 's/^/ /' || true
             echo '```'
           } > diff_details.txt
 
-          # Use GitHub's multiline output syntax
-          echo "DIFF_DETAILS<<'EOF'" >> $GITHUB_OUTPUT
-          cat diff_details.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Use unique EOF marker and base64 encoding
+          echo "DIFF_DETAILS<<EOF_DIFF_$(openssl rand -hex 4)" >> $GITHUB_OUTPUT
+          cat diff_details.txt | base64 >> $GITHUB_OUTPUT
+          echo "EOF_DIFF_$(openssl rand -hex 4)" >> $GITHUB_OUTPUT
         fi
 
     - name: Checkout benchmark project
