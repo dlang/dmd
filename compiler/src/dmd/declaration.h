@@ -37,6 +37,8 @@ namespace dmd
     bool checkClosure(FuncDeclaration* fd);
     MATCH leastAsSpecialized(FuncDeclaration *f, FuncDeclaration *g, Identifiers *names);
     PURE isPure(FuncDeclaration *f);
+    FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
+    FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
 }
 
 //enum STC : ulong from astenums.d:
@@ -729,9 +731,6 @@ public:
     virtual FuncDeclaration *toAliasFunc() { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
-
-FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
-FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
 
 class FuncAliasDeclaration final : public FuncDeclaration
 {
