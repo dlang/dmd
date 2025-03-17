@@ -292,7 +292,7 @@ int isscaledindex(tym_t ty, elem* e)
 @trusted
 void logexp(ref CodeBuilder cdb, elem* e, uint jcond, FL fltarg, code* targ)
 {
-    //printf("logexp(e = %p, jcond = %d)\n", e, jcond); elem_print(e);
+    //printf("logexp(e: %p jcond: %d fltarg: %d targ: %p)\n", e, jcond, fltarg == FL.code, targ); elem_print(e);
     if (tybasic(e.Ety) == TYnoreturn)
     {
         con_t regconsave = cgstate.regcon;
