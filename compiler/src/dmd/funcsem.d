@@ -1713,8 +1713,14 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             OutBuffer buf;
             buf.argExpTypesToCBuffer(fargs);
             if (fd.isCtorDeclaration())
-                .error(loc, "none of the overloads of `%s` can construct a %sobject with argument types `(%s)`",
-                    fd.toChars(), thisBuf.peekChars(), buf.peekChars());
+            {
+                if (tthis.mod & MODFlags.immutable_)
+                    .error(loc, "none of the overloads of `%s` can construct an immutable object with argument types `(%s)`. Expected `immutable(%s)`",
+                        fd.toChars(), buf.peekChars(), buf.peekChars());
+                else
+                    .error(loc, "none of the overloads of `%s` can construct a %sobject with argument types `(%s)`",
+                        fd.toChars(), thisBuf.peekChars(), buf.peekChars());
+            }
             else
                 .error(loc, "none of the overloads of `%s` are callable using a %sobject with argument types `(%s)`",
                     fd.toChars(), thisBuf.peekChars(), buf.peekChars());

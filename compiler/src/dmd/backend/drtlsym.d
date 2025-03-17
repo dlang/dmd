@@ -109,7 +109,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.NEWARRAYIT:             symbolz(ps,FL.func,FREGSAVED,"_d_newarrayiT", 0, t); break;
         case RTLSYM.NEWITEMT:               symbolz(ps,FL.func,FREGSAVED,"_d_newitemT", 0, t); break;
         case RTLSYM.NEWITEMIT:              symbolz(ps,FL.func,FREGSAVED,"_d_newitemiT", 0, t); break;
-        case RTLSYM.NEWARRAYMTX:            symbolz(ps,FL.func,FREGSAVED,"_d_newarraymTX", 0, t); break;
         case RTLSYM.NEWARRAYMITX:           symbolz(ps,FL.func,FREGSAVED,"_d_newarraymiTX", 0, t); break;
         case RTLSYM.ARRAYLITERALTX:         symbolz(ps,FL.func,FREGSAVED,"_d_arrayliteralTX", 0, t); break;
         case RTLSYM.ASSOCARRAYLITERALTX:    symbolz(ps,FL.func,FREGSAVED,"_d_assocarrayliteralTX", 0, t); break;
