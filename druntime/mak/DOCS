@@ -548,7 +548,7 @@ DOCS=\
 	$(DOCDIR)\rt_deh_win32.html \
 	$(DOCDIR)\rt_deh_win64_posix.html \
 	$(DOCDIR)\rt_ehalloc.html \
-	$(DOCDIR)\rt_invariant.html \
+	$(DOCDIR)\rt_invariant_.html \
 	$(DOCDIR)\rt_llmath.html \
 	$(DOCDIR)\rt_memory.html \
 	$(DOCDIR)\rt_memset.html \
