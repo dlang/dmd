@@ -1527,7 +1527,7 @@ void jmpaddr(code* c)
     {
         const op = c.Iop;
         //printf("%08X ", c.Iop); disassemble(c.Iop);
-        if (isBranch(op) && c.IFL2 == FL.code) // or CALL?
+        if (isBranch(op) && c.IFL1 == FL.code) // or CALL?
         {
             ci = code_next(c);
             ctarg = c.IEV1.Vcode;  /* target code                  */
