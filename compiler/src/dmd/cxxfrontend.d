@@ -16,6 +16,7 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.common.outbuffer : OutBuffer;
 import dmd.dclass : ClassDeclaration;
+import dmd.declaration : TypeInfoDeclaration;
 import dmd.denum : EnumDeclaration;
 import dmd.dmodule /*: Module*/;
 import dmd.dscope : Scope;
@@ -726,6 +727,18 @@ bool builtinTypeInfo(Type t)
 {
     import dmd.typinf;
     return dmd.typinf.builtinTypeInfo(t);
+}
+
+Type makeNakedAssociativeArray(TypeAArray t)
+{
+    import dmd.typinf;
+    return dmd.typinf.makeNakedAssociativeArray(t);
+}
+
+TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
+{
+    import dmd.typinf;
+    return dmd.typinf.getTypeInfoAssocArrayDeclaration(t, sc);
 }
 
 version (IN_LLVM)
