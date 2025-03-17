@@ -1577,7 +1577,8 @@ $(H3 $(LNAME2 ref-params, Ref and Out Parameters))
         $(RELATIVE_LINK2 return-ref-parameters, Return Ref Parameters.))
 
         $(P An `out` parameter is similar to a `ref` parameter, except it is initialized
-        with `x.init` upon function invocation.)
+        by $(DDSUBLINK spec/property, init-vs-construction, default construction) upon
+        function invocation.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
