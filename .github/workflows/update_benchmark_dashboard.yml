@@ -114,3 +114,12 @@ jobs:
           else
             echo "No changes to commit"
           fi
+
+      - name: Validate JSON data
+        run: |
+          for file in benchmark_data/*.json; do
+            if ! jq -e '.pr.number and .metrics.pr_time' "$file"; then
+              echo "::error::Invalid JSON structure in $file"
+              exit 1
+            fi
+          done

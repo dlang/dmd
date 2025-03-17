@@ -35,18 +35,18 @@ try {
   result = {
     timestamp: new Date().toISOString(),
     pr: {
-      number: prNumber,
+      number: parseInt(prNumber),
       title: prTitle,
       url: prUrl,
       commit: commitSha
     },
     metrics: {
-      pr_time: prTimeAvg,
-      master_time: masterTimeAvg,
-      pr_memory: prMemAvg,
-      master_memory: masterMemAvg,
-      time_diff: timeDiff,
-      time_pct: timePct
+        pr_time: parseFloat(prTimeAvg),
+        master_time: parseFloat(masterTimeAvg),
+        pr_memory: prMemAvg === 'N/A' ? null : parseFloat(prMemAvg),
+        master_memory: masterMemAvg === 'N/A' ? null : parseFloat(masterMemAvg),
+        time_diff: parseFloat(timeDiff),
+        time_pct: timePct
     }
   }; // Removed extra closing parenthesis and semicolon here
 
