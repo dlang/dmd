@@ -8,51 +8,52 @@ const path = require('path');
 const outputPath = path.resolve(process.argv[7]);
 
 if (!fs.existsSync(benchmarkFile)) {
-    process.exit(1);
+  process.exit(1);
 }
 
 const benchmarkResults = JSON.parse(fs.readFileSync(benchmarkFile, 'utf8'));
+let result; // Declare result outside try block
 
 try {
-    const prResults = benchmarkResults.results[0];
-    const masterResults = benchmarkResults.results[1];
+  const prResults = benchmarkResults.results[0];
+  const masterResults = benchmarkResults.results[1];
 
-    const prTimeAvg = prResults.mean.toFixed(3);
-    const masterTimeAvg = masterResults.mean.toFixed(3);
-    const prMemAvg = (prResults.max_rss ? (prResults.max_rss.reduce((a, b) => a + b, 0) / prResults.max_rss.length / 1024).toFixed(1) : 'N/A');
-    const masterMemAvg = (masterResults.max_rss ? (masterResults.max_rss.reduce((a, b) => a + b, 0) / masterResults.max_rss.length / 1024).toFixed(1) : 'N/A');
+  const prTimeAvg = prResults.mean.toFixed(3);
+  const masterTimeAvg = masterResults.mean.toFixed(3);
 
-    const timeDiff = (prResults.mean - masterResults.mean).toFixed(3);
-    const timePct = ((prResults.mean / masterResults.mean - 1) * 100).toFixed(2) + '%';
+  const prMemAvg = prResults.max_rss
+    ? (prResults.max_rss.reduce((a, b) => a + b, 0) / prResults.max_rss.length / 1024).toFixed(1)
+    : 'N/A';
 
-    const result = {
-        timestamp: new Date().toISOString(),
-        pr: {
-            number: prNumber,
-            title: prTitle,
-            url: prUrl,
-            commit: commitSha
-        },
-        metrics: {
-            pr_time: prTimeAvg,
-            master_time: masterTimeAvg,
-            pr_memory: prMemAvg,
-            master_memory: masterMemAvg,
-            time_diff: timeDiff,
-            time_pct: timePct
-        }
-    };
+  const masterMemAvg = masterResults.max_rss
+    ? (masterResults.max_rss.reduce((a, b) => a + b, 0) / masterResults.max_rss.length / 1024).toFixed(1)
+    : 'N/A';
 
-    console.log(JSON.stringify(result, null, 2));
+  const timeDiff = (prResults.mean - masterResults.mean).toFixed(3);
+  const timePct = ((prResults.mean / masterResults.mean - 1) * 100).toFixed(2) + '%';
 
-    if (process.argv[7]) {
-        fs.writeFileSync(process.argv[7], JSON.stringify(result, null, 2));
+  result = {
+    timestamp: new Date().toISOString(),
+    pr: {
+      number: prNumber,
+      title: prTitle,
+      url: prUrl,
+      commit: commitSha
+    },
+    metrics: {
+      pr_time: prTimeAvg,
+      master_time: masterTimeAvg,
+      pr_memory: prMemAvg,
+      master_memory: masterMemAvg,
+      time_diff: timeDiff,
+      time_pct: timePct
     }
+  }; // Removed extra closing parenthesis and semicolon here
+
 } catch (error) {
-    console.error("Error processing benchmark data:", error);
-    process.exit(1);
+  process.exit(1);
 }
 
-if (process.argv[7]) {
-    fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
+if (outputPath) {
+  fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
 }
