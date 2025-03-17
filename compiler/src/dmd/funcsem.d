@@ -1002,21 +1002,21 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
                                     auto p1 = params1[i];
                                     auto p2 = params2[i];
 
-                                    // Check for scope difference
-                                    if ((p1.storageClass & STC.scope_) != (p2.storageClass & STC.scope_))
+                                    if ((p1.storageClass & STC.scope_) == (p2.storageClass & STC.scope_))
+                                        continue;
+
+                                    if (!(p2.storageClass & STC.scope_))
+                                        continue;
+
+                                    if (!hasScopeDifference)
                                     {
-                                        if (p2.storageClass & STC.scope_)
-                                        {
-                                            if (!hasScopeDifference)
-                                            {
-                                                // Intended signature
-                                                errorSupplemental(funcdecl.loc, "Did you intend to override:");
-                                                errorSupplemental(funcdecl.loc, "`%s`", buf1.peekChars());
-                                                hasScopeDifference = true;
-                                            }
-                                            errorSupplemental(funcdecl.loc, "Parameter %d is missing `scope`", cast(int)(i + 1));
-                                        }
+                                        // Intended signature
+                                        errorSupplemental(funcdecl.loc, "Did you intend to override:");
+                                        errorSupplemental(funcdecl.loc, "`%s`", buf1.peekChars());
+                                        hasScopeDifference = true;
                                     }
+                                    errorSupplemental(funcdecl.loc, "Parameter %d is missing `scope`",
+                                    cast(int)(i + 1));
                                 }
                             }
                         }
