@@ -422,7 +422,7 @@ jobs:
           }
 
     - name: Store benchmark data
-      # Always run this step regardless of previous steps' success
+    # Always run this step regardless of previous steps' success
       if: always()
       run: |
         # Create directory structure explicitly
@@ -430,7 +430,7 @@ jobs:
 
         # Save raw benchmark data
         if [ -f benchmark-phobos/benchmark_results.json ]; then
-          cp benchmark-phobos/benchmark_results.json benchmark_data/latest_results.json
+          cp benchmark-phobos/benchmark_results.json gh-pages-repo/benchmark_data/latest_results.json
 
           # Create PR-specific data
           PR_NUMBER="${{ github.event.pull_request.number }}"
@@ -438,24 +438,23 @@ jobs:
 
           # Extract and format benchmark data using our script
           node "$GITHUB_WORKSPACE/pr-dmd/.github/scripts/process_benchmark.js" \
-          benchmark-phobos/benchmark_results.json \
-          "$PR_NUMBER" \
-          "${{github.event.pull_request.title}}" \
-          "${{github.event.pull_request.html_url}}" \
-          "${{github.sha}}" \
-          "$GITHUB_WORKSPACE/benchmark_data/pr_${PR_NUMBER}_${TIMESTAMP}.json"
+            benchmark-phobos/benchmark_results.json \
+            "$PR_NUMBER" \
+            "${{github.event.pull_request.title}}" \
+            "${{github.event.pull_request.html_url}}" \
+            "${{github.sha}}" \
+            "$GITHUB_WORKSPACE/gh-pages-repo/benchmark_data/pr_${PR_NUMBER}_${TIMESTAMP}.json"
 
           # Debug log
           echo "Created benchmark data file: pr_${PR_NUMBER}_${TIMESTAMP}.json"
-          ls -la benchmark_data/
+          ls -la gh-pages-repo/benchmark_data/
         else
           echo "No benchmark results found to store"
         fi
 
         # Create an empty history.json file if none exists
-        # This ensures the dashboard can start with empty data
-        if [ ! -f benchmark_data/history.json ]; then
-          echo "[]" > benchmark_data/history.json
+        if [ ! -f gh-pages-repo/benchmark_data/history.json ]; then
+          echo "[]" > gh-pages-repo/benchmark_data/history.json
           echo "Created empty history.json file"
         fi
 
@@ -465,6 +464,6 @@ jobs:
       with:
         name: benchmark_data
         path: |
-          benchmark_data/*
-          !benchmark_data/history.json  # Exclude history.json from artifact
+          gh-pages-repo/benchmark_data/*
+          !gh-pages-repo/benchmark_data/history.json  # Exclude history.json from artifact
         retention-days: 30
