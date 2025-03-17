@@ -1319,7 +1319,21 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             // Allow identifier, template instantiation, or function call
             // for `@Argument` (single UDA) form.
-            AST.Expression exp = parsePrimaryExp();
+            AST.Expression exp;
+
+            {
+                const loc = token.loc;
+                Identifier id = token.ident;
+                nextToken();
+                if (token.value == TOK.not)
+                {
+                    auto tempinst = new AST.TemplateInstance(loc, id, parseTemplateArguments());
+                    exp = new AST.ScopeExp(loc, tempinst);
+                }
+                else
+                    exp = new AST.IdentifierExp(loc, id);
+            }
+
             if (token.value == TOK.leftParenthesis)
             {
                 const loc = token.loc;
@@ -1420,6 +1434,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             case TOK.scope_:
                 stc = STC.scope_;
+                break;
+
+            case TOK.rvalue:
+                stc = STC.rvalue;
                 break;
 
             case TOK.at:

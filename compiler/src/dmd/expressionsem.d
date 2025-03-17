@@ -5893,6 +5893,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("CallExp::semantic() %s\n", exp.toChars());
         }
 
+        scope (exit)
+        {
+            if (TypeFunction tf = exp.f ? cast(TypeFunction)exp.f.type : null)
+            {
+                result.rvalue = tf.isRvalue;
+                if (tf.isRvalue && !tf.isRef)
+                {
+                    error(exp.f.loc, "`__rvalue` only valid on functions that return by `ref`");
+                    setError();
+                }
+            }
+        }
+
         Objects* tiargs = null; // initial list of template arguments
         Expression ethis = null;
         Type tthis = null;
@@ -10839,7 +10852,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 return;
                             }
                         }
-                        else if (sd.hasMoveCtor && !e2x.isCallExp() && !e2x.isStructLiteralExp())
+                        else if (sd.hasMoveCtor && (!e2x.isCallExp() || e2x.rvalue) && !e2x.isStructLiteralExp())
                         {
                             // #move
                             /* The !e2x.isCallExp() is because it is already an rvalue
@@ -17658,4 +17671,144 @@ extern(D) void lowerArrayAggregate(StaticForeach sfe, Scope* sc)
     sfe.aggrfe.aggr = sfe.aggrfe.aggr.expressionSemantic(sc);
     sfe.aggrfe.aggr = sfe.aggrfe.aggr.optimize(WANTvalue);
     sfe.aggrfe.aggr = sfe.aggrfe.aggr.ctfeInterpret();
+}
+
+extern(C++) int include(Condition c, Scope* sc)
+{
+    scope v = new IncludeVisitor(sc);
+    c.accept(v);
+    return v.result;
+}
+
+private extern(C++) class IncludeVisitor : Visitor {
+    alias visit = Visitor.visit;
+
+    Scope *sc;
+    int result;
+
+    this(Scope* sc)
+    {
+        this.sc = sc;
+    }
+
+    override void visit(DebugCondition dc)
+    {
+        //printf("DebugCondition::include() level = %d, debuglevel = %d\n", level, global.params.debuglevel);
+        if (dc.inc != Include.notComputed)
+        {
+            result = dc.inc == Include.yes;
+            return;
+        }
+        dc.inc = Include.no;
+        bool definedInModule = false;
+        if (dc.ident)
+        {
+            if (dc.mod.debugids && findCondition(*dc.mod.debugids, dc.ident))
+            {
+                dc.inc = Include.yes;
+                definedInModule = true;
+            }
+            else if (findCondition(global.debugids, dc.ident))
+                dc.inc = Include.yes;
+            else
+            {
+                if (!dc.mod.debugidsNot)
+                    dc.mod.debugidsNot = new Identifiers();
+                dc.mod.debugidsNot.push(dc.ident);
+            }
+        }
+        else if (global.params.debugEnabled)
+            dc.inc = Include.yes;
+
+        if (!definedInModule)
+            printDepsConditional(sc, dc, "depsDebug ");
+        result = (dc.inc == Include.yes);
+    }
+
+    override void visit(VersionCondition vc)
+    {
+        //printf("VersionCondition::include() level = %d, versionlevel = %d\n", level, global.params.versionlevel);
+        //if (ident) printf("\tident = '%s'\n", ident.toChars());
+        if (vc.inc != Include.notComputed)
+        {
+            result = vc.inc == Include.yes;
+            return;
+        }
+
+        vc.inc = Include.no;
+        bool definedInModule = false;
+        if (vc.ident)
+        {
+            if (vc.mod.versionids && findCondition(*vc.mod.versionids, vc.ident))
+            {
+                vc.inc = Include.yes;
+                definedInModule = true;
+            }
+            else if (findCondition(global.versionids, vc.ident))
+                vc.inc = Include.yes;
+            else
+            {
+                if (!vc.mod.versionidsNot)
+                    vc.mod.versionidsNot = new Identifiers();
+                vc.mod.versionidsNot.push(vc.ident);
+            }
+        }
+        if (!definedInModule &&
+            (!vc.ident || (!vc.isReserved(vc.ident.toString()) && vc.ident != Id._unittest && vc.ident != Id._assert)))
+        {
+            printDepsConditional(sc, vc, "depsVersion ");
+        }
+        result = (vc.inc == Include.yes);
+    }
+
+    override void visit(StaticIfCondition sic)
+    {
+        // printf("StaticIfCondition::include(sc = %p) this=%p inc = %d\n", sc, this, inc);
+
+        int errorReturn()
+        {
+            if (!global.gag)
+                sic.inc = Include.no; // so we don't see the error message again
+            return 0;
+        }
+
+        if (sic.inc != Include.notComputed)
+        {
+            result = sic.inc == Include.yes;
+            return;
+        }
+
+        if (!sc)
+        {
+            error(sic.loc, "`static if` conditional cannot be at global scope");
+            sic.inc = Include.no;
+            result = 0;
+            return;
+        }
+
+        import dmd.staticcond;
+        bool errors;
+
+        bool local_result = evalStaticCondition(sc, sic.exp, sic.exp, errors);
+
+        // Prevent repeated condition evaluation.
+        // See: fail_compilation/fail7815.d
+        if (sic.inc != Include.notComputed)
+        {
+            result = (sic.inc == Include.yes);
+            return;
+        }
+
+        if (errors)
+        {
+            result = errorReturn();
+            return;
+        }
+
+        if (local_result)
+            sic.inc = Include.yes;
+        else
+            sic.inc = Include.no;
+        result = (sic.inc == Include.yes);
+    }
 }

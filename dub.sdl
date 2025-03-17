@@ -103,12 +103,15 @@ subPackage {
     console,\
     entity,\
     errors,\
+    errorsink,\
     file_manager,\
     globals,\
     id,\
     identifier,\
     lexer,\
+    location,\
     parse,\
+    sarif,\
     tokens,\
     utf,\
     utils,\

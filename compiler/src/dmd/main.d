@@ -376,6 +376,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Module._init();
     Expression._init();
     Objc._init();
+    Loc._init();
 
     reconcileLinkRunLib(params, files.length, target.obj_ext);
     version(CRuntime_Microsoft)

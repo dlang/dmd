@@ -152,6 +152,7 @@ void initDMD(
     Module._init();
     Expression._init();
     Objc._init();
+    Loc._init();
     EscapeState.reset();
 
     addDefaultVersionIdentifiers(global.params, target);

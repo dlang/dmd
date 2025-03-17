@@ -7533,12 +7533,12 @@ private extern(C++) class NewScopeVisitor : Visitor
 
 extern(C++) Dsymbols* include(Dsymbol d, Scope* sc)
 {
-    scope icv = new IncludeVisitor(sc);
+    scope icv = new ConditionIncludeVisitor(sc);
     d.accept(icv);
     return icv.symbols;
 }
 
-extern(C++) class IncludeVisitor : Visitor
+extern(C++) class ConditionIncludeVisitor : Visitor
 {
     alias visit = typeof(super).visit;
     Scope* sc;
@@ -7570,7 +7570,7 @@ extern(C++) class IncludeVisitor : Visitor
             return;
         }
         assert(cdc.condition);
-        symbols = cdc.condition.include(cdc._scope ? cdc._scope : sc) ? cdc.decl : cdc.elsedecl;
+        symbols = dmd.expressionsem.include(cdc.condition, cdc._scope ? cdc._scope : sc) ? cdc.decl : cdc.elsedecl;
     }
 
     override void visit(StaticIfDeclaration sif)
@@ -8056,7 +8056,7 @@ private extern(C++) class OneMemberVisitor : Visitor
         //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition.inc);
         if (cd.condition.inc != Include.notComputed)
         {
-            Dsymbols* d = cd.condition.include(null) ? cd.decl : cd.elsedecl;
+            Dsymbols* d = dmd.expressionsem.include(cd.condition, null) ? cd.decl : cd.elsedecl;
             result = Dsymbol.oneMembers(d, *ps, ident);
         }
         else

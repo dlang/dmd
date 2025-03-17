@@ -264,7 +264,15 @@ struct INSTR
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#control                          */
 
     /* Conditional branch (immediate)
-     * Miscellaneous branch (immediate)
+     * B.<cond> <label> https://www.scs.stanford.edu/~zyedidia/arm64/b_cond.html
+     */
+    static uint b_cond(int imm19, uint cond) { return (0x54 << 24) | ((imm19 & 0x7FFFF) << 5) | cond; }
+
+    /* BC.<cond> <label> https://www.scs.stanford.edu/~zyedidia/arm64/bc_cond.html
+     */
+    static uint bc_cond(int imm19, uint cond) { return (0x54 << 24) | (1 << 4) | ((imm19 & 0x7FFFF) << 5) | cond; }
+
+    /* Miscellaneous branch (immediate)
      */
 
     /* Exception generation http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#exception
@@ -1173,7 +1181,7 @@ struct INSTR
         // STRH Rt,[Xn,#offset]
         uint size = 1;
         uint imm12 = offset & 0xFFF;
-        return ldst_pos(0, 0, 0, imm12, Rn, Rt);
+        return ldst_pos(1, 0, 0, imm12, Rn, Rt);
     }
 
     /* STR (immediate) Unsigned offset

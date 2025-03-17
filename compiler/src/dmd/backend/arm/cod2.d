@@ -183,7 +183,8 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
  */
 Extend tyToExtend(tym_t ty)
 {
-    assert(tyintegral(ty));
+    //debug printf("ty: %x\n", ty);
+    assert(tyintegral(ty) || ty == TYnptr);
     Extend extend;
     const sz = tysize(ty);
     with (Extend) switch (sz)
