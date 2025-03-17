@@ -1,4 +1,5 @@
 // EXTRA_CPP_SOURCES: cpp19179.cpp
+// CXXFLAGS(osx): -arch x86_64
 
 // https://issues.dlang.org/show_bug.cgi?id=19179
 

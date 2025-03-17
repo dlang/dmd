@@ -1,5 +1,6 @@
 // EXTRA_CPP_SOURCES: externmangle2.cpp
 // DISABLED: win
+// CXXFLAGS(osx): -arch x86_64
 
 extern(C++):
 

@@ -2,6 +2,7 @@
 // REQUIRED_ARGS: -extern-std=c++11
 // EXTRA_CPP_SOURCES: cpp11.cpp
 // CXXFLAGS(osx linux freebsd openbsd netbsd dragonflybsd solaris): -std=c++11
+// CXXFLAGS(osx): -std=c++11 -arch x86_64
 
 // Disabled on win32 because the compiler is too old
 
