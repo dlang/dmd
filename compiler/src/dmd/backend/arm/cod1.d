@@ -35,6 +35,7 @@ import dmd.backend.oper;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.arm.cod2 : tyToExtend;
 import dmd.backend.arm.cod3 : COND, genBranch, conditionCode, gentstreg;
 import dmd.backend.arm.instr;
 import dmd.backend.arm.cod3 : loadFloatRegConst;
@@ -1104,7 +1105,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
             }
             pcs.IEV1.Vsym = s;
             pcs.IEV1.Voffset = e.Voffset;
-            //pcs.Sextend = tyToExtend(ty);  only need to worry about this if pcs.index is set
+            pcs.Sextend = cast(ubyte)tyToExtend(ty);  // sign or zero extension
             if (sz == 1)
             {
                 s.Sflags |= GTbyte;
