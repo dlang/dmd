@@ -1,5 +1,6 @@
 // EXTRA_CPP_SOURCES: externmangle.cpp
 // REQUIRED_ARGS: -extern-std=c++11
+// CXXFLAGS(osx): -arch x86_64
 
 import core.stdc.config;
 import core.stdc.stdint;
