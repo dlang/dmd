@@ -718,3 +718,46 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
     assert(em.origValue);
     em.semanticRun = PASS.semanticdone;
 }
+
+/*********************************
+ * Perform semantic2 analysis on enum declaration `ed`.
+ */
+void enumSemantic2(Scope* sc, EnumDeclaration ed)
+{
+    if (ed.semanticRun >= PASS.semantic2done)
+        return;
+
+    if (ed.semanticRun < PASS.semanticdone)
+    {
+        error(ed.loc, "forward reference to enum `%s`", ed.toChars());
+        ed.semanticRun = PASS.semantic2done;
+        return;
+    }
+
+    assert(ed.semanticRun == PASS.semanticdone);
+    ed.semanticRun = PASS.semantic2;
+
+    if (!ed.members || !ed.symtab || ed.errors)
+    {
+        ed.semanticRun = PASS.semantic2done;
+        return;
+    }
+
+    if (sc)
+    {
+        sc = sc.startCTFE();
+        sc.setNoFree();
+    }
+
+    // Ensure all enum members have their values computed
+    foreach (s; *ed.members)
+    {
+        if (EnumMember em = s.isEnumMember())
+        {
+            if (em.semanticRun < PASS.semanticdone)
+                em.dsymbolSemantic(sc);
+        }
+    }
+
+    ed.semanticRun = PASS.semantic2done;
+}

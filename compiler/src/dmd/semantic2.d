@@ -692,6 +692,12 @@ private extern(C++) final class Semantic2Visitor : Visitor
         visit(cast(AggregateDeclaration) cd);
     }
 
+    override void visit(EnumDeclaration ed)
+    {
+        import dmd.enumsem : enumSemantic2;
+        enumSemantic2(sc, ed);
+    }
+
     override void visit(TupleDeclaration td)
     {
         td.foreachVar((s) { s.accept(this); });
