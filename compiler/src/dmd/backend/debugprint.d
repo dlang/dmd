@@ -175,7 +175,7 @@ const(char)* tym_str(tym_t ty)
 @trusted
 const(char)* bc_str(uint bc)
 {
-    __gshared const char[10][BC.max + 1] bcs =
+    __gshared const char[11][BC.max + 1] bcs =
         ["BC.unde  ","BC.goto_  ","BC.true  ","BC.ret   ","BC.retexp",
          "BC.exit  ","BC.asm_   ","BC.switch_","BC.ifthen","BC.jmptab",
          "BC.try_   ","BC.catch_ ","BC.jump  ",

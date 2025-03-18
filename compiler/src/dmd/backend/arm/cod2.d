@@ -470,8 +470,8 @@ void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
      */
     uint sf = sz == 8;
     cdb.gen1(INSTR.log_shift(sf, 1, 0, 1, Rm, 0, 31, Rd));
+    //pretregs &= ~mPSW;             // flags not set
 
-    pretregs &= ~mPSW;             // flags already set
     fixresult(cdb,e,retregs,pretregs);
 }
 
