@@ -66,7 +66,8 @@ nothrow:
     /*************************
      * Reset memory so this allocation can be re-used.
      */
-void reset() {
+void reset()
+{
     if (Lloop !is null)
         vec_free(Lloop);
     if (Lexit !is null)
@@ -79,6 +80,7 @@ void reset() {
     Livlist.reset();
     Lopeqlist.reset();
 }
+
 
     /***********************
      * Write loop.
