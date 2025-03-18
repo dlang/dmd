@@ -1027,7 +1027,6 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
          * assigning a larger array into a smaller one, such as:
          *    `a = [1, 2], a ~= [3]` => `[1, 2] ~= [3]` => `[1, 2] = [1, 2, 3]`
          */
-        
 
         // Disallow returning pointers to stack-allocated variables (bug 7876)
         if (!stopPointersEscaping(s.loc, e))
@@ -4996,7 +4995,6 @@ public:
             printf("%s CommaExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
 
-        
         // If it creates a variable, and there's no context for
         // the variable to be created in, we need to create one now.
         InterState istateComma;
