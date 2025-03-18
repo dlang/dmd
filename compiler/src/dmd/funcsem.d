@@ -983,6 +983,43 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
 
                         error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
                             funcdeclToChars, buf1.peekChars());
+
+                        // Supplemental error for parameter scope differences
+                        auto tf1 = cast(TypeFunction)funcdecl.type;
+                        auto tf2 = cast(TypeFunction)fd.type;
+
+                        if (tf1 && tf2)
+                        {
+                            auto params1 = tf1.parameterList;
+                            auto params2 = tf2.parameterList;
+
+                            if (params1.length == params2.length)
+                            {
+                                bool hasScopeDifference = false;
+
+                                for (size_t i = 0; i < params1.length; i++)
+                                {
+                                    auto p1 = params1[i];
+                                    auto p2 = params2[i];
+
+                                    if ((p1.storageClass & STC.scope_) == (p2.storageClass & STC.scope_))
+                                        continue;
+
+                                    if (!(p2.storageClass & STC.scope_))
+                                        continue;
+
+                                    if (!hasScopeDifference)
+                                    {
+                                        // Intended signature
+                                        errorSupplemental(funcdecl.loc, "Did you intend to override:");
+                                        errorSupplemental(funcdecl.loc, "`%s`", buf1.peekChars());
+                                        hasScopeDifference = true;
+                                    }
+                                    errorSupplemental(funcdecl.loc, "Parameter %d is missing `scope`",
+                                    cast(int)(i + 1));
+                                }
+                            }
+                        }
                    }
                 }
                 else
