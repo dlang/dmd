@@ -117,7 +117,7 @@ jobs:
 
       - name: Validate JSON data
         run: |
-          for file in benchmark_data/*.json; do
+          for file in benchmark_data/pr_*.json; do  # Only check PR files
             if ! jq -e '.pr.number and .metrics.pr_time' "$file"; then
               echo "::error::Invalid JSON structure in $file"
               exit 1
