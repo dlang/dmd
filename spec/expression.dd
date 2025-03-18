@@ -3676,6 +3676,27 @@ function: 'test.main', pretty function: 'int test.main(string[] args)',
 file full path: '/example/test.d'
 )
 
+    $(PANEL $(P $(RED Warning): Do not use $(D mixin(__FUNCTION__)) to get the
+                symbol for the current function. This seems to be a common
+                thing for programmers to attempt when trying to get the symbol
+                for the current function in order to do introspection on it,
+                since D does not currently have a direct way to get that
+                symbol. However, using $(D mixin(__FUNCTION__)) means that the
+                symbol for the function will be looked up by name, which means
+                that it's subject to the various rules that go with symbol
+                lookup, which can cause various problems. One such problem
+                would that if a function is overloaded, the result will be the
+                first overload whether that's the current function or not.)
+
+             $(P Given that D doesn't currently have a way to directly get the
+                 symbol for the current function, the best way to do it is to
+                 get the parent symbol of a symbol within the function, since
+                 that avoids any issues surrounding symbol lookup rules. An
+                 example of that which doesn't rely on any other symbols is
+                 $(D __traits(parent {})). It declares an anonymous, nested
+                 function, whose parent is then the current function. So,
+                 getting its parent gets the symbol for the current function.))
+
 $(H2 $(LNAME2 associativity, Associativity and Commutativity))
 
     $(P An implementation may rearrange the evaluation of expressions
