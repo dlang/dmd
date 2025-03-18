@@ -1378,7 +1378,7 @@ void assignaddrc(code* c)
                     c.Iop = INSTR.nop;               // remove references to it
                     break;
                 }
-                static if (1)
+                static if (0)
                 {
                     symbol_print(*s);
                     printf("c: %p, x%08x\n", c, c.Iop);
@@ -1432,7 +1432,7 @@ void assignaddrc(code* c)
                 uint opc   = field(ins,23,22);
                 uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
                 uint op24  = field(ins,25,24);
-printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZE*2);
+//printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZE*2);
                 if (cgstate.hasframe)
                     offset += REGSIZE * 2;
                 offset += localsize;
