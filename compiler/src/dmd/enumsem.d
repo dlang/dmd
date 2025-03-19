@@ -626,6 +626,15 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
 
         assert(emprev);
 
+        // NEW: Check if the enum's base type is an enum, which does not support auto increment.
+        if (em.ed.memtype && em.ed.memtype.isTypeEnum())
+        {
+            error(em.loc, "auto-increment for enum member '%s' cannot be performed because the base type '%s' does not support auto increment. Please provide an explicit initializer.",
+                  em.toPrettyChars(), em.ed.memtype.toChars());
+            return errorReturn();
+        }
+        //If the base type is not an enum (i.e. it’s a normal integral type), the rest of the auto-increment code will run as before.
+
         if (emprev.semanticRun < PASS.semanticdone) // if forward reference
             emprev.dsymbolSemantic(emprev._scope); // resolve it
         if (emprev.errors)
