@@ -103,13 +103,7 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.MEMSETDOUBLE:           symbolz(ps,FL.func,FREGSAVED,"_memsetDouble", 0, t); break;
         case RTLSYM.MEMSETSIMD:             symbolz(ps,FL.func,FREGSAVED,"_memsetSIMD",0, t); break;
         case RTLSYM.MEMSETN:                symbolz(ps,FL.func,FREGSAVED,"_memsetn",  0, t); break;
-        case RTLSYM.NEWCLASS:               symbolz(ps,FL.func,FREGSAVED,"_d_newclass", 0, t); break;
         case RTLSYM.NEWTHROW:               symbolz(ps,FL.func,FREGSAVED,"_d_newThrowable", 0, t); break;
-        case RTLSYM.NEWARRAYT:              symbolz(ps,FL.func,FREGSAVED,"_d_newarrayT", 0, t); break;
-        case RTLSYM.NEWARRAYIT:             symbolz(ps,FL.func,FREGSAVED,"_d_newarrayiT", 0, t); break;
-        case RTLSYM.NEWITEMT:               symbolz(ps,FL.func,FREGSAVED,"_d_newitemT", 0, t); break;
-        case RTLSYM.NEWITEMIT:              symbolz(ps,FL.func,FREGSAVED,"_d_newitemiT", 0, t); break;
-        case RTLSYM.NEWARRAYMITX:           symbolz(ps,FL.func,FREGSAVED,"_d_newarraymiTX", 0, t); break;
         case RTLSYM.ARRAYLITERALTX:         symbolz(ps,FL.func,FREGSAVED,"_d_arrayliteralTX", 0, t); break;
         case RTLSYM.ASSOCARRAYLITERALTX:    symbolz(ps,FL.func,FREGSAVED,"_d_assocarrayliteralTX", 0, t); break;
         case RTLSYM.CALLFINALIZER:          symbolz(ps,FL.func,FREGSAVED,"_d_callfinalizer", 0, t); break;
@@ -120,18 +114,13 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.CLASS_CAST:             symbolz(ps,FL.func,FREGSAVED,"_d_class_cast", 0, t); break;
         case RTLSYM.INTERFACE_CAST:         symbolz(ps,FL.func,FREGSAVED,"_d_interface_cast", 0, t); break;
         case RTLSYM.ARRAYCATT:              symbolz(ps,FL.func,FREGSAVED,"_d_arraycatT", 0, t); break;
-        case RTLSYM.ARRAYCATNTX:            symbolz(ps,FL.func,FREGSAVED,"_d_arraycatnTX", 0, t); break;
-        case RTLSYM.ARRAYAPPENDT:           symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendT", 0, t); break;
-        case RTLSYM.ARRAYAPPENDCTX:         symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcTX", 0, t); break;
         case RTLSYM.ARRAYAPPENDCD:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcd", 0, t); break;
         case RTLSYM.ARRAYAPPENDWD:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendwd", 0, t); break;
         case RTLSYM.ARRAYSETLENGTHT:        symbolz(ps,FL.func,FREGSAVED,"_d_arraysetlengthT", 0, t); break;
         case RTLSYM.ARRAYSETLENGTHIT:       symbolz(ps,FL.func,FREGSAVED,"_d_arraysetlengthiT", 0, t); break;
         case RTLSYM.ARRAYCOPY:              symbolz(ps,FL.func,FREGSAVED,"_d_arraycopy", 0, t); break;
-        case RTLSYM.ARRAYASSIGN:            symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign", 0, t); break;
         case RTLSYM.ARRAYASSIGN_R:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_r", 0, t); break;
         case RTLSYM.ARRAYASSIGN_L:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_l", 0, t); break;
-        case RTLSYM.ARRAYSETASSIGN:         symbolz(ps,FL.func,FREGSAVED,"_d_arraysetassign", 0, t); break;
         case RTLSYM.ARRAYEQ2:               symbolz(ps,FL.func,FREGSAVED,"_adEq2", 0, t); break;
 
         /* Associative Arrays https://github.com/dlang/dmd/blob/master/druntime/src/rt/aaA.d */
@@ -173,21 +162,11 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.TRACE_EPI_N:            symbolz(ps,FL.func,ALLREGS|mBP|mES,"_trace_epi_n",0,tstrace); break;
         case RTLSYM.TRACE_EPI_F:            symbolz(ps,FL.func,ALLREGS|mBP|mES,"_trace_epi_f",0,tstrace); break;
 
-        case RTLSYM.TRACENEWCLASS:          symbolz(ps,FL.func,FREGSAVED,"_d_newclassTrace", 0, t); break;
-        case RTLSYM.TRACENEWARRAYT:         symbolz(ps,FL.func,FREGSAVED,"_d_newarrayTTrace", 0, t); break;
-        case RTLSYM.TRACENEWARRAYIT:        symbolz(ps,FL.func,FREGSAVED,"_d_newarrayiTTrace", 0, t); break;
-        case RTLSYM.TRACENEWARRAYMTX:       symbolz(ps,FL.func,FREGSAVED,"_d_newarraymTXTrace", 0, t); break;
-        case RTLSYM.TRACENEWARRAYMITX:      symbolz(ps,FL.func,FREGSAVED,"_d_newarraymiTXTrace", 0, t); break;
-        case RTLSYM.TRACENEWITEMT:          symbolz(ps,FL.func,FREGSAVED,"_d_newitemTTrace", 0, t); break;
-        case RTLSYM.TRACENEWITEMIT:         symbolz(ps,FL.func,FREGSAVED,"_d_newitemiTTrace", 0, t); break;
+
         case RTLSYM.TRACECALLFINALIZER:     symbolz(ps,FL.func,FREGSAVED,"_d_callfinalizerTrace", 0, t); break;
         case RTLSYM.TRACECALLINTERFACEFINALIZER: symbolz(ps,FL.func,FREGSAVED,"_d_callinterfacefinalizerTrace", 0, t); break;
         case RTLSYM.TRACEARRAYLITERALTX:    symbolz(ps,FL.func,FREGSAVED,"_d_arrayliteralTXTrace", 0, t); break;
         case RTLSYM.TRACEASSOCARRAYLITERALTX: symbolz(ps,FL.func,FREGSAVED,"_d_assocarrayliteralTXTrace", 0, t); break;
-        case RTLSYM.TRACEARRAYCATT:         symbolz(ps,FL.func,FREGSAVED,"_d_arraycatTTrace", 0, t); break;
-        case RTLSYM.TRACEARRAYCATNTX:       symbolz(ps,FL.func,FREGSAVED,"_d_arraycatnTXTrace", 0, t); break;
-        case RTLSYM.TRACEARRAYAPPENDT:      symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendTTrace", 0, t); break;
-        case RTLSYM.TRACEARRAYAPPENDCTX:    symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcTXTrace", 0, t); break;
         case RTLSYM.TRACEARRAYAPPENDCD:     symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcdTrace", 0, t); break;
         case RTLSYM.TRACEARRAYAPPENDWD:     symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendwdTrace", 0, t); break;
         case RTLSYM.TRACEARRAYSETLENGTHT:   symbolz(ps,FL.func,FREGSAVED,"_d_arraysetlengthTTrace", 0, t); break;
