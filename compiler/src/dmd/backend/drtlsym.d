@@ -104,8 +104,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.MEMSETSIMD:             symbolz(ps,FL.func,FREGSAVED,"_memsetSIMD",0, t); break;
         case RTLSYM.MEMSETN:                symbolz(ps,FL.func,FREGSAVED,"_memsetn",  0, t); break;
         case RTLSYM.NEWTHROW:               symbolz(ps,FL.func,FREGSAVED,"_d_newThrowable", 0, t); break;
-        case RTLSYM.NEWITEMT:               symbolz(ps,FL.func,FREGSAVED,"_d_newitemT", 0, t); break;
-        case RTLSYM.NEWITEMIT:              symbolz(ps,FL.func,FREGSAVED,"_d_newitemiT", 0, t); break;
         case RTLSYM.ARRAYLITERALTX:         symbolz(ps,FL.func,FREGSAVED,"_d_arrayliteralTX", 0, t); break;
         case RTLSYM.ASSOCARRAYLITERALTX:    symbolz(ps,FL.func,FREGSAVED,"_d_assocarrayliteralTX", 0, t); break;
         case RTLSYM.CALLFINALIZER:          symbolz(ps,FL.func,FREGSAVED,"_d_callfinalizer", 0, t); break;
@@ -169,8 +167,7 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.TRACE_EPI_N:            symbolz(ps,FL.func,ALLREGS|mBP|mES,"_trace_epi_n",0,tstrace); break;
         case RTLSYM.TRACE_EPI_F:            symbolz(ps,FL.func,ALLREGS|mBP|mES,"_trace_epi_f",0,tstrace); break;
 
-        case RTLSYM.TRACENEWITEMT:          symbolz(ps,FL.func,FREGSAVED,"_d_newitemTTrace", 0, t); break;
-        case RTLSYM.TRACENEWITEMIT:         symbolz(ps,FL.func,FREGSAVED,"_d_newitemiTTrace", 0, t); break;
+
         case RTLSYM.TRACECALLFINALIZER:     symbolz(ps,FL.func,FREGSAVED,"_d_callfinalizerTrace", 0, t); break;
         case RTLSYM.TRACECALLINTERFACEFINALIZER: symbolz(ps,FL.func,FREGSAVED,"_d_callinterfacefinalizerTrace", 0, t); break;
         case RTLSYM.TRACEARRAYLITERALTX:    symbolz(ps,FL.func,FREGSAVED,"_d_arrayliteralTXTrace", 0, t); break;
