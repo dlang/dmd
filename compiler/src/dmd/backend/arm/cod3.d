@@ -30,6 +30,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcse;
 import dmd.backend.code;
+import dmd.backend.arm.cod1 : loadFromEA, storeToEA;
 import dmd.backend.arm.disasmarm : encodeHFD;
 import dmd.backend.x86.cgcod : disassemble;
 import dmd.backend.x86.code_x86;
@@ -108,7 +109,8 @@ void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, 
 
 
 // https://www.scs.stanford.edu/~zyedidia/arm64/b_cond.html
-bool isBranch(uint ins) { return (ins & ((0xFF << 24) | (1 << 4))) == ((0x54 << 24) | (0 << 4)); }
+// https://www.scs.stanford.edu/~zyedidia/arm64/bc_cond.html
+bool isBranch(uint ins) { return (ins & 0xFF00_0000) == 0x5400_0000; }
 
 enum MARS = true;
 
@@ -207,9 +209,70 @@ COND conditionCode(elem* e)
 // cod3_ptrchk
 // cod3_useBP
 // cse_simple
-// gen_storecse
-// gen_testcse
-// gen_loadcse
+
+/**************************
+ * Store `reg` to the common subexpression save area in index `slot`.
+ * Params:
+ *      cdb = where to write code to
+ *      tym = type of value that's in `reg`
+ *      reg = register to save
+ *      slot = index into common subexpression save area
+ */
+@trusted
+void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
+{
+    //printf("gen_storecse() tym: %s reg: %d slot: %d\n", tym_str(tym), reg, cast(int)slot);
+    // MOV slot[BP],reg
+    if (tyvector(tym)) // TODO AArch64
+    {
+        assert(0);
+        //const aligned = tyvector(tym) ? STACKALIGN >= 16 : true;
+        //const op = xmmstore(tym, aligned);
+        //cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FL.cs,cast(targ_size_t)slot);
+        //return;
+    }
+    code cs;
+    cs.IFL1 = FL.cs;
+    cs.Iflags = CFoff;
+    cs.reg = NOREG;
+    cs.index = NOREG;
+    cs.base = 29;   // SP? BPRM? TODO AArch64
+    cs.Sextend = 0;
+    cs.IEV1.Vsym = null;
+    cs.IEV1.Voffset = slot;
+    storeToEA(cs, reg, tysize(tym));
+    assert(cs.Iop);
+    cdb.gen(&cs);
+}
+
+@trusted
+void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
+{
+    //printf("gen_loadcse() tym: %s reg: %d slot: %d\n", tym_str(tym), reg, cast(int)slot);
+    // MOV reg,slot[BP]
+    if (tyvector(tym)) // TODO AArch64
+    {
+        assert(0);
+        //const aligned = tyvector(tym) ? STACKALIGN >= 16 : true;
+        //const op = xmmload(tym, aligned);
+        //cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FL.cs,cast(targ_size_t)slot);
+        //return;
+    }
+    code cs;
+    cs.IFL1 = FL.cs;
+    cs.Iflags = CFoff;
+    cs.reg = NOREG;
+    cs.index = NOREG;
+    cs.base = 29;   // SP? BPRM? TODO AArch64
+    cs.Sextend = 0;
+    cs.IEV1.Vsym = null;
+    cs.IEV1.Voffset = slot;
+    uint szr = tysize(tym);
+    uint szw = szr == 8 ? 8 : 4;
+    loadFromEA(cs, reg, szw, szr);
+    cdb.gen(&cs);
+}
+
 // cdframeptr
 // cdgot
 // load_localgot
@@ -230,7 +293,7 @@ COND conditionCode(elem* e)
 void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 {
     code cs;
-    cs.Iop = ((0x54 << 24) | cond);
+    cs.Iop = INSTR.b_cond(0, cond);     // offset is 0 for now, fix in codout()
     cs.Iflags = 0;
     cs.IFL1 = fltarg;                   // FL.block (or FL.code)
     cs.IEV1.Vblock = targ;              // target block (or code)
@@ -679,6 +742,7 @@ Lret:
 @trusted
 int branch(block* bl,int flag)
 {
+    //printf("branch() flag: %d\n", flag);
     int bytesaved;
     code* c,cn,ct;
     targ_size_t offset,disp;
@@ -1143,6 +1207,7 @@ void assignaddrc(code* c)
     ulong offset;
     reg_t Rn, Rt;
     uint base = cgstate.EBPtoESP;
+    code* csave = c;
 
     for (; c; c = code_next(c))
     {
@@ -1230,7 +1295,7 @@ void assignaddrc(code* c)
         s = c.IEV1.Vsym;
         uint sz = 8;
         uint ins = c.Iop;
-//      if (c.IFL1 != FL.unde)
+        if (0 && c.IFL1 != FL.unde)
         {
             printf("FL: %s  ", fl_str(c.IFL1));
             disassemble(ins);
@@ -1313,7 +1378,7 @@ void assignaddrc(code* c)
                     c.Iop = INSTR.nop;               // remove references to it
                     break;
                 }
-                static if (1)
+                static if (0)
                 {
                     symbol_print(*s);
                     printf("c: %p, x%08x\n", c, c.Iop);
@@ -1367,7 +1432,7 @@ void assignaddrc(code* c)
                 uint opc   = field(ins,23,22);
                 uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
                 uint op24  = field(ins,25,24);
-printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZE*2);
+//printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZE*2);
                 if (cgstate.hasframe)
                     offset += REGSIZE * 2;
                 offset += localsize;
@@ -1428,13 +1493,20 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
             case FL.func:
             case FL.code:
             case FL.unde:
+            case FL.block:
                 break;
 
             default:
-                printf("FL: %s\n", fl_str(c.IFL1));
+                if (1) printf("FL: %s\n", fl_str(c.IFL1));
                 assert(0);
         }
     }
+    static if (0)
+        for (c = csave; c; c = code_next(c))
+        {
+            printf("Iop %08x  ", c.Iop);
+            disassemble(c.Iop);
+        }
 }
 
 /**************************
@@ -1446,15 +1518,16 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
 @trusted
 void jmpaddr(code* c)
 {
-    code* ci,cn,ctarg,cstart;
-    targ_size_t ad;
-
     //printf("jmpaddr()\n");
+
+    code* ci,cn,ctarg,cstart;
+    uint ad;
     cstart = c;                           /* remember start of code       */
     while (c)
     {
         const op = c.Iop;
-        if (isBranch(op)) // or CALL?
+        //printf("%08X ", c.Iop); disassemble(c.Iop);
+        if (isBranch(op) && c.IFL1 == FL.code) // or CALL?
         {
             ci = code_next(c);
             ctarg = c.IEV1.Vcode;  /* target code                  */
@@ -1466,7 +1539,7 @@ void jmpaddr(code* c)
             }
             if (!ci)
                 goto Lbackjmp;      // couldn't find it
-            c.Iop |= cast(uint)(ad >> 2) << 5;
+            c.Iop |= (ad >> 2) << 5;
             c.IFL1 = FL.unde;
         }
         if (op == LOOP && c.IFL1 == FL.code)    /* backwards refs       */
@@ -1483,7 +1556,7 @@ void jmpaddr(code* c)
                 ad += calccodsize(ci);
                 ci = code_next(ci);
             }
-            c.Iop = cast(uint)(-(ad >> 2)) << 5;
+            c.Iop = (-(ad >> 2)) << 5;
             c.IFL1 = FL.unde;
         }
         c = code_next(c);
@@ -1533,8 +1606,7 @@ uint calccodsize(code* c)
 @trusted
 uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehandleroffset)
 {
-    code* cn;
-    uint flags;
+    //printf("codout()\n");
 
     debug
     if (debugc) printf("codout(%p), Coffset = x%llx\n",c,cast(ulong)Offset(seg));
@@ -1545,6 +1617,9 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
     ggen.seg = seg;
     ggen.framehandleroffset = framehandleroffset;
     ggen.disasmBuf = disasmBuf;
+
+    code* cn;
+    uint flags;
 
     for (; c; c = code_next(c))
     {
@@ -1609,9 +1684,15 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
         if (ggen.available() < 4)
             ggen.flush();
 
-        //printf("op: %08x\n", op);
-        //if ((op & 0xFC00_0000) == 0x9400_0000) // BL <label>
-        if (Symbol* s = c.IEV1.Vsym)
+        if (isBranch(op) && c.IFL1 == FL.block)
+
+        {
+            ggen.flush();
+            int ad = cast(int)(c.IEV1.Vblock.Boffset - ggen.offset);
+            op |= ((ad >> 2) & 0x7FFFF) << 5; // imm19 in opcode
+            ggen.gen32(op);
+        }
+        else if (Symbol* s = c.IEV1.Vsym)
         {
             switch (s.Sclass)
             {

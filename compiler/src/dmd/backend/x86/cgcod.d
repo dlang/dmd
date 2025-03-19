@@ -2093,9 +2093,10 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     regm_t regm,emask;
     reg_t reg;
     uint byte_,sz;
+    const AArch64 = cgstate.AArch64;
 
     //printf("comsub(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
-    elem_debug(e);
+    //elem_debug(e);
 
     debug
     {
@@ -2114,16 +2115,18 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
      * have the right contents.
      */
     emask = 0;
-    for (uint i = 0; i < cgstate.regcon.cse.value.length; i++)
+    foreach (i, ref v; cgstate.regcon.cse.value[])
     {
-        //dbg_printf("regcon.cse.value[%d] = %p\n",i,cgstate.regcon.cse.value[i]);
-        if (cgstate.regcon.cse.value[i] == e)   // if contents are right
-                emask |= mask(i);       // turn on bit for reg
+        //printf("regcon.cse.value[%d] = %p\n",cast(int)i,v);
+        if (v == e)                       // if contents match
+            emask |= mask(cast(uint)i);   // turn on bit for reg
     }
     emask &= cgstate.regcon.cse.mval;                     // make sure all bits are valid
 
-    if (emask & XMMREGS && pretregs == mPSW)
-        { }
+    if (AArch64)
+    {    }
+    else if (emask & XMMREGS && pretregs == mPSW)
+    {    }
     else if (tyxmmreg(e.Ety) && config.fpxmmregs)
     {
         if (pretregs & (mST0 | mST01))
@@ -2158,7 +2161,8 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     sz = _tysize[tym];
     byte_ = sz == 1;
 
-    if (sz <= REGSIZE || (tyxmmreg(tym) && config.fpxmmregs)) // if data will fit in one register
+    if (sz <= REGSIZE ||
+        (!AArch64 && tyxmmreg(tym) && config.fpxmmregs)) // if data will fit in one register
     {
         /* First see if it is already in a correct register     */
 
@@ -2184,6 +2188,17 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 
             if (cse.flags & CSEsimple)
             {
+                if (AArch64)
+                {
+                    retregs = pretregs;
+                    if (!(retregs & cgstate.allregs | INSTR.FLOATREGS))
+                        retregs = cgstate.allregs | INSTR.FLOATREGS;
+                    reg = allocreg(cdb,retregs,tym);
+                    code* cr = &cse.csimple;
+                    cr.reg = reg;
+                    cdb.gen(cr);
+                    goto L10;
+                }
                 retregs = pretregs;
                 if (byte_ && !(retregs & BYTEREGS))
                     retregs = BYTEREGS;
@@ -2201,7 +2216,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             {
                 cgstate.reflocal = true;
                 cse.flags |= CSEload;
-                if (pretregs == mPSW)  // if result in CCs only
+                if (pretregs == mPSW && !AArch64)  // if result in CCs only
                 {
                     if (config.fpxmmregs && (tyxmmreg(cse.e.Ety) || tyvector(cse.e.Ety)))
                     {
@@ -2221,7 +2236,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                 else
                 {
                     retregs = pretregs;
-                    if (byte_ && !(retregs & BYTEREGS))
+                    if (!AArch64 && byte_ && !(retregs & BYTEREGS))
                         retregs = BYTEREGS;
                     reg = allocreg(cdb,retregs,tym);
                     gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
