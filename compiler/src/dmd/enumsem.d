@@ -625,7 +625,6 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         });
 
         assert(emprev);
-
         // NEW: Check if the enum's base type is an enum, which does not support auto increment.
         if (em.ed.memtype && em.ed.memtype.isTypeEnum())
         {
