@@ -121,7 +121,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.ARRAYSETLENGTHT:        symbolz(ps,FL.func,FREGSAVED,"_d_arraysetlengthT", 0, t); break;
         case RTLSYM.ARRAYSETLENGTHIT:       symbolz(ps,FL.func,FREGSAVED,"_d_arraysetlengthiT", 0, t); break;
         case RTLSYM.ARRAYCOPY:              symbolz(ps,FL.func,FREGSAVED,"_d_arraycopy", 0, t); break;
-        case RTLSYM.ARRAYASSIGN:            symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign", 0, t); break;
         case RTLSYM.ARRAYASSIGN_R:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_r", 0, t); break;
         case RTLSYM.ARRAYASSIGN_L:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_l", 0, t); break;
         case RTLSYM.ARRAYEQ2:               symbolz(ps,FL.func,FREGSAVED,"_adEq2", 0, t); break;
