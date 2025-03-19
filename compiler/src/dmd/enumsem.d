@@ -345,7 +345,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
 
     //if (ed.defaultval) printf("ed.defaultval: %s %s\n", ed.defaultval.toChars(), ed.defaultval.type.toChars());
     //printf("members = %s\n", members.toChars());
-    
+
     // Set semantic2done here to indicate all members have been processed
     // This prevents using the enum in a final switch while being defined
     ed.semanticRun = PASS.semantic2done;
