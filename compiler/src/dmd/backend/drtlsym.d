@@ -114,7 +114,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.CLASS_CAST:             symbolz(ps,FL.func,FREGSAVED,"_d_class_cast", 0, t); break;
         case RTLSYM.INTERFACE_CAST:         symbolz(ps,FL.func,FREGSAVED,"_d_interface_cast", 0, t); break;
         case RTLSYM.ARRAYCATT:              symbolz(ps,FL.func,FREGSAVED,"_d_arraycatT", 0, t); break;
-        case RTLSYM.ARRAYCATNTX:            symbolz(ps,FL.func,FREGSAVED,"_d_arraycatnTX", 0, t); break;
         case RTLSYM.ARRAYAPPENDT:           symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendT", 0, t); break;
         case RTLSYM.ARRAYAPPENDCTX:         symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcTX", 0, t); break;
         case RTLSYM.ARRAYAPPENDCD:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcd", 0, t); break;
@@ -172,8 +171,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.TRACECALLINTERFACEFINALIZER: symbolz(ps,FL.func,FREGSAVED,"_d_callinterfacefinalizerTrace", 0, t); break;
         case RTLSYM.TRACEARRAYLITERALTX:    symbolz(ps,FL.func,FREGSAVED,"_d_arrayliteralTXTrace", 0, t); break;
         case RTLSYM.TRACEASSOCARRAYLITERALTX: symbolz(ps,FL.func,FREGSAVED,"_d_assocarrayliteralTXTrace", 0, t); break;
-        case RTLSYM.TRACEARRAYCATT:         symbolz(ps,FL.func,FREGSAVED,"_d_arraycatTTrace", 0, t); break;
-        case RTLSYM.TRACEARRAYCATNTX:       symbolz(ps,FL.func,FREGSAVED,"_d_arraycatnTXTrace", 0, t); break;
         case RTLSYM.TRACEARRAYAPPENDT:      symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendTTrace", 0, t); break;
         case RTLSYM.TRACEARRAYAPPENDCTX:    symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcTXTrace", 0, t); break;
         case RTLSYM.TRACEARRAYAPPENDCD:     symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcdTrace", 0, t); break;
