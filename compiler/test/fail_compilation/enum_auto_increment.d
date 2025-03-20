@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/enum_auto_increment.d(17): Error: cannot automatically assign value to enum member `d` because base type `A1` is an enum; please provide an explicit value
+fail_compilation/enum_auto_increment.d(18): Error: cannot automatically assign value to enum member `d` because base type `A1` is an enum; please provide an explicit value
 ---
 */
 
