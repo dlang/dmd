@@ -5,6 +5,7 @@ fail_compilation/enum_auto_increment.d(17): Error: cannot automatically assign v
 ---
 */
 
+
 enum A1 : int
 {
     a,
