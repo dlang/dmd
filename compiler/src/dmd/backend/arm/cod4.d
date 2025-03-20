@@ -617,7 +617,7 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         retregs = cg.allregs & ~earegm & ~regm2;
         reg = allocreg(cdb,retregs,tyml);
-        loadFromEA(cs,reg,sz,sz == 8 ? 8 : 4);
+        loadFromEA(cs,reg,sz == 8 ? 8 : 4, sz);
         cdb.gen(&cs);
     }
     getregs(cdb,retregs);           // destroy these regs
@@ -768,7 +768,7 @@ void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         retregs = cg.allregs & ~earegm & ~Rshiftcntm;
         Rshiftee = allocreg(cdb,retregs,tyml);
-        loadFromEA(cs,Rshiftee,sz,sz == 8 ? 8 : 4);
+        loadFromEA(cs,Rshiftee,sz == 8 ? 8 : 4,sz);
         cdb.gen(&cs);
     }
 
