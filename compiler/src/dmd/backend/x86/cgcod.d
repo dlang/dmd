@@ -1837,7 +1837,7 @@ void useregs(regm_t regm)
 @trusted
 void getregs(ref CodeBuilder cdb, regm_t r)
 {
-    //printf("getregs(x%x) %s\n", r, regm_str(r));
+    //printf("getregs() %s\n", regm_str(r));
     regm_t ms = r & cgstate.regcon.cse.mops;           // mask of common subs we must save
     useregs(r);
     cgstate.regcon.cse.mval &= ~r;
@@ -1869,6 +1869,7 @@ void getregsNoSave(regm_t r)
 @trusted
 private void cse_save(ref CodeBuilder cdb, regm_t ms)
 {
+    //printf("cse_save() ms: %s\n", regm_str(ms));
     assert((ms & cgstate.regcon.cse.mops) == ms);
     cgstate.regcon.cse.mops &= ~ms;
 
@@ -1959,6 +1960,7 @@ void cse_flush(ref CodeBuilder cdb, int do87)
 @trusted
 bool cssave(elem* e, regm_t regm, bool opsflag)
 {
+    //printf("cssave() e: %p regm: %s opsflag: %d\n", e, regm_str(regm), opsflag);
     bool result = false;
 
     /*if (e.Ecount && e.Ecount == e.Ecomsub)*/
@@ -1968,8 +1970,10 @@ bool cssave(elem* e, regm_t regm, bool opsflag)
             return false;
 
         //printf("cssave(e = %p, regm = %s, opsflag = x%x)\n", e, regm_str(regm), opsflag);
-        regm &= mBP | ALLREGS | mES | XMMREGS;    /* just to be sure              */
-
+        if (cgstate.AArch64)
+            regm &= cgstate.allregs | INSTR.FLOATREGS;
+        else
+            regm &= mBP | ALLREGS | mES | XMMREGS;    /* just to be sure              */
 /+
         /* Do not register CSEs if they are register variables and      */
         /* are not operator nodes. This forces the register allocation  */
@@ -2089,10 +2093,6 @@ regm_t getscratch()
 @trusted
 private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 {
-    tym_t tym;
-    regm_t regm,emask;
-    reg_t reg;
-    uint byte_,sz;
     const AArch64 = cgstate.AArch64;
 
     //printf("comsub(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
@@ -2114,7 +2114,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     /* First construct a mask, emask, of all the registers that
      * have the right contents.
      */
-    emask = 0;
+    regm_t emask = 0;
     foreach (i, ref v; cgstate.regcon.cse.value[])
     {
         //printf("regcon.cse.value[%d] = %p\n",cast(int)i,v);
@@ -2157,16 +2157,16 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             elem_print(cgstate.regcon.cse.value[0]);
     }
 
-    tym = tybasic(e.Ety);
-    sz = _tysize[tym];
-    byte_ = sz == 1;
+    tym_t tym = tybasic(e.Ety);
+    uint sz = _tysize[tym];
+    uint byte_ = sz == 1;
 
     if (sz <= REGSIZE ||
         (!AArch64 && tyxmmreg(tym) && config.fpxmmregs)) // if data will fit in one register
     {
         /* First see if it is already in a correct register     */
 
-        regm = emask & pretregs;
+        regm_t regm = emask & pretregs;
         if (regm == 0)
             regm = emask;               /* try any other register       */
         if (regm)                       /* if it's in a register        */
@@ -2185,6 +2185,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         foreach (ref cse; CSE.filter(e))
         {
             regm_t retregs;
+            reg_t reg;
 
             if (cse.flags & CSEsimple)
             {
@@ -2277,7 +2278,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         }
 
         /* Look for right vals in any regs      */
-        regm = pretregs & mMSW;
+        regm_t regm = pretregs & mMSW;
         if (emask & regm)
             msreg = findreg(emask & regm);
         else if (emask & mMSW)
@@ -2313,13 +2314,13 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         if (((csemask | emask) & DOUBLEREGS_16) == DOUBLEREGS_16)
         {
             immutable reg_t[4] dblreg = [ BX,DX,NOREG,CX ];
-            for (reg = 0; reg != NOREG; reg = dblreg[reg])
+            for (reg_t reg = 0; reg != NOREG; reg = dblreg[reg])
             {
                 assert(cast(int) reg >= 0 && reg <= 7);
                 if (mask(reg) & csemask)
                     loadcse(cdb,e,reg,mask(reg));
             }
-            regm = DOUBLEREGS_16;
+            regm_t regm = DOUBLEREGS_16;
             fixresult(cdb,e,regm,pretregs);
             return;
         }

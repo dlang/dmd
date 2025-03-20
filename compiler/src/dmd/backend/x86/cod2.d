@@ -2174,6 +2174,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    //printf("cdcom() pretregs: %s\n", regm_str(pretregs));
     if (cg.AArch64)
         return dmd.backend.arm.cod2.cdcom(cg, cdb, e, pretregs);
 
