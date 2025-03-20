@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/enum_auto_increment.d(17): Error: auto-increment for enum member `d` cannot be performed because the base type `A1` does not support auto increment.
+fail_compilation/enum_auto_increment.d(17): Error: cannot automatically assign value to enum member `d` because base type `A1` is an enum; please provide an explicit value
 ---
 */
 
