@@ -625,6 +625,16 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         });
 
         assert(emprev);
+
+        // New check: if the base type is an enum, auto-increment is not supported.
+        if (em.ed.memtype.isTypeEnum())
+        {
+            error(em.loc,
+                  "cannot automatically assign value to enum member `%s` because base type `%s` is an enum; please provide an explicit value",
+                  em.toPrettyChars(), em.ed.memtype.toChars());
+            return errorReturn();
+        }
+
         if (emprev.semanticRun < PASS.semanticdone) // if forward reference
             emprev.dsymbolSemantic(emprev._scope); // resolve it
         if (emprev.errors)
