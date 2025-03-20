@@ -1959,6 +1959,16 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 ed = ds.isEnumDeclaration(); // typedef'ed enum
             if (!ed && te && ((ds = te.toDsymbol(sc)) !is null))
                 ed = ds.isEnumDeclaration();
+
+            // Circular references
+            // Check if enum semantic analysis is not yet complete
+            if (ed && ed.semanticRun < PASS.semantic2done)
+            {
+                error(ss.loc, "cannot use `final switch` on enum `%s` while it is being defined", ed.toChars());
+                sc.pop();
+                return setError();
+            }
+
             if (ed && ss.cases.length < ed.members.length)
             {
                 int missingMembers = 0;
