@@ -1435,9 +1435,9 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     /* stack for parameters is allocated all at once - no pushing
      * and ensure it is aligned
      */
-printf("STACKALIGN: %d\n", STACKALIGN);
+//printf("STACKALIGN: %d\n", STACKALIGN);
     uint numalign = -numpara & (STACKALIGN - 1);
-printf("numalign: %d numpara: %d\n", numalign, numpara);
+//printf("numalign: %d numpara: %d\n", numalign, numpara);
     cod3_stackadj(cdb, numalign + numpara);
     cdb.genadjesp(numalign + numpara);
     cgstate.stackpush += numalign + numpara;

@@ -453,14 +453,13 @@ void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         assert(0);
     }
 
-    const posregs = cgstate.allregs;
-    regm_t retregs1 = posregs;
+    regm_t retregs1 = cg.allregs;
     codelem(cgstate,cdb,e.E1,retregs1,false);
 
     regm_t retregs = pretregs & cg.allregs;
     if (retregs == 0)                   /* if no return regs speced     */
                                         /* (like if wanted flags only)  */
-        retregs = ALLREGS & posregs;    // give us some
+        retregs = cg.allregs;           // give us some
     reg_t Rd = allocreg(cdb, retregs, tyml);
 
     const Rm = findreg(retregs1);
