@@ -1297,7 +1297,7 @@ void assignaddrc(code* c)
         uint ins = c.Iop;
         if (0 && c.IFL1 != FL.unde)
         {
-            printf("FL: %s  ", fl_str(c.IFL1));
+            printf("FL: %-8s ", fl_str(c.IFL1));
             disassemble(ins);
         }
         switch (c.IFL1)
@@ -1380,8 +1380,8 @@ void assignaddrc(code* c)
                 }
                 static if (0)
                 {
-                    symbol_print(*s);
-                    printf("c: %p, x%08x\n", c, c.Iop);
+                    //symbol_print(*s);
+                    //printf("c: %p, x%08x\n", c, c.Iop);
                     printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Voffset = %d\n",
                         s.Sident.ptr, cast(int)s.Soffset, cast(int)cgstate.Para.size, cast(int)cgstate.BPoff,
                         cast(int)cgstate.EBPtoESP, cast(int)c.IEV1.Voffset);
@@ -1440,6 +1440,7 @@ void assignaddrc(code* c)
                 {
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
                     offset += imm12 << shift;      // add in imm
+//printf("shift: %d offset: %llx imm12: %x\n", shift, offset, imm12);
                     assert((offset & ((1 << shift) - 1)) == 0); // no misaligned access
                     imm12 = cast(uint)(offset >> shift);
                     assert(imm12 < 0x1000);

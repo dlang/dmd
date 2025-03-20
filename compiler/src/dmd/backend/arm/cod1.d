@@ -58,6 +58,7 @@ nothrow:
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
     //debug printf("loadFromEA() reg: %d, szw: %d, szr: %d\n", reg, szw, szr);
+    assert(szr <= szw);
     cs.Iop = INSTR.nop;
     assert(reg != NOREG);
     if (mask(reg) & INSTR.FLOATREGS)       // if floating point store
