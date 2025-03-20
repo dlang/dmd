@@ -44,17 +44,26 @@ Tret _d_arraycatnTX(Tret, Tarr...)(auto ref Tarr froms) @trusted
     // res.length = totalLen;
     // Call the runtime function directly instead.
     // TODO: once `__arrayAlloc` is templated, call that instead.
-    // version (D_ProfileGC)
-    // version (D_ProfileGC)
-    // {
-    //     // TODO: forward file, line, name from _d_arraycatnTXTrace
-    //     _d_arraysetlengthT!(typeof(res))(
-    //         res, totalLen, __FILE__, __LINE__, __FUNCTION__);
-    // }
-    // else
-    // {   
-    //     _d_arraysetlengthT!(typeof(res))(res, totalLen);
-    // }
+
+    // Replaced manual allocation with templated `__arrayAlloc` for cleaner and type-safe allocation.
+    // New Approach (__arrayAlloc)
+    // __arrayAlloc directly allocates a new memory block instead of modifying an existing array.
+    //
+    // - It does not copy existing elements, meaning any previous data in res is lost.
+    // - You need to manually copy elements if necessary.
+
+
+    import core.internal.array.utils : __arrayAlloc;
+    version (D_ProfileGC)
+    {
+        res = cast(typeof(res)) __arrayAlloc!(typeof(res))(totalLen * typeof(res[0]).sizeof).ptr[0 .. totalLen];
+        return res;
+    }
+    else
+    {   
+        res = cast(typeof(res)) __arrayAlloc!(typeof(res))(totalLen * typeof(res[0]).sizeof).ptr[0 .. totalLen];
+        return res;
+    }
 
 
     /* Currently, if both a postblit and a cpctor are defined, the postblit is

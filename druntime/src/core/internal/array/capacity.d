@@ -41,8 +41,7 @@ module core.internal.array.capacity;
 
 /// Complete templated implementation of `_d_arraysetlengthT` and its GC profiling variant `_d_arraysetlengthTTrace`
 
-size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength)  
-    @trusted pure nothrow
+size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength)  @trusted
 {
     import core.lifetime : emplace;
     import core.internal.array.utils : __arrayAlloc;
