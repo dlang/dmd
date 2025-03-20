@@ -3762,9 +3762,11 @@ extern (C++) final class SliceExp : UnaExp
  */
 extern (C++) final class ArrayLengthExp : UnaExp
 {
+    Expression lowering; // Stores the lowered expression to avoid recalculations
     extern (D) this(Loc loc, Expression e1) @safe
     {
         super(loc, EXP.arrayLength, e1);
+        this.lowering = null; // Initialize as null
     }
 
     override void accept(Visitor v)

@@ -19,7 +19,7 @@ module core.internal.array.concatenation;
  */
 Tret _d_arraycatnTX(Tret, Tarr...)(auto ref Tarr froms) @trusted
 {
-    import core.internal.array.capacity : _d_arraysetlengthTImpl;
+    import core.internal.array.capacity : _d_arraysetlengthT;
     import core.internal.traits : hasElaborateCopyConstructor, Unqual;
     import core.lifetime : copyEmplace;
     import core.stdc.string : memcpy;
@@ -44,16 +44,18 @@ Tret _d_arraycatnTX(Tret, Tarr...)(auto ref Tarr froms) @trusted
     // res.length = totalLen;
     // Call the runtime function directly instead.
     // TODO: once `__arrayAlloc` is templated, call that instead.
-    version (D_ProfileGC)
-    {
-        // TODO: forward file, line, name from _d_arraycatnTXTrace
-        _d_arraysetlengthTImpl!(typeof(res))._d_arraysetlengthTTrace(
-            res, totalLen, __FILE__, __LINE__, __FUNCTION__);
-    }
-    else
-    {
-        _d_arraysetlengthTImpl!(typeof(res))._d_arraysetlengthT(res, totalLen);
-    }
+    // version (D_ProfileGC)
+    // version (D_ProfileGC)
+    // {
+    //     // TODO: forward file, line, name from _d_arraycatnTXTrace
+    //     _d_arraysetlengthT!(typeof(res))(
+    //         res, totalLen, __FILE__, __LINE__, __FUNCTION__);
+    // }
+    // else
+    // {   
+    //     _d_arraysetlengthT!(typeof(res))(res, totalLen);
+    // }
+
 
     /* Currently, if both a postblit and a cpctor are defined, the postblit is
      * used. If this changes, the condition below will have to be adapted.
