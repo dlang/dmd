@@ -6234,6 +6234,7 @@ enum class CppStdRevision : uint32_t
     cpp14 = 201402u,
     cpp17 = 201703u,
     cpp20 = 202002u,
+    cpp23 = 202302u,
 };
 
 enum class CHECKENABLE : uint8_t

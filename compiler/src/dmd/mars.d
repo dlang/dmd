@@ -1143,6 +1143,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             case "c++20":
                 params.cplusplus = CppStdRevision.cpp20;
                 break;
+            case "c++23":
+                params.cplusplus = CppStdRevision.cpp23;
+                break;
             default:
                 error("switch `%s` is invalid", p);
                 params.help.externStd = true;
