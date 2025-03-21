@@ -6,8 +6,6 @@ bytes allocated, allocations, type, function, file:line
              48	              1	float[] profilegc.main src\profilegc.d:42
              48	              1	int[] profilegc.main src\profilegc.d:41
              32	              1	C profilegc.main src\profilegc.d:12
-             32	              1	ulong[] profilegc.main src\profilegc.d:15
-             32	              1	ulong[] profilegc.main src\profilegc.d:18
              32	              1	void[] profilegc.main src\profilegc.d:55
              16	              1	char[] profilegc.main src\profilegc.d:34
              16	              1	char[] profilegc.main src\profilegc.d:36
