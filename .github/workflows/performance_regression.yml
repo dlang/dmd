@@ -2,7 +2,6 @@ name: Performance Regression Check
 on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
-
 jobs:
   benchmark:
     runs-on: ubuntu-latest
@@ -12,458 +11,530 @@ jobs:
       pull-requests: write
     env:
       MODEL: 64
-      BENCHMARK_REPO: https://github.com/dlang/phobos
+      BENCHMARK_REPO: https://github.com/dlang/phobos.git
       BENCHMARK_REF: master
-
     steps:
-    - name: Checkout PR code
-      uses: actions/checkout@v4
-      with:
-        path: pr-dmd
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          path: pr-dmd
 
-    - name: Checkout master code
-      uses: actions/checkout@v4
-      with:
-        repository: dlang/dmd
-        ref: master
-        path: master-dmd
+      - name: Checkout master code
+        uses: actions/checkout@v4
+        with:
+          repository: dlang/dmd
+          ref: master
+          path: master-dmd
 
-    - name: Setup D compiler
-      uses: dlang-community/setup-dlang@v1.3.0
-      with:
-        compiler: dmd-latest
+      - name: Setup D compiler
+        uses: dlang-community/setup-dlang@v1.3.0
+        with:
+          compiler: dmd-latest
 
-    - name: Build PR compiler
-      working-directory: ./pr-dmd
-      run: |
-        make -j$(nproc) MODEL=$MODEL HOST_DMD=$DC
-        mkdir -p generated/linux/release/$MODEL
+      - name: Build PR compiler
+        working-directory: ./pr-dmd
+        run: |
+          make -j$(nproc) MODEL=$MODEL HOST_DMD=$DC
+          mkdir -p generated/linux/release/$MODEL
 
-    - name: Build master compiler
-      working-directory: ./master-dmd
-      run: |
-        make -j$(nproc) MODEL=$MODEL HOST_DMD=$DC
-        mkdir -p generated/linux/release/$MODEL
+      - name: Build master compiler
+        working-directory: ./master-dmd
+        run: |
+          make -j$(nproc) MODEL=$MODEL HOST_DMD=$DC
+          mkdir -p generated/linux/release/$MODEL
 
-    - name: Compare compiler binaries
-      id: diff_check
-      run: |
-        pr_compiler="./pr-dmd/generated/linux/release/$MODEL/dmd"
-        master_compiler="./master-dmd/generated/linux/release/$MODEL/dmd"
+      - name: Compare compiler binaries
+        id: diff_check
+        run: |
+          pr_compiler="./pr-dmd/generated/linux/release/$MODEL/dmd"
+          master_compiler="./master-dmd/generated/linux/release/$MODEL/dmd"
 
-        # Get checksums and sizes
-        pr_md5=$(md5sum "$pr_compiler" | cut -d' ' -f1)
-        master_md5=$(md5sum "$master_compiler" | cut -d' ' -f1)
-        pr_size=$(stat -c%s "$pr_compiler")
-        master_size=$(stat -c%s "$master_compiler")
+          # Get checksums and sizes
+          pr_md5=$(md5sum "$pr_compiler" | cut -d' ' -f1)
+          master_md5=$(md5sum "$master_compiler" | cut -d' ' -f1)
+          pr_size=$(stat -c%s "$pr_compiler")
+          master_size=$(stat -c%s "$master_compiler")
 
-        # Get human-readable version info
-        pr_version=$("./pr-dmd/generated/linux/release/$MODEL/dmd" --version | head -1)
-        master_version=$("./master-dmd/generated/linux/release/$MODEL/dmd" --version | head -1)
+          # Get human-readable version info
+          pr_version=$("./pr-dmd/generated/linux/release/$MODEL/dmd" --version | head -1)
+          master_version=$("./master-dmd/generated/linux/release/$MODEL/dmd" --version | head -1)
 
-        # Get binary differences
-        if diff -q "$pr_compiler" "$master_compiler" >/dev/null; then
-          echo "DIFF_RESULT=✅ Binaries are identical (MD5: $pr_md5)" >> $GITHUB_OUTPUT
-        else
-          # Generate diff result
-          echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)" >> $GITHUB_OUTPUT
-
-          # Generate diff details with robust error handling
-          RAND_EOF=$(openssl rand -hex 6)
-          {
-            echo "**Binary Differences:**"
-            echo "- PR Size: $pr_size bytes | Master Size: $master_size bytes"
-            echo "- PR Version: $pr_version"
-            echo "- Master Version: $master_version"
-            echo '```diff'
-            # Use full path for xxd and handle large binaries safely
-            /usr/bin/xxd "$pr_compiler" |
-              diff -u - <(/usr/bin/xxd "$master_compiler") |
-              sed -e '1,50!d' -e 's/`/‛/g' -e 's/\$/＄/g' -e 's/\\/＼/g' || true
-            echo '```'
-          } > diff_details.txt 2>&1
-
-          # Encode and output with unique delimiter
-          {
-            echo "DIFF_DETAILS<<DIFF_EOF_${RAND_EOF}"
-            base64 -w 0 diff_details.txt  # Single-line base64 encoding
-            echo
-            echo "DIFF_EOF_${RAND_EOF}"
-          } >> $GITHUB_OUTPUT
-        fi
-
-    - name: Checkout benchmark project
-      uses: actions/checkout@v4
-      with:
-        repository: dlang/phobos
-        ref: ${{ env.BENCHMARK_REF }}
-        path: benchmark-phobos
-
-    - name: Install hyperfine
-      run: sudo apt-get install -y hyperfine jq bc
-
-    - name: Warmup build cache
-      working-directory: ./benchmark-phobos
-      run: |
-        ../pr-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d || true
-        rm -f *.o
-
-    - name: Run benchmarks
-      working-directory: ./benchmark-phobos
-      run: |
-        hyperfine \
-          --warmup 1 \
-          --runs 5 \
-          --show-output \
-          --export-json benchmark_results.json \
-          --prepare 'rm -f *.o' \
-          "../pr-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d" \
-          "../master-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d"
-
-    - name: Parse results
-      id: results
-      run: |
-        # Initial error checking
-        if [ ! -f benchmark-phobos/benchmark_results.json ]; then
-          echo "::error::Benchmark results file not found!"
-          exit 1
-        fi
-
-        # Validate JSON structure
-        if ! jq -e '.results | length >= 2' benchmark-phobos/benchmark_results.json >/dev/null; then
-          echo "::error::Invalid benchmark results format"
-          exit 1
-        fi
-
-        # Extract raw data with error handling
-        pr_times=($(jq -r '.results[0].times[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
-        pr_mem=($(jq -r '.results[0].max_rss[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
-        master_times=($(jq -r '.results[1].times[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
-        master_mem=($(jq -r '.results[1].max_rss[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
-
-        # Safety check for empty data
-        if [ ${#pr_times[@]} -eq 0 ] || [ ${#master_times[@]} -eq 0 ]; then
-          echo "::error::Missing time measurements in benchmark results"
-          exit 1
-        fi
-
-        # Format individual runs safely
-        format_runs() {
-          local arr=("$@")
-          if [ ${#arr[@]} -eq 0 ]; then
-            echo "N/A"
+          # Get binary differences
+          if diff -q "$pr_compiler" "$master_compiler" > /dev/null; then
+            echo "DIFF_RESULT=✅ Binaries are identical (MD5: $pr_md5)" >> $GITHUB_OUTPUT
           else
-            printf "%.3f, " "${arr[@]}" | sed 's/, $//'
+            # Generate diff result
+            echo "DIFF_RESULT=❌ Binaries differ (PR MD5: $pr_md5, Master MD5: $master_md5)" >> $GITHUB_OUTPUT
+
+            # Generate diff details with robust error handling
+            RAND_EOF=$(openssl rand -hex 6)
+            {
+              echo "**Binary Differences:**"
+              echo "- PR Size: $pr_size bytes | Master Size: $master_size bytes"
+              echo "- PR Version: $pr_version"
+              echo "- Master Version: $master_version"
+              echo '```diff'
+              # Use full path for xxd and handle large binaries safely
+              /usr/bin/xxd "$pr_compiler" |
+                diff -u - <(/usr/bin/xxd "$master_compiler") |
+                sed -e '1, 50!d' -e 's/`/‛/g' -e 's/\$/＄/g' -e 's/\\/＼/g' || true
+              echo '```'
+            } > diff_details.txt 2>&1
+
+            # Encode and output with unique delimiter
+            {
+              echo "DIFF_DETAILS<<DIFF_EOF_${RAND_EOF}"
+              base64 -w 0 diff_details.txt  # Single-line base64 encoding
+              echo
+              echo "DIFF_EOF_${RAND_EOF}"
+            } >> $GITHUB_OUTPUT
           fi
-        }
 
-        format_mem_runs() {
-          local arr=("$@")
-          if [ ${#arr[@]} -eq 0 ]; then
-            echo "N/A"
-          else
-            for m in "${arr[@]}"; do
-              if [ "$m" != "0" ]; then
-                printf "%.1f MB, " "$(echo "$m/1024" | bc -l)"
-              else
-                printf "N/A, "
-              fi
-            done | sed 's/, $//'
-          fi
-        }
+      - name: Checkout benchmark project
+        uses: actions/checkout@v4
+        with:
+          repository: dlang/phobos
+          ref: ${{env.BENCHMARK_REF}}
+          path: benchmark-phobos
 
-        pr_time_runs=$(format_runs "${pr_times[@]}")
-        master_time_runs=$(format_runs "${master_times[@]}")
+      - name: Install benchmarking tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y hyperfine jq bc moreutils time
 
-        # Handle memory runs with protection against empty arrays
-        if [ ${#pr_mem[@]} -gt 0 ]; then
-          pr_mem_runs=$(format_mem_runs "${pr_mem[@]}")
-        else
-          pr_mem_runs="N/A"
-        fi
+      - name: Warmup build cache
+        working-directory: ./benchmark-phobos
+        run: |
+          ../pr-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d || true
+          rm -f *.o
 
-        if [ ${#master_mem[@]} -gt 0 ]; then
-          master_mem_runs=$(format_mem_runs "${master_mem[@]}")
-        else
-          master_mem_runs="N/A"
-        fi
+      - name: Run benchmarks
+        working-directory: ./benchmark-phobos
+        run: |
+          # Create a wrapper script to measure memory usage
+          cat > run_with_ram.sh << 'EOF'
+          #!/bin/bash
+          /usr/bin/time -v "$@" 2>&1
+          EOF
+          chmod +x run_with_ram.sh
 
-        # Get stats from hyperfine results with safety checks
-        safe_get_value() {
-          local path="$1"
-          local default="$2"
-          local value=$(jq -r "$path // \"$default\"" benchmark-phobos/benchmark_results.json)
-          if [[ "$value" == "null" || -z "$value" ]]; then
-            echo "$default"
-          else
-            echo "$value"
-          fi
-        }
+          # Run hyperfine with our wrapper
+          hyperfine \
+            --warmup 1 \
+            --runs 5 \
+            --show-output \
+            --export-json benchmark_results.json \
+            --prepare 'rm -f *.o' \
+            --command-name "PR DMD" \
+            --command-name "Master DMD" \
+            "./run_with_ram.sh ../pr-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d" \
+            "./run_with_ram.sh ../master-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d"
 
-        pr_time_avg=$(safe_get_value '.results[0].mean' '0')
-        pr_time_stddev=$(safe_get_value '.results[0].stddev' '0')
-        master_time_avg=$(safe_get_value '.results[1].mean' '0')
-        master_time_stddev=$(safe_get_value '.results[1].stddev' '0')
+          # Extract RAM usage data for each run
+          mkdir -p ram_data
+          for i in {1..5}; do
+            # PR compiler RAM usage
+            hyperfine \
+              --runs 1 \
+              --show-output \
+              --export-json "ram_data/pr_run_$i.json" \
+              --prepare 'rm -f *.o' \
+              "/usr/bin/time -v ../pr-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d 2>&1 | grep 'Maximum resident set size' | awk '{print \$6}'"
 
-        # Format time values
-        pr_time_avg_fmt=$(awk -v val="$pr_time_avg" 'BEGIN {printf "%.3f", val}')
-        pr_time_stddev_fmt=$(awk -v val="$pr_time_stddev" 'BEGIN {printf "%.3f", val}')
-        master_time_avg_fmt=$(awk -v val="$master_time_avg" 'BEGIN {printf "%.3f", val}')
-        master_time_stddev_fmt=$(awk -v val="$master_time_stddev" 'BEGIN {printf "%.3f", val}')
+            # Master compiler RAM usage
+            hyperfine \
+              --runs 1 \
+              --show-output \
+              --export-json "ram_data/master_run_$i.json" \
+              --prepare 'rm -f *.o' \
+              "/usr/bin/time -v ../master-dmd/generated/linux/release/$MODEL/dmd -i=std -c -unittest -version=StdUnittest -preview=dip1000 std/package.d 2>&1 | grep 'Maximum resident set size' | awk '{print \$6}'"
+          done
 
-        # Calculate memory stats with division by zero protection
-        calc_avg() {
-          local arr=("$@")
-          if [ ${#arr[@]} -eq 0 ] || [ "${arr[0]}" == "0" ]; then
-            echo "0"
-          else
-            echo "${arr[@]}" | tr ' ' '\n' | awk '{sum += $1} END {if (NR > 0) printf "%.1f", sum/NR/1024; else print "0"}'
-          fi
-        }
-
-        pr_mem_avg=$(calc_avg "${pr_mem[@]}")
-        master_mem_avg=$(calc_avg "${master_mem[@]}")
-
-        # Calculate differences with division by zero protection
-        time_diff=$(awk -v pt="$pr_time_avg" -v mt="$master_time_avg" 'BEGIN {printf "%.3f", pt - mt}')
-        mem_diff=$(awk -v pm="$pr_mem_avg" -v mm="$master_mem_avg" 'BEGIN {printf "%+.1f", pm - mm}')
-
-        # Calculate percentages with division by zero protection
-        safe_percent() {
-          local value="$1"
-          local base="$2"
-          awk -v val="$value" -v base="$base" 'BEGIN {
-            if (base + 0 == 0 || base == "NaN") {
-              print "N/A"
-            } else {
-              printf "%+.2f%%", ((val/base)-1)*100
-            }
-          }'
-        }
-
-        time_pct=$(safe_percent "$pr_time_avg" "$master_time_avg")
-        mem_pct=$(safe_percent "$pr_mem_avg" "$master_mem_avg")
-
-        # Calculate statistical significance (normalized by standard deviation)
-        calc_significance() {
-          local diff="$1"
-          local sd1="$2"
-          local sd2="$3"
-          awk -v d="$diff" -v s1="$sd1" -v s2="$sd2" 'BEGIN {
-            pooled_var = (s1*s1 + s2*s2)
-            if (pooled_var <= 0) {
-              print "N/A"
-            } else {
-              printf "%.2f", d / sqrt(pooled_var)
-            }
-          }'
-        }
-
-        time_sig=$(calc_significance "$time_diff" "$pr_time_stddev" "$master_time_stddev")
-
-        # Set outputs
-        echo "pr_time_runs=${pr_time_runs}" >> $GITHUB_OUTPUT
-        echo "pr_mem_runs=${pr_mem_runs}" >> $GITHUB_OUTPUT
-        echo "master_time_runs=${master_time_runs}" >> $GITHUB_OUTPUT
-        echo "master_mem_runs=${master_mem_runs}" >> $GITHUB_OUTPUT
-        echo "pr_time_avg=${pr_time_avg_fmt} ± ${pr_time_stddev_fmt}" >> $GITHUB_OUTPUT
-        echo "master_time_avg=${master_time_avg_fmt} ± ${master_time_stddev_fmt}" >> $GITHUB_OUTPUT
-        echo "pr_mem_avg=${pr_mem_avg}" >> $GITHUB_OUTPUT
-        echo "master_mem_avg=${master_mem_avg}" >> $GITHUB_OUTPUT
-        echo "time_diff=${time_diff}" >> $GITHUB_OUTPUT
-        echo "time_pct=${time_pct}" >> $GITHUB_OUTPUT
-        echo "mem_diff=${mem_diff}" >> $GITHUB_OUTPUT
-        echo "mem_pct=${mem_pct}" >> $GITHUB_OUTPUT
-        echo "time_sig=${time_sig}" >> $GITHUB_OUTPUT
-        echo "binary_diff=${{ steps.diff_check.outputs.DIFF_RESULT }}" >> $GITHUB_OUTPUT
-
-    - name: Create comment
-      run: |
-        # Function to handle potential "N/A" values in formatting
-        format_or_na() {
-          local value="$1"
-          local format="$2"
-          if [[ "$value" == "N/A" ]]; then
-            echo "N/A"
-          else
-            printf "$format" "$value"
-          fi
-        }
-
-        # Get significance icon
-        get_sig_icon() {
-          local sig="$1"
-          if [[ "$sig" == "N/A" ]]; then
-            echo "❓"
-          elif (( $(echo "$sig < -2" | bc -l) )); then
-            echo "🟢"
-          elif (( $(echo "$sig > 2" | bc -l) )); then
-            echo "🔴"
-          else
-            echo "⚪"
-          fi
-        }
-
-        # Get change icon
-        get_change_icon() {
-          local pct="$1"
-          if [[ "$pct" == "N/A" ]]; then
-            echo "⚠️"
-          elif [[ "$pct" == *"-"* ]]; then
-            echo "✅"
-          elif [[ "$pct" == *"+"* ]]; then
-            echo "⚠️"
-          else
-            echo "➖"
-          fi
-        }
-
-        time_sig_icon=$(get_sig_icon "${{ steps.results.outputs.time_sig }}")
-        time_change_icon=$(get_change_icon "${{ steps.results.outputs.time_pct }}")
-
-        # Process diff details safely by writing to a file first
-        if [[ -n "${{ steps.diff_check.outputs.DIFF_DETAILS }}" ]]; then
-          echo "<details>" > diff_details_file.md
-          echo "<summary>🔍 Binary Diff Details</summary>" >> diff_details_file.md
-          echo "" >> diff_details_file.md
-          echo "${{ steps.diff_check.outputs.DIFF_DETAILS }}" >> diff_details_file.md
-          echo "</details>" >> diff_details_file.md
-          diff_details=$(cat diff_details_file.md)
-        else
-          diff_details=""
-        fi
-
-        # Generate individual runs table rows
-        individual_runs=""
-        IFS=', ' read -r -a pr_time_array <<< "${{ steps.results.outputs.pr_time_runs }}"
-        IFS=', ' read -r -a master_time_array <<< "${{ steps.results.outputs.master_time_runs }}"
-        IFS=', ' read -r -a pr_mem_array <<< "${{ steps.results.outputs.pr_mem_runs }}"
-        IFS=', ' read -r -a master_mem_array <<< "${{ steps.results.outputs.master_mem_runs }}"
-
-        for i in "${!pr_time_array[@]}"; do
-          run_num=$((i+1))
-          pr_time="${pr_time_array[$i]:-N/A}"
-          master_time="${master_time_array[$i]:-N/A}"
-          pr_mem="${pr_mem_array[$i]:-N/A}"
-          master_mem="${master_mem_array[$i]:-N/A}"
-
-          individual_runs+="| $run_num | $pr_time | $master_time | $pr_mem | $master_mem |"$'\n'
-        done
-
-        # Write each section of the comment to separate files
-        cat > header.md << 'EOL'
-        ### 🚀 Performance Benchmark Results
-
-        **Individual Runs:**
-        | Run | PR Time (s) | Master Time (s) | PR Memory (MB) | Master Memory (MB) |
-        |-----|-------------|-----------------|----------------|---------------------|
-        EOL
-
-        echo "$individual_runs" > runs.md
-
-        cat > summary.md << EOL
-
-        **Summary Statistics:**
-        | Metric          | PR                    | Master                 | Difference       | Change          | Significance  |
-        |-----------------|-----------------------|------------------------|------------------|----------------|--------------|
-        | ⏱️ Time (s)     | ${{ steps.results.outputs.pr_time_avg }} | ${{ steps.results.outputs.master_time_avg }} | ${{ steps.results.outputs.time_diff }} | ${{ steps.results.outputs.time_pct }} ${time_change_icon} | ${time_sig_icon} ${{ steps.results.outputs.time_sig }}σ |
-        | 🧠 Memory (MB)  | ${{ steps.results.outputs.pr_mem_avg }}      | ${{ steps.results.outputs.master_mem_avg }}      | ${{ steps.results.outputs.mem_diff }}  | ${{ steps.results.outputs.mem_pct }}  | - |
-
-        **Binary Comparison:**
-        ${{ steps.results.outputs.binary_diff }}
-        EOL
-
-        cat > footer.md << 'EOL'
-
-        <details>
-        <summary>📊 Additional Details</summary>
-
-        - **Benchmark target**: Phobos@master
-        - **Runs**: 5 measurements after 1 warmup
-        - **Environment**: Ubuntu Latest (GitHub Actions)
-        - **Hyperfine version**: $(hyperfine --version)
-        </details>
-        EOL
-
-        # Combine all sections into the final comment
-        cat header.md runs.md summary.md > performance_comment.md
-        echo "$diff_details" >> performance_comment.md
-        cat footer.md >> performance_comment.md
-
-    - name: Post comment
-      uses: actions/github-script@v6
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
+          # Parse RAM usage data and add to benchmark_results.json
+          cat > process_ram.js << 'EOF'
           const fs = require('fs');
-          const comment = fs.readFileSync('performance_comment.md', 'utf8');
-          const { data: comments } = await github.rest.issues.listComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-          });
+          const results = JSON.parse(fs.readFileSync('benchmark_results.json', 'utf8'));
 
-          const existingComment = comments.find(c => c.body.includes('🚀 Performance Benchmark Results'));
+          // Initialize memory arrays
+          if (!results.results[0].max_rss) results.results[0].max_rss = [];
+          if (!results.results[1].max_rss) results.results[1].max_rss = [];
 
-          if (existingComment) {
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: existingComment.id,
-              body: comment,
-            });
-          } else {
-            await github.rest.issues.createComment({
+          // Process PR RAM data
+          for (let i = 1; i <= 5; i++) {
+            try {
+              const ramData = JSON.parse(fs.readFileSync(`ram_data/pr_run_${i}.json`, 'utf8'));
+              const output = ramData.results[0].command_output.trim();
+              const ram = parseInt(output);
+              if (!isNaN(ram) && ram > 0) {
+                results.results[0].max_rss.push(ram);
+              }
+            } catch (e) {
+              console.error(`Error processing PR RAM data for run ${i}: ${e.message}`);
+            }
+          }
+
+          // Process Master RAM data
+          for (let i = 1; i <= 5; i++) {
+            try {
+              const ramData = JSON.parse(fs.readFileSync(`ram_data/master_run_${i}.json`, 'utf8'));
+              const output = ramData.results[0].command_output.trim();
+              const ram = parseInt(output);
+              if (!isNaN(ram) && ram > 0) {
+                results.results[1].max_rss.push(ram);
+              }
+            } catch (e) {
+              console.error(`Error processing Master RAM data for run ${i}: ${e.message}`);
+            }
+          }
+
+          fs.writeFileSync('benchmark_results.json', JSON.stringify(results, null, 2));
+          EOF
+
+          node process_ram.js
+          cat benchmark_results.json | jq
+
+      - name: Parse results
+        id: results
+        run: |
+          # Initial error checking
+          if [ ! -f benchmark-phobos/benchmark_results.json ]; then
+            echo "::error::Benchmark results file not found!"
+            exit 1
+          fi
+
+          # Validate JSON structure
+          if ! jq -e '.results | length >= 2' benchmark-phobos/benchmark_results.json > /dev/null; then
+            echo "::error::Invalid benchmark results format"
+            exit 1
+          fi
+
+          # Extract raw data with error handling
+          pr_times=($(jq -r '.results[0].times[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
+          pr_mem=($(jq -r '.results[0].max_rss[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
+          master_times=($(jq -r '.results[1].times[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
+          master_mem=($(jq -r '.results[1].max_rss[]? | select(. != null and . > 0) | tonumber' benchmark-phobos/benchmark_results.json || echo "0"))
+
+          # Safety check for empty data
+          if [ ${#pr_times[@]} -eq 0 ] || [ ${#master_times[@]} -eq 0 ]; then
+            echo "::error::Missing time measurements in benchmark results"
+            exit 1
+          fi
+
+          # Format individual runs safely
+          format_runs() {
+            local arr=("$@")
+            if [ ${#arr[@]} -eq 0 ]; then
+              echo "N/A"
+            else
+              printf "%.3f, " "${arr[@]}" | sed 's/, $//'
+            fi
+          }
+
+          format_mem_runs() {
+            local arr=("$@")
+            if [ ${#arr[@]} -eq 0 ]; then
+              echo "N/A"
+            else
+              for m in "${arr[@]}"; do
+                if [ "$m" != "0" ]; then
+                  printf "%.1f MB, " "$(echo "$m/1024" | bc -l)"
+                else
+                  printf "N/A, "
+                fi
+              done | sed 's/, $//'
+            fi
+          }
+
+          pr_time_runs=$(format_runs "${pr_times[@]}")
+          master_time_runs=$(format_runs "${master_times[@]}")
+
+          # Handle memory runs with protection against empty arrays
+          if [ ${#pr_mem[@]} -gt 0 ]; then
+            pr_mem_runs=$(format_mem_runs "${pr_mem[@]}")
+          else
+            pr_mem_runs="N/A"
+          fi
+
+          if [ ${#master_mem[@]} -gt 0 ]; then
+            master_mem_runs=$(format_mem_runs "${master_mem[@]}")
+          else
+            master_mem_runs="N/A"
+          fi
+
+          # Get stats from hyperfine results with safety checks
+          safe_get_value() {
+            local path="$1"
+            local default="$2"
+            local value=$(jq -r "$path" benchmark-phobos/benchmark_results.json 2>/dev/null)
+            if [[ "$value" == "null" || -z "$value" ]]; then
+              echo "$default"
+            else
+              echo "$value"
+            fi
+          }
+
+          pr_time_avg=$(safe_get_value '.results[0].mean' '0')
+          pr_time_stddev=$(safe_get_value '.results[0].stddev' '0')
+          master_time_avg=$(safe_get_value '.results[1].mean' '0')
+          master_time_stddev=$(safe_get_value '.results[1].stddev' '0')
+
+          # Format time values
+          pr_time_avg_fmt=$(awk -v val="$pr_time_avg" 'BEGIN {printf "%.3f", val}')
+          pr_time_stddev_fmt=$(awk -v val="$pr_time_stddev" 'BEGIN {printf "%.3f", val}')
+          master_time_avg_fmt=$(awk -v val="$master_time_avg" 'BEGIN {printf "%.3f", val}')
+          master_time_stddev_fmt=$(awk -v val="$master_time_stddev" 'BEGIN {printf "%.3f", val}')
+
+          # Calculate memory stats with division by zero protection
+          calc_avg() {
+            local arr=("$@")
+            if [ ${#arr[@]} -eq 0 ] || [ "${arr[0]}" == "0" ]; then
+              echo "0"
+            else
+              echo "${arr[@]}" | tr ' ' '\n' | awk '{sum += $1} END {if (NR > 0) printf "%.1f", sum/NR/1024; else print "0"}'
+            fi
+          }
+
+          pr_mem_avg=$(calc_avg "${pr_mem[@]}")
+          master_mem_avg=$(calc_avg "${master_mem[@]}")
+
+          # Calculate differences with division by zero protection
+          time_diff=$(awk -v pt="$pr_time_avg" -v mt="$master_time_avg" 'BEGIN {printf "%.3f", pt - mt}')
+          mem_diff=$(awk -v pm="$pr_mem_avg" -v mm="$master_mem_avg" 'BEGIN {printf "%+.1f", pm - mm}')
+
+          # Calculate percentages with division by zero protection
+          safe_percent() {
+            local value="$1"
+            local base="$2"
+            awk -v val="$value" -v base="$base" 'BEGIN {
+              if (base + 0 == 0 || base == "NaN") {
+                print "N/A"
+              } else {
+                printf "%+.2f%%", ((val/base) - 1) * 100
+              }
+            }'
+          }
+
+          time_pct=$(safe_percent "$pr_time_avg" "$master_time_avg")
+          mem_pct=$(safe_percent "$pr_mem_avg" "$master_mem_avg")
+
+          # Calculate statistical significance (normalized by standard deviation)
+          calc_significance() {
+            local diff="$1"
+            local sd1="$2"
+            local sd2="$3"
+            awk -v d="$diff" -v s1="$sd1" -v s2="$sd2" 'BEGIN {
+              pooled_var = (s1*s1 + s2*s2)
+              if (pooled_var <= 0) {
+                print "N/A"
+              } else {
+                printf "%.2f", d/sqrt(pooled_var)
+              }
+            }'
+          }
+
+          time_sig=$(calc_significance "$time_diff" "$pr_time_stddev" "$master_time_stddev")
+
+          # Set outputs
+          echo "pr_time_runs=${pr_time_runs}" >> $GITHUB_OUTPUT
+          echo "pr_mem_runs=${pr_mem_runs}" >> $GITHUB_OUTPUT
+          echo "master_time_runs=${master_time_runs}" >> $GITHUB_OUTPUT
+          echo "master_mem_runs=${master_mem_runs}" >> $GITHUB_OUTPUT
+          echo "pr_time_avg=${pr_time_avg_fmt} ± ${pr_time_stddev_fmt}" >> $GITHUB_OUTPUT
+          echo "master_time_avg=${master_time_avg_fmt} ± ${master_time_stddev_fmt}" >> $GITHUB_OUTPUT
+          echo "pr_mem_avg=${pr_mem_avg}" >> $GITHUB_OUTPUT
+          echo "master_mem_avg=${master_mem_avg}" >> $GITHUB_OUTPUT
+          echo "time_diff=${time_diff}" >> $GITHUB_OUTPUT
+          echo "time_pct=${time_pct}" >> $GITHUB_OUTPUT
+          echo "mem_diff=${mem_diff}" >> $GITHUB_OUTPUT
+          echo "mem_pct=${mem_pct}" >> $GITHUB_OUTPUT
+          echo "time_sig=${time_sig}" >> $GITHUB_OUTPUT
+          echo "binary_diff=${{steps.diff_check.outputs.DIFF_RESULT}}" >> $GITHUB_OUTPUT
+
+      - name: Create comment
+        run: |
+          # Function to handle potential "N/A" values in formatting
+          format_or_na() {
+            local value="$1"
+            local format="$2"
+            if [[ "$value" == "N/A" ]]; then
+              echo "N/A"
+            else
+              printf "$format" "$value"
+            fi
+          }
+
+          # Get significance icon
+          get_sig_icon() {
+            local sig="$1"
+            if [[ "$sig" == "N/A" ]]; then
+              echo "❓"
+            elif (( $(echo "$sig < -2" | bc -l) )); then
+              echo "🟢"
+            elif (( $(echo "$sig > 2" | bc -l) )); then
+              echo "🔴"
+            else
+              echo "⚪"
+            fi
+          }
+
+          # Get change icon
+          get_change_icon() {
+            local pct="$1"
+            if [[ "$pct" == "N/A" ]]; then
+              echo "⚠️"
+            elif [[ "$pct" == *"-"* ]]; then
+              echo "✅"
+            elif [[ "$pct" == *"+"* ]]; then
+              echo "⚠️"
+            else
+              echo "➖"
+            fi
+          }
+
+          time_sig_icon=$(get_sig_icon "${{steps.results.outputs.time_sig}}")
+          time_change_icon=$(get_change_icon "${{steps.results.outputs.time_pct}}")
+          mem_change_icon=$(get_change_icon "${{steps.results.outputs.mem_pct}}")
+
+          # Process diff details safely by writing to a file first
+          if [[ -n "${{steps.diff_check.outputs.DIFF_DETAILS}}" ]]; then
+            echo "<details>" > diff_details_file.md
+            echo "<summary>🔍 Binary Diff Details</summary>" >> diff_details_file.md
+            echo "" >> diff_details_file.md
+            echo "${{steps.diff_check.outputs.DIFF_DETAILS}}" | base64 -d >> diff_details_file.md
+            echo "</details>" >> diff_details_file.md
+            diff_details=$(cat diff_details_file.md)
+          else
+            diff_details=""
+          fi
+
+          # Generate individual runs table rows
+          individual_runs=""
+          IFS=', ' read -r -a pr_time_array <<< "${{steps.results.outputs.pr_time_runs}}"
+          IFS=', ' read -r -a master_time_array <<< "${{steps.results.outputs.master_time_runs}}"
+          IFS=', ' read -r -a pr_mem_array <<< "${{steps.results.outputs.pr_mem_runs}}"
+          IFS=', ' read -r -a master_mem_array <<< "${{steps.results.outputs.master_mem_runs}}"
+
+          for i in "${!pr_time_array[@]}"; do
+            run_num=$((i+1))
+            pr_time="${pr_time_array[$i]:-N/A}"
+            master_time="${master_time_array[$i]:-N/A}"
+            pr_mem="${pr_mem_array[$i]:-N/A}"
+            master_mem="${master_mem_array[$i]:-N/A}"
+            individual_runs+="|$run_num|$pr_time|$master_time|$pr_mem|$master_mem|"$'\n'
+          done
+
+          # Write each section of the comment to separate files
+          cat > header.md << 'EOL'
+          ### 🚀 Performance Benchmark Results
+          **Individual Runs:**
+          |Run|PR Time (s)|Master Time (s)|PR Memory (MB)|Master Memory (MB)|
+          |-----|-------------|-----------------|----------------|---------------------|
+          EOL
+
+          echo "$individual_runs" > runs.md
+
+          cat > summary.md << EOL
+          **Summary Statistics:**
+          |Metric|PR|Master|Difference|Change|Significance|
+          |-----------------|-----------------------|------------------------|------------------|----------------|--------------|
+          |⏱️ Time (s)|${{steps.results.outputs.pr_time_avg}}|${{steps.results.outputs.master_time_avg}}|${{steps.results.outputs.time_diff}}|${{steps.results.outputs.time_pct}} ${time_change_icon}|${time_sig_icon} ${{steps.results.outputs.time_sig}}σ|
+          |🧠 Memory (MB)|${{steps.results.outputs.pr_mem_avg}}|${{steps.results.outputs.master_mem_avg}}|${{steps.results.outputs.mem_diff}}|${{steps.results.outputs.mem_pct}} ${mem_change_icon}|-|
+
+          **Binary Comparison:**
+          ${{steps.results.outputs.binary_diff}}
+          EOL
+
+          cat > footer.md << 'EOL'
+          <details>
+          <summary>📊 Additional Details</summary>
+
+          - **Benchmark target**: Phobos@master
+          - **Runs**: 5 measurements after 1 warmup
+          - **Environment**: Ubuntu Latest (GitHub Actions)
+          - **Hyperfine version**: $(hyperfine --version)
+          </details>
+          EOL
+
+          # Combine all sections into the final comment
+          cat header.md runs.md summary.md > performance_comment.md
+          echo "$diff_details" >> performance_comment.md
+          cat footer.md >> performance_comment.md
+
+      - name: Post comment
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('performance_comment.md', 'utf8');
+
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: comment,
             });
-          }
 
-    - name: Store benchmark data
-    # Always run this step regardless of previous steps' success
-      if: always()
-      run: |
-        # Create directory structure explicitly
-        mkdir -p gh-pages-repo/benchmark_data
+            const existingComment = comments.find(c => c.body.includes('🚀 Performance Benchmark Results'));
 
-        # Save raw benchmark data
-        if [ -f benchmark-phobos/benchmark_results.json ]; then
-          cp benchmark-phobos/benchmark_results.json gh-pages-repo/benchmark_data/latest_results.json
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: comment,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment,
+              });
+            }
 
-          # Create PR-specific data
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+      - name: Store benchmark data
+        # Always run this step regardless of previous steps' success
+        if: always()
+        run: |
+          # Create directory structure explicitly
+          mkdir -p gh-pages-repo/benchmark_data
 
-          # Extract and format benchmark data using our script
-          node "$GITHUB_WORKSPACE/pr-dmd/.github/scripts/process_benchmark.js" \
-            benchmark-phobos/benchmark_results.json \
-            "$PR_NUMBER" \
-            "${{github.event.pull_request.title}}" \
-            "${{github.event.pull_request.html_url}}" \
-            "${{github.sha}}" \
-            "$GITHUB_WORKSPACE/gh-pages-repo/benchmark_data/pr_${PR_NUMBER}_${TIMESTAMP}.json"
+          # Save raw benchmark data
+          if [ -f benchmark-phobos/benchmark_results.json ]; then
+            cp benchmark-phobos/benchmark_results.json gh-pages-repo/benchmark_data/latest_results.json
 
-          # Debug log
-          echo "Created benchmark data file: pr_${PR_NUMBER}_${TIMESTAMP}.json"
-          ls -la gh-pages-repo/benchmark_data/
-        else
-          echo "No benchmark results found to store"
-        fi
+            # Create PR-specific data
+            PR_NUMBER="${{github.event.pull_request.number}}"
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
-        # Create an empty history.json file if none exists
-        if [ ! -f gh-pages-repo/benchmark_data/history.json ]; then
-          echo "[]" > gh-pages-repo/benchmark_data/history.json
-          echo "Created empty history.json file"
-        fi
+            # Extract and format benchmark data using our script
+            node "$GITHUB_WORKSPACE/pr-dmd/.github/scripts/process_benchmark.js" \
+              benchmark-phobos/benchmark_results.json \
+              "$PR_NUMBER" \
+              "${{github.event.pull_request.title}}" \
+              "${{github.event.pull_request.html_url}}" \
+              "${{github.sha}}" \
+              "$GITHUB_WORKSPACE/gh-pages-repo/benchmark_data/pr_${PR_NUMBER}_${TIMESTAMP}.json"
 
-    - name: Upload benchmark data as artifact
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: benchmark_data
-        path: |
-          gh-pages-repo/benchmark_data/*
-          !gh-pages-repo/benchmark_data/history.json  # Exclude history.json from artifact
-        retention-days: 30
+            # Debug log
+            echo "Created benchmark data file: pr_${PR_NUMBER}_${TIMESTAMP}.json"
+            ls -la gh-pages-repo/benchmark_data/
+          else
+            echo "No benchmark results found to store"
+          fi
+
+          # Create an empty history.json file if none exists
+          if [ ! -f gh-pages-repo/benchmark_data/history.json ]; then
+            echo "[]" > gh-pages-repo/benchmark_data/history.json
+            echo "Created empty history.json file"
+          fi
+
+      - name: Upload benchmark data as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark_data
+          path: |
+            gh-pages-repo/benchmark_data/*
+            !gh-pages-repo/benchmark_data/history.json  # Exclude history.json from artifact
+          retention-days: 30

@@ -1,548 +1,764 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DMD Performance Dashboard</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            padding: 20px;
-            background-color: #f8f9fa;
-        }
-        .dashboard-title {
-            margin-bottom: 30px;
-            color: #343a40;
-        }
-        .chart-container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            margin-bottom: 20px;
-            height: 100%;
-        }
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        .stat-label {
-            color: #6c757d;
-            font-size: 14px;
-        }
-        .improvement {
-            color: #28a745;
-        }
-        .regression {
-            color: #dc3545;
-        }
-        .no-change {
-            color: #6c757d;
-        }
-        .table-responsive {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        .time-filter {
-            margin-bottom: 20px;
-        }
-        #loading {
-            text-align: center;
-            padding: 50px;
-            font-size: 18px;
-        }
-        #error {
-            text-align: center;
-            padding: 50px;
-            color: #dc3545;
-            font-size: 18px;
-            display: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DMD Performance Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<style>
+body {
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+padding: 20px;
+background-color: #f8f9fa;
+}
+.dashboard-title {
+margin-bottom: 30px;
+color: #343a40;
+}
+.chart-container {
+background-color: white;
+border-radius: 8px;
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+padding: 20px;
+margin-bottom: 30px;
+}
+.stat-card {
+background-color: white;
+border-radius: 8px;
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+padding: 20px;
+margin-bottom: 20px;
+height: 100%;
+}
+.stat-value {
+font-size: 24px;
+font-weight: bold;
+margin: 10px 0;
+}
+.stat-label {
+color: #6c757d;
+font-size: 14px;
+}
+.improvement {
+color: #28a745;
+}
+.regression {
+color: #dc3545;
+}
+.no-change {
+color: #6c757d;
+}
+.table-responsive {
+background-color: white;
+border-radius: 8px;
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+padding: 20px;
+margin-bottom: 30px;
+}
+.time-filter {
+margin-bottom: 20px;
+}
+#loading {
+text-align: center;
+padding: 50px;
+font-size: 18px;
+}
+#error {
+text-align: center;
+padding: 50px;
+color: #dc3545;
+font-size: 18px;
+display: none;
+}
+.metric-toggle {
+margin-bottom: 20px;
+}
+.memory-summary {
+background-color: rgba(54, 162, 235, 0.1);
+border-left: 4px solid rgb(54, 162, 235);
+}
+.time-summary {
+background-color: rgba(75, 192, 192, 0.1);
+border-left: 4px solid rgb(75, 192, 192);
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="row">
-            <div class="col-12">
-                <h1 class="dashboard-title text-center">DMD Performance Dashboard</h1>
-            </div>
-        </div>
+<div class="container">
+<div class="row">
+<div class="col-12">
+<h1 class="dashboard-title text-center">DMD Performance Dashboard</h1>
+</div>
+</div>
+<!--Loading and error states-->
+<div id="loading">Loading performance data...</div>
+<div id="error" style="display:none;"></div>
+<!--Dashboard Content-->
+<div id="dashboard-content" style="display:none;">
+<!--Stats Cards Row-->
+<div class="row mb-4">
+<div class="col-md-3">
+<div class="stat-card">
+<div class="stat-label">PRs Analyzed</div>
+<div class="stat-value" id="totalPRs">-</div>
+</div>
+</div>
+<div class="col-md-3">
+<div class="stat-card time-summary">
+<div class="stat-label">Avg Time Change</div>
+<div class="stat-value" id="avgTimeChange">-</div>
+</div>
+</div>
+<div class="col-md-3">
+<div class="stat-card memory-summary">
+<div class="stat-label">Avg Memory Change</div>
+<div class="stat-value" id="avgMemChange">-</div>
+</div>
+</div>
+<div class="col-md-3">
+<div class="stat-card">
+<div class="stat-label">Last Updated</div>
+<div class="stat-value" id="lastUpdated">-</div>
+</div>
+</div>
+</div>
+<!--Trend Cards Row-->
+<div class="row mb-4">
+<div class="col-md-6">
+<div class="stat-card time-summary">
+<div class="stat-label">Time Trend</div>
+<div class="stat-value" id="timeTrend">-</div>
+</div>
+</div>
+<div class="col-md-6">
+<div class="stat-card memory-summary">
+<div class="stat-label">Memory Trend</div>
+<div class="stat-value" id="memoryTrend">-</div>
+</div>
+</div>
+</div>
+<!--Time Filter-->
+<div class="row mb-4">
+<div class="col-12">
+<div class="time-filter btn-group">
+<button class="btn btn-outline-primary active" data-period="30">30 Days</button>
+<button class="btn btn-outline-primary" data-period="90">90 Days</button>
+<button class="btn btn-outline-primary" data-period="180">6 Months</button>
+<button class="btn btn-outline-primary" data-period="365">1 Year</button>
+<button class="btn btn-outline-primary" data-period="all">All Time</button>
+</div>
+</div>
+</div>
+<!--Metric Toggle-->
+<div class="row mb-2">
+<div class="col-12">
+<div class="metric-toggle btn-group">
+<button class="btn btn-outline-success active" data-metric="absolute">Absolute Values</button>
+<button class="btn btn-outline-success" data-metric="relative">Relative Changes</button>
+</div>
+</div>
+</div>
+<!--Charts-->
+<div class="row">
+<div class="col-md-6">
+<div class="chart-container">
+<canvas id="timeChart"></canvas>
+</div>
+</div>
+<div class="col-md-6">
+<div class="chart-container">
+<canvas id="memoryChart"></canvas>
+</div>
+</div>
+</div>
+<!--Memory/Time Correlation-->
+<div class="row mb-4">
+<div class="col-12">
+<div class="chart-container">
+<canvas id="correlationChart"></canvas>
+</div>
+</div>
+</div>
+<!--Recent Changes Table-->
+<div class="row">
+<div class="col-12">
+<div class="table-responsive">
+<h3>Recent Performance Changes</h3>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Date</th>
+<th>PR</th>
+<th>Time Change</th>
+<th>Memory Change</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody id="recentChanges"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+async function fetchData() {
+  try {
+    showLoadingState();
+    const response = await fetch('benchmark_data/history.json');
+    if (!response.ok) throw new Error('Failed to fetch data');
+    const data = await response.json();
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid data format');
+    }
+    hideLoadingState();
+    return data;
+  } catch (error) {
+    showErrorState(`Error loading data: ${error.message}`);
+    return [];
+  }
+}
 
-        <!-- Loading and error states -->
-        <div id="loading">Loading performance data...</div>
-        <div id="error" style="display:none;"></div>
+function showLoadingState() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('error').style.display = 'none';
+  document.getElementById('dashboard-content').style.display = 'none';
+}
 
-        <!-- Dashboard Content -->
-        <div id="dashboard-content" style="display:none;">
-            <!-- Stats Cards Row -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">PRs Analyzed</div>
-                    <div class="stat-value" id="totalPRs">-</div>
-                </div>
-                </div>
-                <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">Avg Time Change</div>
-                    <div class="stat-value" id="avgTimeChange">-</div>
-                </div>
-                </div>
-                <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">Last Updated</div>
-                    <div class="stat-value" id="lastUpdated">-</div>
-                </div>
-                </div>
-                <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-label">Trend</div>
-                    <div class="stat-value" id="trend">-</div>
-                </div>
-                </div>
-            </div>
+function hideLoadingState() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('dashboard-content').style.display = 'block';
+}
 
-            <!-- Time Filter -->
-            <div class="row mb-4">
-                <div class="col-12">
-                <div class="time-filter btn-group">
-                    <button class="btn btn-outline-primary active" data-period="30">30 Days</button>
-                    <button class="btn btn-outline-primary" data-period="90">90 Days</button>
-                    <button class="btn btn-outline-primary" data-period="180">6 Months</button>
-                    <button class="btn btn-outline-primary" data-period="365">1 Year</button>
-                    <button class="btn btn-outline-primary" data-period="all">All Time</button>
-                </div>
-                </div>
-            </div>
+function showErrorState(message) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error').style.display = 'block';
+  document.getElementById('error').textContent = message;
+}
 
-            <!-- Charts -->
-            <div class="row">
-                <div class="col-md-6">
-                <div class="chart-container">
-                    <canvas id="timeChart"></canvas>
-                </div>
-                </div>
-                <div class="col-md-6">
-                <div class="chart-container">
-                    <canvas id="memoryChart"></canvas>
-                </div>
-                </div>
-            </div>
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
 
-            <!-- Recent Changes Table -->
-            <div class="row">
-                <div class="col-12">
-                <div class="table-responsive">
-                    <h3>Recent Performance Changes</h3>
-                    <table class="table table-striped">
-                    <thead>
-                        <tr>
-                        <th>Date</th>
-                        <th>PR</th>
-                        <th>Time Change</th>
-                        <th>Memory Change</th>
-                        </tr>
-                    </thead>
-                    <tbody id="recentChanges"></tbody>
-                    </table>
-                </div>
-                </div>
-            </div>
-        </div>
-    </div>
+function formatPercentage(value) {
+  if (!value || value === 'N/A') return 'N/A';
+  let numValue;
+  if (typeof value === 'string') {
+    numValue = parseFloat(value.replace('%', ''));
+  } else {
+    numValue = value;
+  }
+  if (isNaN(numValue)) return 'N/A';
+  const formatted = `${numValue > 0 ? '+' : ''}${numValue.toFixed(2)}%`;
+  if (numValue < 0) {
+    return `<span class="improvement">${formatted}</span>`;
+  } else if (numValue > 0) {
+    return `<span class="regression">${formatted}</span>`;
+  } else {
+    return `<span class="no-change">${formatted}</span>`;
+  }
+}
 
-    <script>
-        async function fetchData() {
-            try {
-                showLoadingState();
-                const response = await fetch('benchmark_data/history.json');
+function initCharts(data, period = 30, metricType = 'absolute') {
+  if (data.length === 0) {
+    updateStats([]);
+    initEmptyCharts();
+    updateRecentChangesTable([]);
+    return;
+  }
 
-                if (!response.ok) throw new Error('Failed to fetch data');
+  let filteredData = data;
+  if (period !== 'all') {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - period);
+    filteredData = data.filter(item => new Date(item.timestamp) >= cutoffDate);
+  }
 
-                const data = await response.json();
+  if (filteredData.length === 0 && data.length > 0) {
+    filteredData = data;
+  }
 
-                if (!Array.isArray(data)) {
-                throw new Error('Invalid data format');
-                }
+  updateStats(filteredData);
 
-                hideLoadingState();
-                return data;
-            } catch (error) {
-                showErrorState(`Error loading data: ${error.message}`);
-                return [];
+  // Time chart
+  const timeCtx = document.getElementById('timeChart').getContext('2d');
+  if (window.timeChart) {
+    window.timeChart.destroy();
+  }
+
+  let timeDatasets = [];
+
+  if (metricType === 'absolute') {
+    timeDatasets = [{
+      label: 'Build Time (s)',
+      data: filteredData.map(item => parseFloat(item.metrics.pr_time)),
+      borderColor: 'rgb(75, 192, 192)',
+      backgroundColor: 'rgba(75, 192, 192, 0.1)',
+      tension: 0.1,
+      fill: true
+    }];
+  } else {
+    timeDatasets = [{
+      label: 'Time Change (%)',
+      data: filteredData.map(item => parsePercentage(item.metrics.time_pct)),
+      borderColor: 'rgb(75, 192, 192)',
+      backgroundColor: 'rgba(75, 192, 192, 0.1)',
+      tension: 0.1,
+      fill: true
+    }];
+  }
+
+  window.timeChart = new Chart(timeCtx, {
+    type: 'line',
+    data: {
+      labels: filteredData.map(item => formatDate(item.timestamp)),
+      datasets: timeDatasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: metricType === 'absolute' ? 'Build Time Trend' : 'Build Time Change Trend',
+          font: { size: 16 }
+        },
+        tooltip: {
+          callbacks: {
+            afterLabel: function(context) {
+              const dataIndex = context.dataIndex;
+              const pr = filteredData[dataIndex].pr;
+              return [
+                `PR #${pr.number}: ${pr.title}`,
+                `Change: ${filteredData[dataIndex].metrics.time_pct}`
+              ];
             }
+          }
         }
+      }
+    }
+  });
 
-        function showLoadingState() {
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('error').style.display = 'none';
-            document.getElementById('dashboard-content').style.display = 'none';
+  // Memory chart
+  const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+  if (window.memoryChart) {
+    window.memoryChart.destroy();
+  }
+
+  let memoryDatasets = [];
+
+  if (metricType === 'absolute') {
+    memoryDatasets = [{
+      label: 'Memory Usage (MB)',
+      data: filteredData.map(item => parseFloat(item.metrics.pr_memory)),
+      borderColor: 'rgb(54, 162, 235)',
+      backgroundColor: 'rgba(54, 162, 235, 0.1)',
+      tension: 0.1,
+      fill: true
+    }];
+  } else {
+    memoryDatasets = [{
+      label: 'Memory Change (%)',
+      data: filteredData.map(item => getMemoryPercentage(item)),
+      borderColor: 'rgb(54, 162, 235)',
+      backgroundColor: 'rgba(54, 162, 235, 0.1)',
+      tension: 0.1,
+      fill: true
+    }];
+  }
+
+  window.memoryChart = new Chart(memoryCtx, {
+    type: 'line',
+    data: {
+      labels: filteredData.map(item => formatDate(item.timestamp)),
+      datasets: memoryDatasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: metricType === 'absolute' ? 'Memory Usage Trend' : 'Memory Usage Change Trend',
+          font: { size: 16 }
+        },
+        tooltip: {
+          callbacks: {
+            afterLabel: function(context) {
+              const dataIndex = context.dataIndex;
+              const pr = filteredData[dataIndex].pr;
+              const memChange = getMemoryPercentage(filteredData[dataIndex]);
+              return [
+                `PR #${pr.number}: ${pr.title}`,
+                `Memory: ${filteredData[dataIndex].metrics.pr_memory} MB`,
+                `Change: ${isNaN(memChange) ? 'N/A' : memChange.toFixed(2) + '%'}`
+              ];
+            }
+          }
         }
+      }
+    }
+  });
 
-        function hideLoadingState() {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('dashboard-content').style.display = 'block';
+  // Correlation Chart
+  const correlationCtx = document.getElementById('correlationChart').getContext('2d');
+  if (window.correlationChart) {
+    window.correlationChart.destroy();
+  }
+
+  const validData = filteredData.filter(item =>
+    !isNaN(parseFloat(item.metrics.pr_time)) &&
+    !isNaN(parseFloat(item.metrics.pr_memory)) &&
+    parseFloat(item.metrics.pr_memory) > 0
+  );
+
+  window.correlationChart = new Chart(correlationCtx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'Time vs Memory',
+        data: validData.map(item => ({
+          x: parseFloat(item.metrics.pr_time),
+          y: parseFloat(item.metrics.pr_memory),
+          pr: item.pr
+        })),
+        backgroundColor: 'rgba(153, 102, 255, 0.6)',
+        borderColor: 'rgb(153, 102, 255)',
+        borderWidth: 1,
+        pointRadius: 6,
+        pointHoverRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Memory vs. Time Correlation',
+          font: { size: 16 }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const point = context.raw;
+              return [
+                `PR #${point.pr.number}: ${point.pr.title}`,
+                `Time: ${point.x.toFixed(3)} s`,
+                `Memory: ${point.y.toFixed(1)} MB`
+              ];
+            }
+          }
         }
-
-        function showErrorState(message) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('error').style.display = 'block';
-            document.getElementById('error').textContent = message;
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Build Time (s)'
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Memory Usage (MB)'
+          }
         }
+      }
+    }
+  });
 
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
+  updateRecentChangesTable(filteredData.slice(-10).reverse());
+}
+
+function initEmptyCharts() {
+  const timeCtx = document.getElementById('timeChart').getContext('2d');
+  if (window.timeChart) {
+    window.timeChart.destroy();
+  }
+  window.timeChart = new Chart(timeCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Build Time (s)',
+        data: [],
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.1)'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Build Time Trend (No data yet)',
+          font: { size: 16 }
         }
+      }
+    }
+  });
 
-        function formatPercentage(value) {
-            if (!value || value === 'N/A') return 'N/A';
-
-            // Handle string percentage values
-            let numValue;
-            if (typeof value === 'string') {
-                numValue = parseFloat(value.replace('%', ''));
-            } else {
-                numValue = value;
-            }
-
-            if (isNaN(numValue)) return 'N/A';
-
-            const formatted = `${numValue > 0 ? '+' : ''}${numValue.toFixed(2)}%`;
-            if (numValue < 0) {
-                return `<span class="improvement">${formatted}</span>`;
-            } else if (numValue > 0) {
-                return `<span class="regression">${formatted}</span>`;
-            } else {
-                return `<span class="no-change">${formatted}</span>`;
-            }
+  const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+  if (window.memoryChart) {
+    window.memoryChart.destroy();
+  }
+  window.memoryChart = new Chart(memoryCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Memory Usage (MB)',
+        data: [],
+        borderColor: 'rgb(54, 162, 235)',
+        backgroundColor: 'rgba(54, 162, 235, 0.1)'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Memory Usage Trend (No data yet)',
+          font: { size: 16 }
         }
+      }
+    }
+  });
 
-        function initCharts(data, period = 30) {
-            // If no data at all, show empty charts with a message
-            if (data.length === 0) {
-                updateStats([]);
-
-                // Create empty chart for build time
-                const timeCtx = document.getElementById('timeChart').getContext('2d');
-                if (window.timeChart) {
-                    window.timeChart.destroy();
-                }
-                window.timeChart = new Chart(timeCtx, {
-                    type: 'line',
-                    data: {
-                        labels: [],
-                        datasets: [{
-                            label: 'Build Time (s)',
-                            data: [],
-                            borderColor: 'rgb(75, 192, 192)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.1)'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: 'Build Time Trend (No data yet)',
-                                font: { size: 16 }
-                            }
-                        }
-                    }
-                });
-
-                // Create empty chart for memory usage
-                const memoryCtx = document.getElementById('memoryChart').getContext('2d');
-                if (window.memoryChart) {
-                    window.memoryChart.destroy();
-                }
-                window.memoryChart = new Chart(memoryCtx, {
-                    type: 'line',
-                    data: {
-                        labels: [],
-                        datasets: [{
-                            label: 'Memory Usage (MB)',
-                            data: [],
-                            borderColor: 'rgb(54, 162, 235)',
-                            backgroundColor: 'rgba(54, 162, 235, 0.1)'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: 'Memory Usage Trend (No data yet)',
-                                font: { size: 16 }
-                            }
-                        }
-                    }
-                });
-
-                // Clear the recent changes table
-                updateRecentChangesTable([]);
-                return;
-            }
-
-            // Filter data based on the selected period if not "all"
-            let filteredData = data;
-            if (period !== 'all') {
-                const cutoffDate = new Date();
-                cutoffDate.setDate(cutoffDate.getDate() - period);
-                filteredData = data.filter(item => new Date(item.timestamp) >= cutoffDate);
-            }
-
-            // If no data in the filtered result but we have data, use all available data
-            if (filteredData.length === 0 && data.length > 0) {
-                filteredData = data;
-            }
-
-            // Update dashboard statistics
-            updateStats(filteredData);
-
-            // Create or update the build time chart
-            const timeCtx = document.getElementById('timeChart').getContext('2d');
-            if (window.timeChart) {
-                window.timeChart.destroy();
-            }
-            window.timeChart = new Chart(timeCtx, {
-                type: 'line',
-                data: {
-                    labels: filteredData.map(item => formatDate(item.timestamp)),
-                    datasets: [{
-                        label: 'Build Time (s)',
-                        data: filteredData.map(item => parseFloat(item.metrics.pr_time)),
-                        borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                        tension: 0.1,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Build Time Trend',
-                            font: { size: 16 }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                afterLabel: function(context) {
-                                    const dataIndex = context.dataIndex;
-                                    const pr = filteredData[dataIndex].pr;
-                                    return [
-                                        `PR #${pr.number}: ${pr.title}`,
-                                        `Change: ${filteredData[dataIndex].metrics.time_pct}`
-                                    ];
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Create or update the memory usage chart
-            const memoryCtx = document.getElementById('memoryChart').getContext('2d');
-            if (window.memoryChart) {
-                window.memoryChart.destroy();
-            }
-            window.memoryChart = new Chart(memoryCtx, {
-                type: 'line',
-                data: {
-                    labels: filteredData.map(item => formatDate(item.timestamp)),
-                    datasets: [{
-                        label: 'Memory Usage (MB)',
-                        data: filteredData.map(item => parseFloat(item.metrics.pr_memory)),
-                        borderColor: 'rgb(54, 162, 235)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                        tension: 0.1,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Memory Usage Trend',
-                            font: { size: 16 }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                afterLabel: function(context) {
-                                    const dataIndex = context.dataIndex;
-                                    const pr = filteredData[dataIndex].pr;
-                                    return [`PR #${pr.number}: ${pr.title}`];
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Update the recent changes table with the 10 most recent entries (latest on top)
-            updateRecentChangesTable(filteredData.slice(-10).reverse());
+  const correlationCtx = document.getElementById('correlationChart').getContext('2d');
+  if (window.correlationChart) {
+    window.correlationChart.destroy();
+  }
+  window.correlationChart = new Chart(correlationCtx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'Time vs Memory',
+        data: [],
+        backgroundColor: 'rgba(153, 102, 255, 0.6)'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Memory vs. Time Correlation (No data yet)',
+          font: { size: 16 }
         }
+      }
+    }
+  });
+}
 
-        function updateStats(data) {
-            if (data.length === 0) {
-                document.getElementById('totalPRs').textContent = '0';
-                document.getElementById('avgTimeChange').textContent = 'N/A';
-                document.getElementById('lastUpdated').textContent = 'Never';
-                document.getElementById('trend').textContent = 'N/A';
-                return;
-            }
+function getMemoryPercentage(item) {
+  if (!item.metrics.pr_memory || !item.metrics.master_memory) return NaN;
 
-            document.getElementById('totalPRs').textContent = data.length;
+  const prMem = parseFloat(item.metrics.pr_memory);
+  const masterMem = parseFloat(item.metrics.master_memory);
 
-            // Process time changes
-            const timeChanges = data.map(item => {
-                if (typeof item.metrics.time_pct === 'string') {
-                    return parseFloat(item.metrics.time_pct);
-                }
-                return 0;
-            });
+  if (isNaN(prMem) || isNaN(masterMem) || masterMem === 0) return NaN;
 
-            const validTimeChanges = timeChanges.filter(val => !isNaN(val));
-            let avgTimeChange = 'N/A';
+  return ((prMem / masterMem) - 1) * 100;
+}
 
-            if (validTimeChanges.length > 0) {
-                const sum = validTimeChanges.reduce((a, b) => a + b, 0);
-                avgTimeChange = (sum / validTimeChanges.length).toFixed(2) + '%';
+function parsePercentage(value) {
+  if (!value || value === 'N/A') return NaN;
+  if (typeof value === 'number') return value;
+  return parseFloat(value.replace('%', ''));
+}
 
-                if (sum < 0) {
-                    document.getElementById('avgTimeChange').className = 'stat-value improvement';
-                } else if (sum > 0) {
-                    document.getElementById('avgTimeChange').className = 'stat-value regression';
-                }
-            }
+function updateStats(data) {
+  if (data.length === 0) {
+    document.getElementById('totalPRs').textContent = '0';
+    document.getElementById('avgTimeChange').textContent = 'N/A';
+    document.getElementById('avgMemChange').textContent = 'N/A';
+    document.getElementById('lastUpdated').textContent = 'Never';
+    document.getElementById('timeTrend').textContent = 'N/A';
+    document.getElementById('memoryTrend').textContent = 'N/A';
+    return;
+  }
 
-            document.getElementById('avgTimeChange').innerHTML = avgTimeChange;
+  document.getElementById('totalPRs').textContent = data.length;
 
-            const lastItem = data[data.length - 1];
-            document.getElementById('lastUpdated').textContent = formatDate(lastItem.timestamp);
+  // Time change calculation
+  const timeChanges = data.map(item => parsePercentage(item.metrics.time_pct)).filter(val => !isNaN(val));
+  let avgTimeChange = 'N/A';
+  if (timeChanges.length > 0) {
+    const sum = timeChanges.reduce((a, b) => a + b, 0);
+    avgTimeChange = (sum / timeChanges.length).toFixed(2) + '%';
+    if (sum < 0) {
+      document.getElementById('avgTimeChange').className = 'stat-value improvement';
+    } else if (sum > 0) {
+      document.getElementById('avgTimeChange').className = 'stat-value regression';
+    } else {
+      document.getElementById('avgTimeChange').className = 'stat-value no-change';
+    }
+  }
+  document.getElementById('avgTimeChange').innerHTML = avgTimeChange;
 
-            const recentData = data.slice(-5);
-            if (recentData.length >= 3) {
-                const trend = analyzeTrend(recentData.map(item => parseFloat(item.metrics.pr_time)));
-                let trendText = '';
-                let trendClass = '';
+  // Memory change calculation
+  const memChanges = data.map(item => getMemoryPercentage(item)).filter(val => !isNaN(val));
+  let avgMemChange = 'N/A';
+  if (memChanges.length > 0) {
+    const sum = memChanges.reduce((a, b) => a + b, 0);
+    avgMemChange = (sum / memChanges.length).toFixed(2) + '%';
+    if (sum < 0) {
+      document.getElementById('avgMemChange').className = 'stat-value improvement';
+    } else if (sum > 0) {
+      document.getElementById('avgMemChange').className = 'stat-value regression';
+    } else {
+      document.getElementById('avgMemChange').className = 'stat-value no-change';
+    }
+  }
+  document.getElementById('avgMemChange').innerHTML = avgMemChange;
 
-                if (trend < -0.1) {
-                    trendText = 'Improving ↓';
-                    trendClass = 'improvement';
-                } else if (trend > 0.1) {
-                    trendText = 'Degrading ↑';
-                    trendClass = 'regression';
-                } else {
-                    trendText = 'Stable →';
-                    trendClass = 'no-change';
-                }
+  const lastItem = data[data.length - 1];
+  document.getElementById('lastUpdated').textContent = formatDate(lastItem.timestamp);
 
-                document.getElementById('trend').textContent = trendText;
-                document.getElementById('trend').className = `stat-value ${trendClass}`;
-            }
-        }
+  // Trend analysis
+  const recentData = data.slice(-5);
+  if (recentData.length >= 3) {
+    // Time trend
+    const timeTrend = analyzeTrend(recentData.map(item => parseFloat(item.metrics.pr_time)));
+    let timeTrendText = '';
+    let timeTrendClass = '';
+    if (timeTrend < -0.1) {
+      timeTrendText = 'Improving ↓';
+      timeTrendClass = 'improvement';
+    } else if (timeTrend > 0.1) {
+      timeTrendText = 'Degrading ↑';
+      timeTrendClass = 'regression';
+    } else {
+      timeTrendText = 'Stable →';
+      timeTrendClass = 'no-change';
+    }
+    document.getElementById('timeTrend').textContent = timeTrendText;
+    document.getElementById('timeTrend').className = `stat-value ${timeTrendClass}`;
 
-        function analyzeTrend(values) {
-            if (values.length < 2) return 0;
+    // Memory trend
+    const validMemoryData = recentData.filter(item =>
+      item.metrics.pr_memory && !isNaN(parseFloat(item.metrics.pr_memory))
+    );
 
-            const n = values.length;
-            const indices = Array.from({length: n}, (_, i) => i);
+    if (validMemoryData.length >= 3) {
+      const memoryTrend = analyzeTrend(validMemoryData.map(item => parseFloat(item.metrics.pr_memory)));
+      let memoryTrendText = '';
+      let memoryTrendClass = '';
+      if (memoryTrend < -0.1) {
+        memoryTrendText = 'Improving ↓';
+        memoryTrendClass = 'improvement';
+      } else if (memoryTrend > 0.1) {
+        memoryTrendText = 'Degrading ↑';
+        memoryTrendClass = 'regression';
+      } else {
+        memoryTrendText = 'Stable →';
+        memoryTrendClass = 'no-change';
+      }
+      document.getElementById('memoryTrend').textContent = memoryTrendText;
+      document.getElementById('memoryTrend').className = `stat-value ${memoryTrendClass}`;
+    } else {
+      document.getElementById('memoryTrend').textContent = 'Insufficient Data';
+      document.getElementById('memoryTrend').className = 'stat-value no-change';
+    }
+  }
+}
 
-            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+function analyzeTrend(values) {
+  if (values.length < 2) return 0;
+  const n = values.length;
+  const indices = Array.from({ length: n }, (_, i) => i);
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += indices[i];
+    sumY += values[i];
+    sumXY += indices[i] * values[i];
+    sumX2 += indices[i] * indices[i];
+  }
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const avgY = sumY / n;
+  return slope / avgY;
+}
 
-            for (let i = 0; i < n; i++) {
-                sumX += indices[i];
-                sumY += values[i];
-                sumXY += indices[i] * values[i];
-                sumX2 += indices[i] * indices[i];
-            }
+function updateRecentChangesTable(data) {
+  const tableBody = document.getElementById('recentChanges');
+  tableBody.innerHTML = '';
+  data.forEach(item => {
+    const row = document.createElement('tr');
 
-            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-            const avgY = sumY / n;
+    const dateCell = document.createElement('td');
+    dateCell.textContent = formatDate(item.timestamp);
+    row.appendChild(dateCell);
 
-            return slope / avgY;
-        }
+    const prCell = document.createElement('td');
+    const prTitle = item.pr.title || 'Unknown PR';
+    prCell.innerHTML = `<a href="${item.pr.url}" target="_blank">#${item.pr.number}</a>: ${prTitle.substring(0, 50)}${prTitle.length > 50 ? '...' : ''}`;
+    row.appendChild(prCell);
 
-        function updateRecentChangesTable(data) {
-            const tableBody = document.getElementById('recentChanges');
-            tableBody.innerHTML = '';
+    const timeCell = document.createElement('td');
+    timeCell.innerHTML = formatPercentage(item.metrics.time_pct);
+    row.appendChild(timeCell);
 
-            data.forEach(item => {
-                const row = document.createElement('tr');
+    const memCell = document.createElement('td');
+    const memChange = getMemoryPercentage(item);
+    memCell.innerHTML = isNaN(memChange) ? 'N/A' : formatPercentage(memChange);
+    row.appendChild(memCell);
 
-                const dateCell = document.createElement('td');
-                dateCell.textContent = formatDate(item.timestamp);
-                row.appendChild(dateCell);
+    const detailsCell = document.createElement('td');
+    detailsCell.innerHTML = `<button class="btn btn-sm btn-outline-info"
+      onclick="showDetails('${item.pr.number}', ${item.metrics.pr_time},
+      ${item.metrics.master_time}, ${item.metrics.pr_memory || 0},
+      ${item.metrics.master_memory || 0})">View</button>`;
+    row.appendChild(detailsCell);
 
-                const prCell = document.createElement('td');
-                const prTitle = item.pr.title || 'Unknown PR';
-                prCell.innerHTML = `<a href="${item.pr.url}" target="_blank">#${item.pr.number}</a>: ${prTitle.substring(0, 50)}${prTitle.length > 50 ? '...' : ''}`;
-                row.appendChild(prCell);
+    tableBody.appendChild(row);
+  });
+}
 
-                const timeCell = document.createElement('td');
-                timeCell.innerHTML = formatPercentage(item.metrics.time_pct);
-                row.appendChild(timeCell);
+function showDetails(prNumber, prTime, masterTime, prMemory, masterMemory) {
+  // In a real implementation, this could show a modal with detailed metrics
+  alert(`PR #${prNumber} Details:
+  - Time: ${prTime}s (Master: ${masterTime}s)
+  - Memory: ${prMemory} MB (Master: ${masterMemory} MB)
+  - Time Change: ${((prTime/masterTime-1)*100).toFixed(2)}%
+  - Memory Change: ${((prMemory/masterMemory-1)*100).toFixed(2)}%`);
+}
 
-                const memCell = document.createElement('td');
-                let memChange = 'N/A';
+document.querySelectorAll('.time-filter .btn').forEach(button => {
+  button.addEventListener('click', function() {
+    document.querySelectorAll('.time-filter .btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    this.classList.add('active');
+    const period = this.getAttribute('data-period');
+    const metricType = document.querySelector('.metric-toggle .active').getAttribute('data-metric');
+    fetchData().then(data => initCharts(data, period === 'all' ? 'all' : parseInt(period), metricType));
+  });
+});
 
-                if (item.metrics.pr_memory && item.metrics.master_memory) {
-                    const prMem = parseFloat(item.metrics.pr_memory);
-                    const masterMem = parseFloat(item.metrics.master_memory);
+document.querySelectorAll('.metric-toggle .btn').forEach(button => {
+  button.addEventListener('click', function() {
+    document.querySelectorAll('.metric-toggle .btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    this.classList.add('active');
+    const metricType = this.getAttribute('data-metric');
+    const period = document.querySelector('.time-filter .active').getAttribute('data-period');
+    fetchData().then(data => initCharts(data, period === 'all' ? 'all' : parseInt(period), metricType));
+  });
+});
 
-                    if (!isNaN(prMem) && !isNaN(masterMem) && masterMem !== 0) {
-                        const memPct = ((prMem / masterMem) - 1) * 100;
-                        memChange = `${memPct > 0 ? '+' : ''}${memPct.toFixed(2)}%`;
-                    }
-                }
-
-                memCell.innerHTML = formatPercentage(memChange);
-                row.appendChild(memCell);
-
-                tableBody.appendChild(row);
-            });
-        }
-
-        // Add event listeners to filter buttons
-        document.querySelectorAll('.time-filter .btn').forEach(button => {
-            button.addEventListener('click', function() {
-                document.querySelectorAll('.time-filter .btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                this.classList.add('active');
-
-                const period = this.getAttribute('data-period');
-                fetchData().then(data => initCharts(data, period === 'all' ? 'all' : parseInt(period)));
-            });
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            fetchData().then(data => {
-                if (data.length > 0) {
-                    initCharts(data, 30);
-                }
-            });
-        });
-    </script>
+document.addEventListener('DOMContentLoaded', function() {
+  fetchData().then(data => {
+    if (data.length > 0) {
+      initCharts(data, 30, 'absolute');
+    }
+  });
+});
+</script>
 </body>
 </html>
