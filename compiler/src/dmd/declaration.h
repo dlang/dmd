@@ -37,6 +37,8 @@ namespace dmd
     bool checkClosure(FuncDeclaration* fd);
     MATCH leastAsSpecialized(FuncDeclaration *f, FuncDeclaration *g, Identifiers *names);
     PURE isPure(FuncDeclaration *f);
+    FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
+    FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
 }
 
 //enum STC : ulong from astenums.d:
@@ -125,6 +127,10 @@ public:
     Visibility visibility;
     short inuse;                // used to detect cycles
     uint8_t bitFields;
+
+    LINK _linkage() const;
+    LINK _linkage(LINK v);
+    bool noUnderscore() const;
 
     const char *kind() const override;
     uinteger_t size(Loc loc) override final;
@@ -725,9 +731,6 @@ public:
     bool needsClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
-
-    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
-    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
 
     virtual FuncDeclaration *toAliasFunc() { return this; }
     void accept(Visitor *v) override { v->visit(this); }

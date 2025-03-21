@@ -1,5 +1,0 @@
-New trait `isCOMClass` to detect if a type is a COM class
-
-A Component Object Model (COM) class inherits from a possibly user-defined interface named ``IUnknown``.
-To detect this during compilation, use the trait ``__traits(isCOMClass, Type)``.
-During runtime, use the ``TypeInfo_Class`` flag.

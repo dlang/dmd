@@ -479,7 +479,7 @@ TESTS_EXTRACTOR=$(ROOT)/tests_extractor$(DOTEXE)
 BETTERCTESTS_DIR=$(ROOT)/betterctests
 
 # macro that returns the module name given the src path
-moduleName=$(subst rt.invariant,invariant,$(subst object_,object,$(subst /,.,$(1))))
+moduleName=$(subst /,.,$(1))
 
 $(ROOT)/unittest/% : $(ROOT)/unittest/test_runner$(DOTEXE)
 	@mkdir -p $(dir $@)

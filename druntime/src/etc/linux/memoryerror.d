@@ -40,7 +40,7 @@ version (linux)
 
 version (MemoryErrorSupported)
     version = AnySupported;
-else version (MemoryErrorSupported)
+else version (MemoryAssertSupported)
     version = AnySupported;
 
 version (AnySupported):

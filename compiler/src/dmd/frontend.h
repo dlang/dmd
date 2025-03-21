@@ -377,6 +377,22 @@ enum class MessageStyle : uint8_t
     sarif = 2u,
 };
 
+struct SourceLoc final
+{
+    _d_dynamicArray< const char > filename;
+    uint32_t line;
+    uint32_t column;
+    uint32_t fileOffset;
+    const char* toChars(bool showColumns = Loc::showColumns, MessageStyle messageStyle = Loc::messageStyle) const;
+    SourceLoc() :
+        filename(),
+        line(),
+        column(),
+        fileOffset()
+    {
+    }
+};
+
 struct Loc final
 {
 private:
@@ -390,7 +406,8 @@ public:
     uint32_t linnum() const;
     const char* filename() const;
     const char* toChars(bool showColumns = Loc::showColumns, MessageStyle messageStyle = Loc::messageStyle) const;
-    bool equals(const Loc& loc) const;
+    SourceLoc toSourceLoc() const;
+    bool equals(Loc loc) const;
     Loc() :
         index(0u)
     {
@@ -4052,8 +4069,6 @@ public:
     bool needsClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
-    static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, STC stc = (STC)0LLU);
-    static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, Identifier* id, STC stc = (STC)0LLU);
     virtual FuncDeclaration* toAliasFunc();
     void accept(Visitor* v) override;
 };
@@ -6219,6 +6234,7 @@ enum class CppStdRevision : uint32_t
     cpp14 = 201402u,
     cpp17 = 201703u,
     cpp20 = 202002u,
+    cpp23 = 202302u,
 };
 
 enum class CHECKENABLE : uint8_t

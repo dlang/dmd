@@ -73,7 +73,8 @@ enum CppStdRevision
     CppStdRevisionCpp11 = 201103,
     CppStdRevisionCpp14 = 201402,
     CppStdRevisionCpp17 = 201703,
-    CppStdRevisionCpp20 = 202002
+    CppStdRevisionCpp20 = 202002,
+    CppStdRevisionCpp23 = 202302,
 };
 
 /// Trivalent boolean to represent the state of a `revert`able change
@@ -413,6 +414,14 @@ typedef unsigned long long uinteger_t;
 #endif
 
 // file location
+struct SourceLoc
+{
+    DString filename;
+    uint32_t line;
+    uint32_t column;
+    uint32_t fileOffset;
+};
+
 struct Loc
 {
 private:
@@ -438,6 +447,7 @@ public:
     uint32_t charnum() const;
     uint32_t linnum() const;
     const char *filename() const;
+    SourceLoc toSourceLoc() const;
 
     const char *toChars(
         bool showColumns = Loc::showColumns,
