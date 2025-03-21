@@ -682,7 +682,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t earegm = mask(cs.base) | mask(cs.index);
     regm_t retregs;
     reg_t Rdividend;
-    if (cs.reg)
+    if (cs.reg != NOREG)
     {
         Rdividend = cs.reg;
         retregs = mask(Rdividend);
