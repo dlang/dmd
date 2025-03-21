@@ -4,6 +4,9 @@ $(SPEC_S Better C,
 
 $(HEADERNAV_TOC)
 
+$(P BetterC is a subset of D that doesn't depend on the D runtime library, only the C runtime library.
+)
+
 $(H2 $(LNAME2 linking, Linking))
 
     $(P It is straightforward to link C functions and libraries into D programs.
