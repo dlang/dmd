@@ -36,6 +36,7 @@ import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
+import dmd.backend.arm.cod1;
 
 import dmd.backend.cg : segfl, stackfl;
 
@@ -646,6 +647,9 @@ void logexp(ref CodeBuilder cdb, elem* e, int jcond, FL fltarg, code* targ)
 void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_t offset,
             regm_t keepmsk,regm_t desmsk, RM rmx = RM.rw)
 {
+    if (cgstate.AArch64)
+        return dmd.backend.arm.cod1.loadea(cdb,e,cs,op,reg,offset,keepmsk,desmsk,rmx);
+
     code* c, cg, cd;
 
     debug

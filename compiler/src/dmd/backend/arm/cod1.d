@@ -86,7 +86,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         return;
     }
 
-    bool signExtend = (cs.Sextend & 7) == Extend.SXTB;
+    bool signExtend = (cs.Sextend & 4) != 0; // SXTB, SXTH, SXTW, SXTX
 
     if (cs.reg != NOREG)
     {
