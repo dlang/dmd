@@ -2510,9 +2510,9 @@ $(H4 $(LNAME2 lazy_variadic_functions, Lazy Variadic Functions))
         ---
 
         $(P The variadic delegate array differs from using a lazy
-        variadic array. With the former each array element access
+        variadic array. With the latter each array element access
         would evaluate every array element.
-        With the latter, only the element being accessed would be evaluated.)
+        With the former, only the element being accessed would be evaluated.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
