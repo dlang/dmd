@@ -61,7 +61,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength)  @trust
     {
         if (newlength <= arr.length)
         {
-            arr = arr[0 .. newlength];  // ✅ Just slice it, no modification
+            arr = arr[0 .. newlength];  // Just slice it, no modification
             return arr.length;
         }
 
@@ -92,7 +92,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength)  @trust
     // **Handle Shrinking for Mutable Arrays**
     if (newlength <= arr.length)
     {
-        arr = arr[0 .. newlength];  // ✅ Shrinking is always safe
+        arr = arr[0 .. newlength];  // Shrinking is always safe
         return arr.length;
     }
 
