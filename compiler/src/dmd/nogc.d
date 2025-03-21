@@ -119,7 +119,7 @@ public:
 
     override void visit(ArrayLiteralExp e)
     {
-        if (e.type.ty != Tarray || !e.elements || !e.elements.length || e.onstack)
+        if (e.type.toBasetype().isTypeSArray() || !e.elements || !e.elements.length || e.onstack)
             return;
         if (setGC(e, "this array literal"))
             return;
