@@ -16,6 +16,4 @@ bytes allocated, allocations, type, function, file:line
              16	              1	int profilegc.main src/profilegc.d:14
              16	              1	int[] profilegc.main src/profilegc.d:22
              16	              1	int[] profilegc.main src/profilegc.d:37
-             16	              1	uint[] profilegc.main src/profilegc.d:15
-             16	              1	uint[] profilegc.main src/profilegc.d:18
              16	              1	wchar[] profilegc.main src/profilegc.d:35
