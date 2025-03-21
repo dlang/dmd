@@ -3596,6 +3596,8 @@ void main()
         Casts between signed and unsigned types are permitted.)
 
     $(LI Reinterpretation of overlapped fields in a union is not permitted.)
+
+    $(LI Undefined behavior must not occur.)
     )
 
     $(P Pointers are permitted in CTFE, provided they are used safely:)
@@ -3682,7 +3684,7 @@ static assert(countTen(12) == 12);  // invalid, modifies y.
 
     $(IMPLEMENTATION_DEFINED
     Functions executed via CTFE can give different results
-    from run time when implementation-defined or undefined-behavior occurs.
+    from run time when implementation-defined occurs.
     )
 
 
