@@ -1,0 +1,12 @@
+Keywords `auto` and `ref` must be adjacent for `auto ref` return.
+
+Similar to `auto ref` parameters in 2.111, it's now deprecated to declare an `auto ref` return type without putting those two keywords next to each other as well.
+
+---
+ref auto int f() => 3;
+auto { ref int g() => 3; }
+
+// Correction:
+auto ref f() => 3;
+auto ref g() => 3;
+---
