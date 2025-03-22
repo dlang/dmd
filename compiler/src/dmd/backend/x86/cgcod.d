@@ -1621,7 +1621,10 @@ static if (0)
 }
         tym = tybasic(tym);
         uint size = _tysize[tym];
-        outretregs &= mES | cgstate.allregs | XMMREGS | INSTR.FLOATREGS;
+        if (cgstate.AArch64)
+            outretregs &= cgstate.allregs | INSTR.FLOATREGS;
+        else
+            outretregs &= mES | cgstate.allregs | XMMREGS | INSTR.FLOATREGS;
         regm_t retregs = outretregs;
         regm_t[] lastRetregs = cgstate.lastRetregs[];
 
@@ -2237,7 +2240,14 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                 else
                 {
                     retregs = pretregs;
-                    if (!AArch64 && byte_ && !(retregs & BYTEREGS))
+                    if (AArch64)
+                    {
+                        if (!(retregs & (cgstate.allregs | INSTR.FLOATREGS)))
+                        {
+                            retregs = tyfloating(tym) ? INSTR.FLOATREGS : cgstate.allregs;
+                        }
+                    }
+                    else if (byte_ && !(retregs & BYTEREGS))
                         retregs = BYTEREGS;
                     reg = allocreg(cdb,retregs,tym);
                     gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
@@ -3015,6 +3025,10 @@ const(char)* regm_str(regm_t rm)
                     strcat(p, "sp");
                 else if (j == 29)
                     strcat(p, "fp");
+                else if (j == NOREG)
+                    strcat(p, "NOREG");
+                else if (j == PSW)
+                    strcat(p, "PSW");
                 else
                 {
                     char[4] buf = void;
