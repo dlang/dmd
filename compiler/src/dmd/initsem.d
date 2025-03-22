@@ -394,7 +394,10 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             if (needInterpret)
                 i.exp = i.exp.ctfeInterpret();
             if (i.exp.op == EXP.voidExpression)
-                error(i.loc, "variables cannot be initialized with an expression of type `void`. Use `void` initialization instead.");
+            {
+                error(i.loc, "variables cannot be initialized with an expression of type `void`");
+                errorSupplemental(i.loc, "only `= void;` is allowed, which prevents default initialization");
+            }
         }
         else
         {
