@@ -4081,7 +4081,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                  */
                 if (isParameters(&peekt))
                 {
-                    error("function declaration without return type. (Note that constructors are always named `this`)");
+                    error("function declaration without return type");
+                    errorSupplemental("Note that constructors are always named `this`");
                 }
                 else
                     error("unexpected `(` in declarator");
@@ -8468,7 +8469,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     nextToken();
                     if (token.value == TOK.identifier && peekNext() == TOK.leftParenthesis)
                     {
-                        error(loc, "unexpected `(` after `%s`, inside `is` expression. Try enclosing the contents of `is` with a `typeof` expression", token.toChars());
+                        error(loc, "unexpected `(` after `%s`, inside `is` expression", token.toChars());
+                        errorSupplemental("try enclosing the contents of `is` with a `typeof` expression");
                         nextToken();
                         Token* tempTok = peekPastParen(&token);
                         memcpy(&token, tempTok, Token.sizeof);
