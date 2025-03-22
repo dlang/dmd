@@ -2603,7 +2603,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
             if (tbret && tbret.ty == Tvoid || convToVoid)
             {
-                if (!convToVoid)
+                if (!convToVoid && !texp.isTypeError())
                 {
                     error(rs.loc, "cannot return non-void from `void` function");
                     errors = true;
