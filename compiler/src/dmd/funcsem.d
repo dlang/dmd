@@ -235,6 +235,17 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
     if ((funcdecl.storage_class & STC.TYPECTOR) && !(ad || funcdecl.isNested()))
         funcdecl.storage_class &= ~STC.TYPECTOR;
 
+    auto tf = funcdecl.type.isTypeFunction();
+    if ((funcdecl.storage_class & STC.auto_) && tf.isRef && !funcdecl.inferRetType)
+    {
+        if (!(funcdecl.storage_class & STC.autoref))
+        {
+            // @@@DEPRECATED_2.122@@@
+            // Deprecated in 2.112, turn into an error in 2.122
+            deprecation(funcdecl.loc, "`auto ref` return type must have `auto` and `ref` adjacent");
+            funcdecl.storage_class |= STC.autoref;
+        }
+    }
     //printf("function storage_class = x%llx, sc.stc = x%llx, %x\n", storage_class, sc.stc, Declaration.isFinal());
 
     if (sc.traitsCompiles)
@@ -313,7 +324,6 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         sc = sc.push();
         sc.stc |= funcdecl.storage_class & (STC.disable | STC.deprecated_); // forward to function type
 
-        TypeFunction tf = funcdecl.type.toTypeFunction();
         if (sc.func)
         {
             /* If the nesting parent is pure without inference,
