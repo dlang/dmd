@@ -353,7 +353,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         fatal();
     }
-    if (files.length == 0)
+    if (files.length == 0 && !params.readStdin)
     {
         if (params.jsonFieldFlags)
         {
