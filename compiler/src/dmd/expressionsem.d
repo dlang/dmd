@@ -11767,6 +11767,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         res = new LoweredAssignExp(ae, res);
         res.type = ae.type;
+        res = res.checkGC(sc);
 
         return res;
     }
