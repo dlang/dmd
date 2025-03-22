@@ -223,14 +223,11 @@ nothrow:
      */
     extern (D) static Identifier generateIdWithLoc(string prefix, Loc loc, string parent = "")
     {
-        // generate `<prefix>_L<line>_C<col>`
-        auto sl = SourceLoc(loc);
+        const(char)[] fname = loc.filename.toDString();
+        const fileOffset = loc.fileOffset;
         OutBuffer idBuf;
         idBuf.writestring(prefix);
-        idBuf.writestring("_L");
-        idBuf.print(sl.line);
-        idBuf.writestring("_C");
-        idBuf.print(sl.column);
+        idBuf.print(fileOffset);
 
         /**
          * Make sure the identifiers are unique per filename, i.e., per module/mixin
@@ -248,14 +245,13 @@ nothrow:
          * directly, but that would unnecessary lengthen symbols names. See issue:
          * https://issues.dlang.org/show_bug.cgi?id=23722
          */
-        static struct Key { string locKey; string prefix; string parent; }
+        static struct Key { const(char)[] fname; uint fileOffset; string prefix; string parent; }
         __gshared uint[Key] counters;
 
-        string locKey = cast(string) (sl.filename ~ idBuf[]);
         static if (__traits(compiles, counters.update(Key.init, () => 0u, (ref uint a) => 0u)))
         {
             // 2.082+
-            counters.update(Key(locKey, prefix, parent),
+            counters.update(Key(fname, fileOffset, prefix, parent),
                 () => 1u,          // insertion
                 (ref uint counter) // update
                 {
@@ -267,7 +263,7 @@ nothrow:
         }
         else
         {
-            const key = Key(locKey, prefix, parent);
+            const key = Key(fname, fileOffset, prefix, parent);
             if (auto pCounter = key in counters)
             {
                 idBuf.writestring("_");
