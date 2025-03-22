@@ -2368,14 +2368,17 @@ public:
     {
         bool parens;
         bool rvalue;
+        bool gcPassDone;
         BitFields() :
             parens(),
-            rvalue()
+            rvalue(),
+            gcPassDone()
         {
         }
-        BitFields(bool parens, bool rvalue = false) :
+        BitFields(bool parens, bool rvalue = false, bool gcPassDone = false) :
             parens(parens),
-            rvalue(rvalue)
+            rvalue(rvalue),
+            gcPassDone(gcPassDone)
             {}
     };
 
@@ -2383,6 +2386,8 @@ public:
     bool parens(bool v);
     bool rvalue() const;
     bool rvalue(bool v);
+    bool gcPassDone() const;
+    bool gcPassDone(bool v);
 private:
     uint8_t bitFields;
 public:
@@ -7584,6 +7589,7 @@ class NOGCVisitor final : public StoppableVisitor
 public:
     using StoppableVisitor::visit;
     FuncDeclaration* f;
+    Scope* sc;
     bool checkOnly;
     bool err;
     bool nogcExceptions;
