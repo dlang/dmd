@@ -107,4 +107,7 @@ void main()
 {
     test22323();
     test19660();
+
+    import binding;
+    assert(testExternalImportVar == 0xF1234);
 }
