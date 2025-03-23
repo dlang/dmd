@@ -70,6 +70,9 @@ static struct Entry(K, V)
     alias Impl = .Impl!(K, V);
 }
 
+static hash_t wrap_hashOf(K)(scope const K* key) { return hashOf(*key); }
+enum pure_hashOf(K) = cast(hash_t function(scope const K* key) pure nothrow @nogc @safe) &wrap_hashOf!K;
+
 private struct Impl(K, V)
 {
 private:
@@ -82,7 +85,9 @@ private:
 
         // only for binary compatibility
         entryTI = typeid(Entry!(K, V));
-        hashFn = (scope const void* val) { return hashOf(*cast(K*)val); };
+        hashFn = delegate size_t (scope const K* key) nothrow pure @nogc @safe {
+            return pure_hashOf!K(key);
+        };
 
         keysz = cast(uint) K.sizeof;
         valsz = cast(uint) V.sizeof;
@@ -108,7 +113,7 @@ private:
     immutable uint valsz;    // only for binary compatibility
     immutable uint valoff;   // only for binary compatibility
     Flags flags;             // only for binary compatibility
-    size_t delegate(scope const void*) nothrow hashFn;
+    size_t delegate(scope const K*) nothrow pure @nogc @safe hashFn;
 
     enum Flags : ubyte
     {
@@ -262,9 +267,13 @@ private size_t mix(size_t h) @safe pure nothrow @nogc
     return h;
 }
 
-private size_t calcHash(K)(ref const K key)
+private size_t calcHash(K, V, K2)(auto ref const K2 key, Impl!(K, V)* impl)
 {
-    immutable hash = hashOf(key);
+    static if (is(K2 == K))
+        alias k2 = key;
+    else
+        K k2 = key;
+    hash_t hash = impl.hashFn(&k2);
     // highest bit is set to distinguish empty/deleted from filled buckets
     return mix(hash) | HASH_FILLED_MARK;
 }
@@ -341,11 +350,11 @@ V* _aaGetX(K, V)(scope ref AA!(K, V) aa, ref const K key, out bool found)
     // lazily alloc implementation
     if (aa is null)
     {
-        aa = new Impl!(K, V)(INIT_NUM_BUCKETS);
+        aa.impl = new Impl!(K, V)(INIT_NUM_BUCKETS);
     }
 
     // get hash and bucket for key
-    immutable hash = calcHash(key);
+    immutable hash = calcHash(key, aa.impl);
 
     // found a value => return it
     if (auto p = aa.findSlotLookup(hash, key))
@@ -402,19 +411,23 @@ auto _d_aaIn(K, V, K2)(inout V[K] a, auto ref const K2 key)
     if (aa.empty)
         return null;
 
-    immutable hash = calcHash(key);
+    immutable hash = calcHash(key, aa.impl);
     if (auto p = aa.findSlotLookup(hash, key))
         return &p.entry.value;
     return null;
 }
 
+// fake purity for backward compatibility with runtime hooks
+private extern(C) enum pure_inFinalizer = cast(bool function() pure nothrow @nogc @safe) &(GC.inFinalizer);
+
 /// Delete entry scope const AA, return true if it was present
-bool _aaDelX(K, V)(AA!(K, V) aa, ref const K key)
+auto _d_aaDel(K, V)(inout V[K] a, auto ref const K key)
 {
+    auto aa = _toAA(a);
     if (aa.empty)
         return false;
 
-    immutable hash = calcHash(key);
+    immutable hash = calcHash(key, aa.impl);
     if (auto p = aa.findSlotLookup(hash, key))
     {
         // clear entry
@@ -424,7 +437,7 @@ bool _aaDelX(K, V)(AA!(K, V) aa, ref const K key)
         ++aa.deleted;
         // `shrink` reallocates, and allocating from a finalizer leads to
         // InvalidMemoryError: https://issues.dlang.org/show_bug.cgi?id=21442
-        if (aa.length * SHRINK_DEN < aa.dim * SHRINK_NUM && !GC.inFinalizer())
+        if (aa.length * SHRINK_DEN < aa.dim * SHRINK_NUM && !pure_inFinalizer())
             aa.shrink();
 
         return true;
@@ -547,7 +560,7 @@ Impl!(K, V)* _d_assocarrayliteralTX(K, V)(K[] keys, V[] vals)
     uint actualLength = 0;
     foreach (i; 0 .. length)
     {
-        immutable hash = calcHash(keys[i]);
+        immutable hash = calcHash(keys[i], aa);
 
         auto p = aa.findSlotLookup(hash, keys[i]);
         if (p is null)
