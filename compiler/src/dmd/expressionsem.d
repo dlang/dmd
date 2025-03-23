@@ -13176,6 +13176,43 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         return;
     }
 
+    /**
+    * Sets the `lowering` field of a `InExp` to a call to `_d_aaIn!(V[K])` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  ne = the `InExp` to lower
+    */
+    private void tryLowerToAAIn(InExp ie)
+    {
+        if (!global.params.useGC || !sc.needsCodegen())
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaIn");
+        if (!verifyHookExist(ie.loc, *sc, hook, "key in AA"))
+            return;
+
+        Expression id = new IdentifierExp(ie.loc, Id.empty);
+        id = new DotIdExp(ie.loc, id, Id.object);
+        auto tiargs = new Objects();
+        /*
+        * Remove `inout`, `const`, `immutable` and `shared` to reduce the
+        * number of generated `_d_inAA` instances.
+        */
+        //auto t = ie.e2.type.nextOf.unqualify(MODFlags.wild | MODFlags.const_ |
+        //                                  MODFlags.immutable_ | MODFlags.shared_);
+        //tiargs.push(t);
+        //id = new DotTemplateInstanceExp(ie.loc, id, hook, tiargs);
+        id = new DotIdExp(ie.loc, id, hook);
+
+        auto arguments = new Expressions();
+        arguments.push(ie.e2);
+        arguments.push(ie.e1);
+        id = new CallExp(ie.loc, id, arguments);
+
+        ie.lowering = id.expressionSemantic(sc);
+    }
+
     override void visit(InExp exp)
     {
         if (Expression e = exp.opOverloadBinary(sc, aliasThisStop))
@@ -13197,6 +13234,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // Convert key to type of key
                     exp.e1 = exp.e1.implicitCastTo(sc, ta.index);
                 }
+
+                tryLowerToAAIn(exp);
 
                 // even though the glue layer only needs the type info of the index,
                 // this might be the first time an AA literal is accessed, so check
