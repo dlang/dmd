@@ -858,7 +858,8 @@ unittest
     {
         // for bucket array and Flags, we "compatible" types, not exactly the same types.
         static if (__traits(identifier, Impl.tupleof[i]) == "buckets"
-            || __traits(identifier, Impl.tupleof[i]) == "flags")
+            || __traits(identifier, Impl.tupleof[i]) == "flags"
+            || __traits(identifier, Impl.tupleof[i]) == "hashFn")
             static assert(Impl.tupleof[i].sizeof == newImpl.tupleof[i].sizeof);
         else
             static assert(is(typeof(Impl.tupleof[i]) == typeof(newImpl.tupleof[i])));
