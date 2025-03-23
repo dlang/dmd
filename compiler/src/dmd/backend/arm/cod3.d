@@ -1295,7 +1295,7 @@ void assignaddrc(code* c)
         s = c.IEV1.Vsym;
         uint sz = 8;
         uint ins = c.Iop;
-        if (0 && c.IFL1 != FL.unde)
+        if (c.IFL1 != FL.unde)
         {
             printf("FL: %-8s ", fl_str(c.IFL1));
             disassemble(ins);
@@ -1428,7 +1428,6 @@ void assignaddrc(code* c)
             L2:
                 offset = cast(int)offset;       // sign extend
                 // Load/store register (unsigned immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
-                assert(field(ins,29,27) == 7);
                 uint opc   = field(ins,23,22);
                 uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
                 uint op24  = field(ins,25,24);
@@ -1436,8 +1435,17 @@ void assignaddrc(code* c)
                 if (cgstate.hasframe)
                     offset += REGSIZE * 2;
                 offset += localsize;
-                if (op24 == 1)
+                if (field(ins,28,23) == 0x22)      // Add/subtract (immediate)
                 {
+                    uint imm12 = field(ins,21,10); // unsigned 12 bits
+//printf("imm12: %d offset: %llx\n", imm12, offset);
+                    imm12 += offset;
+                    assert(imm12 < 0x1000);
+                    ins = setField(ins,21,10,imm12);
+                }
+                else if (op24 == 1)
+                {
+                    assert(field(ins,29,27) == 7);
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
                     offset += imm12 << shift;      // add in imm
 //printf("shift: %d offset: %llx imm12: %x\n", shift, offset, imm12);
@@ -1448,6 +1456,7 @@ void assignaddrc(code* c)
                 }
                 else if (op24 == 0)
                 {
+                    assert(field(ins,29,27) == 7);
                     if (opc == 2 && shift == 0)
                         shift = 4;
                     uint imm9 = field(ins,20,12); // signed 9 bits
