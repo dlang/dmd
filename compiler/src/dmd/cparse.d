@@ -832,8 +832,8 @@ final class CParser(AST) : Parser!AST
                     const len2 = token.len;
                     len = len1 + len2;
                     auto s2 = cast(char*)mem.xmalloc_noscan(len * char.sizeof);
-                    memcpy(s2, s, len1 * char.sizeof);
-                    memcpy(s2 + len1, token.ustring, len2 * char.sizeof);
+                    s2[0 .. len1] = s[0 .. len1];
+                    s2[len1 .. len1 + len2] = token.ustring[0 .. len2];
                     s = s2;
                 }
                 else
@@ -3511,12 +3511,12 @@ final class CParser(AST) : Parser!AST
 
                 case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
                     *ptoklist = allocateToken();
-                    memcpy(*ptoklist, &token, Token.sizeof);
+                    **ptoklist = this.token;
                     (*ptoklist).value = TOK.colon;
                     ptoklist = &(*ptoklist).next;
 
                     *ptoklist = allocateToken();
-                    memcpy(*ptoklist, &token, Token.sizeof);
+                    **ptoklist = this.token;
                     (*ptoklist).value = TOK.colon;
                     ptoklist = &(*ptoklist).next;
 
@@ -3526,7 +3526,7 @@ final class CParser(AST) : Parser!AST
 
                 default:
                     *ptoklist = allocateToken();
-                    memcpy(*ptoklist, &token, Token.sizeof);
+                    **ptoklist = this.token;
                     ptoklist = &(*ptoklist).next;
                     *ptoklist = null;
                     nextToken();
