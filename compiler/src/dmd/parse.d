@@ -8264,7 +8264,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         len = len1 + len2;
                         auto s2 = cast(char*)mem.xmalloc_noscan(len * char.sizeof);
                         s2[0 .. len1] = s[0 .. len1];
-                        s2[len1 .. len1 + len2] = token.ustring[0 .. len2]; 
+                        s2[len1 .. len1 + len2] = token.ustring[0 .. len2];
                     }
                     else
                         break;
