@@ -4866,6 +4866,40 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ne.lowering = id.expressionSemantic(sc);
     }
 
+    /**
+    * Sets the `lowering` field of a `NewExp` to a call to `_d_newAA` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  ne = the `NewExp` to lower
+    */
+    private void tryLowerToNewAA(NewExp ne)
+    {
+        if (!global.params.useGC || !sc.needsCodegen())
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaNew");
+        if (!verifyHookExist(ne.loc, *sc, hook, "new AA"))
+            return;
+
+        /* Lower the memory allocation and initialization of `new V[K]` to
+        * `_d_newAA!(V[K])()`.
+        */
+        Expression id = new IdentifierExp(ne.loc, Id.empty);
+        id = new DotIdExp(ne.loc, id, Id.object);
+        auto tiargs = new Objects();
+        auto taa = ne.type.isTypeAArray();
+        assert(taa);
+        tiargs.push(taa.index);
+        tiargs.push(taa.next);
+        id = new DotTemplateInstanceExp(ne.loc, id, hook, tiargs);
+
+        auto arguments = new Expressions();
+        id = new CallExp(ne.loc, id, arguments);
+
+        ne.lowering = id.expressionSemantic(sc);
+    }
+
     override void visit(NewExp exp)
     {
         static if (LOGSEMANTIC)
@@ -5511,6 +5545,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(exp.loc, "`new` cannot take arguments for an associative array");
                 return setError();
             }
+            tryLowerToNewAA(exp);
         }
         else
         {

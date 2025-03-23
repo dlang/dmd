@@ -70,8 +70,8 @@ static struct Entry(K, V)
     alias Impl = .Impl!(K, V);
 }
 
-static hash_t wrap_hashOf(K)(scope const K* key) { return hashOf(*key); }
-enum pure_hashOf(K) = cast(hash_t function(scope const K* key) pure nothrow @nogc @safe) &wrap_hashOf!K;
+static hash_t wrap_hashOf(K)(scope ref const K key) { return hashOf(key); }
+enum pure_hashOf(K) = cast(hash_t function(scope ref const K key) pure nothrow @nogc @safe) &wrap_hashOf!K;
 
 private struct Impl(K, V)
 {
@@ -85,7 +85,7 @@ private:
 
         // only for binary compatibility
         entryTI = typeid(Entry!(K, V));
-        hashFn = delegate size_t (scope const K* key) nothrow pure @nogc @safe {
+        hashFn = delegate size_t (scope ref const K key) nothrow pure @nogc @safe {
             return pure_hashOf!K(key);
         };
 
@@ -113,7 +113,7 @@ private:
     immutable uint valsz;    // only for binary compatibility
     immutable uint valoff;   // only for binary compatibility
     Flags flags;             // only for binary compatibility
-    size_t delegate(scope const K*) nothrow pure @nogc @safe hashFn;
+    size_t delegate(scope ref const K) nothrow pure @nogc @safe hashFn;
 
     enum Flags : ubyte
     {
@@ -273,7 +273,7 @@ private size_t calcHash(K, V, K2)(auto ref const K2 key, Impl!(K, V)* impl)
         alias k2 = key;
     else
         K k2 = key;
-    hash_t hash = impl.hashFn(&k2);
+    hash_t hash = impl.hashFn(k2);
     // highest bit is set to distinguish empty/deleted from filled buckets
     return mix(hash) | HASH_FILLED_MARK;
 }
@@ -305,9 +305,11 @@ pure nothrow @nogc unittest
  * Returns:
  *      A new associative array.
  */
-Impl!(K, V)* _aaNew(K, V)()
+V[K] _d_aaNew(K, V)()
 {
-    return new Impl!K,V(INIT_NUM_BUCKETS);
+    AA!(K, V) aa;
+    aa.impl = new Impl!(K,V)(INIT_NUM_BUCKETS);
+    return *cast(V[K]*)&aa;
 }
 
 /// Determine number of entries in associative array.
