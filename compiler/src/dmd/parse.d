@@ -7104,12 +7104,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
                 *ptoklist = allocateToken();
-                Token* ptoken = &this.token; // Use the address-of operator (&)
+                **ptoklist = this.token;
                 (*ptoklist).value = TOK.colon;
                 ptoklist = &(*ptoklist).next;
 
                 *ptoklist = allocateToken();
-                ptoken = allocateToken();
+                **ptoklist = this.token;
                 (*ptoklist).value = TOK.colon;
                 ptoklist = &(*ptoklist).next;
 
@@ -7119,7 +7119,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             default:
                 *ptoklist = allocateToken();
-                memcpy(*ptoklist, &token, Token.sizeof);
+                **ptoklist = this.token;
                 ptoklist = &(*ptoklist).next;
                 *ptoklist = null;
                 nextToken();
@@ -8263,9 +8263,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         const len2 = token.len;
                         len = len1 + len2;
                         auto s2 = cast(char*)mem.xmalloc_noscan(len * char.sizeof);
-                        s2[0 .. len1] = s[0 .. len1]; // Copy len1 elements from s to s2
-                        s2[len1 .. len1 + len2] = token.ustring[0 .. len2]; // Copy len2 elements from token.ustring to s2 starting at len1
-                        s = s2;
+                        s2[0 .. len1] = s[0 .. len1];
+                        s2[len1 .. len1 + len2] = token.ustring[0 .. len2]; 
                     }
                     else
                         break;
@@ -8471,7 +8470,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         error(loc, "unexpected `(` after `%s`, inside `is` expression. Try enclosing the contents of `is` with a `typeof` expression", token.toChars());
                         nextToken();
                         Token* tempTok = peekPastParen(&token);
-                        token = *tempTok; // Direct assignment
+                        token = *tempTok;
                         goto Lerr;
                     }
                     targ = parseType(&ident);
