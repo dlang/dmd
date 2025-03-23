@@ -2897,7 +2897,7 @@ public import core.internal.newaa : _d_aaEqual;
 
 private import core.internal.newaa;
 
-void* aaLiteral(Key, Value)(Key[] keys, Value[] values) @trusted pure
+void* aaLiteral(Key, Value)(Key[] keys, Value[] values)
 {
     return _d_assocarrayliteralTX(keys, values);
 }

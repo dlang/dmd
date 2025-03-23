@@ -66,8 +66,6 @@ static struct Entry(K, V)
 {
     K key;
     V value;
-
-    alias Impl = .Impl!(K, V);
 }
 
 static hash_t wrap_hashOf(K)(scope ref const K key) { return hashOf(key); }
@@ -267,18 +265,14 @@ private size_t mix(size_t h) @safe pure nothrow @nogc
     return h;
 }
 
-private size_t calcHash(K, V, K2)(auto ref const K2 key, Impl!(K, V)* impl)
+private size_t calcHash(K, V)(auto ref const K key, Impl!(K, V)* impl)
 {
-    static if (is(K2 == K))
-        alias k2 = key;
-    else
-        K k2 = key;
-    hash_t hash = impl.hashFn(k2);
+    hash_t hash = impl.hashFn(key);
     // highest bit is set to distinguish empty/deleted from filled buckets
     return mix(hash) | HASH_FILLED_MARK;
 }
 
-private size_t nextpow2(const size_t n) pure nothrow @nogc
+private size_t nextpow2(const size_t n) pure nothrow @nogc @safe
 {
     import core.bitop : bsr;
 
@@ -413,8 +407,13 @@ auto _d_aaIn(K, V, K2)(inout V[K] a, auto ref const K2 key)
     if (aa.empty)
         return null;
 
-    immutable hash = calcHash(key, aa.impl);
-    if (auto p = aa.findSlotLookup(hash, key))
+    static if (is(K2 == K))
+        alias k2 = key;
+    else
+        ref K k2 = ref () @trusted { return *cast(K*)&key; } ();// assume the compiler has checked compatibility
+
+    immutable hash = calcHash(k2, aa.impl);
+    if (auto p = aa.findSlotLookup(hash, k2))
         return &p.entry.value;
     return null;
 }
@@ -570,7 +569,11 @@ Impl!(K, V)* _d_assocarrayliteralTX(K, V)(K[] keys, V[] vals)
             auto pi = aa.findSlotInsert(hash);
             p = &aa.buckets[pi];
             p.hash = hash;
-            p.entry = allocEntry(aa, *pkey); // todo: move key, no postblit
+            p.entry = new Entry!(K, V);
+            import core.stdc.string : memcpy;
+            () @trusted {
+            memcpy(&p.entry.key, &keys[i], K.sizeof); // move key, no postblit
+            } ();
             aa.firstUsed = min(aa.firstUsed, cast(uint)pi);
             actualLength++;
         }
