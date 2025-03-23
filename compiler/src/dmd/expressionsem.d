@@ -13344,6 +13344,37 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
+    /**
+    * Sets the `lowering` field of a `EqualExp` to a call to `_d_aaEqual!(aa1, aa2)` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  ee = the `EqualExp` to lower
+    */
+    private void tryLowerToAAEqual(EqualExp ee)
+    {
+        if (!global.params.useGC || !sc.needsCodegen() || ee.lowering)
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaEqual");
+        if (!verifyHookExist(ee.loc, *sc, hook, "compare AAs"))
+            return;
+
+        Expression id = new IdentifierExp(ee.loc, Id.empty);
+        id = new DotIdExp(ee.loc, id, Id.object);
+        auto tiargs = new Objects();
+        id = new DotIdExp(ee.loc, id, hook);
+
+        auto arguments = new Expressions();
+        arguments.push(ee.e1);
+        arguments.push(ee.e2);
+        Expression exp = new CallExp(ee.loc, id, arguments);
+        if (ee.op == EXP.notEqual)
+            exp = new NotExp(ee.loc, exp);
+
+        ee.lowering = exp.expressionSemantic(sc);
+    }
+
     override void visit(EqualExp exp)
     {
         //printf("EqualExp::semantic('%s')\n", exp.toChars());
@@ -13547,6 +13578,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (exp.e1.type.toBasetype().ty == Taarray)
         {
+            tryLowerToAAEqual(exp);
+
             semanticTypeInfo(sc, exp.e1.type.toBasetype());
         }
 
