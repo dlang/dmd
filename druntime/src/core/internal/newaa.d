@@ -584,8 +584,11 @@ Impl!(K, V)* _d_assocarrayliteralTX(K, V)(K[] keys, V[] vals)
 }
 
 /// compares 2 AAs for equality
-int _aaEqual(K, V)(scope const AA!(K, V) aa1, scope const AA!(K, V) aa2)
+bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2)
 {
+    auto aa1 = _toAA(a1);
+    auto aa2 = _toAA(a2);
+
     if (aa1 is aa2)
         return true;
 

@@ -2167,18 +2167,8 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (t1.ty == Taarray && t2.ty == Taarray)
         {
-            TypeAArray taa = cast(TypeAArray)t1;
-            Symbol* s = getRtlsym(RTLSYM.AAEQUAL);
-            elem* ti = getTypeInfo(ee, taa, irs);
-            elem* ea1 = toElem(ee.e1, irs);
-            elem* ea2 = toElem(ee.e2, irs);
-            // aaEqual(ti, e1, e2)
-            elem* ep = el_params(ea2, ea1, ti, null);
-            e = el_bin(OPcall, TYint, el_var(s), ep);
-            if (ee.op == EXP.notEqual)
-                e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
-            elem_setLoc(e, ee.loc);
-            return e;
+            assert(ee.lowering, "This case should have been rewritten to `_d_aaEqual` in the semantic phase");
+            e = toElem(ee.lowering, irs);
         }
         else if (eop == OPne && t1.ty == Tvector)
         {
