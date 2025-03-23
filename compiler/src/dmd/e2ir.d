@@ -2211,19 +2211,10 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitIn(InExp ie)
     {
-        elem* key = toElem(ie.e1, irs);
-        elem* aa = toElem(ie.e2, irs);
-        TypeAArray taa = cast(TypeAArray)ie.e2.type.toBasetype();
+        assert(ie.lowering, "This case should have been rewritten to `_d_inAA` in the semantic phase");
 
-        // aaInX(aa, keyti, key);
-        key = addressElem(key, ie.e1.type);
-        Symbol* s = getRtlsym(RTLSYM.AAINX);
-        elem* keyti = getTypeInfo(ie, taa.index, irs);
-        elem* ep = el_params(key, keyti, aa, null);
-        elem* e = el_bin(OPcall, totym(ie.type), el_var(s), ep);
-
-        elem_setLoc(e, ie.loc);
-        return e;
+        // Call _d_inAA()
+        return toElem(ie.lowering, irs);
     }
 
     /***************************************
