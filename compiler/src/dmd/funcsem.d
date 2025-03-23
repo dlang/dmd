@@ -1835,10 +1835,15 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                     functionResolve(mErr, baseFunction, loc, sc, tiargs, baseClass.type, argumentList);
                     if (mErr.last > MATCH.nomatch && mErr.lastf)
                     {
-                        errorSupplemental(loc, "%s `%s` hides base class function `%s`",
-                                fd.kind, fd.toPrettyChars(), mErr.lastf.toPrettyChars());
-                        errorSupplemental(loc, "add `alias %s = %s` to `%s`'s body to merge the overload sets",
-                                fd.toChars(), mErr.lastf.toPrettyChars(), tthis.toChars());
+                        errorSupplemental(loc, "Note: %s `%s` hides base class %s `%s`",
+                            fd.kind, fd.toPrettyChars(),
+                            mErr.lastf.kind, mErr.lastf.toPrettyChars());
+
+                        if (!fd.isCtorDeclaration)
+                        {
+                            errorSupplemental(loc, "Add `alias %s = %s;` to `%s`'s body to merge the overload sets",
+                                    fd.toChars(), mErr.lastf.toPrettyChars(), tthis.toChars());
+                        }
                         return null;
                     }
                 }
