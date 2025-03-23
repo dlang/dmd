@@ -65,7 +65,6 @@ enum RTLSYM
     ARRAYEQ2,
     AANEW,
     AAEQUAL,
-    AAINX,
     AADELX,
     AAGETY,
     AAGETRVALUEX,

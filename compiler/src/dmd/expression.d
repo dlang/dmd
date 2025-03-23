@@ -4755,6 +4755,8 @@ extern (C++) final class CmpExp : BinExp
  */
 extern (C++) final class InExp : BinExp
 {
+    Expression lowering;        // lowered druntime hook: `_d_aaIn(aa, key)`
+
     extern (D) this(Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.in_, e1, e2);
