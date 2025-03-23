@@ -2891,6 +2891,7 @@ class Error : Throwable
 }
 
 public import core.internal.newaa : _d_aaIn;
+public import core.internal.newaa : _d_aaDel;
 
 private import core.internal.newaa;
 
