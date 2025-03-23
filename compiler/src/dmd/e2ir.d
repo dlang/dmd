@@ -1388,13 +1388,8 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (auto taa = t.isTypeAArray())
         {
-            Symbol* s = getRtlsym(RTLSYM.AANEW);
-            elem* ti = getTypeInfo(ne, t, irs);
-            // aaNew(ti)
-            elem* ep = el_params(ti, null);
-            e = el_bin(OPcall, TYnptr, el_var(s), ep);
-            elem_setLoc(e, ne.loc);
-            return e;
+            assert(ne.lowering, "This case should have been rewritten to `_d_aaNew` in the semantic phase");
+            return toElem(ne.lowering, irs);
         }
         else
         {

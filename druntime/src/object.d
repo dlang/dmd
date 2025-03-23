@@ -2892,6 +2892,7 @@ class Error : Throwable
 
 public import core.internal.newaa : _d_aaIn;
 public import core.internal.newaa : _d_aaDel;
+public import core.internal.newaa : _d_aaNew;
 
 private import core.internal.newaa;
 
