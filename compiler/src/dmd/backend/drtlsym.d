@@ -120,7 +120,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.ARRAYEQ2:               symbolz(ps,FL.func,FREGSAVED,"_adEq2", 0, t); break;
 
         /* Associative Arrays https://github.com/dlang/dmd/blob/master/druntime/src/rt/aaA.d */
-        case RTLSYM.AAEQUAL:                symbolz(ps,FL.func,FREGSAVED,"_aaEqual",      0, t); break;
         case RTLSYM.AAGETY:                 symbolz(ps,FL.func,FREGSAVED,"_aaGetY",       0, t); break;
         case RTLSYM.AAGETRVALUEX:           symbolz(ps,FL.func,FREGSAVED,"_aaGetRvalueX", 0, t); break;
 
