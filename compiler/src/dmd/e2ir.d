@@ -2184,9 +2184,9 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitIn(InExp ie)
     {
-        assert(ie.lowering, "This case should have been rewritten to `_d_inAA` in the semantic phase");
+        assert(ie.lowering, "This case should have been rewritten to `_d_aaIn` in the semantic phase");
 
-        // Call _d_inAA()
+        // Call _d_aaIn()
         return toElem(ie.lowering, irs);
     }
 
@@ -2195,19 +2195,10 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitRemove(RemoveExp re)
     {
-        auto taa = re.e1.type.toBasetype().isTypeAArray();
-        assert(taa);
-        elem* ea = toElem(re.e1, irs);
-        elem* ekey = toElem(re.e2, irs);
+        assert(re.lowering, "This case should have been rewritten to `_d_aaDel` in the semantic phase");
 
-        ekey = addressElem(ekey, re.e2.type);
-        Symbol* s = getRtlsym(RTLSYM.AADELX);
-        elem* keyti = getTypeInfo(re, taa.index, irs);
-        elem* ep = el_params(ekey, keyti, ea, null);
-        elem* e = el_bin(OPcall, TYbool, el_var(s), ep);
-
-        elem_setLoc(e, re.loc);
-        return e;
+        // Call _d_aaDel()
+        return toElem(re.lowering, irs);
     }
 
     /***************************************
