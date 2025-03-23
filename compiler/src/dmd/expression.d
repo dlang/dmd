@@ -4771,10 +4771,11 @@ extern (C++) final class InExp : BinExp
  */
 extern (C++) final class RemoveExp : BinExp
 {
+    Expression lowering;        // lowered druntime hook: `_d_aaDel(aa, key)`
+
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, EXP.remove, e1, e2);
-        type = Type.tbool;
     }
 
     override void accept(Visitor v)
