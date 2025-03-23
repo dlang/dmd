@@ -1242,7 +1242,8 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
 
                 semanticTypeInfo(sc, taa.index);
 
-                return new RemoveExp(loc, eleft, key);
+                e = new RemoveExp(loc, eleft, key);
+                return e.expressionSemantic(sc);
             }
         }
         else
@@ -13130,11 +13131,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     * compiling with `-betterC` or within `__traits(compiles)`.
     *
     * Params:
-    *  ne = the `InExp` to lower
+    *  ie = the `InExp` to lower
     */
     private void tryLowerToAAIn(InExp ie)
     {
-        if (!global.params.useGC || !sc.needsCodegen())
+        if (!global.params.useGC || !sc.needsCodegen() || ie.lowering)
             return;
 
         Identifier hook = Identifier.idPool("_d_aaIn");
@@ -13160,6 +13161,35 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         id = new CallExp(ie.loc, id, arguments);
 
         ie.lowering = id.expressionSemantic(sc);
+    }
+
+    /**
+    * Sets the `lowering` field of a `RemoveExp` to a call to `_d_aaDel!(V[K])` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  re = the `RemoveExp` to lower
+    */
+    private void tryLowerToAADel(RemoveExp re)
+    {
+        if (!global.params.useGC || !sc.needsCodegen() || re.lowering)
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaDel");
+        if (!verifyHookExist(re.loc, *sc, hook, "remove key in AA"))
+            return;
+
+        Expression id = new IdentifierExp(re.loc, Id.empty);
+        id = new DotIdExp(re.loc, id, Id.object);
+        auto tiargs = new Objects();
+        id = new DotIdExp(re.loc, id, hook);
+
+        auto arguments = new Expressions();
+        arguments.push(re.e1);
+        arguments.push(re.e2);
+        id = new CallExp(re.loc, id, arguments);
+
+        re.lowering = id.expressionSemantic(sc);
     }
 
     override void visit(InExp exp)
@@ -13221,6 +13251,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
+
+        tryLowerToAADel(e);
+
+        e.type = Type.tbool;
         result = e;
     }
 
