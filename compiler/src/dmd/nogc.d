@@ -24,6 +24,7 @@ import dmd.dscope;
 import dmd.dtemplate : isDsymbol;
 import dmd.dsymbol : PASS;
 import dmd.errors;
+import dmd.escape;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -127,6 +128,13 @@ public:
             return;
         if (setGC(e, "this array literal"))
             return;
+
+        if (checkArrayLiteralEscape(*sc, e, false))
+        {
+            err = true;
+            return;
+        }
+
         f.printGCUsage(e.loc, "array literal may cause a GC allocation");
     }
 
