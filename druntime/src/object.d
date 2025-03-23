@@ -2890,6 +2890,7 @@ class Error : Throwable
     }
 }
 
+public import core.internal.newaa : _d_aaIn;
 
 private import core.internal.newaa;
 
