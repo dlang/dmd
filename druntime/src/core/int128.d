@@ -189,10 +189,8 @@ Cent sar1(Cent c)
  */
 pure
 Cent shl(Cent c, uint n)
+in (n < Ubits * 2)
 {
-    if (n >= Ubits * 2)
-        return Zero;
-
     if (n >= Ubits)
     {
         c.hi = c.lo << (n - Ubits);
@@ -216,10 +214,8 @@ Cent shl(Cent c, uint n)
  */
 pure
 Cent shr(Cent c, uint n)
+in (n < Ubits * 2)
 {
-    if (n >= Ubits * 2)
-        return Zero;
-
     if (n >= Ubits)
     {
         c.lo = c.hi >> (n - Ubits);
@@ -243,18 +239,13 @@ Cent shr(Cent c, uint n)
  */
 pure
 Cent sar(Cent c, uint n)
+in (n < Ubits * 2)
 {
     const signmask = -(c.hi >> (Ubits - 1));
     const signshift = (Ubits * 2) - n;
     c = shr(c, n);
 
-    // Sign extend all bits beyond the precision of Cent.
-    if (n >= Ubits * 2)
-    {
-        c.hi = signmask;
-        c.lo = signmask;
-    }
-    else if (signshift >= Ubits * 2)
+    if (signshift == Ubits * 2)
     {
     }
     else if (signshift >= Ubits)
@@ -317,6 +308,8 @@ pure
 Cent rol(Cent c, uint n)
 {
     n &= Ubits * 2 - 1;
+    if (n == 0)
+        return c;
     Cent l = shl(c, n);
     Cent r = shr(c, Ubits * 2 - n);
     return or(l, r);
@@ -334,6 +327,8 @@ pure
 Cent ror(Cent c, uint n)
 {
     n &= Ubits * 2 - 1;
+    if (n == 0)
+        return c;
     Cent r = shr(c, n);
     Cent l = shl(c, Ubits * 2 - n);
     return or(r, l);
@@ -893,18 +888,14 @@ unittest
     assert(shl(C10,0) == C10);
     assert(shl(C10,Ubits) == C10_0);
     assert(shl(C10,1) == C20);
-    assert(shl(C10,Ubits * 2) == C0);
     assert(shr(C10_0,0) == C10_0);
     assert(shr(C10_0,Ubits) == C10);
     assert(shr(C10_0,Ubits - 1) == C20);
     assert(shr(C10_0,Ubits + 1) == C5);
-    assert(shr(C10_0,Ubits * 2) == C0);
     assert(sar(C10_0,0) == C10_0);
     assert(sar(C10_0,Ubits) == C10);
     assert(sar(C10_0,Ubits - 1) == C20);
     assert(sar(C10_0,Ubits + 1) == C5);
-    assert(sar(C10_0,Ubits * 2) == C0);
-    assert(sar(Cm1,Ubits * 2) == Cm1);
 
     assert(shl1(C10) == C20);
     assert(shr1(C10_0) == C5_0);
@@ -961,4 +952,6 @@ unittest
     assert(rol(ror(C7_9, 5), 5) == C7_9);
     assert(rol(C7_9, 1) == rol1(C7_9));
     assert(ror(C7_9, 1) == ror1(C7_9));
+    assert(rol(C7_9, 0) == C7_9);
+    assert(ror(C7_9, 0) == C7_9);
 }
