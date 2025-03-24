@@ -562,6 +562,12 @@ Cent udivmod(Cent c1, Cent c2, out Cent modulus)
     return quotient;
 }
 
+version (X86_64)
+{
+    version (GNU) version = GNU_OR_LDC_X86_64;
+    version (LDC) version = GNU_OR_LDC_X86_64;
+}
+
 /****************************
  * Unsigned divide 128-bit c1 / 64-bit c2. The result must fit in 64 bits.
  * The remainder after division is stored to modulus.
@@ -576,6 +582,39 @@ pure
 U udivmod(Cent c1, U c2, out U modulus)
 {
     import core.bitop;
+
+    if (!__ctfe)
+    {
+        version (GNU_OR_LDC_X86_64)
+        {
+            U ret = void;
+            asm pure @trusted nothrow @nogc
+            {
+                "divq %4"
+                : "=a"(ret), "=d"(modulus)
+                : "a"(c1.lo), "d"(c1.hi), "r"(c2)
+                : "cc";
+            }
+            return ret;
+        }
+        else version (D_InlineAsm_X86_64)
+        {
+            const lo = c1.lo;
+            const hi = c1.hi;
+            U mod = void;
+            U ret = void;
+            asm pure @trusted nothrow @nogc
+            {
+                mov RAX, lo;
+                mov RDX, hi;
+                div c2;
+                mov mod, RDX; // DMD bug: cannot use modulus directly
+                mov ret, RAX;
+            }
+            modulus = mod;
+            return ret;
+        }
+    }
 
     // We work in base 2^^32
     enum base = 1UL << 32;
@@ -918,7 +957,6 @@ unittest
     assert(udiv(C10,C2) == C5);
     assert(udivmod(C10,C2, modulus) ==  C5);   assert(modulus == C0);
     assert(udivmod(C10,C3, modulus) ==  C3);   assert(modulus == C1);
-    assert(udivmod(C10,C0, modulus) == Cm1);   assert(modulus == C0);
     assert(udivmod(C2,C90_30, modulus) == C0); assert(modulus == C2);
     assert(udiv(mul(C90_30, C2), C2) == C90_30);
     assert(udiv(mul(C90_30, C2), C90_30) == C2);
