@@ -119,7 +119,6 @@ shared static ~this()
         const(char)[] name;
         Entry entry;
 
-        // qsort() comparator to sort by count field
         extern (C) static int qsort_cmp(scope const void *r1, scope const void *r2) @nogc nothrow
         {
             auto result1 = cast(Result*)r1;
@@ -139,7 +138,8 @@ shared static ~this()
     scope(exit)
         free(counts.ptr);
 
-    size_t i;
+    size_t i = 0; // Declare `i` only once here
+
     foreach (name, entry; globalNewCounts)
     {
         counts[i].name = name;
@@ -154,23 +154,83 @@ shared static ~this()
         FILE* fp = logfilename == "\0" ? stdout : fopen((logfilename).ptr, "w");
         if (fp)
         {
-            fprintf(fp, "bytes allocated, allocations, type, function, file:line\n");
+            enum bytesAllocatedWidth = 15;
+            enum allocationsWidth = 12;
+            enum typeWidth = 30;
+            enum fileLineWidth = 30;
+
+            fprintf(fp, "Memory Allocation Report\n");
+            fprintf(fp, "=======================\n\n");
+            fprintf(fp, "%-*s | %-*s | %-*s | %-*s\n",
+                bytesAllocatedWidth, "Bytes Allocated ".ptr,
+                allocationsWidth, "Allocations".ptr,
+                typeWidth, "Type".ptr,
+                fileLineWidth, "File:Line".ptr);
+
+            fprintf(fp, "%-*s-+-%-*s-+-%-*s-+-%-*s\n",
+                bytesAllocatedWidth, "----------------".ptr,
+                allocationsWidth, "------------".ptr,
+                typeWidth, "------------------------------".ptr,
+                fileLineWidth, "------------------------------".ptr);
+
             foreach (ref c; counts)
             {
-                fprintf(fp, "%15llu\t%15llu\t%8.*s\n",
-                    cast(ulong)c.entry.size, cast(ulong)c.entry.count,
-                    cast(int) c.name.length, c.name.ptr);
+                const(char)[] type = c.name;
+                const(char)[] fileLine = "";
+                size_t colonPos = -1;
+
+                for (size_t j = c.name.length; j > 0; --j)
+                {
+                    if (c.name[j - 1] == ':')
+                    {
+                        colonPos = j - 1;
+                        break;
+                    }
+                }
+
+                if (colonPos != -1)
+                {
+                    type = c.name[0 .. colonPos];
+                    fileLine = c.name[colonPos + 1 .. $];
+                }
+
+                fprintf(fp, "%-*llu  | %-*llu | %-*.*s | %-*.*s\n",
+                    bytesAllocatedWidth, cast(ulong)c.entry.size,
+                    allocationsWidth, cast(ulong)c.entry.count,
+                    typeWidth, cast(int)type.length, type.ptr,
+                    fileLineWidth, cast(int)fileLine.length, fileLine.ptr);
             }
+
+            ulong totalBytes = 0;
+            ulong totalAllocations = 0;
+            foreach (ref c; counts)
+            {
+                totalBytes += c.entry.size;
+                totalAllocations += c.entry.count;
+            }
+
+            fprintf(fp, "\nSummary:\n");
+            fprintf(fp, "%-*s-+-%-*s\n",
+                bytesAllocatedWidth, "----------------".ptr,
+                allocationsWidth, "------------".ptr);
+            fprintf(fp, "%-*s | %-*llu\n",
+                bytesAllocatedWidth, "Total Bytes".ptr,
+                allocationsWidth, totalBytes);
+            fprintf(fp, "%-*s | %-*llu\n",
+                bytesAllocatedWidth, "Total Allocations".ptr,
+                allocationsWidth, totalAllocations);
+            fprintf(fp, "=======================\n");
+
             if (logfilename.length)
                 fclose(fp);
         }
         else
         {
             const err = errno;
-            fprintf(stderr, "cannot write profilegc log file '%.*s' (errno=%d)",
-                cast(int) logfilename.length,
+            fprintf(stderr, "Error: Cannot write profilegc log file '%.*s' (errno=%d)\n",
+                cast(int)logfilename.length,
                 logfilename.ptr,
-                cast(int) err);
+                cast(int)err);
         }
     }
 }
