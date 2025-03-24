@@ -280,6 +280,8 @@ immutable Msgtable[] msgtable =
     { "_d_newarrayTTrace" },
     { "_d_newarraymTX" },
     { "_d_newarraymTXTrace" },
+    { "_d_arrayliteralTX" },
+    { "_d_arrayliteralTXTrace" },
     { "_d_assert_fail" },
     { "dup" },
     { "_aaApply" },
