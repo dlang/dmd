@@ -340,8 +340,8 @@ class E12984b(T) : D12984b!int
     }
 }
 
-static assert(__traits(classInstanceSize, B12984b) == (void*).sizeof * 2 + int.sizeof);
-static assert(__traits(classInstanceSize, C12984b) == (void*).sizeof * 2 + int.sizeof * 2);
+static assert(__traits(classInstanceSize, B12984b) == (void*).sizeof * 2 + int.sizeof * 2); // 4 bytes tail padding
+static assert(__traits(classInstanceSize, C12984b) == (void*).sizeof * 2 + int.sizeof * 2); // no tail padding
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=14390

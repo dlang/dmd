@@ -207,8 +207,9 @@ class AlignedClass
 }
 
 enum offset = (objectMemberSize + 4 + 16) & ~15;
+enum alignsize = __traits(classInstanceAlignment, AlignedClass);
 
-static assert(__traits(classInstanceSize, AlignedClass) == offset + 8);
+static assert(__traits(classInstanceSize, AlignedClass) == ((offset + 8 + alignsize - 1) & ~(alignsize - 1)));
 
 static assert(AlignedClass.firstInt.offsetof == objectMemberSize + 0);
 static assert(AlignedClass.noRet.offsetof == offset);

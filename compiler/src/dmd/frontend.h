@@ -5537,23 +5537,23 @@ struct UnionExp final
 private:
     union _AnonStruct_u
     {
-        char exp[22LLU];
+        char exp[24LLU];
         char integerexp[32LLU];
-        char errorexp[22LLU];
+        char errorexp[24LLU];
         char realexp[48LLU];
         char complexexp[64LLU];
         char symoffexp[56LLU];
-        char stringexp[43LLU];
+        char stringexp[48LLU];
         char arrayliteralexp[40LLU];
         char assocarrayliteralexp[48LLU];
         char structliteralexp[64LLU];
         char compoundliteralexp[32LLU];
-        char nullexp[22LLU];
-        char dotvarexp[41LLU];
+        char nullexp[24LLU];
+        char dotvarexp[48LLU];
         char addrexp[32LLU];
-        char indexexp[50LLU];
-        char sliceexp[57LLU];
-        char vectorexp[45LLU];
+        char indexexp[56LLU];
+        char sliceexp[64LLU];
+        char vectorexp[48LLU];
     };
     #pragma pack(pop)
 
@@ -6166,7 +6166,7 @@ struct TargetCPP final
     const char* typeMangle(Type* t);
     Type* parameterType(Type* t);
     bool fundamentalType(const Type* const t, bool& isFundamental);
-    uint32_t derivedClassOffset(ClassDeclaration* baseClass);
+    uint32_t derivedClassOffset(ClassDeclaration* cd);
     TargetCPP() :
         reverseOverloads(),
         exceptions(),
@@ -6683,6 +6683,7 @@ public:
     TypeInfoClassDeclaration* vclassinfo;
     bool com;
     bool stack;
+    uint32_t derivedClassOffset;
     int32_t cppDtorVtblIndex;
     bool inuse;
     ThreeState isabstract;

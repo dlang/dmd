@@ -269,6 +269,7 @@ public:
     TypeInfoClassDeclaration *vclassinfo;       // the ClassInfo object for this ClassDeclaration
     d_bool com;                           // true if this is a COM class (meaning it derives from IUnknown)
     d_bool stack;                         // true if this is a scope class
+    uint32_t derivedClassOffset;        // The starting offset position for fields that are derived from this class
     int cppDtorVtblIndex;               // slot reserved for the virtual destructor [extern(C++)]
     d_bool inuse;                         // to prevent recursive attempts
 

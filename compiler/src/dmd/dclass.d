@@ -179,6 +179,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     /// true if this is a scope class
     bool stack;
 
+    /**
+     * The starting offset position for fields that are derived from this class.
+     * This differs from `structsize' in that this does not align to `alignsize'
+     * unless requested by ABI.
+     */
+    uint derivedClassOffset;
+
     /// if this is a C++ class, this is the slot reserved for the virtual destructor
     int cppDtorVtblIndex = -1;
 
@@ -506,10 +513,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             assert(baseClass.sizeok == Sizeok.done);
 
             alignsize = baseClass.alignsize;
-            if (classKind == ClassKind.cpp)
-                structsize = target.cpp.derivedClassOffset(baseClass);
-            else
-                structsize = baseClass.structsize;
+            structsize = baseClass.derivedClassOffset;
         }
         else if (classKind == ClassKind.objc)
             structsize = 0; // no hidden member for an Objective-C class
@@ -599,6 +603,14 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             s.setFieldOffset(this, &fieldState, false);
         }
+
+        if (classKind == ClassKind.cpp)
+            derivedClassOffset = target.cpp.derivedClassOffset(this);
+        else
+            derivedClassOffset = structsize;
+
+        // Round struct size up to next alignsize boundary.
+        structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
 
         sizeok = Sizeok.done;
 
