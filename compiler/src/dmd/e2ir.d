@@ -769,7 +769,18 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, offset));
         }
         else if (se.op == EXP.variable)
-            e = el_var(s);
+        {
+            if (sytab[s.Sclass] & SCDATA && s.Sfl != FL.func && target.isAArch64)
+            {
+                /* AArch64 does not have an LEA instruction,
+                 * so access data segment data via a pointer
+                 */
+                e = el_ptr(s);
+                e = el_una(OPind,s.Stype.Tty,e); // e = * & s
+            }
+            else
+                e = el_var(s);
+        }
         else
         {
             e = nrvo ? el_var(s) : el_ptr(s);
