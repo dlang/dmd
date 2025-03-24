@@ -37,4 +37,3 @@ enum E
     D3DTS_TEXTURE7, // = 23
     D3DTS_FORCE_DWORD  = 0xffffffff
 }
-
