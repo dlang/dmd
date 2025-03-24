@@ -1,52 +1,87 @@
 /**
- This module contains support for controlling dynamic arrays' appending
+    This module contains support for controlling dynamic arrays' appending
 
-  Copyright: Copyright Digital Mars 2000 - 2019.
-  License: Distributed under the
-       $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
-     (See accompanying file LICENSE)
-  Source: $(DRUNTIMESRC core/_internal/_array/_appending.d)
+     Copyright: Copyright Digital Mars 2000 - 2019.
+     License: Distributed under the
+             $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+        (See accompanying file LICENSE)
+     Source: $(DRUNTIMESRC core/_internal/_array/_appending.d)
 */
 module core.internal.array.appending;
 
-/// See $(REF _d_arrayappendcTX, rt,lifetime,_d_arrayappendcTX)
-private extern (C) byte[] _d_arrayappendcTX(const TypeInfo ti, ref return scope byte[] px, size_t n) @trusted pure nothrow;
+import core.stdc.string;
+import core.internal.array.construction; // For __arrayAlloc
+import core.internal.array.utils;     // For __typeAttrs
+import core.exception;           // For onOutOfMemoryError
+import core.internal.traits;      // For Unqual
+import core.memory; // For GC.malloc, gc_expandArrayUsed, gc_shrinkArrayUsed
 
+/// See $(REF _d_arrayappendcTX, rt,lifetime,_d_arrayappendcTX)
+/**
+private extern (C) byte[] _d_arrayappendcTX(const TypeInfo ti, ref return scope byte[] px, size_t n) @trusted pure nothrow;
+*/
 private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lhs = rhs; });
 
 /**
  * Extend an array `px` by `n` elements.
  * Caller must initialize those elements.
  * Params:
- *  px = the array that will be extended, taken as a reference
- *  n = how many new elements to extend it with
+ * px = the array that will be extended, taken as a reference
+ * n  = how many new elements to extend it with
  * Returns:
- *  The new value of `px`
- * Bugs:
- *  This function template was ported from a much older runtime hook that bypassed safety,
- *  purity, and throwabilty checks. To prevent breaking existing code, this function template
- *  is temporarily declared `@trusted pure` until the implementation can be brought up to modern D expectations.
+ * The new value of `px`
  */
-ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n) @trusted
+ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n)
+    @trusted pure nothrow @nogc
 {
-    // needed for CTFE: https://github.com/dlang/druntime/pull/3870#issuecomment-1178800718
-    version (DigitalMars) pragma(inline, false);
-    version (D_TypeInfo)
+    // Short circuit if no data is being appended.
+    if (n == 0)
+        return px;
+
+    alias UnqT = Unqual!T;
+    auto elemSize = UnqT.sizeof;
+    auto length = px.length;
+    auto newlength = length + n;
+    auto newsize = newlength * elemSize;
+    auto size = length * elemSize;
+    auto isShared = (Tarr.flags & (1 << 1)) != 0; // Check for shared array.
+
+    if (!gc_expandArrayUsed(px.ptr[0 .. size], newsize, isShared))
     {
-        auto ti = typeid(Tarr);
+        // Could not set the size, we must reallocate.
+        auto newcap = newCapacity(newlength, elemSize);
+        auto attrs = __typeAttrs(typeid(UnqT[]), px.ptr) | BlkAttr.APPENDABLE; // Use UnqT[]
+        auto ptr = cast(byte*) GC.malloc(newcap, attrs, typeid(UnqT)); // Use UnqT
+        if (ptr is null)
+        {
+            onOutOfMemoryError();
+            assert(false);
+        }
 
-        // _d_arrayappendcTX takes the `px` as a ref byte[], but its length
-        // should still be the original length
-        auto pxx = (cast(byte*)px.ptr)[0 .. px.length];
-        ._d_arrayappendcTX(ti, pxx, n);
-        px = (cast(T*)pxx.ptr)[0 .. pxx.length];
+        if (newsize != newcap)
+        {
+            // For small blocks that are always fully scanned, if we allocated more
+            // capacity than was requested, we are responsible for zeroing that
+            // memory.
+            if (!(attrs & BlkAttr.NO_SCAN) && newcap < core.memory.PAGESIZE)
+                memset(ptr + newsize, 0, newcap - newsize);
 
+            gc_shrinkArrayUsed(ptr[0 .. newsize], newcap, isShared);
+        }
+
+        memcpy(ptr, px.ptr, size);
+
+        // do postblit processing.
+        __doPostblit(ptr, size, typeid(UnqT)); // Use UnqT
+
+        px = (cast(T*)ptr)[0 .. newlength];
         return px;
     }
-    else
-        assert(0, "Cannot append to array if compiling without support for runtime type information!");
-}
 
+    // we were able to expand in place, just update the length
+    px = px.ptr[0 .. newlength];
+    return px;
+}
 version (D_ProfileGC)
 {
     /**
