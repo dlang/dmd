@@ -306,6 +306,7 @@ extern (C++) abstract class Expression : ASTNode
     {
     bool parens;    // if this is a parenthesized expression
     bool rvalue;    // true if this is considered to be an rvalue, even if it is an lvalue
+    bool gcPassDone; // `checkGC` has been run on this expression
     }
     import dmd.common.bitfields;
     mixin(generateBitFields!(BitFields, ubyte));
@@ -3632,6 +3633,7 @@ extern (C++) final class CastExp : UnaExp
         if (rvalue || !e1.isLvalue())
             return false;
         return (to.ty == Tsarray && (e1.type.ty == Tvector || e1.type.ty == Tsarray)) ||
+            (to.ty == Taarray && e1.type.ty == Taarray) ||
             e1.type.mutableOf.unSharedOf().equals(to.mutableOf().unSharedOf());
     }
 

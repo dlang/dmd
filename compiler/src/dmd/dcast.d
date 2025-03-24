@@ -27,7 +27,6 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
-import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -2728,13 +2727,6 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         ArrayLiteralExp ae = e;
 
         Type tb = t.toBasetype();
-        if (tb.ty == Tarray)
-        {
-            if (checkArrayLiteralEscape(*sc, ae, false))
-            {
-                return ErrorExp.get();
-            }
-        }
 
         if (e.type == t)
         {

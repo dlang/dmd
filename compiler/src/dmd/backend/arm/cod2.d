@@ -1067,7 +1067,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     uint decode(uint to, uint from, bool uns) { return to * 4 * 2 + from * 2 + uns; }
 
-    switch (decode(4, sz, uns))
+    switch (decode(sz == 8 ? 8 : 4, sz, uns))
     {
     /*
         int  = *byte    ldrsb w0,[x1]   39C00020
@@ -1330,6 +1330,8 @@ static if (0)
             {   cgstate.stackchanged = 1;
                 cs.Iop = 0x68;              /* PUSH immed16                 */
                 cdb.genadjesp(REGSIZE);
+                cs.IFL1 = fl;
+                cdb.gen(&cs);
             }
             else
             {
@@ -1338,10 +1340,12 @@ static if (0)
 
                 cs.Iop = INSTR.addsub_imm(1,0,0,0,0,reg,reg); // ADD reg,reg,#0
                 cs.Iflags |= CFadd;
+                cs.IFL1 = fl;
+                cdb.gen(&cs);
+
+                if (e.Voffset)
+                    cdb.gen1(INSTR.addsub_imm(1,0,0,0,cast(uint)e.Voffset,reg,reg)); // ADD reg,reg,#Voffset
             }
-            //cs.Iflags = CFoff;              /* want offset only             */
-            cs.IFL1 = fl;
-            cdb.gen(&cs);
             break;
 
         case FL.reg:
@@ -1371,9 +1375,16 @@ static if (0)
             }
             else
             {
-                loadea(cdb,e,cs,LEA,reg,0,0,0);   // LEA reg,EA
-                if (I64)
-                    code_orrex(cdb.last(), REX_W);
+                uint sh = 0;
+                uint base = 0;
+                cs.Iop = INSTR.addsub_imm(1,0,0,sh,base,cgstate.BP,reg); // ADD reg,BP,base
+                cs.IFL1 = fl;
+                cs.IEV1.Vsym = e.Vsym;
+                cs.IEV1.Voffset = 0;
+                cdb.gen(&cs);
+                cdb.gen1(INSTR.addsub_imm(1,0,0,sh,cast(uint)e.Voffset,reg,reg)); // ADD reg,reg,Voffset
+                // TODO AArch64 common subexpressions?
+                //loadea(cdb,e,cs,LEA,reg,0,0,0);   // LEA reg,EA
             }
             break;
 

@@ -1,0 +1,4 @@
+The compiler now accepts `-extern-std=c++23`
+
+The compiler now accepts c++23 as a supported standard for `-extern-std=`.
+Currently this only changes the value of `__traits(getTargetInfo, "cppStd")`.

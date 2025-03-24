@@ -1217,8 +1217,9 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
         if (Type.typeinfoclass.structsize != target.classinfosize)
         {
             debug printf("target.classinfosize = x%x, Type.typeinfoclass.structsize = x%x\n", target.classinfosize, Type.typeinfoclass.structsize);
-            .error(cd.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found. Check installation and import paths with -v compiler switch.",
+            .error(cd.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
                    cd.kind, cd.toPrettyChars, cast(uint)target.classinfosize, cast(uint)Type.typeinfoclass.structsize);
+            .errorSupplemental(cd.loc, "check installation and import paths with `-v` compiler switch");
             fatal();
         }
     }
@@ -1554,8 +1555,9 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
         {
             if (Type.typeinfoclass.structsize != offset)
             {
-                .error(id.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found. Check installation and import paths with -v compiler switch.",
+                .error(id.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
                        id.kind, id.toPrettyChars, cast(uint)offset, cast(uint)Type.typeinfoclass.structsize);
+                .errorSupplemental(id.loc, "check installation and import paths with `-v` compiler switch");
                 fatal();
             }
         }

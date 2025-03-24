@@ -61,3 +61,4 @@ untracked_files/
 
 # Just in case
 /dmd
+.DS_Store

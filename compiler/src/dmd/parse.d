@@ -2772,7 +2772,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (len > 0)
             {
                 docline = cast(char*)mem.xmalloc_noscan(len + 2);
-                memcpy(docline, begPtr, len);
+                docline[0 .. len] = begPtr[0 .. len];
                 docline[len] = '\n'; // Terminate all lines by LF
                 docline[len + 1] = '\0';
             }
@@ -4081,7 +4081,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                  */
                 if (isParameters(&peekt))
                 {
-                    error("function declaration without return type. (Note that constructors are always named `this`)");
+                    error("function declaration without return type");
+                    errorSupplemental("Note that constructors are always named `this`");
                 }
                 else
                     error("unexpected `(` in declarator");
@@ -7104,12 +7105,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
                 *ptoklist = allocateToken();
-                memcpy(*ptoklist, &token, Token.sizeof);
+                **ptoklist = this.token;
                 (*ptoklist).value = TOK.colon;
                 ptoklist = &(*ptoklist).next;
 
                 *ptoklist = allocateToken();
-                memcpy(*ptoklist, &token, Token.sizeof);
+                **ptoklist = this.token;
                 (*ptoklist).value = TOK.colon;
                 ptoklist = &(*ptoklist).next;
 
@@ -7119,7 +7120,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             default:
                 *ptoklist = allocateToken();
-                memcpy(*ptoklist, &token, Token.sizeof);
+                **ptoklist = this.token;
                 ptoklist = &(*ptoklist).next;
                 *ptoklist = null;
                 nextToken();
@@ -8263,9 +8264,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         const len2 = token.len;
                         len = len1 + len2;
                         auto s2 = cast(char*)mem.xmalloc_noscan(len * char.sizeof);
-                        memcpy(s2, s, len1 * char.sizeof);
-                        memcpy(s2 + len1, token.ustring, len2 * char.sizeof);
-                        s = s2;
+                        s2[0 .. len1] = s[0 .. len1];
+                        s2[len1 .. len1 + len2] = token.ustring[0 .. len2];
                     }
                     else
                         break;
@@ -8468,10 +8468,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     nextToken();
                     if (token.value == TOK.identifier && peekNext() == TOK.leftParenthesis)
                     {
-                        error(loc, "unexpected `(` after `%s`, inside `is` expression. Try enclosing the contents of `is` with a `typeof` expression", token.toChars());
+                        error(loc, "unexpected `(` after `%s`, inside `is` expression", token.toChars());
+                        errorSupplemental("try enclosing the contents of `is` with a `typeof` expression");
                         nextToken();
                         Token* tempTok = peekPastParen(&token);
-                        memcpy(&token, tempTok, Token.sizeof);
+                        token = *tempTok;
                         goto Lerr;
                     }
                     targ = parseType(&ident);

@@ -235,6 +235,17 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
     if ((funcdecl.storage_class & STC.TYPECTOR) && !(ad || funcdecl.isNested()))
         funcdecl.storage_class &= ~STC.TYPECTOR;
 
+    auto tf = funcdecl.type.isTypeFunction();
+    if ((funcdecl.storage_class & STC.auto_) && tf.isRef && !funcdecl.inferRetType)
+    {
+        if (!(funcdecl.storage_class & STC.autoref))
+        {
+            // @@@DEPRECATED_2.122@@@
+            // Deprecated in 2.112, turn into an error in 2.122
+            deprecation(funcdecl.loc, "`auto ref` return type must have `auto` and `ref` adjacent");
+            funcdecl.storage_class |= STC.autoref;
+        }
+    }
     //printf("function storage_class = x%llx, sc.stc = x%llx, %x\n", storage_class, sc.stc, Declaration.isFinal());
 
     if (sc.traitsCompiles)
@@ -313,7 +324,6 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         sc = sc.push();
         sc.stc |= funcdecl.storage_class & (STC.disable | STC.deprecated_); // forward to function type
 
-        TypeFunction tf = funcdecl.type.toTypeFunction();
         if (sc.func)
         {
             /* If the nesting parent is pure without inference,
@@ -1825,10 +1835,15 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                     functionResolve(mErr, baseFunction, loc, sc, tiargs, baseClass.type, argumentList);
                     if (mErr.last > MATCH.nomatch && mErr.lastf)
                     {
-                        errorSupplemental(loc, "%s `%s` hides base class function `%s`",
-                                fd.kind, fd.toPrettyChars(), mErr.lastf.toPrettyChars());
-                        errorSupplemental(loc, "add `alias %s = %s` to `%s`'s body to merge the overload sets",
-                                fd.toChars(), mErr.lastf.toPrettyChars(), tthis.toChars());
+                        errorSupplemental(loc, "Note: %s `%s` hides base class %s `%s`",
+                            fd.kind, fd.toPrettyChars(),
+                            mErr.lastf.kind, mErr.lastf.toPrettyChars());
+
+                        if (!fd.isCtorDeclaration)
+                        {
+                            errorSupplemental(loc, "Add `alias %s = %s;` to `%s`'s body to merge the overload sets",
+                                    fd.toChars(), mErr.lastf.toPrettyChars(), tthis.toChars());
+                        }
                         return null;
                     }
                 }

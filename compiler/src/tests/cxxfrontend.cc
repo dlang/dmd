@@ -394,6 +394,12 @@ void test_location()
     Loc loc = Loc::singleFilename("app.d");
     assert(strcmp(loc.toChars(true, MessageStyle::digitalmars), "app.d") == 0);
     assert(strcmp(loc.toChars(true, MessageStyle::gnu), "app.d") == 0);
+
+    Loc loc2 = Loc::singleFilename("app2.d");
+    assert(!loc2.equals(loc));
+
+    SourceLoc sloc = loc.toSourceLoc();
+    assert(strcmp(sloc.filename.ptr, loc.filename()) == 0);
 }
 
 /**********************************/
@@ -1730,12 +1736,14 @@ void argtypes_h(Type *t)
     //dmd::isHFVA(t);
 }
 
-void declaration_h(FuncDeclaration *fd, Loc loc, Expressions* args)
+void declaration_h(FuncDeclaration *fd, Loc loc, Expressions* args, Parameters* params)
 {
     dmd::functionSemantic(fd);
     dmd::functionSemantic3(fd);
     ::eval_builtin(loc, fd, args);
     ::isBuiltin(fd);
+    dmd::genCfunc(params, fd->type, "test");
+    dmd::genCfunc(params, fd->type, Identifier::idPool("test"));
 }
 
 void doc_h(Module *m, const char *ptr, d_size_t length, const char *date,
@@ -1868,4 +1876,6 @@ void typinf_h(Expression *e, Loc loc, Type *t, Scope *sc)
     ::getTypeInfoType(loc, t, sc);
     dmd::isSpeculativeType(t);
     dmd::builtinTypeInfo(t);
+    dmd::makeNakedAssociativeArray(t->isTypeAArray());
+    dmd::getTypeInfoAssocArrayDeclaration(t->isTypeAArray(), sc);
 }

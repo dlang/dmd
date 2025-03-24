@@ -505,7 +505,7 @@ version (D_ProfileGC)
  * Returns:
  *    newly allocated array
  */
-Tarr _d_newarraymTX(Tarr : U[], T, U)(size_t[] dims, bool isShared=false) @trusted
+Tarr _d_newarraymTX(Tarr : U[], T, U)(scope size_t[] dims, bool isShared=false) @trusted
 {
     debug(PRINTF) printf("_d_newarraymTX(dims.length = %zd)\n", dims.length);
 
@@ -602,7 +602,7 @@ version (D_ProfileGC)
     /**
     * TraceGC wrapper around $(REF _d_newarraymT, core,internal,array,construction).
     */
-    Tarr _d_newarraymTXTrace(Tarr : U[], T, U)(size_t[] dims, bool isShared=false, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
+    Tarr _d_newarraymTXTrace(Tarr : U[], T, U)(scope size_t[] dims, bool isShared=false, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
     {
         version (D_TypeInfo)
         {

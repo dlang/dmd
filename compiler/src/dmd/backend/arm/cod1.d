@@ -58,6 +58,7 @@ nothrow:
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
     //debug printf("loadFromEA() reg: %d, szw: %d, szr: %d\n", reg, szw, szr);
+    //debug printf("EV1.Voffset: %d\n", cast(int)cs.IEV1.Voffset);
     assert(szr <= szw);
     cs.Iop = INSTR.nop;
     assert(reg != NOREG);
@@ -86,7 +87,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         return;
     }
 
-    bool signExtend = (cs.Sextend & 7) == Extend.SXTB;
+    bool signExtend = (cs.Sextend & 4) != 0; // SXTB, SXTH, SXTW, SXTX
 
     if (cs.reg != NOREG)
     {
@@ -496,6 +497,7 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
     getlvalue(cdb, cs, e, keepmsk, rmx);
     cs.IEV1.Voffset += offset;
 
+    assert(op != LEA);                  // AArch64 does not have LEA
     loadFromEA(cs,reg,sz == 8 ? 8 : 4,sz);
 
     getregs(cdb, desmsk);                  // save any regs we destroy
