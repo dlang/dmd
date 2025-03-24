@@ -3286,6 +3286,8 @@ private elem* elind(elem* e, Goal goal)
     switch (e1.Eoper)
     {
         case OPrelconst:
+            if (sytab[e1.Vsym.Sclass] & SCDATA && e1.Vsym.Sfl != FL.func && cgstate.AArch64)
+                break;
             e.E1.ET = e.ET;
             e = el_selecte1(e);
             e.Eoper = OPvar;

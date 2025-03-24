@@ -113,17 +113,17 @@ tym_t pointertype = TYnptr;     /* default data pointer type            */
  * SCxxxx types.
  */
 
-char[SCMAX] sytab =
+ubyte[SCMAX] sytab =
 [
     /* unde */     SCEXP|SCKEP|SCSCT,      /* undefined                            */
     /* auto */     SCEXP|SCSS|SCRD  ,      /* automatic (stack)                    */
-    /* static */   SCEXP|SCKEP|SCSCT,      /* statically allocated                 */
+    /* static */   SCEXP|SCKEP|SCSCT|SCDATA, /* statically allocated               */
     /* thread */   SCEXP|SCKEP      ,      /* thread local                         */
-    /* extern */   SCEXP|SCKEP|SCSCT,      /* external                             */
+    /* extern */   SCEXP|SCKEP|SCSCT|SCDATA, /* external                           */
     /* register */ SCEXP|SCSS|SCRD  ,      /* registered variable                  */
     /* pseudo */   SCEXP            ,      /* pseudo register variable             */
-    /* global */   SCEXP|SCKEP|SCSCT,      /* top level global definition          */
-    /* comdat */   SCEXP|SCKEP|SCSCT,      /* initialized common block             */
+    /* global */   SCEXP|SCKEP|SCSCT|SCDATA, /* top level global definition        */
+    /* comdat */   SCEXP|SCKEP|SCSCT|SCDATA, /* initialized common block           */
     /* parameter */SCEXP|SCSS       ,      /* function parameter                   */
     /* regpar */   SCEXP|SCSS       ,      /* function register parameter          */
     /* fastpar */  SCEXP|SCSS       ,      /* function parameter passed in register */
@@ -144,13 +144,13 @@ char[SCMAX] sytab =
     /* overload */ SCEXP            ,      /* for overloaded function names        */
     /* friend */   0                ,      /* friend of a class                    */
     /* virtual */  0                ,      /* virtual function                     */
-    /* locstat */  SCEXP|SCSCT      ,      /* static, but local to a function      */
+    /* locstat */  SCEXP|SCSCT|SCDATA,     /* static, but local to a function      */
     /* template */ 0                ,      /* class template                       */
     /* functempl */0                ,      /* function template                    */
     /* ftexpspec */0                ,      /* function template explicit specialization */
     /* linkage */  0                ,      /* function linkage symbol              */
     /* public */   SCEXP|SCKEP|SCSCT,      /* generate a pubdef for this           */
-    /* comdef */   SCEXP|SCKEP|SCSCT,      /* uninitialized common block           */
+    /* comdef */   SCEXP|SCKEP|SCSCT|SCDATA, /* uninitialized common block         */
     /* bprel */    SCEXP|SCSS       ,      /* variable at fixed offset from frame pointer */
     /* namespace */0                ,      /* namespace                            */
     /* alias */    0                ,      /* alias to another symbol              */

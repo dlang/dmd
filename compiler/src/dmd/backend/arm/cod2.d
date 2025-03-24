@@ -1067,7 +1067,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     uint decode(uint to, uint from, bool uns) { return to * 4 * 2 + from * 2 + uns; }
 
-    switch (decode(4, sz, uns))
+    switch (decode(sz == 8 ? 8 : 4, sz, uns))
     {
     /*
         int  = *byte    ldrsb w0,[x1]   39C00020
