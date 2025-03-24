@@ -1330,6 +1330,8 @@ static if (0)
             {   cgstate.stackchanged = 1;
                 cs.Iop = 0x68;              /* PUSH immed16                 */
                 cdb.genadjesp(REGSIZE);
+                cs.IFL1 = fl;
+                cdb.gen(&cs);
             }
             else
             {
@@ -1338,10 +1340,12 @@ static if (0)
 
                 cs.Iop = INSTR.addsub_imm(1,0,0,0,0,reg,reg); // ADD reg,reg,#0
                 cs.Iflags |= CFadd;
+                cs.IFL1 = fl;
+                cdb.gen(&cs);
+
+                if (e.Voffset)
+                    cdb.gen1(INSTR.addsub_imm(1,0,0,0,cast(uint)e.Voffset,reg,reg)); // ADD reg,reg,#Voffset
             }
-            //cs.Iflags = CFoff;              /* want offset only             */
-            cs.IFL1 = fl;
-            cdb.gen(&cs);
             break;
 
         case FL.reg:
