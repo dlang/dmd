@@ -40,6 +40,11 @@ __gshared
  *      name = file name
  */
 
+version (Windows) {
+    version = Windows32Bit;  // Assume 32-bit by default
+    version (X86_64) version = Windows64Bit;
+}
+
 extern (C) void profilegc_setlogfilename(string name)
 {
     logfilename = name ~ "\0";
@@ -206,11 +211,30 @@ shared static ~this()
                     fileLine = c.name[colonPos + 1 .. $];
                 }
 
-                fprintf(fp, "%-*lu | %-*lu | %-*.*s | %-*.*s\n",
-                    bytesAllocatedWidth, cast(ulong)c.entry.size,
-                    allocationsWidth, cast(ulong)c.entry.count,
-                    typeWidth, cast(int)type.length, type.ptr,
-                    fileLineWidth, cast(int)fileLine.length, fileLine.ptr);
+                version (Windows) {
+                    version (X86) {
+                        // 32-bit Windows
+                        fprintf(fp, "%-*u | %-*u | %-*.*s | %-*.*s\n",
+                            bytesAllocatedWidth, cast(uint)c.entry.size,
+                            allocationsWidth, cast(uint)c.entry.count,
+                            typeWidth, cast(int)type.length, type.ptr,
+                            fileLineWidth, cast(int)fileLine.length, fileLine.ptr);
+                    } else {
+                        // 64-bit Windows
+                        fprintf(fp, "%-*llu | %-*llu | %-*.*s | %-*.*s\n",
+                            bytesAllocatedWidth, cast(ulong)c.entry.size,
+                            allocationsWidth, cast(ulong)c.entry.count,
+                            typeWidth, cast(int)type.length, type.ptr,
+                            fileLineWidth, cast(int)fileLine.length, fileLine.ptr);
+                    }
+                } else {
+                    // Linux and macOS
+                    fprintf(fp, "%-*lu | %-*lu | %-*.*s | %-*.*s\n",
+                        bytesAllocatedWidth, cast(ulong)c.entry.size,
+                        allocationsWidth, cast(ulong)c.entry.count,
+                        typeWidth, cast(int)type.length, type.ptr,
+                        fileLineWidth, cast(int)fileLine.length, fileLine.ptr);
+                }
             }
 
             ulong totalBytes = 0;
@@ -225,12 +249,35 @@ shared static ~this()
             fprintf(fp, "%-*s-+-%-*s\n",
                 bytesAllocatedWidth, "-----------------".ptr,
                 allocationsWidth, "------------".ptr);
-            fprintf(fp, "%-*s | %-*llu\n",
-                bytesAllocatedWidth, "Total Bytes   ".ptr,
-                allocationsWidth, totalBytes);
-            fprintf(fp, "%-*s | %-*llu\n",
-                bytesAllocatedWidth, "Total Allocations".ptr,
-                allocationsWidth, totalAllocations);
+
+            version (Windows) {
+                version (X86) {
+                    // 32-bit Windows
+                    fprintf(fp, "%-*s | %-*u\n",
+                        bytesAllocatedWidth, "Total Bytes".ptr,
+                        allocationsWidth, cast(uint)totalBytes);
+                    fprintf(fp, "%-*s | %-*u\n",
+                        bytesAllocatedWidth, "Total Allocations".ptr,
+                        allocationsWidth, cast(uint)totalAllocations);
+                } else {
+                    // 64-bit Windows
+                    fprintf(fp, "%-*s | %-*llu\n",
+                        bytesAllocatedWidth, "Total Bytes".ptr,
+                        allocationsWidth, cast(ulong)totalBytes);
+                    fprintf(fp, "%-*s | %-*llu\n",
+                        bytesAllocatedWidth, "Total Allocations".ptr,
+                        allocationsWidth, cast(ulong)totalAllocations);
+                }
+            } else {
+                // Linux and macOS
+                fprintf(fp, "%-*s | %-*lu\n",
+                    bytesAllocatedWidth, "Total Bytes".ptr,
+                    allocationsWidth, cast(ulong)totalBytes);
+                fprintf(fp, "%-*s | %-*lu\n",
+                    bytesAllocatedWidth, "Total Allocations".ptr,
+                    allocationsWidth, cast(ulong)totalAllocations);
+            }
+
             fprintf(fp, "=======================\n");
 
             if (logfilename.length)
