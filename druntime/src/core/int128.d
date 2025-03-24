@@ -485,63 +485,6 @@ Cent udivmod(Cent c1, Cent c2, out Cent modulus)
     // Based on "Unsigned Doubleword Division" in Hacker's Delight
     import core.bitop;
 
-    // Divides a 128-bit dividend by a 64-bit divisor.
-    // The result must fit in 64 bits.
-    static U udivmod128_64(Cent c1, U c2, out U modulus)
-    {
-        // We work in base 2^^32
-        enum base = 1UL << 32;
-        enum divmask = (1UL << (Ubits / 2)) - 1;
-        enum divshift = Ubits / 2;
-
-        // Check for overflow and divide by 0
-        if (c1.hi >= c2)
-        {
-            modulus = 0UL;
-            return ~0UL;
-        }
-
-        // Computes [num1 num0] / den
-        static uint udiv96_64(U num1, uint num0, U den)
-        {
-            // Extract both digits of the denominator
-            const den1 = cast(uint)(den >> divshift);
-            const den0 = cast(uint)(den & divmask);
-            // Estimate ret as num1 / den1, and then correct it
-            U ret = num1 / den1;
-            const t2 = (num1 % den1) * base + num0;
-            const t1 = ret * den0;
-            if (t1 > t2)
-                ret -= (t1 - t2 > den) ? 2 : 1;
-            return cast(uint)ret;
-        }
-
-        // Determine the normalization factor. We multiply c2 by this, so that its leading
-        // digit is at least half base. In binary this means just shifting left by the number
-        // of leading zeros, so that there's a 1 in the MSB.
-        // We also shift number by the same amount. This cannot overflow because c1.hi < c2.
-        const shift = (Ubits - 1) - bsr(c2);
-        c2 <<= shift;
-        U num2 = c1.hi;
-        num2 <<= shift;
-        num2 |= (c1.lo >> (-shift & 63)) & (-cast(I)shift >> 63);
-        c1.lo <<= shift;
-
-        // Extract the low digits of the numerator (after normalizing)
-        const num1 = cast(uint)(c1.lo >> divshift);
-        const num0 = cast(uint)(c1.lo & divmask);
-
-        // Compute q1 = [num2 num1] / c2
-        const q1 = udiv96_64(num2, num1, c2);
-        // Compute the true (partial) remainder
-        const rem = num2 * base + num1 - q1 * c2;
-        // Compute q0 = [rem num0] / c2
-        const q0 = udiv96_64(rem, num0, c2);
-
-        modulus = (rem * base + num0 - q0 * c2) >> shift;
-        return (cast(U)q1 << divshift) | q0;
-    }
-
     // Special cases
     if (!tst(c2))
     {
@@ -571,7 +514,7 @@ Cent udivmod(Cent c1, Cent c2, out Cent modulus)
         if (q1)
             c1.hi = c1.hi % c2.lo;
         Cent rem;
-        const q0 = udivmod128_64(c1, c2.lo, rem.lo);
+        const q0 = udivmod(c1, c2.lo, rem.lo);
         modulus = rem;
         const Cent ret = { lo:q0, hi:q1 };
         return ret;
@@ -592,7 +535,7 @@ Cent udivmod(Cent c1, Cent c2, out Cent modulus)
 
     // Get quotient from divide unsigned operation.
     U rem_ignored;
-    const Cent q1 = { lo:udivmod128_64(u1, v1, rem_ignored) };
+    const Cent q1 = { lo:udivmod(u1, v1, rem_ignored) };
 
     // Undo normalization and division of c1 by 2.
     Cent quotient = shr(shl(q1, shift), 63);
@@ -617,6 +560,74 @@ Cent udivmod(Cent c1, Cent c2, out Cent modulus)
     //printf("quotient "); print(quotient);
     //printf("modulus  "); print(modulus);
     return quotient;
+}
+
+/****************************
+ * Unsigned divide 128-bit c1 / 64-bit c2. The result must fit in 64 bits.
+ * The remainder after division is stored to modulus.
+ * Params:
+ *      c1 = dividend
+ *      c2 = divisor
+ *      modulus = set to c1 % c2
+ * Returns:
+ *      quotient c1 / c2
+ */
+pure
+U udivmod(Cent c1, U c2, out U modulus)
+{
+    import core.bitop;
+
+    // We work in base 2^^32
+    enum base = 1UL << 32;
+    enum divmask = (1UL << (Ubits / 2)) - 1;
+    enum divshift = Ubits / 2;
+
+    // Check for overflow and divide by 0
+    if (c1.hi >= c2)
+    {
+        modulus = 0UL;
+        return ~0UL;
+    }
+
+    // Computes [num1 num0] / den
+    static uint udiv96_64(U num1, uint num0, U den)
+    {
+        // Extract both digits of the denominator
+        const den1 = cast(uint)(den >> divshift);
+        const den0 = cast(uint)(den & divmask);
+        // Estimate ret as num1 / den1, and then correct it
+        U ret = num1 / den1;
+        const t2 = (num1 % den1) * base + num0;
+        const t1 = ret * den0;
+        if (t1 > t2)
+            ret -= (t1 - t2 > den) ? 2 : 1;
+        return cast(uint)ret;
+    }
+
+    // Determine the normalization factor. We multiply c2 by this, so that its leading
+    // digit is at least half base. In binary this means just shifting left by the number
+    // of leading zeros, so that there's a 1 in the MSB.
+    // We also shift number by the same amount. This cannot overflow because c1.hi < c2.
+    const shift = (Ubits - 1) - bsr(c2);
+    c2 <<= shift;
+    U num2 = c1.hi;
+    num2 <<= shift;
+    num2 |= (c1.lo >> (-shift & 63)) & (-cast(I)shift >> 63);
+    c1.lo <<= shift;
+
+    // Extract the low digits of the numerator (after normalizing)
+    const num1 = cast(uint)(c1.lo >> divshift);
+    const num0 = cast(uint)(c1.lo & divmask);
+
+    // Compute q1 = [num2 num1] / c2
+    const q1 = udiv96_64(num2, num1, c2);
+    // Compute the true (partial) remainder
+    const rem = num2 * base + num1 - q1 * c2;
+    // Compute q0 = [rem num0] / c2
+    const q0 = udiv96_64(rem, num0, c2);
+
+    modulus = (rem * base + num0 - q0 * c2) >> shift;
+    return (cast(U)q1 << divshift) | q0;
 }
 
 
