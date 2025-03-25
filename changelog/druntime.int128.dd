@@ -1,0 +1,14 @@
+`core.int128`: Add `mul` and `udivmod` overloads for 64-bit operands
+
+These map to a single x86_64 instruction and have accordingly been optimized via inline assembly.
+
+---
+import core.int128;
+
+ulong a, b;
+Cent product128 = mul(a, b);
+
+ulong divisor64 = …;
+ulong modulus64;
+ulong quotient64 = udivmod(product128, divisor64, modulus64);
+---
