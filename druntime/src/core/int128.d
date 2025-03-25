@@ -36,6 +36,12 @@ else
     else             private enum Cent_alignment = (size_t.sizeof * 2);
 }
 
+version (X86_64)
+{
+    version (GNU) version = GNU_OR_LDC_X86_64;
+    version (LDC) version = GNU_OR_LDC_X86_64;
+}
+
 /**
  * 128 bit integer type.
  * See_also: $(REF Int128, std,int128).
@@ -453,6 +459,55 @@ Cent mul(Cent c1, Cent c2)
     return ret;
 }
 
+/****************************
+ * Multiply 64-bit operands u1 * u2 in 128-bit precision.
+ * Params:
+ *      u1 = operand 1
+ *      u2 = operand 2
+ * Returns:
+ *      u1 * u2 in 128-bit precision
+ */
+pure
+Cent mul(ulong u1, ulong u2)
+{
+    if (!__ctfe)
+    {
+        version (GNU_OR_LDC_X86_64)
+        {
+            Cent ret = void;
+            asm pure @trusted nothrow @nogc
+            {
+                "mulq %3"
+                : "=a"(ret.lo), "=d"(ret.hi)
+                : "a"(u1), "r"(u2)
+                : "cc";
+            }
+            return ret;
+        }
+        else version (D_InlineAsm_X86_64)
+        {
+            U lo = void;
+            U hi = void;
+            asm pure @trusted nothrow @nogc
+            {
+                mov RAX, u1;
+                mul u2;
+                mov lo, RAX;
+                mov hi, RDX;
+            }
+            return Cent(lo: lo, hi: hi);
+        }
+    }
+
+    return mul(Cent(lo: u1), Cent(lo: u2));
+}
+
+unittest
+{
+    assert(mul(3, 42) == Cent(lo: 126));
+    assert(mul(1L << 60, 1 << 10) == Cent(hi: 1 << 6));
+}
+
 
 /****************************
  * Unsigned divide c1 / c2.
@@ -560,12 +615,6 @@ Cent udivmod(Cent c1, Cent c2, out Cent modulus)
     //printf("quotient "); print(quotient);
     //printf("modulus  "); print(modulus);
     return quotient;
-}
-
-version (X86_64)
-{
-    version (GNU) version = GNU_OR_LDC_X86_64;
-    version (LDC) version = GNU_OR_LDC_X86_64;
 }
 
 /****************************
