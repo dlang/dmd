@@ -153,7 +153,10 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             // that is not disabled.
             if (sd.hasRegularCtor(true))
             {
-                error(i.loc, "%s `%s` has constructors, cannot use `{ initializers }`, use `%s( initializers )` instead", sd.kind(), sd.toChars(), sd.toChars());
+                error(i.loc, "%s `%s` has a constructor, cannot use %s initializer syntax",
+					sd.kind(), sd.toChars(), sd.kind());
+                errorSupplemental(i.loc, "Use `%s( arguments )` instead of `{ initializers }`",
+					sd.toChars());
                 return err();
             }
             sd.size(i.loc);
