@@ -524,6 +524,21 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         });
 
         assert(emprev);
+
+        // New check: if the base type is an enum, auto-increment is not supported,
+        // unless it is a special enum (for example, the C types like cpp_long/longlong).
+        if (auto te = em.ed.memtype ? em.ed.memtype.isTypeEnum() : null)
+        {
+            if (!te.sym.isSpecial())
+            {
+                error(em.loc,
+                      "cannot automatically assign value to enum member `%s` because base type `%s` is an enum; provide an explicit value",
+                      em.toPrettyChars(), em.ed.memtype.toChars());
+                return errorReturn();
+            }
+        }
+
+
         if (emprev.semanticRun < PASS.semanticdone) // if forward reference
             emprev.dsymbolSemantic(emprev._scope); // resolve it
         if (emprev.errors)
