@@ -1100,36 +1100,35 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                 ret = ex;
                 return;
             }
-            // If e2 *could* have been an integer, make it one.
+            // If e2 *could* have been an integer, make it one and inline e if possible.
             if (expo == real_t(cast(sinteger_t)expo))
             {
+                const exp = e.e2.toInteger();
+                dinteger_t i = exp < 0 ? -exp : exp;
+                // Only inline e1 ^^ exp for 1 < abs(exp) < 8
+                if (i > 1 && i < 8)
+                {
+                    // Rewrite as ref tmp = e1; tmp = [1 / ]tmp * ... * tmp
+                    auto v = copyToTemp(STC.ref_, "__powtmp", e.e1);
+                    auto ve = new VarExp(e.loc, v);
+                    auto de = new DeclarationExp(e.loc, v);
+                    BinExp e2 = new MulExp(e.loc, ve, ve);
+                    i -= 2;
+                    while (i--)
+                        e2 = new MulExp(e.loc, e2, ve);
+                    if (exp < 0)
+                        e2 = new DivExp(e.loc, new RealExp(e.loc, CTFloat.one, Type.tfloat64), e2);
+                    binOptimize(e2, result);
+                    Expression ex = new AssignExp(e.loc, ve, e2);
+                    ex = new CommaExp(e.loc, de, ex);
+                    ret = ex;
+                    return;
+                }
                 // This only applies to floating point, or positive integral powers.
-                if (e.e1.type.isFloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
+                else if	(e.e1.type.isFloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
+                {
                     e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
-            }
-        }
-        if (e.e2.type.isIntegral())
-        {
-            const expo = e.e2.toInteger();
-            dinteger_t i = expo < 0 ? -expo : expo;
-            // Only inline e1 ^^ expo for 1 < abs(expo) < 8
-            if (i > 1 && i < 8)
-            {
-                // Rewrite as ref tmp = e1; tmp = [1 / ]tmp * ... * tmp
-                auto v = copyToTemp(STC.ref_, "__powtmp", e.e1);
-                auto ve = new VarExp(e.loc, v);
-                auto de = new DeclarationExp(e.loc, v);
-                BinExp e2 = new MulExp(e.loc, ve, ve);
-                i -= 2;
-                while (i--)
-                    e2 = new MulExp(e.loc, e2, ve);
-                if (expo < 0)
-                    e2 = new DivExp(e.loc, new RealExp(e.loc, CTFloat.one, Type.tfloat64), e2);
-                binOptimize(e2, result);
-                Expression ex = new AssignExp(e.loc, ve, e2);
-                ex = new CommaExp(e.loc, de, ex);
-                ret = ex;
-                return;
+                }
             }
         }
         if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
