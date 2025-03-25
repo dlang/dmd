@@ -37,7 +37,7 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
-import dmd.backend.arm.cod1 : loadFromEA, storeToEA;
+import dmd.backend.arm.cod1 : loadFromEA, storeToEA, getlvalue;
 import dmd.backend.arm.cod3 : conditionCode, genBranch, gentstreg, movregconst, COND;
 import dmd.backend.arm.instr;
 
@@ -1542,7 +1542,7 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdpost(pretregs = %s)\n", regm_str(pretregs));
-    code cs = void;
+    //elem_print(e);
     const op = e.Eoper;                      // OPxxxx
     if (pretregs == 0)                        // if nothing to return
     {
@@ -1570,10 +1570,11 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     assert(e2.Eoper == OPconst);
-    regm_t possregs = cgstate.allregs;
+    regm_t possregs = cg.allregs;
+    code cs;
     getlvalue(cdb,cs,e.E1,0);
     freenode(e.E1);
-    if (cs.reg && pretregs == mPSW)
+    if (cs.reg != NOREG && pretregs == mPSW)
     {
         gentstreg(cdb,cs.reg,sz == 8);          // CMP cs.reg,#0
 
@@ -1589,7 +1590,11 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     else if (sz <= REGSIZE)
     {
-        regm_t idxregs = mask(cs.base) | mask(cs.index);       // mask of index regs used
+        regm_t idxregs;         // mask of index regs used
+        if (cs.base != NOREG)
+            idxregs |= mask(cs.base);
+        if (cs.index != NOREG)
+            idxregs |= mask(cs.index);
         regm_t retregs = possregs & ~idxregs & pretregs;
         if (retregs == 0)
             retregs = possregs & ~idxregs;
@@ -1598,7 +1603,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         loadFromEA(cs,reg,sz == 8 ? 8 : 4,sz);
 
-        cdb.gen(&cs);                     // MOV reg,EA
+        cdb.gen(&cs);                     // LDR reg,EA
 
         if (pretregs & mPSW)
         {
@@ -1611,11 +1616,14 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         const n = e2.Vint;
         uint opx = OPpostinc ? 0 : 1;
-        uint ins = INSTR.addsub_imm(sz == 8,opx,1,0,n,cs.reg,cs.reg); // ADD/SUB cs.reg,cs.reg,n);
+        uint ins = INSTR.addsub_imm(sz == 8,opx,1,0,n,reg,reg); // ADD/SUB cs.reg,cs.reg,n);
         cdb.gen1(ins);
 
         storeToEA(cs,reg,sz);
-        cdb.gen(&cs);                        // MOV EA,reg
+        cdb.gen(&cs);                        // STR reg,EA
+
+        opx ^= 1;
+        cdb.gen1(INSTR.addsub_imm(sz == 8,opx,1,0,n,reg,reg)); // SUB/ADD cs.reg,cs.reg,n);
 
         freenode(e2);
         fixresult(cdb,e,retregs,pretregs);
