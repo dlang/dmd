@@ -4432,13 +4432,19 @@ private elem* elcmp(elem* e, Goal goal)
         tym_t tym;
         int sz = tysize(e2.Ety);
 
-        if (e1.Eoper == OPu16_32 && e2.Vulong <= cast(targ_ulong) SHORTMASK ||
-            e1.Eoper == OPs16_32 &&
-            e2.Vlong == cast(targ_short) e2.Vlong)
+        /* The AArch64 does not have a compare short instruction, so the comparisons
+         * have to be done with the LDRH, etc., instructions
+         */
+        if (config.target_cpu != TARGET_AArch64)
         {
-            tym = (uns || e1.Eoper == OPu16_32) ? TYushort : TYshort;
-            e.E2 = el_una(OP32_16,tym,e2);
-            goto L2;
+            if (e1.Eoper == OPu16_32 && e2.Vulong <= cast(targ_ulong) SHORTMASK ||
+                e1.Eoper == OPs16_32 &&
+                e2.Vlong == cast(targ_short) e2.Vlong)
+            {
+                tym = (uns || e1.Eoper == OPu16_32) ? TYushort : TYshort;
+                e.E2 = el_una(OP32_16,tym,e2);
+                goto L2;
+            }
         }
 
         /* Try to convert to byte/word comparison for ((x & c)==d)
