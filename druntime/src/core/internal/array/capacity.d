@@ -55,7 +55,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength) @truste
         return 0;
     }
 
-    static if (is(T == immutable))
+    static if (is(T == immutable) || is(T == const))
     {
         // If shrinking, just slice the array
         if (newlength <= arr.length)
@@ -64,8 +64,8 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength) @truste
             return arr.length;
         }
 
-        // Allocate new immutable array
-        auto tempArr = new immutable(T)[newlength];
+        // Allocate new array for immutable/const types
+        auto tempArr = new T[newlength];
 
         // Copy existing elements
         if (arr.ptr !is null)
@@ -73,7 +73,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength) @truste
             memcpy(cast(void*) tempArr.ptr, arr.ptr, arr.length * T.sizeof);
         }
 
-        arr = cast(Tarr) tempArr; // Correctly assign immutable array
+        arr = cast(Tarr) tempArr; // Correctly assign immutable/const array
         return arr.length;
     }
 
@@ -111,12 +111,12 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength) @truste
             return 0;
         }
 
-        static if (!is(T == void) && !is(T == immutable))
+        static if (!is(T == void) && !is(T == immutable) && !is(T == const))
         {
             auto p = cast(T*) allocatedData.ptr;
             foreach (i; 0 .. newlength)
             {
-                p[i] = T.init;
+                emplace(&p[i], T.init); // Safe initialization
             }
         }
 
@@ -144,12 +144,12 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength) @truste
         memcpy(allocatedData.ptr, oldData, size);
     }
 
-    static if (!is(T == void) && !is(T == immutable))
+    static if (!is(T == void) && !is(T == immutable) && !is(T == const))
     {
         auto p = (cast(T*) allocatedData.ptr) + arr.length;
         foreach (i; 0 .. (newlength - arr.length))
         {
-            p[i] = T.init;
+            emplace(&p[i], T.init); // Safe initialization
         }
     }
 

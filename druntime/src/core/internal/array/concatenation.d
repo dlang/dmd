@@ -40,35 +40,16 @@ Tret _d_arraycatnTX(Tret, Tarr...)(auto ref Tarr froms) @trusted
     if (totalLen == 0)
         return res;
 
-    // We cannot use this, because it refuses to work if the array type has disabled default construction.
-    // res.length = totalLen;
-    // Call the runtime function directly instead.
-    // TODO: once `__arrayAlloc` is templated, call that instead.
-
-    // Replaced manual allocation with templated `__arrayAlloc` for cleaner and type-safe allocation.
-    // New Approach (__arrayAlloc)
-    // __arrayAlloc directly allocates a new memory block instead of modifying an existing array.
-    //
-    // - It does not copy existing elements, meaning any previous data in res is lost.
-    // - You need to manually copy elements if necessary.
-
-
-    import core.internal.array.utils : __arrayAlloc;
+    // Use the new templated array allocation function
     version (D_ProfileGC)
     {
-        res = cast(typeof(res)) __arrayAlloc!(typeof(res))(totalLen * typeof(res[0]).sizeof).ptr[0 .. totalLen];
-        return res;
+        _d_arraysetlengthT!(Unqual!Tret)(res, totalLen, __FILE__, __LINE__, __FUNCTION__);
     }
     else
-    {   
-        res = cast(typeof(res)) __arrayAlloc!(typeof(res))(totalLen * typeof(res[0]).sizeof).ptr[0 .. totalLen];
-        return res;
+    {
+        _d_arraysetlengthT!(Unqual!Tret)(res, totalLen);
     }
 
-
-    /* Currently, if both a postblit and a cpctor are defined, the postblit is
-     * used. If this changes, the condition below will have to be adapted.
-     */
     static if (hasElaborateCopyConstructor!T && !hasPostblit)
     {
         size_t i = 0;
@@ -93,7 +74,7 @@ Tret _d_arraycatnTX(Tret, Tarr...)(auto ref Tarr froms) @trusted
                 const len = from.length;
                 if (len)
                 {
-                    memcpy(resptr, cast(Unqual!T *) from, len * elemSize);
+                    memcpy(cast(void*) resptr, cast(Unqual!T *) from, len * elemSize);
                     resptr += len;
                 }
             }
@@ -105,6 +86,7 @@ Tret _d_arraycatnTX(Tret, Tarr...)(auto ref Tarr froms) @trusted
 
     return res;
 }
+
 
 // postblit
 @safe unittest
