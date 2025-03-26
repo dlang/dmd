@@ -2,23 +2,13 @@
  * Data collection and report generation for
  *   -profile=gc
  * switch
- *
- * Copyright: Copyright Digital Mars 2015 - 2015.
- * License: Distributed under the
- *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
- *    (See accompanying file LICENSE)
- * Authors:   Andrei Alexandrescu and Walter Bright
- * Source: $(DRUNTIMESRC rt/_profilegc.d)
  */
-
 module rt.profilegc;
 
 private:
-
-import core.stdc.errno : errno;
-import core.stdc.stdio : fclose, FILE, fopen, fprintf, snprintf, stderr, stdout;
-import core.stdc.stdlib : free, malloc, qsort, realloc;
-
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
 import core.exception : onOutOfMemoryError;
 import core.internal.container.hashtab;
 
@@ -30,76 +20,52 @@ HashTab!(const(char)[], Entry) newCounts;
 __gshared
 {
     HashTab!(const(char)[], Entry) globalNewCounts;
-    string logfilename = "profilegc.log";
-}
-
-/****
- * Set file name for output.
- * A file name of "" means write results to stdout.
- * Params:
- *      name = file name
- */
-
-version (Windows)
-{
-    version (X86) version = Windows32Bit;
-    else version = Windows64Bit;
-}
-else version (FreeBSD)
-{
-    version = Posix;
+    string logfilename;
 }
 
 extern (C) void profilegc_setlogfilename(string name)
 {
-    logfilename = name ~ "\0";
+    logfilename = name;
 }
 
 public void accumulate(string file, uint line, string funcname, string type, ulong sz) @nogc nothrow
 {
-    if (sz == 0)
-        return;
+    if (sz == 0) return;
 
-    char[3 * line.sizeof + 1] buf = void;
-    auto buflen = snprintf(buf.ptr, buf.length, "%u", line);
+    char[20] lineStr = void;
+    auto len = snprintf(lineStr.ptr, lineStr.length, "%u", line);
 
-    auto length = type.length + 1 + funcname.length + 1 + file.length + 1 + buflen;
-    if (length > buffer.length)
+    auto needed = type.length + 1 + funcname.length + 1 + file.length + 1 + len;
+    if (needed > buffer.length)
     {
-        // Enlarge buffer[] so it is big enough
-        assert(buffer.length > 0 || buffer.ptr is null);
-        auto p = cast(char*)realloc(buffer.ptr, length);
-        if (!p)
-            onOutOfMemoryError();
-        buffer = p[0 .. length];
+        auto p = cast(char*)realloc(buffer.ptr, needed);
+        if (!p) onOutOfMemoryError();
+        buffer = p[0 .. needed];
     }
 
-    // "type funcname file:line"
-    buffer[0 .. type.length] = type[];
+    memcpy(buffer.ptr, type.ptr, type.length);
     buffer[type.length] = ' ';
-    buffer[type.length + 1 ..
-           type.length + 1 + funcname.length] = funcname[];
-    buffer[type.length + 1 + funcname.length] = ' ';
-    buffer[type.length + 1 + funcname.length + 1 ..
-           type.length + 1 + funcname.length + 1 + file.length] = file[];
-    buffer[type.length + 1 + funcname.length + 1 + file.length] = ':';
-    buffer[type.length + 1 + funcname.length + 1 + file.length + 1 ..
-           type.length + 1 + funcname.length + 1 + file.length + 1 + buflen] = buf[0 .. buflen];
+    memcpy(&buffer[type.length+1], funcname.ptr, funcname.length);
+    buffer[type.length+1+funcname.length] = ' ';
+    memcpy(&buffer[type.length+1+funcname.length+1], file.ptr, file.length);
+    buffer[type.length+1+funcname.length+1+file.length] = ':';
+    memcpy(&buffer[type.length+1+funcname.length+1+file.length+1], lineStr.ptr, len);
 
-    if (auto pcount = cast(string)buffer[0 .. length] in newCounts)
-    { // existing entry
-        pcount.count++;
-        pcount.size += sz;
+    auto key = buffer[0 .. type.length+1+funcname.length+1+file.length+1+len];
+    if (auto p = key in newCounts)
+    {
+        p.count++;
+        p.size += sz;
     }
     else
     {
-        auto key = (cast(char*) malloc(char.sizeof * length))[0 .. length];
-        key[] = buffer[0..length];
-        newCounts[key] = Entry(1, sz); // new entry
+        auto copy = cast(char*)malloc(key.length);
+        if (!copy) onOutOfMemoryError();
+        memcpy(copy, key.ptr, key.length);
+        newCounts[copy[0 .. key.length]] = Entry(1, sz);
     }
 }
 
-// Merge thread local newCounts into globalNewCounts
 static ~this()
 {
     if (newCounts.length)
@@ -108,11 +74,16 @@ static ~this()
         {
             foreach (name, entry; newCounts)
             {
-                if (!(name in globalNewCounts))
-                    globalNewCounts[name] = Entry.init;
-
-                globalNewCounts[name].count += entry.count;
-                globalNewCounts[name].size += entry.size;
+                if (name in globalNewCounts)
+                {
+                    globalNewCounts[name].count += entry.count;
+                    globalNewCounts[name].size += entry.size;
+                }
+                else
+                {
+                    globalNewCounts[name] = entry;
+                }
+                free(name.ptr);
             }
         }
         newCounts.reset();
@@ -121,147 +92,87 @@ static ~this()
     buffer = null;
 }
 
-// Write report to stderr
 shared static ~this()
 {
+    if (globalNewCounts.length == 0)
+        return;
+
     static struct Result
     {
         const(char)[] name;
         Entry entry;
-
-        extern (C) static int qsort_cmp(scope const void *r1, scope const void *r2) @nogc nothrow @trusted
+        
+        extern (C) static int cmp(const void* a, const void* b) @nogc nothrow
         {
-            auto result1 = cast(Result*)r1;
-            auto result2 = cast(Result*)r2;
-            long cmp = result2.entry.size - result1.entry.size;
-            if (cmp) return cmp < 0 ? -1 : 1;
-            cmp = result2.entry.count - result1.entry.count;
-            if (cmp) return cmp < 0 ? -1 : 1;
-            if (result2.name == result1.name) return 0;
-
-            return result1.name < result2.name ? -1 : 1;
+            auto r1 = cast(Result*)a;
+            auto r2 = cast(Result*)b;
+            if (r2.entry.size != r1.entry.size)
+                return r2.entry.size > r1.entry.size ? 1 : -1;
+            if (r2.entry.count != r1.entry.count)
+                return r2.entry.count > r1.entry.count ? 1 : -1;
+            return strcmp(r1.name.ptr, r2.name.ptr);
         }
     }
 
-    // Platform-specific format strings
-    version (Windows32Bit)
-    {
-        enum sizeFormat = "%u";
-        enum countFormat = "%u";
-        enum totalFormat = "%-*s | %-*u\n";
-    }
-    else version (Windows64Bit)
-    {
-        enum sizeFormat = "%llu";
-        enum countFormat = "%llu";
-        enum totalFormat = "%-*s | %-*llu\n";
-    }
-    else version (Posix)
-    {
-        enum sizeFormat = "%lu";
-        enum countFormat = "%lu";
-        enum totalFormat = "%-*s | %-*lu\n";
-    }
-
-    size_t size = globalNewCounts.length;
-    if (size > size.max / Result.sizeof)
-    {
-        fprintf(stderr, "Error: Memory allocation size too large\n");
-        return;
-    }
-
-    Result[] counts = (cast(Result*) malloc(size * Result.sizeof))[0 .. size];
+    auto counts = (cast(Result*)malloc(globalNewCounts.length * Result.sizeof))[0 .. globalNewCounts.length];
     if (!counts.ptr)
     {
-        fprintf(stderr, "Error: Memory allocation failed\n");
+        fprintf(stderr, "profilegc: malloc failed\n");
         return;
     }
-    scope(exit)
-        free(counts.ptr);
+    scope(exit) free(counts.ptr);
 
-    size_t i = 0;
+    size_t i;
     foreach (name, entry; globalNewCounts)
     {
         counts[i].name = name;
         counts[i].entry = entry;
-        ++i;
+        i++;
     }
 
-    if (counts.length)
+    qsort(counts.ptr, counts.length, Result.sizeof, &Result.cmp);
+
+    FILE* fp = logfilename.length ? fopen(logfilename.ptr, "w") : stdout;
+    if (!fp)
     {
-        qsort(counts.ptr, counts.length, Result.sizeof, &Result.qsort_cmp);
-
-        FILE* fp = logfilename.length == 0 ? stdout : fopen(logfilename.ptr, "w");
-        if (!fp)
-        {
-            const err = errno;
-            fprintf(stderr, "Error: Cannot open log file '%.*s' (errno=%d)\n",
-                cast(int)logfilename.length, logfilename.ptr, cast(int)err);
-            return;
-        }
-        scope(exit) if (fp != stdout) fclose(fp);
-
-        enum bytesAllocatedWidth = 16;
-        enum allocationsWidth = 12;
-        enum typeWidth = 30;
-        enum fileLineWidth = 30;
-
-        fprintf(fp, "Memory Allocation Report\n");
-        fprintf(fp, "=======================\n\n");
-        fprintf(fp, "%-*s | %-*s | %-*s | %-*s\n",
-            bytesAllocatedWidth, "Bytes Allocated".ptr,
-            allocationsWidth, "Allocations".ptr,
-            typeWidth, "Type".ptr,
-            fileLineWidth, "File:Line".ptr);
-
-        fprintf(fp, "%-*s-+-%-*s-+-%-*s-+-%-*s\n",
-            bytesAllocatedWidth, "----------------".ptr,
-            allocationsWidth, "------------".ptr,
-            typeWidth, "------------------------------".ptr,
-            fileLineWidth, "------------------------------".ptr);
-
-        foreach (ref c; counts)
-        {
-            const(char)[] type = c.name;
-            const(char)[] fileLine = "";
-            size_t colonPos = c.name.length;
-
-            while (colonPos > 0 && c.name[colonPos-1] != ':')
-                colonPos--;
-
-            if (colonPos > 0 && colonPos < c.name.length)
-            {
-                type = c.name[0 .. colonPos-1];
-                fileLine = c.name[colonPos .. $];
-            }
-
-            fprintf(fp, "%-*" ~ sizeFormat ~ " | %-*" ~ countFormat ~ " | %-*.*s | %-*.*s\n",
-                bytesAllocatedWidth, c.entry.size,
-                allocationsWidth, c.entry.count,
-                typeWidth, cast(int)type.length, type.ptr,
-                fileLineWidth, cast(int)fileLine.length, fileLine.ptr);
-        }
-
-        ulong totalBytes = 0;
-        ulong totalAllocations = 0;
-        foreach (ref c; counts)
-        {
-            totalBytes += c.entry.size;
-            totalAllocations += c.entry.count;
-        }
-
-        fprintf(fp, "\nSummary:\n");
-        fprintf(fp, "%-*s-+-%-*s\n",
-            bytesAllocatedWidth, "-----------------".ptr,
-            allocationsWidth, "------------".ptr);
-
-        fprintf(fp, totalFormat,
-            bytesAllocatedWidth, "Total Bytes".ptr,
-            allocationsWidth, totalBytes);
-        fprintf(fp, totalFormat,
-            bytesAllocatedWidth, "Total Allocations".ptr,
-            allocationsWidth, totalAllocations);
-
-        fprintf(fp, "=======================\n");
+        fprintf(stderr, "profilegc: failed to open output file\n");
+        return;
     }
+    scope(exit) if (fp != stdout) fclose(fp);
+
+    fprintf(fp, "Memory Allocation Report\n");
+    fprintf(fp, "=======================\n\n");
+    fprintf(fp, "%16s | %12s | %-30s | %s\n", "Bytes", "Allocations", "Type", "File:Line");
+    fprintf(fp, "-----------------+--------------+--------------------------------+----------------\n");
+
+    foreach (ref c; counts)
+    {
+        auto colon = c.name.length;
+        while (colon > 0 && c.name[colon-1] != ':') colon--;
+        
+        auto type = colon ? c.name[0 .. colon-1] : c.name;
+        auto loc = colon ? c.name[colon .. $] : "";
+        
+        fprintf(fp, "%16llu | %12llu | %-30.*s | %.*s\n", 
+            c.entry.size, c.entry.count,
+            cast(int)type.length, type.ptr,
+            cast(int)loc.length, loc.ptr);
+    }
+
+    ulong totalBytes, totalAllocs;
+    foreach (ref c; counts)
+    {
+        totalBytes += c.entry.size;
+        totalAllocs += c.entry.count;
+    }
+
+    fprintf(fp, "\nSummary:\n");
+    fprintf(fp, "-----------------+--------------\n");
+    fprintf(fp, "%16s | %12llu\n", "Total Bytes", totalBytes);
+    fprintf(fp, "%16s | %12llu\n", "Total Allocations", totalAllocs);
+    fprintf(fp, "=======================\n");
+
+    foreach (name; globalNewCounts.keys)
+        free(name.ptr);
+    globalNewCounts.reset();
 }
