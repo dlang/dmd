@@ -1482,7 +1482,7 @@ reg_t findreg(regm_t regm, int line, const(char)* file)
 void freenode(elem* e)
 {
     elem_debug(e);
-    //dbg_printf("freenode(%p) : comsub = %d, count = %d\n",e,e.Ecomsub,e.Ecount);
+    //printf("freenode(%p) : Ecount = %d, Ecomsub = %d\n",e,e.Ecount,e.Ecomsub);
     if (e.Ecomsub--) return;             /* usage count                  */
     if (e.Ecount)                        /* if it was a CSE              */
     {
@@ -1499,7 +1499,7 @@ void freenode(elem* e)
 }
 
 /*********************************
- * Reset Ecomsub for all elem nodes, i.e. reverse the effects of freenode().
+ * Reset Ecomsub for all elem nodes to Ecount, i.e. reverse the effects of freenode().
  */
 
 @trusted
@@ -2653,7 +2653,9 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
         assert(0);
     }
 
-    if (!(constflag & 1) && pretregs & (mES | ALLREGS | mBP | XMMREGS) & ~cg.regcon.mvar)
+    regm_t tmask = cg.AArch64 ? (cg.allregs | INSTR.FLOATREGS)
+                              : (mES | ALLREGS | mBP | XMMREGS);
+    if (!(constflag & 1) && pretregs & tmask & ~cg.regcon.mvar)
         pretregs &= ~cg.regcon.mvar;                      /* can't use register vars */
 
     uint op = e.Eoper;
@@ -2672,7 +2674,14 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
             if (e.Ecount)                          /* if common subexp     */
             {
                 /* if no return value       */
-                if ((pretregs & (mSTACK | mES | ALLREGS | mBP | XMMREGS)) == 0)
+                if (cg.AArch64)
+                {
+                    if ((pretregs & (cg.allregs | INSTR.FLOATREGS)) == 0)
+                    {
+                        pretregs = (tyfloating(e.Ety)) ? INSTR.FLOATREGS : cg.allregs;
+                    }
+                }
+                else if ((pretregs & (mSTACK | mES | ALLREGS | mBP | XMMREGS)) == 0)
                 {
                     if (pretregs & (mST0 | mST01))
                     {

@@ -133,9 +133,22 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 getregs(cdb, cs.reg);
                 const p = cast(targ_size_t*) &(e2.EV);
                 movregconst(cdb,cs.reg,*p,sz == 8);
-                freenode(e2);
-                goto Lp;
             }
+            else
+            {
+                /* Move constant into r, then store r into EA
+                 */
+                regm_t m = tyfloating(tyml) ? INSTR.FLOATREGS : cg.allregs;
+                m &= ~(mask(cs.base) | mask(cs.index));
+                assert(NOREG < 64);  // otherwise mask(NOREG) will not work
+                reg_t r = allocreg(cdb, m, tyml);
+                const p = cast(targ_size_t*) &(e2.EV);
+                movregconst(cdb,r,*p,sz == 8);
+                storeToEA(cs,r,sz);
+                cdb.gen(&cs);
+            }
+            freenode(e2);
+            goto Lp;
         }
         retregs = allregs;        // pick a reg, any reg
     }
