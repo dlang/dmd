@@ -3418,8 +3418,10 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
         }
 
         Dsymbol s = null;
-        if (mt.ty == Tstruct || mt.ty == Tclass || mt.ty == Tenum)
-            s = mt.toDsymbol(null);
+        auto derefType = mt.isTypePointer() ? mt.nextOf() : mt;
+
+        if (derefType.isTypeStruct() || derefType.isTypeClass() || derefType.isTypeEnum())
+            s = derefType.toDsymbol(null);
         if (s)
             s = s.search_correct(ident);
         if (s && !symbolIsVisible(scope_, s))
@@ -3429,18 +3431,21 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
             return ErrorExp.get();
 
         if (s)
-            error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), mt.toChars(), s.toPrettyChars());
+        {
+            error(loc, "no property `%s` for type `%s`", ident.toErrMsg(), mt.toErrMsg());
+            errorSupplemental(s.loc, "did you mean `%s`?", ident == s.ident ? s.toPrettyChars() : s.toErrMsg());
+        }
         else if (ident == Id.opCall && mt.ty == Tclass)
-            error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toChars(), mt.toChars(), mt.toPrettyChars());
+            error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toErrMsg(), mt.toErrMsg(), mt.toPrettyChars());
 
         else if (const n = importHint(ident.toString()))
-                error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toChars(), mt.toChars(), cast(int)n.length, n.ptr);
+                error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toErrMsg(), mt.toErrMsg(), cast(int)n.length, n.ptr);
         else
         {
             if (src)
             {
                 error(loc, "no property `%s` for `%s` of type `%s`",
-                    ident.toChars(), src.toChars(), mt.toPrettyChars(true));
+                    ident.toErrMsg(), src.toErrMsg(), mt.toPrettyChars(true));
                 auto s2 = scope_.search_correct(ident);
                 // UFCS
                 if (s2 && s2.isFuncDeclaration)
@@ -3448,30 +3453,17 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
                     if (s2.ident == ident)
                     {
                         errorSupplemental(s2.loc, "cannot call %s `%s` with UFCS because it is not declared at module scope",
-                            s2.kind(), s2.toChars());
+                            s2.kind(), s2.toErrMsg());
                     }
                     else
                         errorSupplemental(s2.loc, "did you mean %s `%s`?",
-                            s2.kind(), s2.toChars());
-                }
-                else if (src.type.ty == Tpointer)
-                {
-                    // structPtr.field
-                    auto tn = (cast(TypeNext) src.type).nextOf();
-                    if (auto as = tn.isAggregate())
-                    {
-                        if (auto s3 = as.search_correct(ident))
-                        {
-                            errorSupplemental(s3.loc, "did you mean %s `%s`?",
-                                s3.kind(), s3.toChars());
-                        }
-                    }
+                            s2.kind(), s2.toErrMsg());
                 }
             }
             else
-                error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
+                error(loc, "no property `%s` for type `%s`", ident.toErrMsg(), mt.toPrettyChars(true));
 
-            if (auto dsym = mt.toDsymbol(scope_))
+            if (auto dsym = derefType.toDsymbol(scope_))
             {
                 if (auto sym = dsym.isAggregateDeclaration())
                 {
@@ -3497,7 +3489,7 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
                     }
                 }
                 errorSupplemental(dsym.loc, "%s `%s` defined here",
-                    dsym.kind, dsym.toChars());
+                    dsym.kind, dsym.toErrMsg());
             }
         }
 
