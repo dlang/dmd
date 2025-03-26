@@ -1082,15 +1082,21 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
             if (e.e1.type.isFloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
                 e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
         }
-        // Inline e1 ^^ e2 for floating point e1 and integer e2.
-        if (e.e1.type.isFloating() && e.e2.isIntegerExp())
+        // Inline e1 ^^ e2 for scalar e1 and integer e2.
+        if (e.e1.type.isScalar() && e.e2.isIntegerExp())
         {
+            Expression one;
+            if (e.e1.type.isIntegral()) {
+                one = new IntegerExp(e.loc, 1, e.e1.type);
+            } else {
+                one = new RealExp(e.loc, CTFloat.one, e.e1.type);
+            }
+
             const expo = cast(sinteger_t)e.e2.toInteger();
-            // Replace e1 ^^ 0 with 1.0
+            // Replace e1 ^^ 0 with 1
             if (expo == 0)
             {
-                Expression ex = new RealExp(e.loc, CTFloat.one, Type.tfloat64);
-                ret = ex;
+                ret = one;
                 return;
             }
             // Replace e1 ^^ 1 with e1
@@ -1101,11 +1107,10 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                 ret = ex;
                 return;
             }
-            // Replace e1 ^^ -1 with 1.0 / e1
+            // Replace e1 ^^ -1 with 1 / e1
             else if (expo == -1)
             {
-                Expression ex = new DivExp(e.loc, new RealExp(e.e2.loc, CTFloat.one, Type.tfloat64), e.e1);
-                ret = ex;
+                ret = new DivExp(e.loc, one, e.e1);
                 return;
             }
             // Inline e1 ^^ expo for |expo| < 8
@@ -1120,7 +1125,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                 while (i--)
                     be = new MulExp(e.loc, be, ve);
                 if (expo < 0)
-                    be = new DivExp(e.loc, new RealExp(e.loc, CTFloat.one, Type.tfloat64), be);
+                    be = new DivExp(e.loc, one, be);
                 binOptimize(be, result);
                 ret = new CommaExp(e.loc, de, be);
                 return;
