@@ -3003,18 +3003,7 @@ V[K] dup(T : V[K], K, V)(T aa)
     static assert(is(typeof({ V v = aa[K.init]; })),
         "cannot call " ~ T.stringof ~ ".dup because " ~ V.stringof ~ " is not copyable");
 
-    V[K] result;
-
-    //foreach (k, ref v; aa)
-    //    result[k] = v;  // Bug13701 - won't work if V is not mutable
-
-    foreach (k, ref v; aa)
-    {
-        V* pv = _aaGetY(_refAA(result), k);
-        *pv = v;
-    }
-
-    return result;
+    return _aaDup(aa);
 }
 
 /** ditto */
