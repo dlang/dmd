@@ -40,9 +40,14 @@ __gshared
  *      name = file name
  */
 
-version (Windows) {
-    version = Windows32Bit;  // Assume 32-bit by default
-    version (X86_64) version = Windows64Bit;
+version (Windows)
+{
+    version (X86) version = Windows32Bit;
+    else version = Windows64Bit;
+}
+else version (FreeBSD)
+{
+    version = Posix;
 }
 
 extern (C) void profilegc_setlogfilename(string name)
@@ -138,7 +143,33 @@ shared static ~this()
         }
     }
 
+    // Platform-specific format strings
+    version (Windows32Bit)
+    {
+        enum sizeFormat = "%u";
+        enum countFormat = "%u";
+        enum totalFormat = "%-*s | %-*u\n";
+    }
+    else version (Windows64Bit)
+    {
+        enum sizeFormat = "%llu";
+        enum countFormat = "%llu";
+        enum totalFormat = "%-*s | %-*llu\n";
+    }
+    else version (Posix)
+    {
+        enum sizeFormat = "%lu";
+        enum countFormat = "%lu";
+        enum totalFormat = "%-*s | %-*lu\n";
+    }
+
     size_t size = globalNewCounts.length;
+    if (size > size.max / Result.sizeof)
+    {
+        fprintf(stderr, "Error: Memory allocation size too large\n");
+        return;
+    }
+
     Result[] counts = (cast(Result*) malloc(size * Result.sizeof))[0 .. size];
     if (!counts.ptr)
     {
@@ -148,8 +179,7 @@ shared static ~this()
     scope(exit)
         free(counts.ptr);
 
-    size_t i = 0; 
-
+    size_t i = 0;
     foreach (name, entry; globalNewCounts)
     {
         counts[i].name = name;
@@ -161,135 +191,77 @@ shared static ~this()
     {
         qsort(counts.ptr, counts.length, Result.sizeof, &Result.qsort_cmp);
 
-        FILE* fp = logfilename == "\0" ? stdout : fopen((logfilename).ptr, "w");
+        FILE* fp = logfilename.length == 0 ? stdout : fopen(logfilename.ptr, "w");
         if (!fp)
         {
-            fprintf(stderr, "Error: Cannot open log file '%.*s'\n",
-            cast(int)logfilename.length, logfilename.ptr);
+            const err = errno;
+            fprintf(stderr, "Error: Cannot open log file '%.*s' (errno=%d)\n",
+                cast(int)logfilename.length, logfilename.ptr, cast(int)err);
             return;
         }
-        if (fp)
+        scope(exit) if (fp != stdout) fclose(fp);
+
+        enum bytesAllocatedWidth = 16;
+        enum allocationsWidth = 12;
+        enum typeWidth = 30;
+        enum fileLineWidth = 30;
+
+        fprintf(fp, "Memory Allocation Report\n");
+        fprintf(fp, "=======================\n\n");
+        fprintf(fp, "%-*s | %-*s | %-*s | %-*s\n",
+            bytesAllocatedWidth, "Bytes Allocated".ptr,
+            allocationsWidth, "Allocations".ptr,
+            typeWidth, "Type".ptr,
+            fileLineWidth, "File:Line".ptr);
+
+        fprintf(fp, "%-*s-+-%-*s-+-%-*s-+-%-*s\n",
+            bytesAllocatedWidth, "----------------".ptr,
+            allocationsWidth, "------------".ptr,
+            typeWidth, "------------------------------".ptr,
+            fileLineWidth, "------------------------------".ptr);
+
+        foreach (ref c; counts)
         {
+            const(char)[] type = c.name;
+            const(char)[] fileLine = "";
+            size_t colonPos = c.name.length;
 
-            enum bytesAllocatedWidth = 16;
-            enum allocationsWidth = 12;
-            enum typeWidth = 30;
-            enum fileLineWidth = 30;
+            while (colonPos > 0 && c.name[colonPos-1] != ':')
+                colonPos--;
 
-            fprintf(fp, "Memory Allocation Report\n");
-            fprintf(fp, "=======================\n\n");
-            fprintf(fp, "%-*s | %-*s | %-*s | %-*s\n",
-                bytesAllocatedWidth, "Bytes Allocated".ptr,
-                allocationsWidth, "Allocations".ptr,
-                typeWidth, "Type".ptr,
-                fileLineWidth, "File:Line".ptr);
-
-            fprintf(fp, "%-*s-+-%-*s-+-%-*s-+-%-*s\n",
-                bytesAllocatedWidth, "----------------".ptr,
-                allocationsWidth, "------------".ptr,
-                typeWidth, "------------------------------".ptr,
-                fileLineWidth, "------------------------------".ptr);
-
-            foreach (ref c; counts)
+            if (colonPos > 0 && colonPos < c.name.length)
             {
-                const(char)[] type = c.name;
-                const(char)[] fileLine = "";
-                ptrdiff_t colonPos = -1;
-
-                for (size_t j = c.name.length; j > 0; --j)
-                {
-                    if (c.name[j - 1] == ':')
-                    {
-                        colonPos = j - 1;
-                        break;
-                    }
-                }
-
-                if (colonPos != -1)
-                {
-                    type = c.name[0 .. colonPos];
-                    fileLine = c.name[colonPos + 1 .. $];
-                }
-
-                version (Windows) {
-                    version (X86) {
-                        // 32-bit Windows
-                        fprintf(fp, "%-*u | %-*u | %-*.*s | %-*.*s\n",
-                            bytesAllocatedWidth, cast(uint)c.entry.size,
-                            allocationsWidth, cast(uint)c.entry.count,
-                            typeWidth, cast(int)type.length, type.ptr,
-                            fileLineWidth, cast(int)fileLine.length, fileLine.ptr);
-                    } else {
-                        // 64-bit Windows
-                        fprintf(fp, "%-*llu | %-*llu | %-*.*s | %-*.*s\n",
-                            bytesAllocatedWidth, cast(ulong)c.entry.size,
-                            allocationsWidth, cast(ulong)c.entry.count,
-                            typeWidth, cast(int)type.length, type.ptr,
-                            fileLineWidth, cast(int)fileLine.length, fileLine.ptr);
-                    }
-                } else {
-                    // Linux and macOS
-                    fprintf(fp, "%-*lu | %-*lu | %-*.*s | %-*.*s\n",
-                        bytesAllocatedWidth, cast(ulong)c.entry.size,
-                        allocationsWidth, cast(ulong)c.entry.count,
-                        typeWidth, cast(int)type.length, type.ptr,
-                        fileLineWidth, cast(int)fileLine.length, fileLine.ptr);
-                }
+                type = c.name[0 .. colonPos-1];
+                fileLine = c.name[colonPos .. $];
             }
 
-            ulong totalBytes = 0;
-            ulong totalAllocations = 0;
-            foreach (ref c; counts)
-            {
-                totalBytes += c.entry.size;
-                totalAllocations += c.entry.count;
-            }
-
-            fprintf(fp, "\nSummary:\n");
-            fprintf(fp, "%-*s-+-%-*s\n",
-                bytesAllocatedWidth, "-----------------".ptr,
-                allocationsWidth, "------------".ptr);
-
-            version (Windows) {
-                version (X86) {
-                    // 32-bit Windows
-                    fprintf(fp, "%-*s | %-*u\n",
-                        bytesAllocatedWidth, "Total Bytes".ptr,
-                        allocationsWidth, cast(uint)totalBytes);
-                    fprintf(fp, "%-*s | %-*u\n",
-                        bytesAllocatedWidth, "Total Allocations".ptr,
-                        allocationsWidth, cast(uint)totalAllocations);
-                } else {
-                    // 64-bit Windows
-                    fprintf(fp, "%-*s | %-*llu\n",
-                        bytesAllocatedWidth, "Total Bytes".ptr,
-                        allocationsWidth, cast(ulong)totalBytes);
-                    fprintf(fp, "%-*s | %-*llu\n",
-                        bytesAllocatedWidth, "Total Allocations".ptr,
-                        allocationsWidth, cast(ulong)totalAllocations);
-                }
-            } else {
-                // Linux and macOS
-                fprintf(fp, "%-*s | %-*lu\n",
-                    bytesAllocatedWidth, "Total Bytes".ptr,
-                    allocationsWidth, cast(ulong)totalBytes);
-                fprintf(fp, "%-*s | %-*lu\n",
-                    bytesAllocatedWidth, "Total Allocations".ptr,
-                    allocationsWidth, cast(ulong)totalAllocations);
-            }
-
-            fprintf(fp, "=======================\n");
-
-            if (logfilename.length)
-                fclose(fp);
+            fprintf(fp, "%-*" ~ sizeFormat ~ " | %-*" ~ countFormat ~ " | %-*.*s | %-*.*s\n",
+                bytesAllocatedWidth, c.entry.size,
+                allocationsWidth, c.entry.count,
+                typeWidth, cast(int)type.length, type.ptr,
+                fileLineWidth, cast(int)fileLine.length, fileLine.ptr);
         }
-        else
+
+        ulong totalBytes = 0;
+        ulong totalAllocations = 0;
+        foreach (ref c; counts)
         {
-            const err = errno;
-            fprintf(stderr, "Error: Cannot write profilegc log file '%.*s' (errno=%d)\n",
-                cast(int)logfilename.length,
-                logfilename.ptr,
-                cast(int)err);
+            totalBytes += c.entry.size;
+            totalAllocations += c.entry.count;
         }
+
+        fprintf(fp, "\nSummary:\n");
+        fprintf(fp, "%-*s-+-%-*s\n",
+            bytesAllocatedWidth, "-----------------".ptr,
+            allocationsWidth, "------------".ptr);
+
+        fprintf(fp, totalFormat,
+            bytesAllocatedWidth, "Total Bytes".ptr,
+            allocationsWidth, totalBytes);
+        fprintf(fp, totalFormat,
+            bytesAllocatedWidth, "Total Allocations".ptr,
+            allocationsWidth, totalAllocations);
+
+        fprintf(fp, "=======================\n");
     }
 }
