@@ -1116,8 +1116,8 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
             // Inline e1 ^^ expo for |expo| < 8
             if (expo > -8 && expo < 8)
             {
-                // Rewrite as ref tmp = e1; tmp = [1 / ]tmp * ... * tmp
-                auto v = copyToTemp(STC.temp | STC.const_, "__powtmp", e.e1);
+                // Rewrite as tmp = e1, [1 / ]tmp * ... * tmp
+                auto v = copyToTemp(STC.none, "__powtmp", e.e1);
                 auto ve = new VarExp(e.loc, v);
                 auto de = new DeclarationExp(e.loc, v);
                 BinExp be = new MulExp(e.loc, ve, ve);
