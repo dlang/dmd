@@ -4,6 +4,8 @@ $(SPEC_S Classes,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 overview, Overview))
+
         $(P The object-oriented features of D all come from classes. The class
         hierarchy
         has as its root the class Object. Object defines a minimum level of functionality
@@ -21,6 +23,8 @@ $(HEADERNAV_TOC)
         non-private
         members are exposed externally to the DLL or EXE.
         )
+
+$(H2 $(LNAME2 declaration, Class Declarations))
 
         $(P A class declaration is defined:
         )
@@ -94,7 +98,7 @@ Foo var;
 ------
 )
 
-$(H2 $(LNAME2 access_control, Access Control))
+$(H3 $(LNAME2 access_control, Access Control))
 
         $(P Access to class members is controlled using
         $(DDSUBLINK spec/attribute, visibility_attributes,
@@ -102,7 +106,8 @@ $(H2 $(LNAME2 access_control, Access Control))
         The default visibility attribute is $(D public).
         )
 
-$(H2 $(LNAME2 super_class, Super Class))
+
+$(H3 $(LNAME2 super_class, Super Class))
 
         $(P
         All classes inherit from a super class. If one is not specified,
@@ -121,7 +126,7 @@ class B : A { } // B inherits from A
         Commas are used to separate inherited types.)
 
 
-$(H2 $(LNAME2 fields, Fields))
+$(H3 $(LNAME2 fields, Fields))
 
         $(P Class members are always accessed with the `.` operator.
         )
@@ -824,7 +829,9 @@ $(GNAME Destructor):
         by the GC.
         )
 
-$(H2 $(LNAME2 static-constructor, Static Constructors))
+$(H2 $(LNAME2 static-ctor-dtor, Static Constructors and Destructors))
+
+$(H3 $(LNAME2 static-constructor, Static Constructors))
 
 $(GRAMMAR
 $(GNAME StaticConstructor):
@@ -920,7 +927,7 @@ class Foo
 }
 ------
 
-$(H2 $(LNAME2 static-destructor, Static Destructors))
+$(H3 $(LNAME2 static-destructor, Static Destructors))
 
 $(GRAMMAR
 $(GNAME StaticDestructor):
@@ -967,7 +974,7 @@ class Foo
 }
 ------
 
-$(H2 $(LNAME2 shared_static_constructors, Shared Static Constructors))
+$(H3 $(LNAME2 shared_static_constructors, Shared Static Constructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticConstructor):
@@ -979,7 +986,7 @@ $(GNAME SharedStaticConstructor):
         and are intended for initializing any shared global data.
         )
 
-$(H2 $(LNAME2 shared_static_destructors, Shared Static Destructors))
+$(H3 $(LNAME2 shared_static_destructors, Shared Static Destructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticDestructor):
