@@ -631,7 +631,9 @@ $(H3 $(LNAME2 struct_field_properties, Struct Field Properties))
 
 $(TABLE2 Struct Field Properties,
 $(THEAD Name, Description)
-$(TROW $(D .offsetof), Offset in bytes of field from beginning of struct)
+$(TROW $(D .offsetof), Offset in bytes of field from beginning of struct.
+    See $(DDSUBLINK spec/attribute, align, the `align` attribute) for an example.
+)
 )
 
 $(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Structs))

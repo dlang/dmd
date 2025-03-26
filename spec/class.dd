@@ -129,6 +129,7 @@ $(H2 $(LNAME2 fields, Fields))
         $(P Members of a base class can be accessed by prepending the name of
         the base class followed by a dot:)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 class A { int a; int a2;}
 class B : A { int a; }
@@ -140,9 +141,11 @@ void foo(B b)
     b.A.a = 5; // accesses field A.a
 }
 ---
+)
 
-        $(P The D compiler is free to rearrange the order of fields in a class to
-        optimally pack them in an implementation-defined manner.
+        $(IMPLEMENTATION_DEFINED
+        The D compiler is free to rearrange the order of fields in a class to
+        optimally pack them.
         Consider the fields much like the local
         variables in a function -
         the compiler assigns some to registers and shuffles others around all to
@@ -234,6 +237,9 @@ $(H3 $(LNAME2 field_properties, Field Properties))
 
         $(P The $(D .offsetof) property gives the offset in bytes of the field
         from the beginning of the class instantiation.
+        Note that the compiler can $(RELATIVE_LINK2 fields, rearrange class field offsets).
+        See $(DDSUBLINK spec/attribute, align, the `align` attribute) for a struct-based
+        example.
         )
         $(NOTE `.offsetof` is not available for fields of `extern(Objective-C)` classes
         due to their fields having a dynamic offset.
