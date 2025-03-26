@@ -1075,60 +1075,55 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
             error(e.loc, "cannot raise `%s` to a negative integer power. Did you mean `(cast(real)%s)^^%s` ?", e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
             return errorReturn();
         }
-        if (e.e2.op == EXP.float64)
+        // If e2 *could* have been an integer, make it one.
+        if (e.e2.op == EXP.float64 && e.e2.toReal() == real_t(cast(sinteger_t)e.e2.toReal()))
         {
-            real_t expo = e.e2.toReal();
-            // Replace e1 ^^ 0.0 with 1.0
-            if (expo == CTFloat.zero)
+            // This only applies to floating point, or positive integral powers.
+            if (e.e1.type.isFloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
+                e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
+        }
+        // Inline e1 ^^ e2 for floating point e1 and integer e2.
+        if (e.e1.type.isFloating() && e.e2.isIntegerExp())
+        {
+            const expo = cast(sinteger_t)e.e2.toInteger();
+            // Replace e1 ^^ 0 with 1.0
+            if (expo == 0)
             {
                 Expression ex = new RealExp(e.loc, CTFloat.one, Type.tfloat64);
                 ret = ex;
                 return;
             }
-            // Replace e1 ^^ 1.0 with e1
-            else if (expo == CTFloat.one)
+            // Replace e1 ^^ 1 with e1
+            else if (expo == 1)
             {
                 Expression ex = e.e1;
                 ex.loc = e.loc;
                 ret = ex;
                 return;
             }
-            // Replace e1 ^^ -1.0 with 1.0 / e1
-            else if (expo == CTFloat.minusone)
+            // Replace e1 ^^ -1 with 1.0 / e1
+            else if (expo == -1)
             {
                 Expression ex = new DivExp(e.loc, new RealExp(e.e2.loc, CTFloat.one, Type.tfloat64), e.e1);
                 ret = ex;
                 return;
             }
-            // If e2 *could* have been an integer, make it one and inline e if possible.
-            if (expo == real_t(cast(sinteger_t)expo))
+            // Inline e1 ^^ expo for |expo| < 8
+            if (expo > -8 && expo < 8)
             {
-                const exp = e.e2.toInteger();
-                dinteger_t i = exp < 0 ? -exp : exp;
-                // Only inline e1 ^^ exp for 1 < abs(exp) < 8
-                if (i > 1 && i < 8)
-                {
-                    // Rewrite as ref tmp = e1; tmp = [1 / ]tmp * ... * tmp
-                    auto v = copyToTemp(STC.ref_, "__powtmp", e.e1);
-                    auto ve = new VarExp(e.loc, v);
-                    auto de = new DeclarationExp(e.loc, v);
-                    BinExp e2 = new MulExp(e.loc, ve, ve);
-                    i -= 2;
-                    while (i--)
-                        e2 = new MulExp(e.loc, e2, ve);
-                    if (exp < 0)
-                        e2 = new DivExp(e.loc, new RealExp(e.loc, CTFloat.one, Type.tfloat64), e2);
-                    binOptimize(e2, result);
-                    Expression ex = new AssignExp(e.loc, ve, e2);
-                    ex = new CommaExp(e.loc, de, ex);
-                    ret = ex;
-                    return;
-                }
-                // This only applies to floating point, or positive integral powers.
-                else if	(e.e1.type.isFloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
-                {
-                    e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
-                }
+                // Rewrite as ref tmp = e1; tmp = [1 / ]tmp * ... * tmp
+                auto v = copyToTemp(STC.temp | STC.const_, "__powtmp", e.e1);
+                auto ve = new VarExp(e.loc, v);
+                auto de = new DeclarationExp(e.loc, v);
+                BinExp be = new MulExp(e.loc, ve, ve);
+                dinteger_t i = (expo < 0 ? -expo : expo) - 2;
+                while (i--)
+                    be = new MulExp(e.loc, be, ve);
+                if (expo < 0)
+                    be = new DivExp(e.loc, new RealExp(e.loc, CTFloat.one, Type.tfloat64), be);
+                binOptimize(be, result);
+                ret = new CommaExp(e.loc, de, be);
+                return;
             }
         }
         if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
