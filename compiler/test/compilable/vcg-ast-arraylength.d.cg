@@ -1,0 +1,406 @@
+module vcg_ast_arraylength;
+import object;
+void main()
+{
+	int[] arr = [1, 2, 3];
+	_d_arraysetlengthT(arr, 100LU, "compilable\\vcg-ast-arraylength.d", 11, "vcg_ast_arraylength.main");
+	arr = arr[0..0] , 0;
+	int[] f = null;
+	int[] a = null;
+	a = a[0..0] , (f = f[0..0] , 0);
+	const const(int) x = 0;
+	a = a[0..0] , (f = f[0..0] , 0);
+	struct S
+	{
+		int[] payload;
+	}
+	S s = 0;
+	(ref int[] __arraylength15 = s.payload;) , _d_arraysetlengthT(__arraylength15, __arraylength15.length + 3LU, "compilable\\vcg-ast-arraylength.d", 30, "vcg_ast_arraylength.main");
+	return 0;
+}
+mixin _d_cmain!();
+{
+	extern (C)
+	{
+		extern (C) int _d_run_main(int argc, char** argv, void* mainFunc);
+		extern (C) int _Dmain(char[][] args);
+		extern (C) int main(int argc, char** argv)
+		{
+			return _d_run_main(argc, argv, & _Dmain);
+		}
+		version (Solaris)
+		{
+			extern (C) int _main(int argc, char** argv)
+			{
+				return main(argc, argv);
+			}
+		}
+	}
+}
+_d_arraysetlengthT!(int[], int)
+{
+	pure nothrow @trusted ulong _d_arraysetlengthT(ref return scope int[] arr, ulong newlength, string file = __FILE__, int line = __LINE__, string func = __FUNCTION__)
+	{
+		import core.lifetime : emplace;
+		import core.internal.array.utils : __arrayAlloc;
+		import core.stdc.string : memcpy, memmove;
+		import core.internal.traits : Unqual;
+		alias U = int;
+		if (newlength == 0LU)
+		{
+			arr = null;
+			return 0LU;
+		}
+		if (newlength <= arr.length)
+		{
+			arr = arr[0..newlength];
+			return arr.length;
+		}
+		ulong sizeelem = 4LU;
+		ulong newsize = 0LU;
+		bool overflow = false;
+		static pure nothrow @nogc @safe ulong mulu(ulong a, ulong b, ref bool overflow)
+		{
+			ulong result = a * b;
+			overflow = b != 0LU && (result / b != a);
+			return result;
+		}
+		newsize = mulu(sizeelem, newlength, overflow);
+		if (overflow)
+		{
+			return 0LU;
+		}
+		if (cast(int*)arr is null)
+		{
+			assert(arr.length == 0LU);
+			void[] allocatedData = __arrayAlloc(sizeelem * newlength);
+			if (allocatedData.length == 0LU)
+			{
+				return 0LU;
+			}
+			int* p = cast(int*)cast(void*)allocatedData;
+			{
+				ulong __key9 = 0LU;
+				ulong __limit10 = newlength;
+				for (; __key9 < __limit10; __key9 += 1LU)
+				{
+					ulong i = __key9;
+					emplace(&p[i], 0);
+				}
+			}
+			arr = (cast(int*)cast(void*)allocatedData)[0..newlength];
+			return arr.length;
+		}
+		ulong size = arr.length * sizeelem;
+		void[] allocatedData = __arrayAlloc(sizeelem * newlength);
+		if (allocatedData.length == 0LU)
+		{
+			return 0LU;
+		}
+		if (cast(int*)arr is cast(void*)allocatedData)
+		{
+			memmove(cast(void*)allocatedData, cast(const(void*))cast(int*)arr, size);
+		}
+		else
+		{
+			memcpy(cast(void*)allocatedData, cast(const(void*))cast(int*)arr, size);
+		}
+		int* p = cast(int*)cast(void*)allocatedData + cast(long)arr.length * 4L;
+		{
+			ulong __key11 = 0LU;
+			ulong __limit12 = newlength - arr.length;
+			for (; __key11 < __limit12; __key11 += 1LU)
+			{
+				ulong i = __key11;
+				emplace(&p[i], 0);
+			}
+		}
+		arr = (cast(int*)cast(void*)allocatedData)[0..newlength];
+		return arr.length;
+	}
+
+}
+Unqual!(int, int)
+{
+	alias Unqual = int;
+
+}
+__arrayAlloc!(int[])
+{
+	pure nothrow @trusted void[] __arrayAlloc(ulong arrSize)
+	{
+		import core.lifetime : TypeInfoSize;
+		import core.internal.traits : hasIndirections;
+		enum ulong typeInfoSize = 0LU;
+		BlkAttr attr = BlkAttr.APPENDABLE;
+		void* ptr = malloc(arrSize, attr, typeid(int[]));
+		if (ptr)
+			return ptr[0..arrSize];
+		return null;
+	}
+
+}
+TypeInfoSize!(int[])
+{
+	enum ulong TypeInfoSize = 0LU;
+
+}
+hasIndirections!(int[])
+{
+	enum bool hasIndirections = true;
+
+}
+isFunctionPointer!(int[])
+{
+	enum bool isFunctionPointer = false;
+
+}
+isPointer!(int[])
+{
+	enum bool isPointer = false;
+
+}
+isAggregateType!(int[])
+{
+	enum bool isAggregateType = false;
+
+}
+isDelegate!(int[])
+{
+	enum bool isDelegate = false;
+
+}
+isDynamicArray!(int[])
+{
+	enum bool isDynamicArray = true;
+
+}
+DynamicArrayTypeOf!(int[])
+{
+	alias DynamicArrayTypeOf = int[];
+
+}
+OriginalType!(int[])
+{
+	alias OriginalType = int[];
+
+}
+ModifyTypePreservingTQ!(Impl, int[])
+{
+	alias ModifyTypePreservingTQ = int[];
+
+}
+Modifier!(int[])
+{
+	alias Impl = int[];
+
+}
+Unqual!(int[], int[])
+{
+	alias Unqual = int[];
+
+}
+emplace!(int, int)
+{
+	pure nothrow @nogc @safe int* emplace(int* chunk, int __param_1)
+	{
+		import core.internal.lifetime : emplaceRef;
+		emplaceRef(*chunk, fwd());
+		return chunk;
+	}
+
+}
+forward!(__param_1)
+{
+	auto pure nothrow @nogc @property @safe int fwd()
+	{
+		return move(__param_1);
+	}
+
+}
+fwd!(__param_1)
+{
+	auto pure nothrow @nogc @property @safe int fwd()
+	{
+		return move(__param_1);
+	}
+
+}
+move!int
+{
+	pure nothrow @nogc @safe int move(ref return scope int source)
+	{
+		return moveImpl(source);
+	}
+
+}
+moveImpl!int
+{
+	pure nothrow @nogc @safe int moveImpl(ref return scope int source)
+	{
+		if (false)
+			moveEmplaceImpl(source, source);
+		return trustedMoveImpl(source);
+	}
+
+}
+moveEmplaceImpl!int
+{
+	pure nothrow @nogc @safe void moveEmplaceImpl(ref scope int target, ref return scope int source)
+	{
+		import core.internal.traits : hasElaborateAssign, isAssignable, hasElaborateMove, hasElaborateDestructor, hasElaborateCopyConstructor;
+		target = source;
+	}
+
+}
+trustedMoveImpl!int
+{
+	pure nothrow @nogc @trusted int trustedMoveImpl(ref return scope int source)
+	{
+		int result = void;
+		moveEmplaceImpl(result, source);
+		return result;
+	}
+
+}
+emplaceRef!(int, int, int)
+{
+	pure nothrow @nogc @safe void emplaceRef(ref int chunk, int __param_1)
+	{
+		static struct S
+		{
+			int payload;
+			this()(auto ref Args args)
+			{
+				static if (__traits(compiles, payload = forward!args
+				{
+				}
+				))
+				{
+					payload = forward!args
+					{
+					}
+					;
+				}
+				else
+				{
+					payload = T(forward!args
+					{
+					}
+					);
+				}
+			}
+		}
+		if (__ctfe)
+		{
+			chunk = fwd();
+		}
+		else
+		{
+			S* p = delegate () pure nothrow @nogc @trusted => cast(S*)&chunk();
+			emplaceInitializer(*p);
+			(*p).__ctor(fwd());
+		}
+	}
+
+}
+RTInfo!(S)
+{
+	enum immutable(void)* RTInfo = null;
+
+}
+forward!(__param_1)
+{
+	auto pure nothrow @nogc @property @safe int fwd()
+	{
+		return move(__param_1);
+	}
+
+}
+fwd!(__param_1)
+{
+	auto pure nothrow @nogc @property @safe int fwd()
+	{
+		return move(__param_1);
+	}
+
+}
+emplaceInitializer!(S)
+{
+	pure nothrow @nogc @trusted void emplaceInitializer(ref scope S chunk)
+	{
+		import core.internal.traits : hasElaborateAssign;
+		import core.stdc.string : memset;
+		memset(cast(void*)&chunk, 0, 4LU);
+	}
+
+}
+__ctor!()
+{
+	pure nothrow @nogc @safe this(int __param_0)
+	{
+		this.payload = fwd();
+		return this;
+	}
+
+}
+forward!(__param_0)
+{
+	auto pure nothrow @nogc @property @safe int fwd()
+	{
+		return move(__param_0);
+	}
+
+}
+fwd!(__param_0)
+{
+	auto pure nothrow @nogc @property @safe int fwd()
+	{
+		return move(__param_0);
+	}
+
+}
+RTInfo!(S)
+{
+	enum immutable(ulong)* RTInfo = & RTInfoImpl;
+
+}
+RTInfoImpl!([16LU, 2LU])
+{
+	immutable immutable(ulong[2]) RTInfoImpl = [16LU, 2LU];
+
+}
+__equals!(int, int)
+{
+	pure nothrow @nogc @trusted bool __equals(scope const(int[]) lhs, scope const(int[]) rhs)
+	{
+		const const(ulong) length = lhs.length;
+		if (__ctfe)
+			return length == rhs.length && isEqual(cast(const(int)*)lhs, cast(const(int)*)rhs, length);
+		else
+		{
+			import core.stdc.string : memcmp;
+			return length == rhs.length && (!length || 0 == memcmp(cast(const(void*))cast(const(int)*)lhs, cast(const(void*))cast(const(int)*)rhs, length * 4LU));
+		}
+	}
+
+}
+isEqual!(int, int)
+{
+	pure nothrow @nogc @system bool isEqual(scope const(int*) t1, scope const(int*) t2, ulong length)
+	{
+		{
+			ulong __key13 = 0LU;
+			ulong __limit14 = length;
+			for (; __key13 < __limit14; __key13 += 1LU)
+			{
+				const const(ulong) i = __key13;
+				if (t1[i] != t2[i])
+					return false;
+			}
+		}
+		return true;
+	}
+
+}
+static __gshared TypeInfo_Const _D12TypeInfo_xAi6__initZ;

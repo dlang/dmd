@@ -40,7 +40,7 @@ Tret _d_arraycatnTX(Tret, Tarr...)(auto ref Tarr froms) @trusted
     if (totalLen == 0)
         return res;
 
-    // Use the new templated array allocation function
+    // Use the new templated arraysetlengthT function
     version (D_ProfileGC)
     {
         _d_arraysetlengthT!(Unqual!Tret)(res, totalLen, __FILE__, __LINE__, __FUNCTION__);
@@ -86,7 +86,6 @@ Tret _d_arraycatnTX(Tret, Tarr...)(auto ref Tarr froms) @trusted
 
     return res;
 }
-
 
 // postblit
 @safe unittest
