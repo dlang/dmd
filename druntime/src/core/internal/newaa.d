@@ -233,17 +233,6 @@ private Bucket!(K, V)[] allocBuckets(K, V)(size_t dim) @trusted pure nothrow
 }
 
 //==============================================================================
-// Entry
-//------------------------------------------------------------------------------
-
-private Entry!(K, V)* allocEntry(K, V)(scope const Impl!(K, V)* aa, ref const K key)
-{
-    auto res = new Entry!(K, V);
-    res.key = key;
-    return res;
-}
-
-//==============================================================================
 // Helper functions
 //------------------------------------------------------------------------------
 
@@ -265,9 +254,13 @@ private size_t mix(size_t h) @safe pure nothrow @nogc
     return h;
 }
 
-private size_t calcHash(K, V)(auto ref const K key, Impl!(K, V)* impl)
+private size_t calcHash(K, V, K2)(auto ref const K2 key, Impl!(K, V)* impl)
 {
-    hash_t hash = impl.hashFn(key);
+    static if (is(K2 == K))
+        alias k2 = key;
+    else
+        K k2 = key;
+    hash_t hash = impl.hashFn(k2);
     // highest bit is set to distinguish empty/deleted from filled buckets
     return mix(hash) | HASH_FILLED_MARK;
 }
@@ -374,7 +367,7 @@ V* _aaGetX(K, V)(scope ref AA!(K, V) aa, ref const K key, out bool found)
     aa.firstUsed = min(aa.firstUsed, cast(uint)pi);
     ref p = aa.buckets[pi];
     p.hash = hash;
-    p.entry = allocEntry(aa, key);
+    p.entry = new Entry!(K, V)(key);
     return &p.entry.value;
 }
 
@@ -390,6 +383,36 @@ V* _aaGetX(K, V)(scope ref AA!(K, V) aa, ref const K key, out bool found)
 inout(V)* _aaGetRvalueX(K, V)(inout AA!(K, V) aa, scope ref const K pkey)
 {
     return _aaInX(aa, key);
+}
+
+/***********************************
+ * Creates a new associative array of the same size and copies the contents of
+ * the associative array into it.
+ * Params:
+ *      a =     The associative array.
+ */
+V[K] _aaDup(T : V[K], K, V)(T a)
+{
+    auto aa = _toAA(a);
+    immutable len = _aaLen(aa);
+    if (len == 0)
+        return null;
+
+    auto impl = new Impl!(K, V)(aa.dim);
+    // copy the entries
+    bool sameHash = aa.hashFn == impl.hashFn; // can be different if coming from template/rt
+    foreach (b; aa.buckets[aa.firstUsed .. $])
+    {
+        if (!b.filled)
+            continue;
+        hash_t hash = sameHash ? b.hash : calcHash(b.entry.key, impl);
+        auto pi = impl.findSlotInsert(hash);
+        auto p = &impl.buckets[pi];
+        p.hash = hash;
+        p.entry = new Entry!(K, V)(b.entry.key, b.entry.value);
+        impl.firstUsed = min(impl.firstUsed, cast(uint)pi);
+    }
+    return () @trusted { return *cast(V[K]*)&impl; }();
 }
 
 /******************************
@@ -469,16 +492,12 @@ V[] _aaValues(K, V)(AA!(K, V) aa)
     if (aa.empty)
         return null;
 
-    import core.internal.traits: Unqual;
-
-    auto res = new Unqual!(V)[aa.length];
-    size_t p = 0;
-
+    V[] res;
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
             continue;
-        res[p++] = b.entry.value;
+        res ~= b.entry.value;
     }
     return res;
 }
@@ -489,16 +508,12 @@ K[] _aaKeys(K, V)(AA!(K, V) aa)
     if (aa.empty)
         return null;
 
-    import core.internal.traits: Unqual;
-
-    auto res = new Unqual!K[aa.length];
-    size_t p = 0;
-
+    K[] res;
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
             continue;
-        res[p++] = b.entry.key;
+        res ~= b.entry.key;
     }
     return res;
 }
@@ -558,31 +573,19 @@ Impl!(K, V)* _d_assocarrayliteralTX(K, V)(K[] keys, V[] vals)
 
     auto aa = new Impl!(K, V)(nextpow2(INIT_DEN * length / INIT_NUM));
 
-    uint actualLength = 0;
     foreach (i; 0 .. length)
     {
         immutable hash = calcHash(keys[i], aa);
 
         auto p = aa.findSlotLookup(hash, keys[i]);
-        if (p is null)
-        {
-            auto pi = aa.findSlotInsert(hash);
-            p = &aa.buckets[pi];
-            p.hash = hash;
-            p.entry = new Entry!(K, V);
-            import core.stdc.string : memcpy;
-            () @trusted {
-            memcpy(&p.entry.key, &keys[i], K.sizeof); // move key, no postblit
-            } ();
-            aa.firstUsed = min(aa.firstUsed, cast(uint)pi);
-            actualLength++;
-        }
-        else
-        {
-            p.entry.value = vals[i]; // todo: move?
-        }
+        assert(p is null, "duplicate entries in associative array literal");
+        auto pi = aa.findSlotInsert(hash);
+        p = &aa.buckets[pi];
+        p.hash = hash;
+        p.entry = new Entry!(K, V)(keys[i], vals[i]); // todo: move key, no postblit?
+        aa.firstUsed = min(aa.firstUsed, cast(uint)pi);
     }
-    aa.used = actualLength;
+    aa.used = cast(uint) length;
     return aa;
 }
 
@@ -602,12 +605,14 @@ bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2)
     if (!len) // both empty
         return true;
 
+    bool sameHash = aa1.hashFn == aa2.hashFn; // can be different if coming from template/rt
     // compare the entries
-    foreach (b1; aa1.buckets)
+    foreach (b1; aa1.buckets[aa1.firstUsed .. $])
     {
         if (!b1.filled)
             continue;
-        auto pb2 = aa2.findSlotLookup(b1.hash, b1.entry.key);
+        hash_t hash = sameHash ? b1.hash : calcHash(b1.entry.key, aa2);
+        auto pb2 = aa2.findSlotLookup(hash, b1.entry.key);
         if (pb2 is null || b1.entry.value != pb2.entry.value)
             return false;
     }
@@ -752,22 +757,23 @@ unittest
 AA!(K, V) makeAA(K, V)(V[K] src) @trusted
 {
     assert(__ctfe, "makeAA Must only be called at compile time");
-    immutable srclen = src.length;
+    assert(src.length <= uint.max);
+    immutable srclen = cast(uint) src.length;
     if (srclen == 0)
         return AA!(K, V).init;
 
-    assert(srclen <= uint.max);
-    size_t dim = INIT_NUM_BUCKETS;
-    while (srclen * GROW_DEN > dim * GROW_NUM)
-        dim = dim * GROW_FAC;
-
+    size_t dim = nextpow2(INIT_DEN * srclen / INIT_NUM);
     auto impl = new Impl!(K, V)(dim);
     auto aa = AA!(K, V)(impl);
     foreach (k, ref v; src)
     {
-        V* pv = _aaGetY(aa, k);
-        *pv = v;
+        immutable hash = calcHash(k, impl);
+        auto pi = aa.findSlotInsert(hash);
+        auto p = &aa.buckets[pi];
+        p.hash = hash;
+        p.entry = new Entry!(K, V)(k, v);
     }
+    aa.used = srclen;
     return aa;
 }
 
