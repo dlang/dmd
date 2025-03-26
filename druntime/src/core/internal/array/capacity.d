@@ -41,13 +41,20 @@ module core.internal.array.capacity;
 
 /// Complete templated implementation of `_d_arraysetlengthT` and its GC profiling variant `_d_arraysetlengthTTrace`
 
-size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength) @trusted
+size_t _d_arraysetlengthT(Tarr : T[], T)(
+    return scope ref Tarr arr, 
+    size_t newlength, 
+    string file = __FILE__, 
+    int line = __LINE__, 
+    string func = __FUNCTION__
+) @trusted
 {
     import core.lifetime : emplace;
     import core.internal.array.utils : __arrayAlloc;
-    import object : TypeInfo;
-    import core.stdc.string : memcpy;
+    import core.stdc.string : memcpy, memmove;
     import core.internal.traits : Unqual;
+
+    alias U = Unqual!T; // Ensure non-inout type
 
     if (newlength == 0)
     {
@@ -57,27 +64,27 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength) @truste
 
     static if (is(T == immutable) || is(T == const))
     {
-        // If shrinking, just slice the array
+        // Shrink case
         if (newlength <= arr.length)
         {
             arr = arr[0 .. newlength];
             return arr.length;
         }
 
-        // Allocate new array for immutable/const types
-        auto tempArr = new T[newlength];
+        // Allocate new array for immutable/const
+        auto tempArr = new U[newlength];
 
         // Copy existing elements
         if (arr.ptr !is null)
         {
-            memcpy(cast(void*) tempArr.ptr, arr.ptr, arr.length * T.sizeof);
+            memcpy(cast(void*) tempArr.ptr, arr.ptr, arr.length * U.sizeof);
         }
 
-        arr = cast(Tarr) tempArr; // Correctly assign immutable/const array
+        arr = cast(Tarr) tempArr;
         return arr.length;
     }
 
-    // Mutable array handling
+    // Mutable array case
     if (newlength <= arr.length)
     {
         arr = arr[0 .. newlength];
@@ -85,7 +92,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength) @truste
     }
 
     // Expand mutable array
-    size_t sizeelem = T.sizeof;
+    size_t sizeelem = U.sizeof;
     size_t newsize;
     bool overflow = false;
 
@@ -113,47 +120,43 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength) @truste
 
         static if (!is(T == void) && !is(T == immutable) && !is(T == const))
         {
-            auto p = cast(T*) allocatedData.ptr;
+            auto p = cast(U*) allocatedData.ptr;
             foreach (i; 0 .. newlength)
             {
-                emplace(&p[i], T.init); // Safe initialization
+                emplace(&p[i], U.init);
             }
         }
 
-        arr = (cast(T*) allocatedData.ptr)[0 .. newlength];
+        arr = cast(Tarr) (cast(U*) allocatedData.ptr)[0 .. newlength];
         return arr.length;
     }
 
     size_t size = arr.length * sizeelem;
-    void* oldData = cast(void*) arr.ptr;
-
     void[] allocatedData = __arrayAlloc!(Tarr)(sizeelem * newlength);
     if (allocatedData.length == 0)
     {
         return 0;
     }
 
-    import core.stdc.string : memmove;
-    if (oldData == allocatedData.ptr)
+    if (arr.ptr == allocatedData.ptr)
     {
-        // Handle self-appending case
-        memmove(allocatedData.ptr, oldData, size);
+        memmove(allocatedData.ptr, arr.ptr, size);
     }
     else
     {
-        memcpy(allocatedData.ptr, oldData, size);
+        memcpy(allocatedData.ptr, arr.ptr, size);
     }
 
     static if (!is(T == void) && !is(T == immutable) && !is(T == const))
     {
-        auto p = (cast(T*) allocatedData.ptr) + arr.length;
+        auto p = (cast(U*) allocatedData.ptr) + arr.length;
         foreach (i; 0 .. (newlength - arr.length))
         {
-            emplace(&p[i], T.init); // Safe initialization
+            emplace(&p[i], U.init);
         }
     }
 
-    arr = (cast(T*) allocatedData.ptr)[0 .. newlength];
+    arr = cast(Tarr) (cast(U*) allocatedData.ptr)[0 .. newlength];
     return arr.length;
 }
 
