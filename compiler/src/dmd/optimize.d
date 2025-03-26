@@ -1110,7 +1110,10 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
             // Replace e1 ^^ -1 with 1 / e1
             else if (expo == -1)
             {
-                ret = new DivExp(e.loc, one, e.e1);
+                auto ex = new DivExp(e.loc, new RealExp(e.e1.loc, CTFloat.one, Type.tfloat64), e.e1);
+                ex.type = e.e1.type;
+                visitDiv(ex);
+                ret = ex;
                 return;
             }
             // Inline e1 ^^ expo for |expo| < 8

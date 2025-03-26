@@ -32,6 +32,7 @@ void test3()
     assert(x ^^ 0 == 1);
     assert((x += 3) ^^ 2 == 81);
     assert(x ^^ 7 == (x ^^ 4) * (x ^^ 3));
+    assert(4.0 ^^ -1 == 0.25);
 }
 
 void main()
