@@ -183,7 +183,7 @@ $(TROW $(RELATIVE_LINK2 outer-property, `.outer`), $(ARGS For
 $(H3 $(LNAME2 tupleof, `.tupleof`))
 
         $(P The $(D .tupleof) property provides a symbol sequence
-        of all the non-static fields in the class, excluding the
+        of all the non-static fields in the class, excluding the initial
         $(RELATIVE_LINK2 hidden-fields, hidden fields) and
         the fields in the base class.
         When used on an instance, `.tupleof` gives an
@@ -226,7 +226,9 @@ $(H3 $(LNAME2 hidden-fields, Accessing Hidden Fields))
         $(P The properties $(D .__vptr) and $(D .__monitor) give access
         to the class object's vtbl[] and monitor, respectively, but
         should not be used in user code.
+        See $(DDSUBLINK spec/abi, classes, the ABI) for details.
         )
+        $(P See also: $(RELATIVE_LINK2 nested-context, Context Pointer).)
 
 $(H3 $(LNAME2 field_properties, Field Properties))
 
