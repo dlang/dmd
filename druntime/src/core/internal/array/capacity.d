@@ -41,14 +41,13 @@ module core.internal.array.capacity;
 
 /// Complete templated implementation of `_d_arraysetlengthT` and its GC profiling variant `_d_arraysetlengthTTrace`
 
-size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength)  @trusted
+size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength) @trusted
 {
     import core.lifetime : emplace;
     import core.internal.array.utils : __arrayAlloc;
     import object : TypeInfo;
-    import core.stdc.string : memset;
     import core.stdc.string : memcpy;
-    import core.internal.traits : Unqual; // To remove immutability
+    import core.internal.traits : Unqual;
 
     if (newlength == 0)
     {
@@ -56,47 +55,36 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength)  @trust
         return 0;
     }
 
-    // **Handle Immutable Arrays**  
     static if (is(T == immutable))
     {
+        // If shrinking, just slice the array
         if (newlength <= arr.length)
         {
-            arr = arr[0 .. newlength];  // Just slice it, no modification
+            arr = arr[0 .. newlength];
             return arr.length;
         }
 
-        // **Expanding Immutable Array (Requires New Memory)**
-        auto tempArr = new Unqual!T[newlength];  // Mutable array of unqualified T
+        // Allocate new immutable array
+        auto tempArr = new immutable(T)[newlength];
 
-        // **Copy Old Elements (Only if `arr` isn't empty)**
+        // Copy existing elements
         if (arr.ptr !is null)
         {
-            size_t size = arr.length * T.sizeof;
-            memcpy(tempArr.ptr, arr.ptr, size);
+            memcpy(cast(void*) tempArr.ptr, arr.ptr, arr.length * T.sizeof);
         }
 
-        // **Initialize New Elements (Only if T is mutable)**
-        static if (!is(T == immutable))
-        {
-            foreach (i; arr.length .. newlength)
-            {
-                tempArr[i] = Unqual!T.init;
-            }
-        }
-
-        // **Cast Back to Immutable Array**
-        arr = cast(Tarr) tempArr;
+        arr = cast(Tarr) tempArr; // Correctly assign immutable array
         return arr.length;
     }
 
-    // **Handle Shrinking for Mutable Arrays**
+    // Mutable array handling
     if (newlength <= arr.length)
     {
-        arr = arr[0 .. newlength];  // Shrinking is always safe
+        arr = arr[0 .. newlength];
         return arr.length;
     }
 
-    // **Handle Expanding Mutable Arrays**
+    // Expand mutable array
     size_t sizeelem = T.sizeof;
     size_t newsize;
     bool overflow = false;
@@ -111,14 +99,12 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength)  @trust
     newsize = mulu(sizeelem, newlength, overflow);
     if (overflow)
     {
-        return 0; // Fail safely in `nothrow` context
+        return 0;
     }
 
     if (arr.ptr is null)
     {
         assert(arr.length == 0);
-        
-        // Allocate memory
         void[] allocatedData = __arrayAlloc!(Tarr)(sizeelem * newlength);
         if (allocatedData.length == 0)
         {
@@ -134,24 +120,30 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(ref Tarr arr, size_t newlength)  @trust
             }
         }
 
-        arr = (cast(T*) allocatedData.ptr)[0 .. newlength]; 
+        arr = (cast(T*) allocatedData.ptr)[0 .. newlength];
         return arr.length;
     }
 
     size_t size = arr.length * sizeelem;
     void* oldData = cast(void*) arr.ptr;
 
-    // Allocate new memory
     void[] allocatedData = __arrayAlloc!(Tarr)(sizeelem * newlength);
     if (allocatedData.length == 0)
     {
         return 0;
     }
 
-    // **Copy Old Elements**
-    memcpy(allocatedData.ptr, oldData, size);
-    
-    // **Initialize New Elements (Only for Non-Void & Mutable Types)**
+    import core.stdc.string : memmove;
+    if (oldData == allocatedData.ptr)
+    {
+        // Handle self-appending case
+        memmove(allocatedData.ptr, oldData, size);
+    }
+    else
+    {
+        memcpy(allocatedData.ptr, oldData, size);
+    }
+
     static if (!is(T == void) && !is(T == immutable))
     {
         auto p = (cast(T*) allocatedData.ptr) + arr.length;
