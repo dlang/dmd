@@ -399,13 +399,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
      * is not disabled.
      *
      * Params:
-     *      checkDisabled = if the struct has a regular
-                            non-disabled constructor
+     *      ignoreDisabled = true to ignore disabled constructors
      * Returns:
      *      true, if the struct has a regular (optionally,
      *      not disabled) constructor, false otherwise.
      */
-    final bool hasRegularCtor(bool checkDisabled = false)
+    final bool hasRegularCtor(bool ignoreDisabled = false)
     {
         if (!ctor)
             return false;
@@ -415,7 +414,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         {
             if (auto td = s.isTemplateDeclaration())
             {
-                if (checkDisabled && td.onemember)
+                if (ignoreDisabled && td.onemember)
                 {
                     if (auto ctorDecl = td.onemember.isCtorDeclaration())
                     {
@@ -428,7 +427,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             }
             if (auto ctorDecl = s.isCtorDeclaration())
             {
-                if (!ctorDecl.isCpCtor && (!checkDisabled || !(ctorDecl.storage_class & STC.disable)))
+                if (!ctorDecl.isCpCtor && (!ignoreDisabled || !(ctorDecl.storage_class & STC.disable)))
                 {
                     result = true;
                     return 1;

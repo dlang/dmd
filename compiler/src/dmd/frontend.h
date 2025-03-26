@@ -7441,7 +7441,7 @@ public:
     void accept(Visitor* v) override;
     uint32_t numArgTypes() const;
     Type* argType(uint32_t index);
-    bool hasRegularCtor(bool checkDisabled = false);
+    bool hasRegularCtor(bool ignoreDisabled = false);
 };
 
 class UnionDeclaration final : public StructDeclaration
