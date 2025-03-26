@@ -412,6 +412,7 @@ V[K] _aaDup(T : V[K], K, V)(T a)
         p.entry = new Entry!(K, V)(b.entry.key, b.entry.value);
         impl.firstUsed = min(impl.firstUsed, cast(uint)pi);
     }
+    impl.used = cast(uint) len;
     return () @trusted { return *cast(V[K]*)&impl; }();
 }
 
