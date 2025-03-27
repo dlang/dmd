@@ -1004,6 +1004,11 @@ struct INSTR
         return ldst_pos(size,1,opc,imm12,Rn,Vt);
     }
 
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/ldrsw_imm.html
+     * LDRSW <Xt>, [<Xn|SP>{, #<pimm>}]
+     */
+    static uint ldrsw_imm(uint imm12, reg_t Rn, reg_t Rt) { return ldst_pos(2,0,2,imm12,Rn,Rt); }
+
     /* } */
 
     /* { ************************** Data Processing -- Register **********************************/
