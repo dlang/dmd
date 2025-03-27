@@ -2768,6 +2768,10 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
                     default:
                         break;
                 }
+                if (cg.AArch64)
+                {
+                    pretregs = tyfloating(e.Ety) ? INSTR.FLOATREGS : cg.allregs;
+                }
             }
             loaddata(cdb,e,pretregs);
             break;
