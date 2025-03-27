@@ -7,7 +7,7 @@ DMD ?= dmd
 UNAME_S := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 ifeq ($(UNAME_S),darwin)
     PLATFORM := osx
-    MODELS := 64  # macOS only supports 64-bit now
+    MODELS := 64
 else
     PLATFORM := $(UNAME_S)
     MODELS := 32 64
