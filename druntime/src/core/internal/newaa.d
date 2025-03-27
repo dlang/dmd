@@ -151,9 +151,16 @@ private:
     {
         for (size_t i = hash & mask, j = 1;; ++j)
         {
-            if (buckets[i].hash == hash && buckets[i].entry && key == cast(const K)(buckets[i].entry.key))
-                return &buckets[i];
-            else if (buckets[i].empty)
+            bool keyEqual(ref const K k1, ref const K k2) @trusted
+            {
+                // for backward compatibilty pretend the comparison is @safe,
+                // see casts in object.opEquals for a violation
+                return k1 == k2;
+            }
+            if (buckets[i].hash == hash && buckets[i].entry)
+                if (keyEqual(key, buckets[i].entry.key))
+                    return &buckets[i];
+            if (buckets[i].empty)
                 return null;
             i = (i + j) & mask;
         }
