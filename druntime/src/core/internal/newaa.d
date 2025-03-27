@@ -197,11 +197,10 @@ private:
         obuckets.length = 0; // safe to free b/c impossible to reference, but doesn't really free
     }
 
-    void clear() pure nothrow @trusted
+    void clear() pure nothrow
     {
-        import core.stdc.string : memset;
         // clear all data, but don't change bucket array length
-        memset(&buckets[firstUsed], 0, (buckets.length - firstUsed) * Bucket.sizeof);
+        buckets[firstUsed .. $] = Bucket.init;
         deleted = used = 0;
         firstUsed = cast(uint) dim;
     }
@@ -233,9 +232,11 @@ private pure nothrow @nogc:
     }
 }
 
-private Bucket!(K, V)[] allocBuckets(K, V)(size_t dim) @trusted pure nothrow
+private Bucket!(K, V)[] allocBuckets(K, V)(size_t dim) pure nothrow
 {
-    return new Bucket!(K, V)[dim]; // could allocate with BlkAttr.NO_INTERIOR
+    // could allocate with BlkAttr.NO_INTERIOR, but that does not combine
+    //  well with arrays and type info for precise scanning
+    return new Bucket!(K, V)[dim];
 }
 
 //==============================================================================
@@ -322,7 +323,7 @@ size_t _aaLen(K, V)(scope const AA!(K, V) aa)
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-V* _aaGetY(K, V)(scope ref AA!(K, V) aa, ref const K key)
+V* _aaGetY(K, V)(scope ref AA!(K, V) aa, auto ref K key)
 {
     bool found;
     return _aaGetX(aa, key, found);
@@ -340,7 +341,7 @@ V* _aaGetY(K, V)(scope ref AA!(K, V) aa, ref const K key)
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-V* _aaGetX(K, V)(scope ref AA!(K, V) aa, ref const K key, out bool found)
+V* _aaGetX(K, V)(scope ref AA!(K, V) aa, auto ref K key, out bool found)
 {
     // lazily alloc implementation
     if (aa is null)
