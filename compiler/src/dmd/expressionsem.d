@@ -11260,7 +11260,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // Choose correct GC hook
             Identifier hook = global.params.tracegc ? Id._d_arraysetlengthTTrace : Id._d_arraysetlengthT;
-            
+
             // Fix: Verify the correct hook
             if (!verifyHookExist(exp.loc, *sc, hook, "resizing arrays"))
                 return setError();
