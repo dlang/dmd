@@ -332,7 +332,9 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
         }
 
         ed.memtype = commonType;
-        ed.semanticRun = PASS.semanticdone;
+        // Set semantic2done to mark C enums as fully processed
+        // Prevents issues with final switch statements that reference C enums
+        ed.semanticRun = PASS.semantic2done;
         return;
     }
 
