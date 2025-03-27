@@ -513,7 +513,7 @@ void build_syment_table(bool bigobj)
 
         write_sym(&sym, bigobj);
 
-        auxent aux = void;
+        auxent aux;
         memset(&aux, 0, (aux).sizeof);
 
         // s_size is not set yet
@@ -555,7 +555,7 @@ void build_syment_table(bool bigobj)
 
         SymbolTable32 sym;
 
-        char[DEST_LEN+1] dest = void;
+        char[DEST_LEN+1] dest;
         char* destr = obj_mangle2(s, dest.ptr);
         syment_set_name(&sym, destr);
 
@@ -647,8 +647,8 @@ void MsCoffObj_term(const(char)[] objfilename)
 
     // Write out the bytes for the header
 
-    BIGOBJ_HEADER header = void;
-    IMAGE_FILE_HEADER header_old = void;
+    BIGOBJ_HEADER header;
+    IMAGE_FILE_HEADER header_old;
 
     time_t f_timedat = 0;
     time(&f_timedat);
@@ -1176,7 +1176,7 @@ void MsCoffObj_ehtables(Symbol* sfunc,uint size,Symbol* ehsym)
 @trusted
 private void emitSectionBrace(const(char)* segname, const(char)* symname, int attr, bool coffZeroBytes)
 {
-    char[16] name = void;
+    char[16] name;
     strcat(strcpy(name.ptr, segname), "$A");
     const int seg_bg = MsCoffObj_getsegment(name.ptr, attr);
 
@@ -1762,7 +1762,7 @@ debug
 @trusted
 void MsCoffObj_export_symbol(Symbol* s,uint argsize)
 {
-    char[DEST_LEN+1] dest = void;
+    char[DEST_LEN+1] dest;
     char* destr = obj_mangle2(s, dest.ptr);
 
     int seg = MsCoffObj_seg_drectve();
@@ -2112,7 +2112,7 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol* targsym,
         symbuf.write((&targsym)[0 .. 1]);
     }
 
-    Relocation rel = void;
+    Relocation rel;
     rel.offset = offset;
     rel.targsym = targsym;
     rel.targseg = targseg;
