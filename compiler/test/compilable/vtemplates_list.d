@@ -1,4 +1,5 @@
 /* REQUIRED_ARGS: -vtemplates=list-instances
+TRANSFORM_OUTPUT: remove_lines(druntime)
 TEST_OUTPUT:
 ---
 compilable/vtemplates_list.d(19): vtemplate: 4 (3 distinct) instantiation(s) of template `foo(int I)()` found, they are:
