@@ -115,7 +115,8 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
             cs.Iop = signExtend ? INSTR.ldrsh_imm(szw == 8, reg, cs.base, 0)
                                 : INSTR.ldrh_imm (szw == 8, reg, cs.base, 0);
         else
-            cs.Iop = INSTR.ldr_imm_gen(szw == 8, reg, cs.base, 0);
+            cs.Iop = signExtend ? INSTR.ldrsw_imm(0, cs.base, reg)
+                                : INSTR.ldr_imm_gen(szw == 8, reg, cs.base, 0);
     }
     else
         assert(0);
