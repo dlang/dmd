@@ -14,7 +14,6 @@ module core.internal.newaa;
 /// AA version for debuggers, bump whenever changing the layout
 immutable int _aaVersion = 1;
 
-import core.memory : GC;
 import core.internal.util.math : min, max;
 import core.internal.traits : substInout;
 
@@ -443,7 +442,7 @@ auto _d_aaIn(K, V, K2)(inout V[K] a, auto ref const K2 key)
 }
 
 // fake purity for backward compatibility with runtime hooks
-private extern(C) enum pure_inFinalizer = cast(bool function() pure nothrow @nogc @safe) &(GC.inFinalizer);
+private extern(C) bool gc_inFinalizer() pure nothrow @safe;
 
 /// Delete entry scope const AA, return true if it was present
 auto _d_aaDel(K, V)(inout V[K] a, auto ref const K key)
@@ -462,7 +461,7 @@ auto _d_aaDel(K, V)(inout V[K] a, auto ref const K key)
         ++aa.deleted;
         // `shrink` reallocates, and allocating from a finalizer leads to
         // InvalidMemoryError: https://issues.dlang.org/show_bug.cgi?id=21442
-        if (aa.length * SHRINK_DEN < aa.dim * SHRINK_NUM && !pure_inFinalizer())
+        if (aa.length * SHRINK_DEN < aa.dim * SHRINK_NUM && !__ctfe && !gc_inFinalizer())
             aa.shrink();
 
         return true;
@@ -702,6 +701,8 @@ void _aaRangePopFront(K, V)(ref AARange!(K, V) r)
 // test postblit for AA literals
 unittest
 {
+    import core.memory;
+
     static struct T
     {
         ubyte field;
