@@ -42,6 +42,7 @@ import dmd.backend.ty;
 import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.x86.xmm;
 import dmd.backend.arm.cod1 : getlvalue, loadFromEA, storeToEA;
+import dmd.backend.arm.cod2 : tyToExtend;
 import dmd.backend.arm.cod3 : COND, conditionCode, gentstreg;
 import dmd.backend.arm.instr;
 
@@ -883,6 +884,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     /* See if we should reverse the comparison, so a JA => JC, and JBE => JNC
      * (This is already reflected in the jop)
      */
+    if (0)
     if ((jop == COND.cs || jop == COND.cc) &&
         (op == OPgt || op == OPle) &&
         (tyuns(tym) || tyuns(e2.Ety))
@@ -1599,7 +1601,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     }
                     else
                     {
-                        // BUG: not generating LDRSH
+                        // TODO AArch64: not generating LDRSH
                         loadFromEA(cs,reg,8,2);               // LDRSH Xreg,[sp,#8]
                         cdb.gen(&cs);
                     }
@@ -1628,7 +1630,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     }
                     else
                     {
-                        // BUG: not generating LDRSW
+                        cs.Sextend = cast(ubyte)tyToExtend(TYint);
                         loadFromEA(cs,reg,8,4);              // LDRSW Xreg,[sp,#8]
                         cdb.gen(&cs);
                     }
