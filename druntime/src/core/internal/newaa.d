@@ -778,8 +778,10 @@ AA!(K, V) makeAA(K, V)(V[K] src) @trusted
     foreach (k, ref v; src)
     {
         immutable hash = calcHash(k, impl);
+        auto p = aa.findSlotLookup(hash, k);
+        assert(p is null, "duplicate entries in associative array literal");
         auto pi = aa.findSlotInsert(hash);
-        auto p = &aa.buckets[pi];
+        p = &aa.buckets[pi];
         p.hash = hash;
         p.entry = new Entry!(K, V)(k, v);
     }
