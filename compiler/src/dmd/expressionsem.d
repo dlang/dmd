@@ -12842,7 +12842,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto ve = new VarExp(exp.loc, v);
                 auto de = new DeclarationExp(exp.e1.loc, v);
                 auto me = new MulExp(exp.e2.loc, ve, ve);
-                Expression ex = new CommaExp(exp.loc, de, me);
+                Expression ex = new CommaExp(exp.loc, de, me, exp);
                 ex = ex.expressionSemantic(sc);
                 result = ex;
                 return;
