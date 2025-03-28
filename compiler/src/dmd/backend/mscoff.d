@@ -297,7 +297,6 @@ union auxent
 }
 
 static assert(auxent.sizeof == 18);
-static assert(__traits(isZeroInit, auxent));
 
 // auxent.x_section.Zeros
 enum

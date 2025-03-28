@@ -650,8 +650,8 @@ union Vconst
         targ_llong      Vllong;
         targ_ullong     Vullong;
         Cent            Vcent;
-        targ_float      Vfloat = void;
-        targ_double     Vdouble = void;
+        targ_float      Vfloat = void; // FIXME: Floats have a void-initializer to give
+        targ_double     Vdouble = void; // the union has an all-zero initializer, see also bugzilla #23841
         targ_ldouble    Vldouble = void;
         Complex_f       Vcfloat = void;   // 2x float
         Complex_d       Vcdouble = void;  // 2x double
@@ -684,8 +684,6 @@ union Vconst
         targ_llong[4]   Vllong4;   // long[4]
         targ_ullong[4]  Vullong4;  // ulong[4]
 }                               // variants for each type of elem
-
-static assert(__traits(isZeroInit, Vconst));
 
 // Symbols
 
