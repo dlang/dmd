@@ -13180,14 +13180,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression id = new IdentifierExp(ie.loc, Id.empty);
         id = new DotIdExp(ie.loc, id, Id.object);
         auto tiargs = new Objects();
-        /*
-        * Remove `inout`, `const`, `immutable` and `shared` to reduce the
-        * number of generated `_d_inAA` instances.
-        */
-        //auto t = ie.e2.type.nextOf.unqualify(MODFlags.wild | MODFlags.const_ |
-        //                                  MODFlags.immutable_ | MODFlags.shared_);
-        //tiargs.push(t);
-        //id = new DotTemplateInstanceExp(ie.loc, id, hook, tiargs);
         id = new DotIdExp(ie.loc, id, hook);
 
         auto arguments = new Expressions();
