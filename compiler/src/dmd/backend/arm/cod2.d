@@ -1582,7 +1582,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         getregs(cdb,cs.reg);
 
         const n = e2.Vint;
-        uint opx = OPpostinc ? 0 : 1;
+        uint opx = e.Eoper == OPpostinc ? 0 : 1;
         uint ins = INSTR.addsub_imm(sz == 8,opx,0,0,n,cs.reg,cs.reg); // ADD/SUB cs.reg,cs.reg,n);
         cdb.gen1(ins);
         freenode(e2);
@@ -1615,15 +1615,15 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         getregs(cdb,reg);
 
         const n = e2.Vint;
-        uint opx = OPpostinc ? 0 : 1;
-        uint ins = INSTR.addsub_imm(sz == 8,opx,1,0,n,reg,reg); // ADD/SUB cs.reg,cs.reg,n);
+        uint opx = e.Eoper == OPpostinc ? 0 : 1;
+        uint ins = INSTR.addsub_imm(sz == 8,opx,0,0,n,reg,reg); // ADD/SUB cs.reg,cs.reg,n);
         cdb.gen1(ins);
 
         storeToEA(cs,reg,sz);
         cdb.gen(&cs);                        // STR reg,EA
 
         opx ^= 1;
-        cdb.gen1(INSTR.addsub_imm(sz == 8,opx,1,0,n,reg,reg)); // SUB/ADD cs.reg,cs.reg,n);
+        cdb.gen1(INSTR.addsub_imm(sz == 8,opx,0,0,n,reg,reg)); // SUB/ADD cs.reg,cs.reg,n);
 
         freenode(e2);
         fixresult(cdb,e,retregs,pretregs);
