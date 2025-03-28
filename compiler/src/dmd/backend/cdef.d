@@ -650,19 +650,19 @@ union Vconst
         targ_llong      Vllong;
         targ_ullong     Vullong;
         Cent            Vcent;
-        targ_float      Vfloat;
-        targ_double     Vdouble;
-        targ_ldouble    Vldouble;
-        Complex_f       Vcfloat;   // 2x float
-        Complex_d       Vcdouble;  // 2x double
-        Complex_ld      Vcldouble; // 2x long double
+        targ_float      Vfloat = void;
+        targ_double     Vdouble = void;
+        targ_ldouble    Vldouble = void;
+        Complex_f       Vcfloat = void;   // 2x float
+        Complex_d       Vcdouble = void;  // 2x double
+        Complex_ld      Vcldouble = void; // 2x long double
         targ_size_t     Vpointer;
         targ_ptrdiff_t  Vptrdiff;
         targ_uchar      Vreg;   // register number for OPreg elems
 
         // 16 byte vector types
-        targ_float[4]   Vfloat4;   // float[4]
-        targ_double[2]  Vdouble2;  // double[2]
+        targ_float[4]   Vfloat4 = void; // float[4]
+        targ_double[2]  Vdouble2 = void; // double[2]
         targ_schar[16]  Vschar16;  // byte[16]
         targ_uchar[16]  Vuchar16;  // ubyte[16]
         targ_short[8]   Vshort8;   // short[8]
@@ -673,8 +673,8 @@ union Vconst
         targ_ullong[2]  Vullong2;  // ulong[2]
 
         // 32 byte vector types
-        targ_float[8]   Vfloat8;   // float[8]
-        targ_double[4]  Vdouble4;  // double[4]
+        targ_float[8]   Vfloat8 = void; // float[8]
+        targ_double[4]  Vdouble4 = void; // double[4]
         targ_schar[32]  Vschar32;  // byte[32]
         targ_uchar[32]  Vuchar32;  // ubyte[32]
         targ_short[16]  Vshort16;  // short[16]
@@ -684,6 +684,8 @@ union Vconst
         targ_llong[4]   Vllong4;   // long[4]
         targ_ullong[4]  Vullong4;  // ulong[4]
 }                               // variants for each type of elem
+
+static assert(__traits(isZeroInit, Vconst));
 
 // Symbols
 

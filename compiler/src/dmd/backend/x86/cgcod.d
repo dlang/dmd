@@ -3044,7 +3044,7 @@ const(char)* regm_str(regm_t rm)
                     strcat(p, "PSW");
                 else
                 {
-                    char[4] buf = void;
+                    char[4] buf;
                     char c = j < 32 ? 'r' : 'f';
                     sprintf(buf.ptr, "%c%u", c, j);
                     strcat(p, buf.ptr);

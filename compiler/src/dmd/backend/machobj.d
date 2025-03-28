@@ -640,7 +640,7 @@ void MachObj_term(const(char)[] objfilename)
     // Write out the bytes for the header
     if (I64)
     {
-        mach_header_64 header = void;
+        mach_header_64 header;
 
         header.magic = MH_MAGIC_64;
         header.cputype = CPU_TYPE_X86_64;
@@ -665,7 +665,7 @@ void MachObj_term(const(char)[] objfilename)
     }
     else
     {
-        mach_header header = void;
+        mach_header header;
 
         header.magic = MH_MAGIC;
         header.cputype = CPU_TYPE_I386;
@@ -688,15 +688,10 @@ void MachObj_term(const(char)[] objfilename)
         foffset += header.sizeofcmds;
     }
 
-    segment_command segment_cmd = void;
-    segment_command_64 segment_cmd64 = void;
-    symtab_command symtab_cmd = void;
-    dysymtab_command dysymtab_cmd = void;
-
-    memset(&segment_cmd, 0, segment_cmd.sizeof);
-    memset(&segment_cmd64, 0, segment_cmd64.sizeof);
-    memset(&symtab_cmd, 0, symtab_cmd.sizeof);
-    memset(&dysymtab_cmd, 0, dysymtab_cmd.sizeof);
+    segment_command segment_cmd = segment_command.init;
+    segment_command_64 segment_cmd64 = segment_command_64.init;
+    symtab_command symtab_cmd = symtab_command.init;
+    dysymtab_command dysymtab_cmd = dysymtab_command.init;
 
     if (I64)
     {
@@ -1227,7 +1222,7 @@ void MachObj_term(const(char)[] objfilename)
     fobjbuf.reserve(cast(uint)(symtab_cmd.nsyms * (I64 ? nlist_64.sizeof : nlist.sizeof)));
     for (int i = 0; i < dysymtab_cmd.nlocalsym; i++)
     {   Symbol* s = (cast(Symbol**)local_symbuf.buf)[i];
-        nlist_64 sym = void;
+        nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
         sym.n_type = N_SECT;
         sym.n_desc = 0;
@@ -1241,7 +1236,7 @@ void MachObj_term(const(char)[] objfilename)
         }
         else
         {
-            nlist sym32 = void;
+            nlist sym32;
             sym32.n_strx = sym.n_strx;
             sym32.n_value = cast(uint)(s.Soffset + SecHdrTab[SegData[s.Sseg].SDshtidx].addr);
             sym32.n_type = sym.n_type;
@@ -1254,7 +1249,7 @@ void MachObj_term(const(char)[] objfilename)
     {   Symbol* s = (cast(Symbol**)public_symbuf.buf)[i];
 
         //printf("Writing public symbol %d:x%x %s\n", s.Sseg, s.Soffset, s.Sident);
-        nlist_64 sym = void;
+        nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
         sym.n_type = N_EXT | N_SECT;
         if (s.Sflags & SFLhidden)
@@ -1270,7 +1265,7 @@ void MachObj_term(const(char)[] objfilename)
         }
         else
         {
-            nlist sym32 = void;
+            nlist sym32;
             sym32.n_strx = sym.n_strx;
             sym32.n_value = cast(uint)(s.Soffset + SecHdrTab[SegData[s.Sseg].SDshtidx].addr);
             sym32.n_type = sym.n_type;
@@ -1281,7 +1276,7 @@ void MachObj_term(const(char)[] objfilename)
     }
     for (int i = 0; i < nexterns; i++)
     {   Symbol* s = (cast(Symbol**)extern_symbuf.buf)[i];
-        nlist_64 sym = void;
+        nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
         sym.n_value = s.Soffset;
         sym.n_type = N_EXT | N_UNDF;
@@ -1292,7 +1287,7 @@ void MachObj_term(const(char)[] objfilename)
             fobjbuf.write(&sym, sym.sizeof);
         else
         {
-            nlist sym32 = void;
+            nlist sym32;
             sym32.n_strx = sym.n_strx;
             sym32.n_value = cast(uint)sym.n_value;
             sym32.n_type = sym.n_type;
@@ -1303,7 +1298,7 @@ void MachObj_term(const(char)[] objfilename)
     }
     for (int i = 0; i < ncomdefs; i++)
     {   Comdef* c = (cast(Comdef*)comdef_symbuf.buf) + i;
-        nlist_64 sym = void;
+        nlist_64 sym;
         sym.n_strx = mach_addmangled(c.sym);
         sym.n_value = c.size * c.count;
         sym.n_type = N_EXT | N_UNDF;
@@ -1324,7 +1319,7 @@ void MachObj_term(const(char)[] objfilename)
             fobjbuf.write(&sym, sym.sizeof);
         else
         {
-            nlist sym32 = void;
+            nlist sym32;
             sym32.n_strx = sym.n_strx;
             sym32.n_value = cast(uint)sym.n_value;
             sym32.n_type = sym.n_type;
@@ -1335,7 +1330,7 @@ void MachObj_term(const(char)[] objfilename)
     }
     if (extdef)
     {
-        nlist_64 sym = void;
+        nlist_64 sym;
         sym.n_strx = extdef;
         sym.n_value = 0;
         sym.n_type = N_EXT | N_UNDF;
@@ -1345,7 +1340,7 @@ void MachObj_term(const(char)[] objfilename)
             fobjbuf.write(&sym, sym.sizeof);
         else
         {
-            nlist sym32 = void;
+            nlist sym32;
             sym32.n_strx = sym.n_strx;
             sym32.n_value = cast(uint)sym.n_value;
             sym32.n_type = sym.n_type;

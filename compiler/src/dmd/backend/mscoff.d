@@ -254,7 +254,7 @@ union auxent
       align (1):
         uint Unused;
         ushort Linenumber;
-        char[6] filler;
+        char[6] filler = '\0';
         uint PointerToNextFunction;
         ushort Zeros;
     }
@@ -293,10 +293,11 @@ union auxent
     }
     S x_section;
 
-    char[18] filler;
+    char[18] filler = void;
 }
 
 static assert(auxent.sizeof == 18);
+static assert(__traits(isZeroInit, auxent));
 
 // auxent.x_section.Zeros
 enum

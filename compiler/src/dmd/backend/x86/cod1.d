@@ -343,7 +343,7 @@ void genEEcode()
 uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbrestore)
 {
     //printf("gensaverestore2(%s)\n", regm_str(regm));
-    code *[regm.sizeof * 8] restore = void;
+    code *[regm.sizeof * 8] restore;
     reg_t i;
     uint stackused = 0;
 
@@ -3525,8 +3525,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         // https://msdn.microsoft.com/en-US/library/ew5tede7%28v=vs.100%29
     }
 
-    int[XMM7 + 1] regsaved = void;
-    memset(regsaved.ptr, -1, regsaved.sizeof);
+    int[XMM7 + 1] regsaved = ~0;
     CodeBuilder cdbrestore;
     cdbrestore.ctor();
     regm_t saved = 0;

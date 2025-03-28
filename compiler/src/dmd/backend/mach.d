@@ -128,7 +128,7 @@ struct segment_command
 {
     uint cmd;
     uint cmdsize;
-    char[16] segname;
+    char[16] segname = 0;
     uint vmaddr;
     uint vmsize;
     uint fileoff;
@@ -143,7 +143,7 @@ struct segment_command_64
 {
     uint cmd;
     uint cmdsize;
-    char[16] segname;
+    char[16] segname = 0;
     ulong vmaddr;
     ulong vmsize;
     ulong fileoff;
