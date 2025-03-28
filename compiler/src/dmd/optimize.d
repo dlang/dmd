@@ -1082,58 +1082,6 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
             if (e.e1.type.isFloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
                 e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
         }
-        // Inline e1 ^^ e2 for scalar e1 and integer e2.
-        if (e.e1.type.isScalar() && e.e2.isIntegerExp())
-        {
-            Expression one;
-            if (e.e1.type.isIntegral()) {
-                one = new IntegerExp(e.loc, 1, e.e1.type);
-            } else {
-                one = new RealExp(e.loc, CTFloat.one, e.e1.type);
-            }
-
-            const expo = cast(sinteger_t)e.e2.toInteger();
-            // Replace e1 ^^ 0 with 1
-            if (expo == 0)
-            {
-                ret = one;
-                return;
-            }
-            // Replace e1 ^^ 1 with e1
-            else if (expo == 1)
-            {
-                Expression ex = e.e1;
-                ex.loc = e.loc;
-                ret = ex;
-                return;
-            }
-            // Replace e1 ^^ -1 with 1 / e1
-            else if (expo == -1)
-            {
-                auto ex = new DivExp(e.loc, new RealExp(e.e1.loc, CTFloat.one, Type.tfloat64), e.e1);
-                ex.type = e.e1.type;
-                visitDiv(ex);
-                ret = ex;
-                return;
-            }
-            // Inline e1 ^^ expo for |expo| < 8
-            if (expo > -8 && expo < 8)
-            {
-                // Rewrite as tmp = e1, [1 / ]tmp * ... * tmp
-                auto v = copyToTemp(STC.none, "__powtmp", e.e1);
-                auto ve = new VarExp(e.loc, v);
-                auto de = new DeclarationExp(e.loc, v);
-                BinExp be = new MulExp(e.loc, ve, ve);
-                dinteger_t i = (expo < 0 ? -expo : expo) - 2;
-                while (i--)
-                    be = new MulExp(e.loc, be, ve);
-                if (expo < 0)
-                    be = new DivExp(e.loc, one, be);
-                binOptimize(be, result);
-                ret = new CommaExp(e.loc, de, be);
-                return;
-            }
-        }
         if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
         {
             Expression ex = Pow(e.loc, e.type, e.e1, e.e2).copy();
