@@ -1251,12 +1251,16 @@ public:
 class InExp final : public BinExp
 {
 public:
+    Expression lowering;        // lowered druntime hook: `_d_aaIn(aa, key)`
+
     void accept(Visitor *v) override { v->visit(this); }
 };
 
 class RemoveExp final : public BinExp
 {
 public:
+    Expression lowering;        // lowered druntime hook: `_d_aaDel(aa, key)`
+
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -1265,6 +1269,7 @@ public:
 class EqualExp final : public BinExp
 {
 public:
+    Expression lowering;        // lowered druntime hook: `_d_aaEqual(aa1, aa2)`
     void accept(Visitor *v) override { v->visit(this); }
 };
 
