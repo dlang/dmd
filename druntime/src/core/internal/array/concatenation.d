@@ -43,12 +43,14 @@ Tret _d_arraycatnTX(Tret, Tarr...)(auto ref Tarr froms) @trusted
     // Use the new templated arraysetlengthT function
     version (D_ProfileGC)
     {
-        _d_arraysetlengthT!(Unqual!Tret)(res, totalLen, __FILE__, __LINE__, __FUNCTION__);
+        // TODO: forward file, line, name from _d_arraycatnTXTrace
+        _d_arraysetlengthT!(typeof(res))(res, totalLen, /* isMutable = */ true, __FILE__, __LINE__, __FUNCTION__);
     }
     else
     {
-        _d_arraysetlengthT!(Unqual!Tret)(res, totalLen);
+        _d_arraysetlengthT!(typeof(res))(res, totalLen, /* isMutable = */ true);
     }
+
 
     static if (hasElaborateCopyConstructor!T && !hasPostblit)
     {

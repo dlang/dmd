@@ -51,16 +51,23 @@ extern(C) bool gc_expandArrayUsed(void[] slice, size_t newUsed, bool atomic) pur
 
 size_t _d_arraysetlengthT(Tarr : T[], T)(
     return scope ref Tarr arr,
-    size_t newlength
+    size_t newlength,
+    bool isMutable
 ) @trusted
 {
     import core.memory : GC;
-    import core.internal.array.utils : __arrayAlloc;
     import core.stdc.string : memcpy, memset;
     import core.internal.traits : Unqual;
     import core.lifetime : emplace;
 
     alias U = Unqual!T;
+
+    // Special case: void[]
+    static if (is(U == void))
+    {
+        arr = arr.ptr[0 .. newlength]; // No initialization needed
+        return newlength;
+    }
 
     // Handle zero-length case early
     if (newlength == 0)
@@ -89,22 +96,22 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
 
     void[] oldSlice = arr.ptr ? cast(void[]) arr : null;
 
-    // Attempt in-place expansion first
-    if (gc_expandArrayUsed(oldSlice, newSize, is(U == shared)))
+    // Attempt in-place expansion first (only for GC memory)
+    if (oldSlice.ptr !is null && gc_expandArrayUsed(oldSlice, newSize, is(U == shared)))
     {
         auto p = cast(U*) oldSlice.ptr;
         auto newElements = p + arr.length;
 
-        static if (is(T == immutable) || is(T == const))
+        if (isMutable)
+        {
+            memset(newElements, 0, newSize - oldSize);
+        }
+        else static if (!is(U == void))  // Skip for `void[]`
         {
             foreach (i; 0 .. (newlength - arr.length))
             {
                 emplace(&newElements[i], U.init);
             }
-        }
-        else
-        {
-            memset(newElements, 0, newSize - oldSize);
         }
 
         arr = cast(Tarr) p[0 .. newlength];
@@ -112,13 +119,13 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
     }
 
     // Allocate new array if expansion fails
-    void[] allocatedData = __arrayAlloc!(Tarr)(newSize);
-    if (allocatedData.ptr is null)
+    void* allocatedData = GC.malloc(newSize, GC.BlkAttr.NO_SCAN);
+    if (allocatedData is null)
     {
         return 0; // Out of memory
     }
 
-    auto p = cast(U*) allocatedData.ptr;
+    auto p = cast(U*) allocatedData;
 
     // Copy old data
     if (arr.ptr !is null)
@@ -128,16 +135,16 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
 
     auto newElements = p + arr.length;
 
-    static if (is(T == immutable) || is(T == const))
+    if (isMutable)
+    {
+        memset(newElements, 0, newSize - oldSize);
+    }
+    else static if (!is(U == void))  // Skip for `void[]`
     {
         foreach (i; 0 .. (newlength - arr.length))
         {
             emplace(&newElements[i], U.init);
         }
-    }
-    else
-    {
-        memset(newElements, 0, newSize - oldSize);
     }
 
     arr = cast(Tarr) p[0 .. newlength];
@@ -161,17 +168,15 @@ version (D_ProfileGC)
         float f = 1.0;
     }
 
-    // Test with an int array
     int[] arr;
-    _d_arraysetlengthT!(typeof(arr))(arr, 16);
+    _d_arraysetlengthT(arr, 16, /* isMutable = */ true);
     assert(arr.length == 16);
     foreach (int i; arr)
-        assert(i == int.init);  // Elements should be initialized to 0 (default for int)
+        assert(i == int.init);
 
-    // Test with a shared struct array
     shared S[] arr2;
-    _d_arraysetlengthT!(typeof(arr2))(arr2, 16);
+    _d_arraysetlengthT(arr2, 16, /* isMutable = */ false);
     assert(arr2.length == 16);
     foreach (s; arr2)
-        assert(s == S.init);  // Ensure elements are initialized to the default (S.init)
+        assert(s == S.init);
 }

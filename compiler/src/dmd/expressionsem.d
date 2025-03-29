@@ -11293,8 +11293,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // Generate call: _d_arraysetlengthT(e1, e2)
             auto arguments = new Expressions();
-            arguments.push(ale.e1);
-            arguments.push(exp.e2);
+            arguments.push(ale.e1);  // array
+            arguments.push(exp.e2);  // new length
+            arguments.push(new IntegerExp(ale.loc, 1, Type.tbool));  // isMutable = true
+
             Expression ce = new CallExp(ale.loc, id, arguments).expressionSemantic(sc);
             auto res = new LoweredAssignExp(exp, ce);
             res.type = Type.tsize_t;
