@@ -54,30 +54,24 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
     size_t newlength
 ) @trusted
 {
-    import core.lifetime : emplace;
+    import core.memory : GC;
     import core.internal.array.utils : __arrayAlloc;
     import core.stdc.string : memcpy, memset;
     import core.internal.traits : Unqual;
+    import core.lifetime : emplace;
 
     alias U = Unqual!T;
 
+    // Handle zero-length case early
     if (newlength == 0)
     {
         arr = Tarr.init;
         return 0;
     }
 
-    // Shrink case
-    if (newlength <= arr.length)
-    {
-        arr = arr[0 .. newlength];
-        return arr.length;
-    }
-
-    // Expand case
-    size_t sizeelem = U.sizeof;
-    size_t oldsize = arr.length * sizeelem;
-    size_t newsize;
+    size_t elemSize = U.sizeof;
+    size_t oldSize = arr.length * elemSize;
+    size_t newSize;
     bool overflow = false;
 
     static size_t mulu(size_t a, size_t b, ref bool overflow)
@@ -87,16 +81,16 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
         return result;
     }
 
-    newsize = mulu(sizeelem, newlength, overflow);
+    newSize = mulu(elemSize, newlength, overflow);
     if (overflow)
     {
-        return 0;
+        return 0; // Memory allocation would fail
     }
 
     void[] oldSlice = arr.ptr ? cast(void[]) arr : null;
 
-    // Attempt in-place expansion
-    if (gc_expandArrayUsed(oldSlice, newsize, false))
+    // Attempt in-place expansion first
+    if (gc_expandArrayUsed(oldSlice, newSize, is(U == shared)))
     {
         auto p = cast(U*) oldSlice.ptr;
         auto newElements = p + arr.length;
@@ -110,18 +104,18 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
         }
         else
         {
-            memset(newElements, 0, newsize - oldsize);
+            memset(newElements, 0, newSize - oldSize);
         }
 
         arr = cast(Tarr) p[0 .. newlength];
         return arr.length;
     }
 
-    // If in-place expansion failed, allocate a new array
-    void[] allocatedData = __arrayAlloc!(Tarr)(newsize);
+    // Allocate new array if expansion fails
+    void[] allocatedData = __arrayAlloc!(Tarr)(newSize);
     if (allocatedData.ptr is null)
     {
-        return 0;
+        return 0; // Out of memory
     }
 
     auto p = cast(U*) allocatedData.ptr;
@@ -129,7 +123,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
     // Copy old data
     if (arr.ptr !is null)
     {
-        memcpy(p, arr.ptr, oldsize);
+        memcpy(p, cast(const void*) arr.ptr, oldSize);
     }
 
     auto newElements = p + arr.length;
@@ -143,7 +137,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
     }
     else
     {
-        memset(newElements, 0, newsize - oldsize);
+        memset(newElements, 0, newSize - oldSize);
     }
 
     arr = cast(Tarr) p[0 .. newlength];
