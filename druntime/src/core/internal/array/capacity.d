@@ -48,10 +48,10 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
 {
     import core.lifetime : emplace;
     import core.internal.array.utils : __arrayAlloc;
-    import core.stdc.string : memcpy, memmove;
+    import core.stdc.string : memcpy, memmove, memset;
     import core.internal.traits : Unqual;
 
-    alias U = Unqual!T; // Ensure non-inout type
+    alias U = Unqual!T;
 
     if (newlength == 0)
     {
@@ -59,36 +59,14 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
         return 0;
     }
 
-    static if (is(T == immutable) || is(T == const))
-    {
-        // Shrink case
-        if (newlength <= arr.length)
-        {
-            arr = arr[0 .. newlength];
-            return arr.length;
-        }
-
-        // Allocate new array for immutable/const
-        auto tempArr = new U[newlength];
-
-        // Copy existing elements
-        if (arr.ptr !is null)
-        {
-            memcpy(cast(void*) tempArr.ptr, arr.ptr, arr.length * U.sizeof);
-        }
-
-        arr = cast(Tarr) tempArr;
-        return arr.length;
-    }
-
-    // Mutable array case
+    // Shrink case
     if (newlength <= arr.length)
     {
         arr = arr[0 .. newlength];
         return arr.length;
     }
 
-    // Expand mutable array
+    // Expand case
     size_t sizeelem = U.sizeof;
     size_t newsize;
     bool overflow = false;
@@ -115,17 +93,23 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
             return 0;
         }
 
-        static if (!is(T == void) && !is(T == immutable) && !is(T == const))
+        auto p = cast(U*) allocatedData.ptr;
+        
+        static if (is(T == immutable) || is(T == const))
         {
-            auto p = cast(U*) allocatedData.ptr;
+            // Use `.init` for initialization
             foreach (i; 0 .. newlength)
             {
-                // Emplace the new elements, triggering postblit if necessary
                 emplace(&p[i], U.init);
             }
         }
+        else
+        {
+            // Zero-initialize
+            memset(p, 0, newsize);
+        }
 
-        arr = cast(Tarr) (cast(U*) allocatedData.ptr)[0 .. newlength];
+        arr = cast(Tarr) p[0 .. newlength];
         return arr.length;
     }
 
@@ -145,14 +129,20 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
         memcpy(allocatedData.ptr, cast(const(void)*)arr.ptr, size);
     }
 
-    static if (!is(T == void) && !is(T == immutable) && !is(T == const))
+    auto p = (cast(U*) allocatedData.ptr) + arr.length;
+
+    static if (is(T == immutable) || is(T == const))
     {
-        auto p = (cast(U*) allocatedData.ptr) + arr.length;
+        // Use `.init` for initialization
         foreach (i; 0 .. (newlength - arr.length))
         {
-            // Emplace the new elements, triggering postblit if necessary
             emplace(&p[i], U.init);
         }
+    }
+    else
+    {
+        // Zero-initialize
+        memset(p, 0, newsize - size);
     }
 
     arr = cast(Tarr) (cast(U*) allocatedData.ptr)[0 .. newlength];
@@ -166,7 +156,7 @@ version (D_ProfileGC)
     /**
      * TraceGC wrapper around `_d_arraysetlengthT`.
      */
-    alias _d_arraysetlengthTTrace = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT, "Array length set");
+    alias _d_arraysetlengthTTrace = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT, errorMessage);
 }
 
 @safe unittest
