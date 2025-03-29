@@ -14,12 +14,12 @@ module core.internal.array.capacity;
  *
  * Newly created elements are initialized to their default value.
  *
- * Has two variants:
- * - `_d_arraysetlengthT` for arrays with elements that initialize to 0.
- * - `_d_arraysetlengthiT` for arrays where elements have non-zero initializers.
+ * This function attempts in-place expansion using `gc_expandArrayUsed`. If that fails, 
+ * it allocates a new array and copies existing elements.  
  *
- * Unlike the previous implementation, this template-based version removes the dependency
- * on `TypeInfo`, allowing for better compile-time optimizations.
+ * Unlike the previous `_d_arraysetlengthT` in `rt/lifetime.d`, this version is 
+ * fully templated and does not rely on `TypeInfo`, improving performance through 
+ * compile-time specialization.
  *
  * ---
  * void main()
@@ -38,8 +38,10 @@ module core.internal.array.capacity;
  *
  * Notes:
  * - If `newlength` is smaller than the current length, the array is shrunk.
- * - If `newlength` is larger, additional elements are allocated and initialized.
- * - The function attempts in-place expansion first and falls back to a new allocation if needed.
+ * - If `newlength` is greater, additional elements are initialized to `T.init`.
+ * - If `gc_expandArrayUsed` succeeds, in-place expansion is used.
+ * - If expansion fails, a new allocation is performed via `__arrayAlloc`.
+ * - If allocation fails due to memory constraints, the function returns `0`.
  */
 
 /// Complete templated implementation of `_d_arraysetlengthT` and its GC profiling variant `_d_arraysetlengthTTrace`
