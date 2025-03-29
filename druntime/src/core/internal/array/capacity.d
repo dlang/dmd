@@ -43,13 +43,10 @@ module core.internal.array.capacity;
 
 size_t _d_arraysetlengthT(Tarr : T[], T)(
     return scope ref Tarr arr,
-    size_t newlength,
-    string file = __FILE__,
-    int line = __LINE__,
-    string func = __FUNCTION__
+    size_t newlength
 ) @trusted
 {
-     import core.lifetime : emplace;
+    import core.lifetime : emplace;
     import core.internal.array.utils : __arrayAlloc;
     import core.stdc.string : memcpy, memmove;
     import core.internal.traits : Unqual;
@@ -123,6 +120,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
             auto p = cast(U*) allocatedData.ptr;
             foreach (i; 0 .. newlength)
             {
+                // Emplace the new elements, triggering postblit if necessary
                 emplace(&p[i], U.init);
             }
         }
@@ -140,11 +138,11 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
 
     if (arr.ptr == allocatedData.ptr)
     {
-        memmove(allocatedData.ptr, arr.ptr, size);
+        memmove(allocatedData.ptr, cast(const(void)*)arr.ptr, size);
     }
     else
     {
-        memcpy(allocatedData.ptr, arr.ptr, size);
+        memcpy(allocatedData.ptr, cast(const(void)*)arr.ptr, size);
     }
 
     static if (!is(T == void) && !is(T == immutable) && !is(T == const))
@@ -152,6 +150,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
         auto p = (cast(U*) allocatedData.ptr) + arr.length;
         foreach (i; 0 .. (newlength - arr.length))
         {
+            // Emplace the new elements, triggering postblit if necessary
             emplace(&p[i], U.init);
         }
     }
@@ -177,15 +176,17 @@ version (D_ProfileGC)
         float f = 1.0;
     }
 
+    // Test with an int array
     int[] arr;
-    _d_arraysetlengthT!(typeof(arr).elementType)(arr, 16);
+    _d_arraysetlengthT!(typeof(arr))(arr, 16);
     assert(arr.length == 16);
     foreach (int i; arr)
-        assert(i == int.init);
+        assert(i == int.init);  // Elements should be initialized to 0 (default for int)
 
+    // Test with a shared struct array
     shared S[] arr2;
-    _d_arraysetlengthT!(typeof(arr2).elementType)(arr2, 16);
+    _d_arraysetlengthT!(typeof(arr2))(arr2, 16);
     assert(arr2.length == 16);
     foreach (s; arr2)
-        assert(s == S.init);
+        assert(s == S.init);  // Ensure elements are initialized to the default (S.init)
 }
