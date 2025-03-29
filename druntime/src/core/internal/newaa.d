@@ -15,7 +15,7 @@ module core.internal.newaa;
 immutable int _aaVersion = 1;
 
 import core.internal.util.math : min, max;
-import core.internal.traits : substInout, Unqual;
+import core.internal.traits : substInout;
 
 // grow threshold
 private enum GROW_NUM = 4;
@@ -68,7 +68,7 @@ static struct Entry(K, V)
 }
 
 // for backward compatibility, do not require const in hashOf()
-static hash_t wrap_hashOf(K)(scope ref K key) { return hashOf(key); }
+static hash_t wrap_hashOf(K)(scope const ref K key) { return hashOf(cast()key); }
 enum pure_hashOf(K) = cast(hash_t function(scope ref const K key) pure nothrow @nogc @safe) &wrap_hashOf!K;
 
 // for backward compatibilty pretend the comparison is @safe, pure, etc
@@ -80,7 +80,6 @@ private struct Impl(K, V)
 {
 private:
     alias Bucket = .Bucket!(K, V);
-    alias constK = const(K); //Unqual!K); // remove immutable
 
     this(size_t sz /* = INIT_NUM_BUCKETS */) nothrow
     {
@@ -89,8 +88,8 @@ private:
 
         // only for binary compatibility
         entryTI = typeid(Entry!(K, V));
-        hashFn = delegate size_t (scope ref constK key) nothrow pure @nogc @safe {
-            return pure_hashOf!constK(key);
+        hashFn = delegate size_t (scope ref const K key) nothrow pure @nogc @safe {
+            return pure_hashOf!K(key);
         };
 
         keysz = cast(uint) K.sizeof;
@@ -117,7 +116,7 @@ private:
     immutable uint valsz;    // only for binary compatibility
     immutable uint valoff;   // only for binary compatibility
     Flags flags;             // only for binary compatibility
-    size_t delegate(scope ref constK) nothrow pure @nogc @safe hashFn;
+    size_t delegate(scope ref const K) nothrow pure @nogc @safe hashFn;
 
     enum Flags : ubyte
     {
@@ -159,7 +158,7 @@ private:
         for (size_t i = hash & mask, j = 1;; ++j)
         {
             if (buckets[i].hash == hash && buckets[i].entry)
-                if (pure_keyEqual!(constK, constK)(key, buckets[i].entry.key))
+                if (pure_keyEqual!(K, K)(key, buckets[i].entry.key))
                     return &buckets[i];
             if (buckets[i].empty)
                 return null;
