@@ -10,7 +10,7 @@
  *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elfobj.d, backend/elfobj.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/elfobj.d, backend/elfobj.d)
  */
 
 module dmd.backend.elfobj;
@@ -1564,7 +1564,7 @@ private void obj_tlssections()
  * Returns:
  *      "segment index" of COMDAT
  * References:
- *      Section Groups http://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html#section_groups
+ *      Section Groups https://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html#section_groups
  *      COMDAT section groups https://www.airs.com/blog/archives/52
  */
 

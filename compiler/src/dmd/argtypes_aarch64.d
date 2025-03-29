@@ -4,9 +4,9 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     Martin Kinkelin
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/argtypes_aarch64.d, _argtypes_aarch64.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/argtypes_aarch64.d, _argtypes_aarch64.d)
  * Documentation:  https://dlang.org/phobos/dmd_argtypes_aarch64.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/argtypes_aarch64.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/argtypes_aarch64.d
  */
 
 module dmd.argtypes_aarch64;
