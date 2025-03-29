@@ -19,6 +19,7 @@ import dmd.location;
 //import core.sys.darwin.mach.loader;
 import dmd.backend.mach;
 import dmd.root.string : fTuple;
+import dmd.target : target;
 
 nothrow:
 
@@ -79,9 +80,10 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) nothrow pA
         header64 = cast(mach_header_64*)buf;
         if (buflen < mach_header_64.sizeof)
             return corrupt(__LINE__);
-        if (header64.cputype != CPU_TYPE_X86_64)
+        const expectedCPUType = target.isAArch64 ? CPU_TYPE_ARM64 : CPU_TYPE_X86_64;
+        if (header64.cputype != expectedCPUType)
         {
-            eSink.error(Loc.initial, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
+            eSink.error(Loc.initial, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header64.cputype, expectedCPUType);
             return;
         }
         if (header64.filetype != MH_OBJECT)

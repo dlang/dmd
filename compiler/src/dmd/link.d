@@ -444,10 +444,31 @@ public int runLINK(bool verbose, ErrorSink eSink)
             argv.push("-g");
         if (target.isX86_64)
             argv.push("-m64");
-        else
+        else if (target.isX86)
             argv.push("-m32");
         version (OSX)
         {
+            // might need to set up Apple clang for cross-linking
+            if (target.os == Target.OS.OSX)
+            {
+                version (AArch64)
+                {
+                    if (target.isX86_64)
+                    {
+                        argv.push("-arch");
+                        argv.push("x86_64");
+                    }
+                }
+                else
+                {
+                    if (target.isAArch64)
+                    {
+                        argv.push("-arch");
+                        argv.push("arm64");
+                    }
+                }
+            }
+
             /* Without this switch, ld generates messages of the form:
              * ld: warning: could not create compact unwind for __Dmain: offset of saved registers too far to encode
              * meaning they are further than 255 bytes from the frame register.
