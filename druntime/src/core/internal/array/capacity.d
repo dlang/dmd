@@ -53,10 +53,8 @@ import core.memory;
 import core.stdc.string : memcpy, memset;
 import core.internal.traits : Unqual;
 import core.lifetime : emplace;
-
 debug (PRINTF) import core.stdc.stdio : printf;
 debug (VALGRIND) import etc.valgrind.valgrind;
-
 alias BlkAttr = GC.BlkAttr;
 
 // for now, all GC array functions are not exposed via core.memory.
@@ -79,74 +77,71 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
 {
     alias U = Unqual!T;
 
-    // Special case: void[]
+    debug (PRINTF) printf("[DEBUG] Resizing array: old=%zu, new=%zu\n", arr.length, newlength);
+
     static if (is(U == void))
     {
-        arr = arr.ptr[0 .. newlength]; // No initialization needed
+        arr = arr.ptr[0 .. newlength];
+        debug (PRINTF) printf("[DEBUG] Final length (void case): %zu\n", arr.length);
         return newlength;
     }
 
-    // Handle zero-length case early
     if (newlength == 0)
     {
         arr = Tarr.init;
+        debug (PRINTF) printf("[DEBUG] Final length (zero case): %zu\n", arr.length);
         return 0;
     }
 
     size_t elemSize = U.sizeof;
     size_t oldSize = arr.length * elemSize;
-    size_t newSize;
-    bool overflow = false;
+    size_t newSize = elemSize * newlength;
 
-    // static size_t mulu(size_t a, size_t b, ref bool overflow)
-    // {
-    //     size_t result = a * b;
-    //     overflow = (b != 0 && result / b != a);
-    //     return result;
-    // }
-
-    newSize = mulu(elemSize, newlength, overflow);
-    if (overflow)
+    if (newSize / elemSize != newlength)
     {
-        return 0; // Memory allocation would fail
+        debug (PRINTF) printf("[ERROR] Overflow detected!\n");
+        return 0;
     }
 
     void[] oldSlice = arr.ptr ? cast(void[]) arr : null;
 
-    // Attempt in-place expansion first (only for GC memory)
+    debug (PRINTF) printf("[DEBUG] Calling gc_expandArrayUsed (old ptr = %p, old length = %zu)\n",
+                          arr.ptr, arr.length);
+
     if (oldSlice.ptr !is null && gc_expandArrayUsed(oldSlice, newSize, is(U == shared)))
     {
+        debug (PRINTF) printf("[DEBUG] gc_expandArrayUsed succeeded. ptr = %p\n", oldSlice.ptr);
+
         auto p = cast(U*) oldSlice.ptr;
         auto newElements = p + arr.length;
 
         if (isMutable)
-        {
             memset(newElements, 0, newSize - oldSize);
-        }
-        else static if (!is(U == void))  // Skip for `void[]`
-        {
+        else static if (!is(U == void))
             foreach (i; 0 .. (newlength - arr.length))
-            {
                 emplace(&newElements[i], U.init);
-            }
-        }
 
         arr = cast(Tarr) p[0 .. newlength];
+
+        debug (PRINTF) printf("[DEBUG] Final length (gc_expandArrayUsed case): %zu\n", arr.length);
         return arr.length;
     }
 
-    // Allocate new array if expansion fails
+    debug (PRINTF) printf("[DEBUG] gc_expandArrayUsed failed, using GC.malloc.\n");
+
     void* allocatedData = GC.malloc(newSize, GC.BlkAttr.NO_SCAN);
     if (allocatedData is null)
     {
-        return 0; // Out of memory
+        debug (PRINTF) printf("[ERROR] GC.malloc failed! Out of memory.\n");
+        return 0;
     }
 
     auto p = cast(U*) allocatedData;
+    debug (PRINTF) printf("[DEBUG] Allocated new memory at %p\n", p);
 
-    // Copy old data
     if (arr.ptr !is null)
     {
+        debug (PRINTF) printf("[DEBUG] Copying %zu bytes from old array.\n", oldSize);
         memcpy(p, cast(const void*) arr.ptr, oldSize);
     }
 
@@ -154,17 +149,20 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
 
     if (isMutable)
     {
+        debug (PRINTF) printf("[DEBUG] Zero-initializing %zu bytes.\n", newSize - oldSize);
         memset(newElements, 0, newSize - oldSize);
     }
-    else static if (!is(U == void))  // Skip for `void[]`
+    else static if (!is(U == void))
     {
+        debug (PRINTF) printf("[DEBUG] Emplacing %zu new elements.\n", newlength - arr.length);
         foreach (i; 0 .. (newlength - arr.length))
-        {
             emplace(&newElements[i], U.init);
-        }
     }
 
     arr = cast(Tarr) p[0 .. newlength];
+
+    debug (PRINTF) printf("[DEBUG] Final length (GC.malloc case): %zu\n", arr.length);
+
     return arr.length;
 }
 
