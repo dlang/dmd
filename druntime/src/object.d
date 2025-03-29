@@ -1283,10 +1283,6 @@ class TypeInfo_StaticArray : TypeInfo
     }
 }
 
-// todo: replace these with xopEquals and xtoHash below
-extern (C) int _aaEqual(scope const TypeInfo tiRaw, const void* aa1, const void* aa2);
-extern (C) hash_t _aaGetHash(scope const void* aa, scope const TypeInfo tiRaw) nothrow;
-
 class TypeInfo_AssociativeArray : TypeInfo
 {
     override string toString() const
@@ -1305,14 +1301,12 @@ class TypeInfo_AssociativeArray : TypeInfo
 
     override bool equals(in void* p1, in void* p2) @trusted const
     {
-        return !!_aaEqual(this, *cast(void**) p1, *cast(void**) p2);
-        // return xopEquals(p1, p2);
+        return xopEquals(p1, p2);
     }
 
     override hash_t getHash(scope const void* p) nothrow @trusted const
     {
-        return _aaGetHash(p, this);
-        // return xtoHash(p);
+        return xtoHash(p);
     }
 
     // BUG: need to add the rest of the functions
@@ -1334,18 +1328,15 @@ class TypeInfo_AssociativeArray : TypeInfo
     private static import core.internal.newaa;
     alias Entry(K, V) = core.internal.newaa.Entry!(K, V);
 
-    static struct no_Entry(K, V)
-    {
-        K key;
-        V value;
-    }
-
     TypeInfo value;
     TypeInfo key;
     TypeInfo entry;
 
     bool function(scope const void* p1, scope const void* p2) nothrow @safe xopEquals; // not functional yet
     hash_t function(scope const void*) nothrow @safe xtoHash; // not functional yet
+
+    alias aaOpEqual(K, V) = core.internal.newaa._aaOpEqual!(K, V);
+    alias aaGetHash(K, V) = core.internal.newaa._aaGetHash!(K, V);
 
     override @property size_t talign() nothrow pure const
     {
@@ -3055,7 +3046,7 @@ private auto _aaToRange(K, V)(auto ref inout V[K] aa) @trusted
  * Returns:
  *      A forward range referencing the keys of the associative array.
  */
-auto byKey(T : V[K], K, V)(auto ref T aa) pure nothrow @nogc @safe
+auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
@@ -3118,7 +3109,7 @@ auto byKey(K, V)(V[K]* aa) pure nothrow @nogc
  * Returns:
  *      A forward range referencing the values of the associative array.
  */
-auto byValue(T : V[K], K, V)(auto ref T aa) pure nothrow @nogc @safe
+auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
@@ -3193,7 +3184,7 @@ auto byValue(K, V)(V[K]* aa) pure nothrow @nogc
  * Returns:
  *      A forward range referencing the pairs of the associative array.
  */
-auto byKeyValue(T : V[K], K, V)(auto ref T aa) pure nothrow @nogc @safe
+auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
