@@ -1234,7 +1234,9 @@ protected:
         }
         else static if ( __traits( compiles, ucontext_t ) )
         {
-            getcontext( &m_utxt );
+            const status = getcontext( &m_utxt );
+            assert( status == 0 );
+
             m_utxt.uc_stack.ss_sp   = m_pmem;
             m_utxt.uc_stack.ss_size = m_size;
             makecontext( &m_utxt, &fiber_entryPoint, 0 );
