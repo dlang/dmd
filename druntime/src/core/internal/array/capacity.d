@@ -49,7 +49,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
     string func = __FUNCTION__
 ) @trusted
 {
-    import core.lifetime : emplace;
+     import core.lifetime : emplace;
     import core.internal.array.utils : __arrayAlloc;
     import core.stdc.string : memcpy, memmove;
     import core.internal.traits : Unqual;
