@@ -1,5 +1,6 @@
 // https://issues.dlang.org/show_bug.cgi?id=20652
 // EXTRA_CPP_SOURCES: test20652.cpp
+// CXXFLAGS(osx): -arch x86_64
 
 import core.simd;
 

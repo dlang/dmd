@@ -1,4 +1,5 @@
 // EXTRA_CPP_SOURCES: test6716.cpp
+// CXXFLAGS(osx): -arch x86_64
 
 version(Windows)
 {
