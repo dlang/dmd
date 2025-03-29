@@ -90,7 +90,10 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
         {
             foreach (i; 0 .. arr.length)
             {
-                tempArr[i] = arr[i]; // Use direct assignment
+                static if (is(U == struct))
+                    emplace(&tempArr[i], arr[i]); // Proper struct copy
+                else
+                    tempArr[i] = arr[i]; // Direct assignment for primitives
             }
         }
 
@@ -130,7 +133,10 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
             auto p = cast(U*) newAllocated.ptr;
             foreach (i; 0 .. newlength)
             {
-                p[i] = U.init; // Direct assignment
+                static if (is(U == struct))
+                    emplace(&p[i], U.init); // Struct initialization
+                else
+                    p[i] = U.init; // Direct assignment for primitives
             }
         }
 
@@ -158,7 +164,10 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
             auto src = cast(U*) arr.ptr;
             foreach (i; 0 .. arr.length)
             {
-                dst[i] = src[i]; // Element-wise copy
+                static if (is(U == struct))
+                    emplace(&dst[i], src[i]); // Proper struct copy
+                else
+                    dst[i] = src[i]; // Direct assignment for primitives
             }
         }
     }
@@ -168,13 +177,17 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
         auto p = (cast(U*) newAllocated.ptr) + arr.length;
         foreach (i; 0 .. (newlength - arr.length))
         {
-            p[i] = U.init; // Direct assignment instead of emplace
+            static if (is(U == struct))
+                emplace(&p[i], U.init); // Struct initialization
+            else
+                p[i] = U.init; // Direct assignment for primitives
         }
     }
 
     arr = cast(Tarr) (cast(U*) newAllocated.ptr)[0 .. newlength];
     return arr.length;
 }
+
 
 version (D_ProfileGC)
 {
