@@ -4,9 +4,9 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmscoff.d, _libmscoff.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lib/mscoff.d, _libmscoff.d)
  * Documentation:  https://dlang.org/phobos/dmd_libmscoff.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libmscoff.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/lib/mscoff.d
  */
 
 module dmd.lib.mscoff;
