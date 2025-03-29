@@ -119,7 +119,7 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t 
         regm_t rm = ALLREGS;
         const r = allocreg(cdb,rm,TYint);         // allocate scratch register
         static union U { targ_size_t s; targ_long[2] l; }
-        U u = void;
+        U u;
         u.l[1] = 0;
         u.s = value;
         targ_long* p = &u.l[0];

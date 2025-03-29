@@ -310,7 +310,7 @@ idx_t cv_debtyp(debtyp_t* d)
         {
             // Hash consists of the sum of the first 4 bytes with the last 4 bytes
             union U { ubyte* cp; uint* up; }
-            U un = void;
+            U un;
             un.cp = d.data.ptr;
             hash += *un.up;
             un.cp += length - uint.sizeof;
@@ -1887,7 +1887,8 @@ private void cv4_func(Funcsym* s, ref symtab_t symtab)
 
     // Put out function return record
     if (1)
-    {   ubyte[2+2+2+1+1+4] sreturn = void;
+    {
+        ubyte[2+2+2+1+1+4] sreturn;
         ushort flags;
         ubyte style;
         tym_t ty;

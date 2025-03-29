@@ -513,8 +513,7 @@ void build_syment_table(bool bigobj)
 
         write_sym(&sym, bigobj);
 
-        auxent aux = void;
-        memset(&aux, 0, (aux).sizeof);
+        auxent aux = auxent.init;
 
         // s_size is not set yet
         //aux.x_section.length = psechdr.s_size;

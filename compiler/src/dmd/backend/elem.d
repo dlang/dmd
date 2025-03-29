@@ -1240,8 +1240,6 @@ elem* el_convfloat(ref GlobalOptimizer go, elem* e)
 @trusted
 elem* el_convxmm(ref GlobalOptimizer go, elem* e)
 {
-    ubyte[Vconst.sizeof] buffer = void;
-
     // Do not convert if the constants can be loaded with the special XMM instructions
     if (loadxmmconst(e))
         return e;
@@ -1249,7 +1247,7 @@ elem* el_convxmm(ref GlobalOptimizer go, elem* e)
     go.changes++;
     tym_t ty = e.Ety;
     int sz = tysize(ty);
-    assert(sz <= buffer.length);
+    assert(sz <= Vconst.sizeof);
     void* p = &e.EV;
 
     static if (0)
@@ -1564,8 +1562,7 @@ elem* el_ctor_dtor(elem* ec, elem* ed, out elem* pedtor)
         ector.Ety = TYvoid;
 //      ector.ed.Edecl = decl;
 
-        Vconst c = void;
-        memset(&c, 0, c.sizeof);
+        Vconst c = Vconst.init;
         elem* e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 0
         er = el_bin(OPinfo, ec ? ec.Ety : TYvoid, ector, el_combine(e_flag_0, ec));
 
