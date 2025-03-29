@@ -9,37 +9,43 @@
 */
 module core.internal.array.capacity;
 
-/*
- * Fully templated implementation of `_d_arraysetlengthT`, removing reliance on `TypeInfo`.
- * The old `_d_arraysetlengthT` and `_d_arraysetlengthiT` functions have been removed.
- */
-
 /**
- * Resize a dynamic array by setting the `.length` property.
+ * Resizes a dynamic array by modifying its `.length` property.
  *
  * Newly created elements are initialized to their default value.
  *
- * This function is **now fully templated**, eliminating the need for TypeInfo-based
- * `_d_arraysetlengthT` and `_d_arraysetlengthiT`, while efficiently handling both
- * zero-initialized and custom-initialized types.
+ * Has two variants:
+ * - `_d_arraysetlengthT` for arrays with elements that initialize to 0.
+ * - `_d_arraysetlengthiT` for arrays where elements have non-zero initializers.
+ *
+ * Unlike the previous implementation, this template-based version removes the dependency
+ * on `TypeInfo`, allowing for better compile-time optimizations.
  *
  * ---
- * ## Example Usage:
- * ```d
  * void main()
  * {
  *     int[] a = [1, 2];
  *     a.length = 3; // gets lowered to `_d_arraysetlengthT!(int[])(a, 3)`
  * }
- * ```
  * ---
  *
- * - Uses a **templated approach** to minimize `TypeInfo` dependencies.
- * - Follows `_d_newarrayU` for allocation and initialization.
- * - Handles memory allocation and resizing safely, ensuring correct initialization.
+ * Params:
+ * - `arr` = The dynamic array whose `.length` is being updated.
+ * - `newlength` = The new length to be assigned to the array.
+ *
+ * Returns:
+ * - The new length of the array after resizing.
+ *
+ * Notes:
+ * - If `newlength` is smaller than the current length, the array is shrunk.
+ * - If `newlength` is larger, additional elements are allocated and initialized.
+ * - The function attempts in-place expansion first and falls back to a new allocation if needed.
  */
 
 /// Complete templated implementation of `_d_arraysetlengthT` and its GC profiling variant `_d_arraysetlengthTTrace`
+
+// HACK: This is a workaround `pure` is faked
+extern(C) bool gc_expandArrayUsed(void[] slice, size_t newUsed, bool atomic) pure nothrow;
 
 size_t _d_arraysetlengthT(Tarr : T[], T)(
     return scope ref Tarr arr,
@@ -48,7 +54,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
 {
     import core.lifetime : emplace;
     import core.internal.array.utils : __arrayAlloc;
-    import core.stdc.string : memcpy, memmove, memset;
+    import core.stdc.string : memcpy, memset;
     import core.internal.traits : Unqual;
 
     alias U = Unqual!T;
@@ -68,6 +74,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
 
     // Expand case
     size_t sizeelem = U.sizeof;
+    size_t oldsize = arr.length * sizeelem;
     size_t newsize;
     bool overflow = false;
 
@@ -84,68 +91,60 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
         return 0;
     }
 
-    if (arr.ptr is null)
-    {
-        assert(arr.length == 0);
-        void[] allocatedData = __arrayAlloc!(Tarr)(sizeelem * newlength);
-        if (allocatedData.length == 0)
-        {
-            return 0;
-        }
+    void[] oldSlice = arr.ptr ? cast(void[]) arr : null;
 
-        auto p = cast(U*) allocatedData.ptr;
-        
+    // Attempt in-place expansion
+    if (gc_expandArrayUsed(oldSlice, newsize, false))
+    {
+        auto p = cast(U*) oldSlice.ptr;
+        auto newElements = p + arr.length;
+
         static if (is(T == immutable) || is(T == const))
         {
-            // Use `.init` for initialization
-            foreach (i; 0 .. newlength)
+            foreach (i; 0 .. (newlength - arr.length))
             {
-                emplace(&p[i], U.init);
+                emplace(&newElements[i], U.init);
             }
         }
         else
         {
-            // Zero-initialize
-            memset(p, 0, newsize);
+            memset(newElements, 0, newsize - oldsize);
         }
 
         arr = cast(Tarr) p[0 .. newlength];
         return arr.length;
     }
 
-    size_t size = arr.length * sizeelem;
-    void[] allocatedData = __arrayAlloc!(Tarr)(sizeelem * newlength);
-    if (allocatedData.length == 0)
+    // If in-place expansion failed, allocate a new array
+    void[] allocatedData = __arrayAlloc!(Tarr)(newsize);
+    if (allocatedData.ptr is null)
     {
         return 0;
     }
 
-    if (arr.ptr == allocatedData.ptr)
+    auto p = cast(U*) allocatedData.ptr;
+
+    // Copy old data
+    if (arr.ptr !is null)
     {
-        memmove(allocatedData.ptr, cast(const(void)*)arr.ptr, size);
-    }
-    else
-    {
-        memcpy(allocatedData.ptr, cast(const(void)*)arr.ptr, size);
+        memcpy(p, arr.ptr, oldsize);
     }
 
-    auto p = (cast(U*) allocatedData.ptr) + arr.length;
+    auto newElements = p + arr.length;
 
     static if (is(T == immutable) || is(T == const))
     {
-        // Use `.init` for initialization
         foreach (i; 0 .. (newlength - arr.length))
         {
-            emplace(&p[i], U.init);
+            emplace(&newElements[i], U.init);
         }
     }
     else
     {
-        // Zero-initialize
-        memset(p, 0, newsize - size);
+        memset(newElements, 0, newsize - oldsize);
     }
 
-    arr = cast(Tarr) (cast(U*) allocatedData.ptr)[0 .. newlength];
+    arr = cast(Tarr) p[0 .. newlength];
     return arr.length;
 }
 
