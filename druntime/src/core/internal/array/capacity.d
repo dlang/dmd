@@ -44,9 +44,6 @@ module core.internal.array.capacity;
 size_t _d_arraysetlengthT(Tarr : T[], T)(
     return scope ref Tarr arr,
     size_t newlength,
-    string file = __FILE__,
-    int line = __LINE__,
-    string func = __FUNCTION__
 ) @trusted
 {
     import core.lifetime : emplace;
@@ -167,7 +164,7 @@ version (D_ProfileGC)
     /**
      * TraceGC wrapper around `_d_arraysetlengthT`.
      */
-    alias _d_arraysetlengthTTrace = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT, "Array length set");
+    alias _d_arraysetlengthTTrace = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT, errorMessage);
 }
 
 @safe unittest
@@ -177,15 +174,17 @@ version (D_ProfileGC)
         float f = 1.0;
     }
 
+    // Test with an int array
     int[] arr;
-    _d_arraysetlengthT!(typeof(arr).elementType)(arr, 16);
+    _d_arraysetlengthT!(typeof(arr))(arr, 16);
     assert(arr.length == 16);
     foreach (int i; arr)
-        assert(i == int.init);
+        assert(i == int.init);  // Elements should be initialized to 0 (default for int)
 
+    // Test with a shared struct array
     shared S[] arr2;
-    _d_arraysetlengthT!(typeof(arr2).elementType)(arr2, 16);
+    _d_arraysetlengthT!(typeof(arr2))(arr2, 16);
     assert(arr2.length == 16);
     foreach (s; arr2)
-        assert(s == S.init);
+        assert(s == S.init);  // Ensure elements are initialized to the default (S.init)
 }
