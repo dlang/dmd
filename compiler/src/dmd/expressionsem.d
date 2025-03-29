@@ -12796,6 +12796,58 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        // Inline the expression, if possible.
+        PowExp pe = cast(PowExp)e;
+        if (pe.e1.type.isScalar() && pe.e2.isIntegerExp())
+        {
+            Expression one;
+            if (pe.e1.type.isIntegral()) {
+                one = new IntegerExp(e.loc, 1, pe.e1.type);
+            } else {
+                one = new RealExp(e.loc, CTFloat.one, pe.e1.type);
+            }
+
+            const expo = cast(sinteger_t)pe.e2.toInteger();
+            // Replace e1 ^^ -1 with 1 / e1
+            if (expo == -1)
+            {
+                Expression ex = new DivExp(exp.loc, one, pe.e1);
+                ex = ex.expressionSemantic(sc);
+                result = ex;
+                return;
+            }
+            // Replace e1 ^^ 0 with 1
+            else if (expo == 0)
+            {
+                Expression ex = one;
+                ex.loc = exp.loc;
+                ex = ex.expressionSemantic(sc);
+                result = ex;
+                return;
+            }
+            // Replace e1 ^^ 1 with e1
+            else if (expo == 1)
+            {
+                Expression ex = pe.e1;
+                ex.loc = exp.loc;
+                ex = ex.expressionSemantic(sc);
+                result = ex;
+                return;
+            }
+            // Replace e1 ^^ 2 with e1 * e1
+            else if (expo == 2)
+            {
+                auto v = copyToTemp(STC.const_, "__powtmp", pe.e1);
+                auto ve = new VarExp(exp.loc, v);
+                auto de = new DeclarationExp(exp.e1.loc, v);
+                auto me = new MulExp(exp.e2.loc, ve, ve);
+                Expression ex = new CommaExp(exp.loc, de, me, exp);
+                ex = ex.expressionSemantic(sc);
+                result = ex;
+                return;
+            }
+        }
+
         Module mmath = Module.loadStdMath();
         if (!mmath)
         {
