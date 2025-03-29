@@ -1366,11 +1366,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         TypeInfo_toObjFile(null, d.loc, d.entry);
         dtb.xoff(toSymbol(d.entry.vtinfo), 0);  // TypeInfo for key,value-pair
 
-        TypeInfo_toObjFile(null, d.loc, d.entry);
-        dtb.xoff(toSymbol(d.entry.vtinfo), 0);  // xopEquals
-
-        TypeInfo_toObjFile(null, d.loc, d.entry);
-        dtb.xoff(toSymbol(d.entry.vtinfo), 0);  // xtoHash
+        dtb.xoff(toSymbol(d.xopEqual), 0);
+        dtb.xoff(toSymbol(d.xtoHash), 0);
     }
 
     override void visit(TypeInfoFunctionDeclaration d)
