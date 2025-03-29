@@ -990,6 +990,7 @@ class CommaExp final : public BinExp
 public:
     d_bool isGenerated;
     d_bool allowCommaExp;
+    Expression* originalExp;
     bool isLvalue() override;
     Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }

@@ -12797,22 +12797,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // Inline the expression, if possible.
-        BinExp be = cast(BinExp)e;
-        if (be.e1.type.isScalar() && be.e2.isIntegerExp())
+        PowExp pe = cast(PowExp)e;
+        if (pe.e1.type.isScalar() && pe.e2.isIntegerExp())
         {
             Expression one;
-            if (be.e1.type.isIntegral()) {
-                one = new IntegerExp(e.loc, 1, be.e1.type);
+            if (pe.e1.type.isIntegral()) {
+                one = new IntegerExp(e.loc, 1, pe.e1.type);
             } else {
-                one = new RealExp(e.loc, CTFloat.one, be.e1.type);
+                one = new RealExp(e.loc, CTFloat.one, pe.e1.type);
             }
 
-            const expo = cast(sinteger_t)be.e2.toInteger();
+            const expo = cast(sinteger_t)pe.e2.toInteger();
             // Replace e1 ^^ -1 with 1 / e1
             if (expo == -1)
             {
-                Expression ex = new DivExp(exp.loc, one, be.e1);
-                ex = ex.optimize(WANTvalue);
+                Expression ex = new DivExp(exp.loc, one, pe.e1);
                 ex = ex.expressionSemantic(sc);
                 result = ex;
                 return;
@@ -12829,7 +12828,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Replace e1 ^^ 1 with e1
             else if (expo == 1)
             {
-                Expression ex = be.e1;
+                Expression ex = pe.e1;
                 ex.loc = exp.loc;
                 ex = ex.expressionSemantic(sc);
                 result = ex;
@@ -12838,7 +12837,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Replace e1 ^^ 2 with e1 * e1
             else if (expo == 2)
             {
-                auto v = copyToTemp(STC.const_, "__powtmp", be.e1);
+                auto v = copyToTemp(STC.const_, "__powtmp", pe.e1);
                 auto ve = new VarExp(exp.loc, v);
                 auto de = new DeclarationExp(exp.e1.loc, v);
                 auto me = new MulExp(exp.e2.loc, ve, ve);

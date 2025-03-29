@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -O
+REQUIRED_ARGS: -betterC
 RUN_OUTPUT:
 ---
 Success
@@ -35,7 +35,7 @@ void test3()
     static assert(4.0 ^^ -1 == 0.25);
 }
 
-void main()
+extern(C) void main()
 {
     test1();
     test2();
