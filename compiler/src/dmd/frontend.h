@@ -2949,6 +2949,7 @@ public:
 class EqualExp final : public BinExp
 {
 public:
+    Expression lowering;
     void accept(Visitor* v) override;
 };
 
@@ -3245,6 +3246,7 @@ public:
 class InExp final : public BinExp
 {
 public:
+    Expression lowering;
     void accept(Visitor* v) override;
 };
 
@@ -3514,6 +3516,7 @@ public:
 class RemoveExp final : public BinExp
 {
 public:
+    Expression lowering;
     void accept(Visitor* v) override;
 };
 
