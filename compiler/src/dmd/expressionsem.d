@@ -12818,11 +12818,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = ex;
                 return;
             }
-            // Replace e1 ^^ 0 with 1
+            // Replace e1 ^^ 0 with (e1, 1)
             else if (expo == 0)
             {
-                Expression ex = one;
-                ex.loc = exp.loc;
+                Expression ex = new CommaExp(exp.loc, pe.e1, one, exp);
                 ex = ex.expressionSemantic(sc);
                 result = ex;
                 return;
