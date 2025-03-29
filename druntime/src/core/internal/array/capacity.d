@@ -46,6 +46,28 @@ module core.internal.array.capacity;
 
 /// Complete templated implementation of `_d_arraysetlengthT` and its GC profiling variant `_d_arraysetlengthTTrace`
 
+import core.checkedint : mulu;
+
+
+import core.memory;
+import core.stdc.string : memcpy, memset;
+import core.internal.traits : Unqual;
+import core.lifetime : emplace;
+
+debug (PRINTF) import core.stdc.stdio : printf;
+debug (VALGRIND) import etc.valgrind.valgrind;
+
+alias BlkAttr = GC.BlkAttr;
+
+// for now, all GC array functions are not exposed via core.memory.
+extern(C) {
+    void[] gc_getArrayUsed(void *ptr, bool atomic) nothrow;
+    bool gc_expandArrayUsed(void[] slice, size_t newUsed, bool atomic) nothrow pure;
+    size_t gc_reserveArrayCapacity(void[] slice, size_t request, bool atomic) nothrow;
+    bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) nothrow;
+}
+
+
 // HACK: This is a workaround `pure` is faked
 extern(C) bool gc_expandArrayUsed(void[] slice, size_t newUsed, bool atomic) pure nothrow;
 
@@ -55,11 +77,6 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
     bool isMutable
 ) @trusted
 {
-    import core.memory : GC;
-    import core.stdc.string : memcpy, memset;
-    import core.internal.traits : Unqual;
-    import core.lifetime : emplace;
-
     alias U = Unqual!T;
 
     // Special case: void[]
@@ -81,12 +98,12 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
     size_t newSize;
     bool overflow = false;
 
-    static size_t mulu(size_t a, size_t b, ref bool overflow)
-    {
-        size_t result = a * b;
-        overflow = (b != 0 && result / b != a);
-        return result;
-    }
+    // static size_t mulu(size_t a, size_t b, ref bool overflow)
+    // {
+    //     size_t result = a * b;
+    //     overflow = (b != 0 && result / b != a);
+    //     return result;
+    // }
 
     newSize = mulu(elemSize, newlength, overflow);
     if (overflow)

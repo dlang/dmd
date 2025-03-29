@@ -3,7 +3,7 @@ import object;
 void main()
 {
 	int[] arr = [1, 2, 3];
-	_d_arraysetlengthT(arr, 100LU, "compilable\\vcg-ast-arraylength.d", 11, "vcg_ast_arraylength.main");
+	_d_arraysetlengthT(arr, 100LU, true);
 	arr = arr[0..0] , 0;
 	int[] f = null;
 	int[] a = null;
@@ -15,7 +15,7 @@ void main()
 		int[] payload;
 	}
 	S s = 0;
-	(ref int[] __arraylength15 = s.payload;) , _d_arraysetlengthT(__arraylength15, __arraylength15.length + 3LU, "compilable\\vcg-ast-arraylength.d", 30, "vcg_ast_arraylength.main");
+	(ref int[] __arraylength11 = s.payload;) , _d_arraysetlengthT(__arraylength11, __arraylength11.length + 3LU, true);
 	return 0;
 }
 mixin _d_cmain!();
@@ -39,83 +39,75 @@ mixin _d_cmain!();
 }
 _d_arraysetlengthT!(int[], int)
 {
-	pure nothrow @trusted ulong _d_arraysetlengthT(ref return scope int[] arr, ulong newlength, string file = __FILE__, int line = __LINE__, string func = __FUNCTION__)
+	pure nothrow @trusted ulong _d_arraysetlengthT(ref return scope int[] arr, ulong newlength, bool isMutable)
 	{
-		import core.lifetime : emplace;
-		import core.internal.array.utils : __arrayAlloc;
-		import core.stdc.string : memcpy, memmove;
-		import core.internal.traits : Unqual;
 		alias U = int;
 		if (newlength == 0LU)
 		{
 			arr = null;
 			return 0LU;
 		}
-		if (newlength <= arr.length)
-		{
-			arr = arr[0..newlength];
-			return arr.length;
-		}
-		ulong sizeelem = 4LU;
-		ulong newsize = 0LU;
+		ulong elemSize = 4LU;
+		ulong oldSize = arr.length * elemSize;
+		ulong newSize = 0LU;
 		bool overflow = false;
-		static pure nothrow @nogc @safe ulong mulu(ulong a, ulong b, ref bool overflow)
-		{
-			ulong result = a * b;
-			overflow = b != 0LU && (result / b != a);
-			return result;
-		}
-		newsize = mulu(sizeelem, newlength, overflow);
+		newSize = mulu(elemSize, newlength, overflow);
 		if (overflow)
 		{
 			return 0LU;
 		}
-		if (cast(int*)arr is null)
+		void[] oldSlice = cast(int*)arr ? cast(void[])arr : null;
+		if (cast(void*)oldSlice !is null && gc_expandArrayUsed(oldSlice, newSize, false))
 		{
-			assert(arr.length == 0LU);
-			void[] allocatedData = __arrayAlloc(sizeelem * newlength);
-			if (allocatedData.length == 0LU)
+			int* p = cast(int*)cast(void*)oldSlice;
+			int* newElements = p + cast(long)arr.length * 4L;
+			if (isMutable)
 			{
-				return 0LU;
+				memset(cast(void*)newElements, 0, newSize - oldSize);
 			}
-			int* p = cast(int*)cast(void*)allocatedData;
+			else
 			{
-				ulong __key9 = 0LU;
-				ulong __limit10 = newlength;
-				for (; __key9 < __limit10; __key9 += 1LU)
 				{
-					ulong i = __key9;
-					emplace(&p[i], 0);
+					ulong __key5 = 0LU;
+					ulong __limit6 = newlength - arr.length;
+					for (; __key5 < __limit6; __key5 += 1LU)
+					{
+						ulong i = __key5;
+						emplace(&newElements[i], 0);
+					}
 				}
 			}
-			arr = (cast(int*)cast(void*)allocatedData)[0..newlength];
+			arr = p[0..newlength];
 			return arr.length;
 		}
-		ulong size = arr.length * sizeelem;
-		void[] allocatedData = __arrayAlloc(sizeelem * newlength);
-		if (allocatedData.length == 0LU)
+		void* allocatedData = malloc(newSize, 2u, null);
+		if (allocatedData is null)
 		{
 			return 0LU;
 		}
-		if (cast(int*)arr is cast(void*)allocatedData)
+		int* p = cast(int*)allocatedData;
+		if (cast(int*)arr !is null)
 		{
-			memmove(cast(void*)allocatedData, cast(const(void*))cast(int*)arr, size);
+			memcpy(cast(void*)p, cast(const(void*))cast(int*)arr, oldSize);
+		}
+		int* newElements = p + cast(long)arr.length * 4L;
+		if (isMutable)
+		{
+			memset(cast(void*)newElements, 0, newSize - oldSize);
 		}
 		else
 		{
-			memcpy(cast(void*)allocatedData, cast(const(void*))cast(int*)arr, size);
-		}
-		int* p = cast(int*)cast(void*)allocatedData + cast(long)arr.length * 4L;
-		{
-			ulong __key11 = 0LU;
-			ulong __limit12 = newlength - arr.length;
-			for (; __key11 < __limit12; __key11 += 1LU)
 			{
-				ulong i = __key11;
-				emplace(&p[i], 0);
+				ulong __key7 = 0LU;
+				ulong __limit8 = newlength - arr.length;
+				for (; __key7 < __limit8; __key7 += 1LU)
+				{
+					ulong i = __key7;
+					emplace(&newElements[i], 0);
+				}
 			}
 		}
-		arr = (cast(int*)cast(void*)allocatedData)[0..newlength];
+		arr = p[0..newlength];
 		return arr.length;
 	}
 
@@ -125,79 +117,15 @@ Unqual!(int, int)
 	alias Unqual = int;
 
 }
-__arrayAlloc!(int[])
+mulu!()
 {
-	pure nothrow @trusted void[] __arrayAlloc(ulong arrSize)
+	pure nothrow @nogc @safe ulong mulu(ulong x, ulong y, ref bool overflow)
 	{
-		import core.lifetime : TypeInfoSize;
-		import core.internal.traits : hasIndirections;
-		enum ulong typeInfoSize = 0LU;
-		BlkAttr attr = BlkAttr.APPENDABLE;
-		void* ptr = malloc(arrSize, attr, typeid(int[]));
-		if (ptr)
-			return ptr[0..arrSize];
-		return null;
+		immutable @nogc immutable(ulong) r = x * y;
+		if ((x | y) >> 32 && x && (r / x != y))
+			overflow = true;
+		return r;
 	}
-
-}
-TypeInfoSize!(int[])
-{
-	enum ulong TypeInfoSize = 0LU;
-
-}
-hasIndirections!(int[])
-{
-	enum bool hasIndirections = true;
-
-}
-isFunctionPointer!(int[])
-{
-	enum bool isFunctionPointer = false;
-
-}
-isPointer!(int[])
-{
-	enum bool isPointer = false;
-
-}
-isAggregateType!(int[])
-{
-	enum bool isAggregateType = false;
-
-}
-isDelegate!(int[])
-{
-	enum bool isDelegate = false;
-
-}
-isDynamicArray!(int[])
-{
-	enum bool isDynamicArray = true;
-
-}
-DynamicArrayTypeOf!(int[])
-{
-	alias DynamicArrayTypeOf = int[];
-
-}
-OriginalType!(int[])
-{
-	alias OriginalType = int[];
-
-}
-ModifyTypePreservingTQ!(Impl, int[])
-{
-	alias ModifyTypePreservingTQ = int[];
-
-}
-Modifier!(int[])
-{
-	alias Impl = int[];
-
-}
-Unqual!(int[], int[])
-{
-	alias Unqual = int[];
 
 }
 emplace!(int, int)
@@ -390,11 +318,11 @@ isEqual!(int, int)
 	pure nothrow @nogc @system bool isEqual(scope const(int*) t1, scope const(int*) t2, ulong length)
 	{
 		{
-			ulong __key13 = 0LU;
-			ulong __limit14 = length;
-			for (; __key13 < __limit14; __key13 += 1LU)
+			ulong __key9 = 0LU;
+			ulong __limit10 = length;
+			for (; __key9 < __limit10; __key9 += 1LU)
 			{
-				const const(ulong) i = __key13;
+				const const(ulong) i = __key9;
 				if (t1[i] != t2[i])
 					return false;
 			}
