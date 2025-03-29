@@ -170,20 +170,28 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
     import dmd.arraytypes;
     import dmd.expressionsem;
     import dmd.id;
+    import dmd.identifier;
 
     assert(sc); // must not be called in the code generation phase
 
     auto ti = TypeInfoAssociativeArrayDeclaration.create(t);
     t.vtinfo = ti; // assign it early to avoid recursion in expressionSemantic
     Loc loc = t.loc;
-    auto tiargs = new Objects();
-    tiargs.push(t.index); // always called with naked types
-    tiargs.push(t.next);
 
-    Expression id = new IdentifierExp(loc, Id.empty);
-    id = new DotIdExp(loc, id, Id.object);
-    id = new DotIdExp(loc, id, Id.TypeInfo_AssociativeArray);
-    auto tempinst = new DotTemplateInstanceExp(loc, id, Id.Entry, tiargs);
+    auto makeDotExp(Identifier hook)
+    {
+        auto tiargs = new Objects();
+        tiargs.push(t.index); // always called with naked types
+        tiargs.push(t.next);
+
+        Expression id = new IdentifierExp(loc, Id.empty);
+        id = new DotIdExp(loc, id, Id.object);
+        id = new DotIdExp(loc, id, Id.TypeInfo_AssociativeArray);
+        return new DotTemplateInstanceExp(loc, id, hook, tiargs);
+    }
+
+    // generate ti.entry
+    auto tempinst = makeDotExp(Id.Entry);
     auto e = expressionSemantic(tempinst, sc);
     assert(e.type);
     ti.entry = e.type;
@@ -195,6 +203,22 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
     }
     getTypeInfoType(loc, ti.entry, sc);
     assert(ti.entry.vtinfo);
+
+    // generate ti.xtoHash
+    auto hashinst = makeDotExp(Identifier.idPool("aaGetHash"));
+    e = expressionSemantic(hashinst, sc);
+    assert(e.isVarExp() && e.type.isTypeFunction());
+    ti.xtoHash = e.isVarExp().var;
+    if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
+        tmpl.minst = sc._module.importedFrom; // ensure it get's emitted
+
+    // generate ti.xopEqual
+    auto equalinst = makeDotExp(Identifier.idPool("aaOpEqual"));
+    e = expressionSemantic(equalinst, sc);
+    assert(e.isVarExp() && e.type.isTypeFunction());
+    ti.xopEqual = e.isVarExp().var;
+    if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
+        tmpl.minst = sc._module.importedFrom; // ensure it get's emitted
 
     return ti;
 }
