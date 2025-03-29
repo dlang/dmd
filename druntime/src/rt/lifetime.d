@@ -1073,62 +1073,62 @@ Params:
 Returns: `px` after being appended to
 */
 extern (C)
-byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n) @weak
-{
-    // This is a cut&paste job from _d_arrayappendT(). Should be refactored.
+// byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n) @weak
+// {
+//     // This is a cut&paste job from _d_arrayappendT(). Should be refactored.
 
-    // Short circuit if no data is being appended.
-    if (n == 0)
-        return px;
+//     // Short circuit if no data is being appended.
+//     if (n == 0)
+//         return px;
 
 
-    // only optimize array append where ti is not a shared type
-    auto tinext = unqualify(ti.next);
-    auto sizeelem = tinext.tsize;              // array element size
-    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-    auto length = px.length;
-    auto newlength = length + n;
-    auto newsize = newlength * sizeelem;
-    auto size = length * sizeelem;
+//     // only optimize array append where ti is not a shared type
+//     auto tinext = unqualify(ti.next);
+//     auto sizeelem = tinext.tsize;              // array element size
+//     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
+//     auto length = px.length;
+//     auto newlength = length + n;
+//     auto newsize = newlength * sizeelem;
+//     auto size = length * sizeelem;
 
-    if (!gc_expandArrayUsed(px.ptr[0 .. size], newsize, isshared))
-    {
-        // could not set the size, we must reallocate.
-        auto newcap = newCapacity(newlength, sizeelem);
-        auto attrs = __typeAttrs(tinext, px.ptr) | BlkAttr.APPENDABLE;
-        auto ptr = cast(byte*) GC.malloc(newcap, attrs, tinext);
-        if (ptr is null)
-        {
-            onOutOfMemoryError();
-            assert(0);
-        }
+//     if (!gc_expandArrayUsed(px.ptr[0 .. size], newsize, isshared))
+//     {
+//         // could not set the size, we must reallocate.
+//         auto newcap = newCapacity(newlength, sizeelem);
+//         auto attrs = __typeAttrs(tinext, px.ptr) | BlkAttr.APPENDABLE;
+//         auto ptr = cast(byte*) GC.malloc(newcap, attrs, tinext);
+//         if (ptr is null)
+//         {
+//             onOutOfMemoryError();
+//             assert(0);
+//         }
 
-        if (newsize != newcap)
-        {
-            // For small blocks that are always fully scanned, if we allocated more
-            // capacity than was requested, we are responsible for zeroing that
-            // memory.
-            // TODO: should let the GC figure this out, as this property may
-            // not always hold.
-            if (!(attrs & BlkAttr.NO_SCAN) && newcap < PAGESIZE)
-                memset(ptr + newsize, 0, newcap - newsize);
+//         if (newsize != newcap)
+//         {
+//             // For small blocks that are always fully scanned, if we allocated more
+//             // capacity than was requested, we are responsible for zeroing that
+//             // memory.
+//             // TODO: should let the GC figure this out, as this property may
+//             // not always hold.
+//             if (!(attrs & BlkAttr.NO_SCAN) && newcap < PAGESIZE)
+//                 memset(ptr + newsize, 0, newcap - newsize);
 
-            gc_shrinkArrayUsed(ptr[0 .. newsize], newcap, isshared);
-        }
+//             gc_shrinkArrayUsed(ptr[0 .. newsize], newcap, isshared);
+//         }
 
-        memcpy(ptr, px.ptr, size);
+//         memcpy(ptr, px.ptr, size);
 
-        // do potsblit processing.
-        __doPostblit(ptr, size, tinext);
+//         // do potsblit processing.
+//         __doPostblit(ptr, size, tinext);
 
-        px = ptr[0 .. newlength];
-        return px;
-    }
+//         px = ptr[0 .. newlength];
+//         return px;
+//     }
 
-    // we were able to expand in place, just update the length
-    px = px.ptr[0 .. newlength];
-    return px;
-}
+//     // we were able to expand in place, just update the length
+//     px = px.ptr[0 .. newlength];
+//     return px;
+// }
 
 
 /**
