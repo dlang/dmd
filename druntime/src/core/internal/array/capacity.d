@@ -51,16 +51,26 @@ import core.internal.traits : Unqual;
 
 size_t _d_arraysetlengthT(Tarr : T[], T)(
     return scope ref Tarr arr,
-    size_t newlength,
+    size_t newlength
 ) @trusted
 {
-
     alias U = Unqual!T; // Ensure non-inout type
 
     if (newlength == 0)
     {
         arr = Tarr.init;
         return 0;
+    }
+
+    static if (is(T == void)) // Special case for void[]
+    {
+        void[] voidArray = __arrayAlloc!(Tarr)(newlength);
+        if (voidArray.length == 0)
+        {
+            return 0;
+        }
+        arr = cast(Tarr) voidArray;
+        return arr.length;
     }
 
     static if (is(T == immutable) || is(T == const))
@@ -75,10 +85,13 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
         // Allocate new array for immutable/const
         auto tempArr = new U[newlength];
 
-        // Copy existing elements
+        // Copy existing elements manually
         if (arr.ptr !is null)
         {
-            memcpy(cast(void*) tempArr.ptr, arr.ptr, arr.length * U.sizeof);
+            foreach (i; 0 .. arr.length)
+            {
+                tempArr[i] = arr[i]; // Use direct assignment
+            }
         }
 
         arr = cast(Tarr) tempArr;
@@ -106,51 +119,60 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
     if (arr.ptr is null)
     {
         assert(arr.length == 0);
-        void[] allocatedData = __arrayAlloc!(Tarr)(sizeelem * newlength);
-        if (allocatedData.length == 0)
+        void[] newAllocated = __arrayAlloc!(Tarr)(sizeelem * newlength);
+        if (newAllocated.length == 0)
         {
             return 0;
         }
 
-        static if (!is(T == void) && !is(T == immutable) && !is(T == const))
+        static if (!is(T == void))
         {
-            auto p = cast(U*) allocatedData.ptr;
+            auto p = cast(U*) newAllocated.ptr;
             foreach (i; 0 .. newlength)
             {
-                emplace(&p[i], U.init);
+                p[i] = U.init; // Direct assignment
             }
         }
 
-        arr = cast(Tarr) (cast(U*) allocatedData.ptr)[0 .. newlength];
+        arr = cast(Tarr) (cast(U*) newAllocated.ptr)[0 .. newlength];
         return arr.length;
     }
 
     size_t size = arr.length * sizeelem;
-    void[] allocatedData = __arrayAlloc!(Tarr)(sizeelem * newlength);
-    if (allocatedData.length == 0)
+    void[] newAllocated = __arrayAlloc!(Tarr)(sizeelem * newlength);
+    if (newAllocated.length == 0)
     {
         return 0;
     }
 
-    if (arr.ptr == allocatedData.ptr)
+    if (arr.ptr == newAllocated.ptr)
     {
-        memmove(allocatedData.ptr, cast(const(void)*) arr.ptr, size);
+        memmove(newAllocated.ptr, cast(const(void)*) arr.ptr, size);
     }
     else
     {
-        memcpy(allocatedData.ptr, cast(const(void)*) arr.ptr, size);
-    }
-
-    static if (!is(T == void) && !is(T == immutable) && !is(T == const))
-    {
-        auto p = (cast(U*) allocatedData.ptr) + arr.length;
-        foreach (i; 0 .. (newlength - arr.length))
+        // Skip copy for void[]
+        static if (!is(T == void))
         {
-            emplace(&p[i], U.init);
+            auto dst = cast(U*) newAllocated.ptr;
+            auto src = cast(U*) arr.ptr;
+            foreach (i; 0 .. arr.length)
+            {
+                dst[i] = src[i]; // Element-wise copy
+            }
         }
     }
 
-    arr = cast(Tarr) (cast(U*) allocatedData.ptr)[0 .. newlength];
+    static if (!is(T == void))
+    {
+        auto p = (cast(U*) newAllocated.ptr) + arr.length;
+        foreach (i; 0 .. (newlength - arr.length))
+        {
+            p[i] = U.init; // Direct assignment instead of emplace
+        }
+    }
+
+    arr = cast(Tarr) (cast(U*) newAllocated.ptr)[0 .. newlength];
     return arr.length;
 }
 
