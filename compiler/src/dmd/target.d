@@ -1635,17 +1635,17 @@ struct TargetCPP
      * Get the starting offset position for fields of an `extern(C++)` class
      * that is derived from the given base class.
      * Params:
-     *      baseClass = base class with C++ linkage
+     *      cd = class with C++ linkage
      * Returns:
      *      starting offset to lay out derived class fields
      */
-    extern (C++) uint derivedClassOffset(ClassDeclaration baseClass)
+    extern (C++) uint derivedClassOffset(ClassDeclaration cd)
     {
         // MSVC adds padding between base and derived fields if required.
         if (target.os == Target.OS.Windows)
-            return (baseClass.structsize + baseClass.alignsize - 1) & ~(baseClass.alignsize - 1);
+            return (cd.structsize + cd.alignsize - 1) & ~(cd.alignsize - 1);
 
-        return baseClass.structsize;
+        return cd.structsize;
     }
 }
 
