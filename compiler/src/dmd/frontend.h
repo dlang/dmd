@@ -2970,7 +2970,7 @@ public:
 class EqualExp final : public BinExp
 {
 public:
-    Expression lowering;
+    Expression* lowering;
     void accept(Visitor* v) override;
 };
 
@@ -3267,7 +3267,7 @@ public:
 class InExp final : public BinExp
 {
 public:
-    Expression lowering;
+    Expression* lowering;
     void accept(Visitor* v) override;
 };
 
@@ -3537,7 +3537,7 @@ public:
 class RemoveExp final : public BinExp
 {
 public:
-    Expression lowering;
+    Expression* lowering;
     void accept(Visitor* v) override;
 };
 
@@ -6994,6 +6994,8 @@ class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
     Type* entry;
+    Dsymbol* xopEqual;
+    Dsymbol* xtoHash;
     static TypeInfoAssociativeArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v) override;
 };
