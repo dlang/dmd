@@ -9,34 +9,42 @@
 */
 module core.internal.array.capacity;
 
-/*
- * Fully templated implementation of `_d_arraysetlengthT`, removing reliance on `TypeInfo`.
- * The old `_d_arraysetlengthT` and `_d_arraysetlengthiT` functions have been removed.
- */
+import core.checkedint : mulu;
+import core.lifetime : emplace;
+import core.internal.array.utils : __arrayAlloc;
+import core.stdc.string : memcpy, memmove;
+import core.internal.traits : Unqual;
 
 /**
- * Resize a dynamic array by setting the `.length` property.
+ * Resize a dynamic array by setting its `.length` property.
  *
  * Newly created elements are initialized to their default value.
  *
- * This function is **now fully templated**, eliminating the need for TypeInfo-based
- * `_d_arraysetlengthT` and `_d_arraysetlengthiT`, while efficiently handling both
- * zero-initialized and custom-initialized types.
+ * This function supports both mutable and immutable/const arrays:
+ * - For `immutable` and `const` arrays, a new array is allocated.
+ * - For `mutable` arrays, the existing memory is expanded or reallocated.
  *
  * ---
- * ## Example Usage:
- * ```d
+ * Example:
+ * ```
  * void main()
  * {
  *     int[] a = [1, 2];
- *     a.length = 3; // gets lowered to `_d_arraysetlengthT!(int[])(a, 3)`
+ *     a.length = 3; // gets lowered to `_d_arraysetlengthT!(int[], int)(a, 3)`
  * }
  * ```
  * ---
  *
- * - Uses a **templated approach** to minimize `TypeInfo` dependencies.
- * - Follows `_d_newarrayU` for allocation and initialization.
- * - Handles memory allocation and resizing safely, ensuring correct initialization.
+ * Params:
+ * - `arr`        = Reference to the array being resized.
+ * - `newlength`  = New length to set for the array.
+ *
+ * Returns: The updated array with the new length.
+ *
+ * Notes:
+ * - Elements are initialized using `emplace` when necessary.
+ * - Uses `__arrayAlloc` for memory allocation.
+ * - Ensures proper handling of `immutable` and `const` types.
  */
 
 /// Complete templated implementation of `_d_arraysetlengthT` and its GC profiling variant `_d_arraysetlengthTTrace`
@@ -46,10 +54,6 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
     size_t newlength,
 ) @trusted
 {
-    import core.lifetime : emplace;
-    import core.internal.array.utils : __arrayAlloc;
-    import core.stdc.string : memcpy, memmove;
-    import core.internal.traits : Unqual;
 
     alias U = Unqual!T; // Ensure non-inout type
 
@@ -93,13 +97,6 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
     size_t newsize;
     bool overflow = false;
 
-    static size_t mulu(size_t a, size_t b, ref bool overflow)
-    {
-        size_t result = a * b;
-        overflow = (b != 0 && result / b != a);
-        return result;
-    }
-
     newsize = mulu(sizeelem, newlength, overflow);
     if (overflow)
     {
@@ -137,11 +134,11 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
 
     if (arr.ptr == allocatedData.ptr)
     {
-        memmove(allocatedData.ptr, arr.ptr, size);
+        memmove(allocatedData.ptr, cast(const(void)*) arr.ptr, size);
     }
     else
     {
-        memcpy(allocatedData.ptr, arr.ptr, size);
+        memcpy(allocatedData.ptr, cast(const(void)*) arr.ptr, size);
     }
 
     static if (!is(T == void) && !is(T == immutable) && !is(T == const))
