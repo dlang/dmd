@@ -1861,7 +1861,7 @@ private elem* elor(elem* e, Goal goal)
      */
     if (sz == 4 && OPTIMIZER)
     {
-        elem*[4] ops = void;
+        elem*[4] ops;
         size_t opsi = 0;
         if (fillinops(ops, opsi, OPor, e) && opsi == ops.length)
         {
