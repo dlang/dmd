@@ -15,7 +15,7 @@ module core.internal.newaa;
 immutable int _aaVersion = 1;
 
 import core.internal.util.math : min, max;
-import core.internal.traits : substInout;
+import core.internal.traits : substInout, Unqual;
 
 // grow threshold
 private enum GROW_NUM = 4;
@@ -67,13 +67,20 @@ static struct Entry(K, V)
     V value;
 }
 
-static hash_t wrap_hashOf(K)(scope ref const K key) { return hashOf(key); }
+// for backward compatibility, do not require const in hashOf()
+static hash_t wrap_hashOf(K)(scope ref K key) { return hashOf(key); }
 enum pure_hashOf(K) = cast(hash_t function(scope ref const K key) pure nothrow @nogc @safe) &wrap_hashOf!K;
+
+// for backward compatibilty pretend the comparison is @safe, pure, etc
+// this also breaks cyclic inference on recursive data types
+static bool keyEqual(K1, K2)(ref const K1 k1, ref const K2 k2) { return k1 == k2; }
+enum pure_keyEqual(K1, K2) = cast(bool function(ref const K1, ref const K2) pure nothrow @nogc @safe) &keyEqual!(K1, K2);
 
 private struct Impl(K, V)
 {
 private:
     alias Bucket = .Bucket!(K, V);
+    alias constK = const(K); //Unqual!K); // remove immutable
 
     this(size_t sz /* = INIT_NUM_BUCKETS */) nothrow
     {
@@ -82,8 +89,8 @@ private:
 
         // only for binary compatibility
         entryTI = typeid(Entry!(K, V));
-        hashFn = delegate size_t (scope ref const K key) nothrow pure @nogc @safe {
-            return pure_hashOf!K(key);
+        hashFn = delegate size_t (scope ref constK key) nothrow pure @nogc @safe {
+            return pure_hashOf!constK(key);
         };
 
         keysz = cast(uint) K.sizeof;
@@ -110,7 +117,7 @@ private:
     immutable uint valsz;    // only for binary compatibility
     immutable uint valoff;   // only for binary compatibility
     Flags flags;             // only for binary compatibility
-    size_t delegate(scope ref const K) nothrow pure @nogc @safe hashFn;
+    size_t delegate(scope ref constK) nothrow pure @nogc @safe hashFn;
 
     enum Flags : ubyte
     {
@@ -130,13 +137,13 @@ private:
         return buckets.length;
     }
 
-    @property size_t mask() const pure nothrow @nogc
+    @property size_t mask() const pure nothrow @nogc @safe
     {
         return dim - 1;
     }
 
     // find the first slot to insert a value with hash
-    size_t findSlotInsert(size_t hash) inout pure nothrow @nogc
+    size_t findSlotInsert(size_t hash) const pure nothrow @nogc @safe
     {
         for (size_t i = hash & mask, j = 1;; ++j)
         {
@@ -147,18 +154,12 @@ private:
     }
 
     // lookup a key
-    inout(Bucket)* findSlotLookup(size_t hash, ref const K key) inout
+    inout(Bucket)* findSlotLookup(size_t hash, ref const K key) inout pure @safe nothrow
     {
         for (size_t i = hash & mask, j = 1;; ++j)
         {
-            bool keyEqual(ref const K k1, ref const K k2) @trusted
-            {
-                // for backward compatibilty pretend the comparison is @safe,
-                // see casts in object.opEquals for a violation
-                return k1 == k2;
-            }
             if (buckets[i].hash == hash && buckets[i].entry)
-                if (keyEqual(key, buckets[i].entry.key))
+                if (pure_keyEqual!(constK, constK)(key, buckets[i].entry.key))
                     return &buckets[i];
             if (buckets[i].empty)
                 return null;
@@ -166,7 +167,7 @@ private:
         }
     }
 
-    void grow() pure nothrow
+    void grow() pure nothrow @safe
     {
         // If there are so many deleted entries, that growing would push us
         // below the shrink threshold, we just purge deleted entries instead.
@@ -176,13 +177,13 @@ private:
             resize(GROW_FAC * dim);
     }
 
-    void shrink() pure nothrow
+    void shrink() pure nothrow @safe
     {
         if (dim > INIT_NUM_BUCKETS)
             resize(dim / GROW_FAC);
     }
 
-    void resize(size_t ndim) pure nothrow
+    void resize(size_t ndim) pure nothrow @safe
     {
         auto obuckets = buckets;
         buckets = allocBuckets!(K, V)(ndim);
@@ -203,6 +204,13 @@ private:
         buckets[firstUsed .. $] = Bucket.init;
         deleted = used = 0;
         firstUsed = cast(uint) dim;
+    }
+
+    size_t calcHash(ref const K key) const nothrow pure @nogc @safe
+    {
+        hash_t hash = hashFn(key);
+        // highest bit is set to distinguish empty/deleted from filled buckets
+        return mix(hash) | HASH_FILLED_MARK;
     }
 }
 
@@ -232,7 +240,7 @@ private pure nothrow @nogc:
     }
 }
 
-private Bucket!(K, V)[] allocBuckets(K, V)(size_t dim) pure nothrow
+private Bucket!(K, V)[] allocBuckets(K, V)(size_t dim) pure nothrow @safe
 {
     // could allocate with BlkAttr.NO_INTERIOR, but that does not combine
     //  well with arrays and type info for precise scanning
@@ -259,17 +267,6 @@ private size_t mix(size_t h) @safe pure nothrow @nogc
     h *= m;
     h ^= h >> 15;
     return h;
-}
-
-private size_t calcHash(K, V, K2)(auto ref const K2 key, Impl!(K, V)* impl)
-{
-    static if (is(K2 == K))
-        alias k2 = key;
-    else
-        K k2 = key;
-    hash_t hash = impl.hashFn(k2);
-    // highest bit is set to distinguish empty/deleted from filled buckets
-    return mix(hash) | HASH_FILLED_MARK;
 }
 
 private size_t nextpow2(const size_t n) pure nothrow @nogc @safe
@@ -350,7 +347,7 @@ V* _aaGetX(K, V)(scope ref AA!(K, V) aa, auto ref K key, out bool found)
     }
 
     // get hash and bucket for key
-    immutable hash = calcHash(key, aa.impl);
+    immutable hash = aa.calcHash(key);
 
     // found a value => return it
     if (auto p = aa.findSlotLookup(hash, key))
@@ -412,7 +409,7 @@ V[K] _aaDup(T : V[K], K, V)(T a)
     {
         if (!b.filled)
             continue;
-        hash_t hash = sameHash ? b.hash : calcHash(b.entry.key, impl);
+        hash_t hash = sameHash ? b.hash : impl.calcHash(b.entry.key);
         auto pi = impl.findSlotInsert(hash);
         auto p = &impl.buckets[pi];
         p.hash = hash;
@@ -432,19 +429,22 @@ V[K] _aaDup(T : V[K], K, V)(T a)
  * Returns:
  *      pointer to value if present, null otherwise
  */
-auto _d_aaIn(K, V, K2)(inout V[K] a, auto ref const K2 key)
+auto _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref const K2 key2)
 {
     auto aa = _toAA(a);
     if (aa.empty)
         return null;
 
+    // todo: allow any key that can be compared with == and has the same hash
     static if (is(K2 == K))
-        alias k2 = key;
+        alias key = key2;
+    else static if (is(immutable(K2) == immutable(K)))
+        ref K key = (ref () @trusted => *cast(K*)&key2)();
     else
-        ref K k2 = ref () @trusted { return *cast(K*)&key; } ();// assume the compiler has checked compatibility
+        static assert(false, "key type ", K2, " not compatible with ", K);
 
-    immutable hash = calcHash(k2, aa.impl);
-    if (auto p = aa.findSlotLookup(hash, k2))
+    immutable hash = aa.calcHash(key);
+    if (auto p = aa.findSlotLookup(hash, key))
         return &p.entry.value;
     return null;
 }
@@ -453,13 +453,21 @@ auto _d_aaIn(K, V, K2)(inout V[K] a, auto ref const K2 key)
 private extern(C) bool gc_inFinalizer() pure nothrow @safe;
 
 /// Delete entry scope const AA, return true if it was present
-auto _d_aaDel(K, V)(inout V[K] a, auto ref const K key)
+auto _d_aaDel(T : V[K], K, V, K2)(inout T a, auto ref const K2 key2)
 {
     auto aa = _toAA(a);
     if (aa.empty)
         return false;
 
-    immutable hash = calcHash(key, aa.impl);
+    // todo: allow any key that can be compared with == and has the same hash
+    static if (is(K2 == K))
+        alias key = key2;
+    else static if (is(immutable(K2) == immutable(K)))
+        ref K key = (ref () @trusted => *cast(K*)&key2)();
+    else
+        static assert(false, "key type ", K2, " not compatible with ", K);
+
+    immutable hash = aa.calcHash(key);
     if (auto p = aa.findSlotLookup(hash, key))
     {
         // clear entry
@@ -583,7 +591,7 @@ Impl!(K, V)* _d_assocarrayliteralTX(K, V)(K[] keys, V[] vals)
 
     foreach (i; 0 .. length)
     {
-        immutable hash = calcHash(keys[i], aa);
+        immutable hash = aa.calcHash(keys[i]);
 
         auto p = aa.findSlotLookup(hash, keys[i]);
         assert(p is null, "duplicate entries in associative array literal");
@@ -598,11 +606,8 @@ Impl!(K, V)* _d_assocarrayliteralTX(K, V)(K[] keys, V[] vals)
 }
 
 /// compares 2 AAs for equality
-bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2)
+bool _aaEqual(T : AA!(K, V), K, V)(T aa1, T aa2)
 {
-    auto aa1 = _toAA(a1);
-    auto aa2 = _toAA(a2);
-
     if (aa1 is aa2)
         return true;
 
@@ -619,7 +624,7 @@ bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2)
     {
         if (!b1.filled)
             continue;
-        hash_t hash = sameHash ? b1.hash : calcHash(b1.entry.key, aa2);
+        hash_t hash = sameHash ? b1.hash : aa2.calcHash(b1.entry.key);
         auto pb2 = aa2.findSlotLookup(hash, b1.entry.key);
         if (pb2 is null || b1.entry.value != pb2.entry.value)
             return false;
@@ -627,10 +632,24 @@ bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2)
     return true;
 }
 
-/// compute a hash
-hash_t _aaGetHash(K, V)(scope const AA!(K, V)* paa) nothrow
+/// compares 2 AAs for equality (compiler hook)
+bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2)
 {
-    const AA aa = *paa;
+    auto aa1 = _toAA(a1);
+    auto aa2 = _toAA(a2);
+    return _aaEqual(aa1, aa2);
+}
+
+/// callback from TypeInfo_AssociativeArray.equals (ignore scope const for now)
+bool _aaOpEqual(K, V)(/* scope const */ AA!(K, V)* aa1, /* scope const */ AA!(K, V)* aa2)
+{
+    return _aaEqual(*aa1, *aa2);
+}
+
+/// compute a hash callback from TypeInfo_AssociativeArray.xtoHash (ignore scope const for now)
+hash_t _aaGetHash(K, V)(/* sscope const */ AA!(K, V)* paa)
+{
+    const aa = *paa;
 
     if (aa.empty)
         return 0;
@@ -640,7 +659,7 @@ hash_t _aaGetHash(K, V)(scope const AA!(K, V)* paa) nothrow
     {
         // use addition here, so that hash is independent of element order
         if (b.filled)
-            h += hashOf(hashOf(b.entry.value), hashOf(b.entry.key));
+            h += hashOf(pure_hashOf!V(b.entry.value), pure_hashOf!K(b.entry.key));
     }
 
     return h;
@@ -777,7 +796,7 @@ AA!(K, V) makeAA(K, V)(V[K] src) @trusted
     auto aa = AA!(K, V)(impl);
     foreach (k, ref v; src)
     {
-        immutable hash = calcHash(k, impl);
+        immutable hash = impl.calcHash(k);
         auto p = aa.findSlotLookup(hash, k);
         assert(p is null, "duplicate entries in associative array literal");
         auto pi = aa.findSlotInsert(hash);

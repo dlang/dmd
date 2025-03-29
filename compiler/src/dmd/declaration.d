@@ -1396,6 +1396,8 @@ extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
 extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
 {
     Type entry; // type of TypeInfo_AssociativeArray.Entry!(t.index, t.next)
+    Dsymbol xopEqual; // implementation of TypeInfo_AssociativeArray.equals
+    Dsymbol xtoHash;  // implementation of TypeInfo_AssociativeArray.getHash
 
     extern (D) this(Type tinfo)
     {
