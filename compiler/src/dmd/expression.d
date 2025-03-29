@@ -3852,11 +3852,20 @@ extern (C++) final class CommaExp : BinExp
     /// false will be passed will be from the parser.
     bool allowCommaExp;
 
+    /// The original expression before any rewriting occurs.
+    /// This is used in error messages.
+    Expression originalExp;
 
     extern (D) this(Loc loc, Expression e1, Expression e2, bool generated = true) @safe
     {
         super(loc, EXP.comma, e1, e2);
         allowCommaExp = isGenerated = generated;
+    }
+
+    extern (D) this(Loc loc, Expression e1, Expression e2, Expression oe) @safe
+    {
+        this(loc, e1, e2);
+        originalExp = oe;
     }
 
     override bool isLvalue()
