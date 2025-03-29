@@ -2766,7 +2766,6 @@ class CommaExp final : public BinExp
 public:
     const bool isGenerated;
     bool allowCommaExp;
-    Expression* originalExp;
     bool isLvalue() override;
     Optional<bool > toBool() override;
     void accept(Visitor* v) override;
