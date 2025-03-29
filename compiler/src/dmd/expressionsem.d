@@ -11259,9 +11259,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             checkDefCtor(ale.loc, tn);
 
             // Choose correct GC hook
-            Identifier hook = global.params.tracegc ? Id._d_arraysetlengthTTrace : Id._d_arraysetlengthT;
+            Identifier hook = Id._d_arraysetlengthT;
 
-            // Fix: Verify the correct hook
+            // Fix: Verify the correct hook exists
             if (!verifyHookExist(exp.loc, *sc, hook, "resizing arrays"))
                 return setError();
 
