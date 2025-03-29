@@ -35,10 +35,30 @@ void test3()
     static assert(4.0 ^^ -1 == 0.25);
 }
 
+void test4()
+{
+    // Test that LHS side effects are evaluated.
+    int count = 0;
+    double x()
+    {
+        count++;
+        return 8.0;
+    }
+    assert(x ^^ -1 == 1.0 / 8.0);
+    assert(count == 1);
+    assert(x ^^ 0 == 1.0);
+    assert(count == 2);
+    assert(x ^^ 1 == 8.0);
+    assert(count == 3);
+    assert(x ^^ 2 == 64.0);
+    assert(count == 4);
+}
+
 extern(C) void main()
 {
     test1();
     test2();
     test3();
+    test4();
     printf("Success\n");
 }
