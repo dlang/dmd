@@ -625,7 +625,7 @@ bool _aaEqual(T : AA!(K, V), K, V)(T aa1, T aa2)
             continue;
         hash_t hash = sameHash ? b1.hash : aa2.calcHash(b1.entry.key);
         auto pb2 = aa2.findSlotLookup(hash, b1.entry.key);
-        if (pb2 is null || b1.entry.value != pb2.entry.value)
+        if (pb2 is null || !pure_keyEqual!(V, V)(b1.entry.value, pb2.entry.value)) // rarely, inference on opEqual breaks builds here
             return false;
     }
     return true;
