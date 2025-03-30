@@ -165,9 +165,13 @@ version (D_ProfileGC)
     import core.internal.array.utils : _d_HookTraceImpl;
 
     /**
-     * TraceGC wrapper around `_d_arraysetlengthT`.
-     */
-    alias _d_arraysetlengthTTrace = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT, "Array length set");
+        * TraceGC wrapper around $(REF _d_arraysetlengthT, core,internal,array,core.internal.array.capacity).
+        * Bugs:
+        *  This function template was ported from a much older runtime hook that bypassed safety,
+        *  purity, and throwabilty checks. To prevent breaking existing code, this function template
+        *  is temporarily declared `@trusted pure nothrow` until the implementation can be brought up to modern D expectations.
+        */
+    alias _d_arraysetlengthTTrace = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT, errorMessage);
 }
 
 @safe unittest
@@ -178,13 +182,13 @@ version (D_ProfileGC)
     }
 
     int[] arr;
-    _d_arraysetlengthT!(typeof(arr).elementType)(arr, 16);
+    _d_arraysetlengthT!(typeof(arr), int)(arr, 16);
     assert(arr.length == 16);
     foreach (int i; arr)
         assert(i == int.init);
 
     shared S[] arr2;
-    _d_arraysetlengthT!(typeof(arr2).elementType)(arr2, 16);
+    _d_arraysetlengthT!(typeof(arr2), S)(arr2, 16);
     assert(arr2.length == 16);
     foreach (s; arr2)
         assert(s == S.init);

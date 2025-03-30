@@ -1,3 +1,6 @@
 
 FUNCTIONS
 	_D5hello8showargsFAAyaZv
+	_D4core8internal5array12construction__T12_d_newarrayTTaZQrFNaNbNembZAa
+	_D4core8internal5array5utils__T12__arrayAllocTaZQrFNaNbNemZAv
+	_D4core8internal8lifetime__T18emplaceInitializerTaZQxFNaNbNiNeMKaZv
