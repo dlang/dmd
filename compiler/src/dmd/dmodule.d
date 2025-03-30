@@ -493,12 +493,6 @@ extern (C++) final class Module : Package
         return new Module(Loc.initial, filename, ident, doDocComment, doHdrGen);
     }
 
-    static const(char)* find(const(char)* filename)
-    {
-        ImportPathInfo pathThatFoundThis; // is this needed? In fact is this function needed still???
-        return find(filename.toDString, pathThatFoundThis).ptr;
-    }
-
     extern (D) static const(char)[] find(const(char)[] filename, out ImportPathInfo pathThatFoundThis)
     {
         ptrdiff_t whichPathFoundThis;

@@ -123,7 +123,6 @@ public:
     size_t namelen;             // length of module name in characters
 
     static Module* create(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
-    static const char *find(const char *filename);
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     const char *kind() const override;
