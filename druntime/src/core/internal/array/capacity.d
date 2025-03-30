@@ -19,8 +19,8 @@ module core.internal.array.capacity;
  *
  * Newly created elements are initialized to their default value.
  *
- * This function is **now fully templated**, eliminating the need for TypeInfo-based 
- * `_d_arraysetlengthT` and `_d_arraysetlengthiT`, while efficiently handling both 
+ * This function is **now fully templated**, eliminating the need for TypeInfo-based
+ * `_d_arraysetlengthT` and `_d_arraysetlengthiT`, while efficiently handling both
  * zero-initialized and custom-initialized types.
  *
  * ---
@@ -42,10 +42,10 @@ module core.internal.array.capacity;
 /// Complete templated implementation of `_d_arraysetlengthT` and its GC profiling variant `_d_arraysetlengthTTrace`
 
 size_t _d_arraysetlengthT(Tarr : T[], T)(
-    return scope ref Tarr arr, 
-    size_t newlength, 
-    string file = __FILE__, 
-    int line = __LINE__, 
+    return scope ref Tarr arr,
+    size_t newlength,
+    string file = __FILE__,
+    int line = __LINE__,
     string func = __FUNCTION__
 ) @trusted
 {
