@@ -934,7 +934,8 @@ public:
 class ArrayLengthExp final : public UnaExp
 {
 public:
-    void accept(Visitor *v) override { v->visit(this); }
+    Expression* lowering;  // Add this to match frontend.h
+    void accept(Visitor* v) override { v->visit(this); }
 };
 
 class IntervalExp final : public Expression
