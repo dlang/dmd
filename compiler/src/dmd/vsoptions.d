@@ -26,6 +26,9 @@ import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string : toDString;
+import dmd.errors;
+import dmd.location;
+import core.stdc.stdlib : exit;
 
 private immutable supportedPre2017Versions = ["14.0", "12.0", "11.0", "10.0", "9.0"];
 
@@ -191,7 +194,7 @@ extern(C++) struct VSOptions
     * Params:
     *   x64 = target architecture (x86 if false)
     * Returns:
-    *   absolute path to cl.exe, just "cl.exe" if not found
+    *   absolute path to cl.exe, an error message along with "cl.exe" if not found
     */
     const(char)* compilerPath(bool x64)
     {
@@ -203,7 +206,11 @@ extern(C++) struct VSOptions
             cmdbuf.writestring(r"\cl.exe");
             return cmdbuf.extractChars();
         }
-        return "cl.exe";
+        //Display an error message if path to cl.exe not found
+        error(Loc.initial, "Error: cl.exe not found. Ensure that Visual Studio is installed and properly configured.");
+        exit(1);
+        //This return statement is never reached, but satisfies the function signature.
+        return null;
     }
 
 private:
