@@ -2952,6 +2952,8 @@ void clear(Value, Key)(Value[Key]* aa) @trusted
  *      aa =     The associative array.
  * Returns:
  *      The rehashed associative array.
+ * Note:
+ *  emulated by the compiler during CTFE
  */
 T rehash(T : Value[Key], Value, Key)(T aa)
 {
@@ -2985,11 +2987,11 @@ T rehash(T : shared Value[Key], Value, Key)(T* aa)
  * the associative array into it.
  * Params:
  *      aa =     The associative array.
+ * Note:
+ *  emulated by the compiler during CTFE
  */
-V[K] dup(T : V[K], K, V)(T aa)
+auto dup(T : V[K], K, V)(T aa)
 {
-    //pragma(msg, "K = ", K, ", V = ", V);
-
     // Bug10720 - check whether V is copyable
     static assert(is(typeof({ V v = aa[K.init]; })),
         "cannot call " ~ T.stringof ~ ".dup because " ~ V.stringof ~ " is not copyable");
@@ -2998,7 +3000,7 @@ V[K] dup(T : V[K], K, V)(T aa)
 }
 
 /** ditto */
-V[K] dup(T : V[K], K, V)(T* aa)
+auto dup(T : V[K], K, V)(T* aa)
 {
     return (*aa).dup;
 }
@@ -3254,6 +3256,8 @@ auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
  *      aa =     The associative array.
  * Returns:
  *      A dynamic array containing a copy of the keys.
+ * Note:
+ *  emulated by the compiler during CTFE
  */
 Key[] keys(T : Value[Key], Value, Key)(T aa) @property
 {
@@ -3327,6 +3331,8 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
  *      aa =     The associative array.
  * Returns:
  *      A dynamic array containing a copy of the values.
+ * Note:
+ *  emulated by the compiler during CTFE
  */
 Value[] values(T : Value[Key], Value, Key)(T aa) @property
 {
