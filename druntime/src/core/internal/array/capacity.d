@@ -41,13 +41,14 @@ module core.internal.array.capacity;
 
 /// Complete templated implementation of `_d_arraysetlengthT` and its GC profiling variant `_d_arraysetlengthTTrace`
 
+
 size_t _d_arraysetlengthT(Tarr : T[], T)(
     return scope ref Tarr arr,
     size_t newlength,
     string file = __FILE__,
     int line = __LINE__,
     string func = __FUNCTION__
-) @trusted
+) @trusted pure
 {
     import core.lifetime : emplace;
     import core.internal.array.utils : __arrayAlloc;
@@ -158,20 +159,17 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
 
     arr = cast(Tarr) (cast(U*) allocatedData.ptr)[0 .. newlength];
     return arr.length;
+
 }
 
 version (D_ProfileGC)
 {
     import core.internal.array.utils : _d_HookTraceImpl;
-
-    /**
-        * TraceGC wrapper around $(REF _d_arraysetlengthT, core,internal,array,core.internal.array.capacity).
-        * Bugs:
-        *  This function template was ported from a much older runtime hook that bypassed safety,
-        *  purity, and throwabilty checks. To prevent breaking existing code, this function template
-        *  is temporarily declared `@trusted pure nothrow` until the implementation can be brought up to modern D expectations.
-        */
-    alias _d_arraysetlengthTTrace = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT, errorMessage);
+    
+    template _d_arraysetlengthTTrace(Tarr, T)
+    {
+        alias _d_arraysetlengthTTrace = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT!(Tarr, T), "Error in _d_arraysetlengthT");
+    }
 }
 
 @safe unittest

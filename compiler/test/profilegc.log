@@ -1,0 +1,2 @@
+bytes allocated, allocations, type, function, file:line
+             96	              1	ubyte profilegc_stdout.main runnable\profilegc_stdout.d:17
