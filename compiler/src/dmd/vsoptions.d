@@ -28,7 +28,6 @@ import dmd.root.rmem;
 import dmd.root.string : toDString;
 import dmd.errors;
 import dmd.location;
-import core.stdc.stdlib : exit;
 
 private immutable supportedPre2017Versions = ["14.0", "12.0", "11.0", "10.0", "9.0"];
 
@@ -208,7 +207,7 @@ extern(C++) struct VSOptions
         }
         //Display an error message if path to cl.exe not found
         error(Loc.initial, "Error: cl.exe not found. Ensure that Visual Studio is installed and properly configured.");
-        exit(1);
+        fatal();
         //This return statement is never reached, but satisfies the function signature.
         return null;
     }
