@@ -1,0 +1,1 @@
+module issue22816;

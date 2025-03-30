@@ -1,0 +1,4 @@
+DW_AT_decl_line   : 1002
+DW_AT_decl_column : 17
+DW_AT_decl_line   : 1003
+DW_AT_decl_column : 9

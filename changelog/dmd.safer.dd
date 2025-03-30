@@ -1,0 +1,22 @@
+Add `-preview=safer` switch for safety checking on unattributed functions
+
+All the checks currently enabled in `@safe` code, that are easily fixed (as in
+the fix is constrained to the function), will be enabled in `-preview=safer` code.
+
+Code not easily fixed, such as calls to `@system` or unattributed functions, will
+be allowed as before.
+
+---
+void f();
+@system void g();
+
+void main()
+{
+    int* p;
+    p++; // Error, pointer arithmetic
+    f(); // allowed
+    g(); // allowed
+}
+---
+
+For more information, see [this document](https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md).

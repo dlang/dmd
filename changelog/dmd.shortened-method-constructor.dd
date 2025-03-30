@@ -1,0 +1,18 @@
+Shortened method syntax can now be used in constructors
+
+This used to raise an error (cannot return expression from constructor), but is now supported:
+
+---
+struct Number
+{
+    int x;
+
+    void vf(int);
+    this(int x) => vf(x);
+    this(float x) => this(cast(int) x);
+}
+---
+
+The expression body must be a `this`/`super` call or have type `void`.
+
+Postblits and destructors already supported shortened method syntax because they return `void`.

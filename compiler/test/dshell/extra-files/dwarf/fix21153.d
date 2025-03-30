@@ -1,0 +1,6 @@
+int i;
+
+void main()
+{
+
+}

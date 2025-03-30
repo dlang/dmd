@@ -1,0 +1,64 @@
+*.[oa]
+*.deps
+*.lst
+log*
+.B*
+*~
+/compiler/src/dmd/lwv
+/compiler/src/dmd/new
+/compiler/src/bug2
+/compiler/test/test_results
+/compiler/test/trace.def
+/compiler/test/trace.log
+generated/
+*.obj
+*.map
+-.DS_Store
+-trace.def
+-trace.log
+.dub
+dub.selections.json
+
+# Visual Studio files
+*.exe
+*.pdb
+/compiler/src/vcbuild/Win32
+/compiler/src/vcbuild/x64
+/compiler/src/vcbuild/.vs
+*.ncb
+*.suo
+*.sdf
+*.opensdf
+*.user
+*.ilk
+ipch
+.vscode
+
+# Xcode files
+DerivedData/
+xcuserdata/
+dmd.xcodeproj/
+
+# Output files
+/compiler/src/*.bak
+/compiler/src/*.lib
+/compiler/src/*.lst
+tags
+
+# OSX
+/compiler/src/optabgen.dSYM/
+
+# GCov
+*.gcno
+*.gcda
+
+# IntelliJ IDEA / CLion
+.idea/
+dmd.iml
+
+# Deliberately ignored files
+untracked_files/
+
+# Just in case
+/dmd
+.DS_Store

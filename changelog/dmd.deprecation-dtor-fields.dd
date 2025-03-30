@@ -1,0 +1,32 @@
+An error is now given for constructors when a field's destructor has stricter attributes
+
+```
+struct HasDtor
+{
+    ~this() {}
+}
+
+struct Pure
+{
+    HasDtor member;
+    this(int) pure {} // Error: `this` has stricter attributes than its destructor (`pure`)
+}
+
+struct Nothrow
+{
+    HasDtor member;
+    this(int) nothrow {} // Error: `this` has stricter attributes than its destructor (`nothrow`)
+}
+
+struct NoGC
+{
+    HasDtor member;
+    this(int) @nogc {} // Error: `this` has stricter attributes than its destructor (`@nogc`)
+}
+
+struct Safe
+{
+    HasDtor member;
+    this(int) @safe {} // Error: `this` has stricter attributes than its destructor (`@safe`)
+}
+```

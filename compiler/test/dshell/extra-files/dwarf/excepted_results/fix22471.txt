@@ -1,0 +1,3 @@
+DW_AT_artificial  : 1
+DW_AT_name        : D main
+DW_AT_name        : __main._d_cmain!().main

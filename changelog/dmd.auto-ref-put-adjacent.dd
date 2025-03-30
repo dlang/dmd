@@ -1,0 +1,18 @@
+Keywords `auto` and `ref` must be adjacent
+
+It's now deprecated to declare `auto ref` parameters without putting those two keywords next to each other.
+This way it's clear that `auto ref` semantics are intended, rather than `ref` and `auto` semantics separately.
+For the newly introduced $(RELATIVE_LINK2 dmd.reflocal, `ref` local / global variables), it's an error immediately.
+
+---
+void t()(ref const auto int x) // Deprecation
+{
+    ref auto y = x; // Error
+}
+
+// Correction:
+void t()(auto ref const int x)
+{
+    auto ref y = x;
+}
+---

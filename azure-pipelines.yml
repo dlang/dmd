@@ -1,0 +1,79 @@
+# Learn more: https://aka.ms/yaml
+variables:
+  VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\
+
+jobs:
+  - job: Windows_DMD_bootstrap
+    timeoutInMinutes: 60
+    pool:
+      vmImage: 'windows-2019'
+    variables:
+      D_COMPILER: dmd
+      HOST_DMD_VERSION: 2.079.0
+    strategy:
+      matrix:
+        x64:
+          MODEL: 64
+          ARCH: x64
+    steps:
+      - template: .azure-pipelines/windows.yml
+
+  - job: Windows_DMD_latest
+    timeoutInMinutes: 60
+    pool:
+      vmImage: 'windows-2019'
+    variables:
+      D_COMPILER: dmd
+      HOST_DMD_VERSION: LATEST
+    strategy:
+      matrix:
+        x64:
+          MODEL: 64
+          ARCH: x64
+        x86:
+          MODEL: 32
+          ARCH: x86
+    steps:
+      - template: .azure-pipelines/windows.yml
+      - template: .azure-pipelines/windows-artifact.yml
+
+  - job: Windows_Coverage
+    timeoutInMinutes: 60
+    pool:
+      vmImage: 'windows-2019'
+    variables:
+      D_COMPILER: dmd
+      HOST_DMD_VERSION: LATEST
+      # Disable actual coverage because of issues with the codecov uploader
+      DMD_TEST_COVERAGE: 1
+    strategy:
+      matrix:
+        x64:
+          MODEL: 64
+          ARCH: x64
+    steps:
+      - template: .azure-pipelines/windows.yml
+
+  - job: Windows_VisualD_LDC
+    timeoutInMinutes: 60
+    pool:
+      vmImage: 'windows-2019'
+    variables:
+      D_COMPILER: ldc
+      VISUALD_VER: v0.49.0
+      LDC_VERSION: 1.23.0
+    strategy:
+      matrix:
+        x64_Debug:
+          MODEL: 64
+          ARCH: x64
+          CONFIGURATION: Debug
+        x86-mscoff:
+          MODEL: 32
+          ARCH: x86
+        x86-mscoff_MinGW:
+          MODEL: 32
+          ARCH: x86
+          C_RUNTIME: mingw
+    steps:
+      - template: .azure-pipelines/windows-visual-studio.yml

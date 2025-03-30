@@ -1,0 +1,123 @@
+Many error messages have changed
+
+Some changes have been made without being associated to a reported issue:
+
+Error messages for `@safe` violations now consistently mention they are related to `@safe` functions (or default functions with `-preview=safer`).
+In general, function attributes that failed to infer have a more compact error message:
+
+Before:
+$(CONSOLE
+app.d(8): Error: function `attributediagnostic_nothrow.gc1` is not `nothrow`
+app.d(2):        which wasn't inferred `nothrow` because of:
+app.d(2):        `object.Exception` is thrown but not caught
+)
+
+After:
+$(CONSOLE
+app.d(8): Error: function `attributediagnostic_nothrow.gc1` is not `nothrow`
+app.d(2):        and `object.Exception` being thrown but not caught makes it fail to infer `nothrow`
+)
+
+Function literals are now referred to by their (truncated) function body, instead of the internal `__lambda` name.
+
+---
+/*
+BEFORE:
+
+../test/test_.d(3): Error: function literal `__lambda1()` is not callable using argument types `(int)`
+    (() => 42)(1);
+              ^
+AFTER:
+
+../test/test_.d(3): Error: function literal `() => 42` is not callable using argument types `(int)`
+    (() => 42)(1);
+              ^
+*/
+---
+
+Match levels are now mentioned on ambiguous overloads: [#20637](https://github.com/dlang/dmd/pull/20637)
+
+Before:
+$(CONSOLE
+Error: `app.bar` called with argument types `(string)` matches both:
+)
+
+After:
+$(CONSOLE
+Error: `app.bar` called with argument types `(string)` matches multiple overloads after implicit conversions:
+)
+
+Error messages related to operator overloading have been improved.
+When the related template functions (`opUnary`, `opBinary`, `opBinaryRight`, `opOpAssign`, `opIndex`, `opSlice`)
+are missing, a suggestion to implement them is given.
+
+When they do exist but fail to instantiate, the error from instantiation is shown.
+There's no longer a need to manually e.g. rewrite `s + 1` to `s.opBinary!"+"(1)` to diagnose the error.
+
+---
+struct S {}
+
+void main()
+{
+    S s;
+    const x = s[3 .. "4"];
+}
+---
+
+Before:
+$(CONSOLE
+app.d(6): Error: no `[]` operator overload for type `S`
+)
+
+After:
+$(CONSOLE
+app.d(6): Error: no `[3.."4"]` operator overload for type `S`
+app.d(1):        perhaps define `auto opSlice(int lower, string upper) {}` for `app.S`
+)
+
+---
+struct Str {}
+
+struct Number
+{
+    int x;
+    int opBinary(string op : "+")(int rhs) => this.x + x;
+}
+
+void f(Str str, Number number)
+{
+    const s = str ~ "hey";
+    const n = number + "oops";
+}
+---
+
+Before:
+$(CONSOLE
+app.d(12): Error: incompatible types for `(str) ~ ("hey")`: `Str` and `string`
+    const s = str ~ "hey";
+              ^
+app.d(13): Error: incompatible types for `(number) + ("oops")`: `Number` and `string`
+    const n = number + "oops";
+)
+
+After:
+$(CONSOLE
+app.d(12): Error: operator `~` is not defined for type `Str`
+    const s = str ~ "hey";
+              ^
+app.d(2):        perhaps overload the operator with `auto opBinary(string op : "~")(string rhs) {}`
+struct Str {}
+^
+app.d(13): Error: function `test_.Number.opBinary!"+".opBinary(int rhs)` is not callable using argument types `(string)`
+    const n = number + "oops";
+              ^
+app.d(13):        cannot pass argument `"oops"` of type `string` to parameter `int rhs`
+app.d(7):        `opBinary` defined here
+    int opBinary(string op : "+")(int rhs) => this.x + x;
+        ^
+)
+
+Furthermore:
+
+- D1 operator overloading functions (`opAdd`, `opDot`) are completely removed and no longer mentioned in error messages specifically.
+- Class allocators (`auto new() {}`) are not only a semantic error, but no longer parse.

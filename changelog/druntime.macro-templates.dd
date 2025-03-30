@@ -1,0 +1,38 @@
+C Macro translations in druntime have been translated to templates
+
+This prevents linking errors when using `-betterC`.
+For example:
+
+---
+import core.sys.posix.stdlib;
+import core.sys.posix.unistd;
+
+extern(C) int main()
+{
+    int status, pid = vfork();
+    if (pid == 0)
+    {
+        // ...
+        return 0;
+    }
+
+    waitpid(pid, &status, 0);
+    if (WIFEXITED(status))
+    {
+        // ...
+    }
+    return 0;
+}
+---
+
+This would fail to compile with the `-betterC` flag:
+
+---
+$(CONSOLE
+Error: undefined reference to `core.sys.posix.sys.wait.WIFEXITED(int)`
+       referenced from `main`
+)
+---
+
+The reason is that `WIFEXITED` is a C macro that was translated to a D function in druntime, which requires linking with druntime to use.
+Now that it's a template, it will be lazily instantiated and the program compiles.

@@ -1,0 +1,13 @@
+Postfix type qualifier method attributes for `-H` and `-D`
+
+The `.di` interface file generation and Ddoc output will now have type qualifier
+attributes placed after the parameter list for methods (and constructors).
+This avoids confusion with the return type.
+
+---
+struct S
+{
+    const int f(); // before
+    int f() const; // now
+}
+---

@@ -1,0 +1,22 @@
+steps:
+  - script: |
+      :: Use Windows CRLF line endings for checked-out text files
+      git config --global core.autocrlf true
+      set
+    displayName: Print environment variables
+  - checkout: self
+    fetchDepth: 1
+  - script: |
+      @echo on
+      call "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
+      bash --version
+      bash --login .azure-pipelines/windows.sh
+    displayName: Build and test
+
+  # Try to upload the coverage files from the previous step to CodeCov
+  # This job is allowed to fail s.t. it does not block PR's in case of
+  # environmental issues
+  - script: bash --login -c "OS_NAME=windows source ci/codecov.sh"
+    displayName: "Upload coverage report"
+    condition: eq( variables.DMD_TEST_COVERAGE, 1)
+    continueOnError: true

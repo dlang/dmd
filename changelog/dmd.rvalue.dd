@@ -1,0 +1,40 @@
+New keyword `__rvalue`
+
+The newly added primary expression of the form `__rvalue(expression)`
+evaluates to `expression`, except that it is treated as an rvalue,
+even if would be an lvalue otherwise.
+
+Overloads on `ref`:
+```
+foo(    S s); // selected if the argument is an rvalue
+foo(ref S s); // selected if the argument is an lvalue
+
+S s;
+S bar();
+...
+foo(s); // selects foo(ref S)
+foo(bar()); // selects foo(S)
+```
+With this change:
+```
+foo(__rvalue(s)); // selects foo(S)
+```
+This also applies to constructors and assignments, meaning move constructors and
+move assignments are enabled. Moving instead of copying can be much more resource
+efficient, as, say, a string can be moved rather than copied/deleted.
+
+A moved object will still be destructed, so take that into account when moving
+a field - set it to a benign value that can be destructed.
+
+`__rvalue` may also be used as an attribute on a function which returns by ref
+to declare that the result should be treated as an rvalue at the callsite:
+```
+ref T move(T)(return ref T source) __rvalue
+{
+    return source;
+}
+
+S s;
+S t = move(s); // call expression rewritten as: S t = __rvalue(move(s))
+```
+This is used as an internal tool to implement library primitives such as `move` and `forward`.

@@ -1,0 +1,149 @@
+name "dmd"
+description "The DMD compiler"
+authors "Walter Bright"
+copyright "Copyright © 1999-2018, The D Language Foundation"
+license "BSL-1.0"
+toolchainRequirements dub=">=1.29.0" # can use $DUB_EXE etc. in custom commands
+
+targetType "none"
+dependency ":frontend" version="*"
+
+subPackage {
+  name "compiler"
+  targetType "executable"
+  targetName "dmd"
+  sourcePaths "compiler/src/dmd"
+  importPaths "compiler/src"
+  stringImportPaths "compiler/src/dmd/res" "."
+  dflags "-L/STACK:16777216" platform="windows"
+  dflags "-preview=dip1000"
+  preGenerateCommands "echo -n /etc > SYSCONFDIR.imp" platform="posix"
+}
+
+subPackage {
+  name "root"
+  targetType "library"
+  importPaths "compiler/src"
+  sourcePaths "compiler/src/dmd/common" "compiler/src/dmd/root"
+}
+
+subPackage {
+  name "lexer"
+  targetType "library"
+  importPaths "compiler/src"
+  sourcePaths
+
+  sourceFiles \
+    "compiler/src/dmd/console.d" \
+    "compiler/src/dmd/entity.d" \
+    "compiler/src/dmd/errors.d" \
+    "compiler/src/dmd/file_manager.d" \
+    "compiler/src/dmd/globals.d" \
+    "compiler/src/dmd/id.d" \
+    "compiler/src/dmd/identifier.d" \
+    "compiler/src/dmd/lexer.d" \
+    "compiler/src/dmd/location.d" \
+    "compiler/src/dmd/sarif.d" \
+    "compiler/src/dmd/tokens.d" \
+    "compiler/src/dmd/utils.d" \
+    "compiler/src/dmd/errorsink.d"
+
+  versions \
+    "CallbackAPI" \
+    "DMDLIB"
+
+  # generate files `generated/dub/{VERSION,SYSCONFDIR.imp}` for string-imports
+  # by building & running the config.d tool
+  preGenerateCommands `"$DUB_EXE" "--compiler=$DC" --single "${DUB_PACKAGE_DIR}config.d" -- "${DUB_PACKAGE_DIR}generated/dub" "${DUB_PACKAGE_DIR}VERSION" /etc`
+
+  stringImportPaths \
+    "compiler/src/dmd/res" \
+    "generated/dub"
+
+  dependency "dmd:root" version="*"
+}
+
+subPackage {
+  name "parser"
+  targetType "library"
+  importPaths "compiler/src"
+  sourcePaths
+
+  sourceFiles \
+    "compiler/src/dmd/astbase.d" \
+    "compiler/src/dmd/parse.d" \
+    "compiler/src/dmd/visitor/transitive.d" \
+    "compiler/src/dmd/visitor/permissive.d" \
+    "compiler/src/dmd/visitor/strict.d"
+
+  versions "CallbackAPI"
+
+  dependency "dmd:lexer" version="*"
+}
+
+subPackage {
+  name "frontend"
+  targetType "library"
+  importPaths "compiler/src"
+  sourcePaths "compiler/src/dmd"
+  stringImportPaths "compiler/src/dmd/res"
+
+  versions \
+    "NoBackend" \
+    "GC" \
+    "NoMain" \
+    "MARS" \
+    "CallbackAPI"
+
+  excludedSourceFiles "compiler/src/dmd/backend/*"
+  excludedSourceFiles "compiler/src/dmd/root/*"
+  excludedSourceFiles "compiler/src/dmd/common/*"
+  excludedSourceFiles "compiler/src/dmd/{\
+    astbase,\
+    console,\
+    entity,\
+    errors,\
+    errorsink,\
+    file_manager,\
+    globals,\
+    id,\
+    identifier,\
+    lexer,\
+    location,\
+    parse,\
+    sarif,\
+    tokens,\
+    utf,\
+    utils,\
+    visitor/permissive,\
+    visitor/strict,\
+    visitor/transitive,\
+  }.d"
+  excludedSourceFiles "compiler/src/dmd/{\
+    dmsc,\
+    e2ir,\
+    eh,\
+    glue,\
+    iasmdmd,\
+    iasmgcc,\
+    irstate,\
+    lib/package,\
+    lib/elf,\
+    lib/mach,\
+    lib/mscoff,\
+    lib/scanelf,\
+    lib/scanmach,\
+    lib/scanmscoff,\
+    link,\
+    objc_glue,\
+    s2ir,\
+    tocsym,\
+    toctype,\
+    tocvdebug,\
+    toobj,\
+    todt,\
+    toir\
+  }.d"
+
+  dependency "dmd:parser" version="*"
+}

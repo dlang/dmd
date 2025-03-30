@@ -1,0 +1,20 @@
+Added Placement New Expression
+
+Placement `new` explicitly provides the storage for `new` expression to initialize
+with the newly created value, rather than using the GC.
+
+---
+struct S
+{
+    float d;
+    int i;
+    char c;
+}
+
+void main() @system @nogc
+{
+    S s;
+    S* p = new (s) S(3.14, 42, 'X'); // place new object into s
+    assert(p.i == 42 && p.c == 'X');
+}
+---

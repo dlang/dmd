@@ -1,0 +1,15 @@
+New compiler switch `-oq` for DMD
+
+The switch gives fully qualified names to object files, preventing name conflicts when using the switch `-od`
+while compiling multiple modules with the same name, but inside different packages.
+The switch already existed in LDC, but is now in dmd as well.
+
+Example:
+
+$(CONSOLE
+dmd -c -oq -od=. app.d util/app.d misc/app.d
+)
+
+This will output `app.obj`, `util.app.obj`, and `misc.app.obj`, instead of just `app.obj`.
+
+The switch `-oq` also applies to other outputs, such as Ddoc (`-D -Dd=.`) and `.di` header generation (`-H -Hd=.`).

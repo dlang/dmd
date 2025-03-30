@@ -1,0 +1,6 @@
+Object file extensions `.o` and `.obj` are now accepted on all platforms
+
+Accepting `.o` and `.obj` file extensions on all platforms makes DMD behave
+like Clang and other modern compilers. There is no point in
+discarding `*.o` or `*.obj` depending on the current operating system, as both extensions
+unambiguously denote object file.

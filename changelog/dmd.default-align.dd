@@ -1,0 +1,23 @@
+The `align` attribute now allows specifying `default` explicitly
+
+A lone `align` sets the alignment to the type’s default.
+To be more explicit, `align(default)` does the same.
+
+```
+struct S
+{
+    align(4)
+    {
+        byte x;
+        align(default) long y;
+        long z;
+    }
+}
+
+void main()
+{
+    pragma(msg, S.x.alignof); // 4
+    pragma(msg, S.y.alignof); // 8
+    pragma(msg, S.z.alignof); // 4
+}
+```

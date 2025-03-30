@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="C++ Header Files">
+      <UniqueIdentifier>{35d19260-bd4e-4027-b2d0-d61e0e33faa8}</UniqueIdentifier>
+      <Extensions>h</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Generator">
+      <UniqueIdentifier>{24fae367-afdb-4167-bbb8-d63f754c8294}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="../dmd/**/*.h">
+      <Filter>C++ Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

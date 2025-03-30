@@ -1,0 +1,24 @@
+# EditorConfig file: https://editorconfig.org/
+
+root = true
+
+# Default settings for all file types:
+# + save files in UTF-8 encoding
+# + remove whitespace at the end of lines
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# File type specific settings:
+[*.{asm,S,c,cpp,m,h,d,di,dd,ddoc,dt,json,sdl,R,bat,bash,fish,sh,zsh}]
+indent_style = space
+indent_size = 4
+
+# Make and Windows module-definition files use tabs for indentation
+[*.{mak,Makefile,def}]
+indent_style = tab
+
+[*.yml]
+indent_style = space
+indent_size = 2

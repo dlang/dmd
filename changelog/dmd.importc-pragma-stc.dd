@@ -1,0 +1,25 @@
+A pragma for ImportC allows to set `nothrow`, `@nogc` or `pure`
+
+The following new pragma for ImportC allows to set default storage
+classes for function declarations:
+```c
+#pragma attribute(push, [storage classes...])
+```
+The storage classes `nothrow`, `nogc` and `pure` are supported.
+Unrecognized attributes are ignored.
+Enabling a default storage class affects all function declarations
+after the pragma until it is disabled with another pragma.
+Declarations in includes are also affected.
+The changed storage classes are pushed on a stack. The last change can
+be undone with the following pragma.
+The following example
+enables `@nogc` and `nothrow` for a library:
+
+```c
+#pragma attribute(push, nogc, nothrow)
+#include <somelibrary.h>
+#pragma attribute(pop)
+```
+
+This can also disable multiple default storage classes at the same time,
+if they were enabled with a single `#pragma attribute(push, ...)` directive.

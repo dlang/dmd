@@ -1,0 +1,51 @@
+name: pre_commit
+
+on:
+  pull_request:
+    branches:
+      - master
+      - stable
+  push:
+    branches:
+      - master
+      - stable
+  workflow_dispatch:
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    env:
+      SKIP: no-commit-to-branch
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure Git
+      run: |
+        git config --global color.diff.meta       "11"
+        git config --global color.diff.frag       "magenta bold"
+        git config --global color.diff.func       "146 bold"
+        git config --global color.diff.commit     "yellow bold"
+        git config --global color.diff.old        "red bold"
+        git config --global color.diff.new        "green bold"
+        git config --global color.diff.whitespace "red reverse"
+
+        git config --global diff.wsErrorHighlight "all"
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    - uses: pre-commit/action@v3.0.1
+    - name: Check changelog entries
+      run: |
+        check_prefix="$(find changelog -type f -name '*\.dd' -a ! -name 'dmd\.*' -a ! -name 'druntime\.*')"
+        if [ ! -z "${check_prefix}" ]; then
+          echo 'All changelog entries must begin with either `dmd.` or `druntime.`'
+          echo 'Found:'
+          echo "${check_prefix}"
+          exit 1
+        fi
+        check_ext="$(find changelog -type f ! -name 'README\.md' -a ! -name '*\.dd')"
+        if [ ! -z "${check_ext}" ]; then
+          echo 'All changelog entries must end with `.dd`'
+          echo 'Found:'
+          echo "${check_ext}"
+          exit 1
+        fi

@@ -1,0 +1,82 @@
+# Github Action to build nightly releases
+#
+# This script builds and packages a release for Linux, Windows, OSX and FreeBSD
+# using current master. The generated archives are published as the current
+# nightly build on the Gitbub release page.
+#
+# Job overview:
+# 1. Builds the actual release using `build_release_template` from dlang/installer
+# 2. Publishes all artifacts from (1) to the release page on GitHub
+
+name: build-nightly
+
+on:
+  # Rebuild every day
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  # Build and package a new release for all supported platforms
+  build-all-releases:
+    name: Build nightly from master
+    if: github.repository == 'dlang/dmd'
+    uses: dlang/installer/.github/workflows/build_release_template.yml@master
+    with:
+      release_branch: master
+
+  # Bundles and publishes the entire release
+  generate_release:
+    name: "Publish artifacts on the release page"
+    needs:
+      - build-all-releases
+    runs-on: ubuntu-latest
+
+    steps:
+      #################################################################
+      # Fetch all artifacts from the jobs defined above
+      #
+      - name: Download generated releases from the artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dmd-release-*
+          merge-multiple: true
+          path: ~/artifacts/
+
+      #################################################################
+      # Debug: Check that all required artifacts are present
+      #
+      - name: Display all files included in the artifacts
+        id: list-artifacts
+        shell: bash
+        run: |
+          set -euox pipefail
+          ls -aul ~ ~/artifacts
+          echo "artifacts_directory=$HOME/artifacts" >> $GITHUB_OUTPUT
+
+      #################################################################
+      # Create the new release using the downloaded artifacts
+      #
+      - name: Create the nightly release
+        uses: ncipollo/release-action@v1
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          name: DMD nightly
+          prerelease: true
+          body: |
+            Nightly build of the reference D compiler
+
+            Note that the official date and commit will be outdated because this
+            release is continuously updated. The actually built revisions are:
+
+            | Component | Revision                                                         |
+            | --------- | ---------------------------------------------------------------- |
+            | DMD       | dlang/dmd@${{ needs.build-all-releases.outputs.dmd-revision }}           |
+            | Phobos    | dlang/phobos@${{ needs.build-all-releases.outputs.phobos-revision }}     |
+
+          artifacts:  ${{ steps.list-artifacts.outputs.artifacts_directory }}/*
+          artifactErrorsFailBuild: true
+
+          # Always tag the same commit to only update the body + assets
+          tag: nightly
+          commit: f01bc99e87ad9d04b47a5323f6ccb1fd728eae8c
+          allowUpdates: true

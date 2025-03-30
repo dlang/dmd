@@ -1,0 +1,4 @@
+DW_AT_name        : fix22468.dcharVar
+DW_AT_name        : dchar
+DW_AT_byte_size   : 4
+DW_AT_encoding    : 16	(unicode string)

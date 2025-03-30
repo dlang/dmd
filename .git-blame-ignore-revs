@@ -1,0 +1,6 @@
+# .git-blame-ignore-revs
+# Removed all SC Enum aliases, which touched a ton of backend/glue files
+98a842927e4905fc2ecc0e93ffd64b5da3ebbcf2
+
+# Rename Array.dim access to Array.length
+0331e76234deff5bfdb0c42f5bb42f4bb7c97b30

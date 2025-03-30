@@ -1,0 +1,5 @@
+Integers in `debug` or `version` statements have been removed from the language
+
+These were deprecated in 2.101.
+Use `-debug=identifier` and `-version=identifier` instead for versions set on the command line,
+and likewise `version = identifier;` and `debug = identifier;` for versions set in code at global scope.

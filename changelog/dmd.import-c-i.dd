@@ -1,0 +1,3 @@
+Using the compiler flag `-i` will now properly pick up C source files
+
+Previously, you needed to manually include `*.c` source files, it now works just like with D files.

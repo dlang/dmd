@@ -1,0 +1,273 @@
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+
+name: Main
+on:
+  - pull_request # without merge conflicts
+  - push # branch or tag
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  main:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux
+          - job_name: Ubuntu 22.04 x64, DMD (latest)
+            os: ubuntu-22.04
+            host_dmd: dmd
+          # Enable this to replace coverage tests on CircleCI
+          # - job_name: Ubuntu 22.04 x64, DMD (coverage)
+          #   os: ubuntu-22.04
+          #   host_dmd: dmd
+          #   coverage: true
+          - job_name: Ubuntu 22.04 x64, DMD (bootstrap)
+            os: ubuntu-22.04
+            host_dmd: dmd-2.079.0
+            disable_debug_for_dmd_unittests: true # no `-debug` - host frontend too old
+          - job_name: Ubuntu 22.04 x86, DMD (latest)
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: dmd
+          # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
+          # - job_name: Ubuntu 22.04 x86, DMD (coverage)
+          #   os: ubuntu-22.04
+          #   model: 32
+          #   host_dmd: dmd
+          #   coverage: true
+          - job_name: Ubuntu 22.04 x86, DMD (bootstrap)
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: dmd-2.097.1
+          - job_name: Ubuntu 22.04 x64, LDC
+            os: ubuntu-22.04
+            host_dmd: ldc
+          - job_name: Ubuntu 22.04 x64, GDC
+            os: ubuntu-22.04
+            host_dmd: gdmd-9
+            disable_debug_for_dmd_unittests: true # no `-debug` - host frontend too old
+          - job_name: Alpine 3.21 x64, LDC
+            os: ubuntu-latest
+            container_image: alpine:3.21
+            host_dmd: ldmd2
+          # macOS
+          - job_name: macOS 13 x64, DMD (latest)
+            os: macos-13
+            host_dmd: dmd
+          # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
+          # - job_name: macOS 13 x64, DMD (coverage)
+          #   os: macos-13
+          #   host_dmd: dmd
+          #   coverage: true
+          - job_name: macOS 13 x64, DMD (bootstrap)
+            os: macos-13
+            xcode: '14.3.1' # work around 'ld: multiple errors: symbol count from symbol table and dynamic symbol table differ' with old bootstrap compiler
+            # de-facto bootstrap version on OSX
+            # See: https://github.com/dlang/dmd/pull/13890
+            host_dmd: dmd-2.099.1
+          # Windows
+          - job_name: Windows x64, LDC
+            os: windows-2022
+            host_dmd: ldc-latest
+          - job_name: Windows x86, DMD (latest)
+            os: windows-2022
+            host_dmd: dmd-latest
+            model: 32
+    name: ${{ matrix.job_name }}
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container_image }}
+    timeout-minutes: 40
+    env:
+      # for ci/run.sh:
+      OS_NAME: ${{ startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || '')) }}
+      MODEL: ${{ matrix.model || '64' }}
+      HOST_DMD: ${{ matrix.host_dmd }}
+      # N is set dynamically below
+      FULL_BUILD: true
+      # for coverage:
+      DMD_TEST_COVERAGE: ${{ matrix.coverage && '1' || '0' }}
+      # work around https://issues.dlang.org/show_bug.cgi?id=23517
+      MACOSX_DEPLOYMENT_TARGET: '11'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: 'Alpine container: Pre-install bash, git and sudo'
+        if: startsWith(matrix.container_image, 'alpine')
+        shell: sh
+        run: apk add bash git sudo
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Set environment variable N (parallelism)
+        run: echo "N=$(${{ runner.os == 'macOS' && 'sysctl -n hw.logicalcpu' || 'nproc' }})" >> $GITHUB_ENV
+
+      - name: 'Posix: Install prerequisites'
+        if: runner.os != 'Windows'
+        run: ${{ runner.os == 'macOS' && 'ci/cirrusci.sh' || 'sudo -E ci/cirrusci.sh' }}
+
+      - name: 'macOS: Switch Xcode version if required'
+        if: runner.os == 'macOS' && matrix.xcode
+        run: sudo xcode-select -switch /Applications/Xcode_${{ matrix.xcode }}.app
+
+      - name: 'Posix: Install host compiler'
+        if: runner.os != 'Windows'
+        run: ci/run.sh install_host_compiler
+      - name: 'Windows: Install host compiler'
+        if: runner.os == 'Windows'
+        uses: dlang-community/setup-dlang@v1.3.0
+        with:
+          compiler: ${{ matrix.host_dmd }}
+
+      - name: Set up repos
+        run: |
+          set -uexo pipefail
+
+          ref='${{ github.ref }}'
+          if [[ "$ref" =~ ^refs/pull/ ]]; then
+            # PR: clone the Phobos head with the same name as this DMD PR's target branch
+            # e.g., Phobos stable when targeting DMD stable
+            REPO_BRANCH="$GITHUB_BASE_REF"
+          elif [[ "$ref" =~ ^refs/(heads|tags)/(.*)$ ]]; then
+            # no PR: try to clone the Phobos head with the same name as this DMD head, falling back to master
+            # e.g., Phobos stable for a push to DMD stable, or Phobos v2.105.2 for DMD tag v2.105.2
+            REPO_BRANCH="${BASH_REMATCH[2]}"
+          else
+            echo "Error: unexpected GitHub ref '$ref'" >&2
+            exit 1
+          fi
+
+          ci/run.sh setup_repos "$REPO_BRANCH"
+      - name: Build
+        run: ${{ matrix.disable_debug_for_dmd_unittests && 'ENABLE_DEBUG=0' || '' }} ci/run.sh build
+        env:
+          # on Windows, `ci/run.sh build` expects the DMD env var to be set to the DMD-CLI-compatible host compiler
+          DMD: ${{ runner.os == 'Windows' && (startsWith(matrix.host_dmd, 'ldc') && 'ldmd2' || 'dmd') || '' }}
+      - name: Rebuild dmd (with enabled coverage)
+        if: matrix.coverage
+        run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ci/run.sh rebuild
+      - name: 'Windows: Set up MSVC environment' # some tests need cl.exe etc. in PATH
+        if: runner.os == 'Windows'
+        uses: seanmiddleditch/gha-setup-vsdevenv@v4
+        with:
+          arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
+      - name: Test dmd
+        run: ci/run.sh test_dmd
+      - name: Test druntime
+        if: '!matrix.coverage && (success() || failure())'
+        run: ci/run.sh test_druntime
+      - name: 'Windows x86: Add 32-bit libcurl.dll to PATH (required for Phobos unittests)'
+        if: runner.os == 'Windows' && env.MODEL == '32' && !matrix.coverage && (success() || failure())
+        run: |
+          # LDC
+          echo "$(dirname "$(which $DC)")/../lib32" >> $GITHUB_PATH
+          # DMD
+          echo "$(dirname "$(which $DC)")/../bin" >> $GITHUB_PATH
+      - name: Test phobos
+        if: '!matrix.coverage && (success() || failure())'
+        run: ci/run.sh test_phobos
+      - name: Test self-compile
+        if: '!matrix.coverage && (success() || failure())' # already re-built with enabled coverage
+        run: ENABLE_RELEASE=0 ci/run.sh rebuild
+      - name: Upload coverage report
+        if: matrix.coverage
+        run: ci/run.sh codecov
+
+  freebsd-vm:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - job_name: FreeBSD 13.2 x64, DMD (latest)
+            freebsd_version: '13.2'
+            host_dmd: dmd
+          - job_name: FreeBSD 13.2 x64, DMD (bootstrap)
+            freebsd_version: '13.2'
+            host_dmd: dmd-2.095.0
+    name: ${{ matrix.job_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15  # Should complete in 11 minutes
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+      - name: Run in VM
+        uses: cross-platform-actions/action@v0.23.0
+        timeout-minutes: 14
+        with:
+          operating_system: freebsd
+          hypervisor: qemu
+          memory: 12G
+          cpu_count: 4
+          sync_files: runner-to-vm
+          version: ${{ matrix.freebsd_version }}
+          shell: bash
+          run: |
+            set -uexo pipefail
+
+            freebsd_version='${{ matrix.freebsd_version }}'
+            freebsd_major="${freebsd_version:0:2}"
+
+            export OS_NAME=freebsd
+            export MODEL=64
+            export HOST_DMD='${{ matrix.host_dmd }}'
+            export N="$(nproc)"
+            export FULL_BUILD=true
+            export CI_DFLAGS="-version=TARGET_FREEBSD${freebsd_major}"
+
+            #if [[ "$freebsd_major" == 12 ]]; then
+            #  sudo sed -i '' -e 's|pkg.FreeBSD.org|mirrors.xtom.com/freebsd-pkg|' /etc/pkg/FreeBSD.conf
+            #fi
+
+            bash --version
+
+            echo '::group::Install prerequisites'
+            sudo -E ci/cirrusci.sh
+            echo '::endgroup::'
+
+            echo '::group::Install host compiler'
+            ci/run.sh install_host_compiler
+            echo '::endgroup::'
+
+            echo '::group::Set up repos'
+
+            ref='${{ github.ref }}'
+            if [[ "$ref" =~ ^refs/pull/ ]]; then
+              REPO_BRANCH="$GITHUB_BASE_REF"
+            elif [[ "$ref" =~ ^refs/(heads|tags)/(.*)$ ]]; then
+              REPO_BRANCH="${BASH_REMATCH[2]}"
+            else
+              echo "Error: unexpected GitHub ref '$ref'" >&2
+              exit 1
+            fi
+
+            ci/run.sh setup_repos "$REPO_BRANCH"
+            echo '::endgroup::'
+
+            echo '::group::Build'
+            ci/run.sh build
+            echo '::endgroup::'
+
+            echo '::group::Test dmd'
+            ci/run.sh test_dmd
+            echo '::endgroup::'
+
+            echo '::group::Test druntime'
+            ci/run.sh test_druntime
+            echo '::endgroup::'
+
+            echo '::group::Test phobos'
+            ci/run.sh test_phobos
+            echo '::endgroup::'
+
+            echo '::group::Test self-compile'
+            ENABLE_RELEASE=0 ci/run.sh rebuild
+            echo '::endgroup::'
+      - name: Backup
+        if: ${{ failure() }}
+        run: echo 'FreeBSD VM check made optional because of random time outs'
