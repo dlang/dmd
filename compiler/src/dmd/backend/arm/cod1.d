@@ -76,7 +76,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         {
             // LDR reg,[cs.base, #offset]
             assert(cs.index == NOREG);
-            uint imm12 = cs.Sextend;
+            uint imm12 = cast(uint)cs.IEV1.Voffset;
             if      (szw == 4) imm12 >>= 2;
             else if (szw == 8) imm12 >>= 3;
             else    assert(0);
@@ -107,16 +107,17 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
     }
     else if (cs.base != NOREG)
     {
-        // LDRB/LDRH/LDR reg,[cs.base, #0]
+        // LDRB/LDRH/LDR reg,[cs.base, #offset]
+        uint offset = cast(uint)cs.IEV1.Voffset;
         if (szr == 1)
-            cs.Iop = signExtend ? INSTR.ldrsb_imm(szw == 8, reg, cs.base, 0)
-                                : INSTR.ldrb_imm (szw == 8, reg, cs.base, 0);
+            cs.Iop = signExtend ? INSTR.ldrsb_imm(szw == 8, reg, cs.base, offset)
+                                : INSTR.ldrb_imm (szw == 8, reg, cs.base, offset);
         else if (szr == 2)
-            cs.Iop = signExtend ? INSTR.ldrsh_imm(szw == 8, reg, cs.base, 0)
-                                : INSTR.ldrh_imm (szw == 8, reg, cs.base, 0);
+            cs.Iop = signExtend ? INSTR.ldrsh_imm(szw == 8, reg, cs.base, offset)
+                                : INSTR.ldrh_imm (szw == 8, reg, cs.base, offset);
         else
-            cs.Iop = signExtend ? INSTR.ldrsw_imm(0, cs.base, reg)
-                                : INSTR.ldr_imm_gen(szw == 8, reg, cs.base, 0);
+            cs.Iop = signExtend ? INSTR.ldrsw_imm(offset, cs.base, reg)
+                                : INSTR.ldr_imm_gen(szw == 8, reg, cs.base, offset);
     }
     else
         assert(0);
@@ -179,12 +180,13 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
     else if (cs.base != NOREG)
     {
         // STRB/STRH/STR reg,[cs.base, #0]
+        uint offset = cast(uint)cs.IEV1.Voffset;
         if (sz == 1)
-            cs.Iop = INSTR.strb_imm(reg, cs.base, 0);
+            cs.Iop = INSTR.strb_imm(reg, cs.base, offset);
         else if (sz == 2)
-            cs.Iop = INSTR.strh_imm(reg, cs.base, 0);
+            cs.Iop = INSTR.strh_imm(reg, cs.base, offset);
         else
-            cs.Iop = INSTR.str_imm_gen(sz == 8, reg, cs.base, 0);
+            cs.Iop = INSTR.str_imm_gen(sz == 8, reg, cs.base, offset);
     }
     else
         assert(0);
