@@ -188,7 +188,6 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
     return arr.length;
 }
 
-
 version (D_ProfileGC)
 {
     import core.internal.array.utils : _d_HookTraceImpl;
