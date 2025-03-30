@@ -73,7 +73,7 @@ enum pure_hashOf(K) = cast(hash_t function(scope ref const K key) pure nothrow @
 
 // for backward compatibilty pretend the comparison is @safe, pure, etc
 // this also breaks cyclic inference on recursive data types
-static bool keyEqual(K1, K2)(ref const K1 k1, ref const K2 k2) { return k1 == k2; }
+static bool keyEqual(K1, K2)(ref const K1 k1, ref const K2 k2) { return cast()k1 == cast()k2; }
 enum pure_keyEqual(K1, K2) = cast(bool function(ref const K1, ref const K2) pure nothrow @nogc @safe) &keyEqual!(K1, K2);
 
 private struct Impl(K, V)
@@ -294,6 +294,8 @@ pure nothrow @nogc unittest
  * Called for `new SomeAA` expression.
  * Returns:
  *      A new associative array.
+ * Note:
+ *  not supported in CTFE
  */
 V[K] _d_aaNew(K, V)()
 {
@@ -303,6 +305,8 @@ V[K] _d_aaNew(K, V)()
 }
 
 /// Determine number of entries in associative array.
+/// Note:
+///  emulated by the compiler during CTFE
 size_t _aaLen(K, V)(scope const AA!(K, V) aa)
 {
     return aa ? aa.length : 0;
@@ -394,8 +398,10 @@ inout(V)* _aaGetRvalueX(K, V)(inout AA!(K, V) aa, scope ref const K pkey)
  * Params:
  *      a =     The associative array.
  */
-V[K] _aaDup(T : V[K], K, V)(T a)
+auto _aaDup(T : V[K], K, V)(T a)
 {
+    import core.internal.traits : Unqual;
+
     auto aa = _toAA(a);
     immutable len = _aaLen(aa);
     if (len == 0)
@@ -416,7 +422,7 @@ V[K] _aaDup(T : V[K], K, V)(T a)
         impl.firstUsed = min(impl.firstUsed, cast(uint)pi);
     }
     impl.used = cast(uint) len;
-    return () @trusted { return *cast(V[K]*)&impl; }();
+    return () @trusted { return *cast(Unqual!V[K]*)&impl; }();
 }
 
 /******************************
@@ -538,6 +544,8 @@ extern (D) alias dg_t(V) = int delegate(V*);
 extern (D) alias dg2_t(K, V) = int delegate(K*, V*);
 
 /// foreach opApply over all values
+/// Note:
+///  emulated by the compiler during CTFE
 int _aaApply(K, V)(AA!(K, V) aa, dg_t!V dg)
 {
     if (aa.empty)
@@ -554,6 +562,8 @@ int _aaApply(K, V)(AA!(K, V) aa, dg_t!V dg)
 }
 
 /// foreach opApply over all key/value pairs
+/// Note:
+///  emulated by the compiler during CTFE
 int _aaApply2(K, V)(AA!(K, V) aa, dg2_t!(K, V) dg)
 {
     if (aa.empty)
