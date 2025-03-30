@@ -394,7 +394,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         uint imm3 = 0;                // shift amount
         uint S = forccs != 0;
         uint opt = 0;
-        uint option = 0;
+        uint option = cast(ubyte)tyToExtend(tyml);
         reg_t Rm = reg2;
         reg_t Rn = reg1;
         reg_t Rd = reg1;

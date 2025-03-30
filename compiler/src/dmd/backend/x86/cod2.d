@@ -4434,6 +4434,9 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
 @trusted
 void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdstreq(cg, cdb, e, pretregs);
+
     char need_DS = false;
     elem* e1 = e.E1;
     elem* e2 = e.E2;
@@ -4643,6 +4646,9 @@ else
 @trusted
 void cdrelconst(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdrelconst(cg, cdb, e, pretregs);
+
     //printf("cdrelconst(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
 
     /* The following should not happen, but cgelem.c is a little stupid.

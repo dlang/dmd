@@ -1121,8 +1121,237 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     fixresult(cdb,e,retregs,pretregs);
 }
 
+/**********************
+ * Do structure assignments.
+ * This should be fixed so that (s1 = s2) is rewritten to (&s1 = &s2).
+ * Mebbe call cdstreq() for double assignments???
+ */
 
-// cdrelconst
+@trusted
+void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+{
+    //printf("cdstreq(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
+    char need_DS = false;
+    elem* e1 = e.E1;
+    elem* e2 = e.E2;
+    uint numbytes = cast(uint)type_size(e.ET);          // # of bytes in structure/union
+
+    // First, load pointer to rvalue into SI
+    regm_t srcregs = mSI;                      // source is SI
+    docommas(cdb,e2);
+    if (e2.Eoper == OPind)             // if (.. = *p)
+    {
+        codelem(cg,cdb,e2.E1,srcregs,false);
+        freenode(e2);
+    }
+    else if (e2.Eoper == OPvar)
+    {
+        cdrelconst(cgstate,cdb,e2,srcregs);
+        freenode(e2);
+    }
+    else
+    {
+        codelem(cgstate,cdb,e2,srcregs,false);
+    }
+
+    // now get pointer to lvalue (destination) in DI
+    regm_t dstregs = mDI;
+    if (e1.Eoper == OPind)               // if (*p = ..)
+    {
+        scodelem(cg,cdb,e1.E1,dstregs,srcregs,false);
+    }
+    else
+        cdrelconst(cg,cdb,e1,dstregs);
+    freenode(e1);
+
+    regm_t regm = cg.allregs & ~(srcregs | dstregs);
+    allocreg(cdb, regm, TYint);
+    reg_t reg = findreg(regm);
+
+    getregs(cdb,srcregs | dstregs | regm);
+    if (numbytes <= REGSIZE * 7)
+    {
+        code csrc;
+        csrc.base = findreg(srcregs);
+        csrc.index = NOREG;
+        csrc.reg = NOREG;
+
+        code cdst;
+        cdst.base = findreg(dstregs);
+        cdst.index = NOREG;
+        cdst.reg = NOREG;
+
+        while (numbytes >= REGSIZE)
+        {
+            loadFromEA(csrc,reg,8,8);
+            cdb.gen1(csrc.Iop);
+            storeToEA(cdst,reg,8);
+            cdb.gen1(cdst.Iop);
+            csrc.IEV1.Voffset += REGSIZE;
+            cdst.IEV1.Voffset += REGSIZE;
+            numbytes -= REGSIZE;
+        }
+
+        while (numbytes >= 4)
+        {
+            loadFromEA(csrc,reg,4,4);
+            cdb.gen1(csrc.Iop);
+            storeToEA(cdst,reg,4);
+            cdb.gen1(cdst.Iop);
+            csrc.IEV1.Voffset += 4;
+            cdst.IEV1.Voffset += 4;
+            numbytes -= 4;
+        }
+
+        while (numbytes >= 2)
+        {
+            loadFromEA(csrc,reg,4,2);
+            cdb.gen1(csrc.Iop);
+            storeToEA(cdst,reg,2);
+            csrc.IEV1.Voffset += 2;
+            cdb.gen1(cdst.Iop);
+            cdst.IEV1.Voffset += 2;
+            numbytes -= 2;
+        }
+
+        if (numbytes)
+        {
+            loadFromEA(csrc,reg,4,1);
+            cdb.gen1(csrc.Iop);
+            storeToEA(cdst,reg,1);
+            cdb.gen1(cdst.Iop);
+        }
+    }
+    else
+    {
+        if (e1) assert(0); // TODO AArch64
+static if (1)
+{
+        uint remainder = numbytes & (REGSIZE - 1);
+        numbytes /= REGSIZE;            // number of words
+        getregs_imm(cdb,mCX);
+        movregconst(cdb,CX,numbytes,0);   // # of bytes/words
+        cdb.gen1(0xF3);                 // REP
+        if (REGSIZE == 8)
+            cdb.gen1(REX | REX_W);
+        cdb.gen1(0xA5);                 // REP MOVSD
+        cgstate.regimmed_set(CX,0);             // note that CX == 0
+        if (I64 && remainder >= 4)
+        {
+            cdb.gen1(0xA5);         // MOVSD
+            remainder -= 4;
+        }
+        for (; remainder; remainder--)
+        {
+            cdb.gen1(0xA4);             // MOVSB
+        }
+}
+else
+{
+        uint movs;
+        if (numbytes & (REGSIZE - 1))   // if odd
+            movs = 0xA4;                // MOVSB
+        else
+        {
+            movs = 0xA5;                // MOVSW
+            numbytes /= REGSIZE;        // # of words
+        }
+        getregs_imm(cdb,mCX);
+        movregconst(cdb,CX,numbytes,0);   // # of bytes/words
+        cdb.gen1(0xF3);                 // REP
+        cdb.gen1(movs);
+        cgstate.regimmed_set(CX,0);             // note that CX == 0
+}
+    }
+    assert(!(pretregs & mPSW));
+    if (pretregs)
+    {   // ES:DI points past what we want
+
+        //cdb.genc2(0x81,(rex << 16) | modregrm(3,5,DI), type_size(e.ET));   // SUB DI,numbytes
+
+        const tym = tybasic(e.Ety);
+        if (tym == TYucent && I64)
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=22175
+             * The trouble happens when the struct size does not fit exactly into
+             * 2 registers. Then the type of e becomes a TYucent, not a TYstruct,
+             * and we need to dereference DI to get the ucent
+             */
+
+            // dereference DI
+            code cs;
+            cs.Iop = 0x8B;
+            regm_t retregs = pretregs;
+            allocreg(cdb,retregs,tym);
+
+            reg_t msreg = findregmsw(retregs);
+            buildEA(&cs,DI,-1,1,REGSIZE);
+            code_newreg(&cs,msreg);
+            cs.Irex |= REX_W;
+            cdb.gen(&cs);       // MOV msreg,REGSIZE[DI]        // msreg is never DI
+
+            reg_t lsreg = findreglsw(retregs);
+            buildEA(&cs,DI,-1,1,0);
+            code_newreg(&cs,lsreg);
+            cs.Irex |= REX_W;
+            cdb.gen(&cs);       // MOV lsreg,[DI];
+            fixresult(cdb,e,retregs,pretregs);
+            return;
+        }
+
+        regm_t retregs = mDI;
+        if (pretregs & mMSW && !(config.exe & EX_flat))
+            retregs |= mES;
+        fixresult(cdb,e,retregs,pretregs);
+    }
+}
+
+/**********************
+ * Get the address of.
+ * Is also called by cdstreq() to set up pointer to a structure.
+ */
+
+@trusted
+void cdrelconst(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+{
+    //printf("cdrelconst(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
+
+    /* The following should not happen, but cgelem.c is a little stupid.
+     * Assertion can be tripped by func("string" == 0); and similar
+     * things. Need to add goals to optelem() to fix this completely.
+     */
+    //assert((pretregs & mPSW) == 0);
+    if (pretregs & mPSW)
+    {
+        pretregs &= ~mPSW;
+        gentstreg(cdb,31,1);            // SP is never 0
+    }
+    if (!pretregs)
+        return;
+
+    assert(e);
+    tym_t tym = tybasic(e.Ety);
+    switch (tym)
+    {
+        case TYstruct:
+        case TYarray:
+        case TYldouble:
+        case TYildouble:
+        case TYcldouble:
+            tym = TYnptr;               // don't confuse allocreg()
+            break;
+
+        default:
+            if (tyfunc(tym))
+                tym = TYnptr;
+            break;
+    }
+    //assert(tym & typtr);              // don't fail on (int)&a
+
+    reg_t lreg = allocreg(cdb,pretregs,tym); // offset of the address
+    getoffset(cg,cdb,e,lreg);
+}
+
 /*********************************
  * Load the offset portion of the address represented by e into
  * reg.

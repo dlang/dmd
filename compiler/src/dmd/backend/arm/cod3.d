@@ -278,7 +278,21 @@ void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 // load_localgot
 // obj_namestring
 // genregs
-// gentstreg
+
+/*******************************
+ * Set flags for register contents
+ * Params:
+ *      cdb = code sink
+ *      reg = register to test
+ *      sf = true for 64 bits
+ */
+void gentstreg(ref CodeBuilder cdb, reg_t reg, uint sf)
+{
+    // CMP reg,#0
+    cdb.gen1(INSTR.cmp_imm(sf, 0, 0, reg));
+    code_orflag(cdb.last(),CFpsw);
+}
+
 // genpush
 // genpop
 // genmovreg
@@ -936,21 +950,6 @@ L3:
     }
     //printf("bytesaved = x%x\n",bytesaved);
     return bytesaved;
-}
-
-
-/*******************************
- * Set flags for register contents
- * Params:
- *      cdb = code sink
- *      reg = register to test
- *      sf = true for 64 bits
- */
-void gentstreg(ref CodeBuilder cdb, reg_t reg, uint sf)
-{
-    // CMP reg,#0
-    cdb.gen1(INSTR.cmp_imm(sf, 0, 0, reg));
-    code_orflag(cdb.last(),CFpsw);
 }
 
 
