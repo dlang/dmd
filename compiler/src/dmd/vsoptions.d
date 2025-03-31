@@ -26,8 +26,6 @@ import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string : toDString;
-import dmd.errors;
-import dmd.location;
 
 private immutable supportedPre2017Versions = ["14.0", "12.0", "11.0", "10.0", "9.0"];
 
