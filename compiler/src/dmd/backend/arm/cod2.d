@@ -1011,7 +1011,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     uint opcode;
     switch (e.Eoper)
     {
-        case OPshl:     opcode = 0x8;   break;
+        case OPshl:     opcode = 0x8;   break;  // LSL Rd,Rn,Rm https://www.scs.stanford.edu/~zyedidia/arm64/lsl_lslv.html
         case OPshr:     opcode = 0x9;   break;
         case OPashr:    opcode = 0xA;   break;
         case OPror:     opcode = 0xB;   break;
