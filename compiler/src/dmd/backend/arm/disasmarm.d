@@ -2237,8 +2237,13 @@ void disassemble(uint c) @trusted
         bool is64 = false;
         switch (ldr(size, VR, opc))
         {
-            case ldr(0,0,0): p1 = "strb";  goto Lldr;
-            case ldr(0,0,1): p1 = "ldrb";  goto Lldr;
+            case ldr(0,0,0): p1 = "strb";  goto Lldr8;  // https://www.scs.stanford.edu/~zyedidia/arm64/strb_imm.html
+            case ldr(0,0,1): p1 = "ldrb";  goto Lldr8;
+            Lldr8:
+                p2 = regString(is64, Rt);
+                p3 = eaString(0, cast(ubyte)Rn, imm12);
+                break;
+
             case ldr(0,0,2): p1 = "ldrsb"; goto Lldr64;
             case ldr(0,0,3): p1 = "ldrsb"; goto Lldr;
             case ldr(1,0,0): p1 = "strh";  goto Lldr;

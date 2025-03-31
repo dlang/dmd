@@ -108,7 +108,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
     else if (cs.base != NOREG)
     {
         // LDRB/LDRH/LDR reg,[cs.base, #offset]
-        uint offset = cast(uint)cs.IEV1.Voffset;
+        uint offset = 0; //cast(uint)cs.IEV1.Voffset; Voffset is added in by assignaddrc()
         if (szr == 1)
             cs.Iop = signExtend ? INSTR.ldrsb_imm(szw == 8, reg, cs.base, offset)
                                 : INSTR.ldrb_imm (szw == 8, reg, cs.base, offset);
@@ -180,7 +180,7 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
     else if (cs.base != NOREG)
     {
         // STRB/STRH/STR reg,[cs.base, #0]
-        uint offset = cast(uint)cs.IEV1.Voffset;
+        uint offset = 0; //cast(uint)cs.IEV1.Voffset; Voffset added in by assignaddr()
         if (sz == 1)
             cs.Iop = INSTR.strb_imm(reg, cs.base, offset);
         else if (sz == 2)
