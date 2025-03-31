@@ -193,7 +193,7 @@ extern(C++) struct VSOptions
     * Params:
     *   x64 = target architecture (x86 if false)
     * Returns:
-    *   absolute path to cl.exe, an error message along with "cl.exe" if not found
+    *   absolute path to cl.exe, and just "cl.exe" if not found
     */
     const(char)* compilerPath(bool x64)
     {
@@ -205,11 +205,7 @@ extern(C++) struct VSOptions
             cmdbuf.writestring(r"\cl.exe");
             return cmdbuf.extractChars();
         }
-        //Display an error message if path to cl.exe not found
-        error(Loc.initial, "Error: cl.exe not found. Ensure that Visual Studio is installed and properly configured.");
-        fatal();
-        //This return statement is never reached, but satisfies the function signature.
-        return null;
+        return "cl.exe";
     }
 
 private:
