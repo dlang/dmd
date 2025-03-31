@@ -615,7 +615,7 @@ Impl!(K, V)* _d_assocarrayliteralTX(K, V)(K[] keys, V[] vals)
 }
 
 /// compares 2 AAs for equality
-bool _aaEqual(T : AA!(K, V), K, V)(T aa1, T aa2)
+bool _aaEqual(T : AA!(K, V), K, V)(scope T aa1, scope T aa2)
 {
     if (aa1 is aa2)
         return true;
@@ -644,13 +644,13 @@ bool _aaEqual(T : AA!(K, V), K, V)(T aa1, T aa2)
 /// compares 2 AAs for equality (compiler hook)
 bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2)
 {
-    auto aa1 = _toAA(a1);
-    auto aa2 = _toAA(a2);
+    scope aa1 = _toAA(a1);
+    scope aa2 = _toAA(a2);
     return _aaEqual(aa1, aa2);
 }
 
-/// callback from TypeInfo_AssociativeArray.equals (ignore scope const for now)
-bool _aaOpEqual(K, V)(/* scope const */ AA!(K, V)* aa1, /* scope const */ AA!(K, V)* aa2)
+/// callback from TypeInfo_AssociativeArray.equals (ignore const for now)
+bool _aaOpEqual(K, V)(scope /* const */ AA!(K, V)* aa1, scope /* const */ AA!(K, V)* aa2)
 {
     return _aaEqual(*aa1, *aa2);
 }
