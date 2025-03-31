@@ -2284,35 +2284,48 @@ void disassemble(uint c) @trusted
     //printf("%x\n", field(ins, 31, 25));
     //printf("p1: %s\n", p1);
 
+    auto plen = 1 + p1.length;
     put(' ');
     puts(p1);
     if (p2.length > 0)
     {
         foreach (len1; p1.length .. 9)
+        {
+            ++plen;
             put(' ');
+        }
+        plen += 1 + s2.length;
         put(' ');
         puts(s2);
         if (p2[0] != ' ')
+        {
+            plen += p2.length;
             puts(p2);
+        }
         if (p3.length > 0)
         {
+            plen += sep.length + s3.length + p3.length;
             puts(sep);
             puts(s3);
             puts(p3);
             if (p4.length > 0)
             {
+                plen += 1 + p4.length;
                 put(',');
                 puts(p4);
                 if (p5.length > 0)
                 {
+                    plen += 1 + p5.length;
                     put(',');
                     puts(p5);
                     if (p6.length > 0)
                     {
+                        plen += 1 + p6.length;
                         put(',');
                         puts(p6);
                         if (p7.length > 0)
                         {
+                            plen += 1 + p7.length;
                             put(',');
                             puts(p7);
                         }
@@ -2324,7 +2337,9 @@ void disassemble(uint c) @trusted
 
     if (bURL && url)
     {
-        puts("    // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#");
+        for (; plen < 29; ++plen)
+            put(' ');
+        puts(" // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#");
         puts(url);
     }
 }
@@ -2473,7 +2488,7 @@ const(char)[] signedWordtostring(int w)
 {
     __gshared char[1 + 3 + 1 + w.sizeof * 3 + 1 + 1] EA;
 
-    const n = snprintf(EA.ptr, EA.length, ((w <= 16 && w >= -32) ? "#%d" : "#0x%X"), w);
+    const n = snprintf(EA.ptr, EA.length, ((w <= 16) ? "#%d" : "#0x%X"), w);
     return EA[0 .. n];
 }
 
