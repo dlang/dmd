@@ -206,7 +206,7 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(
 version (D_ProfileGC)
 {
     import core.internal.array.utils : _d_HookTraceImpl;
-    
+
     template _d_arraysetlengthTTrace(Tarr, T)
     {
         alias _d_arraysetlengthTTrace = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT!(Tarr, T), "Error in _d_arraysetlengthT");
