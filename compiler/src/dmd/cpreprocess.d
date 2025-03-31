@@ -120,6 +120,12 @@ private const(char)[] cppCommand()
             VSOptions vsopt;
             vsopt.initialize();
             const path = vsopt.compilerPath(target.isX86_64);
+            //if the path to cl.exe is found, check if cl.exe is in the path.
+            if(FileName.exists(path) != 1)
+            {
+                error(Loc.initial, "cl.exe not found. Please ensure that Visual Studio Build Tools are installed and properly configured.");
+                fatal();
+            }
             return toDString(path);
         }
         // Perhaps we are cross-compiling.
