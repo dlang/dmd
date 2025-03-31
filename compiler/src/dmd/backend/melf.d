@@ -7,7 +7,7 @@
  *
  * Translation to D of Linux's melf.h
  *
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/melf.d, backend/melf.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/melf.d, backend/melf.d)
  * References:  $(LINK2 https://github.com/ARM-software/abi-aa/blob/main/aaelf64/aaelf64.rst, aaelf64)
  */
 

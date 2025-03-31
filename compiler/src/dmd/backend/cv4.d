@@ -6,7 +6,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv4.d, backend/_cv4.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cv4.d, backend/_cv4.d)
  */
 
 module dmd.backend.cv4;
