@@ -4,8 +4,8 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/sarif.d, sarif.d)
- * Coverage:    $(LINK2 https://codecov.io/gh/dlang/dmd/src/master/src/dmd/sarif.d, Code Coverage)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/sarif.d, sarif.d)
+ * Coverage:    $(LINK2 https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/sarif.d, Code Coverage)
  *
  * Description:
  * - This module generates SARIF reports for DMD errors, warnings, and messages.
@@ -240,6 +240,11 @@ void generateSarifReport(bool executionSuccessful) nothrow
         length = cast(size_t)(nonNumeric - toolVersion.ptr);
 
     string cleanedVersion = toolVersion[0 .. length];
+
+    // strip trailing newlines
+    while (cleanedVersion.length > 0 && (cleanedVersion[$ - 1] == '\n' || cleanedVersion[$ - 1] == '\r'))
+        cleanedVersion = cleanedVersion[0 .. $ - 1];
+
 
     // Build SARIF report
     ob.writestringln("{");

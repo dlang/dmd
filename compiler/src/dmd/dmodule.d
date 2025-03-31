@@ -6,9 +6,9 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmodule.d, _dmodule.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dmodule.d, _dmodule.d)
  * Documentation:  https://dlang.org/phobos/dmd_dmodule.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmodule.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/dmodule.d
  */
 
 module dmd.dmodule;
@@ -58,12 +58,10 @@ import dmd.visitor;
 
 version (Windows)
 {
-    import core.sys.windows.winbase : getpid = GetCurrentProcessId;
     enum PathSeparator = '\\';
 }
 else version (Posix)
 {
-    import core.sys.posix.unistd : getpid;
     enum PathSeparator = '/';
 }
 else
@@ -577,12 +575,6 @@ extern (C++) final class Module : Package
         else
         {
             const(char)[] argdoc;
-            OutBuffer buf;
-            if (arg == "__stdin.d")
-            {
-                buf.printf("__stdin_%d.d", getpid());
-                arg = buf[];
-            }
             if (global.params.preservePaths)
                 argdoc = arg;
             else

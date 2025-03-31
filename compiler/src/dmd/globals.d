@@ -4,9 +4,9 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/globals.d, _globals.d)
  * Documentation:  https://dlang.org/phobos/dmd_globals.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/globals.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/globals.d
  */
 
 module dmd.globals;
@@ -160,6 +160,7 @@ extern (C++) struct ImportPathInfo {
 extern (C++) struct Param
 {
     bool obj = true;        // write object file
+    bool readStdin;         // saw "-" on command line, read source file from stdin
     bool multiobj;          // break one object file into multiple ones
     bool trace;             // insert profiling hooks
     bool tracegc;           // instrument calls to 'new'

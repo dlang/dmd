@@ -7,9 +7,9 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mars.d, _mars.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mars.d, _mars.d)
  * Documentation:  https://dlang.org/phobos/dmd_mars.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/mars.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/mars.d
  */
 
 module dmd.mars;
@@ -58,6 +58,13 @@ import dmd.semantic2;
 import dmd.semantic3;
 import dmd.target;
 import dmd.utils;
+
+version (Windows)
+    import core.sys.windows.winbase : getpid = GetCurrentProcessId;
+else version (Posix)
+    import core.sys.posix.unistd : getpid;
+else
+    static assert(0);
 
 /**
  * Print DMD's logo on stdout
@@ -1734,7 +1741,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     break;
                 }
                 if (runarg == "-")
-                    files.push("__stdin.d");
+                    params.readStdin = true;
                 else
                     files.push(arguments[i + 1]);
                 params.runargs.setDim(length - 1);
@@ -1751,7 +1758,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (p[1] == '\0')
-            files.push("__stdin.d");
+            params.readStdin = true;
         else
         {
         Lerror:
@@ -1937,10 +1944,38 @@ bool createModules(ref Strings files, ref Strings libmodules, ref Param params, 
         modules.push(m);
         if (firstmodule)
         {
-            global.params.objfiles.push(m.objfile.toChars());
+            params.objfiles.push(m.objfile.toChars());
             firstmodule = false;
         }
     }
+
+    // Special module representing `stdin`
+    if (params.readStdin)
+    {
+        Module m;
+        if (createModule("__stdin.d", libmodules, params, target, eSink, m))
+            return true;
+        if (m is null)
+            return false;
+
+        modules.push(m);
+
+        // Set the source file contents of the module
+        OutBuffer buf;
+        buf.readFromStdin();
+        m.src = cast(ubyte[])buf.extractSlice();
+
+        // Give unique outfile name
+        OutBuffer namebuf;
+        namebuf.printf("__stdin_%d", getpid());
+
+        auto filename = FileName.forceExt(namebuf.extractSlice(), target.obj_ext);
+        m.objfile = FileName(filename);
+
+        if (firstmodule)
+            params.objfiles.push(m.objfile.toChars());
+    }
+
     return false;
 }
 
@@ -1958,4 +1993,38 @@ Module moduleWithEmptyMain()
     result.semantic2(null);
     result.semantic3(null);
     return result;
+}
+
+private void readFromStdin(ref OutBuffer sink) nothrow
+{
+    import core.stdc.stdio;
+    import dmd.errors;
+
+    enum BufIncrement = 128 * 1024;
+
+    for (size_t j; 1; ++j)
+    {
+        char[] buffer = sink.allocate(BufIncrement + 16);
+
+        // Fill up buffer
+        size_t filled = 0;
+        do
+        {
+            filled += fread(buffer.ptr + filled, 1, buffer.length - filled, stdin);
+            if (ferror(stdin))
+            {
+                import core.stdc.errno;
+                error(Loc.initial, "cannot read from stdin, errno = %d", errno);
+                fatal();
+            }
+            if (feof(stdin)) // successful completion
+            {
+                memset(buffer.ptr + filled, '\0', 16);
+                sink.setsize(j * BufIncrement + filled);
+                return;
+            }
+        } while (filled < BufIncrement);
+    }
+
+    assert(0);
 }
