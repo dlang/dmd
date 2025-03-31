@@ -57,7 +57,8 @@ ref _refAA(V, K)(ref inout V[K] aa) @trusted
 
 auto _toAA(T : V[K], V, K)(inout ref T aa) @trusted
 {
-    inout(V[K]) aai = aa;
+    import core.internal.traits : Unqual;
+    V[K] aai = cast(Unqual!T)aa;
     return *(cast(AA!(substInout!K, substInout!V)*)&aai);
 }
 
