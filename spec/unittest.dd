@@ -39,6 +39,7 @@ $(GNAME UnitTest):
     $(P For example, given a class $(D Sum) that is used to add two values, a unit
     test can be given:)
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     class Sum
     {
@@ -52,6 +53,7 @@ $(GNAME UnitTest):
         }
     }
     ---
+    )
 
     $(P When unit tests are enabled, the $(DDSUBLINK spec/version, PredefinedVersions, version identifier)
     $(D unittest) is predefined.
@@ -64,6 +66,7 @@ $(H2 $(LNAME2 attributes_unittest, Attributed Unittests))
     Such unittests are useful in verifying the given attribute(s) on a template
     function:)
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     void myFunc(T)(T[] data)
     {
@@ -78,6 +81,7 @@ $(H2 $(LNAME2 attributes_unittest, Attributed Unittests))
         assert(arr == [2,2,3]);
     }
     ---
+    )
 
     $(P This unittest verifies that $(D myFunc) contains only $(D @safe),
     `nothrow` code. Although this can also be accomplished by attaching these
