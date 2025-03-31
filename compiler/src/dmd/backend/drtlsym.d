@@ -116,8 +116,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.ARRAYCATT:              symbolz(ps,FL.func,FREGSAVED,"_d_arraycatT", 0, t); break;
         case RTLSYM.ARRAYAPPENDCD:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcd", 0, t); break;
         case RTLSYM.ARRAYAPPENDWD:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendwd", 0, t); break;
-        case RTLSYM.ARRAYSETLENGTHT:        symbolz(ps,FL.func,FREGSAVED,"_d_arraysetlengthT", 0, t); break;
-        case RTLSYM.ARRAYSETLENGTHIT:       symbolz(ps,FL.func,FREGSAVED,"_d_arraysetlengthiT", 0, t); break;
         case RTLSYM.ARRAYCOPY:              symbolz(ps,FL.func,FREGSAVED,"_d_arraycopy", 0, t); break;
         case RTLSYM.ARRAYASSIGN_R:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_r", 0, t); break;
         case RTLSYM.ARRAYASSIGN_L:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_l", 0, t); break;
@@ -169,8 +167,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.TRACEASSOCARRAYLITERALTX: symbolz(ps,FL.func,FREGSAVED,"_d_assocarrayliteralTXTrace", 0, t); break;
         case RTLSYM.TRACEARRAYAPPENDCD:     symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcdTrace", 0, t); break;
         case RTLSYM.TRACEARRAYAPPENDWD:     symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendwdTrace", 0, t); break;
-        case RTLSYM.TRACEARRAYSETLENGTHT:   symbolz(ps,FL.func,FREGSAVED,"_d_arraysetlengthTTrace", 0, t); break;
-        case RTLSYM.TRACEARRAYSETLENGTHIT:  symbolz(ps,FL.func,FREGSAVED,"_d_arraysetlengthiTTrace", 0, t); break;
         case RTLSYM.TRACEALLOCMEMORY:       symbolz(ps,FL.func,FREGSAVED,"_d_allocmemoryTrace", 0, t); break;
         case RTLSYM.C_ASSERT:               symbolz(ps,FL.func,FREGSAVED,"_assert", SFLexit, t); break;
         case RTLSYM.C__ASSERT:              symbolz(ps,FL.func,FREGSAVED,"__assert", SFLexit, t); break;

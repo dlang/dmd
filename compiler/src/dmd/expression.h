@@ -935,6 +935,7 @@ public:
 class ArrayLengthExp final : public UnaExp
 {
 public:
+    Expression lowering;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
