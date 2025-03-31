@@ -206,7 +206,7 @@ extern(C++) struct VSOptions
             return cmdbuf.extractChars();
         }
         //Display an error message if path to cl.exe not found
-        error(Loc.initial, "Error: cl.exe not found. Ensure that Visual Studio is installed and properly configured.");
+        error(Loc.initial, "Error: cl.exe not found. Please ensure that Visual Studio Build Tools are installed and properly configured.");
         fatal();
         //This return statement is never reached, but satisfies the function signature.
         return null;
