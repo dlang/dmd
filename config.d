@@ -55,7 +55,7 @@ string generateVersion(const string versionFile)
     enum workDir = __FILE_FULL_PATH__.dirName;
     const result = execute(["git", "-C", workDir, "describe", "--dirty"]);
 
-    return result.status == 0 ? result.output.strip : versionFile.readText;
+    return result.status == 0 ? result.output.strip : versionFile.readText.strip;
 }
 
 /**
