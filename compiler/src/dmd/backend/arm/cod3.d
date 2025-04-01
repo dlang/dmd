@@ -324,8 +324,200 @@ void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 // prolog_frameadj
 // prolog_frameadj2
 // prolog_setupalloca
-// prolog_saveregs
-// epilog_restoreregs
+
+/**************************************
+ * Save registers that the function destroys,
+ * but that the ABI says should be preserved across
+ * function calls.
+ *
+ * Emit Dwarf info for these saves.
+ * Params:
+ *      cg = code generator state
+ *      cdb = append generated instructions to this
+ *      topush = mask of registers to push
+ *      cfa_offset = offset of frame pointer from CFA
+ */
+
+@trusted
+void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa_offset)
+{
+    if (cg.pushoffuse)
+    {
+        // Save to preallocated section in the stack frame
+        int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
+        int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
+        targ_size_t xmmoffset = cg.pushoff + cg.BPoff;
+        if (!cg.hasframe || cg.enforcealign)
+            xmmoffset += cg.EBPtoESP;
+        targ_size_t gpoffset = xmmoffset + xmmtopush * 16;
+        while (topush)
+        {
+            reg_t reg = findreg(topush);
+            topush &= ~mask(reg);
+            if (isXMMreg(reg))
+            {
+                if (cg.hasframe && !cg.enforcealign)
+                {
+                    // MOVUPD xmmoffset[EBP],xmm
+                    cdb.genc1(STOUPD,modregxrm(2,reg-XMM0,BPRM),FL.const_,xmmoffset);
+                }
+                else
+                {
+                    // MOVUPD xmmoffset[ESP],xmm
+                    cdb.genc1(STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FL.const_,xmmoffset);
+                }
+                xmmoffset += 16;
+            }
+            else
+            {
+                if (cg.hasframe && !cg.enforcealign)
+                {
+                    // MOV gpoffset[EBP],reg
+                    cdb.genc1(0x89,modregxrm(2,reg,BPRM),FL.const_,gpoffset);
+                }
+                else
+                {
+                    // MOV gpoffset[ESP],reg
+                    cdb.genc1(0x89,modregxrm(2,reg,4) + 256*modregrm(0,4,SP),FL.const_,gpoffset);
+                }
+                if (I64)
+                    code_orrex(cdb.last(), REX_W);
+                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
+                    config.ehmethod == EHmethod.EH_DWARF)
+                {   // Emit debug_frame data giving location of saved register
+                    code* c = cdb.finish();
+                    pinholeopt(c, null);
+                    dwarf_CFA_set_loc(calcblksize(c));  // address after save
+                    dwarf_CFA_offset(reg, cast(int)(gpoffset - cfa_offset));
+                    cdb.reset();
+                    cdb.append(c);
+                }
+                gpoffset += REGSIZE;
+            }
+        }
+    }
+    else
+    {
+        while (topush)                      /* while registers to push      */
+        {
+            reg_t reg = findreg(topush);
+            topush &= ~mask(reg);
+            if (isXMMreg(reg))
+            {
+                // SUB RSP,16
+                cod3_stackadj(cdb, 16);
+                // MOVUPD 0[RSP],xmm
+                cdb.genc1(STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FL.const_,0);
+                cg.EBPtoESP += 16;
+                cg.spoff += 16;
+            }
+            else
+            {
+                genpush(cdb, reg);
+                cg.EBPtoESP += REGSIZE;
+                cg.spoff += REGSIZE;
+                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
+                    config.ehmethod == EHmethod.EH_DWARF)
+                {   // Emit debug_frame data giving location of saved register
+                    // relative to 0[EBP]
+                    code* c = cdb.finish();
+                    pinholeopt(c, null);
+                    dwarf_CFA_set_loc(calcblksize(c));  // address after PUSH reg
+                    dwarf_CFA_offset(reg, -cg.EBPtoESP - cfa_offset);
+                    cdb.reset();
+                    cdb.append(c);
+                }
+            }
+        }
+    }
+}
+
+/**************************************
+ * Undo prolog_saveregs()
+ */
+
+@trusted
+private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topop)
+{
+    debug
+    if (topop & ~(XMMREGS | 0xFFFF))
+        printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(cg.mfuncreg));
+
+    assert(!(topop & ~(XMMREGS | 0xFFFF)));
+    if (cg.pushoffuse)
+    {
+        // Save to preallocated section in the stack frame
+        int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
+        int gptopop = popcnt(topop) - xmmtopop;   // general purpose registers to save
+        targ_size_t xmmoffset = cg.pushoff + cg.BPoff;
+        if (!cg.hasframe || cg.enforcealign)
+            xmmoffset += cg.EBPtoESP;
+        targ_size_t gpoffset = xmmoffset + xmmtopop * 16;
+        while (topop)
+        {
+            reg_t reg = findreg(topop);
+            topop &= ~mask(reg);
+            if (isXMMreg(reg))
+            {
+                if (cg.hasframe && !cg.enforcealign)
+                {
+                    // MOVUPD xmm,xmmoffset[EBP]
+                    cdb.genc1(LODUPD,modregxrm(2,reg-XMM0,BPRM),FL.const_,xmmoffset);
+                }
+                else
+                {
+                    // MOVUPD xmm,xmmoffset[ESP]
+                    cdb.genc1(LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FL.const_,xmmoffset);
+                }
+                xmmoffset += 16;
+            }
+            else
+            {
+                if (cg.hasframe && !cg.enforcealign)
+                {
+                    // MOV reg,gpoffset[EBP]
+                    cdb.genc1(0x8B,modregxrm(2,reg,BPRM),FL.const_,gpoffset);
+                }
+                else
+                {
+                    // MOV reg,gpoffset[ESP]
+                    cdb.genc1(0x8B,modregxrm(2,reg,4) + 256*modregrm(0,4,SP),FL.const_,gpoffset);
+                }
+                if (I64)
+                    code_orrex(cdb.last(), REX_W);
+                gpoffset += REGSIZE;
+            }
+        }
+    }
+    else
+    {
+        reg_t reg = I64 ? XMM7 : DI;
+        if (!(topop & XMMREGS))
+            reg = R15;
+        regm_t regm = 1UL << reg;
+
+        while (topop)
+        {   if (topop & regm)
+            {
+                if (isXMMreg(reg))
+                {
+                    // MOVUPD xmm,0[RSP]
+                    cdb.genc1(LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FL.const_,0);
+                    // ADD RSP,16
+                    cod3_stackadj(cdb, -16);
+                }
+                else
+                {
+                    cdb.genpop(reg);         // POP reg
+                }
+                topop &= ~regm;
+            }
+            regm >>= 1;
+            reg--;
+        }
+    }
+}
+
 
 /******************************
  * Generate special varargs prolog for Posix 64 bit systems.
