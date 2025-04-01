@@ -23,7 +23,7 @@ import dmd.gluelayer;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, addMember, setFieldOffset;
+import dmd.dsymbolsem : setFieldOffset;
 import dmd.errors;
 import dmd.func;
 import dmd.id;
@@ -33,7 +33,6 @@ import dmd.mtype;
 import dmd.objc;
 import dmd.root.rmem;
 import dmd.target;
-import dmd.typesem : covariant, immutableOf, sarrayOf;
 import dmd.visitor;
 
 /***********************************************************
@@ -755,106 +754,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     bool isCPPinterface() const
     {
         return false;
-    }
-
-    /****************************************
-     */
-    final bool isAbstract()
-    {
-        enum log = false;
-        if (isabstract != ThreeState.none)
-            return isabstract == ThreeState.yes;
-
-        if (log) printf("isAbstract(%s)\n", toChars());
-
-        bool no()  { if (log) printf("no\n");  isabstract = ThreeState.no;  return false; }
-        bool yes() { if (log) printf("yes\n"); isabstract = ThreeState.yes; return true;  }
-
-        if (storage_class & STC.abstract_ || _scope && _scope.stc & STC.abstract_)
-            return yes();
-
-        if (errors)
-            return no();
-
-        /* https://issues.dlang.org/show_bug.cgi?id=11169
-         * Resolve forward references to all class member functions,
-         * and determine whether this class is abstract.
-         */
-        static int func(Dsymbol s, void*)
-        {
-            auto fd = s.isFuncDeclaration();
-            if (!fd)
-                return 0;
-            if (fd.storage_class & STC.static_)
-                return 0;
-
-            if (fd.isAbstract())
-                return 1;
-            return 0;
-        }
-
-        // opaque class is not abstract if it is not declared abstract
-        if (!members)
-            return no();
-
-        for (size_t i = 0; i < members.length; i++)
-        {
-            auto s = (*members)[i];
-            if (s.apply(&func, null))
-            {
-                return yes();
-            }
-        }
-
-        /* If the base class is not abstract, then this class cannot
-         * be abstract.
-         */
-        if (!isInterfaceDeclaration() && (!baseClass || !baseClass.isAbstract()))
-            return no();
-
-        /* If any abstract functions are inherited, but not overridden,
-         * then the class is abstract. Do this by checking the vtbl[].
-         * Need to do semantic() on class to fill the vtbl[].
-         */
-        this.dsymbolSemantic(null);
-
-        /* The next line should work, but does not because when ClassDeclaration.dsymbolSemantic()
-         * is called recursively it can set PASS.semanticdone without finishing it.
-         */
-        //if (semanticRun < PASS.semanticdone)
-        {
-            /* Could not complete semantic(). Try running semantic() on
-             * each of the virtual functions,
-             * which will fill in the vtbl[] overrides.
-             */
-            static int virtualSemantic(Dsymbol s, void*)
-            {
-                auto fd = s.isFuncDeclaration();
-                if (fd && !(fd.storage_class & STC.static_) && !fd.isUnitTestDeclaration())
-                    fd.dsymbolSemantic(null);
-                return 0;
-            }
-
-            for (size_t i = 0; i < members.length; i++)
-            {
-                auto s = (*members)[i];
-                s.apply(&virtualSemantic,null);
-            }
-        }
-
-        /* Finally, check the vtbl[]
-         */
-        foreach (i; 1 .. vtbl.length)
-        {
-            auto fd = vtbl[i].isFuncDeclaration();
-            //if (fd) printf("\tvtbl[%d] = [%s] %s\n", i, fd.loc.toChars(), fd.toPrettyChars());
-            if (!fd || fd.isAbstract())
-            {
-                return yes();
-            }
-        }
-
-        return no();
     }
 
     /****************************************

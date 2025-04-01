@@ -192,6 +192,12 @@ Dsymbol vtblSymbol(ClassDeclaration cd)
     return dmd.dsymbolsem.vtblSymbol(cd);
 }
 
+bool isAbstract(ClassDeclaration cd)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.isAbstract(cd);
+}
+
 /***********************************************************
  * dtemplate.d
  */

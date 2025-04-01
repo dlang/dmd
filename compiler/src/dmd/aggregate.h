@@ -293,7 +293,6 @@ public:
     virtual bool isCOMinterface() const;
     bool isCPPclass() const;
     virtual bool isCPPinterface() const;
-    bool isAbstract();
     virtual int vtblOffset() const;
     const char *kind() const override;
 
