@@ -183,7 +183,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
  */
 Extend tyToExtend(tym_t ty)
 {
-    //debug printf("ty: %x\n", ty);
+    //debug printf("ty: %s\n", tym_str(ty));
     assert(tyintegral(ty) || ty == TYnptr);
     Extend extend;
     const sz = tysize(ty);
@@ -1040,26 +1040,38 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     const tym = tybasic(e.Ety);
     const sz = _tysize[tym];
-    if (tyfloating(tym))
-    {
-        assert(0);
-    }
+    const uns  = tyuns(tym) != 0;
 
     const tym1 = tybasic(e.E1.Ety);
     const sz1  = _tysize[tym1];
-    const uns  = tyuns(tym1) != 0;
 
-    const posregs = cgstate.allregs;
+    const posregs = cg.allregs;
     regm_t retregs1 = posregs;
-    codelem(cgstate,cdb,e.E1,retregs1,false);
+    codelem(cg,cdb,e.E1,retregs1,false);
+    const Rn = findreg(retregs1);           // Rn is the pointer
+
+    if (tyfloating(tym))
+    {
+        regm_t retregs = pretregs & INSTR.FLOATREGS;
+        if (retregs == 0)                   /* if no return regs speced (such as mPSW)     */
+            retregs = INSTR.FLOATREGS;      // give us some
+        reg_t Rt = allocreg(cdb, retregs, tym);
+
+        code cs;
+        cs.base = Rn;
+        cs.reg = NOREG;
+        cs.index = NOREG;
+        loadFromEA(cs, Rt, sz, sz);     // LDR reg,[cs.base]
+        cdb.gen1(cs.Iop);
+
+        fixresult(cdb,e,retregs,pretregs);
+        return;
+    }
 
     regm_t retregs = pretregs & cg.allregs;
-    if (retregs == 0)                   /* if no return regs speced     */
-                                        /* (like if wanted flags only)  */
+    if (retregs == 0)                   /* if no return regs speced (such as mPSW)     */
         retregs = ALLREGS & posregs;    // give us some
     reg_t Rt = allocreg(cdb, retregs, tym);
-
-    const Rn = findreg(retregs1);
 
     uint size;
     uint VR = 0;
@@ -1067,6 +1079,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     uint decode(uint to, uint from, bool uns) { return to * 4 * 2 + from * 2 + uns; }
 
+    // TODO AArch64 consider loadFromEA() instead
     switch (decode(sz == 8 ? 8 : 4, sz, uns))
     {
     /*
