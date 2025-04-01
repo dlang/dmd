@@ -411,7 +411,7 @@ alias versionFile = makeRule!((builder, rule) {
                 return gitResult.output.strip;
         }
         // version fallback
-        return dmdRepo.buildPath("VERSION").readText;
+        return dmdRepo.buildPath("VERSION").readText.strip;
     });
     builder
     .target(env["G"].buildPath("VERSION"))
