@@ -330,6 +330,7 @@ Params:
 
 Returns: the number of elements that can actually be stored once the resizing is done
 */
+/**
 extern(C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void[]* p) @weak
 in
 {
@@ -425,6 +426,7 @@ Lcontinue:
     assert(curCapacity);
     return curCapacity / size;
 }
+*/
 
 /**
 Allocate an array with the garbage collector.

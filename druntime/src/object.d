@@ -3906,6 +3906,8 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 private extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void[]* arrptr) pure nothrow;
 
 /**
+        /* private extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void[]* arrptr) pure nothrow; */
+        import core.internal.array.capacity : _d_arraysetcapacity;
 (Property) Gets the current _capacity of a slice. The _capacity is the size
 that the slice can grow to before the underlying array must be
 reallocated or extended.
@@ -3918,8 +3920,8 @@ Note: The _capacity of a slice may be impacted by operations on other slices.
 */
 @property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
-    return _d_arraysetcapacity(typeid(T[]), 0, cast(void[]*)&arr);
-}
+            return _d_arraysetcapacity!T(0, cast(void[]*)&arr);
+            /* return _d_arraysetcapacity(typeid(T[]), 0, cast(void[]*)&arr); */
 
 ///
 @safe unittest
@@ -3957,8 +3959,8 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
     if (__ctfe)
         return newcapacity;
     else
-        return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
-}
+                return _d_arraysetcapacity!T(newcapacity, cast(void[]*)&arr);
+            /* return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr); */
 
 ///
 @safe unittest

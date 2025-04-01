@@ -9,6 +9,150 @@
 */
 module core.internal.array.capacity;
 
+import core.attribute : weak;
+import core.exception : onOutOfMemoryError;
+import core.stdc.string : memcpy, memset;
+import core.memory;
+
+alias BlkAttr = GC.BlkAttr;
+
+// for now, all GC array functions are not exposed via core.memory.
+extern (C)
+{
+    size_t gc_reserveArrayCapacity(void[] slice, size_t request, bool atomic) nothrow pure;
+    bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) nothrow pure;
+}
+
+template Unqualified(T)
+{
+    static if (is(T == const(U), U))
+        alias Unqualified = Unqualified!U;
+    else static if (is(T == immutable(U), U))
+        alias Unqualified = Unqualified!U;
+    else static if (is(T == shared(U), U))
+        alias Unqualified = Unqualified!U;
+    else static if (is(T == inout(U), U))
+        alias Unqualified = Unqualified!U;
+    else
+        alias Unqualified = T;
+}
+
+/**
+Set the array capacity.
+
+If the array capacity isn't currently large enough
+to hold the requested capacity (in number of elements), then the array is
+resized/reallocated to the appropriate size.
+
+Pass in a requested capacity of 0 to get the current capacity.
+
+Params:
+    ti = type info of element type
+    newcapacity = requested new capacity
+    p = pointer to array to set. Its `length` is left unchanged.
+
+Returns: the number of elements that can actually be stored once the resizing is done
+*/
+
+extern (C) void __doPostblit(void* ptr, size_t len, const TypeInfo ti) nothrow pure;
+/* extern (C) inout(TypeInfo) unqualify(return scope inout(TypeInfo) cti) pure nothrow @nogc; */
+extern (C) uint __typeAttrs(const scope TypeInfo ti, void* copyAttrsFrom = null) pure nothrow;
+
+size_t _d_arraysetcapacity(T)(size_t newcapacity, void[]* p) @weak nothrow pure
+in
+{
+    assert(!(*p).length || (*p).ptr);
+}
+do
+{
+    const ti = typeid(T[]);
+    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
+    /* auto tinext = unqualify(ti.next); */
+    auto tinext = typeid(Unqualified!(T[]));
+    auto size = tinext.tsize;
+    version (D_InlineAsm_X86)
+    {
+        size_t reqsize = void;
+
+        asm nothrow pure
+        {
+            mov EAX, newcapacity;
+            mul EAX, size;
+            mov reqsize, EAX;
+            jnc Lcontinue;
+        }
+    }
+    else version (D_InlineAsm_X86_64)
+    {
+        size_t reqsize = void;
+
+        asm nothrow pure
+        {
+            mov RAX, newcapacity;
+            mul RAX, size;
+            mov reqsize, RAX;
+            jnc Lcontinue;
+        }
+    }
+    else
+    {
+        bool overflow = false;
+        size_t reqsize = mulu(size, newcapacity, overflow);
+        if (!overflow)
+            goto Lcontinue;
+    }
+Loverflow:
+    onOutOfMemoryError();
+    assert(0);
+Lcontinue:
+
+    // step 1, see if we can ensure the capacity is valid in-place
+    auto datasize = (*p).length * size;
+    auto curCapacity = gc_reserveArrayCapacity((*p).ptr[0 .. datasize], reqsize, isshared);
+    if (curCapacity != 0) // in-place worked!
+        return curCapacity / size;
+
+    if (reqsize <= datasize) // requested size is less than array size, the current array satisfies
+        // the request. But this is not an appendable GC array, so return 0.
+        return 0;
+
+    // step 2, if reserving in-place doesn't work, allocate a new array with at
+    // least the requested allocated size.
+    auto attrs = __typeAttrs(tinext, (*p).ptr) | BlkAttr.APPENDABLE;
+    auto ptr = GC.malloc(reqsize, attrs, tinext);
+    if (ptr is null)
+        goto Loverflow;
+
+    // copy the data over.
+    // note that malloc will have initialized the data we did not request to 0.
+    memcpy(ptr, (*p).ptr, datasize);
+
+    // handle postblit
+    __doPostblit(ptr, datasize, tinext);
+
+    if (!(attrs & BlkAttr.NO_SCAN))
+    {
+        // need to memset the newly requested data, except for the data that
+        // malloc returned that we didn't request.
+        void* endptr = ptr + reqsize;
+        void* begptr = ptr + datasize;
+
+        // sanity check
+        assert(endptr >= begptr);
+        memset(begptr, 0, endptr - begptr);
+    }
+
+    *p = ptr[0 .. (*p).length];
+
+    // set up the correct length. Note that we need to do this here, because
+    // the GC malloc will automatically set the used size to what we requested.
+    gc_shrinkArrayUsed(ptr[0 .. datasize], reqsize, isshared);
+
+    curCapacity = gc_reserveArrayCapacity(ptr[0 .. datasize], 0, isshared);
+    assert(curCapacity);
+    return curCapacity / size;
+}
+
 // HACK: `nothrow` and `pure` is faked.
 private extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
 private extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
@@ -42,9 +186,15 @@ template _d_arraysetlengthTImpl(Tarr : T[], T)
             auto ti = typeid(Tarr);
 
             static if (__traits(isZeroInit, T))
-                ._d_arraysetlengthT(ti, newlength, cast(void[]*)&arr);
+
+
+
+                    ._d_arraysetlengthT(ti, newlength, cast(void[]*)&arr);
             else
-                ._d_arraysetlengthiT(ti, newlength, cast(void[]*)&arr);
+
+
+
+                    ._d_arraysetlengthiT(ti, newlength, cast(void[]*)&arr);
 
             return arr.length;
         }
