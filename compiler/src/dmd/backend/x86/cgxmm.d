@@ -1920,7 +1920,7 @@ void cloadxmm(ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     if (pretregs == (mXMM0 | mXMM1) &&
         e.Eoper != OPconst)
     {
-        code cs = void;
+        code cs;
         tym_t tym = tybasic(e.Ety);
         tym_t ty = tym == TYcdouble ? TYdouble : TYfloat;
         opcode_t opmv = xmmload(tym, xmmIsAligned(e));
