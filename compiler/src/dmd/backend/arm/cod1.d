@@ -1111,7 +1111,8 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
             }
             pcs.IEV1.Vsym = s;
             pcs.IEV1.Voffset = e.Voffset;
-            pcs.Sextend = cast(ubyte)tyToExtend(ty);  // sign or zero extension
+            if (!tyfloating(ty))
+                pcs.Sextend = cast(ubyte)tyToExtend(ty);  // sign or zero extension
             if (sz == 1)
             {
                 s.Sflags |= GTbyte;

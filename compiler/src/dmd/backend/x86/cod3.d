@@ -3799,6 +3799,7 @@ void prolog_setupalloca(ref CodeBuilder cdb)
  *
  * Emit Dwarf info for these saves.
  * Params:
+ *      cg = code state
  *      cdb = append generated instructions to this
  *      topush = mask of registers to push
  *      cfa_offset = offset of frame pointer from CFA
@@ -3807,6 +3808,9 @@ void prolog_setupalloca(ref CodeBuilder cdb)
 @trusted
 void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa_offset)
 {
+    //printf("prolog_saveregs() topush: %s pushoffuse: %d\n", regm_str(topush), cg.pushoffuse);
+    if (cg.AArch64) return; // TODO AArch64: implement
+
     if (cg.pushoffuse)
     {
         // Save to preallocated section in the stack frame
@@ -3905,6 +3909,9 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
 @trusted
 private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topop)
 {
+    //printf("epilog_restoreregs() topop: %s pushoffuse: %d\n", regm_str(topop), cg.pushoffuse);
+    if (cg.AArch64) return; // TODO AArch64: implement
+
     debug
     if (topop & ~(XMMREGS | 0xFFFF))
         printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(cg.mfuncreg));
