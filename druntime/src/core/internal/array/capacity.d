@@ -19,13 +19,13 @@ extern (C)
 }
 
 
-private uint __typeAttrs(T)(void *copyAttrsFrom = null) pure nothrow
+private uint __typeAttrs(T)(void *copyAttrsFrom = null)
 {
+    import core.internal.traits : hasElaborateDestructor, hasIndirections;
     import core.memory : GC;
 
     alias BlkAttr = GC.BlkAttr;
 
-    const ti = typeid(T);
     if (copyAttrsFrom)
     {
         // try to copy attrs from the given block
@@ -33,12 +33,14 @@ private uint __typeAttrs(T)(void *copyAttrsFrom = null) pure nothrow
         if (info.base)
             return info.attr;
     }
-    uint attrs = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
-    if (typeid(ti) is typeid(TypeInfo_Struct)) {
-        auto sti = cast(TypeInfo_Struct)cast(void*)ti;
-        if (sti.xdtor)
-            attrs |= BlkAttr.FINALIZE;
-    }
+
+    uint attrs = 0;
+    static if (hasIndirections!T)
+        attrs |= BlkAttr.NO_SCAN;
+
+    static if (hasElaborateDestructor!T)
+        attrs |= BlkAttr.FINALIZE;
+
     return attrs;
 }
 
