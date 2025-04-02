@@ -92,11 +92,9 @@ do
 
     alias BlkAttr = GC.BlkAttr;
 
-    const ti = typeid(T[]);
-    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
+    auto isshared = is(T == shared);
     alias Unqual_T = Unqual!(T);
-    auto tinext = typeid(Unqual_T);
-    auto size = tinext.tsize;
+    auto size = Unqual_T.sizeof;
     version (D_InlineAsm_X86)
     {
         size_t reqsize = void;
@@ -146,7 +144,7 @@ Lcontinue:
     // step 2, if reserving in-place doesn't work, allocate a new array with at
     // least the requested allocated size.
     auto attrs = __typeAttrs!Unqual_T((*p).ptr) | BlkAttr.APPENDABLE;
-    auto ptr = GC.malloc(reqsize, attrs, tinext);
+    auto ptr = GC.malloc(reqsize, attrs, typeid(Unqual_T));
     if (ptr is null)
         goto Loverflow;
 
