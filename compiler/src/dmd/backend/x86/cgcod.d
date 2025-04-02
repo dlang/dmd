@@ -2845,8 +2845,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,r
     regm_t oldregimmed = cg.regcon.immed.mval;
     regm_t oldmfuncreg = cg.mfuncreg;       // remember old one
     if (cg.AArch64)
-//        cg.mfuncreg = (XMMREGS | mask(cg.BP) | cg.allregs) & ~cg.regcon.mvar;
-        cg.mfuncreg = (0xFFFF_FFFF_7FFF_FFFF) & ~cg.regcon.mvar;
+        cg.mfuncreg = (INSTR.FLOATREGS | mask(cg.BP) | cg.allregs) & ~cg.regcon.mvar;
     else
         cg.mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~cg.regcon.mvar;
     uint stackpushsave = cg.stackpush;
@@ -2866,7 +2865,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,r
     /* Assert that no new CSEs are generated that are not reflected       */
     /* in mfuncreg.                                                       */
     debug if ((cg.mfuncreg & (cg.regcon.cse.mval & ~oldregcon)) != 0)
-        printf("mfuncreg %s, cg.regcon.cse.mval %s, oldregcon %s, regcon.mvar %s\n",
+        printf("mfuncreg %s\ncg.regcon.cse.mval %s\noldregcon %s\nregcon.mvar %s\n",
                 regm_str(cg.mfuncreg),regm_str(cg.regcon.cse.mval),regm_str(oldregcon),regm_str(cg.regcon.mvar));
 
     assert((cg.mfuncreg & (cg.regcon.cse.mval & ~oldregcon)) == 0);
@@ -3001,7 +3000,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,r
 const(char)* regm_str(regm_t rm)
 {
     enum NUM = 10;
-    enum SMAX = 128;
+    enum SMAX = 235;
     __gshared char[SMAX + 1][NUM] str;
     __gshared int i;
     bool AArch64 = cgstate.AArch64;
@@ -3057,13 +3056,19 @@ const(char)* regm_str(regm_t rm)
                 strcat(p,"|");
         }
     }
+    const len = strlen(p);
+    if (len > SMAX)
+    {
+        printf("strlen: %lld, SMAX: %d\n", cast(ulong)len, SMAX);
+        assert(0);
+    }
+
     if (rm)
     {
-        const pstrlen = strlen(p);
-        char* s = p + pstrlen;
-        snprintf(s, SMAX - pstrlen, "x%02llx", cast(ulong)rm);
+        char* s = p + len;
+        snprintf(s, SMAX - len, "x%02llx", cast(ulong)rm);
     }
-    assert(strlen(p) <= SMAX);
+
     return strdup(p);
 }
 
