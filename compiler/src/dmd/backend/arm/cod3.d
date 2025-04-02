@@ -343,7 +343,7 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
 {
     printf("prolog_saveregs() topush: %s pushoffuse: %d\n", regm_str(topush), cg.pushoffuse);
     assert(!(topush & ~fregsaved));
-    assert(cg.pushoffuse);
+    assert(cg.pushoffuse || !topush);
 
     // Save to preallocated section in the stack frame
     int xmmtopush = 0;
@@ -393,7 +393,7 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
 {
     assert(cg.AArch64);
 
-    assert(cg.pushoffuse);
+    assert(cg.pushoffuse || !topop);
 
     // Save to preallocated section in the stack frame
     int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
