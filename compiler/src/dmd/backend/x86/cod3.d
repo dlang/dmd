@@ -3808,9 +3808,10 @@ void prolog_setupalloca(ref CodeBuilder cdb)
 @trusted
 void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa_offset)
 {
-    //printf("prolog_saveregs() topush: %s pushoffuse: %d\n", regm_str(topush), cg.pushoffuse);
-    if (cg.AArch64) return; // TODO AArch64: implement
+    if (cg.AArch64)
+        return dmd.backend.arm.cod3.prolog_saveregs(cg, cdb, topush, cfa_offset);
 
+    //printf("prolog_saveregs() topush: %s pushoffuse: %d\n", regm_str(topush), cg.pushoffuse);
     if (cg.pushoffuse)
     {
         // Save to preallocated section in the stack frame
@@ -3910,7 +3911,7 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
 private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topop)
 {
     //printf("epilog_restoreregs() topop: %s pushoffuse: %d\n", regm_str(topop), cg.pushoffuse);
-    if (cg.AArch64) return; // TODO AArch64: implement
+    assert(!cg.AArch64);
 
     debug
     if (topop & ~(XMMREGS | 0xFFFF))
