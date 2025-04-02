@@ -10,31 +10,12 @@
 module core.internal.array.capacity;
 
 import core.attribute : weak;
-import core.exception : onOutOfMemoryError;
-import core.stdc.string : memcpy, memset;
-import core.memory;
-
-alias BlkAttr = GC.BlkAttr;
 
 // for now, all GC array functions are not exposed via core.memory.
 extern (C)
 {
     size_t gc_reserveArrayCapacity(void[] slice, size_t request, bool atomic) nothrow pure;
     bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) nothrow pure;
-}
-
-template Unqualified(T)
-{
-    static if (is(T == const(U), U))
-        alias Unqualified = Unqualified!U;
-    else static if (is(T == immutable(U), U))
-        alias Unqualified = Unqualified!U;
-    else static if (is(T == shared(U), U))
-        alias Unqualified = Unqualified!U;
-    else static if (is(T == inout(U), U))
-        alias Unqualified = Unqualified!U;
-    else
-        alias Unqualified = T;
 }
 
 /**
@@ -55,20 +36,26 @@ Returns: the number of elements that can actually be stored once the resizing is
 */
 
 extern (C) void __doPostblit(void* ptr, size_t len, const TypeInfo ti) nothrow pure;
-/* extern (C) inout(TypeInfo) unqualify(return scope inout(TypeInfo) cti) pure nothrow @nogc; */
 extern (C) uint __typeAttrs(const scope TypeInfo ti, void* copyAttrsFrom = null) pure nothrow;
 
-size_t _d_arraysetcapacity(T)(size_t newcapacity, void[]* p) @weak nothrow pure
+size_t _d_arraysetcapacity(T)(size_t newcapacity, void[]* p) @weak @trusted
 in
 {
     assert(!(*p).length || (*p).ptr);
 }
 do
 {
+    import core.exception : onOutOfMemoryError;
+    import core.internal.traits : Unqual;
+    import core.stdc.string : memcpy, memset;
+
+    import core.memory : GC;
+
+    alias BlkAttr = GC.BlkAttr;
+
     const ti = typeid(T[]);
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-    /* auto tinext = unqualify(ti.next); */
-    auto tinext = typeid(Unqualified!(T[]));
+    auto tinext = typeid(Unqual!(T));
     auto size = tinext.tsize;
     version (D_InlineAsm_X86)
     {
