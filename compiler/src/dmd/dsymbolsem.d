@@ -8210,3 +8210,101 @@ Dsymbol vtblSymbol(ClassDeclaration cd)
     }
     return cd.vtblsym;
 }
+
+extern(C++) bool isAbstract(ClassDeclaration cd)
+{
+    enum log = false;
+    if (cd.isabstract != ThreeState.none)
+        return cd.isabstract == ThreeState.yes;
+
+    if (log) printf("isAbstract(%s)\n", cd.toChars());
+
+    bool no()  { if (log) printf("no\n");  cd.isabstract = ThreeState.no;  return false; }
+    bool yes() { if (log) printf("yes\n"); cd.isabstract = ThreeState.yes; return true;  }
+
+    if (cd.storage_class & STC.abstract_ || cd._scope && cd._scope.stc & STC.abstract_)
+        return yes();
+
+    if (cd.errors)
+        return no();
+
+    /* https://issues.dlang.org/show_bug.cgi?id=11169
+        * Resolve forward references to all class member functions,
+        * and determine whether this class is abstract.
+        */
+    static int func(Dsymbol s, void*)
+    {
+        auto fd = s.isFuncDeclaration();
+        if (!fd)
+            return 0;
+        if (fd.storage_class & STC.static_)
+            return 0;
+
+        if (fd.isAbstract())
+            return 1;
+        return 0;
+    }
+
+    // opaque class is not abstract if it is not declared abstract
+    if (!(cd.members))
+        return no();
+
+    for (size_t i = 0; i < cd.members.length; i++)
+    {
+        auto s = (*(cd.members))[i];
+        if (s.apply(&func, null))
+        {
+            return yes();
+        }
+    }
+
+    /* If the base class is not abstract, then this class cannot
+        * be abstract.
+        */
+    if (!cd.isInterfaceDeclaration() && (!cd.baseClass || !cd.baseClass.isAbstract()))
+        return no();
+
+    /* If any abstract functions are inherited, but not overridden,
+        * then the class is abstract. Do this by checking the vtbl[].
+        * Need to do semantic() on class to fill the vtbl[].
+        */
+    cd.dsymbolSemantic(null);
+
+    /* The next line should work, but does not because when ClassDeclaration.dsymbolSemantic()
+        * is called recursively it can set PASS.semanticdone without finishing it.
+        */
+    //if (semanticRun < PASS.semanticdone)
+    {
+        /* Could not complete semantic(). Try running semantic() on
+            * each of the virtual functions,
+            * which will fill in the vtbl[] overrides.
+            */
+        static int virtualSemantic(Dsymbol s, void*)
+        {
+            auto fd = s.isFuncDeclaration();
+            if (fd && !(fd.storage_class & STC.static_) && !fd.isUnitTestDeclaration())
+                fd.dsymbolSemantic(null);
+            return 0;
+        }
+
+        for (size_t i = 0; i < cd.members.length; i++)
+        {
+            auto s = (*(cd.members))[i];
+            s.apply(&virtualSemantic,null);
+        }
+    }
+
+    /* Finally, check the vtbl[]
+        */
+    foreach (i; 1 .. cd.vtbl.length)
+    {
+        auto fd = cd.vtbl[i].isFuncDeclaration();
+        //if (fd) printf("\tvtbl[%d] = [%s] %s\n", i, fd.loc.toChars(), fd.toPrettyChars());
+        if (!fd || fd.isAbstract())
+        {
+            return yes();
+        }
+    }
+
+    return no();
+}
