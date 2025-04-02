@@ -18,6 +18,46 @@ extern (C)
     bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) nothrow pure;
 }
 
+
+private uint __typeAttrs(T)(void *copyAttrsFrom = null) pure nothrow
+{
+    import core.memory : GC;
+
+    alias BlkAttr = GC.BlkAttr;
+
+    const ti = typeid(T);
+    if (copyAttrsFrom)
+    {
+        // try to copy attrs from the given block
+        auto info = GC.query(copyAttrsFrom);
+        if (info.base)
+            return info.attr;
+    }
+    uint attrs = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
+    if (typeid(ti) is typeid(TypeInfo_Struct)) {
+        auto sti = cast(TypeInfo_Struct)cast(void*)ti;
+        if (sti.xdtor)
+            attrs |= BlkAttr.FINALIZE;
+    }
+    return attrs;
+}
+
+private void __doPostblit(T)(T[] arr)
+{
+    // infer static postblit type, run postblit if any
+    static if (__traits(hasPostblit, T))
+    {
+        static if (__traits(isStaticArray, T) && is(T : E[], E))
+            __doPostblit(cast(E[]) arr);
+        else static if (!is(typeof(arr[0].__xpostblit())) && is(immutable T == immutable U, U))
+            foreach (ref elem; (() @trusted => cast(U[]) arr)())
+                elem.__xpostblit();
+        else
+            foreach (ref elem; arr)
+                elem.__xpostblit();
+    }
+}
+
 /**
 Set the array capacity.
 
@@ -34,9 +74,6 @@ Params:
 
 Returns: the number of elements that can actually be stored once the resizing is done
 */
-
-extern (C) void __doPostblit(void* ptr, size_t len, const TypeInfo ti) nothrow pure;
-extern (C) uint __typeAttrs(const scope TypeInfo ti, void* copyAttrsFrom = null) pure nothrow;
 
 size_t _d_arraysetcapacity(T)(size_t newcapacity, void[]* p) @weak @trusted
 in
@@ -55,7 +92,8 @@ do
 
     const ti = typeid(T[]);
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-    auto tinext = typeid(Unqual!(T));
+    alias Unqual_T = Unqual!(T);
+    auto tinext = typeid(Unqual_T);
     auto size = tinext.tsize;
     version (D_InlineAsm_X86)
     {
@@ -105,7 +143,7 @@ Lcontinue:
 
     // step 2, if reserving in-place doesn't work, allocate a new array with at
     // least the requested allocated size.
-    auto attrs = __typeAttrs(tinext, (*p).ptr) | BlkAttr.APPENDABLE;
+    auto attrs = __typeAttrs!Unqual_T((*p).ptr) | BlkAttr.APPENDABLE;
     auto ptr = GC.malloc(reqsize, attrs, tinext);
     if (ptr is null)
         goto Loverflow;
@@ -115,7 +153,8 @@ Lcontinue:
     memcpy(ptr, (*p).ptr, datasize);
 
     // handle postblit
-    __doPostblit(ptr, datasize, tinext);
+    auto ptr_t = cast(Unqual_T*)ptr;
+    __doPostblit!Unqual_T(ptr_t[0 .. (*p).length]);
 
     if (!(attrs & BlkAttr.NO_SCAN))
     {
