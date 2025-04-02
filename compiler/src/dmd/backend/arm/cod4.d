@@ -1511,7 +1511,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             // EA:  LDR w0,[sp,#8]
             // reg: MOV w0,w1
             code cs;
-            getlvalue(cdb,cs,e,0,RM.load);
+            getlvalue(cdb,cs,e1,0,RM.load);
             cs.Sextend = (cs.Sextend & 0x100) | Extend.LSL;
             reg = allocreg(cdb,retregs,TYint);
             loadFromEA(cs,reg,4,4);
