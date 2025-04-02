@@ -986,6 +986,11 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
                         errorSupplemental(fd.loc, "Function `%s` contains errors in its declaration, therefore it cannot be correctly overridden",
                             fd.toPrettyChars());
                     }
+                    else if (fd.isFinalFunc())
+                    {
+                        // Don't suggest overriding a final method as it's not possible
+                        .error(funcdecl.loc, "%s `%s` does not override any function", funcdecl.kind, funcdecl.toPrettyChars);
+                    }
                     else
                     {
                         functionToBufferFull(cast(TypeFunction)(fd.type), buf1,
