@@ -6707,7 +6707,6 @@ public:
     virtual bool isCOMinterface() const;
     bool isCPPclass() const;
     virtual bool isCPPinterface() const;
-    bool isAbstract();
     virtual int32_t vtblOffset() const;
     const char* kind() const override;
     void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
@@ -7568,6 +7567,8 @@ public:
 extern bool hasStaticCtorOrDtor(Dsymbol* d);
 
 extern bool isFuncHidden(ClassDeclaration* cd, FuncDeclaration* fd);
+
+extern bool isAbstract(ClassDeclaration* cd);
 
 extern void lowerNonArrayAggregate(StaticForeach* sfe, Scope* sc);
 

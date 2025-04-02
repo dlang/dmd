@@ -1325,7 +1325,7 @@ public:
         for (size_t i = d->vtblOffset(); i < d->vtbl.length; i++)
         {
             FuncDeclaration *fd = d->vtbl[i]->isFuncDeclaration();
-            if (!fd || (!fd->fbody && d->isAbstract()))
+            if (!fd || (!fd->fbody && dmd::isAbstract(d)))
                 continue;
             if (!dmd::functionSemantic(fd))
                 return;
@@ -1403,7 +1403,7 @@ public:
         for (size_t i = d->vtblOffset(); i < d->vtbl.length; i++)
         {
             FuncDeclaration *fd = d->vtbl[i]->isFuncDeclaration();
-            if (fd && (fd->fbody || !d->isAbstract()))
+            if (fd && (fd->fbody || !dmd::isAbstract(d)))
                 visitDeclaration(fd);
         }
         d->type->accept(this);
