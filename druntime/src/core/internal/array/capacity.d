@@ -76,6 +76,12 @@ Params:
 
 Returns: the number of elements that can actually be stored once the resizing is done
 */
+size_t _d_arraysetcapacityPureNothrow(T)(size_t newcapacity, void[]* p) pure nothrow @weak @trusted
+do
+{
+    alias PureNothrowType = size_t function(size_t, void[]*) pure nothrow @trusted;
+    return (cast(PureNothrowType) &_d_arraysetcapacity!T)(newcapacity, p);
+}
 
 size_t _d_arraysetcapacity(T)(size_t newcapacity, void[]* p) @weak @trusted
 in
