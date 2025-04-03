@@ -3048,13 +3048,13 @@ $(GNAME TypeidExpression):
 )
 
     $(P If $(I Type), returns an instance of class
-        $(DPLLINK phobos/object.html, $(D TypeInfo))
+        $(DPLLINK library/object/type_info.html, $(D TypeInfo))
         corresponding
         to $(I Type).
     )
 
     $(P If $(I Expression), returns an instance of class
-        $(DPLLINK phobos/object.html, $(D TypeInfo))
+        $(DPLLINK library/object/type_info.html, $(D TypeInfo))
         corresponding
         to the type of the $(I Expression).
         If the type is a class, it returns the $(D TypeInfo)
