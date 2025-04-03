@@ -8308,3 +8308,245 @@ extern(C++) bool isAbstract(ClassDeclaration cd)
 
     return no();
 }
+
+void finalizeSize(AggregateDeclaration ad)
+{
+    scope v = new FinalizeSizeVisitor();
+    ad.accept(v);
+}
+
+private extern(C++) class FinalizeSizeVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+
+    override void visit(ClassDeclaration outerCd)
+    {
+        assert(outerCd.sizeok != Sizeok.done);
+
+        // Set the offsets of the fields and determine the size of the class
+        if (outerCd.baseClass)
+        {
+            assert(outerCd.baseClass.sizeok == Sizeok.done);
+
+            outerCd.alignsize = outerCd.baseClass.alignsize;
+            if (outerCd.classKind == ClassKind.cpp)
+                outerCd.structsize = target.cpp.derivedClassOffset(outerCd.baseClass);
+            else
+                outerCd.structsize = outerCd.baseClass.structsize;
+        }
+        else if (outerCd.classKind == ClassKind.objc)
+            outerCd.structsize = 0; // no hidden member for an Objective-C class
+        else if (outerCd.isInterfaceDeclaration())
+        {
+            if (outerCd.interfaces.length == 0)
+            {
+                outerCd.alignsize = target.ptrsize;
+                outerCd.structsize = target.ptrsize;      // allow room for __vptr
+            }
+        }
+        else
+        {
+            outerCd.alignsize = target.ptrsize;
+            outerCd.structsize = target.ptrsize;      // allow room for __vptr
+            if (outerCd.hasMonitor())
+                outerCd.structsize += target.ptrsize; // allow room for __monitor
+        }
+
+        //printf("finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
+        size_t bi = 0;                  // index into vtblInterfaces[]
+
+        /****
+            * Runs through the inheritance graph to set the BaseClass.offset fields.
+            * Recursive in order to account for the size of the interface classes, if they are
+            * more than just interfaces.
+            * Params:
+            *      cd = interface to look at
+            *      baseOffset = offset of where cd will be placed
+            * Returns:
+            *      subset of instantiated size used by cd for interfaces
+            */
+        uint membersPlace(ClassDeclaration cd, uint baseOffset)
+        {
+            //printf("    membersPlace(%s, %d)\n", cd.toChars(), baseOffset);
+            uint offset = baseOffset;
+
+            foreach (BaseClass* b; cd.interfaces)
+            {
+                if (b.sym.sizeok != Sizeok.done)
+                    b.sym.finalizeSize();
+                assert(b.sym.sizeok == Sizeok.done);
+
+                if (!b.sym.alignsize)
+                    b.sym.alignsize = target.ptrsize;
+                offset = alignmember(structalign_t(cast(ushort)b.sym.alignsize), b.sym.alignsize, offset);
+                assert(bi < outerCd.vtblInterfaces.length);
+
+                BaseClass* bv = (*(outerCd.vtblInterfaces))[bi];
+                if (b.sym.interfaces.length == 0)
+                {
+                    //printf("\tvtblInterfaces[%d] b=%p b.sym = %s, offset = %d\n", bi, bv, bv.sym.toChars(), offset);
+                    bv.offset = offset;
+                    ++bi;
+                    // All the base interfaces down the left side share the same offset
+                    for (BaseClass* b2 = bv; b2.baseInterfaces.length; )
+                    {
+                        b2 = &b2.baseInterfaces[0];
+                        b2.offset = offset;
+                        //printf("\tvtblInterfaces[%d] b=%p   sym = %s, offset = %d\n", bi, b2, b2.sym.toChars(), b2.offset);
+                    }
+                }
+                membersPlace(b.sym, offset);
+                //printf(" %s size = %d\n", b.sym.toChars(), b.sym.structsize);
+                offset += b.sym.structsize;
+                if (outerCd.alignsize < b.sym.alignsize)
+                    outerCd.alignsize = b.sym.alignsize;
+            }
+            return offset - baseOffset;
+        }
+
+        outerCd.structsize += membersPlace(outerCd, outerCd.structsize);
+
+        if (outerCd.isInterfaceDeclaration())
+        {
+            outerCd.sizeok = Sizeok.done;
+            return;
+        }
+
+        // FIXME: Currently setFieldOffset functions need to increase fields
+        // to calculate each variable offsets. It can be improved later.
+        outerCd.fields.setDim(0);
+
+        FieldState fieldState;
+        fieldState.offset = outerCd.structsize;
+        foreach (s; *(outerCd.members))
+        {
+            s.setFieldOffset(outerCd, &fieldState, false);
+        }
+
+        outerCd.sizeok = Sizeok.done;
+
+        // Calculate fields[i].overlapped
+        outerCd.checkOverlappedFields();
+    }
+
+    override void visit(StructDeclaration sd)
+    {
+        //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
+        assert(sd.sizeok != Sizeok.done);
+
+        if (sd.sizeok == Sizeok.inProcess)
+        {
+            return;
+        }
+        sd.sizeok = Sizeok.inProcess;
+
+        //printf("+StructDeclaration::finalizeSize() %s, fields.length = %d, sizeok = %d\n", toChars(), fields.length, sizeok);
+
+        sd.fields.setDim(0);   // workaround
+
+        // Set the offsets of the fields and determine the size of the struct
+        FieldState fieldState;
+        bool isunion = sd.isUnionDeclaration() !is null;
+        for (size_t i = 0; i < sd.members.length; i++)
+        {
+            Dsymbol s = (*sd.members)[i];
+            s.setFieldOffset(sd, &fieldState, isunion);
+            if (sd.type.ty == Terror)
+            {
+                errorSupplemental(s.loc, "error on member `%s`", s.toPrettyChars);
+                sd.errors = true;
+                return;
+            }
+        }
+
+        if (sd.structsize == 0)
+        {
+            sd.hasNoFields = true;
+            sd.alignsize = 1;
+
+            // A fine mess of what size a zero sized struct should be
+            final switch (sd.classKind)
+            {
+                case ClassKind.d:
+                case ClassKind.cpp:
+                    sd.structsize = 1;
+                    break;
+
+                case ClassKind.c:
+                case ClassKind.objc:
+                    if (target.c.bitFieldStyle == TargetC.BitFieldStyle.MS)
+                    {
+                        /* Undocumented MS behavior for:
+                         *   struct S { int :0; };
+                         */
+                        sd.structsize = 4;
+                    }
+                    else
+                        sd.structsize = 0;
+                    break;
+            }
+        }
+
+        // Round struct size up to next alignsize boundary.
+        // This will ensure that arrays of structs will get their internals
+        // aligned properly.
+        if (sd.alignment.isDefault() || sd.alignment.isPack())
+            sd.structsize = (sd.structsize + sd.alignsize - 1) & ~(sd.alignsize - 1);
+        else
+            sd.structsize = (sd.structsize + sd.alignment.get() - 1) & ~(sd.alignment.get() - 1);
+
+        sd.sizeok = Sizeok.done;
+
+        //printf("-StructDeclaration::finalizeSize() %s, fields.length = %d, structsize = %d\n", toChars(), cast(int)fields.length, cast(int)structsize);
+
+        if (sd.errors)
+            return;
+
+        // Calculate fields[i].overlapped
+        if (sd.checkOverlappedFields())
+        {
+            sd.errors = true;
+            return;
+        }
+
+        // Determine if struct is all zeros or not
+        sd.zeroInit = true;
+        auto lastOffset = -1;
+        foreach (vd; sd.fields)
+        {
+            // First skip zero sized fields
+            if (vd.type.size(vd.loc) == 0)
+                continue;
+
+            // only consider first sized member of an (anonymous) union
+            if (vd.overlapped && vd.offset == lastOffset)
+                continue;
+            lastOffset = vd.offset;
+
+            if (vd._init)
+            {
+                if (vd._init.isVoidInitializer())
+                    /* Treat as 0 for the purposes of putting the initializer
+                     * in the BSS segment, or doing a mass set to 0
+                     */
+                    continue;
+
+                // Examine init to see if it is all 0s.
+                auto exp = vd.getConstInitializer();
+                if (!exp || !_isZeroInit(exp))
+                {
+                    sd.zeroInit = false;
+                    break;
+                }
+            }
+            else if (!vd.type.isZeroInit(sd.loc))
+            {
+                sd.zeroInit = false;
+                break;
+            }
+        }
+
+
+        sd.argTypes = target.toArgTypes(sd.type);
+    }
+}
