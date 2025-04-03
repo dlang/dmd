@@ -70,7 +70,6 @@ resized/reallocated to the appropriate size.
 Pass in a requested capacity of 0 to get the current capacity.
 
 Params:
-    ti = type info of element type
     newcapacity = requested new capacity
     p = pointer to array to set. Its `length` is left unchanged.
 
