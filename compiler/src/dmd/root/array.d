@@ -216,7 +216,7 @@ public:
         if (length - i - 1)
             memmove(data.ptr + i, data.ptr + i + 1, (length - i - 1) * T.sizeof);
         length--;
-        debug (stomp) memset(data.ptr + length, 0xFF, 1);
+        debug (stomp) memset(data.ptr + length, 0xFF, T.sizeof);
     }
 
     void insert(size_t index, typeof(this)* a) pure nothrow
