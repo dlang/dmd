@@ -1721,10 +1721,11 @@ int main(int argc, char **argv)
 /**********************************/
 // Link Tests
 
-void aggregate_h(StructDeclaration *sd)
+void aggregate_h(StructDeclaration *sd, ClassDeclaration *cd, FuncDeclaration *fd)
 {
     dmd::search_toString(sd);
     dmd::semanticTypeInfoMembers(sd);
+    dmd::isFuncHidden(cd, fd);
 }
 
 void argtypes_h(Type *t)
@@ -1736,7 +1737,8 @@ void argtypes_h(Type *t)
     //dmd::isHFVA(t);
 }
 
-void declaration_h(FuncDeclaration *fd, Loc loc, Expressions* args, Parameters* params)
+void declaration_h(FuncDeclaration *fd, Loc loc, Expressions* args, Parameters* params,
+		   ClassDeclaration *cd)
 {
     dmd::functionSemantic(fd);
     dmd::functionSemantic3(fd);
@@ -1744,6 +1746,7 @@ void declaration_h(FuncDeclaration *fd, Loc loc, Expressions* args, Parameters* 
     ::isBuiltin(fd);
     dmd::genCfunc(params, fd->type, "test");
     dmd::genCfunc(params, fd->type, Identifier::idPool("test"));
+    dmd::isAbstract(cd);
 }
 
 void doc_h(Module *m, const char *ptr, d_size_t length, const char *date,
@@ -1761,6 +1764,7 @@ void dsymbol_h(Dsymbol *d, Scope *sc, ScopeDsymbol *sds, Loc loc, Identifier *id
     dmd::search(d, loc, ident);
     dmd::setScope(d, sc);
     dmd::importAll(d, sc);
+    dmd::include(d, sc);
 }
 
 void expression_h(Expression *e, Scope *sc, Type *t, Loc loc, Expressions *es)

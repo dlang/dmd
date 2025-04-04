@@ -428,7 +428,4 @@ namespace dmd
     Dsymbols *include(Dsymbol *d, Scope *sc);
     void setScope(Dsymbol *d, Scope *sc);
     void importAll(Dsymbol *d, Scope *sc);
-    void addComment(Dsymbol *d, const char *comment);
-    bool oneMember(Dsymbol *d, Dsymbol *&ps, Identifier *ident);
-    bool hasStaticCtorOrDtor(Dsymbol *d);
 }

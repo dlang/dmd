@@ -51,7 +51,6 @@ namespace dmd
 {
     // in expressionsem.d
     Expression *expressionSemantic(Expression *e, Scope *sc);
-    void lowerNonArrayAggregate(StaticForeach *sfe, Scope *sc);
     // in typesem.d
     Expression *defaultInit(Type *mt, Loc loc, const bool isCfile = false);
 

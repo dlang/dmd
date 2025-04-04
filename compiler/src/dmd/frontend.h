@@ -7535,8 +7535,6 @@ public:
     void visit(StaticForeachDeclaration* _) override;
 };
 
-extern Array<Dsymbol* >* include(Dsymbol* d, Scope* sc);
-
 class ConditionIncludeVisitor : public Visitor
 {
 public:
@@ -7550,8 +7548,6 @@ public:
     void visit(StaticForeachDeclaration* sfd) override;
 };
 
-extern void addComment(Dsymbol* d, const char* comment);
-
 class AddCommentVisitor : public Visitor
 {
 public:
@@ -7563,16 +7559,6 @@ public:
     void visit(ConditionalDeclaration* cd) override;
     void visit(StaticForeachDeclaration* sfd) override;
 };
-
-extern bool hasStaticCtorOrDtor(Dsymbol* d);
-
-extern bool isFuncHidden(ClassDeclaration* cd, FuncDeclaration* fd);
-
-extern bool isAbstract(ClassDeclaration* cd);
-
-extern void lowerNonArrayAggregate(StaticForeach* sfe, Scope* sc);
-
-extern int32_t include(Condition* c, Scope* sc);
 
 class NrvoWalker final : public StatementRewriteWalker
 {

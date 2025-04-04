@@ -17511,7 +17511,7 @@ bool fill(StructDeclaration sd, Loc loc, ref Expressions elements, bool ctorinit
 *     sfe = The 'static foreach'.
 *     sc = The current scope.
 */
-extern (C++) void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
+void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
 {
     import dmd.statement;
 
@@ -17726,7 +17726,7 @@ extern(D) void lowerArrayAggregate(StaticForeach sfe, Scope* sc)
     sfe.aggrfe.aggr = sfe.aggrfe.aggr.ctfeInterpret();
 }
 
-extern(C++) int include(Condition c, Scope* sc)
+int include(Condition c, Scope* sc)
 {
     scope v = new IncludeVisitor(sc);
     c.accept(v);

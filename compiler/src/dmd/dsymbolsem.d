@@ -7531,7 +7531,7 @@ private extern(C++) class NewScopeVisitor : Visitor
 }
 
 
-extern(C++) Dsymbols* include(Dsymbol d, Scope* sc)
+Dsymbols* include(Dsymbol d, Scope* sc)
 {
     scope icv = new ConditionIncludeVisitor(sc);
     d.accept(icv);
@@ -7891,7 +7891,7 @@ Lfail:
     return false;
 }
 
-extern (C++) void addComment(Dsymbol d, const(char)* comment)
+void addComment(Dsymbol d, const(char)* comment)
 {
     scope v = new AddCommentVisitor(comment);
     d.accept(v);
@@ -8108,7 +8108,7 @@ private extern(C++) class OneMemberVisitor : Visitor
 * Return true if any of the members are static ctors or static dtors, or if
 * any members have members that are.
 */
-extern(C++) bool hasStaticCtorOrDtor(Dsymbol d)
+bool hasStaticCtorOrDtor(Dsymbol d)
 {
     scope v = new HasStaticCtorOrDtor();
     d.accept(v);
@@ -8162,7 +8162,7 @@ private extern(C++) class HasStaticCtorOrDtor : Visitor
     }
 }
 
-extern(C++) bool isFuncHidden(ClassDeclaration cd, FuncDeclaration fd)
+bool isFuncHidden(ClassDeclaration cd, FuncDeclaration fd)
 {
     import dmd.funcsem : overloadApply;
     //printf("ClassDeclaration.isFuncHidden(class = %s, fd = %s)\n", toChars(), fd.toPrettyChars());
@@ -8211,7 +8211,7 @@ Dsymbol vtblSymbol(ClassDeclaration cd)
     return cd.vtblsym;
 }
 
-extern(C++) bool isAbstract(ClassDeclaration cd)
+bool isAbstract(ClassDeclaration cd)
 {
     enum log = false;
     if (cd.isabstract != ThreeState.none)
