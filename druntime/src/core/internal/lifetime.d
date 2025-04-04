@@ -210,9 +210,12 @@ void __doPostblit(T)(T[] arr)
     {
         static if (__traits(isStaticArray, T) && is(T : E[], E))
             __doPostblit(cast(E[]) arr);
-        else static if (!is(typeof(arr[0].__xpostblit())) && is(immutable T == immutable U, U))
-            foreach (ref elem; (() @trusted => cast(U[]) arr)())
+        else static if (!__traits(compiles, arr[0].__xpostblit))
+        {
+            alias Unqual_T = Unqual!T;
+            foreach (ref elem; (() @trusted => cast(Unqual_T[]) arr)())
                 elem.__xpostblit();
+        }
         else
             foreach (ref elem; arr)
                 elem.__xpostblit();
