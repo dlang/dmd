@@ -2072,6 +2072,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             if (sz == 8)
                 value = e.Vdouble;
             loadFloatRegConst(cdb,vreg,value,sz);
+            fixresult(cdb, e, forregs, outretregs);
             return;
         }
 
@@ -2258,7 +2259,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             assert(0);
         // Flags may already be set
         outretregs &= flags | ~mPSW;
-        //printf("outretregs: %llx\n", outretregs);
+        //printf("forregs: %s outretregs: %s\n", regm_str(forregs), regm_str(outretregs));
         fixresult(cdb, e, forregs, outretregs);
         return;
     }
