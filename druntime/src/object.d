@@ -3905,6 +3905,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 // HACK:  This is a lie.  `_d_arraysetcapacity` is neither `nothrow` nor `pure`, but this lie is
 // necessary for now to prevent breaking code.
 import core.internal.array.capacity : _d_arraysetcapacityPureNothrow;
+import core.internal.traits: Unqual;
 
 /**
 (Property) Gets the current _capacity of a slice. The _capacity is the size
@@ -3919,8 +3920,9 @@ Note: The _capacity of a slice may be impacted by operations on other slices.
 */
 @property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
+    const isshared = is(T == shared);
     // The postblit of T may be impure, so we need to use the `pure nothrow` wrapper
-    return _d_arraysetcapacityPureNothrow!T(0, cast(void[]*)&arr);
+    return _d_arraysetcapacityPureNothrow!(Unqual!T)(0, cast(void[]*)&arr, isshared);
 }
 
 ///
@@ -3960,7 +3962,10 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
     if (__ctfe)
         return newcapacity;
     else
-        return _d_arraysetcapacityPureNothrow!T(newcapacity, cast(void[]*)&arr);
+    {
+        const isshared = is(T == shared);
+        return _d_arraysetcapacityPureNothrow!(Unqual!T)(newcapacity, cast(void[]*)&arr, isshared);
+    }
 }
 
 ///
