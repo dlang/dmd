@@ -50,7 +50,7 @@ public:
 
     ~this() pure nothrow
     {
-        debug (stomp) (cast(ubyte*)data.ptr)[0 .. data.length] = 0xFF;
+        debug (stomp) memset(data.ptr, 0xFF, data.length);
         if (data.ptr && data.ptr != &smallarray[0])
             mem.xfree(data.ptr);
     }
@@ -135,7 +135,7 @@ public:
     {
         const oldLength = length;
         setDim(oldLength + a.length);
-        (cast(ubyte*)data.ptr)[oldLength * T.sizeof .. (oldLength + a.length) * T.sizeof] = (cast(const(ubyte)*)a.ptr)[0 .. a.length * T.sizeof];
+        memcpy(data.ptr + oldLength, a.ptr, a.length * T.sizeof);
         return this;
     }
 
@@ -170,7 +170,7 @@ public:
             {
                 const allocdim = length + nentries;
                 auto p = cast(T*)mem.xmalloc(allocdim * T.sizeof);
-                (cast(ubyte*)p)[0 .. length * T.sizeof] = (cast(const(ubyte)*)smallarray.ptr)[0 .. length * T.sizeof];
+                memcpy(p, smallarray.ptr, length * T.sizeof);
                 data = p[0 .. allocdim];
             }
             else
@@ -185,8 +185,8 @@ public:
                 {
                     // always move using allocate-copy-stomp-free
                     auto p = cast(T*)mem.xmalloc(allocdim * T.sizeof);
-                    (cast(ubyte*)p)[0 .. length * T.sizeof] = (cast(const(ubyte)*)data.ptr)[0 .. length * T.sizeof];
-                    (cast(ubyte*)data.ptr)[0 .. data.length * T.sizeof] = 0xFF;
+                    memcpy(p, data.ptr, length * T.sizeof);
+                    memset(data.ptr, 0xFF, data.length * T.sizeof);
                     mem.xfree(data.ptr);
                 }
                 else
@@ -197,13 +197,13 @@ public:
             debug (stomp)
             {
                 if (length < data.length)
-                    (cast(ubyte*)data.ptr)[(length * T.sizeof) .. (data.length * T.sizeof)] = 0xFF;
+                    memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
             }
             else
             {
                 if (mem.isGCEnabled)
                     if (length < data.length)
-                        (cast(ubyte*)data.ptr)[(length * T.sizeof) .. (data.length * T.sizeof)] = 0xFF;
+                        memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
             }
         }
 
@@ -216,7 +216,7 @@ public:
         if (length - i - 1)
             memmove(data.ptr + i, data.ptr + i + 1, (length - i - 1) * T.sizeof);
         length--;
-        debug (stomp) (cast(ubyte*)data.ptr)[length * T.sizeof .. (length + 1) * T.sizeof] = 0xFF;
+        debug (stomp) memset(data.ptr + length, 0xFF, 1);
     }
 
     void insert(size_t index, typeof(this)* a) pure nothrow
@@ -227,7 +227,7 @@ public:
             reserve(d);
             if (length != index)
                 memmove(data.ptr + index + d, data.ptr + index, (length - index) * T.sizeof);
-            (cast(ubyte*)(data.ptr + index))[0 .. d * T.sizeof] = (cast(const(ubyte)*)a.data.ptr)[0 .. d * T.sizeof];
+            memcpy(data.ptr + index, a.data.ptr, d * T.sizeof);
             length += d;
         }
     }
@@ -238,7 +238,7 @@ public:
         reserve(d);
         if (length != index)
             memmove(data.ptr + index + d, data.ptr + index, (length - index) * T.sizeof);
-        (cast(ubyte*)(data.ptr + index))[0 .. d * T.sizeof] = (cast(const(ubyte)*)a.ptr)[0 .. d * T.sizeof];
+        memcpy(data.ptr + index, a.ptr, d * T.sizeof);
         length += d;
     }
 
@@ -302,7 +302,7 @@ public:
     {
         auto a = new Array!T();
         a.setDim(length);
-        (cast(ubyte*)a.data.ptr)[0 .. length * T.sizeof] = (cast(const(ubyte)*)data.ptr)[0 .. length * T.sizeof];
+        memcpy(a.data.ptr, data.ptr, length * T.sizeof);
         return a;
     }
 

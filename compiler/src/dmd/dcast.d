@@ -2402,11 +2402,11 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             const fullSize = (se.len + 1) * se.sz; // incl. terminating 0
             if (fullSize > (e.len + 1) * e.sz)
             {
-                void* s = mem.xmalloc(fullSize);
+                ubyte* s = cast(ubyte*) mem.xmalloc(fullSize);
                 const srcSize = e.len * e.sz;
                 const data = se.peekData();
-                (cast(ubyte*)s)[0 .. srcSize] = (cast(const(ubyte)*)data.ptr)[0 .. srcSize];
-                (cast(ubyte*)s)[srcSize .. fullSize] = 0;
+                s[0 .. srcSize] = (cast(const(ubyte)*)data.ptr)[0 .. srcSize];
+                s[srcSize .. fullSize] = 0;
                 se.setData(s, se.len, se.sz);
             }
             return se;
@@ -2581,9 +2581,9 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 // Copy when changing the string literal
                 const newsz = se.sz;
                 const d = (dim2 < se.len) ? dim2 : se.len;
-                void* s = mem.xmalloc((dim2 + 1) * newsz);
-                (cast(ubyte*)s)[0 .. d * newsz] = (cast(const(ubyte)*)se.peekData().ptr)[0 .. d * newsz];
-                (cast(ubyte*)s)[d * newsz .. (dim2 + 1) * newsz] = 0;
+                ubyte* s = cast(ubyte*) mem.xmalloc((dim2 + 1) * newsz);
+                s[0 .. d * newsz] = (cast(const(ubyte)*)se.peekData().ptr)[0 .. d * newsz];
+                s[d * newsz .. (dim2 + 1) * newsz] = 0;
                 se.setData(s, dim2, newsz);
             }
         }
