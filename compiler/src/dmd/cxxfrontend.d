@@ -198,6 +198,12 @@ bool isAbstract(ClassDeclaration cd)
     return dmd.dsymbolsem.isAbstract(cd);
 }
 
+bool hasPointers(Dsymbol d)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.hasPointers(d);
+}
+
 /***********************************************************
  * dtemplate.d
  */
