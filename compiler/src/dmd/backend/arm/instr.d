@@ -699,7 +699,8 @@ struct INSTR
      */
     static uint float2int(uint sf, uint S, uint ftype, uint rmode, uint opcode, reg_t Rn, reg_t Rd)
     {
-        assert(Rn < 32 && Rd < 32);
+        assert(Rd < 32);
+        assert(Rn < 32);
         return (sf << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (rmode << 19) | (opcode << 16) | (Rn << 5) | Rd;
     }
 
@@ -737,12 +738,14 @@ struct INSTR
     static uint fcvtzu(uint sf, uint ftype, reg_t Vn, reg_t Rd) { return float2int(sf, 0, ftype, 3, 1, Vn & 31, Rd); }
 
     /* SCVTF (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/scvtf_float_int.html
+     * SCVTF Vd,Rn // integer to floating point
      */
-    static uint scvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Vd) { return float2int(sf,0,ftype,0,2,Rn,Vd & 31); }
+    static uint scvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Vd) { assert(Rn < 32 && Vd >= 32); return float2int(sf,0,ftype,0,2,Rn,Vd & 31); }
 
     /* UCVTF (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/ucvtf_float_int.html
+     * UCVTF Vd,Rn // integer to floating point
      */
-    static uint ucvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Vd) { return float2int(sf,0,ftype,0,3,Rn,Vd & 31); }
+    static uint ucvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Vd) { assert(Rn < 32 && Vd >= 32); return float2int(sf,0,ftype,0,3,Rn,Vd & 31); }
 
 
     /* Floating-point data-processing (1 source)
