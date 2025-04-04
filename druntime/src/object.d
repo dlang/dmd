@@ -3921,8 +3921,9 @@ Note: The _capacity of a slice may be impacted by operations on other slices.
 @property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
     const isshared = is(T == shared);
+    alias Unqual_T = Unqual!T;
     // The postblit of T may be impure, so we need to use the `pure nothrow` wrapper
-    return _d_arraysetcapacityPureNothrow!(Unqual!T)(0, cast(void[]*)&arr, isshared);
+    return _d_arraysetcapacityPureNothrow!Unqual_T(0, cast(void[]*)&arr, isshared);
 }
 
 ///
@@ -3958,13 +3959,14 @@ the requested capacity).
 */
 size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 {
-    // The postblit of T may be impure, so we need to use the `pure nothrow` wrapper
     if (__ctfe)
         return newcapacity;
     else
     {
         const isshared = is(T == shared);
-        return _d_arraysetcapacityPureNothrow!(Unqual!T)(newcapacity, cast(void[]*)&arr, isshared);
+        alias Unqual_T = Unqual!T;
+        // The postblit of T may be impure, so we need to use the `pure nothrow` wrapper
+        return _d_arraysetcapacityPureNothrow!Unqual_T(newcapacity, cast(void[]*)&arr, isshared);
     }
 }
 
