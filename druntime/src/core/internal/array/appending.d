@@ -9,63 +9,100 @@
 */
 module core.internal.array.appending;
 
-/// See $(REF _d_arrayappendcTX, rt,lifetime,_d_arrayappendcTX)
-private extern (C) byte[] _d_arrayappendcTX(const TypeInfo ti, ref return scope byte[] px, size_t n) @trusted pure nothrow;
+//------------------------------------------------------------------------
+// Local Unqual template to remove qualifiers from T.
+// This simple version strips const, immutable, shared, and inout.
+template Unqual(T)
+{
+    static if (is(T == const U, U))
+        alias Unqual = U;
+    else static if (is(T == immutable U, U))
+        alias Unqual = U;
+    else static if (is(T == shared U, U))
+        alias Unqual = U;
+    else static if (is(T == inout U, U))
+        alias Unqual = U;
+    else
+        alias Unqual = T;
+}
+//------------------------------------------------------------------------
 
 private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lhs = rhs; });
+
+/*---------------------------------------------------------------------
+
+We allocate an array for the unqualified type (using Unqual!T)
+and then cast the result back to T[]. Additionally, if T is a class or interface,
+we zero out the allocated memory so that any appended object references start as null.
+---------------------------------------------------------------------*/
+private Unqual!(T)[] __arrayAlloc(T)(size_t n) @trusted
+{
+    import core.memory: GC;
+    import core.stdc.string : memset;
+    alias U = Unqual!(T);
+    if(n == 0)
+        return null;
+    void* mem = GC.malloc(n * U.sizeof);
+    static if(is(T == class) || is(T == interface))
+    {
+        // Zero-initialize the memory for class/interface types.
+        memset(mem, 0, n * U.sizeof);
+    }
+    return (cast(U*) mem)[0 .. n];
+}
 
 /**
  * Extend an array `px` by `n` elements.
  * Caller must initialize those elements.
+ *
+ * This templated implementation avoids legacy runtime type information.
+ * It allocates a new array using the local allocation helper (__arrayAlloc),
+ * copies the old data using memcpy, and returns the new array.
+ *
  * Params:
  *  px = the array that will be extended, taken as a reference
  *  n = how many new elements to extend it with
  * Returns:
  *  The new value of `px`
- * Bugs:
- *  This function template was ported from a much older runtime hook that bypassed safety,
- *  purity, and throwabilty checks. To prevent breaking existing code, this function template
- *  is temporarily declared `@trusted pure` until the implementation can be brought up to modern D expectations.
  */
 ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n) @trusted
 {
-    // needed for CTFE: https://github.com/dlang/druntime/pull/3870#issuecomment-1178800718
     version (DigitalMars) pragma(inline, false);
-    version (D_TypeInfo)
+
+    import core.stdc.string : memcpy;
+
+    size_t oldLen = px.length;
+    size_t newLen = oldLen + n;
+
+    // Allocate a new array for the unqualified type, then cast back to T[]
+    auto newArray = cast(T[])(__arrayAlloc!T(newLen));
+
+    // Copy existing data, if any.
+    if(oldLen > 0)
     {
-        auto ti = typeid(Tarr);
-
-        // _d_arrayappendcTX takes the `px` as a ref byte[], but its length
-        // should still be the original length
-        auto pxx = (cast(byte*)px.ptr)[0 .. px.length];
-        ._d_arrayappendcTX(ti, pxx, n);
-        px = (cast(T*)pxx.ptr)[0 .. pxx.length];
-
-        return px;
+        // Cast pointers appropriately so that memcpy works with both mutable and immutable arrays.
+        memcpy(cast(void*)newArray.ptr, cast(const void*)px.ptr, oldLen * T.sizeof);
     }
-    else
-        assert(0, "Cannot append to array if compiling without support for runtime type information!");
+
+    // Update px to refer to the new array.
+    px = newArray;
+    return px;
 }
 
 version (D_ProfileGC)
 {
     /**
-     * TraceGC wrapper around $(REF _d_arrayappendT, core,internal,array,appending).
+     * TraceGC wrapper around _d_arrayappendcTX.
      */
-    ref Tarr _d_arrayappendcTXTrace(Tarr : T[], T)(return ref scope Tarr px, size_t n, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
+    ref Tarr _d_arrayappendcTXTrace(Tarr : T[], T)(return ref scope Tarr px, size_t n,
+        string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
     {
-        version (D_TypeInfo)
-        {
-            import core.internal.array.utils: TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!(Tarr.stringof, "_d_arrayappendcTX"));
+        import core.internal.array.utils: TraceHook, gcStatsPure, accumulatePure;
+        mixin(TraceHook!(Tarr.stringof, "_d_arrayappendcTX"));
 
-            return _d_arrayappendcTX(px, n);
-        }
-        else
-            static assert(0, "Cannot append to array if compiling without support for runtime type information!");
+        return _d_arrayappendcTX(px, n);
     }
 }
-
 /// Implementation of `_d_arrayappendT`
 ref Tarr _d_arrayappendT(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y) @trusted
 {
