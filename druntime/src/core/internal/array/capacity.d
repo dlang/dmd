@@ -53,7 +53,8 @@ do
 {
     import core.exception : onOutOfMemoryError;
     import core.stdc.string : memcpy, memset;
-    import core.internal.array.utils: __doPostblit, __typeAttrs;
+    import core.internal.array.utils: __typeAttrs;
+    import core.internal.lifetime : __doPostblit;
 
     import core.memory : GC;
 

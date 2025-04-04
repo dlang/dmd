@@ -202,3 +202,19 @@ void swap(T)(ref T lhs, ref T rhs)
     moveEmplace(rhs, lhs);
     moveEmplace(tmp, rhs);
 }
+
+void __doPostblit(T)(T[] arr)
+{
+    // infer static postblit type, run postblit if any
+    static if (__traits(hasPostblit, T))
+    {
+        static if (__traits(isStaticArray, T) && is(T : E[], E))
+            __doPostblit(cast(E[]) arr);
+        else static if (!is(typeof(arr[0].__xpostblit())) && is(immutable T == immutable U, U))
+            foreach (ref elem; (() @trusted => cast(U[]) arr)())
+                elem.__xpostblit();
+        else
+            foreach (ref elem; arr)
+                elem.__xpostblit();
+    }
+}
