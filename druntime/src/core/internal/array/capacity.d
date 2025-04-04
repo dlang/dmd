@@ -19,46 +19,6 @@ extern (C)
 }
 
 
-private uint __typeAttrs(T)(void *copyAttrsFrom = null)
-{
-    import core.internal.traits : hasElaborateDestructor, hasIndirections;
-    import core.memory : GC;
-
-    alias BlkAttr = GC.BlkAttr;
-
-    if (copyAttrsFrom)
-    {
-        // try to copy attrs from the given block
-        auto info = GC.query(copyAttrsFrom);
-        if (info.base)
-            return info.attr;
-    }
-
-    uint attrs = 0;
-    static if (hasIndirections!T)
-        attrs |= BlkAttr.NO_SCAN;
-
-    static if (hasElaborateDestructor!T)
-        attrs |= BlkAttr.FINALIZE;
-
-    return attrs;
-}
-
-private void __doPostblit(T)(T[] arr)
-{
-    // infer static postblit type, run postblit if any
-    static if (__traits(hasPostblit, T))
-    {
-        static if (__traits(isStaticArray, T) && is(T : E[], E))
-            __doPostblit(cast(E[]) arr);
-        else static if (!is(typeof(arr[0].__xpostblit())) && is(immutable T == immutable U, U))
-            foreach (ref elem; (() @trusted => cast(U[]) arr)())
-                elem.__xpostblit();
-        else
-            foreach (ref elem; arr)
-                elem.__xpostblit();
-    }
-}
 
 /**
 Set the array capacity.
@@ -92,6 +52,7 @@ do
     import core.exception : onOutOfMemoryError;
     import core.internal.traits : Unqual;
     import core.stdc.string : memcpy, memset;
+    import core.internal.array.utils: __doPostblit, __typeAttrs;
 
     import core.memory : GC;
 
