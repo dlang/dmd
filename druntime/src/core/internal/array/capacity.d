@@ -176,15 +176,9 @@ template _d_arraysetlengthTImpl(Tarr : T[], T)
             auto ti = typeid(Tarr);
 
             static if (__traits(isZeroInit, T))
-
-
-
-                    ._d_arraysetlengthT(ti, newlength, cast(void[]*)&arr);
+                ._d_arraysetlengthT(ti, newlength, cast(void[]*)&arr);
             else
-
-
-
-                    ._d_arraysetlengthiT(ti, newlength, cast(void[]*)&arr);
+                ._d_arraysetlengthiT(ti, newlength, cast(void[]*)&arr);
 
             return arr.length;
         }
