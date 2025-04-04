@@ -1406,36 +1406,36 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         case OPu64_d:    // ucvtf d31,x0
             regm_t retregs1 = ALLREGS;
             codelem(cgstate,cdb,e.E1,retregs1,false);
-            reg_t R1 = findreg(retregs1);
+            reg_t Rn = findreg(retregs1);		// source integer register
 
             regm_t retregs = INSTR.FLOATREGS;
             const tym = tybasic(e.Ety);
-            reg_t Vd = allocreg(cdb,retregs,tym);       // destination integer register
+            reg_t Vd = allocreg(cdb,retregs,tym);       // destination floating register
 
             switch (e.Eoper)
             {
                 case OPs16_d:
-                    cdb.gen1(INSTR.sxth_sbfm(0,R1,R1));             // sxth w0,w0
-                    cdb.gen1(INSTR.scvtf_float_int(0,1,Vd,R1));     // scvtf d31,w0
+                    cdb.gen1(INSTR.sxth_sbfm(0,Rn,Rn));             // sxth w0,w0
+                    cdb.gen1(INSTR.scvtf_float_int(0,1,Rn,Vd));     // scvtf d31,w0
                     break;
                 case OPs32_d:
-                    cdb.gen1(INSTR.scvtf_float_int(0,1,Vd,R1));     // scvtf d31,w0
+                    cdb.gen1(INSTR.scvtf_float_int(0,1,Rn,Vd));     // scvtf d31,w0
                     break;
                 case OPs64_d:
-                    cdb.gen1(INSTR.scvtf_float_int(1,1,Vd,R1));     // scvtf d31,x0
+                    cdb.gen1(INSTR.scvtf_float_int(1,1,Rn,Vd));     // scvtf d31,x0
                     break;
                 case OPu16_d:
                     /* not executed because OPu16_d was converted to OPu16_32 then OP32_d */
                     uint N,immr,imms;
                     assert(encodeNImmrImms(0xFFFF,N,immr,imms));
-                    cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,R1,R1)); // and w0,w0,#0xFFFF
-                    cdb.gen1(INSTR.ucvtf_float_int(0,1,Vd,R1));     // ucvtf d31,w0
+                    cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,Rn,Rn)); // and w0,w0,#0xFFFF
+                    cdb.gen1(INSTR.ucvtf_float_int(0,1,Rn,Vd));     // ucvtf d31,w0
                     break;
                 case OPu32_d:
-                    cdb.gen1(INSTR.ucvtf_float_int(0,1,Vd,R1));     // ucvtf d31,w0
+                    cdb.gen1(INSTR.ucvtf_float_int(0,1,Rn,Vd));     // ucvtf d31,w0
                     break;
                 case OPu64_d:
-                    cdb.gen1(INSTR.ucvtf_float_int(1,1,Vd,R1));     // ucvtf d31,x0
+                    cdb.gen1(INSTR.ucvtf_float_int(1,1,Rn,Vd));     // ucvtf d31,x0
                     break;
                 default:
                     assert(0);
