@@ -77,7 +77,7 @@ struct OutBuffer
     {
         FileMapping!ubyte model;
         fileMapping = cast(FileMapping!ubyte*) malloc(model.sizeof);
-        memcpy(fileMapping, &model, model.sizeof);
+        (cast(ubyte*)fileMapping)[0 .. model.sizeof] = (cast(ubyte*)&model)[0 .. model.sizeof];
         fileMapping.__ctor(filename);
         //fileMapping = new FileMapping!ubyte(filename);
         data = (*fileMapping)[];
@@ -179,7 +179,7 @@ struct OutBuffer
             {
                 auto p = cast(ubyte*) pureMalloc(size);
                 p || assert(0, "OutBuffer: out of memory.");
-                memcpy(p, data.ptr, offset);
+                (cast(ubyte*)p)[0 .. offset] = (cast(ubyte*)data.ptr)[0 .. offset];
                 memset(data.ptr, 0xFF, data.length);  // stomp old location
                 pureFree(data.ptr);
                 memset(p + offset, 0xff, size - offset); // stomp unused data
@@ -226,7 +226,7 @@ struct OutBuffer
     @system nothrow
     void writen(const void *b, size_t len)
     {
-        memcpy(data.ptr + offset, b, len);
+        (cast(ubyte*)(data.ptr + offset))[0 .. len] = (cast(const(ubyte)*)b)[0 .. len];
         offset += len;
     }
 
@@ -240,7 +240,7 @@ struct OutBuffer
         if (doindent && !notlinehead)
             indent();
         reserve(buf.length);
-        memcpy(this.data.ptr + offset, buf.ptr, buf.length);
+        (cast(ubyte*)(data.ptr + offset))[0 .. buf.length] = (cast(const(ubyte)*)buf.ptr)[0 .. buf.length];
         offset += buf.length;
     }
 
@@ -334,7 +334,7 @@ struct OutBuffer
         size_t len = strlen(string);
         reserve(len);
         memmove(data.ptr + len, data.ptr, offset);
-        memcpy(data.ptr, string, len);
+        (cast(ubyte*)data.ptr)[0 .. len] = (cast(const(ubyte)*)string)[0 .. len];
         offset += len;
     }
 
@@ -361,7 +361,8 @@ struct OutBuffer
     void *writezeros(size_t n) nothrow
     {
         reserve(n);
-        auto result = memset(data.ptr + offset, 0, n);
+        void* result = data.ptr + offset;
+        (cast(ubyte*)result)[0 .. n] = 0;
         offset += n;
         return result;
     }
@@ -507,7 +508,7 @@ struct OutBuffer
         if (buf)
         {
             reserve(buf.offset);
-            memcpy(data.ptr + offset, buf.data.ptr, buf.offset);
+            (cast(ubyte*)(data.ptr + offset))[0 .. buf.offset] = (cast(const(ubyte)*)buf.data.ptr)[0 .. buf.offset];
             offset += buf.offset;
         }
     }
@@ -515,7 +516,7 @@ struct OutBuffer
     extern (C++) void fill0(size_t nbytes) pure nothrow @trusted
     {
         reserve(nbytes);
-        memset(data.ptr + offset, 0, nbytes);
+        (cast(ubyte*)(data.ptr + offset))[0 .. nbytes] = 0;
         offset += nbytes;
     }
 

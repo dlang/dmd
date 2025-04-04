@@ -48,7 +48,7 @@ struct BitArray
         if (!len)
             length(b.len);
         assert(len == b.len);
-        memcpy(ptr, b.ptr, bytes(len));
+        (cast(ubyte*)ptr)[0 .. bytes(len)] = (cast(const(ubyte)*)b.ptr)[0 .. bytes(len)];
     }
 
     bool opIndex(size_t idx) const @nogc nothrow pure
@@ -77,7 +77,7 @@ struct BitArray
 
     void zero() @nogc nothrow pure
     {
-        memset(ptr, 0, bytes(len));
+        (cast(ubyte*)ptr)[0 .. bytes(len)] = 0;
     }
 
     /******
