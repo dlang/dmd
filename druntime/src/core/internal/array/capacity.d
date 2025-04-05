@@ -109,7 +109,10 @@ Lcontinue:
     // step 2, if reserving in-place doesn't work, allocate a new array with at
     // least the requested allocated size.
     auto attrs = __typeAttrs!T((*p).ptr) | BlkAttr.APPENDABLE;
-    auto ptr = GC.malloc(reqsize, attrs, typeid(T));
+
+    // use this static enum to avoid recomputing TypeInfo for every call.
+    static enum ti = typeid(T);
+    auto ptr = GC.malloc(reqsize, attrs, ti);
     if (ptr is null)
         goto Loverflow;
 
