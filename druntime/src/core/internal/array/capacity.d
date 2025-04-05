@@ -8,10 +8,82 @@
   Source: $(DRUNTIMESRC core/internal/_array/_capacity.d)
 */
 module core.internal.array.capacity;
+import core.exception : onFinalizeError;
 
 // HACK: `nothrow` and `pure` is faked.
 private extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
 private extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
+
+extern(C) {
+    bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) nothrow;
+    void[] gc_getArrayUsed(void *ptr, bool atomic) nothrow;
+
+}
+
+/**
+Shrink the "allocated" length of an array to be the exact size of the array.
+
+It doesn't matter what the current allocated length of the array is, the
+user is telling the runtime that he knows what he is doing.
+
+Params:
+    ti = `TypeInfo` of array type
+    arr = array to shrink. Its `.length` is element length, not byte length, despite `void` type
+*/
+void _d_arrayshrinkfit(T)(void[] arr) nothrow
+{
+
+    import core.internal.traits : hasElaborateDestructor;
+    auto isshared = is(T == shared);
+    debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %zd, arr.ptr = %p arr.length = %zd\n", ti.next.tsize, arr.ptr, arr.length);
+    auto size = T.sizeof;                  // array element size
+    auto reqsize = arr.length * size;
+
+    auto curArr = gc_getArrayUsed(arr.ptr, isshared);
+    if (curArr.ptr is null)
+        // not a valid GC pointer
+        return;
+
+    // align the array.
+    auto offset = arr.ptr - curArr.ptr;
+    auto cursize = curArr.length - offset;
+    if (cursize <= reqsize)
+        // invalid situation, or no change.
+        return;
+
+    static if (is(T == struct) && hasElaborateDestructor!T)
+    {
+        try
+        {
+            finalize_array!T(arr.ptr + reqsize, cursize - reqsize);
+        }
+        catch (Exception e)
+        {
+            onFinalizeError(typeid(T), e);
+        }
+    }
+
+    gc_shrinkArrayUsed(arr.ptr[0 .. reqsize], cursize, isshared);
+}
+
+void finalize_array(T)(void* p, size_t size)
+{
+    import object: destroy;
+
+    // Due to the fact that the delete operator calls destructors
+    // for arrays from the last element to the first, we maintain
+    // compatibility here by doing the same.
+    auto tsize = T.sizeof;
+    for (auto curP = p + size - tsize; curP >= p; curP -= tsize)
+    {
+        // call destructor
+        destroy(*cast(T*)curP);
+    }
+}
+
+
+
+
 
 /*
  * This template is needed because there need to be a `_d_arraysetlengthTTrace!Tarr` instance for every
@@ -86,3 +158,4 @@ template _d_arraysetlengthTImpl(Tarr : T[], T)
     foreach (s; arr2)
         assert(s == S.init);
 }
+
