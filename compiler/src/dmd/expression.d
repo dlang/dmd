@@ -3764,14 +3764,17 @@ extern (C++) final class SliceExp : UnaExp
  */
 extern (C++) final class ArrayLengthExp : UnaExp
 {
+    Expression lowering; // Field to store the lowered expression
+
     extern (D) this(Loc loc, Expression e1) @safe
     {
         super(loc, EXP.arrayLength, e1);
+        lowering = null; // Initialize the lowering field to null
     }
 
     override void accept(Visitor v)
     {
-        v.visit(this);
+        v.visit(this); // Accept the visitor for processing
     }
 }
 
