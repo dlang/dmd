@@ -66,6 +66,9 @@ static struct Entry(K, V)
 {
     K key;
     V value;
+
+    // evaluate early to avoid recursion during inference in _aaEqual
+    enum pv_eq = &keyEqual!(V, V);
 }
 
 // for backward compatibility, do not require const in hashOf()
@@ -459,7 +462,7 @@ auto _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref const K2 key2)
 private extern(C) bool gc_inFinalizer() pure nothrow @safe;
 
 /// Delete entry scope const AA, return true if it was present
-auto _d_aaDel(T : V[K], K, V, K2)(inout T a, auto ref const K2 key2)
+auto _d_aaDel(T : V[K], K, V, K2)(T a, auto ref const K2 key2)
 {
     auto aa = _toAA(a);
     if (aa.empty)
