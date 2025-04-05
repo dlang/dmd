@@ -655,7 +655,11 @@ TupleDeclaration isAliasThisTuple(Expression e)
                 return td;
         }
         if (Type att = t.aliasthisOf())
+        {
             t = att;
+            continue;
+        }
+        return null;
     }
 }
 
