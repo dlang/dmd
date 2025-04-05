@@ -19,7 +19,6 @@ extern (C)
 }
 
 
-
 /**
 Set the array capacity.
 
