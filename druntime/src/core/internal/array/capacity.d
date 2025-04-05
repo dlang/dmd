@@ -297,27 +297,27 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
 @system unittest
 {
     import core.memory : GC;
-    
+
     // Test case 1: Basic functionality with a simple type
     {
         // Create an array with some extra capacity
         int[] a = new int[10];
         a = a[0..5]; // Reduce length but keep capacity
-        
+
         // Get the initial pointer and capacity
         auto initialPtr = a.ptr;
         auto initialCapacity = a.capacity;
-        
+
         // Should be more than 5
         assert(initialCapacity > 5, "Test setup failed: array doesn't have extra capacity");
-        
+
         // Apply our shrinkfit function
         _d_arrayshrinkfitT!int(a);
-        
+
         // Verify the array still has the same contents
         assert(a.length == 5, "Array length was changed");
     }
-    
+
     // Test case 2: Array with zero length
     {
         int[] empty;
