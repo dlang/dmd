@@ -159,7 +159,7 @@ private extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow
 
 /// Implementation of `_d_arraysetlengthT` and `_d_arraysetlengthTTrace`
 template _d_arraysetlengthTImpl(Tarr : T[], T)
-{   
+{
     private enum errorMessage = "Cannot resize arrays if compiling without support for runtime type information!";
 
     /**
@@ -261,7 +261,6 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
         import core.memory : GC;
         if (arr.ptr is null || arr.length == 0)
             return;
-            
         const isshared = is(T == shared);
         void[] tmp = cast(void[])arr;
         // Call the original function but ensure the void[] cast is properly passed
