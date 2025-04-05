@@ -262,7 +262,6 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
 }
 
 // Basic test for _d_arrayshrinkfitT
-// Add this unittest at the end of your implementation in capacity.d
 @system unittest
 {
     import core.memory : GC;
@@ -285,9 +284,6 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
         
         // Verify the array still has the same contents
         assert(a.length == 5, "Array length was changed");
-        
-        // If the test runs without crashing, our forwarding to the original function works
-        // This is what we want to verify in Phase 1
     }
     
     // Test case 2: Array with zero length
