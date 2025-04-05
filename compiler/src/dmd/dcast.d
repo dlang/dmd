@@ -2405,7 +2405,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 ubyte* s = cast(ubyte*) mem.xmalloc(fullSize);
                 const srcSize = e.len * e.sz;
                 const data = se.peekData();
-                s[0 .. srcSize] = (cast(const(ubyte)*)data.ptr)[0 .. srcSize];
+                s[0 .. srcSize] = data[0 .. srcSize];
                 s[srcSize .. fullSize] = 0;
                 se.setData(s, se.len, se.sz);
             }
