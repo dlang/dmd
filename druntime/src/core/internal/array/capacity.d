@@ -36,14 +36,14 @@ Params:
 
 Returns: the number of elements that can actually be stored once the resizing is done
 */
-size_t _d_arraysetcapacityPureNothrow(T)(size_t newcapacity, void[]* p, bool isshared) pure nothrow @weak @trusted
+size_t _d_arraysetcapacityPureNothrow(T)(size_t newcapacity, void[]* p, bool isshared) pure nothrow @trusted
 do
 {
     alias PureNothrowType = size_t function(size_t, void[]*, bool) pure nothrow @trusted;
     return (cast(PureNothrowType) &_d_arraysetcapacity!T)(newcapacity, p, isshared);
 }
 
-size_t _d_arraysetcapacity(T)(size_t newcapacity, void[]* p, bool isshared) @weak @trusted
+size_t _d_arraysetcapacity(T)(size_t newcapacity, void[]* p, bool isshared) @trusted
 in
 {
     assert(!(*p).length || (*p).ptr);
