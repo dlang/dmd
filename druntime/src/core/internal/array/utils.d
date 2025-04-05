@@ -173,7 +173,7 @@ uint __typeAttrs(T)(void *copyAttrsFrom = null)
     }
 
     uint attrs = 0;
-    static if (hasIndirections!T)
+    static if (!hasIndirections!T)
         attrs |= BlkAttr.NO_SCAN;
 
     static if (hasElaborateDestructor!T)
