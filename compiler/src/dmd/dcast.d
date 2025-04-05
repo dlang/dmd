@@ -2582,7 +2582,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 const newsz = se.sz;
                 const d = (dim2 < se.len) ? dim2 : se.len;
                 ubyte* s = cast(ubyte*) mem.xmalloc((dim2 + 1) * newsz);
-                s[0 .. d * newsz] = (cast(const(ubyte)*)se.peekData().ptr)[0 .. d * newsz];
+                s[0 .. d * newsz] = se.peekData()[0 .. d * newsz];
                 s[d * newsz .. (dim2 + 1) * newsz] = 0;
                 se.setData(s, dim2, newsz);
             }
