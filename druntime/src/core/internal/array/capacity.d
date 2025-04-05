@@ -159,3 +159,88 @@ template _d_arraysetlengthTImpl(Tarr : T[], T)
         assert(s == S.init);
 }
 
+@safe unittest
+{
+    struct S
+    {
+        float f = 1.0;
+    }
+
+    int[] arr;
+    _d_arraysetlengthTImpl!(typeof(arr))._d_arraysetlengthT(arr, 16);
+    assert(arr.length == 16);
+    foreach (int i; arr)
+        assert(i == int.init);
+
+    shared S[] arr2;
+    _d_arraysetlengthTImpl!(typeof(arr2))._d_arraysetlengthT(arr2, 16);
+    assert(arr2.length == 16);
+    foreach (s; arr2)
+        assert(s == S.init);
+}
+
+
+// Shrinking an array of simple values
+@safe unittest
+{
+    int[] arr = new int[100];
+    arr.length = 50;
+    _d_arrayshrinkfit!int(arr);
+    assert(arr.length == 50);
+}
+
+
+// Shrinking an array of structs with destructors
+@safe unittest
+{
+
+    static struct DtorTest {
+        static int counter = 0;
+        ~this() { counter++; }
+    }
+
+    DtorTest[] arr = new DtorTest[10];
+    DtorTest.counter = 0;
+
+    arr.length = 5; // shrink manually
+    _d_arrayshrinkfit!DtorTest(arr); // simulate shrinkfit, destroying 5 elements
+
+    assert(arr.length == 5);
+    assert(DtorTest.counter == 5); // verify 5 destructors ran
+}
+
+
+// Shrinking a shared array
+@safe unittest
+{
+    shared(int)[] arr = new shared int[100];
+    arr.length = 10;
+    _d_arrayshrinkfit!(shared int)(cast(void[])arr);
+    assert(arr.length == 10);
+}
+
+
+// Shrink array with no elements (ptr is null)
+@safe unittest
+{
+    int[] arr;
+    assert(arr.ptr is null);
+    _d_arrayshrinkfit!int(arr); // should be a no-op
+    assert(arr.length == 0);
+}
+
+
+// Shrinking an array of class references (destroyable via GC)
+@safe unittest
+{
+    class C { int x = 5; }
+    C[] arr = new C[10];
+    foreach (ref c; arr)
+        c = new C();
+
+    arr.length = 3;
+    _d_arrayshrinkfit!C(arr);
+    assert(arr.length == 3);
+    foreach (c; arr)
+        assert(c !is null && c.x == 5);
+}
