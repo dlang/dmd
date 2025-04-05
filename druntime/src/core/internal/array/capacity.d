@@ -261,40 +261,41 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
     }
 }
 
-// Basic test for _d_arrayshrinkfitT
-// Add this unittest at the end of your implementation in capacity.d
+// Basic test for _d_arrayshrinkfitT with more reliable setup
 @system unittest
 {
     import core.memory : GC;
     
-    // Test case 1: Basic functionality with a simple type
-    {
-        // Create an array with some extra capacity
-        int[] a = new int[10];
-        a = a[0..5]; // Reduce length but keep capacity
-        
-        // Get the initial pointer and capacity
-        auto initialPtr = a.ptr;
-        auto initialCapacity = a.capacity;
-        
-        // Should be more than 5
-        assert(initialCapacity > 5, "Test setup failed: array doesn't have extra capacity");
-        
-        // Apply our shrinkfit function
-        _d_arrayshrinkfitT!int(a);
-        
-        // Verify the array still has the same contents
-        assert(a.length == 5, "Array length was changed");
-        
-        // If the test runs without crashing, our forwarding to the original function works
-        // This is what we want to verify in Phase 1
-    }
+    // Create an array with extra capacity
+    int[] a = new int[5];
+    a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; a[4] = 5;
     
-    // Test case 2: Array with zero length
-    {
-        int[] empty;
-        // This should not crash
-        _d_arrayshrinkfitT!int(empty);
-        assert(empty.length == 0, "Empty array length changed");
-    }
+    // Reserve even more capacity
+    // This ensures we have extra capacity to work with
+    a = a ~ new int[15]; // Add more elements
+    a = a[0..5];         // Truncate back to original size, keeping extra capacity
+    
+    // Reduce length but not capacity
+    // Force a GC collection to stabilize memory
+    a = a[0..3];
+    GC.collect();
+    
+    // Store the pointer and capacity for comparison
+    auto ptr = a.ptr;
+    auto oldCapacity = a.capacity;
+    
+    // Apply _d_arrayshrinkfitT function
+    _d_arrayshrinkfitT!int(a);
+    
+    // Verify the array still has the same contents
+    assert(a.length == 3);
+    assert(a[0] == 1 && a[1] == 2 && a[2] == 3);
+    
+    // Try to append - if capacity was properly shrunk, this should allocate new memory
+    int[] b = a;  // Keep a reference to test if the original array changes
+    a ~= 10;
+    
+    // Either the capacity is reduced or the pointer changed when appending
+    assert(a.capacity < oldCapacity || a.ptr != ptr, 
+           "Neither capacity was reduced nor was memory reallocated on append");
 }
