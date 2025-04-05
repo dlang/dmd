@@ -361,8 +361,7 @@ struct OutBuffer
     void *writezeros(size_t n) nothrow
     {
         reserve(n);
-        void* result = data.ptr + offset;
-        memset(result, 0, n);
+        auto result = memset(data.ptr + offset, 0, n);
         offset += n;
         return result;
     }
