@@ -1,4 +1,5 @@
 // EXTRA_CPP_SOURCES: stdint.cpp
+// CXXFLAGS(osx): -arch x86_64
 
 module stdint_test;
 
