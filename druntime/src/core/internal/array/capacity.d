@@ -239,6 +239,20 @@ template _d_arraysetlengthTImpl(Tarr : T[], T)
  *     T = Element type of the array
  *     arr = Array to shrink
  */
+//  void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
+// {
+//     version (D_TypeInfo)
+//     {
+//         // Call the original implementation through typeid
+//         // maintain compatibility while establishing the template structure
+//         _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
+//     }
+//     else
+//     {
+//         assert(0, "Cannot shrink array if compiling without support for runtime type information!");
+//     }
+// }
+//above implementation throws error.
 void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
 {
     version (D_TypeInfo)
@@ -262,6 +276,24 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
 }
 
 // Basic test for _d_arrayshrinkfitT
+// unittest
+// {
+//     // Create an array with extra capacity
+//     int[] a = [1, 2, 3, 4, 5];
+//     a = a[0..3]; // Reduce length but not capacity
+    
+//     // Store the pointer for comparison
+//     auto ptr = a.ptr;
+    
+//     // Apply our shrinkfit function
+//     _d_arrayshrinkfitT!int(a);
+    
+//     // Try to append - if capacity was properly shrunk, this should allocate new memory
+//     a ~= 10;
+//     assert(a.ptr != ptr, "Array capacity was not properly shrunk");
+// }
+//above unittest throws error.
+// The unittest below is a more comprehensive test for _d_arrayshrinkfitT
 @system unittest
 {
     import core.memory : GC;
