@@ -2252,16 +2252,20 @@ void disassemble(uint c) @trusted
             case ldr(1,0,3): p1 = "ldrsh"; goto Lldr;
             case ldr(2,0,0): p1 = "str";   goto Lldr;
             case ldr(2,0,1): p1 = "ldr";   goto Lldr;
-            case ldr(2,0,2): p1 = "ldrsw"; goto Lldr64;
+            case ldr(2,0,2): p1 = "ldrsw"; goto Lldrsw;
             case ldr(3,0,0): p1 = "str";   goto Lldr64;
             case ldr(3,0,1): p1 = "ldr";   goto Lldr64;
             //case ldr(3,0,2): p1 = "prfm";
+            Lldrsw:
+                p2 = regString(true, Rt);
+                p3 = eaString(0, cast(ubyte)Rn, imm12 * 4);
+                break;
+
             Lldr64:
                 is64 = true;
             Lldr:
                 p2 = regString(is64, Rt);
-                uint offset = imm12 * (is64 ? 8 : 4);
-                p3 = eaString(0, cast(ubyte)Rn, offset);
+                p3 = eaString(0, cast(ubyte)Rn, imm12 * (is64 ? 8 : 4));
                 break;
 
             case ldr(0,1,0): p1 = "str";  goto LsimdFp;

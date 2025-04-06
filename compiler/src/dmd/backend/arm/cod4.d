@@ -1406,7 +1406,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         case OPu64_d:    // ucvtf d31,x0
             regm_t retregs1 = ALLREGS;
             codelem(cgstate,cdb,e.E1,retregs1,false);
-            reg_t Rn = findreg(retregs1);		// source integer register
+            reg_t Rn = findreg(retregs1);               // source integer register
 
             regm_t retregs = INSTR.FLOATREGS;
             const tym = tybasic(e.Ety);
