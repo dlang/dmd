@@ -1332,8 +1332,8 @@ class TypeInfo_AssociativeArray : TypeInfo
     TypeInfo key;
     TypeInfo entry;
 
-    bool function(scope const void* p1, scope const void* p2) nothrow @safe xopEquals; // not functional yet
-    hash_t function(scope const void*) nothrow @safe xtoHash; // not functional yet
+    bool function(scope const void* p1, scope const void* p2) nothrow @safe xopEquals;
+    hash_t function(scope const void*) nothrow @safe xtoHash;
 
     alias aaOpEqual(K, V) = core.internal.newaa._aaOpEqual!(K, V);
     alias aaGetHash(K, V) = core.internal.newaa._aaGetHash!(K, V);
@@ -3259,7 +3259,7 @@ auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
  * Note:
  *  emulated by the compiler during CTFE
  */
-Key[] keys(T : Value[Key], Value, Key)(T aa) @property
+Key[] keys(Value, Key)(inout Value[Key] aa) @property
 {
     return _aaKeys(_toAA(aa));
 }
@@ -3334,7 +3334,7 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
  * Note:
  *  emulated by the compiler during CTFE
  */
-Value[] values(T : Value[Key], Value, Key)(T aa) @property
+Value[] values(Value, Key)(inout Value[Key] aa) @property
 {
     return _aaValues(_toAA(aa));
 }
