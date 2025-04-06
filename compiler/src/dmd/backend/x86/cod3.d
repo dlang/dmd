@@ -937,7 +937,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
         case BC.switch_:
         {
             assert(!(bl.Bflags & BFL.epilog));
-            doswitch(cdb,bl);               // hide messy details
+            doswitch(cgstate,cdb,bl);               // hide messy details
             break;
         }
         case BC.jcatch:          // D catch clause of try-catch
@@ -1598,9 +1598,20 @@ struct CaseVal
  * Generate comparison of [reg2,reg] with val
  */
 @trusted
-private void cmpval(ref CodeBuilder cdb, targ_llong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
+private void cmpval(CGstate cg, ref CodeBuilder cdb, targ_llong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
 {
-    if (I64 && sz == 8)
+    if (cg.AArch64)
+    {
+        // TODO AArch64 use CMP https://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_imm.html
+        assert(sreg == NOREG);
+        regm_t retregs = cg.allregs & ~mask(reg);
+        sreg = allocreg(cdb,retregs,TYint);
+        movregconst(cdb,sreg,val,sz == 8  ? 64 : 0);
+        getregsNoSave(retregs);
+        assert(reg2 == NOREG);
+        cdb.gen1(INSTR.cmp_shift(sz == 8, reg, 0, 0, sreg));    // CMP sreg,reg
+    }
+    else if (I64 && sz == 8)
     {
         assert(reg2 == NOREG);
         if (val == cast(int)val)    // if val is a 64 bit value sign-extended from 32 bits
@@ -1630,7 +1641,7 @@ private void cmpval(ref CodeBuilder cdb, targ_llong val, uint sz, reg_t reg, reg
 }
 
 @trusted extern (D)
-private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
+private void ifthen(CGstate cg, ref CodeBuilder cdb, scope CaseVal[] casevals,
         uint sz, reg_t reg, reg_t reg2, reg_t sreg, block* bdefault, bool last)
 {
     const ncases = casevals.length;
@@ -1640,18 +1651,27 @@ private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
 
         // Compares for casevals[0..pivot]
         CodeBuilder cdb1; cdb1.ctor();
-        ifthen(cdb1, casevals[0 .. pivot], sz, reg, reg2, sreg, bdefault, true);
+        ifthen(cg, cdb1, casevals[0 .. pivot], sz, reg, reg2, sreg, bdefault, true);
 
         // Compares for casevals[pivot+1..ncases]
         CodeBuilder cdb2; cdb2.ctor();
-        ifthen(cdb2, casevals[pivot + 1 .. $], sz, reg, reg2, sreg, bdefault, last);
+        ifthen(cg, cdb2, casevals[pivot + 1 .. $], sz, reg, reg2, sreg, bdefault, last);
         code* c2 = gennop(null);
 
         // Compare for caseval[pivot]
-        cmpval(cdb, casevals[pivot].val, sz, reg, reg2, sreg);
-        genjmp(cdb,JE,FL.block,casevals[pivot].target); // JE target
-        // Note uint jump here, as cases were sorted using uint comparisons
-        genjmp(cdb,JA,FL.code,cast(block*) c2);           // JG c2
+        cmpval(cg, cdb, casevals[pivot].val, sz, reg, reg2, sreg);
+        if (cg.AArch64)
+        {
+            genBranch(cdb,COND.eq,FL.block,casevals[pivot].target); // equal
+            // Note uint jump here, as cases were sorted using uint comparisons
+            genBranch(cdb,COND.cs,FL.code,cast(block*) c2);           // greater than
+        }
+        else
+        {
+            genjmp(cdb,JE,FL.block,casevals[pivot].target); // JE target
+            // Note uint jump here, as cases were sorted using uint comparisons
+            genjmp(cdb,JA,FL.code,cast(block*) c2);           // JG c2
+        }
 
         cdb.append(cdb1);
         cdb.append(c2);
@@ -1662,20 +1682,29 @@ private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
         foreach (size_t n; 0 .. ncases)
         {
             targ_llong val = casevals[n].val;
-            cmpval(cdb, val, sz, reg, reg2, sreg);
+            cmpval(cg, cdb, val, sz, reg, reg2, sreg);
             code* cnext = null;
             if (reg2 != NOREG)
             {
+                assert(!cg.AArch64);
                 cnext = gennop(null);
                 genjmp(cdb,JNE,FL.code,cast(block*) cnext);  // JNE cnext
                 cdb.genc2(0x81,modregrm(3,7,reg2),cast(targ_size_t)MSREG(val));   // CMP reg2,MSREG(casevalue)
             }
-            genjmp(cdb,JE,FL.block,casevals[n].target);   // JE caseaddr
+            if (cg.AArch64)
+                genBranch(cdb,COND.eq,FL.block,casevals[n].target);   // JE caseaddr
+            else
+                genjmp(cdb,JE,FL.block,casevals[n].target);   // JE caseaddr
             cdb.append(cnext);
         }
 
         if (last)       // if default is not next block
-            genjmp(cdb,JMP,FL.block,bdefault);
+        {
+            if (cg.AArch64)
+                genBranch(cdb,COND.al,FL.block,bdefault);
+            else
+                genjmp(cdb,JMP,FL.block,bdefault);
+        }
     }
 }
 
@@ -1688,7 +1717,7 @@ private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
  */
 
 @trusted
-void doswitch(ref CodeBuilder cdb, block* b)
+void doswitch(ref CGstate cg, ref CodeBuilder cdb, block* b)
 {
     // If switch tables are in code segment and we need a CS: override to get at them
     bool csseg = cast(bool)(config.flags & CFGromable);
@@ -1732,7 +1761,7 @@ void doswitch(ref CodeBuilder cdb, block* b)
     /* Three kinds of switch strategies - pick one
      */
     const ncases = b.Bswitch.length;
-    if (ncases <= 3)
+    if (ncases <= 3 || cg.AArch64)
         goto Lifthen;
     else if (I16 && cast(targ_ullong)(vmax - vmin) <= ncases * 2)
         goto Ljmptab;           // >=50% of the table is case values, rest is default
@@ -1748,7 +1777,8 @@ void doswitch(ref CodeBuilder cdb, block* b)
     /*************************************************************************/
     {   // generate if-then sequence
     Lifthen:
-        regm_t retregs = ALLREGS;
+        //printf("ifthen:\n");
+        regm_t retregs = cg.allregs;
         b.bc = BC.ifthen;
         scodelem(cgstate,cdb,e,retregs,0,true);
         reg_t reg, reg2;
@@ -1786,8 +1816,8 @@ void doswitch(ref CodeBuilder cdb, block* b)
             casevals[n].target = list_block(bl);
 
             // See if we need a scratch register
-            if (sreg == NOREG && I64 && sz == 8 && val != cast(int)val)
-            {   regm_t regm = ALLREGS & ~mask(reg);
+            if (!cg.AArch64 && sreg == NOREG && I64 && sz == 8 && val != cast(int)val)
+            {   regm_t regm = cg.allregs & ~mask(reg);
                 sreg = allocreg(cdb,regm, TYint);
             }
         }
@@ -1799,7 +1829,7 @@ void doswitch(ref CodeBuilder cdb, block* b)
             //printf("casevals[%lld] = x%x\n", n, casevals[n].val);
 
         // Generate binary tree of comparisons
-        ifthen(cdb, casevals, sz, reg, reg2, sreg, bdefault, bdefault != b.Bnext);
+        ifthen(cg, cdb, casevals, sz, reg, reg2, sreg, bdefault, bdefault != b.Bnext);
 
         cgstate.stackclean--;
         return;
@@ -1809,7 +1839,7 @@ void doswitch(ref CodeBuilder cdb, block* b)
     {
         // Use switch value to index into jump table
     Ljmptab:
-        //printf("Ljmptab:\n");
+        //printf("jmptab:\n");
 
         b.bc = BC.jmptab;
 
@@ -2013,6 +2043,7 @@ else
          * Note that it has not been tested with MACHOBJ (OSX).
          */
     Lswitch:
+        //printf("repne scasw:\n");
         regm_t retregs = mAX;                  // SCASW requires AX
         if (dword)
             retregs |= mDX;

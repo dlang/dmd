@@ -1600,6 +1600,7 @@ void assignaddrc(code* c)
             case FL.code:
             case FL.unde:
             case FL.block:
+            case FL.switch_:
                 break;
 
             default:
