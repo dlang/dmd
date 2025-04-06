@@ -66,18 +66,15 @@ static struct Entry(K, V)
 {
     K key;
     V value;
-
-    // evaluate early to avoid recursion during inference in _aaEqual
-    enum pv_eq = &keyEqual!(V, V);
 }
 
 // for backward compatibility, do not require const in hashOf()
-static hash_t wrap_hashOf(K)(scope const ref K key) { return hashOf(cast()key); }
+hash_t wrap_hashOf(K)(scope const ref K key) { return hashOf(cast()key); }
 enum pure_hashOf(K) = cast(hash_t function(scope ref const K key) pure nothrow @nogc @safe) &wrap_hashOf!K;
 
 // for backward compatibilty pretend the comparison is @safe, pure, etc
 // this also breaks cyclic inference on recursive data types
-static bool keyEqual(K1, K2)(ref const K1 k1, ref const K2 k2) { return cast()k1 == cast()k2; }
+bool keyEqual(K1, K2)(ref const K1 k1, ref const K2 k2) { return cast()k1 == cast()k2; }
 enum pure_keyEqual(K1, K2) = cast(bool function(ref const K1, ref const K2) pure nothrow @nogc @safe) &keyEqual!(K1, K2);
 
 private struct Impl(K, V)
