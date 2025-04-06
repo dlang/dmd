@@ -15,5 +15,5 @@ LINUX_LEGACY_EMULATE_GETRANDOM=1 make
 
 While this is actually Phobos feature, proper enablement requires compiler
 support. This has been implemented by appending the version flag to the default
-compiler configuration found in `dmd.conf. Hence the DMD build script has been
+compiler configuration found in `dmd.conf`. Hence the DMD build script has been
 made aware of this new option as well.
