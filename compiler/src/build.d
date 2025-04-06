@@ -305,12 +305,16 @@ DFLAGS=%DFLAGS% -L/OPT:NOICF
     {
         enum confFile = "dmd.conf";
         enum conf = `[Environment32]
-DFLAGS=-I%@P%/../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic} -fPIC
+DFLAGS=-I%@P%/../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic}{extraVersions} -fPIC
 
 [Environment64]
-DFLAGS=-I%@P%/../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC
+DFLAGS=-I%@P%/../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic}{extraVersions} -fPIC
 `;
     }
+
+    const extraVersions = (env.getNumberedBool("LINUX_LEGACY_EMULATE_GETRANDOM"))
+        ? " -version=linux_legacy_emulate_getrandom"
+        : "";
 
     builder
         .name("dmdconf")
@@ -318,6 +322,7 @@ DFLAGS=-I%@P%/../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/
         .msg("(TX) DMD_CONF")
         .commandFunction(() {
             const expConf = conf
+                .replace("{extraVersions}", extraVersions)
                 .replace("{exportDynamic}", exportDynamic)
                 .replace("{BUILD}", env["BUILD"])
                 .replace("{OS}", env["OS"]);
