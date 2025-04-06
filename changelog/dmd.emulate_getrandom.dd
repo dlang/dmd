@@ -1,0 +1,19 @@
+`getrandom()` backwards compatibility shim
+
+To restore compatibility with older Linux platforms where `getrandom()` is
+unavailable either due to an outdated kernel or a legacy C library, Phobos now
+ships with a shim that emulates a limited subset of `getrandom()` by reading
+random bytes from `/dev/urandom`.
+
+To enable the shim, build DMD and Phobos with the environment variable
+`LINUX_LEGACY_EMULATE_GETRANDOM` set to `1`.
+
+```
+cd phobos
+LINUX_LEGACY_EMULATE_GETRANDOM=1 make
+```
+
+While this is actually Phobos feature, proper enablement requires compiler
+support. This has been implemented by appending the version flag to the default
+compiler configuration found in `dmd.conf. Hence the DMD build script has been
+made aware of this new option as well.
