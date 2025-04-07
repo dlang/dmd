@@ -262,9 +262,7 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
         if (arr.ptr is null || arr.length == 0)
             return;
         const isshared = is(T == shared);
-        void[] tmp = cast(void[])arr;
-        // Call the original function but ensure the void[] cast is properly passed
-        _d_arrayshrinkfit(typeid(T[]), tmp);
+        _d_arrayshrinkfit(typeid(T[]), cast(void[]) arr);
     }
     else
     {
