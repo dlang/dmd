@@ -271,41 +271,58 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
 }
 
 // Basic test for _d_arrayshrinkfitT
-// unittest
-// {
-//     // Create an array with extra capacity
-//     int[] a = [1, 2, 3, 4, 5];
-//     a = a[0..3]; // Reduce length but not capacity
-//     // Store the pointer for comparison
-//     auto ptr = a.ptr;
-//     // Apply our shrinkfit function
-//     _d_arrayshrinkfitT!int(a);
-//     // Try to append - if capacity was properly shrunk, this should allocate new memory
-//     a ~= 10;
-//     assert(a.ptr != ptr, "Array capacity was not properly shrunk");
-// }
-//above unittest throws error.
-// The unittest below is a more comprehensive test for _d_arrayshrinkfitT
 @system unittest
 {
     // Test case 1: Basic functionality with a simple type
-    {
-        // Create an array with some extra capacity
-        int[] a = new int[10];
-        a = a[0..5]; // Reduce length but keep capacity
-        // Get the initial pointer and capacity
-        auto initialPtr = a.ptr;
-        auto initialCapacity = a.capacity;
-        assert(initialCapacity > 5, "Test setup failed: array doesn't have extra capacity");
-        _d_arrayshrinkfitT!int(a);
-        // Verify the array still has the same contents
-        assert(a.length == 5, "Array length was changed");
-    }
+    int[] a = new int[10];
+    a = a[0..5]; // Reduce length but keep capacity
+    auto initialPtr = a.ptr;
+    auto initialCapacity = a.capacity;
+    assert(initialCapacity > 5, "Test setup failed: array doesn't have extra capacity");
+    // Apply our shrinkfit function
+    _d_arrayshrinkfitT(a);
+    // Verify the array still has the same contents and length
+    assert(a.length == 5, "Array length was changed");
+    // Try to append - if shrinkfit worked correctly, this would NOT allocate new memory
+    // since assumeSafeAppend behavior extends the capacity to match the original array
+    a ~= 10;
+    assert(a.ptr == initialPtr, "Appending allocated new memory which indicates shrinkfit failed");
+}
+
+@system unittest
+{
     // Test case 2: Array with zero length
+    int[] empty;
+    // This should not crash
+    _d_arrayshrinkfitT(empty);
+    assert(empty.length == 0, "Empty array length changed");
+}
+
+@system unittest
+{
+    // Test case 3: Type with a destructor
+    static struct S
     {
-        int[] empty;
-        // This should not crash
-        _d_arrayshrinkfitT!int(empty);
-        assert(empty.length == 0, "Empty array length changed");
+        static int destructorCalls = 0;
+        int value;
+        ~this()
+        {
+            destructorCalls++;
+        }
     }
+    
+    // Create array with extra capacity
+    S[] arr = new S[10];
+    foreach (i; 0..10)
+        arr[i].value = i;
+    arr = arr[0..5];
+    // Reset destructor call counter
+    S.destructorCalls = 0;
+    _d_arrayshrinkfitT(arr);
+    // Verify destructors were called for removed elements
+    assert(S.destructorCalls == 5, "Destructors were not called for removed elements");
+    // Verify the array still has the same contents
+    assert(arr.length == 5, "Array length was changed");
+    for (int i = 0; i < 5; i++)
+        assert(arr[i].value == i, "Array elements were corrupted");
 }
