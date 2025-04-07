@@ -1598,18 +1598,28 @@ struct CaseVal
  * Generate comparison of [reg2,reg] with val
  */
 @trusted
-private void cmpval(CGstate cg, ref CodeBuilder cdb, targ_llong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
+private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
 {
     if (cg.AArch64)
     {
-        // TODO AArch64 use CMP https://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_imm.html
         assert(sreg == NOREG);
-        regm_t retregs = cg.allregs & ~mask(reg);
-        sreg = allocreg(cdb,retregs,TYint);
-        movregconst(cdb,sreg,val,sz == 8  ? 64 : 0);
-        getregsNoSave(retregs);
-        assert(reg2 == NOREG);
-        cdb.gen1(INSTR.cmp_shift(sz == 8, reg, 0, 0, sreg));    // CMP sreg,reg
+        if (val <= 0xFFF || val >= 0x1000 && val <= 0xFFF000)
+        {
+            ubyte sh = val >= 0x1000;
+            uint imm12 = cast(uint)(sh ? val >> 12 : val);
+            assert((imm12 & ~0xFFF) == 0);
+            // https://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_imm.html
+            cdb.gen1(INSTR.cmp_imm(sz == 8, sh, imm12, reg)); // CMP reg,#imm12{, shift}
+        }
+        else
+        {
+            regm_t retregs = cg.allregs & ~mask(reg);
+            sreg = allocreg(cdb,retregs,TYint);
+            movregconst(cdb,sreg,val,sz == 8  ? 64 : 0);
+            getregsNoSave(retregs);
+            assert(reg2 == NOREG);
+            cdb.gen1(INSTR.cmp_shift(sz == 8, reg, 0, 0, sreg));    // CMP sreg,reg
+        }
     }
     else if (I64 && sz == 8)
     {
