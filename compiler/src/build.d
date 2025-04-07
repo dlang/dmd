@@ -469,7 +469,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
         .sources(dmdSources.chain(lexer.targets, backend.targets, common.targets).array)
         .target(env["DMD_PATH"] ~ targetSuffix)
         .msg("(DC) DMD" ~ targetSuffix)
-        .deps([versionFile, sysconfDirFile, lexer, backend, common])
+        .deps([lexer, backend, common])
         .command([
             env["HOST_DMD_RUN"],
             "-of" ~ rule.target,
@@ -646,7 +646,7 @@ alias runTests = makeRule!((testBuilder, testRule)
 
 /// BuildRule to run the DMD unittest executable.
 alias runDmdUnittest = makeRule!((builder, rule) {
-auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", env["HOST_DMD_KIND"] == "gdc" ? "-fmain" : "-main"], ["-unittest"]);
+    auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", env["HOST_DMD_KIND"] == "gdc" ? "-fmain" : "-main"], ["-unittest"]);
     builder
         .name("unittest")
         .description("Run the dmd unittests")
