@@ -288,7 +288,6 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
 // The unittest below is a more comprehensive test for _d_arrayshrinkfitT
 @system unittest
 {
-    import core.memory : GC;
     // Test case 1: Basic functionality with a simple type
     {
         // Create an array with some extra capacity
