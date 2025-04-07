@@ -986,6 +986,46 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
                         errorSupplemental(fd.loc, "Function `%s` contains errors in its declaration, therefore it cannot be correctly overridden",
                             fd.toPrettyChars());
                     }
+                    else if (fd.isFinalFunc())
+                    {
+                        // When trying to override a final method, don't suggest it as a candidate(Issue #19613)
+                        .error(funcdecl.loc, "%s `%s` does not override any function", funcdecl.kind, funcdecl.toPrettyChars);
+
+                        // Look for a non-final method with the same name to suggest as an alternative
+                        auto cdparent = fd.parent ? fd.parent.isClassDeclaration() : null;
+                        if (cdparent)
+                        {
+                            Dsymbol nonFinalAlt = null;
+
+                            auto overloadableSyms = cdparent.symtab.lookup(fd.ident);
+                            if (overloadableSyms)
+                            {
+                                // Check each overload to find one that's not final
+                                overloadApply(overloadableSyms, (Dsymbol s)
+                                {
+                                    if (auto funcAlt = s.isFuncDeclaration())
+                                    {
+                                        if (funcAlt != fd && !funcAlt.isFinalFunc())
+                                        {
+                                            nonFinalAlt = funcAlt;
+                                            return 1;
+                                        }
+                                    }
+                                    return 0;
+                                });
+
+                                // Provide a helpful suggestion if we found a viable alternative
+                                if (nonFinalAlt)
+                                {
+                                    auto funcAlt = nonFinalAlt.isFuncDeclaration();
+                                    OutBuffer buf2;
+                                    functionToBufferFull(cast(TypeFunction)(funcAlt.type), buf2,
+                                        new Identifier(funcAlt.toPrettyChars()), hgs, null);
+                                    errorSupplemental(funcdecl.loc, "Did you mean to override `%s`?", buf2.peekChars());
+                                }
+                            }
+                        }
+                    }
                     else
                     {
                         functionToBufferFull(cast(TypeFunction)(fd.type), buf1,
