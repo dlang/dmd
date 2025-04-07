@@ -239,29 +239,13 @@ template _d_arraysetlengthTImpl(Tarr : T[], T)
  *     T = Element type of the array
  *     arr = Array to shrink
  */
-//  void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
-// {
-//     version (D_TypeInfo)
-//     {
-//         // Call the original implementation through typeid
-//         // maintain compatibility while establishing the template structure
-//         _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
-//     }
-//     else
-//     {
-//         assert(0, "Cannot shrink array if compiling without support for runtime type information!");
-//     }
-// }
-//above implementation throws error.
-void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
+void _d_arrayshrinkfitT(T)(T[] arr) @trusted
 {
     version (D_TypeInfo)
     {
-        // Direct forwarding approach - simply forward to original implementation
-        import core.memory : GC;
+        // Early return for null or empty arrays
         if (arr.ptr is null || arr.length == 0)
             return;
-        const isshared = is(T == shared);
         _d_arrayshrinkfit(typeid(T[]), cast(void[]) arr);
     }
     else
@@ -273,25 +257,21 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
 // Basic test for _d_arrayshrinkfitT
 @system unittest
 {
-    // Test case 1: Basic functionality with a simple type
     int[] a = new int[10];
     a = a[0..5]; // Reduce length but keep capacity
     auto initialPtr = a.ptr;
     auto initialCapacity = a.capacity;
     assert(initialCapacity > 5, "Test setup failed: array doesn't have extra capacity");
-    // Apply our shrinkfit function
+    // Apply shrinkfit function
     _d_arrayshrinkfitT(a);
     // Verify the array still has the same contents and length
     assert(a.length == 5, "Array length was changed");
-    // Try to append - if shrinkfit worked correctly, this would NOT allocate new memory
-    // since assumeSafeAppend behavior extends the capacity to match the original array
     a ~= 10;
     assert(a.ptr == initialPtr, "Appending allocated new memory which indicates shrinkfit failed");
 }
 
 @system unittest
 {
-    // Test case 2: Array with zero length
     int[] empty;
     // This should not crash
     _d_arrayshrinkfitT(empty);
@@ -300,7 +280,6 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
 
 @system unittest
 {
-    // Test case 3: Type with a destructor
     static struct S
     {
         static int destructorCalls = 0;
@@ -318,9 +297,7 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
     // Reset destructor call counter
     S.destructorCalls = 0;
     _d_arrayshrinkfitT(arr);
-    // Verify destructors were called for removed elements
     assert(S.destructorCalls == 5, "Destructors were not called for removed elements");
-    // Verify the array still has the same contents
     assert(arr.length == 5, "Array length was changed");
     for (int i = 0; i < 5; i++)
         assert(arr[i].value == i, "Array elements were corrupted");
