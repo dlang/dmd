@@ -310,7 +310,6 @@ void _d_arrayshrinkfitT(T)(ref T[] arr) @trusted
             destructorCalls++;
         }
     }
-    
     // Create array with extra capacity
     S[] arr = new S[10];
     foreach (i; 0..10)
