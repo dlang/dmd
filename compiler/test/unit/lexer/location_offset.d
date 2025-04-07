@@ -444,6 +444,7 @@ enum Test[string] tests = [
     "moduleString" : Test("__MODULE__"),
     "functionString" : Test("__FUNCTION__"),
     "prettyFunction" : Test("__PRETTY_FUNCTION__"),
+    "edition" : Test("__EDITION__"),
 
     "shared_" : Test("shared"),
     "at" : Test("at sign", "@"),

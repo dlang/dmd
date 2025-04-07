@@ -718,12 +718,14 @@ extern (C++) abstract class Expression : ASTNode
         inout(DefaultInitExp)    isDefaultInitExp() { return
             (op == EXP.prettyFunction    || op == EXP.functionString ||
              op == EXP.line              || op == EXP.moduleString   ||
-             op == EXP.file              || op == EXP.fileFullPath   ) ? cast(typeof(return))this : null; }
+             op == EXP.file              || op == EXP.fileFullPath   ||
+             op == EXP.edition) ? cast(typeof(return))this : null; }
         inout(FileInitExp)       isFileInitExp() { return (op == EXP.file || op == EXP.fileFullPath) ? cast(typeof(return))this : null; }
         inout(LineInitExp)       isLineInitExp() { return op == EXP.line ? cast(typeof(return))this : null; }
         inout(ModuleInitExp)     isModuleInitExp() { return op == EXP.moduleString ? cast(typeof(return))this : null; }
         inout(FuncInitExp)       isFuncInitExp() { return op == EXP.functionString ? cast(typeof(return))this : null; }
         inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == EXP.prettyFunction ? cast(typeof(return))this : null; }
+        inout(EditionInitExp) isEditionInitExp() { return op == EXP.edition ? cast(typeof(return))this : null; }
         inout(ObjcClassReferenceExp) isObjcClassReferenceExp() { return op == EXP.objcClassReference ? cast(typeof(return))this : null; }
         inout(ClassReferenceExp) isClassReferenceExp() { return op == EXP.classReference ? cast(typeof(return))this : null; }
         inout(ThrownExceptionExp) isThrownExceptionExp() { return op == EXP.thrownException ? cast(typeof(return))this : null; }
@@ -4971,6 +4973,22 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
 }
 
 /***********************************************************
+ * The `__EDITION__` token as a default argument
+ */
+extern (C++) final class EditionInitExp : DefaultInitExp
+{
+    extern (D) this(Loc loc) @safe
+    {
+        super(loc, EXP.edition);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
  * A reference to a class, or an interface. We need this when we
  * point to a base class (we must record what the type is).
  */
@@ -5330,6 +5348,7 @@ private immutable ubyte[EXP.max+1] expSize = [
     EXP.moduleString: __traits(classInstanceSize, ModuleInitExp),
     EXP.functionString: __traits(classInstanceSize, FuncInitExp),
     EXP.prettyFunction: __traits(classInstanceSize, PrettyFuncInitExp),
+    EXP.edition: __traits(classInstanceSize, EditionInitExp),
     EXP.pow: __traits(classInstanceSize, PowExp),
     EXP.powAssign: __traits(classInstanceSize, PowAssignExp),
     EXP.vector: __traits(classInstanceSize, VectorExp),

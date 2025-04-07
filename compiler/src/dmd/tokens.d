@@ -238,6 +238,7 @@ enum TOK : ubyte
     moduleString,   // __MODULE__
     functionString, // __FUNCTION__
     prettyFunction, // __PRETTY_FUNCTION__
+    edition, // __EDITION__
     shared_,
     at,
     pow,
@@ -414,6 +415,7 @@ enum EXP : ubyte
     moduleString,   // __MODULE__
     functionString, // __FUNCTION__
     prettyFunction, // __PRETTY_FUNCTION__
+    edition, // __EDITION__
     pow,
     powAssign,
     vector,
@@ -559,6 +561,7 @@ private immutable TOK[] keywords =
     TOK.moduleString,
     TOK.functionString,
     TOK.prettyFunction,
+    TOK.edition,
     TOK.shared_,
     TOK.immutable_,
     TOK.rvalue,
@@ -780,6 +783,7 @@ extern (C++) struct Token
         TOK.moduleString: "__MODULE__",
         TOK.functionString: "__FUNCTION__",
         TOK.prettyFunction: "__PRETTY_FUNCTION__",
+        TOK.edition: "__EDITION__",
         TOK.shared_: "shared",
         TOK.immutable_: "immutable",
 

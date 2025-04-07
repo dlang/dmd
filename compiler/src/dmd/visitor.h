@@ -298,6 +298,7 @@ class LineInitExp;
 class ModuleInitExp;
 class FuncInitExp;
 class PrettyFuncInitExp;
+class EditionInitExp;
 class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
@@ -532,6 +533,7 @@ public:
     virtual void visit(FileInitExp *e) { visit((DefaultInitExp *)e); }
     virtual void visit(LineInitExp *e) { visit((DefaultInitExp *)e); }
     virtual void visit(ModuleInitExp *e) { visit((DefaultInitExp *)e); }
+    virtual void visit(EditionInitExp *e) { visit((DefaultInitExp *)e); }
 
     // BinExp
     virtual void visit(CommaExp *e) { visit((BinExp *)e); }

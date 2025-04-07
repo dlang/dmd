@@ -282,6 +282,7 @@ class LineInitExp;
 class ModuleInitExp;
 class FuncInitExp;
 class PrettyFuncInitExp;
+class EditionInitExp;
 class ObjcClassReferenceExp;
 class ClassReferenceExp;
 class ThrownExceptionExp;
@@ -999,12 +1000,12 @@ enum class FileType : uint8_t
     c = 3u,
 };
 
-enum class Edition : uint8_t
+enum class Edition : uint16_t
 {
     none = 0u,
-    legacy = 1u,
-    v2024 = 2u,
-    latest = 2u,
+    legacy = 2u,
+    v2024 = 2024u,
+    latest = 2024u,
 };
 
 struct OutBuffer final
@@ -1414,6 +1415,7 @@ public:
     virtual void visit(typename AST::FileInitExp e);
     virtual void visit(typename AST::LineInitExp e);
     virtual void visit(typename AST::ModuleInitExp e);
+    virtual void visit(typename AST::EditionInitExp e);
     virtual void visit(typename AST::CommaExp e);
     virtual void visit(typename AST::PostExp e);
     virtual void visit(typename AST::PowExp e);
@@ -2318,19 +2320,20 @@ enum class EXP : uint8_t
     moduleString = 113u,
     functionString = 114u,
     prettyFunction = 115u,
-    pow = 116u,
-    powAssign = 117u,
-    vector = 118u,
-    voidExpression = 119u,
-    cantExpression = 120u,
-    showCtfeContext = 121u,
-    objcClassReference = 122u,
-    vectorArray = 123u,
-    compoundLiteral = 124u,
-    _Generic_ = 125u,
-    interval = 126u,
-    loweredAssignExp = 127u,
-    rvalue = 128u,
+    edition = 116u,
+    pow = 117u,
+    powAssign = 118u,
+    vector = 119u,
+    voidExpression = 120u,
+    cantExpression = 121u,
+    showCtfeContext = 122u,
+    objcClassReference = 123u,
+    vectorArray = 124u,
+    compoundLiteral = 125u,
+    _Generic_ = 126u,
+    interval = 127u,
+    loweredAssignExp = 128u,
+    rvalue = 129u,
 };
 
 typedef uint64_t dinteger_t;
@@ -2523,6 +2526,7 @@ public:
     ModuleInitExp* isModuleInitExp();
     FuncInitExp* isFuncInitExp();
     PrettyFuncInitExp* isPrettyFuncInitExp();
+    EditionInitExp* isEditionInitExp();
     ObjcClassReferenceExp* isObjcClassReferenceExp();
     ClassReferenceExp* isClassReferenceExp();
     ThrownExceptionExp* isThrownExceptionExp();
@@ -2950,6 +2954,12 @@ public:
     void accept(Visitor* v) override;
 };
 
+class EditionInitExp final : public DefaultInitExp
+{
+public:
+    void accept(Visitor* v) override;
+};
+
 class EqualExp final : public BinExp
 {
 public:
@@ -3158,46 +3168,47 @@ enum class TOK : uint8_t
     moduleString = 183u,
     functionString = 184u,
     prettyFunction = 185u,
-    shared_ = 186u,
-    at = 187u,
-    pow = 188u,
-    powAssign = 189u,
-    goesTo = 190u,
-    vector = 191u,
-    pound = 192u,
-    arrow = 193u,
-    colonColon = 194u,
-    wchar_tLiteral = 195u,
-    endOfLine = 196u,
-    whitespace = 197u,
-    rvalue = 198u,
-    inline_ = 199u,
-    register_ = 200u,
-    restrict_ = 201u,
-    signed_ = 202u,
-    sizeof_ = 203u,
-    typedef_ = 204u,
-    unsigned_ = 205u,
-    volatile_ = 206u,
-    _Alignas_ = 207u,
-    _Alignof_ = 208u,
-    _Atomic_ = 209u,
-    _Bool_ = 210u,
-    _Complex_ = 211u,
-    _Generic_ = 212u,
-    _Imaginary_ = 213u,
-    _Noreturn_ = 214u,
-    _Static_assert_ = 215u,
-    _Thread_local_ = 216u,
-    _assert_ = 217u,
-    _import_ = 218u,
-    __cdecl_ = 219u,
-    __declspec_ = 220u,
-    __stdcall_ = 221u,
-    __thread_ = 222u,
-    __pragma_ = 223u,
-    __int128_ = 224u,
-    __attribute___ = 225u,
+    edition = 186u,
+    shared_ = 187u,
+    at = 188u,
+    pow = 189u,
+    powAssign = 190u,
+    goesTo = 191u,
+    vector = 192u,
+    pound = 193u,
+    arrow = 194u,
+    colonColon = 195u,
+    wchar_tLiteral = 196u,
+    endOfLine = 197u,
+    whitespace = 198u,
+    rvalue = 199u,
+    inline_ = 200u,
+    register_ = 201u,
+    restrict_ = 202u,
+    signed_ = 203u,
+    sizeof_ = 204u,
+    typedef_ = 205u,
+    unsigned_ = 206u,
+    volatile_ = 207u,
+    _Alignas_ = 208u,
+    _Alignof_ = 209u,
+    _Atomic_ = 210u,
+    _Bool_ = 211u,
+    _Complex_ = 212u,
+    _Generic_ = 213u,
+    _Imaginary_ = 214u,
+    _Noreturn_ = 215u,
+    _Static_assert_ = 216u,
+    _Thread_local_ = 217u,
+    _assert_ = 218u,
+    _import_ = 219u,
+    __cdecl_ = 220u,
+    __declspec_ = 221u,
+    __stdcall_ = 222u,
+    __thread_ = 223u,
+    __pragma_ = 224u,
+    __int128_ = 225u,
+    __attribute___ = 226u,
 };
 
 class FuncExp final : public Expression
@@ -5765,6 +5776,7 @@ struct ASTCodegen final
     using DotTypeExp = ::DotTypeExp;
     using DotVarExp = ::DotVarExp;
     using DsymbolExp = ::DsymbolExp;
+    using EditionInitExp = ::EditionInitExp;
     using EqualExp = ::EqualExp;
     using ErrorExp = ::ErrorExp;
     using Expression = ::Expression;
@@ -8847,6 +8859,7 @@ struct Id final
     static Identifier* VENDOR;
     static Identifier* VERSIONX;
     static Identifier* EOFX;
+    static Identifier* EDITION;
     static Identifier* nan;
     static Identifier* infinity;
     static Identifier* dig;

@@ -15397,6 +15397,12 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
         return e;
     }
 
+    Expression visitEditionInit(EditionInitExp exp)
+    {
+        Expression e = new IntegerExp(loc, cast(ushort)sc._module.edition, Type.tint32);
+        return e.expressionSemantic(sc);
+    }
+
     switch(exp.op)
     {
         default:                 return visit(exp);
@@ -15416,6 +15422,7 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
         case EXP.moduleString:   return visitModuleInit(exp.isModuleInitExp());
         case EXP.functionString: return visitFuncInit(exp.isFuncInitExp());
         case EXP.prettyFunction: return visitPrettyFunc(exp.isPrettyFuncInitExp());
+        case EXP.edition: return visitEditionInit(exp.isEditionInitExp());
     }
 }
 
