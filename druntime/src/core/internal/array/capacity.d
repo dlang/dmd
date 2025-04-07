@@ -246,7 +246,7 @@ void _d_arrayshrinkfitT(T)(T[] arr) @trusted
         // Early return for null or empty arrays
         if (arr.ptr is null || arr.length == 0)
             return;
-        _d_arrayshrinkfit(typeid(T[]), cast(void[]) arr);
+        _d_arrayshrinkfit(typeid(T[]), cast(void[])arr);
     }
     else
     {
