@@ -4036,7 +4036,7 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
     import core.internal.traits : Unqual;
 
     //_d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
-    _d_arrayshrinkfitT!(Unqual!T)(*(cast(Unqual!T[]*)&arr));
+    _d_arrayshrinkfitT(cast(Unqual!T[]) arr);
     return arr;
 }
 
