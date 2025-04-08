@@ -27,7 +27,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
-import dmd.funcsem : overloadApply, getLevelAndCheck;
+import dmd.funcsem : getLevelAndCheck;
 import dmd.globals;
 import dmd.gluelayer;
 import dmd.hdrgen;
@@ -781,25 +781,6 @@ extern (C++) final class OverDeclaration : Declaration
     override bool isOverloadable() const
     {
         return true;
-    }
-
-    Dsymbol isUnique()
-    {
-        Dsymbol result = null;
-        overloadApply(aliassym, (Dsymbol s)
-        {
-            if (result)
-            {
-                result = null;
-                return 1; // ambiguous, done
-            }
-            else
-            {
-                result = s;
-                return 0;
-            }
-        });
-        return result;
     }
 
     override void accept(Visitor v)

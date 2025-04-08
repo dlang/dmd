@@ -6822,7 +6822,6 @@ public:
     bool equals(const RootObject* const o) const override;
     bool overloadInsert(Dsymbol* s) override;
     bool isOverloadable() const override;
-    Dsymbol* isUnique();
     void accept(Visitor* v) override;
 };
 
