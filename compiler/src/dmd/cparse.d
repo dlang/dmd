@@ -1913,10 +1913,14 @@ final class CParser(AST) : Parser!AST
                     break;
             }
 
-            if (specifier.alignExps && dt.isTypeFunction())
-                error("no alignment-specifier for function declaration"); // C11 6.7.5-2
-            if (specifier.alignExps && specifier.scw == SCW.xregister)
-                error("no alignment-specifier for `register` storage class"); // C11 6.7.5-2
+
+            // Check alignasExp and not alignExps so that gnu
+            // __atribute__((aligned())) is silently allowed, matching the
+            // behavior of other compilers.
+            if (specifier.alignasExp && dt.isTypeFunction())
+                error(specifier.alignasExp.loc, "no alignment-specifier for function declaration"); // C11 6.7.5-2
+            if (specifier.alignasExp && specifier.scw == SCW.xregister)
+                error(specifier.alignasExp.loc, "no alignment-specifier for `register` storage class"); // C11 6.7.5-2
 
             /* C11 6.9.1 Function Definitions
              * function-definition:
@@ -1960,8 +1964,8 @@ final class CParser(AST) : Parser!AST
             {
                 if (token.value == TOK.assign)
                     error("no initializer for typedef declaration");
-                if (specifier.alignExps)
-                    error("no alignment-specifier for typedef declaration"); // C11 6.7.5-2
+                if (specifier.alignasExp)
+                    error(specifier.alignasExp.loc, "no alignment-specifier for typedef declaration"); // C11 6.7.5-2
 
                 if (specifier.vector_size)
                 {
@@ -2474,7 +2478,7 @@ final class CParser(AST) : Parser!AST
                         else
                             break;
                     }
-                    t = cparseStruct(sloc, structOrUnion, tagSpecifier.packalign, symbols);
+                    t = cparseStruct(sloc, structOrUnion, tagSpecifier, symbols);
                     tkwx = TKW.xtag;
                     break;
                 }
@@ -2536,6 +2540,7 @@ final class CParser(AST) : Parser!AST
                     if (!specifier.alignExps)
                         specifier.alignExps = new AST.Expressions(0);
                     specifier.alignExps.push(exp);
+                    specifier.alignasExp = exp;
 
                     check(TOK.rightParenthesis);
                     break;
@@ -3620,26 +3625,18 @@ final class CParser(AST) : Parser!AST
                 if (token.value == TOK.leftParenthesis)
                 {
                     nextToken();
-                    if (token.value == TOK.int32Literal)
-                    {
-                        const n = token.unsvalue;
-                        if (n < 1 || n & (n - 1) || ushort.max < n)
-                            error("__attribute__((aligned(%lld))) must be an integer positive power of 2 and be <= 32,768", cast(ulong)n);
-                        specifier.packalign.set(cast(uint)n);
-                        specifier.packalign.setPack(true);
-                        nextToken();
-                    }
-                    else
-                    {
-                        error("alignment value expected, not `%s`", token.toChars());
-                        nextToken();
-                    }
-
+                    AST.Expression exp = cparseConstantExp();
+                    if (!specifier.alignExps)
+                        specifier.alignExps = new AST.Expressions(0);
+                    specifier.alignExps.push(exp);
                     check(TOK.rightParenthesis);
                 }
-                /* ignore __attribute__((aligned)), which sets the alignment to the largest value for any data
-                 * type on the target machine. It's the opposite of __attribute__((packed))
-                 */
+                else
+                {
+                    /* ignore __attribute__((aligned)), which sets the alignment to the largest value for any data
+                     * type on the target machine. It's the opposite of __attribute__((packed))
+                     */
+                }
             }
             else if (token.ident == Id.packed)
             {
@@ -3978,9 +3975,10 @@ final class CParser(AST) : Parser!AST
      * Returns:
      *  type of the struct
      */
-    private AST.Type cparseStruct(Loc loc, TOK structOrUnion, structalign_t packalign, ref AST.Dsymbols* symbols)
+    private AST.Type cparseStruct(Loc loc, TOK structOrUnion, ref Specifier specifier, ref AST.Dsymbols* symbols)
     {
         Identifier tag;
+        auto packalign = specifier.packalign;
 
         if (token.value == TOK.identifier)
         {
@@ -4013,7 +4011,7 @@ final class CParser(AST) : Parser!AST
             /* GNU Extensions
              * Parse the postfix gnu-attributes (opt)
              */
-            Specifier specifier;
+            specifier.packalign = structalign_t();
             if (token.value == TOK.__attribute__)
                 cparseGnuAttributes(specifier);
             if (!specifier.packalign.isUnknown)
@@ -4022,9 +4020,38 @@ final class CParser(AST) : Parser!AST
                 packalign.setPack(specifier.packalign.isPack());
                 foreach (ref d; (*members)[])
                 {
+                    // skip possible static assert declarations
+                    if (d.isStaticAssert()) continue;
+
                     auto decls = new AST.Dsymbols(1);
                     (*decls)[0] = d;
                     d = new AST.AlignDeclaration(d.loc, specifier.packalign, decls);
+                }
+            }
+            if (specifier.alignExps && specifier.alignExps.length)
+            {
+                // Align the entire struct by aligning the first member.
+                if (members)
+                {
+                    foreach (ref d; (*members)[])
+                    {
+                        // skip possible static assert declarations
+                        if (d.isStaticAssert()) continue;
+
+                        if (AST.AlignDeclaration ad = d.isAlignDeclaration())
+                        {
+                            foreach (exp; *specifier.alignExps)
+                                ad.exps.push(exp);
+                            break;
+                        }
+                        else
+                        {
+                            auto decls = new AST.Dsymbols(1);
+                            (*decls)[0] = d;
+                            d = new AST.AlignDeclaration(d.loc, specifier.alignExps, decls);
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -4178,8 +4205,8 @@ final class CParser(AST) : Parser!AST
                 error("specifier-qualifier-list required");
             else if (width)
             {
-                if (specifier.alignExps)
-                    error("no alignment-specifier for bit field declaration"); // C11 6.7.5-2
+                if (specifier.alignasExp)
+                    error(specifier.alignasExp.loc, "no alignment-specifier for bit field declaration"); // C11 6.7.5-2
                 auto s = new AST.BitFieldDeclaration(width.loc, dt, id, width);
                 members.push(s);
             }
@@ -5155,6 +5182,7 @@ final class CParser(AST) : Parser!AST
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers
         AST.Expressions*  alignExps;  /// alignment
+        AST.Expression alignasExp; /// Last _Alignas() for errors
         structalign_t packalign;  /// #pragma pack alignment value
     }
 
