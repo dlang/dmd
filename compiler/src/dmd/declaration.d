@@ -1035,12 +1035,6 @@ extern (C++) class VarDeclaration : Declaration
                 vbitoffset <  bitoffset + tbitsize;
     }
 
-    override final bool hasPointers()
-    {
-        //printf("VarDeclaration::hasPointers() %s, ty = %d\n", toChars(), type.ty);
-        return (!isDataseg() && type.hasPointers());
-    }
-
     /*************************************
      * Return true if we can take the address of this variable.
      */

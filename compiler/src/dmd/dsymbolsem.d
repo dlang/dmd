@@ -953,6 +953,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.storage_class & STC.constscoperef)
             dsym.storage_class |= STC.scope_;
 
+        import dmd.typesem : hasPointers;
+
         if (dsym.storage_class & STC.scope_)
         {
             STC stc = dsym.storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.gshared);
@@ -8639,5 +8641,52 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
 
 
         sd.argTypes = target.toArgTypes(sd.type);
+    }
+}
+
+/*****************************************
+* Is Dsymbol a variable that contains pointers?
+*/
+bool hasPointers(Dsymbol d)
+{
+    scope v = new HasPointersVisitor();
+    d.accept(v);
+    return v.result;
+}
+
+private extern(C++) class HasPointersVisitor : Visitor
+{
+    import dmd.mtype : Type;
+
+    alias visit = Visitor.visit;
+    bool result;
+
+    override void visit(AttribDeclaration ad)
+    {
+        result = ad.include(null).foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
+    }
+
+    override void visit(VarDeclaration vd)
+    {
+        import dmd.typesem : hasPointers;
+        result = (!vd.isDataseg() && vd.type.hasPointers());
+    }
+
+    override void visit(Dsymbol d)
+    {
+        //printf("Dsymbol::hasPointers() %s\n", toChars());
+        result = false;
+    }
+
+    override void visit(TemplateMixin tm)
+    {
+        //printf("TemplateMixin.hasPointers() %s\n", toChars());
+        result = tm.members.foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
+    }
+
+    override void visit(Nspace ns)
+    {
+        //printf("Nspace::hasPointers() %s\n", toChars());
+        result = ns.members.foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
     }
 }

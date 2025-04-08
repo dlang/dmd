@@ -963,15 +963,6 @@ extern (C++) class Dsymbol : ASTNode
         return true;
     }
 
-    /*****************************************
-     * Is Dsymbol a variable that contains pointers?
-     */
-    bool hasPointers()
-    {
-        //printf("Dsymbol::hasPointers() %s\n", toChars());
-        return false;
-    }
-
     void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
     {
     }

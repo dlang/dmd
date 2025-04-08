@@ -158,13 +158,14 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             return;
         foreach (vd; fields)
         {
+            import dmd.dsymbolsem : hasPointers;
             if (vd.storage_class & STC.ref_ || vd.hasPointers())
             {
                 hasPointerField = true;
                 hasUnsafeBitpatterns = true;
             }
 
-            if (vd._init && vd._init.isVoidInitializer() && vd.type.hasPointers())
+            if (vd._init && vd._init.isVoidInitializer() && vd.hasPointers())
                 hasVoidInitPointers = true;
 
             if (vd.storage_class & STC.system || vd.type.hasUnsafeBitpatterns())
