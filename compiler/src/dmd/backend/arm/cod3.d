@@ -1523,14 +1523,15 @@ void assignaddrc(code* c)
 
             L2:
                 offset = cast(int)offset;       // sign extend
-                // Load/store register (unsigned immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
-                uint opc   = field(ins,23,22);
-                uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
-                uint op24  = field(ins,25,24);
 //printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZE*2);
                 if (cgstate.hasframe)
                     offset += REGSIZE * 2;
                 offset += localsize;
+            L3:
+                // Load/store register (unsigned immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
+                uint opc   = field(ins,23,22);
+                uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
+                uint op24  = field(ins,25,24);
                 if (field(ins,28,23) == 0x22)      // Add/subtract (immediate)
                 {
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
@@ -1588,7 +1589,8 @@ void assignaddrc(code* c)
 
             case FL.offset:
                 c.IFL1 = FL.const_;
-                break;
+                offset = c.IEV1.Voffset;
+                goto L3;
 
             case FL.localsize:                           // used by inline assembler
                 c.IEV1.Vpointer += localsize;

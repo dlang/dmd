@@ -1144,6 +1144,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdstreq(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
+    //elem_print(e);
     char need_DS = false;
     elem* e1 = e.E1;
     elem* e2 = e.E2;
@@ -1194,45 +1195,44 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         cdst.index = NOREG;
         cdst.reg = NOREG;
 
+        ulong offset;
+
         while (numbytes >= REGSIZE)
         {
             loadFromEA(csrc,reg,8,8);
-            cdb.gen1(csrc.Iop);
+            cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,reg,8);
-            cdb.gen1(cdst.Iop);
-            csrc.IEV1.Voffset += REGSIZE;
-            cdst.IEV1.Voffset += REGSIZE;
+            cdb.genc1(cdst.Iop,0,FL.offset,offset);
+            offset += REGSIZE;
             numbytes -= REGSIZE;
         }
 
         while (numbytes >= 4)
         {
             loadFromEA(csrc,reg,4,4);
-            cdb.gen1(csrc.Iop);
+            cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,reg,4);
-            cdb.gen1(cdst.Iop);
-            csrc.IEV1.Voffset += 4;
-            cdst.IEV1.Voffset += 4;
+            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            offset += 4;
             numbytes -= 4;
         }
 
         while (numbytes >= 2)
         {
             loadFromEA(csrc,reg,4,2);
-            cdb.gen1(csrc.Iop);
+            cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,reg,2);
-            csrc.IEV1.Voffset += 2;
-            cdb.gen1(cdst.Iop);
-            cdst.IEV1.Voffset += 2;
+            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            offset += 2;
             numbytes -= 2;
         }
 
         if (numbytes)
         {
             loadFromEA(csrc,reg,4,1);
-            cdb.gen1(csrc.Iop);
+            cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,reg,1);
-            cdb.gen1(cdst.Iop);
+            cdb.genc1(csrc.Iop,0,FL.offset,offset);
         }
     }
     else
