@@ -3664,3 +3664,22 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
     }
     return overloadApplyRecurse(fstart, dg, sc);
 }
+
+Dsymbol isUnique(OverDeclaration od)
+{
+    Dsymbol result = null;
+    overloadApply(od.aliassym, (Dsymbol s)
+    {
+        if (result)
+        {
+            result = null;
+            return 1; // ambiguous, done
+        }
+        else
+        {
+            result = s;
+            return 0;
+        }
+    });
+    return result;
+}
