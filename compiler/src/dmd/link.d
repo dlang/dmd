@@ -39,6 +39,7 @@ version (Posix)
     import core.sys.posix.stdio;
     import core.sys.posix.stdlib;
     import core.sys.posix.unistd;
+    import core.stdc.errno;
 
     extern (C)
     {
@@ -1229,13 +1230,19 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         OutBuffer buffer;
         ubyte[1024] tmp = void;
         ptrdiff_t nread;
-        while ((nread = read(pipefd[0], tmp.ptr, tmp.length)) > 0)
-            buffer.write(tmp[0 .. nread]);
-
-        if (nread == -1)
+        for(;;)
         {
-            perror("read");
-            return STATUS_FAILED;
+            while ((nread = read(pipefd[0], tmp.ptr, tmp.length)) > 0)
+                buffer.write(tmp[0 .. nread]);
+
+            if (nread == -1)
+            {
+                if(errno == EINTR) continue;
+
+                perror("read");
+                return STATUS_FAILED;
+            }
+            break;
         }
 
         int status;
