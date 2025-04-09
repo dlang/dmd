@@ -35,6 +35,7 @@ import dmd.backend.type;
 import dmd.backend.mscoff;
 
 import dmd.common.outbuffer;
+import dmd.common.blake3;
 
 nothrow:
 @safe:
@@ -649,8 +650,23 @@ void MsCoffObj_term(const(char)[] objfilename)
     BIGOBJ_HEADER header = void;
     IMAGE_FILE_HEADER header_old = void;
 
-    time_t f_timedat = 0;
-    time(&f_timedat);
+    // Use a hash of segment content instead of current timestamp for reproducible builds
+    ubyte[] hashInput;
+    for (segidx_t seg = 1; seg < SegData.length; seg++)
+    {
+        seg_data* pseg = SegData[seg];
+        if (pseg.SDbuf && pseg.SDbuf.length())
+        {
+            // Sample a few bytes from each segment
+            size_t bytesToAdd = pseg.SDbuf.length() >= 16 ? 16 : pseg.SDbuf.length();
+            hashInput.length += bytesToAdd;
+            memcpy(&hashInput[hashInput.length - bytesToAdd], pseg.SDbuf.buf, bytesToAdd);
+        }
+    }
+
+    // Blake3 hash the input and use first 4 bytes for timestamp field
+    ubyte[32] hashValue = blake3(hashInput);
+    uint deterministicTimestamp = *cast(uint*)&hashValue[0];
     uint symtable_offset;
 
     if (bigobj)
@@ -660,7 +676,7 @@ void MsCoffObj_term(const(char)[] objfilename)
         header.Version = 2;
         header.Machine = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
         header.NumberOfSections = scnhdr_cnt;
-        header.TimeDateStamp = cast(uint)f_timedat;
+        header.TimeDateStamp = deterministicTimestamp;
         static immutable ubyte[16] uuid =
                                   [ '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
                                     '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' ];
@@ -677,7 +693,7 @@ void MsCoffObj_term(const(char)[] objfilename)
     {
         header_old.Machine = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
         header_old.NumberOfSections = cast(ushort)scnhdr_cnt;
-        header_old.TimeDateStamp = cast(uint)f_timedat;
+        header_old.TimeDateStamp = deterministicTimestamp;
         header_old.SizeOfOptionalHeader = 0;
         header_old.Characteristics = 0;
         foffset = (header_old).sizeof;   // start after header
