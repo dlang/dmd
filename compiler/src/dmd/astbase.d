@@ -4954,6 +4954,8 @@ struct ASTBase
 
         /// If the string is parsed from a hex string literal
         bool hexString = false;
+        /// If the string is from a collected C macro
+        bool cMacro = false;
 
         extern (D) this(Loc loc, const(void)[] string)
         {
@@ -4963,13 +4965,14 @@ struct ASTBase
             this.sz = 1;                    // work around LDC bug #1286
         }
 
-        extern (D) this(Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = 0)
+        extern (D) this(Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = 0, bool cMacro=false)
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string;
             this.len = len;
             this.postfix = postfix;
             this.sz = 1;                    // work around LDC bug #1286
+            this.cMacro = cMacro;
         }
 
         /**********************************************

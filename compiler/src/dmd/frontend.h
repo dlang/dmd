@@ -3608,6 +3608,7 @@ public:
     uint8_t sz;
     bool committed;
     bool hexString;
+    bool cMacro;
     enum : char { NoPostfix = 0u };
 
     static StringExp* create(Loc loc, const char* s);
@@ -5548,7 +5549,7 @@ private:
         char realexp[48LLU];
         char complexexp[64LLU];
         char symoffexp[56LLU];
-        char stringexp[43LLU];
+        char stringexp[44LLU];
         char arrayliteralexp[40LLU];
         char assocarrayliteralexp[48LLU];
         char structliteralexp[64LLU];
