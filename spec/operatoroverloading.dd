@@ -411,7 +411,7 @@ $(OL
     ---
     .object.opEquals(a, b)
     ---
-        $(P and that function is implemented as:)
+        $(P and that function is similar to:)
     ---
     bool opEquals(Object a, Object b)
     {
@@ -464,6 +464,8 @@ $(OL
         bool opEquals()(auto ref const S s) const { ... }
     }
     ---
+        $(NOTE See $(DDSUBLINK spec/expression, struct_equality, Struct Equality)
+        for best practices on implementing `opEquals` for structs.)
 
 
 $(H3 $(LNAME2 compare, Overloading $(D <), $(D <)$(D =), $(D >), and $(D >)$(D =)))

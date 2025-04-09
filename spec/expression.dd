@@ -662,6 +662,23 @@ $(GNAME EqualExpression):
 
     $(H4 $(LNAME2 class_struct_equality, Class & Struct Equality))
 
+    $(P For class references, `a == b` is rewritten to `.object.opEquals(a, b)`,
+        which handles `null`.
+        This is intended to compare the contents of two objects, however an
+        appropriate $(D opEquals) method override must be defined for this to work.
+        The default $(D opEquals) provided by the root $(D Object) class is
+        equivalent to the $(RELATIVE_LINK2 identity_expressions, $(D is) operator).)
+
+    $(P For struct objects, the expression $(D (a == b))
+        is rewritten as $(D a.opEquals(b)), or failing that, $(D b.opEquals(a)).)
+
+    $(P For both class references and struct objects, $(D (a != b)) is rewritten as
+        $(D !(a == b)).)
+
+    $(P See $(DDSUBLINK spec/operatoroverloading, equals, `opEquals`) for details.)
+
+    $(H5 $(LNAME2 struct_equality, Struct Equality))
+
     $(P For struct objects, equality means the result of the
         $(LINK2 https://dlang.org/spec/operatoroverloading.html#equals, `opEquals()` member function).
         If an `opEquals()` is not provided, equality is defined as
@@ -669,10 +686,13 @@ $(GNAME EqualExpression):
         results of the corresponding object fields.
     )
 
-        $(IMPLEMENTATION_DEFINED The contents of any alignment gaps in the struct object.)
+        $(IMPLEMENTATION_DEFINED The contents of any $(DDSUBLINK spec/struct, struct_layout,
+        alignment gaps) in the struct object.)
 
-        $(BEST_PRACTICE If there are overlapping fields, which happens with unions, the default
-        equality will compare each of the overlapping fields.
+        $(P If there are overlapping fields, which happens with unions, the default
+        equality will compare each of the overlapping fields.)
+
+        $(BEST_PRACTICE
         An `opEquals()` can account for which of the overlapping fields contains valid data.
         An `opEquals()` can override the default behavior of floating point NaN values
         always comparing as unequal.
@@ -683,29 +703,6 @@ $(GNAME EqualExpression):
         $(LI any fields have an `opEquals()`)
         $(LI there are any floating point fields that may contain NaN or `-0` values)
         )
-
-    $(P For class and struct objects, the expression $(D (a == b))
-        is rewritten as
-        $(D a.opEquals(b)), and $(D (a != b)) is rewritten as
-        $(D !a.opEquals(b)).
-    )
-
-    $(P For class objects, the $(D ==) and $(D !=)
-        operators are intended to compare the contents of the objects,
-        however an appropriate $(D opEquals) override must be defined for this to work.
-        The default $(D opEquals) provided by the root $(D Object) class is
-        equivalent to the $(D is) operator (see below).
-        Comparing against $(D null) is invalid, as $(D null) has no contents.
-        Use the $(D is) and $(D !is) operators instead.)
-
-        ---
-        class C;
-        C c;
-        if (c == null)  // error
-            ...
-        if (c is null)  // ok
-            ...
-        ---
 
 $(H3 $(LNAME2 identity_expressions, Identity Expressions))
 
@@ -723,7 +720,7 @@ $(GNAME IdentityExpression):
     )
 
     $(P For class / interface objects, identity is defined as the object references being identical.
-        Null class objects can be compared with `is`.
+        Class references can be efficiently compared against `null` using `is`.
         Note that interface objects need not have the same reference of the class they were cast from.
         To test whether an `interface` shares a class instance with another `interface` / `class` value, cast both operands to `Object` before comparing with `is`.
     )
