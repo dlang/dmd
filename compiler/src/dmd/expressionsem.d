@@ -4116,16 +4116,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         /* Look for what user might have meant
          */
-        if (const n = importHint(exp.ident.toString()))
-            error(exp.loc, "`%s` is not defined, perhaps `import %.*s;` is needed?", exp.ident.toChars(), cast(int)n.length, n.ptr);
-        else if (auto s2 = sc.search_correct(exp.ident))
-            error(exp.loc, "undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toChars(), s2.kind(), s2.toChars());
-        else if (const p = Scope.search_correct_C(exp.ident))
-            error(exp.loc, "undefined identifier `%s`, did you mean `%s`?", exp.ident.toChars(), p);
-        else if (exp.ident == Id.dollar)
-            error(exp.loc, "undefined identifier `$`");
+        if (!(sc && sc.inCfile))
+        {
+            if (const n = importHint(exp.ident.toString()))
+                error(exp.loc, "`%s` is not defined, perhaps `import %.*s;` is needed?", exp.ident.toChars(), cast(int)n.length, n.ptr);
+            else if (auto s2 = sc.search_correct(exp.ident))
+                error(exp.loc, "undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toChars(), s2.kind(), s2.toChars());
+            else if (const p = Scope.search_correct_C(exp.ident))
+                error(exp.loc, "undefined identifier `%s`, did you mean `%s`?", exp.ident.toChars(), p);
+            else if (exp.ident == Id.dollar)
+                error(exp.loc, "undefined identifier `$`");
+            else
+                error(exp.loc, "undefined identifier `%s`", exp.ident.toChars());
+        }
         else
-            error(exp.loc, "undefined identifier `%s`", exp.ident.toChars());
+        {
+            if (const n = cIncludeHint(exp.ident.toString()))
+                error(exp.loc, "`%s` is not defined, perhaps `#include %.*s` is needed?", exp.ident.toChars(), cast(int)n.length, n.ptr);
+            else if (auto s2 = sc.search_correct(exp.ident))
+                error(exp.loc, "undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toChars(), s2.kind(), s2.toChars());
+            else
+                error(exp.loc, "undefined identifier `%s`", exp.ident.toChars());
+        }
 
         result = ErrorExp.get();
     }
