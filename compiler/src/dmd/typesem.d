@@ -169,17 +169,28 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
          */
         const p = mt.mutableOf().unSharedOf().toChars();
         auto id = Identifier.idPool(p[0 .. strlen(p)]);
-        if (const n = importHint(id.toString()))
-            error(loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
-        else if (auto s2 = sc.search_correct(id))
-            error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
-        else if (const q = Scope.search_correct_C(id))
-            error(loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
-        else if ((id == Id.This   && sc.getStructClassScope()) ||
-                 (id == Id._super && sc.getClassScope()))
-            error(loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", p, p);
-        else
-            error(loc, "undefined identifier `%s`", p);
+        if (!(sc && sc.inCfile))
+        {
+            if (const n = importHint(id.toString()))
+                error(loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
+            else if (auto s2 = sc.search_correct(id))
+                error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
+            else if (const q = Scope.search_correct_C(id))
+                error(loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
+            else if ((id == Id.This   && sc.getStructClassScope()) ||
+                     (id == Id._super && sc.getClassScope()))
+                error(loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", p, p);
+            else
+                error(loc, "undefined identifier `%s`", p);
+        }
+        else {
+            if (const n = cIncludeHint(id.toString()))
+                error(loc, "`%s` is not defined, perhaps `#include %.*s` ?", p, cast(int)n.length, n.ptr);
+            else if (auto s2 = sc.search_correct(id))
+                error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
+            else
+                error(loc, "undefined identifier `%s`", p);
+        }
 
         pt = Type.terror;
         return;
