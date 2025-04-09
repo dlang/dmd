@@ -619,25 +619,39 @@ $(GNAME EqualExpression):
 
     $(P Inequality is defined as the logical negation of equality.)
 
-    $(P If the operands are integral values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
+      - If the operands are integral values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
         to bring them to a common type before comparison. Equality is defined as the bit patterns
         of the common type match exactly.
-    )
 
-    $(P If the operands are pointers, equality is defined as the bit patterns of the operands
-        match exactly.
-    )
+      - If the operands are pointers, equality is defined as the bit patterns of the operands
+        match exactly. Both types must match, or one can be `typeof(null)`.
 
-    $(P For float, double, and real values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
+      - For float, double, and real values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
         to bring them to a common type before comparison.
         The values $(D -0) and $(D +0) are considered equal.
         If either or both operands are NaN, then $(D ==) returns false and $(D !=) returns $(D true).
         Otherwise, the bit patterns of the common type are compared for equality.
-    )
 
-    $(P For static and dynamic arrays, equality is defined as the
+      - For static and dynamic arrays, equality is defined as the
         lengths of the arrays
-        matching, and all the elements are equal.
+        matching, and the elements in each compare equal.
+        The element types must have a common type.
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    assert(5 == 5L);
+    assert(byte(4) == 4F);
+
+    int i = 1, j = 1;
+    assert(&i != &j);
+    assert(&i != null);
+
+    // elements of different types are comparable, even when different sizes
+    int[] ia = ['A', 'B', 'C'];
+    assert(ia == "ABC");
+    byte[] ba = [1, 2];
+    assert(ba == [1F, 2F]);
+    ---
     )
 
     $(DDOC_DEPRECATED For complex numbers, equality is defined as equivalent to:)
