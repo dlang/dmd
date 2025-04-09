@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -wi
+/* REQUIRED_ARGS: -wi -verrors=simple
 TEST_OUTPUT:
 ---
 compilable/pragmapack.c(101): Warning: current pack attribute is default
