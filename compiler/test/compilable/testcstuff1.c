@@ -329,6 +329,7 @@ void test4(int i)
     _Static_assert(sizeof 3 == 4, "ok");
     _Static_assert(sizeof(3) == 4, "ok");
     _Static_assert(_Alignof(int) == 4, "ok");
+    _Static_assert(_Alignof 3  == 4, "ok");
     _Static_assert((int)3 == 3, "ok");
     _Static_assert(sizeof p[0] == 4, "ok");
     _Static_assert(1 && 2, "ok");

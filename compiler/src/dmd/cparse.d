@@ -982,6 +982,7 @@ final class CParser(AST) : Parser!AST
      *    sizeof unary-expression
      *    sizeof ( type-name )
      *    _Alignof ( type-name )
+     *    _Alignof unary-expression // gcc extension
      *
      * unary-operator:
      *    & * + - ~ !
@@ -1044,8 +1045,10 @@ final class CParser(AST) : Parser!AST
             e = new AST.ComExp(loc, e);
             break;
 
+        case TOK._Alignof:
         case TOK.sizeof_:
         {
+            Identifier id = token.value == TOK.sizeof_? Id.__sizeof : Id.__xalignof;
             nextToken();
             if (token.value == TOK.leftParenthesis)
             {
@@ -1084,7 +1087,7 @@ final class CParser(AST) : Parser!AST
                 e = cparseUnaryExp();
             }
 
-            e = new AST.DotIdExp(loc, e, Id.__sizeof);
+            e = new AST.DotIdExp(loc, e, id);
             break;
         }
 
@@ -1095,17 +1098,6 @@ final class CParser(AST) : Parser!AST
             nextToken();
             e = cparseCastExp();
             break;
-
-        case TOK._Alignof:
-        {
-            nextToken();
-            check(TOK.leftParenthesis);
-            auto t = cparseTypeName();
-            check(TOK.rightParenthesis);
-            e = new AST.TypeExp(loc, t);
-            e = new AST.DotIdExp(loc, e, Id.__xalignof);
-            break;
-        }
 
         default:
             e = cparsePostfixExp(e);
@@ -5025,6 +5017,7 @@ final class CParser(AST) : Parser!AST
                     return false;
                 break;
 
+            case TOK._Alignof:
             case TOK.sizeof_:
                 t = peek(t);
                 if (t.value == TOK.leftParenthesis)
@@ -5039,15 +5032,6 @@ final class CParser(AST) : Parser!AST
                     }
                 }
                 if (!isUnaryExpression(t, afterParenType))
-                    return false;
-                break;
-
-            case TOK._Alignof:
-                t = peek(t);
-                if (t.value != TOK.leftParenthesis)
-                    return false;
-                t = peek(t);
-                if (!isTypeName(t) || t.value != TOK.rightParenthesis)
                     return false;
                 break;
 

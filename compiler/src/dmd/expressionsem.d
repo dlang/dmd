@@ -8191,37 +8191,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.arrow) // ImportC only
                 exp.e1 = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
 
-            if (exp.ident == Id.__xalignof && exp.e1.isTypeExp())
-            {
-                // C11 6.5.3 says _Alignof only applies to types
-                Expression e;
-                Type t;
-                Dsymbol s;
-                dmd.typesem.resolve(exp.e1.type, exp.e1.loc, sc, e, t, s, true);
-                if (e)
-                {
-                    error(exp.e1.loc, "argument to `_Alignof` must be a type");
-                    return setError();
-                }
-                else if (t)
-                {
-                    // Note similarity to getProperty() implementation of __xalignof
-                    const explicitAlignment = t.alignment();
-                    const naturalAlignment = t.alignsize();
-                    const actualAlignment = (explicitAlignment.isDefault() ? naturalAlignment : explicitAlignment.get());
-                    result = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
-                }
-                else if (s)
-                {
-                    error(exp.e1.loc, "argument to `_Alignof` must be a type");
-                    return setError();
-                }
-                else
-                    assert(0);
-                return;
-            }
-
-            if (exp.ident != Id.__sizeof)
+            if (exp.ident != Id.__sizeof && exp.ident != Id.__xalignof)
             {
                 result = fieldLookup(exp.e1, sc, exp.ident, exp.arrow);
                 return;
