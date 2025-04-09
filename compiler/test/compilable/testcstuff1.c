@@ -398,8 +398,9 @@ void* tests3()
 
 int tests4()
 {
-    struct S { int b; } a, *p;
-    a.b = 3;
+    struct S { int b; } a, *p, b[1];
+    b->b = 3;
+    a.b = b->b;
     p = &a;
     return p->b;
 }

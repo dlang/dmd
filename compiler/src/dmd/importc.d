@@ -126,6 +126,12 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
     e = e.expressionSemantic(sc);
     if (e.isErrorExp())
         return e;
+    if (arrow)
+    {
+        e = arrayFuncConv(e, sc);
+        if (e.isErrorExp())
+            return e;
+    }
 
     auto t = e.type;
     if (t.isTypePointer())
