@@ -48,8 +48,6 @@ ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n) @t
         memcpy(cast(void*)newArray.ptr, cast(const void*)px.ptr, oldLen * T.sizeof);
     }
 
-    // Update px to refer to the new array.
-    px = newArray;
     return px;
 }
 
