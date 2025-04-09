@@ -9,47 +9,9 @@
 */
 module core.internal.array.appending;
 
-//------------------------------------------------------------------------
-// Local Unqual template to remove qualifiers from T.
-// This simple version strips const, immutable, shared, and inout.
-template Unqual(T)
-{
-    static if (is(T == const U, U))
-        alias Unqual = U;
-    else static if (is(T == immutable U, U))
-        alias Unqual = U;
-    else static if (is(T == shared U, U))
-        alias Unqual = U;
-    else static if (is(T == inout U, U))
-        alias Unqual = U;
-    else
-        alias Unqual = T;
-}
-//------------------------------------------------------------------------
 
 private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lhs = rhs; });
 
-/*---------------------------------------------------------------------
-
-We allocate an array for the unqualified type (using Unqual!T)
-and then cast the result back to T[]. Additionally, if T is a class or interface,
-we zero out the allocated memory so that any appended object references start as null.
----------------------------------------------------------------------*/
-private Unqual!(T)[] __arrayAlloc(T)(size_t n) @trusted
-{
-    import core.memory: GC;
-    import core.stdc.string : memset;
-    alias U = Unqual!(T);
-    if(n == 0)
-        return null;
-    void* mem = GC.malloc(n * U.sizeof);
-    static if(is(T == class) || is(T == interface))
-    {
-        // Zero-initialize the memory for class/interface types.
-        memset(mem, 0, n * U.sizeof);
-    }
-    return (cast(U*) mem)[0 .. n];
-}
 
 /**
  * Extend an array `px` by `n` elements.
@@ -70,12 +32,14 @@ ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n) @t
     version (DigitalMars) pragma(inline, false);
 
     import core.stdc.string : memcpy;
+    import core.internal.traits: Unqual;
+    import core.internal.array.utils: __arrayAlloc;
 
     size_t oldLen = px.length;
     size_t newLen = oldLen + n;
 
     // Allocate a new array for the unqualified type, then cast back to T[]
-    auto newArray = cast(T[])(__arrayAlloc!T(newLen));
+    auto newArray = cast(T[])(__arrayAlloc!(Unqual!T)(newLen));
 
     // Copy existing data, if any.
     if(oldLen > 0)
