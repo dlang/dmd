@@ -383,12 +383,14 @@ struct SourceLoc final
     uint32_t line;
     uint32_t column;
     uint32_t fileOffset;
+    _d_dynamicArray< const char > fileContent;
     const char* toChars(bool showColumns = Loc::showColumns, MessageStyle messageStyle = Loc::messageStyle) const;
     SourceLoc() :
         filename(),
         line(),
         column(),
-        fileOffset()
+        fileOffset(),
+        fileContent()
     {
     }
 };
