@@ -1226,6 +1226,7 @@ extern (C++) class Dsymbol : ASTNode
             return null;
         }
     }
+    inout(AlignDeclaration)            isAlignDeclaration()            inout { return dsym == DSYM.alignDeclaration ? cast(inout(AlignDeclaration)) cast(void*) this : null; }
     inout(AnonDeclaration)             isAnonDeclaration()             inout { return dsym == DSYM.anonDeclaration ? cast(inout(AnonDeclaration)) cast(void*) this : null; }
     inout(CPPNamespaceDeclaration)     isCPPNamespaceDeclaration()     inout { return dsym == DSYM.cppNamespaceDeclaration ? cast(inout(CPPNamespaceDeclaration)) cast(void*) this : null; }
     inout(VisibilityDeclaration)       isVisibilityDeclaration()       inout { return dsym == DSYM.visibilityDeclaration ? cast(inout(VisibilityDeclaration)) cast(void*) this : null; }

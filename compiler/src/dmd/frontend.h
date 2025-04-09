@@ -96,6 +96,7 @@ class Import;
 class EnumDeclaration;
 class SymbolDeclaration;
 class AttribDeclaration;
+class AlignDeclaration;
 class AnonDeclaration;
 class VisibilityDeclaration;
 class OverloadSet;
@@ -674,6 +675,7 @@ public:
     EnumDeclaration* isEnumDeclaration();
     SymbolDeclaration* isSymbolDeclaration();
     AttribDeclaration* isAttribDeclaration();
+    AlignDeclaration* isAlignDeclaration();
     AnonDeclaration* isAnonDeclaration();
     CPPNamespaceDeclaration* isCPPNamespaceDeclaration();
     VisibilityDeclaration* isVisibilityDeclaration();
