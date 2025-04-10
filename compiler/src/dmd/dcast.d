@@ -174,7 +174,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                         errorSupplemental(e.loc, "Note: Converting const to mutable requires an explicit cast (`cast(int*)`).");
                         return ErrorExp.get();
                     }
-                    // Incompatible pointee types (e.g., int* -> float*)
+                    // Incompatible pointee types (e.g., int* -> float* )
                     else if (fromPointee.toBasetype().ty != toPointee.toBasetype().ty)
                     {
                         error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toChars(), t.toChars());
