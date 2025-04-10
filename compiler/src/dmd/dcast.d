@@ -170,26 +170,19 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                     // Const -> mutable conversion (disallowed)
                     if (fromPointee.isConst() && !toPointee.isConst())
                     {
-                        error(e.loc, "cannot implicitly convert `%s` to `%s`", 
-                            e.type.toChars(), t.toChars());
-                        errorSupplemental(e.loc, 
-                            "Note: Converting const to mutable requires an explicit cast (`cast(int*)`).");
+                        error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toChars(), t.toChars());
+                        errorSupplemental(e.loc, "Note: Converting const to mutable requires an explicit cast (`cast(int*)`).");
                         return ErrorExp.get();
                     }
-                    
                     // Incompatible pointee types (e.g., int* -> float*)
                     else if (fromPointee.toBasetype().ty != toPointee.toBasetype().ty)
                     {
-                        error(e.loc, "cannot implicitly convert `%s` to `%s`", 
-                            e.type.toChars(), t.toChars());
-                        errorSupplemental(e.loc, 
-                            "Note: Pointer types point to different base types (`%s` vs `%s`)",
-                            fromPointee.toChars(), toPointee.toChars());
+                        error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toChars(), t.toChars());
+                        errorSupplemental(e.loc, "Note: Pointer types point to different base types (`%s` vs `%s`)", fromPointee.toChars(), toPointee.toChars());
                         return ErrorExp.get();
                     }
                 }
-                error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`",
-                    e.toErrMsg(), ts[0], ts[1]);
+                error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`", e.toErrMsg(), ts[0], ts[1]);
             }
         }
         return ErrorExp.get();
