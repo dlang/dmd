@@ -2204,6 +2204,12 @@ public:
         return e;
     }
 
+    override void visit(InferenceExp e)
+    {
+        result = e;
+        return ;
+    }
+
     override void visit(VarExp e)
     {
         debug (LOG)
@@ -7067,6 +7073,8 @@ private Expression copyRegionExp(Expression e)
         case EXP.null_:
         case EXP.void_:
         case EXP.symbolOffset:
+        //case EXP.char_:
+        case EXP.inference:
             break;
 
         case EXP.cantExpression:

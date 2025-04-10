@@ -728,6 +728,8 @@ extern (C++) abstract class Expression : ASTNode
         inout(ClassReferenceExp) isClassReferenceExp() { return op == EXP.classReference ? cast(typeof(return))this : null; }
         inout(ThrownExceptionExp) isThrownExceptionExp() { return op == EXP.thrownException ? cast(typeof(return))this : null; }
 
+        inout(InferenceExp) isInferenceExp() { return op == EXP.inference ? cast(typeof(return)) this : null; }
+
         inout(UnaExp) isUnaExp() pure inout nothrow @nogc
         {
             return exptab[op] & EXPFLAGS.unary ? cast(typeof(return))this : null;
@@ -3112,6 +3114,22 @@ extern (C++) final class DotIdExp : UnaExp
     static DotIdExp create(Loc loc, Expression e, Identifier ident) @safe
     {
         return new DotIdExp(loc, e, ident);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+extern (C++) final class InferenceExp : Expression
+{
+    Identifier id;
+
+    extern (D) this(const ref Loc loc, Identifier id)
+    {
+        super(loc, EXP.inference);
+        this.id = id;
     }
 
     override void accept(Visitor v)

@@ -8100,9 +8100,28 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break;
             }
         case TOK.dollar:
-            if (!inBrackets)
-                error("`$` is valid only inside [] of index or slice");
-            e = new AST.DollarExp(loc);
+            if (peekNext() == TOK.identifier)
+            {
+                nextToken();
+                id = token.ident;
+                e = new AST.InferenceExp(loc, id);
+            }
+            else
+            {
+                if (!inBrackets)
+                    error("`$` is valid only inside [] of index or slice");
+                e = new AST.DollarExp(loc);
+            }
+            nextToken();
+            break;
+
+        case TOK.colon:
+            if (peekNext() == TOK.identifier)
+            {
+                nextToken();
+                id = token.ident;
+                e = new AST.InferenceExp(loc, id);
+            }
             nextToken();
             break;
 
@@ -9721,6 +9740,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.delegateFunctionPointer : PREC.primary,
     EXP.remove : PREC.primary,
     EXP.tuple : PREC.primary,
+    EXP.inference : PREC.primary,
     EXP.traits : PREC.primary,
     EXP.overloadSet : PREC.primary,
     EXP.void_ : PREC.primary,
