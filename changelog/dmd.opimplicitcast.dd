@@ -9,11 +9,13 @@ void main()
 {
     SomethingSuperBig something = _.A;
 
-    switch (something)
+    if (something == _.B)
     {
-        case _.A: printf("a\n"); break;
-        case _.B: printf("b\n"); break;
-        default: break;
+        printf("b\n");
+    }
+    else if (something == _.A)
+    {
+        printf("a\n");
     }
 }
 
