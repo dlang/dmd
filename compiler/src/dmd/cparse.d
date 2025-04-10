@@ -6193,7 +6193,7 @@ final class CParser(AST) : Parser!AST
                                 /* Declare manifest constant:
                                  *  enum id = "string";
                                  */
-                                AST.Expression e = new AST.StringExp(scanloc, str[0 .. len], len, 1, postfix);
+                                AST.Expression e = new AST.StringExp(scanloc, str[0 .. len], len, 1, postfix, true);
                                 auto v = new AST.VarDeclaration(scanloc, null, id, new AST.ExpInitializer(scanloc, e), STC.manifest);
                                 addSym(v);
                                 ++p;

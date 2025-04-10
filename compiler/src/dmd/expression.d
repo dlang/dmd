@@ -1406,6 +1406,8 @@ extern (C++) final class StringExp : Expression
 
     /// If the string is parsed from a hex string literal
     bool hexString = false;
+    /// If the string is from a collected C macro
+    bool cMacro = false;
 
     enum char NoPostfix = 0;
 
@@ -1417,13 +1419,14 @@ extern (C++) final class StringExp : Expression
         this.sz = 1;                    // work around LDC bug #1286
     }
 
-    extern (D) this(Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = NoPostfix) scope
+    extern (D) this(Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = NoPostfix, bool cMacro = false) scope
     {
         super(loc, EXP.string_);
         this.string = cast(char*)string.ptr; // note that this.string should be const
         this.len = len;
         this.sz = sz;
         this.postfix = postfix;
+        this.cMacro = cMacro;
     }
 
     static StringExp create(Loc loc, const(char)* s)
