@@ -6085,6 +6085,14 @@ final class CParser(AST) : Parser!AST
             }
         }
 
+        void nextLine()
+        {
+            // scan to end of line
+            while (*p)
+                ++p;
+            ++p; // advance to start of next line
+        }
+
         while (p < endp)
         {
             //printf("|%s|\n", p);
@@ -6096,6 +6104,13 @@ final class CParser(AST) : Parser!AST
                 if (token.value == TOK.identifier)
                 {
                     auto id = token.ident;
+                    // https://github.com/dlang/dmd/issues/20423
+                    // skip macros that could shadow special builtins
+                    if (id == Id.va_arg)
+                    {
+                        nextLine();
+                        continue;
+                    }
                     const params = *p == '(';
                     nextToken();
 
@@ -6341,10 +6356,7 @@ final class CParser(AST) : Parser!AST
                 if (token.value == TOK.identifier)
                     removeSym(token.ident);
             }
-            // scan to end of line
-            while (*p)
-                ++p;
-            ++p; // advance to start of next line
+            nextLine();
         }
 
         if (newSymbols.length)
