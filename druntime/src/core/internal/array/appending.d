@@ -71,7 +71,6 @@ private ref Tarr _d_arrayappendcTXImpure(Tarr : T[], T)(return ref scope Tarr px
         size_t newlength = length + n;
         auto newsize = newlength * sizeelem;
         auto size = length * sizeelem;
-        auto px_ptr_raw = cast(void*)px.ptr;
 
         if(!gc_expandArrayUsed(cast(void[])px[0 .. length], newsize, isshared))
         {
@@ -101,7 +100,7 @@ private ref Tarr _d_arrayappendcTXImpure(Tarr : T[], T)(return ref scope Tarr px
                 gc_shrinkArrayUsed((cast(void*)ptr)[0 .. newsize], newcap, isshared);
             }
 
-            memcpy(cast(void*)ptr, px_ptr_raw, size);
+            memcpy(cast(void*)ptr, cast(void*)px.ptr, size);
 
             // do potsblit processing.
             __doPostblit!T(ptr[0 .. length]);
