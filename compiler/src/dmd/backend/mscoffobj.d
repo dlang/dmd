@@ -35,7 +35,7 @@ import dmd.backend.type;
 import dmd.backend.mscoff;
 
 import dmd.common.outbuffer;
-import dmd.common.blake3;
+import dmd.root.hash;
 
 nothrow:
 @safe:
@@ -650,23 +650,28 @@ void MsCoffObj_term(const(char)[] objfilename)
     BIGOBJ_HEADER header = void;
     IMAGE_FILE_HEADER header_old = void;
 
-    // Use a hash of segment content instead of current timestamp for reproducible builds
-    ubyte[] hashInput;
-    for (segidx_t seg = 1; seg < SegData.length; seg++)
+    // Use a hash of the object content instead of current timestamp for reproducible builds
+    uint calcDeterministicTimestamp()
     {
-        seg_data* pseg = SegData[seg];
-        if (pseg.SDbuf && pseg.SDbuf.length())
+        uint hash = 0;
+
+        // Hash each segment
+        for (segidx_t seg = 1; seg < SegData.length; seg++)
         {
-            // Sample a few bytes from each segment
-            size_t bytesToAdd = pseg.SDbuf.length() >= 16 ? 16 : pseg.SDbuf.length();
-            hashInput.length += bytesToAdd;
-            memcpy(&hashInput[hashInput.length - bytesToAdd], pseg.SDbuf.buf, bytesToAdd);
+            seg_data* pseg = SegData[seg];
+            if (pseg.SDbuf && pseg.SDbuf.length())
+            {
+                uint segHash = calcHash(cast(const(ubyte)[])pseg.SDbuf.buf[0..pseg.SDbuf.length()]);
+
+                // Mix this segment's hash into the overall hash
+                hash = cast(uint)mixHash(hash, segHash);
+            }
         }
+
+        return hash;
     }
 
-    // Blake3 hash the input and use first 4 bytes for timestamp field
-    ubyte[32] hashValue = blake3(hashInput);
-    uint deterministicTimestamp = *cast(uint*)&hashValue[0];
+    uint deterministicTimestamp = calcDeterministicTimestamp();
     uint symtable_offset;
 
     if (bigobj)
