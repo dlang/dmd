@@ -253,6 +253,7 @@ Lp:
 void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdaddass(e=%p, pretregs = %s)\n",e,regm_str(pretregs));
+    //elem_print(e);
     OPER op = e.Eoper;
     regm_t retregs = 0;
     elem* e1 = e.E1;
@@ -376,6 +377,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         scodelem(cgstate,cdb,e.E2,retregs,0,true);   // get rvalue
         getlvalue(cdb,cs,e1,retregs);                // get lvalue
         reg_t reg1;
+        //printf("cs.reg: %s cs.base: %s cs.index: %s\n", regm_str(mask(cs.reg)), regm_str(mask(cs.base)), regm_str(mask(cs.index)));
         if (cs.reg != NOREG)
             reg1 = cs.reg;
         else
