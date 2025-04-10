@@ -2330,7 +2330,6 @@ enum class EXP : uint8_t
     loweredAssignExp = 127u,
     rvalue = 128u,
     inference = 129u,
-    loweredAssignExp = 130u,
 };
 
 typedef uint64_t dinteger_t;
