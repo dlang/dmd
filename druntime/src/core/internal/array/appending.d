@@ -67,8 +67,8 @@ private ref Tarr _d_arrayappendcTXImpure(Tarr : T[], T)(return ref scope Tarr px
         alias BlkAttr = GC.BlkAttr;
 
         enum sizeelem = T.sizeof;
-        size_t length = px.length;
-        size_t newlength = length + n;
+        auto length = px.length;
+        auto newlength = length + n;
         auto newsize = newlength * sizeelem;
         auto size = length * sizeelem;
 
