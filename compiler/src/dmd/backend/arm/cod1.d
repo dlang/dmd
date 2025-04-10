@@ -978,7 +978,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                  */
                 if (cgstate.regcon.params & pregm /*&& s.Spreg2 == NOREG && !(pregm & XMMREGS)*/)
                 {
-                    if (/*rm == RM.load &&*/ !cgstate.anyiasm)
+                    if (rm == RM.load && !cgstate.anyiasm)
                     {
                         auto voffset = e.Voffset;
                         if (sz <= REGSIZE)
