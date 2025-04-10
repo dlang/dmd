@@ -2534,7 +2534,9 @@ void main()
 ---
 )
 
-        $(P If a struct declaration defines an $(D opCmp) or $(D opEquals)
+        $(P If a struct declaration defines an
+        $(DDSUBLINK spec/operatoroverloading, compare, `opCmp`) or
+        $(DDSUBLINK spec/operatoroverloading, equals, `opEquals`)
         method, it will take precedence to that of the *AliasThis* member. Note
         that, unlike an $(D opCmp) method, an $(D opEquals) method is implicitly
         defined for a $(D struct) declaration if a user-defined one isn't provided.

@@ -686,6 +686,21 @@ $(GNAME EqualExpression):
         results of the corresponding object fields.
     )
 
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    struct S
+    {
+        int i = 4;
+        string s = "four";
+    }
+
+    S s;
+    assert(s == S());
+    s.s = "foul";
+    assert(s != S());
+    ---
+    )
+
         $(IMPLEMENTATION_DEFINED The contents of any $(DDSUBLINK spec/struct, struct_layout,
         alignment gaps) in the struct object.)
 
