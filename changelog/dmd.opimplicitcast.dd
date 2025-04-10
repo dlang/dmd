@@ -1,0 +1,37 @@
+Added support for `opImplicitCast`
+
+A new user-defined operator that enables implicit conversions between user-defined types.
+
+Here an example how it can be used to mimic Enum Type Inference.
+
+---
+void main()
+{
+    SomethingSuperBig something = _.A;
+
+    switch (something)
+    {
+        case _.A: printf("a\n"); break;
+        case _.B: printf("b\n"); break;
+        default: break;
+    }
+}
+
+struct Symbol(string name)
+{
+    T opImplicitCast(T)()
+    {
+        return __traits(getMember, T, name);
+    }
+
+    bool opEquals(T)(T t) const
+    {
+        return t == __traits(getMember, T, name);
+    }
+}
+
+struct _
+{
+    static ref enum opDispatch(string name) = Symbol!name.init;
+}
+---
