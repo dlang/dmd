@@ -828,12 +828,11 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
                 // Try implicit opCast
                 AggregateDeclaration ad = isAggregate(arg.type);
 
-                if (ad) {
+                if (ad && failMessage) {
                     Dsymbol fd2 = null;
                     fd2 = search_function(ad, Id.opImplicitCast);
 
                     if (fd2) {
-
                         auto tiargs = new Objects();
                         tiargs.push(p.type);
 
@@ -863,7 +862,7 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
                                 m = MATCH.convert;
                             }
                         }
-
+                        continue;
                     }
                 }
 
