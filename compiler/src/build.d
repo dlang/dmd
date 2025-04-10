@@ -263,7 +263,6 @@ alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule 
     .sources(sources.lexer)
     .deps([
         versionFile,
-        sysconfDirFile,
         common(suffix, extraFlags)
     ])
     .msg("(DC) LEXER" ~ suffix)
@@ -378,7 +377,7 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         ).array)
 );
 
-/// Returns: the rules that generate required string files: VERSION and SYSCONFDIR.imp
+/// Returns: the rule that generates string-import file `VERSION` (for the lexer)
 alias versionFile = makeRule!((builder, rule) {
     alias contents = memoize!(() {
         if (dmdRepo.buildPath(".git").exists)
@@ -420,6 +419,7 @@ alias versionFile = makeRule!((builder, rule) {
     .commandFunction(() => writeText(rule.target, contents));
 });
 
+/// Returns: the rule that generates string-import file `SYSCONFDIR.imp` (for the driver)
 alias sysconfDirFile = makeRule!((builder, rule) => builder
     .target(env["G"].buildPath("SYSCONFDIR.imp"))
     .condition(() => !rule.target.exists || rule.target.readText != env["SYSCONFDIR"])
@@ -469,7 +469,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
         .sources(dmdSources.chain(lexer.targets, backend.targets, common.targets).array)
         .target(env["DMD_PATH"] ~ targetSuffix)
         .msg("(DC) DMD" ~ targetSuffix)
-        .deps([lexer, backend, common])
+        .deps([sysconfDirFile, lexer, backend, common])
         .command([
             env["HOST_DMD_RUN"],
             "-of" ~ rule.target,
@@ -757,13 +757,15 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-unittest")
         .description("Build the C++ unittests")
         .msg("(DC) CXX-UNITTEST")
-        .deps([lexer(null, null), cxxFrontend])
+        .deps([sysconfDirFile, lexer(null, null), cxxFrontend])
         .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root ~ sources.common ~ env["D"].buildPath("cxxfrontend.d"))
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain", "-version=NoBackend"
             ].chain(
-                flags["DFLAGS"], exeRule.sources, exeRule.deps.map!(d => d.target)
+                flags["DFLAGS"], exeRule.sources,
+                // don't compile deps[0], the SYSCONFDIR.imp string-import file
+                exeRule.deps[1 .. $].map!(d => d.target)
             ).array)
     );
 
@@ -967,7 +969,7 @@ alias html = makeRule!((htmlBuilder, htmlRule) {
             .sources(sourceArray)
             .target(env["DOC_OUTPUT_DIR"].buildPath(d2html(source)[srcDir.length + 1..$]
                 .replace(dirSeparator, "_")))
-            .deps([dmdDefault, versionFile, sysconfDirFile])
+            .deps([dmdDefault])
             .command([
                 dmdDefault.deps[0].target,
                 "-o-",
