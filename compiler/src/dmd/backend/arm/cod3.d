@@ -1176,6 +1176,10 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
             r++;
         }
 
+        // loading a constant into the lower 32 bits zeros out the upper 32 bits
+        if ((value & 0xFFFF_FFFF_0000_0000) == 0)
+            flags &= ~64;
+
         uint sf = (flags & 64) != 0;
         uint opc = 2;               // MOVZ
         uint hw = 0;
@@ -1240,7 +1244,7 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
         {
             // Check for ORR one instruction solution
             uint N, immr, imms;
-            if (orr_solution(value2, N, immr, imms))
+            if (orr_solution(value2, N, immr, imms)) // TODO AArch64 not implemented yet
             {
                 // MOV Rd,#imm
                 // http://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_log_imm.html
@@ -1287,6 +1291,7 @@ done:
  */
 bool orr_solution(ulong value, out uint N, out uint immr, out uint imms)
 {
+    // TODO AArch64
     return false;
 }
 
@@ -1570,9 +1575,8 @@ void assignaddrc(code* c)
 
                 Rn = cast(reg_t)field(ins,9,5);
                 Rt = cast(reg_t)field(ins,4,0);
-                if (!cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FL.para))
+                if (Rn == 29 && !cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FL.para))
                 {   /* Convert to SP relative address instead of BP */
-                    assert(Rn == 29);                 // BP
                     offset += cgstate.EBPtoESP;       // add difference in offset
                     ins = setField(ins,9,5,31);       // set Rn to SP
                 }

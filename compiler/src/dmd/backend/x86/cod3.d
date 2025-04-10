@@ -1603,7 +1603,7 @@ private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t r
     if (cg.AArch64)
     {
         assert(sreg == NOREG);
-        if (val <= 0xFFF || val >= 0x1000 && val <= 0xFFF000)
+        if (val <= 0xFFF || val >= 0x1000 && val <= 0xFFF000 && ((val & 0xFFF) == 0))
         {
             ubyte sh = val >= 0x1000;
             uint imm12 = cast(uint)(sh ? val >> 12 : val);
