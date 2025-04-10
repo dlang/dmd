@@ -138,6 +138,30 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
 
         if (t.ty != Terror && e.type.ty != Terror)
         {
+
+            // printf("------\n");
+            // printf("MOJO %s %s \n", e.type.toPrettyChars(true), t.toPrettyChars(true));
+
+            import dmd.id : Id;
+            AggregateDeclaration ad = isAggregate(e.type);
+
+            if (ad) {
+                Dsymbol fd = null;
+                fd = search_function(ad, Id.opImplicitCast);
+
+                if (fd) {
+                    auto tiargs = new Objects();
+                    tiargs.push(t);
+                    result = new DotTemplateInstanceExp(e.loc, e, fd.ident, tiargs);
+            result = new CallExp(e.loc, result);
+                    result = result.expressionSemantic(sc);
+                    return result;
+                }
+            }
+        }
+
+        if (t.ty != Terror && e.type.ty != Terror)
+        {
             if (!t.deco)
             {
                 error(e.loc, "forward reference to type `%s`", t.toChars());
