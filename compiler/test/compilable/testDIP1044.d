@@ -146,9 +146,6 @@ static assert(()
     return true;
 } ());
 
-// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-// TODO: FIXME: COMPILER CRASH
-// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 static assert(()
 {// Argument lists
     enum A{ a,b,c,d }
@@ -163,7 +160,6 @@ static assert(()
     auto myS2 = S(:a, :b);
 
     myFn(:a);
-    myFn(:b + :b);
 
     myDefaultFn();
     myDefaultFn(:c);

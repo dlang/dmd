@@ -10,6 +10,11 @@ fail_compilation/dip1044.d(122): Deprecation: `$c` has no effect
 fail_compilation/dip1044.d(137): Error: undefined identifier `SS`, did you mean struct `S`?
 fail_compilation/dip1044.d(142): Error: inference expression only support enums for now
 fail_compilation/dip1044.d(129):        while evaluating: `static assert((__error)())`
+fail_compilation/dip1044.d(158): Error: template `myTempFn` is not callable using argument types `!()(void)`
+fail_compilation/dip1044.d(156):        Candidate is: `myTempFn(T)(T param)`
+fail_compilation/dip1044.d(159): Error: template `myTempFn` is not callable using argument types `!()(void)`
+fail_compilation/dip1044.d(156):        Candidate is: `myTempFn(T)(T param)`
+fail_compilation/dip1044.d(148):        while evaluating: `static assert((__error)())`
 ---
 */
 
@@ -73,9 +78,6 @@ static assert(()
 } ());
 
 
-// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-// TODO: FIXME: COMPILER CRASH
-// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 static assert(()
 {// Argument lists
     enum A{ a,b,c,d }
