@@ -76,18 +76,18 @@ static assert(()
 // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // TODO: FIXME: COMPILER CRASH
 // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//static assert(()
-//{// Argument lists
-//    enum A{ a,b,c,d }
+static assert(()
+{// Argument lists
+    enum A{ a,b,c,d }
 
-//    struct S{ A one, two; }
+    struct S{ A one, two; }
 
-//    void myFn(A param){}
-//    void myDefaultFn(A param=:d){}
-//    void myTempFn(T)(T param){}
+    void myFn(A param){}
+    void myDefaultFn(A param=:d){}
+    void myTempFn(T)(T param){}
 
-//    myTempFn(:a);       // error, can't infer a type to instantiate the template with from ":a"!
-//    myFn(myTempFn(:a)); // error, same as above
+    myTempFn(:a);       // error, can't infer a type to instantiate the template with from ":a"!
+    myFn(myTempFn(:a)); // error, same as above
 
-//    return true;
-//} ());
+    return true;
+} ());
