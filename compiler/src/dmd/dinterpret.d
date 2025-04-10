@@ -2207,7 +2207,6 @@ public:
     override void visit(InferenceExp e)
     {
         result = e;
-        return ;
     }
 
     override void visit(VarExp e)

@@ -1009,7 +1009,7 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
     Type targ = arg.type;
     Type tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
 
-   if (InferenceExp ie = arg.isInferenceExp())
+    if (InferenceExp ie = arg.isInferenceExp())
     {
         // asm {int 3;}
         TypeEnum tEnum = p.type.isTypeEnum();

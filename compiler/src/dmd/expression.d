@@ -5357,4 +5357,5 @@ private immutable ubyte[EXP.max+1] expSize = [
     EXP._Generic: __traits(classInstanceSize, GenericExp),
     EXP.interval: __traits(classInstanceSize, IntervalExp),
     EXP.loweredAssignExp : __traits(classInstanceSize, LoweredAssignExp),
+    EXP.inference : __traits(classInstanceSize, InferenceExp),
 ];
