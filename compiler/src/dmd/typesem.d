@@ -854,17 +854,8 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
 
                         }
 
-                        // printf("1\n");
-                        // if (opCastExp.trySemantic(sc)) {
-                        //     opCastExp = opCastExp.expressionSemantic(sc);
-                        // }
-
-                        //printf("2\n");
-
                         if (opCastExp) {
                             auto cast_m = argumentMatchParameter(fd, tf, p, opCastExp, wildmatch, flag, sc, pMessage);
-                            //printf("3\n");
-
                             if (cast_m == MATCH.exact) {
                                 //printf("MOJO: Exact match on implicit cast.\n");
                                 //printf("MOJO: %s\n", opCastExp.toChars());
