@@ -159,7 +159,7 @@ void[] __arrayAlloc(T)(size_t arrSize) @trusted
 
 uint __typeAttrs(T)(void *copyAttrsFrom = null)
 {
-    import core.internal.traits : hasElaborateDestructor, hasIndirections;
+    import core.internal.traits : hasIndirections;
     import core.memory : GC;
 
     alias BlkAttr = GC.BlkAttr;
