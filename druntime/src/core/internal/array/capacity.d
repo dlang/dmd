@@ -12,6 +12,7 @@ module core.internal.array.capacity;
 // HACK: `nothrow` and `pure` is faked.
 private extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
 private extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
+private extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
 
 /*
  * This template is needed because there need to be a `_d_arraysetlengthTTrace!Tarr` instance for every
@@ -85,4 +86,82 @@ template _d_arraysetlengthTImpl(Tarr : T[], T)
     assert(arr2.length == 16);
     foreach (s; arr2)
         assert(s == S.init);
+}
+
+/**
+*this template provides a type-safe way to shrink the capacity of an array to match its length.
+*it is meant to replace the runtime hook _d_arrayshrinkfit.
+*right now this Implementation for _d_arrayshrinkfitT function template only forwards to the original implementation.
+*/
+/**
+ * Shrink the "allocated" length of an array to be the exact size of the array.
+ * It doesn't matter what the current allocated length of the array is, the
+ * user is telling the runtime that they know what they are doing.
+ *
+ * Params:
+ *     T = Element type of the array
+ *     arr = Array to shrink
+ */
+void _d_arrayshrinkfitT(T)(T[] arr) @trusted
+{
+    version (D_TypeInfo)
+    {
+        // Early return for null or empty arrays
+        if (arr.ptr is null || arr.length == 0)
+            return;
+        _d_arrayshrinkfit(typeid(T[]), cast(void[])arr);
+    }
+    else
+    {
+        assert(0, "Cannot shrink array if compiling without support for runtime type information!");
+    }
+}
+
+// Basic test for _d_arrayshrinkfitT
+@system unittest
+{
+    int[] a = new int[10];
+    a = a[0..5]; // Reduce length but keep capacity
+    auto initialPtr = a.ptr;
+    auto initialCapacity = a.capacity;
+    assert(initialCapacity > 5, "Test setup failed: array doesn't have extra capacity");
+    // Apply shrinkfit function
+    _d_arrayshrinkfitT(a);
+    // Verify the array still has the same contents and length
+    assert(a.length == 5, "Array length was changed");
+    a ~= 10;
+    assert(a.ptr == initialPtr, "Appending allocated new memory which indicates shrinkfit failed");
+}
+
+@system unittest
+{
+    int[] empty;
+    // This should not crash
+    _d_arrayshrinkfitT(empty);
+    assert(empty.length == 0, "Empty array length changed");
+}
+
+@system unittest
+{
+    static struct S
+    {
+        static int destructorCalls = 0;
+        int value;
+        ~this()
+        {
+            destructorCalls++;
+        }
+    }
+    // Create array with extra capacity
+    S[] arr = new S[10];
+    foreach (i; 0..10)
+        arr[i].value = i;
+    arr = arr[0..5];
+    // Reset destructor call counter
+    S.destructorCalls = 0;
+    _d_arrayshrinkfitT(arr);
+    assert(S.destructorCalls == 5, "Destructors were not called for removed elements");
+    assert(arr.length == 5, "Array length was changed");
+    for (int i = 0; i < 5; i++)
+        assert(arr[i].value == i, "Array elements were corrupted");
 }
