@@ -2614,6 +2614,7 @@ public:
 class ArrayLengthExp final : public UnaExp
 {
 public:
+    Expression lowering;
     void accept(Visitor* v) override;
 };
 
@@ -8953,7 +8954,6 @@ struct Id final
     static Identifier* CMain;
     static Identifier* rt_init;
     static Identifier* _d_HookTraceImpl;
-    static Identifier* _d_arraysetlengthTImpl;
     static Identifier* _d_arraysetlengthT;
     static Identifier* _d_arraysetlengthTTrace;
     static Identifier* _d_arrayappendT;

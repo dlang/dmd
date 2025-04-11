@@ -520,7 +520,7 @@ Tarr _d_newarraymTX(Tarr : U[], T, U)(scope size_t[] dims, bool isShared=false) 
 
         auto dim = dims[0];
 
-        debug(PRINTF) printf("__allocateInnerArray(UnqT = %s, dim = %lu, ndims = %lu\n", UnqT.stringof.ptr, dim, dims.length);
+        debug(PRINTF) printf("__allocateInnerArray(UnqT = %s, dim = %u, ndims = %u)\n", UnqT.stringof.ptr, cast(uint)dim, cast(uint)dims.length);
         if (dims.length == 1)
         {
             auto r = _d_newarrayT!UnqT(dim, isShared);
