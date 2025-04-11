@@ -388,7 +388,8 @@ $(H2 $(LNAME2 eqcmp, Overloading the Comparison Operators))
 
         $(P Therefore, it is the programmer's responsibility to ensure that
         `opCmp` and $(D opEquals) are consistent with each other. If
-        `opEquals` is not specified, the compiler provides a default version for structs
+        `opEquals` is not specified for a struct, the compiler provides a
+        $(DDSUBLINK spec/expression, struct_equality, default version) of it
         that does member-wise comparison. If this suffices, one may define only
         $(D opCmp) to customize the behaviour of the *RelExpression* operators.  But
         if not, then a custom version of $(D opEquals) should be defined as

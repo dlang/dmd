@@ -681,8 +681,8 @@ $(GNAME EqualExpression):
 
     $(P For struct objects, equality means the result of the
         $(LINK2 https://dlang.org/spec/operatoroverloading.html#equals, `opEquals()` member function).
-        If an `opEquals()` is not provided, equality is defined as
-        the logical product of all equality
+        If an `opEquals()` is not provided, one will be generated.
+        Equality is defined as the logical product of all equality
         results of the corresponding object fields.
     )
 
