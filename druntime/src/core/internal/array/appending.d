@@ -51,7 +51,7 @@ ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n) pu
 private ref Tarr _d_arrayappendcTXImpure(Tarr : T[], T)(return ref scope Tarr px, size_t n, bool isshared) @trusted
 {
     version (DigitalMars) pragma(inline, false);
-    version(D_TypeInfo)
+    version (D_TypeInfo)
     {
         // Short circuit if no data is being appended.
         if (n == 0)
@@ -125,7 +125,7 @@ version (D_ProfileGC)
     ref Tarr _d_arrayappendcTXTrace(Tarr : T[], T)(return ref scope Tarr px, size_t n,
         string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
     {
-        version(D_TypeInfo)
+        version (D_TypeInfo)
         {
             import core.internal.array.utils: TraceHook, gcStatsPure, accumulatePure;
             mixin(TraceHook!(Tarr.stringof, "_d_arrayappendcTX"));
