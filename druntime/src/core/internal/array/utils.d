@@ -176,7 +176,7 @@ uint __typeAttrs(T)(void *copyAttrsFrom = null)
     static if (!hasIndirections!T)
         attrs |= BlkAttr.NO_SCAN;
 
-    static if (hasElaborateDestructor!T)
+    static if (__traits(compiles, T().__xdtor))
         attrs |= BlkAttr.FINALIZE;
 
     return attrs;
