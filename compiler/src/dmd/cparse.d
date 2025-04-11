@@ -1775,7 +1775,7 @@ final class CParser(AST) : Parser!AST
             auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
                         (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
                                                   new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
-            if (!tt.packalign.isUnknown())
+            if (!tt.alignExps && !tt.packalign.isUnknown())
             {
                 // saw `struct __declspec(align(N)) Tag ...`
                 auto st = stag.isStructDeclaration();
@@ -1785,7 +1785,13 @@ final class CParser(AST) : Parser!AST
             tt.members = null;
             if (!symbols)
                 symbols = new AST.Dsymbols();
-            auto stags = applySpecifier(stag, specifier);
+            AST.Dsymbol stags = stag;
+            if (tt.alignExps)
+            {
+                auto decls = new AST.Dsymbols(1);
+                (*decls)[0] = stags;
+                stags = new AST.AlignDeclaration(stags.loc, tt.alignExps, decls);
+            }
             symbols.push(stags);
             return stags;
         }
@@ -2452,25 +2458,7 @@ final class CParser(AST) : Parser!AST
                     const sloc = token.loc;
                     nextToken();
 
-                    Specifier tagSpecifier;
-
-                    /* GNU Extensions
-                     * struct-or-union-specifier:
-                     *    struct-or-union gnu-attributes (opt) identifier (opt) { struct-declaration-list } gnu-attributes (opt)
-                     *    struct-or-union gnu-attribute (opt) identifier
-                     */
-                    while (1)
-                    {
-                        if (token.value == TOK.__attribute__)
-                            cparseGnuAttributes(tagSpecifier);
-                        else if (token.value == TOK.__declspec)
-                            cparseDeclspec(tagSpecifier);
-                        else if (token.value == TOK.__pragma)
-                            uupragmaDirective(sloc);
-                        else
-                            break;
-                    }
-                    t = cparseStruct(sloc, structOrUnion, tagSpecifier, symbols);
+                    t = cparseStruct(sloc, structOrUnion, symbols);
                     tkwx = TKW.xtag;
                     break;
                 }
@@ -3940,7 +3928,7 @@ final class CParser(AST) : Parser!AST
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
          */
-        return new AST.TypeTag(loc, TOK.enum_, tag, structalign_t.init, base, members);
+        return new AST.TypeTag(loc, TOK.enum_, tag, structalign_t.init, null, base, members);
     }
 
     /*************************************
@@ -3967,10 +3955,26 @@ final class CParser(AST) : Parser!AST
      * Returns:
      *  type of the struct
      */
-    private AST.Type cparseStruct(Loc loc, TOK structOrUnion, ref Specifier specifier, ref AST.Dsymbols* symbols)
+    private AST.Type cparseStruct(Loc loc, TOK structOrUnion, ref AST.Dsymbols* symbols)
     {
+        /* GNU Extensions
+         * struct-or-union-specifier:
+         *    struct-or-union gnu-attributes (opt) identifier (opt) { struct-declaration-list } gnu-attributes (opt)
+         *    struct-or-union gnu-attribute (opt) identifier
+         */
+        Specifier tagSpecifier;
+        while (1)
+        {
+            if (token.value == TOK.__attribute__)
+                cparseGnuAttributes(tagSpecifier);
+            else if (token.value == TOK.__declspec)
+                cparseDeclspec(tagSpecifier);
+            else if (token.value == TOK.__pragma)
+                uupragmaDirective(loc);
+            else
+                break;
+        }
         Identifier tag;
-        auto packalign = specifier.packalign;
 
         if (token.value == TOK.identifier)
         {
@@ -3985,7 +3989,7 @@ final class CParser(AST) : Parser!AST
             members = new AST.Dsymbols();          // so `members` will be non-null even with 0 members
             while (token.value != TOK.rightCurly)
             {
-                cparseStructDeclaration(members, packalign);
+                cparseStructDeclaration(members, tagSpecifier.packalign);
 
                 if (token.value == TOK.endOfFile)
                     break;
@@ -4003,13 +4007,10 @@ final class CParser(AST) : Parser!AST
             /* GNU Extensions
              * Parse the postfix gnu-attributes (opt)
              */
-            specifier.packalign = structalign_t();
             if (token.value == TOK.__attribute__)
-                cparseGnuAttributes(specifier);
-            if (!specifier.packalign.isUnknown)
+                cparseGnuAttributes(tagSpecifier);
+            if (!tagSpecifier.packalign.isUnknown)
             {
-                packalign.set(specifier.packalign.get());
-                packalign.setPack(specifier.packalign.isPack());
                 foreach (ref d; (*members)[])
                 {
                     // skip possible static assert declarations
@@ -4017,33 +4018,7 @@ final class CParser(AST) : Parser!AST
 
                     auto decls = new AST.Dsymbols(1);
                     (*decls)[0] = d;
-                    d = new AST.AlignDeclaration(d.loc, specifier.packalign, decls);
-                }
-            }
-            if (specifier.alignExps && specifier.alignExps.length)
-            {
-                // Align the entire struct by aligning the first member.
-                if (members)
-                {
-                    foreach (ref d; (*members)[])
-                    {
-                        // skip possible static assert declarations
-                        if (d.isStaticAssert()) continue;
-
-                        if (AST.AlignDeclaration ad = d.isAlignDeclaration())
-                        {
-                            foreach (exp; *specifier.alignExps)
-                                ad.exps.push(exp);
-                            break;
-                        }
-                        else
-                        {
-                            auto decls = new AST.Dsymbols(1);
-                            (*decls)[0] = d;
-                            d = new AST.AlignDeclaration(d.loc, specifier.alignExps, decls);
-                            break;
-                        }
-                    }
+                    d = new AST.AlignDeclaration(d.loc, tagSpecifier.packalign, decls);
                 }
             }
         }
@@ -4051,14 +4026,14 @@ final class CParser(AST) : Parser!AST
             error("missing tag `identifier` after `%s`", Token.toChars(structOrUnion));
 
         // many ways and places to declare alignment
-        if (packalign.isUnknown() && !this.packalign.isUnknown())
-            packalign.set(this.packalign.get());
+        if (tagSpecifier.packalign.isUnknown() && !this.packalign.isUnknown())
+            tagSpecifier.packalign.set(this.packalign.get());
 
         /* Need semantic information to determine if this is a declaration,
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
          */
-        return new AST.TypeTag(loc, structOrUnion, tag, packalign, null, members);
+        return new AST.TypeTag(loc, structOrUnion, tag, tagSpecifier.packalign, tagSpecifier.alignExps, null, members);
     }
 
     /*************************************

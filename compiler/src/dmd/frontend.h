@@ -4848,6 +4848,7 @@ public:
     Loc loc;
     TOK tok;
     structalign_t packalign;
+    Array<Expression* >* alignExps;
     Identifier* id;
     Type* base;
     Array<Dsymbol* >* members;
