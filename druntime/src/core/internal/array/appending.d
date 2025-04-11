@@ -80,7 +80,7 @@ private ref Tarr _d_arrayappendcTXImpure(Tarr : T[], T)(return ref scope Tarr px
 
             // use this static enum to avoid recomputing TypeInfo for every call.
             static enum ti = typeid(T);
-            auto ptr = cast(T*) GC.malloc(newcap, attrs, ti);
+            void* ptr = GC.malloc(newcap, attrs, ti);
             if(ptr is null)
             {
                 onOutOfMemoryError();
@@ -95,17 +95,17 @@ private ref Tarr _d_arrayappendcTXImpure(Tarr : T[], T)(return ref scope Tarr px
                 // TODO: should let the GC figure this out, as this property may
                 // not always hold.
                 if (!(attrs & BlkAttr.NO_SCAN) && newcap < PAGESIZE)
-                    memset(cast(void*)ptr + newsize, 0, newcap - newsize);
+                    memset(ptr + newsize, 0, newcap - newsize);
                 
-                gc_shrinkArrayUsed((cast(void*)ptr)[0 .. newsize], newcap, isshared);
+                gc_shrinkArrayUsed(ptr[0 .. newsize], newcap, isshared);
             }
 
-            memcpy(cast(void*)ptr, cast(void*)px.ptr, size);
+            memcpy(ptr, cast(void*)px.ptr, size);
 
             // do potsblit processing.
-            __doPostblit!T(ptr[0 .. length]);
+            __doPostblit!T((cast(T*)ptr)[0 .. length]);
 
-            px = cast(Tarr)(ptr[0 .. newlength]);
+            px = (cast(T*)ptr)[0 .. newlength];
             return px;
         }
 
