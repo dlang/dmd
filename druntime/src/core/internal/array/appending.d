@@ -9,38 +9,108 @@
 */
 module core.internal.array.appending;
 
-/// See $(REF _d_arrayappendcTX, rt,lifetime,_d_arrayappendcTX)
-private extern (C) byte[] _d_arrayappendcTX(const TypeInfo ti, ref return scope byte[] px, size_t n) @trusted pure nothrow;
+extern (C)
+{
+    bool gc_expandArrayUsed(void[] slice, size_t newUsed, bool atomic) nothrow;
+    bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) nothrow;
+}
 
 private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lhs = rhs; });
+
 
 /**
  * Extend an array `px` by `n` elements.
  * Caller must initialize those elements.
+ *
+ * This templated implementation avoids legacy runtime type information.
+ * It allocates a new array using the local allocation helper (__arrayAlloc),
+ * copies the old data using memcpy, and returns the new array.
+ *
  * Params:
  *  px = the array that will be extended, taken as a reference
  *  n = how many new elements to extend it with
  * Returns:
  *  The new value of `px`
- * Bugs:
- *  This function template was ported from a much older runtime hook that bypassed safety,
- *  purity, and throwabilty checks. To prevent breaking existing code, this function template
- *  is temporarily declared `@trusted pure` until the implementation can be brought up to modern D expectations.
  */
-ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n) @trusted
+ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n) pure nothrow @trusted
 {
-    // needed for CTFE: https://github.com/dlang/druntime/pull/3870#issuecomment-1178800718
+    import core.internal.traits: Unqual;
+
+    alias Unqual_T = Unqual!T;
+    alias Unqual_Tarr = Unqual_T[];
+    enum isshared = is(T == shared);
+
+    alias PureNothrowType = ref Unqual_Tarr function(return ref scope Unqual_Tarr, size_t, bool) pure nothrow @trusted;
+    auto pure_wrapper = cast(PureNothrowType) &_d_arrayappendcTXImpure!Unqual_Tarr;
+
+    auto unqual_px = cast(Unqual_Tarr) px;
+    px = cast(Tarr)pure_wrapper(unqual_px, n, isshared);
+    return px;
+}
+
+private ref Tarr _d_arrayappendcTXImpure(Tarr : T[], T)(return ref scope Tarr px, size_t n, bool isshared) @trusted
+{
     version (DigitalMars) pragma(inline, false);
     version (D_TypeInfo)
     {
-        auto ti = typeid(Tarr);
+        // Short circuit if no data is being appended.
+        if (n == 0)
+            return px;
 
-        // _d_arrayappendcTX takes the `px` as a ref byte[], but its length
-        // should still be the original length
-        auto pxx = (cast(byte*)px.ptr)[0 .. px.length];
-        ._d_arrayappendcTX(ti, pxx, n);
-        px = (cast(T*)pxx.ptr)[0 .. pxx.length];
+        import core.stdc.string : memcpy, memset;
+        import core.internal.lifetime : __doPostblit;
+        import core.internal.array.utils: __arrayAlloc, newCapacity, __typeAttrs;
+        import core.internal.gc.blockmeta : PAGESIZE;
+        import core.exception: onOutOfMemoryError;
+        import core.memory: GC;
 
+        alias BlkAttr = GC.BlkAttr;
+
+        enum sizeelem = T.sizeof;
+        auto length = px.length;
+        auto newlength = length + n;
+        auto newsize = newlength * sizeelem;
+        auto size = length * sizeelem;
+
+        if(!gc_expandArrayUsed((cast(void*)px.ptr)[0 .. size], newsize, isshared))
+        {
+            // could not set the size, we must reallocate.
+            auto newcap = newCapacity(newlength, sizeelem);
+            auto attrs = __typeAttrs!T(cast(void*)px.ptr) | BlkAttr.APPENDABLE;
+
+            // use this static enum to avoid recomputing TypeInfo for every call.
+            static enum ti = typeid(T);
+            void* ptr = GC.malloc(newcap, attrs, ti);
+            if(ptr is null)
+            {
+                onOutOfMemoryError();
+                assert(0);
+            }
+
+            if(newsize != newcap)
+            {
+                // For small blocks that are always fully scanned, if we allocated more
+                // capacity than was requested, we are responsible for zeroing that
+                // memory.
+                // TODO: should let the GC figure this out, as this property may
+                // not always hold.
+                if (!(attrs & BlkAttr.NO_SCAN) && newcap < PAGESIZE)
+                    memset(ptr + newsize, 0, newcap - newsize);
+                
+                gc_shrinkArrayUsed(ptr[0 .. newsize], newcap, isshared);
+            }
+
+            memcpy(ptr, cast(void*)px.ptr, size);
+
+            // do potsblit processing.
+            __doPostblit!T((cast(T*)ptr)[0 .. length]);
+
+            px = (cast(T*)ptr)[0 .. newlength];
+            return px;
+        }
+
+        // we were able to expand in place, just update the length
+        px = px.ptr[0 .. newlength];
         return px;
     }
     else
@@ -50,9 +120,10 @@ ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n) @t
 version (D_ProfileGC)
 {
     /**
-     * TraceGC wrapper around $(REF _d_arrayappendT, core,internal,array,appending).
+     * TraceGC wrapper around _d_arrayappendcTX.
      */
-    ref Tarr _d_arrayappendcTXTrace(Tarr : T[], T)(return ref scope Tarr px, size_t n, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
+    ref Tarr _d_arrayappendcTXTrace(Tarr : T[], T)(return ref scope Tarr px, size_t n,
+        string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
     {
         version (D_TypeInfo)
         {
@@ -65,7 +136,6 @@ version (D_ProfileGC)
             static assert(0, "Cannot append to array if compiling without support for runtime type information!");
     }
 }
-
 /// Implementation of `_d_arrayappendT`
 ref Tarr _d_arrayappendT(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y) @trusted
 {
