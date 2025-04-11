@@ -431,13 +431,30 @@ $(OL
 )
 
         $(P If overriding $(D Object.opEquals()) for classes, the class member
-        function signature should look like:)
+        function should take an `Object` parameter and dynamically check
+        that it is a compatible class, e.g.:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     class C
     {
-        override bool opEquals(Object o) { ... }
+        int i;
+
+        this(int i) { this.i = i; }
+
+        override bool opEquals(Object o)
+        {
+            if (auto c = cast(C) o)
+                return c.i == i;
+            else
+                assert(0, __FUNCTION__ ~ ": Cannot compare a " ~ typeid(o).toString);
+        }
     }
+
+    static assert(new C(2) == new C(2));
+    static assert(new C(2) != new C(3));
     ---
+    )
 
         $(P If structs declare an $(D opEquals) member function for the
         identity comparison, it could have several forms, such as:)
@@ -522,7 +539,10 @@ void main()
 }
 ---
         $(P If overriding $(D Object.opCmp()) for classes, the class member
-        function signature should look like:)
+        function should take an `Object` parameter and dynamically check
+        that it is a compatible class for the comparison (like when overriding
+        $(RELATIVE_LINK2 equals, `opEquals`)).)
+
 ---
 class C
 {
