@@ -72,7 +72,7 @@ private ref Tarr _d_arrayappendcTXImpure(Tarr : T[], T)(return ref scope Tarr px
         auto newsize = newlength * sizeelem;
         auto size = length * sizeelem;
 
-        if(!gc_expandArrayUsed(cast(void[])px[0 .. length], newsize, isshared))
+        if(!gc_expandArrayUsed((cast(void*)px.ptr)[0 .. size], newsize, isshared))
         {
             // could not set the size, we must reallocate.
             auto newcap = newCapacity(newlength, sizeelem);
