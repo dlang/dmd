@@ -442,7 +442,7 @@ private struct ErrorInfo
         this.kind = kind;
     }
 
-    const SourceLoc loc;              // location of error
+    const SourceLoc loc;        // location of error
     Classification headerColor; // color to set `header` output to
     const(char)* p1;            // additional message prefix
     const(char)* p2;            // additional message prefix
@@ -731,13 +731,9 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
         !loc.filename.startsWith(".d-mixin-") &&
         !global.params.mixinOut.doOutput)
     {
-        import dmd.root.filename : FileName;
-        if (auto text = cast(const(char[])) global.fileManager.getFileContents(FileName(loc.filename)))
-        {
-            tmp.reset();
-            printErrorLineContext(tmp, text, loc.fileOffset);
-            fputs(tmp.peekChars(), stderr);
-        }
+        tmp.reset();
+        printErrorLineContext(tmp, loc.fileContent, loc.fileOffset);
+        fputs(tmp.peekChars(), stderr);
     }
     old_loc = loc;
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
@@ -750,7 +746,7 @@ private void printErrorLineContext(ref OutBuffer buf, const(char)[] text, size_t
     import dmd.root.utf : utf_decodeChar;
 
     if (offset >= text.length)
-        return; // Out of bounds (can happen in pre-processed C files currently)
+        return; // Out of bounds (missing source content in SourceLoc)
 
     // Scan backwards for beginning of line
     size_t s = offset;
