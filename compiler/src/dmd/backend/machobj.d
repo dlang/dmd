@@ -642,9 +642,10 @@ void MachObj_term(const(char)[] objfilename)
     {
         mach_header_64 header;
 
+        const isARM64 = config.target_cpu == TARGET_AArch64;
         header.magic = MH_MAGIC_64;
-        header.cputype = CPU_TYPE_X86_64;
-        header.cpusubtype = CPU_SUBTYPE_I386_ALL;
+        header.cputype = isARM64 ? CPU_TYPE_ARM64 : CPU_TYPE_X86_64;
+        header.cpusubtype = isARM64 ? CPU_SUBTYPE_ARM64_ALL : CPU_SUBTYPE_I386_ALL;
         header.filetype = MH_OBJECT;
         header.ncmds = 4;
         header.sizeofcmds = cast(uint)(segment_command_64.sizeof +
