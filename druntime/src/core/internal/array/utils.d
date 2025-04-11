@@ -225,7 +225,7 @@ size_t newCapacity(size_t newlength, size_t elemsize)
 
 uint __typeAttrs(T)(void *copyAttrsFrom = null)
 {
-    import core.internal.traits : hasElaborateDestructor, hasIndirections;
+    import core.internal.traits : hasIndirections;
     import core.memory : GC;
 
     alias BlkAttr = GC.BlkAttr;
