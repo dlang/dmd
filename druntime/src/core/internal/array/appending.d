@@ -137,7 +137,7 @@ version (D_ProfileGC)
     }
 }
 /// Implementation of `_d_arrayappendT`
-ref Tarr _d_arrayappendT(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y) @trusted pure
+ref Tarr _d_arrayappendT(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y) @trusted
 {
     version (DigitalMars) pragma(inline, false);
 
