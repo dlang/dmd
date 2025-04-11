@@ -1375,7 +1375,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
 {
     enum log = false;
     if (log) printf("getoffset(e = %p, reg = %s)\n", e, regm_str(mask(reg)));
-    code cs = void;
+    code cs;
     cs.Iflags = 0;
     ubyte rex = 0;
     cs.Irex = rex;
@@ -1417,7 +1417,7 @@ static if (0)
                      *   LEA DI,s@TLSGD[RIP]
                      */
                     //assert(reg == DI);
-                    code css = void;
+                    code css;
                     css.Irex = REX | REX_W;
                     css.Iop = LEA;
                     css.Irm = modregrm(0,reg,5);
@@ -1436,7 +1436,7 @@ static if (0)
                      */
                     assert(reg == AX);
                     load_localgot(cdb);
-                    code css = void;
+                    code css;
                     css.Iflags = 0;
                     css.Iop = LEA;             // LEA
                     css.Irex = 0;
@@ -1466,7 +1466,7 @@ static if (0)
                 stack = 1;
             }
 
-            code css = void;
+            code css;
             css.Irex = rex;
             css.Iop = 0x8B;
             css.Irm = modregrm(0, 0, BPRM);

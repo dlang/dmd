@@ -3806,7 +3806,7 @@ void cload87(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     }
 
     tym_t ty = tybasic(e.Ety);
-    code cs = void;
+    code cs;
     uint mf;
     uint sz;
     ubyte ldop;

@@ -6546,7 +6546,7 @@ private void pinholeopt_unittest()
     for (int i = 0; i < tests.length; i++)
     {   CS* pin  = &tests[i][0];
         CS* pout = &tests[i][1];
-        code cs = void;
+        code cs;
         memset(&cs, 0, cs.sizeof);
         if (pin.model)
         {
