@@ -1052,143 +1052,10 @@ Linterfaces:
             }
         }
     }
-    if (foundVtblMatch)
-    {
-        goto L2;
-    }
 
-    if (!doesoverride && funcdecl.isOverride() && (funcdecl.type.nextOf() || !may_override))
-    {
-        // Give an overload error
-        BaseClass* bc = null;
-        Dsymbol s = null;
-        for (size_t i = 0; i < cd.baseclasses.length; i++)
-        {
-            bc = (*cd.baseclasses)[i];
-            s = bc.sym.search_correct(funcdecl.ident);
-            if (s)
-                break;
-        }
+    if (!foundVtblMatch && !doesoverride && funcdecl.isOverride() && (funcdecl.type.nextOf() || !may_override))
+        giveOverloadError(cd, funcdecl);
 
-        if (!s)
-        {
-            .error(funcdecl.loc, "%s `%s` does not override any function", funcdecl.kind, funcdecl.toPrettyChars);
-            goto L2;
-        }
-
-        HdrGenState hgs;
-        auto fd = s.isFuncDeclaration();
-        const(char)* funcdeclToChars = () {
-            OutBuffer buf;
-            functionToBufferFull(cast(TypeFunction)(funcdecl.type), buf,
-                new Identifier(funcdecl.toPrettyChars()), hgs, null);
-            buf.peekChars();
-        }();
-
-        if (!fd)
-        {
-            error(funcdecl.loc, "function `%s` does not override any function, did you mean to override %s `%s`?",
-                funcdeclToChars, s.kind, s.toPrettyChars());
-            errorSupplemental(funcdecl.loc, "Functions are the only declarations that may be overridden");
-            goto L2;
-        }
-
-        if (fd.ident == funcdecl.ident)
-            hgs.fullQual = true;
-
-        // https://issues.dlang.org/show_bug.cgi?id=23745
-        // If the potentially overridden function contains errors,
-        // inform the user to fix that one first
-        if (fd.errors)
-        {
-            error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
-                funcdecl.toChars(), fd.toPrettyChars());
-            errorSupplemental(fd.loc, "Function `%s` contains errors in its declaration, therefore it cannot be correctly overridden",
-                fd.toPrettyChars());
-        }
-        else if (fd.isFinalFunc())
-        {
-            // When trying to override a final method, don't suggest it as a candidate(Issue #19613)
-            .error(funcdecl.loc, "%s `%s` does not override any function", funcdecl.kind, funcdecl.toPrettyChars);
-
-            // Look for a non-final method with the same name to suggest as an alternative
-            auto overloadableSyms = fd.parent ? fd.parent.isClassDeclaration().symtab.lookup(fd.ident) : null;
-            if (!overloadableSyms)
-                goto L2;
-
-            Dsymbol nonFinalAlt = null;
-
-            // Check each overload to find one that's not final
-            overloadApply(overloadableSyms, (Dsymbol s)
-            {
-                if (auto funcAlt = s.isFuncDeclaration())
-                {
-                    if (funcAlt != fd && !funcAlt.isFinalFunc())
-                    {
-                        nonFinalAlt = funcAlt;
-                        return 1;
-                    }
-                }
-                return 0;
-            });
-
-            // Provide a helpful suggestion if we found a viable alternative
-            if (nonFinalAlt)
-            {
-                auto funcAlt = nonFinalAlt.isFuncDeclaration();
-                OutBuffer buf1;
-                functionToBufferFull(cast(TypeFunction)(funcAlt.type), buf1,
-                    new Identifier(funcAlt.toPrettyChars()), hgs, null);
-                errorSupplemental(funcdecl.loc, "Did you mean to override `%s`?", buf1.peekChars());
-            }
-            goto L2;
-        }
-
-        OutBuffer buf2;
-        functionToBufferFull(cast(TypeFunction)(fd.type), buf2,
-            new Identifier(fd.toPrettyChars()), hgs, null);
-
-        error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
-            funcdeclToChars, buf2.peekChars());
-
-        // Supplemental error for parameter scope differences
-        auto tf1 = cast(TypeFunction)funcdecl.type;
-        auto tf2 = cast(TypeFunction)fd.type;
-
-        if (!tf1 || !tf2)
-            goto L2;
-
-        auto params1 = tf1.parameterList;
-        auto params2 = tf2.parameterList;
-
-        if (params1.length != params2.length)
-            goto L2;
-
-        bool hasScopeDifference = false;
-
-        for (size_t i = 0; i < params1.length; i++)
-        {
-            auto p1 = params1[i];
-            auto p2 = params2[i];
-
-            if ((p1.storageClass & STC.scope_) == (p2.storageClass & STC.scope_))
-                continue;
-
-            if (!(p2.storageClass & STC.scope_))
-                continue;
-
-            if (!hasScopeDifference)
-            {
-                // Intended signature
-                errorSupplemental(funcdecl.loc, "Did you intend to override:");
-                errorSupplemental(funcdecl.loc, "`%s`", buf2.peekChars());
-                hasScopeDifference = true;
-            }
-            errorSupplemental(funcdecl.loc, "Parameter %d is missing `scope`", cast(int)(i + 1));
-        }
-    }
-
-L2:
     objc.setSelector(funcdecl, sc);
     objc.checkLinkage(funcdecl);
     objc.addToClassMethodList(funcdecl, cd);
@@ -1226,6 +1093,137 @@ L2:
                         funcdecl.toPrettyChars);
     }
     return 0;
+}
+
+private void giveOverloadError(ClassDeclaration cd, FuncDeclaration funcdecl)
+{
+    // Give an overload error
+    BaseClass* bc = null;
+    Dsymbol s = null;
+    for (size_t i = 0; i < cd.baseclasses.length; i++)
+    {
+        bc = (*cd.baseclasses)[i];
+        s = bc.sym.search_correct(funcdecl.ident);
+        if (s)
+            break;
+    }
+
+    if (!s)
+    {
+        .error(funcdecl.loc, "%s `%s` does not override any function", funcdecl.kind, funcdecl.toPrettyChars);
+        return;
+    }
+
+    HdrGenState hgs;
+    auto fd = s.isFuncDeclaration();
+    auto funcdeclToChars = () {
+        OutBuffer buf;
+        functionToBufferFull(cast(TypeFunction)(funcdecl.type), buf,
+            new Identifier(funcdecl.toPrettyChars()), hgs, null);
+        return buf.peekChars();
+    }();
+
+    if (!fd)
+    {
+        error(funcdecl.loc, "function `%s` does not override any function, did you mean to override %s `%s`?",
+            funcdeclToChars, s.kind, s.toPrettyChars());
+        errorSupplemental(funcdecl.loc, "Functions are the only declarations that may be overridden");
+        return;
+    }
+
+    if (fd.ident == funcdecl.ident)
+        hgs.fullQual = true;
+
+    // https://issues.dlang.org/show_bug.cgi?id=23745
+    // If the potentially overridden function contains errors,
+    // inform the user to fix that one first
+    if (fd.errors)
+    {
+        error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
+            funcdecl.toChars(), fd.toPrettyChars());
+        errorSupplemental(fd.loc, "Function `%s` contains errors in its declaration, therefore it cannot be correctly overridden",
+            fd.toPrettyChars());
+    }
+    else if (fd.isFinalFunc())
+    {
+        // When trying to override a final method, don't suggest it as a candidate(Issue #19613)
+        .error(funcdecl.loc, "%s `%s` does not override any function", funcdecl.kind, funcdecl.toPrettyChars);
+
+        // Look for a non-final method with the same name to suggest as an alternative
+        auto overloadableSyms = fd.parent ? fd.parent.isClassDeclaration().symtab.lookup(fd.ident) : null;
+        if (!overloadableSyms)
+            return;
+
+        Dsymbol nonFinalAlt = null;
+
+        // Check each overload to find one that's not final
+        overloadApply(overloadableSyms, (Dsymbol s)
+        {
+            if (auto funcAlt = s.isFuncDeclaration())
+            {
+                if (funcAlt != fd && !funcAlt.isFinalFunc())
+                {
+                    nonFinalAlt = funcAlt;
+                    return 1;
+                }
+            }
+            return 0;
+        });
+
+        // Provide a helpful suggestion if we found a viable alternative
+        if (nonFinalAlt)
+        {
+            auto funcAlt = nonFinalAlt.isFuncDeclaration();
+            OutBuffer buf1;
+            functionToBufferFull(cast(TypeFunction)(funcAlt.type), buf1,
+                new Identifier(funcAlt.toPrettyChars()), hgs, null);
+            errorSupplemental(funcdecl.loc, "Did you mean to override `%s`?", buf1.peekChars());
+        }
+        return;
+    }
+
+    OutBuffer buf2;
+    functionToBufferFull(cast(TypeFunction)(fd.type), buf2,
+        new Identifier(fd.toPrettyChars()), hgs, null);
+
+    error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
+        funcdeclToChars, buf2.peekChars());
+
+    // Supplemental error for parameter scope differences
+    auto tf1 = cast(TypeFunction)funcdecl.type;
+    auto tf2 = cast(TypeFunction)fd.type;
+
+    if (!tf1 || !tf2)
+        return;
+
+    auto params1 = tf1.parameterList;
+    auto params2 = tf2.parameterList;
+
+    if (params1.length != params2.length)
+        return;
+
+    bool hasScopeDifference = false;
+
+    for (size_t i = 0; i < params1.length; i++)
+    {
+        auto p1 = params1[i];
+        auto p2 = params2[i];
+
+        if ((p1.storageClass & STC.scope_) == (p2.storageClass & STC.scope_))
+            continue;
+
+        if (!(p2.storageClass & STC.scope_))
+            continue;
+
+        if (!hasScopeDifference)
+        {
+            // Intended signature
+            errorSupplemental(funcdecl.loc, "Did you intend to override:");
+            errorSupplemental(funcdecl.loc, "`%s`", buf2.peekChars());
+            hasScopeDifference = true;
+        }
+        errorSupplemental(funcdecl.loc, "Parameter %d is missing `scope`", cast(int)(i + 1));
+    }
 }
 
 private TypeFunction getFunctionType(FuncDeclaration fd)
