@@ -41,3 +41,37 @@ struct __attribute__((aligned(4))) D {
 __attribute__((aligned(8)));
 
 _Static_assert(_Alignof(struct D)==8, "D");
+//
+// Interaction of aligned() and packed
+//
+#include <stddef.h>
+ struct Spacked {
+     unsigned a;
+     unsigned long long b;
+ } __attribute__((aligned(4), packed));
+_Static_assert(_Alignof(struct Spacked) == 4, "Spacked");
+_Static_assert(_Alignof(struct Spacked) == 4, "Spacked");
+_Static_assert(offsetof(struct Spacked, a) == 0, "Spacked.a");
+_Static_assert(offsetof(struct Spacked, b) == sizeof(unsigned), "Spacked.b");
+_Static_assert(sizeof(struct Spacked) == sizeof(unsigned) + sizeof(unsigned long long), "sizeof(Spacked)");
+
+struct __attribute__((aligned(4))) Spacked2 {
+    unsigned a;
+    unsigned long long b;
+} __attribute__((packed));
+_Static_assert(_Alignof(struct Spacked2) == 4, "Spacked2");
+_Static_assert(offsetof(struct Spacked2, a) == 0, "Spacked2.a");
+_Static_assert(offsetof(struct Spacked2, b) == sizeof(unsigned), "Spacked2.b");
+_Static_assert(sizeof(struct Spacked2) == sizeof(unsigned) + sizeof(unsigned long long), "sizeof(Spacked2)");
+
+#pragma pack(push)
+#pragma pack(1)
+struct __attribute__((aligned(4))) Spacked3 {
+    unsigned a;
+    unsigned long long b;
+};
+#pragma pack(pop)
+_Static_assert(_Alignof(struct Spacked3) == 4, "Spacked3");
+_Static_assert(offsetof(struct Spacked3, a) == 0, "Spacked3.a");
+_Static_assert(offsetof(struct Spacked3, b) == sizeof(unsigned), "Spacked3.b");
+_Static_assert(sizeof(struct Spacked3) == sizeof(unsigned) + sizeof(unsigned long long), "sizeof(Spacked3)");

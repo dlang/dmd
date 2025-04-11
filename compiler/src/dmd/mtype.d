@@ -3761,6 +3761,7 @@ extern (C++) final class TypeTag : Type
     Loc loc;                /// location of declaration
     TOK tok;                /// TOK.struct_, TOK.union_, TOK.enum_
     structalign_t packalign; /// alignment of struct/union fields
+    Expressions* alignExps; /// alignment of struct itself
     Identifier id;          /// tag name identifier
     Type base;              /// base type for enums otherwise null
     Dsymbols* members;      /// members of struct, null if none
@@ -3770,7 +3771,7 @@ extern (C++) final class TypeTag : Type
                             ///   struct S { int a; } s1, *s2;
     MOD mod;                /// modifiers to apply after type is resolved (only MODFlags.const_ at the moment)
 
-    extern (D) this(Loc loc, TOK tok, Identifier id, structalign_t packalign, Type base, Dsymbols* members) @safe
+    extern (D) this(Loc loc, TOK tok, Identifier id, structalign_t packalign, Expressions* alignExps, Type base, Dsymbols* members) @safe
     {
         //printf("TypeTag ctor %s %p\n", id ? id.toChars() : "null".ptr, this);
         super(Ttag);
@@ -3778,6 +3779,7 @@ extern (C++) final class TypeTag : Type
         this.tok = tok;
         this.id = id;
         this.packalign = packalign;
+        this.alignExps = alignExps;
         this.base = base;
         this.members = members;
         this.mod = 0;
