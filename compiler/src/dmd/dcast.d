@@ -224,6 +224,11 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         return result;
     }
 
+    Expression visitInference(InferenceExp e)
+    {
+        return inferType(e, t);
+    }
+
     switch (e.op)
     {
         default              : return visit            (e);
@@ -232,6 +237,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         case EXP.function_   : return visitFunc        (e.isFuncExp());
         case EXP.arrayLiteral: return visitArrayLiteral(e.isArrayLiteralExp());
         case EXP.slice       : return visitSlice       (e.isSliceExp());
+        case EXP.inference   : return visitInference   (e.isInferenceExp());
     }
 }
 
@@ -3148,6 +3154,17 @@ Expression inferType(Expression e, Type t, int flag = 0)
 {
     Expression visitAle(ArrayLiteralExp ale)
     {
+        // treat inference exps if there are any.
+        for (size_t i = 0; i < ale.elements.length; i++)
+        {
+            Expression e = (*ale.elements)[i];
+            if (e && e.isInferenceExp())
+            {
+                e = inferType(e, t, flag);
+                (*ale.elements)[i] = e;
+            }
+        }
+
         Type tb = t.toBasetype();
         if (tb.isStaticOrDynamicArray())
         {
@@ -3164,6 +3181,39 @@ Expression inferType(Expression e, Type t, int flag = 0)
             }
         }
         return ale;
+    }
+
+    Expression visitInfer(InferenceExp infe)
+    {
+        TypeEnum et = t.isTypeEnum();
+
+        if (!et)
+        {
+            error(infe.loc, "inference expression only support enums for now");
+            return ErrorExp.get();
+        }
+
+        auto member = et.sym.symtab.lookup(infe.id);
+
+        if (!member || !member.isEnumMember)
+        {
+            uint gag;
+            if (flag)
+            {
+                gag = global.startGagging();
+            }
+            error(infe.loc, "Could not find %s in %s", infe.id.toChars(), infe.type.toPrettyChars());
+            scope(exit)
+            {
+                global.endGagging(gag);
+            }
+            return ErrorExp.get();
+        }
+
+        (*cast(Expression*)&infe) = member.isEnumMember.value();
+        infe.type = t;
+
+        return infe;
     }
 
     Expression visitAar(AssocArrayLiteralExp aale)
@@ -3211,12 +3261,26 @@ Expression inferType(Expression e, Type t, int flag = 0)
         return ce;
     }
 
+    Expression visitBin(BinExp be)
+    {
+        if (!be) return e;
+        // the range we are dispatching on has things in it
+        // which are not binary exps
+        // so we need to early exit on null
+        Type tb = t.ty == TY.Tenum ? t : t.toBasetype();
+        be.e1 = inferType(be.e1, tb, flag);
+        be.e2 = inferType(be.e2, tb, flag);
+        return be;
+    }
+
     if (t) switch (e.op)
     {
         case EXP.arrayLiteral:      return visitAle(e.isArrayLiteralExp());
         case EXP.assocArrayLiteral: return visitAar(e.isAssocArrayLiteralExp());
         case EXP.function_:         return visitFun(e.isFuncExp());
         case EXP.question:          return visitTer(e.isCondExp());
+        case EXP.inference:                    return visitInfer(e.isInferenceExp());
+        case EXP.lessThan: .. case EXP.assign: return visitBin(e.isBinExp());
         default:
     }
     return e;
