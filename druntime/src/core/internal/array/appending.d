@@ -21,11 +21,6 @@ private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lh
 /**
  * Extend an array `px` by `n` elements.
  * Caller must initialize those elements.
- *
- * This templated implementation avoids legacy runtime type information.
- * It allocates a new array using the local allocation helper (__arrayAlloc),
- * copies the old data using memcpy, and returns the new array.
- *
  * Params:
  *  px = the array that will be extended, taken as a reference
  *  n = how many new elements to extend it with
