@@ -2909,13 +2909,13 @@ alias AssociativeArray(Key, Value) = Value[Key];
  */
 void clear(Value, Key)(Value[Key] aa) @trusted
 {
-    _aaClear(_toAA(aa));
+    _aaClear(aa);
 }
 
 /** ditto */
 void clear(Value, Key)(Value[Key]* aa) @trusted
 {
-    _aaClear(_toAA(*aa));
+    (*aa).clear();
 }
 
 ///
@@ -2955,31 +2955,27 @@ void clear(Value, Key)(Value[Key]* aa) @trusted
  * Note:
  *  emulated by the compiler during CTFE
  */
-T rehash(T : Value[Key], Value, Key)(T aa)
+Value[Key] rehash(Value, Key)(Value[Key] aa)
 {
-    _aaRehash(_toAA(aa));
-    return aa;
+    return _aaRehash(aa);
 }
 
 /** ditto */
-T rehash(T : Value[Key], Value, Key)(T* aa)
+Value[Key] rehash(T : Value[Key], Value, Key)(T* aa)
 {
-    _aaRehash(_toAA(*aa));
-    return *aa;
+    return (*aa).rehash(); // CTFE only intercepts the non-pointer overload
 }
 
 /** ditto */
-T rehash(T : shared Value[Key], Value, Key)(T aa)
+Value[Key] rehash(T : shared Value[Key], Value, Key)(auto ref T aa)
 {
-    _aaRehash(_toAA(*cast(Value[Key]*)&aa));
-    return aa;
+    return (cast(Value[Key])aa).rehash();  // CTFE only intercepts the V[K] overload
 }
 
 /** ditto */
-T rehash(T : shared Value[Key], Value, Key)(T* aa)
+Value[Key] rehash(T : shared Value[Key], Value, Key)(T* aa)
 {
-    _aaRehash(_toAA(*cast(Value[Key]*)aa));
-    return *aa;
+    return (cast(Value[Key])*aa).rehash(); // CTFE only intercepts the non-pointer overload
 }
 
 /***********************************
@@ -3022,7 +3018,7 @@ private auto _aaToRange(K, V)(auto ref inout V[K] aa) @trusted
     alias K2 = substInout!K;
     alias V2 = substInout!V;
     auto aa2 = cast(V2[K2])aa;
-    return _aaRange(_toAA(aa2));
+    return _aaRange(aa2);
 }
 
 /***********************************
@@ -3259,15 +3255,15 @@ auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
  * Note:
  *  emulated by the compiler during CTFE
  */
-Key[] keys(Value, Key)(inout Value[Key] aa) @property
+auto keys(Value, Key)(inout Value[Key] aa) @property
 {
-    return _aaKeys(_toAA(aa));
+    return _aaKeys!(Key, Value)(aa);
 }
 
 /** ditto */
-Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
+auto keys(T : Value[Key], Value, Key)(T *aa) @property
 {
-    return (*aa).keys;
+    return (*aa).keys; // CTFE only intercepts the non-pointer overload
 }
 
 ///
@@ -3334,15 +3330,15 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
  * Note:
  *  emulated by the compiler during CTFE
  */
-Value[] values(Value, Key)(inout Value[Key] aa) @property
+auto values(Value, Key)(inout Value[Key] aa) @property
 {
-    return _aaValues(_toAA(aa));
+    return _aaValues!(Key, Value)(aa);
 }
 
 /** ditto */
-Value[] values(T : Value[Key], Value, Key)(T *aa) @property
+auto values(T : Value[Key], Value, Key)(T *aa) @property
 {
-    return (*aa).values;
+    return (*aa).values; // CTFE only intercepts the non-pointer overload
 }
 
 ///
