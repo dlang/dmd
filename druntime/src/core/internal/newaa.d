@@ -332,7 +332,7 @@ size_t _aaLen(K, V)(scope const AA!(K, V) aa)
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-V* _aaGetY(K, V)(scope ref AA!(K, V) aa, auto ref K key)
+V* _aaGetY(K, V)(scope ref V[K] aa, auto ref K key)
 {
     bool found;
     return _aaGetX(aa, key, found);
@@ -350,8 +350,10 @@ V* _aaGetY(K, V)(scope ref AA!(K, V) aa, auto ref K key)
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-V* _aaGetX(K, V)(scope ref AA!(K, V) aa, auto ref K key, out bool found)
+V* _aaGetX(K, V)(scope ref V[K] a, auto ref K key, out bool found)
 {
+    ref aa = _refAA(a);
+
     // lazily alloc implementation
     if (aa is null)
     {
