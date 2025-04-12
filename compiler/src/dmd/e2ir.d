@@ -1277,7 +1277,7 @@ elem* toElem(Expression e, ref IRState irs)
             if (ne.placement)
             {
                 ex = toElem(ne.placement, irs);
-                ex = addressElem(ex, tclass, false);
+                //ex = addressElem(ex, tclass, false);
             }
             else if (auto lowering = ne.lowering)
                 // Call _d_newitemT()
@@ -1316,18 +1316,32 @@ elem* toElem(Expression e, ref IRState irs)
                 /* Structs return a ref, which gets automatically dereferenced.
                  * But we want a pointer to the instance.
                  */
-                ez = el_una(OPaddr, TYnptr, ez);
+                if (!ne.placement)
+                    ez = el_una(OPaddr, TYnptr, ez);
             }
             else
             {
                 StructLiteralExp sle = StructLiteralExp.create(ne.loc, sd, ne.arguments, t);
                 ez = toElemStructLit(sle, irs, EXP.construct, ev.Vsym, false);
-                if (tybasic(ez.Ety) == TYstruct)
+                if (tybasic(ez.Ety) == TYstruct && !ne.placement)
                     ez = el_una(OPaddr, TYnptr, ez);
             }
-            //elem_print(ex);
-            //elem_print(ey);
-            //printf("ez:\n"); elem_print(ez);
+            static if (0)
+            {
+                if (ex) { printf("ex:\n"); elem_print(ex); }
+                if (ey) { printf("ey:\n"); elem_print(ey); }
+                if (ew) { printf("ew:\n"); elem_print(ew); }
+                if (ezprefix) { printf("ezprefix:\n"); elem_print(ezprefix); }
+                if (ez) { printf("ez:\n"); elem_print(ez); }
+                printf("\n");
+            }
+
+            if (ne.placement)
+            {
+                ez = el_bin(OPstreq,TYstruct,el_copytree(ev),ez);
+                ez.ET = ev.ET;
+                ez = el_una(OPaddr, TYnptr, ez);
+            }
 
             e = el_combine(ex, ey);
             e = el_combine(e, ew);
