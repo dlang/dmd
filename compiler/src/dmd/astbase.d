@@ -3775,13 +3775,14 @@ struct ASTBase
         TOK tok;
         Identifier id;
         structalign_t packalign;
+        Expressions* alignExps;
         Dsymbols* members;
         Type base;
 
         Type resolved;
         MOD mod;
 
-        extern (D) this(Loc loc, TOK tok, Identifier id, structalign_t packalign, Type base, Dsymbols* members)
+        extern (D) this(Loc loc, TOK tok, Identifier id, structalign_t packalign, Expressions* alignExps, Type base, Dsymbols* members)
         {
             //printf("TypeTag %p\n", this);
             super(Ttag);
@@ -3789,6 +3790,7 @@ struct ASTBase
             this.tok = tok;
             this.id = id;
             this.packalign = packalign;
+            this.alignExps = alignExps;
             this.base = base;
             this.members = members;
             this.mod = 0;
