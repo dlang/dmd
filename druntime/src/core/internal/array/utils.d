@@ -176,7 +176,7 @@ Params:
     elemsize = size of the element in the new array
 Returns: new capacity for array
 */
-size_t newCapacity(size_t newlength, size_t elemsize)
+size_t newCapacity(size_t newlength, size_t elemsize) pure nothrow
 {
     size_t newcap = newlength * elemsize;
 

@@ -11,8 +11,8 @@ module core.internal.array.appending;
 
 extern (C)
 {
-    bool gc_expandArrayUsed(void[] slice, size_t newUsed, bool atomic) nothrow;
-    bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) nothrow;
+    bool gc_expandArrayUsed(void[] slice, size_t newUsed, bool atomic) pure nothrow;
+    bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) pure nothrow;
 }
 
 private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lhs = rhs; });
@@ -32,23 +32,21 @@ private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lh
  * Returns:
  *  The new value of `px`
  */
-ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n) pure nothrow @trusted
+ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n) @trusted
 {
     import core.internal.traits: Unqual;
 
     alias Unqual_T = Unqual!T;
     alias Unqual_Tarr = Unqual_T[];
     enum isshared = is(T == shared);
-
-    alias PureNothrowType = ref Unqual_Tarr function(return ref scope Unqual_Tarr, size_t, bool) pure nothrow @trusted;
-    auto pure_wrapper = cast(PureNothrowType) &_d_arrayappendcTXImpure!Unqual_Tarr;
-
     auto unqual_px = cast(Unqual_Tarr) px;
-    px = cast(Tarr)pure_wrapper(unqual_px, n, isshared);
+
+    // Ignoring additional attributes allows reusing the same generated code
+    px = cast(Tarr)_d_arrayappendcTX_(unqual_px, n, isshared);
     return px;
 }
 
-private ref Tarr _d_arrayappendcTXImpure(Tarr : T[], T)(return ref scope Tarr px, size_t n, bool isshared) @trusted
+private ref Tarr _d_arrayappendcTX_(Tarr : T[], T)(return ref scope Tarr px, size_t n, bool isshared) @trusted
 {
     version (DigitalMars) pragma(inline, false);
     version (D_TypeInfo)
