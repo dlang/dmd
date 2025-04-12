@@ -870,33 +870,42 @@ $(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Flo
     there are other floating-point values for NaN produced at runtime.
     Use $(REF isNaN, std,math,traits) to handle all of them.)
 
-$(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class Comparisons))
+$(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class and Struct Comparisons))
 
-    $(P For class objects, *EqualExpression* and *RelExpression* compare the
-        *contents* of the objects. Therefore, comparing against
-        a $(CODE null) class reference is invalid, as $(CODE null) has no contents.)
+    $(P For struct objects, a *RelExpression* performs a comparison which first
+        evaluates $(DDSUBLINK spec/operatoroverloading, compare, a matching `opCmp`
+        method) call.)
 
-        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    $(P For class references, a *RelExpression* performs a comparison which first
+        evaluates to an `int` which is either:)
+
+        - `0` if the two object references are identical
+        - `-1` if the left-hand expression is `null`
+        - `1` if the right-hand expression is `null`
+        - the result of $(DDSUBLINK spec/operatoroverloading, compare,
+          a matching `opCmp`) call
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
-        class C {}
+        class C
+        {
+            override int opCmp(Object o) { assert(0); }
+        }
 
-        void fun()
+        void main()
         {
             C c;
             //if (c < null) {}  // compile-time error
             assert(c is null);
-            if (c > new C) {}  // runtime error
+            assert(c < new C); // C.opCmp is not called
         }
         ---
         )
 
-    $(P For class objects, the result of `Object.opCmp()` forms the left
-        operand, and `0` forms the right operand. The result of an
-        *EqualExpression* or *RelExpression* `(o1 op o2)` is:)
-
-        ---
-        (o1.opCmp(o2) op 0)
-        ---
+    $(P Secondly, for class and struct objects, the evaluated `int` is compared
+        against zero using the given operator, which forms the result of the
+        *RelExpression*. For more information, see
+        $(DDSUBLINK spec/operatoroverloading, compare, `opCmp`).)
 
 
 $(H2 $(LNAME2 in_expressions, In Expressions))

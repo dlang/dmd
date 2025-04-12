@@ -487,7 +487,11 @@ $(OL
 
 $(H3 $(LNAME2 compare, Overloading $(D <), $(D <)$(D =), $(D >), and $(D >)$(D =)))
 
-        $(P Comparison operations are rewritten as follows:)
+        $(P Class references are first $(DDSUBLINK spec/expression, class-comparisons,
+        compared by reference). If they refer to different objects and neither is `null`,
+        they are then compared by calling a matching `opCmp` method, as for structs.)
+
+        $(P Struct comparison operations are rewritten as follows:)
 
         $(TABLE2 Rewriting of comparison operations,
         $(THEAD comparison, rewrite 1, rewrite 2)
