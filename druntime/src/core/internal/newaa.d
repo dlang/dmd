@@ -50,6 +50,15 @@ struct AA(K, V)
     }
 }
 
+/// like core.internal.traits.Unconst, but stripping inout, too
+private template Unconstify(T : const U, U)
+{
+    static if (is(U == inout V, V))
+        alias Unconstify = V;
+    else
+        alias Unconstify = U;
+}
+
 ref _refAA(V, K)(ref inout V[K] aa) @trusted
 {
     return *(cast(AA!(substInout!K, substInout!V)*)&aa);
@@ -57,8 +66,7 @@ ref _refAA(V, K)(ref inout V[K] aa) @trusted
 
 auto _toAA(T : V[K], V, K)(inout ref T aa) @trusted
 {
-    import core.internal.traits : Unqual;
-    V[K] aai = cast(Unqual!T)aa;
+    V[K] aai = cast(Unconstify!T)aa;
     return *(cast(AA!(substInout!K, substInout!V)*)&aai);
 }
 
@@ -401,8 +409,6 @@ inout(V)* _aaGetRvalueX(K, V)(inout AA!(K, V) aa, scope ref const K pkey)
  */
 auto _aaDup(T : V[K], K, V)(T a)
 {
-    import core.internal.traits : Unqual;
-
     auto aa = _toAA(a);
     immutable len = _aaLen(aa);
     if (len == 0)
@@ -423,7 +429,7 @@ auto _aaDup(T : V[K], K, V)(T a)
         impl.firstUsed = min(impl.firstUsed, cast(uint)pi);
     }
     impl.used = cast(uint) len;
-    return () @trusted { return *cast(Unqual!V[K]*)&impl; }();
+    return () @trusted { return *cast(Unconstify!V[K]*)&impl; }();
 }
 
 /******************************
@@ -492,8 +498,9 @@ auto _d_aaDel(T : V[K], K, V, K2)(T a, auto ref const K2 key2)
 }
 
 /// Remove all elements from AA.
-void _aaClear(K, V)(AA!(K, V) aa)
+void _aaClear(K, V)(V[K] a)
 {
+    auto aa = _toAA(a);
     if (!aa.empty)
     {
         aa.clear();
@@ -501,20 +508,22 @@ void _aaClear(K, V)(AA!(K, V) aa)
 }
 
 /// Rehash AA
-AA!(K, V) _aaRehash(K, V)(AA!(K, V) aa)
+V[K] _aaRehash(K, V)(V[K] a)
 {
+    auto aa = _toAA(a);
     if (!aa.empty)
         aa.resize(nextpow2(INIT_DEN * aa.length / INIT_NUM));
-    return aa;
+    return a;
 }
 
 /// Return a GC allocated array of all values
-V[] _aaValues(K, V)(AA!(K, V) aa)
+auto _aaValues(K, V)(inout V[K] a)
 {
+    auto aa = _toAA(a);
     if (aa.empty)
         return null;
 
-    V[] res;
+    Unconstify!V[] res;
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
@@ -525,12 +534,13 @@ V[] _aaValues(K, V)(AA!(K, V) aa)
 }
 
 /// Return a GC allocated array of all keys
-K[] _aaKeys(K, V)(AA!(K, V) aa)
+auto _aaKeys(K, V)(inout V[K] a)
 {
+    auto aa = _toAA(a);
     if (aa.empty)
         return null;
 
-    K[] res;
+    Unconstify!K[] res;
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
@@ -688,8 +698,9 @@ struct AARange(K, V)
     alias impl this;
 }
 
-AARange!(K, V) _aaRange(K, V)(return scope AA!(K, V) aa)
+AARange!(K, V) _aaRange(K, V)(V[K] a)
 {
+    auto aa = _toAA(a);
     if (!aa)
         return AARange!(K, V)();
 
