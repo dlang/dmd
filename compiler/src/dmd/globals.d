@@ -205,6 +205,7 @@ extern (C++) struct Param
                                  // Implementation: https://github.com/dlang/dmd/pull/9817
     FeatureState safer;          // safer by default (more @safe checks in unattributed code)
                                  // https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md
+    FeatureState tuples;         // Tuple unpacking
     FeatureState noSharedAccess; // read/write access to shared memory objects
     bool previewIn;              // `in` means `[ref] scope const`, accepts rvalues
     bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
