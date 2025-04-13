@@ -181,7 +181,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
                      (id == Id._super && sc.getClassScope()))
                 error(loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", p, p);
             else
-                error(loc, "undefined identifier `%s`", p);
+                error(mt.loc, "undefined identifier `%s`", p);
         }
         else {
             if (const n = cIncludeHint(id.toString()))
