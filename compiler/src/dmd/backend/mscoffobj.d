@@ -70,7 +70,7 @@ enum DEST_LEN = (IDMAX + IDOHD + 1);
 /******************************************
  */
 
-// The object file is built ib several separate pieces
+// The object file is built in several separate pieces
 
 __gshared private
 {
@@ -109,6 +109,7 @@ IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER*)ScnhdrBuf.
 
     OutBuffer* ptrref_buf;           // buffer for pointer references
     OutBuffer* impref_buf;           // buffer for import table references
+    OutBuffer* mangle_buf;           // buffer for name mangling
 
     int floatused;
 
@@ -470,7 +471,7 @@ private void syment_set_name(SymbolTable32* sym, const(char)* name)
     }
 }
 
-@trusted
+@trusted private
 void write_sym(SymbolTable32* sym, bool bigobj)
 {
     assert((*sym).sizeof == 20);
@@ -542,15 +543,22 @@ void build_syment_table(bool bigobj)
         assert((aux).sizeof == 18);
     }
 
+    // allocate reusable buffer that lasts for the life of the compile
+    if (!mangle_buf)
+    {
+        mangle_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!mangle_buf)
+            err_nomem();
+    }
+    OutBuffer* buf = mangle_buf;  // local pointer for faster access
+    buf.reserve(DEST_LEN + 1);    // pre-allocate some space
+
     /* Add symbols from symbuf[]
      */
 
-    OutBuffer buf;
-    buf.reserve(DEST_LEN + 1);  // pre-allocate some space
-
     int n = cast(int)SegData.length;
     size_t dim = symbuf.length() / (Symbol*).sizeof;
-    for (size_t i = 0; i < dim; i++)
+    foreach (i; 0 .. dim)
     {   Symbol* s = (cast(Symbol**)symbuf.buf)[i];
         s.Sxtrnnum = cast(uint)(syment_buf.length() / symsize);
         n++;
@@ -558,7 +566,7 @@ void build_syment_table(bool bigobj)
         SymbolTable32 sym;
 
         buf.reset();
-        obj_mangle2(s, buf);
+        obj_mangle2(*s, *buf);
         syment_set_name(&sym, buf.peekChars());
 
         sym.Value = 0;
@@ -1178,7 +1186,8 @@ void MsCoffObj_ehtables(Symbol* sfunc,uint size,Symbol* ehsym)
 @trusted
 private void emitSectionBrace(const(char)* segname, const(char)* symname, int attr, bool coffZeroBytes)
 {
-    char[16] name = void;
+    char[17] name = void;
+    name[name.length - 1] = 0xFF;   // overflow detection
     strcat(strcpy(name.ptr, segname), "$A");
     const int seg_bg = MsCoffObj_getsegment(name.ptr, attr);
 
@@ -1204,6 +1213,8 @@ private void emitSectionBrace(const(char)* segname, const(char)* symname, int at
     symbuf.write((&end)[0 .. 1]);
     if (coffZeroBytes) // unnecessary, but required by current runtime
         MsCoffObj_bytes(seg_en, 0, I64 ? 8 : 4, null);
+
+    assert(name[name.length - 1] == 0xFF); // overflowed if this changes
 }
 
 void MsCoffObj_ehsections()
@@ -1682,24 +1693,19 @@ private extern (D) char* unsstr(uint value)
 
 @trusted
 private extern (D)
-void obj_mangle2(Symbol* s, ref OutBuffer buf)
+void obj_mangle2(ref Symbol s, ref OutBuffer buf)
 {
-    size_t len;
-    const(char)* name;
-
     //printf("MsCoffObj_mangle(s = %p, '%s'), mangle = x%x\n",s,s.Sident.ptr,type_mangle(s.Stype));
-    symbol_debug(s);
+    symbol_debug(&s);
 
     // C++ name mangling is handled by front end
-    name = &s.Sident[0];
-    len = strlen(name);                 // # of bytes in name
-    //dbg_printf("len %d\n",len);
+    const(char)[] name = s.Sident.ptr[0 .. strlen(s.Sident.ptr)];
 
     switch (type_mangle(s.Stype))
     {
         case Mangle.pascal:             // if upper case
         case Mangle.fortran:
-            foreach (c; name[0 .. len])
+            foreach (c; name)
             {
                 buf.writeByte(('a' <= c && c <= 'z') ? c - 'a' + 'A' : c); // to upper case
             }
@@ -1710,14 +1716,10 @@ void obj_mangle2(Symbol* s, ref OutBuffer buf)
                 config.exe == EX_WIN32 && tyfunc(s.ty()) &&
                 !variadic(s.Stype))
             {
-                char* pstr = unsstr(type_paramsize(s.Stype));
-                size_t pstrlen = strlen(pstr);
-
                 if (I32)
                     buf.writeByte('_');
-                buf.write(name[0 .. len]);
-                buf.writeByte('@');
-                buf.write(pstr[0 .. pstrlen]);
+                buf.write(name);
+                buf.printf("@%u", type_paramsize(s.Stype));
                 break;
             }
             goto case 0;
@@ -1731,14 +1733,14 @@ void obj_mangle2(Symbol* s, ref OutBuffer buf)
         case Mangle.cpp:
         case Mangle.syscall:
         case 0:
-            buf.write(name[0 .. len]);
+            buf.write(name);
             break;
 
         default:
 debug
 {
             printf("mangling %x\n",type_mangle(s.Stype));
-            symbol_print(*s);
+            symbol_print(s);
 }
             printf("%d\n", type_mangle(s.Stype));
             assert(0);
@@ -1754,7 +1756,7 @@ debug
 void MsCoffObj_export_symbol(Symbol* s,uint argsize)
 {
     OutBuffer buf;
-    obj_mangle2(s, buf);
+    obj_mangle2(*s, buf);
 
     int seg = MsCoffObj_seg_drectve();
     //printf("MsCoffObj_export_symbol(%s,%d)\n",s.Sident.ptr,argsize);
