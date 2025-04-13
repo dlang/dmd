@@ -11,7 +11,7 @@ dmd/compiler/test/fail_compilation/diag_ptr_conversion.d(6):        Note: Pointe
 void testPointerConversions()
 {
     int* p;
-    const(int)* cp = p;  // Warn: mutable -> const
-    p = cp;              // Error: const -> mutable
-    float* f = p;        // Error: incompatible types
+    const(int)* cp = p;
+    p = cp;
+    float* f = p;
 }
