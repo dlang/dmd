@@ -362,7 +362,7 @@ pure nothrow @nogc unittest
  * Returns:
  *      A new associative array.
  */
-extern (C) Impl* _aaNew(const TypeInfo_AssociativeArray ti)
+extern (C) Impl* _obsolete_aaNew(const TypeInfo_AssociativeArray ti)
 {
     return new Impl(ti);
 }
@@ -493,7 +493,7 @@ extern (C) inout(void)* _aaInX(inout AA aa, scope const TypeInfo keyti, scope co
 }
 
 /// Delete entry scope const AA, return true if it was present
-extern (C) bool _aaDelX(AA aa, scope const TypeInfo keyti, scope const void* pkey)
+extern (C) bool _obsolete_aaDelX(AA aa, scope const TypeInfo keyti, scope const void* pkey)
 {
     if (aa.empty)
         return false;
@@ -517,7 +517,7 @@ extern (C) bool _aaDelX(AA aa, scope const TypeInfo keyti, scope const void* pke
 }
 
 /// Remove all elements from AA.
-extern (C) void _aaClear(AA aa) pure nothrow @safe
+extern (C) void _obsolete_aaClear(AA aa) pure nothrow @safe
 {
     if (!aa.empty)
     {
@@ -526,7 +526,7 @@ extern (C) void _aaClear(AA aa) pure nothrow @safe
 }
 
 /// Rehash AA
-extern (C) void* _aaRehash(AA* paa, scope const TypeInfo keyti) pure nothrow
+extern (C) void* _obsolete_aaRehash(AA* paa, scope const TypeInfo keyti) pure nothrow
 {
     AA aa = *paa;
     if (!aa.empty)
@@ -675,7 +675,7 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
 }
 
 /// compares 2 AAs for equality
-extern (C) int _aaEqual(scope const TypeInfo tiRaw, scope const AA aa1, scope const AA aa2)
+extern (C) int _obsolete_aaEqual(scope const TypeInfo tiRaw, scope const AA aa1, scope const AA aa2)
 {
     if (aa1 is aa2)
         return true;
@@ -705,7 +705,7 @@ extern (C) int _aaEqual(scope const TypeInfo tiRaw, scope const AA aa1, scope co
 }
 
 /// compute a hash
-extern (C) hash_t _aaGetHash(scope const AA* paa, scope const TypeInfo tiRaw) nothrow
+extern (C) hash_t _obsolete_aaGetHash(scope const AA* paa, scope const TypeInfo tiRaw) nothrow
 {
     const AA aa = *paa;
 
@@ -732,7 +732,7 @@ extern (C) hash_t _aaGetHash(scope const AA* paa, scope const TypeInfo tiRaw) no
 }
 
 /**
- * _aaRange implements a ForwardRange
+ * _obsolete_aaRange implements a ForwardRange
  */
 struct Range
 {
@@ -743,7 +743,7 @@ struct Range
 
 extern (C) pure nothrow @nogc @safe
 {
-    Range _aaRange(return scope AA aa)
+    Range _obsolete_aaRange(return scope AA aa)
     {
         if (!aa)
             return Range();
@@ -756,22 +756,22 @@ extern (C) pure nothrow @nogc @safe
         return Range(aa, aa.dim);
     }
 
-    bool _aaRangeEmpty(Range r)
+    bool _obsolete_aaRangeEmpty(Range r)
     {
         return r.impl is null || r.idx >= r.dim;
     }
 
-    void* _aaRangeFrontKey(Range r)
+    void* _obsolete_aaRangeFrontKey(Range r)
     {
-        assert(!_aaRangeEmpty(r));
+        assert(!_obsolete_aaRangeEmpty(r));
         if (r.idx >= r.dim)
             return null;
         return r.buckets[r.idx].entry;
     }
 
-    void* _aaRangeFrontValue(Range r)
+    void* _obsolete_aaRangeFrontValue(Range r)
     {
-        assert(!_aaRangeEmpty(r));
+        assert(!_obsolete_aaRangeEmpty(r));
         if (r.idx >= r.dim)
             return null;
 
@@ -781,7 +781,7 @@ extern (C) pure nothrow @nogc @safe
             (() @trusted { return entry + r.valoff; } ());
     }
 
-    void _aaRangePopFront(ref Range r)
+    void _obsolete_aaRangePopFront(ref Range r)
     {
         if (r.idx >= r.dim) return;
         for (++r.idx; r.idx < r.dim; ++r.idx)
