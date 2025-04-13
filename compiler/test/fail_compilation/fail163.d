@@ -14,7 +14,8 @@ void test1()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail163.d(24): Error: cannot implicitly convert expression `p` of type `const(int***)` to `const(int)***`
+fail_compilation/fail163.d(24): Error: cannot implicitly convert `const(int***)` to `const(int)***`
+fail_compilation/fail163.d(24):        Note: Converting const to mutable requires an explicit cast (`cast(int*)`).
 ---
 */
 void test2()
@@ -80,7 +81,8 @@ void test6()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail163.d(89): Error: cannot implicitly convert expression `& x` of type `const(int)*` to `int*`
+fail_compilation/fail163.d(89): Error: cannot implicitly convert `const(int)*` to `int*`
+fail_compilation/fail163.d(89):        Note: Converting const to mutable requires an explicit cast (`cast(int*)`).
 ---
 */
 void test7()
