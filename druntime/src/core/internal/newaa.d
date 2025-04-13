@@ -59,6 +59,15 @@ private template Unconstify(T : const U, U)
         alias Unconstify = U;
 }
 
+/// like core.internal.traits.Unqual, but stripping inout, too
+private template Unqualify(T : const U, U)
+{
+    static if (is(U == shared V, V))
+        alias Unqualify = Unconstify!V;
+    else
+        alias Unqualify = Unconstify!U;
+}
+
 ref _refAA(V, K)(ref inout V[K] aa) @trusted
 {
     return *(cast(AA!(substInout!K, substInout!V)*)&aa);
@@ -66,7 +75,7 @@ ref _refAA(V, K)(ref inout V[K] aa) @trusted
 
 auto _toAA(T : V[K], V, K)(inout ref T aa) @trusted
 {
-    V[K] aai = cast(Unconstify!T)aa;
+    V[K] aai = cast(Unqualify!T)aa;
     return *(cast(AA!(substInout!K, substInout!V)*)&aai);
 }
 
@@ -600,7 +609,7 @@ int _aaApply2(K, V)(AA!(K, V) aa, dg2_t!(K, V) dg)
  * Returns:
  *      A new associative array opaque pointer, or null if `keys` is empty.
  */
-Impl!(K, V)* _d_assocarrayliteralTX(K, V)(K[] keys, V[] vals)
+Impl!(K, V)* _d_assocarrayliteralTX(K, V)(const K[] keys, const V[] vals)
 {
     assert(keys.length == vals.length);
 
@@ -809,25 +818,9 @@ unittest
 AA!(K, V) makeAA(K, V)(V[K] src) @trusted
 {
     assert(__ctfe, "makeAA Must only be called at compile time");
-    assert(src.length <= uint.max);
-    immutable srclen = cast(uint) src.length;
-    if (srclen == 0)
-        return AA!(K, V).init;
-
-    size_t dim = nextpow2(INIT_DEN * srclen / INIT_NUM);
-    auto impl = new Impl!(K, V)(dim);
+    // keys and values are cheap operations in CTFE, so just reuse _d_assocarrayliteralTX
+    auto impl = _d_assocarrayliteralTX!(K, V)(cast(K[])src.keys, cast(V[])src.values);
     auto aa = AA!(K, V)(impl);
-    foreach (k, ref v; src)
-    {
-        immutable hash = impl.calcHash(k);
-        auto p = aa.findSlotLookup(hash, k);
-        assert(p is null, "duplicate entries in associative array literal");
-        auto pi = aa.findSlotInsert(hash);
-        p = &aa.buckets[pi];
-        p.hash = hash;
-        p.entry = new Entry!(K, V)(k, v);
-    }
-    aa.used = srclen;
     return aa;
 }
 
