@@ -225,7 +225,7 @@ size_t newCapacity(size_t newlength, size_t elemsize) pure nothrow
 
 uint __typeAttrs(T)(void *copyAttrsFrom = null)
 {
-    import core.internal.traits : hasIndirections;
+    import core.internal.traits : hasIndirections, hasElaborateDestructor;
     import core.memory : GC;
 
     alias BlkAttr = GC.BlkAttr;
@@ -242,7 +242,7 @@ uint __typeAttrs(T)(void *copyAttrsFrom = null)
     static if (!hasIndirections!T)
         attrs |= BlkAttr.NO_SCAN;
 
-    static if (__traits(compiles, T().__xdtor))
+    static if (is(T == struct) && hasElaborateDestructor!T)
         attrs |= BlkAttr.FINALIZE;
 
     return attrs;
