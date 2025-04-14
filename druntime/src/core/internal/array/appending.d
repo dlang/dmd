@@ -89,7 +89,7 @@ private ref Tarr _d_arrayappendcTX_(Tarr : T[], T)(return ref scope Tarr px, siz
                 // not always hold.
                 if (!(attrs & BlkAttr.NO_SCAN) && newcap < PAGESIZE)
                     memset(ptr + newsize, 0, newcap - newsize);
-                
+
                 gc_shrinkArrayUsed(ptr[0 .. newsize], newcap, isshared);
             }
 
