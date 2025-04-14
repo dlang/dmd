@@ -38,7 +38,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
 import dmd.backend.arm.cod1 : loadFromEA, storeToEA, getlvalue;
-import dmd.backend.arm.cod3 : conditionCode, genBranch, gentstreg, movregconst, COND;
+import dmd.backend.arm.cod3 : conditionCode, genBranch, gentstreg, movregconst, COND, loadFloatRegConst;
 import dmd.backend.arm.instr;
 
 nothrow:
@@ -1786,24 +1786,17 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     //printf("cdpost(pretregs = %s)\n", regm_str(pretregs));
     //elem_print(e);
     const op = e.Eoper;                      // OPxxxx
-    if (pretregs == 0)                        // if nothing to return
+    if (pretregs == 0)                       // if nothing to return
     {
         cdaddass(cgstate,cdb,e,pretregs);
         return;
     }
-    const tym_t tyml = tybasic(e.E1.Ety);
-    const sz = _tysize[tyml];
-    elem* e2 = e.E2;
 
-    if (0 && tyfloating(tyml)) // TODO AArch64
+    const tym_t tyml = tybasic(e.E1.Ety);
+    if (tyfloating(tyml))
     {
-        if (config.fpxmmregs && tyxmmreg(tyml) &&
-            !tycomplex(tyml) // SIMD code is not set up to deal with complex
-           )
-        {
-            xmmpost(cdb,e,pretregs);
-            return;
-        }
+        floatPost(cg, cdb, e, pretregs);
+        return;
     }
     if (0 && tyxmmreg(tyml)) // TODO AArch64
     {
@@ -1811,7 +1804,10 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         return;
     }
 
+    const sz = _tysize[tyml];
+    elem* e2 = e.E2;
     assert(e2.Eoper == OPconst);
+
     regm_t possregs = cg.allregs;
     code cs;
     getlvalue(cdb,cs,e.E1,0);
@@ -1913,6 +1909,130 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         assert(0);
     }
+}
+
+/******************************
+ * Do OPpostinc and OPpostdec on floating point lvalue
+ */
+@trusted
+void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+{
+    //printf("floatPost(pretregs = %s)\n", regm_str(pretregs));
+    //elem_print(e);
+
+    // Much similarity to xmmpost()
+
+    elem* e1 = e.E1;
+    elem* e2 = e.E2;
+    const tym_t ty1 = tybasic(e.E1.Ety);
+    const sz = _tysize[ty1];
+    const ftype = INSTR.szToFtype(sz);
+
+    regm_t retregs;
+    reg_t reg;
+    bool regvar = false;
+    if (config.flags4 & CFG4optimized)
+    {
+        // Be careful of cases like (x = x+x+x). We cannot evaluate in
+        // x if x is in a register.
+        reg_t varreg;
+        regm_t varregm;
+        if (isregvar(e1,varregm,varreg) &&    // if lvalue is register variable
+            doinreg(e1.Vsym,e2)         // and we can compute directly into it
+           )
+        {
+            regvar = true;
+            retregs = varregm;
+            reg = varreg;               // evaluate directly in target register
+            getregs(cdb,retregs);       // destroy these regs
+        }
+    }
+
+    code cs;
+    if (!regvar)
+    {
+        getlvalue(cdb,cs,e1,0,RM.rw);                // get EA
+        retregs = INSTR.FLOATREGS & ~pretregs;
+        if (!retregs)
+            retregs = INSTR.FLOATREGS;
+        reg = allocreg(cdb,retregs,ty1);
+        loadFromEA(cs,reg,sz == 8 ? 8 : 4,sz);
+    }
+
+    if (regvar && pretregs == mPSW)
+    {
+        tstresult(cdb, mask(reg),ty1,false);
+
+        // If lvalue is a register variable, mark it as modified
+        getregs(cdb,reg);
+
+        regm_t vretregs = INSTR.FLOATREGS & ~mask(cs.reg);
+        reg_t vreg = allocreg(cdb,vretregs,ty1);
+        double value = sz == 8 ? e2.Vdouble : e2.Vfloat;
+        loadFloatRegConst(cdb,vreg,value,sz);                   // FMOV vreg,value
+
+        switch (e.Eoper)
+        {
+            case OPpostinc:
+                cdb.gen1(INSTR.fadd_float(ftype,reg,vreg,reg)); // FADD Rd,Rn,Rm
+                break;
+
+            case OPpostdec:
+                cdb.gen1(INSTR.fsub_float(ftype,reg,vreg,reg)); // FSUB Rd,Rn,Rm
+                break;
+
+            default:
+                assert(0);
+        }
+
+        freenode(e2);
+        return;
+    }
+
+    // Result register
+    regm_t resultregs = INSTR.FLOATREGS & pretregs & ~retregs;
+    if (!resultregs)
+        resultregs = INSTR.FLOATREGS & ~retregs;
+    const resultreg = allocreg(cdb,resultregs, ty1);
+
+    cdb.gen1(INSTR.fmov(ftype,reg,resultreg));  // FMOV resultreg,reg
+
+    regm_t vretregs = INSTR.FLOATREGS & ~mask(reg) & ~mask(resultreg);
+    reg_t vreg = allocreg(cdb,vretregs,ty1);
+    double value = sz == 8 ? e2.Vdouble : e2.Vfloat;
+    loadFloatRegConst(cdb,vreg,value,sz);       // FMOV vreg,value
+
+    switch (e.Eoper)
+    {
+        case OPpostinc:
+            cdb.gen1(INSTR.fadd_float(ftype,reg,vreg,reg)); // FADD Rd,Rn,Rm
+            break;
+
+        case OPpostdec:
+            cdb.gen1(INSTR.fsub_float(ftype,reg,vreg,reg)); // FSUB Rd,Rn,Rm
+            break;
+
+        default:
+            assert(0);
+    }
+
+    if (!regvar)
+    {
+        storeToEA(cs,reg,sz);
+        cdb.gen(&cs);                         // STR reg,EA
+    }
+
+    if (e1.Ecount ||                          // if lvalue is a CSE or
+        regvar)                               // rvalue can't be a CSE
+    {
+        getregs_imm(cdb,retregs);             // necessary if both lvalue and
+                                              //  rvalue are CSEs (since a reg
+                                              //  can hold only one e at a time)
+        cssave(e1,retregs,!OTleaf(e1.Eoper)); // if lvalue is a CSE
+    }
+
+    fixresult(cdb,e,resultregs,pretregs);
+    freenode(e1);
 }
 
 // cddctor
