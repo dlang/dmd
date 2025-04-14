@@ -1241,7 +1241,8 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretregs)
 {
     //printf("arm.fixresult(e = %p, retregs = %s, outretregs = %s)\n",e,regm_str(retregs),regm_str(outretregs));
-    if (outretregs == 0) return;           // if don't want result
+    //elem_print(e);
+    if (outretregs == 0) return;          // if don't want result
     assert(e && retregs);                 // need something to work with
     regm_t forccs = outretregs & mPSW;
     regm_t forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);
@@ -2068,7 +2069,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         if (tyfloating(tym))
         {
             const vreg = allocreg(cdb, forregs, tym);     // allocate floating point register
-            float value = e.Vfloat;
+            double value = e.Vfloat;
             if (sz == 8)
                 value = e.Vdouble;
             loadFloatRegConst(cdb,vreg,value,sz);
