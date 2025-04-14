@@ -1208,8 +1208,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 error("linkage specification not allowed within unpack declarations");+/
             if (udas) // TODO
                 error("user defined attributes not allowed within unpack declarations");
-            if (global.params.tuples && token.value == TOK.leftParenthesis)
+            if (token.value == TOK.leftParenthesis)
             {
+                // recurse
                 vars.push(parseUnpackDeclaration(storage_class, false, isParameter));
             }
             else
@@ -1274,7 +1275,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         AST.Expression _init = null;
         if (parseInitializer)
         {
-            check(TOK.assign);
+            check(TOK.assign, "unpack declaration");
             _init = parseAssignExp();
         }
         return new AST.UnpackDeclaration(unpackLoc, vars, _init, g_storage_class);
@@ -1284,7 +1285,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * Parse auto declarations of the form:
      *   storageClass ident = init, ident = init, ... ;
      * and return the array of them.
-     * Starts with token on the first ident or '('.
+     * Starts with token on the first ident, or '(' with -preview=tuples.
      * Ends with scanner past closing ';'
      */
     private AST.Dsymbols* parseAutoDeclarations(STC storageClass, const(char)* comment)
@@ -1296,10 +1297,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         {
             const loc = token.loc;
             AST.Dsymbol s;
-            if (global.params.tuples && token.value == TOK.leftParenthesis &&
-                peekPastParen(&token).value == TOK.assign)
+            if (token.value == TOK.leftParenthesis)
             {
-                s = parseUnpackDeclaration(storageClass);
+                assert(global.params.tuples);
+                s = parseUnpackDeclaration(storageClass, true);
             }
             else
             {
@@ -4791,7 +4792,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
              *  (int x, auto y) = initializer;
              *  storage_class (a, b, ...) = initializer;
              */
-            if (token.value == TOK.leftParenthesis && isTupleNotation(&token))
+            if (global.params.tuples && token.value == TOK.leftParenthesis &&
+                isTupleNotation(&token))
             {
                 // TODO: can we merge this with the branch below?
                 AST.Dsymbols* a = parseAutoDeclarations(storage_class | (pAttrs ? pAttrs.storageClass : STC.none), comment);
