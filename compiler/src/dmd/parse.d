@@ -1244,7 +1244,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 if (!t && storage_class == STC.none)
                 {
-                    error("unpacked variable needs at least one storage class, did you mean `auto %s`?", i.toChars());
+                    error("unpacked variable `%s` needs a type or at least one storage class, did you mean `auto %s`?",
+                        i.toChars(), i.toChars());
                 }
                 vars.push(new AST.VarDeclaration(loc, t, i, null, storage_class)); // TODO: UDAs
             }
