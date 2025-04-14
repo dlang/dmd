@@ -24,6 +24,10 @@ void main()
     assert(a == "four");
     assert(b == 5);
 
+    scope (u, v) = tuple(1, 2);
+    assert(u == 1);
+    assert(v == 2);
+
     // foreach unpacking
     auto tc = tuple(0, "");
     foreach ((i, s); [tuple(1, "one"), tuple(2, "two")])
