@@ -1720,6 +1720,34 @@ final class CParser(AST) : Parser!AST
     /********************************* Declaration Parser ***************************/
     //{
 
+    void declareTag(AST.TypeTag tt, ref Specifier specifier, bool generate_enum_id = false)
+    {
+        if (!tt.id && (generate_enum_id || tt.tok != TOK.enum_)) tt.id = Identifier.generateId("__tag");
+        /* `struct tag;` and `struct tag { ... };`
+         * always result in a declaration in the current scope
+         */
+        auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
+                    (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
+                                              new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
+        if (!tt.alignExps && !tt.packalign.isUnknown())
+        {
+            // saw `struct __declspec(align(N)) Tag ...`
+            auto st = stag.isStructDeclaration();
+            st.alignment = tt.packalign;
+        }
+        stag.members = tt.members;
+        tt.members = null;
+        if (!symbols)
+            symbols = new AST.Dsymbols();
+        AST.Dsymbol stags = stag;
+        if (tt.alignExps)
+        {
+            auto decls = new AST.Dsymbols(1);
+            (*decls)[0] = stags;
+            stags = new AST.AlignDeclaration(stags.loc, tt.alignExps, decls);
+        }
+        symbols.push(stags);
+    }
     /*************************************
      * C11 6.7
      * declaration:
@@ -1767,34 +1795,9 @@ final class CParser(AST) : Parser!AST
         specifier.packalign = this.packalign;
         auto tspec = cparseDeclarationSpecifiers(level, specifier);
 
-        AST.Dsymbol declareTag(AST.TypeTag tt, ref Specifier specifier)
-        {
-            /* `struct tag;` and `struct tag { ... };`
-             * always result in a declaration in the current scope
-             */
-            auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
-                        (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
-                                                  new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
-            if (!tt.alignExps && !tt.packalign.isUnknown())
-            {
-                // saw `struct __declspec(align(N)) Tag ...`
-                auto st = stag.isStructDeclaration();
-                st.alignment = tt.packalign;
-            }
-            stag.members = tt.members;
-            tt.members = null;
-            if (!symbols)
-                symbols = new AST.Dsymbols();
-            AST.Dsymbol stags = stag;
-            if (tt.alignExps)
-            {
-                auto decls = new AST.Dsymbols(1);
-                (*decls)[0] = stags;
-                stags = new AST.AlignDeclaration(stags.loc, tt.alignExps, decls);
-            }
-            symbols.push(stags);
-            return stags;
-        }
+        // Defer declaring a tagged type (struct/union/enum) so
+        // that anonymous types can use a typedef as their id.
+
 
         /* If a declarator does not follow, it is unnamed
          */
@@ -1820,12 +1823,13 @@ final class CParser(AST) : Parser!AST
                 !tt.id && (tt.tok == TOK.struct_ || tt.tok == TOK.union_))
                 return; // legal but meaningless empty declaration, ignore it
 
-            auto stags = declareTag(tt, specifier);
+            if (tt.members || tt.tok != TOK.enum_)
+                declareTag(tt, specifier);
 
             if (0 && tt.tok == TOK.enum_)    // C11 proscribes enums with no members, but we allow it
             {
                 if (!tt.members)
-                    error(tt.loc, "`enum %s` has no members", stags.toChars());
+                    error(tt.loc, "`enum %s` has no members", tt.toChars());
             }
             return;
         }
@@ -1836,6 +1840,15 @@ final class CParser(AST) : Parser!AST
             panic();
             nextToken();
             return;
+        }
+
+        if (auto tt = tspec.isTypeTag())
+        {
+            if (tt.id && tt.members)
+            {
+                // Valid tag decl with name and members, go ahead and declare it now.
+                declareTag(tt, specifier);
+            }
         }
 
         if (tspec && specifier.mod & MOD.xconst)
@@ -1954,7 +1967,7 @@ final class CParser(AST) : Parser!AST
             typedefTab.setDim(typedefTabLengthSave);
             symbols = symbolsSave;
             if (!symbols)
-                symbols = new AST.Dsymbols;     // lazilly create it
+                symbols = new AST.Dsymbols;     // lazily create it
 
             if (level != LVL.global && !tspec && !specifier.scw && !specifier.mod)
                 error("declaration-specifier-seq required");
@@ -1975,37 +1988,32 @@ final class CParser(AST) : Parser!AST
 
                 bool isalias = true;
                 Identifier idt;
-                if (auto ts = dt.isTypeStruct())
-                {
-                    if (ts.sym.isAnonymous())
-                    {
-                        // This is a typedef for an anonymous struct-or-union.
-                        // Directly set the ident for the struct-or-union.
-                        ts.sym.ident = id;
-                        isalias = false;
-                    }
-                    idt = ts.sym.ident;
-                }
-                else if (auto te = dt.isTypeEnum())
-                {
-                    if (te.sym.isAnonymous())
-                    {
-                        // This is a typedef for an anonymous enum.
-                        te.sym.ident = id;
-                        isalias = false;
-                    }
-                    idt = te.sym.ident;
-                }
-                else if (auto tt = dt.isTypeTag())
+                if (auto tt = dt.isTypeTag())
                 {
                     if (!tt.id && id)
                         /* This applies for enums declared as
                          * typedef enum {A} E;
+                         * Or for similar structs and unions.
                          */
                         tt.id = id;
-                    Specifier spec;
-                    declareTag(tt, spec);
+                    if (tt.members)
+                    {
+                        Specifier spec;
+                        declareTag(tt, spec);
+                    }
                     idt = tt.id;
+                }
+                else if (auto tt = tspec.isTypeTag())
+                {
+                    // The unusual situation of an anonymous typedef struct where the
+                    // first typedef can't be used as its name.
+                    // Just declare it now so we can get a valid id.
+                    if (!tt.id && tt.members)
+                    {
+                        Specifier spec;
+                        declareTag(tt, spec, true);
+                        idt = tt.id;
+                    }
                 }
                 if (isalias)
                 {
@@ -2034,6 +2042,16 @@ final class CParser(AST) : Parser!AST
 
                 if (dt.ty == AST.Tvoid)
                     error("`void` has no value");
+
+                if (auto tt = tspec.isTypeTag())
+                {
+                    // Anonymous struct being used as a var decl type
+                    if (!tt.id && tt.members && tt.tok != TOK.enum_)
+                    {
+                        Specifier spec;
+                        declareTag(tt, spec);
+                    }
+                }
 
                 AST.Initializer initializer;
                 bool hasInitializer;
@@ -4097,7 +4115,7 @@ final class CParser(AST) : Parser!AST
              *   struct { ... members ... };
              * C11 6.7.2.1-13
              */
-            if (!tt.id && tt.members)
+            if (!tt.id && tt.members && tt.tok != TOK.enum_)
             {
                 /* members of anonymous struct are considered members of
                  * the containing struct
@@ -4113,16 +4131,18 @@ final class CParser(AST) : Parser!AST
             /* `struct tag;` and `struct tag { ... };`
              * always result in a declaration in the current scope
              */
-            // TODO: merge in specifier
-            auto stag = (tt.tok == TOK.struct_)
-                ? new AST.StructDeclaration(tt.loc, tt.id, false)
-                : new AST.UnionDeclaration(tt.loc, tt.id);
-            stag.members = tt.members;
-            if (!symbols)
-                symbols = new AST.Dsymbols();
-            auto s = applySpecifier(stag, specifier);
-            symbols.push(s);
+            Specifier spec;
+            declareTag(tt, spec);
             return;
+        }
+        if (auto tt = tspec.isTypeTag())
+        {
+            // Declare the tagged type at this point.
+            if (tt.members)
+            {
+                Specifier spec;
+                declareTag(tt, spec);
+            }
         }
 
         while (1)
