@@ -3702,3 +3702,80 @@ Dsymbol isUnique(OverDeclaration od)
     });
     return result;
 }
+
+/************************************
+* Check to see if this variable is actually in an enclosing function
+* rather than the current one.
+* Update nestedrefs[], closureVars[] and outerVars[].
+* Returns: true if error occurs.
+*/
+extern (D) bool checkNestedReference(VarDeclaration vd, Scope* sc, Loc loc)
+{
+    //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
+    if (sc.intypeof == 1 || sc.ctfe)
+        return false;
+    if (!vd.parent || vd.parent == sc.parent)
+        return false;
+    if (vd.isDataseg() || (vd.storage_class & STC.manifest))
+        return false;
+
+    // The current function
+    FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
+    if (!fdthis)
+        return false; // out of function scope
+
+    Dsymbol p = vd.toParent2();
+
+    // Function literals from fdthis to p must be delegates
+    ensureStaticLinkTo(fdthis, p);
+
+    // The function that this variable is in
+    FuncDeclaration fdv = p.isFuncDeclaration();
+    if (!fdv || fdv == fdthis)
+        return false;
+
+    // Add fdthis to nestedrefs[] if not already there
+    if (!vd.nestedrefs.contains(fdthis))
+        vd.nestedrefs.push(fdthis);
+
+    //printf("\tfdv = %s\n", fdv.toChars());
+    //printf("\tfdthis = %s\n", fdthis.toChars());
+    if (loc.isValid())
+    {
+        if (fdthis.getLevelAndCheck(loc, sc, fdv, vd) == fdthis.LevelError)
+            return true;
+    }
+
+    // Add this VarDeclaration to fdv.closureVars[] if not already there
+    if (!sc.intypeof && !sc.traitsCompiles &&
+        // https://issues.dlang.org/show_bug.cgi?id=17605
+        (fdv.skipCodegen || !fdthis.skipCodegen))
+    {
+        if (!fdv.closureVars.contains(vd))
+            fdv.closureVars.push(vd);
+    }
+
+    if (!fdthis.outerVars.contains(vd))
+        fdthis.outerVars.push(vd);
+
+    //printf("fdthis is %s\n", fdthis.toChars());
+    //printf("var %s in function %s is nested ref\n", toChars(), fdv.toChars());
+    // __dollar creates problems because it isn't a real variable
+    // https://issues.dlang.org/show_bug.cgi?id=3326
+    if (vd.ident == Id.dollar)
+    {
+        .error(loc, "cannnot use `$` inside a function literal");
+        return true;
+    }
+    if (vd.ident == Id.withSym) // https://issues.dlang.org/show_bug.cgi?id=1759
+    {
+        ExpInitializer ez = vd._init.isExpInitializer();
+        assert(ez);
+        Expression e = ez.exp;
+        if (e.op == EXP.construct || e.op == EXP.blit)
+            e = (cast(AssignExp)e).e2;
+        return lambdaCheckForNestedRef(e, sc);
+    }
+
+    return false;
+}
