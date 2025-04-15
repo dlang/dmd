@@ -1749,6 +1749,7 @@ public:
     bool isTrivialAliasSeq;
     bool isTrivialAlias;
     bool deprecated_;
+    bool isCmacro;
     Visibility visibility;
     TemplatePrevious* previous;
     Expression* lastConstraint;
