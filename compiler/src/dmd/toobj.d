@@ -35,7 +35,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden, isAbstract;
+import dmd.dsymbolsem : getLocalClasses, hasPointers, hasStaticCtorOrDtor, include, isFuncHidden, isAbstract;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;

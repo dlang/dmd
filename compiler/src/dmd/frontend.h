@@ -384,12 +384,14 @@ struct SourceLoc final
     uint32_t line;
     uint32_t column;
     uint32_t fileOffset;
+    _d_dynamicArray< const char > fileContent;
     const char* toChars(bool showColumns = Loc::showColumns, MessageStyle messageStyle = Loc::messageStyle) const;
     SourceLoc() :
         filename(),
         line(),
         column(),
-        fileOffset()
+        fileOffset(),
+        fileContent()
     {
     }
 };
@@ -3608,6 +3610,7 @@ public:
     uint8_t sz;
     bool committed;
     bool hexString;
+    bool cMacro;
     enum : char { NoPostfix = 0u };
 
     static StringExp* create(Loc loc, const char* s);
@@ -4847,6 +4850,7 @@ public:
     Loc loc;
     TOK tok;
     structalign_t packalign;
+    Array<Expression* >* alignExps;
     Identifier* id;
     Type* base;
     Array<Dsymbol* >* members;
@@ -5548,7 +5552,7 @@ private:
         char realexp[48LLU];
         char complexexp[64LLU];
         char symoffexp[56LLU];
-        char stringexp[43LLU];
+        char stringexp[44LLU];
         char arrayliteralexp[40LLU];
         char assocarrayliteralexp[48LLU];
         char structliteralexp[64LLU];

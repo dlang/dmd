@@ -349,7 +349,7 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
     int xmmtopush = 0;
     int gptopush = popcnt(topush);  // general purpose registers to save
     targ_size_t gpoffset = cg.pushoff + cg.BPoff;
-    reg_t fp;
+    reg_t fp;                       // frame pointer
     if (!cg.hasframe || cg.enforcealign)
     {
         gpoffset += cg.EBPtoESP;
@@ -365,7 +365,7 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
 
         const ins = (mask(reg) & INSTR.FLOATREGS)
             // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
-            ? INSTR.str_imm_fpsimd(3,0,cast(uint)gpoffset,fp,reg) // STR reg,[fp,#offset]
+            ? INSTR.str_imm_fpsimd(3,0,cast(uint)gpoffset >> 3,fp,reg) // STR reg,[fp,#offset]
             : INSTR.str_imm_gen(1, reg, fp, gpoffset);            // STR reg,[fp,#offset]
         cdb.gen1(ins);
 
@@ -416,7 +416,7 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
 
         const ins = (mask(reg) & INSTR.FLOATREGS)
             // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
-            ? INSTR.ldr_imm_fpsimd(3,1,cast(uint)gpoffset,fp,reg) // LDR reg,[fp,#offset]
+            ? INSTR.ldr_imm_fpsimd(3,0,cast(uint)gpoffset >> 3,fp,reg) // LDR reg,[fp,#offset]
             : INSTR.ldr_imm_gen(1, reg, fp, gpoffset);            // LDR reg,[fp,#offset]
         cdb.gen1(ins);
         gpoffset += REGSIZE;
@@ -501,11 +501,10 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
     {
         if (!(mask(q) & namedargs))  // unnamed arguments would be the ... ones
         {
+            reg_t fp = (!cg.hasframe || cg.enforcealign) ? 31 : 29; // SP : BP
             uint offset = cast(uint)voff + 8 * 8 + (q & 31) * 16;
-            if (!cg.hasframe || cg.enforcealign)
-                cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,31,q));  // STR q,[sp,#offset]
-            else
-                cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,29,q));
+            offset /= 16;                                     // saving 128 bit Q registers
+            cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,fp,q));  // STR q,[sp,#offset]
         }
     }
 

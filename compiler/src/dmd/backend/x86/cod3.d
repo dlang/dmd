@@ -4380,11 +4380,10 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                         if (tyfloating(t.Tty))
                         {
                             // STR preg,[bp,#offset]
-                            if (sz == 8)
-                                imm >>= 3;
-                            else if (sz == 4)
-                                imm >>= 2;
-                            cdb.gen1(INSTR.str_imm_fpsimd(2 + (sz == 8),0,imm,29,preg));
+                            uint size, opc;
+                            INSTR.szToSizeOpc(sz, size, opc);
+                            imm /= sz;
+                            cdb.gen1(INSTR.str_imm_fpsimd(size,opc,imm,29,preg)); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
                         }
                         else
                             // STR preg,bp,#offset
@@ -6546,7 +6545,7 @@ private void pinholeopt_unittest()
     for (int i = 0; i < tests.length; i++)
     {   CS* pin  = &tests[i][0];
         CS* pout = &tests[i][1];
-        code cs = void;
+        code cs;
         memset(&cs, 0, cs.sizeof);
         if (pin.model)
         {

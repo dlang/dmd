@@ -51,7 +51,6 @@ import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
-import dmd.dsymbolsem;
 
 import dmd.common.outbuffer;
 
@@ -898,69 +897,6 @@ extern (C++) class Dsymbol : ASTNode
     {
         printf("%s %s\n", kind(), toChars());
         assert(0);
-    }
-
-    /*****************************************
-     * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
-     */
-    extern (D) static bool oneMembers(Dsymbols* members, out Dsymbol ps, Identifier ident)
-    {
-        //printf("Dsymbol::oneMembers() %d\n", members ? members.length : 0);
-        Dsymbol s = null;
-        if (!members)
-        {
-            ps = null;
-            return true;
-        }
-
-        for (size_t i = 0; i < members.length; i++)
-        {
-            Dsymbol sx = (*members)[i];
-            bool x = sx.oneMember(ps, ident); //MYTODO: this temporarily creates a new dependency to dsymbolsem, will need to extract oneMembers() later
-            //printf("\t[%d] kind %s = %d, s = %p\n", i, sx.kind(), x, *ps);
-            if (!x)
-            {
-                //printf("\tfalse 1\n");
-                assert(ps is null);
-                return false;
-            }
-            if (ps)
-            {
-                assert(ident);
-                if (!ps.ident || !ps.ident.equals(ident))
-                    continue;
-                if (!s)
-                    s = ps;
-                else if (s.isOverloadable() && ps.isOverloadable())
-                {
-                    // keep head of overload set
-                    FuncDeclaration f1 = s.isFuncDeclaration();
-                    FuncDeclaration f2 = ps.isFuncDeclaration();
-                    if (f1 && f2)
-                    {
-                        assert(!f1.isFuncAliasDeclaration());
-                        assert(!f2.isFuncAliasDeclaration());
-                        for (; f1 != f2; f1 = f1.overnext0)
-                        {
-                            if (f1.overnext0 is null)
-                            {
-                                f1.overnext0 = f2;
-                                break;
-                            }
-                        }
-                    }
-                }
-                else // more than one symbol
-                {
-                    ps = null;
-                    //printf("\tfalse 2\n");
-                    return false;
-                }
-            }
-        }
-        ps = s; // s is the one symbol, null if none
-        //printf("\ttrue\n");
-        return true;
     }
 
     void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)

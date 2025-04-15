@@ -2763,6 +2763,11 @@ else version (CRuntime_Musl)
         enum MINSIGSTKSZ = 4096;
         enum SIGSTKSZ    = 16384;
     }
+    else version (RISCV64)
+    {
+        enum MINSIGSTKSZ = 2048;
+        enum SIGSTKSZ    = 8192;
+    }
     else
         static assert(0, "unimplemented");
 

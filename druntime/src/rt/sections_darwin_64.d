@@ -145,7 +145,13 @@ pthread_key_t firstTLVKey(const mach_header_64* header) pure nothrow @nogc
                 if ((section.flags & SECTION_TYPE) != S_THREAD_LOCAL_VARIABLES)
                     continue;
 
-                return section.firstTLVDescriptor(slide).key;
+                // NOTE: macOS 15.4 has started to fill the upper 32 bits of
+                // the `key` field with an additional number. Using the whole
+                // 64-bit field as a key results in a segmentation fault. Even
+                // though none of this appears to be documented anywhere, we
+                // assume that only the lower 32 bits are used for the actual
+                // key and this results in binaries that execute normally.
+                return section.firstTLVDescriptor(slide).key & 0xFFFF_FFFF;
             }
         }
 

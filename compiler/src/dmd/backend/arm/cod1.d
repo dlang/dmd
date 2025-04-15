@@ -77,10 +77,10 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
             // LDR reg,[cs.base, #offset]
             assert(cs.index == NOREG);
             uint imm12 = cast(uint)cs.IEV1.Voffset;
-            if      (szw == 4) imm12 >>= 2;
-            else if (szw == 8) imm12 >>= 3;
-            else    assert(0);
-            cs.Iop = INSTR.ldr_imm_fpsimd(szw == 8 ? 3 : 2,1,imm12,cs.base,reg);
+            uint size, opc;
+            INSTR.szToSizeOpc(szw, size, opc);
+            imm12 /= szw;
+            cs.Iop = INSTR.ldr_imm_fpsimd(size,opc,imm12,cs.base,reg);
         }
         else
             assert(0);
@@ -150,11 +150,11 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
         {
             // STR reg,[cs.base, #offset]
             assert(cs.index == NOREG);
-            uint imm12 = cs.Sextend;
-            if      (sz == 4) imm12 >>= 4;
-            else if (sz == 8) imm12 >>= 8;
-            else    assert(0);
-            cs.Iop = INSTR.str_imm_fpsimd(sz == 8 ? 3 : 2,0,imm12,cs.base,reg);
+            uint imm12 = cast(uint)cs.IEV1.Voffset;
+            uint size, opc;
+            INSTR.szToSizeOpc(sz, size, opc);
+            imm12 /= sz;
+            cs.Iop = INSTR.str_imm_fpsimd(size,opc,imm12,cs.base,reg);
         }
         else
             assert(0);
@@ -1241,7 +1241,8 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretregs)
 {
     //printf("arm.fixresult(e = %p, retregs = %s, outretregs = %s)\n",e,regm_str(retregs),regm_str(outretregs));
-    if (outretregs == 0) return;           // if don't want result
+    //elem_print(e);
+    if (outretregs == 0) return;          // if don't want result
     assert(e && retregs);                 // need something to work with
     regm_t forccs = outretregs & mPSW;
     regm_t forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);
@@ -2068,7 +2069,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         if (tyfloating(tym))
         {
             const vreg = allocreg(cdb, forregs, tym);     // allocate floating point register
-            float value = e.Vfloat;
+            double value = e.Vfloat;
             if (sz == 8)
                 value = e.Vdouble;
             loadFloatRegConst(cdb,vreg,value,sz);

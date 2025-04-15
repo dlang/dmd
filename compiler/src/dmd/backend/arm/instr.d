@@ -56,6 +56,22 @@ struct INSTR
                                                       3;    // half-precision
                                    }
 
+    /* Convert size of floating point type to size,opc
+     * https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+     */
+    static void szToSizeOpc(uint sz, ref uint size, ref uint opc)
+    {
+        switch (sz)
+        {
+            case 1:  size = 0; opc = 0; break;  // Bt byte
+            case 2:  size = 1; opc = 0; break;  // Ht half
+            case 4:  size = 2; opc = 0; break;  // St single
+            case 8:  size = 3; opc = 0; break;  // Dt double
+            case 16: size = 0; opc = 2; break;  // Qt quad
+            default: assert(0);
+        }
+    }
+
     /************************************ Reserved ***********************************************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#reserved                  */
 
@@ -986,24 +1002,22 @@ struct INSTR
     /* https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
      * STR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
      */
-    static uint str_imm_fpsimd(uint size, uint opc, uint offset, reg_t Rn, reg_t Vt)
+    static uint str_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt)
     {
+        assert(imm12 < 0x1000);
         assert(size < 4);
         assert(opc  < 4);
-        uint scale = ((opc & 2) << 1) | size;
-        uint imm12 = (cast(uint)offset >> scale) & 0xFFF;
         return ldst_pos(size,1,opc,imm12,Rn,Vt);
     }
 
     /* https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
      * LDR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
      */
-    static uint ldr_imm_fpsimd(uint size, uint opc, uint offset, reg_t Rn, reg_t Vt)
+    static uint ldr_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt)
     {
+        assert(imm12 < 0x1000);
         assert(size < 4);
         assert(opc  < 4);
-        uint scale = ((opc & 2) << 1) | size;
-        uint imm12 = (cast(uint)offset >> scale) & 0xFFF;
         return ldst_pos(size,1,opc,imm12,Rn,Vt);
     }
 

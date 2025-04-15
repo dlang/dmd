@@ -761,9 +761,13 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 // C11 6.2.5-20 "element type shall be complete whenever the array type is specified"
                 assert(0); // should have been detected by parser
             }
+            auto bt = tsa.nextOf().toBasetype();
 
-            auto tnsa = tsa.nextOf().toBasetype().isTypeSArray();
-
+            if (auto tnss = bt.isTypeStruct())
+            {
+                return subStruct(tnss, index);
+            }
+            auto tnsa = bt.isTypeSArray();
             auto ai = new ArrayInitializer(ci.loc);
             ai.isCarray = true;
 

@@ -765,6 +765,7 @@ else
 
     if (cg.floatreg)
     {
+        assert(!cg.AArch64);
         uint floatregsize = config.fpxmmregs || I32 ? 16 : DOUBLESIZE;
         cg.Foff = alignsection(cg.regsave.off - floatregsize, STACKALIGN, bias);
         //printf("Foff = x%x, size = x%x\n", cast(int)cg.Foff, cast(int)floatregsize);

@@ -1,0 +1,7 @@
+Fixed generated binaries crashing on macOS 15.4
+
+macOS 15.4 has introduced an undocumented ABI change to the format of
+thread local variable section, which causes almost all executable built with
+previous D compiler versions to crash during initialization, if they use
+DRuntime. This release introduces a mitigation for this issue that is
+backwards compatible with previous versions of macOS.

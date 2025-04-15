@@ -202,6 +202,30 @@ void test8()
 }
 
 /**************************************/
+// https://github.com/dlang/dmd/issues/21210
+
+struct Sa {int x, y;};
+struct Sb {
+    struct Sa v[1];
+};
+struct Sb s9 = {0};
+
+void test9()
+{
+    struct Sb v = {1};
+    __check(v.v[0].x == 1);
+    __check(v.v[0].y == 0);
+    struct Sb v2[1] = {1};
+    __check(v2[0].v[0].x == 1);
+    __check(v2[0].v[0].y == 0);
+    struct Sb v3[2] = {1, 2, 3, 4};
+    __check(v3[0].v[0].x == 1);
+    __check(v3[0].v[0].y == 2);
+    __check(v3[1].v[0].x == 3);
+    __check(v3[1].v[0].y == 4);
+}
+
+/**************************************/
 
 int main()
 {
@@ -213,5 +237,6 @@ int main()
     test6();
     test7();
     test8();
+    test9();
     return 0;
 }

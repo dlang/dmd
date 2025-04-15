@@ -641,21 +641,25 @@ TupleDeclaration isAliasThisTuple(Expression e)
     Type t = e.type.toBasetype();
     while (true)
     {
-        Dsymbol s = t.toDsymbol(null);
-        if (!s)
-            return null;
-        auto ad = s.isAggregateDeclaration();
-        if (!ad)
-            return null;
-        s = ad.aliasthis ? ad.aliasthis.sym : null;
-        if (s && s.isVarDeclaration())
+        if (Dsymbol s = t.toDsymbol(null))
         {
-            TupleDeclaration td = s.isVarDeclaration().toAlias().isTupleDeclaration();
-            if (td && td.isexp)
-                return td;
+            if (auto ad = s.isAggregateDeclaration())
+            {
+                s = ad.aliasthis ? ad.aliasthis.sym : null;
+                if (s && s.isVarDeclaration())
+                {
+                    TupleDeclaration td = s.isVarDeclaration().toAlias().isTupleDeclaration();
+                    if (td && td.isexp)
+                        return td;
+                }
+                if (Type att = t.aliasthisOf())
+                {
+                    t = att;
+                    continue;
+                }
+            }
         }
-        if (Type att = t.aliasthisOf())
-            t = att;
+        return null;
     }
 }
 
@@ -1247,6 +1251,9 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
         }
         else
         {
+            if (arrayExpressionSemantic(ce.arguments.peekSlice(), sc))
+                return ErrorExp.get();
+
             if (Expression ey = die.dotIdSemanticProp(sc, 1))
             {
                 if (ey.op == EXP.error)
@@ -1254,18 +1261,10 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
                 ce.e1 = ey;
                 if (isDotOpDispatch(ey))
                 {
-                    // even opDispatch and UFCS must have valid arguments,
-                    // so now that we've seen indication of a problem,
-                    // check them for issues.
-                    Expressions* originalArguments = Expression.arraySyntaxCopy(ce.arguments);
-
                     const errors = global.startGagging();
                     e = ce.expressionSemantic(sc);
                     if (!global.endGagging(errors))
                         return e;
-
-                    if (arrayExpressionSemantic(originalArguments.peekSlice(), sc))
-                        return ErrorExp.get();
 
                     /* fall down to UFCS */
                 }
@@ -4429,7 +4428,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             buffer.write4(0);
             e.setData(buffer.extractData(), newlen, 4);
-            if (sc && sc.inCfile)
+            if (!e.cMacro && sc && sc.inCfile)
                 e.type = Type.tuns32.sarrayOf(e.len + 1);
             else
                 e.type = Type.tdchar.immutableOf().arrayOf();
@@ -4454,7 +4453,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             buffer.writeUTF16(0);
             e.setData(buffer.extractData(), newlen, 2);
-            if (sc && sc.inCfile)
+            if (!e.cMacro && sc && sc.inCfile)
                 e.type = Type.tuns16.sarrayOf(e.len + 1);
             else
                 e.type = Type.twchar.immutableOf().arrayOf();
@@ -4466,7 +4465,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             goto default;
 
         default:
-            if (sc && sc.inCfile)
+            if (!e.cMacro && sc && sc.inCfile)
                 e.type = Type.tchar.sarrayOf(e.len + 1);
             else
                 e.type = Type.tchar.immutableOf().arrayOf();
