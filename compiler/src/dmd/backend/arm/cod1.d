@@ -77,10 +77,10 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
             // LDR reg,[cs.base, #offset]
             assert(cs.index == NOREG);
             uint imm12 = cast(uint)cs.IEV1.Voffset;
-            if      (szw == 4) imm12 >>= 2;
-            else if (szw == 8) imm12 >>= 3;
-            else    assert(0);
-            cs.Iop = INSTR.ldr_imm_fpsimd(szw == 8 ? 3 : 2,1,imm12,cs.base,reg);
+            uint size, opc;
+            INSTR.szToSizeOpc(szw, size, opc);
+            imm12 /= szw;
+            cs.Iop = INSTR.ldr_imm_fpsimd(size,opc,imm12,cs.base,reg);
         }
         else
             assert(0);
@@ -150,11 +150,11 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
         {
             // STR reg,[cs.base, #offset]
             assert(cs.index == NOREG);
-            uint imm12 = cs.Sextend;
-            if      (sz == 4) imm12 >>= 4;
-            else if (sz == 8) imm12 >>= 8;
-            else    assert(0);
-            cs.Iop = INSTR.str_imm_fpsimd(sz == 8 ? 3 : 2,0,imm12,cs.base,reg);
+            uint imm12 = cast(uint)cs.IEV1.Voffset;
+            uint size, opc;
+            INSTR.szToSizeOpc(sz, size, opc);
+            imm12 /= sz;
+            cs.Iop = INSTR.str_imm_fpsimd(size,opc,imm12,cs.base,reg);
         }
         else
             assert(0);
