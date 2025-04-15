@@ -53,7 +53,7 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, checkDeprecated, aliasSemantic, search, search_correct, setScope, importAll, include, hasStaticCtorOrDtor;
+import dmd.dsymbolsem : dsymbolSemantic, checkDeprecated, aliasSemantic, search, search_correct, setScope, importAll, include, hasStaticCtorOrDtor, oneMembers;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -639,7 +639,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             return;
 
         Dsymbol s;
-        if (!Dsymbol.oneMembers(members, s, ident) || !s)
+        if (!oneMembers(members, s, ident) || !s)
             return;
 
         onemember = s;
@@ -5273,7 +5273,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 if (members.length)
                 {
                     Dsymbol sa;
-                    if (Dsymbol.oneMembers(members, sa, tempdecl.ident) && sa)
+                    if (oneMembers(members, sa, tempdecl.ident) && sa)
                         aliasdecl = sa;
                 }
                 done = true;
