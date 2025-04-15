@@ -285,6 +285,12 @@ T va_arg(T)(ref va_list ap)
         ap += T.sizeof.alignUp;
         return *p;
     }
+    else version (WebAssembly)
+    {
+        auto p = cast(T*) ap;
+        ap += T.sizeof.alignUp;
+        return *p;
+    }
     else
         static assert(0, "Unsupported platform");
 }
