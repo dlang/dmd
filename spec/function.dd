@@ -1927,6 +1927,8 @@ $(H3 $(LNAME2 scope-parameters, Scope Parameters))
     `scope` escape analysis is only done for `@safe` functions. For other functions `scope`
     semantics must be manually enforced.)
 
+    $(NOTE `@safe` escape analysis is only done with the $(D -preview=dip1000) switch.)
+
 ---
 @safe:
 
