@@ -356,6 +356,7 @@ Symbol* toSymbol(Dsymbol s)
                     mod.filetype == FileType.c && // a C file
                     fd.fbody &&                   // a function definition
                     fd._linkage == LINK.c &&
+                    !fd.isStatic() &&
                     !fd.skipCodegen)              // code gen is desired
                 {
                     __gshared DsymbolTable Csymtab;  // sorry about another global variable
