@@ -383,19 +383,20 @@ $(H2 $(LNAME2 eqcmp, Overloading the Comparison Operators))
         $(D x < y) nor $(D y < x) holds, but that does not imply that
         $(D x == y). Thus, it is insufficient to determine equality purely based on
         $(D opCmp) alone. For this reason, $(D opCmp) is only used for the
-        inequality operators $(D <), $(D <=), $(D >=), and $(D >). The equality
+        $(GLINK2 RelExpression) operators $(D <), $(D <=), $(D >=), and $(D >). The equality
         operators $(D ==) and $(D !=) always employ $(D opEquals) instead.)
 
         $(P Therefore, it is the programmer's responsibility to ensure that
         `opCmp` and $(D opEquals) are consistent with each other. If
-        `opEquals` is not specified, the compiler provides a default version
+        `opEquals` is not specified for a struct, the compiler provides a
+        $(DDSUBLINK spec/expression, struct_equality, default version) of it
         that does member-wise comparison. If this suffices, one may define only
-        $(D opCmp) to customize the behaviour of the inequality operators.  But
+        $(D opCmp) to customize the behaviour of the *RelExpression* operators.  But
         if not, then a custom version of $(D opEquals) should be defined as
         well, in order to preserve consistent semantics between the two kinds
         of comparison operators.)
 
-        $(P Finally, if the user-defined type is to be used as a key in the
+        $(P Finally, if a user-defined type is to be used as a key in the
         built-in associative arrays, then the programmer must ensure that the
         semantics of $(D opEquals) and $(D toHash) are consistent. If not, the
         associative array may not work in the expected manner.)
@@ -562,13 +563,20 @@ struct S
     int opCmp(ref const S s) const { ... }
 }
 ---
-        $(P Note that $(D opCmp) is only used for the inequality operators;
-        expressions like $(D a == b) always uses $(D opEquals). If $(D opCmp)
-        is defined but $(D opEquals) isn't, the compiler will supply a default
-        version of $(D opEquals) that performs member-wise comparison. If this
-        member-wise comparison is not consistent with the user-defined
-        `opCmp`, then it is up to the programmer to supply an appropriate
-        version of $(D opEquals).  Otherwise, inequalities like $(D a <= b)
+
+        $(P Note that $(D opCmp) is only used for
+        $(GLINK2 expression, RelExpression) operators;
+        expressions like $(D a == b) always use $(RELATIVE_LINK2 equals, `opEquals`).)
+
+        $(P For structs, if $(D opCmp) is defined but $(D opEquals) isn't,
+        the compiler will supply $(DDSUBLINK spec/expression, struct_equality, a default
+        version) of $(D opEquals) that performs member-wise comparison. However, the
+        member-wise comparison may not be consistent with the user-defined
+        `opCmp`.)
+
+        $(P It is up to the programmer to also supply a
+        version of $(D opEquals) when appropriate. Otherwise,
+        a *RelExpression* like $(D a <= b)
         will behave inconsistently with equalities like $(D a == b).)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
