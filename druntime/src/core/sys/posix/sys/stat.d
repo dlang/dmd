@@ -72,29 +72,38 @@ version (linux)
 {
     version (X86)
     {
-        struct stat_t
+        version (CRuntime_Musl)
         {
-            dev_t       st_dev;
-            ushort      __pad1;
-            static if (!__USE_FILE_OFFSET64)
+            struct stat_t
             {
+                dev_t       st_dev;
+                ushort      __pad1;
+                static if (!__USE_FILE_OFFSET64)
+                {
+                    ino_t       st_ino;
+                }
+                else
+                {
+                    uint        __st_ino;
+                }
+                mode_t      st_mode;
+                nlink_t     st_nlink;
+                uid_t       st_uid;
+                gid_t       st_gid;
+                dev_t       st_rdev;
+                ushort      __pad2;
+                off_t       st_size;
+                blksize_t   st_blksize;
+                blkcnt_t    st_blocks;
+                private struct __timespec32
+                {
+                    c_long tv_sec;
+                    c_long tv_nsec;
+                }
+                __timespec32 __st_atim32;
+                __timespec32 __st_mtim32;
+                __timespec32 __st_ctim32;
                 ino_t       st_ino;
-            }
-            else
-            {
-                uint        __st_ino;
-            }
-            mode_t      st_mode;
-            nlink_t     st_nlink;
-            uid_t       st_uid;
-            gid_t       st_gid;
-            dev_t       st_rdev;
-            ushort      __pad2;
-            off_t       st_size;
-            blksize_t   st_blksize;
-            blkcnt_t    st_blocks;
-            static if (_DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
-            {
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
@@ -105,23 +114,61 @@ version (linux)
                     ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
-            else
+            static assert(stat_t.sizeof == 144);
+        }
+        else
+        {
+            struct stat_t
             {
-                time_t      st_atime;
-                ulong_t     st_atimensec;
-                time_t      st_mtime;
-                ulong_t     st_mtimensec;
-                time_t      st_ctime;
-                ulong_t     st_ctimensec;
-            }
-            static if (__USE_FILE_OFFSET64)
-            {
-                ino_t       st_ino;
-            }
-            else
-            {
-                c_ulong     __unused4;
-                c_ulong     __unused5;
+                dev_t       st_dev;
+                ushort      __pad1;
+                static if (!__USE_FILE_OFFSET64)
+                {
+                    ino_t       st_ino;
+                }
+                else
+                {
+                    uint        __st_ino;
+                }
+                mode_t      st_mode;
+                nlink_t     st_nlink;
+                uid_t       st_uid;
+                gid_t       st_gid;
+                dev_t       st_rdev;
+                ushort      __pad2;
+                off_t       st_size;
+                blksize_t   st_blksize;
+                blkcnt_t    st_blocks;
+                static if (_DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
+                {
+                    timespec    st_atim;
+                    timespec    st_mtim;
+                    timespec    st_ctim;
+                    extern(D) @safe @property inout pure nothrow
+                    {
+                        ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                        ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                        ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
+                    }
+                }
+                else
+                {
+                    time_t      st_atime;
+                    ulong_t     st_atimensec;
+                    time_t      st_mtime;
+                    ulong_t     st_mtimensec;
+                    time_t      st_ctime;
+                    ulong_t     st_ctimensec;
+                }
+                static if (__USE_FILE_OFFSET64)
+                {
+                    ino_t       st_ino;
+                }
+                else
+                {
+                    c_ulong     __unused4;
+                    c_ulong     __unused5;
+                }
             }
         }
     }
@@ -261,37 +308,31 @@ version (linux)
     }
     else version (MIPS_O32)
     {
-        struct stat_t
+        version (CRuntime_Musl)
         {
-            version (CRuntime_Musl)
+            struct stat_t
             {
                 dev_t       st_dev;
-                c_long[2]   st_pad1;
-            }
-            else
-            {
-                c_ulong     st_dev;
-                c_long[3]   st_pad1;
-            }
-            ino_t       st_ino;
-            mode_t      st_mode;
-            nlink_t     st_nlink;
-            uid_t       st_uid;
-            gid_t       st_gid;
-            c_ulong     st_rdev;
-            static if (!__USE_FILE_OFFSET64)
-            {
-                c_long[2]   st_pad2;
+                c_long[2]   __pad1;
+                ino_t       st_ino;
+                mode_t      st_mode;
+                nlink_t     st_nlink;
+                uid_t       st_uid;
+                gid_t       st_gid;
+                dev_t       st_rdev;
+                c_long[2]   __pad2;
                 off_t       st_size;
-                c_long      st_pad3;
-            }
-            else
-            {
-                c_long[3]   st_pad2;
-                off_t       st_size;
-            }
-            static if (_DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
-            {
+                private struct __timespec32
+                {
+                    c_long tv_sec;
+                    c_long tv_nsec;
+                }
+                __timespec32 __st_atim32;
+                __timespec32 __st_mtim32;
+                __timespec32 __st_ctim32;
+                blksize_t   st_blksize;
+                c_long      __pad3;
+                blkcnt_t    st_blocks;
                 timespec    st_atim;
                 timespec    st_mtim;
                 timespec    st_ctim;
@@ -301,27 +342,65 @@ version (linux)
                     ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
                     ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
+                c_long[2]   __pad4;
             }
-            else
+        }
+        else
+        {
+            struct stat_t
             {
-                time_t      st_atime;
-                c_ulong     st_atimensec;
-                time_t      st_mtime;
-                c_ulong     st_mtimensec;
-                time_t      st_ctime;
-                c_ulong     st_ctimensec;
+                c_ulong     st_dev;
+                c_long[3]   st_pad1;
+                ino_t       st_ino;
+                mode_t      st_mode;
+                nlink_t     st_nlink;
+                uid_t       st_uid;
+                gid_t       st_gid;
+                c_ulong     st_rdev;
+                static if (!__USE_FILE_OFFSET64)
+                {
+                    c_long[2]   st_pad2;
+                    off_t       st_size;
+                    c_long      st_pad3;
+                }
+                else
+                {
+                    c_long[3]   st_pad2;
+                    off_t       st_size;
+                }
+                static if (_DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
+                {
+                    timespec    st_atim;
+                    timespec    st_mtim;
+                    timespec    st_ctim;
+                    extern(D) @safe @property inout pure nothrow
+                    {
+                        ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                        ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                        ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
+                    }
+                }
+                else
+                {
+                    time_t      st_atime;
+                    c_ulong     st_atimensec;
+                    time_t      st_mtime;
+                    c_ulong     st_mtimensec;
+                    time_t      st_ctime;
+                    c_ulong     st_ctimensec;
+                }
+                blksize_t   st_blksize;
+                static if (!__USE_FILE_OFFSET64)
+                {
+                    blkcnt_t    st_blocks;
+                }
+                else
+                {
+                    c_long      st_pad4;
+                    blkcnt_t    st_blocks;
+                }
+                c_long[14]  st_pad6;
             }
-            blksize_t   st_blksize;
-            static if (!__USE_FILE_OFFSET64)
-            {
-                blkcnt_t    st_blocks;
-            }
-            else
-            {
-                c_long      st_pad4;
-                blkcnt_t    st_blocks;
-            }
-            c_long[14]  st_pad5;
         }
         static if (!__USE_FILE_OFFSET64)
             static assert(stat_t.sizeof == 144);
@@ -572,67 +651,34 @@ version (linux)
     }
     else version (ARM)
     {
-        private
+        version (CRuntime_Musl)
         {
-            alias __dev_t = ulong;
-            alias __ino_t = c_ulong;
-            alias __ino64_t = ulong;
-            alias __mode_t = uint;
-            alias __nlink_t = size_t;
-            alias __uid_t = uint;
-            alias __gid_t = uint;
-            alias __off_t = c_long;
-            alias __off64_t = long;
-            alias __blksize_t = c_long;
-            alias __blkcnt_t = c_long;
-            alias __blkcnt64_t = long;
-            alias __timespec = timespec;
-            alias __time_t = time_t;
-        }
-        struct stat_t
-        {
-            __dev_t st_dev;
-            ushort __pad1;
-
-            static if (!__USE_FILE_OFFSET64)
+            struct stat_t
             {
-                __ino_t st_ino;
-            }
-            else
-            {
-                __ino_t __st_ino;
-            }
-            __mode_t st_mode;
-            __nlink_t st_nlink;
-            __uid_t st_uid;
-            __gid_t st_gid;
-            __dev_t st_rdev;
-            ushort __pad2;
-
-            static if (!__USE_FILE_OFFSET64)
-            {
-                __off_t st_size;
-            }
-            else
-            {
-                __off64_t st_size;
-            }
-            __blksize_t st_blksize;
-
-            static if (!__USE_FILE_OFFSET64)
-            {
-                __blkcnt_t st_blocks;
-            }
-            else
-            {
-                __blkcnt64_t st_blocks;
-            }
-
-            static if ( _DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
-            {
-                __timespec st_atim;
-                __timespec st_mtim;
-                __timespec st_ctim;
+                dev_t st_dev;
+                ushort __pad1;
+                c_long __st_ino;
+                mode_t st_mode;
+                nlink_t st_nlink;
+                uid_t st_uid;
+                gid_t st_gid;
+                dev_t st_rdev;
+                ushort __pad2;
+                off_t st_size;
+                blksize_t st_blksize;
+                blkcnt_t st_blocks;
+                private struct __timespec32
+                {
+                    c_long tv_sec;
+                    c_long tv_nsec;
+                }
+                __timespec32 __st_atim32;
+                __timespec32 __st_mtim32;
+                __timespec32 __st_ctim32;
+                ino_t st_ino;
+                timespec st_atim;
+                timespec st_mtim;
+                timespec st_ctim;
                 extern(D) @safe @property inout pure nothrow
                 {
                     ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
@@ -640,30 +686,103 @@ version (linux)
                     ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
                 }
             }
-            else
-            {
-                __time_t st_atime;
-                c_ulong st_atimensec;
-                __time_t st_mtime;
-                c_ulong st_mtimensec;
-                __time_t st_ctime;
-                c_ulong st_ctimensec;
-            }
-
-            static if (!__USE_FILE_OFFSET64)
-            {
-                c_ulong __unused4;
-                c_ulong __unused5;
-            }
-            else
-            {
-                __ino64_t st_ino;
-            }
+            static assert(stat_t.sizeof == 152);
         }
-        static if (__USE_FILE_OFFSET64)
-            static assert(stat_t.sizeof == 104);
         else
-            static assert(stat_t.sizeof == 88);
+        {
+            private
+            {
+                alias __dev_t = ulong;
+                alias __ino_t = c_ulong;
+                alias __ino64_t = ulong;
+                alias __mode_t = uint;
+                alias __nlink_t = size_t;
+                alias __uid_t = uint;
+                alias __gid_t = uint;
+                alias __off_t = c_long;
+                alias __off64_t = long;
+                alias __blksize_t = c_long;
+                alias __blkcnt_t = c_long;
+                alias __blkcnt64_t = long;
+                alias __timespec = timespec;
+                alias __time_t = time_t;
+            }
+            struct stat_t
+            {
+                __dev_t st_dev;
+                ushort __pad1;
+
+                static if (!__USE_FILE_OFFSET64)
+                {
+                    __ino_t st_ino;
+                }
+                else
+                {
+                    __ino_t __st_ino;
+                }
+                __mode_t st_mode;
+                __nlink_t st_nlink;
+                __uid_t st_uid;
+                __gid_t st_gid;
+                __dev_t st_rdev;
+                ushort __pad2;
+
+                static if (!__USE_FILE_OFFSET64)
+                {
+                    __off_t st_size;
+                }
+                else
+                {
+                    __off64_t st_size;
+                }
+                __blksize_t st_blksize;
+
+                static if (!__USE_FILE_OFFSET64)
+                {
+                    __blkcnt_t st_blocks;
+                }
+                else
+                {
+                    __blkcnt64_t st_blocks;
+                }
+
+                static if ( _DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
+                {
+                    __timespec st_atim;
+                    __timespec st_mtim;
+                    __timespec st_ctim;
+                    extern(D) @safe @property inout pure nothrow
+                    {
+                        ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                        ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                        ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
+                    }
+                }
+                else
+                {
+                    __time_t st_atime;
+                    c_ulong st_atimensec;
+                    __time_t st_mtime;
+                    c_ulong st_mtimensec;
+                    __time_t st_ctime;
+                    c_ulong st_ctimensec;
+                }
+
+                static if (!__USE_FILE_OFFSET64)
+                {
+                    c_ulong __unused4;
+                    c_ulong __unused5;
+                }
+                else
+                {
+                    __ino64_t st_ino;
+                }
+            }
+	          static if (__USE_FILE_OFFSET64)
+	              static assert(stat_t.sizeof == 104);
+	          else
+	              static assert(stat_t.sizeof == 88);
+        }
     }
     else version (AArch64)
     {
