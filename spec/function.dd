@@ -1533,20 +1533,37 @@ $(H3 $(LNAME2 param-storage, Parameter Storage Classes))
 
 $(H3 $(LNAME2 in-params, In Parameters))
 
-        $(B Note: The following requires the $(D -preview=in) switch$(COMMA) available in
-        $(LINK2 $(ROOT_DIR)changelog/2.094.0.html#preview-in, v2.094.0) or higher.
-        When not in use, `in` is equivalent to `const`.)
         $(P The parameter is an input to the function. Input parameters behave as if they have
-        the $(D const scope) storage classes. Input parameters may also be passed by reference by the compiler.)
-        $(P Unlike $(D ref) parameters$(COMMA) $(D in) parameters can bind to both lvalues and rvalues
+        the $(D const) storage class.)
+
+        $(NOTE The following requires the $(D -preview=in) switch and a compiler compliant with
+        $(LINK2 $(ROOT_DIR)changelog/2.094.0.html#preview-in, dmd v2.094.0) or higher.)
+
+        $(P `in` parameters also behave like $(RELATIVE_LINK2 scope-parameters, `scope`) parameters.)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+const(int[]) g(in int[] a) @safe
+{
+    a[0]++; // Error: cannot modify const expression
+    return a; // Error: scope parameter `a` may not be returned
+}
+---
+)
+
+        $(P Input parameters may also be passed by reference by the compiler.
+        Unlike $(D ref) parameters, $(D in) parameters can bind to both lvalues and rvalues
         (such as literals).)
-        $(P Types that would trigger a side effect if passed by value (such as types with copy constructor$(COMMA)
-        postblit$(COMMA) or destructor)$(COMMA) and types which cannot be copied
-        (e.g. if their copy constructor is marked as $(D @disable)) will always be passed by reference.
-        Dynamic arrays$(COMMA) classes$(COMMA) associative arrays$(COMMA) function pointers$(COMMA) and delegates
-        will always be passed by value.)
-        $(IMPLEMENTATION_DEFINED If the type of the parameter does not fall in one of those categories$(COMMA)
-        whether or not it is passed by reference is implementation defined$(COMMA) and the backend is free
+
+        - Types that would trigger a side effect if passed by value (such as types with
+          a copy constructor, postblit, or destructor) will always be passed by reference.
+        - Types which cannot be copied (e.g. if their copy constructor is marked as
+          $(D @disable)) will always be passed by reference.
+        - Dynamic arrays, classes, associative arrays, function pointers, and delegates
+          will always be passed by value.
+
+        $(IMPLEMENTATION_DEFINED If the type of the parameter does not fall in one of those categories,
+        whether or not it is passed by reference is implementation defined, and the backend is free
         to choose the method that will best fit the ABI of the platform.
         )
 
