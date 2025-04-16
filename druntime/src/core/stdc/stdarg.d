@@ -287,11 +287,55 @@ T va_arg(T)(ref va_list ap)
     }
     else version (WebAssembly)
     {
-        // Indirect pass for structs > 8 bytes or not power-of-2 sized
-        static if (T.sizeof > 8 || (T.sizeof & (T.sizeof - 1)) != 0)
+        template getSingleWrappedScalarType(T)
+        {
+            static if (__traits(isScalar,T))
+            {
+                alias getSingleWrappedScalarType = T;
+            }
+            else static if (is(T == struct) && T.tupleof.length == 1)
+            {
+                alias getSingleWrappedScalarType = getSingleWrappedScalarType!(typeof(T.tupleof[0]));
+            }
+            else static if (__traits(isStaticArray, T) && T.length == 1)
+            {
+                alias getSingleWrappedScalarType = typeof(T.init[0]); // TODO: really? T.init to get type of static array?
+            }
+            else
+            {
+                alias getSingleWrappedScalarType = void;
+            }
+        }
+
+        template isDirectlyPassedAggregate(T)
+        {
+            static if (is(T == struct) || __traits(isStaticArray, T))
+            {
+                alias SingleWrappedType = getSingleWrappedScalarType!T;
+                enum isDirectlyPassedAggregate = !is(SingleWrappedType : void) &&
+                                                T.sizeof <= 16 &&
+                                                (T.sizeof & (T.sizeof - 1)) == 0 &&
+                                                T.alignof <= (is(SingleWrappedType : void) ? 0 : SingleWrappedType.alignof);
+            }
+            else
+            {
+                enum isDirectlyPassedAggregate = false;
+            }
+        }
+
+        template isPassedDirectly(T)
+        {
+            enum isPassedDirectly = __traits(isScalar, T) || isDirectlyPassedAggregate!T;
+        }
+
+        static if (isPassedDirectly!T == false)
+        {
             auto p = *cast(T**) ap;
+        }
         else
-            auto p = cast(T*) ap;    
+        {
+            auto p = cast(T*) ap;
+        }
         ap += T.sizeof.alignUp;
         return *p;
     }
