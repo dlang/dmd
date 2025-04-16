@@ -4906,6 +4906,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(p.loc, "PlacementExpression `%s` of type `%s` be unshared and mutable", p.toChars(), toChars(p.type));
                 return setError();
             }
+            checkModifiable(exp.placement, sc);
         }
 
         //for error messages if the argument in [] is not convertible to size_t
@@ -15806,11 +15807,12 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 }
 
 /***************************************
- * Parameters:
- *      sc:     scope
- *      flag:   1: do not issue error message for invalid modification
-                2: the exp is a DotVarExp and a subfield of the leftmost
-                   variable is modified
+ * Params:
+ *      exp  = expression to check if modifiable
+ *      sc   = scope
+ *      flag = noError - do not issue error message for invalid modification
+               fieldAssign - exp is a DotVarExp and a subfield of the leftmost
+               variable is modified
  * Returns:
  *      Whether the type is modifiable
  */
@@ -16763,11 +16765,12 @@ enum ModifyFlags
 }
 
 /*************************************
- * Check to see if declaration can be modified in this context (sc).
+ * Check to see if `d` can be modified in this context `sc`.
  * Issue error if not.
  * Params:
+ *  d    = declaration to check
  *  loc  = location for error messages
- *  e1   = `null` or `this` expression when this declaration is a field
+ *  e1   = `null` or `this` expression when `d` is a field
  *  sc   = context
  *  flag = if the first bit is set it means do not issue error message for
  *         invalid modification; if the second bit is set, it means that
@@ -16777,6 +16780,7 @@ enum ModifyFlags
  */
 private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1, ModifyFlags flag)
 {
+    //printf("checkModify() d: %s, e1: %s\n", d.toChars(), e1.toChars());
     VarDeclaration v = d.isVarDeclaration();
     if (v && v.canassign)
         return Modifiable.initialization;
@@ -16822,15 +16826,19 @@ private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1,
 }
 
 /***********************************************
- * Mark variable v as modified if it is inside a constructor that var
+ * Mark variable `var` as modified if it is inside a constructor that `var`
  * is a field in.
  * Also used to allow immutable globals to be initialized inside a static constructor.
+ * Params:
+ *    loc = location for error messages
+ *    sc = scope
+ *    var = field
  * Returns:
- *    true if it's an initialization of v
+ *    true if it's an initialization of `var`
  */
 private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
 {
-    //printf("modifyFieldVar(var = %s)\n", var.toChars());
+    //printf("modifyFieldVar(var: %s, e1: %s)\n", var.toChars(), e1.toChars());
     Dsymbol s = sc.func;
     while (1)
     {
@@ -16846,7 +16854,7 @@ private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e
             bool result = true;
 
             var.ctorinit = true;
-            //printf("setting ctorinit\n");
+            //printf("setting ctorinit for %s\n", var.toChars());
 
             if (var.isField() && sc.ctorflow.fieldinit.length && !sc.intypeof)
             {
