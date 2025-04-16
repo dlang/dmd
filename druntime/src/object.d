@@ -4031,12 +4031,8 @@ Returns:
 */
 auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 {
-    //temporary
-    import core.internal.array.capacity : _d_arrayshrinkfitT;
-    import core.internal.traits : Unqual;
+    _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
 
-    //_d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
-    _d_arrayshrinkfitT(cast(Unqual!T[]) arr);
     return arr;
 }
 

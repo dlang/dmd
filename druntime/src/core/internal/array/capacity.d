@@ -246,7 +246,7 @@ void _d_arrayshrinkfitT(T)(T[] arr) @trusted
         // Early return for null or empty arrays
         if (arr.ptr is null || arr.length == 0)
             return;
-        _d_arrayshrinkfit(typeid(T[]), cast(void[])arr);
+        _d_arrayshrinkfit(typeid(T[]), cast(void[]) arr);
     }
     else
     {
@@ -257,8 +257,10 @@ void _d_arrayshrinkfitT(T)(T[] arr) @trusted
 // Basic test for _d_arrayshrinkfitT
 @system unittest
 {
-    int[] a = new int[10];
-    a = a[0..5]; // Reduce length but keep capacity
+    int[] a = new int[1];
+    a.reserve(20);  //explicitly reserving more memory
+    a = a[0..5]; // Reduce length but keep capacity. capacity should still be 20.
+    a[] = [1,2,3,4,5];
     auto initialPtr = a.ptr;
     auto initialCapacity = a.capacity;
     assert(initialCapacity > 5, "Test setup failed: array doesn't have extra capacity");
@@ -266,6 +268,10 @@ void _d_arrayshrinkfitT(T)(T[] arr) @trusted
     _d_arrayshrinkfitT(a);
     // Verify the array still has the same contents and length
     assert(a.length == 5, "Array length was changed");
+    for(int i = 0; i < 5; i++)
+        assert(a[i] == i + 1, "Array elements were corrupted");
+    auto capacityAfter = a.capacity;
+    assert(capacityAfter <= initialCapacity, "Capacity was not reduced");
     a ~= 10;
     assert(a.ptr == initialPtr, "Appending allocated new memory which indicates shrinkfit failed");
 }
