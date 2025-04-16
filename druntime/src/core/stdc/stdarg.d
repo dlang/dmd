@@ -287,7 +287,11 @@ T va_arg(T)(ref va_list ap)
     }
     else version (WebAssembly)
     {
-        auto p = cast(T*) ap;
+        // Indirect pass for structs > 8 bytes or not power-of-2 sized
+        static if (T.sizeof > 8 || (T.sizeof & (T.sizeof - 1)) != 0)
+            auto p = *cast(T**) ap;
+        else
+            auto p = cast(T*) ap;    
         ap += T.sizeof.alignUp;
         return *p;
     }
