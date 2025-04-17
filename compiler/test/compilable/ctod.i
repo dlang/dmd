@@ -53,11 +53,6 @@ extern (C)
 		Callback cb = void;
 	}
 	extern __gshared int[cast(ULONG)3] arr;
-	/+enum int __DATE__ = 1+/;
-	/+enum int __TIME__ = 1+/;
-	/+enum int __TIMESTAMP__ = 1+/;
-	/+enum int __EOF__ = 1+/;
-	/+enum int __VENDOR__ = 1+/;
 	enum int DEF = 123;
 	enum int SQL_DRIVER_STMT_ATTR_BASE = 16384;
 	enum int ABC = 64;
