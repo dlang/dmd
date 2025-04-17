@@ -9072,24 +9072,22 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         while (1)
         {
+            const loc = token.loc;
             switch (token.value)
             {
             case TOK.mul:
-                const loc = token.loc;
                 nextToken();
                 auto e2 = parseUnaryExp();
                 e = new AST.MulExp(loc, e, e2);
                 continue;
 
             case TOK.div:
-                const loc = token.loc;
                 nextToken();
                 auto e2 = parseUnaryExp();
                 e = new AST.DivExp(loc, e, e2);
                 continue;
 
             case TOK.mod:
-                const loc = token.loc;
                 nextToken();
                 auto e2 = parseUnaryExp();
                 e = new AST.ModExp(loc, e, e2);
@@ -9109,24 +9107,22 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         while (1)
         {
+            const loc = token.loc;
             switch (token.value)
             {
             case TOK.add:
-                const loc = token.loc;
                 nextToken();
                 auto e2 = parseMulExp();
                 e = new AST.AddExp(loc, e, e2);
                 continue;
 
             case TOK.min:
-                const loc = token.loc;
                 nextToken();
                 auto e2 = parseMulExp();
                 e = new AST.MinExp(loc, e, e2);
                 continue;
 
             case TOK.tilde:
-                const loc = token.loc;
                 nextToken();
                 auto e2 = parseMulExp();
                 e = new AST.CatExp(loc, e, e2);
@@ -9146,24 +9142,22 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         while (1)
         {
+            const loc = token.loc;
             switch (token.value)
             {
             case TOK.leftShift:
-                const loc = token.loc;
                 nextToken();
                 auto e2 = parseAddExp();
                 e = new AST.ShlExp(loc, e, e2);
                 continue;
 
             case TOK.rightShift:
-                const loc = token.loc;
                 nextToken();
                 auto e2 = parseAddExp();
                 e = new AST.ShrExp(loc, e, e2);
                 continue;
 
             case TOK.unsignedRightShift:
-                const loc = token.loc;
                 nextToken();
                 auto e2 = parseAddExp();
                 e = new AST.UshrExp(loc, e, e2);
@@ -9181,13 +9175,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         auto e = parseShiftExp();
         EXP op = EXP.reserved;
+        const loc = token.loc;
 
         switch (token.value)
         {
         case TOK.equal:         op = EXP.equal; goto Lequal;
         case TOK.notEqual:      op = EXP.notEqual; goto Lequal;
         Lequal:
-            const loc = token.loc;
             nextToken();
             auto e2 = parseShiftExp();
             e = new AST.EqualExp(op, loc, e, e2);
@@ -9199,7 +9193,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             const tv = peekNext();
             if (tv == TOK.in_)
             {
-                const loc = token.loc;
                 nextToken();
                 nextToken();
                 auto e2 = parseShiftExp();
@@ -9209,14 +9202,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             if (tv != TOK.is_)
                 break;
-            const loc = token.loc;
             nextToken();
             op = EXP.notIdentity;
             goto Lidentity;
         }
         case TOK.is_:           op = EXP.identity; goto Lidentity;
         Lidentity:
-            const loc = token.loc;
             nextToken();
             auto e2 = parseShiftExp();
             e = new AST.IdentityExp(op, loc, e, e2);
@@ -9227,14 +9218,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.greaterThan:    op = EXP.greaterThan;    goto Lcmp;
         case TOK.greaterOrEqual: op = EXP.greaterOrEqual; goto Lcmp;
         Lcmp:
-            const loc = token.loc;
             nextToken();
             auto e2 = parseShiftExp();
             e = new AST.CmpExp(op, loc, e, e2);
             break;
 
         case TOK.in_:
-            const loc = token.loc;
             nextToken();
             auto e2 = parseShiftExp();
             e = new AST.InExp(loc, e, e2);
@@ -9347,11 +9336,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     e.toChars(), Token.toChars(token.value));
         }
 
+        const loc = token.loc;
         switch (token.value)
         {
         case TOK.assign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.AssignExp(loc, e, e2);
@@ -9359,7 +9348,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.addAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.AddAssignExp(loc, e, e2);
@@ -9367,7 +9355,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.minAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.MinAssignExp(loc, e, e2);
@@ -9375,7 +9362,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.mulAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.MulAssignExp(loc, e, e2);
@@ -9383,7 +9369,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.divAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.DivAssignExp(loc, e, e2);
@@ -9391,7 +9376,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.modAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.ModAssignExp(loc, e, e2);
@@ -9399,7 +9383,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.powAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.PowAssignExp(loc, e, e2);
@@ -9407,7 +9390,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.andAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.AndAssignExp(loc, e, e2);
@@ -9415,7 +9397,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.orAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.OrAssignExp(loc, e, e2);
@@ -9423,7 +9404,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.xorAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.XorAssignExp(loc, e, e2);
@@ -9431,7 +9411,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.leftShiftAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.ShlAssignExp(loc, e, e2);
@@ -9439,7 +9418,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.rightShiftAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.ShrAssignExp(loc, e, e2);
@@ -9447,7 +9425,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.unsignedRightShiftAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.UshrAssignExp(loc, e, e2);
@@ -9455,7 +9432,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.concatenateAssign:
             checkRequiredParens();
-            const loc = token.loc;
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.CatAssignExp(loc, e, e2);
