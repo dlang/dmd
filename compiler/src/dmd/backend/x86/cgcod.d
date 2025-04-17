@@ -795,13 +795,27 @@ else
         /* Instead of pushing the registers onto the stack one by one,
          * allocate space in the stack frame and copy/restore them there.
          */
-        int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
-        int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
-        if (cg.NDPoff || xmmtopush || cg.funcarg.size)
+        if (cg.AArch64)
         {
-            cg.pushoff = alignsection(cg.pushoff - (gptopush * REGSIZE + xmmtopush * 16),
-                    xmmtopush ? STACKALIGN : REGSIZE, bias);
-            cg.pushoffuse = true;          // tell others we're using this strategy
+            //printf("topush: %s\n", regm_str(topush));
+            int numtopush = popcnt(topush);
+            if (numtopush || cg.funcarg.size)
+            {
+                cg.pushoff = alignsection(cg.pushoff - numtopush * REGSIZE,
+                        REGSIZE, bias);
+                cg.pushoffuse = true;          // tell others we're using this strategy
+            }
+        }
+        else
+        {
+            int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
+            int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
+            if (cg.NDPoff || xmmtopush || cg.funcarg.size)
+            {
+                cg.pushoff = alignsection(cg.pushoff - (gptopush * REGSIZE + xmmtopush * 16),
+                        xmmtopush ? STACKALIGN : REGSIZE, bias);
+                cg.pushoffuse = true;          // tell others we're using this strategy
+            }
         }
     }
 
@@ -823,8 +837,8 @@ else
     localsize = -cg.funcarg.offset;
 
     static if (0)
-    printf("Alloca.offset = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
-        cast(long)cg.Alloca.offset, cast(long)CSE.size(), cast(long)cg.CSoff, cast(long)cg.NDPoff, cast(long)localsize);
+    printf("Alloca.offset: x%llx cstop: x%llx CSoff: x%llx NDPoff: x%llx pushoff: x%llx localsize: x%llx\n",
+        cast(long)cg.Alloca.offset, cast(long)CSE.size(), cast(long)cg.CSoff, cast(long)cg.NDPoff, cast(long)cg.pushoff, cast(long)localsize);
     assert(cast(targ_ptrdiff_t)localsize >= 0);
 
     // Keep the stack aligned by 8 for any subsequent function calls
@@ -855,8 +869,8 @@ else
     cg.funcarg.offset = -localsize;
 
     static if (0)
-    printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
-        cast(int)cg.Foff,cast(int)cg.Auto.size,cast(int)cg.NDPoff,cast(int)cg.CSoff,cast(int)cg.Para.size,cast(int)localsize);
+    printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x pushoff x%02x localsize x%02x\n",
+        cast(int)cg.Foff,cast(int)cg.Auto.size,cast(int)cg.NDPoff,cast(int)cg.CSoff,cast(int)cg.Para.size,cast(int)cg.pushoff,cast(int)localsize);
 
     uint xlocalsize = cast(uint)localsize;    // amount to subtract from ESP to make room for locals
 
@@ -924,6 +938,7 @@ else
     }
     else if (cg.needframe)                 // if variables or parameters
     {
+        // xlocalsize can be adjusted for NTEXCEPTIONS==2
         prolog_frame(cg, cdbx, farfunc, xlocalsize, enter, cfa_offset);
         cg.hasframe = true;
     }

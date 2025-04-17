@@ -341,7 +341,8 @@ void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 @trusted
 void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa_offset)
 {
-    printf("prolog_saveregs() topush: %s pushoffuse: %d\n", regm_str(topush), cg.pushoffuse);
+    //printf("prolog_saveregs() topush: %s pushoffuse: %d\n", regm_str(topush), cg.pushoffuse);
+    //printf("function: %s\n", funcsym_p.Sident.ptr);
     assert(!(topush & ~fregsaved));
     assert(cg.pushoffuse || !topush);
 
@@ -349,6 +350,7 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
     int xmmtopush = 0;
     int gptopush = popcnt(topush);  // general purpose registers to save
     targ_size_t gpoffset = cg.pushoff + cg.BPoff;
+    gpoffset += localsize;
     reg_t fp;                       // frame pointer
     if (!cg.hasframe || cg.enforcealign)
     {
@@ -391,6 +393,7 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
 @trusted
 private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topop)
 {
+    //printf("prolog_restoreregs() topop: %s\n", regm_str(topop));
     assert(cg.AArch64);
 
     assert(cg.pushoffuse || !topop);
@@ -399,6 +402,7 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
     int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
     int gptopop = popcnt(topop);   // general purpose registers to save
     targ_size_t gpoffset = cg.pushoff + cg.BPoff;
+    gpoffset += localsize;
 
     reg_t fp;
     if (!cg.hasframe || cg.enforcealign)
@@ -416,7 +420,7 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
 
         const ins = (mask(reg) & INSTR.FLOATREGS)
             // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
-            ? INSTR.ldr_imm_fpsimd(3,0,cast(uint)gpoffset >> 3,fp,reg) // LDR reg,[fp,#offset]
+            ? INSTR.ldr_imm_fpsimd(3,1,cast(uint)gpoffset >> 3,fp,reg) // LDR reg,[fp,#offset]
             : INSTR.ldr_imm_gen(1, reg, fp, gpoffset);            // LDR reg,[fp,#offset]
         cdb.gen1(ins);
         gpoffset += REGSIZE;
@@ -705,7 +709,7 @@ void epilog(block* b)
      * order they were pushed.
      */
     topop = fregsaved & ~cgstate.mfuncreg;
-//    epilog_restoreregs(cdbx, topop); // implement
+    epilog_restoreregs(cgstate, cdbx, topop);
 
     if (cgstate.usednteh & NTEHjmonitor)
     {
