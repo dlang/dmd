@@ -65,7 +65,7 @@ private ref Tarr _d_arrayappendcTX_(Tarr : T[], T)(return ref scope Tarr px, siz
         auto newsize = newlength * sizeelem;
         auto size = length * sizeelem;
 
-        if(!gc_expandArrayUsed((cast(void*)px.ptr)[0 .. size], newsize, isshared))
+        if (!gc_expandArrayUsed((cast(void*)px.ptr)[0 .. size], newsize, isshared))
         {
             // could not set the size, we must reallocate.
             auto newcap = newCapacity(newlength, sizeelem);
@@ -74,13 +74,13 @@ private ref Tarr _d_arrayappendcTX_(Tarr : T[], T)(return ref scope Tarr px, siz
             // use this static enum to avoid recomputing TypeInfo for every call.
             static enum ti = typeid(T);
             void* ptr = GC.malloc(newcap, attrs, ti);
-            if(ptr is null)
+            if (ptr is null)
             {
                 onOutOfMemoryError();
                 assert(0);
             }
 
-            if(newsize != newcap)
+            if (newsize != newcap)
             {
                 // For small blocks that are always fully scanned, if we allocated more
                 // capacity than was requested, we are responsible for zeroing that
