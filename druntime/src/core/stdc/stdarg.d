@@ -289,7 +289,7 @@ T va_arg(T)(ref va_list ap)
     {
         template getSingleWrappedScalarType(T)
         {
-            static if (__traits(isScalar,T))
+            static if (__traits(isScalar,T) || is(T == class) || __traits(isAssociativeArray, T))
             {
                 alias getSingleWrappedScalarType = T;
             }
@@ -314,7 +314,6 @@ T va_arg(T)(ref va_list ap)
                 alias SingleWrappedType = getSingleWrappedScalarType!T;
                 enum isDirectlyPassedAggregate = !is(SingleWrappedType : void) &&
                                                 T.sizeof <= 16 &&
-                                                (T.sizeof & (T.sizeof - 1)) == 0 &&
                                                 T.alignof <= (is(SingleWrappedType : void) ? 0 : SingleWrappedType.alignof);
             }
             else
@@ -331,12 +330,13 @@ T va_arg(T)(ref va_list ap)
         static if (isPassedDirectly!T == false)
         {
             auto p = *cast(T**) ap;
+            ap += size_t.sizeof; 
         }
         else
         {
             auto p = cast(T*) ap;
+            ap += T.sizeof.alignUp;
         }
-        ap += T.sizeof.alignUp;
         return *p;
     }
     else
