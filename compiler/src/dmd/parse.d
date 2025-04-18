@@ -3246,7 +3246,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                     {
                                         error("unpacking `auto ref` parameters is not supported");
                                     }
-                                    unpack = parseUnpackDeclaration(storageClass & ~STC.lazy_ & ~STC.out_ | STC.temp | STC.ctfe, false, true);
+                                    if (storageClass & STC.out_)
+                                    {
+                                        error("unpacking `out` parameters is not supported");
+                                    }
+                                    unpack = parseUnpackDeclaration(storageClass & ~STC.lazy_ & ~STC.autoref & ~STC.out_ | STC.temp | STC.ctfe, false, true);
                                     ai = Identifier.generateId("__unpack");
                                     goto LskipType;
                                 }
