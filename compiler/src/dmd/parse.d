@@ -9008,7 +9008,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.leftParenthesis:
                 AST.Expressions* args = new AST.Expressions();
                 ArgumentLabel[] argLabels;
-                parseNamedArguments(args, null, argLabels);
+                parseNamedArguments(args, null, &argLabels);
                 e = new AST.CallExp(loc, e, args, argLabels);
                 continue;
 
@@ -9453,7 +9453,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * Collect argument list.
      * Assume current token is ',', '$(LPAREN)' or '['.
      */
-    private void parseNamedArguments(AST.Expressions* arguments, AST.Identifiers* names, ArgumentLabel[] argLabels)
+    private void parseNamedArguments(AST.Expressions* arguments, AST.Identifiers* names, ArgumentLabel[]* argLabels)
     {
         assert(arguments);
 
@@ -9473,7 +9473,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (names)
                     names.push(ident);
                 else if (argLabels)
-                    argLabels ~= ArgumentLabel(ident, loc);
+                    (*argLabels) ~= ArgumentLabel(ident, loc);
                 else
                     error(loc, "named arguments not allowed here");
             }
@@ -9482,7 +9482,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (names)
                     names.push(null);
                 else if (argLabels)
-                    argLabels ~= ArgumentLabel(null, Loc.init);
+                    (*argLabels) ~= ArgumentLabel(null, Loc.init);
             }
 
             auto arg = parseAssignExp();
