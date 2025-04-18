@@ -1886,7 +1886,7 @@ extern (D) RootObject declareParameter(TemplateDeclaration td, Scope* sc, Templa
  *      errorHelper = delegate to send error message to if not null
  */
 void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
-    Type tthis, ArgumentList argumentList, void delegate(const(char)*) scope errorHelper = null)
+    Type tthis, ArgumentList argumentList, void delegate(const(char)*, Loc = Loc.initial) scope errorHelper = null)
 {
     version (none)
     {
