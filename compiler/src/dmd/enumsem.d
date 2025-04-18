@@ -158,9 +158,10 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
                 ed.semanticRun = PASS.initial;
                 return;
             }
-            else
-                // Ensure that semantic is run to detect. e.g. invalid forward references
-                sym.dsymbolSemantic(sc);
+            // Ensure that semantic is run to detect. e.g. invalid forward references
+            sym.dsymbolSemantic(sc);
+            if (ed.errors)
+                ed.memtype = Type.terror; // avoid infinite recursion in toBaseType
         }
         if (ed.memtype.ty == Tvoid)
         {
