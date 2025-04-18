@@ -10579,7 +10579,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 TupleDeclaration td = isAliasThisTuple(e2x);
                 if (!td)
-                    goto Lnomatch;
+                {
+                Lnomatch:
+                    error(exp.loc, "cannot assign `%s` to expression sequence `%s`",
+                        exp.e2.type.toChars(), exp.e1.type.toChars());
+                    return setError();
+                }
 
                 assert(exp.e1.type.ty == Ttuple);
                 TypeTuple tt = cast(TypeTuple)exp.e1.type;
@@ -10621,7 +10626,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // Do not need to overwrite this.e2
                 goto Ltupleassign;
             }
-        Lnomatch:
         }
 
         /* Inside constructor, if this is the first assignment of object field,
