@@ -6267,12 +6267,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  */
             Lx:
                 Expressions* resolvedArgs = exp.arguments;
-                if (exp.names)
+                Identifiers* expNames = new Identifiers();
+                foreach (label; exp.argLabels)
+                    expNames.push(label.name);
+
+                if (exp.argLabels)
                 {
                     resolvedArgs = resolveStructLiteralNamedArgs(sd, exp.e1.type, sc, exp.loc,
-                        (*exp.names)[],
+                        (*expNames)[],
                         (size_t i, Type t) => (*exp.arguments)[i],
-                        i => (*exp.arguments)[i].loc
+                        i => exp.argLabels[i].loc
                     );
                     if (!resolvedArgs)
                     {
