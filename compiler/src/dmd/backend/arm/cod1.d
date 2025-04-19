@@ -52,8 +52,8 @@ nothrow:
  * Params:
  *      cs = EA information
  *      reg = destination register
- *      szw = number of bytes to write - 4,8
- *      szr = number of bytes to read - 1,2,4,8
+ *      szw = number of bytes to write - 4,8,16
+ *      szr = number of bytes to read - 1,2,4,8,16
  */
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
@@ -69,7 +69,13 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
             if (cs.reg != reg)  // do not mov onto itself
             {
                 assert(cs.reg & 32);
-                cs.Iop = INSTR.fmov(szw == 8,cs.reg,reg);  // FMOV reg,cs.reg
+                if (szw == 16)
+                    cs.Iop = INSTR.mov_orr_advsimd_reg(1,cs.reg,reg); // MOV Vd.16b,Vn.16b
+                else
+                {
+                    uint ftype = INSTR.szToFtype(szw);
+                    cs.Iop = INSTR.fmov(ftype,cs.reg,reg);  // FMOV reg,cs.reg
+                }
             }
         }
         else if (cs.base != NOREG)
@@ -128,7 +134,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
  * Params:
  *      cs = EA information
  *      reg = source register
- *      sz = number of bytes to store - 1,2,4,8
+ *      sz = number of bytes to store - 1,2,4,8,16
  */
 void storeToEA(ref code cs, reg_t reg, uint sz)
 {
@@ -142,7 +148,13 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
             if (cs.reg != reg)  // do not mov onto itself
             {
                 assert(cs.reg & 32);
-                cs.Iop = INSTR.fmov(sz == 8,reg,cs.reg);  // FMOV cs.reg,reg
+                if (sz == 16)
+                    cs.Iop = INSTR.mov_orr_advsimd_reg(1,reg,cs.reg); // MOV Vd.16b,Vn.16b
+                else
+                {
+                    uint ftype = INSTR.szToFtype(sz);
+                    cs.Iop = INSTR.fmov(ftype,cs.reg,reg);  // FMOV reg,cs.reg
+                }
             }
             cs.IFL1 = FL.unde;
         }
@@ -501,7 +513,7 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
     cs.IEV1.Voffset += offset;
 
     assert(op != LEA);                  // AArch64 does not have LEA
-    loadFromEA(cs,reg,sz == 8 ? 8 : 4,sz);
+    loadFromEA(cs,reg,sz >= 8 ? sz : 4,sz);
 
     getregs(cdb, desmsk);                  // save any regs we destroy
     cdb.gen(&cs);
@@ -1984,7 +1996,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     }
     regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : cgstate.allregs;
     scodelem(cgstate,cdb, e, retregs, 0, true);
-    if (sz <= REGSIZE)
+    if (sz <= REGSIZE || tym == TYldouble)
     {
         reg_t reg = findreg(retregs);
         code cs;
@@ -2072,6 +2084,9 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             double value = e.Vfloat;
             if (sz == 8)
                 value = e.Vdouble;
+            else if (sz == 16)
+                // cannot implicitly convert expression `(*e).EV.Vldouble` of type `longdouble_soft` to `double` [D:\a\1\s\compiler\src\vcbuild\dmd.vcxproj]
+                value = cast(double)e.Vldouble;
             loadFloatRegConst(cdb,vreg,value,sz);
             fixresult(cdb, e, forregs, outretregs);
             return;
@@ -2211,6 +2226,11 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             }
             loadea(cdb, e, cs, opmv, reg, 0, 0, 0, RM.load); // MOVSS/MOVSD reg,data
             checkSetVex(cdb.last(),tym);
+        }
+        else if (sz == 16 && tym == TYldouble) // TODO complex numbers?
+        {
+            loadea(cdb,e,cs,0,reg,0,0,0,RM.load);
+            outretregs = mask(reg) | flags;
         }
         else if (sz <= REGSIZE)
         {
