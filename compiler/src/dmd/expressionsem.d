@@ -4551,7 +4551,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("AssocArrayLiteralExp::semantic('%s')\n", e.toChars());
         }
-
+        if (e.type)
+        {
+            // already done, but we might have missed generating type info
+            semanticTypeInfo(sc, e.type);
+            result = e;
+            return;
+        }
         // Run semantic() on each element
         bool err_keys = arrayExpressionSemantic(e.keys.peekSlice(), sc);
         bool err_vals = arrayExpressionSemantic(e.values.peekSlice(), sc);
@@ -13874,6 +13880,7 @@ private bool expressionSemanticDone(Expression e)
         || e.isTypeExp() // stores its type in the Expression.type field
         || e.isCompoundLiteralExp() // stores its `(type) {}` in type field, gets rewritten to struct literal
         || e.isVarExp() // type sometimes gets set already before semantic
+        || (e.isAssocArrayLiteralExp() && !e.type.vtinfo) // semanticTypeInfo not run during initialization
     );
 }
 
