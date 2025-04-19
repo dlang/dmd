@@ -59,7 +59,7 @@
 #define __forceinline
 #undef _Check_return_
 //#define _Check_return_
-#define __pragma(x)
+#define __pragma(x) _Pragma(#x)
 
 #undef _GLIBCXX_USE_FLOAT128
 
