@@ -691,8 +691,20 @@ struct INSTR
     static uint uaddlv_advsimd(uint Q, uint size, reg_t Vn, reg_t Vd) { return asimdall(Q, 1, size, 3, Vn & 31, Vd & 31); }
 
     /* Advanced SIMD three different
-     * Advanced SIMD three same
      */
+
+    /* Advanced SIMD three same https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsame
+     */
+    static uint asimdsame(uint Q, uint U, uint size, reg_t Rm, uint opcode, reg_t Rn, reg_t Rd)
+    { return (Q << 30) | (U << 29) | (0xE << 24) | (size << 22) | (1 << 21) | (Rm << 16) | (opcode << 11) | (1 << 10) | (Rn << 5) | Rd; }
+
+        /* ORR <Vd>.<T>, <Vn>.<T>, <Vm>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/orr_advsimd_reg.html
+         */
+        static uint orr_advsimd_reg(uint Q, reg_t Vm, reg_t Vn, reg_t Vd) { return asimdsame(Q,0,2,Vm & 31,3,Vn & 31,Vd & 31); }
+
+            /* MOV <Vd>.<T>, <Vn>.<T>, <Vm>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_advsimd_reg.html
+             */
+            static uint mov_orr_advsimd_reg(uint Q, reg_t Vn, reg_t Vd) { return orr_advsimd_reg(Q,Vn,Vn,Vd); }
 
     /* Advanced SIMD modified immediate
      * http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm

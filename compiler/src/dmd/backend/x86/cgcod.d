@@ -1637,7 +1637,8 @@ static if (0)
 }
         tym = tybasic(tym);
         uint size = _tysize[tym];
-        if (cgstate.AArch64)
+        bool AArch64 = cgstate.AArch64;
+        if (AArch64)
             outretregs &= cgstate.allregs | INSTR.FLOATREGS;
         else
             outretregs &= mES | cgstate.allregs | XMMREGS | INSTR.FLOATREGS;
@@ -1688,7 +1689,8 @@ L3:
             }
         }
 
-        if (size <= REGSIZE || retregs & XMMREGS)
+        // TODO AArch64 needs work on floating point and complex floats
+        if (size <= REGSIZE || (AArch64 ? retregs & INSTR.FLOATREGS : retregs & XMMREGS))
         {
             if (r & ~mBP)
                 r &= ~mBP;

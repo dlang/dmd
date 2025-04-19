@@ -1457,7 +1457,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                 retregs = INSTR.FLOATREGS;
 
             const tym = tybasic(e.Ety);
-            reg_t Vd = allocreg(cdb,retregs,tym);       // destination integer register
+            reg_t Vd = allocreg(cdb,retregs,tym);       // destination floating point register
 
             switch (e.Eoper)
             {
@@ -1472,6 +1472,11 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             }
 
             fixresult(cdb,e,retregs,pretregs);
+            break;
+
+        case OPd_ld:    // call __extenddftf2
+        case OPld_d:    // call __trunctfdf2
+            cdb.gen1(INSTR.udf);        // TODO AArch64
             break;
 
         default:
