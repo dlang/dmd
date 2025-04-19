@@ -1,0 +1,18 @@
+Implemented DIP 1044v2 - Enum Type Inference.
+
+The compiler now infers the base type of enum declarations more intelligently based on the initializer expression.
+This improves usability and consistency by reducing the need for explicit type annotations when the base type can be safely and unambiguously determined.
+
+---
+enum ItemType
+{
+    Weapon = 0,
+    Armor = 1,
+    Potion = 2,
+}
+
+void load_player()
+{
+    give_item(:Weapon);
+}
+---
