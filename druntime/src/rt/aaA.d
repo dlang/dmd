@@ -851,17 +851,19 @@ unittest
 unittest
 {
     import newaa = core.internal.newaa;
-    static assert(newaa.Impl.sizeof == Impl.sizeof);
+    alias newImpl = typeof(newaa.AA!(int, int).impl[0]); // newaa.Impl is private
+    static assert(newImpl.sizeof == Impl.sizeof);
     // ensure compatible types and offsets
     static foreach (i; 0 .. Impl.tupleof.length)
     {
         // for bucket array and Flags, we "compatible" types, not exactly the same types.
         static if (__traits(identifier, Impl.tupleof[i]) == "buckets"
-            || __traits(identifier, Impl.tupleof[i]) == "flags")
-            static assert(Impl.tupleof[i].sizeof == newaa.Impl.tupleof[i].sizeof);
+            || __traits(identifier, Impl.tupleof[i]) == "flags"
+            || __traits(identifier, Impl.tupleof[i]) == "hashFn")
+            static assert(Impl.tupleof[i].sizeof == newImpl.tupleof[i].sizeof);
         else
-            static assert(is(typeof(Impl.tupleof[i]) == typeof(newaa.Impl.tupleof[i])));
+            static assert(is(typeof(Impl.tupleof[i]) == typeof(newImpl.tupleof[i])));
 
-        static assert(Impl.tupleof[i].offsetof == newaa.Impl.tupleof[i].offsetof);
+        static assert(Impl.tupleof[i].offsetof == newImpl.tupleof[i].offsetof);
     }
 }
