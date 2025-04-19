@@ -34,6 +34,7 @@ enum SymImport : ubyte
 {
     none,               /// no symbols
     defaultLibsOnly,    /// only druntime/phobos symbols
+    externalOnly,       /// any module that is known to be external to binary (-extI)
     all,                /// all non-root symbols
 }
 
