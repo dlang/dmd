@@ -2684,11 +2684,18 @@ class CTFEExp final : public Expression
 {
 };
 
+struct ArgumentLabel
+{
+    Identifier *name;
+    Loc loc;
+};
+
 class CallExp final : public UnaExp
 {
 public:
     Array<Expression* >* arguments;
     Array<Identifier* >* names;
+    DArray<ArgumentLabel> argLabels;
     FuncDeclaration* f;
     bool directcall;
     bool inDebugStatement;

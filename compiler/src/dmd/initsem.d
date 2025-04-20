@@ -1507,13 +1507,14 @@ Params:
     iloc = location of expression initializing the struct
     names = identifiers passed in argument list, `null` entries for positional arguments
     getExp = function that, given an index into `names` and destination type, returns the initializing expression
-    getLoc = function that, given an index into `names`, returns a location for error messages
+    getArgLoc = function that, given an index into `names`, returns a location of argument for error messages
+    getNameLoc = function that, given an index into `names`, returns a location of that `name` for error messages
 
 Returns: list of expressions ordered to the struct's fields, or `null` on error
 */
 Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* sc,
     Loc iloc, Identifier[] names, scope Expression delegate(size_t i, Type fieldType) getExp,
-    scope Loc delegate(size_t i) getLoc
+    scope Loc delegate(size_t i) getArgLoc, scope Loc delegate(size_t i) getNameLoc = null
 )
 {
     //expandTuples for non-identity arguments?
@@ -1529,7 +1530,10 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
     size_t fieldi = 0;
     foreach (j, id; names)
     {
-        const argLoc = getLoc(j);
+        const argLoc = getArgLoc(j);
+        Loc nameLoc = argLoc;
+        if(getNameLoc !is null)
+            nameLoc = getNameLoc(j);
         if (id)
         {
             // Determine `fieldi` that `id` matches
@@ -1538,9 +1542,9 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
             {
                 s = sd.search_correct(id);
                 if (s)
-                    error(argLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                    error(nameLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
                 else
-                    error(argLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
+                    error(nameLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
                 return null;
             }
             s.checkDeprecated(iloc, sc);

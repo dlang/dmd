@@ -3288,7 +3288,7 @@ struct ArgumentList
     }
 }
 
-struct ArgumentLabel
+extern (C++) struct ArgumentLabel
 {
     Identifier name;    // name of the argument
     Loc loc;            // location of the argument
@@ -3312,17 +3312,11 @@ extern (C++) final class CallExp : UnaExp
     /// The fields are still separate for backwards compatibility
     extern (D) ArgumentList argumentList() { return ArgumentList(arguments, names); }
 
-    extern (D) this(Loc loc, Expression e, Expressions* exps, Identifiers* names = null) @safe
+    extern (D) this(Loc loc, Expression e, Expressions* exps, Identifiers* names = null, ArgumentLabel[] argLabels = null) @safe
     {
         super(loc, EXP.call, e);
         this.arguments = exps;
         this.names = names;
-    }
-
-    extern (D) this(Loc loc, Expression e, Expressions* exps, ArgumentLabel[] argLabels) @safe
-    {
-        super(loc, EXP.call, e);
-        this.arguments = exps;
         this.argLabels = argLabels;
     }
 
