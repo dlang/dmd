@@ -30,7 +30,6 @@ void test() {
 
   auto s5 = S(
     yashu:
-    
     2
   );
 }
