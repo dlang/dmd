@@ -3050,7 +3050,7 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
 @trusted
 bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t preg1, out reg_t preg2)
 {
-    //printf("FuncParamRegs::alloc(ty: TY%sm t: %p)\n", tystring[tybasic(ty)], t);
+    //printf("FuncParamRegs::alloc(ty: %s t: %p)\n", tym_str(ty), t);
     //if (t) type_print(t);
 
     preg1 = NOREG;
@@ -3204,7 +3204,13 @@ bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t pre
         }
         if (fpr.xmmcnt < fpr.numfloatregs)
         {
-            if (tyxmmreg(ty))
+            if (tyfloating(ty) && cgstate.AArch64)
+            {
+                *preg = fpr.floatregs[fpr.xmmcnt];
+                ++fpr.xmmcnt;
+                goto Lnext;
+            }
+            else if (tyxmmreg(ty))
             {
                 *preg = fpr.floatregs[fpr.xmmcnt];
                 if (config.exe == EX_WIN64)
