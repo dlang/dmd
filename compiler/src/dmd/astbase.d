@@ -5582,12 +5582,14 @@ struct ASTBase
     {
         Expressions* arguments;
         Identifiers* names;
+        ArgumentLabels* argLabels;
 
-        extern (D) this(Loc loc, Expression e, Expressions* exps, Identifiers* names = null)
+        extern (D) this(Loc loc, Expression e, Expressions* exps, Identifiers* names = null, ArgumentLabels* argLabels = null)
         {
             super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
             this.arguments = exps;
             this.names = names;
+            this.argLabels = argLabels;
         }
 
         extern (D) this(Loc loc, Expression e)
