@@ -1763,13 +1763,17 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             if (!od && !td.overnext)
             {
                 .error(loc, "%s `%s` is not callable using argument types `!(%s)%s`",
-                   td.kind(), td.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
+                    td.kind(), td.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
+
+                checkNamedArgErrorAndReport(td, argumentList, loc);
             }
             else
             {
                 .error(loc, "none of the overloads of %s `%s.%s` are callable using argument types `!(%s)%s`",
-                   td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
-                   tiargsBuf.peekChars(), fargsBuf.peekChars());
+                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
+                    tiargsBuf.peekChars(), fargsBuf.peekChars());
+
+                checkNamedArgErrorAndReport(td, argumentList, loc);
             }
 
 
@@ -1789,7 +1793,9 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     if (od)
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `!(%s)%s`",
-               od.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
+            od.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
+
+        checkNamedArgErrorAndReportOverload(od, argumentList, loc);
         if (!global.gag || global.params.v.showGaggedErrors)
             printCandidates(loc, od, sc.isDeprecated());
         return null;
@@ -1918,6 +1924,62 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     functionResolve(m, orig_s, loc, sc, tiargs, tthis, argumentList, &errorHelper2);
 
     return null;
+}
+
+/********************************************************
+ * Check for named argument errors in template declarations and report them.
+ * Params:
+ *      td = template declaration to check
+ *      argumentList = arguments to check
+ *      loc = location for error reporting
+ */
+private void checkNamedArgErrorAndReport(TemplateDeclaration td, ArgumentList argumentList, Loc loc)
+{
+    if (!argumentList.hasNames())
+        return;
+
+    auto tf = td.onemember ? td.onemember.isFuncDeclaration() : null;
+    if (tf && tf.type && tf.type.ty == Tfunction)
+    {
+        OutBuffer buf;
+        auto resolvedArgs = tf.type.isTypeFunction().resolveNamedArgs(argumentList, &buf);
+        if (!resolvedArgs && buf.length)
+            .errorSupplemental(loc, "%s", buf.peekChars());
+    }
+}
+
+/******************************************
+ * Check for named argument errors in overload sets and report them.
+ * Params:
+ *      od = overload declaration to check
+ *      argumentList = arguments to check
+ *      loc = location for error report
+ */
+private void checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argumentList, Loc loc)
+{
+    if (!argumentList.hasNames())
+        return;
+
+    FuncDeclaration tf = null;
+    overloadApply(od, (Dsymbol s) {
+        if (!tf)
+        {
+            if (auto fd = s.isFuncDeclaration())
+                tf = fd;
+            else if (auto td = s.isTemplateDeclaration())
+                if (td.onemember)
+                    tf = td.onemember.isFuncDeclaration();
+        }
+        return 0;
+    });
+
+    if (tf && tf.type && tf.type.ty == Tfunction)
+    {
+        OutBuffer buf;
+        auto resolvedArgs = tf.type.isTypeFunction().resolveNamedArgs(argumentList, &buf);
+        if (!resolvedArgs && buf.length)
+            .errorSupplemental(loc, "%s", buf.peekChars());
+    }
 }
 
 /*******************************************
