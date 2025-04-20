@@ -6273,7 +6273,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         (*exp.names)[],
                         (size_t i, Type t) => (*exp.arguments)[i],
                         i => (*exp.arguments)[i].loc,
-                        i => (exp.argLabels.length > i) ? exp.argLabels[i].loc : (*exp.arguments)[i].loc
+                        i => ((*exp.argLabels).length > i) ? (*exp.argLabels)[i].loc : (*exp.arguments)[i].loc
                     );
                     if (!resolvedArgs)
                     {

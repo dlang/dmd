@@ -2582,6 +2582,21 @@ public:
     void accept(Visitor* v) override;
 };
 
+struct ArgumentLabel final
+{
+    Identifier* name;
+    Loc loc;
+    ArgumentLabel() :
+        name(),
+        loc()
+    {
+    }
+    ArgumentLabel(Identifier* name, Loc loc = Loc()) :
+        name(name),
+        loc(loc)
+        {}
+};
+
 struct ArgumentList final
 {
     Array<Expression* >* arguments;
@@ -2684,18 +2699,12 @@ class CTFEExp final : public Expression
 {
 };
 
-struct ArgumentLabel
-{
-    Identifier *name;
-    Loc loc;
-};
-
 class CallExp final : public UnaExp
 {
 public:
     Array<Expression* >* arguments;
     Array<Identifier* >* names;
-    DArray<ArgumentLabel> argLabels;
+    _d_dynamicArray< ArgumentLabel > argLabels;
     FuncDeclaration* f;
     bool directcall;
     bool inDebugStatement;
@@ -5723,6 +5732,7 @@ struct ASTCodegen final
     using AddrExp = ::AddrExp;
     using AndAssignExp = ::AndAssignExp;
     using AndExp = ::AndExp;
+    using ArgumentLabel = ::ArgumentLabel;
     using ArgumentList = ::ArgumentList;
     using ArrayExp = ::ArrayExp;
     using ArrayLengthExp = ::ArrayLengthExp;

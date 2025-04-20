@@ -3300,7 +3300,7 @@ extern (C++) final class CallExp : UnaExp
 {
     Expressions* arguments; // function arguments
     Identifiers* names;     // named argument identifiers
-    ArgumentLabel[] argLabels; // named argument labels
+    ArgumentLabels* argLabels; // named argument labels
     FuncDeclaration f;      // symbol to call
     bool directcall;        // true if a virtual call is devirtualized
     bool inDebugStatement;  /// true if this was in a debug statement
@@ -3312,7 +3312,7 @@ extern (C++) final class CallExp : UnaExp
     /// The fields are still separate for backwards compatibility
     extern (D) ArgumentList argumentList() { return ArgumentList(arguments, names); }
 
-    extern (D) this(Loc loc, Expression e, Expressions* exps, Identifiers* names = null, ArgumentLabel[] argLabels = null) @safe
+    extern (D) this(Loc loc, Expression e, Expressions* exps, Identifiers* names = null, ArgumentLabels *argLabels = null) @safe
     {
         super(loc, EXP.call, e);
         this.arguments = exps;

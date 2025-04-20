@@ -15,6 +15,7 @@
 #include "arraytypes.h"
 #include "visitor.h"
 #include "tokens.h"
+#include "frontend.h"
 
 #include "root/complex_t.h"
 #include "root/dcompat.h"
@@ -807,11 +808,27 @@ struct ArgumentList final
         {}
 };
 
+struct ArgumentLabel final
+{
+    Identifier* name;
+    Loc loc;
+    ArgumentLabel() :
+        name(),
+        loc()
+    {
+    }
+    ArgumentLabel(Identifier* name, Loc loc = Loc()) :
+        name(name),
+        loc(loc)
+        {}
+};
+
 class CallExp final : public UnaExp
 {
 public:
     Expressions *arguments;     // function arguments
-    Identifiers *names;
+    Identifiers *names;         // function argument names
+    _d_dynamicArray< ArgumentLabel > argLabels;    // function argument names + location
     FuncDeclaration *f;         // symbol to call
     d_bool directcall;            // true if a virtual call is devirtualized
     d_bool inDebugStatement;      // true if this was in a debug statement
