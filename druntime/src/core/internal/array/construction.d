@@ -67,23 +67,31 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from, char* ma
 
     static if (hasElaborateCopyConstructor!T)
     {
-        size_t i;
-        try
+        version (D_BetterC)
         {
-            for (i = 0; i < to.length; i++)
+            for (size_t i = 0; i < to.length; i++)
                 copyEmplace(from[i], to[i]);
         }
-        catch (Exception o)
+        else
         {
-            /* Destroy, in reverse order, what we've constructed so far
-            */
-            while (i--)
+            size_t i;
+            try
             {
-                auto elem = cast(Unqual!T*) &to[i];
-                destroy(*elem);
+                for (i = 0; i < to.length; i++)
+                    copyEmplace(from[i], to[i]);
             }
+            catch (Exception o)
+            {
+                /* Destroy, in reverse order, what we've constructed so far
+                */
+                while (i--)
+                {
+                    auto elem = cast(Unqual!T*) &to[i];
+                    destroy(*elem);
+                }
 
-            throw o;
+                throw o;
+            }
         }
     }
     else
@@ -207,22 +215,30 @@ void _d_arraysetctor(Tarr : T[], T)(scope Tarr p, scope ref T value) @trusted
     version (DigitalMars) pragma(inline, false);
     import core.lifetime : copyEmplace;
 
-    size_t i;
-    try
+    version (D_BetterC)
     {
-        for (i = 0; i < p.length; i++)
+        for (size_t i = 0; i < p.length; i++)
             copyEmplace(value, p[i]);
     }
-    catch (Exception o)
+    else
     {
-        // Destroy, in reverse order, what we've constructed so far
-        while (i--)
+        size_t i;
+        try
         {
-            auto elem = cast(Unqual!T*)&p[i];
-            destroy(*elem);
+            for (i = 0; i < p.length; i++)
+                copyEmplace(value, p[i]);
         }
+        catch (Exception o)
+        {
+            // Destroy, in reverse order, what we've constructed so far
+            while (i--)
+            {
+                auto elem = cast(Unqual!T*)&p[i];
+                destroy(*elem);
+            }
 
-        throw o;
+            throw o;
+        }
     }
 }
 

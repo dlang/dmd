@@ -1289,18 +1289,26 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     {
         static if (hasElaborateCopyConstructor!E)
         {
-            size_t i;
-            try
+            version (D_BetterC)
             {
-                for (i = 0; i < n; i++)
+                for (size_t i = 0; i < n; i++)
                     copyEmplace(source[i], target[i]);
             }
-            catch (Exception e)
+            else
             {
-                // destroy, in reverse order, what we've constructed so far
-                while (i--)
-                    destroy(*cast(Unconst!(E)*) &target[i]);
-                throw e;
+                size_t i;
+                try
+                {
+                    for (i = 0; i < n; i++)
+                        copyEmplace(source[i], target[i]);
+                }
+                catch (Exception e)
+                {
+                    // destroy, in reverse order, what we've constructed so far
+                    while (i--)
+                        destroy(*cast(Unconst!(E)*) &target[i]);
+                    throw e;
+                }
             }
         }
         else // trivial copy
