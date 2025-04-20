@@ -3288,12 +3288,19 @@ struct ArgumentList
     }
 }
 
+struct ArgumentLabel
+{
+    Identifier name;    // name of the argument
+    Loc loc;            // location of the argument
+ }
+
 /***********************************************************
  */
 extern (C++) final class CallExp : UnaExp
 {
     Expressions* arguments; // function arguments
     Identifiers* names;     // named argument identifiers
+    ArgumentLabel[] argLabels; // named argument labels
     FuncDeclaration f;      // symbol to call
     bool directcall;        // true if a virtual call is devirtualized
     bool inDebugStatement;  /// true if this was in a debug statement
@@ -3310,6 +3317,13 @@ extern (C++) final class CallExp : UnaExp
         super(loc, EXP.call, e);
         this.arguments = exps;
         this.names = names;
+    }
+
+    extern (D) this(Loc loc, Expression e, Expressions* exps, ArgumentLabel[] argLabels) @safe
+    {
+        super(loc, EXP.call, e);
+        this.arguments = exps;
+        this.argLabels = argLabels;
     }
 
     extern (D) this(Loc loc, Expression e) @safe
