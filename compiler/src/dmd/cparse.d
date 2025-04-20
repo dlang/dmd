@@ -28,6 +28,7 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.tokens;
 import dmd.typesem : size;
+import dmd.root.string: startsWith;
 
 /***********************************************************
  */
@@ -6104,6 +6105,11 @@ final class CParser(AST) : Parser!AST
                     // https://github.com/dlang/dmd/issues/20423
                     // skip macros that could shadow special builtins
                     if (id == Id.va_arg)
+                    {
+                        nextLine();
+                        continue;
+                    }
+                    if (id.toString().startsWith("__"))
                     {
                         nextLine();
                         continue;
