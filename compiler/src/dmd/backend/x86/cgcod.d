@@ -1123,7 +1123,7 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
         {
             case SC.fastpar:
                 if (!(funcsym_p.Sfunc.Fflags3 & Ffakeeh))
-                    goto Ldefault;   // don't need consistent stack frame
+                    goto default;   // don't need consistent stack frame
                 break;
 
             case SC.parameter:
@@ -1139,7 +1139,6 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
                 break;          // allocate even if it's dead
 
             default:
-            Ldefault:
                 if (Symbol_Sisdead(*s, cg.anyiasm))
                     continue;       // don't allocate space
                 break;

@@ -1030,7 +1030,7 @@ struct INSTR
         assert(imm12 < 0x1000);
         assert(size < 4);
         assert(opc  < 4);
-        return ldst_pos(size,1,opc,imm12,Rn,Vt);
+        return ldst_pos(size,1,opc | 1,imm12,Rn,Vt);
     }
 
     /* https://www.scs.stanford.edu/~zyedidia/arm64/ldrsw_imm.html

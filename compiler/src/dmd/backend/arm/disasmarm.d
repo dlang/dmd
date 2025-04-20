@@ -2162,10 +2162,7 @@ void disassemble(uint c) @trusted
 
         p1 = "fmov";
         p2 = fregString(rbuf[0..4],"sd h"[ftype],Rd);
-        uint sz = ftype == 0 ? 32 : ftype == 1 ? 64 : 16;
         float f = decodeImm8ToFloat(imm8);
-        if (sz == 16)
-            p1 = "";   // no support half-float literals
         p3 = doubletostring(f);
     }
     else

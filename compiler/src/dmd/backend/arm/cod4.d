@@ -1476,7 +1476,11 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 
         case OPd_ld:    // call __extenddftf2
         case OPld_d:    // call __trunctfdf2
-            cdb.gen1(INSTR.udf);        // TODO AArch64
+            regm_t retregs1 = mask(32);
+            codelem(cgstate,cdb,e.E1,retregs1,false);
+            import dmd.backend.arm.cod1 : CLIB_A, callclib;
+            CLIB_A clib = e.Eoper == OPd_ld ? CLIB_A.doubleToReal : CLIB_A.realToDouble;
+            callclib(cdb,e,clib,pretregs,0);
             break;
 
         default:

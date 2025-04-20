@@ -1318,7 +1318,6 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
  * Extra information about each CLIB_A runtime library function.
  */
 
-private
 enum CLIB_A
 {
     realToDouble,

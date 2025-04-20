@@ -1094,6 +1094,8 @@ void loadFloatRegConst(ref CodeBuilder cdb, reg_t vreg, double value, uint sz)
     ubyte imm8;
     if (encodeHFD(value, imm8))
     {
+        assert(sz == 2 || sz == 4 || sz == 8);
+        assert(imm8 <= 0xFF);
         uint ftype = INSTR.szToFtype(sz);
         cdb.gen1(INSTR.fmov_float_imm(ftype,imm8,vreg)); // FMOV <Vd>,#<imm8>
     }
@@ -1550,12 +1552,16 @@ void assignaddrc(code* c)
                 }
                 else if (op24 == 1)
                 {
+//printf("shift: %d opc: %d\n", shift, opc);
+                    if (opc & 2 && shift == 0)
+                        shift = 4;
                     assert(field(ins,29,27) == 7);
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
+//printf("shift: %d offset: x%llx imm12: x%x\n", shift, offset, imm12);
                     offset += imm12 << shift;      // add in imm
-//printf("shift: %d offset: %llx imm12: %x\n", shift, offset, imm12);
                     assert((offset & ((1 << shift) - 1)) == 0); // no misaligned access
                     imm12 = cast(uint)(offset >> shift);
+//printf("imm12: x%x\n", imm12);
                     assert(imm12 < 0x1000);
                     ins = setField(ins,21,10,imm12);
                 }
