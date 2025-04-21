@@ -17,8 +17,6 @@ typedef Array<class TemplateParameter *> TemplateParameters;
 
 typedef Array<class Expression *> Expressions;
 
-typedef Array<struct ArgumentLabel> ArgumentLabels;
-
 typedef Array<class Statement *> Statements;
 
 typedef Array<struct BaseClass *> BaseClasses;
