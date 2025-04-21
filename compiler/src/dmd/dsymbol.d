@@ -637,7 +637,7 @@ extern (C++) class Dsymbol : ASTNode
         static bool has2This(Dsymbol s)
         {
             if (auto f = s.isFuncDeclaration())
-                return f.hasDualContext();
+                return f.hasDualContext;
             if (auto ad = s.isAggregateDeclaration())
                 return ad.vthis2 !is null;
             return false;

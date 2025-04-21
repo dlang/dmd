@@ -420,7 +420,7 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
  */
 elem* fixEthis2(elem* ethis, FuncDeclaration fd, bool ctxt2 = false)
 {
-    if (fd && fd.hasDualContext())
+    if (fd && fd.hasDualContext)
     {
         if (ctxt2)
             ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, tysize(TYnptr)));
@@ -448,7 +448,7 @@ elem* setEthis(Loc loc, ref IRState irs, elem* ey, AggregateDeclaration ad, bool
     {
         ethis = getEthis(loc, irs, ad);
     }
-    else if (thisfd.vthis && !thisfd.hasDualContext() &&
+    else if (thisfd.vthis && !thisfd.hasDualContext &&
           (adp == thisfd.toParent2() ||
            (adp.isClassDeclaration() &&
             adp.isClassDeclaration().isBaseOf(thisfd.toParent2().isClassDeclaration(), &offset)
@@ -752,7 +752,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
         /* Can't do nrvo if the variable is put in a closure, since
          * what the shidden points to may no longer exist.
          */
-        assert(!fd.isNRVO() || fd.nrvo_var != v);
+        assert(!fd.isNRVO || fd.nrvo_var != v);
     }
     return aggAlignment;
 }
