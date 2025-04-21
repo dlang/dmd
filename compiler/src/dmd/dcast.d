@@ -186,11 +186,12 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 // Special Case for Integer Truncation
                 if (e.type.isIntegral() && t.isIntegral())
                 {
-                    size_t srcSize = target.ptrsize * e.type.size();
-                    size_t dstSize = target.ptrsize * t.size();
+                    uint srcSize = cast(uint)(target.ptrsize * e.type.size());
+                    uint dstSize = cast(uint)(target.ptrsize * t.size());
+
                     if (srcSize > dstSize)
                     {
-                        error(e.loc, "implicit conversion from `%s` (%llu bytes) to `%s` (%llu bytes) may truncate value", e.type.toChars(), cast(ulong)srcSize, t.toChars(), cast(ulong)dstSize);
+                        error(e.loc, "implicit conversion from `%s` (%u bytes) to `%s` (%u bytes) may truncate value", e.type.toChars(), srcSize, t.toChars(), dstSize);
                         errorSupplemental(e.loc, "Use an explicit cast (e.g., `cast(%s)expr`) to silence this.", t.toChars());
                         return ErrorExp.get();
                     }
