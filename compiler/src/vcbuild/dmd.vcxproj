@@ -181,12 +181,13 @@
       <AdditionalOptions>$(ExternalLinkerOptions) %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <DCompile>
-      <VersionIdentifiers>MARS</VersionIdentifiers>
+      <VersionIdentifiers>MARS;Debugger_friendly</VersionIdentifiers>
       <StringImportPaths>../dmd/res;$(OutDir)</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <DebugInfo>Mago</DebugInfo>
+      <EnableDebugMixin>true</EnableDebugMixin>
     </DCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
