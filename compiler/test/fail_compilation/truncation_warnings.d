@@ -11,7 +11,7 @@ fail_compilation/truncation_warnings.d(16):        Use an explicit cast (e.g., `
 void test() {
     long a = 1234;
     int b = a;
-    
+
     short c = 42;
     byte d = c;
 }
