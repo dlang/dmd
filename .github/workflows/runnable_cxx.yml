@@ -125,7 +125,7 @@ jobs:
           - { target: g++-10, compiler: g++, cxx-version: 10.3.0, major: 10 }
           - { target: g++-9, compiler: g++, cxx-version: 9.4.0, major: 9 }
           # Platform boilerplate
-          - { os: ubuntu-22.04, arch: x86_64-linux-gnu-ubuntu-22.04 }
+          - { os: ubuntu-22.04, arch: x86_64-linux-gnu-ubuntu-20.04 }
           - { os: macos-13,  arch: x86_64-apple-darwin }
           # Clang 9.0.0 have a different arch for OSX
           - { os: macos-13, target: clang-9.0.0, arch: x86_64-darwin-apple }
