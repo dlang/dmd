@@ -1671,6 +1671,7 @@ elem* toElem(Expression e, ref IRState irs)
 
         elem* el = toElem(be.e1, irs);
         elem* er = toElem(be.e2, irs);
+
         elem* e = el_bin(op,tym,el,er);
 
         elem_setLoc(e,be.loc);
@@ -1752,7 +1753,11 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitAdd(AddExp e)
     {
-        return toElemBin(e, OPadd);
+        int op = OPadd;
+        if (e.type.ty == Tcomplex64 && e.e1.type.ty == Tfloat64 && e.e2.type.ty == Timaginary64)
+            op = OPpair;
+
+        return toElemBin(e, op);
     }
 
     /***************************************
