@@ -828,7 +828,7 @@ class CallExp final : public UnaExp
 public:
     Expressions *arguments;     // function arguments
     Identifiers *names;         // function argument names
-    _d_dynamicArray< ArgumentLabel > argLabels;    // function argument names + location
+    ArgumentLabels* argLabels;    // function argument names + location
     FuncDeclaration *f;         // symbol to call
     d_bool directcall;            // true if a virtual call is devirtualized
     d_bool inDebugStatement;      // true if this was in a debug statement

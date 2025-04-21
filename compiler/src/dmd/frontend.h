@@ -1485,6 +1485,23 @@ struct MangleOverride final
 
 typedef Array<AliasDeclaration* > AliasDeclarations;
 
+struct ArgumentLabel final
+{
+    Identifier* name;
+    Loc loc;
+    ArgumentLabel() :
+        name(),
+        loc()
+    {
+    }
+    ArgumentLabel(Identifier* name, Loc loc = Loc()) :
+        name(name),
+        loc(loc)
+        {}
+};
+
+typedef Array<ArgumentLabel > ArgumentLabels;
+
 typedef Array<BaseClass* > BaseClasses;
 
 typedef Array<CaseStatement* > CaseStatements;
@@ -2582,21 +2599,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-struct ArgumentLabel final
-{
-    Identifier* name;
-    Loc loc;
-    ArgumentLabel() :
-        name(),
-        loc()
-    {
-    }
-    ArgumentLabel(Identifier* name, Loc loc = Loc()) :
-        name(name),
-        loc(loc)
-        {}
-};
-
 struct ArgumentList final
 {
     Array<Expression* >* arguments;
@@ -2704,7 +2706,7 @@ class CallExp final : public UnaExp
 public:
     Array<Expression* >* arguments;
     Array<Identifier* >* names;
-    _d_dynamicArray< ArgumentLabel > argLabels;
+    Array<ArgumentLabel >* argLabels;
     FuncDeclaration* f;
     bool directcall;
     bool inDebugStatement;
@@ -5602,6 +5604,7 @@ struct ASTCodegen final
     using MangleOverride = ::MangleOverride;
     using AliasThis = ::AliasThis;
     using AliasDeclarations = ::AliasDeclarations;
+    using ArgumentLabels = ::ArgumentLabels;
     using BaseClasses = ::BaseClasses;
     using CaseStatements = ::CaseStatements;
     using Catches = ::Catches;
