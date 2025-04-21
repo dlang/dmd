@@ -42,8 +42,8 @@ extern (C)
 	}
 	alias weird = int[(cast(foo*)cast(void*)0).x.sizeof];
 	alias ULONG = ulong;
-	alias ULONG_Deluxe = ulong;
-	alias ULONG_PTR = ulong*;
+	alias ULONG_Deluxe = ULONG;
+	alias ULONG_PTR = ULONG_Deluxe*;
 	alias Callback = void* function();
 	struct Test
 	{

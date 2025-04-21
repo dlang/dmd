@@ -1992,6 +1992,9 @@ MATCH cimplicitConvTo(Expression e, Type t)
         return MATCH.convert;
     if (tb.ty == Tpointer && typeb.ty == Tpointer) // C11 6.3.2.3-7
         return MATCH.convert;
+    if (typeb.ty == Tstruct && t.ty == Tstruct &&
+                    typeb.isTypeStruct().sym == t.isTypeStruct().sym)
+        return MATCH.convert;
 
     return implicitConvTo(e, t);
 }

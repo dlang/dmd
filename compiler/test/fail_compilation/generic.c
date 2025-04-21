@@ -1,9 +1,6 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/generic.c(103): Error: generic association type `float` can only appear once
-fail_compilation/generic.c(108): Error: no compatible generic association type for controlling expression type `long`
-fail_compilation/generic.c(110): Error: undefined identifier `T`
-fail_compilation/generic.c(112): Error: undefined identifier `E`
+fail_compilation/generic.c(110): Error: unknown type `T`
 ---
 */
 

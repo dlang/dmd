@@ -1163,6 +1163,7 @@ final class CParser(AST) : Parser!AST
         }
 
         if (t.isTypeIdentifier() &&
+            !isTypedef(t.isTypeIdentifier().ident) &&
             isexp &&
             token.value == TOK.leftParenthesis &&
             !isCastExpression(pt))
@@ -1811,10 +1812,13 @@ final class CParser(AST) : Parser!AST
 
             if (auto ti = tspec.isTypeIdentifier())
             {
-                // C11 6.7.2-2
-                error("type-specifier missing for declaration of `%s`", ti.ident.toChars());
-                nextToken();
-                return;
+                if (!isTypedef(ti.ident))
+                {
+                    // C11 6.7.2-2
+                    error("type-specifier missing for declaration of `%s`", ti.ident.toChars());
+                    nextToken();
+                    return;
+                }
             }
 
             nextToken();
@@ -1864,7 +1868,7 @@ final class CParser(AST) : Parser!AST
             nextToken();
         }
 
-        if (token.value == TOK.assign && tspec && tspec.isTypeIdentifier())
+        if (token.value == TOK.assign && tspec && tspec.isTypeIdentifier() && !isTypedef(tspec.isTypeIdentifier().ident))
         {
             /* C11 6.7.2-2
              * Special check for `const b = 1;` because some compilers allow it
@@ -1986,7 +1990,6 @@ final class CParser(AST) : Parser!AST
                     specifier.vector_size = 0;          // used it up
                 }
 
-                bool isalias = true;
                 Identifier idt;
                 if (auto tt = dt.isTypeTag())
                 {
@@ -2015,7 +2018,20 @@ final class CParser(AST) : Parser!AST
                         idt = tt.id;
                     }
                 }
-                if (isalias)
+                if (isTypedef(id))
+                {
+                    //printf("AliasDeclaration %s %s\n", id.toChars(), dt.toChars());
+
+                    // Might be a recursive typedef. Use a layer of indirection in case of that.
+                    Identifier indirect = Identifier.generateId("__typedef");
+                    auto ind = new AST.AliasDeclaration(token.loc, indirect, dt);
+                    if (!symbols)
+                        symbols = new AST.Dsymbols;     // lazily create it
+                    symbols.push(ind);
+                    auto ad = new AST.AliasDeclaration(token.loc, id, new AST.TypeIdentifier(token.loc, indirect));
+                    s = ad;
+                }
+                else
                 {
                     //printf("AliasDeclaration %s %s\n", id.toChars(), dt.toChars());
                     auto ad = new AST.AliasDeclaration(token.loc, id, dt);
@@ -2116,14 +2132,15 @@ final class CParser(AST) : Parser!AST
                     }
                 }
                 s = applySpecifier(s, specifier);
-                if (level == LVL.local || (specifier.mod & MOD.x__stdcall))
+                if (level == LVL.local && !(specifier.mod & MOD.x__stdcall))
                 {
-                    // Wrap the declaration in `extern (C/Windows) { declaration }`
+                    // Wrap the declaration in `extern (C) { declaration }`
                     // Necessary for function pointers, but harmless to apply to all.
+                    // extern(Windows) was already handled.
                     auto decls = new AST.Dsymbols(1);
                     (*decls)[0] = s;
-                    const lkg = specifier.mod & MOD.x__stdcall ? LINK.windows : linkage;
-                    s = new AST.LinkDeclaration(s.loc, lkg, decls);
+                    const lkg = linkage;
+                    s = new AST.LinkDeclaration(s.loc, linkage, decls);
                 }
                 symbols.push(s);
             }
@@ -2215,8 +2232,11 @@ final class CParser(AST) : Parser!AST
                 {
                     if (auto t = p.type.isTypeIdentifier())
                     {
-                        p.ident = t.ident;
-                        p.type = null;
+                        if (!isTypedef(t.ident))
+                        {
+                            p.ident = t.ident;
+                            p.type = null;
+                        }
                     }
                 }
 
@@ -2759,17 +2779,7 @@ final class CParser(AST) : Parser!AST
                 const idx = previd.toString();
                 if (idx.length > 2 && idx[0] == '_' && idx[1] == '_')  // leading double underscore
                     importBuiltins = true;  // probably one of those compiler extensions
-                t = null;
-
-                /* Punch through to what the typedef is, to support things like:
-                 *  typedef T* T;
-                 */
-                auto pt = lookupTypedef(previd);
-                if (pt && *pt)      // if previd is a known typedef
-                    t = *pt;
-
-                if (!t)
-                    t = new AST.TypeIdentifier(loc, previd);
+                t = new AST.TypeIdentifier(loc, previd);
                 break;
             }
 
@@ -2914,7 +2924,7 @@ final class CParser(AST) : Parser!AST
                     //printf("default %s\n", token.toChars());
                     if (declarator == DTR.xdirect)
                     {
-                        if (!t || t.isTypeIdentifier())
+                        if (!t || (t.isTypeIdentifier() && !isTypedef(t.isTypeIdentifier().ident)))
                         {
                             // const arr[1];
                             error("no type-specifier for declarator");
@@ -3144,6 +3154,8 @@ final class CParser(AST) : Parser!AST
             error("type-specifier is missing");
             tspec = AST.Type.tint32;
         }
+        if (tspec.isTypeIdentifier() && !isTypedef(tspec.isTypeIdentifier().ident))
+            error("unknown type `%s`", tspec.isTypeIdentifier().ident.toChars());
         if (tspec && specifier.mod & MOD.xconst)
         {
             tspec = toConst(tspec);
@@ -3237,7 +3249,7 @@ final class CParser(AST) : Parser!AST
             if (specifier.mod & MOD.xconst)
             {
                 if ((token.value == TOK.rightParenthesis || token.value == TOK.comma) &&
-                    tspec.isTypeIdentifier())
+                    tspec.isTypeIdentifier() && !isTypedef(tspec.isTypeIdentifier().ident))
                     error("type-specifier omitted for parameter `%s`", tspec.isTypeIdentifier().ident.toChars());
 
                 tspec = toConst(tspec);
@@ -4106,7 +4118,8 @@ final class CParser(AST) : Parser!AST
             {
                 if (auto ti = tspec.isTypeIdentifier())
                 {
-                    error("type-specifier omitted before declaration of `%s`", ti.ident.toChars());
+                    if (!isTypedef(ti.ident))
+                        error("type-specifier omitted before declaration of `%s`", ti.ident.toChars());
                 }
                 return; // legal but meaningless empty declaration
             }
@@ -4153,8 +4166,11 @@ final class CParser(AST) : Parser!AST
             {
                 if (auto ti = tspec.isTypeIdentifier())
                 {
-                    error("type-specifier omitted before bit field declaration of `%s`", ti.ident.toChars());
-                    tspec = AST.Type.tint32;
+                    if (!isTypedef(ti.ident))
+                    {
+                        error("type-specifier omitted before bit field declaration of `%s`", ti.ident.toChars());
+                        tspec = AST.Type.tint32;
+                    }
                 }
 
                 // C11 6.7.2.1-12 unnamed bit-field
@@ -5459,6 +5475,12 @@ final class CParser(AST) : Parser!AST
             auto decls = new AST.Dsymbols(1);
             (*decls)[0] = s;
             s = new AST.AlignDeclaration(s.loc, specifier.packalign, decls);
+        }
+        if (specifier.mod & MOD.x__stdcall)
+        {
+            auto decls = new AST.Dsymbols(1);
+            (*decls)[0] = s;
+            s = new AST.LinkDeclaration(s.loc, LINK.windows, decls);
         }
         return s;
     }

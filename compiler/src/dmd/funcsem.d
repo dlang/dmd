@@ -298,6 +298,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
                 auto tjf2 = new TypeFunction(tjf.parameterList, tjf.next, tjf.linkage);
                 funcdecl.type = tjf2;
                 funcdecl.originalType = tjf2;
+                tf = tjf2;
             }
         }
     }
