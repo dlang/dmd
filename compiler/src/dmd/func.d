@@ -820,18 +820,18 @@ extern (C++) class FuncDeclaration : Declaration
     bool addPreInvariant()
     {
         auto ad = isThis();
-        return (ad && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked());
+        return (ad && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked);
     }
 
     bool addPostInvariant()
     {
         auto ad = isThis();
-        return (ad && ad.inv && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked());
+        return (ad && ad.inv && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked);
     }
 
     override const(char)* kind() const
     {
-        return this.isGenerated() ? "generated function" : "function";
+        return this.isGenerated ? "generated function" : "function";
     }
 
     /********************************************

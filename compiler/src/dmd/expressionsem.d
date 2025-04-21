@@ -228,7 +228,7 @@ FuncDeclaration hasThis(Scope* sc)
         {
             return null;
         }
-        if (!fd.isNested() || fd.isThis() || (fd.hasDualContext() && fd.isMember2()))
+        if (!fd.isNested() || fd.isThis() || (fd.hasDualContext && fd.isMember2()))
             break;
 
         Dsymbol parent = fd.parent;
@@ -245,7 +245,7 @@ FuncDeclaration hasThis(Scope* sc)
         fd = parent.isFuncDeclaration();
     }
 
-    if (!fd.isThis() && !(fd.hasDualContext() && fd.isMember2()))
+    if (!fd.isThis() && !(fd.hasDualContext && fd.isMember2()))
     {
         return null;
     }
@@ -1817,7 +1817,7 @@ L1:
     if (e1.op == EXP.this_)
     {
         FuncDeclaration f = hasThis(sc);
-        if (f && f.hasDualContext())
+        if (f && f.hasDualContext)
         {
             if (f.followInstantiationContext(ad))
             {
@@ -2000,7 +2000,7 @@ void checkOverriddenDtor(FuncDeclaration f, Scope* sc, Loc loc,
             scope bool function(DtorDeclaration) check, const string checkName)
 {
     auto dd = f.isDtorDeclaration();
-    if (!dd || !dd.isGenerated())
+    if (!dd || !dd.isGenerated)
         return;
 
     // DtorDeclaration without parents should fail at an earlier stage
@@ -2017,7 +2017,7 @@ void checkOverriddenDtor(FuncDeclaration f, Scope* sc, Loc loc,
     }
 
     dd.loc.errorSupplemental("%s`%s.~this` is %.*s because of the following field's destructors:",
-                        dd.isGenerated() ? "generated " : "".ptr,
+                        dd.isGenerated ? "generated " : "".ptr,
                         ad.toChars,
                         cast(int) checkName.length, checkName.ptr);
 
@@ -2048,7 +2048,7 @@ void checkOverriddenDtor(FuncDeclaration f, Scope* sc, Loc loc,
         {
             field.loc.errorSupplemental(" - %s %s", field.type.toChars(), field.toChars());
 
-            if (fieldSd.dtor.isGenerated())
+            if (fieldSd.dtor.isGenerated)
                 fieldSd.dtor.checkOverriddenDtor(sc, loc, check, checkName);
             else
                 fieldSd.dtor.loc.errorSupplemental("   %.*s `%s.~this` is declared here",
@@ -3754,8 +3754,8 @@ private bool functionParameters(Loc loc, Scope* sc,
             int offset;
             if (!tret.implicitConvTo(tthis) && !(MODimplicitConv(tret.mod, tthis.mod) && tret.isBaseOf(tthis, &offset) && offset == 0))
             {
-                const(char)* s1 = tret.isNaked() ? " mutable" : tret.modToChars();
-                const(char)* s2 = tthis.isNaked() ? " mutable" : tthis.modToChars();
+                const(char)* s1 = tret.isNaked ? " mutable" : tret.modToChars();
+                const(char)* s2 = tthis.isNaked ? " mutable" : tthis.modToChars();
                 .error(loc, "`inout` constructor `%s` creates%s object, not%s", fd.toPrettyChars(), s1, s2);
                 err = true;
             }
@@ -4901,7 +4901,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 return setError();
             }
-            if (!exp.placement.type.isNaked())
+            if (!exp.placement.type.isNaked)
             {
                 error(p.loc, "PlacementExpression `%s` of type `%s` be unshared and mutable", p.toChars(), toChars(p.type));
                 return setError();
@@ -6206,7 +6206,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (sd.ctor)
                 {
                     auto ctor = sd.ctor.isCtorDeclaration();
-                    if (ctor && (ctor.isCpCtor || ctor.isMoveCtor) && ctor.isGenerated())
+                    if (ctor && (ctor.isCpCtor || ctor.isMoveCtor) && ctor.isGenerated)
                         sd.ctor = null;
                 }
 
@@ -6952,7 +6952,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // declare dual-context container
-        if (exp.f && exp.f.hasDualContext() && !sc.intypeof && sc.func)
+        if (exp.f && exp.f.hasDualContext && !sc.intypeof && sc.func)
         {
             // check access to second `this`
             if (AggregateDeclaration ad2 = exp.f.isMember2())
@@ -8459,7 +8459,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         result = e;
         // declare dual-context container
-        if (f.hasDualContext() && !sc.intypeof && sc.func)
+        if (f.hasDualContext && !sc.intypeof && sc.func)
         {
             // check access to second `this`
             if (AggregateDeclaration ad2 = f.isMember2())
@@ -16269,7 +16269,7 @@ Expression getThisSkipNestedFuncs(Loc loc, Scope* sc, Dsymbol s, AggregateDeclar
         {
             n++;
             e1 = new VarExp(loc, f.vthis);
-            if (f.hasDualContext())
+            if (f.hasDualContext)
             {
                 // (*__this)[i]
                 if (n > 1)
@@ -17127,7 +17127,7 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
              * postblit. Print the first field that has
              * a disabled postblit.
              */
-            if (postblit.isGenerated())
+            if (postblit.isGenerated)
             {
                 auto sd = p.isStructDeclaration();
                 assert(sd);
@@ -17169,7 +17169,7 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
     if (auto ctor = d.isCtorDeclaration())
     {
         //printf("checkDisabled() %s %s\n", ctor.toPrettyChars(), toChars(ctor.type));
-        if (ctor.isCpCtor && ctor.isGenerated())
+        if (ctor.isCpCtor && ctor.isGenerated)
         {
             .error(loc, "generating an `inout` copy constructor for `struct %s` failed, therefore instances of it are uncopyable", d.parent.toPrettyChars());
             return true;
