@@ -1754,8 +1754,20 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitAdd(AddExp e)
     {
         int op = OPadd;
-        if (e.type.ty == Tcomplex64 && e.e1.type.ty == Tfloat64 && e.e2.type.ty == Timaginary64)
-            op = OPpair;
+        if (e.type.isComplex())
+        {
+            const ty  = e.type.ty;
+            const ty1 = e.e1.type.ty;
+            const ty2 = e.e2.type.ty;
+            if (ty == Tcomplex32 && ty1 == Tfloat32 && ty2 == Timaginary32 ||
+                ty == Tcomplex64 && ty1 == Tfloat64 && ty2 == Timaginary64 ||
+                0 && ty == Tcomplex80 && ty1 == Tfloat80 && ty2 == Timaginary80)
+                op = OPpair;
+            else if (ty == Tcomplex32 && ty1 == Timaginary32 && ty2 == Tfloat32 ||
+                     ty == Tcomplex64 && ty1 == Timaginary64 && ty2 == Tfloat64 ||
+                     0 && ty == Tcomplex80 && ty1 == Timaginary80 && ty2 == Tfloat80)
+                op = OPrpair;
+        }
 
         return toElemBin(e, op);
     }
