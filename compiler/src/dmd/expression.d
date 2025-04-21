@@ -3288,7 +3288,7 @@ struct ArgumentList
     }
 }
 
-extern (C++) struct ArgumentLabel
+struct ArgumentLabel
 {
     Identifier name;    // name of the argument
     Loc loc;            // location of the argument
@@ -3300,7 +3300,7 @@ extern (C++) final class CallExp : UnaExp
 {
     Expressions* arguments; // function arguments
     Identifiers* names;     // named argument identifiers
-    ArgumentLabels* argLabels; // named argument labels
+    ArgumentLabels *argLabels; // named argument labels
     FuncDeclaration f;      // symbol to call
     bool directcall;        // true if a virtual call is devirtualized
     bool inDebugStatement;  /// true if this was in a debug statement

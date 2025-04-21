@@ -15,7 +15,6 @@
 #include "arraytypes.h"
 #include "visitor.h"
 #include "tokens.h"
-#include "frontend.h"
 
 #include "root/complex_t.h"
 #include "root/dcompat.h"
