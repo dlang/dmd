@@ -74,6 +74,7 @@ struct DefNode
  */
 struct GlobalOptimizer
 {
+    bool AArch64;       // AArch64 is the target
     mftype mfoptim;
     uint changes;       // # of optimizations performed
 

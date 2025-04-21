@@ -313,6 +313,7 @@ static if (0)
     configv.vasm = vasm;
     configv.verbose = verbose;
 
+    go.AArch64 = arm;
     if (optimize)
         go_flag(go, cast(char*)"-o".ptr);
 
