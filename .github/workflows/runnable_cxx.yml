@@ -57,12 +57,12 @@ jobs:
       # very few PRs actually benefit from this.
       fail-fast: false
       matrix:
-        os: [ macos-13, ubuntu-20.04, windows-2019 ]
+        os: [ macos-13, ubuntu-22.04, windows-2019 ]
 
         target: [
-          # Versions of clang earlier than 11 are not available on 20.04, but are on macOS 13
+          # Versions of clang earlier than 11 are not available on 22.04, but are on macOS 13
           clang-13.0.0, clang-12.0.0, clang-11.0.0, clang-10.0.0, clang-9.0.0, clang-8.0.0,
-        # For g++, we test the oldest compiler on Ubuntu 20.04, which is GCC-9
+        # For g++, we test the oldest compiler on Ubuntu 22.04, which is GCC-9
           g++-11, g++-10, g++-9,
           # Finally, we test MSVC 2013 - 2019
           msvc-2019, msvc-2017, msvc-2015, msvc-2013
@@ -72,14 +72,14 @@ jobs:
         # Note: Pattern matching is not supported so this list is quite long,
         # and brittle, as changing an msvc entry would break on OSX, for example.
         exclude:
-          # 20.04 only has g++-9 through to 11, and clang-11.0.0 through to 13.0.0
-          - { os: ubuntu-20.04, target: clang-10.0.0 }
-          - { os: ubuntu-20.04, target: clang-9.0.0 }
-          - { os: ubuntu-20.04, target: clang-8.0.0 }
-          - { os: ubuntu-20.04, target: msvc-2019 }
-          - { os: ubuntu-20.04, target: msvc-2017 }
-          - { os: ubuntu-20.04, target: msvc-2015 }
-          - { os: ubuntu-20.04, target: msvc-2013 }
+          # 22.04 only has g++-9 through to 11, and clang-11.0.0 through to 13.0.0
+          - { os: ubuntu-22.04, target: clang-10.0.0 }
+          - { os: ubuntu-22.04, target: clang-9.0.0 }
+          - { os: ubuntu-22.04, target: clang-8.0.0 }
+          - { os: ubuntu-22.04, target: msvc-2019 }
+          - { os: ubuntu-22.04, target: msvc-2017 }
+          - { os: ubuntu-22.04, target: msvc-2015 }
+          - { os: ubuntu-22.04, target: msvc-2013 }
           # OSX only supports clang
           - { os: macos-13, target: g++-11 }
           - { os: macos-13, target: g++-10 }
@@ -125,13 +125,13 @@ jobs:
           - { target: g++-10, compiler: g++, cxx-version: 10.3.0, major: 10 }
           - { target: g++-9, compiler: g++, cxx-version: 9.4.0, major: 9 }
           # Platform boilerplate
-          - { os: ubuntu-20.04, arch: x86_64-linux-gnu-ubuntu-20.04 }
+          - { os: ubuntu-22.04, arch: x86_64-linux-gnu-ubuntu-22.04 }
           - { os: macos-13,  arch: x86_64-apple-darwin }
           # Clang 9.0.0 have a different arch for OSX
           - { os: macos-13, target: clang-9.0.0, arch: x86_64-darwin-apple }
           # Those targets will generate artifacts that can be used by other testers
           - { storeArtifacts: false }
-          - { os: ubuntu-20.04, target: g++-9,    storeArtifacts: true }
+          - { os: ubuntu-22.04, target: g++-9,    storeArtifacts: true }
           - { os: macos-13,  target: clang-9.0.0, storeArtifacts: true }
           #- { os: windows-2019, target: msvc-2019,   storeArtifacts: true }
 
