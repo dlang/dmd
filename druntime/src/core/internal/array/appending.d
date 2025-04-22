@@ -17,7 +17,6 @@ private extern (C)
 
 private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lhs = rhs; });
 
-
 /**
  * Extend an array `px` by `n` elements.
  * Caller must initialize those elements.
@@ -133,6 +132,7 @@ version (D_ProfileGC)
             static assert(0, "Cannot append to array if compiling without support for runtime type information!");
     }
 }
+
 /// Implementation of `_d_arrayappendT`
 ref Tarr _d_arrayappendT(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y) @trusted
 {
