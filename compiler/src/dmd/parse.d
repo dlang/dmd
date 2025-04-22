@@ -28,6 +28,7 @@ import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.string;
 import dmd.tokens;
+import dmd.expression;
 
 alias CompileEnv = dmd.lexer.CompileEnv;
 
@@ -1325,7 +1326,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 const loc = token.loc;
                 AST.Expressions* args = new AST.Expressions();
                 AST.Identifiers* names = new AST.Identifiers();
-                parseNamedArguments(args, names);
+                parseNamedArguments(args, names, null);
                 exp = new AST.CallExp(loc, exp, args, names);
             }
 
@@ -9007,8 +9008,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.leftParenthesis:
                 AST.Expressions* args = new AST.Expressions();
                 AST.Identifiers* names = new AST.Identifiers();
-                parseNamedArguments(args, names);
-                e = new AST.CallExp(loc, e, args, names);
+                AST.ArgumentLabels* argLabels = new AST.ArgumentLabels();
+                parseNamedArguments(args, names, argLabels);
+                e = new AST.CallExp(loc, e, args, names, argLabels);
                 continue;
 
             case TOK.leftBracket:
@@ -9444,7 +9446,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         // function call
         AST.Expressions* arguments = new AST.Expressions();
-        parseNamedArguments(arguments, null);
+        parseNamedArguments(arguments, null, null);
         return arguments;
     }
 
@@ -9452,7 +9454,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * Collect argument list.
      * Assume current token is ',', '$(LPAREN)' or '['.
      */
-    private void parseNamedArguments(AST.Expressions* arguments, AST.Identifiers* names)
+    private void parseNamedArguments(AST.Expressions* arguments, AST.Identifiers* names, AST.ArgumentLabels* argLabels)
     {
         assert(arguments);
 
@@ -9469,14 +9471,23 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 auto ident = token.ident;
                 check(TOK.identifier);
                 check(TOK.colon);
-                if (names)
+                if (names && argLabels){
+                    names.push(ident);
+                    argLabels.push(ArgumentLabel(ident, loc));
+                }
+                else if (names)
                     names.push(ident);
                 else
                     error(loc, "named arguments not allowed here");
             }
             else
             {
-                if (names)
+                if (names && argLabels){
+                    names.push(null);
+                    argLabels.push(ArgumentLabel(null, Loc.init));
+
+                }
+                else if (names)
                     names.push(null);
             }
 
@@ -9528,7 +9539,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 arguments = new AST.Expressions();
                 names = new AST.Identifiers();
-                parseNamedArguments(arguments, names);
+                parseNamedArguments(arguments, names, null);
             }
 
             AST.BaseClasses* baseclasses = null;
@@ -9573,7 +9584,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         {
             arguments = new AST.Expressions();
             names = new AST.Identifiers();
-            parseNamedArguments(arguments, names);
+            parseNamedArguments(arguments, names, null);
         }
 
         auto e = new AST.NewExp(loc, placement, thisexp, t, arguments, names);

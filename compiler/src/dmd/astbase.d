@@ -13,6 +13,7 @@ module dmd.astbase;
 import dmd.astenums;
 import dmd.visitor.parsetime;
 import dmd.tokens : EXP;
+import dmd.expression;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
   * no semantic information. It defines all the AST nodes that the parser needs
@@ -46,6 +47,7 @@ struct ASTBase
     alias Dsymbols              = Array!(Dsymbol);
     alias Objects               = Array!(RootObject);
     alias Expressions           = Array!(Expression);
+    alias ArgumentLabels        = Array!(ArgumentLabel);
     alias Types                 = Array!(Type);
     alias TemplateParameters    = Array!(TemplateParameter);
     alias BaseClasses           = Array!(BaseClass*);
@@ -5580,12 +5582,14 @@ struct ASTBase
     {
         Expressions* arguments;
         Identifiers* names;
+        ArgumentLabels* argLabels;
 
-        extern (D) this(Loc loc, Expression e, Expressions* exps, Identifiers* names = null)
+        extern (D) this(Loc loc, Expression e, Expressions* exps, Identifiers* names = null, ArgumentLabels* argLabels = null)
         {
             super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
             this.arguments = exps;
             this.names = names;
+            this.argLabels = argLabels;
         }
 
         extern (D) this(Loc loc, Expression e)

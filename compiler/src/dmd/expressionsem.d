@@ -6278,7 +6278,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     resolvedArgs = resolveStructLiteralNamedArgs(sd, exp.e1.type, sc, exp.loc,
                         (*exp.names)[],
                         (size_t i, Type t) => (*exp.arguments)[i],
-                        i => (*exp.arguments)[i].loc
+                        i => (*exp.arguments)[i].loc,
+                        i => (exp.argLabels && (*exp.argLabels).length > i) ? (*exp.argLabels)[i].loc : (*exp.arguments)[i].loc
                     );
                     if (!resolvedArgs)
                     {
