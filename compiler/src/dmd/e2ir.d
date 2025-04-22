@@ -1765,7 +1765,7 @@ elem* toElem(Expression e, ref IRState irs)
                 op = OPpair;
             else if (ty == Tcomplex32 && ty1 == Timaginary32 && ty2 == Tfloat32 ||
                      ty == Tcomplex64 && ty1 == Timaginary64 && ty2 == Tfloat64 ||
-                     0 && ty == Tcomplex80 && ty1 == Timaginary80 && ty2 == Tfloat80)
+                     ty == Tcomplex80 && ty1 == Timaginary80 && ty2 == Tfloat80)
                 op = OPrpair;
         }
 
