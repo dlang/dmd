@@ -9,7 +9,7 @@
 */
 module core.internal.array.appending;
 
-extern (C)
+private extern (C)
 {
     bool gc_expandArrayUsed(void[] slice, size_t newUsed, bool atomic) pure nothrow;
     bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) pure nothrow;
