@@ -65,7 +65,7 @@ private ref Tarr _d_arrayappendcTX_(Tarr : T[], T)(return ref scope Tarr px, siz
         auto newsize = newlength * sizeelem;
         auto size = length * sizeelem;
 
-        if (!gc_expandArrayUsed((cast(void*)px.ptr)[0 .. size], newsize, isshared))
+        if (!gc_expandArrayUsed(px, newsize, isshared))
         {
             // could not set the size, we must reallocate.
             auto newcap = newCapacity(newlength, sizeelem);
@@ -93,7 +93,7 @@ private ref Tarr _d_arrayappendcTX_(Tarr : T[], T)(return ref scope Tarr px, siz
                 gc_shrinkArrayUsed(ptr[0 .. newsize], newcap, isshared);
             }
 
-            memcpy(ptr, cast(void*)px.ptr, size);
+            memcpy(ptr, px.ptr, size);
 
             // do potsblit processing.
             __doPostblit!T((cast(T*)ptr)[0 .. length]);
