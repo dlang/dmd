@@ -74,9 +74,7 @@ private ref Tarr _d_arrayappendcTX_(Tarr : T[], T)(return ref scope Tarr px, siz
             auto newcap = newCapacity(newlength, sizeelem);
             auto attrs = __typeAttrs!T(cast(void*)px.ptr) | BlkAttr.APPENDABLE;
 
-            // use this static enum to avoid recomputing TypeInfo for every call.
-            static enum ti = typeid(T);
-            T* ptr = cast(T*)GC.malloc(newcap, attrs, ti);
+            T* ptr = cast(T*)GC.malloc(newcap, attrs, typeid(T));
             if (ptr is null)
             {
                 onOutOfMemoryError();
