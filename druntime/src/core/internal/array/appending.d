@@ -26,6 +26,10 @@ private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lh
  *  n = how many new elements to extend it with
  * Returns:
  *  The new value of `px`
+ * Bugs:
+ *  This function template was ported from a much older runtime hook that bypassed safety,
+ *  purity, and throwabilty checks. To prevent breaking existing code, this function template
+ *  is temporarily declared `@trusted` until the implementation can be brought up to modern D expectations.
  */
 ref Tarr _d_arrayappendcTX(Tarr : T[], T)(return ref scope Tarr px, size_t n) @trusted
 {
