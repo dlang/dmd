@@ -9068,11 +9068,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseMulExp()
     {
-        const loc = token.loc;
         auto e = parseUnaryExp();
 
         while (1)
         {
+            const loc = token.loc;
             switch (token.value)
             {
             case TOK.mul:
@@ -9103,11 +9103,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseAddExp()
     {
-        const loc = token.loc;
         auto e = parseMulExp();
 
         while (1)
         {
+            const loc = token.loc;
             switch (token.value)
             {
             case TOK.add:
@@ -9138,11 +9138,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseShiftExp()
     {
-        const loc = token.loc;
         auto e = parseAddExp();
 
         while (1)
         {
+            const loc = token.loc;
             switch (token.value)
             {
             case TOK.leftShift:
@@ -9173,10 +9173,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseCmpExp()
     {
-        const loc = token.loc;
-
         auto e = parseShiftExp();
         EXP op = EXP.reserved;
+        const loc = token.loc;
 
         switch (token.value)
         {
@@ -9238,28 +9237,26 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseAndExp()
     {
-        Loc loc = token.loc;
         auto e = parseCmpExp();
         while (token.value == TOK.and)
         {
             checkParens(TOK.and, e);
+            const loc = token.loc;
             nextToken();
             auto e2 = parseCmpExp();
             checkParens(TOK.and, e2);
             e = new AST.AndExp(loc, e, e2);
-            loc = token.loc;
         }
         return e;
     }
 
     private AST.Expression parseXorExp()
     {
-        const loc = token.loc;
-
         auto e = parseAndExp();
         while (token.value == TOK.xor)
         {
             checkParens(TOK.xor, e);
+            const loc = token.loc;
             nextToken();
             auto e2 = parseAndExp();
             checkParens(TOK.xor, e2);
@@ -9270,12 +9267,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseOrExp()
     {
-        const loc = token.loc;
-
         auto e = parseXorExp();
         while (token.value == TOK.or)
         {
             checkParens(TOK.or, e);
+            const loc = token.loc;
             nextToken();
             auto e2 = parseXorExp();
             checkParens(TOK.or, e2);
@@ -9286,11 +9282,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseAndAndExp()
     {
-        const loc = token.loc;
-
         auto e = parseOrExp();
         while (token.value == TOK.andAnd)
         {
+            const loc = token.loc;
             nextToken();
             auto e2 = parseOrExp();
             e = new AST.LogicalExp(loc, EXP.andAnd, e, e2);
@@ -9300,11 +9295,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseOrOrExp()
     {
-        const loc = token.loc;
-
         auto e = parseAndAndExp();
         while (token.value == TOK.orOr)
         {
+            const loc = token.loc;
             nextToken();
             auto e2 = parseAndAndExp();
             e = new AST.LogicalExp(loc, EXP.orOr, e, e2);
@@ -9314,11 +9308,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseCondExp()
     {
-        const loc = token.loc;
-
         auto e = parseOrOrExp();
         if (token.value == TOK.question)
         {
+            const loc = token.loc;
             nextToken();
             auto e1 = parseExpression();
             check(TOK.colon);

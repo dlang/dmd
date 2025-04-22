@@ -37,6 +37,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
 import dmd.backend.arm.cod1;
+import dmd.backend.arm.instr : INSTR;
 
 import dmd.backend.cg : segfl, stackfl;
 
@@ -349,7 +350,7 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
 
     if (cgstate.AArch64)
     {
-        regm &= cgstate.allregs | mask(cgstate.BP);
+        regm &= cgstate.allregs | mask(cgstate.BP) | INSTR.FLOATREGS;
         if (!regm)
             return 0;
 
@@ -2092,6 +2093,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
  * Extra information about each CLIB runtime library function.
  */
 
+private
 enum
 {
     INF32         = 1,      /// if 32 bit only
@@ -2102,6 +2104,7 @@ enum
     INFpusheabcdx = 0x20,   /// pass EAX/EBX/ECX/EDX on stack, callee does ret 16
 }
 
+private
 struct ClibInfo
 {
     regm_t retregs16;   /* registers that 16 bit result is returned in  */
@@ -2114,6 +2117,7 @@ struct ClibInfo
 
 int clib_inited = false;          // true if initialized
 
+private
 Symbol* symboly(string name, regm_t desregs)
 {
     Symbol* s = symbol_calloc(name);
@@ -2125,6 +2129,7 @@ Symbol* symboly(string name, regm_t desregs)
     return s;
 }
 
+private
 void initClibInfo(ref Symbol*[CLIB.MAX] clibsyms, ref ClibInfo[CLIB.MAX] clibinfo)
 {
     for (size_t i = 0; i < CLIB.MAX; ++i)
@@ -2139,6 +2144,7 @@ void initClibInfo(ref Symbol*[CLIB.MAX] clibsyms, ref ClibInfo[CLIB.MAX] clibinf
     }
 }
 
+private
 void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t objfmt, exefmt_t exe)
 {
     const uint ex_unix = (EX_LINUX   | EX_LINUX64   |
@@ -2805,6 +2811,7 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
     }
 }
 
+private
 void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exefmt_t exe)
 {
     static Symbol*[CLIB.MAX] clibsyms;
@@ -3043,7 +3050,7 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
 @trusted
 bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t preg1, out reg_t preg2)
 {
-    //printf("FuncParamRegs::alloc(ty: TY%sm t: %p)\n", tystring[tybasic(ty)], t);
+    //printf("FuncParamRegs::alloc(ty: %s t: %p)\n", tym_str(ty), t);
     //if (t) type_print(t);
 
     preg1 = NOREG;
@@ -3197,7 +3204,13 @@ bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t pre
         }
         if (fpr.xmmcnt < fpr.numfloatregs)
         {
-            if (tyxmmreg(ty))
+            if (tyfloating(ty) && cgstate.AArch64)
+            {
+                *preg = fpr.floatregs[fpr.xmmcnt];
+                ++fpr.xmmcnt;
+                goto Lnext;
+            }
+            else if (tyxmmreg(ty))
             {
                 *preg = fpr.floatregs[fpr.xmmcnt];
                 if (config.exe == EX_WIN64)

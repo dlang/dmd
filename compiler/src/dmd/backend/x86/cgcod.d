@@ -1123,7 +1123,7 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
         {
             case SC.fastpar:
                 if (!(funcsym_p.Sfunc.Fflags3 & Ffakeeh))
-                    goto Ldefault;   // don't need consistent stack frame
+                    goto default;   // don't need consistent stack frame
                 break;
 
             case SC.parameter:
@@ -1139,7 +1139,6 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
                 break;          // allocate even if it's dead
 
             default:
-            Ldefault:
                 if (Symbol_Sisdead(*s, cg.anyiasm))
                     continue;       // don't allocate space
                 break;
@@ -1637,7 +1636,8 @@ static if (0)
 }
         tym = tybasic(tym);
         uint size = _tysize[tym];
-        if (cgstate.AArch64)
+        bool AArch64 = cgstate.AArch64;
+        if (AArch64)
             outretregs &= cgstate.allregs | INSTR.FLOATREGS;
         else
             outretregs &= mES | cgstate.allregs | XMMREGS | INSTR.FLOATREGS;
@@ -1688,7 +1688,8 @@ L3:
             }
         }
 
-        if (size <= REGSIZE || retregs & XMMREGS)
+        // TODO AArch64 needs work on floating point and complex floats
+        if (size <= REGSIZE || (AArch64 ? retregs & INSTR.FLOATREGS : retregs & XMMREGS))
         {
             if (r & ~mBP)
                 r &= ~mBP;

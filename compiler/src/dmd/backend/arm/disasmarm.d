@@ -1774,7 +1774,7 @@ void disassemble(uint c) @trusted
     // Cryptographic AES
     if (field(ins, 31, 24) == 0x4E && field(ins, 21, 17) == 0x14 && field(ins, 11, 10) == 2) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#cryptoaes
     {
-        url = "cryptoes";
+        url = "cryptoaes";
         uint size   = field(ins, 23, 22);
         uint opcode = field(ins, 16, 12);
         uint Rn     = field(ins, 9, 5);
@@ -1796,11 +1796,47 @@ void disassemble(uint c) @trusted
     else
 
     // Cryptographic three-register SHA https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#cryptosha3
+    if (field(ins,31,24) == 0x5E && field(ins,21,21) == 0 && field(ins,15,15) == 0 && field(ins,11,10) == 0)
+    {
+        url = "cryptosha3";
+    }
+    else
+
     // Cryptographic two-register SHA https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#cryptosha2
+    if (field(ins,31,24) == 0x5E && field(ins,21,17) == 0x14 && field(ins,11,10) == 2)
+    {
+        url = "cryptosha2";
+    }
+    else
+
     // Advanced SIMD scalar copy https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdone
+    if (field(ins,31,30) == 1 && field(ins,28,21) == 0xF0 && field(ins,15,15) == 0 && field(ins,10,10) == 1)
+    {
+        url = "asisdone";
+    }
+    else
+
     // Advanced SIMD scalar three same FP16 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdsamefp16
+    if (field(ins,31,30) == 1 && field(ins,28,24) == 0x1E && field(ins,22,21) == 2 && field(ins,11,10) == 1)
+    {
+        url = "asisdsamefp16";
+    }
+    else
+
     // Advanced SIMD scalar two-register miscellaneous FP16 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdmiscfp16
+    if (field(ins,31,30) == 1 && field(ins,28,24) == 0x1E && field(ins,22,17) == 0x3C && field(ins,15,14) == 0 && field(ins,11,10) == 2)
+    {
+        url = "asisdmiscfp16";
+    }
+    else
+
     // Advanced SIMD scalar three same extra https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdsame2
+    if (field(ins,31,30) == 1 && field(ins,28,24) == 0x1E && field(ins,21,21) == 0 && field(ins,15,15) == 1 && field(ins,10,10) == 1)
+    {
+        url = "asisdsame2";
+    }
+    else
+
     // Advanced SIMD scalar two-register miscellaneous http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdmisc
     if (field(ins,31,30) == 1 && field(ins,28,24) == 0x1E && field(ins,21,17) == 0x10 && field(ins,11,10) == 2)
     {
@@ -1820,7 +1856,14 @@ void disassemble(uint c) @trusted
         }
     }
     else
+
     // Advanced SIMD scalar pairwise https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdpair
+    if (field(ins,31,30) == 1 && field(ins,28,24) == 0x1E && field(ins,21,17) == 0x18 && field(ins,11,10) == 2)
+    {
+        url = "asisdpair";
+    }
+    else
+
     // Advanced SIMD scalar three different https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisddiff
     // Advanced SIMD scalar three same https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdsame
     // Advanced SIMD scalar shift by immediate https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdshf
@@ -1828,7 +1871,20 @@ void disassemble(uint c) @trusted
     // Advanced SIMD table lookup https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdtbl
     // Advanced SIMD permute https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdperm
     // Advanced SIMD extract https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdext
+
     // Advanced SIMD copy https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdins
+    if (field(ins,31,31) == 0 && field(ins,28,21) == 0x70 && field(ins,15,15) == 0 && field(ins,10,10) == 1)
+    {
+        url = "asimdins";
+        uint Q    = field(ins,30,30);
+        uint op   = field(ins,29,29);
+        uint imm5 = field(ins,20,16);
+        uint imm4 = field(ins,14,11);
+        uint Rn   = field(ins, 9, 5);
+        uint Rd   = field(ins, 4, 0);
+    }
+    else
+
     // Advanced SIMD three same (FP16) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsamefp16
     // Advanced SIMD two-register miscellaneous (FP16) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdmiscfp16
     // Advanced SIMD three-register extension https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsame2
@@ -1905,7 +1961,48 @@ void disassemble(uint c) @trusted
     else
 
     // Advanced SIMD three different https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimddiff
+
     // Advanced SIMD three same https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsame
+    if (field(ins,31,31) == 0 && field(ins,28,24) == 0x0E && field(ins,21,21) == 1 && field(ins,10,10) == 1)
+    {
+        url = "asimdsame";
+
+        uint Q      = field(ins,30,30);
+        uint U      = field(ins,29,29);
+        uint size   = field(ins,23,22);
+        uint Rm     = field(ins,20,16);
+        uint opcode = field(ins,15,11);
+        uint Rn     = field(ins, 9, 5);
+        uint Rd     = field(ins, 4, 0);
+        //printf("ins:%08x Q:%d U:%d size:%d opcode:%x Rm:%d Rn:%d Rd:%d\n", ins, Q, U, size, opcode, Rm, Rn, Rd);
+
+        uint Qn = (Q + 1) * 8;
+        switch (opcode)
+        {
+            case 3:
+                if (U == 0 && size == 2)
+                {
+                    if (Rm == Rn)
+                    {
+                        p1 = "mov"; // https://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_advsimd_reg.html
+                        uint n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.%db,v%d.%db", Rd, Qn, Rn, Qn);
+                        p2 = buf[0 .. n];
+                    }
+                    else
+                    {
+                        p1 = "orr"; // https://www.scs.stanford.edu/~zyedidia/arm64/orr_advsimd.html
+                        uint n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.%db,v%d.%db,v%d.%db", Rd, Qn, Rn, Qn, Rm, Qn);
+                        p2 = buf[0 .. n];
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+    else
+
     // Advanced SIMD modified immediate https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
     // Advanced SIMD shift by immediate https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdshf
     // Advanced SIMD vector x indexed element https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdelem
@@ -2065,10 +2162,7 @@ void disassemble(uint c) @trusted
 
         p1 = "fmov";
         p2 = fregString(rbuf[0..4],"sd h"[ftype],Rd);
-        uint sz = ftype == 0 ? 32 : ftype == 1 ? 64 : 16;
         float f = decodeImm8ToFloat(imm8);
-        if (sz == 16)
-            p1 = "";   // no support half-float literals
         p3 = doubletostring(f);
     }
     else
@@ -2855,8 +2949,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[80] cases64 =      // 64 bit code gen
+    string[81] cases64 =      // 64 bit code gen
     [
+        "4E BE 1F C0         mov    v0.16b,v30.16b",
         "D4 20 00 20         brk    #1",
         "D6 3F 00 00         blr    x0",
         "1E 21 43 FF         fneg   s31,s31",
