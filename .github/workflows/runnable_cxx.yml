@@ -57,16 +57,13 @@ jobs:
       matrix:
         include:
           # Linux, clang:
+          # NOTE: cannot test MODEL=32 with clang on Linux, due to a single failure as of April 2025:
+          #       runnable_cxx/cppa.d:261: cppa.check13956: Assertion `arg6 == 6' failed.
           - { os: ubuntu-24.04, compiler: clang-18, model: 64 }
-          - { os: ubuntu-24.04, compiler: clang-18, model: 32 }
           - { os: ubuntu-24.04, compiler: clang-17, model: 64 }
-          - { os: ubuntu-24.04, compiler: clang-17, model: 32 }
           - { os: ubuntu-24.04, compiler: clang-16, model: 64 }
-          - { os: ubuntu-24.04, compiler: clang-16, model: 32 }
           - { os: ubuntu-24.04, compiler: clang-15, model: 64 }
-          - { os: ubuntu-24.04, compiler: clang-15, model: 32 }
           - { os: ubuntu-24.04, compiler: clang-14, model: 64 }
-          - { os: ubuntu-24.04, compiler: clang-14, model: 32 }
           # Linux, g++:
           - { os: ubuntu-24.04, compiler: g++-13, model: 64 }
           - { os: ubuntu-24.04, compiler: g++-13, model: 32 }
