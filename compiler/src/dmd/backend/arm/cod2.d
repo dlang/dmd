@@ -37,7 +37,7 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
-import dmd.backend.arm.cod1 : loadFromEA, storeToEA, getlvalue;
+import dmd.backend.arm.cod1 : loadFromEA, storeToEA, getlvalue, CLIB_A, callclib;
 import dmd.backend.arm.cod3 : conditionCode, genBranch, gentstreg, movregconst, COND, loadFloatRegConst;
 import dmd.backend.arm.instr;
 
@@ -96,30 +96,47 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyfloating(ty1))
     {
-        uint ftype = sz == 2 ? 3 :
-                     sz == 4 ? 0 : 1;
-        switch (e.Eoper)
+        if (sz == 16)                   // 128 bit float
         {
-            // FADD/FSUB (extended register)
-            // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
-            case OPadd:
-                cdb.gen1(INSTR.fadd_float(ftype,Rm,Rn,Rd));     // FADD Rd,Rn,Rm
-                break;
+            uint clib;
+            switch (e.Eoper)
+            {
+                case OPadd: clib = CLIB_A.add; break;
+                case OPmin: clib = CLIB_A.min; break;
+                case OPmul: clib = CLIB_A.mul; break;
+                case OPdiv: clib = CLIB_A.div; break;
 
-            case OPmin:
-                cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm
-                break;
+                default:
+                    assert(0);
+            }
+            callclib(cdb,e,clib,pretregs,0);
+        }
+        else
+        {
+            const ftype = INSTR.szToFtype(sz);
+            switch (e.Eoper)
+            {
+                // FADD/FSUB (extended register)
+                // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
+                case OPadd:
+                    cdb.gen1(INSTR.fadd_float(ftype,Rm,Rn,Rd));     // FADD Rd,Rn,Rm
+                    break;
 
-            case OPmul:
-                cdb.gen1(INSTR.fmul_float(ftype,Rm,Rn,Rd));     // FMUL Rd,Rn,Rm
-                break;
+                case OPmin:
+                    cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm
+                    break;
 
-            case OPdiv:
-                cdb.gen1(INSTR.fdiv_float(ftype,Rm,Rn,Rd));     // FDIV Rd,Rn,Rm
-                break;
+                case OPmul:
+                    cdb.gen1(INSTR.fmul_float(ftype,Rm,Rn,Rd));     // FMUL Rd,Rn,Rm
+                    break;
 
-            default:
-                assert(0);
+                case OPdiv:
+                    cdb.gen1(INSTR.fdiv_float(ftype,Rm,Rn,Rd));     // FDIV Rd,Rn,Rm
+                    break;
+
+                default:
+                    assert(0);
+            }
         }
         pretregs = retregs | PSW;
         fixresult(cdb,e,mask(Rd),pretregs);
