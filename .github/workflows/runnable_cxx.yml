@@ -58,24 +58,34 @@ jobs:
       matrix:
         include:
           # Linux, clang:
-          - { os: ubuntu-24.04, compiler: clang-18 }
-          - { os: ubuntu-24.04, compiler: clang-17 }
-          - { os: ubuntu-24.04, compiler: clang-16 }
-          - { os: ubuntu-24.04, compiler: clang-15 }
-          - { os: ubuntu-24.04, compiler: clang-14 }
+          - { os: ubuntu-24.04, compiler: clang-18, model: 64 }
+          - { os: ubuntu-24.04, compiler: clang-18, model: 32 }
+          - { os: ubuntu-24.04, compiler: clang-17, model: 64 }
+          - { os: ubuntu-24.04, compiler: clang-17, model: 32 }
+          - { os: ubuntu-24.04, compiler: clang-16, model: 64 }
+          - { os: ubuntu-24.04, compiler: clang-16, model: 32 }
+          - { os: ubuntu-24.04, compiler: clang-15, model: 64 }
+          - { os: ubuntu-24.04, compiler: clang-15, model: 32 }
+          - { os: ubuntu-24.04, compiler: clang-14, model: 64 }
+          - { os: ubuntu-24.04, compiler: clang-14, model: 32 }
           # Linux, g++:
-          - { os: ubuntu-24.04, compiler: g++-13 }
-          - { os: ubuntu-24.04, compiler: g++-12 }
-          - { os: ubuntu-24.04, compiler: g++-11 }
-          - { os: ubuntu-24.04, compiler: g++-10 }
-          - { os: ubuntu-24.04, compiler: g++-9 }
+          - { os: ubuntu-24.04, compiler: g++-13, model: 64 }
+          - { os: ubuntu-24.04, compiler: g++-13, model: 32 }
+          - { os: ubuntu-24.04, compiler: g++-12, model: 64 }
+          - { os: ubuntu-24.04, compiler: g++-12, model: 32 }
+          - { os: ubuntu-24.04, compiler: g++-11, model: 64 }
+          - { os: ubuntu-24.04, compiler: g++-11, model: 32 }
+          - { os: ubuntu-24.04, compiler: g++-10, model: 64 }
+          - { os: ubuntu-24.04, compiler: g++-10, model: 32 }
+          - { os: ubuntu-24.04, compiler: g++-9, model: 64 }
+          - { os: ubuntu-24.04, compiler: g++-9, model: 32 }
           # macOS, Apple clang from Xcode:
-          - { os: macos-13, xcode: '14.3.1' }
-          - { os: macos-13, xcode: '15.2' }
-          - { os: macos-14, xcode: '16.2' }
+          - { os: macos-13, xcode: '14.3.1', model: 64 }
+          - { os: macos-13, xcode: '15.2', model: 64 }
+          - { os: macos-14, xcode: '16.2', model: 64 }
           # Windows, cl.exe from Visual Studio:
-          - { os: windows-2022 }
-          - { os: windows-2019 }
+          - { os: windows-2022, model: 64 }
+          - { os: windows-2019, model: 64 }
 
     runs-on: ${{ matrix.os }}
     defaults:
@@ -85,6 +95,8 @@ jobs:
 
     - name: Set environment variable N (parallelism)
       run: echo "N=$(${{ runner.os == 'macOS' && 'sysctl -n hw.logicalcpu' || 'nproc' }})" >> $GITHUB_ENV
+    - name: Set environment variable MODEL
+      run: echo "MODEL=${{ matrix.model }}" >> $GITHUB_ENV
 
     - name: 'macOS: Upgrade GNU make'
       if: runner.os == 'macOS'
@@ -145,11 +157,12 @@ jobs:
         set -eux
         sudo apt-get update
         apt_packages='${{ matrix.compiler }}'
-        # add 32-bit package for 32-bit tests
-        if [[ '${{ matrix.compiler }}' =~ ^g\+\+ ]]; then
-          apt_packages+=" ${{ matrix.compiler }}-multilib"
-        else
-          apt_packages+=" g++-multilib"
+        if [[ "$MODEL" == 32 ]]; then
+          if [[ '${{ matrix.compiler }}' =~ ^g\+\+ ]]; then
+            apt_packages+=" ${{ matrix.compiler }}-multilib"
+          else
+            apt_packages+=" g++-multilib"
+          fi
         fi
         sudo apt-get install -y $apt_packages
 
@@ -188,38 +201,21 @@ jobs:
     - name: Build compiler & standard library
       run: |
         set -eux
-        # All hosts are 64 bits but let's be explicit
         if [[ '${{ matrix.os }}' == macos-14 ]]; then
           # don't try compiling a native arm64 DMD on macOS (doesn't work)
-          make -C dmd  -j$N dmd MODEL=64 DFLAGS="-mtriple=x86_64-apple-macos14"
+          make -C dmd  -j$N dmd DFLAGS="-mtriple=x86_64-apple-macos14"
         fi
-        make -C dmd    -j$N MODEL=64
-        make -C phobos -j$N MODEL=64
-
-    - name: Build compiler & standard library (32-bit)
-      if: runner.os == 'Linux'
-      run: |
-        set -eux
-        make -C dmd    -j$N MODEL=32
-        make -C phobos -j$N MODEL=32
+        make -C dmd    -j$N
+        make -C phobos -j$N
 
     ########################################
     #        Running the test suite        #
     ########################################
     - name: Run compiler C++ test suite
-      run: ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=64 ${{ matrix.os == 'macos-14' && 'HOST_DMD="$PWD/dmd/generated/osx/release/64/dmd"' || '' }}
-    - name: Run compiler C++ test suite (32-bit)
-      if: runner.os == 'Linux'
-      run: |
-        set -eux
-        ./dmd/compiler/test/run.d clean
-        ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=32
+      run: ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d ${{ matrix.os == 'macos-14' && 'HOST_DMD="$PWD/dmd/generated/osx/release/64/dmd"' || '' }}
 
     - name: Run druntime C++ tests
-      run: make -C dmd/druntime -j$N test/stdcpp/.run MODEL=64
-    - name: Run druntime C++ tests (32-bit)
-      if: runner.os == 'Linux'
-      run: make -C dmd/druntime -j$N test/stdcpp/.run MODEL=32
+      run: make -C dmd/druntime -j$N test/stdcpp/.run
 
     - name: 'Posix: Run frontend C++ unittests'
       if: runner.os != 'Windows' # not supported by build.d yet
@@ -231,7 +227,4 @@ jobs:
           export CXXFLAGS="-arch x86_64"
           rm ./dmd/generated/osx/release/64/*.o
         fi
-        ./dmd/generated/build cxx-unittest MODEL=64
-    - name: Run frontend C++ unittests (32-bit)
-      if: runner.os == 'Linux'
-      run: ./dmd/generated/build cxx-unittest MODEL=32
+        ./dmd/generated/build cxx-unittest
