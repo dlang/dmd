@@ -22,7 +22,6 @@
 #   For example use `${{ github.workspace }}` over `${GITHUB_WORKSPACE}`
 #
 # TODO:
-# - Implement Windows + MSVC support
 # - Implement Windows + clang support
 name: C++ interop tests
 
@@ -85,7 +84,9 @@ jobs:
           - { os: macos-14, xcode: '16.2', model: 64 }
           # Windows, cl.exe from Visual Studio:
           - { os: windows-2022, model: 64 }
+          - { os: windows-2022, model: 32 }
           - { os: windows-2019, model: 64 }
+          - { os: windows-2019, model: 32 }
 
     runs-on: ${{ matrix.os }}
     defaults:
@@ -170,7 +171,7 @@ jobs:
       if: runner.os == 'Windows'
       uses: seanmiddleditch/gha-setup-vsdevenv@v4
       with:
-        arch: x64
+        arch: ${{ matrix.model == '64' && 'x64' || 'x86' }}
 
     - name: 'Posix: Setup CC and CXX environment variables'
       if: runner.os != 'Windows'
