@@ -24,7 +24,6 @@
 # TODO:
 # - Implement Windows + MSVC support
 # - Implement Windows + clang support
-# - Implement Linux + Clang 32 bits support (if possible)
 name: C++ interop tests
 
 # Only triggers on pushes to master & stable, as well as PR to master and stable
@@ -146,8 +145,11 @@ jobs:
         set -eux
         sudo apt-get update
         apt_packages='${{ matrix.compiler }}'
+        # add 32-bit package for 32-bit tests
         if [[ '${{ matrix.compiler }}' =~ ^g\+\+ ]]; then
-          apt_packages+=" ${{ matrix.compiler }}-multilib" # for 32-bit tests
+          apt_packages+=" ${{ matrix.compiler }}-multilib"
+        else
+          apt_packages+=" g++-multilib"
         fi
         sudo apt-get install -y $apt_packages
 
@@ -195,7 +197,7 @@ jobs:
         make -C phobos -j$N MODEL=64
 
     - name: Build compiler & standard library (32-bit)
-      if: startsWith(matrix.compiler, 'g++')
+      if: runner.os == 'Linux'
       run: |
         set -eux
         make -C dmd    -j$N MODEL=32
@@ -207,7 +209,7 @@ jobs:
     - name: Run compiler C++ test suite
       run: ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=64 ${{ matrix.os == 'macos-14' && 'HOST_DMD="$PWD/dmd/generated/osx/release/64/dmd"' || '' }}
     - name: Run compiler C++ test suite (32-bit)
-      if: startsWith(matrix.compiler, 'g++')
+      if: runner.os == 'Linux'
       run: |
         set -eux
         ./dmd/compiler/test/run.d clean
@@ -216,7 +218,7 @@ jobs:
     - name: Run druntime C++ tests
       run: make -C dmd/druntime -j$N test/stdcpp/.run MODEL=64
     - name: Run druntime C++ tests (32-bit)
-      if: startsWith(matrix.compiler, 'g++')
+      if: runner.os == 'Linux'
       run: make -C dmd/druntime -j$N test/stdcpp/.run MODEL=32
 
     - name: 'Posix: Run frontend C++ unittests'
@@ -231,5 +233,5 @@ jobs:
         fi
         ./dmd/generated/build cxx-unittest MODEL=64
     - name: Run frontend C++ unittests (32-bit)
-      if: startsWith(matrix.compiler, 'g++')
+      if: runner.os == 'Linux'
       run: ./dmd/generated/build cxx-unittest MODEL=32
