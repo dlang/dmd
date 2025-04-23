@@ -345,7 +345,7 @@ T opBinary(string op)(T rhs)
 {
     static if (op == "+") return data + rhs.data;
     else static if (op == "-") return data - rhs.data;
-    else static assert(0, "Operator "~op~" not implemented");
+    else static assert(0, "Operator " ~ op ~ " not implemented");
 }
 ---
 
@@ -354,7 +354,7 @@ T opBinary(string op)(T rhs)
 ---
 T opBinary(string op)(T rhs)
 {
-    return mixin("data "~op~" rhs.data");
+    return mixin("data " ~ op ~ " rhs.data");
 }
 ---
 
@@ -607,14 +607,15 @@ $(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloa
         declaring a function named $(CODE opCall):
         )
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     -------
     struct F
     {
-        int $(CODE_HIGHLIGHT opCall)();
-        int $(CODE_HIGHLIGHT opCall)(int x, int y, int z);
+        int opCall();
+        int opCall(int x, int y, int z);
     }
 
-    void test()
+    void main()
     {
         F f;
         int i;
@@ -623,6 +624,7 @@ $(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloa
         i = f(3,4,5); // same as i = f.opCall(3,4,5);
     }
     -------
+    )
 
         $(P In this way a struct or class object can behave as if it
         were a function.
@@ -660,17 +662,20 @@ $(H3 $(LNAME2 static-opcall, Static opCall))
         type names.
         )
 
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
     -------
     struct Double
     {
-        $(CODE_HIGHLIGHT static) int $(CODE_HIGHLIGHT opCall)(int x) { return x * 2; }
+        static int opCall(int x) { return x * 2; }
     }
-    void test()
+
+    void main()
     {
         int i = Double(2);
         assert(i == 4);
     }
     -------
+    )
 
         $(P Mixing struct constructors and $(D static opCall) is not allowed.)
 
@@ -971,7 +976,7 @@ struct S
 void main()
 {
     auto s = S([1, 2, 3]);
-    int[] t = s[0..2]; // calls s.opIndex(s.opSlice(0, 2))
+    int[] t = s[0..2]; // calls s.opIndex(s.opSlice!0(0, 2))
     assert(t == [1, 2]);
 }
 ---
@@ -1075,16 +1080,18 @@ $(H3 $(LEGACY_LNAME2 Dollar, dollar, Dollar Operator Overloading))
         understood by $(D opSlice) and $(D opIndex).
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 struct Rectangle
 {
     int width, height;
     int[][] impl;
+
     this(int w, int h)
     {
         width = w;
         height = h;
-        impl = new int[w][h];
+        impl = new int[][](w, h);
     }
     int opIndex(size_t i1, size_t i2)
     {
@@ -1099,7 +1106,7 @@ struct Rectangle
     }
 }
 
-void test()
+void main()
 {
     auto r = Rectangle(10,20);
     int i = r[$-1, 0];    // same as: r.opIndex(r.opDollar!0, 0),
@@ -1108,6 +1115,7 @@ void test()
                           // which is r.opIndex(0, r.height-1)
 }
 ------
+)
 
         $(P As the above example shows, a different compile-time argument is
         passed to $(D opDollar) depending on which argument it appears in. A
