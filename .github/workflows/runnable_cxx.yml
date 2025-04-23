@@ -94,10 +94,7 @@ jobs:
     #    Setting up the host D compiler    #
     ########################################
     - name: Prepare compiler
-      uses: dlang-community/setup-dlang@v1
-      with:
-        # can't install DMD host compiler on macOS arm64, use LDC
-        compiler: ${{ matrix.os == 'macos-14' && 'ldc-latest' || 'dmd-latest' }}
+      uses: dlang-community/setup-dlang@v2
     - name: 'Posix: Clear LD_LIBRARY_PATH environment variable' # don't use host druntime/Phobos .so/.dylib etc.
       if: runner.os != 'Windows'
       run: echo "LD_LIBRARY_PATH=" >> $GITHUB_ENV
@@ -174,6 +171,10 @@ jobs:
       run: |
         set -eux
         # All hosts are 64 bits but let's be explicit
+        if [[ '${{ matrix.os }}' == macos-14 ]]; then
+          # don't try compiling a native arm64 DMD on macOS (doesn't work)
+          make -C dmd  -j$N dmd MODEL=64 DFLAGS="-mtriple=x86_64-apple-macos14"
+        fi
         make -C dmd    -j$N MODEL=64
         make -C phobos -j$N MODEL=64
 
@@ -188,7 +189,7 @@ jobs:
     #        Running the test suite        #
     ########################################
     - name: Run compiler C++ test suite
-      run: ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=64
+      run: ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=64 ${{ matrix.os == 'macos-14' && 'HOST_DMD="$PWD/dmd/generated/osx/release/64/dmd"' || '' }}
     - name: Run compiler C++ test suite (32-bit)
       if: startsWith(matrix.compiler, 'g++')
       run: |
@@ -203,7 +204,15 @@ jobs:
       run: make -C dmd/druntime -j$N test/stdcpp/.run MODEL=32
 
     - name: Run frontend C++ unittests
-      run: ./dmd/compiler/src/build.d cxx-unittest MODEL=64
+      run: |
+        set -eux
+        if [[ '${{ matrix.os }}' == macos-14 ]]; then
+          # switch from LDC to freshly built DMD as host compiler
+          export HOST_DMD="$PWD/dmd/generated/osx/release/64/dmd"
+          export CXXFLAGS="-arch x86_64"
+          rm ./dmd/generated/osx/release/64/*.o
+        fi
+        ./dmd/generated/build cxx-unittest MODEL=64
     - name: Run frontend C++ unittests (32-bit)
       if: startsWith(matrix.compiler, 'g++')
-      run: ./dmd/compiler/src/build.d cxx-unittest MODEL=32
+      run: ./dmd/generated/build cxx-unittest MODEL=32
