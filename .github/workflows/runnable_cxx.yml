@@ -70,7 +70,11 @@ jobs:
           - { os: ubuntu-24.04, compiler: g++-11 }
           - { os: ubuntu-24.04, compiler: g++-10 }
           - { os: ubuntu-24.04, compiler: g++-9 }
-          # TODO: macOS & Windows
+          # macOS, Apple clang from Xcode:
+          - { os: macos-13, xcode: '14.3.1' }
+          - { os: macos-13, xcode: '15.2' }
+          - { os: macos-14, xcode: '16.2' }
+          # TODO: Windows
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -78,11 +82,22 @@ jobs:
     - name: Set environment variable N (parallelism)
       run: echo "N=$(${{ runner.os == 'macOS' && 'sysctl -n hw.logicalcpu' || 'nproc' }})" >> $GITHUB_ENV
 
+    - name: 'macOS: Upgrade GNU make'
+      if: runner.os == 'macOS'
+      run: |
+        set -eux
+        brew install make
+        sudo ln -s $(which gmake) /usr/local/bin/make
+        make --version
+
     ########################################
     #    Setting up the host D compiler    #
     ########################################
     - name: Prepare compiler
       uses: dlang-community/setup-dlang@v1
+      with:
+        # can't install DMD host compiler on macOS arm64, use LDC
+        compiler: ${{ matrix.os == 'macos-14' && 'ldc-latest' || 'dmd-latest' }}
     - name: 'Posix: Clear LD_LIBRARY_PATH environment variable' # don't use host druntime/Phobos .so/.dylib etc.
       if: runner.os != 'Windows'
       run: echo "LD_LIBRARY_PATH=" >> $GITHUB_ENV
@@ -123,7 +138,8 @@ jobs:
     ########################################
     #   Setting up the host C++ compiler   #
     ########################################
-    - name: Install C++ compiler
+    - name: 'Linux: Install C++ compiler'
+      if: runner.os == 'Linux'
       run: |
         set -eux
         sudo apt-get update
@@ -135,9 +151,15 @@ jobs:
 
     - name: Setup CC and CXX environment variables
       run: |
-        compiler='${{ matrix.compiler }}'
-        echo "CC=${compiler/g++/gcc}" >> $GITHUB_ENV
-        echo "CXX=${compiler/clang/clang++}" >> $GITHUB_ENV
+        if [[ '${{ runner.os }}' == Linux ]]; then
+          compiler='${{ matrix.compiler }}'
+          echo "CC=${compiler/g++/gcc}" >> $GITHUB_ENV
+          echo "CXX=${compiler/clang/clang++}" >> $GITHUB_ENV
+        elif [[ '${{ runner.os }}' == macOS ]]; then
+          sudo xcode-select -switch /Applications/Xcode_${{ matrix.xcode }}.app
+          echo "CC=cc" >> $GITHUB_ENV
+          echo "CXX=c++" >> $GITHUB_ENV
+        fi
 
     - name: Verify used C/C++ compiler versions
       run: |
