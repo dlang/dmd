@@ -744,9 +744,15 @@ struct INSTR
     static uint fmov_float_gen(uint sf, uint ftype, uint rmode, uint opcode, reg_t Rn, reg_t Rd)
     {
         if (opcode == 7)
+        {
+            assert(Rd & 32);
             Rd &= 31;
+        }
         else if (opcode == 6)
+        {
+            assert(Rn & 32);
             Rn &= 31;
+        }
         return float2int(sf, 0, ftype, rmode, opcode, Rn, Rd);
     }
 
