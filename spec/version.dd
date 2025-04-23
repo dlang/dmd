@@ -597,21 +597,26 @@ $(GNAME StaticForeachStatement):
     $(GLINK StaticForeach) $(GLINK2 statement, NoScopeNonEmptyStatement)
 )
 
-        $(P The aggregate/range bounds are evaluated at compile time and
+        $(P `static foreach` expands its *DeclarationBlock* or *DeclDefs* into a
+        series of declarations, each of which may reference any
+        $(GLINK2 statement, ForeachType) symbols declared.)
+
+      - The aggregate/range bounds are evaluated at compile time and
         turned into a sequence of compile-time entities by evaluating
         corresponding code with a $(GLINK2 statement, ForeachStatement)/$(GLINK2 statement, ForeachRangeStatement)
-        at compile time. The body of the $(D static foreach) is then copied a
+        at compile time.
+      - The body of the $(D static foreach) is then copied a
         number of times that corresponds to the number of elements of the
-        sequence. Within the i-th copy, the name of the $(D static foreach)
-        variable is bound to the i-th entry of the sequence, either as an $(D enum)
+        sequence.
+      - Within the i-th copy, the name of the $(D static foreach) element
+        'variable' is bound to the i-th entry of the sequence, either as an $(D enum)
         variable declaration (for constants) or an $(D alias)
         declaration (for symbols). (In particular, $(D static foreach)
         variables are never runtime variables.)
-        )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
-static foreach(i; [0, 1, 2, 3])
+static foreach (i; [0, 1, 2, 3])
 {
     pragma(msg, i);
 }
@@ -624,23 +629,25 @@ static foreach(i; [0, 1, 2, 3])
         tuples are subsequently unpacked during iteration).
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
-static foreach(i, v; ['a', 'b', 'c', 'd'])
+static foreach (i, v; ['a', 'b', 'c', 'd'])
 {
     static assert(i + 'a' == v);
 }
 ------
+)
 
         $(P Like bodies of $(GLINK ConditionalDeclaration)s, a $(D static foreach)
         body does not introduce a new scope. Therefore, it can be
-        used to generate declarations:
+        used to add declarations to an existing scope:
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 import std.range : iota;
 
-static foreach(i; iota(0, 3))
+static foreach (i; iota(0, 3))
 {
     mixin(`enum x`, i, ` = i;`);
 }
@@ -656,7 +663,7 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void fun()
 {
-    static foreach(s; ["hi", "hey", "hello"])
+    static foreach (s; ["hi", "hey", "hello"])
     {{
         enum len = s.length;    // local to each iteration
         static assert(len <= 5);
@@ -666,6 +673,9 @@ void fun()
 }
 ---
 )
+
+        $(P `static foreach` supports sequence expansion
+        $(DDSUBLINK spec/statement, foreach_over_tuples, like `foreach`).)
 
 $(H3 $(LNAME2 break-continue, `break` and `continue`))
 
@@ -682,7 +692,7 @@ int test(int x)
     int r = -1;
     switch(x)
     {
-        static foreach(i; 0 .. 100)
+        static foreach (i; 0 .. 5)
         {
             case i:
                 r = i;
@@ -693,9 +703,9 @@ int test(int x)
     return r;
 }
 
-static foreach(i; 0 .. 200)
+static foreach (i; 0 .. 10)
 {
-    static assert(test(i) == (i < 100 ? i : -1));
+    static assert(test(i) == (i < 5 ? i : -1));
 }
 -------
 
@@ -705,13 +715,14 @@ static foreach(i; 0 .. 200)
         labeled.)
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------
 int test(int x)
 {
     int r = -1;
     Lswitch: switch(x)
     {
-        static foreach(i; 0 .. 100)
+        static foreach (i; 0 .. 5)
         {
             case i:
                 r = i;
@@ -722,11 +733,12 @@ int test(int x)
     return r;
 }
 
-static foreach(i; 0 .. 200)
+static foreach (i; 0 .. 10)
 {
-    static assert(test(i) == (i<100 ? i : -1));
+    static assert(test(i) == (i < 5 ? i : -1));
 }
 -------
+)
 
 
 $(H2 $(LEGACY_LNAME2 StaticAssert, static-assert, Static Assert))
