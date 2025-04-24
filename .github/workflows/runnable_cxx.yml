@@ -38,6 +38,10 @@ on:
       # Use this branch name in your fork to test changes
       - github-actions
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   main:
     name: Run
