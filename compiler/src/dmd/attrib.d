@@ -783,6 +783,9 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
             {
                 vd.storage_class |= declared_storage_class;
                 d_storage_class = vd.storage_class;
+                // allow `auto (a, int b) =`
+                if (vd.type)
+                    vd.storage_class &= ~STC.auto_;
             }
             else if (auto up = d.isUnpackDeclaration())
             {

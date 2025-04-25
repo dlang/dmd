@@ -24,6 +24,17 @@ void main()
     assert(a == "four");
     assert(b == 5);
 
+    {
+        // mix outer storage & pattern component with type
+        auto ((s, int i), c) = tuple(tuple("hi", 5), 'c');
+        static assert(is(typeof(s) == string));
+        static assert(is(typeof(i) == int));
+        static assert(is(typeof(c) == char));
+        assert(s == "hi");
+        assert(i == 5);
+        assert(c == 'c');
+    }
+
     scope (u, v) = tuple(1, 2);
     assert(u == 1);
     assert(v == 2);

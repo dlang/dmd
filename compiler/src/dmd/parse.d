@@ -1230,6 +1230,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                     if (t == AST.Type.terror)
                         break;
+                    // specifying type overrides outer `auto`
+                    if (g_storage_class & STC.auto_)
+                        storage_class &= ~STC.auto_;
 
                     if (token.value != TOK.identifier)
                     {
