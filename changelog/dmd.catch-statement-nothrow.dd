@@ -1,0 +1,46 @@
+The presence of catch statements no longer raises an error with `-betterC` or `-nothrow`
+
+They are now simply ignored, as the try body can be assumed to never throw.
+This makes it easier to write common code that works both with and without Exceptions enabled, for example:
+
+---
+void log(T)(T val)
+{
+    try
+    {
+        print("log: ", val.toString())
+    }
+    catch (Exception e)
+    {
+        print("log: ", e.msg);
+        throw e;
+    }
+}
+---
+
+To make this compatible with `-betterC`, you had to write something like this:
+
+---
+void log(T)(T val)
+{
+    version (D_Exceptions)
+    {
+        try
+        {
+            print("log: ", val.toString())
+        }
+        catch (Exception e)
+        {
+            print("log: ", e.msg);
+            throw e;
+        }
+    }
+    else
+    {
+        print("log: ", val.toString());
+    }
+}
+---
+
+This is no longer necessary, as the first code example now works in both cases.
+Similarly, `scope (success)` is now equivalent to `scope (exit)` with `-nothrow` or `-betterC`, and `scope (failure)` is ignored.

@@ -43,6 +43,7 @@ extern (C) void main()
     testRuntimeLowerings();
     test18457();
     test20737();
+    testTryCatch();
 }
 
 /*******************************************/
@@ -220,4 +221,30 @@ void test22427()
 
     char[] p;
     auto a = cast(int[])p;
+}
+
+void notExplicitlyNothrow() {}
+
+void testTryCatch()
+{
+    bool success = false;
+    bool finallyReached = false;
+    {
+        try
+        {
+            notExplicitlyNothrow();
+        }
+        catch (Exception e)
+        {
+            throw e;
+        }
+        finally
+        {
+            finallyReached = true;
+        }
+        scope (success) { success = true; }
+        scope (failure) { throw new Error(); }
+    }
+    assert(success);
+    assert(finallyReached);
 }
