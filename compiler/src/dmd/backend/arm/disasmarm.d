@@ -295,6 +295,7 @@ void disassemble(uint c) @trusted
     const(char)[] p6 = "";
     const(char)[] p7 = "";
     const(char)[] url = "";
+    const(char)[] url2 = "";
 
     string[4] addsubTab = [ "add", "adds", "sub", "subs" ];
     string[16] condstring =
@@ -2004,6 +2005,28 @@ void disassemble(uint c) @trusted
     else
 
     // Advanced SIMD modified immediate https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
+    if (field(ins,31,31) == 0 && field(ins,28,19) == 0x1E0 && field(ins,10,10) == 1)
+    {
+        url = "asimdimm";
+
+        uint Q = field(ins,30,30);
+        uint op = field(ins,29,29);
+        uint abcdefgh = (field(ins,18,16) << 5) | field(ins,9,5);
+        uint cmode = field(ins,15,12);
+        uint o2 = field(ins,11,11);
+        uint Rd = field(ins,4,0);
+
+        if (Q == 1 && op == 1 && cmode == 0xE)
+        {
+            url2 = "movi_advsimd";
+            p1 = "movi";    // https://www.scs.stanford.edu/~zyedidia/arm64/movi_advsimd.html
+            // TODO AArch64 implement https://www.scs.stanford.edu/~zyedidia/arm64/shared_pseudocode.html#impl-shared.AdvSIMDExpandImm.3
+            uint n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.2d,#0x%x", Rd, abcdefgh);
+            p2 = buf[0 .. n];
+        }
+    }
+    else
+
     // Advanced SIMD shift by immediate https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdshf
     // Advanced SIMD vector x indexed element https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdelem
     // Cryptographic three-register, imm2 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#crypto3_imm2
@@ -2442,8 +2465,17 @@ void disassemble(uint c) @trusted
     {
         for (; plen < 29; ++plen)
             put(' ');
-        puts(" // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#");
-        puts(url);
+        puts(" // https://www.scs.stanford.edu/~zyedidia/arm64/");
+        if (url2)
+        {
+            puts(url2);
+            puts(".html");
+        }
+        else
+        {
+            puts("encodingindex.html#");
+            puts(url);
+        }
     }
 }
 }
@@ -2949,8 +2981,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[81] cases64 =      // 64 bit code gen
+    string[82] cases64 =      // 64 bit code gen
     [
+        "6F 00 E4 01         movi   v1.2d,#0x0",
         "4E BE 1F C0         mov    v0.16b,v30.16b",
         "D4 20 00 20         brk    #1",
         "D6 3F 00 00         blr    x0",

@@ -707,11 +707,18 @@ struct INSTR
             static uint mov_orr_advsimd_reg(uint Q, reg_t Vn, reg_t Vd) { return orr_advsimd_reg(Q,Vn,Vn,Vd); }
 
     /* Advanced SIMD modified immediate
-     * http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
      */
+    static uint asimdimm(uint Q, uint op, uint cmode, uint o2, uint abcdefgh, reg_t Rd)
+    {
+        return (0 << 31) | (Q << 30) | (op << 29) | (0x1E0 << 19) | ((abcdefgh & 0xE0) << (16 - 5)) |
+               (cmode << 12) | (o2 << 11) | (1 << 10) | ((abcdefgh & 0x1F) << 5) | (Rd & 31);
+    }
 
-    // FMOV Rd, Rn  https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float.html
-    static uint fmov(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,0,Vn & 31,Vd & 31); }
+        /* MOVI <Vd>.2D, #<imm> etc.
+         * http://www.scs.stanford.edu/~zyedidia/arm64/movi_advsimd.html
+         */
+        static uint movi_advsimd(uint Q, uint op, uint cmode, uint abcdefgh, reg_t Rd) { return asimdimm(Q,op,cmode,0,abcdefgh,Rd); }
 
     /* Advanced SIMD shift by immediate
      * Advanced SIMD vector x indexed element
@@ -784,6 +791,9 @@ struct INSTR
         assert(Rn < 32 && Rd < 32); // remember to convert V32..V63 to R0..R31
         return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (opcode << 15) | (0x10 << 10) | (Rn << 5) | Rd;
     }
+
+    // FMOV Rd, Rn  https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float.html
+    static uint fmov(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,0,Vn & 31,Vd & 31); }
 
     /* FCVT fpreg,fpreg https://www.scs.stanford.edu/~zyedidia/arm64/fcvt_float.html
      */
