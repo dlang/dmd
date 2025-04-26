@@ -240,11 +240,9 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 goto default;
             break;
 
-        case Terror:
-            return err();
-
         default:
-            error(i.loc, "cannot use array to initialize `%s`", t.toChars());
+            if(t.toChars() != `_error_`)
+                error(i.loc, "cannot use array to initialize `%s`", t.toChars());
             return err();
         }
         i.type = t;
