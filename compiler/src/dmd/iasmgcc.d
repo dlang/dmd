@@ -41,7 +41,7 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope* sc)
 {
     //printf("GccAsmStatement.semantic()\n");
     const bool doUnittests = global.params.parsingUnittestsRequired();
-    scope p = new Parser!ASTCodegen(sc._module, ";", false, global.errorSink, &global.compileEnv, doUnittests);
+    scope p = new Parser!ASTCodegen(sc._module, "", false, global.errorSink, &global.compileEnv, doUnittests);
 
     // Make a safe copy of the token list before parsing.
     Token* toklist = null;
@@ -54,6 +54,14 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope* sc)
         ptoklist = &(*ptoklist).next;
         *ptoklist = null;
     }
+    // Append closing `;` location.
+    *ptoklist = p.allocateToken();
+    (*ptoklist).value = TOK.semicolon;
+    (*ptoklist).loc = s.loc;
+    ptoklist = &(*ptoklist).next;
+    *ptoklist = null;
+
+    // Adjust starting line number of the parser.
     p.token = *toklist;
     p.baseLoc.startLine = s.loc.linnum;
     p.linnum = s.loc.linnum;
@@ -76,19 +84,19 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope* sc)
     {
         foreach (i; 0 .. s.args.length)
         {
-            Expression e = (*s.args)[i];
-            e = e.expressionSemantic(sc);
+            Expression ec = (*s.constraints)[i];
+            ec = ec.expressionSemantic(sc);
+            assert(ec.op == EXP.string_ && (cast(StringExp) ec).sz == 1);
+            (*s.constraints)[i] = ec;
+
+            Expression earg = (*s.args)[i];
+            earg = earg.expressionSemantic(sc);
             // Check argument is a valid lvalue/rvalue.
             if (i < s.outputargs)
-                e = e.modifiableLvalue(sc);
-            else if (e.checkValue())
-                e = ErrorExp.get();
-            (*s.args)[i] = e;
-
-            e = (*s.constraints)[i];
-            e = e.expressionSemantic(sc);
-            assert(e.op == EXP.string_ && (cast(StringExp) e).sz == 1);
-            (*s.constraints)[i] = e;
+                earg = earg.modifiableLvalue(sc);
+            else if (earg.checkValue())
+                earg = ErrorExp.get();
+            (*s.args)[i] = earg;
         }
     }
 
@@ -97,10 +105,10 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope* sc)
     {
         foreach (i; 0 .. s.clobbers.length)
         {
-            Expression e = (*s.clobbers)[i];
-            e = e.expressionSemantic(sc);
-            assert(e.op == EXP.string_ && (cast(StringExp) e).sz == 1);
-            (*s.clobbers)[i] = e;
+            Expression ec = (*s.clobbers)[i];
+            ec = ec.expressionSemantic(sc);
+            assert(ec.op == EXP.string_ && (cast(StringExp) ec).sz == 1);
+            (*s.clobbers)[i] = ec;
         }
     }
 
@@ -143,6 +151,30 @@ public void gccAsmSemantic(CAsmDeclaration ad, Scope* sc)
 
 private:
 
+
+/***********************************
+ * Issue error if the current token is not `value`.
+ * Otherwise, advance to next token.
+ * Params:
+ *      p = parser state
+ *      value = token value to compare with
+ * Returns:
+ *      true    advanced to next token
+ *      false   error was issued
+ */
+bool requireToken(Parser)(Parser p, TOK value)
+{
+    if (p.token.value == value)
+    {
+        p.nextToken();
+        return true;
+    }
+
+    p.eSink.error(p.token.loc, "found `%s` when expecting `%s`",
+                  p.token.toChars(), Token.toChars(value));
+    return false;
+}
+
 /***********************************
  * Parse an expression that evaluates to a string.
  * Grammar:
@@ -158,9 +190,16 @@ Expression parseAsmString(Parser)(Parser p)
 {
     if (p.token.value == TOK.leftParenthesis)
     {
+        // Skip over opening `(`
         p.nextToken();
         Expression insn = p.parseAssignExp();
-        p.check(TOK.rightParenthesis);
+        if (insn.isErrorExp())
+            return insn;
+
+        // Look for closing `)`.
+        if (!p.requireToken(TOK.rightParenthesis))
+            return ErrorExp.get();
+
         return insn;
     }
     else if (p.token.value != TOK.string_)
@@ -191,86 +230,89 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
 {
     int numargs = 0;
 
+    if (p.token.value == TOK.colon ||
+        p.token.value == TOK.semicolon ||
+        p.token.value == TOK.endOfFile)
+        return numargs;
+
     while (1)
     {
         Expression arg;
         Identifier name;
-        Expression constraint;
 
-        switch (p.token.value)
+        if (p.token.value == TOK.leftBracket)
         {
-            case TOK.semicolon:
-            case TOK.colon:
-            case TOK.endOfFile:
-                return numargs;
-
-            case TOK.leftBracket:
-                if (p.peekNext() == TOK.identifier)
-                {
-                    // Skip over opening `[`
-                    p.nextToken();
-                    // Store the symbolic name
-                    name = p.token.ident;
-                    p.nextToken();
-                }
-                else
-                {
-                    p.eSink.error(s.loc, "expected identifier after `[`");
-                    goto Lerror;
-                }
-                // Look for closing `]`
-                p.check(TOK.rightBracket);
-                // Look for the string literal and fall through
-                if (p.token.value == TOK.string_)
-                    goto case;
-                else
-                    goto default;
-
-            case TOK.string_:
-                constraint = p.parsePrimaryExp();
-                if (p.token.value != TOK.leftParenthesis)
-                {
-                    arg = p.parseAssignExp();
-                    p.eSink.error(arg.loc, "`%s` must be surrounded by parentheses", arg.toChars());
-                }
-                else
-                {
-                    // Look for the opening `(`
-                    p.check(TOK.leftParenthesis);
-                    // Parse the assign expression
-                    arg = p.parseAssignExp();
-                    // Look for the closing `)`
-                    p.check(TOK.rightParenthesis);
-                }
-
-                if (!s.args)
-                {
-                    s.names = new Identifiers();
-                    s.constraints = new Expressions();
-                    s.args = new Expressions();
-                }
-                s.names.push(name);
-                s.args.push(arg);
-                s.constraints.push(constraint);
-                numargs++;
-
-                if (p.token.value == TOK.comma)
-                    p.nextToken();
-                break;
-
-            default:
-                p.eSink.error(p.token.loc, "expected constant string constraint for operand, not `%s`",
-                        p.token.toChars());
+            // Skip over opening `[`
+            p.nextToken();
+            if (p.token.value == TOK.identifier)
+            {
+                // Store the symbolic name
+                name = p.token.ident;
+                p.nextToken();
+            }
+            else
+            {
+                p.eSink.error(p.token.loc, "expected identifier after `[`");
+                goto Lerror;
+            }
+            // Look for closing `]`
+            if (!p.requireToken(TOK.rightBracket))
                 goto Lerror;
         }
+
+        // Look for the constraint string.
+        Expression constraint;
+        if (p.token.value == TOK.string_)
+        {
+            constraint = p.parsePrimaryExp();
+            if (constraint.isErrorExp())
+                goto Lerror;
+        }
+        else
+        {
+            p.eSink.error(p.token.loc, "expected constant string constraint for operand, not `%s`",
+                          p.token.toChars());
+            goto Lerror;
+        }
+
+        // Look for the opening `(`
+        if (!p.requireToken(TOK.leftParenthesis))
+            goto Lerror;
+
+        // Parse the assign expression
+        arg = p.parseAssignExp();
+        if (arg.isErrorExp())
+            goto Lerror;
+
+        // Look for the closing `)`
+        if (!p.requireToken(TOK.rightParenthesis))
+            goto Lerror;
+
+        // Add this operand to the list.
+        if (!s.args)
+        {
+            s.names = new Identifiers();
+            s.constraints = new Expressions();
+            s.args = new Expressions();
+        }
+        s.names.push(name);
+        s.args.push(arg);
+        s.constraints.push(constraint);
+        numargs++;
+
+        // If the next token is not a `,`, there are no more operands.
+        if (p.token.value != TOK.comma)
+            return numargs;
+
+        // Skip over the `,` token.
+        p.nextToken();
     }
 Lerror:
-    while (p.token.value != TOK.rightCurly &&
-           p.token.value != TOK.semicolon &&
+    while (p.token.value != TOK.semicolon &&
            p.token.value != TOK.endOfFile)
         p.nextToken();
 
-    return numargs;
+    return 0;
 }
 
 /***********************************
@@ -288,40 +330,46 @@ Expressions* parseExtAsmClobbers(Parser)(Parser p)
 {
     Expressions* clobbers;
 
+    if (p.token.value == TOK.colon ||
+        p.token.value == TOK.semicolon ||
+        p.token.value == TOK.endOfFile)
+        return clobbers;
+
     while (1)
     {
+        // Look for the clobbers string
         Expression clobber;
-
-        switch (p.token.value)
+        if (p.token.value == TOK.string_)
         {
-            case TOK.semicolon:
-            case TOK.colon:
-            case TOK.endOfFile:
-                return clobbers;
-
-            case TOK.string_:
-                clobber = p.parsePrimaryExp();
-                if (!clobbers)
-                    clobbers = new Expressions();
-                clobbers.push(clobber);
-
-                if (p.token.value == TOK.comma)
-                    p.nextToken();
-                break;
-
-            default:
-                p.eSink.error(p.token.loc, "expected constant string constraint for clobber name, not `%s`",
-                        p.token.toChars());
+            clobber = p.parsePrimaryExp();
+            if (clobber.isErrorExp())
                 goto Lerror;
         }
+        else
+        {
+            p.eSink.error(p.token.loc, "expected constant string constraint for clobber name, not `%s`",
+                          p.token.toChars());
+            goto Lerror;
+        }
+
+        // Add it to the list.
+        if (!clobbers)
+            clobbers = new Expressions();
+        clobbers.push(clobber);
+
+        // If the next token is not a `,`, there are no more clobbers.
+        if (p.token.value != TOK.comma)
+            return clobbers;
+
+        // Skip over the `,` token.
+        p.nextToken();
     }
 Lerror:
-    while (p.token.value != TOK.rightCurly &&
-           p.token.value != TOK.semicolon &&
+    while (p.token.value != TOK.semicolon &&
            p.token.value != TOK.endOfFile)
         p.nextToken();
 
-    return clobbers;
+    return null;
 }
 
 /***********************************
@@ -339,36 +387,38 @@ Identifiers* parseExtAsmGotoLabels(Parser)(Parser p)
 {
     Identifiers* labels;
 
+    if (p.token.value == TOK.semicolon ||
+        p.token.value == TOK.endOfFile)
+        return labels;
+
     while (1)
     {
-        switch (p.token.value)
+        if (p.token.value == TOK.identifier)
         {
-            case TOK.semicolon:
-            case TOK.endOfFile:
+            if (!labels)
+                labels = new Identifiers();
+            labels.push(p.token.ident);
+
+            // If the next token is not a `,`, there are no more labels.
+            if (p.nextToken() != TOK.comma)
                 return labels;
 
-            case TOK.identifier:
-                if (!labels)
-                    labels = new Identifiers();
-                labels.push(p.token.ident);
-
-                if (p.nextToken() == TOK.comma)
-                    p.nextToken();
-                break;
-
-            default:
-                p.eSink.error(p.token.loc, "expected identifier for goto label name, not `%s`",
-                        p.token.toChars());
-                goto Lerror;
+            // Skip over the `,` token.
+            p.nextToken();
+        }
+        else
+        {
+            p.eSink.error(p.token.loc, "expected identifier for goto label name, not `%s`",
+                          p.token.toChars());
+            goto Lerror;
         }
     }
 Lerror:
-    while (p.token.value != TOK.rightCurly &&
-           p.token.value != TOK.semicolon &&
+    while (p.token.value != TOK.semicolon &&
            p.token.value != TOK.endOfFile)
         p.nextToken();
 
-    return labels;
+    return null;
 }
 
 /***********************************
@@ -400,38 +450,49 @@ GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
     if (s.insn.isErrorExp())
         return s;
 
+    // No semicolon followed after instruction template, treat as extended asm.
     if (p.token.value == TOK.semicolon || p.token.value == TOK.endOfFile)
         goto Ldone;
 
-    // No semicolon followed after instruction template, treat as extended asm.
-    foreach (section; 0 .. 4)
+    // Look for outputs.
+    if (p.requireToken(TOK.colon))
+        s.outputargs = p.parseExtAsmOperands(s);
+    else
+        return s;
+
+    // Look for inputs.
+    if (p.token.value == TOK.colon)
     {
-        p.check(TOK.colon);
-
-        final switch (section)
-        {
-            case 0:
-                s.outputargs = p.parseExtAsmOperands(s);
-                break;
-
-            case 1:
-                p.parseExtAsmOperands(s);
-                break;
-
-            case 2:
-                s.clobbers = p.parseExtAsmClobbers();
-                break;
-
-            case 3:
-                s.labels = p.parseExtAsmGotoLabels();
-                break;
-        }
-
-        if (p.token.value == TOK.semicolon || p.token.value == TOK.endOfFile)
-            goto Ldone;
+        // Skip over the `:` token.
+        p.nextToken();
+        p.parseExtAsmOperands(s);
     }
+    else
+        goto Ldone;
+
+    // Look for clobbers.
+    if (p.token.value == TOK.colon)
+    {
+        // Skip over the `:` token.
+        p.nextToken();
+        s.clobbers = p.parseExtAsmClobbers();
+    }
+    else
+        goto Ldone;
+
+    // Look for labels.
+    if (p.token.value == TOK.colon)
+    {
+        // Skip over the `:` token.
+        p.nextToken();
+        s.labels = p.parseExtAsmGotoLabels();
+    }
+
 Ldone:
-    p.check(TOK.semicolon);
+    if (p.token.value == TOK.endOfFile)
+        assert(global.errors);
+    else
+        p.requireToken(TOK.semicolon);
 
     return s;
 }
@@ -513,7 +574,7 @@ unittest
 
         auto res = semanticAsm(toklist);
         // Checks for both unexpected passes and failures.
-        assert((res == 0) != expectError);
+        assert((res == 0) != expectError, input);
     }
 
     /// Assembly Tests, all should pass.
@@ -531,7 +592,7 @@ unittest
 
         // Assembly with symbolic names
         q{ asm { "bts %[base], %[offset]"
-               : [base] "+rm" (*ptr),
+               : [base] "+rm" (*ptr)
                : [offset] "Ir" (bitnum);
         } },
 
@@ -594,6 +655,37 @@ unittest
         q{ asm { 1; }   },
         q{ asm { int; } },
         q{ asm { : "=r" (i); } },
+        q{ asm { (; } },
+        q{ asm { (""; } },
+        q{ asm { "" ,; } },
+        q{ asm { "" d; } },
+        q{ asm { "" : (; } },
+        q{ asm { "" : (""; } },
+        q{ asm { "" : ""; } },
+        q{ asm { "" : "" (; } },
+        q{ asm { "" : "" (a; } },
+        q{ asm { "" : "" (a) ,; } },
+        q{ asm { "" : "" (a) d; } },
+        q{ asm { "" : "" (a) : (; } },
+        q{ asm { "" : "" (a) : (""; } },
+        q{ asm { "" : "" (a) : ""; } },
+        q{ asm { "" : "" (a) : "" (; } },
+        q{ asm { "" : "" (a) : "" (b; } },
+        q{ asm { "" : "" (a) : "" (b) ,; } },
+        q{ asm { "" : "" (a) : "" (b) d; } },
+        q{ asm { "" : "" (a) : "" (b) : (; } },
+        q{ asm { "" : "" (a) : "" (b) : (""; } },
+        q{ asm { "" : "" (a) : "" (b) : "" ,; } },
+        q{ asm { "" : "" (a) : "" (b) : "" d; } },
+        q{ asm { "" : "" (a) : "" (b) : "" : (; } },
+        q{ asm { "" : "" (a) : "" (b) : "" : c ,; } },
+        q{ asm { "" : "" (a) : "" (b) : "" : c d; } },
+        q{ asm { "" : "" (a) : "" (b) : "" : c :; } },
+        q{ asm { "" : "" (a) : "" (b) : "" : c : (; } },
+        q{ asm { "" : "" (a) : "" (b) : "" : c : (""; } },
+        q{ asm { "" : "" (a) : "" (b) : "" : c : "" (; } },
+        q{ asm { "" : "" (a) : "" (b) : "" : c : "" (d; } },
+        q{ asm { "" : "" (a) : "" (b) : "" : c : "" (d); } },
     ];
 
     foreach (test; passAsmTests)
