@@ -2073,7 +2073,7 @@ void disassemble(uint c) @trusted
 
         if (S == 0)
         {
-            p1 = "fmov";
+            p1 = "fmov"; // https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
 
             if (sf == 0 && ftype == 0 && rmode == 0 && opcode == 7)
             {
@@ -2105,6 +2105,18 @@ void disassemble(uint c) @trusted
             {
                 p1 = opcode & 1 ? "ucvtf" : "scvtf";
                 p2 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rd);
+                p3 = regString(sf,Rn);
+            }
+            else if (sf == 1 && ftype == 2 && rmode == 1 && opcode == 6) // top half to 64 bit
+            {
+                p2 = regString(sf,Rd);
+                const n = snprintf(rbuf.ptr, rbuf.length, "v%d.d[1]", Rn);
+                p3 = rbuf[0 .. n];
+            }
+            else if (sf == 1 && ftype == 2 && rmode == 1 && opcode == 7) // 64 bit to top half
+            {
+                const n = snprintf(rbuf.ptr, rbuf.length, "v%d.d[1]", Rd);
+                p2 = rbuf[0 .. n];
                 p3 = regString(sf,Rn);
             }
         }
@@ -2981,9 +2993,10 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[82] cases64 =      // 64 bit code gen
+    string[83] cases64 =      // 64 bit code gen
     [
         "6F 00 E4 01         movi   v1.2d,#0x0",
+        "9E AF 00 3E         fmov   v30.d[1],x1",
         "4E BE 1F C0         mov    v0.16b,v30.16b",
         "D4 20 00 20         brk    #1",
         "D6 3F 00 00         blr    x0",

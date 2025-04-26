@@ -1658,35 +1658,52 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const sz = _tysize[tyml];
     if (tyfloating(tyml))
     {
-        const posregs = INSTR.FLOATREGS;
-        regm_t retregs1 = posregs;
+        regm_t retregs1 = INSTR.FLOATREGS;
         codelem(cgstate,cdb,e.E1,retregs1,false);
 
-        regm_t retregs = pretregs & posregs;
+        regm_t retregs = pretregs & INSTR.FLOATREGS;
         if (retregs == 0)                   /* if no return regs speced     */
                                             /* (like if wanted flags only)  */
-            retregs = FLOATREGS;            // give us some
-        const Vd = allocreg(cdb, retregs, tyml);
+            retregs = INSTR.FLOATREGS;      // give us some
+        codelem(cgstate,cdb,e.E1,retregs,false);
+        getregs(cdb,retregs);               // retregs will be destroyed
 
-        const Vn = findreg(retregs1);
+        const Vn = findreg(retregs);
 
-        const ftype = INSTR.szToFtype(sz);
-        cdb.gen1(INSTR.fneg_float(ftype, Vn, Vd));
+        if (sz == 16)                   // 128 bit float
+        {
+            /* Generate:
+                FMOV Xn,Vn.d[1] // upper 64 bits
+                EOR  Xn,Xn,#0x8000_0000_0000_0000  // toggle sign bit
+                FMOV Vn.d[1],Xn // store upper 64 bits
+             */
+            // Alloc Xn
+            regm_t retregsx = cg.allregs;
+            const Xn = allocreg(cdb,retregsx,TYllong); // scratch register Xn
+            // https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
+            cdb.gen1(INSTR.fmov_float_gen(1,2,1,6,Vn,Xn)); // Top half of 128-bit to 64-bit
+            uint N, immr, imms;
+            assert(encodeNImmrImms(0x8000_0000_0000_0000,N,immr,imms));
+            uint sf = 1, opc = 2;
+            cdb.gen1(INSTR.log_imm(sf,opc,N,immr,imms,Xn,Xn)); // https://www.scs.stanford.edu/~zyedidia/arm64/eor_log_imm.html
+            cdb.gen1(INSTR.fmov_float_gen(1,2,1,7,Xn,Vn)); // 64-bit to top half of 128-bit
+        }
+        else
+        {
+            const ftype = INSTR.szToFtype(sz);
+            cdb.gen1(INSTR.fneg_float(ftype, Vn, Vn));
+        }
         fixresult(cdb,e,retregs,pretregs);
         return;
     }
 
-    const posregs = cgstate.allregs;
-    regm_t retregs1 = posregs;
-    codelem(cgstate,cdb,e.E1,retregs1,false);
 
     regm_t retregs = pretregs & cg.allregs;
-    if (retregs == 0)                   /* if no return regs speced     */
-                                        /* (like if wanted flags only)  */
-        retregs = ALLREGS & posregs;    // give us some
-    reg_t Rd = allocreg(cdb, retregs, tyml);
-
-    const Rm = findreg(retregs1);
+    if (retregs == 0)                   // if no return regs speced
+        retregs = cg.allregs;           // give us some
+    codelem(cg,cdb,e.E1,retregs,false);
+    getregs(cdb,retregs);               // retregs will be destroyed
+    const Rm = findreg(retregs);
 
     /* NEG  https://www.scs.stanford.edu/~zyedidia/arm64/neg_sub_addsub_shift.html
      * NEGS https://www.scs.stanford.edu/~zyedidia/arm64/negs_subs_addsub_shift.html
@@ -1694,7 +1711,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     uint sf = sz == 8;
     uint S = (pretregs & mPSW) != 0;  // NEG/NEGS
-    cdb.gen1(INSTR.addsub_shift(sf,1,S,0,Rm,0,31,Rd)); // NEG/NEGS <Rd>,<Rm>
+    cdb.gen1(INSTR.addsub_shift(sf,1,S,0,Rm,0,31,Rm)); // NEG/NEGS <Rm>,<Rm>
 
     pretregs &= ~mPSW;             // flags already set
     fixresult(cdb,e,retregs,pretregs);
