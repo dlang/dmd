@@ -480,8 +480,7 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         loadFromEA(cs, reg, szw, sz1);
         cdb.gen(&cs);
         assert(reg & 32);
-        uint ftype = sz1 == 2 ? 3 :
-                     sz1 == 4 ? 0 : 1;
+        uint ftype = INSTR.szToFtype(sz1);
         cdb.gen1(INSTR.fneg_float(ftype, reg, reg)); // fneg reg,reg
         storeToEA(cs, reg, szw);
         cdb.gen(&cs);
@@ -540,8 +539,7 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     reg_t Rd = reg, Rn = rreg, Rm = reg;
-    uint ftype = sz1 == 2 ? 3 :
-                 sz1 == 4 ? 0 : 1;
+    uint ftype = INSTR.szToFtype(sz1);
     switch (e.Eoper)
     {
         // FADD/FSUB (extended register)
