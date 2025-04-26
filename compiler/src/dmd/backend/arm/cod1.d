@@ -1231,8 +1231,27 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 
     if (tyfloating(tym))
     {
-        const ftype = INSTR.szToFtype(sz);
-        cdb.gen1(INSTR.fcmp_float(ftype,0,reg));    // FCMP Vn,#0.0
+        assert(reg & 32);
+        if (tym == TYldouble || tym == TYildouble)
+        {
+            /*
+                fmov q0,reg
+                movi v1.2d,#0   // https://www.scs.stanford.edu/~zyedidia/arm64/movi_advsimd.html
+                bl   __netf2
+                cmp  w0,#0
+             */
+            if (reg != 32)
+                cdb.gen1(INSTR.mov_orr_advsimd_reg(1,reg,32)); // MOV v0,reg
+            cdb.gen1(INSTR.movi_advsimd(1,1,0xE,0,1));          // MOVI V1.2D,0
+            regm_t dummy;
+            callclib(cdb,null,CLIB_A.netf2,dummy,saveflag ? mask(reg) : 0); // __netf2(v0,v1)
+            gentstreg(cdb,0,0);                         // CMP W0,#0
+        }
+        else
+        {
+            const ftype = INSTR.szToFtype(sz);
+            cdb.gen1(INSTR.fcmp_float(ftype,0,reg));    // FCMP Vn,#0.0
+        }
     }
     else
         gentstreg(cdb,reg,sz == 8);                 // CMP reg,#0
@@ -1322,6 +1341,7 @@ enum CLIB_A
 {
     realToDouble,
     doubleToReal,
+    netf2,
 }
 
 private
@@ -1378,6 +1398,14 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
             break;
         }
 
+        case CLIB_A.netf2:
+        {
+            string name = "__netf2";
+            s = symboly(name, mask(32));
+            cinfo.retregs = mask(32);
+            break;
+        }
+
         default:
             assert(0);
     }
@@ -1408,11 +1436,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 }
 
 /********************************
- * Generate code sequence to call C runtime library support routine.
- *      clib = CLIB_A.xxxx
- *      keepmask = mask of registers not to destroy. Currently can
- *              handle only 1. Should use a temporary rather than
- *              push/pop for speed.
+ * Generate code sequence to call compiler's runtime library support routine.
+ * Params:
+ *      cdb = code sink
+ *      e = elem being tested (null if none)
+ *      clib = CLIB_A.xxxx (function to call)
+ *      pretregs = register(s) to return result in
+ *      keepmask = mask of registers not to destroy. Saves/restores them
  */
 
 @trusted
@@ -1449,7 +1479,8 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
     cgstate.calledafunc = 1;
 
     cdb.append(cdbpop);
-    fixresult(cdb, e, cinfo.retregs, pretregs);
+    if (e)
+        fixresult(cdb, e, cinfo.retregs, pretregs);
 }
 
 

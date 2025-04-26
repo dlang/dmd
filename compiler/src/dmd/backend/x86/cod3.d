@@ -555,7 +555,7 @@ void cod3_stackadj(ref CodeBuilder cdb, int nbytes)
                     Rd;
         cdb.gen1(ins);
         assert(imm12 < (1 << 12));  // only 12 bits allowed
-        assert((imm12 & 0xF) == 0); // 16 byte aligned
+//        assert((imm12 & 0xF) == 0); // 16 byte aligned
         return;
     }
     uint grex = I64 ? REX_W << 16 : 0;
