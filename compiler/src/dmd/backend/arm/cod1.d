@@ -1341,6 +1341,10 @@ enum CLIB_A
 {
     realToDouble,
     doubleToReal,
+    add,
+    min,
+    mul,
+    div,
     netf2,
 }
 
@@ -1394,6 +1398,38 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
         {
             string name = "__extenddftf2";
             s = symboly(name, mask(32));
+            cinfo.retregs = mask(32);
+            break;
+        }
+
+        case CLIB_A.add:
+        {
+            string name = "__addtf3";
+            s = symboly(name, mask(32) | mask(33));
+            cinfo.retregs = mask(32);
+            break;
+        }
+
+        case CLIB_A.min:
+        {
+            string name = "__subtf3";
+            s = symboly(name, mask(32) | mask(33));
+            cinfo.retregs = mask(32);
+            break;
+        }
+
+        case CLIB_A.mul:
+        {
+            string name = "__multf3";
+            s = symboly(name, mask(32) | mask(33));
+            cinfo.retregs = mask(32);
+            break;
+        }
+
+        case CLIB_A.div:
+        {
+            string name = "__divtf3";
+            s = symboly(name, mask(32) | mask(33));
             cinfo.retregs = mask(32);
             break;
         }
