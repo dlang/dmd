@@ -43,6 +43,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.parse;
+import dmd.root.aav;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
@@ -1008,22 +1009,31 @@ extern (C++) final class Module : Package
     extern (D) static void addDeferredSemantic(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
-        if (!deferred.contains(s))
+        if (!s.deferred)
+        {
+            s.deferred = true;
             deferred.push(s);
+        }
     }
 
     extern (D) static void addDeferredSemantic2(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
-        if (!deferred2.contains(s))
+        if (!s.deferred2)
+        {
+            s.deferred2 = true;
             deferred2.push(s);
+        }
     }
 
     extern (D) static void addDeferredSemantic3(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
-        if (!deferred3.contains(s))
+        if (!s.deferred3)
+        {
+            s.deferred3 = true;
             deferred3.push(s);
+        }
     }
 
     /******************************************
@@ -1057,6 +1067,8 @@ extern (C++) final class Module : Package
                 todoalloc = todo;
             }
             memcpy(todo, deferred.tdata(), len * Dsymbol.sizeof);
+            foreach (Dsymbol s; Module.deferred[])
+                s.deferred = false;
             deferred.setDim(0);
 
             foreach (i; 0..len)
@@ -1082,6 +1094,7 @@ extern (C++) final class Module : Package
         for (size_t i = 0; i < a.length; i++)
         {
             Dsymbol s = (*a)[i];
+            s.deferred2 = false;
             //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
             s.semantic2(null);
 
@@ -1099,6 +1112,7 @@ extern (C++) final class Module : Package
         for (size_t i = 0; i < a.length; i++)
         {
             Dsymbol s = (*a)[i];
+            s.deferred3 = false;
             //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());
             s.semantic3(null);
 
