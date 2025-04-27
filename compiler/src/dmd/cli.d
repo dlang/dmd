@@ -658,8 +658,13 @@ dmd -cov -unittest myprog.d
         ),
         Option("nothrow",
             "assume no Exceptions will be thrown",
-            `Turns off generation of exception stack unwinding code, enables
-            more efficient code for RAII objects.`,
+            "Turns off generation of exception stack unwinding code, enables
+            more efficient code for RAII objects. Note: this doesn't change
+            function mangling, so it is possible to link `-nothrow` code with
+            code that throws Exceptions, which can result in undefined behavior
+            without any protection from the type system. Prefer the `nothrow`
+            function attribute for partial disabling of Exceptions instead,
+            and only use this flag to globally disable Exceptions.",
         ),
         Option("O",
             "optimize",
