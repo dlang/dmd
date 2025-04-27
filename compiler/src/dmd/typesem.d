@@ -1945,7 +1945,19 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             Expression e;
             Type t;
             Dsymbol s;
-            mtype.index.resolve(loc, sc, e, t, s);
+            Loc indexLoc;
+
+            switch (mtype.index.ty)
+            {
+                case Tident:    indexLoc = mtype.index.isTypeIdentifier().loc;  break;
+                case Tinstance: indexLoc = mtype.index.isTypeInstance().loc;    break;
+                case Ttypeof:   indexLoc = mtype.index.isTypeTypeof().loc;      break;
+                case Treturn:   indexLoc = mtype.index.isTypeReturn().loc;      break;
+                case Tmixin:    indexLoc = mtype.index.isTypeMixin().loc;       break;
+                default: indexLoc = mtype.loc;
+            }
+
+            mtype.index.resolve(indexLoc, sc, e, t, s);
 
             // https://issues.dlang.org/show_bug.cgi?id=15478
             if (s)
@@ -2748,7 +2760,11 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         Expression e;
         Dsymbol s;
         //printf("TypeIdentifier::semantic(%s)\n", mtype.toChars());
-        mtype.resolve(loc, sc, e, t, s);
+        if (mtype.loc != Loc.initial)
+            mtype.resolve(mtype.loc, sc, e, t, s);
+        else
+            mtype.resolve(loc, sc, e, t, s);
+
         if (t)
         {
             //printf("\tit's a type %d, %s, %s\n", t.ty, t.toChars(), t.deco);
