@@ -32,6 +32,7 @@ private
     extern (C) void gc_addRoot(const void* p ) nothrow @nogc;
 }
 
+
 class ProtoGC : GC
 {
     Array!Root roots;
@@ -273,10 +274,12 @@ class ProtoGC : GC
     {
         if (_initThreadFn is null)
         {
+            static void defaultThreadInit(ThreadBase base) nothrow @nogc { }
             import core.gc.config;
             config.initialize();
             _initThreadFn = .threadInit(config.gc);
-            assert(_initThreadFn !is null, "Invalid thread initialization function!");
+            if (_initThreadFn is null)
+                _initThreadFn = &defaultThreadInit;
         }
 
         _initThreadFn(thread);

@@ -29,8 +29,6 @@ alias GCFactory = GC function();
  */
 alias GCThreadInitFunction = void function(ThreadBase base) nothrow @nogc;
 
-private void defaultThreadInit(ThreadBase base) nothrow @nogc { }
-
 /**
  * Register a GC factory under the given `name`.  This function must be called
  * from a C constructor before druntime is initialized.
@@ -60,7 +58,7 @@ private void defaultThreadInit(ThreadBase base) nothrow @nogc { }
  *   $(LINK2 https://dlang.org/spec/garbage.html#gc_config, Configuring the Garbage Collector)
  */
 void registerGCFactory(string name, GCFactory factory,
-        GCThreadInitFunction threadInit = &defaultThreadInit) nothrow @nogc
+        GCThreadInitFunction threadInit = null) nothrow @nogc
 {
     import core.stdc.stdlib : realloc;
 
@@ -107,10 +105,7 @@ GCThreadInitFunction threadInit(string name) nothrow @nogc
         if (entry.name == name)
             return entry.threadInit;
     }
-    // No init function selected, this probably means the GC name isn't
-    // correct. But nobody has used any GC related functions yet, so give back
-    // the default function.
-    return &defaultThreadInit;
+    return null;
 }
 
 // list of all registerd GCs
