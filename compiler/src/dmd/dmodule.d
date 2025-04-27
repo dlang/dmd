@@ -1022,7 +1022,7 @@ extern (C++) final class Module : Package
     extern (D) static void addDeferredSemantic3(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
-        if (!deferred.contains(s))
+        if (!deferred3.contains(s))
             deferred3.push(s);
     }
 
