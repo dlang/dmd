@@ -4418,7 +4418,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                         // STR preg,[sp,#offset]
 //printf("prolog_loadparams sz=%d preg:%d\n", sz, preg);
 //printf("offset(%d) = Fast.size(%d) + BPoff(%d) + EBPtoESP(%d)\n",cast(int)offset,cast(int)cgstate.Fast.size,cast(int)cgstate.BPoff,cast(int)cgstate.EBPtoESP);
-                        uint imm = cast(uint)(offset + localsize + 16);
+                        uint imm = cast(uint)offset;
                         if (mask(preg) & INSTR.FLOATREGS)
                         {
                             uint size, opc;

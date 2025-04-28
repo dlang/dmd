@@ -2232,6 +2232,9 @@ void disassemble(uint c) @trusted
             p2 = fregString(rbuf[0 .. 4],prefix,Rd);
             p3 = fregString(rbuf[4 .. 8],prefix,Rn);
             p4 = fregString(rbuf[8 ..12],prefix,Rm);
+
+            uint n = snprintf(buf.ptr, buf.length, "%s_float.html", p1.ptr);
+            url2 = buf[0 .. n];
         }
     }
 

@@ -41,7 +41,7 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.x86.xmm;
-import dmd.backend.arm.cod1 : getlvalue, loadFromEA, storeToEA;
+import dmd.backend.arm.cod1 : getlvalue, loadFromEA, storeToEA,CLIB_A,callclib;
 import dmd.backend.arm.cod2 : tyToExtend;
 import dmd.backend.arm.cod3 : COND, conditionCode, gentstreg;
 import dmd.backend.arm.instr;
@@ -462,6 +462,7 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (e.Eoper == OPnegass)
     {
+        assert(sz1 <= 8);       // not for 128 bit operands
         bool regvar;
         getlvalue(cdb,cs,e1,0);
         if (cs.reg == NOREG)
@@ -538,30 +539,52 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         cdb.gen(&cs);
     }
 
-    reg_t Rd = reg, Rn = rreg, Rm = reg;
-    uint ftype = INSTR.szToFtype(sz1);
-    switch (e.Eoper)
+    if (sz1 == 16)      // 128 bit float
     {
-        // FADD/FSUB (extended register)
-        // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
-        case OPaddass:
-            cdb.gen1(INSTR.fadd_float(ftype,Rm,Rn,Rd));     // FADD Rd,Rn,Rm
-            break;
+        CLIB_A clib;
+        switch (e.Eoper)
+        {
+            case OPaddass:      clib = CLIB_A.add; break;
+            case OPminass:      clib = CLIB_A.min; break;
+            case OPmulass:      clib = CLIB_A.mul; break;
+            case OPdivass:      clib = CLIB_A.div; break;
+            default:            assert(0);
+        }
+        regm_t idxregs;         // save index registers so we can do the storeToEA() later
+        if (cs.base != NOREG)
+            idxregs |= mask(cs.base);
+        if (cs.index != NOREG)
+            idxregs |= mask(cs.index);
+        regm_t dummy;
+        callclib(cdb,null,clib,dummy,idxregs);
+    }
+    else
+    {
+        reg_t Rd = reg, Rn = rreg, Rm = reg;
+        uint ftype = INSTR.szToFtype(sz1);
+        switch (e.Eoper)
+        {
+            // FADD/FSUB (extended register)
+            // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
+            case OPaddass:
+                cdb.gen1(INSTR.fadd_float(ftype,Rm,Rn,Rd));     // FADD Rd,Rn,Rm
+                break;
 
-        case OPminass:
-            cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm
-            break;
+            case OPminass:
+                cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm
+                break;
 
-        case OPmulass:
-            cdb.gen1(INSTR.fmul_float(ftype,Rm,Rn,Rd));     // FMUL Rd,Rn,Rm
-            break;
+            case OPmulass:
+                cdb.gen1(INSTR.fmul_float(ftype,Rm,Rn,Rd));     // FMUL Rd,Rn,Rm
+                break;
 
-        case OPdivass:
-            cdb.gen1(INSTR.fdiv_float(ftype,Rm,Rn,Rd));     // FDIV Rd,Rn,Rm
-            break;
+            case OPdivass:
+                cdb.gen1(INSTR.fdiv_float(ftype,Rm,Rn,Rd));     // FDIV Rd,Rn,Rm
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
+        }
     }
 
     if (!regvar)
