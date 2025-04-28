@@ -4416,9 +4416,18 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                     if (AArch64)
                     {
                         // STR preg,[sp,#offset]
-//printf("prolog_loadparams sz=%d\n", sz);
+//printf("prolog_loadparams sz=%d preg:%d\n", sz, preg);
 //printf("offset(%d) = Fast.size(%d) + BPoff(%d) + EBPtoESP(%d)\n",cast(int)offset,cast(int)cgstate.Fast.size,cast(int)cgstate.BPoff,cast(int)cgstate.EBPtoESP);
-                        cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 31, offset + localsize + 16));
+                        uint imm = cast(uint)(offset + localsize + 16);
+                        if (mask(preg) & INSTR.FLOATREGS)
+                        {
+                            uint size, opc;
+                            INSTR.szToSizeOpc(sz, size, opc);
+                            imm /= sz;
+                            cdb.gen1(INSTR.str_imm_fpsimd(size,opc,imm,31,preg)); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+                        }
+                        else
+                            cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 31, imm));
                     }
                     else
                     {

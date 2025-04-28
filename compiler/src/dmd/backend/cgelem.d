@@ -1092,6 +1092,7 @@ private elem* elmul(elem* e, Goal goal)
         }
     }
 
+    bool useNegass = useOPnegass(tym) && e.Eoper == OPmulass;
     elem* e2 = e.E2;
     if (e2.Eoper == OPconst)           // try to replace multiplies with shifts
     {
@@ -1129,7 +1130,7 @@ private elem* elmul(elem* e, Goal goal)
                 }
             }
 
-            if (elemisnegone(e2))
+            if (elemisnegone(e2) && (e.Eoper == OPmul || useNegass))
             {
                 e.Eoper = (e.Eoper == OPmul) ? OPneg : OPnegass;
                 e.E2 = null;
@@ -1149,10 +1150,10 @@ private elem* elmul(elem* e, Goal goal)
                 again = 1;
                 return e;
             }
-            else if (el_allbits(e2,-1))
+            else if (el_allbits(e2,-1) && (e.Eoper == OPmul || useNegass))
                 goto Lneg;
         }
-        else if (elemisnegone(e2) && !tycomplex(e.E1.Ety))
+        else if (elemisnegone(e2) && !tycomplex(e.E1.Ety) && (e.Eoper == OPmul || useNegass))
         {
             goto Lneg;
         }
@@ -3895,7 +3896,7 @@ static if (0)  // Doesn't work too well, removed
             }
         }
 
-        if (op2 == OPneg && el_match(e1,e2.E1) && !el_sideeffect(e1))
+        if (op2 == OPneg && el_match(e1,e2.E1) && !el_sideeffect(e1) && useOPnegass(e.Ety))
         {
             // Replace (i = -i) with (negass i)
             e.Eoper = OPnegass;
@@ -6420,6 +6421,19 @@ private bool canHappenAfter(elem* a, elem* b)
            !(el_sideeffect(a) || el_sideeffect(b));
 }
 
+/***************************************************
+ * See if we want conversion of (e = -e) to OPnegass
+ * Params:
+ *	tym = the type of e in (e = -e)
+ * Returns:
+ *	true if convert to OPnegass
+ */
+@trusted private
+bool useOPnegass(tym_t tym)
+{
+    const ty = tybasic(tym);
+    return !(config.target_cpu == TARGET_AArch64 && (ty == TYldouble || ty == TYildouble));
+}
 
 /***************************************************
  * Call table, index is OPER

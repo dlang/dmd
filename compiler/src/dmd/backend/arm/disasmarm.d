@@ -488,13 +488,19 @@ void disassemble(uint c) @trusted
             p3 = regString(sf, Rn);
             ulong imm = decodeNImmrImms(N,immr,imms);
             p4 = wordtostring(imm);
+
+            uint n = snprintf(buf.ptr, buf.length, "%s_log_imm", p1.ptr);
+            url2 = buf[0 .. n];
+
             if (opc == 3 && Rd == 0x1F)
             {
+                url2 = "tst_ands_log_imm";
                 p1 = "tst";
                 shiftP();
             }
             else if (opc == 1 && Rn == 0x1F)
             {
+                url2 = "mov_orr_log_imm";
                 p1 = "mov";
                 p3 = p4;
                 p4 = "";
@@ -2478,7 +2484,7 @@ void disassemble(uint c) @trusted
         for (; plen < 29; ++plen)
             put(' ');
         puts(" // https://www.scs.stanford.edu/~zyedidia/arm64/");
-        if (url2)
+        if (url2.length)
         {
             puts(url2);
             puts(".html");
