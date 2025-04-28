@@ -68,6 +68,7 @@ nothrow:
 @trusted
 void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint idx)
 {
+    //printf("REGSAVE_save() %s\n", regm_str(mask(reg)));
     assert(reg < 32);    // TODO AArch64 floating point registers
     if (!regsave.alignment)
         regsave.alignment = REGSIZE;
@@ -96,6 +97,7 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
 @trusted
 void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint idx)
 {
+    //printf("REGSAVE_restore() %s\n", regm_str(mask(reg)));
     assert(reg < 32);   // TODO AArch64 floating point registers
     // LDR reg,[BP, #idx]
     code cs;
