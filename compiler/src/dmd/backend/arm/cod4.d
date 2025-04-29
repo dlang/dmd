@@ -933,8 +933,28 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         scodelem(cgstate,cdb,e2,retregs2,retregs1,true); // right leaf
         reg_t Vm = findreg(retregs1);
         reg_t Vn = findreg(retregs2);
-        uint ftype = INSTR.szToFtype(sz);
-        cdb.gen1(INSTR.fcmpe_float(ftype,Vm,Vn));       // FCMPE Vn,Vm
+        if (tym == TYldouble || tym == TYildouble)
+        {
+            CLIB_A clib;
+            switch (jop)
+            {
+                case COND.eq:   clib = CLIB_A.eqtf2; break;
+                case COND.ne:   clib = CLIB_A.netf2; break;
+                case COND.lt:   clib = CLIB_A.lttf2; break;
+                case COND.le:   clib = CLIB_A.letf2; break;
+                case COND.gt:   clib = CLIB_A.gttf2; break;
+                case COND.ge:   clib = CLIB_A.getf2; break;
+                default:        assert(0);
+            }
+            regm_t dummy;
+            callclib(cdb,null,clib,dummy,0);
+            gentstreg(cdb,0,0);                          // CMP w0,#0
+        }
+        else
+        {
+            uint ftype = INSTR.szToFtype(sz);
+            cdb.gen1(INSTR.fcmpe_float(ftype,Vm,Vn));    // FCMPE Vn,Vm
+        }
         goto L3;
     }
 
