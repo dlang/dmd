@@ -1345,7 +1345,13 @@ enum CLIB_A
     min,
     mul,
     div,
+    eqtf2,
     netf2,
+    gttf2,
+    getf2,
+    lttf2,
+    letf2,
+
 }
 
 private
@@ -1384,6 +1390,12 @@ void initClibInfo(ref Symbol*[CLIB_A.max + 1] clibsyms, ref ClibInfo[CLIB_A.max 
 private
 void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t objfmt, exefmt_t exe)
 {
+    void declare(string name)
+    {
+        s = symboly(name, mask(32));
+        cinfo.retregs = mask(32);
+    }
+
     switch (clib)
     {
         case CLIB_A.realToDouble:
@@ -1434,13 +1446,12 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
             break;
         }
 
-        case CLIB_A.netf2:
-        {
-            string name = "__netf2";
-            s = symboly(name, mask(32));
-            cinfo.retregs = mask(32);
-            break;
-        }
+        case CLIB_A.netf2: declare("__netf2"); break;
+        case CLIB_A.eqtf2: declare("__eqtf2"); break;
+        case CLIB_A.lttf2: declare("__lttf2"); break;
+        case CLIB_A.letf2: declare("__letf2"); break;
+        case CLIB_A.gttf2: declare("__gttf2"); break;
+        case CLIB_A.getf2: declare("__getf2"); break;
 
         default:
             assert(0);
