@@ -69,7 +69,7 @@ nothrow:
 void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint idx)
 {
     //printf("REGSAVE_save() %s\n", regm_str(mask(reg)));
-    assert(reg < 32);    // TODO AArch64 floating point registers
+    // TODO AArch64 do 128 bit registers
     if (!regsave.alignment)
         regsave.alignment = REGSIZE;
     idx = regsave.idx;
@@ -81,7 +81,17 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
     cs.base = cgstate.BP;
     cs.index = NOREG;
     cs.IFL1 = FL.regsave;
-    cs.Iop = INSTR.str_imm_gen(1,reg,cs.base,idx);
+    if (mask(reg) & INSTR.FLOATREGS)
+    {
+        uint imm12 = idx;
+        uint sz = 8;
+        uint size, opc;
+        INSTR.szToSizeOpc(sz, size, opc);
+        imm12 /= sz;
+        cs.Iop = INSTR.str_imm_fpsimd(size,opc,imm12,cs.base,reg);
+    }
+    else
+        cs.Iop = INSTR.str_imm_gen(1,reg,cs.base,idx);
     cdb.gen(&cs);
 
     cgstate.reflocal = true;
@@ -98,14 +108,23 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
 void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint idx)
 {
     //printf("REGSAVE_restore() %s\n", regm_str(mask(reg)));
-    assert(reg < 32);   // TODO AArch64 floating point registers
     // LDR reg,[BP, #idx]
     code cs;
     cs.reg = reg;
     cs.base = cgstate.BP;
     cs.index = NOREG;
     cs.IFL1 = FL.regsave;
-    cs.Iop = INSTR.ldr_imm_gen(1,reg,cs.base,idx);
+    if (mask(reg) & INSTR.FLOATREGS)
+    {
+        uint imm12 = idx;
+        uint sz = 8;
+        uint size, opc;
+        INSTR.szToSizeOpc(sz, size, opc);
+        imm12 /= sz;
+        cs.Iop = INSTR.ldr_imm_fpsimd(size,opc,imm12,cs.base,reg);
+    }
+    else
+        cs.Iop = INSTR.ldr_imm_gen(1,reg,cs.base,idx);
     cdb.gen(&cs);
 }
 
@@ -1064,20 +1083,17 @@ L3:
 @trusted
 void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t ty = TYMAX)
 {
-    // TODO ftype and TYMAX ?
-    if (to <= 31)
+    if (to & INSTR.FLOATREGS)
+    {
+        // floating point
+        uint ftype = INSTR.szToFtype(ty == TYMAX ? 8 : _tysize[ty]);
+        cdb.gen1(INSTR.fmov(ftype, from & 31, to & 31));
+    }
+    else
     {
         // integer
         uint sf = ty == TYMAX || _tysize[ty] == 8;
         cdb.gen1(INSTR.mov_register(sf, from, to));
-    }
-    else
-    {
-        // floating point
-        uint ftype = (ty == TYMAX || _tysize[ty] == 8)
-            ? 1
-            : (_tysize[ty] == 4 ? 0 : 3);
-        cdb.gen1(INSTR.fmov(ftype, from & 31, to & 31));
     }
 }
 
