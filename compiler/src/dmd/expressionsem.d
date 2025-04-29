@@ -1334,8 +1334,8 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
         ce.arguments = new Expressions();
     ce.arguments.shift(eleft);
     if (!ce.names)
-        ce.names = new Identifiers();
-    ce.names.shift(null);
+        ce.names = new ArgumentLabels();
+    ce.names.shift(ArgumentLabel(cast(Identifier) null, Loc.init));
     ce.isUfcsRewrite = true;
     return null;
 }
@@ -5300,10 +5300,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (exp.names)
                 {
-                    exp.arguments = resolveStructLiteralNamedArgs(sd, exp.type, sc, exp.loc,
-                        exp.names ? (*exp.names)[] : null,
+                    exp.arguments = resolveStructLiteralNamedArgs(sd, exp.type, sc, exp.loc, exp.names.length,
+                        i => (*exp.names)[i].name,
                         (size_t i, Type t) => (*exp.arguments)[i],
-                        i => (*exp.arguments)[i].loc
+                        i => (*exp.arguments)[i].loc,
+                        i => (*exp.names)[i].loc
                     );
                     if (!exp.arguments)
                         return setError();
@@ -5367,9 +5368,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
 
                 Expression arg = (*exp.arguments)[i];
-                if (exp.names && (*exp.names)[i])
+                if (exp.names && (*exp.names)[i].name)
                 {
-                    error(exp.loc, "no named argument `%s` allowed for array dimension", (*exp.names)[i].toChars());
+                    error(exp.loc, "no named argument `%s` allowed for array dimension", (*exp.names)[i].name.toChars());
                     return setError();
                 }
 
@@ -5483,9 +5484,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (nargs == 1)
             {
-                if (exp.names && (*exp.names)[0])
+                if (exp.names && (*exp.names)[0].name)
                 {
-                    error(exp.loc, "no named argument `%s` allowed for scalar", (*exp.names)[0].toChars());
+                    error(exp.loc, "no named argument `%s` allowed for scalar", (*exp.names)[0].name.toChars());
                     return setError();
                 }
                 Expression e = (*exp.arguments)[0];
@@ -6275,11 +6276,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expressions* resolvedArgs = exp.arguments;
                 if (exp.names)
                 {
-                    resolvedArgs = resolveStructLiteralNamedArgs(sd, exp.e1.type, sc, exp.loc,
-                        (*exp.names)[],
+                    resolvedArgs = resolveStructLiteralNamedArgs(sd, exp.e1.type, sc, exp.loc, exp.names.length,
+                        i => (*exp.names)[i].name,
                         (size_t i, Type t) => (*exp.arguments)[i],
                         i => (*exp.arguments)[i].loc,
-                        i => (exp.argLabels && (*exp.argLabels).length > i) ? (*exp.argLabels)[i].loc : (*exp.arguments)[i].loc
+                        i => (*exp.names)[i].loc
                     );
                     if (!resolvedArgs)
                     {

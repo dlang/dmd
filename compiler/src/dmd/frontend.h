@@ -1795,7 +1795,7 @@ public:
     ScopeDsymbol* argsym;
     size_t hash;
     Array<Expression* >* fargs;
-    Array<Identifier* >* fnames;
+    Array<ArgumentLabel >* fnames;
     Array<TemplateInstance* >* deferred;
     Module* memberOf;
     TemplateInstance* tinst;
@@ -2602,13 +2602,13 @@ public:
 struct ArgumentList final
 {
     Array<Expression* >* arguments;
-    Array<Identifier* >* names;
+    Array<ArgumentLabel >* names;
     ArgumentList() :
         arguments(),
         names()
     {
     }
-    ArgumentList(Array<Expression* >* arguments, Array<Identifier* >* names = nullptr) :
+    ArgumentList(Array<Expression* >* arguments, Array<ArgumentLabel >* names = nullptr) :
         arguments(arguments),
         names(names)
         {}
@@ -2705,8 +2705,7 @@ class CallExp final : public UnaExp
 {
 public:
     Array<Expression* >* arguments;
-    Array<Identifier* >* names;
-    Array<ArgumentLabel >* argLabels;
+    Array<ArgumentLabel >* names;
     FuncDeclaration* f;
     bool directcall;
     bool inDebugStatement;
@@ -3419,7 +3418,7 @@ public:
     Expression* thisexp;
     Type* newtype;
     Array<Expression* >* arguments;
-    Array<Identifier* >* names;
+    Array<ArgumentLabel >* names;
     Expression* placement;
     Expression* argprefix;
     CtorDeclaration* member;

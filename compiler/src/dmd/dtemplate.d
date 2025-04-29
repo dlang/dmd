@@ -3661,11 +3661,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     ScopeDsymbol argsym;        // argument symbol table
     size_t hash;                // cached result of toHash()
 
-    /// For function template, these are the function names and arguments
+    /// For function template, these are the function fnames(name and loc of it) and arguments
     /// Relevant because different resolutions of `auto ref` parameters
     /// create different template instances even with the same template arguments
     Expressions* fargs;
-    Identifiers* fnames;
+    ArgumentLabels* fnames;
 
     TemplateInstances* deferred;
 
