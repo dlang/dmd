@@ -769,7 +769,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             for (ClassDeclaration c = cdb.baseClass; c; c = c.baseClass)
                 index += c.fields.length;
             membersToDt(cdb, dtb, elements, index, concreteType, null);
-            offset = cdb.structsize;
+            offset = cdb.derivedClassOffset;
         }
         else if (InterfaceDeclaration id = cd.isInterfaceDeclaration())
         {
@@ -1036,7 +1036,14 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
     finishInFlightBitField();
 
-    if (offset < ad.structsize)
+    // Finish padding at end of instance type.
+    if (cd)
+    {
+        const cdsize = cd is concreteType ? cd.structsize : cd.derivedClassOffset;
+        if (offset < cdsize)
+            dtb.nzeros(cdsize - offset);
+    }
+    else if (offset < ad.structsize)
         dtb.nzeros(ad.structsize - offset);
     //printf("-dtb.length: %d\n", dtb.length);
 }
