@@ -256,7 +256,7 @@ Expression getDefaultValue(EnumDeclaration ed, Loc loc)
 /***********************************************************
  * expression.d
  */
-void expandTuples(Expressions* exps, Identifiers* names = null)
+void expandTuples(Expressions* exps, ArgumentLabels* names = null)
 {
     return dmd.expression.expandTuples(exps, names);
 }
@@ -305,7 +305,7 @@ bool functionSemantic3(FuncDeclaration fd)
     return dmd.funcsem.functionSemantic3(fd);
 }
 
-MATCH leastAsSpecialized(FuncDeclaration fd, FuncDeclaration g, Identifiers* names)
+MATCH leastAsSpecialized(FuncDeclaration fd, FuncDeclaration g, ArgumentLabels* names)
 {
     import dmd.funcsem;
     return dmd.funcsem.leastAsSpecialized(fd, g, names);

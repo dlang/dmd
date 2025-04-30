@@ -5023,10 +5023,10 @@ struct ASTBase
         Expression thisexp;         // if !=null, 'this' for class being allocated
         Type newtype;
         Expressions* arguments;     // Array of Expression's
-        Identifiers* names;         // Array of names corresponding to expressions
+        ArgumentLabels* names;      // Array of names & loc corresponding to expressions
         Expression placement;       // if != null, then PlacementExpression
 
-        extern (D) this(Loc loc, Expression placement, Expression thisexp, Type newtype, Expressions* arguments, Identifiers* names = null)
+        extern (D) this(Loc loc, Expression placement, Expression thisexp, Type newtype, Expressions* arguments, ArgumentLabels* names = null)
         {
             super(loc, EXP.new_, __traits(classInstanceSize, NewExp));
             this.placement = placement;
@@ -5581,15 +5581,13 @@ struct ASTBase
     extern (C++) final class CallExp : UnaExp
     {
         Expressions* arguments;
-        Identifiers* names;
-        ArgumentLabels* argLabels;
+        ArgumentLabels* names;
 
-        extern (D) this(Loc loc, Expression e, Expressions* exps, Identifiers* names = null, ArgumentLabels* argLabels = null)
+        extern (D) this(Loc loc, Expression e, Expressions* exps, ArgumentLabels* names = null)
         {
             super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
             this.arguments = exps;
             this.names = names;
-            this.argLabels = argLabels;
         }
 
         extern (D) this(Loc loc, Expression e)
