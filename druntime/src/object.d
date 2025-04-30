@@ -4032,6 +4032,7 @@ Returns:
 auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
+
     return arr;
 }
 
