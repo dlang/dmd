@@ -4012,7 +4012,7 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 
 // HACK:  This is a lie.  `_d_arrayshrinkfit` is not `nothrow`, but this lie is necessary
 // for now to prevent breaking code.
-private extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
+import core.internal.array.capacity: _d_arrayshrinkfit;
 
 /**
 Assume that it is safe to append to this array. Appends made to this array
@@ -4031,7 +4031,7 @@ Returns:
 */
 auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 {
-    _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
+    _d_arrayshrinkfit!T(*(cast(void[]*)&arr));
     return arr;
 }
 
