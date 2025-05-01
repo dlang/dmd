@@ -1571,7 +1571,8 @@ void assignaddrc(code* c)
                 else if (op24 == 1)
                 {
 //printf("shift: %d opc: %d\n", shift, opc);
-                    if (opc & 2 && shift == 0)
+                    uint VR = field(ins,26,26);
+                    if (opc & 2 && shift == 0 && VR == 1)
                         shift = 4;
                     assert(field(ins,29,27) == 7);
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
