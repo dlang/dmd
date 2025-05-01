@@ -948,7 +948,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
         size_t nfargs2 = argumentList.length; // total number of arguments including applied defaultArgs
         uint inoutMatch = 0; // for debugging only
         Expression[] fargs = argumentList.arguments ? (*argumentList.arguments)[] : null;
-        ArgumentLabel[] fnames = argumentList.names ? (*argumentList.names)[] : null;
+        ArgumentLabel[] fargLabels = argumentList.argLabels ? (*argumentList.argLabels)[] : null;
 
         for (size_t parami = 0; parami < nfparams; parami++)
         {
@@ -958,13 +958,13 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
             Type prmtype = fparam.type.addStorageClass(fparam.storageClass);
 
             Expression farg;
-            Identifier fname = argi < fnames.length ? fnames[argi].name : null;
+            Identifier fname = argi < fargLabels.length ? fargLabels[argi].name : null;
             bool foundName = false;
             if (fparam.ident)
             {
-                foreach (i; 0 .. fnames.length)
+                foreach (i; 0 .. fargLabels.length)
                 {
-                    if (fparam.ident == fnames[i].name)
+                    if (fparam.ident == fargLabels[i].name)
                     {
                         argi = i;
                         foundName = true;
@@ -1003,7 +1003,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                         {
                             break;
                         }
-                        foreach(argLabel; fnames)
+                        foreach(argLabel; fargLabels)
                         {
                             if (p.ident == argLabel.name)
                                 break;
@@ -2028,8 +2028,8 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
          * This is because f() is "more specialized."
          */
         {
-            MATCH c1 = funcLeastAsSpecialized(fd, m.lastf, argumentList.names);
-            MATCH c2 = funcLeastAsSpecialized(m.lastf, fd, argumentList.names);
+            MATCH c1 = funcLeastAsSpecialized(fd, m.lastf, argumentList.argLabels);
+            MATCH c2 = funcLeastAsSpecialized(m.lastf, fd, argumentList.argLabels);
             //printf("c1 = %d, c2 = %d\n", c1, c2);
             if (c1 > c2) return firstIsBetter();
             if (c1 < c2) return 0;
@@ -2308,8 +2308,8 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             }
             {
                 // Disambiguate by picking the most specialized FunctionDeclaration
-                MATCH c1 = funcLeastAsSpecialized(fd, m.lastf, argumentList.names);
-                MATCH c2 = funcLeastAsSpecialized(m.lastf, fd, argumentList.names);
+                MATCH c1 = funcLeastAsSpecialized(fd, m.lastf, argumentList.argLabels);
+                MATCH c2 = funcLeastAsSpecialized(m.lastf, fd, argumentList.argLabels);
                 //printf("3: c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;

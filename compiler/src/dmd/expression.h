@@ -58,7 +58,7 @@ namespace dmd
     // Entry point for CTFE.
     // A compile-time result is required. Give an error if not possible
     Expression *ctfeInterpret(Expression *e);
-    void expandTuples(Expressions *exps, ArgumentLabels *names = nullptr);
+    void expandTuples(Expressions *exps, ArgumentLabels *argLabels = nullptr);
     Expression *optimize(Expression *exp, int result, bool keepLvalue = false);
 }
 
@@ -518,7 +518,7 @@ public:
     Expression *thisexp;        // if !NULL, 'this' for class being allocated
     Type *newtype;
     Expressions *arguments;     // Array of Expression's
-    ArgumentLabels *names;      // Array of argument Labels (name and location of name) corresponding to expressions
+    ArgumentLabels *argLabels;  // Array of argument Labels (name and location of name) corresponding to expressions
     Expression *placement;      // if !NULL, placement expression
 
     Expression *argprefix;      // expression to be evaluated just before arguments[]
@@ -795,15 +795,15 @@ public:
 struct ArgumentList final
 {
     Expressions* arguments;
-    ArgumentLabels* names;
+    ArgumentLabels* argLabels;
     ArgumentList() :
         arguments(),
-        names()
+        argLabels()
     {
     }
-    ArgumentList(Expressions* arguments, ArgumentLabels* names = nullptr) :
+    ArgumentList(Expressions* arguments, ArgumentLabels* argLabels = nullptr) :
         arguments(arguments),
-        names(names)
+        argLabels(argLabels)
         {}
 };
 
@@ -826,7 +826,7 @@ class CallExp final : public UnaExp
 {
 public:
     Expressions *arguments;     // function arguments
-    ArgumentLabels* names;      // function argument Labels (name + location of name)
+    ArgumentLabels* argLabels;  // function argument Labels (name + location of name)
     FuncDeclaration *f;         // symbol to call
     d_bool directcall;            // true if a virtual call is devirtualized
     d_bool inDebugStatement;      // true if this was in a debug statement

@@ -852,7 +852,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     {
         //printf("findExistingInstance() %s\n", tithis.toChars());
         tithis.fargs = argumentList.arguments;
-        tithis.fnames = argumentList.names;
+        tithis.fargLabels = argumentList.argLabels;
         auto tibox = TemplateInstanceBox(tithis);
         auto p = tibox in this.instances;
         debug (FindExistingInstance) ++(p ? nFound : nNotFound);
@@ -3661,11 +3661,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     ScopeDsymbol argsym;        // argument symbol table
     size_t hash;                // cached result of toHash()
 
-    /// For function template, these are the function fnames(name and loc of it) and arguments
+    /// For function template, these are the function fargLabels(name and loc of it) and arguments
     /// Relevant because different resolutions of `auto ref` parameters
     /// create different template instances even with the same template arguments
     Expressions* fargs;
-    ArgumentLabels* fnames;
+    ArgumentLabels* fargLabels;
 
     TemplateInstances* deferred;
 
@@ -3965,7 +3965,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return true;
 
         auto resolvedArgs = fd.type.isTypeFunction().resolveNamedArgs(
-            ArgumentList(this.fargs, this.fnames), null);
+            ArgumentList(this.fargs, this.fargLabels), null);
 
         // resolvedArgs can be null when there's an error: fail_compilation/fail14669.d
         // In that case, equalsx returns true to prevent endless template instantiations

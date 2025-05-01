@@ -2631,7 +2631,7 @@ extern (C++) final class TypeFunction : TypeNext
     extern(D) Expressions* resolveNamedArgs(ArgumentList argumentList, OutBuffer* buf)
     {
         Expression[] args = argumentList.arguments ? (*argumentList.arguments)[] : null;
-        ArgumentLabel[] names = argumentList.names ? (*argumentList.names)[] : null;
+        ArgumentLabel[] argLabels = argumentList.argLabels ? (*argumentList.argLabels)[] : null;
         const nParams = parameterList.length(); // cached because O(n)
         auto newArgs = new Expressions(nParams);
         newArgs.zero();
@@ -2645,7 +2645,7 @@ extern (C++) final class TypeFunction : TypeNext
                 ci++;
                 continue;
             }
-            auto name = i < names.length ? names[i].name : null;
+            auto name = i < argLabels.length ? argLabels[i].name : null;
             if (name)
             {
                 hasNamedArgs = true;

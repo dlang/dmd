@@ -2542,7 +2542,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         if (e.arguments && e.arguments.length)
         {
             buf.writeByte('(');
-            argsToBuffer(e.arguments, buf, hgs, null, e.names);
+            argsToBuffer(e.arguments, buf, hgs, null, e.argLabels);
             buf.writeByte(')');
         }
     }
@@ -2861,7 +2861,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         else
             expToBuffer(e.e1, precedence[e.op], buf, hgs);
         buf.writeByte('(');
-        argsToBuffer(e.arguments, buf, hgs, null, e.names);
+        argsToBuffer(e.arguments, buf, hgs, null, e.argLabels);
         buf.writeByte(')');
     }
 
@@ -3695,9 +3695,9 @@ private void parameterToBuffer(Parameter p, ref OutBuffer buf, ref HdrGenState h
  *     buf = buffer to write to
  *     hgs = context
  *     basis = replace `null`s in argument list with this expression (for sparse array literals)
- *     names = if non-null, use these as the argument Labels for the arguments
+ *     argLabels = if non-null, use these as the argument Labels for the arguments
  */
-private void argsToBuffer(Expressions* expressions, ref OutBuffer buf, ref HdrGenState hgs, Expression basis = null, ArgumentLabels* names = null)
+private void argsToBuffer(Expressions* expressions, ref OutBuffer buf, ref HdrGenState hgs, Expression basis = null, ArgumentLabels* argLabels = null)
 {
     if (!expressions || !expressions.length)
         return;
@@ -3708,9 +3708,9 @@ private void argsToBuffer(Expressions* expressions, ref OutBuffer buf, ref HdrGe
             if (i)
                 buf.writestring(", ");
 
-            if (names && i < names.length && (*names)[i].name)
+            if (argLabels && i < argLabels.length && (*argLabels)[i].name)
             {
-                buf.writestring((*names)[i].name.toString());
+                buf.writestring((*argLabels)[i].name.toString());
                 buf.writestring(": ");
             }
             if (!el)

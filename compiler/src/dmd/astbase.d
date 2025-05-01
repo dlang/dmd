@@ -5023,17 +5023,17 @@ struct ASTBase
         Expression thisexp;         // if !=null, 'this' for class being allocated
         Type newtype;
         Expressions* arguments;     // Array of Expression's
-        ArgumentLabels* names;      // Array of names & loc corresponding to expressions
+        ArgumentLabels* argLabels;      // Array of names & loc corresponding to expressions
         Expression placement;       // if != null, then PlacementExpression
 
-        extern (D) this(Loc loc, Expression placement, Expression thisexp, Type newtype, Expressions* arguments, ArgumentLabels* names = null)
+        extern (D) this(Loc loc, Expression placement, Expression thisexp, Type newtype, Expressions* arguments, ArgumentLabels* argLabels = null)
         {
             super(loc, EXP.new_, __traits(classInstanceSize, NewExp));
             this.placement = placement;
             this.thisexp = thisexp;
             this.newtype = newtype;
             this.arguments = arguments;
-            this.names = names;
+            this.argLabels = argLabels;
         }
 
         override void accept(Visitor v)
@@ -5581,13 +5581,13 @@ struct ASTBase
     extern (C++) final class CallExp : UnaExp
     {
         Expressions* arguments;
-        ArgumentLabels* names;
+        ArgumentLabels* argLabels;
 
-        extern (D) this(Loc loc, Expression e, Expressions* exps, ArgumentLabels* names = null)
+        extern (D) this(Loc loc, Expression e, Expressions* exps, ArgumentLabels* argLabels = null)
         {
             super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
             this.arguments = exps;
-            this.names = names;
+            this.argLabels = argLabels;
         }
 
         extern (D) this(Loc loc, Expression e)

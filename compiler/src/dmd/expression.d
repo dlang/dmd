@@ -77,46 +77,55 @@ inout(Expression) lastComma(inout Expression e)
  * Example:
  *     When there's a call `f(10, pair: AliasSeq!(20, 30), single: 40)`, the input is:
  *         `exps =  [10, (20, 30), 40]`
- *         `names = [null, "pair", "single"]`
+ *         `argLabels = [
+                         ArgumentLabels(null, Loc(12)),
+                         ArgumentLabels("pair", Loc(27)),
+                         ArgumentLabels("single", Loc(33))
+                        ]`
  *     The arrays will be modified to:
  *         `exps =  [10, 20, 30, 40]`
- *         `names = [null, "pair", null, "single"]`
+ *         `argLabels = [
+                         ArgumentLabels(null, Loc(12)),
+                         ArgumentLabels("pair", Loc(27)),
+                         ArgumentLabels(null, Loc(0)),
+                         ArgumentLabels("single", Loc(33))
+                        ]`
  *
  * Params:
  *     exps  = array of Expressions
- *     names = optional array of names corresponding to Expressions
+ *     argLabels = optional array of `names` and `location of names` corresponding to Expressions
  */
-void expandTuples(Expressions* exps, ArgumentLabels* names = null)
+void expandTuples(Expressions* exps, ArgumentLabels* argLabels = null)
 {
     //printf("expandTuples()\n");
     if (exps is null)
         return;
 
-    if (names)
+    if (argLabels)
     {
-        if (exps.length != names.length)
+        if (exps.length != argLabels.length)
         {
-            printf("exps.length = %d, names.length = %d\n", cast(int) exps.length, cast(int) names.length);
-            printf("exps = %s, names = %s\n", exps.toChars(), names.toChars());
+            printf("exps.length = %d, argLabels.length = %d\n", cast(int) exps.length, cast(int) argLabels.length);
+            printf("exps = %s, argLabels = %s\n", exps.toChars(), argLabels.toChars());
             if (exps.length > 0)
                 printf("%s\n", (*exps)[0].loc.toChars());
             assert(0);
         }
     }
 
-    // At `index`, a tuple of length `length` is expanded. Insert corresponding nulls in `names`.
-    void expandNames(size_t index, size_t length)
+    // At `index`, a tuple of length `length` is expanded. Insert corresponding nulls in `argLabels`.
+    void expandArgLabels(size_t index, size_t length)
     {
-        if (names)
+        if (argLabels)
         {
             if (length == 0)
             {
-                names.remove(index);
+                argLabels.remove(index);
                 return;
             }
             foreach (i; 1 .. length)
             {
-                names.insert(index + i, ArgumentLabel(cast(Identifier) null, Loc.init));
+                argLabels.insert(index + i, ArgumentLabel(cast(Identifier) null, Loc.init));
             }
         }
     }
@@ -135,7 +144,7 @@ void expandTuples(Expressions* exps, ArgumentLabels* names = null)
                 if (!tt.arguments || tt.arguments.length == 0)
                 {
                     exps.remove(i);
-                    expandNames(i, 0);
+                    expandArgLabels(i, 0);
                     if (i == exps.length)
                         return;
                 }
@@ -146,7 +155,7 @@ void expandTuples(Expressions* exps, ArgumentLabels* names = null)
                     foreach (j, a; *tt.arguments)
                         (*texps)[j] = new TypeExp(e.loc, a.type);
                     exps.insert(i, texps);
-                    expandNames(i, texps.length);
+                    expandArgLabels(i, texps.length);
                 }
                 i--;
                 continue;
@@ -159,7 +168,7 @@ void expandTuples(Expressions* exps, ArgumentLabels* names = null)
             TupleExp te = cast(TupleExp)arg;
             exps.remove(i); // remove arg
             exps.insert(i, te.exps); // replace with tuple contents
-            expandNames(i, te.exps.length);
+            expandArgLabels(i, te.exps.length);
             if (i == exps.length)
                 return; // empty tuple, no more arguments
             (*exps)[i] = Expression.combine(te.e0, (*exps)[i]);
@@ -2445,7 +2454,7 @@ extern (C++) final class NewExp : Expression
     Expression thisexp;         // if !=null, 'this' for class being allocated
     Type newtype;
     Expressions* arguments;     // Array of Expression's
-    ArgumentLabels* names;         // Array of names(name and location of name) corresponding to expressions
+    ArgumentLabels* argLabels;  // Array of argLabels(name and location of name) corresponding to expressions
     Expression placement;       // if !=null, then PlacementExpression
 
     Expression argprefix;       // expression to be evaluated just before arguments[]
@@ -2455,19 +2464,19 @@ extern (C++) final class NewExp : Expression
 
     Expression lowering;        // lowered druntime hook: `_d_new{class,itemT}`
 
-    /// Puts the `arguments` and `names` into an `ArgumentList` for easily passing them around.
+    /// Puts the `arguments` and `argLabels` into an `ArgumentList` for easily passing them around.
     /// The fields are still separate for backwards compatibility
 
-    extern (D) ArgumentList argumentList() { return ArgumentList(arguments, names); }
+    extern (D) ArgumentList argumentList() { return ArgumentList(arguments, argLabels); }
 
-    extern (D) this(Loc loc, Expression placement, Expression thisexp, Type newtype, Expressions* arguments, ArgumentLabels* names = null) @safe
+    extern (D) this(Loc loc, Expression placement, Expression thisexp, Type newtype, Expressions* arguments, ArgumentLabels* argLabels = null) @safe
     {
         super(loc, EXP.new_);
         this.placement = placement;
         this.thisexp = thisexp;
         this.newtype = newtype;
         this.arguments = arguments;
-        this.names = names;
+        this.argLabels = argLabels;
     }
 
     static NewExp create(Loc loc, Expression placement, Expression thisexp, Type newtype, Expressions* arguments) @safe
@@ -2482,7 +2491,7 @@ extern (C++) final class NewExp : Expression
             thisexp ? thisexp.syntaxCopy() : null,
             newtype.syntaxCopy(),
             arraySyntaxCopy(arguments),
-            names ? names.copy() : null);
+            argLabels ? argLabels.copy() : null);
     }
 
     override void accept(Visitor v)
@@ -3263,32 +3272,7 @@ extern (C++) final class DotTypeExp : UnaExp
     }
 }
 
-/**
- * The arguments of a function call
- *
- * Contains a list of expressions. If it is a named argument, the `names`
- * list has a non-null entry at the same index.
- */
-struct ArgumentList
-{
-    Expressions* arguments; // function arguments
-    ArgumentLabels* names;  // named argument labels
-
-    size_t length() const @nogc nothrow pure @safe { return arguments ? arguments.length : 0; }
-
-    /// Returns: whether this argument list contains any named arguments
-    bool hasArgNames() const @nogc nothrow pure @safe
-    {
-        if (names is null)
-            return false;
-        foreach (argLabel; *names)
-            if (argLabel.name !is null)
-                return true;
-
-        return false;
-    }
-}
-
+// Named Argumnets for a Function.
 // Contains both `name` and `location of the name` for an expression.
 struct ArgumentLabel
 {
@@ -3296,28 +3280,54 @@ struct ArgumentLabel
     Loc loc;            // location of the name
  }
 
+/**
+ * The arguments of a function call
+ *
+ * Contains a list of expressions. If it is a named argument, the `argLabels`
+ * list has a non-null entry at the same index.
+ */
+struct ArgumentList
+{
+    Expressions* arguments;     // function arguments
+    ArgumentLabels* argLabels;  // named argument labels
+
+    size_t length() const @nogc nothrow pure @safe { return arguments ? arguments.length : 0; }
+
+    /// Returns: whether this argument list contains any named arguments
+    bool hasArgLabels() const @nogc nothrow pure @safe
+    {
+        if (argLabels is null)
+            return false;
+        foreach (argLabel; *argLabels)
+            if (argLabel.name !is null)
+                return true;
+
+        return false;
+    }
+}
+
 /***********************************************************
  */
 extern (C++) final class CallExp : UnaExp
 {
-    Expressions* arguments; // function arguments
-    ArgumentLabels *names;  // named argument labels
-    FuncDeclaration f;      // symbol to call
-    bool directcall;        // true if a virtual call is devirtualized
-    bool inDebugStatement;  /// true if this was in a debug statement
-    bool ignoreAttributes;  /// don't enforce attributes (e.g. call @gc function in @nogc code)
-    bool isUfcsRewrite;     /// the first argument was pushed in here by a UFCS rewrite
-    VarDeclaration vthis2;  // container for multi-context
+    Expressions* arguments;     // function arguments
+    ArgumentLabels *argLabels;  // named argument labels
+    FuncDeclaration f;          // symbol to call
+    bool directcall;            // true if a virtual call is devirtualized
+    bool inDebugStatement;      /// true if this was in a debug statement
+    bool ignoreAttributes;      /// don't enforce attributes (e.g. call @gc function in @nogc code)
+    bool isUfcsRewrite;         /// the first argument was pushed in here by a UFCS rewrite
+    VarDeclaration vthis2;      // container for multi-context
 
-    /// Puts the `arguments` and `names` into an `ArgumentList` for easily passing them around.
+    /// Puts the `arguments` and `argLabels` into an `ArgumentList` for easily passing them around.
     /// The fields are still separate for backwards compatibility
-    extern (D) ArgumentList argumentList() { return ArgumentList(arguments, names); }
+    extern (D) ArgumentList argumentList() { return ArgumentList(arguments, argLabels); }
 
-    extern (D) this(Loc loc, Expression e, Expressions* exps, ArgumentLabels *names = null) @safe
+    extern (D) this(Loc loc, Expression e, Expressions* exps, ArgumentLabels *argLabels = null) @safe
     {
         super(loc, EXP.call, e);
         this.arguments = exps;
-        this.names = names;
+        this.argLabels = argLabels;
     }
 
     extern (D) this(Loc loc, Expression e) @safe
@@ -3384,7 +3394,7 @@ extern (C++) final class CallExp : UnaExp
 
     override CallExp syntaxCopy()
     {
-        return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments), names ? names.copy() : null);
+        return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments), argLabels ? argLabels.copy() : null);
     }
 
     override bool isLvalue()

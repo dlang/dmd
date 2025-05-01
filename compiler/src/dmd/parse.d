@@ -1325,9 +1325,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 const loc = token.loc;
                 AST.Expressions* args = new AST.Expressions();
-                AST.ArgumentLabels* names = new AST.ArgumentLabels();
-                parseNamedArguments(args, names);
-                exp = new AST.CallExp(loc, exp, args, names);
+                AST.ArgumentLabels* argLabels = new AST.ArgumentLabels();
+                parseNamedArguments(args, argLabels);
+                exp = new AST.CallExp(loc, exp, args, argLabels);
             }
 
             if (udas is null)
@@ -9007,9 +9007,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             case TOK.leftParenthesis:
                 AST.Expressions* args = new AST.Expressions();
-                AST.ArgumentLabels* names = new AST.ArgumentLabels();
-                parseNamedArguments(args, names);
-                e = new AST.CallExp(loc, e, args, names);
+                AST.ArgumentLabels* argLabels = new AST.ArgumentLabels();
+                parseNamedArguments(args, argLabels);
+                e = new AST.CallExp(loc, e, args, argLabels);
                 continue;
 
             case TOK.leftBracket:
@@ -9453,7 +9453,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * Collect argument list.
      * Assume current token is ',', '$(LPAREN)' or '['.
      */
-    private void parseNamedArguments(AST.Expressions* arguments, AST.ArgumentLabels* names)
+    private void parseNamedArguments(AST.Expressions* arguments, AST.ArgumentLabels* argLabels)
     {
         assert(arguments);
 
@@ -9470,15 +9470,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 auto ident = token.ident;
                 check(TOK.identifier);
                 check(TOK.colon);
-                if (names)
-                    names.push(ArgumentLabel(ident, loc));
+                if (argLabels)
+                    argLabels.push(ArgumentLabel(ident, loc));
                 else
                     error(loc, "named arguments not allowed here");
             }
             else
             {
-                if (names)
-                    names.push(ArgumentLabel(null, Loc.init));
+                if (argLabels)
+                    argLabels.push(ArgumentLabel(null, Loc.init));
             }
 
             auto arg = parseAssignExp();
@@ -9519,7 +9519,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
 
         AST.Expressions* arguments = null;
-        AST.ArgumentLabels* names = null;
+        AST.ArgumentLabels* argLabels = null;
 
         // An anonymous nested class starts with "class"
         if (token.value == TOK.class_)
@@ -9528,8 +9528,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value == TOK.leftParenthesis)
             {
                 arguments = new AST.Expressions();
-                names = new AST.ArgumentLabels();
-                parseNamedArguments(arguments, names);
+                argLabels = new AST.ArgumentLabels();
+                parseNamedArguments(arguments, argLabels);
             }
 
             AST.BaseClasses* baseclasses = null;
@@ -9573,11 +9573,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         else if (token.value == TOK.leftParenthesis && t.ty != Tsarray)
         {
             arguments = new AST.Expressions();
-            names = new AST.ArgumentLabels();
-            parseNamedArguments(arguments, names);
+            argLabels = new AST.ArgumentLabels();
+            parseNamedArguments(arguments, argLabels);
         }
 
-        auto e = new AST.NewExp(loc, placement, thisexp, t, arguments, names);
+        auto e = new AST.NewExp(loc, placement, thisexp, t, arguments, argLabels);
         return e;
     }
 

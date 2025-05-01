@@ -256,9 +256,9 @@ Expression getDefaultValue(EnumDeclaration ed, Loc loc)
 /***********************************************************
  * expression.d
  */
-void expandTuples(Expressions* exps, ArgumentLabels* names = null)
+void expandTuples(Expressions* exps, ArgumentLabels* argLabels = null)
 {
-    return dmd.expression.expandTuples(exps, names);
+    return dmd.expression.expandTuples(exps, argLabels);
 }
 
 /***********************************************************
@@ -305,10 +305,10 @@ bool functionSemantic3(FuncDeclaration fd)
     return dmd.funcsem.functionSemantic3(fd);
 }
 
-MATCH leastAsSpecialized(FuncDeclaration fd, FuncDeclaration g, ArgumentLabels* names)
+MATCH leastAsSpecialized(FuncDeclaration fd, FuncDeclaration g, ArgumentLabels* argLabels)
 {
     import dmd.funcsem;
-    return dmd.funcsem.leastAsSpecialized(fd, g, names);
+    return dmd.funcsem.leastAsSpecialized(fd, g, argLabels);
 }
 
 PURE isPure(FuncDeclaration fd)
