@@ -1935,7 +1935,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
  */
 private void checkNamedArgErrorAndReport(TemplateDeclaration td, ArgumentList argumentList, Loc loc)
 {
-    if (!argumentList.hasNames())
+    if (!argumentList.hasArgNames())
         return;
 
     auto tf = td.onemember ? td.onemember.isFuncDeclaration() : null;
@@ -1957,7 +1957,7 @@ private void checkNamedArgErrorAndReport(TemplateDeclaration td, ArgumentList ar
  */
 private void checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argumentList, Loc loc)
 {
-    if (!argumentList.hasNames())
+    if (!argumentList.hasArgNames())
         return;
 
     FuncDeclaration tf = null;
