@@ -905,6 +905,7 @@ $(GNAME HexFloat):
     $(GLINK HexPrefix) $(GLINK HexDigitsNoSingleUS) $(B .) $(GLINK HexDigitsNoStartingUS) $(GLINK HexExponent)
     $(GLINK HexPrefix) $(B .) $(GLINK HexDigitsNoStartingUS) $(GLINK HexExponent)
     $(GLINK HexPrefix) $(GLINK HexDigitsNoSingleUS) $(GLINK HexExponent)
+    $(GLINK HexPrefix) $(GLINK HexExponent)
 
 $(GNAME HexPrefix):
     $(B 0x)

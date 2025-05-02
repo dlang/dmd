@@ -345,7 +345,7 @@ T opBinary(string op)(T rhs)
 {
     static if (op == "+") return data + rhs.data;
     else static if (op == "-") return data - rhs.data;
-    else static assert(0, "Operator "~op~" not implemented");
+    else static assert(0, "Operator " ~ op ~ " not implemented");
 }
 ---
 
@@ -354,7 +354,7 @@ T opBinary(string op)(T rhs)
 ---
 T opBinary(string op)(T rhs)
 {
-    return mixin("data "~op~" rhs.data");
+    return mixin("data " ~ op ~ " rhs.data");
 }
 ---
 
@@ -383,19 +383,20 @@ $(H2 $(LNAME2 eqcmp, Overloading the Comparison Operators))
         $(D x < y) nor $(D y < x) holds, but that does not imply that
         $(D x == y). Thus, it is insufficient to determine equality purely based on
         $(D opCmp) alone. For this reason, $(D opCmp) is only used for the
-        inequality operators $(D <), $(D <=), $(D >=), and $(D >). The equality
+        $(GLINK2 RelExpression) operators $(D <), $(D <=), $(D >=), and $(D >). The equality
         operators $(D ==) and $(D !=) always employ $(D opEquals) instead.)
 
         $(P Therefore, it is the programmer's responsibility to ensure that
         `opCmp` and $(D opEquals) are consistent with each other. If
-        `opEquals` is not specified, the compiler provides a default version
+        `opEquals` is not specified for a struct, the compiler provides a
+        $(DDSUBLINK spec/expression, struct_equality, default version) of it
         that does member-wise comparison. If this suffices, one may define only
-        $(D opCmp) to customize the behaviour of the inequality operators.  But
+        $(D opCmp) to customize the behaviour of the *RelExpression* operators.  But
         if not, then a custom version of $(D opEquals) should be defined as
         well, in order to preserve consistent semantics between the two kinds
         of comparison operators.)
 
-        $(P Finally, if the user-defined type is to be used as a key in the
+        $(P Finally, if a user-defined type is to be used as a key in the
         built-in associative arrays, then the programmer must ensure that the
         semantics of $(D opEquals) and $(D toHash) are consistent. If not, the
         associative array may not work in the expected manner.)
@@ -411,7 +412,7 @@ $(OL
     ---
     .object.opEquals(a, b)
     ---
-        $(P and that function is implemented as:)
+        $(P and that function is similar to:)
     ---
     bool opEquals(Object a, Object b)
     {
@@ -431,13 +432,30 @@ $(OL
 )
 
         $(P If overriding $(D Object.opEquals()) for classes, the class member
-        function signature should look like:)
+        function should take an `Object` parameter and dynamically check
+        that it is a compatible class, e.g.:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     class C
     {
-        override bool opEquals(Object o) { ... }
+        int i;
+
+        this(int i) { this.i = i; }
+
+        override bool opEquals(Object o)
+        {
+            if (auto c = cast(C) o)
+                return c.i == i;
+            else
+                assert(0, __FUNCTION__ ~ ": Cannot compare a " ~ typeid(o).toString);
+        }
     }
+
+    static assert(new C(2) == new C(2));
+    static assert(new C(2) != new C(3));
     ---
+    )
 
         $(P If structs declare an $(D opEquals) member function for the
         identity comparison, it could have several forms, such as:)
@@ -464,11 +482,17 @@ $(OL
         bool opEquals()(auto ref const S s) const { ... }
     }
     ---
+        $(NOTE See $(DDSUBLINK spec/expression, struct_equality, Struct Equality)
+        for best practices on implementing `opEquals` for structs.)
 
 
 $(H3 $(LNAME2 compare, Overloading $(D <), $(D <)$(D =), $(D >), and $(D >)$(D =)))
 
-        $(P Comparison operations are rewritten as follows:)
+        $(P Class references are first $(DDSUBLINK spec/expression, class-comparisons,
+        compared by reference). If they refer to different objects and neither is `null`,
+        they are then compared by calling a matching `opCmp` method, as for structs.)
+
+        $(P Struct comparison operations are rewritten as follows:)
 
         $(TABLE2 Rewriting of comparison operations,
         $(THEAD comparison, rewrite 1, rewrite 2)
@@ -520,7 +544,10 @@ void main()
 }
 ---
         $(P If overriding $(D Object.opCmp()) for classes, the class member
-        function signature should look like:)
+        function should take an `Object` parameter and dynamically check
+        that it is a compatible class for the comparison (like when overriding
+        $(RELATIVE_LINK2 equals, `opEquals`)).)
+
 ---
 class C
 {
@@ -536,13 +563,20 @@ struct S
     int opCmp(ref const S s) const { ... }
 }
 ---
-        $(P Note that $(D opCmp) is only used for the inequality operators;
-        expressions like $(D a == b) always uses $(D opEquals). If $(D opCmp)
-        is defined but $(D opEquals) isn't, the compiler will supply a default
-        version of $(D opEquals) that performs member-wise comparison. If this
-        member-wise comparison is not consistent with the user-defined
-        `opCmp`, then it is up to the programmer to supply an appropriate
-        version of $(D opEquals).  Otherwise, inequalities like $(D a <= b)
+
+        $(P Note that $(D opCmp) is only used for
+        $(GLINK2 expression, RelExpression) operators;
+        expressions like $(D a == b) always use $(RELATIVE_LINK2 equals, `opEquals`).)
+
+        $(P For structs, if $(D opCmp) is defined but $(D opEquals) isn't,
+        the compiler will supply $(DDSUBLINK spec/expression, struct_equality, a default
+        version) of $(D opEquals) that performs member-wise comparison. However, the
+        member-wise comparison may not be consistent with the user-defined
+        `opCmp`.)
+
+        $(P It is up to the programmer to also supply a
+        version of $(D opEquals) when appropriate. Otherwise,
+        a *RelExpression* like $(D a <= b)
         will behave inconsistently with equalities like $(D a == b).)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -573,14 +607,15 @@ $(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloa
         declaring a function named $(CODE opCall):
         )
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     -------
     struct F
     {
-        int $(CODE_HIGHLIGHT opCall)();
-        int $(CODE_HIGHLIGHT opCall)(int x, int y, int z);
+        int opCall();
+        int opCall(int x, int y, int z);
     }
 
-    void test()
+    void main()
     {
         F f;
         int i;
@@ -589,6 +624,7 @@ $(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloa
         i = f(3,4,5); // same as i = f.opCall(3,4,5);
     }
     -------
+    )
 
         $(P In this way a struct or class object can behave as if it
         were a function.
@@ -626,17 +662,20 @@ $(H3 $(LNAME2 static-opcall, Static opCall))
         type names.
         )
 
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
     -------
     struct Double
     {
-        $(CODE_HIGHLIGHT static) int $(CODE_HIGHLIGHT opCall)(int x) { return x * 2; }
+        static int opCall(int x) { return x * 2; }
     }
-    void test()
+
+    void main()
     {
         int i = Double(2);
         assert(i == 4);
     }
     -------
+    )
 
         $(P Mixing struct constructors and $(D static opCall) is not allowed.)
 
@@ -937,7 +976,7 @@ struct S
 void main()
 {
     auto s = S([1, 2, 3]);
-    int[] t = s[0..2]; // calls s.opIndex(s.opSlice(0, 2))
+    int[] t = s[0..2]; // calls s.opIndex(s.opSlice!0(0, 2))
     assert(t == [1, 2]);
 }
 ---
@@ -1041,16 +1080,18 @@ $(H3 $(LEGACY_LNAME2 Dollar, dollar, Dollar Operator Overloading))
         understood by $(D opSlice) and $(D opIndex).
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 struct Rectangle
 {
     int width, height;
     int[][] impl;
+
     this(int w, int h)
     {
         width = w;
         height = h;
-        impl = new int[w][h];
+        impl = new int[][](w, h);
     }
     int opIndex(size_t i1, size_t i2)
     {
@@ -1065,7 +1106,7 @@ struct Rectangle
     }
 }
 
-void test()
+void main()
 {
     auto r = Rectangle(10,20);
     int i = r[$-1, 0];    // same as: r.opIndex(r.opDollar!0, 0),
@@ -1074,6 +1115,7 @@ void test()
                           // which is r.opIndex(0, r.height-1)
 }
 ------
+)
 
         $(P As the above example shows, a different compile-time argument is
         passed to $(D opDollar) depending on which argument it appears in. A

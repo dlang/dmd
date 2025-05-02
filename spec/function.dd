@@ -1533,20 +1533,37 @@ $(H3 $(LNAME2 param-storage, Parameter Storage Classes))
 
 $(H3 $(LNAME2 in-params, In Parameters))
 
-        $(B Note: The following requires the $(D -preview=in) switch$(COMMA) available in
-        $(LINK2 $(ROOT_DIR)changelog/2.094.0.html#preview-in, v2.094.0) or higher.
-        When not in use, `in` is equivalent to `const`.)
         $(P The parameter is an input to the function. Input parameters behave as if they have
-        the $(D const scope) storage classes. Input parameters may also be passed by reference by the compiler.)
-        $(P Unlike $(D ref) parameters$(COMMA) $(D in) parameters can bind to both lvalues and rvalues
+        the $(D const) storage class.)
+
+        $(NOTE The following requires the $(D -preview=in) switch and a compiler compliant with
+        $(LINK2 $(ROOT_DIR)changelog/2.094.0.html#preview-in, dmd v2.094.0) or higher.)
+
+        $(P `in` parameters also behave like $(RELATIVE_LINK2 scope-parameters, `scope`) parameters.)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+const(int[]) g(in int[] a) @safe
+{
+    a[0]++; // Error: cannot modify const expression
+    return a; // Error: scope parameter `a` may not be returned
+}
+---
+)
+
+        $(P Input parameters may also be passed by reference by the compiler.
+        Unlike $(D ref) parameters, $(D in) parameters can bind to both lvalues and rvalues
         (such as literals).)
-        $(P Types that would trigger a side effect if passed by value (such as types with copy constructor$(COMMA)
-        postblit$(COMMA) or destructor)$(COMMA) and types which cannot be copied
-        (e.g. if their copy constructor is marked as $(D @disable)) will always be passed by reference.
-        Dynamic arrays$(COMMA) classes$(COMMA) associative arrays$(COMMA) function pointers$(COMMA) and delegates
-        will always be passed by value.)
-        $(IMPLEMENTATION_DEFINED If the type of the parameter does not fall in one of those categories$(COMMA)
-        whether or not it is passed by reference is implementation defined$(COMMA) and the backend is free
+
+        - Types that would trigger a side effect if passed by value (such as types with
+          a copy constructor, postblit, or destructor) will always be passed by reference.
+        - Types which cannot be copied (e.g. if their copy constructor is marked as
+          $(D @disable)) will always be passed by reference.
+        - Dynamic arrays, classes, associative arrays, function pointers, and delegates
+          will always be passed by value.
+
+        $(IMPLEMENTATION_DEFINED If the type of the parameter does not fall in one of those categories,
+        whether or not it is passed by reference is implementation defined, and the backend is free
         to choose the method that will best fit the ABI of the platform.
         )
 
@@ -1577,7 +1594,8 @@ $(H3 $(LNAME2 ref-params, Ref and Out Parameters))
         $(RELATIVE_LINK2 return-ref-parameters, Return Ref Parameters.))
 
         $(P An `out` parameter is similar to a `ref` parameter, except it is initialized
-        with `x.init` upon function invocation.)
+        by $(DDSUBLINK spec/property, init-vs-construction, default construction) upon
+        function invocation.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
@@ -1908,6 +1926,8 @@ $(H3 $(LNAME2 scope-parameters, Scope Parameters))
     (e.g. by being assigned to a global variable). It has no effect for non-reference types.
     `scope` escape analysis is only done for `@safe` functions. For other functions `scope`
     semantics must be manually enforced.)
+
+    $(NOTE `@safe` escape analysis is only done with the $(D -preview=dip1000) switch.)
 
 ---
 @safe:
@@ -2422,7 +2442,7 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
         }
         ---
 
-        $(P For class objects:)
+        $(DDOC_DEPRECATED For class objects:)
 
         ---
         int tesla(int x, C c ...)
@@ -2509,9 +2529,9 @@ $(H4 $(LNAME2 lazy_variadic_functions, Lazy Variadic Functions))
         ---
 
         $(P The variadic delegate array differs from using a lazy
-        variadic array. With the former each array element access
+        variadic array. With the latter each array element access
         would evaluate every array element.
-        With the latter, only the element being accessed would be evaluated.)
+        With the former, only the element being accessed would be evaluated.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
@@ -3595,6 +3615,8 @@ void main()
         Casts between signed and unsigned types are permitted.)
 
     $(LI Reinterpretation of overlapped fields in a union is not permitted.)
+
+    $(LI Undefined behavior must not occur.)
     )
 
     $(P Pointers are permitted in CTFE, provided they are used safely:)
@@ -3681,7 +3703,7 @@ static assert(countTen(12) == 12);  // invalid, modifies y.
 
     $(IMPLEMENTATION_DEFINED
     Functions executed via CTFE can give different results
-    from run time when implementation-defined or undefined-behavior occurs.
+    from run time when implementation-defined occurs.
     )
 
 

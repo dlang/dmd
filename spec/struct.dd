@@ -631,7 +631,9 @@ $(H3 $(LNAME2 struct_field_properties, Struct Field Properties))
 
 $(TABLE2 Struct Field Properties,
 $(THEAD Name, Description)
-$(TROW $(D .offsetof), Offset in bytes of field from beginning of struct)
+$(TROW $(D .offsetof), Offset in bytes of field from beginning of struct.
+    See $(DDSUBLINK spec/attribute, align, the `align` attribute) for an example.
+)
 )
 
 $(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Structs))
@@ -1121,6 +1123,29 @@ $(H3 $(LNAME2 field-init, Field initialization inside a constructor))
         )
 
 $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy Constructors))
+
+    $(PANEL
+        $(P $(RED Warning:) The plan is for
+        $(RELATIVE_LINK2 struct-copy-constructor, copy constructors) to replace
+        $(RELATIVE_LINK2 struct-postblit, postblit constructors), leaving
+        postblit constructors only in legacy code. However, because the
+        compiler hooks in druntime which deal with dynamic arrays and
+        associative arrays have not yet all been updated to support copy
+        constructors properly
+        ($(HTTPS github.com/dlang/dmd/issues/20970, issue #20970)), any type
+        that might be used in a dynamic array or associative array should use a
+        postblit constructor rather than a copy constructor. The copy
+        constructor will not be called in all the cases where it should be for
+        the elements of a dynamic array or the keys or values in an associative
+        array. Postblit constructors do not have this problem.)
+
+        $(P For backward compatibility reasons, a `struct` that explicitly
+        defines both a copy constructor and a postblit will only use the
+        postblit for implicit copying. However, if the postblit is disabled,
+        the copy constructor will be used. If a struct defines a copy
+        constructor (user-defined or generated) and has fields that define
+        postblits, a deprecation will be issued, informing that the postblit
+        will have priority over the copy constructor.))
 
     $(P Copy constructors are used to initialize a `struct` instance from
     another instance of the same type. A `struct` that defines a copy constructor
@@ -1644,14 +1669,28 @@ $(GNAME Postblit):
     $(D this $(LPAREN) this $(RPAREN)) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, MissingFunctionBody)
 )
 
-    $(P $(RED Warning): The postblit is considered legacy and is not recommended for new code.
-    Code should use $(RELATIVE_LINK2 struct-copy-constructor, copy constructors)
-    defined in the previous section. For backward compatibility reasons, a `struct` that
-    explicitly defines both a copy constructor and a postblit will only use the postblit
-    for implicit copying. However, if the postblit is disabled, the copy constructor will
-    be used. If a struct defines a copy constructor (user-defined or generated) and has
-    fields that define postblits, a deprecation will be issued, informing that the postblit
-    will have priority over the copy constructor.)
+    $(PANEL
+        $(P $(RED Warning:) The plan is for
+        $(RELATIVE_LINK2 struct-copy-constructor, copy constructors) to replace
+        $(RELATIVE_LINK2 struct-postblit, postblit constructors), leaving
+        postblit constructors only in legacy code. However, because the
+        compiler hooks in druntime which deal with dynamic arrays and
+        associative arrays have not yet all been updated to support copy
+        constructors properly
+        ($(HTTPS github.com/dlang/dmd/issues/20970, issue #20970)), any type
+        that might be used in a dynamic array or associative array should use a
+        postblit constructor rather than a copy constructor. The copy
+        constructor will not be called in all the cases where it should be for
+        the elements of a dynamic array or the keys or values in an associative
+        array. Postblit constructors do not have this problem.)
+
+        $(P For backward compatibility reasons, a `struct` that explicitly
+        defines both a copy constructor and a postblit will only use the
+        postblit for implicit copying. However, if the postblit is disabled,
+        the copy constructor will be used. If a struct defines a copy
+        constructor (user-defined or generated) and has fields that define
+        postblits, a deprecation will be issued, informing that the postblit
+        will have priority over the copy constructor.))
 
         $(P $(I Copy construction) is defined as initializing
          a struct instance from another instance of the same type.
@@ -2495,7 +2534,9 @@ void main()
 ---
 )
 
-        $(P If a struct declaration defines an $(D opCmp) or $(D opEquals)
+        $(P If a struct declaration defines an
+        $(DDSUBLINK spec/operatoroverloading, compare, `opCmp`) or
+        $(DDSUBLINK spec/operatoroverloading, equals, `opEquals`)
         method, it will take precedence to that of the *AliasThis* member. Note
         that, unlike an $(D opCmp) method, an $(D opEquals) method is implicitly
         defined for a $(D struct) declaration if a user-defined one isn't provided.

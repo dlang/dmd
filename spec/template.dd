@@ -949,26 +949,35 @@ $(H4 $(LNAME2 lvalue-sequences, Lvalue Sequences))
         $(DDSUBLINK articles/ctarguments, type-seq-instantiation, declare variables).
         A variable whose type is a *TypeSeq* is called an
         *lvalue sequence*.)
-    $(P An lvalue sequence can be initialized from, assigned to, and compared with
-        a value sequence of a compatible type.)
+
+      - An element of an lvalue sequence may be modifiable.
+      - An lvalue sequence can be initialized from, assigned to, and compared with
+        a value sequence whose elements are compatible.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
             ---
             import std.meta: AliasSeq;
             // use a type alias just for convenience
             alias TS = AliasSeq!(string, int);
+
             TS tup; // lvalue sequence
             assert(tup == AliasSeq!("", 0)); // TS.init
+            // elements can be modified
+            tup[1]++;
+            assert(tup[1] == 1);
 
-            int i = 5;
+            byte i = 5;
             // initialize another lvalue sequence from a sequence of a value and a symbol
             auto tup2 = AliasSeq!("hi", i); // value of i is copied
             i++;
+            assert(tup2[1] == 5); // unchanged
+
             enum hi5 = AliasSeq!("hi", 5); // rvalue sequence
             static assert(is(typeof(hi5) == TS));
-            assert(tup2 == hi5);
+            // compare elements
+            assert(tup2 == hi5); // OK, byte and int have a common type
 
-            // lvalue sequence elements can be modified
+            // lvalue sequence can be assigned to a ValueSeq
             tup = tup2;
             assert(tup == hi5);
             ---

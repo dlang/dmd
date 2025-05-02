@@ -30,6 +30,7 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 override, $(D override))
     $(RELATIVE_LINK2 ref, $(D ref))
     $(RELATIVE_LINK2 return, $(D return))
+    $(RELATIVE_LINK2 __rvalue, $(D __rvalue))
     $(RELATIVE_LINK2 scope, $(D scope))
     $(RELATIVE_LINK2 shared, $(D shared))
     $(RELATIVE_LINK2 static, $(D static))
@@ -733,6 +734,10 @@ $(H2 $(LNAME2 return, $(D return) Attribute))
     * $(DDSUBLINK spec/function, return-ref-parameters, Return Ref Parameters).
     * $(DDSUBLINK spec/function, return-scope-parameters, Return Scope Parameters).
 
+$(H2 $(LNAME2 __rvalue, $(D __rvalue) Attribute))
+
+    * $(DDSUBLINK spec/expression, __rvalue-function-attribute, $(I RvalueExpression)).
+
 $(H2 $(LNAME2 static, $(D static) Attribute))
 
         $(P The $(D static) attribute applies to types, functions and data.
@@ -851,6 +856,9 @@ $(P
             $(LI Assigning a `scope` variable to a non-scope parameter by calling a function)
             $(LI Putting a `scope` variable in an array literal)
         )
+
+        $(NOTE escape analysis is only done in `@safe` code. The $(D -preview=dip1000) switch
+        must also be enabled.)
 $(P
         The `scope` attribute is part of the variable declaration, not the type, and it only applies to the first level of indirection.
         For example, it is impossible to declare a variable as a dynamic array of scope pointers, because `scope` only applies to the `.ptr`
@@ -948,7 +956,7 @@ struct S
     int x;
 
     // this method may be called on a stack-allocated instance of S
-    void f()
+    void f() @safe
     {
         int* p = &x; // inferred `scope int* p`
         int* q = &this.x; // equivalent

@@ -619,25 +619,39 @@ $(GNAME EqualExpression):
 
     $(P Inequality is defined as the logical negation of equality.)
 
-    $(P If the operands are integral values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
+      - If the operands are integral values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
         to bring them to a common type before comparison. Equality is defined as the bit patterns
         of the common type match exactly.
-    )
 
-    $(P If the operands are pointers, equality is defined as the bit patterns of the operands
-        match exactly.
-    )
+      - If the operands are pointers, equality is defined as the bit patterns of the operands
+        match exactly. Both types must match, or one can be `typeof(null)`.
 
-    $(P For float, double, and real values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
+      - For float, double, and real values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
         to bring them to a common type before comparison.
         The values $(D -0) and $(D +0) are considered equal.
         If either or both operands are NaN, then $(D ==) returns false and $(D !=) returns $(D true).
         Otherwise, the bit patterns of the common type are compared for equality.
-    )
 
-    $(P For static and dynamic arrays, equality is defined as the
+      - For static and dynamic arrays, equality is defined as the
         lengths of the arrays
-        matching, and all the elements are equal.
+        matching, and the elements in each compare equal.
+        The element types must have a common type.
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    assert(5 == 5L);
+    assert(byte(4) == 4F);
+
+    int i = 1, j = 1;
+    assert(&i != &j);
+    assert(&i != null);
+
+    // elements of different types are comparable, even when different sizes
+    int[] ia = ['A', 'B', 'C'];
+    assert(ia == "ABC");
+    byte[] ba = [1, 2];
+    assert(ba == [1F, 2F]);
+    ---
     )
 
     $(DDOC_DEPRECATED For complex numbers, equality is defined as equivalent to:)
@@ -648,17 +662,52 @@ $(GNAME EqualExpression):
 
     $(H4 $(LNAME2 class_struct_equality, Class & Struct Equality))
 
+    $(P For class references, `a == b` is rewritten to `.object.opEquals(a, b)`,
+        which handles `null`.
+        This is intended to compare the contents of two objects, however an
+        appropriate $(D opEquals) method override must be defined for this to work.
+        The default $(D opEquals) provided by the root $(D Object) class is
+        equivalent to the $(RELATIVE_LINK2 identity_expressions, $(D is) operator).)
+
+    $(P For struct objects, the expression $(D (a == b))
+        is rewritten as $(D a.opEquals(b)), or failing that, $(D b.opEquals(a)).)
+
+    $(P For both class references and struct objects, $(D (a != b)) is rewritten as
+        $(D !(a == b)).)
+
+    $(P See $(DDSUBLINK spec/operatoroverloading, equals, `opEquals`) for details.)
+
+    $(H5 $(LNAME2 struct_equality, Struct Equality))
+
     $(P For struct objects, equality means the result of the
         $(LINK2 https://dlang.org/spec/operatoroverloading.html#equals, `opEquals()` member function).
-        If an `opEquals()` is not provided, equality is defined as
-        the logical product of all equality
+        If an `opEquals()` is not provided, one will be generated.
+        Equality is defined as the logical product of all equality
         results of the corresponding object fields.
     )
 
-        $(IMPLEMENTATION_DEFINED The contents of any alignment gaps in the struct object.)
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    struct S
+    {
+        int i = 4;
+        string s = "four";
+    }
 
-        $(BEST_PRACTICE If there are overlapping fields, which happens with unions, the default
-        equality will compare each of the overlapping fields.
+    S s;
+    assert(s == S());
+    s.s = "foul";
+    assert(s != S());
+    ---
+    )
+
+        $(IMPLEMENTATION_DEFINED The contents of any $(DDSUBLINK spec/struct, struct_layout,
+        alignment gaps) in the struct object.)
+
+        $(P If there are overlapping fields, which happens with unions, the default
+        equality will compare each of the overlapping fields.)
+
+        $(BEST_PRACTICE
         An `opEquals()` can account for which of the overlapping fields contains valid data.
         An `opEquals()` can override the default behavior of floating point NaN values
         always comparing as unequal.
@@ -669,29 +718,6 @@ $(GNAME EqualExpression):
         $(LI any fields have an `opEquals()`)
         $(LI there are any floating point fields that may contain NaN or `-0` values)
         )
-
-    $(P For class and struct objects, the expression $(D (a == b))
-        is rewritten as
-        $(D a.opEquals(b)), and $(D (a != b)) is rewritten as
-        $(D !a.opEquals(b)).
-    )
-
-    $(P For class objects, the $(D ==) and $(D !=)
-        operators are intended to compare the contents of the objects,
-        however an appropriate $(D opEquals) override must be defined for this to work.
-        The default $(D opEquals) provided by the root $(D Object) class is
-        equivalent to the $(D is) operator (see below).
-        Comparing against $(D null) is invalid, as $(D null) has no contents.
-        Use the $(D is) and $(D !is) operators instead.)
-
-        ---
-        class C;
-        C c;
-        if (c == null)  // error
-            ...
-        if (c is null)  // ok
-            ...
-        ---
 
 $(H3 $(LNAME2 identity_expressions, Identity Expressions))
 
@@ -709,7 +735,7 @@ $(GNAME IdentityExpression):
     )
 
     $(P For class / interface objects, identity is defined as the object references being identical.
-        Null class objects can be compared with `is`.
+        Class references can be efficiently compared against `null` using `is`.
         Note that interface objects need not have the same reference of the class they were cast from.
         To test whether an `interface` shares a class instance with another `interface` / `class` value, cast both operands to `Object` before comparing with `is`.
     )
@@ -844,33 +870,42 @@ $(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Flo
     there are other floating-point values for NaN produced at runtime.
     Use $(REF isNaN, std,math,traits) to handle all of them.)
 
-$(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class Comparisons))
+$(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class and Struct Comparisons))
 
-    $(P For class objects, *EqualExpression* and *RelExpression* compare the
-        *contents* of the objects. Therefore, comparing against
-        a $(CODE null) class reference is invalid, as $(CODE null) has no contents.)
+    $(P For struct objects, a *RelExpression* performs a comparison which first
+        evaluates $(DDSUBLINK spec/operatoroverloading, compare, a matching `opCmp`
+        method) call.)
 
-        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    $(P For class references, a *RelExpression* performs a comparison which first
+        evaluates to an `int` which is either:)
+
+        - `0` if the two object references are identical
+        - `-1` if the left-hand expression is `null`
+        - `1` if the right-hand expression is `null`
+        - the result of $(DDSUBLINK spec/operatoroverloading, compare,
+          a matching `opCmp`) call
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
-        class C {}
+        class C
+        {
+            override int opCmp(Object o) { assert(0); }
+        }
 
-        void fun()
+        void main()
         {
             C c;
             //if (c < null) {}  // compile-time error
             assert(c is null);
-            if (c > new C) {}  // runtime error
+            assert(c < new C); // C.opCmp is not called
         }
         ---
         )
 
-    $(P For class objects, the result of `Object.opCmp()` forms the left
-        operand, and `0` forms the right operand. The result of an
-        *EqualExpression* or *RelExpression* `(o1 op o2)` is:)
-
-        ---
-        (o1.opCmp(o2) op 0)
-        ---
+    $(P Secondly, for class and struct objects, the evaluated `int` is compared
+        against zero using the given operator, which forms the result of the
+        *RelExpression*. For more information, see
+        $(DDSUBLINK spec/operatoroverloading, compare, `opCmp`).)
 
 
 $(H2 $(LNAME2 in_expressions, In Expressions))
@@ -1555,6 +1590,8 @@ $(H4 $(LNAME2 cast_struct, Structs))
         * When `e` is a struct or static array instance, its data is reinterpreted as
           the target type `S`. The data sizes must match.
         * Otherwise, it is an error.
+
+        $(NOTE The following examples assume a `LittleEndian` byte order.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
@@ -3046,13 +3083,13 @@ $(GNAME TypeidExpression):
 )
 
     $(P If $(I Type), returns an instance of class
-        $(DPLLINK phobos/object.html, $(D TypeInfo))
+        $(DPLLINK library/object/type_info.html, $(D TypeInfo))
         corresponding
         to $(I Type).
     )
 
     $(P If $(I Expression), returns an instance of class
-        $(DPLLINK phobos/object.html, $(D TypeInfo))
+        $(DPLLINK library/object/type_info.html, $(D TypeInfo))
         corresponding
         to the type of the $(I Expression).
         If the type is a class, it returns the $(D TypeInfo)
@@ -3594,6 +3631,23 @@ void oops()
 
     $(P $(I RvalueExpression)s enable the use of $(I move constructor)s and $(I move assignment)s.)
 
+$(H4 $(LNAME2 __rvalue-function-attribute, As a function attribute))
+
+    $(P It is also allowed to use the $(CODE __rvalue) keyword as a function attribute. The presence of this
+    attribute will infer the $(I RvalueExpression) upon the function call expression at the call-site,
+    as if applied to the function's return value. This is only accepted on functions that return by reference.
+    )
+
+---
+ref S fun(return ref S s) __rvalue
+{
+    return s;
+}
+
+S s;
+S t = fun(s); // call inferred as: __rvalue(fun(s))
+---
+
 $(H3 $(LNAME2 specialkeywords, Special Keywords))
 
 $(GRAMMAR
@@ -3656,6 +3710,27 @@ file: 'test.d', line: '13', module: 'test',
 function: 'test.main', pretty function: 'int test.main(string[] args)',
 file full path: '/example/test.d'
 )
+
+    $(PANEL $(P $(RED Warning): Do not use $(D mixin(__FUNCTION__)) to get the
+                symbol for the current function. This seems to be a common
+                thing for programmers to attempt when trying to get the symbol
+                for the current function in order to do introspection on it,
+                since D does not currently have a direct way to get that
+                symbol. However, using $(D mixin(__FUNCTION__)) means that the
+                symbol for the function will be looked up by name, which means
+                that it's subject to the various rules that go with symbol
+                lookup, which can cause various problems. One such problem
+                would that if a function is overloaded, the result will be the
+                first overload whether that's the current function or not.)
+
+             $(P Given that D doesn't currently have a way to directly get the
+                 symbol for the current function, the best way to do it is to
+                 get the parent symbol of a symbol within the function, since
+                 that avoids any issues surrounding symbol lookup rules. An
+                 example of that which doesn't rely on any other symbols is
+                 $(D __traits(parent {})). It declares an anonymous, nested
+                 function, whose parent is then the current function. So,
+                 getting its parent gets the symbol for the current function.))
 
 $(H2 $(LNAME2 associativity, Associativity and Commutativity))
 

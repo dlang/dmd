@@ -4,6 +4,8 @@ $(SPEC_S Classes,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 overview, Overview))
+
         $(P The object-oriented features of D all come from classes. The class
         hierarchy
         has as its root the class Object. Object defines a minimum level of functionality
@@ -21,6 +23,8 @@ $(HEADERNAV_TOC)
         non-private
         members are exposed externally to the DLL or EXE.
         )
+
+$(H2 $(LNAME2 declaration, Class Declarations))
 
         $(P A class declaration is defined:
         )
@@ -94,7 +98,7 @@ Foo var;
 ------
 )
 
-$(H2 $(LNAME2 access_control, Access Control))
+$(H3 $(LNAME2 access_control, Access Control))
 
         $(P Access to class members is controlled using
         $(DDSUBLINK spec/attribute, visibility_attributes,
@@ -102,7 +106,8 @@ $(H2 $(LNAME2 access_control, Access Control))
         The default visibility attribute is $(D public).
         )
 
-$(H2 $(LNAME2 super_class, Super Class))
+
+$(H3 $(LNAME2 super_class, Super Class))
 
         $(P
         All classes inherit from a super class. If one is not specified,
@@ -121,7 +126,7 @@ class B : A { } // B inherits from A
         Commas are used to separate inherited types.)
 
 
-$(H2 $(LNAME2 fields, Fields))
+$(H3 $(LNAME2 fields, Fields))
 
         $(P Class members are always accessed with the `.` operator.
         )
@@ -129,6 +134,7 @@ $(H2 $(LNAME2 fields, Fields))
         $(P Members of a base class can be accessed by prepending the name of
         the base class followed by a dot:)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 class A { int a; int a2;}
 class B : A { int a; }
@@ -140,9 +146,11 @@ void foo(B b)
     b.A.a = 5; // accesses field A.a
 }
 ---
+)
 
-        $(P The D compiler is free to rearrange the order of fields in a class to
-        optimally pack them in an implementation-defined manner.
+        $(IMPLEMENTATION_DEFINED
+        The D compiler is free to rearrange the order of fields in a class to
+        optimally pack them.
         Consider the fields much like the local
         variables in a function -
         the compiler assigns some to registers and shuffles others around all to
@@ -183,7 +191,7 @@ $(TROW $(RELATIVE_LINK2 outer-property, `.outer`), $(ARGS For
 $(H3 $(LNAME2 tupleof, `.tupleof`))
 
         $(P The $(D .tupleof) property provides a symbol sequence
-        of all the non-static fields in the class, excluding the
+        of all the non-static fields in the class, excluding the initial
         $(RELATIVE_LINK2 hidden-fields, hidden fields) and
         the fields in the base class.
         When used on an instance, `.tupleof` gives an
@@ -226,12 +234,17 @@ $(H3 $(LNAME2 hidden-fields, Accessing Hidden Fields))
         $(P The properties $(D .__vptr) and $(D .__monitor) give access
         to the class object's vtbl[] and monitor, respectively, but
         should not be used in user code.
+        See $(DDSUBLINK spec/abi, classes, the ABI) for details.
         )
+        $(P See also: $(RELATIVE_LINK2 nested-context, Context Pointer).)
 
 $(H3 $(LNAME2 field_properties, Field Properties))
 
         $(P The $(D .offsetof) property gives the offset in bytes of the field
         from the beginning of the class instantiation.
+        Note that the compiler can $(RELATIVE_LINK2 fields, rearrange class field offsets).
+        See $(DDSUBLINK spec/attribute, align, the `align` attribute) for a struct-based
+        example.
         )
         $(NOTE `.offsetof` is not available for fields of `extern(Objective-C)` classes
         due to their fields having a dynamic offset.
@@ -369,14 +382,7 @@ $(H3 $(LNAME2 synchronized-classes, Synchronized Classes))
         $(NOTE struct types cannot be marked `synchronized`.)
 
 
-$(H2 $(LNAME2 constructors, Constructors))
-
-$(GRAMMAR
-$(GNAME Constructor):
-    $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
-    $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, MissingFunctionBody)
-    $(GLINK2 template, ConstructorTemplate)
-)
+$(H2 $(LNAME2 class-instantiation, Class Instantiation))
 
         $(P Fields are by default initialized to the
         $(DDSUBLINK spec/property, init, default initializer)
@@ -385,6 +391,8 @@ $(GNAME Constructor):
         If the field declaration has an optional $(GLINK2 declaration, Initializer)
         that will be used instead of the default.
         )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         class Abc
         {
@@ -392,27 +400,65 @@ $(GNAME Constructor):
             long b = 7; // default initializer for b is 7
             float f;    // default initializer for f is NAN
         }
+
+        void main()
+        {
+            Abc obj = new Abc;
+            assert(obj.b == 7);
+        }
         ------
+        )
 
         $(P The $(I Initializer) is evaluated at compile time.)
 
-        $(P This initialization is done before any constructors are
-        called.)
+        $(P This initialization is done before any
+        $(RELATIVE_LINK2 constructors, constructors) are called.)
+
+        $(P Instances of class objects are created with a $(GLINK2 expression, NewExpression).)
+
+        * A class `C` without a constructor (or with a nullary constructor) is instantiated
+          using `new C`, without passing any arguments.
+        * Otherwise, a class can be instantiated with an argument list, e.g.
+          `new C(arguments)`. The arguments are passed to a constructor with a matching
+          parameter list (and resolved like $(DDSUBLINK spec/function, function-overloading,
+          overloaded methods)).
+
+        $(P By default, a class instance is allocated on the garbage-collected heap.
+        A $(DDSUBLINK spec/attribute, scope-class-var, `scope` class instance)
+        is allocated on the stack.)
+
+
+$(H3 $(LNAME2 constructors, Constructors))
+
+$(GRAMMAR
+$(GNAME Constructor):
+    $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
+    $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, MissingFunctionBody)
+    $(GLINK2 template, ConstructorTemplate)
+)
 
         $(P Constructors are defined with a function name of $(D this)
         and have no return value:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
-        class Foo
+        class A
         {
-            $(CODE_HIGHLIGHT this)(int x)  // declare constructor for Foo
-            {   ...
-            }
-            $(CODE_HIGHLIGHT this)()
-            {   ...
+            int i;
+
+            this(int i) // constructor taking an int argument
+            {
+                this.i = i; // initialize field `i` from parameter `i`
             }
         }
+
+        void main()
+        {
+            A a = new A(3);
+            assert(a.i == 3);
+        }
         ------
+        )
 
 $(H3 $(LNAME2 base-construction, Base Class Construction))
 
@@ -515,16 +561,7 @@ $(H3 $(LNAME2 implicit-base-construction, Implicit Base Class Construction))
         base class has a constructor that requires arguments and no
         nullary constructor, a matching call to `super` is required.)
 
-$(H3 $(LNAME2 class-instantiation, Class Instantiation))
-
-        $(P Instances of class objects are created with a $(GLINK2 expression, NewExpression):)
-
-        ------
-        A a = new A(3);
-        ------
-
-        $(P A $(DDSUBLINK spec/attribute, scope-class-var, `scope` class instance)
-        is allocated on the stack.)
+$(H3 $(LNAME2 instantiation-process, Instantiation Process))
 
         $(P The following steps happen:)
 
@@ -555,8 +592,8 @@ $(H3 $(LNAME2 class-instantiation, Class Instantiation))
 
         $(LI The body of the constructor is executed.)
 
-        $(LI If class invariant checking is turned on, the class invariant
-        is called at the end of the constructor.
+        $(LI If class invariant checking is turned on, the
+        $(RELATIVE_LINK2 invariants, class invariant) is called at the end of the constructor.
         )
     )
 
@@ -816,7 +853,9 @@ $(GNAME Destructor):
         by the GC.
         )
 
-$(H2 $(LNAME2 static-constructor, Static Constructors))
+$(H2 $(LNAME2 static-ctor-dtor, Static Constructors and Destructors))
+
+$(H3 $(LNAME2 static-constructor, Static Constructors))
 
 $(GRAMMAR
 $(GNAME StaticConstructor):
@@ -912,7 +951,7 @@ class Foo
 }
 ------
 
-$(H2 $(LNAME2 static-destructor, Static Destructors))
+$(H3 $(LNAME2 static-destructor, Static Destructors))
 
 $(GRAMMAR
 $(GNAME StaticDestructor):
@@ -959,7 +998,7 @@ class Foo
 }
 ------
 
-$(H2 $(LNAME2 shared_static_constructors, Shared Static Constructors))
+$(H3 $(LNAME2 shared_static_constructors, Shared Static Constructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticConstructor):
@@ -971,7 +1010,7 @@ $(GNAME SharedStaticConstructor):
         and are intended for initializing any shared global data.
         )
 
-$(H2 $(LNAME2 shared_static_destructors, Shared Static Destructors))
+$(H3 $(LNAME2 shared_static_destructors, Shared Static Destructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticDestructor):

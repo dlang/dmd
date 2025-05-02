@@ -4,6 +4,15 @@ $(SPEC_S Better C,
 
 $(HEADERNAV_TOC)
 
+$(P BetterC is a subset of D that doesn't depend on the D runtime library, only the C runtime library.
+)
+
+$(P $(RED Warning:) While the D runtime library and standard library are not linked in,
+it is still possible to import several packages (``core.*`` and ``std.*``) and use some templates, types and function declarations without bodies.
+However, these libraries were not written for BetterC, so you will need to determine which symbols may be used.
+Expect cryptic compiler or linker errors.
+)
+
 $(H2 $(LNAME2 linking, Linking))
 
     $(P It is straightforward to link C functions and libraries into D programs.
