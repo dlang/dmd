@@ -112,11 +112,6 @@ void mangleToBuffer(TemplateInstance ti, ref OutBuffer buf)
 /***********************************************************
  * dmodule.d
  */
-void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
-{
-    return dmd.dmodule.getLocalClasses(mod, aclasses);
-}
-
 FuncDeclaration findGetMembers(ScopeDsymbol dsym)
 {
     return dmd.dmodule.findGetMembers(dsym);
@@ -190,6 +185,24 @@ Dsymbol vtblSymbol(ClassDeclaration cd)
 {
     import dmd.dsymbolsem;
     return dmd.dsymbolsem.vtblSymbol(cd);
+}
+
+bool isAbstract(ClassDeclaration cd)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.isAbstract(cd);
+}
+
+bool hasPointers(Dsymbol d)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.hasPointers(d);
+}
+
+void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.getLocalClasses(mod, aclasses);
 }
 
 /***********************************************************

@@ -17,6 +17,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.astenums;
+import dmd.compiler : includeImports;
 import dmd.dmdparams;
 import dmd.errors;
 import dmd.errorsink;
@@ -38,6 +39,7 @@ version (Posix)
     import core.sys.posix.stdio;
     import core.sys.posix.stdlib;
     import core.sys.posix.unistd;
+    import core.stdc.errno;
 
     extern (C)
     {
@@ -333,7 +335,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
                 lnkfilename.toCStringThen!(lf => remove(lf.ptr));
                 FileName.free(lnkfilename.ptr);
             }
-            parseLinkerOutput(cast(const(char)[]) buf.peekSlice(), new ErrorSinkCompiler());
+            parseLinkerOutput(cast(const(char)[]) buf.peekSlice(), new ErrorSinkCompiler(), global.params.betterC, includeImports);
             return status;
         }
         else
@@ -689,7 +691,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
                 }
                 else
                 {
-                    parseLinkerOutput(cast(const(char)[]) outputBuf.peekSlice(), new ErrorSinkCompiler());
+                    parseLinkerOutput(cast(const(char)[]) outputBuf.peekSlice(), new ErrorSinkCompiler(), global.params.betterC, includeImports);
                     eSink.error(Loc.initial, "linker exited with status %d", status);
                     eSink.errorSupplemental(Loc.initial, "%s", linkerCommand);
                 }
@@ -991,7 +993,7 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
                  */
                 OutBuffer buf;
                 buf.writestring(cpp);
-                buf.printf(" /P /Zc:preprocessor /PD /nologo /utf-8 %.*s /FI%s /Fi%.*s",
+                buf.printf(" /P /Zc:preprocessor /PD /nologo /utf-8 \"%.*s\" \"/FI%s\" \"/Fi%.*s\"",
                     cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
 
                 /* Append preprocessor switches to command line
@@ -1228,13 +1230,19 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         OutBuffer buffer;
         ubyte[1024] tmp = void;
         ptrdiff_t nread;
-        while ((nread = read(pipefd[0], tmp.ptr, tmp.length)) > 0)
-            buffer.write(tmp[0 .. nread]);
-
-        if (nread == -1)
+        for(;;)
         {
-            perror("read");
-            return STATUS_FAILED;
+            while ((nread = read(pipefd[0], tmp.ptr, tmp.length)) > 0)
+                buffer.write(tmp[0 .. nread]);
+
+            if (nread == -1)
+            {
+                if(errno == EINTR) continue;
+
+                perror("read");
+                return STATUS_FAILED;
+            }
+            break;
         }
 
         int status;
@@ -1409,8 +1417,10 @@ Translate linker output to more user-friendly error messages, by extracting mang
 Params:
     linkerOutput = text that the linker printed
     eSink = sink for translated errors
+    betterC = whether the `-betterC` flag is set (to give more specific help when druntime symbols are missing)
+    iFlag = whether the `-i` flag is set, to give a suggestion to use it if it is not already used
 */
-void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink)
+void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink, bool betterC, bool iFlag)
 {
     // Some linkers quote symbols like `so' or 'so', strip the quotes
     static string unquote(string s)
@@ -1433,6 +1443,8 @@ void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink)
 
     bool missingCSymbols = false;
     bool missingDsymbols = false;
+    bool missingDruntimeSymbols = false;
+    bool missingPhobosSymbols = false;
     bool missingMain = false;
 
     void missingSymbol(const(char)[] name, const(char)[] referencedFrom)
@@ -1440,11 +1452,17 @@ void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink)
         import core.demangle: demangle;
         if (name.startsWith("__D"))
             name = name[1 .. $]; // MS LINK prepends underscore to the existing one
-        auto sym = demangle(name);
+
+        bool alreadyDemangled = !!findSplit(name, ".");
+        auto sym = alreadyDemangled ? name : demangle(name);
 
         if (sym == "main")
             missingMain = true;
-        else if (sym != name)
+        else if (sym.startsWith("core."))
+            missingDruntimeSymbols = true;
+        else if (sym.startsWith("std."))
+            missingPhobosSymbols = true;
+        else if (sym != name && !alreadyDemangled)
             missingDsymbols = true;
         else
             missingCSymbols = true;
@@ -1519,8 +1537,21 @@ void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink)
 
     if (missingMain)
         eSink.errorSupplemental(Loc.initial, "perhaps define a `void main() {}` function or use the `-main` switch");
+    else if (missingDruntimeSymbols || missingPhobosSymbols)
+    {
+        const(char)* missingLib = missingDruntimeSymbols ? "druntime" : "phobos";
+        if (betterC)
+            eSink.errorSupplemental(Loc.initial, "the `-betterC` flag prevents linking with %s", missingLib);
+        else
+            eSink.errorSupplemental(Loc.initial, "perhaps there is a mismatch in compiler and %s version", missingLib);
+    }
     else if (missingDsymbols)
-        eSink.errorSupplemental(Loc.initial, "perhaps `.d` files need to be added on the command line, or use `-i` to compile imports");
+    {
+        if (iFlag)
+            eSink.errorSupplemental(Loc.initial, "perhaps `.d` files need to be added on the command line");
+        else
+            eSink.errorSupplemental(Loc.initial, "perhaps `.d` files need to be added on the command line, or use `-i` to compile imports");
+    }
     else if (missingCSymbols)
         eSink.errorSupplemental(Loc.initial, "perhaps a library needs to be added with the `-L` flag or `pragma(lib, ...)`");
 }
@@ -1576,48 +1607,67 @@ clang: error: linker command failed with exit code 1 (use -v to see invocation)
 
     class ErrorSinkTest : ErrorSinkNull
     {
-        public int errorCount = 0;
-        string expectedFormat = "undefined reference to `%.*s`";
-        string[] expectedSymbols;
-
+        OutBuffer result;
         extern(C++): override:
 
         void verror(Loc loc, const(char)* format, va_list ap)
         {
-            assert(format[0 .. strlen(format)] == expectedFormat);
-            const expectedSymbol = expectedSymbols[errorCount++];
-            assert(va_arg!int(ap) == expectedSymbol.length);
-            const actualSymbol = va_arg!(char*)(ap)[0 .. expectedSymbol.length];
-            assert(actualSymbol == expectedSymbol, "expected " ~ expectedSymbol ~ ", not " ~ actualSymbol);
+            result.writestring("Error: ");
+            result.vprintf(format, ap);
+            result.writestring("\n");
         }
 
         void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
         {
-            assert(format.startsWith("perhaps") || format.startsWith("referenced from "));
+            result.vprintf(format, ap);
+            result.writestring("\n");
         }
     }
 
-    void test(T...)(string linkerName, string output, T expectedSymbols)
+    void test(string linkerName, string output, bool betterC, bool iFlag, string expectedErrors)
     {
         auto testSink = new ErrorSinkTest();
-        testSink.expectedSymbols = [expectedSymbols];
-        parseLinkerOutput(output, testSink);
-        assert(testSink.errorCount > 0, "failed to demangle output of " ~ linkerName);
+        parseLinkerOutput(output, testSink, betterC, iFlag);
+
+        string result = testSink.result.extractSlice;
+        assert(result == expectedErrors, "Failure parsing linker output of " ~ linkerName ~
+            "\n# Expected output:\n" ~ expectedErrors ~ "# Actual output:\n" ~ result);
     }
 
-    test("ld", ldOutput, "void app.f()");
-    test("lld", lldOutput, "void app.f()");
-    test("gold", goldOutput, "void app.f()");
-    test("link", linkOutput, "void app.f()");
-    test("ld", macLd0, "void app.f()", "void app.h()");
-    test("ld", macLd1, "void app.f()");
+    string expected = "Error: undefined reference to `void app.f()`
+referenced from `void app.g()`
+perhaps `.d` files need to be added on the command line, or use `-i` to compile imports
+";
+
+    test("ld", ldOutput, /*betterC*/ false, /*iFlag*/ false, expected);
+    test("gold", goldOutput, /*betterC*/ false, /*iFlag*/ false, expected);
+    test("link", linkOutput, /*betterC*/ false, /*iFlag*/ false, expected);
+
+    test("ld", macLd0, /*betterC*/ false, /*iFlag*/ false,
+"Error: undefined reference to `void app.f()`
+Error: undefined reference to `void app.h()`
+perhaps `.d` files need to be added on the command line, or use `-i` to compile imports
+");
+
+    test("ld", macLd1, /*betterC*/ false, /*iFlag*/ false,
+"Error: undefined reference to `void app.f()`
+perhaps `.d` files need to be added on the command line, or use `-i` to compile imports
+");
+
+    test("lld", lldOutput, /*betterC*/ false, /*iFlag*/ true,
+"Error: undefined reference to `void app.f()`
+perhaps `.d` files need to be added on the command line
+");
 
     string missingMainOutput = "
 /usr/bin/ld: /usr/lib/gcc/x86_64-pc-linux-gnu/13.2.1/../../../../lib/Scrt1.o: in function `_start':
 (.text+0x1b): undefined reference to `main'
 ";
 
-    test("ld", missingMainOutput, "main");
+    test("ld", missingMainOutput, /*betterC*/ false, /*iFlag*/ false,
+"Error: undefined reference to `main`
+perhaps define a `void main() {}` function or use the `-main` switch
+");
 
     string missingExternCOutput = "
 /usr/bin/ld: app.o: in function `_D3app__T2αVAyaa3_616263ZQrFZv':
@@ -1625,6 +1675,26 @@ clang: error: linker command failed with exit code 1 (use -v to see invocation)
 /usr/bin/ld: ../test/app.d:(.text._D3app__T2αVAyaa3_616263ZQrFZv[_D3app__T2αVAyaa3_616263ZQrFZv]+0xa): undefined reference to `my_B'
 ";
 
-    test("ld", missingExternCOutput, "my_A", "my_B");
+    test("ld", missingExternCOutput, /*betterC*/ true, /*iFlag*/ false,
+"Error: undefined reference to `my_A`
+referenced from `void app.α!(\"abc\").α()`
+Error: undefined reference to `my_B`
+referenced from `void app.α!(\"abc\").α()`
+perhaps a library needs to be added with the `-L` flag or `pragma(lib, ...)`
+");
+
+    string betterCError = "
+/usr/bin/ld: test_.o: in function `main':
+../test/test_.d:(.text.main[main]+0xa): undefined reference to `core.time.dur!(\"msecs\").dur(long)'
+/usr/bin/ld: ../test/test_.d:(.text.main[main]+0x12): undefined reference to `core.thread.osthread.Thread.sleep(core.time.Duration)'
+";
+
+    test("ld", betterCError, /*betterC*/ true, /*iFlag*/ false,
+"Error: undefined reference to `core.time.dur!(\"msecs\").dur(long)`
+referenced from `main`
+Error: undefined reference to `core.thread.osthread.Thread.sleep(core.time.Duration)`
+referenced from `main`
+the `-betterC` flag prevents linking with druntime
+");
 
 }

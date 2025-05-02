@@ -1320,7 +1320,21 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             // Allow identifier, template instantiation, or function call
             // for `@Argument` (single UDA) form.
-            AST.Expression exp = parsePrimaryExp();
+            AST.Expression exp;
+
+            {
+                const loc = token.loc;
+                Identifier id = token.ident;
+                nextToken();
+                if (token.value == TOK.not)
+                {
+                    auto tempinst = new AST.TemplateInstance(loc, id, parseTemplateArguments());
+                    exp = new AST.ScopeExp(loc, tempinst);
+                }
+                else
+                    exp = new AST.IdentifierExp(loc, id);
+            }
+
             if (token.value == TOK.leftParenthesis)
             {
                 const loc = token.loc;
@@ -2759,7 +2773,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (len > 0)
             {
                 docline = cast(char*)mem.xmalloc_noscan(len + 2);
-                memcpy(docline, begPtr, len);
+                docline[0 .. len] = begPtr[0 .. len];
                 docline[len] = '\n'; // Terminate all lines by LF
                 docline[len + 1] = '\0';
             }
@@ -4068,7 +4082,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                  */
                 if (isParameters(&peekt))
                 {
-                    error("function declaration without return type. (Note that constructors are always named `this`)");
+                    error("function declaration without return type");
+                    errorSupplemental("Note that constructors are always named `this`");
                 }
                 else
                     error("unexpected `(` in declarator");
@@ -7091,12 +7106,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
                 *ptoklist = allocateToken();
-                memcpy(*ptoklist, &token, Token.sizeof);
+                **ptoklist = this.token;
                 (*ptoklist).value = TOK.colon;
                 ptoklist = &(*ptoklist).next;
 
                 *ptoklist = allocateToken();
-                memcpy(*ptoklist, &token, Token.sizeof);
+                **ptoklist = this.token;
                 (*ptoklist).value = TOK.colon;
                 ptoklist = &(*ptoklist).next;
 
@@ -7106,7 +7121,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             default:
                 *ptoklist = allocateToken();
-                memcpy(*ptoklist, &token, Token.sizeof);
+                **ptoklist = this.token;
                 ptoklist = &(*ptoklist).next;
                 *ptoklist = null;
                 nextToken();
@@ -8250,9 +8265,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         const len2 = token.len;
                         len = len1 + len2;
                         auto s2 = cast(char*)mem.xmalloc_noscan(len * char.sizeof);
-                        memcpy(s2, s, len1 * char.sizeof);
-                        memcpy(s2 + len1, token.ustring, len2 * char.sizeof);
-                        s = s2;
+                        s2[0 .. len1] = s[0 .. len1];
+                        s2[len1 .. len1 + len2] = token.ustring[0 .. len2];
                     }
                     else
                         break;
@@ -8455,10 +8469,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     nextToken();
                     if (token.value == TOK.identifier && peekNext() == TOK.leftParenthesis)
                     {
-                        error(loc, "unexpected `(` after `%s`, inside `is` expression. Try enclosing the contents of `is` with a `typeof` expression", token.toChars());
+                        error(loc, "unexpected `(` after `%s`, inside `is` expression", token.toChars());
+                        errorSupplemental("try enclosing the contents of `is` with a `typeof` expression");
                         nextToken();
                         Token* tempTok = peekPastParen(&token);
-                        memcpy(&token, tempTok, Token.sizeof);
+                        token = *tempTok;
                         goto Lerr;
                     }
                     targ = parseType(&ident);
@@ -9054,11 +9069,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseMulExp()
     {
-        const loc = token.loc;
         auto e = parseUnaryExp();
 
         while (1)
         {
+            const loc = token.loc;
             switch (token.value)
             {
             case TOK.mul:
@@ -9089,11 +9104,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseAddExp()
     {
-        const loc = token.loc;
         auto e = parseMulExp();
 
         while (1)
         {
+            const loc = token.loc;
             switch (token.value)
             {
             case TOK.add:
@@ -9124,11 +9139,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseShiftExp()
     {
-        const loc = token.loc;
         auto e = parseAddExp();
 
         while (1)
         {
+            const loc = token.loc;
             switch (token.value)
             {
             case TOK.leftShift:
@@ -9159,10 +9174,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseCmpExp()
     {
-        const loc = token.loc;
-
         auto e = parseShiftExp();
         EXP op = EXP.reserved;
+        const loc = token.loc;
 
         switch (token.value)
         {
@@ -9224,28 +9238,26 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseAndExp()
     {
-        Loc loc = token.loc;
         auto e = parseCmpExp();
         while (token.value == TOK.and)
         {
             checkParens(TOK.and, e);
+            const loc = token.loc;
             nextToken();
             auto e2 = parseCmpExp();
             checkParens(TOK.and, e2);
             e = new AST.AndExp(loc, e, e2);
-            loc = token.loc;
         }
         return e;
     }
 
     private AST.Expression parseXorExp()
     {
-        const loc = token.loc;
-
         auto e = parseAndExp();
         while (token.value == TOK.xor)
         {
             checkParens(TOK.xor, e);
+            const loc = token.loc;
             nextToken();
             auto e2 = parseAndExp();
             checkParens(TOK.xor, e2);
@@ -9256,12 +9268,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseOrExp()
     {
-        const loc = token.loc;
-
         auto e = parseXorExp();
         while (token.value == TOK.or)
         {
             checkParens(TOK.or, e);
+            const loc = token.loc;
             nextToken();
             auto e2 = parseXorExp();
             checkParens(TOK.or, e2);
@@ -9272,11 +9283,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseAndAndExp()
     {
-        const loc = token.loc;
-
         auto e = parseOrExp();
         while (token.value == TOK.andAnd)
         {
+            const loc = token.loc;
             nextToken();
             auto e2 = parseOrExp();
             e = new AST.LogicalExp(loc, EXP.andAnd, e, e2);
@@ -9286,11 +9296,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseOrOrExp()
     {
-        const loc = token.loc;
-
         auto e = parseAndAndExp();
         while (token.value == TOK.orOr)
         {
+            const loc = token.loc;
             nextToken();
             auto e2 = parseAndAndExp();
             e = new AST.LogicalExp(loc, EXP.orOr, e, e2);
@@ -9300,11 +9309,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     private AST.Expression parseCondExp()
     {
-        const loc = token.loc;
-
         auto e = parseOrOrExp();
         if (token.value == TOK.question)
         {
+            const loc = token.loc;
             nextToken();
             auto e1 = parseExpression();
             check(TOK.colon);

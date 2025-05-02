@@ -188,7 +188,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
     if (tempdecl.members)
     {
         Dsymbol s;
-        if (Dsymbol.oneMembers(tempdecl.members, s, tempdecl.ident) && s)
+        if (oneMembers(tempdecl.members, s, tempdecl.ident) && s)
         {
             tempdecl.onemember = s;
             s.parent = tempdecl;

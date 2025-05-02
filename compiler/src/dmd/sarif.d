@@ -241,6 +241,11 @@ void generateSarifReport(bool executionSuccessful) nothrow
 
     string cleanedVersion = toolVersion[0 .. length];
 
+    // strip trailing newlines
+    while (cleanedVersion.length > 0 && (cleanedVersion[$ - 1] == '\n' || cleanedVersion[$ - 1] == '\r'))
+        cleanedVersion = cleanedVersion[0 .. $ - 1];
+
+
     // Build SARIF report
     ob.writestringln("{");
     ob.level = 1;

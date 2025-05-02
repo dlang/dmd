@@ -306,6 +306,7 @@ extern (C++) abstract class Expression : ASTNode
     {
     bool parens;    // if this is a parenthesized expression
     bool rvalue;    // true if this is considered to be an rvalue, even if it is an lvalue
+    bool gcPassDone; // `checkGC` has been run on this expression
     }
     import dmd.common.bitfields;
     mixin(generateBitFields!(BitFields, ubyte));
@@ -1405,6 +1406,8 @@ extern (C++) final class StringExp : Expression
 
     /// If the string is parsed from a hex string literal
     bool hexString = false;
+    /// If the string is from a collected C macro
+    bool cMacro = false;
 
     enum char NoPostfix = 0;
 
@@ -1416,13 +1419,14 @@ extern (C++) final class StringExp : Expression
         this.sz = 1;                    // work around LDC bug #1286
     }
 
-    extern (D) this(Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = NoPostfix) scope
+    extern (D) this(Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = NoPostfix, bool cMacro = false) scope
     {
         super(loc, EXP.string_);
         this.string = cast(char*)string.ptr; // note that this.string should be const
         this.len = len;
         this.sz = sz;
         this.postfix = postfix;
+        this.cMacro = cMacro;
     }
 
     static StringExp create(Loc loc, const(char)* s)
@@ -3859,11 +3863,20 @@ extern (C++) final class CommaExp : BinExp
     /// false will be passed will be from the parser.
     bool allowCommaExp;
 
+    /// The original expression before any rewriting occurs.
+    /// This is used in error messages.
+    Expression originalExp;
 
     extern (D) this(Loc loc, Expression e1, Expression e2, bool generated = true) @safe
     {
         super(loc, EXP.comma, e1, e2);
         allowCommaExp = isGenerated = generated;
+    }
+
+    extern (D) this(Loc loc, Expression e1, Expression e2, Expression oe) @safe
+    {
+        this(loc, e1, e2);
+        originalExp = oe;
     }
 
     override bool isLvalue()

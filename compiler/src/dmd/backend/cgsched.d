@@ -72,7 +72,7 @@ struct Cinfo
     // For floating point scheduling
     ubyte fxch_pre;
     ubyte fxch_post;
-    FP fp_op;           /// FPxxxx
+    FP fp_op = FP.none;  /// FPxxxx
 
     ubyte flags;         /// CIFLxxx
 
@@ -2233,12 +2233,10 @@ nothrow:
 
     int fpustackused;           // number of slots in FPU stack that are used
 
-    @trusted
-    void initialize(int fpustackinit)          // initialize scheduler
+    this(int fpustackinit)          // initialize scheduler
     {
         //printf("Schedule::initialize(fpustackinit = %d)\n", fpustackinit);
-        memset(&this, 0, Schedule.sizeof);
-        fpustackused = fpustackinit;
+        this.fpustackused = fpustackinit;
     }
 
     void dtor()
@@ -2803,9 +2801,8 @@ private code* schedule(code* c,regm_t scratch)
 {
     code* cresult = null;
     code** pctail = &cresult;
-    Schedule sch = void;
+    Schedule sch = Schedule(0); // initialize scheduling table
 
-    sch.initialize(0);                  // initialize scheduling table
     while (c)
     {
         if ((c.Iop == NOP ||
@@ -2824,7 +2821,7 @@ private code* schedule(code* c,regm_t scratch)
         }
 
         //printf("init\n");
-        sch.initialize(sch.fpustackused);       // initialize scheduling table
+        sch = Schedule(sch.fpustackused);       // initialize scheduling table
 
         while (c)
         {

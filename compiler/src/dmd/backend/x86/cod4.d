@@ -1726,7 +1726,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         return;
     }
 
-    code cs = void;
+    code cs;
 
     //printf("cddivass(e=%p, pretregs = %s)\n",e,regm_str(pretregs));
     char uns = tyuns(tyml) || tyuns(e2.Ety);
@@ -1864,7 +1864,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             ulong m;
             int shpre;
             int shpost;
-            code cs = void;
+            code cs;
 
             if (udiv_coefficients(sz * 8, e2factor, &shpre, &m, &shpost))
             {
@@ -3752,7 +3752,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         else if (e1.Eoper == OPvar ||
             (e1.Eoper == OPind && !e1.Ecount))
         {
-            code cs = void;
+            code cs;
 
             if (I32 && op == OPu16_32 && config.flags4 & CFG4speed)
                 goto L2;
@@ -4545,7 +4545,7 @@ void cdbscan(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     const tyml = tybasic(e.E1.Ety);
     const sz = _tysize[tyml];
     assert(sz == 2 || sz == 4 || sz == 8);
-    code cs = void;
+    code cs;
 
     if ((e.E1.Eoper == OPind && !e.E1.Ecount) || e.E1.Eoper == OPvar)
     {
@@ -4606,7 +4606,7 @@ void cdpopcnt(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const sz = _tysize[tyml];
     assert(sz == 2 || sz == 4 || (sz == 8 && I64));     // no byte op
 
-    code cs = void;
+    code cs;
     if ((e.E1.Eoper == OPind && !e.E1.Ecount) || e.E1.Eoper == OPvar)
     {
         getlvalue(cdb, cs, e.E1, 0, RM.load);     // get addressing mode
@@ -4666,7 +4666,7 @@ void cdpair(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     regm_t retregs = pretregs;
     if (retregs == mPSW && tycomplex(e.Ety) && config.inline8087)
     {
-        if (config.fpxmmregs)
+        if (config.fpxmmregs && tysize(e.Ety) < 20)
             retregs |= mXMM0 | mXMM1;
         else
             retregs |= mST01;
@@ -4748,7 +4748,7 @@ void cdcmpxchg(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs
         regm_t retregs = mCX|mBX;
         scodelem(cgstate,cdb,e2.E2,retregs,mDX|mAX,false);  // [CX,BX] = e2.E2
 
-        code cs = void;
+        code cs;
         getlvalue(cdb,cs,e1,mCX|mBX|mAX|mDX);        // get EA
 
         getregs(cdb,mDX|mAX);                 // CMPXCHG destroys these regs
@@ -4775,7 +4775,7 @@ void cdcmpxchg(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs
         regm_t retregs = (ALLREGS | mBP) & ~mAX;
         scodelem(cgstate,cdb,e2.E2,retregs,mAX,false);   // load rvalue in reg
 
-        code cs = void;
+        code cs;
         getlvalue(cdb,cs,e1,mAX | retregs); // get EA
 
         getregs(cdb,mAX);                  // CMPXCHG destroys AX
@@ -4842,7 +4842,7 @@ void cdprefetch(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretreg
 
     freenode(e.E2);
 
-    code cs = void;
+    code cs;
     getlvalue(cdb,cs,e1,0);
     cs.Iop = op;
     cs.Irm |= modregrm(0,reg,0);

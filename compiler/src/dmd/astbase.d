@@ -3777,13 +3777,14 @@ struct ASTBase
         TOK tok;
         Identifier id;
         structalign_t packalign;
+        Expressions* alignExps;
         Dsymbols* members;
         Type base;
 
         Type resolved;
         MOD mod;
 
-        extern (D) this(Loc loc, TOK tok, Identifier id, structalign_t packalign, Type base, Dsymbols* members)
+        extern (D) this(Loc loc, TOK tok, Identifier id, structalign_t packalign, Expressions* alignExps, Type base, Dsymbols* members)
         {
             //printf("TypeTag %p\n", this);
             super(Ttag);
@@ -3791,6 +3792,7 @@ struct ASTBase
             this.tok = tok;
             this.id = id;
             this.packalign = packalign;
+            this.alignExps = alignExps;
             this.base = base;
             this.members = members;
             this.mod = 0;
@@ -4956,6 +4958,8 @@ struct ASTBase
 
         /// If the string is parsed from a hex string literal
         bool hexString = false;
+        /// If the string is from a collected C macro
+        bool cMacro = false;
 
         extern (D) this(Loc loc, const(void)[] string)
         {
@@ -4965,13 +4969,14 @@ struct ASTBase
             this.sz = 1;                    // work around LDC bug #1286
         }
 
-        extern (D) this(Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = 0)
+        extern (D) this(Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = 0, bool cMacro=false)
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string;
             this.len = len;
             this.postfix = postfix;
             this.sz = 1;                    // work around LDC bug #1286
+            this.cMacro = cMacro;
         }
 
         /**********************************************

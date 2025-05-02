@@ -140,6 +140,7 @@ enum
     SCSCT = 4,      // storage class is valid for use in static ctor
     SCSS  = 8,      // storage class is on the stack
     SCRD  = 0x10,   // we can do reaching definitions on these
+    SCDATA = 0x20,  // goes in data segment
 }
 
 // Determine if Symbol has a Ssymnum associated with it.

@@ -119,7 +119,7 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t 
         regm_t rm = ALLREGS;
         const r = allocreg(cdb,rm,TYint);         // allocate scratch register
         static union U { targ_size_t s; targ_long[2] l; }
-        U u = void;
+        U u;
         u.l[1] = 0;
         u.s = value;
         targ_long* p = &u.l[0];
@@ -1920,7 +1920,7 @@ void cloadxmm(ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     if (pretregs == (mXMM0 | mXMM1) &&
         e.Eoper != OPconst)
     {
-        code cs = void;
+        code cs;
         tym_t tym = tybasic(e.Ety);
         tym_t ty = tym == TYcdouble ? TYdouble : TYfloat;
         opcode_t opmv = xmmload(tym, xmmIsAligned(e));

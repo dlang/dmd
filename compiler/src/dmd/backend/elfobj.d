@@ -2762,8 +2762,11 @@ size_t ElfObj_writerel(int targseg, size_t offset, reltype_t reltype,
     {
         // Elf64_Rela stores addend in Rela.r_addend field
         sz = relsize64(reltype);
-        if (!elfobj.AArch64)
+        if (!elfobj.AArch64 || reltype == R_AARCH64_ABS64) // TODO AArch64: extend to all fixups?
+        {
+            //printf("writeaddrval() targseg: %d offset: %lld sz: %lld\n", targseg, offset, sz);
             writeaddrval(targseg, offset, 0, sz);
+        }
         ElfObj_addrel(targseg, offset, reltype, symidx, val);
     }
     else

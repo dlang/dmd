@@ -5810,7 +5810,7 @@ const(char)* asm_opstr(OP* pop)
 OP* asm_op_lookup(const(char)* s)
 {
     int i;
-    char[20] szBuf = void;
+    char[20] szBuf = '\0';
 
     //printf("asm_op_lookup('%s')\n",s);
     if (strlen(s) >= szBuf.length)

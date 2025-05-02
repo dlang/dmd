@@ -39,6 +39,7 @@ namespace dmd
     PURE isPure(FuncDeclaration *f);
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
+    bool isAbstract(ClassDeclaration *cd);
 }
 
 //enum STC : ulong from astenums.d:
@@ -297,7 +298,6 @@ public:
     bool isThreadlocal() override final;
     bool isCTFE();
     bool isOverlappedWith(VarDeclaration *v);
-    bool hasPointers() override final;
     bool canTakeAddressOf();
     bool needsScopeDtor();
     Dsymbol *toAlias() override final;

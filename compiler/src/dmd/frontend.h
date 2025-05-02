@@ -96,6 +96,7 @@ class Import;
 class EnumDeclaration;
 class SymbolDeclaration;
 class AttribDeclaration;
+class AlignDeclaration;
 class AnonDeclaration;
 class VisibilityDeclaration;
 class OverloadSet;
@@ -553,14 +554,23 @@ public:
     {
         bool errors;
         PASS semanticRun;
+        bool deferred;
+        bool deferred2;
+        bool deferred3;
         BitFields() :
             errors(),
-            semanticRun((PASS)0u)
+            semanticRun((PASS)0u),
+            deferred(),
+            deferred2(),
+            deferred3()
         {
         }
-        BitFields(bool errors, PASS semanticRun = (PASS)0u) :
+        BitFields(bool errors, PASS semanticRun = (PASS)0u, bool deferred = false, bool deferred2 = false, bool deferred3 = false) :
             errors(errors),
-            semanticRun(semanticRun)
+            semanticRun(semanticRun),
+            deferred(deferred),
+            deferred2(deferred2),
+            deferred3(deferred3)
             {}
     };
 
@@ -568,6 +578,12 @@ public:
     bool errors(bool v);
     PASS semanticRun() const;
     PASS semanticRun(PASS v);
+    bool deferred() const;
+    bool deferred(bool v);
+    bool deferred2() const;
+    bool deferred2(bool v);
+    bool deferred3() const;
+    bool deferred3(bool v);
 private:
     uint8_t bitFields;
 public:
@@ -620,7 +636,6 @@ public:
     virtual bool needThis();
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
-    virtual bool hasPointers();
     virtual void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories);
     virtual void addComment(const char* comment);
     const char* comment();
@@ -677,6 +692,7 @@ public:
     EnumDeclaration* isEnumDeclaration();
     SymbolDeclaration* isSymbolDeclaration();
     AttribDeclaration* isAttribDeclaration();
+    AlignDeclaration* isAlignDeclaration();
     AnonDeclaration* isAnonDeclaration();
     CPPNamespaceDeclaration* isCPPNamespaceDeclaration();
     VisibilityDeclaration* isVisibilityDeclaration();
@@ -1765,6 +1781,7 @@ public:
     bool isTrivialAliasSeq;
     bool isTrivialAlias;
     bool deprecated_;
+    bool isCmacro;
     Visibility visibility;
     TemplatePrevious* previous;
     Expression* lastConstraint;
@@ -1841,7 +1858,6 @@ public:
     TypeQualified* tqual;
     TemplateInstance* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    bool hasPointers() override;
     void accept(Visitor* v) override;
 };
 
@@ -2387,14 +2403,17 @@ public:
     {
         bool parens;
         bool rvalue;
+        bool gcPassDone;
         BitFields() :
             parens(),
-            rvalue()
+            rvalue(),
+            gcPassDone()
         {
         }
-        BitFields(bool parens, bool rvalue = false) :
+        BitFields(bool parens, bool rvalue = false, bool gcPassDone = false) :
             parens(parens),
-            rvalue(rvalue)
+            rvalue(rvalue),
+            gcPassDone(gcPassDone)
             {}
     };
 
@@ -2402,6 +2421,8 @@ public:
     bool parens(bool v);
     bool rvalue() const;
     bool rvalue(bool v);
+    bool gcPassDone() const;
+    bool gcPassDone(bool v);
 private:
     uint8_t bitFields;
 public:
@@ -2785,6 +2806,7 @@ class CommaExp final : public BinExp
 public:
     const bool isGenerated;
     bool allowCommaExp;
+    Expression* originalExp;
     bool isLvalue() override;
     Optional<bool > toBool() override;
     void accept(Visitor* v) override;
@@ -3621,6 +3643,7 @@ public:
     uint8_t sz;
     bool committed;
     bool hexString;
+    bool cMacro;
     enum : char { NoPostfix = 0u };
 
     static StringExp* create(Loc loc, const char* s);
@@ -4860,6 +4883,7 @@ public:
     Loc loc;
     TOK tok;
     structalign_t packalign;
+    Array<Expression* >* alignExps;
     Identifier* id;
     Type* base;
     Array<Dsymbol* >* members;
@@ -4929,7 +4953,6 @@ class Nspace final : public ScopeDsymbol
 public:
     Expression* identExp;
     Nspace* syntaxCopy(Dsymbol* s) override;
-    bool hasPointers() override;
     const char* kind() const override;
     void accept(Visitor* v) override;
 };
@@ -5562,7 +5585,7 @@ private:
         char realexp[48LLU];
         char complexexp[64LLU];
         char symoffexp[56LLU];
-        char stringexp[43LLU];
+        char stringexp[44LLU];
         char arrayliteralexp[40LLU];
         char assocarrayliteralexp[48LLU];
         char structliteralexp[64LLU];
@@ -6369,7 +6392,6 @@ public:
     bool disableNew;
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
-    virtual void finalizeSize() = 0;
     uinteger_t size(Loc loc) final override;
     Type* getType() final override;
     bool isDeprecated() const final override;
@@ -6434,7 +6456,6 @@ class AttribDeclaration : public Dsymbol
 public:
     Array<Dsymbol* >* decl;
     const char* kind() const override;
-    bool hasPointers() final override;
     void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
     void accept(Visitor* v) override;
 };
@@ -6611,7 +6632,6 @@ public:
     Include inc;
     DYNCAST dyncast() const final override;
     virtual Condition* syntaxCopy() = 0;
-    virtual int32_t include(Scope* sc) = 0;
     virtual DebugCondition* isDebugCondition();
     virtual VersionCondition* isVersionCondition();
     virtual StaticIfCondition* isStaticIfCondition();
@@ -6640,7 +6660,6 @@ class DebugCondition final : public DVCondition
 {
 public:
     static void addGlobalIdent(const char* ident);
-    int32_t include(Scope* sc) override;
     DebugCondition* isDebugCondition() override;
     void accept(Visitor* v) override;
 };
@@ -6650,7 +6669,6 @@ class VersionCondition final : public DVCondition
 public:
     static void addGlobalIdent(const char* ident);
     static void addPredefinedGlobalIdent(const char* ident);
-    int32_t include(Scope* sc) override;
     VersionCondition* isVersionCondition() override;
     void accept(Visitor* v) override;
 };
@@ -6660,7 +6678,6 @@ class StaticIfCondition final : public Condition
 public:
     Expression* exp;
     StaticIfCondition* syntaxCopy() override;
-    int32_t include(Scope* sc) override;
     void accept(Visitor* v) override;
     StaticIfCondition* isStaticIfCondition() override;
 };
@@ -6720,13 +6737,11 @@ public:
 
     virtual bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
     bool isBaseInfoComplete() const;
-    void finalizeSize() final override;
     bool hasMonitor();
     bool isCOMclass() const;
     virtual bool isCOMinterface() const;
     bool isCPPclass() const;
     virtual bool isCPPinterface() const;
-    bool isAbstract();
     virtual int32_t vtblOffset() const;
     const char* kind() const override;
     void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
@@ -6844,7 +6859,6 @@ public:
     bool equals(const RootObject* const o) const override;
     bool overloadInsert(Dsymbol* s) override;
     bool isOverloadable() const override;
-    Dsymbol* isUnique();
     void accept(Visitor* v) override;
 };
 
@@ -6915,7 +6929,6 @@ public:
     bool isThreadlocal() final override;
     bool isCTFE();
     bool isOverlappedWith(VarDeclaration* v);
-    bool hasPointers() final override;
     bool canTakeAddressOf();
     bool needsScopeDtor();
     Dsymbol* toAlias() final override;
@@ -7455,13 +7468,12 @@ public:
     static StructDeclaration* create(Loc loc, Identifier* id, bool inObject);
     StructDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    void finalizeSize() final override;
     bool isPOD();
     bool hasCopyConstruction();
     void accept(Visitor* v) override;
     uint32_t numArgTypes() const;
     Type* argType(uint32_t index);
-    bool hasRegularCtor(bool checkDisabled = false);
+    bool hasRegularCtor(bool ignoreDisabled = false);
 };
 
 class UnionDeclaration final : public StructDeclaration
@@ -7555,22 +7567,18 @@ public:
     void visit(StaticForeachDeclaration* _) override;
 };
 
-extern Array<Dsymbol* >* include(Dsymbol* d, Scope* sc);
-
-class IncludeVisitor : public Visitor
+class ConditionIncludeVisitor : public Visitor
 {
 public:
     using Visitor::visit;
     Scope* sc;
     Array<Dsymbol* >* symbols;
-    IncludeVisitor(Scope* sc);
+    ConditionIncludeVisitor(Scope* sc);
     void visit(AttribDeclaration* ad) override;
     void visit(ConditionalDeclaration* cdc) override;
     void visit(StaticIfDeclaration* sif) override;
     void visit(StaticForeachDeclaration* sfd) override;
 };
-
-extern void addComment(Dsymbol* d, const char* comment);
 
 class AddCommentVisitor : public Visitor
 {
@@ -7583,12 +7591,6 @@ public:
     void visit(ConditionalDeclaration* cd) override;
     void visit(StaticForeachDeclaration* sfd) override;
 };
-
-extern bool hasStaticCtorOrDtor(Dsymbol* d);
-
-extern bool isFuncHidden(ClassDeclaration* cd, FuncDeclaration* fd);
-
-extern void lowerNonArrayAggregate(StaticForeach* sfe, Scope* sc);
 
 class NrvoWalker final : public StatementRewriteWalker
 {
@@ -7607,6 +7609,7 @@ class NOGCVisitor final : public StoppableVisitor
 public:
     using StoppableVisitor::visit;
     FuncDeclaration* f;
+    Scope* sc;
     bool checkOnly;
     bool err;
     bool nogcExceptions;
@@ -8988,7 +8991,6 @@ struct Id final
     static Identifier* CMain;
     static Identifier* rt_init;
     static Identifier* _d_HookTraceImpl;
-    static Identifier* _d_arraysetlengthTImpl;
     static Identifier* _d_arraysetlengthT;
     static Identifier* _d_arraysetlengthTTrace;
     static Identifier* _d_arrayappendT;

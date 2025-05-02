@@ -26,8 +26,6 @@ extern (C) void* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti,
 extern (C) byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n);
 extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c);
 extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c);
-extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p);
-extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p);
 extern (C) void* _d_allocmemory(size_t sz);
 
 // From GC.BlkInfo_. We cannot import it from core.memory.GC because .stringof

@@ -56,10 +56,10 @@
  */
 #define __fastcall
 
-#define __forceinline
+#define __forceinline __attribute__((always_inline))
 #undef _Check_return_
 //#define _Check_return_
-#define __pragma(x)
+#define __pragma(x) _Pragma(#x)
 
 #undef _GLIBCXX_USE_FLOAT128
 

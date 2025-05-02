@@ -785,7 +785,6 @@ ubyte loadconst(elem* e, int im)
 @trusted
 void fixresult87(ref CodeBuilder cdb,elem* e,regm_t retregs, ref regm_t outretregs, bool isReturnValue = false)
 {
-    //printf("fixresult87(e = %p, retregs = x%x, outretregs = x%x)\n", e,retregs,outretregs);
     //printf("fixresult87(e = %p, retregs = %s, outretregs = %s)\n", e,regm_str(retregs),regm_str(outretregs));
     assert(!outretregs || retregs);
 
@@ -797,7 +796,7 @@ void fixresult87(ref CodeBuilder cdb,elem* e,regm_t retregs, ref regm_t outretre
 
     tym_t tym = tybasic(e.Ety);
     uint sz = _tysize[tym];
-    //printf("tym = x%x, sz = %d\n", tym, sz);
+    //printf("tym = %s, sz = %d\n", tym_str(tym), sz);
 
     /* if retregs needs to be transferred into the 8087 */
     if (outretregs & mST0 && retregs & (mBP | ALLREGS))
@@ -911,6 +910,12 @@ void fixresult87(ref CodeBuilder cdb,elem* e,regm_t retregs, ref regm_t outretre
         }
         else if (retregs & mST0 && outretregs & XMMREGS)
         {
+if (0 && sz > DOUBLESIZE)
+{
+    fprintf(stderr, "sz: %d tym: %s\n", sz, tym_str(tym));
+    fprintf(stderr, "fixresult87(e = %p, retregs = %s, outretregs = %s, mST0: %s)\n", e,regm_str(retregs),regm_str(outretregs),regm_str(mST0));
+    elem_print(e);
+}
             assert(sz <= DOUBLESIZE);
             uint mf = (sz == FLOATSIZE) ? MFfloat : MFdouble;
             // FSTP floatreg
@@ -1631,7 +1636,8 @@ void load87(ref CodeBuilder cdb,elem* e,uint eoffset,ref regm_t outretregs,elem*
 
     if (NDPP)
         printf("+load87(e=%p, eoffset=%d, outretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(outretregs),eleft,op,global87.stackused);
-
+//elem_print(e);
+//elem_print(eleft);
     assert(!(NOSAHF && op == 3));
     elem_debug(e);
     if (ADDFWAIT())
@@ -3806,7 +3812,7 @@ void cload87(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     }
 
     tym_t ty = tybasic(e.Ety);
-    code cs = void;
+    code cs;
     uint mf;
     uint sz;
     ubyte ldop;

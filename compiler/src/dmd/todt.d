@@ -1152,8 +1152,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                 printf("expected = x%x, %s.structsize = x%x\n", cast(uint)expected,
                     typeclass.toChars(), cast(uint)typeclass.structsize);
             }
-            error(typeclass.loc, "`%s`: mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found. Check installation and import paths with -v compiler switch.",
+            error(typeclass.loc, "`%s`: mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
                 typeclass.toChars(), cast(uint)expected, cast(uint)typeclass.structsize);
+            errorSupplemental(typeclass.loc, "check installation and import paths with `-v` compiler switch");
             fatal();
         }
     }

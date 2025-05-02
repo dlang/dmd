@@ -81,6 +81,7 @@ struct CSE
     @trusted
     static CSE* add()
     {
+        //printf("CSE.add()\n");
         foreach (ref cse; csextab)
         {
             if (cse.e == null)  // can share with previously used one
@@ -170,6 +171,7 @@ struct CSE
     @trusted
     static void remove(const elem* e)
     {
+        //printf("CSE.remove() e: %p\n", e);
         foreach (ref cse; csextab[])
         {
             if (cse.e == e)

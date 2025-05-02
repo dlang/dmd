@@ -153,7 +153,10 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             // that is not disabled.
             if (sd.hasRegularCtor(true))
             {
-                error(i.loc, "%s `%s` has constructors, cannot use `{ initializers }`, use `%s( initializers )` instead", sd.kind(), sd.toChars(), sd.toChars());
+                error(i.loc, "Cannot use %s initializer syntax for %s `%s` because it has a constructor",
+                    sd.kind(), sd.kind(), sd.toChars());
+                errorSupplemental(i.loc, "Use `%s( arguments )` instead of `{ initializers }`",
+                    sd.toChars());
                 return err();
             }
             sd.size(i.loc);
@@ -398,7 +401,10 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             if (needInterpret)
                 i.exp = i.exp.ctfeInterpret();
             if (i.exp.op == EXP.voidExpression)
-                error(i.loc, "variables cannot be initialized with an expression of type `void`. Use `void` initialization instead.");
+            {
+                error(i.loc, "variables cannot be initialized with an expression of type `void`");
+                errorSupplemental(i.loc, "only `= void;` is allowed, which prevents default initialization");
+            }
         }
         else
         {
@@ -759,9 +765,13 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 // C11 6.2.5-20 "element type shall be complete whenever the array type is specified"
                 assert(0); // should have been detected by parser
             }
+            auto bt = tsa.nextOf().toBasetype();
 
-            auto tnsa = tsa.nextOf().toBasetype().isTypeSArray();
-
+            if (auto tnss = bt.isTypeStruct())
+            {
+                return subStruct(tnss, index);
+            }
+            auto tnsa = bt.isTypeSArray();
             auto ai = new ArrayInitializer(ci.loc);
             ai.isCarray = true;
 

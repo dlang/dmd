@@ -1,6 +1,6 @@
 /*
 REQUIRED_ARGS: -v
-TRANSFORM_OUTPUT: remove_lines("^(predefs|binary|version|config|DFLAG|parse|import|semantic|entry|\s*$)")
+TRANSFORM_OUTPUT: remove_lines("^(predefs|binary|version|config|DFLAG|parse|import|\(imported|semantic|entry|\s*$)")
 TEST_OUTPUT:
 ---
 fail_compilation/finalswitch_verbose.d(40): Error: missing cases for `enum` members in `final switch`:

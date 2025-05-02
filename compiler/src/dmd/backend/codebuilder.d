@@ -35,7 +35,7 @@ struct CodeBuilder
     code** pTail;
 
     enum BADINS = 0x1234_5678;
-//    enum BADINS = 0xF900_0FA0;
+    //enum BADINS = 0x3D80_03E0;
 
   nothrow:
   public:
@@ -119,6 +119,7 @@ struct CodeBuilder
     {
         /* this is a high usage routine */
         debug assert(cs);
+        //debug printf("gen(%08x)\n", cs.Iop);
 assert(cs.Iop != BADINS);
         assert(I64 || cs.Irex == 0);
         code* ce = code_malloc();
