@@ -418,12 +418,12 @@ assert(s == [2, 3, 3, 4]);
 )
 
 
-$(H2 $(LNAME2 array-setting, Array Setting))
+$(H2 $(LNAME2 array-setting, Array Filling))
 
         $(P If a slice operator appears as the left-hand side of an assignment
         expression, and the type of the right-hand side is the same as the
-        element type of the left-hand side, then the array contents of the
-        left-hand side are set to the right-hand side.
+        element type of the left-hand side, then each element of the slice
+        expression will be assigned to the value on the right-hand side.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
