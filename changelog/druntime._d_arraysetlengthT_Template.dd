@@ -28,4 +28,4 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(return ref scope Tarr arr, size_t newle
 
 This reduces runtime dependency on `TypeInfo`, making the function more predictable and performant.
 
-See also: $(LINK2 https://github.com/dlang/dmd/pull/21151, PR #21151)
+See also: $(LINK https://github.com/dlang/dmd/pull/21151, PR #21151)
