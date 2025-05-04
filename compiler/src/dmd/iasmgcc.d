@@ -74,7 +74,7 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope* sc)
     s.stc = sc.stc;
 
     // Fold the instruction template string.
-    s.insn = semanticString(sc, s.insn, "asm instruction template");
+    s.insn = semanticAsmString(sc, s.insn, "asm instruction template");
 
     if (s.labels && s.outputargs)
         p.eSink.error(s.loc, "extended asm statements with labels cannot have output constraints");
@@ -85,9 +85,7 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope* sc)
         foreach (i; 0 .. s.args.length)
         {
             Expression ec = (*s.constraints)[i];
-            ec = ec.expressionSemantic(sc);
-            assert(ec.op == EXP.string_ && (cast(StringExp) ec).sz == 1);
-            (*s.constraints)[i] = ec;
+            (*s.constraints)[i] = semanticAsmString(sc, ec, "asm operand");
 
             Expression earg = (*s.args)[i];
             earg = earg.expressionSemantic(sc);
@@ -106,9 +104,7 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope* sc)
         foreach (i; 0 .. s.clobbers.length)
         {
             Expression ec = (*s.clobbers)[i];
-            ec = ec.expressionSemantic(sc);
-            assert(ec.op == EXP.string_ && (cast(StringExp) ec).sz == 1);
-            (*s.clobbers)[i] = ec;
+            (*s.clobbers)[i] = semanticAsmString(sc, ec, "asm clobber");
         }
     }
 
@@ -176,11 +172,42 @@ bool requireToken(Parser)(Parser p, TOK value)
 }
 
 /***********************************
+ * Run semantic analysis on `exp`, resolving it as a compile-time string.
+ * Params:
+ *      sc = scope
+ *      exp = Expression which expected as a string
+ *      s = What the string is expected for, used in error diagnostic
+ * Returns:
+ *      StringExp or ErrorExp
+ */
+Expression semanticAsmString(Scope* sc, Expression exp, const char *s)
+{
+    import dmd.dcast : implicitCastTo;
+    import dmd.dsymbolsem : resolveAliasThis;
+    import dmd.mtype : isAggregate, Type;
+
+    exp = expressionSemantic(exp, sc);
+
+    // Resolve `alias this` if we were given a struct literal.
+    if (auto ad = isAggregate(exp.type))
+    {
+        if (ad.aliasthis && ad.type && !ad.type.isTypeError())
+            exp = resolveAliasThis(sc, exp);
+    }
+
+    // Evaluate the expression as a string now or error trying.
+    if (auto se = semanticString(sc, exp, s))
+        exp = implicitCastTo(se, sc, Type.tstring);
+
+    return exp;
+}
+
+/***********************************
  * Parse an expression that evaluates to a string.
  * Grammar:
  *      | AsmStringExpr:
  *      |     StringLiteral
- *      |     ( AssignExpression )
+ *      |     ( ConditionalExpression )
  * Params:
  *      p = parser state
  * Returns:
@@ -192,7 +219,7 @@ Expression parseAsmString(Parser)(Parser p)
     {
         // Skip over opening `(`
         p.nextToken();
-        Expression insn = p.parseAssignExp();
+        Expression insn = p.parseCondExp();
         if (insn.isErrorExp())
             return insn;
 
@@ -215,8 +242,8 @@ Expression parseAsmString(Parser)(Parser p)
  * Parse list of extended asm input or output operands.
  * Grammar:
  *      | Operands:
- *      |     SymbolicName(opt) StringLiteral ( AssignExpression )
- *      |     SymbolicName(opt) StringLiteral ( AssignExpression ), Operands
+ *      |     SymbolicName(opt) AsmStringExpr ( AssignExpression )
+ *      |     SymbolicName(opt) AsmStringExpr ( AssignExpression ), Operands
  *      |
  *      | SymbolicName:
  *      |     [ Identifier ]
@@ -262,19 +289,9 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
         }
 
         // Look for the constraint string.
-        Expression constraint;
-        if (p.token.value == TOK.string_)
-        {
-            constraint = p.parsePrimaryExp();
-            if (constraint.isErrorExp())
-                goto Lerror;
-        }
-        else
-        {
-            p.eSink.error(p.token.loc, "expected constant string constraint for operand, not `%s`",
-                          p.token.toChars());
+        Expression constraint = p.parseAsmString();
+        if (constraint.isErrorExp())
             goto Lerror;
-        }
 
         // Look for the opening `(`
         if (!p.requireToken(TOK.leftParenthesis))
@@ -320,8 +337,8 @@ Lerror:
  * Parse list of extended asm clobbers.
  * Grammar:
  *      | Clobbers:
- *      |     StringLiteral
- *      |     StringLiteral , Clobbers
+ *      |     AsmStringExpr
+ *      |     AsmStringExpr , Clobbers
  * Params:
  *      p = parser state
  * Returns:
@@ -340,19 +357,9 @@ Expressions* parseExtAsmClobbers(Parser)(Parser p)
     while (1)
     {
         // Look for the clobbers string
-        Expression clobber;
-        if (p.token.value == TOK.string_)
-        {
-            clobber = p.parsePrimaryExp();
-            if (clobber.isErrorExp())
-                goto Lerror;
-        }
-        else
-        {
-            p.eSink.error(p.token.loc, "expected constant string constraint for clobber name, not `%s`",
-                          p.token.toChars());
+        Expression clobber = p.parseAsmString();
+        if (clobber.isErrorExp())
             goto Lerror;
-        }
 
         // Add it to the list.
         if (!clobbers)
@@ -526,9 +533,12 @@ unittest
     {
         ASTCodegen.Type.deinitialize();
         ASTCodegen.Type.tint32 = null;
+        ASTCodegen.Type.tchar = null;
     }
     scope tint32 = new TypeBasic(ASTCodegen.Tint32);
     ASTCodegen.Type.tint32 = tint32;
+    scope tchar = new TypeBasic(ASTCodegen.Tchar);
+    ASTCodegen.Type.tchar = tchar;
 
     // Imitates asmSemantic if version = IN_GCC.
     static int semanticAsm(Token* tokens)
@@ -634,6 +644,10 @@ unittest
         q{ asm { "" : :: "memory"; } },
         q{ asm { "" ::: "memory"; } },
         q{ asm { "" :::: label; } },
+
+        // https://github.com/dlang/dmd/issues/21299
+        q{ asm { (insn) : (output) (a) : (input) (1) : (clobber); } },
+        q{ asm { (['t','e','s','t']) : (['=','r']) (a) : (['r']) (1) : (['m','e','m','o','r','y']); } },
     ];
 
     immutable string[] failAsmTests = [
