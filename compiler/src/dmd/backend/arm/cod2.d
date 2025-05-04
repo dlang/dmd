@@ -1675,9 +1675,6 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const sz = _tysize[tyml];
     if (tyfloating(tyml))
     {
-        regm_t retregs1 = INSTR.FLOATREGS;
-        codelem(cgstate,cdb,e.E1,retregs1,false);
-
         regm_t retregs = pretregs & INSTR.FLOATREGS;
         if (retregs == 0)                   /* if no return regs speced     */
                                             /* (like if wanted flags only)  */
