@@ -9291,7 +9291,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         return e;
     }
 
-    private AST.Expression parseCondExp()
+    AST.Expression parseCondExp()
     {
         auto e = parseOrOrExp();
         if (token.value == TOK.question)
