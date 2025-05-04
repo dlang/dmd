@@ -3512,21 +3512,6 @@ final class CParser(AST) : Parser!AST
                     error("matching `)` expected, not end of file");
                     break;
 
-                case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
-                    *ptoklist = allocateToken();
-                    **ptoklist = this.token;
-                    (*ptoklist).value = TOK.colon;
-                    ptoklist = &(*ptoklist).next;
-
-                    *ptoklist = allocateToken();
-                    **ptoklist = this.token;
-                    (*ptoklist).value = TOK.colon;
-                    ptoklist = &(*ptoklist).next;
-
-                    *ptoklist = null;
-                    nextToken();
-                    continue;
-
                 default:
                     *ptoklist = allocateToken();
                     **ptoklist = this.token;

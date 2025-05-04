@@ -231,6 +231,7 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
     int numargs = 0;
 
     if (p.token.value == TOK.colon ||
+        p.token.value == TOK.colonColon ||
         p.token.value == TOK.semicolon ||
         p.token.value == TOK.endOfFile)
         return numargs;
@@ -252,7 +253,7 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
             }
             else
             {
-                p.eSink.error(p.token.loc, "expected identifier after `[`");
+                p.eSink.error(p.token.loc, "identifier expected after `[`");
                 goto Lerror;
             }
             // Look for closing `]`
@@ -331,6 +332,7 @@ Expressions* parseExtAsmClobbers(Parser)(Parser p)
     Expressions* clobbers;
 
     if (p.token.value == TOK.colon ||
+        p.token.value == TOK.colonColon ||
         p.token.value == TOK.semicolon ||
         p.token.value == TOK.endOfFile)
         return clobbers;
@@ -387,10 +389,6 @@ Identifiers* parseExtAsmGotoLabels(Parser)(Parser p)
 {
     Identifiers* labels;
 
-    if (p.token.value == TOK.semicolon ||
-        p.token.value == TOK.endOfFile)
-        return labels;
-
     while (1)
     {
         if (p.token.value == TOK.identifier)
@@ -408,7 +406,7 @@ Identifiers* parseExtAsmGotoLabels(Parser)(Parser p)
         }
         else
         {
-            p.eSink.error(p.token.loc, "expected identifier for goto label name, not `%s`",
+            p.eSink.error(p.token.loc, "identifier expected for goto label name, not `%s`",
                           p.token.toChars());
             goto Lerror;
         }
@@ -451,44 +449,55 @@ GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
         return s;
 
     // No semicolon followed after instruction template, treat as extended asm.
-    if (p.token.value == TOK.semicolon || p.token.value == TOK.endOfFile)
-        goto Ldone;
-
-    // Look for outputs.
-    if (p.requireToken(TOK.colon))
-        s.outputargs = p.parseExtAsmOperands(s);
-    else
-        return s;
-
-    // Look for inputs.
-    if (p.token.value == TOK.colon)
+    if (p.token.value == TOK.colon || p.token.value == TOK.colonColon)
     {
-        // Skip over the `:` token.
-        p.nextToken();
-        p.parseExtAsmOperands(s);
-    }
-    else
-        goto Ldone;
+        bool inputs;
+        bool clobbers;
+        bool labels;
 
-    // Look for clobbers.
-    if (p.token.value == TOK.colon)
-    {
-        // Skip over the `:` token.
-        p.nextToken();
-        s.clobbers = p.parseExtAsmClobbers();
-    }
-    else
-        goto Ldone;
+        // Look for outputs.
+        if (p.token.value == TOK.colon)
+        {
+            // Skip over the `:` token.
+            p.nextToken();
+            // Parse the output operands.
+            s.outputargs = p.parseExtAsmOperands(s);
+        }
+        else if (p.token.value == TOK.colonColon)
+            inputs = true;
 
-    // Look for labels.
-    if (p.token.value == TOK.colon)
-    {
-        // Skip over the `:` token.
-        p.nextToken();
-        s.labels = p.parseExtAsmGotoLabels();
+        // Look for inputs.
+        if (inputs || p.token.value == TOK.colon)
+        {
+            // Skip over the `:` or `::` token.
+            p.nextToken();
+            // Parse the input operands.
+            p.parseExtAsmOperands(s);
+        }
+        else if (p.token.value == TOK.colonColon)
+            clobbers = true;
+
+        // Look for clobbers.
+        if (clobbers || p.token.value == TOK.colon)
+        {
+            // Skip over the `:` or `::` token.
+            p.nextToken();
+            // Parse the clobbers.
+            s.clobbers = p.parseExtAsmClobbers();
+        }
+        else if (p.token.value == TOK.colonColon)
+            labels = true;
+
+        // Look for labels.
+        if (labels || p.token.value == TOK.colon)
+        {
+            // Skip over the `:` or `::` token.
+            p.nextToken();
+            // Parse the labels.
+            s.labels = p.parseExtAsmGotoLabels();
+        }
     }
 
-Ldone:
     if (p.token.value == TOK.endOfFile)
         assert(global.errors);
     else
@@ -624,6 +633,7 @@ unittest
         q{ asm { "" :: : "memory"; } },
         q{ asm { "" : :: "memory"; } },
         q{ asm { "" ::: "memory"; } },
+        q{ asm { "" :::: label; } },
     ];
 
     immutable string[] failAsmTests = [
@@ -647,6 +657,12 @@ unittest
         // Found ',' when expecting ':'
         q{ asm { "", "";
         } },
+
+        // Identifier expected, not ';'
+        q{ asm { "" : ::: ; } },
+        q{ asm { "" :: :: ; } },
+        q{ asm { "" ::: : ; } },
+        q{ asm { "" :::: ; } },
 
         // https://issues.dlang.org/show_bug.cgi?id=20593
         q{ asm { "instruction" : : "operand" 123; } },
