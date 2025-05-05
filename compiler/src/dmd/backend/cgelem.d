@@ -6424,9 +6424,9 @@ private bool canHappenAfter(elem* a, elem* b)
 /***************************************************
  * See if we want conversion of (e = -e) to OPnegass
  * Params:
- *	tym = the type of e in (e = -e)
+ *      tym = the type of e in (e = -e)
  * Returns:
- *	true if convert to OPnegass
+ *      true if convert to OPnegass
  */
 @trusted private
 bool useOPnegass(tym_t tym)
