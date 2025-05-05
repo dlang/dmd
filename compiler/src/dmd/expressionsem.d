@@ -5679,6 +5679,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             s = "__funcliteral";
 
         DsymbolTable symtab;
+        string parentMangle;
         if (FuncDeclaration func = sc.parent.isFuncDeclaration())
         {
             if (func.localsymtab is null)
@@ -5688,6 +5689,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 func.localsymtab = new DsymbolTable();
             }
             symtab = func.localsymtab;
+            parentMangle = cast(string) mangleExact(func).toDString();
         }
         else
         {
@@ -5700,9 +5702,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 sds.symtab = new DsymbolTable();
             }
             symtab = sds.symtab;
+
+            OutBuffer buf;
+            mangleToBuffer(sds, buf);
+            parentMangle = buf.extractSlice();
         }
         assert(symtab);
-        Identifier id = Identifier.generateIdWithLoc(s, exp.loc, cast(const void*) sc.parent);
+        Identifier id = Identifier.generateIdWithLoc(s, exp.loc, parentMangle);
         exp.fd.ident = id;
         if (exp.td)
             exp.td.ident = id;
