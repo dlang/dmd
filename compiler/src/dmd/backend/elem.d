@@ -1488,7 +1488,7 @@ elem* el_convert(ref GlobalOptimizer go, elem* e)
              */
             if (tyreal(e.Ety) &&       // don't bother with imaginary or complex
                 e.E2.Eoper == OPconst && el_toldoubled(e.E2) == 2.0L &&
-                !go.AArch64)           // doesn't do the *2 optimization
+                !go.AArch64)           // TODO AArch64 do the *2 optimization
             {
                 e.E1 = el_convert(go, e.E1);
                 /* Don't call el_convert(e.E2), we want it to stay as a constant
