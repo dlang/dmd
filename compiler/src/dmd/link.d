@@ -1155,6 +1155,8 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
                 argv.push(p);
         }
 
+        argv.push("-std=gnu11"); 
+
         // Set memory model
         argv.push(target.isX86_64 ? "-m64" : "-m32");
 
