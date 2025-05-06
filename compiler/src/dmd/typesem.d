@@ -3315,6 +3315,11 @@ Type merge(Type type)
                 return type;
             goto default;
 
+        case Tfunction:
+            if (!type.nextOf()) // don't merge if return type is unknown
+                return type;
+            goto default;
+
         default:
             if (type.nextOf() && !type.nextOf().deco)
                 return type;
