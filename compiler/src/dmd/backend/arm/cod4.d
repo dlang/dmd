@@ -567,19 +567,19 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             // FADD/FSUB (extended register)
             // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
             case OPaddass:
-                cdb.gen1(INSTR.fadd_float(ftype,Rm,Rn,Rd));     // FADD Rd,Rn,Rm
+                cdb.gen1(INSTR.fadd_float(ftype,Rn,Rm,Rd));     // FADD Rd,Rn,Rm
                 break;
 
             case OPminass:
-                cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm
+                cdb.gen1(INSTR.fsub_float(ftype,Rn,Rm,Rd));     // FSUB Rd,Rn,Rm
                 break;
 
             case OPmulass:
-                cdb.gen1(INSTR.fmul_float(ftype,Rm,Rn,Rd));     // FMUL Rd,Rn,Rm
+                cdb.gen1(INSTR.fmul_float(ftype,Rn,Rm,Rd));     // FMUL Rd,Rn,Rm
                 break;
 
             case OPdivass:
-                cdb.gen1(INSTR.fdiv_float(ftype,Rm,Rn,Rd));     // FDIV Rd,Rn,Rm
+                cdb.gen1(INSTR.fdiv_float(ftype,Rn,Rm,Rd));     // FDIV Rd,Rn,Rm
                 break;
 
             default:
@@ -953,7 +953,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         else
         {
             uint ftype = INSTR.szToFtype(sz);
-            cdb.gen1(INSTR.fcmpe_float(ftype,Vm,Vn));    // FCMPE Vn,Vm
+            cdb.gen1(INSTR.fcmpe_float(ftype,Vn,Vm));    // FCMPE Vn,Vm
         }
         goto L3;
     }

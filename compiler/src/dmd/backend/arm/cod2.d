@@ -1957,6 +1957,7 @@ void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     elem* e2 = e.E2;
     const tym_t ty1 = tybasic(e.E1.Ety);
     const sz = _tysize[ty1];
+    assert(sz <= 8);            // TODO AArch64 16 byte floats
     const ftype = INSTR.szToFtype(sz);
 
     regm_t retregs;
@@ -1988,6 +1989,7 @@ void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             retregs = INSTR.FLOATREGS;
         reg = allocreg(cdb,retregs,ty1);
         loadFromEA(cs,reg,sz == 8 ? 8 : 4,sz);
+        cdb.gen(&cs);
     }
 
     if (regvar && pretregs == mPSW)
@@ -2000,16 +2002,17 @@ void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         regm_t vretregs = INSTR.FLOATREGS & ~mask(cs.reg);
         reg_t vreg = allocreg(cdb,vretregs,ty1);
         double value = sz == 8 ? e2.Vdouble : e2.Vfloat;
+        uint opx = e.Eoper == OPpostinc ? 0 : 1;
         loadFloatRegConst(cdb,vreg,value,sz);                   // FMOV vreg,value
 
         switch (e.Eoper)
         {
             case OPpostinc:
-                cdb.gen1(INSTR.fadd_float(ftype,reg,vreg,reg)); // FADD Rd,Rn,Rm
+                cdb.gen1(INSTR.fadd_float(ftype,vreg,reg,reg)); // FADD Rd,Rn,Rm
                 break;
 
             case OPpostdec:
-                cdb.gen1(INSTR.fsub_float(ftype,reg,vreg,reg)); // FSUB Rd,Rn,Rm
+                cdb.gen1(INSTR.fsub_float(ftype,vreg,reg,reg)); // FSUB Rd,Rn,Rm
                 break;
 
             default:
@@ -2036,11 +2039,11 @@ void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     switch (e.Eoper)
     {
         case OPpostinc:
-            cdb.gen1(INSTR.fadd_float(ftype,reg,vreg,reg)); // FADD Rd,Rn,Rm
+            cdb.gen1(INSTR.fadd_float(ftype,vreg,reg,reg)); // FADD Rd,Rn,Rm
             break;
 
         case OPpostdec:
-            cdb.gen1(INSTR.fsub_float(ftype,reg,vreg,reg)); // FSUB Rd,Rn,Rm
+            cdb.gen1(INSTR.fsub_float(ftype,vreg,reg,reg)); // FSUB Rd,Rn,Rm
             break;
 
         default:
