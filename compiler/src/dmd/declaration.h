@@ -35,7 +35,7 @@ namespace dmd
     bool functionSemantic(FuncDeclaration* fd);
     bool functionSemantic3(FuncDeclaration* fd);
     bool checkClosure(FuncDeclaration* fd);
-    MATCH leastAsSpecialized(FuncDeclaration *f, FuncDeclaration *g, Identifiers *names);
+    MATCH leastAsSpecialized(FuncDeclaration *f, FuncDeclaration *g, ArgumentLabels *names);
     PURE isPure(FuncDeclaration *f);
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
