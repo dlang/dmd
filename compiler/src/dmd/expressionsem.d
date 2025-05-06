@@ -16146,9 +16146,12 @@ private bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
     }
     if (sc.func && !sc.intypeof && !v.isDataseg())
     {
+        auto msg = (v.storage_class & STC.ref_) ?
+            "taking the address of local variable `%s`" :
+            "taking the address of stack-allocated local variable `%s`";
         if (sc.useDIP1000 != FeatureState.enabled &&
             !(v.storage_class & STC.temp) &&
-            sc.setUnsafe(false, exp.loc, "taking the address of stack-allocated local variable `%s`", v))
+            sc.setUnsafe(false, exp.loc, msg.ptr, v))
         {
             return false;
         }
