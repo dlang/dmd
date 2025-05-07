@@ -106,7 +106,7 @@ ifeq ($(BUILD),debug)
 	UDFLAGS += -g -debug
 	DFLAGS:=$(UDFLAGS)
 else
-	UDFLAGS += -O -release
+	UDFLAGS += -O
 	DFLAGS:=$(UDFLAGS) -inline # unittests don't compile with -inline
 endif
 
