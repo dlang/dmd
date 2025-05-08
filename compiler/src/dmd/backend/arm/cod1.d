@@ -1302,7 +1302,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
             reg_t Vn = findreg(retregs);
             reg_t Vd = allocreg(cdb, outretregs, tym);  // allocate return regs
             uint ftype = INSTR.szToFtype(sz);
-            cdb.gen1(INSTR.fmov(ftype,Vd,Vn));  // FMOV Vd,Vn
+            cdb.gen1(INSTR.fmov(ftype,Vn,Vd));  // FMOV Vd,Vn
         }
         else if (sz > REGSIZE)
         {
