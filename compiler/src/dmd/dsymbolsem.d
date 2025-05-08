@@ -1282,7 +1282,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         ArrayInitializer ai = dsym._init.isArrayInitializer();
                         Expression e;
                         if (ai && tb.ty == Taarray)
-                            e = ai.toAssocArrayLiteral();
+                            e = ai.toAssocArrayLiteral(sc);
                         else
                             e = dsym._init.initializerToExpression(null, sc.inCfile);
                         if (!e)
