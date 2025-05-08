@@ -23,7 +23,6 @@ extern (C) void _d_delmemory(void* *p);
 extern (C) void* _d_arrayliteralTX(const TypeInfo ti, size_t length);
 extern (C) void* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti,
     void[] keys, void[] vals);
-extern (C) byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n);
 extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c);
 extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c);
 extern (C) void* _d_allocmemory(size_t sz);
