@@ -795,6 +795,7 @@ extern (C) pure nothrow @nogc @safe
 // Most tests are now in test_aa.d
 
 // test postblit for AA literals
+version(none) // replaced by newaa.d
 unittest
 {
     static struct T
