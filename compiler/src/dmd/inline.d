@@ -934,6 +934,12 @@ public:
 
         override void visit(AssocArrayLiteralExp e)
         {
+            if (e.lowering)
+            {
+                result = doInlineAs!Expression(e.lowering, ids);
+                return;
+            }
+
             auto ce = e.copy().isAssocArrayLiteralExp();
             ce.keys = arrayExpressionDoInline(e.keys);
             ce.values = arrayExpressionDoInline(e.values);

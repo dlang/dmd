@@ -4558,6 +4558,32 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
+    void tryLowerAALiteral(AssocArrayLiteralExp aaExp)
+    {
+        auto hookId = Identifier.idPool("_d_assocarrayliteralTX");
+        if (!verifyHookExist(aaExp.loc, *sc, hookId, "initializing associative arrays", Id.object))
+            return;
+
+        auto aaType = aaExp.type.isTypeAArray();
+        assert(aaType);
+        Expression hookFunc = new IdentifierExp(aaExp.loc, Id.empty);
+        hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id.object);
+        auto tiargs = new Objects();
+        tiargs.push(aaType.index);
+        tiargs.push(aaType.nextOf());
+        hookFunc = new DotTemplateInstanceExp(aaExp.loc, hookFunc, hookId, tiargs);
+        auto arguments = new Expressions();
+        arguments.push(new ArrayLiteralExp(aaExp.loc, aaType.index.arrayOf(), aaExp.keys));
+        arguments.push(new ArrayLiteralExp(aaExp.loc, aaType.nextOf().arrayOf(), aaExp.values));
+        Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
+
+        loweredExp = loweredExp.expressionSemantic(sc);
+        loweredExp = resolveProperties(sc, loweredExp);
+        aaExp.lowering = loweredExp;
+
+        semanticTypeInfo(sc, loweredExp.type);
+    }
+
     override void visit(AssocArrayLiteralExp e)
     {
         static if (LOGSEMANTIC)
@@ -4568,6 +4594,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             // already done, but we might have missed generating type info
             semanticTypeInfo(sc, e.type);
+            if (!e.lowering)
+                tryLowerAALiteral(e);
             result = e;
             return;
         }
@@ -4594,6 +4622,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e.type = new TypeAArray(tvalue, tkey);
         e.type = e.type.typeSemantic(e.loc, sc);
 
+        tryLowerAALiteral(e);
         semanticTypeInfo(sc, e.type);
 
         if (checkAssocArrayLiteralEscape(*sc, e, false))
@@ -7951,7 +7980,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // Defensively assume that function calls may have side effects even
                 // though it's not detected by hasSideEffect (e.g. `debug puts("Hello")` )
                 // Rewriting CallExp's also avoids some issues with the inliner/debug generation
-                if (op.hasSideEffect(true))
+                if (op.hasSideEffect(true) || op.isAssocArrayLiteralExp())
                 {
                     // Don't create an invalid temporary for void-expressions
                     // Further semantic will issue an appropriate error
@@ -14055,7 +14084,8 @@ private bool expressionSemanticDone(Expression e)
         || e.isTypeExp() // stores its type in the Expression.type field
         || e.isCompoundLiteralExp() // stores its `(type) {}` in type field, gets rewritten to struct literal
         || e.isVarExp() // type sometimes gets set already before semantic
-        || (e.isAssocArrayLiteralExp() && !e.type.vtinfo) // semanticTypeInfo not run during initialization
+        || (e.isAssocArrayLiteralExp() && // semanticTypeInfo not run during initialization
+            (!e.type.vtinfo || !e.isAssocArrayLiteralExp().lowering))
     );
 }
 
