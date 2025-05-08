@@ -28,12 +28,12 @@ enum PKG
     PKGpackage  // already determined that's an actual package
 };
 
-enum class Edition : unsigned char
+enum class Edition : unsigned short
 {
     none = 0u,
-    legacy = 1u,
-    v2024 = 2u,
-    latest = 2u,
+    legacy = 2u,
+    v2024 = 2024u,
+    latest = 2024u,
 };
 
 class Package : public ScopeDsymbol

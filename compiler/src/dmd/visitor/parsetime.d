@@ -233,6 +233,7 @@ public:
     void visit(AST.FileInitExp e) { visit(cast(AST.DefaultInitExp)e); }
     void visit(AST.LineInitExp e) { visit(cast(AST.DefaultInitExp)e); }
     void visit(AST.ModuleInitExp e) { visit(cast(AST.DefaultInitExp)e); }
+    void visit(AST.EditionInitExp e) { visit(cast(AST.EditionInitExp)e); }
 
     // BinExp
     void visit(AST.CommaExp e) { visit(cast(AST.BinExp)e); }

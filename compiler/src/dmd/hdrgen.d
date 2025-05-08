@@ -4544,6 +4544,7 @@ string EXPtoString(EXP op)
         EXP.moduleString : "__MODULE__",
         EXP.functionString : "__FUNCTION__",
         EXP.prettyFunction : "__PRETTY_FUNCTION__",
+        EXP.edition : "__EDITION__",
         EXP.typeid_ : "typeid",
         EXP.is_ : "is",
         EXP.assert_ : "assert",
