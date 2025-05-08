@@ -1,6 +1,7 @@
 // EXTRA_CPP_SOURCES: testbitfields_cpp.cpp
 // EXTRA_SOURCES: extra-files/testbitfields_importc.c
 // CXXFLAGS(linux osx freebsd dragonflybsd): -std=c++11
+// CXXFLAGS(osx): -std=c++11 -arch x86_64
 
 import core.stdc.stdio;
 import core.stdc.stdlib;

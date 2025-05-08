@@ -1,6 +1,7 @@
 // REQUIRED_ARGS: -preview=in
 // PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
+// CXXFLAGS(osx): -arch x86_64
 // EXTRA_FILES: extra-files/cppb.h
 // CXXFLAGS(linux freebsd osx openbsd netbsd dragonflybsd): -std=c++11
 // druntime isn't linked, this prevents missing symbols '_d_arraybounds_slicep':
