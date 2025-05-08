@@ -1860,6 +1860,9 @@ void disassemble(uint c) @trusted
                         : "fcvtzu"; // fcvtzu <V><d>, <V><n> Scalar single-precision and double-precision
             p2 = fregString(rbuf[0 .. 4],"sd h"[size & 1],Rd);
             p3 = fregString(rbuf[4 .. 8],"sd h"[size & 1],Rn);
+
+            uint n = snprintf(buf.ptr, buf.length, "%s_advsimd_int", p1.ptr);
+            url2 = buf[0 .. n];
         }
     }
     else
@@ -2125,6 +2128,8 @@ void disassemble(uint c) @trusted
                 p2 = rbuf[0 .. n];
                 p3 = regString(sf,Rn);
             }
+            uint n = snprintf(buf.ptr, buf.length, "%s_float", p1.ptr);
+            url2 = buf[0 .. n];
         }
     }
     else

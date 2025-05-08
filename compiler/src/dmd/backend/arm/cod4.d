@@ -1388,7 +1388,8 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     }
 
     uint sf;
-    uint ftype;
+    uint sz = _tysize[tybasic(e.E1.Ety)];
+    uint ftype = INSTR.szToFtype(sz);
     switch (e.Eoper)
     {
         case OPd_s16:                               // fcvtzs w0,d31  // sxth w0,w0
