@@ -73,3 +73,9 @@ EXPORT int getSomeValueCPP19660(void)
 {
     return someValueCPP19660;
 }
+
+extern "C"
+{
+    // tests -extI switch for variables
+    EXPORT int testExternalImportVar = 0xF1234;
+}
