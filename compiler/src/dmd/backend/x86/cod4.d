@@ -4666,7 +4666,7 @@ void cdpair(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     regm_t retregs = pretregs;
     if (retregs == mPSW && tycomplex(e.Ety) && config.inline8087)
     {
-        if (config.fpxmmregs)
+        if (config.fpxmmregs && tysize(e.Ety) < 20)
             retregs |= mXMM0 | mXMM1;
         else
             retregs |= mST01;

@@ -691,15 +691,34 @@ struct INSTR
     static uint uaddlv_advsimd(uint Q, uint size, reg_t Vn, reg_t Vd) { return asimdall(Q, 1, size, 3, Vn & 31, Vd & 31); }
 
     /* Advanced SIMD three different
-     * Advanced SIMD three same
      */
+
+    /* Advanced SIMD three same https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsame
+     */
+    static uint asimdsame(uint Q, uint U, uint size, reg_t Rm, uint opcode, reg_t Rn, reg_t Rd)
+    { return (Q << 30) | (U << 29) | (0xE << 24) | (size << 22) | (1 << 21) | (Rm << 16) | (opcode << 11) | (1 << 10) | (Rn << 5) | Rd; }
+
+        /* ORR <Vd>.<T>, <Vn>.<T>, <Vm>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/orr_advsimd_reg.html
+         */
+        static uint orr_advsimd_reg(uint Q, reg_t Vm, reg_t Vn, reg_t Vd) { return asimdsame(Q,0,2,Vm & 31,3,Vn & 31,Vd & 31); }
+
+            /* MOV <Vd>.<T>, <Vn>.<T>, <Vm>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_advsimd_reg.html
+             */
+            static uint mov_orr_advsimd_reg(uint Q, reg_t Vn, reg_t Vd) { return orr_advsimd_reg(Q,Vn,Vn,Vd); }
 
     /* Advanced SIMD modified immediate
-     * http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
      */
+    static uint asimdimm(uint Q, uint op, uint cmode, uint o2, uint abcdefgh, reg_t Rd)
+    {
+        return (0 << 31) | (Q << 30) | (op << 29) | (0x1E0 << 19) | ((abcdefgh & 0xE0) << (16 - 5)) |
+               (cmode << 12) | (o2 << 11) | (1 << 10) | ((abcdefgh & 0x1F) << 5) | (Rd & 31);
+    }
 
-    // FMOV Rd, Rn  https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float.html
-    static uint fmov(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,0,Vn & 31,Vd & 31); }
+        /* MOVI <Vd>.2D, #<imm> etc.
+         * http://www.scs.stanford.edu/~zyedidia/arm64/movi_advsimd.html
+         */
+        static uint movi_advsimd(uint Q, uint op, uint cmode, uint abcdefgh, reg_t Rd) { return asimdimm(Q,op,cmode,0,abcdefgh,Rd); }
 
     /* Advanced SIMD shift by immediate
      * Advanced SIMD vector x indexed element
@@ -725,9 +744,15 @@ struct INSTR
     static uint fmov_float_gen(uint sf, uint ftype, uint rmode, uint opcode, reg_t Rn, reg_t Rd)
     {
         if (opcode == 7)
+        {
+            assert(Rd & 32);
             Rd &= 31;
+        }
         else if (opcode == 6)
+        {
+            assert(Rn & 32);
             Rn &= 31;
+        }
         return float2int(sf, 0, ftype, rmode, opcode, Rn, Rd);
     }
 
@@ -772,6 +797,9 @@ struct INSTR
         assert(Rn < 32 && Rd < 32); // remember to convert V32..V63 to R0..R31
         return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (opcode << 15) | (0x10 << 10) | (Rn << 5) | Rd;
     }
+
+    // FMOV Rd, Rn  https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float.html
+    static uint fmov(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,0,Vn & 31,Vd & 31); }
 
     /* FCVT fpreg,fpreg https://www.scs.stanford.edu/~zyedidia/arm64/fcvt_float.html
      */
@@ -1018,7 +1046,7 @@ struct INSTR
         assert(imm12 < 0x1000);
         assert(size < 4);
         assert(opc  < 4);
-        return ldst_pos(size,1,opc,imm12,Rn,Vt);
+        return ldst_pos(size,1,opc | 1,imm12,Rn,Vt);
     }
 
     /* https://www.scs.stanford.edu/~zyedidia/arm64/ldrsw_imm.html

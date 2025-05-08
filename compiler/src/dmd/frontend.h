@@ -554,14 +554,23 @@ public:
     {
         bool errors;
         PASS semanticRun;
+        bool deferred;
+        bool deferred2;
+        bool deferred3;
         BitFields() :
             errors(),
-            semanticRun((PASS)0u)
+            semanticRun((PASS)0u),
+            deferred(),
+            deferred2(),
+            deferred3()
         {
         }
-        BitFields(bool errors, PASS semanticRun = (PASS)0u) :
+        BitFields(bool errors, PASS semanticRun = (PASS)0u, bool deferred = false, bool deferred2 = false, bool deferred3 = false) :
             errors(errors),
-            semanticRun(semanticRun)
+            semanticRun(semanticRun),
+            deferred(deferred),
+            deferred2(deferred2),
+            deferred3(deferred3)
             {}
     };
 
@@ -569,6 +578,12 @@ public:
     bool errors(bool v);
     PASS semanticRun() const;
     PASS semanticRun(PASS v);
+    bool deferred() const;
+    bool deferred(bool v);
+    bool deferred2() const;
+    bool deferred2(bool v);
+    bool deferred3() const;
+    bool deferred3(bool v);
 private:
     uint8_t bitFields;
 public:
@@ -1749,6 +1764,7 @@ public:
     bool isTrivialAliasSeq;
     bool isTrivialAlias;
     bool deprecated_;
+    bool isCmacro;
     Visibility visibility;
     TemplatePrevious* previous;
     Expression* lastConstraint;
@@ -8956,7 +8972,6 @@ struct Id final
     static Identifier* CMain;
     static Identifier* rt_init;
     static Identifier* _d_HookTraceImpl;
-    static Identifier* _d_arraysetlengthTImpl;
     static Identifier* _d_arraysetlengthT;
     static Identifier* _d_arraysetlengthTTrace;
     static Identifier* _d_arrayappendT;

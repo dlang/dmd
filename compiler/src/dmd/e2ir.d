@@ -324,7 +324,7 @@ Symbol* toStringSymbol(StringExp se)
 
 void toTraceGC(ref IRState irs, elem* e, Loc loc)
 {
-    static immutable RTLSYM[2][25] map =
+    static immutable RTLSYM[2][7] map =
     [
 
         [ RTLSYM.CALLFINALIZER, RTLSYM.TRACECALLFINALIZER ],
@@ -336,10 +336,6 @@ void toTraceGC(ref IRState irs, elem* e, Loc loc)
 
         [ RTLSYM.ARRAYAPPENDCD, RTLSYM.TRACEARRAYAPPENDCD ],
         [ RTLSYM.ARRAYAPPENDWD, RTLSYM.TRACEARRAYAPPENDWD ],
-
-
-        [ RTLSYM.ARRAYSETLENGTHT, RTLSYM.TRACEARRAYSETLENGTHT ],
-        [ RTLSYM.ARRAYSETLENGTHIT, RTLSYM.TRACEARRAYSETLENGTHIT ],
 
         [ RTLSYM.ALLOCMEMORY, RTLSYM.TRACEALLOCMEMORY ],
     ];
@@ -1671,6 +1667,7 @@ elem* toElem(Expression e, ref IRState irs)
 
         elem* el = toElem(be.e1, irs);
         elem* er = toElem(be.e2, irs);
+
         elem* e = el_bin(op,tym,el,er);
 
         elem_setLoc(e,be.loc);
@@ -1752,7 +1749,23 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitAdd(AddExp e)
     {
-        return toElemBin(e, OPadd);
+        int op = OPadd;
+        if (e.type.isComplex())
+        {
+            const ty  = e.type.ty;
+            const ty1 = e.e1.type.ty;
+            const ty2 = e.e2.type.ty;
+            if (ty == Tcomplex32 && ty1 == Tfloat32 && ty2 == Timaginary32 ||
+                ty == Tcomplex64 && ty1 == Tfloat64 && ty2 == Timaginary64 ||
+                0 && ty == Tcomplex80 && ty1 == Tfloat80 && ty2 == Timaginary80)
+                op = OPpair;
+            else if (ty == Tcomplex32 && ty1 == Timaginary32 && ty2 == Tfloat32 ||
+                     ty == Tcomplex64 && ty1 == Timaginary64 && ty2 == Tfloat64 ||
+                     ty == Tcomplex80 && ty1 == Timaginary80 && ty2 == Tfloat80)
+                op = OPrpair;
+        }
+
+        return toElemBin(e, op);
     }
 
     /***************************************

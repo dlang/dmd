@@ -52,8 +52,8 @@ nothrow:
  * Params:
  *      cs = EA information
  *      reg = destination register
- *      szw = number of bytes to write - 4,8
- *      szr = number of bytes to read - 1,2,4,8
+ *      szw = number of bytes to write - 4,8,16
+ *      szr = number of bytes to read - 1,2,4,8,16
  */
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
@@ -69,7 +69,13 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
             if (cs.reg != reg)  // do not mov onto itself
             {
                 assert(cs.reg & 32);
-                cs.Iop = INSTR.fmov(szw == 8,cs.reg,reg);  // FMOV reg,cs.reg
+                if (szw == 16)
+                    cs.Iop = INSTR.mov_orr_advsimd_reg(1,cs.reg,reg); // MOV Vd.16b,Vn.16b
+                else
+                {
+                    uint ftype = INSTR.szToFtype(szw);
+                    cs.Iop = INSTR.fmov(ftype,cs.reg,reg);  // FMOV reg,cs.reg
+                }
             }
         }
         else if (cs.base != NOREG)
@@ -128,7 +134,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
  * Params:
  *      cs = EA information
  *      reg = source register
- *      sz = number of bytes to store - 1,2,4,8
+ *      sz = number of bytes to store - 1,2,4,8,16
  */
 void storeToEA(ref code cs, reg_t reg, uint sz)
 {
@@ -142,7 +148,13 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
             if (cs.reg != reg)  // do not mov onto itself
             {
                 assert(cs.reg & 32);
-                cs.Iop = INSTR.fmov(sz == 8,reg,cs.reg);  // FMOV cs.reg,reg
+                if (sz == 16)
+                    cs.Iop = INSTR.mov_orr_advsimd_reg(1,reg,cs.reg); // MOV Vd.16b,Vn.16b
+                else
+                {
+                    uint ftype = INSTR.szToFtype(sz);
+                    cs.Iop = INSTR.fmov(ftype,cs.reg,reg);  // FMOV reg,cs.reg
+                }
             }
             cs.IFL1 = FL.unde;
         }
@@ -501,7 +513,7 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
     cs.IEV1.Voffset += offset;
 
     assert(op != LEA);                  // AArch64 does not have LEA
-    loadFromEA(cs,reg,sz == 8 ? 8 : 4,sz);
+    loadFromEA(cs,reg,sz >= 8 ? sz : 4,sz);
 
     getregs(cdb, desmsk);                  // save any regs we destroy
     cdb.gen(&cs);
@@ -1219,8 +1231,27 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 
     if (tyfloating(tym))
     {
-        const ftype = INSTR.szToFtype(sz);
-        cdb.gen1(INSTR.fcmp_float(ftype,0,reg));    // FCMP Vn,#0.0
+        assert(reg & 32);
+        if (tym == TYldouble || tym == TYildouble)
+        {
+            /*
+                fmov q0,reg
+                movi v1.2d,#0   // https://www.scs.stanford.edu/~zyedidia/arm64/movi_advsimd.html
+                bl   __netf2
+                cmp  w0,#0
+             */
+            if (reg != 32)
+                cdb.gen1(INSTR.mov_orr_advsimd_reg(1,reg,32)); // MOV v0,reg
+            cdb.gen1(INSTR.movi_advsimd(1,1,0xE,0,1));          // MOVI V1.2D,0
+            regm_t dummy;
+            callclib(cdb,null,CLIB_A.netf2,dummy,saveflag ? mask(reg) : 0); // __netf2(v0,v1)
+            gentstreg(cdb,0,0);                         // CMP W0,#0
+        }
+        else
+        {
+            const ftype = INSTR.szToFtype(sz);
+            cdb.gen1(INSTR.fcmp_float(ftype,0,reg));    // FCMP Vn,#0.0
+        }
     }
     else
         gentstreg(cdb,reg,sz == 8);                 // CMP reg,#0
@@ -1271,7 +1302,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
             reg_t Vn = findreg(retregs);
             reg_t Vd = allocreg(cdb, outretregs, tym);  // allocate return regs
             uint ftype = INSTR.szToFtype(sz);
-            cdb.gen1(INSTR.fmov(ftype,Vd,Vn));  // FMOV Vd,Vn
+            cdb.gen1(INSTR.fmov(ftype,Vn,Vd));  // FMOV Vd,Vn
         }
         else if (sz > REGSIZE)
         {
@@ -1301,6 +1332,204 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
         tstresult(cdb, retregs, tym, forregs != 0);
     }
 }
+
+/*******************************
+ * Extra information about each CLIB_A runtime library function.
+ */
+
+enum CLIB_A
+{
+    realToDouble,
+    doubleToReal,
+    add,
+    min,
+    mul,
+    div,
+    eqtf2,
+    netf2,
+    gttf2,
+    getf2,
+    lttf2,
+    letf2,
+
+}
+
+private
+struct ClibInfo
+{
+    regm_t retregs;     // registers that 32 bit result is returned in
+}
+
+__gshared int clib_inited = false;          // true if initialized
+
+@trusted private
+Symbol* symboly(string name, regm_t desregs)
+{
+    Symbol* s = symbol_calloc(name);
+    s.Stype = tsclib;
+    s.Sclass = SC.extern_;
+    s.Sfl = FL.func;
+    s.Ssymnum = 0;
+    s.Sregsaved = fregsaved;  // assume C conventions
+    return s;
+}
+
+private
+void initClibInfo(ref Symbol*[CLIB_A.max + 1] clibsyms, ref ClibInfo[CLIB_A.max + 1] clibinfo)
+{
+    foreach (s; clibsyms[])
+    {
+        if (s)
+        {
+            s.Sxtrnnum = 0;
+            s.Stypidx = 0;
+        }
+    }
+}
+
+private
+void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t objfmt, exefmt_t exe)
+{
+    void declare(string name)
+    {
+        s = symboly(name, mask(32));
+        cinfo.retregs = mask(32);
+    }
+
+    switch (clib)
+    {
+        case CLIB_A.realToDouble:
+        {
+            string name = "__trunctfdf2";
+            s = symboly(name, mask(32));
+            cinfo.retregs = mask(32);
+            break;
+        }
+
+        case CLIB_A.doubleToReal:
+        {
+            string name = "__extenddftf2";
+            s = symboly(name, mask(32));
+            cinfo.retregs = mask(32);
+            break;
+        }
+
+        case CLIB_A.add:
+        {
+            string name = "__addtf3";
+            s = symboly(name, mask(32) | mask(33));
+            cinfo.retregs = mask(32);
+            break;
+        }
+
+        case CLIB_A.min:
+        {
+            string name = "__subtf3";
+            s = symboly(name, mask(32) | mask(33));
+            cinfo.retregs = mask(32);
+            break;
+        }
+
+        case CLIB_A.mul:
+        {
+            string name = "__multf3";
+            s = symboly(name, mask(32) | mask(33));
+            cinfo.retregs = mask(32);
+            break;
+        }
+
+        case CLIB_A.div:
+        {
+            string name = "__divtf3";
+            s = symboly(name, mask(32) | mask(33));
+            cinfo.retregs = mask(32);
+            break;
+        }
+
+        case CLIB_A.netf2: declare("__netf2"); break;
+        case CLIB_A.eqtf2: declare("__eqtf2"); break;
+        case CLIB_A.lttf2: declare("__lttf2"); break;
+        case CLIB_A.letf2: declare("__letf2"); break;
+        case CLIB_A.gttf2: declare("__gttf2"); break;
+        case CLIB_A.getf2: declare("__getf2"); break;
+
+        default:
+            assert(0);
+    }
+}
+
+@trusted private
+void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exefmt_t exe)
+{
+    static Symbol*[CLIB_A.max + 1] clibsyms;
+    static ClibInfo[CLIB_A.max + 1] clibinfo;
+
+    if (!clib_inited)
+    {
+        initClibInfo(clibsyms, clibinfo);
+        clib_inited = true;
+    }
+
+    ClibInfo* cinfo = &clibinfo[clib];
+    Symbol* s = clibsyms[clib];
+    if (!s)
+    {
+        getClibFunction(clib, s, cinfo, objfmt, exe);
+        clibsyms[clib] = s;
+    }
+
+    *ps = s;
+    *pinfo = cinfo;
+}
+
+/********************************
+ * Generate code sequence to call compiler's runtime library support routine.
+ * Params:
+ *      cdb = code sink
+ *      e = elem being tested (null if none)
+ *      clib = CLIB_A.xxxx (function to call)
+ *      pretregs = register(s) to return result in
+ *      keepmask = mask of registers not to destroy. Saves/restores them
+ */
+
+@trusted
+void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm_t keepmask)
+{
+    //printf("callclib(e = %p, clib = %d, pretregs = %s, keepmask = %s\n", e, clib, regm_str(pretregs), regm_str(keepmask));
+    //elem_print(e);
+
+    Symbol* s;
+    ClibInfo* cinfo;
+    getClibInfo(clib, &s, &cinfo, config.objfmt, config.exe);
+
+    getregs(cdb,(~s.Sregsaved & (cgstate.allregs | INSTR.FLOATREGS | mask(cgstate.BP)) & ~keepmask)); // mask of regs destroyed
+    keepmask &= ~s.Sregsaved;
+    int npushed = popcnt(keepmask);
+    CodeBuilder cdbpop;
+    cdbpop.ctor();
+    gensaverestore(keepmask, cdb, cdbpop);
+
+    makeitextern(s);
+    int nalign = 0;
+    if (STACKALIGN >= 16)
+    {   // Align the stack (assume no args on stack)
+        int npush = npushed * REGSIZE + cgstate.stackpush;
+        if (npush & (STACKALIGN - 1))
+        {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
+            cod3_stackadj(cdb, nalign);
+        }
+    }
+
+    cdb.gencs1(INSTR.branch_imm(1,0),0,FL.func,s);  // CALL s
+    if (nalign)
+        cod3_stackadj(cdb, -nalign);
+    cgstate.calledafunc = 1;
+
+    cdb.append(cdbpop);
+    if (e)
+        fixresult(cdb, e, cinfo.retregs, pretregs);
+}
+
 
 /*******************************
  * Generate code sequence for function call.
@@ -1984,7 +2213,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     }
     regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : cgstate.allregs;
     scodelem(cgstate,cdb, e, retregs, 0, true);
-    if (sz <= REGSIZE)
+    if (sz <= REGSIZE || tym == TYldouble)
     {
         reg_t reg = findreg(retregs);
         code cs;
@@ -2072,6 +2301,9 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             double value = e.Vfloat;
             if (sz == 8)
                 value = e.Vdouble;
+            else if (sz == 16)
+                // cannot implicitly convert expression `(*e).EV.Vldouble` of type `longdouble_soft` to `double` [D:\a\1\s\compiler\src\vcbuild\dmd.vcxproj]
+                value = cast(double)e.Vldouble;
             loadFloatRegConst(cdb,vreg,value,sz);
             fixresult(cdb, e, forregs, outretregs);
             return;
@@ -2211,6 +2443,11 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             }
             loadea(cdb, e, cs, opmv, reg, 0, 0, 0, RM.load); // MOVSS/MOVSD reg,data
             checkSetVex(cdb.last(),tym);
+        }
+        else if (sz == 16 && tym == TYldouble) // TODO complex numbers?
+        {
+            loadea(cdb,e,cs,0,reg,0,0,0,RM.load);
+            outretregs = mask(reg) | flags;
         }
         else if (sz <= REGSIZE)
         {

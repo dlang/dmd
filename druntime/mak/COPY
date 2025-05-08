@@ -243,6 +243,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\sched.d \
 	$(IMPDIR)\core\sys\linux\stdio.d \
 	$(IMPDIR)\core\sys\linux\string.d \
+	$(IMPDIR)\core\sys\linux\syscall.d \
 	$(IMPDIR)\core\sys\linux\termios.d \
 	$(IMPDIR)\core\sys\linux\time.d \
 	$(IMPDIR)\core\sys\linux\timerfd.d \
@@ -263,6 +264,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\sys\mount.d \
 	$(IMPDIR)\core\sys\linux\sys\signalfd.d \
 	$(IMPDIR)\core\sys\linux\sys\socket.d \
+	$(IMPDIR)\core\sys\linux\sys\syscall.d \
 	$(IMPDIR)\core\sys\linux\sys\sysinfo.d \
 	$(IMPDIR)\core\sys\linux\sys\xattr.d \
 	$(IMPDIR)\core\sys\linux\sys\time.d \

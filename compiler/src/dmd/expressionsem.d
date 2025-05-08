@@ -4906,6 +4906,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(p.loc, "PlacementExpression `%s` of type `%s` be unshared and mutable", p.toChars(), toChars(p.type));
                 return setError();
             }
+            checkModifiable(exp.placement, sc);
         }
 
         //for error messages if the argument in [] is not convertible to size_t
@@ -10578,7 +10579,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 TupleDeclaration td = isAliasThisTuple(e2x);
                 if (!td)
-                    goto Lnomatch;
+                {
+                Lnomatch:
+                    error(exp.loc, "cannot assign `%s` to expression sequence `%s`",
+                        exp.e2.type.toChars(), exp.e1.type.toChars());
+                    return setError();
+                }
 
                 assert(exp.e1.type.ty == Ttuple);
                 TypeTuple tt = cast(TypeTuple)exp.e1.type;
@@ -10620,7 +10626,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // Do not need to overwrite this.e2
                 goto Ltupleassign;
             }
-        Lnomatch:
         }
 
         /* Inside constructor, if this is the first assignment of object field,
@@ -11224,25 +11229,30 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          */
         if (auto ale = exp.e1.isArrayLengthExp())
         {
-            // e1 is not an lvalue, but we let code generator handle it
 
+            // Ensure e1 is a modifiable lvalue
             auto ale1x = ale.e1.modifiableLvalueImpl(sc, exp.e1);
             if (ale1x.op == EXP.error)
                 return setResult(ale1x);
             ale.e1 = ale1x;
 
+            // Ensure the element type has a valid constructor
             Type tn = ale.e1.type.toBasetype().nextOf();
             checkDefCtor(ale.loc, tn);
 
+            // Choose correct GC hook
             Identifier hook = global.params.tracegc ? Id._d_arraysetlengthTTrace : Id._d_arraysetlengthT;
-            if (!verifyHookExist(exp.loc, *sc, Id._d_arraysetlengthTImpl, "resizing arrays"))
+
+            // Verify the correct hook exists
+            if (!verifyHookExist(exp.loc, *sc, hook, "resizing arrays"))
                 return setError();
 
             exp.e2 = exp.e2.expressionSemantic(sc);
             auto lc = lastComma(exp.e2);
             lc = lc.optimize(WANTvalue);
-            // use slice expression when arr.length = 0 to avoid runtime call
-            if(lc.op == EXP.int64 && lc.toInteger() == 0)
+
+            // Optimize case where arr.length = 0
+            if (lc.op == EXP.int64 && lc.toInteger() == 0)
             {
                 Expression se = new SliceExp(ale.loc, ale.e1, lc, lc);
                 Expression as = new AssignExp(ale.loc, ale.e1, se);
@@ -11252,30 +11262,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setResult(res);
             }
 
-            if (!sc.needsCodegen())      // if compile time creature only
+            if (!sc.needsCodegen()) // Compile-time only case
             {
                 exp.type = Type.tsize_t;
                 return setResult(exp);
             }
 
-            // Lower to object._d_arraysetlengthTImpl!(typeof(e1))._d_arraysetlengthT{,Trace}(e1, e2)
+            // Ensure correct reference for _d_arraysetlengthT
             Expression id = new IdentifierExp(ale.loc, Id.empty);
             id = new DotIdExp(ale.loc, id, Id.object);
-            auto tiargs = new Objects();
-            tiargs.push(ale.e1.type);
-            id = new DotTemplateInstanceExp(ale.loc, id, Id._d_arraysetlengthTImpl, tiargs);
             id = new DotIdExp(ale.loc, id, hook);
             id = id.expressionSemantic(sc);
 
+            // Generate call: _d_arraysetlengthT(e1, e2)
             auto arguments = new Expressions();
-            arguments.push(ale.e1);
-            arguments.push(exp.e2);
+            arguments.push(ale.e1);  // array
+            arguments.push(exp.e2);  // new length
 
             Expression ce = new CallExp(ale.loc, id, arguments).expressionSemantic(sc);
             auto res = new LoweredAssignExp(exp, ce);
-            // if (global.params.verbose)
-            //     message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
             res.type = Type.tsize_t;
+
             return setResult(res);
         }
         else if (auto se = exp.e1.isSliceExp())
@@ -15806,11 +15813,12 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 }
 
 /***************************************
- * Parameters:
- *      sc:     scope
- *      flag:   1: do not issue error message for invalid modification
-                2: the exp is a DotVarExp and a subfield of the leftmost
-                   variable is modified
+ * Params:
+ *      exp  = expression to check if modifiable
+ *      sc   = scope
+ *      flag = noError - do not issue error message for invalid modification
+               fieldAssign - exp is a DotVarExp and a subfield of the leftmost
+               variable is modified
  * Returns:
  *      Whether the type is modifiable
  */
@@ -16138,9 +16146,12 @@ private bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
     }
     if (sc.func && !sc.intypeof && !v.isDataseg())
     {
+        auto msg = (v.storage_class & STC.ref_) ?
+            "taking the address of local variable `%s`" :
+            "taking the address of stack-allocated local variable `%s`";
         if (sc.useDIP1000 != FeatureState.enabled &&
             !(v.storage_class & STC.temp) &&
-            sc.setUnsafe(false, exp.loc, "taking the address of stack-allocated local variable `%s`", v))
+            sc.setUnsafe(false, exp.loc, msg.ptr, v))
         {
             return false;
         }
@@ -16763,11 +16774,12 @@ enum ModifyFlags
 }
 
 /*************************************
- * Check to see if declaration can be modified in this context (sc).
+ * Check to see if `d` can be modified in this context `sc`.
  * Issue error if not.
  * Params:
+ *  d    = declaration to check
  *  loc  = location for error messages
- *  e1   = `null` or `this` expression when this declaration is a field
+ *  e1   = `null` or `this` expression when `d` is a field
  *  sc   = context
  *  flag = if the first bit is set it means do not issue error message for
  *         invalid modification; if the second bit is set, it means that
@@ -16777,6 +16789,7 @@ enum ModifyFlags
  */
 private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1, ModifyFlags flag)
 {
+    //printf("checkModify() d: %s, e1: %s\n", d.toChars(), e1.toChars());
     VarDeclaration v = d.isVarDeclaration();
     if (v && v.canassign)
         return Modifiable.initialization;
@@ -16822,15 +16835,19 @@ private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1,
 }
 
 /***********************************************
- * Mark variable v as modified if it is inside a constructor that var
+ * Mark variable `var` as modified if it is inside a constructor that `var`
  * is a field in.
  * Also used to allow immutable globals to be initialized inside a static constructor.
+ * Params:
+ *    loc = location for error messages
+ *    sc = scope
+ *    var = field
  * Returns:
- *    true if it's an initialization of v
+ *    true if it's an initialization of `var`
  */
 private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
 {
-    //printf("modifyFieldVar(var = %s)\n", var.toChars());
+    //printf("modifyFieldVar(var: %s, e1: %s)\n", var.toChars(), e1.toChars());
     Dsymbol s = sc.func;
     while (1)
     {
@@ -16846,7 +16863,7 @@ private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e
             bool result = true;
 
             var.ctorinit = true;
-            //printf("setting ctorinit\n");
+            //printf("setting ctorinit for %s\n", var.toChars());
 
             if (var.isField() && sc.ctorflow.fieldinit.length && !sc.intypeof)
             {

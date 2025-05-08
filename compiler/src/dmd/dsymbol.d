@@ -343,6 +343,11 @@ extern (C++) class Dsymbol : ASTNode
     {
         bool errors;            // this symbol failed to pass semantic()
         PASS semanticRun = PASS.initial;
+
+        // Queued for deferred semantics:
+        bool deferred;  // In Module.deferred
+        bool deferred2; // In Module.deferred2
+        bool deferred3; // In Module.deferred3
     }
     import dmd.common.bitfields;
     mixin(generateBitFields!(BitFields, ubyte));

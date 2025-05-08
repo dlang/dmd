@@ -555,7 +555,7 @@ void cod3_stackadj(ref CodeBuilder cdb, int nbytes)
                     Rd;
         cdb.gen1(ins);
         assert(imm12 < (1 << 12));  // only 12 bits allowed
-        assert((imm12 & 0xF) == 0); // 16 byte aligned
+//        assert((imm12 & 0xF) == 0); // 16 byte aligned
         return;
     }
     uint grex = I64 ? REX_W << 16 : 0;
@@ -1369,7 +1369,7 @@ static if (NTEXCEPTIONS)
  * Allocate registers for function return values.
  *
  * Params:
- *    cgstate = code generator state
+ *    cg    = code generator state
  *    ty    = return type
  *    t     = return type extended info
  *    tyf   = function type
@@ -1381,11 +1381,11 @@ static if (NTEXCEPTIONS)
  *    0 if function returns on the stack or returns void.
  */
 @trusted
-regm_t allocretregs(ref CGstate cgstate, const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, out reg_t reg2)
+regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, out reg_t reg2)
 {
     //printf("allocretregs() ty: %s\n", tym_str(ty));
     reg1 = reg2 = NOREG;
-    auto AArch64 = cgstate.AArch64;
+    auto AArch64 = cg.AArch64;
 
     if (!(config.exe & EX_posix))
         return regmask(ty, tyf);    // for non-Posix ABI
@@ -1539,6 +1539,11 @@ regm_t allocretregs(ref CGstate cgstate, const tym_t ty, type* t, const tym_t ty
             }
             assert(I64 || tyfloating(tym));
             goto case 4;
+
+        case 16:
+            if (AArch64 && tym == TYldouble)
+                return rralloc.fpt();
+            goto default;
 
         default:
             assert(!AArch64);
@@ -1736,7 +1741,7 @@ void doswitch(ref CGstate cg, ref CodeBuilder cdb, block* b)
     elem* e = b.Belem;
     elem_debug(e);
     docommas(cdb,e);
-    cgstate.stackclean++;
+    cg.stackclean++;
     tym_t tys = tybasic(e.Ety);
     int sz = _tysize[tys];
     bool dword = (sz == 2 * REGSIZE);
@@ -4411,9 +4416,18 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                     if (AArch64)
                     {
                         // STR preg,[sp,#offset]
-//printf("prolog_loadparams sz=%d\n", sz);
+//printf("prolog_loadparams sz=%d preg:%d\n", sz, preg);
 //printf("offset(%d) = Fast.size(%d) + BPoff(%d) + EBPtoESP(%d)\n",cast(int)offset,cast(int)cgstate.Fast.size,cast(int)cgstate.BPoff,cast(int)cgstate.EBPtoESP);
-                        cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 31, offset + localsize + 16));
+                        uint imm = cast(uint)offset;
+                        if (mask(preg) & INSTR.FLOATREGS)
+                        {
+                            uint size, opc;
+                            INSTR.szToSizeOpc(sz, size, opc);
+                            imm /= sz;
+                            cdb.gen1(INSTR.str_imm_fpsimd(size,opc,imm,31,preg)); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+                        }
+                        else
+                            cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 31, imm));
                     }
                     else
                     {

@@ -68,7 +68,8 @@ nothrow:
 @trusted
 void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint idx)
 {
-    // TODO AArch64 floating point registers
+    //printf("REGSAVE_save() %s\n", regm_str(mask(reg)));
+    // TODO AArch64 do 128 bit registers
     if (!regsave.alignment)
         regsave.alignment = REGSIZE;
     idx = regsave.idx;
@@ -80,7 +81,17 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
     cs.base = cgstate.BP;
     cs.index = NOREG;
     cs.IFL1 = FL.regsave;
-    cs.Iop = INSTR.str_imm_gen(1,reg,cs.base,idx);
+    if (mask(reg) & INSTR.FLOATREGS)
+    {
+        uint imm12 = idx;
+        uint sz = 8;
+        uint size, opc;
+        INSTR.szToSizeOpc(sz, size, opc);
+        imm12 /= sz;
+        cs.Iop = INSTR.str_imm_fpsimd(size,opc,imm12,cs.base,reg);
+    }
+    else
+        cs.Iop = INSTR.str_imm_gen(1,reg,cs.base,idx);
     cdb.gen(&cs);
 
     cgstate.reflocal = true;
@@ -96,14 +107,24 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
 @trusted
 void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint idx)
 {
-    // TODO AArch64 floating point registers
+    //printf("REGSAVE_restore() %s\n", regm_str(mask(reg)));
     // LDR reg,[BP, #idx]
     code cs;
     cs.reg = reg;
     cs.base = cgstate.BP;
     cs.index = NOREG;
     cs.IFL1 = FL.regsave;
-    cs.Iop = INSTR.ldr_imm_gen(1,reg,cs.base,idx);
+    if (mask(reg) & INSTR.FLOATREGS)
+    {
+        uint imm12 = idx;
+        uint sz = 8;
+        uint size, opc;
+        INSTR.szToSizeOpc(sz, size, opc);
+        imm12 /= sz;
+        cs.Iop = INSTR.ldr_imm_fpsimd(size,opc,imm12,cs.base,reg);
+    }
+    else
+        cs.Iop = INSTR.ldr_imm_gen(1,reg,cs.base,idx);
     cdb.gen(&cs);
 }
 
@@ -341,7 +362,8 @@ void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 @trusted
 void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa_offset)
 {
-    printf("prolog_saveregs() topush: %s pushoffuse: %d\n", regm_str(topush), cg.pushoffuse);
+    //printf("prolog_saveregs() topush: %s pushoffuse: %d\n", regm_str(topush), cg.pushoffuse);
+    //printf("function: %s\n", funcsym_p.Sident.ptr);
     assert(!(topush & ~fregsaved));
     assert(cg.pushoffuse || !topush);
 
@@ -349,6 +371,7 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
     int xmmtopush = 0;
     int gptopush = popcnt(topush);  // general purpose registers to save
     targ_size_t gpoffset = cg.pushoff + cg.BPoff;
+    gpoffset += localsize;
     reg_t fp;                       // frame pointer
     if (!cg.hasframe || cg.enforcealign)
     {
@@ -391,6 +414,7 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
 @trusted
 private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topop)
 {
+    //printf("prolog_restoreregs() topop: %s\n", regm_str(topop));
     assert(cg.AArch64);
 
     assert(cg.pushoffuse || !topop);
@@ -399,6 +423,7 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
     int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
     int gptopop = popcnt(topop);   // general purpose registers to save
     targ_size_t gpoffset = cg.pushoff + cg.BPoff;
+    gpoffset += localsize;
 
     reg_t fp;
     if (!cg.hasframe || cg.enforcealign)
@@ -416,7 +441,7 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
 
         const ins = (mask(reg) & INSTR.FLOATREGS)
             // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
-            ? INSTR.ldr_imm_fpsimd(3,0,cast(uint)gpoffset >> 3,fp,reg) // LDR reg,[fp,#offset]
+            ? INSTR.ldr_imm_fpsimd(3,1,cast(uint)gpoffset >> 3,fp,reg) // LDR reg,[fp,#offset]
             : INSTR.ldr_imm_gen(1, reg, fp, gpoffset);            // LDR reg,[fp,#offset]
         cdb.gen1(ins);
         gpoffset += REGSIZE;
@@ -705,7 +730,7 @@ void epilog(block* b)
      * order they were pushed.
      */
     topop = fregsaved & ~cgstate.mfuncreg;
-//    epilog_restoreregs(cdbx, topop); // implement
+    epilog_restoreregs(cgstate, cdbx, topop);
 
     if (cgstate.usednteh & NTEHjmonitor)
     {
@@ -1058,20 +1083,17 @@ L3:
 @trusted
 void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t ty = TYMAX)
 {
-    // TODO ftype and TYMAX ?
-    if (to <= 31)
+    if (to & INSTR.FLOATREGS)
+    {
+        // floating point
+        uint ftype = INSTR.szToFtype(ty == TYMAX ? 8 : _tysize[ty]);
+        cdb.gen1(INSTR.fmov(ftype, from & 31, to & 31));
+    }
+    else
     {
         // integer
         uint sf = ty == TYMAX || _tysize[ty] == 8;
         cdb.gen1(INSTR.mov_register(sf, from, to));
-    }
-    else
-    {
-        // floating point
-        uint ftype = (ty == TYMAX || _tysize[ty] == 8)
-            ? 1
-            : (_tysize[ty] == 4 ? 0 : 3);
-        cdb.gen1(INSTR.fmov(ftype, from & 31, to & 31));
     }
 }
 
@@ -1090,6 +1112,8 @@ void loadFloatRegConst(ref CodeBuilder cdb, reg_t vreg, double value, uint sz)
     ubyte imm8;
     if (encodeHFD(value, imm8))
     {
+        assert(sz == 2 || sz == 4 || sz == 8);
+        assert(imm8 <= 0xFF);
         uint ftype = INSTR.szToFtype(sz);
         cdb.gen1(INSTR.fmov_float_imm(ftype,imm8,vreg)); // FMOV <Vd>,#<imm8>
     }
@@ -1546,12 +1570,17 @@ void assignaddrc(code* c)
                 }
                 else if (op24 == 1)
                 {
+//printf("shift: %d opc: %d\n", shift, opc);
+                    uint VR = field(ins,26,26);
+                    if (opc & 2 && shift == 0 && VR == 1)
+                        shift = 4;
                     assert(field(ins,29,27) == 7);
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
+//printf("shift: %d offset: x%llx imm12: x%x\n", shift, offset, imm12);
                     offset += imm12 << shift;      // add in imm
-//printf("shift: %d offset: %llx imm12: %x\n", shift, offset, imm12);
                     assert((offset & ((1 << shift) - 1)) == 0); // no misaligned access
                     imm12 = cast(uint)(offset >> shift);
+//printf("imm12: x%x\n", imm12);
                     assert(imm12 < 0x1000);
                     ins = setField(ins,21,10,imm12);
                 }

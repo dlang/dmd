@@ -41,7 +41,7 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.x86.xmm;
-import dmd.backend.arm.cod1 : getlvalue, loadFromEA, storeToEA;
+import dmd.backend.arm.cod1 : getlvalue, loadFromEA, storeToEA,CLIB_A,callclib;
 import dmd.backend.arm.cod2 : tyToExtend;
 import dmd.backend.arm.cod3 : COND, conditionCode, gentstreg;
 import dmd.backend.arm.instr;
@@ -462,6 +462,7 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (e.Eoper == OPnegass)
     {
+        assert(sz1 <= 8);       // not for 128 bit operands
         bool regvar;
         getlvalue(cdb,cs,e1,0);
         if (cs.reg == NOREG)
@@ -480,8 +481,7 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         loadFromEA(cs, reg, szw, sz1);
         cdb.gen(&cs);
         assert(reg & 32);
-        uint ftype = sz1 == 2 ? 3 :
-                     sz1 == 4 ? 0 : 1;
+        uint ftype = INSTR.szToFtype(sz1);
         cdb.gen1(INSTR.fneg_float(ftype, reg, reg)); // fneg reg,reg
         storeToEA(cs, reg, szw);
         cdb.gen(&cs);
@@ -539,31 +539,52 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         cdb.gen(&cs);
     }
 
-    reg_t Rd = reg, Rn = rreg, Rm = reg;
-    uint ftype = sz1 == 2 ? 3 :
-                 sz1 == 4 ? 0 : 1;
-    switch (e.Eoper)
+    if (sz1 == 16)      // 128 bit float
     {
-        // FADD/FSUB (extended register)
-        // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
-        case OPaddass:
-            cdb.gen1(INSTR.fadd_float(ftype,Rm,Rn,Rd));     // FADD Rd,Rn,Rm
-            break;
+        CLIB_A clib;
+        switch (e.Eoper)
+        {
+            case OPaddass:      clib = CLIB_A.add; break;
+            case OPminass:      clib = CLIB_A.min; break;
+            case OPmulass:      clib = CLIB_A.mul; break;
+            case OPdivass:      clib = CLIB_A.div; break;
+            default:            assert(0);
+        }
+        regm_t idxregs;         // save index registers so we can do the storeToEA() later
+        if (cs.base != NOREG)
+            idxregs |= mask(cs.base);
+        if (cs.index != NOREG)
+            idxregs |= mask(cs.index);
+        regm_t dummy;
+        callclib(cdb,null,clib,dummy,idxregs);
+    }
+    else
+    {
+        reg_t Rd = reg, Rn = rreg, Rm = reg;
+        uint ftype = INSTR.szToFtype(sz1);
+        switch (e.Eoper)
+        {
+            // FADD/FSUB (extended register)
+            // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
+            case OPaddass:
+                cdb.gen1(INSTR.fadd_float(ftype,Rn,Rm,Rd));     // FADD Rd,Rn,Rm
+                break;
 
-        case OPminass:
-            cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm
-            break;
+            case OPminass:
+                cdb.gen1(INSTR.fsub_float(ftype,Rn,Rm,Rd));     // FSUB Rd,Rn,Rm
+                break;
 
-        case OPmulass:
-            cdb.gen1(INSTR.fmul_float(ftype,Rm,Rn,Rd));     // FMUL Rd,Rn,Rm
-            break;
+            case OPmulass:
+                cdb.gen1(INSTR.fmul_float(ftype,Rn,Rm,Rd));     // FMUL Rd,Rn,Rm
+                break;
 
-        case OPdivass:
-            cdb.gen1(INSTR.fdiv_float(ftype,Rm,Rn,Rd));     // FDIV Rd,Rn,Rm
-            break;
+            case OPdivass:
+                cdb.gen1(INSTR.fdiv_float(ftype,Rn,Rm,Rd));     // FDIV Rd,Rn,Rm
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
+        }
     }
 
     if (!regvar)
@@ -912,8 +933,28 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         scodelem(cgstate,cdb,e2,retregs2,retregs1,true); // right leaf
         reg_t Vm = findreg(retregs1);
         reg_t Vn = findreg(retregs2);
-        uint ftype = INSTR.szToFtype(sz);
-        cdb.gen1(INSTR.fcmpe_float(ftype,Vm,Vn));       // FCMPE Vn,Vm
+        if (tym == TYldouble || tym == TYildouble)
+        {
+            CLIB_A clib;
+            switch (jop)
+            {
+                case COND.eq:   clib = CLIB_A.eqtf2; break;
+                case COND.ne:   clib = CLIB_A.netf2; break;
+                case COND.lt:   clib = CLIB_A.lttf2; break;
+                case COND.le:   clib = CLIB_A.letf2; break;
+                case COND.gt:   clib = CLIB_A.gttf2; break;
+                case COND.ge:   clib = CLIB_A.getf2; break;
+                default:        assert(0);
+            }
+            regm_t dummy;
+            callclib(cdb,null,clib,dummy,0);
+            gentstreg(cdb,0,0);                          // CMP w0,#0
+        }
+        else
+        {
+            uint ftype = INSTR.szToFtype(sz);
+            cdb.gen1(INSTR.fcmpe_float(ftype,Vn,Vm));    // FCMPE Vn,Vm
+        }
         goto L3;
     }
 
@@ -1347,7 +1388,8 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     }
 
     uint sf;
-    uint ftype;
+    uint sz = _tysize[tybasic(e.E1.Ety)];
+    uint ftype = INSTR.szToFtype(sz);
     switch (e.Eoper)
     {
         case OPd_s16:                               // fcvtzs w0,d31  // sxth w0,w0
@@ -1457,7 +1499,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                 retregs = INSTR.FLOATREGS;
 
             const tym = tybasic(e.Ety);
-            reg_t Vd = allocreg(cdb,retregs,tym);       // destination integer register
+            reg_t Vd = allocreg(cdb,retregs,tym);       // destination floating point register
 
             switch (e.Eoper)
             {
@@ -1472,6 +1514,15 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             }
 
             fixresult(cdb,e,retregs,pretregs);
+            break;
+
+        case OPd_ld:    // call __extenddftf2
+        case OPld_d:    // call __trunctfdf2
+            regm_t retregs1 = mask(32);
+            codelem(cgstate,cdb,e.E1,retregs1,false);
+            import dmd.backend.arm.cod1 : CLIB_A, callclib;
+            CLIB_A clib = e.Eoper == OPd_ld ? CLIB_A.doubleToReal : CLIB_A.realToDouble;
+            callclib(cdb,e,clib,pretregs,0);
             break;
 
         default:

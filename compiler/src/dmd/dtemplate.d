@@ -593,6 +593,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool isTrivialAliasSeq; /// matches pattern `template AliasSeq(T...) { alias AliasSeq = T; }`
     bool isTrivialAlias;    /// matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
     bool deprecated_;       /// this template declaration is deprecated
+    bool isCmacro;          /// Whether this template is a translation of a C macro
     Visibility visibility;
 
     // threaded list of previous instantiation attempts on stack

@@ -629,256 +629,71 @@ extern (C) void rt_finalizeFromGC(void* p, size_t size, uint attr, TypeInfo type
 
 
 /**
-Resize a dynamic array by setting the `.length` property
+Given an array of length `size` that needs to be expanded to `newlength`,
+compute a new capacity.
 
-Newly created elements are initialized to their default value.
-
-Has two variants:
-- `_d_arraysetlengthT` for arrays with elements that initialize to 0
-- `_d_arraysetlengthiT` for non-zero initializers retrieved from `TypeInfo`
-
----
-void main()
-{
-    int[] a = [1, 2];
-    a.length = 3; // gets lowered to `_d_arraysetlengthT(typeid(int[]), 3, &a)`
-}
----
+Better version by Dave Fladebo, enhanced by Steven Schveighoffer:
+This uses an inverse logorithmic algorithm to pre-allocate a bit more
+space for larger arrays.
+- The maximum "extra" space is about 80% of the requested space. This is for
+PAGE size and smaller.
+- As the arrays grow, the relative pre-allocated space shrinks.
+- Perhaps most importantly, overall memory usage and stress on the GC
+is decreased significantly for demanding environments.
+- The algorithm is tuned to avoid any division at runtime.
 
 Params:
-    ti = `TypeInfo` of array
-    newlength = new value for the array's `.length`
-    p = pointer to array to update the `.length` of.
-        While it's cast to `void[]`, its `.length` is still treated as element length.
-Returns: `*p` after being updated
+    newlength = new `.length`
+    elemsize = size of the element in the new array
+Returns: new capacity for array
 */
-extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p) @weak
-in
+size_t newCapacity(size_t newlength, size_t elemsize)
 {
-    assert(ti);
-    assert(!(*p).length || (*p).ptr);
-}
-do
-{
-    debug(PRINTF)
-    {
-        //printf("_d_arraysetlengthT(p = %p, sizeelem = %d, newlength = %d)\n", p, sizeelem, newlength);
-        if (p)
-            printf("\tp.ptr = %p, p.length = %zd\n", (*p).ptr, (*p).length);
-    }
+    size_t newcap = newlength * elemsize;
 
-    if (newlength <= (*p).length)
-    {
-        *p = (*p)[0 .. newlength];
-        return *p;
-    }
-    auto tinext = unqualify(ti.next);
-    size_t sizeelem = tinext.tsize;
-
-    /* Calculate: newsize = newlength * sizeelem
+    /*
+     * Max growth factor numerator is 234, so allow for multiplying by 256.
+     * But also, the resulting size cannot be more than 2x, so prevent
+     * growing if 2x would fill up the address space (for 32-bit)
      */
-    bool overflow = false;
-    version (D_InlineAsm_X86)
-    {
-        size_t newsize = void;
+    enum largestAllowed = (ulong.max >> 8) & (size_t.max >> 1);
+    if (!newcap || (newcap & ~largestAllowed))
+        return newcap;
 
-        asm pure nothrow @nogc
-        {
-            mov EAX, newlength;
-            mul EAX, sizeelem;
-            mov newsize, EAX;
-            setc overflow;
-        }
-    }
-    else version (D_InlineAsm_X86_64)
-    {
-        size_t newsize = void;
-
-        asm pure nothrow @nogc
-        {
-            mov RAX, newlength;
-            mul RAX, sizeelem;
-            mov newsize, RAX;
-            setc overflow;
-        }
-    }
-    else
-    {
-        const size_t newsize = mulu(sizeelem, newlength, overflow);
-    }
-    if (overflow)
-    {
-        onOutOfMemoryError();
-        assert(0);
-    }
-
-    debug(PRINTF) printf("newsize = %zx, newlength = %zx\n", newsize, newlength);
-
-    if (!(*p).ptr)
-    {
-        assert((*p).length == 0);
-        // pointer was null, need to allocate
-        auto ptr = GC.malloc(newsize, __typeAttrs(tinext) | BlkAttr.APPENDABLE, tinext);
-        if (ptr is null)
-        {
-            onOutOfMemoryError();
-            assert(0);
-        }
-        memset(ptr, 0, newsize);
-        *p = ptr[0 .. newlength];
-        return *p;
-    }
-
-    const size_t size = (*p).length * sizeelem;
-    const isshared = typeid(ti) is typeid(TypeInfo_Shared);
-
-    /* Attempt to extend past the end of the existing array.
-     * If not possible, allocate new space for entire array and copy.
+    /*
+     * The calculation for "extra" space depends on the requested capacity.
+     * We use an inverse logarithm of the new capacity to add an extra 15%
+     * to 83% capacity. Note that normally we humans think in terms of
+     * percent, but using 128 instead of 100 for the denominator means we
+     * can avoid all division by simply bit-shifthing. Since there are only
+     * 64 bits in a long, the bsr of a size_t is going to be 0 - 63. Using
+     * a lookup table allows us to precalculate the multiplier based on the
+     * inverse logarithm. The formula rougly is:
+     *
+     * newcap = request * (1.0 + min(0.83, 10.0 / (log(request) + 1)))
      */
-    void* newdata = (*p).ptr;
-    if (!gc_expandArrayUsed(newdata[0 .. size], newsize, isshared))
-    {
-        newdata = GC.malloc(newsize, __typeAttrs(tinext, (*p).ptr) | BlkAttr.APPENDABLE, tinext);
-        if (newdata is null)
+    import core.bitop;
+    static immutable multTable = (){
+        assert(__ctfe);
+        ulong[size_t.sizeof * 8] result;
+        foreach (i; 0 .. result.length)
         {
-            onOutOfMemoryError();
-            assert(0);
+            auto factor = 128 + 1280 / (i + 1);
+            result[i] = factor > 234 ? 234 : factor;
         }
+        return result;
+    }();
 
-        newdata[0 .. size] = (*p).ptr[0 .. size];
+    auto mult = multTable[bsr(newcap)];
 
-        // Do postblit processing, as we are making a copy.
-        __doPostblit(newdata, size, tinext);
-    }
-
-    // Zero the unused portion of the newly allocated space
-    memset(newdata + size, 0, newsize - size);
-
-    *p = newdata[0 .. newlength];
-    return *p;
+    // if this were per cent, then the code would look like:
+    // ((newlength * mult + 99) / 100) * elemsize
+    newcap = cast(size_t)((newlength * mult + 127) >> 7) * elemsize;
+    debug(PRINTF) printf("mult: %2.2f, alloc: %2.2f\n",mult/128.0,newcap / cast(double)elemsize);
+    debug(PRINTF) printf("newcap = %zd, newlength = %zd, elemsize = %zd\n", newcap, newlength, elemsize);
+    return newcap;
 }
 
-/// ditto
-extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p) @weak
-in
-{
-    assert(!(*p).length || (*p).ptr);
-}
-do
-{
-    debug(PRINTF)
-    {
-        //printf("_d_arraysetlengthT(p = %p, sizeelem = %d, newlength = %d)\n", p, sizeelem, newlength);
-        if (p)
-            printf("\tp.ptr = %p, p.length = %zd\n", (*p).ptr, (*p).length);
-    }
-
-    if (newlength <= (*p).length)
-    {
-        *p = (*p)[0 .. newlength];
-        return *p;
-    }
-    auto tinext = unqualify(ti.next);
-    size_t sizeelem = tinext.tsize;
-
-    /* Calculate: newsize = newlength * sizeelem
-     */
-    bool overflow = false;
-    version (D_InlineAsm_X86)
-    {
-        size_t newsize = void;
-
-        asm pure nothrow @nogc
-        {
-            mov EAX, newlength;
-            mul EAX, sizeelem;
-            mov newsize, EAX;
-            setc overflow;
-        }
-    }
-    else version (D_InlineAsm_X86_64)
-    {
-        size_t newsize = void;
-
-        asm pure nothrow @nogc
-        {
-            mov RAX, newlength;
-            mul RAX, sizeelem;
-            mov newsize, RAX;
-            setc overflow;
-        }
-    }
-    else
-    {
-        const size_t newsize = mulu(sizeelem, newlength, overflow);
-    }
-    if (overflow)
-    {
-        onOutOfMemoryError();
-        assert(0);
-    }
-
-    debug(PRINTF) printf("newsize = %zx, newlength = %zx\n", newsize, newlength);
-
-    static void doInitialize(void *start, void *end, const void[] initializer)
-    {
-        if (initializer.length == 1)
-        {
-            memset(start, *(cast(ubyte*)initializer.ptr), end - start);
-        }
-        else
-        {
-            auto q = initializer.ptr;
-            immutable initsize = initializer.length;
-            for (; start < end; start += initsize)
-            {
-                memcpy(start, q, initsize);
-            }
-        }
-    }
-
-    if (!(*p).ptr)
-    {
-        assert((*p).length == 0);
-        // pointer was null, need to allocate
-        auto ptr = GC.malloc(newsize, __typeAttrs(tinext) | BlkAttr.APPENDABLE, tinext);
-        if (ptr is null)
-        {
-            onOutOfMemoryError();
-            assert(0);
-        }
-        doInitialize(ptr, ptr + newsize, tinext.initializer);
-        *p = ptr[0 .. newlength];
-        return *p;
-    }
-
-    const size_t size = (*p).length * sizeelem;
-    const isshared = typeid(ti) is typeid(TypeInfo_Shared);
-
-    /* Attempt to extend past the end of the existing array.
-     * If not possible, allocate new space for entire array and copy.
-     */
-    void* newdata = (*p).ptr;
-    if (!gc_expandArrayUsed(newdata[0 .. size], newsize, isshared))
-    {
-        newdata = GC.malloc(newsize, __typeAttrs(tinext, (*p).ptr) | BlkAttr.APPENDABLE, tinext);
-        if (newdata is null)
-        {
-            onOutOfMemoryError();
-            assert(0);
-        }
-
-        newdata[0 .. size] = (*p).ptr[0 .. size];
-
-        // Do postblit processing, as we are making a copy.
-        __doPostblit(newdata, size, tinext);
-    }
-
-    // Initialize the unused portion of the newly allocated space
-    doInitialize(newdata + size, newdata + newsize, tinext.initializer);
-    *p = newdata[0 .. newlength];
-    return *p;
-}
 
 /**
 Append `dchar` to `char[]`, converting UTF-32 to UTF-8
