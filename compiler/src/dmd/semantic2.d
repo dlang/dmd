@@ -845,6 +845,8 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
 
     override void visit(AssocArrayLiteralExp aaExp)
     {
+     version(none)
+     {
         auto hookId = Identifier.idPool("_d_assocarrayliteralTX");
         if (!verifyHookExist(aaExp.loc, *sc, hookId, "initializing static associative arrays", Id.object))
             return;
@@ -867,7 +869,15 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
 
         aaExp.lowering = loweredExp;
 
-        semanticTypeInfo(sc, loweredExp.type);
+     }
+     else
+     {
+        if (!aaExp.lowering)
+            expressionSemantic(aaExp, sc);
+        assert(aaExp.lowering);
+        aaExp.lowering = aaExp.lowering.ctfeInterpret();
+     }
+        semanticTypeInfo(sc, aaExp.lowering.type);
     }
 
     // https://issues.dlang.org/show_bug.cgi?id=24602

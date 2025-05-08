@@ -4175,6 +4175,10 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitAssocArrayLiteral(AssocArrayLiteralExp aale)
     {
         //printf("AssocArrayLiteralExp.toElem() %s\n", aale.toChars());
+        if (aale.lowering)
+        {
+            return toElem(aale.lowering, irs);
+        }
 
         Type t = aale.type.toBasetype().mutableOf();
 
@@ -6250,8 +6254,11 @@ elem* sarray_toDarray(Loc loc, Type tfrom, Type tto, elem* e)
         uint tsize = cast(uint)tto.nextOf().size();
 
         // Should have been caught by Expression::castTo
-        assert(tsize != 0 && (dim * fsize) % tsize == 0);
-        dim = (dim * fsize) / tsize;
+        if (tsize != fsize) // allow both 0
+        {
+            assert(tsize != 0 && (dim * fsize) % tsize == 0);
+            dim = (dim * fsize) / tsize;
+        }
     }
     elem* elen = el_long(TYsize_t, dim);
     e = addressElem(e, tfrom);

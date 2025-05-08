@@ -2641,6 +2641,7 @@ public:
                    valuesx !is e.values);
             auto aae = ctfeEmplaceExp!AssocArrayLiteralExp(e.loc, keysx, valuesx);
             aae.type = e.type;
+            aae.lowering = e.lowering;
             aae.ownedByCtfe = OwnedBy.ctfe;
             result = aae;
         }

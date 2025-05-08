@@ -609,7 +609,7 @@ int _aaApply2(K, V)(AA!(K, V) aa, dg2_t!(K, V) dg)
  * Returns:
  *      A new associative array opaque pointer, or null if `keys` is empty.
  */
-Impl!(K, V)* _d_assocarrayliteralTX(K, V)(const K[] keys, const V[] vals)
+Impl!(K, V)* _d_assocarrayliteralTX(K, V)(K[] keys, V[] vals)
 {
     assert(keys.length == vals.length);
 
@@ -619,20 +619,28 @@ Impl!(K, V)* _d_assocarrayliteralTX(K, V)(const K[] keys, const V[] vals)
         return null;
 
     auto aa = new Impl!(K, V)(nextpow2(INIT_DEN * length / INIT_NUM));
-
+    size_t duplicates = 0;
     foreach (i; 0 .. length)
     {
         immutable hash = aa.calcHash(keys[i]);
 
         auto p = aa.findSlotLookup(hash, keys[i]);
-        assert(p is null, "duplicate entries in associative array literal");
+        if (p)
+        {
+            static if (__traits(compiles, p.entry.value = vals[i])) // immutable?
+                p.entry.value = vals[i];
+            else
+                p.entry = new Entry!(K, V)(keys[i], vals[i]);
+            duplicates++;
+            continue;
+        }
         auto pi = aa.findSlotInsert(hash);
         p = &aa.buckets[pi];
         p.hash = hash;
-        p.entry = new Entry!(K, V)(keys[i], vals[i]); // todo: move key, no postblit?
+        p.entry = new Entry!(K, V)(keys[i], vals[i]); // todo: move key and value?
         aa.firstUsed = min(aa.firstUsed, cast(uint)pi);
     }
-    aa.used = cast(uint) length;
+    aa.used = cast(uint) (length - duplicates);
     return aa;
 }
 
@@ -779,27 +787,27 @@ unittest
 
     T t;
     auto aa1 = [0 : t, 1 : t];
-    assert(T.dtor == 0 && T.postblit == 2);
+    assert(T.dtor == 2 && T.postblit == 4);
     aa1[0] = t;
-    assert(T.dtor == 1 && T.postblit == 3);
+    assert(T.dtor == 3 && T.postblit == 5);
 
     T.dtor = 0;
     T.postblit = 0;
 
     auto aa2 = [0 : t, 1 : t, 0 : t]; // literal with duplicate key => value overwritten
-    assert(T.dtor == 1 && T.postblit == 3);
+    assert(T.dtor == 4 && T.postblit == 6);
 
     T.dtor = 0;
     T.postblit = 0;
 
     auto aa3 = [t : 0];
-    assert(T.dtor == 0 && T.postblit == 1);
+    assert(T.dtor == 1 && T.postblit == 2);
     aa3[t] = 1;
-    assert(T.dtor == 0 && T.postblit == 1);
+    assert(T.dtor == 1 && T.postblit == 2);
     aa3.remove(t);
-    assert(T.dtor == 0 && T.postblit == 1);
+    assert(T.dtor == 1 && T.postblit == 2);
     aa3[t] = 2;
-    assert(T.dtor == 0 && T.postblit == 2);
+    assert(T.dtor == 1 && T.postblit == 2);
 
     // dtor will be called by GC finalizers
     aa1 = null;
@@ -809,7 +817,7 @@ unittest
     GC.runFinalizers((cast(char*)dtor1)[0 .. 1]);
     auto dtor2 = typeid(TypeInfo_AssociativeArray.Entry!(T, int)).xdtor;
     GC.runFinalizers((cast(char*)dtor2)[0 .. 1]);
-    assert(T.dtor == 6 && T.postblit == 2);
+    assert(T.dtor == 7 && T.postblit == 2);
 }
 
 // create a binary-compatible AA structure that can be used directly as an
