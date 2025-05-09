@@ -29,7 +29,7 @@ version(DLL)
         void term() nothrow
         {
             stop = true;
-            event.set();
+            event.setIfInitialized();
             joinLowLevelThread(tid);
         }
     }
