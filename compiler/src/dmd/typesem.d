@@ -3316,8 +3316,14 @@ Type merge(Type type)
             goto default;
 
         default:
-            if (type.nextOf() && !type.nextOf().merge().deco)
-                return type;
+            if (auto next = type.nextOf())
+            {
+                // don't try to merge TypeFunctions (can shift forward-reference errors from the frontend to the glue layer, without Loc)
+                if (!next.isTypeFunction())
+                    next = next.merge();
+                if (!next.deco)
+                    return type;
+            }
             break;
     }
 
