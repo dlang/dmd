@@ -3316,14 +3316,8 @@ Type merge(Type type)
             goto default;
 
         default:
-            if (auto next = type.nextOf())
-            {
-                // don't try to merge TypeFunctions (can shift forward-reference errors from the frontend to the glue layer, without Loc)
-                if (!next.isTypeFunction())
-                    next = next.merge();
-                if (!next.deco)
-                    return type;
-            }
+            if (type.nextOf() && !type.nextOf().deco)
+                return type;
             break;
     }
 
@@ -7352,7 +7346,7 @@ Type substWildTo(Type type, uint mod)
             t = t.addMod(MODFlags.shared_);
 
         //printf("-Type.substWildTo t = %s\n", t.toChars());
-        return t;
+        return t.merge();
     }
 
     if (!tf.iswild && !(tf.mod & MODFlags.wild))
