@@ -3316,7 +3316,7 @@ Type merge(Type type)
             goto default;
 
         default:
-            if (type.nextOf() && !type.nextOf().deco)
+            if (type.nextOf() && !type.nextOf().merge().deco)
                 return type;
             break;
     }
