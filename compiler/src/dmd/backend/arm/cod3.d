@@ -370,8 +370,8 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
     // Save to preallocated section in the stack frame
     int xmmtopush = 0;
     int gptopush = popcnt(topush);  // general purpose registers to save
-    targ_size_t gpoffset = cg.pushoff + cg.BPoff;
-    gpoffset += localsize;
+    //targ_size_t gpoffset = cg.pushoff + cg.BPoff + localsize;
+    targ_size_t gpoffset = 8 + 8;   // skip over x29,x30
     reg_t fp;                       // frame pointer
     if (!cg.hasframe || cg.enforcealign)
     {
@@ -422,8 +422,8 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
     // Save to preallocated section in the stack frame
     int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
     int gptopop = popcnt(topop);   // general purpose registers to save
-    targ_size_t gpoffset = cg.pushoff + cg.BPoff;
-    gpoffset += localsize;
+    //targ_size_t gpoffset = cg.pushoff + cg.BPoff + localsize;
+    targ_size_t gpoffset = 8 + 8; // skip over x29,x30
 
     reg_t fp;
     if (!cg.hasframe || cg.enforcealign)
