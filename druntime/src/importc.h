@@ -173,7 +173,10 @@ typedef unsigned long long __uint64_t;
 // Ubuntu's assert.h uses this
 #define __PRETTY_FUNCTION__ __func__
 
-#ifndef __aarch64__
+#ifndef __clang__
+// Glibc with clang gets upset when some _Float* is defined:
+// /usr/include/bits/floatn-common.h(214): Error: illegal combination of type specifiers
+// typedef float float;
 #define _Float32 float
 #define _Float32x double
 #define _Float64 double
