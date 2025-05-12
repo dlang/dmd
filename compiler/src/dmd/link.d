@@ -1149,6 +1149,8 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         Strings argv;
         argv.push(cpp.xarraydup.ptr);       // null terminated copy
 
+        argv.push("-std=c11");
+
         foreach (p; cppswitches)
         {
             if (p && p[0])
