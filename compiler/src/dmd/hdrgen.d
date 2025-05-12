@@ -1814,7 +1814,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
         // https://issues.dlang.org/show_bug.cgi?id=24891
         // return/scope storage classes are printed as part of function type
-        if (stcToBuffer(buf, f.storage_class & ~(STC.scope_ | STC.return_ | STC.returnScope)))
+        if (stcToBuffer(buf, f.storage_class & ~(STC.scope_ | STC.return_ | STC.returnScope | STC.returnRef)))
             buf.writeByte(' ');
         typeToBuffer(f.type, f.ident, buf, hgs);
         auto tf = f.type.isTypeFunction();
