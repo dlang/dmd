@@ -169,7 +169,7 @@ typedef unsigned long long __uint64_t;
 #define __STDC_NO_VLA__ 1
 
 #define _Float16 float
-#if linux  // Microsoft won't allow the following macro
+#ifdef __linux__  // Microsoft won't allow the following macro
 // Ubuntu's assert.h uses this
 #define __PRETTY_FUNCTION__ __func__
 
