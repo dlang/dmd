@@ -1617,7 +1617,7 @@ void xoffOrNull(ref DtBuilder dtb, Symbol* symbol) @safe
  *  given buffer `buffer`
  */
 const(char)* toStringz(size_t maxLength = 4095)(in const(char)[] str,
-    scope return void[] buffer = alloca(maxLength + 1)[0 .. maxLength + 1]) pure
+    return scope void[] buffer = alloca(maxLength + 1)[0 .. maxLength + 1]) pure
 in
 {
     assert(maxLength >= str.length);

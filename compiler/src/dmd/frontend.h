@@ -772,9 +772,10 @@ enum class STC : uint64_t
     templateparameter = 131072LLU,
     ref_ = 262144LLU,
     scope_ = 524288LLU,
-    scopeinferred = 2097152LLU,
-    return_ = 4194304LLU,
-    returnScope = 8388608LLU,
+    scopeinferred = 1048576LLU,
+    return_ = 2097152LLU,
+    returnScope = 4194304LLU,
+    returnRef = 8388608LLU,
     returninferred = 16777216LLU,
     immutable_ = 33554432LLU,
     manifest = 134217728LLU,
@@ -809,9 +810,9 @@ enum class STC : uint64_t
     IOR = 333824LLU,
     TYPECTOR = 42983227396LLU,
     FUNCATTR = 4575000774574080LLU,
-    visibleStorageClasses = 7954966262857631LLU,
+    visibleStorageClasses = 7954966260760479LLU,
     flowThruAggregate = 962072674304LLU,
-    flowThruFunction = 18446742978991225440LLU,
+    flowThruFunction = 18446742978993322592LLU,
 };
 
 template <typename T>

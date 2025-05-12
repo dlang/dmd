@@ -2373,7 +2373,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
  *   t = struct type, or static array of struct type to check
  *   loc = error message location
  *   sc = scope in which attributes are checked
- * Returns: true if there's an error
+ * Returns: true if there is an error
  */
 private bool checkPostblit(Type t, ref Loc loc, Scope* sc)
 {
@@ -15531,7 +15531,7 @@ Expression addDtorHook(Expression e, Scope* sc)
 /*******************************
  * Try to convert an expression to be an lvalue.
  *
- * Give error if we're not an lvalue.
+ * Give error if we are not an lvalue.
  * Params:
  *     _this = expression to convert
  *     sc = scope
@@ -15546,6 +15546,7 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action)
 // e = original un-lowered expression for error messages, in case of recursive calls
 private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action, Expression e)
 {
+    //printf("toLvalueImpl() %s\n", _this.toChars());
     if (!action)
         action = "create lvalue of";
 
@@ -15643,7 +15644,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
     {
         auto e1 = _this.e1;
         auto var = _this.var;
-        //printf("DotVarExp::toLvalue(%s)\n", toChars());
+        //printf("DotVarExp::toLvalue(%s)\n", _this.toChars());
         if (sc && sc.inCfile)
         {
             /* C11 6.5.2.3-3: A postfix expression followed by the '.' or '->' operator
