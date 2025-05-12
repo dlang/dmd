@@ -1,5 +1,4 @@
 // EXTRA_CPP_SOURCES: test22898.cpp
-// CXXFLAGS(osx): -arch x86_64
 
 import core.stdc.config;
 

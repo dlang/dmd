@@ -2,7 +2,6 @@
 // EXTRA_CPP_SOURCES: test23135.cpp
 // REQUIRED_ARGS: -extern-std=c++11
 // CXXFLAGS: -std=c++11
-// CXXFLAGS(osx): -std=c++11 -arch x86_64
 // DISABLED: win32
 
 void main()

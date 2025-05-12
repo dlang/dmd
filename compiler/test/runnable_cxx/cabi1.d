@@ -1,6 +1,5 @@
 
 // EXTRA_CPP_SOURCES: cabi2.cpp
-// CXXFLAGS(osx): -arch x86_64
 
 import core.stdc.stdio;
 import core.stdc.config;

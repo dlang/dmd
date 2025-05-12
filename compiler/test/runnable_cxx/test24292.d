@@ -1,5 +1,4 @@
 // EXTRA_CPP_SOURCES: test24292.cpp
-// CXXFLAGS(osx): -arch x86_64
 
 extern(C++) struct List(T)
 {

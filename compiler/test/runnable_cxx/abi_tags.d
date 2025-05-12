@@ -8,7 +8,6 @@
  * REQUIRED_ARGS: -extern-std=c++11
  * EXTRA_CPP_SOURCES: abi_tags.cpp
  * CXXFLAGS: -std=c++11
- * CXXFLAGS(osx): -arch x86_64
  */
 
 #line 100

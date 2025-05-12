@@ -1,5 +1,4 @@
 // EXTRA_CPP_SOURCES: cpp7925.cpp
-// CXXFLAGS(osx): -arch x86_64
 
 import core.vararg;
 

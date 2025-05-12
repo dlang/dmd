@@ -1,6 +1,5 @@
 // EXTRA_CPP_SOURCES: cpp_abi_tests.cpp
 // CXXFLAGS(linux freebsd osx openbsd netbsd dragonflybsd): -std=c++11
-// CXXFLAGS(osx): -std=c++11 -arch x86_64
 
 // N.B MSVC doesn't have a C++11 switch, but it defaults to the latest fully-supported standard
 // N.B MSVC 2013 doesn't support char16_t/char32_t

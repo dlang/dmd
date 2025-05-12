@@ -1,5 +1,4 @@
 // EXTRA_CPP_SOURCES: cpp22287.cpp
-// CXXFLAGS(osx): -arch x86_64
 
 extern(C++):
 
