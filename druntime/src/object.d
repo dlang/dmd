@@ -4031,7 +4031,13 @@ Returns:
 */
 auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 {
-    _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
+    import core.internal.array.capacity : _d_arrayshrinkfit;
+    import core.internal.traits : Unqual;
+
+    alias Unqual_Tarr = Unqual!T[];
+    enum isshared = is(T == shared);
+    _d_arrayshrinkfit(cast(Unqual_Tarr)arr, isshared);
+
     return arr;
 }
 

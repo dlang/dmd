@@ -229,56 +229,6 @@ private uint __typeAttrs(const scope TypeInfo ti, void *copyAttrsFrom = null) pu
     return attrs;
 }
 
-/**
-Shrink the "allocated" length of an array to be the exact size of the array.
-
-It doesn't matter what the current allocated length of the array is, the
-user is telling the runtime that he knows what he is doing.
-
-Params:
-    ti = `TypeInfo` of array type
-    arr = array to shrink. Its `.length` is element length, not byte length, despite `void` type
-*/
-extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow
-{
-    debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %zd, arr.ptr = %p arr.length = %zd\n", ti.next.tsize, arr.ptr, arr.length);
-    auto tinext = unqualify(ti.next);
-    auto size = tinext.tsize;                  // array element size
-    auto reqsize = arr.length * size;
-    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-
-    auto curArr = gc_getArrayUsed(arr.ptr, isshared);
-    if (curArr.ptr is null)
-        // not a valid GC pointer
-        return;
-
-    // align the array.
-    auto offset = arr.ptr - curArr.ptr;
-    auto cursize = curArr.length - offset;
-    if (cursize <= reqsize)
-        // invalid situation, or no change.
-        return;
-
-    // if the type has a destructor, destroy elements we are about to remove.
-    if (typeid(tinext) is typeid(TypeInfo_Struct)) // avoid a complete dynamic type cast
-    {
-        auto sti = cast(TypeInfo_Struct)cast(void*)tinext;
-        if (sti.xdtor)
-        {
-            try
-            {
-                finalize_array(arr.ptr + reqsize, cursize - reqsize, sti);
-            }
-            catch (Exception e)
-            {
-                onFinalizeError(sti, e);
-            }
-        }
-    }
-
-    gc_shrinkArrayUsed(arr.ptr[0 .. reqsize], cursize, isshared);
-}
-
 package bool hasPostblit(in TypeInfo ti) nothrow pure
 {
     return (&ti.postblit).funcptr !is &TypeInfo.postblit;
