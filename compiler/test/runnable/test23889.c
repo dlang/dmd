@@ -1,8 +1,8 @@
 // DISABLED: win freebsd openbsd
 
-// https://issues.dlang.org/show_bug.cgi?id=23886
+// https://issues.dlang.org/show_bug.cgi?id=23889
 
-#include <stdlib.h>
+#include <alloca.h>
 
 int main()
 {
