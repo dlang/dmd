@@ -20,6 +20,11 @@ version (X86_64)
     version (Windows) { /* different ABI */ }
     else version = SysV_x64;
 }
+version (AArch64)
+{
+    version (Windows) { /* different ABI */ }
+    else version = SysV_x64;
+}
 
 version (GNU)
 {
@@ -31,12 +36,28 @@ else version (SysV_x64)
 
     version (DigitalMars)
     {
-        align(16) struct __va_argsave_t
-        {
-            size_t[6] regs;   // RDI,RSI,RDX,RCX,R8,R9
-            real[8] fpregs;   // XMM0..XMM7
-            __va_list va;
-        }
+        version (X86_64)
+            align(16) struct __va_argsave_t
+            {
+                size_t[6] regs;   // RDI,RSI,RDX,RCX,R8,R9
+                real[8] fpregs;   // XMM0..XMM7
+                __va_list va;
+            }
+        else version (AArch64)
+            align(16) struct __va_argsave_t
+            {
+                ulong[8] regs;
+                real[8] fpregs;
+                struct __va_list_tag
+                {
+                    void* stack;
+                    void* gr_top;
+                    void* vr_top;
+                    int gr_offs;
+                    int vr_offs;
+                }
+                void* stack_args_save;
+            }
     }
 }
 
