@@ -17,11 +17,6 @@ version (X86_64)
     version (Windows) { /* different ABI */ }
     else version = SysV_x64;
 }
-version (AArch64)
-{
-    version (Windows) { /* different ABI */ }
-    else version = SysV_x64;
-}
 
 version (SysV_x64):
 
