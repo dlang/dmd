@@ -7989,8 +7989,6 @@ private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
 
         const sz = vd.type.size();
         assert(sz != SIZE_INVALID);
-        if (!sz)
-            return null;
 
         if (vd.type.toBasetype().ty == Tstruct)
         {
