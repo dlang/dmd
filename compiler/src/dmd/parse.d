@@ -1189,8 +1189,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
     do
     {
-        nextToken();
         const unpackLoc = token.loc;
+        nextToken();
         bool hasComma = false;
         auto vars = new AST.Dsymbols();
         while (token.value != TOK.rightParenthesis)
