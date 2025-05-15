@@ -829,6 +829,12 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
             decl = null;
             lowered = true;
         }
+        static import dmd.errors;
+        if (auto uda = userAttribDecl)
+        {
+            dmd.errors.error(loc, "user defined attributes are not supported yet on unpack declarations");
+            return fail();
+        }
 
         import dmd.expressionsem;
         bool needctfe = (storage_class & (STC.manifest | STC.static_)) != 0;
@@ -870,7 +876,6 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
             }
         }
 
-        static import dmd.errors;
         if (!tup)
         {
             dmd.errors.error(loc, "right hand side of unpack declaration must resolve to a tuple or expression sequence, not `%s`",
