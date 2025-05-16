@@ -53,6 +53,8 @@ void main(string[] args)
 
         test18147(session, globals);
 
+        test21382(session, globals);
+
         source.Release();
         session.Release();
         globals.Release();
@@ -483,6 +485,28 @@ void test18147(IDiaSession session, IDiaSymbol globals)
     classMember9999.get_offset(&off);
     off == Class18147.member9999.offsetof || assert(false, "testpdb.Class18147.member9999 bad offset");
 
+}
+
+// https://github.com/dlang/dmd/issues/21382
+class Dsym21382
+{
+    final int finalFun() { return 7; }
+    int virtualFun() { return 13; }
+}
+
+void test21382(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol dSym = searchSymbol(globals, "testpdb.Dsym21382");
+    dSym || assert(false, "testpdb.Dsym21382 not found");
+
+    BOOL virt;
+    IDiaSymbol finalSym = searchSymbol(dSym, "finalFun");
+    finalSym || assert(false, "testpdb.Dsym21382.finalFun not found");
+    finalSym.get_virtual(&virt) == S_OK && !virt || assert(false, "testpdb.Dsym21382.finalFun is virtual");
+
+    IDiaSymbol virtualSym = searchSymbol(dSym, "virtualFun");
+    virtualSym || assert(false, "testpdb.Dsym21382.virtualFun not found");
+    virtualSym.get_virtual(&virt) == S_OK && virt || assert(false, "testpdb.Dsym21382.virtualFun is virtual");
 }
 
 ///////////////////////////////////////////////
