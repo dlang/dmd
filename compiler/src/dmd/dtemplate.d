@@ -4504,7 +4504,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 //printf("type %s\n", ta.toChars());
 
                 // It might really be an Expression or an Alias
-                ta.resolve(loc, sc, ea, ta, sa, (flags & 1) != 0);
+
+                ta.resolve((ta.ty == Tident)? ta.isTypeIdentifier().loc : loc, sc, ea, ta, sa, (flags & 1) != 0);
+
                 if (ea)
                     goto Lexpr;
                 if (sa)
