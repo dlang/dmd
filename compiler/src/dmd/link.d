@@ -1059,8 +1059,8 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
                 auto smbuf = SmallBuffer!wchar(scratch.length, scratch[]);
 
                 // INCLUDE
-                static VSOptions vsopt; // cache, as this can be expensive
-                static Strings includePaths;
+                __gshared VSOptions vsopt; // cache, as this can be expensive
+                __gshared Strings includePaths;
                 if (includePaths.length == 0)
                 {
                     if (!vsopt.VSInstallDir)
