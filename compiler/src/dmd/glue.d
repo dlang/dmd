@@ -529,7 +529,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.isVirtual() && (fd.fensure || fd.frequire))
         f.Fflags3 |= Ffakeeh;
 
-    if (fd.hasNoEH())
+    if (fd.hasNoEH)
         // Same as config.ehmethod==EH_NONE, but only for this function
         f.Fflags3 |= Feh_none;
 
@@ -636,7 +636,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         __gshared uint hiddenparami;    // how many we've generated so far
 
         const(char)* name;
-        if (fd.isNRVO() && fd.nrvo_var)
+        if (fd.isNRVO && fd.nrvo_var)
             name = fd.nrvo_var.ident.toChars();
         else
         {
@@ -645,7 +645,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         }
         shidden = symbol_name(name[0 .. strlen(name)], SC.parameter, thidden);
         shidden.Sflags |= SFLtrue | SFLfree;
-        if (fd.isNRVO() && fd.nrvo_var && fd.nrvo_var.nestedrefs.length)
+        if (fd.isNRVO && fd.nrvo_var && fd.nrvo_var.nestedrefs.length)
             type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
         irs.shidden = shidden;
         fd.shidden = shidden;
@@ -822,7 +822,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
      * 2. impact on function inlining
      * 3. what to do when writing out .di files, or other pretty printing
      */
-    if (global.params.trace && !fd.isCMain() && !fd.isNaked() && !fd.hasInlineAsm)
+    if (global.params.trace && !fd.isCMain() && !fd.isNaked && !fd.hasInlineAsm)
     {
         /* The profiler requires TLS, and TLS may not be set up yet when C main()
          * gets control (i.e. OSX), leading to a crash.

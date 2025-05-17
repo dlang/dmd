@@ -3743,7 +3743,7 @@ public bool throwSemantic(Loc loc, ref Expression exp, Scope* sc)
     exp = exp.checkGC(sc);
     if (exp.isErrorExp())
         return false;
-    if (!exp.type.isNaked())
+    if (!exp.type.isNaked)
     {
         // @@@DEPRECATED_2.112@@@
         // Deprecated in 2.102, change into an error & return false in 2.112
@@ -4104,7 +4104,7 @@ void catchSemantic(Catch c, Scope* sc)
         // reference .object.Throwable
         c.type = getThrowable();
     }
-    else if (!c.type.isNaked() && !c.type.isConst())
+    else if (!c.type.isNaked && !c.type.isConst())
     {
         // @@@DEPRECATED_2.115@@@
         // Deprecated in 2.105, change into an error & uncomment assign in 2.115

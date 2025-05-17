@@ -402,7 +402,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             // functions may be widely used by dmd-compiled projects.
             // It also gives more time for the implementation of dual-context
             // functions to be reworked as a frontend-only feature.
-            if (funcdecl.hasDualContext())
+            if (funcdecl.hasDualContext)
             {
                 .deprecation(funcdecl.loc, "%s `%s` function requires a dual-context, which is deprecated", funcdecl.kind, funcdecl.toPrettyChars);
                 if (auto ti = sc2.parent ? sc2.parent.isInstantiated() : null)
@@ -615,7 +615,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (!funcdecl.fbody)
                     funcdecl.fbody = new CompoundStatement(Loc.initial, new Statements());
 
-                if (funcdecl.isNaked())
+                if (funcdecl.isNaked)
                 {
                     fpreinv = null;         // can't accommodate with no stack frame
                     fpostinv = null;
@@ -970,7 +970,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             /* https://issues.dlang.org/show_bug.cgi?id=10789
                              * If NRVO is not possible, all returned lvalues should call their postblits.
                              */
-                            if (!funcdecl.isNRVO())
+                            if (!funcdecl.isNRVO)
                                 exp = doCopyOrMove(sc2, exp, f.next, true, true);
 
                             if (tret.hasPointers())
@@ -1255,7 +1255,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             {
                                 // 'this' is the monitor
                                 vsync = new VarExp(funcdecl.loc, funcdecl.vthis);
-                                if (funcdecl.hasDualContext())
+                                if (funcdecl.hasDualContext)
                                 {
                                     vsync = new PtrExp(funcdecl.loc, vsync);
                                     vsync = new IndexExp(funcdecl.loc, vsync, IntegerExp.literal!0);
@@ -1298,7 +1298,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
             }
 
-            if (funcdecl.isNaked() && (funcdecl.fensures || funcdecl.frequires))
+            if (funcdecl.isNaked && (funcdecl.fensures || funcdecl.frequires))
                 .error(funcdecl.loc, "%s `%s` naked assembly functions with contracts are not supported", funcdecl.kind, funcdecl.toPrettyChars);
 
             sc2.ctorflow.callSuper = CSX.none;

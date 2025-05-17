@@ -1023,7 +1023,7 @@ private extern (C++) class CVMember : Visitor
             int count = 0;
             int mlen = 2;
             {
-                if (fd.isIntroducing())
+                if (fd.isIntroducing)
                     mlen += 4;
                 mlen += cgcv.sz_idx * 2;
                 count++;
@@ -1052,7 +1052,7 @@ private extern (C++) class CVMember : Visitor
                     attribute |= 2*4;
                 else if (fd.isVirtual())
                 {
-                    if (fd.isIntroducing())
+                    if (fd.isIntroducing)
                     {
                         if (fd.isAbstract())
                             attribute |= 6*4;
@@ -1074,7 +1074,7 @@ private extern (C++) class CVMember : Visitor
                 q += cgcv.sz_idx;
                 TOIDX(q, cv4_memfunctypidx(fd));
                 q += cgcv.sz_idx;
-                if (fd.isIntroducing())
+                if (fd.isIntroducing)
                 {
                     TOLONG(q, fd.vtblIndex * target.ptrsize);
                     q += 4;

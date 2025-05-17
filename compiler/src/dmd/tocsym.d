@@ -149,7 +149,7 @@ Symbol* toSymbol(Dsymbol s)
             {
                 if (FuncDeclaration fd = vd.toParent2().isFuncDeclaration())
                 {
-                    if (fd.isNRVO() && fd.nrvo_var == vd)
+                    if (fd.isNRVO && fd.nrvo_var == vd)
                     {
                         buf.writestring("__nrvo_");
                         buf.writestring(id);

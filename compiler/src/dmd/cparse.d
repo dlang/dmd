@@ -6041,7 +6041,7 @@ final class CParser(AST) : Parser!AST
         {
             //printf("addSym() %s\n", s.toChars());
             if (auto v = s.isVarDeclaration())
-                v.isCmacro(true);       // mark it as coming from a C #define
+                v.isCmacro = true;       // mark it as coming from a C #define
             if (auto td = s.isTemplateDeclaration())
                 td.isCmacro = true; // mark as coming from a C #define
             /* If it's already defined, replace the earlier

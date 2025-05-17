@@ -1046,7 +1046,7 @@ private Expression pickBestBinaryOverload(Scope* sc, Objects* tiargs, Dsymbol s,
     if (s)
     {
         functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2), null);
-        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
+        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors))
             return ErrorExp.get();
     }
     FuncDeclaration lastf = m.lastf;
@@ -1054,7 +1054,7 @@ private Expression pickBestBinaryOverload(Scope* sc, Objects* tiargs, Dsymbol s,
     if (s_r)
     {
         functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, ArgumentList(args1), null);
-        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
+        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors))
             return ErrorExp.get();
     }
     if (m.count > 1)

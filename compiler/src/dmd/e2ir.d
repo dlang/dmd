@@ -628,7 +628,7 @@ elem* toElem(Expression e, ref IRState irs)
         if (se.var.toParent2())
             fd = se.var.toParent2().isFuncDeclaration();
 
-        const bool nrvo = fd && (fd.isNRVO() && fd.nrvo_var == se.var || se.var.nrvo && fd.shidden);
+        const bool nrvo = fd && (fd.isNRVO && fd.nrvo_var == se.var || se.var.nrvo && fd.shidden);
         if (nrvo)
             s = fd.shidden;
 
@@ -7157,7 +7157,7 @@ elem* genHalt(Loc loc)
 private
 elem* setEthis2(Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, ref elem* ethis, ref elem* eside)
 {
-    if (!fd.hasDualContext())
+    if (!fd.hasDualContext)
         return null;
 
     assert(ethis2 && ethis);
