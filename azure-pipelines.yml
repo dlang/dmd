@@ -3,21 +3,6 @@ variables:
   VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\
 
 jobs:
-  - job: Windows_DMD_bootstrap
-    timeoutInMinutes: 60
-    pool:
-      vmImage: 'windows-2019'
-    variables:
-      D_COMPILER: dmd
-      HOST_DMD_VERSION: 2.079.0
-    strategy:
-      matrix:
-        x64:
-          MODEL: 64
-          ARCH: x64
-    steps:
-      - template: .azure-pipelines/windows.yml
-
   - job: Windows_DMD_latest
     timeoutInMinutes: 60
     pool:
