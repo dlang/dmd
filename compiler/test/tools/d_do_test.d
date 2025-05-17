@@ -739,6 +739,11 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     }
 
     findTestParameter(envData, file, "CXXFLAGS", testArgs.cxxflags);
+    version (OSX) {
+        if (envData.compiler == "dmd")
+            testArgs.cxxflags ~= " -arch x86_64";
+    }
+
     string extraCppSourcesStr;
     findTestParameter(envData, file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
     testArgs.cppSources = split(extraCppSourcesStr);
