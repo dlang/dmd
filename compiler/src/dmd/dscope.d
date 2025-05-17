@@ -125,7 +125,7 @@ extern (C++) struct Scope
 {
     Scope* enclosing;               /// enclosing Scope
 
-    Module _module;                 /// Root module
+    Module _module;                 /// module containing the origin of this scope
     ScopeDsymbol scopesym;          /// current symbol
     FuncDeclaration func;           /// function we are in
     VarDeclaration varDecl;         /// variable we are in during semantic2

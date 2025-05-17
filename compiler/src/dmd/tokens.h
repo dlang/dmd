@@ -244,6 +244,7 @@ enum class TOK : unsigned char
     moduleString,   // __MODULE__
     functionString, // __FUNCTION__
     prettyFunction, // __PRETTY_FUNCTION__
+    edition,        // __EDITION__
     shared_,
     at,
     pow,
@@ -421,6 +422,7 @@ enum class EXP : unsigned char
     moduleString,   // __MODULE__
     functionString, // __FUNCTION__
     prettyFunction, // __PRETTY_FUNCTION__
+    edition,        // __EDITION__
     pow,
     powAssign,
     vector,

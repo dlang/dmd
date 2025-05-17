@@ -4675,6 +4675,7 @@ struct ASTBase
             inout(ModuleInitExp)     isModuleInitExp() { return op == EXP.moduleString ? cast(typeof(return))this : null; }
             inout(FuncInitExp)       isFuncInitExp() { return op == EXP.functionString ? cast(typeof(return))this : null; }
             inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == EXP.prettyFunction ? cast(typeof(return))this : null; }
+            inout(EditionInitExp) isEditionInitExp() { return op == EXP.edition ? cast(typeof(return))this : null; }
             inout(AssignExp)         isConstructExp() { return op == EXP.construct ? cast(typeof(return))this : null; }
             inout(AssignExp)         isBlitExp()      { return op == EXP.blit ? cast(typeof(return))this : null; }
 
@@ -5804,6 +5805,19 @@ struct ASTBase
         extern (D) this(Loc loc)
         {
             super(loc, EXP.moduleString, __traits(classInstanceSize, ModuleInitExp));
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class EditionInitExp : DefaultInitExp
+    {
+        extern (D) this(Loc loc)
+        {
+            super(loc, EXP.edition, __traits(classInstanceSize, EditionInitExp));
         }
 
         override void accept(Visitor v)
