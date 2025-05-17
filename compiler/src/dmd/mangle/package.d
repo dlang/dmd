@@ -318,6 +318,14 @@ void mangleType(Type t, ubyte modMask, ref OutBuffer buf, ref Backref backref)
 
 
 /*************************************************************
+ * Mangle type of function. writing it to `buf`
+ * Params:
+ *	t = function type
+ *	ta = consult original function type for attributes
+ *	modMask = type modifiers
+ *	tret = function return type
+ *	buf = sink for mangling characters
+ *	backref = back reference
  */
 void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret, ref OutBuffer buf, ref Backref backref)
 {
