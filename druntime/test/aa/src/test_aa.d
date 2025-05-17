@@ -41,6 +41,7 @@ void main()
     testTombstonePurging();
     testClear();
     testTypeInfoCollect();
+    testNew();
 }
 
 void testKeysValues1()
@@ -946,4 +947,16 @@ void testTypeInfoCollect()
         auto p = new void*[1];
     s = null; // clear any reference to the entry
     GC.collect(); // used to segfault.
+}
+
+void testNew()
+{
+    auto aa = new long[int]; // call _d_newAA
+    assert(aa.length == 0);
+    foreach (i; 0 .. 100)
+        aa[i] = i * 2;
+    assert(aa.length == 100);
+
+    // not supported in CTFE (it doesn't do much anyway):
+    // static auto aa = new long[int];
 }

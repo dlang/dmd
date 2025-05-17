@@ -1246,7 +1246,8 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
 
                 semanticTypeInfo(sc, taa.index);
 
-                return new RemoveExp(loc, eleft, key);
+                e = new RemoveExp(loc, eleft, key);
+                return e.expressionSemantic(sc);
             }
         }
         else
@@ -4876,6 +4877,40 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ne.lowering = id.expressionSemantic(sc);
     }
 
+    /**
+    * Sets the `lowering` field of a `NewExp` to a call to `_d_newAA` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  ne = the `NewExp` to lower
+    */
+    private void tryLowerToNewAA(NewExp ne)
+    {
+        if (!global.params.useGC || !sc.needsCodegen())
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaNew");
+        if (!verifyHookExist(ne.loc, *sc, hook, "new AA"))
+            return;
+
+        /* Lower the memory allocation and initialization of `new V[K]` to
+        * `_d_newAA!(V[K])()`.
+        */
+        Expression id = new IdentifierExp(ne.loc, Id.empty);
+        id = new DotIdExp(ne.loc, id, Id.object);
+        auto tiargs = new Objects();
+        auto taa = ne.type.isTypeAArray();
+        assert(taa);
+        tiargs.push(taa.index);
+        tiargs.push(taa.next);
+        id = new DotTemplateInstanceExp(ne.loc, id, hook, tiargs);
+
+        auto arguments = new Expressions();
+        id = new CallExp(ne.loc, id, arguments);
+
+        ne.lowering = id.expressionSemantic(sc);
+    }
+
     override void visit(NewExp exp)
     {
         static if (LOGSEMANTIC)
@@ -5522,6 +5557,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(exp.loc, "`new` cannot take arguments for an associative array");
                 return setError();
             }
+            tryLowerToNewAA(exp);
         }
         else
         {
@@ -13164,6 +13200,64 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         return;
     }
 
+    /**
+    * Sets the `lowering` field of a `InExp` to a call to `_d_aaIn!(V[K])` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  ie = the `InExp` to lower
+    */
+    private void tryLowerToAAIn(InExp ie)
+    {
+        if (!global.params.useGC || !sc.needsCodegen() || ie.lowering)
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaIn");
+        if (!verifyHookExist(ie.loc, *sc, hook, "key in AA"))
+            return;
+
+        Expression id = new IdentifierExp(ie.loc, Id.empty);
+        id = new DotIdExp(ie.loc, id, Id.object);
+        auto tiargs = new Objects();
+        id = new DotIdExp(ie.loc, id, hook);
+
+        auto arguments = new Expressions();
+        arguments.push(ie.e2);
+        arguments.push(ie.e1);
+        id = new CallExp(ie.loc, id, arguments);
+
+        ie.lowering = id.expressionSemantic(sc);
+    }
+
+    /**
+    * Sets the `lowering` field of a `RemoveExp` to a call to `_d_aaDel!(V[K])` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  re = the `RemoveExp` to lower
+    */
+    private void tryLowerToAADel(RemoveExp re)
+    {
+        if (!global.params.useGC || !sc.needsCodegen() || re.lowering)
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaDel");
+        if (!verifyHookExist(re.loc, *sc, hook, "remove key in AA"))
+            return;
+
+        Expression id = new IdentifierExp(re.loc, Id.empty);
+        id = new DotIdExp(re.loc, id, Id.object);
+        auto tiargs = new Objects();
+        id = new DotIdExp(re.loc, id, hook);
+
+        auto arguments = new Expressions();
+        arguments.push(re.e1);
+        arguments.push(re.e2);
+        id = new CallExp(re.loc, id, arguments);
+
+        re.lowering = id.expressionSemantic(sc);
+    }
+
     override void visit(InExp exp)
     {
         if (Expression e = exp.opOverloadBinary(sc, aliasThisStop))
@@ -13185,6 +13279,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // Convert key to type of key
                     exp.e1 = exp.e1.implicitCastTo(sc, ta.index);
                 }
+
+                tryLowerToAAIn(exp);
 
                 // even though the glue layer only needs the type info of the index,
                 // this might be the first time an AA literal is accessed, so check
@@ -13221,7 +13317,42 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
+
+        tryLowerToAADel(e);
+
+        e.type = Type.tbool;
         result = e;
+    }
+
+    /**
+    * Sets the `lowering` field of a `EqualExp` to a call to `_d_aaEqual!(aa1, aa2)` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  ee = the `EqualExp` to lower
+    */
+    private void tryLowerToAAEqual(EqualExp ee)
+    {
+        if (!global.params.useGC || !sc.needsCodegen() || ee.lowering)
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaEqual");
+        if (!verifyHookExist(ee.loc, *sc, hook, "compare AAs"))
+            return;
+
+        Expression id = new IdentifierExp(ee.loc, Id.empty);
+        id = new DotIdExp(ee.loc, id, Id.object);
+        auto tiargs = new Objects();
+        id = new DotIdExp(ee.loc, id, hook);
+
+        auto arguments = new Expressions();
+        arguments.push(ee.e1);
+        arguments.push(ee.e2);
+        Expression exp = new CallExp(ee.loc, id, arguments);
+        if (ee.op == EXP.notEqual)
+            exp = new NotExp(ee.loc, exp);
+
+        ee.lowering = exp.expressionSemantic(sc);
     }
 
     override void visit(EqualExp exp)
@@ -13427,6 +13558,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (exp.e1.type.toBasetype().ty == Taarray)
         {
+            tryLowerToAAEqual(exp);
+
             semanticTypeInfo(sc, exp.e1.type.toBasetype());
         }
 
