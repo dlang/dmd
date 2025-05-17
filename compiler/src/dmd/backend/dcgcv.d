@@ -1883,7 +1883,7 @@ private void cv4_func(Funcsym* s, ref symtab_t symtab)
         }
     }
 
-    varStats_writeSymbolTable(symtab, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
+    varStats_writeSymbolTable(sfunc, symtab, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
 
     // Put out function return record
     if (1)

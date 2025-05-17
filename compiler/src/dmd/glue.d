@@ -644,7 +644,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             name = hiddenparam.ptr;
         }
         shidden = symbol_name(name[0 .. strlen(name)], SC.parameter, thidden);
-        shidden.Sflags |= SFLtrue | SFLfree;
+        shidden.Sflags |= SFLtrue | SFLfree | SFLhidden;
         if (fd.isNRVO() && fd.nrvo_var && fd.nrvo_var.nestedrefs.length)
             type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
         irs.shidden = shidden;
