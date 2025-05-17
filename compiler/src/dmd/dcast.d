@@ -46,6 +46,7 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.utf;
 import dmd.safe : setUnsafe;
+import dmd.target : target;
 import dmd.tokens;
 import dmd.typesem;
 
@@ -178,6 +179,20 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                     {
                         error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toChars(), t.toChars());
                         errorSupplemental(e.loc, "Note: Pointer types point to different base types (`%s` vs `%s`)", fromPointee.toChars(), toPointee.toChars());
+                        return ErrorExp.get();
+                    }
+                }
+
+                // Special Case for Integer Truncation
+                if (e.type.isIntegral() && t.isIntegral())
+                {
+                    uint srcSize = cast(uint)(target.ptrsize * e.type.size());
+                    uint dstSize = cast(uint)(target.ptrsize * t.size());
+
+                    if (srcSize > dstSize)
+                    {
+                        error(e.loc, "implicit conversion from `%s` (%u bytes) to `%s` (%u bytes) may truncate value", e.type.toChars(), srcSize, t.toChars(), dstSize);
+                        errorSupplemental(e.loc, "Use an explicit cast (e.g., `cast(%s)expr`) to silence this.", t.toChars());
                         return ErrorExp.get();
                     }
                 }
