@@ -4010,10 +4010,6 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
     a.reserve(10);
 }
 
-// HACK:  This is a lie.  `_d_arrayshrinkfit` is not `nothrow`, but this lie is necessary
-// for now to prevent breaking code.
-private extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
-
 /**
 Assume that it is safe to append to this array. Appends made to this array
 after calling this function may append in place, even if the array was a
@@ -4031,7 +4027,13 @@ Returns:
 */
 auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 {
-    _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
+    import core.internal.array.capacity : _d_arrayshrinkfit;
+    import core.internal.traits : Unqual;
+
+    alias Unqual_Tarr = Unqual!T[];
+    enum isshared = is(T == shared);
+    _d_arrayshrinkfit(cast(Unqual_Tarr)arr, isshared);
+
     return arr;
 }
 
