@@ -247,6 +247,13 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
                 ob.writestring(name);
                 ob.writenl();
             }
+
+            if (global.params.makeDeps.doOutput)
+            {
+                import dmd.root.string: toCString;
+                global.params.makeDeps.files.push(name.toCString.ptr);
+            }
+
             mem.xfree(name.ptr);
         }
         return noDeclarations();
