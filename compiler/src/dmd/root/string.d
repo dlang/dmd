@@ -238,30 +238,6 @@ int dstrcmp()( scope const char[] s1, scope const char[] s2 ) @trusted
     return s1.length < s2.length ? -1 : (s1.length > s2.length);
 }
 
-
-/**
- * Checks if a given path points to file with an extension.
- */
-bool hasExtension(char[] path)
-{
-    int len = cast(int)path.length;
-    int lastSep = -1;
-    for (int i = len - 1; i >= 0; --i)
-    {
-        if (path[i] == '/' || path[i] == '\\')
-        {
-            lastSep = i;
-            break;
-        }
-    }
-    for (int i = lastSep + 1; i < len; ++i)
-    {
-        if (path[i] == '.')
-            return true;
-    }
-    return false;
-}
-
 //
 unittest
 {

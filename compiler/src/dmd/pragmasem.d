@@ -250,7 +250,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
                 ob.writenl();
             }
 
-            if (global.params.makeDeps.doOutput && name.hasExtension)
+            if (global.params.makeDeps.doOutput)
             {
                 global.params.makeDeps.files.push(name.toCString.ptr);
             }
