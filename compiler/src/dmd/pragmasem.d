@@ -227,7 +227,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
             .error(pd.loc, "%s `%s` string expected for library name", pd.kind, pd.toPrettyChars);
         else
         {
-            import dmd.root.string: toCString, hasExtension;
+            import dmd.root.string: toCString;
 
             auto se = semanticString(sc, (*pd.args)[0], "library name");
             if (!se)
