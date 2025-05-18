@@ -3425,6 +3425,11 @@ final class CParser(AST) : Parser!AST
                         cparseParens();
                 }
             }
+            else if (token.value == TOK._Noreturn)
+            {
+                specifier.noreturn = true;
+                nextToken();
+            }
             else if (token.value == TOK.restrict) // ImportC assigns no semantics to `restrict`, so just ignore the keyword.
                 nextToken();
             else
