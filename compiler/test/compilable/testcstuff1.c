@@ -293,6 +293,8 @@ void test2()
 
     inline int f();
     _Noreturn void g();
+    __declspec(noreturn) void g2();
+    __declspec(_Noreturn) void g3();
 
     _Static_assert(1, "ok");
 }

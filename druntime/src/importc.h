@@ -166,7 +166,9 @@ typedef unsigned long long __uint64_t;
 /***************************
  * C11 6.10.8.3 Conditional feature macros
  */
+#if !(defined(_MSC_VER) && defined(__STDC_NO_VLA__)) // pre-defined to 1 by MS when using /std:cXX and causing warning C4117
 #define __STDC_NO_VLA__ 1
+#endif
 
 #define _Float16 float
 #ifdef __linux__  // Microsoft won't allow the following macro
