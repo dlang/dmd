@@ -7346,7 +7346,7 @@ Type substWildTo(Type type, uint mod)
             t = t.addMod(MODFlags.shared_);
 
         //printf("-Type.substWildTo t = %s\n", t.toChars());
-        return t;
+        return t.merge();
     }
 
     if (!tf.iswild && !(tf.mod & MODFlags.wild))
