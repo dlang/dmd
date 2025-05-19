@@ -171,7 +171,8 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | File                                                                    | Purpose                                   |
 |-------------------------------------------------------------------------|-------------------------------------------|
 | [iasm.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/iasm.d)       | Inline assembly depending on the compiler |
-| [iasmdmd.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/iasmdmd.d) | Inline assembly for DMD                   |
+| [iasmdmd.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/iasmdmd.d) | Inline assembly for DMD X86_64            |
+| [iasmaarch64.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/iasmaarch64.d) | Inline assembly for DMD AArch64   |
 | [iasmgcc.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/iasmgcc.d) | Inline assembly for GDC                   |
 
 **Other**
