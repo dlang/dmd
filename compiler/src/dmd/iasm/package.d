@@ -30,13 +30,22 @@ version (NoBackend)
 }
 else version (IN_GCC)
 {
-    import dmd.iasmgcc;
+    version = Asm_GCC;
+}
+else version (IN_LLVM)
+{
+    version = Asm_GCC;
 }
 else
 {
-    import dmd.iasmdmd;
-    import dmd.iasmaarch64;
+    import dmd.iasm.dmdx86;
+    import dmd.iasm.dmdaarch64;
     version = MARS;
+}
+
+version (Asm_GCC)
+{
+    import dmd.iasm.gcc;
 }
 
 /************************ AsmStatement ***************************************/
@@ -79,7 +88,7 @@ Statement asmSemantic(AsmStatement s, Scope* sc)
             ? inlineAsmAArch64Semantic(ias, sc)
             : inlineAsmSemantic(ias, sc);       // X86_64
     }
-    else version (IN_GCC)
+    else version (Asm_GCC)
     {
         auto eas = new GccAsmStatement(s.loc, s.tokens);
         return gccAsmSemantic(eas, sc);
@@ -98,7 +107,7 @@ void asmSemantic(CAsmDeclaration ad, Scope* sc)
     version (NoBackend)
     {
     }
-    else version (IN_GCC)
+    else version (Asm_GCC)
     {
         return gccAsmSemantic(ad, sc);
     }

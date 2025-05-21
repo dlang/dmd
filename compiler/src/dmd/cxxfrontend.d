@@ -395,14 +395,14 @@ void asmSemantic(CAsmDeclaration d, Scope* sc)
  */
 Statement gccAsmSemantic(GccAsmStatement s, Scope* sc)
 {
-    import dmd.iasmgcc;
-    return dmd.iasmgcc.gccAsmSemantic(s, sc);
+    import dmd.iasm.gcc;
+    return dmd.iasm.gcc.gccAsmSemantic(s, sc);
 }
 
 void gccAsmSemantic(CAsmDeclaration d, Scope* sc)
 {
-    import dmd.iasmgcc;
-    return dmd.iasmgcc.gccAsmSemantic(d, sc);
+    import dmd.iasm.gcc;
+    return dmd.iasm.gcc.gccAsmSemantic(d, sc);
 }
 
 /***********************************************************
