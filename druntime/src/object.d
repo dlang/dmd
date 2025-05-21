@@ -2562,7 +2562,6 @@ class Throwable : Object
                                 // 1 : allocated by _d_newThrowable()
                                 // 2.. : reference count + 1
 
-
     /**
      * Returns:
      * A reference to the _next error in the list. This is used when a new
