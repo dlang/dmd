@@ -2642,6 +2642,7 @@ public:
             auto aae = ctfeEmplaceExp!AssocArrayLiteralExp(e.loc, keysx, valuesx);
             aae.type = e.type;
             aae.lowering = e.lowering;
+            aae.loweringCtfe = e.loweringCtfe;
             aae.ownedByCtfe = OwnedBy.ctfe;
             result = aae;
         }

@@ -2863,7 +2863,8 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             }
             ae.type = t;
             ae.lowering = null; // we need a different lowering
-            semanticTypeInfo(sc, ae.type);
+            ae.loweringCtfe = null;
+            ae.expressionSemantic(sc);
             return ae;
         }
         return visit(e);

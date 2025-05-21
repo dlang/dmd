@@ -2352,7 +2352,8 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
     // so don't print anything to avoid double error messages.
     if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
         || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
-        || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT))
+        || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT
+        || f.ident == Id._d_assocarrayliteralTX))
     {
         error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
             sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
@@ -4560,11 +4561,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     void tryLowerAALiteral(AssocArrayLiteralExp aaExp)
     {
-        auto hookId = Identifier.idPool("_d_assocarrayliteralTX");
+        auto hookId = Id._d_assocarrayliteralTX;
         if (!verifyHookExist(aaExp.loc, *sc, hookId, "initializing associative arrays", Id.object))
             return;
 
-        auto aaType = aaExp.type.isTypeAArray();
+        auto aaType = aaExp.type.toBasetype().isTypeAArray();
         assert(aaType);
         Expression hookFunc = new IdentifierExp(aaExp.loc, Id.empty);
         hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id.object);
@@ -15506,6 +15507,9 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
             if (element)
                 element = element.resolveLoc(loc, sc);
         }
+
+        if (exp.lowering)
+            exp.lowering.resolveLoc(loc, sc);
 
         return exp;
     }
