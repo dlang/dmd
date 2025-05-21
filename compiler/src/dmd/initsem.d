@@ -87,8 +87,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Scope* sc)
             return no("missing key for value `%s` in initializer", iz);
         (*keys)[i] = ei;
     }
-    auto aaExp = new AssocArrayLiteralExp(ai.loc, keys, values);
-    return aaExp.expressionSemantic(sc); // generate lowering
+    return new AssocArrayLiteralExp(ai.loc, keys, values);
 }
 
 /******************************************
