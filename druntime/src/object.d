@@ -2551,10 +2551,10 @@ class Throwable : Object
     private void*   _nextInChainPtr;
 
     // 0 = not ref counted, 1 = ref counted
-    private @property size_t _nextIsRefcounted() @trusted scope pure nothrow @nogc const
+    private @property bool _nextIsRefcounted() @trusted scope pure nothrow @nogc const
     {
         if (__ctfe)
-            return 0;
+            return false;
         return (cast(size_t)_nextInChainPtr) & 1;
     }
 
