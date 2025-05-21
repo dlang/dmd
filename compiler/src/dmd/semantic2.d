@@ -875,7 +875,7 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
         if (!aaExp.lowering)
             expressionSemantic(aaExp, sc);
         assert(aaExp.lowering);
-        aaExp.lowering = aaExp.lowering.ctfeInterpret();
+        aaExp.loweringCtfe = aaExp.lowering.ctfeInterpret();
      }
         semanticTypeInfo(sc, aaExp.lowering.type);
     }
