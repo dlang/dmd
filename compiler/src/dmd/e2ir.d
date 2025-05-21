@@ -4176,54 +4176,9 @@ elem* toElem(Expression e, ref IRState irs)
     {
         //printf("AssocArrayLiteralExp.toElem() %s\n", aale.toChars());
         if (aale.lowering)
-        {
             return toElem(aale.lowering, irs);
-        }
 
-        Type t = aale.type.toBasetype().mutableOf();
-
-        size_t dim = aale.keys.length;
-        if (!dim)
-        {
-            elem* e = el_long(TYnptr, 0);      // empty associative array is the null pointer
-            if (t.ty != Taarray)
-                e = addressElem(e, Type.tvoidptr);
-            return e;
-        }
-
-        // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
-        // Prefer this to avoid the varargs fiasco in 64 bit code
-
-        assert(t.ty == Taarray);
-        Type ta = t;
-
-        Symbol* skeys = null;
-        elem* ekeys = ExpressionsToStaticArray(irs, aale.loc, aale.keys, &skeys);
-
-        Symbol* svalues = null;
-        elem* evalues = ExpressionsToStaticArray(irs, aale.loc, aale.values, &svalues);
-
-        elem* ev = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues));
-        elem* ek = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  ));
-        if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
-        {
-            ev = addressElem(ev, Type.tvoid.arrayOf());
-            ek = addressElem(ek, Type.tvoid.arrayOf());
-        }
-        elem* e = el_params(ev, ek,
-                            getTypeInfo(aale, ta, irs),
-                            null);
-
-        // call _d_assocarrayliteralTX(ti, keys, values)
-        e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM.ASSOCARRAYLITERALTX)),e);
-        toTraceGC(irs, e, aale.loc);
-        if (t != ta)
-            e = addressElem(e, ta);
-        elem_setLoc(e, aale.loc);
-
-        e = el_combine(evalues, e);
-        e = el_combine(ekeys, e);
-        return e;
+        assert(false, "no lowering for associative array literal");
     }
 
     elem* visitStructLiteral(StructLiteralExp sle)
