@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/iasmaarch64.d
  */
 
-module dmd.iasmaarch64;
+module dmd.iasm.dmdaarch64;
 
 import core.stdc.stdio;
 import core.stdc.stdarg;

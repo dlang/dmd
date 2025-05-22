@@ -9,7 +9,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/iasmgcc.d
  */
 
-module dmd.iasmgcc;
+module dmd.iasm.gcc;
 
 import core.stdc.string;
 

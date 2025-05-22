@@ -11,7 +11,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/iasmdmd.d
  */
 
-module dmd.iasmdmd;
+module dmd.iasm.dmdx86;
 
 import core.stdc.stdio;
 import core.stdc.stdarg;
