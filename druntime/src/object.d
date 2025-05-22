@@ -2550,7 +2550,6 @@ class Throwable : Object
      */
     private void*   _nextInChainPtr;
 
-    // 0 = not ref counted, 1 = ref counted
     private @property bool _nextIsRefcounted() @trusted scope pure nothrow @nogc const
     {
         if (__ctfe)
