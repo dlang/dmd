@@ -85,6 +85,30 @@ static struct Entry(K, V)
     V value;
 }
 
+// mimick behaviour of rt.aaA for initialization
+Entry!(K, V)* _newEntry(K, V)(ref K key, ref V value) @trusted
+{
+    static if(__traits(compiles, new Entry!(K, V)(key, value)))
+        return new Entry!(K, V)(key, value);
+    else
+    {
+        import core.stdc.string;
+        auto entry = new Entry!(K, V);
+        // move without postblit!?
+        memcpy(&entry.key, &key, K.sizeof);
+        static if (__traits(isZeroInit, K))
+            memset(&key, 0, K.sizeof);
+        else
+            memcpy(&key, &K.init, K.sizeof);
+        memcpy(&entry.value, &value, V.sizeof);
+        static if (__traits(isZeroInit, V))
+            memset(&value, 0, V.sizeof);
+        else
+            memcpy(&value, &V.init, V.sizeof);
+        return entry;
+    }
+}
+
 // for backward compatibility, do not require const in hashOf()
 hash_t wrap_hashOf(K)(scope const ref K key) { return hashOf(cast()key); }
 enum pure_hashOf(K) = cast(hash_t function(scope ref const K key) pure nothrow @nogc @safe) &wrap_hashOf!K;
@@ -630,14 +654,14 @@ Impl!(K, V)* _d_assocarrayliteralTX(K, V)(K[] keys, V[] vals)
             static if (__traits(compiles, p.entry.value = vals[i])) // immutable?
                 p.entry.value = vals[i];
             else
-                p.entry = new Entry!(K, V)(keys[i], vals[i]);
+                p.entry = _newEntry!(K, V)(keys[i], vals[i]);
             duplicates++;
             continue;
         }
         auto pi = aa.findSlotInsert(hash);
         p = &aa.buckets[pi];
         p.hash = hash;
-        p.entry = new Entry!(K, V)(keys[i], vals[i]); // todo: move key and value?
+        p.entry = _newEntry!(K, V)(keys[i], vals[i]); // todo: move key and value?
         aa.firstUsed = min(aa.firstUsed, cast(uint)pi);
     }
     aa.used = cast(uint) (length - duplicates);
