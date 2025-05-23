@@ -425,6 +425,7 @@ public:
     Expressions *keys;
     Expressions *values;
     Expression* lowering;
+    Expression* loweringCtfe;
 
     bool equals(const RootObject * const o) const override;
     AssocArrayLiteralExp *syntaxCopy() override;
