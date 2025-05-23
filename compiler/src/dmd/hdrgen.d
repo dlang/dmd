@@ -2450,6 +2450,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitAssocArrayLiteral(AssocArrayLiteralExp e)
     {
+        if (hgs.vcg_ast && e.lowering)
+        {
+            expToBuffer(e.lowering, PREC.assign, buf, hgs);
+            return;
+        }
         buf.put('[');
         foreach (i, key; *e.keys)
         {
