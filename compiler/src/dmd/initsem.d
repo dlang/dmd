@@ -57,7 +57,7 @@ import dmd.typesem;
  *     The converted associative array initializer or ErrorExp if `ai`
  *     is not an associative array initializer.
  */
-Expression toAssocArrayLiteral(ArrayInitializer ai, Scope* sc)
+Expression toAssocArrayLiteral(ArrayInitializer ai)
 {
     //printf("ArrayInitializer::toAssocArrayInitializer(%s)\n", ai.toChars());
     //static int i; if (++i == 2) assert(0);
@@ -225,7 +225,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 Expression e;
                 // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
                 if (t.ty == Taarray || i.isAssociativeArray())
-                    e = i.toAssocArrayLiteral(sc);
+                    e = i.toAssocArrayLiteral();
                 else
                     e = i.initializerToExpression();
                 // Bugzilla 13987
