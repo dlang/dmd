@@ -4570,12 +4570,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression hookFunc = new IdentifierExp(aaExp.loc, Id.empty);
         hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id.object);
         auto tiargs = new Objects();
-        tiargs.push(aaType.index);
-        tiargs.push(aaType.nextOf());
+        auto keytype = aaType.index.substWildTo(MODFlags.const_);
+        auto valtype = aaType.nextOf().substWildTo(MODFlags.const_);
+        tiargs.push(keytype);
+        tiargs.push(valtype);
         hookFunc = new DotTemplateInstanceExp(aaExp.loc, hookFunc, hookId, tiargs);
         auto arguments = new Expressions();
-        arguments.push(new ArrayLiteralExp(aaExp.loc, aaType.index.arrayOf(), aaExp.keys));
-        arguments.push(new ArrayLiteralExp(aaExp.loc, aaType.nextOf().arrayOf(), aaExp.values));
+        arguments.push(new ArrayLiteralExp(aaExp.loc, keytype.arrayOf(), aaExp.keys));
+        arguments.push(new ArrayLiteralExp(aaExp.loc, valtype.arrayOf(), aaExp.values));
         Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
 
         loweredExp = loweredExp.expressionSemantic(sc);

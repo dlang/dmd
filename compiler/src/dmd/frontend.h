@@ -2689,6 +2689,7 @@ public:
     Array<Expression* >* keys;
     Array<Expression* >* values;
     Expression* lowering;
+    Expression* loweringCtfe;
     bool equals(const RootObject* const o) const override;
     AssocArrayLiteralExp* syntaxCopy() override;
     Optional<bool > toBool() override;
@@ -5574,7 +5575,7 @@ private:
         char symoffexp[56LLU];
         char stringexp[44LLU];
         char arrayliteralexp[40LLU];
-        char assocarrayliteralexp[48LLU];
+        char assocarrayliteralexp[56LLU];
         char structliteralexp[64LLU];
         char compoundliteralexp[32LLU];
         char nullexp[22LLU];
@@ -8995,6 +8996,7 @@ struct Id final
     static Identifier* _d_arrayappendcTXTrace;
     static Identifier* _d_arraycatnTX;
     static Identifier* _d_arraycatnTXTrace;
+    static Identifier* _d_ssocarrayliteralTX;
     static Identifier* stdc;
     static Identifier* stdarg;
     static Identifier* va_start;

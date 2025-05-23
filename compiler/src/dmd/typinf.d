@@ -170,7 +170,6 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
     import dmd.arraytypes;
     import dmd.expressionsem;
     import dmd.id;
-    import dmd.identifier;
 
     assert(sc); // must not be called in the code generation phase
 
