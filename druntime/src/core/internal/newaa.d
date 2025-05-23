@@ -557,14 +557,12 @@ auto _aaValues(K, V)(inout V[K] a)
     if (aa.empty)
         return null;
 
-    inout(V)[] res;
+    typeof([aa.buckets[0].entry.value]) res; // as mutable as it can get
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
             continue;
-        inout(V)* value;
-        delegate() @trusted { value = cast(inout) &b.entry.value; }();
-        res ~= *value;
+        res ~= b.entry.value;
     }
     return res;
 }
@@ -576,14 +574,12 @@ auto _aaKeys(K, V)(inout V[K] a)
     if (aa.empty)
         return null;
 
-    inout(K)[] res;
+    typeof([aa.buckets[0].entry.key]) res; // as mutable as it can get
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
             continue;
-        inout(K)* key;
-        delegate() @trusted { key = cast(inout) &b.entry.key; }();
-        res ~= *key;
+        res ~= b.entry.key;
     }
     return res;
 }
