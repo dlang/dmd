@@ -68,15 +68,14 @@ private template Unqualify(T : const U, U)
         alias Unqualify = Unconstify!U;
 }
 
-ref _refAA(V, K)(ref inout V[K] aa) @trusted
+ref _refAA(K, V)(ref inout V[K] aa) @trusted
 {
     return *(cast(AA!(substInout!K, substInout!V)*)&aa);
 }
 
-auto _toAA(T : V[K], V, K)(inout ref T aa) @trusted
+auto _toAA(K, V)(const V[K] aa) @trusted
 {
-    V[K] aai = cast(Unqualify!T)aa;
-    return *(cast(AA!(substInout!K, substInout!V)*)&aai);
+    return *(cast(AA!(K, V)*)&aa);
 }
 
 static struct Entry(K, V)
@@ -444,7 +443,7 @@ inout(V)* _aaGetRvalueX(K, V)(inout AA!(K, V) aa, scope ref const K pkey)
  */
 auto _aaDup(T : V[K], K, V)(T a)
 {
-    auto aa = _toAA(a);
+    auto aa = _toAA!(K, V)(a);
     immutable len = _aaLen(aa);
     if (len == 0)
         return null;
@@ -478,7 +477,7 @@ auto _aaDup(T : V[K], K, V)(T a)
  */
 auto _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref const K2 key2)
 {
-    auto aa = _toAA(a);
+    auto aa = _toAA!(K, V)(a);
     if (aa.empty)
         return null;
 
@@ -502,7 +501,7 @@ private extern(C) bool gc_inFinalizer() pure nothrow @safe;
 /// Delete entry scope const AA, return true if it was present
 auto _d_aaDel(T : V[K], K, V, K2)(T a, auto ref const K2 key2)
 {
-    auto aa = _toAA(a);
+    auto aa = _toAA!(K, V)(a);
     if (aa.empty)
         return false;
 
@@ -535,7 +534,7 @@ auto _d_aaDel(T : V[K], K, V, K2)(T a, auto ref const K2 key2)
 /// Remove all elements from AA.
 void _aaClear(K, V)(V[K] a)
 {
-    auto aa = _toAA(a);
+    auto aa = _toAA!(K, V)(a);
     if (!aa.empty)
     {
         aa.clear();
@@ -545,7 +544,7 @@ void _aaClear(K, V)(V[K] a)
 /// Rehash AA
 V[K] _aaRehash(K, V)(V[K] a)
 {
-    auto aa = _toAA(a);
+    auto aa = _toAA!(K, V)(a);
     if (!aa.empty)
         aa.resize(nextpow2(INIT_DEN * aa.length / INIT_NUM));
     return a;
@@ -554,16 +553,18 @@ V[K] _aaRehash(K, V)(V[K] a)
 /// Return a GC allocated array of all values
 auto _aaValues(K, V)(inout V[K] a)
 {
-    auto aa = _toAA(a);
+    auto aa = _toAA!(K, V)(a);
     if (aa.empty)
         return null;
 
-    Unconstify!V[] res;
+    inout(V)[] res;
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
             continue;
-        res ~= b.entry.value;
+        inout(V)* value;
+        delegate() @trusted { value = cast(inout) &b.entry.value; }();
+        res ~= *value;
     }
     return res;
 }
@@ -571,16 +572,18 @@ auto _aaValues(K, V)(inout V[K] a)
 /// Return a GC allocated array of all keys
 auto _aaKeys(K, V)(inout V[K] a)
 {
-    auto aa = _toAA(a);
+    auto aa = _toAA!(K, V)(a);
     if (aa.empty)
         return null;
 
-    Unconstify!K[] res;
+    inout(K)[] res;
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
             continue;
-        res ~= b.entry.key;
+        inout(K)* key;
+        delegate() @trusted { key = cast(inout) &b.entry.key; }();
+        res ~= *key;
     }
     return res;
 }
@@ -698,8 +701,8 @@ bool _aaEqual(T : AA!(K, V), K, V)(scope T aa1, scope T aa2)
 /// compares 2 AAs for equality (compiler hook)
 bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2)
 {
-    scope aa1 = _toAA(a1);
-    scope aa2 = _toAA(a2);
+    scope aa1 = _toAA!(K, V)(a1);
+    scope aa2 = _toAA!(K, V)(a2);
     return _aaEqual(aa1, aa2);
 }
 
@@ -743,7 +746,7 @@ struct AARange(K, V)
 
 AARange!(K, V) _aaRange(K, V)(V[K] a)
 {
-    auto aa = _toAA(a);
+    auto aa = _toAA!(K, V)(a);
     if (!aa)
         return AARange!(K, V)();
 
