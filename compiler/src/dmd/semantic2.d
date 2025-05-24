@@ -813,10 +813,11 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
  */
 void lowerStaticAAs(VarDeclaration vd, Scope* sc)
 {
-    if (vd.storage_class & STC.manifest)
-        return;
     if (auto ei = vd._init.isExpInitializer())
-        lowerStaticAAs(ei.exp, sc);
+    {
+        scope v = new StaticAAVisitor(sc, vd.storage_class);
+        ei.exp.accept(v);
+    }
 }
 
 /**
@@ -828,7 +829,7 @@ void lowerStaticAAs(VarDeclaration vd, Scope* sc)
  */
 void lowerStaticAAs(Expression e, Scope* sc)
 {
-    scope v = new StaticAAVisitor(sc);
+    scope v = new StaticAAVisitor(sc, STC.none);
     e.accept(v);
 }
 
@@ -837,10 +838,12 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
 {
     alias visit = SemanticTimeTransitiveVisitor.visit;
     Scope* sc;
+    STC storage_class;
 
-    this(Scope* sc) scope @safe
+    this(Scope* sc, STC storage_class) scope @safe
     {
         this.sc = sc;
+        this.storage_class = storage_class;
     }
 
     override void visit(AssocArrayLiteralExp aaExp)
@@ -875,7 +878,8 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
         if (!aaExp.lowering)
             expressionSemantic(aaExp, sc);
         assert(aaExp.lowering);
-        aaExp.loweringCtfe = aaExp.lowering.ctfeInterpret();
+        if (!(storage_class & STC.manifest)) // manifest constants create runtime copies
+            aaExp.loweringCtfe = aaExp.lowering.ctfeInterpret();
      }
         semanticTypeInfo(sc, aaExp.lowering.type);
     }
