@@ -15,30 +15,12 @@
 module rt.cast_;
 
 debug(cast_) import core.stdc.stdio : printf;
+import core.internal.cast_ : areClassInfosEqual;
 
 extern (C):
 @nogc:
 nothrow:
 pure:
-
-// Needed because ClassInfo.opEquals(Object) does a dynamic cast,
-// but we are trying to implement dynamic cast.
-extern (D) private bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) @safe
-{
-    // same class if signatures match, works with potential duplicates across binaries
-    if (a is b)
-        return true;
-
-    // new fast way
-    if (a.m_flags & TypeInfo_Class.ClassFlags.hasNameSig)
-        return a.nameSig[0] == b.nameSig[0]
-            && a.nameSig[1] == b.nameSig[1]
-            && a.nameSig[2] == b.nameSig[2]
-            && a.nameSig[3] == b.nameSig[3];
-
-    // old slow way for temporary binary compatibility
-    return a.name == b.name;
-}
 
 /******************************************
  * Given a pointer:
@@ -101,7 +83,7 @@ void* _d_interface_cast(void* p, ClassInfo c)
  * Returns:
  *      null if o is null or c is not a subclass of o. Otherwise, return o.
  */
-void* _d_dynamic_cast(Object o, ClassInfo c)
+private void* _d_dynamic_cast_old(Object o, ClassInfo c)
 {
     debug(cast_) printf("_d_dynamic_cast(o = %p, c = '%.*s')\n", o, cast(int) c.name.length, c.name.ptr);
 
@@ -170,7 +152,7 @@ void* _d_paint_cast(Object o, ClassInfo c)
     /* If o is really an instance of c, just do a paint
      */
     auto p = o && cast(void*)(areClassInfosEqual(typeid(o), c)) ? o : null;
-    debug assert(cast(void*)p is cast(void*)_d_dynamic_cast(o, c));
+    debug assert(cast(void*)p is cast(void*)_d_dynamic_cast_old(o, c));
     return cast(void*)p;
 }
 

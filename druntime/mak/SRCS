@@ -28,6 +28,7 @@ SRCS=\
 	src\core\internal\abort.d \
 	src\core\internal\atomic.d \
 	src\core\internal\attributes.d \
+	src\core\internal\cast_.d \
 	src\core\internal\convert.d \
 	src\core\internal\dassert.d \
 	src\core\internal\destruction.d \

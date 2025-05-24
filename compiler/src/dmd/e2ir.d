@@ -4697,6 +4697,10 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
             e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
             return Lret(ce, e);
         }
+        else if (ce.lowering)
+        {
+            e = toElem(ce.lowering, irs);
+        }
         else
         {
             /* The offset from cdfrom => cdto can only be determined at runtime.
@@ -4752,8 +4756,17 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
                 // _d_class_cast(e, cdto);
                 rtl = RTLSYM.CLASS_CAST;
             }
-            elem* ep = el_param(el_ptr(toExtSymbol(cdto)), e);
-            e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
+
+            if (rtl == RTLSYM.DYNAMIC_CAST)
+            {
+                assert(ce.lowering, "This case should have been rewritten to `_d_dynamic_cast` in the semantic phase");
+                e = toElem(ce.lowering, irs);
+            }
+            else
+            {
+                elem* ep = el_param(el_ptr(toExtSymbol(cdto)), e);
+                e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
+            }
         }
         return Lret(ce, e);
     }
