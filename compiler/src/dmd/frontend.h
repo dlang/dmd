@@ -8997,7 +8997,7 @@ struct Id final
     static Identifier* _d_arrayappendcTXTrace;
     static Identifier* _d_arraycatnTX;
     static Identifier* _d_arraycatnTXTrace;
-    static Identifier* _d_ssocarrayliteralTX;
+    static Identifier* _d_assocarrayliteralTX;
     static Identifier* stdc;
     static Identifier* stdarg;
     static Identifier* va_start;
