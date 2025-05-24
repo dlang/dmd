@@ -4719,6 +4719,7 @@ public import core.internal.array.arrayassign : _d_arrayassign_l;
 public import core.internal.array.arrayassign : _d_arrayassign_r;
 public import core.internal.array.arrayassign : _d_arraysetassign;
 public import core.internal.array.capacity : _d_arraysetlengthT;
+public import core.internal.cast_: _d_dynamic_cast;
 
 public import core.internal.dassert: _d_assert_fail;
 

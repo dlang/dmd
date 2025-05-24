@@ -9320,6 +9320,76 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 ex.type = exp.to;
             }
         }
+
+        if (t1b.ty == Tclass && tob.ty == Tclass)
+        {
+            CastExp cex = ex.isCastExp();
+            ClassDeclaration cdfrom = t1b.isClassHandle();
+            ClassDeclaration cdto   = tob.isClassHandle();
+
+            int offset;
+            if (!(cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
+                    && !cdfrom.classKind == ClassKind.cpp)
+            {
+                import dmd.backend.rtlsym;
+
+                /* The offset from cdfrom => cdto can only be determined at runtime.
+                * Cases:
+                *  - class     => derived class (downcast)
+                *  - interface => derived class (downcast)
+                *  - class     => foreign interface (cross cast)
+                *  - interface => base or foreign interface (cross cast)
+                */
+                auto rtl = cdfrom.isInterfaceDeclaration()
+                            ? RTLSYM.INTERFACE_CAST
+                            : RTLSYM.DYNAMIC_CAST;
+
+                /* Check for:
+                *  class A { }
+                *  final class B : A { }
+                *  ... cast(B) A ...
+                */
+                if (rtl == RTLSYM.DYNAMIC_CAST &&
+                    cdto.storage_class & STC.final_ &&
+                    cdto.baseClass == cdfrom &&
+                    (!cdto.interfaces || cdto.interfaces.length == 0) &&
+                    (!cdfrom.interfaces || cdfrom.interfaces.length == 0))
+                {
+                    rtl = RTLSYM.PAINT_CAST;
+                }
+                else if (rtl == RTLSYM.DYNAMIC_CAST &&
+                        !cdto.isInterfaceDeclaration())
+                {
+                    rtl = RTLSYM.CLASS_CAST;
+                }
+
+                if (rtl == RTLSYM.DYNAMIC_CAST)
+                {
+
+                    Identifier hook = Id._d_dynamic_cast;
+                    if (!verifyHookExist(cex.loc, *sc, hook, "dynamic cast", Id.object))
+                        goto LskipCastLowering;
+
+                    // Lower to .object._d_dynamic_cast!(To)(exp.e1)
+                    Expression lowering = new IdentifierExp(cex.loc, Id.empty);
+                    lowering = new DotIdExp(cex.loc, lowering, Id.object);
+
+                    auto tiargs = new Objects();
+                    tiargs.push(tob);
+                    lowering = new DotTemplateInstanceExp(cex.loc, lowering, hook, tiargs);
+
+                    auto arguments = new Expressions();
+                    arguments.push(cex.e1);
+
+                    lowering = new CallExp(cex.loc, lowering, arguments);
+
+                    cex.lowering = lowering.expressionSemantic(sc);
+                }
+            }
+        }
+
+    LskipCastLowering:
+
         result = ex;
     }
 
