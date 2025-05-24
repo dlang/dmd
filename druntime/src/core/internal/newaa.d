@@ -78,6 +78,18 @@ auto _toAA(K, V)(const V[K] aa) @trusted
     return *(cast(AA!(K, V)*)&aa);
 }
 
+// for backward compatibility, but should be deprecated
+auto _toAA(K, V)(shared const V[K] aa) @trusted
+{
+    return *(cast(AA!(K, V)*)&aa);
+}
+
+// resolve ambiguity for immutable converting to const and shared const
+auto _toAA(K, V)(immutable V[K] aa) @trusted
+{
+    return *(cast(AA!(K, V)*)&aa);
+}
+
 static struct Entry(K, V)
 {
     K key;
