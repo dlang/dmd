@@ -386,11 +386,11 @@ extern (C) size_t _aaLen(scope const AA aa) pure nothrow @nogc
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-extern (C) void* _aaGetY(scope AA* paa, const TypeInfo_AssociativeArray ti,
+extern (C) void* _obsolete_aaGetY(scope AA* paa, const TypeInfo_AssociativeArray ti,
     const size_t valsz, scope const void* pkey)
 {
     bool found;
-    return _aaGetX(paa, ti, valsz, pkey, found);
+    return _obsolete_aaGetX(paa, ti, valsz, pkey, found);
 }
 
 /******************************
@@ -407,7 +407,7 @@ extern (C) void* _aaGetY(scope AA* paa, const TypeInfo_AssociativeArray ti,
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-extern (C) void* _aaGetX(scope AA* paa, const TypeInfo_AssociativeArray ti,
+extern (C) void* _obsolete_aaGetX(scope AA* paa, const TypeInfo_AssociativeArray ti,
     const size_t valsz, scope const void* pkey, out bool found)
 {
     // lazily alloc implementation
@@ -465,10 +465,10 @@ extern (C) void* _aaGetX(scope AA* paa, const TypeInfo_AssociativeArray ti,
  * Returns:
  *      pointer to value if present, null otherwise
  */
-extern (C) inout(void)* _aaGetRvalueX(inout AA aa, scope const TypeInfo keyti, const size_t valsz,
+extern (C) inout(void)* _obsolete_aaGetRvalueX(inout AA aa, scope const TypeInfo keyti, const size_t valsz,
     scope const void* pkey)
 {
-    return _aaInX(aa, keyti, pkey);
+    return _obsolete_aaInX(aa, keyti, pkey);
 }
 
 /******************************
@@ -481,7 +481,7 @@ extern (C) inout(void)* _aaGetRvalueX(inout AA aa, scope const TypeInfo keyti, c
  * Returns:
  *      pointer to value if present, null otherwise
  */
-extern (C) inout(void)* _aaInX(inout AA aa, scope const TypeInfo keyti, scope const void* pkey)
+extern (C) inout(void)* _obsolete_aaInX(inout AA aa, scope const TypeInfo keyti, scope const void* pkey)
 {
     if (aa.empty)
         return null;
@@ -535,7 +535,7 @@ extern (C) void* _obsolete_aaRehash(AA* paa, scope const TypeInfo keyti) pure no
 }
 
 /// Return a GC allocated array of all values
-extern (C) inout(void[]) _aaValues(inout AA aa, const size_t keysz, const size_t valsz,
+extern (C) inout(void[]) _obsolete_aaValues(inout AA aa, const size_t keysz, const size_t valsz,
     const TypeInfo tiValueArray) pure nothrow
 {
     if (aa.empty)
@@ -559,7 +559,7 @@ extern (C) inout(void[]) _aaValues(inout AA aa, const size_t keysz, const size_t
 }
 
 /// Return a GC allocated array of all keys
-extern (C) inout(void[]) _aaKeys(inout AA aa, const size_t keysz, const TypeInfo tiKeyArray) pure nothrow
+extern (C) inout(void[]) _obsolete_aaKeys(inout AA aa, const size_t keysz, const TypeInfo tiKeyArray) pure nothrow
 {
     if (aa.empty)
         return null;

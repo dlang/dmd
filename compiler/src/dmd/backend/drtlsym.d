@@ -118,10 +118,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.ARRAYASSIGN_L:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_l", 0, t); break;
         case RTLSYM.ARRAYEQ2:               symbolz(ps,FL.func,FREGSAVED,"_adEq2", 0, t); break;
 
-        /* Associative Arrays https://github.com/dlang/dmd/blob/master/druntime/src/rt/aaA.d */
-        case RTLSYM.AAGETY:                 symbolz(ps,FL.func,FREGSAVED,"_aaGetY",       0, t); break;
-        case RTLSYM.AAGETRVALUEX:           symbolz(ps,FL.func,FREGSAVED,"_aaGetRvalueX", 0, t); break;
-
         case RTLSYM.EXCEPT_HANDLER3:        symbolz(ps,FL.func,fregsaved,"_except_handler3", 0, tsclib); break;
         case RTLSYM.CPP_HANDLER:            symbolz(ps,FL.func,FREGSAVED,"_cpp_framehandler", 0, tsclib); break;
         case RTLSYM.D_HANDLER:              symbolz(ps,FL.func,FREGSAVED,"_d_framehandler", 0, tsclib); break;
