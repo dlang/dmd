@@ -205,6 +205,7 @@ extern (C++) struct Param
                                  // https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md
     FeatureState noSharedAccess; // read/write access to shared memory objects
     bool previewIn;              // `in` means `[ref] scope const`, accepts rvalues
+    bool returnRefScope;         // -preview=return switch, must use `return ref` or `return scope`
     bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
     bool shortenedMethods = true;       // allow => in normal function declarations
     bool fixImmutableConv;       // error on unsound immutable conversion - https://github.com/dlang/dmd/pull/14070
