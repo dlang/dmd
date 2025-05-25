@@ -9329,41 +9329,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             int offset;
             if (!(cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
-                    && !cdfrom.classKind == ClassKind.cpp)
+                    && cdfrom.classKind != ClassKind.cpp)
             {
-                import dmd.backend.rtlsym;
-
-                /* The offset from cdfrom => cdto can only be determined at runtime.
-                * Cases:
-                *  - class     => derived class (downcast)
-                *  - interface => derived class (downcast)
-                *  - class     => foreign interface (cross cast)
-                *  - interface => base or foreign interface (cross cast)
-                */
-                auto rtl = cdfrom.isInterfaceDeclaration()
-                            ? RTLSYM.INTERFACE_CAST
-                            : RTLSYM.DYNAMIC_CAST;
-
-                /* Check for:
-                *  class A { }
-                *  final class B : A { }
-                *  ... cast(B) A ...
-                */
-                if (rtl == RTLSYM.DYNAMIC_CAST &&
-                    cdto.storage_class & STC.final_ &&
-                    cdto.baseClass == cdfrom &&
-                    (!cdto.interfaces || cdto.interfaces.length == 0) &&
-                    (!cdfrom.interfaces || cdfrom.interfaces.length == 0))
-                {
-                    rtl = RTLSYM.PAINT_CAST;
-                }
-                else if (rtl == RTLSYM.DYNAMIC_CAST &&
-                        !cdto.isInterfaceDeclaration())
-                {
-                    rtl = RTLSYM.CLASS_CAST;
-                }
-
-                if (rtl == RTLSYM.DYNAMIC_CAST)
+                if (!cdfrom.isInterfaceDeclaration() && cdto.isInterfaceDeclaration())
                 {
 
                     Identifier hook = Id._d_dynamic_cast;
