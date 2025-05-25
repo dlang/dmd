@@ -848,6 +848,11 @@ public:
 
         override void visit(IndexExp e)
         {
+            if (e.lowering)
+            {
+                result = doInlineAs!Expression(e.lowering, ids);
+                return;
+            }
             auto are = e.copy().isIndexExp();
             are.e1 = doInlineAs!Expression(e.e1, ids);
             if (e.lengthVar)
@@ -1317,6 +1322,14 @@ public:
     }
 
     override void visit(CatAssignExp e)
+    {
+        if (auto lowering = e.lowering)
+            inlineScan(lowering);
+        else
+            visit(cast(BinExp) e);
+    }
+
+    override void visit(IndexExp e)
     {
         if (auto lowering = e.lowering)
             inlineScan(lowering);

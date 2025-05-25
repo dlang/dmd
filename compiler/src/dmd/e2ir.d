@@ -3909,6 +3909,9 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitIndex(IndexExp ie)
     {
+        if (ie.lowering)
+            return toElem(ie.lowering, irs);
+
         elem* e;
         elem* n1 = toElem(ie.e1, irs);
         elem* eb = null;
@@ -3917,6 +3920,8 @@ elem* toElem(Expression e, ref IRState irs)
         Type t1 = ie.e1.type.toBasetype();
         if (auto taa = t1.isTypeAArray())
         {
+            assert(false, "no index lowering for associative array literal");
+
             // set to:
             //      *aaGetY(aa, aati, valuesize, &key);
             // or

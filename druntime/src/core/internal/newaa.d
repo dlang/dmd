@@ -75,7 +75,12 @@ ref _refAA(K, V)(ref inout V[K] aa) @trusted
 
 auto _toAA(K, V)(const V[K] aa) @trusted
 {
-    return *(cast(AA!(K, V)*)&aa);
+    return *(cast(const(AA!(K, V))*)&aa);
+}
+
+auto _toAA(K, V)(inout V[K] aa) @trusted
+{
+    return *(cast(inout(AA!(K, V))*)&aa);
 }
 
 // for backward compatibility, but should be deprecated
@@ -96,28 +101,51 @@ static struct Entry(K, V)
     V value;
 }
 
-// mimick behaviour of rt.aaA for initialization
-Entry!(K, V)* _newEntry(K, V)(ref K key, ref V value) @trusted
+private void _aaMove(V)(ref V src, ref V dst) @trusted
 {
-    static if(__traits(compiles, new Entry!(K, V)(key, value)))
-        return new Entry!(K, V)(key, value);
+    import core.stdc.string : memcpy, memset;
+    // move without postblit!?
+    memcpy(&dst.key, &src, V.sizeof);
+    static if (__traits(isZeroInit, V))
+        memset(&src, 0, V.sizeof);
+    else
+        memcpy(&src, &V.init, V.sizeof);
+}
+
+// mimick behaviour of rt.aaA for initialization
+Entry!(K, V)* _newEntry(K, V)(ref K key, ref V value)
+{
+    static if (__traits(compiles, new Entry!(K, V)(key, value)))
+    {
+        auto entry = new Entry!(K, V)(key, value);
+    }
+    else static if (__traits(compiles, new Entry!(K, V)(key)))
+    {
+        auto entry = new Entry!(K, V)(key);
+        _aaMove(value, entry.value);
+    }
     else
     {
-        import core.stdc.string;
         auto entry = new Entry!(K, V);
-        // move without postblit!?
-        memcpy(&entry.key, &key, K.sizeof);
-        static if (__traits(isZeroInit, K))
-            memset(&key, 0, K.sizeof);
-        else
-            memcpy(&key, &K.init, K.sizeof);
-        memcpy(&entry.value, &value, V.sizeof);
-        static if (__traits(isZeroInit, V))
-            memset(&value, 0, V.sizeof);
-        else
-            memcpy(&value, &V.init, V.sizeof);
-        return entry;
+        _aaMove(key, entry.key);
+        _aaMove(value, entry.value);
     }
+    return entry;
+}
+
+// mimick behaviour of rt.aaA for initialization
+Entry!(K, V)* _newEntry(K, V, K2)(ref K2 key)
+{
+    static if (__traits(compiles, new Entry!(K, V)(key)) &&
+               !(is(V == struct) && __traits(isNested, V))) // not detected by "compiles"
+    {
+        auto entry = new Entry!(K, V)(key);
+    }
+    else // with disabled ctor for V
+    {
+        auto entry = new Entry!(K, V)(key, V.init);
+    }
+    return entry;
 }
 
 // for backward compatibility, do not require const in hashOf()
@@ -206,7 +234,7 @@ private:
     }
 
     // lookup a key
-    inout(Bucket)* findSlotLookup(size_t hash, ref const K key) inout pure @safe nothrow
+    inout(Bucket)* findSlotLookup(size_t hash, scope ref const K key) inout pure @safe nothrow
     {
         for (size_t i = hash & mask, j = 1;; ++j)
         {
@@ -369,14 +397,14 @@ size_t _aaLen(K, V)(scope const AA!(K, V) aa)
  * Lookup key in aa.
  * Called only from implementation of (aa[key]) expressions when value is mutable.
  * Params:
- *      paa = associative array opaque pointer
+ *      aa = associative array
  *      key = reference to the key value
  * Returns:
  *      if key was in the aa, a mutable pointer to the existing value.
  *      If key was not in the aa, a mutable pointer to newly inserted value which
- *      is set to all zeros
+ *      is set V.init
  */
-V* _aaGetY(K, V)(scope ref V[K] aa, auto ref K key)
+V* _aaGetY(K, V, K2)(scope ref V[K] aa, auto ref K2 key)
 {
     bool found;
     return _aaGetX(aa, key, found);
@@ -386,7 +414,7 @@ V* _aaGetY(K, V)(scope ref V[K] aa, auto ref K key)
  * Lookup key in aa.
  * Called only from implementation of require
  * Params:
- *      paa = associative array opaque pointer
+ *      a = associative array
  *      key = reference to the key value
  *      found = true if the value was found
  * Returns:
@@ -394,7 +422,7 @@ V* _aaGetY(K, V)(scope ref V[K] aa, auto ref K key)
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-V* _aaGetX(K, V)(scope ref V[K] a, auto ref K key, out bool found)
+V* _aaGetX(K, V, K2)(scope ref V[K] a, auto ref K2 key, out bool found)
 {
     ref aa = _refAA(a);
 
@@ -429,7 +457,7 @@ V* _aaGetX(K, V)(scope ref V[K] a, auto ref K key, out bool found)
     aa.firstUsed = min(aa.firstUsed, cast(uint)pi);
     ref p = aa.buckets[pi];
     p.hash = hash;
-    p.entry = new Entry!(K, V)(key);
+    p.entry = _newEntry!(K, V)(key);
     return &p.entry.value;
 }
 
@@ -437,14 +465,21 @@ V* _aaGetX(K, V)(scope ref V[K] a, auto ref K key, out bool found)
  * Lookup key in aa.
  * Called only from implementation of (aa[key]) expressions when value is not mutable.
  * Params:
- *      aa = associative array opaque pointer
+ *      aa = associative array
  *      pkey = pointer to the key value
  * Returns:
  *      pointer to value if present, null otherwise
  */
-inout(V)* _aaGetRvalueX(K, V)(inout AA!(K, V) aa, scope ref const K pkey)
+inout(V)* _aaGetRvalueX(K, V, bool boundsCheck, K2)(inout V[K] aa, auto ref scope K2 key)
 {
-    return _aaInX(aa, key);
+    auto p = _d_aaIn(aa, key);
+    static if (boundsCheck)
+        if (!p)
+        {
+            import core.exception;
+            onRangeError("file", 0); // todo
+        }
+    return p;
 }
 
 /***********************************
@@ -487,7 +522,7 @@ auto _aaDup(T : V[K], K, V)(T a)
  * Returns:
  *      pointer to value if present, null otherwise
  */
-auto _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref const K2 key2)
+inout(V)* _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref scope const K2 key2)
 {
     auto aa = _toAA!(K, V)(a);
     if (aa.empty)
@@ -842,7 +877,7 @@ unittest
     aa3.remove(t);
     assert(T.dtor == 1 && T.postblit == 2);
     aa3[t] = 2;
-    assert(T.dtor == 1 && T.postblit == 2);
+    assert(T.dtor == 1 && T.postblit == 3);
 
     // dtor will be called by GC finalizers
     aa1 = null;
@@ -852,7 +887,7 @@ unittest
     GC.runFinalizers((cast(char*)dtor1)[0 .. 1]);
     auto dtor2 = typeid(TypeInfo_AssociativeArray.Entry!(T, int)).xdtor;
     GC.runFinalizers((cast(char*)dtor2)[0 .. 1]);
-    assert(T.dtor == 7 && T.postblit == 2);
+    assert(T.dtor == 7 && T.postblit == 3);
 }
 
 // create a binary-compatible AA structure that can be used directly as an

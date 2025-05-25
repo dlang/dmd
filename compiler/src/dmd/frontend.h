@@ -3274,6 +3274,7 @@ class IndexExp final : public BinExp
 {
 public:
     VarDeclaration* lengthVar;
+    Expression* lowering;
     bool modifiable;
     bool indexIsInBounds;
     IndexExp* syntaxCopy() override;

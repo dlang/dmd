@@ -10119,9 +10119,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
 
                 semanticTypeInfo(sc, taa);
-                checkNewEscape(*sc, exp.e2, false);
+                bool escape = checkNewEscape(*sc, exp.e2, false);
 
                 exp.type = taa.next;
+                if (!escape) // avoid cascading errors
+                    lowerAAIndex(exp, sc);
                 break;
             }
         case Ttuple:
@@ -10752,6 +10754,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     result = e1x;
                     return;
                 }
+                lowerAAIndex(ie1, sc);
             }
         }
         else if (exp.op == EXP.construct && exp.e1.op == EXP.variable &&
@@ -11057,7 +11060,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (exp.op == EXP.assign)
             {
-                if (e1x.op == EXP.index && (cast(IndexExp)e1x).e1.type.toBasetype().ty == Taarray)
+                auto ie1 = e1x.isIndexExp();
+                if (ie1 && ie1.e1.type.toBasetype().ty == Taarray)
                 {
                     /*
                      * Rewrite:
@@ -11071,7 +11075,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      *          : ConstructExp(__aatmp[__aakey], __aaval));
                      */
                     // ensure we keep the expr modifiable
-                    Expression esetting = (cast(IndexExp)e1x).markSettingAAElem();
+                    Expression esetting = ie1.markSettingAAElem();
                     if (esetting.op == EXP.error)
                     {
                         result = esetting;
@@ -11140,6 +11144,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
+                    lowerAAIndex(ie1, sc); // in case markSettingAAElem changed modifiable
                 }
                 else if (Expression e = exp.isAssignExp().opOverloadAssign(sc, aliasThisStop))
                 {
@@ -15393,6 +15398,15 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
         return exp;
     }
 
+    Expression visitIndex(IndexExp exp)
+    {
+        exp.e1 = exp.e1.resolveLoc(loc, sc);
+        exp.e2 = exp.e2.resolveLoc(loc, sc);
+        if (exp.lowering)
+            exp.lowering = exp.lowering.resolveLoc(loc, sc);
+        return exp;
+    }
+
     Expression visitStructLiteral(StructLiteralExp exp)
     {
         if (!exp.elements)
@@ -15586,6 +15600,7 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
         case EXP.structLiteral:  return visitStructLiteral(exp.isStructLiteralExp());
         case EXP.new_:           return visitNew(exp.isNewExp());
         case EXP.concatenate:    return visitCat(exp.isCatExp());
+        case EXP.index:          return visitIndex(exp.isIndexExp());
         case EXP.call:           return visitCall(exp.isCallExp());
         case EXP.question:       return visitCond(exp.isCondExp());
         case EXP.array:          return visitArray(exp.isArrayExp());
@@ -16269,6 +16284,7 @@ private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression 
         if (ex.op == EXP.error)
             return ex;
 
+        lowerAAIndex(exp, sc); // in case markSettingAAElem changed modifiable
         return visit(exp);
     }
 
@@ -18038,4 +18054,52 @@ private extern(C++) class IncludeVisitor : Visitor {
             sic.inc = Include.no;
         result = (sic.inc == Include.yes);
     }
+}
+
+void lowerAAIndex(IndexExp ie, Scope* sc)
+{
+    auto taa = ie.e1.type.toBasetype().isTypeAArray();
+    if (!taa)
+        return;
+    if (!global.params.useGC || !sc.needsCodegen())
+        return;
+
+    // an assignment is rewritten later anyway, so _aaGetY should be obsolete
+    Identifier hook = Identifier.idPool(ie.modifiable ? "_aaGetY" : "_aaGetRvalueX");
+    if (!verifyHookExist(ie.loc, *sc, hook, "indexing AA"))
+        return;
+
+    if (ie.lowering)
+    {
+        if (auto rv = ie.lowering.isPtrExp())
+            if (auto call = rv.e1.isCallExp())
+                if (auto ve = call.e1.isVarExp())
+                    if (ve.var && ve.var.ident == hook)
+                        return;
+    }
+    bool boundsCheck = true; // todo: sc.boundsCheck;
+    Expression func = new IdentifierExp(ie.loc, Id.empty);
+    func = new DotIdExp(ie.loc, func, Id.object);
+    auto tiargs = new Objects();
+    tiargs.push(taa.index);
+    tiargs.push(taa.next);
+    if (!ie.modifiable)
+        tiargs.push(IntegerExp.createBool(boundsCheck));
+    func = new DotTemplateInstanceExp(ie.loc, func, hook, tiargs);
+
+    auto arguments = new Expressions();
+    arguments.push(ie.e1);
+    arguments.push(ie.e2);
+    auto call = new CallExp(ie.loc, func, arguments);
+    auto rv = new PtrExp(ie.loc, call);
+
+    //        printf("V[K] %s -> %s\n", ie.e1.type.toChars(), taa.toChars());
+    //        printf("K %s -> %s\n", ie.e2.type.toChars(), taa.index.toChars());
+    //        printf("V %s\n", taa.next.toChars());
+    //        printf("%s\n", func.toChars());
+
+    ie.lowering = rv.expressionSemantic(sc);
+
+    if (auto ie1 = ie.e1.isIndexExp())
+        lowerAAIndex(ie1, sc); // recurse in case of multi-dimensional access
 }
