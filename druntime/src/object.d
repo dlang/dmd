@@ -2881,11 +2881,8 @@ class Error : Throwable
     }
 }
 
-public import core.internal.newaa : _d_aaIn;
-public import core.internal.newaa : _d_aaDel;
-public import core.internal.newaa : _d_aaNew;
-public import core.internal.newaa : _d_aaEqual;
-public import core.internal.newaa : _d_assocarrayliteralTX;
+public import core.internal.newaa : _d_aaIn, _d_aaDel, _d_aaNew, _d_aaEqual, _d_assocarrayliteralTX;
+public import core.internal.newaa : _aaGetY, _aaGetRvalueX;
 
 private import core.internal.newaa;
 
@@ -3462,7 +3459,7 @@ private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x
  * Calls `create` if `key` doesn't exist in the associative array,
  * otherwise calls `update`.
  * `create` returns a corresponding value for `key`.
- * `update` accepts a key parameter. If it returns a value, the value is
+ * `update` accepts a value parameter. If it returns a value, the value is
  * set for `key`.
  * Params:
  *      aa =     The associative array.
@@ -3470,7 +3467,7 @@ private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x
  *      create = The callable to create a value for `key`.
  *               Must return V.
  *      update = The callable to call if `key` exists.
- *               Takes a K argument, returns a V or void.
+ *               Takes a V argument, returns a V or void.
  */
 void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
 if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof(update(aa[K.init])) == void)))

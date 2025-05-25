@@ -1003,6 +1003,7 @@ class IndexExp final : public BinExp
 {
 public:
     VarDeclaration *lengthVar;
+    Expression* lowering;         // for associative array lowering to _aaGetY or _aaGetRvalueX
     d_bool modifiable;
     d_bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
