@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-foo1 ulong function(return ref int* delegate() return p) ref return
+foo1 ulong function(return ref int* delegate() return p) return ref
 foo2 int function(return ref int delegate() p) ref
 foo3 int function(ref inout(int*) p) ref
 foo4 int function(return ref inout(int*) p) ref

@@ -4294,12 +4294,32 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
         dg("@nogc");
     if (tf.isProperty)
         dg("@property");
+
+    /* The following is more or less like dmd.hdrgen.stcToBuffer(), in the future
+     * it should be merged. The idea is consistent ordering
+     */
+    STC stc;
     if (tf.isRef)
-        dg("ref");
+        stc |= STC.ref_;
     if (tf.isReturn && !tf.isReturnInferred)
-        dg("return");
+        stc |= STC.return_;
     if (tf.isScopeQual && !tf.isScopeInferred)
-        dg("scope");
+        stc |= STC.scope_;
+    if (tf.isReturnScope)
+        stc |= STC.returnScope;
+    final switch (buildScopeRef(stc))
+    {
+        case ScopeRef.None:                                                      break;
+        case ScopeRef.Scope:            dg("scope");                             break;
+        case ScopeRef.Return:           dg("return");                            break;
+        case ScopeRef.ReturnScope:      dg("return"); dg("scope");               break;
+        case ScopeRef.ReturnRef:        dg("return"); dg("ref");                 break;
+        case ScopeRef.Ref:              dg("ref");                               break;
+        case ScopeRef.RefScope:         dg("ref");    dg("scope");               break;
+        case ScopeRef.ReturnRef_Scope:  dg("return"); dg("ref");    dg("scope"); break;
+        case ScopeRef.Ref_ReturnScope:  dg("ref");    dg("return"); dg("scope"); break;
+    }
+
     if (tf.isLive)
         dg("@live");
 
