@@ -2974,6 +2974,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitIndex(IndexExp e)
     {
+        if (hgs.vcg_ast && e.lowering)
+        {
+            expressionToBuffer(e.lowering, buf, hgs);
+            return;
+        }
         expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('[');
         sizeToBuffer(e.e2, buf, hgs);
@@ -3261,9 +3266,13 @@ public:
 
     override void visit(DebugCondition c)
     {
-        buf.put("debug (");
-        buf.put(c.ident.toString());
-        buf.writeByte(')');
+        buf.put("debug");
+        if (c.ident)
+        {
+            buf.put(" (");
+            buf.put(c.ident.toString());
+            buf.writeByte(')');
+        }
     }
 
     override void visit(VersionCondition c)
