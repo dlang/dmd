@@ -31,11 +31,16 @@ bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) pure n
  */
 void* _d_dynamic_cast(To)(Object o) @trusted
 {
+    import core.internal.traits: Unqual;
+
     debug(cast_) printf("_d_dynamic_cast(o = %p, c = '%.*s')\n", o, cast(int) c.name.length, c.name.ptr);
 
     void* res = null;
     size_t offset = 0;
-    if (o && _d_isbaseof2!To(typeid(o), offset))
+
+    alias Unqual_To = Unqual!To;
+
+    if (o && _d_isbaseof2!Unqual_To(typeid(o), offset))
     {
         debug(cast_) printf("\toffset = %zd\n", offset);
         res = cast(void*) o + offset;

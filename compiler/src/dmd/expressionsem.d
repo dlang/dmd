@@ -9379,6 +9379,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     lowering = new DotTemplateInstanceExp(cex.loc, lowering, hook, tiargs);
 
                     auto arguments = new Expressions();
+                    // Unqualify the type being casted from to allow implicit conversion to Object
+                    auto unqual_t1b = t1b.unqualify(MODFlags.wild | MODFlags.const_ |
+                        MODFlags.immutable_ | MODFlags.shared_);
+                    cex.e1.type = unqual_t1b;
                     arguments.push(cex.e1);
 
                     lowering = new CallExp(cex.loc, lowering, arguments);
