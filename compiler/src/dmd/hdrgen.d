@@ -3258,9 +3258,13 @@ public:
 
     override void visit(DebugCondition c)
     {
-        buf.writestring("debug (");
-        buf.writestring(c.ident.toString());
-        buf.writeByte(')');
+        buf.writestring("debug");
+        if (c.ident)
+        {
+            buf.writestring(" (");
+            buf.writestring(c.ident.toString());
+            buf.writeByte(')');
+        }
     }
 
     override void visit(VersionCondition c)
