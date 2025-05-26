@@ -2731,6 +2731,7 @@ public:
     Type* to;
     uint8_t mod;
     bool trusted;
+    Expression* lowering;
     CastExp* syntaxCopy() override;
     bool isLvalue() override;
     void accept(Visitor* v) override;
