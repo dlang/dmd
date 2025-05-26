@@ -71,9 +71,10 @@ namespace dmd
     #define STCref                0x40000ULL    /// `ref`
     #define STCscope              0x80000ULL    /// `scope`
 
-    #define STCscopeinferred      0x200000ULL    /// `scope` has been inferred and should not be part of mangling, `scope` must also be set
-    #define STCreturn             0x400000ULL    /// 'return ref' or 'return scope' for function parameters
-    #define STCreturnScope        0x800000ULL    /// if `ref return scope` then resolve to `ref` and `return scope`
+    #define STCscopeinferred      0x100000ULL    /// `scope` has been inferred and should not be part of mangling, `scope` must also be set
+    #define STCreturn             0x200000ULL    /// 'return ref' or 'return scope' for function parameters
+    #define STCreturnScope        0x400000ULL    /// if `ref return scope` then resolve to `ref` and `return scope`
+    #define STCreturnRef          0x800000ULL,   /// if `return ref`
 
     #define STCreturninferred     0x1000000ULL    /// `return` has been inferred and should not be part of mangling, `return` must also be set
     #define STCimmutable          0x2000000ULL    /// `immutable`

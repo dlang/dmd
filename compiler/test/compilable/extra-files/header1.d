@@ -566,7 +566,7 @@ struct SafeS
 {
     this(int[1] x) scope {}
 	this(int[2] x) return scope {}
-	this(int[3] x) scope return {}
+	this(int[3] x) return ref scope {}
 	this(int[4] x) return {}
 
 @safe:

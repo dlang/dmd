@@ -1286,6 +1286,38 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             return orig;
         }
 
+        if (0) // replace this with -preview=return in next PR
+            switch (orig & (STC.out_ | STC.ref_ | STC.scope_ | STC.return_))
+            {
+                case STC.return_ | STC.ref_:
+                    if (!(orig & STC.returnRef))
+                        error("`return` `ref` attribute pair must be written as '`return ref`'");
+                    break;
+
+                case STC.return_ | STC.out_:
+                    if (!(orig & STC.returnRef))
+                        error("`return` `out` attribute pair must be written as '`return out`'");
+                    break;
+
+                case STC.return_ | STC.scope_:
+                    if (!(orig & STC.returnScope))
+                        error("`return` `scope` attribute pair must be written as '`return scope`'");
+                    break;
+
+                case STC.return_ | STC.ref_ | STC.scope_:
+                    if (!(orig & (STC.returnRef | STC.returnScope)))
+                        error("`return` `ref` `scope` attribute triple must be written as '`return ref`' and '`scope`' or '`return scope`' and '`ref`'");
+                    break;
+
+                case STC.return_ | STC.out_ | STC.scope_:
+                    if (!(orig & (STC.returnRef | STC.returnScope)))
+                        error("`return` `out` `scope` attribute triple must be written as '`return out`' and '`scope`' or '`return scope`' and '`out`'");
+                    break;
+
+                default:
+                    break;
+            }
+
         checkConflictSTCGroup(STC.const_ | STC.immutable_ | STC.manifest);
         checkConflictSTCGroup(STC.gshared | STC.shared_);
         checkConflictSTCGroup!true(STC.safeGroup);
@@ -1397,6 +1429,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     private STC parsePostfix(STC storageClass, AST.Expressions** pudas)
     {
+        const STC prefix = storageClass;
         while (1)
         {
             STC stc;
@@ -1427,10 +1460,23 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break;
 
             case TOK.return_:
+            {
                 stc = STC.return_;
-                if (peekNext() == TOK.scope_)
-                    stc |= STC.returnScope;     // recognize `return scope`
+                TOK next = peekNext();
+                if (next == TOK.scope_)     // recognize the `return scope` pair
+                {
+                    stc |= STC.scope_ | STC.returnScope;
+                    nextToken();            // consume it
+                }
+                else if (next == TOK.ref_)  // recognize the `return ref` pair
+                {
+                    stc |= STC.ref_ | STC.returnRef;
+                    nextToken();            // consume it
+                }
+                else if (prefix & STC.ref_) // https://dlang.org/spec/function.html#struct-return-methods
+                    stc |= STC.returnRef;   // treat member function `ref int fp() return;` as `int fp() return ref;`
                 break;
+            }
 
             case TOK.scope_:
                 stc = STC.scope_;
@@ -1469,6 +1515,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     nextToken();
                     continue;
                 }
+
+                /* This is so we can enforce `return ref`, but not foul things up with an extra `ref`
+                 * which is not accounted for in the semantic routines. The problem comes about because
+                 * there's no way to attach `return ref` to the implicit `this` parameter but not the return value.
+                 */
+                if (!(prefix & STC.ref_) && storageClass & STC.ref_ && storageClass & STC.returnRef)
+                    storageClass &= ~STC.ref_;
+
                 return storageClass;
             }
             storageClass = appendStorageClass(storageClass, stc);
@@ -2813,7 +2867,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         STC varargsStc;
 
         // Attributes allowed for ...
-        enum VarArgsStc = STC.const_ | STC.immutable_ | STC.shared_ | STC.scope_ | STC.return_ | STC.returnScope;
+        enum VarArgsStc = STC.const_ | STC.immutable_ | STC.shared_ | STC.scope_ | STC.return_ | STC.returnScope | STC.returnRef;
 
         check(TOK.leftParenthesis);
         while (1)
@@ -2924,10 +2978,26 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     goto L2;
 
                 case TOK.return_:
+                {
                     stc = STC.return_;
-                    if (peekNext() == TOK.scope_)
-                        stc |= STC.returnScope;
+                    TOK next = peekNext();
+                    if (next == TOK.scope_)    // recognize the `return scope` pair
+                    {
+                        stc |= STC.scope_ | STC.returnScope;
+                        nextToken();           // consume it
+                    }
+                    else if (next == TOK.ref_) // recognize the `return ref` pair
+                    {
+                        stc |= STC.ref_ | STC.returnRef;
+                        nextToken();           // consume it
+                    }
+                    else if (next == TOK.out_) // recognize the `return out` pair
+                    {
+                        stc |= STC.out_ | STC.returnRef;
+                        nextToken();           // consume it
+                    }
                     goto L2;
+                }
                 L2:
                     storageClass = appendStorageClass(storageClass, stc);
                     continue;
