@@ -1196,7 +1196,7 @@ private const(char)* getParamError(TypeFunction tf, Expression arg, Parameter pa
     auto at = qual ? arg.type.toPrettyChars(true) : arg.type.toChars();
     OutBuffer buf;
     // only mention rvalue if it's relevant
-    const rv = !arg.isLvalue() && par.isReference();
+    const rv = !arg.isLvalue() && par.isReference() && !(par.storageClass & STC.constscoperef);
     buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
         rv ? "rvalue ".ptr : "".ptr, arg.toErrMsg(), at,
         parameterToChars(par, tf, qual));
