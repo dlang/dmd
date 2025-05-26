@@ -4699,6 +4699,14 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         }
         else
         {
+            // Handle dynamic cast
+            if (!cdfrom.isInterfaceDeclaration() && cdto.isInterfaceDeclaration())
+            {
+                assert(ce.lowering, "This case should have been rewritten to `_d_dynamic_cast` in the semantic phase");
+                e = toElem(ce.lowering, irs);
+                return Lret(ce, e);
+            }
+
             /* The offset from cdfrom => cdto can only be determined at runtime.
              * Cases:
              *  - class     => derived class (downcast)
@@ -4706,16 +4714,14 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
              *  - class     => foreign interface (cross cast)
              *  - interface => base or foreign interface (cross cast)
              */
-            auto rtl = cdfrom.isInterfaceDeclaration()
-                        ? RTLSYM.INTERFACE_CAST
-                        : RTLSYM.DYNAMIC_CAST;
+            RTLSYM rtl = RTLSYM.INTERFACE_CAST;
 
             /* Check for:
-             *  class A { }
-             *  final class B : A { }
-             *  ... cast(B) A ...
-             */
-            if (rtl == RTLSYM.DYNAMIC_CAST &&
+            *  class A { }
+            *  final class B : A { }
+            *  ... cast(B) A ...
+            */
+            if (!cdfrom.isInterfaceDeclaration() &&
                 cdto.storage_class & STC.final_ &&
                 cdto.baseClass == cdfrom &&
                 (!cdto.interfaces || cdto.interfaces.length == 0) &&
@@ -4726,8 +4732,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
                 //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
                 rtl = RTLSYM.PAINT_CAST;
             }
-            else if (rtl == RTLSYM.DYNAMIC_CAST &&
-                     !cdto.isInterfaceDeclaration())
+            else if (!cdfrom.isInterfaceDeclaration() && !cdto.isInterfaceDeclaration())
             {
                 //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
                 int level = 0;
@@ -4753,16 +4758,8 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
                 rtl = RTLSYM.CLASS_CAST;
             }
 
-            if (!cdfrom.isInterfaceDeclaration() && cdto.isInterfaceDeclaration())
-            {
-                assert(ce.lowering, "This case should have been rewritten to `_d_dynamic_cast` in the semantic phase");
-                e = toElem(ce.lowering, irs);
-            }
-            else
-            {
-                elem* ep = el_param(el_ptr(toExtSymbol(cdto)), e);
-                e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
-            }
+            elem* ep = el_param(el_ptr(toExtSymbol(cdto)), e);
+            e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
         }
         return Lret(ce, e);
     }
