@@ -1174,7 +1174,7 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
      *  ref T      <- an lvalue of const(T) argument
      *  ref T[dim] <- an lvalue of const(T[dim]) argument
      */
-    if (!ta.constConv(tp))
+    if (arg.isLvalue() && !ta.constConv(tp))
     {
         if (pMessage) *pMessage = tf.getParamError(arg, p);
         return MATCH.nomatch;
