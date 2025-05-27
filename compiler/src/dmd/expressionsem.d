@@ -5923,20 +5923,29 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (TypeFunction tf = exp.f ? cast(TypeFunction)exp.f.type : null)
             {
-                result.rvalue = tf.isRvalue;
-                if (tf.isRvalue && !tf.isRef)
+                if (tf.isRvalue)
                 {
-                    error(exp.f.loc, "`__rvalue` only valid on functions that return by `ref`");
-                    setError();
+                    if(!tf.isRef)
+                    {
+                        error(exp.f.loc, "`__rvalue` only valid on functions that return by `ref`");
+                        setError();
+                    }
+                    else if (sc.setUnsafe(false, exp.loc, "calling `__rvalue`-annotated function `%s`", exp.f))
+                    {
+                        setError();
+                    }
+                    else
+                    {
+                        result.rvalue = true;
+                    }
                 }
-                if (result.rvalue)
+                else if (exp.rvalue && tf.isRef)
                 {
-                    if (sc.setUnsafe(false, exp.loc, "calling `__rvalue`-annotated function `%s`", exp.f))
+                    if (sc.setUnsafe(false, exp.loc, "moving result of `ref` function `%s` with `__rvalue`", exp.f))
                     {
                         setError();
                     }
                 }
-
             }
         }
 
