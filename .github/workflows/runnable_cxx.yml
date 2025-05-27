@@ -61,9 +61,9 @@ jobs:
 
         target: [
           # Versions of clang earlier than 11 are not available on 22.04, but are on macOS 13
-          clang-13.0.0, clang-12.0.0, clang-11.0.0, clang-10.0.0, clang-9.0.0, clang-8.0.0,
-        # For g++, we test the oldest compiler on Ubuntu 22.04, which is GCC-9
-          g++-11, g++-10, g++-9,
+          clang-15.0.0, clang-14.0.0, clang-13.0.0, clang-12.0.0, clang-11.0.0, clang-10.0.0, clang-9.0.0, clang-8.0.0,
+          # For g++, we test the oldest compiler on Ubuntu 22.04, which is GCC-9
+          g++-13, g++-12, g++-11, g++-10, g++-9,
           # Finally, we test MSVC 2013 - 2019
           msvc-2019, msvc-2017, msvc-2015, msvc-2013
         ]
@@ -72,7 +72,7 @@ jobs:
         # Note: Pattern matching is not supported so this list is quite long,
         # and brittle, as changing an msvc entry would break on OSX, for example.
         exclude:
-          # 22.04 only has g++-9 through to 11, and clang-11.0.0 through to 13.0.0
+          # 22.04 only has g++-9 through to 12 (plus 13 via a PPA), and clang-11.0.0 through to 15.0.0
           - { os: ubuntu-22.04, target: clang-10.0.0 }
           - { os: ubuntu-22.04, target: clang-9.0.0 }
           - { os: ubuntu-22.04, target: clang-8.0.0 }
@@ -81,6 +81,10 @@ jobs:
           - { os: ubuntu-22.04, target: msvc-2015 }
           - { os: ubuntu-22.04, target: msvc-2013 }
           # OSX only supports clang
+          - { os: macos-13, target: clang-15.0.0 } # apparently incompatible with macos-13
+          - { os: macos-13, target: clang-14.0.0 } # apparently incompatible with macos-13
+          - { os: macos-13, target: g++-13 }
+          - { os: macos-13, target: g++-12 }
           - { os: macos-13, target: g++-11 }
           - { os: macos-13, target: g++-10 }
           - { os: macos-13, target: g++-9 }
@@ -89,6 +93,8 @@ jobs:
           - { os: macos-13, target: msvc-2015 }
           - { os: macos-13, target: msvc-2013 }
           # We don't test g++ on Windows as DMD only mangles for MSVC
+          - { os: windows-2019, target: g++-13 }
+          - { os: windows-2019, target: g++-12 }
           - { os: windows-2019, target: g++-11 }
           - { os: windows-2019, target: g++-10 }
           - { os: windows-2019, target: g++-9 }
@@ -102,6 +108,8 @@ jobs:
           - { os: windows-2019, target: msvc-2017 }
           - { os: windows-2019, target: msvc-2015 }
           - { os: windows-2019, target: msvc-2013 }
+          - { os: windows-2019, target: clang-15.0.0 }
+          - { os: windows-2019, target: clang-14.0.0 }
           - { os: windows-2019, target: clang-13.0.0 }
           - { os: windows-2019, target: clang-12.0.0 }
           - { os: windows-2019, target: clang-11.0.0 }
@@ -114,6 +122,8 @@ jobs:
         # but some items are unique (e.g. clang-9.0.0 and 4.0.1 have differences in their naming).
         include:
           # Clang boilerplate
+          - { target: clang-15.0.0, compiler: clang, cxx-version: 15.0.0 }
+          - { target: clang-14.0.0, compiler: clang, cxx-version: 14.0.0 }
           - { target: clang-13.0.0, compiler: clang, cxx-version: 13.0.0 }
           - { target: clang-12.0.0, compiler: clang, cxx-version: 12.0.0 }
           - { target: clang-11.0.0, compiler: clang, cxx-version: 11.0.0 }
@@ -121,12 +131,19 @@ jobs:
           - { target: clang-9.0.0, compiler: clang, cxx-version: 9.0.0 }
           - { target: clang-8.0.0, compiler: clang, cxx-version: 8.0.0 }
           # g++ boilerplace
+          - { target: g++-13, compiler: g++, cxx-version: 13.1.0, major: 13 }
+          - { target: g++-12, compiler: g++, cxx-version: 12.3.0, major: 12 }
           - { target: g++-11, compiler: g++, cxx-version: 11.2.0, major: 11 }
           - { target: g++-10, compiler: g++, cxx-version: 10.3.0, major: 10 }
           - { target: g++-9, compiler: g++, cxx-version: 9.4.0, major: 9 }
           # Platform boilerplate
-          - { os: ubuntu-22.04, arch: x86_64-linux-gnu-ubuntu-20.04 }
           - { os: macos-13,  arch: x86_64-apple-darwin }
+          # Mix and match what is available for Linux
+          - { os: ubuntu-22.04, target: clang-15.0.0, arch: x86_64-linux-gnu-rhel-8.4 }
+          - { os: ubuntu-22.04, target: clang-14.0.0, arch: x86_64-linux-gnu-ubuntu-18.04 }
+          - { os: ubuntu-22.04, target: clang-13.0.0, arch: x86_64-linux-gnu-ubuntu-20.04 }
+          - { os: ubuntu-22.04, target: clang-12.0.0, arch: x86_64-linux-gnu-ubuntu-20.04 }
+          - { os: ubuntu-22.04, target: clang-11.0.0, arch: x86_64-linux-gnu-ubuntu-20.04 }
           # Clang 9.0.0 have a different arch for OSX
           - { os: macos-13, target: clang-9.0.0, arch: x86_64-darwin-apple }
           # Those targets will generate artifacts that can be used by other testers
