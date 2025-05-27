@@ -99,4 +99,3 @@ private bool _d_isbaseof2(To)(scope ClassInfo oc, scope ref size_t offset)
     A ab = new B();
     assert(dcast!I(ab) is null); // A(b) to I
 }
-
