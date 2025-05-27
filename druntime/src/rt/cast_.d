@@ -15,30 +15,12 @@
 module rt.cast_;
 
 debug(cast_) import core.stdc.stdio : printf;
+import core.internal.cast_ : areClassInfosEqual;
 
 extern (C):
 @nogc:
 nothrow:
 pure:
-
-// Needed because ClassInfo.opEquals(Object) does a dynamic cast,
-// but we are trying to implement dynamic cast.
-extern (D) private bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) @safe
-{
-    // same class if signatures match, works with potential duplicates across binaries
-    if (a is b)
-        return true;
-
-    // new fast way
-    if (a.m_flags & TypeInfo_Class.ClassFlags.hasNameSig)
-        return a.nameSig[0] == b.nameSig[0]
-            && a.nameSig[1] == b.nameSig[1]
-            && a.nameSig[2] == b.nameSig[2]
-            && a.nameSig[3] == b.nameSig[3];
-
-    // old slow way for temporary binary compatibility
-    return a.name == b.name;
-}
 
 /******************************************
  * Given a pointer:

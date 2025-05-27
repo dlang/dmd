@@ -30,6 +30,7 @@ COPY=\
 	$(IMPDIR)\core\internal\abort.d \
 	$(IMPDIR)\core\internal\atomic.d \
 	$(IMPDIR)\core\internal\attributes.d \
+	$(IMPDIR)\core\internal\cast_.d \
 	$(IMPDIR)\core\internal\convert.d \
 	$(IMPDIR)\core\internal\dassert.d \
 	$(IMPDIR)\core\internal\destruction.d \

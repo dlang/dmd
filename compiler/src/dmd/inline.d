@@ -752,6 +752,20 @@ public:
         {
             auto ue = cast(UnaExp)e.copy();
             ue.e1 = doInlineAs!Expression(e.e1, ids);
+            if (auto ce = ue.isCastExp())
+            {
+                if (ce.lowering is null)
+                    goto LskipCastLowering;
+
+                if (auto lowering = ce.lowering.isCallExp())
+                {
+                    if (lowering.f.ident == Id._d_dynamic_cast)
+                    {
+                        ce.lowering = doInlineAs!Expression(lowering, ids);
+                    }
+                }
+            }
+        LskipCastLowering:
             result = ue;
         }
 

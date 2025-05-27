@@ -3610,6 +3610,7 @@ extern (C++) final class CastExp : UnaExp
     Type to;                    // type to cast to
     ubyte mod = cast(ubyte)~0;  // MODxxxxx
     bool trusted; // assume cast is safe
+    Expression lowering;
 
     extern (D) this(Loc loc, Expression e, Type t) @safe
     {

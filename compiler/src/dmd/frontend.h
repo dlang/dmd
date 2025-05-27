@@ -2732,6 +2732,7 @@ public:
     Type* to;
     uint8_t mod;
     bool trusted;
+    Expression* lowering;
     CastExp* syntaxCopy() override;
     bool isLvalue() override;
     void accept(Visitor* v) override;
@@ -8951,6 +8952,7 @@ struct Id final
     static Identifier* _d_arraysetassign;
     static Identifier* _d_arrayassign_l;
     static Identifier* _d_arrayassign_r;
+    static Identifier* _d_dynamic_cast;
     static Identifier* imported;
     static Identifier* InterpolationHeader;
     static Identifier* InterpolationFooter;
