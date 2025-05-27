@@ -90,7 +90,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         if (!parseModuleDeclaration())
             return errorReturn();
 
-        return parseModuleContent();
+        AST.Dsymbols* ret = parseModuleContent();
+
+        // If the edition is overriden in the CLI, or through other means,
+        //  do not set it to the latest edition, if no module declaration is found.
+        if (this.md is null && this.mod.edition == Edition.none)
+            this.mod.edition = Edition.latest;
+
+        return ret;
     }
 
     /++
@@ -137,6 +144,23 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 return false;
             }
             id = token.ident;
+        }
+
+        if (token.value == TOK.uns32Literal)
+        {
+            foreach(M; __traits(allMembers, Edition)[1 .. $-1]) {
+                if (token.unsvalue == __traits(getMember, Edition, M))
+                    goto EditionFound;
+            }
+
+            error(token.loc, "Unknown edition `%s`", token.toChars());
+            goto EndOfEditionLex;
+
+        EditionFound:
+            mod.edition = cast(Edition)token.unsvalue;
+
+        EndOfEditionLex:
+            nextToken();
         }
 
         md = new AST.ModuleDeclaration(loc, a, id, msg, isdeprecated);
@@ -2128,6 +2152,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.moduleString:
         case TOK.functionString:
         case TOK.prettyFunction:
+        case TOK.edition:
         case TOK.this_:
             {
                 // Template argument is an expression
@@ -5947,6 +5972,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.moduleString:
         case TOK.functionString:
         case TOK.prettyFunction:
+        case TOK.edition:
         case TOK.rvalue:
         Lexp:
             {
@@ -7427,6 +7453,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     case TOK.moduleString:
                     case TOK.functionString:
                     case TOK.prettyFunction:
+                    case TOK.edition:
                         goto L2;
 
                     default:
@@ -8259,6 +8286,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
             break;
 
+        case TOK.edition:
+            e = new AST.EditionInitExp(loc);
+            nextToken();
+            break;
+
         case TOK.true_:
             e = new AST.IntegerExp(loc, 1, AST.Type.tbool);
             nextToken();
@@ -8934,6 +8966,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         case TOK.moduleString:
                         case TOK.functionString:
                         case TOK.prettyFunction:
+                        case TOK.edition:
                         case TOK.wchar_:
                         case TOK.dchar_:
                         case TOK.bool_:
@@ -9753,6 +9786,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.moduleString : PREC.primary,
     EXP.functionString : PREC.primary,
     EXP.prettyFunction : PREC.primary,
+    EXP.edition : PREC.primary,
     EXP.typeid_ : PREC.primary,
     EXP.is_ : PREC.primary,
     EXP.assert_ : PREC.primary,
