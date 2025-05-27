@@ -3921,6 +3921,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("IdentifierExp::semantic('%s')\n", exp.ident.toChars());
         }
 
+        if (exp.rvalue)
+        {
+            if (sc.setUnsafe(false, exp.loc, "moving variable `%s` with `__rvalue`", exp))
+            {
+                setError();
+            }
+        }
         scope (exit) result.rvalue = exp.rvalue;
 
         Dsymbol scopesym;
@@ -5922,6 +5929,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     error(exp.f.loc, "`__rvalue` only valid on functions that return by `ref`");
                     setError();
                 }
+                if (result.rvalue)
+                {
+                    if (sc.setUnsafe(false, exp.loc, "calling `__rvalue`-annotated function `%s`", exp.f))
+                    {
+                        setError();
+                    }
+                }
+
             }
         }
 
