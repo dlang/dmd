@@ -78,3 +78,25 @@ private bool _d_isbaseof2(To)(scope ClassInfo oc, scope ref size_t offset)
 
     return false;
 }
+
+@safe pure unittest
+{
+    alias dcast = _d_dynamic_cast;
+
+    interface I {}
+
+    class A {}
+    class B : A {}
+    class C : B, I{}
+
+    // Test runtime conversion: class to interface.
+
+    // Check that the runtime conversion to succeed
+    A ac = new C();
+    assert(dcast!I(ac) !is null); // A(c) to I
+
+    // Check that the runtime conversion fails
+    A ab = new B();
+    assert(dcast!I(ab) is null); // A(b) to I
+}
+
