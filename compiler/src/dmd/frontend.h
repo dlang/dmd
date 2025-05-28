@@ -2690,6 +2690,7 @@ public:
     Array<Expression* >* keys;
     Array<Expression* >* values;
     Expression* lowering;
+    Expression* loweringCtfe;
     bool equals(const RootObject* const o) const override;
     AssocArrayLiteralExp* syntaxCopy() override;
     Optional<bool > toBool() override;
@@ -2969,6 +2970,7 @@ public:
 class EqualExp final : public BinExp
 {
 public:
+    Expression* lowering;
     void accept(Visitor* v) override;
 };
 
@@ -3265,6 +3267,7 @@ public:
 class InExp final : public BinExp
 {
 public:
+    Expression* lowering;
     void accept(Visitor* v) override;
 };
 
@@ -3272,6 +3275,7 @@ class IndexExp final : public BinExp
 {
 public:
     VarDeclaration* lengthVar;
+    Expression* lowering;
     bool modifiable;
     bool indexIsInBounds;
     IndexExp* syntaxCopy() override;
@@ -3534,6 +3538,7 @@ public:
 class RemoveExp final : public BinExp
 {
 public:
+    Expression* lowering;
     void accept(Visitor* v) override;
 };
 
@@ -5571,7 +5576,7 @@ private:
         char symoffexp[56LLU];
         char stringexp[44LLU];
         char arrayliteralexp[40LLU];
-        char assocarrayliteralexp[48LLU];
+        char assocarrayliteralexp[56LLU];
         char structliteralexp[64LLU];
         char compoundliteralexp[32LLU];
         char nullexp[22LLU];
@@ -6990,6 +6995,8 @@ class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
     Type* entry;
+    Dsymbol* xopEqual;
+    Dsymbol* xtoHash;
     static TypeInfoAssociativeArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v) override;
 };
@@ -8981,6 +8988,7 @@ struct Id final
     static Identifier* _d_arrayappendcTXTrace;
     static Identifier* _d_arraycatnTX;
     static Identifier* _d_arraycatnTXTrace;
+    static Identifier* _d_assocarrayliteralTX;
     static Identifier* stdc;
     static Identifier* stdarg;
     static Identifier* va_start;

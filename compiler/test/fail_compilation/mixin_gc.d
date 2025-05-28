@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-{{RESULTS_DIR}}/fail_compilation/mixin_test.mixin(7): Error: undefined identifier `b`
+{{RESULTS_DIR}}/fail_compilation/mixin_test.mixin($n$): Error: undefined identifier `b`
 ---
 */
 

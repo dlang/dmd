@@ -2061,6 +2061,7 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     Expressions* values;
     /// Lower to core.internal.newaa for static initializaton
     Expression lowering;
+    Expression loweringCtfe;
 
     extern (D) this(Loc loc, Expressions* keys, Expressions* values) @safe
     {
@@ -3986,6 +3987,7 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
 extern (C++) final class IndexExp : BinExp
 {
     VarDeclaration lengthVar;
+    Expression lowering;        // for associative array lowering to _aaGetY or _aaGetRvalueX
     bool modifiable = false;    // assume it is an rvalue
     bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
@@ -4754,6 +4756,8 @@ extern (C++) final class CmpExp : BinExp
  */
 extern (C++) final class InExp : BinExp
 {
+    Expression lowering;        // lowered druntime hook: `_d_aaIn(aa, key)`
+
     extern (D) this(Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.in_, e1, e2);
@@ -4772,10 +4776,11 @@ extern (C++) final class InExp : BinExp
  */
 extern (C++) final class RemoveExp : BinExp
 {
+    Expression lowering;        // lowered druntime hook: `_d_aaDel(aa, key)`
+
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, EXP.remove, e1, e2);
-        type = Type.tbool;
     }
 
     override void accept(Visitor v)
@@ -4793,6 +4798,8 @@ extern (C++) final class RemoveExp : BinExp
  */
 extern (C++) final class EqualExp : BinExp
 {
+    Expression lowering;        // lowered druntime hook: `_d_aaEqual(aa1, aa2)`
+
     extern (D) this(EXP op, Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, op, e1, e2);

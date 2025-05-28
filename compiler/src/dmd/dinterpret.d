@@ -50,7 +50,7 @@ import dmd.rootobject;
 import dmd.root.utf;
 import dmd.statement;
 import dmd.tokens;
-import dmd.typesem : mutableOf, equivalent, pointerTo, sarrayOf, arrayOf, size;
+import dmd.typesem : mutableOf, equivalent, pointerTo, sarrayOf, arrayOf, size, merge;
 import dmd.utils : arrayCastBigEndian;
 import dmd.visitor;
 
@@ -2641,6 +2641,8 @@ public:
                    valuesx !is e.values);
             auto aae = ctfeEmplaceExp!AssocArrayLiteralExp(e.loc, keysx, valuesx);
             aae.type = e.type;
+            aae.lowering = e.lowering;
+            aae.loweringCtfe = e.loweringCtfe;
             aae.ownedByCtfe = OwnedBy.ctfe;
             result = aae;
         }
@@ -7174,7 +7176,14 @@ private Expression interpret_dup(UnionExp* pue, InterState* istate, Expression e
         if (Expression e = evaluatePostblit(istate, (*aae.values)[i]))
             return e;
     }
-    aae.type = earg.type.mutableOf(); // repaint type from const(int[int]) to const(int)[int]
+    // repaint type from const(int[int]) to int[int]
+    if (auto taa = earg.type.toBasetype().isTypeAArray())
+    {
+        auto aatype = new TypeAArray(taa.next.mutableOf(), taa.index);
+        aae.type = aatype.merge();
+    }
+    else
+        aae.type = earg.type.mutableOf();
     //printf("result is %s\n", aae.toChars());
     return aae;
 }

@@ -1246,7 +1246,8 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
 
                 semanticTypeInfo(sc, taa.index);
 
-                return new RemoveExp(loc, eleft, key);
+                e = new RemoveExp(loc, eleft, key);
+                return e.expressionSemantic(sc);
             }
         }
         else
@@ -2351,7 +2352,8 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
     // so don't print anything to avoid double error messages.
     if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
         || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
-        || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT))
+        || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT
+        || f.ident == Id._d_assocarrayliteralTX))
     {
         error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
             sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
@@ -4557,13 +4559,49 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
+    void tryLowerAALiteral(AssocArrayLiteralExp aaExp)
+    {
+        auto hookId = Id._d_assocarrayliteralTX;
+        if (!verifyHookExist(aaExp.loc, *sc, hookId, "initializing associative arrays", Id.object))
+            return;
+
+        auto aaType = aaExp.type.toBasetype().isTypeAArray();
+        assert(aaType);
+        Expression hookFunc = new IdentifierExp(aaExp.loc, Id.empty);
+        hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id.object);
+        auto tiargs = new Objects();
+        auto keytype = aaType.index.substWildTo(MODFlags.const_);
+        auto valtype = aaType.nextOf().substWildTo(MODFlags.const_);
+        tiargs.push(keytype);
+        tiargs.push(valtype);
+        hookFunc = new DotTemplateInstanceExp(aaExp.loc, hookFunc, hookId, tiargs);
+        auto arguments = new Expressions();
+        arguments.push(new ArrayLiteralExp(aaExp.loc, keytype.arrayOf(), aaExp.keys));
+        arguments.push(new ArrayLiteralExp(aaExp.loc, valtype.arrayOf(), aaExp.values));
+        Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
+
+        loweredExp = loweredExp.expressionSemantic(sc);
+        loweredExp = resolveProperties(sc, loweredExp);
+        aaExp.lowering = loweredExp;
+
+        semanticTypeInfo(sc, loweredExp.type);
+    }
+
     override void visit(AssocArrayLiteralExp e)
     {
         static if (LOGSEMANTIC)
         {
             printf("AssocArrayLiteralExp::semantic('%s')\n", e.toChars());
         }
-
+        if (e.type)
+        {
+            // already done, but we might have missed generating type info
+            semanticTypeInfo(sc, e.type);
+            if (!e.lowering)
+                tryLowerAALiteral(e);
+            result = e;
+            return;
+        }
         // Run semantic() on each element
         bool err_keys = arrayExpressionSemantic(e.keys.peekSlice(), sc);
         bool err_vals = arrayExpressionSemantic(e.values.peekSlice(), sc);
@@ -4587,6 +4625,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e.type = new TypeAArray(tvalue, tkey);
         e.type = e.type.typeSemantic(e.loc, sc);
 
+        tryLowerAALiteral(e);
         semanticTypeInfo(sc, e.type);
 
         if (checkAssocArrayLiteralEscape(*sc, e, false))
@@ -4868,6 +4907,40 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto t = ne.type.nextOf.unqualify(MODFlags.wild | MODFlags.const_ |
             MODFlags.immutable_ | MODFlags.shared_);
         tiargs.push(t);
+        id = new DotTemplateInstanceExp(ne.loc, id, hook, tiargs);
+
+        auto arguments = new Expressions();
+        id = new CallExp(ne.loc, id, arguments);
+
+        ne.lowering = id.expressionSemantic(sc);
+    }
+
+    /**
+    * Sets the `lowering` field of a `NewExp` to a call to `_d_newAA` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  ne = the `NewExp` to lower
+    */
+    private void tryLowerToNewAA(NewExp ne)
+    {
+        if (!global.params.useGC || !sc.needsCodegen())
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaNew");
+        if (!verifyHookExist(ne.loc, *sc, hook, "new AA"))
+            return;
+
+        /* Lower the memory allocation and initialization of `new V[K]` to
+        * `_d_newAA!(V[K])()`.
+        */
+        Expression id = new IdentifierExp(ne.loc, Id.empty);
+        id = new DotIdExp(ne.loc, id, Id.object);
+        auto tiargs = new Objects();
+        auto taa = ne.type.isTypeAArray();
+        assert(taa);
+        tiargs.push(taa.index);
+        tiargs.push(taa.next);
         id = new DotTemplateInstanceExp(ne.loc, id, hook, tiargs);
 
         auto arguments = new Expressions();
@@ -5522,6 +5595,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(exp.loc, "`new` cannot take arguments for an associative array");
                 return setError();
             }
+            tryLowerToNewAA(exp);
         }
         else
         {
@@ -7909,7 +7983,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // Defensively assume that function calls may have side effects even
                 // though it's not detected by hasSideEffect (e.g. `debug puts("Hello")` )
                 // Rewriting CallExp's also avoids some issues with the inliner/debug generation
-                if (op.hasSideEffect(true))
+                if (op.hasSideEffect(true) || op.isAssocArrayLiteralExp())
                 {
                     // Don't create an invalid temporary for void-expressions
                     // Further semantic will issue an appropriate error
@@ -10045,9 +10119,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
 
                 semanticTypeInfo(sc, taa);
-                checkNewEscape(*sc, exp.e2, false);
+                bool escape = checkNewEscape(*sc, exp.e2, false);
 
                 exp.type = taa.next;
+                if (!escape) // avoid cascading errors
+                    lowerAAIndex(exp, sc);
                 break;
             }
         case Ttuple:
@@ -10678,6 +10754,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     result = e1x;
                     return;
                 }
+                lowerAAIndex(ie1, sc);
             }
         }
         else if (exp.op == EXP.construct && exp.e1.op == EXP.variable &&
@@ -10983,7 +11060,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (exp.op == EXP.assign)
             {
-                if (e1x.op == EXP.index && (cast(IndexExp)e1x).e1.type.toBasetype().ty == Taarray)
+                auto ie1 = e1x.isIndexExp();
+                if (ie1 && ie1.e1.type.toBasetype().ty == Taarray)
                 {
                     /*
                      * Rewrite:
@@ -10997,7 +11075,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      *          : ConstructExp(__aatmp[__aakey], __aaval));
                      */
                     // ensure we keep the expr modifiable
-                    Expression esetting = (cast(IndexExp)e1x).markSettingAAElem();
+                    Expression esetting = ie1.markSettingAAElem();
                     if (esetting.op == EXP.error)
                     {
                         result = esetting;
@@ -11066,6 +11144,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
+                    lowerAAIndex(ie1, sc); // in case markSettingAAElem changed modifiable
                 }
                 else if (Expression e = exp.isAssignExp().opOverloadAssign(sc, aliasThisStop))
                 {
@@ -13164,6 +13243,64 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         return;
     }
 
+    /**
+    * Sets the `lowering` field of a `InExp` to a call to `_d_aaIn!(V[K])` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  ie = the `InExp` to lower
+    */
+    private void tryLowerToAAIn(InExp ie)
+    {
+        if (!global.params.useGC || !sc.needsCodegen() || ie.lowering)
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaIn");
+        if (!verifyHookExist(ie.loc, *sc, hook, "key in AA"))
+            return;
+
+        Expression id = new IdentifierExp(ie.loc, Id.empty);
+        id = new DotIdExp(ie.loc, id, Id.object);
+        auto tiargs = new Objects();
+        id = new DotIdExp(ie.loc, id, hook);
+
+        auto arguments = new Expressions();
+        arguments.push(ie.e2);
+        arguments.push(ie.e1);
+        id = new CallExp(ie.loc, id, arguments);
+
+        ie.lowering = id.expressionSemantic(sc);
+    }
+
+    /**
+    * Sets the `lowering` field of a `RemoveExp` to a call to `_d_aaDel!(V[K])` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  re = the `RemoveExp` to lower
+    */
+    private void tryLowerToAADel(RemoveExp re)
+    {
+        if (!global.params.useGC || !sc.needsCodegen() || re.lowering)
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaDel");
+        if (!verifyHookExist(re.loc, *sc, hook, "remove key in AA"))
+            return;
+
+        Expression id = new IdentifierExp(re.loc, Id.empty);
+        id = new DotIdExp(re.loc, id, Id.object);
+        auto tiargs = new Objects();
+        id = new DotIdExp(re.loc, id, hook);
+
+        auto arguments = new Expressions();
+        arguments.push(re.e1);
+        arguments.push(re.e2);
+        id = new CallExp(re.loc, id, arguments);
+
+        re.lowering = id.expressionSemantic(sc);
+    }
+
     override void visit(InExp exp)
     {
         if (Expression e = exp.opOverloadBinary(sc, aliasThisStop))
@@ -13185,6 +13322,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // Convert key to type of key
                     exp.e1 = exp.e1.implicitCastTo(sc, ta.index);
                 }
+
+                tryLowerToAAIn(exp);
 
                 // even though the glue layer only needs the type info of the index,
                 // this might be the first time an AA literal is accessed, so check
@@ -13221,7 +13360,42 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
+
+        tryLowerToAADel(e);
+
+        e.type = Type.tbool;
         result = e;
+    }
+
+    /**
+    * Sets the `lowering` field of a `EqualExp` to a call to `_d_aaEqual!(aa1, aa2)` unless
+    * compiling with `-betterC` or within `__traits(compiles)`.
+    *
+    * Params:
+    *  ee = the `EqualExp` to lower
+    */
+    private void tryLowerToAAEqual(EqualExp ee)
+    {
+        if (!global.params.useGC || !sc.needsCodegen() || ee.lowering)
+            return;
+
+        Identifier hook = Identifier.idPool("_d_aaEqual");
+        if (!verifyHookExist(ee.loc, *sc, hook, "compare AAs"))
+            return;
+
+        Expression id = new IdentifierExp(ee.loc, Id.empty);
+        id = new DotIdExp(ee.loc, id, Id.object);
+        auto tiargs = new Objects();
+        id = new DotIdExp(ee.loc, id, hook);
+
+        auto arguments = new Expressions();
+        arguments.push(ee.e1);
+        arguments.push(ee.e2);
+        Expression exp = new CallExp(ee.loc, id, arguments);
+        if (ee.op == EXP.notEqual)
+            exp = new NotExp(ee.loc, exp);
+
+        ee.lowering = exp.expressionSemantic(sc);
     }
 
     override void visit(EqualExp exp)
@@ -13427,6 +13601,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (exp.e1.type.toBasetype().ty == Taarray)
         {
+            tryLowerToAAEqual(exp);
+
             semanticTypeInfo(sc, exp.e1.type.toBasetype());
         }
 
@@ -13916,6 +14092,8 @@ private bool expressionSemanticDone(Expression e)
         || e.isTypeExp() // stores its type in the Expression.type field
         || e.isCompoundLiteralExp() // stores its `(type) {}` in type field, gets rewritten to struct literal
         || e.isVarExp() // type sometimes gets set already before semantic
+        || (e.isAssocArrayLiteralExp() && // semanticTypeInfo not run during initialization
+            (!e.type.vtinfo || !e.isAssocArrayLiteralExp().lowering))
     );
 }
 
@@ -15220,6 +15398,15 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
         return exp;
     }
 
+    Expression visitIndex(IndexExp exp)
+    {
+        exp.e1 = exp.e1.resolveLoc(loc, sc);
+        exp.e2 = exp.e2.resolveLoc(loc, sc);
+        if (exp.lowering)
+            exp.lowering = exp.lowering.resolveLoc(loc, sc);
+        return exp;
+    }
+
     Expression visitStructLiteral(StructLiteralExp exp)
     {
         if (!exp.elements)
@@ -15337,6 +15524,9 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
                 element = element.resolveLoc(loc, sc);
         }
 
+        if (exp.lowering)
+            exp.lowering.resolveLoc(loc, sc);
+
         return exp;
     }
 
@@ -15410,6 +15600,7 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
         case EXP.structLiteral:  return visitStructLiteral(exp.isStructLiteralExp());
         case EXP.new_:           return visitNew(exp.isNewExp());
         case EXP.concatenate:    return visitCat(exp.isCatExp());
+        case EXP.index:          return visitIndex(exp.isIndexExp());
         case EXP.call:           return visitCall(exp.isCallExp());
         case EXP.question:       return visitCond(exp.isCondExp());
         case EXP.array:          return visitArray(exp.isArrayExp());
@@ -16094,6 +16285,7 @@ private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression 
         if (ex.op == EXP.error)
             return ex;
 
+        lowerAAIndex(exp, sc); // in case markSettingAAElem changed modifiable
         return visit(exp);
     }
 
@@ -17863,4 +18055,52 @@ private extern(C++) class IncludeVisitor : Visitor {
             sic.inc = Include.no;
         result = (sic.inc == Include.yes);
     }
+}
+
+void lowerAAIndex(IndexExp ie, Scope* sc)
+{
+    auto taa = ie.e1.type.toBasetype().isTypeAArray();
+    if (!taa)
+        return;
+    if (!global.params.useGC || !sc.needsCodegen())
+        return;
+
+    // an assignment is rewritten later anyway, so _aaGetY should be obsolete
+    Identifier hook = Identifier.idPool(ie.modifiable ? "_aaGetY" : "_aaGetRvalueX");
+    if (!verifyHookExist(ie.loc, *sc, hook, "indexing AA"))
+        return;
+
+    if (ie.lowering)
+    {
+        if (auto rv = ie.lowering.isPtrExp())
+            if (auto call = rv.e1.isCallExp())
+                if (auto ve = call.e1.isVarExp())
+                    if (ve.var && ve.var.ident == hook)
+                        return;
+    }
+    bool boundsCheck = true; // todo: sc.boundsCheck;
+    Expression func = new IdentifierExp(ie.loc, Id.empty);
+    func = new DotIdExp(ie.loc, func, Id.object);
+    auto tiargs = new Objects();
+    tiargs.push(taa.index);
+    tiargs.push(taa.next);
+    if (!ie.modifiable)
+        tiargs.push(IntegerExp.createBool(boundsCheck));
+    func = new DotTemplateInstanceExp(ie.loc, func, hook, tiargs);
+
+    auto arguments = new Expressions();
+    arguments.push(ie.e1);
+    arguments.push(ie.e2);
+    auto call = new CallExp(ie.loc, func, arguments);
+    auto rv = new PtrExp(ie.loc, call);
+
+    //        printf("V[K] %s -> %s\n", ie.e1.type.toChars(), taa.toChars());
+    //        printf("K %s -> %s\n", ie.e2.type.toChars(), taa.index.toChars());
+    //        printf("V %s\n", taa.next.toChars());
+    //        printf("%s\n", func.toChars());
+
+    ie.lowering = rv.expressionSemantic(sc);
+
+    if (auto ie1 = ie.e1.isIndexExp())
+        lowerAAIndex(ie1, sc); // recurse in case of multi-dimensional access
 }
