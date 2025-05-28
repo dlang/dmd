@@ -6361,6 +6361,9 @@ public:
     Array<FuncDeclaration* > invs;
     FuncDeclaration* inv;
     Dsymbol* ctor;
+private:
+    FuncDeclaration* uninstantiatedCtors;
+public:
     CtorDeclaration* defaultCtor;
     AliasThis* aliasthis;
     Array<DtorDeclaration* > userDtors;
