@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include "dsymbol.h"
 
 struct ModuleDeclaration;
@@ -28,12 +30,11 @@ enum PKG
     PKGpackage  // already determined that's an actual package
 };
 
-enum class Edition : unsigned char
+enum class Edition : uint16_t
 {
-    none = 0u,
-    legacy = 1u,
-    v2024 = 2u,
-    latest = 2u,
+    v2023 = 2023,
+    v2024,
+    v2025,
 };
 
 class Package : public ScopeDsymbol
