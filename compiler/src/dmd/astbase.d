@@ -1381,7 +1381,7 @@ struct ASTBase
 
         const FileName srcfile;
         const(char)[] arg;
-        Edition edition = Edition.legacy;
+        Edition edition = Edition.min;
 
         extern (D) this(Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
         {

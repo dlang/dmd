@@ -189,6 +189,11 @@ extern (C++) struct Param
     Help help;
     Verbose v;
 
+    // Editions
+    Edition edition;             // edition year
+    Edition[const(char)*] editionFiles; // Edition corresponding to a filespec
+
+
     // Options for `-preview=/-revert=`
     FeatureState useDIP25 = FeatureState.enabled; // implement https://wiki.dlang.org/DIP25
     FeatureState useDIP1000;     // implement https://dlang.org/spec/memory-safe-d.html#scope-return-params
