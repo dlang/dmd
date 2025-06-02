@@ -19,12 +19,12 @@ enum Sizeok : ubyte
 }
 
 /// D Language version
-enum Edition : ubyte
+enum Edition : ushort
 {
-    none,
-    legacy,          /// Before the introduction of editions
-    v2024,           /// Experimental first new edition
-    latest = v2024   /// Newest edition that this compiler knows of
+    v2023 = 2023,    /// Edition.min for default edition
+    v2024,           /// first Edition
+    v2025,           /// next Edition
+                     /// use Edition.max for latest edition
 }
 
 enum Baseok : ubyte

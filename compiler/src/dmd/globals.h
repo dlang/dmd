@@ -1,4 +1,3 @@
-
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
@@ -195,6 +194,9 @@ struct Param
 
     Help help;
     Verbose v;
+
+    unsigned short edition;      // edition year
+    void* editionFiles;          // Edition corresponding to a filespec
 
     // Options for `-preview=/-revert=`
     FeatureState useDIP25;       // implement https://wiki.dlang.org/DIP25
