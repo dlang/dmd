@@ -759,7 +759,7 @@ public:
 
                 if (auto lowering = ce.lowering.isCallExp())
                 {
-                    if (lowering.f.ident == Id._d_dynamic_cast)
+                    if (lowering.f.ident == Id._d_cast)
                     {
                         ce.lowering = doInlineAs!Expression(lowering, ids);
                     }

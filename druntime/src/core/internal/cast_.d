@@ -1,5 +1,6 @@
 module core.internal.cast_;
 
+debug(cast_) import core.stdc.stdio : printf;
 
 // Needed because ClassInfo.opEquals(Object) does a dynamic cast,
 // but we are trying to implement dynamic cast.
@@ -22,25 +23,21 @@ bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) pure n
 
 
 /*****
- * Dynamic cast from a class object `o` to class or interface `c`, where `c` is a subtype of `o`.
+ * Dynamic cast from a class object `o` to class or interface `To`, where `To` is a subtype of `From`.
  * Params:
  *      o = instance of class
- *      c = a subclass of o
+ *      To = class or interface that is a subtype of `From`
  * Returns:
- *      null if o is null or c is not a subclass of o. Otherwise, return o.
+ *      null if o is null or `To` is not a subclass of `From`. Otherwise, return o.
  */
-void* _d_dynamic_cast(To)(Object o) @trusted
+private void* _d_dynamic_cast(To, From)(From o) @trusted
 {
-    import core.internal.traits: Unqual;
-
     debug(cast_) printf("_d_dynamic_cast(o = %p, c = '%.*s')\n", o, cast(int) c.name.length, c.name.ptr);
 
     void* res = null;
     size_t offset = 0;
 
-    alias Unqual_To = Unqual!To;
-
-    if (o && _d_isbaseof2!Unqual_To(typeid(o), offset))
+    if (o && _d_isbaseof2!To(typeid(o), offset))
     {
         debug(cast_) printf("\toffset = %zd\n", offset);
         res = cast(void*) o + offset;
@@ -49,6 +46,61 @@ void* _d_dynamic_cast(To)(Object o) @trusted
     return res;
 }
 
+/**
+ * Dynamic cast `o` to final class `To` only one level down
+ * Params:
+ *      o = object that is instance of a class
+ *      To = final class that is a subclass of `From`
+ * Returns:
+ *      o if it succeeds, null if it fails
+ */
+private void* _d_paint_cast(To, From)(From o)
+{
+    /* If o is really an instance of c, just do a paint
+     */
+    auto p = o && cast(void*)(areClassInfosEqual(typeid(o), typeid(To).info)) ? o : null;
+    debug assert(cast(void*)p is cast(void*)_d_dynamic_cast!To(o));
+    return cast(void*)p;
+}
+
+/**
+* Hook that detects the type of cast performed and calls the appropriate function.
+* Params:
+*      o = object that is being casted
+*      To = type to which the object is being casted
+* Returns:
+*      null if the cast fails, otherwise returns the object casted to the type `To`.
+*/
+void* _d_cast(To, From)(From o) @trusted
+{
+    static if (is(From == class) && is(To == interface))
+    {
+        return _d_dynamic_cast!To(o);
+    }
+
+    static if (is(From == class) && is(To == class))
+    {
+        static if (is(From FromSupers == super) && is(To ToSupers == super))
+        {
+            /* Check for:
+            *  class A { }
+            *  final class B : A { }
+            *  ... cast(B) A ...
+            */
+            // Multiple inheritance is not allowed, so we can safely assume
+            // that the second super can only be an interface.
+            static if (__traits(isFinalClass, To) && is(ToSupers[0] == From) &&
+                       ToSupers.length == 1 && FromSupers.length <= 1)
+            {
+                return _d_paint_cast!To(o);
+            }
+        }
+
+        return null;
+    }
+
+    return null;
+}
 
 private bool _d_isbaseof2(To)(scope ClassInfo oc, scope ref size_t offset)
 {
@@ -81,21 +133,58 @@ private bool _d_isbaseof2(To)(scope ClassInfo oc, scope ref size_t offset)
 
 @safe pure unittest
 {
-    alias dcast = _d_dynamic_cast;
-
     interface I {}
 
     class A {}
     class B : A {}
     class C : B, I{}
 
-    // Test runtime conversion: class to interface.
-
-    // Check that the runtime conversion to succeed
     A ac = new C();
-    assert(dcast!I(ac) !is null); // A(c) to I
+    assert(_d_cast!I(ac) !is null); // A(c) to I
+    assert(_d_dynamic_cast!I(ac) !is null);
 
-    // Check that the runtime conversion fails
+    assert(_d_cast!C(ac) is null); // A(c) to C
+
     A ab = new B();
-    assert(dcast!I(ab) is null); // A(b) to I
+    assert(_d_cast!I(ab) is null); // A(b) to I
+    assert(_d_dynamic_cast!I(ab) is null);
+}
+
+@safe pure unittest
+{
+    class A {}
+    class B : A {}
+    class C : B {}
+    final class D : C {}
+
+    A ab = new B();
+    assert(_d_cast!B(ab) is null); // A(b) to B
+
+    A ad = new D();
+    assert(_d_cast!D(ad) is null); // A(d) to D
+
+    C cd = new D();
+    assert(_d_cast!D(cd) !is null); // C(d) to D
+    assert(_d_paint_cast!D(cd) !is null);
+
+    interface I {}
+    class E : I {}
+    final class F : E {}
+
+    E ef = new F();
+    assert(_d_cast!F(ef) is null); // E(f) to F
+
+    class G {}
+    final class H : G, I {}
+
+    G gh = new H();
+    assert(_d_cast!H(gh) is null); // G(h) to H
+
+    final class J {}
+    A a = new A();
+    assert(_d_cast!G(a) is null); // A(a) to G
+    assert(_d_paint_cast!G(a) is null);
+
+    assert(_d_cast!J(a) is null); // A(a) to J
+    assert(_d_paint_cast!J(a) is null);
 }
