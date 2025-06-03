@@ -230,9 +230,11 @@ struct OutBuffer
         offset += len;
     }
 
+    alias put = write;  // transition to output range which uses put()
+
     extern (C++) void write(const(void)* data, size_t nbytes) pure nothrow @system
     {
-        write(data[0 .. nbytes]);
+        put(data[0 .. nbytes]);
     }
 
     void write(scope const(void)[] buf) pure nothrow @trusted
@@ -262,7 +264,7 @@ struct OutBuffer
     void write16(int v) nothrow
     {
         auto u = cast(ushort) v;
-        write(&u, u.sizeof);
+        put(&u, u.sizeof);
     }
 
     /**
@@ -270,7 +272,7 @@ struct OutBuffer
      */
     void write32(int v) nothrow @trusted
     {
-        write(&v, v.sizeof);
+        put(&v, v.sizeof);
     }
 
     /**
@@ -278,7 +280,7 @@ struct OutBuffer
      */
     @trusted void write64(long v) nothrow
     {
-        write(&v, v.sizeof);
+        put(&v, v.sizeof);
     }
 
     /// Buffer will NOT be zero-terminated
@@ -287,19 +289,19 @@ struct OutBuffer
         if (!s)
             return;
         import core.stdc.string : strlen;
-        write(s[0 .. strlen(s)]);
+        put(s[0 .. strlen(s)]);
     }
 
     /// ditto
     void writestring(scope const(char)[] s) pure nothrow @safe
     {
-        write(s);
+        put(s);
     }
 
     /// ditto
     void writestring(scope string s) pure nothrow @safe
     {
-        write(s);
+        put(s);
     }
 
     /// Buffer will NOT be zero-terminated, followed by newline
@@ -313,13 +315,13 @@ struct OutBuffer
      */
     void writeStringz(const(char)* s) pure nothrow @system
     {
-        write(s[0 .. strlen(s)+1]);
+        put(s[0 .. strlen(s)+1]);
     }
 
     /// ditto
     void writeStringz(const(char)[] s) pure nothrow @safe
     {
-        write(s);
+        put(s);
         writeByte(0);
     }
 
@@ -502,14 +504,17 @@ struct OutBuffer
         offset += 4;
     }
 
-    extern (C++) void write(const OutBuffer* buf) pure nothrow @trusted
+    extern (C++) void write(scope const OutBuffer* buf) pure nothrow @trusted
     {
         if (buf)
-        {
-            reserve(buf.offset);
-            memcpy(data.ptr + offset, buf.data.ptr, buf.offset);
-            offset += buf.offset;
-        }
+            put(*buf);
+    }
+
+    void write(ref scope const OutBuffer buf) pure nothrow @trusted
+    {
+        reserve(buf.offset);
+        memcpy(data.ptr + offset, buf.data.ptr, buf.offset);
+        offset += buf.offset;
     }
 
     extern (C++) void fill0(size_t nbytes) pure nothrow @trusted
@@ -871,7 +876,7 @@ unittest
     buf.prependbyte('x');
     OutBuffer buf2;
     buf2.writestring("mmm");
-    buf.write(&buf2);
+    buf.put(&buf2);
     char[] s = buf.extractSlice();
     assert(s == "xdefabcmmm");
 }
