@@ -137,7 +137,12 @@ extern (C) int _Dmain(char[][])
         dmd_coverSetMerge(true);
     }
     version (D_Exceptions)
-        scope(failure) stderr.printInternalFailure;
+        scope(failure)
+        {
+            OutBuffer buf;
+            printInternalFailure(buf);
+            fputs(buf.peekChars(), stderr);
+        }
 
     auto args = Runtime.cArgs();
     return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
@@ -392,8 +397,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     if (params.v.verbose)
     {
-        stdout.printPredefinedVersions();
-        stdout.printGlobalConfigs();
+        OutBuffer buf;
+        printPredefinedVersions(buf);
+        printGlobalConfig(buf);
+        fputs(buf.peekChars(), stdout);
     }
     //printf("%d source files\n", cast(int) files.length);
 
