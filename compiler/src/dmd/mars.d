@@ -308,17 +308,21 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
 {
     foreach (const p; *args)
     {
-        const(char)[] arg = p.toDString;
+        const arg = p.toDString;
 
-        if (arg.length && arg[0] == '-')
+        switch (arg)
         {
-            if (arg[1 .. $] == "m32" || arg[1 .. $] == "m64")
-                arch = arg[2 .. $];
-            else if (arg[1 .. $] == "m32mscoff")
-                arch = "32";
-            else if (arg[1 .. $] == "run")
+            case "-m32":
+            case "-m64":
+            case "-m32mscoff":
+                arch = arg[2 .. 4];
+                continue;
+            case "-run":   // end of args to dmd
                 break;
+            default:
+                continue;
         }
+        break;
     }
     return arch;
 }
