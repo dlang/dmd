@@ -108,8 +108,8 @@ $(H2 $(LNAME2 using_classes_as_key, Using Classes as the KeyType))
             }
         }
         ---
-        The default implementations of $(D toHash) and $(D opEquals) for classes use $(D is)
-        semantics (the address of the class instance is used to compute the hash, and the address of the class instance is used for comparisons).
+        The default implementation of $(D opEquals) uses the address of the instance for comparisons,
+        and the default implementation of $(D toHash) hashes the address of the instance.
 
         $(IMPLEMENTATION_DEFINED
         `opCmp` is not used to check for equality by the
