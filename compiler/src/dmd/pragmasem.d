@@ -227,6 +227,8 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
             .error(pd.loc, "%s `%s` string expected for library name", pd.kind, pd.toPrettyChars);
         else
         {
+            import dmd.root.string: toCString;
+
             auto se = semanticString(sc, (*pd.args)[0], "library name");
             if (!se)
                 return noDeclarations();
@@ -247,6 +249,12 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
                 ob.writestring(name);
                 ob.writenl();
             }
+
+            if (global.params.makeDeps.doOutput)
+            {
+                global.params.makeDeps.files.push(name.toCString.ptr);
+            }
+
             mem.xfree(name.ptr);
         }
         return noDeclarations();
