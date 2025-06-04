@@ -3611,6 +3611,7 @@ Lmark:
         else
             mark!(false, true, true)(ScanRange!false(pbot, ptop));
 
+        evStart.reset();
         busyThreads.atomicOp!"-="(1);
 
         debug(PARALLEL_PRINTF) printf("waitForScanDone\n");
@@ -3662,7 +3663,7 @@ Lmark:
         if (!scanThreadData)
             onOutOfMemoryError();
 
-        evStart.initialize(false, false);
+        evStart.initialize(true, false);
         evDone.initialize(false, false);
 
         version (Posix)
