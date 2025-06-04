@@ -1,0 +1,6 @@
+Enforce ordering of `return ref` and `return scope` with `-preview=return`
+
+The `return` attribute is associated with the `ref` attribute or the `scope`
+attribute. In order to reduce the confusing permutations of the keywords `return`,
+`scope`, and `ref`, only the lexical combinations `return ref` and `return scope` are allowed
+when the -preview=return switch is applied.
