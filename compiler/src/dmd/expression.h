@@ -219,6 +219,7 @@ public:
     ModuleInitExp* isModuleInitExp();
     FuncInitExp* isFuncInitExp();
     PrettyFuncInitExp* isPrettyFuncInitExp();
+    EditionInitExp* isEditionInitExp();
     ClassReferenceExp* isClassReferenceExp();
     ThrownExceptionExp* isThrownExceptionExp();
     UnaExp* isUnaExp();
@@ -1337,6 +1338,12 @@ class PrettyFuncInitExp final : public DefaultInitExp
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
+
+class EditionInitExp final : public DefaultInitExp
+{
+public:
+    void accept(Visitor* v) override { v->visit(this); };
+}
 
 /****************************************************************/
 
