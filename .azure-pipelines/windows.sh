@@ -65,15 +65,9 @@ fi
 # Build DMD (incl. building and running the unittests)
 ################################################################################
 
-# no `-debug` for unittests build with old host compilers (to avoid compile errors)
-disable_debug_for_unittests=()
-if [[ "$HOST_DMD_VERSION" == "2.079.0" ]]; then
-    disable_debug_for_unittests=(ENABLE_DEBUG=0)
-fi
-
 cd "$DMD_DIR"
 "$HOST_DC" -m$MODEL compiler/src/build.d -ofgenerated/build.exe
-generated/build.exe -j$N MODEL=$MODEL HOST_DMD=$HOST_DC BUILD=debug "${disable_debug_for_unittests[@]}" unittest
+generated/build.exe -j$N MODEL=$MODEL HOST_DMD=$HOST_DC BUILD=debug unittest
 generated/build.exe -j$N MODEL=$MODEL HOST_DMD=$HOST_DC DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_RELEASE=1 ENABLE_ASSERTS=1 dmd
 
 DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd.exe"
@@ -103,14 +97,8 @@ fi
 
 "$HOST_DC" -m$MODEL -g -i run.d
 
-targets=("all")
 args=('ARGS=-O -inline -g') # no -release for faster builds
-if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
-    # skip runnable_cxx and unit_tests with older bootstrap compilers
-    targets=("runnable" "compilable" "fail_compilation" "dshell")
-    args=() # use default set of args
-fi
-./run --environment --jobs=$N "${targets[@]}" "${args[@]}" CC="$CC" CXX="$CXX"
+./run --environment --jobs=$N "${args[@]}" CC="$CC" CXX="$CXX"
 
 ###############################################################################
 # Upload coverage reports and exit if ENABLE_COVERAGE is specified
