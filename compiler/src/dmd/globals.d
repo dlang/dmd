@@ -23,14 +23,11 @@ import dmd.common.outbuffer;
 import dmd.errorsink;
 import dmd.errors;
 import dmd.file_manager;
+import dmd.hostcompiler;
 import dmd.identifier;
 import dmd.location;
 import dmd.lexer : CompileEnv;
 import dmd.utils;
-
-version (IN_GCC) {}
-else version (IN_LLVM) {}
-else version = MARS;
 
 /// Defines a setting for how compiler warnings and deprecations are handled
 enum DiagnosticReporting : ubyte
@@ -386,25 +383,11 @@ extern (C++) struct Global
         errorSinkNull = new ErrorSinkNull;
 
         this.fileManager = new FileManager();
-        version (MARS)
-        {
-            compileEnv.vendor = "Digital Mars D";
+        compileEnv.vendor = HostCompiler;
+        compileEnv.switchPrefix = SwitchPrefix;
 
-            // -color=auto is the default value
-            import dmd.console : detectTerminal, detectColorPreference;
-            params.v.color = detectTerminal() && detectColorPreference();
-        }
-        else version (IN_GCC)
-        {
-            compileEnv.vendor = "GNU D";
-        }
-        else version (IN_LLVM)
-        {
-            compileEnv.vendor = "LDC";
-
-            import dmd.console : detectTerminal;
-            params.v.color = detectTerminal();
-        }
+        mixin UseAnsiColors;
+        params.v.color = useAnsiColors();
 
         params.v.errorPrintMode = ErrorPrintMode.printErrorContext; // Enable error context globally by default
         compileEnv.versionNumber = parseVersionNumber(versionString());

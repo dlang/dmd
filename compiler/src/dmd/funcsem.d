@@ -38,6 +38,7 @@ import dmd.expression;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
+import dmd.hostcompiler;
 import dmd.id;
 import dmd.identifier;
 import dmd.importc;
@@ -66,9 +67,6 @@ import dmd.typesem;
 import dmd.visitor;
 import dmd.visitor.statement_rewrite_walker;
 
-version (IN_GCC) {}
-else version (IN_LLVM) {}
-else version = MARS;
 
 /* Tweak all return statements and dtor call for nrvo_var, for correct NRVO.
  */
@@ -3185,12 +3183,12 @@ extern (D) bool checkNRVO(FuncDeclaration fd)
                     return false;
                 if (v.nestedrefs.length && fd.needsClosure())
                     return false;
+
                 // don't know if the return storage is aligned
-                version (MARS)
-                {
-                    if (fd.alignSectionVars && (*fd.alignSectionVars).contains(v))
-                        return false;
-                }
+                mixin alignSectionVarsContains;
+                if (isAlignSectionVar(v))
+                    return false;
+
                 // The variable type needs to be equivalent to the return type.
                 if (!v.type.equivalent(tf.next))
                     return false;

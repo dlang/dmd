@@ -42,6 +42,7 @@ import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
+import dmd.hostcompiler;
 import dmd.iasm;
 import dmd.id;
 import dmd.identifier;
@@ -3444,10 +3445,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             // https://issues.dlang.org/show_bug.cgi?id=23159
             if (!global.params.useExceptions)
             {
-                version (IN_GCC)
-                    error(oss.loc, "`%s` cannot be used with `-fno-exceptions`", Token.toChars(oss.tok));
-                else
-                    error(oss.loc, "`%s` cannot be used with -betterC", Token.toChars(oss.tok));
+                error(oss.loc, "`%s` cannot be used with -betterC", Token.toChars(oss.tok));
                 return setError();
             }
 
@@ -3720,10 +3718,10 @@ public bool throwSemantic(Loc loc, ref Expression exp, Scope* sc)
 {
     if (!global.params.useExceptions)
     {
-        version (IN_GCC)
-            loc.error("cannot use `throw` statements with `-fno-exceptions`");
-        else
-            loc.error("cannot use `throw` statements with %s", global.params.betterC ? "-betterC".ptr : "-nothrow".ptr);
+        const(char)* s = SwitchExceptions      ? SwitchExceptions :
+                         global.params.betterC ? "betterC".ptr :
+                                                 "nothrow".ptr;
+        loc.error("cannot use `throw` statements with -%s", s);
         return false;
     }
 

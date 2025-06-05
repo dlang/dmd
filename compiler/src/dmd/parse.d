@@ -1253,10 +1253,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             else
             {
-                version (IN_GCC)
-                    error("attribute `scope` cannot be applied with `in`, use `-fpreview=in` instead");
-                else
-                    error("attribute `scope` cannot be applied with `in`, use `-preview=in` instead");
+                error("attribute `scope` cannot be applied with `in`, use `-%spreview=in` instead", compileEnv.switchPrefix.ptr);
             }
             return orig;
         }
@@ -1278,10 +1275,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             else
             {
-                version (IN_GCC)
-                    error("attribute `in` cannot be added after `scope`: remove `scope` and use `-fpreview=in`");
-                else
-                    error("attribute `in` cannot be added after `scope`: remove `scope` and use `-preview=in`");
+                error("attribute `in` cannot be added after `scope`: remove `scope` and use `-%spreview=in`", compileEnv.switchPrefix.ptr);
             }
             return orig;
         }

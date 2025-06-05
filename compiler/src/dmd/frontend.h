@@ -6309,6 +6309,7 @@ struct CompileEnv final
     bool transitionIn;
     bool ddocOutput;
     bool masm;
+    _d_dynamicArray< const char > switchPrefix;
     IdentifierCharLookup cCharLookupTable;
     IdentifierCharLookup dCharLookupTable;
     CompileEnv() :
@@ -6321,11 +6322,12 @@ struct CompileEnv final
         transitionIn(),
         ddocOutput(),
         masm(),
+        switchPrefix(),
         cCharLookupTable(),
         dCharLookupTable()
     {
     }
-    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool transitionIn = false, bool ddocOutput = false, bool masm = false, IdentifierCharLookup cCharLookupTable = IdentifierCharLookup(), IdentifierCharLookup dCharLookupTable = IdentifierCharLookup()) :
+    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool transitionIn = false, bool ddocOutput = false, bool masm = false, _d_dynamicArray< const char > switchPrefix = {}, IdentifierCharLookup cCharLookupTable = IdentifierCharLookup(), IdentifierCharLookup dCharLookupTable = IdentifierCharLookup()) :
         versionNumber(versionNumber),
         date(date),
         time(time),
@@ -6335,6 +6337,7 @@ struct CompileEnv final
         transitionIn(transitionIn),
         ddocOutput(ddocOutput),
         masm(masm),
+        switchPrefix(switchPrefix),
         cCharLookupTable(cCharLookupTable),
         dCharLookupTable(dCharLookupTable)
         {}

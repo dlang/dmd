@@ -43,6 +43,7 @@ import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
+import dmd.hostcompiler;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -74,7 +75,6 @@ import dmd.typesem;
 import dmd.visitor;
 
 enum LOG = false;
-
 
 /*************************************
  * Does semantic analysis on function bodies.
@@ -421,12 +421,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (!global.params.useTypeInfo || !Type.dtypeinfo || !Type.typeinfotypelist)
                     {
                         if (!global.params.useTypeInfo)
-                        {
-                            version (IN_GCC)
-                                .error(funcdecl.loc, "%s `%s` D-style variadic functions cannot be used with `-fno-rtti`", funcdecl.kind, funcdecl.toPrettyChars);
-                            else
-                                .error(funcdecl.loc, "%s `%s` D-style variadic functions cannot be used with -betterC", funcdecl.kind, funcdecl.toPrettyChars);
-                        }
+                            .error(funcdecl.loc, "%s `%s` D-style variadic functions cannot be used with -%s", funcdecl.kind, funcdecl.toPrettyChars, SwitchVariadic.ptr);
                         else if (!Type.typeinfotypelist)
                             .error(funcdecl.loc, "%s `%s` `object.TypeInfo_Tuple` could not be found, but is implicitly used in D-style variadic functions", funcdecl.kind, funcdecl.toPrettyChars);
                         else
