@@ -412,6 +412,8 @@ extern (C++) final class Module : Package
     SearchOptFlags searchCacheFlags;       // cached flags
     bool insearch;
 
+    bool isExplicitlyOutOfBinary; // Is this module known to be out of binary, and must be DllImport'd?
+
     /**
      * A root module is one that will be compiled all the way to
      * object code.  This field holds the root module that caused
@@ -532,6 +534,7 @@ extern (C++) final class Module : Package
         auto m = new Module(loc, filename, ident, 0, 0);
 
         // TODO: apply import path information (pathInfo) on to module
+        m.isExplicitlyOutOfBinary = importPathThatFindUs.isOutOfBinary;
 
         if (!m.read(loc))
             return null;
