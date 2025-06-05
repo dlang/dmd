@@ -1575,7 +1575,7 @@ auto sourceFiles()
             mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
             parse.d pragmasem.d printast.d rootobject.d safe.d
             semantic2.d semantic3.d sideeffect.d statement.d
-            statementsem.d staticassert.d staticcond.d stmtstate.d target.d templatesem.d templateparamsem.d traits.d
+            statementsem.d staticassert.d staticcond.d stmtstate.d target.d targetcompiler.d templatesem.d templateparamsem.d traits.d
             typesem.d typinf.d utils.d
             iasm/package.d iasm/gcc.d
             mangle/package.d mangle/basic.d mangle/cpp.d mangle/cppwin.d
