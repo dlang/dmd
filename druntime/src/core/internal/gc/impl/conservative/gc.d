@@ -2466,7 +2466,7 @@ struct Gcx
         }
 
         version (COLLECT_PARALLEL)
-        bool popLocked(ref RANGE rng, ref Event notEmpty)
+        bool popLocked(ref RANGE rng)
         {
             if (_length == 0)
                 return false;
@@ -2476,8 +2476,6 @@ struct Gcx
             if (_length == 0)
                 return false;
             rng = _p[--_length];
-            if (length == 0)
-                notEmpty.reset();
             return true;
         }
 
@@ -2717,7 +2715,7 @@ struct Gcx
             {
                 static if (parallel)
                 {
-                    if (!toscan.popLocked(rng, evStackFilled))
+                    if (!toscan.popLocked(rng))
                         break; // nothing more to do
                 }
                 else
@@ -3684,7 +3682,7 @@ Lmark:
         if (!scanThreadData)
             onOutOfMemoryError();
 
-        evStackFilled.initialize(true, false);
+        evStackFilled.initialize(false, false);
         evDone.initialize(false, false);
 
         version (Posix)
@@ -3781,8 +3779,12 @@ Lmark:
         alias toscan = scanStack!precise;
 
         busyThreads.atomicOp!"+="(1);
-        if (toscan.popLocked(rng, evStackFilled))
+        if (toscan.popLocked(rng))
         {
+            // if a new thread has found an entry on the stack, another thread might want to join
+            if (!toscan.empty)
+                evStackFilled.setIfInitialized();
+
             version (Posix) debug (PARALLEL_PRINTF)
             {
                 printf("scanBackground thread %d scanning range [%p,%lld] from stack\n",
