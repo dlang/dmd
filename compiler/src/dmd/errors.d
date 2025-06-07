@@ -999,7 +999,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     res.writeByte(HIGHLIGHT.Default);
     //printf("res = '%.*s'\n", cast(int)buf.length, buf[].ptr);
     buf.setsize(0);
-    buf.write(&res);
+    buf.put(res);
     --nested;
 }
 
