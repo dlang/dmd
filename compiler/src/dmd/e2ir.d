@@ -4699,10 +4699,15 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         }
         else
         {
-            // Handle dynamic cast
-            if (!cdfrom.isInterfaceDeclaration() && cdto.isInterfaceDeclaration())
+            // Handle dynamic cast & paint cast
+            if ((!cdfrom.isInterfaceDeclaration() &&
+                cdto.storage_class & STC.final_ &&
+                cdto.baseClass == cdfrom &&
+                (!cdto.interfaces || cdto.interfaces.length == 0) &&
+                (!cdfrom.interfaces || cdfrom.interfaces.length == 0)) ||
+                (!cdfrom.isInterfaceDeclaration() && cdto.isInterfaceDeclaration()))
             {
-                assert(ce.lowering, "This case should have been rewritten to `_d_dynamic_cast` in the semantic phase");
+                assert(ce.lowering, "This case should have been rewritten to `_d_cast` in the semantic phase");
                 e = toElem(ce.lowering, irs);
                 return Lret(ce, e);
             }
@@ -4716,23 +4721,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
              */
             RTLSYM rtl = RTLSYM.INTERFACE_CAST;
 
-            /* Check for:
-            *  class A { }
-            *  final class B : A { }
-            *  ... cast(B) A ...
-            */
-            if (!cdfrom.isInterfaceDeclaration() &&
-                cdto.storage_class & STC.final_ &&
-                cdto.baseClass == cdfrom &&
-                (!cdto.interfaces || cdto.interfaces.length == 0) &&
-                (!cdfrom.interfaces || cdfrom.interfaces.length == 0))
-            {
-                /* do shortcut cast: if e is an instance of B, then it's just a type paint
-                 */
-                //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
-                rtl = RTLSYM.PAINT_CAST;
-            }
-            else if (!cdfrom.isInterfaceDeclaration() && !cdto.isInterfaceDeclaration())
+            if (!cdfrom.isInterfaceDeclaration() && !cdto.isInterfaceDeclaration())
             {
                 //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
                 int level = 0;
@@ -4757,7 +4746,6 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
                 // _d_class_cast(e, cdto);
                 rtl = RTLSYM.CLASS_CAST;
             }
-
             elem* ep = el_param(el_ptr(toExtSymbol(cdto)), e);
             e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
         }

@@ -9321,6 +9321,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        // If the cast is from an alias this, we need to unalias it
+        if (auto t1b_unalias = t1b.aliasthisOf())
+        {
+            t1b = t1b_unalias;
+        }
+
         if (t1b.ty == Tclass && tob.ty == Tclass)
         {
             CastExp cex = ex.isCastExp();
@@ -9331,19 +9337,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!(cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
                     && cdfrom.classKind != ClassKind.cpp)
             {
-                if (!cdfrom.isInterfaceDeclaration() && cdto.isInterfaceDeclaration())
+
+                if ((!cdfrom.isInterfaceDeclaration() &&
+                    cdto.storage_class & STC.final_ &&
+                    cdto.baseClass == cdfrom &&
+                    (!cdto.interfaces || cdto.interfaces.length == 0) &&
+                    (!cdfrom.interfaces || cdfrom.interfaces.length == 0)) ||
+                    (!cdfrom.isInterfaceDeclaration() && cdto.isInterfaceDeclaration()))
                 {
 
-                    Identifier hook = Id._d_dynamic_cast;
-                    if (!verifyHookExist(cex.loc, *sc, hook, "dynamic cast", Id.object))
+                    Identifier hook = Id._d_cast;
+                    if (!verifyHookExist(cex.loc, *sc, hook, "d_cast", Id.object))
                         goto LskipCastLowering;
 
-                    // Lower to .object._d_dynamic_cast!(To)(exp.e1)
+                    // Lower to .object._d_cast!(To)(exp.e1)
                     Expression lowering = new IdentifierExp(cex.loc, Id.empty);
                     lowering = new DotIdExp(cex.loc, lowering, Id.object);
 
                     auto tiargs = new Objects();
-                    tiargs.push(tob);
+                    // Unqualify the type being casted to, avoiding multiple instantiations
+                    auto unqual_tob = tob.unqualify(MODFlags.wild | MODFlags.const_ |
+                        MODFlags.immutable_ | MODFlags.shared_);
+                    tiargs.push(unqual_tob);
                     lowering = new DotTemplateInstanceExp(cex.loc, lowering, hook, tiargs);
 
                     auto arguments = new Expressions();

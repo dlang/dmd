@@ -139,23 +139,6 @@ void* _d_class_cast(Object o, ClassInfo c)
     return null;
 }
 
-/**
- * Dynamic cast `o` to final class `c` only one level down
- * Params:
- *      o = object that is instance of a class
- *      c = class to cast it to
- * Returns:
- *      o if it succeeds, null if it fails
- */
-void* _d_paint_cast(Object o, ClassInfo c)
-{
-    /* If o is really an instance of c, just do a paint
-     */
-    auto p = o && cast(void*)(areClassInfosEqual(typeid(o), c)) ? o : null;
-    debug assert(cast(void*)p is cast(void*)_d_dynamic_cast(o, c));
-    return cast(void*)p;
-}
-
 int _d_isbaseof2(scope ClassInfo oc, scope const ClassInfo c, scope ref size_t offset) @safe
 {
     if (areClassInfosEqual(oc, c))
