@@ -51,6 +51,7 @@ import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
+import dmd.hostcompiler;
 import dmd.id;
 import dmd.identifier;
 import dmd.imphint;
@@ -5397,10 +5398,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (!global.params.useGC && sc.needsCodegen())
             {
-                version(IN_GCC)
-                    error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-fno-rtti`", exp.toErrMsg());
-                else
-                    error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-betterC`", exp.toErrMsg());
+                error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch -%s", exp.toErrMsg(), SwitchVariadic.ptr);
                 return setError();
             }
 

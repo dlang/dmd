@@ -46,6 +46,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [compiler.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/compiler.d)   | Describe a back-end compiler and implements compiler-specific actions |
 | [deps.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/deps.d)           | Implement the `-deps` and `-makedeps` switches                        |
 | [timetrace.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/timetrace.d) | Build time profiling utility                                          |
+| [hostcompiler.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/hostcompiler.d) | Host compiler personality                                       |
 
 ### Lexing / parsing
 

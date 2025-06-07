@@ -39,6 +39,7 @@ import dmd.expression;
 import dmd.funcsem : overloadApply;
 import dmd.globals;
 import dmd.hdrgen;
+import dmd.hostcompiler;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -52,10 +53,6 @@ import dmd.root.stringtable;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
-
-version (IN_GCC) {}
-else version (IN_LLVM) {}
-else version = MARS;
 
 /// Inline Status
 enum ILS : ubyte
@@ -246,11 +243,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     GotoStatements* gotos;              /// Gotos with forward references
 
-    version (MARS)
-    {
-        VarDeclarations* alignSectionVars;  /// local variables with alignment needs larger than stackAlign
-        Symbol* salignSection;              /// pointer to aligned section, if any
-    }
+    mixin FuncDeclarationExtra;
 
     /// set if this is a known, builtin function we can evaluate at compile time
     BUILTIN builtin = BUILTIN.unknown;
