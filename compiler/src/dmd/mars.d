@@ -83,20 +83,21 @@ void logo()
 Print DMD's logo with more debug information and error-reporting pointers.
 
 Params:
-    stream = output stream to print the information on
+    buf = output stream to print the information to
 */
-void printInternalFailure(FILE* stream)
+void printInternalFailure(ref OutBuffer buf)
 {
-    fputs(("---\n" ~
+    buf.write("---\n" ~
     "ERROR: This is a compiler bug.\n" ~
             "Please report it via https://github.com/dlang/dmd/issues\n" ~
             "with, preferably, a reduced, reproducible example and the information below.\n" ~
     "DustMite (https://github.com/CyberShadow/DustMite/wiki) can help with the reduction.\n" ~
-    "---\n").ptr, stream);
-    stream.fprintf("DMD %.*s\n", cast(int) global.versionString().length, global.versionString().ptr);
-    stream.printPredefinedVersions;
-    stream.printGlobalConfigs();
-    fputs("---\n".ptr, stream);
+    "---\nDMD ");
+    buf.write(global.versionString());
+    buf.writeByte('\n');
+    printPredefinedVersions(buf);
+    printGlobalConfig(buf);
+    buf.write("---\n");
 }
 
 /**
@@ -398,23 +399,30 @@ void setDefaultLibraries(const ref Target target, ref const(char)[] defaultlibna
         debuglibname = null;
 }
 
-void printPredefinedVersions(FILE* stream)
+void printPredefinedVersions(ref OutBuffer buf)
 {
-    OutBuffer buf;
+    buf.write("predefs ");
     foreach (const str; global.versionids)
     {
         buf.writeByte(' ');
         buf.writestring(str.toChars());
     }
-    stream.fprintf("predefs  %s\n", buf.peekChars());
+    buf.writeByte('\n');
 }
 
 extern(C) void printGlobalConfigs(FILE* stream)
 {
-    stream.fprintf("binary    %.*s\n", cast(int)global.params.argv0.length, global.params.argv0.ptr);
-    stream.fprintf("version   %.*s\n", cast(int) global.versionString().length, global.versionString().ptr);
+    OutBuffer buf;
+    printGlobalConfig(buf);
+    fputs(buf.peekChars(), stream);
+}
+
+void printGlobalConfig(ref OutBuffer buf)
+{
+    buf.printf("binary    %.*s\n", cast(int)global.params.argv0.length, global.params.argv0.ptr);
+    buf.printf("version   %.*s\n", cast(int) global.versionString().length, global.versionString().ptr);
     const iniOutput = global.inifilename ? global.inifilename : "(none)";
-    stream.fprintf("config    %.*s\n", cast(int)iniOutput.length, iniOutput.ptr);
+    buf.printf("config    %.*s\n", cast(int)iniOutput.length, iniOutput.ptr);
     // Print DFLAGS environment variable
     {
         StringTable!(char*) environment;
@@ -422,7 +430,7 @@ extern(C) void printGlobalConfigs(FILE* stream)
         Strings dflags;
         getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
         environment.reset(1);
-        OutBuffer buf;
+        OutBuffer buf2;
         foreach (flag; dflags[])
         {
             bool needsQuoting;
@@ -436,13 +444,13 @@ extern(C) void printGlobalConfigs(FILE* stream)
             }
 
             if (flag.strchr(' '))
-                buf.printf("'%s' ", flag);
+                buf2.printf("'%s' ", flag);
             else
-                buf.printf("%s ", flag);
+                buf2.printf("%s ", flag);
         }
 
-        auto res = buf[] ? buf[][0 .. $ - 1] : "(none)";
-        stream.fprintf("DFLAGS    %.*s\n", cast(int)res.length, res.ptr);
+        auto res = buf2[] ? buf2[][0 .. $ - 1] : "(none)";
+        buf.printf("DFLAGS    %.*s\n", cast(int)res.length, res.ptr);
     }
 }
 
