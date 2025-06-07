@@ -2468,9 +2468,6 @@ struct Gcx
         version (COLLECT_PARALLEL)
         bool popLocked(ref RANGE rng)
         {
-            if (_length == 0)
-                return false;
-
             stackLock.lock();
             scope(exit) stackLock.unlock();
             if (_length == 0)
@@ -3543,7 +3540,6 @@ Lmark:
                         Gcx.instance.busyThreads = 0;
 
                         memset(&Gcx.instance.evStackFilled, 0, Gcx.instance.evStackFilled.sizeof);
-                        memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
                     }
                 }
             }
@@ -3567,7 +3563,6 @@ Lmark:
     ScanThreadData* scanThreadData;
 
     Event evStackFilled;
-    Event evDone;
 
     shared uint busyThreads;
     shared uint stoppedThreads;
@@ -3683,7 +3678,6 @@ Lmark:
             onOutOfMemoryError();
 
         evStackFilled.initialize(false, false);
-        evDone.initialize(false, false);
 
         version (Posix)
         {
@@ -3725,7 +3719,7 @@ Lmark:
         while (atomicLoad(stoppedThreads) < startedThreads && !allThreadsDead)
         {
             evStackFilled.setIfInitialized();
-            evDone.wait(dur!"msecs"(1));
+            Thread.sleep(1.msecs);
         }
 
         for (int idx = 0; idx < numScanThreads; idx++)
@@ -3737,7 +3731,6 @@ Lmark:
             }
         }
 
-        evDone.terminate();
         evStackFilled.terminate();
 
         cstdlib.free(scanThreadData);
@@ -3755,7 +3748,7 @@ Lmark:
             pullFromScanStack();
         }
         stoppedThreads.atomicOp!"+="(1);
-        evDone.setIfInitialized();
+        evStackFilled.setIfInitialized(); // wake up another thread
     }
 
     void pullFromScanStack() nothrow
