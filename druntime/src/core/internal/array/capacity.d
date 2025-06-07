@@ -85,6 +85,8 @@ do
     }
     else
     {
+        import core.checkedint : mulu;
+
         bool overflow = false;
         size_t reqsize = mulu(size, newcapacity, overflow);
         if (!overflow)
@@ -222,7 +224,7 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
     enum hasPostblit = __traits(hasMember, T, "__postblit");
     enum hasEnabledPostblit = hasPostblit && !__traits(isDisabled, T.__postblit);
 
-    ubyte overflow = 0;
+    bool overflow = false;
 
     size_t newsize = void;
 
