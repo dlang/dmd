@@ -92,7 +92,7 @@ ifeq (windows,$(OS))
     CC := cl
     OUTPUT_FLAG := /Fe
     # we additionally specify the .obj output path (/Fo) to prevent collisions
-    extra_cflags += /Fo$(OBJDIR)
+    extra_cflags += /Fo$(OBJDIR)/
 endif
 
 # $(LINKDL) == -L-ldl => $(ldl) == -ldl
