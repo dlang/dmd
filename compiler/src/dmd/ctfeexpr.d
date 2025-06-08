@@ -241,6 +241,7 @@ UnionExp copyLiteral(Expression e)
         AssocArrayLiteralExp r = ue.exp().isAssocArrayLiteralExp();
         r.type = aae.type;
         r.lowering = aae.lowering;
+        r.loweringCtfe = aae.loweringCtfe;
         r.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
