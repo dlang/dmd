@@ -346,6 +346,7 @@ T[] _d_newarrayUPureNothrow(T)(size_t length, bool isShared=false) pure nothrow 
 
 T[] _d_newarrayU(T)(size_t length, bool isShared=false) @trusted
 {
+    import core.checkedint : mulu;
     import core.exception : onOutOfMemoryError;
     import core.internal.traits : Unqual;
     import core.internal.array.utils : __arrayAlloc;
@@ -353,52 +354,24 @@ T[] _d_newarrayU(T)(size_t length, bool isShared=false) @trusted
     alias UnqT = Unqual!T;
 
     size_t elemSize = T.sizeof;
-    size_t arraySize;
 
     debug(PRINTF) printf("_d_newarrayU(length = x%zu, size = %zu)\n", length, elemSize);
     if (length == 0 || elemSize == 0)
         return null;
 
-    version (D_InlineAsm_X86)
+    bool overflow = false;
+    const arraySize = mulu(elemSize, length, overflow);
+    if (!overflow)
     {
-        asm pure nothrow @nogc
+        if (auto arr = __arrayAlloc!UnqT(arraySize))
         {
-            mov     EAX, elemSize       ;
-            mul     EAX, length         ;
-            mov     arraySize, EAX      ;
-            jnc     Lcontinue           ;
+            debug(PRINTF) printf("p = %p\n", arr.ptr);
+            return (cast(T*) arr.ptr)[0 .. length];
         }
     }
-    else version (D_InlineAsm_X86_64)
-    {
-        asm pure nothrow @nogc
-        {
-            mov     RAX, elemSize       ;
-            mul     RAX, length         ;
-            mov     arraySize, RAX      ;
-            jnc     Lcontinue           ;
-        }
-    }
-    else
-    {
-        import core.checkedint : mulu;
 
-        bool overflow = false;
-        arraySize = mulu(elemSize, length, overflow);
-        if (!overflow)
-            goto Lcontinue;
-    }
-
-Loverflow:
     onOutOfMemoryError();
     assert(0);
-
-Lcontinue:
-    auto arr = __arrayAlloc!UnqT(arraySize);
-    if (!arr.ptr)
-        goto Loverflow;
-    debug(PRINTF) printf("p = %p\n", arr.ptr);
-    return (cast(T*) arr.ptr)[0 .. length];
 }
 
 /// ditto

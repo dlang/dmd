@@ -285,43 +285,19 @@ extern (C) void[] _d_newarrayU(const scope TypeInfo ti, size_t length) pure noth
     if (length == 0 || size == 0)
         return null;
 
-    version (D_InlineAsm_X86)
+    bool overflow = false;
+    size = mulu(size, length, overflow);
+    if (!overflow)
     {
-        asm pure nothrow @nogc
+        if (auto ptr = GC.malloc(size, __typeAttrs(tinext) | BlkAttr.APPENDABLE, tinext))
         {
-            mov     EAX,size        ;
-            mul     EAX,length      ;
-            mov     size,EAX        ;
-            jnc     Lcontinue       ;
+            debug(PRINTF) printf(" p = %p\n", ptr);
+            return ptr[0 .. length];
         }
     }
-    else version (D_InlineAsm_X86_64)
-    {
-        asm pure nothrow @nogc
-        {
-            mov     RAX,size        ;
-            mul     RAX,length      ;
-            mov     size,RAX        ;
-            jnc     Lcontinue       ;
-        }
-    }
-    else
-    {
-        bool overflow = false;
-        size = mulu(size, length, overflow);
-        if (!overflow)
-            goto Lcontinue;
-    }
-Loverflow:
+
     onOutOfMemoryError();
     assert(0);
-Lcontinue:
-
-    auto ptr = GC.malloc(size, __typeAttrs(tinext) | BlkAttr.APPENDABLE, tinext);
-    if (!ptr)
-        goto Loverflow;
-    debug(PRINTF) printf(" p = %p\n", ptr);
-    return ptr[0 .. length];
 }
 
 /// ditto

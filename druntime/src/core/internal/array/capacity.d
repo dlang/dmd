@@ -107,6 +107,7 @@ in
 }
 do
 {
+    import core.checkedint : mulu;
     import core.exception : onOutOfMemoryError;
     import core.stdc.string : memcpy, memset;
     import core.internal.array.utils: __typeAttrs;
@@ -117,41 +118,14 @@ do
     alias BlkAttr = GC.BlkAttr;
 
     auto size = T.sizeof;
-    version (D_InlineAsm_X86)
-    {
-        size_t reqsize = void;
 
-        asm nothrow pure
-        {
-            mov EAX, newcapacity;
-            mul EAX, size;
-            mov reqsize, EAX;
-            jnc Lcontinue;
-        }
-    }
-    else version (D_InlineAsm_X86_64)
+    bool overflow = false;
+    const reqsize = mulu(size, newcapacity, overflow);
+    if (overflow)
     {
-        size_t reqsize = void;
-
-        asm nothrow pure
-        {
-            mov RAX, newcapacity;
-            mul RAX, size;
-            mov reqsize, RAX;
-            jnc Lcontinue;
-        }
+        onOutOfMemoryError();
+        assert(0);
     }
-    else
-    {
-        bool overflow = false;
-        size_t reqsize = mulu(size, newcapacity, overflow);
-        if (!overflow)
-            goto Lcontinue;
-    }
-Loverflow:
-    onOutOfMemoryError();
-    assert(0);
-Lcontinue:
 
     // step 1, see if we can ensure the capacity is valid in-place
     auto datasize = (*p).length * size;
@@ -171,7 +145,10 @@ Lcontinue:
     static enum ti = typeid(T);
     auto ptr = GC.malloc(reqsize, attrs, ti);
     if (ptr is null)
-        goto Loverflow;
+    {
+        onOutOfMemoryError();
+        assert(0);
+    }
 
     // copy the data over.
     // note that malloc will have initialized the data we did not request to 0.
@@ -280,35 +257,8 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
     enum hasPostblit = __traits(hasMember, T, "__postblit");
     enum hasEnabledPostblit = hasPostblit && !__traits(isDisabled, T.__postblit);
 
-    ubyte overflow = 0;
-
-    size_t newsize = void;
-
-    version (D_InlineAsm_X86)
-    {
-        asm pure nothrow @nogc
-        {
-            mov EAX, sizeelem;
-            mul newlength;        // EDX:EAX = EAX * newlength
-            mov newsize, EAX;
-            setc overflow;
-        }
-    }
-    else version (D_InlineAsm_X86_64)
-    {
-        asm pure nothrow @nogc
-        {
-            mov RAX, sizeelem;
-            mul newlength;        // RDX:RAX = RAX * newlength
-            mov newsize, RAX;
-            setc overflow;
-        }
-    }
-    else
-    {
-        newsize = mulu(sizeelem, newlength, overflow);
-    }
-
+    bool overflow = false;
+    const newsize = mulu(sizeelem, newlength, overflow);
     if (overflow)
     {
         onOutOfMemoryError();
