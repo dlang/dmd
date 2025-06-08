@@ -805,7 +805,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     fixresult(cdb,e,retregs,pretregs);
 Lp:
-    if (postinc)
+    if (postinc && false)
     {
         reg_t ireg = findreg(idxregm(&cs));
         if (pretregs & mPSW)
