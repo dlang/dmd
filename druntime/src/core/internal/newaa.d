@@ -68,7 +68,7 @@ private template Unqualify(T : const U, U)
         alias Unqualify = Unconstify!U;
 }
 
-ref _refAA(K, V)(ref inout V[K] aa) @trusted
+ref _refAA(K, V)(ref V[K] aa) @trusted
 {
     return *(cast(AA!(substInout!K, substInout!V)*)&aa);
 }
@@ -101,6 +101,15 @@ static struct Entry(K, V)
     V value;
 }
 
+// backward compatibility conversions
+private ref compat_key(K, K2)(ref K2 key)
+{
+    static if (is(K2 == const(char)[]) && is(K == string))
+        return (ref (ref return K2 k2) @trusted => *cast(string*)&k2)(key);
+    else
+        return key;
+}
+
 private void _aaMove(V)(ref V src, ref V dst) @trusted
 {
     import core.stdc.string : memcpy, memset;
@@ -119,7 +128,7 @@ Entry!(K, V)* _newEntry(K, V)(ref K key, ref V value)
     {
         auto entry = new Entry!(K, V)(key, value);
     }
-    else static if (__traits(compiles, new Entry!(K, V)(key)))
+    else static if (__traits(compiles, { K k; new Entry!(K, V)(k); }))
     {
         auto entry = new Entry!(K, V)(key);
         _aaMove(value, entry.value);
@@ -141,20 +150,27 @@ Entry!(K, V)* _newEntry(K, V, K2)(ref K2 key)
     {
         auto entry = new Entry!(K, V)(key);
     }
-    else // with disabled ctor for V
+    else static if (__traits(compiles, { K2 k; new Entry!(K, V)(k, V.init); }))
     {
+        // with disabled ctor for V
         auto entry = new Entry!(K, V)(key, V.init);
+    }
+    else
+    {
+        // with disabled ctor for K and V
+        auto entry = new Entry!(K, V);
+        entry.key = key;
     }
     return entry;
 }
 
 // for backward compatibility, do not require const in hashOf()
-hash_t wrap_hashOf(K)(scope const ref K key) { return hashOf(cast()key); }
+hash_t wrap_hashOf(K)(scope const ref K key) @trusted { return hashOf(cast()key); }
 enum pure_hashOf(K) = cast(hash_t function(scope ref const K key) pure nothrow @nogc @safe) &wrap_hashOf!K;
 
 // for backward compatibilty pretend the comparison is @safe, pure, etc
 // this also breaks cyclic inference on recursive data types
-bool keyEqual(K1, K2)(ref const K1 k1, ref const K2 k2) { return cast()k1 == cast()k2; }
+bool keyEqual(K1, K2)(ref const K1 k1, ref const K2 k2) @trusted { return cast()k1 == cast()k2; }
 enum pure_keyEqual(K1, K2) = cast(bool function(ref const K1, ref const K2) pure nothrow @nogc @safe) &keyEqual!(K1, K2);
 
 private struct Impl(K, V)
@@ -234,12 +250,12 @@ private:
     }
 
     // lookup a key
-    inout(Bucket)* findSlotLookup(size_t hash, scope ref const K key) inout pure @safe nothrow
+    inout(Bucket)* findSlotLookup(K2)(size_t hash, scope ref const K2 key) inout pure @safe nothrow
     {
         for (size_t i = hash & mask, j = 1;; ++j)
         {
             if (buckets[i].hash == hash && buckets[i].entry)
-                if (pure_keyEqual!(K, K)(key, buckets[i].entry.key))
+                if (pure_keyEqual!(K2, K)(key, buckets[i].entry.key))
                     return &buckets[i];
             if (buckets[i].empty)
                 return null;
@@ -286,9 +302,12 @@ private:
         firstUsed = cast(uint) dim;
     }
 
-    size_t calcHash(ref const K key) const nothrow pure @nogc @safe
+    size_t calcHash(K2)(ref K2 key) const nothrow pure @nogc @safe
     {
-        hash_t hash = hashFn(key);
+        static if(is(K2* : K*)) // ref compatible?
+            hash_t hash = hashFn(key);
+        else
+            hash_t hash = pure_hashOf!K2(key);
         // highest bit is set to distinguish empty/deleted from filled buckets
         return mix(hash) | HASH_FILLED_MARK;
     }
@@ -404,15 +423,22 @@ size_t _aaLen(K, V)(scope const AA!(K, V) aa)
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set V.init
  */
-V* _aaGetY(K, V, K2)(scope ref V[K] aa, auto ref K2 key)
+V* _aaGetY(K, V, T : V1[K1], K1, V1, K2)(auto ref scope T aa, auto ref K2 key)
 {
+    ref aax = cast(V[K])cast(V1[K1])aa; // remove outer const from T
     bool found;
-    return _aaGetX(aa, key, found);
+    return _aaGetX!(K, V)(aax, key, found);
+}
+
+V* _aaGetY(K, V, T : V1[K1], K1, V1, K2)(auto ref scope T aa, auto ref K2 key, out bool found)
+{
+    ref aax = cast(V[K])cast(V1[K1])aa; // remove outer const from T
+    return _aaGetX!(K, V)(aax, key, found);
 }
 
 /******************************
  * Lookup key in aa.
- * Called only from implementation of require
+ * Called only from implementation of require, update and _aaGetY
  * Params:
  *      a = associative array
  *      key = reference to the key value
@@ -420,11 +446,11 @@ V* _aaGetY(K, V, K2)(scope ref V[K] aa, auto ref K2 key)
  * Returns:
  *      if key was in the aa, a mutable pointer to the existing value.
  *      If key was not in the aa, a mutable pointer to newly inserted value which
- *      is set to all zeros
+ *      is set to V.init
  */
-V* _aaGetX(K, V, K2)(scope ref V[K] a, auto ref K2 key, out bool found)
+V* _aaGetX(K, V, K2)(auto ref scope V[K] a, auto ref K2 key, out bool found)
 {
-    ref aa = _refAA(a);
+    ref aa = _refAA!(K, V)(a);
 
     // lazily alloc implementation
     if (aa is null)
@@ -432,11 +458,13 @@ V* _aaGetX(K, V, K2)(scope ref V[K] a, auto ref K2 key, out bool found)
         aa.impl = new Impl!(K, V)(INIT_NUM_BUCKETS);
     }
 
+    ref key2 = compat_key!(K)(key);
+
     // get hash and bucket for key
-    immutable hash = aa.calcHash(key);
+    immutable hash = aa.calcHash(key2);
 
     // found a value => return it
-    if (auto p = aa.findSlotLookup(hash, key))
+    if (auto p = aa.findSlotLookup(hash, key2))
     {
         found = true;
         return &p.entry.value;
@@ -457,7 +485,7 @@ V* _aaGetX(K, V, K2)(scope ref V[K] a, auto ref K2 key, out bool found)
     aa.firstUsed = min(aa.firstUsed, cast(uint)pi);
     ref p = aa.buckets[pi];
     p.hash = hash;
-    p.entry = _newEntry!(K, V)(key);
+    p.entry = _newEntry!(K, V)(key2);
     return &p.entry.value;
 }
 
@@ -470,16 +498,25 @@ V* _aaGetX(K, V, K2)(scope ref V[K] a, auto ref K2 key, out bool found)
  * Returns:
  *      pointer to value if present, null otherwise
  */
-inout(V)* _aaGetRvalueX(K, V, bool boundsCheck, K2)(inout V[K] aa, auto ref scope K2 key)
+inout(V)* _aaGetRvalueX(K, V, K2)(inout V[K] aa, auto ref scope K2 key)
 {
+//    auto aax = cast(V[K])aa; // remove outer const from T
     auto p = _d_aaIn(aa, key);
-    static if (boundsCheck)
-        if (!p)
-        {
-            import core.exception;
-            onRangeError("file", 0); // todo
-        }
-    return p;
+    return cast(inout(V)*)p;
+}
+
+/// ditto
+inout(V)* _aaGetRvalueX(K, V, K2)(inout shared const(V[K]) aa, auto ref scope K2 key)
+{
+    // accept shared for backward compatibility, should be deprecated
+    return _aaGetRvalueX!(K, V, K2)(cast(inout(V[K])) aa, key);
+}
+
+/// ditto
+inout(V)* _aaGetRvalueX(K, V, K2)(immutable(V[K]) aa, auto ref scope K2 key)
+{
+    // resolve ambiguity for immutable converting to const and shared const
+    return _aaGetRvalueX!(K, V, K2)(cast(const(V[K])) aa, key);
 }
 
 /***********************************
@@ -522,22 +559,16 @@ auto _aaDup(T : V[K], K, V)(T a)
  * Returns:
  *      pointer to value if present, null otherwise
  */
-inout(V)* _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref scope const K2 key2)
+inout(V)* _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref scope K2 key)
 {
     auto aa = _toAA!(K, V)(a);
     if (aa.empty)
         return null;
 
-    // todo: allow any key that can be compared with == and has the same hash
-    static if (is(K2 == K))
-        alias key = key2;
-    else static if (is(immutable(K2) == immutable(K)))
-        ref K key = (ref () @trusted => *cast(K*)&key2)();
-    else
-        static assert(false, "key type ", K2, " not compatible with ", K);
+    ref key2 = compat_key!(K)(key);
 
-    immutable hash = aa.calcHash(key);
-    if (auto p = aa.findSlotLookup(hash, key))
+    immutable hash = aa.calcHash(key2);
+    if (auto p = aa.findSlotLookup(hash, key2))
         return &p.entry.value;
     return null;
 }
@@ -546,22 +577,16 @@ inout(V)* _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref scope const K2 key2)
 private extern(C) bool gc_inFinalizer() pure nothrow @safe;
 
 /// Delete entry scope const AA, return true if it was present
-auto _d_aaDel(T : V[K], K, V, K2)(T a, auto ref const K2 key2)
+auto _d_aaDel(T : V[K], K, V, K2)(T a, auto ref K2 key)
 {
     auto aa = _toAA!(K, V)(a);
     if (aa.empty)
         return false;
 
-    // todo: allow any key that can be compared with == and has the same hash
-    static if (is(K2 == K))
-        alias key = key2;
-    else static if (is(immutable(K2) == immutable(K)))
-        ref K key = (ref () @trusted => *cast(K*)&key2)();
-    else
-        static assert(false, "key type ", K2, " not compatible with ", K);
+    ref key2 = compat_key!(K)(key);
 
-    immutable hash = aa.calcHash(key);
-    if (auto p = aa.findSlotLookup(hash, key))
+    immutable hash = aa.calcHash(key2);
+    if (auto p = aa.findSlotLookup(hash, key2))
     {
         // clear entry
         p.hash = HASH_DELETED;
@@ -694,7 +719,7 @@ Impl!(K, V)* _d_assocarrayliteralTX(K, V)(K[] keys, V[] vals)
     {
         immutable hash = aa.calcHash(keys[i]);
 
-        auto p = aa.findSlotLookup(hash, keys[i]);
+        auto p = aa.findSlotLookup!K(hash, keys[i]);
         if (p)
         {
             static if (__traits(compiles, p.entry.value = vals[i])) // immutable?
@@ -734,7 +759,7 @@ bool _aaEqual(T : AA!(K, V), K, V)(scope T aa1, scope T aa2)
         if (!b1.filled)
             continue;
         hash_t hash = sameHash ? b1.hash : aa2.calcHash(b1.entry.key);
-        auto pb2 = aa2.findSlotLookup(hash, b1.entry.key);
+        auto pb2 = aa2.findSlotLookup!K(hash, b1.entry.key);
         if (pb2 is null || !pure_keyEqual!(V, V)(b1.entry.value, pb2.entry.value)) // rarely, inference on opEqual breaks builds here
             return false;
     }
