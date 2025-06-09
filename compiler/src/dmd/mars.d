@@ -1935,14 +1935,15 @@ Params:
   params = command line params
   target = target system
   eSink = error message sink
-  modules = empty array of modules to be filled in
+  modules = uninitialized array of modules to be filled in
 
 Returns:
   true on error
 */
 bool createModules(ref Strings files, ref Strings libmodules, ref Param params, const ref Target target,
-    ErrorSink eSink, ref Modules modules)
+    ErrorSink eSink, out Modules modules)
 {
+    modules.reserve(files.length);
     bool firstmodule = true;
     foreach(file; files)
     {

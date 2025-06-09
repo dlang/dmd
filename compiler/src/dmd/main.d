@@ -456,7 +456,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // Create Modules
     Modules modules;
-    modules.reserve(files.length);
     if (createModules(files, libmodules, params, target, global.errorSink, modules))
         fatal();
 
