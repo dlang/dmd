@@ -775,6 +775,9 @@ dmd -cov -unittest myprog.d
             done for system and trusted functions, and assertion failures
             are undefined behaviour.`
         ),
+        Option("return",
+            "enforce 'return ref' and 'return scope' syntax"
+        ),
         Option("revert=<name>",
             "revert language change identified by 'name'",
             `Revert language change identified by $(I id)`,

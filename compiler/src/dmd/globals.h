@@ -213,6 +213,7 @@ struct Param
 
     FeatureState noSharedAccess; // read/write access to shared memory objects
     d_bool previewIn;              // `in` means `[ref] scope const`, accepts rvalues
+    d_bool returnRefScope;         // -preview=return switch, must use `return ref` or `return scope`
     d_bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
     d_bool shortenedMethods;       // allow => in normal function declarations
     d_bool fixImmutableConv;       // error on unsound immutable conversion - https://github.com/dlang/dmd/pull/14070

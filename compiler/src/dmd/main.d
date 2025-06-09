@@ -193,6 +193,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_FAILURE;
 
     global.compileEnv.previewIn        = global.params.previewIn;
+    global.compileEnv.returnRefScope   = global.params.returnRefScope;
     global.compileEnv.transitionIn     = global.params.v.vin;
     global.compileEnv.ddocOutput       = global.params.ddoc.doOutput;
 

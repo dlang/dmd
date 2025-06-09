@@ -1547,6 +1547,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-release")     // https://dlang.org/dmd.html#switch-release
             params.release = true;
+        else if (arg == "-return")     // https://dlang.org/dmd.html#switch-returnRefScope
+            params.returnRefScope = true;
         else if (arg == "-betterC")     // https://dlang.org/dmd.html#switch-betterC
         {
             params.betterC = true;

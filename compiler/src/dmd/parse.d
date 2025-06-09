@@ -1286,7 +1286,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             return orig;
         }
 
-        if (0) // replace this with -preview=return in next PR
+        if (compileEnv.returnRefScope) // -preview=return
             switch (orig & (STC.out_ | STC.ref_ | STC.scope_ | STC.return_))
             {
                 case STC.return_ | STC.ref_:
