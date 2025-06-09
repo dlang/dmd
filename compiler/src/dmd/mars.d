@@ -1974,7 +1974,8 @@ bool createModules(ref Strings files, ref Strings libmodules, ref Param params, 
 
         // Set the source file contents of the module
         OutBuffer buf;
-        buf.readFromStdin();
+        if (buf.readFromStdin(eSink))
+            return true;        // propagate error
         m.src = cast(ubyte[])buf.extractSlice();
 
         // Give unique outfile name
@@ -2007,10 +2008,17 @@ Module moduleWithEmptyMain()
     return result;
 }
 
-private void readFromStdin(ref OutBuffer sink) nothrow
+/********************************
+ * Read from stdin, append results to sink.
+ * Params:
+ *      sink = output range to append stdin to
+ *      eSink = send error messages to this
+ * Returns:
+ *      true on error
+ */
+private bool readFromStdin(ref OutBuffer sink, ErrorSink eSink) nothrow
 {
     import core.stdc.stdio;
-    import dmd.errors;
 
     enum BufIncrement = 128 * 1024;
 
@@ -2026,14 +2034,14 @@ private void readFromStdin(ref OutBuffer sink) nothrow
             if (ferror(stdin))
             {
                 import core.stdc.errno;
-                error(Loc.initial, "cannot read from stdin, errno = %d", errno);
-                fatal();
+                eSink.error(Loc.initial, "cannot read from stdin, errno = %d", errno);
+                return true;
             }
             if (feof(stdin)) // successful completion
             {
                 memset(buffer.ptr + filled, '\0', 16);
                 sink.setsize(j * BufIncrement + filled);
-                return;
+                return false;
             }
         } while (filled < BufIncrement);
     }
