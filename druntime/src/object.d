@@ -2883,6 +2883,7 @@ class Error : Throwable
 
 public import core.internal.newaa : _d_aaIn, _d_aaDel, _d_aaNew, _d_aaEqual, _d_assocarrayliteralTX;
 public import core.internal.newaa : _aaGetY, _aaGetRvalueX;
+public import core.exception : onRangeError;
 
 private import core.internal.newaa;
 

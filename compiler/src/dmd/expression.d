@@ -3791,6 +3791,7 @@ extern (C++) final class ArrayExp : UnaExp
 
     size_t currentDimension;    // for opDollar
     VarDeclaration lengthVar;
+    bool modifiable = false;    // is this expected to be an lvalue in an AssignExp? propagate to IndexExp
 
     extern (D) this(Loc loc, Expression e1, Expression index = null)
     {
@@ -3990,6 +3991,7 @@ extern (C++) final class IndexExp : BinExp
     VarDeclaration lengthVar;
     Expression lowering;        // for associative array lowering to _aaGetY or _aaGetRvalueX
     bool modifiable = false;    // assume it is an rvalue
+    bool loweredAA = false;     // gone through lowerAAIndex?
     bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
     extern (D) this(Loc loc, Expression e1, Expression e2) @safe
@@ -4023,29 +4025,6 @@ extern (C++) final class IndexExp : BinExp
             return e1.isLvalue();
         }
         return true;
-    }
-
-    extern (D) Expression markSettingAAElem()
-    {
-        if (e1.type.toBasetype().ty == Taarray)
-        {
-            Type t2b = e2.type.toBasetype();
-            if (t2b.ty == Tarray && t2b.nextOf().isMutable())
-            {
-                error(loc, "associative arrays can only be assigned values with immutable keys, not `%s`", e2.type.toChars());
-                return ErrorExp.get();
-            }
-            modifiable = true;
-
-            if (auto ie = e1.isIndexExp())
-            {
-                Expression ex = ie.markSettingAAElem();
-                if (ex.op == EXP.error)
-                    return ex;
-                assert(ex == e1);
-            }
-        }
-        return this;
     }
 
     override void accept(Visitor v)
