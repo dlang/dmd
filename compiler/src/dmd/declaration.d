@@ -958,7 +958,7 @@ extern (C++) class VarDeclaration : Declaration
         {
             isdataseg = 2; // The Variables does not go into the datasegment
 
-            if (!canTakeAddressOf())
+            if (!canTakeAddressOf() || (storage_class & STC.exptemp))
             {
                 return false;
             }
