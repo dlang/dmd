@@ -855,6 +855,24 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     error("unknown dllimport '%.*s', must be 'none', 'defaultLibsOnly' or 'all'", cast(int) imp.length, imp.ptr);
             }
         }
+        else if (arg == "-edition")
+            params.edition = Edition.min;       // i.e. no edition
+        else if (startsWith(p + 1, "edition="))
+        {
+            if (arg.length >= 9 + 4 &&
+                !parseDigits!(Edition)(params.edition, arg[9 .. 9 + 4], Edition.max) ||
+                params.edition < Edition.min)
+            {
+                error("edition %d is not in the range %d ... %d", params.edition, Edition.min, Edition.max);
+            }
+
+            if (arg.length > 1+7+1+4) // -edition=YYYYfilename
+            {
+                auto filename = p + 1+7+1+4;
+                files.push(filename);
+                params.editionFiles[filename] = params.edition;
+            }
+        }
         else if (arg == "-fIBT")
         {
             driverParams.ibt = true;

@@ -345,6 +345,10 @@ dmd -cov -unittest myprog.d
                 $(LI $(I all): All)
             )`,
         ),
+        Option("edition[=<NNNN>G[<filename>]]",
+            "set language edition to edition year, apply to <filename>",
+            "set edition to default, to a particular year NNNN, apply only to a particular $(I filename)"
+        ),
         Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",
             "Standards supported are:

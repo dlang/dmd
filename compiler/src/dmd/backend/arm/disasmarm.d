@@ -3116,6 +3116,7 @@ unittest
     ubyte[BUFMAX] buf2;
     bool errors;
 
+    @trusted
     void testcase(int line, string s, uint size)
     {
         //printf("testcase(line %d s: '%.*s'\n", cast(int)line, cast(int)s.length, s.ptr);

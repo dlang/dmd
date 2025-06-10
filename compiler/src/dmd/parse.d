@@ -141,6 +141,18 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         md = new AST.ModuleDeclaration(loc, a, id, msg, isdeprecated);
 
+        if (token.value == TOK.int32Literal)
+        {
+            auto edition = token.intvalue;
+            if (edition < Edition.min || Edition.max < edition)
+            {
+                error("module edition %lld must be in the range %d ... %d", edition, Edition.min, Edition.max);
+                edition = edition.min;
+            }
+            mod.edition = cast(Edition)edition;
+            nextToken();
+        }
+
         if (token.value != TOK.semicolon)
             error("`;` expected following module declaration instead of `%s`", token.toChars());
         nextToken();
@@ -237,7 +249,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                 if (auto id = (*exps)[0].isIdentifierExp())
                                     if (id.ident == Id.__edition_latest_do_not_use)
                                     {
-                                        mod.edition = Edition.latest;
+                                        mod.edition = Edition.max;      // latest edition
                                         continue;
                                     }
 
