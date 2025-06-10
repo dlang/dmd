@@ -348,14 +348,25 @@ struct INSTR
         return (0x6B << 25) | (opc << 21) | (op2 << 16) | (op3 << 10) | (Rn << 5) | op4;
     }
 
-    /* Unconditional branch (immediate)
-     * B/BL
+    /* Unconditional branch (immediate) */
+
+    /* B/BL
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#branch_imm
      */
     static uint branch_imm(uint op, uint imm26)
     {
         return (op << 31) | (5 << 26) | imm26;
     }
+
+    /* B <label>
+     * https://www.scs.stanford.edu/~zyedidia/arm64/b_uncond.html
+     */
+    static uint b_uncond(uint imm26) { return branch_imm(0, imm26); }
+
+    /* BL <label> hint that it's a subroutine call
+     * https://www.scs.stanford.edu/~zyedidia/arm64/bl.html
+     */
+    static uint bl(uint imm26) { return branch_imm(1, imm26); }
 
     /* RET Xn
      * https://www.scs.stanford.edu/~zyedidia/arm64/ret.html

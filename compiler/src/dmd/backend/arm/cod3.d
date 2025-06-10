@@ -859,7 +859,97 @@ Lret:
 
 // cod3_spoff
 // gen_spill_reg
-// cod3_thunk
+
+/****************************
+ * Generate code for, and output a thunk.
+ * Params:
+ *      sthunk =  Symbol of thunk
+ *      sfunc =   Symbol of thunk's target function
+ *      thisty =  Type of this pointer
+ *      p =       ESP parameter offset to this pointer (0 for D)
+ *      d =       offset to add to 'this' pointer
+ *      d2 =      offset from 'this' to vptr (0 for D)
+ *      i =       offset into vtbl[] (-1 for D)
+ */
+@trusted
+void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
+        uint d,int i,uint d2)
+{
+    assert(p == 0 && i == -1 && d2 == 0); // for single inheritance
+
+    targ_size_t thunkoffset;
+
+    int seg = sthunk.Sseg;
+    cod3_align(seg);
+
+    // Skip over return address
+    tym_t thunkty = tybasic(sthunk.ty());
+
+    CodeBuilder cdb; cdb.ctor();
+
+    /*
+       Generate:
+        ADD p[ESP],d
+       For direct call:
+        JMP sfunc
+       For virtual call:
+        MOV EAX, p[ESP]                     EAX = this
+        MOV EAX, d2[EAX]                    EAX = this.vptr
+        JMP i[EAX]                          jump to virtual function
+     */
+    if (config.flags3 & CFG3ibt)
+        //cdb.gen1(I32 ? ENDBR32 : ENDBR64);
+        assert(0); // TODO AArch64
+
+    uint op = 0;                           // ADD
+    if (cast(int)d < 0)
+    {
+        d = -d;
+        op = 1;                            // switch from ADD to SUB
+    }
+    if (thunkty == TYmfunc || thunkty == TYjfunc || thunkty == TYnfunc)
+    {
+        uint sh = 0;
+        reg_t r0 = 0;
+        cdb.gen1(INSTR.addsub_imm(1,op,0,sh,d,r0,r0)); // ADD/SUB r0,r0,d
+    }
+    else
+    {
+        assert(0);
+    }
+
+    if (0 && config.flags3 & CFG3pic)   // TODO AArch64
+    {
+        localgot = null;                // no local variables
+        CodeBuilder cdbgot; cdbgot.ctor();
+        load_localgot(cdbgot);          // load GOT in EBX
+        code* c1 = cdbgot.finish();
+        if (c1)
+        {
+            assignaddrc(c1);
+            cdb.append(c1);
+        }
+    }
+    cdb.gencs1(INSTR.bl(0),0,FL.func,sfunc); // BL sfunc // http://www.scs.stanford.edu/~zyedidia/arm64/bl.html
+    cdb.last().Iflags |= (CFselfrel | CFoff);
+
+    thunkoffset = Offset(seg);
+    code* c = cdb.finish();
+    //pinholeopt(c,null);
+    targ_size_t framehandleroffset;
+    codout(seg,c,null,framehandleroffset);
+    code_free(c);
+
+    sthunk.Soffset = thunkoffset;
+    sthunk.Ssize = Offset(seg) - thunkoffset; // size of thunk
+    sthunk.Sseg = seg;
+    if (config.exe & EX_posix ||
+       config.objfmt == OBJ_MSCOFF)
+    {
+        objmod.pubdef(seg,sthunk,sthunk.Soffset);
+    }
+}
+
 // makeitextern
 
 /*******************************

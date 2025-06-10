@@ -4976,6 +4976,12 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
 void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
         uint d,int i,uint d2)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod3 : cod3_thunk;
+        return cod3_thunk(sthunk, sfunc, p, thisty, d, i, d2);
+    }
+
     targ_size_t thunkoffset;
 
     int seg = sthunk.Sseg;
