@@ -1184,6 +1184,7 @@ void disassemble(uint c) @trusted
 
         p1 = op ? "bl" : "b";
         p2 = wordtostring(imm26 * 4);
+        url2 = op ? "bl" : "b_uncond";
     }
     else if (field(ins, 30, 25) == 0x1A) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#compbranch
     {
