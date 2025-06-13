@@ -254,9 +254,9 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
         foreach (u; hash[0 .. 16])
         {
             ubyte u1 = u >> 4;
-            buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
+            buf.writeByte(cast(char)((u1 < 10) ? u1 + '0' : u1 + 'A' - 10));
             u1 = u & 0xF;
-            buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
+            buf.writeByte(cast(char)((u1 < 10) ? u1 + '0' : u1 + 'A' - 10));
         }
     }
 

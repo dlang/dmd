@@ -1045,8 +1045,8 @@ public:
     void writestring(const char* s);
     void prependstring(const char* string);
     void writenl();
-    void writeByten(int32_t b);
-    void writeByte(uint32_t b);
+    void writeByten(uint8_t b);
+    void writeByte(uint8_t b);
     void writeUTF8(uint32_t b);
     void prependbyte(uint32_t b);
     void writewchar(uint32_t w);

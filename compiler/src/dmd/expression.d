@@ -2009,7 +2009,7 @@ extern (C++) final class ArrayLiteralExp : Expression
                     if (ch.op != EXP.int64)
                         return null;
                     if (sz == 1)
-                        buf.writeByte(cast(uint)ch.toInteger());
+                        buf.writeByte(cast(ubyte)ch.toInteger());
                     else if (sz == 2)
                         buf.writeword(cast(uint)ch.toInteger());
                     else

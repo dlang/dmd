@@ -2283,7 +2283,7 @@ void MachObj_byte(int seg,targ_size_t offset,uint byte_)
     int save = cast(int)buf.length();
     //dbg_printf("MachObj_byte(seg=%d, offset=x%lx, byte_=x%x)\n",seg,offset,byte_);
     buf.setsize(cast(uint)offset);
-    buf.writeByte(byte_);
+    buf.writeByte(cast(ubyte)byte_);
     if (save > offset+1)
         buf.setsize(save);
     else

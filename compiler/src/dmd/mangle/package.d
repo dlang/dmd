@@ -409,7 +409,7 @@ void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret, r
     foreach (idx, param; t.parameterList)
         mangleParameter(param, buf, backref);
     //if (buf.data[buf.length - 1] == '@') assert(0);
-    buf.writeByte('Z' - t.parameterList.varargs); // mark end of arg list
+    buf.writeByte(cast(ubyte)('Z' - t.parameterList.varargs)); // mark end of arg list
     if (tret !is null)
         mangleType(tret, 0, buf, backref);
     t.inuse--;
@@ -1213,11 +1213,11 @@ void writeBackRef(ref OutBuffer buf, size_t pos) @safe
     while (mul >= base)
     {
         auto dig = cast(ubyte)(pos / mul);
-        buf.writeByte('A' + dig);
+        buf.writeByte(cast(char)('A' + dig));
         pos -= dig * mul;
         mul /= base;
     }
-    buf.writeByte('a' + cast(ubyte)pos);
+    buf.writeByte(cast(char)('a' + pos));
 }
 
 
