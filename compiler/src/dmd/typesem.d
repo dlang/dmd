@@ -5013,6 +5013,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 /* Rewrite e.ident as:
                  *  e.opDispatch!("ident")
                  */
+
+                if(OverloadSet os = fd.isOverloadSet()){
+                    //??? resolve the correct one
+                }
+
                 TemplateDeclaration td = fd.isTemplateDeclaration();
                 if (!td)
                 {
