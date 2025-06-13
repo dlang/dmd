@@ -2348,6 +2348,9 @@ public:
                 if (ExpInitializer ie = v._init.isExpInitializer())
                 {
                     result = interpretRegion(ie.exp, istate, goal);
+                    if (result !is null && v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone)
+                        if (!getValue(v))
+                            setValueWithoutChecking(v, result); // a temporary from extractSideEffects can be a ref
                     return;
                 }
                 else if (v._init.isVoidInitializer())
@@ -2362,7 +2365,12 @@ public:
                 {
                     result = v._init.initializerToExpression(v.type);
                     if (result !is null)
+                    {
+                        if (v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone)
+                            if (!getValue(v))
+                                setValueWithoutChecking(v, result); // a temporary from extractSideEffects can be a ref
                         return;
+                    }
                 }
                 error(e.loc, "declaration `%s` is not yet implemented in CTFE", e.toChars());
                 result = CTFEExp.cantexp;
@@ -5401,7 +5409,7 @@ public:
 
         if (e.e1.type.toBasetype().ty == Taarray)
         {
-            assert(false);
+//            assert(false);
 
             Expression e1 = interpretRegion(e.e1, istate);
             if (exceptionOrCant(e1))
@@ -7203,6 +7211,8 @@ private Expression interpret_aaGetRvalueX(UnionExp* pue, InterState* istate, Exp
     if (exceptionOrCantInterpret(e2))
         return e2;
 
+    version(none)
+    {
     auto aalit = e1.isAssocArrayLiteralExp();
     if (!aalit)
     {
@@ -7222,14 +7232,19 @@ private Expression interpret_aaGetRvalueX(UnionExp* pue, InterState* istate, Exp
     arr.ownedByCtfe = aalit.ownedByCtfe;
     auto len = ctfeEmplaceExp!(IntegerExp)(aa.loc, idx, Type.tsize_t);
     auto ie = ctfeEmplaceExp!(IndexExp)(aa.loc, arr, len);
-    ie.type = arr.type.nextOf();
     ie.loweredFrom = aalit;
+    }
+    else
+    {
+        auto ie = ctfeEmplaceExp!(IndexExp)(aa.loc, e1, e2);
+        ie.type = e1.type.nextOf();
+    }
     emplaceExp!(AddrExp)(pue, aa.loc, ie);
     pue.exp().type = ie.type.pointerTo();
     return pue.exp();
 }
 
-// signature is ref V[1] _aaGetY(ref V[K] aa, K key, out bool found)
+// signature is ref V* _aaGetY(ref V[K] aa, K key, out bool found)
 private Expression interpret_aaGetY(UnionExp* pue, InterState* istate, Expression aa, Expression key, Expression found)
 {
     Expression eaa = interpretRegion(aa, istate, CTFEGoal.LValue);
@@ -7238,6 +7253,7 @@ private Expression interpret_aaGetY(UnionExp* pue, InterState* istate, Expressio
     Expression ekey = interpretRegion(key, istate);
     if (exceptionOrCantInterpret(ekey))
         return ekey;
+
     Expression efound;
     if (found)
     {
@@ -7270,13 +7286,21 @@ private Expression interpret_aaGetY(UnionExp* pue, InterState* istate, Expressio
         aalit.values.push(result);
     }
 
-    // return "ref" to value
+    version(all)
+    {
+        // return "ref" to value
     auto arr = ctfeEmplaceExp!(ArrayLiteralExp)(aa.loc, aa.type.nextOf().arrayOf(), aalit.values);
     arr.ownedByCtfe = aalit.ownedByCtfe;
     auto len = ctfeEmplaceExp!(IntegerExp)(aa.loc, idx, Type.tsize_t);
     auto idxexp = ctfeEmplaceExp!(IndexExp)(aa.loc, arr, len);
     idxexp.type = arr.type.nextOf();
     idxexp.loweredFrom = aalit;
+}
+    else
+    {
+        auto idxexp = ctfeEmplaceExp!(IndexExp)(aa.loc, aalit, ekey);
+        idxexp.type = eaa.type.nextOf();
+    }
     emplaceExp!(AddrExp)(pue, aa.loc, idxexp);
     pue.exp().type = idxexp.type.pointerTo();
     return pue.exp();
