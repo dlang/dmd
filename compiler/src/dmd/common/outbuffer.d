@@ -384,12 +384,12 @@ struct OutBuffer
      * Writes an 8 bit byte, no reserve check.
      */
     extern (C++) nothrow @safe
-    void writeByten(int b)
+    void writeByten(ubyte b)
     {
         this.data[offset++] = cast(ubyte) b;
     }
 
-    extern (C++) void writeByte(uint b) pure nothrow @safe
+    extern (C++) void writeByte(ubyte b) pure nothrow @safe
     {
         if (doindent && !notlinehead && b != '\n')
             indent();

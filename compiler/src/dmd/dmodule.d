@@ -1386,7 +1386,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
                 dbuf.writeUTF8(u);
             }
             else
-                dbuf.writeByte(u);
+                dbuf.writeByte(cast(ubyte)u);
         }
         dbuf.writeByte(0); //add null terminator
         return dbuf.extractSlice();
@@ -1455,7 +1455,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
                 dbuf.writeUTF8(u);
             }
             else
-                dbuf.writeByte(u);
+                dbuf.writeByte(cast(ubyte)u);
         }
         dbuf.writeByte(0); //add a terminating null byte
         return dbuf.extractSlice();

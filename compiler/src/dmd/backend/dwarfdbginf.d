@@ -376,10 +376,10 @@ static if (1)
         assert(location >= CFA_state_current.location);
         uint inc = cast(uint)(location - CFA_state_current.location);
         if (inc <= 63)
-            cfa_buf.writeByte(DW_CFA_advance_loc + inc);
+            cfa_buf.writeByte(cast(ubyte)(DW_CFA_advance_loc + inc));
         else if (inc <= 255)
         {   cfa_buf.writeByte(DW_CFA_advance_loc1);
-            cfa_buf.writeByte(inc);
+            cfa_buf.writeByte(cast(ubyte)inc);
         }
         else if (inc <= 0xFFFF)
         {   cfa_buf.writeByte(DW_CFA_advance_loc2);
@@ -448,7 +448,7 @@ static if (1)
         {
             if (offset <= 0)
             {
-                cfa_buf.writeByte(DW_CFA_offset + dw_reg);
+                cfa_buf.writeByte(cast(ubyte)(DW_CFA_offset + dw_reg));
                 cfa_buf.writeuLEB128(offset / -OFFSET_FAC);
             }
             else
@@ -1273,7 +1273,7 @@ static if (1)
                 filename[$ - 2] == '.' &&
                 (filename[$ - 1] == 'c' || filename[$ - 1] == 'i'))
                 language = DW_LANG_C89;
-            debug_info.buf.writeByte(language);
+            debug_info.buf.writeByte(cast(ubyte)language);
 
             debug_info.buf.writeStringz(filename);             // DW_AT_name
 
@@ -1554,7 +1554,7 @@ static if (1)
                                 if (config.dwarf >= 5)
                                     --index; // Minus 1 because it must be an index, not a element number
                                 // directory table index.
-                                debug_line.buf.writeByte(index);
+                                debug_line.buf.writeByte(cast(ubyte)index);
                                 if (config.dwarf < 5)
                                 {
                                     debug_line.buf.writeByte(0);      // mtime
@@ -1590,7 +1590,7 @@ static if (1)
 
                 // Set address to start of segment with DW_LNE_set_address
                 debug_line.buf.writeByte(0);
-                debug_line.buf.writeByte(_tysize[TYnptr] + 1);
+                debug_line.buf.writeByte(cast(ubyte)(_tysize[TYnptr] + 1));
                 debug_line.buf.writeByte(DW_LNE_set_address);
 
                 dwarf_appreladdr(debug_line.seg,debug_line.buf,seg,0);
@@ -1628,7 +1628,7 @@ static if (1)
                         // special opcode
                         if (opcode <= 255)
                         {
-                            debug_line.buf.writeByte(opcode);
+                            debug_line.buf.writeByte(cast(ubyte)opcode);
                             continue;
                         }
                     }
@@ -1930,8 +1930,8 @@ static if (1)
         if (config.dwarf < 4 && sfunc.Sfunc.Fflags3 & Fpure)
             debug_info.buf.writeByte(true);                           // DW_AT_pure
 
-        debug_info.buf.writeStringz(name);                             // DW_AT_name
-        debug_info.buf.writeByte(filenum);                            // DW_AT_decl_file
+        debug_info.buf.writeStringz(name);                            // DW_AT_name
+        debug_info.buf.writeByte(cast(ubyte)filenum);                 // DW_AT_decl_file
         debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Slinnum);  // DW_AT_decl_line
         debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Scharnum); // DW_AT_decl_column
 
@@ -1976,15 +1976,15 @@ static if (1)
                         debug_info.buf.writeStringz(getSymName(sa));   // DW_AT_name
                         debug_info.buf.write32(tidx);                 // DW_AT_type
                         debug_info.buf.writeByte(sa.Sflags & SFLartifical ? 1 : 0); // DW_FORM_tag
-                        debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
-                        debug_info.buf.writeuLEB128(sa.lposscopestart.Slinnum);   // DW_AT_decl_line
-                        debug_info.buf.writeuLEB128(sa.lposscopestart.Scharnum);   // DW_AT_decl_column
+                        debug_info.buf.writeByte(cast(ubyte)filenum);               // DW_AT_decl_file
+                        debug_info.buf.writeuLEB128(sa.lposscopestart.Slinnum);     // DW_AT_decl_line
+                        debug_info.buf.writeuLEB128(sa.lposscopestart.Scharnum);    // DW_AT_decl_column
                         soffset = cast(uint)debug_info.buf.length();
                         debug_info.buf.writeByte(2);                  // DW_FORM_block1
                         if (sa.Sfl == FL.reg || sa.Sclass == SC.pseudo)
                         {
                             // BUG: register pairs not supported in Dwarf?
-                            debug_info.buf.writeByte(DW_OP_reg0 + sa.Sreglsw);
+                            debug_info.buf.writeByte(cast(ubyte)(DW_OP_reg0 + sa.Sreglsw));
                         }
                         else if (sa.Sscope && vcode == variablecode)
                         {
@@ -2777,7 +2777,7 @@ static if (1)
                 ]);
                 debug_info.buf.writeuLEB128(code2);       // DW_TAG_subrange_type
                 ubyte dim = cast(ubyte)(tysize(t.Tty) / tysize(tbase.Tty));
-                debug_info.buf.writeByte(dim - 1);        // DW_AT_upper_bound
+                debug_info.buf.writeByte(cast(ubyte)(dim - 1)); // DW_AT_upper_bound
 
                 debug_info.buf.writeByte(0);              // no more children
                 break;
@@ -2904,7 +2904,7 @@ static if (1)
                     debug_info.buf.writeuLEB128(code);
                     debug_info.buf.writeStringz(getSymName(s));      // DW_AT_name
                     if (sz <= 0xFF)
-                        debug_info.buf.writeByte(cast(uint)sz);     // DW_AT_byte_size
+                        debug_info.buf.writeByte(cast(ubyte)sz);     // DW_AT_byte_size
                     else if (sz <= 0xFFFF)
                         debug_info.buf.write16(cast(uint)sz);     // DW_AT_byte_size
                     else
@@ -3006,8 +3006,8 @@ static if (1)
 
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);
-                debug_info.buf.writeStringz(getSymName(s));// DW_AT_name
-                debug_info.buf.writeByte(sz);             // DW_AT_byte_size
+                debug_info.buf.writeStringz(getSymName(s)); // DW_AT_name
+                debug_info.buf.writeByte(cast(ubyte)sz);    // DW_AT_byte_size
 
                 foreach (sl2; ListRange(s.Senum.SEenumlist))
                 {

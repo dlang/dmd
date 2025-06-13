@@ -2473,7 +2473,7 @@ void ElfObj_byte(int seg,targ_size_t offset,uint byte_)
     int save = cast(int)buf.length();
     //dbg_printf("ElfObj_byte(seg=%d, offset=x%lx, byte_=x%x)\n",seg,offset,byte_);
     buf.setsize(cast(uint)offset);
-    buf.writeByte(byte_);
+    buf.writeByte(cast(ubyte)byte_);
     if (save > offset+1)
         buf.setsize(save);
     else
@@ -3665,7 +3665,7 @@ private void obj_rtinit()
                 {
                     // lea RAX, sym[RIP]
                     buf.writeByte(REX | REX_W);
-                    buf.writeByte(op);
+                    buf.writeByte(cast(ubyte)op);
                     buf.writeByte(modregrm(0,AX,5));
                     off += 3;
                     off += ElfObj_writerel(codseg, off, reltype, sym, -4);
@@ -3673,7 +3673,7 @@ private void obj_rtinit()
                 else
                 {
                     // lea EAX, sym[EBX]
-                    buf.writeByte(op);
+                    buf.writeByte(cast(ubyte)op);
                     buf.writeByte(modregrm(2,AX,BX));
                     off += 2;
                     off += ElfObj_writerel(codseg, off, reltype, sym, 0);
@@ -3799,7 +3799,7 @@ else
         {   // mov EBX,[EBP-4-align_]
             buf.writeByte(0x8B);
             buf.writeByte(modregrm(1,BX,BP));
-            buf.writeByte(cast(int)(-4-align_));
+            buf.writeByte(cast(ubyte)(-4-align_));
             off += 3;
         }
         // leave
