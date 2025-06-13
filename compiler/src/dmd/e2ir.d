@@ -3971,9 +3971,6 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitIndex(IndexExp ie)
     {
-        if (ie.lowering)
-            return toElem(ie.lowering, irs);
-
         elem* e;
         elem* n1 = toElem(ie.e1, irs);
         elem* eb = null;

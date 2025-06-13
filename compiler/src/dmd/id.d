@@ -259,6 +259,8 @@ immutable Msgtable[] msgtable =
     { "FpopBack", "popBack" },
 
     // For internal functions
+    { "_aaGetY" },
+    { "_aaGetRvalueX" },
     { "aaLen", "_aaLen" },
     { "aaKeys", "_aaKeys" },
     { "aaValues", "_aaValues" },
