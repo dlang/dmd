@@ -39,6 +39,7 @@ import dmd.backend.oper;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.arm.instr;
 
 import dmd.common.outbuffer;
 
@@ -3889,11 +3890,11 @@ private void obj_rtinit_aarch64()
          * It is writeable and allows the runtime to store information.
          * Make it a COMDAT so there's only one per DSO.
          *
-         * typedef union
+         * union DSO
          * {
-         *     size_t        id;
-         *     void       *data;
-         * } DSORec;
+         *     size_t id;
+         *     void*  data;
+         * }
          */
         const seg = ElfObj_getsegment(".data.d_dso_rec", null, SHT_PROGBITS,
                          SHF_ALLOC|SHF_WRITE|SHF_GROUP, _tysize[TYnptr]);
@@ -3903,31 +3904,28 @@ private void obj_rtinit_aarch64()
         SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(seg));
 
         /*
-         * Create an instance of DSO on the stack:
+         * see druntime/src/rt/sections_elf_shared.d
+         * Create an instance of this on the stack:
          *
-         * typedef struct
+         * struct CompilerDSOData
          * {
-         *     size_t               _version; // currently 1
-         *     DSORec*              dso_rec;  // used to store runtime data
-         *     void*   minfo_beg, minfo_end;  // array of modules in this object file
-         * } DSO;
+         *     size_t _version; // currently 1
+         *     DSO*   _slot;     // used to store runtime data
+         *     void*  minfo_beg, minfo_end;  // array of modules in this object file
+         * }
          *
-         * Generate the following function as a COMDAT so there's only one per DSO:
-         *  .text.d_dso_init    segment
-         *      push    EBP
-         *      mov     EBP,ESP
-         *      sub     ESP,align
-         *      lea     RAX,minfo_end[RIP]
-         *      push    RAX
-         *      lea     RAX,minfo_beg[RIP]
-         *      push    RAX
-         *      lea     RAX,.data.d_dso_rec[RIP]
-         *      push    RAX
-         *      push    1       // version
-         *      mov     RDI,RSP
-         *      call      _d_dso_registry@PLT32
-         *      leave
-         *      ret
+         * Generate the function:
+         *
+         * void __dso_init()
+         * {
+         *   CompilerDSOData dso;
+         *   dso.minfo_end = &__stop_minfo;
+         *   dso.minfo_beg = &__start_minfo;
+         *   dso.slot      = &d_dso_rec;
+         *   dso.version   = 1;
+         *   _d_dso_registry(&dso);
+         * }
+         *
          * and then put a pointer to that function in .init_array and in .fini_array so it'll
          * get executed once upon loading and once upon unloading the DSO.
          */
@@ -3947,229 +3945,36 @@ private void obj_rtinit_aarch64()
         assert(!buf.length());
         size_t off = 0;
 
-        // 16-byte align for call
-        const size_t sizeof_dso = 6 * _tysize[TYnptr];
-        const size_t align_ = I64 ?
-            // return address, RBP, DSO
-            (-(2 * _tysize[TYnptr] + sizeof_dso) & 0xF) :
-            // return address, EBP, EBX, DSO, arg
-            (-(3 * _tysize[TYnptr] + sizeof_dso + _tysize[TYnptr]) & 0xF);
+        static immutable uint[17] ins =
+        [   // implementation of __dso_init()
+            INSTR.ldstpair_pre(2,0,0,-48/8 & 127,30,31,29), // STP  x29,x30,[sp,#-48]!
+            INSTR.mov_add_addsub_imm(1,31,29),     // MOV  x29,sp
+            INSTR.adr(1,0,0),                      // ADRP x0,<minfo_end>  R_AARCH64_ADR_PREL_PG_HI21 minfo_end
+            INSTR.addsub_imm(1,0,0,0,0,0,0),       // ADD  x0,x0,#0x0      R_AARCH64_ADD_ABS_LO12_NC minfo_end
+            INSTR.str_imm_gen(1,0,31,40),          // STR  x0,[sp,#40]
+            INSTR.adr(1,0,0),                      // ADRP x0,<minfo_beg>  R_AARCH64_ADR_PREL_PG_HI21 minfo_beg
+            INSTR.addsub_imm(1,0,0,0,0,0,0),       // ADD  x0,x0,#0x0      R_AARCH64_ADD_ABS_LO12_NC minfo_beg
+            INSTR.str_imm_gen(1,0,31,32),          // STR  x0,[sp,#32]
+            INSTR.adr(1,0,0),                      // ADRP x0,<slot>       R_AARCH64_ADR_PREL_PG_HI21 slot
+            INSTR.addsub_imm(1,0,0,0,0,0,0),       // ADD  x0,x0,#0x0      R_AARCH64_ADD_ABS_LO12_NC slot
+            INSTR.str_imm_gen(1,0,31,24),          // STR  x0,[sp,#24]
+            INSTR.movewide(1,2,0,1,0),             // MOV  x0,#1
+            INSTR.str_imm_gen(1,0,31,16),          // STR  x0,[sp,#16]
+            INSTR.addsub_imm(1,0,0,0,0x10,31,0),   // ADD  x0,sp,#0x10
+            INSTR.bl(0),                           // BL   0<dso_registry> R_AARCH64_CALL26 dso_registry
+            INSTR.ldstpair_post(2,0,1,48/8,30,31,29),// LDP  x29,x30,[sp],#48
+            INSTR.ret(),                           // RET
+        ];
+        buf.write(ins);
+        ElfObj_writerel(codseg, off+ 2*4, R_AARCH64_ADR_PREL_PG_HI21, minfo_end, 0);
+        ElfObj_writerel(codseg, off+ 3*4, R_AARCH64_ADD_ABS_LO12_NC,  minfo_end, 0);
+        ElfObj_writerel(codseg, off+ 5*4, R_AARCH64_ADR_PREL_PG_HI21, minfo_beg, 0);
+        ElfObj_writerel(codseg, off+ 6*4, R_AARCH64_ADD_ABS_LO12_NC,  minfo_beg, 0);
+        ElfObj_writerel(codseg, off+ 8*4, R_AARCH64_ADR_PREL_PG_HI21, dso_rec,   0);
+        ElfObj_writerel(codseg, off+ 9*4, R_AARCH64_ADD_ABS_LO12_NC,  dso_rec,   0);
+        ElfObj_writerel(codseg, off+14*4, R_AARCH64_CALL26,           dso_rec,   0);
+        off = buf.length();
 
-        // push EBP
-        buf.writeByte(0x50 + BP);
-        off += 1;
-        // mov EBP, ESP
-        if (I64)
-        {
-            buf.writeByte(REX | REX_W);
-            off += 1;
-        }
-        buf.writeByte(0x8B);
-        buf.writeByte(modregrm(3,BP,SP));
-        off += 2;
-        // sub ESP, align_
-        if (align_)
-        {
-            if (I64)
-            {
-                buf.writeByte(REX | REX_W);
-                off += 1;
-            }
-            buf.writeByte(0x81);
-            buf.writeByte(modregrm(3,5,SP));
-            buf.writeByte(align_ & 0xFF);
-            buf.writeByte(align_ >> 8 & 0xFF);
-            buf.writeByte(0);
-            buf.writeByte(0);
-            off += 6;
-        }
-
-        if (config.flags3 & CFG3pic && I32)
-        {   // see cod3_load_got() for reference
-            // push EBX
-            buf.writeByte(0x50 + BX);
-            off += 1;
-            // call L1
-            buf.writeByte(0xE8);
-            buf.write32(0);
-            // L1: pop EBX (now contains EIP)
-            buf.writeByte(0x58 + BX);
-            off += 6;
-            // add EBX,_GLOBAL_OFFSET_TABLE_+3
-            buf.writeByte(0x81);
-            buf.writeByte(modregrm(3,0,BX));
-            off += 2;
-            off += ElfObj_writerel(codseg, off, R_386_GOTPC, ElfObj_external(ElfObj_getGOTsym()), 3);
-        }
-
-        reltype_t reltype;
-        opcode_t op;
-        if (0 && config.flags3 & CFG3pie)
-        {
-            op = LOD;
-            reltype = I64 ? R_X86_64_GOTPCREL : R_386_GOT32;
-        }
-        else if (config.flags3 & CFG3pic)
-        {
-            op = LEA;
-            reltype = I64 ? R_X86_64_PC32 : R_386_GOTOFF;
-        }
-        else
-        {
-            op = LEA;
-            reltype = I64 ? R_X86_64_32 : R_386_32;
-        }
-
-        void writeSym(IDXSYM sym)
-        {
-            if (config.flags3 & CFG3pic)
-            {
-                if (I64)
-                {
-                    // lea RAX, sym[RIP]
-                    buf.writeByte(REX | REX_W);
-                    buf.writeByte(op);
-                    buf.writeByte(modregrm(0,AX,5));
-                    off += 3;
-                    off += ElfObj_writerel(codseg, off, reltype, sym, -4);
-                }
-                else
-                {
-                    // lea EAX, sym[EBX]
-                    buf.writeByte(op);
-                    buf.writeByte(modregrm(2,AX,BX));
-                    off += 2;
-                    off += ElfObj_writerel(codseg, off, reltype, sym, 0);
-                }
-            }
-            else
-            {
-                // mov EAX, sym
-                buf.writeByte(0xB8 + AX);
-                off += 1;
-                off += ElfObj_writerel(codseg, off, reltype, sym, 0);
-            }
-            // push RAX
-            buf.writeByte(0x50 + AX);
-            off += 1;
-        }
-
-        if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
-        {
-            writeSym(deh_end);
-            writeSym(deh_beg);
-        }
-        writeSym(minfo_end);
-        writeSym(minfo_beg);
-        writeSym(dso_rec);
-
-        buf.writeByte(0x6A);            // PUSH 1
-        buf.writeByte(1);               // version flag to simplify future extensions
-        off += 2;
-
-        if (I64)
-        {   // mov RDI, DSO*
-            buf.writeByte(REX | REX_W);
-            buf.writeByte(0x8B);
-            buf.writeByte(modregrm(3,DI,SP));
-            off += 3;
-        }
-        else
-        {   // push DSO*
-            buf.writeByte(0x50 + SP);
-            off += 1;
-        }
-
-if (REQUIRE_DSO_REGISTRY())
-{
-
-        const IDXSYM symidx = ElfObj_external_def("_d_dso_registry");
-
-        // call _d_dso_registry@PLT
-        buf.writeByte(0xE8);
-        off += 1;
-        off += ElfObj_writerel(codseg, off, I64 ? R_X86_64_PLT32 : R_386_PLT32, symidx, -4);
-
-}
-else
-{
-
-        // use a weak reference for _d_dso_registry
-        const namidx2 = ElfObj_addstr(&elfobj.symtab_strings, "_d_dso_registry");
-        const IDXSYM symidx = elf_addsym(namidx2, 0, 0, STT_NOTYPE, STB_WEAK, SHN_UNDEF);
-
-        if (config.flags3 & CFG3pic)
-        {
-            if (I64)
-            {
-                // cmp foo@GOT[RIP], 0
-                buf.writeByte(REX | REX_W);
-                buf.writeByte(0x83);
-                buf.writeByte(modregrm(0,7,5));
-                off += 3;
-                const reltype2 = /*config.flags3 & CFG3pie ? R_X86_64_PC32 :*/ R_X86_64_GOTPCREL;
-                off += ElfObj_writerel(codseg, off, reltype2, symidx, -5);
-                buf.writeByte(0);
-                off += 1;
-            }
-            else
-            {
-                // cmp foo[GOT], 0
-                buf.writeByte(0x81);
-                buf.writeByte(modregrm(2,7,BX));
-                off += 2;
-                const reltype2 = /*config.flags3 & CFG3pie ? R_386_GOTOFF :*/ R_386_GOT32;
-                off += ElfObj_writerel(codseg, off, reltype2, symidx, 0);
-                buf.write32(0);
-                off += 4;
-            }
-            // jz +5
-            buf.writeByte(0x74);
-            buf.writeByte(0x05);
-            off += 2;
-
-            // call foo@PLT[RIP]
-            buf.writeByte(0xE8);
-            off += 1;
-            off += ElfObj_writerel(codseg, off, I64 ? R_X86_64_PLT32 : R_386_PLT32, symidx, -4);
-        }
-        else
-        {
-            // mov ECX, offset foo
-            buf.writeByte(0xB8 + CX);
-            off += 1;
-            const reltype2 = I64 ? R_X86_64_32 : R_386_32;
-            off += ElfObj_writerel(codseg, off, reltype2, symidx, 0);
-
-            // test ECX, ECX
-            buf.writeByte(0x85);
-            buf.writeByte(modregrm(3,CX,CX));
-
-            // jz +5 (skip call)
-            buf.writeByte(0x74);
-            buf.writeByte(0x05);
-            off += 4;
-
-            // call _d_dso_registry[RIP]
-            buf.writeByte(0xE8);
-            off += 1;
-            off += ElfObj_writerel(codseg, off, I64 ? R_X86_64_PC32 : R_386_PC32, symidx, -4);
-        }
-
-}
-
-        if (config.flags3 & CFG3pic && I32)
-        {   // mov EBX,[EBP-4-align_]
-            buf.writeByte(0x8B);
-            buf.writeByte(modregrm(1,BX,BP));
-            buf.writeByte(cast(int)(-4-align_));
-            off += 3;
-        }
-        // leave
-        buf.writeByte(0xC9);
-        // ret
-        buf.writeByte(0xC3);
-        off += 2;
         Offset(codseg) = off;
 
         // put a reference into .init_array/.fini_array each
