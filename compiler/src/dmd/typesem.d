@@ -5014,8 +5014,15 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                  *  e.opDispatch!("ident")
                  */
 
-                if(OverloadSet os = fd.isOverloadSet()){
+                if (OverloadSet os = fd.isOverloadSet())
+                {
                     //??? resolve the correct one
+                    auto tiargs = new Objects();
+                    tiargs.push(ident);
+                    auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
+                    e = dti.dotTemplateSemanticProp(sc, false);
+                    return returnExp(e);
+
                 }
 
                 TemplateDeclaration td = fd.isTemplateDeclaration();
