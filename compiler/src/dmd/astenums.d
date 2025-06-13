@@ -466,10 +466,10 @@ enum CHECKENABLE : ubyte
 /// What should happend when an assertion fails
 enum CHECKACTION : ubyte
 {
+    context,      /// call D assert with the error context on failure
     D,            /// call D assert on failure
     C,            /// call C assert on failure
     halt,         /// cause program halt on failure
-    context,      /// call D assert with the error context on failure
 }
 
 extern (C++) struct structalign_t
