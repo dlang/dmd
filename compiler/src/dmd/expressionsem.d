@@ -18292,9 +18292,10 @@ Expression buildAAIndexCall(Type t, Expression eaa, Expression ekey, bool modifi
         auto vardecl = new VarDeclaration(loc, null, vartmp, ei, STC.exptemp);
         auto declexp = new DeclarationExp(loc, vardecl);
 
+        //Expression idrange = new IdentifierExp(loc, Identifier.idPool("_d_arraybounds"));
         Expression idrange = new IdentifierExp(loc, Id.empty);
         idrange = new DotIdExp(loc, idrange, Id.object);
-        idrange = new DotIdExp(loc, idrange, Identifier.idPool("onRangeError"));
+        idrange = new DotIdExp(loc, idrange, Identifier.idPool("_d_arraybounds"));
         auto locargs = new Expressions();
         locargs.push(new FileInitExp(loc, EXP.file));
         locargs.push(new LineInitExp(loc));
@@ -18449,6 +18450,8 @@ Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
     {
         if (Expression e = ae.opOverloadAssign(sc, aliasThisStop))
         {
+            if (e.op == EXP.error)
+                return e;
             if (auto ey = implicitConvertToStruct(ev, ts.sym, sc))
             {
                 // __aafound ? __aaget.opAssign(__aaval) : __aaget.ctor(__aaval)
