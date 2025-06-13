@@ -420,6 +420,8 @@ private Expression reorderSettingAAElem(BinExp exp, Scope* sc)
     if (ie.e1.type.toBasetype().ty != Taarray)
         return be;
 
+    assert(false);
+
     /* Fix evaluation order of setting AA element
      * https://issues.dlang.org/show_bug.cgi?id=3825
      * Rewrite:
@@ -2353,7 +2355,8 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
     if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
         || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
         || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT
-        || f.ident == Id._d_assocarrayliteralTX))
+        || f.ident == Id._d_assocarrayliteralTX
+        || f.ident == Id._aaGetY || f.ident == Id._aaGetRvalueX))
     {
         error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
             sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
@@ -10177,9 +10180,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 semanticTypeInfo(sc, taa);
                 bool escape = checkNewEscape(*sc, exp.e2, false);
+                if (escape)
+                    return setError();
 
                 exp.type = taa.next;
-                if (!escape && !exp.modifiable) // avoid cascading errors
+                if (!exp.modifiable)
                 {
                     result = lowerAAIndex(exp, sc);
                     return;
@@ -15496,8 +15501,6 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
     {
         exp.e1 = exp.e1.resolveLoc(loc, sc);
         exp.e2 = exp.e2.resolveLoc(loc, sc);
-        if (exp.lowering)
-            exp.lowering = exp.lowering.resolveLoc(loc, sc);
         return exp;
     }
 
@@ -17484,6 +17487,8 @@ private Expression expandInitializer(VarDeclaration vd, Loc loc)
     }
 
     e = e.copy();
+    if (auto aae = e.isAssocArrayLiteralExp())
+        aae.lowering = null; // need to redo lowering as it contains temporary variables that must be renamed
     e.loc = loc;    // for better error message
     return e;
 }
@@ -18170,7 +18175,7 @@ Expression markSettingAAElem(IndexExp exp, Scope* sc)
         }
         exp.modifiable = true;
         auto ve = ce.e1.isVarExp();
-        if (ve && ve.var && ve.var.ident == Identifier.idPool("_aaGetRvalueX"))
+        if (ve && ve.var && ve.var.ident == Id._aaGetRvalueX)
         {
             auto args = ce.arguments;
             auto fd = ve.var.isFuncDeclaration();
@@ -18215,17 +18220,17 @@ CallExp isLoweredAAIndex(Expression e)
                                 if (auto ctor = ei.exp.isConstructExp())
                                     if (auto call = ctor.e2.isCallExp())
                                         if (auto ve = call.e1.isVarExp())
-                                            if (ve.var && ve.var.ident == Identifier.idPool("_aaGetRvalueX"))
+                                            if (ve.var && ve.var.ident == Id._aaGetRvalueX)
                                                 return call;
         }
         // without bounds check
         if (auto ce = ie.e1.isCallExp())
         {
             if (auto ve = ce.e1.isVarExp())
-                if (ve.var && ve.var.ident == Identifier.idPool("_aaGetRvalueX"))
+                if (ve.var && ve.var.ident == Id._aaGetRvalueX)
                     return ce;
         }
-        assert(ie.modifiable || !ie.loweredAA);
+        assert(ie.modifiable || !ie.loweredFrom);
     }
     return null;
 }
@@ -18237,7 +18242,7 @@ Expression lowerAAIndex(IndexExp ie, Scope* sc)
         return ie;
     auto rv = new IndexExp(ie.loc, ce, IntegerExp.literal!0);
     rv.modifiable = ie.modifiable;
-    rv.loweredAA = true;
+    rv.loweredFrom = ie;
 
     return rv.expressionSemantic(sc);
 }
@@ -18251,7 +18256,7 @@ Expression buildAAIndexCall(Type t, Expression eaa, Expression ekey, bool modifi
     auto loc = eaa.loc;
     // ie.modifiable initially false, but can be changed later when an assignment is detected
     // rewrite `aa[key]` to `_aaGetRvalueX!(K,V)(aa, key)[0]`
-    Identifier hook = Identifier.idPool(modifiable ? "_aaGetY" : "_aaGetRvalueX");
+    Identifier hook = modifiable ? Id._aaGetY : Id._aaGetRvalueX;
     if (!verifyHookExist(loc, *sc, hook, "indexing AA"))
         return null;
 
@@ -18361,9 +18366,16 @@ Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
         return null;
     auto loc = ie.e1.loc;
 
-    Identifier hook = Identifier.idPool("_aaGetY");
+    Identifier hook = Id._aaGetY;
     if (!verifyHookExist(loc, *sc, hook, "modifying AA"))
         return ErrorExp.get();
+
+    bool escape = checkNewEscape(*sc, exp.e2, false);
+    if (escape)
+        return ErrorExp.get();
+    auto gcexp = exp.checkGC(sc);
+    if (gcexp.op == EXP.error)
+        return gcexp;
 
     // build `bool __aafound, auto __aaget = _aaGetY(aa, key, found);`
     auto idfound = Identifier.generateId("__aafound");
@@ -18391,6 +18403,7 @@ Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
     for (size_t i = ekeys.length; i > 0; --i)
     {
         auto taa = eaa.type.isTypeAArray();
+        assert (taa); // type must not have changed during rewrite
         Expression func = new IdentifierExp(loc, Id.empty);
         func = new DotIdExp(loc, func, Id.object);
         auto tiargs = new Objects();
@@ -18409,17 +18422,21 @@ Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
             // because ConstructExp below will not insert a postblit
             auto ie1 = new IndexExp(loc, eaa, IntegerExp.literal!0);
             ie1.modifiable = true;
-            ie1.loweredAA = true;
+            ie1.loweredFrom = eaa;
             eaa = ie1;
         }
         eaa = eaa.expressionSemantic(sc);
+        if (eaa.op == EXP.error)
+            return eaa;
     }
     Expression eg = extractSideEffect(sc, "__aaget", e0, eaa);
-    auto ie1 = new IndexExp(loc, eaa, IntegerExp.literal!0);
+    auto ie1 = new IndexExp(loc, eg, IntegerExp.literal!0);
     ie1.modifiable = true;
-    ie1.loweredAA = true;
+    ie1.loweredFrom = ie;
     eaa = ie1.expressionSemantic(sc);
     auto ex = ie1.optimize(WANTvalue);
+    if (ex.op == EXP.error)
+        return ex;
     if (!exp.isAssignExp())
     {
         exp.e1 = ex;
@@ -18438,9 +18455,7 @@ Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
                 ey = new ConstructExp(loc, ex, ey);
                 ey = ey.expressionSemantic(sc);
                 if (ey.op == EXP.error)
-                {
                     return ey;
-                }
                 ex = e;
 
                 // https://issues.dlang.org/show_bug.cgi?id=14144

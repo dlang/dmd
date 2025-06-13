@@ -3013,9 +3013,9 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitIndex(IndexExp e)
     {
-        if (hgs.vcg_ast && e.lowering)
+        if (!hgs.vcg_ast && e.loweredFrom)
         {
-            expressionToBuffer(e.lowering, buf, hgs);
+            expressionToBuffer(e.loweredFrom, buf, hgs);
             return;
         }
         expToBuffer(e.e1, PREC.primary, buf, hgs);
