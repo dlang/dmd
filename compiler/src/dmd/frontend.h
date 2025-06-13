@@ -1042,6 +1042,7 @@ public:
     void setsize(size_t size);
     void reset();
     void write(const void* data, size_t nbytes);
+    void write(const char* s);
     void writestring(const char* s);
     void prependstring(const char* string);
     void writenl();
