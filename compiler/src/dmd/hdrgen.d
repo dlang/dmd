@@ -2450,17 +2450,24 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitAssocArrayLiteral(AssocArrayLiteralExp e)
     {
-        buf.writeByte('[');
-        foreach (i, key; *e.keys)
+        if (hgs.vcg_ast && e.lowering)
         {
-            if (i)
-                buf.writestring(", ");
-            expToBuffer(key, PREC.assign, buf, hgs);
-            buf.writeByte(':');
-            auto value = (*e.values)[i];
-            expToBuffer(value, PREC.assign, buf, hgs);
+            expToBuffer(e.lowering, PREC.assign, buf, hgs);
         }
-        buf.writeByte(']');
+        else
+        {
+            buf.writeByte('[');
+            foreach (i, key; *e.keys)
+            {
+                if (i)
+                    buf.writestring(", ");
+                expToBuffer(key, PREC.assign, buf, hgs);
+                buf.writeByte(':');
+                auto value = (*e.values)[i];
+                expToBuffer(value, PREC.assign, buf, hgs);
+            }
+            buf.writeByte(']');
+        }
     }
 
     void visitStructLiteral(StructLiteralExp e)
@@ -2525,6 +2532,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitNew(NewExp e)
     {
+        if (hgs.vcg_ast && e.lowering)
+        {
+            expToBuffer(e.lowering, PREC.primary, buf, hgs);
+            return;
+        }
         if (e.thisexp)
         {
             expToBuffer(e.thisexp, PREC.primary, buf, hgs);
@@ -2969,8 +2981,45 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         expToBuffer(e.e2, PREC.primary, buf, hgs);
     }
 
+    void visitEqual(EqualExp e)
+    {
+        if (hgs.vcg_ast && e.lowering)
+            expressionToBuffer(e.lowering, buf, hgs);
+        else
+            visitBin(e);
+    }
+
+    void visitIn(InExp e)
+    {
+        if (hgs.vcg_ast && e.lowering)
+            expressionToBuffer(e.lowering, buf, hgs);
+        else
+            visitBin(e);
+    }
+
+    void visitCat(CatExp e)
+    {
+        if (hgs.vcg_ast && e.lowering)
+            expressionToBuffer(e.lowering, buf, hgs);
+        else
+            visitBin(e);
+    }
+
+    void visitCatAssign(CatAssignExp e)
+    {
+        if (hgs.vcg_ast && e.lowering)
+            expressionToBuffer(e.lowering, buf, hgs);
+        else
+            visitBin(e);
+    }
+
     void visitIndex(IndexExp e)
     {
+        if (!hgs.vcg_ast && e.loweredFrom)
+        {
+            expressionToBuffer(e.loweredFrom, buf, hgs);
+            return;
+        }
         expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('[');
         sizeToBuffer(e.e2, buf, hgs);
@@ -2991,6 +3040,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitRemove(RemoveExp e)
     {
+        if (hgs.vcg_ast && e.lowering)
+        {
+            expressionToBuffer(e.lowering, buf, hgs);
+            return;
+        }
         expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writestring(".remove(");
         expToBuffer(e.e2, PREC.assign, buf, hgs);
@@ -3089,7 +3143,14 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.delegateFunctionPointer:       return visitDelegateFuncptr(e.isDelegateFuncptrExp());
         case EXP.array:         return visitArray(e.isArrayExp());
         case EXP.dot:           return visitDot(e.isDotExp());
+        case EXP.notEqual:
+        case EXP.equal:         return visitEqual(e.isEqualExp());
+        case EXP.in_:           return visitIn(e.isInExp());
         case EXP.index:         return visitIndex(e.isIndexExp());
+        case EXP.concatenate:   return visitCat(e.isCatExp());
+        case EXP.concatenateAssign:     return visitCatAssign(e.isCatAssignExp());
+        case EXP.concatenateElemAssign: return visitCatAssign(e.isCatElemAssignExp());
+        case EXP.concatenateDcharAssign:        return visitCatAssign(e.isCatDcharAssignExp());
         case EXP.minusMinus:
         case EXP.plusPlus:      return visitPost(e.isPostExp());
         case EXP.preMinusMinus:
@@ -3258,9 +3319,13 @@ public:
 
     override void visit(DebugCondition c)
     {
-        buf.writestring("debug (");
-        buf.writestring(c.ident.toString());
-        buf.writeByte(')');
+        buf.writestring("debug");
+        if (c.ident)
+        {
+            buf.writestring(" (");
+            buf.writestring(c.ident.toString());
+            buf.writeByte(')');
+        }
     }
 
     override void visit(VersionCondition c)

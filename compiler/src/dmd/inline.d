@@ -731,7 +731,9 @@ public:
             auto lowering = ne.lowering;
             if (lowering)
                 if (auto ce = lowering.isCallExp())
-                    if (ce.f.ident == Id._d_newarrayT || ce.f.ident == Id._d_newarraymTX)
+                    if (ce.f.ident == Id._d_newarrayT ||
+                        ce.f.ident == Id._d_newarraymTX ||
+                        ce.f.ident == Identifier.idPool("_d_aaNew"))
                     {
                         ne.lowering = doInlineAs!Expression(lowering, ids);
                         goto LhasLowering;
@@ -835,6 +837,12 @@ public:
 
         override void visit(EqualExp e)
         {
+            if (e.lowering)
+            {
+                result = doInlineAs!Expression(e.lowering, ids);
+                return;
+            }
+
             visit(cast(BinExp)e);
 
             Type t1 = e.e1.type.toBasetype();
@@ -910,6 +918,16 @@ public:
             result = are;
         }
 
+        override void visit(InExp e)
+        {
+            result = doInlineAs!Expression(e.lowering, ids);
+        }
+
+        override void visit(RemoveExp e)
+        {
+            result = doInlineAs!Expression(e.lowering, ids);
+        }
+
         override void visit(TupleExp e)
         {
             auto ce = e.copy().isTupleExp();
@@ -933,6 +951,9 @@ public:
             auto ce = e.copy().isAssocArrayLiteralExp();
             ce.keys = arrayExpressionDoInline(e.keys);
             ce.values = arrayExpressionDoInline(e.values);
+            if (e.lowering)
+                ce.lowering = doInlineAs!Expression(e.lowering, ids);
+
             result = ce;
 
             semanticTypeInfo(null, e.type);
