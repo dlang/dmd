@@ -410,56 +410,6 @@ extern (D) Expression incompatibleTypes(BinExp e, Scope* sc = null)
     return ErrorExp.get();
 }
 
-private Expression reorderSettingAAElem(BinExp exp, Scope* sc)
-{
-    BinExp be = exp;
-
-    auto ie = be.e1.isIndexExp();
-    if (!ie)
-        return be;
-    if (ie.e1.type.toBasetype().ty != Taarray)
-        return be;
-
-    assert(false);
-
-    /* Fix evaluation order of setting AA element
-     * https://issues.dlang.org/show_bug.cgi?id=3825
-     * Rewrite:
-     *     aa[k1][k2][k3] op= val;
-     * as:
-     *     auto ref __aatmp = aa;
-     *     auto ref __aakey3 = k1, __aakey2 = k2, __aakey1 = k3;
-     *     auto ref __aaval = val;
-     *     __aatmp[__aakey3][__aakey2][__aakey1] op= __aaval;  // assignment
-     */
-
-    Expression e0;
-    while (1)
-    {
-        Expression de;
-        ie.e2 = extractSideEffect(sc, "__aakey", de, ie.e2);
-        e0 = Expression.combine(de, e0);
-
-        auto ie1 = ie.e1.isIndexExp();
-        if (!ie1 ||
-            ie1.e1.type.toBasetype().ty != Taarray)
-        {
-            break;
-        }
-        ie = ie1;
-    }
-    assert(ie.e1.type.toBasetype().ty == Taarray);
-
-    Expression de;
-    ie.e1 = extractSideEffect(sc, "__aatmp", de, ie.e1);
-    e0 = Expression.combine(de, e0);
-
-    be.e2 = extractSideEffect(sc, "__aaval", e0, be.e2, true);
-
-    //printf("-e0 = %s, be = %s\n", e0.toChars(), be.toChars());
-    return Expression.combine(e0, be);
-}
-
 private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
 {
     auto e1 = binExp.e1;
@@ -7769,7 +7719,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         assert(e.op == EXP.assign || e == exp);
-        result = (cast(BinExp)e).reorderSettingAAElem(sc);
+        result = e;
     }
 
     private Expression compileIt(MixinExp exp, Scope* sc)
@@ -10186,7 +10136,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.type = taa.next;
                 if (!exp.modifiable)
                 {
-                    result = lowerAAIndex(exp, sc);
+                    result = lowerAAIndexRead(exp, sc);
                     return;
                 }
                 break;
@@ -10843,18 +10793,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.memset = MemorySet.referenceInit;
         }
 
-        // https://issues.dlang.org/show_bug.cgi?id=13515
-        // set Index::modifiable flag for complex AA element initialization
-        if (auto ie1 = exp.e1.isIndexExp())
-        {
-            Expression e1x = ie1.markSettingAAElem(sc);
-            if (e1x.op == EXP.error)
-            {
-                result = e1x;
-                return;
-            }
-            assert(exp.e1 == ie1);
-        }
         if (exp.op == EXP.assign)  // skip EXP.blit and EXP.construct, which are initializations
         {
             exp.e1.checkSharedAccess(sc);
@@ -11160,92 +11098,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (exp.op == EXP.assign)
             {
-                if (ie1 && ie1.e1.type.toBasetype().ty == Taarray) // isLoweredAAIndex(ie1))
-                {
-                    assert(false);
-                    /*
-                     * Rewrite:
-                     *      aa[key] = e2;
-                     * as:
-                     *      ref __aatmp = aa;
-                     *      ref __aakey = key;
-                     *      ref __aaval = e2;
-                     *      (__aakey in __aatmp
-                     *          ? __aatmp[__aakey].opAssign(__aaval)
-                     *          : ConstructExp(__aatmp[__aakey], __aaval));
-                     */
-                    // ensure we keep the expr modifiable
-                    Expression esetting = ie1.markSettingAAElem(sc);
-                    if (esetting.op == EXP.error)
-                    {
-                        result = esetting;
-                        return;
-                    }
-                    assert(esetting.op == EXP.index);
-                    IndexExp ie = cast(IndexExp) esetting;
-
-                    Expression e0 = null;
-                    Expression ea = extractSideEffect(sc, "__aatmp", e0, ie.e1);
-                    Expression ek = extractSideEffect(sc, "__aakey", e0, ie.e2);
-                    Expression ev = extractSideEffect(sc, "__aaval", e0, e2x);
-
-                    AssignExp ae = cast(AssignExp)exp.copy();
-                    ae.e1 = new IndexExp(exp.loc, ea, ek);
-                    ae.e1 = ae.e1.expressionSemantic(sc);
-                    ae.e1 = ae.e1.optimize(WANTvalue);
-                    ae.e2 = ev;
-                    Type t2 = e2x.type.toBasetype();
-                    if (Expression e = ae.opOverloadAssign(sc, aliasThisStop))
-                    {
-                        Expression ey = null;
-                        if (t2.ty == Tstruct && sd == t2.toDsymbol(sc))
-                        {
-                            ey = ev;
-                        }
-                        else if (!ev.implicitConvTo(ie.type) && sd.ctor)
-                        {
-                            // Look for implicit constructor call
-                            // Rewrite as S().ctor(e2)
-                            ey = new StructLiteralExp(exp.loc, sd, null);
-                            ey = new DotIdExp(exp.loc, ey, Id.ctor);
-                            ey = new CallExp(exp.loc, ey, ev);
-                            ey = ey.trySemantic(sc);
-                        }
-                        if (ey)
-                        {
-                            Expression ex;
-                            ex = new IndexExp(exp.loc, ea, ek);
-                            ex = ex.expressionSemantic(sc);
-                            ex = ex.modifiableLvalue(sc); // allocate new slot
-                            ex = ex.optimize(WANTvalue);
-
-                            ey = new ConstructExp(exp.loc, ex, ey);
-                            ey = ey.expressionSemantic(sc);
-                            if (ey.op == EXP.error)
-                            {
-                                result = ey;
-                                return;
-                            }
-                            ex = e;
-
-                            // https://issues.dlang.org/show_bug.cgi?id=14144
-                            // The whole expression should have the common type
-                            // of opAssign() return and assigned AA entry.
-                            // Even if there's no common type, expression should be typed as void.
-                            if (!typeMerge(sc, EXP.question, ex, ey))
-                            {
-                                ex = new CastExp(ex.loc, ex, Type.tvoid);
-                                ey = new CastExp(ey.loc, ey, Type.tvoid);
-                            }
-                            e = new CondExp(exp.loc, new InExp(exp.loc, ek, ea), ex, ey);
-                        }
-                        e = Expression.combine(e0, e);
-                        e = e.expressionSemantic(sc);
-                        result = e;
-                        return;
-                    }
-                }
-                else if (Expression e = exp.isAssignExp().opOverloadAssign(sc, aliasThisStop))
+                if (Expression e = exp.isAssignExp().opOverloadAssign(sc, aliasThisStop))
                 {
                     result = e;
                     return;
@@ -11738,16 +11591,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.type = exp.e1.type;
         assert(exp.type);
         auto assignElem = exp.e2;
-        auto res = exp.op == EXP.assign ? exp.reorderSettingAAElem(sc) : exp;
-        /* https://issues.dlang.org/show_bug.cgi?id=22366
-         *
-         * `reorderSettingAAElem` creates a tree of comma expressions, however,
-         * `checkAssignExp` expects only AssignExps.
-         */
-        if (res == exp) // no `AA[k] = v` rewrite was performed
-            checkAssignEscape(*sc, res, false, false);
-        else
-            checkNewEscape(*sc, assignElem, false); // assigning to AA puts it on heap
+        Expression res = exp;
+        checkAssignEscape(*sc, res, false, false);
 
         if (auto ae = res.isConstructExp())
         {
@@ -11984,7 +11829,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if ((exp.e1.type.isIntegral() || exp.e1.type.isFloating()) && (exp.e2.type.isIntegral() || exp.e2.type.isFloating()))
         {
             Expression e0 = null;
-            Expression e = exp.reorderSettingAAElem(sc);
+            Expression e = exp;
             e = Expression.extractLast(e, e0);
             assert(e == exp);
 
@@ -12131,10 +11976,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         exp.type = exp.e1.type;
         auto assignElem = exp.e2;
-        auto res = exp.reorderSettingAAElem(sc);
-        if (res != exp) // `AA[k] = v` rewrite was performed
-            checkNewEscape(*sc, assignElem, false);
-        else if (exp.op == EXP.concatenateElemAssign || exp.op == EXP.concatenateDcharAssign)
+        auto res = exp;
+        if (exp.op == EXP.concatenateElemAssign || exp.op == EXP.concatenateDcharAssign)
             checkAssignEscape(*sc, res, false, false);
 
         result = res;
@@ -15497,13 +15340,6 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
         return exp;
     }
 
-    Expression visitIndex(IndexExp exp)
-    {
-        exp.e1 = exp.e1.resolveLoc(loc, sc);
-        exp.e2 = exp.e2.resolveLoc(loc, sc);
-        return exp;
-    }
-
     Expression visitStructLiteral(StructLiteralExp exp)
     {
         if (!exp.elements)
@@ -15697,7 +15533,6 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
         case EXP.structLiteral:  return visitStructLiteral(exp.isStructLiteralExp());
         case EXP.new_:           return visitNew(exp.isNewExp());
         case EXP.concatenate:    return visitCat(exp.isCatExp());
-        case EXP.index:          return visitIndex(exp.isIndexExp());
         case EXP.call:           return visitCall(exp.isCallExp());
         case EXP.question:       return visitCond(exp.isCondExp());
         case EXP.array:          return visitArray(exp.isArrayExp());
@@ -16236,10 +16071,6 @@ Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyF
             {
                 return e1.checkModifiable(sc, flag);
             }
-            else if (auto ce = isLoweredAAIndex(indexExp))
-            {
-                return (*ce.arguments)[0].checkModifiable(sc, flag);
-            }
             return Modifiable.yes;
 
         case EXP.question:
@@ -16379,16 +16210,6 @@ private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression 
         return visit(exp);
     }
 
-    Expression visitIndex(IndexExp exp)
-    {
-        //printf("IndexExp::modifiableLvalue(%s)\n", exp.toChars());
-        Expression ex = exp.markSettingAAElem(sc);
-        if (ex.op == EXP.error)
-            return ex;
-
-        return visit(ex);
-    }
-
     Expression visitCond(CondExp exp)
     {
         if (!exp.e1.isLvalue() && !exp.e2.isLvalue())
@@ -16411,7 +16232,6 @@ private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression 
         case EXP.comma:                   return visitComma(_this.isCommaExp());
         case EXP.delegatePointer:         return visitDelegatePtr(_this.isDelegatePtrExp());
         case EXP.delegateFunctionPointer: return visitDelegateFuncptr(_this.isDelegateFuncptrExp());
-        case EXP.index:                   return visitIndex(_this.isIndexExp());
         case EXP.question:                return visitCond(_this.isCondExp());
     }
 }
@@ -18159,104 +17979,26 @@ private extern(C++) class IncludeVisitor : Visitor {
     }
 }
 
-Expression markSettingAAElem(IndexExp exp, Scope* sc)
+Expression lowerAAIndexRead(IndexExp ie, Scope* sc)
 {
-    if (exp.e1.type.isTypeAArray())
-    {
-        assert(exp.modifiable);
-    }
-    if (auto ce = isLoweredAAIndex(exp))
-    {
-        Type t2b = exp.e2.type.toBasetype();
-        if (t2b.ty == Tarray && t2b.nextOf().isMutable())
-        {
-            error(exp.loc, "associative arrays can only be assigned values with immutable keys, not `%s`", exp.e2.type.toChars());
-            return ErrorExp.get();
-        }
-        exp.modifiable = true;
-        auto ve = ce.e1.isVarExp();
-        if (ve && ve.var && ve.var.ident == Id._aaGetRvalueX)
-        {
-            auto args = ce.arguments;
-            auto fd = ve.var.isFuncDeclaration();
-            auto params = fd.parameters;
-            auto aatype = (*params)[0].type.substWildTo(MODFlags.mutable);
-            if (auto call = buildAAIndexCall(aatype, (*args)[0], (*args)[1], true, sc))
-            {
-                exp.e1 = call.expressionSemantic(sc);
-                if (exp.e1.op == EXP.error)
-                    return exp.e1;
-                exp.type = exp.type.mutableOf();
-
-                if (auto ie = (*args)[0].isIndexExp())
-                {
-                    Expression ex = ie.markSettingAAElem(sc);
-                    if (ex.op == EXP.error)
-                        return ex;
-                    assert(ex == (*args)[0]);
-                }
-            }
-        }
-    }
-    return exp;
-}
-
-version = buildBoundsCheck;
-
-// return the varexp of the call exp
-CallExp isLoweredAAIndex(Expression e)
-{
-    return null;
-
-    if (auto ie = e.isIndexExp())
-    {
-        version(buildBoundsCheck)
-        {
-            if (auto ce = ie.e1.isCommaExp())
-                if (auto de = ce.e1.isDeclarationExp())
-                    if (auto vd = de.declaration.isVarDeclaration())
-                        if (auto ini = vd._init)
-                            if (auto ei = ini.isExpInitializer())
-                                if (auto ctor = ei.exp.isConstructExp())
-                                    if (auto call = ctor.e2.isCallExp())
-                                        if (auto ve = call.e1.isVarExp())
-                                            if (ve.var && ve.var.ident == Id._aaGetRvalueX)
-                                                return call;
-        }
-        // without bounds check
-        if (auto ce = ie.e1.isCallExp())
-        {
-            if (auto ve = ce.e1.isVarExp())
-                if (ve.var && ve.var.ident == Id._aaGetRvalueX)
-                    return ce;
-        }
-        assert(ie.modifiable || !ie.loweredFrom);
-    }
-    return null;
-}
-
-Expression lowerAAIndex(IndexExp ie, Scope* sc)
-{
-    Expression ce = buildAAIndexCall(ie.e1.type, ie.e1, ie.e2, ie.modifiable, sc);
+    Expression ce = buildAAIndexRValueX(ie.e1.type, ie.e1, ie.e2, sc);
     if (!ce)
         return ie;
     auto rv = new IndexExp(ie.loc, ce, IntegerExp.literal!0);
-    rv.modifiable = ie.modifiable;
     rv.loweredFrom = ie;
 
     return rv.expressionSemantic(sc);
 }
 
-Expression buildAAIndexCall(Type t, Expression eaa, Expression ekey, bool modifiable, Scope* sc)
+Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, Scope* sc)
 {
     auto taa = t.toBasetype().isTypeAArray();
     if (!taa)
         return null;
 
     auto loc = eaa.loc;
-    // ie.modifiable initially false, but can be changed later when an assignment is detected
     // rewrite `aa[key]` to `_aaGetRvalueX!(K,V)(aa, key)[0]`
-    Identifier hook = modifiable ? Id._aaGetY : Id._aaGetRvalueX;
+    Identifier hook = Id._aaGetRvalueX;
     if (!verifyHookExist(loc, *sc, hook, "indexing AA"))
         return null;
 
@@ -18265,26 +18007,16 @@ Expression buildAAIndexCall(Type t, Expression eaa, Expression ekey, bool modifi
     auto tiargs = new Objects();
     tiargs.push(taa.index); // the AA makes copies of key and value
     tiargs.push(taa.next);
-//    version(buildBoundsCheck) {} else
-//    if (!modifiable)
-//        tiargs.push(IntegerExp.createBool(arrayBoundsCheck(sc.func)));
     func = new DotTemplateInstanceExp(loc, func, hook, tiargs);
 
     Expression e0;
-    if (modifiable)
-    {
-        eaa = eaa.toLvalue(sc, "modify");
-        eaa = extractSideEffect(sc, "__aatmp", e0, eaa);
-        ekey = extractSideEffect(sc, "__aakey", e0, ekey);
-    }
     auto arguments = new Expressions();
     arguments.push(eaa);
     arguments.push(ekey);
     auto call = new CallExp(loc, func, arguments);
     e0 = Expression.combine(e0, call);
 
-    version(buildBoundsCheck)
-    if (!modifiable && arrayBoundsCheck(sc.func))
+    if (arrayBoundsCheck(sc.func))
     {
         // __aaget = _aaGetRvalueX(aa, key), __aaget ? __aaget : onRangeError(__FILE__, __LINE__)
         auto ei = new ExpInitializer(loc, e0);
@@ -18306,36 +18038,6 @@ Expression buildAAIndexCall(Type t, Expression eaa, Expression ekey, bool modifi
         auto cond = new CondExp(loc, idvar1, idvar2, ex);
         auto comma = new CommaExp(loc, declexp, cond);
         return comma;
-    }
-    version (none) if (modifiable)
-    {
-        if (auto ts = taa.next.isTypeStruct())
-        {
-            if (ts.sym.isNested())
-            {
-                auto idfound = Identifier.generateId("__aafound");
-                auto varfound = new VarDeclaration(loc, Type.tbool, idfound, null, STC.exptemp);
-                auto declfound = new DeclarationExp(loc, varfound);
-
-                arguments.push(new IdentifierExp(loc, idfound));
-                auto ei = new ExpInitializer(loc, call);
-                auto idget = Identifier.generateId("__aaget");
-                auto varget = new VarDeclaration(loc, null, idget, ei, STC.exptemp);
-                auto declget = new DeclarationExp(loc, varget);
-
-                auto comma = new CommaExp(loc, declfound, declget);
-
-                auto condfound = new IdentifierExp(loc, idfound);
-                auto expget = new IdentifierExp(loc, idget);
-                auto vinit = ts.defaultInitLiteral(loc);
-                auto blit = new BlitExp(loc, new PtrExp(loc, expget), vinit);
-                auto cond = new CondExp(loc, condfound, expget, new AddrExp(loc, blit));
-                comma = new CommaExp(loc, comma, cond);
-
-                // _aaGetY() does not init a new value correctly
-                return comma;
-            }
-        }
     }
     return e0;
 }
@@ -18477,7 +18179,7 @@ Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
         else
         {
             // write back to _aaGetRValueX(aa, key)[0].opAssign(__aaval)
-            auto call = buildAAIndexCall(ie.e1.type, ie.e1, ie.e2, false, sc);
+            auto call = buildAAIndexRValueX(ie.e1.type, ie.e1, ie.e2, sc);
             ex = new IndexExp(loc, call, IntegerExp.literal!0);
             ex = ex.expressionSemantic(sc);
             ex = ex.optimize(WANTvalue);

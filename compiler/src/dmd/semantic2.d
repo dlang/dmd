@@ -848,39 +848,11 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
 
     override void visit(AssocArrayLiteralExp aaExp)
     {
-     version(none)
-     {
-        auto hookId = Identifier.idPool("_d_assocarrayliteralTX");
-        if (!verifyHookExist(aaExp.loc, *sc, hookId, "initializing static associative arrays", Id.object))
-            return;
-
-        auto aaType = aaExp.type.isTypeAArray();
-        assert(aaType);
-        Expression hookFunc = new IdentifierExp(aaExp.loc, Id.empty);
-        hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id.object);
-        hookFunc = new DotIdExp(aaExp.loc, hookFunc, hookId);
-        auto arguments = new Expressions();
-        arguments.push(new ArrayLiteralExp(aaExp.loc, aaType.index.arrayOf(), aaExp.keys));
-        arguments.push(new ArrayLiteralExp(aaExp.loc, aaType.nextOf().arrayOf(), aaExp.values));
-        Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
-
-        sc = sc.startCTFE();
-        loweredExp = loweredExp.expressionSemantic(sc);
-        loweredExp = resolveProperties(sc, loweredExp);
-        sc = sc.endCTFE();
-        loweredExp = loweredExp.ctfeInterpret();
-
-        aaExp.lowering = loweredExp;
-
-     }
-     else
-     {
         if (!aaExp.lowering)
             expressionSemantic(aaExp, sc);
         assert(aaExp.lowering);
         if (!(storage_class & STC.manifest)) // manifest constants create runtime copies
             aaExp.loweringCtfe = aaExp.lowering.ctfeInterpret();
-     }
         semanticTypeInfo(sc, aaExp.lowering.type);
     }
 

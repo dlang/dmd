@@ -3421,7 +3421,7 @@ public:
         Expression oldval = null;
         if (e1.op == EXP.index && e1.isIndexExp().e1.type.toBasetype().ty == Taarray)
         {
-            assert(false);
+//            assert(false);
             // ---------------------------------------
             //      Deal with AA index assignment
             // ---------------------------------------
@@ -7253,14 +7253,9 @@ private Expression interpret_aaGetY(UnionExp* pue, InterState* istate, Expressio
     Expression ekey = interpretRegion(key, istate);
     if (exceptionOrCantInterpret(ekey))
         return ekey;
-
-    Expression efound;
-    if (found)
-    {
-        efound = interpretRegion(found, istate, CTFEGoal.LValue);
-        if (exceptionOrCantInterpret(efound))
-            return efound;
-    }
+    Expression efound = interpretRegion(found, istate, CTFEGoal.LValue);
+    if (exceptionOrCantInterpret(efound))
+        return efound;
 
     auto ie = ctfeEmplaceExp!IndexExp(aa.loc, aa, key); // any BinExp for location in assignToLvalue
     Expression evalaa = interpretRegion(eaa, istate);
@@ -7636,8 +7631,6 @@ private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, Loc loc,
                 }
                 else if (nargs == 2)
                 {
-                    if (id == Id._aaGetY)
-                        return interpret_aaGetY(pue, istate, firstarg, (*arguments)[1], null);
                     if (id == Id._aaGetRvalueX)
                         return interpret_aaGetRvalueX(pue, istate, firstarg, (*arguments)[1]);
                 }
