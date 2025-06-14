@@ -95,7 +95,10 @@ extern (C) int main(int argc, char** argv)
     }
     if (!lowmem)
     {
-        __gshared string[] disable_options = [ "gcopt=disable:1" ];
+        static if(__VERSION__ < 2085)
+            __gshared string[] disable_options = [ "gcopt=disable:1" ];
+        else
+            __gshared string[] disable_options = [ "gcopt=disable:1 cleanup:none" ];
         rt_options = disable_options;
         mem.disableGC();
     }
