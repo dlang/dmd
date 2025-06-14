@@ -62,6 +62,7 @@ import dmd.semantic2;
 import dmd.sideeffect;
 import dmd.statement;
 import dmd.target;
+import dmd.targetcompiler;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
@@ -3296,7 +3297,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         if (!global.params.useExceptions)
         {
-            error(tcs.loc, "cannot use try-catch statements with %s", global.params.betterC ? "-betterC".ptr : "-nothrow".ptr);
+            error(tcs.loc, "cannot use try-catch statements with `%s`", global.params.betterC ? "-betterC".ptr : "-nothrow".ptr);
             return setError();
         }
 
@@ -3444,10 +3445,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             // https://issues.dlang.org/show_bug.cgi?id=23159
             if (!global.params.useExceptions)
             {
-                version (IN_GCC)
-                    error(oss.loc, "`%s` cannot be used with `-fno-exceptions`", Token.toChars(oss.tok));
-                else
-                    error(oss.loc, "`%s` cannot be used with -betterC", Token.toChars(oss.tok));
+                error(oss.loc, "`%s` cannot be used with `-%s`", Token.toChars(oss.tok), SwitchScopeGuard);
                 return setError();
             }
 
@@ -3720,10 +3718,10 @@ public bool throwSemantic(Loc loc, ref Expression exp, Scope* sc)
 {
     if (!global.params.useExceptions)
     {
-        version (IN_GCC)
-            loc.error("cannot use `throw` statements with `-fno-exceptions`");
-        else
-            loc.error("cannot use `throw` statements with %s", global.params.betterC ? "-betterC".ptr : "-nothrow".ptr);
+        const(char)* s = SwitchExceptions      ? SwitchExceptions :
+                         global.params.betterC ? "betterC".ptr :
+                                                 "nothrow".ptr;
+        loc.error("cannot use `throw` statements with `-%s`", s);
         return false;
     }
 
