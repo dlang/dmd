@@ -418,18 +418,12 @@ size_t _aaLen(K, V)(scope const AA!(K, V) aa)
  * Params:
  *      aa = associative array
  *      key = reference to the key value
+ *      found = returns whether the key was found or a new entry was added
  * Returns:
  *      if key was in the aa, a mutable pointer to the existing value.
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set V.init
  */
-V* _aaGetY(K, V, T : V1[K1], K1, V1, K2)(auto ref scope T aa, auto ref K2 key)
-{
-    ref aax = cast(V[K])cast(V1[K1])aa; // remove outer const from T
-    bool found;
-    return _aaGetX!(K, V)(aax, key, found);
-}
-
 V* _aaGetY(K, V, T : V1[K1], K1, V1, K2)(auto ref scope T aa, auto ref K2 key, out bool found)
 {
     ref aax = cast(V[K])cast(V1[K1])aa; // remove outer const from T
