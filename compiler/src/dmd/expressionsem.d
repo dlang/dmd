@@ -18440,55 +18440,54 @@ Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
         return ex;
     if (!exp.isAssignExp())
     {
+        // modifying assignments work with zero-initialized inserted value
         exp.e1 = ex;
         exp.e2 = ev;
         ex = Expression.combine(e0, exp);
         return ex.expressionSemantic(sc);
     }
     AssignExp ae = new AssignExp(loc, ex, ev);
-    if (auto ts = ie.type.isTypeStruct())
+    auto ts = ie.type.isTypeStruct();
+    if (Expression overexp = ts ? ae.opOverloadAssign(sc, aliasThisStop) : null)
     {
-        if (Expression e = ae.opOverloadAssign(sc, aliasThisStop))
+        if (overexp.op == EXP.error)
+            return overexp;
+        if (auto ey = implicitConvertToStruct(ev, ts.sym, sc))
         {
-            if (e.op == EXP.error)
-                return e;
-            if (auto ey = implicitConvertToStruct(ev, ts.sym, sc))
-            {
-                // __aafound ? __aaget.opAssign(__aaval) : __aaget.ctor(__aaval)
-                ey = new ConstructExp(loc, ex, ey);
-                ey = ey.expressionSemantic(sc);
-                if (ey.op == EXP.error)
-                    return ey;
-                ex = e;
+            // __aafound ? __aaget.opAssign(__aaval) : __aaget.ctor(__aaval)
+            ey = new ConstructExp(loc, ex, ey);
+            ey = ey.expressionSemantic(sc);
+            if (ey.op == EXP.error)
+                return ey;
+            ex = overexp;
 
-                // https://issues.dlang.org/show_bug.cgi?id=14144
-                // The whole expression should have the common type
-                // of opAssign() return and assigned AA entry.
-                // Even if there's no common type, expression should be typed as void.
-                if (!typeMerge(sc, EXP.question, ex, ey))
-                {
-                    ex = new CastExp(ex.loc, ex, Type.tvoid);
-                    ey = new CastExp(ey.loc, ey, Type.tvoid);
-                }
-                Expression condfound = new IdentifierExp(loc, idfound);
-                e = new CondExp(loc, condfound, ex, ey);
-                e = Expression.combine(e0, e);
-            }
-            else
+            // https://issues.dlang.org/show_bug.cgi?id=14144
+            // The whole expression should have the common type
+            // of opAssign() return and assigned AA entry.
+            // Even if there's no common type, expression should be typed as void.
+            if (!typeMerge(sc, EXP.question, ex, ey))
             {
-                // write back to _aaGetRValueX(aa, key)[0].opAssign(__aaval)
-                auto call = buildAAIndexCall(ie.e1.type, ie.e1, ie.e2, false, sc);
-                ex = new IndexExp(loc, call, IntegerExp.literal!0);
-                ex = ex.expressionSemantic(sc);
-                ex = ex.optimize(WANTvalue);
-                ae = new AssignExp(loc, ex, ev);
-                e = ae.opOverloadAssign(sc, aliasThisStop);
-                assert(e);
+                ex = new CastExp(ex.loc, ex, Type.tvoid);
+                ey = new CastExp(ey.loc, ey, Type.tvoid);
             }
-            e = e.expressionSemantic(sc);
-            return e;
+            Expression condfound = new IdentifierExp(loc, idfound);
+            ex = new CondExp(loc, condfound, ex, ey);
+            ex = Expression.combine(e0, ex);
+        }
+        else
+        {
+            // write back to _aaGetRValueX(aa, key)[0].opAssign(__aaval)
+            auto call = buildAAIndexCall(ie.e1.type, ie.e1, ie.e2, false, sc);
+            ex = new IndexExp(loc, call, IntegerExp.literal!0);
+            ex = ex.expressionSemantic(sc);
+            ex = ex.optimize(WANTvalue);
+            ae = new AssignExp(loc, ex, ev);
+            ex = ae.opOverloadAssign(sc, aliasThisStop);
+            assert(ex);
         }
     }
-    ex = Expression.combine(e0, ae);
-    return ex.expressionSemantic(sc);
+    else
+        ex = Expression.combine(e0, ae);
+    ex = ex.expressionSemantic(sc);
+    return ex;
 }
