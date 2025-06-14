@@ -232,7 +232,7 @@ struct OutBuffer
 
     alias put = write;  // transition to output range which uses put()
 
-    extern (C++) void write(const(void)* data, size_t nbytes) pure nothrow @system
+    extern (C++) void write(scope const(void)* data, size_t nbytes) pure nothrow @system
     {
         put(data[0 .. nbytes]);
     }
@@ -244,6 +244,23 @@ struct OutBuffer
         reserve(buf.length);
         memcpy(this.data.ptr + offset, buf.ptr, buf.length);
         offset += buf.length;
+    }
+
+    void write(scope string buf) pure nothrow @trusted // so write("hello") chooses this overload
+    {
+        if (doindent && !notlinehead)
+            indent();
+        reserve(buf.length);
+        memcpy(this.data.ptr + offset, buf.ptr, buf.length);
+        offset += buf.length;
+    }
+
+    extern (C++) void write(scope const(char)* s) pure nothrow @trusted
+    {
+        if (!s)
+            return;
+        import core.stdc.string : strlen;
+        put(s[0 .. strlen(s)]);
     }
 
     /**
@@ -286,10 +303,7 @@ struct OutBuffer
     /// Buffer will NOT be zero-terminated
     extern (C++) void writestring(const(char)* s) pure nothrow @system
     {
-        if (!s)
-            return;
-        import core.stdc.string : strlen;
-        put(s[0 .. strlen(s)]);
+        put(s);
     }
 
     /// ditto
@@ -307,7 +321,7 @@ struct OutBuffer
     /// Buffer will NOT be zero-terminated, followed by newline
     void writestringln(const(char)[] s) pure nothrow @safe
     {
-        writestring(s);
+        put(s);
         writenl();
     }
 
