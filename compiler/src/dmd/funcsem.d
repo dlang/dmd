@@ -1648,9 +1648,6 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             printf("\tthis: %s\n", tthis.toChars());
         if (fargs)
         {
-            if (tiargs)
-                foreach(a; *tiargs)
-                    printf("\t! %s\n", a.toChars());
             for (size_t i = 0; i < fargs.length; i++)
             {
                 Expression arg = (*fargs)[i];
@@ -3875,4 +3872,3 @@ bool arrayBoundsCheck(FuncDeclaration fd)
         assert(0);
     }
 }
-
