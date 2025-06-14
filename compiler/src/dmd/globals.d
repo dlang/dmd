@@ -392,13 +392,10 @@ extern (C++) struct Global
         errorSinkNull = new ErrorSinkNull;
 
         this.fileManager = new FileManager();
+
         version (MARS)
         {
             compileEnv.vendor = "Digital Mars D";
-
-            // -color=auto is the default value
-            import dmd.console : detectTerminal, detectColorPreference;
-            params.v.color = detectTerminal() && detectColorPreference();
         }
         else version (IN_GCC)
         {
@@ -407,12 +404,10 @@ extern (C++) struct Global
         else version (IN_LLVM)
         {
             compileEnv.vendor = "LDC";
-
-            import dmd.console : detectTerminal;
-            params.v.color = detectTerminal();
         }
+        else
+            static assert(0, "unknown vendor");
 
-        params.v.errorPrintMode = ErrorPrintMode.printErrorContext; // Enable error context globally by default
         compileEnv.versionNumber = parseVersionNumber(versionString());
 
         /* Initialize date, time, and timestamp

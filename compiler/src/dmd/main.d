@@ -164,11 +164,12 @@ private:
  * Params:
  *   argc = Number of arguments passed via command line
  *   argv = Array of string arguments passed via command line
+ *   params = set based on argc, argv
  *
  * Returns:
  *   Application return code
  */
-private int tryMain(size_t argc, const(char)** argv, ref Param params)
+private int tryMain(size_t argc, const(char)** argv, out Param params)
 {
     import dmd.common.charactertables;
     import dmd.sarif;
@@ -195,9 +196,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (parseCommandlineAndConfig(argc, argv, params, files))
         return EXIT_FAILURE;
 
-    global.compileEnv.previewIn        = global.params.previewIn;
-    global.compileEnv.transitionIn     = global.params.v.vin;
-    global.compileEnv.ddocOutput       = global.params.ddoc.doOutput;
+    global.compileEnv.previewIn        = params.previewIn;
+    global.compileEnv.transitionIn     = params.v.vin;
+    global.compileEnv.ddocOutput       = params.ddoc.doOutput;
 
     final switch(global.params.cIdentifierTable)
     {
@@ -880,7 +881,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
  *   files = files from argv
  * Returns: true on failure
  */
-bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params, ref Strings files)
+bool parseCommandlineAndConfig(size_t argc, const(char)** argv, out Param params, ref Strings files)
 {
     // Detect malformed input
     static bool badArgs()
@@ -903,7 +904,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
         error(Loc.initial, "cannot open response file '%s'", missingFile);
     //for (size_t i = 0; i < arguments.length; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     // Set default values
-    params.argv0 = arguments[0].toDString;
+    auto argv0 = arguments[0].toDString;
 
     version (Windows)
         enum iniName = "sc.ini";
@@ -922,7 +923,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     }
     else
     {
-        global.inifilename = findConfFile(params.argv0, iniName);
+        global.inifilename = findConfFile(argv0, iniName);
     }
     // Read the configuration file
     OutBuffer inifileBuffer;

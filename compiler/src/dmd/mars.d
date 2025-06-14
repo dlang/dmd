@@ -489,10 +489,27 @@ extern(C) void flushMixins()
  *      true if errors in command line
  */
 
-bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files,
+bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param params, ref Strings files,
                       ref Target target, ref DMDparams driverParams, ErrorSink eSink)
 {
     bool errors;
+
+    // set defaults for params
+    params.v.errorPrintMode = ErrorPrintMode.printErrorContext;
+    version (IN_GCC)
+    {
+    }
+    else version (IN_LLVM)
+    {
+        import dmd.console : detectTerminal;
+        params.v.color = detectTerminal();
+    }
+    else // MARS
+    {
+        // -color=auto is the default value
+        import dmd.console : detectTerminal, detectColorPreference;
+        params.v.color = detectTerminal() && detectColorPreference();
+    }
 
     void error(Args ...)(const(char)* format, Args args)
     {
@@ -624,6 +641,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
     files.reserve(arguments.length - 1);
 
+    params.argv0 = toDString(arguments[0]);
     for (size_t i = 1; i < arguments.length; i++)
     {
         const(char)* p = arguments[i];
