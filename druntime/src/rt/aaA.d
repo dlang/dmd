@@ -368,7 +368,7 @@ extern (C) Impl* _obsolete_aaNew(const TypeInfo_AssociativeArray ti)
 }
 
 /// Determine number of entries in associative array.
-extern (C) size_t _aaLen(scope const AA aa) pure nothrow @nogc
+extern (C) size_t _obsolete_aaLen(scope const AA aa) pure nothrow @nogc
 {
     return aa ? aa.length : 0;
 }
@@ -680,8 +680,8 @@ extern (C) int _obsolete_aaEqual(scope const TypeInfo tiRaw, scope const AA aa1,
     if (aa1 is aa2)
         return true;
 
-    immutable len = _aaLen(aa1);
-    if (len != _aaLen(aa2))
+    immutable len = _obsolete_aaLen(aa1);
+    if (len != _obsolete_aaLen(aa2))
         return false;
 
     if (!len) // both empty

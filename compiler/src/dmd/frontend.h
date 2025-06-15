@@ -2625,6 +2625,7 @@ public:
     Array<Expression* >* arguments;
     size_t currentDimension;
     VarDeclaration* lengthVar;
+    bool modifiable;
     ArrayExp* syntaxCopy() override;
     bool isLvalue() override;
     void accept(Visitor* v) override;
@@ -3276,7 +3277,7 @@ class IndexExp final : public BinExp
 {
 public:
     VarDeclaration* lengthVar;
-    Expression* lowering;
+    Expression* loweredFrom;
     bool modifiable;
     bool indexIsInBounds;
     IndexExp* syntaxCopy() override;
@@ -5583,7 +5584,7 @@ private:
         char nullexp[22LLU];
         char dotvarexp[41LLU];
         char addrexp[32LLU];
-        char indexexp[50LLU];
+        char indexexp[58LLU];
         char sliceexp[57LLU];
         char vectorexp[45LLU];
     };
@@ -8939,6 +8940,8 @@ struct Id final
     static Identifier* Fback;
     static Identifier* FpopFront;
     static Identifier* FpopBack;
+    static Identifier* _aaGetY;
+    static Identifier* _aaGetRvalueX;
     static Identifier* aaLen;
     static Identifier* aaKeys;
     static Identifier* aaValues;

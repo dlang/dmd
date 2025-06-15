@@ -44,9 +44,13 @@ struct AA(K, V)
     Impl!(K,V)* impl;
     alias impl this;
 
-    private @property bool empty() const pure nothrow @nogc @safe
+    @property bool empty() const pure nothrow @nogc @safe
     {
         return impl is null || !impl.length;
+    }
+    @property size_t length() const pure nothrow @nogc @safe
+    {
+        return impl is null ? 0 : impl.length;
     }
 }
 
@@ -157,6 +161,10 @@ Entry!(K, V)* _newEntry(K, V, K2)(ref K2 key)
         // with disabled ctor for K and V
         auto entry = new Entry!(K, V);
         entry.key = key;
+    }
+    static if (!__traits(isZeroInit, V))
+    {
+        () @trusted { (cast(ubyte*)&entry.value)[0..V.sizeof] = 0; }();
     }
     return entry;
 }
@@ -404,8 +412,9 @@ V[K] _d_aaNew(K, V)()
 /// Determine number of entries in associative array.
 /// Note:
 ///  emulated by the compiler during CTFE
-size_t _aaLen(K, V)(scope const AA!(K, V) aa)
+size_t _aaLen(K, V)(inout V[K] a)
 {
+    auto aa = _toAA!(K, V)(a);
     return aa ? aa.length : 0;
 }
 
@@ -535,7 +544,7 @@ auto _aaGetRvalueX(K, V, K2)(immutable(V[K]) aa, auto ref scope K2 key)
 auto _aaDup(T : V[K], K, V)(T a)
 {
     auto aa = _toAA!(K, V)(a);
-    immutable len = _aaLen(aa);
+    immutable len = aa.length;
     if (len == 0)
         return null;
 
@@ -758,8 +767,8 @@ bool _aaEqual(T : AA!(K, V), K, V)(scope T aa1, scope T aa2)
     if (aa1 is aa2)
         return true;
 
-    immutable len = _aaLen(aa1);
-    if (len != _aaLen(aa2))
+    immutable len = aa1.length;
+    if (len != aa2.length)
         return false;
 
     if (!len) // both empty
