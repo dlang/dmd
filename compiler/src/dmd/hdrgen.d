@@ -2455,6 +2455,8 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             expToBuffer(e.lowering, PREC.assign, buf, hgs);
             return;
         }
+        buf.writeByte('[');
+        foreach (i, key; *e.keys)
         {
             if (i)
                 buf.put(", ");
