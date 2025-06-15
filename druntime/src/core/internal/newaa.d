@@ -553,7 +553,7 @@ auto _aaDup(T : V[K], K, V)(T a)
  * Returns:
  *      pointer to value if present, null otherwise
  */
-inout(V)* _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref scope K2 key)
+auto _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref scope K2 key)
 {
     auto aa = _toAA!(K, V)(a);
     if (aa.empty)
@@ -623,7 +623,10 @@ auto _aaValues(K, V)(inout V[K] a)
     if (aa.empty)
         return null;
 
-    typeof([aa.buckets[0].entry.value]) res; // as mutable as it can get
+    static if(__traits(compiles, { V val = aa.buckets[0].entry.value; } ))
+        V[] res; // if value has no const indirections
+    else
+        typeof([aa.buckets[0].entry.value]) res; // as mutable as it can get
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
@@ -640,7 +643,10 @@ auto _aaKeys(K, V)(inout V[K] a)
     if (aa.empty)
         return null;
 
-    typeof([aa.buckets[0].entry.key]) res; // as mutable as it can get
+    static if(__traits(compiles, { K key = aa.buckets[0].entry.key; } ))
+        K[] res; // if key has no const indirections
+    else
+        typeof([aa.buckets[0].entry.key]) res; // as mutable as it can get
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
