@@ -1183,7 +1183,7 @@ void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t ty = TYMAX)
     {
         // integer
         uint sf = ty == TYMAX || _tysize[ty] == 8;
-        cdb.gen1(INSTR.mov_register(sf, from, to));
+        cdb.gen1(INSTR.mov_register(sf, from, to));    // MOV to,from
     }
 }
 

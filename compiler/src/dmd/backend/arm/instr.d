@@ -143,6 +143,15 @@ struct INSTR
                 Rd;
     }
 
+    /* MOV (to/from) SP)
+     * MOV <Rd|SP>,<Rn|SP>
+     * https://www.scs.stanford.edu/~zyedidia/arm64/mov_add_addsub_imm.html
+     */
+    static uint mov_add_addsub_imm(uint sf, reg_t Rn, reg_t Rd)
+    {
+        return addsub_imm(sf, 0, 0, 0, 0, Rn, Rd);
+    }
+
     /* Add/subtract (immediate, with tags)
      * ADDG/SUBG
      * http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_immtags
@@ -169,7 +178,16 @@ struct INSTR
                 Rd;
     }
 
-    /* Move wide (immediate)
+    /* NOV (bitmask immediate)
+     * MOV Rd,#<imm>
+     * https://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_log_imm.html
+     */
+    static uint mov_orr_log_imm(uint sf, uint N, uint immr, uint imms, reg_t Rd)
+    {
+        return log_imm(sf, 1, N, immr, imms, 31, Rd);
+    }
+
+    /* move wide (immediate)
      * MOVN/MOVZ/MOVK Rd, #imm{, LSL #shift}
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#movewide
      */
