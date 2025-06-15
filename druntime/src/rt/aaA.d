@@ -362,13 +362,13 @@ pure nothrow @nogc unittest
  * Returns:
  *      A new associative array.
  */
-extern (C) Impl* _aaNew(const TypeInfo_AssociativeArray ti)
+extern (C) Impl* _obsolete_aaNew(const TypeInfo_AssociativeArray ti)
 {
     return new Impl(ti);
 }
 
 /// Determine number of entries in associative array.
-extern (C) size_t _aaLen(scope const AA aa) pure nothrow @nogc
+extern (C) size_t _obsolete_aaLen(scope const AA aa) pure nothrow @nogc
 {
     return aa ? aa.length : 0;
 }
@@ -386,11 +386,11 @@ extern (C) size_t _aaLen(scope const AA aa) pure nothrow @nogc
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-extern (C) void* _aaGetY(scope AA* paa, const TypeInfo_AssociativeArray ti,
+extern (C) void* _obsolete_aaGetY(scope AA* paa, const TypeInfo_AssociativeArray ti,
     const size_t valsz, scope const void* pkey)
 {
     bool found;
-    return _aaGetX(paa, ti, valsz, pkey, found);
+    return _obsolete_aaGetX(paa, ti, valsz, pkey, found);
 }
 
 /******************************
@@ -407,7 +407,7 @@ extern (C) void* _aaGetY(scope AA* paa, const TypeInfo_AssociativeArray ti,
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-extern (C) void* _aaGetX(scope AA* paa, const TypeInfo_AssociativeArray ti,
+extern (C) void* _obsolete_aaGetX(scope AA* paa, const TypeInfo_AssociativeArray ti,
     const size_t valsz, scope const void* pkey, out bool found)
 {
     // lazily alloc implementation
@@ -465,10 +465,10 @@ extern (C) void* _aaGetX(scope AA* paa, const TypeInfo_AssociativeArray ti,
  * Returns:
  *      pointer to value if present, null otherwise
  */
-extern (C) inout(void)* _aaGetRvalueX(inout AA aa, scope const TypeInfo keyti, const size_t valsz,
+extern (C) inout(void)* _obsolete_aaGetRvalueX(inout AA aa, scope const TypeInfo keyti, const size_t valsz,
     scope const void* pkey)
 {
-    return _aaInX(aa, keyti, pkey);
+    return _obsolete_aaInX(aa, keyti, pkey);
 }
 
 /******************************
@@ -481,7 +481,7 @@ extern (C) inout(void)* _aaGetRvalueX(inout AA aa, scope const TypeInfo keyti, c
  * Returns:
  *      pointer to value if present, null otherwise
  */
-extern (C) inout(void)* _aaInX(inout AA aa, scope const TypeInfo keyti, scope const void* pkey)
+extern (C) inout(void)* _obsolete_aaInX(inout AA aa, scope const TypeInfo keyti, scope const void* pkey)
 {
     if (aa.empty)
         return null;
@@ -493,7 +493,7 @@ extern (C) inout(void)* _aaInX(inout AA aa, scope const TypeInfo keyti, scope co
 }
 
 /// Delete entry scope const AA, return true if it was present
-extern (C) bool _aaDelX(AA aa, scope const TypeInfo keyti, scope const void* pkey)
+extern (C) bool _obsolete_aaDelX(AA aa, scope const TypeInfo keyti, scope const void* pkey)
 {
     if (aa.empty)
         return false;
@@ -517,7 +517,7 @@ extern (C) bool _aaDelX(AA aa, scope const TypeInfo keyti, scope const void* pke
 }
 
 /// Remove all elements from AA.
-extern (C) void _aaClear(AA aa) pure nothrow @safe
+extern (C) void _obsolete_aaClear(AA aa) pure nothrow @safe
 {
     if (!aa.empty)
     {
@@ -526,7 +526,7 @@ extern (C) void _aaClear(AA aa) pure nothrow @safe
 }
 
 /// Rehash AA
-extern (C) void* _aaRehash(AA* paa, scope const TypeInfo keyti) pure nothrow
+extern (C) void* _obsolete_aaRehash(AA* paa, scope const TypeInfo keyti) pure nothrow
 {
     AA aa = *paa;
     if (!aa.empty)
@@ -535,7 +535,7 @@ extern (C) void* _aaRehash(AA* paa, scope const TypeInfo keyti) pure nothrow
 }
 
 /// Return a GC allocated array of all values
-extern (C) inout(void[]) _aaValues(inout AA aa, const size_t keysz, const size_t valsz,
+extern (C) inout(void[]) _obsolete_aaValues(inout AA aa, const size_t keysz, const size_t valsz,
     const TypeInfo tiValueArray) pure nothrow
 {
     if (aa.empty)
@@ -559,7 +559,7 @@ extern (C) inout(void[]) _aaValues(inout AA aa, const size_t keysz, const size_t
 }
 
 /// Return a GC allocated array of all keys
-extern (C) inout(void[]) _aaKeys(inout AA aa, const size_t keysz, const TypeInfo tiKeyArray) pure nothrow
+extern (C) inout(void[]) _obsolete_aaKeys(inout AA aa, const size_t keysz, const TypeInfo tiKeyArray) pure nothrow
 {
     if (aa.empty)
         return null;
@@ -627,7 +627,7 @@ extern (C) int _aaApply2(AA aa, const size_t keysz, dg2_t dg)
  * Returns:
  *      A new associative array opaque pointer, or null if `keys` is empty.
  */
-extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys,
+extern (C) Impl* _obsolete_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys,
     void[] vals)
 {
     assert(keys.length == vals.length);
@@ -675,13 +675,13 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
 }
 
 /// compares 2 AAs for equality
-extern (C) int _aaEqual(scope const TypeInfo tiRaw, scope const AA aa1, scope const AA aa2)
+extern (C) int _obsolete_aaEqual(scope const TypeInfo tiRaw, scope const AA aa1, scope const AA aa2)
 {
     if (aa1 is aa2)
         return true;
 
-    immutable len = _aaLen(aa1);
-    if (len != _aaLen(aa2))
+    immutable len = _obsolete_aaLen(aa1);
+    if (len != _obsolete_aaLen(aa2))
         return false;
 
     if (!len) // both empty
@@ -705,7 +705,7 @@ extern (C) int _aaEqual(scope const TypeInfo tiRaw, scope const AA aa1, scope co
 }
 
 /// compute a hash
-extern (C) hash_t _aaGetHash(scope const AA* paa, scope const TypeInfo tiRaw) nothrow
+extern (C) hash_t _obsolete_aaGetHash(scope const AA* paa, scope const TypeInfo tiRaw) nothrow
 {
     const AA aa = *paa;
 
@@ -732,7 +732,7 @@ extern (C) hash_t _aaGetHash(scope const AA* paa, scope const TypeInfo tiRaw) no
 }
 
 /**
- * _aaRange implements a ForwardRange
+ * _obsolete_aaRange implements a ForwardRange
  */
 struct Range
 {
@@ -743,7 +743,7 @@ struct Range
 
 extern (C) pure nothrow @nogc @safe
 {
-    Range _aaRange(return scope AA aa)
+    Range _obsolete_aaRange(return scope AA aa)
     {
         if (!aa)
             return Range();
@@ -756,22 +756,22 @@ extern (C) pure nothrow @nogc @safe
         return Range(aa, aa.dim);
     }
 
-    bool _aaRangeEmpty(Range r)
+    bool _obsolete_aaRangeEmpty(Range r)
     {
         return r.impl is null || r.idx >= r.dim;
     }
 
-    void* _aaRangeFrontKey(Range r)
+    void* _obsolete_aaRangeFrontKey(Range r)
     {
-        assert(!_aaRangeEmpty(r));
+        assert(!_obsolete_aaRangeEmpty(r));
         if (r.idx >= r.dim)
             return null;
         return r.buckets[r.idx].entry;
     }
 
-    void* _aaRangeFrontValue(Range r)
+    void* _obsolete_aaRangeFrontValue(Range r)
     {
-        assert(!_aaRangeEmpty(r));
+        assert(!_obsolete_aaRangeEmpty(r));
         if (r.idx >= r.dim)
             return null;
 
@@ -781,7 +781,7 @@ extern (C) pure nothrow @nogc @safe
             (() @trusted { return entry + r.valoff; } ());
     }
 
-    void _aaRangePopFront(ref Range r)
+    void _obsolete_aaRangePopFront(ref Range r)
     {
         if (r.idx >= r.dim) return;
         for (++r.idx; r.idx < r.dim; ++r.idx)
@@ -795,6 +795,7 @@ extern (C) pure nothrow @nogc @safe
 // Most tests are now in test_aa.d
 
 // test postblit for AA literals
+version(none) // replaced by newaa.d
 unittest
 {
     static struct T
@@ -851,17 +852,19 @@ unittest
 unittest
 {
     import newaa = core.internal.newaa;
-    static assert(newaa.Impl.sizeof == Impl.sizeof);
+    alias newImpl = typeof(newaa.AA!(int, int).impl[0]); // newaa.Impl is private
+    static assert(newImpl.sizeof == Impl.sizeof);
     // ensure compatible types and offsets
     static foreach (i; 0 .. Impl.tupleof.length)
     {
         // for bucket array and Flags, we "compatible" types, not exactly the same types.
         static if (__traits(identifier, Impl.tupleof[i]) == "buckets"
-            || __traits(identifier, Impl.tupleof[i]) == "flags")
-            static assert(Impl.tupleof[i].sizeof == newaa.Impl.tupleof[i].sizeof);
+            || __traits(identifier, Impl.tupleof[i]) == "flags"
+            || __traits(identifier, Impl.tupleof[i]) == "hashFn")
+            static assert(Impl.tupleof[i].sizeof == newImpl.tupleof[i].sizeof);
         else
-            static assert(is(typeof(Impl.tupleof[i]) == typeof(newaa.Impl.tupleof[i])));
+            static assert(is(typeof(Impl.tupleof[i]) == typeof(newImpl.tupleof[i])));
 
-        static assert(Impl.tupleof[i].offsetof == newaa.Impl.tupleof[i].offsetof);
+        static assert(Impl.tupleof[i].offsetof == newImpl.tupleof[i].offsetof);
     }
 }
