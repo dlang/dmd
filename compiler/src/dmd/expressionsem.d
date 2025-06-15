@@ -3434,7 +3434,16 @@ private bool functionParameters(Loc loc, Scope* sc,
                 }
             }
             if (!p.isReference())
-                err |= arg.checkSharedAccess(sc);
+            {
+                /* The arg passed to `_d_cast` has stripped attributes, including `shared`,
+                 * so we have to skip the check here.
+                 * This is safe, because `_d_cast` does not access the arg directly.
+                 */
+                if (fd && fd.ident != Id._d_cast)
+                {
+                    err |= arg.checkSharedAccess(sc);
+                }
+            }
 
             arg = arg.optimize(WANTvalue, p.isReference());
         }
@@ -9367,10 +9376,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     auto unqual_t1b = t1b.unqualify(MODFlags.wild | MODFlags.const_ |
                         MODFlags.immutable_ | MODFlags.shared_);
                     cex.e1.type = unqual_t1b;
-                    if (auto v = cex.e1.isVarExp())
-                    {
-                        v.var.type = v.var.type.unqualify(MODFlags.shared_);
-                    }
                     arguments.push(cex.e1);
 
                     lowering = new CallExp(cex.loc, lowering, arguments);
