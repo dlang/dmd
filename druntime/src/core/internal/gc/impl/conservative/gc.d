@@ -2465,11 +2465,9 @@ struct Gcx
             return _p[--_length];
         }
 
+        version (COLLECT_PARALLEL)
         bool popLocked(ref RANGE rng)
         {
-            if (_length == 0)
-                return false;
-
             stackLock.lock();
             scope(exit) stackLock.unlock();
             if (_length == 0)
@@ -2742,7 +2740,13 @@ struct Gcx
                 static if (parallel)
                 {
                     toscan.stackLock.lock();
-                    scope(exit) toscan.stackLock.unlock();
+                    bool wasEmpty = toscan.empty;
+                    scope(exit)
+                    {
+                        toscan.stackLock.unlock();
+                        if (wasEmpty)
+                            evStackFilled.setIfInitialized();
+                    }
                 }
                 toscan.push(rng);
                 // reverse order for depth-first-order traversal
@@ -3535,8 +3539,7 @@ Lmark:
                         Gcx.instance.scanThreadData = null;
                         Gcx.instance.busyThreads = 0;
 
-                        memset(&Gcx.instance.evStart, 0, Gcx.instance.evStart.sizeof);
-                        memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
+                        memset(&Gcx.instance.evStackFilled, 0, Gcx.instance.evStackFilled.sizeof);
                     }
                 }
             }
@@ -3559,8 +3562,7 @@ Lmark:
     uint numScanThreads;
     ScanThreadData* scanThreadData;
 
-    Event evStart;
-    Event evDone;
+    Event evStackFilled;
 
     shared uint busyThreads;
     shared uint stoppedThreads;
@@ -3600,21 +3602,34 @@ Lmark:
         }
         assert(pbot < ptop);
 
-        busyThreads.atomicOp!"+="(1); // main thread is busy
-
-        evStart.setIfInitialized();
+        evStackFilled.setIfInitialized(); // background threads start now
 
         debug(PARALLEL_PRINTF) printf("mark %lld roots\n", cast(ulong)(ptop - pbot));
 
+        void pullLoop(bool precise)()
+        {
+            static if (precise)
+                mark!(true, true, true)(ScanRange!true(pbot, ptop, null));
+            else
+                mark!(false, true, true)(ScanRange!false(pbot, ptop));
+
+            for (bool done = false; !done; )
+            {
+                pullFromScanStack();
+                if (busyThreads == 0)
+                {
+                    alias toscan = scanStack!precise;
+                    toscan.stackLock.lock();
+                    done = toscan.empty() && busyThreads == 0;
+                    toscan.stackLock.unlock();
+                }
+            }
+        }
         if (ConservativeGC.isPrecise)
-            mark!(true, true, true)(ScanRange!true(pbot, ptop, null));
+            pullLoop!(true)();
         else
-            mark!(false, true, true)(ScanRange!false(pbot, ptop));
+            pullLoop!(false)();
 
-        busyThreads.atomicOp!"-="(1);
-
-        debug(PARALLEL_PRINTF) printf("waitForScanDone\n");
-        pullFromScanStack();
         debug(PARALLEL_PRINTF) printf("waitForScanDone done\n");
     }
 
@@ -3662,8 +3677,7 @@ Lmark:
         if (!scanThreadData)
             onOutOfMemoryError();
 
-        evStart.initialize(false, false);
-        evDone.initialize(false, false);
+        evStackFilled.initialize(false, false);
 
         version (Posix)
         {
@@ -3704,8 +3718,8 @@ Lmark:
         stopGC = true;
         while (atomicLoad(stoppedThreads) < startedThreads && !allThreadsDead)
         {
-            evStart.setIfInitialized();
-            evDone.wait(dur!"msecs"(1));
+            evStackFilled.setIfInitialized();
+            Thread.sleep(1.msecs);
         }
 
         for (int idx = 0; idx < numScanThreads; idx++)
@@ -3717,8 +3731,7 @@ Lmark:
             }
         }
 
-        evDone.terminate();
-        evStart.terminate();
+        evStackFilled.terminate();
 
         cstdlib.free(scanThreadData);
         // scanThreadData = null; // keep non-null to not start again after shutdown
@@ -3731,11 +3744,11 @@ Lmark:
     {
         while (!stopGC)
         {
-            evStart.wait();
+            evStackFilled.wait();
             pullFromScanStack();
-            evDone.setIfInitialized();
         }
         stoppedThreads.atomicOp!"+="(1);
+        evStackFilled.setIfInitialized(); // wake up another thread
     }
 
     void pullFromScanStack() nothrow
@@ -3748,9 +3761,6 @@ Lmark:
 
     void pullFromScanStackImpl(bool precise)() nothrow
     {
-        if (atomicLoad(busyThreads) == 0)
-            return;
-
         version (Posix) debug (PARALLEL_PRINTF)
         {
             import core.sys.posix.pthread : pthread_self, pthread_t;
@@ -3761,26 +3771,22 @@ Lmark:
         ScanRange!precise rng;
         alias toscan = scanStack!precise;
 
-        while (atomicLoad(busyThreads) > 0)
+        busyThreads.atomicOp!"+="(1);
+        if (toscan.popLocked(rng))
         {
-            if (toscan.empty)
-            {
-                evDone.wait(dur!"msecs"(1));
-                continue;
-            }
+            // if a new thread has found an entry on the stack, another thread might want to join
+            if (!toscan.empty)
+                evStackFilled.setIfInitialized();
 
-            busyThreads.atomicOp!"+="(1);
-            if (toscan.popLocked(rng))
+            version (Posix) debug (PARALLEL_PRINTF)
             {
-                version (Posix) debug (PARALLEL_PRINTF)
-                {
-                    printf("scanBackground thread %d scanning range [%p,%lld] from stack\n",
-                        threadId, rng.pbot, cast(long) (rng.ptop - rng.pbot));
-                }
-                mark!(precise, true, true)(rng);
+                printf("scanBackground thread %d scanning range [%p,%lld] from stack\n",
+                    threadId, rng.pbot, cast(long) (rng.ptop - rng.pbot));
             }
-            busyThreads.atomicOp!"-="(1);
+            mark!(precise, true, true)(rng);
         }
+        busyThreads.atomicOp!"-="(1);
+
         version (Posix) debug (PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
     }
 }
