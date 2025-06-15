@@ -59,15 +59,6 @@ private template Unconstify(T : const U, U)
         alias Unconstify = U;
 }
 
-/// like core.internal.traits.Unqual, but stripping inout, too
-private template Unqualify(T : const U, U)
-{
-    static if (is(U == shared V, V))
-        alias Unqualify = Unconstify!V;
-    else
-        alias Unqualify = Unconstify!U;
-}
-
 ref _refAA(K, V)(ref V[K] aa) @trusted
 {
     return *(cast(AA!(substInout!K, substInout!V)*)&aa);
@@ -85,6 +76,12 @@ auto _toAA(K, V)(inout V[K] aa) @trusted
 
 // for backward compatibility, but should be deprecated
 auto _toAA(K, V)(shared const V[K] aa) @trusted
+{
+    return *(cast(AA!(K, V)*)&aa);
+}
+
+// for backward compatibility, but should be deprecated
+auto _toAA(K, V)(shared V[K] aa) @trusted
 {
     return *(cast(AA!(K, V)*)&aa);
 }
@@ -114,7 +111,7 @@ private void _aaMove(V)(ref V src, ref V dst) @trusted
 {
     import core.stdc.string : memcpy, memset;
     // move without postblit!?
-    memcpy(&dst.key, &src, V.sizeof);
+    memcpy(&dst, &src, V.sizeof);
     static if (__traits(isZeroInit, V))
         memset(&src, 0, V.sizeof);
     else
@@ -492,22 +489,38 @@ V* _aaGetX(K, V, K2)(auto ref scope V[K] a, auto ref K2 key, out bool found)
  * Returns:
  *      pointer to value if present, null otherwise
  */
-inout(V)* _aaGetRvalueX(K, V, K2)(inout V[K] aa, auto ref scope K2 key)
+auto _aaGetRvalueX(K, V, K2)(inout V[K] aa, auto ref scope K2 key)
 {
 //    auto aax = cast(V[K])aa; // remove outer const from T
     auto p = _d_aaIn(aa, key);
-    return cast(inout(V)*)p;
+    return p; //cast(inout(V)*)p;
 }
 
+/+
 /// ditto
-inout(V)* _aaGetRvalueX(K, V, K2)(inout shared const(V[K]) aa, auto ref scope K2 key)
+auto _aaGetRvalueX(K, V, K2)(const V[K] aa, auto ref scope K2 key)
 {
     // accept shared for backward compatibility, should be deprecated
-    return _aaGetRvalueX!(K, V, K2)(cast(inout(V[K])) aa, key);
+    return _d_aaIn(aa, key);
+}
++/
+
+/// ditto
+auto _aaGetRvalueX(K, V, K2)(shared(V[K]) aa, auto ref scope K2 key)
+{
+    // accept shared for backward compatibility, should be deprecated
+    return cast(shared(V)*)_aaGetRvalueX!(K, V, K2)(cast(V[K]) aa, key);
 }
 
 /// ditto
-inout(V)* _aaGetRvalueX(K, V, K2)(immutable(V[K]) aa, auto ref scope K2 key)
+auto _aaGetRvalueX(K, V, K2)(shared const(V[K]) aa, auto ref scope K2 key)
+{
+    // accept shared for backward compatibility, should be deprecated
+    return cast(const shared(V)*)_aaGetRvalueX!(K, V, K2)(cast(const(V[K])) aa, key);
+}
+
+/// ditto
+auto _aaGetRvalueX(K, V, K2)(immutable(V[K]) aa, auto ref scope K2 key)
 {
     // resolve ambiguity for immutable converting to const and shared const
     return _aaGetRvalueX!(K, V, K2)(cast(const(V[K])) aa, key);
