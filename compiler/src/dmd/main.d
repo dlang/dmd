@@ -121,20 +121,17 @@ extern (C) int _Dmain(char[][])
     import core.runtime;
     version(D_Coverage)
     {
-        // for now we need to manually set the source path
-        string dirName(string path, char separator)
+        // set the source path
+        string dirName(string path)
         {
             for (size_t i = path.length - 1; i > 0; i--)
             {
-                if (path[i] == separator)
+                if (isDirSeparator(path[i]))
                     return path[0..i];
             }
             return path;
         }
-        version (Windows)
-            enum sourcePath = dirName(dirName(dirName(__FILE_FULL_PATH__, '\\'), '\\'), '\\');
-        else
-            enum sourcePath = dirName(dirName(dirName(__FILE_FULL_PATH__, '/'), '/'), '/');
+        enum sourcePath = dirName(dirName(dirName(__FILE_FULL_PATH__)));
         dmd_coverSourcePath(sourcePath);
         dmd_coverDestPath(sourcePath);
         dmd_coverSetMerge(true);
