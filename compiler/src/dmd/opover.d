@@ -1187,6 +1187,8 @@ Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
             return fd;
         if (TemplateDeclaration td = s2.isTemplateDeclaration())
             return td;
+        if (OverloadSet os = s2.isOverloadSet())
+            return os;
     }
     return null;
 }
