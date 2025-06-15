@@ -10245,11 +10245,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         if (auto ae = exp.e1.isArrayExp())
-        {
-            ae.modifiable = true;
-            for (auto ae1 = ae.e1.isArrayExp(); ae1; ae1 = ae1.e1.isArrayExp())
-                ae1.modifiable = true;
-        }
+            markArrayExpModifiable(ae);
 
         if (Expression ex = binSemantic(exp, sc))
         {
@@ -10264,16 +10260,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         exp.e1 = e1x;
 
-        if (auto ie1 = exp.e1.isIndexExp())
-        {
-            if (ie1.e1.type.isTypeAArray())
-            {
-                assert(ie1.modifiable);
-                Type[2] aliasThisStop;
-                result = rewriteAAIndexAssign(exp, sc, aliasThisStop);
-                if (result)
-                    return;
-            }
+        Type[2] aliasThisStop;
+        if (auto res = rewriteIndexAssign(exp, sc, aliasThisStop))
+      {
+            result = res;
+            return;
         }
         if (exp.e1.checkReadModifyWrite(exp.op))
             return setError();
@@ -10345,11 +10336,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(PreExp exp)
     {
         if (auto ae = exp.e1.isArrayExp())
-        {
-            ae.modifiable = true;
-            for (auto ae1 = ae.e1.isArrayExp(); ae1; ae1 = ae1.e1.isArrayExp())
-                ae1.modifiable = true;
-        }
+            markArrayExpModifiable(ae);
+
         // printf("PreExp::semantic('%s')\n", toChars());
         if (Expression e = exp.opOverloadUnary(sc))
         {
@@ -10440,10 +10428,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (auto ae = exp.e1.isArrayExp())
         {
             Expression res;
-
-            ae.modifiable = true;
-            for (auto ae1 = ae.e1.isArrayExp(); ae1; ae1 = ae1.e1.isArrayExp())
-                ae1.modifiable = true;
+            markArrayExpModifiable(ae);
 
             ae.e1 = ae.e1.expressionSemantic(sc);
             ae.e1 = resolveProperties(sc, ae.e1);
@@ -10801,21 +10786,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         checkUnsafeAccess(sc, exp.e2, true, true); // Initializer must always be checked
 
+        if (auto res = rewriteIndexAssign(exp, sc, aliasThisStop))
+        {
+            result = res;
+            return;
+        }
+
         /* If it is an assignment from a 'foreign' type,
          * check for operator overloading.
          */
-        auto ie1 = exp.e1.isIndexExp();
         if (exp.memset == MemorySet.referenceInit)
         {
             // If this is an initialization of a reference,
             // do nothing
-        }
-        else if (ie1 && ie1.e1.type.isTypeAArray())
-        {
-            assert(ie1.modifiable);
-            result = rewriteAAIndexAssign(exp, sc, aliasThisStop);
-            if (result)
-                return;
         }
         else if (t1.ty == Tstruct)
         {
@@ -17979,6 +17962,13 @@ private extern(C++) class IncludeVisitor : Visitor {
     }
 }
 
+void markArrayExpModifiable(ArrayExp ae)
+{
+    ae.modifiable = true;
+    for (auto ae1 = ae.e1.isArrayExp(); ae1; ae1 = ae1.e1.isArrayExp())
+        ae1.modifiable = true;
+}
+
 Expression lowerAAIndexRead(IndexExp ie, Scope* sc)
 {
     Expression ce = buildAAIndexRValueX(ie.e1.type, ie.e1, ie.e2, sc);
@@ -18042,6 +18032,22 @@ Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, Scope* s
     return e0;
 }
 
+Expression revertIndexAssignToRvalues(IndexExp ie, Scope* sc)
+{
+    // in a multi-dimensional array access without the out-most access being to an AA,
+    // convert AA accesses back to rvalues
+    if (auto ie1 = ie.e1.isIndexExp())
+    {
+        // convert inner access first, otherwise we'd have to crawl into the lowered AST
+        ie.e1 = revertIndexAssignToRvalues(ie1, sc);
+    }
+    if (!ie.e1.type.isTypeAArray())
+        return ie;
+
+    assert(ie.modifiable);
+    return lowerAAIndexRead(ie, sc);
+}
+
 Expression implicitConvertToStruct(Expression ev, StructDeclaration sd, Scope* sc)
 {
     Type t2 = ev.type.toBasetype();
@@ -18062,11 +18068,10 @@ Expression implicitConvertToStruct(Expression ev, StructDeclaration sd, Scope* s
     return ey;
 }
 
-Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
+Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] aliasThisStop)
 {
     auto ie = exp.e1.isIndexExp();
-    if (!ie)
-        return null;
+    assert(ie);
     auto loc = ie.e1.loc;
 
     Identifier hook = Id._aaGetY;
@@ -18192,4 +18197,18 @@ Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
         ex = Expression.combine(e0, ae);
     ex = ex.expressionSemantic(sc);
     return ex;
+}
+
+Expression rewriteIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
+{
+    if (auto ie1 = exp.e1.isIndexExp())
+    {
+        if (ie1.e1.type.isTypeAArray())
+        {
+            assert(ie1.modifiable);
+            return rewriteAAIndexAssign(exp, sc, aliasThisStop);
+        }
+        exp.e1 = revertIndexAssignToRvalues(ie1, sc);
+    }
+    return null;
 }

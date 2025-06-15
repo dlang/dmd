@@ -1839,6 +1839,7 @@ bool isCtfeValueValid(Expression newval)
                  e1.op == EXP.variable ||
                  e1.op == EXP.int64 ||
                  e1.op == EXP.float64 ||
+                 e1.op == EXP.string_ ||
                  e1.op == EXP.dotVariable && isCtfeReferenceValid(e1) ||
                  e1.op == EXP.index && isCtfeReferenceValid(e1) ||
                  e1.op == EXP.slice && e1.type.toBasetype().ty == Tsarray
