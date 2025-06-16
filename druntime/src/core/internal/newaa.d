@@ -185,7 +185,7 @@ private:
 
     this(size_t sz /* = INIT_NUM_BUCKETS */) nothrow
     {
-        buckets = allocBuckets!(K, V)(sz);
+        buckets = allocBuckets(sz);
         firstUsed = cast(uint) buckets.length;
 
         // only for binary compatibility
@@ -287,7 +287,7 @@ private:
     void resize(size_t ndim) pure nothrow @safe
     {
         auto obuckets = buckets;
-        buckets = allocBuckets!(K, V)(ndim);
+        buckets = allocBuckets(ndim);
 
         foreach (ref b; obuckets[firstUsed .. $])
             if (b.filled)
@@ -316,6 +316,13 @@ private:
         // highest bit is set to distinguish empty/deleted from filled buckets
         return mix(hash) | HASH_FILLED_MARK;
     }
+
+    static Bucket[] allocBuckets(size_t dim) pure nothrow @safe
+    {
+        // could allocate with BlkAttr.NO_INTERIOR, but that does not combine
+        //  well with arrays and type info for precise scanning
+        return new Bucket[dim];
+    }
 }
 
 //==============================================================================
@@ -342,13 +349,6 @@ private pure nothrow @nogc:
     {
         return cast(ptrdiff_t) hash < 0;
     }
-}
-
-private Bucket!(K, V)[] allocBuckets(K, V)(size_t dim) pure nothrow @safe
-{
-    // could allocate with BlkAttr.NO_INTERIOR, but that does not combine
-    //  well with arrays and type info for precise scanning
-    return new Bucket!(K, V)[dim];
 }
 
 //==============================================================================
@@ -428,7 +428,7 @@ size_t _aaLen(K, V)(inout V[K] a)
  * Returns:
  *      if key was in the aa, a mutable pointer to the existing value.
  *      If key was not in the aa, a mutable pointer to newly inserted value which
- *      is set V.init
+ *      is set to zero
  */
 V* _aaGetY(K, V, T : V1[K1], K1, V1, K2)(auto ref scope T aa, auto ref K2 key, out bool found)
 {
@@ -500,39 +500,28 @@ V* _aaGetX(K, V, K2)(auto ref scope V[K] a, auto ref K2 key, out bool found)
  */
 auto _aaGetRvalueX(K, V, K2)(inout V[K] aa, auto ref scope K2 key)
 {
-//    auto aax = cast(V[K])aa; // remove outer const from T
-    auto p = _d_aaIn(aa, key);
-    return p; //cast(inout(V)*)p;
-}
-
-/+
-/// ditto
-auto _aaGetRvalueX(K, V, K2)(const V[K] aa, auto ref scope K2 key)
-{
-    // accept shared for backward compatibility, should be deprecated
     return _d_aaIn(aa, key);
 }
-+/
 
 /// ditto
 auto _aaGetRvalueX(K, V, K2)(shared(V[K]) aa, auto ref scope K2 key)
 {
     // accept shared for backward compatibility, should be deprecated
-    return cast(shared(V)*)_aaGetRvalueX!(K, V, K2)(cast(V[K]) aa, key);
+    return cast(shared(V)*)_d_aaIn(cast(V[K]) aa, key);
 }
 
 /// ditto
 auto _aaGetRvalueX(K, V, K2)(shared const(V[K]) aa, auto ref scope K2 key)
 {
     // accept shared for backward compatibility, should be deprecated
-    return cast(const shared(V)*)_aaGetRvalueX!(K, V, K2)(cast(const(V[K])) aa, key);
+    return cast(const shared(V)*)_d_aaIn(cast(V[K]) aa, key);
 }
 
 /// ditto
 auto _aaGetRvalueX(K, V, K2)(immutable(V[K]) aa, auto ref scope K2 key)
 {
     // resolve ambiguity for immutable converting to const and shared const
-    return _aaGetRvalueX!(K, V, K2)(cast(const(V[K])) aa, key);
+    return _d_aaIn(cast(V[K]) aa, key);
 }
 
 /***********************************
