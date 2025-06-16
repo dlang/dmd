@@ -3435,14 +3435,7 @@ private bool functionParameters(Loc loc, Scope* sc,
             }
             if (!p.isReference())
             {
-                /* The arg passed to `_d_cast` has stripped attributes, including `shared`,
-                 * so we have to skip the check here.
-                 * This is safe, because `_d_cast` does not access the arg directly.
-                 */
-                if (fd && fd.ident != Id._d_cast)
-                {
-                    err |= arg.checkSharedAccess(sc);
-                }
+                err |= arg.checkSharedAccess(sc);
             }
 
             arg = arg.optimize(WANTvalue, p.isReference());
