@@ -3074,6 +3074,15 @@ private bool functionParameters(Loc loc, Scope* sc,
                 return errorArgs();
             }
             arg = p.defaultArg;
+            // https://github.com/dlang/dmd/issues/21409
+            // ---
+            // default arg is used in another function, which means that a closure
+            // can be required, for that relaunch the whole arg sema at the use-site
+            if (fd && sc.func && !sc.func.equals(fd) && (arg.isVarExp() || arg.isDotVarExp()))
+            {
+                arg = arg.syntaxCopy();
+                arg.type = null;
+            }
             if (!arg.type)
                 arg = arg.expressionSemantic(sc);
             arg = inlineCopy(arg, sc);
