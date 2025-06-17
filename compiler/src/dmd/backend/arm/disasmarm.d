@@ -73,7 +73,7 @@ static if (0)
     else
         return false;
 }
-    return true;
+    return false;
 }
 
 /*************************
@@ -257,7 +257,7 @@ void disassemble(uint c) @trusted
     //printf("disassemble(c = %d, siz = %d)\n", c, siz);
     enum log = false;
     enum useAlias = true;  // decode to alias syntax
-    puts("   ");
+    puts(bObjectcode ? "   " : "        ");
 
     int i;
     char[80] p0 = '\0';
@@ -2452,7 +2452,8 @@ void disassemble(uint c) @trusted
     //printf("p1: %s\n", p1);
 
     auto plen = 1 + p1.length;
-    put(' ');
+    if (bObjectcode)
+        put(' ');
     puts(p1);
     if (p2.length > 0)
     {
