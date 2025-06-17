@@ -63,15 +63,7 @@ private void* _d_paint_cast(To)(Object o)
     return cast(void*)p;
 }
 
-/*****
- * Dynamic cast from a class object o to class type `To`, where `To` is a subclass type of `o`.
- * Params:
- *      o = instance of class
- *      To = a subclass type of o
- * Returns:
- *      null if `o` is null or `To` is not a subclass type of `o`. Otherwise, return `o`.
- */
-private void* _d_class_cast(To)(Object o)
+private void* _d_class_cast_impl(Object o, const ClassInfo c) pure nothrow @safe @nogc
 {
     debug(cast_) printf("_d_cast_cast(o = %p, c = '%.*s')\n", o, cast(int) c.name.length, c.name.ptr);
 
@@ -79,7 +71,6 @@ private void* _d_class_cast(To)(Object o)
         return null;
 
     ClassInfo oc = typeid(o);
-    auto c = typeid(To).info;
     int delta = oc.depth;
 
     if (delta && c.depth)
@@ -103,6 +94,19 @@ private void* _d_class_cast(To)(Object o)
         oc = oc.base;
     } while (oc);
     return null;
+}
+
+/*****
+ * Dynamic cast from a class object o to class type `To`, where `To` is a subclass type of `o`.
+ * Params:
+ *      o = instance of class
+ *      To = a subclass type of o
+ * Returns:
+ *      null if `o` is null or `To` is not a subclass type of `o`. Otherwise, return `o`.
+ */
+private void* _d_class_cast(To)(Object o)
+{
+    return _d_class_cast_impl(o, typeid(To));
 }
 
 /**
@@ -144,7 +148,10 @@ void* _d_cast(To, From)(From o) @trusted
             {
                 return cast(void*)o;
             }
-            return _d_class_cast!To(o);
+            else
+            {
+                return _d_class_cast!To(o);
+            }
         }
 
         return null;
