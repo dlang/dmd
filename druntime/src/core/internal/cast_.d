@@ -30,7 +30,7 @@ bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) pure n
  * Returns:
  *      null if `o` is null or `To` is not a subclass type of `o`. Otherwise, return `o`.
  */
-private void* _d_dynamic_cast(To)(Object o) @trusted
+private void* _d_dynamic_cast(To)(const return scope Object o) @trusted
 {
     debug(cast_) printf("_d_dynamic_cast(o = %p, c = '%.*s')\n", o, cast(int) c.name.length, c.name.ptr);
 
@@ -54,7 +54,7 @@ private void* _d_dynamic_cast(To)(Object o) @trusted
  * Returns:
  *      o if it succeeds, null if it fails
  */
-private void* _d_paint_cast(To)(Object o)
+private void* _d_paint_cast(To)(const return scope Object o)
 {
     /* If o is really an instance of c, just do a paint
      */
@@ -63,7 +63,7 @@ private void* _d_paint_cast(To)(Object o)
     return cast(void*)p;
 }
 
-private void* _d_class_cast_impl(Object o, const ClassInfo c) pure nothrow @safe @nogc
+private void* _d_class_cast_impl(const return scope Object o, const ClassInfo c) pure nothrow @safe @nogc
 {
     debug(cast_) printf("_d_cast_cast(o = %p, c = '%.*s')\n", o, cast(int) c.name.length, c.name.ptr);
 
@@ -104,7 +104,7 @@ private void* _d_class_cast_impl(Object o, const ClassInfo c) pure nothrow @safe
  * Returns:
  *      null if `o` is null or `To` is not a subclass type of `o`. Otherwise, return `o`.
  */
-private void* _d_class_cast(To)(Object o)
+private void* _d_class_cast(To)(const return scope Object o)
 {
     return _d_class_cast_impl(o, typeid(To));
 }
