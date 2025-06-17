@@ -400,7 +400,7 @@ struct OutBuffer
     extern (C++) nothrow @safe
     void writeByten(ubyte b)
     {
-        this.data[offset++] = cast(ubyte) b;
+        this.data[offset++] = b;
     }
 
     extern (C++) void writeByte(ubyte b) pure nothrow @safe
@@ -408,7 +408,16 @@ struct OutBuffer
         if (doindent && !notlinehead && b != '\n')
             indent();
         reserve(1);
-        this.data[offset] = cast(ubyte)b;
+        this.data[offset] = b;
+        offset++;
+    }
+
+    void write(ubyte b) pure nothrow @safe
+    {
+        if (doindent && !notlinehead && b != '\n')
+            indent();
+        reserve(1);
+        this.data[offset] = b;
         offset++;
     }
 
