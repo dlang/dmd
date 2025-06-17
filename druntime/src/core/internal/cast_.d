@@ -1,7 +1,5 @@
 module core.internal.cast_;
 
-debug(cast_) import core.stdc.stdio : printf;
-
 // Needed because ClassInfo.opEquals(Object) does a dynamic cast,
 // but we are trying to implement dynamic cast.
 bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) pure nothrow @safe @nogc
@@ -32,17 +30,13 @@ bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) pure n
  */
 private void* _d_dynamic_cast(To)(const return scope Object o) @trusted
 {
-    debug(cast_) printf("_d_dynamic_cast(o = %p, c = '%.*s')\n", o, cast(int) c.name.length, c.name.ptr);
-
     void* res = null;
     size_t offset = 0;
 
     if (o && _d_isbaseof2!To(typeid(o), offset))
     {
-        debug(cast_) printf("\toffset = %zd\n", offset);
         res = cast(void*) o + offset;
     }
-    debug(cast_) printf("\tresult = %p\n", res);
     return res;
 }
 
@@ -65,8 +59,6 @@ private void* _d_paint_cast(To)(const return scope Object o)
 
 private void* _d_class_cast_impl(const return scope Object o, const ClassInfo c) pure nothrow @safe @nogc
 {
-    debug(cast_) printf("_d_cast_cast(o = %p, c = '%.*s')\n", o, cast(int) c.name.length, c.name.ptr);
-
     if (!o)
         return null;
 
