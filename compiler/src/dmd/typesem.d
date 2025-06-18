@@ -5020,8 +5020,12 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                     auto tiargs = new Objects();
                     tiargs.push(ident);
                     auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
-                    e = dti.dotTemplateSemanticProp(sc, false);
-                    return returnExp(e);
+                    if (!findTempDecl(dti, sc))
+                    {
+                        .error(fd.loc, "Couldn't find template declaration for opDispatch");
+                        return returnExp(ErrorExp.get());
+                    }
+                    return returnExp(dti);
 
                 }
 
