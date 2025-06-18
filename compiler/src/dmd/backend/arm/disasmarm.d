@@ -387,6 +387,7 @@ void disassemble(uint c) @trusted
         uint imm = op ? ((immhi << 2) | immlo) << 12
                       : ((immhi << 2) | immlo);
         p3 = wordtostring(imm);
+        url2 = p1;
     }
     else if (field(ins, 28, 23) == 0x22) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
     {
@@ -411,10 +412,13 @@ void disassemble(uint c) @trusted
 
         if (opS == 0 && sh == 0 && imm12 == 0 && (Rd == 31 || Rn == 31))
         {
-            p1 = "mov"; // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+            p1 = "mov"; // https://www.scs.stanford.edu/~zyedidia/arm64/mov_add_addsub_imm.html
             p4 = "";
             p5 = "";
+            url2 = "mov_add_addsub_imm";
         }
+        else if (opS == 0 && sh == 0)
+            url2 = "add_addsub_imm"; // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
         else if (opS == 1 && Rd == 31) // adds
         {
             p1 = "cmn"; // https://www.scs.stanford.edu/~zyedidia/arm64/adds_addsub_imm.html
@@ -508,10 +512,10 @@ void disassemble(uint c) @trusted
             }
         }
     }
-    else if (field(ins, 28, 23) == 0x25) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#movewidex
+    else if (field(ins, 28, 23) == 0x25) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#movewide
     {
         if (log) printf("Move wide (immediate)\n");
-        url        = "movewidex";
+        url        = "movewide";
         uint sf    = field(ins, 31, 31);
         uint opc   = field(ins, 30, 29);
         uint hw    = field(ins, 22, 21);
@@ -519,6 +523,7 @@ void disassemble(uint c) @trusted
         uint Rd    = field(ins, 4, 0);
         if (opc == 0) // https://www.scs.stanford.edu/~zyedidia/arm64/movn.html
         {
+            url2 = "movn";
             if (useAlias)
             {
                 bool mov = !(imm16 == 0 && hw != 0) && imm16 != 0xFFFF;
@@ -530,6 +535,8 @@ void disassemble(uint c) @trusted
                     imm &= 0xFFFF_FFFF;
                 p3 = wordtostring(imm);
                 hw = 0;
+                if (mov)
+                    url2 = "mov_movn";
             }
             else
             {
@@ -539,11 +546,13 @@ void disassemble(uint c) @trusted
         }
         else if (opc == 2)
         {
+            url2 = (imm16 || hw == 0) ? "mov_movz" : "movz";
             p1 = (imm16 || hw == 0) ? "mov" : "movz";
             p3 = wordtostring(imm16);
         }
         else if (opc == 3)
         {
+            url2 = "movk";
             p1 = "movk";
             p3 = wordtostring(imm16);
         }
@@ -3023,7 +3032,7 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[83] cases64 =      // 64 bit code gen
+    string[84] cases64 =      // 64 bit code gen
     [
         "6F 00 E4 01         movi   v1.2d,#0x0",
         "9E AF 00 3E         fmov   v30.d[1],x1",
@@ -3092,6 +3101,8 @@ unittest
         "9A C1 20 02         lsl  x2,x0,x1",
         "9A C1 24 02         lsr  x2,x0,x1",
         "D3 43 FC 01         lsr  x1,x0,#3",
+
+        "D2 80 00 20         mov  x0,#1",
         "D2 80 01 C0         mov  x0,#0xE",
         "92 80 01 A1         mov  x1,#0xFFFFFFFFFFFFFFF2",
         "D2 80 02 02         mov  x2,#0x10",
