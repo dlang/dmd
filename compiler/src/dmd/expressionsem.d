@@ -3434,9 +3434,7 @@ private bool functionParameters(Loc loc, Scope* sc,
                 }
             }
             if (!p.isReference())
-            {
                 err |= arg.checkSharedAccess(sc);
-            }
 
             arg = arg.optimize(WANTvalue, p.isReference());
         }
