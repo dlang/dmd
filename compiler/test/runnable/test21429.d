@@ -19,7 +19,11 @@ void main(){
 
     T t;
     string s = t.x(); //error!
-    //t.y(); //error!
+    assert(s == "x");
+    assert(t.y == "y");
+
+    //TODO opDispatch with assignment/parameters
+
     //t.opDispatch!"x";
     //t.opDispatch!"y";
 
