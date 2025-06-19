@@ -5018,7 +5018,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 {
                     //??? resolve the correct one
                     auto tiargs = new Objects();
-                    tiargs.push(ident);
+                    auto se = new StringExp(e.loc, ident.toString());
+                    tiargs.push(se);
                     auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
                     if (!findTempDecl(dti, sc))
                     {
