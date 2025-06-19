@@ -557,6 +557,7 @@ Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
     {
         if (OverloadSet os = s.isOverloadSet())
         {
+            /*
             //printf("opBinary is an overload set\n");
             //multiple overloads in different scopes
             auto dti = new DotTemplateInstanceExp(e.loc, e.e1, Id.opBinary, opToArg(sc, e.op));
@@ -568,6 +569,8 @@ Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
             }
             s = dti.ti.tempdecl;
             //printf("found temp decl in the overload set: %s\n", s.toChars);
+            */
+            s = os;
         }
         else if (!s.isTemplateDeclaration())
         {
