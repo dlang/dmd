@@ -35,8 +35,16 @@ extern (C++, std) struct __va_list
     int __vr_offs;
 }
 
-///
-alias va_list = __va_list;
+version (DigitalMars)
+{
+    ///
+    alias __va_list_tag = __va_list;
+    ///
+    alias va_list = __va_list*;
+}
+else
+    ///
+    alias va_list = __va_list; // kludge - va_list always passed by ref (!)
 
 ///
 T va_arg(T)(ref va_list ap)

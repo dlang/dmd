@@ -940,7 +940,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, out Param params
     if (parseConfFile(environment, global.inifilename, inifilepath, cast(ubyte[])inifileBuffer[], &sections))
         return true;
 
-    const(char)[] arch = target.isX86_64 ? "64" : "32"; // use default
+    const(char)[] arch = (target.isX86_64 || target.isAArch64) ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
 
     // parse architecture from DFLAGS read from [Environment] section
