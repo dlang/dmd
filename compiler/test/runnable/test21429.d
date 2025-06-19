@@ -41,7 +41,7 @@ template adder()
 
 template subtracter()
 {
-    int opBinary(string s : "-")(int x) { return x; }
+    int opBinary(string s : "-")(int x) { return -x; }
 }
 
 
@@ -50,6 +50,23 @@ struct Arithmetic
     mixin adder;
     mixin subtracter;
 
+}
+
+template adderRight()
+{
+    int opBinaryRight(string s : "+")(int x){ return x; }
+}
+
+
+template subtracterRight()
+{
+    int opBinaryRight(string s: "-")(int x){ return -x; }
+}
+
+struct ArithmeticRight
+{
+    mixin adderRight;
+    mixin subtracterRight;
 }
 
 void main(){
@@ -65,8 +82,13 @@ void main(){
 
     //TODO: fix these
     Arithmetic a;
-    a + 5; // error a.opBinary isn't a template (is an overload set, I assume)
-    a - 5; // error
+    assert((a + 5) == 5);
+    assert((a - 7) == -7);
+
+
+    ArithmeticRight ar;
+    assert((5 + ar) == 5);
+    assert((7 - ar) == -7);
 
 
     U u;

@@ -581,10 +581,17 @@ Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
 
     Dsymbol s_r = search_function(ad2, Id.opBinaryRight);
     //TODO same check for opBinaryRight
-    if (s_r && !s_r.isTemplateDeclaration())
+    if (s_r)
     {
-        error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toChars());
-        return ErrorExp.get();
+        if (OverloadSet os = s_r.isOverloadSet())
+        {
+            s_r = os;
+        }
+        else if (!s_r.isTemplateDeclaration())
+        {
+            error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toChars());
+            return ErrorExp.get();
+        }
     }
     if (s_r && s_r == s) // https://issues.dlang.org/show_bug.cgi?id=12778
         s_r = null;
