@@ -65,10 +65,9 @@ void main(){
 
     //TODO: fix these
     Arithmetic a;
-    //a + 5; // error a.opBinary isn't a template (is an overload set, I assume)
-    //a - 5; // error
+    a + 5; // error a.opBinary isn't a template (is an overload set, I assume)
+    a - 5; // error
 
-    //t.opDispatch!"y";
 
     U u;
     //should work for a single mixin

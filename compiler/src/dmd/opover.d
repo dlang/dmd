@@ -549,15 +549,35 @@ Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     AggregateDeclaration ad2 = isAggregate(e.e2.type);
 
+
     // Try opBinary and opBinaryRight
     Dsymbol s = search_function(ad1, Id.opBinary);
-    if (s && !s.isTemplateDeclaration())
+
+    if (s)
     {
-        error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toChars());
-        return ErrorExp.get();
+        if (OverloadSet os = s.isOverloadSet())
+        {
+            //printf("opBinary is an overload set\n");
+            //multiple overloads in different scopes
+            auto dti = new DotTemplateInstanceExp(e.loc, e.e1, Id.opBinary, opToArg(sc, e.op));
+            //dtitype = new TypeIdentifier(Loc.initial, ttp.ident);
+            if (!findTempDecl(dti, sc))
+            {
+                .error(e.loc, "Couldn't find the template declaration for opBinary");
+                return ErrorExp.get();
+            }
+            s = dti.ti.tempdecl;
+            //printf("found temp decl in the overload set: %s\n", s.toChars);
+        }
+        else if (!s.isTemplateDeclaration())
+        {
+            error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toChars());
+            return ErrorExp.get();
+        }
     }
 
     Dsymbol s_r = search_function(ad2, Id.opBinaryRight);
+    //TODO same check for opBinaryRight
     if (s_r && !s_r.isTemplateDeclaration())
     {
         error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toChars());
