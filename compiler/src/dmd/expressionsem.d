@@ -10262,7 +10262,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Type[2] aliasThisStop;
         if (auto res = rewriteIndexAssign(exp, sc, aliasThisStop))
-      {
+        {
             result = res;
             return;
         }

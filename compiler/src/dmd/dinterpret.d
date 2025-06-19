@@ -3416,132 +3416,10 @@ public:
         // ---------------------------------------
         //      Interpret left hand side
         // ---------------------------------------
-        AssocArrayLiteralExp existingAA = null;
-        Expression lastIndex = null;
         Expression oldval = null;
         if (e1.op == EXP.index && e1.isIndexExp().e1.type.toBasetype().ty == Taarray)
         {
-            assert(false);
-            // ---------------------------------------
-            //      Deal with AA index assignment
-            // ---------------------------------------
-            /* This needs special treatment if the AA doesn't exist yet.
-             * There are two special cases:
-             * (1) If the AA is itself an index of another AA, we may need to create
-             *     multiple nested AA literals before we can insert the new value.
-             * (2) If the ultimate AA is null, no insertion happens at all. Instead,
-             *     we create nested AA literals, and change it into a assignment.
-             */
-            IndexExp ie = e1.isIndexExp();
-            int depth = 0; // how many nested AA indices are there?
-            while (ie.e1.op == EXP.index && ie.e1.isIndexExp().e1.type.toBasetype().ty == Taarray)
-            {
-                assert(ie.modifiable);
-                ie = ie.e1.isIndexExp();
-                ++depth;
-            }
-
-            // Get the AA value to be modified.
-            Expression aggregate = interpretRegion(ie.e1, istate);
-            if (exceptionOrCant(aggregate))
-                return;
-            if ((existingAA = aggregate.isAssocArrayLiteralExp()) !is null)
-            {
-                // Normal case, ultimate parent AA already exists
-                // We need to walk from the deepest index up, checking that an AA literal
-                // already exists on each level.
-                lastIndex = interpretRegion(e1.isIndexExp().e2, istate);
-                lastIndex = resolveSlice(lastIndex); // only happens with AA assignment
-                if (exceptionOrCant(lastIndex))
-                    return;
-
-                while (depth > 0)
-                {
-                    // Walk the syntax tree to find the indexExp at this depth
-                    IndexExp xe = e1.isIndexExp();
-                    foreach (d; 0 .. depth)
-                        xe = xe.e1.isIndexExp();
-
-                    Expression ekey = interpretRegion(xe.e2, istate);
-                    if (exceptionOrCant(ekey))
-                        return;
-                    UnionExp ekeyTmp = void;
-                    ekey = resolveSlice(ekey, &ekeyTmp); // only happens with AA assignment
-
-                    // Look up this index in it up in the existing AA, to get the next level of AA.
-                    AssocArrayLiteralExp newAA = cast(AssocArrayLiteralExp)findKeyInAA(e.loc, existingAA, ekey);
-                    if (exceptionOrCant(newAA))
-                        return;
-                    if (!newAA)
-                    {
-                        // Doesn't exist yet, create an empty AA...
-                        auto keysx = new Expressions();
-                        auto valuesx = new Expressions();
-                        newAA = ctfeEmplaceExp!AssocArrayLiteralExp(e.loc, keysx, valuesx);
-                        newAA.type = xe.type;
-                        newAA.ownedByCtfe = OwnedBy.ctfe;
-                        //... and insert it into the existing AA.
-                        existingAA.keys.push(ekey);
-                        existingAA.values.push(newAA);
-                    }
-                    existingAA = newAA;
-                    --depth;
-                }
-
-                if (fp)
-                {
-                    oldval = findKeyInAA(e.loc, existingAA, lastIndex);
-                    if (!oldval)
-                        oldval = copyLiteral(e.e1.type.defaultInitLiteral(e.loc)).copy();
-                }
-            }
-            else
-            {
-                /* The AA is currently null. 'aggregate' is actually a reference to
-                 * whatever contains it. It could be anything: var, dotvarexp, ...
-                 * We rewrite the assignment from:
-                 *     aa[i][j] op= newval;
-                 * into:
-                 *     aa = [i:[j:T.init]];
-                 *     aa[j] op= newval;
-                 */
-                oldval = copyLiteral(e.e1.type.defaultInitLiteral(e.loc)).copy();
-
-                Expression newaae = oldval;
-                while (e1.op == EXP.index && e1.isIndexExp().e1.type.toBasetype().ty == Taarray)
-                {
-                    Expression ekey = interpretRegion(e1.isIndexExp().e2, istate);
-                    if (exceptionOrCant(ekey))
-                        return;
-                    ekey = resolveSlice(ekey); // only happens with AA assignment
-
-                    auto keysx = new Expressions();
-                    auto valuesx = new Expressions();
-                    keysx.push(ekey);
-                    valuesx.push(newaae);
-
-                    auto aae = ctfeEmplaceExp!AssocArrayLiteralExp(e.loc, keysx, valuesx);
-                    aae.type = e1.isIndexExp().e1.type;
-                    aae.ownedByCtfe = OwnedBy.ctfe;
-                    if (!existingAA)
-                    {
-                        existingAA = aae;
-                        lastIndex = ekey;
-                    }
-                    newaae = aae;
-                    e1 = e1.isIndexExp().e1;
-                }
-
-                // We must set to aggregate with newaae
-                e1 = interpretRegion(e1, istate, CTFEGoal.LValue);
-                if (exceptionOrCant(e1))
-                    return;
-                e1 = assignToLvalue(e, e1, newaae, istate);
-                if (exceptionOrCant(e1))
-                    return;
-            }
-            assert(existingAA && lastIndex);
-            e1 = null; // stomp
+            assert(false, "indexing AA should have been lowered in semantic analysis");
         }
         else if (e1.op == EXP.arrayLength)
         {
@@ -3581,10 +3459,7 @@ public:
 
             if (e1.op == EXP.index && e1.isIndexExp().e1.type.toBasetype().ty == Taarray)
             {
-                IndexExp ie = e1.isIndexExp();
-                assert(ie.e1.op == EXP.assocArrayLiteral);
-                existingAA = ie.e1.isAssocArrayLiteralExp();
-                lastIndex = ie.e2;
+                assert(false, "indexing AA should have been lowered in semantic analysis");
             }
         }
 
@@ -3675,23 +3550,6 @@ public:
             }
         }
 
-        if (existingAA)
-        {
-            if (existingAA.ownedByCtfe != OwnedBy.ctfe)
-            {
-                error(e.loc, "cannot modify read-only constant `%s`", existingAA.toChars());
-                result = CTFEExp.cantexp;
-                return;
-            }
-
-            //printf("\t+L%d existingAA = %s, lastIndex = %s, oldval = %s, newval = %s\n",
-            //    __LINE__, existingAA.toChars(), lastIndex.toChars(), oldval ? oldval.toChars() : NULL, newval.toChars());
-            assignAssocArrayElement(e.loc, existingAA, lastIndex, newval);
-
-            // Determine the return value
-            result = ctfeCast(pue, e.loc, e.type, e.type, fp && post ? oldval : newval);
-            return;
-        }
         if (e1.op == EXP.arrayLength)
         {
             /* Change the assignment from:
@@ -5385,7 +5243,6 @@ public:
                     // if we need a reference, IndexExp shouldn't be interpreting
                     // the expression to a value, it should stay as a reference
                     emplaceExp!(IndexExp)(pue, e.loc, agg, ctfeEmplaceExp!IntegerExp(e.e2.loc, indexToAccess, e.e2.type));
-                    pue.exp().isIndexExp().loweredFrom = e.loweredFrom;
                     result = pue.exp();
                     result.type = e.type;
                     return;
@@ -5406,49 +5263,7 @@ public:
 
         if (e.e1.type.toBasetype().ty == Taarray)
         {
-            assert(false);
-
-            Expression e1 = interpretRegion(e.e1, istate);
-            if (exceptionOrCant(e1))
-                return;
-            if (e1.op == EXP.null_)
-            {
-                if (goal == CTFEGoal.LValue && e1.type.ty == Taarray && e.modifiable)
-                {
-                    assert(0); // does not reach here?
-                }
-                error(e.loc, "cannot index null array `%s`", e.e1.toChars());
-                result = CTFEExp.cantexp;
-                return;
-            }
-            Expression e2 = interpretRegion(e.e2, istate);
-            if (exceptionOrCant(e2))
-                return;
-
-            if (goal == CTFEGoal.LValue)
-            {
-                // Pointer or reference of a scalar type
-                if (e1 == e.e1 && e2 == e.e2)
-                    result = e;
-                else
-                {
-                    emplaceExp!(IndexExp)(pue, e.loc, e1, e2);
-                    result = pue.exp();
-                    result.type = e.type;
-                }
-                return;
-            }
-
-            assert(e1.op == EXP.assocArrayLiteral);
-            UnionExp e2tmp = void;
-            e2 = resolveSlice(e2, &e2tmp);
-            result = findKeyInAA(e.loc, e1.isAssocArrayLiteralExp(), e2);
-            if (!result)
-            {
-                error(e.loc, "key `%s` not found in associative array `%s`", e2.toChars(), e.e1.toChars());
-                result = CTFEExp.cantexp;
-            }
-            return;
+            assert(false, "indexing AA should have been lowered in semantic analysis");
         }
 
         Expression agg;
@@ -5463,7 +5278,6 @@ public:
         {
             Expression e2 = ctfeEmplaceExp!IntegerExp(e.e2.loc, indexToAccess, Type.tsize_t);
             emplaceExp!(IndexExp)(pue, e.loc, agg, e2);
-            pue.exp().isIndexExp().loweredFrom = e.loweredFrom;
             result = pue.exp();
             result.type = e.type;
             return;
@@ -7208,8 +7022,6 @@ private Expression interpret_aaGetRvalueX(UnionExp* pue, InterState* istate, Exp
     if (exceptionOrCantInterpret(e2))
         return e2;
 
-    version(all)
-    {
     auto aalit = e1.isAssocArrayLiteralExp();
     if (!aalit)
     {
@@ -7224,21 +7036,7 @@ private Expression interpret_aaGetRvalueX(UnionExp* pue, InterState* istate, Exp
         return  CTFEExp.cantexp;
     }
 
-    // return "ref" to value
-    auto arr = ctfeEmplaceExp!(ArrayLiteralExp)(aa.loc, aa.type.nextOf().arrayOf(), aalit.values);
-    arr.ownedByCtfe = aalit.ownedByCtfe;
-    arr.aaLiteral = aalit;
-    auto len = ctfeEmplaceExp!(IntegerExp)(aa.loc, idx, Type.tsize_t);
-    auto ie = ctfeEmplaceExp!(IndexExp)(aa.loc, arr, len);
-    }
-    else
-    {
-        auto ie = ctfeEmplaceExp!(IndexExp)(aa.loc, e1, e2);
-    }
-    ie.type = e1.type.nextOf();
-    emplaceExp!(AddrExp)(pue, aa.loc, ie);
-    pue.exp().type = ie.type.pointerTo();
-    return pue.exp();
+    return pointerToAAValue(pue, aa, aalit, idx);
 }
 
 // signature is ref V* _aaGetY(ref V[K] aa, K key, out bool found)
@@ -7277,22 +7075,17 @@ private Expression interpret_aaGetY(UnionExp* pue, InterState* istate, Expressio
         idx = aalit.values.length;
         aalit.values.push(result);
     }
+    return pointerToAAValue(pue, aa, aalit, idx);
+}
 
-    version(all)
-    {
-        // return "ref" to value
+private Expression pointerToAAValue(UnionExp* pue, Expression aa, AssocArrayLiteralExp aalit, size_t idx)
+{
     auto arr = ctfeEmplaceExp!(ArrayLiteralExp)(aa.loc, aa.type.nextOf().arrayOf(), aalit.values);
     arr.ownedByCtfe = aalit.ownedByCtfe;
     arr.aaLiteral = aalit;
     auto len = ctfeEmplaceExp!(IntegerExp)(aa.loc, idx, Type.tsize_t);
     auto idxexp = ctfeEmplaceExp!(IndexExp)(aa.loc, arr, len);
     idxexp.type = arr.type.nextOf();
-}
-    else
-    {
-        auto idxexp = ctfeEmplaceExp!(IndexExp)(aa.loc, aalit, ekey);
-        idxexp.type = eaa.type.nextOf();
-    }
     emplaceExp!(AddrExp)(pue, aa.loc, idxexp);
     pue.exp().type = idxexp.type.pointerTo();
     return pue.exp();
