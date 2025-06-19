@@ -585,7 +585,7 @@ extern (D) alias dg_t = int delegate(void*);
 extern (D) alias dg2_t = int delegate(void*, void*);
 
 /// foreach opApply over all values
-extern (C) int _aaApply(AA aa, const size_t keysz, dg_t dg)
+extern (C) int _obsolete_aaApply(AA aa, const size_t keysz, dg_t dg)
 {
     if (aa.empty)
         return 0;
@@ -602,7 +602,7 @@ extern (C) int _aaApply(AA aa, const size_t keysz, dg_t dg)
 }
 
 /// foreach opApply over all key/value pairs
-extern (C) int _aaApply2(AA aa, const size_t keysz, dg2_t dg)
+extern (C) int _obsolete_aaApply2(AA aa, const size_t keysz, dg2_t dg)
 {
     if (aa.empty)
         return 0;

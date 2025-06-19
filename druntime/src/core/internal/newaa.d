@@ -521,7 +521,7 @@ auto _aaGetRvalueX(K, V, K2)(shared const(V[K]) aa, auto ref scope K2 key)
 auto _aaGetRvalueX(K, V, K2)(immutable(V[K]) aa, auto ref scope K2 key)
 {
     // resolve ambiguity for immutable converting to const and shared const
-    return _d_aaIn(cast(V[K]) aa, key);
+    return _d_aaIn((() @trusted => cast(V[K]) aa) (), key);
 }
 
 /***********************************
@@ -667,15 +667,12 @@ auto _aaKeys(K, V)(inout V[K] a)
     return res;
 }
 
-// opApply callbacks are extern(D)
-extern (D) alias dg_t(V) = int delegate(V*);
-extern (D) alias dg2_t(K, V) = int delegate(K*, V*);
-
 /// foreach opApply over all values
 /// Note:
 ///  emulated by the compiler during CTFE
-int _aaApply(K, V)(AA!(K, V) aa, dg_t!V dg)
+int _aaApply(K, V, DG)(inout V[K] a, DG dg)
 {
+    auto aa = () @trusted { return cast(AA!(K, V))_toAA!(K, V)(a); }();
     if (aa.empty)
         return 0;
 
@@ -683,17 +680,33 @@ int _aaApply(K, V)(AA!(K, V) aa, dg_t!V dg)
     {
         if (!b.filled)
             continue;
-        if (auto res = dg(&b.entry.value))
+        if (auto res = dg(b.entry.value))
             return res;
     }
     return 0;
 }
 
+int _aaApply(K, V, DG)(shared V[K] a, DG dg)
+{
+    return _aaApply!(K, V, DG)(cast(V[K]) a, dg);
+}
+
+int _aaApply(K, V, DG)(shared const V[K] a, DG dg)
+{
+    return _aaApply!(K, V, DG)(cast(const V[K]) a, dg);
+}
+
+int _aaApply(K, V, DG)(immutable V[K] a, DG dg)
+{
+    return _aaApply!(K, V, DG)(cast(const V[K]) a, dg);
+}
+
 /// foreach opApply over all key/value pairs
 /// Note:
 ///  emulated by the compiler during CTFE
-int _aaApply2(K, V)(AA!(K, V) aa, dg2_t!(K, V) dg)
+int _aaApply2(K, V, DG)(inout V[K] a, DG dg)
 {
+    auto aa = () @trusted { return cast(AA!(K, V))_toAA!(K, V)(a); }();
     if (aa.empty)
         return 0;
 
@@ -701,10 +714,25 @@ int _aaApply2(K, V)(AA!(K, V) aa, dg2_t!(K, V) dg)
     {
         if (!b.filled)
             continue;
-        if (auto res = dg(&b.entry.key, &b.entry.value))
+        if (auto res = dg(b.entry.key, b.entry.value))
             return res;
     }
     return 0;
+}
+
+int _aaApply2(K, V, DG)(shared V[K] a, DG dg)
+{
+    return _aaApply2!(K, V, DG)(cast(V[K]) a, dg);
+}
+
+int _aaApply2(K, V, DG)(shared const V[K] a, DG dg)
+{
+    return _aaApply2!(K, V, DG)(cast(const V[K]) a, dg);
+}
+
+int _aaApply2(K, V, DG)(immutable V[K] a, DG dg)
+{
+    return _aaApply2!(K, V, DG)(cast(const V[K]) a, dg);
 }
 
 /** Construct an associative array of type ti from corresponding keys and values.

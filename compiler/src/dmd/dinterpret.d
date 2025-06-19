@@ -7633,15 +7633,15 @@ private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, Loc loc,
                 {
                     if (id == Id._aaGetRvalueX)
                         return interpret_aaGetRvalueX(pue, istate, firstarg, (*arguments)[1]);
+                    if (id == Id._aaApply)
+                        return interpret_aaApply(pue, istate, firstarg, (*arguments)[1]);
+                    if (id == Id._aaApply2)
+                        return interpret_aaApply(pue, istate, firstarg, (*arguments)[1]);
                 }
                 else // (nargs == 3)
                 {
                     if (id == Id._aaGetY)
                         return interpret_aaGetY(pue, istate, firstarg, (*arguments)[1], (*arguments)[2]);
-                    if (id == Id._aaApply)
-                        return interpret_aaApply(pue, istate, firstarg, (*arguments)[2]);
-                    if (id == Id._aaApply2)
-                        return interpret_aaApply(pue, istate, firstarg, (*arguments)[2]);
                 }
             }
         }
