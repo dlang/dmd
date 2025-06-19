@@ -2651,6 +2651,7 @@ public:
     bool onstack;
     Expression* basis;
     Array<Expression* >* elements;
+    AssocArrayLiteralExp* aaLiteral;
     static ArrayLiteralExp* create(Loc loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
     bool equals(const RootObject* const o) const override;
@@ -5577,7 +5578,7 @@ private:
         char complexexp[64LLU];
         char symoffexp[56LLU];
         char stringexp[44LLU];
-        char arrayliteralexp[40LLU];
+        char arrayliteralexp[48LLU];
         char assocarrayliteralexp[56LLU];
         char structliteralexp[64LLU];
         char compoundliteralexp[32LLU];

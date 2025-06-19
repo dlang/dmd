@@ -407,6 +407,7 @@ public:
     d_bool onstack;
     Expression *basis;
     Expressions *elements;
+    AssocArrayLiteralExp* aaLiteral; // set if this is an array of keys/values of an AA literal
 
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     ArrayLiteralExp *syntaxCopy() override;

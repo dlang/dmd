@@ -1906,6 +1906,10 @@ extern (C++) final class ArrayLiteralExp : Expression
 
     Expressions* elements;
 
+    // aaLiteral is set if this is an array of values of an AA literal
+    // only used during CTFE to show the original AA in error messages instead
+    AssocArrayLiteralExp aaLiteral;
+
     extern (D) this(Loc loc, Type type, Expressions* elements) @safe
     {
         super(loc, EXP.arrayLiteral);

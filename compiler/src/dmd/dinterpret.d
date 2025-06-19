@@ -3421,7 +3421,7 @@ public:
         Expression oldval = null;
         if (e1.op == EXP.index && e1.isIndexExp().e1.type.toBasetype().ty == Taarray)
         {
-//            assert(false);
+            assert(false);
             // ---------------------------------------
             //      Deal with AA index assignment
             // ---------------------------------------
@@ -3926,10 +3926,7 @@ public:
             ArrayLiteralExp existingAE = aggregate.isArrayLiteralExp();
             if (existingAE.ownedByCtfe != OwnedBy.ctfe)
             {
-                Expression literal = existingAE;
-                if (ie.loweredFrom)
-                    if (auto aae = ie.loweredFrom.isAssocArrayLiteralExp ())
-                        literal = aae;
+                Expression literal = existingAE.aaLiteral ? existingAE.aaLiteral : existingAE;
                 error(e.loc, "cannot modify read-only constant `%s`", literal.toChars());
                 return CTFEExp.cantexp;
             }
@@ -5409,7 +5406,7 @@ public:
 
         if (e.e1.type.toBasetype().ty == Taarray)
         {
-//            assert(false);
+            assert(false);
 
             Expression e1 = interpretRegion(e.e1, istate);
             if (exceptionOrCant(e1))
@@ -7211,7 +7208,7 @@ private Expression interpret_aaGetRvalueX(UnionExp* pue, InterState* istate, Exp
     if (exceptionOrCantInterpret(e2))
         return e2;
 
-    version(none)
+    version(all)
     {
     auto aalit = e1.isAssocArrayLiteralExp();
     if (!aalit)
@@ -7230,15 +7227,15 @@ private Expression interpret_aaGetRvalueX(UnionExp* pue, InterState* istate, Exp
     // return "ref" to value
     auto arr = ctfeEmplaceExp!(ArrayLiteralExp)(aa.loc, aa.type.nextOf().arrayOf(), aalit.values);
     arr.ownedByCtfe = aalit.ownedByCtfe;
+    arr.aaLiteral = aalit;
     auto len = ctfeEmplaceExp!(IntegerExp)(aa.loc, idx, Type.tsize_t);
     auto ie = ctfeEmplaceExp!(IndexExp)(aa.loc, arr, len);
-    ie.loweredFrom = aalit;
     }
     else
     {
         auto ie = ctfeEmplaceExp!(IndexExp)(aa.loc, e1, e2);
-        ie.type = e1.type.nextOf();
     }
+    ie.type = e1.type.nextOf();
     emplaceExp!(AddrExp)(pue, aa.loc, ie);
     pue.exp().type = ie.type.pointerTo();
     return pue.exp();
@@ -7286,10 +7283,10 @@ private Expression interpret_aaGetY(UnionExp* pue, InterState* istate, Expressio
         // return "ref" to value
     auto arr = ctfeEmplaceExp!(ArrayLiteralExp)(aa.loc, aa.type.nextOf().arrayOf(), aalit.values);
     arr.ownedByCtfe = aalit.ownedByCtfe;
+    arr.aaLiteral = aalit;
     auto len = ctfeEmplaceExp!(IntegerExp)(aa.loc, idx, Type.tsize_t);
     auto idxexp = ctfeEmplaceExp!(IndexExp)(aa.loc, arr, len);
     idxexp.type = arr.type.nextOf();
-    idxexp.loweredFrom = aalit;
 }
     else
     {

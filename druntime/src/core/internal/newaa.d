@@ -494,7 +494,7 @@ V* _aaGetX(K, V, K2)(auto ref scope V[K] a, auto ref K2 key, out bool found)
  * Called only from implementation of (aa[key]) expressions when value is not mutable.
  * Params:
  *      aa = associative array
- *      pkey = pointer to the key value
+ *      key = key value
  * Returns:
  *      pointer to value if present, null otherwise
  */
@@ -559,7 +559,7 @@ auto _aaDup(T : V[K], K, V)(T a)
  * Lookup key in aa.
  * Called only from implementation of (key in aa) expressions.
  * Params:
- *      aa = associative array opaque pointer
+ *      a = associative array opaque pointer
  *      key = reference to the key value
  * Returns:
  *      pointer to value if present, null otherwise
