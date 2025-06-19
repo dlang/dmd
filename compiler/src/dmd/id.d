@@ -261,6 +261,10 @@ immutable Msgtable[] msgtable =
     // For internal functions
     { "_aaGetY" },
     { "_aaGetRvalueX" },
+    { "_d_aaDel" },
+    { "_d_aaEqual" },
+    { "_d_aaIn" },
+    { "_d_aaNew" },
     { "aaLen", "_aaLen" },
     { "aaKeys", "_aaKeys" },
     { "aaValues", "_aaValues" },

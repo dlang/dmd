@@ -733,7 +733,7 @@ public:
                 if (auto ce = lowering.isCallExp())
                     if (ce.f.ident == Id._d_newarrayT ||
                         ce.f.ident == Id._d_newarraymTX ||
-                        ce.f.ident == Identifier.idPool("_d_aaNew"))
+                        ce.f.ident == Id._d_aaNew)
                     {
                         ne.lowering = doInlineAs!Expression(lowering, ids);
                         goto LhasLowering;

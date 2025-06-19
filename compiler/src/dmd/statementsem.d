@@ -3892,7 +3892,6 @@ private extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
 private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, Type tab)
 {
     auto taa = tab.isTypeAArray();
-    Expression ec;
     const dim = fs.parameters.length;
     // Check types
     Parameter p = (*fs.parameters)[0];

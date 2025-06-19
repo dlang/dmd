@@ -8942,6 +8942,10 @@ struct Id final
     static Identifier* FpopBack;
     static Identifier* _aaGetY;
     static Identifier* _aaGetRvalueX;
+    static Identifier* _d_aaDel;
+    static Identifier* _d_aaEqual;
+    static Identifier* _d_aaIn;
+    static Identifier* _d_aaNew;
     static Identifier* aaLen;
     static Identifier* aaKeys;
     static Identifier* aaValues;

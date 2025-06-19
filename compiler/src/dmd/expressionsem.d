@@ -4880,7 +4880,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!global.params.useGC || !sc.needsCodegen())
             return;
 
-        Identifier hook = Identifier.idPool("_d_aaNew");
+        Identifier hook = Id._d_aaNew;
         if (!verifyHookExist(ne.loc, *sc, hook, "new AA"))
             return;
 
@@ -13180,7 +13180,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!global.params.useGC || !sc.needsCodegen() || ie.lowering)
             return;
 
-        Identifier hook = Identifier.idPool("_d_aaIn");
+        Identifier hook = Id._d_aaIn;
         if (!verifyHookExist(ie.loc, *sc, hook, "key in AA"))
             return;
 
@@ -13209,7 +13209,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!global.params.useGC || !sc.needsCodegen() || re.lowering)
             return;
 
-        Identifier hook = Identifier.idPool("_d_aaDel");
+        Identifier hook = Id._d_aaDel;
         if (!verifyHookExist(re.loc, *sc, hook, "remove key in AA"))
             return;
 
@@ -13304,7 +13304,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!global.params.useGC || !sc.needsCodegen() || ee.lowering)
             return;
 
-        Identifier hook = Identifier.idPool("_d_aaEqual");
+        Identifier hook = Id._d_aaEqual;
         if (!verifyHookExist(ee.loc, *sc, hook, "compare AAs"))
             return;
 
