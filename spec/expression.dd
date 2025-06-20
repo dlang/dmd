@@ -3269,9 +3269,16 @@ static assert(!is(immutable int == const));
         )
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
+Object o;
+static assert(!is(o == class)); // `o` is not a type
 static assert(is(Object == class));
 static assert(is(ModuleInfo == struct));
 static assert(!is(int == class));
+
+void f();
+static assert(!is(f == function)); // `f` is not a type
+static assert(is(typeof(f) == function));
+static assert(!is(typeof(&f) == function)); // function pointer is not a function
 ---
 )
         $(P The `module` and `package` forms are satisfied when *Type* is a symbol, not a *type*,
