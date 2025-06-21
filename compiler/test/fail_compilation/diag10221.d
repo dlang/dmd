@@ -1,7 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag10221.d(10): Error: cannot implicitly convert expression `256` of type `int` to `ubyte`
+fail_compilation/diag10221.d(11): Error: implicit conversion from `int` (32 bytes) to `ubyte` (8 bytes) may truncate value
+fail_compilation/diag10221.d(11):        Use an explicit cast (e.g., `cast(ubyte)expr`) to silence this.
 ---
 */
 

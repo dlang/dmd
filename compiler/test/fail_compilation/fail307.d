@@ -1,7 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail307.d(11): Error: cannot implicitly convert expression `cast(int)(cast(double)cast(int)b + 6.1)` of type `int` to `short`
+fail_compilation/fail307.d(12): Error: implicit conversion from `int` (32 bytes) to `short` (16 bytes) may truncate value
+fail_compilation/fail307.d(12):        Use an explicit cast (e.g., `cast(short)expr`) to silence this.
 ---
 */
 
