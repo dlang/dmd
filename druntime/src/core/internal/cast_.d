@@ -1,7 +1,5 @@
 module core.internal.cast_;
 
-debug(cast_) import core.stdc.stdio : printf;
-
 // Needed because ClassInfo.opEquals(Object) does a dynamic cast,
 // but we are trying to implement dynamic cast.
 bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) pure nothrow @safe @nogc
@@ -23,26 +21,22 @@ bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) pure n
 
 
 /*****
- * Dynamic cast from a class object `o` to class or interface `To`, where `To` is a subtype of `From`.
+ * Dynamic cast from a class object `o` to class or interface `To`, where `To` is a subtype of `o`.
  * Params:
  *      o = instance of class
- *      To = class or interface that is a subtype of `From`
+ *      To = class or interface that is a subtype of `o`
  * Returns:
- *      null if o is null or `To` is not a subclass of `From`. Otherwise, return o.
+ *      null if `o` is null or `To` is not a subclass type of `o`. Otherwise, return `o`.
  */
-private void* _d_dynamic_cast(To, From)(From o) @trusted
+private void* _d_dynamic_cast(To)(const return scope Object o) @trusted
 {
-    debug(cast_) printf("_d_dynamic_cast(o = %p, c = '%.*s')\n", o, cast(int) c.name.length, c.name.ptr);
-
     void* res = null;
     size_t offset = 0;
 
     if (o && _d_isbaseof2!To(typeid(o), offset))
     {
-        debug(cast_) printf("\toffset = %zd\n", offset);
         res = cast(void*) o + offset;
     }
-    debug(cast_) printf("\tresult = %p\n", res);
     return res;
 }
 
@@ -50,17 +44,61 @@ private void* _d_dynamic_cast(To, From)(From o) @trusted
  * Dynamic cast `o` to final class `To` only one level down
  * Params:
  *      o = object that is instance of a class
- *      To = final class that is a subclass of `From`
+ *      To = final class that is a subclass type of `o`
  * Returns:
  *      o if it succeeds, null if it fails
  */
-private void* _d_paint_cast(To, From)(From o)
+private void* _d_paint_cast(To)(const return scope Object o)
 {
     /* If o is really an instance of c, just do a paint
      */
     auto p = o && cast(void*)(areClassInfosEqual(typeid(o), typeid(To).info)) ? o : null;
     debug assert(cast(void*)p is cast(void*)_d_dynamic_cast!To(o));
     return cast(void*)p;
+}
+
+private void* _d_class_cast_impl(const return scope Object o, const ClassInfo c) pure nothrow @safe @nogc
+{
+    if (!o)
+        return null;
+
+    ClassInfo oc = typeid(o);
+    int delta = oc.depth;
+
+    if (delta && c.depth)
+    {
+        delta -= c.depth;
+        if (delta < 0)
+            return null;
+
+        while (delta--)
+            oc = oc.base;
+        if (areClassInfosEqual(oc, c))
+            return cast(void*)o;
+        return null;
+    }
+
+    // no depth data - support the old way
+    do
+    {
+        if (areClassInfosEqual(oc, c))
+            return cast(void*)o;
+        oc = oc.base;
+    } while (oc);
+    return null;
+}
+
+/*****
+ * Dynamic cast from a class object o to class type `To`, where `To` is a subclass type of `o`.
+ * Params:
+ *      o = instance of class
+ *      To = a subclass type of o
+ * Returns:
+ *      null if `o` is null or `To` is not a subclass type of `o`. Otherwise, return `o`.
+ */
+private void* _d_class_cast(To)(const return scope Object o)
+{
+    return _d_class_cast_impl(o, typeid(To));
 }
 
 /**
@@ -93,6 +131,18 @@ void* _d_cast(To, From)(From o) @trusted
                        ToSupers.length == 1 && FromSupers.length <= 1)
             {
                 return _d_paint_cast!To(o);
+            }
+        }
+
+        static if (is (To : From))
+        {
+            static if (is (To == From))
+            {
+                return cast(void*)o;
+            }
+            else
+            {
+                return _d_class_cast!To(o);
             }
         }
 
@@ -143,8 +193,6 @@ private bool _d_isbaseof2(To)(scope ClassInfo oc, scope ref size_t offset)
     assert(_d_cast!I(ac) !is null); // A(c) to I
     assert(_d_dynamic_cast!I(ac) !is null);
 
-    assert(_d_cast!C(ac) is null); // A(c) to C
-
     A ab = new B();
     assert(_d_cast!I(ab) is null); // A(b) to I
     assert(_d_dynamic_cast!I(ab) is null);
@@ -157,29 +205,11 @@ private bool _d_isbaseof2(To)(scope ClassInfo oc, scope ref size_t offset)
     class C : B {}
     final class D : C {}
 
-    A ab = new B();
-    assert(_d_cast!B(ab) is null); // A(b) to B
-
-    A ad = new D();
-    assert(_d_cast!D(ad) is null); // A(d) to D
-
     C cd = new D();
     assert(_d_cast!D(cd) !is null); // C(d) to D
     assert(_d_paint_cast!D(cd) !is null);
 
-    interface I {}
-    class E : I {}
-    final class F : E {}
-
-    E ef = new F();
-    assert(_d_cast!F(ef) is null); // E(f) to F
-
     class G {}
-    final class H : G, I {}
-
-    G gh = new H();
-    assert(_d_cast!H(gh) is null); // G(h) to H
-
     final class J {}
     A a = new A();
     assert(_d_cast!G(a) is null); // A(a) to G
@@ -187,4 +217,27 @@ private bool _d_isbaseof2(To)(scope ClassInfo oc, scope ref size_t offset)
 
     assert(_d_cast!J(a) is null); // A(a) to J
     assert(_d_paint_cast!J(a) is null);
+}
+
+@safe pure unittest
+{
+    class A {}
+    class B : A {}
+    class C : B {}
+    class D {}
+
+    A ac = new C();
+    assert(_d_cast!C(ac) !is null); // A(c) to C
+    assert(_d_class_cast!C(ac) !is null);
+
+    assert(_d_cast!B(ac) !is null); // A(c) to B
+    assert(_d_class_cast!B(ac) !is null);
+
+    A ab = new B();
+    assert(_d_cast!C(ab) is null); // A(b) to C
+    assert(_d_class_cast!C(ab) is null);
+
+    A a = new A();
+    assert(_d_cast!D(a) is null); // A(a) to D
+    assert(_d_class_cast!D(a) is null);
 }

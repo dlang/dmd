@@ -9322,14 +9322,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // If the cast is from an alias this, we need to unalias it
-        if (auto t1b_unalias = t1b.aliasthisOf())
+        if (t1b.ty == Tstruct)
         {
-            t1b = t1b_unalias;
+            if (auto t1b_unalias = t1b.aliasthisOf())
+            {
+                t1b = t1b_unalias;
+            }
         }
 
         if (t1b.ty == Tclass && tob.ty == Tclass)
         {
             CastExp cex = ex.isCastExp();
+
+            if (cex is null)
+                goto LskipCastLowering;
+
             ClassDeclaration cdfrom = t1b.isClassHandle();
             ClassDeclaration cdto   = tob.isClassHandle();
 
@@ -9337,13 +9344,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!(cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
                     && cdfrom.classKind != ClassKind.cpp)
             {
-
-                if ((!cdfrom.isInterfaceDeclaration() &&
-                    cdto.storage_class & STC.final_ &&
-                    cdto.baseClass == cdfrom &&
-                    (!cdto.interfaces || cdto.interfaces.length == 0) &&
-                    (!cdfrom.interfaces || cdfrom.interfaces.length == 0)) ||
-                    (!cdfrom.isInterfaceDeclaration() && cdto.isInterfaceDeclaration()))
+                if (!cdfrom.isInterfaceDeclaration())
                 {
 
                     Identifier hook = Id._d_cast;
@@ -9362,7 +9363,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     lowering = new DotTemplateInstanceExp(cex.loc, lowering, hook, tiargs);
 
                     auto arguments = new Expressions();
-                    // Unqualify the type being casted from to allow implicit conversion to Object
+                    // Unqualify the type being casted from to avoid multiple instantiations
                     auto unqual_t1b = t1b.unqualify(MODFlags.wild | MODFlags.const_ |
                         MODFlags.immutable_ | MODFlags.shared_);
                     cex.e1.type = unqual_t1b;
