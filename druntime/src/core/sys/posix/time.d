@@ -200,8 +200,21 @@ version (linux)
 {
     struct timespec
     {
+        version (CRuntime_Musl) {
+            this(time_t tv_sec_, c_long tv_nsec_) @safe pure nothrow
+            {
+                tv_sec = tv_sec_;
+                tv_nsec = tv_nsec_;
+            }
+        }
         time_t  tv_sec;
+        version (CRuntime_Musl)
+            version (BigEndian)
+                byte[time_t.sizeof - c_long.sizeof] __pad1;
         c_long  tv_nsec;
+        version (CRuntime_Musl)
+            version (LittleEndian)
+                byte[time_t.sizeof - c_long.sizeof] __pad2;
     }
 }
 else version (Darwin)
@@ -461,6 +474,8 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
+    static assert(timespec.sizeof == 16);
+
     alias int clockid_t;
     alias void* timer_t;
 
