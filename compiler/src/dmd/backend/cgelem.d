@@ -5445,7 +5445,8 @@ elem* elmsw(elem* e, Goal goal)
             e = evalu8(e, goal);
         }
     }
-    else if (OPTIMIZER && I64 &&
+    else if ((OPTIMIZER || config.target_cpu == TARGET_AArch64) &&
+        I64 &&
         tysize(e1.Ety) == CENTSIZE &&
         tysize(ty) == LLONGSIZE)
     {
