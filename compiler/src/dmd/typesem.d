@@ -5013,6 +5013,23 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 /* Rewrite e.ident as:
                  *  e.opDispatch!("ident")
                  */
+
+                if (OverloadSet os = fd.isOverloadSet())
+                {
+                    //??? resolve the correct one
+                    auto tiargs = new Objects();
+                    auto se = new StringExp(e.loc, ident.toString());
+                    tiargs.push(se);
+                    auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
+                    if (!findTempDecl(dti, sc))
+                    {
+                        .error(fd.loc, "Couldn't find template declaration for opDispatch");
+                        return returnExp(ErrorExp.get());
+                    }
+                    return returnExp(dti);
+
+                }
+
                 TemplateDeclaration td = fd.isTemplateDeclaration();
                 if (!td)
                 {
