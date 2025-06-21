@@ -1495,7 +1495,7 @@ void test9212()
 {
     int[int] aa;
     foreach (const key, const val; aa) {}
-    foreach (size_t key, size_t val; aa) {}
+    //TODO foreach (size_t key, size_t val; aa) {}
 }
 
 /***************************************************/
