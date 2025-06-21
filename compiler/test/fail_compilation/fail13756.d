@@ -22,6 +22,6 @@ void maiin()
     foreach (key, ref dchar val; aa) {}
 
     // following not supported yet
-    foreach (size_t key, val; aa) {}
-    foreach (key, size_t val; aa) {}
+    foreach (ulong key, val; aa) {}
+    foreach (key, ulong val; aa) {}
 }
