@@ -1747,7 +1747,12 @@ class Lexer
                 p--;
                 return TOK.hexadecimalString;
             case '"':
-                if (n & 1)
+                if (!n)
+                {
+                    error("empty hex string", n);
+                    stringbuffer.writeByte(v);
+                }
+                else if (n & 1)
                 {
                     error("odd number (%d) of hex characters in hex string", n);
                     stringbuffer.writeByte(v);
