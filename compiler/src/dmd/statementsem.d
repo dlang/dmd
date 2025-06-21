@@ -3901,7 +3901,9 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     if (dim == 2)
     {
         Type ti = (isRef ? taa.index.addMod(MODFlags.const_) : taa.index);
-        if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
+        // TODO don't require sizes to match
+        // See https://github.com/dlang/dmd/issues/21456#issuecomment-2981509259
+        if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta) || ti.size != ta.size)
         {
             error(fs.loc, "`foreach`: index must be type `%s`, not `%s`",
                      ti.toChars(), ta.toChars());
@@ -3912,7 +3914,8 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
         ta = p.type;
     }
     Type taav = taa.nextOf();
-    if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta))
+    // TODO don't require sizes to match
+    if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta) || taav.size != ta.size)
     {
         error(fs.loc, "`foreach`: value must be type `%s`, not `%s`",
                  taav.toChars(), ta.toChars());
