@@ -3905,8 +3905,8 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
         // See https://github.com/dlang/dmd/issues/21456#issuecomment-2981509259
         if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta) || ti.size != ta.size)
         {
-            error(fs.loc, "`foreach`: index must be type `%s`, not `%s`",
-                     ti.toChars(), ta.toChars());
+            error(fs.loc, "`foreach`: index parameter `%s%s` must be type `%s`, not `%s`",
+                 isRef ? "ref ".ptr : "".ptr, p.toChars(), ti.toChars(), ta.toChars());
             return null;
         }
         p = (*fs.parameters)[1];
@@ -3917,8 +3917,8 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     // TODO don't require sizes to match
     if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta) || taav.size != ta.size)
     {
-        error(fs.loc, "`foreach`: value must be type `%s`, not `%s`",
-                 taav.toChars(), ta.toChars());
+        error(fs.loc, "`foreach`: value parameter `%s%s` must be type `%s`, not `%s`",
+            isRef ? "ref ".ptr : "".ptr, p.toChars(), taav.toChars(), ta.toChars());
         return null;
     }
 
