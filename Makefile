@@ -83,7 +83,7 @@ dmd: $(BUILD_EXE)
 
 dmd-test: dmd druntime $(BUILD_EXE) $(RUN_EXE)
 	$(BUILD_EXE) unittest
-	$(RUN_EXE) --environment
+	$(RUN_EXE) --environment $(TEST_ARGS)
 
 druntime: dmd
 	$(QUIET)$(MAKE) -C druntime

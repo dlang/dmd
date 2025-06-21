@@ -3892,7 +3892,6 @@ private extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
 private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, Type tab)
 {
     auto taa = tab.isTypeAArray();
-    Expression ec;
     const dim = fs.parameters.length;
     // Check types
     Parameter p = (*fs.parameters)[0];
@@ -3920,49 +3919,26 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     }
 
     /* Call:
-     *  extern(C) int _aaApply(void*, in size_t, int delegate(void*))
-     *      _aaApply(aggr, keysize, flde)
-     *
-     *  extern(C) int _aaApply2(void*, in size_t, int delegate(void*, void*))
-     *      _aaApply2(aggr, keysize, flde)
+     *   int _aaApply(V[K] aa, int delegate(V*))
+     * or
+     *   int _aaApply2(V[K] aa, int delegate(K*, V*))
      */
-    __gshared FuncDeclaration* fdapply = [null, null];
-    __gshared TypeDelegate* fldeTy = [null, null];
-    ubyte i = (dim == 2 ? 1 : 0);
-    if (!fdapply[i])
-    {
-        auto params = new Parameters();
-        params.push(new Parameter(Loc.initial, STC.none, Type.tvoid.pointerTo(), null, null, null));
-        params.push(new Parameter(Loc.initial, STC.const_, Type.tsize_t, null, null, null));
-        auto dgparams = new Parameters();
-        dgparams.push(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
-        if (dim == 2)
-            dgparams.push(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
-        fldeTy[i] = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
-        params.push(new Parameter(Loc.initial, STC.none, fldeTy[i], null, null, null));
-        fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, i ? Id._aaApply2 : Id._aaApply);
-    }
+    auto loc = fs.loc;
+    // rewrite `aa[key]` to `_aaGetRvalueX!(K,V)(aa, key)[0]`
+    Identifier hook = dim == 2 ? Id._aaApply2 : Id._aaApply;
+    Expression func = new IdentifierExp(loc, Id.empty);
+    func = new DotIdExp(loc, func, Id.object);
+    auto tiargs = new Objects();
+    tiargs.push(taa.index.substWildTo(MODFlags.const_));
+    tiargs.push(taav.substWildTo(MODFlags.const_));
+    tiargs.push(flde.type.substWildTo(MODFlags.const_));
+    func = new DotTemplateInstanceExp(loc, func, hook, tiargs);
 
-    auto exps = new Expressions();
-    exps.push(fs.aggr);
-    auto keysize = taa.index.size();
-    if (keysize == SIZE_INVALID)
-        return null;
-    assert(keysize < keysize.max - target.ptrsize);
-    keysize = (keysize + (target.ptrsize - 1)) & ~(target.ptrsize - 1);
-    // paint delegate argument to the type runtime expects
-    Expression fexp = flde;
-    if (!fldeTy[i].equals(flde.type))
-    {
-        fexp = new CastExp(fs.loc, flde, flde.type);
-        fexp.type = fldeTy[i];
-    }
-    exps.push(new IntegerExp(Loc.initial, keysize, Type.tsize_t));
-    exps.push(fexp);
-    ec = new VarExp(Loc.initial, fdapply[i], false);
-    ec = new CallExp(fs.loc, ec, exps);
-    ec.type = Type.tint32; // don't run semantic() on ec
-    return ec;
+    auto arguments = new Expressions();
+    arguments.push(fs.aggr);
+    arguments.push(flde);
+    auto call = new CallExp(loc, func, arguments);
+    return call;
 }
 
 private extern(D) Statement loopReturn(Expression e, Statements* cases, Loc loc)
@@ -4007,6 +3983,7 @@ private extern(D) Statement loopReturn(Expression e, Statements* cases, Loc loc)
  */
 private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFunction tfld)
 {
+    Type tab = fs.aggr.type.toBasetype();
     auto params = new Parameters();
     foreach (i, p; *fs.parameters)
     {
@@ -4015,6 +3992,8 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
 
         p.type = p.type.typeSemantic(fs.loc, sc);
         p.type = p.type.addStorageClass(p.storageClass);
+        p.type = p.type.substWildTo(MODFlags.const_);
+        auto ptype = p.type;
         if (tfld)
         {
             Parameter param = tfld.parameterList[i];
@@ -4049,8 +4028,10 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
             v.storage_class |= STC.temp | (stc & STC.scope_);
             Statement s = new ExpStatement(fs.loc, v);
             fs._body = new CompoundStatement(fs.loc, s, fs._body);
+            if (auto taa = tab.isTypeAArray())
+                ptype = (i == 1 || fs.parameters.length == 1 ? taa.nextOf() : taa.index).substWildTo(MODFlags.const_);
         }
-        params.push(new Parameter(fs.loc, stc, p.type, id, null, null));
+        params.push(new Parameter(fs.loc, stc, ptype, id, null, null));
     }
     // https://issues.dlang.org/show_bug.cgi?id=13840
     // Throwable nested function inside nothrow function is acceptable.

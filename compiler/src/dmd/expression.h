@@ -407,6 +407,7 @@ public:
     d_bool onstack;
     Expression *basis;
     Expressions *elements;
+    AssocArrayLiteralExp* aaLiteral; // set if this is an array of keys/values of an AA literal
 
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     ArrayLiteralExp *syntaxCopy() override;
@@ -425,6 +426,7 @@ public:
     Expressions *keys;
     Expressions *values;
     Expression* lowering;
+    Expression* loweringCtfe;
 
     bool equals(const RootObject * const o) const override;
     AssocArrayLiteralExp *syntaxCopy() override;
@@ -1002,6 +1004,7 @@ class IndexExp final : public BinExp
 {
 public:
     VarDeclaration *lengthVar;
+    Expression* loweredFrom;      // for associative array lowering to _aaGetY or _aaGetRvalueX
     d_bool modifiable;
     d_bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
@@ -1251,12 +1254,16 @@ public:
 class InExp final : public BinExp
 {
 public:
+    Expression* lowering;        // lowered druntime hook: `_d_aaIn(aa, key)`
+
     void accept(Visitor *v) override { v->visit(this); }
 };
 
 class RemoveExp final : public BinExp
 {
 public:
+    Expression* lowering;        // lowered druntime hook: `_d_aaDel(aa, key)`
+
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -1265,6 +1272,7 @@ public:
 class EqualExp final : public BinExp
 {
 public:
+    Expression* lowering;        // lowered druntime hook: `_d_aaEqual(aa1, aa2)`
     void accept(Visitor *v) override { v->visit(this); }
 };
 
