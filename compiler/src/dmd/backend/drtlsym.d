@@ -157,7 +157,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
 
         case RTLSYM.TRACECALLFINALIZER:     symbolz(ps,FL.func,FREGSAVED,"_d_callfinalizerTrace", 0, t); break;
         case RTLSYM.TRACECALLINTERFACEFINALIZER: symbolz(ps,FL.func,FREGSAVED,"_d_callinterfacefinalizerTrace", 0, t); break;
-        case RTLSYM.TRACEASSOCARRAYLITERALTX: symbolz(ps,FL.func,FREGSAVED,"_d_assocarrayliteralTXTrace", 0, t); break;
         case RTLSYM.TRACEARRAYAPPENDCD:     symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcdTrace", 0, t); break;
         case RTLSYM.TRACEARRAYAPPENDWD:     symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendwdTrace", 0, t); break;
         case RTLSYM.TRACEALLOCMEMORY:       symbolz(ps,FL.func,FREGSAVED,"_d_allocmemoryTrace", 0, t); break;
