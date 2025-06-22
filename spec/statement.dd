@@ -663,11 +663,12 @@ $(CONSOLE
 
 $(H3 $(LNAME2 foreach_over_associative_arrays, Foreach over Associative Arrays))
 
-        $(P If the aggregate expression is an associative array, there
+        $(P If the aggregate expression is an $(DDLINK spec/hash-map, Associative Arrays, associative array), there
         can be one or two variables declared. If one, then the variable
-        is said to be the $(I value) set to the elements of the array,
+        is said to be the $(I value), which is set to each value in the array,
         one by one. If the type of the
-        variable is provided, it must implicitly convert from the array element type.)
+        variable is provided, it must implicitly convert from the associative
+        array value type.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
@@ -684,10 +685,10 @@ assert(userAges == ["john":31, "sue":33]);
 
         $(P If there are
         two variables declared, the first is said to be the $(I index)
-        and the second is said to be the $(I value). The $(I index)
-        must be compatible with the indexing type of the associative
-        array. It cannot be `ref`,
-        and it is set to be the index of the array element.)
+        and the second is said to be the $(I value). The index variable type
+        (if given) must be implicitly convertible from the key type of the associative
+        array. The index variable is set to the key corresponding to each value
+        in the associative array.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
@@ -701,9 +702,16 @@ foreach (string s, double d; aa)
 --------------
 )
 
-        $(P The order in which the elements of the
+        $(IMPLEMENTATION_DEFINED The order in which the elements of the
         array are iterated over is unspecified for $(D foreach).
         This is why $(D foreach_reverse) for associative arrays is illegal.)
+
+        $(P If an index or value variable is declared as `ref`, then any type given
+        must match the associative array key or value type respectively, or
+        $(DDSUBLINK spec/const3, implicit_qualifier_conversions, `const`-convert)
+        from it. A `ref` index variable must be (inferred as) `const`, as keys must
+        not be mutated.)
+
 
 $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes with `opApply`))
 
