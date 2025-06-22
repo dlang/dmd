@@ -2525,6 +2525,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitNew(NewExp e)
     {
+        if (hgs.vcg_ast && e.lowering)
+        {
+            expToBuffer(e.lowering, PREC.primary, buf, hgs);
+            return;
+        }
         if (e.thisexp)
         {
             expToBuffer(e.thisexp, PREC.primary, buf, hgs);
@@ -2969,6 +2974,22 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         expToBuffer(e.e2, PREC.primary, buf, hgs);
     }
 
+    void visitCat(CatExp e)
+    {
+        if (hgs.vcg_ast && e.lowering)
+            expressionToBuffer(e.lowering, buf, hgs);
+        else
+            visitBin(e);
+    }
+
+    void visitCatAssign(CatAssignExp e)
+    {
+        if (hgs.vcg_ast && e.lowering)
+            expressionToBuffer(e.lowering, buf, hgs);
+        else
+            visitBin(e);
+    }
+
     void visitIndex(IndexExp e)
     {
         expToBuffer(e.e1, PREC.primary, buf, hgs);
@@ -3090,6 +3111,10 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.array:         return visitArray(e.isArrayExp());
         case EXP.dot:           return visitDot(e.isDotExp());
         case EXP.index:         return visitIndex(e.isIndexExp());
+        case EXP.concatenate:   return visitCat(e.isCatExp());
+        case EXP.concatenateAssign:     return visitCatAssign(e.isCatAssignExp());
+        case EXP.concatenateElemAssign: return visitCatAssign(e.isCatElemAssignExp());
+        case EXP.concatenateDcharAssign:        return visitCatAssign(e.isCatDcharAssignExp());
         case EXP.minusMinus:
         case EXP.plusPlus:      return visitPost(e.isPostExp());
         case EXP.preMinusMinus:
