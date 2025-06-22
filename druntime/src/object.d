@@ -1301,12 +1301,12 @@ class TypeInfo_AssociativeArray : TypeInfo
 
     override bool equals(in void* p1, in void* p2) @trusted const
     {
-        return !!_aaEqual(this, *cast(const AA*) p1, *cast(const AA*) p2);
+        return xopEquals(p1, p2);
     }
 
     override hash_t getHash(scope const void* p) nothrow @trusted const
     {
-        return _aaGetHash(cast(AA*)p, this);
+        return xtoHash(p);
     }
 
     // BUG: need to add the rest of the functions
@@ -1325,15 +1325,18 @@ class TypeInfo_AssociativeArray : TypeInfo
     override @property uint flags() nothrow pure const { return 1; }
 
     // TypeInfo entry is generated from the type of this template to help rt/aaA.d
-    static struct Entry(K, V)
-    {
-        K key;
-        V value;
-    }
+    private static import core.internal.newaa;
+    alias Entry(K, V) = core.internal.newaa.Entry!(K, V);
 
     TypeInfo value;
     TypeInfo key;
     TypeInfo entry;
+
+    bool function(scope const void* p1, scope const void* p2) nothrow @safe xopEquals;
+    hash_t function(scope const void*) nothrow @safe xtoHash;
+
+    alias aaOpEqual(K, V) = core.internal.newaa._aaOpEqual!(K, V);
+    alias aaGetHash(K, V) = core.internal.newaa._aaGetHash!(K, V);
 
     override @property size_t talign() nothrow pure const
     {

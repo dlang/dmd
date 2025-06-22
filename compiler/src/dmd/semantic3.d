@@ -1628,6 +1628,56 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sd.semanticTypeInfoMembers();
         ad.semanticRun = PASS.semantic3done;
     }
+
+    override void visit(TypeInfoAssociativeArrayDeclaration ti)
+    {
+        auto t = ti.tinfo.isTypeAArray();
+        Loc loc = t.loc;
+        auto sc2 = sc ? sc : ti._scope;
+
+        auto makeDotExp(Identifier hook)
+        {
+            auto tiargs = new Objects();
+            tiargs.push(t.index); // always called with naked types
+            tiargs.push(t.next);
+
+            Expression id = new IdentifierExp(loc, Id.empty);
+            id = new DotIdExp(loc, id, Id.object);
+            id = new DotIdExp(loc, id, Id.TypeInfo_AssociativeArray);
+            return new DotTemplateInstanceExp(loc, id, hook, tiargs);
+        }
+
+        // generate ti.entry
+        auto tempinst = makeDotExp(Id.Entry);
+        auto e = expressionSemantic(tempinst, sc2);
+        assert(e.type);
+        ti.entry = e.type;
+        if (auto ts = ti.entry.isTypeStruct())
+        {
+            ts.sym.requestTypeInfo = true;
+            if (auto tmpl = ts.sym.isInstantiated())
+                tmpl.minst = sc2._module.importedFrom; // ensure it get's emitted
+        }
+        semanticTypeInfo(sc2, ti.entry); // might get deferred
+
+        // generate ti.xtoHash
+        auto hashinst = makeDotExp(Identifier.idPool("aaGetHash"));
+        e = expressionSemantic(hashinst, sc2);
+        assert(e.isVarExp() && e.type.isTypeFunction());
+        ti.xtoHash = e.isVarExp().var;
+        if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
+            tmpl.minst = sc2._module.importedFrom; // ensure it get's emitted
+
+        // generate ti.xopEqual
+        auto equalinst = makeDotExp(Identifier.idPool("aaOpEqual"));
+        e = expressionSemantic(equalinst, sc2);
+        assert(e.isVarExp() && e.type.isTypeFunction());
+        ti.xopEqual = e.isVarExp().var;
+        if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
+            tmpl.minst = sc2._module.importedFrom; // ensure it get's emitted
+
+        visit(cast(ASTCodegen.TypeInfoDeclaration)ti);
+    }
 }
 
 /// Helper for semantic3 analysis of functions.
