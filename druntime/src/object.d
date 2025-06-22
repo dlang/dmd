@@ -2955,54 +2955,21 @@ class Error : Throwable
     }
 }
 
-extern (C)
+public import core.internal.newaa : _d_aaIn, _d_aaDel, _d_aaNew, _d_aaEqual, _d_assocarrayliteralTX;
+public import core.internal.newaa : _aaLen, _aaGetY, _aaGetRvalueX, _aaApply, _aaApply2;
+// public import core.exception : onRangeError; // causes extra messages with -transition=fields
+extern (C) noreturn _d_arraybounds(string file, uint line) @trusted pure nothrow @nogc;
+
+private import core.internal.newaa;
+
+void* aaLiteral(Key, Value)(Key[] keys, Value[] values)
 {
-    // from druntime/src/rt/aaA.d
-
-    private struct AA { void* impl; }
-    // size_t _aaLen(in AA aa) pure nothrow @nogc;
-    private void* _aaGetY(scope AA* paa, const TypeInfo_AssociativeArray ti, const size_t valsz, const scope void* pkey) pure nothrow;
-    private void* _aaGetX(scope AA* paa, const TypeInfo_AssociativeArray ti, const size_t valsz, const scope void* pkey, out bool found) pure nothrow;
-    // inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valsz, in void* pkey);
-    inout(void[]) _aaValues(inout AA aa, const size_t keysz, const size_t valsz, const TypeInfo tiValueArray) pure nothrow;
-    inout(void[]) _aaKeys(inout AA aa, const size_t keysz, const TypeInfo tiKeyArray) pure nothrow;
-    void* _aaRehash(AA* paa, const scope TypeInfo keyti) pure nothrow;
-    void _aaClear(AA aa) pure nothrow;
-
-    // alias _dg_t = extern(D) int delegate(void*);
-    // int _aaApply(AA aa, size_t keysize, _dg_t dg);
-
-    // alias _dg2_t = extern(D) int delegate(void*, void*);
-    // int _aaApply2(AA aa, size_t keysize, _dg2_t dg);
-
-    private struct AARange { AA impl; size_t idx; }
-    AARange _aaRange(AA aa) pure nothrow @nogc @safe;
-    bool _aaRangeEmpty(AARange r) pure nothrow @nogc @safe;
-    void* _aaRangeFrontKey(AARange r) pure nothrow @nogc @safe;
-    void* _aaRangeFrontValue(AARange r) pure nothrow @nogc @safe;
-    void _aaRangePopFront(ref AARange r) pure nothrow @nogc @safe;
-
-    int _aaEqual(scope const TypeInfo tiRaw, scope const AA aa1, scope const AA aa2);
-    hash_t _aaGetHash(scope const AA* aa, scope const TypeInfo tiRaw) nothrow;
-
-    /*
-        _d_assocarrayliteralTX marked as pure, because aaLiteral can be called from pure code.
-        This is a typesystem hole, however this is existing hole.
-        Early compiler didn't check purity of toHash or postblit functions, if key is a UDT thus
-        copiler allowed to create AA literal with keys, which have impure unsafe toHash methods.
-    */
-    void* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, void[] values) pure;
-}
-
-void* aaLiteral(Key, Value)(Key[] keys, Value[] values) @trusted pure
-{
-    return _d_assocarrayliteralTX(typeid(Value[Key]), *cast(void[]*)&keys, *cast(void[]*)&values);
+    return _d_assocarrayliteralTX(keys, values);
 }
 
 // Lower an Associative Array to a newaa struct for static initialization.
 auto _aaAsStruct(K, V)(V[K] aa) @safe
 {
-    import core.internal.newaa : makeAA;
     assert(__ctfe);
     return makeAA!(K, V)(aa);
 }
@@ -3016,13 +2983,13 @@ alias AssociativeArray(Key, Value) = Value[Key];
  */
 void clear(Value, Key)(Value[Key] aa) @trusted
 {
-    _aaClear(*cast(AA *) &aa);
+    _aaClear(aa);
 }
 
 /** ditto */
 void clear(Value, Key)(Value[Key]* aa) @trusted
 {
-    _aaClear(*cast(AA *) aa);
+    (*aa).clear();
 }
 
 ///
@@ -3059,32 +3026,30 @@ void clear(Value, Key)(Value[Key]* aa) @trusted
  *      aa =     The associative array.
  * Returns:
  *      The rehashed associative array.
+ * Note:
+ *  emulated by the compiler during CTFE
  */
-T rehash(T : Value[Key], Value, Key)(T aa)
+Value[Key] rehash(Value, Key)(Value[Key] aa)
 {
-    _aaRehash(cast(AA*)&aa, typeid(Value[Key]));
-    return aa;
+    return _aaRehash(aa);
 }
 
 /** ditto */
-T rehash(T : Value[Key], Value, Key)(T* aa)
+Value[Key] rehash(T : Value[Key], Value, Key)(T* aa)
 {
-    _aaRehash(cast(AA*)aa, typeid(Value[Key]));
-    return *aa;
+    return (*aa).rehash(); // CTFE only intercepts the non-pointer overload
 }
 
 /** ditto */
-T rehash(T : shared Value[Key], Value, Key)(T aa)
+Value[Key] rehash(T : shared Value[Key], Value, Key)(auto ref T aa)
 {
-    _aaRehash(cast(AA*)&aa, typeid(Value[Key]));
-    return aa;
+    return (cast(Value[Key])aa).rehash();  // CTFE only intercepts the V[K] overload
 }
 
 /** ditto */
-T rehash(T : shared Value[Key], Value, Key)(T* aa)
+Value[Key] rehash(T : shared Value[Key], Value, Key)(T* aa)
 {
-    _aaRehash(cast(AA*)aa, typeid(Value[Key]));
-    return *aa;
+    return (cast(Value[Key])*aa).rehash(); // CTFE only intercepts the non-pointer overload
 }
 
 /***********************************
@@ -3092,46 +3057,20 @@ T rehash(T : shared Value[Key], Value, Key)(T* aa)
  * the associative array into it.
  * Params:
  *      aa =     The associative array.
+ * Note:
+ *  emulated by the compiler during CTFE
  */
-V[K] dup(T : V[K], K, V)(T aa)
+auto dup(T : V[K], K, V)(T aa)
 {
-    //pragma(msg, "K = ", K, ", V = ", V);
-
     // Bug10720 - check whether V is copyable
     static assert(is(typeof({ V v = aa[K.init]; })),
         "cannot call " ~ T.stringof ~ ".dup because " ~ V.stringof ~ " is not copyable");
 
-    V[K] result;
-
-    //foreach (k, ref v; aa)
-    //    result[k] = v;  // Bug13701 - won't work if V is not mutable
-
-    ref V duplicateElem(ref K k, ref const V v) @trusted pure nothrow
-    {
-        import core.stdc.string : memcpy;
-
-        void* pv = _aaGetY(cast(AA*)&result, typeid(V[K]), V.sizeof, &k);
-        memcpy(pv, &v, V.sizeof);
-        return *cast(V*)pv;
-    }
-
-    foreach (k, ref v; aa)
-    {
-        static if (!__traits(hasPostblit, V))
-            duplicateElem(k, v);
-        else static if (__traits(isStaticArray, V))
-            _doPostblit(duplicateElem(k, v)[]);
-        else static if (!is(typeof(v.__xpostblit())) && is(immutable V == immutable UV, UV))
-            (() @trusted => *cast(UV*) &duplicateElem(k, v))().__xpostblit();
-        else
-            duplicateElem(k, v).__xpostblit();
-    }
-
-    return result;
+    return _aaDup(aa);
 }
 
 /** ditto */
-V[K] dup(T : V[K], K, V)(T* aa)
+auto dup(T : V[K], K, V)(T* aa)
 {
     return (*aa).dup;
 }
@@ -3146,14 +3085,14 @@ V[K] dup(T : V[K], K, V)(T* aa)
 }
 
 // this should never be made public.
-private AARange _aaToRange(T: V[K], K, V)(ref T aa) pure nothrow @nogc @safe
+private auto _aaToRange(K, V)(auto ref inout V[K] aa) @trusted
 {
-    // ensure we are dealing with a genuine AA.
-    static if (is(const(V[K]) == const(T)))
-        alias realAA = aa;
-    else
-        const(V[K]) realAA = aa;
-    return _aaRange(() @trusted { return *cast(AA*)&realAA; } ());
+    import core.internal.traits : substInout;
+
+    alias K2 = substInout!K;
+    alias V2 = substInout!V;
+    auto aa2 = cast(V2[K2])aa;
+    return _aaRange(aa2);
 }
 
 /***********************************
@@ -3183,25 +3122,27 @@ auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
+    const(V[K]) aa2 = aa;
+
     static struct Result
     {
-        AARange r;
+        typeof(_aaToRange(aa2)) r;
 
     pure nothrow @nogc:
         @property bool empty()  @safe { return _aaRangeEmpty(r); }
         @property ref front() @trusted
         {
-            return *cast(substInout!K*) _aaRangeFrontKey(r);
+            return *cast(substInout!K*)_aaRangeFrontKey(r);
         }
         void popFront() @safe { _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
 
-    return Result(_aaToRange(aa));
+    return Result(_aaToRange(aa2));
 }
 
 /** ditto */
-auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
+auto byKey(K, V)(V[K]* aa) pure nothrow @nogc
 {
     return (*aa).byKey();
 }
@@ -3244,25 +3185,27 @@ auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
+    const(V[K]) aa2 = aa;
+
     static struct Result
     {
-        AARange r;
+        typeof(_aaToRange(aa2)) r;
 
     pure nothrow @nogc:
         @property bool empty() @safe { return _aaRangeEmpty(r); }
         @property ref front() @trusted
         {
-            return *cast(substInout!V*) _aaRangeFrontValue(r);
+            return *cast(substInout!V*)_aaRangeFrontValue(r);
         }
         void popFront() @safe { _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
 
-    return Result(_aaToRange(aa));
+    return Result(_aaToRange(aa2));
 }
 
 /** ditto */
-auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
+auto byValue(K, V)(V[K]* aa) pure nothrow @nogc
 {
     return (*aa).byValue();
 }
@@ -3317,9 +3260,11 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
+    const(V[K]) aa2 = aa;
+
     static struct Result
     {
-        AARange r;
+        typeof(_aaToRange(aa2)) r;
 
     pure nothrow @nogc:
         @property bool empty() @safe { return _aaRangeEmpty(r); }
@@ -3329,16 +3274,16 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
             {
                 // We save the pointers here so that the Pair we return
                 // won't mutate when Result.popFront is called afterwards.
-                private void* keyp;
-                private void* valp;
+                private const(substInout!K)* keyp;
+                private const(substInout!V)* valp;
 
                 @property ref key() inout @trusted
                 {
-                    return *cast(substInout!K*) keyp;
+                    return *cast(K*)keyp;
                 }
                 @property ref value() inout @trusted
                 {
-                    return *cast(substInout!V*) valp;
+                    return *cast(V*)valp;
                 }
             }
             return Pair(_aaRangeFrontKey(r),
@@ -3348,7 +3293,7 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
         @property Result save() { return this; }
     }
 
-    return Result(_aaToRange(aa));
+    return Result(_aaToRange(aa2));
 }
 
 /** ditto */
@@ -3381,27 +3326,18 @@ auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
  *      aa =     The associative array.
  * Returns:
  *      A dynamic array containing a copy of the keys.
+ * Note:
+ *  emulated by the compiler during CTFE
  */
-Key[] keys(T : Value[Key], Value, Key)(T aa) @property
+auto keys(Value, Key)(inout Value[Key] aa) @property
 {
-    // ensure we are dealing with a genuine AA.
-    static if (is(const(Value[Key]) == const(T)))
-        alias realAA = aa;
-    else
-        const(Value[Key]) realAA = aa;
-    auto res = () @trusted {
-        auto a = cast(void[])_aaKeys(*cast(inout(AA)*)&realAA, Key.sizeof, typeid(Key[]));
-        return *cast(Key[]*)&a;
-    }();
-    static if (__traits(hasPostblit, Key))
-        _doPostblit(res);
-    return res;
+    return _aaKeys!(Key, Value)(aa);
 }
 
 /** ditto */
-Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
+auto keys(T : Value[Key], Value, Key)(T *aa) @property
 {
-    return (*aa).keys;
+    return (*aa).keys; // CTFE only intercepts the non-pointer overload
 }
 
 ///
@@ -3465,27 +3401,18 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
  *      aa =     The associative array.
  * Returns:
  *      A dynamic array containing a copy of the values.
+ * Note:
+ *  emulated by the compiler during CTFE
  */
-Value[] values(T : Value[Key], Value, Key)(T aa) @property
+auto values(Value, Key)(inout Value[Key] aa) @property
 {
-    // ensure we are dealing with a genuine AA.
-    static if (is(const(Value[Key]) == const(T)))
-        alias realAA = aa;
-    else
-        const(Value[Key]) realAA = aa;
-    auto res = () @trusted {
-        auto a = cast(void[])_aaValues(*cast(inout(AA)*)&realAA, Key.sizeof, Value.sizeof, typeid(Value[]));
-        return *cast(Value[]*)&a;
-    }();
-    static if (__traits(hasPostblit, Value))
-        _doPostblit(res);
-    return res;
+    return _aaValues!(Key, Value)(aa);
 }
 
 /** ditto */
-Value[] values(T : Value[Key], Value, Key)(T *aa) @property
+auto values(T : Value[Key], Value, Key)(T *aa) @property
 {
-    return (*aa).values;
+    return (*aa).values; // CTFE only intercepts the non-pointer overload
 }
 
 ///
@@ -3585,25 +3512,11 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
 ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
 {
     bool found;
-    // if key is @safe-ly copyable, `require` can infer @safe
-    static if (isSafeCopyable!K)
-    {
-        auto p = () @trusted
-        {
-            return cast(V*) _aaGetX(cast(AA*) &aa, typeid(V[K]), V.sizeof, &key, found);
-        } ();
-    }
-    else
-    {
-        auto p = cast(V*) _aaGetX(cast(AA*) &aa, typeid(V[K]), V.sizeof, &key, found);
-    }
+    auto p = _aaGetX(aa, key, found);
     if (found)
         return *p;
-    else
-    {
-        *p = value; // Not `return (*p = value)` since if `=` is overloaded
-        return *p;  // this might not return a ref to the left-hand side.
-    }
+    *p = value; // Not `return (*p = value)` since if `=` is overloaded
+    return *p;  // this might not return a ref to the left-hand side.
 }
 
 ///
@@ -3622,7 +3535,7 @@ private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x
  * Calls `create` if `key` doesn't exist in the associative array,
  * otherwise calls `update`.
  * `create` returns a corresponding value for `key`.
- * `update` accepts a key parameter. If it returns a value, the value is
+ * `update` accepts a value parameter. If it returns a value, the value is
  * set for `key`.
  * Params:
  *      aa =     The associative array.
@@ -3630,24 +3543,13 @@ private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x
  *      create = The callable to create a value for `key`.
  *               Must return V.
  *      update = The callable to call if `key` exists.
- *               Takes a K argument, returns a V or void.
+ *               Takes a V argument, returns a V or void.
  */
 void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
 if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof(update(aa[K.init])) == void)))
 {
     bool found;
-    // if key is @safe-ly copyable, `update` may infer @safe
-    static if (isSafeCopyable!K)
-    {
-        auto p = () @trusted
-        {
-            return cast(V*) _aaGetX(cast(AA*) &aa, typeid(V[K]), V.sizeof, &key, found);
-        } ();
-    }
-    else
-    {
-        auto p = cast(V*) _aaGetX(cast(AA*) &aa, typeid(V[K]), V.sizeof, &key, found);
-    }
+    auto p = _aaGetX(aa, key, found);
     if (!found)
         *p = create();
     else
