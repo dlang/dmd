@@ -248,13 +248,19 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         }
         if (!e.lwr && !e.upr)
             return Expression_toDt(e.e1, dtb);
+
+        size_t len;
         if (auto strExp = e.e1.isStringExp())
-        {
-            auto lwr = e.lwr.isIntegerExp();
-            auto upr = e.upr.isIntegerExp();
-            if (lwr && upr && lwr.toInteger() == 0 && upr.toInteger() == strExp.len)
-                return Expression_toDt(e.e1, dtb);
-        }
+            len = strExp.len;
+        else if (auto arrExp = e.e1.isArrayLiteralExp())
+            len = arrExp.elements.length;
+        else
+            return nonConstExpError(e);
+
+        auto lwr = e.lwr.isIntegerExp();
+        auto upr = e.upr.isIntegerExp();
+        if (lwr && upr && lwr.toInteger() == 0 && upr.toInteger() == len)
+            return Expression_toDt(e.e1, dtb);
 
         nonConstExpError(e);
     }
