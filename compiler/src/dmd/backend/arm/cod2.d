@@ -209,6 +209,7 @@ Extend tyToExtend(tym_t ty)
         case 1: extend = UXTB; break;
         case 2: extend = UXTH; break;
         case 4: extend = UXTW; break;
+        case 16:               // in case TYucent for OPpair/OPrpair
         case 8: extend = LSL;  break;
         default:
             assert(0);
