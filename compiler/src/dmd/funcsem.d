@@ -3838,3 +3838,34 @@ extern (D) bool checkNestedReference(VarDeclaration vd, Scope* sc, Loc loc)
 
     return false;
 }
+
+/**********************
+ * Check to see if array bounds checking code has to be generated
+ *
+ * Params:
+ *  fd = function for whoch code is to be generated
+ * Returns:
+ *  true if do array bounds checking for the given function
+ */
+bool arrayBoundsCheck(FuncDeclaration fd)
+{
+    final switch (global.params.useArrayBounds)
+    {
+    case CHECKENABLE.off:
+        return false;
+    case CHECKENABLE.on:
+        return true;
+    case CHECKENABLE.safeonly:
+        {
+            if (fd)
+            {
+                Type t = fd.type;
+                if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
+                    return true;
+            }
+            return false;
+        }
+    case CHECKENABLE._default:
+        assert(0);
+    }
+}
