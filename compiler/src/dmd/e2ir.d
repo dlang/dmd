@@ -350,8 +350,6 @@ void toTraceGC(ref IRState irs, elem* e, Loc loc)
         [ RTLSYM.CALLFINALIZER, RTLSYM.TRACECALLFINALIZER ],
         [ RTLSYM.CALLINTERFACEFINALIZER, RTLSYM.TRACECALLINTERFACEFINALIZER ],
 
-        [ RTLSYM.ASSOCARRAYLITERALTX, RTLSYM.TRACEASSOCARRAYLITERALTX ],
-
 
         [ RTLSYM.ARRAYAPPENDCD, RTLSYM.TRACEARRAYAPPENDCD ],
         [ RTLSYM.ARRAYAPPENDWD, RTLSYM.TRACEARRAYAPPENDWD ],
@@ -4245,7 +4243,6 @@ elem* toElem(Expression e, ref IRState irs)
 
         // call _d_assocarrayliteralTX(ti, keys, values)
         e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM.ASSOCARRAYLITERALTX)),e);
-        toTraceGC(irs, e, aale.loc);
         if (t != ta)
             e = addressElem(e, ta);
         elem_setLoc(e, aale.loc);
