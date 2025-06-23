@@ -4001,6 +4001,7 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
 
         p.type = p.type.typeSemantic(fs.loc, sc);
         p.type = p.type.addStorageClass(p.storageClass);
+        p.type = p.type.substWildTo(MODFlags.const_);
         if (tfld)
         {
             Parameter param = tfld.parameterList[i];
@@ -4036,7 +4037,7 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
             Statement s = new ExpStatement(fs.loc, v);
             fs._body = new CompoundStatement(fs.loc, s, fs._body);
             if (taa)
-                p.type = i == 1 || fs.parameters.length == 1 ? taa.nextOf() : taa.index;
+                p.type = (i == 1 || fs.parameters.length == 1 ? taa.nextOf() : taa.index).substWildTo(MODFlags.const_);
         }
         params.push(new Parameter(fs.loc, stc, p.type, id, null, null));
     }
