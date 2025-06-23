@@ -310,9 +310,9 @@ void testinenum()
 // https://github.com/dlang/dmd/issues/21258
 void test21258()
 {
-	alias AliasSeq(TList...) = TList;
+    alias AliasSeq(TList...) = TList;
 
-	struct S { int x; } // use a local type to not generate required TypeInfo elsewhere
+    struct S { int x; } // use a local type to not generate required TypeInfo elsewhere
     foreach (T; AliasSeq!(S[int]))
         enum E { a = T.init, } // bug report uses bad syntax here, but this crashed, too
 }
