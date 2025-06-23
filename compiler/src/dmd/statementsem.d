@@ -4007,6 +4007,7 @@ private extern(D) Statement loopReturn(Expression e, Statements* cases, Loc loc)
  */
 private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFunction tfld)
 {
+    auto taa = fs.aggr.type.toBasetype().isTypeAArray();
     auto params = new Parameters();
     foreach (i, p; *fs.parameters)
     {
@@ -4049,6 +4050,8 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
             v.storage_class |= STC.temp | (stc & STC.scope_);
             Statement s = new ExpStatement(fs.loc, v);
             fs._body = new CompoundStatement(fs.loc, s, fs._body);
+            if (taa)
+                p.type = i == 1 || fs.parameters.length == 1 ? taa.nextOf() : taa.index;
         }
         params.push(new Parameter(fs.loc, stc, p.type, id, null, null));
     }

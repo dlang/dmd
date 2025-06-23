@@ -1046,6 +1046,21 @@ void test13756()
     {
         static assert(is(typeof(k) == const int));
     }
+
+    // https://github.com/dlang/dmd/issues/21456
+    foreach (long k, long v; aa)
+    {
+        assert(k == 1 && v == 20);
+    }
+    static struct S
+    {
+        int x, y, z;
+        this(int a) { z = a; }
+    }
+    foreach (long k, S s; aa)
+    {
+        assert(k == 1 && s.z == 20);
+    }
 }
 
 /***************************************/
