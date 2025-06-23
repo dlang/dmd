@@ -5097,20 +5097,17 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         }
         if (ident == Id.length)
         {
-            __gshared FuncDeclaration fd_aaLen = null;
-            if (fd_aaLen is null)
-            {
-                auto fparams = new Parameters(new Parameter(Loc.initial, STC.const_ | STC.scope_, mt,
-                                                            null, null, null));
-                fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
-                TypeFunction tf = fd_aaLen.type.toTypeFunction();
-                tf.purity = PURE.const_;
-                tf.isNothrow = true;
-                tf.isNogc = false;
-            }
-            Expression ev = new VarExp(e.loc, fd_aaLen, false);
-            e = new CallExp(e.loc, ev, e);
-            e.type = fd_aaLen.type.toTypeFunction().next;
+            auto loc = e.loc;
+            Expression hookFunc = new IdentifierExp(loc, Id.empty);
+            hookFunc = new DotIdExp(loc, hookFunc, Id.object);
+            auto tiargs = new Objects();
+            auto keytype = mt.index.substWildTo(MODFlags.const_);
+            auto valtype = mt.nextOf().substWildTo(MODFlags.const_);
+            tiargs.push(keytype);
+            tiargs.push(valtype);
+            hookFunc = new DotTemplateInstanceExp(loc, hookFunc, Id.aaLen, tiargs);
+            Expression e = new CallExp(loc, hookFunc, e);
+            e = e.expressionSemantic(sc);
             return e;
         }
         else
