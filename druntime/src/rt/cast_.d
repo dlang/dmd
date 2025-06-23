@@ -50,31 +50,6 @@ Object _d_toObject(return scope void* p)
     return o;
 }
 
-/*************************************
- * Attempts to cast interface Object o to class c.
- * Returns o if successful, null if not.
- */
-void* _d_interface_cast(void* p, ClassInfo c)
-{
-    debug(cast_) printf("_d_interface_cast(p = %p, c = '%.*s')\n", p, cast(int) c.name.length, c.name.ptr);
-    if (!p)
-        return null;
-
-    Interface* pi = **cast(Interface***) p;
-
-    debug(cast_) printf("\tpi.offset = %zd\n", pi.offset);
-    Object o2 = cast(Object)(p - pi.offset);
-    void* res = null;
-    size_t offset = 0;
-    if (o2 && _d_isbaseof2(typeid(o2), c, offset))
-    {
-        debug(cast_) printf("\toffset = %zd\n", offset);
-        res = cast(void*) o2 + offset;
-    }
-    debug(cast_) printf("\tresult = %p\n", res);
-    return res;
-}
-
 int _d_isbaseof2(scope ClassInfo oc, scope const ClassInfo c, scope ref size_t offset) @safe
 {
     if (areClassInfosEqual(oc, c))

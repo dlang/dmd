@@ -101,6 +101,27 @@ private void* _d_class_cast(To)(const return scope Object o)
     return _d_class_cast_impl(o, typeid(To));
 }
 
+/*************************************
+ * Attempts to cast interface Object o to class type `To`.
+ * Returns o if successful, null if not.
+ */
+private void* _d_interface_cast(To)(void* p) @trusted
+{
+    if (!p)
+        return null;
+
+    Interface* pi = **cast(Interface***) p;
+
+    Object o2 = cast(Object)(p - pi.offset);
+    void* res = null;
+    size_t offset = 0;
+    if (o2 && _d_isbaseof2!To(typeid(o2), offset))
+    {
+        res = cast(void*) o2 + offset;
+    }
+    return res;
+}
+
 /**
 * Hook that detects the type of cast performed and calls the appropriate function.
 * Params:
@@ -149,7 +170,21 @@ void* _d_cast(To, From)(From o) @trusted
         return null;
     }
 
-    return null;
+    static if (is(From == interface))
+    {
+        static if (is(From == To))
+        {
+            return cast(void*)o;
+        }
+        else
+        {
+            return _d_interface_cast!To(cast(void*)o);
+        }
+    }
+    else
+    {
+        return null;
+    }
 }
 
 private bool _d_isbaseof2(To)(scope ClassInfo oc, scope ref size_t offset)
@@ -240,4 +275,37 @@ private bool _d_isbaseof2(To)(scope ClassInfo oc, scope ref size_t offset)
     A a = new A();
     assert(_d_cast!D(a) is null); // A(a) to D
     assert(_d_class_cast!D(a) is null);
+}
+
+@safe pure unittest
+{
+    interface I1 {}
+    interface I2 {}
+    interface I3 {}
+    class A {}
+    class B : A, I1, I2 {}
+    class C : B, I3 {}
+
+    I1 bi = new B();
+    assert(_d_cast!I2(bi) !is null); // I1(b) to I2
+    assert(_d_interface_cast!I2(cast(void*)bi) !is null);
+
+    assert(_d_cast!A(bi) !is null); // I1(b) to A
+    assert(_d_interface_cast!A(cast(void*)bi) !is null);
+
+    assert(_d_cast!B(bi) !is null); // I1(b) to B
+    assert(_d_interface_cast!B(cast(void*)bi) !is null);
+
+    assert(_d_cast!I3(bi) is null); // I1(b) to I3
+    assert(_d_interface_cast!I3(cast(void*)bi) is null);
+
+    assert(_d_cast!C(bi) is null); // I1(b) to C
+    assert(_d_interface_cast!C(cast(void*)bi) is null);
+
+    assert(_d_cast!I1(bi) !is null); // I1(b) to I1
+    assert(_d_interface_cast!I1(cast(void*)bi) !is null);
+
+    I3 ci = new C();
+    assert(_d_cast!I1(ci) !is null); // I3(c) to I1
+    assert(_d_interface_cast!I1(cast(void*)ci) !is null);
 }
