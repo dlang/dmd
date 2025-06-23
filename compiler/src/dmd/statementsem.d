@@ -3903,8 +3903,8 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
         Type ti = (isRef ? taa.index.addMod(MODFlags.const_) : taa.index);
         if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
         {
-            error(fs.loc, "`foreach`: index must be type `%s`, not `%s`",
-                     ti.toChars(), ta.toChars());
+            error(fs.loc, "`foreach`: index parameter `%s%s` must be type `%s`, not `%s`",
+                 isRef ? "ref ".ptr : "".ptr, p.toChars(), ti.toChars(), ta.toChars());
             return null;
         }
         p = (*fs.parameters)[1];
@@ -3914,8 +3914,8 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     Type taav = taa.nextOf();
     if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta))
     {
-        error(fs.loc, "`foreach`: value must be type `%s`, not `%s`",
-                 taav.toChars(), ta.toChars());
+        error(fs.loc, "`foreach`: value parameter `%s%s` must be type `%s`, not `%s`",
+            isRef ? "ref ".ptr : "".ptr, p.toChars(), taav.toChars(), ta.toChars());
         return null;
     }
 
