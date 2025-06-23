@@ -6948,7 +6948,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (tf.next.isBaseOf(t, &offset) && offset)
             {
                 exp.type = tf.next;
-                result = Expression.combine(argprefix, exp.castTo(sc, t));
+                auto casted_exp = exp.castTo(sc, t);
+                if (casted_exp.isCastExp())
+                {
+                    casted_exp.type = null;
+                    casted_exp = casted_exp.expressionSemantic(sc);
+                }
+                result = Expression.combine(argprefix, casted_exp);
                 return;
             }
         }
@@ -9389,35 +9395,31 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!(cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
                     && cdfrom.classKind != ClassKind.cpp)
             {
-                if (!cdfrom.isInterfaceDeclaration())
-                {
+                Identifier hook = Id._d_cast;
+                if (!verifyHookExist(cex.loc, *sc, hook, "d_cast", Id.object))
+                    goto LskipCastLowering;
 
-                    Identifier hook = Id._d_cast;
-                    if (!verifyHookExist(cex.loc, *sc, hook, "d_cast", Id.object))
-                        goto LskipCastLowering;
+                // Lower to .object._d_cast!(To)(exp.e1)
+                Expression lowering = new IdentifierExp(cex.loc, Id.empty);
+                lowering = new DotIdExp(cex.loc, lowering, Id.object);
 
-                    // Lower to .object._d_cast!(To)(exp.e1)
-                    Expression lowering = new IdentifierExp(cex.loc, Id.empty);
-                    lowering = new DotIdExp(cex.loc, lowering, Id.object);
+                auto tiargs = new Objects();
+                // Unqualify the type being casted to, avoiding multiple instantiations
+                auto unqual_tob = tob.unqualify(MODFlags.wild | MODFlags.const_ |
+                    MODFlags.immutable_ | MODFlags.shared_);
+                tiargs.push(unqual_tob);
+                lowering = new DotTemplateInstanceExp(cex.loc, lowering, hook, tiargs);
 
-                    auto tiargs = new Objects();
-                    // Unqualify the type being casted to, avoiding multiple instantiations
-                    auto unqual_tob = tob.unqualify(MODFlags.wild | MODFlags.const_ |
-                        MODFlags.immutable_ | MODFlags.shared_);
-                    tiargs.push(unqual_tob);
-                    lowering = new DotTemplateInstanceExp(cex.loc, lowering, hook, tiargs);
+                auto arguments = new Expressions();
+                // Unqualify the type being casted from to avoid multiple instantiations
+                auto unqual_t1b = t1b.unqualify(MODFlags.wild | MODFlags.const_ |
+                    MODFlags.immutable_ | MODFlags.shared_);
+                cex.e1.type = unqual_t1b;
+                arguments.push(cex.e1);
 
-                    auto arguments = new Expressions();
-                    // Unqualify the type being casted from to avoid multiple instantiations
-                    auto unqual_t1b = t1b.unqualify(MODFlags.wild | MODFlags.const_ |
-                        MODFlags.immutable_ | MODFlags.shared_);
-                    cex.e1.type = unqual_t1b;
-                    arguments.push(cex.e1);
+                lowering = new CallExp(cex.loc, lowering, arguments);
 
-                    lowering = new CallExp(cex.loc, lowering, arguments);
-
-                    cex.lowering = lowering.expressionSemantic(sc);
-                }
+                cex.lowering = lowering.expressionSemantic(sc);
             }
         }
 
