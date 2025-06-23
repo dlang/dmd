@@ -45,6 +45,11 @@ struct INSTR
     enum FLOATREGS = 0x01FF_FFFF_0000_0000;
     static assert((FLOATREGS & (1UL << 57 /*REGMAX*/)) == 0);
 
+    /* most and least significant register masks
+     */
+    enum LSW = 0x5555_5555_5555_5555;
+    enum MSW = LSW << 1;
+
     enum uint nop = 0xD503201F;
 
     alias reg_t = ubyte;

@@ -470,7 +470,7 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
     debug
     if (debugw)
         printf("loadea: e=%p cs=%p op=x%x reg=%s offset=%lld keepmsk=%s desmsk=%s\n",
-               e, &cs, op, regstring[reg], cast(ulong)offset, regm_str(keepmsk), regm_str(desmsk));
+               e, &cs, op, regm_str(mask(reg)), cast(ulong)offset, regm_str(keepmsk), regm_str(desmsk));
     assert(e);
     cs.Iflags = 0;
     cs.Iop = op;
@@ -2466,9 +2466,9 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         }
         else if (sz <= 2 * REGSIZE)
         {
-            reg = findregmsw(forregs);
+            reg = findreg(forregs & INSTR.MSW);
             loadea(cdb, e, cs, 0x8B, reg, REGSIZE, forregs, 0); // MOV reg,data+2
-            reg = findreglsw(forregs);
+            reg = findreg(forregs & INSTR.LSW);
             loadea(cdb, e, cs, 0x8B, reg, 0, forregs, 0);       // MOV reg,data
         }
         else if (sz >= 8)

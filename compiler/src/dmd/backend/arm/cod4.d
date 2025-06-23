@@ -1899,7 +1899,7 @@ void cdlngsht(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             codelem(cgstate,cdb,e.E1,retregs,false);
             bool isOff = e.Eoper == OPoffset;
             if (isOff || e.Eoper == OP128_64)
-                retregs &= mLSW;                // want LSW only
+                retregs &= INSTR.LSW;                // want LSW only
         }
     }
 
@@ -2012,7 +2012,48 @@ void cdpopcnt(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     fixresult(cdb,e,retregs,pretregs);
 }
 
-// cdpair
+/*******************************************
+ * Generate code for OPpair, OPrpair.
+ */
+@trusted
+void cdpair(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
+{
+    assert(pretregs);
+
+    //printf("cdpair(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
+    //elem_print(e);
+
+    regm_t retregs = pretregs;
+
+    regm_t regs1;
+    regm_t regs2;
+
+    retregs &= cgstate.allregs | INSTR.FLOATREGS;
+    if  (!retregs)
+        retregs = cgstate.allregs | INSTR.FLOATREGS;
+    regs1 = retregs & INSTR.LSW;
+    regs2 = retregs & INSTR.MSW;
+
+    if (e.Eoper == OPrpair)
+    {
+        // swap
+        regs1 ^= regs2;
+        regs2 ^= regs1;
+        regs1 ^= regs2;
+    }
+    //printf("1: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
+
+    codelem(cgstate,cdb,e.E1, regs1, false);
+    scodelem(cgstate,cdb,e.E2, regs2, regs1, false);
+
+    if (e.E1.Ecount)
+        getregs(cdb,regs1);
+    if (e.E2.Ecount)
+        getregs(cdb,regs2);
+
+    fixresult(cdb,e,regs1 | regs2,pretregs);
+}
+
 // cdcmpxchg
 // cdprefetch
 // opAssLoadReg
