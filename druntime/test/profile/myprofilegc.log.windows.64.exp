@@ -1,16 +1,24 @@
 bytes allocated, allocations, type, function, file:line
+           4304	              1	Bucket!(int, string) core.internal.newaa.allocBuckets!(int, string).allocBuckets ../../src\core\internal\newaa.d:264
             160	              1	float profilegc.main src\profilegc.d:18
             160	              1	int profilegc.main src\profilegc.d:15
+             96	              3	Entry!(int, string) core.internal.newaa._d_assocarrayliteralTX!(int, string)._d_assocarrayliteralTX ../../src\core\internal\newaa.d:636
+             96	              3	core.internal.newaa.Entry!(int, immutable(char)[]).Entry core.lifetime._d_newitemT!(Entry!(int, string))._d_newitemT ../../src\core\lifetime.d:2835
+             96	              1	Impl!(int, string) core.internal.newaa._d_assocarrayliteralTX!(int, string)._d_assocarrayliteralTX ../../src\core\internal\newaa.d:621
+             96	              1	core.internal.newaa.Impl!(int, immutable(char)[]).Impl core.lifetime._d_newitemT!(Impl!(int, string))._d_newitemT ../../src\core\lifetime.d:2835
              64	              1	double[] profilegc.main src\profilegc.d:56
              48	              1	float[] profilegc.main src\profilegc.d:42
              48	              1	int[] profilegc.main src\profilegc.d:41
              32	              1	C profilegc.main src\profilegc.d:12
+             32	              1	profilegc.main.C core.lifetime._d_newclassT!(C)._d_newclassT ../../src\core\lifetime.d:2763
              32	              1	void[] profilegc.main src\profilegc.d:55
              16	              1	char[] profilegc.main src\profilegc.d:34
              16	              1	char[] profilegc.main src\profilegc.d:36
              16	              1	closure profilegc.main.foo src\profilegc.d:45
+             16	              1	float core.lifetime._d_newitemT!float._d_newitemT ../../src\core\lifetime.d:2835
              16	              1	float profilegc.main src\profilegc.d:16
              16	              1	float profilegc.main src\profilegc.d:17
+             16	              1	int core.lifetime._d_newitemT!int._d_newitemT ../../src\core\lifetime.d:2835
              16	              1	int profilegc.main src\profilegc.d:13
              16	              1	int profilegc.main src\profilegc.d:14
              16	              1	int[] profilegc.main src\profilegc.d:22

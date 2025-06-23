@@ -241,6 +241,7 @@ UnionExp copyLiteral(Expression e)
         AssocArrayLiteralExp r = ue.exp().isAssocArrayLiteralExp();
         r.type = aae.type;
         r.lowering = aae.lowering;
+        r.loweringCtfe = aae.loweringCtfe;
         r.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
@@ -1459,7 +1460,7 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
 /*  Given an AA literal 'ae', and a key 'e2':
  *  Return ae[e2] if present, or NULL if not found.
  */
-Expression findKeyInAA(Loc loc, AssocArrayLiteralExp ae, Expression e2)
+Expression findKeyInAA(Loc loc, AssocArrayLiteralExp ae, Expression e2, size_t* pidx = null)
 {
     /* Search the keys backwards, in case there are duplicate keys
      */
@@ -1470,6 +1471,8 @@ Expression findKeyInAA(Loc loc, AssocArrayLiteralExp ae, Expression e2)
         const int eq = ctfeEqual(loc, EXP.equal, ekey, e2);
         if (eq)
         {
+            if (pidx)
+                *pidx = i;
             return (*ae.values)[i];
         }
     }

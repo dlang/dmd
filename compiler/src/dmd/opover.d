@@ -338,7 +338,11 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
 
                 // Convert to IndexExp
                 if (ae.arguments.length == 1)
-                    return new IndexExp(ae.loc, ae.e1, (*ae.arguments)[0]).expressionSemantic(sc);
+                {
+                    auto idxexp = new IndexExp(ae.loc, ae.e1, (*ae.arguments)[0]);
+                    idxexp.modifiable = ae.modifiable;
+                    return idxexp.expressionSemantic(sc);
+                }
             }
             break;
         }
@@ -904,6 +908,8 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
 {
     if (auto ae = e.e1.isArrayExp())
     {
+        markArrayExpModifiable(ae);
+
         ae.e1 = ae.e1.expressionSemantic(sc);
         ae.e1 = resolveProperties(sc, ae.e1);
         Expression ae1old = ae.e1;
@@ -989,6 +995,9 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
     }
 
     if (Expression result = e.binSemanticProp(sc))
+        return result;
+
+    if (auto result = rewriteIndexAssign(e, sc, aliasThisStop))
         return result;
 
     // Don't attempt 'alias this' if an error occurred
