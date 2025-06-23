@@ -6890,8 +6890,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!exp.type)
         {
             exp.e1 = e1org; // https://issues.dlang.org/show_bug.cgi?id=10922
-                        // avoid recursive expression printing
-            error(exp.loc, "forward reference to inferred return type of function call `%s`", exp.toErrMsg());
+                            // avoid recursive expression printing
+            FuncDeclaration fd = null;
+            if (auto dve = exp.e1.isDotVarExp())
+                fd = cast(FuncDeclaration)dve.var;
+            else if (auto ve = exp.e1.isVarExp())
+                fd = cast(FuncDeclaration)ve.var;
+
+            if (fd && fd.inferRetType && sc && sc.func == fd)
+            {
+                error(exp.loc, "can't infer return type in function `%s`", fd.toChars());
+            }
+            else
+            {
+                error(exp.loc, "forward reference to inferred return type of function call `%s`", exp.toErrMsg());
+            }
             return setError();
         }
 
@@ -13474,8 +13487,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             __equals = __equals.trySemantic(sc); // for better error message
             if (!__equals)
             {
-                error(exp.loc, "incompatible types for array comparison: `%s` and `%s`",
-                          exp.e1.type.toChars(), exp.e2.type.toChars());
+                if (sc.func)
+                    error(exp.loc, "can't infer return type in function `%s`", sc.func.toChars());
+                else
+                    error(exp.loc, "incompatible types for array comparison: `%s` and `%s`",
+                  exp.e1.type.toChars(), exp.e2.type.toChars());
                 __equals = ErrorExp.get();
             }
 
