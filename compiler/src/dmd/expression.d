@@ -1906,6 +1906,10 @@ extern (C++) final class ArrayLiteralExp : Expression
 
     Expressions* elements;
 
+    // aaLiteral is set if this is an array of values of an AA literal
+    // only used during CTFE to show the original AA in error messages instead
+    AssocArrayLiteralExp aaLiteral;
+
     extern (D) this(Loc loc, Type type, Expressions* elements) @safe
     {
         super(loc, EXP.arrayLiteral);
@@ -2060,6 +2064,7 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     Expressions* values;
     /// Lower to core.internal.newaa for static initializaton
     Expression lowering;
+    Expression loweringCtfe;
 
     extern (D) this(Loc loc, Expressions* keys, Expressions* values) @safe
     {
@@ -3797,6 +3802,7 @@ extern (C++) final class ArrayExp : UnaExp
 
     size_t currentDimension;    // for opDollar
     VarDeclaration lengthVar;
+    bool modifiable = false;    // is this expected to be an lvalue in an AssignExp? propagate to IndexExp
 
     extern (D) this(Loc loc, Expression e1, Expression index = null)
     {
@@ -3994,6 +4000,7 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
 extern (C++) final class IndexExp : BinExp
 {
     VarDeclaration lengthVar;
+    Expression loweredFrom;     // for associative array lowering to _aaGetY or _aaGetRvalueX
     bool modifiable = false;    // assume it is an rvalue
     bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
@@ -4028,29 +4035,6 @@ extern (C++) final class IndexExp : BinExp
             return e1.isLvalue();
         }
         return true;
-    }
-
-    extern (D) Expression markSettingAAElem()
-    {
-        if (e1.type.toBasetype().ty == Taarray)
-        {
-            Type t2b = e2.type.toBasetype();
-            if (t2b.ty == Tarray && t2b.nextOf().isMutable())
-            {
-                error(loc, "associative arrays can only be assigned values with immutable keys, not `%s`", e2.type.toChars());
-                return ErrorExp.get();
-            }
-            modifiable = true;
-
-            if (auto ie = e1.isIndexExp())
-            {
-                Expression ex = ie.markSettingAAElem();
-                if (ex.op == EXP.error)
-                    return ex;
-                assert(ex == e1);
-            }
-        }
-        return this;
     }
 
     override void accept(Visitor v)
@@ -4783,7 +4767,6 @@ extern (C++) final class RemoveExp : BinExp
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, EXP.remove, e1, e2);
-        type = Type.tbool;
     }
 
     override void accept(Visitor v)

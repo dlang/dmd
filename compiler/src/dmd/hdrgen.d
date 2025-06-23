@@ -2450,6 +2450,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitAssocArrayLiteral(AssocArrayLiteralExp e)
     {
+        if (hgs.vcg_ast && e.lowering)
+        {
+            expToBuffer(e.lowering, PREC.assign, buf, hgs);
+            return;
+        }
         buf.put('[');
         foreach (i, key; *e.keys)
         {
@@ -2870,7 +2875,42 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             e.e1.expressionPrettyPrint(buf, hgs);
         }
         else
+        {
+            if (!hgs.vcg_ast)
+            {
+                // restore original syntax for expressions lowered to calls
+                if (auto ve = e.e1.isVarExp())
+                {
+                    if (ve.var.ident == Id._d_aaDel && e.arguments.length == 2)
+                    {
+                        expToBuffer((*e.arguments)[0], PREC.primary, buf, hgs);
+                        buf.put(".remove(");
+                        expToBuffer((*e.arguments)[1], PREC.primary, buf, hgs);
+                        buf.put(')');
+                        return;
+                    }
+                    if (ve.var.ident == Id._d_aaIn && e.arguments.length == 2)
+                    {
+                        buf.put('(');
+                        expToBuffer((*e.arguments)[1], precedence[EXP.in_], buf, hgs);
+                        buf.put(" in ");
+                        expToBuffer((*e.arguments)[0], cast(PREC)(precedence[EXP.in_] + 1), buf, hgs);
+                        buf.put(')');
+                        return;
+                    }
+                    if (ve.var.ident == Id._d_aaEqual && e.arguments.length == 2)
+                    {
+                        buf.put('(');
+                        expToBuffer((*e.arguments)[1], precedence[EXP.equal], buf, hgs);
+                        buf.put(" == ");
+                        expToBuffer((*e.arguments)[0], cast(PREC)(precedence[EXP.equal] + 1), buf, hgs);
+                        buf.put(')');
+                        return;
+                    }
+                }
+            }
             expToBuffer(e.e1, precedence[e.op], buf, hgs);
+        }
         buf.put('(');
         argsToBuffer(e.arguments, buf, hgs, null, e.names);
         buf.put(')');
@@ -2992,6 +3032,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitIndex(IndexExp e)
     {
+        if (!hgs.vcg_ast && e.loweredFrom)
+        {
+            expressionToBuffer(e.loweredFrom, buf, hgs);
+            return;
+        }
         expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.put('[');
         sizeToBuffer(e.e2, buf, hgs);
