@@ -366,6 +366,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "Alpha_HardFloat":
             case "Alpha_SoftFloat":
             case "Android":
+            case "Apple":
             case "ARM":
             case "ARM_HardFloat":
             case "ARM_SoftFloat":
