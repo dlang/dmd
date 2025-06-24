@@ -1656,7 +1656,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         {
             ts.sym.requestTypeInfo = true;
             if (auto tmpl = ts.sym.isInstantiated())
-                tmpl.minst = sc2._module.importedFrom; // ensure it get's emitted
+                tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
         }
         semanticTypeInfo(sc2, ti.entry); // might get deferred
 
@@ -1666,7 +1666,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         assert(e.isVarExp() && e.type.isTypeFunction());
         ti.xtoHash = e.isVarExp().var;
         if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
-            tmpl.minst = sc2._module.importedFrom; // ensure it get's emitted
+            tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
 
         // generate ti.xopEqual
         auto equalinst = makeDotExp(Identifier.idPool("aaOpEqual"));
@@ -1674,7 +1674,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         assert(e.isVarExp() && e.type.isTypeFunction());
         ti.xopEqual = e.isVarExp().var;
         if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
-            tmpl.minst = sc2._module.importedFrom; // ensure it get's emitted
+            tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
 
         visit(cast(ASTCodegen.TypeInfoDeclaration)ti);
     }

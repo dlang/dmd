@@ -3759,7 +3759,7 @@ extern (D) bool checkNestedReference(VarDeclaration vd, Scope* sc, Loc loc)
  * Check to see if array bounds checking code has to be generated
  *
  * Params:
- *  fd = function for whoch code is to be generated
+ *  fd = function for which code is to be generated
  * Returns:
  *  true if do array bounds checking for the given function
  */
