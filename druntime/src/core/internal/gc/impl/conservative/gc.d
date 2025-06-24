@@ -3563,6 +3563,7 @@ Lmark:
     ScanThreadData* scanThreadData;
 
     Event evStackFilled;
+    Event evDone;
 
     shared uint busyThreads;
     shared uint stoppedThreads;
@@ -3623,6 +3624,10 @@ Lmark:
                     done = toscan.empty() && busyThreads == 0;
                     toscan.stackLock.unlock();
                 }
+                else
+                {
+                    evDone.wait(1.msecs);
+                }
             }
         }
         if (ConservativeGC.isPrecise)
@@ -3678,6 +3683,7 @@ Lmark:
             onOutOfMemoryError();
 
         evStackFilled.initialize(false, false);
+        evDone.initialize(false, false);
 
         version (Posix)
         {
@@ -3719,7 +3725,7 @@ Lmark:
         while (atomicLoad(stoppedThreads) < startedThreads && !allThreadsDead)
         {
             evStackFilled.setIfInitialized();
-            Thread.sleep(1.msecs);
+            evDone.wait(1.msecs);
         }
 
         for (int idx = 0; idx < numScanThreads; idx++)
@@ -3732,6 +3738,7 @@ Lmark:
         }
 
         evStackFilled.terminate();
+        evDone.terminate();
 
         cstdlib.free(scanThreadData);
         // scanThreadData = null; // keep non-null to not start again after shutdown
@@ -3746,9 +3753,11 @@ Lmark:
         {
             evStackFilled.wait();
             pullFromScanStack();
+            evDone.setIfInitialized(); // tell main loop we are done
         }
         stoppedThreads.atomicOp!"+="(1);
         evStackFilled.setIfInitialized(); // wake up another thread
+        evDone.setIfInitialized(); // wake up main
     }
 
     void pullFromScanStack() nothrow
@@ -3784,6 +3793,7 @@ Lmark:
                     threadId, rng.pbot, cast(long) (rng.ptop - rng.pbot));
             }
             mark!(precise, true, true)(rng);
+            // returns here only if an empty scan stack has been seen
         }
         busyThreads.atomicOp!"-="(1);
 
