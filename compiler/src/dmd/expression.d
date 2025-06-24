@@ -2064,9 +2064,9 @@ extern (C++) final class AssocArrayLiteralExp : Expression
 
     Expressions* keys;
     Expressions* values;
-    /// Lower to core.internal.newaa for static initializaton
-    Expression lowering;
-    Expression loweringCtfe;
+
+    Expression lowering;     // call to _d_assocarrayliteralTX()
+    Expression loweringCtfe; // result of interpreting lowering for static initializaton
 
     extern (D) this(Loc loc, Expressions* keys, Expressions* values) @safe
     {

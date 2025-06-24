@@ -990,6 +990,7 @@ public:
     Expressions *arguments;             // Array of Expression's
     size_t currentDimension;            // for opDollar
     VarDeclaration *lengthVar;
+    bool modifiable;
 
     ArrayExp *syntaxCopy() override;
     bool isLvalue() override;
