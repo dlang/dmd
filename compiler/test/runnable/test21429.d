@@ -69,6 +69,24 @@ struct ArithmeticRight
     mixin subtracterRight;
 }
 
+template mixinOpAssign(string op)
+{
+    void opOpAssign(string s)(int x) if(s == op)
+    {
+        val = x;
+        lastOp = s;
+    }
+}
+
+struct AssignOverloads
+{
+    int val;
+    string lastOp;
+    mixin mixinOpAssign!"+";
+    mixin mixinOpAssign!"-";
+}
+
+
 void main(){
 
     T t;
@@ -100,4 +118,13 @@ void main(){
     assert(ta.val == 5);
     ta.y = 10;
     assert(ta.val == 10);
+
+    AssignOverloads oa;
+    oa += 5;
+    assert(oa.val == 5);
+    assert(oa.lastOp == "+");
+    oa -= 10;
+    assert(oa.val == 10);
+    assert(oa.lastOp == "-");
+
 }

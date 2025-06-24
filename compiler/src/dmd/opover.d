@@ -1029,7 +1029,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
 
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     Dsymbol s = search_function(ad1, Id.opOpAssign);
-    if (s && !s.isTemplateDeclaration())
+    if (s && !(s.isTemplateDeclaration() || s.isOverloadSet()))
     {
         error(e.loc, "`%s.opOpAssign` isn't a template", e.e1.toChars());
         return ErrorExp.get();
