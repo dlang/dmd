@@ -87,7 +87,8 @@ struct AssignOverloads
 }
 
 
-void main(){
+void main()
+{
 
     T t;
     string s = t.x();
