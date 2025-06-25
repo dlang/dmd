@@ -1289,6 +1289,14 @@ public:
 
     override void visit(UnaExp e)
     {
+        if (auto ce = e.isCastExp())
+        {
+            if (ce.lowering !is null)
+            {
+                inlineScan(ce.lowering);
+                return;
+            }
+        }
         inlineScan(e.e1);
     }
 
