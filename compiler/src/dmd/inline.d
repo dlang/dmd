@@ -754,18 +754,12 @@ public:
             ue.e1 = doInlineAs!Expression(e.e1, ids);
             if (auto ce = ue.isCastExp())
             {
-                if (ce.lowering is null)
-                    goto LskipCastLowering;
-
-                if (auto lowering = ce.lowering.isCallExp())
+                if (ce.lowering !is null)
                 {
-                    if (lowering.f.ident == Id._d_cast)
-                    {
-                        ce.lowering = doInlineAs!Expression(lowering, ids);
-                    }
+                    ce.lowering = doInlineAs!Expression(ce.lowering, ids);
                 }
             }
-        LskipCastLowering:
+
             result = ue;
         }
 
@@ -1288,6 +1282,14 @@ public:
 
     override void visit(UnaExp e)
     {
+        if (auto ce = e.isCastExp())
+        {
+            if (ce.lowering !is null)
+            {
+                inlineScan(ce.lowering);
+                return;
+            }
+        }
         inlineScan(e.e1);
     }
 
