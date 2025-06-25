@@ -120,7 +120,8 @@ bool ISX64REF(Declaration var)
         }
         else if (target.os & Target.OS.Posix)
         {
-            return !(var.storage_class & STC.lazy_) && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD();
+            return !(var.storage_class & STC.lazy_) && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD() ||
+                passTypeByRef(target, var.type);
         }
     }
 
@@ -143,10 +144,27 @@ bool ISX64REF(ref IRState irs, Expression exp)
     }
     else if (irs.target.os & Target.OS.Posix)
     {
-        return exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD();
+        return exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD() || passTypeByRef(*irs.target, exp.type);
     }
 
     return false;
+}
+
+/********
+ * If type is a composite and is to be passed by reference instead of by value
+ * Params:
+ *      t = type
+ * Returns:
+ *      true if passed by reference
+ * Reference:
+ *      Procedure Call Standard for the Arm 64-bi Architecture (AArch64) pg 23 B.4
+ *      "If the argument type is a Composite Type that is larger than 16 bytes, then the
+ *      argument is copied to memory allocated by the caller and the argument is replaced
+ *      by a pointer to the copy."
+ */
+static bool passTypeByRef(ref const Target target, Type t)
+{
+    return (target.isAArch64 && t.size(Loc.initial) > 16);
 }
 
 /**************************************************
@@ -5448,11 +5466,12 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
  * If argument to a function should use OPstrpar,
  * fix it so it does and return it.
  */
-elem* useOPstrpar(elem* e)
+static elem* useOPstrpar(elem* e)
 {
     tym_t ty = tybasic(e.Ety);
     if (ty == TYstruct || ty == TYarray)
     {
+printf("useOPstrpar()\n"); elem_print(e);
         e = el_una(OPstrpar, TYstruct, e);
         e.ET = e.E1.ET;
         assert(e.ET);

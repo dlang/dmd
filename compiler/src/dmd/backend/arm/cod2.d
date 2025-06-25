@@ -1049,8 +1049,8 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    //printf("cdind()\n");
-    //elem_print(e);
+    printf("cdind() pregregs: %s\n", regm_str(pretregs));
+    elem_print(e);
     if (pretregs == 0)
     {
         codelem(cgstate,cdb,e.E1,pretregs,false);
