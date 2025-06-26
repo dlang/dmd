@@ -1038,32 +1038,48 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
             argStruct = (cast(TypeStruct)targ).sym;
             prmStruct = (cast(TypeStruct)tprm).sym;
 
-            /* if both a copy constructor and move constructor exist, then match
-             * the lvalue to the copy constructor only and the rvalue to the move constructor
-             * only
-             */
             if (argStruct == prmStruct && fd)
             {
+                /* if both a copy constructor and move constructor exist, then match
+                 * the lvalue to the copy constructor only and the rvalue to the move constructor
+                 * only
+                 */
                 if (auto cfd = fd.isCtorDeclaration())
                 {
                     /* Get struct that constructor is making
                      */
-
-                    auto t1 = cfd.type.toBasetype();
-                    auto t2 = t1.nextOf();
-                    auto t3 = t2.isTypeStruct();
-                    if (t3)
+                    if (auto ctorType = cfd.type.toBasetype().nextOf().isTypeStruct())
                     {
-                    auto ctorStruct = t3.sym;
-//                    StructDeclaration ctorStruct = cfd.type.toBasetype().nextOf().isTypeStruct().sym;
+                        auto ctorStruct = ctorType.sym;
 
-                    if (prmStruct == ctorStruct && ctorStruct.hasCopyCtor && ctorStruct.hasMoveCtor)
-                    {
-                        if (cfd.isCpCtor && !arg.isLvalue())
-                            return MATCH.nomatch;       // copy constructor is only for lvalues
-                        if (cfd.isMoveCtor && arg.isLvalue())
-                            return MATCH.nomatch;       // move constructor is only for rvalues
+                        if (prmStruct == ctorStruct && ctorStruct.hasCopyCtor && ctorStruct.hasMoveCtor)
+                        {
+                            if (cfd.isCpCtor && !arg.isLvalue())
+                                return MATCH.nomatch;       // copy constructor is only for lvalues
+                            if (cfd.isMoveCtor && arg.isLvalue())
+                                return MATCH.nomatch;       // move constructor is only for rvalues
+                        }
                     }
+                }
+                /* if both `opAssign(S)` and `opAssign(ref S)` exist, then
+                 * match the lvalue to the "ref" copy assign overload only,
+                 * and the rvalue to the move assign overload only
+                 */
+                if (fd.ident == Id.opAssign)
+                {
+                    /* Get struct that assignment is making
+                     */
+                    if (auto ctorAggr = fd.isThis())
+                    {
+                        auto ctorStruct = ctorAggr.isStructDeclaration();
+
+                        if (prmStruct == ctorStruct && ctorStruct.hasCopyAssign && ctorStruct.hasMoveAssign)
+                        {
+                            if (fd.isCopyAssign && !arg.isLvalue())
+                                return MATCH.nomatch;       // copy assignment is only for lvalues
+                            if (fd.isMoveAssign && arg.isLvalue())
+                                return MATCH.nomatch;       // move assignment is only for rvalues
+                        }
                     }
                 }
             }
