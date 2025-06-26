@@ -1070,11 +1070,10 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
         }
 
         // check if the copy constructor may be called to copy the argument
-        if (arg.isLvalue() && !isRef && argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
+        if (arg.isLvalue() && !isRef && argStruct && argStruct == prmStruct && argStruct.hasCopyCtor &&
+            !isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
         {
-            if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
-                return MATCH.nomatch;
-            m = MATCH.exact;
+            return MATCH.nomatch;
         }
         else
         {
