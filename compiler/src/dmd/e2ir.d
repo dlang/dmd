@@ -153,6 +153,7 @@ bool ISX64REF(ref IRState irs, Expression exp)
 /********
  * If type is a composite and is to be passed by reference instead of by value
  * Params:
+ *      target = target instruction set
  *      t = type
  * Returns:
  *      true if passed by reference
@@ -5471,7 +5472,6 @@ static elem* useOPstrpar(elem* e)
     tym_t ty = tybasic(e.Ety);
     if (ty == TYstruct || ty == TYarray)
     {
-printf("useOPstrpar()\n"); elem_print(e);
         e = el_una(OPstrpar, TYstruct, e);
         e.ET = e.E1.ET;
         assert(e.ET);

@@ -1147,8 +1147,8 @@ static if (NTEXCEPTIONS)
         case BC.retexp:
             reg_t reg1, reg2;
             retregs = allocretregs(cgstate, e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
-            printf("reg1: %d, reg2: %d\n", reg1, reg2);
-            printf("allocretregs returns %llx %s\n", retregs, regm_str(retregs));
+            //printf("reg1: %d, reg2: %d\n", reg1, reg2);
+            //printf("allocretregs returns %llx %s\n", retregs, regm_str(retregs));
 
             reg_t lreg = NOREG;
             reg_t mreg = NOREG;
@@ -1497,7 +1497,7 @@ regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, ou
         static immutable reg_t[2] fpt_regs = [32, 33]; // AArch64 V0, V1
 
         uint cntgpx = 0,
-	     cntgpr = 0,
+             cntgpr = 0,
              cntxmm = 0,
              cntfpt = 0;
 
@@ -1513,7 +1513,6 @@ regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, ou
     {
         if (tym == TYMAX)
             return NOREG;
-printf("sz: %d\n", tysize(tym));
         switch (tysize(tym))
         {
         case 1:
@@ -1536,11 +1535,11 @@ printf("sz: %d\n", tysize(tym));
                 return ST01;
             }
             else if (AArch64)
-	    {
-		if (tyfloating(tym))
+            {
+                if (tyfloating(tym))
                     return rralloc.fpt();
-		return rralloc.gpx();
-	    }
+                return rralloc.gpx();
+            }
             else if (tysimd(tym))
             {
                 return rralloc.xmm();

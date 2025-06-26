@@ -3505,8 +3505,8 @@ private void elstructwalk(elem* e,tym_t tym)
 @trusted
 elem* elstruct(elem* e, Goal goal)
 {
-    printf("elstruct(%p)\n", e);
-    elem_print(e);
+    //printf("elstruct(%p)\n", e);
+    //elem_print(e);
     if (e.Eoper == OPstreq && (e.E1.Eoper == OPcomma || OTassign(e.E1.Eoper)))
         return cgel_lvalue(e);
 
@@ -3557,8 +3557,8 @@ elem* elstruct(elem* e, Goal goal)
             goto Ldefault;
         goto L1;
     }
-    if (targ1) { printf("targ1\n"); type_print(targ1); }
-    if (targ2) { printf("targ2\n"); type_print(targ2); }
+    //if (targ1) { printf("targ1\n"); type_print(targ1); }
+    //if (targ2) { printf("targ2\n"); type_print(targ2); }
     switch (cast(int)sz)
     {
         case 1:  tym = TYchar;   goto L1;
@@ -3607,7 +3607,6 @@ elem* elstruct(elem* e, Goal goal)
         case 16:
             if (I64 && (ty == TYstruct || (ty == TYarray && config.exe == EX_WIN64)) /*&& !cgstate.AArch64*/)
             {
-printf("xyzzy1\n");
                 tym = TYucent;
                 goto L1;
             }
@@ -3644,9 +3643,7 @@ printf("xyzzy1\n");
                     if (tyfloating(tybasic(targ1.Tty)))
                         tym = TYcdouble;
                     else if (0 && cgstate.AArch64)
-{ printf("xyzzy2\n");
                         goto Ldefault;
-}
                     else
                         tym = TYucent;
                     if ((0 == tyfloating(targ1.Tty)) ^ (0 == tyfloating(targ2.Tty)))

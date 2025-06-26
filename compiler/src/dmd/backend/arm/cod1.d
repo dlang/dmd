@@ -2255,9 +2255,9 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 
     debug
     {
-//        if (debugw)
+        if (debugw)
             printf("loaddata(e = %p,outretregs = %s)\n",e,regm_str(outretregs));
-        elem_print(e);
+        //elem_print(e);
     }
 
     assert(e);

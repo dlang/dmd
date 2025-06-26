@@ -1049,8 +1049,8 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    printf("cdind() pregregs: %s\n", regm_str(pretregs));
-    elem_print(e);
+    //printf("cdind() pregregs: %s\n", regm_str(pretregs));
+    //elem_print(e);
     if (pretregs == 0)
     {
         codelem(cgstate,cdb,e.E1,pretregs,false);
@@ -1094,6 +1094,25 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     uint size;
     uint VR = 0;
     uint opc;
+
+    if (sz == 2 * REGSIZE)
+    {
+        reg_t Rlsw = findreg(retregs & ALLREGS & INSTR.LSW);
+        reg_t Rmsw = findreg(retregs & ALLREGS & INSTR.MSW);
+        uint imm12 = 0;
+        if (Rn == Rlsw)                 // collision, reverse load order
+        {
+            cdb.gen1(INSTR.ldst_pos(3,0,1,imm12+1,Rn,Rmsw));    // LDR 64
+            cdb.gen1(INSTR.ldst_pos(3,0,1,imm12  ,Rn,Rlsw));
+        }
+        else
+        {
+            cdb.gen1(INSTR.ldst_pos(3,0,1,imm12  ,Rn,Rlsw));
+            cdb.gen1(INSTR.ldst_pos(3,0,1,imm12+1,Rn,Rmsw));
+        }
+        fixresult(cdb,e,retregs,pretregs);
+        return;
+    }
 
     uint decode(uint to, uint from, bool uns) { return to * 4 * 2 + from * 2 + uns; }
 
@@ -1139,15 +1158,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     uint imm12 = 0;
-    uint ins = (size  << 30) |
-               (7     << 27) |
-               (VR    << 26) |
-               (1     << 24) |
-               (opc   << 22) |
-               (imm12 << 10) |
-               (Rn    <<  5) |
-                Rt;
-    cdb.gen1(ins);
+    cdb.gen1(INSTR.ldst_pos(size,VR,opc,imm12,Rn,Rt));
 
     fixresult(cdb,e,retregs,pretregs);
 }
