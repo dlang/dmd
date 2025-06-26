@@ -3605,7 +3605,7 @@ elem* elstruct(elem* e, Goal goal)
             goto Ldefault;
 
         case 16:
-            if (I64 && (ty == TYstruct || (ty == TYarray && config.exe == EX_WIN64)) && !cgstate.AArch64)
+            if (I64 && (ty == TYstruct || (ty == TYarray && config.exe == EX_WIN64)) /*&& !cgstate.AArch64*/)
             {
                 tym = TYucent;
                 goto L1;
@@ -3642,7 +3642,7 @@ elem* elstruct(elem* e, Goal goal)
                 {
                     if (tyfloating(tybasic(targ1.Tty)))
                         tym = TYcdouble;
-                    else if (cgstate.AArch64)
+                    else if (0 && cgstate.AArch64)
                         goto Ldefault;
                     else
                         tym = TYucent;

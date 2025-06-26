@@ -1491,14 +1491,17 @@ regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, ou
     static struct RetRegsAllocator
     {
     nothrow:
+        static immutable reg_t[2] gpx_regs = [0, 1];
         static immutable reg_t[2] gpr_regs = [AX, DX];
         static immutable reg_t[2] xmm_regs = [XMM0, XMM1];
         static immutable reg_t[2] fpt_regs = [32, 33]; // AArch64 V0, V1
 
-        uint cntgpr = 0,
+        uint cntgpx = 0,
+             cntgpr = 0,
              cntxmm = 0,
              cntfpt = 0;
 
+        reg_t gpx() { return gpx_regs[cntgpx++]; }
         reg_t gpr() { return gpr_regs[cntgpr++]; }
         reg_t xmm() { return xmm_regs[cntxmm++]; }
         reg_t fpt() { return fpt_regs[cntfpt++]; }
@@ -1531,8 +1534,12 @@ regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, ou
                 assert(tyfb == TYjfunc && I32);
                 return ST01;
             }
-            else if (AArch64 && tyfloating(tym))
-                return rralloc.fpt();
+            else if (AArch64)
+            {
+                if (tyfloating(tym))
+                    return rralloc.fpt();
+                return rralloc.gpx();
+            }
             else if (tysimd(tym))
             {
                 return rralloc.xmm();
