@@ -6913,6 +6913,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         assert(t1.ty == Tfunction);
 
+        // https://github.com/dlang/dmd/issues/20850
+        // check if the callee is a TypeExp containing a TypeFunction
+        if (exp.e1.checkType())
+            return setError();
+
         Expression argprefix;
         if (!exp.arguments)
             exp.arguments = new Expressions();
