@@ -18343,6 +18343,24 @@ private extern(C++) class IncludeVisitor : Visitor {
     }
 }
 
+/***************************************
+* mark ArrayExp on the left side of an assignment recursively as modifiable before
+* semantic analysis to defer potential lowerings into the assignment when
+* the right side of the expression is analyzed, too, i.e.
+*
+*       a[i][j] = 1
+*
+* is parsed to
+*
+*       AssignExp(ArrayExp(ArrayExp(Id('a'), Id('i')), Id('j')), 1)
+*
+* ArrayExp is converted to IndexExp during semantic analysis, but lhe lowering
+* for IndexExp on associative arrays is different for reading or writing. For
+* struct types, it can even depend on the right hand side of an assignment.
+*
+* Params:
+*       ae = the ArrayExp to mark
+*/
 void markArrayExpModifiable(ArrayExp ae)
 {
     ae.modifiable = true;
@@ -18350,6 +18368,18 @@ void markArrayExpModifiable(ArrayExp ae)
         ae1.modifiable = true;
 }
 
+/***************************************
+* convert an IndexExp on an associative array `aa[key]`
+* to `_aaGetRvalueX!(K,V)(aa, key)[0]`
+*
+* Params:
+*       ie = the IndexExp to lower
+*       sc = context
+* Returns:
+*       on success, the lowered expression that is still an IndexExp
+*         with its `loweredFrom` field set to the original expression
+*       on failure, null is returned
+*/
 Expression lowerAAIndexRead(IndexExp ie, Scope* sc)
 {
     Expression ce = buildAAIndexRValueX(ie.e1.type, ie.e1, ie.e2, sc);
@@ -18361,14 +18391,15 @@ Expression lowerAAIndexRead(IndexExp ie, Scope* sc)
     return rv.expressionSemantic(sc);
 }
 
-Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, Scope* sc)
+// helper for lowerAAIndexRead and revertIndexAssignToRvalues
+// to rewrite `aa[key]` to `_aaGetRvalueX!(K,V)(aa, key)[0]`
+private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, Scope* sc)
 {
     auto taa = t.toBasetype().isTypeAArray();
     if (!taa)
         return null;
 
     auto loc = eaa.loc;
-    // rewrite `aa[key]` to `_aaGetRvalueX!(K,V)(aa, key)[0]`
     Identifier hook = Id._aaGetRvalueX;
     if (!verifyHookExist(loc, *sc, hook, "indexing AA"))
         return null;
@@ -18413,10 +18444,20 @@ Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, Scope* s
     return e0;
 }
 
+/***************************************
+* in a multi-dimensional array assignment without the out-most access being to an AA,
+* convert AA accesses back to rvalues
+*
+* Params:
+*       ie = the IndexExp to lower
+*       sc = context
+* Returns:
+*       the lowered expression if the assignment was actually on an associative array,
+*       the original expression otherwise,
+*       an ErorrExp on failure
+*/
 Expression revertIndexAssignToRvalues(IndexExp ie, Scope* sc)
 {
-    // in a multi-dimensional array access without the out-most access being to an AA,
-    // convert AA accesses back to rvalues
     if (auto ie1 = ie.e1.isIndexExp())
     {
         // convert inner access first, otherwise we'd have to crawl into the lowered AST
@@ -18429,7 +18470,8 @@ Expression revertIndexAssignToRvalues(IndexExp ie, Scope* sc)
     return lowerAAIndexRead(ie, sc);
 }
 
-Expression implicitConvertToStruct(Expression ev, StructDeclaration sd, Scope* sc)
+// helper for rewriteAAIndexAssign
+private Expression implicitConvertToStruct(Expression ev, StructDeclaration sd, Scope* sc)
 {
     Type t2 = ev.type.toBasetype();
     Expression ey = null;
@@ -18449,7 +18491,8 @@ Expression implicitConvertToStruct(Expression ev, StructDeclaration sd, Scope* s
     return ey;
 }
 
-Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] aliasThisStop)
+// helper for rewriteIndexAssign
+private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] aliasThisStop)
 {
     auto ie = exp.e1.isIndexExp();
     assert(ie);
@@ -18587,6 +18630,17 @@ Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] aliasThisStop
     return ex;
 }
 
+/***************************************
+* rewrite multi-dimensional array modifying assignments on associative arrays
+*
+* Params:
+*       exp = the assignemnt expression, AssignExp, BinAssignExp or PostExp
+*       sc = context
+*       aliasThisStop = for recursion check on `alias this`
+* Returns:
+*       the lowered expression if the assignment was actually on an associative array,
+*       null if no modifying index expression was found on the lhs of the assignemnt
+*/
 Expression rewriteIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
 {
     if (auto ie1 = exp.e1.isIndexExp())
