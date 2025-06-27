@@ -3505,6 +3505,7 @@ Lmark:
                         Gcx.instance.busyThreads = 0;
 
                         memset(&Gcx.instance.evStackFilled, 0, Gcx.instance.evStackFilled.sizeof);
+                        memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
                     }
                 }
             }
@@ -3532,7 +3533,7 @@ Lmark:
 
     shared uint busyThreads;
     shared uint stoppedThreads;
-    bool stopGC;
+    shared bool stopGC;
 
     void markParallel() nothrow
     {
@@ -3578,20 +3579,8 @@ Lmark:
             else
                 mark!(false, true, true)(ScanRange!false(pbot, ptop));
 
-            for (bool done = false; !done; )
-            {
-                pullFromScanStack();
-                if (busyThreads == 0)
-                {
-                    stackLock.lock();
-                    done = scanStack.empty() && busyThreads == 0;
-                    stackLock.unlock();
-                }
-                else
-                {
-                    evDone.wait(1.msecs);
-                }
-            }
+            while (pullFromScanStack())
+                evDone.wait(1.msecs);
         }
         if (ConservativeGC.isPrecise)
             pullLoop!(true)();
@@ -3645,7 +3634,7 @@ Lmark:
         if (!scanThreadData)
             onOutOfMemoryError();
 
-        evStackFilled.initialize(false, false);
+        evStackFilled.initialize(true, false);
         evDone.initialize(false, false);
 
         version (Posix)
@@ -3719,19 +3708,18 @@ Lmark:
             evDone.setIfInitialized(); // tell main loop we are done
         }
         stoppedThreads.atomicOp!"+="(1);
-        evStackFilled.setIfInitialized(); // wake up another thread
         evDone.setIfInitialized(); // wake up main
     }
 
-    void pullFromScanStack() nothrow
+    bool pullFromScanStack() nothrow
     {
         if (ConservativeGC.isPrecise)
-            pullFromScanStackImpl!true();
+            return pullFromScanStackImpl!true();
         else
-            pullFromScanStackImpl!false();
+            return pullFromScanStackImpl!false();
     }
 
-    void pullFromScanStackImpl(bool precise)() nothrow
+    bool pullFromScanStackImpl(bool precise)() nothrow
     {
         version (Posix) debug (PARALLEL_PRINTF)
         {
@@ -3742,12 +3730,14 @@ Lmark:
 
         ScanRange!precise rng;
 
-        busyThreads.atomicOp!"+="(1);
-        if (scanStackPopLocked(rng))
+        stackLock.lock();
+        while (!scanStack.empty())
         {
-            // if a new thread has found an entry on the stack, another thread might want to join
-            if (!scanStack.empty)
-                evStackFilled.setIfInitialized();
+            busyThreads.atomicOp!"+="(1);
+            scanStack.pop(rng);
+            if (scanStack.empty)
+                evStackFilled.reset();
+            stackLock.unlock();
 
             version (Posix) debug (PARALLEL_PRINTF)
             {
@@ -3756,10 +3746,15 @@ Lmark:
             }
             mark!(precise, true, true)(rng);
             // returns here only if an empty scan stack has been seen
+
+            stackLock.lock();
+            busyThreads.atomicOp!"-="(1);
         }
-        busyThreads.atomicOp!"-="(1);
+        bool cont = busyThreads > 0;
+        stackLock.unlock();
 
         version (Posix) debug (PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
+        return cont;
     }
 
     auto stackLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
@@ -3767,16 +3762,15 @@ Lmark:
     void scanStackPushLocked(RANGE)(RANGE[] ranges)
     {
         stackLock.lock();
+        scope(exit) stackLock.unlock();
         bool wasEmpty = scanStack.empty;
-        scope(exit)
-        {
-            stackLock.unlock();
-            if (wasEmpty)
-                evStackFilled.setIfInitialized();
-        }
+
         // reverse order for depth-first-order traversal
         foreach_reverse (ref range; ranges)
             scanStack.push(range);
+
+        if (wasEmpty)
+            evStackFilled.setIfInitialized();
     }
 
     bool scanStackPopLocked(RANGE)(ref RANGE rng)
@@ -3785,7 +3779,11 @@ Lmark:
         scope(exit) stackLock.unlock();
         if (scanStack.empty())
             return false;
+
         scanStack.pop(rng);
+
+        if (scanStack.empty())
+            evStackFilled.reset();
         return true;
     }
 }
