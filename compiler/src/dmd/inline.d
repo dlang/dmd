@@ -754,9 +754,9 @@ public:
             ue.e1 = doInlineAs!Expression(e.e1, ids);
             if (auto ce = ue.isCastExp())
             {
-                if (ce.lowering !is null)
+                if (auto lowering = ce.lowering)
                 {
-                    ce.lowering = doInlineAs!Expression(ce.lowering, ids);
+                    ce.lowering = doInlineAs!Expression(lowering, ids);
                 }
             }
 
@@ -1284,9 +1284,9 @@ public:
     {
         if (auto ce = e.isCastExp())
         {
-            if (ce.lowering !is null)
+            if (auto lowering = ce.lowering)
             {
-                inlineScan(ce.lowering);
+                inlineScan(lowering);
                 return;
             }
         }
