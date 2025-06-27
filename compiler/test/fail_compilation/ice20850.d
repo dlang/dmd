@@ -1,12 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice20850.d(26): Error: alias `fromEnum` is not a variable
-fail_compilation/ice20850.d(27): Error: alias `fromEnum` is not a variable
-fail_compilation/ice20850.d(28): Error: alias `fromStruct1` is not a variable
-fail_compilation/ice20850.d(29): Error: alias `fromStruct1` is not a variable
-fail_compilation/ice20850.d(30): Error: alias `fromStruct2` is not a variable
-fail_compilation/ice20850.d(31): Error: alias `fromStruct2` is not a variable
+fail_compilation/ice20850.d(26): Error: type `A()` is not an expression
+fail_compilation/ice20850.d(27): Error: type `A()` is not an expression
+fail_compilation/ice20850.d(28): Error: type `S1()` is not an expression
+fail_compilation/ice20850.d(29): Error: type `S1()` is not an expression
+fail_compilation/ice20850.d(30): Error: type `S2()` is not an expression
+fail_compilation/ice20850.d(31): Error: type `S2()` is not an expression
 ---
 */
 enum A;
