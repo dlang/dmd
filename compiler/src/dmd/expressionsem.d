@@ -1728,11 +1728,6 @@ Lagain:
         return ie.expressionSemantic(sc);
     }
 
-    if (Type t = s.getType())
-    {
-        return (new TypeExp(loc, t)).expressionSemantic(sc);
-    }
-
     if (TupleDeclaration tup = s.isTupleDeclaration())
     {
         if (tup.needThis() && hasThis(sc))
@@ -1768,6 +1763,11 @@ Lagain:
             e = new TemplateExp(loc, td);
         e = e.expressionSemantic(sc);
         return e;
+    }
+    if (Type t = s.getType())
+    {
+        if (t.ty != Tfunction)
+            return (new TypeExp(loc, t)).expressionSemantic(sc);
     }
 
     .error(loc, "%s `%s` is not a variable", s.kind(), s.toChars());
@@ -6912,11 +6912,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             t1 = exp.f.type;
         }
         assert(t1.ty == Tfunction);
-
-        // https://github.com/dlang/dmd/issues/20850
-        // check if the callee is a TypeExp containing a TypeFunction
-        if (exp.e1.checkType())
-            return setError();
 
         Expression argprefix;
         if (!exp.arguments)
