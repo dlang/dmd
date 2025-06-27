@@ -307,7 +307,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             }
             if (auto ctorDecl = s.isCtorDeclaration())
             {
-                if (!ctorDecl.isCpCtor && (!ignoreDisabled || !(ctorDecl.storage_class & STC.disable)))
+                if (!ctorDecl.isCpCtor && !ctorDecl.isMoveCtor && (!ignoreDisabled || !(ctorDecl.storage_class & STC.disable)))
                 {
                     result = true;
                     return 1;
