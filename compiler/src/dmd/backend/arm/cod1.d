@@ -476,6 +476,8 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
     cs.Iop = op;
     tym_t tym = e.Ety;
     int sz = tysize(tym);
+    if (tybasic(tym) == TYucent)
+        sz = 8;
 
     /* Determine if location we want to get is in a register. If so,      */
     /* substitute the register for the EA.                                */
@@ -489,9 +491,9 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
         if (sz == REGSIZE * 2)          // value is in 2 registers
         {
             if (offset)
-                rm &= mMSW;             /* only high words      */
+                rm &= INSTR.MSW;             /* only high words      */
             else
-                rm &= mLSW;             /* only low words       */
+                rm &= INSTR.LSW;             /* only low words       */
         }
         for (uint i = 0; rm; i++)
         {
@@ -662,7 +664,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                  ) ||
                  (e12.Eoper == OPconst && !e1.Ecount && el_signx32(e12))) &&
                 e1.Ecount == e1.Ecomsub &&
-                (!e1.Ecount || (~keepmsk & ALLREGS & mMSW)) &&
+                (!e1.Ecount || (~keepmsk & ALLREGS & INSTR.MSW)) &&
                 tysize(e11.Ety) == REGSIZE
                )
             {
@@ -1306,12 +1308,12 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
         }
         else if (sz > REGSIZE)
         {
-            reg_t msreg = findregmsw(retregs);
-            reg_t lsreg = findreglsw(retregs);
+            reg_t msreg = findreg(retregs & INSTR.MSW);
+            reg_t lsreg = findreg(retregs & INSTR.LSW);
 
             allocreg(cdb, outretregs, tym);  // allocate return regs
-            reg_t msrreg = findregmsw(outretregs);
-            reg_t lsrreg = findreglsw(outretregs);
+            reg_t msrreg = findreg(outretregs & INSTR.MSW);
+            reg_t lsrreg = findreg(outretregs & INSTR.LSW);
 
             cdb.gen1(INSTR.mov_register(sz == 8,msreg,msrreg));  // MOV msrreg,msreg
             cdb.gen1(INSTR.mov_register(sz == 8,lsreg,lsrreg));  // MOV lsrreg,lsreg
@@ -1760,8 +1762,8 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                 }
                 else if (tyrelax(ep.Ety) == TYcent)
                 {
-                    lreg = mask(preg ) & mLSW ? cast(reg_t)preg  : 0;
-                    mreg = mask(preg2) & mMSW ? cast(reg_t)preg2 : 1;
+                    lreg = mask(preg ) & INSTR.LSW ? cast(reg_t)preg  : 0;
+                    mreg = mask(preg2) & INSTR.MSW ? cast(reg_t)preg2 : 1;
                 }
                 else
                 {
@@ -2131,8 +2133,8 @@ static if (0)
             }
             else
             {
-                lreg = mask(reg1) & mLSW ? reg1 : 0;
-                mreg = mask(reg2) & mMSW ? reg2 : 1;
+                lreg = mask(reg1) & INSTR.LSW ? reg1 : 0;
+                mreg = mask(reg2) & INSTR.MSW ? reg2 : 1;
             }
             for (int v = 0; v < 2; v++)
             {
@@ -2228,9 +2230,9 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     else if (sz == REGSIZE * 2)
     {
         int grex = I64 ? REX_W << 16 : 0;
-        uint r = findregmsw(retregs);
+        uint r = findreg(retregs & INSTR.MSW);
         cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FL.funcarg, funcargtos - REGSIZE);    // MOV -REGSIZE[EBP],r
-        r = findreglsw(retregs);
+        r = findreg(retregs & INSTR.LSW);
         cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FL.funcarg, funcargtos - REGSIZE * 2); // MOV -2*REGSIZE[EBP],r
         assert(0);
     }
@@ -2343,8 +2345,8 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         }
         else if (sz == 16)
         {
-            movregconst(cdb, findreglsw(forregs), cast(targ_size_t)e.Vcent.lo, 64);
-            movregconst(cdb, findregmsw(forregs), cast(targ_size_t)e.Vcent.hi, 64);
+            movregconst(cdb, findreg(forregs & INSTR.LSW), cast(targ_size_t)e.Vcent.lo, 64);
+            movregconst(cdb, findreg(forregs & INSTR.MSW), cast(targ_size_t)e.Vcent.hi, 64);
         }
         else
             assert(0);
