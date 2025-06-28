@@ -3503,6 +3503,7 @@ Lmark:
                         Gcx.instance.numScanThreads = 0;
                         Gcx.instance.scanThreadData = null;
                         Gcx.instance.busyThreads = 0;
+                        Gcx.instance.stackLock.unlock();
 
                         memset(&Gcx.instance.evStackFilled, 0, Gcx.instance.evStackFilled.sizeof);
                         memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
