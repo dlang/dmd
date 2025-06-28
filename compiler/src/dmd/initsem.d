@@ -174,7 +174,8 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 return ex;
             }
 
-            auto elements = resolveStructLiteralNamedArgs(sd, t, sc, i.loc, i.field[], &getExp, (size_t j) => i.value[j].loc);
+            auto elements = resolveStructLiteralNamedArgs(sd, t, sc, i.loc, i.field.length, (size_t j) => i.field[j], &getExp, (size_t j) => i.value[j].loc, (size_t j) => i.value[j].loc);
+            //Keeping both the getArgLoc and getNameLoc same as i.field doesn't have a .loc value here.
             if (!elements)
                 return err();
 
@@ -242,6 +243,9 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             if (t.nextOf().isTypeFunction())
                 goto default;
             break;
+
+        case Terror:
+            return err();
 
         default:
             error(i.loc, "cannot use array to initialize `%s`", t.toChars());
@@ -1515,15 +1519,18 @@ Params:
     t = type of struct (potentially including qualifiers such as `const` or `immutable`)
     sc = scope of the expression initializing the struct
     iloc = location of expression initializing the struct
-    names = identifiers passed in argument list, `null` entries for positional arguments
-    getExp = function that, given an index into `names` and destination type, returns the initializing expression
-    getLoc = function that, given an index into `names`, returns a location for error messages
+    argCount = count of argumnet present
+    getExp = function that, given an index into `argNames` and destination type, returns the initializing expression
+    getArgName = function that, given an index into `argNames`, returns the name of argument for error messages
+    getArgLoc = function that, given an index into `argNames`, returns a location of argument for error messages
+    getNameLoc = function that, given an index into `argNames`, returns a location of that `name` for error messages
 
 Returns: list of expressions ordered to the struct's fields, or `null` on error
 */
 Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* sc,
-    Loc iloc, Identifier[] names, scope Expression delegate(size_t i, Type fieldType) getExp,
-    scope Loc delegate(size_t i) getLoc
+    Loc iloc, size_t argCount, scope Identifier delegate(size_t i) getArgName, scope Expression delegate(size_t i, Type fieldType) getExp,
+    scope Loc delegate(size_t i) getArgLoc,
+    scope Loc delegate(size_t i) getNameLoc
 )
 {
     //expandTuples for non-identity arguments?
@@ -1537,9 +1544,11 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
     // TODO: this part is slightly different from StructLiteralExp::semantic.
     bool errors = false;
     size_t fieldi = 0;
-    foreach (j, id; names)
+    foreach (j; 0 .. argCount)
     {
-        const argLoc = getLoc(j);
+        const argLoc = getArgLoc(j);
+        const nameLoc = getNameLoc(j);
+        Identifier id = getArgName(j);
         if (id)
         {
             // Determine `fieldi` that `id` matches
@@ -1548,9 +1557,9 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
             {
                 s = sd.search_correct(id);
                 if (s)
-                    error(argLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                    error(nameLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
                 else
-                    error(argLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
+                    error(nameLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
                 return null;
             }
             s.checkDeprecated(iloc, sc);

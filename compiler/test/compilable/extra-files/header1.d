@@ -627,3 +627,5 @@ interface I12344
 {
     int i12344(int x) in(x > 0) out(result) {assert(result > 0);};
 }
+
+debug enum issue21406 = 1;

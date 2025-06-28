@@ -1050,7 +1050,7 @@ private extern (C++) class CVMember : Visitor
 
                 if (fd.isStatic())
                     attribute |= 2*4;
-                else if (fd.isVirtual())
+                else if (fd.isVirtualMethod()) // isVirtual() not "pedantic" enough
                 {
                     if (fd.isIntroducing)
                     {

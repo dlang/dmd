@@ -1,0 +1,31 @@
+Templatized `_d_arraysetlengthT` to remove `TypeInfo` dependency
+
+The internal runtime function `_d_arraysetlengthT` was templatized to
+operate directly on the type `T`, removing its dependency on `TypeInfo`.
+This improves type safety, reduces runtime reflection, and allows the
+compiler to generate specialized code paths for different array element types.
+
+This change preserves the semantics of `.length` assignment on dynamic arrays,
+ensuring memory allocation, element initialization, and postblit handling
+continue to work as expected.
+
+-------
+/**
+Resize a dynamic array by setting its `.length` property.
+
+New elements are initialized according to their type:
+- Zero-initialized if applicable
+- Default-initialized via `emplace`
+- Or `memcpy` if trivially copyable
+
+---
+int[] a = [1, 2];
+a.length = 3; // becomes _d_arraysetlengthT!(int)(a, 3)
+---
+*/
+size_t _d_arraysetlengthT(Tarr : T[], T)(return ref scope Tarr arr, size_t newlength);
+-------
+
+This reduces runtime dependency on `TypeInfo`, making the function more predictable and performant.
+
+See also: $(LINK https://github.com/dlang/dmd/pull/21151, PR #21151)

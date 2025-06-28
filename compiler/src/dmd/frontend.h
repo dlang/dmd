@@ -1502,6 +1502,23 @@ struct MangleOverride final
 
 typedef Array<AliasDeclaration* > AliasDeclarations;
 
+struct ArgumentLabel final
+{
+    Identifier* name;
+    Loc loc;
+    ArgumentLabel() :
+        name(),
+        loc()
+    {
+    }
+    ArgumentLabel(Identifier* name, Loc loc = Loc()) :
+        name(name),
+        loc(loc)
+        {}
+};
+
+typedef Array<ArgumentLabel > ArgumentLabels;
+
 typedef Array<BaseClass* > BaseClasses;
 
 typedef Array<CaseStatement* > CaseStatements;
@@ -1796,7 +1813,7 @@ public:
     ScopeDsymbol* argsym;
     size_t hash;
     Array<Expression* >* fargs;
-    Array<Identifier* >* fnames;
+    Array<ArgumentLabel >* fnames;
     Array<TemplateInstance* >* deferred;
     Module* memberOf;
     TemplateInstance* tinst;
@@ -2607,13 +2624,13 @@ public:
 struct ArgumentList final
 {
     Array<Expression* >* arguments;
-    Array<Identifier* >* names;
+    Array<ArgumentLabel >* names;
     ArgumentList() :
         arguments(),
         names()
     {
     }
-    ArgumentList(Array<Expression* >* arguments, Array<Identifier* >* names = nullptr) :
+    ArgumentList(Array<Expression* >* arguments, Array<ArgumentLabel >* names = nullptr) :
         arguments(arguments),
         names(names)
         {}
@@ -2710,7 +2727,7 @@ class CallExp final : public UnaExp
 {
 public:
     Array<Expression* >* arguments;
-    Array<Identifier* >* names;
+    Array<ArgumentLabel >* names;
     FuncDeclaration* f;
     bool directcall;
     bool inDebugStatement;
@@ -3425,7 +3442,7 @@ public:
     Expression* thisexp;
     Type* newtype;
     Array<Expression* >* arguments;
-    Array<Identifier* >* names;
+    Array<ArgumentLabel >* names;
     Expression* placement;
     Expression* argprefix;
     CtorDeclaration* member;
@@ -5611,6 +5628,7 @@ struct ASTCodegen final
     using MangleOverride = ::MangleOverride;
     using AliasThis = ::AliasThis;
     using AliasDeclarations = ::AliasDeclarations;
+    using ArgumentLabels = ::ArgumentLabels;
     using BaseClasses = ::BaseClasses;
     using CaseStatements = ::CaseStatements;
     using Catches = ::Catches;
@@ -5741,6 +5759,7 @@ struct ASTCodegen final
     using AddrExp = ::AddrExp;
     using AndAssignExp = ::AndAssignExp;
     using AndExp = ::AndExp;
+    using ArgumentLabel = ::ArgumentLabel;
     using ArgumentList = ::ArgumentList;
     using ArrayExp = ::ArrayExp;
     using ArrayLengthExp = ::ArrayLengthExp;
