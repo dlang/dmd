@@ -985,14 +985,14 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 assert(sz == 2 * REGSIZE);
 
                 // Compare MSW, if they're equal then compare the LSW
-                reg = findregmsw(retregs);
-                rreg = findregmsw(rretregs);
+                reg  = findreg( retregs & INSTR.MSW);
+                rreg = findreg(rretregs & INSTR.MSW);
                 uint ins = INSTR.cmp_shift(1, rreg, 0, 0, reg); // CMP reg, rreg
                 cdb.gen1(ins);
                 genjmp(cdb,JNE,FL.code,cast(block*) ce);      // JNE nop
 
-                reg = findreglsw(retregs);
-                rreg = findreglsw(rretregs);
+                reg = findreg(retregs & INSTR.LSW);
+                rreg = findreg(rretregs & INSTR.LSW);
                 ins = INSTR.cmp_shift(1, rreg, 0, 0, reg);      // CMP reg, rreg
                 cdb.gen1(ins);
             }
@@ -1114,14 +1114,14 @@ printf("OPconst:\n");
                     cs.Iop = 0x39 ^ isbyte ^ reverse;
                     if (sz > REGSIZE)
                     {
-                        rreg = findregmsw(rretregs);
+                        rreg = findreg(rretregs & INSTR.MSW);
                         cs.Irm |= modregrm(0,rreg,0);
                         getlvalue_msw(cs);
                         cdb.gen(&cs);              // CMP EA+2,rreg
                         if (I64 && isbyte && rreg >= 4)
                             cdb.last().Irex |= REX;
                         genjmp(cdb,JNE,FL.code,cast(block*) ce); // JNE nop
-                        rreg = findreglsw(rretregs);
+                        rreg = findreg(rretregs & INSTR.LSW);
                         NEWREG(cs.Irm,rreg);
                         getlvalue_lsw(cs);
                     }
@@ -1260,13 +1260,13 @@ printf("OPconst:\n");
             }
             else if (sz <= 2 * REGSIZE)
             {
-                reg = findregmsw(retregs);   // get reg that e1 is in
+                reg = findreg(retregs & INSTR.MSW);   // get reg that e1 is in
                 // CMP reg,EA
                 loadea(cdb,e2,cs,0x3B ^ reverse,reg,REGSIZE,retregs,0,RM.load);
                 if (I32 && sz == 6)
                     cdb.last().Iflags |= CFopsize;        // seg is only 16 bits
                 genjmp(cdb,JNE,FL.code, cast(block*) ce);  // JNE ce
-                reg = findreglsw(retregs);
+                reg = findreg(retregs & INSTR.LSW);
                 if (e2.Eoper == OPind)
                 {
                     NEWREG(cs.Irm,reg);
@@ -1748,13 +1748,13 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         // OPs16_32, OPs32_64, OPs64_128
         reg_t msreg,lsreg;
 
-        retregs = pretregs & mLSW;
+        retregs = pretregs & INSTR.LSW;
         assert(retregs);
         codelem(cgstate,cdb,e.E1,retregs,false);
-        retregs |= pretregs & mMSW;
+        retregs |= pretregs & INSTR.MSW;
         reg = allocreg(cdb,retregs,e.Ety);
-        msreg = findregmsw(retregs);
-        lsreg = findreglsw(retregs);
+        msreg = findreg(retregs & INSTR.MSW);
+        lsreg = findreg(retregs & INSTR.LSW);
         genmovreg(cdb,msreg,lsreg);                // MOV msreg,lsreg
         assert(config.target_cpu >= TARGET_80286);              // 8088 can't handle SAR reg,imm8
         cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
@@ -1936,7 +1936,7 @@ void cdmsw(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     regm_t retregs = pretregs ? cg.allregs : 0;
     codelem(cgstate,cdb,e.E1,retregs,false);
-    retregs &= mMSW;                    // want MSW only
+    retregs &= INSTR.MSW;                    // want MSW only
 
     /* We "destroy" a reg by assigning it the result of a new e, even
      * though the values are the same. Weakness of our CSE strategy that

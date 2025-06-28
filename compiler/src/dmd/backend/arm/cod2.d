@@ -340,7 +340,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             regm_t regm = cg.allregs & ~(retregs1 | retregs2);
             Rquo = allocreg(cdb, regm, ty);
             assert(Rquo != Rdividend && Rquo != Rdivisor);
-            Rmod = findregmsw(regm);
+            Rmod = findreg(regm & INSTR.MSW);
             assert(Rmod != Rquo);
             break;
         }
@@ -1326,13 +1326,13 @@ else
             regm_t retregs = pretregs;
             allocreg(cdb,retregs,tym);
 
-            reg_t msreg = findregmsw(retregs);
+            reg_t msreg = findreg(retregs & INSTR.MSW);
             buildEA(&cs,DI,-1,1,REGSIZE);
             code_newreg(&cs,msreg);
             cs.Irex |= REX_W;
             cdb.gen(&cs);       // MOV msreg,REGSIZE[DI]        // msreg is never DI
 
-            reg_t lsreg = findreglsw(retregs);
+            reg_t lsreg = findreg(retregs & INSTR.LSW);
             buildEA(&cs,DI,-1,1,0);
             code_newreg(&cs,lsreg);
             cs.Irex |= REX_W;
@@ -1342,7 +1342,7 @@ else
         }
 
         regm_t retregs = mDI;
-        if (pretregs & mMSW && !(config.exe & EX_flat))
+        if (pretregs & INSTR.MSW && !(config.exe & EX_flat))
             retregs |= mES;
         fixresult(cdb,e,retregs,pretregs);
     }
@@ -1913,13 +1913,13 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     else if (0 && sz == 2 * REGSIZE)
     {
     /+    regm_t retregs = cgstate.allregs & ~idxregs & pretregs;
-        if ((retregs & mLSW) == 0)
-                retregs |= mLSW & ~idxregs;
-        if ((retregs & mMSW) == 0)
-                retregs |= ALLREGS & mMSW;
-        assert(retregs & mMSW && retregs & mLSW);
+        if ((retregs & INSTR.LSW) == 0)
+                retregs |= INSTR.LSW & ~idxregs;
+        if ((retregs & INSTR.MSW) == 0)
+                retregs |= ALLREGS & INSTR.MSW;
+        assert(retregs & INSTR.MSW && retregs & INSTR.LSW);
         const reg = allocreg(cdb,retregs,tyml);
-        uint sreg = findreglsw(retregs);
+        uint sreg = findreg(retregs & INSTR.LSW);
         cs.Iop = 0x8B;
         cs.Irm |= modregrm(0,sreg,0);
         cdb.gen(&cs);                   // MOV sreg,EA
