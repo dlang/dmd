@@ -752,15 +752,22 @@ public:
         {
             auto ue = cast(UnaExp)e.copy();
             ue.e1 = doInlineAs!Expression(e.e1, ids);
-            if (auto ce = ue.isCastExp())
+            result = ue;
+        }
+
+        override void visit(CastExp e)
+        {
+            auto ce = cast(CastExp)e.copy();
+            if (auto lowering = ce.lowering)
             {
-                if (auto lowering = ce.lowering)
-                {
-                    ce.lowering = doInlineAs!Expression(lowering, ids);
-                }
+                ce.lowering = doInlineAs!Expression(lowering, ids);
+            }
+            else
+            {
+                ce.e1 = doInlineAs!Expression(e.e1, ids);
             }
 
-            result = ue;
+            result = ce;
         }
 
         override void visit(AssertExp e)
@@ -1282,15 +1289,19 @@ public:
 
     override void visit(UnaExp e)
     {
-        if (auto ce = e.isCastExp())
-        {
-            if (auto lowering = ce.lowering)
-            {
-                inlineScan(lowering);
-                return;
-            }
-        }
         inlineScan(e.e1);
+    }
+
+    override void visit(CastExp e)
+    {
+        if (auto lowering = e.lowering)
+        {
+            inlineScan(lowering);
+        }
+        else
+        {
+            inlineScan(e.e1);
+        }
     }
 
     override void visit(AssertExp e)
