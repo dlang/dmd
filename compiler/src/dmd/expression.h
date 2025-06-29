@@ -407,6 +407,7 @@ public:
     d_bool onstack;
     Expression *basis;
     Expressions *elements;
+    AssocArrayLiteralExp* aaLiteral; // set if this is an array of keys/values of an AA literal
 
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     ArrayLiteralExp *syntaxCopy() override;
@@ -425,6 +426,7 @@ public:
     Expressions *keys;
     Expressions *values;
     Expression* lowering;
+    Expression* loweringCtfe;
 
     bool equals(const RootObject * const o) const override;
     AssocArrayLiteralExp *syntaxCopy() override;
@@ -987,6 +989,7 @@ public:
     Expressions *arguments;             // Array of Expression's
     size_t currentDimension;            // for opDollar
     VarDeclaration *lengthVar;
+    bool modifiable;
 
     ArrayExp *syntaxCopy() override;
     bool isLvalue() override;
@@ -1017,6 +1020,7 @@ class IndexExp final : public BinExp
 {
 public:
     VarDeclaration *lengthVar;
+    Expression* loweredFrom;      // for associative array lowering to _aaGetY or _aaGetRvalueX
     d_bool modifiable;
     d_bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
