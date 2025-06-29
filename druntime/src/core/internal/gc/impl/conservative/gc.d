@@ -1870,8 +1870,7 @@ struct Gcx
 
         roots.removeAll();
         ranges.removeAll();
-        toscanConservative.reset();
-        toscanPrecise.reset();
+        scanStack.reset();
     }
 
 
@@ -2431,18 +2430,17 @@ struct Gcx
         }
     }
 
-    static struct ToScanStack(RANGE)
+    static struct ToScanStack
     {
     nothrow:
         @disable this(this);
-        auto stackLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
 
         void reset()
         {
             _length = 0;
             if (_p)
             {
-                os_mem_unmap(_p, _cap * RANGE.sizeof);
+                os_mem_unmap(_p, _cap);
                 _p = null;
             }
             _cap = 0;
@@ -2452,41 +2450,22 @@ struct Gcx
             _length = 0;
         }
 
-        void push(RANGE rng)
+        void push(RANGE)(RANGE rng)
         {
-            if (_length == _cap) grow();
-            _p[_length++] = rng;
+            if (_length + RANGE.sizeof > _cap) grow();
+            *cast(RANGE*)(_p + _length) = rng;
+            _length += RANGE.sizeof;
         }
 
-        RANGE pop()
-        in { assert(!empty); }
+        void pop(RANGE)(ref RANGE rng)
+        in { assert(_length >= RANGE.sizeof); }
         do
         {
-            return _p[--_length];
+            _length -= RANGE.sizeof;
+            rng = *cast(RANGE*)(_p + _length);
         }
 
-        bool popLocked(ref RANGE rng)
-        {
-            if (_length == 0)
-                return false;
-
-            stackLock.lock();
-            scope(exit) stackLock.unlock();
-            if (_length == 0)
-                return false;
-            rng = _p[--_length];
-            return true;
-        }
-
-        ref inout(RANGE) opIndex(size_t idx) inout
-        in { assert(idx < _length); }
-        do
-        {
-            return _p[idx];
-        }
-
-        @property size_t length() const { return _length; }
-        @property bool empty() const { return !length; }
+        @property bool empty() const { return !_length; }
 
     private:
         void grow()
@@ -2494,46 +2473,35 @@ struct Gcx
             pragma(inline, false);
 
             enum initSize = 64 * 1024; // Windows VirtualAlloc granularity
-            immutable ncap = _cap ? 2 * _cap : initSize / RANGE.sizeof;
-            auto p = cast(RANGE*)os_mem_map(ncap * RANGE.sizeof);
+            immutable ncap = _cap ? 2 * _cap : initSize;
+            auto p = cast(ubyte*)os_mem_map(ncap);
             if (p is null) onOutOfMemoryError();
             debug (VALGRIND) makeMemUndefined(p[0..ncap]);
             if (_p !is null)
             {
                 p[0 .. _length] = _p[0 .. _length];
-                os_mem_unmap(_p, _cap * RANGE.sizeof);
+                os_mem_unmap(_p, _cap);
             }
             _p = p;
             _cap = ncap;
         }
 
         size_t _length;
-        RANGE* _p;
+        ubyte* _p;
         size_t _cap;
     }
 
-    ToScanStack!(ScanRange!false) toscanConservative;
-    ToScanStack!(ScanRange!true) toscanPrecise;
-
-    template scanStack(bool precise)
-    {
-        static if (precise)
-            alias scanStack = toscanPrecise;
-        else
-            alias scanStack = toscanConservative;
-    }
+    ToScanStack scanStack;
 
     /**
      * Search a range of memory values and mark any pointers into the GC pool.
      */
     private void mark(bool precise, bool parallel, bool shared_mem)(ScanRange!precise rng) scope nothrow
     {
-        alias toscan = scanStack!precise;
-
         debug(MARK_PRINTF)
             printf("marking range: [%p..%p] (%#llx)\n", rng.pbot, rng.ptop, cast(long)(rng.ptop - rng.pbot));
 
-        // limit the amount of ranges added to the toscan stack
+        // limit the amount of ranges added to the scan stack
         enum FANOUT_LIMIT = 32;
         size_t stackPos;
         ScanRange!precise[FANOUT_LIMIT] stack = void;
@@ -2714,16 +2682,16 @@ struct Gcx
             {
                 static if (parallel)
                 {
-                    if (!toscan.popLocked(rng))
+                    if (!scanStackPopLocked(rng))
                         break; // nothing more to do
                 }
                 else
                 {
-                    if (toscan.empty)
+                    if (scanStack.empty)
                         break; // nothing more to do
 
                     // pop range from global stack and recurse
-                    rng = toscan.pop();
+                    scanStack.pop(rng);
                 }
             }
             // printf("  pop [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
@@ -2733,22 +2701,23 @@ struct Gcx
             rng.pbot += (void*).sizeof;
             if (rng.pbot < rng.ptop)
             {
-                if (stackPos < stack.length)
+                if (stackPos >= stack.length)
                 {
-                    stack[stackPos] = tgt;
-                    stackPos++;
-                    continue;
+                    static if (parallel)
+                    {
+                        scanStackPushLocked(stack);
+                    }
+                    else
+                    {
+                        // reverse order for depth-first-order traversal
+                        foreach_reverse (ref range; stack)
+                            scanStack.push(range);
+                    }
+                    stackPos = 0;
                 }
-                static if (parallel)
-                {
-                    toscan.stackLock.lock();
-                    scope(exit) toscan.stackLock.unlock();
-                }
-                toscan.push(rng);
-                // reverse order for depth-first-order traversal
-                foreach_reverse (ref range; stack)
-                    toscan.push(range);
-                stackPos = 0;
+                stack[stackPos] = tgt;
+                stackPos++;
+                continue;
             }
         LendOfRange:
             // continue with last found range
@@ -2772,7 +2741,7 @@ struct Gcx
     }
 
     version (COLLECT_PARALLEL)
-    ToScanStack!(void*) toscanRoots;
+    ToScanStack toscanRoots;
 
     version (COLLECT_PARALLEL)
     void collectRoots(void *pbot, void *ptop) scope nothrow
@@ -3534,8 +3503,9 @@ Lmark:
                         Gcx.instance.numScanThreads = 0;
                         Gcx.instance.scanThreadData = null;
                         Gcx.instance.busyThreads = 0;
+                        Gcx.instance.stackLock.unlock();
 
-                        memset(&Gcx.instance.evStart, 0, Gcx.instance.evStart.sizeof);
+                        memset(&Gcx.instance.evStackFilled, 0, Gcx.instance.evStackFilled.sizeof);
                         memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
                     }
                 }
@@ -3559,12 +3529,12 @@ Lmark:
     uint numScanThreads;
     ScanThreadData* scanThreadData;
 
-    Event evStart;
+    Event evStackFilled;
     Event evDone;
 
     shared uint busyThreads;
     shared uint stoppedThreads;
-    bool stopGC;
+    shared bool stopGC;
 
     void markParallel() nothrow
     {
@@ -3573,25 +3543,24 @@ Lmark:
         if (toscanRoots.empty)
             return;
 
-        void** pbot = toscanRoots._p;
-        void** ptop = toscanRoots._p + toscanRoots._length;
+        void** pbot = cast(void**) toscanRoots._p;
+        void** ptop = cast(void**) (toscanRoots._p + toscanRoots._length);
 
         debug(PARALLEL_PRINTF) printf("markParallel\n");
 
-        size_t pointersPerThread = toscanRoots._length / (numScanThreads + 1);
+        size_t pointersPerThread = (ptop - pbot) / (numScanThreads + 1);
         if (pointersPerThread > 0)
         {
             void pushRanges(bool precise)()
             {
-                alias toscan = scanStack!precise;
-                toscan.stackLock.lock();
+                stackLock.lock();
 
                 for (int idx = 0; idx < numScanThreads; idx++)
                 {
-                    toscan.push(ScanRange!precise(pbot, pbot + pointersPerThread));
+                    scanStack.push(ScanRange!precise(pbot, pbot + pointersPerThread));
                     pbot += pointersPerThread;
                 }
-                toscan.stackLock.unlock();
+                stackLock.unlock();
             }
             if (ConservativeGC.isPrecise)
                 pushRanges!true();
@@ -3600,21 +3569,25 @@ Lmark:
         }
         assert(pbot < ptop);
 
-        busyThreads.atomicOp!"+="(1); // main thread is busy
-
-        evStart.setIfInitialized();
+        evStackFilled.setIfInitialized(); // background threads start now
 
         debug(PARALLEL_PRINTF) printf("mark %lld roots\n", cast(ulong)(ptop - pbot));
 
+        void pullLoop(bool precise)()
+        {
+            static if (precise)
+                mark!(true, true, true)(ScanRange!true(pbot, ptop, null));
+            else
+                mark!(false, true, true)(ScanRange!false(pbot, ptop));
+
+            while (pullFromScanStack())
+                evDone.wait(1.msecs);
+        }
         if (ConservativeGC.isPrecise)
-            mark!(true, true, true)(ScanRange!true(pbot, ptop, null));
+            pullLoop!(true)();
         else
-            mark!(false, true, true)(ScanRange!false(pbot, ptop));
+            pullLoop!(false)();
 
-        busyThreads.atomicOp!"-="(1);
-
-        debug(PARALLEL_PRINTF) printf("waitForScanDone\n");
-        pullFromScanStack();
         debug(PARALLEL_PRINTF) printf("waitForScanDone done\n");
     }
 
@@ -3662,7 +3635,7 @@ Lmark:
         if (!scanThreadData)
             onOutOfMemoryError();
 
-        evStart.initialize(false, false);
+        evStackFilled.initialize(true, false);
         evDone.initialize(false, false);
 
         version (Posix)
@@ -3704,8 +3677,8 @@ Lmark:
         stopGC = true;
         while (atomicLoad(stoppedThreads) < startedThreads && !allThreadsDead)
         {
-            evStart.setIfInitialized();
-            evDone.wait(dur!"msecs"(1));
+            evStackFilled.setIfInitialized();
+            evDone.wait(1.msecs);
         }
 
         for (int idx = 0; idx < numScanThreads; idx++)
@@ -3717,8 +3690,8 @@ Lmark:
             }
         }
 
+        evStackFilled.terminate();
         evDone.terminate();
-        evStart.terminate();
 
         cstdlib.free(scanThreadData);
         // scanThreadData = null; // keep non-null to not start again after shutdown
@@ -3731,26 +3704,24 @@ Lmark:
     {
         while (!stopGC)
         {
-            evStart.wait();
+            evStackFilled.wait();
             pullFromScanStack();
-            evDone.setIfInitialized();
+            evDone.setIfInitialized(); // tell main loop we are done
         }
         stoppedThreads.atomicOp!"+="(1);
+        evDone.setIfInitialized(); // wake up main
     }
 
-    void pullFromScanStack() nothrow
+    bool pullFromScanStack() nothrow
     {
         if (ConservativeGC.isPrecise)
-            pullFromScanStackImpl!true();
+            return pullFromScanStackImpl!true();
         else
-            pullFromScanStackImpl!false();
+            return pullFromScanStackImpl!false();
     }
 
-    void pullFromScanStackImpl(bool precise)() nothrow
+    bool pullFromScanStackImpl(bool precise)() nothrow
     {
-        if (atomicLoad(busyThreads) == 0)
-            return;
-
         version (Posix) debug (PARALLEL_PRINTF)
         {
             import core.sys.posix.pthread : pthread_self, pthread_t;
@@ -3759,29 +3730,62 @@ Lmark:
         }
 
         ScanRange!precise rng;
-        alias toscan = scanStack!precise;
 
-        while (atomicLoad(busyThreads) > 0)
+        stackLock.lock();
+        while (!scanStack.empty())
         {
-            if (toscan.empty)
-            {
-                evDone.wait(dur!"msecs"(1));
-                continue;
-            }
-
             busyThreads.atomicOp!"+="(1);
-            if (toscan.popLocked(rng))
+            scanStack.pop(rng);
+            if (scanStack.empty)
+                evStackFilled.reset();
+            stackLock.unlock();
+
+            version (Posix) debug (PARALLEL_PRINTF)
             {
-                version (Posix) debug (PARALLEL_PRINTF)
-                {
-                    printf("scanBackground thread %d scanning range [%p,%lld] from stack\n",
-                        threadId, rng.pbot, cast(long) (rng.ptop - rng.pbot));
-                }
-                mark!(precise, true, true)(rng);
+                printf("scanBackground thread %d scanning range [%p,%lld] from stack\n",
+                    threadId, rng.pbot, cast(long) (rng.ptop - rng.pbot));
             }
+            mark!(precise, true, true)(rng);
+            // returns here only if an empty scan stack has been seen
+
+            stackLock.lock();
             busyThreads.atomicOp!"-="(1);
         }
+        bool cont = busyThreads > 0;
+        stackLock.unlock();
+
         version (Posix) debug (PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
+        return cont;
+    }
+
+    auto stackLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
+
+    void scanStackPushLocked(RANGE)(RANGE[] ranges)
+    {
+        stackLock.lock();
+        scope(exit) stackLock.unlock();
+        bool wasEmpty = scanStack.empty;
+
+        // reverse order for depth-first-order traversal
+        foreach_reverse (ref range; ranges)
+            scanStack.push(range);
+
+        if (wasEmpty)
+            evStackFilled.setIfInitialized();
+    }
+
+    bool scanStackPopLocked(RANGE)(ref RANGE rng)
+    {
+        stackLock.lock();
+        scope(exit) stackLock.unlock();
+        if (scanStack.empty())
+            return false;
+
+        scanStack.pop(rng);
+
+        if (scanStack.empty())
+            evStackFilled.reset();
+        return true;
     }
 }
 
