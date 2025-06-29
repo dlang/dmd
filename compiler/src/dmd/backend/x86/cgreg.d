@@ -772,6 +772,7 @@ struct Reg              // data for trial register assignment
 int cgreg_assign(Symbol* retsym)
 {
     int flag = false;                   // assume no changes
+    const bool AArch64 = cgstate.AArch64;
 
     /* First do any 'unregistering' which might have happened in the last
      * code gen pass.
@@ -848,7 +849,7 @@ int cgreg_assign(Symbol* retsym)
           ((mDI | mSI | mDX | mCX | mR8 | mR9 | XMMREGS) & ~regparams) // unnamed register arguments
         : 0;
 
-    if (cgstate.AArch64)
+    if (AArch64)
     {
         variadicPrologRegs = variadic(funcsym_p.Stype)
             ? (mask(11)) |   // these are used by the prolog code
@@ -919,7 +920,7 @@ int cgreg_assign(Symbol* retsym)
                 continue;
 
             // If BP isn't available, can't assign to it
-            if (reg == BP && !(cgstate.allregs & mBP))
+            if (!AArch64 && reg == BP && !(cgstate.allregs & mBP))
                 continue;
 
 static if (0 && TARGET_LINUX)
@@ -945,7 +946,8 @@ static if (0 && TARGET_LINUX)
                 reg != s.Spreg)
                 continue;
 
-            if (s.Sflags & GTbyte &&
+            if (!AArch64 &&
+                s.Sflags & GTbyte &&
                 !((1UL << reg) & BYTEREGS))
                     continue;
 
@@ -1012,7 +1014,7 @@ Ltried:
      */
     if ((I32 || I64) &&                       // not worth the bother for 16 bit code
         !flag &&                              // if haven't already assigned registers in this pass
-        (cgstate.mfuncreg & ~fregsaved) & ALLREGS &&  // if unused non-floating scratch registers
+        (cgstate.mfuncreg & ~fregsaved) & cgstate.allregs &&  // if unused non-floating scratch registers
         !(funcsym_p.Sflags & SFLexit))       // don't need save/restore if function never returns
     {
         foreach (s; globsym[])
@@ -1022,7 +1024,7 @@ Ltried:
                 type_size(s.Stype) <= REGSIZE && // don't bother with register pairs
                 !tyfloating(s.ty()))             // don't assign floating regs to non-floating regs
             {
-                s.Sreglsw = findreg((cgstate.mfuncreg & ~fregsaved) & ALLREGS);
+                s.Sreglsw = findreg((cgstate.mfuncreg & ~fregsaved) & cgstate.allregs);
                 s.Sregm = 1UL << s.Sreglsw;
                 flag = true;
 
