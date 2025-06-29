@@ -98,6 +98,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         bool zeroInit;              // !=0 if initialize with 0 fill
         bool hasIdentityAssign;     // true if has identity opAssign
         bool hasBlitAssign;         // true if opAssign is a blit
+        bool hasCopyAssign;         // true if opAssign is a copy
+        bool hasMoveAssign;         // true if opAssign is a move (rvalue)
         bool hasIdentityEquals;     // true if has identity opEquals
         bool hasNoFields;           // has no fields
         bool hasCopyCtor;           // copy constructor

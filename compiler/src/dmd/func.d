@@ -142,6 +142,9 @@ private struct FUNCFLAG
     bool hasReturnExp;         /// Has return exp; statement
     bool hasInlineAsm;         /// Has asm{} statement
     bool hasMultipleReturnExp; /// Has multiple return exp; statements
+
+    bool isCopyAssign;       /// The function is identity copy opAssign operator
+    bool isMoveAssign;       /// The function is identity move opAssign operator
 }
 
 /***********************************************************

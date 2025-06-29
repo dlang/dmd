@@ -4058,6 +4058,10 @@ public:
     bool hasInlineAsm(bool v);
     bool hasMultipleReturnExp() const;
     bool hasMultipleReturnExp(bool v);
+    bool isCopyAssign() const;
+    bool isCopyAssign(bool v);
+    bool isMoveAssign() const;
+    bool isMoveAssign(bool v);
 private:
     uint32_t bitFields;
 public:
@@ -7442,6 +7446,10 @@ public:
     bool hasIdentityAssign(bool v);
     bool hasBlitAssign() const;
     bool hasBlitAssign(bool v);
+    bool hasCopyAssign() const;
+    bool hasCopyAssign(bool v);
+    bool hasMoveAssign() const;
+    bool hasMoveAssign(bool v);
     bool hasIdentityEquals() const;
     bool hasIdentityEquals(bool v);
     bool hasNoFields() const;

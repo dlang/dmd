@@ -617,6 +617,31 @@ Ldone:
     if (funcdecl.canInferAttributes(sc))
         funcdecl.initInferAttributes();
 
+    // Check whether this opAssign function is an identity opAssign,
+    // and mark whether it is the lvalue or rvalue overload.
+    if (ad && funcdecl.ident == Id.opAssign)
+    {
+        auto sd = ad.isStructDeclaration();
+        auto fparams = funcdecl.getParameterList();
+        if (sd && fparams.length != 0)
+        {
+            auto fparam0 = fparams[0];
+            if (fparam0.type.toDsymbol(null) == ad)
+            {
+                if (fparam0.isReference())
+                {
+                    funcdecl.isCopyAssign = true;
+                    sd.hasCopyAssign = true;
+                }
+                else
+                {
+                    funcdecl.isMoveAssign = true;
+                    sd.hasMoveAssign = true;
+                }
+            }
+        }
+    }
+
     funcdecl.semanticRun = PASS.semanticdone;
 
     /* Save scope for possible later use (if we need the
