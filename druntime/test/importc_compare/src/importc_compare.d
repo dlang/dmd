@@ -1,14 +1,5 @@
 import core.stdc.stdio : printf;
 
-version (OSX)
-    version = Apple;
-version (iOS)
-    version = Apple;
-version (TVOS)
-    version = Apple;
-version (WatchOS)
-    version = Apple;
-
 /*
 This test tries to automatically find types with a wrong size in
 druntime C bindings. This is done by also getting type sizes from
