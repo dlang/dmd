@@ -259,8 +259,8 @@ $(GNAME AlignAttribute):
         $(LI struct, union, and class types)
         )
 
-        $(P $(D align $(LPAREN) default $(RPAREN)) (re)sets it to the default, which matches the default member alignment
-        of the companion C compiler. $(D align) by itself is the same as $(D align $(LPAREN) default $(RPAREN)).)
+        $(P $(D align$(LPAREN)default$(RPAREN)) (re)sets it to the default, which matches the default member alignment
+        of the companion C compiler. $(D align) by itself is the same as $(D align$(LPAREN)default$(RPAREN)).)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------
