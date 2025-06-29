@@ -189,6 +189,42 @@ private struct ContractInfo
     Expressions* fdensureParams;        /// argument list for __ensure
 }
 
+/// Information for data flow analysis regarding parameters
+struct ParametersDFAInfo
+{
+    ParameterDFAInfo thisPointer;
+    ParameterDFAInfo returnValue;
+    ParameterDFAInfos parameters;
+}
+
+/// Information for data flow analysis per parameter
+struct ParameterDFAInfo
+{
+    /// Stores the relationship strength to parameter
+    ulong parameterRelationshipStrength;
+    /// Stores the relationship strength of the this pointer and return value.
+    uint builtinRelationshipStrength;
+
+    /// Is the parameter non-null upon input, only applies to pointers.
+    Fact notNullIn;
+    /// Is the parameter non-null, applies only for by-ref parameters that are pointers.
+    Fact notNullOut;
+
+    /// Was the attributes for this parameter specified by the user?
+    bool specifiedByUser;
+
+    /// Given a property, has it been specificed and is it guaranteed?
+    enum Fact : ubyte
+    {
+        ///
+        Unspecified,
+        ///
+        NotGuaranteed,
+        ///
+        Guaranteed
+    }
+}
+
 /***********************************************************
  */
 extern (C++) class FuncDeclaration : Declaration
@@ -284,6 +320,8 @@ extern (C++) class FuncDeclaration : Declaration
     AttributeViolation* nogcViolation;
     AttributeViolation* pureViolation;
     AttributeViolation* nothrowViolation;
+
+    ParametersDFAInfo* parametersDFAInfo;
 
     /// See the `FUNCFLAG` struct
     import dmd.common.bitfields;
