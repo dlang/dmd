@@ -3852,7 +3852,8 @@ elem* toElem(Expression e, ref IRState irs)
             printf("\tfrom: %s\n", ce.e1.type.toChars());
             printf("\tto  : %s\n", ce.to.toChars());
         }
-        elem* e = toElem(ce.e1, irs);
+        // When there is a lowering availabe, use that
+        elem* e = ce.lowering is null ? toElem(ce.e1, irs) : toElem(ce.lowering, irs);
 
         return toElemCast(ce, e, false, irs);
     }
@@ -4788,7 +4789,6 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
             else
             {
                 assert(ce.lowering, "This case should have been rewritten to `_d_cast` in the semantic phase");
-                e = toElem(ce.lowering, irs);
             }
         }
         return Lret(ce, e);
