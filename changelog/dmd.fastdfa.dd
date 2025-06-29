@@ -1,0 +1,52 @@
+New experimental Data Flow Analysis Engine for nullability
+
+A new experimental Data Flow Analysis (DFA) has been implemented under the preview flag ``-preview=fastdfa``.
+The intent of the engine is to be both fast and free from false positives, if successful it may in the future be turned on by default.
+
+No attributes have been implemented to date, before they are considered the engine itself must be both usable with the right tradeoffs and have desirable features.
+This has some side effects, it prevent separate compilation, function pointers, and cyclic functions from being analysable.
+These limitations are not supposed to prevent a successful compilation when in use.
+
+The engine itself is variable centric with a strong focus on giving up on analysing a variable if things get too complex for it.
+This can result in messages that may not appear to make sense for where they are emitted, due to the way shortcutting of analysis works.
+As an example of loops:
+
+```d
+void loopy()
+{
+    int* ptr = new int;
+
+    foreach (i; 0 .. 2)
+    {
+        int val = *ptr;
+        ptr = null;
+    }// See less than state at somefile.d(9)
+     //     Due to variable `ptr` was non-null and becomes null
+}
+```
+
+If the engine is successful, the reporting mechanism would be replaced with a tracing of state pass.
+This would offer for a function line by line explanation of how and why the engine thought something was true.
+
+The engine has been tested on a 100k LOC defensively written codebase without any false positives.
+The performance is of the same magnitude as DIP1000.
+
+Test procedure is to time how long a compilation of a codebase takes.
+Use the appropriate flags to turn off linking (``-c -o-``).
+
+- Do it without DIP1000 and the DFA.
+- Do it with DIP1000 (if it is supported).
+- Do it with the DFA.
+- Do it with the DFA and emit the time trace. For the time trace you want to search for entries beginning with ``DFA``.
+
+Large switch statements are known to take some time to analyse, due to the number of scopes present.
+
+Evaluate the reports for false positives, any that you are unsure about or think "how can it know this?" please report it.
+
+If the time taken appears to be too long given the other times you have acquired, please report.
+
+If it has successfully caught a bug in your code, please report that too!
+
+Any failings can be reported in the [bug tracker](https://github.com/dlang/dmd/issues), or [NewsGroup](https://forum.dlang.org/group/general).
+
+Successes can be reported to the NewsGroup or [Discord](https://discord.gg/bMZk9Q4).
