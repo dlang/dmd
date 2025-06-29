@@ -3315,6 +3315,11 @@ Type merge(Type type)
                 return type;
             goto default;
 
+        case Tfunction:
+            if (!type.nextOf()) // don't merge if return type is unknown
+                return type;
+            goto default;
+
         default:
             if (type.nextOf() && !type.nextOf().deco)
                 return type;
@@ -7346,7 +7351,7 @@ Type substWildTo(Type type, uint mod)
             t = t.addMod(MODFlags.shared_);
 
         //printf("-Type.substWildTo t = %s\n", t.toChars());
-        return t;
+        return t.merge();
     }
 
     if (!tf.iswild && !(tf.mod & MODFlags.wild))

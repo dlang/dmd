@@ -1935,7 +1935,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
  */
 private void checkNamedArgErrorAndReport(TemplateDeclaration td, ArgumentList argumentList, Loc loc)
 {
-    if (!argumentList.hasNames())
+    if (!argumentList.hasArgNames())
         return;
 
     auto tf = td.onemember ? td.onemember.isFuncDeclaration() : null;
@@ -1957,7 +1957,7 @@ private void checkNamedArgErrorAndReport(TemplateDeclaration td, ArgumentList ar
  */
 private void checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argumentList, Loc loc)
 {
-    if (!argumentList.hasNames())
+    if (!argumentList.hasArgNames())
         return;
 
     FuncDeclaration tf = null;
@@ -2229,16 +2229,17 @@ int overrides(FuncDeclaration fd1, FuncDeclaration fd2)
  * Params:
  *  f = first function
  *  g = second function
- *  names = names of parameters
+ *  names = argument Labels of parameters(name and location of the name)
  * Returns:
  *      match   'this' is at least as specialized as g
  *      0       g is more specialized than 'this'
  */
-MATCH leastAsSpecialized(FuncDeclaration f, FuncDeclaration g, Identifiers* names)
+MATCH leastAsSpecialized(FuncDeclaration f, FuncDeclaration g, ArgumentLabels* names)
 {
     enum LOG_LEASTAS = 0;
     static if (LOG_LEASTAS)
     {
+        Identifiers *names = extractNames(names);
         import core.stdc.stdio : printf;
         printf("leastAsSpecialized(%s, %s, %s)\n", f.toChars(), g.toChars(), names ? names.toChars() : "null");
         printf("%s, %s\n", f.type.toChars(), g.type.toChars());

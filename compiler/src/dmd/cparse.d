@@ -1878,7 +1878,7 @@ final class CParser(AST) : Parser!AST
         {
             Identifier id;
             AST.StringExp asmName;
-            auto dt = cparseDeclarator(DTR.xdirect, tspec, id, specifier);
+            auto dt = cparseDeclarator(DTR.xdirect_fd, tspec, id, specifier);
             if (!dt)
             {
                 panic();
@@ -2842,6 +2842,18 @@ final class CParser(AST) : Parser!AST
         //printf("cparseDeclarator(%d, %s)\n", declarator, tbase.toChars());
         AST.Types constTypes; // all the Types that will need `const` applied to them
 
+        // this.symbols can get changed to the symbol table for the
+        // parameter-type-list if we parse a function type.
+        // Callers are only ready to handle this if they pass DTR.xdirect_fd,
+        // so remember to restore this.symbols.
+        bool restore_symbols = true;
+        if (declarator == DTR.xdirect_fd)
+        {
+            declarator = DTR.xdirect;
+            restore_symbols = false;
+        }
+
+
         /* Insert tx -> t into
          *   ts -> ... -> t
          * so that
@@ -3033,7 +3045,7 @@ final class CParser(AST) : Parser!AST
                         //tf = tf.addSTC(storageClass);  // TODO
                         insertTx(ts, tf, t);  // ts -> ... -> tf -> t
 
-                        if (ts != tf)
+                        if (ts != tf || restore_symbols)
                             this.symbols = symbolsSave;
                         break;
                     }
@@ -5100,6 +5112,7 @@ final class CParser(AST) : Parser!AST
     /// Types of declarator to parse
     enum DTR
     {
+        xdirect_fd = 0, /// C11 6.7.6 direct-declarator, allow to start function definition
         xdirect    = 1, /// C11 6.7.6 direct-declarator
         xabstract  = 2, /// C11 6.7.7 abstract-declarator
         xparameter = 3, /// parameter declarator may be either direct or abstract

@@ -3258,9 +3258,13 @@ public:
 
     override void visit(DebugCondition c)
     {
-        buf.put("debug (");
-        buf.put(c.ident.toString());
-        buf.put(')');
+        buf.put("debug");
+        if (c.ident)
+        {
+            buf.put(" (");
+            buf.put(c.ident.toString());
+            buf.put(')');
+        }
     }
 
     override void visit(VersionCondition c)
@@ -3701,9 +3705,9 @@ private void parameterToBuffer(Parameter p, ref OutBuffer buf, ref HdrGenState h
  *     buf = buffer to write to
  *     hgs = context
  *     basis = replace `null`s in argument list with this expression (for sparse array literals)
- *     names = if non-null, use these as the names for the arguments
+ *     names = if non-null, use these as the argument Labels for the arguments
  */
-private void argsToBuffer(Expressions* expressions, ref OutBuffer buf, ref HdrGenState hgs, Expression basis = null, Identifiers* names = null)
+private void argsToBuffer(Expressions* expressions, ref OutBuffer buf, ref HdrGenState hgs, Expression basis = null, ArgumentLabels* names = null)
 {
     if (!expressions || !expressions.length)
         return;
@@ -3714,9 +3718,9 @@ private void argsToBuffer(Expressions* expressions, ref OutBuffer buf, ref HdrGe
             if (i)
                 buf.put(", ");
 
-            if (names && i < names.length && (*names)[i])
+            if (names && i < names.length && (*names)[i].name)
             {
-                buf.put((*names)[i].toString());
+                buf.put((*names)[i].name.toString());
                 buf.put(": ");
             }
             if (!el)

@@ -565,3 +565,7 @@ interface I12344
 	}
 	;
 }
+debug
+{
+	enum issue21406 = 1;
+}
