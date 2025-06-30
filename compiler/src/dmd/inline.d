@@ -836,6 +836,14 @@ public:
 
         override void visit(EqualExp e)
         {
+            if (auto lowering = e.lowering)
+            {
+                auto ee = cast(EqualExp)e.copy();
+                ee.lowering = doInlineAs!Expression(lowering, ids);
+                result = ee;
+                return;
+            }
+
             visit(cast(BinExp)e);
 
             Type t1 = e.e1.type.toBasetype();
@@ -1334,6 +1342,18 @@ public:
     {
         inlineScan(e.e1);
         inlineScan(e.e2);
+    }
+
+    override void visit(EqualExp e)
+    {
+        if (auto lowering = e.lowering)
+        {
+            inlineScan(lowering);
+        }
+        else
+        {
+            visit(cast(BinExp)e);
+        }
     }
 
     override void visit(AssignExp e)

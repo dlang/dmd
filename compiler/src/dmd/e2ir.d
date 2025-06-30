@@ -2108,7 +2108,12 @@ elem* toElem(Expression e, ref IRState irs)
             Type telement  = t1.nextOf().toBasetype();
             Type telement2 = t2.nextOf().toBasetype();
 
-            if ((telement.isIntegral() || telement.ty == Tvoid) && telement.ty == telement2.ty)
+            if (auto lowering = ee.lowering)
+            {
+                e = toElem(lowering, irs);
+                elem_setLoc(e, ee.loc);
+            }
+            else if ((telement.isIntegral() || telement.ty == Tvoid) && telement.ty == telement2.ty)
             {
                 // Optimize comparisons of arrays of basic types
                 // For arrays of integers/characters, and void[],
@@ -2175,19 +2180,20 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_combine(earr2, e);
                 e = el_combine(earr1, e);
                 elem_setLoc(e, ee.loc);
-                return e;
             }
+            else
+            {
+                elem* ea1 = eval_Darray(ee.e1);
+                elem* ea2 = eval_Darray(ee.e2);
 
-            elem* ea1 = eval_Darray(ee.e1);
-            elem* ea2 = eval_Darray(ee.e2);
-
-            elem* ep = el_params(getTypeInfo(ee, telement.arrayOf(), irs),
+                elem* ep = el_params(getTypeInfo(ee, telement.arrayOf(), irs),
                     ea2, ea1, null);
-            const rtlfunc = RTLSYM.ARRAYEQ2;
-            e = el_bin(OPcall, TYint, el_var(getRtlsym(rtlfunc)), ep);
-            if (ee.op == EXP.notEqual)
+                const rtlfunc = RTLSYM.ARRAYEQ2;
+                e = el_bin(OPcall, TYint, el_var(getRtlsym(rtlfunc)), ep);
+                if (ee.op == EXP.notEqual)
                 e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
-            elem_setLoc(e,ee.loc);
+                elem_setLoc(e,ee.loc);
+            }
         }
         else if (t1.ty == Taarray && t2.ty == Taarray)
         {

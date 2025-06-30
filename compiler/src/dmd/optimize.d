@@ -1138,24 +1138,33 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
 
     void visitEqual(EqualExp e)
     {
-        //printf("EqualExp::optimize(result = %x) %s\n", result, e.toChars());
-        if (binOptimize(e, WANTvalue))
-            return;
-        Expression e1 = fromConstInitializer(result, e.e1);
-        Expression e2 = fromConstInitializer(result, e.e2);
-        if (e1.op == EXP.error)
+        //printf("EqualExp::optimize(result = %d) %s\n", result, e.toChars());
+        if (auto lowering = e.lowering)
         {
-            ret = e1;
-            return;
+            optimize(lowering, result, keepLvalue);
         }
-        if (e2.op == EXP.error)
+        else
         {
-            ret = e2;
-            return;
+            if (binOptimize(e, WANTvalue))
+            {
+                return;
+            }
+            Expression e1 = fromConstInitializer(result, e.e1);
+            Expression e2 = fromConstInitializer(result, e.e2);
+            if (e1.op == EXP.error)
+            {
+                ret = e1;
+                return;
+            }
+            if (e2.op == EXP.error)
+            {
+                ret = e2;
+                return;
+            }
+            ret = Equal(e.op, e.loc, e.type, e1, e2).copy();
+            if (CTFEExp.isCantExp(ret))
+                ret = e;
         }
-        ret = Equal(e.op, e.loc, e.type, e1, e2).copy();
-        if (CTFEExp.isCantExp(ret))
-            ret = e;
     }
 
     void visitIdentity(IdentityExp e)
