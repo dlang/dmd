@@ -1572,8 +1572,57 @@ class TypeInfo_Delegate : TypeInfo
 }
 
 private extern (C) Object _d_newclass(const TypeInfo_Class ci);
-private extern (C) int _d_isbaseof(scope TypeInfo_Class child,
-    scope const TypeInfo_Class parent) @nogc nothrow pure @safe; // rt.cast_
+
+extern(C) int _d_isbaseof(scope ClassInfo oc, scope const ClassInfo c) @nogc nothrow pure @safe
+{
+    import core.internal.cast_ : areClassInfosEqual;
+
+    if (areClassInfosEqual(oc, c))
+        return true;
+
+    do
+    {
+        if (oc.base && areClassInfosEqual(oc.base, c))
+            return true;
+
+        // Bugzilla 2013: Use depth-first search to calculate offset
+        // from the derived (oc) to the base (c).
+        foreach (iface; oc.interfaces)
+        {
+            if (areClassInfosEqual(iface.classinfo, c) || _d_isbaseof(iface.classinfo, c))
+                return true;
+        }
+
+        oc = oc.base;
+    } while (oc);
+
+    return false;
+}
+
+/******************************************
+ * Given a pointer:
+ *      If it is an Object, return that Object.
+ *      If it is an interface, return the Object implementing the interface.
+ *      If it is null, return null.
+ *      Else, undefined crash
+ */
+extern(C) Object _d_toObject(return scope void* p) @nogc nothrow pure @trusted
+{
+    if (!p)
+        return null;
+
+    Object o = cast(Object) p;
+    Interface* pi = **cast(Interface***) p;
+
+    /* Interface.offset lines up with ClassInfo.name.ptr,
+     * so we rely on pointers never being less than 64K,
+     * and Objects never being greater.
+     */
+    if (pi.offset < 0x10000)
+        return cast(Object)(p - pi.offset);
+
+    return o;
+}
 
 /**
  * Runtime type information about a class.
