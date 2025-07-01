@@ -1630,6 +1630,40 @@ private extern(C++) final class Semantic3Visitor : Visitor
     }
 }
 
+/**
+ * Helper struct used exclusively inside the *semantic-3* stage
+ * for functions.
+ *
+ * `FuncDeclSem3` is an ultra-light wrapper that groups the data
+ * needed to perform additional checks on a single
+ * $(D FuncDeclaration) after its body has been analysed by
+ * $(REF Semantic3Visitor, dmd.semantic3).
+ *
+ * The motivation for factoring this logic out of
+ * `Semantic3Visitor.visit(FuncDeclaration)` is to keep that
+ * (already very large) method readable while still making it
+ * easy to add further *semantic-3* helpers in the future.
+ *
+ * Members:
+ *      funcdecl ― the function currently being processed;
+ *                 never `null`.
+ *
+ *      sc       ― the scope in which the analysis must be
+ *                 performed (includes flags such as
+ *                 `inContract`, `linkage`, etc.).
+ *
+ * Methods:
+ *      checkInContractOverrides ― verifies that if the current
+ *          function has an *in* contract, every function it
+ *          overrides also declares an *in* contract.
+ *          Emits an error and stops at the first offender.
+ *
+ * Usage:
+ * ---
+ * auto helper = FuncDeclSem3(fd, sc);
+ * helper.checkInContractOverrides();
+ * ---
+ */
 private struct FuncDeclSem3
 {
     // The FuncDeclaration subject to Semantic analysis
@@ -1663,6 +1697,57 @@ private struct FuncDeclSem3
     }
 }
 
+/**
+ * Perform *semantic-3* analysis on all special members of a
+ * `struct` that are required before the backend can emit that
+ * struct’s `TypeInfo`.
+ *
+ * The routine is invoked when:
+ * $(OL
+ *   $(LI the struct itself is being processed in the main
+ *        `Semantic3Visitor`, or)
+ *   $(LI the compiler needs `TypeInfo` for a struct whose semantic
+ *        pass has not finished yet (e.g. during CTFE).)
+ * )
+ *
+ * For each potential special member it checks whether
+ * `semanticRun < PASS.semantic3done` **and** a saved `_scope`
+ * still exists; if so it runs `member.semantic3(scope)` *under
+ * gagging* (`global.startGagging`) so that any errors are suppressed,
+ * then:
+ *
+ * $(UL
+ *   $(LI on failure, replaces the symbol with its error stub
+ *        (`xerreq`, `xerrcmp`, …) so later stages never see a
+ *        half-analysed definition.)
+ *   $(LI on success, leaves the analysed function in place.)
+ * )
+ *
+ * Members handled:
+ * $(UL
+ *   $(LI equality operator    `sd.xeq`)
+ *   $(LI three-way compare    `sd.xcmp`)
+ *   $(LI `toString`           (looked up via `search_toString`))
+ *   $(LI `toHash`             `sd.xhash`)
+ *   $(LI postblit             `sd.postblit`)
+ *   $(LI destructor           `sd.dtor`)
+ * )
+ *
+ * Params:
+ *      sd = Struct whose special members may require a late
+ *           semantic-3 pass.
+ *
+ * Returns: Nothing.  All work is done for side-effects on `sd`.
+ *
+ * Notes:
+ * $(UL
+ *   $(LI The function is purposely tolerant: failure of one member
+ *        does not prevent others from being analysed.)
+ *   $(LI Because analysis is gagged, no diagnostics reach the user
+ *        here; if the struct’s semantic pass is replayed later
+ *        outside the gag context the real errors will surface.)
+ * )
+ */
 void semanticTypeInfoMembers(StructDeclaration sd)
 {
     if (sd.xeq &&
@@ -1715,13 +1800,53 @@ void semanticTypeInfoMembers(StructDeclaration sd)
     }
 }
 
-/***********************************************
- * Check that the function contains any closure.
- * If it's @nogc, report suitable errors.
- * This is mostly consistent with FuncDeclaration::needsClosure().
+/**
+ * Determine whether the given function will need to allocate a _closure_ and
+ * verify that such an allocation is allowed under the current compilation
+ * settings.
+ *
+ * The procedure is three-step:
+ *
+ * $(OL
+ *   $(LI **Early exit:** if `fd.needsClosure` is `false`, no closure is needed
+ *        and the routine returns `false`.)
+ *
+ *   $(LI **Attempt to record GC usage:** `fd.setGC` is called to mark the function
+ *        as performing a GC allocation.  Emitting a closure is *illegal* and
+ *        triggers an error in either of these cases:
+ *
+ *        $(UL
+ *          $(LI the function itself is annotated `@nogc`, or)
+ *          $(LI the compilation is running with the GC disabled
+ *               (e.g. `-betterC`, so `global.params.useGC == false`).)
+ *        )
+ *        When such an error is detected, the routine ultimately returns `true`.)
+ *
+ *   $(LI **Otherwise** the allocation is permitted.  The helper records the
+ *        fact via `fd.printGCUsage` for later backend stages and returns
+ *        `false`.)
+ * )
+ *
+ * Whenever an error is emitted, every nested function that actually closes
+ * over a variable is listed in a supplemental diagnostic, together with the
+ * location of the captured variable’s declaration.  (This extra walk is
+ * skipped when the compiler is gagged.)
+ *
+ * Params:
+ *      fd = function to analyse.
  *
  * Returns:
- *      true if any errors occur.
+ *      `true`  if at least one diagnostic was issued (i.e. closure allocation
+ *               is disallowed under `@nogc` or `-betterC`);
+ *      `false` in all other cases (either no closure needed, or allocation
+ *               is allowed).
+ *
+ * See_Also:
+ *      $(UL
+ *        $(LI `FuncDeclaration.needsClosure`)
+ *        $(LI `FuncDeclaration.setGC`)
+ *        $(LI `FuncDeclaration.printGCUsage`)
+ *      )
  */
 extern (D) bool checkClosure(FuncDeclaration fd)
 {
