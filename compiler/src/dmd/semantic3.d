@@ -1698,55 +1698,48 @@ private struct FuncDeclSem3
 }
 
 /**
- * Perform *semantic-3* analysis on all special members of a
- * `struct` that are required before the backend can emit that
+ * Runs a *semantic-3* pass on any **special members** of a `struct`
+ * that must be fully analysed before the backend can emit the
  * struct’s `TypeInfo`.
  *
- * The routine is invoked when:
+ * The routine is invoked in two situations:
  * $(OL
- *   $(LI the struct itself is being processed in the main
- *        `Semantic3Visitor`, or)
- *   $(LI the compiler needs `TypeInfo` for a struct whose semantic
- *        pass has not finished yet (e.g. during CTFE).)
+ *   $(LI during the normal `Semantic3Visitor` walk over the struct, or)
+ *   $(LI on-demand when CTFE needs a `TypeInfo` for a struct whose own
+ *        semantic pass is not finished yet.)
  * )
  *
- * For each potential special member it checks whether
- * `semanticRun < PASS.semantic3done` **and** a saved `_scope`
- * still exists; if so it runs `member.semantic3(scope)` *under
- * gagging* (`global.startGagging`) so that any errors are suppressed,
- * then:
+ * What it does, member by member:
  *
  * $(UL
- *   $(LI on failure, replaces the symbol with its error stub
- *        (`xerreq`, `xerrcmp`, …) so later stages never see a
- *        half-analysed definition.)
- *   $(LI on success, leaves the analysed function in place.)
+ *   $(LI **`opEquals` / `opCmp`** (`sd.xeq`, `sd.xcmp`) –
+ *        if the member is still pending (`semanticRun < PASS.semantic3done`)
+ *        and has a saved `_scope`, it is analysed **under
+ *        gagging** (`global.startGagging`).
+ *        If an error occurs, the member is replaced with the matching
+ *        _error stub_ (`xerreq` or `xerrcmp`) so that later stages
+ *        never see a half-analysed symbol.)
+ *
+ *   $(LI **`toString`**, **`toHash`**, **postblit**, **destructor** –
+ *        also re-entered when still pending, but analysed *without*
+ *        gagging.  Any error simply propagates; the original symbol
+ *        remains in place (no stub substitution).)
  * )
- *
- * Members handled:
- * $(UL
- *   $(LI equality operator    `sd.xeq`)
- *   $(LI three-way compare    `sd.xcmp`)
- *   $(LI `toString`           (looked up via `search_toString`))
- *   $(LI `toHash`             `sd.xhash`)
- *   $(LI postblit             `sd.postblit`)
- *   $(LI destructor           `sd.dtor`)
- * )
- *
- * Params:
- *      sd = Struct whose special members may require a late
- *           semantic-3 pass.
- *
- * Returns: Nothing.  All work is done for side-effects on `sd`.
  *
  * Notes:
  * $(UL
- *   $(LI The function is purposely tolerant: failure of one member
- *        does not prevent others from being analysed.)
- *   $(LI Because analysis is gagged, no diagnostics reach the user
- *        here; if the struct’s semantic pass is replayed later
- *        outside the gag context the real errors will surface.)
+ *   $(LI Each member is handled independently — a failure in one does
+ *        not prevent the others from being processed.)
+ *   $(LI Because gagging is used *only* for `opEquals`/`opCmp`, errors
+ *        in the other members are reported immediately, which helps
+ *        surface problems earlier during CTFE.)
  * )
+ *
+ * Params:
+ *      sd = struct whose pending special members (if any) will get
+ *           their late *semantic-3* analysis.
+ *
+ * Returns: None; all work is performed for its side-effects on `sd`.
  */
 void semanticTypeInfoMembers(StructDeclaration sd)
 {
