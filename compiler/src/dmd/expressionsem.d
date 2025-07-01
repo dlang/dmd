@@ -13412,19 +13412,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();
 
-        // Indicates whether the comparison of the 2 specified array types
-        // requires an object.__equals() lowering.
-        static bool needsDirectEq(Type t1, Type t2, Scope* sc)
+        static bool unifyArrayTypes(Type t1, Type t2, Scope* sc)
         {
             Type t1n = t1.nextOf().toBasetype();
             Type t2n = t2.nextOf().toBasetype();
+
             if ((t1n.ty.isSomeChar && t2n.ty.isSomeChar) ||
                 (t1n.ty == Tvoid || t2n.ty == Tvoid))
             {
-                return false;
+                return true;
             }
             if (t1n.constOf() != t2n.constOf())
-                return true;
+            {
+                return false;
+            }
 
             Type t = t1n;
             while (t.toBasetype().nextOf())
@@ -13435,7 +13436,64 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (global.params.useTypeInfo && Type.dtypeinfo)
                     semanticTypeInfo(sc, ts);
 
-                return ts.sym.hasIdentityEquals; // has custom opEquals
+                return !ts.sym.hasIdentityEquals; // has custom opEquals
+            }
+
+            return true;
+        }
+
+        static bool shouldUseMemcmp(Type t1, Type t2, Scope *sc)
+        {
+            Type t1n = t1.nextOf().toBasetype();
+            Type t2n = t2.nextOf().toBasetype();
+            const t1nsz = t1n.size();
+            const t2nsz = t2n.size();
+
+            if ((t1n.ty == Tvoid || t2n.ty == Tvoid) ||
+                (t1n.isScalar() && t2n.isScalar() &&
+                t1nsz == t2nsz && (t1nsz >= 4 || t1n.isUnsigned() == t2n.isUnsigned()) &&
+                !t1n.isFloating() && !t2n.isFloating()))
+            {
+                return true;
+            }
+            if (t1n.constOf() != t2n.constOf())
+            {
+                return false;
+            }
+
+            Type t = t1n;
+            while (t.toBasetype().nextOf())
+                t = t.nextOf().toBasetype();
+            if (auto ts = t.isTypeStruct())
+            {
+                // semanticTypeInfo() makes sure hasIdentityEquals has been computed
+                if (global.params.useTypeInfo && Type.dtypeinfo)
+                    semanticTypeInfo(sc, ts);
+
+                static bool hasFloatFields(TypeStruct ts)
+                {
+                    if (auto members = ts.sym.members)
+                    {
+                        foreach (m; *members)
+                        {
+                            if (auto v = m.isVarDeclaration())
+                            {
+                                Type t = v.type.toBasetype();
+                                if (t.isFloating())
+                                    return true;
+
+                                if (auto vs = t.isTypeStruct())
+                                {
+                                    if (vs !is ts && hasFloatFields(vs))
+                                        return true;
+                                }
+                            }
+                        }
+                    }
+                    return false;
+                }
+
+                return !hasFloatFields(ts) && !ts.sym.hasIdentityEquals; // no float fields and no custom opEquals
             }
 
             return false;
@@ -13448,9 +13506,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         const isArrayComparison = t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray();
-        const needsArrayLowering = isArrayComparison && needsDirectEq(t1, t2, sc);
+        const needsArrayLowering = isArrayComparison && !shouldUseMemcmp(t1, t2, sc);
 
-        if (!needsArrayLowering)
+        if (!isArrayComparison || unifyArrayTypes(t1, t2, sc))
         {
             // https://issues.dlang.org/show_bug.cgi?id=23783
             if (exp.e1.checkSharedAccess(sc) || exp.e2.checkSharedAccess(sc))
@@ -13495,13 +13553,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return;
             }
 
-            if (!verifyHookExist(exp.loc, *sc, Id.__equals, "equal checks on arrays"))
+            Identifier hook = Id.__equals;
+            if (!verifyHookExist(exp.loc, *sc, hook, "equal checks on arrays"))
                 return setError();
 
-            Expression __equals = new IdentifierExp(exp.loc, Id.empty);
-            Identifier id = Identifier.idPool("__equals");
-            __equals = new DotIdExp(exp.loc, __equals, Id.object);
-            __equals = new DotIdExp(exp.loc, __equals, id);
+            Expression lowering = new IdentifierExp(exp.loc, Id.empty);
+            lowering = new DotIdExp(exp.loc, lowering, Id.object);
+            lowering = new DotIdExp(exp.loc, lowering, hook);
 
             /* https://issues.dlang.org/show_bug.cgi?id=23674
              *
@@ -13512,27 +13570,44 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.e1 = exp.e1.optimize(WANTvalue);
             exp.e2 = exp.e2.optimize(WANTvalue);
 
-            auto arguments = new Expressions(2);
-            (*arguments)[0] = exp.e1;
-            (*arguments)[1] = exp.e2;
+            auto e1c = exp.e1.copy();
+            auto e2c = exp.e2.copy();
 
-            __equals = new CallExp(exp.loc, __equals, arguments);
+            /* Remove qualifiers from the types of the arguments to reduce the number
+             * of generated `__equals` instances.
+             */
+            static void unqualifyExp(Expression e)
+            {
+                e.type = e.type.unqualify(MODFlags.wild | MODFlags.immutable_ | MODFlags.shared_);
+                auto eNext = e.type.nextOf();
+                if (eNext && !eNext.toBasetype().isTypeStruct())
+                    e.type = e.type.unqualify(MODFlags.const_);
+
+                if (auto eArrLit = e.isArrayLiteralExp())
+                {
+                    if (auto elems = eArrLit.elements)
+                    {
+                        foreach(elem; *elems)
+                        {
+                            unqualifyExp(elem);
+                        }
+                    }
+                }
+            }
+            unqualifyExp(e1c);
+            unqualifyExp(e2c);
+
+            auto arguments = new Expressions(2);
+            (*arguments)[0] = e1c;
+            (*arguments)[1] = e2c;
+
+            lowering = new CallExp(exp.loc, lowering, arguments);
             if (exp.op == EXP.notEqual)
             {
-                __equals = new NotExp(exp.loc, __equals);
+                lowering = new NotExp(exp.loc, lowering);
             }
-            __equals = __equals.trySemantic(sc); // for better error message
-            if (!__equals)
-            {
-                if (sc.func)
-                    error(exp.loc, "can't infer return type in function `%s`", sc.func.toChars());
-                else
-                    error(exp.loc, "incompatible types for array comparison: `%s` and `%s`",
-                  exp.e1.type.toChars(), exp.e2.type.toChars());
-                __equals = ErrorExp.get();
-            }
-
-            exp.lowering = __equals;
+            lowering = lowering.expressionSemantic(sc);
+            exp.lowering = lowering;
             result = exp;
             return;
         }

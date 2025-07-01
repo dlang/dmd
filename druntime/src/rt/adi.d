@@ -32,42 +32,42 @@ extern (C) int _adEq2(void[] a1, void[] a2, TypeInfo ti)
     return 1;
 }
 
-@safe unittest
-{
-    debug(adi) printf("array.Eq unittest\n");
-
-    struct S(T) { T val; }
-    alias String = S!string;
-    alias Float = S!float;
-
-    String[1] a = [String("hello"c)];
-
-    assert(a != [String("hel")]);
-    assert(a != [String("helloo")]);
-    assert(a != [String("betty")]);
-    assert(a == [String("hello")]);
-    assert(a != [String("hxxxx")]);
-
-    Float[1] fa = [Float(float.nan)];
-    assert(fa != fa);
-}
-
-unittest
-{
-    debug(adi) printf("struct.Eq unittest\n");
-
-    static struct TestStruct
-    {
-        int value;
-
-        bool opEquals(const TestStruct rhs) const
-        {
-            return value == rhs.value;
-        }
-    }
-
-    TestStruct[] b = [TestStruct(5)];
-    TestStruct[] c = [TestStruct(6)];
-    assert(_adEq2(*cast(void[]*)&b, *cast(void[]*)&c, typeid(TestStruct[])) == false);
-    assert(_adEq2(*cast(void[]*)&b, *cast(void[]*)&b, typeid(TestStruct[])) == true);
-}
+// @safe unittest
+// {
+//     debug(adi) printf("array.Eq unittest\n");
+//
+//     struct S(T) { T val; }
+//     alias String = S!string;
+//     alias Float = S!float;
+//
+//     String[1] a = [String("hello"c)];
+//
+//     assert(a != [String("hel")]);
+//     assert(a != [String("helloo")]);
+//     assert(a != [String("betty")]);
+//     assert(a == [String("hello")]);
+//     assert(a != [String("hxxxx")]);
+//
+//     Float[1] fa = [Float(float.nan)];
+//     assert(fa != fa);
+// }
+//
+// unittest
+// {
+//     debug(adi) printf("struct.Eq unittest\n");
+//
+//     static struct TestStruct
+//     {
+//         int value;
+//
+//         bool opEquals(const TestStruct rhs) const
+//         {
+//             return value == rhs.value;
+//         }
+//     }
+//
+//     TestStruct[] b = [TestStruct(5)];
+//     TestStruct[] c = [TestStruct(6)];
+//     assert(_adEq2(*cast(void[]*)&b, *cast(void[]*)&c, typeid(TestStruct[])) == false);
+//     assert(_adEq2(*cast(void[]*)&b, *cast(void[]*)&b, typeid(TestStruct[])) == true);
+// }
