@@ -1736,15 +1736,6 @@ void semanticTypeInfoMembers(StructDeclaration sd)
  * location of the captured variable’s declaration.  (This extra walk is
  * skipped when the compiler is gagged.)
  *
- * Params:
- *      fd = function to analyse.
- *
- * Returns:
- *      `true`  if at least one diagnostic was issued (i.e. closure allocation
- *               is disallowed under `@nogc` or `-betterC`);
- *      `false` in all other cases (either no closure needed, or allocation
- *               is allowed).
- *
  * See_Also:
  *      $(UL
  *        $(LI `FuncDeclaration.needsClosure`)
