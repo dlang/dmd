@@ -1731,28 +1731,6 @@ void semanticTypeInfoMembers(StructDeclaration sd)
  * verify that such an allocation is allowed under the current compilation
  * settings.
  *
- * The procedure is three-step:
- *
- * $(OL
- *   $(LI **Early exit:** if `fd.needsClosure` is `false`, no closure is needed
- *        and the routine returns `false`.)
- *
- *   $(LI **Attempt to record GC usage:** `fd.setGC` is called to mark the function
- *        as performing a GC allocation.  Emitting a closure is *illegal* and
- *        triggers an error in either of these cases:
- *
- *        $(UL
- *          $(LI the function itself is annotated `@nogc`, or)
- *          $(LI the compilation is running with the GC disabled
- *               (e.g. `-betterC`, so `global.params.useGC == false`).)
- *        )
- *        When such an error is detected, the routine ultimately returns `true`.)
- *
- *   $(LI **Otherwise** the allocation is permitted.  The helper records the
- *        fact via `fd.printGCUsage` for later backend stages and returns
- *        `false`.)
- * )
- *
  * Whenever an error is emitted, every nested function that actually closes
  * over a variable is listed in a supplemental diagnostic, together with the
  * location of the captured variable’s declaration.  (This extra walk is
