@@ -1,5 +1,7 @@
 /**
- * Performs the semantic3 stage, which deals with function bodies.
+ * Performs the semantic3 stage of semantic analysis, which finalizes
+ * function bodies and late semantic checks for templates, mixins,
+ * aggregates, and special members.
  *
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
@@ -1630,40 +1632,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
     }
 }
 
-/**
- * Helper struct used exclusively inside the *semantic-3* stage
- * for functions.
- *
- * `FuncDeclSem3` is an ultra-light wrapper that groups the data
- * needed to perform additional checks on a single
- * $(D FuncDeclaration) after its body has been analysed by
- * $(REF Semantic3Visitor, dmd.semantic3).
- *
- * The motivation for factoring this logic out of
- * `Semantic3Visitor.visit(FuncDeclaration)` is to keep that
- * (already very large) method readable while still making it
- * easy to add further *semantic-3* helpers in the future.
- *
- * Members:
- *      funcdecl ― the function currently being processed;
- *                 never `null`.
- *
- *      sc       ― the scope in which the analysis must be
- *                 performed (includes flags such as
- *                 `inContract`, `linkage`, etc.).
- *
- * Methods:
- *      checkInContractOverrides ― verifies that if the current
- *          function has an *in* contract, every function it
- *          overrides also declares an *in* contract.
- *          Emits an error and stops at the first offender.
- *
- * Usage:
- * ---
- * auto helper = FuncDeclSem3(fd, sc);
- * helper.checkInContractOverrides();
- * ---
- */
+/// Helper for semantic3 analysis of functions.
+/// This struct is part of a WIP refactoring to simplify large `visit(FuncDeclaration)` logic.
 private struct FuncDeclSem3
 {
     // The FuncDeclaration subject to Semantic analysis
@@ -1698,48 +1668,11 @@ private struct FuncDeclSem3
 }
 
 /**
- * Runs a *semantic-3* pass on any **special members** of a `struct`
- * that must be fully analysed before the backend can emit the
- * struct’s `TypeInfo`.
+ * Ensures special members of a struct are fully analysed
+ * before the backend emits TypeInfo.
  *
- * The routine is invoked in two situations:
- * $(OL
- *   $(LI during the normal `Semantic3Visitor` walk over the struct, or)
- *   $(LI on-demand when CTFE needs a `TypeInfo` for a struct whose own
- *        semantic pass is not finished yet.)
- * )
- *
- * What it does, member by member:
- *
- * $(UL
- *   $(LI **`opEquals` / `opCmp`** (`sd.xeq`, `sd.xcmp`) –
- *        if the member is still pending (`semanticRun < PASS.semantic3done`)
- *        and has a saved `_scope`, it is analysed **under
- *        gagging** (`global.startGagging`).
- *        If an error occurs, the member is replaced with the matching
- *        _error stub_ (`xerreq` or `xerrcmp`) so that later stages
- *        never see a half-analysed symbol.)
- *
- *   $(LI **`toString`**, **`toHash`**, **postblit**, **destructor** –
- *        also re-entered when still pending, but analysed *without*
- *        gagging.  Any error simply propagates; the original symbol
- *        remains in place (no stub substitution).)
- * )
- *
- * Notes:
- * $(UL
- *   $(LI Each member is handled independently — a failure in one does
- *        not prevent the others from being processed.)
- *   $(LI Because gagging is used *only* for `opEquals`/`opCmp`, errors
- *        in the other members are reported immediately, which helps
- *        surface problems earlier during CTFE.)
- * )
- *
- * Params:
- *      sd = struct whose pending special members (if any) will get
- *           their late *semantic-3* analysis.
- *
- * Returns: None; all work is performed for its side-effects on `sd`.
+ * Handles late semantic analysis for members like `opEquals`, `opCmp`,
+ * `toString`, `toHash`, postblit, and destructor.
  */
 void semanticTypeInfoMembers(StructDeclaration sd)
 {
