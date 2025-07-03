@@ -539,23 +539,23 @@ void cod3_stackadj(ref CodeBuilder cdb, int nbytes)
         // https://www.scs.stanford.edu/~zyedidia/arm64/sub_addsub_imm.html
         // add/sub Xd,Xn,#imm{,shift}
         uint sf = 1;
-        uint op = nbytes < 0 ? 0 : 1;
-        uint S = 0;
-        uint sh = 0;
-        uint imm12 = nbytes < 0 ? -nbytes : nbytes;
-        uint Rn = 0x1F;
-        uint Rd = 0x1F;
-        uint ins = (sf    << 31) |
-                   (op    << 30) |
-                   (S     << 29) |
-                   (0x22  << 23) |
-                   (sh    << 22) |
-                   (imm12 << 10) |
-                   (Rn    <<  5) |
-                    Rd;
-        cdb.gen1(ins);
-        assert(imm12 < (1 << 12));  // only 12 bits allowed
-//        assert((imm12 & 0xF) == 0); // 16 byte aligned
+        reg_t Rn = 0x1F;  // SP
+        reg_t Rd = 0x1F;
+        uint imm = nbytes < 0 ? -nbytes : nbytes;
+
+        if (uint imm12 = imm >> 12)     // bits above 12 bits
+        {
+            assert(imm12 < (1 << 12));  // insane amount of stack requested
+            cdb.gen1(nbytes < 0 ? INSTR.add_addsub_imm(sf, 1, imm12, Rn, Rd)
+                                : INSTR.sub_addsub_imm(sf, 1, imm12, Rn, Rd));
+        }
+
+        if (uint imm12 = imm & ((1 << 12) - 1)) // low 12 bits
+        {
+            cdb.gen1(nbytes < 0 ? INSTR.add_addsub_imm(sf, 0, imm12, Rn, Rd)
+                                : INSTR.sub_addsub_imm(sf, 0, imm12, Rn, Rd));
+        }
+
         return;
     }
     uint grex = I64 ? REX_W << 16 : 0;
