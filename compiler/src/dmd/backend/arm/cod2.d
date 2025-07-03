@@ -1178,10 +1178,14 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     elem* e1 = e.E1;
     elem* e2 = e.E2;
     uint numbytes = cast(uint)type_size(e.ET);          // # of bytes in structure/union
+    //printf("numbytes: %u\n", numbytes);
 
-    // First, load pointer to rvalue into SI
-    regm_t srcregs = mSI;                      // source is SI
     docommas(cdb,e2);
+
+    // load pointer to rvalue into source register
+    regm_t srcregs = cgstate.allregs & ~pretregs;
+    if (!srcregs)
+        srcregs = cgstate.allregs;
     if (e2.Eoper == OPind)             // if (.. = *p)
     {
         codelem(cg,cdb,e2.E1,srcregs,false);
@@ -1197,8 +1201,10 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         codelem(cgstate,cdb,e2,srcregs,false);
     }
 
-    // now get pointer to lvalue (destination) in DI
-    regm_t dstregs = mDI;
+    // load pointer to lvalue (destination) in DI
+    regm_t dstregs = cgstate.allregs & ~pretregs;
+    if (!dstregs)
+        dstregs = cgstate.allregs;
     if (e1.Eoper == OPind)               // if (*p = ..)
     {
         scodelem(cg,cdb,e1.E1,dstregs,srcregs,false);
