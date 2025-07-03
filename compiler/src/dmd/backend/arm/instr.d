@@ -135,7 +135,7 @@ struct INSTR
      * ADD/ADDS/SUB/SUBS Rd,Rn,#imm{, shift}
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
      */
-    static uint addsub_imm(uint sf, uint op, uint S, uint sh, uint imm12, ubyte Rn, ubyte Rd)
+    static uint addsub_imm(uint sf, uint op, uint S, uint sh, uint imm12, reg_t Rn, reg_t Rd)
     {
         assert(imm12 < 0x1000);
         return (sf     << 31) |
@@ -146,6 +146,24 @@ struct INSTR
                (imm12  << 10) |
                (Rn     <<  5) |
                 Rd;
+    }
+
+    /* add (immediate)
+     * ADD Rd,Rn,#imm,shift
+     * https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+     */
+    static uint add_addsub_imm(uint sf, uint sh, uint imm12, reg_t Rn, reg_t Rd)
+    {
+        return addsub_imm(sf, 0, 0, sh, imm12, Rn, Rd);
+    }
+
+    /* subtract (immediate)
+     * SUB Rd,Rn,#imm,shift
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sub_addsub_imm.html
+     */
+    static uint sub_addsub_imm(uint sf, uint sh, uint imm12, reg_t Rn, reg_t Rd)
+    {
+        return addsub_imm(sf, 1, 0, sh, imm12, Rn, Rd);
     }
 
     /* MOV (to/from) SP)
