@@ -1,5 +1,7 @@
 /**
- * Performs the semantic3 stage, which deals with function bodies.
+ * Performs the semantic3 stage of semantic analysis, which finalizes
+ * function bodies and late semantic checks for templates, mixins,
+ * aggregates, and special members.
  *
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
@@ -1630,6 +1632,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
     }
 }
 
+/// Helper for semantic3 analysis of functions.
+/// This struct is part of a WIP refactoring to simplify large `visit(FuncDeclaration)` logic.
 private struct FuncDeclSem3
 {
     // The FuncDeclaration subject to Semantic analysis
@@ -1663,6 +1667,13 @@ private struct FuncDeclSem3
     }
 }
 
+/**
+ * Ensures special members of a struct are fully analysed
+ * before the backend emits TypeInfo.
+ *
+ * Handles late semantic analysis for members like `opEquals`, `opCmp`,
+ * `toString`, `toHash`, postblit, and destructor.
+ */
 void semanticTypeInfoMembers(StructDeclaration sd)
 {
     if (sd.xeq &&
@@ -1715,13 +1726,22 @@ void semanticTypeInfoMembers(StructDeclaration sd)
     }
 }
 
-/***********************************************
- * Check that the function contains any closure.
- * If it's @nogc, report suitable errors.
- * This is mostly consistent with FuncDeclaration::needsClosure().
+/**
+ * Determine whether the given function will need to allocate a _closure_ and
+ * verify that such an allocation is allowed under the current compilation
+ * settings.
  *
- * Returns:
- *      true if any errors occur.
+ * Whenever an error is emitted, every nested function that actually closes
+ * over a variable is listed in a supplemental diagnostic, together with the
+ * location of the captured variable’s declaration.  (This extra walk is
+ * skipped when the compiler is gagged.)
+ *
+ * See_Also:
+ *      $(UL
+ *        $(LI `FuncDeclaration.needsClosure`)
+ *        $(LI `FuncDeclaration.setGC`)
+ *        $(LI `FuncDeclaration.printGCUsage`)
+ *      )
  */
 extern (D) bool checkClosure(FuncDeclaration fd)
 {
