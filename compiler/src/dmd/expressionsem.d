@@ -3821,43 +3821,43 @@ private void lowerCastExp(CastExp cex, Scope* sc)
     Type t1b = cex.e1.type.toBasetype();
     Type tob = cex.to.toBasetype();
 
-    if (t1b.ty == Tclass && tob.ty == Tclass)
-    {
-        ClassDeclaration cdfrom = t1b.isClassHandle();
-        ClassDeclaration cdto   = tob.isClassHandle();
+    if (t1b.ty != Tclass || tob.ty != Tclass)
+        return;
 
-        int offset;
-        if (!(cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
-                && cdfrom.classKind != ClassKind.cpp)
-        {
-            Identifier hook = Id._d_cast;
-            if (!verifyHookExist(cex.loc, *sc, hook, "d_cast", Id.object))
-                return;
+    ClassDeclaration cdfrom = t1b.isClassHandle();
+    ClassDeclaration cdto   = tob.isClassHandle();
 
-            // Lower to .object._d_cast!(To)(exp.e1)
-            Expression lowering = new IdentifierExp(cex.loc, Id.empty);
-            lowering = new DotIdExp(cex.loc, lowering, Id.object);
+    int offset;
+    if ((cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
+            || cdfrom.classKind == ClassKind.cpp)
+        return;
 
-            auto tiargs = new Objects();
-            // Unqualify the type being casted to, avoiding multiple instantiations
-            auto unqual_tob = tob.unqualify(MODFlags.wild | MODFlags.const_ |
-                MODFlags.immutable_ | MODFlags.shared_);
-            tiargs.push(unqual_tob);
-            lowering = new DotTemplateInstanceExp(cex.loc, lowering, hook, tiargs);
+    Identifier hook = Id._d_cast;
+    if (!verifyHookExist(cex.loc, *sc, hook, "d_cast", Id.object))
+        return;
 
-            auto arguments = new Expressions();
-            // Unqualify the type being casted from to avoid multiple instantiations
-            auto unqual_t1b = t1b.unqualify(MODFlags.wild | MODFlags.const_ |
-                MODFlags.immutable_ | MODFlags.shared_);
-            Expression e1c = cex.e1.copy();
-            e1c.type = unqual_t1b;
-            arguments.push(e1c);
+    // Lower to .object._d_cast!(To)(exp.e1)
+    Expression lowering = new IdentifierExp(cex.loc, Id.empty);
+    lowering = new DotIdExp(cex.loc, lowering, Id.object);
 
-            lowering = new CallExp(cex.loc, lowering, arguments);
+    auto tiargs = new Objects();
+    // Unqualify the type being casted to, avoiding multiple instantiations
+    auto unqual_tob = tob.unqualify(MODFlags.wild | MODFlags.const_ |
+        MODFlags.immutable_ | MODFlags.shared_);
+    tiargs.push(unqual_tob);
+    lowering = new DotTemplateInstanceExp(cex.loc, lowering, hook, tiargs);
 
-            cex.lowering = lowering.expressionSemantic(sc);
-        }
-    }
+    auto arguments = new Expressions();
+    // Unqualify the type being casted from to avoid multiple instantiations
+    auto unqual_t1b = t1b.unqualify(MODFlags.wild | MODFlags.const_ |
+        MODFlags.immutable_ | MODFlags.shared_);
+    Expression e1c = cex.e1.copy();
+    e1c.type = unqual_t1b;
+    arguments.push(e1c);
+
+    lowering = new CallExp(cex.loc, lowering, arguments);
+
+    cex.lowering = lowering.expressionSemantic(sc);
 }
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
