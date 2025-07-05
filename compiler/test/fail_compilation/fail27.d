@@ -1,12 +1,17 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail27.d(15): Error: cannot implicitly convert expression `-32769` of type `int` to `short`
-fail_compilation/fail27.d(16): Error: cannot implicitly convert expression `-129` of type `int` to `byte`
-fail_compilation/fail27.d(17): Error: cannot implicitly convert expression `-1` of type `int` to `char`
-fail_compilation/fail27.d(18): Error: cannot implicitly convert expression `65536` of type `int` to `wchar`
-fail_compilation/fail27.d(19): Error: cannot implicitly convert expression `-1` of type `int` to `wchar`
-fail_compilation/fail27.d(21): Error: cannot implicitly convert expression `-1` of type `int` to `dchar`
+fail_compilation/fail27.d(20): Error: implicit conversion from `int` (32 bytes) to `short` (16 bytes) may truncate value
+fail_compilation/fail27.d(20):        Use an explicit cast (e.g., `cast(short)expr`) to silence this.
+fail_compilation/fail27.d(21): Error: implicit conversion from `int` (32 bytes) to `byte` (8 bytes) may truncate value
+fail_compilation/fail27.d(21):        Use an explicit cast (e.g., `cast(byte)expr`) to silence this.
+fail_compilation/fail27.d(22): Error: implicit conversion from `int` (32 bytes) to `char` (8 bytes) may truncate value
+fail_compilation/fail27.d(22):        Use an explicit cast (e.g., `cast(char)expr`) to silence this.
+fail_compilation/fail27.d(23): Error: implicit conversion from `int` (32 bytes) to `wchar` (16 bytes) may truncate value
+fail_compilation/fail27.d(23):        Use an explicit cast (e.g., `cast(wchar)expr`) to silence this.
+fail_compilation/fail27.d(24): Error: implicit conversion from `int` (32 bytes) to `wchar` (16 bytes) may truncate value
+fail_compilation/fail27.d(24):        Use an explicit cast (e.g., `cast(wchar)expr`) to silence this.
+fail_compilation/fail27.d(26): Error: cannot implicitly convert expression `-1` of type `int` to `dchar`
 ---
 */
 
