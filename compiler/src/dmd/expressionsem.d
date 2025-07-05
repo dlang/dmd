@@ -13606,7 +13606,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 lowering = new NotExp(exp.loc, lowering);
             }
-            lowering = lowering.expressionSemantic(sc);
+            lowering = lowering.trySemantic(sc); // for better error message
+            if (!lowering)
+            {
+                if (sc.func)
+                    error(exp.loc, "can't infer return type in function `%s`", sc.func.toChars());
+                else
+                    error(exp.loc, "incompatible types for array comparison: `%s` and `%s`",
+                  exp.e1.type.toChars(), exp.e2.type.toChars());
+                lowering = ErrorExp.get();
+            }
             exp.lowering = lowering;
             result = exp;
             return;
