@@ -3591,24 +3591,21 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
             else
             {
                 /* SUB sp,sp,#16+xlocalsize
-                   STP x29,x30,[sp]
                  */
                 cod3_stackadj(cdb, 16 + xlocalsize);
 
                 assert((xlocalsize & 0xF) == 0); // 16 byte aligned
 
                 // https://www.scs.stanford.edu/~zyedidia/arm64/stp_gen.html
-                // STP x29,x30,[sp,#xlocalsize]
+                // STP x29,x30,[sp]
                 {
                     uint opc = 2;
                     uint VR = 0;
                     uint L = 0;
-                    uint imm7 = xlocalsize >> 3;
-                    assert(imm7 < (1 << 7)); // only 7 bits allowed
-                    imm7 = 0;
-                    ubyte Rt2 = 30;
-                    ubyte Rn = 0x1F;
-                    ubyte Rt = 29;
+                    uint imm7 = 0;
+                    reg_t Rt2 = 30;
+                    reg_t Rn = 0x1F;
+                    reg_t Rt = 29;
                     cdb.gen1(INSTR.ldstpair_off(opc, VR, L, imm7, Rt2, Rn, Rt));
                 }
             }
@@ -3620,11 +3617,10 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
                 uint op = 0;
                 uint S = 0;
                 uint sh = 0;
-                uint imm12 = 0; //xlocalsize;
-                assert(imm12 < (1 << 12));  // only 12 bits allowed
-                ubyte Rn = 0x1F;
-                ubyte Rd = 29;
-                cdb.gen1(INSTR.addsub_imm(sf, op, S, sh, imm12, Rn, Rd)); // mov x29,sp // x29 points to previous x29
+                uint imm12 = 0;
+                reg_t Rn = 0x1F;
+                reg_t Rd = 29;
+                cdb.gen1(INSTR.addsub_imm(sf, op, S, sh, imm12, Rn, Rd)); // MOV x29,sp // x29 points to previous x29
             }
         }
         else
