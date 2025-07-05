@@ -2457,6 +2457,19 @@ struct Gcx
             _length += RANGE.sizeof;
         }
 
+        void pushReverse(RANGE)(RANGE[] ranges)
+        {
+            while (_length + ranges.length * RANGE.sizeof > _cap)
+                grow();
+
+            // reverse order for depth-first-order traversal
+            foreach_reverse (ref range; ranges)
+            {
+                *cast(RANGE*)(_p + _length) = range;
+                _length += RANGE.sizeof;
+            }
+        }
+
         void pop(RANGE)(ref RANGE rng)
         in { assert(_length >= RANGE.sizeof); }
         do
@@ -2711,9 +2724,7 @@ struct Gcx
                     }
                     else
                     {
-                        // reverse order for depth-first-order traversal
-                        foreach_reverse (ref range; stack)
-                            scanStack.push(range);
+                        scanStack.pushReverse(stack);
                     }
                     stackPos = 0;
                 }
@@ -3765,9 +3776,7 @@ Lmark:
         scope(exit) stackLock.unlock();
         bool wasEmpty = scanStack.empty;
 
-        // reverse order for depth-first-order traversal
-        foreach_reverse (ref range; ranges)
-            scanStack.push(range);
+        scanStack.pushReverse(ranges);
 
         if (wasEmpty)
             evStackFilled.setIfInitialized();
