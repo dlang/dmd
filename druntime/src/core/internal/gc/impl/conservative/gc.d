@@ -2430,7 +2430,7 @@ struct Gcx
         }
     }
 
-    static struct ToScanStack
+    static struct ToScanStack(R)
     {
     nothrow:
         @disable this(this);
@@ -2466,6 +2466,8 @@ struct Gcx
         }
 
         @property bool empty() const { return !_length; }
+        size_t length(RANGE = R)() const { return _length / RANGE.sizeof; }
+        RANGE* ptr(RANGE = R)() { return cast(RANGE*)_p; }
 
     private:
         void grow()
@@ -2491,7 +2493,7 @@ struct Gcx
         size_t _cap;
     }
 
-    ToScanStack scanStack;
+    ToScanStack!void scanStack; // used with both ScanRange!false and ScanRange!true
 
     /**
      * Search a range of memory values and mark any pointers into the GC pool.
@@ -2741,7 +2743,7 @@ struct Gcx
     }
 
     version (COLLECT_PARALLEL)
-    ToScanStack toscanRoots;
+    ToScanStack!(void*) toscanRoots;
 
     version (COLLECT_PARALLEL)
     void collectRoots(void *pbot, void *ptop) scope nothrow
@@ -3543,8 +3545,8 @@ Lmark:
         if (toscanRoots.empty)
             return;
 
-        void** pbot = cast(void**) toscanRoots._p;
-        void** ptop = cast(void**) (toscanRoots._p + toscanRoots._length);
+        auto pbot = toscanRoots.ptr;
+        auto ptop = pbot + toscanRoots.length;
 
         debug(PARALLEL_PRINTF) printf("markParallel\n");
 
@@ -3575,12 +3577,9 @@ Lmark:
 
         void pullLoop(bool precise)()
         {
-            static if (precise)
-                mark!(true, true, true)(ScanRange!true(pbot, ptop, null));
-            else
-                mark!(false, true, true)(ScanRange!false(pbot, ptop));
+            mark!(precise, true, true)(ScanRange!precise(pbot, ptop));
 
-            while (pullFromScanStack())
+            while (pullFromScanStackImpl!precise())
                 evDone.wait(1.msecs);
         }
         if (ConservativeGC.isPrecise)
