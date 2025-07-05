@@ -788,7 +788,25 @@ void epilog(block* b)
             else
             {
                 if (log) printf("epilog: mov sp,bp\n");
-                cdbx.gen1(INSTR.ldstpair_post(2, 0, 1, cast(uint)(16 + localsize) / 8, 30, 31, 29)); // LDP x29,x30,[sp],#16 + localsize
+                if (16 + xlocalsize <= 512) // or localsize??
+                    cdbx.gen1(INSTR.ldstpair_post(2, 0, 1, cast(uint)(16 + localsize) / 8, 30, 31, 29)); // LDP x29,x30,[sp],#16 + localsize
+                else
+                {
+                    /* LDP x29,x30,[sp] https://www.scs.stanford.edu/~zyedidia/arm64/ldp_gen.html
+                     */
+                    uint opc = 2;
+                    uint VR = 0;
+                    uint L = 1;
+                    uint imm7 = 0;
+                    reg_t Rt2 = 30;
+                    reg_t Rn = 0x1F;
+                    reg_t Rt = 29;
+                    cdbx.gen1(INSTR.ldstpair_off(opc,VR,L,imm7,Rt2,Rn,Rt));
+                    /* ADD sp,sp,#off
+                     * ADD sp,sp,#off + lsl #12
+                     */
+                    cod3_stackadj(cdbx, cast(int)(-(16 + xlocalsize)));
+                }
             }
         }
         else
