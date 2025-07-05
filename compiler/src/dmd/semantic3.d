@@ -1432,6 +1432,19 @@ private extern(C++) final class Semantic3Visitor : Visitor
             oblive(funcdecl);
         }
 
+        //if (global.params.useFastDFA)
+        {
+            import dmd.dfa.entry;
+
+            // Don't run DFA if there are errors,
+            //  this is a costly enough operation that it warrents the explicit check.
+            if ((global.errors != oldErrors) || (funcdecl.fbody && funcdecl.fbody.isErrorStatement()))
+            {
+            }
+            else
+                dfaEntry(funcdecl);
+        }
+
         /* If this function had instantiated with gagging, error reproduction will be
          * done by TemplateInstance::semantic.
          * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
@@ -1628,6 +1641,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         if (sd)
             sd.semanticTypeInfoMembers();
+
         ad.semanticRun = PASS.semantic3done;
     }
 }
