@@ -836,15 +836,16 @@ public:
 
         override void visit(EqualExp e)
         {
-            if (auto lowering = e.lowering)
+            auto ee = cast(EqualExp)e.copy();
+            if (auto lowering = ee.lowering)
             {
-                auto ee = cast(EqualExp)e.copy();
                 ee.lowering = doInlineAs!Expression(lowering, ids);
-                result = ee;
-                return;
             }
 
-            visit(cast(BinExp)e);
+            ee.e1 = doInlineAs!Expression(e.e1, ids);
+            ee.e2 = doInlineAs!Expression(e.e2, ids);
+
+            result = ee;
 
             Type t1 = e.e1.type.toBasetype();
             if (t1.isStaticOrDynamicArray())
