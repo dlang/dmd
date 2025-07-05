@@ -3074,9 +3074,15 @@ private bool functionParameters(Loc loc, Scope* sc,
                 return errorArgs();
             }
             arg = p.defaultArg;
+
             if (!arg.type)
                 arg = arg.expressionSemantic(sc);
             arg = inlineCopy(arg, sc);
+            // see https://github.com/dlang/dmd/issues/21409
+            // default arg can contain a VarExp that's for a VarDecl
+            // located in another FuncDecl that the one the CallExp is located in
+            lambdaCheckForNestedRef(arg, sc);
+
             // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
             arg = arg.resolveLoc(loc, sc);
             if (i >= nargs)
