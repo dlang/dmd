@@ -97,20 +97,33 @@ regm_t idxregm(const code* c)
         }
         else
         {
+            //debug printf("rex: %02x rm: %02x sib: %02x\n", c.Irex, c.Irm, c.Isib);
             if ((rm & 7) == 4)          /* if sib byte                  */
             {
+                // Memory Addressing With an SIB Byte figure 1-3 Programmer's Manual vol 3
+                //   REX    modregRM  scale index base
+                // 4WRXB !11|rrr|100        bb|xxx|bbb
                 const sib = c.Isib;
-                reg_t idxreg = (sib >> 3) & 7;
-                // scaled index reg
-                idxm = mask(idxreg | ((c.Irex & REX_X) ? 8 : 0));
+                reg_t index = (sib >> 3) & 7;
+                reg_t base = sib & 7;
 
-                if ((sib & 7) == 5 && (rm & 0xC0) == 0)
+                // scaled index reg
+                if (index == SP)         // ESP cannot be used as an index register
+                {
+                    if (c.Irex & REX_X)
+                        idxm = mask(12); // but R12 can be
+                }
+                else
+                    idxm = mask(index | ((c.Irex & REX_X) ? 8 : 0));
+
+                if (base == BP && (rm & 0xC0) == 0) // this means a disp with no base
                 { }
                 else
-                    idxm |= mask((sib & 7) | ((c.Irex & REX_B) ? 8 : 0));
+                    idxm |= mask(base | ((c.Irex & REX_B) ? 8 : 0));
             }
             else
                 idxm = mask((rm & 7) | ((c.Irex & REX_B) ? 8 : 0));
+            //debug printf("idxregm: %s\n", regm_str(idxm));
         }
     }
     return idxm;
