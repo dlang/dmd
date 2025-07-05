@@ -2341,7 +2341,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
     if (f.isNogc())
         return false;
 
-    if (isRootTraitsCompilesScope(sc) ? !sc.func.isNogcBypassingInference() : !sc.func.setGCCall(f))
+    if (isRootTraitsCompilesScope(sc) ? !sc.func.isNogcBypassingInference() : !sc.setGCCall(sc.func, f))
         return false;
 
     if (loc == Loc.initial) // e.g. implicitly generated dtor
@@ -6792,7 +6792,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toErrMsg());
                     err = true;
                 }
-                if (!tf.isNogc && sc.func.setGC(exp.loc, "calling non-@nogc `%s`", exp.e1))
+                if (!tf.isNogc && sc.setGC(sc.func, exp.loc, "calling non-@nogc `%s`", exp.e1))
                 {
                     error(exp.loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toErrMsg());
