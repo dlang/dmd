@@ -57,7 +57,7 @@ version (D_ProfileGC)
         version (D_TypeInfo)
         {
             import core.internal.array.utils: TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!(Tarr.stringof, "_d_arrayappendcTX"));
+            mixin(TraceHook!("Tarr", "_d_arrayappendcTX"));
 
             return _d_arrayappendcTX(px, n);
         }
@@ -120,7 +120,7 @@ version (D_ProfileGC)
         version (D_TypeInfo)
         {
             import core.internal.array.utils: TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!(Tarr.stringof, "_d_arrayappendT"));
+            mixin(TraceHook!("Tarr", "_d_arrayappendT"));
 
             return _d_arrayappendT(x, y);
         }
