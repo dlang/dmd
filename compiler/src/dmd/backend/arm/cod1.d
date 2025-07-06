@@ -1353,7 +1353,7 @@ enum CLIB_A
     getf2,
     lttf2,
     letf2,
-
+    memset,
 }
 
 private
@@ -1454,6 +1454,14 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
         case CLIB_A.letf2: declare("__letf2"); break;
         case CLIB_A.gttf2: declare("__gttf2"); break;
         case CLIB_A.getf2: declare("__getf2"); break;
+
+        case CLIB_A.memset:
+        {
+            string name = "memset";
+            s = symboly(name, mask(0));
+            cinfo.retregs = mask(0);
+            break;
+        }
 
         default:
             assert(0);
