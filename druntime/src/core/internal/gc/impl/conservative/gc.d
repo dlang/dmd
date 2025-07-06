@@ -1870,7 +1870,7 @@ struct Gcx
 
         roots.removeAll();
         ranges.removeAll();
-        scanStack.reset();
+        scanStackConservative.reset(); // scanStackPrecise overlaps with scanStackConservative
     }
 
 
@@ -2430,7 +2430,7 @@ struct Gcx
         }
     }
 
-    static struct ToScanStack(R)
+    static struct ToScanStack(RANGE)
     {
     nothrow:
         @disable this(this);
@@ -2450,37 +2450,33 @@ struct Gcx
             _length = 0;
         }
 
-        void push(RANGE)(RANGE rng)
+        void push(RANGE rng)
         {
-            if (_length + RANGE.sizeof > _cap) grow();
-            *cast(RANGE*)(_p + _length) = rng;
-            _length += RANGE.sizeof;
+            if ((_length + 1) * RANGE.sizeof > _cap) grow();
+            _p[_length] = rng;
+            _length++;
         }
 
-        void pushReverse(RANGE)(RANGE[] ranges)
+        void pushReverse(RANGE[] ranges)
         {
-            while (_length + ranges.length * RANGE.sizeof > _cap)
+            while ((_length + ranges.length) * RANGE.sizeof > _cap)
                 grow();
 
             // reverse order for depth-first-order traversal
             foreach_reverse (ref range; ranges)
-            {
-                *cast(RANGE*)(_p + _length) = range;
-                _length += RANGE.sizeof;
-            }
+                _p[_length++] = range;
         }
 
-        void pop(RANGE)(ref RANGE rng)
-        in { assert(_length >= RANGE.sizeof); }
+        void pop(ref RANGE rng)
+        in { assert(_length > 0); }
         do
         {
-            _length -= RANGE.sizeof;
-            rng = *cast(RANGE*)(_p + _length);
+            rng = _p[--_length];
         }
 
         @property bool empty() const { return !_length; }
-        size_t length(RANGE = R)() const { return _length / RANGE.sizeof; }
-        RANGE* ptr(RANGE = R)() { return cast(RANGE*)_p; }
+        size_t length() const { return _length; }
+        RANGE* ptr() { return _p; }
 
     private:
         void grow()
@@ -2489,7 +2485,7 @@ struct Gcx
 
             enum initSize = 64 * 1024; // Windows VirtualAlloc granularity
             immutable ncap = _cap ? 2 * _cap : initSize;
-            auto p = cast(ubyte*)os_mem_map(ncap);
+            auto p = cast(RANGE*)os_mem_map(ncap);
             if (p is null) onOutOfMemoryError();
             debug (VALGRIND) makeMemUndefined(p[0..ncap]);
             if (_p !is null)
@@ -2502,11 +2498,22 @@ struct Gcx
         }
 
         size_t _length;
-        ubyte* _p;
-        size_t _cap;
+        RANGE* _p;
+        size_t _cap; // in bytes
     }
 
-    ToScanStack!void scanStack; // used with both ScanRange!false and ScanRange!true
+    union
+    {
+        ToScanStack!(ScanRange!false) scanStackConservative;
+        ToScanStack!(ScanRange!true) scanStackPrecise;
+    }
+    template scanStack(bool precise)
+    {
+        static if(precise)
+            alias scanStack = scanStackPrecise;
+        else
+            alias scanStack = scanStackConservative;
+    }
 
     /**
      * Search a range of memory values and mark any pointers into the GC pool.
@@ -2702,11 +2709,11 @@ struct Gcx
                 }
                 else
                 {
-                    if (scanStack.empty)
+                    if (scanStack!precise.empty)
                         break; // nothing more to do
 
                     // pop range from global stack and recurse
-                    scanStack.pop(rng);
+                    scanStack!precise.pop(rng);
                 }
             }
             // printf("  pop [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
@@ -2720,11 +2727,11 @@ struct Gcx
                 {
                     static if (parallel)
                     {
-                        scanStackPushLocked(stack);
+                        scanStackPushLocked!precise(stack);
                     }
                     else
                     {
-                        scanStack.pushReverse(stack);
+                        scanStack!precise.pushReverse(stack);
                     }
                     stackPos = 0;
                 }
@@ -3561,7 +3568,7 @@ Lmark:
 
         debug(PARALLEL_PRINTF) printf("markParallel\n");
 
-        size_t pointersPerThread = (ptop - pbot) / (numScanThreads + 1);
+        size_t pointersPerThread = toscanRoots.length / (numScanThreads + 1);
         if (pointersPerThread > 0)
         {
             void pushRanges(bool precise)()
@@ -3570,7 +3577,7 @@ Lmark:
 
                 for (int idx = 0; idx < numScanThreads; idx++)
                 {
-                    scanStack.push(ScanRange!precise(pbot, pbot + pointersPerThread));
+                    scanStack!precise.push(ScanRange!precise(pbot, pbot + pointersPerThread));
                     pbot += pointersPerThread;
                 }
                 stackLock.unlock();
@@ -3742,11 +3749,11 @@ Lmark:
         ScanRange!precise rng;
 
         stackLock.lock();
-        while (!scanStack.empty())
+        while (!scanStack!precise.empty())
         {
             busyThreads.atomicOp!"+="(1);
-            scanStack.pop(rng);
-            if (scanStack.empty)
+            scanStack!precise.pop(rng);
+            if (scanStack!precise.empty)
                 evStackFilled.reset();
             stackLock.unlock();
 
@@ -3770,28 +3777,28 @@ Lmark:
 
     auto stackLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
 
-    void scanStackPushLocked(RANGE)(RANGE[] ranges)
+    void scanStackPushLocked(bool precise)(ScanRange!precise[] ranges)
     {
         stackLock.lock();
         scope(exit) stackLock.unlock();
-        bool wasEmpty = scanStack.empty;
+        bool wasEmpty = scanStack!precise.empty;
 
-        scanStack.pushReverse(ranges);
+        scanStack!precise.pushReverse(ranges);
 
         if (wasEmpty)
             evStackFilled.setIfInitialized();
     }
 
-    bool scanStackPopLocked(RANGE)(ref RANGE rng)
+    bool scanStackPopLocked(bool precise)(ref ScanRange!precise rng)
     {
         stackLock.lock();
         scope(exit) stackLock.unlock();
-        if (scanStack.empty())
+        if (scanStack!precise.empty())
             return false;
 
-        scanStack.pop(rng);
+        scanStack!precise.pop(rng);
 
-        if (scanStack.empty())
+        if (scanStack!precise.empty())
             evStackFilled.reset();
         return true;
     }
