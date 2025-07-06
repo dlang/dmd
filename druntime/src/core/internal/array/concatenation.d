@@ -174,7 +174,7 @@ version (D_ProfileGC)
         version (D_TypeInfo)
         {
             import core.internal.array.utils: TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!(Tarr.stringof, "_d_arraycatnTX"));
+            mixin(TraceHook!("Tarr", "_d_arraycatnTX"));
 
             import core.lifetime: forward;
             return _d_arraycatnTX!Tret(forward!froms);

@@ -475,7 +475,7 @@ version (D_ProfileGC)
         version (D_TypeInfo)
         {
             import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!(T.stringof, "_d_newarrayT"));
+            mixin(TraceHook!("T", "_d_newarrayT"));
 
             return _d_newarrayT!T(length, isShared);
         }
@@ -607,7 +607,7 @@ version (D_ProfileGC)
         version (D_TypeInfo)
         {
             import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!(T.stringof, "_d_newarraymTX"));
+            mixin(TraceHook!("T", "_d_newarraymTX"));
 
             return _d_newarraymTX!(Tarr, T)(dims, isShared);
         }
