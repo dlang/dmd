@@ -1185,39 +1185,22 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         return;
     }
 
-    bool valueIsConst = false;
-    targ_size_t value;
-    if (evalue.Eoper == OPconst)
+    if (enumbytes.Eoper == OPconst ||
+        evalue.Eoper == OPstrpar) // happens if evalue is a struct of 0 size
     {
-        value = el_tolong(evalue) & 0xFF;
-        value |= value << 8;
-        value |= value << 16;
-        value |= value << 32;
-        valueIsConst = true;
-    }
-    else if (evalue.Eoper == OPstrpar)  // happens if evalue is a struct of 0 size
-    {
-        value = 0;
-        valueIsConst = true;
-    }
-    else
-        value = 0xDEADBEEF;     // stop annoying false positives that value is not inited
-
-    // Get nbytes into CX
-    regm_t nbytesregs = 0;
-    if (enumbytes.Eoper != OPconst)
-    {
-        nbytesregs = cgstate.allregs & ~pretregs;
+        // Get nbytes into nbytesreg
+        regm_t nbytesregs = cgstate.allregs & ~pretregs;
         if (!nbytesregs)
             nbytesregs = cgstate.allregs;
         codelem(cgstate,cdb,enumbytes,nbytesregs,false);
-    }
 
-    // Get value into valuereg
-    regm_t valueregs;
-    reg_t valuereg;
-    if (valueIsConst)
-    {
+        ulong value = evalue.Eoper == OPstrpar ? 0 : el_tolong(evalue) & 0xFF;
+        value |= value << 8;
+        value |= value << 16;
+        value |= value << 32;
+
+        regm_t valueregs;
+        reg_t valuereg;
         if (value == 0)
         {
             valueregs = 0;
@@ -1228,43 +1211,31 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             valueregs = cgstate.allregs & ~(pretregs | nbytesregs);
             if (!valueregs)
                 valueregs = cgstate.allregs & ~nbytesregs;
-            regwithvalue(cdb, valueregs, value, 64);
+            valuereg = regwithvalue(cdb, valueregs, value, 64);
+            valueregs = mask(valuereg);
             getregs(cdb, valueregs);
             valuereg = findreg(valueregs);
             cgstate.regimmed_set(valuereg, value);
         }
         freenode(evalue);
-    }
-    else
-    {
-        scodelem(cgstate,cdb,evalue,valueregs,nbytesregs,false);
 
-        valuereg = findreg(valueregs);
-        getregs(cdb,valueregs);
+        freenode(e2);
 
-        regm_t regm = cgstate.allregs & ~(valueregs | nbytesregs);
-        const r = regwithvalue(cdb,regm,cast(targ_size_t)0x01010101_01010101,64); // MOV r,0x01010101_01010101
-        cdb.gen2(0x0FAF,modregrmx(3,valuereg,r));        // IMUL valuereg,r
-    }
-    freenode(e2);
+        // Get destination into dstreg
+        regm_t dstregs = cgstate.allregs & ~(nbytesregs | valueregs);
+        scodelem(cgstate,cdb,e.E1,dstregs,nbytesregs | valueregs,false);
+        reg_t dstreg = findreg(dstregs);
 
-    // Get destination into dstreg
-    regm_t dstregs = cgstate.allregs & ~(nbytesregs | valueregs);
-    scodelem(cgstate,cdb,e.E1,dstregs,nbytesregs | valueregs,false);
-    reg_t dstreg = findreg(dstregs);
+        regm_t retregs;
+        if (pretregs)                              // if need return value
+        {
+            retregs = pretregs & ~(nbytesregs | valueregs | dstregs);
+            if (!retregs)
+                retregs = cgstate.allregs & ~(nbytesregs | valueregs | dstregs);
+            reg_t retreg = allocreg(cdb,retregs,TYnptr);
+            genmovreg(cdb,retreg,dstreg);           // MOV retreg,dstreg
+        }
 
-    regm_t retregs;
-    if (pretregs)                              // if need return value
-    {
-        retregs = pretregs & ~(nbytesregs | valueregs | dstregs);
-        if (!retregs)
-            retregs = cgstate.allregs & ~(nbytesregs | valueregs | dstregs);
-        reg_t retreg = allocreg(cdb,retregs,TYnptr);
-        genmovreg(cdb,retreg,dstreg);           // MOV retreg,dstreg
-    }
-
-    if (enumbytes.Eoper == OPconst)
-    {
         uint numbytes = cast(uint)el_tolong(enumbytes);
         if (const n = numbytes & ~(REGSIZE - 1))
         {
@@ -1292,50 +1263,26 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         return;
     }
 
-    // TODO AArch64
-
-    getregs(cdb,mDI | mCX);
-
-    /*  MOV   sreg,ECX
-        SHR   ECX,n
-        REP
-        STOSD/Q
-
-        ADC   ECX,ECX
-        REP
-        STOSD
-
-        MOV   ECX,sreg
-        AND   ECX,3
-        REP
-        STOSB
+    /* ptr => x0
+     * value => w1
+     * num => x2
      */
-    regm_t regs = cgstate.allregs & (pretregs ? ~(mAX|mBX|mCX|mDI) : ~(mAX|mCX|mDI));
-    const sreg = allocreg(cdb,regs,TYint);
-    genregs(cdb,0x89,CX,sreg);                        // MOV sreg,ECX (32 bits only)
 
-    const n = I64 ? 3 : 2;
-    cdb.genc2(0xC1, modregrm(3,5,CX), n);      // SHR ECX,n
+    // Get nbytes into x2
+    regm_t nbytesregs = mask(2);
+    codelem(cgstate,cdb,enumbytes,nbytesregs,false);
 
-    cdb.gen1(0xF3);                                   // REP
-    cdb.gen1(STOS);                                   // STOSD/Q
-    if (I64)
-        code_orrex(cdb.last(), REX_W);
+    // Get value into w1
+    regm_t valueregs = mask(1);
+    scodelem(cgstate,cdb,evalue,valueregs,nbytesregs,false);
 
-    if (I64)
-    {
-        cdb.gen2(0x11,modregrm(3,CX,CX));             // ADC ECX,ECX
-        cdb.gen1(0xF3);                               // REP
-        cdb.gen1(STOS);                               // STOSD
-    }
+    freenode(e2);
 
-    genregs(cdb,0x89,sreg,CX);                        // MOV ECX,sreg (32 bits only)
-    cdb.genc2(0x81, modregrm(3,4,CX), 3);             // AND ECX,3
-    cdb.gen1(0xF3);                                   // REP
-    cdb.gen1(STOSB);                                  // STOSB
+    // Get destination into x0
+    regm_t dstregs = mask(0);
+    scodelem(cgstate,cdb,e.E1,dstregs,nbytesregs | valueregs,false);
 
-    cgstate.regimmed_set(CX, 0);                    // CX is now 0
-    fixresult(cdb,e,mES|mBX,pretregs);
+    callclib(cdb,null,CLIB_A.memset,pretregs,0);        // memset(void* ptr, int value, size_t num)
 }
 
 /***********************************************
