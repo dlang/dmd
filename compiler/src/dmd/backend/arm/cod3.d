@@ -1763,6 +1763,7 @@ void assignaddrc(code* c)
  * Note: only works for forward referenced code.
  *       only direct jumps and branches are detected.
  *       LOOP instructions only work for backward refs.
+ * Reference: http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condbranch
  */
 @trusted
 void jmpaddr(code* c)
@@ -1805,7 +1806,7 @@ void jmpaddr(code* c)
                 ad += calccodsize(ci);
                 ci = code_next(ci);
             }
-            c.Iop = (-(ad >> 2)) << 5;
+            c.Iop |= (-(ad >> 2) & ((1 << 19) - 1)) << 5;    // set the signed imm19 field
             c.IFL1 = FL.unde;
         }
         c = code_next(c);
