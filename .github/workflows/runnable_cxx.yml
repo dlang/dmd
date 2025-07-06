@@ -77,8 +77,6 @@ jobs:
           # NOTE: as of April 2025, image windows-2025 only has VS 2022, so no point in testing that image too
           - { os: windows-2022, model: 64 }
           - { os: windows-2022, model: 32 }
-          - { os: windows-2019, model: 64 }
-          - { os: windows-2019, model: 32 }
 
     runs-on: ${{ matrix.os }}
     defaults:
