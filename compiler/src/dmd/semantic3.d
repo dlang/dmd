@@ -1780,13 +1780,13 @@ extern (D) bool checkClosure(FuncDeclaration fd)
     if (fd.setGC(fd.loc, "allocating a closure for `%s()`", fd))
     {
         .error(fd.loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
-        if (global.gag)
+        if (global.gag) // need not report supplemental errors
             return true;
     }
     else if (!global.params.useGC)
     {
         .error(fd.loc, "%s `%s` is `-betterC` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
-        if (global.gag)
+        if (global.gag) // need not report supplemental errors
             return true;
     }
     else
@@ -1803,14 +1803,16 @@ extern (D) bool checkClosure(FuncDeclaration fd)
         {
             assert(f !is fd);
 
-            LcheckAncestors:
+            LcheckAncestorsOfANestedRef:
             for (Dsymbol s = f; s && s !is fd; s = s.toParentP(fd))
             {
                 auto fx = s.isFuncDeclaration();
                 if (!fx)
                     continue;
 
-                if (fx.isThis() || fx.tookAddressOf || checkEscapingSiblings(fx, fd))
+                if (fx.isThis() ||
+                    fx.tookAddressOf ||
+                    checkEscapingSiblings(fx, fd))
                 {
                     bool alreadyReported = false;
                     foreach (r; reported)
@@ -1822,14 +1824,14 @@ extern (D) bool checkClosure(FuncDeclaration fd)
                         }
                     }
                     if (alreadyReported)
-                        break LcheckAncestors;
+                        break LcheckAncestorsOfANestedRef;
 
                     reported.push(f);
                     .errorSupplemental(f.loc, "%s `%s` closes over variable `%s`", f.kind, f.toErrMsg(), v.toChars());
                     if (v.ident != Id.This)
                         .errorSupplemental(v.loc, "`%s` declared here", v.toChars());
 
-                    break LcheckAncestors;
+                    break LcheckAncestorsOfANestedRef;
                 }
             }
         }
