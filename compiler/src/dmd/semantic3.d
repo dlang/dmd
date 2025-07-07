@@ -1780,13 +1780,13 @@ extern (D) bool checkClosure(FuncDeclaration fd)
     if (fd.setGC(fd.loc, "allocating a closure for `%s()`", fd))
     {
         .error(fd.loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
-        if (global.gag) // need not report supplemental errors
+        if (global.gag)     // need not report supplemental errors
             return true;
     }
     else if (!global.params.useGC)
     {
         .error(fd.loc, "%s `%s` is `-betterC` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
-        if (global.gag) // need not report supplemental errors
+        if (global.gag)     // need not report supplemental errors
             return true;
     }
     else
@@ -1803,7 +1803,7 @@ extern (D) bool checkClosure(FuncDeclaration fd)
         {
             assert(f !is fd);
 
-            LcheckAncestorsOfANestedRef:
+        LcheckAncestorsOfANestedRef:
             for (Dsymbol s = f; s && s !is fd; s = s.toParentP(fd))
             {
                 auto fx = s.isFuncDeclaration();
