@@ -3523,7 +3523,7 @@ Lmark:
                         Gcx.instance.numScanThreads = 0;
                         Gcx.instance.scanThreadData = null;
                         Gcx.instance.busyThreads = 0;
-                        Gcx.instance.stackLock.unlock();
+                        Gcx.instance.stackLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
 
                         memset(&Gcx.instance.evStackFilled, 0, Gcx.instance.evStackFilled.sizeof);
                         memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
