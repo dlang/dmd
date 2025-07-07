@@ -41,11 +41,26 @@ extern (C)
 		int x = void;
 	}
 	alias weird = int[(cast(foo*)cast(void*)0).x.sizeof];
+	alias ULONG = ulong;
+	alias ULONG_Deluxe = ulong;
+	alias ULONG_PTR = ulong*;
+	alias Callback = void* function();
+	struct Test
+	{
+		ULONG_Deluxe d = void;
+		ULONG_Deluxe* p = void;
+		ULONG_PTR q = void;
+		Callback cb = void;
+	}
+	extern __gshared int[cast(ULONG)3] arr;
 	/+enum int __DATE__ = 1+/;
 	/+enum int __TIME__ = 1+/;
 	/+enum int __TIMESTAMP__ = 1+/;
 	/+enum int __EOF__ = 1+/;
 	/+enum int __VENDOR__ = 1+/;
+	enum int DEF = 123;
+	enum int SQL_DRIVER_STMT_ATTR_BASE = 16384;
+	enum int ABC = 64;
 }
 ---
  */
@@ -96,3 +111,23 @@ struct foo {
     int x;
 };
 typedef int weird[sizeof(((struct foo *)((void*)0))->x)];
+
+// https://github.com/dlang/dmd/issues/20889
+typedef unsigned long long ULONG;
+typedef ULONG ULONG_Deluxe;
+typedef ULONG_Deluxe *ULONG_PTR;
+typedef void *(*Callback)();
+
+struct Test
+{
+	ULONG_Deluxe d;
+	ULONG_Deluxe *p;
+	ULONG_PTR q;
+	Callback cb;
+};
+
+int arr[(ULONG) 3];
+
+#define DEF 123
+#define SQL_DRIVER_STMT_ATTR_BASE   0x00004000  // 32-bit
+#define ABC 64

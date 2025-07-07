@@ -2,8 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail16.d(19): Error: function declaration without return type. (Note that constructors are always named `this`)
-fail_compilation/fail16.d(19): Error: no identifier for declarator `bar!(typeof(X))(X)`
+fail_compilation/fail16.d(20): Error: function declaration without return type
+fail_compilation/fail16.d(20):        Note that constructors are always named `this`
+fail_compilation/fail16.d(20): Error: variable name expected after type `bar!(typeof(X))(X)`, not `;`
 ---
 */
 

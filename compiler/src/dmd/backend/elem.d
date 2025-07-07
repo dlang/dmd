@@ -5,10 +5,10 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elem.d, backend/elem.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/elem.d, backend/elem.d)
  */
 
 module dmd.backend.elem;
@@ -1144,9 +1144,10 @@ int el_countCommas(const(elem)* e)
  * Convert floating point constant to a read-only symbol.
  * Needed iff floating point code can't load immediate constants.
  */
-@trusted
+private @trusted
 elem* el_convfloat(ref GlobalOptimizer go, elem* e)
 {
+    //printf("el_convfloat()\n"); elem_print(e);
     ubyte[32] buffer = void;
 
     assert(config.inline8087);
@@ -1232,15 +1233,76 @@ elem* el_convfloat(ref GlobalOptimizer go, elem* e)
 }
 
 /************************************
+ * Convert AArch64 128 bit floating point constant to a read-only symbol.
+ * Params:
+ *      go = optimizer state
+ *      e  = floating point constant
+ * Returns:
+ *      read-only constant variable
+ */
+private @trusted
+elem* el_convreal(ref GlobalOptimizer go, elem* e)
+{
+    //printf("el_convreal()\n"); elem_print(e);
+    ubyte[32] buffer = void;
+
+    tym_t ty = e.Ety;
+    int sz = tysize(ty);
+    assert(sz <= buffer.length);
+    void* p;
+    switch (tybasic(ty))
+    {
+        case TYldouble:
+        case TYildouble:
+            /* The size, alignment, and padding of long doubles may be different
+             * from host to target
+             */
+            p = buffer.ptr;
+            // TODO AArch64 these are supposed to be 128 bit floats, not 80 bit
+            memset(buffer.ptr, 0, sz);                      // ensure padding is 0
+            memcpy(buffer.ptr, &e.Vldouble, 10);
+            break;
+
+        case TYcldouble:
+            p = buffer.ptr;
+            memset(buffer.ptr, 0, sz);
+            memcpy(buffer.ptr, &e.Vcldouble.re, 10);
+            memcpy(buffer.ptr + tysize(TYldouble), &e.Vcldouble.im, 10);
+            break;
+
+        default:
+            return e;   // not necessary
+    }
+
+    static if (0)
+    {
+        printf("%gL+%gLi\n", cast(double)e.Vcldouble.re, cast(double)e.Vcldouble.im);
+        printf("el_convfloat() %g %g sz=%d\n", e.Vcdouble.re, e.Vcdouble.im, sz);
+        printf("el_convfloat(): sz = %d\n", sz);
+        ushort* p = cast(ushort*)&e.Vcldouble;
+        for (int i = 0; i < sz/2; i++) printf("%04x ", p[i]);
+        printf("\n");
+    }
+
+    Symbol* s  = out_readonly_sym(ty, p, sz);
+    el_free(e);
+
+    elem* ep = el_ptr(s);
+    elem* ec = el_una(OPind, ty, ep);
+
+    go.changes++;
+    //printf("s: %s %d:x%x\n", s.Sident, s.Sseg, s.Soffset);
+    return ec;
+}
+
+/************************************
  * Convert vector constant to a read-only symbol.
  * Needed iff vector code can't load immediate constants.
  */
 
-@trusted
+private @trusted
 elem* el_convxmm(ref GlobalOptimizer go, elem* e)
 {
-    ubyte[Vconst.sizeof] buffer = void;
-
     // Do not convert if the constants can be loaded with the special XMM instructions
     if (loadxmmconst(e))
         return e;
@@ -1248,7 +1310,7 @@ elem* el_convxmm(ref GlobalOptimizer go, elem* e)
     go.changes++;
     tym_t ty = e.Ety;
     int sz = tysize(ty);
-    assert(sz <= buffer.length);
+    assert(sz <= Vconst.sizeof);
     void* p = &e.EV;
 
     static if (0)
@@ -1273,7 +1335,7 @@ elem* el_convxmm(ref GlobalOptimizer go, elem* e)
  * stored in the static data segment.
  */
 
-@trusted
+private @trusted
 elem* el_convstring(elem* e)
 {
     //printf("el_convstring()\n");
@@ -1387,6 +1449,7 @@ void shrinkLongDoubleConstantIfPossible(elem* e)
 /*************************
  * Run through a tree converting it to CODGEN.
  */
+public
 @trusted
 elem* el_convert(ref GlobalOptimizer go, elem* e)
 {
@@ -1401,8 +1464,13 @@ elem* el_convert(ref GlobalOptimizer go, elem* e)
         case OPconst:
             if (tyvector(e.Ety))
                 e = el_convxmm(go, e);
-            else if (tyfloating(e.Ety) && config.inline8087)
-                e = el_convfloat(go, e);
+            else if (tyfloating(e.Ety))
+            {
+                if (config.inline8087)
+                    e = el_convfloat(go, e);
+                else if (go.AArch64)
+                    e = el_convreal(go, e);
+            }
             break;
 
         case OPstring:
@@ -1419,7 +1487,8 @@ elem* el_convert(ref GlobalOptimizer go, elem* e)
              * in this case, we preserve the constant 2.
              */
             if (tyreal(e.Ety) &&       // don't bother with imaginary or complex
-                e.E2.Eoper == OPconst && el_toldoubled(e.E2) == 2.0L)
+                e.E2.Eoper == OPconst && el_toldoubled(e.E2) == 2.0L &&
+                !go.AArch64)           // TODO AArch64 do the *2 optimization
             {
                 e.E1 = el_convert(go, e.E1);
                 /* Don't call el_convert(e.E2), we want it to stay as a constant
@@ -1563,8 +1632,7 @@ elem* el_ctor_dtor(elem* ec, elem* ed, out elem* pedtor)
         ector.Ety = TYvoid;
 //      ector.ed.Edecl = decl;
 
-        Vconst c = void;
-        memset(&c, 0, c.sizeof);
+        Vconst c = Vconst.init;
         elem* e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 0
         er = el_bin(OPinfo, ec ? ec.Ety : TYvoid, ector, el_combine(e_flag_0, ec));
 

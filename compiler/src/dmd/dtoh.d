@@ -2,12 +2,12 @@
  * This module contains the implementation of the C++ header generation available through
  * the command line switch -Hc.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtohd, _dtoh.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dtoh.d, _dtoh.d)
  * Documentation:  https://dlang.org/phobos/dmd_dtoh.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dtoh.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/dtoh.d
  */
 module dmd.dtoh;
 
@@ -895,7 +895,7 @@ public:
     {
         // Omit redundant declarations - the slot was already
         // reserved in the base class
-        if (fd.isVirtual() && fd.isIntroducing())
+        if (fd.isVirtual() && fd.isIntroducing)
         {
             // Hide placeholders because they are not ABI compatible
             writeProtection(AST.Visibility.Kind.private_);
@@ -976,7 +976,8 @@ public:
         {
             EnumKind kind = getEnumKind(type);
 
-            if (vd.visibility.kind == AST.Visibility.Kind.none || vd.visibility.kind == AST.Visibility.Kind.private_) {
+            if (vd.visibility.kind == AST.Visibility.Kind.none || vd.visibility.kind == AST.Visibility.Kind.private_)
+            {
                 ignored("enum `%s` because it is `%s`.", vd.toPrettyChars(), AST.visibilityToChars(vd.visibility.kind));
                 return;
             }
@@ -1163,7 +1164,7 @@ public:
 
         auto fd = ad.aliassym.isFuncDeclaration();
 
-        if (fd && (fd.isGenerated() || fd.isDtorDeclaration()))
+        if (fd && (fd.isGenerated || fd.isDtorDeclaration()))
         {
             // Ignore. It's taken care of while visiting FuncDeclaration
             return;
@@ -1196,7 +1197,7 @@ public:
                 // Print prefix of the base class if this function originates from a superclass
                 // because alias might be resolved through multiple classes, e.g.
                 // e.g. for alias visit = typeof(super).visit in the visitors
-                if (!fd.isIntroducing())
+                if (!fd.isIntroducing)
                     printPrefix(ad.toParent().isClassDeclaration().baseClass);
                 else
                     printPrefix(pd);

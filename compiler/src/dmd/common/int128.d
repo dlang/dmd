@@ -2,12 +2,12 @@
  *
  * Not optimized for speed.
  *
- * Copyright: Copyright (C) 2022-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 2022-2025 by The D Language Foundation, All Rights Reserved
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Walter Bright
- * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/common/int128.d, root/_int128.d)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/common/int128.d, root/_int128.d)
  * Documentation: https://dlang.org/phobos/dmd_common_int128.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/common/int128.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/common/int128.d
  */
 
 module dmd.common.int128;

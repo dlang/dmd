@@ -23,7 +23,7 @@ unittest
     {
         int errorCount;
 
-        override bool error(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
+        override bool error(const ref SourceLoc, const(char)*, va_list, const(char)*, const(char)*)
         {
             errorCount++;
             return true;

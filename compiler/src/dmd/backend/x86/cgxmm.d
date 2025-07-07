@@ -4,12 +4,12 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2011-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2011-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/x86/cgxmm.d, backend/cgxmm.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/x86/cgxmm.d, backend/cgxmm.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_x86_cgxmm.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/x86/cgxmm.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/x86/cgxmm.d
  */
 
 module dmd.backend.x86.cgxmm;
@@ -119,7 +119,7 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t 
         regm_t rm = ALLREGS;
         const r = allocreg(cdb,rm,TYint);         // allocate scratch register
         static union U { targ_size_t s; targ_long[2] l; }
-        U u = void;
+        U u;
         u.l[1] = 0;
         u.s = value;
         targ_long* p = &u.l[0];
@@ -1920,7 +1920,7 @@ void cloadxmm(ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     if (pretregs == (mXMM0 | mXMM1) &&
         e.Eoper != OPconst)
     {
-        code cs = void;
+        code cs;
         tym_t tym = tybasic(e.Ety);
         tym_t ty = tym == TYcdouble ? TYdouble : TYfloat;
         opcode_t opmv = xmmload(tym, xmmIsAligned(e));

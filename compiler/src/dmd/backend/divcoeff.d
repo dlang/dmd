@@ -5,10 +5,10 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2013-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2013-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/divcoeff.d, backend/divcoeff.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/divcoeff.d, backend/divcoeff.d)
  */
 module dmd.backend.divcoeff;
 

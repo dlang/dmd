@@ -1324,8 +1324,16 @@ class TypeInfo_AssociativeArray : TypeInfo
     override @property inout(TypeInfo) next() nothrow pure inout { return value; }
     override @property uint flags() nothrow pure const { return 1; }
 
+    // TypeInfo entry is generated from the type of this template to help rt/aaA.d
+    static struct Entry(K, V)
+    {
+        K key;
+        V value;
+    }
+
     TypeInfo value;
     TypeInfo key;
+    TypeInfo entry;
 
     override @property size_t talign() nothrow pure const
     {
@@ -1564,8 +1572,57 @@ class TypeInfo_Delegate : TypeInfo
 }
 
 private extern (C) Object _d_newclass(const TypeInfo_Class ci);
-private extern (C) int _d_isbaseof(scope TypeInfo_Class child,
-    scope const TypeInfo_Class parent) @nogc nothrow pure @safe; // rt.cast_
+
+extern(C) int _d_isbaseof(scope ClassInfo oc, scope const ClassInfo c) @nogc nothrow pure @safe
+{
+    import core.internal.cast_ : areClassInfosEqual;
+
+    if (areClassInfosEqual(oc, c))
+        return true;
+
+    do
+    {
+        if (oc.base && areClassInfosEqual(oc.base, c))
+            return true;
+
+        // Bugzilla 2013: Use depth-first search to calculate offset
+        // from the derived (oc) to the base (c).
+        foreach (iface; oc.interfaces)
+        {
+            if (areClassInfosEqual(iface.classinfo, c) || _d_isbaseof(iface.classinfo, c))
+                return true;
+        }
+
+        oc = oc.base;
+    } while (oc);
+
+    return false;
+}
+
+/******************************************
+ * Given a pointer:
+ *      If it is an Object, return that Object.
+ *      If it is an interface, return the Object implementing the interface.
+ *      If it is null, return null.
+ *      Else, undefined crash
+ */
+extern(C) Object _d_toObject(return scope void* p) @nogc nothrow pure @trusted
+{
+    if (!p)
+        return null;
+
+    Object o = cast(Object) p;
+    Interface* pi = **cast(Interface***) p;
+
+    /* Interface.offset lines up with ClassInfo.name.ptr,
+     * so we rely on pointers never being less than 64K,
+     * and Objects never being greater.
+     */
+    if (pi.offset < 0x10000)
+        return cast(Object)(p - pi.offset);
+
+    return o;
+}
 
 /**
  * Runtime type information about a class.
@@ -2527,8 +2584,27 @@ class Throwable : Object
      * $(D Throwable) is thrown from inside a $(D catch) block. The originally
      * caught $(D Exception) will be chained to the new $(D Throwable) via this
      * field.
+     *
+     * If the 0 bit is set in this, it means the next exception is refcounted,
+     * meaning this object owns that object and should destroy it on
+     * destruction.
+     *
+     * WARNING: This means we are storing an interior pointer to the next in
+     * chain, to signify that the next in the chain is actually reference
+     * counted. We rely on the fact that a pointer to a Throwable is not 1-byte
+     * aligned. It is important to use a local field to indicate reference
+     * counting since we are not allowed to look at GC-allocated references
+     * inside the destructor. It is very important to store this as a void*,
+     * since optimizers can consider an unaligned pointer to not exist.
      */
-    private Throwable   nextInChain;
+    private void*   _nextInChainPtr;
+
+    private @property bool _nextIsRefcounted() @trusted scope pure nothrow @nogc const
+    {
+        if (__ctfe)
+            return false;
+        return (cast(size_t)_nextInChainPtr) & 1;
+    }
 
     private uint _refcount;     // 0 : allocated by GC
                                 // 1 : allocated by _d_newThrowable()
@@ -2541,24 +2617,36 @@ class Throwable : Object
      * caught $(D Exception) will be chained to the new $(D Throwable) via this
      * field.
      */
-    @property inout(Throwable) next() @safe inout return scope pure nothrow @nogc { return nextInChain; }
+    @property inout(Throwable) next() @trusted inout return scope pure nothrow @nogc
+    {
+        if (__ctfe)
+            return cast(inout(Throwable)) _nextInChainPtr;
+
+        return cast(inout(Throwable)) (_nextInChainPtr - _nextIsRefcounted);
+    }
+
 
     /**
      * Replace next in chain with `tail`.
      * Use `chainTogether` instead if at all possible.
      */
-    @property void next(Throwable tail) @safe scope pure nothrow @nogc
+    @property void next(Throwable tail) @trusted scope pure nothrow @nogc
     {
+        void* newTail = cast(void*)tail;
         if (tail && tail._refcount)
+        {
             ++tail._refcount;           // increment the replacement *first*
+            ++newTail;                  // indicate ref counting is used
+        }
 
-        auto n = nextInChain;
-        nextInChain = null;             // sever the tail before deleting it
+        auto n = next;
+        auto nrc = _nextIsRefcounted;
+        _nextInChainPtr = null;          // sever the tail before deleting it
 
-        if (n && n._refcount)
+        if (nrc)
             _d_delThrowable(n);         // now delete the old tail
 
-        nextInChain = tail;             // and set the new tail
+        _nextInChainPtr = newTail;       // and set the new tail
     }
 
     /**
@@ -2577,7 +2665,7 @@ class Throwable : Object
     int opApply(scope int delegate(Throwable) dg)
     {
         int result = 0;
-        for (Throwable t = this; t; t = t.nextInChain)
+        for (Throwable t = this; t; t = t.next)
         {
             result = dg(t);
             if (result)
@@ -2600,14 +2688,12 @@ class Throwable : Object
             return e2;
         if (!e2)
             return e1;
-        if (e2.refcount())
-            ++e2.refcount();
 
-        for (auto e = e1; 1; e = e.nextInChain)
+        for (auto e = e1; 1; e = e.next)
         {
-            if (!e.nextInChain)
+            if (!e.next)
             {
-                e.nextInChain = e2;
+                e.next = e2;
                 break;
             }
         }
@@ -2617,9 +2703,7 @@ class Throwable : Object
     @nogc @safe pure nothrow this(string msg, Throwable nextInChain = null)
     {
         this.msg = msg;
-        this.nextInChain = nextInChain;
-        if (nextInChain && nextInChain._refcount)
-            ++nextInChain._refcount;
+        this.next = nextInChain;
         //this.info = _d_traceContext();
     }
 
@@ -2633,8 +2717,9 @@ class Throwable : Object
 
     @trusted nothrow ~this()
     {
-        if (nextInChain && nextInChain._refcount)
-            _d_delThrowable(nextInChain);
+        if (_nextIsRefcounted)
+            _d_delThrowable(next);
+
         // handle owned traceinfo
         if (infoDeallocator !is null)
         {
@@ -2763,7 +2848,7 @@ class Exception : Throwable
         auto e = new Exception("msg");
         assert(e.file == __FILE__);
         assert(e.line == __LINE__ - 2);
-        assert(e.nextInChain is null);
+        assert(e._nextInChainPtr is null);
         assert(e.msg == "msg");
     }
 
@@ -2771,7 +2856,7 @@ class Exception : Throwable
         auto e = new Exception("msg", new Exception("It's an Exception!"), "hello", 42);
         assert(e.file == "hello");
         assert(e.line == 42);
-        assert(e.nextInChain !is null);
+        assert(e._nextInChainPtr !is null);
         assert(e.msg == "msg");
     }
 
@@ -2779,7 +2864,7 @@ class Exception : Throwable
         auto e = new Exception("msg", "hello", 42, new Exception("It's an Exception!"));
         assert(e.file == "hello");
         assert(e.line == 42);
-        assert(e.nextInChain !is null);
+        assert(e._nextInChainPtr !is null);
         assert(e.msg == "msg");
     }
 
@@ -2846,7 +2931,7 @@ class Error : Throwable
         auto e = new Error("msg");
         assert(e.file is null);
         assert(e.line == 0);
-        assert(e.nextInChain is null);
+        assert(e._nextInChainPtr is null);
         assert(e.msg == "msg");
         assert(e.bypassedException is null);
     }
@@ -2855,7 +2940,7 @@ class Error : Throwable
         auto e = new Error("msg", new Exception("It's an Exception!"));
         assert(e.file is null);
         assert(e.line == 0);
-        assert(e.nextInChain !is null);
+        assert(e._nextInChainPtr !is null);
         assert(e.msg == "msg");
         assert(e.bypassedException is null);
     }
@@ -2864,7 +2949,7 @@ class Error : Throwable
         auto e = new Error("msg", "hello", 42, new Exception("It's an Exception!"));
         assert(e.file == "hello");
         assert(e.line == 42);
-        assert(e.nextInChain !is null);
+        assert(e._nextInChainPtr !is null);
         assert(e.msg == "msg");
         assert(e.bypassedException is null);
     }
@@ -3769,15 +3854,10 @@ template RTInfoImpl(size_t[] pointerBitmap)
     immutable size_t[pointerBitmap.length] RTInfoImpl = pointerBitmap[];
 }
 
-template NoPointersBitmapPayload(size_t N)
-{
-    enum size_t[N] NoPointersBitmapPayload = 0;
-}
-
 template RTInfo(T)
 {
     enum pointerBitmap = __traits(getPointerBitmap, T);
-    static if (pointerBitmap[1 .. $] == NoPointersBitmapPayload!(pointerBitmap.length - 1))
+    static if (pointerBitmap[1 .. $] == size_t[pointerBitmap.length - 1].init)
         enum RTInfo = rtinfoNoPointers;
     else
         enum RTInfo = RTInfoImpl!(pointerBitmap).ptr;
@@ -3898,9 +3978,11 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     assert(s == "abc");
 }
 
+
 // HACK:  This is a lie.  `_d_arraysetcapacity` is neither `nothrow` nor `pure`, but this lie is
 // necessary for now to prevent breaking code.
-private extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void[]* arrptr) pure nothrow;
+import core.internal.array.capacity : _d_arraysetcapacityPureNothrow;
+import core.internal.traits: Unqual;
 
 /**
 (Property) Gets the current _capacity of a slice. The _capacity is the size
@@ -3915,7 +3997,10 @@ Note: The _capacity of a slice may be impacted by operations on other slices.
 */
 @property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
-    return _d_arraysetcapacity(typeid(T[]), 0, cast(void[]*)&arr);
+    const isshared = is(T == shared);
+    alias Unqual_T = Unqual!T;
+    // The postblit of T may be impure, so we need to use the `pure nothrow` wrapper
+    return _d_arraysetcapacityPureNothrow!Unqual_T(0, cast(void[]*)&arr, isshared);
 }
 
 ///
@@ -3954,7 +4039,12 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
     if (__ctfe)
         return newcapacity;
     else
-        return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
+    {
+        const isshared = is(T == shared);
+        alias Unqual_T = Unqual!T;
+        // The postblit of T may be impure, so we need to use the `pure nothrow` wrapper
+        return _d_arraysetcapacityPureNothrow!Unqual_T(newcapacity, cast(void[]*)&arr, isshared);
+    }
 }
 
 ///
@@ -3997,10 +4087,6 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
     a.reserve(10);
 }
 
-// HACK:  This is a lie.  `_d_arrayshrinkfit` is not `nothrow`, but this lie is necessary
-// for now to prevent breaking code.
-private extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
-
 /**
 Assume that it is safe to append to this array. Appends made to this array
 after calling this function may append in place, even if the array was a
@@ -4018,7 +4104,13 @@ Returns:
 */
 auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 {
-    _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
+    import core.internal.array.capacity : _d_arrayshrinkfit;
+    import core.internal.traits : Unqual;
+
+    alias Unqual_Tarr = Unqual!T[];
+    enum isshared = is(T == shared);
+    _d_arrayshrinkfit(cast(Unqual_Tarr)arr, isshared);
+
     return arr;
 }
 
@@ -4689,6 +4781,7 @@ version (D_ProfileGC)
     public import core.lifetime : _d_newitemTTrace;
     public import core.internal.array.construction : _d_newarrayTTrace;
     public import core.internal.array.construction : _d_newarraymTXTrace;
+    public import core.internal.array.capacity: _d_arraysetlengthTTrace;
 }
 public import core.internal.array.appending : _d_arrayappendcTX;
 public import core.internal.array.comparison : __cmp;
@@ -4702,7 +4795,8 @@ public import core.internal.array.construction : _d_newarraymTX;
 public import core.internal.array.arrayassign : _d_arrayassign_l;
 public import core.internal.array.arrayassign : _d_arrayassign_r;
 public import core.internal.array.arrayassign : _d_arraysetassign;
-public import core.internal.array.capacity: _d_arraysetlengthTImpl;
+public import core.internal.array.capacity : _d_arraysetlengthT;
+public import core.internal.cast_: _d_cast;
 
 public import core.internal.dassert: _d_assert_fail;
 

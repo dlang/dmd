@@ -1,5 +1,5 @@
 
-/* Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+/* Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -53,7 +53,7 @@ public:
     void writestring(const char *string);
     void prependstring(const char *string);
     void writenl();                     // write newline
-    void writeByte(unsigned b);
+    void writeByte(uint8_t b);
     void writeUTF8(unsigned b);
     void prependbyte(unsigned b);
     void writewchar(unsigned w);

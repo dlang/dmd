@@ -1,12 +1,12 @@
 /**
  * Stores command line options and contains other miscellaneous declarations.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/globals.d, _globals.d)
  * Documentation:  https://dlang.org/phobos/dmd_globals.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/globals.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/globals.d
  */
 
 module dmd.globals;
@@ -62,6 +62,7 @@ enum CppStdRevision : uint
     cpp14 = 2014_02,
     cpp17 = 2017_03,
     cpp20 = 2020_02,
+    cpp23 = 2023_02,
 }
 
 /// Trivalent boolean to represent the state of a `revert`able change
@@ -153,12 +154,14 @@ extern(C++) struct Verbose
 
 extern (C++) struct ImportPathInfo {
     const(char)* path; // char*'s of where to look for import modules
+    bool isOutOfBinary; // Will any module found from this path be out of binary?
 }
 
 /// Put command line switches in here
 extern (C++) struct Param
 {
     bool obj = true;        // write object file
+    bool readStdin;         // saw "-" on command line, read source file from stdin
     bool multiobj;          // break one object file into multiple ones
     bool trace;             // insert profiling hooks
     bool tracegc;           // instrument calls to 'new'
@@ -186,6 +189,11 @@ extern (C++) struct Param
 
     Help help;
     Verbose v;
+
+    // Editions
+    Edition edition;             // edition year
+    Edition[const(char)*] editionFiles; // Edition corresponding to a filespec
+
 
     // Options for `-preview=/-revert=`
     FeatureState useDIP25 = FeatureState.enabled; // implement https://wiki.dlang.org/DIP25
@@ -242,8 +250,7 @@ extern (C++) struct Param
     Output mixinOut;                    // write expanded mixins for debugging
     Output moduleDeps;                  // Generate `.deps` module dependencies
 
-    uint debuglevel;                    // debug level
-    uint versionlevel;                  // version level
+    bool debugEnabled;                  // Global -debug flag (no -debug=XXX) is active
 
     bool run; // run resulting executable
     Strings runargs; // arguments for executable
@@ -292,7 +299,7 @@ extern (C++) struct Global
 {
     const(char)[] inifilename; /// filename of configuration file as given by `-conf=`, or default value
 
-    string copyright = "Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved";
+    string copyright = "Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
     Array!(ImportPathInfo) path;       /// Array of path informations which form the import lookup path
@@ -327,7 +334,7 @@ extern (C++) struct Global
     ErrorSink errorSink;       /// where the error messages go
     ErrorSink errorSinkNull;   /// where the error messages are ignored
 
-    extern (C++) DArray!ubyte function(FileName, ref const Loc, ref OutBuffer) preprocess;
+    extern (C++) DArray!ubyte function(FileName, Loc, ref OutBuffer) preprocess;
 
   nothrow:
 
@@ -385,13 +392,10 @@ extern (C++) struct Global
         errorSinkNull = new ErrorSinkNull;
 
         this.fileManager = new FileManager();
+
         version (MARS)
         {
             compileEnv.vendor = "Digital Mars D";
-
-            // -color=auto is the default value
-            import dmd.console : detectTerminal, detectColorPreference;
-            params.v.color = detectTerminal() && detectColorPreference();
         }
         else version (IN_GCC)
         {
@@ -400,12 +404,10 @@ extern (C++) struct Global
         else version (IN_LLVM)
         {
             compileEnv.vendor = "LDC";
-
-            import dmd.console : detectTerminal;
-            params.v.color = detectTerminal();
         }
+        else
+            static assert(0, "unknown vendor");
 
-        params.v.errorPrintMode = ErrorPrintMode.printErrorContext; // Enable error context globally by default
         compileEnv.versionNumber = parseVersionNumber(versionString());
 
         /* Initialize date, time, and timestamp

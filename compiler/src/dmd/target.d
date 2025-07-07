@@ -15,12 +15,12 @@
  * - $(LINK2 https://github.com/ldc-developers/ldc, LDC repository)
  * - $(LINK2 https://github.com/D-Programming-GDC/gcc, GDC repository)
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/target.d, _target.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/target.d, _target.d)
  * Documentation:  https://dlang.org/phobos/dmd_target.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/target.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/target.d
  */
 
 module dmd.target;
@@ -423,7 +423,8 @@ extern (C++) struct Target
     extern (C++) void _init(ref const Param params)
     {
         // isX86_64 and cpu are initialized in parseCommandLine
-        isX86 = !isX86_64;
+        //printf("isX86_64 %d isAArch64 %d\n", isX86_64, isAArch64);
+        isX86 = !isX86_64 && !isAArch64;
         assert(isX86 + isX86_64 + isAArch64 == 1); // there can be only one
 
         this.params = &params;
@@ -432,7 +433,7 @@ extern (C++) struct Target
         DoubleProperties.initialize();
         RealProperties.initialize();
 
-        isLP64 = isX86_64;
+        isLP64 = isX86_64 || isAArch64;
 
         // These have default values for 32 bit code, they get
         // adjusted for 64 bit code.
@@ -631,7 +632,7 @@ extern (C++) struct Target
      * Returns:
      *      `Type` that represents `va_list`.
      */
-    extern (C++) Type va_listType(const ref Loc loc, Scope* sc)
+    extern (C++) Type va_listType(Loc loc, Scope* sc)
     {
         if (tvalist)
             return tvalist;
@@ -1240,7 +1241,7 @@ extern (C++) struct Target
      * Returns:
      *  Expression for the requested targetInfo
      */
-    extern (C++) Expression getTargetInfo(const(char)* name, const ref Loc loc)
+    extern (C++) Expression getTargetInfo(const(char)* name, Loc loc)
     {
         import dmd.dmdparams : driverParams;
         import dmd.expression : IntegerExp, StringExp;

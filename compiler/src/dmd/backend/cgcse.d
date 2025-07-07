@@ -5,11 +5,11 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcse.d, backend/cgcse.d)
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgcse.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cgcse.d, backend/cgcse.d)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/cgcse.d
  */
 
 module dmd.backend.cgcse;
@@ -81,6 +81,7 @@ struct CSE
     @trusted
     static CSE* add()
     {
+        //printf("CSE.add()\n");
         foreach (ref cse; csextab)
         {
             if (cse.e == null)  // can share with previously used one
@@ -170,6 +171,7 @@ struct CSE
     @trusted
     static void remove(const elem* e)
     {
+        //printf("CSE.remove() e: %p\n", e);
         foreach (ref cse; csextab[])
         {
             if (cse.e == e)

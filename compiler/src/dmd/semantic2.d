@@ -1,12 +1,12 @@
 /**
  * Performs the semantic2 stage, which deals with initializer expressions.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic2.d, _semantic2.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/semantic2.d, _semantic2.d)
  * Documentation:  https://dlang.org/phobos/dmd_semantic2.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/semantic2.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/semantic2.d
  */
 
 module dmd.semantic2;
@@ -287,7 +287,10 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 }
 
                 if (hasInvalidEnumInitializer(ei.exp))
-                    .error(vd.loc, "%s `%s` : Unable to initialize enum with class or pointer to struct. Use static const variable instead.", vd.kind, vd.toPrettyChars);
+                {
+                    .error(vd.loc, "%s `%s` : Unable to initialize enum with class or pointer to struct", vd.kind, vd.toPrettyChars);
+                    .errorSupplemental(vd.loc, "use static const variable instead");
+                }
             }
         }
         else if (vd._init && vd.isThreadlocal())
@@ -298,13 +301,20 @@ private extern(C++) final class Semantic2Visitor : Visitor
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
                 if (ei && ei.exp.op == EXP.classReference)
-                    .error(vd.loc, "%s `%s` is a thread-local class and cannot have a static initializer. Use `static this()` to initialize instead.", vd.kind, vd.toPrettyChars);
+                {
+                    .error(vd.loc, "%s `%s` is a thread-local class and cannot have a static initializer", vd.kind, vd.toPrettyChars);
+                    .errorSupplemental(vd.loc, "use `static this()` to initialize instead");
+                }
             }
             else if (vd.type.ty == Tpointer && vd.type.nextOf().ty == Tstruct && vd.type.nextOf().isMutable() && !vd.type.nextOf().isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
                 if (ei && ei.exp.op == EXP.address && (cast(AddrExp)ei.exp).e1.op == EXP.structLiteral)
-                    .error(vd.loc, "%s `%s` is a thread-local pointer to struct and cannot have a static initializer. Use `static this()` to initialize instead.", vd.kind, vd.toPrettyChars);
+                {
+                    .error(vd.loc, "%s `%s` is a thread-local pointer to struct and cannot have a static initializer", vd.kind, vd.toPrettyChars);
+                    .errorSupplemental(vd.loc, "use `static this()` to initialize instead");
+                }
+
             }
         }
         vd.semanticRun = PASS.semantic2done;
@@ -852,6 +862,8 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
         loweredExp = loweredExp.ctfeInterpret();
 
         aaExp.lowering = loweredExp;
+
+        semanticTypeInfo(sc, loweredExp.type);
     }
 
     // https://issues.dlang.org/show_bug.cgi?id=24602

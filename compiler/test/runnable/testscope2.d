@@ -18,7 +18,7 @@ struct SS
     ref ulong foo1(return ref int* delegate() return p) return;
     ref int foo2(return ref int delegate() p);
     ref int foo3(inout ref int* p);
-    ref int foo4(return inout ref int* p);
+    ref int foo4(return ref inout int* p);
 }
 
 pragma(msg, "foo1 ", typeof(&SS.foo1));

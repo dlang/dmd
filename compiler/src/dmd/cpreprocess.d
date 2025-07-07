@@ -3,12 +3,12 @@
  *
  * Specification: C11
  *
- * Copyright:   Copyright (C) 2022-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2022-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cpreprocess.d, _cpreprocess.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cpreprocess.d, _cpreprocess.d)
  * Documentation:  https://dlang.org/phobos/dmd_cpreprocess.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cpreprocess.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/cpreprocess.d
  */
 
 module dmd.cpreprocess;
@@ -47,7 +47,7 @@ version (Windows) version = runPreprocessor;
  *      the text of the preprocessed file
  */
 extern (C++)
-DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defines)
+DArray!ubyte preprocess(FileName csrcfile, Loc loc, ref OutBuffer defines)
 {
     /* Look for "importc.h" by searching along import path.
      */
@@ -120,6 +120,12 @@ private const(char)[] cppCommand()
             VSOptions vsopt;
             vsopt.initialize();
             const path = vsopt.compilerPath(target.isX86_64);
+            //if the path to cl.exe is found, check if cl.exe is in the path.
+            if(FileName.exists(path) != 1)
+            {
+                error(Loc.initial, "cl.exe not found. Please ensure that Visual Studio Build Tools are installed and properly configured.");
+                fatal();
+            }
             return toDString(path);
         }
         // Perhaps we are cross-compiling.

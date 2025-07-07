@@ -346,6 +346,7 @@ T[] _d_newarrayUPureNothrow(T)(size_t length, bool isShared=false) pure nothrow 
 
 T[] _d_newarrayU(T)(size_t length, bool isShared=false) @trusted
 {
+    import core.checkedint : mulu;
     import core.exception : onOutOfMemoryError;
     import core.internal.traits : Unqual;
     import core.internal.array.utils : __arrayAlloc;
@@ -353,52 +354,24 @@ T[] _d_newarrayU(T)(size_t length, bool isShared=false) @trusted
     alias UnqT = Unqual!T;
 
     size_t elemSize = T.sizeof;
-    size_t arraySize;
 
     debug(PRINTF) printf("_d_newarrayU(length = x%zu, size = %zu)\n", length, elemSize);
     if (length == 0 || elemSize == 0)
         return null;
 
-    version (D_InlineAsm_X86)
+    bool overflow = false;
+    const arraySize = mulu(elemSize, length, overflow);
+    if (!overflow)
     {
-        asm pure nothrow @nogc
+        if (auto arr = __arrayAlloc!UnqT(arraySize))
         {
-            mov     EAX, elemSize       ;
-            mul     EAX, length         ;
-            mov     arraySize, EAX      ;
-            jnc     Lcontinue           ;
+            debug(PRINTF) printf("p = %p\n", arr.ptr);
+            return (cast(T*) arr.ptr)[0 .. length];
         }
     }
-    else version (D_InlineAsm_X86_64)
-    {
-        asm pure nothrow @nogc
-        {
-            mov     RAX, elemSize       ;
-            mul     RAX, length         ;
-            mov     arraySize, RAX      ;
-            jnc     Lcontinue           ;
-        }
-    }
-    else
-    {
-        import core.checkedint : mulu;
 
-        bool overflow = false;
-        arraySize = mulu(elemSize, length, overflow);
-        if (!overflow)
-            goto Lcontinue;
-    }
-
-Loverflow:
     onOutOfMemoryError();
     assert(0);
-
-Lcontinue:
-    auto arr = __arrayAlloc!UnqT(arraySize);
-    if (!arr.ptr)
-        goto Loverflow;
-    debug(PRINTF) printf("p = %p\n", arr.ptr);
-    return (cast(T*) arr.ptr)[0 .. length];
 }
 
 /// ditto
@@ -470,7 +443,7 @@ version (D_ProfileGC)
     /**
     * TraceGC wrapper around $(REF _d_newitemT, core,lifetime).
     */
-    T[] _d_newarrayTTrace(T)(string file, int line, string funcname, size_t length, bool isShared) @trusted
+    T[] _d_newarrayTTrace(T)(size_t length, bool isShared, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
     {
         version (D_TypeInfo)
         {
@@ -505,7 +478,7 @@ version (D_ProfileGC)
  * Returns:
  *    newly allocated array
  */
-Tarr _d_newarraymTX(Tarr : U[], T, U)(size_t[] dims, bool isShared=false) @trusted
+Tarr _d_newarraymTX(Tarr : U[], T, U)(scope size_t[] dims, bool isShared=false) @trusted
 {
     debug(PRINTF) printf("_d_newarraymTX(dims.length = %zd)\n", dims.length);
 
@@ -520,7 +493,7 @@ Tarr _d_newarraymTX(Tarr : U[], T, U)(size_t[] dims, bool isShared=false) @trust
 
         auto dim = dims[0];
 
-        debug(PRINTF) printf("__allocateInnerArray(UnqT = %s, dim = %lu, ndims = %lu\n", UnqT.stringof.ptr, dim, dims.length);
+        debug(PRINTF) printf("__allocateInnerArray(UnqT = %s, dim = %u, ndims = %u)\n", UnqT.stringof.ptr, cast(uint)dim, cast(uint)dims.length);
         if (dims.length == 1)
         {
             auto r = _d_newarrayT!UnqT(dim, isShared);
@@ -602,7 +575,7 @@ version (D_ProfileGC)
     /**
     * TraceGC wrapper around $(REF _d_newarraymT, core,internal,array,construction).
     */
-    Tarr _d_newarraymTXTrace(Tarr : U[], T, U)(string file, int line, string funcname, size_t[] dims, bool isShared=false) @trusted
+    Tarr _d_newarraymTXTrace(Tarr : U[], T, U)(scope size_t[] dims, bool isShared=false, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
     {
         version (D_TypeInfo)
         {

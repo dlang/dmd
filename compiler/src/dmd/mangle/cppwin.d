@@ -1,12 +1,12 @@
 /**
  * Do mangling for C++ linkage for Digital Mars C++ and Microsoft Visual C++.
  *
- * Copyright: Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmanglewin.d, _cppmanglewin.d)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mangle/cppwin.d, _cppmanglewin.d)
  * Documentation:  https://dlang.org/phobos/dmd_cppmanglewin.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cppmanglewin.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/mangle/cppwin.d
  */
 
 module dmd.mangle.cppwin;
@@ -798,7 +798,7 @@ extern(D):
             }
             if (id == name) // ok, we've found same name. use index instead of name
             {
-                buf.writeByte(cast(uint)i + '0');
+                buf.writeByte(cast(char)(i + '0'));
                 return true;
             }
         }
@@ -892,7 +892,7 @@ extern(D):
             }
             if (ty.equals(type)) // ok, we've found same type. use index instead of type
             {
-                buf.writeByte(cast(uint)i + '0');
+                buf.writeByte(cast(char)(i + '0'));
                 isNotTopType = false;
                 ignoreConst = false;
                 return true;
@@ -1080,13 +1080,13 @@ string mangleSpecialName(Dsymbol sym)
         mangle = "?1";
     else if (!sym.ident)
         return null;
-    else if (sym.ident == Id.assign)
+    else if (sym.ident == Id.opAssign)
         mangle = "?4";
-    else if (sym.ident == Id.eq)
+    else if (sym.ident == Id.opEquals)
         mangle = "?8";
-    else if (sym.ident == Id.index)
+    else if (sym.ident == Id.opIndex)
         mangle = "?A";
-    else if (sym.ident == Id.call)
+    else if (sym.ident == Id.opCall)
         mangle = "?R";
     else if (sym.ident == Id.cppdtor)
         mangle = "?_G";

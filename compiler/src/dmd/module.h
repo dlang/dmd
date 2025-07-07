@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -9,6 +9,8 @@
  */
 
 #pragma once
+
+#include <stdint.h>
 
 #include "dsymbol.h"
 
@@ -28,12 +30,11 @@ enum PKG
     PKGpackage  // already determined that's an actual package
 };
 
-enum class Edition : unsigned char
+enum class Edition : uint16_t
 {
-    none = 0u,
-    legacy = 1u,
-    v2024 = 2u,
-    latest = 2u,
+    v2023 = 2023,
+    v2024,
+    v2025,
 };
 
 class Package : public ScopeDsymbol
@@ -46,8 +47,6 @@ public:
     const char *kind() const override;
 
     bool equals(const RootObject * const o) const override;
-
-    Package *isPackage() override final { return this; }
 
     bool isAncestorPackageOf(const Package * const pkg) const;
 
@@ -100,6 +99,8 @@ public:
     SearchOptFlags searchCacheFlags;       // cached flags
     d_bool insearch;
 
+    d_bool isExplicitlyOutOfBinary; // Is this module known to be out of binary, and must be DllImport'd?
+
     // module from command line we're imported from,
     // i.e. a module that will be taken all the
     // way to an object file
@@ -109,11 +110,9 @@ public:
 
     Modules aimports;             // all imported modules
 
-    unsigned debuglevel;        // debug level
     Identifiers *debugids;      // debug identifiers
     Identifiers *debugidsNot;   // forward referenced debug identifiers
 
-    unsigned versionlevel;      // version level
     Identifiers *versionids;    // version identifiers
     Identifiers *versionidsNot; // forward referenced version identifiers
 
@@ -125,10 +124,10 @@ public:
 
     static Module* create(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     static const char *find(const char *filename);
-    static Module *load(const Loc &loc, Identifiers *packages, Identifier *ident);
+    static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     const char *kind() const override;
-    bool read(const Loc &loc); // read file, returns 'true' if succeed, 'false' otherwise.
+    bool read(Loc loc); // read file, returns 'true' if succeed, 'false' otherwise.
     Module *parse();    // syntactic parse
     int needModuleInfo();
     bool isPackageAccessible(Package *p, Visibility visibility, SearchOptFlags flags = (SearchOptFlags)SearchOpt::all) override;
@@ -160,7 +159,6 @@ public:
 
     void *ctfe_cov;             // stores coverage information from ctfe
 
-    Module *isModule() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 

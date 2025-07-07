@@ -2,11 +2,11 @@
  * Instruction tables for inline assembler.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/ptrntab.d, backend/ptrntab.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/ptrntab.d, backend/ptrntab.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_ptrntab.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/ptrntab.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/ptrntab.d
  */
 
 module dmd.backend.ptrntab;
@@ -5810,7 +5810,7 @@ const(char)* asm_opstr(OP* pop)
 OP* asm_op_lookup(const(char)* s)
 {
     int i;
-    char[20] szBuf = void;
+    char[20] szBuf = '\0';
 
     //printf("asm_op_lookup('%s')\n",s);
     if (strlen(s) >= szBuf.length)

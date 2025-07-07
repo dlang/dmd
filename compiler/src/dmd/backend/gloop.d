@@ -5,11 +5,11 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gloop.d, backend/gloop.d)
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gloop.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/gloop.d, backend/gloop.d)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/gloop.d
  */
 
 module dmd.backend.gloop;
@@ -1900,8 +1900,7 @@ private void appendelem(elem* n,elem** pn)
 @trusted
 private void newfamlist(famlist* fl, tym_t ty)
 {
-    Vconst c = void;
-    memset(&c,0,c.sizeof);
+    Vconst c;
 
     fl.FLty = ty;
     switch (tybasic(ty))

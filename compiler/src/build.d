@@ -263,7 +263,6 @@ alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule 
     .sources(sources.lexer)
     .deps([
         versionFile,
-        sysconfDirFile,
         common(suffix, extraFlags)
     ])
     .msg("(DC) LEXER" ~ suffix)
@@ -378,7 +377,7 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         ).array)
 );
 
-/// Returns: the rules that generate required string files: VERSION and SYSCONFDIR.imp
+/// Returns: the rule that generates string-import file `VERSION` (for the lexer)
 alias versionFile = makeRule!((builder, rule) {
     alias contents = memoize!(() {
         if (dmdRepo.buildPath(".git").exists)
@@ -411,7 +410,7 @@ alias versionFile = makeRule!((builder, rule) {
                 return gitResult.output.strip;
         }
         // version fallback
-        return dmdRepo.buildPath("VERSION").readText;
+        return dmdRepo.buildPath("VERSION").readText.strip;
     });
     builder
     .target(env["G"].buildPath("VERSION"))
@@ -420,6 +419,7 @@ alias versionFile = makeRule!((builder, rule) {
     .commandFunction(() => writeText(rule.target, contents));
 });
 
+/// Returns: the rule that generates string-import file `SYSCONFDIR.imp` (for the driver)
 alias sysconfDirFile = makeRule!((builder, rule) => builder
     .target(env["G"].buildPath("SYSCONFDIR.imp"))
     .condition(() => !rule.target.exists || rule.target.readText != env["SYSCONFDIR"])
@@ -469,7 +469,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
         .sources(dmdSources.chain(lexer.targets, backend.targets, common.targets).array)
         .target(env["DMD_PATH"] ~ targetSuffix)
         .msg("(DC) DMD" ~ targetSuffix)
-        .deps([versionFile, sysconfDirFile, lexer, backend, common])
+        .deps([sysconfDirFile, lexer, backend, common])
         .command([
             env["HOST_DMD_RUN"],
             "-of" ~ rule.target,
@@ -646,7 +646,7 @@ alias runTests = makeRule!((testBuilder, testRule)
 
 /// BuildRule to run the DMD unittest executable.
 alias runDmdUnittest = makeRule!((builder, rule) {
-auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", env["HOST_DMD_KIND"] == "gdc" ? "-fmain" : "-main"], ["-unittest"]);
+    auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", env["HOST_DMD_KIND"] == "gdc" ? "-fmain" : "-main"], ["-unittest"]);
     builder
         .name("unittest")
         .description("Run the dmd unittests")
@@ -757,13 +757,15 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-unittest")
         .description("Build the C++ unittests")
         .msg("(DC) CXX-UNITTEST")
-        .deps([lexer(null, null), cxxFrontend])
+        .deps([sysconfDirFile, lexer(null, null), cxxFrontend])
         .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root ~ sources.common ~ env["D"].buildPath("cxxfrontend.d"))
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain", "-version=NoBackend"
             ].chain(
-                flags["DFLAGS"], exeRule.sources, exeRule.deps.map!(d => d.target)
+                flags["DFLAGS"], exeRule.sources,
+                // don't compile deps[0], the SYSCONFDIR.imp string-import file
+                exeRule.deps[1 .. $].map!(d => d.target)
             ).array)
     );
 
@@ -967,7 +969,7 @@ alias html = makeRule!((htmlBuilder, htmlRule) {
             .sources(sourceArray)
             .target(env["DOC_OUTPUT_DIR"].buildPath(d2html(source)[srcDir.length + 1..$]
                 .replace(dirSeparator, "_")))
-            .deps([dmdDefault, versionFile, sysconfDirFile])
+            .deps([dmdDefault])
             .command([
                 dmdDefault.deps[0].target,
                 "-o-",
@@ -1556,7 +1558,7 @@ auto sourceFiles()
     }
     DmdSources dmd = {
         glue: fileArray(env["D"], "
-            dmsc.d e2ir.d iasmdmd.d glue.d objc_glue.d
+            dmsc.d e2ir.d iasm/dmdx86.d iasm/dmdaarch64.d glue.d objc_glue.d
             s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
         driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib/package.d lib/elf.d lib/mach.d lib/mscoff.d
@@ -1568,13 +1570,14 @@ auto sourceFiles()
             cli.d clone.d compiler.d cond.d constfold.d  cpreprocess.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d deps.d dimport.d
             dinterpret.d dmacro.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
-            dtemplate.d dtoh.d dversion.d enumsem.d escape.d expression.d expressionsem.d func.d funcsem.d hdrgen.d iasm.d iasmgcc.d
+            dtemplate.d dtoh.d dversion.d enumsem.d escape.d expression.d expressionsem.d func.d funcsem.d hdrgen.d
             impcnvtab.d imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
             mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
             parse.d pragmasem.d printast.d rootobject.d safe.d
             semantic2.d semantic3.d sideeffect.d statement.d
             statementsem.d staticassert.d staticcond.d stmtstate.d target.d templatesem.d templateparamsem.d traits.d
             typesem.d typinf.d utils.d
+            iasm/package.d iasm/gcc.d
             mangle/package.d mangle/basic.d mangle/cpp.d mangle/cppwin.d
             visitor/package.d visitor/foreachvar.d visitor/parsetime.d visitor/permissive.d visitor/postorder.d visitor/statement_rewrite_walker.d
             visitor/strict.d visitor/transitive.d

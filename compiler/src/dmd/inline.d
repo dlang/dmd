@@ -4,12 +4,12 @@
  * The AST is traversed, and every function call is considered for inlining using `inlinecost.d`.
  * The function call is then inlined if this cost is below a threshold.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/inline.d, _inline.d)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/inline.d, _inline.d)
  * Documentation:  https://dlang.org/phobos/dmd_inline.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/inline.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/inline.d
  */
 
 module dmd.inline;
@@ -34,6 +34,7 @@ import dmd.errors;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -477,7 +478,7 @@ public:
             if (ids.fd && e.var == ids.fd.vthis)
             {
                 result = new VarExp(e.loc, ids.vthis);
-                if (ids.fd.hasDualContext())
+                if (ids.fd.hasDualContext)
                     result = new AddrExp(e.loc, result);
                 result.type = e.type;
                 return;
@@ -510,7 +511,7 @@ public:
                 assert(fdv);
                 result = new VarExp(e.loc, ids.vthis);
                 result.type = ids.vthis.type;
-                if (ids.fd.hasDualContext())
+                if (ids.fd.hasDualContext)
                 {
                     // &__this
                     result = new AddrExp(e.loc, result);
@@ -520,7 +521,7 @@ public:
                 {
                     auto f = s.isFuncDeclaration();
                     AggregateDeclaration ad;
-                    if (f && f.hasDualContext())
+                    if (f && f.hasDualContext)
                     {
                         if (f.hasNestedFrameRefs())
                         {
@@ -602,7 +603,7 @@ public:
                 return;
             }
             result = new VarExp(e.loc, ids.vthis);
-            if (ids.fd.hasDualContext())
+            if (ids.fd.hasDualContext)
             {
                 // __this[0]
                 result.type = ids.vthis.type;
@@ -622,7 +623,7 @@ public:
         {
             assert(ids.vthis);
             result = new VarExp(e.loc, ids.vthis);
-            if (ids.fd.hasDualContext())
+            if (ids.fd.hasDualContext)
             {
                 // __this[0]
                 result.type = ids.vthis.type;
@@ -736,6 +737,7 @@ public:
                         goto LhasLowering;
                     }
 
+            ne.placement = doInlineAs!Expression(e.placement, ids);
             ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
             ne.argprefix = doInlineAs!Expression(e.argprefix, ids);
             ne.arguments = arrayExpressionDoInline(e.arguments);
@@ -751,6 +753,21 @@ public:
             auto ue = cast(UnaExp)e.copy();
             ue.e1 = doInlineAs!Expression(e.e1, ids);
             result = ue;
+        }
+
+        override void visit(CastExp e)
+        {
+            auto ce = cast(CastExp)e.copy();
+            if (auto lowering = ce.lowering)
+            {
+                ce.lowering = doInlineAs!Expression(lowering, ids);
+            }
+            else
+            {
+                ce.e1 = doInlineAs!Expression(e.e1, ids);
+            }
+
+            result = ce;
         }
 
         override void visit(AssertExp e)
@@ -822,7 +839,7 @@ public:
             visit(cast(BinExp)e);
 
             Type t1 = e.e1.type.toBasetype();
-            if (t1.ty == Tarray || t1.ty == Tsarray)
+            if (t1.isStaticOrDynamicArray())
             {
                 Type t = t1.nextOf().toBasetype();
                 while (t.toBasetype().nextOf())
@@ -1001,7 +1018,7 @@ public:
     {
         static if (LOG)
         {
-            printf("ExpStatement.inlineScan(%s)\n", s.toChars());
+            printf("ExpStatement.inlineScan(%s)\n", toChars(s));
         }
         if (!s.exp)
             return;
@@ -1275,6 +1292,18 @@ public:
         inlineScan(e.e1);
     }
 
+    override void visit(CastExp e)
+    {
+        if (auto lowering = e.lowering)
+        {
+            inlineScan(lowering);
+        }
+        else
+        {
+            inlineScan(e.e1);
+        }
+    }
+
     override void visit(AssertExp e)
     {
         inlineScan(e.e1);
@@ -1313,7 +1342,7 @@ public:
         if (e.op == EXP.construct && e.e2.op == EXP.call)
         {
             auto ce = e.e2.isCallExp();
-            if (ce.f && ce.f.isNRVO() && ce.f.nrvo_var) // NRVO
+            if (ce.f && ce.f.isNRVO && ce.f.nrvo_var) // NRVO
             {
                 if (auto ve = e.e1.isVarExp())
                 {
@@ -1628,7 +1657,7 @@ public:
             return;
         if (fd.isUnitTestDeclaration() && !global.params.useUnitTests || fd.inlineScanned)
             return;
-        if (fd.fbody && !fd.isNaked())
+        if (fd.fbody && !fd.isNaked)
         {
             while (1)
             {
@@ -2040,7 +2069,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
     {
         Expression e0;
         ethis = Expression.extractLast(ethis, e0);
-        assert(vthis2 || !fd.hasDualContext());
+        assert(vthis2 || !fd.hasDualContext);
         if (vthis2)
         {
             // void*[2] __this = [ethis, this]
@@ -2202,7 +2231,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
         static if (EXPANDINLINE_LOG)
             printf("\n[%s] %s expandInline sresult =\n%s\n",
-                callLoc.toChars(), fd.toPrettyChars(), sresult.toChars());
+                callLoc.toChars(), fd.toPrettyChars(), toChars(sresult));
     }
     else
     {

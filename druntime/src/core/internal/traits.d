@@ -107,11 +107,38 @@ private template substInoutForm(T)
     {
         alias substInoutForm = T;   // prevent matching to the form of alias-this-ed type
     }
-    else static if (is(T : V[K], K, V))        alias substInoutForm = substInout!V[substInout!K];
-    else static if (is(T : U[n], U, size_t n)) alias substInoutForm = substInout!U[n];
-    else static if (is(T : U[], U))            alias substInoutForm = substInout!U[];
-    else static if (is(T : U*, U))             alias substInoutForm = substInout!U*;
-    else                                       alias substInoutForm = T;
+    else static if (is(T == V[K], K, V))        alias substInoutForm = substInout!V[substInout!K];
+    else static if (is(T == U[n], U, size_t n)) alias substInoutForm = substInout!U[n];
+    else static if (is(T == U[], U))            alias substInoutForm = substInout!U[];
+    else static if (is(T == U*, U))             alias substInoutForm = substInout!U*;
+    else                                        alias substInoutForm = T;
+}
+
+unittest
+{
+    // https://github.com/dlang/dmd/issues/21452
+    struct S { int x; }
+    struct T { int x; alias x this; }
+
+    enum EnumInt { a = 123 }
+    enum EnumUInt : uint { a = 123 }
+    enum EnumFloat : float { a = 123 }
+    enum EnumString : string { a = "123" }
+    enum EnumStringW : wstring { a = "123" }
+    enum EnumStruct : S { a = S(7) }
+    enum EnumAliasThis : T { a = T(7) }
+    enum EnumDArray : int[] { a = [1] }
+    enum EnumAArray : int[int] { a = [0 : 1] }
+
+    static assert(substInout!(EnumInt).stringof                  == "EnumInt");
+    static assert(substInout!(inout(EnumUInt)).stringof          == "const(EnumUInt)");
+    static assert(substInout!(EnumFloat).stringof                == "EnumFloat");
+    static assert(substInout!(EnumString).stringof               == "EnumString");
+    static assert(substInout!(inout(EnumStringW)).stringof       == "const(EnumStringW)");
+    static assert(substInout!(EnumStruct).stringof               == "EnumStruct");
+    static assert(substInout!(EnumAliasThis).stringof            == "EnumAliasThis");
+    static assert(substInout!(EnumDArray).stringof               == "EnumDArray");
+    static assert(substInout!(inout(EnumAArray)[int]).stringof   == "const(EnumAArray)[int]");
 }
 
 /// used to declare an extern(D) function that is defined in a different module
@@ -545,7 +572,7 @@ template hasIndirections(T)
     else static if (__traits(isAssociativeArray, T) || is(T == class) || is(T == interface))
         enum hasIndirections = true;
     else static if (is(T == E[N], E, size_t N))
-        enum hasIndirections = T.sizeof && (is(E == void) || hasIndirections!(BaseElemOf!E));
+        enum hasIndirections = T.sizeof && (is(immutable E == immutable void) || hasIndirections!(BaseElemOf!E));
     else static if (isFunctionPointer!T)
         enum hasIndirections = false;
     else
@@ -703,6 +730,40 @@ template hasIndirections(T)
     }
 
     A!int dummy;
+}
+
+// https://github.com/dlang/dmd/issues/20812
+@safe unittest
+{
+    static assert(!hasIndirections!void);
+    static assert(!hasIndirections!(const void));
+    static assert(!hasIndirections!(inout void));
+    static assert(!hasIndirections!(immutable void));
+    static assert(!hasIndirections!(shared void));
+
+    static assert( hasIndirections!(void*));
+    static assert( hasIndirections!(const void*));
+    static assert( hasIndirections!(inout void*));
+    static assert( hasIndirections!(immutable void*));
+    static assert( hasIndirections!(shared void*));
+
+    static assert( hasIndirections!(void[]));
+    static assert( hasIndirections!(const void[]));
+    static assert( hasIndirections!(inout void[]));
+    static assert( hasIndirections!(immutable void[]));
+    static assert( hasIndirections!(shared void[]));
+
+    static assert( hasIndirections!(void[42]));
+    static assert( hasIndirections!(const void[42]));
+    static assert( hasIndirections!(inout void[42]));
+    static assert( hasIndirections!(immutable void[42]));
+    static assert( hasIndirections!(shared void[42]));
+
+    static assert(!hasIndirections!(void[0]));
+    static assert(!hasIndirections!(const void[0]));
+    static assert(!hasIndirections!(inout void[0]));
+    static assert(!hasIndirections!(immutable void[0]));
+    static assert(!hasIndirections!(shared void[0]));
 }
 
 template hasUnsharedIndirections(T)

@@ -3,12 +3,12 @@
  *
  * Specification: C11
  *
- * Copyright:   Copyright (C) 2021-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2021-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/importc.d, _importc.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/importc.d, _importc.d)
  * Documentation:  https://dlang.org/phobos/dmd_importc.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/importc.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/importc.d
  */
 
 module dmd.importc;
@@ -17,16 +17,22 @@ import core.stdc.stdio;
 
 import dmd.astenums;
 import dmd.dcast;
+import dmd.denum;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.dinterpret : ctfeInterpret;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.identifier;
+import dmd.id : Id;
 import dmd.init;
+import dmd.intrange : IntRange;
 import dmd.mtype;
+import dmd.optimize : optimize;
+import dmd.rootobject : DYNCAST;
 import dmd.tokens;
 import dmd.typesem;
 
@@ -120,6 +126,12 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
     e = e.expressionSemantic(sc);
     if (e.isErrorExp())
         return e;
+    if (arrow)
+    {
+        e = arrayFuncConv(e, sc);
+        if (e.isErrorExp())
+            return e;
+    }
 
     auto t = e.type;
     if (t.isTypePointer())
@@ -166,7 +178,7 @@ Expression carraySemantic(ArrayExp ae, Scope* sc)
      * So, rewrite as an IndexExp if we can.
      */
     auto t1 = e1.type.toBasetype();
-    if (t1.isTypeDArray() || t1.isTypeSArray())
+    if (t1.isStaticOrDynamicArray())
     {
         e2 = e2.expressionSemantic(sc).arrayFuncConv(sc);
         // C doesn't do array bounds checking, so `true` turns it off
@@ -176,7 +188,7 @@ Expression carraySemantic(ArrayExp ae, Scope* sc)
     e1 = e1.arrayFuncConv(sc);   // e1 might still be a function call
     e2 = e2.expressionSemantic(sc);
     auto t2 = e2.type.toBasetype();
-    if (t2.isTypeDArray() || t2.isTypeSArray())
+    if (t2.isStaticOrDynamicArray())
     {
         return new IndexExp(ae.loc, e2, e1, true).expressionSemantic(sc); // swap operands
     }
@@ -532,13 +544,19 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
         }
     }
 
+    // Don't let macros shadow real symbols
+    if (auto td = s.isTemplateDeclaration())
+    {
+        if (td.isCmacro) return s2;
+    }
+
     auto vd = s.isVarDeclaration(); // new declaration
     auto vd2 = s2.isVarDeclaration(); // existing declaration
 
-    if (vd && vd.isCmacro())
-        return vd2;
+    if (vd && vd.isCmacro)
+        return s2;
 
-    assert(!(vd2 && vd2.isCmacro()));
+    assert(!(vd2 && vd2.isCmacro));
 
     if (vd && vd2)
     {
@@ -637,4 +655,116 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
     }
 
     return collision();
+}
+
+/*********************************
+ * ImportC-specific semantic analysis on enum declaration `ed`
+ */
+void cEnumSemantic(Scope* sc, EnumDeclaration ed)
+{
+    // C11 6.7.2.2
+    Type commonType = ed.memtype;
+    if (!commonType)
+        commonType = Type.tint32;
+    ulong nextValue = 0;        // C11 6.7.2.2-3 first member value defaults to 0
+
+    // C11 6.7.2.2-2 value must be representable as an int.
+    // The sizemask represents all values that int will fit into,
+    // from 0..uint.max.  We want to cover int.min..uint.max.
+    IntRange ir = IntRange.fromType(commonType);
+
+    void emSemantic(EnumMember em, ref ulong nextValue)
+    {
+        static void errorReturn(EnumMember em)
+        {
+            em.value = ErrorExp.get();
+            em.errors = true;
+            em.semanticRun = PASS.semanticdone;
+        }
+
+        em.semanticRun = PASS.semantic;
+        em.type = commonType;
+        em._linkage = LINK.c;
+        em.storage_class |= STC.manifest;
+        if (em.value)
+        {
+            Expression e = em.value;
+            assert(e.dyncast() == DYNCAST.expression);
+
+            /* To merge the type of e with commonType, add 0 of type commonType
+                */
+            if (!ed.memtype)
+                e = new AddExp(em.loc, e, new IntegerExp(em.loc, 0, commonType));
+
+            e = e.expressionSemantic(sc);
+            e = resolveProperties(sc, e);
+            e = e.integralPromotions(sc);
+            e = e.ctfeInterpret();
+            if (e.op == EXP.error)
+                return errorReturn(em);
+            auto ie = e.isIntegerExp();
+            if (!ie)
+            {
+                // C11 6.7.2.2-2
+                .error(em.loc, "%s `%s` enum member must be an integral constant expression, not `%s` of type `%s`", em.kind, em.toPrettyChars, e.toChars(), e.type.toChars());
+                return errorReturn(em);
+            }
+            if (ed.memtype && !ir.contains(getIntRange(ie)))
+            {
+                // C11 6.7.2.2-2
+                .error(em.loc, "%s `%s` enum member value `%s` does not fit in `%s`", em.kind, em.toPrettyChars, e.toChars(), commonType.toChars());
+                return errorReturn(em);
+            }
+            nextValue = ie.toInteger();
+            if (!ed.memtype)
+                commonType = e.type;
+            em.value = new IntegerExp(em.loc, nextValue, commonType);
+        }
+        else
+        {
+            // C11 6.7.2.2-3 add 1 to value of previous enumeration constant
+            bool first = (em == (*em.ed.members)[0]);
+            if (!first)
+            {
+                Expression max = getProperty(commonType, null, em.loc, Id.max, 0);
+                if (nextValue == max.toInteger())
+                {
+                    .error(em.loc, "%s `%s` initialization with `%s+1` causes overflow for type `%s`", em.kind, em.toPrettyChars, max.toChars(), commonType.toChars());
+                    return errorReturn(em);
+                }
+                nextValue += 1;
+            }
+            em.value = new IntegerExp(em.loc, nextValue, commonType);
+        }
+        em.type = commonType;
+        em.semanticRun = PASS.semanticdone;
+    }
+
+    ed.members.foreachDsymbol( (s)
+    {
+        if (EnumMember em = s.isEnumMember())
+            emSemantic(em, nextValue);
+    });
+
+    if (!ed.memtype)
+    {
+        // cast all members to commonType
+        ed.members.foreachDsymbol( (s)
+        {
+            if (EnumMember em = s.isEnumMember())
+            {
+                em.type = commonType;
+                // optimize out the cast so that other parts of the compiler can
+                // assume that an integral enum's members are `IntegerExp`s.
+                // https://issues.dlang.org/show_bug.cgi?id=24504
+                em.value = em.value.castTo(sc, commonType).optimize(WANTvalue);
+            }
+        });
+    }
+
+    ed.memtype = commonType;
+    // Set semantic2done to mark C enums as fully processed
+    // Prevents issues with final switch statements that reference C enums
+    ed.semanticRun = PASS.semantic2done;
+    return;
 }

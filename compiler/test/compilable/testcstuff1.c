@@ -293,6 +293,8 @@ void test2()
 
     inline int f();
     _Noreturn void g();
+    __declspec(noreturn) void g2();
+    __declspec(_Noreturn) void g3();
 
     _Static_assert(1, "ok");
 }
@@ -329,6 +331,7 @@ void test4(int i)
     _Static_assert(sizeof 3 == 4, "ok");
     _Static_assert(sizeof(3) == 4, "ok");
     _Static_assert(_Alignof(int) == 4, "ok");
+    _Static_assert(_Alignof 3  == 4, "ok");
     _Static_assert((int)3 == 3, "ok");
     _Static_assert(sizeof p[0] == 4, "ok");
     _Static_assert(1 && 2, "ok");
@@ -398,8 +401,9 @@ void* tests3()
 
 int tests4()
 {
-    struct S { int b; } a, *p;
-    a.b = 3;
+    struct S { int b; } a, *p, b[1];
+    b->b = 3;
+    a.b = b->b;
     p = &a;
     return p->b;
 }

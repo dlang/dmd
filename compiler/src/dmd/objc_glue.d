@@ -1,12 +1,12 @@
 /**
  * Glue code for Objective-C interop.
  *
- * Copyright:   Copyright (C) 2015-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/objc_glue.d, _objc_glue.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/objc_glue.d, _objc_glue.d)
  * Documentation:  https://dlang.org/phobos/dmd_objc_glue.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/objc_glue.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/objc_glue.d
  */
 
 module dmd.objc_glue;
@@ -1617,7 +1617,7 @@ void xoffOrNull(ref DtBuilder dtb, Symbol* symbol) @safe
  *  given buffer `buffer`
  */
 const(char)* toStringz(size_t maxLength = 4095)(in const(char)[] str,
-    scope return void[] buffer = alloca(maxLength + 1)[0 .. maxLength + 1]) pure
+    return scope void[] buffer = alloca(maxLength + 1)[0 .. maxLength + 1]) pure
 in
 {
     assert(maxLength >= str.length);

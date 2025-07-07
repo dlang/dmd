@@ -5,12 +5,12 @@
  * However, this file will be used to generate the
  * $(LINK2 https://dlang.org/dmd-linux.html, online documentation) and MAN pages.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cli.d, _cli.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cli.d, _cli.d)
  * Documentation:  https://dlang.org/phobos/dmd_cli.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cli.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/cli.d
  */
 module dmd.cli;
 
@@ -337,13 +337,18 @@ dmd -cov -unittest myprog.d
             (only imports).`,
         ),
         Option("dllimport=<value>",
-            "Windows only: select symbols to dllimport (none/defaultLibsOnly/all)",
-            `Which global variables to dllimport implicitly if not defined in a root module
+            "Windows only: select symbols to dllimport (none/defaultLibsOnly/externalOnly/all)",
+            `Which symbols to dllimport implicitly if not defined in a module that is being compiled
             $(UL
                 $(LI $(I none): None)
-                $(LI $(I defaultLibsOnly): Only druntime/Phobos symbols)
+                $(LI $(I defaultLibsOnly): Only druntime/Phobos symbols and any from a module that is marked as external to binary)
+                $(LI $(I externalOnly): Only symbols found from a module that is marked as external to binary)
                 $(LI $(I all): All)
             )`,
+        ),
+        Option("edition[=<NNNN>G[<filename>]]",
+            "set language edition to edition year, apply to <filename>",
+            "set edition to default, to a particular year NNNN, apply only to a particular $(I filename)"
         ),
         Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",
@@ -359,6 +364,8 @@ dmd -cov -unittest myprog.d
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`)
                 $(LI $(I c++20): Use C++20 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `202002`)
+                $(LI $(I c++23): Use C++23 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `202302`)
             )",
         ),
         Option("extern-std=[h|help|?]",
@@ -459,6 +466,9 @@ dmd -cov -unittest myprog.d
         ),
         Option("I=<directory>",
             "look for imports also in directory"
+        ),
+        Option("extI=<directory>",
+            "look for imports that are out of the currently compiling binary, used to set the module as DllImport"
         ),
         Option("i[=<pattern>]",
             "include imported modules in the compilation",
@@ -656,8 +666,13 @@ dmd -cov -unittest myprog.d
         ),
         Option("nothrow",
             "assume no Exceptions will be thrown",
-            `Turns off generation of exception stack unwinding code, enables
-            more efficient code for RAII objects.`,
+            "Turns off generation of exception stack unwinding code, enables
+            more efficient code for RAII objects. Note: this doesn't change
+            function mangling, so it is possible to link `-nothrow` code with
+            code that throws Exceptions, which can result in undefined behavior
+            without any protection from the type system. Prefer the `nothrow`
+            function attribute for partial disabling of Exceptions instead,
+            and only use this flag to globally disable Exceptions.",
         ),
         Option("O",
             "optimize",
@@ -1122,6 +1137,7 @@ struct CLIUsage
   =c++14                Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`
   =c++17                Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`
   =c++20                Sets `__traits(getTargetInfo, \"cppStd\")` to `202002`
+  =c++23                Sets `__traits(getTargetInfo, \"cppStd\")` to `202302`
 ";
 
     /// Options supported by -HC

@@ -1,17 +1,18 @@
 /**
  * Functions for raising errors.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/errors.d, _errors.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/errors.d, _errors.d)
  * Documentation:  https://dlang.org/phobos/dmd_errors.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/errors.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/errors.d
  */
 
 module dmd.errors;
 
 public import core.stdc.stdarg;
+public import dmd.root.string: fTuple;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -59,37 +60,37 @@ class ErrorSinkCompiler : ErrorSink
   extern (C++):
   override:
 
-    void verror(const ref Loc loc, const(char)* format, va_list ap)
+    void verror(Loc loc, const(char)* format, va_list ap)
     {
         verrorReport(loc, format, ap, ErrorKind.error);
     }
 
-    void verrorSupplemental(const ref Loc loc, const(char)* format, va_list ap)
+    void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
     {
         verrorReportSupplemental(loc, format, ap, ErrorKind.error);
     }
 
-    void vwarning(const ref Loc loc, const(char)* format, va_list ap)
+    void vwarning(Loc loc, const(char)* format, va_list ap)
     {
         verrorReport(loc, format, ap, ErrorKind.warning);
     }
 
-    void vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
+    void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
     {
         verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
     }
 
-    void vdeprecation(const ref Loc loc, const(char)* format, va_list ap)
+    void vdeprecation(Loc loc, const(char)* format, va_list ap)
     {
         verrorReport(loc, format, ap, ErrorKind.deprecation);
     }
 
-    void vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
+    void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap)
     {
         verrorReportSupplemental(loc, format, ap, ErrorKind.deprecation);
     }
 
-    void vmessage(const ref Loc loc, const(char)* format, va_list ap)
+    void vmessage(Loc loc, const(char)* format, va_list ap)
     {
         verrorReport(loc, format, ap, ErrorKind.message);
     }
@@ -122,9 +123,9 @@ enum Classification : Color
 
 
 static if (__VERSION__ < 2092)
-    private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
+    private extern (C++) void noop(Loc loc, const(char)* format, ...) {}
 else
-    pragma(printf) private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
+    pragma(printf) private extern (C++) void noop(Loc loc, const(char)* format, ...) {}
 
 
 package auto previewErrorFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
@@ -166,7 +167,7 @@ package auto previewSupplementalFunc(bool isDeprecated, FeatureState featureStat
  *      ...    = printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
-    extern (C++) void error(const ref Loc loc, const(char)* format, ...)
+    extern (C++) void error(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -174,7 +175,7 @@ static if (__VERSION__ < 2092)
         va_end(ap);
     }
 else
-    pragma(printf) extern (C++) void error(const ref Loc loc, const(char)* format, ...)
+    pragma(printf) extern (C++) void error(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -229,7 +230,7 @@ extern(C++) void errorBackend(const(char)* filename, uint linnum, uint charnum, 
  *      ...    = printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
-    extern (C++) void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+    extern (C++) void errorSupplemental(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -237,7 +238,7 @@ static if (__VERSION__ < 2092)
         va_end(ap);
     }
 else
-    pragma(printf) extern (C++) void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+    pragma(printf) extern (C++) void errorSupplemental(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -253,7 +254,7 @@ else
  *      ...    = printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
-    extern (C++) void warning(const ref Loc loc, const(char)* format, ...)
+    extern (C++) void warning(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -261,7 +262,7 @@ static if (__VERSION__ < 2092)
         va_end(ap);
     }
 else
-    pragma(printf) extern (C++) void warning(const ref Loc loc, const(char)* format, ...)
+    pragma(printf) extern (C++) void warning(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -278,7 +279,7 @@ else
  *      ...    = printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
-    extern (C++) void warningSupplemental(const ref Loc loc, const(char)* format, ...)
+    extern (C++) void warningSupplemental(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -286,7 +287,7 @@ static if (__VERSION__ < 2092)
         va_end(ap);
     }
 else
-    pragma(printf) extern (C++) void warningSupplemental(const ref Loc loc, const(char)* format, ...)
+    pragma(printf) extern (C++) void warningSupplemental(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -303,7 +304,7 @@ else
  *      ...    = printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
-    extern (C++) void deprecation(const ref Loc loc, const(char)* format, ...)
+    extern (C++) void deprecation(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -311,7 +312,7 @@ static if (__VERSION__ < 2092)
         va_end(ap);
     }
 else
-    pragma(printf) extern (C++) void deprecation(const ref Loc loc, const(char)* format, ...)
+    pragma(printf) extern (C++) void deprecation(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -328,7 +329,7 @@ else
  *      ...    = printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
-    extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
+    extern (C++) void deprecationSupplemental(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -336,7 +337,7 @@ static if (__VERSION__ < 2092)
         va_end(ap);
     }
 else
-    pragma(printf) extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
+    pragma(printf) extern (C++) void deprecationSupplemental(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -353,7 +354,7 @@ else
  *      ...    = printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
-    extern (C++) void message(const ref Loc loc, const(char)* format, ...)
+    extern (C++) void message(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -361,7 +362,7 @@ static if (__VERSION__ < 2092)
         va_end(ap);
     }
 else
-    pragma(printf) extern (C++) void message(const ref Loc loc, const(char)* format, ...)
+    pragma(printf) extern (C++) void message(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -397,7 +398,7 @@ else
  * see verrorReport for arguments
  * Returns: true if error handling is done, false to continue printing to stderr
  */
-alias DiagnosticHandler = bool delegate(const ref Loc location, Color headerColor, const(char)* header, const(char)* messageFormat, va_list args, const(char)* prefix1, const(char)* prefix2);
+alias DiagnosticHandler = bool delegate(const ref SourceLoc location, Color headerColor, const(char)* header, const(char)* messageFormat, va_list args, const(char)* prefix1, const(char)* prefix2);
 
 /**
  * The diagnostic handler.
@@ -441,7 +442,7 @@ private struct ErrorInfo
         this.kind = kind;
     }
 
-    const SourceLoc loc;              // location of error
+    const SourceLoc loc;        // location of error
     Classification headerColor; // color to set `header` output to
     const(char)* p1;            // additional message prefix
     const(char)* p2;            // additional message prefix
@@ -462,7 +463,7 @@ private struct ErrorInfo
  *      p1          = additional message prefix
  *      p2          = additional message prefix
  */
-private extern(C++) void verrorReport(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
+private extern(C++) void verrorReport(Loc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
 {
     return verrorReport(loc.SourceLoc, format, ap, kind, p1, p2);
 }
@@ -594,7 +595,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
  *      ap          = printf-style variadic arguments
  *      kind        = kind of error being printed
  */
-private extern(C++) void verrorReportSupplemental(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind)
+private extern(C++) void verrorReportSupplemental(Loc loc, const(char)* format, va_list ap, ErrorKind kind)
 {
     return verrorReportSupplemental(loc.SourceLoc, format, ap, kind);
 }
@@ -671,11 +672,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 
     if (diagnosticHandler !is null)
     {
-        Loc diagLoc;
-        diagLoc.linnum = info.loc.line;
-        diagLoc.charnum = info.loc.charnum;
-        diagLoc.filename = (info.loc.filename ~ '\0').ptr;
-        if (diagnosticHandler(diagLoc, info.headerColor, header, format, ap, info.p1, info.p2))
+        if (diagnosticHandler(info.loc, info.headerColor, header, format, ap, info.p1, info.p2))
             return;
     }
 
@@ -717,7 +714,10 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
         writeHighlights(con, tmp);
     }
     else
+    {
+        unescapeBackticks(tmp);
         fputs(tmp.peekChars(), stderr);
+    }
     fputc('\n', stderr);
 
     __gshared SourceLoc old_loc;
@@ -731,64 +731,78 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
         !loc.filename.startsWith(".d-mixin-") &&
         !global.params.mixinOut.doOutput)
     {
-        import dmd.root.filename : FileName;
-        const fileName = FileName(loc.filename);
-        if (auto text = global.fileManager.getFileContents(fileName))
-        {
-            auto range = dmd.root.string.splitLines(cast(const(char[])) text);
-            size_t linnum;
-            foreach (line; range)
-            {
-                ++linnum;
-                if (linnum != loc.linnum)
-                    continue;
-                if (loc.charnum < line.length)
-                {
-                    enum tabWidth = 4;
-                    // The number of column bytes and the number of display columns
-                    // occupied by a character are not the same for non-ASCII charaters.
-                    // https://issues.dlang.org/show_bug.cgi?id=21849
-                    size_t index = 0;
-                    size_t column = 0;
-                    size_t caretColumn = 0;
-                    while (index < line.length)
-                    {
-                        import dmd.root.utf : utf_decodeChar;
-                        dchar u;
-                        const start = index;
-                        const msg = utf_decodeChar(line, index, u);
-                        assert(msg is null, msg);
-                        if (u == '\t')
-                        {
-                            // How many spaces until column is the next multiple of tabWidth
-                            const equivalentSpaces = tabWidth - (column % tabWidth);
-                            foreach (i; 0 .. equivalentSpaces)
-                                fputc(' ', stderr);
-                            column += equivalentSpaces;
-                        }
-                        else
-                        {
-                            fprintf(stderr, "%.*s", cast(int) (index - start), &line[start]);
-                            column++;
-                        }
-                        if (index < loc.charnum)
-                            caretColumn = column;
-
-                    }
-                    fputc('\n', stderr);
-
-                    foreach (i; 0 .. caretColumn)
-                        fputc(' ', stderr);
-
-                    fputc('^', stderr);
-                    fputc('\n', stderr);
-                }
-                break;
-            }
-        }
+        tmp.reset();
+        printErrorLineContext(tmp, loc.fileContent, loc.fileOffset);
+        fputs(tmp.peekChars(), stderr);
     }
     old_loc = loc;
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
+}
+
+// Given an error happening in source code `text`, at index `offset`, print the offending line
+// and a caret pointing to the error into `buf`
+private void printErrorLineContext(ref OutBuffer buf, const(char)[] text, size_t offset) @safe
+{
+    import dmd.root.utf : utf_decodeChar;
+
+    if (offset >= text.length)
+        return; // Out of bounds (missing source content in SourceLoc)
+
+    // Scan backwards for beginning of line
+    size_t s = offset;
+    while (s > 0 && text[s - 1] != '\n')
+        s--;
+
+    const line = text[s .. $];
+    const byteColumn = offset - s; // column as reported in the error message (byte offset)
+    enum tabWidth = 4;
+
+    // The number of column bytes and the number of display columns
+    // occupied by a character are not the same for non-ASCII charaters.
+    // https://issues.dlang.org/show_bug.cgi?id=21849
+    size_t currentColumn = 0;
+    size_t caretColumn = 0; // actual display column taking into account tabs and unicode characters
+    for (size_t i = 0; i < line.length; )
+    {
+        dchar u;
+        const start = i;
+        const msg = utf_decodeChar(line, i, u);
+        assert(msg is null, msg);
+        if (u == '\t')
+        {
+            // How many spaces until column is the next multiple of tabWidth
+            const equivalentSpaces = tabWidth - (currentColumn % tabWidth);
+            foreach (j; 0 .. equivalentSpaces)
+                buf.writeByte(' ');
+            currentColumn += equivalentSpaces;
+        }
+        else if (u == '\r' || u == '\n')
+            break;
+        else
+        {
+            buf.writestring(line[start .. i]);
+            currentColumn++;
+        }
+        if (i <= byteColumn)
+            caretColumn = currentColumn;
+    }
+    buf.writeByte('\n');
+
+    foreach (i; 0 .. caretColumn)
+        buf.writeByte(' ');
+
+    buf.writeByte('^');
+    buf.writeByte('\n');
+}
+
+unittest
+{
+    OutBuffer buf;
+    printErrorLineContext(buf, "int ɷ = 3;", 9);
+    assert(buf.peekSlice() ==
+        "int ɷ = 3;\n"~
+        "        ^\n"
+    );
 }
 
 /**
@@ -831,6 +845,7 @@ extern (C++) void halt() @safe
  * is D source code, and color syntax highlight it.
  * Modify contents of `buf` with highlighted result.
  * Many parallels to ddoc.highlightText().
+ * Double backticks are replaced by a single backtick without coloring.
  * Params:
  *      buf = text containing `...` code to highlight
  */
@@ -846,6 +861,13 @@ private void colorSyntaxHighlight(ref OutBuffer buf)
         switch (c)
         {
             case '`':
+                // A double backtick means it's part of the content, don't color
+                if (i + 1 < buf.length && buf[i + 1] == '`')
+                {
+                    buf.remove(i, 1);
+                    continue;
+                }
+
                 if (inBacktick)
                 {
                     inBacktick = false;
@@ -870,6 +892,27 @@ private void colorSyntaxHighlight(ref OutBuffer buf)
     }
 }
 
+/// Replace double backticks in `buf` with a single backtick
+void unescapeBackticks(ref OutBuffer buf)
+{
+    for (size_t i = 0; i + 1 < buf.length; ++i)
+    {
+        if (buf[i] == '`' && buf[i + 1] == '`')
+            buf.remove(i, 1);
+    }
+}
+
+unittest
+{
+    OutBuffer buf;
+    buf.writestring("x````");
+    unescapeBackticks(buf);
+    assert(buf.extractSlice() == "x``");
+
+    buf.writestring("x````");
+    colorSyntaxHighlight(buf);
+    assert(buf.extractSlice() == "x``");
+}
 
 /**
  * Embed these highlighting commands in the text stream.
@@ -956,7 +999,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     res.writeByte(HIGHLIGHT.Default);
     //printf("res = '%.*s'\n", cast(int)buf.length, buf[].ptr);
     buf.setsize(0);
-    buf.write(&res);
+    buf.put(res);
     --nested;
 }
 

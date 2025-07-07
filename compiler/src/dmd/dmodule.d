@@ -3,12 +3,12 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/module.html, Modules)
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmodule.d, _dmodule.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dmodule.d, _dmodule.d)
  * Documentation:  https://dlang.org/phobos/dmd_dmodule.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmodule.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/dmodule.d
  */
 
 module dmd.dmodule;
@@ -30,7 +30,7 @@ import dmd.dmacro;
 import dmd.doc;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, importAll, load, include;
+import dmd.dsymbolsem : dsymbolSemantic, importAll, load;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -43,6 +43,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.parse;
+import dmd.root.aav;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
@@ -58,12 +59,10 @@ import dmd.visitor;
 
 version (Windows)
 {
-    import core.sys.windows.winbase : getpid = GetCurrentProcessId;
     enum PathSeparator = '\\';
 }
 else version (Posix)
 {
-    import core.sys.posix.unistd : getpid;
     enum PathSeparator = '/';
 }
 else
@@ -175,11 +174,12 @@ extern (C++) class Package : ScopeDsymbol
     uint tag;        // auto incremented tag, used to mask package tree in scopes
     Module mod;     // !=null if isPkgMod == PKG.module_
 
-    final extern (D) this(const ref Loc loc, Identifier ident) nothrow
+    final extern (D) this(Loc loc, Identifier ident) nothrow
     {
         super(loc, ident);
         __gshared uint packageTag;
         this.tag = packageTag++;
+        this.dsym = DSYM.package_;
     }
 
     override const(char)* kind() const nothrow
@@ -251,11 +251,6 @@ extern (C++) class Package : ScopeDsymbol
         if (pparent)
             *pparent = parent;
         return dst;
-    }
-
-    override final inout(Package) isPackage() inout
-    {
-        return this;
     }
 
     /**
@@ -417,6 +412,8 @@ extern (C++) final class Module : Package
     SearchOptFlags searchCacheFlags;       // cached flags
     bool insearch;
 
+    bool isExplicitlyOutOfBinary; // Is this module known to be out of binary, and must be DllImport'd?
+
     /**
      * A root module is one that will be compiled all the way to
      * object code.  This field holds the root module that caused
@@ -430,11 +427,9 @@ extern (C++) final class Module : Package
 
     Modules aimports;           // all imported modules
 
-    uint debuglevel;            // debug level
     Identifiers* debugids;      // debug identifiers
     Identifiers* debugidsNot;   // forward referenced debug identifiers
 
-    uint versionlevel;          // version level
     Identifiers* versionids;    // version identifiers
     Identifiers* versionidsNot; // forward referenced version identifiers
 
@@ -444,9 +439,10 @@ extern (C++) final class Module : Package
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
 
-    extern (D) this(const ref Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
+    extern (D) this(Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
     {
         super(loc, ident);
+        this.dsym = DSYM.module_;
         const(char)[] srcfilename;
         //printf("Module::Module(filename = '%.*s', ident = '%s')\n", cast(int)filename.length, filename.ptr, ident.toChars());
         this.arg = filename;
@@ -480,7 +476,7 @@ extern (C++) final class Module : Package
         if (doHdrGen)
             hdrfile = setOutfilename(global.params.dihdr.name, global.params.dihdr.dir, arg, hdr_ext);
 
-        this.edition = Edition.legacy;
+        this.edition = Edition.min;
     }
 
     extern (D) this(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
@@ -514,12 +510,12 @@ extern (C++) final class Module : Package
         return ret;
     }
 
-    extern (C++) static Module load(const ref Loc loc, Identifiers* packages, Identifier ident)
+    extern (C++) static Module load(Loc loc, Identifiers* packages, Identifier ident)
     {
         return load(loc, packages ? (*packages)[] : null, ident);
     }
 
-    extern (D) static Module load(const ref Loc loc, Identifier[] packages, Identifier ident, ImportPathInfo pathInfo = ImportPathInfo.init)
+    extern (D) static Module load(Loc loc, Identifier[] packages, Identifier ident, ImportPathInfo pathInfo = ImportPathInfo.init)
     {
         //printf("Module::load(ident = '%s')\n", ident.toChars());
         // Build module filename by turning:
@@ -538,6 +534,7 @@ extern (C++) final class Module : Package
         auto m = new Module(loc, filename, ident, 0, 0);
 
         // TODO: apply import path information (pathInfo) on to module
+        m.isExplicitlyOutOfBinary = importPathThatFindUs.isOutOfBinary;
 
         if (!m.read(loc))
             return null;
@@ -551,6 +548,8 @@ extern (C++) final class Module : Package
             }
             buf.printf("%s\t(%s)", ident.toChars(), m.srcfile.toChars());
             message("import    %s", buf.peekChars());
+            if (loc != Loc.initial)
+                message("(imported from %s)", loc.toChars());
         }
         if((m = m.parse()) is null) return null;
 
@@ -582,12 +581,6 @@ extern (C++) final class Module : Package
         else
         {
             const(char)[] argdoc;
-            OutBuffer buf;
-            if (arg == "__stdin.d")
-            {
-                buf.printf("__stdin_%d.d", getpid());
-                arg = buf[];
-            }
             if (global.params.preservePaths)
                 argdoc = arg;
             else
@@ -640,7 +633,7 @@ extern (C++) final class Module : Package
      * Params:
      *  loc = The location at which the file read originated (e.g. import)
      */
-    private void onFileReadError(const ref Loc loc)
+    private void onFileReadError(Loc loc)
     {
         const name = srcfile.toString();
         if (FileName.equals(name, "object.d"))
@@ -697,7 +690,7 @@ extern (C++) final class Module : Package
      *
      * Returns: `true` if successful
      */
-    bool read(const ref Loc loc)
+    bool read(Loc loc)
     {
         if (this.src)
             return true; // already read
@@ -807,7 +800,7 @@ extern (C++) final class Module : Package
             checkCompiledImport();
             members = p.parseModule();
             assert(!p.md); // C doesn't have module declarations
-            numlines = p.scanloc.linnum;
+            numlines = p.linnum;
         }
         else
         {
@@ -831,7 +824,7 @@ extern (C++) final class Module : Package
             checkCompiledImport();
 
             members = p.parseModuleContent();
-            numlines = p.scanloc.linnum;
+            numlines = p.linnum;
         }
 
         /* The symbol table into which the module is to be inserted.
@@ -971,7 +964,7 @@ extern (C++) final class Module : Package
      *  sc = the scope into which we are imported
      *  loc = the location of the import statement
      */
-    void checkImportDeprecation(const ref Loc loc, Scope* sc)
+    void checkImportDeprecation(Loc loc, Scope* sc)
     {
         if (md && md.isdeprecated && !sc.isDeprecated)
         {
@@ -1021,22 +1014,31 @@ extern (C++) final class Module : Package
     extern (D) static void addDeferredSemantic(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
-        if (!deferred.contains(s))
+        if (!s.deferred)
+        {
+            s.deferred = true;
             deferred.push(s);
+        }
     }
 
     extern (D) static void addDeferredSemantic2(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
-        if (!deferred2.contains(s))
+        if (!s.deferred2)
+        {
+            s.deferred2 = true;
             deferred2.push(s);
+        }
     }
 
     extern (D) static void addDeferredSemantic3(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
-        if (!deferred.contains(s))
+        if (!s.deferred3)
+        {
+            s.deferred3 = true;
             deferred3.push(s);
+        }
     }
 
     /******************************************
@@ -1070,6 +1072,8 @@ extern (C++) final class Module : Package
                 todoalloc = todo;
             }
             memcpy(todo, deferred.tdata(), len * Dsymbol.sizeof);
+            foreach (Dsymbol s; Module.deferred[])
+                s.deferred = false;
             deferred.setDim(0);
 
             foreach (i; 0..len)
@@ -1095,6 +1099,7 @@ extern (C++) final class Module : Package
         for (size_t i = 0; i < a.length; i++)
         {
             Dsymbol s = (*a)[i];
+            s.deferred2 = false;
             //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
             s.semantic2(null);
 
@@ -1112,6 +1117,7 @@ extern (C++) final class Module : Package
         for (size_t i = 0; i < a.length; i++)
         {
             Dsymbol s = (*a)[i];
+            s.deferred3 = false;
             //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());
             s.semantic3(null);
 
@@ -1179,11 +1185,6 @@ extern (C++) final class Module : Package
     Symbol* sfilename; // symbol for filename
 
     uint[uint] ctfe_cov; /// coverage information from ctfe execution_count[line]
-
-    override inout(Module) isModule() inout nothrow
-    {
-        return this;
-    }
 
     override void accept(Visitor v)
     {
@@ -1296,7 +1297,7 @@ extern (C++) struct ModuleDeclaration
     bool isdeprecated;      // if it is a deprecated module
     Expression msg;
 
-    extern (D) this(const ref Loc loc, Identifier[] packages, Identifier id, Expression msg, bool isdeprecated) @safe
+    extern (D) this(Loc loc, Identifier[] packages, Identifier id, Expression msg, bool isdeprecated) @safe
     {
         this.loc = loc;
         this.packages = packages;
@@ -1324,82 +1325,7 @@ extern (C++) struct ModuleDeclaration
     }
 }
 
-/****************************************
- * Create array of the local classes in the Module, suitable
- * for inclusion in ModuleInfo
- * Params:
- *      mod = the Module
- *      aclasses = array to fill in
- * Returns: array of local classes
- */
-void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
-{
-    //printf("members.length = %d\n", mod.members.length);
-    int pushAddClassDg(size_t n, Dsymbol sm)
-    {
-        if (!sm)
-            return 0;
-
-        if (auto cd = sm.isClassDeclaration())
-        {
-            // compatibility with previous algorithm
-            if (cd.parent && cd.parent.isTemplateMixin())
-                return 0;
-
-            if (cd.classKind != ClassKind.objc)
-                aclasses.push(cd);
-        }
-        return 0;
-    }
-
-    _foreach(null, mod.members, &pushAddClassDg);
-}
-
-
 alias ForeachDg = int delegate(size_t idx, Dsymbol s);
-
-/***************************************
- * Expands attribute declarations in members in depth first
- * order. Calls dg(size_t symidx, Dsymbol *sym) for each
- * member.
- * If dg returns !=0, stops and returns that value else returns 0.
- * Use this function to avoid the O(N + N^2/2) complexity of
- * calculating dim and calling N times getNth.
- * Returns:
- *  last value returned by dg()
- */
-int _foreach(Scope* sc, Dsymbols* members, scope ForeachDg dg, size_t* pn = null)
-{
-    assert(dg);
-    if (!members)
-        return 0;
-    size_t n = pn ? *pn : 0; // take over index
-    int result = 0;
-    foreach (size_t i; 0 .. members.length)
-    {
-        import dmd.attrib : AttribDeclaration;
-        import dmd.dtemplate : TemplateMixin;
-
-        Dsymbol s = (*members)[i];
-        if (AttribDeclaration a = s.isAttribDeclaration())
-            result = _foreach(sc, a.include(sc), dg, &n);
-        else if (TemplateMixin tm = s.isTemplateMixin())
-            result = _foreach(sc, tm.members, dg, &n);
-        else if (s.isTemplateInstance())
-        {
-        }
-        else if (s.isUnitTestDeclaration())
-        {
-        }
-        else
-            result = dg(n++, s);
-        if (result)
-            break;
-    }
-    if (pn)
-        *pn = n; // update index
-    return result;
-}
 
 /**
  * Process the content of a source file
@@ -1463,7 +1389,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
                 dbuf.writeUTF8(u);
             }
             else
-                dbuf.writeByte(u);
+                dbuf.writeByte(cast(ubyte)u);
         }
         dbuf.writeByte(0); //add null terminator
         return dbuf.extractSlice();
@@ -1532,7 +1458,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
                 dbuf.writeUTF8(u);
             }
             else
-                dbuf.writeByte(u);
+                dbuf.writeByte(cast(ubyte)u);
         }
         dbuf.writeByte(0); //add a terminating null byte
         return dbuf.extractSlice();

@@ -1,12 +1,12 @@
 /**
  * Template semantics.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/templatesem.d, _templatesem.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/templatesem.d, _templatesem.d)
  * Documentation:  https://dlang.org/phobos/dmd_templatesem.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/templatesem.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/templatesem.d
  */
 
 module dmd.templatesem;
@@ -120,7 +120,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
     auto paramsym = new ScopeDsymbol();
     paramsym.parent = tempdecl.parent;
     Scope* paramscope = sc.push(paramsym);
-    paramscope.stc = 0;
+    paramscope.stc = STC.none;
 
     if (global.params.ddoc.doOutput)
     {
@@ -188,7 +188,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
     if (tempdecl.members)
     {
         Dsymbol s;
-        if (Dsymbol.oneMembers(tempdecl.members, s, tempdecl.ident) && s)
+        if (oneMembers(tempdecl.members, s, tempdecl.ident) && s)
         {
             tempdecl.onemember = s;
             s.parent = tempdecl;
@@ -603,7 +603,7 @@ Scope* createScopeForTemplateParameters(TemplateDeclaration td, TemplateInstance
     paramscope.tinst = ti;
     paramscope.minst = sc.minst;
     paramscope.callsc = sc;
-    paramscope.stc = 0;
+    paramscope.stc = STC.none;
     return paramscope;
 }
 
@@ -905,7 +905,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
         // Match attributes of tthis against attributes of fd
         if (fd.type && !fd.isCtorDeclaration() && !(td._scope.stc & STC.static_))
         {
-            StorageClass stc = td._scope.stc | fd.storage_class2;
+            STC stc = td._scope.stc | fd.storage_class2;
             // Propagate parent storage class, https://issues.dlang.org/show_bug.cgi?id=5504
             Dsymbol p = td.parent;
             while (p.isTemplateDeclaration() || p.isTemplateInstance())
@@ -948,7 +948,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
         size_t nfargs2 = argumentList.length; // total number of arguments including applied defaultArgs
         uint inoutMatch = 0; // for debugging only
         Expression[] fargs = argumentList.arguments ? (*argumentList.arguments)[] : null;
-        Identifier[] fnames = argumentList.names ? (*argumentList.names)[] : null;
+        ArgumentLabel[] fnames = argumentList.names ? (*argumentList.names)[] : null;
 
         for (size_t parami = 0; parami < nfparams; parami++)
         {
@@ -958,16 +958,17 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
             Type prmtype = fparam.type.addStorageClass(fparam.storageClass);
 
             Expression farg;
-            Identifier fname = argi < fnames.length ? fnames[argi] : null;
+            Identifier fname = argi < fnames.length ? fnames[argi].name : null;
             bool foundName = false;
             if (fparam.ident)
             {
                 foreach (i; 0 .. fnames.length)
                 {
-                    if (fparam.ident == fnames[i])
+                    if (fparam.ident == fnames[i].name)
                     {
                         argi = i;
                         foundName = true;
+                        break;  //Exits the loop after a match
                     }
                 }
             }
@@ -1002,9 +1003,9 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                         {
                             break;
                         }
-                        foreach(name; fnames)
+                        foreach(argLabel; fnames)
                         {
-                            if (p.ident == name)
+                            if (p.ident == argLabel.name)
                                 break;
                         }
                         if (!reliesOnTemplateParameters(p.type, (*td.parameters)[inferStart .. td.parameters.length]))
@@ -1425,7 +1426,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                             Expression e;
                             Type t;
                             Dsymbol s;
-                            Scope *sco;
+                            Scope* sco;
 
                             const errors = global.startGagging();
                             /* ref: https://issues.dlang.org/show_bug.cgi?id=11118
@@ -2491,7 +2492,7 @@ private extern(C++) class DummyArgVisitor : Visitor
             return;
         }
         if (!tap.sdummy)
-            tap.sdummy = new Dsymbol();
+            tap.sdummy = new Dsymbol(DSYM.dsymbol);
         result = tap.sdummy;
     }
 

@@ -10,12 +10,12 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/x86/cod3.d, backend/cod3.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/x86/cod3.d, backend/cod3.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_x86_cod3.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/x86/cod3.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/x86/cod3.d
  */
 
 module dmd.backend.x86.cod3;
@@ -533,26 +533,29 @@ void cod3_stackadj(ref CodeBuilder cdb, int nbytes)
     //printf("cod3_stackadj(%d)\n", nbytes);
     if (cgstate.AArch64)
     {
+        if (nbytes == 0)
+            return;
+
         // https://www.scs.stanford.edu/~zyedidia/arm64/sub_addsub_imm.html
         // add/sub Xd,Xn,#imm{,shift}
         uint sf = 1;
-        uint op = nbytes < 0 ? 0 : 1;
-        uint S = 0;
-        uint sh = 0;
-        uint imm12 = nbytes < 0 ? -nbytes : nbytes;
-        uint Rn = 0x1F;
-        uint Rd = 0x1F;
-        uint ins = (sf    << 31) |
-                   (op    << 30) |
-                   (S     << 29) |
-                   (0x22  << 23) |
-                   (sh    << 22) |
-                   (imm12 << 10) |
-                   (Rn    <<  5) |
-                    Rd;
-        cdb.gen1(ins);
-        assert(imm12 < (1 << 12));  // only 12 bits allowed
-        assert((imm12 & 0xF) == 0); // 16 byte aligned
+        reg_t Rn = 0x1F;  // SP
+        reg_t Rd = 0x1F;
+        uint imm = nbytes < 0 ? -nbytes : nbytes;
+
+        if (uint imm12 = imm >> 12)     // bits above 12 bits
+        {
+            assert(imm12 < (1 << 12));  // insane amount of stack requested
+            cdb.gen1(nbytes < 0 ? INSTR.add_addsub_imm(sf, 1, imm12, Rn, Rd)
+                                : INSTR.sub_addsub_imm(sf, 1, imm12, Rn, Rd));
+        }
+
+        if (uint imm12 = imm & ((1 << 12) - 1)) // low 12 bits
+        {
+            cdb.gen1(nbytes < 0 ? INSTR.add_addsub_imm(sf, 0, imm12, Rn, Rd)
+                                : INSTR.sub_addsub_imm(sf, 0, imm12, Rn, Rd));
+        }
+
         return;
     }
     uint grex = I64 ? REX_W << 16 : 0;
@@ -883,6 +886,8 @@ private code* callFinallyBlock(block* bf, regm_t retregs)
 @trusted
 void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)* sflsave, Symbol** retsym, const regm_t mfuncregsave)
 {
+    //printf("outblkexitcode()\n");
+    bool AArch64 = cgstate.AArch64;
     CodeBuilder cdb2; cdb2.ctor();
     elem* e = bl.Belem;
     block* nextb;
@@ -920,7 +925,10 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
             if (nextb != bl.Bnext)
             {
                 assert(!(bl.Bflags & BFL.epilog));
-                genjmp(cdb,JMP,FL.block,nextb);
+                if (AArch64)
+                    dmd.backend.arm.cod3.genBranch(cdb,COND.al,FL.block,nextb);
+                else
+                    genjmp(cdb,JMP,FL.block,nextb);
             }
             break;
 
@@ -929,7 +937,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
         case BC.switch_:
         {
             assert(!(bl.Bflags & BFL.epilog));
-            doswitch(cdb,bl);               // hide messy details
+            doswitch(cgstate,cdb,bl);               // hide messy details
             break;
         }
         case BC.jcatch:          // D catch clause of try-catch
@@ -1137,11 +1145,13 @@ static if (NTEXCEPTIONS)
 }
 
         case BC.retexp:
-            reg_t reg1, reg2, lreg, mreg;
-            retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
-            //printf("allocretregs returns %s\n", regm_str(mask(reg1) | mask(reg2)));
+            reg_t reg1, reg2;
+            retregs = allocretregs(cgstate, e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
+            //printf("reg1: %d, reg2: %d\n", reg1, reg2);
+            //printf("allocretregs returns %llx %s\n", retregs, regm_str(retregs));
 
-            lreg = mreg = NOREG;
+            reg_t lreg = NOREG;
+            reg_t mreg = NOREG;
             if (reg1 == NOREG)
             {}
             else if (tybasic(e.Ety) == TYcfloat)
@@ -1359,6 +1369,7 @@ static if (NTEXCEPTIONS)
  * Allocate registers for function return values.
  *
  * Params:
+ *    cg    = code generator state
  *    ty    = return type
  *    t     = return type extended info
  *    tyf   = function type
@@ -1370,10 +1381,11 @@ static if (NTEXCEPTIONS)
  *    0 if function returns on the stack or returns void.
  */
 @trusted
-regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, out reg_t reg2)
+regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, out reg_t reg2)
 {
     //printf("allocretregs() ty: %s\n", tym_str(ty));
     reg1 = reg2 = NOREG;
+    auto AArch64 = cg.AArch64;
 
     if (!(config.exe & EX_posix))
         return regmask(ty, tyf);    // for non-Posix ABI
@@ -1479,14 +1491,20 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
     static struct RetRegsAllocator
     {
     nothrow:
+        static immutable reg_t[2] gpx_regs = [0, 1];
         static immutable reg_t[2] gpr_regs = [AX, DX];
         static immutable reg_t[2] xmm_regs = [XMM0, XMM1];
+        static immutable reg_t[2] fpt_regs = [32, 33]; // AArch64 V0, V1
 
-        uint cntgpr = 0,
-             cntxmm = 0;
+        uint cntgpx = 0,
+             cntgpr = 0,
+             cntxmm = 0,
+             cntfpt = 0;
 
+        reg_t gpx() { return gpx_regs[cntgpx++]; }
         reg_t gpr() { return gpr_regs[cntgpr++]; }
         reg_t xmm() { return xmm_regs[cntxmm++]; }
+        reg_t fpt() { return fpt_regs[cntfpt++]; }
     }
 
     RetRegsAllocator rralloc;
@@ -1501,15 +1519,26 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
         case 2:
         case 4:
             if (tyfloating(tym))
+            {
+                if (AArch64)
+                    return rralloc.fpt();
                 return I64 ? rralloc.xmm() : ST0;
+            }
             else
                 return rralloc.gpr();
 
         case 8:
             if (tycomplex(tym))
             {
+                assert(!AArch64);
                 assert(tyfb == TYjfunc && I32);
                 return ST01;
+            }
+            else if (AArch64)
+            {
+                if (tyfloating(tym))
+                    return rralloc.fpt();
+                return rralloc.gpx();
             }
             else if (tysimd(tym))
             {
@@ -1518,7 +1547,13 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
             assert(I64 || tyfloating(tym));
             goto case 4;
 
+        case 16:
+            if (AArch64 && tym == TYldouble)
+                return rralloc.fpt();
+            goto default;
+
         default:
+            assert(!AArch64);
             if (tybasic(tym) == TYldouble || tybasic(tym) == TYildouble)
             {
                 return ST0;
@@ -1544,6 +1579,8 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
     reg1 = allocreg(ty1);
     reg2 = allocreg(ty2);
 
+    //printf("reg1: %d reg2: %d NOREG: %d\n", reg1, reg2, NOREG);
+    //printf("reg1: %llx reg2: %llx ~NOREG: %llx\n", mask(reg1), mask(reg2), ~mask(NOREG));
     return (mask(reg1) | mask(reg2)) & ~mask(NOREG);
 }
 
@@ -1573,9 +1610,30 @@ struct CaseVal
  * Generate comparison of [reg2,reg] with val
  */
 @trusted
-private void cmpval(ref CodeBuilder cdb, targ_llong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
+private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
 {
-    if (I64 && sz == 8)
+    if (cg.AArch64)
+    {
+        assert(sreg == NOREG);
+        if (val <= 0xFFF || val >= 0x1000 && val <= 0xFFF000 && ((val & 0xFFF) == 0))
+        {
+            ubyte sh = val >= 0x1000;
+            uint imm12 = cast(uint)(sh ? val >> 12 : val);
+            assert((imm12 & ~0xFFF) == 0);
+            // https://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_imm.html
+            cdb.gen1(INSTR.cmp_imm(sz == 8, sh, imm12, reg)); // CMP reg,#imm12{, shift}
+        }
+        else
+        {
+            regm_t retregs = cg.allregs & ~mask(reg);
+            sreg = allocreg(cdb,retregs,TYint);
+            movregconst(cdb,sreg,val,sz == 8  ? 64 : 0);
+            getregsNoSave(retregs);
+            assert(reg2 == NOREG);
+            cdb.gen1(INSTR.cmp_shift(sz == 8, reg, 0, 0, sreg));    // CMP sreg,reg
+        }
+    }
+    else if (I64 && sz == 8)
     {
         assert(reg2 == NOREG);
         if (val == cast(int)val)    // if val is a 64 bit value sign-extended from 32 bits
@@ -1605,7 +1663,7 @@ private void cmpval(ref CodeBuilder cdb, targ_llong val, uint sz, reg_t reg, reg
 }
 
 @trusted extern (D)
-private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
+private void ifthen(CGstate cg, ref CodeBuilder cdb, scope CaseVal[] casevals,
         uint sz, reg_t reg, reg_t reg2, reg_t sreg, block* bdefault, bool last)
 {
     const ncases = casevals.length;
@@ -1615,18 +1673,27 @@ private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
 
         // Compares for casevals[0..pivot]
         CodeBuilder cdb1; cdb1.ctor();
-        ifthen(cdb1, casevals[0 .. pivot], sz, reg, reg2, sreg, bdefault, true);
+        ifthen(cg, cdb1, casevals[0 .. pivot], sz, reg, reg2, sreg, bdefault, true);
 
         // Compares for casevals[pivot+1..ncases]
         CodeBuilder cdb2; cdb2.ctor();
-        ifthen(cdb2, casevals[pivot + 1 .. $], sz, reg, reg2, sreg, bdefault, last);
+        ifthen(cg, cdb2, casevals[pivot + 1 .. $], sz, reg, reg2, sreg, bdefault, last);
         code* c2 = gennop(null);
 
         // Compare for caseval[pivot]
-        cmpval(cdb, casevals[pivot].val, sz, reg, reg2, sreg);
-        genjmp(cdb,JE,FL.block,casevals[pivot].target); // JE target
-        // Note uint jump here, as cases were sorted using uint comparisons
-        genjmp(cdb,JA,FL.code,cast(block*) c2);           // JG c2
+        cmpval(cg, cdb, casevals[pivot].val, sz, reg, reg2, sreg);
+        if (cg.AArch64)
+        {
+            genBranch(cdb,COND.eq,FL.block,casevals[pivot].target); // equal
+            // Note uint jump here, as cases were sorted using uint comparisons
+            genBranch(cdb,COND.cs,FL.code,cast(block*) c2);           // greater than
+        }
+        else
+        {
+            genjmp(cdb,JE,FL.block,casevals[pivot].target); // JE target
+            // Note uint jump here, as cases were sorted using uint comparisons
+            genjmp(cdb,JA,FL.code,cast(block*) c2);           // JG c2
+        }
 
         cdb.append(cdb1);
         cdb.append(c2);
@@ -1637,20 +1704,29 @@ private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
         foreach (size_t n; 0 .. ncases)
         {
             targ_llong val = casevals[n].val;
-            cmpval(cdb, val, sz, reg, reg2, sreg);
+            cmpval(cg, cdb, val, sz, reg, reg2, sreg);
             code* cnext = null;
             if (reg2 != NOREG)
             {
+                assert(!cg.AArch64);
                 cnext = gennop(null);
                 genjmp(cdb,JNE,FL.code,cast(block*) cnext);  // JNE cnext
                 cdb.genc2(0x81,modregrm(3,7,reg2),cast(targ_size_t)MSREG(val));   // CMP reg2,MSREG(casevalue)
             }
-            genjmp(cdb,JE,FL.block,casevals[n].target);   // JE caseaddr
+            if (cg.AArch64)
+                genBranch(cdb,COND.eq,FL.block,casevals[n].target);   // JE caseaddr
+            else
+                genjmp(cdb,JE,FL.block,casevals[n].target);   // JE caseaddr
             cdb.append(cnext);
         }
 
         if (last)       // if default is not next block
-            genjmp(cdb,JMP,FL.block,bdefault);
+        {
+            if (cg.AArch64)
+                genBranch(cdb,COND.al,FL.block,bdefault);
+            else
+                genjmp(cdb,JMP,FL.block,bdefault);
+        }
     }
 }
 
@@ -1663,7 +1739,7 @@ private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
  */
 
 @trusted
-void doswitch(ref CodeBuilder cdb, block* b)
+void doswitch(ref CGstate cg, ref CodeBuilder cdb, block* b)
 {
     // If switch tables are in code segment and we need a CS: override to get at them
     bool csseg = cast(bool)(config.flags & CFGromable);
@@ -1672,7 +1748,7 @@ void doswitch(ref CodeBuilder cdb, block* b)
     elem* e = b.Belem;
     elem_debug(e);
     docommas(cdb,e);
-    cgstate.stackclean++;
+    cg.stackclean++;
     tym_t tys = tybasic(e.Ety);
     int sz = _tysize[tys];
     bool dword = (sz == 2 * REGSIZE);
@@ -1707,7 +1783,7 @@ void doswitch(ref CodeBuilder cdb, block* b)
     /* Three kinds of switch strategies - pick one
      */
     const ncases = b.Bswitch.length;
-    if (ncases <= 3)
+    if (ncases <= 3 || cg.AArch64)
         goto Lifthen;
     else if (I16 && cast(targ_ullong)(vmax - vmin) <= ncases * 2)
         goto Ljmptab;           // >=50% of the table is case values, rest is default
@@ -1723,7 +1799,8 @@ void doswitch(ref CodeBuilder cdb, block* b)
     /*************************************************************************/
     {   // generate if-then sequence
     Lifthen:
-        regm_t retregs = ALLREGS;
+        //printf("ifthen:\n");
+        regm_t retregs = cg.allregs;
         b.bc = BC.ifthen;
         scodelem(cgstate,cdb,e,retregs,0,true);
         reg_t reg, reg2;
@@ -1761,8 +1838,8 @@ void doswitch(ref CodeBuilder cdb, block* b)
             casevals[n].target = list_block(bl);
 
             // See if we need a scratch register
-            if (sreg == NOREG && I64 && sz == 8 && val != cast(int)val)
-            {   regm_t regm = ALLREGS & ~mask(reg);
+            if (!cg.AArch64 && sreg == NOREG && I64 && sz == 8 && val != cast(int)val)
+            {   regm_t regm = cg.allregs & ~mask(reg);
                 sreg = allocreg(cdb,regm, TYint);
             }
         }
@@ -1774,7 +1851,7 @@ void doswitch(ref CodeBuilder cdb, block* b)
             //printf("casevals[%lld] = x%x\n", n, casevals[n].val);
 
         // Generate binary tree of comparisons
-        ifthen(cdb, casevals, sz, reg, reg2, sreg, bdefault, bdefault != b.Bnext);
+        ifthen(cg, cdb, casevals, sz, reg, reg2, sreg, bdefault, bdefault != b.Bnext);
 
         cgstate.stackclean--;
         return;
@@ -1784,7 +1861,7 @@ void doswitch(ref CodeBuilder cdb, block* b)
     {
         // Use switch value to index into jump table
     Ljmptab:
-        //printf("Ljmptab:\n");
+        //printf("jmptab:\n");
 
         b.bc = BC.jmptab;
 
@@ -1988,6 +2065,7 @@ else
          * Note that it has not been tested with MACHOBJ (OSX).
          */
     Lswitch:
+        //printf("repne scasw:\n");
         regm_t retregs = mAX;                  // SCASW requires AX
         if (dword)
             retregs |= mDX;
@@ -2599,12 +2677,20 @@ Lcant:
 }
 
 /*************************************************
- * Generate code segment to be used later to restore a cse
+ * Generate instruction to be used later to restore a cse
+ * Params:
+ *      c = fill in with instruction
+ *      e = examined to see if it can be restored with a simple instruction
+ * Returns:
+ *      true means it can be so used and c is filled in
  */
 
 @trusted
 bool cse_simple(code* c, elem* e)
 {
+    if (cgstate.AArch64)
+        return false;           // TODO AArch64
+
     regm_t regm;
     reg_t reg;
     int sz = tysize(e.Ety);
@@ -2666,6 +2752,10 @@ bool cse_simple(code* c, elem* e)
 @trusted
 void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 {
+    if (cgstate.AArch64)
+        return dmd.backend.arm.cod3.gen_storecse(cdb,tym,reg,slot);
+
+    //printf("gen_storecse()\n");
     // MOV slot[BP],reg
     if (isXMMreg(reg) && config.fpxmmregs) // watch out for ES
     {
@@ -2688,6 +2778,7 @@ void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 @trusted
 void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t slot)
 {
+    //printf("gen_testcse()\n");
     // CMP slot[BP],0
     cdb.genc(sz == 1 ? 0x80 : 0x81,modregrm(2,7,BPRM),
                 FL.cs,cast(targ_uns)slot, FL.const_,cast(targ_uns) 0);
@@ -2700,6 +2791,10 @@ void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t slot)
 @trusted
 void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 {
+    if (cgstate.AArch64)
+        return dmd.backend.arm.cod3.gen_loadcse(cdb,tym,reg,slot);
+
+    //printf("gen_loadcse()\n");
     // MOV reg,slot[BP]
     if (isXMMreg(reg) && config.fpxmmregs)
     {
@@ -3496,24 +3591,21 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
             else
             {
                 /* SUB sp,sp,#16+xlocalsize
-                   STP x29,x30,[sp]
                  */
                 cod3_stackadj(cdb, 16 + xlocalsize);
 
                 assert((xlocalsize & 0xF) == 0); // 16 byte aligned
 
                 // https://www.scs.stanford.edu/~zyedidia/arm64/stp_gen.html
-                // STP x29,x30,[sp,#xlocalsize]
+                // STP x29,x30,[sp]
                 {
                     uint opc = 2;
                     uint VR = 0;
                     uint L = 0;
-                    uint imm7 = xlocalsize >> 3;
-                    assert(imm7 < (1 << 7)); // only 7 bits allowed
-                    imm7 = 0;
-                    ubyte Rt2 = 30;
-                    ubyte Rn = 0x1F;
-                    ubyte Rt = 29;
+                    uint imm7 = 0;
+                    reg_t Rt2 = 30;
+                    reg_t Rn = 0x1F;
+                    reg_t Rt = 29;
                     cdb.gen1(INSTR.ldstpair_off(opc, VR, L, imm7, Rt2, Rn, Rt));
                 }
             }
@@ -3525,11 +3617,10 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
                 uint op = 0;
                 uint S = 0;
                 uint sh = 0;
-                uint imm12 = 0; //xlocalsize;
-                assert(imm12 < (1 << 12));  // only 12 bits allowed
-                ubyte Rn = 0x1F;
-                ubyte Rd = 29;
-                cdb.gen1(INSTR.addsub_imm(sf, op, S, sh, imm12, Rn, Rd)); // mov x29,sp // x29 points to previous x29
+                uint imm12 = 0;
+                reg_t Rn = 0x1F;
+                reg_t Rd = 29;
+                cdb.gen1(INSTR.addsub_imm(sf, op, S, sh, imm12, Rn, Rd)); // MOV x29,sp // x29 points to previous x29
             }
         }
         else
@@ -3757,6 +3848,7 @@ void prolog_setupalloca(ref CodeBuilder cdb)
  *
  * Emit Dwarf info for these saves.
  * Params:
+ *      cg = code state
  *      cdb = append generated instructions to this
  *      topush = mask of registers to push
  *      cfa_offset = offset of frame pointer from CFA
@@ -3765,6 +3857,10 @@ void prolog_setupalloca(ref CodeBuilder cdb)
 @trusted
 void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa_offset)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod3.prolog_saveregs(cg, cdb, topush, cfa_offset);
+
+    //printf("prolog_saveregs() topush: %s pushoffuse: %d\n", regm_str(topush), cg.pushoffuse);
     if (cg.pushoffuse)
     {
         // Save to preallocated section in the stack frame
@@ -3863,6 +3959,9 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
 @trusted
 private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topop)
 {
+    //printf("epilog_restoreregs() topop: %s pushoffuse: %d\n", regm_str(topop), cg.pushoffuse);
+    assert(!cg.AArch64);
+
     debug
     if (topop & ~(XMMREGS | 0xFFFF))
         printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(cg.mfuncreg));
@@ -3952,6 +4051,9 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
 @trusted
 void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod3.prolog_genvarargs(cg, cdb, sv);
+
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
      * so we can reference it via pointers through va_arg().
@@ -4055,6 +4157,9 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 @trusted
 elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
 {
+    if (cgstate.AArch64)
+        return dmd.backend.arm.cod3.prolog_genva_start(sv, parmn);
+
     enum Vregnum = 6;
 
     /* the stack variable __va_argsave points to an instance of:
@@ -4176,6 +4281,8 @@ void prolog_gen_win64_varargs(ref CodeBuilder cdb)
 }
 
 /************************************
+ * Take the parameters passed in registers, and put them into the function's local
+ * symbol table.
  * Params:
  *      cdb = generated code sink
  *      tf = what's the type of the function
@@ -4277,8 +4384,18 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                 {
                     if (AArch64)
                     {
-                        // STR preg,bp,#offset
-                        cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 29, offset + localsize + 16));
+                        uint imm = cast(uint)(offset + localsize + 16);
+                        if (tyfloating(t.Tty))
+                        {
+                            // STR preg,[bp,#offset]
+                            uint size, opc;
+                            INSTR.szToSizeOpc(sz, size, opc);
+                            imm /= sz;
+                            cdb.gen1(INSTR.str_imm_fpsimd(size,opc,imm,29,preg)); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+                        }
+                        else
+                            // STR preg,bp,#offset
+                            cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 29, imm));
                     }
                     else
                     {
@@ -4302,9 +4419,18 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                     if (AArch64)
                     {
                         // STR preg,[sp,#offset]
-//printf("prolog_loadparams sz=%d\n", sz);
+//printf("prolog_loadparams sz=%d preg:%d\n", sz, preg);
 //printf("offset(%d) = Fast.size(%d) + BPoff(%d) + EBPtoESP(%d)\n",cast(int)offset,cast(int)cgstate.Fast.size,cast(int)cgstate.BPoff,cast(int)cgstate.EBPtoESP);
-                        cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 31, offset + localsize + 16));
+                        uint imm = cast(uint)offset;
+                        if (mask(preg) & INSTR.FLOATREGS)
+                        {
+                            uint size, opc;
+                            INSTR.szToSizeOpc(sz, size, opc);
+                            imm /= sz;
+                            cdb.gen1(INSTR.str_imm_fpsimd(size,opc,imm,31,preg)); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+                        }
+                        else
+                            cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 31, imm));
                     }
                     else
                     {
@@ -4428,7 +4554,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         }
     }
 
-    /* For parameters that were passed on the stack, but are enregistered,
+    /* For parameters that were passed on the stack, but are enregistered by the function,
      * initialize the registers with the parameter stack values.
      * Do not use assignaddr(), as it will replace the stack reference with
      * the register.
@@ -4853,6 +4979,12 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
 void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
         uint d,int i,uint d2)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod3 : cod3_thunk;
+        return cod3_thunk(sthunk, sfunc, p, thisty, d, i, d2);
+    }
+
     targ_size_t thunkoffset;
 
     int seg = sthunk.Sseg;
@@ -6436,7 +6568,7 @@ private void pinholeopt_unittest()
     for (int i = 0; i < tests.length; i++)
     {   CS* pin  = &tests[i][0];
         CS* pout = &tests[i][1];
-        code cs = void;
+        code cs;
         memset(&cs, 0, cs.sizeof);
         if (pin.model)
         {

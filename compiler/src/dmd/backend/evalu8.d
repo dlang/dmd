@@ -5,10 +5,10 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/evalu8.d, backend/evalu8.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/evalu8.d, backend/evalu8.d)
  */
 
 module dmd.backend.evalu8;
@@ -345,7 +345,7 @@ static if (0)
       debug printf("d1 = %Lg, d2 = %Lg, op = %d, OPne = %d, tym = x%lx\n",d1,d2,op,OPne,tym);
       debug printf("tym1 = x%lx, tym2 = x%lx, e2 = %g\n",tym,tym2,e2.Vdouble);
 
-      Vconst u = void;
+      Vconst u;
       debug printf("d1 = x%16llx\n", (u.Vldouble = d1, u.Vullong));
       debug printf("d2 = x%16llx\n", (u.Vldouble = d2, u.Vullong));
   }

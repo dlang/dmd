@@ -1,11 +1,11 @@
 /**
  * Defines enums common to dmd and dmd as parse library.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/astenums.d, _astenums.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/astenums.d, _astenums.d)
  * Documentation:  https://dlang.org/phobos/dmd_astenums.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/astenums.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/astenums.d
  */
 
 module dmd.astenums;
@@ -19,12 +19,12 @@ enum Sizeok : ubyte
 }
 
 /// D Language version
-enum Edition : ubyte
+enum Edition : ushort
 {
-    none,
-    legacy,          /// Before the introduction of editions
-    v2024,           /// Experimental first new edition
-    latest = v2024   /// Newest edition that this compiler knows of
+    v2023 = 2023,    /// Edition.min for default edition
+    v2024,           /// first Edition
+    v2025,           /// next Edition
+                     /// use Edition.max for latest edition
 }
 
 enum Baseok : ubyte
@@ -50,7 +50,7 @@ alias MOD = ubyte;
 
 enum STC : ulong  // transfer changes to declaration.h
 {
-    undefined_          = 0,
+    none                = 0,
 
     static_             = 1,   /// `static`
     extern_             = 2,   /// `extern`
@@ -77,9 +77,10 @@ enum STC : ulong  // transfer changes to declaration.h
     ref_                = 0x4_0000,   /// `ref`
     scope_              = 0x8_0000,   /// `scope`
 
-    scopeinferred       = 0x20_0000,   /// `scope` has been inferred and should not be part of mangling, `scope_` must also be set
-    return_             = 0x40_0000,   /// 'return ref' or 'return scope' for function parameters
-    returnScope         = 0x80_0000,   /// if `ref return scope` then resolve to `ref` and `return scope`
+    scopeinferred       = 0x10_0000,   /// `scope` has been inferred and should not be part of mangling, `scope_` must also be set
+    return_             = 0x20_0000,   /// 'return ref' or 'return scope' for function parameters
+    returnScope         = 0x40_0000,   /// if `ref return scope` then resolve to `ref` and `return scope`
+    returnRef           = 0x80_0000,   /// if `return ref`
 
     returninferred      = 0x100_0000,   /// `return` has been inferred and should not be part of mangling, `return_` must also be set
     immutable_          = 0x200_0000,   /// `immutable`
@@ -143,6 +144,9 @@ enum STC : ulong  // transfer changes to declaration.h
 
 }
 
+// Alias for C++ interface functions which use plain integer instead of enum class,
+// since C++ enum class doesn't support | & and conversion to bool. Maybe this can
+// be refactored to a struct with operator overloads or bit fields at some point.
 alias StorageClass = ulong;
 
 /********

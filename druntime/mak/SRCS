@@ -28,6 +28,7 @@ SRCS=\
 	src\core\internal\abort.d \
 	src\core\internal\atomic.d \
 	src\core\internal\attributes.d \
+	src\core\internal\cast_.d \
 	src\core\internal\convert.d \
 	src\core\internal\dassert.d \
 	src\core\internal\destruction.d \
@@ -238,6 +239,7 @@ SRCS=\
 	src\core\sys\linux\sched.d \
 	src\core\sys\linux\stdio.d \
 	src\core\sys\linux\string.d \
+	src\core\sys\linux\syscall.d \
 	src\core\sys\linux\termios.d \
 	src\core\sys\linux\time.d \
 	src\core\sys\linux\timerfd.d \
@@ -258,6 +260,7 @@ SRCS=\
 	src\core\sys\linux\sys\mount.d \
 	src\core\sys\linux\sys\signalfd.d \
 	src\core\sys\linux\sys\socket.d \
+	src\core\sys\linux\sys\syscall.d \
 	src\core\sys\linux\sys\sysinfo.d \
 	src\core\sys\linux\sys\xattr.d \
 	src\core\sys\linux\sys\time.d \
@@ -382,6 +385,7 @@ SRCS=\
 	src\core\sys\windows\aclui.d \
 	src\core\sys\windows\basetsd.d \
 	src\core\sys\windows\basetyps.d \
+	src\core\sys\windows\bcrypt.d \
 	src\core\sys\windows\cderr.d \
 	src\core\sys\windows\cguid.d \
 	src\core\sys\windows\com.d \
@@ -561,7 +565,6 @@ SRCS=\
 	src\rt\adi.d \
 	src\rt\alloca.d \
 	src\rt\arraycat.d \
-	src\rt\cast_.d \
 	src\rt\cmath2.d \
 	src\rt\config.d \
 	src\rt\cover.d \
@@ -572,7 +575,7 @@ SRCS=\
 	src\rt\dmain2.d \
 	src\rt\dwarfeh.d \
 	src\rt\ehalloc.d \
-	src\rt\invariant.d \
+	src\rt\invariant_.d \
 	src\rt\lifetime.d \
 	src\rt\llmath.d \
 	src\rt\memory.d \

@@ -7,9 +7,9 @@
  * Copyright:   Copyright (C) 2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/arm/instr.d, backend/cod3.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/arm/instr.d, backend/cod3.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_arm_insrt.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/arm/instr.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/arm/instr.d
  */
 
 module dmd.backend.arm.instr;
@@ -39,9 +39,43 @@ struct INSTR
 {
   pure nothrow:
 
+    /* Even though the floating point registers are 0..31, we call them V32..V63 so they fit
+     * into regm_t. Remember to and them with 31 to generate an instruction
+     */
+    enum FLOATREGS = 0x01FF_FFFF_0000_0000;
+    static assert((FLOATREGS & (1UL << 57 /*REGMAX*/)) == 0);
+
+    /* most and least significant register masks
+     */
+    enum LSW = 0x5555_5555_5555_5555;
+    enum MSW = LSW << 1;
+
     enum uint nop = 0xD503201F;
 
     alias reg_t = ubyte;
+
+    /* Convert size of floating point type to ftype
+     */
+    static uint szToFtype(uint sz) { return sz == 8 ? 1 :   // double-precision
+                                            sz == 4 ? 0 :   // single-precision
+                                                      3;    // half-precision
+                                   }
+
+    /* Convert size of floating point type to size,opc
+     * https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+     */
+    static void szToSizeOpc(uint sz, ref uint size, ref uint opc)
+    {
+        switch (sz)
+        {
+            case 1:  size = 0; opc = 0; break;  // Bt byte
+            case 2:  size = 1; opc = 0; break;  // Ht half
+            case 4:  size = 2; opc = 0; break;  // St single
+            case 8:  size = 3; opc = 0; break;  // Dt double
+            case 16: size = 0; opc = 2; break;  // Qt quad
+            default: assert(0);
+        }
+    }
 
     /************************************ Reserved ***********************************************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#reserved                  */
@@ -101,7 +135,7 @@ struct INSTR
      * ADD/ADDS/SUB/SUBS Rd,Rn,#imm{, shift}
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
      */
-    static uint addsub_imm(uint sf, uint op, uint S, uint sh, uint imm12, ubyte Rn, ubyte Rd)
+    static uint addsub_imm(uint sf, uint op, uint S, uint sh, uint imm12, reg_t Rn, reg_t Rd)
     {
         assert(imm12 < 0x1000);
         return (sf     << 31) |
@@ -112,6 +146,33 @@ struct INSTR
                (imm12  << 10) |
                (Rn     <<  5) |
                 Rd;
+    }
+
+    /* add (immediate)
+     * ADD Rd,Rn,#imm,shift
+     * https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+     */
+    static uint add_addsub_imm(uint sf, uint sh, uint imm12, reg_t Rn, reg_t Rd)
+    {
+        return addsub_imm(sf, 0, 0, sh, imm12, Rn, Rd);
+    }
+
+    /* subtract (immediate)
+     * SUB Rd,Rn,#imm,shift
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sub_addsub_imm.html
+     */
+    static uint sub_addsub_imm(uint sf, uint sh, uint imm12, reg_t Rn, reg_t Rd)
+    {
+        return addsub_imm(sf, 1, 0, sh, imm12, Rn, Rd);
+    }
+
+    /* MOV (to/from) SP)
+     * MOV <Rd|SP>,<Rn|SP>
+     * https://www.scs.stanford.edu/~zyedidia/arm64/mov_add_addsub_imm.html
+     */
+    static uint mov_add_addsub_imm(uint sf, reg_t Rn, reg_t Rd)
+    {
+        return addsub_imm(sf, 0, 0, 0, 0, Rn, Rd);
     }
 
     /* Add/subtract (immediate, with tags)
@@ -140,7 +201,16 @@ struct INSTR
                 Rd;
     }
 
-    /* Move wide (immediate)
+    /* NOV (bitmask immediate)
+     * MOV Rd,#<imm>
+     * https://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_log_imm.html
+     */
+    static uint mov_orr_log_imm(uint sf, uint N, uint immr, uint imms, reg_t Rd)
+    {
+        return log_imm(sf, 1, N, immr, imms, 31, Rd);
+    }
+
+    /* move wide (immediate)
      * MOVN/MOVZ/MOVK Rd, #imm{, LSL #shift}
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#movewide
      */
@@ -251,9 +321,26 @@ struct INSTR
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#control                          */
 
     /* Conditional branch (immediate)
-     * Miscellaneous branch (immediate)
-     * Exception generation
-     * System instructions with register argument
+     * B.<cond> <label> https://www.scs.stanford.edu/~zyedidia/arm64/b_cond.html
+     */
+    static uint b_cond(int imm19, uint cond) { return (0x54 << 24) | ((imm19 & 0x7FFFF) << 5) | cond; }
+
+    /* BC.<cond> <label> https://www.scs.stanford.edu/~zyedidia/arm64/bc_cond.html
+     */
+    static uint bc_cond(int imm19, uint cond) { return (0x54 << 24) | (1 << 4) | ((imm19 & 0x7FFFF) << 5) | cond; }
+
+    /* Miscellaneous branch (immediate)
+     */
+
+    /* Exception generation http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#exception
+     */
+    static uint exception(uint opc, uint imm16, uint op2, uint LL) { return (0xD4 << 24) | (opc << 21) | (imm16 << 5) | (op2 << 2) | LL; }
+
+    /* BRK #imm16 http://www.scs.stanford.edu/~zyedidia/arm64/brk.html
+     */
+    static uint brk(uint imm16) { return exception(1, imm16, 0, 0); }
+
+    /* System instructions with register argument
      * Hints
      * Barriers
      * PSTATE
@@ -302,14 +389,25 @@ struct INSTR
         return (0x6B << 25) | (opc << 21) | (op2 << 16) | (op3 << 10) | (Rn << 5) | op4;
     }
 
-    /* Unconditional branch (immediate)
-     * B/BL
+    /* Unconditional branch (immediate) */
+
+    /* B/BL
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#branch_imm
      */
     static uint branch_imm(uint op, uint imm26)
     {
         return (op << 31) | (5 << 26) | imm26;
     }
+
+    /* B <label>
+     * https://www.scs.stanford.edu/~zyedidia/arm64/b_uncond.html
+     */
+    static uint b_uncond(uint imm26) { return branch_imm(0, imm26); }
+
+    /* BL <label> hint that it's a subroutine call
+     * https://www.scs.stanford.edu/~zyedidia/arm64/bl.html
+     */
+    static uint bl(uint imm26) { return branch_imm(1, imm26); }
 
     /* RET Xn
      * https://www.scs.stanford.edu/~zyedidia/arm64/ret.html
@@ -492,13 +590,21 @@ struct INSTR
     }
 
     /* Conditional select
-     * CSEL/CSINC/CSINV/CSNEG
+     * CSEL/CSINC/CSINV/CSNEG/CSET
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condsel
      */
     static uint condsel(uint sf, uint op, uint S, ubyte Rm, uint cond, uint o2, ubyte Rn, ubyte Rd)
     {
         assert(cond < 16);
         return (sf << 31) | (op << 30) | (S << 29) | (0xD4 << 21) | (Rm << 16) | (cond << 12) | (o2 << 10) | (Rn << 5) | Rd;
+    }
+
+    /* CSET Rd,<invcond> https://www.scs.stanford.edu/~zyedidia/arm64/cset_csinc.html
+     */
+    static uint cset(uint sf, uint cond, reg_t Rd)
+    {
+        assert(cond < 0xE);
+        return condsel(sf, 0, 0, 31, cond, 1, 31, Rd);
     }
 
     /* Data-processing (3 source)
@@ -530,8 +636,38 @@ struct INSTR
      * Advanced SIMD scalar three same FP16
      * Advanced SIMD scalar two-register miscellaneous FP16
      * Advanced SIMD scalar three same extra
-     * Advanced SIMD scalar two-register miscellaneous
-     * Advanced SIMD scalar pairwise
+     */
+
+    /* Advanced SIMD scalar two-register miscellaneous
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdmisc
+     */
+    static uint asisdmisc(uint U, uint size, uint opcode, reg_t Rn, reg_t Rd)
+    {
+        assert(Rn < 32 && Rd < 32);
+        uint ins = (1      << 30) |
+                   (U      << 29) |
+                   (0x1E   << 24) |
+                   (size   << 22) |
+                   (0x10   << 17) |
+                   (opcode << 12) |
+                   (2      << 10) |
+                   (Rn     <<  5) |
+                    Rd;
+        return ins;
+    }
+
+    /* FCVTZS <V><d>,<V><n> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_advsimd_int.html
+     * Scalar single-precision and double-precision
+     */
+    static uint fcvtzs_asisdmisc(uint sz, reg_t Vn, reg_t Vd) { return asisdmisc(0, 2|sz, 0x1B, Vn & 31, Vd & 31); }
+
+    /* FCVTZU <V><d>,<V><n> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzu_advsimd_int.html
+     * Scalar single-precision and double-precision
+     */
+    static uint fcvtzu_asisdmisc(uint sz, reg_t Vn, reg_t Vd) { return asisdmisc(1, 2|sz, 0x1B, Vn & 31, Vd & 31); }
+
+
+    /* Advanced SIMD scalar pairwise
      * Advanced SIMD scalar three different
      * Advanced SIMD scalar three same
      * Advanced SIMD scalar shift by immediate
@@ -543,17 +679,98 @@ struct INSTR
      * Advanced SIMD three same (FP16)
      * Advanced SIMD two-register miscellaneous (FP16)
      * Advanced SIMD three-register extension
-     * Advanced SIMD two-register miscellaneous
-     * Advanced SIMD across lanes
-     * Advanced SIMD three different
-     * Advanced SIMD three same
-
-    /* Advanced SIMD modified immediate
-     * http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
      */
 
-    // FMOV Rd, Rn  https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float.html
-    static uint fmov(uint ftype, uint Rn, uint Rd) { return floatdp1(0,0,ftype,0,Rn,Rd); }
+    /* Advanced SIMD two-register miscellaneous
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdmisc
+     */
+    static uint asimdmisc(uint Q, uint U, uint size, uint opcode, reg_t Rn, reg_t Rd)
+    {
+        assert(Rn < 32 && Rd < 32);
+        uint ins = (0      << 31) |
+                   (Q      << 30) |
+                   (U      << 29) |
+                   (0xE    << 24) |
+                   (size   << 22) |
+                   (0x10   << 17) |
+                   (opcode << 12) |
+                   (2      << 10) |
+                   (Rn     <<  5) |
+                    Rd;
+        return ins;
+    }
+
+    /* CNT <Vd>.<T>, <Vn>.<T>
+     * https://www.scs.stanford.edu/~zyedidia/arm64/cnt_advsimd.html
+     */
+    static uint cnt_advsimd(uint Q, uint size, reg_t Vn, reg_t Vd) { return asimdmisc(Q, 0, size, 5, Vn & 31, Vd & 31); }
+
+    /* FCVTZS <Vd>.<T>,<Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_advsimd_int.html
+     * Vector single-precision and double-precision
+     */
+    static uint fcvtzs_asimdmisc(uint Q, uint sz, reg_t Vn, reg_t Vd) { return asimdmisc(Q, 0, 2|sz, 0x1B, Vn & 31, Vd & 31); }
+
+    /* FCVTZU <Vd>.<T>,<Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzu_advsimd_int.html
+     * Vector single-precision and double-precision
+     */
+    static uint fcvtzu_asimdmisc(uint Q, uint sz, reg_t Vn, reg_t Vd) { return asimdmisc(Q, 1, 2|sz, 0x1B, Vn & 31, Vd & 31); }
+
+    /* Advanced SIMD across lanes
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdall
+     */
+    static uint asimdall(uint Q, uint U, uint size, uint opcode, reg_t Rn, reg_t Rd)
+    {
+        assert(Rn < 32 && Rd < 32);
+        uint ins = (0      << 31) |
+                   (Q      << 30) |
+                   (U      << 29) |
+                   (0xE    << 24) |
+                   (size   << 22) |
+                   (0x18   << 17) |
+                   (opcode << 12) |
+                   (2      << 10) |
+                   (Rn     <<  5) |
+                    Rd;
+        return ins;
+    }
+
+    /* ADDV <V><d>, <Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/addv_advsimd.html
+     */
+    static uint addv_advsimd(uint Q, uint size, reg_t Vn, reg_t Vd) { return asimdall(Q, 0, size, 0x1B, Vn & 31, Vd & 31); }
+
+    /* UADDLV <V><d>, <Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/uaddlv_advsimd.html
+     */
+    static uint uaddlv_advsimd(uint Q, uint size, reg_t Vn, reg_t Vd) { return asimdall(Q, 1, size, 3, Vn & 31, Vd & 31); }
+
+    /* Advanced SIMD three different
+     */
+
+    /* Advanced SIMD three same https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsame
+     */
+    static uint asimdsame(uint Q, uint U, uint size, reg_t Rm, uint opcode, reg_t Rn, reg_t Rd)
+    { return (Q << 30) | (U << 29) | (0xE << 24) | (size << 22) | (1 << 21) | (Rm << 16) | (opcode << 11) | (1 << 10) | (Rn << 5) | Rd; }
+
+        /* ORR <Vd>.<T>, <Vn>.<T>, <Vm>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/orr_advsimd_reg.html
+         */
+        static uint orr_advsimd_reg(uint Q, reg_t Vm, reg_t Vn, reg_t Vd) { return asimdsame(Q,0,2,Vm & 31,3,Vn & 31,Vd & 31); }
+
+            /* MOV <Vd>.<T>, <Vn>.<T>, <Vm>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_advsimd_reg.html
+             */
+            static uint mov_orr_advsimd_reg(uint Q, reg_t Vn, reg_t Vd) { return orr_advsimd_reg(Q,Vn,Vn,Vd); }
+
+    /* Advanced SIMD modified immediate
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
+     */
+    static uint asimdimm(uint Q, uint op, uint cmode, uint o2, uint abcdefgh, reg_t Rd)
+    {
+        return (0 << 31) | (Q << 30) | (op << 29) | (0x1E0 << 19) | ((abcdefgh & 0xE0) << (16 - 5)) |
+               (cmode << 12) | (o2 << 11) | (1 << 10) | ((abcdefgh & 0x1F) << 5) | (Rd & 31);
+    }
+
+        /* MOVI <Vd>.2D, #<imm> etc.
+         * http://www.scs.stanford.edu/~zyedidia/arm64/movi_advsimd.html
+         */
+        static uint movi_advsimd(uint Q, uint op, uint cmode, uint abcdefgh, reg_t Rd) { return asimdimm(Q,op,cmode,0,abcdefgh,Rd); }
 
     /* Advanced SIMD shift by immediate
      * Advanced SIMD vector x indexed element
@@ -562,24 +779,170 @@ struct INSTR
      * Cryptographic four-register
      * XAR
      * Cryptographic twp=register SHA 512
-     * Converstion between floating-point and fixed-point
-     * Converstion between floating-point and integer
+     * Conversion between floating-point and fixed-point
      */
+
+    /* Conversion between floating-point and integer https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#float2int
+     */
+    static uint float2int(uint sf, uint S, uint ftype, uint rmode, uint opcode, reg_t Rn, reg_t Rd)
+    {
+        assert(Rd < 32);
+        assert(Rn < 32);
+        return (sf << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (rmode << 19) | (opcode << 16) | (Rn << 5) | Rd;
+    }
+
+    /* FMOV (general) https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
+     */
+    static uint fmov_float_gen(uint sf, uint ftype, uint rmode, uint opcode, reg_t Rn, reg_t Rd)
+    {
+        if (opcode == 7)
+        {
+            assert(Rd & 32);
+            Rd &= 31;
+        }
+        else if (opcode == 6)
+        {
+            assert(Rn & 32);
+            Rn &= 31;
+        }
+        return float2int(sf, 0, ftype, rmode, opcode, Rn, Rd);
+    }
+
+    /* FCVTNS (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtns_float.html
+     */
+    static uint fcvtns(uint sf, uint ftype, reg_t Vn, reg_t Rd)
+    {
+        return float2int(sf, 0, ftype, 0, 0, Vn & 31, Rd);
+    }
+
+    /* FCVTNU (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtnu_float.html
+     */
+    static uint fcvtnu(uint sf, uint ftype, reg_t Vn, reg_t Rd)
+    {
+        return float2int(sf, 0, ftype, 0, 1, Vn & 31, Rd);
+    }
+
+    /* FCVTZS (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_float_int.html
+     */
+    static uint fcvtzs(uint sf, uint ftype, reg_t Vn, reg_t Rd) { return float2int(sf, 0, ftype, 3, 0, Vn & 31, Rd); }
+
+    /* FCVTZU (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzu_float_int.html
+     */
+    static uint fcvtzu(uint sf, uint ftype, reg_t Vn, reg_t Rd) { return float2int(sf, 0, ftype, 3, 1, Vn & 31, Rd); }
+
+    /* SCVTF (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/scvtf_float_int.html
+     * SCVTF Vd,Rn // integer to floating point
+     */
+    static uint scvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Vd) { assert(Rn < 32 && Vd >= 32); return float2int(sf,0,ftype,0,2,Rn,Vd & 31); }
+
+    /* UCVTF (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/ucvtf_float_int.html
+     * UCVTF Vd,Rn // integer to floating point
+     */
+    static uint ucvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Vd) { assert(Rn < 32 && Vd >= 32); return float2int(sf,0,ftype,0,3,Rn,Vd & 31); }
+
 
     /* Floating-point data-processing (1 source)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp1
      */
-    static uint floatdp1(uint M, uint S, uint ftype, uint opcode, uint Rn, uint Rd)
+    static uint floatdp1(uint M, uint S, uint ftype, uint opcode, reg_t Rn, reg_t Rd)
     {
-        assert(Rn < 32 && Rd < 32); // remember to convert R32-63 to 0-31
-        return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (0x10 << 10) | (Rn << 5) | Rd;
+        assert(Rn < 32 && Rd < 32); // remember to convert V32..V63 to R0..R31
+        return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (opcode << 15) | (0x10 << 10) | (Rn << 5) | Rd;
     }
 
-    /* Floating-point compare
-     * Floating-point immediate
-     * Floating-point condistional compare
-     * Floating-point data-processing (2 source)
-     * Floating-point conditional select
+    // FMOV Rd, Rn  https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float.html
+    static uint fmov(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,0,Vn & 31,Vd & 31); }
+
+    /* FCVT fpreg,fpreg https://www.scs.stanford.edu/~zyedidia/arm64/fcvt_float.html
+     */
+    static uint fcvt_float(uint ftype, uint opcode, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,opcode,Vn & 31,Vd & 31); }
+
+    /* FNEG fpreg,fpreg https://www.scs.stanford.edu/~zyedidia/arm64/fneg_float.html
+     */
+    static uint fneg_float(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,2,Vn & 31,Vd & 31); }
+
+    /* Floating-point compare https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatcmp
+     */
+    static uint floatcmp(uint M, uint S, uint ftype, reg_t Rm, uint op, reg_t Rn, uint opcode2)
+    {
+        return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (Rm << 16) | (op << 14) | (8 << 10) | (Rn << 5) | opcode2;
+    }
+
+    /* FCMPE Vn,Vm https://www.scs.stanford.edu/~zyedidia/arm64/fcmpe_float.html
+     * FCMPE Vn,#0.0
+     */
+    static uint fcmpe_float(uint ftype, reg_t Vm, reg_t Vn)
+    {
+        uint opcode2 = Vm == 0 ? 0x18 : 0x10;  // Vm is 0 for FCMPE Vn,#0.0
+        return floatcmp(0, 0, ftype, Vm & 31, 0, Vn & 31, opcode2);
+    }
+
+    /* FCMP Vn,Vm https://www.scs.stanford.edu/~zyedidia/arm64/fcmp_float.html
+     * FCMP Vn,#0.0
+     */
+    static uint fcmp_float(uint ftype, reg_t Vm, reg_t Vn)
+    {
+        uint opcode2 = Vm == 0 ? 8 : 0;  // Vm is 0 for FCMP Vn,#0.0
+        return floatcmp(0, 0, ftype, Vm & 31, 0, Vn & 31, opcode2);
+    }
+
+    /* Floating-point immediate
+     * FMOV (scalar, immediate)
+     * FMOV <Vd>,#<imm> https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_imm.html
+     */
+    static uint fmov_float_imm(uint ftype, uint imm8, reg_t Vd) { return (0x1E << 24) | (ftype << 22) | (1 << 21) | (imm8 << 13) | (4 << 10) | (Vd & 31); }
+
+    /* Floating-point condistional compare
+     */
+
+    /* Floating-point data-processing (2 source) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
+     */
+    static uint floatdp2(uint M, uint S, uint ftype, reg_t Vm, uint opcode, reg_t Vn, reg_t Vd)
+    {
+        assert(Vm >= 32 && Vn >= 32 && Vd >= 32);
+        reg_t Rm = Vm & 31;
+        reg_t Rn = Vn & 31;
+        reg_t Rd = Vd & 31;
+        return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (Rm << 16) | (opcode << 12) | (2 << 10) | (Rn << 5) | Rd;
+    }
+
+    /* FMUL (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fmul_float.html
+     */
+    static uint fmul_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,0,Vn,Vd); }
+
+    /* FDIV (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fdiv_float.html
+     */
+    static uint fdiv_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,1,Vn,Vd); }
+
+    /* FADD (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fadd_float.html
+     */
+    static uint fadd_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,2,Vn,Vd); }
+
+    /* FSUB (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fsub_float.html
+     */
+    static uint fsub_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,3,Vn,Vd); }
+
+    /* FMAX (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fmax_float.html
+     */
+    static uint fmax_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,4,Vn,Vd); }
+
+    /* FMIN (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fmin_float.html
+     */
+    static uint fmin_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,5,Vn,Vd); }
+
+    /* FMAXNM (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fmaxnm_float.html
+     */
+    static uint fmaxnm_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,6,Vn,Vd); }
+
+    /* FMINNM (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fminnm_float.html
+     */
+    static uint fminnm_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,7,Vn,Vd); }
+
+    /* FNMUL (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fnmul_float.html
+     */
+    static uint fnmul_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,8,Vn,Vd); }
+
+    /* Floating-point conditional select
      * Floating-point data-processing (3 source)
      */
 
@@ -657,13 +1020,24 @@ struct INSTR
                (VR   << 26) |
                (opc  << 22) |
                (imm9 << 12) |
+               (1    << 10) |
                (Rn   <<  5) |
                 Rt;
     }
 
-    /* Load/store register pair (unprivileged)
-     * Load/store register pair (immediate pre-indexed)
-     * Atomic memory operation
+    /* STR <Vt>,[<Xn|SP>],#<simm>  Post-index  https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+     */
+
+    /* Load/store register (unprivileged)
+     */
+
+    /* Load/store register (immediate pre-indexed)
+     */
+
+    /* STR <Vt>,[<Xn|SP>,#<simm>]! Pre-index https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+     */
+
+    /* Atomic memory operation
      */
 
     /* Load/store register (register offset)
@@ -690,8 +1064,12 @@ struct INSTR
     /* Load/store register (unsigned immediate)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
      */
-    static uint ldst_pos(uint size, uint VR, uint opc, uint imm12, ubyte Rn, ubyte Rt)
+    static uint ldst_pos(uint size, uint VR, uint opc, uint imm12, reg_t Rn, reg_t Vt)
     {
+        //debug printf("imm12: %x\n", imm12);
+        assert(imm12 <= 0xFFF);
+        assert(VR == (Vt > 31));
+        reg_t Rt = Vt & 31;
         return (size  << 30) |
                (7     << 27) |
                (VR    << 26) |
@@ -701,6 +1079,33 @@ struct INSTR
                (Rn    <<  5) |
                 Rt;
     }
+
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+     * STR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
+     */
+    static uint str_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt)
+    {
+        assert(imm12 < 0x1000);
+        assert(size < 4);
+        assert(opc  < 4);
+        return ldst_pos(size,1,opc,imm12,Rn,Vt);
+    }
+
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
+     * LDR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
+     */
+    static uint ldr_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt)
+    {
+        assert(imm12 < 0x1000);
+        assert(size < 4);
+        assert(opc  < 4);
+        return ldst_pos(size,1,opc | 1,imm12,Rn,Vt);
+    }
+
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/ldrsw_imm.html
+     * LDRSW <Xt>, [<Xn|SP>{, #<pimm>}]
+     */
+    static uint ldrsw_imm(uint imm12, reg_t Rn, reg_t Rt) { return ldst_pos(2,0,2,imm12,Rn,Rt); }
 
     /* } */
 
@@ -879,7 +1284,7 @@ struct INSTR
         // STRH Rt,[Xn,#offset]
         uint size = 1;
         uint imm12 = offset & 0xFFF;
-        return ldst_pos(0, 0, 0, imm12, Rn, Rt);
+        return ldst_pos(1, 0, 0, imm12, Rn, Rt);
     }
 
     /* STR (immediate) Unsigned offset

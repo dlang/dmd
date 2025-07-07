@@ -4,10 +4,10 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2015-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     Rainer Schuetze
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dvarstats.d, backend/dvarstats.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/dvarstats.d, backend/dvarstats.d)
  */
 
 module dmd.backend.dvarstats;
@@ -20,6 +20,7 @@ import dmd.backend.cdef;
 import dmd.backend.global;
 import dmd.backend.code;
 import dmd.backend.symtab;
+import dmd.backend.ty;
 import dmd.backend.barray;
 
 
@@ -32,11 +33,11 @@ version (all) // free function version
 {
     import dmd.backend.dvarstats;
 
-    void varStats_writeSymbolTable(ref symtab_t symtab,
+    void varStats_writeSymbolTable(Symbol* sfn, ref symtab_t symtab,
             void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,
             void function(int off,int len) nothrow fnBeginBlock, void function() nothrow fnEndBlock)
     {
-        varStats.writeSymbolTable(symtab, fnWriteVar, fnEndArgs, fnBeginBlock, fnEndBlock);
+        varStats.writeSymbolTable(sfn, symtab, fnWriteVar, fnEndArgs, fnBeginBlock, fnEndBlock);
     }
 
     void varStats_startFunction()
@@ -180,9 +181,14 @@ private bool hasUniqueIdentifier(ref symtab_t symtab, SYMIDX si)
     return true;
 }
 
+private bool isParameter(Symbol* s)
+{
+    return s.Sclass == SC.parameter || s.Sclass == SC.regpar || s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg;
+}
+
 // gather statistics about creation and destructions of variables that are
 //  used by the current function
-private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
+private symtab_t* calcLexicalScope(Symbol* sfn, return ref symtab_t symtab) return
 {
     // make a copy of the symbol table
     // - arguments should be kept at the very beginning
@@ -191,20 +197,46 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
     nextSym.setLength(symtab.length);
     sortedSymtab.setLength(symtab.length);
 
-    if (!hashSymbolIdentifiers(symtab))
+    // reconstruct original order of arguments, see FuncDeclaration_toObjFile:
+    // sort hidden params to the end of the params, keep 'this' at the front
+    // TH PPP H VVV -> TPPP HH VVV, with PPP optionally reversed
+    bool reverse = tyrevfunc(sfn.Stype.Tty) != 0;
+    SYMIDX hiddencnt, paramcnt, thiscnt;
+    for (paramcnt = 0; paramcnt < symtab.length; paramcnt++)
+    {
+        Symbol* sa = symtab[paramcnt];
+        if (!isParameter(sa))
+            break;
+        if (sa.Sflags & SFLhidden)
+            hiddencnt++;
+        if (strcmp(sa.Sident.ptr, "this") == 0)
+            thiscnt++;
+    }
+    paramcnt -= hiddencnt + thiscnt;
+    bool hashCollisions = hashSymbolIdentifiers(symtab);
+    if (!reverse && hiddencnt == 0 && !hashCollisions)
     {
         // without any collisions, there are no duplicate symbol names, so bail out early
         uniquecnt = cast(int)symtab.length;
         return &symtab;
     }
 
-    SYMIDX argcnt;
+    SYMIDX argcnt, hiddenidx, thisidx, paramidx;
     for (argcnt = 0; argcnt < symtab.length; argcnt++)
     {
         Symbol* sa = symtab[argcnt];
-        if (sa.Sclass != SC.parameter && sa.Sclass != SC.regpar && sa.Sclass != SC.fastpar && sa.Sclass != SC.shadowreg)
+        if (!isParameter(sa))
             break;
-        sortedSymtab[argcnt] = sa;
+        SYMIDX idx;
+        if (sa.Sflags & SFLhidden)
+            idx = thiscnt + paramcnt + hiddenidx++;
+        else if (strcmp(sa.Sident.ptr, "this") == 0)
+            idx = thisidx++;
+        else if (reverse)
+            idx = thiscnt + paramcnt - ++paramidx;
+        else
+            idx = thiscnt + paramidx++;
+        sortedSymtab[idx] = sa;
     }
 
     // find symbols with identical names, only these need lexical scope
@@ -220,7 +252,7 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
     }
     sortedSymtab.length = symtab.length;
     if(dupcnt == 0)
-        return &symtab;
+        return paramcnt > 0 ? &sortedSymtab : &symtab;
 
     sortLineOffsets();
 
@@ -265,11 +297,11 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
     return &sortedSymtab;
 }
 
-public void writeSymbolTable(ref symtab_t symtab,
+public void writeSymbolTable(Symbol* sfn, ref symtab_t symtab,
             void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,
             void function(int off,int len) nothrow fnBeginBlock, void function() nothrow fnEndBlock)
 {
-    auto symtab2 = calcLexicalScope(symtab);
+    auto symtab2 = calcLexicalScope(sfn, symtab);
 
     int openBlocks = 0;
     int lastOffset = 0;
@@ -279,12 +311,9 @@ public void writeSymbolTable(ref symtab_t symtab,
     for (SYMIDX si = 0; si < symtab2.length; si++)
     {
         Symbol* sa = (*symtab2)[si];
-        if (endarg == false &&
-            sa.Sclass != SC.parameter &&
-            sa.Sclass != SC.fastpar &&
-            sa.Sclass != SC.regpar &&
-            sa.Sclass != SC.shadowreg)
+        if (endarg == false && (!isParameter(sa) || (sa.Sflags & SFLhidden) != 0))
         {
+            // the hidden parameter is a named return value, i.e. a local variable
             if(fnEndArgs)
                 (*fnEndArgs)();
             endarg = true;

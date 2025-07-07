@@ -51,7 +51,11 @@ void main(string[] args)
 
         test20253(session, globals);
 
+        test21384(session, globals);
+
         test18147(session, globals);
+
+        test21382(session, globals);
 
         source.Release();
         session.Release();
@@ -401,6 +405,90 @@ void test20253(IDiaSession session, IDiaSymbol globals)
 }
 
 ///////////////////////////////////////////////
+// https://github.com/dlang/dmd/issues/21384
+int sum21384(int a, int b, int c)
+{
+	int s = a + b + c;
+	return s;
+}
+
+struct S21384
+{
+	long x, y;
+}
+
+S21384 makeS21384(int a, int b)
+{
+	S21384 s = S21384(a, b);
+	return s;
+}
+
+class T21384
+{
+	S21384 genS21384(int a, int b)
+	{
+		S21384 s = S21384(a, b);
+		return s;
+	}
+}
+
+void testVar(IDiaSymbol var, string name, DWORD kind, string msg)
+{
+    BSTR varname;
+    var.get_name(&varname) == S_OK || assert(false, "testpdb.sum21384: vars[0]: no name");
+    scope(exit) SysFreeString(varname);
+    auto vname = toUTF8(varname[0..wcslen(varname)]);
+    vname == name || assert(false, msg ~ " name " ~ vname ~ ", expected " ~ name);
+
+    DWORD vkind;
+    var.get_dataKind(&vkind) == S_OK || assert(false, msg ~ " cannot retrieve data kind");
+    vkind == kind || assert(false, msg ~ " unexpected data kind");
+}
+
+DWORD getFuncVars(IDiaSymbol globals, const(wchar)* func, IDiaSymbol[] vars)
+{
+    IDiaSymbol funcSym = searchSymbol(globals, func);
+    funcSym || assert(false, "testpdb.sum21384 not found");
+
+    auto sfunc = toUTF8(func[0..wcslen(func)]);
+    IDiaEnumSymbols pEnumSymbols;
+    HRESULT hr = funcSym.findChildrenEx(SymTagEnum.SymTagData, NULL, NameSearchOptions.nsNone, &pEnumSymbols);
+    hr == S_OK && pEnumSymbols || assert(false, sfunc ~ ": no children found");
+
+    DWORD fetched;
+    hr = pEnumSymbols.Next(cast(uint)vars.length, vars.ptr, &fetched);
+    hr == S_OK || assert(false, sfunc ~ ": failed to fetch any vars");
+    return fetched;
+}
+
+void test21384(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol[5] vars;
+    DWORD cnt = getFuncVars(globals, "testpdb.sum21384", vars[]);
+    cnt == 4 || assert(false, "testpdb.sum21384: failed to fetch 4 vars");
+
+    testVar(vars[0], "a", DataKind.DataIsParam, "testpdb.sum21384: arg1:");
+    testVar(vars[1], "b", DataKind.DataIsParam, "testpdb.sum21384: arg2:");
+    testVar(vars[2], "c", DataKind.DataIsParam, "testpdb.sum21384: arg3:");
+    testVar(vars[3], "s", DataKind.DataIsLocal, "testpdb.sum21384: local:");
+
+    cnt = getFuncVars(globals, "testpdb.makeS21384", vars[]);
+    cnt == 3 || assert(false, "testpdb.makeS21384: failed to fetch 3 vars");
+
+    testVar(vars[0], "a", DataKind.DataIsParam, "testpdb.makeS21384: arg1:");
+    testVar(vars[1], "b", DataKind.DataIsParam, "testpdb.makeS21384: arg2:");
+    testVar(vars[2], "s", DataKind.DataIsLocal, "testpdb.makeS21384: hidden:");
+
+    cnt = getFuncVars(globals, "testpdb.T21384.genS21384", vars[]);
+    cnt == 4 || assert(false, "testpdb.T21384.genS21384: failed to fetch 4 vars");
+
+    testVar(vars[0], "this", DataKind.DataIsObjectPtr, "testpdb.T21384.genS21384: this:");
+    testVar(vars[1], "a", DataKind.DataIsParam, "testpdb.T21384.genS21384: arg1:");
+    testVar(vars[2], "b", DataKind.DataIsParam, "testpdb.T21384.genS21384: arg2:");
+    testVar(vars[3], "s", DataKind.DataIsLocal, "testpdb.T21384.genS21384: hidden:");
+}
+
+///////////////////////////////////////////////
 // https://issues.dlang.org/show_bug.cgi?id=18147
 string genMembers18147()
 {
@@ -483,6 +571,28 @@ void test18147(IDiaSession session, IDiaSymbol globals)
     classMember9999.get_offset(&off);
     off == Class18147.member9999.offsetof || assert(false, "testpdb.Class18147.member9999 bad offset");
 
+}
+
+// https://github.com/dlang/dmd/issues/21382
+class Dsym21382
+{
+    final int finalFun() { return 7; }
+    int virtualFun() { return 13; }
+}
+
+void test21382(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol dSym = searchSymbol(globals, "testpdb.Dsym21382");
+    dSym || assert(false, "testpdb.Dsym21382 not found");
+
+    BOOL virt;
+    IDiaSymbol finalSym = searchSymbol(dSym, "finalFun");
+    finalSym || assert(false, "testpdb.Dsym21382.finalFun not found");
+    finalSym.get_virtual(&virt) == S_OK && !virt || assert(false, "testpdb.Dsym21382.finalFun is virtual");
+
+    IDiaSymbol virtualSym = searchSymbol(dSym, "virtualFun");
+    virtualSym || assert(false, "testpdb.Dsym21382.virtualFun not found");
+    virtualSym.get_virtual(&virt) == S_OK && virt || assert(false, "testpdb.Dsym21382.virtualFun is virtual");
 }
 
 ///////////////////////////////////////////////

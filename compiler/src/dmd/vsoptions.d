@@ -1,12 +1,12 @@
 /**
  * When compiling on Windows with the Microsoft toolchain, try to detect the Visual Studio setup.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _vsoptions.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/vsoptions.d, _vsoptions.d)
  * Documentation:  https://dlang.org/phobos/dmd_vsoptions.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/vsoptions.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/vsoptions.d
  */
 
 module dmd.vsoptions;
@@ -191,7 +191,7 @@ extern(C++) struct VSOptions
     * Params:
     *   x64 = target architecture (x86 if false)
     * Returns:
-    *   absolute path to cl.exe, just "cl.exe" if not found
+    *   absolute path to cl.exe, and just "cl.exe" if not found
     */
     const(char)* compilerPath(bool x64)
     {

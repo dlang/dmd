@@ -93,7 +93,7 @@
 #if __has_include(<sys/eventfd.h>)
 #include <sys/eventfd.h>
 #endif
-#if __has_include(<stdatomic.h>)
+#if __has_include(<stdatomic.h>) && !defined(__STDC_NO_ATOMICS__)
 #include <stdatomic.h>
 #endif
 #if __has_include(<ifaddrs.h>)

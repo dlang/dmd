@@ -1,7 +1,7 @@
 /**
  * Microsoft COFF object file format
  *
- * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/mscoff.d, backend/_mscoff.d)
+ * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/mscoff.d, backend/_mscoff.d)
  */
 
 module dmd.backend.mscoff;
@@ -254,7 +254,7 @@ union auxent
       align (1):
         uint Unused;
         ushort Linenumber;
-        char[6] filler;
+        char[6] filler = '\0';
         uint PointerToNextFunction;
         ushort Zeros;
     }
@@ -293,7 +293,7 @@ union auxent
     }
     S x_section;
 
-    char[18] filler;
+    char[18] filler = void;
 }
 
 static assert(auxent.sizeof == 18);

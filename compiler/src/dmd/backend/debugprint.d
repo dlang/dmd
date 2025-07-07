@@ -5,11 +5,11 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/debug.c, backend/debugprint.d)
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/debug.c
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/debugprint.d, backend/debugprint.d)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/debugprint.d
  */
 
 module dmd.backend.debugprint;
@@ -153,7 +153,10 @@ const(char)* tym_str(tym_t ty)
     const tyb = tybasic(ty);
     if (tyb >= TYMAX)
     {
-        printf("TY %x\n",cast(int)ty);
+        if (tyb == TYMAX)
+            printf("TY TYMAX\n");
+        else
+            printf("TY %x\n",cast(int)ty);
         assert(0);
     }
     strcat(p, "TY");
@@ -172,7 +175,7 @@ const(char)* tym_str(tym_t ty)
 @trusted
 const(char)* bc_str(uint bc)
 {
-    __gshared const char[10][BC.max + 1] bcs =
+    __gshared const char[11][BC.max + 1] bcs =
         ["BC.unde  ","BC.goto_  ","BC.true  ","BC.ret   ","BC.retexp",
          "BC.exit  ","BC.asm_   ","BC.switch_","BC.ifthen","BC.jmptab",
          "BC.try_   ","BC.catch_ ","BC.jump  ",

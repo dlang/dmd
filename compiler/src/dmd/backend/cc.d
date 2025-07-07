@@ -5,10 +5,10 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cc.d, backend/_cc.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cc.d, backend/_cc.d)
  */
 
 module dmd.backend.cc;
@@ -99,30 +99,6 @@ nothrow:
 
 import dmd.backend.dout : Srcpos_print;
 
-alias stflags_t = uint;
-enum
-{
-    PFLpreprocessor  = 1,       // in preprocessor
-    PFLmasm          = 2,       // in Microsoft-style inline assembler
-    PFLbasm          = 4,       // in Borland-style inline assembler
-    PFLsemi          = 8,       // ';' means start of comment
-//  PFLautogen       = 0x10,    // automatically generate HX ph file
-    PFLmftemp        = 0x20,    // if expanding member function template
-    PFLextdef        = 0x40,    // we had an external def
-    PFLhxwrote       = 0x80,    // already generated HX ph file
-    PFLhxdone        = 0x100,   // done with HX ph file
-
-    // if TX86
-    PFLhxread        = 0x200,   // have read in an HX ph file
-    PFLhxgen         = 0x400,   // need to generate HX ph file
-    PFLphread        = 0x800,   // read a ph file
-    PFLcomdef        = 0x1000,  // had a common block
-    PFLmacdef        = 0x2000,  // defined a macro in the source code
-    PFLsymdef        = 0x4000,  // declared a global Symbol in the source
-    PFLinclude       = 0x8000,  // read a .h file
-    PFLmfc           = 0x10000, // something will affect MFC compatibility
-}
-
 /**********************************
  * Current 'state' of the compiler.
  * Used to gather together most global variables.
@@ -137,8 +113,6 @@ struct Pstate
 
     Funcsym* STfuncsym_p;       // if inside a function, then this is the
                                 // function Symbol.
-
-    stflags_t STflags;
 }
 
 @trusted
@@ -166,6 +140,7 @@ enum
     SCSCT = 4,      // storage class is valid for use in static ctor
     SCSS  = 8,      // storage class is on the stack
     SCRD  = 0x10,   // we can do reaching definitions on these
+    SCDATA = 0x20,  // goes in data segment
 }
 
 // Determine if Symbol has a Ssymnum associated with it.
@@ -549,23 +524,6 @@ struct func_t
     }
 }
 
-alias baseclass_flags_t = uint;
-enum
-{
-     BCFpublic     = 1,         // base class is public
-     BCFprotected  = 2,         // base class is protected
-     BCFprivate    = 4,         // base class is private
-
-     BCFvirtual    = 8,         // base class is virtual
-     BCFvfirst     = 0x10,      // virtual base class, and this is the
-                                // first virtual appearance of it
-     BCFnewvtbl    = 0x20,      // new vtbl generated for this base class
-     BCFvirtprim   = 0x40,      // Primary base class of a virtual base class
-     BCFdependent  = 0x80,      // base class is a dependent type
-}
-enum baseclass_flags_t BCFpmask = BCFpublic | BCFprotected | BCFprivate;
-
-
 /************************************
  * Base classes are a list of these.
  */
@@ -583,7 +541,6 @@ struct baseclass_t
                                         // (NULL if not different from base class's vtbl
     Symbol*           BCvtbl;           // Symbol for vtbl[] array (in Smptrbase list)
                                         // Symbol for vbtbl[] array (in Svbptrbase list)
-    baseclass_flags_t BCflags;          // base class flags
     Classsym*         BCparent;         // immediate parent of this base class
                                         //     in Smptrbase
     baseclass_t*      BCpbase;          // parent base, NULL if did not come from a parent
@@ -715,7 +672,8 @@ enum
     SFLnodebug      = 0x20000,     // don't generate debug info
     SFLwasstatic    = 0x800000,    // was an uninitialized static
     SFLweak         = 0x1000000,   // resolve to NULL if not found
-    SFLhidden       = 0x2000000,   // not visible outside of DSOs (-fvisibility=hidden)
+    SFLhidden       = 0x2000000,   // SC.static_/SC.global: not visible outside of DSOs (-fvisibility=hidden)
+                                   // SC.parameter: hidden return value parameter
     SFLartifical    = 0x4000000,   // compiler generated symbol
     SFLnounderscore = 0x8000_0000, // don't prepend an _ to identifiers in object file
 

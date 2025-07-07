@@ -2,12 +2,12 @@
  * Put initializers and objects created from CTFE into a `dt_t` data structure
  * so the backend puts them into the data segment.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/todt.d, _todt.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/todt.d, _todt.d)
  * Documentation:  https://dlang.org/phobos/dmd_todt.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/todt.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/todt.d
  */
 
 module dmd.todt;
@@ -568,7 +568,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             e.fd.tok = TOK.function_;
             e.fd.vthis = null;
         }
-        Symbol *s = toSymbol(e.fd);
+        Symbol* s = toSymbol(e.fd);
         toObjFile(e.fd, false);
         if (e.fd.tok == TOK.delegate_)
             dtb.size(0);
@@ -610,7 +610,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         if (Type t = isType(e.obj))
         {
             TypeInfo_toObjFile(e, e.loc, t);
-            Symbol *s = toSymbol(t.vtinfo);
+            Symbol* s = toSymbol(t.vtinfo);
             dtb.xoff(s, 0);
             return;
         }
@@ -686,7 +686,7 @@ void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
         dtb.size(0);             // monitor
 
     // Create symbol for C++ type info
-    Symbol *s = toSymbolCppTypeInfo(cd);
+    Symbol* s = toSymbolCppTypeInfo(cd);
 
     // Put in address of cd's C++ type info
     dtb.xoff(s, 0);
@@ -1080,7 +1080,7 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCt
         Type tnext = tsa.next;
         Type tbn = tnext.toBasetype();
         Type ten = e ? e.type : null;
-        if (ten && (ten.ty == Tsarray || ten.ty == Tarray))
+        if (ten && ten.isStaticOrDynamicArray())
             ten = ten.nextOf();
         while (tbn.ty == Tsarray && (!e || !tbn.equivalent(ten)))
         {
@@ -1152,8 +1152,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                 printf("expected = x%x, %s.structsize = x%x\n", cast(uint)expected,
                     typeclass.toChars(), cast(uint)typeclass.structsize);
             }
-            error(typeclass.loc, "`%s`: mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found. Check installation and import paths with -v compiler switch.",
+            error(typeclass.loc, "`%s`: mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
                 typeclass.toChars(), cast(uint)expected, cast(uint)typeclass.structsize);
+            errorSupplemental(typeclass.loc, "check installation and import paths with `-v` compiler switch");
             fatal();
         }
     }
@@ -1348,7 +1349,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoAssociativeArrayDeclaration d)
     {
         //printf("TypeInfoAssociativeArrayDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfoassociativearray, 4 * target.ptrsize);
+        verifyStructSize(Type.typeinfoassociativearray, 5 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
         if (Type.typeinfoassociativearray.hasMonitor())
@@ -1361,6 +1362,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         TypeInfo_toObjFile(null, d.loc, tc.index);
         dtb.xoff(toSymbol(tc.index.vtinfo), 0);  // TypeInfo for array of type
+
+        TypeInfo_toObjFile(null, d.loc, d.entry);
+        dtb.xoff(toSymbol(d.entry.vtinfo), 0);  // TypeInfo for key,value-pair
     }
 
     override void visit(TypeInfoFunctionDeclaration d)

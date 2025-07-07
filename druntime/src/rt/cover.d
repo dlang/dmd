@@ -27,7 +27,7 @@ else version (Posix)
 {
     import core.stdc.stdio : fopen;
     import core.sys.posix.fcntl : O_CREAT, O_RDWR, open, S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR;
-    import core.sys.posix.unistd : F_LOCK, ftruncate, lockf;
+    import core.sys.posix.unistd : ftruncate;
 }
 else
     static assert(0, "Unsupported platform");
@@ -487,7 +487,10 @@ void lockFile(int fd)
         flock(fd, LOCK_EX); // exclusive lock
     }
     else version (Posix)
+    {
+        import core.sys.posix.unistd : F_LOCK, lockf;
         lockf(fd, F_LOCK, 0); // exclusive lock
+    }
     else version (Windows)
     {
         OVERLAPPED off;

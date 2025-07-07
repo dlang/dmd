@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/_rtlsym.d
@@ -47,36 +47,19 @@ enum RTLSYM
     MEMSETDOUBLE,
     MEMSETSIMD,
     MEMSETN,
-    NEWCLASS,
     NEWTHROW,
-    NEWARRAYT,
-    NEWARRAYIT,
-    NEWITEMT,
-    NEWITEMIT,
-    NEWARRAYMTX,
-    NEWARRAYMITX,
+
     ARRAYLITERALTX,
     ASSOCARRAYLITERALTX,
     CALLFINALIZER,
     CALLINTERFACEFINALIZER,
     ALLOCMEMORY,
-    DYNAMIC_CAST,
-    PAINT_CAST,
-    CLASS_CAST,
-    INTERFACE_CAST,
     ARRAYCATT,
-    ARRAYCATNTX,
-    ARRAYAPPENDT,
-    ARRAYAPPENDCTX,
     ARRAYAPPENDCD,
     ARRAYAPPENDWD,
-    ARRAYSETLENGTHT,
-    ARRAYSETLENGTHIT,
     ARRAYCOPY,
-    ARRAYASSIGN,
     ARRAYASSIGN_R,
     ARRAYASSIGN_L,
-    ARRAYSETASSIGN,
     ARRAYEQ2,
     AANEW,
     AAEQUAL,
@@ -116,25 +99,13 @@ enum RTLSYM
     TRACE_EPI_N,
     TRACE_EPI_F,
 
-    TRACENEWCLASS,
-    TRACENEWARRAYT,
-    TRACENEWARRAYIT,
-    TRACENEWARRAYMTX,
-    TRACENEWARRAYMITX,
-    TRACENEWITEMT,
-    TRACENEWITEMIT,
+
     TRACECALLFINALIZER,
     TRACECALLINTERFACEFINALIZER,
     TRACEARRAYLITERALTX,
     TRACEASSOCARRAYLITERALTX,
-    TRACEARRAYCATT,
-    TRACEARRAYCATNTX,
-    TRACEARRAYAPPENDT,
-    TRACEARRAYAPPENDCTX,
     TRACEARRAYAPPENDCD,
     TRACEARRAYAPPENDWD,
-    TRACEARRAYSETLENGTHT,
-    TRACEARRAYSETLENGTHIT,
     TRACEALLOCMEMORY,
 
     C_ASSERT,

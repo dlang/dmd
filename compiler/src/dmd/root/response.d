@@ -3,13 +3,13 @@
  *
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  *              Some portions copyright (c) 1994-1995 by Symantec
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/response.d, root/_response.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/root/response.d, root/_response.d)
  * Documentation:  https://dlang.org/phobos/dmd_root_response.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/response.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/root/response.d
  */
 
 module dmd.root.response;
@@ -341,8 +341,8 @@ unittest
  *     The null-terminator is inside the bounds of the array.
  *     If cp could not be resolved, null is returned.
  */
-private char[] lookupInEnvironment(scope const(char)* cp) nothrow {
-
+private char[] lookupInEnvironment(scope const(char)* cp) nothrow
+{
     import core.stdc.stdlib: getenv;
     import core.stdc.string: strlen;
     import dmd.root.rmem: mem;

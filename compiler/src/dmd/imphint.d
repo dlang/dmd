@@ -3,12 +3,12 @@
  *
  * For example, prompt to `import std.stdio` when using `writeln`.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/imphint.d, _imphint.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/imphint.d, _imphint.d)
  * Documentation:  https://dlang.org/phobos/dmd_imphint.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/imphint.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/imphint.d
  */
 
 module dmd.imphint;
@@ -26,8 +26,15 @@ const(char)[] importHint(const(char)[] s) @safe
         return *entry;
     return null;
 }
+const(char)[] cIncludeHint(const(char)[] s) @safe
+{
+    if (auto entry = s in cHints)
+        return *entry;
+    return null;
+}
 
 private immutable string[string] hints;
+private immutable string[string] cHints;
 
 shared static this()
 {
@@ -82,6 +89,23 @@ shared static this()
         "__va_list_tag": "core.stdc.stdarg",
         "InterpolationHeader": "core.interpolation",
         "InterpolationFooter": "core.interpolation",
+    ];
+    cHints = [
+        "NULL": "<stddef.h>",
+        "calloc": "<stdlib.h>",
+        "fopen": "<stdio.h>",
+        "fprintf": "<stdio.h>",
+        "free": "<stdlib.h>",
+        "malloc": "<stdlib.h>",
+        "memcpy": "<string.h>",
+        "memmove": "<string.h>",
+        "memset": "<string.h>",
+        "printf": "<stdio.h>",
+        "ptrdiff_t": "<stddef.h>",
+        "size_t": "<stddef.h>",
+        "stderr": "<stdio.h>",
+        "stdin": "<stdio.h>",
+        "stdout": "<stdio.h>",
     ];
 }
 

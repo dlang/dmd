@@ -1,12 +1,12 @@
 /**
  * Contains the `Id` struct with a list of predefined symbols the compiler knows about.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/id.d, _id.d)
  * Documentation:  https://dlang.org/phobos/dmd_id.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/id.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/id.d
  */
 
 module dmd.id;
@@ -166,6 +166,7 @@ immutable Msgtable[] msgtable =
     { "xopCmp", "__xopCmp" },
     { "xtoHash", "__xtoHash" },
     { "__tmpfordtor" },
+    { "Entry" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
@@ -223,16 +224,15 @@ immutable Msgtable[] msgtable =
     { "__LOCAL_SIZE" },
 
     // For operator overloads
-    { "eq",      "opEquals" },
-    { "cmp",     "opCmp" },
-    { "assign",  "opAssign" },
-    { "index",   "opIndex" },
-    { "indexass", "opIndexAssign" },
-    { "slice",   "opSlice" },
-    { "sliceass", "opSliceAssign" },
-    { "call",    "opCall" },
-    { "_cast",    "opCast" },
-    { "opDot" },
+    { "opEquals" },
+    { "opCmp" },
+    { "opAssign" },
+    { "opIndex" },
+    { "opIndexAssign" },
+    { "opSlice" },
+    { "opSliceAssign" },
+    { "opCall" },
+    { "opCast" },
     { "opDispatch" },
     { "opDollar" },
     { "opUnary" },
@@ -289,6 +289,7 @@ immutable Msgtable[] msgtable =
     { "_d_arraysetassign" },
     { "_d_arrayassign_l" },
     { "_d_arrayassign_r" },
+    { "_d_cast" },
 
     { "imported" },
     { "InterpolationHeader" },
@@ -324,7 +325,6 @@ immutable Msgtable[] msgtable =
     { "__switch_error"},
     { "__ArrayCast"},
     { "_d_HookTraceImpl" },
-    { "_d_arraysetlengthTImpl"},
     { "_d_arraysetlengthT"},
     { "_d_arraysetlengthTTrace"},
     { "_d_arrayappendT" },

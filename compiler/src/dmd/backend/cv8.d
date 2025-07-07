@@ -7,12 +7,12 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:    Copyright (C) 2012-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:    Copyright (C) 2012-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv8.d, backend/cv8.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cv8.d, backend/cv8.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_cv8.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cv8.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/cv8.d
  */
 
 module dmd.backend.cv8;
@@ -487,7 +487,7 @@ void cv8_func_term(Symbol* sfunc)
             buf.write16(S_END);
         }
     }
-    varStats_writeSymbolTable(globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
+    varStats_writeSymbolTable(sfunc, globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
 
     /* Put out function return record S_RETURN
      * (VC doesn't, so we won't bother, either.)

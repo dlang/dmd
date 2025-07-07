@@ -28,12 +28,12 @@
  *   arguments, and uses it if found.
  * - Otherwise, the rest of semantic is run on the `TemplateInstance`.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtemplate.d, _dtemplate.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dtemplate.d, _dtemplate.d)
  * Documentation:  https://dlang.org/phobos/dmd_dtemplate.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dtemplate.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/dtemplate.d
  */
 
 module dmd.dtemplate;
@@ -53,11 +53,11 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, checkDeprecated, aliasSemantic, search, search_correct, setScope, importAll, include;
+import dmd.dsymbolsem : dsymbolSemantic, checkDeprecated, aliasSemantic, search, search_correct, setScope, importAll, include, hasStaticCtorOrDtor, oneMembers;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
-import dmd.expressionsem : resolveLoc, expressionSemantic, resolveProperties;
+import dmd.expressionsem : resolveLoc, expressionSemantic, resolveProperties, checkValue;
 import dmd.func;
 import dmd.funcsem : functionSemantic, leastAsSpecialized, overloadApply;
 import dmd.globals;
@@ -134,6 +134,13 @@ inout(Parameter) isParameter(inout RootObject o)
     if (!o || o.dyncast() != DYNCAST.parameter)
         return null;
     return cast(inout(Parameter))o;
+}
+
+inout(Identifier) isIdentifier(inout RootObject o)
+{
+    if (!o || o.dyncast() != DYNCAST.identifier)
+        return null;
+    return cast(inout(Identifier))o;
 }
 
 inout(TemplateParameter) isTemplateParameter(inout RootObject o)
@@ -586,6 +593,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool isTrivialAliasSeq; /// matches pattern `template AliasSeq(T...) { alias AliasSeq = T; }`
     bool isTrivialAlias;    /// matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
     bool deprecated_;       /// this template declaration is deprecated
+    bool isCmacro;          /// Whether this template is a translation of a C macro
     Visibility visibility;
 
     // threaded list of previous instantiation attempts on stack
@@ -595,9 +603,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     Array!Expression lastConstraintNegs; /// its negative parts
     Objects* lastConstraintTiargs; /// template instance arguments for `lastConstraint`
 
-    extern (D) this(const ref Loc loc, Identifier ident, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
+    extern (D) this(Loc loc, Identifier ident, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
     {
         super(loc, ident);
+        this.dsym = DSYM.templateDeclaration;
         static if (LOG)
         {
             printf("TemplateDeclaration(this = %p, id = '%s')\n", this, ident.toChars());
@@ -631,7 +640,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             return;
 
         Dsymbol s;
-        if (!Dsymbol.oneMembers(members, s, ident) || !s)
+        if (!oneMembers(members, s, ident) || !s)
             return;
 
         onemember = s;
@@ -736,22 +745,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return true;
     }
 
-    override bool hasStaticCtorOrDtor()
-    {
-        return false; // don't scan uninstantiated templates
-    }
-
     override const(char)* kind() const
     {
         return (onemember && onemember.isAggregateDeclaration()) ? onemember.kind() : "template";
-    }
-
-    override const(char)* toChars() const
-    {
-        HdrGenState hgs;
-        OutBuffer buf;
-        toCharsMaybeConstraints(this, buf, hgs);
-        return buf.extractChars();
     }
 
     /****************************
@@ -889,11 +885,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         auto tibox = TemplateInstanceBox(ti);
         debug (FindExistingInstance) ++nRemoved;
         instances.remove(tibox);
-    }
-
-    override inout(TemplateDeclaration) isTemplateDeclaration() inout
-    {
-        return this;
     }
 
     /**
@@ -3003,6 +2994,8 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameter[] tparam
         override void visit(NewExp e)
         {
             //printf("NewExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            if (e.placement)
+                e.placement.accept(this);
             if (e.thisexp)
                 e.thisexp.accept(this);
             result = e.newtype.reliesOnTemplateParameters(tparams);
@@ -3179,7 +3172,7 @@ extern (C++) class TemplateParameter : ASTNode
     bool dependent;
 
     /* ======================== TemplateParameter =============================== */
-    extern (D) this(const ref Loc loc, Identifier ident) @safe
+    extern (D) this(Loc loc, Identifier ident) @safe
     {
         this.loc = loc;
         this.ident = ident;
@@ -3218,7 +3211,7 @@ extern (C++) class TemplateParameter : ASTNode
 
     abstract RootObject specialization();
 
-    abstract RootObject defaultArg(const ref Loc instLoc, Scope* sc);
+    abstract RootObject defaultArg(Loc instLoc, Scope* sc);
 
     abstract bool hasDefaultArg();
 
@@ -3250,7 +3243,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 
     extern (D) __gshared Type tdummy = null;
 
-    extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType) @safe
+    extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType) @safe
     {
         super(loc, ident);
         this.specType = specType;
@@ -3296,7 +3289,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         return specType;
     }
 
-    override final RootObject defaultArg(const ref Loc instLoc, Scope* sc)
+    override final RootObject defaultArg(Loc instLoc, Scope* sc)
     {
         Type t = defaultType;
         if (t)
@@ -3325,7 +3318,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
  */
 extern (C++) final class TemplateThisParameter : TemplateTypeParameter
 {
-    extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType) @safe
+    extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType) @safe
     {
         super(loc, ident, specType, defaultType);
     }
@@ -3359,7 +3352,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
 
     extern (D) __gshared Expression[void*] edummies;
 
-    extern (D) this(const ref Loc loc, Identifier ident, Type valType,
+    extern (D) this(Loc loc, Identifier ident, Type valType,
         Expression specValue, Expression defaultValue) @safe
     {
         super(loc, ident);
@@ -3416,7 +3409,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         return specValue;
     }
 
-    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
+    override RootObject defaultArg(Loc instLoc, Scope* sc)
     {
         Expression e = defaultValue;
         if (!e)
@@ -3475,7 +3468,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
 
     extern (D) __gshared Dsymbol sdummy = null;
 
-    extern (D) this(const ref Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias) @safe
+    extern (D) this(Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias) @safe
     {
         super(loc, ident);
         this.specType = specType;
@@ -3513,7 +3506,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         return specAlias;
     }
 
-    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
+    override RootObject defaultArg(Loc instLoc, Scope* sc)
     {
         RootObject da = defaultAlias;
         if (auto ta = isType(defaultAlias))
@@ -3554,7 +3547,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
  */
 extern (C++) final class TemplateTupleParameter : TemplateParameter
 {
-    extern (D) this(const ref Loc loc, Identifier ident) @safe
+    extern (D) this(Loc loc, Identifier ident) @safe
     {
         super(loc, ident);
     }
@@ -3608,7 +3601,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         return null;
     }
 
-    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
+    override RootObject defaultArg(Loc instLoc, Scope* sc)
     {
         return null;
     }
@@ -3669,11 +3662,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     ScopeDsymbol argsym;        // argument symbol table
     size_t hash;                // cached result of toHash()
 
-    /// For function template, these are the function names and arguments
+    /// For function template, these are the function fnames(name and loc of it) and arguments
     /// Relevant because different resolutions of `auto ref` parameters
     /// create different template instances even with the same template arguments
     Expressions* fargs;
-    Identifiers* fnames;
+    ArgumentLabels* fnames;
 
     TemplateInstances* deferred;
 
@@ -3732,13 +3725,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
     }
 
-    extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs) scope
+    extern (D) this(Loc loc, Identifier ident, Objects* tiargs) scope
     {
         super(loc, null);
         static if (LOG)
         {
             printf("TemplateInstance(this = %p, ident = '%s')\n", this, ident ? ident.toChars() : "null");
         }
+        this.dsym = DSYM.templateInstance;
         this.name = ident;
         this.tiargs = tiargs;
     }
@@ -3747,13 +3741,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * This constructor is only called when we figured out which function
      * template to instantiate.
      */
-    extern (D) this(const ref Loc loc, TemplateDeclaration td, Objects* tiargs) scope
+    extern (D) this(Loc loc, TemplateDeclaration td, Objects* tiargs) scope
     {
         super(loc, null);
         static if (LOG)
         {
             printf("TemplateInstance(this = %p, tempdecl = '%s')\n", this, td.toChars());
         }
+        this.dsym = DSYM.templateInstance;
         this.name = td.ident;
         this.tiargs = tiargs;
         this.tempdecl = td;
@@ -3824,19 +3819,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return "template instance";
     }
 
-    override bool oneMember(out Dsymbol ps, Identifier ident)
-    {
-        ps = null;
-        return true;
-    }
-
-    override const(char)* toChars() const
-    {
-        OutBuffer buf;
-        toCBufferInstance(this, buf);
-        return buf.extractChars();
-    }
-
     override final const(char)* toPrettyCharsHelper()
     {
         OutBuffer buf;
@@ -3899,7 +3881,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (n_instantiations <= max_shown)
         {
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
-                printFn(cur.loc, format, cur.toChars());
+                printFn(cur.loc, format, cur.toErrMsg());
         }
         else if (n_instantiations - n_totalrecursions <= max_shown)
         {
@@ -4492,7 +4474,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * Returns:
      *      false if one or more arguments have errors.
      */
-    extern (D) static bool semanticTiargs(const ref Loc loc, Scope* sc, Objects* tiargs, int flags, TupleDeclaration atd = null)
+    extern (D) static bool semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int flags, TupleDeclaration atd = null)
     {
         // Run semantic on each argument, place results in tiargs[]
         //printf("+TemplateInstance.semanticTiargs()\n");
@@ -5292,7 +5274,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 if (members.length)
                 {
                     Dsymbol sa;
-                    if (Dsymbol.oneMembers(members, sa, tempdecl.ident) && sa)
+                    if (oneMembers(members, sa, tempdecl.ident) && sa)
                         aliasdecl = sa;
                 }
                 done = true;
@@ -5348,11 +5330,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         semantic3(this, sc2);
 
         --nest;
-    }
-
-    override final inout(TemplateInstance) isTemplateInstance() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -5492,12 +5469,13 @@ extern (C++) final class TemplateMixin : TemplateInstance
 {
     TypeQualified tqual;
 
-    extern (D) this(const ref Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)
+    extern (D) this(Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)
     {
         super(loc,
               tqual.idents.length ? cast(Identifier)tqual.idents[tqual.idents.length - 1] : (cast(TypeIdentifier)tqual).ident,
               tiargs ? tiargs : new Objects());
         //printf("TemplateMixin(ident = '%s')\n", ident ? ident.toChars() : "");
+        this.dsym = DSYM.templateMixin;
         this.ident = ident;
         this.tqual = tqual;
     }
@@ -5511,24 +5489,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
     override const(char)* kind() const
     {
         return "mixin";
-    }
-
-    override bool oneMember(out Dsymbol ps, Identifier ident)
-    {
-        return Dsymbol.oneMember(ps, ident);
-    }
-
-    override bool hasPointers()
-    {
-        //printf("TemplateMixin.hasPointers() %s\n", toChars());
-        return members.foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
-    }
-
-    override const(char)* toChars() const
-    {
-        OutBuffer buf;
-        toCBufferInstance(this, buf);
-        return buf.extractChars();
     }
 
     extern (D) bool findTempDecl(Scope* sc)
@@ -5603,11 +5563,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
                 return false;
         }
         return true;
-    }
-
-    override inout(TemplateMixin) isTemplateMixin() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -6287,6 +6242,9 @@ void write(ref OutBuffer buf, RootObject obj)
 {
     if (obj)
     {
-        buf.writestring(obj.toChars());
+        if (auto e = isExpression(obj))
+            buf.writestring(e.toErrMsg());
+        else
+            buf.writestring(obj.toChars());
     }
 }

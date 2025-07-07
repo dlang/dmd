@@ -7,10 +7,10 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) ?-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elfobj.d, backend/elfobj.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/elfobj.d, backend/elfobj.d)
  */
 
 module dmd.backend.elfobj;
@@ -39,6 +39,7 @@ import dmd.backend.oper;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.arm.instr;
 
 import dmd.common.outbuffer;
 
@@ -1564,7 +1565,7 @@ private void obj_tlssections()
  * Returns:
  *      "segment index" of COMDAT
  * References:
- *      Section Groups http://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html#section_groups
+ *      Section Groups https://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html#section_groups
  *      COMDAT section groups https://www.airs.com/blog/archives/52
  */
 
@@ -2473,7 +2474,7 @@ void ElfObj_byte(int seg,targ_size_t offset,uint byte_)
     int save = cast(int)buf.length();
     //dbg_printf("ElfObj_byte(seg=%d, offset=x%lx, byte_=x%x)\n",seg,offset,byte_);
     buf.setsize(cast(uint)offset);
-    buf.writeByte(byte_);
+    buf.writeByte(cast(ubyte)byte_);
     if (save > offset+1)
         buf.setsize(save);
     else
@@ -2665,6 +2666,8 @@ private size_t relsize64(uint type)
         case R_X86_64_GOTOFF64:  return 8;
         case R_X86_64_GOTPC32:   return 4;
 
+        case R_AARCH64_ABS64:    return 8;
+
         default:
             if (type >= 180 && type <= 188 ||
                 type >= 257 && type <= 293 ||
@@ -2760,8 +2763,11 @@ size_t ElfObj_writerel(int targseg, size_t offset, reltype_t reltype,
     {
         // Elf64_Rela stores addend in Rela.r_addend field
         sz = relsize64(reltype);
-        if (!elfobj.AArch64)
+        if (!elfobj.AArch64 || reltype == R_AARCH64_ABS64) // TODO AArch64: extend to all fixups?
+        {
+            //printf("writeaddrval() targseg: %d offset: %lld sz: %lld\n", targseg, offset, sz);
             writeaddrval(targseg, offset, 0, sz);
+        }
         ElfObj_addrel(targseg, offset, reltype, symidx, val);
     }
     else
@@ -2887,7 +2893,7 @@ static if (0)
 
 /*******************************
  * Refer to an identifier.
- * Input:
+ * Params:
  *      segtyp =        where the address is going (CODE or DATA)
  *      offset =        offset within seg
  *      s =             Symbol table entry for identifier
@@ -3287,6 +3293,8 @@ static if (0)
                         //val += s.Soffset;
 
                         relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                        if (refSize == 8)
+                            relinfo = R_AARCH64_ABS64;
                         static if (0)
                         {
                             if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
@@ -3303,10 +3311,14 @@ static if (0)
                     else if (segtyp == DATA)
                     {                   // relocation from within DATA seg
                         relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                        if (refSize == 8)
+                            relinfo = R_AARCH64_ABS64;
                     }
                     else
                     {                   // relocation from within CODE seg
                         relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                        if (refSize == 8)
+                            relinfo = R_AARCH64_ABS64;
                         static if (0)
                         {
                             if (config.flags3 & CFG3pie && s.Sclass == SC.global)
@@ -3340,6 +3352,8 @@ static if (0)
                 outrel:
                     //printf("\t\t************* adding relocation\n");
                     const size_t nbytes = ElfObj_writerel(seg, cast(uint)offset, relinfo, refseg, val);
+// nbytes is 4, refSize is 8, do not know which is correct TODO
+//printf("nbytes: %lld refSize: %d\n", nbytes, refSize);
                     assert(nbytes == refSize);
                 }
             }
@@ -3471,7 +3485,7 @@ void ElfObj_dehinfo(Symbol* scc)
 private void obj_rtinit()
 {
     if (config.target_cpu == TARGET_AArch64)
-        return;
+        return obj_rtinit_aarch64();
 
     // section start/stop symbols are defined by the linker (https://www.airs.com/blog/archives/56)
     // make the symbols hidden so that each DSO gets its own brackets
@@ -3652,7 +3666,7 @@ private void obj_rtinit()
                 {
                     // lea RAX, sym[RIP]
                     buf.writeByte(REX | REX_W);
-                    buf.writeByte(op);
+                    buf.writeByte(cast(ubyte)op);
                     buf.writeByte(modregrm(0,AX,5));
                     off += 3;
                     off += ElfObj_writerel(codseg, off, reltype, sym, -4);
@@ -3660,7 +3674,7 @@ private void obj_rtinit()
                 else
                 {
                     // lea EAX, sym[EBX]
-                    buf.writeByte(op);
+                    buf.writeByte(cast(ubyte)op);
                     buf.writeByte(modregrm(2,AX,BX));
                     off += 2;
                     off += ElfObj_writerel(codseg, off, reltype, sym, 0);
@@ -3786,7 +3800,7 @@ else
         {   // mov EBX,[EBP-4-align_]
             buf.writeByte(0x8B);
             buf.writeByte(modregrm(1,BX,BP));
-            buf.writeByte(cast(int)(-4-align_));
+            buf.writeByte(cast(ubyte)(-4-align_));
             off += 3;
         }
         // leave
@@ -3794,6 +3808,173 @@ else
         // ret
         buf.writeByte(0xC3);
         off += 2;
+        Offset(codseg) = off;
+
+        // put a reference into .init_array/.fini_array each
+        // needs to be writeable for PIC code, see Bugzilla 13117
+        const int flags = SHF_ALLOC | SHF_WRITE | SHF_GROUP;
+        {
+            const fini_name = USE_INIT_ARRAY() ? ".fini_array.d_dso_dtor" : ".dtors.d_dso_dtor";
+            const fini_type = USE_INIT_ARRAY() ? SHT_FINI_ARRAY : SHT_PROGBITS;
+            const cdseg = ElfObj_getsegment(fini_name.ptr, null, fini_type, flags, _tysize[TYnptr]);
+            assert(!SegData[cdseg].SDbuf.length());
+            // add to section group
+            SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(cdseg));
+            // relocation
+            const reltype2 = I64 ? R_X86_64_64 : R_386_32;
+            SegData[cdseg].SDoffset += ElfObj_writerel(cdseg, 0, reltype2, MAP_SEG2SYMIDX(codseg), 0);
+        }
+        {
+            const init_name = USE_INIT_ARRAY() ? ".init_array.d_dso_ctor" : ".ctors.d_dso_ctor";
+            const init_type = USE_INIT_ARRAY() ? SHT_INIT_ARRAY : SHT_PROGBITS;
+            const cdseg = ElfObj_getsegment(init_name.ptr, null, init_type, flags, _tysize[TYnptr]);
+            assert(!SegData[cdseg].SDbuf.length());
+            // add to section group
+            SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(cdseg));
+            // relocation
+            const reltype2 = I64 ? R_X86_64_64 : R_386_32;
+            SegData[cdseg].SDoffset += ElfObj_writerel(cdseg, 0, reltype2, MAP_SEG2SYMIDX(codseg), 0);
+        }
+    }
+    // set group section infos
+    Offset(groupseg) = SegData[groupseg].SDbuf.length();
+    Elf32_Shdr* p = MAP_SEG2SEC(groupseg);
+    p.sh_link    = SHN_SYMTAB;
+    p.sh_info    = dso_rec; // set the dso_rec as group symbol
+    p.sh_entsize = IDXSYM.sizeof;
+    p.sh_size    = cast(uint)Offset(groupseg);
+}
+
+/**********************************
+ * Same as obj_rtinit() but for AArch64
+ */
+private void obj_rtinit_aarch64()
+{
+    // section start/stop symbols are defined by the linker (https://www.airs.com/blog/archives/56)
+    // make the symbols hidden so that each DSO gets its own brackets
+    IDXSYM minfo_beg, minfo_end, dso_rec;
+
+    IDXSYM deh_beg, deh_end;
+
+    {
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const shf_flags = SHF_ALLOC | SHF_WRITE;
+
+    if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
+    {
+        const namidx3 = ElfObj_addstr(&elfobj.symtab_strings,"__start_deh");
+        deh_beg = elf_addsym(namidx3, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+
+        ElfObj_getsegment("deh", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
+
+        const namidx4 = ElfObj_addstr(&elfobj.symtab_strings,"__stop_deh");
+        deh_end = elf_addsym(namidx4, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+    }
+
+    const namidx = ElfObj_addstr(&elfobj.symtab_strings,"__start_minfo");
+    minfo_beg = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+
+    ElfObj_getsegment("minfo", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
+
+    const namidx2 = ElfObj_addstr(&elfobj.symtab_strings,"__stop_minfo");
+    minfo_end = elf_addsym(namidx2, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+    }
+
+    // Create a COMDAT section group
+    const groupseg = ElfObj_getsegment(".group.d_dso", null, SHT_GROUP, 0, 0);
+    SegData[groupseg].SDbuf.write32(GRP_COMDAT);
+
+    {
+        /*
+         * Create an instance of DSORec as global static data in the section .data.d_dso_rec
+         * It is writeable and allows the runtime to store information.
+         * Make it a COMDAT so there's only one per DSO.
+         *
+         * union DSO
+         * {
+         *     size_t id;
+         *     void*  data;
+         * }
+         */
+        const seg = ElfObj_getsegment(".data.d_dso_rec", null, SHT_PROGBITS,
+                         SHF_ALLOC|SHF_WRITE|SHF_GROUP, _tysize[TYnptr]);
+        dso_rec = MAP_SEG2SYMIDX(seg);
+        ElfObj_bytes(seg, 0, _tysize[TYnptr], null);
+        // add to section group
+        SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(seg));
+
+        /*
+         * see druntime/src/rt/sections_elf_shared.d
+         * Create an instance of this on the stack:
+         *
+         * struct CompilerDSOData
+         * {
+         *     size_t _version; // currently 1
+         *     DSO*   _slot;     // used to store runtime data
+         *     void*  minfo_beg, minfo_end;  // array of modules in this object file
+         * }
+         *
+         * Generate the function:
+         *
+         * void __dso_init()
+         * {
+         *   CompilerDSOData dso;
+         *   dso.minfo_end = &__stop_minfo;
+         *   dso.minfo_beg = &__start_minfo;
+         *   dso.slot      = &d_dso_rec;
+         *   dso.version   = 1;
+         *   _d_dso_registry(&dso);
+         * }
+         *
+         * and then put a pointer to that function in .init_array and in .fini_array so it'll
+         * get executed once upon loading and once upon unloading the DSO.
+         */
+        const codseg = ElfObj_getsegment(".text.d_dso_init", null, SHT_PROGBITS,
+                                SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, _tysize[TYnptr]);
+        // add to section group
+        SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(codseg));
+
+        debug
+        {
+            // adds a local symbol (name) to the code, useful to set a breakpoint
+            const namidx = ElfObj_addstr(&elfobj.symtab_strings, "__d_dso_init");
+            elf_addsym(namidx, 0, 0, STT_FUNC, STB_LOCAL, MAP_SEG2SECIDX(codseg));
+        }
+
+        OutBuffer* buf = SegData[codseg].SDbuf;
+        assert(!buf.length());
+        size_t off = 0;
+
+        static immutable uint[17] ins =
+        [   // implementation of __dso_init()
+            INSTR.ldstpair_pre(2,0,0,-48/8 & 127,30,31,29), // STP  x29,x30,[sp,#-48]!
+            INSTR.mov_add_addsub_imm(1,31,29),     // MOV  x29,sp
+            INSTR.adr(1,0,0),                      // ADRP x0,<minfo_end>  R_AARCH64_ADR_PREL_PG_HI21 minfo_end
+            INSTR.addsub_imm(1,0,0,0,0,0,0),       // ADD  x0,x0,#0x0      R_AARCH64_ADD_ABS_LO12_NC minfo_end
+            INSTR.str_imm_gen(1,0,31,40),          // STR  x0,[sp,#40]
+            INSTR.adr(1,0,0),                      // ADRP x0,<minfo_beg>  R_AARCH64_ADR_PREL_PG_HI21 minfo_beg
+            INSTR.addsub_imm(1,0,0,0,0,0,0),       // ADD  x0,x0,#0x0      R_AARCH64_ADD_ABS_LO12_NC minfo_beg
+            INSTR.str_imm_gen(1,0,31,32),          // STR  x0,[sp,#32]
+            INSTR.adr(1,0,0),                      // ADRP x0,<slot>       R_AARCH64_ADR_PREL_PG_HI21 slot
+            INSTR.addsub_imm(1,0,0,0,0,0,0),       // ADD  x0,x0,#0x0      R_AARCH64_ADD_ABS_LO12_NC slot
+            INSTR.str_imm_gen(1,0,31,24),          // STR  x0,[sp,#24]
+            INSTR.movewide(1,2,0,1,0),             // MOV  x0,#1
+            INSTR.str_imm_gen(1,0,31,16),          // STR  x0,[sp,#16]
+            INSTR.addsub_imm(1,0,0,0,0x10,31,0),   // ADD  x0,sp,#0x10
+            INSTR.bl(0),                           // BL   0<dso_registry> R_AARCH64_CALL26 dso_registry
+            INSTR.ldstpair_post(2,0,1,48/8,30,31,29),// LDP  x29,x30,[sp],#48
+            INSTR.ret(),                           // RET
+        ];
+        buf.write(ins);
+        ElfObj_writerel(codseg, off+ 2*4, R_AARCH64_ADR_PREL_PG_HI21, minfo_end, 0);
+        ElfObj_writerel(codseg, off+ 3*4, R_AARCH64_ADD_ABS_LO12_NC,  minfo_end, 0);
+        ElfObj_writerel(codseg, off+ 5*4, R_AARCH64_ADR_PREL_PG_HI21, minfo_beg, 0);
+        ElfObj_writerel(codseg, off+ 6*4, R_AARCH64_ADD_ABS_LO12_NC,  minfo_beg, 0);
+        ElfObj_writerel(codseg, off+ 8*4, R_AARCH64_ADR_PREL_PG_HI21, dso_rec,   0);
+        ElfObj_writerel(codseg, off+ 9*4, R_AARCH64_ADD_ABS_LO12_NC,  dso_rec,   0);
+        ElfObj_writerel(codseg, off+14*4, R_AARCH64_CALL26,           dso_rec,   0);
+        off = buf.length();
+
         Offset(codseg) = off;
 
         // put a reference into .init_array/.fini_array each

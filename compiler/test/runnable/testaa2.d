@@ -287,6 +287,47 @@ struct PropertyTable10106
 }
 
 /************************************************/
+// strip inout in key and value types
+void testinout()
+{
+    inout(long) func1(inout(long[][int]) aa)
+    {
+        return aa[0][0];
+    }
+    long[][int] a = [ 0 : [42] ];
+    long b = func1(a);
+    assert(b == 42);
+}
+
+/************************************************/
+// type info generated for enum creation in InExp?
+void testinenum()
+{
+    enum string[string] aa = [ "one" : "un", "two" : "deux" ];
+    assert("one" in aa);
+}
+
+// https://github.com/dlang/dmd/issues/21258
+void test21258()
+{
+	alias AliasSeq(TList...) = TList;
+
+	struct S { int x; } // use a local type to not generate required TypeInfo elsewhere
+    foreach (T; AliasSeq!(S[int]))
+        enum E { a = T.init, } // bug report uses bad syntax here, but this crashed, too
+}
+
+// https://github.com/dlang/dmd/issues/21207
+void test21207()
+{
+	struct S { int x; } // use a local type to not generate required TypeInfo elsewhere
+    enum aa = ["baz": S(7)];
+
+    void foo(S[string] x = aa) { }
+    foo();
+}
+
+/************************************************/
 
 int main()
 {
@@ -295,6 +336,9 @@ int main()
     test4523();
     test3825();
     test3825x();
+    testinout();
+    testinenum();
+    test21258();
 
     printf("Success\n");
     return 0;

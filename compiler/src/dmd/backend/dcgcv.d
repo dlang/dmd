@@ -5,11 +5,11 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dcgcv.d, backend/dcgcv.d)
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/dcgcv.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/dcgcv.d, backend/dcgcv.d)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/dcgcv.d
  */
 
 module dmd.backend.dcgcv;
@@ -310,7 +310,7 @@ idx_t cv_debtyp(debtyp_t* d)
         {
             // Hash consists of the sum of the first 4 bytes with the last 4 bytes
             union U { ubyte* cp; uint* up; }
-            U un = void;
+            U un;
             un.cp = d.data.ptr;
             hash += *un.up;
             un.cp += length - uint.sizeof;
@@ -1883,11 +1883,12 @@ private void cv4_func(Funcsym* s, ref symtab_t symtab)
         }
     }
 
-    varStats_writeSymbolTable(symtab, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
+    varStats_writeSymbolTable(sfunc, symtab, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
 
     // Put out function return record
     if (1)
-    {   ubyte[2+2+2+1+1+4] sreturn = void;
+    {
+        ubyte[2+2+2+1+1+4] sreturn;
         ushort flags;
         ubyte style;
         tym_t ty;

@@ -4,10 +4,10 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/machobj.d, backend/machobj.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/machobj.d, backend/machobj.d)
  */
 
 module dmd.backend.machobj;
@@ -53,14 +53,13 @@ alias nlist = dmd.backend.mach.nlist;   // avoid conflict with dmd.backend.dlist
  * put before nothrow because qsort was not marked nothrow until version 2.086
  */
 
-extern (C) {
+extern (C)
 @trusted
 private int mach_rel_fp(scope const(void*) e1, scope const(void*) e2)
 {   Relocation* r1 = cast(Relocation*)e1;
     Relocation* r2 = cast(Relocation*)e2;
 
     return cast(int)(r1.offset - r2.offset);
-}
 }
 
 @trusted
@@ -474,12 +473,12 @@ Obj MachObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname
     SegData.reset();   // recycle memory
     SegData.push();    // element 0 is reserved
 
-    int align_ = I64 ? 4 : 2;            // align to 16 bytes for floating point
+    int p2align = I64 ? 4 : 2;            // align to 16 bytes for floating point
     MachObj_getsegment("__text",  "__TEXT", 2, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
-    MachObj_getsegment("__data",  "__DATA", align_, S_REGULAR);     // DATA
-    MachObj_getsegment("__const", "__TEXT", 2, S_REGULAR);         // CDATA
-    MachObj_getsegment("__bss",   "__DATA", 4, S_ZEROFILL);        // UDATA
-    MachObj_getsegment("__const", "__DATA", align_, S_REGULAR);     // CDATAREL
+    MachObj_getsegment("__data",  "__DATA", p2align, S_REGULAR);    // DATA
+    MachObj_getsegment("__const", "__TEXT", 2, S_REGULAR);          // CDATA
+    MachObj_getsegment("__bss",   "__DATA", 4, S_ZEROFILL);         // UDATA
+    MachObj_getsegment("__const", "__DATA", p2align, S_REGULAR);    // CDATAREL
 
     dwarf_initfile(filename);
     return obj;
@@ -641,7 +640,7 @@ void MachObj_term(const(char)[] objfilename)
     // Write out the bytes for the header
     if (I64)
     {
-        mach_header_64 header = void;
+        mach_header_64 header;
 
         header.magic = MH_MAGIC_64;
         header.cputype = CPU_TYPE_X86_64;
@@ -666,7 +665,7 @@ void MachObj_term(const(char)[] objfilename)
     }
     else
     {
-        mach_header header = void;
+        mach_header header;
 
         header.magic = MH_MAGIC;
         header.cputype = CPU_TYPE_I386;
@@ -689,15 +688,10 @@ void MachObj_term(const(char)[] objfilename)
         foffset += header.sizeofcmds;
     }
 
-    segment_command segment_cmd = void;
-    segment_command_64 segment_cmd64 = void;
-    symtab_command symtab_cmd = void;
-    dysymtab_command dysymtab_cmd = void;
-
-    memset(&segment_cmd, 0, segment_cmd.sizeof);
-    memset(&segment_cmd64, 0, segment_cmd64.sizeof);
-    memset(&symtab_cmd, 0, symtab_cmd.sizeof);
-    memset(&dysymtab_cmd, 0, dysymtab_cmd.sizeof);
+    segment_command segment_cmd = segment_command.init;
+    segment_command_64 segment_cmd64 = segment_command_64.init;
+    symtab_command symtab_cmd = symtab_command.init;
+    dysymtab_command dysymtab_cmd = dysymtab_command.init;
 
     if (I64)
     {
@@ -1228,7 +1222,7 @@ void MachObj_term(const(char)[] objfilename)
     fobjbuf.reserve(cast(uint)(symtab_cmd.nsyms * (I64 ? nlist_64.sizeof : nlist.sizeof)));
     for (int i = 0; i < dysymtab_cmd.nlocalsym; i++)
     {   Symbol* s = (cast(Symbol**)local_symbuf.buf)[i];
-        nlist_64 sym = void;
+        nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
         sym.n_type = N_SECT;
         sym.n_desc = 0;
@@ -1242,7 +1236,7 @@ void MachObj_term(const(char)[] objfilename)
         }
         else
         {
-            nlist sym32 = void;
+            nlist sym32;
             sym32.n_strx = sym.n_strx;
             sym32.n_value = cast(uint)(s.Soffset + SecHdrTab[SegData[s.Sseg].SDshtidx].addr);
             sym32.n_type = sym.n_type;
@@ -1255,7 +1249,7 @@ void MachObj_term(const(char)[] objfilename)
     {   Symbol* s = (cast(Symbol**)public_symbuf.buf)[i];
 
         //printf("Writing public symbol %d:x%x %s\n", s.Sseg, s.Soffset, s.Sident);
-        nlist_64 sym = void;
+        nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
         sym.n_type = N_EXT | N_SECT;
         if (s.Sflags & SFLhidden)
@@ -1271,7 +1265,7 @@ void MachObj_term(const(char)[] objfilename)
         }
         else
         {
-            nlist sym32 = void;
+            nlist sym32;
             sym32.n_strx = sym.n_strx;
             sym32.n_value = cast(uint)(s.Soffset + SecHdrTab[SegData[s.Sseg].SDshtidx].addr);
             sym32.n_type = sym.n_type;
@@ -1282,7 +1276,7 @@ void MachObj_term(const(char)[] objfilename)
     }
     for (int i = 0; i < nexterns; i++)
     {   Symbol* s = (cast(Symbol**)extern_symbuf.buf)[i];
-        nlist_64 sym = void;
+        nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
         sym.n_value = s.Soffset;
         sym.n_type = N_EXT | N_UNDF;
@@ -1293,7 +1287,7 @@ void MachObj_term(const(char)[] objfilename)
             fobjbuf.write(&sym, sym.sizeof);
         else
         {
-            nlist sym32 = void;
+            nlist sym32;
             sym32.n_strx = sym.n_strx;
             sym32.n_value = cast(uint)sym.n_value;
             sym32.n_type = sym.n_type;
@@ -1304,28 +1298,28 @@ void MachObj_term(const(char)[] objfilename)
     }
     for (int i = 0; i < ncomdefs; i++)
     {   Comdef* c = (cast(Comdef*)comdef_symbuf.buf) + i;
-        nlist_64 sym = void;
+        nlist_64 sym;
         sym.n_strx = mach_addmangled(c.sym);
         sym.n_value = c.size * c.count;
         sym.n_type = N_EXT | N_UNDF;
-        int align_;
+        int p2align;
         if (c.size < 2)
-            align_ = 0;          // align_ is expressed as power of 2
+            p2align = 0;          // p2align is expressed as power of 2
         else if (c.size < 4)
-            align_ = 1;
+            p2align = 1;
         else if (c.size < 8)
-            align_ = 2;
+            p2align = 2;
         else if (c.size < 16)
-            align_ = 3;
+            p2align = 3;
         else
-            align_ = 4;
-        sym.n_desc = cast(ushort)(align_ << 8);
+            p2align = 4;
+        sym.n_desc = cast(ushort)(p2align << 8);
         sym.n_sect = 0;
         if (I64)
             fobjbuf.write(&sym, sym.sizeof);
         else
         {
-            nlist sym32 = void;
+            nlist sym32;
             sym32.n_strx = sym.n_strx;
             sym32.n_value = cast(uint)sym.n_value;
             sym32.n_type = sym.n_type;
@@ -1336,7 +1330,7 @@ void MachObj_term(const(char)[] objfilename)
     }
     if (extdef)
     {
-        nlist_64 sym = void;
+        nlist_64 sym;
         sym.n_strx = extdef;
         sym.n_value = 0;
         sym.n_type = N_EXT | N_UNDF;
@@ -1346,7 +1340,7 @@ void MachObj_term(const(char)[] objfilename)
             fobjbuf.write(&sym, sym.sizeof);
         else
         {
-            nlist sym32 = void;
+            nlist sym32;
             sym32.n_strx = sym.n_strx;
             sym32.n_value = cast(uint)sym.n_value;
             sym32.n_type = sym.n_type;
@@ -1583,11 +1577,11 @@ void MachObj_staticdtor(Symbol* s)
 @trusted
 void MachObj_setModuleCtorDtor(Symbol* sfunc, bool isCtor)
 {
-    const align_ = I64 ? 3 : 2; // align to _tysize[TYnptr]
+    const p2align = I64 ? 3 : 2; // align to _tysize[TYnptr]
 
     IDXSEC seg = isCtor
-                ? getsegment2(seg_mod_init_func, "__mod_init_func", "__DATA", align_, S_MOD_INIT_FUNC_POINTERS)
-                : getsegment2(seg_mod_term_func, "__mod_term_func", "__DATA", align_, S_MOD_TERM_FUNC_POINTERS);
+                ? getsegment2(seg_mod_init_func, "__mod_init_func", "__DATA", p2align, S_MOD_INIT_FUNC_POINTERS)
+                : getsegment2(seg_mod_term_func, "__mod_term_func", "__DATA", p2align, S_MOD_TERM_FUNC_POINTERS);
 
     const int relflags = I64 ? CFoff | CFoffset64 : CFoff;
     const int sz = MachObj_reftoident(seg, SegData[seg].SDoffset, sfunc, 0, relflags);
@@ -1610,9 +1604,9 @@ void MachObj_ehtables(Symbol* sfunc,uint size,Symbol* ehsym)
      * otherwise the duplicates aren't removed.
      */
 
-    int align_ = I64 ? 3 : 2;            // align to _tysize[TYnptr]
+    int p2align = I64 ? 3 : 2;            // align to _tysize[TYnptr]
     // The size is (FuncTable).sizeof in deh2.d
-    int seg = getsegment2(seg_deh_eh, "__deh_eh", "__DATA", align_, S_REGULAR);
+    int seg = getsegment2(seg_deh_eh, "__deh_eh", "__DATA", p2align, S_REGULAR);
 
     OutBuffer* buf = SegData[seg].SDbuf;
     if (I64)
@@ -1658,7 +1652,7 @@ int MachObj_comdat(Symbol* s)
 {
     const(char)* sectname;
     const(char)* segname;
-    int align_;
+    int p2align;
     int flags;
 
     //printf("MachObj_comdat(Symbol* %s)\n",s.Sident.ptr);
@@ -1669,37 +1663,37 @@ int MachObj_comdat(Symbol* s)
     {
         sectname = "__textcoal_nt";
         segname = "__TEXT";
-        align_ = 2;              // 4 byte alignment
+        p2align = 2;              // 4 byte alignment
         flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
-        s.Sseg = getsegment2(seg_textcoal_nt, sectname, segname, align_, flags);
+        s.Sseg = getsegment2(seg_textcoal_nt, sectname, segname, p2align, flags);
     }
     else if ((s.ty() & mTYLINK) == mTYweakLinkage)
     {
         s.Sfl = FL.data;
-        align_ = 4;              // 16 byte alignment
-        MachObj_data_start(s, 1 << align_, s.Sseg);
+        p2align = 4;              // 16 byte alignment
+        MachObj_data_start(s, 1 << p2align, s.Sseg);
     }
     else if ((s.ty() & mTYLINK) == mTYthread)
     {
         s.Sfl = FL.tlsdata;
-        align_ = 4;
+        p2align = 4;
         if (I64)
             s.Sseg = objmod.tlsseg().SDseg;
         else
-            s.Sseg = getsegment2(seg_tlscoal_nt, "__tlscoal_nt", "__DATA", align_, S_COALESCED);
-        MachObj_data_start(s, 1 << align_, s.Sseg);
+            s.Sseg = getsegment2(seg_tlscoal_nt, "__tlscoal_nt", "__DATA", p2align, S_COALESCED);
+        MachObj_data_start(s, 1 << p2align, s.Sseg);
     }
     else
     {
         s.Sfl = FL.data;
         sectname = "__datacoal_nt";
         segname = "__DATA";
-        align_ = 4;              // 16 byte alignment
-        s.Sseg = getsegment2(seg_datacoal_nt, sectname, segname, align_, S_COALESCED);
-        MachObj_data_start(s, 1 << align_, s.Sseg);
+        p2align = 4;              // 16 byte alignment
+        s.Sseg = getsegment2(seg_datacoal_nt, sectname, segname, p2align, S_COALESCED);
+        MachObj_data_start(s, 1 << p2align, s.Sseg);
     }
                                 // find or create new segment
-    if (s.Salignment > (1 << align_))
+    if (s.Salignment > (1 << p2align))
         SegData[s.Sseg].SDalignment = s.Salignment;
     s.Soffset = SegData[s.Sseg].SDoffset;
     if (s.Sfl == FL.data || s.Sfl == FL.tlsdata)
@@ -1728,13 +1722,13 @@ int MachObj_jmpTableSegment(Symbol* s)
 /**********************************
  * Get segment.
  * Input:
- *      align_   segment alignment as power of 2
+ *      p2align  segment alignment as power of 2
  * Returns:
  *      segment index of found or newly created segment
  */
 @trusted
 int MachObj_getsegment(const(char)* sectname, const(char)* segname,
-        int align_, int flags)
+        int p2align, int flags)
 {
     assert(strlen(sectname) <= 16);
     assert(strlen(segname)  <= 16);
@@ -1799,7 +1793,7 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
             SECbuf.writezeros(section_64.sizeof);
         strncpy(sec.sectname.ptr, sectname, 16);
         strncpy(sec.segname.ptr, segname, 16);
-        sec._align = align_;
+        sec._align = p2align;
         sec.flags = flags;
     }
     else
@@ -1808,7 +1802,7 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
             SECbuf.writezeros(section.sizeof);
         strncpy(sec.sectname.ptr, sectname, 16);
         strncpy(sec.segname.ptr, segname, 16);
-        sec._align = align_;
+        sec._align = p2align;
         sec.flags = flags;
     }
 
@@ -1826,16 +1820,16 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
  *      seg = value to memoize if it is not already set
  *      sectname = section name
  *      segname = segment name
- *      align_ = section alignment
+ *      p2align = section alignment as power of 2
  *      flags = S_????
  * Returns:
  *      seg index
  */
 int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
-        int align_, int flags)
+        int p2align, int flags)
 {
     if (seg == UNKNOWN)
-        seg = MachObj_getsegment(sectname, segname, align_, flags);
+        seg = MachObj_getsegment(sectname, segname, p2align, flags);
     return seg;
 }
 
@@ -2289,7 +2283,7 @@ void MachObj_byte(int seg,targ_size_t offset,uint byte_)
     int save = cast(int)buf.length();
     //dbg_printf("MachObj_byte(seg=%d, offset=x%lx, byte_=x%x)\n",seg,offset,byte_);
     buf.setsize(cast(uint)offset);
-    buf.writeByte(byte_);
+    buf.writeByte(cast(ubyte)byte_);
     if (save > offset+1)
         buf.setsize(save);
     else
@@ -2694,9 +2688,9 @@ int elf_align(targ_size_t size, int foffset)
 @trusted
 void MachObj_moduleinfo(Symbol* scc)
 {
-    int align_ = I64 ? 3 : 2; // align to _tysize[TYnptr]
+    int p2align = I64 ? 3 : 2; // align to _tysize[TYnptr]
 
-    int seg = MachObj_getsegment("__minfodata", "__DATA", align_, S_REGULAR);
+    int seg = MachObj_getsegment("__minfodata", "__DATA", p2align, S_REGULAR);
     //printf("MachObj_moduleinfo(%s) seg = %d:x%x\n", scc.Sident.ptr, seg, Offset(seg));
 
     int flags = CFoff;

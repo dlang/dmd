@@ -5,10 +5,10 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cdef.d, backend/_cdef.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cdef.d, backend/_cdef.d)
  */
 
 module dmd.backend.cdef;
@@ -180,7 +180,7 @@ enum
     DGROUPIDX = 1,     // group index of DGROUP
 }
 
-enum REGMAX = 32;      // registers are numbered 0...31
+enum REGMAX = 57;      // registers are numbered 0...63
 enum reg_t NOREG = REGMAX;  // no register
 
 alias tym_t = uint;    // data type big enough for type masks
@@ -650,19 +650,19 @@ union Vconst
         targ_llong      Vllong;
         targ_ullong     Vullong;
         Cent            Vcent;
-        targ_float      Vfloat;
-        targ_double     Vdouble;
-        targ_ldouble    Vldouble;
-        Complex_f       Vcfloat;   // 2x float
-        Complex_d       Vcdouble;  // 2x double
-        Complex_ld      Vcldouble; // 2x long double
+        targ_float      Vfloat = void; // FIXME: Floats have a void-initializer to give
+        targ_double     Vdouble = void; // the union has an all-zero initializer, see also bugzilla #23841
+        targ_ldouble    Vldouble = void;
+        Complex_f       Vcfloat = void;   // 2x float
+        Complex_d       Vcdouble = void;  // 2x double
+        Complex_ld      Vcldouble = void; // 2x long double
         targ_size_t     Vpointer;
         targ_ptrdiff_t  Vptrdiff;
         targ_uchar      Vreg;   // register number for OPreg elems
 
         // 16 byte vector types
-        targ_float[4]   Vfloat4;   // float[4]
-        targ_double[2]  Vdouble2;  // double[2]
+        targ_float[4]   Vfloat4 = void; // float[4]
+        targ_double[2]  Vdouble2 = void; // double[2]
         targ_schar[16]  Vschar16;  // byte[16]
         targ_uchar[16]  Vuchar16;  // ubyte[16]
         targ_short[8]   Vshort8;   // short[8]
@@ -673,8 +673,8 @@ union Vconst
         targ_ullong[2]  Vullong2;  // ulong[2]
 
         // 32 byte vector types
-        targ_float[8]   Vfloat8;   // float[8]
-        targ_double[4]  Vdouble4;  // double[4]
+        targ_float[8]   Vfloat8 = void; // float[8]
+        targ_double[4]  Vdouble4 = void; // double[4]
         targ_schar[32]  Vschar32;  // byte[32]
         targ_uchar[32]  Vuchar32;  // ubyte[32]
         targ_short[16]  Vshort16;  // short[16]

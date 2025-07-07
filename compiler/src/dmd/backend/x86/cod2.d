@@ -11,12 +11,12 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/x86/cod2.d, backend/cod2.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/x86/cod2.d, backend/cod2.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_x86_cod2.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/x86/cod2.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/x86/cod2.d
  */
 
 module dmd.backend.x86.cod2;
@@ -285,7 +285,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         // Handle the case of (var & const)
         if (e2.Eoper == OPconst && el_signx32(e2))
         {
-            code cs = void;
+            code cs;
             cs.Iflags = 0;
             cs.Irex = 0;
             getlvalue(cdb,cs,e1,0);
@@ -324,7 +324,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         regm_t retregs;
         if (isregvar(e2,retregs,reg))
         {
-            code cs = void;
+            code cs;
             cs.Iflags = 0;
             cs.Irex = 0;
             getlvalue(cdb,cs,e1,0);
@@ -340,7 +340,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         }
     }
 
-    code cs = void;
+    code cs;
     cs.Iflags = 0;
     cs.Irex = 0;
 
@@ -370,7 +370,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         {
             const inc = e.Ecount != 0;
             nest += inc;
-            code csx = void;
+            code csx;
             getlvalue(cdb,csx,e,0);
             nest -= inc;
             const regx = allocreg(cdb,pretregs,ty);
@@ -943,7 +943,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const uint grex = rex << 16;
     const OPER opunslng = I16 ? OPu16_32 : OPu32_64;
 
-    code cs = void;
+    code cs;
     cs.Iflags = 0;
     cs.Irex = 0;
 
@@ -1331,7 +1331,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const ubyte rex = (I64 && sz == 8) ? REX_W : 0;
     const uint grex = rex << 16;
 
-    code cs = void;
+    code cs;
     cs.Iflags = 0;
     cs.IFL2 = FL.unde;
     cs.Irex = 0;
@@ -1993,6 +1993,9 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdnot(cg, cdb, e, pretregs);
+
     //printf("cdnot()\n");
     reg_t reg;
     regm_t forflags;
@@ -2171,6 +2174,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    //printf("cdcom() pretregs: %s\n", regm_str(pretregs));
     if (cg.AArch64)
         return dmd.backend.arm.cod2.cdcom(cg, cdb, e, pretregs);
 
@@ -4110,6 +4114,9 @@ void cdmemcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdmemset(cg, cdb, e, pretregs);
+
     regm_t retregs1;
     regm_t retregs3;
     reg_t reg;
@@ -4430,6 +4437,9 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
 @trusted
 void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdstreq(cg, cdb, e, pretregs);
+
     char need_DS = false;
     elem* e1 = e.E1;
     elem* e2 = e.E2;
@@ -4639,6 +4649,9 @@ else
 @trusted
 void cdrelconst(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdrelconst(cg, cdb, e, pretregs);
+
     //printf("cdrelconst(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
 
     /* The following should not happen, but cgelem.c is a little stupid.
@@ -4746,7 +4759,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
         return dmd.backend.arm.cod2.getoffset(cg, cdb, e, reg);
 
     //printf("getoffset(e = %p, reg = %s)\n", e, regm_str(mask(reg)));
-    code cs = void;
+    code cs;
     cs.Iflags = 0;
     ubyte rex = 0;
     cs.Irex = rex;
@@ -4773,7 +4786,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                      *   LEA DI,s@TLSGD[RIP]
                      */
                     //assert(reg == DI);
-                    code css = void;
+                    code css;
                     css.Irex = REX | REX_W;
                     css.Iop = LEA;
                     css.Irm = modregrm(0,reg,5);
@@ -4792,7 +4805,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                      */
                     assert(reg == AX);
                     load_localgot(cdb);
-                    code css = void;
+                    code css;
                     css.Iflags = 0;
                     css.Iop = LEA;             // LEA
                     css.Irex = 0;
@@ -4822,7 +4835,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                 stack = 1;
             }
 
-            code css = void;
+            code css;
             css.Irex = rex;
             css.Iop = 0x8B;
             css.Irm = modregrm(0, 0, BPRM);
@@ -5206,7 +5219,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     //printf("cdpost(pretregs = %s)\n", regm_str(pretregs));
-    code cs = void;
+    code cs;
     const op = e.Eoper;                      // OPxxxx
     if (pretregs == 0)                        // if nothing to return
     {
@@ -5374,7 +5387,7 @@ if (config.exe & EX_windos)
     }
     else if (sz <= REGSIZE || tyfv(tyml))
     {
-        code cs2 = void;
+        code cs2;
 
         cs.Iop = 0x8B ^ isbyte;
         regm_t retregs = possregs & ~idxregs & pretregs;

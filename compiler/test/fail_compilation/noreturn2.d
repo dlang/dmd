@@ -55,7 +55,7 @@ NR returns()
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/noreturn2.d(64): Error: cannot implicitly convert expression `1` of type `int` to `noreturn`
+fail_compilation/noreturn2.d(64): Error: return value `1` of type `int` does not match return type `noreturn`, and cannot be implicitly converted
 ---
 +/
 
@@ -117,7 +117,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/noreturn2.d(130): Error: cannot create instance of interface `I`
 fail_compilation/noreturn2.d(133): Error: can only throw class objects derived from `Throwable`, not type `int[]`
-fail_compilation/noreturn2.d(138): Error: undefined identifier `UnkownException`
+fail_compilation/noreturn2.d(139): Error: undefined identifier `UnkownException`
 ---
 +/
 

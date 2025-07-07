@@ -343,6 +343,7 @@ DOCS=\
 	\
 	$(DOCDIR)\core_sys_windows_aclapi.html \
 	$(DOCDIR)\core_sys_windows_basetsd.html \
+	$(DOCDIR)\core_sys_windows_bcrypt.html \
 	$(DOCDIR)\core_sys_windows_cderr.html \
 	$(DOCDIR)\core_sys_windows_com.html \
 	$(DOCDIR)\core_sys_windows_core.html \
@@ -541,13 +542,12 @@ DOCS=\
 	$(DOCDIR)\rt_adi.html \
 	$(DOCDIR)\rt_alloca.html \
 	$(DOCDIR)\rt_arraycat.html \
-	$(DOCDIR)\rt_cast_.html \
 	$(DOCDIR)\rt_config.html \
 	$(DOCDIR)\rt_deh.html \
 	$(DOCDIR)\rt_deh_win32.html \
 	$(DOCDIR)\rt_deh_win64_posix.html \
 	$(DOCDIR)\rt_ehalloc.html \
-	$(DOCDIR)\rt_invariant.html \
+	$(DOCDIR)\rt_invariant_.html \
 	$(DOCDIR)\rt_llmath.html \
 	$(DOCDIR)\rt_memory.html \
 	$(DOCDIR)\rt_memset.html \

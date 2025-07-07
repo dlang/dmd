@@ -15,11 +15,11 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2022-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2022-2025 by The D Language Foundation, All Rights Reserved
  *              Some parts based on an inliner from the Digital Mars C compiler.
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/inliner.d, backend/inliner.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/inliner.d, backend/inliner.d)
  */
 
 // C++ specific routines
@@ -518,15 +518,15 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
             auto s2 = nextSymbol(si);
             if (!s2)
             {
-		for (size_t m = args.length; m; --m)
-		{
-		    elem* ex = args[m - 1];
-		    printf("arg[%d]\n", cast(int) m);
-		    elem_print(ex);
-		}
+                for (size_t m = args.length; m; --m)
+                {
+                    elem* ex = args[m - 1];
+                    printf("arg[%d]\n", cast(int) m);
+                    elem_print(ex);
+                }
 
                 printf("function: %s\n", funcsym_p.Sident.ptr);
-		printf("szs: %d sze: %d\n", cast(int)szs, cast(int)sze);
+                printf("szs: %d sze: %d\n", cast(int)szs, cast(int)sze);
                 printf("detected slice with %s\n", s.Sident.ptr);
                 symbol_print(*s); elem_print(e); assert(0);
             }

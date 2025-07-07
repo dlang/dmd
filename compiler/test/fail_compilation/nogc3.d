@@ -44,10 +44,10 @@ fail_compilation/nogc3.d(35): Error: `@nogc` function `nogc3.testCall` cannot ca
 TEST_OUTPUT:
 ---
 fail_compilation/nogc3.d(54): Error: function `nogc3.testClosure1` is `@nogc` yet allocates closure for `testClosure1()` with the GC
-fail_compilation/nogc3.d(57):        function `nogc3.testClosure1.bar` closes over variable `x`
+fail_compilation/nogc3.d(57):        function `bar` closes over variable `x`
 fail_compilation/nogc3.d(56):        `x` declared here
 fail_compilation/nogc3.d(66): Error: function `nogc3.testClosure3` is `@nogc` yet allocates closure for `testClosure3()` with the GC
-fail_compilation/nogc3.d(69):        function `nogc3.testClosure3.bar` closes over variable `x`
+fail_compilation/nogc3.d(69):        function `bar` closes over variable `x`
 fail_compilation/nogc3.d(68):        `x` declared here
 ---
 */
@@ -93,4 +93,34 @@ int[] bar13702(bool b) @nogc
         return [1];     // error <- no error report
     auto aux = 1 ~ [2]; // error
     return aux;
+}
+
+/**********  Enum and pointer types ***************/
+// https://github.com/dlang/dmd/issues/21052
+/*
+TEST_OUTPUT:
+---
+fail_compilation/nogc3.d(111): Error: this array literal causes a GC allocation in `@nogc` function `f`
+fail_compilation/nogc3.d(112): Error: this array literal causes a GC allocation in `@nogc` function `f`
+---
+*/
+
+void f() @nogc
+{
+    enum DA : int[] { a = [1,2,3] }
+    DA da = DA.a;
+    int i = *cast(int*)cast(char[4])['0', '0', '0', '0'];
+}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/nogc3.d(125): Error: this array literal causes a GC allocation in `@nogc` function `g`
+---
+*/
+
+// https://github.com/dlang/dmd/issues/21054
+void g() @nogc
+{
+    int[] x = (int[2]).init[];
 }

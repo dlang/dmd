@@ -115,19 +115,19 @@ class NoopDiagnosticReporter : DiagnosticReporter
     override int errorCount() { return 0; }
     override int warningCount() { return 0; }
     override int deprecationCount() { return 0; }
-    override bool error(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
-    override bool errorSupplemental(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
-    override bool warning(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
-    override bool warningSupplemental(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
-    override bool deprecation(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
-    override bool deprecationSupplemental(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+    override bool error(const ref SourceLoc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+    override bool errorSupplemental(const ref SourceLoc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+    override bool warning(const ref SourceLoc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+    override bool warningSupplemental(const ref SourceLoc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+    override bool deprecation(const ref SourceLoc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+    override bool deprecationSupplemental(const ref SourceLoc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
 }
 
 /// A single diagnostic.
 const struct Diagnostic
 {
     /// The location of the diagnostic.
-    Loc location;
+    SourceLoc location;
 
     /// The diagnostic message.
     string message;
@@ -157,7 +157,7 @@ struct DiagnosticCollector
 
     /// Handles a diagnostic.
     bool handleDiagnostic (
-        const ref Loc location,
+        const ref SourceLoc location,
         Color headerColor,
         const(char)* header,
         const(char)* messageFormat,

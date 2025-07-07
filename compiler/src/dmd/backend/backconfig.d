@@ -4,10 +4,10 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/backconfig.d, backend/backconfig.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/backconfig.d, backend/backconfig.d)
  */
 
 module dmd.backend.backconfig;
@@ -100,7 +100,8 @@ void out_config_init(
     }
     cfg.fulltypes = CVNONE;
     cfg.fpxmmregs = false;
-    cfg.inline8087 = 1;
+    if (!arm)
+        cfg.inline8087 = 1;
     cfg.memmodel = 0;
     cfg.flags |= CFGuchar;   // make sure TYchar is unsigned
     cfg.exe = exefmt;
@@ -312,6 +313,7 @@ static if (0)
     configv.vasm = vasm;
     configv.verbose = verbose;
 
+    go.AArch64 = arm;
     if (optimize)
         go_flag(go, cast(char*)"-o".ptr);
 
@@ -360,7 +362,8 @@ static if (0)
     cod3_setdefault();
     if (arm)
     {
-        util_set64(cfg.exe);
+        cfg.fpxmmregs = false; // add SIMD support later
+        util_setAArch64(cfg.exe);
         type_init();
         cod3_setAArch64();
     }
@@ -593,4 +596,23 @@ void util_set64(exefmt_t exe)
     _tyalignsize[TYsharePtr] = _tyalignsize[TYnptr];
     _tyalignsize[TYrestrictPtr] = _tyalignsize[TYnptr];
     _tyalignsize[TYfgPtr] = _tyalignsize[TYnptr];
+}
+
+@trusted
+void util_setAArch64(exefmt_t exe)
+{
+    util_set64(exe);
+
+    if (exe & EX_windos)
+    {
+        _tysize[TYldouble] = 16;
+        _tysize[TYildouble] = 16;
+        _tysize[TYcldouble] = 16;
+    }
+    if (exe & EX_windos)
+    {
+        _tyalignsize[TYldouble] = 16;
+        _tyalignsize[TYildouble] = 16;
+        _tyalignsize[TYcldouble] = 16;
+    }
 }

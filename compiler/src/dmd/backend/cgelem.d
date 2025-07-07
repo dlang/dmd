@@ -8,12 +8,12 @@
  * i.e. rewriting trees to less expensive trees.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgelem.d, backend/cgelem.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cgelem.d, backend/cgelem.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_cgelem.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgelem.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/cgelem.d
  *              Add coverage tests to https://github.com/dlang/dmd/blob/master/test/runnable/testcgelem.d
  */
 
@@ -1092,6 +1092,7 @@ private elem* elmul(elem* e, Goal goal)
         }
     }
 
+    bool useNegass = useOPnegass(tym) && e.Eoper == OPmulass;
     elem* e2 = e.E2;
     if (e2.Eoper == OPconst)           // try to replace multiplies with shifts
     {
@@ -1129,7 +1130,7 @@ private elem* elmul(elem* e, Goal goal)
                 }
             }
 
-            if (elemisnegone(e2))
+            if (elemisnegone(e2) && (e.Eoper == OPmul || useNegass))
             {
                 e.Eoper = (e.Eoper == OPmul) ? OPneg : OPnegass;
                 e.E2 = null;
@@ -1149,10 +1150,10 @@ private elem* elmul(elem* e, Goal goal)
                 again = 1;
                 return e;
             }
-            else if (el_allbits(e2,-1))
+            else if (el_allbits(e2,-1) && (e.Eoper == OPmul || useNegass))
                 goto Lneg;
         }
-        else if (elemisnegone(e2) && !tycomplex(e.E1.Ety))
+        else if (elemisnegone(e2) && !tycomplex(e.E1.Ety) && (e.Eoper == OPmul || useNegass))
         {
             goto Lneg;
         }
@@ -1861,7 +1862,7 @@ private elem* elor(elem* e, Goal goal)
      */
     if (sz == 4 && OPTIMIZER)
     {
-        elem*[4] ops = void;
+        elem*[4] ops;
         size_t opsi = 0;
         if (fillinops(ops, opsi, OPor, e) && opsi == ops.length)
         {
@@ -3286,6 +3287,8 @@ private elem* elind(elem* e, Goal goal)
     switch (e1.Eoper)
     {
         case OPrelconst:
+            if (sytab[e1.Vsym.Sclass] & SCDATA && e1.Vsym.Sfl != FL.func && cgstate.AArch64)
+                break;
             e.E1.ET = e.ET;
             e = el_selecte1(e);
             e.Eoper = OPvar;
@@ -3602,7 +3605,7 @@ elem* elstruct(elem* e, Goal goal)
             goto Ldefault;
 
         case 16:
-            if (I64 && (ty == TYstruct || (ty == TYarray && config.exe == EX_WIN64)))
+            if (I64 && (ty == TYstruct || (ty == TYarray && config.exe == EX_WIN64)) /*&& !cgstate.AArch64*/)
             {
                 tym = TYucent;
                 goto L1;
@@ -3639,6 +3642,8 @@ elem* elstruct(elem* e, Goal goal)
                 {
                     if (tyfloating(tybasic(targ1.Tty)))
                         tym = TYcdouble;
+                    else if (0 && cgstate.AArch64)
+                        goto Ldefault;
                     else
                         tym = TYucent;
                     if ((0 == tyfloating(targ1.Tty)) ^ (0 == tyfloating(targ2.Tty)))
@@ -3891,7 +3896,7 @@ static if (0)  // Doesn't work too well, removed
             }
         }
 
-        if (op2 == OPneg && el_match(e1,e2.E1) && !el_sideeffect(e1))
+        if (op2 == OPneg && el_match(e1,e2.E1) && !el_sideeffect(e1) && useOPnegass(e.Ety))
         {
             // Replace (i = -i) with (negass i)
             e.Eoper = OPnegass;
@@ -4430,13 +4435,19 @@ private elem* elcmp(elem* e, Goal goal)
         tym_t tym;
         int sz = tysize(e2.Ety);
 
-        if (e1.Eoper == OPu16_32 && e2.Vulong <= cast(targ_ulong) SHORTMASK ||
-            e1.Eoper == OPs16_32 &&
-            e2.Vlong == cast(targ_short) e2.Vlong)
+        /* The AArch64 does not have a compare short instruction, so the comparisons
+         * have to be done with the LDRH, etc., instructions
+         */
+        if (config.target_cpu != TARGET_AArch64)
         {
-            tym = (uns || e1.Eoper == OPu16_32) ? TYushort : TYshort;
-            e.E2 = el_una(OP32_16,tym,e2);
-            goto L2;
+            if (e1.Eoper == OPu16_32 && e2.Vulong <= cast(targ_ulong) SHORTMASK ||
+                e1.Eoper == OPs16_32 &&
+                e2.Vlong == cast(targ_short) e2.Vlong)
+            {
+                tym = (uns || e1.Eoper == OPu16_32) ? TYushort : TYshort;
+                e.E2 = el_una(OP32_16,tym,e2);
+                goto L2;
+            }
         }
 
         /* Try to convert to byte/word comparison for ((x & c)==d)
@@ -5207,6 +5218,9 @@ private elem* elu64_d(elem* e, Goal goal)
     if (!pu || (*pu).Eoper == OPconst)
         return evalu8(e, goal);
 
+    if (config.target_cpu == TARGET_AArch64)
+        return e;
+
     elem* u = *pu;
     if (config.fpxmmregs && I64 && (ty == TYfloat || ty == TYdouble))
     {
@@ -5431,7 +5445,8 @@ elem* elmsw(elem* e, Goal goal)
             e = evalu8(e, goal);
         }
     }
-    else if (OPTIMIZER && I64 &&
+    else if ((OPTIMIZER || config.target_cpu == TARGET_AArch64) &&
+        I64 &&
         tysize(e1.Ety) == CENTSIZE &&
         tysize(ty) == LLONGSIZE)
     {
@@ -5510,6 +5525,7 @@ private elem* elclassinit(elem* e, Goal goal)
 }
 
 /********************************************
+ * Handle OPva_start
  */
 
 @trusted
@@ -5613,7 +5629,10 @@ if (config.exe & EX_posix)
     if (va_argsave)
     {
         e.E2 = el_ptr(va_argsave);
-        e.E2.Voffset = 6 * 8 + 8 * 16; // offset to struct __va_list_tag defined in sysv_x64.d
+        if (cgstate.AArch64)
+            e.E2.Voffset = 8 * 8 + 8 * 16; // offset to struct __va_list_tag
+        else
+            e.E2.Voffset = 6 * 8 + 8 * 16; // offset to struct __va_list_tag defined in sysv_x64.d
         return el_combine(prolog_genva_start(va_argsave, parmn.Vsym), e);
     }
     else
@@ -6403,6 +6422,19 @@ private bool canHappenAfter(elem* a, elem* b)
            !(el_sideeffect(a) || el_sideeffect(b));
 }
 
+/***************************************************
+ * See if we want conversion of (e = -e) to OPnegass
+ * Params:
+ *      tym = the type of e in (e = -e)
+ * Returns:
+ *      true if convert to OPnegass
+ */
+@trusted private
+bool useOPnegass(tym_t tym)
+{
+    const ty = tybasic(tym);
+    return !(config.target_cpu == TARGET_AArch64 && (ty == TYldouble || ty == TYildouble));
+}
 
 /***************************************************
  * Call table, index is OPER

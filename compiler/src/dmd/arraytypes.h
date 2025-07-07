@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2006-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2006-2025 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -16,6 +16,8 @@
 typedef Array<class TemplateParameter *> TemplateParameters;
 
 typedef Array<class Expression *> Expressions;
+
+typedef Array<struct ArgumentLabel> ArgumentLabels;
 
 typedef Array<class Statement *> Statements;
 

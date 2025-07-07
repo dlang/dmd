@@ -1,6 +1,5 @@
-
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -73,7 +72,8 @@ enum CppStdRevision
     CppStdRevisionCpp11 = 201103,
     CppStdRevisionCpp14 = 201402,
     CppStdRevisionCpp17 = 201703,
-    CppStdRevisionCpp20 = 202002
+    CppStdRevisionCpp20 = 202002,
+    CppStdRevisionCpp23 = 202302,
 };
 
 /// Trivalent boolean to represent the state of a `revert`able change
@@ -158,15 +158,24 @@ struct Verbose
 struct ImportPathInfo
 {
     const char* path;
+    d_bool isOutOfBinary;
 
-    ImportPathInfo() : path(NULL) { }
-    ImportPathInfo(const char* p) : path(p) { }
+    ImportPathInfo() :
+        path(),
+        isOutOfBinary()
+    {
+    }
+    ImportPathInfo(const char* path, d_bool isOutOfBinary = false) :
+        path(path),
+        isOutOfBinary(isOutOfBinary)
+        {}
 };
 
 // Put command line switches in here
 struct Param
 {
     d_bool obj;           // write object file
+    d_bool readStdin;     // read source file from stdin
     d_bool multiobj;      // break one object file into multiple ones
     d_bool trace;         // insert profiling hooks
     d_bool tracegc;       // instrument calls to 'new'
@@ -193,6 +202,9 @@ struct Param
 
     Help help;
     Verbose v;
+
+    unsigned short edition;      // edition year
+    void* editionFiles;          // Edition corresponding to a filespec
 
     // Options for `-preview=/-revert=`
     FeatureState useDIP25;       // implement https://wiki.dlang.org/DIP25
@@ -250,8 +262,7 @@ struct Param
     Output mixinOut;          // write expanded mixins for debugging
     Output moduleDeps;        // Generate `.deps` module dependencies
 
-    unsigned debuglevel;   // debug level
-    unsigned versionlevel; // version level
+    d_bool debugEnabled;   // -debug flag is passed
 
     d_bool run;           // run resulting executable
     Strings runargs;    // arguments for executable
@@ -350,7 +361,7 @@ struct Global
     ErrorSink* errorSink;       // where the error messages go
     ErrorSink* errorSinkNull;   // where the error messages disappear
 
-    DArray<unsigned char> (*preprocess)(FileName, const Loc&, OutBuffer&);
+    DArray<unsigned char> (*preprocess)(FileName, Loc, OutBuffer&);
 
     /* Start gagging. Return the current number of gagged errors
      */
@@ -414,43 +425,46 @@ typedef unsigned long long uinteger_t;
 #endif
 
 // file location
+struct SourceLoc
+{
+    DString filename;
+    uint32_t line;
+    uint32_t column;
+    uint32_t fileOffset;
+    DString fileContent;
+};
+
 struct Loc
 {
 private:
-    unsigned _linnum;
-    unsigned _charnum;
-    unsigned fileIndex;
+
+    unsigned int index;
+
+#if MARS && defined(__linux__) && defined(__i386__)
+    unsigned int dummy;
+#endif
+
 public:
     static void set(bool showColumns, MessageStyle messageStyle);
+    static Loc singleFilename(const char* const filename);
 
     static bool showColumns;
     static MessageStyle messageStyle;
 
     Loc()
     {
-        _linnum = 0;
-        _charnum = 0;
-        fileIndex = 0;
-    }
-
-    Loc(const char *filename, unsigned linnum, unsigned charnum)
-    {
-        this->linnum(linnum);
-        this->charnum(charnum);
-        this->filename(filename);
+        index = 0;
     }
 
     uint32_t charnum() const;
-    uint32_t charnum(uint32_t num);
     uint32_t linnum() const;
-    uint32_t linnum(uint32_t num);
     const char *filename() const;
-    void filename(const char *name);
+    SourceLoc toSourceLoc() const;
 
     const char *toChars(
         bool showColumns = Loc::showColumns,
         MessageStyle messageStyle = Loc::messageStyle) const;
-    bool equals(const Loc& loc) const;
+    bool equals(Loc loc) const;
 };
 
 enum class LINK : uint8_t

@@ -2,12 +2,12 @@
  * Manipulating basic blocks and their edges.
  *
  * Copyright:   Copyright (C) 1986-1997 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/blockopt.d, backend/blockopt.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/blockopt.d, backend/blockopt.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_blockopt.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/blockopt.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/blockopt.d
  */
 
 module dmd.backend.blockopt;

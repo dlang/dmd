@@ -10,12 +10,12 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/arm/cod3.d, backend/cod3.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/arm/cod3.d, backend/cod3.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_arm_cod3.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/arm/cod3.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/backend/arm/cod3.d
  */
 
 module dmd.backend.arm.cod3;
@@ -30,6 +30,8 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcse;
 import dmd.backend.code;
+import dmd.backend.arm.cod1 : loadFromEA, storeToEA;
+import dmd.backend.arm.disasmarm : encodeHFD;
 import dmd.backend.x86.cgcod : disassemble;
 import dmd.backend.x86.code_x86;
 import dmd.backend.x86.cod3;
@@ -66,6 +68,8 @@ nothrow:
 @trusted
 void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint idx)
 {
+    //printf("REGSAVE_save() %s\n", regm_str(mask(reg)));
+    // TODO AArch64 do 128 bit registers
     if (!regsave.alignment)
         regsave.alignment = REGSIZE;
     idx = regsave.idx;
@@ -77,7 +81,17 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
     cs.base = cgstate.BP;
     cs.index = NOREG;
     cs.IFL1 = FL.regsave;
-    cs.Iop = INSTR.str_imm_gen(1,reg,cs.base,idx);
+    if (mask(reg) & INSTR.FLOATREGS)
+    {
+        uint imm12 = idx;
+        uint sz = 8;
+        uint size, opc;
+        INSTR.szToSizeOpc(sz, size, opc);
+        imm12 /= sz;
+        cs.Iop = INSTR.str_imm_fpsimd(size,opc,imm12,cs.base,reg);
+    }
+    else
+        cs.Iop = INSTR.str_imm_gen(1,reg,cs.base,idx);
     cdb.gen(&cs);
 
     cgstate.reflocal = true;
@@ -93,19 +107,31 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
 @trusted
 void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint idx)
 {
+    //printf("REGSAVE_restore() %s\n", regm_str(mask(reg)));
     // LDR reg,[BP, #idx]
     code cs;
     cs.reg = reg;
     cs.base = cgstate.BP;
     cs.index = NOREG;
     cs.IFL1 = FL.regsave;
-    cs.Iop = INSTR.ldr_imm_gen(1,reg,cs.base,idx);
+    if (mask(reg) & INSTR.FLOATREGS)
+    {
+        uint imm12 = idx;
+        uint sz = 8;
+        uint size, opc;
+        INSTR.szToSizeOpc(sz, size, opc);
+        imm12 /= sz;
+        cs.Iop = INSTR.ldr_imm_fpsimd(size,opc,imm12,cs.base,reg);
+    }
+    else
+        cs.Iop = INSTR.ldr_imm_gen(1,reg,cs.base,idx);
     cdb.gen(&cs);
 }
 
 
 // https://www.scs.stanford.edu/~zyedidia/arm64/b_cond.html
-bool isBranch(uint ins) { return (ins & ((0xFF << 24) | (1 << 4))) == ((0x54 << 24) | (0 << 4)); }
+// https://www.scs.stanford.edu/~zyedidia/arm64/bc_cond.html
+bool isBranch(uint ins) { return (ins & 0xFF00_0000) == 0x5400_0000; }
 
 enum MARS = true;
 
@@ -204,21 +230,95 @@ COND conditionCode(elem* e)
 // cod3_ptrchk
 // cod3_useBP
 // cse_simple
-// gen_storecse
-// gen_testcse
-// gen_loadcse
+
+/**************************
+ * Store `reg` to the common subexpression save area in index `slot`.
+ * Params:
+ *      cdb = where to write code to
+ *      tym = type of value that's in `reg`
+ *      reg = register to save
+ *      slot = index into common subexpression save area
+ */
+@trusted
+void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
+{
+    //printf("gen_storecse() tym: %s reg: %d slot: %d\n", tym_str(tym), reg, cast(int)slot);
+    // MOV slot[BP],reg
+    if (tyvector(tym)) // TODO AArch64
+    {
+        assert(0);
+        //const aligned = tyvector(tym) ? STACKALIGN >= 16 : true;
+        //const op = xmmstore(tym, aligned);
+        //cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FL.cs,cast(targ_size_t)slot);
+        //return;
+    }
+    code cs;
+    cs.IFL1 = FL.cs;
+    cs.Iflags = CFoff;
+    cs.reg = NOREG;
+    cs.index = NOREG;
+    cs.base = 29;   // SP? BPRM? TODO AArch64
+    cs.Sextend = 0;
+    cs.IEV1.Vsym = null;
+    cs.IEV1.Voffset = slot;
+    storeToEA(cs, reg, tysize(tym));
+    assert(cs.Iop);
+    cdb.gen(&cs);
+}
+
+@trusted
+void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
+{
+    //printf("gen_loadcse() tym: %s reg: %d slot: %d\n", tym_str(tym), reg, cast(int)slot);
+    // MOV reg,slot[BP]
+    if (tyvector(tym)) // TODO AArch64
+    {
+        assert(0);
+        //const aligned = tyvector(tym) ? STACKALIGN >= 16 : true;
+        //const op = xmmload(tym, aligned);
+        //cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FL.cs,cast(targ_size_t)slot);
+        //return;
+    }
+    code cs;
+    cs.IFL1 = FL.cs;
+    cs.Iflags = CFoff;
+    cs.reg = NOREG;
+    cs.index = NOREG;
+    cs.base = 29;   // SP? BPRM? TODO AArch64
+    cs.Sextend = 0;
+    cs.IEV1.Vsym = null;
+    cs.IEV1.Voffset = slot;
+    uint szr = tysize(tym);
+    uint szw = szr == 8 ? 8 : 4;
+    loadFromEA(cs, reg, szw, szr);
+    cdb.gen(&cs);
+}
+
 // cdframeptr
 // cdgot
 // load_localgot
 // obj_namestring
 // genregs
-// gentstreg
+
+/*******************************
+ * Set flags for register contents
+ * Params:
+ *      cdb = code sink
+ *      reg = register to test
+ *      sf = true for 64 bits
+ */
+void gentstreg(ref CodeBuilder cdb, reg_t reg, uint sf)
+{
+    // CMP reg,#0
+    cdb.gen1(INSTR.cmp_imm(sf, 0, 0, reg));
+    code_orflag(cdb.last(),CFpsw);
+}
+
 // genpush
 // genpop
 // genmovreg
 // genmulimm
 // genshift
-// movregconst
 
 /**************************
  * Generate a jump instruction.
@@ -228,7 +328,7 @@ COND conditionCode(elem* e)
 void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 {
     code cs;
-    cs.Iop = ((0x54 << 24) | cond);
+    cs.Iop = INSTR.b_cond(0, cond);     // offset is 0 for now, fix in codout()
     cs.Iflags = 0;
     cs.IFL1 = fltarg;                   // FL.block (or FL.code)
     cs.IEV1.Vblock = targ;              // target block (or code)
@@ -245,10 +345,328 @@ void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 // prolog_frameadj
 // prolog_frameadj2
 // prolog_setupalloca
-// prolog_saveregs
-// epilog_restoreregs
-// prolog_genvarargs
-// prolog_genva_start
+
+/**************************************
+ * Save registers that the function destroys,
+ * but that the ABI says should be preserved across
+ * function calls.
+ *
+ * Emit Dwarf info for these saves.
+ * Params:
+ *      cg = code generator state
+ *      cdb = sink for generated instructions
+ *      topush = mask of registers to push
+ *      cfa_offset = offset of frame pointer from CFA
+ */
+
+@trusted
+void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa_offset)
+{
+    //printf("prolog_saveregs() topush: %s pushoffuse: %d\n", regm_str(topush), cg.pushoffuse);
+    //printf("function: %s\n", funcsym_p.Sident.ptr);
+    assert(!(topush & ~fregsaved));
+    assert(cg.pushoffuse || !topush);
+
+    // Save to preallocated section in the stack frame
+    int xmmtopush = 0;
+    int gptopush = popcnt(topush);  // general purpose registers to save
+    //targ_size_t gpoffset = cg.pushoff + cg.BPoff + localsize;
+    targ_size_t gpoffset = 8 + 8;   // skip over x29,x30
+    reg_t fp;                       // frame pointer
+    if (!cg.hasframe || cg.enforcealign)
+    {
+        gpoffset += cg.EBPtoESP;
+        fp = 31;        // SP
+    }
+    else
+        fp = 29;        // BP
+
+    while (topush)
+    {
+        reg_t reg = findreg(topush);
+        topush &= ~mask(reg);
+
+        const ins = (mask(reg) & INSTR.FLOATREGS)
+            // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+            ? INSTR.str_imm_fpsimd(3,0,cast(uint)gpoffset >> 3,fp,reg) // STR reg,[fp,#offset]
+            : INSTR.str_imm_gen(1, reg, fp, gpoffset);            // STR reg,[fp,#offset]
+        cdb.gen1(ins);
+
+        if (0) // TODO AArch64
+        if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
+            config.ehmethod == EHmethod.EH_DWARF)
+        {   // Emit debug_frame data giving location of saved register
+            code* c = cdb.finish();
+            pinholeopt(c, null);
+            dwarf_CFA_set_loc(calcblksize(c));  // address after save
+            dwarf_CFA_offset(reg, cast(int)(gpoffset - cfa_offset));
+            cdb.reset();
+            cdb.append(c);
+        }
+        gpoffset += REGSIZE;
+    }
+}
+
+/**************************************
+ * Undo prolog_saveregs()
+ */
+
+@trusted
+private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topop)
+{
+    //printf("prolog_restoreregs() topop: %s\n", regm_str(topop));
+    assert(cg.AArch64);
+
+    assert(cg.pushoffuse || !topop);
+
+    // Save to preallocated section in the stack frame
+    int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
+    int gptopop = popcnt(topop);   // general purpose registers to save
+    //targ_size_t gpoffset = cg.pushoff + cg.BPoff + localsize;
+    targ_size_t gpoffset = 8 + 8; // skip over x29,x30
+
+    reg_t fp;
+    if (!cg.hasframe || cg.enforcealign)
+    {
+        gpoffset += cg.EBPtoESP;
+        fp = 31;        // SP
+    }
+    else
+        fp = 29;        // BP
+
+    while (topop)
+    {
+        reg_t reg = findreg(topop);
+        topop &= ~mask(reg);
+
+        const ins = (mask(reg) & INSTR.FLOATREGS)
+            // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
+            ? INSTR.ldr_imm_fpsimd(3,1,cast(uint)gpoffset >> 3,fp,reg) // LDR reg,[fp,#offset]
+            : INSTR.ldr_imm_gen(1, reg, fp, gpoffset);            // LDR reg,[fp,#offset]
+        cdb.gen1(ins);
+        gpoffset += REGSIZE;
+    }
+}
+
+
+/******************************
+ * Generate special varargs prolog for Posix 64 bit systems.
+ * Params:
+ *      cg = code generator state
+ *      cdb = sink for generated code
+ *      sv = symbol for __va_argsave
+ */
+@trusted
+void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
+{
+    printf("prolog_genvarargs()\n");
+    /* Generate code to move any arguments passed in registers into
+     * the stack variable __va_argsave,
+     * so we can reference it via pointers through va_arg().
+     *   struct __va_argsave_t {
+     *     ulong[8] regs;      // 8 byte
+     *     ldouble[8] fpregs;  // 16 byte
+     *     struct __va_list_tag // embedded within __va_argsave_t
+     *     {
+     *         void* stack;  // next stack param
+     *         void* gr_top; // end of GP arg reg save area
+     *         void* vr_top; // end of FP/SIMD arg reg save area
+     *         int gr_offs;  // offset from gr_top to next GP register arg
+     *         int vr_offs;  // offset from vr_top to next FP/SIMD register arg
+     *     }
+     *     void* stack_args_save; // set by prolog_genvarargs()
+     *   }
+     * The instructions seg fault if data is not aligned on
+     * 16 bytes, so this gives us a nice check to ensure no mistakes.
+        STR     x0,[sp, #voff+0*8]
+        STR     x1,[sp, #voff+1*8]
+        STR     x2,[sp, #voff+2*8]
+        STR     x3,[sp, #voff+3*8]
+        STR     x4,[sp, #voff+4*8]
+        STR     x5,[sp, #voff+5*8]
+        STR     x6,[sp, #voff+6*8]
+        STR     x7,[sp, #voff+7*8]
+
+        STR     q0,[sp, #voff+8*8+0*16]
+        STR     q1,[sp, #voff+8*8+1*16]
+        STR     q2,[sp, #voff+8*8+2*16]
+        STR     q3,[sp, #voff+8*8+3*16]
+        STR     q4,[sp, #voff+8*8+4*16]
+        STR     q5,[sp, #voff+8*8+5*16]
+        STR     q6,[sp, #voff+8*8+6*16]
+        STR     q7,[sp, #voff+8*8+7*16]
+
+        ADD     reg,sp,Para.size+Para.offset
+        STR     reg,[sp,#voff+8*8+8*16+8*4]         // set __va_argsave.stack_args
+    */
+
+    /* Save registers into the voff area on the stack
+     */
+    targ_size_t voff = cg.Auto.size + cg.BPoff + sv.Soffset;  // EBP offset of start of sv
+
+    if (!cg.hasframe || cg.enforcealign)
+        voff += cg.EBPtoESP;
+
+    regm_t namedargs = prolog_namedArgs();
+    printf("voff: %llx\n", voff);
+    foreach (reg_t x; 0 .. 8)
+    {
+        if (!(mask(x) & namedargs))  // unnamed arguments would be the ... ones
+        {
+            //printf("offset: x%x %lld\n", cast(uint)voff + x * 8, voff + x * 8);
+            uint offset = cast(uint)voff + x * 8;
+            if (!cg.hasframe || cg.enforcealign)
+                cdb.gen1(INSTR.str_imm_gen(1,x,31,offset)); // STR x,[sp,#offset]
+            else
+                cdb.gen1(INSTR.str_imm_gen(1,x,29,offset)); // STR x,[bp,#offset]
+        }
+    }
+
+    foreach (reg_t q; 32 + 0 .. 32 + 8)
+    {
+        if (!(mask(q) & namedargs))  // unnamed arguments would be the ... ones
+        {
+            reg_t fp = (!cg.hasframe || cg.enforcealign) ? 31 : 29; // SP : BP
+            uint offset = cast(uint)voff + 8 * 8 + (q & 31) * 16;
+            offset /= 16;                                     // saving 128 bit Q registers
+            cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,fp,q));  // STR q,[sp,#offset]
+        }
+    }
+
+    reg_t reg = 11;
+    uint imm12 = cast(uint)(cg.Para.size + cg.Para.offset);
+    assert(imm12 < 0x1000);
+    cdb.gen1(INSTR.addsub_imm(1,0,0,0,imm12,31,reg));   // ADD reg,sp,imm12
+    uint offset = cast(uint)voff+8*8+8*16+8*4;
+    printf("voff: %llx offset: %x\n", voff, offset);
+offset &= 0xFFF; // TODO AArch64
+    assert(offset < 0x1000);
+    cdb.gen1(INSTR.str_imm_gen(1,reg,31,offset));       // STR reg,[sp,#voff+8*8+8*16+8*4]
+    useregs(mask(reg));
+}
+
+/********************************
+ * Generate elems that implement va_start()
+ * Params:
+ *      sv = symbol for __va_argsave
+ *      parmn = last named parameter
+ */
+@trusted
+elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
+{
+    printf("prolog_genva_start()\n");
+
+    /* the stack variable __va_argsave points to an instance of:
+     *   struct __va_argsave_t {
+     *     ulong[8] regs;        // 8 bytes each
+     *     float128[8] fpregs;   // 16 bytes each
+     *     // AArch64 Procedure Call Standard 12.2
+     *     struct __va_list_tag // embedded within __va_argsave_t
+     *     {
+     *         void* stack;  // next stack param
+     *         void* gr_top; // end of GP arg reg save area
+     *         void* vr_top; // end of FP/SIMD arg reg save area
+     *         int gr_offs;  // offset from gr_top to next GP register arg
+     *         int vr_offs;  // offset from vr_top to next FP/SIMD register arg
+     *     }
+     *     void* stack_args_save; // set by prolog_genvarargs()
+     *   }
+     */
+
+    enum OFF // offsets into __va_argsave_t
+    {
+        stack   = 8 * 8 + 16 * 8,
+        gr_top  = stack + 8,
+        vr_top  = gr_top + 8,
+        gr_offs = vr_top + 8,
+        vr_offs = gr_offs + 4,
+        stack_args_save = vr_offs + 4,
+    }
+
+    regm_t namedargs = prolog_namedArgs(); // mask of named arguments
+
+    // AArch64 Procedure Call Standard 12.3
+    uint named_gr;      // number of general registers known to hold named incoming arguments
+    foreach (reg_t x; 0 .. 8)
+    {
+        if (!namedargs)
+            break;
+        regm_t m = mask(x);
+        if (m & namedargs)
+        {
+            ++named_gr;
+            namedargs &= ~m;
+        }
+    }
+
+    uint named_vr;      // number of FP/SIMD registers known to hold named incoming arguments
+    foreach (reg_t q; 32 + 0 .. 32 + 8)
+    {
+        if (!namedargs)
+            break;
+        regm_t m = mask(q);
+        if (m & namedargs)
+        {
+            ++named_vr;
+            namedargs &= ~m;
+        }
+    }
+
+    // set stack to address following the last named incoming argument on the stack
+    // rounded upwards to a multiple of 8 bytes, or if there are no named arguments on the stack, then
+    // the value of the stack pointer when the function was entered.
+    /* set stack_args
+     * which is a pointer to the first variadic argument on the stack.
+     * Normally, we could set it by taking the address of the last named parameter
+     * (parmn) and then skipping past it. The trouble, though, is it fails
+     * when all the named parameters get passed in a register.
+     *    elem* e3 = el_bin(OPeq, TYnptr, el_var(sv), el_ptr(parmn));
+     *    e3.E1.Ety = TYnptr;
+     *    e3.E1.Voffset = OFF.Stack_args;
+     *    auto sz = type_size(parmn.Stype);
+     *    sz = (sz + (REGSIZE - 1)) & ~(REGSIZE - 1);
+     *    e3.E2.Voffset += sz;
+     * The next possibility is to do it the way prolog_genvarargs() does:
+     *    LEA R11, Para.size+Para.offset[RBP]
+     * The trouble there is Para.size and Para.offset is not available when
+     * this function is called. It might be possible to compute this earlier.(1)
+     * Another possibility is creating a special operand type that gets filled
+     * in after the prolog_genvarargs() is called.
+     * Or do it this simpler way - compute the needed value in prolog_genvarargs(),
+     * and save it in a slot just after va_argsave, called `stack_args_save`.
+     * Then, just copy from `stack_args_save` to `stack_args`.
+     * Although, doing (1) might be optimal.
+     */
+    elem* e1 = el_bin(OPeq, TYnptr, el_var(sv), el_var(sv)); // stack = stack_args_save
+    e1.E1.Ety = TYnptr;
+    e1.E1.Voffset = OFF.stack;
+    e1.E2.Ety = TYnptr;
+    e1.E2.Voffset = OFF.stack_args_save;
+
+    // set gr_top to address following the general register save area
+    elem* e2 = el_bin(OPeq, TYptr, el_var(sv), el_ptr(sv));
+    e2.E1.Voffset = OFF.vr_offs;
+
+    // set vr_top to address following the FP/SIMD register save area
+    elem* ex3 = el_bin(OPadd, TYptr, el_ptr(sv), el_long(TYlong, 8 * 8));
+    elem* e3 = el_bin(OPeq,TYptr,el_var(sv),ex3);
+    e3.E1.Ety = TYptr;
+    e3.E1.Voffset = OFF.vr_offs;
+
+    // set gr_offs
+    elem* e4 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_gr) * 8)));
+    e4.E1.Ety = TYint;
+    e4.E1.Voffset = OFF.gr_offs;
+
+    // set vr_offs
+    elem* e5 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_vr) * 16)));
+    e5.E1.Ety = TYint;
+    e5.E1.Voffset = OFF.vr_offs;
+
+    elem* e = el_combine(e1, el_combine(e2, el_combine(e3, el_combine(e4, e5))));
+    return e;
+}
+
 // prolog_gen_win64_varargs
 // prolog_namedArgs
 // prolog_loadparams
@@ -312,7 +730,7 @@ void epilog(block* b)
      * order they were pushed.
      */
     topop = fregsaved & ~cgstate.mfuncreg;
-//    epilog_restoreregs(cdbx, topop); // implement
+    epilog_restoreregs(cgstate, cdbx, topop);
 
     if (cgstate.usednteh & NTEHjmonitor)
     {
@@ -370,7 +788,25 @@ void epilog(block* b)
             else
             {
                 if (log) printf("epilog: mov sp,bp\n");
-                cdbx.gen1(INSTR.ldstpair_post(2, 0, 1, cast(uint)(16 + localsize) / 8, 30, 31, 29)); // LDP x29,x30,[sp],#16 + localsize
+                if (16 + xlocalsize <= 512) // or localsize??
+                    cdbx.gen1(INSTR.ldstpair_post(2, 0, 1, cast(uint)(16 + localsize) / 8, 30, 31, 29)); // LDP x29,x30,[sp],#16 + localsize
+                else
+                {
+                    /* LDP x29,x30,[sp] https://www.scs.stanford.edu/~zyedidia/arm64/ldp_gen.html
+                     */
+                    uint opc = 2;
+                    uint VR = 0;
+                    uint L = 1;
+                    uint imm7 = 0;
+                    reg_t Rt2 = 30;
+                    reg_t Rn = 0x1F;
+                    reg_t Rt = 29;
+                    cdbx.gen1(INSTR.ldstpair_off(opc,VR,L,imm7,Rt2,Rn,Rt));
+                    /* ADD sp,sp,#off
+                     * ADD sp,sp,#off + lsl #12
+                     */
+                    cod3_stackadj(cdbx, cast(int)(-(16 + xlocalsize)));
+                }
             }
         }
         else
@@ -441,7 +877,97 @@ Lret:
 
 // cod3_spoff
 // gen_spill_reg
-// cod3_thunk
+
+/****************************
+ * Generate code for, and output a thunk.
+ * Params:
+ *      sthunk =  Symbol of thunk
+ *      sfunc =   Symbol of thunk's target function
+ *      thisty =  Type of this pointer
+ *      p =       ESP parameter offset to this pointer (0 for D)
+ *      d =       offset to add to 'this' pointer
+ *      d2 =      offset from 'this' to vptr (0 for D)
+ *      i =       offset into vtbl[] (-1 for D)
+ */
+@trusted
+void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
+        uint d,int i,uint d2)
+{
+    assert(p == 0 && i == -1 && d2 == 0); // for single inheritance
+
+    targ_size_t thunkoffset;
+
+    int seg = sthunk.Sseg;
+    cod3_align(seg);
+
+    // Skip over return address
+    tym_t thunkty = tybasic(sthunk.ty());
+
+    CodeBuilder cdb; cdb.ctor();
+
+    /*
+       Generate:
+        ADD p[ESP],d
+       For direct call:
+        JMP sfunc
+       For virtual call:
+        MOV EAX, p[ESP]                     EAX = this
+        MOV EAX, d2[EAX]                    EAX = this.vptr
+        JMP i[EAX]                          jump to virtual function
+     */
+    if (config.flags3 & CFG3ibt)
+        //cdb.gen1(I32 ? ENDBR32 : ENDBR64);
+        assert(0); // TODO AArch64
+
+    uint op = 0;                           // ADD
+    if (cast(int)d < 0)
+    {
+        d = -d;
+        op = 1;                            // switch from ADD to SUB
+    }
+    if (thunkty == TYmfunc || thunkty == TYjfunc || thunkty == TYnfunc)
+    {
+        uint sh = 0;
+        reg_t r0 = 0;
+        cdb.gen1(INSTR.addsub_imm(1,op,0,sh,d,r0,r0)); // ADD/SUB r0,r0,d
+    }
+    else
+    {
+        assert(0);
+    }
+
+    if (0 && config.flags3 & CFG3pic)   // TODO AArch64
+    {
+        localgot = null;                // no local variables
+        CodeBuilder cdbgot; cdbgot.ctor();
+        load_localgot(cdbgot);          // load GOT in EBX
+        code* c1 = cdbgot.finish();
+        if (c1)
+        {
+            assignaddrc(c1);
+            cdb.append(c1);
+        }
+    }
+    cdb.gencs1(INSTR.bl(0),0,FL.func,sfunc); // BL sfunc // http://www.scs.stanford.edu/~zyedidia/arm64/bl.html
+    cdb.last().Iflags |= (CFselfrel | CFoff);
+
+    thunkoffset = Offset(seg);
+    code* c = cdb.finish();
+    //pinholeopt(c,null);
+    targ_size_t framehandleroffset;
+    codout(seg,c,null,framehandleroffset);
+    code_free(c);
+
+    sthunk.Soffset = thunkoffset;
+    sthunk.Ssize = Offset(seg) - thunkoffset; // size of thunk
+    sthunk.Sseg = seg;
+    if (config.exe & EX_posix ||
+       config.objfmt == OBJ_MSCOFF)
+    {
+        objmod.pubdef(seg,sthunk,sthunk.Soffset);
+    }
+}
+
 // makeitextern
 
 /*******************************
@@ -459,6 +985,7 @@ Lret:
 @trusted
 int branch(block* bl,int flag)
 {
+    //printf("branch() flag: %d\n", flag);
     int bytesaved;
     code* c,cn,ct;
     targ_size_t offset,disp;
@@ -655,21 +1182,6 @@ L3:
 }
 
 
-/*******************************
- * Set flags for register contents
- * Params:
- *      cdb = code sink
- *      reg = register to test
- *      sf = true for 64 bits
- */
-void gentstreg(ref CodeBuilder cdb, reg_t reg, uint sf)
-{
-    // CMP reg,#0
-    cdb.gen1(INSTR.cmp_imm(sf, 0, 0, reg));
-    code_orflag(cdb.last(),CFpsw);
-}
-
-
 /**************************
  * Generate a MOV to,from register instruction.
  * Smart enough to dump redundant register moves, and segment
@@ -679,22 +1191,61 @@ void gentstreg(ref CodeBuilder cdb, reg_t reg, uint sf)
 @trusted
 void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t ty = TYMAX)
 {
-    if (to <= 31)
+    if (to & INSTR.FLOATREGS)
     {
-        // integer
-        uint sf = ty == TYMAX || _tysize[ty] == 8;
-        cdb.gen1(INSTR.mov_register(sf, from, to));
+        // floating point
+        uint ftype = INSTR.szToFtype(ty == TYMAX ? 8 : _tysize[ty]);
+        cdb.gen1(INSTR.fmov(ftype, from & 31, to & 31));
     }
     else
     {
-        // floating point
-        uint ftype = (ty == TYMAX || _tysize[ty] == 8)
-            ? 1
-            : (_tysize[ty] == 4 ? 0 : 3);
-        cdb.gen1(INSTR.fmov(ftype, from & 31, to & 31));
+        // integer
+        uint sf = ty == TYMAX || _tysize[ty] == 8;
+        cdb.gen1(INSTR.mov_register(sf, from, to));    // MOV to,from
     }
 }
 
+/*************************************
+ * Load constant floating point value into vreg.
+ * Params:
+ *      cdb = code sink for generated output
+ *      vreg = target floating point register
+ *      value = value to move into register
+ *      sz = 4 for float, 8 for double
+ */
+@trusted
+void loadFloatRegConst(ref CodeBuilder cdb, reg_t vreg, double value, uint sz)
+{
+    assert(vreg & 32);
+    ubyte imm8;
+    if (encodeHFD(value, imm8))
+    {
+        assert(sz == 2 || sz == 4 || sz == 8);
+        assert(imm8 <= 0xFF);
+        uint ftype = INSTR.szToFtype(sz);
+        cdb.gen1(INSTR.fmov_float_imm(ftype,imm8,vreg)); // FMOV <Vd>,#<imm8>
+    }
+    else if (sz == 4)
+    {
+        float f = value;
+        uint i = *cast(uint*)&f;
+        regm_t retregs = ALLREGS;                       // TODO cg.allregs?
+        reg_t reg = allocreg(cdb, retregs, TYfloat);
+        movregconst(cdb,reg,i,0);                         // MOV reg,i
+        cdb.gen1(INSTR.fmov_float_gen(0,0,0,7,reg,vreg)); // FMOV Sd,Wn
+    }
+    else if (sz == 8)
+    {
+        ulong i = *cast(ulong*)&value;
+        regm_t retregs = ALLREGS;                       // TODO cg.allregs?
+        reg_t reg = allocreg(cdb, retregs, TYdouble);
+        movregconst(cdb,reg,i,64);                        // MOV reg,i
+        cdb.gen1(INSTR.fmov_float_gen(1,1,0,7,reg,vreg)); // FMOV Dd,Xn
+    }
+    else
+        assert(0);
+    //cgstate.regimmed_set(vreg,value); // TODO
+}
 
 /******************************
  * Move constant value into reg.
@@ -755,6 +1306,10 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
             }
             r++;
         }
+
+        // loading a constant into the lower 32 bits zeros out the upper 32 bits
+        if ((value & 0xFFFF_FFFF_0000_0000) == 0)
+            flags &= ~64;
 
         uint sf = (flags & 64) != 0;
         uint opc = 2;               // MOVZ
@@ -820,7 +1375,7 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
         {
             // Check for ORR one instruction solution
             uint N, immr, imms;
-            if (orr_solution(value2, N, immr, imms))
+            if (orr_solution(value2, N, immr, imms)) // TODO AArch64 not implemented yet
             {
                 // MOV Rd,#imm
                 // http://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_log_imm.html
@@ -846,7 +1401,7 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 done:
     if (flags & mPSW)
         gentstreg(cdb,reg,(flags & 64) != 0);
-printf("set reg %d to %lld\n", reg, value);
+    //printf("set reg %d to %lld\n", reg, value);
     cgstate.regimmed_set(reg,value);
 }
 
@@ -867,6 +1422,7 @@ printf("set reg %d to %lld\n", reg, value);
  */
 bool orr_solution(ulong value, out uint N, out uint immr, out uint imms)
 {
+    // TODO AArch64
     return false;
 }
 
@@ -883,6 +1439,7 @@ void assignaddrc(code* c)
     ulong offset;
     reg_t Rn, Rt;
     uint base = cgstate.EBPtoESP;
+    code* csave = c;
 
     for (; c; c = code_next(c))
     {
@@ -970,9 +1527,9 @@ void assignaddrc(code* c)
         s = c.IEV1.Vsym;
         uint sz = 8;
         uint ins = c.Iop;
-//      if (c.IFL1 != FL.unde)
+        if (0 && c.IFL1 != FL.unde)
         {
-            printf("FL: %s  ", fl_str(c.IFL1));
+            printf("FL: %-8s ", fl_str(c.IFL1));
             disassemble(ins);
         }
         switch (c.IFL1)
@@ -1053,10 +1610,10 @@ void assignaddrc(code* c)
                     c.Iop = INSTR.nop;               // remove references to it
                     break;
                 }
-                static if (1)
+                static if (0)
                 {
-                    symbol_print(*s);
-                    printf("c: %p, x%08x\n", c, c.Iop);
+                    //symbol_print(*s);
+                    //printf("c: %p, x%08x\n", c, c.Iop);
                     printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Voffset = %d\n",
                         s.Sident.ptr, cast(int)s.Soffset, cast(int)cgstate.Para.size, cast(int)cgstate.BPoff,
                         cast(int)cgstate.EBPtoESP, cast(int)c.IEV1.Voffset);
@@ -1102,26 +1659,42 @@ void assignaddrc(code* c)
 
             L2:
                 offset = cast(int)offset;       // sign extend
-                // Load/store register (unsigned immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
-                assert(field(ins,29,27) == 7);
-                uint opc   = field(ins,23,22);
-                uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
-                uint op24  = field(ins,25,24);
-printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZE*2);
+//printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZE*2);
                 if (cgstate.hasframe)
                     offset += REGSIZE * 2;
                 offset += localsize;
-                if (op24 == 1)
+            L3:
+                // Load/store register (unsigned immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
+                uint opc   = field(ins,23,22);
+                uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
+                uint op24  = field(ins,25,24);
+                if (field(ins,28,23) == 0x22)      // Add/subtract (immediate)
                 {
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
+//printf("imm12: %d offset: %llx\n", imm12, offset);
+                    imm12 += offset;
+                    assert(imm12 < 0x1000);
+                    ins = setField(ins,21,10,imm12);
+                }
+                else if (op24 == 1)
+                {
+//printf("shift: %d opc: %d\n", shift, opc);
+                    uint VR = field(ins,26,26);
+                    if (opc & 2 && shift == 0 && VR == 1)
+                        shift = 4;
+                    assert(field(ins,29,27) == 7);
+                    uint imm12 = field(ins,21,10); // unsigned 12 bits
+//printf("shift: %d offset: x%llx imm12: x%x\n", shift, offset, imm12);
                     offset += imm12 << shift;      // add in imm
                     assert((offset & ((1 << shift) - 1)) == 0); // no misaligned access
                     imm12 = cast(uint)(offset >> shift);
+//printf("imm12: x%x\n", imm12);
                     assert(imm12 < 0x1000);
                     ins = setField(ins,21,10,imm12);
                 }
                 else if (op24 == 0)
                 {
+                    assert(field(ins,29,27) == 7);
                     if (opc == 2 && shift == 0)
                         shift = 4;
                     uint imm9 = field(ins,20,12); // signed 9 bits
@@ -1138,9 +1711,8 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
 
                 Rn = cast(reg_t)field(ins,9,5);
                 Rt = cast(reg_t)field(ins,4,0);
-                if (!cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FL.para))
+                if (Rn == 29 && !cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FL.para))
                 {   /* Convert to SP relative address instead of BP */
-                    assert(Rn == 29);                 // BP
                     offset += cgstate.EBPtoESP;       // add difference in offset
                     ins = setField(ins,9,5,31);       // set Rn to SP
                 }
@@ -1157,7 +1729,8 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
 
             case FL.offset:
                 c.IFL1 = FL.const_;
-                break;
+                offset = c.IEV1.Voffset;
+                goto L3;
 
             case FL.localsize:                           // used by inline assembler
                 c.IEV1.Vpointer += localsize;
@@ -1168,13 +1741,21 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
             case FL.func:
             case FL.code:
             case FL.unde:
+            case FL.block:
+            case FL.switch_:
                 break;
 
             default:
-                printf("FL: %s\n", fl_str(c.IFL1));
+                if (1) printf("FL: %s\n", fl_str(c.IFL1));
                 assert(0);
         }
     }
+    static if (0)
+        for (c = csave; c; c = code_next(c))
+        {
+            printf("Iop %08x  ", c.Iop);
+            disassemble(c.Iop);
+        }
 }
 
 /**************************
@@ -1182,19 +1763,21 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
  * Note: only works for forward referenced code.
  *       only direct jumps and branches are detected.
  *       LOOP instructions only work for backward refs.
+ * Reference: http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condbranch
  */
 @trusted
 void jmpaddr(code* c)
 {
-    code* ci,cn,ctarg,cstart;
-    targ_size_t ad;
-
     //printf("jmpaddr()\n");
+
+    code* ci,cn,ctarg,cstart;
+    uint ad;
     cstart = c;                           /* remember start of code       */
     while (c)
     {
         const op = c.Iop;
-        if (isBranch(op)) // or CALL?
+        //printf("%08X ", c.Iop); disassemble(c.Iop);
+        if (isBranch(op) && c.IFL1 == FL.code) // or CALL?
         {
             ci = code_next(c);
             ctarg = c.IEV1.Vcode;  /* target code                  */
@@ -1206,7 +1789,7 @@ void jmpaddr(code* c)
             }
             if (!ci)
                 goto Lbackjmp;      // couldn't find it
-            c.Iop |= cast(uint)(ad >> 2) << 5;
+            c.Iop |= (ad >> 2) << 5;
             c.IFL1 = FL.unde;
         }
         if (op == LOOP && c.IFL1 == FL.code)    /* backwards refs       */
@@ -1223,7 +1806,7 @@ void jmpaddr(code* c)
                 ad += calccodsize(ci);
                 ci = code_next(ci);
             }
-            c.Iop = cast(uint)(-(ad >> 2)) << 5;
+            c.Iop |= (-(ad >> 2) & ((1 << 19) - 1)) << 5;    // set the signed imm19 field
             c.IFL1 = FL.unde;
         }
         c = code_next(c);
@@ -1273,8 +1856,7 @@ uint calccodsize(code* c)
 @trusted
 uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehandleroffset)
 {
-    code* cn;
-    uint flags;
+    //printf("codout()\n");
 
     debug
     if (debugc) printf("codout(%p), Coffset = x%llx\n",c,cast(ulong)Offset(seg));
@@ -1285,6 +1867,9 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
     ggen.seg = seg;
     ggen.framehandleroffset = framehandleroffset;
     ggen.disasmBuf = disasmBuf;
+
+    code* cn;
+    uint flags;
 
     for (; c; c = code_next(c))
     {
@@ -1349,9 +1934,15 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
         if (ggen.available() < 4)
             ggen.flush();
 
-        //printf("op: %08x\n", op);
-        //if ((op & 0xFC00_0000) == 0x9400_0000) // BL <label>
-        if (Symbol* s = c.IEV1.Vsym)
+        if (isBranch(op) && c.IFL1 == FL.block)
+
+        {
+            ggen.flush();
+            int ad = cast(int)(c.IEV1.Vblock.Boffset - ggen.offset);
+            op |= ((ad >> 2) & 0x7FFFF) << 5; // imm19 in opcode
+            ggen.gen32(op);
+        }
+        else if (Symbol* s = c.IEV1.Vsym)
         {
             switch (s.Sclass)
             {

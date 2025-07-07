@@ -3,12 +3,12 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/version.html, Conditional Compilation)
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cond.d, _cond.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cond.d, _cond.d)
  * Documentation:  https://dlang.org/phobos/dmd_cond.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cond.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/cond.d
  */
 
 module dmd.cond;
@@ -24,7 +24,6 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem : expressionSemantic, evalStaticCondition, resolveProperties;
 import dmd.globals;
 import dmd.identifier;
 import dmd.location;
@@ -64,14 +63,12 @@ extern (C++) abstract class Condition : ASTNode
         return DYNCAST.condition;
     }
 
-    extern (D) this(const ref Loc loc) @safe
+    extern (D) this(Loc loc) @safe
     {
         this.loc = loc;
     }
 
     abstract Condition syntaxCopy();
-
-    abstract int include(Scope* sc);
 
     inout(DebugCondition) isDebugCondition() inout
     {
@@ -126,7 +123,7 @@ extern (C++) final class StaticForeach : RootObject
      */
     bool needExpansion = false;
 
-    extern (D) this(const ref Loc loc, ForeachStatement aggrfe, ForeachRangeStatement rangefe) @safe
+    extern (D) this(Loc loc, ForeachStatement aggrfe, ForeachRangeStatement rangefe) @safe
     {
         assert(!!aggrfe ^ !!rangefe);
 
@@ -145,51 +142,6 @@ extern (C++) final class StaticForeach : RootObject
     }
 
     /*****************************************
-     * Turn an aggregate which is an array into an expression tuple
-     * of its elements. I.e., lower
-     *     static foreach (x; [1, 2, 3, 4]) { ... }
-     * to
-     *     static foreach (x; AliasSeq!(1, 2, 3, 4)) { ... }
-     */
-    private extern(D) void lowerArrayAggregate(Scope* sc)
-    {
-        auto aggr = aggrfe.aggr;
-        Expression el = new ArrayLengthExp(aggr.loc, aggr);
-        sc = sc.startCTFE();
-        el = el.expressionSemantic(sc);
-        sc = sc.endCTFE();
-        el = el.optimize(WANTvalue);
-        el = el.ctfeInterpret();
-        if (el.op != EXP.int64)
-        {
-            aggrfe.aggr = ErrorExp.get();
-            return;
-        }
-
-        Expressions *es;
-        if (auto ale = aggr.isArrayLiteralExp())
-        {
-            // Directly use the elements of the array for the TupleExp creation
-            es = ale.elements;
-        }
-        else
-        {
-            const length = cast(size_t)el.toInteger();
-            es = new Expressions(length);
-            foreach (i; 0 .. length)
-            {
-                auto index = new IntegerExp(loc, i, Type.tsize_t);
-                auto value = new IndexExp(aggr.loc, aggr, index);
-                (*es)[i] = value;
-            }
-        }
-        aggrfe.aggr = new TupleExp(aggr.loc, es);
-        aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
-        aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
-        aggrfe.aggr = aggrfe.aggr.ctfeInterpret();
-    }
-
-    /*****************************************
      * Wrap a statement into a function literal and call it.
      *
      * Params:
@@ -198,9 +150,9 @@ extern (C++) final class StaticForeach : RootObject
      * Returns:
      *     AST of the expression `(){ s; }()` with location loc.
      */
-    private extern(D) Expression wrapAndCall(const ref Loc loc, Statement s)
+    extern(D) Expression wrapAndCall(Loc loc, Statement s)
     {
-        auto tf = new TypeFunction(ParameterList(), null, LINK.default_, 0);
+        auto tf = new TypeFunction(ParameterList(), null, LINK.default_, STC.none);
         auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
         fd.fbody = s;
         auto fe = new FuncExp(loc, fd);
@@ -221,7 +173,7 @@ extern (C++) final class StaticForeach : RootObject
      *     `foreach (parameters; lower .. upper) s;`
      *     Where aggregate/lower, upper are as for the current StaticForeach.
      */
-    private extern(D) Statement createForeach(const ref Loc loc, Parameters* parameters, Statement s)
+    extern(D) Statement createForeach(Loc loc, Parameters* parameters, Statement s)
     {
         if (aggrfe)
         {
@@ -254,7 +206,7 @@ extern (C++) final class StaticForeach : RootObject
      *         }
      */
 
-    private extern(D) TypeStruct createTupleType(const ref Loc loc, Expressions* e, Scope* sc)
+    extern(D) TypeStruct createTupleType(Loc loc, Expressions* e, Scope* sc)
     {   // TODO: move to druntime?
         auto sid = Identifier.generateId("Tuple");
         auto sdecl = new StructDeclaration(loc, sid, false);
@@ -262,7 +214,7 @@ extern (C++) final class StaticForeach : RootObject
         sdecl.members = new Dsymbols();
         auto fid = Identifier.idPool(tupleFieldName);
         auto ty = new TypeTypeof(loc, new TupleExp(loc, e));
-        sdecl.members.push(new VarDeclaration(loc, ty, fid, null, 0));
+        sdecl.members.push(new VarDeclaration(loc, ty, fid, null, STC.none));
         auto r = cast(TypeStruct)sdecl.type;
         if (global.params.useTypeInfo && Type.dtypeinfo)
             r.vtinfo = TypeInfoStructDeclaration.create(r); // prevent typeinfo from going to object file
@@ -280,203 +232,9 @@ extern (C++) final class StaticForeach : RootObject
      *     An AST for the expression `Tuple(e)`.
      */
 
-    private extern(D) Expression createTuple(const ref Loc loc, TypeStruct type, Expressions* e) @safe
+    extern(D) Expression createTuple(Loc loc, TypeStruct type, Expressions* e) @safe
     {   // TODO: move to druntime?
         return new CallExp(loc, new TypeExp(loc, type), e);
-    }
-
-
-    /*****************************************
-     * Lower any aggregate that is not an array to an array using a
-     * regular foreach loop within CTFE.  If there are multiple
-     * `static foreach` loop variables, an array of tuples is
-     * generated. In thise case, the field `needExpansion` is set to
-     * true to indicate that the static foreach loop expansion will
-     * need to expand the tuples into multiple variables.
-     *
-     * For example, `static foreach (x; range) { ... }` is lowered to:
-     *
-     *     static foreach (x; {
-     *         typeof({
-     *             foreach (x; range) return x;
-     *         }())[] __res;
-     *         foreach (x; range) __res ~= x;
-     *         return __res;
-     *     }()) { ... }
-     *
-     * Finally, call `lowerArrayAggregate` to turn the produced
-     * array into an expression tuple.
-     *
-     * Params:
-     *     sc = The current scope.
-     */
-
-    private void lowerNonArrayAggregate(Scope* sc)
-    {
-        auto nvars = aggrfe ? aggrfe.parameters.length : 1;
-        auto aloc = aggrfe ? aggrfe.aggr.loc : rangefe.lwr.loc;
-        // We need three sets of foreach loop variables because the
-        // lowering contains three foreach loops.
-        Parameters*[3] pparams = [new Parameters(), new Parameters(), new Parameters()];
-        foreach (i; 0 .. nvars)
-        {
-            foreach (params; pparams)
-            {
-                auto p = aggrfe ? (*aggrfe.parameters)[i] : rangefe.param;
-                params.push(new Parameter(aloc, p.storageClass, p.type, p.ident, null, null));
-            }
-        }
-        Expression[2] res;
-        TypeStruct tplty = null;
-        if (nvars == 1) // only one `static foreach` variable, generate identifiers.
-        {
-            foreach (i; 0 .. 2)
-            {
-                res[i] = new IdentifierExp(aloc, (*pparams[i])[0].ident);
-            }
-        }
-        else // multiple `static foreach` variables, generate tuples.
-        {
-            foreach (i; 0 .. 2)
-            {
-                auto e = new Expressions(pparams[0].length);
-                foreach (j, ref elem; *e)
-                {
-                    auto p = (*pparams[i])[j];
-                    elem = new IdentifierExp(aloc, p.ident);
-                }
-                if (!tplty)
-                {
-                    tplty = createTupleType(aloc, e, sc);
-                }
-                res[i] = createTuple(aloc, tplty, e);
-            }
-            needExpansion = true; // need to expand the tuples later
-        }
-        // generate remaining code for the new aggregate which is an
-        // array (see documentation comment).
-        if (rangefe)
-        {
-            sc = sc.startCTFE();
-            rangefe.lwr = rangefe.lwr.expressionSemantic(sc);
-            rangefe.lwr = resolveProperties(sc, rangefe.lwr);
-            rangefe.upr = rangefe.upr.expressionSemantic(sc);
-            rangefe.upr = resolveProperties(sc, rangefe.upr);
-            sc = sc.endCTFE();
-            rangefe.lwr = rangefe.lwr.optimize(WANTvalue);
-            rangefe.lwr = rangefe.lwr.ctfeInterpret();
-            rangefe.upr = rangefe.upr.optimize(WANTvalue);
-            rangefe.upr = rangefe.upr.ctfeInterpret();
-        }
-        auto s1 = new Statements();
-        auto sfe = new Statements();
-        if (tplty) sfe.push(new ExpStatement(loc, tplty.sym));
-        sfe.push(new ReturnStatement(aloc, res[0]));
-        s1.push(createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
-        s1.push(new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
-        Type ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
-        auto aty = ety.arrayOf();
-        auto idres = Identifier.generateId("__res");
-        auto vard = new VarDeclaration(aloc, aty, idres, null, STC.temp);
-        auto s2 = new Statements();
-
-        // Run 'typeof' gagged to avoid duplicate errors and if it fails just create
-        // an empty foreach to expose them.
-        const olderrors = global.startGagging();
-        ety = ety.typeSemantic(aloc, sc);
-        if (global.endGagging(olderrors))
-            s2.push(createForeach(aloc, pparams[1], null));
-        else
-        {
-            s2.push(new ExpStatement(aloc, vard));
-            auto catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
-            s2.push(createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
-            s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
-        }
-
-        Expression aggr = void;
-        Type indexty = void;
-
-        if (rangefe && (indexty = ety).isIntegral())
-        {
-            rangefe.lwr.type = indexty;
-            rangefe.upr.type = indexty;
-            auto lwrRange = getIntRange(rangefe.lwr);
-            auto uprRange = getIntRange(rangefe.upr);
-
-            const lwr = rangefe.lwr.toInteger();
-            auto  upr = rangefe.upr.toInteger();
-            size_t length = 0;
-
-            if (lwrRange.imin <= uprRange.imax)
-                    length = cast(size_t) (upr - lwr);
-
-            auto exps = new Expressions(length);
-
-            if (rangefe.op == TOK.foreach_)
-            {
-                foreach (i; 0 .. length)
-                    (*exps)[i] = new IntegerExp(aloc, lwr + i, indexty);
-            }
-            else
-            {
-                --upr;
-                foreach (i; 0 .. length)
-                    (*exps)[i] = new IntegerExp(aloc, upr - i, indexty);
-            }
-            aggr = new ArrayLiteralExp(aloc, indexty.arrayOf(), exps);
-        }
-        else
-        {
-            aggr = wrapAndCall(aloc, new CompoundStatement(aloc, s2));
-            sc = sc.startCTFE();
-            aggr = aggr.expressionSemantic(sc);
-            aggr = resolveProperties(sc, aggr);
-            sc = sc.endCTFE();
-            aggr = aggr.optimize(WANTvalue);
-            aggr = aggr.ctfeInterpret();
-        }
-
-        assert(!!aggrfe ^ !!rangefe);
-        aggrfe = new ForeachStatement(loc, TOK.foreach_, pparams[2], aggr,
-                                      aggrfe ? aggrfe._body : rangefe._body,
-                                      aggrfe ? aggrfe.endloc : rangefe.endloc);
-        rangefe = null;
-        lowerArrayAggregate(sc); // finally, turn generated array into expression tuple
-    }
-
-    /*****************************************
-     * Perform `static foreach` lowerings that are necessary in order
-     * to finally expand the `static foreach` using
-     * `dmd.statementsem.makeTupleForeach`.
-     */
-    extern(D) void prepare(Scope* sc)
-    {
-        assert(sc);
-
-        if (aggrfe)
-        {
-            sc = sc.startCTFE();
-            aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
-            sc = sc.endCTFE();
-        }
-
-        if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Terror)
-        {
-            return;
-        }
-
-        if (!ready())
-        {
-            if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Tarray)
-            {
-                lowerArrayAggregate(sc);
-            }
-            else
-            {
-                lowerNonArrayAggregate(sc);
-            }
-        }
     }
 
     /*****************************************
@@ -493,15 +251,13 @@ extern (C++) final class StaticForeach : RootObject
  */
 extern (C++) class DVCondition : Condition
 {
-    uint level;
     Identifier ident;
     Module mod;
 
-    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident) @safe
+    extern (D) this(Loc loc, Module mod, Identifier ident) @safe
     {
         super(loc);
         this.mod = mod;
-        this.level = level;
         this.ident = ident;
     }
 
@@ -556,47 +312,13 @@ extern (C++) final class DebugCondition : DVCondition
      *
      * Params:
      *   mod = Module this node belongs to
-     *   level = Minimum global level this condition needs to pass.
-     *           Only used if `ident` is `null`.
      *   ident = Identifier required for this condition to pass.
      *           If `null`, this conditiion will use an integer level.
      *  loc = Location in the source file
      */
-    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident) @safe
+    extern (D) this(Loc loc, Module mod, Identifier ident) @safe
     {
-        super(loc, mod, level, ident);
-    }
-
-    override int include(Scope* sc)
-    {
-        //printf("DebugCondition::include() level = %d, debuglevel = %d\n", level, global.params.debuglevel);
-        if (inc != Include.notComputed)
-        {
-            return inc == Include.yes;
-        }
-        inc = Include.no;
-        bool definedInModule = false;
-        if (ident)
-        {
-            if (mod.debugids && findCondition(*mod.debugids, ident))
-            {
-                inc = Include.yes;
-                definedInModule = true;
-            }
-            else if (findCondition(global.debugids, ident))
-                inc = Include.yes;
-            else
-            {
-                if (!mod.debugidsNot)
-                    mod.debugidsNot = new Identifiers();
-                mod.debugidsNot.push(ident);
-            }
-        }
-        else if (level <= global.params.debuglevel || level <= mod.debuglevel)
-            inc = Include.yes;
-        if (!definedInModule)
-            printDepsConditional(sc, this, "depsDebug ");
-        return (inc == Include.yes);
+        super(loc, mod, ident);
     }
 
     override inout(DebugCondition) isDebugCondition() inout
@@ -607,11 +329,6 @@ extern (C++) final class DebugCondition : DVCondition
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    override const(char)* toChars() const
-    {
-        return ident ? ident.toChars() : "debug".ptr;
     }
 }
 
@@ -637,7 +354,7 @@ extern (C++) final class VersionCondition : DVCondition
      * Returns:
      *   `true` if it is reserved, `false` otherwise
      */
-    extern(D) private static bool isReserved(const(char)[] ident) @safe
+    extern(D) public static bool isReserved(const(char)[] ident) @safe
     {
         // This list doesn't include "D_*" versions, see the last return
         switch (ident)
@@ -765,7 +482,7 @@ extern (C++) final class VersionCondition : DVCondition
      *   loc = Where the identifier is set
      *   ident = identifier being checked (ident[$] must be '\0')
      */
-    extern(D) static void checkReserved(const ref Loc loc, const(char)[] ident)
+    extern(D) static void checkReserved(Loc loc, const(char)[] ident)
     {
         if (isReserved(ident))
             error(loc, "version identifier `%s` is reserved and cannot be set",
@@ -837,52 +554,13 @@ extern (C++) final class VersionCondition : DVCondition
      *
      * Params:
      *   mod = Module this node belongs to
-     *   level = Minimum global level this condition needs to pass.
-     *           Only used if `ident` is `null`.
      *   ident = Identifier required for this condition to pass.
      *           If `null`, this conditiion will use an integer level.
      *  loc = Location in the source file
      */
-    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident) @safe
+    extern (D) this(Loc loc, Module mod, Identifier ident) @safe
     {
-        super(loc, mod, level, ident);
-    }
-
-    override int include(Scope* sc)
-    {
-        //printf("VersionCondition::include() level = %d, versionlevel = %d\n", level, global.params.versionlevel);
-        //if (ident) printf("\tident = '%s'\n", ident.toChars());
-        if (inc != Include.notComputed)
-        {
-            return inc == Include.yes;
-        }
-
-        inc = Include.no;
-        bool definedInModule = false;
-        if (ident)
-        {
-            if (mod.versionids && findCondition(*mod.versionids, ident))
-            {
-                inc = Include.yes;
-                definedInModule = true;
-            }
-            else if (findCondition(global.versionids, ident))
-                inc = Include.yes;
-            else
-            {
-                if (!mod.versionidsNot)
-                    mod.versionidsNot = new Identifiers();
-                mod.versionidsNot.push(ident);
-            }
-        }
-        else if (level <= global.params.versionlevel || level <= mod.versionlevel)
-            inc = Include.yes;
-        if (!definedInModule &&
-            (!ident || (!isReserved(ident.toString()) && ident != Id._unittest && ident != Id._assert)))
-        {
-            printDepsConditional(sc, this, "depsVersion ");
-        }
-        return (inc == Include.yes);
+        super(loc, mod, ident);
     }
 
     override inout(VersionCondition) isVersionCondition() inout
@@ -894,11 +572,6 @@ extern (C++) final class VersionCondition : DVCondition
     {
         v.visit(this);
     }
-
-    override const(char)* toChars() const
-    {
-        return ident ? ident.toChars() : "version".ptr;
-    }
 }
 
 /***********************************************************
@@ -907,7 +580,7 @@ extern (C++) final class StaticIfCondition : Condition
 {
     Expression exp;
 
-    extern (D) this(const ref Loc loc, Expression exp) @safe
+    extern (D) this(Loc loc, Expression exp) @safe
     {
         super(loc);
         this.exp = exp;
@@ -918,47 +591,6 @@ extern (C++) final class StaticIfCondition : Condition
         return new StaticIfCondition(loc, exp.syntaxCopy());
     }
 
-    override int include(Scope* sc)
-    {
-        // printf("StaticIfCondition::include(sc = %p) this=%p inc = %d\n", sc, this, inc);
-
-        int errorReturn()
-        {
-            if (!global.gag)
-                inc = Include.no; // so we don't see the error message again
-            return 0;
-        }
-
-        if (inc != Include.notComputed)
-        {
-            return inc == Include.yes;
-        }
-
-        if (!sc)
-        {
-            error(loc, "`static if` conditional cannot be at global scope");
-            inc = Include.no;
-            return 0;
-        }
-
-        import dmd.staticcond;
-        bool errors;
-
-        bool result = evalStaticCondition(sc, exp, exp, errors);
-
-        // Prevent repeated condition evaluation.
-        // See: fail_compilation/fail7815.d
-        if (inc != Include.notComputed)
-            return (inc == Include.yes);
-        if (errors)
-            return errorReturn();
-        if (result)
-            inc = Include.yes;
-        else
-            inc = Include.no;
-        return (inc == Include.yes);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -967,11 +599,6 @@ extern (C++) final class StaticIfCondition : Condition
     override inout(StaticIfCondition) isStaticIfCondition() inout
     {
         return this;
-    }
-
-    override const(char)* toChars() const
-    {
-        return exp ? exp.toChars() : "static if".ptr;
     }
 }
 
@@ -995,7 +622,7 @@ bool findCondition(ref Identifiers ids, Identifier ident) @safe nothrow pure
 }
 
 // Helper for printing dependency information
-private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType)
+public void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType)
 {
     if (!global.params.moduleDeps.buffer || global.params.moduleDeps.name)
         return;
@@ -1010,7 +637,5 @@ private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[
     ob.writestring(") : ");
     if (condition.ident)
         ob.writestring(condition.ident.toString());
-    else
-        ob.print(condition.level);
     ob.writeByte('\n');
 }
