@@ -1747,6 +1747,7 @@ void semanticTypeInfoMembers(StructDeclaration sd)
  */
 extern (D) bool checkClosure(FuncDeclaration fd)
 {
+    //printf("checkClosure() %s\n", toPrettyChars());
     if (!fd.needsClosure())
         return false;
 
