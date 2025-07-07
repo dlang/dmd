@@ -2509,7 +2509,7 @@ struct Gcx
     }
     template scanStack(bool precise)
     {
-        static if(precise)
+        static if (precise)
             alias scanStack = scanStackPrecise;
         else
             alias scanStack = scanStackConservative;
