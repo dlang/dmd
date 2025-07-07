@@ -6610,19 +6610,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
 
             {
-                Token* tokenAfterClosingParen = peek(peek(&token));
-                size_t argumentLength = 0;
-                tokenAfterClosingParen = peek(tokenAfterClosingParen);
-                for (size_t level = 1; level != 0; ++argumentLength)
+                Token* t = peek(peek(&token));
+                size_t argumentLength = -1;
+                for (size_t level = 1; level != 0; ++argumentLength, t = peek(t))
                 {
-                    level += tokenAfterClosingParen.value == TOK.leftParenthesis;
-                    level -= tokenAfterClosingParen.value == TOK.rightParenthesis;
-                    tokenAfterClosingParen = peek(tokenAfterClosingParen);
-                    if (tokenAfterClosingParen.value == TOK.endOfFile)
+                    if (t.value == TOK.endOfFile)
                     {
                         error("unmatched parenthesis");
                         goto Lerror;
                     }
+
+                    level += (t.value == TOK.leftParenthesis) - (t.value == TOK.rightParenthesis);
                 }
 
                 if (argumentLength == 0)
@@ -6630,8 +6628,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     error("expected type or scope guard after `scope`, not empty parentheses");
                     goto Lerror;
                 }
-
-                if (argumentLength > 1 && tokenAfterClosingParen.value != TOK.leftCurly)
+                if (argumentLength > 1 && t.value != TOK.leftCurly)
                 {
                     goto Ldeclaration; // scope used as storage class
                 }
@@ -7057,8 +7054,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             goto Lerror;
 
         Lerror:
-            while (token.value != TOK.rightCurly && token.value != TOK.semicolon && token.value != TOK.endOfFile)
+            int nesting = 0;
+            while (nesting > 0 || token.value != TOK.rightCurly && token.value != TOK.semicolon && token.value != TOK.endOfFile)
+            {
+                nesting += (token.value == TOK.leftCurly) - (token.value == TOK.rightCurly);
                 nextToken();
+            }
             if (token.value == TOK.semicolon)
                 nextToken();
             s = new AST.ErrorStatement;
