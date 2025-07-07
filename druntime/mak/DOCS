@@ -542,7 +542,6 @@ DOCS=\
 	$(DOCDIR)\rt_adi.html \
 	$(DOCDIR)\rt_alloca.html \
 	$(DOCDIR)\rt_arraycat.html \
-	$(DOCDIR)\rt_cast_.html \
 	$(DOCDIR)\rt_config.html \
 	$(DOCDIR)\rt_deh.html \
 	$(DOCDIR)\rt_deh_win32.html \

@@ -4781,15 +4781,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         }
         else
         {
-            if (cdfrom.isInterfaceDeclaration())
-            {
-                elem* ep = el_param(el_ptr(toExtSymbol(cdto)), e);
-                e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM.INTERFACE_CAST)), ep);
-            }
-            else
-            {
-                assert(ce.lowering, "This case should have been rewritten to `_d_cast` in the semantic phase");
-            }
+            assert(ce.lowering, "This case should have been rewritten to `_d_cast` in the semantic phase");
         }
         return Lret(ce, e);
     }

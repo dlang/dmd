@@ -4114,6 +4114,9 @@ void cdmemcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdmemset(cg, cdb, e, pretregs);
+
     regm_t retregs1;
     regm_t retregs3;
     reg_t reg;

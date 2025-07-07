@@ -743,7 +743,9 @@ void disassemble(uint c) @trusted
         const char* format = oO ? "bc.%s" : "b.%s";
         const n = sprintf(buf.ptr, format, condstring[cond].ptr);
         p1 = buf[0 .. n];
-        p2 = wordtostring(imm19);
+        if (imm19 & (1 << 18))  // if bit 19 is set
+            imm19 |= -1 << 18;  // sign extend
+        p2 = signedWordtostring(imm19);
     }
     else if (field(ins, 31, 24) == 0x55) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#miscbranch
     {
@@ -2368,10 +2370,35 @@ void disassemble(uint c) @trusted
         p4 = eaString(op24, cast(ubyte)Rn, offset);
     }
 
-    // Load/store register pair (unscaled immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unscaled
-    // Load/store register pair (immediate post-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpost
-    // Load/store register pair (unprivileged) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unpriv
-    // Load/store register pair (immediate pre-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpre
+    // Load/store register (unscaled immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unscaled
+
+    // Load/store register (immediate post-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpost
+    if (field(ins, 29, 27) == 7 && field(ins, 25, 24) == 0 && field(ins, 21, 21) == 0 && field(ins, 11,10) == 1)
+    {
+        url = "ldst_immpost";
+
+        uint size = field(ins, 31, 30);
+        uint VR   = field(ins, 26, 26);
+        uint opc  = field(ins, 23, 22);
+        uint imm9 = field(ins, 20, 12);
+        uint Rn   = field(ins, 9, 5);
+        uint Rt   = field(ins, 4, 0);
+
+        if ((size & 2) && VR == 0 && opc ==  0)
+        {
+            url2 = "str_imm_gen";
+
+            p1 = "str";
+            p2 = regString(size & 1, Rt);
+            if (size & 1 && Rt == 0x1F)
+                p2 = "xzr";
+            p3 = eaString(1, cast(ubyte)Rn, imm9);
+        }
+    }
+    else
+
+    // Load/store register (unprivileged) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unpriv
+    // Load/store register (immediate pre-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpre
     // Atomic memory operations https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#memop
     // Load/store register (register offset) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
     // Load/store register (pac) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pac
@@ -3032,8 +3059,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[84] cases64 =      // 64 bit code gen
+    string[85] cases64 =      // 64 bit code gen
     [
+        "F8 00 84 5F         str    xzr,[x2],#8",
         "6F 00 E4 01         movi   v1.2d,#0x0",
         "9E AF 00 3E         fmov   v30.d[1],x1",
         "4E BE 1F C0         mov    v0.16b,v30.16b",
