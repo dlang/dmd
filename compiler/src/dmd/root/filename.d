@@ -471,13 +471,15 @@ nothrow:
     // Split a path and append the results to `array`
     extern (C++) static void appendSplitPath(const(char)* path, ref Strings array)
     {
-        int sink(const(char)* p) nothrow
+        static int sink(const(char)* p, void* ctx) nothrow
         {
-            array.push(p);
+            auto arr = cast(Strings*)ctx;
+            arr.push(p);
             return 0;
         }
-        splitPath(&sink, path);
+        splitPath(&sink, path, &array);
     }
+
 
     /****
      * Split path (such as that returned by `getenv("PATH")`) into pieces, each piece is mem.xmalloc'd
@@ -487,7 +489,7 @@ nothrow:
      *  sink = send the path pieces here, end when sink() returns !=0
      *  path = the path to split up.
      */
-    static void splitPath(int delegate(const(char)*) nothrow sink, const(char)* path)
+    static void splitPath(int function(const(char)*, void*) nothrow sink, const(char)* path, void* ctx)
     {
         if (!path)
             return;
@@ -561,8 +563,8 @@ nothrow:
             }
             if (buf.length) // if path is not empty
             {
-                if (sink(buf.extractChars()))
-                    break;
+                if (sink(buf.extractChars(), ctx))
+                break;
             }
         } while (c);
     }
@@ -712,31 +714,35 @@ nothrow:
     extern (D) static const(char)[] searchPath(const char* path, const char[] name, bool cwd)
     {
         if (absolute(name))
-        {
             return exists(name) ? name : null;
-        }
         if (cwd)
-        {
             if (exists(name))
                 return name;
-        }
         if (path && *path)
         {
             const(char)[] result;
 
-            int sink(const(char)* p) nothrow
+            struct SinkContext
             {
-                auto n = combine(p.toDString, name);
+                const(char)[] name;
+                const(char)[]* resultSlot;
+            }
+            SinkContext ctx = { name, &result };
+
+            static int sink(const(char)* p, void* vctx) nothrow
+            {
+                auto ctx = cast(SinkContext*)vctx;
+                auto n = combine(p.toDString, ctx.name);
                 mem.xfree(cast(void*)p);
                 if (exists(n))
                 {
-                    result = n;
-                    return 1;   // done with splitPath() call
+                    *ctx.resultSlot = n;
+                    return 1;
                 }
                 return 0;
             }
 
-            splitPath(&sink, path);
+            splitPath(&sink, path, &ctx);
             return result;
         }
         return null;

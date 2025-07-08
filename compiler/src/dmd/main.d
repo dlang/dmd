@@ -414,15 +414,23 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
 
         foreach (entry; imppath)
         {
-            int sink(const(char)* p) nothrow
+            struct SinkContext
             {
-                ImportPathInfo temp = entry;
+                ImportPathInfo* entry;
+                Array!ImportPathInfo* array;
+            }
+
+            static int sink(const(char)* p, void* ctx) nothrow
+            {
+                auto c = cast(SinkContext*)ctx;
+                ImportPathInfo temp = *c.entry;
                 temp.path = p;
-                array.push(temp);
+                c.array.push(temp);
                 return 0;
             }
 
-            FileName.splitPath(&sink, entry.path);
+            SinkContext context = SinkContext(&entry, &array);
+            FileName.splitPath(&sink, entry.path, &context);
             FileName.appendSplitPath(entry.path, pathsOnlyArray);
         }
 
