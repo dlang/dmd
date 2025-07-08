@@ -1023,6 +1023,28 @@ struct INSTR
                 Rt;
     }
 
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/stur_imm_fpsimd.html
+     * STUR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
+     */
+    static uint stur_imm_fpsimd(uint size, uint opc, uint imm9, reg_t Rn, reg_t Vt)
+    {
+        assert(imm9 < 0x200);
+        assert(size < 4);
+        assert(opc  < 4);
+        return ldst_unscaled(size,1,opc,imm9,Rn,Vt);
+    }
+
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/ldur_imm_fpsimd.html
+     * LDUR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
+     */
+    static uint ldur_imm_fpsimd(uint size, uint opc, uint imm9, reg_t Rn, reg_t Vt)
+    {
+        assert(imm9 < 0x200);
+        assert(size < 4);
+        assert(opc  < 4);
+        return ldst_unscaled(size,1,opc | 1,imm9,Rn,Vt);
+    }
+
     /* Load/store register (immediate post-indexed)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpost
      */
