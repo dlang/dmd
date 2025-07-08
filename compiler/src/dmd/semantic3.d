@@ -1768,9 +1768,9 @@ extern (D) bool checkClosure(FuncDeclaration fd)
         }
         else if (auto tc = v.type.isTypeClass())
         {
-            if (tc.sym && tc.sym.dtor)
+            if (tc.sym && tc.sym.dtor && (v.storage_class & STC.scope_))
             {
-                .error(v.loc, "variable `%s` has scoped destruction, cannot build closure", v.toPrettyChars());
+                .error(v.loc, "scoped class variable `%s` has destructor, cannot build closure", v.toPrettyChars());
                 fd.errors = true;
                 return true;
             }

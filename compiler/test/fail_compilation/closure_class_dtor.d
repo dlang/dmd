@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/closure_class_dtor.d(19): Error: variable `closure_class_dtor.main.obj` has scoped destruction, cannot build closure
+fail_compilation/closure_class_dtor.d(19): Error: scoped class variable `closure_class_dtor.main.obj` has destructor, cannot build closure
 ---
 */
 
@@ -16,7 +16,7 @@ class C
 
 void main()
 {
-    auto obj = new C();
+    scope obj = new C();
 
     auto dg = () { return obj; }; // should be banned
 }
