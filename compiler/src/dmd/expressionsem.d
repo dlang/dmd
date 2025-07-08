@@ -13621,6 +13621,23 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        // When array comparison is not lowered to `__equals`, `memcmp` is used, but
+        // GC checks occur before the expression is lowered to `memcmp` in e2ir.d.
+        // Thus, we will consider the literal arrays as on-stack arrays to avoid issues
+        // during GC checks.
+        if (isArrayComparison)
+        {
+            if (auto ale1 = exp.e1.isArrayLiteralExp())
+            {
+                ale1.onstack = true;
+            }
+
+            if (auto ale2 = exp.e2.isArrayLiteralExp())
+            {
+                ale2.onstack = true;
+            }
+        }
+
         if (exp.e1.type.toBasetype().ty == Taarray)
         {
             semanticTypeInfo(sc, exp.e1.type.toBasetype());
