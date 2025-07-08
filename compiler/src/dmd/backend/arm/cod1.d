@@ -556,8 +556,8 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
     tym_t e1ty;
     Symbol* s;
 
-    //printf("getlvalue(e = %p, keepmsk = %s)\n", e, regm_str(keepmsk));
-    //elem_print(e);
+    printf("getlvalue(e = %p, keepmsk = %s)\n", e, regm_str(keepmsk));
+    elem_print(e);
     assert(e);
     elem_debug(e);
     if (e.Eoper == OPvar || e.Eoper == OPrelconst)
@@ -593,7 +593,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
             cod3_ptrchk(cdb, pcs, keepmsk);        // validate pointer code
     }
 
-    //printf("fl: %s\n", fl_str(fl));
+    printf("fl: %s\n", fl_str(fl));
     switch (fl)
     {
         case FL.oper:
