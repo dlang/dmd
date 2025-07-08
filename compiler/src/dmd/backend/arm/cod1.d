@@ -57,8 +57,7 @@ nothrow:
  */
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
-    //debug printf("loadFromEA() reg: %d, szw: %d, szr: %d\n", reg, szw, szr);
-    //debug printf("EV1.Voffset: %d\n", cast(int)cs.IEV1.Voffset);
+    debug printf("loadFromEA() reg: %d, szw: %d, szr: %d offset: %d\n", reg, szw, szr, cast(int)cs.IEV1.Voffset);
     assert(szr <= szw);
     cs.Iop = INSTR.nop;
     assert(reg != NOREG);
@@ -85,8 +84,15 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
             uint imm12 = cast(uint)cs.IEV1.Voffset;
             uint size, opc;
             INSTR.szToSizeOpc(szw, size, opc);
-            imm12 /= szw;
-            cs.Iop = INSTR.ldr_imm_fpsimd(size,opc,imm12,cs.base,reg);
+            if (szr & (szr - 1)) // if misaligned
+            {
+                cs.Iop = INSTR.ldur_imm_fpsimd(size,opc,imm12,cs.base,reg);
+            }
+            else
+            {
+                imm12 /= szr;
+                cs.Iop = INSTR.ldr_imm_fpsimd(size,opc,imm12,cs.base,reg);
+            }
         }
         else
             assert(0);
@@ -138,7 +144,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
  */
 void storeToEA(ref code cs, reg_t reg, uint sz)
 {
-    //debug printf("storeToEA(reg: %d, sz: %d)\n", reg, sz);
+    debug printf("storeToEA() reg: %d, sz: %d offset: %d\n", reg, sz, cast(int)cs.IEV1.Voffset);
     cs.Iop = INSTR.nop;
     assert(reg != NOREG);
     if (mask(reg) & INSTR.FLOATREGS)       // if floating point store
