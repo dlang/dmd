@@ -2737,6 +2737,7 @@ public:
     bool ignoreAttributes;
     bool isUfcsRewrite;
     VarDeclaration* vthis2;
+    Expression+ loweredFrom;
     static CallExp* create(Loc loc, Expression* e, Array<Expression* >* exps);
     static CallExp* create(Loc loc, Expression* e);
     static CallExp* create(Loc loc, Expression* e, Expression* earg1);
@@ -3462,6 +3463,7 @@ public:
 class NotExp final : public UnaExp
 {
 public:
+    Expression* loweredFrom;
     void accept(Visitor* v) override;
 };
 
