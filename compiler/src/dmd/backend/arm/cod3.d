@@ -1664,10 +1664,25 @@ void assignaddrc(code* c)
                     offset += REGSIZE * 2;
                 offset += localsize;
             L3:
-                // Load/store register (unsigned immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
+                /*
+                        V 22
+                 sz     R 54 opc    imm         Rn    Rt
+                |sz|111|v|00|oo|0|mmmmmmmmm|00|nnnnn|ttttt|     Load/store register (unscaled immediate)
+                |sz|111|v|00|oo|0|mmmmmmmmm|01|nnnnn|ttttt|     Load/store register (immediate post-indexed)
+                |sz|111|v|00|oo|0|mmmmmmmmm|10|nnnnn|ttttt|     Load/store register (unprivileged)
+                |sz|111|v|00|oo|0|mmmmmmmmm|11|nnnnn|ttttt|     Load/store register (immediate pre-indexed)
+                |sz|111|v|01|oo|m mmmmmmmmm mm|nnnnn|ttttt|     Load/store register (unsigned immediate)
+
+                 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
+                 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpost
+                 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unpriv
+                 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpre
+                 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
+                 */
                 uint opc   = field(ins,23,22);
                 uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
                 uint op24  = field(ins,25,24);
+                uint op11  = field(ins,11,10);
                 if (field(ins,28,23) == 0x22)      // Add/subtract (immediate)
                 {
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
@@ -1686,13 +1701,21 @@ void assignaddrc(code* c)
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
 //printf("shift: %d offset: x%llx imm12: x%x\n", shift, offset, imm12);
                     offset += imm12 << shift;      // add in imm
-                    assert((offset & ((1 << shift) - 1)) == 0); // no misaligned access
-                    imm12 = cast(uint)(offset >> shift);
+                    if (offset & ((1 << shift) - 1)) // misaligned access
+                    {
+                        ins = setField(ins,25,24,0);       // switch to unscaled immediate
+                        ins = setField(ins,21,10,cast(uint)offset << 2);
+                        assert(offset < 0x100);            // only unsigned 8 bits of offset
+                    }
+                    else
+                    {
+                        imm12 = cast(uint)(offset >> shift);
 //printf("imm12: x%x\n", imm12);
-                    assert(imm12 < 0x1000);
-                    ins = setField(ins,21,10,imm12);
+                        assert(imm12 < 0x1000);
+                        ins = setField(ins,21,10,imm12);
+                    }
                 }
-                else if (op24 == 0)
+                else if (op24 == 0 && op11)       // postinc or predec
                 {
                     assert(field(ins,29,27) == 7);
                     if (opc == 2 && shift == 0)
@@ -1702,6 +1725,16 @@ void assignaddrc(code* c)
                     offset += imm9 << shift;      // add in imm9
                     assert((offset & ((1 << shift) - 1)) == 0); // no misaligned access
                     imm9 = cast(uint)(offset >> shift);
+                    assert(imm9 < 0x200);
+                    imm9 = (imm9 - 0x100) & 0x1FF;
+                    ins = setField(ins,20,12,imm9);
+                }
+                else if (op24 == 0)
+                {
+                    assert(field(ins,29,27) == 7);
+                    uint imm9 = field(ins,20,12); // signed 9 bits
+                    imm9 += 0x100;                // bias to being unsigned
+                    offset += imm9;               // add in imm9
                     assert(imm9 < 0x200);
                     imm9 = (imm9 - 0x100) & 0x1FF;
                     ins = setField(ins,20,12,imm9);
