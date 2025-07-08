@@ -3318,6 +3318,7 @@ extern (C++) final class CallExp : UnaExp
     bool ignoreAttributes;  /// don't enforce attributes (e.g. call @gc function in @nogc code)
     bool isUfcsRewrite;     /// the first argument was pushed in here by a UFCS rewrite
     VarDeclaration vthis2;  // container for multi-context
+    Expression loweredFrom; // set if this is the result of a lowering
 
     /// Puts the `arguments` and `names` into an `ArgumentList` for easily passing them around.
     /// The fields are still separate for backwards compatibility
@@ -3580,6 +3581,8 @@ extern (C++) final class ComExp : UnaExp
  */
 extern (C++) final class NotExp : UnaExp
 {
+    Expression loweredFrom; // for lowering of `aa1 != aa2` to `!_d_aaEqual(aa1, aa2)`
+
     extern (D) this(Loc loc, Expression e) @safe
     {
         super(loc, EXP.not, e);

@@ -836,6 +836,7 @@ public:
     d_bool ignoreAttributes;      // don't enforce attributes (e.g. call @gc function in @nogc code)
     d_bool isUfcsRewrite;       // the first argument was pushed in here by a UFCS rewrite
     VarDeclaration *vthis2;     // container for multi-context
+    Expression* loweredFrom;    // set if this is the result of a lowering
 
     static CallExp *create(Loc loc, Expression *e, Expressions *exps);
     static CallExp *create(Loc loc, Expression *e);
@@ -883,6 +884,7 @@ public:
 class NotExp final : public UnaExp
 {
 public:
+    Expression* loweredFrom;    // for lowering of `aa1 != aa2` to `!_d_aaEqual(aa1, aa2)`
     void accept(Visitor *v) override { v->visit(this); }
 };
 
