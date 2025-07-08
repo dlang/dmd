@@ -13454,9 +13454,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto arguments = new Expressions();
         arguments.push(ie.e2);
         arguments.push(ie.e1);
-        id = new CallExp(ie.loc, id, arguments);
-
-        return id.expressionSemantic(sc);
+        auto ce = new CallExp(ie.loc, id, arguments);
+        ce.loweredFrom = ie;
+        return ce.expressionSemantic(sc);
     }
 
     /**
@@ -13481,9 +13481,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto arguments = new Expressions();
         arguments.push(re.e1);
         arguments.push(re.e2);
-        id = new CallExp(re.loc, id, arguments);
-
-        return id.expressionSemantic(sc);
+        auto ce = new CallExp(re.loc, id, arguments);
+        ce.loweredFrom = re;
+        return ce.expressionSemantic(sc);
     }
 
     override void visit(InExp exp)
@@ -13574,11 +13574,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto arguments = new Expressions();
         arguments.push(ee.e1);
         arguments.push(ee.e2);
-        Expression exp = new CallExp(ee.loc, id, arguments);
+        auto ce = new CallExp(ee.loc, id, arguments);
         if (ee.op == EXP.notEqual)
-            exp = new NotExp(ee.loc, exp);
-
-        return exp.expressionSemantic(sc);
+        {
+            auto ne = new NotExp(ee.loc, ce);
+            ne.loweredFrom = ee;
+            return ne.expressionSemantic(sc);
+        }
+        ce.loweredFrom = ee;
+        return ce.expressionSemantic(sc);
     }
 
     override void visit(EqualExp exp)
