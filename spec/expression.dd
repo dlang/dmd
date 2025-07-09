@@ -2084,7 +2084,8 @@ $(TROW `(` *Expression* `)`, Evaluate an expression - useful as a
 
 $(H3 $(LNAME2 this, this))
 
-    $(P Within a constructor or non-static member function, $(D this) resolves to
+    $(P Within a constructor or $(DDSUBLINK spec/class, member-functions,
+        non-static member function), $(D this) resolves to
         a reference to the object for which the function was called.
     )
     $(P $(DDSUBLINK spec/type, typeof-this, `typeof(this)`) is valid anywhere

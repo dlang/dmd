@@ -253,11 +253,30 @@ $(H3 $(LNAME2 field_properties, Field Properties))
 
 $(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
 
-        $(P Non-static member functions have an extra hidden parameter
+        $(P Non-static member functions must be called on an instance of their class.
+        They have an extra hidden parameter
         called $(DDSUBLINK spec/expression, this, `this`) through which the class object's other members
         can be accessed.
+        Inside the function body, the class instance members are in scope.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+class C
+{
+    int a;
+
+    void foo()
+    {
+        a = 3; // assign to `this.a`
+    }
+}
+
+auto c = new C;
+c.foo();
+assert(c.a == 3);
+---
+)
         $(P Non-static member functions can have, in addition to the usual
         $(GLINK2 function, FunctionAttribute)s, the attributes
         $(D const), $(D immutable), $(D shared), $(D inout), $(D scope) or $(D return scope).
@@ -268,6 +287,7 @@ $(SPEC_RUNNABLE_EXAMPLE_FAIL
 class C
 {
     int a;
+
     void foo() const
     {
         a = 3; // error, 'this' is const
