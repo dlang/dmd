@@ -22,7 +22,7 @@ bool __equals(T1, T2)(scope T1[] lhs, scope T2[] rhs) @trusted
     if (lhs.length == 0)
         return true;
 
-    alias PureType = bool function(scope T1[] lhs, scope T2[] rhs, size_t length) @safe pure nothrow @nogc;
+    alias PureType = bool function(scope T1[], scope T2[], size_t) @safe pure nothrow @nogc;
 
     return (cast(PureType)&isEqual!(T1,T2))(lhs, rhs, lhs.length);
 }
