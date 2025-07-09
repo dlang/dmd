@@ -488,6 +488,7 @@ nothrow:
      * Params:
      *  sink = send the path pieces here, end when sink() returns !=0
      *  path = the path to split up.
+     *  ctx  = pointer to context passed to sink
      */
     static void splitPath(int function(const(char)*, void*) nothrow sink, const(char)* path, void* ctx)
     {
