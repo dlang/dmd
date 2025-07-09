@@ -2988,7 +2988,6 @@ class EqualExp final : public BinExp
 {
 public:
     Expression* lowering;
-
     void accept(Visitor* v) override;
 };
 
