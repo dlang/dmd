@@ -55,6 +55,18 @@ public:
         if (data.ptr && data.ptr != &smallarray[0])
             mem.xfree(data.ptr);
     }
+
+
+    extern(D) static Array!(T)* only(scope T[] elems) pure nothrow
+    {
+        auto ret = new Array!T(elems.length);
+        foreach(i; 0 .. elems.length)
+        {
+            (*ret)[i] = elems[i];
+        }
+        return ret;
+    }
+
     ///returns elements comma separated in []
     extern(D) const(char)[] toString() const
     {
@@ -1180,4 +1192,23 @@ pure nothrow @nogc @safe unittest
 
     b.popFront();
     assert(b == expected[]);
+}
+
+
+/// Test Array.only
+pure nothrow unittest
+{
+    auto ints = Array!int.only([1,2,3]);
+    assert(equal((*ints)[], [1,2,3]));
+
+    //check to make sure that this works with the aliases in arraytypes.d
+    import dmd.rootobject;
+    alias Objects = Array!RootObject;
+
+    auto ro1 = new RootObject();
+    auto ro2 = new RootObject();
+
+    auto aoo = Objects.only([ro1, ro2]);
+    assert((*aoo)[0] is ro1);
+    assert((*aoo)[1] is ro2);
 }
