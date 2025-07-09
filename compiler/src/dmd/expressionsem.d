@@ -13589,7 +13589,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     {
                         foreach(elem; *elems)
                         {
-                            unqualifyExp(elem);
+                            if (elem)
+                                unqualifyExp(elem);
                         }
                     }
                 }
