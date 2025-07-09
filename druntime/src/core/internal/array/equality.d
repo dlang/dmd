@@ -34,25 +34,25 @@ bool __equals(T1, T2)(scope T1[] lhs, scope T2[] rhs) @trusted
 private
 bool isEqual(T1, T2)(scope T1[] lhs, scope T2[] rhs, size_t length)
 {
+    // Returns a reference to an array element, eliding bounds check and
+    // casting void to ubyte.
+    pragma(inline, true)
+    static ref at(T)(scope T[] r, size_t i) @trusted
+        // exclude opaque structs due to https://issues.dlang.org/show_bug.cgi?id=20959
+        if (!(is(T == struct) && !is(typeof(T.sizeof))))
+    {
+        static if (is(T == void))
+            return (cast(ubyte[]) r)[i];
+        else
+            return r[i];
+    }
+
     foreach (const i; 0 .. length)
     {
         if (at(lhs, i) != at(rhs, i))
             return false;
     }
     return true;
-}
-
-// Returns a reference to an array element, eliding bounds check and
-// casting void to ubyte.
-pragma(inline, true)
-ref at(T)(scope T[] r, size_t i) @trusted
-    // exclude opaque structs due to https://issues.dlang.org/show_bug.cgi?id=20959
-    if (!(is(T == struct) && !is(typeof(T.sizeof))))
-{
-    static if (is(T == void))
-        return (cast(ubyte*) r.ptr)[i];
-    else
-        return r.ptr[i];
 }
 
 @safe unittest
