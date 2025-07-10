@@ -474,7 +474,7 @@ nothrow:
      */
     extern(C++) static void appendSplitPath(const(char)* path, scope ref Strings array)
     {
-        auto sink = delegate int(const(char)* p) nothrow
+        scope sink = delegate int(const(char)* p) nothrow
         {
             array.push(p);
             return 0;
@@ -490,7 +490,8 @@ nothrow:
      *  sink = send the path pieces here, end when sink() returns !=0
      *  path = the path to split up.
      */
-    static void splitPath(scope int delegate(const(char)*) nothrow sink, const(char)* path)
+    @safe
+    static void splitPath(scope int delegate(const(char)*) nothrow @safe sink, const(char)* path);
     {
         if (!path)
             return;
