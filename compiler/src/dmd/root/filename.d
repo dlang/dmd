@@ -468,9 +468,13 @@ nothrow:
             assert(buildPath("a/", "bb", "ccc") == "a/bb/ccc");
     }
 
-    // Split a path and append the results to `array`
+    /****
+     * Splits a delimiter-separated path string (e.g. PATH)
+     * and passes each fragment to the given `sink` delegate.
+     */
     extern (C++) static void splitPath(scope int delegate(const(char)*) nothrow sink, const(char)* path)
     {
+        // 
         scope sink = delegate int(const(char)* p) nothrow
         {
             array.push(p);
