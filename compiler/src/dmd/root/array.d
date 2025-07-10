@@ -56,13 +56,15 @@ public:
             mem.xfree(data.ptr);
     }
 
-
-    extern(D) this(T[] elems ...) pure nothrow
+    static if (is(T == struct) || is(T == class))
     {
-        this(elems.length);
-        foreach(i; 0 .. elems.length)
+        extern(D) this(T[] elems ...) pure nothrow
         {
-            this[i] = elems[i];
+            this(elems.length);
+            foreach(i; 0 .. elems.length)
+            {
+                this[i] = elems[i];
+            }
         }
     }
 
@@ -1194,12 +1196,9 @@ pure nothrow @nogc @safe unittest
 }
 
 
-/// Test Array.only
+/// Test Array array constructor
 pure nothrow unittest
 {
-    auto ints = new Array!int(1,2,3);
-    assert(equal((*ints)[], [1,2,3]));
-
     //check to make sure that this works with the aliases in arraytypes.d
     import dmd.rootobject;
     alias Objects = Array!RootObject;
