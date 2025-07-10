@@ -469,7 +469,7 @@ nothrow:
     }
 
     // Split a path and append the results to `array`
-    extern (C++) static void appendSplitPath(const(char)* path, ref Strings array)
+    extern (C++) static void appendSplitPath(const(char)* path, scope ref Strings array)
     {
         int sink(const(char)* p) nothrow
         {
