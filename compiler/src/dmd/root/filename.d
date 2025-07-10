@@ -472,10 +472,9 @@ nothrow:
      * Splits a delimiter-separated path string (e.g. PATH)
      * and passes each fragment to the given `sink` delegate.
      */
-    extern (C++) static void splitPath(scope int delegate(const(char)*) nothrow sink, const(char)* path)
+    extern(C++) static void appendSplitPath(const(char)* path, scope ref Strings array)
     {
-        // 
-        scope sink = delegate int(const(char)* p) nothrow
+        auto sink = delegate int(const(char)* p) nothrow
         {
             array.push(p);
             return 0;
@@ -491,7 +490,7 @@ nothrow:
      *  sink = send the path pieces here, end when sink() returns !=0
      *  path = the path to split up.
      */
-    static void splitPath(int delegate(const(char)*) nothrow sink, const(char)* path)
+    static void splitPath(scope int delegate(const(char)*) nothrow sink, const(char)* path)
     {
         if (!path)
             return;
