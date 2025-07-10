@@ -478,7 +478,7 @@ nothrow:
             return 0;
         }
 
-        splitPath((const(char)* p) => sink(&array, p), path);
+        splitPath(&sink, path, &array);
     }
 
     /****
