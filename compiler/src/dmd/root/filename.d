@@ -469,7 +469,7 @@ nothrow:
     }
 
     // Split a path and append the results to `array`
-    static void splitPath(scope int delegate(const(char)*) nothrow sink, const(char)* path)
+    extern (C++) static void splitPath(scope int delegate(const(char)*) nothrow sink, const(char)* path)
     {
         scope sink = delegate int(const(char)* p) nothrow
         {
