@@ -1142,29 +1142,27 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
         if (auto lowering = e.lowering)
         {
             optimize(lowering, result, keepLvalue);
+            return;
         }
-        else
+
+        if (binOptimize(e, WANTvalue))
+            return;
+
+        Expression e1 = fromConstInitializer(result, e.e1);
+        Expression e2 = fromConstInitializer(result, e.e2);
+        if (e1.op == EXP.error)
         {
-            if (binOptimize(e, WANTvalue))
-            {
-                return;
-            }
-            Expression e1 = fromConstInitializer(result, e.e1);
-            Expression e2 = fromConstInitializer(result, e.e2);
-            if (e1.op == EXP.error)
-            {
-                ret = e1;
-                return;
-            }
-            if (e2.op == EXP.error)
-            {
-                ret = e2;
-                return;
-            }
-            ret = Equal(e.op, e.loc, e.type, e1, e2).copy();
-            if (CTFEExp.isCantExp(ret))
-                ret = e;
+            ret = e1;
+            return;
         }
+        if (e2.op == EXP.error)
+        {
+            ret = e2;
+            return;
+        }
+        ret = Equal(e.op, e.loc, e.type, e1, e2).copy();
+        if (CTFEExp.isCantExp(ret))
+            ret = e;
     }
 
     void visitIdentity(IdentityExp e)
