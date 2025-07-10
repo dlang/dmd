@@ -56,15 +56,15 @@ public:
             mem.xfree(data.ptr);
     }
 
-    static if (is(T == struct) || is(T == class))
+
+    // this is a "dummy" template because of c++ header generation
+    // challenges with wrapping this in static if instead
+    extern(D) this()(T[] elems ...) pure nothrow if (is(T == struct) || is(T == class))
     {
-        extern(D) this(T[] elems ...) pure nothrow
+        this(elems.length);
+        foreach(i; 0 .. elems.length)
         {
-            this(elems.length);
-            foreach(i; 0 .. elems.length)
-            {
-                this[i] = elems[i];
-            }
+            this[i] = elems[i];
         }
     }
 
