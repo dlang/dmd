@@ -471,14 +471,12 @@ nothrow:
     // Split a path and append the results to `array`
     extern (C++) static void appendSplitPath(const(char)* path, scope ref Strings array)
     {
-        static int sink(void* ctx, const(char)* p) nothrow
+        scope sink = delegate int(const(char)* p) nothrow
         {
-            auto array = cast(Strings*)ctx;
             array.push(p);
             return 0;
-        }
-
-        splitPath(&sink, path, &array);
+        };
+        splitPath(sink, path);
     }
 
     /****
