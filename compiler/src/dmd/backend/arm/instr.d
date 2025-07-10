@@ -1007,8 +1007,43 @@ struct INSTR
 
     /* Load/store register pair (offset)
      * Load/store register pair (pre-indexed)
-     * Load/store register pair (unscaled immediate)
      */
+
+    /* Load/store register (unscaled immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unscaled
+     */
+    static uint ldst_unscaled(uint size, uint VR, uint opc, uint imm9, reg_t Rn, reg_t Rt)
+    {
+        assert(imm9 < 0x200);
+        return (size << 30) |
+               (7    << 27) |
+               (VR   << 26) |
+               (opc  << 22) |
+               (imm9 << 12) |
+               (Rn   <<  5) |
+                Rt;
+    }
+
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/stur_imm_fpsimd.html
+     * STUR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
+     */
+    static uint stur_imm_fpsimd(uint size, uint opc, uint imm9, reg_t Rn, reg_t Vt)
+    {
+        assert(imm9 < 0x200);
+        assert(size < 4);
+        assert(opc  < 4);
+        return ldst_unscaled(size,1,opc,imm9,Rn,Vt);
+    }
+
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/ldur_imm_fpsimd.html
+     * LDUR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
+     */
+    static uint ldur_imm_fpsimd(uint size, uint opc, uint imm9, reg_t Rn, reg_t Vt)
+    {
+        assert(imm9 < 0x200);
+        assert(size < 4);
+        assert(opc  < 4);
+        return ldst_unscaled(size,1,opc | 1,imm9,Rn,Vt);
+    }
 
     /* Load/store register (immediate post-indexed)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpost

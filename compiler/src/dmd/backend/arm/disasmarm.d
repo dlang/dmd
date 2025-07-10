@@ -2371,6 +2371,83 @@ void disassemble(uint c) @trusted
     }
 
     // Load/store register (unscaled immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unscaled
+    if (field(ins,29,27) == 7 && field(ins,25,24) == 0 && field(ins,21,21) == 0 && field(ins,11,10) == 0)
+    {
+        url = "ldst_unscaled";
+
+        uint size = field(ins, 31, 30);
+        uint VR   = field(ins, 26, 26);
+        uint opc  = field(ins, 23, 22);
+        uint imm9 = field(ins, 20, 12);
+        uint Rn   = field(ins,  9,  5);
+        uint Rt   = field(ins,  4,  0);
+
+        uint ldur(uint size, uint VR, uint opc) { return (size << 3) | (VR << 2) | opc; }
+
+        bool is64 = false;
+        const(char)* format = "%s";
+        switch (ldur(size,VR,opc))
+        {
+            case ldur(0,0,0): p1 = "sturb";  goto Lldur8;       // STURB  <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(0,0,1): p1 = "ldurb";  goto Lldur8;       // LDURB  <Wt>, [<Xn|SP>{, #<simm>}]
+            Lldur8:
+                p2 = regString(is64, Rt);
+                p3 = eaString(0, cast(ubyte)Rn, imm9);
+                break;
+
+            case ldur(0,0,2): p1 = "ldursb"; goto Lldur64;                     // LDURSB <Xt>, [<Xn|SP>{, #<simm>}]
+            case ldur(0,0,3): p1 = "ldursb"; goto Lldur;                       // LDURSB <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,0,0): p1 = "sturh";  goto Lldur;                       // STURH  <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,0,1): p1 = "ldurh";  goto Lldur;                       // LTURH  <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,0,2): p1 = "ldursh"; goto Lldur64;                     // LDURSH <Xt>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,0,3): p1 = "ldursh"; goto Lldur;                       // LDURSH <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(2,0,0): p1 = "stur";   format = "%s_gen"; goto Lldur;    // STUR   <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(2,0,1): p1 = "ldur";   format = "%s_gen"; goto Lldur;    // LDUR   <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(2,0,2): p1 = "ldursw"; goto Lldursw;                     // LDURSW <Xt>, [<Xn|SP>{, #<simm>}]
+            case ldur(3,0,0): p1 = "stur";   format = "%s_gen"; goto Lldur64;  // STUR   <Xt>, [<Xn|SP>{, #<simm>}]
+            case ldur(3,0,1): p1 = "ldur";   format = "%s_gen"; goto Lldur64;  // LDUR   <Xt>, [<Xn|SP>{, #<simm>}]
+            //case ldur(3,0,2): p1 = "prfum";
+            Lldursw:
+                p2 = regString(true, Rt);
+                p3 = eaString(0, cast(ubyte)Rn, imm9);
+                break;
+
+            Lldur64:
+                is64 = true;
+            Lldur:
+                p2 = regString(is64, Rt);
+                p3 = eaString(0, cast(ubyte)Rn, imm9);
+                break;
+
+            case ldur(0,1,0): p1 = "stur";   goto LdursimdFp;    // STUR   <Bt>, [<Xn|SP>{, #<simm>}]
+            case ldur(0,1,1): p1 = "ldur";   goto LdursimdFp;    // LDUR   <Bt>, [<Xn|SP>{, #<simm>}]
+            case ldur(0,1,2): p1 = "stur";   goto LdursimdFp;    // STUR   <Qt>, [<Xn|SP>{, #<simm>}]
+            case ldur(0,1,3): p1 = "ldur";   goto LdursimdFp;    // LDUR   <Qt>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,1,0): p1 = "stur";   goto LdursimdFp;    // STUR   <Ht>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,1,1): p1 = "ldur";   goto LdursimdFp;    // LDUR   <Ht>, [<Xn|SP>{, #<simm>}]
+            case ldur(2,1,0): p1 = "stur";   goto LdursimdFp;    // STUR   <St>, [<Xn|SP>{, #<simm>}]
+            case ldur(2,1,1): p1 = "ldur";   goto LdursimdFp;    // LDUR   <St>, [<Xn|SP>{, #<simm>}]
+            case ldur(3,1,0): p1 = "stur";   goto LdursimdFp;    // STUR   <Dt>, [<Xn|SP>{, #<simm>}]
+            case ldur(3,1,1): p1 = "ldur";   goto LdursimdFp;    // LDUR   <Dt>, [<Xn|SP>{, #<simm>}]
+            LdursimdFp:
+                format = "%s_fpsimd";
+                uint shift = size + ((opc & 2) << 1);
+                p2 = fregString(buf[0..4], fpPrefix[shift], Rt);
+                uint offset = imm9;
+                p3 = eaString(0, cast(ubyte)Rn, offset);
+                break;
+
+            default:
+                format = null;
+                break;
+        }
+        if (format)
+        {
+            uint n = snprintf(url2buf.ptr, url2buf.length, format, p1.ptr);
+            url2 = url2buf[0 .. n];
+        }
+    }
+    else
 
     // Load/store register (immediate post-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpost
     if (field(ins, 29, 27) == 7 && field(ins, 25, 24) == 0 && field(ins, 21, 21) == 0 && field(ins, 11,10) == 1)
@@ -3059,8 +3136,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[85] cases64 =      // 64 bit code gen
+    string[86] cases64 =      // 64 bit code gen
     [
+        "B8 00 93 E0         stur   w0,[sp,#9]",
         "F8 00 84 5F         str    xzr,[x2],#8",
         "6F 00 E4 01         movi   v1.2d,#0x0",
         "9E AF 00 3E         fmov   v30.d[1],x1",
