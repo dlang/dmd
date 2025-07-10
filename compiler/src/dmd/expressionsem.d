@@ -13609,17 +13609,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (eNext && !eNext.toBasetype().isTypeStruct())
                     e.type = e.type.unqualify(MODFlags.const_);
 
-                if (auto eArrLit = e.isArrayLiteralExp())
-                {
-                    if (auto elems = eArrLit.elements)
-                    {
-                        foreach(elem; *elems)
-                        {
-                            if (elem)
-                                unqualifyExp(elem);
-                        }
-                    }
-                }
+                if (!e.isArrayLiteralExp())
+                    return;
+
+                if (auto elems = e.isArrayLiteralExp().elements)
+                    foreach(elem; *elems)
+                        if (elem)
+                            unqualifyExp(elem);
             }
             unqualifyExp(e1c);
             unqualifyExp(e2c);
