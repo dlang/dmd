@@ -3860,6 +3860,55 @@ private void lowerCastExp(CastExp cex, Scope* sc)
     cex.lowering = lowering.expressionSemantic(sc);
 }
 
+/**
+ * Visitor to check if a type is suitable for comparison using `memcmp`.
+ * Currently used when lowering `EqualExp`.
+ */
+private extern(C++) final class IsMemcmpableVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+    public:
+    bool result = false;
+
+    override void visit(Type t)
+    {
+        result = t.ty == Tvoid || (t.isScalar() && !t.isFloating());
+    }
+
+    override void visit(TypeStruct ts)
+    {
+        result = false;
+
+        if (ts.sym.hasIdentityEquals)
+            return; // has custom opEquals
+
+        if (!ts.sym.members)
+        {
+            result = true;
+            return;
+        }
+
+        foreach (m; *ts.sym.members)
+        {
+            if (!m.isVarDeclaration())
+                continue;
+
+            auto tvb = m.isVarDeclaration.type.toBasetype();
+            if (tvb !is ts)
+                tvb.accept(this);
+            if (!result)
+                return;
+        }
+
+        result = true;
+    }
+
+    override void visit(TypeSArray tsa)
+    {
+        tsa.nextOf().toBasetype().accept(this);
+    }
+}
+
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -13440,51 +13489,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             return true;
-        }
-
-        extern(C++) static final class IsMemcmpableVisitor : Visitor
-        {
-            alias visit = Visitor.visit;
-            public:
-            bool result = false;
-
-            override void visit(Type t)
-            {
-                result = t.ty == Tvoid || (t.isScalar() && !t.isFloating());
-            }
-
-            override void visit(TypeStruct ts)
-            {
-                result = false;
-
-                if (ts.sym.hasIdentityEquals)
-                    return; // has custom opEquals
-
-                if (!ts.sym.members)
-                {
-                    result = true;
-                    return;
-                }
-
-                foreach (m; *ts.sym.members)
-                {
-                    if (!m.isVarDeclaration())
-                        continue;
-
-                    auto tvb = m.isVarDeclaration.type.toBasetype();
-                    if (tvb !is ts)
-                        tvb.accept(this);
-                    if (!result)
-                        return;
-                }
-
-                result = true;
-            }
-
-            override void visit(TypeSArray tsa)
-            {
-                tsa.nextOf().toBasetype().accept(this);
-            }
         }
 
         static bool shouldUseMemcmp(Type t1, Type t2, Scope *sc)
