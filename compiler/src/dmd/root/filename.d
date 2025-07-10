@@ -491,7 +491,7 @@ nothrow:
      *  path = the path to split up.
      */
     @safe
-    static void splitPath(scope int delegate(const(char)*) nothrow @safe sink, const(char)* path)
+    static void splitPath(scope int delegate(const(char)*) nothrow sink, const(char)* path)
     {
         if (!path)
             return;
