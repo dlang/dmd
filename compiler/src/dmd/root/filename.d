@@ -478,7 +478,7 @@ nothrow:
         {
             array.push(p);
             return 0;
-        }
+        };
         splitPath(sink, path);
     }
 
