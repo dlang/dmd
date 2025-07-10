@@ -57,14 +57,13 @@ public:
     }
 
 
-    extern(D) static Array!(T)* only(scope T[] elems) pure nothrow
+    extern(D) this(T[] elems ...) pure nothrow
     {
-        auto ret = new Array!T(elems.length);
+        this(elems.length);
         foreach(i; 0 .. elems.length)
         {
-            (*ret)[i] = elems[i];
+            this[i] = elems[i];
         }
-        return ret;
     }
 
     ///returns elements comma separated in []
@@ -1198,7 +1197,7 @@ pure nothrow @nogc @safe unittest
 /// Test Array.only
 pure nothrow unittest
 {
-    auto ints = Array!int.only([1,2,3]);
+    auto ints = new Array!int(1,2,3);
     assert(equal((*ints)[], [1,2,3]));
 
     //check to make sure that this works with the aliases in arraytypes.d
@@ -1208,7 +1207,7 @@ pure nothrow unittest
     auto ro1 = new RootObject();
     auto ro2 = new RootObject();
 
-    auto aoo = Objects.only([ro1, ro2]);
+    auto aoo = new Objects(ro1, ro2);
     assert((*aoo)[0] is ro1);
     assert((*aoo)[1] is ro2);
 }
