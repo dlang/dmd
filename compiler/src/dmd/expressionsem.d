@@ -13496,7 +13496,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if ((t1n.ty == Tvoid || (t1n.isScalar() && !t1n.isFloating())) &&
                 (t2n.ty == Tvoid || (t2n.isScalar() && !t1n.isFloating())) &&
-                t1nsz == t2nsz && (t1nsz >= Type.tint32.size() || t1n.isUnsigned() == t2n.isUnsigned()))
+                t1nsz == t2nsz && t1n.isUnsigned() == t2n.isUnsigned())
             {
                 return true;
             }
