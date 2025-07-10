@@ -13442,6 +13442,51 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return true;
         }
 
+        extern(C++) static final class IsMemcmpableVisitor : Visitor
+        {
+            alias visit = Visitor.visit;
+            public:
+            bool result = false;
+
+            override void visit(Type t)
+            {
+                result = t.ty == Tvoid || (t.isScalar() && !t.isFloating());
+            }
+
+            override void visit(TypeStruct ts)
+            {
+                result = false;
+
+                if (ts.sym.hasIdentityEquals)
+                    return; // has custom opEquals
+
+                if (!ts.sym.members)
+                {
+                    result = true;
+                    return;
+                }
+
+                foreach (m; *ts.sym.members)
+                {
+                    if (!m.isVarDeclaration())
+                        continue;
+
+                    auto tvb = m.isVarDeclaration.type.toBasetype();
+                    if (tvb !is ts)
+                        tvb.accept(this);
+                    if (!result)
+                        return;
+                }
+
+                result = true;
+            }
+
+            override void visit(TypeSArray tsa)
+            {
+                tsa.nextOf().toBasetype().accept(this);
+            }
+        }
+
         static bool shouldUseMemcmp(Type t1, Type t2, Scope *sc)
         {
             Type t1n = t1.nextOf().toBasetype();
@@ -13449,10 +13494,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             const t1nsz = t1n.size();
             const t2nsz = t2n.size();
 
-            if ((t1n.ty == Tvoid || t2n.ty == Tvoid) ||
-                (t1n.isScalar() && t2n.isScalar() &&
-                t1nsz == t2nsz && (t1nsz >= 4 || t1n.isUnsigned() == t2n.isUnsigned()) &&
-                !t1n.isFloating() && !t2n.isFloating()))
+            if ((t1n.ty == Tvoid || (t1n.isScalar() && !t1n.isFloating())) &&
+                (t2n.ty == Tvoid || (t2n.isScalar() && !t1n.isFloating())) &&
+                t1nsz == t2nsz && (t1nsz >= Type.tint32.size() || t1n.isUnsigned() == t2n.isUnsigned()))
             {
                 return true;
             }
@@ -13470,30 +13514,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (global.params.useTypeInfo && Type.dtypeinfo)
                     semanticTypeInfo(sc, ts);
 
-                static bool hasFloatFields(TypeStruct ts)
-                {
-                    if (auto members = ts.sym.members)
-                    {
-                        foreach (m; *members)
-                        {
-                            if (auto v = m.isVarDeclaration())
-                            {
-                                Type t = v.type.toBasetype();
-                                if (t.isFloating())
-                                    return true;
-
-                                if (auto vs = t.isTypeStruct())
-                                {
-                                    if (vs !is ts && hasFloatFields(vs))
-                                        return true;
-                                }
-                            }
-                        }
-                    }
-                    return false;
-                }
-
-                return !hasFloatFields(ts) && !ts.sym.hasIdentityEquals; // no float fields and no custom opEquals
+                auto v = new IsMemcmpableVisitor();
+                ts.accept(v);
+                return v.result;
             }
 
             return false;
@@ -13506,7 +13529,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         const isArrayComparison = t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray();
-        const needsArrayLowering = isArrayComparison && !shouldUseMemcmp(t1, t2, sc);
 
         if (!isArrayComparison || unifyArrayTypes(t1, t2, sc))
         {
@@ -13538,7 +13560,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // lower some array comparisons to object.__equals(e1, e2)
-        if (needsArrayLowering || (t1.ty == Tarray && t2.ty == Tarray))
+        if (isArrayComparison && !shouldUseMemcmp(t1, t2, sc))
         {
             //printf("Lowering to __equals %s %s\n", exp.e1.toChars(), exp.e2.toChars());
 
