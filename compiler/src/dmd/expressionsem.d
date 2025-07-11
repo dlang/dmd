@@ -3888,19 +3888,42 @@ private extern(C++) final class IsMemcmpableVisitor : Visitor
             return;
         }
 
-        foreach (m; *ts.sym.members)
+        /* We recursively check all variable declaration within the struct.
+         * The recursiveness is needed to handle cases like this:
+         * struct Test {
+	     *     nothrow:
+	     *     int[] contents;
+         * }
+         * Here a `StorageClassDeclaration` symbol will be created, which wraps the variable declaration.
+         */
+        static bool visitAllMembers(Dsymbols* members, TypeStruct root, IsMemcmpableVisitor v)
         {
-            if (!m.isVarDeclaration())
-                continue;
+            if (members is null)
+                return true;
 
-            auto tvb = m.isVarDeclaration.type.toBasetype();
-            if (tvb !is ts)
-                tvb.accept(this);
-            if (!result)
-                return;
+            foreach (m; *members)
+            {
+                if (auto vd = m.isVarDeclaration())
+                {
+                    if (vd.type is null)
+                        continue;
+
+                    auto tbvd = vd.type.toBasetype();
+                    if (tbvd !is root)
+                        tbvd.accept(v);
+
+                    if (!v.result)
+                        return false;
+                }
+                else if (auto ad = m.isAttribDeclaration())
+                {
+                    if(!visitAllMembers(ad.decl, root, v))
+                        return false;
+                }
+            }
+            return true;
         }
-
-        result = true;
+        result = visitAllMembers(ts.sym.members, ts, this);
     }
 
     override void visit(TypeSArray tsa)
