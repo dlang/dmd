@@ -482,7 +482,7 @@ nothrow:
      * See_Also:
      *   `splitPath`
      */
-    static void appendSplitPath(const(char)* path, scope ref Strings array)
+    extern (C++) static void appendSplitPath(const(char)* path, scope ref Strings array)
     {
         int sink(const(char)* p) nothrow
         {
