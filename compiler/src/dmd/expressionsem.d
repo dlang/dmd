@@ -3032,7 +3032,9 @@ private bool functionParameters(Loc loc, Scope* sc,
      */
     if (fd && fd.inlining == PINLINE.always)
     {
-        if (sc._module)
+        if (sc.minst)
+            sc.minst.hasAlwaysInlines = true;
+        else if (sc._module)
             sc._module.hasAlwaysInlines = true;
         if (sc.func)
             sc.func.hasAlwaysInlines = true;
