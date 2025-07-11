@@ -450,6 +450,10 @@ $(H2 $(LNAME2 class-instantiation, Class Instantiation))
 
 $(H3 $(LNAME2 constructors, Constructors))
 
+        $(P A constructor is a special $(RELATIVE_LINK2 member-functions, member function)
+        which is normally $(RELATIVE_LINK2 instantiation-process, invoked by the compiler)
+        when the class instance is created.)
+
 $(GRAMMAR
 $(GNAME Constructor):
     $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
@@ -457,14 +461,19 @@ $(GNAME Constructor):
     $(GLINK2 template, ConstructorTemplate)
 )
 
-        $(P Constructors are defined with a function name of $(D this)
-        and have no return value:)
+        $(P A constructor is declared with a function name of $(D this)
+        and no return type:)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         class A
         {
             int i;
+
+            this() // constructor taking no arguments
+            {
+                i = 2; // initialize `this.i`
+            }
 
             this(int i) // constructor taking an int argument
             {
@@ -474,11 +483,17 @@ $(GNAME Constructor):
 
         void main()
         {
-            A a = new A(3);
+            A a = new A; // instantiate A and call `A.this()`
+            assert(a.i == 2);
+
+            a = new A(3); // instantiate A and call `A.this(3)`
             assert(a.i == 3);
         }
         ------
         )
+        $(P Explicitly returning a value in a constructor is not allowed,
+        however `return;` may be used to exit the function early.)
+
 
 $(H3 $(LNAME2 base-construction, Base Class Construction))
 
