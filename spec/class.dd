@@ -538,6 +538,8 @@ $(H3 $(LNAME2 delegating-constructors, Delegating Constructors))
         }
         ------
 
+$(H3 $(LNAME2 ctor-restrictions, Restrictions))
+
         $(P The following restrictions apply:)
 
     $(OL
@@ -555,14 +557,16 @@ $(H3 $(LNAME2 delegating-constructors, Delegating Constructors))
         calls.)
         )
 
-        $(LI If a constructor's code contains a delegating constructor call, all
+        $(LI If a constructor's code contains a delegating/base constructor call, all
         possible execution paths through the constructor must make exactly one
-        delegating constructor call:
+        of those calls:
 
         ------
-        this() { a || super(); }       // illegal
+        this() { a || super(); } // illegal, 0 or 1 call
 
-        this() { (a) ? this(1) : super(); }     // ok
+        this() { (a) ? this(1) : super(); } // OK
+
+        this() { super(); this(1); } // illegal, 2 calls
 
         this()
         {
@@ -575,10 +579,13 @@ $(H3 $(LNAME2 delegating-constructors, Delegating Constructors))
         )
 
         $(LI It is illegal to refer to $(D this) implicitly or explicitly
-        prior to making a delegating constructor call.)
+        prior to making a delegating/base constructor call.)
 
-        $(LI Delegating constructor calls cannot appear after labels.)
+        $(LI Delegating/base constructor calls cannot appear after labels.)
     )
+
+    $(P See also: $(RELATIVE_LINK2 field-init, field initialization).)
+
 
 $(H3 $(LNAME2 implicit-base-construction, Implicit Base Class Construction))
 
