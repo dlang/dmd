@@ -469,17 +469,27 @@ nothrow:
     }
 
     /****
-     * Splits a delimiter-separated path string (e.g. PATH)
-     * and passes each fragment to the given `sink` delegate.
+     * Splits a delimiter-separated path string (e.g., from an environment variable like `PATH`)
+     * into individual path fragments and appends them to the given array.
+     *
+     * This is a convenience wrapper around `splitPath` that collects all fragments
+     * into an `Array!(const(char)*)`.
+     *
+     * Params:
+     *   path  = A null-terminated string containing path fragments separated by platform-specific delimiters.
+     *   array = The array to which each extracted fragment will be appended.
+     *
+     * See_Also:
+     *   `splitPath`
      */
     static void appendSplitPath(const(char)* path, scope ref Strings array)
     {
-        scope sink = delegate int(const(char)* p) nothrow
+        int sink(const(char)* p) nothrow
         {
             array.push(p);
             return 0;
-        };
-        splitPath(sink, path);
+        }
+        splitPath(&sink, path);
     }
 
     /****
