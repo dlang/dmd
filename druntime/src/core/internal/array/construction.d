@@ -468,7 +468,7 @@ unittest
 version (D_ProfileGC)
 {
     /**
-    * TraceGC wrapper around $(REF _d_newitemT, core,lifetime).
+    * TraceGC wrapper around $(REF _d_newarrayT, core,internal.array.construction).
     */
     T[] _d_newarrayTTrace(T)(size_t length, bool isShared, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
     {
@@ -478,6 +478,22 @@ version (D_ProfileGC)
             mixin(TraceHook!("T", "_d_newarrayT"));
 
             return _d_newarrayT!T(length, isShared);
+        }
+        else
+            assert(0, "Cannot create new array if compiling without support for runtime type information!");
+    }
+
+    /**
+    * TraceGC wrapper around $(REF _d_newarrayU, core,internal.array.construction).
+    */
+    T[] _d_newarrayUTrace(T)(size_t length, bool isShared, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
+    {
+        version (D_TypeInfo)
+        {
+            import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
+            mixin(TraceHook!("T", "_d_newarrayU"));
+
+            return _d_newarrayUPureNothrow!T(length, isShared);
         }
         else
             assert(0, "Cannot create new array if compiling without support for runtime type information!");
