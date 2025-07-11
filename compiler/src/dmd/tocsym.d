@@ -760,7 +760,7 @@ Symbol* toInitializer(EnumDeclaration ed)
             s.Sisym = createImport(s, ed.loc);
         ed.sinit = s;
     }
-    return ed.sinit;
+    return cast(Symbol*)ed.sinit;
 }
 
 
