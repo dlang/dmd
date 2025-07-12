@@ -6730,7 +6730,6 @@ public:
     ThreeState isabstract;
     Baseok baseok;
     ObjcClassDeclaration objc;
-    Symbol* cpp_type_info_ptr_sym;
     static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass* >* baseclasses, Array<Dsymbol* >* members, bool inObject);
     const char* toPrettyChars(bool qualifyTypes = false) override;
     ClassDeclaration* syntaxCopy(Dsymbol* s) override;

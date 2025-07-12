@@ -824,23 +824,27 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
 {
     assert(cd.isCPPclass());
 
+    __gshared Symbol*[ClassDeclaration] cache;
+
     /* For the symbol std::exception, the type info is _ZTISt9exception
      */
-    if (!cd.cpp_type_info_ptr_sym)
+    if (auto cpp_type_info_ptr_sym = cd in cache)
     {
-        __gshared Symbol* scpp;
-        if (!scpp)
-            scpp = fake_classsym(Id.cpp_type_info_ptr);
-        Symbol* s = toSymbolX(cd, "_cpp_type_info_ptr", SC.comdat, scpp.Stype, "");
-        s.Sfl = FL.data;
-        s.Sflags |= SFLnodebug;
-        auto dtb = DtBuilder(0);
-        cpp_type_info_ptr_toDt(cd, dtb);
-        s.Sdt = dtb.finish();
-        outdata(s);
-        cd.cpp_type_info_ptr_sym = s;
+        return *cpp_type_info_ptr_sym;
     }
-    return cd.cpp_type_info_ptr_sym;
+
+    __gshared Symbol* scpp;
+    if (!scpp)
+        scpp = fake_classsym(Id.cpp_type_info_ptr);
+    Symbol* s = toSymbolX(cd, "_cpp_type_info_ptr", SC.comdat, scpp.Stype, "");
+    s.Sfl = FL.data;
+    s.Sflags |= SFLnodebug;
+    auto dtb = DtBuilder(0);
+    cpp_type_info_ptr_toDt(cd, dtb);
+    s.Sdt = dtb.finish();
+    outdata(s);
+
+    return cache[cd] = s;
 }
 
 /**********************************
