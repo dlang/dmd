@@ -760,7 +760,8 @@ unittest
 pragma(inline, true)
 uint mulu()(uint x, uint y, ref bool overflow)
 {
-    version (D_InlineAsm_X86)         enum useAsm = true;
+    version (DigitalMars)             enum useAsm = false; // cannot inline asm
+    else version (D_InlineAsm_X86)    enum useAsm = true;
     else version (D_InlineAsm_X86_64) enum useAsm = true;
     else                              enum useAsm = false;
 
@@ -813,6 +814,7 @@ unittest
 pragma(inline, true)
 ulong mulu()(ulong x, uint y, ref bool overflow)
 {
+    version (DigitalMars) {} else // cannot inline asm
     version (D_InlineAsm_X86_64)
     {
         if (!__ctfe)
@@ -830,6 +832,7 @@ ulong mulu()(ulong x, uint y, ref bool overflow)
 pragma(inline, true)
 ulong mulu()(ulong x, ulong y, ref bool overflow)
 {
+    version (DigitalMars) {} else // cannot inline asm
     version (D_InlineAsm_X86_64)
     {
         if (!__ctfe)
