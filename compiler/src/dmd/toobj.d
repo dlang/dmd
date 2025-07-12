@@ -723,12 +723,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 // Generate static initializer
                 toInitializer(ed);
-                ed.sinit.Sclass = scclass;
-                ed.sinit.Sfl = FL.data;
+                auto sinit = cast(Symbol*) ed.sinit;
+                sinit.Sclass = scclass;
+                sinit.Sfl = FL.data;
                 auto dtb = DtBuilder(0);
                 Expression_toDt(tc.sym.defaultval, dtb);
-                ed.sinit.Sdt = dtb.finish();
-                outdata(ed.sinit);
+                sinit.Sdt = dtb.finish();
+                outdata(sinit);
             }
             ed.semanticRun = PASS.obj;
         }
