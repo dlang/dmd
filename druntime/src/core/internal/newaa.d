@@ -46,10 +46,12 @@ struct AA(K, V)
 
     @property bool empty() const pure nothrow @nogc @safe
     {
+        pragma(inline, true);
         return impl is null || !impl.length;
     }
     @property size_t length() const pure nothrow @nogc @safe
     {
+        pragma(inline, true);
         return impl is null ? 0 : impl.length;
     }
 }
@@ -65,34 +67,40 @@ private template Unconstify(T : const U, U)
 
 ref _refAA(K, V)(ref V[K] aa) @trusted
 {
+    pragma(inline, true);
     return *(cast(AA!(substInout!K, substInout!V)*)&aa);
 }
 
 auto _toAA(K, V)(const V[K] aa) @trusted
 {
+    pragma(inline, true);
     return *(cast(const(AA!(K, V))*)&aa);
 }
 
 auto _toAA(K, V)(inout V[K] aa) @trusted
 {
+    pragma(inline, true);
     return *(cast(inout(AA!(K, V))*)&aa);
 }
 
 // for backward compatibility, but should be deprecated
 auto _toAA(K, V)(shared const V[K] aa) @trusted
 {
+    pragma(inline, true);
     return *(cast(AA!(K, V)*)&aa);
 }
 
 // for backward compatibility, but should be deprecated
 auto _toAA(K, V)(shared V[K] aa) @trusted
 {
+    pragma(inline, true);
     return *(cast(AA!(K, V)*)&aa);
 }
 
 // resolve ambiguity for immutable converting to const and shared const
 auto _toAA(K, V)(immutable V[K] aa) @trusted
 {
+    pragma(inline, true);
     return *(cast(AA!(K, V)*)&aa);
 }
 
@@ -105,6 +113,7 @@ static struct Entry(K, V)
 // backward compatibility conversions
 private ref compat_key(K, K2)(ref K2 key)
 {
+    pragma(inline, true);
     static if (is(K2 == const(char)[]) && is(K == string))
         return (ref (ref return K2 k2) @trusted => *cast(string*)&k2)(key);
     else
@@ -229,17 +238,20 @@ private:
 
     @property size_t length() const pure nothrow @nogc @safe
     {
+        pragma(inline, true);
         assert(used >= deleted);
         return used - deleted;
     }
 
     @property size_t dim() const pure nothrow @nogc @safe
     {
+        pragma(inline, true);
         return buckets.length;
     }
 
     @property size_t mask() const pure nothrow @nogc @safe
     {
+        pragma(inline, true);
         return dim - 1;
     }
 
@@ -310,7 +322,7 @@ private:
     size_t calcHash(K2)(ref K2 key) const nothrow pure @nogc @safe
     {
         static if(is(K2* : K*)) // ref compatible?
-            hash_t hash = hashFn(key);
+            hash_t hash = pure_hashOf!K(key);
         else
             hash_t hash = pure_hashOf!K2(key);
         // highest bit is set to distinguish empty/deleted from filled buckets
@@ -337,16 +349,19 @@ private pure nothrow @nogc:
 
     @property bool empty() const
     {
+        pragma(inline, true);
         return hash == HASH_EMPTY;
     }
 
     @property bool deleted() const
     {
+        pragma(inline, true);
         return hash == HASH_DELETED;
     }
 
     @property bool filled() const @safe
     {
+        pragma(inline, true);
         return cast(ptrdiff_t) hash < 0;
     }
 }
