@@ -2722,7 +2722,7 @@ public:
     bool ignoreAttributes;
     bool isUfcsRewrite;
     VarDeclaration* vthis2;
-    Expression+ loweredFrom;
+    Expression* loweredFrom;
     static CallExp* create(Loc loc, Expression* e, Array<Expression* >* exps);
     static CallExp* create(Loc loc, Expression* e);
     static CallExp* create(Loc loc, Expression* e, Expression* earg1);
