@@ -95,8 +95,9 @@ void genModuleInfo(Module m)
 
     //////////////////////////////////////////////
 
-    m.csym.Sclass = SC.global;
-    m.csym.Sfl = FL.data;
+    auto csym = cast(Symbol*)m.csym;
+    csym.Sclass = SC.global;
+    csym.Sfl = FL.data;
 
     auto dtb = DtBuilder(0);
 
@@ -210,9 +211,9 @@ void genModuleInfo(Module m)
     }
 
     objc.generateModuleInfo(m);
-    m.csym.Sdt = dtb.finish();
-    out_readonly(m.csym);
-    outdata(m.csym);
+    csym.Sdt = dtb.finish();
+    out_readonly(csym);
+    outdata(csym);
 
     //////////////////////////////////////////////
 
@@ -420,7 +421,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //printf("putting out %s.vtbl[]\n", toChars());
             auto dtbv = DtBuilder(0);
             if (cd.vtblOffset())
-                dtbv.xoff(cd.csym, 0, TYnptr);           // first entry is ClassInfo reference
+                dtbv.xoff(cast(Symbol*)cd.csym, 0, TYnptr);           // first entry is ClassInfo reference
             foreach (i; cd.vtblOffset() .. cd.vtbl.length)
             {
                 FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
@@ -441,13 +442,14 @@ void toObjFile(Dsymbol ds, bool multiobj)
                  */
                 dtbv.size(0);
             }
-            cd.vtblsym.csym.Sdt = dtbv.finish();
-            cd.vtblsym.csym.Sclass = scclass;
-            cd.vtblsym.csym.Sfl = FL.data;
-            out_readonly(cd.vtblsym.csym);
-            outdata(cd.vtblsym.csym);
+            auto csym = cast(Symbol*) cd.vtblsym.csym;
+            csym.Sdt = dtbv.finish();
+            csym.Sclass = scclass;
+            csym.Sfl = FL.data;
+            out_readonly(csym);
+            outdata(csym);
             if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
-                objmod.export_symbol(cd.vtblsym.csym, 0);
+                objmod.export_symbol(csym, 0);
         }
 
         override void visit(InterfaceDeclaration id)
@@ -1227,18 +1229,19 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
     SC scclass = SC.comdat;
-    cd.csym.Sclass = scclass;
-    cd.csym.Sfl = FL.data;
+    auto csym = cast(Symbol*) cd.csym;
+    csym.Sclass = scclass;
+    csym.Sfl = FL.data;
 
     auto dtb = DtBuilder(0);
 
     ClassInfoToDt(dtb, cd, sinit);
 
-    cd.csym.Sdt = dtb.finish();
+    csym.Sdt = dtb.finish();
     // ClassInfo cannot be const data, because we use the monitor on it
-    outdata(cd.csym);
+    outdata(csym);
     if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
-        objmod.export_symbol(cd.csym, 0);
+        objmod.export_symbol(csym, 0);
 }
 
 private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit)
@@ -1293,19 +1296,20 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
         namelen = strlen(name);
     }
     dtb.size(namelen);
-    dt_t* pdtname = dtb.xoffpatch(cd.csym, 0, TYnptr);
+    auto csym = cast(Symbol*) cd.csym;
+    dt_t* pdtname = dtb.xoffpatch(csym, 0, TYnptr);
 
     // vtbl[]
     dtb.size(cd.vtbl.length);
     if (cd.vtbl.length)
-        dtb.xoff(cd.vtblsym.csym, 0, TYnptr);
+        dtb.xoff(cast(Symbol*)cd.vtblsym.csym, 0, TYnptr);
     else
         dtb.size(0);
 
     // interfaces[]
     dtb.size(cd.vtblInterfaces.length);
     if (cd.vtblInterfaces.length)
-        dtb.xoff(cd.csym, offset, TYnptr);      // (*)
+        dtb.xoff(csym, offset, TYnptr);      // (*)
     else
         dtb.size(0);
 
@@ -1432,7 +1436,7 @@ Louter:
 
         // vtbl[]
         dtb.size(id.vtbl.length);
-        dtb.xoff(cd.csym, offset, TYnptr);
+        dtb.xoff(cast(Symbol*)cd.csym, offset, TYnptr);
 
         // offset
         dtb.size(b.offset);
@@ -1483,18 +1487,19 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     SC scclass = SC.comdat;
 
     // Put out the ClassInfo
-    id.csym.Sclass = scclass;
-    id.csym.Sfl = FL.data;
+    auto csym = cast(Symbol*) id.csym;
+    csym.Sclass = scclass;
+    csym.Sfl = FL.data;
 
     auto dtb = DtBuilder(0);
 
     InterfaceInfoToDt(dtb, id);
 
-    id.csym.Sdt = dtb.finish();
-    out_readonly(id.csym);
-    outdata(id.csym);
+    csym.Sdt = dtb.finish();
+    out_readonly(csym);
+    outdata(csym);
     if (id.isExport() || driverParams.exportVisibility == ExpVis.public_)
-        objmod.export_symbol(id.csym, 0);
+        objmod.export_symbol(csym, 0);
 }
 
 private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
@@ -1541,7 +1546,8 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     const(char) *name = id.toPrettyChars(/*QualifyTypes=*/ true);
     size_t namelen = strlen(name);
     dtb.size(namelen);
-    dt_t* pdtname = dtb.xoffpatch(id.csym, 0, TYnptr);
+    auto csym = cast(Symbol*)id.csym;
+    dt_t* pdtname = dtb.xoffpatch(csym, 0, TYnptr);
 
     // vtbl[]
     dtb.size(0);
@@ -1562,7 +1568,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
                 fatal();
             }
         }
-        dtb.xoff(id.csym, offset, TYnptr);      // (*)
+        dtb.xoff(csym, offset, TYnptr);      // (*)
     }
     else
     {

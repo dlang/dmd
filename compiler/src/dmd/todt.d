@@ -1265,7 +1265,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         const(char)* name = sd.toPrettyChars();
         size_t namelen = strlen(name);
         dtb.size(namelen);
-        dtb.xoff(d.csym, Type.typeinfoenum.structsize);
+        dtb.xoff(cast(Symbol*)d.csym, Type.typeinfoenum.structsize);
 
         // void[] init;
         if (!sd.members || d.tinfo.isZeroInit(Loc.initial))
@@ -1385,7 +1385,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         assert(name);
         const namelen = strlen(name);
         dtb.size(namelen);
-        dtb.xoff(d.csym, Type.typeinfofunction.structsize);
+        dtb.xoff(cast(Symbol*)d.csym, Type.typeinfofunction.structsize);
 
         // Put out name[] immediately following TypeInfo_Function
         dtb.nbytes(name[0 .. namelen + 1]);
@@ -1409,7 +1409,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         assert(name);
         const namelen = strlen(name);
         dtb.size(namelen);
-        dtb.xoff(d.csym, Type.typeinfodelegate.structsize);
+        dtb.xoff(cast(Symbol*)d.csym, Type.typeinfodelegate.structsize);
 
         // Put out name[] immediately following TypeInfo_Delegate
         dtb.nbytes(name[0 .. namelen + 1]);
@@ -1485,7 +1485,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         const mangledName = tc.deco;
         const mangledNameLen = strlen(mangledName);
         dtb.size(mangledNameLen);
-        dtb.xoff(d.csym, Type.typeinfostruct.structsize);
+        dtb.xoff(cast(Symbol*)d.csym, Type.typeinfostruct.structsize);
 
         // void[] init;
         dtb.size(sd.structsize);            // init.length
