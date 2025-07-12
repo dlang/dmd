@@ -9,7 +9,7 @@ $r:.*makedeps_exe_$0$?:windows=.exe$: \
   $p:makedeps_exe.d$ \
   $p:makedeps_a.d$ \
   $p:makedeps-import.txt$ \
-  $p:makedeps-import-codemixin.txt$ \
+  $p:makedeps-import-codemixin.txt$
 ---
 **/
 module makedeps_exe;

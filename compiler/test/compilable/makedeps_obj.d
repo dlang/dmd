@@ -7,7 +7,7 @@ $r:.*makedeps_obj_$0.o$?:windows=bj$: \
   $p:makedeps_obj.d$ \
   $p:makedeps_a.d$ \
   $p:makedeps-import-codemixin.txt$ \
-  $p:makedeps-import.txt$ \
+  $p:makedeps-import.txt$
 ---
 **/
 module makedeps_obj;

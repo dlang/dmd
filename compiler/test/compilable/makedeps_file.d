@@ -8,7 +8,7 @@ TEST_OUTPUT:
 $r:.*makedeps_file_$0.o$?:windows=bj$: \
   $p:makedeps_file.d$ \
   $p:makedeps_a.d$ \
-  $p:makedeps-import.txt$ \
+  $p:makedeps-import.txt$
 ---
 **/
 module makedeps_file;
