@@ -1013,6 +1013,8 @@ dmd -cov -unittest myprog.d
         Feature("systemVariables", "systemVariables",
             "disable access to variables marked '@system' from @safe code",
             "https://dlang.org/spec/attribute.html#system-variables"),
+        Feature("fastdfa", "useFastDFA",
+            "Fast dataflow analysis engine, experimental"),
     ];
 }
 
