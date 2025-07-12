@@ -38,7 +38,7 @@ uint calcHash(scope const(ubyte)[] data) @nogc nothrow pure @safe
         data = data[4..$];
     }
     // Handle the last few bytes of the input array
-    switch (data.length & 3)
+    final switch (data.length & 3)
     {
     case 3:
         h ^= data[2] << 16;
@@ -69,11 +69,18 @@ unittest
     assert(calcHash(data[2..$]) == 2_125_368_748);
     assert(calcHash(data[3..$]) == 3_631_432_225);
 }
+    /// Golden-ratio constant for hashing 
+    static if (size_t.sizeof == 8)
+        enum size_t golden = 0x9E37_79B9_7F4A_7C15UL; // 64-bit
+    else
+        enum size_t golden = 0x9E37_79B9U;            // 32-bit
+
 
 // combine and mix two words (boost::hash_combine)
 size_t mixHash(size_t h, size_t k) @nogc nothrow pure @safe
 {
-    return h ^ (k + 0x9e3779b9 + (h << 6) + (h >> 2));
+
+    return h ^ (k + golden + (h << 6) + (h >> 2));
 }
 
 unittest
