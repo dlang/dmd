@@ -20,7 +20,6 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.blockexit;
-import dmd.gluelayer;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
