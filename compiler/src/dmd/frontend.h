@@ -7102,7 +7102,7 @@ public:
 private:
     uint8_t bitFields;
 public:
-    Symbol* sinit;
+    void* sinit;
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
     Type* getType() override;
     const char* kind() const override;
