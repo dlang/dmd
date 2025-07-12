@@ -712,10 +712,9 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
 
         if (auto ie = e.isIntervalExp())
         {
-            auto tiargs = new Objects();
             Expression edim = new IntegerExp(ae.loc, i, Type.tsize_t);
             edim = edim.expressionSemantic(sc);
-            tiargs.push(edim);
+            auto tiargs = new Objects(edim);
 
             auto fargs = new Expressions(2);
             (*fargs)[0] = ie.lwr;
@@ -3840,11 +3839,10 @@ private void lowerCastExp(CastExp cex, Scope* sc)
     Expression lowering = new IdentifierExp(cex.loc, Id.empty);
     lowering = new DotIdExp(cex.loc, lowering, Id.object);
 
-    auto tiargs = new Objects();
     // Unqualify the type being casted to, avoiding multiple instantiations
     auto unqual_tob = tob.unqualify(MODFlags.wild | MODFlags.const_ |
         MODFlags.immutable_ | MODFlags.shared_);
-    tiargs.push(unqual_tob);
+    auto tiargs = new Objects(unqual_tob);
     lowering = new DotTemplateInstanceExp(cex.loc, lowering, hook, tiargs);
 
     auto arguments = new Expressions();
@@ -4377,8 +4375,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression makeNonTemplateItem(Identifier which) {
             Expression id = new IdentifierExp(e.loc, Id.empty);
             id = new DotIdExp(e.loc, id, Id.object);
-            auto moduleNameArgs = new Objects();
-            moduleNameArgs.push(new StringExp(e.loc, "core.interpolation"));
+            auto moduleNameArgs = new Objects(new StringExp(e.loc, "core.interpolation"));
             id = new DotTemplateInstanceExp(e.loc, id, Id.imported, moduleNameArgs);
             id = new DotIdExp(e.loc, id, which);
             id = new CallExp(e.loc, id, new Expressions());
@@ -4388,14 +4385,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression makeTemplateItem(Identifier which, string arg) {
             Expression id = new IdentifierExp(e.loc, Id.empty);
             id = new DotIdExp(e.loc, id, Id.object);
-            auto moduleNameArgs = new Objects();
-            moduleNameArgs.push(new StringExp(e.loc, "core.interpolation"));
+            auto moduleNameArgs = new Objects(new StringExp(e.loc, "core.interpolation"));
             id = new DotTemplateInstanceExp(e.loc, id, Id.imported, moduleNameArgs);
-            auto tiargs = new Objects();
+
             auto templateStringArg = new StringExp(e.loc, arg);
             // banning those instead of forwarding them
             // templateStringArg.postfix = e.postfix; // forward the postfix to these literals
-            tiargs.push(templateStringArg);
+            auto tiargs = new Objects(templateStringArg);
             id = new DotTemplateInstanceExp(e.loc, id, which, tiargs);
             id = new CallExp(e.loc, id, new Expressions());
             return id;
@@ -4925,14 +4921,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          */
         Expression id = new IdentifierExp(ne.loc, Id.empty);
         id = new DotIdExp(ne.loc, id, Id.object);
-        auto tiargs = new Objects();
         /*
          * Remove `inout`, `const`, `immutable` and `shared` to reduce the
          * number of generated `_d_newitemT` instances.
          */
         auto t = ne.type.nextOf.unqualify(MODFlags.wild | MODFlags.const_ |
             MODFlags.immutable_ | MODFlags.shared_);
-        tiargs.push(t);
+        auto tiargs = new Objects(t);
         id = new DotTemplateInstanceExp(ne.loc, id, hook, tiargs);
 
         auto arguments = new Expressions();
@@ -5285,8 +5280,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression id = new IdentifierExp(exp.loc, Id.empty);
                 id = new DotIdExp(exp.loc, id, Id.object);
 
-                auto tiargs = new Objects();
-                tiargs.push(exp.newtype);
+                auto tiargs = new Objects(exp.newtype);
 
                 id = new DotTemplateInstanceExp(exp.loc, id, Id._d_newThrowable, tiargs);
 
@@ -5311,9 +5305,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression id = new IdentifierExp(exp.loc, Id.empty);
                 id = new DotIdExp(exp.loc, id, Id.object);
 
-                auto tiargs = new Objects();
                 auto t = exp.newtype.unqualify(MODFlags.wild);  // remove `inout`
-                tiargs.push(t);
+                auto tiargs = new Objects(t);
                 id = new DotTemplateInstanceExp(exp.loc, id, hook, tiargs);
                 auto arguments = new Expressions();
                 id = new CallExp(exp.loc, id, arguments);
@@ -5499,14 +5492,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  */
                 Expression lowering = new IdentifierExp(exp.loc, Id.empty);
                 lowering = new DotIdExp(exp.loc, lowering, Id.object);
-                auto tiargs = new Objects();
+
                 /* Remove `inout`, `const`, `immutable` and `shared` to reduce
                  * the number of generated `_d_newarrayT` instances.
                  */
                 const isShared = exp.type.nextOf.isShared();
                 auto t = exp.type.nextOf.unqualify(MODFlags.wild | MODFlags.const_ |
                     MODFlags.immutable_ | MODFlags.shared_);
-                tiargs.push(t);
+                auto tiargs = new Objects(t);
                 lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
 
                 auto arguments = new Expressions();
@@ -5535,9 +5528,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto unqualTbn = tbn.unqualify(MODFlags.wild | MODFlags.const_ |
                     MODFlags.immutable_ | MODFlags.shared_);
 
-                auto tiargs = new Objects();
-                tiargs.push(exp.type);
-                tiargs.push(unqualTbn);
+                auto tiargs = new Objects(exp.type, unqualTbn);
                 lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
 
                 auto arguments = new Expressions();
@@ -8097,7 +8088,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 isEqualsCallExpression)
             {
                 es = new Expressions(3);
-                tiargs = new Objects(1);
 
                 if (isEqualsCallExpression)
                 {
@@ -8136,7 +8126,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression comp = new StringExp(loc, isEqualsCallExpression ? "==" : EXPtoString(exp.e1.op));
                 comp = comp.expressionSemantic(sc);
                 (*es)[0] = comp;
-                (*tiargs)[0] = (*es)[1].type;
+                tiargs = new Objects((*es)[1].type);
             }
 
             // Format exp.e1 before any additional boolean conversion
@@ -8144,7 +8134,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else if (op != EXP.andAnd && op != EXP.orOr)
             {
                 es = new Expressions(2);
-                tiargs = new Objects(1);
 
                 if (auto ne = exp.e1.isNotExp())
                 {
@@ -8168,7 +8157,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     (*es)[1] = maybePromoteToTmp(exp.e1);
                 }
 
-                (*tiargs)[0] = (*es)[1].type;
+                tiargs = new Objects((*es)[1].type);
 
                 // Passing __ctfe to auto ref infers ref and aborts compilation:
                 // "cannot modify compiler-generated variable __ctfe"
@@ -9393,9 +9382,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             Expression id = new IdentifierExp(exp.loc, Id.empty);
                             auto dotid = new DotIdExp(exp.loc, id, Id.object);
 
-                            auto tiargs = new Objects();
-                            tiargs.push(tFrom);
-                            tiargs.push(tTo);
+                            auto tiargs = new Objects(tFrom, tTo);
                             auto dt = new DotTemplateInstanceExp(exp.loc, dotid, Id.__ArrayCast, tiargs);
 
                             auto arguments = new Expressions();
@@ -12492,8 +12479,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression id = new IdentifierExp(exp.loc, Id.empty);
         id = new DotIdExp(exp.loc, id, Id.object);
 
-        auto tiargs = new Objects();
-        tiargs.push(exp.type);
+        auto tiargs = new Objects(exp.type);
         id = new DotTemplateInstanceExp(exp.loc, id, hook, tiargs);
         id = new CallExp(exp.loc, id, arguments);
         return id.expressionSemantic(sc);
