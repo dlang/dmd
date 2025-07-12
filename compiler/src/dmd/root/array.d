@@ -56,9 +56,8 @@ public:
             mem.xfree(data.ptr);
     }
 
-
-    // this is a "dummy" template because of c++ header generation
-    // challenges with wrapping this in static if instead
+    // this is using a template constraint because of ambiguity with this(size_t) when T is
+    // int, and c++ header generation doesn't accept wrapping this in static if
     extern(D) this()(T[] elems ...) pure nothrow if (is(T == struct) || is(T == class))
     {
         this(elems.length);
