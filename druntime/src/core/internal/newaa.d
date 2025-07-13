@@ -178,14 +178,38 @@ Entry!(K, V)* _newEntry(K, V, K2)(ref K2 key)
     return entry;
 }
 
-// for backward compatibility, do not require const in hashOf()
-hash_t wrap_hashOf(K)(scope const ref K key) @trusted { return hashOf(cast()key); }
-enum pure_hashOf(K) = cast(hash_t function(scope ref const K key) pure nothrow @nogc @safe) &wrap_hashOf!K;
+template pure_hashOf(K)
+{
+    static if (__traits(compiles, function hash_t(scope const ref K key) pure nothrow @nogc @trusted { return hashOf(cast()key); }))
+    {
+        // avoid wrapper call in debug builds if pure nothrow @nogc is inferred
+        pragma(inline, true)
+        hash_t pure_hashOf(scope const ref K key) @trusted { return hashOf(cast()key); }
+    }
+    else
+    {
+        // for backward compatibility, do not require const in hashOf()
+        hash_t wrap_hashOf(K)(scope const ref K key) @trusted { return hashOf(cast()key); }
+        enum pure_hashOf = cast(hash_t function(scope ref const K key) pure nothrow @nogc @safe) &wrap_hashOf!K;
+    }
+}
 
 // for backward compatibilty pretend the comparison is @safe, pure, etc
 // this also breaks cyclic inference on recursive data types
-bool keyEqual(K1, K2)(ref const K1 k1, ref const K2 k2) @trusted { return cast()k1 == cast()k2; }
-enum pure_keyEqual(K1, K2) = cast(bool function(ref const K1, ref const K2) pure nothrow @nogc @safe) &keyEqual!(K1, K2);
+template pure_keyEqual(K1, K2 = K1)
+{
+    static if (__traits(compiles, function bool(ref const K1 k1, ref const K2 k2) pure nothrow @nogc @trusted { return cast()k1 == cast()k2; }))
+    {
+        // avoid wrapper call in debug builds if pure nothrow @nogc is inferred
+        pragma(inline, true)
+        bool pure_keyEqual(ref const K1 k1, ref const K2 k2) @trusted { return cast()k1 == cast()k2; }
+    }
+    else
+    {
+        bool keyEqual(ref const K1 k1, ref const K2 k2) @trusted { return cast()k1 == cast()k2; }
+        enum pure_keyEqual = cast(bool function(ref const K1, ref const K2) pure nothrow @nogc @safe) &keyEqual;
+    }
+}
 
 private struct Impl(K, V)
 {
@@ -271,10 +295,11 @@ private:
     {
         for (size_t i = hash & mask, j = 1;; ++j)
         {
-            if (buckets[i].hash == hash && buckets[i].entry)
-                if (pure_keyEqual!(K2, K)(key, buckets[i].entry.key))
-                    return &buckets[i];
-            if (buckets[i].empty)
+            auto b = &buckets[i]; // avoid multiple bounds checks
+            if (b.hash == hash && b.entry)
+                if (pure_keyEqual!(K2, K)(key, b.entry.key))
+                    return b;
+            if (b.empty)
                 return null;
             i = (i + j) & mask;
         }
@@ -835,7 +860,7 @@ bool _aaOpEqual(K, V)(scope /* const */ AA!(K, V)* aa1, scope /* const */ AA!(K,
 }
 
 /// compute a hash callback from TypeInfo_AssociativeArray.xtoHash (ignore scope const for now)
-hash_t _aaGetHash(K, V)(/* sscope const */ AA!(K, V)* paa)
+hash_t _aaGetHash(K, V)(/* scope const */ AA!(K, V)* paa)
 {
     const aa = *paa;
 
