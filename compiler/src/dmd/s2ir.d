@@ -550,6 +550,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 blx.curblock.appendSucc(finallyBlock);
             }
 
+            block_setLoc(blx.curblock, s.loc);
             block_next(blx, bc, null);
         }
         if (!s.exp)
