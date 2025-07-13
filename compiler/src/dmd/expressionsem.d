@@ -12931,7 +12931,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        Module mmath = Module.loadStdMath();
+        Module mmath = loadStdMath();
         if (!mmath)
         {
             error(e.loc, "`%s` requires `std.math` for `^^` operators", e.toErrMsg());
