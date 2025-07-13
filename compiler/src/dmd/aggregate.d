@@ -25,7 +25,7 @@ import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, determineFields, search, determineSize, include;
+import dmd.dsymbolsem : dsymbolSemantic, determineSize, include;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -37,7 +37,6 @@ import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
 import dmd.tokens;
-import dmd.typesem : defaultInit, addMod, size;
 import dmd.visitor;
 
 /**
@@ -431,46 +430,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     override final bool isExport() const
     {
         return visibility.kind == Visibility.Kind.export_;
-    }
-
-    /*******************************************
-     * Look for constructor declaration.
-     */
-    extern (D) final Dsymbol searchCtor()
-    {
-        auto s = this.search(Loc.initial, Id.ctor);
-        if (s)
-        {
-            if (!(s.isCtorDeclaration() ||
-                  s.isTemplateDeclaration() ||
-                  s.isOverloadSet()))
-            {
-                error(s.loc, "%s name `__ctor` is not allowed", s.kind);
-                errorSupplemental(s.loc, "identifiers starting with `__` are reserved for internal use");
-                errors = true;
-                s = null;
-            }
-        }
-        if (s && s.toParent() != this)
-            s = null; // search() looks through ancestor classes
-        if (s)
-        {
-            // Finish all constructors semantics to determine this.noDefaultCtor.
-            static int searchCtor(Dsymbol s, void*)
-            {
-                auto f = s.isCtorDeclaration();
-                if (f && f.semanticRun == PASS.initial)
-                    f.dsymbolSemantic(null);
-                return 0;
-            }
-
-            for (size_t i = 0; i < members.length; i++)
-            {
-                auto sm = (*members)[i];
-                sm.apply(&searchCtor, null);
-            }
-        }
-        return s;
     }
 
     override final Visibility visible() pure nothrow @nogc @safe

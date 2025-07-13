@@ -17830,6 +17830,46 @@ int include(Condition c, Scope* sc)
     return v.result;
 }
 
+/*******************************************
+ * Look for constructor declaration.
+ */
+Dsymbol searchCtor(AggregateDeclaration ad)
+{
+    auto s = ad.search(Loc.initial, Id.ctor);
+    if (s)
+    {
+        if (!(s.isCtorDeclaration() ||
+              s.isTemplateDeclaration() ||
+              s.isOverloadSet()))
+        {
+            error(s.loc, "%s name `__ctor` is not allowed", s.kind);
+            errorSupplemental(s.loc, "identifiers starting with `__` are reserved for internal use");
+            ad.errors = true;
+            s = null;
+        }
+    }
+    if (s && s.toParent() != ad)
+        s = null; // search() looks through ancestor classes
+    if (s)
+    {
+        // Finish all constructors semantics to determine this.noDefaultCtor.
+        static int searchCtor(Dsymbol s, void*)
+        {
+            auto f = s.isCtorDeclaration();
+            if (f && f.semanticRun == PASS.initial)
+                f.dsymbolSemantic(null);
+            return 0;
+        }
+
+        for (size_t i = 0; i < ad.members.length; i++)
+        {
+            auto sm = (*ad.members)[i];
+            sm.apply(&searchCtor, null);
+        }
+    }
+    return s;
+}
+
 private extern(C++) class IncludeVisitor : Visitor {
     alias visit = Visitor.visit;
 
