@@ -6109,12 +6109,81 @@ bool determineFields(AggregateDeclaration ad)
     return true;
 }
 
+/****************************
+ * A Singleton that loads core.stdc.config
+ * Returns:
+ *  Module of core.stdc.config, null if couldn't find it
+ */
+Module loadCoreStdcConfig()
+{
+    __gshared Module core_stdc_config;
+    auto pkgids = new Identifier[2];
+    pkgids[0] = Id.core;
+    pkgids[1] = Id.stdc;
+    return loadModuleFromLibrary(core_stdc_config, pkgids, Id.config);
+}
+
+/****************************
+ * A Singleton that loads core.atomic
+ * Returns:
+ *  Module of core.atomic, null if couldn't find it
+ */
+private Module loadCoreAtomic()
+{
+    __gshared Module core_atomic;
+    auto pkgids = new Identifier[1];
+    pkgids[0] = Id.core;
+    return loadModuleFromLibrary(core_atomic, pkgids, Id.atomic);
+}
+
+/****************************
+ * A Singleton that loads std.math
+ * Returns:
+ *  Module of std.math, null if couldn't find it
+ */
+Module loadStdMath()
+{
+    __gshared Module std_math;
+    auto pkgids = new Identifier[1];
+    pkgids[0] = Id.std;
+    return loadModuleFromLibrary(std_math, pkgids, Id.math);
+}
+
+/**********************************
+ * Load a Module from the library.
+ * Params:
+ *  mod = cached return value of this call
+ *  pkgids = package identifiers
+ *  modid = module id
+ * Returns:
+ *  Module loaded, null if cannot load it
+ */
+extern (D) private static Module loadModuleFromLibrary(ref Module mod, Identifier[] pkgids, Identifier modid)
+{
+    if (mod)
+        return mod;
+
+    auto imp = new Import(Loc.initial, pkgids[], modid, null, true);
+    // Module.load will call fatal() if there's no module available.
+    // Gag the error here, pushing the error handling to the caller.
+    const errors = global.startGagging();
+    imp.load(null);
+    if (imp.mod)
+    {
+        imp.mod.importAll(null);
+        imp.mod.dsymbolSemantic(null);
+    }
+    global.endGagging(errors);
+    mod = imp.mod;
+    return mod;
+}
+
 /// Do an atomic operation (currently tailored to [shared] static ctors|dtors) needs
 private CallExp doAtomicOp (string op, Identifier var, Expression arg)
 {
     assert(op == "-=" || op == "+=");
 
-    Module mod = Module.loadCoreAtomic();
+    Module mod = loadCoreAtomic();
     if (!mod)
         return null;    // core.atomic couldn't be loaded
 
