@@ -39,7 +39,6 @@ struct _d_dynamicArray final
 
 class Visitor;
 class Identifier;
-struct Symbol;
 struct Scope;
 struct DsymbolAttributes;
 class DeprecatedDeclaration;
@@ -118,6 +117,7 @@ class ForeachStatement;
 class ForeachRangeStatement;
 struct OutBuffer;
 class TypeInfoClassDeclaration;
+struct Symbol;
 class TypeTuple;
 class Initializer;
 struct IntRange;
@@ -543,7 +543,7 @@ class Dsymbol : public ASTNode
 public:
     Identifier* ident;
     Dsymbol* parent;
-    Symbol* csym;
+    void* csym;
     Scope* _scope;
 private:
     DsymbolAttributes* atts;
