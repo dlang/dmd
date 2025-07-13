@@ -711,7 +711,7 @@ elem* toElem(Expression e, ref IRState irs)
 
         const bool nrvo = fd && (fd.isNRVO && fd.nrvo_var == se.var || se.var.nrvo && fd.shidden);
         if (nrvo)
-            s = fd.shidden;
+            s = cast(Symbol*)fd.shidden;
 
         if (s.Sclass == SC.auto_ || s.Sclass == SC.parameter || s.Sclass == SC.shadowreg)
         {
@@ -747,7 +747,8 @@ elem* toElem(Expression e, ref IRState irs)
                 else if (v && v.inAlignSection)
                 {
                     const vthisOffset = fd.vthis ? -toSymbol(fd.vthis).Soffset : 0;
-                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, vthisOffset + fd.salignSection.Soffset));
+                    auto salignSection = cast(Symbol*) fd.salignSection;
+                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, vthisOffset + salignSection.Soffset));
                     ethis = el_una(OPind, TYnptr, ethis);
                     soffset = v.offset;
                 }
@@ -789,8 +790,9 @@ elem* toElem(Expression e, ref IRState irs)
          */
         if (v && (v.inClosure || v.inAlignSection))
         {
-            assert(irs.sclosure || fd.salignSection);
-            e = el_var(v.inClosure ? irs.sclosure : fd.salignSection);
+            auto salignSection = cast(Symbol*) fd.salignSection;
+            assert(irs.sclosure || salignSection);
+            e = el_var(v.inClosure ? irs.sclosure : salignSection);
             e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v.offset));
             if (se.op == EXP.variable)
             {
