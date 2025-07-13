@@ -18358,7 +18358,7 @@ private extern(C++) class IncludeVisitor : Visitor {
 *
 *       AssignExp(ArrayExp(ArrayExp(Id('a'), Id('i')), Id('j')), 1)
 *
-* ArrayExp is converted to IndexExp during semantic analysis, but lhe lowering
+* ArrayExp is converted to IndexExp during semantic analysis, but the lowering
 * for IndexExp on associative arrays is different for reading or writing. For
 * struct types, it can even depend on the right hand side of an assignment.
 *
