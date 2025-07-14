@@ -478,7 +478,7 @@ public:
             if (ids.fd && e.var == ids.fd.vthis)
             {
                 result = new VarExp(e.loc, ids.vthis);
-                if (ids.fd.hasDualContext())
+                if (ids.fd.hasDualContext)
                     result = new AddrExp(e.loc, result);
                 result.type = e.type;
                 return;
@@ -511,7 +511,7 @@ public:
                 assert(fdv);
                 result = new VarExp(e.loc, ids.vthis);
                 result.type = ids.vthis.type;
-                if (ids.fd.hasDualContext())
+                if (ids.fd.hasDualContext)
                 {
                     // &__this
                     result = new AddrExp(e.loc, result);
@@ -521,7 +521,7 @@ public:
                 {
                     auto f = s.isFuncDeclaration();
                     AggregateDeclaration ad;
-                    if (f && f.hasDualContext())
+                    if (f && f.hasDualContext)
                     {
                         if (f.hasNestedFrameRefs())
                         {
@@ -603,7 +603,7 @@ public:
                 return;
             }
             result = new VarExp(e.loc, ids.vthis);
-            if (ids.fd.hasDualContext())
+            if (ids.fd.hasDualContext)
             {
                 // __this[0]
                 result.type = ids.vthis.type;
@@ -623,7 +623,7 @@ public:
         {
             assert(ids.vthis);
             result = new VarExp(e.loc, ids.vthis);
-            if (ids.fd.hasDualContext())
+            if (ids.fd.hasDualContext)
             {
                 // __this[0]
                 result.type = ids.vthis.type;
@@ -755,6 +755,21 @@ public:
             result = ue;
         }
 
+        override void visit(CastExp e)
+        {
+            auto ce = cast(CastExp)e.copy();
+            if (auto lowering = ce.lowering)
+            {
+                ce.lowering = doInlineAs!Expression(lowering, ids);
+            }
+            else
+            {
+                ce.e1 = doInlineAs!Expression(e.e1, ids);
+            }
+
+            result = ce;
+        }
+
         override void visit(AssertExp e)
         {
             auto ae = e.copy().isAssertExp();
@@ -821,7 +836,16 @@ public:
 
         override void visit(EqualExp e)
         {
-            visit(cast(BinExp)e);
+            auto ee = cast(EqualExp)e.copy();
+            if (auto lowering = ee.lowering)
+            {
+                ee.lowering = doInlineAs!Expression(lowering, ids);
+            }
+
+            ee.e1 = doInlineAs!Expression(e.e1, ids);
+            ee.e2 = doInlineAs!Expression(e.e2, ids);
+
+            result = ee;
 
             Type t1 = e.e1.type.toBasetype();
             if (t1.isStaticOrDynamicArray())
@@ -1277,6 +1301,18 @@ public:
         inlineScan(e.e1);
     }
 
+    override void visit(CastExp e)
+    {
+        if (auto lowering = e.lowering)
+        {
+            inlineScan(lowering);
+        }
+        else
+        {
+            inlineScan(e.e1);
+        }
+    }
+
     override void visit(AssertExp e)
     {
         inlineScan(e.e1);
@@ -1309,13 +1345,25 @@ public:
         inlineScan(e.e2);
     }
 
+    override void visit(EqualExp e)
+    {
+        if (auto lowering = e.lowering)
+        {
+            inlineScan(lowering);
+        }
+        else
+        {
+            visit(cast(BinExp)e);
+        }
+    }
+
     override void visit(AssignExp e)
     {
         // Look for NRVO, as inlining NRVO function returns require special handling
         if (e.op == EXP.construct && e.e2.op == EXP.call)
         {
             auto ce = e.e2.isCallExp();
-            if (ce.f && ce.f.isNRVO() && ce.f.nrvo_var) // NRVO
+            if (ce.f && ce.f.isNRVO && ce.f.nrvo_var) // NRVO
             {
                 if (auto ve = e.e1.isVarExp())
                 {
@@ -1630,7 +1678,7 @@ public:
             return;
         if (fd.isUnitTestDeclaration() && !global.params.useUnitTests || fd.inlineScanned)
             return;
-        if (fd.fbody && !fd.isNaked())
+        if (fd.fbody && !fd.isNaked)
         {
             while (1)
             {
@@ -2042,7 +2090,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
     {
         Expression e0;
         ethis = Expression.extractLast(ethis, e0);
-        assert(vthis2 || !fd.hasDualContext());
+        assert(vthis2 || !fd.hasDualContext);
         if (vthis2)
         {
             // void*[2] __this = [ethis, this]

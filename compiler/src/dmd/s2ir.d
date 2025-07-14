@@ -550,6 +550,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 blx.curblock.appendSucc(finallyBlock);
             }
 
+            block_setLoc(blx.curblock, s.loc);
             block_next(blx, bc, null);
         }
         if (!s.exp)
@@ -624,7 +625,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
             assert(e);
 
             if (writetohp ||
-                (func.isNRVO() && func.nrvo_var))
+                (func.isNRVO && func.nrvo_var))
             {
                 // Return value via hidden pointer passed as parameter
                 // Write exp; return shidden;

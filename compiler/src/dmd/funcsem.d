@@ -20,7 +20,6 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.blockexit;
-import dmd.gluelayer;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -103,7 +102,7 @@ public:
     override void visit(TryFinallyStatement s)
     {
         DtorExpStatement des;
-        if (fd.isNRVO() && s.finalbody && (des = s.finalbody.isDtorExpStatement()) !is null &&
+        if (fd.isNRVO && s.finalbody && (des = s.finalbody.isDtorExpStatement()) !is null &&
             fd.nrvo_var == des.var)
         {
             if (!(global.params.useExceptions && ClassDeclaration.throwable))
@@ -224,7 +223,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
     AggregateDeclaration ad = funcdecl.isThis();
     // Don't nest structs b/c of generated methods which should not access the outer scopes.
     // https://issues.dlang.org/show_bug.cgi?id=16627
-    if (ad && !funcdecl.isGenerated())
+    if (ad && !funcdecl.isGenerated)
     {
         funcdecl.storage_class |= ad.storage_class & (STC.TYPECTOR | STC.synchronized_);
         ad.makeNested();
@@ -409,7 +408,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
 
         sc.linkage = funcdecl._linkage;
 
-        if (!tf.isNaked() && !(funcdecl.isThis() || funcdecl.isNested()))
+        if (!tf.isNaked && !(funcdecl.isThis() || funcdecl.isNested()))
         {
             import core.bitop : popcnt;
             auto mods = MODtoChars(tf.mod);
@@ -1366,7 +1365,7 @@ bool functionSemantic3(FuncDeclaration fd)
             return false;
     }
 
-    return !fd.errors && !fd.hasSemantic3Errors();
+    return !fd.errors && !fd.hasSemantic3Errors;
 }
 
 // called from semantic3
@@ -1557,7 +1556,7 @@ int findVtblIndex(FuncDeclaration fd, Dsymbol[] vtbl)
                              fdv.toPrettyChars(), fdv.type.toTypeFunction().parameterList.parametersTypeToChars(),
                               fd.toPrettyChars(),  fd.type.toTypeFunction().parameterList.parametersTypeToChars(), fd.type.modToChars());
 
-                const char* where = fd.type.isNaked() ? "parameters" : "type";
+                const char* where = fd.type.isNaked ? "parameters" : "type";
                 deprecationSupplemental(fd.loc, "Either remove `override`, or adjust the `const` qualifiers of the "
                                         ~ "overriding function %s", where);
             }
@@ -3164,7 +3163,7 @@ extern (D) void checkMain(FuncDeclaration fd)
 extern (D) bool checkNRVO(FuncDeclaration fd)
 {
     //printf("checkNRVO*() %s\n", fd.ident.toChars());
-    if (!fd.isNRVO() || fd.returns is null)
+    if (!fd.isNRVO || fd.returns is null)
         return false;
 
     auto tf = fd.type.toTypeFunction();

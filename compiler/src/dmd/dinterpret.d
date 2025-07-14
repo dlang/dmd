@@ -569,7 +569,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     istatex.caller = istate;
     istatex.fd = fd;
 
-    if (fd.hasDualContext())
+    if (fd.hasDualContext)
     {
         Expression arg0 = thisarg;
         if (arg0 && arg0.type.ty == Tstruct)
@@ -722,7 +722,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
 
     if (tf.isRef && e.op == EXP.variable && e.isVarExp().var == fd.vthis)
         e = thisarg;
-    if (tf.isRef && fd.hasDualContext() && e.op == EXP.index)
+    if (tf.isRef && fd.hasDualContext && e.op == EXP.index)
     {
         auto ie = e.isIndexExp();
         auto pe = ie.e1.isPtrExp();
@@ -1745,7 +1745,7 @@ public:
             if (istate && istate.fd.vthis)
             {
                 result = ctfeEmplaceExp!VarExp(e.loc, istate.fd.vthis);
-                if (istate.fd.hasDualContext())
+                if (istate.fd.hasDualContext)
                 {
                     result = ctfeEmplaceExp!PtrExp(e.loc, result);
                     result.type = Type.tvoidptr.sarrayOf(2);
@@ -1761,7 +1761,7 @@ public:
         result = ctfeGlobals.stack.getThis();
         if (result)
         {
-            if (istate && istate.fd.hasDualContext())
+            if (istate && istate.fd.hasDualContext)
             {
                 assert(result.op == EXP.address);
                 result = result.isAddrExp().e1;
@@ -4933,7 +4933,7 @@ public:
             }
         }
 
-        if (fd && fd.semanticRun >= PASS.semantic3done && fd.hasSemantic3Errors())
+        if (fd && fd.semanticRun >= PASS.semantic3done && fd.hasSemantic3Errors)
         {
             error(e.loc, "CTFE failed because of previous errors in `%s`", fd.toChars());
             result = CTFEExp.cantexp;

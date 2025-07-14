@@ -30,7 +30,7 @@ import dmd.dmacro;
 import dmd.doc;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, importAll, load;
+import dmd.dsymbolsem : dsymbolSemantic;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -412,6 +412,8 @@ extern (C++) final class Module : Package
     SearchOptFlags searchCacheFlags;       // cached flags
     bool insearch;
 
+    bool isExplicitlyOutOfBinary; // Is this module known to be out of binary, and must be DllImport'd?
+
     /**
      * A root module is one that will be compiled all the way to
      * object code.  This field holds the root module that caused
@@ -474,7 +476,7 @@ extern (C++) final class Module : Package
         if (doHdrGen)
             hdrfile = setOutfilename(global.params.dihdr.name, global.params.dihdr.dir, arg, hdr_ext);
 
-        this.edition = Edition.legacy;
+        this.edition = Edition.min;
     }
 
     extern (D) this(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
@@ -532,6 +534,7 @@ extern (C++) final class Module : Package
         auto m = new Module(loc, filename, ident, 0, 0);
 
         // TODO: apply import path information (pathInfo) on to module
+        m.isExplicitlyOutOfBinary = importPathThatFindUs.isOutOfBinary;
 
         if (!m.read(loc))
             return null;
@@ -1213,75 +1216,6 @@ extern (C++) final class Module : Package
             _escapetable = new Escape();
         return _escapetable;
     }
-
-    /****************************
-     * A Singleton that loads core.stdc.config
-     * Returns:
-     *  Module of core.stdc.config, null if couldn't find it
-     */
-    extern (D) static Module loadCoreStdcConfig()
-    {
-        __gshared Module core_stdc_config;
-        auto pkgids = new Identifier[2];
-        pkgids[0] = Id.core;
-        pkgids[1] = Id.stdc;
-        return loadModuleFromLibrary(core_stdc_config, pkgids, Id.config);
-    }
-
-    /****************************
-     * A Singleton that loads core.atomic
-     * Returns:
-     *  Module of core.atomic, null if couldn't find it
-     */
-    extern (D) static Module loadCoreAtomic()
-    {
-        __gshared Module core_atomic;
-        auto pkgids = new Identifier[1];
-        pkgids[0] = Id.core;
-        return loadModuleFromLibrary(core_atomic, pkgids, Id.atomic);
-    }
-
-    /****************************
-     * A Singleton that loads std.math
-     * Returns:
-     *  Module of std.math, null if couldn't find it
-     */
-    extern (D) static Module loadStdMath()
-    {
-        __gshared Module std_math;
-        auto pkgids = new Identifier[1];
-        pkgids[0] = Id.std;
-        return loadModuleFromLibrary(std_math, pkgids, Id.math);
-    }
-
-    /**********************************
-     * Load a Module from the library.
-     * Params:
-     *  mod = cached return value of this call
-     *  pkgids = package identifiers
-     *  modid = module id
-     * Returns:
-     *  Module loaded, null if cannot load it
-     */
-    extern (D) private static Module loadModuleFromLibrary(ref Module mod, Identifier[] pkgids, Identifier modid)
-    {
-        if (mod)
-            return mod;
-
-        auto imp = new Import(Loc.initial, pkgids[], modid, null, true);
-        // Module.load will call fatal() if there's no module available.
-        // Gag the error here, pushing the error handling to the caller.
-        const errors = global.startGagging();
-        imp.load(null);
-        if (imp.mod)
-        {
-            imp.mod.importAll(null);
-            imp.mod.dsymbolSemantic(null);
-        }
-        global.endGagging(errors);
-        mod = imp.mod;
-        return mod;
-    }
 }
 
 /***********************************************************
@@ -1386,7 +1320,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
                 dbuf.writeUTF8(u);
             }
             else
-                dbuf.writeByte(u);
+                dbuf.writeByte(cast(ubyte)u);
         }
         dbuf.writeByte(0); //add null terminator
         return dbuf.extractSlice();
@@ -1455,7 +1389,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
                 dbuf.writeUTF8(u);
             }
             else
-                dbuf.writeByte(u);
+                dbuf.writeByte(cast(ubyte)u);
         }
         dbuf.writeByte(0); //add a terminating null byte
         return dbuf.extractSlice();

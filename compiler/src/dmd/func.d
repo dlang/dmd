@@ -24,7 +24,6 @@ import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.blockexit;
-import dmd.gluelayer;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -240,7 +239,7 @@ extern (C++) class FuncDeclaration : Declaration
     // Things that should really go into Scope
 
     VarDeclaration nrvo_var;            /// variable to replace with shidden
-    Symbol* shidden;                    /// hidden pointer passed to function
+    void* shidden;                    /// hidden pointer passed to function
 
     ReturnStatements* returns;
 
@@ -249,7 +248,7 @@ extern (C++) class FuncDeclaration : Declaration
     version (MARS)
     {
         VarDeclarations* alignSectionVars;  /// local variables with alignment needs larger than stackAlign
-        Symbol* salignSection;              /// pointer to aligned section, if any
+        void* salignSection;              /// pointer to aligned section, if any
     }
 
     /// set if this is a known, builtin function we can evaluate at compile time
@@ -820,18 +819,18 @@ extern (C++) class FuncDeclaration : Declaration
     bool addPreInvariant()
     {
         auto ad = isThis();
-        return (ad && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked());
+        return (ad && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked);
     }
 
     bool addPostInvariant()
     {
         auto ad = isThis();
-        return (ad && ad.inv && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked());
+        return (ad && ad.inv && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked);
     }
 
     override const(char)* kind() const
     {
-        return this.isGenerated() ? "generated function" : "function";
+        return this.isGenerated ? "generated function" : "function";
     }
 
     /********************************************

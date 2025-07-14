@@ -1243,7 +1243,7 @@ elem* el_convfloat(ref GlobalOptimizer go, elem* e)
 private @trusted
 elem* el_convreal(ref GlobalOptimizer go, elem* e)
 {
-    //printf("el_convfloat()\n"); elem_print(e);
+    //printf("el_convreal()\n"); elem_print(e);
     ubyte[32] buffer = void;
 
     tym_t ty = e.Ety;
@@ -1487,7 +1487,8 @@ elem* el_convert(ref GlobalOptimizer go, elem* e)
              * in this case, we preserve the constant 2.
              */
             if (tyreal(e.Ety) &&       // don't bother with imaginary or complex
-                e.E2.Eoper == OPconst && el_toldoubled(e.E2) == 2.0L)
+                e.E2.Eoper == OPconst && el_toldoubled(e.E2) == 2.0L &&
+                !go.AArch64)           // TODO AArch64 do the *2 optimization
             {
                 e.E1 = el_convert(go, e.E1);
                 /* Don't call el_convert(e.E2), we want it to stay as a constant

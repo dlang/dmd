@@ -166,14 +166,19 @@ typedef unsigned long long __uint64_t;
 /***************************
  * C11 6.10.8.3 Conditional feature macros
  */
+#if !(defined(_MSC_VER) && defined(__STDC_NO_VLA__)) // pre-defined to 1 by MS when using /std:cXX and causing warning C4117
 #define __STDC_NO_VLA__ 1
+#endif
 
 #define _Float16 float
-#if linux  // Microsoft won't allow the following macro
+#ifdef __linux__  // Microsoft won't allow the following macro
 // Ubuntu's assert.h uses this
 #define __PRETTY_FUNCTION__ __func__
 
-#ifndef __aarch64__
+#ifndef __clang__
+// Glibc with clang gets upset when some _Float* is defined:
+// /usr/include/bits/floatn-common.h(214): Error: illegal combination of type specifiers
+// typedef float float;
 #define _Float32 float
 #define _Float32x double
 #define _Float64 double

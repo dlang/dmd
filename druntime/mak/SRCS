@@ -28,6 +28,7 @@ SRCS=\
 	src\core\internal\abort.d \
 	src\core\internal\atomic.d \
 	src\core\internal\attributes.d \
+	src\core\internal\cast_.d \
 	src\core\internal\convert.d \
 	src\core\internal\dassert.d \
 	src\core\internal\destruction.d \
@@ -561,10 +562,8 @@ SRCS=\
 	src\rt\aApply.d \
 	src\rt\aApplyR.d \
 	src\rt\aaA.d \
-	src\rt\adi.d \
 	src\rt\alloca.d \
 	src\rt\arraycat.d \
-	src\rt\cast_.d \
 	src\rt\cmath2.d \
 	src\rt\config.d \
 	src\rt\cover.d \

@@ -154,6 +154,7 @@ extern(C++) struct Verbose
 
 extern (C++) struct ImportPathInfo {
     const(char)* path; // char*'s of where to look for import modules
+    bool isOutOfBinary; // Will any module found from this path be out of binary?
 }
 
 /// Put command line switches in here
@@ -188,6 +189,11 @@ extern (C++) struct Param
 
     Help help;
     Verbose v;
+
+    // Editions
+    Edition edition;             // edition year
+    Edition[const(char)*] editionFiles; // Edition corresponding to a filespec
+
 
     // Options for `-preview=/-revert=`
     FeatureState useDIP25 = FeatureState.enabled; // implement https://wiki.dlang.org/DIP25
@@ -386,13 +392,10 @@ extern (C++) struct Global
         errorSinkNull = new ErrorSinkNull;
 
         this.fileManager = new FileManager();
+
         version (MARS)
         {
             compileEnv.vendor = "Digital Mars D";
-
-            // -color=auto is the default value
-            import dmd.console : detectTerminal, detectColorPreference;
-            params.v.color = detectTerminal() && detectColorPreference();
         }
         else version (IN_GCC)
         {
@@ -401,12 +404,10 @@ extern (C++) struct Global
         else version (IN_LLVM)
         {
             compileEnv.vendor = "LDC";
-
-            import dmd.console : detectTerminal;
-            params.v.color = detectTerminal();
         }
+        else
+            static assert(0, "unknown vendor");
 
-        params.v.errorPrintMode = ErrorPrintMode.printErrorContext; // Enable error context globally by default
         compileEnv.versionNumber = parseVersionNumber(versionString());
 
         /* Initialize date, time, and timestamp

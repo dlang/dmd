@@ -95,7 +95,10 @@ extern (C) int main(int argc, char** argv)
     }
     if (!lowmem)
     {
-        __gshared string[] disable_options = [ "gcopt=disable:1" ];
+        static if(__VERSION__ < 2085)
+            __gshared string[] disable_options = [ "gcopt=disable:1" ];
+        else
+            __gshared string[] disable_options = [ "gcopt=disable:1 cleanup:none" ];
         rt_options = disable_options;
         mem.disableGC();
     }
@@ -118,26 +121,28 @@ extern (C) int _Dmain(char[][])
     import core.runtime;
     version(D_Coverage)
     {
-        // for now we need to manually set the source path
-        string dirName(string path, char separator)
+        // set the source path
+        string dirName(string path)
         {
             for (size_t i = path.length - 1; i > 0; i--)
             {
-                if (path[i] == separator)
+                if (isDirSeparator(path[i]))
                     return path[0..i];
             }
             return path;
         }
-        version (Windows)
-            enum sourcePath = dirName(dirName(dirName(__FILE_FULL_PATH__, '\\'), '\\'), '\\');
-        else
-            enum sourcePath = dirName(dirName(dirName(__FILE_FULL_PATH__, '/'), '/'), '/');
+        enum sourcePath = dirName(dirName(dirName(__FILE_FULL_PATH__)));
         dmd_coverSourcePath(sourcePath);
         dmd_coverDestPath(sourcePath);
         dmd_coverSetMerge(true);
     }
     version (D_Exceptions)
-        scope(failure) stderr.printInternalFailure;
+        scope(failure)
+        {
+            OutBuffer buf;
+            printInternalFailure(buf);
+            fputs(buf.peekChars(), stderr);
+        }
 
     auto args = Runtime.cArgs();
     return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
@@ -156,11 +161,12 @@ private:
  * Params:
  *   argc = Number of arguments passed via command line
  *   argv = Array of string arguments passed via command line
+ *   params = set based on argc, argv
  *
  * Returns:
  *   Application return code
  */
-private int tryMain(size_t argc, const(char)** argv, ref Param params)
+private int tryMain(size_t argc, const(char)** argv, out Param params)
 {
     import dmd.common.charactertables;
     import dmd.sarif;
@@ -187,9 +193,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (parseCommandlineAndConfig(argc, argv, params, files))
         return EXIT_FAILURE;
 
-    global.compileEnv.previewIn        = global.params.previewIn;
-    global.compileEnv.transitionIn     = global.params.v.vin;
-    global.compileEnv.ddocOutput       = global.params.ddoc.doOutput;
+    global.compileEnv.previewIn        = params.previewIn;
+    global.compileEnv.transitionIn     = params.v.vin;
+    global.compileEnv.ddocOutput       = params.ddoc.doOutput;
 
     final switch(global.params.cIdentifierTable)
     {
@@ -392,8 +398,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     if (params.v.verbose)
     {
-        stdout.printPredefinedVersions();
-        stdout.printGlobalConfigs();
+        OutBuffer buf;
+        printPredefinedVersions(buf);
+        printGlobalConfig(buf);
+        fputs(buf.peekChars(), stdout);
     }
     //printf("%d source files\n", cast(int) files.length);
 
@@ -449,7 +457,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // Create Modules
     Modules modules;
-    modules.reserve(files.length);
     if (createModules(files, libmodules, params, target, global.errorSink, modules))
         fatal();
 
@@ -871,7 +878,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
  *   files = files from argv
  * Returns: true on failure
  */
-bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params, ref Strings files)
+bool parseCommandlineAndConfig(size_t argc, const(char)** argv, out Param params, ref Strings files)
 {
     // Detect malformed input
     static bool badArgs()
@@ -894,7 +901,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
         error(Loc.initial, "cannot open response file '%s'", missingFile);
     //for (size_t i = 0; i < arguments.length; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     // Set default values
-    params.argv0 = arguments[0].toDString;
+    auto argv0 = arguments[0].toDString;
 
     version (Windows)
         enum iniName = "sc.ini";
@@ -913,7 +920,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     }
     else
     {
-        global.inifilename = findConfFile(params.argv0, iniName);
+        global.inifilename = findConfFile(argv0, iniName);
     }
     // Read the configuration file
     OutBuffer inifileBuffer;
@@ -933,7 +940,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     if (parseConfFile(environment, global.inifilename, inifilepath, cast(ubyte[])inifileBuffer[], &sections))
         return true;
 
-    const(char)[] arch = target.isX86_64 ? "64" : "32"; // use default
+    const(char)[] arch = (target.isX86_64 || target.isAArch64) ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
 
     // parse architecture from DFLAGS read from [Environment] section

@@ -551,14 +551,15 @@ Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
 
     // Try opBinary and opBinaryRight
     Dsymbol s = search_function(ad1, Id.opBinary);
-    if (s && !s.isTemplateDeclaration())
+
+    if (s && !(s.isTemplateDeclaration() || s.isOverloadSet))
     {
         error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toChars());
         return ErrorExp.get();
     }
 
     Dsymbol s_r = search_function(ad2, Id.opBinaryRight);
-    if (s_r && !s_r.isTemplateDeclaration())
+    if (s_r && !(s_r.isTemplateDeclaration() || s_r.isOverloadSet()))
     {
         error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toChars());
         return ErrorExp.get();
@@ -999,7 +1000,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
 
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     Dsymbol s = search_function(ad1, Id.opOpAssign);
-    if (s && !s.isTemplateDeclaration())
+    if (s && !(s.isTemplateDeclaration() || s.isOverloadSet()))
     {
         error(e.loc, "`%s.opOpAssign` isn't a template", e.e1.toChars());
         return ErrorExp.get();
@@ -1046,7 +1047,7 @@ private Expression pickBestBinaryOverload(Scope* sc, Objects* tiargs, Dsymbol s,
     if (s)
     {
         functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2), null);
-        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
+        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors))
             return ErrorExp.get();
     }
     FuncDeclaration lastf = m.lastf;
@@ -1054,7 +1055,7 @@ private Expression pickBestBinaryOverload(Scope* sc, Objects* tiargs, Dsymbol s,
     if (s_r)
     {
         functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, ArgumentList(args1), null);
-        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
+        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors))
             return ErrorExp.get();
     }
     if (m.count > 1)
@@ -1187,6 +1188,8 @@ Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
             return fd;
         if (TemplateDeclaration td = s2.isTemplateDeclaration())
             return td;
+        if (OverloadSet os = s2.isOverloadSet())
+            return os;
     }
     return null;
 }

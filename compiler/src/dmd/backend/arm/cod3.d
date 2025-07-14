@@ -370,8 +370,8 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
     // Save to preallocated section in the stack frame
     int xmmtopush = 0;
     int gptopush = popcnt(topush);  // general purpose registers to save
-    targ_size_t gpoffset = cg.pushoff + cg.BPoff;
-    gpoffset += localsize;
+    //targ_size_t gpoffset = cg.pushoff + cg.BPoff + localsize;
+    targ_size_t gpoffset = 8 + 8;   // skip over x29,x30
     reg_t fp;                       // frame pointer
     if (!cg.hasframe || cg.enforcealign)
     {
@@ -422,8 +422,8 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
     // Save to preallocated section in the stack frame
     int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
     int gptopop = popcnt(topop);   // general purpose registers to save
-    targ_size_t gpoffset = cg.pushoff + cg.BPoff;
-    gpoffset += localsize;
+    //targ_size_t gpoffset = cg.pushoff + cg.BPoff + localsize;
+    targ_size_t gpoffset = 8 + 8; // skip over x29,x30
 
     reg_t fp;
     if (!cg.hasframe || cg.enforcealign)
@@ -788,7 +788,25 @@ void epilog(block* b)
             else
             {
                 if (log) printf("epilog: mov sp,bp\n");
-                cdbx.gen1(INSTR.ldstpair_post(2, 0, 1, cast(uint)(16 + localsize) / 8, 30, 31, 29)); // LDP x29,x30,[sp],#16 + localsize
+                if (16 + xlocalsize <= 512) // or localsize??
+                    cdbx.gen1(INSTR.ldstpair_post(2, 0, 1, cast(uint)(16 + localsize) / 8, 30, 31, 29)); // LDP x29,x30,[sp],#16 + localsize
+                else
+                {
+                    /* LDP x29,x30,[sp] https://www.scs.stanford.edu/~zyedidia/arm64/ldp_gen.html
+                     */
+                    uint opc = 2;
+                    uint VR = 0;
+                    uint L = 1;
+                    uint imm7 = 0;
+                    reg_t Rt2 = 30;
+                    reg_t Rn = 0x1F;
+                    reg_t Rt = 29;
+                    cdbx.gen1(INSTR.ldstpair_off(opc,VR,L,imm7,Rt2,Rn,Rt));
+                    /* ADD sp,sp,#off
+                     * ADD sp,sp,#off + lsl #12
+                     */
+                    cod3_stackadj(cdbx, cast(int)(-(16 + xlocalsize)));
+                }
             }
         }
         else
@@ -859,7 +877,97 @@ Lret:
 
 // cod3_spoff
 // gen_spill_reg
-// cod3_thunk
+
+/****************************
+ * Generate code for, and output a thunk.
+ * Params:
+ *      sthunk =  Symbol of thunk
+ *      sfunc =   Symbol of thunk's target function
+ *      thisty =  Type of this pointer
+ *      p =       ESP parameter offset to this pointer (0 for D)
+ *      d =       offset to add to 'this' pointer
+ *      d2 =      offset from 'this' to vptr (0 for D)
+ *      i =       offset into vtbl[] (-1 for D)
+ */
+@trusted
+void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
+        uint d,int i,uint d2)
+{
+    assert(p == 0 && i == -1 && d2 == 0); // for single inheritance
+
+    targ_size_t thunkoffset;
+
+    int seg = sthunk.Sseg;
+    cod3_align(seg);
+
+    // Skip over return address
+    tym_t thunkty = tybasic(sthunk.ty());
+
+    CodeBuilder cdb; cdb.ctor();
+
+    /*
+       Generate:
+        ADD p[ESP],d
+       For direct call:
+        JMP sfunc
+       For virtual call:
+        MOV EAX, p[ESP]                     EAX = this
+        MOV EAX, d2[EAX]                    EAX = this.vptr
+        JMP i[EAX]                          jump to virtual function
+     */
+    if (config.flags3 & CFG3ibt)
+        //cdb.gen1(I32 ? ENDBR32 : ENDBR64);
+        assert(0); // TODO AArch64
+
+    uint op = 0;                           // ADD
+    if (cast(int)d < 0)
+    {
+        d = -d;
+        op = 1;                            // switch from ADD to SUB
+    }
+    if (thunkty == TYmfunc || thunkty == TYjfunc || thunkty == TYnfunc)
+    {
+        uint sh = 0;
+        reg_t r0 = 0;
+        cdb.gen1(INSTR.addsub_imm(1,op,0,sh,d,r0,r0)); // ADD/SUB r0,r0,d
+    }
+    else
+    {
+        assert(0);
+    }
+
+    if (0 && config.flags3 & CFG3pic)   // TODO AArch64
+    {
+        localgot = null;                // no local variables
+        CodeBuilder cdbgot; cdbgot.ctor();
+        load_localgot(cdbgot);          // load GOT in EBX
+        code* c1 = cdbgot.finish();
+        if (c1)
+        {
+            assignaddrc(c1);
+            cdb.append(c1);
+        }
+    }
+    cdb.gencs1(INSTR.bl(0),0,FL.func,sfunc); // BL sfunc // http://www.scs.stanford.edu/~zyedidia/arm64/bl.html
+    cdb.last().Iflags |= (CFselfrel | CFoff);
+
+    thunkoffset = Offset(seg);
+    code* c = cdb.finish();
+    //pinholeopt(c,null);
+    targ_size_t framehandleroffset;
+    codout(seg,c,null,framehandleroffset);
+    code_free(c);
+
+    sthunk.Soffset = thunkoffset;
+    sthunk.Ssize = Offset(seg) - thunkoffset; // size of thunk
+    sthunk.Sseg = seg;
+    if (config.exe & EX_posix ||
+       config.objfmt == OBJ_MSCOFF)
+    {
+        objmod.pubdef(seg,sthunk,sthunk.Soffset);
+    }
+}
+
 // makeitextern
 
 /*******************************
@@ -1093,7 +1201,7 @@ void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t ty = TYMAX)
     {
         // integer
         uint sf = ty == TYMAX || _tysize[ty] == 8;
-        cdb.gen1(INSTR.mov_register(sf, from, to));
+        cdb.gen1(INSTR.mov_register(sf, from, to));    // MOV to,from
     }
 }
 
@@ -1556,10 +1664,25 @@ void assignaddrc(code* c)
                     offset += REGSIZE * 2;
                 offset += localsize;
             L3:
-                // Load/store register (unsigned immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
+                /*
+                        V 22
+                 sz     R 54 opc    imm         Rn    Rt
+                |sz|111|v|00|oo|0|mmmmmmmmm|00|nnnnn|ttttt|     Load/store register (unscaled immediate)
+                |sz|111|v|00|oo|0|mmmmmmmmm|01|nnnnn|ttttt|     Load/store register (immediate post-indexed)
+                |sz|111|v|00|oo|0|mmmmmmmmm|10|nnnnn|ttttt|     Load/store register (unprivileged)
+                |sz|111|v|00|oo|0|mmmmmmmmm|11|nnnnn|ttttt|     Load/store register (immediate pre-indexed)
+                |sz|111|v|01|oo|m mmmmmmmmm mm|nnnnn|ttttt|     Load/store register (unsigned immediate)
+
+                 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
+                 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpost
+                 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unpriv
+                 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpre
+                 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
+                 */
                 uint opc   = field(ins,23,22);
                 uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
                 uint op24  = field(ins,25,24);
+                uint op11  = field(ins,11,10);
                 if (field(ins,28,23) == 0x22)      // Add/subtract (immediate)
                 {
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
@@ -1578,13 +1701,21 @@ void assignaddrc(code* c)
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
 //printf("shift: %d offset: x%llx imm12: x%x\n", shift, offset, imm12);
                     offset += imm12 << shift;      // add in imm
-                    assert((offset & ((1 << shift) - 1)) == 0); // no misaligned access
-                    imm12 = cast(uint)(offset >> shift);
+                    if (offset & ((1 << shift) - 1)) // misaligned access
+                    {
+                        ins = setField(ins,25,24,0);       // switch to unscaled immediate
+                        ins = setField(ins,21,10,cast(uint)offset << 2);
+                        assert(offset < 0x100);            // only unsigned 8 bits of offset
+                    }
+                    else
+                    {
+                        imm12 = cast(uint)(offset >> shift);
 //printf("imm12: x%x\n", imm12);
-                    assert(imm12 < 0x1000);
-                    ins = setField(ins,21,10,imm12);
+                        assert(imm12 < 0x1000);
+                        ins = setField(ins,21,10,imm12);
+                    }
                 }
-                else if (op24 == 0)
+                else if (op24 == 0 && op11)       // postinc or predec
                 {
                     assert(field(ins,29,27) == 7);
                     if (opc == 2 && shift == 0)
@@ -1594,6 +1725,16 @@ void assignaddrc(code* c)
                     offset += imm9 << shift;      // add in imm9
                     assert((offset & ((1 << shift) - 1)) == 0); // no misaligned access
                     imm9 = cast(uint)(offset >> shift);
+                    assert(imm9 < 0x200);
+                    imm9 = (imm9 - 0x100) & 0x1FF;
+                    ins = setField(ins,20,12,imm9);
+                }
+                else if (op24 == 0)
+                {
+                    assert(field(ins,29,27) == 7);
+                    uint imm9 = field(ins,20,12); // signed 9 bits
+                    imm9 += 0x100;                // bias to being unsigned
+                    offset += imm9;               // add in imm9
                     assert(imm9 < 0x200);
                     imm9 = (imm9 - 0x100) & 0x1FF;
                     ins = setField(ins,20,12,imm9);
@@ -1655,6 +1796,7 @@ void assignaddrc(code* c)
  * Note: only works for forward referenced code.
  *       only direct jumps and branches are detected.
  *       LOOP instructions only work for backward refs.
+ * Reference: http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condbranch
  */
 @trusted
 void jmpaddr(code* c)
@@ -1697,7 +1839,7 @@ void jmpaddr(code* c)
                 ad += calccodsize(ci);
                 ci = code_next(ci);
             }
-            c.Iop = (-(ad >> 2)) << 5;
+            c.Iop |= (-(ad >> 2) & ((1 << 19) - 1)) << 5;    // set the signed imm19 field
             c.IFL1 = FL.unde;
         }
         c = code_next(c);

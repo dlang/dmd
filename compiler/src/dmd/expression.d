@@ -49,7 +49,7 @@ import dmd.root.string;
 import dmd.root.utf;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem;
+import dmd.typesem : pointerTo, toHeadMutable, castMod, size, mutableOf, unSharedOf;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -2009,7 +2009,7 @@ extern (C++) final class ArrayLiteralExp : Expression
                     if (ch.op != EXP.int64)
                         return null;
                     if (sz == 1)
-                        buf.writeByte(cast(uint)ch.toInteger());
+                        buf.writeByte(cast(ubyte)ch.toInteger());
                     else if (sz == 2)
                         buf.writeword(cast(uint)ch.toInteger());
                     else
@@ -3618,6 +3618,7 @@ extern (C++) final class CastExp : UnaExp
     Type to;                    // type to cast to
     ubyte mod = cast(ubyte)~0;  // MODxxxxx
     bool trusted; // assume cast is safe
+    Expression lowering;
 
     extern (D) this(Loc loc, Expression e, Type t) @safe
     {
@@ -4801,6 +4802,7 @@ extern (C++) final class RemoveExp : BinExp
  */
 extern (C++) final class EqualExp : BinExp
 {
+    Expression lowering;
     extern (D) this(EXP op, Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, op, e1, e2);

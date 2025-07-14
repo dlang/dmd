@@ -120,7 +120,8 @@ bool ISX64REF(Declaration var)
         }
         else if (target.os & Target.OS.Posix)
         {
-            return !(var.storage_class & STC.lazy_) && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD();
+            return !(var.storage_class & STC.lazy_) && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD() ||
+                passTypeByRef(target, var.type);
         }
     }
 
@@ -143,10 +144,28 @@ bool ISX64REF(ref IRState irs, Expression exp)
     }
     else if (irs.target.os & Target.OS.Posix)
     {
-        return exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD();
+        return exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD() || passTypeByRef(*irs.target, exp.type);
     }
 
     return false;
+}
+
+/********
+ * If type is a composite and is to be passed by reference instead of by value
+ * Params:
+ *      target = target instruction set
+ *      t = type
+ * Returns:
+ *      true if passed by reference
+ * Reference:
+ *      Procedure Call Standard for the Arm 64-bi Architecture (AArch64) pg 23 B.4
+ *      "If the argument type is a Composite Type that is larger than 16 bytes, then the
+ *      argument is copied to memory allocated by the caller and the argument is replaced
+ *      by a pointer to the copy."
+ */
+static bool passTypeByRef(ref const Target target, Type t)
+{
+    return (target.isAArch64 && t.size(Loc.initial) > 16);
 }
 
 /**************************************************
@@ -254,9 +273,9 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
         foreach (u; hash[0 .. 16])
         {
             ubyte u1 = u >> 4;
-            buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
+            buf.writeByte(cast(char)((u1 < 10) ? u1 + '0' : u1 + 'A' - 10));
             u1 = u & 0xF;
-            buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
+            buf.writeByte(cast(char)((u1 < 10) ? u1 + '0' : u1 + 'A' - 10));
         }
     }
 
@@ -484,52 +503,114 @@ private __gshared StringTable!(Symbol*) *stringTab;
 /*********************************************
  * Figure out whether a data symbol should be dllimported
  * Params:
- *      var = declaration of the symbol
+ *      symbl = declaration of the symbol
  * Returns:
  *      true if symbol should be imported from a DLL
  */
-bool isDllImported(Dsymbol var)
+bool isDllImported(Dsymbol symbl)
 {
+    // Windows is the only platform which dmd supports, that uses the DllImport/DllExport scheme.
     if (!(target.os & Target.OS.Windows))
         return false;
-    if (var.isImportedSymbol())
+
+    // If function does not have a body, check to see if its marked as DllImport or is set to be exported.
+    // If a global variable has both export + extern, it is DllImport
+    if (symbl.isImportedSymbol())
         return true;
-    if (driverParams.symImport == SymImport.none)
-        return false;
-    if (auto vd = var.isDeclaration())
+
+    // Functions can go through the generated trampoline function.
+    // Not efficient, but it works.
+    if (symbl.isFuncDeclaration())
+        return false; // can always jump through import table
+
+    // Global variables are allowed, but not TLS or read only memory.
+    if (auto vd = symbl.isDeclaration())
+    {
         if (!vd.isDataseg() || vd.isThreadlocal())
             return false;
-    if (var.isFuncDeclaration())
-        return false; // can always jump through import table
-    if (auto tid = var.isTypeInfoDeclaration())
-    {
-        if (builtinTypeInfo(tid.tinfo))
-            return true;
-        if (auto ad = isAggregate(tid.type))
-            var = ad;
     }
-    if (driverParams.symImport == SymImport.defaultLibsOnly)
+
+    final switch(driverParams.symImport)
     {
-        auto m = var.getModule();
+        case SymImport.none:
+            // If DllImport overriding is disabled, do not change dllimport status.
+            return false;
+
+        case SymImport.externalOnly:
+            // Only modules that are marked as out of binary will be DllImport
+            break;
+
+        case SymImport.defaultLibsOnly:
+        case SymImport.all:
+            // If to access anything in druntime/phobos you need DllImport, verify against this.
+            break;
+    }
+    const systemLibraryNeedDllImport = driverParams.symImport != SymImport.externalOnly;
+
+    // For TypeInfo's check to see if its in druntime and DllImport it
+    if (auto tid = symbl.isTypeInfoDeclaration())
+    {
+        // Built in TypeInfo's are defined in druntime
+        if (builtinTypeInfo(tid.tinfo))
+            return systemLibraryNeedDllImport;
+
+        // Convert TypeInfo to its symbol
+        if (auto ad = isAggregate(tid.type))
+            symbl = ad;
+    }
+
+    {
+        // Filter the symbol based upon the module it is in.
+
+        auto m = symbl.getModule();
         if (!m || !m.md)
             return false;
-        const id = m.md.packages.length ? m.md.packages[0] : null;
-        if (id && id != Id.core && id != Id.std)
+
+        if (driverParams.symImport == SymImport.all || m.isExplicitlyOutOfBinary)
+        {
+            // If a module is specified as being out of binary (-extI), then it is allowed to be DllImport.
+        }
+        else if (driverParams.symImport == SymImport.externalOnly)
+        {
+            // Module is in binary, therefore not DllImport
             return false;
-        if (!id && m.md.id != Id.std && m.md.id != Id.object)
-            return false;
+        }
+        else if (systemLibraryNeedDllImport)
+        {
+            // Filter out all modules that are not in druntime/phobos if we are only doing default libs only
+
+            const id = m.md.packages.length ? m.md.packages[0] : null;
+            if (id && id != Id.core && id != Id.std)
+                return false;
+            if (!id && m.md.id != Id.std && m.md.id != Id.object)
+                return false;
+        }
     }
-    else if (driverParams.symImport != SymImport.all)
-        return false;
-    if (auto mod = var.isModule())
-        return !mod.isRoot(); // non-root ModuleInfo symbol
-    if (var.inNonRoot())
+
+    // If symbol is a ModuleInfo, check to see if module is being compiled.
+    if (auto mod = symbl.isModule())
+    {
+        const isBeingCompiled = mod.isRoot();
+        return !isBeingCompiled; // non-root ModuleInfo symbol
+    }
+
+    // Check to see if a template has been instatiated in current compilation,
+    //  if it is defined in a external module, its DllImport.
+    if (symbl.inNonRoot())
         return true; // not instantiated, and defined in non-root
-    if (auto ti = var.isInstantiated()) // && !defineOnDeclare(sym, false))
+
+    // If a template has been instatiated, only DllImport if it is codegen'ing
+    if (auto ti = symbl.isInstantiated()) // && !defineOnDeclare(sym, false))
         return !ti.needsCodegen(); // instantiated but potentially culled (needsCodegen())
-    if (auto vd = var.isVarDeclaration())
+
+    // If a variable declaration and is extern
+    if (auto vd = symbl.isVarDeclaration())
+    {
+        // Shouldn't this be including an export check too???
         if (vd.storage_class & STC.extern_)
             return true; // externally defined global variable
+    }
+
     return false;
 }
 
@@ -628,9 +709,9 @@ elem* toElem(Expression e, ref IRState irs)
         if (se.var.toParent2())
             fd = se.var.toParent2().isFuncDeclaration();
 
-        const bool nrvo = fd && (fd.isNRVO() && fd.nrvo_var == se.var || se.var.nrvo && fd.shidden);
+        const bool nrvo = fd && (fd.isNRVO && fd.nrvo_var == se.var || se.var.nrvo && fd.shidden);
         if (nrvo)
-            s = fd.shidden;
+            s = cast(Symbol*)fd.shidden;
 
         if (s.Sclass == SC.auto_ || s.Sclass == SC.parameter || s.Sclass == SC.shadowreg)
         {
@@ -666,7 +747,8 @@ elem* toElem(Expression e, ref IRState irs)
                 else if (v && v.inAlignSection)
                 {
                     const vthisOffset = fd.vthis ? -toSymbol(fd.vthis).Soffset : 0;
-                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, vthisOffset + fd.salignSection.Soffset));
+                    auto salignSection = cast(Symbol*) fd.salignSection;
+                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, vthisOffset + salignSection.Soffset));
                     ethis = el_una(OPind, TYnptr, ethis);
                     soffset = v.offset;
                 }
@@ -708,8 +790,9 @@ elem* toElem(Expression e, ref IRState irs)
          */
         if (v && (v.inClosure || v.inAlignSection))
         {
-            assert(irs.sclosure || fd.salignSection);
-            e = el_var(v.inClosure ? irs.sclosure : fd.salignSection);
+            auto salignSection = cast(Symbol*) fd.salignSection;
+            assert(irs.sclosure || salignSection);
+            e = el_var(v.inClosure ? irs.sclosure : salignSection);
             e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v.offset));
             if (se.op == EXP.variable)
             {
@@ -2024,14 +2107,16 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray())
         {
-            Type telement  = t1.nextOf().toBasetype();
-            Type telement2 = t2.nextOf().toBasetype();
-
-            if ((telement.isIntegral() || telement.ty == Tvoid) && telement.ty == telement2.ty)
+            if (auto lowering = ee.lowering)
+            {
+                e = toElem(lowering, irs);
+                elem_setLoc(e, ee.loc);
+            }
+            else
             {
                 // Optimize comparisons of arrays of basic types
-                // For arrays of integers/characters, and void[],
-                // replace druntime call with:
+                // For arrays of scalars (except floating types) of same size & signedness, void[],
+                // and structs with no custom equality operator, replace druntime call with:
                 // For a==b: a.length==b.length && (a.length == 0 || memcmp(a.ptr, b.ptr, size)==0)
                 // For a!=b: a.length!=b.length || (a.length != 0 || memcmp(a.ptr, b.ptr, size)!=0)
                 // size is a.length*sizeof(a[0]) for dynamic arrays, or sizeof(a) for static arrays.
@@ -2041,7 +2126,7 @@ elem* toElem(Expression e, ref IRState irs)
                 elem* eptr1, eptr2; // Pointer to data, to pass to memcmp
                 elem* elen1, elen2; // Length, for comparison
                 elem* esiz1, esiz2; // Data size, to pass to memcmp
-                const sz = telement.size(); // Size of one element
+                const sz = t1.nextOf().toBasetype().size(); // Size of one element
 
                 bool is64 = target.isX86_64 || target.isAArch64;
                 if (t1.ty == Tarray)
@@ -2094,19 +2179,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_combine(earr2, e);
                 e = el_combine(earr1, e);
                 elem_setLoc(e, ee.loc);
-                return e;
             }
-
-            elem* ea1 = eval_Darray(ee.e1);
-            elem* ea2 = eval_Darray(ee.e2);
-
-            elem* ep = el_params(getTypeInfo(ee, telement.arrayOf(), irs),
-                    ea2, ea1, null);
-            const rtlfunc = RTLSYM.ARRAYEQ2;
-            e = el_bin(OPcall, TYint, el_var(getRtlsym(rtlfunc)), ep);
-            if (ee.op == EXP.notEqual)
-                e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
-            elem_setLoc(e,ee.loc);
         }
         else if (t1.ty == Taarray && t2.ty == Taarray)
         {
@@ -3771,7 +3844,8 @@ elem* toElem(Expression e, ref IRState irs)
             printf("\tfrom: %s\n", ce.e1.type.toChars());
             printf("\tto  : %s\n", ce.to.toChars());
         }
-        elem* e = toElem(ce.e1, irs);
+        // When there is a lowering availabe, use that
+        elem* e = ce.lowering is null ? toElem(ce.e1, irs) : toElem(ce.lowering, irs);
 
         return toElemCast(ce, e, false, irs);
     }
@@ -4699,61 +4773,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         }
         else
         {
-            /* The offset from cdfrom => cdto can only be determined at runtime.
-             * Cases:
-             *  - class     => derived class (downcast)
-             *  - interface => derived class (downcast)
-             *  - class     => foreign interface (cross cast)
-             *  - interface => base or foreign interface (cross cast)
-             */
-            auto rtl = cdfrom.isInterfaceDeclaration()
-                        ? RTLSYM.INTERFACE_CAST
-                        : RTLSYM.DYNAMIC_CAST;
-
-            /* Check for:
-             *  class A { }
-             *  final class B : A { }
-             *  ... cast(B) A ...
-             */
-            if (rtl == RTLSYM.DYNAMIC_CAST &&
-                cdto.storage_class & STC.final_ &&
-                cdto.baseClass == cdfrom &&
-                (!cdto.interfaces || cdto.interfaces.length == 0) &&
-                (!cdfrom.interfaces || cdfrom.interfaces.length == 0))
-            {
-                /* do shortcut cast: if e is an instance of B, then it's just a type paint
-                 */
-                //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
-                rtl = RTLSYM.PAINT_CAST;
-            }
-            else if (rtl == RTLSYM.DYNAMIC_CAST &&
-                     !cdto.isInterfaceDeclaration())
-            {
-                //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
-                int level = 0;
-                auto b = cdto;
-                while (1)
-                {
-                    if (b == cdfrom)
-                        break;
-                    b = b.baseClass;
-                    if (!b)
-                    {
-                        // did not find cdfrom, so cast fails, return null
-                        e = el_long(TYnptr, 0);
-                        return Lret(ce, e);
-                    }
-                    ++level;
-                }
-                if (level == 0)
-                {
-                    return Lret(ce, e); // cast to self
-                }
-                // _d_class_cast(e, cdto);
-                rtl = RTLSYM.CLASS_CAST;
-            }
-            elem* ep = el_param(el_ptr(toExtSymbol(cdto)), e);
-            e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
+            assert(ce.lowering, "This case should have been rewritten to `_d_cast` in the semantic phase");
         }
         return Lret(ce, e);
     }
@@ -5431,7 +5451,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
  * If argument to a function should use OPstrpar,
  * fix it so it does and return it.
  */
-elem* useOPstrpar(elem* e)
+static elem* useOPstrpar(elem* e)
 {
     tym_t ty = tybasic(e.Ety);
     if (ty == TYstruct || ty == TYarray)
@@ -7157,7 +7177,7 @@ elem* genHalt(Loc loc)
 private
 elem* setEthis2(Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, ref elem* ethis, ref elem* eside)
 {
-    if (!fd.hasDualContext())
+    if (!fd.hasDualContext)
         return null;
 
     assert(ethis2 && ethis);

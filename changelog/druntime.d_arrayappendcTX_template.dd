@@ -1,0 +1,3 @@
+Templatize `_d_arrayappendcTX` runtime hook
+
+This refactorization discards the `TypeInfo` parameter, replacing it with a template type parameter.

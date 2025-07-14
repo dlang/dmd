@@ -539,23 +539,23 @@ void cod3_stackadj(ref CodeBuilder cdb, int nbytes)
         // https://www.scs.stanford.edu/~zyedidia/arm64/sub_addsub_imm.html
         // add/sub Xd,Xn,#imm{,shift}
         uint sf = 1;
-        uint op = nbytes < 0 ? 0 : 1;
-        uint S = 0;
-        uint sh = 0;
-        uint imm12 = nbytes < 0 ? -nbytes : nbytes;
-        uint Rn = 0x1F;
-        uint Rd = 0x1F;
-        uint ins = (sf    << 31) |
-                   (op    << 30) |
-                   (S     << 29) |
-                   (0x22  << 23) |
-                   (sh    << 22) |
-                   (imm12 << 10) |
-                   (Rn    <<  5) |
-                    Rd;
-        cdb.gen1(ins);
-        assert(imm12 < (1 << 12));  // only 12 bits allowed
-//        assert((imm12 & 0xF) == 0); // 16 byte aligned
+        reg_t Rn = 0x1F;  // SP
+        reg_t Rd = 0x1F;
+        uint imm = nbytes < 0 ? -nbytes : nbytes;
+
+        if (uint imm12 = imm >> 12)     // bits above 12 bits
+        {
+            assert(imm12 < (1 << 12));  // insane amount of stack requested
+            cdb.gen1(nbytes < 0 ? INSTR.add_addsub_imm(sf, 1, imm12, Rn, Rd)
+                                : INSTR.sub_addsub_imm(sf, 1, imm12, Rn, Rd));
+        }
+
+        if (uint imm12 = imm & ((1 << 12) - 1)) // low 12 bits
+        {
+            cdb.gen1(nbytes < 0 ? INSTR.add_addsub_imm(sf, 0, imm12, Rn, Rd)
+                                : INSTR.sub_addsub_imm(sf, 0, imm12, Rn, Rd));
+        }
+
         return;
     }
     uint grex = I64 ? REX_W << 16 : 0;
@@ -1491,14 +1491,17 @@ regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, ou
     static struct RetRegsAllocator
     {
     nothrow:
+        static immutable reg_t[2] gpx_regs = [0, 1];
         static immutable reg_t[2] gpr_regs = [AX, DX];
         static immutable reg_t[2] xmm_regs = [XMM0, XMM1];
         static immutable reg_t[2] fpt_regs = [32, 33]; // AArch64 V0, V1
 
-        uint cntgpr = 0,
+        uint cntgpx = 0,
+             cntgpr = 0,
              cntxmm = 0,
              cntfpt = 0;
 
+        reg_t gpx() { return gpx_regs[cntgpx++]; }
         reg_t gpr() { return gpr_regs[cntgpr++]; }
         reg_t xmm() { return xmm_regs[cntxmm++]; }
         reg_t fpt() { return fpt_regs[cntfpt++]; }
@@ -1531,8 +1534,12 @@ regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, ou
                 assert(tyfb == TYjfunc && I32);
                 return ST01;
             }
-            else if (AArch64 && tyfloating(tym))
-                return rralloc.fpt();
+            else if (AArch64)
+            {
+                if (tyfloating(tym))
+                    return rralloc.fpt();
+                return rralloc.gpx();
+            }
             else if (tysimd(tym))
             {
                 return rralloc.xmm();
@@ -3584,24 +3591,21 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
             else
             {
                 /* SUB sp,sp,#16+xlocalsize
-                   STP x29,x30,[sp]
                  */
                 cod3_stackadj(cdb, 16 + xlocalsize);
 
                 assert((xlocalsize & 0xF) == 0); // 16 byte aligned
 
                 // https://www.scs.stanford.edu/~zyedidia/arm64/stp_gen.html
-                // STP x29,x30,[sp,#xlocalsize]
+                // STP x29,x30,[sp]
                 {
                     uint opc = 2;
                     uint VR = 0;
                     uint L = 0;
-                    uint imm7 = xlocalsize >> 3;
-                    assert(imm7 < (1 << 7)); // only 7 bits allowed
-                    imm7 = 0;
-                    ubyte Rt2 = 30;
-                    ubyte Rn = 0x1F;
-                    ubyte Rt = 29;
+                    uint imm7 = 0;
+                    reg_t Rt2 = 30;
+                    reg_t Rn = 0x1F;
+                    reg_t Rt = 29;
                     cdb.gen1(INSTR.ldstpair_off(opc, VR, L, imm7, Rt2, Rn, Rt));
                 }
             }
@@ -3613,11 +3617,10 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
                 uint op = 0;
                 uint S = 0;
                 uint sh = 0;
-                uint imm12 = 0; //xlocalsize;
-                assert(imm12 < (1 << 12));  // only 12 bits allowed
-                ubyte Rn = 0x1F;
-                ubyte Rd = 29;
-                cdb.gen1(INSTR.addsub_imm(sf, op, S, sh, imm12, Rn, Rd)); // mov x29,sp // x29 points to previous x29
+                uint imm12 = 0;
+                reg_t Rn = 0x1F;
+                reg_t Rd = 29;
+                cdb.gen1(INSTR.addsub_imm(sf, op, S, sh, imm12, Rn, Rd)); // MOV x29,sp // x29 points to previous x29
             }
         }
         else
@@ -4976,6 +4979,12 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
 void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
         uint d,int i,uint d2)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod3 : cod3_thunk;
+        return cod3_thunk(sthunk, sfunc, p, thisty, d, i, d2);
+    }
+
     targ_size_t thunkoffset;
 
     int seg = sthunk.Sseg;

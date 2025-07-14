@@ -322,8 +322,10 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
                 ethis = el_long(TYnptr, 0);
                 ethis.Eoper = OPframeptr;
 
-                thisfd.csym.Sfunc.Fflags &= ~Finline; // inliner breaks with this because the offsets are off
-                                                      // see runnable/ice10086b.d
+                auto csym = cast(Symbol*) thisfd.csym;
+                // inliner breaks with this because the offsets are off
+                // see runnable/ice10086b.d
+                csym.Sfunc.Fflags &= ~Finline;
             }
             else
             {
@@ -420,7 +422,7 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
  */
 elem* fixEthis2(elem* ethis, FuncDeclaration fd, bool ctxt2 = false)
 {
-    if (fd && fd.hasDualContext())
+    if (fd && fd.hasDualContext)
     {
         if (ctxt2)
             ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, tysize(TYnptr)));
@@ -448,7 +450,7 @@ elem* setEthis(Loc loc, ref IRState irs, elem* ey, AggregateDeclaration ad, bool
     {
         ethis = getEthis(loc, irs, ad);
     }
-    else if (thisfd.vthis && !thisfd.hasDualContext() &&
+    else if (thisfd.vthis && !thisfd.hasDualContext &&
           (adp == thisfd.toParent2() ||
            (adp.isClassDeclaration() &&
             adp.isClassDeclaration().isBaseOf(thisfd.toParent2().isClassDeclaration(), &offset)
@@ -681,8 +683,13 @@ TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
     for (Dsymbol sym = fd.toParent2(); sym; sym = sym.toParent2())
     {
         if (auto fn = sym.isFuncDeclaration())
-            if (fn.csym && fn.csym.Sscope)
-                return fn.csym.Sscope.Stype;
+        {
+            if (auto csym = cast(Symbol*)fn.csym)
+            {
+                if (csym.Sscope)
+                    return csym.Sscope.Stype;
+            }
+        }
         if (sym.isAggregateDeclaration())
             break;
     }
@@ -752,7 +759,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
         /* Can't do nrvo if the variable is put in a closure, since
          * what the shidden points to may no longer exist.
          */
-        assert(!fd.isNRVO() || fd.nrvo_var != v);
+        assert(!fd.isNRVO || fd.nrvo_var != v);
     }
     return aggAlignment;
 }
@@ -880,7 +887,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
         //printf("structsize = %d\n", cast(uint)structsize);
 
         Closstru.Ttag.Sstruct.Sstructsize = cast(uint)structsize;
-        fd.csym.Sscope = sclosure;
+        (cast(Symbol*)fd.csym).Sscope = sclosure;
 
         if (driverParams.symdebug)
             toDebugClosure(Closstru.Ttag);
@@ -1112,7 +1119,7 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
     structsize += aggAlignment - stackAlign;
 
     Closstru.Ttag.Sstruct.Sstructsize = cast(uint)structsize;
-    fd.csym.Sscope = sclosure;
+    (cast(Symbol*)fd.csym).Sscope = sclosure;
 
     if (driverParams.symdebug)
         toDebugClosure(Closstru.Ttag);
@@ -1180,7 +1187,7 @@ void buildCapture(FuncDeclaration fd)
         Symbol* scapture = symbol_name("__captureptr", SC.alias_, type_pointer(capturestru));
         scapture.Sflags |= SFLtrue | SFLfree;
         //symbol_add(scapture);
-        fd.csym.Sscope = scapture;
+        (cast(Symbol*)fd.csym).Sscope = scapture;
 
         toDebugClosure(capturestru.Ttag);
     }

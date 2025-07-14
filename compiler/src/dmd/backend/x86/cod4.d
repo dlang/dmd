@@ -4658,10 +4658,14 @@ void cdpair(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         return;
     }
 
-    assert(!cg.AArch64);
-    //printf("\ncdpair(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
-    //WRTYxx(e.Ety);printf("\n");
-    //printf("Ecount = %d\n", e.Ecount);
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdpair;
+        return cdpair(cg, cdb, e, pretregs);
+    }
+
+    //printf("cdpair(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
+    //elem_print(e);
 
     regm_t retregs = pretregs;
     if (retregs == mPSW && tycomplex(e.Ety) && config.inline8087)

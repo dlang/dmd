@@ -993,7 +993,7 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
                  */
                 OutBuffer buf;
                 buf.writestring(cpp);
-                buf.printf(" /P /Zc:preprocessor /PD /nologo /utf-8 \"%.*s\" \"/FI%s\" \"/Fi%.*s\"",
+                buf.printf(" /std:c11 /P /Zc:preprocessor /PD /nologo /utf-8 \"%.*s\" \"/FI%s\" \"/Fi%.*s\"",
                     cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
 
                 /* Append preprocessor switches to command line
@@ -1148,6 +1148,8 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         // Build argv[]
         Strings argv;
         argv.push(cpp.xarraydup.ptr);       // null terminated copy
+
+        argv.push("-std=c11");
 
         foreach (p; cppswitches)
         {

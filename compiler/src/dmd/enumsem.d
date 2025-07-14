@@ -240,7 +240,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
             em.dsymbolSemantic(em._scope);
     });
 
-    if (global.params.useTypeInfo && Type.dtypeinfo && !ed.inNonRoot())
+    if (!ed.errors && global.params.useTypeInfo && Type.dtypeinfo && !ed.inNonRoot())
         semanticTypeInfo(sc, ed.memtype);
     //printf("ed.defaultval = %lld\n", ed.defaultval);
 

@@ -109,17 +109,12 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.CALLFINALIZER:          symbolz(ps,FL.func,FREGSAVED,"_d_callfinalizer", 0, t); break;
         case RTLSYM.CALLINTERFACEFINALIZER: symbolz(ps,FL.func,FREGSAVED,"_d_callinterfacefinalizer", 0, t); break;
         case RTLSYM.ALLOCMEMORY:            symbolz(ps,FL.func,FREGSAVED,"_d_allocmemory", 0, t); break;
-        case RTLSYM.DYNAMIC_CAST:           symbolz(ps,FL.func,FREGSAVED,"_d_dynamic_cast", 0, t); break;
-        case RTLSYM.PAINT_CAST:             symbolz(ps,FL.func,FREGSAVED,"_d_paint_cast", 0, t); break;
-        case RTLSYM.CLASS_CAST:             symbolz(ps,FL.func,FREGSAVED,"_d_class_cast", 0, t); break;
-        case RTLSYM.INTERFACE_CAST:         symbolz(ps,FL.func,FREGSAVED,"_d_interface_cast", 0, t); break;
         case RTLSYM.ARRAYCATT:              symbolz(ps,FL.func,FREGSAVED,"_d_arraycatT", 0, t); break;
         case RTLSYM.ARRAYAPPENDCD:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcd", 0, t); break;
         case RTLSYM.ARRAYAPPENDWD:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendwd", 0, t); break;
         case RTLSYM.ARRAYCOPY:              symbolz(ps,FL.func,FREGSAVED,"_d_arraycopy", 0, t); break;
         case RTLSYM.ARRAYASSIGN_R:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_r", 0, t); break;
         case RTLSYM.ARRAYASSIGN_L:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_l", 0, t); break;
-        case RTLSYM.ARRAYEQ2:               symbolz(ps,FL.func,FREGSAVED,"_adEq2", 0, t); break;
 
         /* Associative Arrays https://github.com/dlang/dmd/blob/master/druntime/src/rt/aaA.d */
         case RTLSYM.AANEW:                  symbolz(ps,FL.func,FREGSAVED,"_aaNew",        0, t); break;

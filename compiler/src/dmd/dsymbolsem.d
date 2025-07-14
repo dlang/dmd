@@ -6109,12 +6109,81 @@ bool determineFields(AggregateDeclaration ad)
     return true;
 }
 
+/****************************
+ * A Singleton that loads core.stdc.config
+ * Returns:
+ *  Module of core.stdc.config, null if couldn't find it
+ */
+Module loadCoreStdcConfig()
+{
+    __gshared Module core_stdc_config;
+    auto pkgids = new Identifier[2];
+    pkgids[0] = Id.core;
+    pkgids[1] = Id.stdc;
+    return loadModuleFromLibrary(core_stdc_config, pkgids, Id.config);
+}
+
+/****************************
+ * A Singleton that loads core.atomic
+ * Returns:
+ *  Module of core.atomic, null if couldn't find it
+ */
+private Module loadCoreAtomic()
+{
+    __gshared Module core_atomic;
+    auto pkgids = new Identifier[1];
+    pkgids[0] = Id.core;
+    return loadModuleFromLibrary(core_atomic, pkgids, Id.atomic);
+}
+
+/****************************
+ * A Singleton that loads std.math
+ * Returns:
+ *  Module of std.math, null if couldn't find it
+ */
+Module loadStdMath()
+{
+    __gshared Module std_math;
+    auto pkgids = new Identifier[1];
+    pkgids[0] = Id.std;
+    return loadModuleFromLibrary(std_math, pkgids, Id.math);
+}
+
+/**********************************
+ * Load a Module from the library.
+ * Params:
+ *  mod = cached return value of this call
+ *  pkgids = package identifiers
+ *  modid = module id
+ * Returns:
+ *  Module loaded, null if cannot load it
+ */
+extern (D) private static Module loadModuleFromLibrary(ref Module mod, Identifier[] pkgids, Identifier modid)
+{
+    if (mod)
+        return mod;
+
+    auto imp = new Import(Loc.initial, pkgids[], modid, null, true);
+    // Module.load will call fatal() if there's no module available.
+    // Gag the error here, pushing the error handling to the caller.
+    const errors = global.startGagging();
+    imp.load(null);
+    if (imp.mod)
+    {
+        imp.mod.importAll(null);
+        imp.mod.dsymbolSemantic(null);
+    }
+    global.endGagging(errors);
+    mod = imp.mod;
+    return mod;
+}
+
 /// Do an atomic operation (currently tailored to [shared] static ctors|dtors) needs
 private CallExp doAtomicOp (string op, Identifier var, Expression arg)
 {
     assert(op == "-=" || op == "+=");
 
-    Module mod = Module.loadCoreAtomic();
+    Module mod = loadCoreAtomic();
     if (!mod)
         return null;    // core.atomic couldn't be loaded
 
@@ -7989,8 +8058,6 @@ private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
 
         const sz = vd.type.size();
         assert(sz != SIZE_INVALID);
-        if (!sz)
-            return null;
 
         if (vd.type.toBasetype().ty == Tstruct)
         {
@@ -8642,6 +8709,87 @@ bool _isZeroInit(Expression exp)
         default:
             return false;
     }
+}
+
+/***************************************
+ * Calculate `ad.field[i].overlapped` and `overlapUnsafe`, and check that all of explicit
+ * field initializers have unique memory space on instance.
+ * Returns:
+ *      true if any errors happen.
+ */
+private bool checkOverlappedFields(AggregateDeclaration ad)
+{
+    //printf("AggregateDeclaration::checkOverlappedFields() %s\n", toChars());
+    assert(ad.sizeok == Sizeok.done);
+    size_t nfields = ad.fields.length;
+    if (ad.isNested())
+    {
+        auto cd = ad.isClassDeclaration();
+        if (!cd || !cd.baseClass || !cd.baseClass.isNested())
+            nfields--;
+        if (ad.vthis2 && !(cd && cd.baseClass && cd.baseClass.vthis2))
+            nfields--;
+    }
+    bool errors = false;
+
+    // Fill in missing any elements with default initializers
+    foreach (i; 0 .. nfields)
+    {
+        auto vd = ad.fields[i];
+        if (vd.errors)
+        {
+            errors = true;
+            continue;
+        }
+
+        const vdIsVoidInit = vd._init && vd._init.isVoidInitializer();
+
+        // Find overlapped fields with the hole [vd.offset .. vd.offset.size()].
+        foreach (j; 0 .. nfields)
+        {
+            if (i == j)
+                continue;
+            auto v2 = ad.fields[j];
+            if (v2.errors)
+            {
+                errors = true;
+                continue;
+            }
+            if (!vd.isOverlappedWith(v2))
+                continue;
+
+            // vd and v2 are overlapping.
+            vd.overlapped = true;
+            v2.overlapped = true;
+
+            if (!MODimplicitConv(vd.type.mod, v2.type.mod))
+                v2.overlapUnsafe = true;
+            if (!MODimplicitConv(v2.type.mod, vd.type.mod))
+                vd.overlapUnsafe = true;
+
+            if (i > j)
+                continue;
+
+            if (!v2._init)
+                continue;
+
+            if (v2._init.isVoidInitializer())
+                continue;
+
+            if (vd._init && !vdIsVoidInit && v2._init)
+            {
+                .error(ad.loc, "overlapping default initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
+                errors = true;
+            }
+            else if (v2._init && i < j)
+            {
+                .error(v2.loc, "union field `%s` with default initialization `%s` must be before field `%s`",
+                    v2.toChars(), dmd.hdrgen.toChars(v2._init), vd.toChars());
+                errors = true;
+            }
+        }
+    }
+    return errors;
 }
 
 private extern(C++) class FinalizeSizeVisitor : Visitor

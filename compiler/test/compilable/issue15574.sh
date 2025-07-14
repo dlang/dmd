@@ -48,7 +48,11 @@ int main() {
 }
 EOF
 
-${CC} -m${MODEL} -c -o ${C_FILE}${OBJ} $C_FILE
+if [[ $OS == *"osx"* ]]; then
+    ${CC} -m${MODEL} -arch x86_64 -c -o ${C_FILE}${OBJ} $C_FILE
+else
+    ${CC} -m${MODEL} -c -o ${C_FILE}${OBJ} $C_FILE
+fi
 ar rcs ${C_LIB} ${C_FILE}${OBJ}
 
 ${DMD} -m${MODEL} -lib -of${D_LIB} ${D_FILE}

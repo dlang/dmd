@@ -1572,8 +1572,57 @@ class TypeInfo_Delegate : TypeInfo
 }
 
 private extern (C) Object _d_newclass(const TypeInfo_Class ci);
-private extern (C) int _d_isbaseof(scope TypeInfo_Class child,
-    scope const TypeInfo_Class parent) @nogc nothrow pure @safe; // rt.cast_
+
+extern(C) int _d_isbaseof(scope ClassInfo oc, scope const ClassInfo c) @nogc nothrow pure @safe
+{
+    import core.internal.cast_ : areClassInfosEqual;
+
+    if (areClassInfosEqual(oc, c))
+        return true;
+
+    do
+    {
+        if (oc.base && areClassInfosEqual(oc.base, c))
+            return true;
+
+        // Bugzilla 2013: Use depth-first search to calculate offset
+        // from the derived (oc) to the base (c).
+        foreach (iface; oc.interfaces)
+        {
+            if (areClassInfosEqual(iface.classinfo, c) || _d_isbaseof(iface.classinfo, c))
+                return true;
+        }
+
+        oc = oc.base;
+    } while (oc);
+
+    return false;
+}
+
+/******************************************
+ * Given a pointer:
+ *      If it is an Object, return that Object.
+ *      If it is an interface, return the Object implementing the interface.
+ *      If it is null, return null.
+ *      Else, undefined crash
+ */
+extern(C) Object _d_toObject(return scope void* p) @nogc nothrow pure @trusted
+{
+    if (!p)
+        return null;
+
+    Object o = cast(Object) p;
+    Interface* pi = **cast(Interface***) p;
+
+    /* Interface.offset lines up with ClassInfo.name.ptr,
+     * so we rely on pointers never being less than 64K,
+     * and Objects never being greater.
+     */
+    if (pi.offset < 0x10000)
+        return cast(Object)(p - pi.offset);
+
+    return o;
+}
 
 /**
  * Runtime type information about a class.
@@ -4038,10 +4087,6 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
     a.reserve(10);
 }
 
-// HACK:  This is a lie.  `_d_arrayshrinkfit` is not `nothrow`, but this lie is necessary
-// for now to prevent breaking code.
-private extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
-
 /**
 Assume that it is safe to append to this array. Appends made to this array
 after calling this function may append in place, even if the array was a
@@ -4059,7 +4104,13 @@ Returns:
 */
 auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 {
-    _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
+    import core.internal.array.capacity : _d_arrayshrinkfit;
+    import core.internal.traits : Unqual;
+
+    alias Unqual_Tarr = Unqual!T[];
+    enum isshared = is(T == shared);
+    _d_arrayshrinkfit(cast(Unqual_Tarr)arr, isshared);
+
     return arr;
 }
 
@@ -4747,6 +4798,7 @@ public import core.internal.array.arrayassign : _d_arrayassign_l;
 public import core.internal.array.arrayassign : _d_arrayassign_r;
 public import core.internal.array.arrayassign : _d_arraysetassign;
 public import core.internal.array.capacity : _d_arraysetlengthT;
+public import core.internal.cast_: _d_cast;
 
 public import core.internal.dassert: _d_assert_fail;
 

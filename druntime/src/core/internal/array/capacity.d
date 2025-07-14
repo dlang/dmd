@@ -17,7 +17,65 @@ extern(C) {
     bool gc_expandArrayUsed(void[] slice, size_t newUsed, bool atomic) nothrow pure;
     size_t gc_reserveArrayCapacity(void[] slice, size_t request, bool atomic) nothrow pure;
     bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) nothrow pure;
+    void[] gc_getArrayUsed(void *ptr, bool atomic) nothrow pure;
 }
+
+/**
+Shrink the "allocated" length of an array to be the exact size of the array.
+
+It doesn't matter what the current allocated length of the array is, the
+user is telling the runtime that he knows what he is doing.
+
+Params:
+    T = the type of the elements in the array (this should be unqualified)
+    arr = array to shrink. Its `.length` is element length, not byte length, despite `void` type
+    isshared = true if the underlying data is shared
+*/
+void _d_arrayshrinkfit(Tarr: T[], T)(Tarr arr, bool isshared) @trusted
+{
+    import core.exception : onFinalizeError;
+    import core.internal.traits: hasElaborateDestructor;
+
+    debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %zd, arr.ptr = %p arr.length = %zd\n", T.sizeof, arr.ptr, arr.length);
+    auto reqlen = arr.length;
+
+    auto curArr = cast(Tarr)gc_getArrayUsed(arr.ptr, isshared);
+    if (curArr.ptr is null)
+        // not a valid GC pointer
+        return;
+
+    // align the array.
+    auto offset = arr.ptr - curArr.ptr;
+    auto curlen = curArr.length - offset;
+    if (curlen <= reqlen)
+        // invalid situation, or no change.
+        return;
+
+    // if the type has a destructor, destroy elements we are about to remove.
+    static if(is(T == struct) && hasElaborateDestructor!T)
+    {
+        try
+        {
+            // Finalize the elements that are being removed
+
+            // Due to the fact that the delete operator calls destructors
+            // for arrays from the last element to the first, we maintain
+            // compatibility here by doing the same.
+            for (auto curP = arr.ptr + curlen - 1; curP >= arr.ptr + reqlen; curP--)
+            {
+                // call destructor
+                curP.__xdtor();
+            }
+        }
+        catch (Exception e)
+        {
+            onFinalizeError(typeid(T), e);
+        }
+    }
+
+    gc_shrinkArrayUsed(arr[0 .. reqlen], curlen * T.sizeof, isshared);
+}
+
 /**
 Set the array capacity.
 
@@ -49,6 +107,7 @@ in
 }
 do
 {
+    import core.checkedint : mulu;
     import core.exception : onOutOfMemoryError;
     import core.stdc.string : memcpy, memset;
     import core.internal.array.utils: __typeAttrs;
@@ -59,43 +118,14 @@ do
     alias BlkAttr = GC.BlkAttr;
 
     auto size = T.sizeof;
-    version (D_InlineAsm_X86)
-    {
-        size_t reqsize = void;
 
-        asm nothrow pure
-        {
-            mov EAX, newcapacity;
-            mul EAX, size;
-            mov reqsize, EAX;
-            jnc Lcontinue;
-        }
-    }
-    else version (D_InlineAsm_X86_64)
+    bool overflow = false;
+    const reqsize = mulu(size, newcapacity, overflow);
+    if (overflow)
     {
-        size_t reqsize = void;
-
-        asm nothrow pure
-        {
-            mov RAX, newcapacity;
-            mul RAX, size;
-            mov reqsize, RAX;
-            jnc Lcontinue;
-        }
+        onOutOfMemoryError();
+        assert(0);
     }
-    else
-    {
-        import core.checkedint : mulu;
-
-        bool overflow = false;
-        size_t reqsize = mulu(size, newcapacity, overflow);
-        if (!overflow)
-            goto Lcontinue;
-    }
-Loverflow:
-    onOutOfMemoryError();
-    assert(0);
-Lcontinue:
 
     // step 1, see if we can ensure the capacity is valid in-place
     auto datasize = (*p).length * size;
@@ -115,7 +145,10 @@ Lcontinue:
     static enum ti = typeid(T);
     auto ptr = GC.malloc(reqsize, attrs, ti);
     if (ptr is null)
-        goto Loverflow;
+    {
+        onOutOfMemoryError();
+        assert(0);
+    }
 
     // copy the data over.
     // note that malloc will have initialized the data we did not request to 0.
@@ -225,34 +258,7 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
     enum hasEnabledPostblit = hasPostblit && !__traits(isDisabled, T.__postblit);
 
     bool overflow = false;
-
-    size_t newsize = void;
-
-    version (D_InlineAsm_X86)
-    {
-        asm pure nothrow @nogc
-        {
-            mov EAX, sizeelem;
-            mul newlength;        // EDX:EAX = EAX * newlength
-            mov newsize, EAX;
-            setc overflow;
-        }
-    }
-    else version (D_InlineAsm_X86_64)
-    {
-        asm pure nothrow @nogc
-        {
-            mov RAX, sizeelem;
-            mul newlength;        // RDX:RAX = RAX * newlength
-            mov newsize, RAX;
-            setc overflow;
-        }
-    }
-    else
-    {
-        newsize = mulu(sizeelem, newlength, overflow);
-    }
-
+    const newsize = mulu(sizeelem, newlength, overflow);
     if (overflow)
     {
         onOutOfMemoryError();

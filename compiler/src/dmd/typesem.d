@@ -944,7 +944,7 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
     if (!f)
         return nocpctor();
 
-    if (f.isDisabled() && !f.isGenerated())
+    if (f.isDisabled() && !f.isGenerated)
     {
         /* https://issues.dlang.org/show_bug.cgi?id=24301
          * Copy constructor is explicitly disabled
@@ -967,7 +967,7 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
             bsafe ? "@safe ".ptr : nullptr,
             bnogc ? "nogc"  .ptr : nullptr);
     }
-    else if (f.isGenerated() && f.isDisabled())
+    else if (f.isGenerated && f.isDisabled())
     {
         /* https://issues.dlang.org/show_bug.cgi?id=23097
          * Compiler generated copy constructor failed.
@@ -1195,7 +1195,7 @@ private const(char)* getParamError(TypeFunction tf, Expression arg, Parameter pa
     auto at = qual ? arg.type.toPrettyChars(true) : arg.type.toChars();
     OutBuffer buf;
     // only mention rvalue if it's relevant
-    const rv = !arg.isLvalue() && par.isReference();
+    const rv = !arg.isLvalue() && par.isReference() && !(par.storageClass & STC.constscoperef);
     buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
         rv ? "rvalue ".ptr : "".ptr, arg.toErrMsg(), at,
         parameterToChars(par, tf, qual));
@@ -2026,7 +2026,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
             //printf("AA = %s, key: xeq = %p, xerreq = %p xhash = %p\n", toChars(), sd.xeq, sd.xerreq, sd.xhash);
 
-            if (sd.xeq && sd.xeq.isGenerated() && sd.xeq._scope && sd.xeq.semanticRun < PASS.semantic3done)
+            if (sd.xeq && sd.xeq.isGenerated && sd.xeq._scope && sd.xeq.semanticRun < PASS.semantic3done)
             {
                 uint errors = global.startGagging();
                 sd.xeq.semantic3(sd.xeq._scope);
@@ -5017,17 +5017,32 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 /* Rewrite e.ident as:
                  *  e.opDispatch!("ident")
                  */
-                TemplateDeclaration td = fd.isTemplateDeclaration();
-                if (!td)
-                {
-                    .error(fd.loc, "%s `%s` must be a template `opDispatch(string s)`, not a %s", fd.kind, fd.toPrettyChars, fd.kind());
-                    return returnExp(ErrorExp.get());
-                }
-                auto se = new StringExp(e.loc, ident.toString());
+
                 auto tiargs = new Objects();
+                auto se = new StringExp(e.loc, ident.toString());
                 tiargs.push(se);
                 auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
-                dti.ti.tempdecl = td;
+
+                if (OverloadSet os = fd.isOverloadSet())
+                {
+                    if (!findTempDecl(dti, sc))
+                    {
+                        .error(fd.loc, "Couldn't find template declaration for opDispatch");
+                        return returnExp(ErrorExp.get());
+                    }
+                }
+                else
+                {
+                    TemplateDeclaration td = fd.isTemplateDeclaration();
+                    if (!td)
+                    {
+                        .error(fd.loc, "%s `%s` must be a template `opDispatch(string s)`, not a %s",
+                               fd.kind, fd.toPrettyChars, fd.kind());
+                        return returnExp(ErrorExp.get());
+                    }
+                    dti.ti.tempdecl = td;
+                }
+
                 /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
                  * e.g.
                  *  template opDispatch(name) if (isValid!name) { ... }
@@ -5747,7 +5762,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                     Expression e1;
                     Type t;
                     /* returns: true to continue, false to return */
-                    if (f.hasDualContext())
+                    if (f.hasDualContext)
                     {
                         if (f.followInstantiationContext(ad))
                         {
@@ -6349,7 +6364,7 @@ Type getComplexLibraryType(Loc loc, Scope* sc, TY ty)
         return *pt;
     *pt = Type.terror;
 
-    Module mConfig = Module.loadCoreStdcConfig();
+    Module mConfig = loadCoreStdcConfig();
     if (!mConfig)
     {
         error(loc, "`core.stdc.config` is required for complex numbers");
@@ -6470,9 +6485,9 @@ Covariant covariant(Type src, Type t, STC* pstc = null, bool cppCovariant = fals
              */
             if (t1.linkage == LINK.cpp && cppCovariant)
             {
-                notcovariant |= tp1.isNaked() != tp2.isNaked();
+                notcovariant |= tp1.isNaked != tp2.isNaked;
                 if (auto tpn1 = tp1.nextOf())
-                    notcovariant |= tpn1.isNaked() != tp2.nextOf().isNaked();
+                    notcovariant |= tpn1.isNaked != tp2.nextOf().isNaked;
             }
         }
     }
@@ -6578,7 +6593,7 @@ Lcovariant:
     /* https://issues.dlang.org/show_bug.cgi?id=23135
      * extern(C++) mutable member functions are not covariant with const.
      */
-    if (t1.linkage == LINK.cpp && cppCovariant && t1.isNaked() != t2.isNaked())
+    if (t1.linkage == LINK.cpp && cppCovariant && t1.isNaked != t2.isNaked)
         goto Lnotcovariant;
 
     /* Can convert mutable to const
@@ -6667,7 +6682,7 @@ STC parameterStorageClass(TypeFunction tf, Type tthis, Parameter p, VarDeclarati
 
     /* If haven't inferred the return type yet, can't infer storage classes
      */
-    if (!tf.nextOf() || !tf.isNothrow())
+    if (!tf.nextOf() || !tf.isNothrow)
         return stc;
 
     tf.purityLevel();

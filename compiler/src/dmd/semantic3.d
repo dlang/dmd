@@ -1,5 +1,7 @@
 /**
- * Performs the semantic3 stage, which deals with function bodies.
+ * Performs the semantic3 stage of semantic analysis, which finalizes
+ * function bodies and late semantic checks for templates, mixins,
+ * aggregates, and special members.
  *
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
@@ -402,7 +404,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             // functions may be widely used by dmd-compiled projects.
             // It also gives more time for the implementation of dual-context
             // functions to be reworked as a frontend-only feature.
-            if (funcdecl.hasDualContext())
+            if (funcdecl.hasDualContext)
             {
                 .deprecation(funcdecl.loc, "%s `%s` function requires a dual-context, which is deprecated", funcdecl.kind, funcdecl.toPrettyChars);
                 if (auto ti = sc2.parent ? sc2.parent.isInstantiated() : null)
@@ -615,7 +617,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (!funcdecl.fbody)
                     funcdecl.fbody = new CompoundStatement(Loc.initial, new Statements());
 
-                if (funcdecl.isNaked())
+                if (funcdecl.isNaked)
                 {
                     fpreinv = null;         // can't accommodate with no stack frame
                     fpostinv = null;
@@ -970,7 +972,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             /* https://issues.dlang.org/show_bug.cgi?id=10789
                              * If NRVO is not possible, all returned lvalues should call their postblits.
                              */
-                            if (!funcdecl.isNRVO())
+                            if (!funcdecl.isNRVO)
                                 exp = doCopyOrMove(sc2, exp, f.next, true, true);
 
                             if (tret.hasPointers())
@@ -1255,7 +1257,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             {
                                 // 'this' is the monitor
                                 vsync = new VarExp(funcdecl.loc, funcdecl.vthis);
-                                if (funcdecl.hasDualContext())
+                                if (funcdecl.hasDualContext)
                                 {
                                     vsync = new PtrExp(funcdecl.loc, vsync);
                                     vsync = new IndexExp(funcdecl.loc, vsync, IntegerExp.literal!0);
@@ -1298,7 +1300,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
             }
 
-            if (funcdecl.isNaked() && (funcdecl.fensures || funcdecl.frequires))
+            if (funcdecl.isNaked && (funcdecl.fensures || funcdecl.frequires))
                 .error(funcdecl.loc, "%s `%s` naked assembly functions with contracts are not supported", funcdecl.kind, funcdecl.toPrettyChars);
 
             sc2.ctorflow.callSuper = CSX.none;
@@ -1630,6 +1632,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
     }
 }
 
+/// Helper for semantic3 analysis of functions.
+/// This struct is part of a WIP refactoring to simplify large `visit(FuncDeclaration)` logic.
 private struct FuncDeclSem3
 {
     // The FuncDeclaration subject to Semantic analysis
@@ -1663,6 +1667,13 @@ private struct FuncDeclSem3
     }
 }
 
+/**
+ * Ensures special members of a struct are fully analysed
+ * before the backend emits TypeInfo.
+ *
+ * Handles late semantic analysis for members like `opEquals`, `opCmp`,
+ * `toString`, `toHash`, postblit, and destructor.
+ */
 void semanticTypeInfoMembers(StructDeclaration sd)
 {
     if (sd.xeq &&
@@ -1715,13 +1726,22 @@ void semanticTypeInfoMembers(StructDeclaration sd)
     }
 }
 
-/***********************************************
- * Check that the function contains any closure.
- * If it's @nogc, report suitable errors.
- * This is mostly consistent with FuncDeclaration::needsClosure().
+/**
+ * Determine whether the given function will need to allocate a _closure_ and
+ * verify that such an allocation is allowed under the current compilation
+ * settings.
  *
- * Returns:
- *      true if any errors occur.
+ * Whenever an error is emitted, every nested function that actually closes
+ * over a variable is listed in a supplemental diagnostic, together with the
+ * location of the captured variable’s declaration.  (This extra walk is
+ * skipped when the compiler is gagged.)
+ *
+ * See_Also:
+ *      $(UL
+ *        $(LI `FuncDeclaration.needsClosure`)
+ *        $(LI `FuncDeclaration.setGC`)
+ *        $(LI `FuncDeclaration.printGCUsage`)
+ *      )
  */
 extern (D) bool checkClosure(FuncDeclaration fd)
 {

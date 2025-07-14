@@ -1707,7 +1707,7 @@ void obj_mangle2(ref Symbol s, ref OutBuffer buf)
         case Mangle.fortran:
             foreach (c; name)
             {
-                buf.writeByte(('a' <= c && c <= 'z') ? c - 'a' + 'A' : c); // to upper case
+                buf.writeByte(cast(char)(('a' <= c && c <= 'z') ? c - 'a' + 'A' : c)); // to upper case
             }
             break;
 
@@ -2024,7 +2024,7 @@ void MsCoffObj_byte(segidx_t seg,targ_size_t offset,uint byte_)
     int save = cast(int)buf.length();
     //dbg_printf("MsCoffObj_byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte_);
     buf.setsize(cast(uint)offset);
-    buf.writeByte(byte_);
+    buf.writeByte(cast(char)byte_);
     if (save > offset+1)
         buf.setsize(save);
     else

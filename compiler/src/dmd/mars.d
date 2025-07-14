@@ -83,20 +83,21 @@ void logo()
 Print DMD's logo with more debug information and error-reporting pointers.
 
 Params:
-    stream = output stream to print the information on
+    buf = output stream to print the information to
 */
-void printInternalFailure(FILE* stream)
+void printInternalFailure(ref OutBuffer buf)
 {
-    fputs(("---\n" ~
+    buf.write("---\n" ~
     "ERROR: This is a compiler bug.\n" ~
             "Please report it via https://github.com/dlang/dmd/issues\n" ~
             "with, preferably, a reduced, reproducible example and the information below.\n" ~
     "DustMite (https://github.com/CyberShadow/DustMite/wiki) can help with the reduction.\n" ~
-    "---\n").ptr, stream);
-    stream.fprintf("DMD %.*s\n", cast(int) global.versionString().length, global.versionString().ptr);
-    stream.printPredefinedVersions;
-    stream.printGlobalConfigs();
-    fputs("---\n".ptr, stream);
+    "---\nDMD ");
+    buf.write(global.versionString());
+    buf.writeByte('\n');
+    printPredefinedVersions(buf);
+    printGlobalConfig(buf);
+    buf.write("---\n");
 }
 
 /**
@@ -308,17 +309,21 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
 {
     foreach (const p; *args)
     {
-        const(char)[] arg = p.toDString;
+        const arg = p.toDString;
 
-        if (arg.length && arg[0] == '-')
+        switch (arg)
         {
-            if (arg[1 .. $] == "m32" || arg[1 .. $] == "m64")
-                arch = arg[2 .. $];
-            else if (arg[1 .. $] == "m32mscoff")
-                arch = "32";
-            else if (arg[1 .. $] == "run")
+            case "-m32":
+            case "-m64":
+            case "-m32mscoff":
+                arch = arg[2 .. 4];
+                continue;
+            case "-run":   // end of args to dmd
                 break;
+            default:
+                continue;
         }
+        break;
     }
     return arch;
 }
@@ -394,23 +399,30 @@ void setDefaultLibraries(const ref Target target, ref const(char)[] defaultlibna
         debuglibname = null;
 }
 
-void printPredefinedVersions(FILE* stream)
+void printPredefinedVersions(ref OutBuffer buf)
 {
-    OutBuffer buf;
+    buf.write("predefs ");
     foreach (const str; global.versionids)
     {
         buf.writeByte(' ');
         buf.writestring(str.toChars());
     }
-    stream.fprintf("predefs  %s\n", buf.peekChars());
+    buf.writeByte('\n');
 }
 
 extern(C) void printGlobalConfigs(FILE* stream)
 {
-    stream.fprintf("binary    %.*s\n", cast(int)global.params.argv0.length, global.params.argv0.ptr);
-    stream.fprintf("version   %.*s\n", cast(int) global.versionString().length, global.versionString().ptr);
+    OutBuffer buf;
+    printGlobalConfig(buf);
+    fputs(buf.peekChars(), stream);
+}
+
+void printGlobalConfig(ref OutBuffer buf)
+{
+    buf.printf("binary    %.*s\n", cast(int)global.params.argv0.length, global.params.argv0.ptr);
+    buf.printf("version   %.*s\n", cast(int) global.versionString().length, global.versionString().ptr);
     const iniOutput = global.inifilename ? global.inifilename : "(none)";
-    stream.fprintf("config    %.*s\n", cast(int)iniOutput.length, iniOutput.ptr);
+    buf.printf("config    %.*s\n", cast(int)iniOutput.length, iniOutput.ptr);
     // Print DFLAGS environment variable
     {
         StringTable!(char*) environment;
@@ -418,7 +430,7 @@ extern(C) void printGlobalConfigs(FILE* stream)
         Strings dflags;
         getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
         environment.reset(1);
-        OutBuffer buf;
+        OutBuffer buf2;
         foreach (flag; dflags[])
         {
             bool needsQuoting;
@@ -432,13 +444,13 @@ extern(C) void printGlobalConfigs(FILE* stream)
             }
 
             if (flag.strchr(' '))
-                buf.printf("'%s' ", flag);
+                buf2.printf("'%s' ", flag);
             else
-                buf.printf("%s ", flag);
+                buf2.printf("%s ", flag);
         }
 
-        auto res = buf[] ? buf[][0 .. $ - 1] : "(none)";
-        stream.fprintf("DFLAGS    %.*s\n", cast(int)res.length, res.ptr);
+        auto res = buf2[] ? buf2[][0 .. $ - 1] : "(none)";
+        buf.printf("DFLAGS    %.*s\n", cast(int)res.length, res.ptr);
     }
 }
 
@@ -477,10 +489,27 @@ extern(C) void flushMixins()
  *      true if errors in command line
  */
 
-bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files,
+bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param params, ref Strings files,
                       ref Target target, ref DMDparams driverParams, ErrorSink eSink)
 {
     bool errors;
+
+    // set defaults for params
+    params.v.errorPrintMode = ErrorPrintMode.printErrorContext;
+    version (IN_GCC)
+    {
+    }
+    else version (IN_LLVM)
+    {
+        import dmd.console : detectTerminal;
+        params.v.color = detectTerminal();
+    }
+    else // MARS
+    {
+        // -color=auto is the default value
+        import dmd.console : detectTerminal, detectColorPreference;
+        params.v.color = detectTerminal() && detectColorPreference();
+    }
 
     void error(Args ...)(const(char)* format, Args args)
     {
@@ -612,6 +641,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
     files.reserve(arguments.length - 1);
 
+    params.argv0 = toDString(arguments[0]);
     for (size_t i = 1; i < arguments.length; i++)
     {
         const(char)* p = arguments[i];
@@ -836,11 +866,32 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 case "defaultLibsOnly":
                     driverParams.symImport = SymImport.defaultLibsOnly;
                     break;
+                case "externalOnly":
+                    driverParams.symImport = SymImport.externalOnly;
+                    break;
                 case "all":
                     driverParams.symImport = SymImport.all;
                     break;
                 default:
-                    error("unknown dllimport '%.*s', must be 'none', 'defaultLibsOnly' or 'all'", cast(int) imp.length, imp.ptr);
+                    error("unknown dllimport '%.*s', must be 'none', 'defaultLibsOnly', 'externalOnly' or 'all'", cast(int) imp.length, imp.ptr);
+            }
+        }
+        else if (arg == "-edition")
+            params.edition = Edition.min;       // i.e. no edition
+        else if (startsWith(p + 1, "edition="))
+        {
+            if (arg.length >= 9 + 4 &&
+                !parseDigits!(Edition)(params.edition, arg[9 .. 9 + 4], Edition.max) ||
+                params.edition < Edition.min)
+            {
+                error("edition %d is not in the range %d ... %d", params.edition, Edition.min, Edition.max);
+            }
+
+            if (arg.length > 1+7+1+4) // -edition=YYYYfilename
+            {
+                auto filename = p + 1+7+1+4;
+                files.push(filename);
+                params.editionFiles[filename] = params.edition;
             }
         }
         else if (arg == "-fIBT")
@@ -1583,6 +1634,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             params.imppath.push(ImportPathInfo(p + 2 + (p[2] == '=')));
         }
+        else if (startsWith(p + 1, "extI"))
+        {
+            // External import path switch -extI
+            auto importPathInfo = ImportPathInfo(p + 5 + (p[5] == '='));
+            importPathInfo.isOutOfBinary = true;
+            params.imppath.push(importPathInfo);
+        }
         else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=') // https://dlang.org/dmd.html#switch-mv
         {
             if (p[4] && strchr(p + 5, '='))
@@ -1923,14 +1981,15 @@ Params:
   params = command line params
   target = target system
   eSink = error message sink
-  modules = empty array of modules to be filled in
+  modules = uninitialized array of modules to be filled in
 
 Returns:
   true on error
 */
 bool createModules(ref Strings files, ref Strings libmodules, ref Param params, const ref Target target,
-    ErrorSink eSink, ref Modules modules)
+    ErrorSink eSink, out Modules modules)
 {
+    modules.reserve(files.length);
     bool firstmodule = true;
     foreach(file; files)
     {
@@ -1962,7 +2021,8 @@ bool createModules(ref Strings files, ref Strings libmodules, ref Param params, 
 
         // Set the source file contents of the module
         OutBuffer buf;
-        buf.readFromStdin();
+        if (buf.readFromStdin(eSink))
+            return true;        // propagate error
         m.src = cast(ubyte[])buf.extractSlice();
 
         // Give unique outfile name
@@ -1995,10 +2055,17 @@ Module moduleWithEmptyMain()
     return result;
 }
 
-private void readFromStdin(ref OutBuffer sink) nothrow
+/********************************
+ * Read from stdin, append results to sink.
+ * Params:
+ *      sink = output range to append stdin to
+ *      eSink = send error messages to this
+ * Returns:
+ *      true on error
+ */
+private bool readFromStdin(ref OutBuffer sink, ErrorSink eSink) nothrow
 {
     import core.stdc.stdio;
-    import dmd.errors;
 
     enum BufIncrement = 128 * 1024;
 
@@ -2014,14 +2081,14 @@ private void readFromStdin(ref OutBuffer sink) nothrow
             if (ferror(stdin))
             {
                 import core.stdc.errno;
-                error(Loc.initial, "cannot read from stdin, errno = %d", errno);
-                fatal();
+                eSink.error(Loc.initial, "cannot read from stdin, errno = %d", errno);
+                return true;
             }
             if (feof(stdin)) // successful completion
             {
                 memset(buffer.ptr + filled, '\0', 16);
                 sink.setsize(j * BufIncrement + filled);
-                return;
+                return false;
             }
         } while (filled < BufIncrement);
     }
