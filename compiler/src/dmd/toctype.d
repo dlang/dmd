@@ -139,7 +139,10 @@ type* Type_toCtype(Type t)
             }
             types[i] = tp;
         }
-        return type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, Type_toCtype(t.next));
+        type* tret = Type_toCtype(t.next);
+        if (t.isRef)
+            tret = type_allocn(TYnref, tret);
+        return type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, tret);
     }
 
     static type* visitDelegate(TypeDelegate t)
