@@ -140,7 +140,7 @@ type* Type_toCtype(Type t)
             types[i] = tp;
         }
         type* tret = Type_toCtype(t.next);
-        if (t.isRef)
+        if (t.isRef && tret && tret.Tty != TYvoid) // don't apply ref for `ref void`
             tret = type_allocn(TYnref, tret);
         return type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, tret);
     }
