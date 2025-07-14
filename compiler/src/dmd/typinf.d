@@ -176,9 +176,8 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
     auto ti = TypeInfoAssociativeArrayDeclaration.create(t);
     t.vtinfo = ti; // assign it early to avoid recursion in expressionSemantic
     Loc loc = t.loc;
-    auto tiargs = new Objects();
-    tiargs.push(t.index); // always called with naked types
-    tiargs.push(t.next);
+    auto tiargs = new Objects(t.index, // always called with naked types
+                              t.next);
 
     Expression id = new IdentifierExp(loc, Id.empty);
     id = new DotIdExp(loc, id, Id.object);

@@ -1077,9 +1077,8 @@ public:
                 auto s2 = inlineScanExpAsStatement(e.e2);
                 if (!s1 && !s2)
                     return null;
-                auto a = new Statements();
-                a.push(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1);
-                a.push(!s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
+                auto a = new Statements(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1,
+                                        !s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
                 return new CompoundStatement(exp.loc, a);
             }
 

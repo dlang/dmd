@@ -413,8 +413,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         this.dsym = DSYM.alignDeclaration;
         if (exp)
         {
-            exps = new Expressions();
-            exps.push(exp);
+            exps = new Expressions(exp);
         }
     }
 

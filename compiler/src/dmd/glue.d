@@ -837,8 +837,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         StringExp se = StringExp.create(Loc.initial, s.Sident.ptr);
         se.type = Type.tstring;
         se.type = se.type.typeSemantic(Loc.initial, null);
-        Expressions* exps = new Expressions();
-        exps.push(se);
+        Expressions* exps = new Expressions(se);
         FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
         Expression ec = VarExp.create(Loc.initial, fdpro);
         Expression e = CallExp.create(Loc.initial, ec, exps);
@@ -1148,8 +1147,7 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
             Identifier id = Identifier.create(idbuf.extractChars());
 
             Module md = new Module(m.loc, mnames, id, 0, 0);
-            md.members = new Dsymbols();
-            md.members.push(s);   // its only 'member' is s
+            md.members = new Dsymbols(s);   // its only 'member' is s
             md.doppelganger = 1;       // identify this module as doppelganger
             md.md = m.md;
             md.aimports.push(m);       // it only 'imports' m
