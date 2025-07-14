@@ -365,10 +365,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                         handler = new CompoundStatement(Loc.initial, handler, ts);
                     }
 
-                    auto catches = new Catches();
                     auto ctch = new Catch(Loc.initial, getThrowable(), id, handler);
                     ctch.internalCatch = true;
-                    catches.push(ctch);
+                    auto catches = new Catches(ctch);
 
                     Statement st = new TryCatchStatement(Loc.initial, _body, catches);
                     if (sfinally)
@@ -621,8 +620,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
              *    } finally { v2.~this(); }
              *  } finally { v1.~this(); }
              */
-            auto ainit = new Statements();
-            ainit.push(fs._init);
+            auto ainit = new Statements(fs._init);
             fs._init = null;
             ainit.push(fs);
             Statement s = new CompoundStatement(fs.loc, ainit);
@@ -1382,8 +1380,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     Expression ve = new VarExp(loc, vd);
                     ve.type = tfront;
 
-                    auto exps = new Expressions();
-                    exps.push(ve);
+                    auto exps = new Expressions(ve);
                     int pos = 0;
                     while (exps.length < dim)
                     {
@@ -2126,10 +2123,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         auto arguments = new Expressions();
         arguments.push(ss.condition);
 
-        auto compileTimeArgs = new Objects();
 
         // The type & label no.
-        compileTimeArgs.push(new TypeExp(ss.loc, ss.condition.type.nextOf()));
+        auto compileTimeArgs = new Objects(new TypeExp(ss.loc, ss.condition.type.nextOf()));
 
         // The switch labels
         foreach (caseString; *csCopy)
@@ -3096,11 +3092,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 auto tmp = copyToTemp(STC.none, "__sync", ss.exp);
                 tmp.dsymbolSemantic(sc);
 
-                auto cs = new Statements();
-                cs.push(new ExpStatement(ss.loc, tmp));
-
-                auto args = new Parameters();
-                args.push(new Parameter(Loc.initial, STC.none, ClassDeclaration.object.type, null, null, null));
+                auto cs = new Statements(new ExpStatement(ss.loc, tmp));
+                auto args = new Parameters(new Parameter(Loc.initial, STC.none, ClassDeclaration.object.type,
+                                                         null, null, null));
 
                 FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
                 Expression e = new CallExp(ss.loc, fdenter, new VarExp(ss.loc, tmp));
@@ -3131,8 +3125,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             tmp.storage_class |= STC.temp | STC.shared_ | STC.static_;
             Expression tmpExp = new VarExp(ss.loc, tmp);
 
-            auto cs = new Statements();
-            cs.push(new ExpStatement(ss.loc, tmp));
+            auto cs = new Statements(new ExpStatement(ss.loc, tmp));
 
             /* This is just a dummy variable for "goto skips declaration" error.
              * Backend optimizer could remove this unused variable.
@@ -3141,8 +3134,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             v.dsymbolSemantic(sc);
             cs.push(new ExpStatement(ss.loc, v));
 
-            auto enterArgs = new Parameters();
-            enterArgs.push(new Parameter(Loc.initial, STC.none, t.pointerTo(), null, null, null));
+            auto enterArgs = new Parameters(new Parameter(Loc.initial, STC.none, t.pointerTo(), null, null, null));
 
             FuncDeclaration fdenter = FuncDeclaration.genCfunc(enterArgs, Type.tvoid, Id.criticalenter, STC.nothrow_);
             Expression e = new AddrExp(ss.loc, tmpExp);
@@ -3151,8 +3143,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             e.type = Type.tvoid; // do not run semantic on e
             cs.push(new ExpStatement(ss.loc, e));
 
-            auto exitArgs = new Parameters();
-            exitArgs.push(new Parameter(Loc.initial, STC.none, t, null, null, null));
+            auto exitArgs = new Parameters(new Parameter(Loc.initial, STC.none, t, null, null, null));
 
             FuncDeclaration fdexit = FuncDeclaration.genCfunc(exitArgs, Type.tvoid, Id.criticalexit, STC.nothrow_);
             e = new CallExp(ss.loc, fdexit, tmpExp);
@@ -3864,10 +3855,8 @@ private extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
 
     FuncDeclaration fdapply;
     TypeDelegate dgty;
-    auto params = new Parameters();
-    params.push(new Parameter(Loc.initial, STC.in_, tn.arrayOf(), null, null, null));
-    auto dgparams = new Parameters();
-    dgparams.push(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
+    auto params = new Parameters(new Parameter(Loc.initial, STC.in_, tn.arrayOf(), null, null, null));
+    auto dgparams = new Parameters(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
     if (dim == 2)
         dgparams.push(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
     dgty = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
@@ -3931,11 +3920,9 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     ubyte i = (dim == 2 ? 1 : 0);
     if (!fdapply[i])
     {
-        auto params = new Parameters();
-        params.push(new Parameter(Loc.initial, STC.none, Type.tvoid.pointerTo(), null, null, null));
-        params.push(new Parameter(Loc.initial, STC.const_, Type.tsize_t, null, null, null));
-        auto dgparams = new Parameters();
-        dgparams.push(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
+        auto params = new Parameters(new Parameter(Loc.initial, STC.none, Type.tvoid.pointerTo(), null, null, null),
+                                     new Parameter(Loc.initial, STC.const_, Type.tsize_t, null, null, null));
+        auto dgparams = new Parameters(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
         if (dim == 2)
             dgparams.push(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
         fldeTy[i] = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
@@ -3943,8 +3930,7 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
         fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, i ? Id._aaApply2 : Id._aaApply);
     }
 
-    auto exps = new Expressions();
-    exps.push(fs.aggr);
+    auto exps = new Expressions(fs.aggr);
     auto keysize = taa.index.size();
     if (keysize == SIZE_INVALID)
         return null;
@@ -3976,12 +3962,11 @@ private extern(D) Statement loopReturn(Expression e, Statements* cases, Loc loc)
     // Construct a switch statement around the return value
     // of the apply function.
     Statement s;
-    auto a = new Statements();
 
     // default: break; takes care of cases 0 and 1
     s = new BreakStatement(Loc.initial, null);
     s = new DefaultStatement(Loc.initial, s);
-    a.push(s);
+    auto a = new Statements(s);
 
     // cases 2...
     foreach (i, c; *cases)
@@ -4692,8 +4677,7 @@ private Statements* flatten(Statement statement, Scope* sc)
 {
     static auto errorStatements()
     {
-        auto a = new Statements();
-        a.push(new ErrorStatement());
+        auto a = new Statements(new ErrorStatement());
         return a;
     }
 
@@ -4737,8 +4721,7 @@ private Statements* flatten(Statement statement, Scope* sc)
                 toCBuffer(s, &buf, &hgs);
                 printf("tm ==> s = %s\n", buf.peekChars());
             }
-            auto a = new Statements();
-            a.push(s);
+            auto a = new Statements(s);
             return a;
 
         case STMT.Forwarding:
@@ -4790,8 +4773,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             else
                 s = cs.elsebody;
 
-            auto a = new Statements();
-            a.push(s);
+            auto a = new Statements(s);
             return a;
 
         case STMT.StaticForeach:
@@ -4805,8 +4787,7 @@ private Statements* flatten(Statement statement, Scope* sc)
                 {
                     return result;
                 }
-                result = new Statements();
-                result.push(s);
+                result = new Statements(s);
                 return result;
             }
             else

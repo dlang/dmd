@@ -467,8 +467,7 @@ bool isCopyable(Type t)
             assert(ctor);
             scope el = new IdentifierExp(Loc.initial, Id.p); // dummy lvalue
             el.type = cast() ts;
-            Expressions* args = new Expressions();
-            args.push(el);
+            Expressions* args = new Expressions(el);
             FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, ArgumentList(args), FuncResolveFlag.quiet);
             if (!f || f.storage_class & STC.disable)
                 return false;
@@ -3521,8 +3520,7 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
                         {
                             e = mt.defaultInitLiteral(loc);
                             auto se = new StringExp(e.loc, ident.toString());
-                            auto tiargs = new Objects();
-                            tiargs.push(se);
+                            auto tiargs = new Objects(se);
                             auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
                             dti.ti.tempdecl = td;
                             dti.dotTemplateSemanticProp(scope_, DotExpFlag.none);
@@ -4896,8 +4894,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             __gshared FuncDeclaration fd_aaLen = null;
             if (fd_aaLen is null)
             {
-                auto fparams = new Parameters();
-                fparams.push(new Parameter(Loc.initial, STC.const_ | STC.scope_, mt, null, null, null));
+                auto fparams = new Parameters(new Parameter(Loc.initial, STC.const_ | STC.scope_, mt,
+                                                            null, null, null));
                 fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
                 TypeFunction tf = fd_aaLen.type.toTypeFunction();
                 tf.purity = PURE.const_;
@@ -5019,9 +5017,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                  *  e.opDispatch!("ident")
                  */
 
-                auto tiargs = new Objects();
                 auto se = new StringExp(e.loc, ident.toString());
-                tiargs.push(se);
+                auto tiargs = new Objects(se);
                 auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
 
                 if (OverloadSet os = fd.isOverloadSet())

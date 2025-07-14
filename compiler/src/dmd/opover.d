@@ -129,8 +129,7 @@ Objects* opToArg(Scope* sc, EXP op)
 {
     Expression e = new StringExp(Loc.initial, EXPtoString(stripAssignOp(op)));
     e = e.expressionSemantic(sc);
-    auto tiargs = new Objects();
-    tiargs.push(e);
+    auto tiargs = new Objects(e);
     return tiargs;
 }
 
@@ -439,8 +438,7 @@ Expression opOverloadCast(CastExp e, Scope* sc, Type att = null)
                 return build_overload(e.loc, sc, e.e1, null, fd);
             }
         }
-        auto tiargs = new Objects();
-        tiargs.push(e.to);
+        auto tiargs = new Objects(e.to);
         return dotTemplateCall(e.e1, Id.opCast, tiargs).expressionSemantic(sc);
     }
     // Didn't find it. Forward to aliasthis

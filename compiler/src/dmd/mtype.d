@@ -3576,16 +3576,14 @@ extern (C++) final class TypeTuple : Type
     extern (D) this(Type t1)
     {
         super(Ttuple);
-        arguments = new Parameters();
-        arguments.push(new Parameter(Loc.initial, STC.none, t1, null, null, null));
+        arguments = new Parameters(new Parameter(Loc.initial, STC.none, t1, null, null, null));
     }
 
     extern (D) this(Type t1, Type t2)
     {
         super(Ttuple);
-        arguments = new Parameters();
-        arguments.push(new Parameter(Loc.initial, STC.none, t1, null, null, null));
-        arguments.push(new Parameter(Loc.initial, STC.none, t2, null, null, null));
+        arguments = new Parameters(new Parameter(Loc.initial, STC.none, t1, null, null, null),
+                                   new Parameter(Loc.initial, STC.none, t2, null, null, null));
     }
 
     static TypeTuple create() @safe

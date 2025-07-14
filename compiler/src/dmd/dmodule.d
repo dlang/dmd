@@ -1467,9 +1467,8 @@ FuncDeclaration findGetMembers(ScopeDsymbol dsym)
         {
             Scope sc;
             sc.eSink = global.errorSink;
-            auto parameters = new Parameters();
             Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
-            parameters.push(p);
+            auto parameters = new Parameters(p);
             Type tret = null;
             TypeFunction tf = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
             tfgetmembers = tf.dsymbolSemantic(Loc.initial, &sc).isTypeFunction();
