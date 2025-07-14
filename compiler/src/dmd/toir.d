@@ -119,7 +119,6 @@ struct IRState
      */
     @property
     @safe pure nothrow @nogc
-    pragma(inline, false)
     bool arrayBoundsCheck()
     {
         if (m.filetype == FileType.c)
