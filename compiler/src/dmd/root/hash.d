@@ -43,7 +43,7 @@ uint calcHash(scope const(ubyte)[] data) @nogc nothrow pure @safe
         data = data[4..$];
     }
     // Handle the last few bytes of the input array
-    final switch (data.length & 3)
+    switch (data.length & 3)
     {
     case 3:
         h ^= data[2] << 16;
@@ -53,7 +53,7 @@ uint calcHash(scope const(ubyte)[] data) @nogc nothrow pure @safe
         goto case;
     case 1:
         h ^= data[0];
-        h *= m;
+        h *= M_MIX;
         goto default;
     default:
         break;
