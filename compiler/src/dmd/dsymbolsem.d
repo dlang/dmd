@@ -779,8 +779,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 ie = ie.expressionSemantic(sc);
             if (nelems > 0 && ie)
             {
-                auto iexps = new Expressions();
-                iexps.push(ie);
+                auto iexps = new Expressions(ie);
                 auto exps = new Expressions();
                 for (size_t pos = 0; pos < iexps.length; pos++)
                 {
@@ -2686,9 +2685,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             auto v = new VarDeclaration(Loc.initial, Type.tint32, Id.gate, null);
             v.storage_class = STC.temp | STC.static_ | (isShared ? STC.shared_ : STC.none);
 
-            auto sa = new Statements();
             Statement s = new ExpStatement(Loc.initial, v);
-            sa.push(s);
+            auto sa = new Statements(s);
 
             Expression e;
             if (isShared)
@@ -5080,8 +5078,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         if (STC stc = ModToStc(t.mod))
         {
             //printf("t = %s, stc = x%llx\n", t.toChars(), stc);
-            auto s = new Dsymbols();
-            s.push(new StorageClassDeclaration(stc, tempinst.members));
+            auto s = new Dsymbols(new StorageClassDeclaration(stc, tempinst.members));
             tempinst.members = s;
         }
         break;
@@ -6677,10 +6674,9 @@ private extern(C++) class SearchVisitor : Visitor
                     {
                         assert(0);
                     }
-                    auto tiargs = new Objects();
                     Expression edim = new IntegerExp(Loc.initial, dim, Type.tsize_t);
                     edim = edim.expressionSemantic(ass._scope);
-                    tiargs.push(edim);
+                    auto tiargs = new Objects(edim);
                     e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
                 }
                 else

@@ -1917,8 +1917,7 @@ extern (C++) final class ArrayLiteralExp : Expression
     {
         super(loc, EXP.arrayLiteral);
         this.type = type;
-        elements = new Expressions();
-        elements.push(e);
+        elements = new Expressions(e);
     }
 
     extern (D) this(Loc loc, Type type, Expression basis, Expressions* elements) @safe

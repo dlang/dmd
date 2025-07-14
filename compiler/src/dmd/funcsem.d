@@ -137,11 +137,10 @@ public:
                 handler = new CompoundStatement(Loc.initial, handler, ts);
             }
 
-            auto catches = new Catches();
             auto ctch = new Catch(Loc.initial, getThrowable(), id, handler);
             ctch.internalCatch = true;
             ctch.catchSemantic(sc); // Run semantic to resolve identifier '__o'
-            catches.push(ctch);
+            auto catches = new Catches(ctch);
 
             Statement s2 = new TryCatchStatement(Loc.initial, s._body, catches);
             fd.hasNoEH = false;
@@ -2663,8 +2662,7 @@ Statement mergeFrequire(FuncDeclaration fd, Statement sf, Expressions* params)
         Statement s2 = new ExpStatement(fd.loc, e);
         auto c = new Catch(fd.loc, getThrowable(), null, sf);
         c.internalCatch = true;
-        auto catches = new Catches();
-        catches.push(c);
+        auto catches = new Catches(c);
         sf = new TryCatchStatement(fd.loc, s2, catches);
     }
     return sf;
@@ -2727,8 +2725,7 @@ Statement mergeFrequireInclusivePreview(FuncDeclaration fd, Statement sf, Expres
         Statement s3 = new CompoundStatement(loc, s2, fail);
         auto c = new Catch(loc, getThrowable(), id, s3);
         c.internalCatch = true;
-        auto catches = new Catches();
-        catches.push(c);
+        auto catches = new Catches(c);
         sf = new TryCatchStatement(loc, sf, catches);
     }
     return sf;

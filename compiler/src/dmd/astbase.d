@@ -1158,8 +1158,7 @@ struct ASTBase
             this.loc = loc;
             if (exp)
             {
-                exps = new Expressions();
-                exps.push(exp);
+                exps = new Expressions(exp);
             }
         }
 
@@ -5080,8 +5079,7 @@ struct ASTBase
         extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.arrayLiteral, __traits(classInstanceSize, ArrayLiteralExp));
-            elements = new Expressions();
-            elements.push(e);
+            elements = new Expressions(e);
         }
 
         extern (D) this(Loc loc, Expression basis, Expressions* elements)

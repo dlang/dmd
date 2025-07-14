@@ -439,8 +439,7 @@ extern (C++) final class MixinStatement : Statement
 
     extern (D) this(Loc loc, Expression exp)
     {
-        Expressions* exps = new Expressions();
-        exps.push(exp);
+        Expressions* exps = new Expressions(exp);
         this(loc, exps);
     }
 

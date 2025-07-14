@@ -9445,8 +9445,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             auto tiargs = new Objects(tFrom, tTo);
                             auto dt = new DotTemplateInstanceExp(exp.loc, dotid, Id.__ArrayCast, tiargs);
 
-                            auto arguments = new Expressions();
-                            arguments.push(exp.e1);
+                            auto arguments = new Expressions(exp.e1);
                             Expression ce = new CallExp(exp.loc, dt, arguments);
 
                             result = expressionSemantic(ce, sc);
@@ -10555,8 +10554,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     /* Rewrite (a[i..j] = e2) as:
                      *      a.opSliceAssign(e2, i, j)
                      */
-                    auto a = new Expressions();
-                    a.push(exp.e2);
+                    auto a = new Expressions(exp.e2);
                     if (ie)
                     {
                         a.push(ie.lwr);
@@ -10747,8 +10745,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression e0;
                 Expression ev = extractSideEffect(sc, "__tup", e0, e2x);
 
-                auto iexps = new Expressions();
-                iexps.push(ev);
+                auto iexps = new Expressions(ev);
                 for (size_t u = 0; u < iexps.length; u++)
                 {
                 Lexpand:
@@ -11430,9 +11427,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             id = id.expressionSemantic(sc);
 
             // Generate call: _d_arraysetlengthT(e1, e2)
-            auto arguments = new Expressions();
-            arguments.push(ale.e1);  // array
-            arguments.push(exp.e2);  // new length
+            auto arguments = new Expressions(ale.e1,  // array
+                                             exp.e2);  // new length
 
             Expression ce = new CallExp(ale.loc, id, arguments).expressionSemantic(sc);
             auto res = new LoweredAssignExp(exp, ce);
@@ -11786,8 +11782,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 id = new DotIdExp(exp.loc, id, Id.object);
                 id = new DotIdExp(exp.loc, id, func);
 
-                auto arguments = new Expressions();
-                arguments.push(new CastExp(ae.loc, ae.e1, t1e.arrayOf).expressionSemantic(sc));
+                auto arguments = new Expressions(new CastExp(ae.loc, ae.e1, t1e.arrayOf).expressionSemantic(sc));
                 if (lowerToArrayCtor)
                 {
                     arguments.push(new CastExp(ae.loc, rhs, t2b.nextOf.arrayOf).expressionSemantic(sc));
@@ -11868,9 +11863,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         id = new DotIdExp(ae.loc, id, Id.object);
         id = new DotIdExp(ae.loc, id, func);
 
-        auto arguments = new Expressions();
-        arguments.push(new CastExp(ae.loc, ae.e1, ae.e1.type.nextOf.arrayOf)
-            .expressionSemantic(sc));
+        auto arguments = new Expressions(new CastExp(ae.loc, ae.e1, ae.e1.type.nextOf.arrayOf)
+                                         .expressionSemantic(sc));
 
         Expression eValue2, value2 = ae.e2;
         if (isArrayAssign && value2.isLvalue())
@@ -12147,9 +12141,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 id = new DotIdExp(exp.loc, id, Id.object);
                 id = new DotIdExp(exp.loc, id, hook);
 
-                auto arguments = new Expressions();
-                arguments.push(exp.e1);
-                arguments.push(exp.e2);
+                auto arguments = new Expressions(exp.e1, exp.e2);
                 Expression ce = new CallExp(exp.loc, id, arguments);
 
                 exp.lowering = ce.expressionSemantic(sc);
@@ -12181,12 +12173,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 id = new DotIdExp(exp.loc, id, Id.object);
                 id = new DotIdExp(exp.loc, id, hook);
 
-                auto arguments = new Expressions();
                 Expression eValue1;
                 Expression value1 = extractSideEffect(sc, "__appendtmp", eValue1, exp.e1);
 
-                arguments.push(value1);
-                arguments.push(new IntegerExp(exp.loc, 1, Type.tsize_t));
+                auto arguments = new Expressions(value1, new IntegerExp(exp.loc, 1, Type.tsize_t));
 
                 Expression ce = new CallExp(exp.loc, id, arguments);
 
@@ -17803,12 +17793,12 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
         sfe.rangefe.upr = sfe.rangefe.upr.optimize(WANTvalue);
         sfe.rangefe.upr = sfe.rangefe.upr.ctfeInterpret();
     }
-    auto s1 = new Statements();
+
     auto stmts = new Statements();
     if (tplty) stmts.push(new ExpStatement(sfe.loc, tplty.sym));
     stmts.push(new ReturnStatement(aloc, res[0]));
-    s1.push(sfe.createForeach(aloc, pparams[0], new CompoundStatement(aloc, stmts)));
-    s1.push(new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
+    auto s1 = new Statements(sfe.createForeach(aloc, pparams[0], new CompoundStatement(aloc, stmts)),
+                             new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
     Type ety = new TypeTypeof(aloc, sfe.wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
     auto aty = ety.arrayOf();
     auto idres = Identifier.generateId("__res");

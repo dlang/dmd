@@ -3504,10 +3504,8 @@ public:
                         return;
                     ekey = resolveSlice(ekey); // only happens with AA assignment
 
-                    auto keysx = new Expressions();
-                    auto valuesx = new Expressions();
-                    keysx.push(ekey);
-                    valuesx.push(newaae);
+                    auto keysx = new Expressions(ekey);
+                    auto valuesx = new Expressions(newaae);
 
                     auto aae = ctfeEmplaceExp!AssocArrayLiteralExp(e.loc, keysx, valuesx);
                     aae.type = e1.isIndexExp().e1.type;
