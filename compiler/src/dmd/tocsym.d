@@ -368,7 +368,7 @@ Symbol* toSymbol(Dsymbol s)
                         /* Use the C symbol for the previously generated function
                          */
                         fd.csym = Csymtab.lookup(fd.ident).csym;
-                        result = fd.csym;
+                        result = cast(Symbol*)fd.csym;
 
                         fd.skipCodegen = true;
                         return;
@@ -532,15 +532,18 @@ Symbol* toSymbol(Dsymbol s)
         }
     }
 
-    if (s.csym)
-        return s.csym;
+    if (auto csym = cast(Symbol*)s.csym)
+        return csym;
 
     scope ToSymbol v = new ToSymbol();
     s.accept(v);
     s.csym = v.result;
 
     if (isDllImported(s))
-        s.csym.Sisym = createImport(s.csym, s.loc);
+    {
+        auto csym = cast(Symbol*) s.csym;
+        csym.Sisym = createImport(csym, s.loc);
+    }
 
     return v.result;
 }
@@ -606,7 +609,7 @@ Symbol* toImport(Dsymbol ds)
 {
     if (!ds.csym)
         toSymbol(ds);
-    return ds.csym.Sisym;
+    return (cast(Symbol*)(ds.csym)).Sisym;
 }
 
 /*************************************
@@ -629,10 +632,10 @@ Symbol* toThunkSymbol(FuncDeclaration fd, int offset)
     char[nameLen] name = void;
 
     const len = snprintf(name.ptr,nameLen,"_THUNK%d",tmpnum++);
-    auto sthunk = symbol_name(name[0 .. len],SC.static_,fd.csym.Stype);
+    auto sthunk = symbol_name(name[0 .. len],SC.static_,(cast(Symbol*)(fd.csym)).Stype);
     sthunk.Sflags |= SFLnodebug | SFLartifical;
     sthunk.Sflags |= SFLimplem;
-    outthunk(sthunk, fd.csym, 0, TYnptr, -offset, -1, 0);
+    outthunk(sthunk, cast(Symbol*)fd.csym, 0, TYnptr, -offset, -1, 0);
     return sthunk;
 }
 
@@ -675,7 +678,7 @@ Symbol* toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
         auto vtbl = cd.vtblSymbol();
         vtbl.csym = s;
     }
-    return cd.vtblsym.csym;
+    return cast(Symbol*)cd.vtblsym.csym;
 }
 
 /**********************************

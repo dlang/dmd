@@ -6365,7 +6365,7 @@ Type getComplexLibraryType(Loc loc, Scope* sc, TY ty)
         return *pt;
     *pt = Type.terror;
 
-    Module mConfig = Module.loadCoreStdcConfig();
+    Module mConfig = loadCoreStdcConfig();
     if (!mConfig)
     {
         error(loc, "`core.stdc.config` is required for complex numbers");

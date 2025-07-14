@@ -40,6 +40,7 @@ void main(string[] args)
         testLineNumbers15432(session, globals);
         testLineNumbers19747(session, globals);
         testLineNumbers19719(session, globals);
+        testLineNumbers19587(session, globals);
 
         S18984 s = test18984(session, globals);
 
@@ -126,6 +127,30 @@ void testLineNumbers19747(IDiaSession session, IDiaSymbol globals)
     bool found = false;
     foreach(ln; lines)
         found = found || ln.line == lineScopeExitTest19747;
+    assert(found);
+}
+
+// https://github.com/dlang/dmd/issues/19587
+enum lineReturnTest19587 = __LINE__ + 4;
+void test19587(string col)
+{
+    if (col.length == 0)
+        return; // does this line have an entry in the debug info?
+    col = col;
+}
+
+void testLineNumbers19587(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test19587.mangleof);
+    assert(funcsym, "symbol test19587 not found");
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcsym, &funcRange);
+    assert(lines, "no line number info for test19587");
+
+    dumpLineNumbers(lines, funcRange);
+    bool found = false;
+    foreach(ln; lines)
+        found = found || ln.line == lineReturnTest19587;
     assert(found);
 }
 
