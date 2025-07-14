@@ -663,11 +663,12 @@ $(CONSOLE
 
 $(H3 $(LNAME2 foreach_over_associative_arrays, Foreach over Associative Arrays))
 
-        $(P If the aggregate expression is an associative array, there
+        $(P If the aggregate expression is an $(DDLINK spec/hash-map, Associative Arrays, associative array), there
         can be one or two variables declared. If one, then the variable
-        is said to be the $(I value) set to the elements of the array,
+        is said to be the $(I value), which is set to each value in the array,
         one by one. If the type of the
-        variable is provided, it must implicitly convert from the array element type.)
+        variable is provided, it must implicitly convert from the associative
+        array value type.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
@@ -684,10 +685,10 @@ assert(userAges == ["john":31, "sue":33]);
 
         $(P If there are
         two variables declared, the first is said to be the $(I index)
-        and the second is said to be the $(I value). The $(I index)
-        must be compatible with the indexing type of the associative
-        array. It cannot be `ref`,
-        and it is set to be the index of the array element.)
+        and the second is said to be the $(I value). The index variable type
+        (if given) must be implicitly convertible from the key type of the associative
+        array. The index variable is set to the key corresponding to each value
+        in the associative array.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
@@ -701,9 +702,16 @@ foreach (string s, double d; aa)
 --------------
 )
 
-        $(P The order in which the elements of the
+        $(IMPLEMENTATION_DEFINED The order in which the elements of the
         array are iterated over is unspecified for $(D foreach).
         This is why $(D foreach_reverse) for associative arrays is illegal.)
+
+        $(P If an index or value variable is declared as `ref`, then any type given
+        must match the associative array key or value type respectively, or
+        $(DDSUBLINK spec/const3, implicit_qualifier_conversions, `const`-convert)
+        from it. A `ref` index variable must be (inferred as) `const`, as keys must
+        not be mutated.)
+
 
 $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes with `opApply`))
 
@@ -715,7 +723,7 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
         These functions must each have the signature below:
     )
 
-$(GRAMMAR
+$(INFORMATIVE_GRAMMAR
 $(GNAME OpApplyDeclaration):
     `int opApply` `(` `scope` `int delegate` `(` $(I OpApplyParameters) `)` `dg` `)` `;`
 
@@ -873,16 +881,18 @@ $(H4 $(LNAME2 template-op-apply, Template `opApply`))
 
 $(H3 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Structs and Classes with Ranges))
 
-    $(P If the aggregate expression is a struct or class object, but the
-        $(D opApply) for $(D foreach), or $(D opApplyReverse) for $(D foreach_reverse) do not exist,
-        then iteration can be done with $(LINK2 $(ROOT_DIR)phobos/std_range.html, range) primitives.
-        For $(D foreach), this means the following properties and methods must
-        be defined:
+    $(P If the $(GLINK ForeachAggregate) is a struct or class object, but
+        $(RELATIVE_LINK2 foreach_over_struct_and_classes, `opApply`) does not exist,
+        then $(D foreach) iteration will use $(LINK2 $(ROOT_DIR)phobos/std_range.html, range)
+        primitives. These primitives produce a series of elements.
+    )
+    $(P The following properties and methods must
+        be defined for the $(I ForeachAggregate):
     )
 
         $(TABLE2 Foreach Range Properties,
         $(THEAD Property, Purpose)
-        $(TROW $(ARGS $(D .empty)), $(ARGS returns true if no more elements))
+        $(TROW $(ARGS $(D .empty)), $(ARGS returns `true` if no more elements))
         $(TROW $(ARGS $(D .front)), $(ARGS return the leftmost element of the range))
         )
 
@@ -892,7 +902,8 @@ $(H3 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Stru
         right by one))
         )
 
-    $(P Meaning:)
+    $(P A temporary variable is used for iteration, which is initialized from the
+        *ForeachAggregate*. The statement:)
 
         ---
         foreach (e; range) { ... }
@@ -908,13 +919,14 @@ $(H3 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Stru
         }
         ---
 
-    $(P Similarly, for $(D foreach_reverse), the following properties and
-        methods must be defined:
+    $(P Similarly, for $(D foreach_reverse) when $(D opApplyReverse) is not defined,
+        range primitives will be used. The following properties and methods
+        must be defined for the $(I ForeachAggregate):
     )
 
         $(TABLE2 Foreach$(UNDERSCORE)reverse Range Properties,
         $(THEAD Property, Purpose)
-        $(TROW $(ARGS $(D .empty)), $(ARGS returns true if no more elements))
+        $(TROW $(ARGS $(D .empty)), $(ARGS returns `true` if no more elements))
         $(TROW $(ARGS $(D .back)), $(ARGS return the rightmost element of the range))
         )
 
@@ -924,7 +936,7 @@ $(H3 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Stru
         left by one))
         )
 
-    $(P Meaning:)
+    $(P The statement:)
 
         ---
         foreach_reverse (e; range) { ... }
@@ -940,6 +952,28 @@ $(H3 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Stru
         }
         ---
 
+    $(P The $(GLINK ForeachType) variable may be declared with `ref` when `front`
+        (or `back` for `foreach_reverse`) is a
+        $(DDSUBLINK spec/function, ref-functions, Ref Function):)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct R
+{
+    int[] a;
+    // range primitives:
+    bool empty() => a.length == 0;
+    ref front() => a[0];
+    void popFront() { a = a[1..$]; }
+}
+
+R r = R([1, 2, 3]);
+foreach (ref e; r)
+    e *= 2;
+
+assert(r.a == [2, 4, 6]);
+---
+)
     $(P Example with a linked list:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -954,19 +988,16 @@ struct Node
 struct List
 {
     Node* node;
-
     bool empty() { return node == null; }
-
     ref int front() { return node.i; }
-
     void popFront() { node = node.next; }
 }
 
 void main()
 {
     import std.stdio;
-    auto l = new Node(1, new Node(2, null));
-    auto r = List(l);
+    auto n = new Node(1, new Node(2, null));
+    auto r = List(n);
 
     foreach (e; r)
     {

@@ -81,8 +81,7 @@ $(H2 $(LNAME2 testing_membership, Testing Membership))
 
 $(H2 $(LNAME2 using_classes_as_key, Using Classes as the KeyType))
 
-        $(P Classes can be used as the $(I KeyType). For this to work,
-        the class definition must override the following member functions
+        $(P Classes can be used as the $(I KeyType). The behavior is controlled by the following member functions
         of class $(D Object):)
 
         $(UL
@@ -109,6 +108,8 @@ $(H2 $(LNAME2 using_classes_as_key, Using Classes as the KeyType))
             }
         }
         ---
+        The default implementation of $(D opEquals) uses the address of the instance for comparisons,
+        and the default implementation of $(D toHash) hashes the address of the instance.
 
         $(IMPLEMENTATION_DEFINED
         `opCmp` is not used to check for equality by the

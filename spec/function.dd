@@ -3600,17 +3600,16 @@ void main()
 ---
 )
 
-    $(P The function must have a $(GLINK SpecifiedFunctionBody).)
+    $(P The function must have a $(GLINK FunctionBody).)
 
     $(P CTFE is subject to the following restrictions:)
 
     $(OL
-    $(LI Expressions may not reference any global or local
-        static variables.)
+    $(LI Expressions may not reference any mutable static variables.)
 
     $(LI $(DDSUBLINK spec/iasm, asmstatements, AsmStatements) are not permitted)
 
-    $(LI Non-portable casts (eg, from $(D int[]) to $(D float[])), including
+    $(LI Non-portable casts (e.g., from $(D int[]) to $(D float[])), including
         casts which depend on endianness, are not permitted.
         Casts between signed and unsigned types are permitted.)
 
@@ -3656,7 +3655,7 @@ void main()
         )
 
         $(LI
-        Equality comparisons (==, !=, $(D_KEYWORD is), $(D_KEYWORD !is)) are
+        Equality comparisons ($(D ==), $(D !=), $(D is), $(D !is)) are
         permitted between all pointers, without restriction.
         )
 
@@ -3668,7 +3667,7 @@ void main()
     )
 
     $(P The above restrictions apply only to expressions which are
-        actually executed. For example:
+        actually evaluated. For example:
     )
 ---
 static int y = 0;
@@ -3703,7 +3702,7 @@ static assert(countTen(12) == 12);  // invalid, modifies y.
 
     $(IMPLEMENTATION_DEFINED
     Functions executed via CTFE can give different results
-    from run time when implementation-defined occurs.
+    from run time when implementation-defined behavior occurs.
     )
 
 

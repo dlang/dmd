@@ -253,11 +253,30 @@ $(H3 $(LNAME2 field_properties, Field Properties))
 
 $(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
 
-        $(P Non-static member functions have an extra hidden parameter
+        $(P Non-static member functions must be called on an instance of their class.
+        They have an extra hidden parameter
         called $(DDSUBLINK spec/expression, this, `this`) through which the class object's other members
         can be accessed.
+        Inside the function body, the class instance members are in scope.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+class C
+{
+    int a;
+
+    void foo()
+    {
+        a = 3; // assign to `this.a`
+    }
+}
+
+auto c = new C;
+c.foo();
+assert(c.a == 3);
+---
+)
         $(P Non-static member functions can have, in addition to the usual
         $(GLINK2 function, FunctionAttribute)s, the attributes
         $(D const), $(D immutable), $(D shared), $(D inout), $(D scope) or $(D return scope).
@@ -268,6 +287,7 @@ $(SPEC_RUNNABLE_EXAMPLE_FAIL
 class C
 {
     int a;
+
     void foo() const
     {
         a = 3; // error, 'this' is const
@@ -430,6 +450,10 @@ $(H2 $(LNAME2 class-instantiation, Class Instantiation))
 
 $(H3 $(LNAME2 constructors, Constructors))
 
+        $(P A constructor is a special $(RELATIVE_LINK2 member-functions, member function)
+        which is normally $(RELATIVE_LINK2 instantiation-process, invoked by the compiler)
+        when the class instance is created.)
+
 $(GRAMMAR
 $(GNAME Constructor):
     $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
@@ -437,14 +461,19 @@ $(GNAME Constructor):
     $(GLINK2 template, ConstructorTemplate)
 )
 
-        $(P Constructors are defined with a function name of $(D this)
-        and have no return value:)
+        $(P A constructor is declared with a function name of $(D this)
+        and no return type:)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         class A
         {
             int i;
+
+            this() // constructor taking no arguments
+            {
+                i = 2; // initialize `this.i`
+            }
 
             this(int i) // constructor taking an int argument
             {
@@ -454,11 +483,17 @@ $(GNAME Constructor):
 
         void main()
         {
-            A a = new A(3);
+            A a = new A; // instantiate A and call `A.this()`
+            assert(a.i == 2);
+
+            a = new A(3); // instantiate A and call `A.this(3)`
             assert(a.i == 3);
         }
         ------
         )
+        $(P Explicitly returning a value in a constructor is not allowed,
+        however `return;` may be used to exit the function early.)
+
 
 $(H3 $(LNAME2 base-construction, Base Class Construction))
 
@@ -503,6 +538,8 @@ $(H3 $(LNAME2 delegating-constructors, Delegating Constructors))
         }
         ------
 
+$(H3 $(LNAME2 ctor-restrictions, Restrictions))
+
         $(P The following restrictions apply:)
 
     $(OL
@@ -520,14 +557,16 @@ $(H3 $(LNAME2 delegating-constructors, Delegating Constructors))
         calls.)
         )
 
-        $(LI If a constructor's code contains a delegating constructor call, all
+        $(LI If a constructor's code contains a delegating/base constructor call, all
         possible execution paths through the constructor must make exactly one
-        delegating constructor call:
+        of those calls:
 
         ------
-        this() { a || super(); }       // illegal
+        this() { a || super(); } // illegal, 0 or 1 call
 
-        this() { (a) ? this(1) : super(); }     // ok
+        this() { (a) ? this(1) : super(); } // OK
+
+        this() { super(); this(1); } // illegal, 2 calls
 
         this()
         {
@@ -540,10 +579,13 @@ $(H3 $(LNAME2 delegating-constructors, Delegating Constructors))
         )
 
         $(LI It is illegal to refer to $(D this) implicitly or explicitly
-        prior to making a delegating constructor call.)
+        prior to making a delegating/base constructor call.)
 
-        $(LI Delegating constructor calls cannot appear after labels.)
+        $(LI Delegating/base constructor calls cannot appear after labels.)
     )
+
+    $(P See also: $(RELATIVE_LINK2 field-init, field initialization).)
+
 
 $(H3 $(LNAME2 implicit-base-construction, Implicit Base Class Construction))
 

@@ -216,10 +216,14 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 
         $(LONGTABLE_2COLS 0.6, Predefined Version Identifiers,
         $(THEAD Version Identifier, Description),
-        $(TROW $(ARGS $(D DigitalMars)) , $(ARGS DMD (Digital Mars D) is the compiler))
-        $(TROW $(ARGS $(D GNU)) , $(ARGS GDC (GNU D Compiler) is the compiler))
-        $(TROW $(ARGS $(D LDC)) , $(ARGS LDC (LLVM D Compiler) is the compiler))
-        $(TROW $(ARGS $(D SDC)) , $(ARGS SDC (Snazzy D Compiler) is the compiler))
+
+        $(TROW *Host Compiler*)
+        $(TROW $(ARGS $(D DigitalMars)) , $(ARGS DMD (Digital Mars D)))
+        $(TROW $(ARGS $(D GNU)) , $(ARGS GDC (GNU D Compiler)))
+        $(TROW $(ARGS $(D LDC)) , $(ARGS LDC (LLVM D Compiler)))
+        $(TROW $(ARGS $(D SDC)) , $(ARGS SDC (Snazzy D Compiler)))
+
+        $(TROW *Target Operating System*)
         $(TROW $(ARGS $(D Windows)) , $(ARGS Microsoft Windows systems))
         $(TROW $(ARGS $(D Win32)) , $(ARGS Microsoft 32-bit Windows systems))
         $(TROW $(ARGS $(D Win64)) , $(ARGS Microsoft 64-bit Windows systems))
@@ -246,9 +250,11 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D Emscripten)) , $(ARGS The Emscripten platform))
         $(TROW $(ARGS $(D PlayStation)) , $(ARGS The PlayStation platform))
         $(TROW $(ARGS $(D PlayStation4)) , $(ARGS The PlayStation 4 platform))
+        $(TROW $(ARGS $(D FreeStanding)) , $(ARGS An environment without an operating system (such as Bare-metal targets)))
+
+        $(TROW *Target Environment*)
         $(TROW $(ARGS $(D Cygwin)) , $(ARGS The Cygwin environment))
         $(TROW $(ARGS $(D MinGW)) , $(ARGS The MinGW environment))
-        $(TROW $(ARGS $(D FreeStanding)) , $(ARGS An environment without an operating system (such as Bare-metal targets)))
         $(TROW $(ARGS $(D CRuntime_Bionic)) , $(ARGS Bionic C runtime))
         $(TROW $(ARGS $(D CRuntime_DigitalMars)) , $(ARGS DigitalMars C runtime))
         $(TROW $(ARGS $(D CRuntime_Glibc)) , $(ARGS Glibc C runtime))
@@ -264,6 +270,8 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D CppRuntime_GNU)) , $(ARGS GNU libstdc++ C++ runtime))
         $(TROW $(ARGS $(D CppRuntime_Microsoft)) , $(ARGS Microsoft C++ runtime))
         $(TROW $(ARGS $(D CppRuntime_Sun)) , $(ARGS Sun C++ runtime))
+
+        $(TROW *Target CPU and Instruction Set*)
         $(TROW $(ARGS $(D X86)) , $(ARGS Intel and AMD 32-bit processors))
         $(TROW $(ARGS $(D X86_64)) , $(ARGS Intel and AMD 64-bit processors))
         $(TROW $(ARGS $(D ARM)) , $(ARGS The ARM architecture (32-bit) (AArch32 et al)))
@@ -310,10 +318,16 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D Alpha)) , $(ARGS The Alpha architecture))
         $(TROW $(ARGS $(D Alpha_SoftFloat)) , $(ARGS The Alpha soft float ABI))
         $(TROW $(ARGS $(D Alpha_HardFloat)) , $(ARGS The Alpha hard float ABI))
+
+        $(TROW *Byte Order (endianess)*)
         $(TROW $(ARGS $(D LittleEndian)) , $(ARGS Byte order, least significant first))
         $(TROW $(ARGS $(D BigEndian)) , $(ARGS Byte order, most significant first))
-        $(TROW $(ARGS $(D ELFv1)) , $(ARGS The Executable and Linkable Format v1))
-        $(TROW $(ARGS $(D ELFv2)) , $(ARGS The Executable and Linkable Format v2))
+
+        $(TROW *Executable and Link Format*)
+        $(TROW $(ARGS $(D ELFv1)) , $(ARGS Elf version 1))
+        $(TROW $(ARGS $(D ELFv2)) , $(ARGS Elf version 2))
+
+        $(TROW *Miscellaneous*)
         $(TROW $(ARGS $(D D_BetterC)) , $(ARGS $(DDLINK spec/betterc, D as Better C, D as Better C) code
                 (command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))) is being generated))
         $(TROW $(ARGS $(D D_Exceptions)) , $(ARGS Exception handling is supported.  Evaluates to `false` when compiling with
@@ -356,6 +370,8 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D D_PreConditions)) , $(ARGS Checks are being emitted for $(DDSUBLINK spec/function, contracts, in contracts)))
         $(TROW $(ARGS $(D D_PostConditions)) , $(ARGS Checks are being emitted for $(DDSUBLINK spec/function, contracts, out contracts)))
         $(TROW $(ARGS $(D D_Invariants)) , $(ARGS Checks are being emitted for $(DDSUBLINK spec/class, invariants, class invariants) and $(DDSUBLINK spec/struct, Invariant, struct invariants)))
+
+        $(TROW *Special Cases*)
         $(TROW $(ARGS $(D none)) , $(ARGS Never defined; used to just disable a section of code))
         $(TROW $(ARGS $(D all)) , $(ARGS Always defined; used as the opposite of $(D none)))
         )
@@ -382,7 +398,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(D foo_ARM) and $(D bar_Windows) are not.
         )
 
-        $(P Furthermore, predefined version identifiers from this list cannot
+        $(P Predefined version identifiers from this list cannot
         be set from the command line or from version statements.
         (This prevents things like both $(D Windows) and $(D linux)
         being simultaneously set.)
