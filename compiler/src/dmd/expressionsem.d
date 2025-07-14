@@ -716,9 +716,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
             edim = edim.expressionSemantic(sc);
             auto tiargs = new Objects(edim);
 
-            auto fargs = new Expressions(2);
-            (*fargs)[0] = ie.lwr;
-            (*fargs)[1] = ie.upr;
+            auto fargs = new Expressions(ie.lwr, ie.upr);
 
             const xerrors = global.startGagging();
             sc = sc.push();
@@ -2440,8 +2438,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 return ErrorExp.get();
             e2 = resolveProperties(sc, e2);
 
-            Expressions* a = new Expressions();
-            a.push(e2);
+            Expressions* a = new Expressions(e2);
 
             for (size_t i = 0; i < os.a.length; i++)
             {
@@ -2560,8 +2557,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 return ErrorExp.get();
             e2 = resolveProperties(sc, e2);
 
-            Expressions* a = new Expressions();
-            a.push(e2);
+            Expressions* a = new Expressions(e2);
 
             FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, ArgumentList(a), FuncResolveFlag.quiet);
             if (fd && fd.type)
@@ -3845,13 +3841,12 @@ private void lowerCastExp(CastExp cex, Scope* sc)
     auto tiargs = new Objects(unqual_tob);
     lowering = new DotTemplateInstanceExp(cex.loc, lowering, hook, tiargs);
 
-    auto arguments = new Expressions();
     // Unqualify the type being casted from to avoid multiple instantiations
     auto unqual_t1b = t1b.unqualify(MODFlags.wild | MODFlags.const_ |
         MODFlags.immutable_ | MODFlags.shared_);
     Expression e1c = cex.e1.copy();
     e1c.type = unqual_t1b;
-    arguments.push(e1c);
+    auto arguments = new Expressions(e1c);
 
     lowering = new CallExp(cex.loc, lowering, arguments);
 
@@ -4469,8 +4464,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return id;
         }
 
-        auto arguments = new Expressions();
-        arguments.push(makeNonTemplateItem(Id.InterpolationHeader));
+        auto arguments = new Expressions(makeNonTemplateItem(Id.InterpolationHeader));
 
         foreach (idx, str; e.interpolatedSet.parts)
         {
@@ -4482,8 +4476,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
             {
                 arguments.push(makeTemplateItem(Id.InterpolatedExpression, str));
-                Expressions* mix = new Expressions();
-                mix.push(new StringExp(e.loc, str));
+                Expressions* mix = new Expressions(new StringExp(e.loc, str));
                 // FIXME: i'd rather not use MixinExp but idk how to do it lol
                 arguments.push(new MixinExp(e.loc, mix));
             }
@@ -5103,8 +5096,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
             {
                 // --> new T[](edim)
-                exp.arguments = new Expressions();
-                exp.arguments.push(edim);
+                exp.arguments = new Expressions(edim);
                 exp.type = exp.type.arrayOf();
             }
         }
@@ -5574,9 +5566,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto tiargs = new Objects(t);
                 lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
 
-                auto arguments = new Expressions();
-                arguments.push((*exp.arguments)[0]);
-                arguments.push(new IntegerExp(exp.loc, isShared, Type.tbool));
+                auto arguments = new Expressions((*exp.arguments)[0], new IntegerExp(exp.loc, isShared, Type.tbool));
 
                 lowering = new CallExp(exp.loc, lowering, arguments);
                 exp.lowering = lowering.expressionSemantic(sc);
@@ -5603,10 +5593,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto tiargs = new Objects(exp.type, unqualTbn);
                 lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
 
-                auto arguments = new Expressions();
-
-                arguments.push(new ArrayLiteralExp(exp.loc, Type.tsize_t.sarrayOf(nargs), exp.arguments));
-                arguments.push(new IntegerExp(exp.loc, tbn.isShared(), Type.tbool));
+                auto arguments = new Expressions(new ArrayLiteralExp(exp.loc, Type.tsize_t.sarrayOf(nargs), exp.arguments),
+                                                 new IntegerExp(exp.loc, tbn.isShared(), Type.tbool));
 
                 lowering = new CallExp(exp.loc, lowering, arguments);
                 exp.lowering = lowering.expressionSemantic(sc);
