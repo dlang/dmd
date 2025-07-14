@@ -106,7 +106,9 @@ struct IRState
         this.Cfile = m.filetype == FileType.c;
     }
 
-    FuncDeclaration getFunc() @safe
+    @property
+    @safe pure nothrow @nogc
+    FuncDeclaration getFunc()
     {
         return symbol;
     }
@@ -115,6 +117,8 @@ struct IRState
      * Returns:
      *    true if do array bounds checking for the current function
      */
+    @property
+    @safe pure nothrow @nogc
     bool arrayBoundsCheck()
     {
         if (m.filetype == FileType.c)
@@ -127,12 +131,9 @@ struct IRState
             return true;
         case CHECKENABLE.safeonly:
             {
-                if (FuncDeclaration fd = getFunc())
-                {
-                    Type t = fd.type;
-                    if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
-                        return true;
-                }
+                if (auto fd = getFunc())
+                    if (auto tf = fd.type.isTypeFunction())
+                        return tf.trust == TRUST.safe;
                 return false;
             }
         case CHECKENABLE._default:
@@ -322,8 +323,10 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
                 ethis = el_long(TYnptr, 0);
                 ethis.Eoper = OPframeptr;
 
-                thisfd.csym.Sfunc.Fflags &= ~Finline; // inliner breaks with this because the offsets are off
-                                                      // see runnable/ice10086b.d
+                auto csym = cast(Symbol*) thisfd.csym;
+                // inliner breaks with this because the offsets are off
+                // see runnable/ice10086b.d
+                csym.Sfunc.Fflags &= ~Finline;
             }
             else
             {
@@ -681,8 +684,13 @@ TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
     for (Dsymbol sym = fd.toParent2(); sym; sym = sym.toParent2())
     {
         if (auto fn = sym.isFuncDeclaration())
-            if (fn.csym && fn.csym.Sscope)
-                return fn.csym.Sscope.Stype;
+        {
+            if (auto csym = cast(Symbol*)fn.csym)
+            {
+                if (csym.Sscope)
+                    return csym.Sscope.Stype;
+            }
+        }
         if (sym.isAggregateDeclaration())
             break;
     }
@@ -880,7 +888,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
         //printf("structsize = %d\n", cast(uint)structsize);
 
         Closstru.Ttag.Sstruct.Sstructsize = cast(uint)structsize;
-        fd.csym.Sscope = sclosure;
+        (cast(Symbol*)fd.csym).Sscope = sclosure;
 
         if (driverParams.symdebug)
             toDebugClosure(Closstru.Ttag);
@@ -1112,7 +1120,7 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
     structsize += aggAlignment - stackAlign;
 
     Closstru.Ttag.Sstruct.Sstructsize = cast(uint)structsize;
-    fd.csym.Sscope = sclosure;
+    (cast(Symbol*)fd.csym).Sscope = sclosure;
 
     if (driverParams.symdebug)
         toDebugClosure(Closstru.Ttag);
@@ -1180,7 +1188,7 @@ void buildCapture(FuncDeclaration fd)
         Symbol* scapture = symbol_name("__captureptr", SC.alias_, type_pointer(capturestru));
         scapture.Sflags |= SFLtrue | SFLfree;
         //symbol_add(scapture);
-        fd.csym.Sscope = scapture;
+        (cast(Symbol*)fd.csym).Sscope = scapture;
 
         toDebugClosure(capturestru.Ttag);
     }

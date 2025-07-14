@@ -39,7 +39,6 @@ struct _d_dynamicArray final
 
 class Visitor;
 class Identifier;
-struct Symbol;
 struct Scope;
 struct DsymbolAttributes;
 class DeprecatedDeclaration;
@@ -118,6 +117,7 @@ class ForeachStatement;
 class ForeachRangeStatement;
 struct OutBuffer;
 class TypeInfoClassDeclaration;
+struct Symbol;
 class TypeTuple;
 class Initializer;
 struct IntRange;
@@ -543,7 +543,7 @@ class Dsymbol : public ASTNode
 public:
     Identifier* ident;
     Dsymbol* parent;
-    Symbol* csym;
+    void* csym;
     Scope* _scope;
 private:
     DsymbolAttributes* atts;
@@ -2987,6 +2987,7 @@ public:
 class EqualExp final : public BinExp
 {
 public:
+    Expression* lowering;
     void accept(Visitor* v) override;
 };
 
@@ -3983,11 +3984,11 @@ public:
     Type* tintro;
     STC storage_class2;
     VarDeclaration* nrvo_var;
-    Symbol* shidden;
+    void* shidden;
     Array<ReturnStatement* >* returns;
     Array<GotoStatement* >* gotos;
     Array<VarDeclaration* >* alignSectionVars;
-    Symbol* salignSection;
+    void* salignSection;
     BUILTIN builtin;
     int32_t tookAddressOf;
     bool requiresClosure;

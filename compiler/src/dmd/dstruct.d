@@ -23,7 +23,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : search, setFieldOffset;
+import dmd.dsymbolsem : search;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;

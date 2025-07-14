@@ -711,7 +711,7 @@ elem* toElem(Expression e, ref IRState irs)
 
         const bool nrvo = fd && (fd.isNRVO && fd.nrvo_var == se.var || se.var.nrvo && fd.shidden);
         if (nrvo)
-            s = fd.shidden;
+            s = cast(Symbol*)fd.shidden;
 
         if (s.Sclass == SC.auto_ || s.Sclass == SC.parameter || s.Sclass == SC.shadowreg)
         {
@@ -747,7 +747,8 @@ elem* toElem(Expression e, ref IRState irs)
                 else if (v && v.inAlignSection)
                 {
                     const vthisOffset = fd.vthis ? -toSymbol(fd.vthis).Soffset : 0;
-                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, vthisOffset + fd.salignSection.Soffset));
+                    auto salignSection = cast(Symbol*) fd.salignSection;
+                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, vthisOffset + salignSection.Soffset));
                     ethis = el_una(OPind, TYnptr, ethis);
                     soffset = v.offset;
                 }
@@ -789,8 +790,9 @@ elem* toElem(Expression e, ref IRState irs)
          */
         if (v && (v.inClosure || v.inAlignSection))
         {
-            assert(irs.sclosure || fd.salignSection);
-            e = el_var(v.inClosure ? irs.sclosure : fd.salignSection);
+            auto salignSection = cast(Symbol*) fd.salignSection;
+            assert(irs.sclosure || salignSection);
+            e = el_var(v.inClosure ? irs.sclosure : salignSection);
             e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v.offset));
             if (se.op == EXP.variable)
             {
@@ -2105,14 +2107,16 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray())
         {
-            Type telement  = t1.nextOf().toBasetype();
-            Type telement2 = t2.nextOf().toBasetype();
-
-            if ((telement.isIntegral() || telement.ty == Tvoid) && telement.ty == telement2.ty)
+            if (auto lowering = ee.lowering)
+            {
+                e = toElem(lowering, irs);
+                elem_setLoc(e, ee.loc);
+            }
+            else
             {
                 // Optimize comparisons of arrays of basic types
-                // For arrays of integers/characters, and void[],
-                // replace druntime call with:
+                // For arrays of scalars (except floating types) of same size & signedness, void[],
+                // and structs with no custom equality operator, replace druntime call with:
                 // For a==b: a.length==b.length && (a.length == 0 || memcmp(a.ptr, b.ptr, size)==0)
                 // For a!=b: a.length!=b.length || (a.length != 0 || memcmp(a.ptr, b.ptr, size)!=0)
                 // size is a.length*sizeof(a[0]) for dynamic arrays, or sizeof(a) for static arrays.
@@ -2122,7 +2126,7 @@ elem* toElem(Expression e, ref IRState irs)
                 elem* eptr1, eptr2; // Pointer to data, to pass to memcmp
                 elem* elen1, elen2; // Length, for comparison
                 elem* esiz1, esiz2; // Data size, to pass to memcmp
-                const sz = telement.size(); // Size of one element
+                const sz = t1.nextOf().toBasetype().size(); // Size of one element
 
                 bool is64 = target.isX86_64 || target.isAArch64;
                 if (t1.ty == Tarray)
@@ -2175,19 +2179,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_combine(earr2, e);
                 e = el_combine(earr1, e);
                 elem_setLoc(e, ee.loc);
-                return e;
             }
-
-            elem* ea1 = eval_Darray(ee.e1);
-            elem* ea2 = eval_Darray(ee.e2);
-
-            elem* ep = el_params(getTypeInfo(ee, telement.arrayOf(), irs),
-                    ea2, ea1, null);
-            const rtlfunc = RTLSYM.ARRAYEQ2;
-            e = el_bin(OPcall, TYint, el_var(getRtlsym(rtlfunc)), ep);
-            if (ee.op == EXP.notEqual)
-                e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
-            elem_setLoc(e,ee.loc);
         }
         else if (t1.ty == Taarray && t2.ty == Taarray)
         {
