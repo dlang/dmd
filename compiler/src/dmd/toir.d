@@ -113,6 +113,16 @@ struct IRState
         return symbol;
     }
 
+    private @safe pure nothrow @nogc
+    bool isSafeOnlyFunction(FuncDeclaration fd)
+    {
+        if (fd is null)
+            return false;
+
+        auto tf = fd.type.isTypeFunction();
+        return tf !is null && tf.trust == TRUST.safe;
+    }
+
     /**********************
      * Returns:
      *    true if do array bounds checking for the current function
@@ -130,12 +140,7 @@ struct IRState
         case CHECKENABLE.on:
             return true;
         case CHECKENABLE.safeonly:
-            {
-                if (auto fd = getFunc())
-                    if (auto tf = fd.type.isTypeFunction())
-                        return tf.trust == TRUST.safe;
-                return false;
-            }
+            return isSafeOnlyFunction(getFunc());
         case CHECKENABLE._default:
             assert(0);
         }
@@ -149,6 +154,63 @@ struct IRState
     {
         return !mayThrow;
     }
+}
+
+/**
+ * Marks the coverage bit for a specific line number in the given module.
+ *
+ * This function sets the corresponding bit in the module's coverage bitmap (covb)
+ * to indicate that the line `linnum` has been executed. If the bitmap is empty
+ * (e.g., already written out to the .obj file), the function returns immediately.
+ *
+ * Params:
+ *     m = The module whose coverage bitmap to update.
+ *     linnum = The line number to mark (0-based index).
+ *
+ * Throws:
+ *     AssertionError if `linnum` is out of range (>= m.numlines).
+ */
+private @safe pure nothrow @nogc
+void markCovBit(Module m, uint linnum)
+{
+    /* Set bit in covb[] indicating this is a valid code line number
+     */
+    if (!m.covb.length) return;     // covb can be null if it has already been written out to its .obj file
+    assert(linnum < m.numlines);
+    size_t idx = linnum / (m.covb[0].sizeof * 8);
+    m.covb[idx] |= 1 << (linnum & (m.covb[0].sizeof * 8 - 1));
+}
+
+/**
+ * Generates an AST element that increments the coverage counter for a given line.
+ *
+ * Constructs an expression equivalent to:
+ * ```d
+ *     *(m.cov + linnum * 4) += 1;
+ * ```
+ * That is, it computes a pointer into the coverage counter array and emits an
+ * addition assignment to increment the 32-bit counter at the specified line.
+ *
+ * Params:
+ *     m = The module containing the coverage pointer `cov`.
+ *     linnum = The line number whose counter to increment (0-based index).
+ *
+ * Returns:
+ *     An `elem*` pointer to the AST node representing the increment operation.
+ *
+ * Notes:
+ *     - Assumes coverage entries are 4 bytes (TYuint).
+ *     - Does not perform any runtime checks; expected to be used during codegen.
+ */
+private nothrow
+elem* makeCovIncrement(Module m, uint linnum)
+{
+    /* Generate: *(m.cov + linnum * 4) += 1
+    */
+    elem* e = el_ptr(m.cov);
+    e = el_bin(OPadd, TYnptr, e, el_long(TYuint, linnum * 4));
+    e = el_una(OPind, TYuint, e);
+    return el_bin(OPaddass, TYuint, e, el_long(TYuint, 1));
 }
 
 /*********************************************
@@ -166,7 +228,6 @@ struct IRState
 extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
 {
     uint linnum = loc.linnum;
-
     Module m = cast(Module)irs.blx._module;
     //printf("m.cov %p linnum %d filename %s srcfile %s numlines %d\n", m.cov, linnum, loc.filename, m.srcfile.toChars(), m.numlines);
     if (!m.cov || !linnum ||
@@ -177,23 +238,8 @@ extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
 
     linnum--;           // from 1-based to 0-based
 
-    /* Set bit in covb[] indicating this is a valid code line number
-     */
-    if (m.covb.length)    // covb can be null if it has already been written out to its .obj file
-    {
-        assert(linnum < m.numlines);
-        size_t i = linnum / (m.covb[0].sizeof * 8);
-        m.covb[i] |= 1 << (linnum & (m.covb[0].sizeof * 8 - 1));
-    }
-
-    /* Generate: *(m.cov + linnum * 4) += 1
-     */
-    elem* e;
-    e = el_ptr(m.cov);
-    e = el_bin(OPadd, TYnptr, e, el_long(TYuint, linnum * 4));
-    e = el_una(OPind, TYuint, e);
-    e = el_bin(OPaddass, TYuint, e, el_long(TYuint, 1));
-    return e;
+    markCovBit(m, linnum);
+    return makeCovIncrement(m, linnum);
 }
 
 /******************************************
