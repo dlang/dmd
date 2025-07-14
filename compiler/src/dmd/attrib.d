@@ -32,7 +32,6 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : include;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;

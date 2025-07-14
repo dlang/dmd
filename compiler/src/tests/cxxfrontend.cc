@@ -1038,7 +1038,7 @@ public:
             if (sle != NULL)
             {
                 type->baseElemOf()->isTypeStruct()->sym->accept(this);
-                sle->sym = func->shidden;
+                sle->sym = (Symbol*)func->shidden;
             }
             s->exp->accept(this);
         }
