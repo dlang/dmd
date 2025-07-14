@@ -620,6 +620,25 @@ void test21382(IDiaSession session, IDiaSymbol globals)
     virtualSym.get_virtual(&virt) == S_OK && virt || assert(false, "testpdb.Dsym21382.virtualFun is virtual");
 }
 
+// https://github.com/dlang/dmd/issues/18950
+int x18950;
+ref int foo18950() { return x18950; }
+
+void test18950(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol dSym = searchSymbol(globals, "testpdb.foo18950");
+    dSym || assert(false, "testpdb.foo18950 not found");
+
+    IDiaSymbol funcType;
+    dSym.get_type(&funcType) == S_OK || assert(false, "testpdb.foo18950: no type");
+    IDiaSymbol retType;
+    funcType.get_type(&retType) == S_OK || assert(false, "testpdb.foo18950: no return type");
+    DWORD tag;
+    // ref returned as pointer to hidden return value
+    retType.get_symTag(&tag) == S_OK && tag == SymTagEnum.SymTagPointerType
+        || assert(false, "testpdb.foo18950: bad return type");
+}
+
 ///////////////////////////////////////////////
 import core.stdc.stdio;
 import core.stdc.wchar_;
