@@ -3983,11 +3983,11 @@ public:
     Type* tintro;
     STC storage_class2;
     VarDeclaration* nrvo_var;
-    Symbol* shidden;
+    void* shidden;
     Array<ReturnStatement* >* returns;
     Array<GotoStatement* >* gotos;
     Array<VarDeclaration* >* alignSectionVars;
-    Symbol* salignSection;
+    void* salignSection;
     BUILTIN builtin;
     int32_t tookAddressOf;
     bool requiresClosure;
