@@ -4068,15 +4068,15 @@ $(H3 $(LNAME2 safe-values, Safe Values))
 
         $(P A pointer is a safe value when it is one of:)
         $(OL
-            $(LI `null`)
+            $(LI `null` - $(RELATIVE_LINK2 null-dereferences, see below))
             $(LI it points to a memory object that is live and
             the pointed to value in that memory object is safe.)
         )
         $(P Examples:)
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
-        int* n = null; /* n is safe because dereferencing null is a well-defined
-            crash. */
+        int* n = null; /* n is safe because dereferencing null must either crash
+            or abort. */
         int* x = cast(int*) 0xDEADBEEF; /* x is (most likely) unsafe because it
             is not a valid pointer and cannot be dereferenced. */
 
@@ -4167,6 +4167,22 @@ $(H3 $(LNAME2 safe-values, Safe Values))
             $(LI its `.ptr` property is `null` or refers to a memory object that is in a form
             expected by the function.)
         )
+
+$(H3 $(LNAME2 null-dereferences, Null Dereferences))
+
+        $(P When generating `@safe` code, a compliant implementation:)
+
+        - Must not assume that a null dereference will not occur. Optimizations
+          that require that assumption cannot be used for `@safe` functions.
+        - Must generate code that will detect and abort execution:
+          - When a null dereference occurs on systems that by default do not protect
+            access to the first page of memory addresses. (Note that e.g. calling
+            [`mprotect`](https://pubs.opengroup.org/onlinepubs/007904875/functions/mprotect.html)
+            is `@system`).
+          - On all systems when an expression causes a null pointer to be indexed,
+            causing a memory access that is not prevented by the system.
+            $(RED Warning:) $(TT dmd)
+            [has not implemented](https://github.com/dlang/dmd/issues/17776) this yet.
 
 $(H3 $(LNAME2 safe-aliasing, Safe Aliasing))
 
