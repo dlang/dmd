@@ -106,9 +106,7 @@ struct IRState
         this.Cfile = m.filetype == FileType.c;
     }
 
-    @property
-    @safe pure nothrow @nogc
-    FuncDeclaration getFunc()
+    FuncDeclaration getFunc() @safe
     {
         return symbol;
     }
@@ -117,9 +115,6 @@ struct IRState
      * Returns:
      *    true if do array bounds checking for the current function
      */
-    @property
-    @safe pure nothrow @nogc
-    pragma(inline, false)
     bool arrayBoundsCheck()
     {
         if (m.filetype == FileType.c)
@@ -132,9 +127,12 @@ struct IRState
             return true;
         case CHECKENABLE.safeonly:
             {
-                if (auto fd = getFunc())
-                    if (auto tf = fd.type.isTypeFunction())
-                        return tf.trust == TRUST.safe;
+                if (FuncDeclaration fd = getFunc())
+                {
+                    Type t = fd.type;
+                    if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
+                        return true;
+                }
                 return false;
             }
         case CHECKENABLE._default:
