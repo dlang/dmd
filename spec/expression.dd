@@ -384,9 +384,13 @@ $(H3 $(LNAME2 simple_assignment_expressions, Simple Assignment Expression))
     as described in $(DDSUBLINK spec/arrays, resize, Setting Dynamic Array Length).
     )
 
-    $(LI If the lvalue is a static array or a slice, the behavior is as
+    $(LI If the left operand is a slice expression, the behavior is as
     described in $(DDSUBLINK spec/arrays, array-copying, Array Copying) and
-    $(DDSUBLINK spec/arrays, array-setting, Array Setting).
+    $(DDSUBLINK spec/arrays, array-setting, Array Filling).
+    )
+
+    $(LI If the lvalue is an array, the behavior is as described in
+    $(DDSUBLINK spec/arrays, assignment, Array Assignment).
     )
 
     $(LI If the lvalue is a user-defined property, the behavior is as
