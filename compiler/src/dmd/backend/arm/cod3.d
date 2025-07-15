@@ -131,7 +131,8 @@ void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, 
 
 // https://www.scs.stanford.edu/~zyedidia/arm64/b_cond.html
 // https://www.scs.stanford.edu/~zyedidia/arm64/bc_cond.html
-bool isBranch(uint ins) { return (ins & 0xFF00_0000) == 0x5400_0000; }
+bool isBranch(uint ins) { return ((ins & 0xFF00_0000) == 0x5400_0000) ||
+                                 ((ins & 0x7E00_0000) == 0x3400_0000); }
 
 enum MARS = true;
 
@@ -321,7 +322,8 @@ void gentstreg(ref CodeBuilder cdb, reg_t reg, uint sf)
 // genshift
 
 /**************************
- * Generate a jump instruction.
+ * Generate a conditional branch (immediate) instruction.
+ * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condbranch
  */
 
 @trusted
@@ -329,6 +331,32 @@ void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 {
     code cs;
     cs.Iop = INSTR.b_cond(0, cond);     // offset is 0 for now, fix in codout()
+    cs.Iflags = 0;
+    cs.IFL1 = fltarg;                   // FL.block (or FL.code)
+    cs.IEV1.Vblock = targ;              // target block (or code)
+    if (fltarg == FL.code)
+        (cast(code*)targ).Iflags |= CFtarg;
+    cdb.gen(&cs);
+}
+
+/**************************
+ * Generate a compare and branch (immediate) instruction.
+ * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#compbranch
+ * Params:
+ *      cdb = code sink
+ *      sf = 1 for 64 bit, 0 for 32
+ *      R = register
+ *      op = true for testing for not zero
+ *      fltarg = FL.block or FL.code
+ *      targ = block or code target
+ */
+
+@trusted
+void genCompBranch(ref CodeBuilder cdb, uint sf, reg_t R, bool op, FL fltarg, block* targ)
+{
+    code cs;
+    uint imm19 = 0;                     // offset is 0 for now, fix in codout()
+    cs.Iop = INSTR.compbranch(sf, op, imm19, R);
     cs.Iflags = 0;
     cs.IFL1 = fltarg;                   // FL.block (or FL.code)
     cs.IEV1.Vblock = targ;              // target block (or code)

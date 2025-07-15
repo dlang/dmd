@@ -38,7 +38,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
 import dmd.backend.arm.cod1 : loadFromEA, storeToEA, getlvalue, CLIB_A, callclib;
-import dmd.backend.arm.cod3 : conditionCode, genBranch, gentstreg, movregconst, COND, loadFloatRegConst;
+import dmd.backend.arm.cod3 : conditionCode, genBranch, genCompBranch, gentstreg, movregconst, COND, loadFloatRegConst;
 import dmd.backend.arm.instr;
 
 nothrow:
@@ -1297,104 +1297,118 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
     elem* e2 = e.E2;
     assert(e2.Eoper == OPparam);
 
-    elem* evalue = e2.E2;
+    /*  evalue: value to store
+        szv: size in bytes of value
+        tyv: type of value
+        vregs: mask of registers for evalue
+        Rv: register holding evalue
+        Rvhi: MSW register holding evalue for 2*REGSIZE
+
+        enelems: count of evalues to store
+        cregs: mask of registers enelems is in
+        Rc: register with count
+
+        e.E1: pointer to destination
+        dregs: mask of registers for pointer to destination
+        Rd: pointer to destination, return value
+
+        Rp: incrementing pointer
+        Rlim: limit pointer value
+     */
+
+    // Set cregs to count of elems
     elem* enelems = e2.E1;
+    regm_t cregs = cg.allregs & ~pretregs;
+    if (!cregs)
+        cregs = cg.allregs;
+    codelem(cgstate,cdb,enelems,cregs,false);
 
-    tym_t tymv = tybasic(evalue.Ety);
-    const sz = tysize(evalue.Ety);
-    assert(cast(int)sz > 1);
-
-    if (tyxmmreg(tymv) && config.fpxmmregs)
-        assert(0);      // fix later
-    if (tyfloating(tymv) && config.inline8087)
-        assert(0);      // fix later
-
-    const grex = I64 ? (REX_W << 16) : 0;
-
-    // get the count of elems into CX
-    regm_t mregcx = mCX;
-    codelem(cgstate,cdb,enelems,mregcx,false);
-
-    // Get value into AX
-    regm_t retregs3 = cgstate.allregs & ~mregcx;
-    if (sz == 2 * REGSIZE)
-        retregs3 &= ~(mBP | IDXREGS);  // BP cannot be used for register pair,
-                                       // IDXREGS could deplete index regs - see sdtor.d test14815()
-    scodelem(cgstate,cdb,evalue,retregs3,mregcx,false);
+    // Set vregs to value
+    elem* evalue = e2.E2;
+    tym_t tyv = tybasic(evalue.Ety);
+    const szv = tysize(tyv);
+    assert(cast(int)szv > 1);
+    if (tyfloating(tyv))
+        assert(0);      // TODO AArch64
+    regm_t vregs = cgstate.allregs & ~cregs;
+    scodelem(cgstate,cdb,evalue,vregs,cregs,false);
 
     /* Necessary because if evalue calls a function, and that function never returns,
      * it doesn't affect registers. Which means those registers can be used for enregistering
      * variables, and next pass fails because it can't use those registers, and so cannot
-     * allocate registers for retregs3. See ice11596.d
+     * allocate registers for vregs. See ice11596.d
      */
-    useregs(retregs3);
+    useregs(vregs);
 
-    reg_t valreg = findreg(retregs3);
-    reg_t valreghi;
-    if (sz == 2 * REGSIZE)
+    // Set [Rvhi,Rv] to value
+    reg_t Rv = findreg(vregs);
+    reg_t Rvhi = NOREG;
+    if (szv == 2 * REGSIZE)
     {
-        valreg = findreglsw(retregs3);
-        valreghi = findregmsw(retregs3);
+        Rv   = findreg(vregs & INSTR.LSW);
+        Rvhi = findreg(vregs & INSTR.MSW);
     }
 
     freenode(e2);
 
-    // Get s into ES:DI
-    regm_t mregidx = IDXREGS & ~(mregcx | retregs3);
-    assert(mregidx);
-    tym_t ty1 = tybasic(e.E1.Ety);
-    if (!tyreg(ty1))
-        mregidx |= mES;
-    scodelem(cgstate,cdb,e.E1,mregidx,mregcx | retregs3,false);
-    reg_t idxreg = findreg(mregidx);
+    // Set Rd to destination
+    regm_t dregs = cg.allregs & ~(cregs | vregs);
+    assert(dregs);
+    scodelem(cgstate,cdb,e.E1,dregs,cregs | vregs,false);
+    reg_t Rd = findreg(dregs);
 
-    regm_t mregbx = 0;
+    reg_t Rp = Rd;
     if (pretregs)                              // if need return value
     {
-        mregbx = pretregs & ~(mregidx | mregcx | retregs3);
-        if (!mregbx)
-            mregbx = cgstate.allregs & ~(mregidx | mregcx | retregs3);
-        const regbx = allocreg(cdb, mregbx, TYnptr);
-        getregs(cdb, mregbx);
-        genmovreg(cdb,regbx,idxreg);            // MOV BX,DI
+        regm_t mRp = pretregs & ~(dregs | cregs | vregs);
+        if (!mRp)
+            mRp = cgstate.allregs & ~(dregs | cregs | vregs);
+        Rp = allocreg(cdb, mRp, TYnptr);
+        getregs(cdb, mRp);
+        genmovreg(cdb,Rp,Rd);            // MOV Rp,Rd
     }
 
-    getregs(cdb,mask(idxreg) | mCX);            // modify DI and CX
+    // allocate limit register Rl
+    regm_t lims = cg.allregs & ~(dregs | cregs | vregs | mask(Rp));
+    const Rl = allocreg(cdb, lims, TYnptr);
+
+    getregs(cdb,mask(Rp) | lims);               // modify Rp,Rl
 
     /* Generate:
-     *  JCXZ L1
-     * L2:
-     *  MOV [idxreg],AX
-     *  ADD idxreg,sz
-     *  LOOP L2
-     * L1:
-     *  NOP
+        cbz     Rc, L1
+        add     Rl, Rd, Rc, uxtw #2
+        mov     Rp, Rd
+    L2: str     Rv, [Rp], #4
+        cmp     Rp, Rl
+        b.ne    L2
+    L1: nop
      */
-    code* c1 = gennop(null);
-    genjmp(cdb, JCXZ, FL.code, cast(block*)c1);
-    code cs;
-    buildEA(&cs,idxreg,-1,1,0);
-    cs.Iop = 0x89;
-    if (!I16 && sz == 2)
-        cs.Iflags |= CFopsize;
-    if (I64 && sz == 8)
-        cs.Irex |= REX_W;
-    code_newreg(&cs, valreg);
-    cdb.gen(&cs);                                       // MOV [idxreg],AX
-    code* c2 = cdb.last();
-    if (sz == REGSIZE * 2)
-    {
-        cs.IEV1.Vuns = REGSIZE;
-        code_newreg(&cs, valreghi);
-        cdb.gen(&cs);                                   // MOV REGSIZE[idxreg],DX
-    }
-    cdb.genc2(0x81, grex | modregrmx(3,0,idxreg), sz);  // ADD idxreg,sz
-    genjmp(cdb, LOOP, FL.code, cast(block*)c2);         // LOOP L2
+    reg_t Rc = findreg(cregs);
+    code* c1 = gen1(null, INSTR.nop);
+    uint sf = tysize(enelems.Ety) == 8;
+    genCompBranch(cdb,sf,Rc,0,FL.code,cast(block*)c1);  // cbz Rc,c1
+
+    // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
+    uint op = 0;                // add
+    uint S = 0;                 // don't set flags
+    uint opt = 0;
+    uint option = tyToExtend(enelems.Ety);
+    uint opc;
+    uint imm3;
+    INSTR.szToSizeOpc(szv,imm3,opc);    // shift 0..4
+    assert(szv != REGSIZE * 2); // TODO AArch64
+    cdb.gen1(INSTR.addsub_ext(1,op,S,opt,Rc,option,imm3,Rd,Rl));
+
+    if (Rp != Rd)
+        genmovreg(cdb,Rp,Rd);
+
+    cdb.gen1(INSTR.ldst_immpost(imm3,0,0,0,Rp,Rv));     // L2: STR  Rv,[Rp],#0        // *Rp++ = Rv
+    code* L2 = cdb.last();
+    cdb.gen1(INSTR.cmp_shift(1,Rl,0,0,Rp));             // CMP Rp,Rl
+    genBranch(cdb,COND.ne,FL.code,cast(block*)L2);      // b.ne L2
     cdb.append(c1);
 
-    cgstate.regimmed_set(CX, 0);                  // CX is now 0
-
-    fixresult(cdb,e,mregbx,pretregs);
+    fixresult(cdb,e,dregs,pretregs);
 }
 
 /**********************
