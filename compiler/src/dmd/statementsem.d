@@ -3916,15 +3916,12 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     Identifier hook = dim == 2 ? Id._aaApply2 : Id._aaApply;
     Expression func = new IdentifierExp(loc, Id.empty);
     func = new DotIdExp(loc, func, Id.object);
-    auto tiargs = new Objects();
-    tiargs.push(taa.index.substWildTo(MODFlags.const_));
-    tiargs.push(taav.substWildTo(MODFlags.const_));
-    tiargs.push(flde.type.substWildTo(MODFlags.const_));
+    auto tiargs = new Objects(taa.index.substWildTo(MODFlags.const_),
+                              taav.substWildTo(MODFlags.const_),
+                              flde.type.substWildTo(MODFlags.const_));
     func = new DotTemplateInstanceExp(loc, func, hook, tiargs);
 
-    auto arguments = new Expressions();
-    arguments.push(fs.aggr);
-    arguments.push(flde);
+    auto arguments = new Expressions(fs.aggr, flde);
     auto call = new CallExp(loc, func, arguments);
     return call;
 }

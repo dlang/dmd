@@ -1637,9 +1637,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         auto makeDotExp(Identifier hook)
         {
-            auto tiargs = new Objects();
-            tiargs.push(t.index); // always called with naked types
-            tiargs.push(t.next);
+            // always called with naked types
+            auto tiargs = new Objects(t.index, t.next);
 
             Expression id = new IdentifierExp(loc, Id.empty);
             id = new DotIdExp(loc, id, Id.object);
