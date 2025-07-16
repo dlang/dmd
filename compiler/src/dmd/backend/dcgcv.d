@@ -1756,11 +1756,7 @@ private void cv4_outsym(Symbol* s)
                     idx1 = DGROUPIDX;
                     idx2 = SegData[s.Sseg].segidx;
                 }
-                /* Because of the linker limitations, the length cannot
-                 * exceed 0x1000.
-                 * See optlink\cv\cvhashes.asm
-                 */
-                assert(length <= 0x1000);
+
                 if (idx2 != 0)
                 {
                     assert(0);
@@ -1875,9 +1871,6 @@ private void cv4_func(Funcsym* s, ref symtab_t symtab)
         }
         static void endBlock()
         {
-            if (cntOpenBlocks-- >= 255)
-                return; // optlink does not like more than 255 scope blocks
-
             __gshared ushort[2] endargs = [ 2, S_END ];
             objmod.write_bytes(SegData[DEBSYM],endargs[]);
         }

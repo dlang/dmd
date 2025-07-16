@@ -1345,16 +1345,7 @@ private void genObjFile(Module m, bool multiobj)
             if (!s.Sxtrnnum)
             {
                 //printf("%s\n", s.Sident);
-//#if 0 /* This should work, but causes optlink to fail in common/newlib.asm */
-//                objextdef(s.Sident);
-//#else
-                Symbol* sref = symbol_generate(SC.static_, type_fake(TYnptr));
-                sref.Sfl = FL.data;
-                auto dtb = DtBuilder(0);
-                dtb.xoff(s, 0, TYnptr);
-                sref.Sdt = dtb.finish();
-                outdata(sref);
-//#endif
+                objextdef(s.Sident);
             }
         }
     }
