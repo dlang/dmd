@@ -4819,11 +4819,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         assert(aaType);
         Expression hookFunc = new IdentifierExp(aaExp.loc, Id.empty);
         hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id.object);
-        auto tiargs = new Objects();
         auto keytype = aaType.index.substWildTo(MODFlags.const_);
         auto valtype = aaType.nextOf().substWildTo(MODFlags.const_);
-        tiargs.push(keytype);
-        tiargs.push(valtype);
+        auto tiargs = new Objects(keytype, valtype);
         hookFunc = new DotTemplateInstanceExp(aaExp.loc, hookFunc, hookId, tiargs);
         auto arguments = new Expressions();
         arguments.push(new ArrayLiteralExp(aaExp.loc, keytype.arrayOf(), aaExp.keys));
@@ -5185,11 +5183,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         */
         Expression id = new IdentifierExp(ne.loc, Id.empty);
         id = new DotIdExp(ne.loc, id, Id.object);
-        auto tiargs = new Objects();
         auto taa = ne.type.isTypeAArray();
         assert(taa);
-        tiargs.push(taa.index);
-        tiargs.push(taa.next);
+        auto tiargs = new Objects(taa.index, taa.next);
         id = new DotTemplateInstanceExp(ne.loc, id, hook, tiargs);
 
         auto arguments = new Expressions();
@@ -13451,9 +13447,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto tiargs = new Objects();
         id = new DotIdExp(ie.loc, id, hook);
 
-        auto arguments = new Expressions();
-        arguments.push(ie.e2);
-        arguments.push(ie.e1);
+        auto arguments = new Expressions(ie.e2, ie.e1);
         auto ce = new CallExp(ie.loc, id, arguments);
         ce.loweredFrom = ie;
         return ce.expressionSemantic(sc);
@@ -13478,9 +13472,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto tiargs = new Objects();
         id = new DotIdExp(re.loc, id, hook);
 
-        auto arguments = new Expressions();
-        arguments.push(re.e1);
-        arguments.push(re.e2);
+        auto arguments = new Expressions(re.e1, re.e2);
         auto ce = new CallExp(re.loc, id, arguments);
         ce.loweredFrom = re;
         return ce.expressionSemantic(sc);
@@ -13571,9 +13563,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto tiargs = new Objects();
         id = new DotIdExp(ee.loc, id, hook);
 
-        auto arguments = new Expressions();
-        arguments.push(ee.e1);
-        arguments.push(ee.e2);
+        auto arguments = new Expressions(ee.e1, ee.e2);
         auto ce = new CallExp(ee.loc, id, arguments);
         if (ee.op == EXP.notEqual)
         {
@@ -18410,15 +18400,11 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
 
     Expression func = new IdentifierExp(loc, Id.empty);
     func = new DotIdExp(loc, func, Id.object);
-    auto tiargs = new Objects();
-    tiargs.push(taa.index); // the AA makes copies of key and value
-    tiargs.push(taa.next);
+    auto tiargs = new Objects(taa.index, taa.next);
     func = new DotTemplateInstanceExp(loc, func, hook, tiargs);
 
     Expression e0;
-    auto arguments = new Expressions();
-    arguments.push(eaa);
-    arguments.push(ekey);
+    auto arguments = new Expressions(eaa, ekey);
     auto call = new CallExp(loc, func, arguments);
     e0 = Expression.combine(e0, call);
 
@@ -18434,9 +18420,7 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
         Expression idrange = new IdentifierExp(loc, Id.empty);
         idrange = new DotIdExp(loc, idrange, Id.object);
         idrange = new DotIdExp(loc, idrange, Identifier.idPool("_d_arraybounds"));
-        auto locargs = new Expressions();
-        locargs.push(new FileInitExp(loc, EXP.file));
-        locargs.push(new LineInitExp(loc));
+        auto locargs = new Expressions(new FileInitExp(loc, EXP.file), new LineInitExp(loc));
         auto ex = new CallExp(loc, idrange, locargs);
 
         auto idvar1 = new IdentifierExp(loc, vartmp);
@@ -18542,15 +18526,10 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
         assert (taa); // type must not have changed during rewrite
         Expression func = new IdentifierExp(loc, Id.empty);
         func = new DotIdExp(loc, func, Id.object);
-        auto tiargs = new Objects();
-        tiargs.push(taa.index);
-        tiargs.push(taa.next);
+        auto tiargs = new Objects(taa.index, taa.next);
         func = new DotTemplateInstanceExp(loc, func, hook, tiargs);
 
-        auto arguments = new Expressions();
-        arguments.push(eaa);
-        arguments.push(ekeys[i-1]);
-        arguments.push(new IdentifierExp(loc, idfound));
+        auto arguments = new Expressions(eaa, ekeys[i-1], new IdentifierExp(loc, idfound));
         eaa = new CallExp(loc, func, arguments);
         if (i > 1)
         {
