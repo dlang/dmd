@@ -335,7 +335,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             }
             if (verbose)
                 eSink.message(Loc.initial, "code      %s", m.toChars());
-            genObjFile(m, false);
+            genObjFile(m, false, false);
         }
         if (!global.errors && firstm)
         {
@@ -352,7 +352,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             if (verbose)
                 eSink.message(Loc.initial, "code      %s", m.toChars());
             obj_start(objbuf, m.srcfile.toChars());
-            genObjFile(m, multiobj);
+            genObjFile(m, multiobj, false);
             obj_end(objbuf, library, m.objfile.toString());
             obj_write_deferred(objbuf, library, glue.obj_symbols_towrite);
             if (global.errors && !writeLibrary)
@@ -1148,11 +1148,10 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
 
             Module md = new Module(m.loc, mnames, id, 0, 0);
             md.members = new Dsymbols(s);   // its only 'member' is s
-            md.doppelganger = 1;       // identify this module as doppelganger
             md.md = m.md;
             md.aimports.push(m);       // it only 'imports' m
 
-            genObjFile(md, false);
+            genObjFile(md, false, true);
         }
 
         /* Set object file name to be source name with sequence number,
@@ -1306,7 +1305,7 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)[] objfil
  * Generate .obj file for Module.
  */
 
-private void genObjFile(Module m, bool multiobj)
+private void genObjFile(Module m, bool multiobj, bool doppelganger)
 {
     //EEcontext* ee = env.getEEcontext();
 
@@ -1330,7 +1329,7 @@ private void genObjFile(Module m, bool multiobj)
     glue.sshareddtors.setDim(0);
     glue.stests.setDim(0);
 
-    if (m.doppelganger)
+    if (doppelganger)
     {
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
@@ -1507,11 +1506,11 @@ private void genObjFile(Module m, bool multiobj)
         m.sshareddtor = callFuncsAndGates(m, glue.sshareddtors[], null, "__modshareddtor");
         m.stest = callFuncsAndGates(m, glue.stests[], null, "__modtest");
 
-        if (m.doppelganger)
+        if (doppelganger)
             genModuleInfo(m);
     }
 
-    if (m.doppelganger)
+    if (doppelganger)
     {
         objc.generateModuleInfo(m);
         objmod.termfile();
