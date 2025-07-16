@@ -7232,7 +7232,6 @@ public:
     int32_t imports(Module* m);
     bool isRoot();
     bool isCoreModule(Identifier* ident);
-    int32_t doppelganger;
     Symbol* cov;
     _d_dynamicArray< uint32_t > covb;
     Symbol* sictor;

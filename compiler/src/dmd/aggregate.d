@@ -25,7 +25,7 @@ import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, determineSize, include;
+import dmd.dsymbolsem : determineSize;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -376,39 +376,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         v.visit(this);
     }
-}
-
-/*********************************
- * Iterate this dsymbol or members of this scoped dsymbol, then
- * call `fp` with the found symbol and `params`.
- * Params:
- *  symbol = the dsymbol or parent of members to call fp on
- *  fp = function pointer to process the iterated symbol.
- *       If it returns nonzero, the iteration will be aborted.
- *  ctx = context parameter passed to fp.
- * Returns:
- *  nonzero if the iteration is aborted by the return value of fp,
- *  or 0 if it's completed.
- */
-int apply(Dsymbol symbol, int function(Dsymbol, void*) fp, void* ctx)
-{
-    if (auto nd = symbol.isNspace())
-    {
-        return nd.members.foreachDsymbol( (s) { return s && s.apply(fp, ctx); } );
-    }
-    if (auto ad = symbol.isAttribDeclaration())
-    {
-        return ad.include(ad._scope).foreachDsymbol( (s) { return s && s.apply(fp, ctx); } );
-    }
-    if (auto tm = symbol.isTemplateMixin())
-    {
-        if (tm._scope) // if fwd reference
-            dsymbolSemantic(tm, null); // try to resolve it
-
-        return tm.members.foreachDsymbol( (s) { return s && s.apply(fp, ctx); } );
-    }
-
-    return fp(symbol, ctx);
 }
 
 /****************************
