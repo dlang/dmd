@@ -156,8 +156,13 @@ enum
 
 alias ClassDeclaration_ = void*;
 alias Declaration_ = void*;
-alias Module_ = void*;
 
+struct ModuleCoverage {
+    const(char)[] chars;
+    size_t numlines;
+    Symbol* cov;
+    uint[] covb;
+}
 /*************************************
  * While constructing a block list, BlockState maintains
  * the global state needed to construct that list.
@@ -174,7 +179,7 @@ struct BlockState
     block* tryblock;            // current enclosing try block
     ClassDeclaration_ classdec;
     Declaration_ member;        // member we're compiling for
-    Module_ _module;            // module we're in
+    ModuleCoverage coverage;    // coverage for module we're in
 }
 
 enum BFL : ushort

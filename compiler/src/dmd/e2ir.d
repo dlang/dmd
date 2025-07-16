@@ -1645,8 +1645,8 @@ elem* toElem(Expression e, ref IRState irs)
         }
 
         // Construct: (e1 || ModuleAssert(line))
-        Module m = cast(Module)irs.blx._module;
-        char* mname = cast(char*)m.srcfile.toChars();
+        ModuleCoverage m = irs.blx.coverage;
+        const(char)* mname = m.chars.ptr;
 
         //printf("filename = '%s'\n", ae.loc.filename);
         //printf("module = '%s'\n", m.srcfile.toChars());
@@ -1693,7 +1693,7 @@ elem* toElem(Expression e, ref IRState irs)
         else
         {
             auto eassert = el_var(getRtlsym(ud ? RTLSYM.DUNITTESTP : RTLSYM.DASSERTP));
-            auto efile = toEfilenamePtr(m);
+            auto efile = toEfilenamePtr(m.chars);
             auto eline = el_long(TYint, ae.loc.linnum);
             ea = el_bin(OPcall, TYnoreturn, eassert, el_param(eline, efile));
         }
@@ -7024,20 +7024,24 @@ elem* buildArrayIndexError(ref IRState irs, Loc loc, elem* index, elem* length)
     }
 }
 
+private elem* toEfilenamePtr(const(char)[] id)
+{
+    //printf("toEfilenamePtr(%s)\n", m.toChars());
+    Symbol* s = toStringSymbol(id.ptr, id.length, 1);
+    return el_ptr(s);
+}
+
 /// Returns: elem representing a C-string (char*) to the filename
 elem* locToFileElem(const ref IRState irs, Loc loc)
 {
-    elem* efile;
-
     if (auto fname = loc.filename)
     {
         const len = strlen(fname);
         Symbol* s = toStringSymbol(fname, len, 1);
-        efile = el_ptr(s);
+        return el_ptr(s);
     }
-    else
-        efile = toEfilenamePtr(cast(Module)irs.blx._module);
-    return efile;
+
+    return toEfilenamePtr(irs.blx.coverage.chars);
 }
 
 /****************************************
@@ -7055,8 +7059,8 @@ elem* locToFileElem(const ref IRState irs, Loc loc)
 elem* callCAssert(ref IRState irs, Loc loc, Expression exp, Expression emsg, const(char)* str)
 {
     //printf("callCAssert.toElem() %s\n", e.toChars());
-    Module m = cast(Module)irs.blx._module;
-    const(char)* mname = m.srcfile.toChars();
+    ModuleCoverage m = irs.blx.coverage;
+    const(char)* mname = m.chars.ptr;
 
     elem* getFuncName()
     {
@@ -7085,7 +7089,7 @@ elem* callCAssert(ref IRState irs, Loc loc, Expression exp, Expression emsg, con
     }
     else
     {
-        efilename = toEfilenamePtr(m);
+        efilename = toEfilenamePtr(m.chars);
     }
 
     elem* elmsg;

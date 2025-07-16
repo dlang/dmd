@@ -70,17 +70,6 @@ import dmd.toobj;
 import dmd.typesem;
 import dmd.utils;
 
-
-// Used in e2ir.d
-elem* toEfilenamePtr(Module m)
-{
-    //printf("toEfilenamePtr(%s)\n", m.toChars());
-    const(char)* id = m.srcfile.toChars();
-    size_t len = strlen(id);
-    Symbol* s = toStringSymbol(id, len, 1);
-    return el_ptr(s);
-}
-
 public alias toSymbol = dmd.tocsym.toSymbol;
 
 //extern
@@ -410,7 +399,7 @@ bool obj_linkerdirective(scope const(char)* directive)
     return objmod.linkerdirective(directive);
 }
 
-void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
+void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj, ref uint[] covb, Symbol* cov)
 {
     ClassDeclaration cd = fd.parent.isClassDeclaration();
     //printf("FuncDeclaration_toObjFile(%p, %s.%s)\n", fd, fd.parent.toChars(), fd.toChars());
@@ -574,7 +563,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             FuncDeclaration fp = fdc.toParent2().isFuncDeclaration();
             if (fp && fp.semanticRun < PASS.obj)
             {
-                toObjFile(fp, multiobj);
+                toObjFile(fp, multiobj, covb, cov);
             }
         }
     }
@@ -591,7 +580,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         FuncDeclaration fdp = fd.toParent2().isFuncDeclaration();
         if (fdp && fdp.semanticRun < PASS.obj)
         {
-            toObjFile(fdp, multiobj);
+            toObjFile(fdp, multiobj, covb, cov);
         }
     }
     else
@@ -788,7 +777,13 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     bx.scope_index = -1;
     bx.classdec = cast(void*)cd;
     bx.member = cast(void*)fd;
-    bx._module = cast(void*)fd.getModule();
+    Module fdm = fd.getModule();
+    ModuleCoverage mc;
+    mc.chars = fdm.srcfile.toString();
+    mc.numlines = fdm.numlines;
+    mc.cov = cov;
+    mc.covb = covb;
+    bx.coverage = mc;
     irs.blx = &bx;
 
     // Initialize argptr
@@ -1050,14 +1045,14 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     foreach (sd; *irs.deferToObj)
     {
-        toObjFile(sd, false);
+        toObjFile(sd, false, covb, cov);
     }
 
     if (ud)
     {
         foreach (fdn; ud.deferredNested)
         {
-            toObjFile(fdn, false);
+            toObjFile(fdn, false, covb, cov);
         }
     }
 
@@ -1358,15 +1353,18 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         }
     }
 
+    Symbol* cov;
+    uint[] covb;
+
     if (global.params.cov)
     {
         /* Create coverage identifier:
          *  uint[numlines] __coverage;
          */
-        m.cov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
-        m.cov.Sflags |= SFLhidden;
-        m.cov.Stype.Tmangle = Mangle.d;
-        m.cov.Sfl = FL.data;
+        cov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
+        cov.Sflags |= SFLhidden;
+        cov.Stype.Tmangle = Mangle.d;
+        cov.Sfl = FL.data;
 
         auto dtb = DtBuilder(0);
 
@@ -1400,21 +1398,21 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         {
             dtb.nzeros(4 * m.numlines);
         }
-        m.cov.Sdt = dtb.finish();
+        cov.Sdt = dtb.finish();
 
-        outdata(m.cov);
+        outdata(cov);
 
-        size_t sz = m.covb[0].sizeof;
+        size_t sz = covb[0].sizeof;
         size_t n = (m.numlines + sz * 8) / (sz * 8);
         uint* p =  cast(uint*)Mem.check(calloc(n, sz));
-        m.covb = p[0 .. n];
+        covb = p[0 .. n];
     }
 
     for (int i = 0; i < m.members.length; i++)
     {
         auto member = (*m.members)[i];
         //printf("toObjFile %s %s\n", member.kind(), member.toChars());
-        toObjFile(member, multiobj);
+        toObjFile(member, multiobj,  covb, cov);
     }
 
     if (global.params.cov)
@@ -1429,13 +1427,13 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         bcov.Sfl = FL.data;
 
         auto dtb = DtBuilder(0);
-        dtb.nbytes(cast(const(ubyte)[]) m.covb);
+        dtb.nbytes(cast(const(ubyte)[]) covb);
         bcov.Sdt = dtb.finish();
 
         outdata(bcov);
 
-        free(m.covb.ptr);
-        m.covb = null;
+        free(covb.ptr);
+        covb = null;
 
         /* Generate:
          *  _d_cover_register(uint[] __coverage, BitArray __bcoverage, string filename);
@@ -1452,7 +1450,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
         localgot = glue.ictorlocalgot;
 
-        elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
+        elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(cov));
         elem* ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
 
         if (target.os == Target.OS.Windows && target.isX86_64)

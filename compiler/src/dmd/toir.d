@@ -166,10 +166,10 @@ extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
 {
     uint linnum = loc.linnum;
 
-    Module m = cast(Module)irs.blx._module;
+    ModuleCoverage m = irs.blx.coverage;
     //printf("m.cov %p linnum %d filename %s srcfile %s numlines %d\n", m.cov, linnum, loc.filename, m.srcfile.toChars(), m.numlines);
     if (!m.cov || !linnum ||
-        strcmp(loc.filename, m.srcfile.toChars()))
+        strcmp(loc.filename, m.chars.ptr))
         return null;
 
     //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb.ptr, p, linnum);
