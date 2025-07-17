@@ -1328,8 +1328,6 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
     tym_t tyv = tybasic(evalue.Ety);
     const szv = tysize(tyv);
     assert(cast(int)szv > 1);
-    if (tyfloating(tyv))
-        assert(0);      // TODO AArch64
     regm_t vregs = cgstate.allregs & ~cregs;
     scodelem(cgstate,cdb,evalue,vregs,cregs,false);
 
@@ -1396,7 +1394,11 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
     uint opc;
     uint imm3;
     INSTR.szToSizeOpc(szv,imm3,opc);    // shift 0..4
-    assert(szv != REGSIZE * 2); // TODO AArch64
+    if (szv == REGSIZE * 2)
+    {
+        imm3 = 3;
+        opc = 0;
+    }
     cdb.gen1(INSTR.addsub_ext(1,op,S,opt,Rc,option,imm3,Rd,Rl));
 
     if (Rp != Rd)
@@ -1404,6 +1406,8 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
 
     cdb.gen1(INSTR.ldst_immpost(imm3,0,0,0,Rp,Rv));     // L2: STR  Rv,[Rp],#0        // *Rp++ = Rv
     code* L2 = cdb.last();
+    if (szv == REGSIZE * 2)
+        cdb.gen1(INSTR.ldst_immpost(imm3,0,0,0,Rp,Rvhi)); // L2: STR  Rvhi,[Rp],#0    // *Rp++ = Rvhi
     cdb.gen1(INSTR.cmp_shift(1,Rl,0,0,Rp));             // CMP Rp,Rl
     genBranch(cdb,COND.ne,FL.code,cast(block*)L2);      // b.ne L2
     cdb.append(c1);

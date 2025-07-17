@@ -1395,14 +1395,13 @@ elem* toElem(Expression e, ref IRState irs)
                 /* Structs return a ref, which gets automatically dereferenced.
                  * But we want a pointer to the instance.
                  */
-                if (!ne.placement)
-                    ez = el_una(OPaddr, TYnptr, ez);
+                ez = el_una(OPaddr, TYnptr, ez);
             }
             else
             {
                 StructLiteralExp sle = StructLiteralExp.create(ne.loc, sd, ne.arguments, t);
                 ez = toElemStructLit(sle, irs, EXP.construct, ev.Vsym, false);
-                if (tybasic(ez.Ety) == TYstruct && !ne.placement)
+                if (tybasic(ez.Ety) == TYstruct || ne.placement)
                     ez = el_una(OPaddr, TYnptr, ez);
             }
             static if (0)
@@ -1413,13 +1412,6 @@ elem* toElem(Expression e, ref IRState irs)
                 if (ezprefix) { printf("ezprefix:\n"); elem_print(ezprefix); }
                 if (ez) { printf("ez:\n"); elem_print(ez); }
                 printf("\n");
-            }
-
-            if (ne.placement)
-            {
-                ez = el_bin(OPstreq,TYstruct,el_copytree(ev),ez);
-                ez.ET = ev.ET;
-                ez = el_una(OPaddr, TYnptr, ez);
             }
 
             e = el_combine(ex, ey);
