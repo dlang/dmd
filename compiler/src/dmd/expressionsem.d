@@ -11635,7 +11635,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             t1.isStaticOrDynamicArray() &&
             t1.nextOf().toBasetype().ty == Tvoid)
         {
-            if (t2.nextOf().implicitConvTo(t1.nextOf()))
+            auto t2n = t2.nextOf();
+            if (!t2n)
+            {
+                // filling not allowed
+                error(exp.loc, "cannot copy `%s` to `%s`",
+                    t2.toChars(), t1.toChars());
+            }
+            else if (t2n.implicitConvTo(t1.nextOf()))
             {
                 if (sc.setUnsafe(false, exp.loc, "copying `%s` to `%s`", t2, t1))
                     return setError();
