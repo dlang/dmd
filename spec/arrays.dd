@@ -1407,8 +1407,8 @@ writefln("the string is '%s'", str);
 
 $(H3 $(LNAME2 void_arrays, Void Arrays))
 
-    $(P There are special types of array with `void` element type which can hold
-    arrays of any kind. Void arrays are used for
+    $(P There are special types of array with a $(DDSUBLINK spec/type, void, `void`)
+    element type which can hold arrays of any kind. Void arrays are used for
     low-level operations where some kind of array data is being handled, but
     the exact type of the array elements are unimportant. The $(D .length) of a
     void array is the length of the data in bytes, rather than the number of

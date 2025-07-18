@@ -97,7 +97,7 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 
     $(TABLE_3COLS Basic Data Types,
     $(THEAD Keyword, Default Initializer ($(D .init)), Description)
-    $(TROW $(D void), no default initializer, `void` has no value)
+    $(TROW $(RELATIVE_LINK2 void, $(D void)), no default initializer, `void` has no value)
     $(TROW $(RELATIVE_LINK2 bool, $(D bool)), $(D false), boolean value)
     $(TROW $(D byte), $(D 0), signed 8 bits)
     $(TROW $(D ubyte), $(D 0u), unsigned 8 bits)
@@ -575,6 +575,23 @@ $(H3 $(LNAME2 vrp, Value Range Propagation))
     )
     * For more information, see $(LINK2 https://digitalmars.com/articles/b62.html, the dmc article).
     * See also: $(LINK https://en.wikipedia.org/wiki/Value_range_analysis).
+
+
+$(H2 $(LNAME2 void, $(D void)))
+
+    $(P A `void` value cannot be accessed directly. The `void` type is notably used for:)
+
+    * The return type of a function that doesn't have a result.
+    * The base type for an untyped pointer -
+      see $(RELATIVE_LINK2 pointer-conversions, Pointer Conversions).
+    * $(DDSUBLINK spec/arrays, void_arrays, Void arrays).
+    * $(DDSUBLINK spec/expression, cast_void, Ignoring a value) by casting to `void`.
+
+    $(P `void.sizeof` is 1 (not 0).)
+
+    $(RATIONALE The size must be 1 to make `void*` arithmetic work like it does in C.
+    It also makes the length of a void array equivalent to the number of
+    bytes in the array.)
 
 
 $(H2 $(LNAME2 bool, $(D bool)))
