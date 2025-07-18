@@ -297,6 +297,24 @@ struct INSTR
         return sbfm(1, 1, 0, 31, Rn, Rd);
     }
 
+    /* UBFM Rd,Rn,#immr,#imms
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ubfm.html
+     */
+    static uint ubfm(uint sf, uint N, uint immr, uint imms, reg_t Rn, reg_t Rd)
+    {
+        return bitfield(sf, 2, N, immr, imms, Rn, Rd);
+    }
+
+    /* UBFIZ Rd,Rn,#lsb,#width
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ubfiz_ubfm.html
+     */
+    static uint ubfiz_ubfm(uint sf, uint N, uint lsb, uint width, reg_t Rn, reg_t Rd)
+    {
+        assert(sf == N);
+        uint mask = ((sf == 1) ? 64 : 32) - 1;
+        return ubfm(sf, N, -lsb & mask, width - 1, Rn, Rd);
+    }
+
     /* Extract
      * EXTR
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm

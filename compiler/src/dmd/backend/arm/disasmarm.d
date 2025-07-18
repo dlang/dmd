@@ -669,8 +669,8 @@ void disassemble(uint c) @trusted
            else if (imms < immr)
            {
                 p1 = "ubfiz";                      // https://www.scs.stanford.edu/~zyedidia/arm64/ubfiz_ubfm.html
-                p4 = wordtostring(-immr);
-                p5 = wordtostring2(imms - 1);
+                p4 = wordtostring(-immr & (((sf == 1) ? 64 : 32) - 1));
+                p5 = wordtostring2(imms + 1);
            }
            else if (immr == 0 && imms == 7)
            {
@@ -3136,8 +3136,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[86] cases64 =      // 64 bit code gen
+    string[87] cases64 =      // 64 bit code gen
     [
+        "D3 7E 7C 43         ubfiz  x3,x2,#2,#0x20",
         "B8 00 93 E0         stur   w0,[sp,#9]",
         "F8 00 84 5F         str    xzr,[x2],#8",
         "6F 00 E4 01         movi   v1.2d,#0x0",
