@@ -1415,6 +1415,11 @@ $(H3 $(LNAME2 void_arrays, Void Arrays))
     elements in its original type. Array indices in slicing
     operations are interpreted as byte indices. A void array cannot be indexed.)
 
+    $(P Another array can be $(RELATIVE_LINK2 array-copying, copied) into a void array's elements, but not in a
+    $(DDSUBLINK spec/function, safe-functions, `@safe` function).
+    This is because the void array may hold pointers.
+    A void array cannot be $(RELATIVE_LINK2 array-setting, filled).)
+
     $(P Arrays of any type can be implicitly converted to a (tail qualified) void array - the
     compiler inserts the appropriate calculations so that the $(D .length) of
     the resulting array's size is in bytes rather than number of elements. Void
