@@ -16843,8 +16843,12 @@ Expression toBoolean(Expression exp, Scope* sc)
             if (!t.isBoolean())
             {
                 if (tb != Type.terror)
+                {
                     error(exp.loc, "expression `%s` of type `%s` does not have a boolean value",
                               exp.toChars(), t.toChars());
+                    if (auto ts = tb.isTypeStruct())
+                        errorSupplemental(ts.sym.loc, "perhaps add Cast Operator Overloading with `bool opCast(T : bool)() => ...`");
+                }
                 return ErrorExp.get();
             }
             return e;
