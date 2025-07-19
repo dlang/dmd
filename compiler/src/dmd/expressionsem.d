@@ -4047,7 +4047,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 setError();
             }
         }
-        scope (exit) result.rvalue = exp.rvalue;
+        scope (exit)
+        {
+            if (result !is null)
+                result.rvalue = exp.rvalue;
+        }
 
         Dsymbol scopesym;
         Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
@@ -6039,7 +6043,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     {
                         setError();
                     }
-                    else
+                    else if (result !is null)
                     {
                         result.rvalue = true;
                     }
