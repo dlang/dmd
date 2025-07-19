@@ -143,8 +143,6 @@ public:
     bool isCoreModule(Identifier *ident);
 
     // Back end
-    Symbol *cov;                // private uint[] __coverage;
-    DArray<unsigned> covb;      // bit array of valid code line numbers
 
     Symbol *sictor;             // module order independent constructor
     Symbol *sctor;              // module constructor

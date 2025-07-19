@@ -294,7 +294,7 @@ void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
 
 /* ================================================================== */
 
-void toObjFile(Dsymbol ds, bool multiobj)
+void toObjFile(Dsymbol ds, bool multiobj, uint[] covb = null, Symbol* cov = null)
 {
     //printf("toObjFile(%s %s)\n", ds.kind(), ds.toChars());
 
@@ -328,7 +328,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         override void visit(FuncDeclaration fd)
         {
             // in glue.c
-            FuncDeclaration_toObjFile(fd, multiobj);
+            FuncDeclaration_toObjFile(fd, multiobj, covb, cov);
         }
 
         override void visit(ClassDeclaration cd)
