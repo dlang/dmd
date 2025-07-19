@@ -1,0 +1,26 @@
+The compiler now lowers associative array operations to a templated implementation in druntime
+
+The compiler now lowers associative array operations to templates defined in core.internal.newaa
+instead of relying on a precompiled implementation based on TypeInfo.
+
+In addition to better performance by not having to go through TypeInfo and allowing inlining of
+simple operations this paves the way for proper inference of
+function attributes inherited from key and value constructors, toHash() on the key and comparison of
+key values. This inference is currently mostly avoided to keep backward compatibility with
+the runtime implementation that doesn't check function attributes.
+
+Some changes that are the result of the refactoring:
+
+- AA support no longer available at CTFE without object.d/newaa.d. Some operations used to work,
+  but now need the lowerings before these can be intercepted by the interpreter.
+
+- creating an AA literal at runtime passes keys and values as arguments normally, not with
+  special move/blit operations, so more postblit/dtor operations can happen
+
+- _d_assocarrayliteralTXTrace removed. Apart from the creation of associative array literals
+  no other AA operation is hooked for -profile-gc. You will now see the allocations as done
+  by the AA implementation.
+
+- aa[key] = S() with S.ctor and S.opAssign is no longer a double lookup
+
+- aa.remove(key) now works with alias this
