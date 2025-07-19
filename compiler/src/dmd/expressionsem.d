@@ -11902,14 +11902,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression ce = new CallExp(ae.loc, id, arguments);
         res = Expression.combine(eValue2, ce).expressionSemantic(sc);
         if (isArrayAssign)
-            res = Expression.combine(res, ae.e1).expressionSemantic(sc);
+            res = Expression.combine(res, ae.e1).expressionSemantic(sc).checkGC(sc);
 
         if (global.params.v.verbose)
             message("lowered   %s =>\n          %s", ae.toChars(), res.toChars());
 
         res = new LoweredAssignExp(ae, res);
         res.type = ae.type;
-        res = res.checkGC(sc);
 
         return res;
     }
@@ -12541,7 +12540,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto tiargs = new Objects(exp.type);
         id = new DotTemplateInstanceExp(exp.loc, id, hook, tiargs);
         id = new CallExp(exp.loc, id, arguments);
-        return id.expressionSemantic(sc);
+        return id.expressionSemantic(sc).checkGC(sc);
     }
 
     void trySetCatExpLowering(Expression exp)

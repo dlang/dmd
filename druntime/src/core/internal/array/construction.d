@@ -588,3 +588,30 @@ version (D_ProfileGC)
             assert(0, "Cannot create new multi-dimensional array if compiling without support for runtime type information!");
     }
 }
+
+extern (C) void* _d_arrayliteralTX(const TypeInfo ti, size_t length) @trusted pure nothrow;
+
+void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
+{
+    return _d_arrayliteralTX(typeid(T), length);
+}
+
+// FIXME: Emit instantiation to fix linker error in unittest:
+// > cd compiler/test && rdmd run.d -u
+// Error: undefined reference to `core.internal.array.construction._d_arrayliteralTX!(int[])._d_arrayliteralTX(ulong)`
+//    referenced from `void dmd.root.array.__unittest_L442_C1()`
+alias _dummy = _d_arrayliteralTX!(int[]);
+
+version (D_ProfileGC)
+void* _d_arrayliteralTXTrace(T)(size_t length, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted pure nothrow
+{
+    version (D_TypeInfo)
+    {
+        import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
+        mixin(TraceHook!(T.stringof, "_d_arrayliteralTX"));
+
+        return _d_arrayliteralTX!T(length);
+    }
+    else
+        assert(0);
+}

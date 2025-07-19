@@ -4173,11 +4173,13 @@ elem* toElem(Expression e, ref IRState irs)
                 * Avoids the whole variadic arg mess.
                 */
 
-                // call _d_arrayliteralTX(ti, dim)
-                e = el_bin(OPcall, TYnptr,
-                    el_var(getRtlsym(RTLSYM.ARRAYLITERALTX)),
-                    el_param(el_long(TYsize_t, dim), getTypeInfo(ale, ale.type, irs)));
-                toTraceGC(irs, e, ale.loc);
+                if (!ale.lowering)
+                {
+                    fprintf(stderr, "Internal Error: array literal %s at %s should have been lowered to a _d_arrayliteralTX template\n",
+                        ale.toChars(), ale.loc.toChars());
+                    assert(0);
+                }
+                e = toElem(ale.lowering, irs);
 
                 Symbol* stmp = symbol_genauto(Type_toCtype(Type.tvoid.pointerTo()));
                 e = el_bin(OPeq, TYnptr, el_var(stmp), e);

@@ -2667,6 +2667,7 @@ public:
     bool onstack;
     Expression* basis;
     Array<Expression* >* elements;
+    Expression* lowering;
     static ArrayLiteralExp* create(Loc loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
     bool equals(const RootObject* const o) const override;
@@ -5589,7 +5590,7 @@ private:
         char complexexp[64LLU];
         char symoffexp[56LLU];
         char stringexp[44LLU];
-        char arrayliteralexp[40LLU];
+        char arrayliteralexp[48LLU];
         char assocarrayliteralexp[48LLU];
         char structliteralexp[64LLU];
         char compoundliteralexp[32LLU];
@@ -8970,6 +8971,8 @@ struct Id final
     static Identifier* _d_newarrayTTrace;
     static Identifier* _d_newarraymTX;
     static Identifier* _d_newarraymTXTrace;
+    static Identifier* _d_arrayliteralTX;
+    static Identifier* _d_arrayliteralTXTrace;
     static Identifier* _d_assert_fail;
     static Identifier* dup;
     static Identifier* _aaApply;
