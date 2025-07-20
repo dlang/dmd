@@ -1423,7 +1423,7 @@ struct INSTR
     static uint strh_reg(reg_t Rindex,uint extend,uint S,reg_t Xbase,reg_t Rt)
     {
         // STRH Rt,Xbase,Rindex,extend S
-        return ldst_regoff(0, 1, 0, Rindex, extend, S, Xbase, Rt);
+        return ldst_regoff(1, 0, 0, Rindex, extend, S, Xbase, Rt);
     }
 
     /* STR (register)
