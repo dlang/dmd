@@ -4111,6 +4111,23 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         // This should only be called on the primary instantiation.
         assert(this is inst);
 
+        /* Hack for suppressing linking errors against template instances
+        * of `_d_arrayliteralTX` (e.g. `_d_arrayliteralTX!(int[])`).
+        *
+        * This happens, for example, when a lib module is compiled with `preview=dip1000` and
+        * the array literal is placed on stack instead of using the lowering. In this case,
+        * if the root module is compiled without `preview=dip1000`, the compiler will consider
+        * the template already instantiated within the lib module, and thus skip the codegen for it
+        * in the root module object file, thinking that the linker will find the instance in the lib module.
+        *
+        * To bypass this edge case, we always do codegen for `_d_arrayliteralTX` template instances,
+        * even if an instance already exists in non-root module.
+        */
+        if (this.inst && this.inst.name == Id._d_arrayliteralTX)
+        {
+            return true;
+        }
+
         if (global.params.allInst)
         {
             // Do codegen if there is an instantiation from a root module, to maximize link-ability.
