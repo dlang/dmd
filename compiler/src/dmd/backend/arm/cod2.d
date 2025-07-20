@@ -1254,11 +1254,11 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         auto remainder = numbytes & (REGSIZE - 1);
         if (remainder >= 4)
         {
-            cdb.gen1(INSTR.ldst_immpost(3,0,0,4,dstreg,valuereg));      // STR  valuereg,[dstreg],#4        // *dstreg++ = valuereg
+            cdb.gen1(INSTR.ldst_immpost(2,0,0,4,dstreg,valuereg));      // STR  valuereg,[dstreg],#4        // *dstreg++ = valuereg
             remainder -= 4;
         }
         for (; remainder; --remainder)
-            cdb.gen1(INSTR.ldst_immpost(3,0,0,1,dstreg,valuereg));      // STR  valuereg,[dstreg],#0        // *dstreg++ = valuereg
+            cdb.gen1(INSTR.ldst_immpost(0,0,0,1,dstreg,valuereg));      // STRB valuereg,[dstreg],#1        // *dstreg++ = valuereg
         fixresult(cdb,e,retregs,pretregs);
         return;
     }
@@ -1550,20 +1550,22 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         csrc.base = Rs;
         csrc.index = Ri;
         csrc.reg = NOREG;
+        csrc.Sextend = 3;                               // LSL
 
         code cdst;
-        csrc.base = Rd;
-        csrc.index = Ri;
-        csrc.reg = NOREG;
+        cdst.base = Rd;
+        cdst.index = Ri;
+        cdst.reg = NOREG;
+        cdst.Sextend = 3;                               // LSL
 
         movregconst(cdb,Rc,numbytes * 8,0);             // mov   Rc,#count * 8
         movregconst(cdb,Ri,0,0);                        // mov   Ri,0
 
         loadFromEA(csrc,Rv,8,8);                        // L2:   ldr Rv,[Rs,Ri]
-        cdb.genc1(csrc.Iop,0,FL.offset,0);
+        cdb.genc1(csrc.Iop,0,FL.unde,0);
         code* L2 = cdb.last();
         storeToEA(cdst,Rv,8);                           // str  Rv,[Rd,Ri]
-        cdb.genc1(cdst.Iop,0,FL.offset,0);
+        cdb.genc1(cdst.Iop,0,FL.unde,0);
 
         cdb.gen1(INSTR.add_addsub_imm(1,0,8,Ri,Ri));    // add  Ri,Ri,#0x8 https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
         cdb.gen1(INSTR.cmp_shift(0,Rc,0,0,Ri));         // cmp  Ri,Rc
@@ -1573,25 +1575,27 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (remainder & 4)
         {
             loadFromEA(csrc,Rv,4,4);                    // ldr  Rv,[Rs,Ri]
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            cdb.genc1(csrc.Iop,0,FL.unde,offset);
             storeToEA(cdst,Rv,4);                       // str  Rv,[Rd,Ri]
-            cdb.genc1(cdst.Iop,0,FL.offset,offset);
+            cdb.genc1(cdst.Iop,0,FL.unde,offset);
+            cdb.gen1(INSTR.add_addsub_imm(1,0,4,Ri,Ri)); // add  Ri,Ri,#0x4 https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
             offset += 4;
         }
         if (remainder & 2)
         {
-            loadFromEA(csrc,Rv,2,2);                    // ldr  Rv,[Rs,Ri]
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
-            storeToEA(cdst,Rv,2);                       // str  Rv,[Rd,Ri]
-            cdb.genc1(cdst.Iop,0,FL.offset,offset);
+            loadFromEA(csrc,Rv,2,2);                    // ldrh  Rv,[Rs,Ri]
+            cdb.genc1(csrc.Iop,0,FL.unde,offset);
+            storeToEA(cdst,Rv,2);                       // strh  Rv,[Rd,Ri]
+            cdb.genc1(cdst.Iop,0,FL.unde,offset);
+            cdb.gen1(INSTR.add_addsub_imm(1,0,2,Ri,Ri)); // add  Ri,Ri,#0x2 https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
             offset += 2;
         }
         if (remainder & 1)
         {
-            loadFromEA(csrc,Rv,1,1);                    // ldr  Rv,[Rs,Ri]
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
-            storeToEA(cdst,Rv,1);                       // str  Rv,[Rd,Ri]
-            cdb.genc1(cdst.Iop,0,FL.offset,offset);
+            loadFromEA(csrc,Rv,1,1);                    // ldrb  Rv,[Rs,Ri]
+            cdb.genc1(csrc.Iop,0,FL.unde,offset);
+            storeToEA(cdst,Rv,1);                       // strb  Rv,[Rd,Ri]
+            cdb.genc1(cdst.Iop,0,FL.unde,offset);
         }
     }
     assert(!(pretregs & mPSW));
