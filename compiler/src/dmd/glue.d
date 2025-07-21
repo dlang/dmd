@@ -47,6 +47,7 @@ import dmd.dmodule;
 import dmd.dmsc;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : getLocalClasses;
 import dmd.dtemplate;
 import dmd.e2ir;
 import dmd.errors;
@@ -1533,6 +1534,148 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     objmod.termfile();
 }
 
+
+// Put out instance of ModuleInfo for this Module
+
+private void genModuleInfo(Module m)
+{
+    //printf("Module.genmoduleinfo() %s\n", m.toChars());
+
+    if (!Module.moduleinfo)
+    {
+        ObjectNotFound(m.loc, Id.ModuleInfo);
+    }
+
+    Symbol* msym = toSymbol(m);
+
+    //////////////////////////////////////////////
+
+    auto csym = cast(Symbol*)m.csym;
+    csym.Sclass = SC.global;
+    csym.Sfl = FL.data;
+
+    auto dtb = DtBuilder(0);
+
+    ClassDeclarations aclasses;
+    getLocalClasses(m, aclasses);
+
+    // importedModules[]
+    size_t aimports_dim = m.aimports.length;
+    for (size_t i = 0; i < m.aimports.length; i++)
+    {
+        Module mod = m.aimports[i];
+        if (!mod.needmoduleinfo)
+            aimports_dim--;
+    }
+
+    FuncDeclaration sgetmembers = m.findGetMembers();
+
+    // These must match the values in druntime/src/object_.d
+    enum
+    {
+        MIstandalone      = 0x4,
+        MItlsctor         = 0x8,
+        MItlsdtor         = 0x10,
+        MIctor            = 0x20,
+        MIdtor            = 0x40,
+        MIxgetMembers     = 0x80,
+        MIictor           = 0x100,
+        MIunitTest        = 0x200,
+        MIimportedModules = 0x400,
+        MIlocalClasses    = 0x800,
+        MIname            = 0x1000,
+    }
+
+    uint flags = 0;
+    if (!m.needmoduleinfo)
+        flags |= MIstandalone;
+    if (m.sctor)
+        flags |= MItlsctor;
+    if (m.sdtor)
+        flags |= MItlsdtor;
+    if (m.ssharedctor)
+        flags |= MIctor;
+    if (m.sshareddtor)
+        flags |= MIdtor;
+    if (sgetmembers)
+        flags |= MIxgetMembers;
+    if (m.sictor)
+        flags |= MIictor;
+    if (m.stest)
+        flags |= MIunitTest;
+    if (aimports_dim)
+        flags |= MIimportedModules;
+    if (aclasses.length)
+        flags |= MIlocalClasses;
+    flags |= MIname;
+
+    dtb.dword(flags);        // _flags
+    dtb.dword(0);            // _index
+
+    if (flags & MItlsctor)
+        dtb.xoff(m.sctor, 0, TYnptr);
+    if (flags & MItlsdtor)
+        dtb.xoff(m.sdtor, 0, TYnptr);
+    if (flags & MIctor)
+        dtb.xoff(m.ssharedctor, 0, TYnptr);
+    if (flags & MIdtor)
+        dtb.xoff(m.sshareddtor, 0, TYnptr);
+    if (flags & MIxgetMembers)
+        dtb.xoff(toSymbol(sgetmembers), 0, TYnptr);
+    if (flags & MIictor)
+        dtb.xoff(m.sictor, 0, TYnptr);
+    if (flags & MIunitTest)
+        dtb.xoff(m.stest, 0, TYnptr);
+    if (flags & MIimportedModules)
+    {
+        dtb.size(aimports_dim);
+        foreach (i; 0 .. m.aimports.length)
+        {
+            Module mod = m.aimports[i];
+
+            if (!mod.needmoduleinfo)
+                continue;
+
+            Symbol* s = toSymbol(mod);
+
+            /* Weak references don't pull objects in from the library,
+             * they resolve to 0 if not pulled in by something else.
+             * Don't pull in a module just because it was imported.
+             */
+            s.Sflags |= SFLweak;
+            dtb.xoff(s, 0, TYnptr);
+        }
+    }
+    if (flags & MIlocalClasses)
+    {
+        dtb.size(aclasses.length);
+        foreach (i; 0 .. aclasses.length)
+        {
+            ClassDeclaration cd = aclasses[i];
+            dtb.xoff(toSymbol(cd), 0, TYnptr);
+        }
+    }
+    if (flags & MIname)
+    {
+        // Put out module name as a 0-terminated string, to save bytes
+        m.nameoffset = dtb.length();
+        const(char) *name = m.toPrettyChars();
+        m.namelen = strlen(name);
+        dtb.nbytes(name[0 .. m.namelen + 1]);
+        //printf("nameoffset = x%x\n", nameoffset);
+    }
+
+    objc.generateModuleInfo(m);
+    csym.Sdt = dtb.finish();
+    out_readonly(csym);
+    outdata(csym);
+
+    //////////////////////////////////////////////
+
+    objmod.moduleinfo(msym);
+    if (driverParams.exportVisibility == ExpVis.public_)
+        objmod.export_symbol(msym, 0);
+}
 
 
 /* ================================================================== */
