@@ -38,7 +38,6 @@ import dmd.expressionsem;
 import dmd.file_manager;
 import dmd.func;
 import dmd.globals;
-import dmd.gluelayer;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -1175,13 +1174,8 @@ extern (C++) final class Module : Package
     // Back end
     void* cov; // private uint[] __coverage;
     uint[] covb; // bit array of valid code line numbers
-    Symbol* sctor; // module constructor
-    Symbol* sdtor; // module destructor
-    Symbol* ssharedctor; // module shared constructor
-    Symbol* sshareddtor; // module shared destructor
-    Symbol* stest; // module unit test
-    Symbol* sfilename; // symbol for filename
-    void* sictor; // module order independent constructor
+    void* sfilename; // symbol for filename
+    bool hasCDtor; // this module has a (shared) module constructor or destructor and we are codegenning it
 
     uint[uint] ctfe_cov; /// coverage information from ctfe execution_count[line]
 

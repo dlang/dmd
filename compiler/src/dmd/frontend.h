@@ -7235,13 +7235,8 @@ public:
     bool isCoreModule(Identifier* ident);
     void* cov;
     _d_dynamicArray< uint32_t > covb;
-    void* sictor;
-    Symbol* sctor;
-    Symbol* sdtor;
-    Symbol* ssharedctor;
-    Symbol* sshareddtor;
-    Symbol* stest;
-    Symbol* sfilename;
+    void* sfilename;
+    bool hasCDtor;
     void* ctfe_cov;
     void accept(Visitor* v) override;
     void fullyQualifiedName(OutBuffer& buf);
