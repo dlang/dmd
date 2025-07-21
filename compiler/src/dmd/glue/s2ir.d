@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/s2ir.d, _s2ir.d)
- * Documentation: $(LINK https://dlang.org/phobos/dmd_s2ir.html)
- * Coverage:    $(LINK https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/s2ir.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/s2ir.d, _s2ir.d)
+ * Documentation: $(LINK https://dlang.org/phobos/dmd_glue_2ir.html)
+ * Coverage:    $(LINK https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/glue/s2ir.d)
  */
 
-module dmd.s2ir;
+module dmd.glue.s2ir;
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -21,6 +21,12 @@ import dmd.root.array;
 import dmd.root.rmem;
 import dmd.rootobject;
 
+import dmd.glue;
+import dmd.glue.e2ir;
+import dmd.glue.toctype;
+import dmd.glue.tocsym;
+import dmd.glue.toir;
+
 import dmd.aggregate;
 import dmd.astenums;
 import dmd.dclass;
@@ -31,10 +37,8 @@ import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dstruct;
 import dmd.dtemplate;
-import dmd.e2ir;
 import dmd.expression;
 import dmd.func;
-import dmd.glue;
 import dmd.id;
 import dmd.init;
 import dmd.location;
@@ -42,9 +46,6 @@ import dmd.mtype;
 import dmd.statement;
 import dmd.stmtstate;
 import dmd.target;
-import dmd.toctype;
-import dmd.tocsym;
-import dmd.toir;
 import dmd.tokens;
 import dmd.typesem : pointerTo;
 import dmd.visitor;
@@ -67,8 +68,9 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-alias StmtState = dmd.stmtstate.StmtState!block;
+package(dmd.glue):
 
+alias StmtState = dmd.stmtstate.StmtState!block;
 
 void elem_setLoc(elem* e, Loc loc) nothrow
 {
