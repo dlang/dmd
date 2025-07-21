@@ -7232,7 +7232,7 @@ public:
     int32_t imports(Module* m);
     bool isRoot();
     bool isCoreModule(Identifier* ident);
-    Symbol* cov;
+    void* cov;
     _d_dynamicArray< uint32_t > covb;
     Symbol* sictor;
     Symbol* sctor;

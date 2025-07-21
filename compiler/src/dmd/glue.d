@@ -1358,15 +1358,17 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         }
     }
 
+    Symbol* mcov;
     if (global.params.cov)
     {
         /* Create coverage identifier:
          *  uint[numlines] __coverage;
          */
-        m.cov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
-        m.cov.Sflags |= SFLhidden;
-        m.cov.Stype.Tmangle = Mangle.d;
-        m.cov.Sfl = FL.data;
+        mcov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
+        m.cov = mcov;
+        mcov.Sflags |= SFLhidden;
+        mcov.Stype.Tmangle = Mangle.d;
+        mcov.Sfl = FL.data;
 
         auto dtb = DtBuilder(0);
 
@@ -1400,9 +1402,9 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         {
             dtb.nzeros(4 * m.numlines);
         }
-        m.cov.Sdt = dtb.finish();
+        mcov.Sdt = dtb.finish();
 
-        outdata(m.cov);
+        outdata(mcov);
 
         size_t sz = m.covb[0].sizeof;
         size_t n = (m.numlines + sz * 8) / (sz * 8);
@@ -1452,7 +1454,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
         localgot = glue.ictorlocalgot;
 
-        elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
+        elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(mcov));
         elem* ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
 
         if (target.os == Target.OS.Windows && target.isX86_64)
