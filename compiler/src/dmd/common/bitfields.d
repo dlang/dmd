@@ -21,7 +21,7 @@ version(Has_Bitfields)
  *   T = type of bit fields variable, must have enough bits to store all booleans
  * Returns: D code with a bit fields variable and getter / setter functions
  */
-extern (D) string generateBitFields(S, T, int ID = __LINE__)()
+extern (D) string generateBitFields(S, T, string fieldName = "bitFields", int ID = __LINE__)()
 if (__traits(isUnsigned, T))
 {
     import core.bitop: bsr;
@@ -62,7 +62,7 @@ if (__traits(isUnsigned, T))
     version(Debugger_friendly)
     {
         // unique name needed to allow same name as in base class using `alias`, but without overloading
-        string bitfieldsName = "bitfields" ~ toString!(ID);
+        string bitfieldsName = fieldName ~ toString!(ID);
         string bitfieldsRead = T.stringof~" "~bitfieldsName~"() const pure { return 0";
         string bitfieldsWrite = "void "~bitfieldsName~"("~T.stringof~" v) {\n";
     }
@@ -86,11 +86,11 @@ if (__traits(isUnsigned, T))
         else
         {
             result ~= "
-                "~typeName~" "~mem~"() const scope { return cast("~typeName~") ((bitFields >>> "~shift~") & "~sizeMask~"); }
+                "~typeName~" "~mem~"() const scope { return cast("~typeName~") (("~fieldName~" >>> "~shift~") & "~sizeMask~"); }
             "~typeName~" "~mem~"("~typeName~" v) scope
             {
-                bitFields &= ~("~sizeMask~" << "~shift~");
-                bitFields |= v << "~shift~";
+                "~fieldName~" &= ~("~sizeMask~" << "~shift~");
+                "~fieldName~" |= v << "~shift~";
                 return v;
             }";
         }
@@ -99,7 +99,7 @@ if (__traits(isUnsigned, T))
     {
         bitfieldsRead ~= ";\n}\n";
         bitfieldsWrite ~= "}\n";
-        result ~= "alias bitFields = "~bitfieldsName~";\n";
+        result ~= "alias "~fieldName~" = "~bitfieldsName~";\n";
         result ~= bitfieldsRead ~ bitfieldsWrite;
         result ~= "\n}\n";
         return result;
@@ -108,7 +108,7 @@ if (__traits(isUnsigned, T))
     {
         result ~= "\n}\n";
         enum TP initVal = bitInfo.initialValue;
-        return result ~ " private "~T.stringof~" bitFields = " ~ toString!(initVal) ~ ";\n";
+        return result ~ " private "~T.stringof~" "~fieldName~" = " ~ toString!(initVal) ~ ";\n";
     }
 }
 
