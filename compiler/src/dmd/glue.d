@@ -1337,7 +1337,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
          */
         Module mod = m.aimports[0];
         assert(mod);
-        if (mod.sictor || mod.sctor || mod.sdtor || mod.ssharedctor || mod.sshareddtor)
+        if (mod.hasCDtor)
         {
             Symbol* s = toSymbol(mod);
             //objextern(s);
@@ -1453,7 +1453,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         t.Tmangle = Mangle.c;
 
         msictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
-        m.sictor = msictor;
+        m.hasCDtor = true;
         cstate.CSpsymtab = &msictor.Sfunc.Flocsym;
         localgot = glue.ictorlocalgot;
 
@@ -1481,6 +1481,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         glue.ictorlocalgot = localgot;
     }
 
+    Symbol* msctor, msdtor, mssharedctor, msshareddtor, mstest;
     // If coverage / static constructor / destructor / unittest calls
     if (glue.eictor || glue.sctors.length || glue.ectorgates.length || glue.sdtors.length ||
         glue.ssharedctors.length || glue.esharedctorgates.length || glue.sshareddtors.length || glue.stests.length || glue.sisharedctors.length)
@@ -1497,8 +1498,9 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
             writefunc(msictor);
         }
 
-        m.sctor = callFuncsAndGates(m, glue.sctors[], glue.ectorgates[], "__modctor");
-        m.sdtor = callFuncsAndGates(m, glue.sdtors[], null, "__moddtor");
+        msctor = callFuncsAndGates(m, glue.sctors[], glue.ectorgates[], "__modctor");
+        msdtor = callFuncsAndGates(m, glue.sdtors[], null, "__moddtor");
+        m.hasCDtor = true;
 
         if (glue.sisharedctors.length > 0)
         {
@@ -1507,12 +1509,12 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
             msictor = callFuncsAndGates(m, glue.sisharedctors[], null, "__modsharedictor");
         }
 
-        m.ssharedctor = callFuncsAndGates(m, glue.ssharedctors[], cast(StaticDtorDeclaration[])glue.esharedctorgates[], "__modsharedctor");
-        m.sshareddtor = callFuncsAndGates(m, glue.sshareddtors[], null, "__modshareddtor");
-        m.stest = callFuncsAndGates(m, glue.stests[], null, "__modtest");
+        mssharedctor = callFuncsAndGates(m, glue.ssharedctors[], cast(StaticDtorDeclaration[])glue.esharedctorgates[], "__modsharedctor");
+        msshareddtor = callFuncsAndGates(m, glue.sshareddtors[], null, "__modshareddtor");
+        mstest = callFuncsAndGates(m, glue.stests[], null, "__modtest");
 
         if (doppelganger)
-            genModuleInfo(m, msictor);
+            genModuleInfo(m, msictor, msctor, msdtor, mssharedctor, msshareddtor, mstest);
     }
 
     if (doppelganger)
@@ -1531,7 +1533,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
      */
     if (global.params.useModuleInfo && Module.moduleinfo &&
         (global.params.cov || m.filetype != FileType.c) /*|| needModuleInfo()*/)
-        genModuleInfo(m, msictor);
+        genModuleInfo(m, msictor, msctor, msdtor, mssharedctor, msshareddtor, mstest);
 
     objmod.termfile();
 }
@@ -1539,7 +1541,10 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
 
 // Put out instance of ModuleInfo for this Module
 
-private void genModuleInfo(Module m, Symbol* msictor)
+private void genModuleInfo(Module m, Symbol* msictor,
+                           Symbol* msctor, Symbol* msdtor,
+                           Symbol* mssharedctor, Symbol* msshareddtor,
+                           Symbol* mstest)
 {
     //printf("Module.genmoduleinfo() %s\n", m.toChars());
 
@@ -1591,19 +1596,19 @@ private void genModuleInfo(Module m, Symbol* msictor)
     uint flags = 0;
     if (!m.needmoduleinfo)
         flags |= MIstandalone;
-    if (m.sctor)
+    if (msctor)
         flags |= MItlsctor;
-    if (m.sdtor)
+    if (msdtor)
         flags |= MItlsdtor;
-    if (m.ssharedctor)
+    if (mssharedctor)
         flags |= MIctor;
-    if (m.sshareddtor)
+    if (msshareddtor)
         flags |= MIdtor;
     if (sgetmembers)
         flags |= MIxgetMembers;
     if (msictor)
         flags |= MIictor;
-    if (m.stest)
+    if (mstest)
         flags |= MIunitTest;
     if (aimports_dim)
         flags |= MIimportedModules;
@@ -1615,19 +1620,19 @@ private void genModuleInfo(Module m, Symbol* msictor)
     dtb.dword(0);            // _index
 
     if (flags & MItlsctor)
-        dtb.xoff(m.sctor, 0, TYnptr);
+        dtb.xoff(msctor, 0, TYnptr);
     if (flags & MItlsdtor)
-        dtb.xoff(m.sdtor, 0, TYnptr);
+        dtb.xoff(msdtor, 0, TYnptr);
     if (flags & MIctor)
-        dtb.xoff(m.ssharedctor, 0, TYnptr);
+        dtb.xoff(mssharedctor, 0, TYnptr);
     if (flags & MIdtor)
-        dtb.xoff(m.sshareddtor, 0, TYnptr);
+        dtb.xoff(msshareddtor, 0, TYnptr);
     if (flags & MIxgetMembers)
         dtb.xoff(toSymbol(sgetmembers), 0, TYnptr);
     if (flags & MIictor)
         dtb.xoff(msictor, 0, TYnptr);
     if (flags & MIunitTest)
-        dtb.xoff(m.stest, 0, TYnptr);
+        dtb.xoff(mstest, 0, TYnptr);
     if (flags & MIimportedModules)
     {
         dtb.size(aimports_dim);
@@ -1782,12 +1787,14 @@ private elem* toEfilename(Module m)
     const(char)* id = m.srcfile.toChars();
     size_t len = strlen(id);
 
+    Symbol* msfilename;
     if (!m.sfilename)
     {
         // Put out as a static array
-        m.sfilename = toStringSymbol(id, len, 1);
+        msfilename = toStringSymbol(id, len, 1);
+        m.sfilename = msfilename;
     }
 
     // Turn static array into dynamic array
-    return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m.sfilename));
+    return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(msfilename));
 }
