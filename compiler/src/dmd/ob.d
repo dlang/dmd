@@ -79,6 +79,8 @@ void oblive(FuncDeclaration funcdecl)
     checkObErrors(obstate);
 }
 
+private:
+
 alias ObNodes = Array!(ObNode*);
 
 alias StmtState = dmd.stmtstate.StmtState!ObNode;
