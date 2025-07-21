@@ -1173,7 +1173,7 @@ extern (C++) final class Module : Package
     }
 
     // Back end
-    Symbol* cov; // private uint[] __coverage;
+    void* cov; // private uint[] __coverage;
     uint[] covb; // bit array of valid code line numbers
     Symbol* sictor; // module order independent constructor
     Symbol* sctor; // module constructor
