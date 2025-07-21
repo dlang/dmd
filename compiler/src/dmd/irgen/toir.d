@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/toir.d, _toir.d)
- * Documentation:  https://dlang.org/phobos/dmd_toir.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/toir.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/irgen/toir.d, _toir.d)
+ * Documentation:  https://dlang.org/phobos/dmd_gule_toir.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/irgen/toir.d
  */
 
-module dmd.toir;
+module dmd.irgen.toir;
 
 import core.checkedint;
 import core.stdc.stdio;
@@ -19,6 +19,12 @@ import core.stdc.stdlib;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
+
+import dmd.irgen;
+import dmd.irgen.e2ir;
+import dmd.irgen.tocvdebug;
+import dmd.irgen.tocsym;
+import dmd.irgen.toctype;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
@@ -42,12 +48,9 @@ import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.toctype;
-import dmd.e2ir;
 import dmd.errorsink;
 import dmd.func;
 import dmd.globals : Param;
-import dmd.glue;
 import dmd.identifier;
 import dmd.id;
 import dmd.location;
@@ -55,8 +58,8 @@ import dmd.mtype;
 import dmd.semantic3 : checkClosure;
 import dmd.typesem;
 import dmd.target;
-import dmd.tocvdebug;
-import dmd.tocsym;
+
+package(dmd.irgen):
 
 /****************************************
  * Our label symbol

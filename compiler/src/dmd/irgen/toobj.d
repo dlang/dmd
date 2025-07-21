@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/toobj.d, _toobj.d)
- * Documentation:  https://dlang.org/phobos/dmd_toobj.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/toobj.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/irgen/toobj.d, _toobj.d)
+ * Documentation:  https://dlang.org/phobos/dmd_irgen_toobj.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/irgen/toobj.d
  */
 
-module dmd.toobj;
+module dmd.irgen.toobj;
 
 import core.stdc.stdio;
 import core.stdc.stddef;
@@ -21,6 +21,13 @@ import dmd.common.outbuffer;
 import dmd.common.smallbuffer : SmallBuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
+
+import dmd.irgen;
+import dmd.irgen.objc;
+import dmd.irgen.tocsym;
+import dmd.irgen.toctype;
+import dmd.irgen.tocvdebug;
+import dmd.irgen.todt;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -43,21 +50,15 @@ import dmd.expression;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
-import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
-import dmd.objc_glue;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.target;
-import dmd.tocsym;
-import dmd.toctype;
-import dmd.tocvdebug;
-import dmd.todt;
 import dmd.tokens;
 import dmd.traits;
 import dmd.typinf;
@@ -77,6 +78,8 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+package(dmd.irgen):
 
 /* ================================================================== */
 
@@ -185,7 +188,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(FuncDeclaration fd)
         {
-            // in glue.c
+            // in irgen/package.d
             FuncDeclaration_toObjFile(fd, multiobj);
         }
 
