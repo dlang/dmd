@@ -7235,7 +7235,7 @@ public:
     bool isCoreModule(Identifier* ident);
     void* cov;
     _d_dynamicArray< uint32_t > covb;
-    Symbol* sictor;
+    void* sictor;
     Symbol* sctor;
     Symbol* sdtor;
     Symbol* ssharedctor;

@@ -1420,6 +1420,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         toObjFile(member, multiobj);
     }
 
+    Symbol* msictor;
     if (global.params.cov)
     {
         /* Generate
@@ -1451,8 +1452,9 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         type* t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
         t.Tmangle = Mangle.c;
 
-        m.sictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
-        cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
+        msictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
+        m.sictor = msictor;
+        cstate.CSpsymtab = &msictor.Sfunc.Flocsym;
         localgot = glue.ictorlocalgot;
 
         elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(mcov));
@@ -1490,9 +1492,9 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
             block* b = block_calloc();
             b.bc = BC.ret;
             b.Belem = glue.eictor;
-            m.sictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
-            m.sictor.Sfunc.Fstartblock = b;
-            writefunc(m.sictor);
+            msictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
+            msictor.Sfunc.Fstartblock = b;
+            writefunc(msictor);
         }
 
         m.sctor = callFuncsAndGates(m, glue.sctors[], glue.ectorgates[], "__modctor");
@@ -1500,9 +1502,9 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
 
         if (glue.sisharedctors.length > 0)
         {
-            if (m.sictor)
-                glue.sisharedctors.shift(m.sictor);
-            m.sictor = callFuncsAndGates(m, glue.sisharedctors[], null, "__modsharedictor");
+            if (msictor)
+                glue.sisharedctors.shift(msictor);
+            msictor = callFuncsAndGates(m, glue.sisharedctors[], null, "__modsharedictor");
         }
 
         m.ssharedctor = callFuncsAndGates(m, glue.ssharedctors[], cast(StaticDtorDeclaration[])glue.esharedctorgates[], "__modsharedctor");
@@ -1510,7 +1512,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         m.stest = callFuncsAndGates(m, glue.stests[], null, "__modtest");
 
         if (doppelganger)
-            genModuleInfo(m);
+            genModuleInfo(m, msictor);
     }
 
     if (doppelganger)
@@ -1529,7 +1531,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
      */
     if (global.params.useModuleInfo && Module.moduleinfo &&
         (global.params.cov || m.filetype != FileType.c) /*|| needModuleInfo()*/)
-        genModuleInfo(m);
+        genModuleInfo(m, msictor);
 
     objmod.termfile();
 }
@@ -1537,7 +1539,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
 
 // Put out instance of ModuleInfo for this Module
 
-private void genModuleInfo(Module m)
+private void genModuleInfo(Module m, Symbol* msictor)
 {
     //printf("Module.genmoduleinfo() %s\n", m.toChars());
 
@@ -1599,7 +1601,7 @@ private void genModuleInfo(Module m)
         flags |= MIdtor;
     if (sgetmembers)
         flags |= MIxgetMembers;
-    if (m.sictor)
+    if (msictor)
         flags |= MIictor;
     if (m.stest)
         flags |= MIunitTest;
@@ -1623,7 +1625,7 @@ private void genModuleInfo(Module m)
     if (flags & MIxgetMembers)
         dtb.xoff(toSymbol(sgetmembers), 0, TYnptr);
     if (flags & MIictor)
-        dtb.xoff(m.sictor, 0, TYnptr);
+        dtb.xoff(msictor, 0, TYnptr);
     if (flags & MIunitTest)
         dtb.xoff(m.stest, 0, TYnptr);
     if (flags & MIimportedModules)
