@@ -589,11 +589,53 @@ version (D_ProfileGC)
     }
 }
 
-extern (C) void* _d_arrayliteralTX(const TypeInfo ti, size_t length) @trusted pure nothrow;
 
+/**
+Allocate an array literal
+
+Rely on the caller to do the initialization of the array.
+
+---
+int[] getArr()
+{
+    return [10, 20];
+    // auto res = cast(int*) _d_arrayliteralTX(typeid(int[]), 2);
+    // res[0] = 10;
+    // res[1] = 20;
+    // return res[0..2];
+}
+---
+
+Params:
+    T = unqualified type of array elements
+    length = `.length` of array literal
+
+Returns: pointer to allocated array
+*/
 void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
 {
-    return _d_arrayliteralTX(typeid(T), length);
+    const allocsize = length * T.sizeof;
+
+    if (allocsize == 0)
+        return null;
+    else
+    {
+        import core.memory : GC;
+        import core.internal.traits : hasIndirections, hasElaborateDestructor;
+        alias BlkAttr = GC.BlkAttr;
+
+        /* Same as in core.internal.array.utils.__typeAttrs!T,
+        *  but don't use a nested template function call here to avoid
+        *  possible linking errors.
+        */
+        uint attrs = BlkAttr.APPENDABLE;
+        static if (!hasIndirections!T)
+            attrs |= BlkAttr.NO_SCAN;
+        static if (is(T == struct) && hasElaborateDestructor!T)
+            attrs |= BlkAttr.FINALIZE;
+
+        return GC.malloc(allocsize, attrs, typeid(T));
+    }
 }
 
 version (D_ProfileGC)
@@ -602,7 +644,7 @@ void* _d_arrayliteralTXTrace(T)(size_t length, string file = __FILE__, int line 
     version (D_TypeInfo)
     {
         import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-        mixin(TraceHook!(T.stringof, "_d_arrayliteralTX"));
+        mixin(TraceHook!((T[]).stringof, "_d_arrayliteralTX"));
 
         return _d_arrayliteralTX!T(length);
     }

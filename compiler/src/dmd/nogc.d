@@ -164,7 +164,7 @@ public:
         lowering = new DotIdExp(e.loc, lowering, Id.object);
         auto tiargs = new Objects();
         // Remove `inout`, `const`, `immutable` and `shared` to reduce template instances
-        auto t = e.type.unqualify(MODFlags.wild | MODFlags.const_ | MODFlags.immutable_ | MODFlags.shared_);
+        auto t = e.type.nextOf().unqualify(MODFlags.wild | MODFlags.const_ | MODFlags.immutable_ | MODFlags.shared_);
         tiargs.push(t);
         lowering = new DotTemplateInstanceExp(e.loc, lowering, hook, tiargs);
 
