@@ -6730,7 +6730,6 @@ public:
     ThreeState isabstract;
     Baseok baseok;
     ObjcClassDeclaration objc;
-    Symbol* cpp_type_info_ptr_sym;
     static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass* >* baseclasses, Array<Dsymbol* >* members, bool inObject);
     const char* toPrettyChars(bool qualifyTypes = false) override;
     ClassDeclaration* syntaxCopy(Dsymbol* s) override;
@@ -7233,15 +7232,10 @@ public:
     int32_t imports(Module* m);
     bool isRoot();
     bool isCoreModule(Identifier* ident);
-    Symbol* cov;
+    void* cov;
     _d_dynamicArray< uint32_t > covb;
-    Symbol* sictor;
-    Symbol* sctor;
-    Symbol* sdtor;
-    Symbol* ssharedctor;
-    Symbol* sshareddtor;
-    Symbol* stest;
-    Symbol* sfilename;
+    void* sfilename;
+    bool hasCDtor;
     void* ctfe_cov;
     void accept(Visitor* v) override;
     void fullyQualifiedName(OutBuffer& buf);

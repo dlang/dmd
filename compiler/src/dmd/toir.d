@@ -188,7 +188,8 @@ extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
     /* Generate: *(m.cov + linnum * 4) += 1
      */
     elem* e;
-    e = el_ptr(m.cov);
+    Symbol* mcov = cast(Symbol*) m.cov;
+    e = el_ptr(mcov);
     e = el_bin(OPadd, TYnptr, e, el_long(TYuint, linnum * 4));
     e = el_una(OPind, TYuint, e);
     e = el_bin(OPaddass, TYuint, e, el_long(TYuint, 1));

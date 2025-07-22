@@ -1190,12 +1190,6 @@ public:
                     mi->accept(this);
             }
             (void)dmd::findGetMembers(d);
-            (void)d->sctor;
-            (void)d->sdtor;
-            (void)d->ssharedctor;
-            (void)d->sshareddtor;
-            (void)d->sictor;
-            (void)d->stest;
             (void)d->needmoduleinfo;
         }
         d->semanticRun(PASS::obj);
