@@ -11635,7 +11635,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             t1.isStaticOrDynamicArray() &&
             t1.nextOf().toBasetype().ty == Tvoid)
         {
-            if (t2.nextOf().implicitConvTo(t1.nextOf()))
+            auto t2n = t2.nextOf();
+            if (!t2n)
+            {
+                // filling not allowed
+                error(exp.loc, "cannot copy `%s` to `%s`",
+                    t2.toChars(), t1.toChars());
+            }
+            else if (t2n.implicitConvTo(t1.nextOf()))
             {
                 if (sc.setUnsafe(false, exp.loc, "copying `%s` to `%s`", t2, t1))
                     return setError();
@@ -11895,14 +11902,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression ce = new CallExp(ae.loc, id, arguments);
         res = Expression.combine(eValue2, ce).expressionSemantic(sc);
         if (isArrayAssign)
-            res = Expression.combine(res, ae.e1).expressionSemantic(sc);
+            res = Expression.combine(res, ae.e1).expressionSemantic(sc).checkGC(sc);
 
         if (global.params.v.verbose)
             message("lowered   %s =>\n          %s", ae.toChars(), res.toChars());
 
         res = new LoweredAssignExp(ae, res);
         res.type = ae.type;
-        res = res.checkGC(sc);
 
         return res;
     }
@@ -12534,7 +12540,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto tiargs = new Objects(exp.type);
         id = new DotTemplateInstanceExp(exp.loc, id, hook, tiargs);
         id = new CallExp(exp.loc, id, arguments);
-        return id.expressionSemantic(sc);
+        return id.expressionSemantic(sc).checkGC(sc);
     }
 
     void trySetCatExpLowering(Expression exp)
@@ -16836,8 +16842,12 @@ Expression toBoolean(Expression exp, Scope* sc)
             if (!t.isBoolean())
             {
                 if (tb != Type.terror)
+                {
                     error(exp.loc, "expression `%s` of type `%s` does not have a boolean value",
                               exp.toChars(), t.toChars());
+                    if (auto ts = tb.isTypeStruct())
+                        errorSupplemental(ts.sym.loc, "perhaps add Cast Operator Overloading with `bool opCast(T : bool)() => ...`");
+                }
                 return ErrorExp.get();
             }
             return e;

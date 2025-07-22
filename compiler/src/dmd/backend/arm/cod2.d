@@ -1254,11 +1254,11 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         auto remainder = numbytes & (REGSIZE - 1);
         if (remainder >= 4)
         {
-            cdb.gen1(INSTR.ldst_immpost(3,0,0,4,dstreg,valuereg));      // STR  valuereg,[dstreg],#4        // *dstreg++ = valuereg
+            cdb.gen1(INSTR.ldst_immpost(2,0,0,4,dstreg,valuereg));      // STR  valuereg,[dstreg],#4        // *dstreg++ = valuereg
             remainder -= 4;
         }
         for (; remainder; --remainder)
-            cdb.gen1(INSTR.ldst_immpost(3,0,0,1,dstreg,valuereg));      // STR  valuereg,[dstreg],#0        // *dstreg++ = valuereg
+            cdb.gen1(INSTR.ldst_immpost(0,0,0,1,dstreg,valuereg));      // STRB valuereg,[dstreg],#1        // *dstreg++ = valuereg
         fixresult(cdb,e,retregs,pretregs);
         return;
     }
@@ -1424,8 +1424,8 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
 @trusted
 void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    //printf("cdstreq(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
-    //elem_print(e);
+    printf("cdstreq(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
+    elem_print(e);
     char need_DS = false;
     elem* e1 = e.E1;
     elem* e2 = e.E2;
@@ -1467,18 +1467,21 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     regm_t regm = cg.allregs & ~(srcregs | dstregs);
     allocreg(cdb, regm, TYint);
-    reg_t reg = findreg(regm);
+    reg_t Rv = findreg(regm);
+
+    reg_t Rs = findreg(srcregs);
+    reg_t Rd = findreg(dstregs);
 
     getregs(cdb,srcregs | dstregs | regm);
     if (numbytes <= REGSIZE * 7)
     {
         code csrc;
-        csrc.base = findreg(srcregs);
+        csrc.base = Rs;
         csrc.index = NOREG;
         csrc.reg = NOREG;
 
         code cdst;
-        cdst.base = findreg(dstregs);
+        cdst.base = Rd;
         cdst.index = NOREG;
         cdst.reg = NOREG;
 
@@ -1486,9 +1489,9 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         while (numbytes >= REGSIZE)
         {
-            loadFromEA(csrc,reg,8,8);
+            loadFromEA(csrc,Rv,8,8);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
-            storeToEA(cdst,reg,8);
+            storeToEA(cdst,Rv,8);
             cdb.genc1(cdst.Iop,0,FL.offset,offset);
             offset += REGSIZE;
             numbytes -= REGSIZE;
@@ -1496,9 +1499,9 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         while (numbytes >= 4)
         {
-            loadFromEA(csrc,reg,4,4);
+            loadFromEA(csrc,Rv,4,4);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
-            storeToEA(cdst,reg,4);
+            storeToEA(cdst,Rv,4);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
             offset += 4;
             numbytes -= 4;
@@ -1506,9 +1509,9 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         while (numbytes >= 2)
         {
-            loadFromEA(csrc,reg,4,2);
+            loadFromEA(csrc,Rv,4,2);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
-            storeToEA(cdst,reg,2);
+            storeToEA(cdst,Rv,2);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
             offset += 2;
             numbytes -= 2;
@@ -1516,52 +1519,84 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         if (numbytes)
         {
-            loadFromEA(csrc,reg,4,1);
+            loadFromEA(csrc,Rv,4,1);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
-            storeToEA(cdst,reg,1);
+            storeToEA(cdst,Rv,1);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
         }
     }
     else
     {
-        if (e1) assert(0); // TODO AArch64
-static if (1)
-{
+        /*
+            mov   Rc, #count*8
+            mov   Ri, #0x0
+        L2: ldr   Rv, [Rs, Ri]
+            str   Rv, [Rd, Ri]
+            add   Ri, Ri, #8
+            cmp   Ri, Rc
+            b.ne  L2
+         */
+
         uint remainder = numbytes & (REGSIZE - 1);
         numbytes /= REGSIZE;            // number of words
-        getregs_imm(cdb,mCX);
-        movregconst(cdb,CX,numbytes,0);   // # of bytes/words
-        cdb.gen1(0xF3);                 // REP
-        if (REGSIZE == 8)
-            cdb.gen1(REX | REX_W);
-        cdb.gen1(0xA5);                 // REP MOVSD
-        cgstate.regimmed_set(CX,0);             // note that CX == 0
-        if (I64 && remainder >= 4)
+
+        regm_t iregs = cg.allregs & ~(srcregs | dstregs | regm);
+        reg_t Ri = allocreg(cdb,iregs,TYnptr);
+
+        regm_t cregs = cg.allregs & ~(srcregs | dstregs | regm | iregs);
+        reg_t Rc = allocreg(cdb,cregs,TYnptr);
+
+        code csrc;
+        csrc.base = Rs;
+        csrc.index = Ri;
+        csrc.reg = NOREG;
+        csrc.Sextend = 3;                               // LSL
+
+        code cdst;
+        cdst.base = Rd;
+        cdst.index = Ri;
+        cdst.reg = NOREG;
+        cdst.Sextend = 3;                               // LSL
+
+        movregconst(cdb,Rc,numbytes * 8,0);             // mov   Rc,#count * 8
+        movregconst(cdb,Ri,0,0);                        // mov   Ri,0
+
+        loadFromEA(csrc,Rv,8,8);                        // L2:   ldr Rv,[Rs,Ri]
+        cdb.genc1(csrc.Iop,0,FL.unde,0);
+        code* L2 = cdb.last();
+        storeToEA(cdst,Rv,8);                           // str  Rv,[Rd,Ri]
+        cdb.genc1(cdst.Iop,0,FL.unde,0);
+
+        cdb.gen1(INSTR.add_addsub_imm(1,0,8,Ri,Ri));    // add  Ri,Ri,#0x8 https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+        cdb.gen1(INSTR.cmp_shift(0,Rc,0,0,Ri));         // cmp  Ri,Rc
+        genBranch(cdb,COND.ne,FL.code,cast(block*)L2);  // b.ne L2
+
+        uint offset = 0;
+        if (remainder & 4)
         {
-            cdb.gen1(0xA5);         // MOVSD
-            remainder -= 4;
+            loadFromEA(csrc,Rv,4,4);                    // ldr  Rv,[Rs,Ri]
+            cdb.genc1(csrc.Iop,0,FL.unde,offset);
+            storeToEA(cdst,Rv,4);                       // str  Rv,[Rd,Ri]
+            cdb.genc1(cdst.Iop,0,FL.unde,offset);
+            cdb.gen1(INSTR.add_addsub_imm(1,0,4,Ri,Ri)); // add  Ri,Ri,#0x4 https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+            offset += 4;
         }
-        for (; remainder; remainder--)
+        if (remainder & 2)
         {
-            cdb.gen1(0xA4);             // MOVSB
+            loadFromEA(csrc,Rv,2,2);                    // ldrh  Rv,[Rs,Ri]
+            cdb.genc1(csrc.Iop,0,FL.unde,offset);
+            storeToEA(cdst,Rv,2);                       // strh  Rv,[Rd,Ri]
+            cdb.genc1(cdst.Iop,0,FL.unde,offset);
+            cdb.gen1(INSTR.add_addsub_imm(1,0,2,Ri,Ri)); // add  Ri,Ri,#0x2 https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+            offset += 2;
         }
-}
-else
-{
-        uint movs;
-        if (numbytes & (REGSIZE - 1))   // if odd
-            movs = 0xA4;                // MOVSB
-        else
+        if (remainder & 1)
         {
-            movs = 0xA5;                // MOVSW
-            numbytes /= REGSIZE;        // # of words
+            loadFromEA(csrc,Rv,1,1);                    // ldrb  Rv,[Rs,Ri]
+            cdb.genc1(csrc.Iop,0,FL.unde,offset);
+            storeToEA(cdst,Rv,1);                       // strb  Rv,[Rd,Ri]
+            cdb.genc1(cdst.Iop,0,FL.unde,offset);
         }
-        getregs_imm(cdb,mCX);
-        movregconst(cdb,CX,numbytes,0);   // # of bytes/words
-        cdb.gen1(0xF3);                 // REP
-        cdb.gen1(movs);
-        cgstate.regimmed_set(CX,0);             // note that CX == 0
-}
     }
     assert(!(pretregs & mPSW));
     if (pretregs)
@@ -1570,7 +1605,7 @@ else
         //cdb.genc2(0x81,(rex << 16) | modregrm(3,5,DI), type_size(e.ET));   // SUB DI,numbytes
 
         const tym = tybasic(e.Ety);
-        if (tym == TYucent && I64)
+        if (tym == TYucent)
         {
             /* https://issues.dlang.org/show_bug.cgi?id=22175
              * The trouble happens when the struct size does not fit exactly into
@@ -1579,30 +1614,30 @@ else
              */
 
             // dereference DI
-            code cs;
-            cs.Iop = 0x8B;
-            regm_t retregs = pretregs;
+            regm_t retregs = pretregs & ~srcregs;
+            if (!retregs)
+                retregs = cgstate.allregs & ~srcregs;
             allocreg(cdb,retregs,tym);
 
             reg_t msreg = findreg(retregs & INSTR.MSW);
-            buildEA(&cs,DI,-1,1,REGSIZE);
-            code_newreg(&cs,msreg);
-            cs.Irex |= REX_W;
-            cdb.gen(&cs);       // MOV msreg,REGSIZE[DI]        // msreg is never DI
+
+            code cs;
+            cs.base = Rs;
+            cs.index = NOREG;
+            cs.reg = NOREG;
+
+            loadFromEA(cs,msreg,8,8);                   // ldr  msreg,[Rs,REGSIZE]
+            cdb.genc1(cs.Iop,0,FL.offset,REGSIZE);
 
             reg_t lsreg = findreg(retregs & INSTR.LSW);
-            buildEA(&cs,DI,-1,1,0);
-            code_newreg(&cs,lsreg);
-            cs.Irex |= REX_W;
-            cdb.gen(&cs);       // MOV lsreg,[DI];
+            loadFromEA(cs,lsreg,8,8);                   // ldr  lsreg,[Rs]
+            cdb.genc1(cs.Iop,0,FL.offset,0);
+
             fixresult(cdb,e,retregs,pretregs);
             return;
         }
 
-        regm_t retregs = mDI;
-        if (pretregs & INSTR.MSW && !(config.exe & EX_flat))
-            retregs |= mES;
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cdb,e,dstregs,pretregs);
     }
 }
 

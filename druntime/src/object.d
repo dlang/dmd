@@ -4782,6 +4782,7 @@ version (D_ProfileGC)
     public import core.internal.array.construction : _d_newarrayTTrace;
     public import core.internal.array.construction : _d_newarraymTXTrace;
     public import core.internal.array.capacity: _d_arraysetlengthTTrace;
+    public import core.internal.array.construction : _d_arrayliteralTXTrace;
 }
 public import core.internal.array.appending : _d_arrayappendcTX;
 public import core.internal.array.comparison : __cmp;
@@ -4792,6 +4793,7 @@ public import core.internal.array.construction : _d_arrayctor;
 public import core.internal.array.construction : _d_arraysetctor;
 public import core.internal.array.construction : _d_newarrayT;
 public import core.internal.array.construction : _d_newarraymTX;
+public import core.internal.array.construction : _d_arrayliteralTX;
 public import core.internal.array.arrayassign : _d_arrayassign_l;
 public import core.internal.array.arrayassign : _d_arrayassign_r;
 public import core.internal.array.arrayassign : _d_arraysetassign;

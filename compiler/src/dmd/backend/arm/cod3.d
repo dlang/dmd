@@ -1714,7 +1714,7 @@ void assignaddrc(code* c)
                 if (field(ins,28,23) == 0x22)      // Add/subtract (immediate)
                 {
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
-//printf("imm12: %d offset: %llx\n", imm12, offset);
+//printf("imm12: %x offset: %llx\n", imm12, offset);
                     imm12 += offset;
                     assert(imm12 < 0x1000);
                     ins = setField(ins,21,10,imm12);
@@ -1738,7 +1738,7 @@ void assignaddrc(code* c)
                     else
                     {
                         imm12 = cast(uint)(offset >> shift);
-//printf("imm12: x%x\n", imm12);
+//printf("offset: %llu x%llx shift: %d imm12: x%x\n", offset,offset,shift,imm12);
                         assert(imm12 < 0x1000);
                         ins = setField(ins,21,10,imm12);
                     }
@@ -1768,7 +1768,10 @@ void assignaddrc(code* c)
                     ins = setField(ins,20,12,imm9);
                 }
                 else
+                {
+                    disassemble(ins);
                     assert(0);
+                }
 
                 Rn = cast(reg_t)field(ins,9,5);
                 Rt = cast(reg_t)field(ins,4,0);
