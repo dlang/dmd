@@ -117,7 +117,6 @@ class ForeachStatement;
 class ForeachRangeStatement;
 struct OutBuffer;
 class TypeInfoClassDeclaration;
-struct Symbol;
 class TypeTuple;
 class Initializer;
 struct IntRange;
