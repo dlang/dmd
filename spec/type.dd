@@ -230,7 +230,8 @@ $(H2 $(LNAME2 type-conversions, Type Conversions))
 
 $(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
 
-    $(P $(RELATIVE_LINK2 pointers, Pointers) implicitly convert to `void*`.)
+    $(P Any $(RELATIVE_LINK2 pointers, pointer) implicitly converts to a `void` pointer -
+    see below.)
 
     $(P Casting between pointers and non-pointers is allowed. Some pointer casts
     are disallowed in $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe` code).)
@@ -245,16 +246,42 @@ $(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conver
     types as required. The rules for integers are detailed in the next sections.
     )
 
-    $(P An enum can be $(DDSUBLINK spec/enum, named_enums, implicitly converted) to its base
-    type, but going the other way requires an explicit
-    conversion.)
-
     $(UL
-    $(LI All types implicitly convert to $(RELATIVE_LINK2 noreturn, `noreturn`).)
-    $(LI Static and dynamic arrays implicitly convert to $(DDSUBLINK spec/arrays, void_arrays, `void` arrays).)
+    $(LI An enum can be $(DDSUBLINK spec/enum, named_enums, implicitly converted) to its base
+    type (but going the other way requires an explicit conversion).)
+    $(LI $(RELATIVE_LINK2 noreturn, `noreturn`) implicitly converts to any type.)
+    $(LI Static and dynamic arrays implicitly convert to $(DDSUBLINK spec/arrays, void_arrays, `void` arrays).
+        The `void` element type for the array may need a
+        $(DDLINK spec/const3, Type Qualifiers, type qualifier), depending on the source
+        element type:
+    )
+        * An array with non-mutable elements will implicitly convert to `const(void)[]`, but not `void[]`.
+        * An array with `shared` elements will implicitly convert to `shared(void)[]`, but not `void[]`.
+    $(LI Any pointer implicitly converts to a void pointer. As for void arrays, the
+        `void` element type may need a type qualifier.)
     $(LI $(DDSUBLINK spec/function, function-pointers-delegates, Function pointers and delegates)
         can convert to covariant types.)
     )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void main()
+{
+    noreturn n;
+    int i = n;
+    void* p = &i;
+
+    const int[] a;
+    const(void)[] cv = a;
+    //void[] va = a; // error
+}
+
+void f(int x) pure;
+void function(int) fp = &f; // pure is covariant with non-pure
+---
+)
+    $(P See also $(DDSUBLINK spec/const3, implicit_qualifier_conversions,
+    Implicit Qualifier Conversions).)
 
 $(H4 $(LNAME2 class-conversions, Class Conversions))
 
