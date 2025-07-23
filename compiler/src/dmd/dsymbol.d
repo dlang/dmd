@@ -104,22 +104,6 @@ void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
     }
 }
 
-
-struct Ungag
-{
-    uint oldgag;
-
-    extern (D) this(uint old) nothrow @safe
-    {
-        this.oldgag = old;
-    }
-
-    extern (C++) ~this() nothrow
-    {
-        global.gag = oldgag;
-    }
-}
-
 struct Visibility
 {
     ///
@@ -684,14 +668,6 @@ extern (C++) class Dsymbol : ASTNode
         if (!parent.toParent())
             return null;
         return parent.isSpeculative();
-    }
-
-    final Ungag ungagSpeculative() const
-    {
-        const oldgag = global.gag;
-        if (global.gag && !isSpeculative() && !toParent2().isFuncDeclaration())
-            global.gag = 0;
-        return Ungag(oldgag);
     }
 
     // kludge for template.isSymbol()
