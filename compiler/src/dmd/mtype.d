@@ -31,7 +31,6 @@ import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.dsymbolsem : determineSize;
-import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -49,7 +48,7 @@ import dmd.visitor;
 enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
 
-enum SIZE_INVALID = (~cast(uinteger_t)0);   // error return from size() functions
+enum SIZE_INVALID = (~cast(ulong)0);   // error return from size() functions
 
 static if (__VERSION__ < 2095)
 {
@@ -1399,9 +1398,9 @@ extern (C++) abstract class Type : ASTNode
      * Return the mask that an integral type will
      * fit into.
      */
-    extern (D) final uinteger_t sizemask()
+    extern (D) final ulong sizemask()
     {
-        uinteger_t m;
+        ulong m;
         switch (toBasetype().ty)
         {
         case Tbool:
@@ -2603,110 +2602,6 @@ extern (C++) final class TypeFunction : TypeNext
         return linkage == LINK.d && parameterList.varargs == VarArg.variadic;
     }
 
-    /*********************************
-     * Append error message to buf.
-     * Input:
-     *  buf = message sink
-     *  format = printf format
-     */
-    extern(C) static void getMatchError(ref OutBuffer buf, const(char)* format, ...)
-    {
-        if (global.gag && !global.params.v.showGaggedErrors)
-            return;
-        va_list ap;
-        va_start(ap, format);
-        buf.vprintf(format, ap);
-        va_end(ap);
-    }
-
-    /********************************
-     * Convert an `argumentList`, which may contain named arguments, into
-     * a list of arguments in the order of the parameter list.
-     *
-     * Params:
-     *      argumentList = array of function arguments
-     *      buf = if not null, append error message to it
-     * Returns: re-ordered argument list, or `null` on error
-     */
-    extern(D) Expressions* resolveNamedArgs(ArgumentList argumentList, OutBuffer* buf)
-    {
-        Expression[] args = argumentList.arguments ? (*argumentList.arguments)[] : null;
-        ArgumentLabel[] names = argumentList.names ? (*argumentList.names)[] : null;
-        const nParams = parameterList.length(); // cached because O(n)
-        auto newArgs = new Expressions(nParams);
-        newArgs.zero();
-        size_t ci = 0;
-        bool hasNamedArgs = false;
-        const bool isVariadic = parameterList.varargs != VarArg.none;
-        foreach (i, arg; args)
-        {
-            if (!arg)
-            {
-                ci++;
-                continue;
-            }
-            auto name = i < names.length ? names[i].name : null;
-            if (name)
-            {
-                hasNamedArgs = true;
-                const pi = findParameterIndex(name);
-                if (pi == -1)
-                {
-                    if (buf)
-                        getMatchError(*buf, "no parameter named `%s`", name.toChars());
-                    return null;
-                }
-                ci = pi;
-            }
-            if (ci >= newArgs.length)
-            {
-                if (!isVariadic)
-                {
-                    // Without named args, let the caller diagnose argument overflow
-                    if (hasNamedArgs && buf)
-                        getMatchError(*buf, "argument `%s` goes past end of parameter list", arg.toChars());
-                    return null;
-                }
-                while (ci >= newArgs.length)
-                    newArgs.push(null);
-            }
-
-            if ((*newArgs)[ci])
-            {
-                if (buf)
-                    getMatchError(*buf, "parameter `%s` assigned twice", parameterList[ci].toChars());
-                return null;
-            }
-            (*newArgs)[ci++] = arg;
-        }
-        foreach (i, arg; (*newArgs)[])
-        {
-            if (arg || parameterList[i].defaultArg)
-                continue;
-
-            if (isVariadic && i + 1 == newArgs.length)
-                continue;
-
-            // dtemplate sets `defaultArg=null` to avoid semantic on default arguments,
-            // don't complain about missing arguments in that case
-            if (this.incomplete)
-                continue;
-
-            if (buf)
-                getMatchError(*buf, "missing argument for parameter #%d: `%s`",
-                    i + 1, parameterToChars(parameterList[i], this, false));
-            return null;
-        }
-        // strip trailing nulls from default arguments
-        size_t e = newArgs.length;
-        while (e > 0 && (*newArgs)[e - 1] is null)
-        {
-            --e;
-        }
-        newArgs.setDim(e);
-        return newArgs;
-    }
-
     /// Returns: `true` the function is `isInOutQual` or `isInOutParam` ,`false` otherwise.
     bool iswild() const pure nothrow @safe @nogc
     {
@@ -2735,23 +2630,6 @@ extern (C++) final class TypeFunction : TypeNext
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    /**
-     * Look for the index of parameter `ident` in the parameter list
-     *
-     * Params:
-     *   ident = identifier of parameter to search for
-     * Returns: index of parameter with name `ident` or -1 if not found
-     */
-    private extern(D) ptrdiff_t findParameterIndex(Identifier ident)
-    {
-        foreach (i, p; this.parameterList)
-        {
-            if (p.ident == ident)
-                return i;
-        }
-        return -1;
     }
 }
 

@@ -687,6 +687,129 @@ extern (D) bool checkComplexTransition(Type type, Loc loc, Scope* sc)
     return false;
 }
 
+/**
+ * Look for the index of parameter `ident` in the parameter list
+ *
+ * Params:
+ *   tf = function type
+ *   ident = identifier of parameter to search for
+ * Returns: index of parameter with name `ident` or -1 if not found
+ */
+private extern(D) ptrdiff_t findParameterIndex(TypeFunction tf, Identifier ident)
+{
+    foreach (i, p; tf.parameterList)
+    {
+        if (p.ident == ident)
+            return i;
+    }
+    return -1;
+}
+
+/*********************************
+ * Append error message to buf.
+ * Input:
+ *  buf = message sink
+ *  format = printf format
+ */
+private extern(C) void getMatchError(ref OutBuffer buf, const(char)* format, ...)
+{
+    if (global.gag && !global.params.v.showGaggedErrors)
+        return;
+    va_list ap;
+    va_start(ap, format);
+    buf.vprintf(format, ap);
+    va_end(ap);
+}
+
+/********************************
+ * Convert an `argumentList`, which may contain named arguments, into
+ * a list of arguments in the order of the parameter list.
+ *
+ * Params:
+ *   tf = function type
+ *      argumentList = array of function arguments
+ *      buf = if not null, append error message to it
+ * Returns: re-ordered argument list, or `null` on error
+ */
+extern(D) Expressions* resolveNamedArgs(TypeFunction tf, ArgumentList argumentList, OutBuffer* buf)
+{
+    Expression[] args = argumentList.arguments ? (*argumentList.arguments)[] : null;
+    ArgumentLabel[] names = argumentList.names ? (*argumentList.names)[] : null;
+    const nParams = tf.parameterList.length(); // cached because O(n)
+    auto newArgs = new Expressions(nParams);
+    newArgs.zero();
+    size_t ci = 0;
+    bool hasNamedArgs = false;
+    const bool isVariadic = tf.parameterList.varargs != VarArg.none;
+    foreach (i, arg; args)
+    {
+        if (!arg)
+        {
+            ci++;
+            continue;
+        }
+        auto name = i < names.length ? names[i].name : null;
+        if (name)
+        {
+            hasNamedArgs = true;
+            const pi = tf.findParameterIndex(name);
+            if (pi == -1)
+            {
+                if (buf)
+                    getMatchError(*buf, "no parameter named `%s`", name.toChars());
+                return null;
+            }
+            ci = pi;
+        }
+        if (ci >= newArgs.length)
+        {
+            if (!isVariadic)
+            {
+                // Without named args, let the caller diagnose argument overflow
+                if (hasNamedArgs && buf)
+                    getMatchError(*buf, "argument `%s` goes past end of parameter list", arg.toChars());
+                return null;
+            }
+            while (ci >= newArgs.length)
+                newArgs.push(null);
+        }
+
+        if ((*newArgs)[ci])
+        {
+            if (buf)
+                getMatchError(*buf, "parameter `%s` assigned twice", tf.parameterList[ci].toChars());
+            return null;
+        }
+        (*newArgs)[ci++] = arg;
+    }
+    foreach (i, arg; (*newArgs)[])
+    {
+        if (arg || tf.parameterList[i].defaultArg)
+            continue;
+
+        if (isVariadic && i + 1 == newArgs.length)
+            continue;
+
+        // dtemplate sets `defaultArg=null` to avoid semantic on default arguments,
+        // don't complain about missing arguments in that case
+        if (tf.incomplete)
+            continue;
+
+        if (buf)
+            getMatchError(*buf, "missing argument for parameter #%d: `%s`",
+                          i + 1, parameterToChars(tf.parameterList[i], tf, false));
+        return null;
+    }
+    // strip trailing nulls from default arguments
+    size_t e = newArgs.length;
+    while (e > 0 && (*newArgs)[e - 1] is null)
+    {
+        --e;
+    }
+    newArgs.setDim(e);
+    return newArgs;
+}
+
 /********************************
  * 'args' are being matched to function type 'tf'
  * Determine match level.
@@ -867,8 +990,8 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
             if (errorHelper)
             {
                 if (u >= args.length)
-                    TypeFunction.getMatchError(buf, "missing argument for parameter #%d: `%s`",
-                        u + 1, parameterToChars(p, tf, false));
+                    getMatchError(buf, "missing argument for parameter #%d: `%s`",
+                                  u + 1, parameterToChars(p, tf, false));
                 // If an error happened previously, `pMessage` was already filled
                 else if (buf.length == 0)
                     buf.writestring(tf.getParamError(args[u], p));
@@ -885,7 +1008,7 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
     {
         // all parameters had a match, but there are surplus args
         OutBuffer buf2;
-        TypeFunction.getMatchError(buf2, "expected %d argument(s), not %d", nparams, args.length);
+        getMatchError(buf2, "expected %d argument(s), not %d", nparams, args.length);
         errorHelper(buf2.extractChars());
         return MATCH.nomatch;
     }
@@ -1231,7 +1354,7 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
             if (pMessage)
             {
                 OutBuffer buf;
-                TypeFunction.getMatchError(buf, "expected %llu variadic argument(s), not %zu",
+                getMatchError(buf, "expected %llu variadic argument(s), not %zu",
                     sz, trailingArgs.length);
                 *pMessage = buf.extractChars();
             }

@@ -80,7 +80,7 @@ import dmd.templatesem : matchWithInstance, formatParamsWithTiargs, leastAsSpeci
 import dmd.tokens;
 import dmd.typesem : hasPointers, typeSemantic, merge, merge2, resolve, toDsymbol,
                      addStorageClass, isBaseOf, equivalent, sarrayOf, constOf, mutableOf, unSharedOf,
-                     unqualify, aliasthisOf, castMod, substWildTo, addMod;
+                     unqualify, aliasthisOf, castMod, substWildTo, addMod, resolveNamedArgs;
 import dmd.visitor;
 
 import dmd.templateparamsem;
