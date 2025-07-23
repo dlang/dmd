@@ -30,9 +30,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
-
 import dmd.func;
-import dmd.globals;
 import dmd.hdrgen;
 import dmd.identifier;
 import dmd.init;
