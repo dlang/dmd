@@ -4827,8 +4827,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         arguments.push(new ArrayLiteralExp(aaExp.loc, keytype.arrayOf(), aaExp.keys));
         arguments.push(new ArrayLiteralExp(aaExp.loc, valtype.arrayOf(), aaExp.values));
         Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
-
         loweredExp = loweredExp.expressionSemantic(sc);
+        // lowering arguments to _d_arrayliteralTX is a side-effect of checking @nogc,
+        // but is not run, because the type is already set
+        checkGC(loweredExp, sc);
         loweredExp = resolveProperties(sc, loweredExp);
         aaExp.lowering = loweredExp;
 
