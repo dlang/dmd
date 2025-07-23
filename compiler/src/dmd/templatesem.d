@@ -1292,7 +1292,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                 }
                 else if ((fparam.storageClass & STC.out_) == 0 &&
                          (argtype.ty == Tarray || argtype.ty == Tpointer) &&
-                         templateParameterLookup(prmtype, td.parameters) != IDX_NOTFOUND &&
+                        templateParameterLookup(prmtype, *td.parameters) != IDX_NOTFOUND &&
                          prmtype.isTypeIdentifier().idents.length == 0)
                 {
                     /* The farg passing to the prmtype always make a copy. Therefore,
@@ -1420,7 +1420,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                     {
                         Expression dim = new IntegerExp(instLoc, fargs.length - argi, Type.tsize_t);
 
-                        size_t i = templateParameterLookup(taa.index, td.parameters);
+                        size_t i = templateParameterLookup(taa.index, *td.parameters);
                         if (i == IDX_NOTFOUND)
                         {
                             Expression e;
