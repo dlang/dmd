@@ -601,16 +601,16 @@ Int!(17) c;  // error, static assert trips
 $(H2 $(LNAME2 staticforeach, Static Foreach))
 
 $(GRAMMAR
-$(GNAME StaticForeach):
-    $(D static) $(GLINK2 statement, AggregateForeach)
-    $(D static) $(GLINK2 statement, RangeForeach)
-
 $(GNAME StaticForeachDeclaration):
     $(GLINK StaticForeach) $(GLINK2 attribute, DeclarationBlock)
     $(GLINK StaticForeach) $(D :) $(GLINK2 module, DeclDefs)$(OPT)
 
 $(GNAME StaticForeachStatement):
     $(GLINK StaticForeach) $(GLINK2 statement, NoScopeNonEmptyStatement)
+
+$(GNAME StaticForeach):
+    $(D static) $(GLINK2 statement, AggregateForeach)
+    $(D static) $(GLINK2 statement, RangeForeach)
 )
 
         $(P `static foreach` expands its *DeclarationBlock* or *DeclDefs* into a
@@ -639,7 +639,8 @@ static foreach (i; [0, 1, 2, 3])
 ------
 )
 
-        $(P $(D static foreach) supports multiple variables in cases where the
+        $(P $(D static foreach) supports multiple $(GLINK2 statement, ForeachType)
+        variables in cases where the
         corresponding $(D foreach) statement supports them. (In this case,
         $(D static foreach) generates a compile-time sequence of tuples, and the
         tuples are subsequently unpacked during iteration).
