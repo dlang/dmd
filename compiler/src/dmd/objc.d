@@ -31,7 +31,6 @@ import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
-import dmd.globals;
 import dmd.gluelayer;
 import dmd.hdrgen;
 import dmd.id;

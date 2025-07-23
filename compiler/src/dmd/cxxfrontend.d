@@ -26,7 +26,7 @@ import dmd.dtemplate /*: TemplateInstance, TemplateParameter, Tuple*/;
 import dmd.errorsink : ErrorSink;
 import dmd.expression /*: Expression*/;
 import dmd.func : FuncDeclaration;
-import dmd.globals;
+import dmd.globals : dinteger_t, uinteger_t, JsonFieldFlags;
 import dmd.identifier : Identifier;
 import dmd.init : Initializer, NeedInterpret;
 import dmd.location : Loc;
