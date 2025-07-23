@@ -1289,6 +1289,35 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
     }
 }
 
+/// Compute cached type properties for `TypeStruct`
+void determineTypeProperties(StructDeclaration sd)
+{
+    import dmd.dsymbolsem : hasPointers;
+    if (sd.computedTypeProperties)
+        return;
+    foreach (vd; sd.fields)
+    {
+        if (vd.storage_class & STC.ref_ || vd.hasPointers())
+        {
+            sd.hasPointerField = true;
+            sd.hasUnsafeBitpatterns = true;
+        }
+
+        if (vd._init && vd._init.isVoidInitializer() && vd.hasPointers())
+            sd.hasVoidInitPointers = true;
+
+        if (vd.storage_class & STC.system || vd.type.hasUnsafeBitpatterns())
+            sd.hasUnsafeBitpatterns = true;
+
+        if (!vd._init && vd.type.hasVoidInitPointers())
+            sd.hasVoidInitPointers = true;
+
+        if (vd.type.hasInvariant())
+            sd.hasFieldWithInvariant = true;
+    }
+    sd.computedTypeProperties = true;
+}
+
 /***************************************
  * Return !=0 if type has pointers that need to
  * be scanned by the GC during a collection cycle.
