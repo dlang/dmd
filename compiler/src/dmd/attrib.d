@@ -34,7 +34,6 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
 import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
 import dmd.identifier;

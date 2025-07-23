@@ -23,7 +23,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : search, hasPointers;
+import dmd.dsymbolsem : search;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -149,34 +149,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     override const(char)* kind() const
     {
         return "struct";
-    }
-
-    /// Compute cached type properties for `TypeStruct`
-    extern(D) final void determineTypeProperties()
-    {
-        if (computedTypeProperties)
-            return;
-        foreach (vd; fields)
-        {
-            if (vd.storage_class & STC.ref_ || vd.hasPointers())
-            {
-                hasPointerField = true;
-                hasUnsafeBitpatterns = true;
-            }
-
-            if (vd._init && vd._init.isVoidInitializer() && vd.hasPointers())
-                hasVoidInitPointers = true;
-
-            if (vd.storage_class & STC.system || vd.type.hasUnsafeBitpatterns())
-                hasUnsafeBitpatterns = true;
-
-            if (!vd._init && vd.type.hasVoidInitPointers())
-                hasVoidInitPointers = true;
-
-            if (vd.type.hasInvariant())
-                hasFieldWithInvariant = true;
-        }
-        computedTypeProperties = true;
     }
 
     /***************************************
