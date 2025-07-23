@@ -1,0 +1,54 @@
+name: GDC Build CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential g++ gawk flex bison \
+          libgmp-dev libmpfr-dev libmpc-dev texinfo python3
+
+    - name: Checkout GCC repo
+      uses: actions/checkout@v4
+      with:
+        submodules: true  # если GDC как submodule в ./d
+
+    - name: Download GCC prerequisites
+      run: |
+        ./contrib/download_prerequisites
+
+    - name: Setup GDC frontend
+      run: |
+        cd d
+        ./setup-gcc.sh ..
+
+    - name: Configure GCC build
+      run: |
+        mkdir build
+        cd build
+        ../configure --enable-languages=d,c \
+                     --disable-bootstrap \
+                     --disable-multilib \
+                     --disable-nls \
+                     --disable-libssp \
+                     --disable-libquadmath \
+                     --disable-libgomp
+
+    - name: Build GDC
+      run: |
+        cd build
+        make -j$(nproc)
+
+    - name: Check gdc version
+      run: |
+        cd build/gcc
+        ./gdc --version
