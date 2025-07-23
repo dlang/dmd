@@ -503,18 +503,6 @@ enum class DSYM : uint8_t
     cAsmDeclaration = 65u,
 };
 
-struct Ungag final
-{
-    uint32_t oldgag;
-    ~Ungag();
-    Ungag() :
-        oldgag()
-    {
-    }
-};
-
-typedef uint64_t uinteger_t;
-
 struct Visibility final
 {
     enum class Kind : uint8_t
@@ -610,7 +598,6 @@ public:
     TemplateInstance* isInstantiated();
     bool followInstantiationContext(Dsymbol* p1, Dsymbol* p2 = nullptr);
     TemplateInstance* isSpeculative();
-    Ungag ungagSpeculative() const;
     DYNCAST dyncast() const final override;
     virtual Identifier* getIdent();
     virtual const char* toPrettyChars(bool QualifyTypes = false);
@@ -618,7 +605,7 @@ public:
     virtual Dsymbol* toAlias();
     virtual Dsymbol* toAlias2();
     virtual bool overloadInsert(Dsymbol* s);
-    virtual uinteger_t size(Loc loc);
+    virtual uint64_t size(Loc loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration* isThis();
     virtual bool isExport() const;
@@ -2366,6 +2353,8 @@ enum class EXP : uint8_t
 };
 
 typedef uint64_t dinteger_t;
+
+typedef uint64_t uinteger_t;
 
 struct complex_t final
 {
@@ -5735,7 +5724,6 @@ struct ASTCodegen final
     using ScopeDsymbol = ::ScopeDsymbol;
     using SearchOpt = ::SearchOpt;
     using SearchOptFlags = ::SearchOptFlags;
-    using Ungag = ::Ungag;
     using Visibility = ::Visibility;
     using WithScopeSymbol = ::WithScopeSymbol;
     using MATCHpair = ::MATCHpair;
@@ -6395,7 +6383,7 @@ public:
     bool disableNew;
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
-    uinteger_t size(Loc loc) final override;
+    uint64_t size(Loc loc) final override;
     Type* getType() final override;
     bool isDeprecated() const final override;
     bool isNested() const;
@@ -6789,7 +6777,7 @@ private:
     uint8_t bitFields;
 public:
     const char* kind() const override;
-    uinteger_t size(Loc loc) final override;
+    uint64_t size(Loc loc) final override;
     bool isStatic() const;
     LINK resolvedLinkage() const;
     virtual bool isDelete();
