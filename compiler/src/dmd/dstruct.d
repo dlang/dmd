@@ -23,7 +23,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : search;
+import dmd.dsymbolsem : search, hasPointers;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -37,7 +37,7 @@ import dmd.mtype;
 import dmd.opover;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : isZeroInit, merge, size, hasPointers;
+import dmd.typesem : merge;
 import dmd.typinf;
 import dmd.visitor;
 
@@ -158,7 +158,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             return;
         foreach (vd; fields)
         {
-            import dmd.dsymbolsem : hasPointers;
             if (vd.storage_class & STC.ref_ || vd.hasPointers())
             {
                 hasPointerField = true;
