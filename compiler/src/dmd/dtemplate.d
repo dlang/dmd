@@ -976,18 +976,18 @@ extern (C++) final class TypeDeduced : Type
  * Given an identifier, figure out which TemplateParameter it is.
  * Return IDX_NOTFOUND if not found.
  */
-private size_t templateIdentifierLookup(Identifier id, ref TemplateParameters parameters)
+private size_t templateIdentifierLookup(Identifier id, TemplateParameters* parameters)
 {
     for (size_t i = 0; i < parameters.length; i++)
     {
-        TemplateParameter tp = parameters[i];
+        TemplateParameter tp = (*parameters)[i];
         if (tp.ident.equals(id))
             return i;
     }
     return IDX_NOTFOUND;
 }
 
-size_t templateParameterLookup(Type tparam, ref TemplateParameters parameters)
+size_t templateParameterLookup(Type tparam, TemplateParameters* parameters)
 {
     if (TypeIdentifier tident = tparam.isTypeIdentifier())
     {
@@ -1330,7 +1330,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
             if (tparam.ty == Tident)
             {
                 // Determine which parameter tparam is
-                size_t i = templateParameterLookup(tparam, parameters);
+                size_t i = templateParameterLookup(tparam, &parameters);
                 if (i == IDX_NOTFOUND)
                 {
                     if (!sc)
@@ -1650,7 +1650,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                 if (tsa.dim.isVarExp() && tsa.dim.isVarExp().var.storage_class & STC.templateparameter)
                 {
                     Identifier id = tsa.dim.isVarExp().var.ident;
-                    i = templateIdentifierLookup(id, parameters);
+                    i = templateIdentifierLookup(id, &parameters);
                     assert(i != IDX_NOTFOUND);
                     tp = parameters[i];
                 }
@@ -1659,7 +1659,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
             }
             else if (auto taa = tparam.isTypeAArray())
             {
-                i = templateParameterLookup(taa.index, parameters);
+                i = templateParameterLookup(taa.index, &parameters);
                 if (i != IDX_NOTFOUND)
                     tp = parameters[i];
                 else
@@ -1890,7 +1890,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                 /* Handle case of:
                  *  template Foo(T : sa!(T), alias sa)
                  */
-                size_t i = templateIdentifierLookup(tp.tempinst.name, parameters);
+                size_t i = templateIdentifierLookup(tp.tempinst.name, &parameters);
                 if (i == IDX_NOTFOUND)
                 {
                     /* Didn't find it as a parameter identifier. Try looking
@@ -2147,7 +2147,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
         override void visit(Expression e)
         {
             //printf("Expression.deduceType(e = %s)\n", e.toChars());
-            size_t i = templateParameterLookup(tparam, parameters);
+            size_t i = templateParameterLookup(tparam, &parameters);
             if (i == IDX_NOTFOUND || tparam.isTypeIdentifier().idents.length > 0)
             {
                 if (e == emptyArrayElement && tparam.ty == Tarray)
