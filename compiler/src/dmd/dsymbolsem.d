@@ -431,6 +431,28 @@ void deferDsymbolSemantic(Scope* sc, Dsymbol s, Scope* scx)
     Module.addDeferredSemantic(s);
 }
 
+struct Ungag
+{
+    uint oldgag;
+
+    extern (D) this(uint old) nothrow @safe
+    {
+        this.oldgag = old;
+    }
+
+    extern (C++) ~this() nothrow
+    {
+        global.gag = oldgag;
+    }
+}
+
+Ungag ungagSpeculative(const Dsymbol s)
+{
+    const oldgag = global.gag;
+    if (global.gag && !s.isSpeculative() && !s.toParent2().isFuncDeclaration())
+        global.gag = 0;
+    return Ungag(oldgag);
+}
 
 private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {

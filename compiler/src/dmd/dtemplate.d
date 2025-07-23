@@ -53,7 +53,8 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, checkDeprecated, aliasSemantic, search, search_correct, setScope, importAll, include, hasStaticCtorOrDtor, oneMembers;
+import dmd.dsymbolsem : dsymbolSemantic, checkDeprecated, aliasSemantic, search, search_correct,
+                        setScope, importAll, include, hasStaticCtorOrDtor, oneMembers, ungagSpeculative;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -4342,7 +4343,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     if (td._scope)
                     {
                         // Try to fix forward reference. Ungag errors while doing so.
-                        Ungag ungag = td.ungagSpeculative();
+                        auto ungag = td.ungagSpeculative();
                         td.dsymbolSemantic(td._scope);
                     }
                     if (td.semanticRun == PASS.initial)

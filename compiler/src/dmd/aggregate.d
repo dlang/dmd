@@ -30,7 +30,6 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -186,7 +185,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         return fields.length - isNested() - (vthis2 !is null);
     }
 
-    override final uinteger_t size(Loc loc)
+    override final ulong size(Loc loc)
     {
         //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
         bool ok = determineSize(this, loc);

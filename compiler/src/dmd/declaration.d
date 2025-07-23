@@ -121,7 +121,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return "declaration";
     }
 
-    override final uinteger_t size(Loc loc)
+    override final ulong size(Loc loc)
     {
         assert(type);
         const sz = type.size();

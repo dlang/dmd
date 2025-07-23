@@ -34,7 +34,6 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -102,22 +101,6 @@ void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
             Dsymbol s = (*symbols)[i];
             dg(s);
         }
-    }
-}
-
-
-struct Ungag
-{
-    uint oldgag;
-
-    extern (D) this(uint old) nothrow @safe
-    {
-        this.oldgag = old;
-    }
-
-    extern (C++) ~this() nothrow
-    {
-        global.gag = oldgag;
     }
 }
 
@@ -687,14 +670,6 @@ extern (C++) class Dsymbol : ASTNode
         return parent.isSpeculative();
     }
 
-    final Ungag ungagSpeculative() const
-    {
-        const oldgag = global.gag;
-        if (global.gag && !isSpeculative() && !toParent2().isFuncDeclaration())
-            global.gag = 0;
-        return Ungag(oldgag);
-    }
-
     // kludge for template.isSymbol()
     override final DYNCAST dyncast() const
     {
@@ -784,7 +759,7 @@ extern (C++) class Dsymbol : ASTNode
      * Returns:
      *  SIZE_INVALID when the size cannot be determined
      */
-    uinteger_t size(Loc loc)
+    ulong size(Loc loc)
     {
         .error(loc, "%s `%s` symbol `%s` has no size", kind, toPrettyChars, toChars());
         return SIZE_INVALID;
