@@ -41,9 +41,6 @@ int[3] s;
         $(BEST_PRACTICE
         $(OL
         $(LI Use dynamic arrays for larger arrays.)
-        $(LI Static arrays with 0 elements are useful as the last member
-        of a variable length struct, or as the degenerate case of
-        a template expansion.)
         $(LI Because static arrays are passed to functions by value,
         a larger array can consume a lot of stack space. Use dynamic arrays
         instead.)
