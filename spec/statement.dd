@@ -1101,8 +1101,8 @@ $(P
         If the aggregate expression is a
         $(DDSUBLINK spec/template, variadic-templates, sequence),
         the loop body is statically expanded once for each element. This is
-        the same as $(DDSUBLINK spec/version, staticforeach, Static Foreach)
-        on a sequence.
+        similar to a $(DDSUBLINK spec/version, staticforeach, *StaticForeachStatement*)
+        on a sequence, though there is a separate scope for each expansion.
 )
         $(P There
         can be one or two iteration symbols declared. If one, then the symbol
