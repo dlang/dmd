@@ -1617,17 +1617,33 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
         id = token.ident;
         nextToken();
-        tpl = parseTemplateParameterList();
-        if (!tpl)
-            return null;
-
-        constraint = parseConstraint();
-
-        if (token.value != TOK.leftCurly)
+        if (ismixin && token.value != TOK.leftParenthesis)
         {
-            error("`{` expected after template parameter list, not `%s`", token.toChars()); /* } */
-            nextToken();
-            return null;
+            if (token.value == TOK.leftCurly)
+            {
+                tpl = new AST.TemplateParameters();
+            }
+            else
+            {
+                error("`{` expected after mixin template name, not `%s`", token.toChars()); cast(void)"}";
+                nextToken();
+                    return null;
+            }
+        }
+        else
+        {
+            tpl = parseTemplateParameterList();
+            if (!tpl)
+                return null;
+
+            constraint = parseConstraint();
+
+            if (token.value != TOK.leftCurly)
+            {
+                error("`{` expected after template parameter list, not `%s`", token.toChars()); cast(void)"}";
+                nextToken();
+                return null;
+            }
         }
         decldefs = parseBlock(null);
 
