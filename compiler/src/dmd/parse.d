@@ -4934,10 +4934,61 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         AST.Expression ealign;
         bool setAlignment = false;
 
-        /* Look for:
-         *   alias Identifier this;
-         * https://dlang.org/spec/class.html#alias-this
-         */
+        AST.AliasDeclaration aliasMixinThis(Identifier mixinName)
+        {
+            auto mix = new AST.TypeIdentifier(loc, mixinName);
+            mix.addIdent(Id.ctor);
+            auto s = new AST.AliasDeclaration(loc, Id.ctor, mix);
+            addComment(s, comment);
+            return s;
+        }
+
+        bool isLambdaStart()
+        {
+            Token* tk;
+            return token.value == TOK.function_ ||
+            token.value == TOK.delegate_ ||
+            token.value == TOK.leftParenthesis &&
+                skipAttributes(peekPastParen(&token), &tk) &&
+                (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
+            token.value == TOK.leftCurly ||
+            token.value == TOK.identifier && peekNext() == TOK.goesTo ||
+            token.value == TOK.ref_ && peekNext() == TOK.leftParenthesis &&
+                skipAttributes(peekPastParen(peek(&token)), &tk) &&
+                (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
+            token.value == TOK.auto_ &&
+                (peekNext() == TOK.leftParenthesis || // for better error
+                    peekNext() == TOK.ref_ &&
+                    peekNext2() == TOK.leftParenthesis);
+        }
+
+        bool checkNextAliasAssignment()
+        {
+            if (token.value == TOK.this_)
+            {
+                if (peekNext() != TOK.assign)
+                {
+                    error("`=` expected following `this`");
+                    return false;
+                }
+                else
+                    return true;
+            }
+            if (token.value != TOK.identifier)
+            {
+                error("identifier or `this` expected following comma, not `%s`", token.toChars());
+                return false;
+            }
+            if (peekNext() != TOK.assign && peekNext() != TOK.leftParenthesis)
+            {
+                error("`=` expected following identifier");
+                nextToken();
+                return false;
+            }
+            return true;
+        }
+
+        //  alias Identifier this; // https://dlang.org/spec/class.html#alias-this
         if (token.value == TOK.identifier && peekNext() == TOK.this_)
         {
             auto s = new AST.AliasThis(loc, token.ident);
@@ -4949,35 +5000,68 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             addComment(s, comment);
             return a;
         }
-        /* Look for:
-         *  alias this = identifier;
-         */
-        if (token.value == TOK.this_ && peekNext() == TOK.assign && peekNext2() == TOK.identifier)
+
+        // alias Identifier.this this; // https://dlang.org/spec/declaration.html#AliasDeclaration
+        if (token.value == TOK.identifier && peekNext() == TOK.dot && peekNext2() == TOK.this_)
         {
-            check(TOK.this_);
-            check(TOK.assign);
-            auto s = new AST.AliasThis(loc, token.ident);
-            nextToken();
-            check(TOK.semicolon, "`alias this = Identifier`");
+            auto id = token.ident;
+            nextToken(); // TOK.identifer
+            nextToken(); // TOK.dot
+            nextToken(); // TOK.this_
+            check(TOK.this_, "`alias Identifier.this`");
+            check(TOK.semicolon, "`alias Identifier.this this`");
             auto a = new AST.Dsymbols();
-            a.push(s);
-            addComment(s, comment);
+            a.push(aliasMixinThis(id));
             return a;
         }
-        /* Look for:
-         *  alias identifier = type;
-         *  alias identifier(...) = type;
-         * https://dlang.org/spec/declaration.html#alias
-         */
+        auto a = new AST.Dsymbols();
+        // alias this = Identifier;
+        // alias this = Identifier.this; // (initial)
+        if (token.value == TOK.this_ && peekNext() == TOK.assign && peekNext2() == TOK.identifier)
+        {
+            nextToken(); // skip TOK.this_
+            nextToken(); // skip TOK.assign
+            auto ident = token.ident;
+            nextToken(); // skip TOK.identifier
+            if (token.value == TOK.dot)
+            {
+                nextToken(); // skip TOK.dot
+                check(TOK.this_, "`alias this = Identifier.`");
+                a.push(aliasMixinThis(ident));
+                if (token.value != TOK.comma)
+                {
+                    check(TOK.semicolon, "`alias this = Identifier.this`");
+                    return a;
+                }
+                nextToken(); // skip TOK.comma
+                if (!checkNextAliasAssignment())
+                {
+                    return a;
+                }
+                goto LNextAliasAssign;
+            }
+            else
+            {
+                auto s = new AST.AliasThis(loc, ident);
+                check(TOK.semicolon, "`alias this = Identifier`");
+                a.push(s);
+                addComment(s, comment);
+                return a;
+            }
+        }
+        // alias identifier = type;
+        // alias identifier(...) = type;
+        // alias ..., this = Identifier.this; // (trailing)
         if (token.value == TOK.identifier && hasOptionalParensThen(peek(&token), TOK.assign))
         {
-            auto a = new AST.Dsymbols();
             while (1)
             {
-                auto ident = token.ident;
+            LNextAliasAssign:
+                const bool isMixedinCtor = token.value == TOK.this_;
+                auto ident = isMixedinCtor ? Id.ctor : token.ident;
                 nextToken();
                 AST.TemplateParameters* tpl = null;
-                if (token.value == TOK.leftParenthesis)
+                if (!isMixedinCtor && token.value == TOK.leftParenthesis)
                     tpl = parseTemplateParameterList();
                 check(TOK.assign);
 
@@ -5004,23 +5088,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 bool attributesAppended;
                 const STC funcStc = parseTypeCtor();
-                Token* tk;
-                // function literal?
-                if (token.value == TOK.function_ ||
-                    token.value == TOK.delegate_ ||
-                    token.value == TOK.leftParenthesis &&
-                        skipAttributes(peekPastParen(&token), &tk) &&
-                        (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
-                    token.value == TOK.leftCurly ||
-                    token.value == TOK.identifier && peekNext() == TOK.goesTo ||
-                    token.value == TOK.ref_ && peekNext() == TOK.leftParenthesis &&
-                        skipAttributes(peekPastParen(peek(&token)), &tk) &&
-                        (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
-                    token.value == TOK.auto_ &&
-                        (peekNext() == TOK.leftParenthesis || // for better error
-                            peekNext() == TOK.ref_ &&
-                            peekNext2() == TOK.leftParenthesis)
-                   )
+                if (isMixedinCtor)
+                {
+                    if (token.value != TOK.identifier)
+                        error(loc, "found `%s` instead of identifier following `this =`", token.toChars());
+                    auto id = token.ident;
+                    nextToken();
+                    check(TOK.dot, "`alias this = Identifier`");
+                    check(TOK.this_, "`alias this = Identifier.`");
+                    v = aliasMixinThis(id);
+                }
+                else if (isLambdaStart)
                 {
                     // function (parameters) { statements... }
                     // delegate (parameters) { statements... }
@@ -5143,17 +5221,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 case TOK.comma:
                     nextToken();
                     addComment(s, comment);
-                    if (token.value != TOK.identifier)
-                    {
-                        error("identifier expected following comma, not `%s`", token.toChars());
-                        break;
-                    }
-                    if (peekNext() != TOK.assign && peekNext() != TOK.leftParenthesis)
-                    {
-                        error("`=` expected following identifier");
-                        nextToken();
-                        break;
-                    }
+                    if (!checkNextAliasAssignment()) break;
                     continue;
 
                 default:
