@@ -757,7 +757,7 @@ unittest
  * Returns:
  *      the product
  */
-pragma(inline, true)
+// pragma(inline, true)
 uint mulu()(uint x, uint y, ref bool overflow)
 {
     version (D_InlineAsm_X86)         enum useAsm = true;
@@ -768,24 +768,17 @@ uint mulu()(uint x, uint y, ref bool overflow)
     {
         if (!__ctfe)
         {
-            version (DigitalMars) // this asm used by dmd only, but it cannot inline it
+            uint r;
+            bool o;
+            asm pure nothrow @nogc @trusted
             {
-                uint mulu_asm(uint x, uint y, ref bool overflow)
-                {
-                    uint r;
-                    bool o;
-                    asm pure nothrow @nogc @trusted
-                    {
-                        mov EAX, x;
-                        mul y;        // EDX:EAX = EAX * y
-                        mov r, EAX;
-                        setc o;
-                    }
-                    overflow |= o;
-                    return r;
-                }
-                return mulu_asm(x, y, overflow);
+                mov EAX, x;
+                mul y;        // EDX:EAX = EAX * y
+                mov r, EAX;
+                setc o;
             }
+            overflow |= o;
+            return r;
         }
     }
 
@@ -834,31 +827,24 @@ ulong mulu()(ulong x, uint y, ref bool overflow)
 }
 
 /// ditto
-pragma(inline, true)
+// pragma(inline, true)
 ulong mulu()(ulong x, ulong y, ref bool overflow)
 {
     version (D_InlineAsm_X86_64)
     {
         if (!__ctfe)
         {
-            version (DigitalMars) // this asm used by dmd only, but it cannot inline it
+            ulong r;
+            bool o;
+            asm pure nothrow @nogc @trusted
             {
-                ulong mulu_asm(ulong x, ulong y, ref bool overflow)
-                {
-                    ulong r;
-                    bool o;
-                    asm pure nothrow @nogc @trusted
-                    {
-                        mov RAX, x;
-                        mul y;        // RDX:RAX = RAX * y
-                        mov r, RAX;
-                        setc o;
-                    }
-                    overflow |= o;
-                    return r;
-                }
-                return mulu_asm(x, y, overflow);
+                mov RAX, x;
+                mul y;        // RDX:RAX = RAX * y
+                mov r, RAX;
+                setc o;
             }
+            overflow |= o;
+            return r;
         }
     }
 
