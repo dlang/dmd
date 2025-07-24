@@ -154,25 +154,11 @@ public:
             return;
         }
 
-        Identifier hook = global.params.tracegc ? Id._d_arrayliteralTXTrace : Id._d_arrayliteralTX;
-        if (!verifyHookExist(e.loc, *sc, hook, "creating array literals"))
+        if (!lowerArrayLiteral(e, sc))
         {
             err = true;
             return;
         }
-        Expression lowering = new IdentifierExp(e.loc, Id.empty);
-        lowering = new DotIdExp(e.loc, lowering, Id.object);
-        auto tiargs = new Objects();
-        // Remove `inout`, `const`, `immutable` and `shared` to reduce template instances
-        auto t = e.type.nextOf().unqualify(MODFlags.wild | MODFlags.const_ | MODFlags.immutable_ | MODFlags.shared_);
-        tiargs.push(t);
-        lowering = new DotTemplateInstanceExp(e.loc, lowering, hook, tiargs);
-
-        auto arguments = new Expressions();
-        arguments.push(new IntegerExp(dim));
-
-        lowering = new CallExp(e.loc, lowering, arguments);
-        e.lowering = lowering.expressionSemantic(sc);
 
         f.printGCUsage(e.loc, "array literal may cause a GC allocation");
     }
