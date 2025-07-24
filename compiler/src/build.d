@@ -1545,7 +1545,7 @@ auto sourceFiles()
 {
     static struct DmdSources
     {
-        string[] all, driver, frontend, glue, backendHeaders;
+        string[] all, driver, frontend, irgen, backendHeaders;
     }
     static struct Sources
     {
@@ -1557,11 +1557,11 @@ auto sourceFiles()
         return files.split.map!(e => dir.buildPath(e)).array;
     }
     DmdSources dmd = {
-        glue: fileArray(env["D"], "
-            dmsc.d e2ir.d iasm/dmdx86.d iasm/dmdaarch64.d glue.d objc_glue.d
-            s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
+        irgen: fileArray(env["D"], "
+            dmsc.d iasm/dmdx86.d iasm/dmdaarch64.d irgen/package.d irgen/e2ir.d irgen/objc.d
+            irgen/s2ir.d irgen/tocsym.d irgen/toctype.d irgen/tocvdebug.d irgen/todt.d irgen/toir.d irgen/toobj.d
         "),
-        driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib/package.d lib/elf.d lib/mach.d lib/mscoff.d
+        driver: fileArray(env["D"], "dinifile.d dmdparams.d lib/package.d lib/elf.d lib/mach.d lib/mscoff.d
             link.d mars.d main.d sarif.d lib/scanelf.d lib/scanmach.d lib/scanmscoff.d timetrace.d vsoptions.d
         "),
         frontend: fileArray(env["D"], "
