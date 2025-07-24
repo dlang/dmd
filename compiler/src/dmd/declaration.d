@@ -28,7 +28,6 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
-import dmd.gluelayer;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -122,7 +121,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return "declaration";
     }
 
-    override final uinteger_t size(Loc loc)
+    override final ulong size(Loc loc)
     {
         assert(type);
         const sz = type.size();

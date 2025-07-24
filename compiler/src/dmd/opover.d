@@ -30,7 +30,6 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem;
-import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -129,8 +128,7 @@ Objects* opToArg(Scope* sc, EXP op)
 {
     Expression e = new StringExp(Loc.initial, EXPtoString(stripAssignOp(op)));
     e = e.expressionSemantic(sc);
-    auto tiargs = new Objects();
-    tiargs.push(e);
+    auto tiargs = new Objects(e);
     return tiargs;
 }
 
@@ -439,8 +437,7 @@ Expression opOverloadCast(CastExp e, Scope* sc, Type att = null)
                 return build_overload(e.loc, sc, e.e1, null, fd);
             }
         }
-        auto tiargs = new Objects();
-        tiargs.push(e.to);
+        auto tiargs = new Objects(e.to);
         return dotTemplateCall(e.e1, Id.opCast, tiargs).expressionSemantic(sc);
     }
     // Didn't find it. Forward to aliasthis
@@ -551,14 +548,15 @@ Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
 
     // Try opBinary and opBinaryRight
     Dsymbol s = search_function(ad1, Id.opBinary);
-    if (s && !s.isTemplateDeclaration())
+
+    if (s && !(s.isTemplateDeclaration() || s.isOverloadSet))
     {
         error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toChars());
         return ErrorExp.get();
     }
 
     Dsymbol s_r = search_function(ad2, Id.opBinaryRight);
-    if (s_r && !s_r.isTemplateDeclaration())
+    if (s_r && !(s_r.isTemplateDeclaration() || s_r.isOverloadSet()))
     {
         error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toChars());
         return ErrorExp.get();
@@ -999,7 +997,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
 
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     Dsymbol s = search_function(ad1, Id.opOpAssign);
-    if (s && !s.isTemplateDeclaration())
+    if (s && !(s.isTemplateDeclaration() || s.isOverloadSet()))
     {
         error(e.loc, "`%s.opOpAssign` isn't a template", e.e1.toChars());
         return ErrorExp.get();
@@ -1187,6 +1185,8 @@ Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
             return fd;
         if (TemplateDeclaration td = s2.isTemplateDeclaration())
             return td;
+        if (OverloadSet os = s2.isOverloadSet())
+            return os;
     }
     return null;
 }

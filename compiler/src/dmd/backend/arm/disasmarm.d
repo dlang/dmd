@@ -669,8 +669,8 @@ void disassemble(uint c) @trusted
            else if (imms < immr)
            {
                 p1 = "ubfiz";                      // https://www.scs.stanford.edu/~zyedidia/arm64/ubfiz_ubfm.html
-                p4 = wordtostring(-immr);
-                p5 = wordtostring2(imms - 1);
+                p4 = wordtostring(-immr & (((sf == 1) ? 64 : 32) - 1));
+                p5 = wordtostring2(imms + 1);
            }
            else if (immr == 0 && imms == 7)
            {
@@ -2371,6 +2371,83 @@ void disassemble(uint c) @trusted
     }
 
     // Load/store register (unscaled immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unscaled
+    if (field(ins,29,27) == 7 && field(ins,25,24) == 0 && field(ins,21,21) == 0 && field(ins,11,10) == 0)
+    {
+        url = "ldst_unscaled";
+
+        uint size = field(ins, 31, 30);
+        uint VR   = field(ins, 26, 26);
+        uint opc  = field(ins, 23, 22);
+        uint imm9 = field(ins, 20, 12);
+        uint Rn   = field(ins,  9,  5);
+        uint Rt   = field(ins,  4,  0);
+
+        uint ldur(uint size, uint VR, uint opc) { return (size << 3) | (VR << 2) | opc; }
+
+        bool is64 = false;
+        const(char)* format = "%s";
+        switch (ldur(size,VR,opc))
+        {
+            case ldur(0,0,0): p1 = "sturb";  goto Lldur8;       // STURB  <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(0,0,1): p1 = "ldurb";  goto Lldur8;       // LDURB  <Wt>, [<Xn|SP>{, #<simm>}]
+            Lldur8:
+                p2 = regString(is64, Rt);
+                p3 = eaString(0, cast(ubyte)Rn, imm9);
+                break;
+
+            case ldur(0,0,2): p1 = "ldursb"; goto Lldur64;                     // LDURSB <Xt>, [<Xn|SP>{, #<simm>}]
+            case ldur(0,0,3): p1 = "ldursb"; goto Lldur;                       // LDURSB <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,0,0): p1 = "sturh";  goto Lldur;                       // STURH  <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,0,1): p1 = "ldurh";  goto Lldur;                       // LTURH  <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,0,2): p1 = "ldursh"; goto Lldur64;                     // LDURSH <Xt>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,0,3): p1 = "ldursh"; goto Lldur;                       // LDURSH <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(2,0,0): p1 = "stur";   format = "%s_gen"; goto Lldur;    // STUR   <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(2,0,1): p1 = "ldur";   format = "%s_gen"; goto Lldur;    // LDUR   <Wt>, [<Xn|SP>{, #<simm>}]
+            case ldur(2,0,2): p1 = "ldursw"; goto Lldursw;                     // LDURSW <Xt>, [<Xn|SP>{, #<simm>}]
+            case ldur(3,0,0): p1 = "stur";   format = "%s_gen"; goto Lldur64;  // STUR   <Xt>, [<Xn|SP>{, #<simm>}]
+            case ldur(3,0,1): p1 = "ldur";   format = "%s_gen"; goto Lldur64;  // LDUR   <Xt>, [<Xn|SP>{, #<simm>}]
+            //case ldur(3,0,2): p1 = "prfum";
+            Lldursw:
+                p2 = regString(true, Rt);
+                p3 = eaString(0, cast(ubyte)Rn, imm9);
+                break;
+
+            Lldur64:
+                is64 = true;
+            Lldur:
+                p2 = regString(is64, Rt);
+                p3 = eaString(0, cast(ubyte)Rn, imm9);
+                break;
+
+            case ldur(0,1,0): p1 = "stur";   goto LdursimdFp;    // STUR   <Bt>, [<Xn|SP>{, #<simm>}]
+            case ldur(0,1,1): p1 = "ldur";   goto LdursimdFp;    // LDUR   <Bt>, [<Xn|SP>{, #<simm>}]
+            case ldur(0,1,2): p1 = "stur";   goto LdursimdFp;    // STUR   <Qt>, [<Xn|SP>{, #<simm>}]
+            case ldur(0,1,3): p1 = "ldur";   goto LdursimdFp;    // LDUR   <Qt>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,1,0): p1 = "stur";   goto LdursimdFp;    // STUR   <Ht>, [<Xn|SP>{, #<simm>}]
+            case ldur(1,1,1): p1 = "ldur";   goto LdursimdFp;    // LDUR   <Ht>, [<Xn|SP>{, #<simm>}]
+            case ldur(2,1,0): p1 = "stur";   goto LdursimdFp;    // STUR   <St>, [<Xn|SP>{, #<simm>}]
+            case ldur(2,1,1): p1 = "ldur";   goto LdursimdFp;    // LDUR   <St>, [<Xn|SP>{, #<simm>}]
+            case ldur(3,1,0): p1 = "stur";   goto LdursimdFp;    // STUR   <Dt>, [<Xn|SP>{, #<simm>}]
+            case ldur(3,1,1): p1 = "ldur";   goto LdursimdFp;    // LDUR   <Dt>, [<Xn|SP>{, #<simm>}]
+            LdursimdFp:
+                format = "%s_fpsimd";
+                uint shift = size + ((opc & 2) << 1);
+                p2 = fregString(buf[0..4], fpPrefix[shift], Rt);
+                uint offset = imm9;
+                p3 = eaString(0, cast(ubyte)Rn, offset);
+                break;
+
+            default:
+                format = null;
+                break;
+        }
+        if (format)
+        {
+            uint n = snprintf(url2buf.ptr, url2buf.length, format, p1.ptr);
+            url2 = url2buf[0 .. n];
+        }
+    }
+    else
 
     // Load/store register (immediate post-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpost
     if (field(ins, 29, 27) == 7 && field(ins, 25, 24) == 0 && field(ins, 21, 21) == 0 && field(ins, 11,10) == 1)
@@ -2384,15 +2461,30 @@ void disassemble(uint c) @trusted
         uint Rn   = field(ins, 9, 5);
         uint Rt   = field(ins, 4, 0);
 
-        if ((size & 2) && VR == 0 && opc ==  0)
+        uint ldst(uint size, uint VR, uint opc) { return (size << 3) | (VR << 2) | opc; }
+        switch (ldst(size, VR, opc))
         {
-            url2 = "str_imm_gen";
+            case ldst(0,0,0):
+                url2 = "strb_imm";
+                p1 = "strb";
+                p2 = regString(size & 1, Rt);
+                if (Rt == 0x1F)
+                    p2 = size & 1 ? "xzr" : "wzr";
+                p3 = eaString(1, cast(ubyte)Rn, imm9);
+                break;
 
-            p1 = "str";
-            p2 = regString(size & 1, Rt);
-            if (size & 1 && Rt == 0x1F)
-                p2 = "xzr";
-            p3 = eaString(1, cast(ubyte)Rn, imm9);
+            case ldst(2,0,0):
+            case ldst(3,0,0):
+                url2 = "str_imm_gen";
+                p1 = "str";
+                p2 = regString(size & 1, Rt);
+                if (Rt == 0x1F)
+                    p2 = size & 1 ? "xzr" : "wzr";
+                p3 = eaString(1, cast(ubyte)Rn, imm9);
+                break;
+
+            default:
+                break;
         }
     }
     else
@@ -2400,7 +2492,64 @@ void disassemble(uint c) @trusted
     // Load/store register (unprivileged) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unpriv
     // Load/store register (immediate pre-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpre
     // Atomic memory operations https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#memop
+
     // Load/store register (register offset) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
+    if (field(ins, 29, 27) == 7 && field(ins, 25, 24) == 0 && field(ins, 21, 21) == 1 && field(ins, 11,10) == 2)
+    {
+        url = "ldst_regoff";
+
+        uint size   = field(ins, 31, 30);
+        uint VR     = field(ins, 26, 26);
+        uint opc    = field(ins, 23, 22);
+        uint Rm     = field(ins, 20, 16);
+        uint option = field(ins, 15, 13);
+        uint S      = field(ins, 12, 12);
+        uint Rn     = field(ins, 9, 5);
+        uint Rt     = field(ins, 4, 0);
+
+        string[4] tab = [ "uxtw", "lsl", "sxtw", "sxtx" ];
+
+        uint cases(uint size, uint VR, uint opc) { return (size << 3) | (VR << 2) | opc; }
+        switch (cases(size, VR, opc))
+        {
+            case cases(0,0,0):  p1 = "strb";  url2 = "strb_reg";      goto Lldst;
+            case cases(0,0,1):  p1 = "ldrb";  url2 = "ldrb_reg";      goto Lldst;
+            case cases(0,0,2):  p1 = "ldrsb"; url2 = "ldrsb_reg";     goto Lldst;
+            case cases(0,0,3):  p1 = "ldrsb"; url2 = "ldrsb_reg";     goto Lldst;
+
+            case cases(1,0,0):  p1 = "strh";  url2 = "strh_reg";      goto Lldst2;
+            case cases(1,0,1):  p1 = "ldrh";  url2 = "ldrh_reg";      goto Lldst2;
+            Lldst2:
+                p2 = regString(0,Rt);
+                goto Lldst3;
+
+            case cases(2,0,0):  p1 = "str";   url2 = "str_reg_gen";   goto Lldst;
+            case cases(2,0,1):  p1 = "ldr";   url2 = "ldr_reg_gen";   goto Lldst;
+            case cases(2,0,2):  p1 = "ldrsw"; url2 = "ldrsw_reg_gen"; goto Lldst;
+            case cases(3,0,0):  p1 = "str";   url2 = "str_reg_gen";   goto Lldst;
+            case cases(3,0,1):  p1 = "ldr";   url2 = "ldr_reg_gen";   goto Lldst;
+            Lldst:
+                p2 = regString(size & 1,Rt);
+            Lldst3:
+                __gshared char[1 + 2 + 2 + 2 + 2 + 2 + 4 + 4 + 1] P5buf5;
+                if (option == 3 && !S)
+                {
+                    const n = snprintf(P5buf5.ptr, P5buf5.length, "[%s, %s]", regString(1,Rn).ptr, regString(1,Rm).ptr);
+                    p3 = P5buf5[0 .. n];
+                    break;
+                }
+
+                const(char)[] extend = tab[option];
+                const n = snprintf(P5buf5.ptr, P5buf5.length, "[%s, %s, %s #%d]", regString(1,Rn).ptr, regString(1,Rm).ptr, extend.ptr, S * (2 + (size & 1)));
+                p3 = P5buf5[0 .. n];
+                break;
+
+            default:
+                break;
+        }
+    }
+    else
+
     // Load/store register (pac) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pac
 
     // Load/store register (unsigned immediate)
@@ -2420,20 +2569,20 @@ void disassemble(uint c) @trusted
 
         uint ldr(uint size, uint VR, uint opc) { return (size << 3) | (VR << 2) | opc; }
 
-        bool is64 = false;
+        uint factor = 4;
         const(char)* format = "%s_imm";
         switch (ldr(size, VR, opc))
         {
             case ldr(0,0,0): p1 = "strb";  goto Lldr8;  // https://www.scs.stanford.edu/~zyedidia/arm64/strb_imm.html
             case ldr(0,0,1): p1 = "ldrb";  goto Lldr8;
             Lldr8:
-                p2 = regString(is64, Rt);
+                p2 = regString(factor == 84, Rt);
                 p3 = eaString(0, cast(ubyte)Rn, imm12);
                 break;
 
             case ldr(0,0,2): p1 = "ldrsb"; goto Lldr64;
             case ldr(0,0,3): p1 = "ldrsb"; goto Lldr;
-            case ldr(1,0,0): p1 = "strh";  goto Lldr;
+            case ldr(1,0,0): p1 = "strh";  factor = 2; goto Lldr;
             case ldr(1,0,1): p1 = "ldrh";  goto Lldr;
             case ldr(1,0,2): p1 = "ldrsh"; goto Lldr64;
             case ldr(1,0,3): p1 = "ldrsh"; goto Lldr;
@@ -2449,10 +2598,10 @@ void disassemble(uint c) @trusted
                 break;
 
             Lldr64:
-                is64 = true;
+                factor = 8;
             Lldr:
-                p2 = regString(is64, Rt);
-                p3 = eaString(0, cast(ubyte)Rn, imm12 * (is64 ? 8 : 4));
+                p2 = regString(factor == 8, Rt);
+                p3 = eaString(0, cast(ubyte)Rn, imm12 * factor);
                 break;
 
             case ldr(0,1,0): p1 = "str";  goto LsimdFp;
@@ -3059,8 +3208,16 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[85] cases64 =      // 64 bit code gen
+    string[93] cases64 =      // 64 bit code gen
     [
+        "78 64 68 23         ldrh   w3,[x1, x4]",
+        "78 24 68 43         strh   w3,[x2, x4]",
+        "38 64 68 23         ldrb   w3,[x1, x4]",
+        "38 24 68 43         strb   w3,[x2, x4] ",
+        "38 00 14 3F         strb   wzr,[x1],#1",
+        "79 00 5B A2         strh   w2,[x29,#0x2C]",
+        "D3 7E 7C 43         ubfiz  x3,x2,#2,#0x20",
+        "B8 00 93 E0         stur   w0,[sp,#9]",
         "F8 00 84 5F         str    xzr,[x2],#8",
         "6F 00 E4 01         movi   v1.2d,#0x0",
         "9E AF 00 3E         fmov   v30.d[1],x1",

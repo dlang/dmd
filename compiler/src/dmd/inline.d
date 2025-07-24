@@ -836,7 +836,16 @@ public:
 
         override void visit(EqualExp e)
         {
-            visit(cast(BinExp)e);
+            auto ee = cast(EqualExp)e.copy();
+            if (auto lowering = ee.lowering)
+            {
+                ee.lowering = doInlineAs!Expression(lowering, ids);
+            }
+
+            ee.e1 = doInlineAs!Expression(e.e1, ids);
+            ee.e2 = doInlineAs!Expression(e.e2, ids);
+
+            result = ee;
 
             Type t1 = e.e1.type.toBasetype();
             if (t1.isStaticOrDynamicArray())
@@ -1068,9 +1077,8 @@ public:
                 auto s2 = inlineScanExpAsStatement(e.e2);
                 if (!s1 && !s2)
                     return null;
-                auto a = new Statements();
-                a.push(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1);
-                a.push(!s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
+                auto a = new Statements(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1,
+                                        !s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
                 return new CompoundStatement(exp.loc, a);
             }
 
@@ -1334,6 +1342,18 @@ public:
     {
         inlineScan(e.e1);
         inlineScan(e.e2);
+    }
+
+    override void visit(EqualExp e)
+    {
+        if (auto lowering = e.lowering)
+        {
+            inlineScan(lowering);
+        }
+        else
+        {
+            visit(cast(BinExp)e);
+        }
     }
 
     override void visit(AssignExp e)

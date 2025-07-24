@@ -297,6 +297,24 @@ struct INSTR
         return sbfm(1, 1, 0, 31, Rn, Rd);
     }
 
+    /* UBFM Rd,Rn,#immr,#imms
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ubfm.html
+     */
+    static uint ubfm(uint sf, uint N, uint immr, uint imms, reg_t Rn, reg_t Rd)
+    {
+        return bitfield(sf, 2, N, immr, imms, Rn, Rd);
+    }
+
+    /* UBFIZ Rd,Rn,#lsb,#width
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ubfiz_ubfm.html
+     */
+    static uint ubfiz_ubfm(uint sf, uint N, uint lsb, uint width, reg_t Rn, reg_t Rd)
+    {
+        assert(sf == N);
+        uint mask = ((sf == 1) ? 64 : 32) - 1;
+        return ubfm(sf, N, -lsb & mask, width - 1, Rn, Rd);
+    }
+
     /* Extract
      * EXTR
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm
@@ -1007,8 +1025,43 @@ struct INSTR
 
     /* Load/store register pair (offset)
      * Load/store register pair (pre-indexed)
-     * Load/store register pair (unscaled immediate)
      */
+
+    /* Load/store register (unscaled immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unscaled
+     */
+    static uint ldst_unscaled(uint size, uint VR, uint opc, uint imm9, reg_t Rn, reg_t Rt)
+    {
+        assert(imm9 < 0x200);
+        return (size << 30) |
+               (7    << 27) |
+               (VR   << 26) |
+               (opc  << 22) |
+               (imm9 << 12) |
+               (Rn   <<  5) |
+                Rt;
+    }
+
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/stur_imm_fpsimd.html
+     * STUR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
+     */
+    static uint stur_imm_fpsimd(uint size, uint opc, uint imm9, reg_t Rn, reg_t Vt)
+    {
+        assert(imm9 < 0x200);
+        assert(size < 4);
+        assert(opc  < 4);
+        return ldst_unscaled(size,1,opc,imm9,Rn,Vt);
+    }
+
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/ldur_imm_fpsimd.html
+     * LDUR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
+     */
+    static uint ldur_imm_fpsimd(uint size, uint opc, uint imm9, reg_t Rn, reg_t Vt)
+    {
+        assert(imm9 < 0x200);
+        assert(size < 4);
+        assert(opc  < 4);
+        return ldst_unscaled(size,1,opc | 1,imm9,Rn,Vt);
+    }
 
     /* Load/store register (immediate post-indexed)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpost
@@ -1370,7 +1423,7 @@ struct INSTR
     static uint strh_reg(reg_t Rindex,uint extend,uint S,reg_t Xbase,reg_t Rt)
     {
         // STRH Rt,Xbase,Rindex,extend S
-        return ldst_regoff(0, 1, 0, Rindex, extend, S, Xbase, Rt);
+        return ldst_regoff(1, 0, 0, Rindex, extend, S, Xbase, Rt);
     }
 
     /* STR (register)

@@ -407,6 +407,7 @@ public:
     d_bool onstack;
     Expression *basis;
     Expressions *elements;
+    Expression *lowering;
 
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     ArrayLiteralExp *syntaxCopy() override;
@@ -1280,6 +1281,8 @@ public:
 class EqualExp final : public BinExp
 {
 public:
+    Expression* lowering;
+
     void accept(Visitor *v) override { v->visit(this); }
 };
 

@@ -1518,9 +1518,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             auto ts = new ThrowStatement(ctor.loc, new IdentifierExp(ctor.loc, id));
             auto handler = new CompoundStatement(ctor.loc, ss, ts);
 
-            auto catches = new Catches();
             auto ctch = new Catch(ctor.loc, getException(), id, handler);
-            catches.push(ctch);
+            auto catches = new Catches(ctch);
 
             ctor.fbody = new TryCatchStatement(ctor.loc, ctor.fbody, catches);
         }
@@ -1606,8 +1605,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             (ad.type && ad.type.ty != Terror))
         {
             // Evaluate: RTinfo!type
-            auto tiargs = new Objects();
-            tiargs.push(ad.type);
+            auto tiargs = new Objects(ad.type);
             auto ti = new TemplateInstance(ad.loc, Type.rtinfo, tiargs);
 
             Scope* sc3 = ti.tempdecl._scope.startCTFE();

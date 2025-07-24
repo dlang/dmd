@@ -588,3 +588,24 @@ version (D_ProfileGC)
             assert(0, "Cannot create new multi-dimensional array if compiling without support for runtime type information!");
     }
 }
+
+extern (C) void* _d_arrayliteralTX(const TypeInfo ti, size_t length) @trusted pure nothrow;
+
+void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
+{
+    return _d_arrayliteralTX(typeid(T), length);
+}
+
+version (D_ProfileGC)
+void* _d_arrayliteralTXTrace(T)(size_t length, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted pure nothrow
+{
+    version (D_TypeInfo)
+    {
+        import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
+        mixin(TraceHook!(T.stringof, "_d_arrayliteralTX"));
+
+        return _d_arrayliteralTX!T(length);
+    }
+    else
+        assert(0);
+}

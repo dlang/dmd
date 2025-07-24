@@ -368,7 +368,7 @@ Symbol* toSymbol(Dsymbol s)
                         /* Use the C symbol for the previously generated function
                          */
                         fd.csym = Csymtab.lookup(fd.ident).csym;
-                        result = fd.csym;
+                        result = cast(Symbol*)fd.csym;
 
                         fd.skipCodegen = true;
                         return;
@@ -532,15 +532,18 @@ Symbol* toSymbol(Dsymbol s)
         }
     }
 
-    if (s.csym)
-        return s.csym;
+    if (auto csym = cast(Symbol*)s.csym)
+        return csym;
 
     scope ToSymbol v = new ToSymbol();
     s.accept(v);
     s.csym = v.result;
 
     if (isDllImported(s))
-        s.csym.Sisym = createImport(s.csym, s.loc);
+    {
+        auto csym = cast(Symbol*) s.csym;
+        csym.Sisym = createImport(csym, s.loc);
+    }
 
     return v.result;
 }
@@ -606,7 +609,7 @@ Symbol* toImport(Dsymbol ds)
 {
     if (!ds.csym)
         toSymbol(ds);
-    return ds.csym.Sisym;
+    return (cast(Symbol*)(ds.csym)).Sisym;
 }
 
 /*************************************
@@ -629,10 +632,10 @@ Symbol* toThunkSymbol(FuncDeclaration fd, int offset)
     char[nameLen] name = void;
 
     const len = snprintf(name.ptr,nameLen,"_THUNK%d",tmpnum++);
-    auto sthunk = symbol_name(name[0 .. len],SC.static_,fd.csym.Stype);
+    auto sthunk = symbol_name(name[0 .. len],SC.static_,(cast(Symbol*)(fd.csym)).Stype);
     sthunk.Sflags |= SFLnodebug | SFLartifical;
     sthunk.Sflags |= SFLimplem;
-    outthunk(sthunk, fd.csym, 0, TYnptr, -offset, -1, 0);
+    outthunk(sthunk, cast(Symbol*)fd.csym, 0, TYnptr, -offset, -1, 0);
     return sthunk;
 }
 
@@ -675,7 +678,7 @@ Symbol* toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
         auto vtbl = cd.vtblSymbol();
         vtbl.csym = s;
     }
-    return cd.vtblsym.csym;
+    return cast(Symbol*)cd.vtblsym.csym;
 }
 
 /**********************************
@@ -760,7 +763,7 @@ Symbol* toInitializer(EnumDeclaration ed)
             s.Sisym = createImport(s, ed.loc);
         ed.sinit = s;
     }
-    return ed.sinit;
+    return cast(Symbol*)ed.sinit;
 }
 
 
@@ -821,23 +824,27 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
 {
     assert(cd.isCPPclass());
 
+    __gshared Symbol*[ClassDeclaration] cache;
+
     /* For the symbol std::exception, the type info is _ZTISt9exception
      */
-    if (!cd.cpp_type_info_ptr_sym)
+    if (auto cpp_type_info_ptr_sym = cd in cache)
     {
-        __gshared Symbol* scpp;
-        if (!scpp)
-            scpp = fake_classsym(Id.cpp_type_info_ptr);
-        Symbol* s = toSymbolX(cd, "_cpp_type_info_ptr", SC.comdat, scpp.Stype, "");
-        s.Sfl = FL.data;
-        s.Sflags |= SFLnodebug;
-        auto dtb = DtBuilder(0);
-        cpp_type_info_ptr_toDt(cd, dtb);
-        s.Sdt = dtb.finish();
-        outdata(s);
-        cd.cpp_type_info_ptr_sym = s;
+        return *cpp_type_info_ptr_sym;
     }
-    return cd.cpp_type_info_ptr_sym;
+
+    __gshared Symbol* scpp;
+    if (!scpp)
+        scpp = fake_classsym(Id.cpp_type_info_ptr);
+    Symbol* s = toSymbolX(cd, "_cpp_type_info_ptr", SC.comdat, scpp.Stype, "");
+    s.Sfl = FL.data;
+    s.Sflags |= SFLnodebug;
+    auto dtb = DtBuilder(0);
+    cpp_type_info_ptr_toDt(cd, dtb);
+    s.Sdt = dtb.finish();
+    outdata(s);
+
+    return cache[cd] = s;
 }
 
 /**********************************

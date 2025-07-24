@@ -1038,7 +1038,7 @@ public:
             if (sle != NULL)
             {
                 type->baseElemOf()->isTypeStruct()->sym->accept(this);
-                sle->sym = func->shidden;
+                sle->sym = (Symbol*)func->shidden;
             }
             s->exp->accept(this);
         }
@@ -1190,12 +1190,6 @@ public:
                     mi->accept(this);
             }
             (void)dmd::findGetMembers(d);
-            (void)d->sctor;
-            (void)d->sdtor;
-            (void)d->ssharedctor;
-            (void)d->sshareddtor;
-            (void)d->sictor;
-            (void)d->stest;
             (void)d->needmoduleinfo;
         }
         d->semanticRun(PASS::obj);

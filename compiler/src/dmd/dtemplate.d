@@ -53,7 +53,8 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, checkDeprecated, aliasSemantic, search, search_correct, setScope, importAll, include, hasStaticCtorOrDtor, oneMembers;
+import dmd.dsymbolsem : dsymbolSemantic, checkDeprecated, aliasSemantic, search, search_correct,
+                        setScope, importAll, include, hasStaticCtorOrDtor, oneMembers, ungagSpeculative;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -79,7 +80,7 @@ import dmd.templatesem : matchWithInstance, formatParamsWithTiargs, leastAsSpeci
 import dmd.tokens;
 import dmd.typesem : hasPointers, typeSemantic, merge, merge2, resolve, toDsymbol,
                      addStorageClass, isBaseOf, equivalent, sarrayOf, constOf, mutableOf, unSharedOf,
-                     unqualify, aliasthisOf, castMod, substWildTo, addMod;
+                     unqualify, aliasthisOf, castMod, substWildTo, addMod, resolveNamedArgs;
 import dmd.visitor;
 
 import dmd.templateparamsem;
@@ -4111,6 +4112,23 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         // This should only be called on the primary instantiation.
         assert(this is inst);
 
+        /* Hack for suppressing linking errors against template instances
+        * of `_d_arrayliteralTX` (e.g. `_d_arrayliteralTX!(int[])`).
+        *
+        * This happens, for example, when a lib module is compiled with `preview=dip1000` and
+        * the array literal is placed on stack instead of using the lowering. In this case,
+        * if the root module is compiled without `preview=dip1000`, the compiler will consider
+        * the template already instantiated within the lib module, and thus skip the codegen for it
+        * in the root module object file, thinking that the linker will find the instance in the lib module.
+        *
+        * To bypass this edge case, we always do codegen for `_d_arrayliteralTX` template instances,
+        * even if an instance already exists in non-root module.
+        */
+        if (this.inst && this.inst.name == Id._d_arrayliteralTX)
+        {
+            return true;
+        }
+
         if (global.params.allInst)
         {
             // Do codegen if there is an instantiation from a root module, to maximize link-ability.
@@ -4325,7 +4343,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     if (td._scope)
                     {
                         // Try to fix forward reference. Ungag errors while doing so.
-                        Ungag ungag = td.ungagSpeculative();
+                        auto ungag = td.ungagSpeculative();
                         td.dsymbolSemantic(td._scope);
                     }
                     if (td.semanticRun == PASS.initial)

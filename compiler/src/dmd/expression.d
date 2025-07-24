@@ -49,7 +49,7 @@ import dmd.root.string;
 import dmd.root.utf;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem;
+import dmd.typesem : pointerTo, toHeadMutable, castMod, size, mutableOf, unSharedOf;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -1906,6 +1906,8 @@ extern (C++) final class ArrayLiteralExp : Expression
 
     Expressions* elements;
 
+    Expression lowering;
+
     extern (D) this(Loc loc, Type type, Expressions* elements) @safe
     {
         super(loc, EXP.arrayLiteral);
@@ -1917,8 +1919,7 @@ extern (C++) final class ArrayLiteralExp : Expression
     {
         super(loc, EXP.arrayLiteral);
         this.type = type;
-        elements = new Expressions();
-        elements.push(e);
+        elements = new Expressions(e);
     }
 
     extern (D) this(Loc loc, Type type, Expression basis, Expressions* elements) @safe
@@ -4802,6 +4803,7 @@ extern (C++) final class RemoveExp : BinExp
  */
 extern (C++) final class EqualExp : BinExp
 {
+    Expression lowering;
     extern (D) this(EXP op, Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, op, e1, e2);

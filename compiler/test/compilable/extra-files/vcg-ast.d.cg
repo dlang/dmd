@@ -163,6 +163,15 @@ values!(__c_wchar_t)
 	}
 
 }
+_d_arrayliteralTX!(__c_wchar_t[])
+{
+	pure nothrow @trusted void* _d_arrayliteralTX(ulong length)
+	{
+		return _d_arrayliteralTX(typeid(__c_wchar_t[]), length);
+	}
+
+}
+static __gshared TypeInfo_Array _D28TypeInfo_AE3vcg11__c_wchar_t6__initZ;
 RTInfo!(_R)
 {
 	enum immutable(void)* RTInfo = null;

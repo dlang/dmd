@@ -39,7 +39,6 @@ struct _d_dynamicArray final
 
 class Visitor;
 class Identifier;
-struct Symbol;
 struct Scope;
 struct DsymbolAttributes;
 class DeprecatedDeclaration;
@@ -504,18 +503,6 @@ enum class DSYM : uint8_t
     cAsmDeclaration = 65u,
 };
 
-struct Ungag final
-{
-    uint32_t oldgag;
-    ~Ungag();
-    Ungag() :
-        oldgag()
-    {
-    }
-};
-
-typedef uint64_t uinteger_t;
-
 struct Visibility final
 {
     enum class Kind : uint8_t
@@ -543,7 +530,7 @@ class Dsymbol : public ASTNode
 public:
     Identifier* ident;
     Dsymbol* parent;
-    Symbol* csym;
+    void* csym;
     Scope* _scope;
 private:
     DsymbolAttributes* atts;
@@ -611,7 +598,6 @@ public:
     TemplateInstance* isInstantiated();
     bool followInstantiationContext(Dsymbol* p1, Dsymbol* p2 = nullptr);
     TemplateInstance* isSpeculative();
-    Ungag ungagSpeculative() const;
     DYNCAST dyncast() const final override;
     virtual Identifier* getIdent();
     virtual const char* toPrettyChars(bool QualifyTypes = false);
@@ -619,7 +605,7 @@ public:
     virtual Dsymbol* toAlias();
     virtual Dsymbol* toAlias2();
     virtual bool overloadInsert(Dsymbol* s);
-    virtual uinteger_t size(Loc loc);
+    virtual uint64_t size(Loc loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration* isThis();
     virtual bool isExport() const;
@@ -2368,6 +2354,8 @@ enum class EXP : uint8_t
 
 typedef uint64_t dinteger_t;
 
+typedef uint64_t uinteger_t;
+
 struct complex_t final
 {
     _d_real re;
@@ -2667,6 +2655,7 @@ public:
     bool onstack;
     Expression* basis;
     Array<Expression* >* elements;
+    Expression* lowering;
     static ArrayLiteralExp* create(Loc loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
     bool equals(const RootObject* const o) const override;
@@ -2987,6 +2976,7 @@ public:
 class EqualExp final : public BinExp
 {
 public:
+    Expression* lowering;
     void accept(Visitor* v) override;
 };
 
@@ -3983,11 +3973,11 @@ public:
     Type* tintro;
     STC storage_class2;
     VarDeclaration* nrvo_var;
-    Symbol* shidden;
+    void* shidden;
     Array<ReturnStatement* >* returns;
     Array<GotoStatement* >* gotos;
     Array<VarDeclaration* >* alignSectionVars;
-    Symbol* salignSection;
+    void* salignSection;
     BUILTIN builtin;
     int32_t tookAddressOf;
     bool requiresClosure;
@@ -5588,7 +5578,7 @@ private:
         char complexexp[64LLU];
         char symoffexp[56LLU];
         char stringexp[44LLU];
-        char arrayliteralexp[40LLU];
+        char arrayliteralexp[48LLU];
         char assocarrayliteralexp[48LLU];
         char structliteralexp[64LLU];
         char compoundliteralexp[32LLU];
@@ -5734,7 +5724,6 @@ struct ASTCodegen final
     using ScopeDsymbol = ::ScopeDsymbol;
     using SearchOpt = ::SearchOpt;
     using SearchOptFlags = ::SearchOptFlags;
-    using Ungag = ::Ungag;
     using Visibility = ::Visibility;
     using WithScopeSymbol = ::WithScopeSymbol;
     using MATCHpair = ::MATCHpair;
@@ -6394,7 +6383,7 @@ public:
     bool disableNew;
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
-    uinteger_t size(Loc loc) final override;
+    uint64_t size(Loc loc) final override;
     Type* getType() final override;
     bool isDeprecated() const final override;
     bool isNested() const;
@@ -6728,7 +6717,6 @@ public:
     ThreeState isabstract;
     Baseok baseok;
     ObjcClassDeclaration objc;
-    Symbol* cpp_type_info_ptr_sym;
     static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass* >* baseclasses, Array<Dsymbol* >* members, bool inObject);
     const char* toPrettyChars(bool qualifyTypes = false) override;
     ClassDeclaration* syntaxCopy(Dsymbol* s) override;
@@ -6789,7 +6777,7 @@ private:
     uint8_t bitFields;
 public:
     const char* kind() const override;
-    uinteger_t size(Loc loc) final override;
+    uint64_t size(Loc loc) final override;
     bool isStatic() const;
     LINK resolvedLinkage() const;
     virtual bool isDelete();
@@ -7102,7 +7090,7 @@ public:
 private:
     uint8_t bitFields;
 public:
-    Symbol* sinit;
+    void* sinit;
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
     Type* getType() override;
     const char* kind() const override;
@@ -7231,16 +7219,10 @@ public:
     int32_t imports(Module* m);
     bool isRoot();
     bool isCoreModule(Identifier* ident);
-    int32_t doppelganger;
-    Symbol* cov;
+    void* cov;
     _d_dynamicArray< uint32_t > covb;
-    Symbol* sictor;
-    Symbol* sctor;
-    Symbol* sdtor;
-    Symbol* ssharedctor;
-    Symbol* sshareddtor;
-    Symbol* stest;
-    Symbol* sfilename;
+    void* sfilename;
+    bool hasCDtor;
     void* ctfe_cov;
     void accept(Visitor* v) override;
     void fullyQualifiedName(OutBuffer& buf);
@@ -8970,6 +8952,8 @@ struct Id final
     static Identifier* _d_newarrayTTrace;
     static Identifier* _d_newarraymTX;
     static Identifier* _d_newarraymTXTrace;
+    static Identifier* _d_arrayliteralTX;
+    static Identifier* _d_arrayliteralTXTrace;
     static Identifier* _d_assert_fail;
     static Identifier* dup;
     static Identifier* _aaApply;

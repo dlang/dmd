@@ -47,6 +47,7 @@ import dmd.dmodule;
 import dmd.dmsc;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : getLocalClasses;
 import dmd.dtemplate;
 import dmd.e2ir;
 import dmd.errors;
@@ -335,7 +336,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             }
             if (verbose)
                 eSink.message(Loc.initial, "code      %s", m.toChars());
-            genObjFile(m, false);
+            genObjFile(m, false, false);
         }
         if (!global.errors && firstm)
         {
@@ -352,7 +353,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             if (verbose)
                 eSink.message(Loc.initial, "code      %s", m.toChars());
             obj_start(objbuf, m.srcfile.toChars());
-            genObjFile(m, multiobj);
+            genObjFile(m, multiobj, false);
             obj_end(objbuf, library, m.objfile.toString());
             obj_write_deferred(objbuf, library, glue.obj_symbols_towrite);
             if (global.errors && !writeLibrary)
@@ -837,8 +838,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         StringExp se = StringExp.create(Loc.initial, s.Sident.ptr);
         se.type = Type.tstring;
         se.type = se.type.typeSemantic(Loc.initial, null);
-        Expressions* exps = new Expressions();
-        exps.push(se);
+        Expressions* exps = new Expressions(se);
         FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
         Expression ec = VarExp.create(Loc.initial, fdpro);
         Expression e = CallExp.create(Loc.initial, ec, exps);
@@ -1148,13 +1148,11 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
             Identifier id = Identifier.create(idbuf.extractChars());
 
             Module md = new Module(m.loc, mnames, id, 0, 0);
-            md.members = new Dsymbols();
-            md.members.push(s);   // its only 'member' is s
-            md.doppelganger = 1;       // identify this module as doppelganger
+            md.members = new Dsymbols(s);   // its only 'member' is s
             md.md = m.md;
             md.aimports.push(m);       // it only 'imports' m
 
-            genObjFile(md, false);
+            genObjFile(md, false, true);
         }
 
         /* Set object file name to be source name with sequence number,
@@ -1308,7 +1306,7 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)[] objfil
  * Generate .obj file for Module.
  */
 
-private void genObjFile(Module m, bool multiobj)
+private void genObjFile(Module m, bool multiobj, bool doppelganger)
 {
     //EEcontext* ee = env.getEEcontext();
 
@@ -1332,14 +1330,14 @@ private void genObjFile(Module m, bool multiobj)
     glue.sshareddtors.setDim(0);
     glue.stests.setDim(0);
 
-    if (m.doppelganger)
+    if (doppelganger)
     {
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
         Module mod = m.aimports[0];
         assert(mod);
-        if (mod.sictor || mod.sctor || mod.sdtor || mod.ssharedctor || mod.sshareddtor)
+        if (mod.hasCDtor)
         {
             Symbol* s = toSymbol(mod);
             //objextern(s);
@@ -1361,15 +1359,17 @@ private void genObjFile(Module m, bool multiobj)
         }
     }
 
+    Symbol* mcov;
     if (global.params.cov)
     {
         /* Create coverage identifier:
          *  uint[numlines] __coverage;
          */
-        m.cov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
-        m.cov.Sflags |= SFLhidden;
-        m.cov.Stype.Tmangle = Mangle.d;
-        m.cov.Sfl = FL.data;
+        mcov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
+        m.cov = mcov;
+        mcov.Sflags |= SFLhidden;
+        mcov.Stype.Tmangle = Mangle.d;
+        mcov.Sfl = FL.data;
 
         auto dtb = DtBuilder(0);
 
@@ -1403,9 +1403,9 @@ private void genObjFile(Module m, bool multiobj)
         {
             dtb.nzeros(4 * m.numlines);
         }
-        m.cov.Sdt = dtb.finish();
+        mcov.Sdt = dtb.finish();
 
-        outdata(m.cov);
+        outdata(mcov);
 
         size_t sz = m.covb[0].sizeof;
         size_t n = (m.numlines + sz * 8) / (sz * 8);
@@ -1420,6 +1420,7 @@ private void genObjFile(Module m, bool multiobj)
         toObjFile(member, multiobj);
     }
 
+    Symbol* msictor;
     if (global.params.cov)
     {
         /* Generate
@@ -1451,11 +1452,12 @@ private void genObjFile(Module m, bool multiobj)
         type* t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
         t.Tmangle = Mangle.c;
 
-        m.sictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
-        cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
+        msictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
+        m.hasCDtor = true;
+        cstate.CSpsymtab = &msictor.Sfunc.Flocsym;
         localgot = glue.ictorlocalgot;
 
-        elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
+        elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(mcov));
         elem* ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
 
         if (target.os == Target.OS.Windows && target.isX86_64)
@@ -1479,6 +1481,7 @@ private void genObjFile(Module m, bool multiobj)
         glue.ictorlocalgot = localgot;
     }
 
+    Symbol* msctor, msdtor, mssharedctor, msshareddtor, mstest;
     // If coverage / static constructor / destructor / unittest calls
     if (glue.eictor || glue.sctors.length || glue.ectorgates.length || glue.sdtors.length ||
         glue.ssharedctors.length || glue.esharedctorgates.length || glue.sshareddtors.length || glue.stests.length || glue.sisharedctors.length)
@@ -1490,30 +1493,31 @@ private void genObjFile(Module m, bool multiobj)
             block* b = block_calloc();
             b.bc = BC.ret;
             b.Belem = glue.eictor;
-            m.sictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
-            m.sictor.Sfunc.Fstartblock = b;
-            writefunc(m.sictor);
+            msictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
+            msictor.Sfunc.Fstartblock = b;
+            writefunc(msictor);
         }
 
-        m.sctor = callFuncsAndGates(m, glue.sctors[], glue.ectorgates[], "__modctor");
-        m.sdtor = callFuncsAndGates(m, glue.sdtors[], null, "__moddtor");
+        msctor = callFuncsAndGates(m, glue.sctors[], glue.ectorgates[], "__modctor");
+        msdtor = callFuncsAndGates(m, glue.sdtors[], null, "__moddtor");
+        m.hasCDtor = true;
 
         if (glue.sisharedctors.length > 0)
         {
-            if (m.sictor)
-                glue.sisharedctors.shift(m.sictor);
-            m.sictor = callFuncsAndGates(m, glue.sisharedctors[], null, "__modsharedictor");
+            if (msictor)
+                glue.sisharedctors.shift(msictor);
+            msictor = callFuncsAndGates(m, glue.sisharedctors[], null, "__modsharedictor");
         }
 
-        m.ssharedctor = callFuncsAndGates(m, glue.ssharedctors[], cast(StaticDtorDeclaration[])glue.esharedctorgates[], "__modsharedctor");
-        m.sshareddtor = callFuncsAndGates(m, glue.sshareddtors[], null, "__modshareddtor");
-        m.stest = callFuncsAndGates(m, glue.stests[], null, "__modtest");
+        mssharedctor = callFuncsAndGates(m, glue.ssharedctors[], cast(StaticDtorDeclaration[])glue.esharedctorgates[], "__modsharedctor");
+        msshareddtor = callFuncsAndGates(m, glue.sshareddtors[], null, "__modshareddtor");
+        mstest = callFuncsAndGates(m, glue.stests[], null, "__modtest");
 
-        if (m.doppelganger)
-            genModuleInfo(m);
+        if (doppelganger)
+            genModuleInfo(m, msictor, msctor, msdtor, mssharedctor, msshareddtor, mstest);
     }
 
-    if (m.doppelganger)
+    if (doppelganger)
     {
         objc.generateModuleInfo(m);
         objmod.termfile();
@@ -1529,11 +1533,156 @@ private void genObjFile(Module m, bool multiobj)
      */
     if (global.params.useModuleInfo && Module.moduleinfo &&
         (global.params.cov || m.filetype != FileType.c) /*|| needModuleInfo()*/)
-        genModuleInfo(m);
+        genModuleInfo(m, msictor, msctor, msdtor, mssharedctor, msshareddtor, mstest);
 
     objmod.termfile();
 }
 
+
+// Put out instance of ModuleInfo for this Module
+
+private void genModuleInfo(Module m, Symbol* msictor,
+                           Symbol* msctor, Symbol* msdtor,
+                           Symbol* mssharedctor, Symbol* msshareddtor,
+                           Symbol* mstest)
+{
+    //printf("Module.genmoduleinfo() %s\n", m.toChars());
+
+    if (!Module.moduleinfo)
+    {
+        ObjectNotFound(m.loc, Id.ModuleInfo);
+    }
+
+    Symbol* msym = toSymbol(m);
+
+    //////////////////////////////////////////////
+
+    auto csym = cast(Symbol*)m.csym;
+    csym.Sclass = SC.global;
+    csym.Sfl = FL.data;
+
+    auto dtb = DtBuilder(0);
+
+    ClassDeclarations aclasses;
+    getLocalClasses(m, aclasses);
+
+    // importedModules[]
+    size_t aimports_dim = m.aimports.length;
+    for (size_t i = 0; i < m.aimports.length; i++)
+    {
+        Module mod = m.aimports[i];
+        if (!mod.needmoduleinfo)
+            aimports_dim--;
+    }
+
+    FuncDeclaration sgetmembers = m.findGetMembers();
+
+    // These must match the values in druntime/src/object_.d
+    enum
+    {
+        MIstandalone      = 0x4,
+        MItlsctor         = 0x8,
+        MItlsdtor         = 0x10,
+        MIctor            = 0x20,
+        MIdtor            = 0x40,
+        MIxgetMembers     = 0x80,
+        MIictor           = 0x100,
+        MIunitTest        = 0x200,
+        MIimportedModules = 0x400,
+        MIlocalClasses    = 0x800,
+        MIname            = 0x1000,
+    }
+
+    uint flags = 0;
+    if (!m.needmoduleinfo)
+        flags |= MIstandalone;
+    if (msctor)
+        flags |= MItlsctor;
+    if (msdtor)
+        flags |= MItlsdtor;
+    if (mssharedctor)
+        flags |= MIctor;
+    if (msshareddtor)
+        flags |= MIdtor;
+    if (sgetmembers)
+        flags |= MIxgetMembers;
+    if (msictor)
+        flags |= MIictor;
+    if (mstest)
+        flags |= MIunitTest;
+    if (aimports_dim)
+        flags |= MIimportedModules;
+    if (aclasses.length)
+        flags |= MIlocalClasses;
+    flags |= MIname;
+
+    dtb.dword(flags);        // _flags
+    dtb.dword(0);            // _index
+
+    if (flags & MItlsctor)
+        dtb.xoff(msctor, 0, TYnptr);
+    if (flags & MItlsdtor)
+        dtb.xoff(msdtor, 0, TYnptr);
+    if (flags & MIctor)
+        dtb.xoff(mssharedctor, 0, TYnptr);
+    if (flags & MIdtor)
+        dtb.xoff(msshareddtor, 0, TYnptr);
+    if (flags & MIxgetMembers)
+        dtb.xoff(toSymbol(sgetmembers), 0, TYnptr);
+    if (flags & MIictor)
+        dtb.xoff(msictor, 0, TYnptr);
+    if (flags & MIunitTest)
+        dtb.xoff(mstest, 0, TYnptr);
+    if (flags & MIimportedModules)
+    {
+        dtb.size(aimports_dim);
+        foreach (i; 0 .. m.aimports.length)
+        {
+            Module mod = m.aimports[i];
+
+            if (!mod.needmoduleinfo)
+                continue;
+
+            Symbol* s = toSymbol(mod);
+
+            /* Weak references don't pull objects in from the library,
+             * they resolve to 0 if not pulled in by something else.
+             * Don't pull in a module just because it was imported.
+             */
+            s.Sflags |= SFLweak;
+            dtb.xoff(s, 0, TYnptr);
+        }
+    }
+    if (flags & MIlocalClasses)
+    {
+        dtb.size(aclasses.length);
+        foreach (i; 0 .. aclasses.length)
+        {
+            ClassDeclaration cd = aclasses[i];
+            dtb.xoff(toSymbol(cd), 0, TYnptr);
+        }
+    }
+    if (flags & MIname)
+    {
+        // Put out module name as a 0-terminated string, to save bytes
+        m.nameoffset = dtb.length();
+        const(char) *name = m.toPrettyChars();
+        m.namelen = strlen(name);
+        dtb.nbytes(name[0 .. m.namelen + 1]);
+        //printf("nameoffset = x%x\n", nameoffset);
+    }
+
+    objc.generateModuleInfo(m);
+    csym.Sdt = dtb.finish();
+    out_readonly(csym);
+    outdata(csym);
+
+    //////////////////////////////////////////////
+
+    objmod.moduleinfo(msym);
+    if (driverParams.exportVisibility == ExpVis.public_)
+        objmod.export_symbol(msym, 0);
+}
 
 
 /* ================================================================== */
@@ -1638,12 +1787,14 @@ private elem* toEfilename(Module m)
     const(char)* id = m.srcfile.toChars();
     size_t len = strlen(id);
 
+    Symbol* msfilename;
     if (!m.sfilename)
     {
         // Put out as a static array
-        m.sfilename = toStringSymbol(id, len, 1);
+        msfilename = toStringSymbol(id, len, 1);
+        m.sfilename = msfilename;
     }
 
     // Turn static array into dynamic array
-    return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m.sfilename));
+    return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(msfilename));
 }

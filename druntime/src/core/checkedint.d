@@ -768,17 +768,24 @@ uint mulu()(uint x, uint y, ref bool overflow)
     {
         if (!__ctfe)
         {
-            uint r;
-            bool o;
-            asm pure nothrow @nogc @trusted
+            version (DigitalMars) // this asm used by dmd only, but it cannot inline it
             {
-                mov EAX, x;
-                mul y;        // EDX:EAX = EAX * y
-                mov r, EAX;
-                setc o;
+                uint mulu_asm(uint x, uint y, ref bool overflow)
+                {
+                    uint r;
+                    bool o;
+                    asm pure nothrow @nogc @trusted
+                    {
+                        mov EAX, x;
+                        mul y;        // EDX:EAX = EAX * y
+                        mov r, EAX;
+                        setc o;
+                    }
+                    overflow |= o;
+                    return r;
+                }
+                return mulu_asm(x, y, overflow);
             }
-            overflow |= o;
-            return r;
         }
     }
 
@@ -834,17 +841,24 @@ ulong mulu()(ulong x, ulong y, ref bool overflow)
     {
         if (!__ctfe)
         {
-            ulong r;
-            bool o;
-            asm pure nothrow @nogc @trusted
+            version (DigitalMars) // this asm used by dmd only, but it cannot inline it
             {
-                mov RAX, x;
-                mul y;        // RDX:RAX = RAX * y
-                mov r, RAX;
-                setc o;
+                ulong mulu_asm(ulong x, ulong y, ref bool overflow)
+                {
+                    ulong r;
+                    bool o;
+                    asm pure nothrow @nogc @trusted
+                    {
+                        mov RAX, x;
+                        mul y;        // RDX:RAX = RAX * y
+                        mov r, RAX;
+                        setc o;
+                    }
+                    overflow |= o;
+                    return r;
+                }
+                return mulu_asm(x, y, overflow);
             }
-            overflow |= o;
-            return r;
         }
     }
 

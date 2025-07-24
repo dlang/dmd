@@ -712,14 +712,11 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
 
         if (auto ie = e.isIntervalExp())
         {
-            auto tiargs = new Objects();
             Expression edim = new IntegerExp(ae.loc, i, Type.tsize_t);
             edim = edim.expressionSemantic(sc);
-            tiargs.push(edim);
+            auto tiargs = new Objects(edim);
 
-            auto fargs = new Expressions(2);
-            (*fargs)[0] = ie.lwr;
-            (*fargs)[1] = ie.upr;
+            auto fargs = new Expressions(ie.lwr, ie.upr);
 
             const xerrors = global.startGagging();
             sc = sc.push();
@@ -2441,8 +2438,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 return ErrorExp.get();
             e2 = resolveProperties(sc, e2);
 
-            Expressions* a = new Expressions();
-            a.push(e2);
+            Expressions* a = new Expressions(e2);
 
             for (size_t i = 0; i < os.a.length; i++)
             {
@@ -2561,8 +2557,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 return ErrorExp.get();
             e2 = resolveProperties(sc, e2);
 
-            Expressions* a = new Expressions();
-            a.push(e2);
+            Expressions* a = new Expressions(e2);
 
             FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, ArgumentList(a), FuncResolveFlag.quiet);
             if (fd && fd.type)
@@ -3032,7 +3027,9 @@ private bool functionParameters(Loc loc, Scope* sc,
      */
     if (fd && fd.inlining == PINLINE.always)
     {
-        if (sc._module)
+        if (sc.minst)
+            sc.minst.hasAlwaysInlines = true;
+        else if (sc._module)
             sc._module.hasAlwaysInlines = true;
         if (sc.func)
             sc.func.hasAlwaysInlines = true;
@@ -3840,24 +3837,94 @@ private void lowerCastExp(CastExp cex, Scope* sc)
     Expression lowering = new IdentifierExp(cex.loc, Id.empty);
     lowering = new DotIdExp(cex.loc, lowering, Id.object);
 
-    auto tiargs = new Objects();
     // Unqualify the type being casted to, avoiding multiple instantiations
     auto unqual_tob = tob.unqualify(MODFlags.wild | MODFlags.const_ |
         MODFlags.immutable_ | MODFlags.shared_);
-    tiargs.push(unqual_tob);
+    auto tiargs = new Objects(unqual_tob);
     lowering = new DotTemplateInstanceExp(cex.loc, lowering, hook, tiargs);
 
-    auto arguments = new Expressions();
     // Unqualify the type being casted from to avoid multiple instantiations
     auto unqual_t1b = t1b.unqualify(MODFlags.wild | MODFlags.const_ |
         MODFlags.immutable_ | MODFlags.shared_);
     Expression e1c = cex.e1.copy();
     e1c.type = unqual_t1b;
-    arguments.push(e1c);
+    auto arguments = new Expressions(e1c);
 
     lowering = new CallExp(cex.loc, lowering, arguments);
 
     cex.lowering = lowering.expressionSemantic(sc);
+}
+
+/**
+ * Visitor to check if a type is suitable for comparison using `memcmp`.
+ * Currently used when lowering `EqualExp`.
+ */
+private extern(C++) final class IsMemcmpableVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+    public:
+    bool result = false;
+
+    override void visit(Type t)
+    {
+        result = t.ty == Tvoid || (t.isScalar() && !t.isFloating());
+    }
+
+    override void visit(TypeStruct ts)
+    {
+        result = false;
+
+        if (ts.sym.hasIdentityEquals)
+            return; // has custom opEquals
+
+        if (!ts.sym.members)
+        {
+            result = true;
+            return;
+        }
+
+        /* We recursively check all variable declaration within the struct.
+         * The recursiveness is needed to handle cases like this:
+         * struct Test {
+	     *     nothrow:
+	     *     int[] contents;
+         * }
+         * Here a `StorageClassDeclaration` symbol will be created, which wraps the variable declaration.
+         */
+        static bool visitAllMembers(Dsymbols* members, TypeStruct root, IsMemcmpableVisitor v)
+        {
+            if (members is null)
+                return true;
+
+            foreach (m; *members)
+            {
+                if (auto vd = m.isVarDeclaration())
+                {
+                    if (vd.type is null)
+                        continue;
+
+                    auto tbvd = vd.type.toBasetype();
+                    if (tbvd !is root)
+                        tbvd.accept(v);
+
+                    if (!v.result)
+                        return false;
+                }
+                else if (auto ad = m.isAttribDeclaration())
+                {
+                    if(!visitAllMembers(ad.decl, root, v))
+                        return false;
+                }
+            }
+            return true;
+        }
+        result = visitAllMembers(ts.sym.members, ts, this);
+    }
+
+    override void visit(TypeSArray tsa)
+    {
+        tsa.nextOf().toBasetype().accept(this);
+    }
 }
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
@@ -4377,8 +4444,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression makeNonTemplateItem(Identifier which) {
             Expression id = new IdentifierExp(e.loc, Id.empty);
             id = new DotIdExp(e.loc, id, Id.object);
-            auto moduleNameArgs = new Objects();
-            moduleNameArgs.push(new StringExp(e.loc, "core.interpolation"));
+            auto moduleNameArgs = new Objects(new StringExp(e.loc, "core.interpolation"));
             id = new DotTemplateInstanceExp(e.loc, id, Id.imported, moduleNameArgs);
             id = new DotIdExp(e.loc, id, which);
             id = new CallExp(e.loc, id, new Expressions());
@@ -4388,21 +4454,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression makeTemplateItem(Identifier which, string arg) {
             Expression id = new IdentifierExp(e.loc, Id.empty);
             id = new DotIdExp(e.loc, id, Id.object);
-            auto moduleNameArgs = new Objects();
-            moduleNameArgs.push(new StringExp(e.loc, "core.interpolation"));
+            auto moduleNameArgs = new Objects(new StringExp(e.loc, "core.interpolation"));
             id = new DotTemplateInstanceExp(e.loc, id, Id.imported, moduleNameArgs);
-            auto tiargs = new Objects();
+
             auto templateStringArg = new StringExp(e.loc, arg);
             // banning those instead of forwarding them
             // templateStringArg.postfix = e.postfix; // forward the postfix to these literals
-            tiargs.push(templateStringArg);
+            auto tiargs = new Objects(templateStringArg);
             id = new DotTemplateInstanceExp(e.loc, id, which, tiargs);
             id = new CallExp(e.loc, id, new Expressions());
             return id;
         }
 
-        auto arguments = new Expressions();
-        arguments.push(makeNonTemplateItem(Id.InterpolationHeader));
+        auto arguments = new Expressions(makeNonTemplateItem(Id.InterpolationHeader));
 
         foreach (idx, str; e.interpolatedSet.parts)
         {
@@ -4414,8 +4478,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
             {
                 arguments.push(makeTemplateItem(Id.InterpolatedExpression, str));
-                Expressions* mix = new Expressions();
-                mix.push(new StringExp(e.loc, str));
+                Expressions* mix = new Expressions(new StringExp(e.loc, str));
                 // FIXME: i'd rather not use MixinExp but idk how to do it lol
                 arguments.push(new MixinExp(e.loc, mix));
             }
@@ -4925,14 +4988,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          */
         Expression id = new IdentifierExp(ne.loc, Id.empty);
         id = new DotIdExp(ne.loc, id, Id.object);
-        auto tiargs = new Objects();
         /*
          * Remove `inout`, `const`, `immutable` and `shared` to reduce the
          * number of generated `_d_newitemT` instances.
          */
         auto t = ne.type.nextOf.unqualify(MODFlags.wild | MODFlags.const_ |
             MODFlags.immutable_ | MODFlags.shared_);
-        tiargs.push(t);
+        auto tiargs = new Objects(t);
         id = new DotTemplateInstanceExp(ne.loc, id, hook, tiargs);
 
         auto arguments = new Expressions();
@@ -5036,8 +5098,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
             {
                 // --> new T[](edim)
-                exp.arguments = new Expressions();
-                exp.arguments.push(edim);
+                exp.arguments = new Expressions(edim);
                 exp.type = exp.type.arrayOf();
             }
         }
@@ -5285,8 +5346,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression id = new IdentifierExp(exp.loc, Id.empty);
                 id = new DotIdExp(exp.loc, id, Id.object);
 
-                auto tiargs = new Objects();
-                tiargs.push(exp.newtype);
+                auto tiargs = new Objects(exp.newtype);
 
                 id = new DotTemplateInstanceExp(exp.loc, id, Id._d_newThrowable, tiargs);
 
@@ -5311,9 +5371,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression id = new IdentifierExp(exp.loc, Id.empty);
                 id = new DotIdExp(exp.loc, id, Id.object);
 
-                auto tiargs = new Objects();
                 auto t = exp.newtype.unqualify(MODFlags.wild);  // remove `inout`
-                tiargs.push(t);
+                auto tiargs = new Objects(t);
                 id = new DotTemplateInstanceExp(exp.loc, id, hook, tiargs);
                 auto arguments = new Expressions();
                 id = new CallExp(exp.loc, id, arguments);
@@ -5499,19 +5558,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  */
                 Expression lowering = new IdentifierExp(exp.loc, Id.empty);
                 lowering = new DotIdExp(exp.loc, lowering, Id.object);
-                auto tiargs = new Objects();
+
                 /* Remove `inout`, `const`, `immutable` and `shared` to reduce
                  * the number of generated `_d_newarrayT` instances.
                  */
                 const isShared = exp.type.nextOf.isShared();
                 auto t = exp.type.nextOf.unqualify(MODFlags.wild | MODFlags.const_ |
                     MODFlags.immutable_ | MODFlags.shared_);
-                tiargs.push(t);
+                auto tiargs = new Objects(t);
                 lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
 
-                auto arguments = new Expressions();
-                arguments.push((*exp.arguments)[0]);
-                arguments.push(new IntegerExp(exp.loc, isShared, Type.tbool));
+                auto arguments = new Expressions((*exp.arguments)[0], new IntegerExp(exp.loc, isShared, Type.tbool));
 
                 lowering = new CallExp(exp.loc, lowering, arguments);
                 exp.lowering = lowering.expressionSemantic(sc);
@@ -5535,15 +5592,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto unqualTbn = tbn.unqualify(MODFlags.wild | MODFlags.const_ |
                     MODFlags.immutable_ | MODFlags.shared_);
 
-                auto tiargs = new Objects();
-                tiargs.push(exp.type);
-                tiargs.push(unqualTbn);
+                auto tiargs = new Objects(exp.type, unqualTbn);
                 lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
 
-                auto arguments = new Expressions();
-
-                arguments.push(new ArrayLiteralExp(exp.loc, Type.tsize_t.sarrayOf(nargs), exp.arguments));
-                arguments.push(new IntegerExp(exp.loc, tbn.isShared(), Type.tbool));
+                auto arguments = new Expressions(new ArrayLiteralExp(exp.loc, Type.tsize_t.sarrayOf(nargs), exp.arguments),
+                                                 new IntegerExp(exp.loc, tbn.isShared(), Type.tbool));
 
                 lowering = new CallExp(exp.loc, lowering, arguments);
                 exp.lowering = lowering.expressionSemantic(sc);
@@ -8097,7 +8150,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 isEqualsCallExpression)
             {
                 es = new Expressions(3);
-                tiargs = new Objects(1);
 
                 if (isEqualsCallExpression)
                 {
@@ -8136,7 +8188,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression comp = new StringExp(loc, isEqualsCallExpression ? "==" : EXPtoString(exp.e1.op));
                 comp = comp.expressionSemantic(sc);
                 (*es)[0] = comp;
-                (*tiargs)[0] = (*es)[1].type;
+                tiargs = new Objects((*es)[1].type);
             }
 
             // Format exp.e1 before any additional boolean conversion
@@ -8144,7 +8196,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else if (op != EXP.andAnd && op != EXP.orOr)
             {
                 es = new Expressions(2);
-                tiargs = new Objects(1);
 
                 if (auto ne = exp.e1.isNotExp())
                 {
@@ -8168,7 +8219,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     (*es)[1] = maybePromoteToTmp(exp.e1);
                 }
 
-                (*tiargs)[0] = (*es)[1].type;
+                tiargs = new Objects((*es)[1].type);
 
                 // Passing __ctfe to auto ref infers ref and aborts compilation:
                 // "cannot modify compiler-generated variable __ctfe"
@@ -9393,13 +9444,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             Expression id = new IdentifierExp(exp.loc, Id.empty);
                             auto dotid = new DotIdExp(exp.loc, id, Id.object);
 
-                            auto tiargs = new Objects();
-                            tiargs.push(tFrom);
-                            tiargs.push(tTo);
+                            auto tiargs = new Objects(tFrom, tTo);
                             auto dt = new DotTemplateInstanceExp(exp.loc, dotid, Id.__ArrayCast, tiargs);
 
-                            auto arguments = new Expressions();
-                            arguments.push(exp.e1);
+                            auto arguments = new Expressions(exp.e1);
                             Expression ce = new CallExp(exp.loc, dt, arguments);
 
                             result = expressionSemantic(ce, sc);
@@ -10508,8 +10556,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     /* Rewrite (a[i..j] = e2) as:
                      *      a.opSliceAssign(e2, i, j)
                      */
-                    auto a = new Expressions();
-                    a.push(exp.e2);
+                    auto a = new Expressions(exp.e2);
                     if (ie)
                     {
                         a.push(ie.lwr);
@@ -10700,8 +10747,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression e0;
                 Expression ev = extractSideEffect(sc, "__tup", e0, e2x);
 
-                auto iexps = new Expressions();
-                iexps.push(ev);
+                auto iexps = new Expressions(ev);
                 for (size_t u = 0; u < iexps.length; u++)
                 {
                 Lexpand:
@@ -11383,9 +11429,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             id = id.expressionSemantic(sc);
 
             // Generate call: _d_arraysetlengthT(e1, e2)
-            auto arguments = new Expressions();
-            arguments.push(ale.e1);  // array
-            arguments.push(exp.e2);  // new length
+            auto arguments = new Expressions(ale.e1,  // array
+                                             exp.e2);  // new length
 
             Expression ce = new CallExp(ale.loc, id, arguments).expressionSemantic(sc);
             auto res = new LoweredAssignExp(exp, ce);
@@ -11590,7 +11635,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             t1.isStaticOrDynamicArray() &&
             t1.nextOf().toBasetype().ty == Tvoid)
         {
-            if (t2.nextOf().implicitConvTo(t1.nextOf()))
+            auto t2n = t2.nextOf();
+            if (!t2n)
+            {
+                // filling not allowed
+                error(exp.loc, "cannot copy `%s` to `%s`",
+                    t2.toChars(), t1.toChars());
+            }
+            else if (t2n.implicitConvTo(t1.nextOf()))
             {
                 if (sc.setUnsafe(false, exp.loc, "copying `%s` to `%s`", t2, t1))
                     return setError();
@@ -11739,8 +11791,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 id = new DotIdExp(exp.loc, id, Id.object);
                 id = new DotIdExp(exp.loc, id, func);
 
-                auto arguments = new Expressions();
-                arguments.push(new CastExp(ae.loc, ae.e1, t1e.arrayOf).expressionSemantic(sc));
+                auto arguments = new Expressions(new CastExp(ae.loc, ae.e1, t1e.arrayOf).expressionSemantic(sc));
                 if (lowerToArrayCtor)
                 {
                     arguments.push(new CastExp(ae.loc, rhs, t2b.nextOf.arrayOf).expressionSemantic(sc));
@@ -11821,9 +11872,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         id = new DotIdExp(ae.loc, id, Id.object);
         id = new DotIdExp(ae.loc, id, func);
 
-        auto arguments = new Expressions();
-        arguments.push(new CastExp(ae.loc, ae.e1, ae.e1.type.nextOf.arrayOf)
-            .expressionSemantic(sc));
+        auto arguments = new Expressions(new CastExp(ae.loc, ae.e1, ae.e1.type.nextOf.arrayOf)
+                                         .expressionSemantic(sc));
 
         Expression eValue2, value2 = ae.e2;
         if (isArrayAssign && value2.isLvalue())
@@ -11852,14 +11902,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression ce = new CallExp(ae.loc, id, arguments);
         res = Expression.combine(eValue2, ce).expressionSemantic(sc);
         if (isArrayAssign)
-            res = Expression.combine(res, ae.e1).expressionSemantic(sc);
+            res = Expression.combine(res, ae.e1).expressionSemantic(sc).checkGC(sc);
 
         if (global.params.v.verbose)
             message("lowered   %s =>\n          %s", ae.toChars(), res.toChars());
 
         res = new LoweredAssignExp(ae, res);
         res.type = ae.type;
-        res = res.checkGC(sc);
 
         return res;
     }
@@ -12100,9 +12149,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 id = new DotIdExp(exp.loc, id, Id.object);
                 id = new DotIdExp(exp.loc, id, hook);
 
-                auto arguments = new Expressions();
-                arguments.push(exp.e1);
-                arguments.push(exp.e2);
+                auto arguments = new Expressions(exp.e1, exp.e2);
                 Expression ce = new CallExp(exp.loc, id, arguments);
 
                 exp.lowering = ce.expressionSemantic(sc);
@@ -12134,12 +12181,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 id = new DotIdExp(exp.loc, id, Id.object);
                 id = new DotIdExp(exp.loc, id, hook);
 
-                auto arguments = new Expressions();
                 Expression eValue1;
                 Expression value1 = extractSideEffect(sc, "__appendtmp", eValue1, exp.e1);
 
-                arguments.push(value1);
-                arguments.push(new IntegerExp(exp.loc, 1, Type.tsize_t));
+                auto arguments = new Expressions(value1, new IntegerExp(exp.loc, 1, Type.tsize_t));
 
                 Expression ce = new CallExp(exp.loc, id, arguments);
 
@@ -12492,11 +12537,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression id = new IdentifierExp(exp.loc, Id.empty);
         id = new DotIdExp(exp.loc, id, Id.object);
 
-        auto tiargs = new Objects();
-        tiargs.push(exp.type);
+        auto tiargs = new Objects(exp.type);
         id = new DotTemplateInstanceExp(exp.loc, id, hook, tiargs);
         id = new CallExp(exp.loc, id, arguments);
-        return id.expressionSemantic(sc);
+        return id.expressionSemantic(sc).checkGC(sc);
     }
 
     void trySetCatExpLowering(Expression exp)
@@ -12945,7 +12989,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        Module mmath = Module.loadStdMath();
+        Module mmath = loadStdMath();
         if (!mmath)
         {
             error(e.loc, "`%s` requires `std.math` for `^^` operators", e.toErrMsg());
@@ -13412,19 +13456,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();
 
-        // Indicates whether the comparison of the 2 specified array types
-        // requires an object.__equals() lowering.
-        static bool needsDirectEq(Type t1, Type t2, Scope* sc)
+        static bool unifyArrayTypes(Type t1, Type t2, Scope* sc)
         {
             Type t1n = t1.nextOf().toBasetype();
             Type t2n = t2.nextOf().toBasetype();
+
             if ((t1n.ty.isSomeChar && t2n.ty.isSomeChar) ||
                 (t1n.ty == Tvoid || t2n.ty == Tvoid))
             {
-                return false;
+                return true;
             }
             if (t1n.constOf() != t2n.constOf())
-                return true;
+            {
+                return false;
+            }
 
             Type t = t1n;
             while (t.toBasetype().nextOf())
@@ -13435,7 +13480,42 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (global.params.useTypeInfo && Type.dtypeinfo)
                     semanticTypeInfo(sc, ts);
 
-                return ts.sym.hasIdentityEquals; // has custom opEquals
+                return !ts.sym.hasIdentityEquals; // has custom opEquals
+            }
+
+            return true;
+        }
+
+        static bool shouldUseMemcmp(Type t1, Type t2, Scope *sc)
+        {
+            Type t1n = t1.nextOf().toBasetype();
+            Type t2n = t2.nextOf().toBasetype();
+            const t1nsz = t1n.size();
+            const t2nsz = t2n.size();
+
+            if ((t1n.ty == Tvoid || (t1n.isScalar() && !t1n.isFloating())) &&
+                (t2n.ty == Tvoid || (t2n.isScalar() && !t1n.isFloating())) &&
+                t1nsz == t2nsz && t1n.isUnsigned() == t2n.isUnsigned())
+            {
+                return true;
+            }
+            if (t1n.constOf() != t2n.constOf())
+            {
+                return false;
+            }
+
+            Type t = t1n;
+            while (t.toBasetype().nextOf())
+                t = t.nextOf().toBasetype();
+            if (auto ts = t.isTypeStruct())
+            {
+                // semanticTypeInfo() makes sure hasIdentityEquals has been computed
+                if (global.params.useTypeInfo && Type.dtypeinfo)
+                    semanticTypeInfo(sc, ts);
+
+                auto v = new IsMemcmpableVisitor();
+                ts.accept(v);
+                return v.result;
             }
 
             return false;
@@ -13448,9 +13528,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         const isArrayComparison = t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray();
-        const needsArrayLowering = isArrayComparison && needsDirectEq(t1, t2, sc);
 
-        if (!needsArrayLowering)
+        if (!isArrayComparison || unifyArrayTypes(t1, t2, sc))
         {
             // https://issues.dlang.org/show_bug.cgi?id=23783
             if (exp.e1.checkSharedAccess(sc) || exp.e2.checkSharedAccess(sc))
@@ -13480,7 +13559,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // lower some array comparisons to object.__equals(e1, e2)
-        if (needsArrayLowering || (t1.ty == Tarray && t2.ty == Tarray))
+        if (isArrayComparison && !shouldUseMemcmp(t1, t2, sc))
         {
             //printf("Lowering to __equals %s %s\n", exp.e1.toChars(), exp.e2.toChars());
 
@@ -13495,13 +13574,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return;
             }
 
-            if (!verifyHookExist(exp.loc, *sc, Id.__equals, "equal checks on arrays"))
+            Identifier hook = Id.__equals;
+            if (!verifyHookExist(exp.loc, *sc, hook, "equal checks on arrays"))
                 return setError();
 
-            Expression __equals = new IdentifierExp(exp.loc, Id.empty);
-            Identifier id = Identifier.idPool("__equals");
-            __equals = new DotIdExp(exp.loc, __equals, Id.object);
-            __equals = new DotIdExp(exp.loc, __equals, id);
+            Expression lowering = new IdentifierExp(exp.loc, Id.empty);
+            lowering = new DotIdExp(exp.loc, lowering, Id.object);
+            lowering = new DotIdExp(exp.loc, lowering, hook);
 
             /* https://issues.dlang.org/show_bug.cgi?id=23674
              *
@@ -13512,28 +13591,69 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.e1 = exp.e1.optimize(WANTvalue);
             exp.e2 = exp.e2.optimize(WANTvalue);
 
-            auto arguments = new Expressions(2);
-            (*arguments)[0] = exp.e1;
-            (*arguments)[1] = exp.e2;
+            auto e1c = exp.e1.copy();
+            auto e2c = exp.e2.copy();
 
-            __equals = new CallExp(exp.loc, __equals, arguments);
+            /* Remove qualifiers from the types of the arguments to reduce the number
+             * of generated `__equals` instances.
+             */
+            static void unqualifyExp(Expression e)
+            {
+                e.type = e.type.unqualify(MODFlags.wild | MODFlags.immutable_ | MODFlags.shared_);
+                auto eNext = e.type.nextOf();
+                if (eNext && !eNext.toBasetype().isTypeStruct())
+                    e.type = e.type.unqualify(MODFlags.const_);
+
+                if (!e.isArrayLiteralExp())
+                    return;
+
+                if (auto elems = e.isArrayLiteralExp().elements)
+                    foreach(elem; *elems)
+                        if (elem)
+                            unqualifyExp(elem);
+            }
+            unqualifyExp(e1c);
+            unqualifyExp(e2c);
+
+            auto arguments = new Expressions(2);
+            (*arguments)[0] = e1c;
+            (*arguments)[1] = e2c;
+
+            lowering = new CallExp(exp.loc, lowering, arguments);
             if (exp.op == EXP.notEqual)
             {
-                __equals = new NotExp(exp.loc, __equals);
+                lowering = new NotExp(exp.loc, lowering);
             }
-            __equals = __equals.trySemantic(sc); // for better error message
-            if (!__equals)
+            lowering = lowering.trySemantic(sc); // for better error message
+            if (!lowering)
             {
                 if (sc.func)
                     error(exp.loc, "can't infer return type in function `%s`", sc.func.toChars());
                 else
                     error(exp.loc, "incompatible types for array comparison: `%s` and `%s`",
                   exp.e1.type.toChars(), exp.e2.type.toChars());
-                __equals = ErrorExp.get();
+                lowering = ErrorExp.get();
+            }
+            exp.lowering = lowering;
+            result = exp;
+            return;
+        }
+
+        // When array comparison is not lowered to `__equals`, `memcmp` is used, but
+        // GC checks occur before the expression is lowered to `memcmp` in e2ir.d.
+        // Thus, we will consider the literal arrays as on-stack arrays to avoid issues
+        // during GC checks.
+        if (isArrayComparison)
+        {
+            if (auto ale1 = exp.e1.isArrayLiteralExp())
+            {
+                ale1.onstack = true;
             }
 
-            result = __equals;
-            return;
+            if (auto ale2 = exp.e2.isArrayLiteralExp())
+            {
+                ale2.onstack = true;
+            }
         }
 
         if (exp.e1.type.toBasetype().ty == Taarray)
@@ -16722,8 +16842,12 @@ Expression toBoolean(Expression exp, Scope* sc)
             if (!t.isBoolean())
             {
                 if (tb != Type.terror)
+                {
                     error(exp.loc, "expression `%s` of type `%s` does not have a boolean value",
                               exp.toChars(), t.toChars());
+                    if (auto ts = tb.isTypeStruct())
+                        errorSupplemental(ts.sym.loc, "perhaps add Cast Operator Overloading with `bool opCast(T : bool)() => ...`");
+                }
                 return ErrorExp.get();
             }
             return e;
@@ -17681,12 +17805,12 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
         sfe.rangefe.upr = sfe.rangefe.upr.optimize(WANTvalue);
         sfe.rangefe.upr = sfe.rangefe.upr.ctfeInterpret();
     }
-    auto s1 = new Statements();
+
     auto stmts = new Statements();
     if (tplty) stmts.push(new ExpStatement(sfe.loc, tplty.sym));
     stmts.push(new ReturnStatement(aloc, res[0]));
-    s1.push(sfe.createForeach(aloc, pparams[0], new CompoundStatement(aloc, stmts)));
-    s1.push(new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
+    auto s1 = new Statements(sfe.createForeach(aloc, pparams[0], new CompoundStatement(aloc, stmts)),
+                             new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
     Type ety = new TypeTypeof(aloc, sfe.wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
     auto aty = ety.arrayOf();
     auto idres = Identifier.generateId("__res");
@@ -17842,6 +17966,46 @@ int include(Condition c, Scope* sc)
     scope v = new IncludeVisitor(sc);
     c.accept(v);
     return v.result;
+}
+
+/*******************************************
+ * Look for constructor declaration.
+ */
+Dsymbol searchCtor(AggregateDeclaration ad)
+{
+    auto s = ad.search(Loc.initial, Id.ctor);
+    if (s)
+    {
+        if (!(s.isCtorDeclaration() ||
+              s.isTemplateDeclaration() ||
+              s.isOverloadSet()))
+        {
+            error(s.loc, "%s name `__ctor` is not allowed", s.kind);
+            errorSupplemental(s.loc, "identifiers starting with `__` are reserved for internal use");
+            ad.errors = true;
+            s = null;
+        }
+    }
+    if (s && s.toParent() != ad)
+        s = null; // search() looks through ancestor classes
+    if (s)
+    {
+        // Finish all constructors semantics to determine this.noDefaultCtor.
+        static int searchCtor(Dsymbol s, void*)
+        {
+            auto f = s.isCtorDeclaration();
+            if (f && f.semanticRun == PASS.initial)
+                f.dsymbolSemantic(null);
+            return 0;
+        }
+
+        for (size_t i = 0; i < ad.members.length; i++)
+        {
+            auto sm = (*ad.members)[i];
+            sm.apply(&searchCtor, null);
+        }
+    }
+    return s;
 }
 
 private extern(C++) class IncludeVisitor : Visitor {

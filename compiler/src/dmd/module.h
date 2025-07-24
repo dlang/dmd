@@ -143,19 +143,11 @@ public:
     bool isCoreModule(Identifier *ident);
 
     // Back end
-
-    int doppelganger;           // sub-module
     Symbol *cov;                // private uint[] __coverage;
     DArray<unsigned> covb;      // bit array of valid code line numbers
 
-    Symbol *sictor;             // module order independent constructor
-    Symbol *sctor;              // module constructor
-    Symbol *sdtor;              // module destructor
-    Symbol *ssharedctor;        // module shared constructor
-    Symbol *sshareddtor;        // module shared destructor
-    Symbol *stest;              // module unit test
-
     Symbol *sfilename;          // symbol for filename
+    bool hasCDtor;
 
     void *ctfe_cov;             // stores coverage information from ctfe
 

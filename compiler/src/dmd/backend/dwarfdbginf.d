@@ -1793,7 +1793,7 @@ static if (1)
 
         int filenum = dwarf_line_addfile(filename);
 
-        uint ret_type = dwarf_typidx(sfunc.Stype.Tnext);
+        uint ret_type = dwarf_typidx(sfunc.Stype.Tnext, sfunc);
         if (tybasic(sfunc.Stype.Tnext.Tty) == TYvoid)
             ret_type = 0;
 
@@ -2214,7 +2214,7 @@ static if (1)
 
     /* ======================= Type Index ============================== */
 
-    uint dwarf_typidx(type* t)
+    uint dwarf_typidx(type* t, Symbol* sym = null)
     {
         uint idx = 0;
         uint nextidx;
@@ -2488,6 +2488,10 @@ static if (1)
             case TYnref:
             case TYref:
                 nextidx = dwarf_typidx(t.Tnext);
+                if (!nextidx)
+                {
+                    printf("t = %s, sym = %s\n", t.Tident, sym ? sym.Sident.ptr : "(no sym)");
+                }
                 assert(nextidx);
                 code = DWARFAbbrev.write!(abbrevTypeRef);
                 idx = cast(uint)cast(uint)debug_info.buf.length();

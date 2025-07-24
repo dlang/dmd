@@ -851,8 +851,7 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
         Expression hookFunc = new IdentifierExp(aaExp.loc, Id.empty);
         hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id.object);
         hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id._aaAsStruct);
-        auto arguments = new Expressions();
-        arguments.push(aaExp);
+        auto arguments = new Expressions(aaExp);
         Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
 
         sc = sc.startCTFE();

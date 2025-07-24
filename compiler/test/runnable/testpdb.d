@@ -40,6 +40,7 @@ void main(string[] args)
         testLineNumbers15432(session, globals);
         testLineNumbers19747(session, globals);
         testLineNumbers19719(session, globals);
+        testLineNumbers19587(session, globals);
 
         S18984 s = test18984(session, globals);
 
@@ -126,6 +127,30 @@ void testLineNumbers19747(IDiaSession session, IDiaSymbol globals)
     bool found = false;
     foreach(ln; lines)
         found = found || ln.line == lineScopeExitTest19747;
+    assert(found);
+}
+
+// https://github.com/dlang/dmd/issues/19587
+enum lineReturnTest19587 = __LINE__ + 4;
+void test19587(string col)
+{
+    if (col.length == 0)
+        return; // does this line have an entry in the debug info?
+    col = col;
+}
+
+void testLineNumbers19587(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test19587.mangleof);
+    assert(funcsym, "symbol test19587 not found");
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcsym, &funcRange);
+    assert(lines, "no line number info for test19587");
+
+    dumpLineNumbers(lines, funcRange);
+    bool found = false;
+    foreach(ln; lines)
+        found = found || ln.line == lineReturnTest19587;
     assert(found);
 }
 
@@ -593,6 +618,25 @@ void test21382(IDiaSession session, IDiaSymbol globals)
     IDiaSymbol virtualSym = searchSymbol(dSym, "virtualFun");
     virtualSym || assert(false, "testpdb.Dsym21382.virtualFun not found");
     virtualSym.get_virtual(&virt) == S_OK && virt || assert(false, "testpdb.Dsym21382.virtualFun is virtual");
+}
+
+// https://github.com/dlang/dmd/issues/18950
+int x18950;
+ref int foo18950() { return x18950; }
+
+void test18950(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol dSym = searchSymbol(globals, "testpdb.foo18950");
+    dSym || assert(false, "testpdb.foo18950 not found");
+
+    IDiaSymbol funcType;
+    dSym.get_type(&funcType) == S_OK || assert(false, "testpdb.foo18950: no type");
+    IDiaSymbol retType;
+    funcType.get_type(&retType) == S_OK || assert(false, "testpdb.foo18950: no return type");
+    DWORD tag;
+    // ref returned as pointer to hidden return value
+    retType.get_symTag(&tag) == S_OK && tag == SymTagEnum.SymTagPointerType
+        || assert(false, "testpdb.foo18950: bad return type");
 }
 
 ///////////////////////////////////////////////

@@ -35,7 +35,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : getLocalClasses, hasPointers, hasStaticCtorOrDtor, include, isFuncHidden, isAbstract;
+import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden, isAbstract;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
@@ -79,147 +79,6 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 /* ================================================================== */
-
-// Put out instance of ModuleInfo for this Module
-
-void genModuleInfo(Module m)
-{
-    //printf("Module.genmoduleinfo() %s\n", m.toChars());
-
-    if (!Module.moduleinfo)
-    {
-        ObjectNotFound(m.loc, Id.ModuleInfo);
-    }
-
-    Symbol* msym = toSymbol(m);
-
-    //////////////////////////////////////////////
-
-    m.csym.Sclass = SC.global;
-    m.csym.Sfl = FL.data;
-
-    auto dtb = DtBuilder(0);
-
-    ClassDeclarations aclasses;
-    getLocalClasses(m, aclasses);
-
-    // importedModules[]
-    size_t aimports_dim = m.aimports.length;
-    for (size_t i = 0; i < m.aimports.length; i++)
-    {
-        Module mod = m.aimports[i];
-        if (!mod.needmoduleinfo)
-            aimports_dim--;
-    }
-
-    FuncDeclaration sgetmembers = m.findGetMembers();
-
-    // These must match the values in druntime/src/object_.d
-    enum
-    {
-        MIstandalone      = 0x4,
-        MItlsctor         = 0x8,
-        MItlsdtor         = 0x10,
-        MIctor            = 0x20,
-        MIdtor            = 0x40,
-        MIxgetMembers     = 0x80,
-        MIictor           = 0x100,
-        MIunitTest        = 0x200,
-        MIimportedModules = 0x400,
-        MIlocalClasses    = 0x800,
-        MIname            = 0x1000,
-    }
-
-    uint flags = 0;
-    if (!m.needmoduleinfo)
-        flags |= MIstandalone;
-    if (m.sctor)
-        flags |= MItlsctor;
-    if (m.sdtor)
-        flags |= MItlsdtor;
-    if (m.ssharedctor)
-        flags |= MIctor;
-    if (m.sshareddtor)
-        flags |= MIdtor;
-    if (sgetmembers)
-        flags |= MIxgetMembers;
-    if (m.sictor)
-        flags |= MIictor;
-    if (m.stest)
-        flags |= MIunitTest;
-    if (aimports_dim)
-        flags |= MIimportedModules;
-    if (aclasses.length)
-        flags |= MIlocalClasses;
-    flags |= MIname;
-
-    dtb.dword(flags);        // _flags
-    dtb.dword(0);            // _index
-
-    if (flags & MItlsctor)
-        dtb.xoff(m.sctor, 0, TYnptr);
-    if (flags & MItlsdtor)
-        dtb.xoff(m.sdtor, 0, TYnptr);
-    if (flags & MIctor)
-        dtb.xoff(m.ssharedctor, 0, TYnptr);
-    if (flags & MIdtor)
-        dtb.xoff(m.sshareddtor, 0, TYnptr);
-    if (flags & MIxgetMembers)
-        dtb.xoff(toSymbol(sgetmembers), 0, TYnptr);
-    if (flags & MIictor)
-        dtb.xoff(m.sictor, 0, TYnptr);
-    if (flags & MIunitTest)
-        dtb.xoff(m.stest, 0, TYnptr);
-    if (flags & MIimportedModules)
-    {
-        dtb.size(aimports_dim);
-        foreach (i; 0 .. m.aimports.length)
-        {
-            Module mod = m.aimports[i];
-
-            if (!mod.needmoduleinfo)
-                continue;
-
-            Symbol* s = toSymbol(mod);
-
-            /* Weak references don't pull objects in from the library,
-             * they resolve to 0 if not pulled in by something else.
-             * Don't pull in a module just because it was imported.
-             */
-            s.Sflags |= SFLweak;
-            dtb.xoff(s, 0, TYnptr);
-        }
-    }
-    if (flags & MIlocalClasses)
-    {
-        dtb.size(aclasses.length);
-        foreach (i; 0 .. aclasses.length)
-        {
-            ClassDeclaration cd = aclasses[i];
-            dtb.xoff(toSymbol(cd), 0, TYnptr);
-        }
-    }
-    if (flags & MIname)
-    {
-        // Put out module name as a 0-terminated string, to save bytes
-        m.nameoffset = dtb.length();
-        const(char) *name = m.toPrettyChars();
-        m.namelen = strlen(name);
-        dtb.nbytes(name[0 .. m.namelen + 1]);
-        //printf("nameoffset = x%x\n", nameoffset);
-    }
-
-    objc.generateModuleInfo(m);
-    m.csym.Sdt = dtb.finish();
-    out_readonly(m.csym);
-    outdata(m.csym);
-
-    //////////////////////////////////////////////
-
-    objmod.moduleinfo(msym);
-    if (driverParams.exportVisibility == ExpVis.public_)
-        objmod.export_symbol(msym, 0);
-}
 
 /*****************************************
  * write pointer references for typed data to the object file
@@ -420,7 +279,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //printf("putting out %s.vtbl[]\n", toChars());
             auto dtbv = DtBuilder(0);
             if (cd.vtblOffset())
-                dtbv.xoff(cd.csym, 0, TYnptr);           // first entry is ClassInfo reference
+                dtbv.xoff(cast(Symbol*)cd.csym, 0, TYnptr);           // first entry is ClassInfo reference
             foreach (i; cd.vtblOffset() .. cd.vtbl.length)
             {
                 FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
@@ -441,13 +300,14 @@ void toObjFile(Dsymbol ds, bool multiobj)
                  */
                 dtbv.size(0);
             }
-            cd.vtblsym.csym.Sdt = dtbv.finish();
-            cd.vtblsym.csym.Sclass = scclass;
-            cd.vtblsym.csym.Sfl = FL.data;
-            out_readonly(cd.vtblsym.csym);
-            outdata(cd.vtblsym.csym);
+            auto csym = cast(Symbol*) cd.vtblsym.csym;
+            csym.Sdt = dtbv.finish();
+            csym.Sclass = scclass;
+            csym.Sfl = FL.data;
+            out_readonly(csym);
+            outdata(csym);
             if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
-                objmod.export_symbol(cd.vtblsym.csym, 0);
+                objmod.export_symbol(csym, 0);
         }
 
         override void visit(InterfaceDeclaration id)
@@ -723,12 +583,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 // Generate static initializer
                 toInitializer(ed);
-                ed.sinit.Sclass = scclass;
-                ed.sinit.Sfl = FL.data;
+                auto sinit = cast(Symbol*) ed.sinit;
+                sinit.Sclass = scclass;
+                sinit.Sfl = FL.data;
                 auto dtb = DtBuilder(0);
                 Expression_toDt(tc.sym.defaultval, dtb);
-                ed.sinit.Sdt = dtb.finish();
-                outdata(ed.sinit);
+                sinit.Sdt = dtb.finish();
+                outdata(sinit);
             }
             ed.semanticRun = PASS.obj;
         }
@@ -1226,18 +1087,19 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
     SC scclass = SC.comdat;
-    cd.csym.Sclass = scclass;
-    cd.csym.Sfl = FL.data;
+    auto csym = cast(Symbol*) cd.csym;
+    csym.Sclass = scclass;
+    csym.Sfl = FL.data;
 
     auto dtb = DtBuilder(0);
 
     ClassInfoToDt(dtb, cd, sinit);
 
-    cd.csym.Sdt = dtb.finish();
+    csym.Sdt = dtb.finish();
     // ClassInfo cannot be const data, because we use the monitor on it
-    outdata(cd.csym);
+    outdata(csym);
     if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
-        objmod.export_symbol(cd.csym, 0);
+        objmod.export_symbol(csym, 0);
 }
 
 private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit)
@@ -1292,19 +1154,20 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
         namelen = strlen(name);
     }
     dtb.size(namelen);
-    dt_t* pdtname = dtb.xoffpatch(cd.csym, 0, TYnptr);
+    auto csym = cast(Symbol*) cd.csym;
+    dt_t* pdtname = dtb.xoffpatch(csym, 0, TYnptr);
 
     // vtbl[]
     dtb.size(cd.vtbl.length);
     if (cd.vtbl.length)
-        dtb.xoff(cd.vtblsym.csym, 0, TYnptr);
+        dtb.xoff(cast(Symbol*)cd.vtblsym.csym, 0, TYnptr);
     else
         dtb.size(0);
 
     // interfaces[]
     dtb.size(cd.vtblInterfaces.length);
     if (cd.vtblInterfaces.length)
-        dtb.xoff(cd.csym, offset, TYnptr);      // (*)
+        dtb.xoff(csym, offset, TYnptr);      // (*)
     else
         dtb.size(0);
 
@@ -1431,7 +1294,7 @@ Louter:
 
         // vtbl[]
         dtb.size(id.vtbl.length);
-        dtb.xoff(cd.csym, offset, TYnptr);
+        dtb.xoff(cast(Symbol*)cd.csym, offset, TYnptr);
 
         // offset
         dtb.size(b.offset);
@@ -1482,18 +1345,19 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     SC scclass = SC.comdat;
 
     // Put out the ClassInfo
-    id.csym.Sclass = scclass;
-    id.csym.Sfl = FL.data;
+    auto csym = cast(Symbol*) id.csym;
+    csym.Sclass = scclass;
+    csym.Sfl = FL.data;
 
     auto dtb = DtBuilder(0);
 
     InterfaceInfoToDt(dtb, id);
 
-    id.csym.Sdt = dtb.finish();
-    out_readonly(id.csym);
-    outdata(id.csym);
+    csym.Sdt = dtb.finish();
+    out_readonly(csym);
+    outdata(csym);
     if (id.isExport() || driverParams.exportVisibility == ExpVis.public_)
-        objmod.export_symbol(id.csym, 0);
+        objmod.export_symbol(csym, 0);
 }
 
 private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
@@ -1540,7 +1404,8 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     const(char) *name = id.toPrettyChars(/*QualifyTypes=*/ true);
     size_t namelen = strlen(name);
     dtb.size(namelen);
-    dt_t* pdtname = dtb.xoffpatch(id.csym, 0, TYnptr);
+    auto csym = cast(Symbol*)id.csym;
+    dt_t* pdtname = dtb.xoffpatch(csym, 0, TYnptr);
 
     // vtbl[]
     dtb.size(0);
@@ -1561,7 +1426,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
                 fatal();
             }
         }
-        dtb.xoff(id.csym, offset, TYnptr);      // (*)
+        dtb.xoff(csym, offset, TYnptr);      // (*)
     }
     else
     {
