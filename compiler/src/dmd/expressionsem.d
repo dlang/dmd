@@ -2369,7 +2369,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
     if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
         || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
         || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT
-        || f.ident == Id._d_assocarrayliteralTX
+        || f.ident == Id._d_assocarrayliteralTX || f.ident == Id._d_arrayliteralTX
         || f.ident == Id._aaGetY))
     {
         error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
@@ -4033,28 +4033,26 @@ private bool checkNestedFuncReference(FuncDeclaration fd, Scope* sc, Loc loc)
     return false;
 }
 
-private Expression markSettingAAElem(IndexExp ie)
+Expression lowerArrayLiteral(ArrayLiteralExp ale, Scope* sc)
 {
-    if (ie.e1.type.toBasetype().ty != Taarray)
-        return ie;
+    const dim = ale.elements ? ale.elements.length : 0;
 
-    Type t2b = ie.e2.type.toBasetype();
-    if (t2b.ty == Tarray && t2b.nextOf().isMutable())
-    {
-        error(ie.loc, "associative arrays can only be assigned values with immutable keys, not `%s`", ie.e2.type.toChars());
-        return ErrorExp.get();
-    }
-    ie.modifiable = true;
+    Identifier hook = global.params.tracegc ? Id._d_arrayliteralTXTrace : Id._d_arrayliteralTX;
+    if (!verifyHookExist(ale.loc, *sc, hook, "creating array literals"))
+        return null;
 
-    if (auto ie2 = ie.e1.isIndexExp())
-    {
-        Expression ex = ie2.markSettingAAElem();
-        if (ex.op == EXP.error)
-            return ex;
-        assert(ex == ie.e1);
-    }
+    Expression lowering = new IdentifierExp(ale.loc, Id.empty);
+    lowering = new DotIdExp(ale.loc, lowering, Id.object);
+    // Remove `inout`, `const`, `immutable` and `shared` to reduce template instances
+    auto t = ale.type.nextOf().unqualify(MODFlags.wild | MODFlags.const_ | MODFlags.immutable_ | MODFlags.shared_);
+    auto tiargs = new Objects(t);
+    lowering = new DotTemplateInstanceExp(ale.loc, lowering, hook, tiargs);
 
-    return ie;
+    auto arguments = new Expressions(new IntegerExp(dim));
+    lowering = new CallExp(ale.loc, lowering, arguments);
+    ale.lowering = lowering.expressionSemantic(sc);
+
+    return ale.lowering;
 }
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
@@ -4823,14 +4821,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto valtype = aaType.nextOf().substWildTo(MODFlags.const_);
         auto tiargs = new Objects(keytype, valtype);
         hookFunc = new DotTemplateInstanceExp(aaExp.loc, hookFunc, hookId, tiargs);
-        auto arguments = new Expressions();
-        arguments.push(new ArrayLiteralExp(aaExp.loc, keytype.arrayOf(), aaExp.keys));
-        arguments.push(new ArrayLiteralExp(aaExp.loc, valtype.arrayOf(), aaExp.values));
+        auto ale1 = new ArrayLiteralExp(aaExp.loc, keytype.arrayOf(), aaExp.keys);
+        auto ale2 = new ArrayLiteralExp(aaExp.loc, valtype.arrayOf(), aaExp.values);
+        lowerArrayLiteral(ale1, sc);
+        lowerArrayLiteral(ale2, sc);
+        auto arguments = new Expressions(ale1, ale2);
+
         Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
         loweredExp = loweredExp.expressionSemantic(sc);
-        // lowering arguments to _d_arrayliteralTX is a side-effect of checking @nogc,
-        // but is not run, because the type is already set
-        checkGC(loweredExp, sc);
         loweredExp = resolveProperties(sc, loweredExp);
         aaExp.lowering = loweredExp;
 
