@@ -4124,10 +4124,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         * To bypass this edge case, we always do codegen for `_d_arrayliteralTX` template instances,
         * even if an instance already exists in non-root module.
         */
-        if (this.inst && this.inst.name == Id._d_arrayliteralTX)
-        {
-            return true;
-        }
+        if (auto inst = this.inst)
+            if (inst.name == Id._d_arrayliteralTX || inst.name == Id._d_arrayliteralTXTrace)
+                return true;
 
         if (global.params.allInst)
         {

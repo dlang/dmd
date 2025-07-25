@@ -163,15 +163,96 @@ values!(__c_wchar_t)
 	}
 
 }
-_d_arrayliteralTX!(__c_wchar_t[])
+_d_arrayliteralTX!(__c_wchar_t)
 {
 	pure nothrow @trusted void* _d_arrayliteralTX(ulong length)
 	{
-		return _d_arrayliteralTX(typeid(__c_wchar_t[]), length);
+		const const(ulong) allocsize = length * 4LU;
+		if (allocsize == 0LU)
+			return null;
+		else
+		{
+			import core.memory : GC;
+			import core.internal.traits : hasIndirections, hasElaborateDestructor;
+			alias BlkAttr = BlkAttr;
+			uint attrs = 8u;
+			attrs |= BlkAttr.NO_SCAN;
+			return malloc(allocsize, attrs, typeid(__c_wchar_t));
+		}
 	}
 
 }
-static __gshared TypeInfo_Array _D28TypeInfo_AE3vcg11__c_wchar_t6__initZ;
+hasIndirections!(__c_wchar_t)
+{
+	enum bool hasIndirections = false;
+
+}
+OriginalType!(__c_wchar_t)
+{
+	alias OriginalType = dchar;
+
+}
+ModifyTypePreservingTQ!(Impl, __c_wchar_t)
+{
+	alias ModifyTypePreservingTQ = dchar;
+
+}
+Modifier!(__c_wchar_t)
+{
+	alias Impl = dchar;
+
+}
+OriginalType!dchar
+{
+	alias OriginalType = dchar;
+
+}
+ModifyTypePreservingTQ!(Impl, dchar)
+{
+	alias ModifyTypePreservingTQ = dchar;
+
+}
+Modifier!dchar
+{
+	alias Impl = dchar;
+
+}
+hasIndirections!dchar
+{
+	enum bool hasIndirections = false;
+
+}
+isFunctionPointer!dchar
+{
+	enum bool isFunctionPointer = false;
+
+}
+isPointer!dchar
+{
+	enum bool isPointer = false;
+
+}
+isAggregateType!dchar
+{
+	enum bool isAggregateType = false;
+
+}
+isDelegate!dchar
+{
+	enum bool isDelegate = false;
+
+}
+isDynamicArray!dchar
+{
+	enum bool isDynamicArray = false;
+
+}
+Unqual!(dchar, dchar)
+{
+	alias Unqual = dchar;
+
+}
+static __gshared TypeInfo_Enum _D27TypeInfo_E3vcg11__c_wchar_t6__initZ;
 RTInfo!(_R)
 {
 	enum immutable(void)* RTInfo = null;

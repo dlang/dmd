@@ -20,7 +20,6 @@ extern (C) void _d_callinterfacefinalizer(void *p);
 extern (C) void _d_delclass(Object* p);
 extern (C) void _d_delinterface(void** p);
 extern (C) void _d_delmemory(void* *p);
-extern (C) void* _d_arrayliteralTX(const TypeInfo ti, size_t length);
 extern (C) void* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti,
     void[] keys, void[] vals);
 extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c);
