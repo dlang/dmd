@@ -2454,7 +2454,7 @@ int getLevelAndCheck(FuncDeclaration fd, Loc loc, Scope* sc, FuncDeclaration tar
  * Returns:
  *  true if can
  */
-bool canInferAttributes(FuncDeclaration fd, Scope* sc)
+private bool canInferAttributes(FuncDeclaration fd, Scope* sc)
 {
     if (!fd.fbody)
         return false;
@@ -3306,7 +3306,7 @@ extern (D) PURE isPureBypassingInference(FuncDeclaration fd)
  * Returns:
  *      true if reference to `tb` is isolated from reference to `ta`
  */
-bool traverseIndirections(Type ta, Type tb)
+private bool traverseIndirections(Type ta, Type tb)
 {
     //printf("traverseIndirections(%s, %s)\n", ta.toChars(), tb.toChars());
 
@@ -3397,7 +3397,7 @@ bool traverseIndirections(Type ta, Type tb)
  *    which could have come from the function's parameters, mutable
  *    globals, or uplevel functions.
  */
-bool isTypeIsolatedIndirect(FuncDeclaration fd, Type t)
+private bool isTypeIsolatedIndirect(FuncDeclaration fd, Type t)
 {
     //printf("isTypeIsolatedIndirect(t: %s)\n", t.toChars());
     assert(t);

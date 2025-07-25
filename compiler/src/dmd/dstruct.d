@@ -28,7 +28,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
-import dmd.funcsem;
+import dmd.funcsem : overloadApply;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
