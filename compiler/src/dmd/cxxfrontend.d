@@ -32,6 +32,7 @@ import dmd.init : Initializer, NeedInterpret;
 import dmd.location : Loc;
 import dmd.mtype /*: Covariant, Type, Parameter, ParameterList*/;
 import dmd.rootobject : RootObject;
+import dmd.semantic3;
 import dmd.statement : Statement, AsmStatement, GccAsmStatement;
 
 // NB: At some point in the future, we can switch to shortened function syntax.
@@ -132,7 +133,7 @@ void gendocfile(Module m, const char* ddoctext_ptr, size_t ddoctext_length,
  */
 FuncDeclaration search_toString(StructDeclaration sd)
 {
-    return dmd.dstruct.search_toString(sd);
+    return dmd.semantic3.search_toString(sd);
 }
 
 /***********************************************************
