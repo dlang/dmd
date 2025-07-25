@@ -54,6 +54,7 @@ import dmd.objc_glue;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.target;
+import dmd.templatesem;
 import dmd.tocsym;
 import dmd.toctype;
 import dmd.tocvdebug;

@@ -29,6 +29,12 @@ class Expression;
 class FuncDeclaration;
 class Parameter;
 
+namespace dmd
+{
+    bool isDiscardable(TemplateInstance*);
+    bool needsCodegen(TemplateInstance*);
+}
+
 class Tuple final : public RootObject
 {
 public:
@@ -271,9 +277,6 @@ public:
     const char *kind() const override;
     const char* toPrettyCharsHelper() override final;
     Identifier *getIdent() override final;
-
-    bool isDiscardable();
-    bool needsCodegen();
 
     void accept(Visitor *v) override { v->visit(this); }
 };
