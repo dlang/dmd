@@ -40,6 +40,7 @@ import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.optimize;
+import dmd.semantic3 : search_toString;
 import dmd.target;
 import dmd.tokens;
 import dmd.tocsym;

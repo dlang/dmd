@@ -1665,6 +1665,30 @@ private struct FuncDeclSem3
     }
 }
 
+/***************************************
+ * Search sd for a member function of the form:
+ *   `extern (D) string toString();`
+ * Params:
+ *   sd = struct declaration to search
+ * Returns:
+ *   FuncDeclaration of `toString()` if found, `null` if not
+ */
+FuncDeclaration search_toString(StructDeclaration sd)
+{
+    Dsymbol s = search_function(sd, Id.tostring);
+    FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
+    if (!fd)
+        return null;
+
+    __gshared TypeFunction tftostring;
+    if (!tftostring)
+    {
+        tftostring = new TypeFunction(ParameterList(), Type.tstring, LINK.d);
+        tftostring = tftostring.merge().toTypeFunction();
+    }
+    return fd.overloadExactMatch(tftostring);
+}
+
 /**
  * Ensures special members of a struct are fully analysed
  * before the backend emits TypeInfo.
