@@ -309,7 +309,6 @@ class DsymbolExp final : public Expression
 {
 public:
     Dsymbol *s;
-    d_bool hasOverloads;
 
     DsymbolExp *syntaxCopy() override;
     bool isLvalue() override;
@@ -346,14 +345,10 @@ public:
 class StringExp final : public Expression
 {
 public:
-    utf8_t postfix;      // 'c', 'w', 'd'
-    OwnedBy ownedByCtfe;
     void *string;       // char, wchar, dchar, or long data
     size_t len;         // number of chars, wchars, or dchars
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
-    d_bool committed;   // if type is committed
-    d_bool hexString;   // if string is parsed from a hex string literal
-    d_bool cMacro;      // If the string is from a collected C macro
+    utf8_t postfix;      // 'c', 'w', 'd'
 
     static StringExp *create(Loc loc, const char *s);
     static StringExp *create(Loc loc, const void *s, d_size_t len);
@@ -371,9 +366,8 @@ public:
 class InterpExp final : public Expression
 {
 public:
-    utf8_t postfix;   // 'c', 'w', 'd'
-    OwnedBy ownedByCtfe;
     void* interpolatedSet;
+    utf8_t postfix;   // 'c', 'w', 'd'
 
     void accept(Visitor* v) override { v->visit(this); }
 };
@@ -403,8 +397,6 @@ public:
 class ArrayLiteralExp final : public Expression
 {
 public:
-    OwnedBy ownedByCtfe;
-    d_bool onstack;
     Expression *basis;
     Expressions *elements;
     Expression *lowering;
@@ -422,7 +414,6 @@ public:
 class AssocArrayLiteralExp final : public Expression
 {
 public:
-    OwnedBy ownedByCtfe;
     Expressions *keys;
     Expressions *values;
     Expression* lowering;
@@ -437,8 +428,6 @@ public:
 class StructLiteralExp final : public Expression
 {
 public:
-    uint8_t bitFields;
-
     // if this is true, use the StructDeclaration's init symbol
     bool useStaticInit() const;
     bool useStaticInit(bool v);
@@ -525,8 +514,6 @@ public:
     Expression *argprefix;      // expression to be evaluated just before arguments[]
 
     CtorDeclaration *member;    // constructor function
-    d_bool onstack;               // allocate on stack
-    d_bool thrownew;              // this NewExp is the expression of a ThrowStatement
 
     Expression *lowering;       // lowered druntime hook: `_d_newclass`
 
@@ -555,7 +542,6 @@ class SymbolExp : public Expression
 public:
     Declaration *var;
     Dsymbol *originalScope;
-    d_bool hasOverloads;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -577,7 +563,6 @@ public:
 class VarExp final : public SymbolExp
 {
 public:
-    d_bool delegateWasExtracted;
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(const RootObject * const o) const override;
     bool isLvalue() override;
@@ -737,9 +722,6 @@ class DotIdExp final : public UnaExp
 {
 public:
     Identifier *ident;
-    d_bool noderef;       // true if the result of the expression will never be dereferenced
-    d_bool wantsym;       // do not replace Symbol with its initializer during semantic()
-    d_bool arrow;         // ImportC: if -> instead of .
 
     static DotIdExp *create(Loc loc, Expression *e, Identifier *ident);
     void accept(Visitor *v) override { v->visit(this); }
@@ -758,7 +740,6 @@ class DotVarExp final : public UnaExp
 {
 public:
     Declaration *var;
-    d_bool hasOverloads;
 
     bool isLvalue() override;
     void accept(Visitor *v) override { v->visit(this); }
@@ -778,7 +759,6 @@ class DelegateExp final : public UnaExp
 {
 public:
     FuncDeclaration *func;
-    d_bool hasOverloads;
     VarDeclaration *vthis2;  // container for multi-context
 
 
@@ -829,10 +809,6 @@ public:
     Expressions *arguments;     // function arguments
     ArgumentLabels* names;      // function argument Labels (name + location of name)
     FuncDeclaration *f;         // symbol to call
-    d_bool directcall;            // true if a virtual call is devirtualized
-    d_bool inDebugStatement;      // true if this was in a debug statement
-    d_bool ignoreAttributes;      // don't enforce attributes (e.g. call @gc function in @nogc code)
-    d_bool isUfcsRewrite;       // the first argument was pushed in here by a UFCS rewrite
     VarDeclaration *vthis2;     // container for multi-context
 
     static CallExp *create(Loc loc, Expression *e, Expressions *exps);
@@ -887,7 +863,6 @@ public:
 class DeleteExp final : public UnaExp
 {
 public:
-    d_bool isRAII;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -896,9 +871,8 @@ class CastExp final : public UnaExp
 public:
     // Possible to cast to one type while painting to another type
     Type *to;                   // type to cast to
-    unsigned char mod;          // MODxxxxx
-    d_bool trusted; // assume cast is safe
     Expression* lowering;
+    unsigned char mod;          // MODxxxxx
 
     CastExp *syntaxCopy() override;
     bool isLvalue() override;
@@ -911,7 +885,6 @@ class VectorExp final : public UnaExp
 public:
     TypeVector *to;             // the target vector type before semantic()
     unsigned dim;               // number of elements in the vector
-    OwnedBy ownedByCtfe;
 
     static VectorExp *create(Loc loc, Expression *e, Type *t);
     VectorExp *syntaxCopy() override;
@@ -938,8 +911,6 @@ public:
     bool lowerIsLessThanUpper(bool v);
     bool arrayop() const; // an array operation, rather than a slice
     bool arrayop(bool v);
-private:
-    uint8_t bitFields;
 
 public:
     SliceExp *syntaxCopy() override;
@@ -1006,8 +977,6 @@ public:
 class CommaExp final : public BinExp
 {
 public:
-    d_bool isGenerated;
-    d_bool allowCommaExp;
     Expression* originalExp;
     bool isLvalue() override;
     Optional<bool> toBool() override;
@@ -1018,8 +987,6 @@ class IndexExp final : public BinExp
 {
 public:
     VarDeclaration *lengthVar;
-    d_bool modifiable;
-    d_bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
     IndexExp *syntaxCopy() override;
     bool isLvalue() override;
