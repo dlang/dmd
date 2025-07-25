@@ -3927,6 +3927,90 @@ private extern(C++) final class IsMemcmpableVisitor : Visitor
     }
 }
 
+/*********************************************
+ * In the current function 'sc.func', we are calling 'fd'.
+ * 1. Check to see if the current function can call 'fd' , issue error if not.
+ * 2. If the current function is not the parent of 'fd' , then add
+ *    the current function to the list of siblings of 'fd' .
+ * 3. If the current function is a literal, and it's accessing an uplevel scope,
+ *    then mark it as a delegate.
+ * Returns true if error occurs.
+ */
+private bool checkNestedFuncReference(FuncDeclaration fd, Scope* sc, Loc loc)
+{
+    //printf("FuncDeclaration::checkNestedFuncReference() %s\n", toPrettyChars());
+    if (auto fld = fd.isFuncLiteralDeclaration())
+    {
+        if (fld.tok == TOK.reserved)
+        {
+            fld.tok = TOK.function_;
+            fld.vthis = null;
+        }
+    }
+    if (!fd.parent || fd.parent == sc.parent)
+        return false;
+    if (fd.ident == Id.require || fd.ident == Id.ensure)
+        return false;
+    if (!fd.isThis() && !fd.isNested())
+        return false;
+    // The current function
+    FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
+    if (!fdthis)
+        return false; // out of function scope
+    Dsymbol p = fd.toParentLocal();
+    Dsymbol p2 = fd.toParent2();
+    // Function literals from fdthis to p must be delegates
+    ensureStaticLinkTo(fdthis, p);
+    if (p != p2)
+        ensureStaticLinkTo(fdthis, p2);
+    if (!fd.isNested())
+        return false;
+
+    // The function that this function is in
+    bool checkEnclosing(FuncDeclaration fdv)
+    {
+        if (!fdv)
+            return false;
+        if (fdv == fdthis)
+            return false;
+        //printf("this = %s in [%s]\n", this.toChars(), this.loc.toChars());
+        //printf("fdv  = %s in [%s]\n", fdv .toChars(), fdv .loc.toChars());
+        //printf("fdthis = %s in [%s]\n", fdthis.toChars(), fdthis.loc.toChars());
+        // Add this function to the list of those which called us
+        if (fdthis != fd)
+        {
+            bool found = false;
+            for (size_t i = 0; i < fd.siblingCallers.length; ++i)
+            {
+                if (fd.siblingCallers[i] == fdthis)
+                    found = true;
+            }
+            if (!found)
+            {
+                //printf("\tadding sibling %s to %s\n", fdthis.toPrettyChars(), toPrettyChars());
+                if (!sc.intypeof && !sc.traitsCompiles)
+                {
+                    fd.siblingCallers.push(fdthis);
+                    fd.computedEscapingSiblings = false;
+                }
+            }
+        }
+        const lv = fdthis.getLevelAndCheck(loc, sc, fdv, fd);
+        if (lv == fd.LevelError)
+            return true; // error
+        if (lv == -1)
+            return false; // downlevel call
+        if (lv == 0)
+            return false; // same level call
+        return false; // Uplevel call
+    }
+    if (checkEnclosing(p.isFuncDeclaration()))
+        return true;
+    if (checkEnclosing(p == p2 ? null : p2.isFuncDeclaration()))
+        return true;
+    return false;
+}
+
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
