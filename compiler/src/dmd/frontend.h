@@ -2429,7 +2429,6 @@ public:
     virtual StringExp* toStringExp();
     virtual bool isLvalue();
     virtual bool checkType();
-    Expression* addressOf();
     Expression* deref();
     int32_t isConst();
     virtual bool isIdentical(const Expression* const e) const;

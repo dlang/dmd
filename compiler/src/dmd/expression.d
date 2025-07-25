@@ -49,7 +49,7 @@ import dmd.root.string;
 import dmd.root.utf;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : pointerTo, toHeadMutable, castMod, size, mutableOf, unSharedOf;
+import dmd.typesem : toHeadMutable, size, mutableOf, unSharedOf;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -525,20 +525,6 @@ extern (C++) abstract class Expression : ASTNode
     bool checkType()
     {
         return false;
-    }
-
-    /******************************
-     * Take address of expression.
-     */
-    final Expression addressOf()
-    {
-        //printf("Expression::addressOf()\n");
-        debug
-        {
-            assert(op == EXP.error || isLvalue());
-        }
-        Expression e = new AddrExp(loc, this, type.pointerTo());
-        return e;
     }
 
     /******************************
@@ -2216,56 +2202,6 @@ extern (C++) final class StructLiteralExp : Expression
         auto exp = new StructLiteralExp(loc, sd, arraySyntaxCopy(elements), type ? type : stype);
         exp.origin = this;
         return exp;
-    }
-
-    /**************************************
-     * Gets expression at offset of type.
-     * Returns NULL if not found.
-     */
-    extern (D) Expression getField(Type type, uint offset)
-    {
-        //printf("StructLiteralExp::getField(this = %s, type = %s, offset = %u)\n",
-        //  /*toChars()*/"", type.toChars(), offset);
-        Expression e = null;
-        int i = getFieldIndex(type, offset);
-
-        if (i != -1)
-        {
-            //printf("\ti = %d\n", i);
-            if (i >= sd.nonHiddenFields())
-                return null;
-
-            assert(i < elements.length);
-            e = (*elements)[i];
-            if (e)
-            {
-                //printf("e = %s, e.type = %s\n", e.toChars(), e.type.toChars());
-
-                /* If type is a static array, and e is an initializer for that array,
-                 * then the field initializer should be an array literal of e.
-                 */
-                auto tsa = type.isTypeSArray();
-                if (tsa && e.type.castMod(0) != type.castMod(0))
-                {
-                    const length = cast(size_t)tsa.dim.toInteger();
-                    auto z = new Expressions(length);
-                    foreach (ref q; *z)
-                        q = e.copy();
-                    e = new ArrayLiteralExp(loc, type, z);
-                }
-                else
-                {
-                    e = e.copy();
-                    e.type = type;
-                }
-                if (useStaticInit && e.type.needsNested())
-                    if (auto se = e.isStructLiteralExp())
-                    {
-                        se.useStaticInit = true;
-                    }
-            }
-        }
-        return e;
     }
 
     /************************************
