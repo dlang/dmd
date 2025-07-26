@@ -714,6 +714,8 @@ extern (C++) abstract class Expression : ASTNode
         inout(ClassReferenceExp) isClassReferenceExp() { return op == EXP.classReference ? cast(typeof(return))this : null; }
         inout(ThrownExceptionExp) isThrownExceptionExp() { return op == EXP.thrownException ? cast(typeof(return))this : null; }
 
+        inout(InferenceExp) isInferenceExp() { return op == EXP.inference ? cast(typeof(return)) this : null; }
+
         inout(UnaExp) isUnaExp() pure inout nothrow @nogc
         {
             return exptab[op] & EXPFLAGS.unary ? cast(typeof(return))this : null;
@@ -3061,6 +3063,22 @@ extern (C++) final class DotIdExp : UnaExp
     }
 }
 
+extern (C++) final class InferenceExp : Expression
+{
+    Identifier id;
+
+    extern (D) this(const ref Loc loc, Identifier id)
+    {
+        super(loc, EXP.inference);
+        this.id = id;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
 /***********************************************************
  * Mainly just a placeholder
  */
@@ -5266,4 +5284,5 @@ private immutable ubyte[EXP.max+1] expSize = [
     EXP._Generic: __traits(classInstanceSize, GenericExp),
     EXP.interval: __traits(classInstanceSize, IntervalExp),
     EXP.loweredAssignExp : __traits(classInstanceSize, LoweredAssignExp),
+    EXP.inference : __traits(classInstanceSize, InferenceExp),
 ];
