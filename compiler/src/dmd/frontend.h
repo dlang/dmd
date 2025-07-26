@@ -7210,7 +7210,6 @@ public:
     bool read(Loc loc);
     Module* parse();
     int32_t needModuleInfo();
-    void checkImportDeprecation(Loc loc, Scope* sc);
     bool isPackageAccessible(Package* p, Visibility visibility, uint32_t flags = 0u) override;
     Dsymbol* symtabInsert(Dsymbol* s) override;
     static void runDeferredSemantic();

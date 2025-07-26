@@ -454,6 +454,33 @@ Ungag ungagSpeculative(const Dsymbol s)
     return Ungag(oldgag);
 }
 
+/*******************************************
+ * Print deprecation warning if we're deprecated, when
+ * this module is imported from scope sc.
+ *
+ * Params:
+ *  m = the module
+ *  sc = the scope into which we are imported
+ *  loc = the location of the import statement
+ */
+private void checkImportDeprecation(Module m, Loc loc, Scope* sc)
+{
+    if (!m.md || !m.md.isdeprecated || sc.isDeprecated)
+        return;
+
+    Expression msg = m.md.msg;
+    if (StringExp se = msg ? msg.toStringExp() : null)
+    {
+        const slice = se.peekString();
+        if (slice.length)
+        {
+            deprecation(m.loc, "%s `%s` is deprecated - %.*s", m.kind, m.toPrettyChars, cast(int)slice.length, slice.ptr);
+            return;
+        }
+    }
+    deprecation(m.loc, "%s `%s` is deprecated", m.kind, m.toPrettyChars);
+}
+
 private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
