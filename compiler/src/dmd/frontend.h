@@ -7282,10 +7282,6 @@ struct Scope final
     ForeachStatement* fes;
     Scope* callsc;
     Dsymbol* inunion;
-    bool nofree;
-    bool inLoop;
-    bool inDefaultArg;
-    int32_t intypeof;
     VarDeclaration* lastVar;
     ErrorSink* eSink;
     Module* minst;
@@ -7297,7 +7293,6 @@ struct Scope final
     CPPMANGLE cppmangle;
     PragmaDeclaration* inlining;
     Visibility visibility;
-    int32_t explicitVisibility;
     STC stc;
     DeprecatedDeclaration* depdecl;
     bool ctor() const;
@@ -7328,7 +7323,18 @@ struct Scope final
     bool ctfeBlock(bool v);
 private:
     uint16_t bitFields;
+    uint16_t bitFields2;
 public:
+    uint8_t intypeof() const;
+    uint8_t intypeof(uint8_t v);
+    bool nofree() const;
+    bool nofree(bool v);
+    bool inLoop() const;
+    bool inLoop(bool v);
+    bool inDefaultArg() const;
+    bool inDefaultArg(bool v);
+    bool explicitVisibility() const;
+    bool explicitVisibility(bool v);
     Previews previews;
     UserAttributeDeclaration* userAttribDecl;
     DocComment* lastdc;
@@ -7354,10 +7360,6 @@ public:
         fes(),
         callsc(),
         inunion(),
-        nofree(),
-        inLoop(),
-        inDefaultArg(),
-        intypeof(),
         lastVar(),
         eSink(),
         minst(),
@@ -7369,9 +7371,9 @@ public:
         cppmangle((CPPMANGLE)0u),
         inlining(),
         visibility(Visibility((Visibility::Kind)5u, nullptr)),
-        explicitVisibility(),
         depdecl(),
         bitFields(0u),
+        bitFields2(),
         previews(),
         userAttribDecl(),
         lastdc(),
@@ -7380,7 +7382,7 @@ public:
         argStruct()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, uint16_t bitFields2 = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -7397,10 +7399,6 @@ public:
         fes(fes),
         callsc(callsc),
         inunion(inunion),
-        nofree(nofree),
-        inLoop(inLoop),
-        inDefaultArg(inDefaultArg),
-        intypeof(intypeof),
         lastVar(lastVar),
         eSink(eSink),
         minst(minst),
@@ -7412,10 +7410,10 @@ public:
         cppmangle(cppmangle),
         inlining(inlining),
         visibility(visibility),
-        explicitVisibility(explicitVisibility),
         stc(stc),
         depdecl(depdecl),
         bitFields(bitFields),
+        bitFields2(bitFields2),
         previews(previews),
         userAttribDecl(userAttribDecl),
         lastdc(lastdc),
