@@ -5,21 +5,79 @@ $(SPEC_S Grammar,
     $(P After the $(DDLINK spec/lex, Lexical, lexical analyzer) has created tokens
     from the source text, the tokens are parsed into the following key constructs:)
 
+$(COMMENT Don't use GLINK2 macros for reference links because they are retargeted to
+this page.)
+
     * A $(DDSUBLINK spec/module, Module, *Module*) normally has
       $(DDSUBLINK spec/module, DeclDef, *DeclDef*)s.
     * *DeclDef* can be a $(DDSUBLINK spec/declaration, Declaration, *Declaration*).
-    * *Declaration* includes:
-        * $(DDSUBLINK spec/declaration, VarDeclarations, *VarDeclarations*),
-          which declares one or more variables with a $(DDSUBLINK spec/type, Type, *Type*)
-        * $(DDSUBLINK spec/function, FuncDeclaration, *FuncDeclaration*), which can have a
-          $(DDSUBLINK spec/statement, BlockStatement, *BlockStatement*)
+    * *Declaration* includes
+      $(DDSUBLINK spec/declaration, VarDeclarations, *VarDeclarations*),
+      $(DDSUBLINK spec/function, FuncDeclaration, *FuncDeclaration*) and
+      $(DDSUBLINK spec/declaration, AggregateDeclaration, *AggregateDeclaration*)
+      (e.g. class and struct declarations).
+
+$(NOTE Many nodes are omitted from these diagrams.)
+
+$(COMMENT To generate images/declaration.{svg,eps} refer to
+images/declaration.dot.)
+
+$(HTMLTAG3 center, ,
+  <img id="conversions" alt="Declaration sub nodes"
+    src="$(STATIC images/declaration.svg)">
+)
+$(LATEX
+{\centering
+\includegraphics{images/declaration.eps}
+}
+)
+
+    * *VarDeclarations* declares one or more variables with a
+      $(DDSUBLINK spec/type, Type, *Type*).
+    * Each concrete *AggregateDeclaration* has *DeclDef* members.
+    * *FuncDeclaration* can have a $(DDSUBLINK spec/statement, BlockStatement, *BlockStatement*).
     * *BlockStatement* can have $(DDSUBLINK spec/statement, Statement, *Statement*)s.
-    * *Statement* includes:
-         * *BlockStatement*
-         * $(DDSUBLINK spec/statement, DeclarationStatement, *DeclarationStatement*), which has a
-           *Declaration*
-         * $(DDSUBLINK spec/statement, ExpressionStatement, *ExpressionStatement*), which has an
-           $(DDSUBLINK spec/expression, Expression, *Expression*)
+    * *Statement* includes *BlockStatement*,
+      $(DDSUBLINK spec/statement, DeclarationStatement, *DeclarationStatement*),
+      $(DDSUBLINK spec/statement, ExpressionStatement, *ExpressionStatement*) and
+      control-flow statements.
+
+$(COMMENT To generate images/statement.{svg,eps} refer to
+images/statement.dot.)
+
+$(HTMLTAG3 center, ,
+  <img id="conversions" alt="Statement sub nodes"
+    src="$(STATIC images/statement.svg)">
+)
+$(LATEX
+{\centering
+\includegraphics{images/statement.eps}
+}
+)
+
+     * *DeclarationStatement* has a *Declaration*.
+     * *ExpressionStatement* has an $(DDSUBLINK spec/expression, Expression, *Expression*).
+     * *Expression* includes $(DDSUBLINK spec/expression, PrimaryExpression, *PrimaryExpression*),
+       $(DDSUBLINK spec/expression, AssignExpression, *AssignExpression*) and
+       $(DDSUBLINK spec/expression, PostfixExpression, *PostfixExpression*) (e.g. for a function call).
+
+$(COMMENT To generate images/expression.{svg,eps} refer to
+images/expression.dot.)
+
+$(HTMLTAG3 center, ,
+  <img id="conversions" alt="Expression sub nodes"
+    src="$(STATIC images/expression.svg)">
+)
+$(LATEX
+{\centering
+\includegraphics{images/expression.eps}
+}
+)
+
+    * *PrimaryExpression* includes $(GLINK_LEX Identifier) and
+      $(DDSUBLINK spec/expression, LiteralExpression, *LiteralExpression*).
+    * *AssignExpression* and *PostfixExpression* each have at least one kind of *Expression*.
+    * Every *Expression* has a $(DDSUBLINK spec/type, Type, *Type*).
 
     $(NOTE The remainder of this page is auto-generated, see the other pages for
     semantic details.)
