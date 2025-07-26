@@ -185,7 +185,8 @@ extern (C++) struct Scope
     DeprecatedDeclaration depdecl;  /// customized deprecation message
 
     import dmd.common.bitfields : generateBitFields;
-    mixin(generateBitFields!(FlagBitFields, ushort, "bitFields"));
+    mixin(generateBitFields!(FlagBitFields, ushort));
+    private ushort bitFields2;
     mixin(generateBitFields!(NonFlagBitFields, ushort, "bitFields2"));
     Previews previews;
 
