@@ -4012,6 +4012,30 @@ private bool checkNestedFuncReference(FuncDeclaration fd, Scope* sc, Loc loc)
     return false;
 }
 
+private Expression markSettingAAElem(IndexExp ie)
+{
+    if (ie.e1.type.toBasetype().ty != Taarray)
+        return ie;
+
+    Type t2b = ie.e2.type.toBasetype();
+    if (t2b.ty == Tarray && t2b.nextOf().isMutable())
+    {
+        error(ie.loc, "associative arrays can only be assigned values with immutable keys, not `%s`", ie.e2.type.toChars());
+        return ErrorExp.get();
+    }
+    ie.modifiable = true;
+
+    if (auto ie2 = ie.e1.isIndexExp())
+    {
+        Expression ex = ie2.markSettingAAElem();
+        if (ex.op == EXP.error)
+            return ex;
+        assert(ex == ie.e1);
+    }
+
+    return ie;
+}
+
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;

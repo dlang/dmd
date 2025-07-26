@@ -4032,29 +4032,6 @@ extern (C++) final class IndexExp : BinExp
         return true;
     }
 
-    extern (D) Expression markSettingAAElem()
-    {
-        if (e1.type.toBasetype().ty == Taarray)
-        {
-            Type t2b = e2.type.toBasetype();
-            if (t2b.ty == Tarray && t2b.nextOf().isMutable())
-            {
-                error(loc, "associative arrays can only be assigned values with immutable keys, not `%s`", e2.type.toChars());
-                return ErrorExp.get();
-            }
-            modifiable = true;
-
-            if (auto ie = e1.isIndexExp())
-            {
-                Expression ex = ie.markSettingAAElem();
-                if (ex.op == EXP.error)
-                    return ex;
-                assert(ex == e1);
-            }
-        }
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
