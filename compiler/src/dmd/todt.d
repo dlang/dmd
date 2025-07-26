@@ -248,13 +248,19 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         }
         if (!e.lwr && !e.upr)
             return Expression_toDt(e.e1, dtb);
+
+        size_t len;
         if (auto strExp = e.e1.isStringExp())
-        {
-            auto lwr = e.lwr.isIntegerExp();
-            auto upr = e.upr.isIntegerExp();
-            if (lwr && upr && lwr.toInteger() == 0 && upr.toInteger() == strExp.len)
-                return Expression_toDt(e.e1, dtb);
-        }
+            len = strExp.len;
+        else if (auto arrExp = e.e1.isArrayLiteralExp())
+            len = arrExp.elements.length;
+        else
+            return nonConstExpError(e);
+
+        auto lwr = e.lwr.isIntegerExp();
+        auto upr = e.upr.isIntegerExp();
+        if (lwr && upr && lwr.toInteger() == 0 && upr.toInteger() == len)
+            return Expression_toDt(e.e1, dtb);
 
         nonConstExpError(e);
     }
@@ -496,12 +502,12 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
      */
     void visitAssocArrayLiteral(AssocArrayLiteralExp e)
     {
-        if (!e.lowering)
+        if (!e.loweringCtfe)
         {
             error(e.loc, "internal compiler error: failed to detect static initialization of associative array");
             assert(0);
         }
-        Expression_toDt(e.lowering, dtb);
+        Expression_toDt(e.loweringCtfe, dtb);
         return;
     }
 
@@ -1351,7 +1357,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoAssociativeArrayDeclaration d)
     {
         //printf("TypeInfoAssociativeArrayDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfoassociativearray, 5 * target.ptrsize);
+        verifyStructSize(Type.typeinfoassociativearray, 7 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
         if (Type.typeinfoassociativearray.hasMonitor())
@@ -1367,6 +1373,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         TypeInfo_toObjFile(null, d.loc, d.entry);
         dtb.xoff(toSymbol(d.entry.vtinfo), 0);  // TypeInfo for key,value-pair
+
+        dtb.xoff(toSymbol(d.xopEqual), 0);
+        dtb.xoff(toSymbol(d.xtoHash), 0);
     }
 
     override void visit(TypeInfoFunctionDeclaration d)

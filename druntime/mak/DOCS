@@ -32,6 +32,7 @@ DOCS=\
 	$(DOCDIR)\core_internal_execinfo.html \
 	$(DOCDIR)\core_internal_hash.html \
 	$(DOCDIR)\core_internal_moving.html \
+	$(DOCDIR)\core_internal_newaa.html \
 	$(DOCDIR)\core_internal_parseoptions.html \
 	$(DOCDIR)\core_internal_postblit.html \
 	$(DOCDIR)\core_internal_spinlock.html \
@@ -559,7 +560,6 @@ DOCS=\
 	$(DOCDIR)\rt_tlsgc.html \
 	$(DOCDIR)\rt_trace.html \
 	$(DOCDIR)\rt_tracegc.html \
-	$(DOCDIR)\rt_aaA.html \
 	$(DOCDIR)\rt_cmath2.html \
 	$(DOCDIR)\rt_critical_.html \
 	$(DOCDIR)\rt_dmain2.html \

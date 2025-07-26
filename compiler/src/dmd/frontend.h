@@ -2627,6 +2627,7 @@ public:
     Array<Expression* >* arguments;
     size_t currentDimension;
     VarDeclaration* lengthVar;
+    bool modifiable;
     ArrayExp* syntaxCopy() override;
     bool isLvalue() override;
     void accept(Visitor* v) override;
@@ -2653,6 +2654,7 @@ public:
     Expression* basis;
     Array<Expression* >* elements;
     Expression* lowering;
+    AssocArrayLiteralExp* aaLiteral;
     static ArrayLiteralExp* create(Loc loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
     bool equals(const RootObject* const o) const override;
@@ -2693,6 +2695,7 @@ public:
     Array<Expression* >* keys;
     Array<Expression* >* values;
     Expression* lowering;
+    Expression* loweringCtfe;
     bool equals(const RootObject* const o) const override;
     AssocArrayLiteralExp* syntaxCopy() override;
     Optional<bool > toBool() override;
@@ -2720,6 +2723,7 @@ public:
     bool ignoreAttributes;
     bool isUfcsRewrite;
     VarDeclaration* vthis2;
+    Expression* loweredFrom;
     static CallExp* create(Loc loc, Expression* e, Array<Expression* >* exps);
     static CallExp* create(Loc loc, Expression* e);
     static CallExp* create(Loc loc, Expression* e, Expression* earg1);
@@ -3277,6 +3281,7 @@ class IndexExp final : public BinExp
 {
 public:
     VarDeclaration* lengthVar;
+    Expression* loweredFrom;
     bool modifiable;
     bool indexIsInBounds;
     IndexExp* syntaxCopy() override;
@@ -3444,6 +3449,7 @@ public:
 class NotExp final : public UnaExp
 {
 public:
+    Expression* loweredFrom;
     void accept(Visitor* v) override;
 };
 
@@ -5573,14 +5579,14 @@ private:
         char complexexp[64LLU];
         char symoffexp[56LLU];
         char stringexp[44LLU];
-        char arrayliteralexp[48LLU];
-        char assocarrayliteralexp[48LLU];
+        char arrayliteralexp[56LLU];
+        char assocarrayliteralexp[56LLU];
         char structliteralexp[64LLU];
         char compoundliteralexp[32LLU];
         char nullexp[22LLU];
         char dotvarexp[41LLU];
         char addrexp[32LLU];
-        char indexexp[50LLU];
+        char indexexp[58LLU];
         char sliceexp[57LLU];
         char vectorexp[45LLU];
     };
@@ -6993,6 +6999,8 @@ class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
     Type* entry;
+    Dsymbol* xopEqual;
+    Dsymbol* xtoHash;
     static TypeInfoAssociativeArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v) override;
 };
@@ -8927,6 +8935,12 @@ struct Id final
     static Identifier* Fback;
     static Identifier* FpopFront;
     static Identifier* FpopBack;
+    static Identifier* _aaGetY;
+    static Identifier* _aaGetRvalueX;
+    static Identifier* _d_aaDel;
+    static Identifier* _d_aaEqual;
+    static Identifier* _d_aaIn;
+    static Identifier* _d_aaNew;
     static Identifier* aaLen;
     static Identifier* aaKeys;
     static Identifier* aaValues;
@@ -8988,6 +9002,7 @@ struct Id final
     static Identifier* _d_arrayappendcTXTrace;
     static Identifier* _d_arraycatnTX;
     static Identifier* _d_arraycatnTXTrace;
+    static Identifier* _d_assocarrayliteralTX;
     static Identifier* stdc;
     static Identifier* stdarg;
     static Identifier* va_start;
