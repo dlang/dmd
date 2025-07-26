@@ -231,7 +231,7 @@ private:
         valsz = cast(uint) V.sizeof;
         valoff = cast(uint) talign(keysz, V.alignof);
 
-        enum flags = () {
+        enum ctflags = () {
             import core.internal.traits;
             Impl.Flags flags;
             static if (__traits(hasPostblit, K))
@@ -240,6 +240,7 @@ private:
                 flags |= flags.hasPointers;
             return flags;
         } ();
+        flags = ctflags;
     }
 
     Bucket[] buckets;
@@ -674,10 +675,13 @@ auto _aaValues(K, V)(inout V[K] a)
     if (aa.empty)
         return null;
 
-    static if(__traits(compiles, { V val = aa.buckets[0].entry.value; } ))
+    static if (__traits(compiles, { V val = aa.buckets[0].entry.value; } ))
         V[] res; // if value has no const indirections
     else
         typeof([aa.buckets[0].entry.value]) res; // as mutable as it can get
+    static if (__traits(compiles, { res.reserve(aa.length); } ))
+        res.reserve(aa.length); // does not work on inout(void)[]
+
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
@@ -694,10 +698,13 @@ auto _aaKeys(K, V)(inout V[K] a)
     if (aa.empty)
         return null;
 
-    static if(__traits(compiles, { K key = aa.buckets[0].entry.key; } ))
+    static if (__traits(compiles, { K key = aa.buckets[0].entry.key; } ))
         K[] res; // if key has no const indirections
     else
         typeof([aa.buckets[0].entry.key]) res; // as mutable as it can get
+    static if (__traits(compiles, { res.reserve(aa.length); } ))
+        res.reserve(aa.length); // does not work on inout(void)[]
+
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
