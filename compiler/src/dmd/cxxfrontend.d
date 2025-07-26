@@ -15,7 +15,7 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.common.outbuffer : OutBuffer;
-import dmd.dclass : ClassDeclaration;
+import dmd.dclass : ClassDeclaration, BaseClass;
 import dmd.declaration : TypeInfoDeclaration;
 import dmd.denum : EnumDeclaration;
 import dmd.dmodule /*: Module*/;
@@ -32,6 +32,7 @@ import dmd.init : Initializer, NeedInterpret;
 import dmd.location : Loc;
 import dmd.mtype /*: Covariant, Type, Parameter, ParameterList*/;
 import dmd.rootobject : RootObject;
+import dmd.semantic2;
 import dmd.semantic3;
 import dmd.statement : Statement, AsmStatement, GccAsmStatement;
 
@@ -462,6 +463,11 @@ void semantic2(Dsymbol dsym, Scope* sc)
 {
     import dmd.semantic2;
     return dmd.semantic2.semantic2(dsym, sc);
+}
+
+bool fillVtbl(ref BaseClass b, ClassDeclaration cd, FuncDeclarations* vtbl, int newinstance)
+{
+    return dmd.semantic2.fillVtbl(b, cd, vtbl, newinstance);
 }
 
 /***********************************************************

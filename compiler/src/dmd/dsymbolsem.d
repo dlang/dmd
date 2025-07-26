@@ -3390,6 +3390,28 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         return true;
     }
 
+    static void copyBaseInterfaces(ref BaseClasses ths, BaseClasses* vtblInterfaces)
+    {
+        //printf("+copyBaseInterfaces(), %s\n", sym.toChars());
+        //    if (baseInterfaces.length)
+        //      return;
+        auto bc = cast(BaseClass*)mem.xcalloc(ths.sym.interfaces.length, BaseClass.sizeof);
+        ths.baseInterfaces = bc[0 .. ths.sym.interfaces.length];
+        //printf("%s.copyBaseInterfaces()\n", sym.toChars());
+        for (size_t i = 0; i < ths.baseInterfaces.length; i++)
+        {
+            BaseClass* b = &ths.baseInterfaces[i];
+            BaseClass* b2 = ths.sym.interfaces[i];
+
+            assert(b2.vtbl.length == 0); // should not be filled yet
+            memcpy(b, b2, BaseClass.sizeof);
+
+            if (i) // single inheritance is i==0
+                vtblInterfaces.push(b); // only need for M.I.
+            b.copyBaseInterfaces(vtblInterfaces);
+        }
+        //printf("-copyBaseInterfaces\n");
+    }
     void interfaceSemantic(ClassDeclaration cd)
     {
         cd.vtblInterfaces = new BaseClasses();
@@ -3397,7 +3419,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         foreach (b; cd.interfaces)
         {
             cd.vtblInterfaces.push(b);
-            b.copyBaseInterfaces(cd.vtblInterfaces);
+            copyBaseInterfaces(b, cd.vtblInterfaces);
         }
     }
 

@@ -1372,7 +1372,7 @@ public:
                         for (size_t k = 0; k < cd3->vtblInterfaces->length; k++)
                         {
                             BaseClass *bs = (*cd3->vtblInterfaces)[k];
-                            if (bs->fillVtbl(cd2, NULL, 0))
+                            if (dmd::fillVtbl(*bs, cd2, NULL, 0))
                             {
                                 if (bc == bs)
                                     break;
