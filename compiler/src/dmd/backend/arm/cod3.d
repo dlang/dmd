@@ -1460,6 +1460,7 @@ bool orr_solution(ulong value, out uint N, out uint immr, out uint imms)
 @trusted
 void assignaddrc(code* c)
 {
+    printf("assignaddrc()\n");
     int sn;
     Symbol* s;
     ubyte rm;
@@ -1555,7 +1556,7 @@ void assignaddrc(code* c)
         s = c.IEV1.Vsym;
         uint sz = 8;
         uint ins = c.Iop;
-        if (0 && c.IFL1 != FL.unde)
+        if (1 && c.IFL1 != FL.unde)
         {
             printf("FL: %-8s ", fl_str(c.IFL1));
             disassemble(ins);
@@ -1638,13 +1639,13 @@ void assignaddrc(code* c)
                     c.Iop = INSTR.nop;               // remove references to it
                     break;
                 }
-                static if (0)
+                static if (1)
                 {
-                    //symbol_print(*s);
+                    symbol_print(*s);
                     //printf("c: %p, x%08x\n", c, c.Iop);
-                    printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Voffset = %d\n",
+                    printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Voffset = %d, sectionOff = %d\n",
                         s.Sident.ptr, cast(int)s.Soffset, cast(int)cgstate.Para.size, cast(int)cgstate.BPoff,
-                        cast(int)cgstate.EBPtoESP, cast(int)c.IEV1.Voffset);
+                        cast(int)cgstate.EBPtoESP, cast(int)c.IEV1.Voffset, cast(int)sectionOff);
                 }
                 if (s.Sflags & SFLunambig)
                     c.Iflags |= CFunambig;
@@ -1711,13 +1712,26 @@ void assignaddrc(code* c)
                 uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
                 uint op24  = field(ins,25,24);
                 uint op11  = field(ins,11,10);
-                if (field(ins,28,23) == 0x22)      // Add/subtract (immediate)
+                if (field(ins,28,23) == 0x22)   // Add/subtract (immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
                 {
+                    // add Rd,Rn,Voffset
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
 //printf("imm12: %x offset: %llx\n", imm12, offset);
                     imm12 += offset;
-                    assert(imm12 < 0x1000);
-                    ins = setField(ins,21,10,imm12);
+                    ins = setField(ins,21,10,imm12 & 0xFFF);
+                    if (imm12 >= 0x1000)
+                    {
+                        // Add in the shifted part of the offset
+                        // add Rd,Rd,(imm12 >> 12) << 12 // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+                        c.Iop = ins;
+                        code* c2 = code_calloc();
+                        const reg_t Rd2 = cast(reg_t)field(ins,4,0);
+                        c2.Iop = INSTR.add_addsub_imm(1,1,imm12>>12,Rd2,Rd2);
+                        c2.Iop |= ins & (1 << 30);      // SUB
+                        c2.next = c.next;
+                        c.next = c2;
+                        continue;
+                    }
                 }
                 else if (op24 == 1)
                 {
@@ -1739,8 +1753,29 @@ void assignaddrc(code* c)
                     {
                         imm12 = cast(uint)(offset >> shift);
 //printf("offset: %llu x%llx shift: %d imm12: x%x\n", offset,offset,shift,imm12);
-                        assert(imm12 < 0x1000);
-                        ins = setField(ins,21,10,imm12);
+                        if (imm12 < 0x1000)
+                            ins = setField(ins,21,10,imm12);
+                        else
+                        {
+                            // insert extra instruction to load the offset using scratch register R16
+                            enum R16 = 16;              // scratch register
+                            // add R16,Rn,(imm12 >> 12) << 12 // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+                            const reg_t Rn2 = cast(reg_t)field(ins,9,5);
+                            uint ins2 = INSTR.add_addsub_imm(1,1,imm12>>12,Rn2,R16);
+                            c.Iop = ins2;
+                            c.IFL1 = FL.unde;
+                            c.IEV1.Vpointer = 0;
+
+                            // ldr Rt,[R16,#imm12 & 0xFFF] // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html
+                            ins = setField(ins,9,5,R16);
+                            ins = setField(ins,21,10,imm12 & 0xFFF);
+
+                            code* c2 = code_calloc();
+                            c2.Iop = ins;
+                            c2.next = c.next;
+                            c.next = c2;
+                            continue;
+                        }
                     }
                 }
                 else if (op24 == 0 && op11)       // postinc or predec
@@ -1779,6 +1814,7 @@ void assignaddrc(code* c)
                 {   /* Convert to SP relative address instead of BP */
                     offset += cgstate.EBPtoESP;       // add difference in offset
                     ins = setField(ins,9,5,31);       // set Rn to SP
+                    assert(0); // offset is ignored
                 }
                 c.Iop = ins;
 
@@ -1832,7 +1868,7 @@ void assignaddrc(code* c)
 @trusted
 void jmpaddr(code* c)
 {
-    //printf("jmpaddr()\n");
+    printf("jmpaddr()\n");
 
     code* ci,cn,ctarg,cstart;
     uint ad;
