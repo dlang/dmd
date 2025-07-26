@@ -664,6 +664,72 @@ TupleDeclaration isAliasThisTuple(Expression e)
     }
 }
 
+/******************************
+ * Take address of expression.
+ */
+Expression addressOf(Expression e)
+{
+    //printf("Expression::addressOf()\n");
+    debug
+    {
+        assert(e.op == EXP.error || e.isLvalue());
+    }
+    return new AddrExp(e.loc, e, e.type.pointerTo());
+}
+
+/**************************************
+ * Gets expression at offset of type.
+ * Returns NULL if not found.
+ */
+Expression getField(StructLiteralExp sle, Type type, uint offset)
+{
+    //printf("StructLiteralExp::getField(this = %s, type = %s, offset = %u)\n",
+    //  /*toChars()*/"", type.toChars(), offset);
+    Expression e2 = null;
+    const int i = sle.getFieldIndex(type, offset);
+
+    if (i == -1)
+        return null;
+
+    //printf("\ti = %d\n", i);
+    if (i >= sle.sd.nonHiddenFields())
+        return null;
+
+    assert(i < sle.elements.length);
+    e2 = (*sle.elements)[i];
+    if (!e2)
+        return null;
+
+    //printf("e = %s, e.type = %s\n", e.toChars(), e.type.toChars());
+
+    /* If type is a static array, and e is an initializer for that array,
+     * then the field initializer should be an array literal of e.
+     */
+    auto tsa = type.isTypeSArray();
+    if (tsa && e2.type.castMod(0) != type.castMod(0))
+    {
+        const length = cast(size_t)tsa.dim.toInteger();
+        auto z = new Expressions(length);
+        foreach (ref q; *z)
+            q = e2.copy();
+        e2 = new ArrayLiteralExp(sle.loc, type, z);
+    }
+    else
+    {
+        e2 = e2.copy();
+        e2.type = type;
+    }
+    if (sle.useStaticInit && e2.type.needsNested())
+        if (auto se = e2.isStructLiteralExp())
+        {
+            se.useStaticInit = true;
+        }
+
+    return e2;
+}
+
+
+
 /**************************************
  * Runs semantic on ae.arguments. Declares temporary variables
  * if '$' was used.
