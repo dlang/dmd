@@ -22,6 +22,7 @@ import dmd.expression;
 import dmd.globals;
 import dmd.location;
 import dmd.mtype;
+import dmd.templatesem;
 import dmd.typesem;
 import core.stdc.stdio;
 

@@ -42,6 +42,7 @@ import dmd.mtype;
 import dmd.optimize;
 import dmd.semantic3 : search_toString;
 import dmd.target;
+import dmd.templatesem;
 import dmd.tokens;
 import dmd.tocsym;
 import dmd.toobj;

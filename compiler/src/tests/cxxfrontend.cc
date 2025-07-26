@@ -1269,7 +1269,9 @@ public:
     {
         if (dmd::isError(d) || !d->members)
             return;
-        if (!d->needsCodegen())
+        if (!dmd::needsCodegen(d))
+            return;
+        if (dmd::isDiscardable(d))
             return;
         for (size_t i = 0; i < d->members->length; i++)
             (*d->members)[i]->accept(this);

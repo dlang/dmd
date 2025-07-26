@@ -755,6 +755,20 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
     return dmd.typinf.getTypeInfoAssocArrayDeclaration(t, sc);
 }
 
+/**
+ * templatesem.d
+ */
+bool needsCodegen(TemplateInstance ti)
+{
+    import dmd.templatesem;
+    return dmd.templatesem.needsCodegen(ti);
+}
+
+bool isDiscardable(TemplateInstance ti)
+{
+    import dmd.templatesem;
+    return dmd.templatesem.isDiscardable(ti);
+}
 version (IN_LLVM)
 {
     /***********************************************************

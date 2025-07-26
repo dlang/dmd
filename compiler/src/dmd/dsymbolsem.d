@@ -4811,6 +4811,173 @@ private bool isDRuntimeHook(Identifier id)
         id == Id._d_arrayappendcTX;
 }
 
+/*****************************************
+ * Append `ti` to the specific module `ti.members[]`
+ */
+private Dsymbols* appendToModuleMember(TemplateInstance ti)
+{
+    Module mi = ti.minst; // instantiated . inserted module
+
+    //printf("%s.appendToModuleMember() enclosing = %s mi = %s\n",
+    //    toPrettyChars(),
+    //    enclosing ? enclosing.toPrettyChars() : null,
+    //    mi ? mi.toPrettyChars() : null);
+    if (global.params.allInst || !mi || mi.isRoot())
+    {
+        /* If the instantiated module is speculative or root, insert to the
+         * member of a root module. Then:
+         *  - semantic3 pass will get called on the instance members.
+         *  - codegen pass will get a selection chance to do/skip it (needsCodegen()).
+         */
+        static Dsymbol getStrictEnclosing(TemplateInstance ti)
+        {
+            do
+            {
+                if (ti.enclosing)
+                    return ti.enclosing;
+                ti = ti.tempdecl.isInstantiated();
+            } while (ti);
+            return null;
+        }
+
+        Dsymbol enc = getStrictEnclosing(ti);
+        // insert target is made stable by using the module
+        // where tempdecl is declared.
+        mi = (enc ? enc : ti.tempdecl).getModule();
+        if (!mi.isRoot())
+        {
+            if (mi.importedFrom)
+            {
+                mi = mi.importedFrom;
+                assert(mi.isRoot());
+            }
+            else
+            {
+                // This can happen when using the frontend as a library.
+                // Append it to the non-root module.
+            }
+        }
+    }
+    else
+    {
+        /* If the instantiated module is non-root, insert to the member of the
+         * non-root module. Then:
+         *  - semantic3 pass won't be called on the instance.
+         *  - codegen pass won't reach to the instance.
+         * Unless it is re-appended to a root module later (with changed minst).
+         */
+    }
+    //printf("\t-. mi = %s\n", mi.toPrettyChars());
+
+    if (ti.memberOf) // already appended to some module
+    {
+        assert(mi.isRoot(), "can only re-append to a root module");
+        if (ti.memberOf.isRoot())
+            return null; // no need to move to another root module
+    }
+
+    Dsymbols* a = mi.members;
+    a.push(ti);
+    ti.memberOf = mi;
+    if (mi.semanticRun >= PASS.semantic2done && mi.isRoot())
+        Module.addDeferredSemantic2(ti);
+    if (mi.semanticRun >= PASS.semantic3done && mi.isRoot())
+        Module.addDeferredSemantic3(ti);
+    return a;
+}
+
+private void expandMembers(TemplateInstance ti,Scope* sc2)
+{
+    ti.members.foreachDsymbol( (s) { s.setScope (sc2); } );
+
+    ti.members.foreachDsymbol( (s) { s.importAll(sc2); } );
+
+    if (!ti.aliasdecl)
+    {
+        /* static if's are crucial to evaluating aliasdecl correctly. But
+         * evaluating the if/else bodies may require aliasdecl.
+         * So, evaluate the condition for static if's, but not their if/else bodies.
+         * Then try to set aliasdecl.
+         * Later do the if/else bodies.
+         * https://issues.dlang.org/show_bug.cgi?id=23598
+         * It might be better to do this by attaching a lambda to the StaticIfDeclaration
+         * to do the oneMembers call after the sid.include(sc2) is run as part of dsymbolSemantic().
+         */
+        bool done;
+        void staticIfDg(Dsymbol s)
+        {
+            if (done || ti.aliasdecl)
+                return;
+            //printf("\t staticIfDg on '%s %s' in '%s'\n",  s.kind(), s.toChars(), this.toChars());
+            if (!s.isStaticIfDeclaration())
+            {
+                //s.dsymbolSemantic(sc2);
+                done = true;
+                return;
+            }
+            auto sid = s.isStaticIfDeclaration();
+            sid.include(sc2);
+            if (ti.members.length)
+            {
+                Dsymbol sa;
+                if (oneMembers(ti.members, sa, ti.tempdecl.ident) && sa)
+                    ti.aliasdecl = sa;
+            }
+            done = true;
+        }
+
+        ti.members.foreachDsymbol(&staticIfDg);
+    }
+
+    void symbolDg(Dsymbol s)
+    {
+        //printf("\t semantic on '%s' %p kind %s in '%s'\n",  s.toChars(), s, s.kind(), this.toChars());
+        //printf("test: enclosing = %d, sc2.parent = %s\n", enclosing, sc2.parent.toChars());
+        //if (enclosing)
+        //    s.parent = sc.parent;
+        //printf("test3: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
+        s.dsymbolSemantic(sc2);
+        //printf("test4: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
+        Module.runDeferredSemantic();
+    }
+
+    ti.members.foreachDsymbol(&symbolDg);
+}
+
+private void tryExpandMembers(TemplateInstance ti, Scope* sc2)
+{
+    __gshared int nest;
+    // extracted to a function to allow windows SEH to work without destructors in the same function
+    //printf("%d\n", nest);
+    if (++nest > global.recursionLimit)
+    {
+        global.gag = 0; // ensure error message gets printed
+        .error(ti.loc, "%s `%s` recursive expansion exceeded allowed nesting limit", ti.kind, ti.toPrettyChars);
+        fatal();
+    }
+
+    ti.expandMembers(sc2);
+
+    nest--;
+}
+
+private void trySemantic3(TemplateInstance ti, Scope* sc2)
+{
+    // extracted to a function to allow windows SEH to work without destructors in the same function
+    __gshared int nest;
+    //printf("%d\n", nest);
+    if (++nest > global.recursionLimit)
+    {
+        global.gag = 0; // ensure error message gets printed
+        .error(ti.loc, "%s `%s` recursive expansion exceeded allowed nesting limit", ti.kind, ti.toPrettyChars);
+        fatal();
+    }
+
+    semantic3(ti, sc2);
+
+    --nest;
+}
+
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList argumentList)
 {
     //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);
@@ -5721,6 +5888,121 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         return errorRet();
 
     normalRet();
+}
+
+/**********************************************
+ * Find template declaration corresponding to template instance.
+ *
+ * Returns:
+ *      false if finding fails.
+ * Note:
+ *      This function is reentrant against error occurrence. If returns false,
+ *      any members of this object won't be modified, and repetition call will
+ *      reproduce same error.
+ */
+bool findTempDecl(TemplateInstance ti, Scope* sc, WithScopeSymbol* pwithsym)
+{
+    if (pwithsym)
+        *pwithsym = null;
+
+    if (ti.havetempdecl)
+        return true;
+
+    //printf("TemplateInstance.findTempDecl() %s\n", toChars());
+    if (!ti.tempdecl)
+    {
+        /* Given:
+         *    foo!( ... )
+         * figure out which TemplateDeclaration foo refers to.
+         */
+        Identifier id = ti.name;
+        Dsymbol scopesym;
+        Dsymbol s = sc.search(ti.loc, id, scopesym);
+        if (!s)
+        {
+            s = sc.search_correct(id);
+            if (s)
+                .error(ti.loc, "%s `%s` template `%s` is not defined, did you mean %s?", ti.kind, ti.toPrettyChars(), id.toChars(), s.toChars());
+            else
+                .error(ti.loc, "%s `%s` template `%s` is not defined", ti.kind, ti.toPrettyChars(), id.toChars());
+            return false;
+        }
+        static if (LOG)
+        {
+            printf("It's an instance of '%s' kind '%s'\n", s.toChars(), s.kind());
+            if (s.parent)
+                printf("s.parent = '%s'\n", s.parent.toChars());
+        }
+        if (pwithsym)
+            *pwithsym = scopesym.isWithScopeSymbol();
+
+        /* We might have found an alias within a template when
+         * we really want the template.
+         */
+        TemplateInstance ti2;
+        if (s.parent && (ti2 = s.parent.isTemplateInstance()) !is null)
+        {
+            if (ti2.tempdecl && ti2.tempdecl.ident == id)
+            {
+                /* This is so that one can refer to the enclosing
+                 * template, even if it has the same name as a member
+                 * of the template, if it has a !(arguments)
+                 */
+                TemplateDeclaration td = ti2.tempdecl.isTemplateDeclaration();
+                assert(td);
+                if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
+                    td = td.overroot; // then get the start
+                s = td;
+            }
+        }
+
+        // The template might originate from a selective import which implies that
+        // s is a lowered AliasDeclaration of the actual TemplateDeclaration.
+        // This is the last place where we see the deprecated alias because it is
+        // stripped below, so check if the selective import was deprecated.
+        // See https://issues.dlang.org/show_bug.cgi?id=20840.
+        if (s.isAliasDeclaration())
+            s.checkDeprecated(ti.loc, sc);
+
+        if (!ti.updateTempDecl(sc, s))
+        {
+            return false;
+        }
+    }
+    assert(ti.tempdecl);
+
+    // Look for forward references
+    auto tovers = ti.tempdecl.isOverloadSet();
+    foreach (size_t oi; 0 .. tovers ? tovers.a.length : 1)
+    {
+        Dsymbol dstart = tovers ? tovers.a[oi] : ti.tempdecl;
+        int r = overloadApply(dstart, (Dsymbol s)
+        {
+            auto td = s.isTemplateDeclaration();
+            if (!td)
+                return 0;
+
+            if (td.semanticRun == PASS.initial)
+            {
+                if (td._scope)
+                {
+                    // Try to fix forward reference. Ungag errors while doing so.
+                    auto ungag = td.ungagSpeculative();
+                    td.dsymbolSemantic(td._scope);
+                }
+                if (td.semanticRun == PASS.initial)
+                {
+                    .error(ti.loc, "%s `%s` `%s` forward references template declaration `%s`",
+                           ti.kind, ti.toPrettyChars(), ti.toChars(), td.toChars());
+                    return 1;
+                }
+            }
+            return 0;
+        });
+        if (r)
+            return false;
+    }
+    return true;
 }
 
 /********************

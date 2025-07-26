@@ -54,6 +54,7 @@ import dmd.s2ir;
 import dmd.sideeffect;
 import dmd.statement;
 import dmd.target;
+import dmd.templatesem;
 import dmd.tocsym;
 import dmd.toctype;
 import dmd.toir;

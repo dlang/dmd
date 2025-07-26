@@ -402,6 +402,232 @@ MATCH matchWithInstance(Scope* sc, TemplateDeclaration td, TemplateInstance ti, 
     return m;
 }
 
+/**
+    Returns: true if the instances' innards are discardable.
+
+    The idea of this function is to see if the template instantiation
+    can be 100% replaced with its eponymous member. All other members
+    can be discarded, even in the compiler to free memory (for example,
+    the template could be expanded in a region allocator, deemed trivial,
+    the end result copied back out independently and the entire region freed),
+    and can be elided entirely from the binary.
+
+    The current implementation affects code that generally looks like:
+
+    ---
+    template foo(args...) {
+        some_basic_type_or_string helper() { .... }
+        enum foo = helper();
+    }
+    ---
+
+    since it was the easiest starting point of implementation but it can and
+    should be expanded more later.
+*/
+bool isDiscardable(TemplateInstance ti)
+{
+    if (ti.aliasdecl is null)
+        return false;
+
+    auto v = ti.aliasdecl.isVarDeclaration();
+    if (v is null)
+        return false;
+
+    if (!(v.storage_class & STC.manifest))
+        return false;
+
+    // Currently only doing basic types here because it is the easiest proof-of-concept
+    // implementation with minimal risk of side effects, but it could likely be
+    // expanded to any type that already exists outside this particular instance.
+    if (!(v.type.equals(Type.tstring) || (v.type.isTypeBasic() !is null)))
+        return false;
+
+    // Static ctors and dtors, even in an eponymous enum template, are still run,
+    // so if any of them are in here, we'd better not assume it is trivial lest
+    // we break useful code
+    foreach(member; *ti.members)
+    {
+        if(member.hasStaticCtorOrDtor())
+            return false;
+        if(member.isStaticDtorDeclaration())
+            return false;
+        if(member.isStaticCtorDeclaration())
+            return false;
+    }
+
+    // but if it passes through this gauntlet... it should be fine. D code will
+    // see only the eponymous member, outside stuff can never access it, even through
+    // reflection; the outside world ought to be none the wiser. Even dmd should be
+    // able to simply free the memory of everything except the final result.
+
+    return true;
+}
+
+
+/***********************************************
+ * Returns true if this is not instantiated in non-root module, and
+ * is a part of non-speculative instantiatiation.
+ *
+ * Note: minst does not stabilize until semantic analysis is completed,
+ * so don't call this function during semantic analysis to return precise result.
+ */
+bool needsCodegen(TemplateInstance ti)
+{
+    //printf("needsCodegen() %s\n", toChars());
+
+    // minst is finalized after the 1st invocation.
+    // tnext is only needed for the 1st invocation and
+    // cleared for further invocations.
+    TemplateInstance tnext = ti.tnext;
+    TemplateInstance tinst = ti.tinst;
+    ti.tnext = null;
+
+    // Don't do codegen if the instance has errors,
+    // is a dummy instance (see evaluateConstraint),
+    // or is determined to be discardable.
+    if (ti.errors || ti.inst is null || ti.inst.isDiscardable())
+    {
+        ti.minst = null; // mark as speculative
+        return false;
+    }
+
+    // This should only be called on the primary instantiation.
+    assert(ti is ti.inst);
+
+    /* Hack for suppressing linking errors against template instances
+    * of `_d_arrayliteralTX` (e.g. `_d_arrayliteralTX!(int[])`).
+    *
+    * This happens, for example, when a lib module is compiled with `preview=dip1000` and
+    * the array literal is placed on stack instead of using the lowering. In this case,
+    * if the root module is compiled without `preview=dip1000`, the compiler will consider
+    * the template already instantiated within the lib module, and thus skip the codegen for it
+    * in the root module object file, thinking that the linker will find the instance in the lib module.
+    *
+    * To bypass this edge case, we always do codegen for `_d_arrayliteralTX` template instances,
+    * even if an instance already exists in non-root module.
+    */
+    if (ti.inst && ti.inst.name == Id._d_arrayliteralTX)
+    {
+        return true;
+    }
+
+    if (global.params.allInst)
+    {
+        // Do codegen if there is an instantiation from a root module, to maximize link-ability.
+        static ThreeState needsCodegenAllInst(TemplateInstance tithis, TemplateInstance tinst)
+        {
+            // Do codegen if `this` is instantiated from a root module.
+            if (tithis.minst && tithis.minst.isRoot())
+                return ThreeState.yes;
+
+            // Do codegen if the ancestor needs it.
+            if (tinst && tinst.inst && tinst.inst.needsCodegen())
+            {
+                tithis.minst = tinst.inst.minst; // cache result
+                assert(tithis.minst);
+                assert(tithis.minst.isRoot());
+                return ThreeState.yes;
+            }
+            return ThreeState.none;
+        }
+
+        if (const needsCodegen = needsCodegenAllInst(ti, tinst))
+            return needsCodegen == ThreeState.yes ? true : false;
+
+        // Do codegen if a sibling needs it.
+        for (; tnext; tnext = tnext.tnext)
+        {
+            const needsCodegen = needsCodegenAllInst(tnext, tnext.tinst);
+            if (needsCodegen == ThreeState.yes)
+            {
+                ti.minst = tnext.minst; // cache result
+                assert(ti.minst);
+                assert(ti.minst.isRoot());
+                return true;
+            }
+            else if (!ti.minst && tnext.minst)
+            {
+                ti.minst = tnext.minst; // cache result from non-speculative sibling
+                // continue searching
+            }
+            else if (needsCodegen != ThreeState.none)
+                break;
+        }
+
+        // Elide codegen because there's no instantiation from any root modules.
+        return false;
+    }
+
+    // Prefer instantiations from non-root modules, to minimize object code size.
+
+    /* If a TemplateInstance is ever instantiated from a non-root module,
+     * we do not have to generate code for it,
+     * because it will be generated when the non-root module is compiled.
+     *
+     * But, if the non-root 'minst' imports any root modules, it might still need codegen.
+     *
+     * The problem is if A imports B, and B imports A, and both A
+     * and B instantiate the same template, does the compilation of A
+     * or the compilation of B do the actual instantiation?
+     *
+     * See https://issues.dlang.org/show_bug.cgi?id=2500.
+     *
+     * => Elide codegen if there is at least one instantiation from a non-root module
+     *    which doesn't import any root modules.
+     */
+    static ThreeState needsCodegenRootOnly(TemplateInstance tithis, TemplateInstance tinst)
+    {
+        // If the ancestor isn't speculative,
+        // 1. do codegen if the ancestor needs it
+        // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
+        if (tinst && tinst.inst)
+        {
+            tinst = tinst.inst;
+            const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
+            if (tinst.minst) // not speculative
+            {
+                tithis.minst = tinst.minst; // cache result
+                return needsCodegen ? ThreeState.yes : ThreeState.no;
+            }
+        }
+
+        // Elide codegen if `this` doesn't need it.
+        if (tithis.minst && !tithis.minst.isRoot() && !tithis.minst.rootImports())
+            return ThreeState.no;
+
+        return ThreeState.none;
+    }
+
+    if (const needsCodegen = needsCodegenRootOnly(ti, tinst))
+        return needsCodegen == ThreeState.yes ? true : false;
+
+    // Elide codegen if a (non-speculative) sibling doesn't need it.
+    for (; tnext; tnext = tnext.tnext)
+    {
+        const needsCodegen = needsCodegenRootOnly(tnext, tnext.tinst); // sets tnext.minst
+        if (tnext.minst) // not speculative
+        {
+            if (needsCodegen == ThreeState.no)
+            {
+                ti.minst = tnext.minst; // cache result
+                assert(!ti.minst.isRoot() && !ti.minst.rootImports());
+                return false;
+            }
+            else if (!ti.minst)
+            {
+                ti.minst = tnext.minst; // cache result from non-speculative sibling
+                // continue searching
+            }
+            else if (needsCodegen != ThreeState.none)
+                break;
+        }
+    }
+
+    // Unless `this` is still speculative (=> all further siblings speculative too),
+    // do codegen because we found no guaranteed-codegen'd non-root instantiation.
+    return ti.minst !is null;
+}
+
 /****************************
  * Check to see if constraint is satisfied.
  */
