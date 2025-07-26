@@ -2576,7 +2576,7 @@ void disassemble(uint c) @trusted
             case ldr(0,0,0): p1 = "strb";  goto Lldr8;  // https://www.scs.stanford.edu/~zyedidia/arm64/strb_imm.html
             case ldr(0,0,1): p1 = "ldrb";  goto Lldr8;
             Lldr8:
-                p2 = regString(factor == 84, Rt);
+                p2 = regString(factor == 8, Rt);
                 p3 = eaString(0, cast(ubyte)Rn, imm12);
                 break;
 

@@ -1712,13 +1712,26 @@ void assignaddrc(code* c)
                 uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
                 uint op24  = field(ins,25,24);
                 uint op11  = field(ins,11,10);
-                if (field(ins,28,23) == 0x22)      // Add/subtract (immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
+                if (field(ins,28,23) == 0x22)   // Add/subtract (immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
                 {
+                    // add Rd,Rn,Voffset
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
 //printf("imm12: %x offset: %llx\n", imm12, offset);
                     imm12 += offset;
-imm12&=0xFFF; //                    assert(imm12 < 0x1000);
-                    ins = setField(ins,21,10,imm12);
+                    ins = setField(ins,21,10,imm12 & 0xFFF);
+                    if (imm12 >= 0x1000)
+                    {
+                        // Add in the shifted part of the offset
+                        // add Rd,Rd,(imm12 >> 12) << 12 // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+                        c.Iop = ins;
+                        code* c2 = code_calloc();
+                        const reg_t Rd2 = cast(reg_t)field(ins,4,0);
+                        c2.Iop = INSTR.add_addsub_imm(1,1,imm12>>12,Rd2,Rd2);
+                        c2.Iop |= ins & (1 << 30);      // SUB
+                        c2.next = c.next;
+                        c.next = c2;
+                        continue;
+                    }
                 }
                 else if (op24 == 1)
                 {
@@ -1744,7 +1757,7 @@ imm12&=0xFFF; //                    assert(imm12 < 0x1000);
                             ins = setField(ins,21,10,imm12);
                         else
                         {
-                            // need an extra instruction to load the offset, using a scratch register
+                            // insert extra instruction to load the offset using scratch register R16
                             enum R16 = 16;              // scratch register
                             // add R16,Rn,(imm12 >> 12) << 12 // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
                             const reg_t Rn2 = cast(reg_t)field(ins,9,5);
@@ -1801,6 +1814,7 @@ imm12&=0xFFF; //                    assert(imm12 < 0x1000);
                 {   /* Convert to SP relative address instead of BP */
                     offset += cgstate.EBPtoESP;       // add difference in offset
                     ins = setField(ins,9,5,31);       // set Rn to SP
+                    assert(0); // offset is ignored
                 }
                 c.Iop = ins;
 
