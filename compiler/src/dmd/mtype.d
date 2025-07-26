@@ -30,7 +30,6 @@ import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
-import dmd.dsymbolsem : determineSize;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -685,19 +684,6 @@ extern (C++) abstract class Type : ASTNode
     bool isString()
     {
         return false;
-    }
-
-    /**************************
-     * When T is mutable,
-     * Given:
-     *      T a, b;
-     * Can we bitwise assign:
-     *      a = b;
-     * ?
-     */
-    bool isAssignable()
-    {
-        return true;
     }
 
     /**************************
@@ -3061,45 +3047,6 @@ extern (C++) final class TypeStruct : Type
         return structinit;
     }
 
-    override bool isAssignable()
-    {
-        bool assignable = true;
-        uint offset = ~0; // dead-store initialize to prevent spurious warning
-
-        sym.determineSize(sym.loc);
-
-        /* If any of the fields are const or immutable,
-         * then one cannot assign this struct.
-         */
-        for (size_t i = 0; i < sym.fields.length; i++)
-        {
-            VarDeclaration v = sym.fields[i];
-            //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s\n", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
-            if (i == 0)
-            {
-            }
-            else if (v.offset == offset)
-            {
-                /* If any fields of anonymous union are assignable,
-                 * then regard union as assignable.
-                 * This is to support unsafe things like Rebindable templates.
-                 */
-                if (assignable)
-                    continue;
-            }
-            else
-            {
-                if (!assignable)
-                    return false;
-            }
-            assignable = v.type.isMutable() && v.type.isAssignable();
-            offset = v.offset;
-            //printf(" -> assignable = %d\n", assignable);
-        }
-
-        return assignable;
-    }
-
     override bool isBoolean()
     {
         return false;
@@ -3259,11 +3206,6 @@ extern (C++) final class TypeEnum : Type
     override bool isString()
     {
         return memType().isString();
-    }
-
-    override bool isAssignable()
-    {
-        return memType().isAssignable();
     }
 
     override bool needsDestruction()

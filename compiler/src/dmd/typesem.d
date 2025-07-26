@@ -476,6 +476,60 @@ bool isCopyable(Type t)
     return true;
 }
 
+/**************************
+ * When T is mutable,
+ * Given:
+ *      T a, b;
+ * Can we bitwise assign:
+ *      a = b;
+ * ?
+ */
+bool isAssignable(Type t)
+{
+    if (auto te = t.isTypeEnum())
+        t = te.memType();
+    TypeStruct ts = t.isTypeStruct();
+    if (!ts)
+        return true;
+
+    bool assignable = true;
+    uint offset = ~0; // dead-store initialize to prevent spurious warning
+
+    auto sym = ts.sym;
+    sym.determineSize(sym.loc);
+
+    /* If any of the fields are const or immutable,
+     * then one cannot assign this struct.
+     */
+    for (size_t i = 0; i < sym.fields.length; i++)
+    {
+        VarDeclaration v = sym.fields[i];
+        //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s\n", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
+        if (i == 0)
+        {
+        }
+        else if (v.offset == offset)
+        {
+            /* If any fields of anonymous union are assignable,
+             * then regard union as assignable.
+             * This is to support unsafe things like Rebindable templates.
+             */
+            if (assignable)
+                continue;
+        }
+        else
+        {
+            if (!assignable)
+                return false;
+        }
+        assignable = v.type.isMutable() && v.type.isAssignable();
+        offset = v.offset;
+        //printf(" -> assignable = %d\n", assignable);
+    }
+
+    return assignable;
+}
+
 /************************************
  * Determine mutability of indirections in (ref) t.
  *

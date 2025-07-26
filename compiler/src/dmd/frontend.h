@@ -2126,7 +2126,6 @@ public:
     virtual bool isUnsigned();
     virtual bool isScopeClass();
     virtual bool isString();
-    virtual bool isAssignable();
     virtual bool isBoolean();
     bool isConst() const;
     bool isImmutable() const;
@@ -4588,7 +4587,6 @@ public:
     bool isUnsigned() override;
     bool isBoolean() override;
     bool isString() override;
-    bool isAssignable() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
@@ -4857,7 +4855,6 @@ public:
     TypeStruct* syntaxCopy() override;
     structalign_t alignment() override;
     Expression* defaultInitLiteral(Loc loc) override;
-    bool isAssignable() override;
     bool isBoolean() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
