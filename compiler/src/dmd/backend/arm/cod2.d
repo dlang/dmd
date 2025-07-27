@@ -2054,7 +2054,40 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     const sz = _tysize[tyml];
     if (tyfloating(tyml))
     {
-        assert(0); // TODO AArch64
+        regm_t retregs = pretregs & INSTR.FLOATREGS;
+        if (retregs == 0)                   /* if no return regs speced     */
+                                            /* (like if wanted flags only)  */
+            retregs = INSTR.FLOATREGS;      // give us some
+        codelem(cgstate,cdb,e.E1,retregs,false);
+        getregs(cdb,retregs);               // retregs will be destroyed
+
+        const Vn = findreg(retregs);
+
+        if (sz == 16)                   // 128 bit float
+        {
+            /* Generate:
+                FMOV Xn,Vn.d[1] // upper 64 bits
+                EOR  Xn,Xn,#0x8000_0000_0000_0000  // toggle sign bit
+                FMOV Vn.d[1],Xn // store upper 64 bits
+             */
+            // Alloc Xn
+            regm_t retregsx = cg.allregs;
+            const Xn = allocreg(cdb,retregsx,TYllong); // scratch register Xn
+            // https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
+            cdb.gen1(INSTR.fmov_float_gen(1,2,1,6,Vn,Xn)); // Top half of 128-bit to 64-bit
+            uint N, immr, imms;
+            assert(encodeNImmrImms(0x8000_0000_0000_0000,N,immr,imms));
+            uint sf = 1, opc = 2;
+            cdb.gen1(INSTR.log_imm(sf,opc,N,immr,imms,Xn,Xn)); // https://www.scs.stanford.edu/~zyedidia/arm64/eor_log_imm.html
+            cdb.gen1(INSTR.fmov_float_gen(1,2,1,7,Xn,Vn)); // 64-bit to top half of 128-bit
+        }
+        else
+        {
+            const ftype = INSTR.szToFtype(sz);
+            cdb.gen1(INSTR.fabs_float(ftype, Vn, Vn));
+        }
+        fixresult(cdb,e,retregs,pretregs);
+        return;
     }
 
     const posregs = cgstate.allregs;
