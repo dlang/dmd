@@ -87,6 +87,7 @@ public:
     void visit(ASTCodegen.ClassReferenceExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.VoidInitExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.ThrownExceptionExp e) { visit(cast(ASTCodegen.Expression)e); }
+    void visit(ASTCodegen.InferenceExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.LoweredAssignExp e) { visit(cast(ASTCodegen.AssignExp)e); }
 }
 

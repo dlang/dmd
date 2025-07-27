@@ -429,6 +429,8 @@ enum EXP : ubyte
 
     loweredAssignExp,
     rvalue,
+
+    inference, // $id
 }
 
 enum FirstCKeyword = TOK.inline;

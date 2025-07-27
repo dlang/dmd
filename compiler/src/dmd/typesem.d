@@ -1196,7 +1196,25 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
     Type targ = arg.type;
     Type tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
 
-    if (p.isLazy() && tprm.ty == Tvoid && targ.ty != Tvoid)
+    if (InferenceExp ie = arg.isInferenceExp())
+    {
+        // asm {int 3;}
+        TypeEnum tEnum = p.type.isTypeEnum();
+        if (!tEnum)
+        {
+            m = MATCH.nomatch;
+        }
+        else
+        {
+            import dmd.dcast : inferType;
+            Expression inf = inferType(ie, tEnum, 1);
+            if (!inf.isErrorExp())
+            {
+                m = MATCH.convert;
+            }
+        }
+    }
+    else if (p.isLazy() && tprm.ty == Tvoid && targ.ty != Tvoid)
         m = MATCH.convert;
     else if (flag)
     {

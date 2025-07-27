@@ -3016,6 +3016,12 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         buf.put(e.value.toChars());
     }
 
+    void visitInference(InferenceExp e)
+    {
+        buf.writeByte('$');
+        buf.writestring(e.id.toString());
+    }
+
     if (e.rvalue)
         buf.put("__rvalue(");
 
@@ -3097,6 +3103,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.remove:        return visitRemove(e.isRemoveExp());
         case EXP.question:      return visitCond(e.isCondExp());
         case EXP.classReference:        return visitClassReference(e.isClassReferenceExp());
+        case EXP.inference: return visitInference(e.isInferenceExp());
         case EXP.loweredAssignExp:      return visitLoweredAssignExp(e.isLoweredAssignExp());
     }
 }
