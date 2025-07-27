@@ -169,7 +169,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         sc2.parent = this;
         sc2.inunion = isUnionDeclaration();
         sc2.visibility = Visibility(Visibility.Kind.public_);
-        sc2.explicitVisibility = 0;
+        sc2.explicitVisibility = false;
         sc2.aligndecl = null;
         sc2.userAttribDecl = null;
         sc2.namespace = null;

@@ -19,13 +19,16 @@ version(Has_Bitfields)
  * Params:
  *   S = type of a struct with only boolean fields, which should become bit fields
  *   T = type of bit fields variable, must have enough bits to store all booleans
+ *   field = if provided, assume it is declared and initialized elsewhere
+ *   bitOff = start using bits at the given offset
  * Returns: D code with a bit fields variable and getter / setter functions
  */
-extern (D) string generateBitFields(S, T, int ID = __LINE__)()
+extern (D) string generateBitFields(S, T, string field = "", int bitOff = 0, int ID = __LINE__)()
 if (__traits(isUnsigned, T))
 {
     import core.bitop: bsr;
-
+    // if _fieldName provided, assume it declared and initialized elsewhere
+    enum fieldName = field.length == 0 ? "bitFields" : field;
     string result = "extern (C++) pure nothrow @nogc @safe final {";
 
     struct BitInfo
@@ -39,7 +42,7 @@ if (__traits(isUnsigned, T))
     // Iterate over members to compute bit offset and bit size for each of them
     enum BitInfo bitInfo = () {
         BitInfo result;
-        int bitOffset = 0;
+        int bitOffset = bitOff;
         foreach (size_t i, mem; __traits(allMembers, S))
         {
             alias memType = typeof(__traits(getMember, S, mem));
@@ -62,7 +65,7 @@ if (__traits(isUnsigned, T))
     version(Debugger_friendly)
     {
         // unique name needed to allow same name as in base class using `alias`, but without overloading
-        string bitfieldsName = "bitfields" ~ toString!(ID);
+        string bitfieldsName = fieldName ~ toString!(ID);
         string bitfieldsRead = T.stringof~" "~bitfieldsName~"() const pure { return 0";
         string bitfieldsWrite = "void "~bitfieldsName~"("~T.stringof~" v) {\n";
     }
@@ -86,11 +89,11 @@ if (__traits(isUnsigned, T))
         else
         {
             result ~= "
-                "~typeName~" "~mem~"() const scope { return cast("~typeName~") ((bitFields >>> "~shift~") & "~sizeMask~"); }
+                "~typeName~" "~mem~"() const scope { return cast("~typeName~") (("~fieldName~" >>> "~shift~") & "~sizeMask~"); }
             "~typeName~" "~mem~"("~typeName~" v) scope
             {
-                bitFields &= ~("~sizeMask~" << "~shift~");
-                bitFields |= v << "~shift~";
+                "~fieldName~" &= ~("~sizeMask~" << "~shift~");
+                "~fieldName~" |= v << "~shift~";
                 return v;
             }";
         }
@@ -99,7 +102,8 @@ if (__traits(isUnsigned, T))
     {
         bitfieldsRead ~= ";\n}\n";
         bitfieldsWrite ~= "}\n";
-        result ~= "alias bitFields = "~bitfieldsName~";\n";
+        if (field.length == 0)
+            result ~= "alias "~fieldName~" = "~bitfieldsName~";\n";
         result ~= bitfieldsRead ~ bitfieldsWrite;
         result ~= "\n}\n";
         return result;
@@ -108,7 +112,9 @@ if (__traits(isUnsigned, T))
     {
         result ~= "\n}\n";
         enum TP initVal = bitInfo.initialValue;
-        return result ~ " private "~T.stringof~" bitFields = " ~ toString!(initVal) ~ ";\n";
+        if (field.length == 0)
+            result ~= " private "~T.stringof~" "~fieldName~" = " ~ toString!(initVal) ~ ";\n";
+        return result;
     }
 }
 
