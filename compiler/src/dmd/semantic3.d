@@ -345,7 +345,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.linkage = funcdecl.isCsymbol() ? LINK.c : LINK.d;
             sc2.stc &= STC.flowThruFunction;
             sc2.visibility = Visibility(Visibility.Kind.public_);
-            sc2.explicitVisibility = 0;
+            sc2.explicitVisibility = false;
             sc2.aligndecl = null;
             if (funcdecl.ident != Id.require && funcdecl.ident != Id.ensure)
             {

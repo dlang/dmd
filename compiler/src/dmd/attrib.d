@@ -78,7 +78,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      * the scope after it used.
      */
     extern (D) static Scope* createNewScope(Scope* sc, STC stc, LINK linkage,
-        CPPMANGLE cppmangle, Visibility visibility, int explicitVisibility,
+        CPPMANGLE cppmangle, Visibility visibility, bool explicitVisibility,
         AlignDeclaration aligndecl, PragmaDeclaration inlining)
     {
         Scope* sc2 = sc;

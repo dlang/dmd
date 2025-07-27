@@ -351,7 +351,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
                  * so resolve it ahead.
                  */
                 {
-                    int save = sc.intypeof;
+                    ubyte save = sc.intypeof;
                     sc.intypeof = 1; // bypass "need this" error check
                     e = resolveProperties(sc, e);
                     sc.intypeof = save;
