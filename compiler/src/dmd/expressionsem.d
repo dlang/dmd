@@ -3953,8 +3953,8 @@ private extern(C++) final class IsMemcmpableVisitor : Visitor
         /* We recursively check all variable declaration within the struct.
          * The recursiveness is needed to handle cases like this:
          * struct Test {
-	     *     nothrow:
-	     *     int[] contents;
+         *     nothrow:
+         *     int[] contents;
          * }
          * Here a `StorageClassDeclaration` symbol will be created, which wraps the variable declaration.
          */

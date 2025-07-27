@@ -5333,8 +5333,8 @@ class InlineAsmStatement final : public AsmStatement
 {
 public:
     void* asmcode;
+    uint64_t regs;
     uint32_t asmalign;
-    uint32_t regs;
     bool refparam;
     bool naked;
     InlineAsmStatement* syntaxCopy() override;
