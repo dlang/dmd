@@ -920,3 +920,166 @@ void staticAssertFail(StaticAssert sa, Scope* sc)
     if (!global.gag)
         fatal();
 }
+
+/****************
+ * Find virtual function matching identifier and type.
+ * Used to build virtual function tables for interface implementations.
+ * Params:
+ *  ident = function's identifier
+ *  tf = function's type
+ * Returns:
+ *  function symbol if found, null if not
+ * Errors:
+ *  prints error message if more than one match
+ */
+extern (D) final FuncDeclaration findFunc(ClassDeclaration cd, Identifier ident, TypeFunction tf)
+{
+    //printf("ClassDeclaration.findFunc(%s, %s) %s\n", ident.toChars(), tf.toChars(), toChars());
+    FuncDeclaration fdmatch = null;
+    FuncDeclaration fdambig = null;
+
+    void updateBestMatch(FuncDeclaration fd)
+    {
+        fdmatch = fd;
+        fdambig = null;
+        //printf("Lfd fdmatch = %s %s [%s]\n", fdmatch.toChars(), fdmatch.type.toChars(), fdmatch.loc.toChars());
+    }
+
+    void searchVtbl(ref Dsymbols vtbl)
+    {
+        import dmd.typesem : covariant;
+        bool seenInterfaceVirtual;
+        foreach (s; cd.vtbl)
+        {
+            auto fd = s.isFuncDeclaration();
+            if (!fd)
+                continue;
+
+            // the first entry might be a ClassInfo
+            //printf("\t[%d] = %s\n", i, fd.toChars());
+            if (ident != fd.ident || fd.type.covariant(tf) != Covariant.yes)
+            {
+                //printf("\t\t%d\n", fd.type.covariant(tf));
+                continue;
+            }
+
+            //printf("fd.parent.isClassDeclaration() = %p\n", fd.parent.isClassDeclaration());
+            if (!fdmatch)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            if (fd == fdmatch)
+                continue;
+
+            /* Functions overriding interface functions for extern(C++) with VC++
+             * are not in the normal vtbl, but in vtblFinal. If the implementation
+             * is again overridden in a child class, both would be found here.
+             * The function in the child class should override the function
+             * in the base class, which is done here, because searchVtbl is first
+             * called for the child class. Checking seenInterfaceVirtual makes
+             * sure, that the compared functions are not in the same vtbl.
+             */
+            if (fd.interfaceVirtual &&
+                fd.interfaceVirtual is fdmatch.interfaceVirtual &&
+                !seenInterfaceVirtual &&
+                fdmatch.type.covariant(fd.type) == Covariant.yes)
+            {
+                seenInterfaceVirtual = true;
+                continue;
+            }
+
+            {
+            // Function type matching: exact > covariant
+            MATCH m1 = tf.equals(fd.type) ? MATCH.exact : MATCH.nomatch;
+            MATCH m2 = tf.equals(fdmatch.type) ? MATCH.exact : MATCH.nomatch;
+            if (m1 > m2)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            else if (m1 < m2)
+                continue;
+            }
+            {
+            MATCH m1 = (tf.mod == fd.type.mod) ? MATCH.exact : MATCH.nomatch;
+            MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCH.exact : MATCH.nomatch;
+            if (m1 > m2)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            else if (m1 < m2)
+                continue;
+            }
+            {
+            // The way of definition: non-mixin > mixin
+            MATCH m1 = fd.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
+            MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
+            if (m1 > m2)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            else if (m1 < m2)
+                continue;
+            }
+
+            fdambig = fd;
+            //printf("Lambig fdambig = %s %s [%s]\n", fdambig.toChars(), fdambig.type.toChars(), fdambig.loc.toChars());
+        }
+    }
+
+    searchVtbl(vtbl);
+    for (; cd; cd = cd.baseClass)
+    {
+        searchVtbl(cd.vtblFinal);
+    }
+
+    if (fdambig)
+        cd.classError("%s `%s` ambiguous virtual function `%s`", fdambig.toChars());
+
+    return fdmatch;
+}
+
+/****************************************
+ * Fill in vtbl[] for base class based on member functions of class cd.
+ * Input:
+ *      vtbl            if !=NULL, fill it in
+ *      newinstance     !=0 means all entries must be filled in by members
+ *                      of cd, not members of any base classes of cd.
+ * Returns:
+ *      true if any entries were filled in by members of cd (not exclusively
+ *      by base classes)
+ */
+extern (D) bool fillVtbl(ref BaseClass b, ClassDeclaration cd, FuncDeclarations* vtbl, int newinstance)
+{
+    bool result = false;
+
+    //printf("BaseClass.fillVtbl(this='%s', cd='%s')\n", sym.toChars(), cd.toChars());
+    if (vtbl)
+        vtbl.setDim(b.sym.vtbl.length);
+
+    // first entry is ClassInfo reference
+    for (size_t j = b.sym.vtblOffset(); j < b.sym.vtbl.length; j++)
+    {
+        FuncDeclaration ifd = b.sym.vtbl[j].isFuncDeclaration();
+
+        //printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd.toChars() : "null");
+        assert(b.ifd);
+
+        // Find corresponding function in this class
+        auto tf = b.ifd.type.toTypeFunction();
+        auto fd = cd.findFunc(b.ifd.ident, tf);
+        if (fd && !fd.isAbstract())
+        {
+            if (fd.toParent() == cd)
+                result = true;
+        }
+        else
+            fd = null;
+        if (vtbl)
+            (*vtbl)[j] = fd;
+    }
+    return result;
+}
