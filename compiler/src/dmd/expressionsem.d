@@ -18514,6 +18514,15 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
     ekeys.push(ie.e2);
     for (auto ieaa = ie.e1.isIndexExp(); ieaa && ieaa.e1.type.isTypeAArray(); ieaa = ieaa.e1.isIndexExp())
         ekeys.push(ieaa.e2);
+    foreach (ekey; ekeys)
+    {
+        Type tidx = ekey.type.toBasetype();
+        if (tidx.ty == Tarray && tidx.nextOf().isMutable())
+        {
+            error(loc, "associative arrays can only be assigned values with immutable keys, not `%s`", tidx.toChars());
+            return ErrorExp.get();
+        }
+    }
     // extract side effects in lexical order
     for (size_t i = ekeys.length; i > 0; --i)
         ekeys[i-1] = extractSideEffect(sc, "__aakey", e0, ekeys[i-1]);
