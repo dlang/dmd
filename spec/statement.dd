@@ -723,7 +723,7 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
         These functions must each have the signature below:
     )
 
-$(INFORMATIVE_GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(GNAME OpApplyDeclaration):
     `int opApply` `(` `scope` `int delegate` `(` $(I OpApplyParameters) `)` `dg` `)` `;`
 

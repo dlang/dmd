@@ -660,7 +660,7 @@ $(H2 $(LNAME2 functions, Function Types))
 
 $(P A function type has the form:)
 
-$(INFORMATIVE_GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK Type) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
 )
 
@@ -671,7 +671,7 @@ A function type is only used for type tests or as the target type of a pointer.)
 $(P Instantiating a function type is illegal. Instead, a pointer to function
 or delegate can be used. Those have these type forms respectively:)
 
-$(INFORMATIVE_GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(GLINK Type) `function` $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
 $(GLINK Type) `delegate` $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 )

@@ -3502,7 +3502,7 @@ void foo()
 
 $(H4 $(LNAME2 is-parameter-list, Parameter List Forms))
 
-$(INFORMATIVE_GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
 $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
 $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))

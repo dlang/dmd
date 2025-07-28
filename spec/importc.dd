@@ -415,7 +415,7 @@ int main()
 
     $(P This is described in C11 7.6.1)
 
-$(INFORMATIVE_GRAMMAR
+$(GRAMMAR_INFORMATIVE
 #pragma STDC FENV_ACCESS on-off-switch
 
 on-off-switch:
@@ -650,7 +650,7 @@ _Static_assert(sizeof(A) == 1, "A should be size 1");
     $(H3 $(LNAME2 typeof, `typeof` Operator))
 
     $(P The `typeof` operator may be used as a type specifier:)
-$(INFORMATIVE_GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(GNAME type-specifier):
     $(GNAME typeof-specifier)
 
@@ -663,7 +663,7 @@ $(GNAME typeof-specifier):
 
     $(P Modules can be imported with a $(I CImportDeclaration):)
 
-$(INFORMATIVE_GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(GNAME CImportDeclaration):
     $(D __import) $(GLINK2 module, ImportList) $(D ;)
 )
