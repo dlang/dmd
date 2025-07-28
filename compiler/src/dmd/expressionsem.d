@@ -662,6 +662,105 @@ TupleDeclaration isAliasThisTuple(Expression e)
     }
 }
 
+/***************************************
+ * Return `true` if expression is an lvalue.
+ */
+bool isLvalue(Expression e)
+{
+    if (auto oe = e.isOverExp())
+        return true;
+    if (auto te = e.isTemplateExp())
+        return te.fd !is null;
+    if (auto die = e.isDefaultInitExp())
+        return false;
+
+    if (e.rvalue)
+        return false;
+
+    if (auto ie = e.isIndexExp())
+    {
+        auto t1b = ie.e1.type.toBasetype();
+        if (t1b.isTypeAArray() || t1b.isTypeSArray() ||
+            (ie.e1.isIndexExp() && t1b != t1b.isTypeDArray()))
+        {
+            return ie.e1.isLvalue();
+        }
+        return true;
+    }
+
+    if (auto ae = e.isAssignExp())
+    {
+        // Array-op 'x[] = y[]' should make an rvalue.
+        // Setting array length 'x.length = v' should make an rvalue.
+        return ae.e1.op != EXP.slice && ae.e1.op != EXP.arrayLength;
+    }
+    // Class `this` should be an rvalue; struct `this` should be an lvalue.
+    if (auto te = e.isThisExp())
+        return te.type.toBasetype().ty != Tclass;
+    if (auto dve = e.isDotVarExp())
+    {
+        if (dve.e1.op != EXP.structLiteral)
+            return true;
+        auto vd = dve.var.isVarDeclaration();
+        return !(vd && vd.isField());
+    }
+
+    if (auto ce = e.isCallExp())
+    {
+        Type tb = ce.e1.type.toBasetype();
+        if (tb.ty == Tdelegate || tb.ty == Tpointer)
+            tb = tb.nextOf();
+        auto tf = tb.isTypeFunction();
+        if (tf && tf.isRef)
+        {
+            if (auto dve = ce.e1.isDotVarExp())
+                if (dve.var.isCtorDeclaration())
+                    return false;
+            return true; // function returns a reference
+        }
+        return false;
+    }
+    if (auto ve = e.isVarExp())
+        return !(ve.var.storage_class & (STC.lazy_ | STC.rvalue | STC.manifest));
+
+    /* string literal is rvalue in default, but
+     * conversion to reference of static array is only allowed.
+     */
+    if (auto se = e.isStringExp())
+        return se.type && se.type.toBasetype().ty == Tsarray;
+    if (auto ce = e.isCastExp())
+    {
+        if (!ce.e1.isLvalue())
+            return false;
+        return (ce.to.ty == Tsarray && (ce.e1.type.ty == Tvector  || ce.e1.type.ty == Tsarray))
+            || (ce.to.ty == Taarray &&  ce.e1.type.ty == Taarray)
+            ||  ce.e1.type.mutableOf.unSharedOf().equals(ce.to.mutableOf().unSharedOf());
+    }
+
+    if (auto ue = e.isUnaExp()) switch(ue.op)
+    {
+        case EXP.array:           return !ue.type || ue.type.toBasetype().ty != Tvoid;
+        case EXP.vectorArray:
+        case EXP.delegatePointer: return ue.e1.isLvalue();
+        case EXP.star:            return true;
+        default:                  return false;
+    }
+    if (auto bae = e.isBinAssignExp())
+        return true;
+    if (auto be = e.isBinExp()) switch(be.op)
+    {
+        /* slice expression is rvalue in default, but
+         * conversion to reference of static array is only allowed.
+         */
+        case EXP.slice:    return be.type && be.type.toBasetype().ty == Tsarray;
+        case EXP.comma:    return be.e2.isLvalue();
+        case EXP.question: return be.e1.isLvalue() && be.e2.isLvalue();
+        default:           return false;
+    }
+
+    return false;
+}
+
 /******************************
  * Take address of expression.
  */
