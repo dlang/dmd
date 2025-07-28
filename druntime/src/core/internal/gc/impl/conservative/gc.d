@@ -1532,7 +1532,7 @@ class ConservativeGC : GC
             return false;
 
         // try extending the block into subsequent pages.
-        immutable requiredExtension = newUsed - info.size - LARGEPAD;
+        immutable requiredExtension = newUsed - (info.size - LARGEPAD);
         auto extendedSize = extend(info.base, requiredExtension, requiredExtension, null);
         if (extendedSize == 0)
             // could not extend, can't satisfy the request
@@ -5391,6 +5391,26 @@ unittest
         // adjacent allocations likely but not guaranteed
         printf("unexpected pointers %p and %p\n", p.ptr, q.ptr);
     }
+}
+
+// https://github.com/dlang/dmd/issues/21615
+debug(SENTINEL) {} else // no additional capacity with SENTINEL
+@safe unittest
+{
+    size_t numReallocations = 0;
+    ubyte[] buffer = new ubyte[4096];
+    auto p = &buffer[0];
+    foreach (i; 0 .. 1000) {
+        buffer.length += 4096;
+        if (p !is &buffer[0])
+        {
+            ++numReallocations;
+            p = &buffer[0];
+        }
+    }
+
+    // pick a decently small number, it's unclear where this memory will start out.
+    assert(numReallocations <= 5);
 }
 
 /* ============================ MEMSTOMP =============================== */
