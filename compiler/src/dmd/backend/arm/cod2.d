@@ -2067,7 +2067,7 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         {
             /* Generate:
                 FMOV Xn,Vn.d[1] // upper 64 bits
-                EOR  Xn,Xn,#0x8000_0000_0000_0000  // toggle sign bit
+                AND  Xn,Xn,#0x7FFF_FFFF_FFFF_FFFF  // clear sign bit
                 FMOV Vn.d[1],Xn // store upper 64 bits
              */
             // Alloc Xn
@@ -2076,8 +2076,8 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             // https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
             cdb.gen1(INSTR.fmov_float_gen(1,2,1,6,Vn,Xn)); // Top half of 128-bit to 64-bit
             uint N, immr, imms;
-            assert(encodeNImmrImms(0x8000_0000_0000_0000,N,immr,imms));
-            uint sf = 1, opc = 2;
+            assert(encodeNImmrImms(0x7FFF_FFFF_FFFF_FFFF,N,immr,imms));
+            uint sf = 1, opc = 0;
             cdb.gen1(INSTR.log_imm(sf,opc,N,immr,imms,Xn,Xn)); // https://www.scs.stanford.edu/~zyedidia/arm64/eor_log_imm.html
             cdb.gen1(INSTR.fmov_float_gen(1,2,1,7,Xn,Vn)); // 64-bit to top half of 128-bit
         }
