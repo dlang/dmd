@@ -2988,7 +2988,7 @@ $(GNAME NewExpression):
     //int[] a = new int[]; // error, need length argument
     ---
     )
-    $(P The $(INLINE_GRAMMAR *Type(NamedArgumentList)*) form allows passing either a single initializer
+    $(P The $(GRAMMAR_INLINE *Type(NamedArgumentList)*) form allows passing either a single initializer
         of the same type, or multiple arguments for more complex types:)
 
     * For class and struct types, *NamedArgumentList* is passed to the constructor.
@@ -3010,9 +3010,9 @@ $(GNAME NewExpression):
     ---
     )
 
-    $(P The $(INLINE_GRAMMAR *Type[AssignExpression]*) form allocates a dynamic array with
+    $(P The $(GRAMMAR_INLINE *Type[AssignExpression]*) form allocates a dynamic array with
         length equal to *AssignExpression*.
-        It is preferred to use the $(INLINE_GRAMMAR *Type(NamedArgumentList)*) form when allocating
+        It is preferred to use the $(GRAMMAR_INLINE *Type(NamedArgumentList)*) form when allocating
         dynamic arrays instead, as it is more general.)
 
     $(NOTE It is not possible to allocate a static array directly with
