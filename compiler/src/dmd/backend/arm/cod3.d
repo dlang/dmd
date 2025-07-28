@@ -1814,7 +1814,7 @@ void assignaddrc(code* c)
                 {   /* Convert to SP relative address instead of BP */
                     offset += cgstate.EBPtoESP;       // add difference in offset
                     ins = setField(ins,9,5,31);       // set Rn to SP
-                    assert(0); // offset is ignored
+                    //assert(0); // offset is ignored
                 }
                 c.Iop = ins;
 

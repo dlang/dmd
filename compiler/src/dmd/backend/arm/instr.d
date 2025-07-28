@@ -875,6 +875,10 @@ struct INSTR
      */
     static uint fcvt_float(uint ftype, uint opcode, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,opcode,Vn & 31,Vd & 31); }
 
+    /* FABS fpreg,fpreg https://www.scs.stanford.edu/~zyedidia/arm64/fabs_float.html
+     */
+    static uint fabs_float(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,1,Vn & 31,Vd & 31); }
+
     /* FNEG fpreg,fpreg https://www.scs.stanford.edu/~zyedidia/arm64/fneg_float.html
      */
     static uint fneg_float(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,2,Vn & 31,Vd & 31); }
