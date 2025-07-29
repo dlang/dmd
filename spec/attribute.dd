@@ -1232,7 +1232,7 @@ $(H3 $(LNAME2 uda-usage, Usage))
         )
 
         $(P
-            Whether the attributes are values or types is up to the user, and whether later
+            Whether the attributes are values or symbols is up to the user, and whether later
             attributes accumulate or override earlier ones is also up to how the user
             interprets them.
         )
