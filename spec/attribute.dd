@@ -1113,7 +1113,7 @@ $(H2 $(LNAME2 uda, User-Defined Attributes))
 
 $(GRAMMAR
 $(GNAME UserDefinedAttribute):
-    $(D @ $(LPAREN)) $(GLINK2 expression, TemplateArgumentList) $(D $(RPAREN))
+    $(D @ $(LPAREN)) $(GLINK2 template, TemplateArgumentList) $(D $(RPAREN))
     $(D @) $(GLINK2 template, TemplateSingleArgument)
     $(D @) $(GLINK_LEX Identifier) $(D $(LPAREN)) $(GLINK2 expression, NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(D @) $(GLINK2 template, TemplateInstance)
@@ -1127,14 +1127,14 @@ $(GNAME UserDefinedAttribute):
     )
 
 A user-defined attribute is defined using:
-* Compile-time expressions
-* A named manifest constant
-* A type name
-* A type to instantiate using a compile-time argument list
+* A list of one or more $(GLINK2 template, TemplateArgument)s
+* A compile-time expression (matching the above grammar)
+* A symbol identifier
+* An expression (matching the above grammar) to invoke with an argument list at compile-time
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-@(3) int a; // value argument
+@3 int a; // value attribute
 @("string", 7) int b; // multiple values
 
 // using compile-time constant
@@ -1148,8 +1148,8 @@ struct Bar
 {
     int x;
 }
-@Bar() int d; // type instance
-@Bar(3) int e; // type instance using initializer
+@Bar() int d; // type instance attribute
+@Bar(3) int e; // type instance attribute using initializer
 ---
 )
         $(P For `e`, the attribute is an instance of struct `Bar` which is
