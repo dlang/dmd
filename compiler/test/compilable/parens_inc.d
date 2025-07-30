@@ -17,7 +17,7 @@ void f()
 {
     int b;
     (b)++;
-    int[] a;
+    int[] a = [1];
     b = (a)[0]++; //ok
     (a[0])--;
     b = (int).init; //ok
