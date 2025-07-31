@@ -1466,8 +1466,6 @@ void assignaddrc(code* c)
     ubyte rm;
     uint sectionOff;
     ulong offset;
-    reg_t Rn, Rt;
-    uint base = cgstate.EBPtoESP;
     code* csave = c;
 
     for (; c; c = code_next(c))
@@ -1556,7 +1554,7 @@ void assignaddrc(code* c)
         s = c.IEV1.Vsym;
         uint sz = 8;
         uint ins = c.Iop;
-        if (1 && c.IFL1 != FL.unde)
+        if (c.IFL1 != FL.unde)
         {
             printf("FL: %-8s ", fl_str(c.IFL1));
             disassemble(ins);
@@ -1600,6 +1598,7 @@ void assignaddrc(code* c)
                 break;
 
             case FL.stack:       // for EE
+                uint base = cgstate.EBPtoESP;
                 //printf("Soffset = %d, EBPtoESP = %d, base = %d, pointer = %d\n",
                 //s.Soffset,cgstate.EBPtoESP,base,c.IEV1.Vpointer);
                 c.IEV1.Vpointer += s.Soffset + cgstate.EBPtoESP - base - cgstate.EEStack.offset;
@@ -1613,8 +1612,8 @@ void assignaddrc(code* c)
                     break;
                 }
                 assert(field(ins,29,27) == 7 && field(ins,25,24) == 1);
-                Rt = cast(reg_t)field(ins,4,0);
-                Rn = s.Sreglsw;
+                reg_t Rt = cast(reg_t)field(ins,4,0);
+                reg_t Rn = s.Sreglsw;
                 //assert(!c.Voffset);  // fix later
                 c.Iop = INSTR.mov_register(sz > 4, Rn, Rt);
                 c.IFL1 = FL.const_;
@@ -1712,6 +1711,16 @@ void assignaddrc(code* c)
                 uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
                 uint op24  = field(ins,25,24);
                 uint op11  = field(ins,11,10);
+
+                reg_t Rn = cast(reg_t)field(ins,9,5);
+                reg_t Rt = cast(reg_t)field(ins,4,0);
+                if (Rn == 29 && !cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FL.para))
+                {   /* Convert to SP relative address instead of BP */
+                    //offset += cgstate.EBPtoESP;       // add difference in offset
+                    Rn = 31;
+                    ins = setField(ins,9,5,Rn);       // set Rn to SP
+                }
+
                 if (field(ins,28,23) == 0x22)   // Add/subtract (immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
                 {
                     // add Rd,Rn,Voffset
@@ -1808,14 +1817,6 @@ void assignaddrc(code* c)
                     assert(0);
                 }
 
-                Rn = cast(reg_t)field(ins,9,5);
-                Rt = cast(reg_t)field(ins,4,0);
-                if (Rn == 29 && !cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FL.para))
-                {   /* Convert to SP relative address instead of BP */
-                    offset += cgstate.EBPtoESP;       // add difference in offset
-                    ins = setField(ins,9,5,31);       // set Rn to SP
-                    //assert(0); // offset is ignored
-                }
                 c.Iop = ins;
 
                 static if (0)
