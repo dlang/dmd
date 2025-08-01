@@ -1291,6 +1291,83 @@ MATCH deduceTypeHelper(Type t, out Type at, Type tparam)
 
 __gshared Expression emptyArrayElement = null;
 
+/*
+ * Returns `true` if `t` is a reference type, or an array of reference types.
+ */
+private bool isTopRef(Type t)
+{
+    auto tb = t.baseElemOf();
+    return tb.ty == Tclass ||
+           tb.ty == Taarray ||
+           tb.ty == Tstruct && tb.hasPointers();
+}
+
+/*
+ * Returns a valid `Loc` for semantic routines.
+ * Some paths require a location derived from the first
+ * template parameter when available.
+ */
+private Loc semanticLoc(scope ref TemplateParameters parameters)
+{
+    Loc loc;
+    if (parameters.length)
+        loc = parameters[0].loc;
+    return loc;
+}
+
+private MATCH deduceAliasThis(Type t, Scope* sc, Type tparam,
+    ref TemplateParameters parameters, ref Objects dedtypes, uint* wm)
+{
+    if (auto tc = t.isTypeClass())
+    {
+        if (tc.sym.aliasthis && !(tc.att & AliasThisRec.tracingDT))
+        {
+            if (auto ato = t.aliasthisOf())
+            {
+                tc.att = cast(AliasThisRec)(tc.att | AliasThisRec.tracingDT);
+                auto m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
+                tc.att = cast(AliasThisRec)(tc.att & ~AliasThisRec.tracingDT);
+                return m;
+            }
+        }
+    }
+    else if (auto ts = t.isTypeStruct())
+    {
+        if (ts.sym.aliasthis && !(ts.att & AliasThisRec.tracingDT))
+        {
+            if (auto ato = t.aliasthisOf())
+            {
+                ts.att = cast(AliasThisRec)(ts.att | AliasThisRec.tracingDT);
+                auto m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
+                ts.att = cast(AliasThisRec)(ts.att & ~AliasThisRec.tracingDT);
+                return m;
+            }
+        }
+    }
+    return MATCH.nomatch;
+}
+
+private MATCH deduceParentInstance(Scope* sc, Dsymbol sym, TypeInstance tpi,
+    ref TemplateParameters parameters, ref Objects dedtypes, uint* wm)
+{
+    if (tpi.idents.length)
+    {
+        RootObject id = tpi.idents[tpi.idents.length - 1];
+        if (id.dyncast() == DYNCAST.identifier && sym.ident.equals(cast(Identifier)id))
+        {
+            Type tparent = sym.parent.getType();
+            if (tparent)
+            {
+                tpi.idents.length--;
+                auto m = deduceType(tparent, sc, tpi, parameters, dedtypes, wm);
+                tpi.idents.length++;
+                return m;
+            }
+        }
+    }
+    return MATCH.nomatch;
+}
+
 /* These form the heart of template argument deduction.
  * Given 'this' being the type argument to the template instance,
  * it is matched against the template declaration parameter specialization
@@ -1305,7 +1382,9 @@ __gshared Expression emptyArrayElement = null;
  * Output:
  *      dedtypes = [ int ]      // Array of Expression/Type's
  */
-MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters parameters, ref Objects dedtypes, uint* wm = null, size_t inferStart = 0, bool ignoreAliasThis = false)
+MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
+    scope ref TemplateParameters parameters, scope ref Objects dedtypes,
+    scope uint* wm = null, size_t inferStart = 0, bool ignoreAliasThis = false)
 {
     extern (C++) final class DeduceType : Visitor
     {
@@ -1335,14 +1414,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                     if (!sc)
                         goto Lnomatch;
 
-                    /* Need a loc to go with the semantic routine.
-                     */
-                    Loc loc;
-                    if (parameters.length)
-                    {
-                        TemplateParameter tp = parameters[0];
-                        loc = tp.loc;
-                    }
+                    /* Need a loc to go with the semantic routine. */
+                    Loc loc = semanticLoc(parameters);
 
                     /* BUG: what if tparam is a template instance, that
                      * has as an argument another Tident?
@@ -1527,14 +1600,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
 
             if (tparam.ty == Ttypeof)
             {
-                /* Need a loc to go with the semantic routine.
-                 */
-                Loc loc;
-                if (parameters.length)
-                {
-                    TemplateParameter tp = parameters[0];
-                    loc = tp.loc;
-                }
+                    /* Need a loc to go with the semantic routine. */
+                    Loc loc = semanticLoc(parameters);
 
                 tparam = tparam.typeSemantic(loc, sc);
             }
@@ -1549,30 +1616,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                 MATCH m = t.implicitConvTo(tparam);
                 if (m == MATCH.nomatch && !ignoreAliasThis)
                 {
-                    if (auto tc = t.isTypeClass())
-                    {
-                        if (tc.sym.aliasthis && !(tc.att & AliasThisRec.tracingDT))
-                        {
-                            if (auto ato = t.aliasthisOf())
-                            {
-                                tc.att = cast(AliasThisRec)(tc.att | AliasThisRec.tracingDT);
-                                m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
-                                tc.att = cast(AliasThisRec)(tc.att & ~AliasThisRec.tracingDT);
-                            }
-                        }
-                    }
-                    else if (auto ts = t.isTypeStruct())
-                    {
-                        if (ts.sym.aliasthis && !(ts.att & AliasThisRec.tracingDT))
-                        {
-                            if (auto ato = t.aliasthisOf())
-                            {
-                                ts.att = cast(AliasThisRec)(ts.att | AliasThisRec.tracingDT);
-                                m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
-                                ts.att = cast(AliasThisRec)(ts.att & ~AliasThisRec.tracingDT);
-                            }
-                        }
-                    }
+                    m = deduceAliasThis(t, sc, tparam, parameters, dedtypes, wm);
                 }
                 result = m;
                 return;
@@ -1749,83 +1793,12 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
             const size_t nfargs = t.parameterList.length;
             size_t nfparams = tp.parameterList.length;
 
-            /* See if tuple match
-             */
-            if (nfparams > 0 && nfargs >= nfparams - 1)
-            {
-                /* See if 'A' of the template parameter matches 'A'
-                 * of the type of the last function parameter.
-                 */
-                Parameter fparam = tp.parameterList[nfparams - 1];
-                assert(fparam);
-                assert(fparam.type);
-                if (fparam.type.ty != Tident)
-                    goto L1;
-                TypeIdentifier tid = fparam.type.isTypeIdentifier();
-                if (tid.idents.length)
-                    goto L1;
-
-                /* Look through parameters to find tuple matching tid.ident
-                 */
-                size_t tupi = 0;
-                for (; 1; tupi++)
-                {
-                    if (tupi == parameters.length)
-                        goto L1;
-                    TemplateParameter tx = parameters[tupi];
-                    TemplateTupleParameter tup = tx.isTemplateTupleParameter();
-                    if (tup && tup.ident.equals(tid.ident))
-                        break;
-                }
-
-                /* The types of the function arguments [nfparams - 1 .. nfargs]
-                 * now form the tuple argument.
-                 */
-                size_t tuple_dim = nfargs - (nfparams - 1);
-
-                /* See if existing tuple, and whether it matches or not
-                 */
-                RootObject o = dedtypes[tupi];
-                if (o)
-                {
-                    // Existing deduced argument must be a tuple, and must match
-                    Tuple tup = isTuple(o);
-                    if (!tup || tup.objects.length != tuple_dim)
-                    {
-                        result = MATCH.nomatch;
-                        return;
-                    }
-                    for (size_t i = 0; i < tuple_dim; i++)
-                    {
-                        Parameter arg = t.parameterList[nfparams - 1 + i];
-                        if (!arg.type.equals(tup.objects[i]))
-                        {
-                            result = MATCH.nomatch;
-                            return;
-                        }
-                    }
-                }
-                else
-                {
-                    // Create new tuple
-                    auto tup = new Tuple(tuple_dim);
-                    for (size_t i = 0; i < tuple_dim; i++)
-                    {
-                        Parameter arg = t.parameterList[nfparams - 1 + i];
-                        tup.objects[i] = arg.type;
-                    }
-                    dedtypes[tupi] = tup;
-                }
-                nfparams--; // don't consider the last parameter for type deduction
-                goto L2;
-            }
-
-        L1:
-            if (nfargs != nfparams)
+            if (!deduceFunctionTuple(t, tp, parameters, dedtypes, nfargs, nfparams))
             {
                 result = MATCH.nomatch;
                 return;
             }
+
         L2:
             assert(nfparams <= tp.parameterList.length);
             foreach (i, ap; tp.parameterList)
@@ -1975,26 +1948,12 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                     }
                 }
 
-                /* Match things like:
-                 *  S!(T).foo
-                 */
                 TypeInstance tpi = tparam.isTypeInstance();
-                if (tpi.idents.length)
+                auto m = deduceParentInstance(sc, t.sym, tpi, parameters, dedtypes, wm);
+                if (m != MATCH.nomatch)
                 {
-                    RootObject id = tpi.idents[tpi.idents.length - 1];
-                    if (id.dyncast() == DYNCAST.identifier && t.sym.ident.equals(cast(Identifier)id))
-                    {
-                        Type tparent = t.sym.parent.getType();
-                        if (tparent)
-                        {
-                            /* Slice off the .foo in S!(T).foo
-                             */
-                            tpi.idents.length--;
-                            result = deduceType(tparent, sc, tpi, parameters, dedtypes, wm);
-                            tpi.idents.length++;
-                            return;
-                        }
-                    }
+                    result = m;
+                    return;
                 }
             }
 
@@ -2063,26 +2022,12 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                     }
                 }
 
-                /* Match things like:
-                 *  S!(T).foo
-                 */
                 TypeInstance tpi = tparam.isTypeInstance();
-                if (tpi.idents.length)
+                auto m = deduceParentInstance(sc, t.sym, tpi, parameters, dedtypes, wm);
+                if (m != MATCH.nomatch)
                 {
-                    RootObject id = tpi.idents[tpi.idents.length - 1];
-                    if (id.dyncast() == DYNCAST.identifier && t.sym.ident.equals(cast(Identifier)id))
-                    {
-                        Type tparent = t.sym.parent.getType();
-                        if (tparent)
-                        {
-                            /* Slice off the .foo in S!(T).foo
-                             */
-                            tpi.idents.length--;
-                            result = deduceType(tparent, sc, tpi, parameters, dedtypes, wm);
-                            tpi.idents.length++;
-                            return;
-                        }
-                    }
+                    result = m;
+                    return;
                 }
 
                 // If it matches exactly or via implicit conversion, we're done
@@ -2175,16 +2120,6 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                     tp.defaultType.accept(this);
                     return;
                 }
-            }
-
-            /* Returns `true` if `t` is a reference type, or an array of reference types
-             */
-            bool isTopRef(Type t)
-            {
-                auto tb = t.baseElemOf();
-                return tb.ty == Tclass ||
-                       tb.ty == Taarray ||
-                       tb.ty == Tstruct && tb.hasPointers();
             }
 
             Type at = cast(Type)dedtypes[i];
@@ -2305,7 +2240,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
             result = MATCH.nomatch;
         }
 
-        MATCH deduceEmptyArrayElement()
+        private MATCH deduceEmptyArrayElement()
         {
             if (!emptyArrayElement)
             {
@@ -2580,6 +2515,72 @@ private void deduceBaseClassParameters(ref BaseClass b, Scope* sc, Type tparam, 
     {
         deduceBaseClassParameters(bi, sc, tparam, parameters, dedtypes, best, numBaseClassMatches);
     }
+}
+
+/*
+ * Handle tuple matching for function parameters.
+ * If the last parameter of `tp` is a template tuple parameter,
+ * collect the corresponding argument types from `t`.
+ * Params:
+ *     t          = actual function type
+ *     tp         = template function type
+ *     parameters = template parameters
+ *     dedtypes   = deduced types array
+ *     nfargs     = number of arguments in `t`
+ *     nfparams   = number of parameters in `tp` (updated on success)
+ * Returns: `true` on success, `false` on mismatch.
+ */
+private bool deduceFunctionTuple(TypeFunction t, TypeFunction tp,
+    ref TemplateParameters parameters, ref Objects dedtypes,
+    size_t nfargs, ref size_t nfparams)
+{
+    if (nfparams > 0 && nfargs >= nfparams - 1)
+    {
+        Parameter fparam = tp.parameterList[nfparams - 1];
+        assert(fparam && fparam.type);
+        if (fparam.type.ty == Tident)
+        {
+            TypeIdentifier tid = fparam.type.isTypeIdentifier();
+            if (tid.idents.length == 0)
+            {
+                size_t tupi = 0;
+                for (; tupi < parameters.length; ++tupi)
+                {
+                    TemplateParameter tx = parameters[tupi];
+                    TemplateTupleParameter tup = tx.isTemplateTupleParameter();
+                    if (tup && tup.ident.equals(tid.ident))
+                        break;
+                }
+                if (tupi == parameters.length)
+                    return nfargs == nfparams;
+
+                size_t tuple_dim = nfargs - (nfparams - 1);
+
+                RootObject o = dedtypes[tupi];
+                if (o)
+                {
+                    Tuple tup = isTuple(o);
+                    if (!tup || tup.objects.length != tuple_dim)
+                        return false;
+                    for (size_t i = 0; i < tuple_dim; ++i)
+                    {
+                        if (!t.parameterList[nfparams - 1 + i].type.equals(tup.objects[i]))
+                            return false;
+                    }
+                }
+                else
+                {
+                    auto tup = new Tuple(tuple_dim);
+                    for (size_t i = 0; i < tuple_dim; ++i)
+                        tup.objects[i] = t.parameterList[nfparams - 1 + i].type;
+                    dedtypes[tupi] = tup;
+                }
+                --nfparams; // ignore tuple parameter for further deduction
+                return true;
+            }
+        }
+    }
+    return nfargs == nfparams;
 }
 
 /********************
