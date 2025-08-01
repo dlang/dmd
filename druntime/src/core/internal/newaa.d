@@ -679,14 +679,18 @@ auto _aaValues(K, V)(inout V[K] a)
         V[] res; // if value has no const indirections
     else
         typeof([aa.buckets[0].entry.value]) res; // as mutable as it can get
-    static if (__traits(compiles, { res.reserve(aa.length); } ))
-        res.reserve(aa.length); // does not work on inout(void)[]
+    res = new typeof(res[0])[aa.length];
 
+    if (false) // never execute, but infer function attributes from this operation
+        res ~= aa.buckets[0].entry.value;
+
+    size_t i = 0;
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
             continue;
-        res ~= b.entry.value;
+        import core.lifetime;
+        () @trusted { copyEmplace(b.entry.value, res[i++]); }();
     }
     return res;
 }
@@ -702,14 +706,19 @@ auto _aaKeys(K, V)(inout V[K] a)
         K[] res; // if key has no const indirections
     else
         typeof([aa.buckets[0].entry.key]) res; // as mutable as it can get
-    static if (__traits(compiles, { res.reserve(aa.length); } ))
-        res.reserve(aa.length); // does not work on inout(void)[]
+    res = new typeof(res[0])[aa.length];
 
+    if (false) // never execute, but infer function attributes from this operation
+        res ~= aa.buckets[0].entry.key;
+
+    size_t i = 0;
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
             continue;
-        res ~= b.entry.key;
+        // res ~= b.entry.key;
+        import core.lifetime;
+        () @trusted { copyEmplace(b.entry.key, res[i++]); }();
     }
     return res;
 }
