@@ -63,7 +63,31 @@ import dmd.backend.iasm;
  */
 public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
 {
-    //printf("InlineAsmAArch64Statement.semantic()\n");
+    static if (0)
+    {
+        printf("InlineAsmAArch64Statement.semantic()\n");
+        for (auto token = s.tokens; token; token = token.next)
+        {
+            printf("token: %s\n", token.toChars());
+        }
+    }
+
+    /* For example,
+     *  asm { str w3,[x2,x4]; }
+     * would come through as:
+     *  TOK.identifier TOK.identifier TOK.comma TOK.leftBracket TOK.identifier TOK.comma TOK.identifer TOK.rightBracket
+     * and it is matched to the grammar for the "str" instruction:
+     * https://www.scs.stanford.edu/~zyedidia/arm64/str_reg_gen.html
+     * It then calls INSTR.str_reg_gen(sz=0,Rindex=4,extend=3,S=0,Rbase=2,Rt=4)
+     * which returns 0xB8_24_68_43 which is installed in c.Iop.
+     * (c is a code*.)
+     * Symbols and values are put in c.IFL1 and c.IEV1.
+     * s.asmcode is then set to c.
+     * Matching the list of tokens to an instruction is straightforward, however, the trouble
+     * is the very large and diverse number of instructions. The challenge is to boil this
+     * complexity down to a simple table.
+     */
+
     error(s.loc, "AArch64 inline assembler not implemented (yet!)");
     return new ErrorStatement();
 }
