@@ -1458,6 +1458,16 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
          */
 
         //printf("ForeachRangeStatement::semantic() %p\n", fs);
+
+        if (fs.param.storageClass & STC.manifest)
+        {
+            error(fs.loc, "cannot declare `enum` loop variables for non-unrolled foreach");
+        }
+        if (fs.param.storageClass & STC.alias_)
+        {
+            error(fs.loc, "cannot declare `alias` loop variables for non-unrolled foreach");
+        }
+
         auto loc = fs.loc;
         fs.lwr = fs.lwr.expressionSemantic(sc);
         fs.lwr = resolveProperties(sc, fs.lwr);

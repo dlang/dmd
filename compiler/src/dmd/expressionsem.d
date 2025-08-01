@@ -3953,8 +3953,8 @@ private extern(C++) final class IsMemcmpableVisitor : Visitor
         /* We recursively check all variable declaration within the struct.
          * The recursiveness is needed to handle cases like this:
          * struct Test {
-	     *     nothrow:
-	     *     int[] contents;
+         *     nothrow:
+         *     int[] contents;
          * }
          * Here a `StorageClassDeclaration` symbol will be created, which wraps the variable declaration.
          */
@@ -17932,10 +17932,11 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
     Parameters*[3] pparams = [new Parameters(), new Parameters(), new Parameters()];
     foreach (i; 0 .. nvars)
     {
-        foreach (params; pparams)
+        foreach (j, params; pparams)
         {
             auto p = sfe.aggrfe ? (*sfe.aggrfe.parameters)[i] : sfe.rangefe.param;
-            params.push(new Parameter(aloc, p.storageClass, p.type, p.ident, null, null));
+            auto storageClass = j == 2 ? p.storageClass : p.storageClass & ~(STC.manifest | STC.alias_);
+            params.push(new Parameter(aloc, storageClass, p.type, p.ident, null, null));
         }
     }
     Expression[2] res;
