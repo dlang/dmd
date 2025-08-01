@@ -291,6 +291,12 @@ bool fill(StructDeclaration sd, Loc loc,
     return dmd.expressionsem.fill(sd, loc, elements, ctorinit);
 }
 
+bool isLvalue(Expression e)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.isLvalue(e);
+}
+
 /***********************************************************
  * func.d
  */
