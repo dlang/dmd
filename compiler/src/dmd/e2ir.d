@@ -367,12 +367,6 @@ void toTraceGC(ref IRState irs, elem* e, Loc loc)
     assert(e1.Eoper == OPvar);
 
     auto s = e1.Vsym;
-    /* In -dip1008 code the allocation of exceptions is no longer done by the
-     * gc, but by a manual reference counting mechanism implementend in druntime.
-     * If that is the case, then there is nothing to trace.
-     */
-    if (s == getRtlsym(RTLSYM.NEWTHROW))
-        return;
     foreach (ref m; map)
     {
         if (s == getRtlsym(m[0]))

@@ -103,12 +103,10 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.MEMSETDOUBLE:           symbolz(ps,FL.func,FREGSAVED,"_memsetDouble", 0, t); break;
         case RTLSYM.MEMSETSIMD:             symbolz(ps,FL.func,FREGSAVED,"_memsetSIMD",0, t); break;
         case RTLSYM.MEMSETN:                symbolz(ps,FL.func,FREGSAVED,"_memsetn",  0, t); break;
-        case RTLSYM.NEWTHROW:               symbolz(ps,FL.func,FREGSAVED,"_d_newThrowable", 0, t); break;
         case RTLSYM.ASSOCARRAYLITERALTX:    symbolz(ps,FL.func,FREGSAVED,"_d_assocarrayliteralTX", 0, t); break;
         case RTLSYM.CALLFINALIZER:          symbolz(ps,FL.func,FREGSAVED,"_d_callfinalizer", 0, t); break;
         case RTLSYM.CALLINTERFACEFINALIZER: symbolz(ps,FL.func,FREGSAVED,"_d_callinterfacefinalizer", 0, t); break;
         case RTLSYM.ALLOCMEMORY:            symbolz(ps,FL.func,FREGSAVED,"_d_allocmemory", 0, t); break;
-        case RTLSYM.ARRAYCATT:              symbolz(ps,FL.func,FREGSAVED,"_d_arraycatT", 0, t); break;
         case RTLSYM.ARRAYAPPENDCD:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendcd", 0, t); break;
         case RTLSYM.ARRAYAPPENDWD:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayappendwd", 0, t); break;
         case RTLSYM.ARRAYCOPY:              symbolz(ps,FL.func,FREGSAVED,"_d_arraycopy", 0, t); break;
