@@ -5575,6 +5575,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
 
         TOK op = token.value;
+        Loc aliasOrEnumLoc;
 
         nextToken();
         check(TOK.leftParenthesis);
@@ -5617,10 +5618,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 case TOK.enum_:
                     stc = STC.manifest;
+                    aliasOrEnumLoc = token.loc;
                     goto Lagain;
 
                 case TOK.alias_:
                     storageClass = appendStorageClass(storageClass, STC.alias_);
+                    aliasOrEnumLoc = token.loc;
                     nextToken();
                     break;
 
@@ -5705,6 +5708,16 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             AST.Expression upr = parseExpression();
             check(TOK.rightParenthesis);
             Loc endloc;
+            if (is(Foreach == AST.Statement) && (p.storageClass & STC.alias_))
+            {
+                error(aliasOrEnumLoc, "cannot use `alias` with a range `foreach`");
+                eSink.errorSupplemental(aliasOrEnumLoc, "use `static foreach` instead");
+            }
+            if (is(Foreach == AST.Statement) && (p.storageClass & STC.manifest))
+            {
+                error(aliasOrEnumLoc, "cannot use `enum` with a range `foreach`");
+                eSink.errorSupplemental(aliasOrEnumLoc, "use `static foreach` instead");
+            }
             static if (is(Foreach == AST.Statement) || is(Foreach == AST.StaticForeachStatement))
             {
                 AST.Statement _body = parseStatement(0, null, &endloc);
@@ -5731,6 +5744,29 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         {
             check(TOK.rightParenthesis);
             Loc endloc;
+
+            if (aliasOrEnumLoc !is Loc())
+            {
+                AST.Parameter p;
+                foreach_reverse (p2; *parameters)
+                {
+                    if (p2.storageClass & (STC.alias_ | STC.manifest))
+                    {
+                        p = p2;
+                        break;
+                    }
+                }
+                if (is(Foreach == AST.Statement) && (p.storageClass & STC.alias_))
+                {
+                    error(aliasOrEnumLoc, "cannot use `alias` with a aggregate `foreach`");
+                    eSink.errorSupplemental(aliasOrEnumLoc, "use `static foreach` instead");
+                }
+                if (is(Foreach == AST.Statement) && (p.storageClass & STC.manifest))
+                {
+                    error(aliasOrEnumLoc, "cannot use `enum` with a aggregate `foreach`");
+                    eSink.errorSupplemental(aliasOrEnumLoc, "use `static foreach` instead");
+                }
+            }
             static if (is(Foreach == AST.Statement) || is(Foreach == AST.StaticForeachStatement))
             {
                 AST.Statement _body = parseStatement(0, null, &endloc);
