@@ -48,6 +48,7 @@ namespace dmd
     bool fill(StructDeclaration* sd, Loc loc, Expressions &elements, bool ctorinit);
     bool isFuncHidden(ClassDeclaration* cd, FuncDeclaration* fd);
     Dsymbol* vtblSymbol(ClassDeclaration *cd);
+    bool fillVtbl(BaseClass& b, ClassDeclaration cd, FuncDeclarations* vtbl, int newinstance);
 }
 
 enum class ClassKind : uint8_t
@@ -218,8 +219,6 @@ struct BaseClass
 
     DArray<BaseClass> baseInterfaces;   // if BaseClass is an interface, these
                                         // are a copy of the InterfaceDeclaration::interfaces
-
-    bool fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance);
 };
 
 struct ClassFlags
