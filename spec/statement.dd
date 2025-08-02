@@ -1105,25 +1105,25 @@ $(P
         on a sequence, though there is a separate scope for each expansion.
 )
         $(P There
-        can be one or two iteration symbols declared. If one, then the symbol
-        is an $(I element alias) of each element in the sequence in turn.
+        can be one or two iteration symbols declared. If one, then it's
+        an $(I element symbol) representing each element in the sequence in turn.
 )
 $(UL
 $(LI
-        If the sequence is a $(I TypeSeq), the element alias is set to each
+        If the sequence is a $(I TypeSeq), the element symbol is set to each
         type in turn.
 )$(LI
-        If the sequence is a $(I ValueSeq), the element alias
-        is set to each value in turn. If the type of the element alias
+        If the sequence is a $(I ValueSeq), the element symbol
+        is set to each value in turn. If the type of the element symbol
         is given, it must be compatible with the type of every sequence element.
-        If no type is given, the type of the element alias will match the type
+        If no type is given, the type of the element symbol will match the type
         of each sequence element, which may change between elements.
 ))
 $(P
         If there are
-        two symbols declared, the first is the $(I index variable)
-        and the second is the $(I element alias). The index
-        must be of `int`, `uint`, `long` or `ulong` type,
+        two symbols declared, the first is the $(I index)
+        and the second is the $(I element). The index symbol
+        must be of `int`, `uint`, `long` or `ulong` type (if specified),
         it cannot be `ref`,
         and it is set to the index of each sequence element.
 )
@@ -1176,6 +1176,46 @@ $(CONSOLE
 7.4 has type double
 hi has type string
 [2, 5] has type int[]
+)
+
+$(H4 $(LNAME2 foreach_sequence_kinds, Symbol Kinds))
+
+        $(P Each $(GLINK ForeachType) declaration (without `alias`/`enum`)
+        will attempt to generate:)
+
+            * Compile-time symbols for values known at compile-time
+            * Runtime variables for elements with values not known at compile-time
+            * Symbolic aliases for elements that don't have values (e.g types)
+
+        $(P `alias` or `enum` can be specified in a *ForeachType*:)
+
+        * The `alias` storage class will create a symbolic alias
+        * The `enum` storage class will create a compile-time constant
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+void main()
+{
+    import std.meta : AliasSeq;
+
+    int i = 1;
+
+    // without `alias`, `a` would be a separate variable initialized from `i`
+    foreach (alias a; AliasSeq!(i, i))
+    {
+        a++;
+    }
+    assert(i == 3);
+
+    foreach (e; AliasSeq!(i, 1))
+    {
+        static if (__traits(compiles, &e))
+            assert(e == 3); // first e is a runtime variable
+        else
+            static assert(e == 1); // second e is a compile-time constant
+    }
+}
+---
 )
 
 $(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
