@@ -561,7 +561,6 @@ SRCS=\
 	\
 	src\rt\aApply.d \
 	src\rt\aApplyR.d \
-	src\rt\aaA.d \
 	src\rt\alloca.d \
 	src\rt\arraycat.d \
 	src\rt\cmath2.d \

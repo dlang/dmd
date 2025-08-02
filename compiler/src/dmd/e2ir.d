@@ -350,8 +350,6 @@ void toTraceGC(ref IRState irs, elem* e, Loc loc)
         [ RTLSYM.CALLFINALIZER, RTLSYM.TRACECALLFINALIZER ],
         [ RTLSYM.CALLINTERFACEFINALIZER, RTLSYM.TRACECALLINTERFACEFINALIZER ],
 
-        [ RTLSYM.ASSOCARRAYLITERALTX, RTLSYM.TRACEASSOCARRAYLITERALTX ],
-
 
         [ RTLSYM.ARRAYAPPENDCD, RTLSYM.TRACEARRAYAPPENDCD ],
         [ RTLSYM.ARRAYAPPENDWD, RTLSYM.TRACEARRAYAPPENDWD ],
@@ -1457,13 +1455,8 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (auto taa = t.isTypeAArray())
         {
-            Symbol* s = getRtlsym(RTLSYM.AANEW);
-            elem* ti = getTypeInfo(ne, t, irs);
-            // aaNew(ti)
-            elem* ep = el_params(ti, null);
-            e = el_bin(OPcall, TYnptr, el_var(s), ep);
-            elem_setLoc(e, ne.loc);
-            return e;
+            assert(ne.lowering, "This case should have been rewritten to `_d_aaNew` in the semantic phase");
+            return toElem(ne.lowering, irs);
         }
         else
         {
@@ -2169,18 +2162,7 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (t1.ty == Taarray && t2.ty == Taarray)
         {
-            TypeAArray taa = cast(TypeAArray)t1;
-            Symbol* s = getRtlsym(RTLSYM.AAEQUAL);
-            elem* ti = getTypeInfo(ee, taa, irs);
-            elem* ea1 = toElem(ee.e1, irs);
-            elem* ea2 = toElem(ee.e2, irs);
-            // aaEqual(ti, e1, e2)
-            elem* ep = el_params(ea2, ea1, ti, null);
-            e = el_bin(OPcall, TYint, el_var(s), ep);
-            if (ee.op == EXP.notEqual)
-                e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
-            elem_setLoc(e, ee.loc);
-            return e;
+            assert(false, "This case should have been rewritten to `_d_aaEqual` in the semantic phase");
         }
         else if (eop == OPne && t1.ty == Tvector)
         {
@@ -2270,19 +2252,7 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitIn(InExp ie)
     {
-        elem* key = toElem(ie.e1, irs);
-        elem* aa = toElem(ie.e2, irs);
-        TypeAArray taa = cast(TypeAArray)ie.e2.type.toBasetype();
-
-        // aaInX(aa, keyti, key);
-        key = addressElem(key, ie.e1.type);
-        Symbol* s = getRtlsym(RTLSYM.AAINX);
-        elem* keyti = getTypeInfo(ie, taa.index, irs);
-        elem* ep = el_params(key, keyti, aa, null);
-        elem* e = el_bin(OPcall, totym(ie.type), el_var(s), ep);
-
-        elem_setLoc(e, ie.loc);
-        return e;
+        assert(false, "This case should have been rewritten to `_d_aaIn` in the semantic phase");
     }
 
     /***************************************
@@ -2290,19 +2260,7 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitRemove(RemoveExp re)
     {
-        auto taa = re.e1.type.toBasetype().isTypeAArray();
-        assert(taa);
-        elem* ea = toElem(re.e1, irs);
-        elem* ekey = toElem(re.e2, irs);
-
-        ekey = addressElem(ekey, re.e2.type);
-        Symbol* s = getRtlsym(RTLSYM.AADELX);
-        elem* keyti = getTypeInfo(re, taa.index, irs);
-        elem* ep = el_params(ekey, keyti, ea, null);
-        elem* e = el_bin(OPcall, TYbool, el_var(s), ep);
-
-        elem_setLoc(e, re.loc);
-        return e;
+        assert(false, "This case should have been rewritten to `_d_aaDel` in the semantic phase");
     }
 
     /***************************************
@@ -4012,55 +3970,7 @@ elem* toElem(Expression e, ref IRState irs)
         Type t1 = ie.e1.type.toBasetype();
         if (auto taa = t1.isTypeAArray())
         {
-            // set to:
-            //      *aaGetY(aa, aati, valuesize, &key);
-            // or
-            //      *aaGetRvalueX(aa, keyti, valuesize, &key);
-
-            uint vsize = cast(uint)taa.next.size();
-
-            // n2 becomes the index, also known as the key
-            elem* n2 = toElem(ie.e2, irs);
-
-            /* Turn n2 into a pointer to the index.  If it's an lvalue,
-             * take the address of it. If not, copy it to a temp and
-             * take the address of that.
-             */
-            n2 = addressElem(n2, taa.index);
-
-            elem* valuesize = el_long(TYsize_t, vsize);
-            //printf("valuesize: "); elem_print(valuesize);
-            Symbol* s;
-            elem* ti;
-            if (ie.modifiable)
-            {
-                n1 = el_una(OPaddr, TYnptr, n1);
-                s = getRtlsym(RTLSYM.AAGETY);
-                ti = getTypeInfo(ie.e1, taa.unSharedOf().mutableOf(), irs);
-            }
-            else
-            {
-                s = getRtlsym(RTLSYM.AAGETRVALUEX);
-                ti = getTypeInfo(ie.e1, taa.index, irs);
-            }
-            //printf("taa.index = %s\n", taa.index.toChars());
-            //printf("ti:\n"); elem_print(ti);
-            elem* ep = el_params(n2, valuesize, ti, n1, null);
-            e = el_bin(OPcall, TYnptr, el_var(s), ep);
-            if (irs.arrayBoundsCheck())
-            {
-                elem* n = el_same(e);
-
-                // Construct: ((e || arrayBoundsError), n)
-                auto ea = buildRangeError(irs, ie.loc);
-                e = el_bin(OPoror,TYvoid,e,ea);
-                e = el_bin(OPcomma, TYnptr, e, n);
-            }
-            e = el_una(OPind, totym(ie.type), e);
-            if (tybasic(e.Ety) == TYstruct)
-                e.ET = Type_toCtype(ie.type);
-            elem_setLoc(e, ie.loc);
-            return e;
+            assert(false, "no index lowering for associative array literal");
         }
 
         elem* einit = resolveLengthVar(ie.lengthVar, &n1, t1);
@@ -4208,51 +4118,10 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitAssocArrayLiteral(AssocArrayLiteralExp aale)
     {
         //printf("AssocArrayLiteralExp.toElem() %s\n", aale.toChars());
+        if (aale.lowering)
+            return toElem(aale.lowering, irs);
 
-        Type t = aale.type.toBasetype().mutableOf();
-
-        size_t dim = aale.keys.length;
-        if (!dim)
-        {
-            elem* e = el_long(TYnptr, 0);      // empty associative array is the null pointer
-            if (t.ty != Taarray)
-                e = addressElem(e, Type.tvoidptr);
-            return e;
-        }
-
-        // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
-        // Prefer this to avoid the varargs fiasco in 64 bit code
-
-        assert(t.ty == Taarray);
-        Type ta = t;
-
-        Symbol* skeys = null;
-        elem* ekeys = ExpressionsToStaticArray(irs, aale.loc, aale.keys, &skeys);
-
-        Symbol* svalues = null;
-        elem* evalues = ExpressionsToStaticArray(irs, aale.loc, aale.values, &svalues);
-
-        elem* ev = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues));
-        elem* ek = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  ));
-        if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
-        {
-            ev = addressElem(ev, Type.tvoid.arrayOf());
-            ek = addressElem(ek, Type.tvoid.arrayOf());
-        }
-        elem* e = el_params(ev, ek,
-                            getTypeInfo(aale, ta, irs),
-                            null);
-
-        // call _d_assocarrayliteralTX(ti, keys, values)
-        e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM.ASSOCARRAYLITERALTX)),e);
-        toTraceGC(irs, e, aale.loc);
-        if (t != ta)
-            e = addressElem(e, ta);
-        elem_setLoc(e, aale.loc);
-
-        e = el_combine(evalues, e);
-        e = el_combine(ekeys, e);
-        return e;
+        assert(false, "no lowering for associative array literal");
     }
 
     elem* visitStructLiteral(StructLiteralExp sle)
@@ -6235,8 +6104,11 @@ elem* sarray_toDarray(Loc loc, Type tfrom, Type tto, elem* e)
         uint tsize = cast(uint)tto.nextOf().size();
 
         // Should have been caught by Expression::castTo
-        assert(tsize != 0 && (dim * fsize) % tsize == 0);
-        dim = (dim * fsize) / tsize;
+        if (tsize != fsize) // allow both 0
+        {
+            assert(tsize != 0 && (dim * fsize) % tsize == 0);
+            dim = (dim * fsize) / tsize;
+        }
     }
     elem* elen = el_long(TYsize_t, dim);
     e = addressElem(e, tfrom);

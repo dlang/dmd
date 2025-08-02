@@ -259,6 +259,12 @@ immutable Msgtable[] msgtable =
     { "FpopBack", "popBack" },
 
     // For internal functions
+    { "_aaGetY" },
+    { "_aaGetRvalueX" },
+    { "_d_aaDel" },
+    { "_d_aaEqual" },
+    { "_d_aaIn" },
+    { "_d_aaNew" },
     { "aaLen", "_aaLen" },
     { "aaKeys", "_aaKeys" },
     { "aaValues", "_aaValues" },
@@ -335,6 +341,7 @@ immutable Msgtable[] msgtable =
     { "_d_arrayappendcTXTrace" },
     { "_d_arraycatnTX" },
     { "_d_arraycatnTXTrace" },
+    { "_d_assocarrayliteralTX" },
 
     // varargs implementation
     { "stdc" },
