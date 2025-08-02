@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/enum_member.d(14): Error: basic type expected, not `for`
+fail_compilation/enum_member.d(14): Error: primary type expected, not `for`
 fail_compilation/enum_member.d(15): Error: no identifier for declarator `T`
 fail_compilation/enum_member.d(15): Error: found `@` when expecting `,`
 fail_compilation/enum_member.d(22): Error: found `}` when expecting `identifier`
