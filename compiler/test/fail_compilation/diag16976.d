@@ -16,21 +16,21 @@ fail_compilation/diag16976.d(56): Error: foreach: key cannot be of non-integral 
 fail_compilation/diag16976.d(57): Error: foreach: key cannot be of non-integral type `float`
 fail_compilation/diag16976.d(58): Error: foreach: key cannot be of non-integral type `float`
 fail_compilation/diag16976.d(59): Error: foreach: key cannot be of non-integral type `float`
-fail_compilation/diag16976.d(65): Error: foreach: key cannot be of non-integral type `float`
+fail_compilation/diag16976.d(65): Error: foreach: index cannot be of non-integral type `float`
 fail_compilation/diag16976.d(66): Error: foreach: key cannot be of non-integral type `float`
-fail_compilation/diag16976.d(67): Error: foreach: key cannot be of non-integral type `float`
+fail_compilation/diag16976.d(67): Error: foreach: index cannot be of non-integral type `float`
 fail_compilation/diag16976.d(68): Error: foreach: key cannot be of non-integral type `float`
-fail_compilation/diag16976.d(69): Error: foreach: key cannot be of non-integral type `float`
+fail_compilation/diag16976.d(69): Error: foreach: index cannot be of non-integral type `float`
 fail_compilation/diag16976.d(70): Error: foreach: key cannot be of non-integral type `float`
-fail_compilation/diag16976.d(71): Error: foreach: key cannot be of non-integral type `float`
+fail_compilation/diag16976.d(71): Error: foreach: index cannot be of non-integral type `float`
 fail_compilation/diag16976.d(72): Error: foreach: key cannot be of non-integral type `float`
-fail_compilation/diag16976.d(73): Error: foreach: key cannot be of non-integral type `float`
+fail_compilation/diag16976.d(73): Error: foreach: index cannot be of non-integral type `float`
 fail_compilation/diag16976.d(74): Error: foreach: key cannot be of non-integral type `float`
-fail_compilation/diag16976.d(75): Error: foreach: key cannot be of non-integral type `float`
+fail_compilation/diag16976.d(75): Error: foreach: index cannot be of non-integral type `float`
 fail_compilation/diag16976.d(76): Error: foreach: key cannot be of non-integral type `float`
-fail_compilation/diag16976.d(77): Error: foreach: key cannot be of non-integral type `float`
+fail_compilation/diag16976.d(77): Error: foreach: index cannot be of non-integral type `float`
 fail_compilation/diag16976.d(78): Error: foreach: key cannot be of non-integral type `float`
-fail_compilation/diag16976.d(79): Error: foreach: key cannot be of non-integral type `float`
+fail_compilation/diag16976.d(79): Error: foreach: index cannot be of non-integral type `float`
 fail_compilation/diag16976.d(80): Error: foreach: key cannot be of non-integral type `float`
 ---
 */
