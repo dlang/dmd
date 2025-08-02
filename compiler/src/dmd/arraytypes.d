@@ -38,6 +38,7 @@ alias Objects = Array!(RootObject);
 alias DtorDeclarations = Array!(DtorDeclaration);
 alias FuncDeclarations = Array!(FuncDeclaration);
 alias Parameters = Array!(Parameter);
+alias ParameterDFAInfos = Array!(ParameterDFAInfo);
 alias Initializers = Array!(Initializer);
 alias VarDeclarations = Array!(VarDeclaration);
 alias Types = Array!(Type);

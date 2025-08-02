@@ -1,5 +1,5 @@
 /**
-REQUIRED_ARGS: -ftime-trace -ftime-trace-file=- -ftime-trace-granularity=0
+REQUIRED_ARGS: -ftime-trace -ftime-trace-file=- -ftime-trace-granularity=0 -preview=fastdfa
 TRANSFORM_OUTPUT: sanitize_timetrace
 TEST_OUTPUT:
 ---
@@ -9,6 +9,8 @@ Codegen: function fun, object.fun
 Codegen: module object, object
 Ctfe: add(4, 8), add(4, 8)
 Ctfe: call add, object.add(4, 8)
+DFA: add, object.add
+DFA: fun, object.fun
 Import object.object, object.object
 Parse: Module object, object
 Parsing,
