@@ -453,7 +453,7 @@ V[K] _d_aaNew(K, V)()
 /// Determine number of entries in associative array.
 /// Note:
 ///  emulated by the compiler during CTFE
-size_t _aaLen(K, V)(inout V[K] a)
+size_t _d_aaLen(K, V)(inout V[K] a)
 {
     auto aa = _toAA!(K, V)(a);
     return aa ? aa.length : 0;
@@ -471,7 +471,7 @@ size_t _aaLen(K, V)(inout V[K] a)
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to zero
  */
-V* _aaGetY(K, V, T : V1[K1], K1, V1, K2)(auto ref scope T aa, auto ref K2 key, out bool found)
+V* _d_aaGetY(K, V, T : V1[K1], K1, V1, K2)(auto ref scope T aa, auto ref K2 key, out bool found)
 {
     ref aax = cast(V[K])cast(V1[K1])aa; // remove outer const from T
     return _aaGetX!(K, V)(aax, key, found);
@@ -479,7 +479,7 @@ V* _aaGetY(K, V, T : V1[K1], K1, V1, K2)(auto ref scope T aa, auto ref K2 key, o
 
 /******************************
  * Lookup key in aa.
- * Called only from implementation of require, update and _aaGetY
+ * Called only from implementation of require, update and _d_aaGetY
  * Params:
  *      a = associative array
  *      key = reference to the key value
@@ -539,27 +539,27 @@ V* _aaGetX(K, V, K2)(auto ref scope V[K] a, auto ref K2 key, out bool found)
  * Returns:
  *      pointer to value if present, null otherwise
  */
-auto _aaGetRvalueX(K, V, K2)(inout V[K] aa, auto ref scope K2 key)
+auto _d_aaGetRvalueX(K, V, K2)(inout V[K] aa, auto ref scope K2 key)
 {
     return _d_aaIn(aa, key);
 }
 
 /// ditto
-auto _aaGetRvalueX(K, V, K2)(shared(V[K]) aa, auto ref scope K2 key)
+auto _d_aaGetRvalueX(K, V, K2)(shared(V[K]) aa, auto ref scope K2 key)
 {
     // accept shared for backward compatibility, should be deprecated
     return cast(shared(V)*)_d_aaIn(cast(V[K]) aa, key);
 }
 
 /// ditto
-auto _aaGetRvalueX(K, V, K2)(shared const(V[K]) aa, auto ref scope K2 key)
+auto _d_aaGetRvalueX(K, V, K2)(shared const(V[K]) aa, auto ref scope K2 key)
 {
     // accept shared for backward compatibility, should be deprecated
     return cast(const shared(V)*)_d_aaIn(cast(V[K]) aa, key);
 }
 
 /// ditto
-auto _aaGetRvalueX(K, V, K2)(immutable(V[K]) aa, auto ref scope K2 key)
+auto _d_aaGetRvalueX(K, V, K2)(immutable(V[K]) aa, auto ref scope K2 key)
 {
     // resolve ambiguity for immutable converting to const and shared const
     return _d_aaIn((() @trusted => cast(V[K]) aa) (), key);
@@ -726,7 +726,7 @@ auto _aaKeys(K, V)(inout V[K] a)
 /// foreach opApply over all values
 /// Note:
 ///  emulated by the compiler during CTFE
-int _aaApply(K, V, DG)(inout V[K] a, DG dg)
+int _d_aaApply(K, V, DG)(inout V[K] a, DG dg)
 {
     auto aa = () @trusted { return cast(AA!(K, V))_toAA!(K, V)(a); }();
     if (aa.empty)
@@ -742,25 +742,25 @@ int _aaApply(K, V, DG)(inout V[K] a, DG dg)
     return 0;
 }
 
-int _aaApply(K, V, DG)(shared V[K] a, DG dg)
+int _d_aaApply(K, V, DG)(shared V[K] a, DG dg)
 {
-    return _aaApply!(K, V, DG)(cast(V[K]) a, dg);
+    return _d_aaApply!(K, V, DG)(cast(V[K]) a, dg);
 }
 
-int _aaApply(K, V, DG)(shared const V[K] a, DG dg)
+int _d_aaApply(K, V, DG)(shared const V[K] a, DG dg)
 {
-    return _aaApply!(K, V, DG)(cast(const V[K]) a, dg);
+    return _d_aaApply!(K, V, DG)(cast(const V[K]) a, dg);
 }
 
-int _aaApply(K, V, DG)(immutable V[K] a, DG dg)
+int _d_aaApply(K, V, DG)(immutable V[K] a, DG dg)
 {
-    return _aaApply!(K, V, DG)(cast(const V[K]) a, dg);
+    return _d_aaApply!(K, V, DG)(cast(const V[K]) a, dg);
 }
 
 /// foreach opApply over all key/value pairs
 /// Note:
 ///  emulated by the compiler during CTFE
-int _aaApply2(K, V, DG)(inout V[K] a, DG dg)
+int _d_aaApply2(K, V, DG)(inout V[K] a, DG dg)
 {
     auto aa = () @trusted { return cast(AA!(K, V))_toAA!(K, V)(a); }();
     if (aa.empty)
@@ -776,19 +776,19 @@ int _aaApply2(K, V, DG)(inout V[K] a, DG dg)
     return 0;
 }
 
-int _aaApply2(K, V, DG)(shared V[K] a, DG dg)
+int _d_aaApply2(K, V, DG)(shared V[K] a, DG dg)
 {
-    return _aaApply2!(K, V, DG)(cast(V[K]) a, dg);
+    return _d_aaApply2!(K, V, DG)(cast(V[K]) a, dg);
 }
 
-int _aaApply2(K, V, DG)(shared const V[K] a, DG dg)
+int _d_aaApply2(K, V, DG)(shared const V[K] a, DG dg)
 {
-    return _aaApply2!(K, V, DG)(cast(const V[K]) a, dg);
+    return _d_aaApply2!(K, V, DG)(cast(const V[K]) a, dg);
 }
 
-int _aaApply2(K, V, DG)(immutable V[K] a, DG dg)
+int _d_aaApply2(K, V, DG)(immutable V[K] a, DG dg)
 {
-    return _aaApply2!(K, V, DG)(cast(const V[K]) a, dg);
+    return _d_aaApply2!(K, V, DG)(cast(const V[K]) a, dg);
 }
 
 /** Construct an associative array of type ti from corresponding keys and values.

@@ -3941,7 +3941,7 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
 extern (C++) final class IndexExp : BinExp
 {
     VarDeclaration lengthVar;
-    Expression loweredFrom;     // for associative array lowering to _aaGetY or _aaGetRvalueX
+    Expression loweredFrom;     // for associative array lowering to _d_aaGetY or _d_aaGetRvalueX
     bool modifiable = false;    // assume it is an rvalue
     bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 

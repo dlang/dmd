@@ -3908,12 +3908,12 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     }
 
     /* Call:
-     *   int _aaApply(V[K] aa, int delegate(V*))
+     *   int _d_aaApply(V[K] aa, int delegate(V*))
      * or
-     *   int _aaApply2(V[K] aa, int delegate(K*, V*))
+     *   int _d_aaApply2(V[K] aa, int delegate(K*, V*))
      */
     auto loc = fs.loc;
-    Identifier hook = dim == 2 ? Id._aaApply2 : Id._aaApply;
+    Identifier hook = dim == 2 ? Id._d_aaApply2 : Id._d_aaApply;
     Expression func = new IdentifierExp(loc, Id.empty);
     func = new DotIdExp(loc, func, Id.object);
     auto tiargs = new Objects(taa.index.substWildTo(MODFlags.const_),

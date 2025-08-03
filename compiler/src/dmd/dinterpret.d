@@ -7011,7 +7011,7 @@ private Expression interpret_aaIn(UnionExp* pue, InterState* istate, Expression 
     return pue.exp();
 }
 
-// signature is V* _aaGetRvalueX(V[K] aa, K key)
+// signature is V* _d_aaGetRvalueX(V[K] aa, K key)
 private Expression interpret_aaGetRvalueX(UnionExp* pue, InterState* istate, Expression aa, Expression key)
 {
     Expression e1 = interpret(aa, istate);
@@ -7038,7 +7038,7 @@ private Expression interpret_aaGetRvalueX(UnionExp* pue, InterState* istate, Exp
     return pointerToAAValue(pue, aa, aalit, idx);
 }
 
-// signature is V* _aaGetY(ref V[K] aa, K key, out bool found)
+// signature is V* _d_aaGetY(ref V[K] aa, K key, out bool found)
 private Expression interpret_aaGetY(UnionExp* pue, InterState* istate, Expression aa, Expression key, Expression found)
 {
     Expression eaa = interpretRegion(aa, istate, CTFEGoal.LValue);
@@ -7403,7 +7403,7 @@ private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, Loc loc,
                 const id = fd.ident;
                 if (nargs == 1)
                 {
-                    if (id == Id.aaLen)
+                    if (id == Id._d_aaLen)
                         return interpret_length(pue, istate, firstarg);
 
                     if (fd.toParent2().ident == Id.object)
@@ -7420,7 +7420,7 @@ private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, Loc loc,
                 }
                 else if (nargs == 2)
                 {
-                    if (id == Id._aaGetRvalueX)
+                    if (id == Id._d_aaGetRvalueX)
                         return interpret_aaGetRvalueX(pue, istate, firstarg, (*arguments)[1]);
                     if (id == Id._d_aaIn)
                         return interpret_aaIn(pue, istate, firstarg, (*arguments)[1]);
@@ -7428,14 +7428,14 @@ private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, Loc loc,
                         return interpret_aaDel(pue, istate, firstarg, (*arguments)[1]);
                     if (id == Id._d_aaEqual)
                         return interpret_aaEqual(pue, istate, firstarg, (*arguments)[1]);
-                    if (id == Id._aaApply)
+                    if (id == Id._d_aaApply)
                         return interpret_aaApply(pue, istate, firstarg, (*arguments)[1]);
-                    if (id == Id._aaApply2)
+                    if (id == Id._d_aaApply2)
                         return interpret_aaApply(pue, istate, firstarg, (*arguments)[1]);
                 }
                 else // (nargs == 3)
                 {
-                    if (id == Id._aaGetY)
+                    if (id == Id._d_aaGetY)
                         return interpret_aaGetY(pue, istate, firstarg, (*arguments)[1], (*arguments)[2]);
                 }
             }

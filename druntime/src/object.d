@@ -2959,7 +2959,7 @@ class Error : Throwable
 }
 
 public import core.internal.newaa : _d_aaIn, _d_aaDel, _d_aaNew, _d_aaEqual, _d_assocarrayliteralTX;
-public import core.internal.newaa : _aaLen, _aaGetY, _aaGetRvalueX, _aaApply, _aaApply2;
+public import core.internal.newaa : _d_aaLen, _d_aaGetY, _d_aaGetRvalueX, _d_aaApply, _d_aaApply2;
 // public import core.exception : onRangeError; // causes extra messages with -transition=fields
 extern (C) noreturn _d_arraybounds(string file, uint line) @trusted pure nothrow @nogc;
 

@@ -2370,7 +2370,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
         || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
         || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT
         || f.ident == Id._d_assocarrayliteralTX || f.ident == Id._d_arrayliteralTX
-        || f.ident == Id._aaGetY))
+        || f.ident == Id._d_aaGetY))
     {
         error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
             sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
@@ -18367,7 +18367,7 @@ void markArrayExpModifiable(ArrayExp ae)
 
 /***************************************
 * convert an IndexExp on an associative array `aa[key]`
-* to `_aaGetRvalueX!(K,V)(aa, key)[0]`
+* to `_d_aaGetRvalueX!(K,V)(aa, key)[0]`
 *
 * Params:
 *       ie = the IndexExp to lower
@@ -18389,7 +18389,7 @@ Expression lowerAAIndexRead(IndexExp ie, Scope* sc)
 }
 
 // helper for lowerAAIndexRead and revertIndexAssignToRvalues
-// to rewrite `aa[key]` to `_aaGetRvalueX!(K,V)(aa, key)[0]`
+// to rewrite `aa[key]` to `_d_aaGetRvalueX!(K,V)(aa, key)[0]`
 private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, Scope* sc)
 {
     auto taa = t.toBasetype().isTypeAArray();
@@ -18397,7 +18397,7 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
         return null;
 
     auto loc = eaa.loc;
-    Identifier hook = Id._aaGetRvalueX;
+    Identifier hook = Id._d_aaGetRvalueX;
     if (!verifyHookExist(loc, *sc, hook, "indexing AA"))
         return null;
 
@@ -18413,7 +18413,7 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
 
     if (arrayBoundsCheck(sc.func))
     {
-        // __aaget = _aaGetRvalueX(aa, key), __aaget ? __aaget : onRangeError(__FILE__, __LINE__)
+        // __aaget = _d_aaGetRvalueX(aa, key), __aaget ? __aaget : onRangeError(__FILE__, __LINE__)
         auto ei = new ExpInitializer(loc, e0);
         auto vartmp = Identifier.generateId("__aaget");
         auto vardecl = new VarDeclaration(loc, null, vartmp, ei, STC.exptemp);
@@ -18489,7 +18489,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
     assert(ie);
     auto loc = ie.e1.loc;
 
-    Identifier hook = Id._aaGetY;
+    Identifier hook = Id._d_aaGetY;
     if (!verifyHookExist(loc, *sc, hook, "modifying AA"))
         return ErrorExp.get();
 
@@ -18500,7 +18500,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
     if (gcexp.op == EXP.error)
         return gcexp;
 
-    // build `bool __aafound, auto __aaget = _aaGetY(aa, key, found);`
+    // build `bool __aafound, auto __aaget = _d_aaGetY(aa, key, found);`
     auto idfound = Identifier.generateId("__aafound");
     auto varfound = new VarDeclaration(loc, Type.tbool, idfound, null, STC.temp | STC.ctfe);
     auto declfound = new DeclarationExp(loc, varfound);
@@ -18531,7 +18531,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
         ekeys[i-1] = extractSideEffect(sc, "__aakey", e0, ekeys[i-1]);
     Expression ev = extractSideEffect(sc, "__aaval", e0, exp.e2);
 
-    // generate series of calls to _aaGetY
+    // generate series of calls to _d_aaGetY
     for (size_t i = ekeys.length; i > 0; --i)
     {
         auto taa = eaa.type.isTypeAArray();
