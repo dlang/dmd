@@ -1011,7 +1011,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     Type tindex = (*fs.parameters)[0].type;
                     if (!tindex.isIntegral())
                     {
-                        error(fs.loc, "foreach: key cannot be of non-integral type `%s`", tindex.toChars());
+                        error(fs.loc, "foreach: index cannot be of non-integral type `%s`", tindex.toChars());
                         return retError();
                     }
                     /* What cases to deprecate implicit conversions for:
