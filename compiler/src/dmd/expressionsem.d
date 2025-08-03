@@ -13447,10 +13447,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto tiargs = new Objects();
         id = new DotIdExp(ie.loc, id, hook);
 
-        auto arguments = new Expressions(ie.e2, ie.e1);
+        Expression e1;
+        Expression ekey = extractSideEffect(sc, "__aakey", e1, ie.e1);
+        auto arguments = new Expressions(ie.e2, ekey);
         auto ce = new CallExp(ie.loc, id, arguments);
         ce.loweredFrom = ie;
-        return ce.expressionSemantic(sc);
+        e1 = Expression.combine(e1, ce);
+        return e1.expressionSemantic(sc);
     }
 
     /**

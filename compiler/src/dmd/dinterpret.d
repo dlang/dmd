@@ -7038,7 +7038,7 @@ private Expression interpret_aaGetRvalueX(UnionExp* pue, InterState* istate, Exp
     return pointerToAAValue(pue, aa, aalit, idx);
 }
 
-// signature is ref V* _aaGetY(ref V[K] aa, K key, out bool found)
+// signature is V* _aaGetY(ref V[K] aa, K key, out bool found)
 private Expression interpret_aaGetY(UnionExp* pue, InterState* istate, Expression aa, Expression key, Expression found)
 {
     Expression eaa = interpretRegion(aa, istate, CTFEGoal.LValue);

@@ -2891,7 +2891,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitNot(NotExp e)
     {
-        if (e.loweredFrom)
+        if (!hgs.vcg_ast && e.loweredFrom)
             return expressionToBuffer(e.loweredFrom, buf, hgs);
         return visitUna(e);
     }
