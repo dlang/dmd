@@ -307,6 +307,7 @@ SRCS=\
 	src\core\sys\posix\config.d \
 	src\core\sys\posix\dirent.d \
 	src\core\sys\posix\dlfcn.d \
+	src\core\sys\posix\endian.d \
 	src\core\sys\posix\fcntl.d \
 	src\core\sys\posix\grp.d \
 	src\core\sys\posix\iconv.d \
