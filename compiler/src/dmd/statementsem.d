@@ -4340,8 +4340,8 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
     const bool skipCheck = isStatic && needExpansion;
     if (!skipCheck && (dim < 1 || dim > 2))
     {
-        error(fs.loc, "only one (element) or two (index, element) arguments allowed for sequence `foreach`, not %lu",
-            dim);
+        error(fs.loc, "only one (element) or two (index, element) arguments allowed for sequence `foreach`, not %llu",
+            ulong(dim));
         return returnEarly();
     }
 
