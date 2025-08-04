@@ -18629,7 +18629,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
 * rewrite multi-dimensional array modifying assignments on associative arrays
 *
 * Params:
-*       exp = the assignemnt expression, AssignExp, BinAssignExp or PostExp
+*       exp = the assignment expression, AssignExp, ConstructExp, BinAssignExp or PostExp
 *       sc = context
 *       aliasThisStop = for recursion check on `alias this`
 * Returns:
@@ -18642,6 +18642,13 @@ Expression rewriteIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
     {
         if (ie1.e1.type.isTypeAArray())
         {
+            if (exp.op == EXP.construct)
+                exp.e1 = exp.e1.toLvalue(sc, "initialize");
+            else
+                exp.e1 = exp.e1.modifiableLvalue(sc);
+            if (exp.e1.op == EXP.error)
+                return exp.e1;
+            assert(exp.e1 == ie1);
             assert(ie1.modifiable);
             return rewriteAAIndexAssign(exp, sc, aliasThisStop);
         }
