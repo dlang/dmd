@@ -312,6 +312,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\config.d \
 	$(IMPDIR)\core\sys\posix\dirent.d \
 	$(IMPDIR)\core\sys\posix\dlfcn.d \
+	$(IMPDIR)\core\sys\posix\endian.d \
 	$(IMPDIR)\core\sys\posix\fcntl.d \
 	$(IMPDIR)\core\sys\posix\grp.d \
 	$(IMPDIR)\core\sys\posix\iconv.d \
