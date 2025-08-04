@@ -4576,6 +4576,12 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                     error(fs.loc, "cannot specify element type for symbol `%s`", ident.toChars());
                     return false;
                 }
+                if (storageClass & STC.manifest)
+                {
+                    error(fs.loc, "invalid storage class `enum` for element `%s`",
+                        ident.toChars());
+                    return false;
+                }
             }
             if (isStatic)
             {
