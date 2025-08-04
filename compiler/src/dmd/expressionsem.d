@@ -3865,9 +3865,28 @@ private extern(C++) final class IsMemcmpableVisitor : Visitor
     public:
     bool result = false;
 
+    static Type loweredBaseElemOf(Type t)
+    {
+        t = t.baseElemOf(); // skip over static-array parents
+        switch (t.ty)
+        {
+            case Tvoid:
+                return Type.tuns8;
+            case Tpointer:
+                return Type.tsize_t;
+            default:
+                return t;
+        }
+    }
+
+    static bool isTriviallyMemcmpable(Type t)
+    {
+        return loweredBaseElemOf(t).isIntegral();
+    }
+
     override void visit(Type t)
     {
-        result = t.ty == Tvoid || (t.isScalar() && !t.isFloating());
+        result = isTriviallyMemcmpable(t);
     }
 
     override void visit(TypeStruct ts)
@@ -13494,15 +13513,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             Type t1n = t1.nextOf().toBasetype();
             Type t2n = t2.nextOf().toBasetype();
-            const t1nsz = t1n.size();
-            const t2nsz = t2n.size();
 
-            if ((t1n.ty == Tvoid || (t1n.isScalar() && !t1n.isFloating())) &&
-                (t2n.ty == Tvoid || (t2n.isScalar() && !t1n.isFloating())) &&
-                t1nsz == t2nsz && t1n.isUnsigned() == t2n.isUnsigned())
+            if (t1n.size() != t2n.size())
+                return false;
+
+            if (IsMemcmpableVisitor.isTriviallyMemcmpable(t1n) &&
+                IsMemcmpableVisitor.isTriviallyMemcmpable(t2n))
             {
-                return true;
+                // due to int promotion, disallow small integers of diverging signed-ness
+                Type e1 = IsMemcmpableVisitor.loweredBaseElemOf(t1n);
+                Type e2 = IsMemcmpableVisitor.loweredBaseElemOf(t2n);
+                if ((e1.size() >= 4 && e2.size() >= 4) || e1.isUnsigned() == e2.isUnsigned())
+                    return true;
             }
+
             if (t1n.constOf() != t2n.constOf())
             {
                 return false;
@@ -13517,7 +13541,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (global.params.useTypeInfo && Type.dtypeinfo)
                     semanticTypeInfo(sc, ts);
 
-                auto v = new IsMemcmpableVisitor();
+                scope v = new IsMemcmpableVisitor();
                 ts.accept(v);
                 return v.result;
             }
