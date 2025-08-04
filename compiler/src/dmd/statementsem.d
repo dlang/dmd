@@ -4573,7 +4573,13 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                 var = new AliasDeclaration(loc, ident, t);
                 if (paramtype)
                 {
-                    error(fs.loc, "cannot specify element type for symbol `%s`", fs.toChars());
+                    error(fs.loc, "cannot specify element type for symbol `%s`", ident.toChars());
+                    return false;
+                }
+                if (storageClass & STC.manifest)
+                {
+                    error(fs.loc, "invalid storage class `enum` for element `%s`",
+                        ident.toChars());
                     return false;
                 }
             }
