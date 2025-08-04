@@ -1,16 +1,17 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/foreach_seq.d(23): Error: only one (element) or two (index, element) arguments allowed for sequence `foreach`, not 3
-fail_compilation/foreach_seq.d(24): Error: invalid storage class `ref` for index `i`
-fail_compilation/foreach_seq.d(25): Error: foreach: index cannot be of non-integral type `void`
-fail_compilation/foreach_seq.d(26): Error: index type `bool` cannot cover index range 0..3
-fail_compilation/foreach_seq.d(27): Error: `foreach` loop variable cannot be both `enum` and `alias`
-fail_compilation/foreach_seq.d(28): Error: constant value `1` cannot be `ref`
-fail_compilation/foreach_seq.d(29): Error: invalid storage class `enum` for index `i`
-fail_compilation/foreach_seq.d(31): Error: invalid storage class `ref` for element `e`
-fail_compilation/foreach_seq.d(32): Error: symbol `object` cannot be `ref`
-fail_compilation/foreach_seq.d(34): Error: cannot specify element type for symbol `object`
+fail_compilation/foreach_seq.d(24): Error: only one (element) or two (index, element) arguments allowed for sequence `foreach`, not 3
+fail_compilation/foreach_seq.d(25): Error: invalid storage class `ref` for index `i`
+fail_compilation/foreach_seq.d(26): Error: foreach: index cannot be of non-integral type `void`
+fail_compilation/foreach_seq.d(27): Error: index type `bool` cannot cover index range 0..3
+fail_compilation/foreach_seq.d(28): Error: `foreach` loop variable cannot be both `enum` and `alias`
+fail_compilation/foreach_seq.d(29): Error: constant value `1` cannot be `ref`
+fail_compilation/foreach_seq.d(30): Error: invalid storage class `enum` for index `i`
+fail_compilation/foreach_seq.d(32): Error: invalid storage class `ref` for element `e`
+fail_compilation/foreach_seq.d(33): Error: symbol `object` cannot be `ref`
+fail_compilation/foreach_seq.d(34): Error: cannot specify element type for symbol `e`
+fail_compilation/foreach_seq.d(35): Error: cannot specify element type for symbol `object`
 ---
 */
 
@@ -30,7 +31,7 @@ void main()
 
     foreach (ref e; AliasSeq!int) {}
     foreach (ref e; AliasSeq!object) {}
-    //foreach (int e; AliasSeq!int) {} // FIXME calls invalid RootObject.toChars
+    foreach (int e; AliasSeq!int) {}
     foreach (int e; AliasSeq!object) {}
     foreach (enum e; AliasSeq!int) {} // FIXME should error
 }
