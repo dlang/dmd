@@ -4575,7 +4575,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                 var = new AliasDeclaration(loc, ident, t);
                 if (paramtype)
                 {
-                    error(fs.loc, "cannot specify element type for symbol `%s`", fs.toChars());
+                    error(fs.loc, "cannot specify element type for symbol `%s`", ident.toChars());
                     return false;
                 }
             }
