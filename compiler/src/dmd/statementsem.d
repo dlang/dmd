@@ -1011,7 +1011,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     Type tindex = (*fs.parameters)[0].type;
                     if (!tindex.isIntegral())
                     {
-                        error(fs.loc, "foreach: key cannot be of non-integral type `%s`", tindex.toChars());
+                        error(fs.loc, "foreach: index cannot be of non-integral type `%s`", tindex.toChars());
                         return retError();
                     }
                     /* What cases to deprecate implicit conversions for:
@@ -4350,7 +4350,8 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
     const bool skipCheck = isStatic && needExpansion;
     if (!skipCheck && (dim < 1 || dim > 2))
     {
-        error(fs.loc, "only one (value) or two (key,value) arguments allowed for sequence `foreach`");
+        error(fs.loc, "only one (element) or two (index, element) arguments allowed for sequence `foreach`, not %llu",
+            ulong(dim));
         return returnEarly();
     }
 
@@ -4409,10 +4410,11 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
         const bool skip = isStatic && needExpansion;
         if (!skip && dim == 2)
         {
-            // Declare key
+            // Declare index
             if (p.isReference() || p.isLazy())
             {
-                error(fs.loc, "no storage class for key `%s`", p.ident.toChars());
+                error(fs.loc, "invalid storage class `%s` for index `%s`",
+                    stcToString(p.storageClass).ptr, p.ident.toChars());
                 return returnEarly();
             }
 
@@ -4427,7 +4429,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
 
             if (!p.type.isIntegral())
             {
-                error(fs.loc, "foreach: key cannot be of non-integral type `%s`",
+                error(fs.loc, "foreach: index cannot be of non-integral type `%s`",
                          p.type.toChars());
                 return returnEarly();
             }
@@ -4472,7 +4474,8 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             if (storageClass & (STC.out_ | STC.lazy_) ||
                 storageClass & STC.ref_ && !te)
             {
-                error(fs.loc, "no storage class for value `%s`", ident.toChars());
+                error(fs.loc, "invalid storage class `%s` for element `%s`",
+                    stcToString(p.storageClass).ptr, ident.toChars());
                 return false;
             }
             Declaration var;
