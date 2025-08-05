@@ -1675,9 +1675,13 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             {
                 case OPstrctor:
                 case OPstrthis:
-                case OPstrpar:
                 case OPnp_fp:
+                    elem_print(ep);
                     assert(0);
+
+                case OPstrpar:
+                    assert(type_size(ep.ET) == 0);
+                    break;
 
                 default:
                     break;
@@ -2220,9 +2224,15 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     {
         case OPstrctor:
         case OPstrthis:
-        case OPstrpar:
         case OPnp_fp:
             assert(0);
+
+        case OPstrpar:
+            assert(szb == 0);
+            regm_t retregs0 = 0;
+            scodelem(cgstate,cdb, e.E1, retregs0, 0, false);
+            freenode(e);
+            return;
 
         default:
             break;
