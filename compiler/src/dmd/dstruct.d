@@ -153,13 +153,15 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         bool needMoveCtor;
         needCopyOrMoveCtor(this, hasCpCtorLocal, hasMoveCtorLocal, needCopyCtor, needMoveCtor);
 
+        if (hasMoveCtorLocal && !hasCpCtorLocal) {
+            error(this.loc, "Move constructor declared without a corresponding copy constructor.");
+        }
+
+
         if (enclosing                      || // is nested
             search(this, loc, Id.postblit) || // has postblit
             search(this, loc, Id.dtor)     || // has destructor
-            /* This is commented out because otherwise buildkite vibe.d:
-               `canCAS!Task` fails to compile
-             */
-            //hasMoveCtorLocal               || // has move constructor
+            hasMoveCtorLocal && !hasCpCtorLocal || // Error: Move constructor without copy constructor
             hasCpCtorLocal)                   // has copy constructor
         {
             ispod = ThreeState.no;
@@ -197,7 +199,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
      */
     final bool hasCopyConstruction()
     {
-        return postblit || hasCopyCtor;
+        return postblit || hasCopyCtor || hasMoveCtor;
     }
 
     override void accept(Visitor v)
