@@ -868,6 +868,11 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         // workaround https://issues.dlang.org/show_bug.cgi?id=17968
         "    static if(is(T* : const(.object.Object)*)) " ~
         "        h = h * 33 + typeid(const(.object.Object)).getHash(cast(const void*)&p.tupleof[i]);" ~
+        // and another workaround for bit-fields https://github.com/dlang/dmd/issues/20473
+        "    else static if (!__traits(compiles, &p.tupleof[i])) {" ~
+        "        auto t = p.tupleof[i];" ~
+        "        h = h * 33 + typeid(T).getHash(cast(const void*)&t);" ~
+        "    } " ~
         "    else " ~
         "        h = h * 33 + typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
         "return h;";
