@@ -1898,29 +1898,26 @@ $(GNAME Slice):
         The special variable `$` is declared and set to be the number
         of elements in the $(I PostfixExpression) (when available).
         A new declaration scope is created for the evaluation of the
-        $(I AssignExpression)`..`$(I AssignExpression) and `$` appears in
+        $(GRAMMAR_INLINE *AssignExpression* .. *AssignExpression*) and `$` appears in
         that scope only.
     )
 
-    $(P If the base $(I PostfixExpression) is a static or dynamic
+      * If the base $(I PostfixExpression) is a static or dynamic
         array `a`, the result of the slice is a dynamic array
         referencing elements `a[i]` to `a[j-1]` inclusive, where `i`
         and `j` are integers evaluated from the first and second $(I
         AssignExpression) respectively.
-    )
 
-    $(P If the base $(I PostfixExpression) is a pointer `p`, the result
+      * If the base $(I PostfixExpression) is a $(DDSUBLINK spec/type, pointers, pointer) `p`, the result
         will be a dynamic array referencing elements from `p[i]` to `p[j-1]`
         inclusive, where `i` and `j` are integers evaluated from the
         first and second $(I AssignExpression) respectively.
-    )
 
-    $(P If the base $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq)), then
+      * If the base $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq)), then
         the result of the slice is a new $(I ValueSeq) formed
         from the upper and lower bounds, which must statically evaluate
         to integral constants.
         It is an error if those bounds are out of range.
-    )
 
     $(P The first $(I AssignExpression) is taken to be the inclusive
         lower bound
