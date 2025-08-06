@@ -237,6 +237,9 @@ assert(b[1] == 2);
 ---------
 )
 
+    $(P Dynamic and static array indexing is $(RELATIVE_LINK2 bounds, bounds checked)
+    by default.)
+
     $(P See also $(GLINK2 expression, IndexOperation).)
 
 $(H3 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
@@ -292,6 +295,9 @@ b = b[1..2];
 assert(b == [3]);
 ---------
 )
+
+        $(P Each index in the slice expression is $(RELATIVE_LINK2 bounds, bounds checked)
+        by default.)
 
         $(P $(I Expression)`[]` is shorthand for a slice of the entire array.
         )
