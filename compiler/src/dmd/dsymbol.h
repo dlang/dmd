@@ -29,6 +29,7 @@ class AliasDeclaration;
 class AggregateDeclaration;
 class EnumDeclaration;
 class ClassDeclaration;
+class StructDeclaration;
 class InterfaceDeclaration;
 class StructDeclaration;
 class UnionDeclaration;
@@ -107,6 +108,7 @@ namespace dmd
     void asmSemantic(CAsmDeclaration *ad, Scope *sc);
     // in iasmgcc.d
     void gccAsmSemantic(CAsmDeclaration *ad, Scope *sc);
+    bool isPOD(StructDeclaration *sd);
 }
 
 struct Visibility

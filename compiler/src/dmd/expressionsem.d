@@ -203,6 +203,54 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps,
     return false;
 }
 
+/***************************************
+ * Verifies whether the struct declaration has a
+ * constructor that is not a copy constructor.
+ * Optionally, it can check whether the struct
+ * declaration has a regular constructor, that
+ * is not disabled.
+ *
+ * Params:
+ *      sd = struct declaration
+ *      ignoreDisabled = true to ignore disabled constructors
+ * Returns:
+ *      true, if the struct has a regular (optionally,
+ *      not disabled) constructor, false otherwise.
+ */
+bool hasRegularCtor(StructDeclaration sd, bool ignoreDisabled)
+{
+    if (!sd.ctor)
+        return false;
+
+    bool result;
+    overloadApply(sd.ctor, (Dsymbol s)
+    {
+        if (auto td = s.isTemplateDeclaration())
+        {
+            if (ignoreDisabled && td.onemember)
+            {
+                if (auto ctorDecl = td.onemember.isCtorDeclaration())
+                {
+                    if (ctorDecl.storage_class & STC.disable)
+                        return 0;
+                }
+            }
+            result = true;
+            return 1;
+        }
+        if (auto ctorDecl = s.isCtorDeclaration())
+        {
+            if (!ctorDecl.isCpCtor && !ctorDecl.isMoveCtor && (!ignoreDisabled || !(ctorDecl.storage_class & STC.disable)))
+            {
+                result = true;
+                return 1;
+            }
+        }
+        return 0;
+    });
+    return result;
+}
+
 /*****************************************
  * Determine if `this` is available by walking up the enclosing
  * scopes until a function is found.
@@ -5597,7 +5645,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // If the new expression has arguments, we either should call a
             // regular constructor of a copy constructor if the first argument
             // is the same type as the struct
-            if (nargs && (sd.hasRegularCtor() || (sd.ctor && (*exp.arguments)[0].type.mutableOf() == sd.type.mutableOf())))
+            if (nargs && (sd.hasRegularCtor(false) || (sd.ctor && (*exp.arguments)[0].type.mutableOf() == sd.type.mutableOf())))
             {
                 FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.ctor, null, tb, exp.argumentList, FuncResolveFlag.standard);
                 if (!f || f.errors)
@@ -6548,7 +6596,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                        If all constructors are copy constructors, then
                        try default construction.
                      */
-                    if (!sd.hasRegularCtor &&
+                    if (!sd.hasRegularCtor(false) &&
                         // https://issues.dlang.org/show_bug.cgi?id=22639
                         // we might still have a copy constructor that could be called
                         (*exp.arguments)[0].type.mutableOf != sd.type.mutableOf())

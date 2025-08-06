@@ -16,6 +16,7 @@ import core.checkedint;
 
 import dmd.astenums;
 import dmd.declaration;
+import dmd.dsymbolsem : isPOD;
 import dmd.location;
 import dmd.mtype;
 import dmd.typesem;

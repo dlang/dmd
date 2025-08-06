@@ -12,6 +12,7 @@
 module dmd.argtypes_aarch64;
 
 import dmd.astenums;
+import dmd.dsymbolsem : isPOD;
 import dmd.mtype;
 import dmd.typesem;
 

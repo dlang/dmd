@@ -28,6 +28,7 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dmdparams;
 import dmd.dstruct;
+import dmd.dsymbolsem : isPOD;
 import dmd.globals;
 import dmd.id;
 import dmd.mtype;
