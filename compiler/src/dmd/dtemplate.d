@@ -53,7 +53,7 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, aliasSemantic, search, oneMembers;
+import dmd.dsymbolsem : dsymbolSemantic, aliasSemantic, oneMembers;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -75,11 +75,9 @@ import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.templatesem : matchWithInstance, formatParamsWithTiargs, leastAsSpecialized,
-                         declareParameter, deduceType, deduceTypeHelper, emptyArrayElement, getExpression;
+                         deduceType, getExpression;
 import dmd.tokens;
-import dmd.typesem : hasPointers, typeSemantic, merge, merge2, resolve, toDsymbol,
-                     addStorageClass, isBaseOf, equivalent, sarrayOf, constOf, mutableOf, unSharedOf,
-                     unqualify, aliasthisOf, castMod, substWildTo, addMod, resolveNamedArgs;
+import dmd.typesem : typeSemantic, merge2, resolve, toDsymbol, isBaseOf, unqualify, resolveNamedArgs;
 import dmd.visitor;
 
 import dmd.templateparamsem;
@@ -907,55 +905,9 @@ extern (C++) final class TypeDeduced : Type
         argexps.push(e);
         tparams.push(tparam);
     }
-
-    MATCH matchAll(Type tt)
-    {
-        MATCH match = MATCH.exact;
-        foreach (j, e; argexps)
-        {
-            assert(e);
-            if (e == emptyArrayElement)
-                continue;
-
-            Type t = tt.addMod(tparams[j].mod).substWildTo(MODFlags.const_);
-
-            MATCH m = e.implicitConvTo(t);
-            if (match > m)
-                match = m;
-            if (match == MATCH.nomatch)
-                break;
-        }
-        return match;
-    }
 }
-
 
 /* ======================== Type ============================================ */
-
-/****
- * Given an identifier, figure out which TemplateParameter it is.
- * Return IDX_NOTFOUND if not found.
- */
-size_t templateIdentifierLookup(Identifier id, TemplateParameters* parameters)
-{
-    for (size_t i = 0; i < parameters.length; i++)
-    {
-        TemplateParameter tp = (*parameters)[i];
-        if (tp.ident.equals(id))
-            return i;
-    }
-    return IDX_NOTFOUND;
-}
-
-size_t templateParameterLookup(Type tparam, TemplateParameters* parameters)
-{
-    if (TypeIdentifier tident = tparam.isTypeIdentifier())
-    {
-        //printf("\ttident = '%s'\n", tident.toChars());
-        return templateIdentifierLookup(tident.ident, parameters);
-    }
-    return IDX_NOTFOUND;
-}
 
 private auto X(T, U)(T m, U n)
 {
@@ -3047,24 +2999,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
         //printf("-TemplateInstance.hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
         return nested != 0;
-    }
-
-    /****************************************************
-     * Declare parameters of template instance, initialize them with the
-     * template instance arguments.
-     */
-    extern (D) final void declareParameters(Scope* sc)
-    {
-        TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
-        assert(tempdecl);
-
-        //printf("TemplateInstance.declareParameters()\n");
-        foreach (i, o; tdtypes) // initializer for tp
-        {
-            TemplateParameter tp = (*tempdecl.parameters)[i];
-            //printf("\ttdtypes[%d] = %p\n", i, o);
-            declareParameter(tempdecl, sc, tp, o);
-        }
     }
 
     /****************************************

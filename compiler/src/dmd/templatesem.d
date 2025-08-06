@@ -3046,6 +3046,49 @@ private MATCH deduceParentInstance(Scope* sc, Dsymbol sym, TypeInstance tpi,
     return MATCH.nomatch;
 }
 
+private MATCH matchAll(TypeDeduced td, Type tt)
+{
+    MATCH match = MATCH.exact;
+    foreach (j, e; td.argexps)
+    {
+        assert(e);
+        if (e == emptyArrayElement)
+            continue;
+
+        Type t = tt.addMod(td.tparams[j].mod).substWildTo(MODFlags.const_);
+
+        MATCH m = e.implicitConvTo(t);
+        if (match > m)
+            match = m;
+        if (match == MATCH.nomatch)
+            break;
+    }
+    return match;
+}
+/****
+ * Given an identifier, figure out which TemplateParameter it is.
+ * Return IDX_NOTFOUND if not found.
+ */
+private size_t templateIdentifierLookup(Identifier id, TemplateParameters* parameters)
+{
+    for (size_t i = 0; i < parameters.length; i++)
+    {
+        TemplateParameter tp = (*parameters)[i];
+        if (tp.ident.equals(id))
+            return i;
+    }
+    return IDX_NOTFOUND;
+}
+
+private size_t templateParameterLookup(Type tparam, TemplateParameters* parameters)
+{
+    if (TypeIdentifier tident = tparam.isTypeIdentifier())
+    {
+        //printf("\ttident = '%s'\n", tident.toChars());
+        return templateIdentifierLookup(tident.ident, parameters);
+    }
+    return IDX_NOTFOUND;
+}
 /* These form the heart of template argument deduction.
  * Given 'this' being the type argument to the template instance,
  * it is matched against the template declaration parameter specialization
