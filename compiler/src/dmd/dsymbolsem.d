@@ -4424,6 +4424,23 @@ private void attribAddMember(AttribDeclaration atb, Scope* sc, ScopeDsymbol sds)
     }
 }
 
+/****************************************************
+ * Declare parameters of template instance, initialize them with the
+ * template instance arguments.
+ */
+private void declareParameters(TemplateInstance ti, Scope* sc)
+{
+    TemplateDeclaration tempdecl = ti.tempdecl.isTemplateDeclaration();
+    assert(tempdecl);
+
+    //printf("TemplateInstance.declareParameters()\n");
+    foreach (i, o; ti.tdtypes) // initializer for tp
+    {
+        TemplateParameter tp = (*tempdecl.parameters)[i];
+        //printf("\ttdtypes[%d] = %p\n", i, o);
+        declareParameter(tempdecl, sc, tp, o);
+    }
+}
 private extern(C++) class AddMemberVisitor : Visitor
 {
     alias visit = Visitor.visit;

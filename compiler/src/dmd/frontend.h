@@ -2197,7 +2197,6 @@ public:
     Array<Type* > tparams;
     void update(Expression* e, Type* tparam);
     void update(Type* tt, Expression* e, Type* tparam);
-    MATCH matchAll(Type* tt);
 };
 
 class DebugSymbol final : public Dsymbol
