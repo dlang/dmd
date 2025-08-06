@@ -1,0 +1,20 @@
+DW_AT_name        : a1
+DW_AT_bit_size    : 6
+DW_AT_data_bit_offset: 0x20
+DW_AT_name        : b1
+DW_AT_bit_size    : 7
+DW_AT_data_bit_offset: 0x26
+DW_AT_name        : c1
+DW_AT_bit_size    : 14
+DW_AT_data_bit_offset: 0x2d
+DW_AT_name        : d1
+DW_AT_bit_size    : 5
+DW_AT_data_bit_offset: 0x3b
+DW_AT_name        : a2
+DW_AT_bit_size    : 31
+DW_AT_name        : b2
+DW_AT_bit_size    : 1
+DW_AT_name        : c2
+DW_AT_bit_size    : 19
+DW_AT_name        : d2
+DW_AT_bit_size    : 13
