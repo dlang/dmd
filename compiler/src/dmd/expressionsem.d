@@ -16784,7 +16784,7 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
         return true;
 
     const nfields = sd.nonHiddenFields();
-    size_t offset = 0;
+    ulong bitoffset = 0;
     for (size_t i = 0; i < elements.length; i++)
     {
         Expression e = (*elements)[i];
@@ -16803,7 +16803,13 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
             return false;
         }
         VarDeclaration v = sd.fields[i];
-        if (v.offset < offset)
+        // Overlap is checked by comparing bit offsets
+        ulong vbitoffset = v.offset * 8;
+        auto vbf = v.isBitFieldDeclaration();
+        if (vbf)
+            vbitoffset += vbf.bitOffset;
+
+        if (vbitoffset < bitoffset)
         {
             .error(loc, "overlapping initialization for `%s`", v.toChars());
             if (!sd.isUnionDeclaration())
@@ -16818,7 +16824,11 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
         const vsize = v.type.size();
         if (vsize == SIZE_INVALID)
             return false;
-        offset = cast(uint)(v.offset + vsize);
+        // Bitsize of types are overridden by any bit-field widths.
+        if (vbf)
+            bitoffset = vbitoffset + vbf.fieldWidth;
+        else
+            bitoffset = vbitoffset + vsize * 8;
 
         Type t = v.type;
         if (stype)
