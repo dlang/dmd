@@ -4100,7 +4100,6 @@ public:
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
     const char* kind() const override;
-    bool isUnique() const;
     bool needsClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
