@@ -32,7 +32,6 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
-import dmd.initsem : initializerToExpression, initializerSemantic;
 import dmd.intrange;
 import dmd.location;
 import dmd.mtype;
@@ -41,7 +40,7 @@ import dmd.rootobject;
 import dmd.root.filename;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : toDsymbol, typeSemantic, size, hasPointers;
+import dmd.typesem : toDsymbol, typeSemantic, size;
 import dmd.visitor;
 
 version (IN_GCC) {}
@@ -1048,38 +1047,6 @@ extern (C++) class VarDeclaration : Declaration
     {
         //printf("VarDeclaration::needsScopeDtor() %s %d\n", toChars(), edtor && !(storage_class & STC.nodtor));
         return edtor && !(storage_class & STC.nodtor);
-    }
-
-    /*******************************************
-     * If variable has a constant expression initializer, get it.
-     * Otherwise, return null.
-     */
-    extern (D) final Expression getConstInitializer(bool needFullType = true)
-    {
-        assert(type && _init);
-
-        // Ungag errors when not speculative
-        const oldgag = global.gag;
-        if (global.gag)
-        {
-            Dsymbol sym = isMember();
-            if (sym && !sym.isSpeculative())
-                global.gag = 0;
-        }
-
-        if (_scope)
-        {
-            inuse++;
-            _init = _init.initializerSemantic(_scope, type, INITinterpret);
-            import dmd.semantic2 : lowerStaticAAs;
-            lowerStaticAAs(this, _scope);
-            _scope = null;
-            inuse--;
-        }
-
-        Expression e = _init.initializerToExpression(needFullType ? type : null);
-        global.gag = oldgag;
-        return e;
     }
 
     override final Dsymbol toAlias()
