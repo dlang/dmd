@@ -2348,6 +2348,13 @@ enum class EXP : uint8_t
     rvalue = 128u,
 };
 
+enum class OwnedBy : uint8_t
+{
+    code = 0u,
+    ctfe = 1u,
+    cache = 2u,
+};
+
 typedef uint64_t dinteger_t;
 
 typedef uint64_t uinteger_t;
@@ -2386,28 +2393,48 @@ public:
     const EXP op;
     struct BitFields final
     {
+        OwnedBy ownedByCtfe;
         bool parens;
         bool rvalue;
         bool gcPassDone;
+        bool flag1;
+        bool flag2;
+        bool flag3;
         BitFields() :
+            ownedByCtfe((OwnedBy)0u),
             parens(),
             rvalue(),
-            gcPassDone()
+            gcPassDone(),
+            flag1(),
+            flag2(),
+            flag3()
         {
         }
-        BitFields(bool parens, bool rvalue = false, bool gcPassDone = false) :
+        BitFields(OwnedBy ownedByCtfe, bool parens = false, bool rvalue = false, bool gcPassDone = false, bool flag1 = false, bool flag2 = false, bool flag3 = false) :
+            ownedByCtfe(ownedByCtfe),
             parens(parens),
             rvalue(rvalue),
-            gcPassDone(gcPassDone)
+            gcPassDone(gcPassDone),
+            flag1(flag1),
+            flag2(flag2),
+            flag3(flag3)
             {}
     };
 
+    OwnedBy ownedByCtfe() const;
+    OwnedBy ownedByCtfe(OwnedBy v);
     bool parens() const;
     bool parens(bool v);
     bool rvalue() const;
     bool rvalue(bool v);
     bool gcPassDone() const;
     bool gcPassDone(bool v);
+    bool flag1() const;
+    bool flag1(bool v);
+    bool flag2() const;
+    bool flag2(bool v);
+    bool flag3() const;
+    bool flag3(bool v);
 private:
     uint8_t bitFields;
 public:
@@ -2636,18 +2663,11 @@ public:
     void accept(Visitor* v) override;
 };
 
-enum class OwnedBy : uint8_t
-{
-    code = 0u,
-    ctfe = 1u,
-    cache = 2u,
-};
-
 class ArrayLiteralExp final : public Expression
 {
 public:
-    OwnedBy ownedByCtfe;
-    bool onstack;
+    bool onstack();
+    void onstack(bool v);
     Expression* basis;
     Array<Expression* >* elements;
     Expression* lowering;
@@ -2687,7 +2707,6 @@ public:
 class AssocArrayLiteralExp final : public Expression
 {
 public:
-    OwnedBy ownedByCtfe;
     Array<Expression* >* keys;
     Array<Expression* >* values;
     Expression* lowering;
@@ -2713,11 +2732,11 @@ public:
     Array<Expression* >* arguments;
     Array<ArgumentLabel >* names;
     FuncDeclaration* f;
-    bool directcall;
-    bool inDebugStatement;
-    bool ignoreAttributes;
-    bool isUfcsRewrite;
     VarDeclaration* vthis2;
+    bool directcall();
+    void directcall(bool v);
+    bool isUfcsRewrite();
+    void isUfcsRewrite(bool v);
     static CallExp* create(Loc loc, Expression* e, Array<Expression* >* exps);
     static CallExp* create(Loc loc, Expression* e);
     static CallExp* create(Loc loc, Expression* e, Expression* earg1);
@@ -2731,9 +2750,8 @@ class CastExp final : public UnaExp
 {
 public:
     Type* to;
-    uint8_t mod;
-    bool trusted;
     Expression* lowering;
+    uint8_t mod;
     CastExp* syntaxCopy() override;
     bool isLvalue() override;
     void accept(Visitor* v) override;
@@ -2790,8 +2808,6 @@ public:
 class CommaExp final : public BinExp
 {
 public:
-    const bool isGenerated;
-    bool allowCommaExp;
     Expression* originalExp;
     bool isLvalue() override;
     Optional<bool > toBool() override;
@@ -2856,7 +2872,6 @@ class DelegateExp final : public UnaExp
 {
 public:
     FuncDeclaration* func;
-    bool hasOverloads;
     VarDeclaration* vthis2;
     void accept(Visitor* v) override;
 };
@@ -2878,7 +2893,6 @@ public:
 class DeleteExp final : public UnaExp
 {
 public:
-    bool isRAII;
     void accept(Visitor* v) override;
 };
 
@@ -2919,9 +2933,6 @@ class DotIdExp final : public UnaExp
 {
 public:
     Identifier* ident;
-    bool noderef;
-    bool wantsym;
-    bool arrow;
     static DotIdExp* create(Loc loc, Expression* e, Identifier* ident);
     void accept(Visitor* v) override;
 };
@@ -2954,7 +2965,6 @@ class DotVarExp final : public UnaExp
 {
 public:
     Declaration* var;
-    bool hasOverloads;
     bool isLvalue() override;
     void accept(Visitor* v) override;
 };
@@ -2963,7 +2973,6 @@ class DsymbolExp final : public Expression
 {
 public:
     Dsymbol* s;
-    bool hasOverloads;
     bool isLvalue() override;
     void accept(Visitor* v) override;
 };
@@ -3275,8 +3284,10 @@ class IndexExp final : public BinExp
 {
 public:
     VarDeclaration* lengthVar;
-    bool modifiable;
-    bool indexIsInBounds;
+    bool modifiable();
+    void modifiable(bool v);
+    bool indexIsInBounds();
+    void indexIsInBounds(bool v);
     IndexExp* syntaxCopy() override;
     bool isLvalue() override;
     void accept(Visitor* v) override;
@@ -3302,9 +3313,8 @@ public:
 class InterpExp final : public Expression
 {
 public:
-    char postfix;
-    OwnedBy ownedByCtfe;
     InterpolatedSet* interpolatedSet;
+    char postfix;
     enum : char { NoPostfix = 0u };
 
     void accept(Visitor* v) override;
@@ -3431,8 +3441,10 @@ public:
     Expression* placement;
     Expression* argprefix;
     CtorDeclaration* member;
-    bool onstack;
-    bool thrownew;
+    bool onstack();
+    void onstack(bool v);
+    bool thrownew();
+    void thrownew(bool v);
     Expression* lowering;
     static NewExp* create(Loc loc, Expression* placement, Expression* thisexp, Type* newtype, Array<Expression* >* arguments);
     NewExp* syntaxCopy() override;
@@ -3579,35 +3591,6 @@ public:
     Expression* upr;
     Expression* lwr;
     VarDeclaration* lengthVar;
-private:
-    struct BitFields final
-    {
-        bool upperIsInBounds;
-        bool lowerIsLessThanUpper;
-        bool arrayop;
-        BitFields() :
-            upperIsInBounds(),
-            lowerIsLessThanUpper(),
-            arrayop()
-        {
-        }
-        BitFields(bool upperIsInBounds, bool lowerIsLessThanUpper = false, bool arrayop = false) :
-            upperIsInBounds(upperIsInBounds),
-            lowerIsLessThanUpper(lowerIsLessThanUpper),
-            arrayop(arrayop)
-            {}
-    };
-
-public:
-    bool upperIsInBounds() const;
-    bool upperIsInBounds(bool v);
-    bool lowerIsLessThanUpper() const;
-    bool lowerIsLessThanUpper(bool v);
-    bool arrayop() const;
-    bool arrayop(bool v);
-private:
-    uint8_t bitFields;
-public:
     SliceExp* syntaxCopy() override;
     bool isLvalue() override;
     Optional<bool > toBool() override;
@@ -3616,9 +3599,6 @@ public:
 
 class StringExp final : public Expression
 {
-public:
-    char postfix;
-    OwnedBy ownedByCtfe;
     union
     {
         char* string;
@@ -3626,11 +3606,10 @@ public:
         char32_t* dstring;
         uint64_t* lstring;
     };
+public:
     size_t len;
     uint8_t sz;
-    bool committed;
-    bool hexString;
-    bool cMacro;
+    char postfix;
     enum : char { NoPostfix = 0u };
 
     static StringExp* create(Loc loc, const char* s);
@@ -3650,33 +3629,8 @@ public:
 class StructLiteralExp final : public Expression
 {
 public:
-    struct BitFields final
-    {
-        bool useStaticInit;
-        bool isOriginal;
-        OwnedBy ownedByCtfe;
-        BitFields() :
-            useStaticInit(),
-            isOriginal(false),
-            ownedByCtfe((OwnedBy)0u)
-        {
-        }
-        BitFields(bool useStaticInit, bool isOriginal = false, OwnedBy ownedByCtfe = (OwnedBy)0u) :
-            useStaticInit(useStaticInit),
-            isOriginal(isOriginal),
-            ownedByCtfe(ownedByCtfe)
-            {}
-    };
-
-    bool useStaticInit() const;
-    bool useStaticInit(bool v);
-    bool isOriginal() const;
-    bool isOriginal(bool v);
-    OwnedBy ownedByCtfe() const;
-    OwnedBy ownedByCtfe(OwnedBy v);
-private:
-    uint8_t bitFields;
-public:
+    bool useStaticInit();
+    void useStaticInit(bool v);
     StageFlags stageflags;
     StructDeclaration* sd;
     Array<Expression* >* elements;
@@ -3726,7 +3680,6 @@ class SymbolExp : public Expression
 public:
     Declaration* var;
     Dsymbol* originalScope;
-    bool hasOverloads;
     void accept(Visitor* v) override;
 };
 
@@ -3819,7 +3772,6 @@ public:
 class VarExp final : public SymbolExp
 {
 public:
-    bool delegateWasExtracted;
     static VarExp* create(Loc loc, Declaration* var, bool hasOverloads = true);
     bool equals(const RootObject* const o) const override;
     bool isLvalue() override;
@@ -3838,7 +3790,6 @@ class VectorExp final : public UnaExp
 public:
     TypeVector* to;
     uint32_t dim;
-    OwnedBy ownedByCtfe;
     static VectorExp* create(Loc loc, Expression* e, Type* t);
     VectorExp* syntaxCopy() override;
     void accept(Visitor* v) override;
@@ -5569,18 +5520,18 @@ private:
         char errorexp[22LLU];
         char realexp[48LLU];
         char complexexp[64LLU];
-        char symoffexp[56LLU];
-        char stringexp[44LLU];
+        char symoffexp[48LLU];
+        char stringexp[42LLU];
         char arrayliteralexp[48LLU];
         char assocarrayliteralexp[48LLU];
         char structliteralexp[64LLU];
         char compoundliteralexp[32LLU];
         char nullexp[22LLU];
-        char dotvarexp[41LLU];
+        char dotvarexp[40LLU];
         char addrexp[32LLU];
-        char indexexp[50LLU];
-        char sliceexp[57LLU];
-        char vectorexp[45LLU];
+        char indexexp[48LLU];
+        char sliceexp[56LLU];
+        char vectorexp[44LLU];
     };
     #pragma pack(pop)
 
