@@ -2727,3 +2727,1768 @@ private extern(C++) class DummyArgVisitor : Visitor
         result = null;
     }
 }
+
+/**
+ * Returns the common type of the 2 types.
+ */
+private Type rawTypeMerge(Type t1, Type t2)
+{
+    if (t1.equals(t2))
+        return t1;
+    if (t1.equivalent(t2))
+        return t1.castMod(MODmerge(t1.mod, t2.mod));
+
+    auto t1b = t1.toBasetype();
+    auto t2b = t2.toBasetype();
+    if (t1b.equals(t2b))
+        return t1b;
+    if (t1b.equivalent(t2b))
+        return t1b.castMod(MODmerge(t1b.mod, t2b.mod));
+
+    auto ty = implicitConvCommonTy(t1b.ty, t2b.ty);
+    if (ty != Terror)
+        return Type.basic[ty];
+
+    return null;
+}
+
+private auto X(T, U)(T m, U n)
+{
+    return (m << 4) | n;
+}
+
+MATCH deduceTypeHelper(Type t, out Type at, Type tparam)
+{
+    // 9*9 == 81 cases
+    switch (X(tparam.mod, t.mod))
+    {
+    case X(0, 0):
+    case X(0, MODFlags.const_):
+    case X(0, MODFlags.wild):
+    case X(0, MODFlags.wildconst):
+    case X(0, MODFlags.shared_):
+    case X(0, MODFlags.shared_ | MODFlags.const_):
+    case X(0, MODFlags.shared_ | MODFlags.wild):
+    case X(0, MODFlags.shared_ | MODFlags.wildconst):
+    case X(0, MODFlags.immutable_):
+        // foo(U)                       T                       => T
+        // foo(U)                       const(T)                => const(T)
+        // foo(U)                       inout(T)                => inout(T)
+        // foo(U)                       inout(const(T))         => inout(const(T))
+        // foo(U)                       shared(T)               => shared(T)
+        // foo(U)                       shared(const(T))        => shared(const(T))
+        // foo(U)                       shared(inout(T))        => shared(inout(T))
+        // foo(U)                       shared(inout(const(T))) => shared(inout(const(T)))
+        // foo(U)                       immutable(T)            => immutable(T)
+        {
+            at = t;
+            return MATCH.exact;
+        }
+    case X(MODFlags.const_, MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.wildconst):
+    case X(MODFlags.shared_, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.immutable_, MODFlags.immutable_):
+        // foo(const(U))                const(T)                => T
+        // foo(inout(U))                inout(T)                => T
+        // foo(inout(const(U)))         inout(const(T))         => T
+        // foo(shared(U))               shared(T)               => T
+        // foo(shared(const(U)))        shared(const(T))        => T
+        // foo(shared(inout(U)))        shared(inout(T))        => T
+        // foo(shared(inout(const(U)))) shared(inout(const(T))) => T
+        // foo(immutable(U))            immutable(T)            => T
+        {
+            at = t.mutableOf().unSharedOf();
+            return MATCH.exact;
+        }
+    case X(MODFlags.const_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
+        // foo(const(U))                shared(const(T))        => shared(T)
+        // foo(inout(U))                shared(inout(T))        => shared(T)
+        // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
+        {
+            at = t.mutableOf();
+            return MATCH.exact;
+        }
+    case X(MODFlags.const_, 0):
+    case X(MODFlags.const_, MODFlags.wild):
+    case X(MODFlags.const_, MODFlags.wildconst):
+    case X(MODFlags.const_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.const_, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.const_, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.immutable_):
+        // foo(const(U))                T                       => T
+        // foo(const(U))                inout(T)                => T
+        // foo(const(U))                inout(const(T))         => T
+        // foo(const(U))                shared(inout(T))        => shared(T)
+        // foo(const(U))                shared(inout(const(T))) => shared(T)
+        // foo(const(U))                immutable(T)            => T
+        // foo(shared(const(U)))        immutable(T)            => T
+        {
+            at = t.mutableOf();
+            return MATCH.constant;
+        }
+    case X(MODFlags.const_, MODFlags.shared_):
+        // foo(const(U))                shared(T)               => shared(T)
+        {
+            at = t;
+            return MATCH.constant;
+        }
+    case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.wildconst):
+        // foo(shared(U))               shared(const(T))        => const(T)
+        // foo(shared(U))               shared(inout(T))        => inout(T)
+        // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
+        {
+            at = t.unSharedOf();
+            return MATCH.exact;
+        }
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_):
+        // foo(shared(const(U)))        shared(T)               => T
+        {
+            at = t.unSharedOf();
+            return MATCH.constant;
+        }
+    case X(MODFlags.wildconst, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
+        // foo(inout(const(U)))         immutable(T)            => T
+        // foo(shared(const(U)))        shared(inout(const(T))) => T
+        // foo(shared(inout(const(U)))) immutable(T)            => T
+        // foo(shared(inout(const(U)))) shared(inout(T))        => T
+        {
+            at = t.unSharedOf().mutableOf();
+            return MATCH.constant;
+        }
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.wild):
+        // foo(shared(const(U)))        shared(inout(T))        => T
+        {
+            at = t.unSharedOf().mutableOf();
+            return MATCH.constant;
+        }
+    case X(MODFlags.wild, 0):
+    case X(MODFlags.wild, MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.wildconst):
+    case X(MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.wildconst, 0):
+    case X(MODFlags.wildconst, MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_, 0):
+    case X(MODFlags.shared_, MODFlags.const_):
+    case X(MODFlags.shared_, MODFlags.wild):
+    case X(MODFlags.shared_, MODFlags.wildconst):
+    case X(MODFlags.shared_, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.const_, 0):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wild, 0):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, 0):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.immutable_, 0):
+    case X(MODFlags.immutable_, MODFlags.const_):
+    case X(MODFlags.immutable_, MODFlags.wild):
+    case X(MODFlags.immutable_, MODFlags.wildconst):
+    case X(MODFlags.immutable_, MODFlags.shared_):
+    case X(MODFlags.immutable_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.immutable_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.immutable_, MODFlags.shared_ | MODFlags.wildconst):
+        // foo(inout(U))                T                       => nomatch
+        // foo(inout(U))                const(T)                => nomatch
+        // foo(inout(U))                inout(const(T))         => nomatch
+        // foo(inout(U))                immutable(T)            => nomatch
+        // foo(inout(U))                shared(T)               => nomatch
+        // foo(inout(U))                shared(const(T))        => nomatch
+        // foo(inout(U))                shared(inout(const(T))) => nomatch
+        // foo(inout(const(U)))         T                       => nomatch
+        // foo(inout(const(U)))         const(T)                => nomatch
+        // foo(inout(const(U)))         inout(T)                => nomatch
+        // foo(inout(const(U)))         shared(T)               => nomatch
+        // foo(inout(const(U)))         shared(const(T))        => nomatch
+        // foo(inout(const(U)))         shared(inout(T))        => nomatch
+        // foo(shared(U))               T                       => nomatch
+        // foo(shared(U))               const(T)                => nomatch
+        // foo(shared(U))               inout(T)                => nomatch
+        // foo(shared(U))               inout(const(T))         => nomatch
+        // foo(shared(U))               immutable(T)            => nomatch
+        // foo(shared(const(U)))        T                       => nomatch
+        // foo(shared(const(U)))        const(T)                => nomatch
+        // foo(shared(const(U)))        inout(T)                => nomatch
+        // foo(shared(const(U)))        inout(const(T))         => nomatch
+        // foo(shared(inout(U)))        T                       => nomatch
+        // foo(shared(inout(U)))        const(T)                => nomatch
+        // foo(shared(inout(U)))        inout(T)                => nomatch
+        // foo(shared(inout(U)))        inout(const(T))         => nomatch
+        // foo(shared(inout(U)))        immutable(T)            => nomatch
+        // foo(shared(inout(U)))        shared(T)               => nomatch
+        // foo(shared(inout(U)))        shared(const(T))        => nomatch
+        // foo(shared(inout(U)))        shared(inout(const(T))) => nomatch
+        // foo(shared(inout(const(U)))) T                       => nomatch
+        // foo(shared(inout(const(U)))) const(T)                => nomatch
+        // foo(shared(inout(const(U)))) inout(T)                => nomatch
+        // foo(shared(inout(const(U)))) inout(const(T))         => nomatch
+        // foo(shared(inout(const(U)))) shared(T)               => nomatch
+        // foo(shared(inout(const(U)))) shared(const(T))        => nomatch
+        // foo(immutable(U))            T                       => nomatch
+        // foo(immutable(U))            const(T)                => nomatch
+        // foo(immutable(U))            inout(T)                => nomatch
+        // foo(immutable(U))            inout(const(T))         => nomatch
+        // foo(immutable(U))            shared(T)               => nomatch
+        // foo(immutable(U))            shared(const(T))        => nomatch
+        // foo(immutable(U))            shared(inout(T))        => nomatch
+        // foo(immutable(U))            shared(inout(const(T))) => nomatch
+        return MATCH.nomatch;
+
+    default:
+        assert(0);
+    }
+}
+
+__gshared Expression emptyArrayElement = null;
+
+/*
+ * Returns `true` if `t` is a reference type, or an array of reference types.
+ */
+private bool isTopRef(Type t)
+{
+    auto tb = t.baseElemOf();
+    return tb.ty == Tclass ||
+           tb.ty == Taarray ||
+           tb.ty == Tstruct && tb.hasPointers();
+}
+
+/*
+ * Returns a valid `Loc` for semantic routines.
+ * Some paths require a location derived from the first
+ * template parameter when available.
+ */
+private Loc semanticLoc(scope ref TemplateParameters parameters)
+{
+    Loc loc;
+    if (parameters.length)
+        loc = parameters[0].loc;
+    return loc;
+}
+
+private MATCH deduceAliasThis(Type t, Scope* sc, Type tparam,
+    ref TemplateParameters parameters, ref Objects dedtypes, uint* wm)
+{
+    if (auto tc = t.isTypeClass())
+    {
+        if (tc.sym.aliasthis && !(tc.att & AliasThisRec.tracingDT))
+        {
+            if (auto ato = t.aliasthisOf())
+            {
+                tc.att = cast(AliasThisRec)(tc.att | AliasThisRec.tracingDT);
+                auto m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
+                tc.att = cast(AliasThisRec)(tc.att & ~AliasThisRec.tracingDT);
+                return m;
+            }
+        }
+    }
+    else if (auto ts = t.isTypeStruct())
+    {
+        if (ts.sym.aliasthis && !(ts.att & AliasThisRec.tracingDT))
+        {
+            if (auto ato = t.aliasthisOf())
+            {
+                ts.att = cast(AliasThisRec)(ts.att | AliasThisRec.tracingDT);
+                auto m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
+                ts.att = cast(AliasThisRec)(ts.att & ~AliasThisRec.tracingDT);
+                return m;
+            }
+        }
+    }
+    return MATCH.nomatch;
+}
+
+private MATCH deduceParentInstance(Scope* sc, Dsymbol sym, TypeInstance tpi,
+    ref TemplateParameters parameters, ref Objects dedtypes, uint* wm)
+{
+    if (tpi.idents.length)
+    {
+        RootObject id = tpi.idents[tpi.idents.length - 1];
+        if (id.dyncast() == DYNCAST.identifier && sym.ident.equals(cast(Identifier)id))
+        {
+            Type tparent = sym.parent.getType();
+            if (tparent)
+            {
+                tpi.idents.length--;
+                auto m = deduceType(tparent, sc, tpi, parameters, dedtypes, wm);
+                tpi.idents.length++;
+                return m;
+            }
+        }
+    }
+    return MATCH.nomatch;
+}
+
+/* These form the heart of template argument deduction.
+ * Given 'this' being the type argument to the template instance,
+ * it is matched against the template declaration parameter specialization
+ * 'tparam' to determine the type to be used for the parameter.
+ * Example:
+ *      template Foo(T:T*)      // template declaration
+ *      Foo!(int*)              // template instantiation
+ * Input:
+ *      this = int*
+ *      tparam = T*
+ *      parameters = [ T:T* ]   // Array of TemplateParameter's
+ * Output:
+ *      dedtypes = [ int ]      // Array of Expression/Type's
+ */
+MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
+    scope ref TemplateParameters parameters, scope ref Objects dedtypes,
+    scope uint* wm = null, size_t inferStart = 0, bool ignoreAliasThis = false)
+{
+    extern (C++) final class DeduceType : Visitor
+    {
+        alias visit = Visitor.visit;
+    public:
+        MATCH result;
+
+        extern (D) this() @safe
+        {
+            result = MATCH.nomatch;
+        }
+
+        override void visit(Type t)
+        {
+            if (!tparam)
+                goto Lnomatch;
+
+            if (t == tparam)
+                goto Lexact;
+
+            if (tparam.ty == Tident)
+            {
+                // Determine which parameter tparam is
+                size_t i = templateParameterLookup(tparam, &parameters);
+                if (i == IDX_NOTFOUND)
+                {
+                    if (!sc)
+                        goto Lnomatch;
+
+                    /* Need a loc to go with the semantic routine. */
+                    Loc loc = semanticLoc(parameters);
+
+                    /* BUG: what if tparam is a template instance, that
+                     * has as an argument another Tident?
+                     */
+                    tparam = tparam.typeSemantic(loc, sc);
+                    assert(tparam.ty != Tident);
+                    result = deduceType(t, sc, tparam, parameters, dedtypes, wm);
+                    return;
+                }
+
+                TemplateParameter tp = parameters[i];
+
+                TypeIdentifier tident = tparam.isTypeIdentifier();
+                if (tident.idents.length > 0)
+                {
+                    //printf("matching %s to %s\n", tparam.toChars(), t.toChars());
+                    Dsymbol s = t.toDsymbol(sc);
+                    for (size_t j = tident.idents.length; j-- > 0;)
+                    {
+                        RootObject id = tident.idents[j];
+                        if (id.dyncast() == DYNCAST.identifier)
+                        {
+                            if (!s || !s.parent)
+                                goto Lnomatch;
+                            Dsymbol s2 = s.parent.search(Loc.initial, cast(Identifier)id);
+                            if (!s2)
+                                goto Lnomatch;
+                            s2 = s2.toAlias();
+                            //printf("[%d] s = %s %s, s2 = %s %s\n", j, s.kind(), s.toChars(), s2.kind(), s2.toChars());
+                            if (s != s2)
+                            {
+                                if (Type tx = s2.getType())
+                                {
+                                    if (s != tx.toDsymbol(sc))
+                                        goto Lnomatch;
+                                }
+                                else
+                                    goto Lnomatch;
+                            }
+                            s = s.parent;
+                        }
+                        else
+                            goto Lnomatch;
+                    }
+                    //printf("[e] s = %s\n", s?s.toChars():"(null)");
+                    if (tp.isTemplateTypeParameter())
+                    {
+                        Type tt = s.getType();
+                        if (!tt)
+                            goto Lnomatch;
+                        Type at = cast(Type)dedtypes[i];
+                        if (at && at.ty == Tnone)
+                            at = (cast(TypeDeduced)at).tded;
+                        if (!at || tt.equals(at))
+                        {
+                            dedtypes[i] = tt;
+                            goto Lexact;
+                        }
+                    }
+                    if (tp.isTemplateAliasParameter())
+                    {
+                        Dsymbol s2 = cast(Dsymbol)dedtypes[i];
+                        if (!s2 || s == s2)
+                        {
+                            dedtypes[i] = s;
+                            goto Lexact;
+                        }
+                    }
+                    goto Lnomatch;
+                }
+
+                // Found the corresponding parameter tp
+                /+
+                    https://issues.dlang.org/show_bug.cgi?id=23578
+                    To pattern match:
+                    static if (is(S!int == S!av, alias av))
+
+                    We eventually need to deduce `int` (Tint32 [0]) and `av` (Tident).
+                    Previously this would not get pattern matched at all, but now we check if the
+                    template parameter `av` came from.
+
+                    This note has been left to serve as a hint for further explorers into
+                    how IsExp matching works.
+                +/
+                if (auto ta = tp.isTemplateAliasParameter())
+                {
+                    dedtypes[i] = t;
+                    goto Lexact;
+                }
+                // (23578) - ensure previous behaviour for non-alias template params
+                if (!tp.isTemplateTypeParameter())
+                {
+                    goto Lnomatch;
+                }
+
+                Type at = cast(Type)dedtypes[i];
+                Type tt;
+                if (ubyte wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
+                {
+                    // type vs (none)
+                    if (!at)
+                    {
+                        dedtypes[i] = tt;
+                        *wm |= wx;
+                        result = MATCH.constant;
+                        return;
+                    }
+
+                    // type vs expressions
+                    if (at.ty == Tnone)
+                    {
+                        auto xt = cast(TypeDeduced)at;
+                        result = xt.matchAll(tt);
+                        if (result > MATCH.nomatch)
+                        {
+                            dedtypes[i] = tt;
+                            if (result > MATCH.constant)
+                                result = MATCH.constant; // limit level for inout matches
+                        }
+                        return;
+                    }
+
+                    // type vs type
+                    if (tt.equals(at))
+                    {
+                        dedtypes[i] = tt; // Prefer current type match
+                        goto Lconst;
+                    }
+                    if (tt.implicitConvTo(at.constOf()))
+                    {
+                        dedtypes[i] = at.constOf().mutableOf();
+                        *wm |= MODFlags.const_;
+                        goto Lconst;
+                    }
+                    if (at.implicitConvTo(tt.constOf()))
+                    {
+                        dedtypes[i] = tt.constOf().mutableOf();
+                        *wm |= MODFlags.const_;
+                        goto Lconst;
+                    }
+                    goto Lnomatch;
+                }
+                else if (MATCH m = deduceTypeHelper(t, tt, tparam))
+                {
+                    // type vs (none)
+                    if (!at)
+                    {
+                        dedtypes[i] = tt;
+                        result = m;
+                        return;
+                    }
+
+                    // type vs expressions
+                    if (at.ty == Tnone)
+                    {
+                        auto xt = cast(TypeDeduced)at;
+                        result = xt.matchAll(tt);
+                        if (result > MATCH.nomatch)
+                        {
+                            dedtypes[i] = tt;
+                        }
+                        return;
+                    }
+
+                    // type vs type
+                    if (tt.equals(at))
+                    {
+                        goto Lexact;
+                    }
+                    if (tt.ty == Tclass && at.ty == Tclass)
+                    {
+                        result = tt.implicitConvTo(at);
+                        return;
+                    }
+                    if (tt.ty == Tsarray && at.ty == Tarray && tt.nextOf().implicitConvTo(at.nextOf()) >= MATCH.constant)
+                    {
+                        goto Lexact;
+                    }
+                }
+                goto Lnomatch;
+            }
+
+            if (tparam.ty == Ttypeof)
+            {
+                    /* Need a loc to go with the semantic routine. */
+                    Loc loc = semanticLoc(parameters);
+
+                tparam = tparam.typeSemantic(loc, sc);
+            }
+            if (t.ty != tparam.ty)
+            {
+                if (Dsymbol sym = t.toDsymbol(sc))
+                {
+                    if (sym.isforwardRef() && !tparam.deco)
+                        goto Lnomatch;
+                }
+
+                MATCH m = t.implicitConvTo(tparam);
+                if (m == MATCH.nomatch && !ignoreAliasThis)
+                {
+                    m = deduceAliasThis(t, sc, tparam, parameters, dedtypes, wm);
+                }
+                result = m;
+                return;
+            }
+
+            if (t.nextOf())
+            {
+                if (tparam.deco && !tparam.hasWild())
+                {
+                    result = t.implicitConvTo(tparam);
+                    return;
+                }
+
+                Type tpn = tparam.nextOf();
+                if (wm && t.ty == Taarray && tparam.isWild())
+                {
+                    // https://issues.dlang.org/show_bug.cgi?id=12403
+                    // In IFTI, stop inout matching on transitive part of AA types.
+                    tpn = tpn.substWildTo(MODFlags.mutable);
+                }
+
+                result = deduceType(t.nextOf(), sc, tpn, parameters, dedtypes, wm);
+                return;
+            }
+
+        Lexact:
+            result = MATCH.exact;
+            return;
+
+        Lnomatch:
+            result = MATCH.nomatch;
+            return;
+
+        Lconst:
+            result = MATCH.constant;
+        }
+
+        override void visit(TypeVector t)
+        {
+            if (auto tp = tparam.isTypeVector())
+            {
+                result = deduceType(t.basetype, sc, tp.basetype, parameters, dedtypes, wm);
+                return;
+            }
+            visit(cast(Type)t);
+        }
+
+        override void visit(TypeDArray t)
+        {
+            visit(cast(Type)t);
+        }
+
+        override void visit(TypeSArray t)
+        {
+            // Extra check that array dimensions must match
+            if (!tparam)
+            {
+                visit(cast(Type)t);
+                return;
+            }
+
+            if (tparam.ty == Tarray)
+            {
+                MATCH m = deduceType(t.next, sc, tparam.nextOf(), parameters, dedtypes, wm);
+                result = (m >= MATCH.constant) ? MATCH.convert : MATCH.nomatch;
+                return;
+            }
+
+            TemplateParameter tp = null;
+            Expression edim = null;
+            size_t i;
+            if (auto tsa = tparam.isTypeSArray())
+            {
+                if (tsa.dim.isVarExp() && tsa.dim.isVarExp().var.storage_class & STC.templateparameter)
+                {
+                    Identifier id = tsa.dim.isVarExp().var.ident;
+                    i = templateIdentifierLookup(id, &parameters);
+                    assert(i != IDX_NOTFOUND);
+                    tp = parameters[i];
+                }
+                else
+                    edim = tsa.dim;
+            }
+            else if (auto taa = tparam.isTypeAArray())
+            {
+                i = templateParameterLookup(taa.index, &parameters);
+                if (i != IDX_NOTFOUND)
+                    tp = parameters[i];
+                else
+                {
+                    Loc loc;
+                    // The "type" (it hasn't been resolved yet) of the function parameter
+                    // does not have a location but the parameter it is related to does,
+                    // so we use that for the resolution (better error message).
+                    if (inferStart < parameters.length)
+                    {
+                        TemplateParameter loctp = parameters[inferStart];
+                        loc = loctp.loc;
+                    }
+
+                    Expression e;
+                    Type tx;
+                    Dsymbol s;
+                    taa.index.resolve(loc, sc, e, tx, s);
+                    edim = s ? getValue(s) : getValue(e);
+                }
+            }
+            if ((tp && tp.matchArg(sc, t.dim, i, &parameters, dedtypes, null)) ||
+                (edim && edim.isIntegerExp() && edim.toInteger() == t.dim.toInteger())
+            )
+            {
+                result = deduceType(t.next, sc, tparam.nextOf(), parameters, dedtypes, wm);
+                return;
+            }
+
+            visit(cast(Type)t);
+        }
+
+        override void visit(TypeAArray t)
+        {
+            // Extra check that index type must match
+            if (tparam && tparam.ty == Taarray)
+            {
+                TypeAArray tp = tparam.isTypeAArray();
+                if (!deduceType(t.index, sc, tp.index, parameters, dedtypes))
+                {
+                    result = MATCH.nomatch;
+                    return;
+                }
+            }
+            visit(cast(Type)t);
+        }
+
+        override void visit(TypeFunction t)
+        {
+            // Extra check that function characteristics must match
+            if (!tparam)
+                return visit(cast(Type)t);
+
+            auto tp = tparam.isTypeFunction();
+            if (!tp)
+            {
+                visit(cast(Type)t);
+                return;
+            }
+
+            if (t.parameterList.varargs != tp.parameterList.varargs || t.linkage != tp.linkage)
+            {
+                result = MATCH.nomatch;
+                return;
+            }
+
+            foreach (fparam; *tp.parameterList.parameters)
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=2579
+                // Apply function parameter storage classes to parameter types
+                fparam.type = fparam.type.addStorageClass(fparam.storageClass);
+                fparam.storageClass &= ~STC.TYPECTOR;
+
+                // https://issues.dlang.org/show_bug.cgi?id=15243
+                // Resolve parameter type if it's not related with template parameters
+                if (!reliesOnTemplateParameters(fparam.type, parameters[inferStart .. parameters.length]))
+                {
+                    auto tx = fparam.type.typeSemantic(Loc.initial, sc);
+                    if (tx.ty == Terror)
+                    {
+                        result = MATCH.nomatch;
+                        return;
+                    }
+                    fparam.type = tx;
+                }
+            }
+
+            const size_t nfargs = t.parameterList.length;
+            size_t nfparams = tp.parameterList.length;
+
+            if (!deduceFunctionTuple(t, tp, parameters, dedtypes, nfargs, nfparams))
+            {
+                result = MATCH.nomatch;
+                return;
+            }
+
+        L2:
+            assert(nfparams <= tp.parameterList.length);
+            foreach (i, ap; tp.parameterList)
+            {
+                if (i == nfparams)
+                    break;
+
+                Parameter a = t.parameterList[i];
+
+                if (!a.isCovariant(t.isRef, ap) ||
+                    !deduceType(a.type, sc, ap.type, parameters, dedtypes))
+                {
+                    result = MATCH.nomatch;
+                    return;
+                }
+            }
+
+            visit(cast(Type)t);
+        }
+
+        override void visit(TypeIdentifier t)
+        {
+            // Extra check
+            if (tparam && tparam.ty == Tident)
+            {
+                TypeIdentifier tp = tparam.isTypeIdentifier();
+                for (size_t i = 0; i < t.idents.length; i++)
+                {
+                    RootObject id1 = t.idents[i];
+                    RootObject id2 = tp.idents[i];
+                    if (!id1.equals(id2))
+                    {
+                        result = MATCH.nomatch;
+                        return;
+                    }
+                }
+            }
+            visit(cast(Type)t);
+        }
+
+        override void visit(TypeInstance t)
+        {
+            // Extra check
+            if (!tparam || tparam.ty != Tinstance || !t.tempinst.tempdecl)
+            {
+                visit(cast(Type)t);
+                return;
+            }
+
+            TemplateDeclaration tempdecl = t.tempinst.tempdecl.isTemplateDeclaration();
+            assert(tempdecl);
+
+            TypeInstance tp = tparam.isTypeInstance();
+
+            //printf("tempinst.tempdecl = %p\n", tempdecl);
+            //printf("tp.tempinst.tempdecl = %p\n", tp.tempinst.tempdecl);
+            if (!tp.tempinst.tempdecl)
+            {
+                //printf("tp.tempinst.name = '%s'\n", tp.tempinst.name.toChars());
+
+                /* Handle case of:
+                 *  template Foo(T : sa!(T), alias sa)
+                 */
+                size_t i = templateIdentifierLookup(tp.tempinst.name, &parameters);
+                if (i == IDX_NOTFOUND)
+                {
+                    /* Didn't find it as a parameter identifier. Try looking
+                     * it up and seeing if is an alias.
+                     * https://issues.dlang.org/show_bug.cgi?id=1454
+                     */
+                    auto tid = new TypeIdentifier(tp.loc, tp.tempinst.name);
+                    Type tx;
+                    Expression e;
+                    Dsymbol s;
+                    tid.resolve(tp.loc, sc, e, tx, s);
+                    if (tx)
+                    {
+                        s = tx.toDsymbol(sc);
+                        if (TemplateInstance ti = s ? s.parent.isTemplateInstance() : null)
+                        {
+                            // https://issues.dlang.org/show_bug.cgi?id=14290
+                            // Try to match with ti.tempecl,
+                            // only when ti is an enclosing instance.
+                            Dsymbol p = sc.parent;
+                            while (p && p != ti)
+                                p = p.parent;
+                            if (p)
+                                s = ti.tempdecl;
+                        }
+                    }
+                    if (s)
+                    {
+                        s = s.toAlias();
+                        TemplateDeclaration td = s.isTemplateDeclaration();
+                        if (td)
+                        {
+                            if (td.overroot)
+                                td = td.overroot;
+                            for (; td; td = td.overnext)
+                            {
+                                if (td == tempdecl)
+                                    goto L2;
+                            }
+                        }
+                    }
+                    goto Lnomatch;
+                }
+
+                TemplateParameter tpx = parameters[i];
+                if (!tpx.matchArg(sc, tempdecl, i, &parameters, dedtypes, null))
+                    goto Lnomatch;
+            }
+            else if (tempdecl != tp.tempinst.tempdecl)
+                goto Lnomatch;
+
+        L2:
+            if (!resolveTemplateInstantiation(sc, &parameters, t.tempinst.tiargs, &t.tempinst.tdtypes, tempdecl, tp, &dedtypes))
+                goto Lnomatch;
+
+            visit(cast(Type)t);
+            return;
+
+        Lnomatch:
+            //printf("no match\n");
+            result = MATCH.nomatch;
+        }
+
+        override void visit(TypeStruct t)
+        {
+            /* If this struct is a template struct, and we're matching
+             * it against a template instance, convert the struct type
+             * to a template instance, too, and try again.
+             */
+            TemplateInstance ti = t.sym.parent.isTemplateInstance();
+
+            if (tparam && tparam.ty == Tinstance)
+            {
+                if (ti && ti.toAlias() == t.sym)
+                {
+                    auto tx = new TypeInstance(Loc.initial, ti);
+                    auto m = deduceType(tx, sc, tparam, parameters, dedtypes, wm);
+                    // if we have a no match we still need to check alias this
+                    if (m != MATCH.nomatch)
+                    {
+                        result = m;
+                        return;
+                    }
+                }
+
+                TypeInstance tpi = tparam.isTypeInstance();
+                auto m = deduceParentInstance(sc, t.sym, tpi, parameters, dedtypes, wm);
+                if (m != MATCH.nomatch)
+                {
+                    result = m;
+                    return;
+                }
+            }
+
+            // Extra check
+            if (tparam && tparam.ty == Tstruct)
+            {
+                TypeStruct tp = tparam.isTypeStruct();
+
+                //printf("\t%d\n", cast(MATCH) t.implicitConvTo(tp));
+                if (wm && t.deduceWild(tparam, false))
+                {
+                    result = MATCH.constant;
+                    return;
+                }
+                result = t.implicitConvTo(tp);
+                return;
+            }
+            visit(cast(Type)t);
+        }
+
+        override void visit(TypeEnum t)
+        {
+            // Extra check
+            if (tparam && tparam.ty == Tenum)
+            {
+                TypeEnum tp = tparam.isTypeEnum();
+                if (t.sym == tp.sym)
+                    visit(cast(Type)t);
+                else
+                    result = MATCH.nomatch;
+                return;
+            }
+            Type tb = t.toBasetype();
+            if (tb.ty == tparam.ty || tb.ty == Tsarray && tparam.ty == Taarray)
+            {
+                result = deduceType(tb, sc, tparam, parameters, dedtypes, wm);
+                if (result == MATCH.exact)
+                    result = MATCH.convert;
+                return;
+            }
+            visit(cast(Type)t);
+        }
+
+        override void visit(TypeClass t)
+        {
+            //printf("TypeClass.deduceType(this = %s)\n", t.toChars());
+
+            /* If this class is a template class, and we're matching
+             * it against a template instance, convert the class type
+             * to a template instance, too, and try again.
+             */
+            TemplateInstance ti = t.sym.parent.isTemplateInstance();
+
+            if (tparam && tparam.ty == Tinstance)
+            {
+                if (ti && ti.toAlias() == t.sym)
+                {
+                    auto tx = new TypeInstance(Loc.initial, ti);
+                    MATCH m = deduceType(tx, sc, tparam, parameters, dedtypes, wm);
+                    // Even if the match fails, there is still a chance it could match
+                    // a base class.
+                    if (m != MATCH.nomatch)
+                    {
+                        result = m;
+                        return;
+                    }
+                }
+
+                TypeInstance tpi = tparam.isTypeInstance();
+                auto m = deduceParentInstance(sc, t.sym, tpi, parameters, dedtypes, wm);
+                if (m != MATCH.nomatch)
+                {
+                    result = m;
+                    return;
+                }
+
+                // If it matches exactly or via implicit conversion, we're done
+                visit(cast(Type)t);
+                if (result != MATCH.nomatch)
+                    return;
+
+                /* There is still a chance to match via implicit conversion to
+                 * a base class or interface. Because there could be more than one such
+                 * match, we need to check them all.
+                 */
+
+                int numBaseClassMatches = 0; // Have we found an interface match?
+
+                // Our best guess at dedtypes
+                auto best = new Objects(dedtypes.length);
+
+                ClassDeclaration s = t.sym;
+                while (s && s.baseclasses.length > 0)
+                {
+                    // Test the base class
+                    deduceBaseClassParameters(*(*s.baseclasses)[0], sc, tparam, parameters, dedtypes, *best, numBaseClassMatches);
+
+                    // Test the interfaces inherited by the base class
+                    foreach (b; s.interfaces)
+                    {
+                        deduceBaseClassParameters(*b, sc, tparam, parameters, dedtypes, *best, numBaseClassMatches);
+                    }
+                    s = (*s.baseclasses)[0].sym;
+                }
+
+                if (numBaseClassMatches == 0)
+                {
+                    result = MATCH.nomatch;
+                    return;
+                }
+
+                // If we got at least one match, copy the known types into dedtypes
+                memcpy(dedtypes.tdata(), best.tdata(), best.length * (void*).sizeof);
+                result = MATCH.convert;
+                return;
+            }
+
+            // Extra check
+            if (tparam && tparam.ty == Tclass)
+            {
+                TypeClass tp = tparam.isTypeClass();
+
+                //printf("\t%d\n", cast(MATCH) t.implicitConvTo(tp));
+                if (wm && t.deduceWild(tparam, false))
+                {
+                    result = MATCH.constant;
+                    return;
+                }
+                result = t.implicitConvTo(tp);
+                return;
+            }
+            visit(cast(Type)t);
+        }
+
+        override void visit(Expression e)
+        {
+            //printf("Expression.deduceType(e = %s)\n", e.toChars());
+            size_t i = templateParameterLookup(tparam, &parameters);
+            if (i == IDX_NOTFOUND || tparam.isTypeIdentifier().idents.length > 0)
+            {
+                if (e == emptyArrayElement && tparam.ty == Tarray)
+                {
+                    Type tn = (cast(TypeNext)tparam).next;
+                    result = deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
+                    return;
+                }
+                e.type.accept(this);
+                return;
+            }
+
+            TemplateTypeParameter tp = parameters[i].isTemplateTypeParameter();
+            if (!tp)
+                return; // nomatch
+
+            if (e == emptyArrayElement)
+            {
+                if (dedtypes[i])
+                {
+                    result = MATCH.exact;
+                    return;
+                }
+                if (tp.defaultType)
+                {
+                    tp.defaultType.accept(this);
+                    return;
+                }
+            }
+
+            Type at = cast(Type)dedtypes[i];
+            Type tt;
+            if (ubyte wx = deduceWildHelper(e.type, &tt, tparam))
+            {
+                *wm |= wx;
+                result = MATCH.constant;
+            }
+            else if (MATCH m = deduceTypeHelper(e.type, tt, tparam))
+            {
+                result = m;
+            }
+            else if (!isTopRef(e.type))
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=15653
+                 * In IFTI, recognize top-qualifier conversions
+                 * through the value copy, e.g.
+                 *      int --> immutable(int)
+                 *      immutable(string[]) --> immutable(string)[]
+                 */
+                tt = e.type.mutableOf();
+                result = MATCH.convert;
+            }
+            else
+                return; // nomatch
+
+            // expression vs (none)
+            if (!at)
+            {
+                dedtypes[i] = new TypeDeduced(tt, e, tparam);
+                return;
+            }
+
+            TypeDeduced xt = null;
+            if (at.ty == Tnone)
+            {
+                xt = cast(TypeDeduced)at;
+                at = xt.tded;
+            }
+
+            // From previous matched expressions to current deduced type
+            MATCH match1 = xt ? xt.matchAll(tt) : MATCH.nomatch;
+
+            // From current expressions to previous deduced type
+            Type pt = at.addMod(tparam.mod);
+            if (*wm)
+                pt = pt.substWildTo(*wm);
+            MATCH match2 = e.implicitConvTo(pt);
+
+            if (match1 > MATCH.nomatch && match2 > MATCH.nomatch)
+            {
+                if (at.implicitConvTo(tt) == MATCH.nomatch)
+                    match1 = MATCH.nomatch; // Prefer at
+                else if (tt.implicitConvTo(at) == MATCH.nomatch)
+                    match2 = MATCH.nomatch; // Prefer tt
+                else if (tt.isTypeBasic() && tt.ty == at.ty && tt.mod != at.mod)
+                {
+                    if (!tt.isMutable() && !at.isMutable())
+                        tt = tt.mutableOf().addMod(MODmerge(tt.mod, at.mod));
+                    else if (tt.isMutable())
+                    {
+                        if (at.mod == 0) // Prefer unshared
+                            match1 = MATCH.nomatch;
+                        else
+                            match2 = MATCH.nomatch;
+                    }
+                    else if (at.isMutable())
+                    {
+                        if (tt.mod == 0) // Prefer unshared
+                            match2 = MATCH.nomatch;
+                        else
+                            match1 = MATCH.nomatch;
+                    }
+                    //printf("tt = %s, at = %s\n", tt.toChars(), at.toChars());
+                }
+                else
+                {
+                    match1 = MATCH.nomatch;
+                    match2 = MATCH.nomatch;
+                }
+            }
+            if (match1 > MATCH.nomatch)
+            {
+                // Prefer current match: tt
+                if (xt)
+                    xt.update(tt, e, tparam);
+                else
+                    dedtypes[i] = tt;
+                result = match1;
+                return;
+            }
+            if (match2 > MATCH.nomatch)
+            {
+                // Prefer previous match: (*dedtypes)[i]
+                if (xt)
+                    xt.update(e, tparam);
+                result = match2;
+                return;
+            }
+
+            /* Deduce common type
+             */
+            if (Type t = rawTypeMerge(at, tt))
+            {
+                if (xt)
+                    xt.update(t, e, tparam);
+                else
+                    dedtypes[i] = t;
+
+                pt = tt.addMod(tparam.mod);
+                if (*wm)
+                    pt = pt.substWildTo(*wm);
+                result = e.implicitConvTo(pt);
+                return;
+            }
+
+            result = MATCH.nomatch;
+        }
+
+        private MATCH deduceEmptyArrayElement()
+        {
+            if (!emptyArrayElement)
+            {
+                emptyArrayElement = new IdentifierExp(Loc.initial, Id.p); // dummy
+                emptyArrayElement.type = Type.tvoid;
+            }
+            assert(tparam.ty == Tarray);
+
+            Type tn = (cast(TypeNext)tparam).next;
+            return deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
+        }
+
+        override void visit(NullExp e)
+        {
+            if (tparam.ty == Tarray && e.type.ty == Tnull)
+            {
+                // tparam:T[] <- e:null (void[])
+                result = deduceEmptyArrayElement();
+                return;
+            }
+            visit(cast(Expression)e);
+        }
+
+        override void visit(StringExp e)
+        {
+            Type taai;
+            if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.length == 0))
+            {
+                // Consider compile-time known boundaries
+                e.type.nextOf().sarrayOf(e.len).accept(this);
+                return;
+            }
+            visit(cast(Expression)e);
+        }
+
+        override void visit(ArrayLiteralExp e)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=20092
+            if (e.elements && e.elements.length && e.type.toBasetype().nextOf().ty == Tvoid)
+            {
+                result = deduceEmptyArrayElement();
+                return;
+            }
+            if ((!e.elements || !e.elements.length) && e.type.toBasetype().nextOf().ty == Tvoid && tparam.ty == Tarray)
+            {
+                // tparam:T[] <- e:[] (void[])
+                result = deduceEmptyArrayElement();
+                return;
+            }
+
+            if (tparam.ty == Tarray && e.elements && e.elements.length)
+            {
+                Type tn = (cast(TypeDArray)tparam).next;
+                result = MATCH.exact;
+                if (e.basis)
+                {
+                    MATCH m = deduceType(e.basis, sc, tn, parameters, dedtypes, wm);
+                    if (m < result)
+                        result = m;
+                }
+                foreach (el; *e.elements)
+                {
+                    if (result == MATCH.nomatch)
+                        break;
+                    if (!el)
+                        continue;
+                    MATCH m = deduceType(el, sc, tn, parameters, dedtypes, wm);
+                    if (m < result)
+                        result = m;
+                }
+                return;
+            }
+
+            Type taai;
+            if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.length == 0))
+            {
+                // Consider compile-time known boundaries
+                e.type.nextOf().sarrayOf(e.elements.length).accept(this);
+                return;
+            }
+            visit(cast(Expression)e);
+        }
+
+        override void visit(AssocArrayLiteralExp e)
+        {
+            if (tparam.ty == Taarray && e.keys && e.keys.length)
+            {
+                TypeAArray taa = cast(TypeAArray)tparam;
+                result = MATCH.exact;
+                foreach (i, key; *e.keys)
+                {
+                    MATCH m1 = deduceType(key, sc, taa.index, parameters, dedtypes, wm);
+                    if (m1 < result)
+                        result = m1;
+                    if (result == MATCH.nomatch)
+                        break;
+                    MATCH m2 = deduceType((*e.values)[i], sc, taa.next, parameters, dedtypes, wm);
+                    if (m2 < result)
+                        result = m2;
+                    if (result == MATCH.nomatch)
+                        break;
+                }
+                return;
+            }
+            visit(cast(Expression)e);
+        }
+
+        override void visit(FuncExp e)
+        {
+            //printf("e.type = %s, tparam = %s\n", e.type.toChars(), tparam.toChars());
+            if (e.td)
+            {
+                Type to = tparam;
+                if (!to.nextOf())
+                    return;
+                auto tof = to.nextOf().isTypeFunction();
+                if (!tof)
+                    return;
+
+                // Parameter types inference from 'tof'
+                assert(e.td._scope);
+                TypeFunction tf = e.fd.type.isTypeFunction();
+                //printf("\ttof = %s\n", tof.toChars());
+                //printf("\ttf  = %s\n", tf.toChars());
+                const dim = tf.parameterList.length;
+
+                if (tof.parameterList.length != dim || tof.parameterList.varargs != tf.parameterList.varargs)
+                    return;
+
+                auto tiargs = new Objects();
+                tiargs.reserve(e.td.parameters.length);
+
+                foreach (tp; *e.td.parameters)
+                {
+                    size_t u = 0;
+                    foreach (i, p; tf.parameterList)
+                    {
+                        if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
+                            break;
+                        ++u;
+                    }
+                    assert(u < dim);
+                    Parameter pto = tof.parameterList[u];
+                    if (!pto)
+                        break;
+                    Type t = pto.type.syntaxCopy(); // https://issues.dlang.org/show_bug.cgi?id=11774
+                    if (reliesOnTemplateParameters(t, parameters[inferStart .. parameters.length]))
+                        return;
+                    t = t.typeSemantic(e.loc, sc);
+                    if (t.ty == Terror)
+                        return;
+                    tiargs.push(t);
+                }
+
+                // Set target of return type inference
+                if (!tf.next && tof.next)
+                    e.fd.treq = tparam;
+
+                auto ti = new TemplateInstance(e.loc, e.td, tiargs);
+                Expression ex = (new ScopeExp(e.loc, ti)).expressionSemantic(e.td._scope);
+
+                // Reset inference target for the later re-semantic
+                e.fd.treq = null;
+
+                if (ex.op == EXP.error)
+                    return;
+                if (ex.op != EXP.function_)
+                    return;
+                visit(ex.type);
+                return;
+            }
+
+            Type t = e.type;
+
+            if (t.ty == Tdelegate && tparam.ty == Tpointer)
+                return;
+
+            // Allow conversion from implicit function pointer to delegate
+            if (e.tok == TOK.reserved && t.ty == Tpointer && tparam.ty == Tdelegate)
+            {
+                TypeFunction tf = t.nextOf().isTypeFunction();
+                t = (new TypeDelegate(tf)).merge();
+            }
+            //printf("tparam = %s <= e.type = %s, t = %s\n", tparam.toChars(), e.type.toChars(), t.toChars());
+            visit(t);
+        }
+
+        override void visit(SliceExp e)
+        {
+            Type taai;
+            if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.length == 0))
+            {
+                // Consider compile-time known boundaries
+                if (Type tsa = toStaticArrayType(e))
+                {
+                    tsa.accept(this);
+                    if (result > MATCH.convert)
+                        result = MATCH.convert; // match with implicit conversion at most
+                    return;
+                }
+            }
+            visit(cast(Expression)e);
+        }
+
+        override void visit(CommaExp e)
+        {
+            e.e2.accept(this);
+        }
+    }
+
+    scope DeduceType v = new DeduceType();
+    if (Type t = isType(o))
+        t.accept(v);
+    else if (Expression e = isExpression(o))
+    {
+        assert(wm);
+        e.accept(v);
+    }
+    else
+        assert(0);
+    return v.result;
+}
+
+
+/* Helper for TypeClass.deduceType().
+ * Classes can match with implicit conversion to a base class or interface.
+ * This is complicated, because there may be more than one base class which
+ * matches. In such cases, one or more parameters remain ambiguous.
+ * For example,
+ *
+ *   interface I(X, Y) {}
+ *   class C : I(uint, double), I(char, double) {}
+ *   C x;
+ *   foo(T, U)( I!(T, U) x)
+ *
+ *   deduces that U is double, but T remains ambiguous (could be char or uint).
+ *
+ * Given a baseclass b, and initial deduced types 'dedtypes', this function
+ * tries to match tparam with b, and also tries all base interfaces of b.
+ * If a match occurs, numBaseClassMatches is incremented, and the new deduced
+ * types are ANDed with the current 'best' estimate for dedtypes.
+ */
+private void deduceBaseClassParameters(ref BaseClass b, Scope* sc, Type tparam, ref TemplateParameters parameters, ref Objects dedtypes, ref Objects best, ref int numBaseClassMatches)
+{
+    if (TemplateInstance parti = b.sym ? b.sym.parent.isTemplateInstance() : null)
+    {
+        // Make a temporary copy of dedtypes so we don't destroy it
+        auto tmpdedtypes = new Objects(dedtypes.length);
+        memcpy(tmpdedtypes.tdata(), dedtypes.tdata(), dedtypes.length * (void*).sizeof);
+
+        auto t = new TypeInstance(Loc.initial, parti);
+        MATCH m = deduceType(t, sc, tparam, parameters, *tmpdedtypes);
+        if (m > MATCH.nomatch)
+        {
+            // If this is the first ever match, it becomes our best estimate
+            if (numBaseClassMatches == 0)
+                memcpy(best.tdata(), tmpdedtypes.tdata(), tmpdedtypes.length * (void*).sizeof);
+            else
+                for (size_t k = 0; k < tmpdedtypes.length; ++k)
+                {
+                    // If we've found more than one possible type for a parameter,
+                    // mark it as unknown.
+                    if ((*tmpdedtypes)[k] != best[k])
+                        best[k] = dedtypes[k];
+                }
+            ++numBaseClassMatches;
+        }
+    }
+
+    // Now recursively test the inherited interfaces
+    foreach (ref bi; b.baseInterfaces)
+    {
+        deduceBaseClassParameters(bi, sc, tparam, parameters, dedtypes, best, numBaseClassMatches);
+    }
+}
+
+/*
+ * Handle tuple matching for function parameters.
+ * If the last parameter of `tp` is a template tuple parameter,
+ * collect the corresponding argument types from `t`.
+ * Params:
+ *     t          = actual function type
+ *     tp         = template function type
+ *     parameters = template parameters
+ *     dedtypes   = deduced types array
+ *     nfargs     = number of arguments in `t`
+ *     nfparams   = number of parameters in `tp` (updated on success)
+ * Returns: `true` on success, `false` on mismatch.
+ */
+private bool deduceFunctionTuple(TypeFunction t, TypeFunction tp,
+    ref TemplateParameters parameters, ref Objects dedtypes,
+    size_t nfargs, ref size_t nfparams)
+{
+    if (nfparams > 0 && nfargs >= nfparams - 1)
+    {
+        Parameter fparam = tp.parameterList[nfparams - 1];
+        assert(fparam && fparam.type);
+        if (fparam.type.ty == Tident)
+        {
+            TypeIdentifier tid = fparam.type.isTypeIdentifier();
+            if (tid.idents.length == 0)
+            {
+                size_t tupi = 0;
+                for (; tupi < parameters.length; ++tupi)
+                {
+                    TemplateParameter tx = parameters[tupi];
+                    TemplateTupleParameter tup = tx.isTemplateTupleParameter();
+                    if (tup && tup.ident.equals(tid.ident))
+                        break;
+                }
+                if (tupi == parameters.length)
+                    return nfargs == nfparams;
+
+                size_t tuple_dim = nfargs - (nfparams - 1);
+
+                RootObject o = dedtypes[tupi];
+                if (o)
+                {
+                    Tuple tup = isTuple(o);
+                    if (!tup || tup.objects.length != tuple_dim)
+                        return false;
+                    for (size_t i = 0; i < tuple_dim; ++i)
+                    {
+                        if (!t.parameterList[nfparams - 1 + i].type.equals(tup.objects[i]))
+                            return false;
+                    }
+                }
+                else
+                {
+                    auto tup = new Tuple(tuple_dim);
+                    for (size_t i = 0; i < tuple_dim; ++i)
+                        tup.objects[i] = t.parameterList[nfparams - 1 + i].type;
+                    dedtypes[tupi] = tup;
+                }
+                --nfparams; // ignore tuple parameter for further deduction
+                return true;
+            }
+        }
+    }
+    return nfargs == nfparams;
+}
+
+/********************
+ * Match template `parameters` to the target template instance.
+ * Example:
+ *    struct Temp(U, int Z) {}
+ *    void foo(T)(Temp!(T, 3));
+ *    foo(Temp!(int, 3)());
+ * Input:
+ *    sc               = context
+ *    parameters       = template params of foo -> [T]
+ *    tiargs           = <Temp!(int, 3)>.tiargs  -> [int, 3]
+ *    tdtypes          = <Temp!(int, 3)>.tdtypes -> [int, 3]
+ *    tempdecl         = <struct Temp!(T, int Z)> -> [T, Z]
+ *    tp               = <Temp!(T, 3)>
+ * Output:
+ *    dedtypes         = deduced params of `foo(Temp!(int, 3)())` -> [int]
+ */
+private bool resolveTemplateInstantiation(Scope* sc, TemplateParameters* parameters, Objects* tiargs, Objects* tdtypes, TemplateDeclaration tempdecl, TypeInstance tp, Objects* dedtypes)
+{
+    for (size_t i = 0; 1; i++)
+    {
+        //printf("\ttest: tempinst.tiargs[%zu]\n", i);
+        RootObject o1 = null;
+        if (i < tiargs.length)
+            o1 = (*tiargs)[i];
+        else if (i < tdtypes.length && i < tp.tempinst.tiargs.length)
+        {
+            // Pick up default arg
+            o1 = (*tdtypes)[i];
+        }
+        else if (i >= tp.tempinst.tiargs.length)
+            break;
+        //printf("\ttest: o1 = %s\n", o1.toChars());
+        if (i >= tp.tempinst.tiargs.length)
+        {
+            size_t dim = tempdecl.parameters.length - (tempdecl.isVariadic() ? 1 : 0);
+            while (i < dim && ((*tempdecl.parameters)[i].dependent || (*tempdecl.parameters)[i].hasDefaultArg()))
+            {
+                i++;
+            }
+            if (i >= dim)
+                break; // match if all remained parameters are dependent
+            return false;
+        }
+
+        RootObject o2 = (*tp.tempinst.tiargs)[i];
+        Type t2 = isType(o2);
+        //printf("\ttest: o2 = %s\n", o2.toChars());
+        size_t j = (t2 && t2.ty == Tident && i == tp.tempinst.tiargs.length - 1)
+            ? templateParameterLookup(t2, parameters) : IDX_NOTFOUND;
+        if (j != IDX_NOTFOUND && j == parameters.length - 1 &&
+            (*parameters)[j].isTemplateTupleParameter())
+        {
+            /* Given:
+                 *  struct A(B...) {}
+                 *  alias A!(int, float) X;
+                 *  static if (is(X Y == A!(Z), Z...)) {}
+                 * deduce that Z is a tuple(int, float)
+                 */
+
+            /* Create tuple from remaining args
+                 */
+            size_t vtdim = (tempdecl.isVariadic() ? tiargs.length : tdtypes.length) - i;
+            auto vt = new Tuple(vtdim);
+            for (size_t k = 0; k < vtdim; k++)
+            {
+                RootObject o;
+                if (k < tiargs.length)
+                    o = (*tiargs)[i + k];
+                else // Pick up default arg
+                    o = (*tdtypes)[i + k];
+                vt.objects[k] = o;
+            }
+
+            Tuple v = cast(Tuple)(*dedtypes)[j];
+            if (v)
+            {
+                if (!match(v, vt))
+                    return false;
+            }
+            else
+                (*dedtypes)[j] = vt;
+            break;
+        }
+        else if (!o1)
+            break;
+
+        Type t1 = isType(o1);
+        Dsymbol s1 = isDsymbol(o1);
+        Dsymbol s2 = isDsymbol(o2);
+        Expression e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
+        Expression e2 = isExpression(o2);
+        version (none)
+        {
+            Tuple v1 = isTuple(o1);
+            Tuple v2 = isTuple(o2);
+            if (t1)
+                printf("t1 = %s\n", t1.toChars());
+            if (t2)
+                printf("t2 = %s\n", t2.toChars());
+            if (e1)
+                printf("e1 = %s\n", e1.toChars());
+            if (e2)
+                printf("e2 = %s\n", e2.toChars());
+            if (s1)
+                printf("s1 = %s\n", s1.toChars());
+            if (s2)
+                printf("s2 = %s\n", s2.toChars());
+            if (v1)
+                printf("v1 = %s\n", v1.toChars());
+            if (v2)
+                printf("v2 = %s\n", v2.toChars());
+        }
+
+        if (t1 && t2)
+        {
+            if (!deduceType(t1, sc, t2, *parameters, *dedtypes))
+                return false;
+        }
+        else if (e1 && e2)
+        {
+        Le:
+            e1 = e1.ctfeInterpret();
+
+            /* If it is one of the template parameters for this template,
+                 * we should not attempt to interpret it. It already has a value.
+                 */
+            if (e2.op == EXP.variable && (e2.isVarExp().var.storage_class & STC.templateparameter))
+            {
+                /*
+                     * (T:Number!(e2), int e2)
+                     */
+                j = templateIdentifierLookup(e2.isVarExp().var.ident, parameters);
+                if (j != IDX_NOTFOUND)
+                    goto L1;
+                // The template parameter was not from this template
+                // (it may be from a parent template, for example)
+            }
+
+            e2 = e2.expressionSemantic(sc); // https://issues.dlang.org/show_bug.cgi?id=13417
+            e2 = e2.ctfeInterpret();
+
+            //printf("e1 = %s, type = %s %d\n", e1.toChars(), e1.type.toChars(), e1.type.ty);
+            //printf("e2 = %s, type = %s %d\n", e2.toChars(), e2.type.toChars(), e2.type.ty);
+            if (!e1.equals(e2))
+            {
+                if (!e2.implicitConvTo(e1.type))
+                    return false;
+
+                e2 = e2.implicitCastTo(sc, e1.type);
+                e2 = e2.ctfeInterpret();
+                if (!e1.equals(e2))
+                    return false;
+            }
+        }
+        else if (e1 && t2 && t2.ty == Tident)
+        {
+            j = templateParameterLookup(t2, parameters);
+        L1:
+            if (j == IDX_NOTFOUND)
+            {
+                t2.resolve((cast(TypeIdentifier)t2).loc, sc, e2, t2, s2);
+                if (e2)
+                    goto Le;
+                return false;
+            }
+            if (!(*parameters)[j].matchArg(sc, e1, j, parameters, *dedtypes, null))
+                return false;
+        }
+        else if (s1 && s2)
+        {
+        Ls:
+            if (!s1.equals(s2))
+                return false;
+        }
+        else if (s1 && t2 && t2.ty == Tident)
+        {
+            j = templateParameterLookup(t2, parameters);
+            if (j == IDX_NOTFOUND)
+            {
+                t2.resolve((cast(TypeIdentifier)t2).loc, sc, e2, t2, s2);
+                if (s2)
+                    goto Ls;
+                return false;
+            }
+            if (!(*parameters)[j].matchArg(sc, s1, j, parameters, *dedtypes, null))
+                return false;
+        }
+        else
+            return false;
+    }
+    return true;
+}
+
+private  Expression getValue(ref Dsymbol s)
+{
+    if (s)
+    {
+        if (VarDeclaration v = s.isVarDeclaration())
+        {
+            if (v.storage_class & STC.manifest)
+                return v.getConstInitializer();
+        }
+    }
+    return null;
+}
+
+/***********************
+ * Try to get value from manifest constant
+ */
+private Expression getValue(Expression e)
+{
+    if (!e)
+        return null;
+    if (auto ve = e.isVarExp())
+    {
+        if (auto v = ve.var.isVarDeclaration())
+        {
+            if (v.storage_class & STC.manifest)
+            {
+                e = v.getConstInitializer();
+            }
+        }
+    }
+    return e;
+}
+
+Expression getExpression(RootObject o)
+{
+    auto s = isDsymbol(o);
+    return s ? .getValue(s) : .getValue(isExpression(o));
+}
