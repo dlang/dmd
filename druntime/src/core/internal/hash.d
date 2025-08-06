@@ -733,7 +733,7 @@ Params:
     dataKnownToBeAligned = whether the data is known at compile time to be uint-aligned.
 +/
 @nogc nothrow pure @trusted
-private size_t bytesHash(bool dataKnownToBeAligned)(scope const(ubyte)[] bytes, size_t seed)
+private size_t _bytesHash(bool dataKnownToBeAligned)(scope const(ubyte)[] bytes, size_t seed)
 {
     auto len = bytes.length;
     auto data = bytes.ptr;
@@ -785,6 +785,34 @@ private size_t bytesHash(bool dataKnownToBeAligned)(scope const(ubyte)[] bytes, 
     h1 = (h1 ^ (h1 >> 13)) * 0xc2b2ae35;
     h1 ^= h1 >> 16;
     return h1;
+}
+
+// precompile bytesHash into the runtime to also get optimized versions in debug builds
+@nogc nothrow pure @trusted
+private size_t _bytesHashAligned(scope const(ubyte)[] bytes, size_t seed)
+{
+    pragma(inline, true);
+    return _bytesHash!true(bytes, seed);
+}
+@nogc nothrow pure @trusted
+private size_t _bytesHashUnaligned(scope const(ubyte)[] bytes, size_t seed)
+{
+    pragma(inline, true);
+    return _bytesHash!false(bytes, seed);
+}
+
+/+
+Params:
+dataKnownToBeAligned = whether the data is known at compile time to be uint-aligned.
++/
+@nogc nothrow pure @trusted
+private size_t bytesHash(bool dataKnownToBeAligned)(scope const(ubyte)[] bytes, size_t seed)
+{
+    pragma(inline, true);
+    static if (dataKnownToBeAligned)
+        return _bytesHashAligned(bytes, seed);
+    else
+        return _bytesHashUnaligned(bytes, seed);
 }
 
 //  Check that bytesHash works with CTFE
