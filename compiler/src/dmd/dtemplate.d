@@ -77,7 +77,7 @@ import dmd.rootobject;
 import dmd.templatesem : matchWithInstance, formatParamsWithTiargs, leastAsSpecialized,
                          deduceType, getExpression, TemplateInstance_semanticTiargs;
 import dmd.tokens;
-import dmd.typesem : typeSemantic, toDsymbol, isBaseOf, resolveNamedArgs;
+import dmd.typesem : typeSemantic, resolve, toDsymbol, isBaseOf, resolveNamedArgs;
 import dmd.visitor;
 
 import dmd.templateparamsem;
