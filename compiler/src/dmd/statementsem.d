@@ -1002,7 +1002,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     if (p0.storageClass & STC.ref_ &&
                         !(p0.storageClass & (STC.const_ | STC.immutable_ | STC.wild)))
                     {
-                        // @@@DEPRECATED_2.119@@@
+                        // @@@DEPRECATED_2.121@@@
                         // turn deprecation into an error & uncomment return
                         deprecation(fs.loc, "`foreach` array index variable `%s` cannot be `ref`",
                             p0.toChars());
@@ -1476,7 +1476,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         if (fs.param.storageClass & STC.ref_ &&
             !(fs.param.storageClass & (STC.const_ | STC.immutable_ | STC.wild)))
         {
-            // @@@DEPRECATED_2.119@@@
+            // @@@DEPRECATED_2.121@@@
             // turn deprecation into an error & uncomment return
             deprecation(fs.loc, "`foreach` range variable `%s` cannot be `ref`",
                 fs.param.toChars());
