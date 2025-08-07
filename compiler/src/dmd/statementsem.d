@@ -1471,16 +1471,6 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         /* https://dlang.org/spec/statement.html#foreach-range-statement
          */
 
-        if (fs.param.storageClass & STC.ref_)
-        {
-            // @@@DEPRECATED_2.121@@@
-            // turn deprecation into an error & uncomment return
-            deprecation(fs.loc, "`foreach` range variable `%s` cannot be `ref`",
-                fs.param.toChars());
-            deprecationSupplemental(fs.loc, "use a `for` loop instead");
-            //return setError();
-        }
-
         //printf("ForeachRangeStatement::semantic() %p\n", fs);
 
         if (fs.param.storageClass & STC.manifest)
@@ -1564,6 +1554,18 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         if (fs.param.type.ty == Terror || fs.lwr.op == EXP.error || fs.upr.op == EXP.error)
         {
             return setError();
+        }
+
+        // a struct is allowed to be `ref` to prevent destructor calls
+        // see runnable/foreach5.d:test6659
+        if (fs.param.storageClass & STC.ref_ && !fs.param.type.isTypeStruct())
+        {
+            // @@@DEPRECATED_2.121@@@
+            // turn deprecation into an error & uncomment return
+            deprecation(fs.loc, "`foreach` range variable `%s` cannot be `ref`",
+                fs.param.toChars());
+            deprecationSupplemental(fs.loc, "use a `for` loop instead");
+            //return setError();
         }
 
         /* Convert to a for loop:

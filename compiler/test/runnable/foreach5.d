@@ -348,7 +348,7 @@ void test6659()
         static size_t _dtor;
     }
 
-    foreach (const iter; Iter(0) .. Iter(10))
+    foreach (ref iter; Iter(0) .. Iter(10))
     {
         assert(Iter._dtor == 0);
     }
