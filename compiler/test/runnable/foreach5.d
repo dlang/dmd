@@ -233,7 +233,7 @@ void test4090b()
   static assert(!__traits(compiles, {
     foreach (immutable ref x; 1..11) {}
   }));
-    foreach (const ref x; 1..11)
+    foreach (const x; 1..11)
     {
         static assert(is(typeof(x) == const int));
         tot += x;
@@ -348,7 +348,7 @@ void test6659()
         static size_t _dtor;
     }
 
-    foreach (ref const iter; Iter(0) .. Iter(10))
+    foreach (const iter; Iter(0) .. Iter(10))
     {
         assert(Iter._dtor == 0);
     }

@@ -4,7 +4,7 @@
 TEST_OUTPUT:
 ---
 compilable/interpret3.d(5308): Deprecation: `foreach` range variable `i` cannot be `ref`
-compilable/interpret3.d(5308):        either make `i` const or use a `for` loop instead
+compilable/interpret3.d(5308):        use a `for` loop instead
 compilable/interpret3.d(6353): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
 ---
 */

@@ -999,15 +999,13 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 if (dim == 2)
                 {
                     auto p0 = (*fs.parameters)[0];
-                    if (p0.storageClass & STC.ref_ &&
-                        !(p0.storageClass & (STC.const_ | STC.immutable_ | STC.wild)))
+                    if (p0.storageClass & STC.ref_)
                     {
                         // @@@DEPRECATED_2.121@@@
                         // turn deprecation into an error & uncomment return
                         deprecation(fs.loc, "`foreach` array index variable `%s` cannot be `ref`",
                             p0.toChars());
-                        deprecationSupplemental(fs.loc, "either make `%s` const or use a `for` loop instead",
-                            p0.toChars());
+                        deprecationSupplemental(fs.loc, "use a `for` loop instead");
                         //return retError();
                     }
                 }
@@ -1473,15 +1471,13 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         /* https://dlang.org/spec/statement.html#foreach-range-statement
          */
 
-        if (fs.param.storageClass & STC.ref_ &&
-            !(fs.param.storageClass & (STC.const_ | STC.immutable_ | STC.wild)))
+        if (fs.param.storageClass & STC.ref_)
         {
             // @@@DEPRECATED_2.121@@@
             // turn deprecation into an error & uncomment return
             deprecation(fs.loc, "`foreach` range variable `%s` cannot be `ref`",
                 fs.param.toChars());
-            deprecationSupplemental(fs.loc, "either make `%s` const or use a `for` loop instead",
-                fs.param.toChars());
+            deprecationSupplemental(fs.loc, "use a `for` loop instead");
             //return setError();
         }
 
