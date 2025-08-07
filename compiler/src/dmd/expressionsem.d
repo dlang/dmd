@@ -621,7 +621,7 @@ TupleDeclaration isAliasThisTuple(Expression e)
  */
 Expression addressOf(Expression e)
 {
-    //printf("Expression::addressOf()\n");
+    //printf("Expression::addressOf() %s\n", e.toChars());
     debug
     {
         assert(e.op == EXP.error || e.isLvalue());
@@ -16213,7 +16213,9 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
         // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
         CondExp e = cast(CondExp)(_this.copy());
         e.e1 = _this.e1.toLvalue(sc, action).addressOf();
+        checkAddressable(e.e1, sc);
         e.e2 = _this.e2.toLvalue(sc, action).addressOf();
+        checkAddressable(e.e2, sc);
         e.type = _this.type.pointerTo();
         return new PtrExp(_this.loc, e, _this.type);
 
@@ -16600,6 +16602,7 @@ private bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
  */
 bool checkAddressable(Expression e, Scope* sc)
 {
+    //printf("checkAddressable() %s\n", e.toChars());
     Expression ex = e;
     while (true)
     {
@@ -16627,7 +16630,7 @@ bool checkAddressable(Expression e, Scope* sc)
                 continue;
 
             case EXP.variable:
-                if (sc.inCfile)
+                if (sc && sc.inCfile)
                 {
                     // C11 6.5.3.2: A variable that has its address taken cannot be
                     // stored in a register.
