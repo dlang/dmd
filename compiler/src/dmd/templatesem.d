@@ -2757,7 +2757,61 @@ private auto X(T, U)(T m, U n)
     return (m << 4) | n;
 }
 
-MATCH deduceTypeHelper(Type t, out Type at, Type tparam)
+private ubyte deduceWildHelper(Type t, Type* at, Type tparam)
+{
+    if ((tparam.mod & MODFlags.wild) == 0)
+        return 0;
+
+    *at = null;
+
+    switch (X(tparam.mod, t.mod))
+    {
+    case X(MODFlags.wild, 0):
+    case X(MODFlags.wild, MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.wildconst, 0):
+    case X(MODFlags.wildconst, MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.immutable_):
+        {
+            ubyte wm = (t.mod & ~MODFlags.shared_);
+            if (wm == 0)
+                wm = MODFlags.mutable;
+            ubyte m = (t.mod & (MODFlags.const_ | MODFlags.immutable_)) | (tparam.mod & t.mod & MODFlags.shared_);
+            *at = t.unqualify(m);
+            return wm;
+        }
+    case X(MODFlags.wild, MODFlags.wild):
+    case X(MODFlags.wild, MODFlags.wildconst):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.wildconst, MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.wildconst):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
+        {
+            *at = t.unqualify(tparam.mod & t.mod);
+            return MODFlags.wild;
+        }
+    default:
+        return 0;
+    }
+}
+
+private MATCH deduceTypeHelper(Type t, out Type at, Type tparam)
 {
     // 9*9 == 81 cases
     switch (X(tparam.mod, t.mod))
