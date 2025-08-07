@@ -1146,6 +1146,26 @@ private extern (C++) class CVMember : Visitor
         else
         {
             idx_t typidx = cv_typidx(Type_toCtype(vd.type));
+            if (auto bfd = vd.isBitFieldDeclaration())
+            {
+                debtyp_t* db;
+                if (config.fulltypes == CV4)
+                {
+                    db = debtyp_alloc(6);
+                    TOWORD(db.data.ptr, LF_BITFIELD);
+                    db.data.ptr[2] = cast(ubyte) bfd.fieldWidth;
+                    db.data.ptr[3] = cast(ubyte) bfd.bitOffset;
+                    TOWORD(db.data.ptr + 4, typidx);
+                }
+                else
+                {   db = debtyp_alloc(8);
+                    TOWORD(db.data.ptr, LF_BITFIELD_V2);
+                    db.data.ptr[6] = cast(ubyte) bfd.fieldWidth;
+                    db.data.ptr[7] = cast(ubyte) bfd.bitOffset;
+                    TOLONG(db.data.ptr + 2, typidx);
+                }
+                typidx = cv_debtyp(db);
+            }
             uint attribute = visibilityToCVAttr(vd.visible().kind);
             assert((attribute & ~3) == 0);
             switch (config.fulltypes)

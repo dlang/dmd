@@ -3891,7 +3891,6 @@ private extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
 private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, Type tab)
 {
     auto taa = tab.isTypeAArray();
-    Expression ec;
     const dim = fs.parameters.length;
     // Check types
     Parameter p = (*fs.parameters)[0];
@@ -3919,46 +3918,22 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     }
 
     /* Call:
-     *  extern(C) int _aaApply(void*, in size_t, int delegate(void*))
-     *      _aaApply(aggr, keysize, flde)
-     *
-     *  extern(C) int _aaApply2(void*, in size_t, int delegate(void*, void*))
-     *      _aaApply2(aggr, keysize, flde)
+     *   int _d_aaApply(V[K] aa, int delegate(V*))
+     * or
+     *   int _d_aaApply2(V[K] aa, int delegate(K*, V*))
      */
-    __gshared FuncDeclaration* fdapply = [null, null];
-    __gshared TypeDelegate* fldeTy = [null, null];
-    ubyte i = (dim == 2 ? 1 : 0);
-    if (!fdapply[i])
-    {
-        auto params = new Parameters(new Parameter(Loc.initial, STC.none, Type.tvoid.pointerTo(), null, null, null),
-                                     new Parameter(Loc.initial, STC.const_, Type.tsize_t, null, null, null));
-        auto dgparams = new Parameters(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
-        if (dim == 2)
-            dgparams.push(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
-        fldeTy[i] = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
-        params.push(new Parameter(Loc.initial, STC.none, fldeTy[i], null, null, null));
-        fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, i ? Id._aaApply2 : Id._aaApply);
-    }
+    auto loc = fs.loc;
+    Identifier hook = dim == 2 ? Id._d_aaApply2 : Id._d_aaApply;
+    Expression func = new IdentifierExp(loc, Id.empty);
+    func = new DotIdExp(loc, func, Id.object);
+    auto tiargs = new Objects(taa.index.substWildTo(MODFlags.const_),
+                              taav.substWildTo(MODFlags.const_),
+                              flde.type.substWildTo(MODFlags.const_));
+    func = new DotTemplateInstanceExp(loc, func, hook, tiargs);
 
-    auto exps = new Expressions(fs.aggr);
-    auto keysize = taa.index.size();
-    if (keysize == SIZE_INVALID)
-        return null;
-    assert(keysize < keysize.max - target.ptrsize);
-    keysize = (keysize + (target.ptrsize - 1)) & ~(target.ptrsize - 1);
-    // paint delegate argument to the type runtime expects
-    Expression fexp = flde;
-    if (!fldeTy[i].equals(flde.type))
-    {
-        fexp = new CastExp(fs.loc, flde, flde.type);
-        fexp.type = fldeTy[i];
-    }
-    exps.push(new IntegerExp(Loc.initial, keysize, Type.tsize_t));
-    exps.push(fexp);
-    ec = new VarExp(Loc.initial, fdapply[i], false);
-    ec = new CallExp(fs.loc, ec, exps);
-    ec.type = Type.tint32; // don't run semantic() on ec
-    return ec;
+    auto arguments = new Expressions(fs.aggr, flde);
+    auto call = new CallExp(loc, func, arguments);
+    return call;
 }
 
 private extern(D) Statement loopReturn(Expression e, Statements* cases, Loc loc)
@@ -4011,6 +3986,7 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
 
         p.type = p.type.typeSemantic(fs.loc, sc);
         p.type = p.type.addStorageClass(p.storageClass);
+        p.type = p.type.substWildTo(MODFlags.const_);
         if (tfld)
         {
             Parameter param = tfld.parameterList[i];
@@ -4046,7 +4022,7 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
             Statement s = new ExpStatement(fs.loc, v);
             fs._body = new CompoundStatement(fs.loc, s, fs._body);
             if (taa)
-                p.type = i == 1 || fs.parameters.length == 1 ? taa.nextOf() : taa.index;
+                p.type = (i == 1 || fs.parameters.length == 1 ? taa.nextOf() : taa.index).substWildTo(MODFlags.const_);
         }
         params.push(new Parameter(fs.loc, stc, p.type, id, null, null));
     }

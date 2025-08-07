@@ -46,6 +46,7 @@ import dmd.toctype;
 import dmd.e2ir;
 import dmd.errorsink;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals : Param;
 import dmd.glue;
 import dmd.identifier;
@@ -119,25 +120,7 @@ struct IRState
     {
         if (m.filetype == FileType.c)
             return false;
-        final switch (params.useArrayBounds)
-        {
-        case CHECKENABLE.off:
-            return false;
-        case CHECKENABLE.on:
-            return true;
-        case CHECKENABLE.safeonly:
-            {
-                if (FuncDeclaration fd = getFunc())
-                {
-                    Type t = fd.type;
-                    if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
-                        return true;
-                }
-                return false;
-            }
-        case CHECKENABLE._default:
-            assert(0);
-        }
+        return dmd.funcsem.arrayBoundsCheck(getFunc());
     }
 
     /****************************

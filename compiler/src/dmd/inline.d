@@ -731,7 +731,9 @@ public:
             auto lowering = ne.lowering;
             if (lowering)
                 if (auto ce = lowering.isCallExp())
-                    if (ce.f.ident == Id._d_newarrayT || ce.f.ident == Id._d_newarraymTX)
+                    if (ce.f.ident == Id._d_newarrayT ||
+                        ce.f.ident == Id._d_newarraymTX ||
+                        ce.f.ident == Id._d_aaNew)
                     {
                         ne.lowering = doInlineAs!Expression(lowering, ids);
                         goto LhasLowering;
@@ -943,6 +945,9 @@ public:
             auto ce = e.copy().isAssocArrayLiteralExp();
             ce.keys = arrayExpressionDoInline(e.keys);
             ce.values = arrayExpressionDoInline(e.values);
+            if (e.lowering)
+                ce.lowering = doInlineAs!Expression(e.lowering, ids);
+
             result = ce;
 
             semanticTypeInfo(null, e.type);
