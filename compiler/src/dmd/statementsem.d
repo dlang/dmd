@@ -1000,7 +1000,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 {
                     auto p0 = (*fs.parameters)[0];
                     if (p0.storageClass & STC.ref_ &&
-                        !(p0.storageClass & (STC.const_ | STC.immutable_)))
+                        !(p0.storageClass & (STC.const_ | STC.immutable_ | STC.wild)))
                     {
                         // @@@DEPRECATED_2.119@@@
                         // turn deprecation into an error & uncomment return
@@ -1473,15 +1473,15 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         /* https://dlang.org/spec/statement.html#foreach-range-statement
          */
 
-        if (fs.prm.storageClass & STC.ref_ &&
-            !(fs.prm.storageClass & (STC.const_ | STC.immutable_)))
+        if (fs.param.storageClass & STC.ref_ &&
+            !(fs.param.storageClass & (STC.const_ | STC.immutable_ | STC.wild)))
         {
             // @@@DEPRECATED_2.119@@@
             // turn deprecation into an error & uncomment return
             deprecation(fs.loc, "`foreach` range variable `%s` cannot be `ref`",
-                fs.prm.toChars());
+                fs.param.toChars());
             deprecationSupplemental(fs.loc, "either make `%s` const or use a `for` loop instead",
-                fs.prm.toChars());
+                fs.param.toChars());
             //return setError();
         }
 
