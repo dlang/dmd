@@ -915,7 +915,7 @@ idx_t cv4_struct(Classsym* s,int flags)
                 }
                 else
                 {   db = debtyp_alloc(8);
-                    TOWORD(db.data.ptr,LF_BITFIELD);
+                    TOWORD(db.data.ptr,LF_BITFIELD_V2);
                     db.data.ptr[6] = sf.Swidth;
                     db.data.ptr[7] = sf.Sbit;
                     TOLONG(db.data.ptr + 2,cv4_symtypidx(sf));
