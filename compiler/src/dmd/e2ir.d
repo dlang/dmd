@@ -40,7 +40,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : include, _isZeroInit;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.expressionsem : fill;
+import dmd.expressionsem : fill, isLvalue;
 import dmd.func;
 import dmd.glue;
 import dmd.hdrgen;
