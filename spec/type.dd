@@ -165,9 +165,10 @@ AliasSeq!(int, string) tsi; // type sequence instance
 
 $(H3 $(LNAME2 pointers, Pointers))
 
-        $(P A pointer to type $(D T) has a value which is a reference (address) to another
-        object of type $(D T). It is commonly called a $(I pointer to T) and its type is
-        `T*`. To access the object value, use the `*` dereference operator:
+        $(P A pointer value is a memory address.
+        A pointer to type $(D T) has a value which is a reference to an
+        instance of type $(D T). It is commonly called a $(I pointer to T) and its type is
+        `T*`. To access the pointed-to value, use the `*` dereference operator:
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -184,21 +185,22 @@ assert(*p == 6);
 ---------
 )
 
-        $(P If a pointer contains a $(I null) value, it is not pointing to a valid object.)
+        $(P If a pointer has a $(I null) value, it is not pointing to valid data.)
 
-        $(P When a pointer to $(I T) is dereferenced, it must either contain a $(I null) value,
-        or point to a valid object of type $(I T).)
+        $(P When a pointer to $(I T) is dereferenced, it must either have a $(I null) value,
+        or point to a valid instance of type $(I T).)
 
         $(IMPLEMENTATION_DEFINED
         $(OL
         $(LI The behavior when a $(I null) pointer is dereferenced. Typically the program
-        will be aborted.)
+        will be aborted - $(DDSUBLINK spec/function, null-dereferences, that is required)
+        in `@safe` code.)
         ))
 
         $(UNDEFINED_BEHAVIOR dereferencing a pointer that is not $(I null) and does not point
-        to a valid object of type $(I T).)
+        to a valid instance of type $(I T).)
 
-        $(P To set a pointer to point at an existing object, use the
+        $(P To set a pointer to point at an existing $(DDSUBLINK spec/expression, .define-lvalue, lvalue), use the
         `&` *address of* operator:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -212,7 +214,14 @@ assert(*p == 2);
 assert(i == 4);
 ---------
 )
-        $(P See also $(DDSUBLINK spec/expression, pointer_arithmetic, Pointer Arithmetic).)
+        $(P See also:)
+        * $(DDSUBLINK spec/expression, pointer_arithmetic, Pointer Arithmetic)
+        * $(DDSUBLINK spec/expression, slice_expressions, Pointer Slicing)
+        * $(RELATIVE_LINK2 pointer-conversions, Pointer Conversions)
+
+        $(BEST_PRACTICE Use a $(DDSUBLINK spec/function, ref-params,
+        `ref` function parameter) or a $(DDSUBLINK spec/declaration, ref-variables,
+        `ref` local variable) when the address doesn't escape.
 
 
 $(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
