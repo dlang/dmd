@@ -15983,14 +15983,14 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action)
     return toLvalueImpl(_this, sc, action, _this);
 }
 
-// e = original un-lowered expression for error messages, in case of recursive calls
-private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action, Expression e)
+// eorig = original un-lowered expression for error messages, in case of recursive calls
+private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action, Expression eorig)
 {
     //printf("toLvalueImpl() %s\n", _this.toChars());
     if (!action)
         action = "create lvalue of";
 
-    assert(e);
+    assert(eorig);
     Expression visit(Expression _this)
     {
         // BinaryAssignExp does not have an EXP associated
@@ -15999,14 +15999,14 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
         if (_this.isBinAssignExp())
             return _this;
         if (!_this.loc.isValid())
-            _this.loc = e.loc;
+            _this.loc = eorig.loc;
 
-        if (e.op == EXP.type)
-            error(_this.loc, "cannot %s type `%s`", action, e.type.toChars());
-        else if (e.op == EXP.template_)
-            error(_this.loc, "cannot %s template `%s`, perhaps instantiate it first", action, e.toErrMsg());
+        if (eorig.op == EXP.type)
+            error(_this.loc, "cannot %s type `%s`", action, eorig.type.toChars());
+        else if (eorig.op == EXP.template_)
+            error(_this.loc, "cannot %s template `%s`, perhaps instantiate it first", action, eorig.toErrMsg());
         else
-            error(_this.loc, "cannot %s expression `%s` because it is not an lvalue", action, e.toErrMsg());
+            error(_this.loc, "cannot %s expression `%s` because it is not an lvalue", action, eorig.toErrMsg());
 
         return ErrorExp.get();
     }
@@ -16014,8 +16014,8 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
     Expression visitInteger(IntegerExp _this)
     {
         if (!_this.loc.isValid())
-            _this.loc = e.loc;
-        error(e.loc, "cannot %s constant `%s`", action, e.toErrMsg());
+            _this.loc = eorig.loc;
+        error(eorig.loc, "cannot %s constant `%s`", action, eorig.toErrMsg());
         return ErrorExp.get();
     }
 
@@ -16152,7 +16152,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 
     Expression visitVectorArray(VectorArrayExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, eorig);
         return _this;
     }
 
@@ -16177,13 +16177,13 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 
     Expression visitDelegatePointer(DelegatePtrExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, eorig);
         return _this;
     }
 
     Expression visitDelegateFuncptr(DelegateFuncptrExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, eorig);
         return _this;
     }
 
@@ -16211,13 +16211,13 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
     Expression visitCond(CondExp _this)
     {
         // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
-        CondExp e = cast(CondExp)(_this.copy());
-        e.e1 = _this.e1.toLvalue(sc, action).addressOf();
-        checkAddressable(e.e1, sc);
-        e.e2 = _this.e2.toLvalue(sc, action).addressOf();
-        checkAddressable(e.e2, sc);
-        e.type = _this.type.pointerTo();
-        return new PtrExp(_this.loc, e, _this.type);
+        CondExp ecopy = cast(CondExp)(_this.copy());
+        ecopy.e1 = _this.e1.toLvalue(sc, action).addressOf();
+        checkAddressable(ecopy.e1, sc);
+        ecopy.e2 = _this.e2.toLvalue(sc, action).addressOf();
+        checkAddressable(ecopy.e2, sc);
+        ecopy.type = _this.type.pointerTo();
+        return new PtrExp(_this.loc, ecopy, _this.type);
 
     }
 
@@ -16416,10 +16416,10 @@ Expression modifiableLvalue(Expression _this, Scope* sc)
     return modifiableLvalueImpl(_this, sc, _this);
 }
 
-// e = original / un-lowered expression to print in error messages
-private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression e)
+// eorig = original / un-lowered expression to print in error messages
+private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression eorig)
 {
-    assert(e);
+    assert(eorig);
     Expression visit(Expression exp)
     {
         //printf("Expression::modifiableLvalue() %s, type = %s\n", exp.toChars(), exp.type.toChars());
@@ -16458,7 +16458,7 @@ private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression 
                 return ErrorExp.get();
             }
         }
-        return exp.toLvalueImpl(sc, "modify", e);
+        return exp.toLvalueImpl(sc, "modify", eorig);
     }
 
     Expression visitString(StringExp exp)
@@ -16507,7 +16507,7 @@ private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression 
 
     Expression visitComma(CommaExp exp)
     {
-        exp.e2 = exp.e2.modifiableLvalueImpl(sc, e);
+        exp.e2 = exp.e2.modifiableLvalueImpl(sc, eorig);
         return exp;
     }
 
