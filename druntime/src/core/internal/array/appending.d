@@ -137,39 +137,61 @@ ref Tarr _d_arrayappendT(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y) @
     version (DigitalMars) pragma(inline, false);
 
     import core.stdc.string : memcpy;
-    import core.internal.traits : hasElaborateCopyConstructor, Unqual;
+    import core.internal.traits : Unqual;
 
-    enum hasPostblit = __traits(hasPostblit, T);
     auto length = x.length;
 
     _d_arrayappendcTX(x, y.length);
 
     // Only call `copyEmplace` if `T` has a copy ctor and no postblit.
-    static if (hasElaborateCopyConstructor!T && !hasPostblit)
+    static if (__traits(hasCopyConstructor, T))
     {
         import core.lifetime : copyEmplace;
 
-        foreach (i, ref elem; y)
-            copyEmplace(elem, x[length + i]);
+        size_t i;
+        try
+        {
+            for (i = 0; i < y.length; ++i)
+                copyEmplace(y[i], x[length + i]);
+        }
+        catch (Exception o)
+        {
+            /* Destroy, in reverse order, what we've constructed so far
+            */
+            while (i--)
+            {
+                auto elem = cast(Unqual!T*) &x[length + i];
+                destroy(*elem);
+            }
+
+            throw o;
+        }
     }
     else
     {
         if (y.length)
         {
             // blit all elements at once
-            auto xptr = cast(Unqual!T *)&x[length];
-            immutable size = T.sizeof;
-
-            memcpy(xptr, cast(Unqual!T *)&y[0], y.length * size);
+            memcpy(cast(void*)&x[length], cast(void*)&y[0], y.length * T.sizeof);
 
             // call postblits if they exist
-            static if (hasPostblit)
+            static if (__traits(hasPostblit, T))
             {
-                auto eptr = xptr + y.length;
-                for (auto ptr = xptr; ptr < eptr; ptr++)
-                    ptr.__xpostblit();
-            }
-        }
+                import core.internal.lifetime : __doPostblit;
+                size_t i = 0;
+                try __doPostblit(x[length .. $], i);
+                catch (Exception o)
+                {
+                    // Destroy, in reverse order, what we've constructed so far
+                    while (i--)
+                    {
+                        auto elem = cast(Unqual!T*) &x[length + i];
+                        destroy(*elem);
+                    }
+
+                    throw o;
+                }
+            }}
     }
 
     return x;
