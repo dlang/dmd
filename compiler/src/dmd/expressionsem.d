@@ -1,4 +1,4 @@
-/**
+/***
  * Semantic analysis of expressions.
  *
  * Specification: ($LINK2 https://dlang.org/spec/expression.html, Expressions)
@@ -11507,7 +11507,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
 
             // Ensure e1 is a modifiable lvalue
-            auto ale1x = ale.e1.modifiableLvalueImpl(sc, exp.e1);
+            auto ale1x = ale.e1.modifiableLvalue(sc, exp.e1);
             if (ale1x.op == EXP.error)
                 return setResult(ale1x);
             ale.e1 = ale1x;
@@ -11586,7 +11586,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 se = cast(SliceExp)se.e1;
             if (se.e1.op == EXP.question && se.e1.type.toBasetype().ty == Tsarray)
             {
-                se.e1 = se.e1.modifiableLvalueImpl(sc, exp.e1);
+                se.e1 = se.e1.modifiableLvalue(sc, exp.e1);
                 if (se.e1.op == EXP.error)
                     return setResult(se.e1);
             }
@@ -11610,7 +11610,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Try to do a decent error message with the expression
             // before it gets constant folded
             if (exp.op == EXP.assign)
-                e1x = e1x.modifiableLvalueImpl(sc, e1old);
+                e1x = e1x.modifiableLvalue(sc, e1old);
 
             e1x = e1x.optimize(WANTvalue, /*keepLvalue*/ true);
 
@@ -15976,17 +15976,14 @@ Expression addDtorHook(Expression e, Scope* sc)
  *     _this = expression to convert
  *     sc = scope
  *     action = for error messages, what the lvalue is needed for (e.g. take address of for `&x`, modify for `x++`)
+ *     eorig = original un-lowered expression for error messages, in case of recursive calls; null means use `_this`
  * Returns: converted expression, or `ErrorExp` on error
 */
-Expression toLvalue(Expression _this, Scope* sc, const(char)* action)
+Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression eorig = null)
 {
-    return toLvalueImpl(_this, sc, action, _this);
-}
-
-// eorig = original un-lowered expression for error messages, in case of recursive calls
-private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action, Expression eorig)
-{
-    //printf("toLvalueImpl() %s\n", _this.toChars());
+    //printf("toLvalue() %s\n", _this.toChars());
+    if (!eorig)
+        eorig = _this;
     if (!action)
         action = "create lvalue of";
 
@@ -16090,7 +16087,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
             /* C11 6.5.2.3-3: A postfix expression followed by the '.' or '->' operator
              * is an lvalue if the first expression is an lvalue.
              */
-            e1 = e1.toLvalueImpl(sc, action, eorig);
+            e1 = e1.toLvalue(sc, action, eorig);
             if (e1.isErrorExp())
                 return e1;
         }
@@ -16153,7 +16150,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 
     Expression visitVectorArray(VectorArrayExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, eorig);
+        _this.e1 = _this.e1.toLvalue(sc, action, eorig);
         return _this;
     }
 
@@ -16178,13 +16175,13 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 
     Expression visitDelegatePointer(DelegatePtrExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, eorig);
+        _this.e1 = _this.e1.toLvalue(sc, action, eorig);
         return _this;
     }
 
     Expression visitDelegateFuncptr(DelegateFuncptrExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, eorig);
+        _this.e1 = _this.e1.toLvalue(sc, action, eorig);
         return _this;
     }
 
@@ -16415,17 +16412,14 @@ Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyF
  * Params:
  *     _this = Expression to convert
  *     sc = scope
+ *     eorig = original / un-lowered expression to print in error messages, if null default to `_this`
  * Returns: `_this` converted to an lvalue, or an `ErrorExp`
  */
-Expression modifiableLvalue(Expression _this, Scope* sc)
+Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null)
 {
-    return modifiableLvalueImpl(_this, sc, _this);
-}
+    if (!eorig)
+        eorig = _this;
 
-// eorig = original / un-lowered expression to print in error messages
-private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression eorig)
-{
-    assert(eorig);
     Expression visit(Expression exp)
     {
         //printf("Expression::modifiableLvalue() %s, type = %s\n", exp.toChars(), exp.type.toChars());
@@ -16464,7 +16458,7 @@ private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression 
                 return ErrorExp.get();
             }
         }
-        return exp.toLvalueImpl(sc, "modify", eorig);
+        return exp.toLvalue(sc, "modify", eorig);
     }
 
     Expression visitString(StringExp exp)
@@ -16513,7 +16507,7 @@ private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression 
 
     Expression visitComma(CommaExp exp)
     {
-        exp.e2 = exp.e2.modifiableLvalueImpl(sc, eorig);
+        exp.e2 = exp.e2.modifiableLvalue(sc, eorig);
         return exp;
     }
 
