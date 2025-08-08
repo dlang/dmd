@@ -65,7 +65,7 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from, char* ma
 
     enforceRawArraysConformable("initialization", T.sizeof, vFrom, vTo);
 
-    static if (hasElaborateCopyConstructor!T)
+    static if (__traits(hasCopyConstructor, T))
     {
         size_t i;
         try
@@ -88,8 +88,30 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from, char* ma
     }
     else
     {
-        // blit all elements at once
-        memcpy(cast(void*) to.ptr, from.ptr, to.length * T.sizeof);
+        if (to.length)
+        {
+            // blit all elements at once
+            memcpy(cast(void*) to.ptr, from.ptr, to.length * T.sizeof);
+
+            // call postblits if they exist
+            static if (__traits(hasPostblit, T))
+            {
+                import core.internal.lifetime : __doPostblit;
+                size_t i = 0;
+                try __doPostblit(to, i);
+                catch (Exception o)
+                {
+                    // Destroy, in reverse order, what we've constructed so far
+                    while (i--)
+                    {
+                        auto elem = cast(Unqual!T*) &to[i];
+                        destroy(*elem);
+                    }
+
+                    throw o;
+                }
+            }
+        }
     }
 
     return to;
