@@ -4789,9 +4789,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (width)
                 {
                     if (_init)
-                        error("initializer not allowed for bit-field declaration");
+                        error("initializer not allowed for bitfield declaration");
                     if (storage_class)
-                        error("storage class not allowed for bit-field declaration");
+                        error("storage class not allowed for bitfield declaration");
                     s = new AST.BitFieldDeclaration(width.loc, t, ident, width);
                 }
                 else

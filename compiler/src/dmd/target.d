@@ -1465,10 +1465,10 @@ struct TargetC
     }
 
     /**
-     * Indicates whether the specified bit-field contributes to the alignment
+     * Indicates whether the specified bitfield contributes to the alignment
      * of the containing aggregate.
      * E.g., (not all) ARM ABIs do NOT ignore anonymous (incl. 0-length)
-     * bit-fields.
+     * bitfields.
      */
     extern (C++) bool contributesToAggregateAlignment(BitFieldDeclaration bfd)
     {

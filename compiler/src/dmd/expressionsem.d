@@ -16610,11 +16610,11 @@ bool checkAddressable(Expression e, Scope* sc)
         {
             case EXP.dotVariable:
                 // https://issues.dlang.org/show_bug.cgi?id=22749
-                // Error about taking address of any bit-field, regardless of
+                // Error about taking address of any bitfield, regardless of
                 // whether SCOPE.Cfile is set.
                 if (auto bf = ex.isDotVarExp().var.isBitFieldDeclaration())
                 {
-                    error(e.loc, "cannot take address of bit-field `%s`", bf.toChars());
+                    error(e.loc, "cannot take address of bitfield `%s`", bf.toChars());
                     return false;
                 }
                 goto case EXP.cast_;
@@ -16849,7 +16849,7 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
         const vsize = v.type.size();
         if (vsize == SIZE_INVALID)
             return false;
-        // Bitsize of types are overridden by any bit-field widths.
+        // Bitsize of types are overridden by any bitfield widths.
         if (vbf)
             bitoffset = vbitoffset + vbf.fieldWidth;
         else

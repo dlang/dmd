@@ -1640,7 +1640,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (!dsym.parent.isStructDeclaration() && !dsym.parent.isClassDeclaration())
         {
-            .error(dsym.loc, "%s `%s` - bit-field must be member of struct, union, or class", dsym.kind, dsym.toPrettyChars);
+            .error(dsym.loc, "%s `%s` - bitfield must be member of struct, union, or class", dsym.kind, dsym.toPrettyChars);
         }
 
         sc = sc.startCTFE();
@@ -1650,18 +1650,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!dsym.type.isIntegral())
         {
             // C11 6.7.2.1-5
-            error(width.loc, "bit-field type `%s` is not an integer type", dsym.type.toChars());
+            error(width.loc, "bitfield type `%s` is not an integer type", dsym.type.toChars());
             dsym.errors = true;
         }
         if (!width.isIntegerExp())
         {
-            error(width.loc, "bit-field width `%s` is not an integer constant", dsym.width.toChars());
+            error(width.loc, "bitfield width `%s` is not an integer constant", dsym.width.toChars());
             dsym.errors = true;
         }
         const uwidth = width.toInteger(); // uwidth is unsigned
         if (uwidth == 0 && !dsym.isAnonymous())
         {
-            error(width.loc, "bit-field `%s` has zero width", dsym.toChars());
+            error(width.loc, "bitfield `%s` has zero width", dsym.toChars());
             dsym.errors = true;
         }
         const sz = dsym.type.size();
@@ -1670,7 +1670,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         const max_width = sz * 8;
         if (uwidth > max_width)
         {
-            error(width.loc, "width `%lld` of bit-field `%s` does not fit in type `%s`", cast(long)uwidth, dsym.toChars(), dsym.type.toChars());
+            error(width.loc, "width `%lld` of bitfield `%s` does not fit in type `%s`", cast(long)uwidth, dsym.toChars(), dsym.type.toChars());
             dsym.errors = true;
         }
         dsym.fieldWidth = cast(uint)uwidth;
@@ -3376,7 +3376,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
 
             //
-            // For two structures or unions, corresponding bit-fields shall have the same widths.
+            // For two structures or unions, corresponding bitfields shall have the same widths.
             //
             BitFieldDeclaration bfa = a_field.isBitFieldDeclaration();
             BitFieldDeclaration bfb = b_field.isBitFieldDeclaration();
@@ -7852,7 +7852,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
 
         const style = target.c.bitFieldStyle;
         if (style != TargetC.BitFieldStyle.MS && style != TargetC.BitFieldStyle.Gcc_Clang)
-            assert(0, "unsupported bit-field style");
+            assert(0, "unsupported bitfield style");
 
         const isMicrosoftStyle = style == TargetC.BitFieldStyle.MS;
         const contributesToAggregateAlignment = target.c.contributesToAggregateAlignment(bfd);
@@ -7922,7 +7922,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
         }
         else if (!isMicrosoftStyle)
         {
-            // If the bit-field spans more units of alignment than its type
+            // If the bitfield spans more units of alignment than its type
             // and is at the alignment boundary, start a new field at the
             // next alignment boundary. This affects when offsetof reports
             // a higher number and bitoffsetof starts at zero again.
