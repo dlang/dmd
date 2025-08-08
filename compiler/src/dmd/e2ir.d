@@ -1569,7 +1569,7 @@ elem* toElem(Expression e, ref IRState irs)
         // https://dlang.org/spec/expression.html#assert_expressions
         //printf("AssertExp.toElem() %s\n", ae.toChars());
         elem* e;
-        if (irs.params.useAssert != CHECKENABLE.on)
+        if (irs.params.useAssert == CHECKENABLE.off)
         {
             // BUG: should replace assert(0); with a HLT instruction
             e = el_long(TYint, 0);
