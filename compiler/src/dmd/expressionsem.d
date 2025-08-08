@@ -16090,8 +16090,9 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
             /* C11 6.5.2.3-3: A postfix expression followed by the '.' or '->' operator
              * is an lvalue if the first expression is an lvalue.
              */
-            if (!e1.isLvalue())
-                return visit(_this);
+            e1 = e1.toLvalueImpl(sc, action, eorig);
+            if (e1.isErrorExp())
+                return e1;
         }
         if (!_this.isLvalue())
             return visit(_this);
@@ -16210,6 +16211,11 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 
     Expression visitCond(CondExp _this)
     {
+        if (sc && sc.inCfile)
+        {
+            // C11 6.5.15: A conditional expression does not yield an lvalue.
+            return visit(_this);
+        }
         // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
         CondExp ecopy = cast(CondExp)(_this.copy());
         ecopy.e1 = _this.e1.toLvalue(sc, action).addressOf();
