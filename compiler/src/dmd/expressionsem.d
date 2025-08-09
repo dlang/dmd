@@ -17632,6 +17632,39 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
     return true;
 }
 
+
+/*******************************************
+ * If variable has a constant expression initializer, get it.
+ * Otherwise, return null.
+ */
+Expression getConstInitializer(VarDeclaration vd, bool needFullType = true)
+{
+    assert(vd.type && vd._init);
+
+    // Ungag errors when not speculative
+    const oldgag = global.gag;
+    if (global.gag)
+    {
+        Dsymbol sym = vd.isMember();
+        if (sym && !sym.isSpeculative())
+            global.gag = 0;
+    }
+
+    if (vd._scope)
+    {
+        vd.inuse++;
+        vd._init = vd._init.initializerSemantic(vd._scope, vd.type, INITinterpret);
+        import dmd.semantic2 : lowerStaticAAs;
+        lowerStaticAAs(vd, vd._scope);
+        vd._scope = null;
+        vd.inuse--;
+    }
+
+    Expression e = vd._init.initializerToExpression(needFullType ? vd.type : null);
+    global.gag = oldgag;
+    return e;
+}
+
 /*******************************************
  * Helper function for the expansion of manifest constant.
  */
