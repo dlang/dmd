@@ -57,7 +57,7 @@ import dmd.dsymbolsem : dsymbolSemantic, aliasSemantic, oneMembers, toAlias;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
-import dmd.expressionsem : resolveLoc, expressionSemantic, resolveProperties;
+import dmd.expressionsem : resolveLoc, expressionSemantic, resolveProperties, getDsymbol;
 import dmd.func;
 import dmd.funcsem : overloadApply;
 import dmd.globals;
@@ -197,36 +197,6 @@ inout(Type) getType(inout RootObject o)
     return t;
 }
 
-}
-
-/***********************************
- * If oarg represents a Dsymbol, return that Dsymbol
- * Params:
- *      oarg = argument to check
- * Returns:
- *      Dsymbol if a symbol, null if not
- */
-Dsymbol getDsymbol(RootObject oarg)
-{
-    //printf("getDsymbol()\n");
-    //printf("e %p s %p t %p v %p\n", isExpression(oarg), isDsymbol(oarg), isType(oarg), isTuple(oarg));
-    if (auto ea = isExpression(oarg))
-    {
-        // Try to convert Expression to symbol
-        if (auto ve = ea.isVarExp())
-            return ve.var;
-        if (auto fe = ea.isFuncExp())
-            return fe.td ? fe.td : fe.fd;
-        if (auto te = ea.isTemplateExp())
-            return te.td;
-        if (auto te = ea.isScopeExp())
-            return te.sds;
-        return null;
-    }
-    // Try to convert Type to symbol
-    if (auto ta = isType(oarg))
-        return ta.toDsymbol(null);
-    return isDsymbol(oarg); // if already a symbol
 }
 
 /******************************
@@ -2339,68 +2309,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     {
         v.visit(this);
     }
-}
-
-/**************************************
- * IsExpression can evaluate the specified type speculatively, and even if
- * it instantiates any symbols, they are normally unnecessary for the
- * final executable.
- * However, if those symbols leak to the actual code, compiler should remark
- * them as non-speculative to generate their code and link to the final executable.
- */
-void unSpeculative(Scope* sc, RootObject o)
-{
-    if (!o)
-        return;
-
-    if (Tuple tup = isTuple(o))
-    {
-        foreach (obj; tup.objects)
-        {
-            unSpeculative(sc, obj);
-        }
-        return;
-    }
-
-    Dsymbol s = getDsymbol(o);
-    if (!s)
-        return;
-
-    if (Declaration d = s.isDeclaration())
-    {
-        if (VarDeclaration vd = d.isVarDeclaration())
-            o = vd.type;
-        else if (AliasDeclaration ad = d.isAliasDeclaration())
-        {
-            o = ad.getType();
-            if (!o)
-                o = ad.toAlias();
-        }
-        else
-            o = d.toAlias();
-
-        s = getDsymbol(o);
-        if (!s)
-            return;
-    }
-
-    if (TemplateInstance ti = s.isTemplateInstance())
-    {
-        // If the instance is already non-speculative,
-        // or it is leaked to the speculative scope.
-        if (ti.minst !is null || sc.minst is null)
-            return;
-
-        // Remark as non-speculative instance.
-        ti.minst = sc.minst;
-        if (!ti.tinst)
-            ti.tinst = sc.tinst;
-
-        unSpeculative(sc, ti.tempdecl);
-    }
-
-    if (TemplateInstance ti = s.isInstantiated())
-        unSpeculative(sc, ti);
 }
 
 /**********************************

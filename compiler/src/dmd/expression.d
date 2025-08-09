@@ -32,6 +32,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
+import dmd.expressionsem : getDsymbol;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
