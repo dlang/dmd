@@ -74,6 +74,7 @@ import dmd.target;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.dfa.entry;
 
 enum LOG = false;
 
@@ -1432,6 +1433,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
             oblive(funcdecl);
         }
 
+        if (/+global.params.useFastDFA &&+/ global.errors == oldErrors && funcdecl.fbody && funcdecl.type.ty != Terror)
+        {
+            // Don't run DFA if there are errors,
+            //  this is a costly enough operation that it warrents the explicit check.
+            dfaEntry(funcdecl);
+        }
+
         /* If this function had instantiated with gagging, error reproduction will be
          * done by TemplateInstance::semantic.
          * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
@@ -1626,6 +1634,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         if (sd)
             sd.semanticTypeInfoMembers();
+
         ad.semanticRun = PASS.semantic3done;
     }
 
