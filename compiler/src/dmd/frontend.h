@@ -1777,7 +1777,6 @@ public:
     const char* kind() const override;
     const char* toCharsNoConstraints() const;
     Visibility visible() override;
-    const char* getConstraintEvalError(const char*& tip);
     bool isDeprecated() const override;
     bool isOverloadable() const override;
     void accept(Visitor* v) override;
