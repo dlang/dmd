@@ -206,6 +206,17 @@ void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
     return dmd.dsymbolsem.getLocalClasses(mod, aclasses);
 }
 
+Dsymbol toAlias(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.toAlias(s);
+}
+
+Dsymbol toAlias2(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.toAlias2(s);
+}
 /***********************************************************
  * dtemplate.d
  */

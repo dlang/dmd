@@ -273,7 +273,6 @@ public:
     unsigned char inuse;                 // for recursive expansion detection
 
     TemplateInstance *syntaxCopy(Dsymbol *) override;
-    Dsymbol *toAlias() override final;   // resolve real symbol
     const char *kind() const override;
     const char* toPrettyCharsHelper() override final;
     Identifier *getIdent() override final;

@@ -42,7 +42,8 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden, isAbstract;
+import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden,
+                        isAbstract, toAlias;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;

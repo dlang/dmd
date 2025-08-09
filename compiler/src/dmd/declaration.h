@@ -184,7 +184,6 @@ public:
     TupleDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
     Type *getType() override;
-    Dsymbol *toAlias2() override;
     bool needThis() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -204,8 +203,6 @@ public:
     bool overloadInsert(Dsymbol *s) override;
     const char *kind() const override;
     Type *getType() override;
-    Dsymbol *toAlias() override;
-    Dsymbol *toAlias2() override;
     bool isOverloadable() const override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -223,7 +220,6 @@ public:
     bool equals(const RootObject * const o) const override;
     bool overloadInsert(Dsymbol *s) override;
 
-    Dsymbol *toAlias() override;
     Dsymbol *isUnique();
     bool isOverloadable() const override;
 
@@ -301,7 +297,6 @@ public:
     bool isOverlappedWith(VarDeclaration *v);
     bool canTakeAddressOf();
     bool needsScopeDtor();
-    Dsymbol *toAlias() override final;
     // Eliminate need for dynamic_cast
     void accept(Visitor *v) override { v->visit(this); }
 };

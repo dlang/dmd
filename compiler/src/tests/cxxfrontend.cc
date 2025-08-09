@@ -1543,7 +1543,8 @@ public:
         }
         if (d->aliasTuple)
         {
-            d->toAlias()->accept(this);
+            dmd::toAlias(d)->accept(this);
+            (void) dmd::toAlias2(d);
             return;
         }
         if (!d->canTakeAddressOf())
