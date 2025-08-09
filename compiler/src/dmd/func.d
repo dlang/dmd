@@ -35,7 +35,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.escape;
 import dmd.expression;
-import dmd.funcsem : overloadApply;
+import dmd.funcsem : isUnique;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -831,33 +831,6 @@ extern (C++) class FuncDeclaration : Declaration
     override const(char)* kind() const
     {
         return this.isGenerated ? "generated function" : "function";
-    }
-
-    /********************************************
-     * Returns:
-     *  true if there are no overloads of this function
-     */
-    final bool isUnique() const
-    {
-        bool result = false;
-        overloadApply(cast() this, (Dsymbol s)
-        {
-            auto f = s.isFuncDeclaration();
-            auto td = s.isTemplateDeclaration();
-            if (!f && !td)
-                return 0;
-            if (result)
-            {
-                result = false;
-                return 1; // ambiguous, done
-            }
-            else
-            {
-                result = true;
-                return 0;
-            }
-        });
-        return result;
     }
 
     /*******************************

@@ -174,6 +174,33 @@ extern (C++) bool onlyOneMain(FuncDeclaration fd)
     return true;
 }
 
+/********************************************
+ * Returns:
+ *  true if there are no overloads of this function
+ */
+bool isUnique(const FuncDeclaration fd)
+{
+    bool result = false;
+    overloadApply(cast() fd, (Dsymbol s)
+    {
+        auto f = s.isFuncDeclaration();
+        auto td = s.isTemplateDeclaration();
+        if (!f && !td)
+            return 0;
+        if (result)
+        {
+            result = false;
+            return 1; // ambiguous, done
+        }
+        else
+        {
+            result = true;
+            return 0;
+        }
+    });
+    return result;
+}
+
 /**********************************
  * Main semantic routine for functions.
  */
