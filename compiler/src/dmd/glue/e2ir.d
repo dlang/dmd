@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/e2ir.d, _e2ir.d)
- * Documentation: https://dlang.org/phobos/dmd_e2ir.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/e2ir.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/e2ir.d, _e2ir.d)
+ * Documentation: https://dlang.org/phobos/dmd_glue_e2ir.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/glue/e2ir.d
  */
 
-module dmd.e2ir;
+module dmd.glue.e2ir;
 
 import core.stdc.stdio;
 import core.stdc.stddef;
@@ -21,6 +21,14 @@ import dmd.root.ctfloat;
 import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.stringtable;
+
+import dmd.glue;
+import dmd.glue.objc;
+import dmd.glue.s2ir;
+import dmd.glue.tocsym;
+import dmd.glue.toctype;
+import dmd.glue.toir;
+import dmd.glue.toobj;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -42,24 +50,17 @@ import dmd.dtemplate;
 import dmd.expression;
 import dmd.expressionsem : fill;
 import dmd.func;
-import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
-import dmd.objc_glue;
 import dmd.printast;
-import dmd.s2ir;
 import dmd.sideeffect;
 import dmd.statement;
 import dmd.target;
 import dmd.templatesem;
-import dmd.tocsym;
-import dmd.toctype;
-import dmd.toir;
 import dmd.tokens;
-import dmd.toobj;
 import dmd.typinf;
 import dmd.typesem;
 import dmd.visitor;
@@ -80,6 +81,8 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.x86.code_x86;
+
+package(dmd.glue):
 
 alias Elems = Array!(elem *);
 
@@ -620,6 +623,15 @@ Symbol* toExtSymbol(Dsymbol s)
         return toImport(s);
     else
         return toSymbol(s);
+}
+
+private elem* toEfilenamePtr(Module m)
+{
+    //printf("toEfilenamePtr(%s)\n", m.toChars());
+    const(char)* id = m.srcfile.toChars();
+    size_t len = strlen(id);
+    Symbol* s = toStringSymbol(id, len, 1);
+    return el_ptr(s);
 }
 
 /*********************************************

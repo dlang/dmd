@@ -37,7 +37,7 @@ import dmd.dmdparams;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.dtoh;
-import dmd.glue : generateCodeAndWrite;
+import dmd.glue : generateCodeAndWrite, ObjcGlue_initialize;
 import dmd.dmodule;
 import dmd.dmsc : backend_init, backend_term;
 import dmd.doc;
@@ -761,6 +761,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     }
 
     {
+        ObjcGlue_initialize();
         timeTraceBeginEvent(TimeTraceEventType.codegenGlobal);
         scope (exit) timeTraceEndEvent(TimeTraceEventType.codegenGlobal);
         generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
