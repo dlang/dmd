@@ -613,20 +613,15 @@ private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
     // https://issues.dlang.org/show_bug.cgi?id=12585
     // Extract the side effect part if ue.e1 is comma.
 
-    if (sc.ctfe ? hasSideEffect(e1) : !isTrivialExp(e1)) // match logic in extractSideEffect()
-    {
-        /* Even if opDollar is needed, 'e1' should be evaluate only once. So
-         * Rewrite:
-         *      e1.opIndex( ... use of $ ... )
-         *      e1.opSlice( ... use of $ ... )
-         * as:
-         *      (ref __dop = e1, __dop).opIndex( ... __dop.opDollar ...)
-         *      (ref __dop = e1, __dop).opSlice( ... __dop.opDollar ...)
-         */
-        e1 = extractSideEffect(sc, "__dop", e0, e1, false);
-        assert(e1.isVarExp());
-        e1.isVarExp().var.storage_class |= STC.exptemp;     // lifetime limited to expression
-    }
+    /* Even if opDollar is needed, 'e1' should be evaluate only once. So
+        * Rewrite:
+        *      e1.opIndex( ... use of $ ... )
+        *      e1.opSlice( ... use of $ ... )
+        * as:
+        *      (ref __dop = e1, __dop).opIndex( ... __dop.opDollar ...)
+        *      (ref __dop = e1, __dop).opSlice( ... __dop.opDollar ...)
+        */
+    e1 = extractSideEffect(sc, "__dop", e0, e1, false);
     ue.e1 = e1;
     return e0;
 }
@@ -12356,14 +12351,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      * for expressions like `a ~= a[$-1]`. Here, $ will be modified
                      * by calling `_d_arrayappendcTX`, so we need to save `a[$-1]` in
                      * a temporary variable.
+                     * `__appendtmp*` will be destroyed together with the array `exp.e1`.
                      */
-                    value2 = extractSideEffect(sc, "__appendtmp", eValue2, value2, true);
-
-                    // `__appendtmp*` will be destroyed together with the array `exp.e1`.
-                    auto vd = eValue2.isDeclarationExp().declaration.isVarDeclaration();
-                    vd.storage_class |= STC.nodtor;
-                    // Be more explicit that this "declaration" is local to the expression
-                    vd.storage_class |= STC.exptemp;
+                    value2 = extractSideEffect(sc, "__appendtmp", eValue2, value2, true, STC.nodtor | STC.exptemp);
                 }
 
                 auto ale = new ArrayLengthExp(exp.loc, value1);
