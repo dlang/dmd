@@ -176,15 +176,20 @@ nothrow:
         whichPathFoundThis = -1;
 
         // List of extensions to match, in order of precedence.
-        const(char)[][4] extensions = [
+        const(char)[][2] extensions = [
             FileName.forceExt(filename, hdr_ext),
             FileName.forceExt(filename, mars_ext),
+        ];
+        const(char)[][3] importCextensions = [
             FileName.forceExt(filename, i_ext),
+            FileName.forceExt(filename, h_ext),
             FileName.forceExt(filename, c_ext),
         ];
         scope(exit)
         {
             foreach (ext; extensions)
+                FileName.free(ext.ptr);
+            foreach (ext; importCextensions)
                 FileName.free(ext.ptr);
         }
 
@@ -207,6 +212,7 @@ nothrow:
             if (!pathCache.pathExists(p))
                 return null; // no need to check for anything else.
 
+            // Search for any file matching {path}/{file}.{ext}
             foreach (ext; extensions)
             {
                 const file = FileName.combine(path, ext);
@@ -235,6 +241,19 @@ nothrow:
                 if (FileName.exists(nd) == 1)
                     return nd;
                 FileName.free(nd.ptr);
+            }
+
+            /* Search for any file with importC extensions after all attempts
+               to find a D module/package in the path are exhausted.  */
+            foreach (ext; importCextensions)
+            {
+                const file = FileName.combine(path, ext);
+                if (FileName.exists(file) == 1)
+                {
+                    import dmd.root.rmem : xarraydup;
+                    return checkLocal ? file.xarraydup : file;
+                }
+                freePath(file);
             }
             return null;
         }
