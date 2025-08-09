@@ -1474,7 +1474,7 @@ final class CParser(AST) : Parser!AST
      *    logical-OR-expression
      *    logical-OR-expression ? expression : conditional-expression
      */
-    private AST.Expression cparseCondExp()
+    AST.Expression cparseCondExp()
     {
         const loc = token.loc;
 
