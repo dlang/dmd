@@ -57,6 +57,8 @@ import dmd.visitor;
 
 alias funcLeastAsSpecialized = dmd.funcsem.leastAsSpecialized;
 
+enum LOG = false;
+
 /************************************
  * Perform semantic analysis on template.
  * Params:
@@ -754,6 +756,317 @@ bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Scope* sc, 
     return result;
 }
 
+/****************************
+ * Destructively get the error message from the last constraint evaluation
+ * Params:
+ *      td = TemplateDeclaration
+ *      tip = tip to show after printing all overloads
+ */
+const(char)* getConstraintEvalError(TemplateDeclaration td, ref const(char)* tip)
+{
+    import dmd.staticcond;
+
+    // there will be a full tree view in verbose mode, and more compact list in the usual
+    const full = global.params.v.verbose;
+    uint count;
+    const msg = visualizeStaticCondition(td.constraint, td.lastConstraint, td.lastConstraintNegs[], full, count);
+    scope (exit)
+    {
+        td.lastConstraint = null;
+        td.lastConstraintTiargs = null;
+        td.lastConstraintNegs.setDim(0);
+    }
+    if (!msg)
+        return null;
+
+    OutBuffer buf;
+
+    assert(td.parameters && td.lastConstraintTiargs);
+    if (td.parameters.length > 0)
+    {
+        formatParamsWithTiargs(*td.parameters, *td.lastConstraintTiargs, td.isVariadic() !is null, buf);
+        buf.writenl();
+    }
+    if (!full)
+    {
+        // choosing singular/plural
+        const s = (count == 1) ?
+            "  must satisfy the following constraint:" :
+            "  must satisfy one of the following constraints:";
+        buf.writestring(s);
+        buf.writenl();
+        // the constraints
+        buf.writeByte('`');
+        buf.writestring(msg);
+        buf.writeByte('`');
+    }
+    else
+    {
+        buf.writestring("  whose parameters have the following constraints:");
+        buf.writenl();
+        const sep = "  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`";
+        buf.writestring(sep);
+        buf.writenl();
+        // the constraints
+        buf.writeByte('`');
+        buf.writestring(msg);
+        buf.writeByte('`');
+        buf.writestring(sep);
+        tip = "not satisfied constraints are marked with `>`";
+    }
+    return buf.extractChars();
+}
+
+/**********************************
+ * Find the TemplateDeclaration that matches this TemplateInstance best.
+ *
+ * Params:
+ *   ti    = TemplateInstance
+ *   sc    = the scope this TemplateInstance resides in
+ *   argumentList = function arguments in case of a template function
+ *
+ * Returns:
+ *   `true` if a match was found, `false` otherwise
+ */
+bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
+{
+    if (ti.havetempdecl)
+    {
+        TemplateDeclaration tempdecl = ti.tempdecl.isTemplateDeclaration();
+        assert(tempdecl);
+        assert(tempdecl._scope);
+        // Deduce tdtypes
+        ti.tdtypes.setDim(tempdecl.parameters.length);
+        if (!matchWithInstance(sc, tempdecl, ti, ti.tdtypes, argumentList, 2))
+        {
+            .error(ti.loc, "%s `%s` incompatible arguments for template instantiation",
+                   ti.kind, ti.toPrettyChars);
+            return false;
+        }
+        // TODO: Normalizing tiargs for https://issues.dlang.org/show_bug.cgi?id=7469 is necessary?
+        return true;
+    }
+
+    static if (LOG)
+    {
+        printf("TemplateInstance.findBestMatch()\n");
+    }
+
+    const errs = global.errors;
+    TemplateDeclaration td_last = null;
+    Objects dedtypes;
+
+    /* Since there can be multiple TemplateDeclaration's with the same
+     * name, look for the best match.
+     */
+    auto tovers = ti.tempdecl.isOverloadSet();
+    foreach (size_t oi; 0 .. tovers ? tovers.a.length : 1)
+    {
+        TemplateDeclaration td_best;
+        TemplateDeclaration td_ambig;
+        MATCH m_best = MATCH.nomatch;
+
+        Dsymbol dstart = tovers ? tovers.a[oi] : ti.tempdecl;
+        overloadApply(dstart, (Dsymbol s)
+        {
+            auto td = s.isTemplateDeclaration();
+            if (!td)
+                return 0;
+            if (td == td_best)   // skip duplicates
+                return 0;
+
+            //printf("td = %s\n", td.toPrettyChars());
+            // If more arguments than parameters,
+            // then this is no match.
+            if (td.parameters.length < ti.tiargs.length)
+            {
+                if (!td.isVariadic())
+                    return 0;
+            }
+
+            dedtypes.setDim(td.parameters.length);
+            dedtypes.zero();
+            assert(td.semanticRun != PASS.initial);
+
+            MATCH m = matchWithInstance(sc, td, ti, dedtypes, argumentList, 0);
+            //printf("matchWithInstance = %d\n", m);
+            if (m == MATCH.nomatch) // no match at all
+                return 0;
+            if (m < m_best) goto Ltd_best;
+            if (m > m_best) goto Ltd;
+
+            // Disambiguate by picking the most specialized TemplateDeclaration
+            {
+            MATCH c1 = leastAsSpecialized(sc, td, td_best, argumentList);
+            MATCH c2 = leastAsSpecialized(sc, td_best, td, argumentList);
+            //printf("c1 = %d, c2 = %d\n", c1, c2);
+            if (c1 > c2) goto Ltd;
+            if (c1 < c2) goto Ltd_best;
+            }
+
+            td_ambig = td;
+            return 0;
+
+        Ltd_best:
+            // td_best is the best match so far
+            td_ambig = null;
+            return 0;
+
+        Ltd:
+            // td is the new best match
+            td_ambig = null;
+            td_best = td;
+            m_best = m;
+            ti.tdtypes.setDim(dedtypes.length);
+            memcpy(ti.tdtypes.tdata(), dedtypes.tdata(), ti.tdtypes.length * (void*).sizeof);
+            return 0;
+        });
+
+        if (td_ambig)
+        {
+            .error(ti.loc, "%s `%s.%s` matches more than one template declaration:",
+                td_best.kind(), td_best.parent.toPrettyChars(), td_best.ident.toChars());
+            .errorSupplemental(td_best.loc, "`%s`\nand:", td_best.toChars());
+            .errorSupplemental(td_ambig.loc, "`%s`", td_ambig.toChars());
+            return false;
+        }
+        if (td_best)
+        {
+            if (!td_last)
+                td_last = td_best;
+            else if (td_last != td_best)
+            {
+                ScopeDsymbol.multiplyDefined(ti.loc, td_last, td_best);
+                return false;
+            }
+        }
+    }
+
+    if (td_last)
+    {
+        /* https://issues.dlang.org/show_bug.cgi?id=7469
+         * Normalize tiargs by using corresponding deduced
+         * template value parameters and tuples for the correct mangling.
+         *
+         * By doing this before hasNestedArgs, CTFEable local variable will be
+         * accepted as a value parameter. For example:
+         *
+         *  void foo() {
+         *    struct S(int n) {}   // non-global template
+         *    const int num = 1;   // CTFEable local variable
+         *    S!num s;             // S!1 is instantiated, not S!num
+         *  }
+         */
+        size_t dim = td_last.parameters.length - (td_last.isVariadic() ? 1 : 0);
+        for (size_t i = 0; i < dim; i++)
+        {
+            if (ti.tiargs.length <= i)
+                ti.tiargs.push(ti.tdtypes[i]);
+            assert(i < ti.tiargs.length);
+
+            auto tvp = (*td_last.parameters)[i].isTemplateValueParameter();
+            if (!tvp)
+                continue;
+            assert(ti.tdtypes[i]);
+            // tdtypes[i] is already normalized to the required type in matchArg
+
+            (*ti.tiargs)[i] = ti.tdtypes[i];
+        }
+        if (td_last.isVariadic() && ti.tiargs.length == dim && ti.tdtypes[dim])
+        {
+            Tuple va = isTuple(ti.tdtypes[dim]);
+            assert(va);
+            ti.tiargs.pushSlice(va.objects[]);
+        }
+    }
+    else if (ti.errors && ti.inst)
+    {
+        // instantiation was failed with error reporting
+        assert(global.errors);
+        return false;
+    }
+    else
+    {
+        auto tdecl = ti.tempdecl.isTemplateDeclaration();
+
+        if (errs != global.errors)
+            errorSupplemental(ti.loc, "while looking for match for `%s`", ti.toChars());
+        else if (tdecl && !tdecl.overnext)
+        {
+            // Only one template, so we can give better error message
+            const(char)* msg = "does not match template declaration";
+            const(char)* tip;
+            OutBuffer buf;
+            HdrGenState hgs;
+            hgs.skipConstraints = true;
+            toCharsMaybeConstraints(tdecl, buf, hgs);
+            const tmsg = buf.peekChars();
+            const cmsg = tdecl.getConstraintEvalError(tip);
+            if (cmsg)
+            {
+                .error(ti.loc, "%s `%s` %s `%s`\n%s", ti.kind, ti.toPrettyChars, msg, tmsg, cmsg);
+                if (tip)
+                    .tip(tip);
+            }
+            else
+            {
+                .error(ti.loc, "%s `%s` %s `%s`", ti.kind, ti.toPrettyChars, msg, tmsg);
+
+                if (tdecl.parameters.length == ti.tiargs.length)
+                {
+                    // https://issues.dlang.org/show_bug.cgi?id=7352
+                    // print additional information, e.g. `foo` is not a type
+                    foreach (i, param; *tdecl.parameters)
+                    {
+                        MATCH match = param.matchArg(ti.loc, sc, ti.tiargs, i, tdecl.parameters, dedtypes, null);
+                        auto arg = (*ti.tiargs)[i];
+                        auto sym = arg.isDsymbol;
+                        auto exp = arg.isExpression;
+
+                        if (exp)
+                            exp = exp.optimize(WANTvalue);
+
+                        if (match == MATCH.nomatch &&
+                            ((sym && sym.isFuncDeclaration) ||
+                             (exp && exp.isVarExp)))
+                        {
+                            if (param.isTemplateTypeParameter)
+                                errorSupplemental(ti.loc, "`%s` is not a type", arg.toChars);
+                            else if (auto tvp = param.isTemplateValueParameter)
+                                errorSupplemental(ti.loc, "`%s` is not of a value of type `%s`",
+                                                  arg.toChars, tvp.valType.toChars);
+
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            .error(ti.loc, "%s `%s` does not match any template declaration", ti.kind(), ti.toPrettyChars());
+            bool found;
+            overloadApply(ti.tempdecl, (s){
+                if (!found)
+                    errorSupplemental(ti.loc, "Candidates are:");
+                found = true;
+                errorSupplemental(s.loc, "%s", s.toChars());
+                return 0;
+            });
+        }
+        return false;
+    }
+
+    /* The best match is td_last
+     */
+    ti.tempdecl = td_last;
+
+    static if (LOG)
+    {
+        printf("\tIt's a match with template declaration '%s'\n", tempdecl.toChars());
+    }
+    return (errs == global.errors);
+}
+
 /*******************************************
  * Append to buf a textual representation of template parameters with their arguments.
  * Params:
@@ -762,7 +1075,7 @@ bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Scope* sc, 
  *  variadic = if it's a variadic argument list
  *  buf = where the text output goes
  */
-void formatParamsWithTiargs(ref TemplateParameters parameters, ref Objects tiargs, bool variadic, ref OutBuffer buf)
+private void formatParamsWithTiargs(ref TemplateParameters parameters, ref Objects tiargs, bool variadic, ref OutBuffer buf)
 {
     buf.writestring("  with `");
 
