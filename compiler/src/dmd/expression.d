@@ -21,6 +21,7 @@ import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
+import dmd.ctfeexpr : isCtfeReferenceValid;
 import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.declaration;
@@ -3427,6 +3428,13 @@ extern (C++) final class AddrExp : UnaExp
     {
         this(loc, e);
         type = t;
+    }
+
+    override Optional!bool toBool()
+    {
+        if (isCtfeReferenceValid(e1))
+            return typeof(return)(true);
+        return UnaExp.toBool();
     }
 
     override void accept(Visitor v)

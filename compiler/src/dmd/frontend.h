@@ -2589,6 +2589,7 @@ public:
 class AddrExp final : public UnaExp
 {
 public:
+    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
