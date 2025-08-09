@@ -3,8 +3,8 @@
 ---
 fail_compilation/biterrors5.d(25): Error: bitfield symbol expected not struct `biterrors5.S`
 fail_compilation/biterrors5.d(26): Error: bitfield symbol expected not variable `biterrors5.test0.i`
-fail_compilation/biterrors5.d(35): Error: cannot take address of bitfield `x`
-fail_compilation/biterrors5.d(35): Error: cannot take address of bitfield `y`
+fail_compilation/biterrors5.d(35): Error: cannot take address of bitfield `a.x`
+fail_compilation/biterrors5.d(35): Error: cannot take address of bitfield `a.y`
 ---
 */
 
