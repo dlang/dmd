@@ -767,7 +767,7 @@ public:
             (void)t->sym->alignment.isDefault();
             (void)t->sym->alignsize;
             (void)t->sym->alignment.get();
-            (void)t->sym->isPOD();
+            (void)dmd::isPOD(t->sym);
             for (size_t i = 0; i < t->sym->members->length; i++)
             {
                 Dsymbol *sym = (*t->sym->members)[i];

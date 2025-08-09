@@ -437,6 +437,71 @@ package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
     return true;
 }
 
+/***************************************
+ * Determine if struct is POD (Plain Old Data).
+ *
+ * POD is defined as:
+ *      $(OL
+ *      $(LI not nested)
+ *      $(LI no postblits, destructors, or assignment operators)
+ *      $(LI no `ref` fields or fields that are themselves non-POD)
+ *      )
+ * The idea being these are compatible with C structs.
+ *
+ * Returns:
+ *     true if struct is POD
+ */
+bool isPOD(StructDeclaration sd)
+{
+    // If we've already determined whether this struct is POD.
+    if (sd.ispod != ThreeState.none)
+        return (sd.ispod == ThreeState.yes);
+
+    import dmd.clone;
+
+    bool hasCpCtorLocal;
+    bool hasMoveCtorLocal;
+    bool needCopyCtor;
+    bool needMoveCtor;
+    needCopyOrMoveCtor(sd, hasCpCtorLocal, hasMoveCtorLocal, needCopyCtor, needMoveCtor);
+
+    if (sd.enclosing                    || // is nested
+        search(sd, sd.loc, Id.postblit) || // has postblit
+        search(sd, sd.loc, Id.dtor)     || // has destructor
+        /* This is commented out because otherwise buildkite vibe.d:
+           `canCAS!Task` fails to compile
+         */
+        //hasMoveCtorLocal               || // has move constructor
+        hasCpCtorLocal)                   // has copy constructor
+    {
+        sd.ispod = ThreeState.no;
+        return false;
+    }
+
+    // Recursively check all fields are POD.
+    for (size_t i = 0; i < sd.fields.length; i++)
+    {
+        VarDeclaration v = sd.fields[i];
+        if (v.storage_class & STC.ref_)
+        {
+            sd.ispod = ThreeState.no;
+            return false;
+        }
+
+        if (auto ts = v.type.baseElemOf().isTypeStruct())
+        {
+            if (!ts.sym.isPOD())
+            {
+                sd.ispod = ThreeState.no;
+                return false;
+            }
+        }
+    }
+
+    sd.ispod = ThreeState.yes;
+    return true;
+}
+
 /*
 If sd has a copy constructor and ctor is an rvalue constructor,
 issue an error.

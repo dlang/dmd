@@ -217,6 +217,13 @@ Dsymbol toAlias2(Dsymbol s)
     import dmd.dsymbolsem;
     return dmd.dsymbolsem.toAlias2(s);
 }
+
+bool isPOD(StructDeclaration sd)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.isPOD(sd);
+}
+
 /***********************************************************
  * dtemplate.d
  */
