@@ -5055,7 +5055,33 @@ class AsmStatement : public Statement
 {
 public:
     Token* tokens;
-    bool caseSensitive;
+    struct BitFields final
+    {
+        bool caseSensitive;
+        bool isVolatile;
+        bool isInline;
+        BitFields() :
+            caseSensitive(),
+            isVolatile(),
+            isInline()
+        {
+        }
+        BitFields(bool caseSensitive, bool isVolatile = false, bool isInline = false) :
+            caseSensitive(caseSensitive),
+            isVolatile(isVolatile),
+            isInline(isInline)
+            {}
+    };
+
+    bool caseSensitive() const;
+    bool caseSensitive(bool v);
+    bool isVolatile() const;
+    bool isVolatile(bool v);
+    bool isInline() const;
+    bool isInline(bool v);
+private:
+    uint8_t bitFields;
+public:
     AsmStatement* syntaxCopy() override;
     void accept(Visitor* v) override;
 };

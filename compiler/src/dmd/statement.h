@@ -715,7 +715,15 @@ class AsmStatement : public Statement
 {
 public:
     Token *tokens;
-    d_bool caseSensitive;  // for register names
+private:
+    uint8_t bitFields;
+public:
+    bool caseSensitive() const; // for register names
+    bool caseSensitive(bool v);
+    bool isVolatile() const;    // importC asm volatile
+    bool isVolatile(bool v);
+    bool isInline() const;      // importC asm inline
+    bool isInline(bool v);
 
     AsmStatement *syntaxCopy() override;
     void accept(Visitor *v) override { v->visit(this); }
