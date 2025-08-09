@@ -53,7 +53,7 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, aliasSemantic, oneMembers;
+import dmd.dsymbolsem : dsymbolSemantic, aliasSemantic, oneMembers, toAlias;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -1911,39 +1911,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         else
             ScopeDsymbol.syntaxCopy(ti);
         return ti;
-    }
-
-    // resolve real symbol
-    override final Dsymbol toAlias()
-    {
-        static if (LOG)
-        {
-            printf("TemplateInstance.toAlias()\n");
-        }
-        if (!inst)
-        {
-            // Maybe we can resolve it
-            if (_scope)
-            {
-                dsymbolSemantic(this, _scope);
-            }
-            if (!inst)
-            {
-                .error(loc, "%s `%s` cannot resolve forward reference", kind, toPrettyChars);
-                errors = true;
-                return this;
-            }
-        }
-
-        if (inst != this)
-            return inst.toAlias();
-
-        if (aliasdecl)
-        {
-            return aliasdecl.toAlias();
-        }
-
-        return inst;
     }
 
     override const(char)* kind() const

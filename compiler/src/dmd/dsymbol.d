@@ -30,6 +30,7 @@ import dmd.dmodule;
 import dmd.dversion;
 import dmd.dscope;
 import dmd.dstruct;
+import dmd.dsymbolsem : toAlias;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -729,24 +730,6 @@ extern (C++) class Dsymbol : ASTNode
     const(char)* kind() const pure nothrow @nogc @safe
     {
         return "symbol";
-    }
-
-    /*********************************
-     * If this symbol is really an alias for another,
-     * return that other.
-     * If needed, semantic() is invoked due to resolve forward reference.
-     */
-    Dsymbol toAlias()
-    {
-        return this;
-    }
-
-    /*********************************
-     * Resolve recursive tuple expansion in eponymous template.
-     */
-    Dsymbol toAlias2()
-    {
-        return toAlias();
     }
 
     bool overloadInsert(Dsymbol s)

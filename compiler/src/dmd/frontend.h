@@ -602,8 +602,6 @@ public:
     virtual Identifier* getIdent();
     virtual const char* toPrettyChars(bool QualifyTypes = false);
     virtual const char* kind() const;
-    virtual Dsymbol* toAlias();
-    virtual Dsymbol* toAlias2();
     virtual bool overloadInsert(Dsymbol* s);
     virtual uint64_t size(Loc loc);
     virtual bool isforwardRef();
@@ -1820,7 +1818,6 @@ private:
 
 public:
     TemplateInstance* syntaxCopy(Dsymbol* s) override;
-    Dsymbol* toAlias() final override;
     const char* kind() const override;
     const char* toPrettyCharsHelper() final override;
     Identifier* getIdent() final override;
@@ -6816,7 +6813,6 @@ public:
     TupleDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
     Type* getType() override;
-    Dsymbol* toAlias2() override;
     bool needThis() override;
     void accept(Visitor* v) override;
 };
@@ -6832,8 +6828,6 @@ public:
     bool overloadInsert(Dsymbol* s) override;
     const char* kind() const override;
     Type* getType() override;
-    Dsymbol* toAlias() override;
-    Dsymbol* toAlias2() override;
     bool isOverloadable() const override;
     void accept(Visitor* v) override;
 };
@@ -6919,7 +6913,6 @@ public:
     bool isOverlappedWith(VarDeclaration* v);
     bool canTakeAddressOf();
     bool needsScopeDtor();
-    Dsymbol* toAlias() final override;
     void accept(Visitor* v) override;
 };
 
@@ -7128,7 +7121,6 @@ public:
     const char* kind() const override;
     Visibility visible() override;
     Import* syntaxCopy(Dsymbol* s) override;
-    Dsymbol* toAlias() override;
     bool overloadInsert(Dsymbol* s) override;
     void accept(Visitor* v) override;
 };

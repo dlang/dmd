@@ -101,6 +101,8 @@ namespace dmd
     void dsymbolSemantic(Dsymbol *dsym, Scope *sc);
     void semantic2(Dsymbol *dsym, Scope *sc);
     void semantic3(Dsymbol *dsym, Scope* sc);
+    Dsymbol *toAlias(Dsymbol* s);
+    Dsymbol *toAlias2(Dsymbol* s);
     // in iasm.d
     void asmSemantic(CAsmDeclaration *ad, Scope *sc);
     // in iasmgcc.d
@@ -223,8 +225,6 @@ public:
     virtual Identifier *getIdent();
     virtual const char *toPrettyChars(bool QualifyTypes = false);
     virtual const char *kind() const;
-    virtual Dsymbol *toAlias();                 // resolve real symbol
-    virtual Dsymbol *toAlias2();
     virtual bool overloadInsert(Dsymbol *s);
     virtual uinteger_t size(Loc loc);
     virtual bool isforwardRef();
