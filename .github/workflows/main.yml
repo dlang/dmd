@@ -54,8 +54,11 @@ jobs:
             container_image: alpine:3.21
             host_dmd: ldmd2
           # macOS
-          - job_name: macOS 13 x64, DMD (latest)
-            os: macos-13
+          - job_name: macOS 14 arm64, LDC
+            os: macos-14
+            host_dmd: ldc
+          - job_name: macOS 14 x64, DMD (latest)
+            os: macos-14
             host_dmd: dmd
           # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
           # - job_name: macOS 13 x64, DMD (coverage)
@@ -79,7 +82,8 @@ jobs:
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container_image }}
-    timeout-minutes: 40
+    # for some reason, the compiler testsuite is extremely slow with x86_64 emulation on macos-14 runners
+    timeout-minutes: ${{ matrix.os == 'macos-14' && 60 || 40 }}
     env:
       # for ci/run.sh:
       OS_NAME: ${{ startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || '')) }}
@@ -156,7 +160,20 @@ jobs:
         uses: seanmiddleditch/gha-setup-vsdevenv@v4
         with:
           arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
+      - name: 'macOS arm64: Run arm64 smoke test'
+        if: matrix.os == 'macos-14'
+        run: |
+          set -uexo pipefail
+
+          cat >hello.d <<EOF
+          version (AArch64) {} else static assert(0);
+          extern(C) int puts(const(char)* s);
+          extern(C) int main() { puts("Hello world from native arm64!"); return 0; }
+          EOF
+
+          generated/osx/release/64/dmd -betterC -arm -run hello.d
       - name: Test dmd
+        if: success() || failure()
         run: ci/run.sh test_dmd
       - name: Test druntime
         if: '!matrix.coverage && (success() || failure())'
