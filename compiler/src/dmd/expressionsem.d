@@ -8565,6 +8565,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("DotIdExp::semantic(this = %p, '%s')\n", exp, exp.toChars());
             printAST(exp);
         }
+        scope (exit)
+        {
+            if (result)
+                result.rvalue = exp.rvalue;
+            else
+                setError();
+        }
 
         if (sc.inCfile)
         {
