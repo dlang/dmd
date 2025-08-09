@@ -927,6 +927,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 exp = exp.implicitCastTo(sc2, tret);
 
                             exp = exp.toLvalue(sc2, "`ref` return");
+                            checkAddressable(exp, sc2, "`ref` return");
                             checkReturnEscapeRef(*sc2, exp, false);
                             exp = exp.optimize(WANTvalue, /*keepLvalue*/ true);
                         }

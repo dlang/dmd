@@ -1703,6 +1703,19 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                 exp = ErrorExp.get();
                             }
                         }
+                        else if (exp.isBitField())
+                        {
+                            if (dsym.storage_class & STC.autoref)
+                            {
+                                dsym.storage_class &= ~STC.ref_;
+                                constructInit(false);
+                            }
+                            else
+                            {
+                                .error(dsym.loc, "bitfield `%s` cannot be assigned to `ref %s`", exp.toChars(), dsym.toChars());
+                                exp = ErrorExp.get();
+                            }
+                        }
                         else
                         {
                             constructInit(false);
