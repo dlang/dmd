@@ -176,10 +176,11 @@ nothrow:
         whichPathFoundThis = -1;
 
         // List of extensions to match, in order of precedence.
-        const(char)[][4] extensions = [
+        const(char)[][5] extensions = [
             FileName.forceExt(filename, hdr_ext),
             FileName.forceExt(filename, mars_ext),
             FileName.forceExt(filename, i_ext),
+            FileName.forceExt(filename, h_ext),
             FileName.forceExt(filename, c_ext),
         ];
         scope(exit)
