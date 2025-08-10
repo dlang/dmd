@@ -168,7 +168,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 // Convert initializer to Expression `ex`
                 auto tm = fieldType.addMod(t.mod);
                 auto iz = i.value[j].initializerSemantic(sc, tm, needInterpret);
-                auto ex = iz.initializerToExpression(null, sc.inCfile);
+                auto ex = iz.initializerToExpression(fieldType, sc.inCfile);
                 if (ex.op != EXP.error)
                     i.value[j] = iz;
                 return ex;
@@ -1267,6 +1267,11 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
     {
         //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
         //static int i; if (++i == 2) assert(0);
+        if (!itype || itype.toBasetype().isTypeAArray())
+            if (!init.type || init.type.isTypeAArray())
+                if (init.isAssociativeArray())
+                    return init.toAssocArrayLiteral();
+
         uint edim;      // the length of the resulting array literal
         const(uint) amax = 0x80000000;
         Type t = null;  // type of the array literal being initialized
