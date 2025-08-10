@@ -292,3 +292,66 @@ version (D_ProfileGC)
     _d_arrayappendT(str, "c");
     assert(str == "abc");
 }
+
+@safe nothrow unittest
+{
+    static class FailedPostblitException : Exception { this() nothrow @safe { super(null); } }
+    static size_t inner_postblit_cnt = 0;
+    static size_t inner_dtor_cnt = 0;
+    static size_t outer_postblit_cnt = 0;
+    static size_t outer_dtor_cnt = 0;
+    static struct Inner
+    {
+        char id;
+
+        @safe:
+        this(this)
+        {
+            ++inner_postblit_cnt;
+            if (id == '2')
+                throw new FailedPostblitException();
+        }
+
+        ~this() nothrow
+        {
+            ++inner_dtor_cnt;
+        }
+    }
+
+    static struct Outer
+    {
+        Inner inner1, inner2, inner3;
+
+        nothrow @safe:
+        this(char first, char second, char third)
+        {
+            inner1 = Inner(first);
+            inner2 = Inner(second);
+            inner3 = Inner(third);
+        }
+
+        this(this)
+        {
+            ++outer_postblit_cnt;
+        }
+
+        ~this()
+        {
+            ++outer_dtor_cnt;
+        }
+    }
+
+    Outer[3] arr = [Outer('1', '1', '1'), Outer('1', '2', '3'), Outer('3', '3', '3')];
+
+    try {
+        Outer[] arrApp;
+        arrApp ~= arr;
+    }
+    catch (FailedPostblitException) {}
+    catch (Exception) assert(false);
+
+    assert(inner_postblit_cnt == 5);
+    assert(inner_dtor_cnt == 4);
+    assert(outer_postblit_cnt == 1);
+    assert(outer_dtor_cnt == 1);
+}
