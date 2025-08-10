@@ -852,7 +852,11 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
             expressionSemantic(aaExp, sc);
         assert(aaExp.lowering);
         if (!(storage_class & STC.manifest)) // manifest constants create runtime copies
-            aaExp.loweringCtfe = aaExp.lowering.ctfeInterpret();
+            if (!aaExp.loweringCtfe)
+            {
+                aaExp.loweringCtfe = aaExp.lowering.ctfeInterpret();
+                aaExp.loweringCtfe.accept(this); // lower AAs in keys and values
+            }
         semanticTypeInfo(sc, aaExp.lowering.type);
     }
 
