@@ -3980,7 +3980,10 @@ private extern(D) Statement loopReturn(Expression e, Statements* cases, Loc loc)
  */
 private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFunction tfld)
 {
-    auto taa = fs.aggr.type.toBasetype().isTypeAArray();
+    auto tab = fs.aggr.type.toBasetype();
+    auto taa = tab.isTypeAArray();
+    const isStaticOrDynamicArray = tab.isTypeSArray() || tab.isTypeDArray();
+
     auto params = new Parameters();
     foreach (i, p; *fs.parameters)
     {
@@ -4019,13 +4022,29 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
         LcopyArg:
             id = Identifier.generateId("__applyArg", cast(int)i);
 
-            Initializer ie = new ExpInitializer(fs.loc, new IdentifierExp(fs.loc, id));
-            auto v = new VarDeclaration(fs.loc, p.type, p.ident, ie);
+            // Make sure `p.type` matches the signature expected by the druntime helpers.
+            const isIndexParam = i == 0 && fs.parameters.length == 2;
+            Type userType = p.type;
+            Expression initExp = new IdentifierExp(fs.loc, id);
+            if (taa)
+            {
+                p.type = isIndexParam ? taa.index : taa.nextOf();
+                p.type = p.type.substWildTo(MODFlags.const_);
+            }
+            else if (isStaticOrDynamicArray && isIndexParam)
+            {
+                p.type = Type.tsize_t;
+                // If the user used an incompatible index type (e.g., `int` instead
+                // of `size_t` - which is deprecated nowadays), then add a cast.
+                if (!p.type.implicitConvTo(userType))
+                    initExp = new CastExp(fs.loc, initExp, userType);
+            }
+
+            Initializer initializer = new ExpInitializer(fs.loc, initExp);
+            auto v = new VarDeclaration(fs.loc, userType, p.ident, initializer);
             v.storage_class |= STC.temp | (stc & STC.scope_);
             Statement s = new ExpStatement(fs.loc, v);
             fs._body = new CompoundStatement(fs.loc, s, fs._body);
-            if (taa)
-                p.type = (i == 1 || fs.parameters.length == 1 ? taa.nextOf() : taa.index).substWildTo(MODFlags.const_);
         }
         params.push(new Parameter(fs.loc, stc, p.type, id, null, null));
     }
