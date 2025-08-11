@@ -2423,7 +2423,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* Run semantic on each argument, place results in tiargs[],
          * then find best match template with tiargs
          */
-        if (!tm.findTempDecl(sc) || !tm.semanticTiargs(sc) || !tm.findBestMatch(sc, ArgumentList()))
+        if (!tm.findMixinTempDecl(sc) || !tm.semanticTiargs(sc) || !tm.findBestMatch(sc, ArgumentList()))
         {
             if (tm.semanticRun == PASS.initial) // forward reference had occurred
             {
@@ -6282,6 +6282,81 @@ bool findTempDecl(TemplateInstance ti, Scope* sc, WithScopeSymbol* pwithsym)
                 {
                     .error(ti.loc, "%s `%s` `%s` forward references template declaration `%s`",
                            ti.kind, ti.toPrettyChars(), ti.toChars(), td.toChars());
+                    return 1;
+                }
+            }
+            return 0;
+        });
+        if (r)
+            return false;
+    }
+    return true;
+}
+
+private bool findMixinTempDecl(TemplateMixin tm, Scope* sc)
+{
+    // Follow qualifications to find the TemplateDeclaration
+    if (!tm.tempdecl)
+    {
+        Expression e;
+        Type t;
+        Dsymbol s;
+        tm.tqual.resolve(tm.loc, sc, e, t, s);
+        if (!s)
+        {
+            .error(tm.loc, "%s `%s` is not defined", tm.kind, tm.toPrettyChars);
+            return false;
+        }
+        s = s.toAlias();
+        tm.tempdecl = s.isTemplateDeclaration();
+        OverloadSet os = s.isOverloadSet();
+
+        /* If an OverloadSet, look for a unique member that is a template declaration
+         */
+        if (os)
+        {
+            Dsymbol ds = null;
+            foreach (i, sym; os.a)
+            {
+                Dsymbol s2 = sym.isTemplateDeclaration();
+                if (s2)
+                {
+                    if (ds)
+                    {
+                        tm.tempdecl = os;
+                        break;
+                    }
+                    ds = s2;
+                }
+            }
+        }
+        if (!tm.tempdecl)
+        {
+            .error(tm.loc, "%s `%s` - `%s` is a %s, not a template", tm.kind,
+                   tm.toPrettyChars, s.toChars(), s.kind());
+            return false;
+        }
+    }
+    assert(tm.tempdecl);
+
+    // Look for forward references
+    auto tovers = tm.tempdecl.isOverloadSet();
+    foreach (size_t oi; 0 .. tovers ? tovers.a.length : 1)
+    {
+        Dsymbol dstart = tovers ? tovers.a[oi] : tm.tempdecl;
+        int r = overloadApply(dstart, (Dsymbol s)
+        {
+            auto td = s.isTemplateDeclaration();
+            if (!td)
+                return 0;
+
+            if (td.semanticRun == PASS.initial)
+            {
+                if (td._scope)
+                    td.dsymbolSemantic(td._scope);
+                else
+                {
+                    tm.semanticRun = PASS.initial;
                     return 1;
                 }
             }

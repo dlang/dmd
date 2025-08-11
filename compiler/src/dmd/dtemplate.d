@@ -59,7 +59,6 @@ import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : resolveLoc, expressionSemantic, resolveProperties, getDsymbol;
 import dmd.func;
-import dmd.funcsem : overloadApply;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -76,7 +75,7 @@ import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.templatesem : deduceType, getExpression, TemplateInstance_semanticTiargs;
 import dmd.tokens;
-import dmd.typesem : typeSemantic, resolve, toDsymbol, isBaseOf, resolveNamedArgs;
+import dmd.typesem : typeSemantic, toDsymbol, isBaseOf, resolveNamedArgs;
 import dmd.visitor;
 
 import dmd.templateparamsem;
@@ -2400,80 +2399,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
     override const(char)* kind() const
     {
         return "mixin";
-    }
-
-    extern (D) bool findTempDecl(Scope* sc)
-    {
-        // Follow qualifications to find the TemplateDeclaration
-        if (!tempdecl)
-        {
-            Expression e;
-            Type t;
-            Dsymbol s;
-            tqual.resolve(loc, sc, e, t, s);
-            if (!s)
-            {
-                .error(loc, "%s `%s` is not defined", kind, toPrettyChars);
-                return false;
-            }
-            s = s.toAlias();
-            tempdecl = s.isTemplateDeclaration();
-            OverloadSet os = s.isOverloadSet();
-
-            /* If an OverloadSet, look for a unique member that is a template declaration
-             */
-            if (os)
-            {
-                Dsymbol ds = null;
-                foreach (i, sym; os.a)
-                {
-                    Dsymbol s2 = sym.isTemplateDeclaration();
-                    if (s2)
-                    {
-                        if (ds)
-                        {
-                            tempdecl = os;
-                            break;
-                        }
-                        ds = s2;
-                    }
-                }
-            }
-            if (!tempdecl)
-            {
-                .error(loc, "%s `%s` - `%s` is a %s, not a template", kind, toPrettyChars, s.toChars(), s.kind());
-                return false;
-            }
-        }
-        assert(tempdecl);
-
-        // Look for forward references
-        auto tovers = tempdecl.isOverloadSet();
-        foreach (size_t oi; 0 .. tovers ? tovers.a.length : 1)
-        {
-            Dsymbol dstart = tovers ? tovers.a[oi] : tempdecl;
-            int r = overloadApply(dstart, (Dsymbol s)
-            {
-                auto td = s.isTemplateDeclaration();
-                if (!td)
-                    return 0;
-
-                if (td.semanticRun == PASS.initial)
-                {
-                    if (td._scope)
-                        td.dsymbolSemantic(td._scope);
-                    else
-                    {
-                        semanticRun = PASS.initial;
-                        return 1;
-                    }
-                }
-                return 0;
-            });
-            if (r)
-                return false;
-        }
-        return true;
     }
 
     override void accept(Visitor v)
