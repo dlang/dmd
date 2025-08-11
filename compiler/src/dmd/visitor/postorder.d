@@ -118,6 +118,18 @@ public:
         }
     }
 
+    override void visit(CatAssignExp e)
+    {
+        if (auto lowering = e.lowering)
+        {
+            doCond(lowering) || applyTo(e);
+        }
+        else
+        {
+            visit(cast(BinExp)e);
+        }
+    }
+
     override void visit(EqualExp e)
     {
         if (auto lowering = e.lowering)
