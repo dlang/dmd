@@ -34,6 +34,7 @@ import dmd.dsymbolsem : toAlias;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem : getDsymbol;
 import dmd.func;
 import dmd.id;
 import dmd.identifier;
