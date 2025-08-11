@@ -1356,6 +1356,12 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
         return MATCH.nomatch;
     }
 
+    if (arg.isBitField())
+    {
+        if (pMessage) *pMessage = tf.getParamError(arg, p);
+        return MATCH.nomatch;
+    }
+
     return m;
 }
 
@@ -1369,13 +1375,21 @@ private const(char)* getParamError(TypeFunction tf, Expression arg, Parameter pa
     // when comparing the type with strcmp, we need to drop the qualifier
     bool qual = !arg.type.mutableOf().equals(par.type.mutableOf()) &&
         strcmp(arg.type.mutableOf().toChars(), par.type.mutableOf().toChars()) == 0;
-    auto at = qual ? arg.type.toPrettyChars(true) : arg.type.toChars();
     OutBuffer buf;
-    // only mention rvalue if it's relevant
-    const rv = !arg.isLvalue() && par.isReference() && !(par.storageClass & STC.constscoperef);
-    buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
-        rv ? "rvalue ".ptr : "".ptr, arg.toErrMsg(), at,
-        parameterToChars(par, tf, qual));
+    // only mention rvalue or bitfield if it's relevant
+    if (arg.isBitField())
+    {
+        buf.printf("cannot pass bitfield argument `%s` to parameter `%s`",
+                   arg.toErrMsg(), parameterToChars(par, tf, qual));
+    }
+    else
+    {
+        auto at = qual ? arg.type.toPrettyChars(true) : arg.type.toChars();
+        const rv = !arg.isLvalue() && par.isReference() && !(par.storageClass & STC.constscoperef);
+        buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
+            rv ? "rvalue ".ptr : "".ptr, arg.toErrMsg(), at,
+            parameterToChars(par, tf, qual));
+    }
     return buf.extractChars();
 }
 
@@ -2863,7 +2877,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
                     if (farg && (eparam.storageClass & STC.ref_))
                     {
-                        if (!farg.isLvalue())
+                        if (!farg.isLvalue() || farg.isBitField())
                             eparam.storageClass &= ~STC.ref_; // value parameter
                         eparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
                         eparam.storageClass |= STC.autoref;

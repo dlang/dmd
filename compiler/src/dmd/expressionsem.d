@@ -9028,7 +9028,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             error(exp.loc, "cannot take address of `%s`", exp.e1.toErrMsg());
             return setError();
         }
-        if (!checkAddressable(exp, sc))
+        if (!checkAddressable(exp, sc, "take address of"))
             return setError();
 
         bool hasOverloads;
@@ -10356,7 +10356,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (t1b.isStaticOrDynamicArray())
         {
-            if (!checkAddressable(exp, sc))
+            if (!checkAddressable(exp, sc, "index through"))
                 return setError();
         }
 
@@ -14883,20 +14883,10 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
         Expression e = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
         return e;
     }
-    else if ((exp.ident == Id.max || exp.ident == Id.min) &&
-             exp.e1.isVarExp() &&
-             exp.e1.isVarExp().var.isBitFieldDeclaration())
+    else if ((exp.ident == Id.max || exp.ident == Id.min) && exp.e1.isBitField())
     {
         // For `x.max` and `x.min` get the max/min of the bitfield, not the max/min of its type
-        auto bf = exp.e1.isVarExp().var.isBitFieldDeclaration();
-        return new IntegerExp(exp.loc, bf.getMinMax(exp.ident), bf.type);
-    }
-    else if ((exp.ident == Id.max || exp.ident == Id.min) &&
-             exp.e1.isDotVarExp() &&
-             exp.e1.isDotVarExp().var.isBitFieldDeclaration())
-    {
-        // For `x.max` and `x.min` get the max/min of the bitfield, not the max/min of its type
-        auto bf = exp.e1.isDotVarExp().var.isBitFieldDeclaration();
+        auto bf = exp.e1.isBitField();
         return new IntegerExp(exp.loc, bf.getMinMax(exp.ident), bf.type);
     }
     else
@@ -16261,9 +16251,9 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
         // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
         CondExp ecopy = cast(CondExp)(_this.copy());
         ecopy.e1 = _this.e1.toLvalue(sc, action).addressOf();
-        checkAddressable(ecopy.e1, sc);
+        checkAddressable(ecopy.e1, sc, "take address of");
         ecopy.e2 = _this.e2.toLvalue(sc, action).addressOf();
-        checkAddressable(ecopy.e2, sc);
+        checkAddressable(ecopy.e2, sc, "take address of");
         ecopy.type = _this.type.pointerTo();
         return new PtrExp(_this.loc, ecopy, _this.type);
 
@@ -16642,10 +16632,11 @@ private bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
  * Params:
  *      e = expression to check
  *      sc = context
+ *      action = for error messages, what the address is needed for (e.g. ref return, indexing an array)
  * Returns:
  *      true if the expression is addressable
  */
-bool checkAddressable(Expression e, Scope* sc)
+bool checkAddressable(Expression e, Scope* sc, const(char)* action)
 {
     //printf("checkAddressable() %s\n", e.toChars());
     Expression ex = e;
@@ -16659,7 +16650,7 @@ bool checkAddressable(Expression e, Scope* sc)
                 // whether SCOPE.Cfile is set.
                 if (auto bf = ex.isDotVarExp().var.isBitFieldDeclaration())
                 {
-                    error(e.loc, "cannot take address of bitfield `%s`", bf.toChars());
+                    sc.eSink.error(e.loc, "cannot %s bitfield `%s`", action, ex.toErrMsg());
                     return false;
                 }
                 goto case EXP.cast_;
@@ -16683,10 +16674,7 @@ bool checkAddressable(Expression e, Scope* sc)
                     // or cast to an lvalue pointer cannot be stored in a register.
                     if (ex.isVarExp().var.storage_class & STC.register)
                     {
-                        if (e.isIndexExp())
-                            error(e.loc, "cannot index through register variable `%s`", ex.toErrMsg());
-                        else
-                            error(e.loc, "cannot take address of register variable `%s`", ex.toErrMsg());
+                        sc.eSink.error(e.loc, "cannot %s register variable `%s`", action, ex.toErrMsg());
                         return false;
                     }
                 }
@@ -18746,5 +18734,19 @@ Expression rewriteIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
         }
         exp.e1 = revertIndexAssignToRvalues(ie1, sc);
     }
+    return null;
+}
+
+/****************************************
+ * Get bitfield from expression.
+ */
+BitFieldDeclaration isBitField(Expression e)
+{
+    if (auto ve = e.isVarExp())
+        return ve.var.isBitFieldDeclaration();
+
+    if (auto dve = e.isDotVarExp())
+        return dve.var.isBitFieldDeclaration();
+
     return null;
 }

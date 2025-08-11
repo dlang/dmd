@@ -2715,10 +2715,13 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                      */
                     Scope* sc2 = sc.push();
                     sc2.eSink = global.errorSinkNull;
-                    bool err = checkReturnEscapeRef(*sc2, rs.exp, true);
+                    bool addressable = checkAddressable(rs.exp, sc2, "`ref` return");
+                    bool escapes = checkReturnEscapeRef(*sc2, rs.exp, true);
                     sc2.pop();
 
-                    if (err)
+                    if (!addressable)
+                        turnOffRef(() { checkAddressable(rs.exp, sc, "`ref` return"); });
+                    else if (escapes)
                         turnOffRef(() { checkReturnEscapeRef(*sc, rs.exp, false); });
                     else if (!rs.exp.type.constConv(tf.next))
                         turnOffRef(
