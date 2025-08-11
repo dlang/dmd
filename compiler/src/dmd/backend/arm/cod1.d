@@ -2253,12 +2253,22 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     }
     else if (sz == REGSIZE * 2)
     {
-        int grex = I64 ? REX_W << 16 : 0;
-        uint r = findreg(retregs & INSTR.MSW);
-        cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FL.funcarg, funcargtos - REGSIZE);    // MOV -REGSIZE[EBP],r
-        r = findreg(retregs & INSTR.LSW);
-        cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FL.funcarg, funcargtos - REGSIZE * 2); // MOV -2*REGSIZE[EBP],r
-        assert(0);
+        reg_t rmsw = findreg(retregs & INSTR.MSW);
+        code cs;
+        cs.reg = NOREG;
+        cs.base = 31;
+        cs.index = NOREG;
+        cs.IFL1 = FL.const_;
+        cs.IEV1.Voffset = funcargtos - REGSIZE;
+        storeToEA(cs, rmsw, REGSIZE);
+        cs.Iop = setField(cs.Iop,21,10,funcargtos >> field(cs.Iop,31,30));
+        cdb.gen(&cs);
+
+        reg_t rlsw = findreg(retregs & INSTR.LSW);
+        cs.IEV1.Voffset = funcargtos - REGSIZE * 2;
+        storeToEA(cs, rlsw, REGSIZE);
+        cs.Iop = setField(cs.Iop,21,10,funcargtos >> field(cs.Iop,31,30));
+        cdb.gen(&cs);
     }
     else
         assert(0);
