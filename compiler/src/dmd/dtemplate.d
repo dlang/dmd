@@ -75,7 +75,7 @@ import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.templatesem : deduceType, getExpression, TemplateInstance_semanticTiargs;
 import dmd.tokens;
-import dmd.typesem : typeSemantic, toDsymbol, isBaseOf, resolveNamedArgs;
+import dmd.typesem : typeSemantic, toDsymbol, resolveNamedArgs;
 import dmd.visitor;
 
 import dmd.templateparamsem;
@@ -2166,127 +2166,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return true;
         }
         return false;
-    }
-
-    /*****************************************
-     * Determines if a TemplateInstance will need a nested
-     * generation of the TemplateDeclaration.
-     * Sets enclosing property if so, and returns != 0;
-     */
-    extern (D) final bool hasNestedArgs(Objects* args, bool isstatic)
-    {
-        int nested = 0;
-        //printf("TemplateInstance.hasNestedArgs('%s')\n", tempdecl.ident.toChars());
-
-        // arguments from parent instances are also accessible
-        if (!enclosing)
-        {
-            if (TemplateInstance ti = tempdecl.toParent().isTemplateInstance())
-                enclosing = ti.enclosing;
-        }
-
-        /* A nested instance happens when an argument references a local
-         * symbol that is on the stack.
-         */
-        foreach (o; *args)
-        {
-            Expression ea = isExpression(o);
-            Dsymbol sa = isDsymbol(o);
-            Tuple va = isTuple(o);
-            if (ea)
-            {
-                if (auto ve = ea.isVarExp())
-                {
-                    sa = ve.var;
-                    goto Lsa;
-                }
-                if (auto te = ea.isThisExp())
-                {
-                    sa = te.var;
-                    goto Lsa;
-                }
-                if (auto fe = ea.isFuncExp())
-                {
-                    if (fe.td)
-                        sa = fe.td;
-                    else
-                        sa = fe.fd;
-                    goto Lsa;
-                }
-                // Emulate Expression.toMangleBuffer call that had exist in TemplateInstance.genIdent.
-                if (ea.op != EXP.int64 && ea.op != EXP.float64 && ea.op != EXP.complex80 && ea.op != EXP.null_ && ea.op != EXP.string_ && ea.op != EXP.arrayLiteral && ea.op != EXP.assocArrayLiteral && ea.op != EXP.structLiteral)
-                {
-                    if (!ea.type.isTypeError())
-                        .error(ea.loc, "%s `%s` expression `%s` is not a valid template value argument", kind, toPrettyChars, ea.toChars());
-                    errors = true;
-                }
-            }
-            else if (sa)
-            {
-            Lsa:
-                sa = sa.toAlias();
-                TemplateDeclaration td = sa.isTemplateDeclaration();
-                if (td)
-                {
-                    TemplateInstance ti = sa.toParent().isTemplateInstance();
-                    if (ti && ti.enclosing)
-                        sa = ti;
-                }
-                TemplateInstance ti = sa.isTemplateInstance();
-                Declaration d = sa.isDeclaration();
-                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STC.manifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
-                {
-                    Dsymbol dparent = sa.toParent2();
-                    if (!dparent || dparent.isModule)
-                        goto L1;
-                    else if (!enclosing)
-                        enclosing = dparent;
-                    else if (enclosing != dparent)
-                    {
-                        /* Select the more deeply nested of the two.
-                         * Error if one is not nested inside the other.
-                         */
-                        for (Dsymbol p = enclosing; p; p = p.parent)
-                        {
-                            if (p == dparent)
-                                goto L1; // enclosing is most nested
-                        }
-                        for (Dsymbol p = dparent; p; p = p.parent)
-                        {
-                            if (p == enclosing)
-                            {
-                                enclosing = dparent;
-                                goto L1; // dparent is most nested
-                            }
-                        }
-                        //https://issues.dlang.org/show_bug.cgi?id=17870
-                        if (dparent.isClassDeclaration() && enclosing.isClassDeclaration())
-                        {
-                            auto pc = dparent.isClassDeclaration();
-                            auto ec = enclosing.isClassDeclaration();
-                            if (pc.isBaseOf(ec, null))
-                                goto L1;
-                            else if (ec.isBaseOf(pc, null))
-                            {
-                                enclosing = dparent;
-                                goto L1;
-                            }
-                        }
-                        .error(loc, "%s `%s` `%s` is nested in both `%s` and `%s`", kind, toPrettyChars, toChars(), enclosing.toChars(), dparent.toChars());
-                        errors = true;
-                    }
-                L1:
-                    //printf("\tnested inside %s as it references %s\n", enclosing.toChars(), sa.toChars());
-                    nested |= 1;
-                }
-            }
-            else if (va)
-            {
-                nested |= cast(int)hasNestedArgs(&va.objects, isstatic);
-            }
-        }
-        //printf("-TemplateInstance.hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
-        return nested != 0;
     }
 
     /****************************************
