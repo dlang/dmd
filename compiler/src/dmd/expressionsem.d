@@ -12380,7 +12380,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (exp.op == EXP.assign)
             {
-                if (!exp.e1.isLvalue())
+                if (!sc.intypeof && !exp.e1.isLvalue())
                 {
                     error(exp.e1.loc, "cannot assign to struct rvalue `%s`",
                         exp.e1.toChars());
