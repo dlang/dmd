@@ -1885,13 +1885,13 @@ final class CParser(AST) : Parser!AST
             }
 
 
-            // Check alignasExp and not alignExps so that gnu
+            // Check lastAlignas and not alignasExps so that gnu
             // __atribute__((aligned())) is silently allowed, matching the
             // behavior of other compilers.
-            if (specifier.alignasExp && dt.isTypeFunction())
-                error(specifier.alignasExp.loc, "no alignment-specifier for function declaration"); // C11 6.7.5-2
-            if (specifier.alignasExp && specifier.scw == SCW.xregister)
-                error(specifier.alignasExp.loc, "no alignment-specifier for `register` storage class"); // C11 6.7.5-2
+            if (specifier.lastAlignas && dt.isTypeFunction())
+                error(specifier.lastAlignas.loc, "no alignment-specifier for function declaration"); // C11 6.7.5-2
+            if (specifier.lastAlignas && specifier.scw == SCW.xregister)
+                error(specifier.lastAlignas.loc, "no alignment-specifier for `register` storage class"); // C11 6.7.5-2
 
             /* C11 6.9.1 Function Definitions
              * function-definition:
@@ -1934,8 +1934,8 @@ final class CParser(AST) : Parser!AST
             {
                 if (token.value == TOK.assign)
                     error("no initializer for typedef declaration");
-                if (specifier.alignasExp)
-                    error(specifier.alignasExp.loc, "no alignment-specifier for typedef declaration"); // C11 6.7.5-2
+                if (specifier.lastAlignas)
+                    error(specifier.lastAlignas.loc, "no alignment-specifier for typedef declaration"); // C11 6.7.5-2
 
                 if (specifier.vector_size)
                 {
@@ -2464,10 +2464,10 @@ final class CParser(AST) : Parser!AST
                 case TOK._Alignas:
                 {
                     auto exp = cparseAlignasSpecifier(level);
-                    if (!specifier.alignExps)
-                        specifier.alignExps = new AST.Expressions(0);
-                    specifier.alignExps.push(exp);
-                    specifier.alignasExp = exp;
+                    if (!specifier.alignasExps)
+                        specifier.alignasExps = new AST.Expressions();
+                    specifier.alignasExps.push(exp);
+                    specifier.lastAlignas = exp;
                     break;
                 }
 
@@ -3378,7 +3378,7 @@ final class CParser(AST) : Parser!AST
                         if (n < 1 || n & (n - 1) || 8192 < n)
                             error("__decspec(align(%lld)) must be an integer positive power of 2 and be <= 8,192", cast(ulong)n);
                         specifier.packalign.set(cast(uint)n);
-                        specifier.packalign.setPack(true);
+                        specifier.packalign.setPack();
                         nextToken();
                     }
                     else
@@ -3632,9 +3632,9 @@ final class CParser(AST) : Parser!AST
                 {
                     nextToken();
                     AST.Expression exp = cparseConstantExp();
-                    if (!specifier.alignExps)
-                        specifier.alignExps = new AST.Expressions(0);
-                    specifier.alignExps.push(exp);
+                    if (!specifier.alignAttrs)
+                        specifier.alignAttrs = new AST.Expressions();
+                    specifier.alignAttrs.push(exp);
                     check(TOK.rightParenthesis);
                 }
                 else
@@ -3647,7 +3647,7 @@ final class CParser(AST) : Parser!AST
             else if (token.ident == Id.packed)
             {
                 specifier.packalign.set(1);
-                specifier.packalign.setPack(true);
+                specifier.packalign.setPack();
                 nextToken();
             }
             else if (token.ident == Id.always_inline) // https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html
@@ -4059,7 +4059,7 @@ final class CParser(AST) : Parser!AST
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
          */
-        return new AST.TypeTag(loc, structOrUnion, tag, tagSpecifier.packalign, tagSpecifier.alignExps, null, members);
+        return new AST.TypeTag(loc, structOrUnion, tag, tagSpecifier.packalign, tagSpecifier.alignAttrs, null, members);
     }
 
     /*************************************
@@ -4202,8 +4202,8 @@ final class CParser(AST) : Parser!AST
                 error("specifier-qualifier-list required");
             else if (width)
             {
-                if (specifier.alignasExp)
-                    error(specifier.alignasExp.loc, "no alignment-specifier for bit field declaration"); // C11 6.7.5-2
+                if (specifier.lastAlignas)
+                    error(specifier.lastAlignas.loc, "no alignment-specifier for bit field declaration"); // C11 6.7.5-2
                 auto s = new AST.BitFieldDeclaration(id.loc, dt, id.name, width);
                 members.push(s);
             }
@@ -4624,9 +4624,10 @@ final class CParser(AST) : Parser!AST
 
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers
-        AST.Expressions*  alignExps;  /// alignment
-        AST.Expression alignasExp; /// Last _Alignas() for errors
-        structalign_t packalign;  /// #pragma pack alignment value
+        AST.Expressions*  alignAttrs;   /// __attribute__((aligned))
+        AST.Expressions*  alignasExps;  /// _Alignas()
+        AST.Expression lastAlignas;     /// Last _Alignas() for errors
+        structalign_t packalign;        /// #pragma pack alignment value
     }
 
     /***********************
@@ -4908,13 +4909,23 @@ final class CParser(AST) : Parser!AST
             }
         }
 
-        if (specifier.alignExps)
+        if (specifier.alignAttrs)
         {
-            //printf("  applying _Alignas %s, packalign %d\n", (*specifier.alignExps)[0].toChars(), cast(int)specifier.packalign);
+            //printf("  applying attribute((aligned)) %s\n", (*specifier.alignAttrs)[0].toChars());
             // Wrap declaration in an AlignDeclaration
             auto decls = new AST.Dsymbols(1);
             (*decls)[0] = s;
-            s = new AST.AlignDeclaration(s.loc, specifier.alignExps, decls);
+            s = new AST.AlignDeclaration(s.loc, specifier.alignAttrs, decls);
+        }
+        if (specifier.alignasExps)
+        {
+            //printf("  applying _Alignas %s, packalign %d\n", (*specifier.alignasExps)[0].toChars(), cast(int)specifier.packalign);
+            // Wrap declaration in an AlignDeclaration
+            auto decls = new AST.Dsymbols(1);
+            (*decls)[0] = s;
+            auto ad = new AST.AlignDeclaration(s.loc, specifier.alignasExps, decls);
+            ad.salign.setAlignas();
+            s = ad;
         }
         else if (!specifier.packalign.isDefault() && !specifier.packalign.isUnknown())
         {
@@ -5214,7 +5225,7 @@ final class CParser(AST) : Parser!AST
             if (n < 1 || n & (n - 1) || ushort.max < n)
                 error(loc, "pack must be an integer positive power of 2, not 0x%llx", cast(ulong)n);
             packalign.set(cast(uint)n);
-            packalign.setPack(true);
+            packalign.setPack();
         }
 
         scan(&n);
