@@ -11642,6 +11642,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // printf("PreExp::semantic('%s')\n", toChars());
         if (Expression e = exp.opOverloadUnary(sc))
         {
+            if (!sc.intypeof && exp.e1.type.ty == Tstruct && !exp.e1.isLvalue())
+            {
+                error(exp.e1.loc, "cannot modify struct rvalue `%s`",
+                    exp.e1.toChars());
+                e = ErrorExp.get();
+            }
             result = e;
             return;
         }
