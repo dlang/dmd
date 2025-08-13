@@ -34,7 +34,6 @@ import dmd.dsymbolsem : dsymbolSemantic;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
-import dmd.expressionsem;
 import dmd.file_manager;
 import dmd.func;
 import dmd.globals;
