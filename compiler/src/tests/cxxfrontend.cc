@@ -1536,7 +1536,7 @@ public:
             if (!d->isDataseg() && !d->isMember() &&
                 d->_init && !d->_init->isVoidInitializer())
             {
-                Expression *e = d->type->defaultInitLiteral(d->loc);
+                Expression *e = dmd::defaultInitLiteral(d->type, d->loc);
                 e->accept(this);
             }
             return;
@@ -1566,7 +1566,7 @@ public:
             }
             else
             {
-                Expression *e = d->type->defaultInitLiteral(d->loc);
+                Expression *e = dmd::defaultInitLiteral(d->type, d->loc);
                 e->accept(this);
             }
         }

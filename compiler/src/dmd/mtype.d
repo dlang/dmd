@@ -30,7 +30,6 @@ import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem : getConstInitializer;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -46,7 +45,6 @@ import dmd.typesem;
 import dmd.visitor;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
-enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
 
 enum SIZE_INVALID = (~cast(ulong)0);   // error return from size() functions
 
@@ -1310,19 +1308,6 @@ extern (C++) abstract class Type : ASTNode
     }
 
     /***************************************
-     * Use when we prefer the default initializer to be a literal,
-     * rather than a global immutable variable.
-     */
-    Expression defaultInitLiteral(Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("Type::defaultInitLiteral() '%s'\n", toChars());
-        }
-        return defaultInit(this, loc);
-    }
-
-    /***************************************
      * Return !=0 if the type or any of its subtypes is wild.
      */
     int hasWild() const
@@ -1556,11 +1541,6 @@ extern (C++) final class TypeError : Type
     {
         // No semantic analysis done, no need to copy
         return this;
-    }
-
-    override Expression defaultInitLiteral(Loc loc)
-    {
-        return ErrorExp.get();
     }
 
     override void accept(Visitor v)
@@ -2104,17 +2084,6 @@ extern (C++) final class TypeVector : Type
         return false;
     }
 
-    override Expression defaultInitLiteral(Loc loc)
-    {
-        //printf("TypeVector::defaultInitLiteral()\n");
-        assert(basetype.ty == Tsarray);
-        Expression e = basetype.defaultInitLiteral(loc);
-        auto ve = new VectorExp(loc, e, this);
-        ve.type = this;
-        ve.dim = cast(int)(basetype.size(loc) / elementType().size(loc));
-        return ve;
-    }
-
     TypeBasic elementType()
     {
         assert(basetype.ty == Tsarray);
@@ -2203,25 +2172,6 @@ extern (C++) final class TypeSArray : TypeArray
     override structalign_t alignment()
     {
         return next.alignment();
-    }
-
-    override Expression defaultInitLiteral(Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeSArray::defaultInitLiteral() '%s'\n", toChars());
-        }
-        size_t d = cast(size_t)dim.toInteger();
-        Expression elementinit;
-        if (next.ty == Tvoid)
-            elementinit = tuns8.defaultInitLiteral(loc);
-        else
-            elementinit = next.defaultInitLiteral(loc);
-        auto elements = new Expressions(d);
-        foreach (ref e; *elements)
-            e = null;
-        auto ae = new ArrayLiteralExp(loc, this, elementinit, elements);
-        return ae;
     }
 
     override bool hasUnsafeBitpatterns()
@@ -2992,60 +2942,6 @@ extern (C++) final class TypeStruct : Type
         if (sym.alignment.isUnknown())
             sym.size(sym.loc);
         return sym.alignment;
-    }
-
-    /***************************************
-     * Use when we prefer the default initializer to be a literal,
-     * rather than a global immutable variable.
-     */
-    override Expression defaultInitLiteral(Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeStruct::defaultInitLiteral() '%s'\n", toChars());
-        }
-        sym.size(loc);
-        if (sym.sizeok != Sizeok.done)
-            return ErrorExp.get();
-
-        auto structelems = new Expressions(sym.nonHiddenFields());
-        uint offset = 0;
-        foreach (j; 0 .. structelems.length)
-        {
-            VarDeclaration vd = sym.fields[j];
-            Expression e;
-            if (vd.inuse)
-            {
-                error(loc, "circular reference to `%s`", vd.toPrettyChars());
-                return ErrorExp.get();
-            }
-            if (vd.offset < offset || vd.type.size() == 0)
-                e = null;
-            else if (vd._init)
-            {
-                if (vd._init.isVoidInitializer())
-                    e = null;
-                else
-                    e = vd.getConstInitializer(false);
-            }
-            else
-                e = vd.type.defaultInitLiteral(loc);
-            if (e && e.op == EXP.error)
-                return e;
-            if (e)
-                offset = vd.offset + cast(uint)vd.type.size();
-            (*structelems)[j] = e;
-        }
-        auto structinit = new StructLiteralExp(loc, sym, structelems);
-
-        /* Copy from the initializer symbol for larger symbols,
-         * otherwise the literals expressed as code get excessively large.
-         */
-        if (size(this, loc) > target.ptrsize * 4 && !needsNested())
-            structinit.useStaticInit = true;
-
-        structinit.type = this;
-        return structinit;
     }
 
     override bool isBoolean()
