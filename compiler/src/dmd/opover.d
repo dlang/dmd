@@ -1004,7 +1004,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
     if (e.e1.type.isTypeError() || e.e2.type.isTypeError())
         return ErrorExp.get();
 
-    if (e.e1.type.ty == Tstruct && !e.e1.isLvalue())
+    if (!sc.intypeof && e.e1.type.ty == Tstruct && !e.e1.isLvalue())
     {
         error(e.e1.loc, "cannot assign to struct rvalue `%s`", e.e1.toChars());
         return ErrorExp.get();
