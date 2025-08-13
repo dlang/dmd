@@ -456,6 +456,7 @@ extern (C++) final class Module : Package
         else if (!FileName.equalsExt(srcfilename, mars_ext) &&
                  !FileName.equalsExt(srcfilename, hdr_ext) &&
                  !FileName.equalsExt(srcfilename, c_ext) &&
+                 !FileName.equalsExt(srcfilename, h_ext) &&
                  !FileName.equalsExt(srcfilename, i_ext) &&
                  !FileName.equalsExt(srcfilename, dd_ext))
         {
@@ -695,7 +696,8 @@ extern (C++) final class Module : Package
 
         const(ubyte)[] srctext;
         if (global.preprocess &&
-            FileName.equalsExt(srcfile.toString(), c_ext) &&
+            (FileName.equalsExt(srcfile.toString(), c_ext) ||
+             FileName.equalsExt(srcfile.toString(), h_ext)) &&
             FileName.exists(srcfile.toString()))
         {
             /* Apply C preprocessor to the .c file, returning the contents
@@ -778,10 +780,12 @@ extern (C++) final class Module : Package
         DsymbolTable dst;
         Package ppack = null;
 
-        /* If it has the extension ".c", it is a "C" file.
+        /* If it has the extension ".c" or ".h", it is a "C" file.
          * If it has the extension ".i", it is a preprocessed "C" file.
          */
-        if (FileName.equalsExt(arg, c_ext) || FileName.equalsExt(arg, i_ext))
+        if (FileName.equalsExt(arg, c_ext) ||
+            FileName.equalsExt(arg, h_ext) ||
+            FileName.equalsExt(arg, i_ext))
         {
             filetype = FileType.c;
 
