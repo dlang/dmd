@@ -740,6 +740,12 @@ MATCH constConv(Type from, Type to)
     return dmd.typesem.constConv(from, to);
 }
 
+Expression defaultInitLiteral(Type t, Loc loc)
+{
+    import dmd.typesem;
+    return dmd.typesem.defaultInitLiteral(t, loc);
+}
+
 /***********************************************************
  * typinf.d
  */

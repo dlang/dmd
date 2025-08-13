@@ -2140,7 +2140,6 @@ public:
     virtual uint8_t deduceWild(Type* t, bool isRef);
     virtual ClassDeclaration* isClassHandle();
     virtual structalign_t alignment();
-    virtual Expression* defaultInitLiteral(Loc loc);
     virtual int32_t hasWild() const;
     virtual bool hasVoidInitPointers();
     virtual bool hasUnsafeBitpatterns();
@@ -4405,8 +4404,6 @@ enum class DotExpFlag
     noAliasThis = 4,
 };
 
-enum : int32_t { LOGDEFAULTINIT = 0 };
-
 enum : int32_t { LOGDOTEXP = 0 };
 
 class Parameter final : public ASTNode
@@ -4595,7 +4592,6 @@ class TypeError final : public Type
 public:
     const char* kind() const override;
     TypeError* syntaxCopy() override;
-    Expression* defaultInitLiteral(Loc loc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4816,7 +4812,6 @@ public:
     uint32_t alignsize() override;
     bool isString() override;
     structalign_t alignment() override;
-    Expression* defaultInitLiteral(Loc loc) override;
     bool hasUnsafeBitpatterns() override;
     bool hasVoidInitPointers() override;
     bool hasInvariant() override;
@@ -4847,7 +4842,6 @@ public:
     uint32_t alignsize() override;
     TypeStruct* syntaxCopy() override;
     structalign_t alignment() override;
-    Expression* defaultInitLiteral(Loc loc) override;
     bool isBoolean() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
@@ -4925,7 +4919,6 @@ public:
     bool isScalar() override;
     bool isUnsigned() override;
     bool isBoolean() override;
-    Expression* defaultInitLiteral(Loc loc) override;
     TypeBasic* elementType();
     void accept(Visitor* v) override;
 };
