@@ -47,6 +47,7 @@ import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : followInstantiationContext, toParentP;
 import dmd.dtemplate;
 import dmd.errorsink;
 import dmd.func;
