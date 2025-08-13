@@ -97,6 +97,7 @@ class AlignDeclaration final : public AttribDeclaration
 public:
     Expressions *alignExps;
     structalign_t salign;
+    d_bool isAlignas;
 
     AlignDeclaration *syntaxCopy(Dsymbol *s) override;
     void accept(Visitor *v) override { v->visit(this); }

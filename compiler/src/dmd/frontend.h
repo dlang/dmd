@@ -6518,6 +6518,7 @@ class AlignDeclaration final : public AttribDeclaration
 public:
     Array<Expression* >* exps;
     structalign_t salign;
+    bool isAlignas;
     AlignDeclaration* syntaxCopy(Dsymbol* s) override;
     void accept(Visitor* v) override;
 };

@@ -404,7 +404,8 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     /// the actual alignment is Unknown until it's either set to the value of `ealign`
     /// or the default if `ealign` is null ( / an error ocurred)
     structalign_t salign;
-
+    /// C11 _Alignas specifier for members and variables.
+    bool isAlignas;
 
     extern (D) this(Loc loc, Expression exp, Dsymbols* decl)
     {
@@ -416,11 +417,12 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         }
     }
 
-    extern (D) this(Loc loc, Expressions* exps, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, Expressions* exps, Dsymbols* decl, bool alignas = false) @safe
     {
         super(loc, null, decl);
         this.dsym = DSYM.alignDeclaration;
         this.exps = exps;
+        this.isAlignas = alignas;
     }
 
     extern (D) this(Loc loc, structalign_t salign, Dsymbols* decl) @safe
