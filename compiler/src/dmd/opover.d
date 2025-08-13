@@ -537,8 +537,15 @@ Expression opOverloadAssign(AssignExp e, Scope* sc, Type[2] aliasThisStop)
 
     bool choseReverse;
     if (auto result = pickBestBinaryOverload(sc, null, s, null, e, choseReverse))
+    {
+        if (!sc.intypeof && e.e1.type.ty == Tstruct && !e.e1.isLvalue())
+        {
+            error(e.e1.loc, "cannot assign to struct rvalue `%s`",
+                e.e1.toChars());
+            return ErrorExp.get();
+        }
         return result;
-
+    }
     return binAliasThis(e, sc, aliasThisStop);
 }
 
