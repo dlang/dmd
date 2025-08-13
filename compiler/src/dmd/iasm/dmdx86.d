@@ -717,7 +717,7 @@ PTRNTAB asm_classify(OP* pop, OPND[] opnds, out int outNumops)
             if(bInvalid64bit)
                 error(asmstate.loc, "operand for `%s` invalid in 64bit mode", asm_opstr(pop));
             else
-                error(asmstate.loc, "bad type/size of operands `%s`", asm_opstr(pop));
+                error(asmstate.loc, "`%s` instruction requires operands of matching type/size", asm_opstr(pop));
             return;
         }
         bRetry = true;
@@ -727,7 +727,7 @@ PTRNTAB asm_classify(OP* pop, OPND[] opnds, out int outNumops)
     {
         if (bRetry)
         {
-            error(asmstate.loc, "bad type/size of operands `%s`", asm_opstr(pop));
+            error(asmstate.loc, "`%s` instruction requires operands of matching type/size", asm_opstr(pop));
         }
         return ret;
     }
