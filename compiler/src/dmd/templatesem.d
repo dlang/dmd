@@ -1675,6 +1675,79 @@ L1:
     return MATCH.nomatch;
 }
 
+RootObject defaultArg(TemplateParameter tp, Loc instLoc, Scope* sc)
+{
+    if (tp.isTemplateTupleParameter())
+        return null;
+    if (auto tpp = tp.isTemplateTypeParameter())
+    {
+        Type t = tpp.defaultType;
+        if (t)
+        {
+            t = t.syntaxCopy();
+            t = t.typeSemantic(tpp.loc, sc); // use the parameter loc
+        }
+        return t;
+    }
+    if (auto tap = tp.isTemplateAliasParameter())
+    {
+        RootObject da = tap.defaultAlias;
+        if (auto ta = isType(tap.defaultAlias))
+        {
+            switch (ta.ty)
+            {
+            // If the default arg is a template, instantiate for each type
+            case Tinstance:
+            // same if the default arg is a mixin, traits, typeof
+            // since the content might rely on a previous parameter
+            // (https://issues.dlang.org/show_bug.cgi?id=23686)
+            case Tmixin, Ttypeof, Ttraits :
+                da = ta.syntaxCopy();
+                break;
+            default:
+            }
+        }
+
+        RootObject o = aliasParameterSemantic(tap.loc, sc, da, null); // use the parameter loc
+        return o;
+    }
+    if (auto tvp = tp.isTemplateValueParameter())
+    {
+        Expression e = tvp.defaultValue;
+        if (!e)
+            return null;
+
+        e = e.syntaxCopy();
+        Scope* sc2 = sc.push();
+        sc2.inDefaultArg = true;
+        e = e.expressionSemantic(sc2);
+        sc2.pop();
+        if (e is null)
+            return null;
+        if (auto te = e.isTemplateExp())
+        {
+            assert(sc && sc.tinst);
+            if (te.td == sc.tinst.tempdecl)
+            {
+                // defaultValue is a reference to its template declaration
+                // i.e: `template T(int arg = T)`
+                // Raise error now before calling resolveProperties otherwise we'll
+                // start looping on the expansion of the template instance.
+                auto td = sc.tinst.tempdecl;
+                .error(td.loc, "%s `%s` recursive template expansion", td.kind, td.toPrettyChars);
+                return ErrorExp.get();
+            }
+        }
+        if ((e = resolveProperties(sc, e)) is null)
+            return null;
+        e = e.resolveLoc(instLoc, sc); // use the instantiated loc
+        e = e.optimize(WANTvalue);
+
+        return e;
+    }
+    assert(0);
+}
+
 /*************************************************
  * Match function arguments against a specific template function.
  *
