@@ -666,6 +666,124 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
     assert(0);
 }
 
+/**********************************************
+ * Confirm s is a valid template, then store it.
+ * Input:
+ *      sc
+ *      s   candidate symbol of template. It may be:
+ *          TemplateDeclaration
+ *          FuncDeclaration with findTemplateDeclRoot() != NULL
+ *          OverloadSet which contains candidates
+ * Returns:
+ *      true if updating succeeds.
+ */
+bool updateTempDecl(TemplateInstance ti, Scope* sc, Dsymbol s)
+{
+    if (!s)
+        return ti.tempdecl !is null;
+
+    Identifier id = ti.name;
+    s = s.toAlias();
+
+    /* If an OverloadSet, look for a unique member that is a template declaration
+     */
+    if (OverloadSet os = s.isOverloadSet())
+    {
+        s = null;
+        foreach (s2; os.a)
+        {
+            if (FuncDeclaration f = s2.isFuncDeclaration())
+                s2 = f.findTemplateDeclRoot();
+            else
+                s2 = s2.isTemplateDeclaration();
+            if (s2)
+            {
+                if (s)
+                {
+                    ti.tempdecl = os;
+                    return true;
+                }
+                s = s2;
+            }
+        }
+        if (!s)
+        {
+            .error(ti.loc, "%s `%s` template `%s` is not defined", ti.kind, ti.toPrettyChars, id.toChars());
+            return false;
+        }
+    }
+
+    if (OverDeclaration od = s.isOverDeclaration())
+    {
+        ti.tempdecl = od; // TODO: more strict check
+        return true;
+    }
+
+    /* It should be a TemplateDeclaration, not some other symbol
+     */
+    if (FuncDeclaration f = s.isFuncDeclaration())
+        ti.tempdecl = f.findTemplateDeclRoot();
+    else
+        ti.tempdecl = s.isTemplateDeclaration();
+
+    // We're done
+    if (ti.tempdecl)
+        return true;
+
+    // Error already issued, just return `false`
+    if (!s.parent && global.errors)
+        return false;
+
+    if (!s.parent && s.getType())
+    {
+        Dsymbol s2 = s.getType().toDsymbol(sc);
+        if (!s2)
+        {
+            .error(ti.loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", ti.toChars(), id.toChars(), id.toChars(), s.getType.kind());
+            return false;
+        }
+        // because s can be the alias created for a TemplateParameter
+        const AliasDeclaration ad = s.isAliasDeclaration();
+        version (none)
+        {
+            if (ad && ad.isAliasedTemplateParameter())
+                printf("`%s` is an alias created from a template parameter\n", s.toChars());
+        }
+        if (!ad || !ad.isAliasedTemplateParameter())
+            s = s2;
+    }
+
+    TemplateInstance ti2 = s.parent ? s.parent.isTemplateInstance() : null;
+
+    /* This avoids the VarDeclaration.toAlias() which runs semantic() too soon
+     */
+    static bool matchId(TemplateInstance _ti, Identifier id)
+    {
+        if (_ti.aliasdecl && _ti.aliasdecl.isVarDeclaration())
+            return _ti.aliasdecl.isVarDeclaration().ident == id;
+        return _ti.toAlias().ident == id;
+    }
+
+    if (ti2 && (ti2.name == s.ident || matchId(ti2, s.ident)) && ti2.tempdecl)
+    {
+        /* This is so that one can refer to the enclosing
+         * template, even if it has the same name as a member
+         * of the template, if it has a !(arguments)
+         */
+        TemplateDeclaration td = ti2.tempdecl.isTemplateDeclaration();
+        assert(td);
+        if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
+            td = td.overroot; // then get the start
+        ti.tempdecl = td;
+        return true;
+    }
+    else
+    {
+        .error(ti.loc, "%s `%s` `%s` is not a template declaration, it is a %s",
+               ti.kind, ti.toPrettyChars, id.toChars(), s.kind());
+        return false;
+    }
+}
 
 /***************************************
  * Given that ti is an instance of this TemplateDeclaration,
