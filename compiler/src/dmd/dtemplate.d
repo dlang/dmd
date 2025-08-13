@@ -57,7 +57,6 @@ import dmd.dsymbolsem : aliasSemantic, oneMembers, toAlias;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
-import dmd.expressionsem : resolveLoc, expressionSemantic, resolveProperties;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
@@ -77,8 +76,6 @@ import dmd.templatesem : getExpression, TemplateInstance_semanticTiargs;
 import dmd.tokens;
 import dmd.typesem : typeSemantic, toDsymbol, isBaseOf, resolveNamedArgs;
 import dmd.visitor;
-
-import dmd.templateparamsem;
 
 //debug = FindExistingInstance; // print debug stats of findExistingInstance
 private enum LOG = false;
@@ -1251,8 +1248,6 @@ extern (C++) class TemplateParameter : ASTNode
 
     abstract RootObject specialization();
 
-    abstract RootObject defaultArg(Loc instLoc, Scope* sc);
-
     abstract bool hasDefaultArg();
 
     override const(char)* toChars() const
@@ -1327,17 +1322,6 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
     override final RootObject specialization()
     {
         return specType;
-    }
-
-    override final RootObject defaultArg(Loc instLoc, Scope* sc)
-    {
-        Type t = defaultType;
-        if (t)
-        {
-            t = t.syntaxCopy();
-            t = t.typeSemantic(loc, sc); // use the parameter loc
-        }
-        return t;
     }
 
     override final bool hasDefaultArg()
@@ -1449,41 +1433,6 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         return specValue;
     }
 
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
-    {
-        Expression e = defaultValue;
-        if (!e)
-            return null;
-
-        e = e.syntaxCopy();
-        Scope* sc2 = sc.push();
-        sc2.inDefaultArg = true;
-        e = e.expressionSemantic(sc2);
-        sc2.pop();
-        if (e is null)
-            return null;
-        if (auto te = e.isTemplateExp())
-        {
-            assert(sc && sc.tinst);
-            if (te.td == sc.tinst.tempdecl)
-            {
-                // defaultValue is a reference to its template declaration
-                // i.e: `template T(int arg = T)`
-                // Raise error now before calling resolveProperties otherwise we'll
-                // start looping on the expansion of the template instance.
-                auto td = sc.tinst.tempdecl;
-                .error(td.loc, "%s `%s` recursive template expansion", td.kind, td.toPrettyChars);
-                return ErrorExp.get();
-            }
-        }
-        if ((e = resolveProperties(sc, e)) is null)
-            return null;
-        e = e.resolveLoc(instLoc, sc); // use the instantiated loc
-        e = e.optimize(WANTvalue);
-
-        return e;
-    }
-
     override bool hasDefaultArg()
     {
         return defaultValue !is null;
@@ -1544,29 +1493,6 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
     override RootObject specialization()
     {
         return specAlias;
-    }
-
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
-    {
-        RootObject da = defaultAlias;
-        if (auto ta = isType(defaultAlias))
-        {
-            switch (ta.ty)
-            {
-            // If the default arg is a template, instantiate for each type
-            case Tinstance :
-            // same if the default arg is a mixin, traits, typeof
-            // since the content might rely on a previous parameter
-            // (https://issues.dlang.org/show_bug.cgi?id=23686)
-            case Tmixin, Ttypeof, Ttraits :
-                da = ta.syntaxCopy();
-                break;
-            default:
-            }
-        }
-
-        RootObject o = aliasParameterSemantic(loc, sc, da, null); // use the parameter loc
-        return o;
     }
 
     override bool hasDefaultArg()
@@ -1637,11 +1563,6 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
     }
 
     override RootObject specialization()
-    {
-        return null;
-    }
-
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
     {
         return null;
     }
