@@ -1639,7 +1639,7 @@ final class CParser(AST) : Parser!AST
      */
     private AST.Expression cparseConstantExp()
     {
-        return cparseAssignExp();
+        return cparseCondExp();
     }
 
     /*****************************
