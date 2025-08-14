@@ -5074,6 +5074,103 @@ void addEnumMembersToSymtab(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
     });
 }
 
+private OverloadSet mergeOverloadSet(ScopeDsymbol sds, Identifier ident, OverloadSet os, Dsymbol s)
+{
+    if (!os)
+    {
+        os = new OverloadSet(ident);
+        os.parent = sds;
+    }
+    if (OverloadSet os2 = s.isOverloadSet())
+    {
+        // Merge the cross-module overload set 'os2' into 'os'
+        if (os.a.length == 0)
+        {
+            os.a.setDim(os2.a.length);
+            memcpy(os.a.tdata(), os2.a.tdata(), (os.a[0]).sizeof * os2.a.length);
+        }
+        else
+        {
+            for (size_t i = 0; i < os2.a.length; i++)
+            {
+                os = mergeOverloadSet(sds, ident, os, os2.a[i]);
+            }
+        }
+        return os;
+    }
+
+    assert(s.isOverloadable());
+    /* Don't add to os[] if s is alias of previous sym
+     */
+    for (size_t j = 0; j < os.a.length; j++)
+    {
+        Dsymbol s2 = os.a[j];
+        if (s.toAlias() == s2.toAlias())
+        {
+            if (s2.isDeprecated() || (s2.visible() < s.visible() && s.visible().kind != Visibility.Kind.none))
+            {
+                os.a[j] = s;
+            }
+            return os;
+        }
+    }
+    os.push(s);
+    return os;
+}
+
+/***
+ * Returns true if any of the symbols `p1` or `p2` resides in the enclosing
+ * instantiation scope of `this`.
+ */
+bool followInstantiationContext(Dsymbol d,Dsymbol p1, Dsymbol p2 = null)
+{
+    static bool has2This(Dsymbol s)
+    {
+        if (auto f = s.isFuncDeclaration())
+            return f.hasDualContext;
+        if (auto ad = s.isAggregateDeclaration())
+            return ad.vthis2 !is null;
+        return false;
+    }
+
+    if (!has2This(d))
+        return false;
+
+    assert(p1);
+    auto outer = d.toParent();
+    while (outer)
+    {
+        auto ti = outer.isTemplateInstance();
+        if (!ti)
+            return false;
+        foreach (oarg; *ti.tiargs)
+        {
+            auto sa = getDsymbol(oarg);
+            if (!sa)
+                continue;
+            sa = sa.toAlias().toParent2();
+            if (!sa)
+                continue;
+            if (sa == p1)
+                return true;
+            if (p2 && sa == p2)
+                return true;
+        }
+        outer = ti.tempdecl.toParent();
+    }
+    return false;
+}
+
+/**
+ * Returns the declaration scope scope of `this` unless any of the symbols
+ * `p1` or `p2` resides in its enclosing instantiation scope then the
+ * latter is returned.
+ */
+Dsymbol toParentP(Dsymbol d, Dsymbol p1, Dsymbol p2 = null)
+{
+    return followInstantiationContext(d, p1, p2) ? d.toParent2() : d.toParentLocal();
+}
+
 /******************************************************
  * Verifies if the given Identifier is a DRuntime hook. It uses the hooks
  * defined in `id.d`.

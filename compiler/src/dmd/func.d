@@ -32,6 +32,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : toParentP;
 import dmd.dtemplate;
 import dmd.escape;
 import dmd.expression;

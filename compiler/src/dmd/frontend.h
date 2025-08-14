@@ -594,9 +594,7 @@ public:
     Dsymbol* toParent2();
     Dsymbol* toParentDecl();
     Dsymbol* toParentLocal();
-    Dsymbol* toParentP(Dsymbol* p1, Dsymbol* p2 = nullptr);
     TemplateInstance* isInstantiated();
-    bool followInstantiationContext(Dsymbol* p1, Dsymbol* p2 = nullptr);
     TemplateInstance* isSpeculative();
     DYNCAST dyncast() const final override;
     virtual Identifier* getIdent();
