@@ -262,8 +262,7 @@ final class CParser(AST) : Parser!AST
                 {
                     /* If tokens look like a declaration, assume it is one
                      */
-                    auto tk = &token;
-                    if (isCDeclaration(tk))
+                    if (startsDeclaration(&token))
                         goto Ldeclaration;
                     goto Lexp;
                 }
@@ -1906,9 +1905,8 @@ final class CParser(AST) : Parser!AST
             if (first &&                   // first declarator
                 id &&
                 dt.isTypeFunction() &&     // function type not inherited from a typedef
-                isDeclarationList(t) &&    // optional declaration-list
                 level == LVL.global &&     // function definitions only at global scope
-                t.value == TOK.leftCurly)  // start of compound-statement
+                t.value != TOK.endOfFile)
             {
                 auto s = cparseFunctionDefinition(id, dt.isTypeFunction(), specifier);
                 typedefTab.setDim(typedefTabLengthSave);
@@ -2151,7 +2149,7 @@ final class CParser(AST) : Parser!AST
             do
             {
                 cparseDeclaration(LVL.parameter);
-            } while (token.value != TOK.leftCurly);
+            } while (token.value != TOK.leftCurly && token.value != TOK.endOfFile);
 
             /* Since there were declarations, the parameter-list must have been
              * an identifier-list.
@@ -4252,177 +4250,54 @@ final class CParser(AST) : Parser!AST
     /************************************
      * Determine if the scanner is sitting on the start of a declaration.
      * Params:
-     *      t       = current token of the scanner
-     *      needId  = flag with additional requirements for a declaration
-     *      endtok  = ending token
-     *      pt      = will be set ending token (if not null)
+     *  t = first token
      * Returns:
-     *      true at start of a declaration
+     *  true if at start of a declaration
      */
-    private bool isCDeclaration(ref Token* pt)
+    private bool startsDeclaration(Token* t)
     {
-        auto t = pt;
-        //printf("isCDeclaration() %s\n", t.toChars());
-        if (!isDeclarationSpecifiers(t))
+        // Labels aren't declarations.
+        if (token.value == TOK.identifier && peek(t).value == TOK.colon)
             return false;
 
-        while (1)
-        {
-            if (t.value == TOK.semicolon)
-            {
-                t = peek(t);
-                pt = t;
-                return true;
-            }
-            if (!isCDeclarator(t, DTR.xdirect))
-                return false;
-            if (t.value == TOK.asm_)
-            {
-                t = peek(t);
-                if (t.value != TOK.leftParenthesis || !skipParens(t, &t))
-                    return false;
-            }
-            if (t.value == TOK.__attribute__)
-            {
-                t = peek(t);
-                if (t.value != TOK.leftParenthesis || !skipParens(t, &t))
-                    return false;
-            }
-            if (t.value == TOK.assign)
-            {
-                t = peek(t);
-                if (!isInitializer(t))
-                    return false;
-            }
-            switch (t.value)
-            {
-                case TOK.comma:
-                    t = peek(t);
-                    break;
-
-                case TOK.semicolon:
-                    t = peek(t);
-                    pt = t;
-                    return true;
-
-                default:
-                    return false;
-            }
-        }
-    }
-
-    /********************************
-     * See if match for initializer.
-     * Params:
-     *  pt = starting token, updated to one past end of initializer if true
-     * Returns:
-     *  true if initializer
-     */
-    private bool isInitializer(ref Token* pt)
-    {
-        //printf("isInitializer()\n");
-        auto t = pt;
-
-        if (t.value == TOK.leftCurly)
-        {
-            if (!skipBraces(t))
-                return false;
-            pt = t;
+        if (token.value == TOK._Static_assert)
             return true;
-        }
 
-        // skip over assignment-expression, ending before comma or semiColon or EOF
-        if (!isAssignmentExpression(t))
-            return false;
-        pt = t;
-        return true;
-    }
-
-    /********************************
-     * See if match for assignment-expression.
-     * Params:
-     *  pt = starting token, updated to one past end of assignment-expression if true
-     * Returns:
-     *  true if assignment-expression
-     */
-    private bool isAssignmentExpression(ref Token* pt)
-    {
-        auto t = pt;
-        //printf("isAssignmentExpression() %s\n", t.toChars());
-
-        /* This doesn't actually check for grammar matching an
-         * assignment-expression. It just matches ( ) [ ] looking for
-         * an ending token that would terminate one.
-         */
-        bool any;
-        while (1)
-        {
-            switch (t.value)
-            {
-                case TOK.comma:
-                case TOK.semicolon:
-                case TOK.rightParenthesis:
-                case TOK.rightBracket:
-                case TOK.endOfFile:
-                case TOK.endOfLine:
-                    if (!any)
-                        return false;
-                    break;
-
-                case TOK.leftParenthesis:
-                    if (!skipParens(t, &t))
-                        return false;
-                    /*
-                        https://issues.dlang.org/show_bug.cgi?id=22267
-                        If the parser encounters the following
-                            `identifier variableName = (expression);`
-                        the initializer is not identified as such since the parentheses
-                        cause the parser to keep walking indefinitely
-                        (whereas `(1) + 1` would not be affected.).
-                    */
-                    any = true;
-                    continue;
-
-                case TOK.leftBracket:
-                    if (!skipBrackets(t))
-                        return false;
-                    continue;
-
-                case TOK.leftCurly:
-                    if (!skipBraces(t))
-                        return false;
-                    continue;
-
-                default:
-                    any = true;   // assume token was part of an a-e
-                    t = peek(t);
-                    continue;
-            }
-            pt = t;
+        if (startsDeclarationSpecifiers(t))
             return true;
-        }
+
+        if (startsTypeName(t))
+            return true;
+
+        return false;
     }
 
     /********************************
-     * See if match for declaration-specifiers.
-     * No errors are diagnosed.
+     * Is this the start of a declaration-specifiers?
      * Params:
-     *  pt = starting token, updated to one past end of declaration-specifiers if true
+     *  t = first token
      * Returns:
      *  true if declaration-specifiers
      */
-    private bool isDeclarationSpecifiers(ref Token* pt)
+    private bool startsDeclarationSpecifiers(Token* t)
     {
-        //printf("isDeclarationSpecifiers()\n");
-
-        auto t = pt;
-
         bool seenType;
-        bool any;
         while (1)
         {
             switch (t.value)
             {
+                // typedef-name
+                case TOK.identifier:
+                    if (!seenType)
+                    {
+                        if (isTypedef(t.ident))
+                            return true;
+                        t = peek(t);
+                        seenType = true;
+                        continue;
+                    }
+                    return true;
+
                 // type-specifiers
                 case TOK.void_:
                 case TOK.char_:
@@ -4437,50 +4312,12 @@ final class CParser(AST) : Parser!AST
                 case TOK._Bool:
                 //case TOK._Imaginary:
                 case TOK._Complex:
-                    t = peek(t);
-                    seenType = true;
-                    any = true;
-                    continue;
 
-                case TOK.identifier: // typedef-name
-                    if (!seenType)
-                    {
-                        t = peek(t);
-                        seenType = true;
-                        any = true;
-                        continue;
-                    }
-                    break;
-
+                // struct-or-union-specifier
+                // enum-specifier
                 case TOK.struct_:
                 case TOK.union_:
                 case TOK.enum_:
-                    t = peek(t);
-                    if (t.value == TOK.__attribute__ ||
-                        t.value == TOK.__declspec)
-                    {
-                        t = peek(t);
-                        if (!skipParens(t, &t))
-                            return false;
-                    }
-                    if (t.value == TOK.identifier)
-                    {
-                        t = peek(t);
-                        if (t.value == TOK.leftCurly)
-                        {
-                            if (!skipBraces(t))
-                                return false;
-                        }
-                    }
-                    else if (t.value == TOK.leftCurly)
-                    {
-                        if (!skipBraces(t))
-                            return false;
-                    }
-                    else
-                        return false;
-                    any = true;
-                    continue;
 
                 // storage-class-specifiers
                 case TOK.typedef_:
@@ -4500,114 +4337,18 @@ final class CParser(AST) : Parser!AST
                 case TOK.volatile:
                 case TOK.restrict:
                 case TOK.__stdcall:
-                    t = peek(t);
-                    any = true;
-                    continue;
 
                 case TOK._Alignas:      // alignment-specifier
                 case TOK.__declspec:    // decl-specifier
                 case TOK.__attribute__: // attribute-specifier
-                    t = peek(t);
-                    if (!skipParens(t, &t))
-                        return false;
-                    any = true;
-                    continue;
 
-                // either atomic-type-specifier or type_qualifier
-                case TOK._Atomic:  // TODO _Atomic ( type-name )
-                    t = peek(t);
-                    if (t.value == TOK.leftParenthesis) // maybe atomic-type-specifier
-                    {
-                        auto tsave = t;
-                        t = peek(t);
-                        if (!isTypeName(t) || t.value != TOK.rightParenthesis)
-                        {   // it's a type-qualifier
-                            t = tsave;  // back up parser
-                            any = true;
-                            continue;
-                        }
-                        t = peek(t);    // move past right parenthesis of atomic-type-specifier
-                    }
-                    any = true;
-                    continue;
+                // atomic-type-specifier
+                case TOK._Atomic:
+                case TOK.typeof_:
+                    return true;
 
                 default:
-                    break;
-            }
-            break;
-        }
-
-        if (any)
-        {
-            pt = t;
-            return true;
-        }
-        return false;
-    }
-
-    /**************************************
-     * See if declaration-list is present.
-     * Returns:
-     *    true if declaration-list is present, even an empty one
-     */
-    bool isDeclarationList(ref Token* pt)
-    {
-        auto t = pt;
-        while (1)
-        {
-            if (t.value == TOK.leftCurly)
-            {
-                pt = t;
-                return true;
-            }
-            if (!isCDeclaration(t))
-                return false;
-        }
-    }
-
-    /*******************************************
-     * Skip braces.
-     * Params:
-     *      pt = enters on left brace, set to token past right bracket on true
-     * Returns:
-     *      true if successful
-     */
-    private bool skipBraces(ref Token* pt)
-    {
-        auto t = pt;
-        if (t.value != TOK.leftCurly)
-            return false;
-
-        int braces = 0;
-
-        while (1)
-        {
-            switch (t.value)
-            {
-                case TOK.leftCurly:
-                    ++braces;
-                    t = peek(t);
-                    continue;
-
-                case TOK.rightCurly:
-                    --braces;
-                    if (braces == 0)
-                    {
-                        pt = peek(t);
-                        return true;
-                    }
-                    if (braces < 0)
-                        return false;
-
-                    t = peek(t);
-                    continue;
-
-                case TOK.endOfFile:
                     return false;
-
-                default:
-                    t = peek(t);
-                    continue;
             }
         }
     }
@@ -4756,27 +4497,6 @@ final class CParser(AST) : Parser!AST
         return true;
     }
 
-    /***************************
-     * Is this the start of a type-name?
-     * Params:
-     *  pt = first token; updated with past end of type-name if true
-     * Returns:
-     *  true if start of type-name
-     */
-    private bool isTypeName(ref Token* pt)
-    {
-        auto t = pt;
-        //printf("isTypeName() %s\n", t.toChars());
-        if (!isSpecifierQualifierList(t))
-            return false;
-        if (!isCDeclarator(t, DTR.xabstract))
-            return false;
-        if (t.value != TOK.rightParenthesis)
-            return false;
-        pt = t;
-        return true;
-    }
-
     /*******************************************
      * Is this the start of a type-name?
      * Params:
@@ -4828,99 +4548,6 @@ final class CParser(AST) : Parser!AST
 
             default:
                 return false;
-        }
-    }
-
-    /***************************
-     * Is this the start of a specifier-qualifier-list?
-     * Params:
-     *  pt = first token; updated with past end of specifier-qualifier-list if true
-     * Returns:
-     *  true if start of specifier-qualifier-list
-     */
-    private bool isSpecifierQualifierList(ref Token* pt)
-    {
-        auto t = pt;
-        bool result;
-        while (1)
-        {
-            switch (t.value)
-            {
-                // Type Qualifiers
-                case TOK.const_:
-                case TOK.restrict:
-                case TOK.volatile:
-                case TOK.__stdcall:
-
-                // Type Specifiers
-                case TOK.char_:
-                case TOK.signed:
-                case TOK.unsigned:
-                case TOK.int16:
-                case TOK.int32:
-                case TOK.int64:
-                case TOK.__int128:
-                case TOK.float32:
-                case TOK.float64:
-                case TOK.void_:
-                case TOK._Bool:
-                //case TOK._Imaginary: // ? missing in Spec
-                case TOK._Complex:
-                    t = peek(t);
-                    break;
-
-                case TOK.identifier:
-                    // Use typedef table to disambiguate
-                    if (isTypedef(t.ident))
-                    {
-                        t = peek(t);
-                        break;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-
-                // struct-or-union-specifier
-                // enum-specifier
-                case TOK.struct_:
-                case TOK.union_:
-                case TOK.enum_:
-                    t = peek(t);
-                    if (t.value == TOK.identifier)
-                    {
-                        t = peek(t);
-                        if (t.value == TOK.leftCurly)
-                        {
-                            if (!skipBraces(t))
-                                return false;
-                        }
-                    }
-                    else if (t.value == TOK.leftCurly)
-                    {
-                        if (!skipBraces(t))
-                            return false;
-                    }
-                    else
-                        return false;
-                    break;
-
-                // atomic-type-specifier
-                case TOK._Atomic:
-                case TOK.typeof_:
-                case TOK.__attribute__:
-                    t = peek(t);
-                    if (t.value != TOK.leftParenthesis ||
-                        !skipParens(t, &t))
-                        return false;
-                    break;
-
-                default:
-                    if (result)
-                        pt = t;
-                    return result;
-            }
-            result = true;
         }
     }
 
