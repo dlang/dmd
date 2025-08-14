@@ -6415,17 +6415,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return;
             }
         }
-        if (sc.inCfile)
-        {
-            /* See if need to rewrite the AST because of cast/call ambiguity
-             */
-            if (auto e = castCallAmbiguity(exp, sc))
-            {
-                result = expressionSemantic(e, sc);
-                return;
-            }
-        }
-
         if (Expression ex = resolveUFCS(sc, exp))
         {
             result = ex;
@@ -8667,14 +8656,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (sc.inCfile)
         {
-            /* See if need to rewrite the AST because of cast/call ambiguity
-             */
-            if (auto e = castCallAmbiguity(exp, sc))
-            {
-                result = expressionSemantic(e, sc);
-                return;
-            }
-
             if (exp.arrow) // ImportC only
                 exp.e1 = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
 
@@ -10188,17 +10169,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("ArrayExp::semantic('%s')\n", exp.toChars());
         }
 
-        if (sc.inCfile)
-        {
-            /* See if need to rewrite the AST because of cast/call ambiguity
-             */
-            if (auto e = castCallAmbiguity(exp, sc))
-            {
-                result = expressionSemantic(e, sc);
-                return;
-            }
-        }
-
         result = exp.carraySemantic(sc);  // C semantics
         if (result)
             return;
@@ -10637,17 +10607,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         static if (LOGSEMANTIC)
         {
             printf("PostExp::semantic('%s')\n", exp.toChars());
-        }
-
-        if (sc.inCfile)
-        {
-            /* See if need to rewrite the AST because of cast/call ambiguity
-             */
-            if (auto e = castCallAmbiguity(exp, sc))
-            {
-                result = expressionSemantic(e, sc);
-                return;
-            }
         }
 
         if (auto ae = exp.e1.isArrayExp())

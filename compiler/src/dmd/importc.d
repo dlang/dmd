@@ -224,66 +224,6 @@ void addDefaultCInitializer(VarDeclaration dsym)
 }
 
 /********************************************
- * Resolve cast/call grammar ambiguity.
- * Params:
- *      e = expression that might be a cast, might be a call
- *      sc = context
- * Returns:
- *      null means leave as is, !=null means rewritten AST
- */
-Expression castCallAmbiguity(Expression e, Scope* sc)
-{
-    Expression* pe = &e;
-
-    while (1)
-    {
-        // Walk down the postfix expressions till we find a CallExp or something else
-        switch ((*pe).op)
-        {
-            case EXP.dotIdentifier:
-                pe = &(*pe).isDotIdExp().e1;
-                continue;
-
-            case EXP.plusPlus:
-            case EXP.minusMinus:
-                pe = &(*pe).isPostExp().e1;
-                continue;
-
-            case EXP.array:
-                pe = &(*pe).isArrayExp().e1;
-                continue;
-
-            case EXP.call:
-                auto ce = (*pe).isCallExp();
-                if (ce.e1.parens)
-                {
-                    ce.e1 = expressionSemantic(ce.e1, sc);
-                    if (ce.e1.op == EXP.type)
-                    {
-                        const numArgs = ce.arguments ? ce.arguments.length : 0;
-                        if (numArgs >= 1)
-                        {
-                            ce.e1.parens = false;
-                            Expression arg;
-                            foreach (a; (*ce.arguments)[])
-                            {
-                                arg = arg ? new CommaExp(a.loc, arg, a) : a;
-                            }
-                            auto t = ce.e1.isTypeExp().type;
-                            *pe = arg;
-                            return new CastExp(ce.loc, e, t);
-                        }
-                    }
-                }
-                return null;
-
-            default:
-                return null;
-        }
-    }
-}
-
-/********************************************
  * Implement the C11 notion of function equivalence,
  * which allows prototyped functions to match K+R functions,
  * even though they are different.

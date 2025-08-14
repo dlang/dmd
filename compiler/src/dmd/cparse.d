@@ -1117,74 +1117,32 @@ final class CParser(AST) : Parser!AST
      */
     private AST.Expression cparseCastExp()
     {
-        if (token.value != TOK.leftParenthesis)
-            return cparseUnaryExp();
-
         //printf("cparseCastExp()\n");
-        auto tk = peek(&token);
-        bool iscast;
-        bool isexp;
-        if (tk.value == TOK.identifier)
-        {
-            iscast = isTypedef(tk.ident);
-            isexp = !iscast;
-        }
-        if (isexp)
-        {
-            // ( identifier ) is an expression
-            return cparseUnaryExp();
-        }
 
         // If ( type-name )
-        auto pt = &token;
-
-        if (!isCastExpression(pt))
-            return cparseUnaryExp();
-
-        // Expression may be either a cast or a compound literal, which
-        // requires checking whether the next token is leftCurly
-        const loc = token.loc;
-        nextToken();
-        auto t = cparseTypeName();
-        check(TOK.rightParenthesis);
-        pt = &token;
-
-        if (token.value == TOK.leftCurly)
+        if (token.value == TOK.leftParenthesis && startsTypeName(peek(&token)))
         {
-            // C11 6.5.2.5 ( type-name ) { initializer-list }
-            auto ci = cparseInitializer();
-            auto ce = new AST.CompoundLiteralExp(loc, t, ci);
-            return cparsePostfixOperators(ce);
-        }
+            // Expression may be either a cast or a compound literal, which
+            // requires checking whether the next token is leftCurly
+            const loc = token.loc;
+            nextToken();
+            auto t = cparseTypeName();
+            check(TOK.rightParenthesis);
 
-        if (iscast)
-        {
+            if (token.value == TOK.leftCurly)
+            {
+                // C11 6.5.2.5 ( type-name ) { initializer-list }
+                auto ci = cparseInitializer();
+                auto ce = new AST.CompoundLiteralExp(loc, t, ci);
+                return cparsePostfixOperators(ce);
+            }
+
             // ( type-name ) cast-expression
             auto ce = cparseCastExp();
             return new AST.CastExp(loc, ce, t);
         }
 
-        if (t.isTypeIdentifier() &&
-            isexp &&
-            token.value == TOK.leftParenthesis &&
-            !isCastExpression(pt))
-        {
-            /* (t)(...)... might be a cast expression or a function call,
-             * with different grammars: a cast would be cparseCastExp(),
-             * a function call would be cparsePostfixExp(CallExp(cparseArguments())).
-             * We can't know until t is known. So, parse it as a function call
-             * and let semantic() rewrite the AST as a CastExp if it turns out
-             * to be a type.
-             */
-            auto ie = new AST.IdentifierExp(loc, t.isTypeIdentifier().ident);
-            ie.parens = true;    // let semantic know it might be a CastExp
-            AST.Expression e = new AST.CallExp(loc, ie, cparseArguments());
-            return cparsePostfixOperators(e);
-        }
-
-        // ( type-name ) cast-expression
-        auto ce = cparseCastExp();
-        return new AST.CastExp(loc, ce, t);
+        return cparseUnaryExp();
     }
 
     /**************
@@ -4369,46 +4327,6 @@ final class CParser(AST) : Parser!AST
     }
 
     /********************************
-     * See if match for:
-     *    postfix-expression ( argument-expression-list(opt) )
-     * Params:
-     *  pt = starting token, updated to one past end of initializer if true
-     * Returns:
-     *  true if function call
-     */
-    private bool isFunctionCall(ref Token* pt)
-    {
-        //printf("isFunctionCall()\n");
-        auto t = pt;
-
-        if (!isPrimaryExpression(t))
-            return false;
-        if (t.value != TOK.leftParenthesis)
-            return false;
-        t = peek(t);
-        while (1)
-        {
-            if (!isAssignmentExpression(t))
-                return false;
-            if (t.value == TOK.comma)
-            {
-                t = peek(t);
-                continue;
-            }
-            if (t.value == TOK.rightParenthesis)
-            {
-                t = peek(t);
-                break;
-            }
-            return false;
-        }
-        if (t.value != TOK.semicolon)
-            return false;
-        pt = t;
-        return true;
-    }
-
-    /********************************
      * See if match for assignment-expression.
      * Params:
      *  pt = starting token, updated to one past end of assignment-expression if true
@@ -4471,18 +4389,6 @@ final class CParser(AST) : Parser!AST
             pt = t;
             return true;
         }
-    }
-
-    /********************************
-     * See if match for constant-expression.
-     * Params:
-     *  pt = starting token, updated to one past end of constant-expression if true
-     * Returns:
-     *  true if constant-expression
-     */
-    private bool isConstantExpression(ref Token* pt)
-    {
-        return isAssignmentExpression(pt);
     }
 
     /********************************
@@ -4859,6 +4765,60 @@ final class CParser(AST) : Parser!AST
         return true;
     }
 
+    /*******************************************
+     * Is this the start of a type-name?
+     * Params:
+     *  t = first token
+     * Returns:
+     *  true if start of type-name
+     */
+    private bool startsTypeName(Token* t)
+    {
+        switch (t.value)
+        {
+            case TOK.identifier:
+                // Use typedef table to disambiguate
+                return isTypedef(t.ident);
+
+            // Type Qualifiers
+            case TOK.const_:
+            case TOK.restrict:
+            case TOK.volatile:
+            case TOK.__stdcall:
+
+            // Type Specifiers
+            case TOK.char_:
+            case TOK.signed:
+            case TOK.unsigned:
+            case TOK.int16:
+            case TOK.int32:
+            case TOK.int64:
+            case TOK.__int128:
+            case TOK.float32:
+            case TOK.float64:
+            case TOK.void_:
+            case TOK._Bool:
+
+            //case TOK._Imaginary: // ? missing in Spec
+            case TOK._Complex:
+
+            // struct-or-union-specifier
+            // enum-specifier
+            case TOK.struct_:
+            case TOK.union_:
+            case TOK.enum_:
+
+            // atomic-type-specifier
+            case TOK._Atomic:
+            case TOK.typeof_:
+            case TOK.__attribute__:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     /***************************
      * Is this the start of a specifier-qualifier-list?
      * Params:
@@ -4950,184 +4910,6 @@ final class CParser(AST) : Parser!AST
             }
             result = true;
         }
-    }
-
-    /************************************
-     * Looking at the leading left parenthesis, and determine if it is
-     * either of the following:
-     *    ( type-name ) cast-expression
-     *    ( type-name ) { initializer-list }
-     * as opposed to:
-     *    ( expression )
-     * Params:
-     *    pt = starting token, updated to one past end of constant-expression if true
-     *    afterParenType = true if already seen `( type-name )`
-     * Returns:
-     *    true if matches ( type-name ) ...
-     */
-    private bool isCastExpression(ref Token* pt, bool afterParenType = false)
-    {
-        enum log = false;
-        if (log) printf("isCastExpression(tk: `%s`, afterParenType: %d)\n", token.toChars(pt.value), afterParenType);
-        auto t = pt;
-        switch (t.value)
-        {
-            case TOK.leftParenthesis:
-                auto tk = peek(t);  // move past left parenthesis
-                if (!isTypeName(tk) || tk.value != TOK.rightParenthesis)
-                {
-                    if (afterParenType)
-                        goto default; // could be ( type-name ) ( unary-expression )
-                    return false;
-                }
-                tk = peek(tk);  // move past right parenthesis
-
-                if (tk.value == TOK.leftCurly)
-                {
-                    // ( type-name ) { initializer-list }
-                    if (!isInitializer(tk))
-                    {
-                        return false;
-                    }
-                    t = tk;
-                    break;
-                }
-
-                if (tk.value == TOK.leftParenthesis && peek(tk).value == TOK.rightParenthesis)
-                {
-                    return false;    // (type-name)() is not a cast (it might be a function call)
-                }
-
-                if (!isCastExpression(tk, true))
-                {
-                    if (afterParenType) // could be ( type-name ) ( unary-expression )
-                        goto default;   // where unary-expression also matched type-name
-                    return true;
-                }
-                // ( type-name ) cast-expression
-                t = tk;
-                break;
-
-            default:
-                if (!afterParenType || !isUnaryExpression(t, afterParenType))
-                {
-                    return false;
-                }
-                // if we've already seen ( type-name ), then this is a cast
-                break;
-        }
-        pt = t;
-        if (log) printf("isCastExpression true\n");
-        return true;
-    }
-
-    /********************************
-     * See if match for unary-expression.
-     * Params:
-     *    pt = starting token, updated to one past end of constant-expression if true
-     *    afterParenType = true if already seen ( type-name ) of a cast-expression
-     * Returns:
-     *    true if unary-expression
-     */
-    private bool isUnaryExpression(ref Token* pt, bool afterParenType = false)
-    {
-        auto t = pt;
-        switch (t.value)
-        {
-            case TOK.plusPlus:
-            case TOK.minusMinus:
-                t = peek(t);
-                if (!isUnaryExpression(t, afterParenType))
-                    return false;
-                break;
-
-            case TOK.and:
-            case TOK.mul:
-            case TOK.min:
-            case TOK.add:
-            case TOK.not:
-            case TOK.tilde:
-                t = peek(t);
-                if (!isCastExpression(t, afterParenType))
-                    return false;
-                break;
-
-            case TOK._Alignof:
-            case TOK.sizeof_:
-                t = peek(t);
-                if (t.value == TOK.leftParenthesis)
-                {
-                    auto tk = peek(t);
-                    if (isTypeName(tk))
-                    {
-                        if (tk.value != TOK.rightParenthesis)
-                            return false;
-                        t = peek(tk);
-                        break;
-                    }
-                }
-                if (!isUnaryExpression(t, afterParenType))
-                    return false;
-                break;
-
-            default:
-                // Compound literals are handled by cast and sizeof expressions,
-                // so be content with just seeing a primary expression.
-                if (!isPrimaryExpression(t))
-                    return false;
-                break;
-        }
-        pt = t;
-        return true;
-    }
-
-    /********************************
-     * See if match for primary-expression.
-     * Params:
-     *    pt = starting token, updated to one past end of constant-expression if true
-     * Returns:
-     *    true if primary-expression
-     */
-    private bool isPrimaryExpression(ref Token* pt)
-    {
-        auto t = pt;
-        switch (t.value)
-        {
-            case TOK.identifier:
-            case TOK.charLiteral:
-            case TOK.wcharLiteral:
-            case TOK.dcharLiteral:
-            case TOK.int32Literal:
-            case TOK.uns32Literal:
-            case TOK.int64Literal:
-            case TOK.uns64Literal:
-            case TOK.float32Literal:
-            case TOK.float64Literal:
-            case TOK.float80Literal:
-            case TOK.imaginary32Literal:
-            case TOK.imaginary64Literal:
-            case TOK.imaginary80Literal:
-            case TOK.string_:
-                t = peek(t);
-                break;
-
-            case TOK.leftParenthesis:
-                // ( expression )
-                if (!skipParens(t, &t))
-                    return false;
-                break;
-
-            case TOK._Generic:
-                t = peek(t);
-                if (!skipParens(t, &t))
-                    return false;
-                break;
-
-            default:
-                return false;
-        }
-        pt = t;
-        return true;
     }
 
     //}
