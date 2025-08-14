@@ -1049,49 +1049,8 @@ final class CParser(AST) : Parser!AST
 
         case TOK._Alignof:
         case TOK.sizeof_:
-        {
-            Identifier id = token.value == TOK.sizeof_? Id.__sizeof : Id.__xalignof;
-            nextToken();
-            if (token.value == TOK.leftParenthesis)
-            {
-                auto tk = peek(&token);
-                if (isTypeName(tk))
-                {
-                    /* Expression may be either be requesting the sizeof a type-name
-                     * or a compound literal, which requires checking whether
-                     * the next token is leftCurly
-                     */
-                    nextToken();
-                    auto t = cparseTypeName();
-                    check(TOK.rightParenthesis);
-                    if (token.value == TOK.leftCurly)
-                    {
-                        // ( type-name ) { initializer-list }
-                        auto ci = cparseInitializer();
-                        e = new AST.CompoundLiteralExp(loc, t, ci);
-                        e = cparsePostfixOperators(e);
-                    }
-                    else
-                    {
-                        // ( type-name )
-                        e = new AST.TypeExp(loc, t);
-                    }
-                }
-                else
-                {
-                    // must be an expression
-                    e = cparseUnaryExp();
-                }
-            }
-            else
-            {
-                //C11 6.5.3
-                e = cparseUnaryExp();
-            }
-
-            e = new AST.DotIdExp(loc, e, id);
+            e = cparseSizeofOrAlignofExp();
             break;
-        }
 
         case TOK.andAnd:
             /* https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html
@@ -1107,6 +1066,48 @@ final class CParser(AST) : Parser!AST
         }
         assert(e);
         return e;
+    }
+
+    /**************
+     * C11 6.5.3.4
+     *    sizeof unary-expression
+     *    sizeof ( type-name )
+     *    _Alignof ( type-name )
+     *    _Alignof unary-expression // gcc extension
+     */
+    private AST.Expression cparseSizeofOrAlignofExp()
+    {
+        Identifier id = token.value == TOK.sizeof_? Id.__sizeof : Id.__xalignof;
+        AST.Expression e;
+        nextToken();
+        if (token.value == TOK.leftParenthesis && startsTypeName(peek(&token)))
+        {
+            /* Expression may be either be requesting the sizeof a type-name
+             * or a compound literal, which requires checking whether
+             * the next token is leftCurly
+             */
+            nextToken();
+            auto t = cparseTypeName();
+            check(TOK.rightParenthesis);
+            if (token.value == TOK.leftCurly)
+            {
+                // ( type-name ) { initializer-list }
+                auto ci = cparseInitializer();
+                e = new AST.CompoundLiteralExp(loc, t, ci);
+                e = cparsePostfixOperators(e);
+            }
+            else
+            {
+                // ( type-name )
+                e = new AST.TypeExp(loc, t);
+            }
+        }
+        else
+        {
+            // C11 6.5.3
+            e = cparseUnaryExp();
+        }
+        return new AST.DotIdExp(loc, e, id);
     }
 
     /**************
@@ -2450,18 +2451,13 @@ final class CParser(AST) : Parser!AST
                 {
                     // C11 6.7.2.4
                     // type-specifier if followed by `( type-name )`
-                    auto tk = peek(&token);
-                    if (tk.value == TOK.leftParenthesis)
+                    if (peekNext() == TOK.leftParenthesis)
                     {
-                        tk = peek(tk);
-                        if (isTypeName(tk) && tk.value == TOK.rightParenthesis)
-                        {
-                            nextToken();
-                            nextToken();
-                            t = cparseTypeName();
-                            tkwx = TKW.x_Atomic;
-                            break;
-                        }
+                        nextToken();
+                        nextToken();
+                        t = cparseTypeName();
+                        tkwx = TKW.x_Atomic;
+                        break;
                     }
                     // C11 6.7.3 type-qualifier if not
                     modx = MOD.x_Atomic;
@@ -2470,37 +2466,11 @@ final class CParser(AST) : Parser!AST
 
                 case TOK._Alignas:
                 {
-                    /* C11 6.7.5
-                     * _Alignas ( type-name )
-                     * _Alignas ( constant-expression )
-                     */
-
-                    if (level & (LVL.parameter | LVL.prototype))
-                        error("no alignment-specifier for parameters"); // C11 6.7.5-2
-
-                    nextToken();
-                    check(TOK.leftParenthesis);
-                    AST.Expression exp;
-                    auto tk = &token;
-                    if (isTypeName(tk))  // _Alignas ( type-name )
-                    {
-                        auto talign = cparseTypeName();
-                        /* Convert type to expression: `talign.alignof`
-                         */
-                        auto e = new AST.TypeExp(loc, talign);
-                        exp = new AST.DotIdExp(loc, e, Id.__xalignof);
-                    }
-                    else  // _Alignas ( constant-expression )
-                    {
-                        exp = cparseConstantExp();
-                    }
-
+                    auto exp = cparseAlignasSpecifier(level);
                     if (!specifier.alignExps)
                         specifier.alignExps = new AST.Expressions(0);
                     specifier.alignExps.push(exp);
                     specifier.alignasExp = exp;
-
-                    check(TOK.rightParenthesis);
                     break;
                 }
 
@@ -2524,46 +2494,9 @@ final class CParser(AST) : Parser!AST
 
                 case TOK.typeof_:
                 {
-                    nextToken();
-                    check(TOK.leftParenthesis);
-
-                    auto tk = &token;
-                    AST.Expression e;
-                    if (isTypeName(tk))
-                        e = new AST.TypeExp(loc, cparseTypeName());
-                    else
-                        e = cparseExpression();
-                    t = new AST.TypeTypeof(loc, e);
-
-                    if(token.value == TOK.rightParenthesis)
-                        nextToken();
-                    else
-                    {
-                        t = AST.Type.terror;
-                        error("`typeof` operator expects an expression or type name in parentheses");
-
-                        // skipParens et. al expect to be on the opening parenthesis
-                        int parens;
-                        loop: while(1)
-                        {
-                            switch(token.value)
-                            {
-                                case TOK.leftParenthesis:
-                                    parens++;
-                                    break;
-                                case TOK.rightParenthesis:
-                                    parens--;
-                                    if(parens < 0)
-                                        goto case;
-                                    break;
-                                case TOK.endOfFile:
-                                    break loop;
-                                default:
-                            }
-                            nextToken();
-                        }
-                    }
-
+                    /* GNU extension (added in C23)
+                     */
+                    t = cparseTypeofSpecifier();
                     tkwx = TKW.xtag;
                     break;
                 }
@@ -2744,6 +2677,85 @@ final class CParser(AST) : Parser!AST
         }
 
         return t;
+    }
+
+    /**************
+     * C11 6.7.5
+     * alignment-specifier:
+     *    _Alignas ( type-name )
+     *    _Alignas ( constant-expression )
+     */
+    private AST.Expression cparseAlignasSpecifier(LVL level)
+    {
+        if (level & (LVL.parameter | LVL.prototype))
+            error("no alignment-specifier for parameters"); // C11 6.7.5-2
+
+        AST.Expression exp;
+        nextToken();
+        check(TOK.leftParenthesis);
+        if (startsTypeName(&token))
+        {
+            // _Alignas ( type-name )
+            auto talign = cparseTypeName();
+            // Convert type to expression: `talign.alignof`
+            auto e = new AST.TypeExp(loc, talign);
+            exp = new AST.DotIdExp(loc, e, Id.__xalignof);
+        }
+        else
+        {
+            // _Alignas ( constant-expression )
+            exp = cparseConstantExp();
+        }
+        check(TOK.rightParenthesis);
+        return exp;
+    }
+
+    /**************
+     * C23 6.7.2.5
+     * typeof-specifier:
+     *    typeof ( expression )
+     *    typeof ( type-name )
+     *    typeof_unqual ( expression )  // not implemented
+     *    typeof_unqual ( type-name )   // not implemented
+     */
+    private AST.Type cparseTypeofSpecifier()
+    {
+        nextToken();
+        check(TOK.leftParenthesis);
+
+        AST.Expression e;
+        if (startsTypeName(&token))
+            e = new AST.TypeExp(loc, cparseTypeName());
+        else
+            e = cparseExpression();
+
+        if (token.value != TOK.rightParenthesis)
+        {
+            // skipParens et. al expect to be on the opening parenthesis
+            error("`typeof` operator expects an expression or type name in parentheses");
+            int parens;
+            loop: while(1)
+            {
+                switch(token.value)
+                {
+                    case TOK.leftParenthesis:
+                        parens++;
+                        break;
+                    case TOK.rightParenthesis:
+                        parens--;
+                        if (parens < 0)
+                            goto case;
+                        break;
+                    case TOK.endOfFile:
+                        break loop;
+                    default:
+                }
+                nextToken();
+            }
+            return AST.Type.terror;
+        }
+        nextToken();
+        return new AST.TypeTypeof(loc, e);
     }
 
     /********************************
