@@ -228,7 +228,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D Win32)) , $(ARGS Microsoft 32-bit Windows systems))
         $(TROW $(ARGS $(D Win64)) , $(ARGS Microsoft 64-bit Windows systems))
         $(TROW $(ARGS $(D linux)) , $(ARGS All Linux systems))
-        $(TROW $(ARGS $(D Apple)) , $(ARGS Apple systems OSX, iOS, TVOS, WatchOs and VisionOS))
+        $(TROW $(ARGS $(D Apple)) , $(ARGS Apple systems OSX, iOS, TVOS, WatchOS and VisionOS))
         $(TROW $(ARGS $(D OSX)) , $(ARGS macOS))
         $(TROW $(ARGS $(D iOS)) , $(ARGS iOS))
         $(TROW $(ARGS $(D TVOS)) , $(ARGS tvOS))
