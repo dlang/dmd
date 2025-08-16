@@ -918,4 +918,10 @@ extern (C++) struct Scope
     {
         return _module && _module.edition >= edition;
     }
+
+    /// Returns: whether current alignment is from _Alignas specifier
+    extern (D) bool isCAlignas()
+    {
+        return aligndecl && aligndecl.isAlignas;
+    }
 }

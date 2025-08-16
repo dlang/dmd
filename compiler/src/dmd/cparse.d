@@ -3632,9 +3632,9 @@ final class CParser(AST) : Parser!AST
                 {
                     nextToken();
                     AST.Expression exp = cparseConstantExp();
-                    if (!specifier.alignExps)
-                        specifier.alignExps = new AST.Expressions(0);
-                    specifier.alignExps.push(exp);
+                    if (!specifier.alignAttrs)
+                        specifier.alignAttrs = new AST.Expressions(0);
+                    specifier.alignAttrs.push(exp);
                     check(TOK.rightParenthesis);
                 }
                 else
@@ -4059,7 +4059,7 @@ final class CParser(AST) : Parser!AST
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
          */
-        return new AST.TypeTag(loc, structOrUnion, tag, tagSpecifier.packalign, tagSpecifier.alignExps, null, members);
+        return new AST.TypeTag(loc, structOrUnion, tag, tagSpecifier.packalign, tagSpecifier.alignAttrs, null, members);
     }
 
     /*************************************
@@ -4622,7 +4622,8 @@ final class CParser(AST) : Parser!AST
 
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers
-        AST.Expressions*  alignExps;  /// alignment
+        AST.Expressions*  alignAttrs; /// __attribute__((aligned))
+        AST.Expressions*  alignExps;  /// _Alignas()
         AST.Expression alignasExp; /// Last _Alignas() for errors
         structalign_t packalign;  /// #pragma pack alignment value
     }
@@ -4906,13 +4907,21 @@ final class CParser(AST) : Parser!AST
             }
         }
 
+        if (specifier.alignAttrs)
+        {
+            //printf("  applying attribute((aligned)) %s\n", (*specifier.alignAttrs)[0].toChars());
+            // Wrap declaration in an AlignDeclaration
+            auto decls = new AST.Dsymbols(1);
+            (*decls)[0] = s;
+            s = new AST.AlignDeclaration(s.loc, specifier.alignAttrs, decls);
+        }
         if (specifier.alignExps)
         {
             //printf("  applying _Alignas %s, packalign %d\n", (*specifier.alignExps)[0].toChars(), cast(int)specifier.packalign);
             // Wrap declaration in an AlignDeclaration
             auto decls = new AST.Dsymbols(1);
             (*decls)[0] = s;
-            s = new AST.AlignDeclaration(s.loc, specifier.alignExps, decls);
+            s = new AST.AlignDeclaration(s.loc, specifier.alignExps, decls, true);
         }
         else if (!specifier.packalign.isDefault() && !specifier.packalign.isUnknown())
         {
