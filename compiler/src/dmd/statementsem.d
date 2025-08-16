@@ -3297,13 +3297,6 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
     void visitTryCatch(TryCatchStatement tcs)
     {
         //printf("TryCatchStatement.semantic()\n");
-
-        if (!global.params.useExceptions)
-        {
-            error(tcs.loc, "cannot use try-catch statements with %s", global.params.betterC ? "-betterC".ptr : "-nothrow".ptr);
-            return setError();
-        }
-
         if (!ClassDeclaration.throwable)
         {
             error(tcs.loc, "cannot use try-catch statements because `object.Throwable` was not declared");
@@ -3316,6 +3309,12 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         tcs.tryBody = sc.tryBody;   // chain on the in-flight tryBody
         tcs._body = tcs._body.semanticScope(sc, null, null, tcs);
+
+        if (!global.params.useExceptions)
+        {
+            result = tcs._body;
+            return;
+        }
 
         /* Even if body is empty, still do semantic analysis on catches
          */
@@ -3445,16 +3444,6 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         if (oss.tok != TOK.onScopeExit)
         {
-            // https://issues.dlang.org/show_bug.cgi?id=23159
-            if (!global.params.useExceptions)
-            {
-                version (IN_GCC)
-                    error(oss.loc, "`%s` cannot be used with `-fno-exceptions`", Token.toChars(oss.tok));
-                else
-                    error(oss.loc, "`%s` cannot be used with -betterC", Token.toChars(oss.tok));
-                return setError();
-            }
-
             // scope(success) and scope(failure) are rewritten to try-catch(-finally) statement,
             // so the generated catch block cannot be placed in finally block.
             // See also Catch::semantic.
@@ -3479,6 +3468,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             // Jump out from scope(failure) block is allowed.
             sc.sbreak = null;
             sc.scontinue = null;
+        }
+        if (!global.params.useExceptions && oss.tok == TOK.onScopeFailure)
+        {
+            result = new CompoundStatement(oss.loc).statementSemantic(sc);
+            return;
         }
         oss.statement = oss.statement.semanticNoScope(sc);
         sc.pop();
