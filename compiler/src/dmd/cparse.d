@@ -3646,7 +3646,7 @@ final class CParser(AST) : Parser!AST
             }
             else if (token.ident == Id.packed)
             {
-                specifier.packalign.set(1);
+                specifier.packalign.setDefault();
                 specifier.packalign.setPack(true);
                 nextToken();
             }
@@ -4037,14 +4037,25 @@ final class CParser(AST) : Parser!AST
                 cparseGnuAttributes(tagSpecifier);
             if (!tagSpecifier.packalign.isUnknown)
             {
+                bool isPacked = tagSpecifier.packalign.isPack();
                 foreach (ref d; (*members)[])
                 {
                     // skip possible static assert declarations
                     if (d.isStaticAssert()) continue;
 
-                    auto decls = new AST.Dsymbols(1);
-                    (*decls)[0] = d;
-                    d = new AST.AlignDeclaration(d.loc, tagSpecifier.packalign, decls);
+                    if (auto ad = d.isAlignDeclaration())
+                    {
+                        // Explicit user alignment already set,
+                        // propagate packed from record to members.
+                        if (isPacked && !ad.salign.isPack())
+                            ad.salign.setPack(true);
+                    }
+                    else
+                    {
+                        auto decls = new AST.Dsymbols(1);
+                        (*decls)[0] = d;
+                        d = new AST.AlignDeclaration(d.loc, tagSpecifier.packalign, decls);
+                    }
                 }
             }
         }
@@ -4202,7 +4213,8 @@ final class CParser(AST) : Parser!AST
             {
                 if (specifier.alignasExp)
                     error(specifier.alignasExp.loc, "no alignment-specifier for bit field declaration"); // C11 6.7.5-2
-                auto s = new AST.BitFieldDeclaration(width.loc, dt, id, width);
+                AST.Dsymbol s = new AST.BitFieldDeclaration(width.loc, dt, id, width);
+                s = applySpecifier(s, specifier);
                 members.push(s);
             }
             else if (id)
@@ -4914,7 +4926,8 @@ final class CParser(AST) : Parser!AST
             (*decls)[0] = s;
             s = new AST.AlignDeclaration(s.loc, specifier.alignExps, decls);
         }
-        else if (!specifier.packalign.isDefault() && !specifier.packalign.isUnknown())
+        else if (specifier.packalign.isPack() ||
+                 (!specifier.packalign.isDefault() && !specifier.packalign.isUnknown()))
         {
             //printf("  applying packalign %d\n", cast(int)specifier.packalign);
             // Wrap #pragma pack in an AlignDeclaration
