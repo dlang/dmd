@@ -2841,6 +2841,59 @@ elem* toElem(Expression e, ref IRState irs)
         assert(0);
     }
 
+    /***************************************
+     */
+
+    elem* visitConstruct(ConstructExp ae)
+    {
+        Type t1b = ae.e1.type.toBasetype();
+        if (t1b.ty != Tsarray && t1b.ty != Tarray)
+            return visitAssign(ae);
+
+        // only non-trivial array constructions have been lowered (non-POD elements basically)
+        Type t1e = t1b.nextOf();
+        TypeStruct ts = t1e.baseElemOf().isTypeStruct();
+        if (!ts || !(ts.sym.postblit || ts.sym.hasCopyCtor || ts.sym.dtor))
+            return visitAssign(ae);
+
+        // ref-constructions etc. don't have lowering
+        if (!(t1b.ty == Tsarray || ae.e1.isSliceExp) ||
+            (ae.e1.isVarExp && ae.e1.isVarExp.var.isVarDeclaration.isReference))
+            return visitAssign(ae);
+
+        // Construction from an equivalent other array?
+        Type t2b = ae.e2.type.toBasetype();
+        // skip over a (possibly implicit) cast of a static array RHS to a slice
+        Expression rhs = ae.e2;
+        Type rhsType = t2b;
+        if (t2b.ty == Tarray)
+        {
+            auto ce = rhs.isCastExp();
+            auto ct = ce ? ce.e1.type.toBasetype() : null;
+            if (ct && ct.ty == Tsarray)
+            {
+                rhs = ce.e1;
+                rhsType = ct;
+            }
+        }
+        const lowerToArrayCtor =
+            ((rhsType.ty == Tarray && !rhs.isArrayLiteralExp) ||
+             (rhsType.ty == Tsarray && rhs.isLvalue)) &&
+            t1e.equivalent(t2b.nextOf);
+
+
+        // Construction from a single element?
+        const lowerToArraySetCtor = !lowerToArrayCtor && t1e.equivalent(t2b);
+
+        if (!lowerToArrayCtor && !lowerToArraySetCtor)
+            return visitAssign(ae);
+
+        const hookName = lowerToArrayCtor ? "_d_arrayctor" : "_d_arraysetctor";
+        assert(ae.lowering, "This case should have been rewritten to `" ~ hookName ~ "` in the semantic phase");
+        return toElem(ae.lowering, irs);
+    }
+
+
     elem* visitLoweredAssign(LoweredAssignExp e)
     {
         return toElem(e.lowering, irs);
@@ -4182,7 +4235,7 @@ elem* toElem(Expression e, ref IRState irs)
         case EXP.identity:      return visitIdentity(e.isIdentityExp());
         case EXP.in_:           return visitIn(e.isInExp());
         case EXP.assign:        return visitAssign(e.isAssignExp());
-        case EXP.construct:     return visitAssign(e.isConstructExp());
+        case EXP.construct:     return visitConstruct(e.isConstructExp());
         case EXP.blit:          return visitAssign(e.isBlitExp());
         case EXP.loweredAssignExp: return visitLoweredAssign(e.isLoweredAssignExp());
         case EXP.addAssign:     return visitAddAssign(e.isAddAssignExp());

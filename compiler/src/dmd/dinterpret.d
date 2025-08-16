@@ -4701,34 +4701,6 @@ public:
                     result = CTFEExp.voidexp;
                 return;
             }
-            else if (isArrayConstruction(fd.ident))
-            {
-                // In expressionsem.d, `T[x] ea = eb;` was lowered to:
-                // `_d_array{,set}ctor(ea[], eb[]);`.
-                // The following code will rewrite it back to `ea = eb` and
-                // then interpret that expression.
-
-                if (fd.ident == Id._d_arrayctor)
-                    assert(e.arguments.length == 3);
-                else
-                    assert(e.arguments.length == 2);
-
-                Expression ea = (*e.arguments)[0];
-                if (ea.isCastExp)
-                    ea = ea.isCastExp.e1;
-
-                Expression eb = (*e.arguments)[1];
-                if (eb.isCastExp() && fd.ident == Id._d_arrayctor)
-                    eb = eb.isCastExp.e1;
-
-                ConstructExp ce = new ConstructExp(e.loc, ea, eb);
-                ce.type = ea.type;
-
-                ce.type = ea.type;
-                result = interpret(ce, istate);
-
-                return;
-            }
         }
         else if (auto soe = ecall.isSymOffExp())
         {

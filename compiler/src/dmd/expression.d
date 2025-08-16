@@ -4098,6 +4098,8 @@ extern (C++) final class LoweredAssignExp : AssignExp
  */
 extern (C++) final class ConstructExp : AssignExp
 {
+    Expression lowering;
+
     extern (D) this(Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.construct, e1, e2);
