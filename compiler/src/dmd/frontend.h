@@ -5993,6 +5993,7 @@ struct ASTCodegen final
     typedef UserAttributeDeclaration* UserAttributeDeclaration;
     typedef Ensure Ensure;
     typedef ErrorExp* ErrorExp;
+    typedef ArgumentLabel ArgumentLabel;
     typedef MODFlags MODFlags;
     typedef Type* Type;
     typedef Parameter* Parameter;

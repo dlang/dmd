@@ -1836,7 +1836,7 @@ final class CParser(AST) : Parser!AST
         bool first = true;
         while (1)
         {
-            Identifier id;
+            AST.ArgumentLabel id;
             AST.StringExp asmName;
             auto dt = cparseDeclarator(DTR.xdirect_fd, tspec, id, specifier);
             if (!dt)
@@ -1903,7 +1903,7 @@ final class CParser(AST) : Parser!AST
              */
             auto t = &token;
             if (first &&                   // first declarator
-                id &&
+                id.name &&
                 dt.isTypeFunction() &&     // function type not inherited from a typedef
                 level == LVL.global &&     // function definitions only at global scope
                 t.value != TOK.endOfFile)
@@ -1949,12 +1949,12 @@ final class CParser(AST) : Parser!AST
                 Identifier idt;
                 if (auto tt = dt.isTypeTag())
                 {
-                    if (!tt.id && id)
+                    if (!tt.id && id.name)
                         /* This applies for enums declared as
                          * typedef enum {A} E;
                          * Or for similar structs and unions.
                          */
-                        tt.id = id;
+                        tt.id = id.name;
                     if (tt.members)
                     {
                         Specifier spec;
@@ -1976,16 +1976,16 @@ final class CParser(AST) : Parser!AST
                 }
                 if (isalias)
                 {
-                    //printf("AliasDeclaration %s %s\n", id.toChars(), dt.toChars());
-                    auto ad = new AST.AliasDeclaration(token.loc, id, dt);
-                    if (id == idt)
+                    //printf("AliasDeclaration %s %s\n", id.name.toChars(), dt.toChars());
+                    auto ad = new AST.AliasDeclaration(id.loc, id.name, dt);
+                    if (id.name == idt)
                         ad.hidden = true; // do not print when generating .di files
                     s = ad;
                 }
 
-                insertTypedefToTypedefTab(id, dt);       // remember typedefs
+                insertTypedefToTypedefTab(id.name, dt);       // remember typedefs
             }
-            else if (id)
+            else if (id.name)
             {
                 if (auto tt = dt.isTypeTag())
                 {
@@ -2021,7 +2021,7 @@ final class CParser(AST) : Parser!AST
                     initializer = cparseInitializer();
                 }
                 // declare the symbol
-                assert(id);
+                assert(id.name);
 
                 if (isFunctionTypedef(dt))
                 {
@@ -2031,7 +2031,7 @@ final class CParser(AST) : Parser!AST
                         error("functions cannot be `_Thread_local`"); // C11 6.7.1-4
                     STC stc = specifiersToSTC(level, specifier);
                     stc &= ~STC.gshared;        // no gshared functions
-                    auto fd = new AST.FuncDeclaration(token.loc, Loc.initial, id, stc, dt, specifier.noreturn);
+                    auto fd = new AST.FuncDeclaration(id.loc, Loc.initial, id.name, stc, dt, specifier.noreturn);
                     specifiersToFuncDeclaration(fd, specifier);
                     s = fd;
                 }
@@ -2042,12 +2042,12 @@ final class CParser(AST) : Parser!AST
                     if (!hasInitializer &&
                         !(specifier.scw & (SCW.xextern | SCW.xstatic | SCW.x_Thread_local) || level == LVL.global))
                         initializer = new AST.VoidInitializer(token.loc);
-                    auto vd = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(level, specifier));
+                    auto vd = new AST.VarDeclaration(id.loc, dt, id.name, initializer, specifiersToSTC(level, specifier));
                     specifiersToVarDeclaration(vd, specifier);
                     s = vd;
                 }
                 if (level != LVL.global)
-                    insertIdToTypedefTab(id);   // non-typedef declarations can hide typedefs in outer scopes
+                    insertIdToTypedefTab(id.name); // non-typedef declarations can hide typedefs in outer scopes
             }
             if (s !is null)
             {
@@ -2086,7 +2086,7 @@ final class CParser(AST) : Parser!AST
                 }
                 symbols.push(s);
             }
-            if (level == LVL.global && !id)
+            if (level == LVL.global && !id.name)
                 error("expected identifier for declaration");
 
             first = false;
@@ -2137,7 +2137,7 @@ final class CParser(AST) : Parser!AST
      * Returns:
      *  Dsymbol for the function
      */
-    AST.Dsymbol cparseFunctionDefinition(Identifier id, AST.TypeFunction ft, ref Specifier specifier)
+    AST.Dsymbol cparseFunctionDefinition(AST.ArgumentLabel id, AST.TypeFunction ft, ref Specifier specifier)
     {
         /* Start function scope
          */
@@ -2218,12 +2218,12 @@ final class CParser(AST) : Parser!AST
 
         STC stc = specifiersToSTC(LVL.global, specifier);
         stc &= ~STC.gshared;    // no gshared functions
-        auto fd = new AST.FuncDeclaration(locFunc, prevloc, id, stc, ft, specifier.noreturn);
+        auto fd = new AST.FuncDeclaration(id.loc, prevloc, id.name, stc, ft, specifier.noreturn);
         specifiersToFuncDeclaration(fd, specifier);
 
         if (addFuncName)
         {
-            auto s = createFuncName(locFunc, id);
+            auto s = createFuncName(locFunc, id.name);
             body = new AST.CompoundStatement(locFunc, s, body);
         }
         fd.fbody = body;
@@ -2373,14 +2373,13 @@ final class CParser(AST) : Parser!AST
         }
 
         AST.Type t;
-        Loc loc;
         //printf("parseDeclarationSpecifiers()\n");
 
         TKW tkw;
         SCW scw = specifier.scw & SCW.xtypedef;
         MOD mod;
-        Identifier id;
-        Identifier previd;
+        AST.ArgumentLabel id;
+        AST.ArgumentLabel previd;
 
     Lwhile:
         while (1)
@@ -2425,7 +2424,7 @@ final class CParser(AST) : Parser!AST
 
                 case TOK.identifier:
                     tkwx = TKW.xident;
-                    id = token.ident;
+                    id = AST.ArgumentLabel(token.ident, token.loc);
                     break;
 
                 case TOK.struct_:
@@ -2647,7 +2646,7 @@ final class CParser(AST) : Parser!AST
 
             case TKW.xident:
             {
-                const idx = previd.toString();
+                const idx = previd.name.toString();
                 if (idx.length > 2 && idx[0] == '_' && idx[1] == '_')  // leading double underscore
                     importBuiltins = true;  // probably one of those compiler extensions
                 t = null;
@@ -2655,12 +2654,12 @@ final class CParser(AST) : Parser!AST
                 /* Punch through to what the typedef is, to support things like:
                  *  typedef T* T;
                  */
-                auto pt = lookupTypedef(previd);
+                auto pt = lookupTypedef(previd.name);
                 if (pt && *pt)      // if previd is a known typedef
                     t = *pt;
 
                 if (!t)
-                    t = new AST.TypeIdentifier(loc, previd);
+                    t = new AST.TypeIdentifier(previd.loc, previd.name);
                 break;
             }
 
@@ -2807,7 +2806,7 @@ final class CParser(AST) : Parser!AST
      *  declared struct, union or enum tags.
      */
     private AST.Type cparseDeclarator(DTR declarator, AST.Type tbase,
-        out Identifier pident, ref Specifier specifier)
+        out AST.ArgumentLabel pident, ref Specifier specifier)
     {
         //printf("cparseDeclarator(%d, %s)\n", declarator, tbase.toChars());
         AST.Types constTypes; // all the Types that will need `const` applied to them
@@ -2850,7 +2849,7 @@ final class CParser(AST) : Parser!AST
                     //printf("identifier %s\n", token.ident.toChars());
                     if (declarator == DTR.xabstract)
                         error("identifier not allowed in abstract-declarator");
-                    pident = token.ident;
+                    pident = AST.ArgumentLabel(token.ident, token.loc);
                     ts = t;
                     nextToken();
                     break;
@@ -3025,7 +3024,7 @@ final class CParser(AST) : Parser!AST
                 }
                 break;
             }
-            if (declarator == DTR.xdirect && !pident)
+            if (declarator == DTR.xdirect && !pident.name)
                 error("expected identifier for declarator");
             return ts;
         }
@@ -3131,7 +3130,7 @@ final class CParser(AST) : Parser!AST
             tspec = toConst(tspec);
             specifier.mod = MOD.xnone;      // 'used' it
         }
-        Identifier id;
+        AST.ArgumentLabel id;
         return cparseDeclarator(DTR.xabstract, tspec, id, specifier);
     }
 
@@ -3209,6 +3208,7 @@ final class CParser(AST) : Parser!AST
 
             Specifier specifier;
             specifier.packalign.setDefault();
+            const typeLoc = token.loc;
             auto tspec = cparseDeclarationSpecifiers(LVL.prototype, specifier);
             if (!tspec)
             {
@@ -3226,15 +3226,15 @@ final class CParser(AST) : Parser!AST
                 specifier.mod = MOD.xnone;      // 'used' it
             }
 
-            Identifier id;
-            const paramLoc = token.loc;
+            AST.ArgumentLabel id;
             auto t = cparseDeclarator(DTR.xparameter, tspec, id, specifier);
             if (token.value == TOK.__attribute__)
                 cparseGnuAttributes(specifier);
             if (specifier.mod & MOD.xconst)
                 t = toConst(t);
-            auto param = new AST.Parameter(paramLoc, specifiersToSTC(LVL.parameter, specifier),
-                                           t, id, null, null);
+            auto param = new AST.Parameter(id.name ? id.loc : typeLoc,
+                                           specifiersToSTC(LVL.parameter, specifier),
+                                           t, id.name, null, null);
             parameters.push(param);
             if (token.value == TOK.rightParenthesis || token.value == TOK.endOfFile)
                 break;
@@ -4155,7 +4155,7 @@ final class CParser(AST) : Parser!AST
 
         while (1)
         {
-            Identifier id;
+            AST.ArgumentLabel id;
             AST.Type dt;
             if (token.value == TOK.colon)
             {
@@ -4166,7 +4166,7 @@ final class CParser(AST) : Parser!AST
                 }
 
                 // C11 6.7.2.1-12 unnamed bit-field
-                id = Identifier.generateAnonymousId("BitField");
+                id.name = Identifier.generateAnonymousId("BitField");
                 dt = tspec;
             }
             else
@@ -4185,6 +4185,8 @@ final class CParser(AST) : Parser!AST
             {
                 // C11 6.7.2.1-10 bit-field
                 nextToken();
+                if (id.name.isAnonymous)
+                    id.loc = token.loc;
                 width = cparseConstantExp();
             }
 
@@ -4202,10 +4204,10 @@ final class CParser(AST) : Parser!AST
             {
                 if (specifier.alignasExp)
                     error(specifier.alignasExp.loc, "no alignment-specifier for bit field declaration"); // C11 6.7.5-2
-                auto s = new AST.BitFieldDeclaration(width.loc, dt, id, width);
+                auto s = new AST.BitFieldDeclaration(id.loc, dt, id.name, width);
                 members.push(s);
             }
-            else if (id)
+            else if (id.name)
             {
                 if (dt.ty == AST.Tvoid)
                     error("`void` has no value");
@@ -4213,7 +4215,7 @@ final class CParser(AST) : Parser!AST
                 // declare the symbol
                 // Give member variables an implicit void initializer
                 auto initializer = new AST.VoidInitializer(token.loc);
-                AST.Dsymbol s = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(LVL.member, specifier));
+                AST.Dsymbol s = new AST.VarDeclaration(id.loc, dt, id.name, initializer, specifiersToSTC(LVL.member, specifier));
                 s = applySpecifier(s, specifier);
                 members.push(s);
             }
