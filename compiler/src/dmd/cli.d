@@ -465,7 +465,67 @@ dmd -cov -unittest myprog.d
             "print help and exit"
         ),
         Option("I=<directory>",
-            "look for imports also in directory"
+            "look for imports also in directory",
+            q"{$(P Adds $(I directory) to the list of paths to be searched for imports.
+             Multiple `-I`'s can be used, and the paths are searched in the same order.)
+
+             $(P The process of finding a module during the resolution of an import
+             declaration involves several steps.
+             $(UL
+                $(LI $(B Search paths): $(B dmd) searches for the module in all directories
+                specified with the $(SWLINK -I) option in the following sequence:
+                    $(OL
+                        $(LI From the command line.)
+
+                        $(LI From the `DFLAGS` setting in the
+                        $(WINDOWS $(RELATIVE_LINK2 sc-ini sc.ini))
+                        $(UNIX $(RELATIVE_LINK2 dmd-conf dmd.conf)) initialization file.)
+
+                        $(LI From the $(RELATIVE_LINK2 environment DFLAGS) environment variable if
+                        no setting was found in the initialization file.)
+
+                        $(LI If the module cannot be found in any of the import paths, then the
+                        current working directory is searched instead.)
+                    )
+                )
+                $(LI $(B Module name mapping): The chain of identifiers in a
+                $(LINK2 $(ROOT_DIR)spec/module.html#ModuleFullyQualifiedName, fully qualified)
+                module name is translated into a corresponding file name. This involves:
+                    $(UL
+                        $(LI Replacing dots (`.`) in the module name with directory separators
+                        ($(WINDOWS `\`)$(UNIX `/`)).)
+
+                        $(LI Appending the appropriate file extension.)
+
+                        $(LI Look for a package module if the file name is a directory.)
+                    )
+                )
+                $(LI $(B File extensions): Modules are matched to files with specific
+                file extensions. The order in which each extension is searched is as follows:
+                    $(OL
+                        $(LI `.di`)
+                        $(LI `.d`)
+                        $(LI `package.di`)
+                        $(LI `package.d`)
+                        $(LI `.i`)
+                        $(LI `.h`)
+                        $(LI `.c`)
+                    )
+                )
+                $(LI $(B Module filename aliases): The relationship between module names and their
+                corresponding source files can be defined explicitly with the $(SWLINK -mv)
+                command line option. For example, `-mv=foo=source` or `-mv=foo.bar=source/file.d`.
+                    $(OL
+                        $(LI When an imported module matches a module filename alias, then the
+                        filename spec is used as the source file location. File name extensions are
+                        checked in order if no extension was given in the filename spec.)
+
+                        $(LI When the package name of an imported module matches a module filename
+                        alias, then the filename spec is used as the search path. No other search
+                        paths are used to locate the module.)
+                     )
+                 )
+             ))}",
         ),
         Option("extI=<directory>",
             "look for imports that are out of the currently compiling binary, used to set the module as DllImport"
