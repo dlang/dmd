@@ -95,8 +95,7 @@ $(H2 $(LNAME2 command-line, Invoking ImportC))
 
     $(H3 $(LNAME2 command-line, ImportC Files on the Command Line))
 
-    $(P ImportC files have one of the extensions `.i`, or `.c`. If no
-    extension is given, `.i` is tried first, then `.c`.
+    $(P ImportC files have one of the extensions `.i`, `.h`, or `.c`.
     )
 
 $(CONSOLE
@@ -106,7 +105,7 @@ dmd hello.c)
     file `hello` (`hello.exe` on Windows)
     )
 
-    $(BEST_PRACTICE explicitly use a `.i` or `.c` extension when
+    $(BEST_PRACTICE explicitly use a `.i`, `.h`, or `.c` extension when
     specifying C files on the command line.)
 
     $(H3 $(LNAME2 importing, Importing C Files from D Code))
@@ -117,8 +116,8 @@ dmd hello.c)
     import hello;
     ---
 
-    $(P which will, if `hello` is not a D file, and has an extension `.i` or `.c`,
-    compile `hello` with ImportC.
+    $(P which will, if `hello` is not a D file, and has an extension `.i`,
+    `.h`, or `.c`, compile `hello` with ImportC.
     )
 
 $(H2 $(LNAME2 preprocessor, Preprocessor))

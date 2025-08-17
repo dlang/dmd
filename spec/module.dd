@@ -229,6 +229,7 @@ qualified with whatever packages they are in. They are not considered to be
 relative to the module that imports them.)
 
     $(IMPLEMENTATION_DEFINED
+    $(OL
     $(LI How the compiler resolves the package and module identifiers in an
     import declaration to its corresponding source files.)
     ))
