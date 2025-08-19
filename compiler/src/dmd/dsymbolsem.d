@@ -1056,7 +1056,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* If scope's alignment is the default, use the type's alignment,
          * otherwise the scope overrrides.
          */
-        if (dsym.alignment.isDefault())
+        if (dsym.alignment.isDefault() && !dsym.alignment.isPack())
             dsym.alignment = dsym.type.alignment(); // use type's alignment
 
         //printf("sc.stc = %x\n", sc.stc);
@@ -8342,23 +8342,23 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
 
         const isMicrosoftStyle = style == TargetC.BitFieldStyle.MS;
         const contributesToAggregateAlignment = target.c.contributesToAggregateAlignment(bfd);
+        const isPacked = bfd.alignment.isPack();
 
         void startNewField()
         {
             if (log) printf("startNewField()\n");
             uint alignsize;
             if (isMicrosoftStyle)
-               alignsize = memsize; // not memalignsize
+                alignsize = memsize; // not memalignsize
             else
             {
-                if (bfd.fieldWidth > 32)
-                    alignsize = memalignsize;
-                else if (bfd.fieldWidth > 16)
-                    alignsize = 4;
-                else if (bfd.fieldWidth > 8)
-                    alignsize = 2;
-                else
+                // give bitfield minimum alignment if not explicitly aligned
+                if (isPacked && bfd.alignment.isDefault())
                     alignsize = 1;
+                else
+                    alignsize = memalignsize;
+                if (isPacked)
+                    memsize = (bfd.fieldWidth + 7) / 8;
             }
 
             uint dummy;
@@ -8377,8 +8377,14 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
 
         if (ad.alignsize == 0)
             ad.alignsize = 1;
-        if (!isMicrosoftStyle && contributesToAggregateAlignment && ad.alignsize < memalignsize)
-            ad.alignsize = memalignsize;
+        if (!isMicrosoftStyle && contributesToAggregateAlignment)
+        {
+            if (!bfd.alignment.isDefault() && ad.alignsize < bfd.alignment.get())
+                ad.alignsize = bfd.alignment.get();
+            const typeAlign = isPacked ? 1 : memalignsize;
+            if (ad.alignsize < typeAlign)
+                ad.alignsize = typeAlign;
+        }
 
         if (bfd.fieldWidth == 0)
         {
@@ -8452,14 +8458,6 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             const size = (pastField + 7) / 8;
             fieldState.fieldSize = size;
             //printf(" offset: %d, size: %d\n", offset, size);
-            if (isunion)
-            {
-                const newstructsize = bfd.offset + size;
-                if (newstructsize > ad.structsize)
-                    ad.structsize = newstructsize;
-            }
-            else
-                ad.structsize = bfd.offset + size;
         }
         //printf("at end: ad.structsize = %d\n", cast(int)ad.structsize);
         //print(fieldState);
