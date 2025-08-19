@@ -1,7 +1,7 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test22344.c(104): Error: function `test22344.func` redeclaration with different type
-fail_compilation/test22344.c(204): Error: function `test22344.test` redeclaration with different type
+fail_compilation/test22344.c(103): Error: function `test22344.func` redeclaration with different type
+fail_compilation/test22344.c(203): Error: function `test22344.test` redeclaration with different type
 ---
  */
 
