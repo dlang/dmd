@@ -72,7 +72,7 @@ import dmd.optimize;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.rootobject;
-import dmd.templatesem : getExpression, TemplateInstance_semanticTiargs, equalsx;
+import dmd.templatesem : getExpression, equalsx;
 import dmd.tokens;
 import dmd.typesem : typeSemantic, isBaseOf;
 import dmd.visitor;
@@ -1734,30 +1734,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             hash += hash == 0;
         }
         return hash;
-    }
-
-    /**********************************
-     * Run semantic on the elements of tiargs.
-     * Input:
-     *      sc
-     * Returns:
-     *      false if one or more arguments have errors.
-     * Note:
-     *      This function is reentrant against error occurrence. If returns false,
-     *      all elements of tiargs won't be modified.
-     */
-    extern (D) final bool semanticTiargs(Scope* sc)
-    {
-        //printf("+TemplateInstance.semanticTiargs() %s\n", toChars());
-        if (semantictiargsdone)
-            return true;
-        if (TemplateInstance_semanticTiargs(loc, sc, tiargs, 0))
-        {
-            // cache the result iff semantic analysis succeeded entirely
-            semantictiargsdone = 1;
-            return true;
-        }
-        return false;
     }
 
     /*****************************************

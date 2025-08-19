@@ -3278,6 +3278,31 @@ extern (D) RootObject declareParameter(TemplateDeclaration td, Scope* sc, Templa
 }
 
 /**********************************
+ * Run semantic on the elements of `ti.tiargs`.
+ * Input:
+ *      ti = template instance whose `tiargs` should have semantic done
+ *      sc = scope
+ * Returns:
+ *      false if one or more arguments have errors.
+ * Note:
+ *      This function is reentrant against error occurrence. If returns false,
+ *      all elements of tiargs won't be modified.
+ */
+bool semanticTiargs(TemplateInstance ti, Scope* sc)
+{
+    //printf("+TemplateInstance.semanticTiargs() %s\n", toChars());
+    if (ti.semantictiargsdone)
+        return true;
+    if (TemplateInstance_semanticTiargs(ti.loc, sc, ti.tiargs, 0))
+    {
+        // cache the result iff semantic analysis succeeded entirely
+        ti.semantictiargsdone = 1;
+        return true;
+    }
+    return false;
+}
+
+/**********************************
  * Run semantic of tiargs as arguments of template.
  * Input:
  *      loc
