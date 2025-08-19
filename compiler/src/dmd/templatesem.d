@@ -207,6 +207,141 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
     tempdecl.semanticRun = PASS.semanticdone;
 }
 
+/******************************
+ * See if two objects match
+ * Params:
+ *      o1 = first object
+ *      o2 = second object
+ * Returns: true if they match
+ */
+bool match(RootObject o1, RootObject o2)
+{
+    enum log = false;
+
+    static if (log)
+    {
+        printf("match() o1 = %p %s (%d), o2 = %p %s (%d)\n",
+            o1, o1.toChars(), o1.dyncast(), o2, o2.toChars(), o2.dyncast());
+    }
+
+    bool yes()
+    {
+        static if (log)
+            printf("\t. match\n");
+        return true;
+    }
+    bool no()
+    {
+        static if (log)
+            printf("\t. nomatch\n");
+        return false;
+    }
+    /* A proper implementation of the various equals() overrides
+     * should make it possible to just do o1.equals(o2), but
+     * we'll do that another day.
+     */
+    /* Manifest constants should be compared by their values,
+     * at least in template arguments.
+     */
+
+    if (auto t1 = isType(o1))
+    {
+        auto t2 = isType(o2);
+        if (!t2)
+            return no();
+
+        static if (log)
+        {
+            printf("\tt1 = %s\n", t1.toChars());
+            printf("\tt2 = %s\n", t2.toChars());
+        }
+        if (!t1.equals(t2))
+            return no();
+
+        return yes();
+    }
+    if (auto e1 = getExpression(o1))
+    {
+        auto e2 = getExpression(o2);
+        if (!e2)
+            return no();
+
+        static if (log)
+        {
+            printf("\te1 = %s '%s' %s\n", e1.type ? e1.type.toChars() : "null", EXPtoString(e1.op).ptr, e1.toChars());
+            printf("\te2 = %s '%s' %s\n", e2.type ? e2.type.toChars() : "null", EXPtoString(e2.op).ptr, e2.toChars());
+        }
+
+        // two expressions can be equal although they do not have the same
+        // type; that happens when they have the same value. So check type
+        // as well as expression equality to ensure templates are properly
+        // matched.
+        if (!(e1.type && e2.type && e1.type.equals(e2.type)) || !e1.equals(e2))
+            return no();
+
+        return yes();
+    }
+    if (auto s1 = isDsymbol(o1))
+    {
+        auto s2 = isDsymbol(o2);
+        if (!s2)
+            return no();
+
+        static if (log)
+        {
+            printf("\ts1 = %s \n", s1.kind(), s1.toChars());
+            printf("\ts2 = %s \n", s2.kind(), s2.toChars());
+        }
+        if (!s1.equals(s2))
+            return no();
+        if (s1.parent != s2.parent && !s1.isFuncDeclaration() && !s2.isFuncDeclaration())
+            return no();
+
+        return yes();
+    }
+    if (auto u1 = isTuple(o1))
+    {
+        auto u2 = isTuple(o2);
+        if (!u2)
+            return no();
+
+        static if (log)
+        {
+            printf("\tu1 = %s\n", u1.toChars());
+            printf("\tu2 = %s\n", u2.toChars());
+        }
+        if (!arrayObjectMatch(u1.objects, u2.objects))
+            return no();
+
+        return yes();
+    }
+    return yes();
+}
+
+/************************************
+ * Match an array of them.
+ */
+bool arrayObjectMatch(ref Objects oa1, ref Objects oa2)
+{
+    if (&oa1 == &oa2)
+        return true;
+    if (oa1.length != oa2.length)
+        return false;
+    immutable oa1dim = oa1.length;
+    auto oa1d = oa1[].ptr;
+    auto oa2d = oa2[].ptr;
+    foreach (j; 0 .. oa1dim)
+    {
+        RootObject o1 = oa1d[j];
+        RootObject o2 = oa2d[j];
+        if (!match(o1, o2))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 /*******************************************
  * Match to a particular TemplateParameter.
  * Input:
