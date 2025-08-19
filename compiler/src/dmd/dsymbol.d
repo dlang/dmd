@@ -677,12 +677,6 @@ extern (C++) class Dsymbol : ASTNode
         return "symbol";
     }
 
-    bool overloadInsert(Dsymbol s)
-    {
-        //printf("Dsymbol::overloadInsert('%s')\n", s.toChars());
-        return false;
-    }
-
     /*********************************
      * Returns:
      *  SIZE_INVALID when the size cannot be determined
