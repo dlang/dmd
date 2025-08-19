@@ -342,6 +342,86 @@ bool arrayObjectMatch(ref Objects oa1, ref Objects oa2)
     return true;
 }
 
+
+/*************************************
+ * Compare proposed template instantiation with existing template instantiation.
+ * Note that this is not commutative because of the auto ref check.
+ * Params:
+ *  ti1 = proposed template instantiation
+ *  ti2 = existing template instantiation
+ * Returns:
+ *  true for match
+ */
+bool equalsx(TemplateInstance ti1, TemplateInstance ti2)
+{
+    //printf("this = %p, ti2 = %p\n", this, ti2);
+    assert(ti1.tdtypes.length == ti2.tdtypes.length);
+
+    // Nesting must match
+    if (ti1.enclosing != ti2.enclosing)
+    {
+        //printf("test2 enclosing %s ti2.enclosing %s\n",
+        //       enclosing ? enclosing.toChars() : "", ti2.enclosing ? ti.enclosing.toChars() : "");
+        return false;
+    }
+    //printf("parent = %s, ti2.parent = %s\n", parent.toPrettyChars(), ti2.parent.toPrettyChars());
+
+    if (!arrayObjectMatch(ti1.tdtypes, ti2.tdtypes))
+        return false;
+
+    /* Template functions may have different instantiations based on
+     * "auto ref" parameters.
+     */
+    auto fd = ti2.toAlias().isFuncDeclaration();
+    if (!fd)
+        return true;
+    if (fd.errors)
+        return true;
+
+    auto resolvedArgs = fd.type.isTypeFunction().resolveNamedArgs(
+        ArgumentList(ti1.fargs, ti1.fnames), null);
+
+    // resolvedArgs can be null when there's an error: fail_compilation/fail14669.d
+    // In that case, equalsx returns true to prevent endless template instantiations
+    // However, it can also mean the function was explicitly instantiated
+    // without function arguments: fail_compilation/fail14669
+    // Hence the following check:
+    if (ti1.fargs && !resolvedArgs)
+        return true;
+
+    Expression[] args = resolvedArgs ? (*resolvedArgs)[] : [];
+
+    auto fparameters = fd.getParameterList();
+    size_t nfparams = fparameters.length;   // Num function parameters
+    for (size_t j = 0; j < nfparams; j++)
+    {
+        Parameter fparam = fparameters[j];
+        if (!(fparam.storageClass & STC.autoref) )      // if "auto ref"
+            continue;
+
+        Expression farg = (j < args.length) ? args[j] : fparam.defaultArg;
+        // resolveNamedArgs strips trailing nulls / default params
+        // when it doesn't anymore, the ternary can be replaced with:
+        // assert(j < resolvedArgs.length);
+        if (!farg)
+            farg = fparam.defaultArg;
+        if (!farg)
+            return false;
+        if (farg.isLvalue())
+        {
+            if (!(fparam.storageClass & STC.ref_))
+                return false; // auto ref's don't match
+        }
+        else
+        {
+            if (fparam.storageClass & STC.ref_)
+                return false; // auto ref's don't match
+        }
+    }
+    return true;
+}
+
+
 /*******************************************
  * Match to a particular TemplateParameter.
  * Input:

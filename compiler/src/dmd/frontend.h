@@ -1816,7 +1816,6 @@ public:
     const char* kind() const override;
     const char* toPrettyCharsHelper() final override;
     Identifier* getIdent() final override;
-    bool equalsx(TemplateInstance* ti);
     void accept(Visitor* v) override;
 };
 
