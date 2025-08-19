@@ -30,7 +30,6 @@ import dmd.location;
 import dmd.mtype;
 import dmd.objc;
 import dmd.root.rmem;
-import dmd.semantic2 : findFunc;
 import dmd.target;
 import dmd.visitor;
 
@@ -54,48 +53,6 @@ extern (C++) struct BaseClass
     {
         //printf("BaseClass(this = %p, '%s')\n", this, type.toChars());
         this.type = type;
-    }
-
-    /****************************************
-     * Fill in vtbl[] for base class based on member functions of class cd.
-     * Input:
-     *      vtbl            if !=NULL, fill it in
-     *      newinstance     !=0 means all entries must be filled in by members
-     *                      of cd, not members of any base classes of cd.
-     * Returns:
-     *      true if any entries were filled in by members of cd (not exclusively
-     *      by base classes)
-     */
-    extern (C++) bool fillVtbl(ClassDeclaration cd, FuncDeclarations* vtbl, int newinstance)
-    {
-        bool result = false;
-
-        //printf("BaseClass.fillVtbl(this='%s', cd='%s')\n", sym.toChars(), cd.toChars());
-        if (vtbl)
-            vtbl.setDim(sym.vtbl.length);
-
-        // first entry is ClassInfo reference
-        for (size_t j = sym.vtblOffset(); j < sym.vtbl.length; j++)
-        {
-            FuncDeclaration ifd = sym.vtbl[j].isFuncDeclaration();
-
-            //printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd.toChars() : "null");
-            assert(ifd);
-
-            // Find corresponding function in this class
-            auto tf = ifd.type.toTypeFunction();
-            auto fd = cd.findFunc(ifd.ident, tf);
-            if (fd && !fd.isAbstract())
-            {
-                if (fd.toParent() == cd)
-                    result = true;
-            }
-            else
-                fd = null;
-            if (vtbl)
-                (*vtbl)[j] = fd;
-        }
-        return result;
     }
 
     extern (D) void copyBaseInterfaces(BaseClasses* vtblInterfaces)

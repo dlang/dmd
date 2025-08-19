@@ -15,7 +15,7 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.common.outbuffer : OutBuffer;
-import dmd.dclass : ClassDeclaration;
+import dmd.dclass : ClassDeclaration, BaseClass;
 import dmd.declaration : TypeInfoDeclaration;
 import dmd.denum : EnumDeclaration;
 import dmd.dmodule /*: Module*/;
@@ -222,6 +222,12 @@ bool isPOD(StructDeclaration sd)
 {
     import dmd.dsymbolsem;
     return dmd.dsymbolsem.isPOD(sd);
+}
+
+bool fillVtbl(BaseClass* bc, ClassDeclaration cd, FuncDeclarations* vtbl, int newinstance)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.fillVtbl(bc, cd, vtbl, newinstance);
 }
 
 /***********************************************************

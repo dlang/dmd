@@ -502,6 +502,49 @@ bool isPOD(StructDeclaration sd)
     return true;
 }
 
+/****************************************
+ * Fill in vtbl[] for base class based on member functions of class cd.
+ * Input:
+ *      bc              BaseClass
+ *      vtbl            if !=NULL, fill it in
+ *      newinstance     !=0 means all entries must be filled in by members
+ *                      of cd, not members of any base classes of cd.
+ * Returns:
+ *      true if any entries were filled in by members of cd (not exclusively
+ *      by base classes)
+ */
+bool fillVtbl(BaseClass* bc, ClassDeclaration cd, FuncDeclarations* vtbl, int newinstance)
+{
+    bool result = false;
+
+    //printf("BaseClass.fillVtbl(this='%s', cd='%s')\n", sym.toChars(), cd.toChars());
+    if (vtbl)
+        vtbl.setDim(bc.sym.vtbl.length);
+
+    // first entry is ClassInfo reference
+    for (size_t j = bc.sym.vtblOffset(); j < bc.sym.vtbl.length; j++)
+    {
+        FuncDeclaration ifd = bc.sym.vtbl[j].isFuncDeclaration();
+
+        //printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd.toChars() : "null");
+        assert(ifd);
+
+        // Find corresponding function in this class
+        auto tf = ifd.type.toTypeFunction();
+        auto fd = cd.findFunc(ifd.ident, tf);
+        if (fd && !fd.isAbstract())
+        {
+            if (fd.toParent() == cd)
+                result = true;
+        }
+        else
+            fd = null;
+        if (vtbl)
+            (*vtbl)[j] = fd;
+    }
+    return result;
+}
+
 /*
 If sd has a copy constructor and ctor is an rvalue constructor,
 issue an error.
