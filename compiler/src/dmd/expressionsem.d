@@ -83,7 +83,7 @@ import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.safe;
 import dmd.target;
-import dmd.templatesem : matchWithInstance, deduceType, matchArg, updateTempDecl;
+import dmd.templatesem : matchWithInstance, deduceType, matchArg, updateTempDecl, semanticTiargs;
 import dmd.tokens;
 import dmd.traits;
 import dmd.typesem;
