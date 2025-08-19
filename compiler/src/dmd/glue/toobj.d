@@ -43,7 +43,7 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden,
-                        isAbstract, toAlias;
+                        isAbstract, toAlias, fillVtbl;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;

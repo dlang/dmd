@@ -6689,7 +6689,6 @@ struct BaseClass final
     uint32_t offset;
     Array<FuncDeclaration* > vtbl;
     _d_dynamicArray< BaseClass > baseInterfaces;
-    bool fillVtbl(ClassDeclaration* cd, Array<FuncDeclaration* >* vtbl, int32_t newinstance);
     BaseClass() :
         type(),
         sym(),
