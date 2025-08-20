@@ -903,13 +903,18 @@ $(H3 $(LNAME2 noreturn, $(D noreturn)))
     A value of type `noreturn` will never be produced and the compiler can
     optimize such code accordingly.)
 
+    $(P `noreturn.init` lowers to $(DDSUBLINK spec/expression, assert-ct, `assert(0)`).)
+
     $(P A function that $(DDSUBLINK spec/function, function-return-values, never returns)
     has the return type `noreturn`. This can
-    occur due to an infinite loop or always throwing an exception.)
+    occur due to e.g. an infinite loop or always throwing an exception.
+    A function returning type `noreturn` is covariant with a function returning any other type.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-noreturn abort(const(char)[] message);
+noreturn abort(string message);
+
+int function(string) fp = &abort; // OK
 
 int example(int i)
 {
@@ -925,7 +930,9 @@ int example(int i)
 )
 
     $(P `noreturn` is defined as $(D typeof(*null)). This is because
-    dereferencing a null literal halts execution.)
+    dereferencing a null literal (typically) halts execution.)
+
+    $(P See also: $(GLINK2 expression, ThrowExpression))
 
 
 $(SPEC_SUBNAV_PREV_NEXT declaration, Declarations, property, Properties)

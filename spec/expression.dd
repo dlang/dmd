@@ -2854,7 +2854,8 @@ $(H4 $(LNAME2 assert-ct, Compile-time Evaluation))
     $(P If the first $(I AssignExpression) consists entirely of compile time constants,
     and evaluates to `false`, it is a special case - it
     signifies that subsequent statements are unreachable code.
-    Compile Time Function Execution (CTFE) is not attempted.
+    Compile Time Function Execution (CTFE) calls are not attempted for the evaluation.
+    Such an $(GLINK AssertExpression) has type $(DDSUBLINK spec/type, noreturn, `noreturn`).
     )
 
     $(P This allows the compiler to suppress an error when there is a
