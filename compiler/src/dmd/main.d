@@ -669,7 +669,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
         {
             if (params.v.verbose)
                 message("inline scan %s", m.toChars());
-            inlineScanModule(m);
+            inlineScanModule(m, global.errorSink);
         }
     }
 
