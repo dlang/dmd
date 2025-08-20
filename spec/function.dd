@@ -395,22 +395,52 @@ $(GNAME OutStatement):
 
 $(H2 $(LNAME2 function-return-values, Function Return Values))
 
-        $(P At least one $(DDSUBLINK spec/statement, return-statement, return statement)
-        is required if the function specifies a return type that is not void,
+        $(P One $(DDSUBLINK spec/statement, return-statement, return statement) per execution path
+        is required if the function specifies a return type that is not `void`,
         unless:)
         $(UL
-        $(LI the function executes an infinite loop)
-        $(LI the function executes an $(DDSUBLINK spec/expression, assert-ct,
-            `assert(0)` statement))
-        $(LI the function evaluates an expression of type
+        $(LI the path executes an infinite loop)
+        $(LI the path evaluates an $(DDSUBLINK spec/expression, assert-ct,
+            `assert(0)` expression))
+        $(LI the path evaluates an expression of type
             $(DDSUBLINK spec/type, noreturn, `noreturn`))
-        $(LI the function contains inline assembler code)
+        $(LI the path contains inline assembler code)
         )
 
+        $(P Simple forms of the first 3 cases above can be recognized by the compiler,
+        but not all.)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+int error(int i)
+{
+    if (i & 1)
+        i++;
+    else
+        return i;
+
+    // Error: no return statement
+}
+---
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+int f(int i)
+{
+    if (i >= 0)
+        return i;
+
+    assert(0);
+    // OK, no return needed
+}
+---
+)
         $(P Function return values not marked as $(RELATIVE_LINK2 ref-functions, `ref`)
-        are considered to be rvalues.
+        are considered to be rvalues by the calling function.
         This means they cannot be passed by reference to other functions.
         )
+
 
 $(H2 $(LNAME2 pure-functions, Pure Functions))
 
