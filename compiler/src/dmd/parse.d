@@ -5511,7 +5511,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         if (token.value != TOK.else_ && token.value != TOK.catch_ && token.value != TOK.finally_ && lookingForElse.isValid)
         {
-            eSink.warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
+            eSink.error(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
         }
     }
 
