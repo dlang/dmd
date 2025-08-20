@@ -3129,11 +3129,6 @@ class Lexer
         eSink.deprecation(loc, format, args);
     }
 
-    void warning(T...)(Loc loc, const(char)* format, T args)
-    {
-        eSink.warning(loc, format, args);
-    }
-
     void deprecation(T...)(const(char)* format, T args)
     {
         eSink.deprecation(token.loc, format, args);
@@ -3618,7 +3613,6 @@ unittest
     static class ErrorSinkTest : ErrorSinkNull
     {
       nothrow:
-      extern (C++):
       override:
 
         import core.stdc.stdio;
