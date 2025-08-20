@@ -860,7 +860,7 @@ final class CParser(AST) : Parser!AST
         case TOK._assert:  // __check(assign-exp) extension
             nextToken();
             check(TOK.leftParenthesis, "`__check`");
-            e = parseAssignExp();
+            e = cparseAssignExp();
             check(TOK.rightParenthesis);
             e = new AST.AssertExp(loc, e, null);
             break;
