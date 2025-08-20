@@ -276,10 +276,10 @@ void printTemplateStats(bool listInstances, ErrorSink eSink)
 /***********************************************************
  * dtoh.d
  */
-void genCppHdrFiles(ref Modules ms)
+void genCppHdrFiles(ref Modules ms, ErrorSink eSink)
 {
     import dmd.dtoh;
-    return dmd.dtoh.genCppHdrFiles(ms);
+    return dmd.dtoh.genCppHdrFiles(ms, eSink);
 }
 
 /***********************************************************
