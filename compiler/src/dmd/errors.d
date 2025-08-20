@@ -62,37 +62,37 @@ class ErrorSinkCompiler : ErrorSink
 
     void verror(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReport(loc, format, ap, ErrorKind.error);
+        vreportDiagnostic(loc, format, ap, ErrorKind.error);
     }
 
     void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReportSupplemental(loc, format, ap, ErrorKind.error);
+        vsupplementalDiagnostic(loc, format, ap, ErrorKind.error);
     }
 
     void vwarning(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReport(loc, format, ap, ErrorKind.warning);
+        vreportDiagnostic(loc, format, ap, ErrorKind.warning);
     }
 
     void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
+        vsupplementalDiagnostic(loc, format, ap, ErrorKind.warning);
     }
 
     void vdeprecation(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReport(loc, format, ap, ErrorKind.deprecation);
+        vreportDiagnostic(loc, format, ap, ErrorKind.deprecation);
     }
 
     void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReportSupplemental(loc, format, ap, ErrorKind.deprecation);
+        vsupplementalDiagnostic(loc, format, ap, ErrorKind.deprecation);
     }
 
     void vmessage(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReport(loc, format, ap, ErrorKind.message);
+        vreportDiagnostic(loc, format, ap, ErrorKind.message);
     }
 
     void plugSink()
@@ -171,7 +171,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.error);
+        vreportDiagnostic(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 else
@@ -179,7 +179,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.error);
+        vreportDiagnostic(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 
@@ -198,7 +198,7 @@ static if (__VERSION__ < 2092)
         const loc = SourceLoc(filename.toDString, linnum, charnum);
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.error);
+        vreportDiagnostic(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 else
@@ -207,7 +207,7 @@ else
         const loc = SourceLoc(filename.toDString, linnum, charnum);
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.error);
+        vreportDiagnostic(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 
@@ -217,7 +217,7 @@ extern(C++) void errorBackend(const(char)* filename, uint linnum, uint charnum, 
     const loc = SourceLoc(filename.toDString, linnum, charnum);
     va_list ap;
     va_start(ap, format);
-    verrorReport(loc, format, ap, ErrorKind.error);
+    vreportDiagnostic(loc, format, ap, ErrorKind.error);
     va_end(ap);
 }
 
@@ -234,7 +234,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.error);
+        vsupplementalDiagnostic(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 else
@@ -242,7 +242,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.error);
+        vsupplementalDiagnostic(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 
@@ -258,7 +258,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.warning);
+        vreportDiagnostic(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 else
@@ -266,7 +266,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.warning);
+        vreportDiagnostic(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 
@@ -283,7 +283,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
+        vsupplementalDiagnostic(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 else
@@ -291,7 +291,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
+        vsupplementalDiagnostic(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 
@@ -308,7 +308,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.deprecation);
+        vreportDiagnostic(loc, format, ap, ErrorKind.deprecation);
         va_end(ap);
     }
 else
@@ -316,7 +316,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.deprecation);
+        vreportDiagnostic(loc, format, ap, ErrorKind.deprecation);
         va_end(ap);
     }
 
@@ -333,7 +333,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.deprecation);
+        vsupplementalDiagnostic(loc, format, ap, ErrorKind.deprecation);
         va_end(ap);
     }
 else
@@ -341,7 +341,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.deprecation);
+        vsupplementalDiagnostic(loc, format, ap, ErrorKind.deprecation);
         va_end(ap);
     }
 
@@ -358,7 +358,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.message);
+        vreportDiagnostic(loc, format, ap, ErrorKind.message);
         va_end(ap);
     }
 else
@@ -366,7 +366,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.message);
+        vreportDiagnostic(loc, format, ap, ErrorKind.message);
         va_end(ap);
     }
 
@@ -381,7 +381,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(Loc.initial, format, ap, ErrorKind.message);
+        vreportDiagnostic(Loc.initial, format, ap, ErrorKind.message);
         va_end(ap);
     }
 else
@@ -389,13 +389,13 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(Loc.initial, format, ap, ErrorKind.message);
+        vreportDiagnostic(Loc.initial, format, ap, ErrorKind.message);
         va_end(ap);
     }
 
 /**
  * The type of the diagnostic handler
- * see verrorReport for arguments
+ * see vreportDiagnostic for arguments
  * Returns: true if error handling is done, false to continue printing to stderr
  */
 alias DiagnosticHandler = bool delegate(const ref SourceLoc location, Color headerColor, const(char)* header, const(char)* messageFormat, va_list args, const(char)* prefix1, const(char)* prefix2);
@@ -418,7 +418,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(Loc.initial, format, ap, ErrorKind.tip);
+        vreportDiagnostic(Loc.initial, format, ap, ErrorKind.tip);
         va_end(ap);
     }
 else
@@ -426,7 +426,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(Loc.initial, format, ap, ErrorKind.tip);
+        vreportDiagnostic(Loc.initial, format, ap, ErrorKind.tip);
         va_end(ap);
     }
 
@@ -463,13 +463,13 @@ private struct ErrorInfo
  *      p1          = additional message prefix
  *      p2          = additional message prefix
  */
-private extern(C++) void verrorReport(Loc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
+private extern(C++) void vreportDiagnostic(Loc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
 {
-    return verrorReport(loc.SourceLoc, format, ap, kind, p1, p2);
+    return vreportDiagnostic(loc.SourceLoc, format, ap, kind, p1, p2);
 }
 
 /// ditto
-private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
+private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
 {
     auto info = ErrorInfo(loc, kind, p1, p2);
 
@@ -595,13 +595,13 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
  *      ap          = printf-style variadic arguments
  *      kind        = kind of error being printed
  */
-private extern(C++) void verrorReportSupplemental(Loc loc, const(char)* format, va_list ap, ErrorKind kind)
+private extern(C++) void vsupplementalDiagnostic(Loc loc, const(char)* format, va_list ap, ErrorKind kind)
 {
-    return verrorReportSupplemental(loc.SourceLoc, format, ap, kind);
+    return vsupplementalDiagnostic(loc.SourceLoc, format, ap, kind);
 }
 
 /// ditto
-private extern(C++) void verrorReportSupplemental(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind)
+private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind)
 {
     auto info = ErrorInfo(loc, kind);
     info.supplemental = true;
