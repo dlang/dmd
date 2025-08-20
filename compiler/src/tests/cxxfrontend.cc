@@ -1774,10 +1774,10 @@ void expression_h(Expression *e, Scope *sc, Type *t, Loc loc, Expressions *es)
 }
 
 void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,
-              Expression *e, Initializer *i, Statement *s, Type *t)
+              Expression *e, Initializer *i, Statement *s, Type *t, ErrorSink *sink)
 {
     dmd::genhdrfile(m, true, buf);
-    dmd::genCppHdrFiles(ms);
+    dmd::genCppHdrFiles(ms, sink);
     dmd::moduleToBuffer(buf, true, m);
     dmd::parametersTypeToChars(pl);
     dmd::toChars(e);

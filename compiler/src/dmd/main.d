@@ -741,7 +741,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     }
 
     if (global.params.cxxhdr.doOutput)
-        genCppHdrFiles(modules);
+        genCppHdrFiles(modules, global.errorSink);
 
     if (global.errors)
         fatal();
