@@ -1,6 +1,5 @@
 An error is now issued for dangling else statements
 
-
 This used to give a warning when compiled with `-w` and now gives an error:
 ```
 int i, j;
