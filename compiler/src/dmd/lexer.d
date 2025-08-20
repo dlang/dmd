@@ -324,8 +324,6 @@ class Lexer
         t.blockComment = null;
         t.lineComment = null;
 
-        size_t universalCharacterName4, universalCharacterName8;
-
         while (1)
         {
             t.ptr = p;
@@ -708,82 +706,7 @@ class Lexer
                         break;
                     }
 
-                    Identifier id;
-
-                    if (universalCharacterName4 > 0 || universalCharacterName8 > 0)
-                    {
-                        auto priorValidation = t.ptr[0 .. p - t.ptr];
-                        const(char)* priorVPtr = priorValidation.ptr;
-                        const possibleLength = (
-                            priorValidation.length - (
-                                (universalCharacterName4 * 6) +
-                                (universalCharacterName8 * 10)
-                            )) + (
-                                (universalCharacterName4 * 3) +
-                                (universalCharacterName8 * 4)
-                            );
-
-                        char[64] buffer = void;
-                        SmallBuffer!char sb = SmallBuffer!char(possibleLength, buffer[]);
-
-                        char[] storage = sb.extent;
-                        size_t offset;
-
-                        while(priorVPtr < &priorValidation[$-1] + 1)
-                        {
-                            if (*priorVPtr == '\\')
-                            {
-                                dchar tempDchar = 0;
-                                uint times;
-
-                                // universal character name (C)
-                                if (priorVPtr[1] == 'u')
-                                    times = 4;
-                                else if (priorVPtr[1] == 'U')
-                                    times = 8;
-                                else
-                                    assert(0, "ICE: Universal character name is 2 or 4 bytes only");
-                                priorVPtr += 2;
-
-                                foreach(_; 0 .. times)
-                                {
-                                    char c = *++priorVPtr;
-                                    if (c >= '0' && c <= '9')
-                                        c -= '0';
-                                    else if (c >= 'a' && c <= 'f')
-                                        c -= 'a' - 10;
-                                    else if (c >= 'A' && c <= 'F')
-                                        c -= 'A' - 10;
-
-                                    tempDchar <<= 4;
-                                    tempDchar |= c;
-                                }
-
-                                utf_encodeChar(&storage[offset], tempDchar);
-                                offset += utf_codeLengthChar(tempDchar);
-
-                                // Could be an error instead of a warning,
-                                //  but hey it was written specifically so why worry?
-                                if (priorVPtr is priorValidation.ptr)
-                                {
-                                    if (!charLookup.isStart(tempDchar))
-                                        warning(t.loc, "char 0x%x is not allowed start character for an identifier", tempDchar);
-                                }
-                                else
-                                {
-                                    if (!charLookup.isContinue(tempDchar))
-                                        warning(t.loc, "char 0x%x is not allowed continue character for an identifier", tempDchar);
-                                }
-                            }
-                            else
-                                storage[offset++] = *++priorVPtr;
-                        }
-
-                        id = Identifier.idPool(storage[0 .. offset], false);
-                    }
-                    else
-                        id = Identifier.idPool((cast(char*)t.ptr)[0 .. p - t.ptr], false);
-
+                    Identifier id = Identifier.idPool((cast(char*)t.ptr)[0 .. p - t.ptr], false);
                     t.ident = id;
                     t.value = cast(TOK)id.getValue();
 
