@@ -1505,25 +1505,36 @@ $(GNAME LastExp):
 $(H3 $(LNAME2 no-implicit-fallthrough, No Implicit Fall-Through))
 
 
-        $(P A $(GLINK ScopeStatementList) must either be empty, or be ended with
-        a $(GLINK ContinueStatement), $(GLINK BreakStatement),
-        $(GLINK ReturnStatement), $(GLINK GotoStatement), $(GLINK2 expression, ThrowExpression)
-        or `assert(0)` expression unless this is the last case.)
+        $(P A $(GLINK ScopeStatementList) must either be empty, the last one in the `switch`,
+        or be ended by:)
 
+        * A $(GLINK ContinueStatement), $(GLINK BreakStatement),
+          $(GLINK ReturnStatement), or $(GLINK GotoStatement)
+        * Evaluating an $(DDSUBLINK spec/expression, assert-ct, `assert(0)` expression)
+        * Evaluating an expression of type $(DDSUBLINK spec/type, noreturn, `noreturn`)
+
+        $(P Simple forms of the last 2 cases above can be recognized by the compiler, but not all.)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 --------------
+uint i;
+string message;
+
 switch (i)
 {
     case 1:
-        message ~= "one";
+        message = "one";
         // ERROR: implicit fall-through
     case 2:
         // valid: the body is empty
     default:
-        message ~= "unknown";
+        message = "2 or more";
+        // valid: no more case statements
 }
 --------------
-
-        $(P $(D goto case;) can be used for explicit fall-through:)
+)
+        $(P $(D goto case;) can be used for explicit fall-through to the next
+        *CaseStatement*:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
@@ -1533,7 +1544,7 @@ foreach (i; 1..5)
 {
     switch (i)
     {
-        default:    // valid: ends with 'throw'
+        default:    // valid: ends with `noreturn` expression evaluation
             throw new Exception("unknown number");
 
         case 3:     // valid: ends with 'break' (break out of the 'switch' only)
@@ -1557,7 +1568,7 @@ writeln(message);
 --------------
 )
         $(P $(RELATIVE_LINK2 goto-statement, `goto`) also supports jumping to
-        a specific case or the default case statement.)
+        a specific case or to the default case statement.)
 
 $(H3 $(LNAME2 string-switch, String Switch))
 
