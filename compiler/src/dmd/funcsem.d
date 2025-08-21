@@ -215,6 +215,10 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         printf("type: %p, %s\n", funcdecl.type, funcdecl.type.toChars());
     }
 
+    import dmd.timetrace;
+    timeTraceBeginEvent(TimeTraceEventType.sema1Function);
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1Function, funcdecl);
+
     if (funcdecl.semanticRun != PASS.initial && funcdecl.isFuncLiteralDeclaration())
     {
         /* Member functions that have return types that are

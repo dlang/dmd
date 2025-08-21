@@ -5453,6 +5453,9 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         return;
     }
 
+    timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstance);
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstance, tempinst);
+
     // Get the enclosing template instance from the scope tinst
     tempinst.tinst = sc.tinst;
 
