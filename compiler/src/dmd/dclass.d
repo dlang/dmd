@@ -182,144 +182,42 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (id == Id.__sizeof || id == Id.__xalignof || id == Id._mangleof)
             classError("%s `%s` illegal class name", null);
 
+        final /* final to work around dscanner bug*/
+        void check(Identifier _id, ref ClassDeclaration cd)
+        {
+            if (id == _id)
+            {
+                if (!inObject)
+                    classError("%s `%s` %s", msg.ptr);
+                cd = this;
+            }
+        }
         // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
         if (id.toChars()[0] == 'T')
         {
-            if (id == Id.TypeInfo)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.dtypeinfo = this;
-            }
-            if (id == Id.TypeInfo_Class)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoclass = this;
-            }
-            if (id == Id.TypeInfo_Interface)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfointerface = this;
-            }
-            if (id == Id.TypeInfo_Struct)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfostruct = this;
-            }
-            if (id == Id.TypeInfo_Pointer)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfopointer = this;
-            }
-            if (id == Id.TypeInfo_Array)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoarray = this;
-            }
-            if (id == Id.TypeInfo_StaticArray)
-            {
-                //if (!inObject)
-                //    Type.typeinfostaticarray.classError("%s `%s` %s", msg);
-                Type.typeinfostaticarray = this;
-            }
-            if (id == Id.TypeInfo_AssociativeArray)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoassociativearray = this;
-            }
-            if (id == Id.TypeInfo_Enum)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoenum = this;
-            }
-            if (id == Id.TypeInfo_Function)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfofunction = this;
-            }
-            if (id == Id.TypeInfo_Delegate)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfodelegate = this;
-            }
-            if (id == Id.TypeInfo_Tuple)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfotypelist = this;
-            }
-            if (id == Id.TypeInfo_Const)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoconst = this;
-            }
-            if (id == Id.TypeInfo_Invariant)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoinvariant = this;
-            }
-            if (id == Id.TypeInfo_Shared)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoshared = this;
-            }
-            if (id == Id.TypeInfo_Wild)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfowild = this;
-            }
-            if (id == Id.TypeInfo_Vector)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfovector = this;
-            }
+            check(Id.TypeInfo,           Type.dtypeinfo);
+            check(Id.TypeInfo_Class,     Type.typeinfoclass);
+            check(Id.TypeInfo_Interface, Type.typeinfointerface);
+            check(Id.TypeInfo_Struct,    Type.typeinfostruct);
+            check(Id.TypeInfo_Pointer,   Type.typeinfopointer);
+            check(Id.TypeInfo_Array,     Type.typeinfoarray);
+            check(Id.TypeInfo_StaticArray, Type.typeinfostaticarray);
+            check(Id.TypeInfo_AssociativeArray, Type.typeinfoassociativearray);
+            check(Id.TypeInfo_Enum,      Type.typeinfoenum);
+            check(Id.TypeInfo_Function,  Type.typeinfofunction);
+            check(Id.TypeInfo_Delegate,  Type.typeinfodelegate);
+            check(Id.TypeInfo_Tuple,     Type.typeinfotypelist);
+            check(Id.TypeInfo_Const,     Type.typeinfoconst);
+            check(Id.TypeInfo_Invariant, Type.typeinfoinvariant);
+            check(Id.TypeInfo_Shared,    Type.typeinfoshared);
+            check(Id.TypeInfo_Wild,      Type.typeinfowild);
+            check(Id.TypeInfo_Vector,    Type.typeinfovector);
         }
-
-        if (id == Id.Object)
-        {
-            if (!inObject)
-                classError("%s `%s` %s", msg.ptr);
-            object = this;
-        }
-
-        if (id == Id.Throwable)
-        {
-            if (!inObject)
-                classError("%s `%s` %s", msg.ptr);
-            throwable = this;
-        }
-        if (id == Id.Exception)
-        {
-            if (!inObject)
-                classError("%s `%s` %s", msg.ptr);
-            exception = this;
-        }
-        if (id == Id.Error)
-        {
-            if (!inObject)
-                classError("%s `%s` %s", msg.ptr);
-            errorException = this;
-        }
-        if (id == Id.cpp_type_info_ptr)
-        {
-            if (!inObject)
-                classError("%s `%s` %s", msg.ptr);
-            cpp_type_info_ptr = this;
-        }
+        check(Id.Object, object);
+        check(Id.Throwable, throwable);
+        check(Id.Exception, exception);
+        check(Id.Error, errorException);
+        check(Id.cpp_type_info_ptr, cpp_type_info_ptr);
 
         baseok = Baseok.none;
     }
