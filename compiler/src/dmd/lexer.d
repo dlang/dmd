@@ -326,6 +326,7 @@ class Lexer
 
         while (1)
         {
+            bool startsUCN;
             t.ptr = p;
             //printf("p = %p, *p = '%c'\n",p,*p);
             t.loc = loc();
@@ -425,10 +426,7 @@ class Lexer
                         // Universal Character Name (C) 2 byte
                         // \uXXXX
                         // let the main case handling for identifiers process this
-
-                        // case_indent will always increment, so subtract to prevent branching on the fast path
-                        p--;
-
+                        startsUCN = true;
                         goto case_ident;
                     }
                     else if (p[1] == 'U')
@@ -436,10 +434,7 @@ class Lexer
                         // Universal Character Name (C) 4 byte
                         // \UXXXXXXXX
                         // let the main case handling for identifiers process this
-
-                        // case_indent will always increment, so subtract to prevent branching on the fast path
-                        p--;
-
+                        startsUCN = true;
                         goto case_ident;
                     }
                 }
@@ -627,160 +622,8 @@ class Lexer
             case '_':
             case_ident:
                 {
-                    uint universalCharacterName4, universalCharacterName8;
-
-        IdentLoop: while (1)
-                    {
-                        // If this is changed, change the decrement in C's universal character name code above
-                        // For syntax \uXXXX and \UXXXXXXXX
-                        const c = *++p;
-
-                        // Is this the first character of the identifier
-                        // For the universal character name this will line up,
-                        //  for the main switch it won't since it wasn't the first,
-                        //  for the default it won't either because a decode increments.
-                        const isStartCharacter = t.ptr is p;
-
-                        if (isidchar(c))
-                            continue;
-                        if (c & 0x80)
-                        {
-                            const s = p;
-                            const u = decodeUTF();
-
-                            if (isStartCharacter)
-                            {
-                                if (charLookup.isStart(u))
-                                    continue;
-                                error(t.loc, "character 0x%04x is not allowed as a start character in an identifier", u);
-                            }
-                            else
-                            {
-                                if (charLookup.isContinue(u))
-                                    continue;
-                                error(t.loc, "character 0x%04x is not allowed as a continue character in an identifier", u);
-                            }
-
-                            p = s;
-                        }
-                        else if (Ccompile && c == '\\')
-                        {
-                            uint times;
-                            const s = p;
-                            p++;
-
-                            if (*p == 'u')
-                            {
-                                // Universal Character Name (C) 2 byte
-                                // \uXXXX
-                                p++;
-                                times = 4;
-                                universalCharacterName4++;
-                            }
-                            else if (*p == 'U')
-                            {
-                                // Universal Character Name (C) 4 byte
-                                // \UXXXXXXXX
-                                p++;
-                                times = 8;
-                                universalCharacterName8++;
-                            }
-                            else
-                            {
-                                error(t.loc, "char 0x%x is not allowed to follow '\\' expecting a C universal character name in format \\uXXXX or \\UXXXXXXXX with hex digits instead of X with invalid u/U", *p);
-                                p = s;
-                                break;
-                            }
-
-                            foreach(i; 0 .. times)
-                            {
-                                const hc = p[i];
-
-                                if ((hc >= '0' && hc <= '9') || (hc >= 'a' && hc <= 'f') || (hc >= 'A' && hc <= 'F'))
-                                    continue;
-
-                                error(t.loc, "char 0x%x is not allowed to follow '\\' expecting a C universal character name in format \\uXXXX or \\UXXXXXXXX with hex digits instead of X with invalid hex digit", hc);
-                                p = s;
-                                break IdentLoop;
-                            }
-
-                            p += times - 1; // skip to last character in the hex value, incremented at top of loop
-                            continue;
-                        }
-                        break;
-                    }
-
-                    Identifier id;
-
-                    if (universalCharacterName4 == 0 && universalCharacterName8 == 0)
-                    {
-                        id = Identifier.idPool((cast(char*)t.ptr)[0 .. p - t.ptr], false);
-                    }
-                    else
-                    {
-                        auto priorValidation = t.ptr[0 .. p - t.ptr];
-                        const(char)* priorVPtr = priorValidation.ptr;
-                        stringbuffer.setsize(0);
-
-                        while(priorVPtr <= &priorValidation[$-1])
-                        {
-                            if (*priorVPtr == '\\')
-                            {
-                                dchar tempDchar = 0;
-                                uint times;
-
-                                // universal character name (C)
-                                if (priorVPtr[1] == 'u')
-                                    times = 4;
-                                else if (priorVPtr[1] == 'U')
-                                    times = 8;
-                                else
-                                    assert(0, "ICE: Universal character name is 2 or 4 bytes only");
-                                priorVPtr += 2;
-
-                                foreach(i; 0 .. times)
-                                {
-                                    char c = priorVPtr[i];
-
-                                    if (c >= '0' && c <= '9')
-                                        c -= '0';
-                                    else if (c >= 'a' && c <= 'f')
-                                        c -= 'a' - 10;
-                                    else if (c >= 'A' && c <= 'F')
-                                        c -= 'A' - 10;
-
-                                    tempDchar <<= 4;
-                                    tempDchar |= c;
-                                }
-
-                                priorVPtr += times;
-                                stringbuffer.writeUTF8(tempDchar);
-
-                                // Is this the start character of the identifier?
-                                if (priorVPtr is priorValidation.ptr)
-                                {
-                                    if (!charLookup.isStart(tempDchar))
-                                        error(t.loc, "char 0x%x is not allowed start character for an identifier", tempDchar);
-                                }
-                                else
-                                {
-                                    if (!charLookup.isContinue(tempDchar))
-                                        error(t.loc, "char 0x%x is not allowed continue character for an identifier", tempDchar);
-                                }
-                            }
-                            else
-                            {
-                                stringbuffer.writeByte(*priorVPtr);
-                                priorVPtr++;
-                            }
-                        }
-
-                        id = Identifier.idPool(stringbuffer[], false);
-                    }
-
-                    t.ident = id;
-                    t.value = cast(TOK)id.getValue();
-
+                    if (!lexIdentifier(t, startsUCN))
+                        goto default;
                     anyToken = 1;
 
                     /* Different keywords for C and D
@@ -805,20 +648,20 @@ class Lexer
                             t.postfix = 0;
                         }
 
-                        if (id == Id.DATE)
+                        if (t.ident == Id.DATE)
                             toToken(compileEnv.date);
-                        else if (id == Id.TIME)
+                        else if (t.ident == Id.TIME)
                             toToken(compileEnv.time);
-                        else if (id == Id.VENDOR)
+                        else if (t.ident == Id.VENDOR)
                             toToken(compileEnv.vendor);
-                        else if (id == Id.TIMESTAMP)
+                        else if (t.ident == Id.TIMESTAMP)
                             toToken(compileEnv.timestamp);
-                        else if (id == Id.VERSIONX)
+                        else if (t.ident == Id.VERSIONX)
                         {
                             t.value = TOK.int64Literal;
                             t.unsvalue = compileEnv.versionNumber;
                         }
-                        else if (id == Id.EOFX)
+                        else if (t.ident == Id.EOFX)
                         {
                             t.value = TOK.endOfFile;
                             // Advance scanner to end of file
@@ -1352,8 +1195,10 @@ class Lexer
 
                         // Check for start of an identifier
                         if (charLookup.isStart(c))
+                        {
+                            p++;
                             goto case_ident;
-
+                        }
                         if (c == PS || c == LS)
                         {
                             endOfLine();
@@ -1622,6 +1467,118 @@ class Lexer
             break;
         }
         return c;
+    }
+
+    /**
+    Lex an identifier
+    Params:
+        t = pointer to the token that starts the identifier, and accepts the result
+        startsUCN = if the identifier s
+    Returns:
+        true if an identifier was set
+     */
+    private bool lexIdentifier(Token* t, bool startsUCN)
+    {
+        Identifier id;
+
+        if (!startsUCN)
+        {
+            while (isidchar(*p))
+                p++;
+        }
+
+        if (!startsUCN && !(*p & 0x80) && (!Ccompile || *p != '\\'))
+        {
+            // Fast path for ascii identifiers
+            id = Identifier.idPool((cast(char*)t.ptr)[0 .. p - t.ptr], false);
+        }
+        else
+        {
+            // Slow path for identifiers with UCNs and UTF8 characters
+            stringbuffer.setsize(0);
+            stringbuffer.writestring(t.ptr[0 .. p - t.ptr]);
+
+        IdentLoop:
+            while (1)
+            {
+                // Is this the first character of the identifier?
+                const isStartCharacter = t.ptr is p;
+                uint u;
+
+                if (isidchar(*p))
+                {
+                    const c = *p++;
+                    stringbuffer.writeByte(c);
+                    continue;
+                }
+                else if (*p & 0x80)
+                {
+                    u = decodeUTF();
+                    p++;
+                }
+                else if (Ccompile && *p == '\\')
+                {
+                    uint times;
+                    if (p[1] == 'u')
+                    {
+                        // Universal Character Name (C) 2 byte
+                        // \uXXXX
+                        times = 4;
+                    }
+                    else if (p[1] == 'U')
+                    {
+                        // Universal Character Name (C) 4 byte
+                        // \UXXXXXXXX
+                        times = 8;
+                    }
+                    else
+                        break;  // end of identifier
+
+                    p += 2;
+
+                    foreach(i; 0 .. times)
+                    {
+                        char c = p[i];
+
+                        if (c >= '0' && c <= '9')
+                            c -= '0';
+                        else if (c >= 'a' && c <= 'f')
+                            c -= 'a' - 10;
+                        else if (c >= 'A' && c <= 'F')
+                            c -= 'A' - 10;
+                        else
+                        {
+                            // Not a valid ucn, if this is the first character, return false now.
+                            // Otherwise break to return the identifier lexed so far.
+                            p -= 2;
+                            if (isStartCharacter)
+                            {
+                                return false;
+                            }
+                            break IdentLoop;
+                        }
+                        u = (u << 4) | c;
+                    }
+                    if (isBidiControl(u))
+                        error(t.loc, "Bidirectional control characters in universal character names are disallowed for security reasons");
+                    p += times;
+                }
+                else
+                    break;  // end of identifier
+
+                if (isStartCharacter && !charLookup.isStart(u))
+                    error(t.loc, "character 0x%04x is not allowed as a start character in an identifier", u);
+                else if (!charLookup.isContinue(u))
+                    error(t.loc, "character 0x%04x is not allowed as a continue character in an identifier", u);
+                stringbuffer.writeUTF8(u);
+            }
+
+            id = Identifier.idPool(stringbuffer[], false);
+        }
+
+        t.ident = id;
+        t.value = cast(TOK)id.getValue();
+        return true;
     }
 
     /**
