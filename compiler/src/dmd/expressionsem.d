@@ -471,16 +471,19 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
     Type t1 = e1.type;
     Type t2 = e2.type;
 
+    // @@@DEPRECATED_2.122@@@
+    // Deprecated in 2.112, make it an error in 2.122
     // T opAssign floating yields a floating. Prevent truncating conversions (float to int).
     // See https://issues.dlang.org/show_bug.cgi?id=3841.
     // Should we also prevent double to float (type.isFloating() && type.size() < t2.size()) ?
-    if (op == EXP.addAssign || op == EXP.minAssign ||
-        op == EXP.mulAssign || op == EXP.divAssign || op == EXP.modAssign ||
-        op == EXP.powAssign)
+    if (!sc.inCfile &&
+        (op == EXP.addAssign || op == EXP.minAssign ||
+         op == EXP.mulAssign || op == EXP.divAssign || op == EXP.modAssign ||
+         op == EXP.powAssign))
     {
         if ((type.isIntegral() && t2.isFloating()))
         {
-            warning(loc, "`%s %s %s` is performing truncating conversion", type.toChars(), EXPtoString(op).ptr, t2.toChars());
+            deprecation(loc, "`%s %s %s` is performing truncating conversion", type.toChars(), EXPtoString(op).ptr, t2.toChars());
         }
     }
 
