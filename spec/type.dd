@@ -762,42 +762,64 @@ $(GNAME Typeof):
 )
 
         $(P
-        $(D typeof) is a way to specify a type based on the type
-        of an expression. For example:
+        The first form gives the type of an expression.
+        It can be used anywhere a $(GLINK BasicType) is expected, such as in a
+        declaration. It is also useful as a $(GLINK2 expression, PrimaryExpression)
+        in a sub-expression. For example:
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         --------------------
         void func(int i)
         {
             typeof(i) j;       // j is of type int
             typeof(3 + 6.0) x; // x is of type double
-            typeof(1)* p;      // p is of type pointer to int
-            int[typeof(p)] a;  // a is of type int[int*]
 
-            writeln(typeof('c').sizeof); // prints 1
-            double c = cast(typeof(1.0))j; // cast j to double
+            // as part of a derived type:
+            typeof(1)* p;
+            static assert(is(typeof(p) == int*));
+            typeof(p)[int] aa;
+            static assert(is(typeof(aa) == int*[int]));
+
+            auto d = cast(typeof(1.0)) i; // cast i to double
+            static assert(is(typeof(d) == double));
+
+            // as a sub-expression:
+            static assert(typeof('c').sizeof == 1); // char.sizeof
+            Exception[2] sa;
+            Exception ex = new typeof(sa[0])("message"); // new Exception("message")
         }
         --------------------
+        )
 
         $(P
         $(I Expression) is not evaluated, it is used purely to
         generate the type:
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         --------------------
-        void func()
+        void main()
         {
             int i = 1;
             typeof(++i) j; // j is declared to be an int, i is not incremented
-            writeln(i);  // prints 1
+            assert(i == 1);
         }
         --------------------
+        )
 
         $(P If *Expression* is a
-        $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
-        it will produce a *TypeSeq* containing the types of each element.)
+        $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq)), `typeof`
+        will produce a *TypeSeq* containing the types of each element.)
 
-        $(P Special cases: )
+        $(P `typeof(null)` is useful to get the type of the
+        $(DDSUBLINK spec/expression, null, `null`) literal.)
+
+        $(BEST_PRACTICE $(I Typeof) is most useful in writing generic
+        template code.)
+
+$(H3 $(LNAME2 typeof-special, Special Cases))
+
     $(OL
         $(LI $(D typeof(return)) will, when inside a function scope,
         give the return type of that function.
@@ -851,12 +873,6 @@ $(GNAME Typeof):
         static assert(is(typeof(t) == void));
         --------------------
 
-        $(BEST_PRACTICE
-        $(OL
-        $(LI $(I Typeof) is most useful in writing generic
-        template code.)
-        )
-        )
 
 $(H2 $(LNAME2 mixin_types, Mixin Types))
 
