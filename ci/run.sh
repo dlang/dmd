@@ -129,7 +129,7 @@ test_dmd() {
     fi
 
     $build_path/dmd -g -i -Icompiler/test -release compiler/test/run.d -ofgenerated/run
-    generated/run -j$N --environment MODEL=$MODEL HOST_DMD=$build_path/dmd "${args[@]}"
+    generated/run -j$N --github-checks --environment MODEL=$MODEL HOST_DMD=$build_path/dmd "${args[@]}"
 }
 
 # build and run druntime unit tests

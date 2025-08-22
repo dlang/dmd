@@ -158,6 +158,8 @@ jobs:
           arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
       - name: Test dmd
         run: ci/run.sh test_dmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Test druntime
         if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_druntime

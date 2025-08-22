@@ -12,8 +12,8 @@ See the README.md for all available test targets
 */
 
 import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format,
-       std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio,
-       std.string, std.traits, core.atomic;
+       std.getopt, std.json, std.net.curl, std.parallelism, std.path, std.process,
+       std.range, std.stdio, std.string, std.traits, core.atomic;
 
 import tools.paths;
 
@@ -23,6 +23,7 @@ shared bool verbose; // output verbose logging
 shared bool force; // always run all tests (ignores timestamp checking)
 shared string hostDMD; // path to host DMD binary (used for building the tools)
 shared string unitTestRunnerCommand;
+bool uploadToGitHubChecks; // upload test results to GitHub Checks API
 
 // These long-running runnable tests will be put in front, in this order, to
 // make parallelization more effective.
@@ -94,6 +95,7 @@ int tryMain(string[] args)
         "f", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
         "u|unit-tests", "Runs the unit tests", &runUnitTests,
         "e|environment", "Print current environment variables", &dumpEnvironment,
+        "github-checks", "Upload test results to GitHub Checks API (for CI)", &uploadToGitHubChecks,
     );
     if (res.helpWanted)
     {
@@ -142,6 +144,12 @@ Options:
             writefln("%s=%s", key, env[key]);
         writefln("================================================================================");
         stdout.flush();
+    }
+
+    if (uploadToGitHubChecks && !getGitHubContext().isConfigured)
+    {
+        stderr.writeln("Warning: --github-checks specified, but required GITHUB_* environment variables are not set; disabling.");
+        uploadToGitHubChecks = false;
     }
 
     verifyCompilerExists(env);
@@ -194,8 +202,41 @@ Options:
         foreach (target; parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
-            int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
-            if (status != 0)
+
+            GitHubUploader uploader;
+            if (uploadToGitHubChecks)
+                uploader = new GitHubUploader(getGitHubContext(), target);
+
+            struct TestRunResult { int status; string output; }
+            TestRunResult result;
+
+            if (uploadToGitHubChecks)
+            {
+                auto execResult = execute(target.args, env, workDir: scriptDir);
+
+                // Mirror output to console to maintain visibility, although it's now buffered.
+                // This requires synchronizing access to stdout.
+                if (execResult.output.length > 0)
+                {
+                    synchronized
+                    {
+                        stdout.write(execResult.output);
+                        stdout.flush();
+                    }
+                }
+                result = TestRunResult(execResult.status, execResult.output);
+            }
+            else
+            {
+                int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
+                result = TestRunResult(status, ""); // No output captured
+            }
+
+
+            if (uploader)
+                uploader.finish(result.status, result.output);
+
+            if (result.status != 0)
             {
                 const string name = target.filename
                             ? target.normalizedTestName
@@ -216,6 +257,7 @@ Options:
 
     return 0;
 }
+
 
 /// Verify that the compiler has been built.
 void verifyCompilerExists(const string[string] env)
@@ -650,4 +692,132 @@ Throws: a SilentQuit instance wrapping exitCode
 void quitSilently(const int exitCode)
 {
     throw new SilentQuit(exitCode);
+}
+
+/// Holds information needed to interact with the GitHub Checks API.
+struct GitHubContext
+{
+    string token;
+    string owner;
+    string repo;
+    string sha;
+    string apiUrl;
+    bool isConfigured;
+
+    /// Creates a context from GitHub Actions environment variables.
+    static GitHubContext create()
+    {
+        GitHubContext ctx;
+        auto repoSlug = environment.get("GITHUB_REPOSITORY", "");
+        if (!repoSlug.length) return ctx;
+
+        auto parts = repoSlug.split('/');
+        if (parts.length != 2) return ctx;
+
+        ctx.owner = parts[0];
+        ctx.repo = parts[1];
+        ctx.token = environment.get("GITHUB_TOKEN", "");
+        ctx.sha = environment.get("GITHUB_SHA", "");
+        ctx.apiUrl = environment.get("GITHUB_API_URL", "https://api.github.com");
+
+        if (ctx.token.length && ctx.sha.length)
+            ctx.isConfigured = true;
+        return ctx;
+    }
+}
+
+/// Manages the lifecycle of a single GitHub Check Run for a test target.
+final class GitHubUploader
+{
+    GitHubContext* ctx;
+    long checkRunId = -1;
+    SysTime startTime;
+
+    /// Creates a GitHub Check Run and marks it as "in_progress".
+    this(ref GitHubContext context, in ref Target target)
+    {
+        this.ctx = &context;
+        this.startTime = Clock.currTime();
+
+        auto checkName = target.normalizedTestName;
+
+        JSONValue payload = [
+            "name": checkName,
+            "head_sha": ctx.sha,
+            "status": "in_progress",
+            "started_at": startTime.toISOString(),
+        ];
+
+        auto url = "%s/repos/%s/%s/check-runs".format(ctx.apiUrl, ctx.owner, ctx.repo);
+        try
+        {
+            auto r = HTTP();
+            r.addRequestHeader("Authorization", "token " ~ ctx.token);
+            r.addRequestHeader("Accept", "application/vnd.github.v3+json");
+            r.addRequestHeader("User-Agent", "DMD-Test-Runner");
+            auto response = post(url, payload.toString(), r);
+
+            auto jsonResponse = parseJSON(response);
+            this.checkRunId = jsonResponse["id"].get!long;
+        }
+        catch (Exception e)
+            stderr.writeln("Exception while creating GitHub check for ", checkName, ": ", e.msg);
+    }
+
+    /// Updates the Check Run to "completed" with the final status and output log.
+    void finish(int status, string outputLog)
+    {
+        if (checkRunId == -1) return; // creation failed
+
+        auto conclusion = (status == 0) ? "success" : "failure";
+        auto endTime = Clock.currTime();
+
+        // The GitHub API has a 64KB limit on the text field.
+        const maxOutput = 65_000;
+        if (outputLog.length > maxOutput)
+            outputLog = outputLog[0 .. maxOutput] ~ "\n\n... (log truncated) ...";
+
+        JSONValue payload = [
+            "status": "completed".JSONValue,
+            "completed_at": endTime.toISOString().JSONValue,
+            "conclusion": conclusion.JSONValue,
+            "output": [
+                "title": (conclusion == "success" ? "Passed" : "Failed"),
+                "summary": "Test finished with exit code " ~ to!string(status),
+                "text": "```\n" ~ outputLog ~ "\n```"
+            ].JSONValue
+        ];
+
+        auto url = "%s/repos/%s/%s/check-runs/%d".format(ctx.apiUrl, ctx.owner, ctx.repo, checkRunId);
+        try
+        {
+            // Use PATCH to update the check run
+            auto r = HTTP();
+            r.method = HTTP.Method.patch;
+            r.addRequestHeader("Authorization", "token " ~ ctx.token);
+            r.addRequestHeader("Accept", "application/vnd.github.v3+json");
+            r.addRequestHeader("User-Agent", "DMD-Test-Runner");
+
+            post(url, payload.toString(), r);
+        }
+        catch (Exception e)
+            stderr.writeln("Exception while updating GitHub check for id ", checkRunId, ": ", e.msg);
+    }
+}
+
+// Lazily-initialized, shared context for GitHub API access.
+__gshared GitHubContext g_ghContext;
+bool g_ghContextInitialized;
+
+ref GitHubContext getGitHubContext()
+{
+    synchronized
+    {
+        if (!g_ghContextInitialized)
+        {
+            g_ghContext = GitHubContext.create();
+            g_ghContextInitialized = true;
+        }
+    }
+    return g_ghContext;
 }
