@@ -460,6 +460,9 @@ private void syment_set_name(SymbolTable32* sym, const(char)* name)
     size_t len = strlen(name);
     if (len > 8)
     {   // Use offset into string table
+        // symbols larger than 64kB crash link.exe 14.44 or later
+        if (len > CV8_MAX_SYMBOL_LENGTH)
+            len = CV8_MAX_SYMBOL_LENGTH;
         IDXSTR idx = MsCoffObj_addstr(string_table, name[0 .. len]);
         sym.Zeros = 0;
         sym.Offset = idx;
