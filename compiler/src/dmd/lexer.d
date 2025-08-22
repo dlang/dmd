@@ -627,6 +627,8 @@ class Lexer
             case '_':
             case_ident:
                 {
+                    uint universalCharacterName4, universalCharacterName8;
+
         IdentLoop: while (1)
                     {
                         // If this is changed, change the decrement in C's universal character name code above
@@ -673,6 +675,7 @@ class Lexer
                                 // \uXXXX
                                 p++;
                                 times = 4;
+                                universalCharacterName4++;
                             }
                             else if (*p == 'U')
                             {
@@ -680,6 +683,7 @@ class Lexer
                                 // \UXXXXXXXX
                                 p++;
                                 times = 8;
+                                universalCharacterName8++;
                             }
                             else
                             {
@@ -688,10 +692,9 @@ class Lexer
                                 break;
                             }
 
-                            foreach(_; 0 .. times)
+                            foreach(i; 0 .. times)
                             {
-                                const hc = *p;
-                                p++;
+                                const hc = p[i];
 
                                 if ((hc >= '0' && hc <= '9') || (hc >= 'a' && hc <= 'f') || (hc >= 'A' && hc <= 'F'))
                                     continue;
@@ -701,12 +704,80 @@ class Lexer
                                 break IdentLoop;
                             }
 
+                            p += times - 1; // skip to last character in the hex value, incremented at top of loop
                             continue;
                         }
                         break;
                     }
 
-                    Identifier id = Identifier.idPool((cast(char*)t.ptr)[0 .. p - t.ptr], false);
+                    Identifier id;
+
+                    if (universalCharacterName4 == 0 && universalCharacterName8 == 0)
+                    {
+                        id = Identifier.idPool((cast(char*)t.ptr)[0 .. p - t.ptr], false);
+                    }
+                    else
+                    {
+                        auto priorValidation = t.ptr[0 .. p - t.ptr];
+                        const(char)* priorVPtr = priorValidation.ptr;
+                        stringbuffer.setsize(0);
+
+                        while(priorVPtr <= &priorValidation[$-1])
+                        {
+                            if (*priorVPtr == '\\')
+                            {
+                                dchar tempDchar = 0;
+                                uint times;
+
+                                // universal character name (C)
+                                if (priorVPtr[1] == 'u')
+                                    times = 4;
+                                else if (priorVPtr[1] == 'U')
+                                    times = 8;
+                                else
+                                    assert(0, "ICE: Universal character name is 2 or 4 bytes only");
+                                priorVPtr += 2;
+
+                                foreach(i; 0 .. times)
+                                {
+                                    char c = priorVPtr[i];
+
+                                    if (c >= '0' && c <= '9')
+                                        c -= '0';
+                                    else if (c >= 'a' && c <= 'f')
+                                        c -= 'a' - 10;
+                                    else if (c >= 'A' && c <= 'F')
+                                        c -= 'A' - 10;
+
+                                    tempDchar <<= 4;
+                                    tempDchar |= c;
+                                }
+
+                                priorVPtr += times;
+                                stringbuffer.writeUTF8(tempDchar);
+
+                                // Is this the start character of the identifier?
+                                if (priorVPtr is priorValidation.ptr)
+                                {
+                                    if (!charLookup.isStart(tempDchar))
+                                        error(t.loc, "char 0x%x is not allowed start character for an identifier", tempDchar);
+                                }
+                                else
+                                {
+                                    if (!charLookup.isContinue(tempDchar))
+                                        error(t.loc, "char 0x%x is not allowed continue character for an identifier", tempDchar);
+                                }
+                            }
+                            else
+                            {
+                                stringbuffer.writeByte(*priorVPtr);
+                                priorVPtr++;
+                            }
+                        }
+
+                        id = Identifier.idPool(stringbuffer[], false);
+                    }
+
                     t.ident = id;
                     t.value = cast(TOK)id.getValue();
 
