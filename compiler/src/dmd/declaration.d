@@ -310,49 +310,50 @@ extern (C++) final class TupleDeclaration : Declaration
         //printf("TupleDeclaration::getType() %s\n", toChars());
         if (isexp || building)
             return null;
-        if (!tupletype)
+        if (tupletype)
+            return tupletype;
+
+        /* It's only a type tuple if all the Object's are types
+         */
+        for (size_t i = 0; i < objects.length; i++)
         {
-            /* It's only a type tuple if all the Object's are types
-             */
-            for (size_t i = 0; i < objects.length; i++)
+            RootObject o = (*objects)[i];
+            if (!o.isType())
             {
-                RootObject o = (*objects)[i];
-                if (!o.isType())
-                {
-                    //printf("\tnot[%d], %p, %d\n", i, o, o.dyncast());
-                    return null;
-                }
+                //printf("\tnot[%d], %p, %d\n", i, o, o.dyncast());
+                return null;
             }
-
-            /* We know it's a type tuple, so build the TypeTuple
-             */
-            Types* types = cast(Types*)objects;
-            auto args = new Parameters(objects.length);
-            OutBuffer buf;
-            int hasdeco = 1;
-            for (size_t i = 0; i < types.length; i++)
-            {
-                Type t = (*types)[i];
-                //printf("type = %s\n", t.toChars());
-                version (none)
-                {
-                    buf.printf("_%s_%d", ident.toChars(), i);
-                    auto id = Identifier.idPool(buf.extractSlice());
-                    auto arg = new Parameter(Loc.initial, STC.in_, t, id, null);
-                }
-                else
-                {
-                    auto arg = new Parameter(Loc.initial, STC.none, t, null, null, null);
-                }
-                (*args)[i] = arg;
-                if (!t.deco)
-                    hasdeco = 0;
-            }
-
-            tupletype = new TypeTuple(args);
-            if (hasdeco)
-                return tupletype.typeSemantic(Loc.initial, null);
         }
+
+        /* We know it's a type tuple, so build the TypeTuple
+         */
+        Types* types = cast(Types*)objects;
+        auto args = new Parameters(objects.length);
+        OutBuffer buf;
+        int hasdeco = 1;
+        for (size_t i = 0; i < types.length; i++)
+        {
+            Type t = (*types)[i];
+            //printf("type = %s\n", t.toChars());
+            version (none)
+            {
+                buf.printf("_%s_%d", ident.toChars(), i);
+                auto id = Identifier.idPool(buf.extractSlice());
+                auto arg = new Parameter(Loc.initial, STC.in_, t, id, null);
+            }
+            else
+            {
+                auto arg = new Parameter(Loc.initial, STC.none, t, null, null, null);
+            }
+            (*args)[i] = arg;
+            if (!t.deco)
+                hasdeco = 0;
+        }
+
+        tupletype = new TypeTuple(args);
+        if (hasdeco)
+            return tupletype.typeSemantic(Loc.initial, null);
+
         return tupletype;
     }
 
@@ -766,18 +767,19 @@ extern (C++) class VarDeclaration : Declaration
 
     override final inout(AggregateDeclaration) isThis() inout
     {
-        if (!(storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.templateparameter | STC.gshared | STC.ctfe)))
+        if (storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.templateparameter | STC.gshared | STC.ctfe))
+            return null;
+
+        /* The casting is necessary because `s = s.parent` is otherwise rejected
+         */
+        for (auto s = cast(Dsymbol)this; s; s = s.parent)
         {
-            /* The casting is necessary because `s = s.parent` is otherwise rejected
-             */
-            for (auto s = cast(Dsymbol)this; s; s = s.parent)
-            {
-                if (auto ad = (cast(inout)s).isMember())
-                    return ad;
-                if (!s.parent || !s.parent.isTemplateMixin())
-                    break;
-            }
+            if (auto ad = (cast(inout)s).isMember())
+                return ad;
+            if (!s.parent || !s.parent.isTemplateMixin())
+                break;
         }
+
         return null;
     }
 
