@@ -2167,21 +2167,6 @@ void printTemplateStats(bool listInstances, ErrorSink eSink)
     }
 }
 
-/// Pair of MATCHes
-struct MATCHpair
-{
-    MATCH mta;  /// match template parameters by initial template arguments
-    MATCH mfa;  /// match template parameters by inferred template arguments
-
-    debug this(MATCH mta, MATCH mfa)
-    {
-        assert(MATCH.min <= mta && mta <= MATCH.max);
-        assert(MATCH.min <= mfa && mfa <= MATCH.max);
-        this.mta = mta;
-        this.mfa = mfa;
-    }
-}
-
 void write(ref OutBuffer buf, RootObject obj)
 {
     if (obj)
