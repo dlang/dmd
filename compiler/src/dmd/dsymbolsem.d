@@ -1650,7 +1650,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (ai && tb.ty == Taarray)
                             e = ai.toAssocArrayLiteral();
                         else
-                            e = dsym._init.initializerToExpression(null, sc.inCfile);
+                            e = dsym._init.initializerToExpression(dsym.type, sc.inCfile);
                         if (!e)
                         {
                             // Run semantic, but don't need to interpret
