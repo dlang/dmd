@@ -1944,14 +1944,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.errors)
             return;
 
-        if (!(sc.previews.bitfields || sc.inCfile))
-        {
-            version (IN_GCC)
-                .error(dsym.loc, "%s `%s` use `-fpreview=bitfields` for bitfield support", dsym.kind, dsym.toPrettyChars);
-            else
-                .error(dsym.loc, "%s `%s` use -preview=bitfields for bitfield support", dsym.kind, dsym.toPrettyChars);
-        }
-
         if (!dsym.parent.isStructDeclaration() && !dsym.parent.isClassDeclaration())
         {
             .error(dsym.loc, "%s `%s` - bitfield must be member of struct, union, or class", dsym.kind, dsym.toPrettyChars);
