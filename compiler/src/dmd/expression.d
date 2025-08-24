@@ -320,6 +320,8 @@ extern (C++) abstract class Expression : ASTNode
         this.op = op;
     }
 
+    bool equals(const Expression e) const { return this is e; }
+
     /// Returns: class instance size of this expression (implemented manually because `extern(C++)`)
     final size_t size() nothrow @nogc pure @safe const { return expSize[op]; }
 
@@ -773,11 +775,11 @@ extern (C++) final class IntegerExp : Expression
         return new IntegerExp(loc, value, type);
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
-        if (this == o)
+        if (this == e)
             return true;
-        if (auto ne = (cast(Expression)o).isIntegerExp())
+        if (auto ne = e.isIntegerExp())
         {
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && value == ne.value)
             {
@@ -1037,11 +1039,11 @@ extern (C++) final class RealExp : Expression
     {
         return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
     }
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
-        if (this == o)
+        if (this == e)
             return true;
-        if (auto ne = (cast(Expression)o).isRealExp())
+        if (auto ne = e.isRealExp())
         {
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && RealIdentical(value, ne.value))
             {
@@ -1114,11 +1116,11 @@ extern (C++) final class ComplexExp : Expression
         return new ComplexExp(loc, value, type);
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
-        if (this == o)
+        if (this == e)
             return true;
-        if (auto ne = (cast(Expression)o).isComplexExp())
+        if (auto ne = e.isComplexExp())
         {
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) &&
                 RealExp.RealIdentical(creall(value), creall(ne.value)) &&
@@ -1329,14 +1331,11 @@ extern (C++) final class NullExp : Expression
         this.type = type;
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
-        if (auto e = o.isExpression())
+        if (e.op == EXP.null_ && type.equals(e.type))
         {
-            if (e.op == EXP.null_ && type.equals(e.type))
-            {
-                return true;
-            }
+            return true;
         }
         return false;
     }
@@ -1427,15 +1426,12 @@ extern (C++) final class StringExp : Expression
         return new StringExp(loc, string[0 .. len]);
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
         //printf("StringExp::equals('%s') %s\n", o.toChars(), toChars());
-        if (auto e = o.isExpression())
+        if (auto se = e.isStringExp())
         {
-            if (auto se = e.isStringExp())
-            {
-                return compare(se) == 0;
-            }
+            return compare(se) == 0;
         }
         return false;
     }
@@ -1848,25 +1844,25 @@ extern (C++) final class TupleExp : Expression
         return new TupleExp(loc, e0 ? e0.syntaxCopy() : null, arraySyntaxCopy(exps));
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
-        if (this == o)
+        if (this == e)
             return true;
-        if (auto e = o.isExpression())
-            if (auto te = e.isTupleExp())
+
+        if (auto te = e.isTupleExp())
+        {
+            if (exps.length != te.exps.length)
+                return false;
+            if (e0 && !e0.equals(te.e0) || !e0 && te.e0)
+                return false;
+            foreach (i, e1; *exps)
             {
-                if (exps.length != te.exps.length)
+                auto e2 = (*te.exps)[i];
+                if (!e1.equals(e2))
                     return false;
-                if (e0 && !e0.equals(te.e0) || !e0 && te.e0)
-                    return false;
-                foreach (i, e1; *exps)
-                {
-                    auto e2 = (*te.exps)[i];
-                    if (!e1.equals(e2))
-                        return false;
-                }
-                return true;
             }
+            return true;
+        }
         return false;
     }
 
@@ -1935,13 +1931,10 @@ extern (C++) final class ArrayLiteralExp : Expression
             arraySyntaxCopy(elements));
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
-        if (this == o)
+        if (this == e)
             return true;
-        auto e = o.isExpression();
-        if (!e)
-            return false;
         if (auto ae = e.isArrayLiteralExp())
         {
             if (elements.length != ae.elements.length)
@@ -2064,13 +2057,10 @@ extern (C++) final class AssocArrayLiteralExp : Expression
         this.values = values;
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
-        if (this == o)
+        if (this == e)
             return true;
-        auto e = o.isExpression();
-        if (!e)
-            return false;
         if (auto ae = e.isAssocArrayLiteralExp())
         {
             if (keys.length != ae.keys.length)
@@ -2180,13 +2170,10 @@ extern (C++) final class StructLiteralExp : Expression
         return new StructLiteralExp(loc, sd, cast(Expressions*)elements, stype);
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
-        if (this == o)
+        if (this == e)
             return true;
-        auto e = o.isExpression();
-        if (!e)
-            return false;
         if (auto se = e.isStructLiteralExp())
         {
             if (!type.equals(se.type))
@@ -2551,11 +2538,11 @@ extern (C++) final class VarExp : SymbolExp
         return new VarExp(loc, var, hasOverloads);
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
-        if (this == o)
+        if (this == e)
             return true;
-        if (auto ne = o.isExpression().isVarExp())
+        if (auto ne = e.isVarExp())
         {
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && var == ne.var)
             {
@@ -2629,13 +2616,10 @@ extern (C++) final class FuncExp : Expression
         assert(fd.fbody);
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
-        if (this == o)
+        if (this == e)
             return true;
-        auto e = o.isExpression();
-        if (!e)
-            return false;
         if (auto fe = e.isFuncExp())
         {
             return fd == fe.fd;
@@ -2944,13 +2928,10 @@ extern (C++) final class MixinExp : Expression
         return new MixinExp(loc, arraySyntaxCopy(exps));
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Expression e) const
     {
-        if (this == o)
+        if (this == e)
             return true;
-        auto e = o.isExpression();
-        if (!e)
-            return false;
         if (auto ce = e.isMixinExp())
         {
             if (exps.length != ce.exps.length)

@@ -355,7 +355,6 @@ class RootObject
 {
 public:
     RootObject();
-    virtual bool equals(const RootObject* const o) const;
     virtual const char* toChars() const;
 private:
     virtual void __vtable_slot_0();
@@ -584,7 +583,7 @@ public:
     CPPNamespaceDeclaration* cppnamespace(CPPNamespaceDeclaration* ns);
     UserAttributeDeclaration* userAttribDecl(UserAttributeDeclaration* uad);
     virtual const char* toPrettyCharsHelper();
-    bool equals(const RootObject* const o) const override;
+    virtual bool equals(const Dsymbol* const s) const;
     bool isAnonymous() const;
     Module* getModule();
     bool isCsymbol();
@@ -2080,7 +2079,7 @@ public:
     virtual const char* kind() const;
     Type* copy() const;
     virtual Type* syntaxCopy();
-    bool equals(const RootObject* const o) const override;
+    virtual bool equals(const Type* const t) const;
     DYNCAST dyncast() const final override;
     size_t getUniqueID() const;
     const char* toChars() const final override;
@@ -2385,6 +2384,7 @@ public:
 private:
     uint8_t bitFields;
 public:
+    virtual bool equals(const Expression* const e) const;
     size_t size() const;
     static void _init();
     static void deinitialize();
@@ -2630,7 +2630,7 @@ public:
     AssocArrayLiteralExp* aaLiteral;
     static ArrayLiteralExp* create(Loc loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     Expression* getElement(size_t i);
     Optional<bool > toBool() override;
     StringExp* toStringExp() override;
@@ -2669,7 +2669,7 @@ public:
     Array<Expression* >* values;
     Expression* lowering;
     Expression* loweringCtfe;
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     AssocArrayLiteralExp* syntaxCopy() override;
     Optional<bool > toBool() override;
     void accept(Visitor* v) override;
@@ -2783,7 +2783,7 @@ class ComplexExp final : public Expression
 public:
     complex_t value;
     static ComplexExp* create(Loc loc, complex_t value, Type* type);
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     bool isIdentical(const Expression* const e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
@@ -3204,7 +3204,7 @@ public:
     FuncLiteralDeclaration* fd;
     TemplateDeclaration* td;
     TOK tok;
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     FuncExp* syntaxCopy() override;
     bool checkType() override;
     void accept(Visitor* v) override;
@@ -3267,7 +3267,7 @@ class IntegerExp final : public Expression
     dinteger_t value;
 public:
     static IntegerExp* create(Loc loc, dinteger_t value, Type* type);
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     dinteger_t toInteger() override;
     _d_real toReal() override;
     _d_real toImaginary() override;
@@ -3350,7 +3350,7 @@ class MixinExp final : public Expression
 public:
     Array<Expression* >* exps;
     MixinExp* syntaxCopy() override;
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     void accept(Visitor* v) override;
 };
 
@@ -3429,7 +3429,7 @@ public:
 class NullExp final : public Expression
 {
 public:
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     Optional<bool > toBool() override;
     StringExp* toStringExp() override;
     void accept(Visitor* v) override;
@@ -3504,7 +3504,7 @@ class RealExp final : public Expression
 public:
     _d_real value;
     static RealExp* create(Loc loc, _d_real value, Type* type);
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     bool isIdentical(const Expression* const e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
@@ -3616,7 +3616,7 @@ public:
 
     static StringExp* create(Loc loc, const char* s);
     static StringExp* create(Loc loc, const void* string, size_t len);
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     size_t numberOfCodeUnits(int32_t tynto = 0) const;
     void writeTo(void* dest, bool zero, int32_t tyto = 0) const;
     char32_t getCodeUnit(size_t i) const;
@@ -3680,7 +3680,7 @@ public:
     };
 
     static StructLiteralExp* create(Loc loc, StructDeclaration* sd, void* elements, Type* stype = nullptr);
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     StructLiteralExp* syntaxCopy() override;
     void accept(Visitor* v) override;
 };
@@ -3759,7 +3759,7 @@ public:
     Array<Expression* >* exps;
     static TupleExp* create(Loc loc, Array<Expression* >* exps);
     TupleExp* syntaxCopy() override;
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     void accept(Visitor* v) override;
 };
 
@@ -3802,7 +3802,7 @@ class VarExp final : public SymbolExp
 public:
     bool delegateWasExtracted;
     static VarExp* create(Loc loc, Declaration* var, bool hasOverloads = true);
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Expression* const e) const override;
     bool isLvalue() override;
     void accept(Visitor* v) override;
 };
@@ -4048,7 +4048,7 @@ public:
     Array<Expression* >* fdrequireParams(Array<Expression* >* param);
     Array<Expression* >* fdensureParams(Array<Expression* >* param);
     FuncDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool equals(const RootObject* const o) const final override;
+    bool equals(const Dsymbol* const s) const final override;
     bool overloadInsert(Dsymbol* s) override;
     bool inUnittest();
     LabelDsymbol* searchLabel(Identifier* ident, Loc loc);
@@ -4876,7 +4876,7 @@ public:
     static TypeTuple* create(Type* t1, Type* t2);
     const char* kind() const override;
     TypeTuple* syntaxCopy() override;
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Type* const t) const override;
     void accept(Visitor* v) override;
 };
 
@@ -6843,7 +6843,7 @@ public:
     Dsymbol* overnext;
     Dsymbol* aliassym;
     const char* kind() const override;
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Dsymbol* const s) const override;
     bool overloadInsert(Dsymbol* s) override;
     bool isOverloadable() const override;
     void accept(Visitor* v) override;
@@ -7139,7 +7139,7 @@ public:
     uint32_t tag;
     Module* mod;
     const char* kind() const override;
-    bool equals(const RootObject* const o) const override;
+    bool equals(const Dsymbol* const s) const override;
     bool isAncestorPackageOf(const Package* const pkg) const;
     void accept(Visitor* v) override;
     Module* isPackageMod();
@@ -9172,6 +9172,7 @@ class Identifier final : public RootObject
     const bool isAnonymous_;
     const _d_dynamicArray< const char > name;
 public:
+    bool equals(const Identifier* const i) const;
     static Identifier* create(const char* name);
     const char* toChars() const override;
     int32_t getValue() const;
