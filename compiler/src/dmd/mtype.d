@@ -424,13 +424,12 @@ extern (C++) abstract class Type : ASTNode
         assert(0);
     }
 
-    override bool equals(const RootObject o) const
+    bool equals(const Type t) const
     {
-        Type t = cast(Type)o;
         //printf("Type::equals(%s, %s)\n", toChars(), t.toChars());
         // deco strings are unique
         // and semantic() has been run
-        if (this == o || ((t && deco == t.deco) && deco !is null))
+        if (this == t || ((t && deco == t.deco) && deco !is null))
         {
             //printf("deco = '%s', t.deco = '%s'\n", deco, t.deco);
             return true;
@@ -3331,9 +3330,8 @@ extern (C++) final class TypeTuple : Type
         return t;
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Type t) const
     {
-        Type t = cast(Type)o;
         //printf("TypeTuple::equals(%s, %s)\n", toChars(), t.toChars());
         if (this == t)
             return true;
@@ -3344,7 +3342,7 @@ extern (C++) final class TypeTuple : Type
                 for (size_t i = 0; i < tt.arguments.length; i++)
                 {
                     const Parameter arg1 = (*arguments)[i];
-                    Parameter arg2 = (*tt.arguments)[i];
+                    const Parameter arg2 = (*tt.arguments)[i];
                     if (!arg1.type.equals(arg2.type))
                         return false;
                 }

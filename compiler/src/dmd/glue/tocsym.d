@@ -826,11 +826,11 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
 {
     assert(cd.isCPPclass());
 
-    __gshared Symbol*[ClassDeclaration] cache;
+    __gshared Symbol*[void*] cache;
 
     /* For the symbol std::exception, the type info is _ZTISt9exception
      */
-    if (auto cpp_type_info_ptr_sym = cd in cache)
+    if (auto cpp_type_info_ptr_sym = cast(void*)cd in cache)
     {
         return *cpp_type_info_ptr_sym;
     }
@@ -846,7 +846,7 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
     s.Sdt = dtb.finish();
     outdata(s);
 
-    return cache[cd] = s;
+    return cache[cast(void*)cd] = s;
 }
 
 /**********************************

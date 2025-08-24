@@ -626,14 +626,10 @@ extern (C++) final class OverDeclaration : Declaration
         return "overload alias"; // todo
     }
 
-    override bool equals(const RootObject o) const
+    override bool equals(const Dsymbol s) const
     {
-        if (this == o)
+        if (this == s)
             return true;
-
-        auto s = isDsymbol(o);
-        if (!s)
-            return false;
 
         if (auto od2 = s.isOverDeclaration())
             return this.aliassym.equals(od2.aliassym);
