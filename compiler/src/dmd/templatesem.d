@@ -210,6 +210,21 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
     tempdecl.semanticRun = PASS.semanticdone;
 }
 
+/// Pair of MATCHes
+private struct MATCHpair
+{
+    MATCH mta;  /// match template parameters by initial template arguments
+    MATCH mfa;  /// match template parameters by inferred template arguments
+
+    debug this(MATCH mta, MATCH mfa)
+    {
+        assert(MATCH.min <= mta && mta <= MATCH.max);
+        assert(MATCH.min <= mfa && mfa <= MATCH.max);
+        this.mta = mta;
+        this.mfa = mfa;
+    }
+}
+
 /******************************
  * See if two objects match
  * Params:
@@ -217,7 +232,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
  *      o2 = second object
  * Returns: true if they match
  */
-bool match(RootObject o1, RootObject o2)
+private bool match(RootObject o1, RootObject o2)
 {
     enum log = false;
 
@@ -324,7 +339,7 @@ bool match(RootObject o1, RootObject o2)
 /************************************
  * Match an array of them.
  */
-bool arrayObjectMatch(ref Objects oa1, ref Objects oa2)
+private bool arrayObjectMatch(ref Objects oa1, ref Objects oa2)
 {
     if (&oa1 == &oa2)
         return true;
@@ -502,7 +517,7 @@ MATCH matchArg(TemplateParameter tp, Loc instLoc, Scope* sc, Objects* tiargs, si
     return matchArgParameter();
 }
 
-MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, ref Objects dedtypes, Declaration* psparam)
+private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, ref Objects dedtypes, Declaration* psparam)
 {
     MATCH matchArgNoMatch()
     {
@@ -1428,7 +1443,7 @@ bool needsCodegen(TemplateInstance ti)
 /****************************
  * Check to see if constraint is satisfied.
  */
-bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
+private bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
 {
     /* Detect recursive attempts to instantiate this template declaration,
      * https://issues.dlang.org/show_bug.cgi?id=4072
@@ -1929,7 +1944,7 @@ private void formatParamsWithTiargs(ref TemplateParameters parameters, ref Objec
  * Returns:
  *      new scope for the parameters of ti
  */
-Scope* createScopeForTemplateParameters(TemplateDeclaration td, TemplateInstance ti, Scope* sc)
+private Scope* createScopeForTemplateParameters(TemplateDeclaration td, TemplateInstance ti, Scope* sc)
 {
     ScopeDsymbol paramsym = new ScopeDsymbol();
     paramsym.parent = td._scope.parent;
@@ -2011,7 +2026,7 @@ L1:
     return MATCH.nomatch;
 }
 
-RootObject defaultArg(TemplateParameter tp, Loc instLoc, Scope* sc)
+private RootObject defaultArg(TemplateParameter tp, Loc instLoc, Scope* sc)
 {
     if (tp.isTemplateTupleParameter())
         return null;
@@ -2098,7 +2113,7 @@ RootObject defaultArg(TemplateParameter tp, Loc instLoc, Scope* sc)
  * Returns:
  *      match pair of initial and inferred template arguments
  */
-extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateInstance ti, Scope* sc, ref FuncDeclaration fd, Type tthis, ArgumentList argumentList)
+private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateInstance ti, Scope* sc, ref FuncDeclaration fd, Type tthis, ArgumentList argumentList)
 {
     version (none)
     {
@@ -3183,7 +3198,7 @@ FuncDeclaration doHeaderInstantiation(TemplateDeclaration td, TemplateInstance t
 /**************************************************
  * Declare template parameter tp with value o, and install it in the scope sc.
  */
-extern (D) RootObject declareParameter(TemplateDeclaration td, Scope* sc, TemplateParameter tp, RootObject o)
+RootObject declareParameter(TemplateDeclaration td, Scope* sc, TemplateParameter tp, RootObject o)
 {
     //printf("TemplateDeclaration.declareParameter('%s', o = %p)\n", tp.ident.toChars(), o);
     Type ta = isType(o);
@@ -4506,7 +4521,7 @@ private MATCH deduceTypeHelper(Type t, out Type at, Type tparam)
     }
 }
 
-__gshared Expression emptyArrayElement = null;
+private __gshared Expression emptyArrayElement = null;
 
 /*
  * Returns `true` if `t` is a reference type, or an array of reference types.
