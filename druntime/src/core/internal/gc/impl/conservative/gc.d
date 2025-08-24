@@ -5280,6 +5280,7 @@ unittest
 // https://issues.dlang.org/show_bug.cgi?id=19281
 debug (SENTINEL) {} else // cannot allow >= 4 GB with SENTINEL
 debug (MEMSTOMP) {} else // might take too long to actually touch the memory
+version (OnlyLowMemUnittests) {} else
 version (D_LP64) unittest
 {
     static if (__traits(compiles, os_physical_mem))
@@ -5395,6 +5396,7 @@ unittest
 
 // https://github.com/dlang/dmd/issues/21615
 debug(SENTINEL) {} else // no additional capacity with SENTINEL
+version (OnlyLowMemUnittests) {} else
 @safe unittest
 {
     size_t numReallocations = 0;
