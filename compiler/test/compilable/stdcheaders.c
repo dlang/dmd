@@ -19,11 +19,9 @@
 #include <limits.h>
 #include <locale.h>
 
-#if !(defined(__linux__) && defined(__aarch64__)) // /usr/include/bits/math-vector.h(162): Error: undefined identifier `__Float32x4_t`
 #include <math.h>
 #ifndef _MSC_VER // C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h(93): Error: reinterpretation through overlapped field `f` is not allowed in CTFE
 float x = NAN;
-#endif
 #endif
 
 #ifndef _MSC_VER // setjmp.h(51): Error: missing tag `identifier` after `struct
@@ -64,9 +62,7 @@ float x = NAN;
 // Apple: /Applications/Xcode-14.2.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/tgmath.h(39): Error: named parameter required before `...`
 // OpenBSD: /usr/lib/clang/13.0.0/include/tgmath.h(34): Error: named parameter required before `...`
 // Linux: /tmp/clang/lib/clang/15.0.3/include/tgmath.h(34): Error: named parameter required before `...`
-#if !(defined(__linux__) && defined(__aarch64__)) // /usr/include/bits/math-vector.h(162): Error: undefined identifier `__Float32x4_t`
 #include <tgmath.h>
-#endif
 #endif
 #endif
 
