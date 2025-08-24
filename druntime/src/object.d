@@ -3515,11 +3515,8 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
 ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
 {
     bool found;
-    auto p = _aaGetX(aa, key, found);
-    if (found)
-        return *p;
-    *p = value; // Not `return (*p = value)` since if `=` is overloaded
-    return *p;  // this might not return a ref to the left-hand side.
+    auto p = _aaGetX(aa, key, found, value);
+    return *p;
 }
 
 ///
@@ -3552,10 +3549,8 @@ void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
 if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof(update(aa[K.init])) == void)))
 {
     bool found;
-    auto p = _aaGetX(aa, key, found);
-    if (!found)
-        *p = create();
-    else
+    auto p = _aaGetX(aa, key, found, create());
+    if (found)
     {
         static if (is(typeof(update(*p)) == void))
             update(*p);
