@@ -186,7 +186,15 @@ typedef unsigned long long __uint64_t;
 #define _Float128 long double
 #define __float128 long double
 #endif
+
+#ifdef __aarch64__
+// glibc's math.h needs these types to be defined
+typedef struct {} __SVBool_t;
+typedef struct {} __SVFloat32_t;
+typedef struct {} __SVFloat64_t;
 #endif
+
+#endif // __linux__
 
 #if __APPLE__
 #undef __SIZEOF_INT128__
