@@ -1059,6 +1059,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.alignment.isDefault())
             dsym.alignment = dsym.type.alignment(); // use type's alignment
 
+        if (sc.inCfile && !dsym.alignment.isDefault())
+        {
+            /* C11 6.7.5-4 alignment declaration cannot be less strict than the
+             * type alignment of the object or member being declared.
+             */
+            if (dsym.alignment.get() < dsym.type.alignsize())
+            {
+                if (dsym.alignment.fromAlignas())
+                {
+                    error(dsym.loc, "`_Alignas` specifier cannot be less strict than alignment of `%s`",
+                          dsym.toChars());
+                }
+                if (!dsym.alignment.isPack())
+                    dsym.alignment.setDefault();
+            }
+        }
+
         //printf("sc.stc = %x\n", sc.stc);
         //printf("storage_class = x%x\n", storage_class);
 

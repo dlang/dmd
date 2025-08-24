@@ -288,9 +288,10 @@ struct Param
 
 struct structalign_t
 {
-    unsigned short value;
-    d_bool pack;
-
+private:
+    uint16_t value;
+    uint8_t flags;
+public:
     bool isDefault() const;
     void setDefault();
     bool isUnknown() const;
@@ -298,7 +299,9 @@ struct structalign_t
     void set(unsigned value);
     unsigned get() const;
     bool isPack() const;
-    void setPack(bool pack);
+    void setPack();
+    bool fromAlignas() const;
+    void setAlignas();
 };
 
 // magic value means "match whatever the underlying C compiler does"

@@ -6419,7 +6419,13 @@ struct structalign_t final
 {
 private:
     uint16_t value;
-    bool pack;
+    uint8_t flags;
+    enum : uint8_t
+    {
+        PACK = 1u,
+        ALIGNAS = 2u,
+    };
+
 public:
     bool isDefault() const;
     void setDefault();
@@ -6428,15 +6434,17 @@ public:
     void set(uint32_t value);
     uint32_t get() const;
     bool isPack() const;
-    void setPack(bool pack);
+    void setPack();
+    bool fromAlignas() const;
+    void setAlignas();
     structalign_t() :
         value(0u),
-        pack()
+        flags()
     {
     }
-    structalign_t(uint16_t value, bool pack = false) :
+    structalign_t(uint16_t value, uint8_t flags = 0u) :
         value(value),
-        pack(pack)
+        flags(flags)
         {}
 };
 
