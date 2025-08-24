@@ -103,7 +103,20 @@ version (linux)
     alias ulong     dev_t;
     alias uint      gid_t;
     alias uint      mode_t;
-    alias ulong_t   nlink_t;
+
+  version (X86_64)
+    alias ulong nlink_t;
+  else version (S390)
+    alias size_t nlink_t;
+  else version (PPC64)
+    alias size_t nlink_t;
+  else version (MIPS64)
+    alias size_t nlink_t;
+  else version (HPPA64)
+    alias size_t nlink_t;
+  else
+    alias uint nlink_t;
+
     alias int       pid_t;
     //size_t (defined in core.stdc.stddef)
     alias c_long    ssize_t;
