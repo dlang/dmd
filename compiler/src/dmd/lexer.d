@@ -985,6 +985,11 @@ class Lexer
                     else
                         t.value = TOK.leftShift; // <<
                 }
+                else if (*p == '?')
+                {
+                    ++p;
+                    t.value = TOK.ltQuestion;   // <?
+                }
                 else if (*p == ':' && Ccompile)
                 {
                     ++p;
@@ -1023,6 +1028,11 @@ class Lexer
                         }
                         else
                             t.value = TOK.unsignedRightShift; // >>>
+                    }
+                    else if (*p == '?')
+                    {
+                        p++;
+                        t.value = TOK.gtQuestion; // >?
                     }
                     else
                         t.value = TOK.rightShift; // >>
