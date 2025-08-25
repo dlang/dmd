@@ -3482,7 +3482,7 @@ Type trySemantic(Type type, Loc loc, Scope* sc)
         // If `typeSemantic` succeeded, there may have been deprecations that
         // were gagged due the `startGagging` above.  Run again to display
         // those deprecations.  https://issues.dlang.org/show_bug.cgi?id=19107
-        if (global.gaggedWarnings > 0)
+        if (global.gaggedDeprecations > 0)
             typeSemantic(tcopy, loc, sc);
     }
     //printf("-trySemantic(%s) %d\n", toChars(), global.errors);

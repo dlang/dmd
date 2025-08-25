@@ -350,7 +350,7 @@ struct Global
     unsigned warnings;       // number of warnings reported so far
     unsigned gag;            // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors;   // number of errors reported while gagged
-    unsigned gaggedWarnings; // number of warnings reported while gagged
+    unsigned gaggedDeprecations; // number of deprecations reported while gagged
 
     void* console;         // opaque pointer to console for controlling text attributes
 
