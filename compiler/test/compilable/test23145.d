@@ -1,9 +1,4 @@
-/* REQUIRED_ARGS: -wi
-*/
-
 // https://issues.dlang.org/show_bug.cgi?id=23145
-
-#line 100
 
 class D
 {
@@ -21,14 +16,14 @@ class C
 C foo(D d) @nogc @safe
 {
     scope e = new C(1);  // ok
-    scope c = new C(d);  // obsolete
+    scope c = new C(d);
     return c.d.c;
 }
 
 C bax(D d) @safe
 {
     scope e = new C(1);  // ok
-    scope c = new C(d);  // obsolete
+    scope c = new C(d);
     return c.d.c;
 }
 

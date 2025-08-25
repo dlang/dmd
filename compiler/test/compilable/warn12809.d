@@ -1,21 +1,14 @@
-// REQUIRED_ARGS: -o- -w
+// REQUIRED_ARGS: -w
+// Warning removed in: https://github.com/dlang/dmd/pull/15568
 
-/*
-Warning removed in: https://github.com/dlang/dmd/pull/15568
----
-fail_compilation/warn12809.d(25): Warning: statement is not reachable
-fail_compilation/warn12809.d(33): Warning: statement is not reachable
----
-*/
-
-//void test_unrachable1()
-//{
-//    try assert(0);
-//    finally
-//    {
-//        int x = 1;  // unreachable
-//    }
-//}
+void test_unrachable1()
+{
+    try assert(0);
+    finally
+    {
+        int x = 1;  // unreachable
+    }
+}
 
 void test_unrachable2()
 {
@@ -34,19 +27,6 @@ void test_unrachable3()
 }
 
 /********************************************/
-
-/*
-
----
-fail_compilation/warn12809.d(108): Warning: statement is not reachable
-fail_compilation/warn12809.d(115): Warning: statement is not reachable
-fail_compilation/warn12809.d(122): Warning: statement is not reachable
-Error: warnings are treated as errors
-       Use -wi if you wish to treat warnings only as informational.
----
-*/
-
-#line 100
 
 alias noreturn = typeof(*null);
 
