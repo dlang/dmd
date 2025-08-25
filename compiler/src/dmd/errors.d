@@ -431,8 +431,8 @@ else
     }
 
 
-// Encapsulates an error as described by its location, format message, and kind.
-private struct ErrorInfo
+// Encapsulates a diagnostic as described by its location, format message, and kind.
+private struct DiagnosticContext
 {
     this(const ref SourceLoc loc, const ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null) @safe @nogc pure nothrow
     {
@@ -471,7 +471,7 @@ private extern(C++) void vreportDiagnostic(Loc loc, const(char)* format, va_list
 /// ditto
 private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
 {
-    auto info = ErrorInfo(loc, kind, p1, p2);
+    auto info = DiagnosticContext(loc, kind, p1, p2);
 
     final switch (info.kind)
     {
@@ -485,7 +485,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                 addSarifDiagnostic(loc, format, ap, kind);
                 return;
             }
-            verrorPrint(format, ap, info);
+            printDiagnostic(format, ap, info);
             if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
             {
                 fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", global.params.v.errorLimit);
@@ -497,7 +497,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             if (global.params.v.showGaggedErrors)
             {
                 info.headerColor = Classification.gagged;
-                verrorPrint(format, ap, info);
+                printDiagnostic(format, ap, info);
             }
             global.gaggedErrors++;
         }
@@ -519,7 +519,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                         addSarifDiagnostic(loc, format, ap, kind);
                         return;
                     }
-                    verrorPrint(format, ap, info);
+                    printDiagnostic(format, ap, info);
                 }
             }
             else
@@ -540,7 +540,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                     addSarifDiagnostic(loc, format, ap, kind);
                     return;
                 }
-                verrorPrint(format, ap, info);
+                printDiagnostic(format, ap, info);
                 if (global.params.useWarnings == DiagnosticReporting.error)
                     global.warnings++;
             }
@@ -556,7 +556,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                 addSarifDiagnostic(loc, format, ap, kind);
                 return;
             }
-            verrorPrint(format, ap, info);
+            printDiagnostic(format, ap, info);
         }
         return;
 
@@ -599,7 +599,7 @@ private extern(C++) void vsupplementalDiagnostic(Loc loc, const(char)* format, v
 /// ditto
 private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind)
 {
-    auto info = ErrorInfo(loc, kind);
+    auto info = DiagnosticContext(loc, kind);
     info.supplemental = true;
     switch (info.kind)
     {
@@ -612,7 +612,7 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
         }
         else
             info.headerColor = Classification.error;
-        verrorPrint(format, ap, info);
+        printDiagnostic(format, ap, info);
         return;
 
     case ErrorKind.deprecation:
@@ -623,7 +623,7 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
             if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
             {
                 info.headerColor = Classification.deprecation;
-                verrorPrint(format, ap, info);
+                printDiagnostic(format, ap, info);
             }
         }
         return;
@@ -632,7 +632,7 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
         if (global.params.useWarnings != DiagnosticReporting.off && !global.gag)
         {
             info.headerColor = Classification.warning;
-            verrorPrint(format, ap, info);
+            printDiagnostic(format, ap, info);
         }
         return;
 
@@ -649,7 +649,7 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
  *      ap      = printf-style variadic arguments
  *      info    = context of error
  */
-private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
+private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticContext info)
 {
     const(char)* header;    // title of error message
     if (info.supplemental)
