@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -wi
+// https://issues.dlang.org/show_bug.cgi?id=9663
 
 void main()
 {

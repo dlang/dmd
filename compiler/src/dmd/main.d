@@ -268,15 +268,6 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
         return global.errors ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
-    /*
-    Print a message to make it clear when warnings are treated as errors.
-    */
-    static void errorOnWarning()
-    {
-        error(Loc.initial, "warnings are treated as errors");
-        errorSupplemental(Loc.initial, "Use -wi if you wish to treat warnings only as informational.");
-    }
-
     // In case deprecation messages were omitted, inform the user about it
     static void mentionOmittedDeprecations()
     {
@@ -673,14 +664,11 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
         }
     }
 
-    if (global.warnings)
-        errorOnWarning();
-
     if (global.params.useDeprecated == DiagnosticReporting.inform)
         mentionOmittedDeprecations();
 
-    // Do not attempt to generate output files if errors or warnings occurred
-    if (global.errors || global.warnings)
+    // Do not attempt to generate output files if errors occurred
+    if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
     // inlineScan incrementally run semantic3 of each expanded functions.
@@ -860,10 +848,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
             printf("%.*s", cast(int) data.length, data.ptr);
     }
 
-    if (global.warnings)
-        errorOnWarning();
-
-    if (global.errors || global.warnings)
+    if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
     return status;

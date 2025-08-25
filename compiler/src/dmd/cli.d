@@ -961,18 +961,17 @@ dmd -cov -unittest myprog.d
             )`,
         ),
         Option("w",
-            "warnings as errors (compilation will halt)",
-            `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, warnings)`
-        ),
-        Option("wi",
-            "warnings as messages (compilation will continue)",
+            "enable informational warnings (compilation will continue)",
             `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, informational warnings (i.e. compilation
             still proceeds normally))`,
         ),
+        Option("wi",
+            "warnings as messages (compilation will continue)",
+            TargetOS.all, false,
+        ),
         Option("wo",
             "warnings about use of obsolete features (compilation will continue)",
-            `Enable warnings about use of obsolete features that may be problematic (compilation
-            still proceeds normally)`, TargetOS.all, false,
+            TargetOS.all, false,
         ),
         Option("X",
             "generate JSON file"

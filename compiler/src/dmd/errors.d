@@ -534,6 +534,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
         {
             if (!global.gag)
             {
+                global.warnings++;
                 info.headerColor = Classification.warning;
                 if (global.params.v.messageStyle == MessageStyle.sarif)
                 {
@@ -541,8 +542,6 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                     return;
                 }
                 verrorPrint(format, ap, info);
-                if (global.params.useWarnings == DiagnosticReporting.error)
-                    global.warnings++;
             }
         }
         return;
