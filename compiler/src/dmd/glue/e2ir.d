@@ -154,24 +154,6 @@ bool ISX64REF(ref IRState irs, Expression exp)
     return false;
 }
 
-/********
- * If type is a composite and is to be passed by reference instead of by value
- * Params:
- *      target = target instruction set
- *      t = type
- * Returns:
- *      true if passed by reference
- * Reference:
- *      Procedure Call Standard for the Arm 64-bi Architecture (AArch64) pg 23 B.4
- *      "If the argument type is a Composite Type that is larger than 16 bytes, then the
- *      argument is copied to memory allocated by the caller and the argument is replaced
- *      by a pointer to the copy."
- */
-static bool passTypeByRef(ref const Target target, Type t)
-{
-    return (target.isAArch64 && t.size(Loc.initial) > 16);
-}
-
 /**************************************************
  * Generate a copy from e2 to e1.
  * Params:
@@ -5316,22 +5298,6 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     }
 }
 
-/******************************************
- * If argument to a function should use OPstrpar,
- * fix it so it does and return it.
- */
-static elem* useOPstrpar(elem* e)
-{
-    tym_t ty = tybasic(e.Ety);
-    if (ty == TYstruct || ty == TYarray)
-    {
-        e = el_una(OPstrpar, TYstruct, e);
-        e.ET = e.E1.ET;
-        assert(e.ET);
-    }
-    return e;
-}
-
 /************************************
  * Call a function.
  */
@@ -7098,4 +7064,43 @@ elem* constructVa_start(elem* e)
     else
         assert(0);
     return e;
+}
+
+/******************************************
+ * If argument to a function should use OPstrpar,
+ * fix it so it does and return it.
+ * Params:
+ *	e = argument to be passed to a function
+ * Returns:
+ *	`e` or `e` converted to an OPstrpar
+ */
+private
+elem* useOPstrpar(elem* e)
+{
+    tym_t ty = tybasic(e.Ety);
+    if (ty == TYstruct || ty == TYarray)
+    {
+        e = el_una(OPstrpar, TYstruct, e);
+        e.ET = e.E1.ET;
+        assert(e.ET);
+    }
+    return e;
+}
+
+/********
+ * If type is a composite and is to be passed by reference instead of by value
+ * Params:
+ *      target = target instruction set
+ *      t = type
+ * Returns:
+ *      true if passed by reference
+ * Reference:
+ *      Procedure Call Standard for the Arm 64-bi Architecture (AArch64) pg 23 B.4
+ *      "If the argument type is a Composite Type that is larger than 16 bytes, then the
+ *      argument is copied to memory allocated by the caller and the argument is replaced
+ *      by a pointer to the copy."
+ */
+private bool passTypeByRef(ref const Target target, Type t)
+{
+    return (target.isAArch64 && t.size(Loc.initial) > 16);
 }
