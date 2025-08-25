@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -verrors=simple -D -Dd${RESULTS_DIR}/compilable -wi -o-
+// REQUIRED_ARGS: -verrors=simple -D -Dd${RESULTS_DIR}/compilable -w -o-
 
 /*
 TEST_OUTPUT:
