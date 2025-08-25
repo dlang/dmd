@@ -51,6 +51,7 @@ struct CompileEnv
     bool transitionIn;       /// `-transition=in` is active, `in` parameters are listed
     bool ddocOutput;         /// collect embedded documentation comments
     bool masm;               /// use MASM inline asm syntax
+    const(char)[] switchPrefix;
 
     // these need a default otherwise tests won't work.
     IdentifierCharLookup cCharLookupTable; /// C identifier table (set to the lexer by the C parser)

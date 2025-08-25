@@ -26,11 +26,8 @@ import dmd.file_manager;
 import dmd.identifier;
 import dmd.location;
 import dmd.lexer : CompileEnv;
+import dmd.targetcompiler;
 import dmd.utils;
-
-version (IN_GCC) {}
-else version (IN_LLVM) {}
-else version = MARS;
 
 /// Defines a setting for how compiler warnings and deprecations are handled
 enum DiagnosticReporting : ubyte
@@ -393,21 +390,11 @@ extern (C++) struct Global
         errorSinkNull = new ErrorSinkNull;
 
         this.fileManager = new FileManager();
+        compileEnv.vendor = TargetCompiler;
+        compileEnv.switchPrefix = SwitchPrefix;
 
-        version (MARS)
-        {
-            compileEnv.vendor = "Digital Mars D";
-        }
-        else version (IN_GCC)
-        {
-            compileEnv.vendor = "GNU D";
-        }
-        else version (IN_LLVM)
-        {
-            compileEnv.vendor = "LDC";
-        }
-        else
-            static assert(0, "unknown vendor");
+        mixin UseAnsiColors;
+        params.v.color = useAnsiColors();
 
         compileEnv.versionNumber = parseVersionNumber(versionString());
 
