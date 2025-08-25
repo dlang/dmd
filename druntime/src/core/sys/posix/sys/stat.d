@@ -93,7 +93,14 @@ version (linux)
             off_t       st_size;
             blksize_t   st_blksize;
             blkcnt_t    st_blocks;
-            static if (_DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
+            version (CRuntime_Musl) {
+                c_long      __st_atim32_sec;
+                c_long      __st_atim32_nsec;
+                c_long      __st_mtim32_sec;
+                c_long      __st_mtim32_nsec;
+                c_long      __st_ctim32_sec;
+                c_long      __st_ctim32_nsec;
+            } else static if (_DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
             {
                 timespec    st_atim;
                 timespec    st_mtim;
@@ -123,7 +130,20 @@ version (linux)
                 c_ulong     __unused4;
                 c_ulong     __unused5;
             }
+            version (CRuntime_Musl) {
+                timespec    st_atim;
+                timespec    st_mtim;
+                timespec    st_ctim;
+                extern(D) @safe @property inout pure nothrow
+                {
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
+                }
+            }
         }
+        version (CRuntime_Musl)
+            static assert(stat_t.sizeof == 144);
     }
     else version (X86_64)
     {
@@ -290,7 +310,15 @@ version (linux)
                 c_long[3]   st_pad2;
                 off_t       st_size;
             }
-            static if (_DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
+            version (CRuntime_Musl) {
+                c_long      __st_atim32_sec;
+                c_long      __st_atim32_nsec;
+                c_long      __st_mtim32_sec;
+                c_long      __st_mtim32_nsec;
+                c_long      __st_ctim32_sec;
+                c_long      __st_ctim32_nsec;
+            }
+            else static if (_DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
             {
                 timespec    st_atim;
                 timespec    st_mtim;
@@ -321,7 +349,22 @@ version (linux)
                 c_long      st_pad4;
                 blkcnt_t    st_blocks;
             }
-            c_long[14]  st_pad5;
+            version (CRuntime_Musl) {
+                timespec    st_atim;
+                timespec    st_mtim;
+                timespec    st_ctim;
+                extern(D) @safe @property inout pure nothrow
+                {
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
+                }
+                c_long[2]   st_pad5;
+            }
+            else
+            {
+                c_long[14]  st_pad6;
+            }
         }
         static if (!__USE_FILE_OFFSET64)
             static assert(stat_t.sizeof == 144);
@@ -628,7 +671,14 @@ version (linux)
                 __blkcnt64_t st_blocks;
             }
 
-            static if ( _DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
+            version (CRuntime_Musl) {
+                c_long      __st_atim32_sec;
+                c_long      __st_atim32_nsec;
+                c_long      __st_mtim32_sec;
+                c_long      __st_mtim32_nsec;
+                c_long      __st_ctim32_sec;
+                c_long      __st_ctim32_nsec;
+            } else static if ( _DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
             {
                 __timespec st_atim;
                 __timespec st_mtim;
@@ -659,8 +709,21 @@ version (linux)
             {
                 __ino64_t st_ino;
             }
+            version (CRuntime_Musl) {
+                __timespec st_atim;
+                __timespec st_mtim;
+                __timespec st_ctim;
+                extern(D) @safe @property inout pure nothrow
+                {
+                    ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                    ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                    ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
+                }
+            }
         }
-        static if (__USE_FILE_OFFSET64)
+        version (CRuntime_Musl) {
+            static assert(stat_t.sizeof == 152);
+        } else static if (__USE_FILE_OFFSET64)
             static assert(stat_t.sizeof == 104);
         else
             static assert(stat_t.sizeof == 88);
