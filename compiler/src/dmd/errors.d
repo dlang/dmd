@@ -524,7 +524,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             }
             else
             {
-                global.gaggedWarnings++;
+                global.gaggedDeprecations++;
             }
         }
         return;
@@ -543,10 +543,6 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                 verrorPrint(format, ap, info);
                 if (global.params.useWarnings == DiagnosticReporting.error)
                     global.warnings++;
-            }
-            else
-            {
-                global.gaggedWarnings++;
             }
         }
         return;
