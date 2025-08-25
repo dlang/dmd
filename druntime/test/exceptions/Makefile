@@ -3,7 +3,6 @@ TESTS=stderr_msg unittest_assert invalid_memory_operation static_dtor \
       message_with_null
 
 # FIXME: segfaults with musl libc
-include ../is_musl.mak
 ifneq ($(IS_MUSL),1)
 TESTS += unknown_gc
 endif

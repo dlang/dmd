@@ -10,6 +10,7 @@ QUIET:=
 TIMELIMIT:=
 PIC:=
 SHARED:=
+IS_MUSL:=
 
 # Variables that can be specified by users, with the same meaning as used by GNU make
 # $(CC)      $(CXX)      $(DMD)       # the compiler

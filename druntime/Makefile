@@ -497,10 +497,17 @@ $(addsuffix /.run,$(filter-out test/shared,$(ADDITIONAL_TESTS))): $(DRUNTIME)
 test/shared/.run: $(DRUNTIMESO)
 endif
 
+ifeq ($(OS),linux)
+    # FIXME: detect musl libc robustly; just checking Alpine Linux' apk tool for now
+    ifeq (1,$(shell which apk >/dev/null 2>&1 && echo 1))
+        IS_MUSL := 1
+    endif
+endif
+
 test/%/.run: test/%/Makefile $(DMD)
 	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) BUILD=$(BUILD) \
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) LINKDL=$(LINKDL) \
-		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)' PIC=$(PIC) SHARED=$(SHARED)
+		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)' PIC=$(PIC) SHARED=$(SHARED) IS_MUSL=$(IS_MUSL)
 
 test/%/.clean: test/%/Makefile
 	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) BUILD=$(BUILD) clean
