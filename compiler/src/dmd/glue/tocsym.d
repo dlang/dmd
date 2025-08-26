@@ -14,6 +14,7 @@ module dmd.glue.tocsym;
 import core.stdc.stdio;
 import core.stdc.string;
 
+import dmd.root.aav;
 import dmd.root.array;
 import dmd.root.complex;
 import dmd.root.rmem;
@@ -826,11 +827,12 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
 {
     assert(cd.isCPPclass());
 
-    __gshared Symbol*[ClassDeclaration] cache;
+    __gshared AssocArray!(ClassDeclaration, Symbol*) cache;
 
     /* For the symbol std::exception, the type info is _ZTISt9exception
      */
-    if (auto cpp_type_info_ptr_sym = cd in cache)
+    auto cpp_type_info_ptr_sym = cache.getLvalue(cd);
+    if (*cpp_type_info_ptr_sym)
     {
         return *cpp_type_info_ptr_sym;
     }
@@ -846,7 +848,7 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
     s.Sdt = dtb.finish();
     outdata(s);
 
-    return cache[cd] = s;
+    return *cpp_type_info_ptr_sym = s;
 }
 
 /**********************************
