@@ -2595,7 +2595,7 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                                     return nomatch();
                                 if (m2 < matchTiargs)
                                     matchTiargs = m2; // pick worst match
-                                if (!(*dedtypes)[i].equals(oded))
+                                if (!rootObjectsEqual((*dedtypes)[i], oded))
                                     .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`",
                                         td.kind, td.toPrettyChars, td.kind, td.toPrettyChars, tparam.ident.toChars());
                             }
@@ -2998,7 +2998,7 @@ Lmatch:
                     return nomatch();
                 if (m2 < matchTiargs)
                     matchTiargs = m2; // pick worst match
-                if (!(*dedtypes)[i].equals(oded))
+                if (!rootObjectsEqual((*dedtypes)[i],oded))
                     .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`", td.kind, td.toPrettyChars, tparam.ident.toChars());
             }
             else
@@ -3045,7 +3045,7 @@ Lmatch:
                     return nomatch();
                 if (m2 < matchTiargs)
                     matchTiargs = m2; // pick worst match
-                if (!(*dedtypes)[i].equals(oded))
+                if (!rootObjectsEqual((*dedtypes)[i], oded))
                     .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`", td.kind, td.toPrettyChars, tparam.ident.toChars());
             }
         }
@@ -5104,7 +5104,7 @@ MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
                 {
                     RootObject id1 = t.idents[i];
                     RootObject id2 = tp.idents[i];
-                    if (!id1.equals(id2))
+                    if (!rootObjectsEqual(id1, id2))
                     {
                         result = MATCH.nomatch;
                         return;
@@ -5792,6 +5792,31 @@ private void deduceBaseClassParameters(ref BaseClass b, Scope* sc, Type tparam, 
     }
 }
 
+private bool rootObjectsEqual(RootObject o1, RootObject o2)
+{
+    auto d = o1.dyncast();
+    if (d != o2.dyncast())
+        return false;
+    bool check(T)(RootObject id1, RootObject id2)
+    {
+        return (cast(T)id1).equals(cast(T)id2);
+    }
+    with (DYNCAST) final switch(d)
+    {
+        case expression:   return check!Expression(o1, o2);
+        case dsymbol:      return check!Dsymbol   (o1, o2);
+        case type:         return check!Type      (o1, o2);
+        case identifier: //return check!Identifier(o1, o2); // Identifier.equals checks `o1 is o2`
+        case object:
+        case tuple:
+        case parameter:
+        case statement:
+        case condition:
+        case templateparameter:
+        case initializer:
+            return o1 is o2;
+    }
+}
 /*
  * Handle tuple matching for function parameters.
  * If the last parameter of `tp` is a template tuple parameter,
@@ -5839,7 +5864,8 @@ private bool deduceFunctionTuple(TypeFunction t, TypeFunction tp,
                         return false;
                     for (size_t i = 0; i < tuple_dim; ++i)
                     {
-                        if (!t.parameterList[nfparams - 1 + i].type.equals(tup.objects[i]))
+                        if (!rootObjectsEqual(t.parameterList[nfparams - 1 + i].type,
+                                              tup.objects[i]))
                             return false;
                     }
                 }

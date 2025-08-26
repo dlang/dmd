@@ -411,13 +411,10 @@ extern (C++) class Dsymbol : ASTNode
         return toChars();
     }
 
-    override bool equals(const RootObject o) const
+    bool equals(const Dsymbol s) const
     {
-        if (this == o)
+        if (this == s)
             return true;
-        const s = o.isDsymbol();
-        if (!s)
-            return false;
         // Overload sets don't have an ident
         // Function-local declarations may have identical names
         // if they are declared in different scopes

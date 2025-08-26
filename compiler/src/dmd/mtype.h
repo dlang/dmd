@@ -218,7 +218,7 @@ public:
     virtual const char *kind();
     Type *copy() const;
     virtual Type *syntaxCopy();
-    bool equals(const RootObject * const o) const override;
+    virtual bool equals(const Type * const t) const;
     // kludge for template.isType()
     DYNCAST dyncast() const override final { return DYNCAST_TYPE; }
     size_t getUniqueID() const;
@@ -759,7 +759,7 @@ public:
     static TypeTuple *create(Type *t1, Type *t2);
     const char *kind() override;
     TypeTuple *syntaxCopy() override;
-    bool equals(const RootObject * const o) const override;
+    bool equals(const Type * const t) const override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
