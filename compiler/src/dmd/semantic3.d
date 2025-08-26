@@ -71,6 +71,7 @@ import dmd.tokens;
 import dmd.semantic2;
 import dmd.statement;
 import dmd.target;
+import dmd.targetcompiler;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
@@ -423,12 +424,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (!global.params.useTypeInfo || !Type.dtypeinfo || !Type.typeinfotypelist)
                     {
                         if (!global.params.useTypeInfo)
-                        {
-                            version (IN_GCC)
-                                .error(funcdecl.loc, "%s `%s` D-style variadic functions cannot be used with `-fno-rtti`", funcdecl.kind, funcdecl.toPrettyChars);
-                            else
-                                .error(funcdecl.loc, "%s `%s` D-style variadic functions cannot be used with -betterC", funcdecl.kind, funcdecl.toPrettyChars);
-                        }
+                            .error(funcdecl.loc, "%s `%s` D-style variadic functions cannot be used with `-%s`", funcdecl.kind, funcdecl.toPrettyChars, SwitchVariadic.ptr);
                         else if (!Type.typeinfotypelist)
                             .error(funcdecl.loc, "%s `%s` `object.TypeInfo_Tuple` could not be found, but is implicitly used in D-style variadic functions", funcdecl.kind, funcdecl.toPrettyChars);
                         else

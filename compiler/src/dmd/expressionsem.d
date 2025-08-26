@@ -83,6 +83,7 @@ import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.safe;
 import dmd.target;
+import dmd.targetcompiler;
 import dmd.templatesem : matchWithInstance, deduceType, matchArg, updateTempDecl, semanticTiargs;
 import dmd.tokens;
 import dmd.traits;
@@ -5851,10 +5852,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (!global.params.useGC && sc.needsCodegen())
             {
-                version(IN_GCC)
-                    error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-fno-rtti`", exp.toErrMsg());
-                else
-                    error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-betterC`", exp.toErrMsg());
+                error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-%s`", exp.toErrMsg(), SwitchVariadic.ptr);
                 return setError();
             }
 
