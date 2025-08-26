@@ -1280,7 +1280,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
 
                         /* Remove top const for dynamic array types and pointer types
                          */
-                        if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STC.ref_) || (fparam.storageClass & STC.auto_) && !farg.isLvalue()))
+                        if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STC.ref_) || (fparam.storageClass & STC.auto_) && !isLvalue(farg)))
                         {
                             tt = tt.mutableOf();
                         }
@@ -1485,7 +1485,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                     // When assigning an untyped (void) lambda `x => y` to a `(F)(ref F)` parameter,
                     // we don't want to deduce type void creating a void parameter
                 }
-                else if ((fparam.storageClass & STC.ref_) && (!(fparam.storageClass & STC.auto_) || farg.isLvalue()))
+                else if ((fparam.storageClass & STC.ref_) && (!(fparam.storageClass & STC.auto_) || isLvalue(farg)))
                 {
                     /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
                      */
@@ -1583,7 +1583,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
 
                 if (m > MATCH.nomatch && (fparam.storageClass & (STC.ref_ | STC.auto_)) == STC.ref_)
                 {
-                    if (!farg.isLvalue())
+                    if (!isLvalue(farg))
                     {
                         if ((farg.op == EXP.string_ || farg.op == EXP.slice) && (prmtype.ty == Tsarray || prmtype.ty == Taarray))
                         {
@@ -1599,7 +1599,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                 }
                 if (m > MATCH.nomatch && (fparam.storageClass & STC.out_))
                 {
-                    if (!farg.isLvalue())
+                    if (!isLvalue(farg))
                         return nomatch();
                     if (!farg.type.isMutable()) // https://issues.dlang.org/show_bug.cgi?id=11916
                         return nomatch();

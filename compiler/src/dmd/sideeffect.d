@@ -413,7 +413,7 @@ Expression extractSideEffect(Scope* sc, const char[] name,
         return e;
 
     auto vd = copyToTemp(STC.none, name, e);
-    vd.storage_class |= e.isLvalue() ? STC.ref_ : STC.rvalue;
+    vd.storage_class |= isLvalue(e) ? STC.ref_ : STC.rvalue;
 
     e0 = Expression.combine(e0, new DeclarationExp(vd.loc, vd)
                                 .expressionSemantic(sc));

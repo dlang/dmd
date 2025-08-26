@@ -1419,7 +1419,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         exp = exp.expressionSemantic(sc);
                         Type tp = dsym.type;
                         Type ta = exp.type;
-                        if (!exp.isLvalue())
+                        if (!isLvalue(exp))
                         {
                             if (dsym.storage_class & STC.autoref)
                             {
@@ -1551,7 +1551,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             if (sd.postblit && tb2.toDsymbol(null) == sd)
                             {
                                 // The only allowable initializer is a (non-copy) constructor
-                                if (ei.exp.isLvalue())
+                                if (isLvalue(ei.exp))
                                     .error(dsym.loc, "%s `%s` of type struct `%s` uses `this(this)`, which is not allowed in static initialization", dsym.kind, dsym.toPrettyChars, tb2.toChars());
                             }
                         }

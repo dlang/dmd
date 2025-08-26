@@ -3993,7 +3993,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 farg = fparam.defaultArg;
             if (!farg)
                 return false;
-            if (farg.isLvalue())
+            if (isLvalue(farg))
             {
                 if (!(fparam.storageClass & STC.ref_))
                     return false; // auto ref's don't match

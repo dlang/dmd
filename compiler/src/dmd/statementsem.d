@@ -735,7 +735,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         Expression oaggr = fs.aggr;     // remember original for error messages
         if (fs.aggr.type && fs.aggr.type.toBasetype().isTypeStruct() &&
             fs.aggr.type.toBasetype().isTypeStruct().sym.dtor &&
-            !fs.aggr.isTypeExp() && !fs.aggr.isLvalue())
+            !fs.aggr.isTypeExp() && !isLvalue(fs.aggr))
         {
             // https://issues.dlang.org/show_bug.cgi?id=14653
             // Extend the life of rvalue aggregate till the end of foreach.
@@ -2699,7 +2699,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     }
                 }
 
-                if (rs.exp.isLvalue())
+                if (isLvalue(rs.exp))
                 {
                     /* May return by ref
                      */
@@ -3219,7 +3219,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             }
             else if (t.ty == Tstruct)
             {
-                if (!ws.exp.isLvalue())
+                if (!isLvalue(ws.exp))
                 {
                     /* Re-write to
                      * {

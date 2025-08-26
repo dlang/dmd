@@ -1235,9 +1235,9 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
 
                     if (prmStruct == ctorStruct && ctorStruct.hasCopyCtor && ctorStruct.hasMoveCtor)
                     {
-                        if (cfd.isCpCtor && !arg.isLvalue())
+                        if (cfd.isCpCtor && !isLvalue(arg))
                             return MATCH.nomatch;       // copy constructor is only for lvalues
-                        if (cfd.isMoveCtor && arg.isLvalue())
+                        if (cfd.isMoveCtor && isLvalue(arg))
                             return MATCH.nomatch;       // move constructor is only for rvalues
                     }
                     }
@@ -1246,7 +1246,7 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
         }
 
         // check if the copy constructor may be called to copy the argument
-        if (arg.isLvalue() && !isRef && argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
+        if (isLvalue(arg) && !isRef && argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
         {
             if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
                 return MATCH.nomatch;
@@ -1269,7 +1269,7 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
     Type tp = tprm;
     //printf("fparam[%d] ta = %s, tp = %s\n", u, ta.toChars(), tp.toChars());
 
-    if (m && !arg.isLvalue())
+    if (m && !isLvalue(arg))
     {
         if (p.storageClass & STC.out_)
         {
@@ -1330,7 +1330,7 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
        see  https://issues.dlang.org/show_bug.cgi?id=15674
        and https://issues.dlang.org/show_bug.cgi?id=21905
     */
-    if (ta != tp || !arg.isLvalue())
+    if (ta != tp || !isLvalue(arg))
     {
         Type firsttab = ta.toBasetype();
         while (1)
@@ -1372,7 +1372,7 @@ private const(char)* getParamError(TypeFunction tf, Expression arg, Parameter pa
     auto at = qual ? arg.type.toPrettyChars(true) : arg.type.toChars();
     OutBuffer buf;
     // only mention rvalue if it's relevant
-    const rv = !arg.isLvalue() && par.isReference() && !(par.storageClass & STC.constscoperef);
+    const rv = !isLvalue(arg) && par.isReference() && !(par.storageClass & STC.constscoperef);
     buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
         rv ? "rvalue ".ptr : "".ptr, arg.toErrMsg(), at,
         parameterToChars(par, tf, qual));
@@ -2552,7 +2552,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 e = new AddrExp(e.loc, e);
                 e = e.expressionSemantic(sc);
             }
-            if (isRefOrOut && (!isAuto || e.isLvalue())
+            if (isRefOrOut && (!isAuto || isLvalue(e))
                 && !MODimplicitConv(e.type.mod, fparam.type.mod))
             {
                 const(char)* errTxt = fparam.storageClass & STC.ref_ ? "ref" : "out";
@@ -2863,7 +2863,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
                     if (farg && (eparam.storageClass & STC.ref_))
                     {
-                        if (!farg.isLvalue())
+                        if (!isLvalue(farg))
                             eparam.storageClass &= ~STC.ref_; // value parameter
                         eparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
                         eparam.storageClass |= STC.autoref;
