@@ -2079,7 +2079,7 @@ public:
     virtual const char* kind() const;
     Type* copy() const;
     virtual Type* syntaxCopy();
-    virtual bool equals(const Type* const t) const;
+    bool equals(const Type* const t) const;
     DYNCAST dyncast() const final override;
     size_t getUniqueID() const;
     const char* toChars() const final override;
@@ -4876,7 +4876,6 @@ public:
     static TypeTuple* create(Type* t1, Type* t2);
     const char* kind() const override;
     TypeTuple* syntaxCopy() override;
-    bool equals(const Type* const t) const override;
     void accept(Visitor* v) override;
 };
 
