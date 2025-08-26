@@ -683,7 +683,7 @@ bool isLvalue(Expression e)
         if (t1b.isTypeAArray() || t1b.isTypeSArray() ||
             (ie.e1.isIndexExp() && t1b != t1b.isTypeDArray()))
         {
-            return ie.e1.isLvalue();
+            return isLvalue(ie.e1);
         }
         return true;
     }
@@ -730,7 +730,7 @@ bool isLvalue(Expression e)
         return se.type && se.type.toBasetype().ty == Tsarray;
     if (auto ce = e.isCastExp())
     {
-        if (!ce.e1.isLvalue())
+        if (!isLvalue(ce.e1))
             return false;
         return (ce.to.ty == Tsarray && (ce.e1.type.ty == Tvector  || ce.e1.type.ty == Tsarray))
             || (ce.to.ty == Taarray &&  ce.e1.type.ty == Taarray)
@@ -741,7 +741,7 @@ bool isLvalue(Expression e)
     {
         case EXP.array:           return !ue.type || ue.type.toBasetype().ty != Tvoid;
         case EXP.vectorArray:
-        case EXP.delegatePointer: return ue.e1.isLvalue();
+        case EXP.delegatePointer: return isLvalue(ue.e1);
         case EXP.star:            return true;
         default:                  return false;
     }
@@ -753,8 +753,8 @@ bool isLvalue(Expression e)
          * conversion to reference of static array is only allowed.
          */
         case EXP.slice:    return be.type && be.type.toBasetype().ty == Tsarray;
-        case EXP.comma:    return be.e2.isLvalue();
-        case EXP.question: return be.e1.isLvalue() && be.e2.isLvalue();
+        case EXP.comma:    return isLvalue(be.e2);
+        case EXP.question: return isLvalue(be.e1) && isLvalue(be.e2);
         default:           return false;
     }
 
@@ -769,7 +769,7 @@ Expression addressOf(Expression e)
     //printf("Expression::addressOf() %s\n", e.toChars());
     debug
     {
-        assert(e.op == EXP.error || e.isLvalue());
+        assert(e.op == EXP.error || isLvalue(e));
     }
     return new AddrExp(e.loc, e, e.type.pointerTo());
 }
@@ -1005,7 +1005,7 @@ extern (D) Expression doCopyOrMove(Scope* sc, Expression e, Type t, bool nrvo, b
         ce.e1 = doCopyOrMove(sc, ce.e1, null, nrvo);
         ce.e2 = doCopyOrMove(sc, ce.e2, null, nrvo);
     }
-    else if (e.isLvalue())
+    else if (isLvalue(e))
     {
         e = callCpCtor(sc, e, t, nrvo);
     }
@@ -1122,7 +1122,7 @@ Expression valueNoDtor(Expression e)
                         if (ctmp)
                         {
                             ctmp.storage_class |= STC.nodtor;
-                            assert(!ce.isLvalue());
+                            assert(!isLvalue(ce));
                         }
                     }
                 }
@@ -3463,7 +3463,7 @@ private bool functionParameters(Loc loc, Scope* sc,
             // Support passing rvalue to `in` parameters
             if ((p.storageClass & (STC.in_ | STC.ref_)) == (STC.in_ | STC.ref_))
             {
-                if (!arg.isLvalue())
+                if (!isLvalue(arg))
                 {
                     auto v = copyToTemp(STC.exptemp, "__rvalue", arg);
                     Expression ev = new DeclarationExp(arg.loc, v);
@@ -3478,7 +3478,7 @@ private bool functionParameters(Loc loc, Scope* sc,
             else if (p.storageClass & STC.ref_)
             {
                 if (sc.previews.rvalueRefParam &&
-                    !arg.isLvalue() &&
+                    !isLvalue(arg) &&
                     targ.isCopyable())
                 {   /* allow rvalues to be passed to ref parameters by copying
                      * them to a temp, then pass the temp as the argument
@@ -5447,7 +5447,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             auto p = exp.placement;
             if (p.op == EXP.error)
                 return setError();
-            if (!p.isLvalue())
+            if (!isLvalue(p))
             {
                 error(p.loc, "PlacementExpression `%s` is an rvalue, but must be an lvalue", p.toChars());
                 return setError();
@@ -8522,7 +8522,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return res.expressionSemantic(sc);
                     }
 
-                    const stc = op.isLvalue() ? STC.ref_ : STC.none;
+                    const stc = isLvalue(op) ? STC.ref_ : STC.none;
                     auto tmp = copyToTemp(stc, "__assertOp", op);
                     tmp.dsymbolSemantic(sc);
 
@@ -10084,7 +10084,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
         }
-        else if (t1b.ty == Tvector && exp.e1.isLvalue())
+        else if (t1b.ty == Tvector && isLvalue(exp.e1))
         {
             // Convert e1 to corresponding static array
             TypeVector tv1 = cast(TypeVector)t1b;
@@ -11356,7 +11356,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                         //printf("exp: %s\n", toChars(exp));
                         //printf("e2x: %s\n", toChars(e2x));
-                        if (e2x.isLvalue())
+                        if (isLvalue(e2x))
                         {
                             if (sd.hasCopyCtor)
                             {
@@ -11601,7 +11601,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (e2x.implicitConvTo(e1x.type))
             {
-                if (exp.op != EXP.blit && (e2x.op == EXP.slice && (cast(UnaExp)e2x).e1.isLvalue() || e2x.op == EXP.cast_ && (cast(UnaExp)e2x).e1.isLvalue() || e2x.op != EXP.slice && e2x.isLvalue()))
+                if (exp.op != EXP.blit && (e2x.op == EXP.slice && isLvalue((cast(UnaExp)e2x).e1) || e2x.op == EXP.cast_ && isLvalue((cast(UnaExp)e2x).e1) || e2x.op != EXP.slice && isLvalue(e2x)))
                 {
                     if (t1.checkPostblit(e1x.loc, sc))
                         return setError();
@@ -11844,7 +11844,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // '= null' is the only allowable block assignment (Bug 7493)
             exp.memset = MemorySet.blockAssign;    // make it easy for back end to tell what this is
             e2x = e2x.implicitCastTo(sc, t1.nextOf());
-            if (exp.op != EXP.blit && e2x.isLvalue() && t1.nextOf.checkPostblit(exp.e1.loc, sc))
+            if (exp.op != EXP.blit && isLvalue(e2x) && t1.nextOf.checkPostblit(exp.e1.loc, sc))
                 return setError();
         }
         else if (exp.e1.op == EXP.slice &&
@@ -11878,9 +11878,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             if (exp.op != EXP.blit &&
-                (e2x.op == EXP.slice && (cast(UnaExp)e2x).e1.isLvalue() ||
-                 e2x.op == EXP.cast_ && (cast(UnaExp)e2x).e1.isLvalue() ||
-                 e2x.op != EXP.slice && e2x.isLvalue()))
+                (e2x.op == EXP.slice && isLvalue((cast(UnaExp)e2x).e1) ||
+                 e2x.op == EXP.cast_ && isLvalue((cast(UnaExp)e2x).e1) ||
+                 e2x.op != EXP.slice && isLvalue(e2x)))
             {
                 if (t1.nextOf().checkPostblit(exp.e1.loc, sc))
                     return setError();
@@ -12089,7 +12089,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             const lowerToArrayCtor =
                 ( (rhsType.ty == Tarray && !rhs.isArrayLiteralExp) ||
-                  (rhsType.ty == Tsarray && rhs.isLvalue) ) &&
+                  (rhsType.ty == Tsarray && isLvalue(rhs)) ) &&
                 t1e.equivalent(t2b.nextOf);
 
             // Construction from a single element?
@@ -12119,7 +12119,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     Expression e0;
                     // promote an rvalue RHS element to a temporary, it's passed by ref to _d_arraysetctor
-                    if (!ae.e2.isLvalue)
+                    if (!isLvalue(ae.e2))
                     {
                         auto vd = copyToTemp(STC.scope_, "__setctor", ae.e2);
                         e0 = new DeclarationExp(vd.loc, vd).expressionSemantic(sc);
@@ -12182,7 +12182,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Expression res;
         Identifier func = isArraySetAssign ? Id._d_arraysetassign :
-            ae.e2.isLvalue() || ae.e2.isSliceExp() ? Id._d_arrayassign_l : Id._d_arrayassign_r;
+            isLvalue(ae.e2) || ae.e2.isSliceExp() ? Id._d_arrayassign_l : Id._d_arrayassign_r;
 
         // Lower to `.object._d_array{setassign,assign_l,assign_r}(e1, e2)``
         Expression id = new IdentifierExp(ae.loc, Id.empty);
@@ -12193,11 +12193,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                          .expressionSemantic(sc));
 
         Expression eValue2, value2 = ae.e2;
-        if (isArrayAssign && value2.isLvalue())
+        if (isArrayAssign && isLvalue(value2))
             value2 = new CastExp(ae.loc, ae.e2, ae.e2.type.nextOf.arrayOf())
                 .expressionSemantic(sc);
         else if (!fromCommaExp &&
-            (isArrayAssign || (isArraySetAssign && !value2.isLvalue())))
+            (isArrayAssign || (isArraySetAssign && !isLvalue(value2))))
         {
             // Rvalues from CommaExps were introduced in `visit(AssignExp)`
             // and are temporary variables themselves. Rvalues from trivial
@@ -16279,7 +16279,7 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
             if (e1.isErrorExp())
                 return e1;
         }
-        if (!_this.isLvalue())
+        if (!isLvalue(_this))
             return visit(_this);
         if (e1.op == EXP.this_ && sc.ctorflow.fieldinit.length && !(sc.ctorflow.callSuper & CSX.any_ctor))
         {
@@ -16310,7 +16310,7 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
 
     Expression visitCall(CallExp _this)
     {
-        if (_this.isLvalue())
+        if (isLvalue(_this))
             return _this;
         return visit(_this);
     }
@@ -16323,7 +16323,7 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
              */
             return visit(_this);
         }
-        if (_this.isLvalue())
+        if (isLvalue(_this))
         {
             with (_this)
             if (!trusted && !e1.type.pointerTo().implicitConvTo(to.pointerTo()))
@@ -16375,7 +16375,7 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
 
     Expression visitIndex(IndexExp _this)
     {
-        if (_this.isLvalue())
+        if (isLvalue(_this))
             return _this;
         return visit(_this);
     }
@@ -16719,7 +16719,7 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
 
     Expression visitCond(CondExp exp)
     {
-        if (!exp.e1.isLvalue() && !exp.e2.isLvalue())
+        if (!isLvalue(exp.e1) && !isLvalue(exp.e2))
         {
             error(exp.loc, "conditional expression `%s` is not a modifiable lvalue", exp.toErrMsg());
             return ErrorExp.get();

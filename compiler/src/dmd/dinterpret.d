@@ -3847,7 +3847,7 @@ public:
             {
                 Expression newelem = paintTypeOntoLiteral(elemtype, (*newelems)[i]);
                 // https://issues.dlang.org/show_bug.cgi?id=9245
-                if (e.e2.isLvalue())
+                if (isLvalue(e.e2))
                 {
                     if (Expression ex = evaluatePostblit(istate, newelem))
                         return ex;
@@ -3864,7 +3864,7 @@ public:
             if (wantCopy)
                 newval = copyLiteral(newval).copy();
 
-            if (t1b.ty == Tsarray && e.op == EXP.construct && e.e2.isLvalue())
+            if (t1b.ty == Tsarray && e.op == EXP.construct && isLvalue(e.e2))
             {
                 // https://issues.dlang.org/show_bug.cgi?id=9245
                 if (Expression ex = evaluatePostblit(istate, newval))
@@ -4063,7 +4063,7 @@ public:
                     Expressions* newelems = aggr2.isArrayLiteralExp().elements;
 
                     Type elemtype = aggregate.type.nextOf();
-                    bool needsPostblit = e.e2.isLvalue();
+                    bool needsPostblit = isLvalue(e.e2);
 
                     if (aggregate == aggr2 && srclower < lowerbound && lowerbound < srcupper)
                     {
@@ -4141,7 +4141,7 @@ public:
                 Expressions* oldelems = existingAE.elements;
                 Expressions* newelems = newval.isArrayLiteralExp().elements;
                 Type elemtype = existingAE.type.nextOf();
-                bool needsPostblit = e.op != EXP.blit && e.e2.isLvalue();
+                bool needsPostblit = e.op != EXP.blit && isLvalue(e.e2);
                 foreach (j, newelem; *newelems)
                 {
                     newelem = paintTypeOntoLiteral(elemtype, newelem);
@@ -4227,7 +4227,7 @@ public:
             rb.istate = istate;
             rb.newval = newval;
             rb.refCopy = wantRef || cow;
-            rb.needsPostblit = sd && sd.postblit && e.op != EXP.blit && e.e2.isLvalue();
+            rb.needsPostblit = sd && sd.postblit && e.op != EXP.blit && isLvalue(e.e2);
             rb.needsDtor = sd && sd.dtor && (e.op == EXP.assign || e.op == EXP.loweredAssignExp);
             if (Expression ex = rb.assignTo(existingAE, cast(size_t)lowerbound, cast(size_t)upperbound))
                 return ex;
