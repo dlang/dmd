@@ -196,7 +196,8 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
             }
             case OS.OSX:
             {
-                predef("OSX");
+                predef("OSX");          // macOS
+                predef("Apple");        // macOS is one of Apple's operating systems
                 // For legacy compatibility
                 predef("darwin");
                 break;
