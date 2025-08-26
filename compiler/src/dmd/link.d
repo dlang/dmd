@@ -1610,7 +1610,7 @@ clang: error: linker command failed with exit code 1 (use -v to see invocation)
     class ErrorSinkTest : ErrorSinkNull
     {
         OutBuffer result;
-        extern(C++): override:
+        override:
 
         void verror(Loc loc, const(char)* format, va_list ap)
         {
