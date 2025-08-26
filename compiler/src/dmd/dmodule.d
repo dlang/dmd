@@ -41,7 +41,6 @@ import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.parse;
-import dmd.root.aav;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
