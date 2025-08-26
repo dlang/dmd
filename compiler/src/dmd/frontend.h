@@ -4052,7 +4052,6 @@ public:
     bool overloadInsert(Dsymbol* s) override;
     bool inUnittest();
     LabelDsymbol* searchLabel(Identifier* ident, Loc loc);
-    enum : int32_t { LevelError = -2 };
 
     const char* toPrettyChars(bool QualifyTypes = false) override;
     const char* toFullSignature();
@@ -4075,7 +4074,6 @@ public:
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
     const char* kind() const override;
-    bool needsClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
     virtual FuncDeclaration* toAliasFunc();
