@@ -10056,38 +10056,38 @@ extern (D) bool oneMembers(Dsymbols* members, out Dsymbol ps, Identifier ident)
             assert(ps is null);
             return false;
         }
-        if (ps)
+        if (!ps)
+            continue;
+
+        assert(ident);
+        if (!ps.ident || !ps.ident.equals(ident))
+            continue;
+        if (!s)
+            s = ps;
+        else if (s.isOverloadable() && ps.isOverloadable())
         {
-            assert(ident);
-            if (!ps.ident || !ps.ident.equals(ident))
-                continue;
-            if (!s)
-                s = ps;
-            else if (s.isOverloadable() && ps.isOverloadable())
+            // keep head of overload set
+            FuncDeclaration f1 = s.isFuncDeclaration();
+            FuncDeclaration f2 = ps.isFuncDeclaration();
+            if (f1 && f2)
             {
-                // keep head of overload set
-                FuncDeclaration f1 = s.isFuncDeclaration();
-                FuncDeclaration f2 = ps.isFuncDeclaration();
-                if (f1 && f2)
+                assert(!f1.isFuncAliasDeclaration());
+                assert(!f2.isFuncAliasDeclaration());
+                for (; f1 != f2; f1 = f1.overnext0)
                 {
-                    assert(!f1.isFuncAliasDeclaration());
-                    assert(!f2.isFuncAliasDeclaration());
-                    for (; f1 != f2; f1 = f1.overnext0)
+                    if (f1.overnext0 is null)
                     {
-                        if (f1.overnext0 is null)
-                        {
-                            f1.overnext0 = f2;
-                            break;
-                        }
+                        f1.overnext0 = f2;
+                        break;
                     }
                 }
             }
-            else // more than one symbol
-            {
-                ps = null;
-                //printf("\tfalse 2\n");
-                return false;
-            }
+        }
+        else // more than one symbol
+        {
+            ps = null;
+            //printf("\tfalse 2\n");
+            return false;
         }
     }
     ps = s; // s is the one symbol, null if none
