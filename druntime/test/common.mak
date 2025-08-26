@@ -10,6 +10,8 @@ QUIET:=
 TIMELIMIT:=
 PIC:=
 SHARED:=
+# not empty if musl is detected, empty otherwise
+IS_MUSL:=
 
 # Variables that can be specified by users, with the same meaning as used by GNU make
 # $(CC)      $(CXX)      $(DMD)       # the compiler
