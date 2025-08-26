@@ -189,6 +189,11 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
 
         return noDeclarations();
     }
+    else if (pd.ident == Id.breakpoint)
+    {
+        pragmaBreakpointSemantic(pd.loc, sc, pd.args);
+        return noDeclarations();
+    }
     else if (pd.ident == Id.lib)
     {
         if (!pd.args || pd.args.length != 1)
@@ -344,7 +349,7 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
      */
     // Should be merged with PragmaDeclaration
 
-    //printf("pragmaStmtSemantic() %s\n", ps.toChars());
+    //printf("pragmaStmtSemantic() %p\n", ps);
     //printf("body = %p\n", ps._body);
     if (ps.ident == Id.msg)
     {
@@ -422,6 +427,10 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
         const cnt = setMangleOverride(de.declaration, cast(const(char)[])se.peekData());
         if (cnt != 1)
             assert(0);
+    }
+    else if (ps.ident == Id.breakpoint)
+    {
+        pragmaBreakpointSemantic(ps.loc, sc, ps.args);
     }
     else if (!global.params.ignoreUnsupportedPragmas)
     {
@@ -537,6 +546,34 @@ private bool pragmaMsgSemantic(Loc loc, Scope* sc, Expressions* args)
     buf.writestring("\n");
     fprintf(stderr, "%s", buf.extractChars);
     return true;
+}
+
+
+/**
+ * Evaluate pragma backtreace
+ params:
+ loc = location for errors and diagnostics
+ sc = scope for backtracing
+ args = optional expressions to print
+ **/
+private void pragmaBreakpointSemantic(Loc loc, Scope* sc, Expressions* args){
+    fprintf(stderr,"Pragma Breakpoint: ");
+    // allow support for a message saying where this breakpoint is
+    pragmaMsgSemantic(loc, sc, args);
+
+    fprintf(stderr,"Starting backtrace\n");
+    Loc l = loc;
+    for (auto s = sc; s; s = s.enclosing)
+    {
+        if(s.scopesym !is null)
+        {
+            fprintf(stderr,"%s: scope: %s\n", l.toChars(), s.scopesym.toChars);
+            if(s.parent)
+            {
+                l = s.parent.loc;
+            }
+        }
+    }
 }
 
 /**
