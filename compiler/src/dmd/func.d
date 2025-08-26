@@ -374,14 +374,10 @@ extern (C++) class FuncDeclaration : Declaration
         return f;
     }
 
-    override final bool equals(const RootObject o) const
+    override final bool equals(const Dsymbol s) const
     {
-        if (this == o)
+        if (this == s)
             return true;
-
-        auto s = isDsymbol(o);
-        if (!s)
-            return false;
 
         auto fd1 = this;
         auto fd2 = s.isFuncDeclaration();
