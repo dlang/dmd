@@ -6891,9 +6891,7 @@ private TemplateInstance isAliasSeq(Scope* sc, TypeInstance ti)
         int r = overloadApply(dstart, (Dsymbol s)
         {
             auto td = s.isTemplateDeclaration();
-            if (!td || !td.isTrivialAliasSeq)
-                return 1;
-            return 0;
+            return (td && td.isTrivialAliasSeq) ? 0 : 1;
         });
         if (r)
             return null;
