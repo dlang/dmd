@@ -53,7 +53,7 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : aliasSemantic, oneMembers, toAlias;
+import dmd.dsymbolsem : oneMembers, toAlias;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -481,56 +481,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 param = (*parameters)[i].syntaxCopy();
         }
         return new TemplateDeclaration(loc, ident, p, constraint ? constraint.syntaxCopy() : null, Dsymbol.arraySyntaxCopy(members), ismixin, literal);
-    }
-
-    /**********************************
-     * Overload existing TemplateDeclaration 'this' with the new one 's'.
-     * Params:
-     *    s = symbol to be inserted
-     * Return: true if successful; i.e. no conflict.
-     */
-    override bool overloadInsert(Dsymbol s)
-    {
-        static if (LOG)
-        {
-            printf("TemplateDeclaration.overloadInsert('%s')\n", s.toChars());
-        }
-        FuncDeclaration fd = s.isFuncDeclaration();
-        if (fd)
-        {
-            if (funcroot)
-                return funcroot.overloadInsert(fd);
-            funcroot = fd;
-            return funcroot.overloadInsert(this);
-        }
-
-        // https://issues.dlang.org/show_bug.cgi?id=15795
-        // if candidate is an alias and its sema is not run then
-        // insertion can fail because the thing it alias is not known
-        if (AliasDeclaration ad = s.isAliasDeclaration())
-        {
-            if (s._scope)
-                aliasSemantic(ad, s._scope);
-            if (ad.aliassym && ad.aliassym is this)
-                return false;
-        }
-        TemplateDeclaration td = s.toAlias().isTemplateDeclaration();
-        if (!td)
-            return false;
-
-        TemplateDeclaration pthis = this;
-        TemplateDeclaration* ptd;
-        for (ptd = &pthis; *ptd; ptd = &(*ptd).overnext)
-        {
-        }
-
-        td.overroot = this;
-        *ptd = td;
-        static if (LOG)
-        {
-            printf("\ttrue: no conflict\n");
-        }
-        return true;
     }
 
     override const(char)* kind() const
