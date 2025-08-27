@@ -78,14 +78,11 @@ import dmd.tokens;
 import dmd.utils;
 import dmd.statement;
 import dmd.target;
+import dmd.targetcompiler;
 import dmd.templateparamsem;
 import dmd.templatesem;
 import dmd.typesem;
 import dmd.visitor;
-
-version (IN_GCC) {}
-else version (IN_LLVM) {}
-else version = MARS;
 
 enum LOG = false;
 
@@ -1399,21 +1396,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        /* If the alignment of a stack local is greater than the stack alignment,
-         * note it in the enclosing function's alignSectionVars
-         */
-        version (MARS)
-        {
-            if (!dsym.alignment.isDefault() && sc.func &&
-                dsym.alignment.get() > target.stackAlign() &&
-                sc.func && !dsym.isDataseg() && !dsym.isParameter() && !dsym.isField())
-            {
-                auto fd = sc.func;
-                if (!fd.alignSectionVars)
-                    fd.alignSectionVars = new VarDeclarations();
-                fd.alignSectionVars.push(dsym);
-            }
-        }
+        mixin alignSectionVarsExtra; doAlign(); // align section variables
 
         if ((dsym.storage_class & (STC.ref_ | STC.field)) == (STC.ref_ | STC.field) && dsym.ident != Id.This)
         {
@@ -1963,10 +1946,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (!(sc.previews.bitfields || sc.inCfile))
         {
-            version (IN_GCC)
-                .error(dsym.loc, "%s `%s` use `-fpreview=bitfields` for bitfield support", dsym.kind, dsym.toPrettyChars);
-            else
-                .error(dsym.loc, "%s `%s` use -preview=bitfields for bitfield support", dsym.kind, dsym.toPrettyChars);
+            .error(dsym.loc, "%s `%s` use `-%spreview=bitfields` for bitfield support", dsym.kind, dsym.toPrettyChars, SwitchPrefix.ptr);
         }
 
         if (!dsym.parent.isStructDeclaration() && !dsym.parent.isClassDeclaration())

@@ -65,10 +65,6 @@ else version (Posix)
 else
     static assert(0);
 
-version (IN_GCC) {}
-else version (IN_LLVM) {}
-else version = MARS;
-
 // function used to call semantic3 on a module's dependencies
 void semantic3OnDependencies(Module m)
 {

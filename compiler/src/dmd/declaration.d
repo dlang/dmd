@@ -25,6 +25,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : toAlias;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -39,32 +40,21 @@ import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.filename;
 import dmd.target;
+import dmd.targetcompiler;
 import dmd.tokens;
 import dmd.typesem : typeSemantic, size;
 import dmd.visitor;
 
-version (IN_GCC) {}
-else version (IN_LLVM) {}
-else version = MARS;
 
 /******************************************
  */
 void ObjectNotFound(Loc loc, Identifier id)
 {
     global.gag = 0; // never gag the fatal error
-    error(loc, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
-    version (IN_LLVM)
-    {
-        errorSupplemental(loc, "ldc2 might not be correctly installed.");
-        errorSupplemental(loc, "Please check your ldc2.conf configuration file.");
-        errorSupplemental(loc, "Installation instructions can be found at http://wiki.dlang.org/LDC.");
-    }
-    else version (MARS)
-    {
-        errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
-        const dmdConfFile = global.inifilename.length ? FileName.canonicalName(global.inifilename) : "not found";
-        errorSupplemental(loc, "config file: %.*s", cast(int)dmdConfFile.length, dmdConfFile.ptr);
-    }
+    const dmdConfFile = global.inifilename.length ? FileName.canonicalName(global.inifilename) : "not found";
+
+    mixin HostObjectNotFound;
+    hostObjectNotFound(loc, id.toChars(), dmdConfFile, global.errorSink); // print host-specific diagnostic
     fatal();
 }
 
@@ -703,11 +693,7 @@ extern (C++) class VarDeclaration : Declaration
         bool isCmacro;          /// it is a C macro turned into a C declaration
         bool dllImport;         /// __declspec(dllimport)
         bool dllExport;         /// __declspec(dllexport)
-        version (MARS)
-        {
-            bool inClosure;         /// is inserted into a GC allocated closure
-            bool inAlignSection;    /// is inserted into an aligned section on stack
-        }
+        mixin VarDeclarationExtra;
         bool systemInferred;    /// @system was inferred from initializer
     }
 
