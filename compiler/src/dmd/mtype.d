@@ -424,12 +424,31 @@ extern (C++) abstract class Type : ASTNode
         assert(0);
     }
 
-    bool equals(const Type t) const
+    final bool equals(const Type t) const
     {
         //printf("Type::equals(%s, %s)\n", toChars(), t.toChars());
+        if (this == t)
+            return true;
+        if (ty == Ttuple)
+        {
+            if (t.ty != Ttuple)
+                return false;
+            auto t1 = this.isTypeTuple();
+            auto t2 = t.isTypeTuple();
+            if (t1.arguments.length != t2.arguments.length)
+                return false;
+            for (size_t i = 0; i < t1.arguments.length; i++)
+            {
+                const Parameter arg1 = (*t1.arguments)[i];
+                const Parameter arg2 = (*t2.arguments)[i];
+                if (!arg1.type.equals(arg2.type))
+                    return false;
+            }
+            return true;
+        }
         // deco strings are unique
         // and semantic() has been run
-        if (this == t || ((t && deco == t.deco) && deco !is null))
+        if ((t && deco == t.deco) && deco !is null)
         {
             //printf("deco = '%s', t.deco = '%s'\n", deco, t.deco);
             return true;
@@ -3328,28 +3347,6 @@ extern (C++) final class TypeTuple : Type
         auto t = new TypeTuple(args);
         t.mod = mod;
         return t;
-    }
-
-    override bool equals(const Type t) const
-    {
-        //printf("TypeTuple::equals(%s, %s)\n", toChars(), t.toChars());
-        if (this == t)
-            return true;
-        if (auto tt = t.isTypeTuple())
-        {
-            if (arguments.length == tt.arguments.length)
-            {
-                for (size_t i = 0; i < tt.arguments.length; i++)
-                {
-                    const Parameter arg1 = (*arguments)[i];
-                    const Parameter arg2 = (*tt.arguments)[i];
-                    if (!arg1.type.equals(arg2.type))
-                        return false;
-                }
-                return true;
-            }
-        }
-        return false;
     }
 
     override void accept(Visitor v)
