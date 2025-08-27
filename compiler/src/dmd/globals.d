@@ -180,7 +180,7 @@ extern (C++) struct Param
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
-    bool bitfields;         // support C style bit fields
+    bool bitfields = true;  // support C style bit fields
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
