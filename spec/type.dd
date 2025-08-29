@@ -221,7 +221,7 @@ assert(i == 4);
 
         $(BEST_PRACTICE Use a $(DDSUBLINK spec/function, ref-params,
         `ref` function parameter) or a $(DDSUBLINK spec/declaration, ref-variables,
-        `ref` local variable) when the address doesn't escape.
+        `ref` local variable) when the address doesn't escape.)
 
 
 $(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
@@ -698,17 +698,29 @@ $(P See $(DDSUBLINK spec/function, function-pointers, Function Pointers).)
 
 $(H3 $(LNAME2 delegates, Delegates))
 
-$(P Delegates are an aggregate of two pieces of data, either:)
+$(P Delegates are an aggregate of two pieces of data, a *context pointer* and
+a *function pointer*. A valid delegate holds either:)
+
 * An object reference and a pointer to a non-static
   $(DDSUBLINK spec/class, member-functions, member function).
-* A pointer to a closure and a pointer to a
-  $(DDSUBLINK spec/function, nested, nested function).
-  The object reference forms the `this` pointer when the function is called.)
+  The object reference forms the `this` pointer when the function is called.
+* A pointer to a $(DDSUBLINK spec/function, closures, closure)
+  and a pointer to a $(DDSUBLINK spec/function, nested, nested function).
+
+$(P The $(D .ptr) property of a delegate will return the
+$(I context pointer) value as a $(D void*).
+)
+
+$(P The $(D .funcptr) property of a delegate will return the
+$(I function pointer) value as a function type.
+)
 
 $(P Delegates are declared and initialized similarly to function pointers:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------------
+int func(int);
+int function(int) fp; // fp is a function pointer
 int delegate(int) dg; // dg is a delegate to a function
 
 class OB
@@ -716,9 +728,13 @@ class OB
     int member(int);
 }
 
-void f(OB o)
+void main()
 {
-    dg = &o.member; // dg is a delegate to object o and member function member
+    OB o = new OB;
+
+    fp = &func; // fp points to function `func`
+    dg = &o.member; // dg is a delegate to object `o` and member function `member`
+    dg = (int i) => o.member(i); // dg is a delegate to main's context and a delegate literal
 }
 -------------------
 )
@@ -734,6 +750,11 @@ void f(OB o)
 fp(3);   // call func(3)
 dg(3);   // call o.member(3)
 -------------------
+
+    $(P See:)
+
+    * $(DDSUBLINK spec/function, closures, Delegates and Closures)
+    * $(DDSUBLINK spec/function, method-delegates, Method Delegates)
 
     $(P The equivalent of member function pointers can be constructed
     using $(DDSUBLINK spec/expression, function_literals, anonymous lambda functions):)

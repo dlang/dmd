@@ -3278,7 +3278,8 @@ uint function(uint) fp2 = &def;
 
 $(H3 $(LNAME2 closures, Delegates & Closures))
 
-        $(P A delegate can be set to a non-static nested function:)
+        $(P A $(DDSUBLINK spec/type, delegates, delegate) can be set to a
+        non-static $(RELATIVE_LINK2 nested, nested function):)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
@@ -3312,8 +3313,9 @@ void main()
         $(P Those referenced stack variables that make up the closure
         are allocated on the GC heap, unless:)
 
-        * The closure is passed to a `scope` parameter.
-        * The closure is an initializer for a `scope` variable.
+        * The closure is passed to a $(RELATIVE_LINK2 scope-parameters, `scope` parameter).
+        * The closure is an initializer for a
+          $(DDSUBLINK spec/attribute, scope, `scope` variable).
         * The closure is assigned to a `scope` variable.
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -3347,7 +3349,7 @@ void main()
         a closure and is an error.
         )
 
-$(H4 $(LNAME2 method-delegates, Method Delegates))
+$(H3 $(LNAME2 method-delegates, Method Delegates))
 
         $(P Delegates to non-static nested functions contain two pieces of
         data: the pointer to the stack frame of the lexically enclosing
@@ -3391,14 +3393,6 @@ void main()
 }
 ------
 )
-
-        $(P The $(D .ptr) property of a delegate will return the
-        $(I context pointer) value as a $(D void*).
-        )
-
-        $(P The $(D .funcptr) property of a delegate will return the
-        $(I function pointer) value as a function type.
-        )
 
 $(H3 $(LNAME2 function-delegate-init, Initialization))
 
