@@ -1408,9 +1408,8 @@ $(SECTION3 $(GNAME getBitfieldOffset),
      $(P If the field is a not bitfield, it returns as a `uint` the number 0.
      )
 
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-// OK with -preview=bitfields
 struct S
 {
     int a,b;
@@ -1432,9 +1431,8 @@ $(SECTION3 $(GNAME getBitfieldWidth),
      )
      $(P If the field is a not bitfield, it returns the number of bits in the type.
      )
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-// OK with -preview=bitfields
 struct S
 {
     int a,b;
