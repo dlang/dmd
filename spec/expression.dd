@@ -1871,22 +1871,22 @@ $(GNAME IndexOperation):
         $(I ArgumentList) and `$` appears in that scope only.
     )
 
-    $(P If the $(I PostfixExpression) is an expression of static or
+      * If the $(I PostfixExpression) is an expression of static or
         dynamic array type, the result of the indexing is an lvalue
         of the *i*th element in the array, where `i` is an integer
         evaluated from $(I ArgumentList).
-        If $(I PostfixExpression) is a pointer `p`, the result is
-        `*(p + i)` (see $(RELATIVE_LINK2 pointer_arithmetic, Pointer Arithmetic)).
-    )
+        See $(DDSUBLINK spec/arrays, indexing, array indexing).
 
-    $(P If the base $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
+      * If $(I PostfixExpression) is a $(DDSUBLINK spec/type, pointers, pointer) `p`, the result is
+        `*(p + i)` (see $(RELATIVE_LINK2 pointer_arithmetic, Pointer Arithmetic)).
+
+      * If the base $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
         then the $(I ArgumentList) must consist of only one argument,
         and that must be statically evaluatable to an integral constant.
         That integral constant $(I n) then selects the $(I n)th
         expression in the $(I ValueSeq), which is the result
         of the $(I IndexOperation).
         It is an error if $(I n) is out of bounds of the $(I ValueSeq).
-    )
 
     $(P The index operator can be $(DDSUBLINK spec/operatoroverloading, array, overloaded).
         Using multiple indices in *ArgumentList* is only supported for operator
@@ -1920,6 +1920,7 @@ $(GNAME Slice):
         referencing elements `a[i]` to `a[j-1]` inclusive, where `i`
         and `j` are integers evaluated from the first and second $(I
         AssignExpression) respectively.
+        See $(DDSUBLINK spec/arrays, slicing, array slicing).
 
       * If the base $(I PostfixExpression) is a $(DDSUBLINK spec/type, pointers, pointer) `p`, the result
         will be a dynamic array referencing elements from `p[i]` to `p[j-1]`
