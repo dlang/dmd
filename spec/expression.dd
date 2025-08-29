@@ -423,6 +423,19 @@ $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
         $(LI the left operand of $(D >>>=) does not undergo $(INTEGER_PROMOTIONS) before shifting.)
     )
 
+    $(P Narrowing conversions are allowed. Truncating conversions will be an error.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    void f(short s)
+    {
+        byte b;
+        b += s; // OK, though it may overflow
+        //b += 1.5F; // Deprecated, truncation
+    }
+    ---
+    )
+
     $(P For user-defined types, assignment operator expressions are
         $(DDSUBLINK spec/operatoroverloading, op-assign, overloaded separately) from
         the binary operators. Still the left operand must be an lvalue.
