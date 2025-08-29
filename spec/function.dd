@@ -3379,9 +3379,6 @@ void main()
 {
     Foo f = {7};
     int delegate() dg = &f.get; // bind to an instance of Foo and a method
-    assert(dg.ptr == &f);
-    assert(dg.funcptr == &Foo.get);
-
     int i = add1(dg);
     assert(i == 8);
 

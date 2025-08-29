@@ -717,15 +717,15 @@ $(I function pointer) value as a function type.
 
 $(P Delegates are declared and initialized similarly to function pointers:)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 -------------------
-int func(int);
-int function(int) fp; // fp is a function pointer
-int delegate(int) dg; // dg is a delegate to a function
+void func(int) {}
+void function(int) fp; // fp is a function pointer
+void delegate(int) dg; // dg is a delegate to a function
 
 class OB
 {
-    int member(int);
+    void member(int) {}
 }
 
 void main()
@@ -733,8 +733,12 @@ void main()
     OB o = new OB;
 
     fp = &func; // fp points to function `func`
+
     dg = &o.member; // dg is a delegate to object `o` and member function `member`
-    dg = (int i) => o.member(i); // dg is a delegate to main's context and a delegate literal
+    assert(dg.ptr == cast(void*) o);
+    assert(dg.funcptr == &OB.member);
+
+    dg = (int i) { o.member(i); }; // dg holds a delegate literal with main's execution context
 }
 -------------------
 )
