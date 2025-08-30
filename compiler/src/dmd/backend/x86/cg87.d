@@ -649,7 +649,7 @@ ubyte loadconst(elem* e, int im)
     immutable double[7] dval =
         [0.0,1.0,PI,LOG2T,LOG2E,LOG2,LN2];
 
-    static if (real.sizeof < 10)
+    static if (!is(targ_ldouble == real))
     {
         import dmd.root.longdouble;
         immutable targ_ldouble[7] ldval =
@@ -742,7 +742,7 @@ ubyte loadconst(elem* e, int im)
     // Note that for this purpose, -0 is not regarded as +0,
     // since FLDZ loads a +0
     assert(sz <= zeros.length);
-    zero = (memcmp(p, zeros.ptr, sz) == 0);
+    zero = (memcmp(p, zeros.ptr, sz < targ_ldouble.sizeof ? sz : targ_ldouble.sizeof) == 0);
     if (zero && config.target_cpu >= TARGET_PentiumPro)
         return 0xEE;            // FLDZ is the only one with 1 micro-op
 

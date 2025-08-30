@@ -25,10 +25,13 @@ enum
     CPU_TYPE_X86_64    = cast(cpu_type_t)7 | 0x1000000,
     CPU_TYPE_POWERPC   = cast(cpu_type_t)18,
     CPU_TYPE_POWERPC64 = CPU_TYPE_POWERPC | 0x1000000,
+    CPU_TYPE_ARM       = cast(cpu_type_t)12,
+    CPU_TYPE_ARM64     = CPU_TYPE_ARM | 0x1000000,
 
     // cpusubtype
     CPU_SUBTYPE_POWERPC_ALL = cast(cpu_subtype_t)0,
     CPU_SUBTYPE_I386_ALL    = cast(cpu_subtype_t)3,
+    CPU_SUBTYPE_ARM64_ALL   = cast(cpu_subtype_t)0,
 
     // filetype
     MH_OBJECT       = 1,

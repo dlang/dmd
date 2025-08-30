@@ -486,6 +486,22 @@ extern (C++) struct Target
             }
         }
 
+        // fix up RealProperties if the target real is x87, but host real_t isn't
+        if (realsize - realpad == 10 && RealProperties.mant_dig != 64) {
+            import dmd.root.ctfloat : CTFloat;
+
+            bool isOutOfRange;
+            RealProperties.max = CTFloat.parse("0x1.fffffffffffffffep+16383", isOutOfRange);
+            RealProperties.min_normal = CTFloat.parse("0x1p-16382", isOutOfRange);
+            RealProperties.epsilon = CTFloat.parse("0x1p-63", isOutOfRange);
+            RealProperties.dig = 18;
+            RealProperties.mant_dig = 64;
+            RealProperties.max_exp = 16_384;
+            RealProperties.min_exp = -16_381;
+            RealProperties.max_10_exp = 4932;
+            RealProperties.min_10_exp = -4931;
+        }
+
         c.initialize(params, this);
         cpp.initialize(params, this);
         objc.initialize(params, this);
