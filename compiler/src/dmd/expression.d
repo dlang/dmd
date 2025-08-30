@@ -22,7 +22,7 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
 import dmd.ctfeexpr : isCtfeReferenceValid;
-import dmd.dcast : implicitConvTo;
+import dmd.dcast : implicitConvTo /*toStringExp*/;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dimport;
@@ -51,7 +51,7 @@ import dmd.root.string;
 import dmd.root.utf;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : toHeadMutable, size, mutableOf, unSharedOf;
+import dmd.typesem : toHeadMutable, size /*getFieldIndex*/;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -508,14 +508,6 @@ extern (C++) abstract class Expression : ASTNode
     StringExp toStringExp()
     {
         return null;
-    }
-
-    /***************************************
-     * Return !=0 if expression is an lvalue.
-     */
-    bool isLvalue()
-    {
-        return false;
     }
 
     /****************************************
@@ -1201,11 +1193,6 @@ extern (C++) class IdentifierExp : Expression
         return new IdentifierExp(loc, ident);
     }
 
-    override final bool isLvalue()
-    {
-        return !this.rvalue;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1243,11 +1230,6 @@ extern (C++) final class DsymbolExp : Expression
         super(loc, EXP.dSymbol);
         this.s = s;
         this.hasOverloads = hasOverloads;
-    }
-
-    override bool isLvalue()
-    {
-        return !rvalue;
     }
 
     override void accept(Visitor v)
@@ -1288,12 +1270,6 @@ extern (C++) class ThisExp : Expression
     {
         // `this` is never null (what about structs?)
         return typeof(return)(true);
-    }
-
-    override final bool isLvalue()
-    {
-        // Class `this` should be an rvalue; struct `this` should be an lvalue.
-        return !rvalue && type.toBasetype().ty != Tclass;
     }
 
     override void accept(Visitor v)
@@ -1668,14 +1644,6 @@ extern (C++) final class StringExp : Expression
         // Keep the old behaviour for this refactoring
         // Should probably match language spec instead and check for length
         return typeof(return)(true);
-    }
-
-    override bool isLvalue()
-    {
-        /* string literal is rvalue in default, but
-         * conversion to reference of static array is only allowed.
-         */
-        return !rvalue && (type && type.toBasetype().ty == Tsarray);
     }
 
     /********************************
@@ -2355,11 +2323,6 @@ extern (C++) final class TemplateExp : Expression
         this.fd = fd;
     }
 
-    override bool isLvalue()
-    {
-        return fd !is null;
-    }
-
     override bool checkType()
     {
         error(loc, "%s `%s` has no type", td.kind(), toChars());
@@ -2552,13 +2515,6 @@ extern (C++) final class VarExp : SymbolExp
         return false;
     }
 
-    override bool isLvalue()
-    {
-        if (rvalue || var.storage_class & (STC.lazy_ | STC.rvalue | STC.manifest))
-            return false;
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2578,11 +2534,6 @@ extern (C++) final class OverExp : Expression
         //printf("OverExp(this = %p, '%s')\n", this, var.toChars());
         vars = s;
         type = Type.tvoid;
-    }
-
-    override bool isLvalue()
-    {
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2897,11 +2848,6 @@ extern (C++) class BinAssignExp : BinExp
         super(loc, op, e1, e2);
     }
 
-    override final bool isLvalue()
-    {
-        return !rvalue;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3090,16 +3036,6 @@ extern (C++) final class DotVarExp : UnaExp
         //printf("DotVarExp()\n");
         this.var = var;
         this.hasOverloads = hasOverloads;
-    }
-
-    override bool isLvalue()
-    {
-        if (rvalue)
-            return false;
-        if (e1.op != EXP.structLiteral)
-            return true;
-        auto vd = var.isVarDeclaration();
-        return !(vd && vd.isField());
     }
 
     override void accept(Visitor v)
@@ -3317,24 +3253,6 @@ extern (C++) final class CallExp : UnaExp
         return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments), names ? names.copy() : null);
     }
 
-    override bool isLvalue()
-    {
-        if (rvalue)
-            return false;
-        Type tb = e1.type.toBasetype();
-        if (tb.ty == Tdelegate || tb.ty == Tpointer)
-            tb = tb.nextOf();
-        auto tf = tb.isTypeFunction();
-        if (tf && tf.isRef)
-        {
-            if (auto dve = e1.isDotVarExp())
-                if (dve.var.isCtorDeclaration())
-                    return false;
-            return true; // function returns a reference
-        }
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3441,11 +3359,6 @@ extern (C++) final class PtrExp : UnaExp
     {
         super(loc, EXP.star, e);
         type = t;
-    }
-
-    override bool isLvalue()
-    {
-        return !rvalue;
     }
 
     override void accept(Visitor v)
@@ -3574,16 +3487,6 @@ extern (C++) final class CastExp : UnaExp
         return to ? new CastExp(loc, e1.syntaxCopy(), to.syntaxCopy()) : new CastExp(loc, e1.syntaxCopy(), mod);
     }
 
-    override bool isLvalue()
-    {
-        //printf("e1.type = %s, to.type = %s\n", e1.type.toChars(), to.toChars());
-        if (rvalue || !e1.isLvalue())
-            return false;
-        return (to.ty == Tsarray && (e1.type.ty == Tvector || e1.type.ty == Tsarray)) ||
-            (to.ty == Taarray && e1.type.ty == Taarray) ||
-            e1.type.mutableOf.unSharedOf().equals(to.mutableOf().unSharedOf());
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3633,11 +3536,6 @@ extern (C++) final class VectorArrayExp : UnaExp
         super(loc, EXP.vectorArray, e1);
     }
 
-    override bool isLvalue()
-    {
-        return !rvalue && e1.isLvalue();
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3685,14 +3583,6 @@ extern (C++) final class SliceExp : UnaExp
         auto se = new SliceExp(loc, e1.syntaxCopy(), lwr ? lwr.syntaxCopy() : null, upr ? upr.syntaxCopy() : null);
         se.lengthVar = this.lengthVar; // bug7871
         return se;
-    }
-
-    override bool isLvalue()
-    {
-        /* slice expression is rvalue in default, but
-         * conversion to reference of static array is only allowed.
-         */
-        return !rvalue && (type && type.toBasetype().ty == Tsarray);
     }
 
     override Optional!bool toBool()
@@ -3756,15 +3646,6 @@ extern (C++) final class ArrayExp : UnaExp
         return ae;
     }
 
-    override bool isLvalue()
-    {
-        if (rvalue)
-            return false;
-        if (type && type.toBasetype().ty == Tvoid)
-            return false;
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3814,11 +3695,6 @@ extern (C++) final class CommaExp : BinExp
     {
         this(loc, e1, e2);
         originalExp = oe;
-    }
-
-    override bool isLvalue()
-    {
-        return !rvalue && e2.isLvalue();
     }
 
     override Optional!bool toBool()
@@ -3891,11 +3767,6 @@ extern (C++) final class DelegatePtrExp : UnaExp
         super(loc, EXP.delegatePointer, e1);
     }
 
-    override bool isLvalue()
-    {
-        return !rvalue && e1.isLvalue();
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3912,11 +3783,6 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
     extern (D) this(Loc loc, Expression e1) @safe
     {
         super(loc, EXP.delegateFunctionPointer, e1);
-    }
-
-    override bool isLvalue()
-    {
-        return !rvalue && e1.isLvalue();
     }
 
     override void accept(Visitor v)
@@ -3953,19 +3819,6 @@ extern (C++) final class IndexExp : BinExp
         auto ie = new IndexExp(loc, e1.syntaxCopy(), e2.syntaxCopy());
         ie.lengthVar = this.lengthVar; // bug7871
         return ie;
-    }
-
-    override bool isLvalue()
-    {
-        if (rvalue)
-            return false;
-        auto t1b = e1.type.toBasetype();
-        if (t1b.isTypeAArray() || t1b.isTypeSArray() ||
-            (e1.isIndexExp() && t1b != t1b.isTypeDArray()))
-        {
-            return e1.isLvalue();
-        }
-        return true;
     }
 
     override void accept(Visitor v)
@@ -4034,17 +3887,6 @@ extern (C++) class AssignExp : BinExp
     this(Loc loc, EXP tok, Expression e1, Expression e2) @safe
     {
         super(loc, tok, e1, e2);
-    }
-
-    override final bool isLvalue()
-    {
-        // Array-op 'x[] = y[]' should make an rvalue.
-        // Setting array length 'x.length = v' should make an rvalue.
-        if (e1.op == EXP.slice || e1.op == EXP.arrayLength)
-        {
-            return false;
-        }
-        return !rvalue;
     }
 
     override void accept(Visitor v)
@@ -4767,11 +4609,6 @@ extern (C++) final class CondExp : BinExp
     override CondExp syntaxCopy()
     {
         return new CondExp(loc, econd.syntaxCopy(), e1.syntaxCopy(), e2.syntaxCopy());
-    }
-
-    override bool isLvalue()
-    {
-        return !rvalue && e1.isLvalue() && e2.isLvalue();
     }
 
     override void accept(Visitor v)
