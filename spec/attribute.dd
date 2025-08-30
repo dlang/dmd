@@ -1168,9 +1168,13 @@ struct Bar
 }
 ---
 
-        $(P A function parameter can have a UDA:)
+        $(P A function parameter can have a UDA. Parameters do not inherit UDAs from outside the parameter list.)
 ---
-void f(@(3) int p);
+@2 void f(@3 int p)
+{
+    pragma(msg, __traits(getAttributes, p)); // prints AliasSeq!(3)
+}
+
 ---
 
 $(H3 $(LNAME2 getAttributes, `__traits(getAttributes)`))
@@ -1182,7 +1186,7 @@ $(H3 $(LNAME2 getAttributes, `__traits(getAttributes)`))
 
 ---
 @('c') string s;
-pragma(msg, __traits(getAttributes, s)); // prints tuple('c')
+pragma(msg, __traits(getAttributes, s)); // prints AliasSeq!('c')
 ---
 
         $(P
@@ -1202,7 +1206,7 @@ enum e = 7;
 
 alias TP = __traits(getAttributes, foo);
 
-pragma(msg, TP); // prints tuple(3, 4, 7, (SSS))
+pragma(msg, TP); // prints AliasSeq!(3, 4, 7, (SSS))
 pragma(msg, TP[2]); // prints 7
 ---
 )
@@ -1220,8 +1224,8 @@ TP[3] a; // a is declared as an SSS
         )
 
 ---
-pragma(msg, __traits(getAttributes, a)); // prints tuple()
-pragma(msg, __traits(getAttributes, typeof(a))); // prints tuple("hello")
+pragma(msg, __traits(getAttributes, a)); // prints AliasSeq!()
+pragma(msg, __traits(getAttributes, typeof(a))); // prints AliasSeq!("hello")
 ---
 
 $(H3 $(LNAME2 uda-usage, Usage))
@@ -1262,17 +1266,17 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 }
 
 pragma(msg, __traits(getAttributes, Outer!int.S));
-// prints tuple("foo")
+// prints AliasSeq!("foo")
 pragma(msg, __traits(getAttributes, Outer!int.S.x));
-// prints tuple()
+// prints AliasSeq!()
 pragma(msg, __traits(getAttributes, Outer!int.y));
-// prints tuple("foo")
+// prints AliasSeq!("foo")
 pragma(msg, __traits(getAttributes, Outer!int.fun));
-// prints tuple("foo")
+// prints AliasSeq!("foo")
 pragma(msg, __traits(getAttributes, Outer!int.Inner));
-// prints tuple("foo", "bar")
+// prints AliasSeq!("foo", "bar")
 pragma(msg, __traits(getAttributes, Outer!int.Inner!int.z));
-// prints tuple("foo", "bar")
+// prints AliasSeq!("foo", "bar")
 ---
 )
 
