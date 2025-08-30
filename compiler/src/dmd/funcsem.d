@@ -336,6 +336,9 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         sc = sc.push();
         sc.stc |= funcdecl.storage_class & (STC.disable | STC.deprecated_); // forward to function type
 
+        // Parameters don't inherit UDAs from outside, https://github.com/dlang/dmd/issues/19788
+        sc.userAttribDecl = null;
+
         if (sc.func)
         {
             /* If the nesting parent is pure without inference,
@@ -462,6 +465,16 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         funcdecl.type = funcdecl.type.addSTC(stc);
 
         funcdecl.type = funcdecl.type.typeSemantic(funcdecl.loc, sc);
+
+        // semantic for parameters' UDAs
+        if (auto f = getFunctionType(funcdecl))
+            foreach (i, param; f.parameterList)
+            {
+                sc.userAttribDecl = null;
+                if (param && param.userAttribDecl)
+                    param.userAttribDecl.dsymbolSemantic(sc);
+            }
+
         sc = sc.pop();
     }
 
@@ -695,13 +708,6 @@ Ldone:
     }
 
     assert(funcdecl.type.ty != Terror || funcdecl.errors);
-
-    // semantic for parameters' UDAs
-    foreach (i, param; f.parameterList)
-    {
-        if (param && param.userAttribDecl)
-            param.userAttribDecl.dsymbolSemantic(sc);
-    }
 }
 
 /**
