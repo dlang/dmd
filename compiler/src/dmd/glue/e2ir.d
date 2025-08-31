@@ -219,16 +219,20 @@ bool type_zeroCopy(type* t)
 
 Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
 {
-    //printf("toStringSymbol() %p\n", stringTab);
+    //printf("toStringSymbol() %s\n", str);
     auto sv = stringTab.update(str, len * sz);
     if (sv.value)
         return sv.value;
 
-    Symbol* si;
+    if (target.isAArch64)
+    {
+        /* Generate string symbol of the form l_str.N
+         */
+    }
 
     if (target.os != Target.OS.Windows)
     {
-        si = out_string_literal(str, cast(uint)len, cast(uint)sz);
+        Symbol* si = out_string_literal(str, cast(uint)len, cast(uint)sz);
         sv.value = si;
         return sv.value;
     }
@@ -282,6 +286,7 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
         }
     }
 
+    Symbol* si;
     si = symbol_calloc(buf[]);
     si.Sclass = SC.comdat;
     si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
@@ -1146,14 +1151,22 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (tb.ty == Tpointer)
         {
-            e = el_calloc();
-            e.Eoper = OPstring;
-            // freed in el_free
-            const len = cast(size_t)((se.numberOfCodeUnits() + 1) * se.sz);
-            e.Vstring = cast(char *)mem_malloc2(cast(uint) len);
-            se.writeTo(e.Vstring, true);
-            e.Vstrlen = len;
-            e.Ety = TYnptr;
+            if (config.objfmt == OBJ_MACH && target.isAArch64)
+            {
+                Symbol* si = toStringSymbol(se);
+                e = el_ptr(si);
+            }
+            else
+            {
+                e = el_calloc();
+                e.Eoper = OPstring;
+                // freed in el_free
+                const len = cast(size_t)((se.numberOfCodeUnits() + 1) * se.sz);
+                e.Vstring = cast(char *)mem_malloc2(cast(uint) len);
+                se.writeTo(e.Vstring, true);
+                e.Vstrlen = len;
+                e.Ety = TYnptr;
+            }
         }
         else
         {
@@ -7070,9 +7083,9 @@ elem* constructVa_start(elem* e)
  * If argument to a function should use OPstrpar,
  * fix it so it does and return it.
  * Params:
- *	e = argument to be passed to a function
+ *      e = argument to be passed to a function
  * Returns:
- *	`e` or `e` converted to an OPstrpar
+ *      `e` or `e` converted to an OPstrpar
  */
 private
 elem* useOPstrpar(elem* e)

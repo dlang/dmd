@@ -7,6 +7,8 @@
 module dmd.backend.mach;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_mach.html
+// location of system .h files on Mac: xcrun --show-sdk-path
+// location of machine.h: usr/include/mach
 
 @safe:
 
@@ -17,17 +19,22 @@ alias vm_prot_t = int;
 enum
 {
     // magic
-    MH_MAGIC = 0xfeedface,
-    MH_CIGAM = 0xcefaedfe,
+    MH_MAGIC    = 0xfeedface,
+    MH_MAGIC_64 = 0xfeedfacf,
+    MH_CIGAM    = 0xcefaedfe,
+    MH_CIGAM_64 = 0xcffaedfe,
 
     // cputype
-    CPU_TYPE_I386      =  cast(cpu_type_t)7,
-    CPU_TYPE_X86_64    = cast(cpu_type_t)7 | 0x1000000,
+    CPU_TYPE_I386      = cast(cpu_type_t)7,
+    CPU_TYPE_X86_64    = cast(cpu_type_t)7 | 0x100_0000,
     CPU_TYPE_POWERPC   = cast(cpu_type_t)18,
-    CPU_TYPE_POWERPC64 = CPU_TYPE_POWERPC | 0x1000000,
+    CPU_TYPE_POWERPC64 = CPU_TYPE_POWERPC | 0x100_0000,
+    CPU_TYPE_ARM       = cast(cpu_type_t)12,
+    CPU_TYPE_ARM64     = CPU_TYPE_ARM | 0x100_0000,
 
     // cpusubtype
     CPU_SUBTYPE_POWERPC_ALL = cast(cpu_subtype_t)0,
+    CPU_SUBTYPE_ARM64_ALL   = cast(cpu_subtype_t)0,
     CPU_SUBTYPE_I386_ALL    = cast(cpu_subtype_t)3,
 
     // filetype
@@ -52,9 +59,25 @@ enum
     MH_ALLMODSBOUND            = 0x1000,
     MH_CANONICAL               = 0x4000,
     MH_SPLIT_SEGS              = 0x20,
+    MM_LAZY_INIT               = 0x40,
     MH_FORCE_FLAT              = 0x100,
     MH_SUBSECTIONS_VIA_SYMBOLS = 0x2000,
     MH_NOMULTIDEFS             = 0x200,
+    MH_WEAK_DEFINES            = 0x8000,
+    MH_BINDS_TO_WEAK           = 0x10000,
+    MH_ALLOW_STACK_EXECUTION   = 0x20000,
+    MH_ROOT_SAFE               = 0x40000,
+    MH_SETUID_SAFE             = 0x80000,
+    MH_NO_REEXPORTED_DYLIBS    = 0x100000,
+    MH_PIE                     = 0x200000,
+    MH_DEAD_STRIPPABLE_DYLIB   = 0x400000,
+    MH_HAS_TLV_DESCRIPTORS     = 0x800000,
+    MH_NO_HEAP_EXECUTION       = 0x1000000,
+    MH_APP_EXTENSION_SAFE      = 0x2000000,
+    MH_NLIST_OUTOFSYNC_WITH_DYLDINFO = 0x4000000,
+    MH_SIM_SUPPORT             = 0x8000000,
+    MH_IMPLICIT_PAGEZERO       = 0x10000000,
+    MH_DYLIB_IN_CACHE          = 0x80000000,
 }
 
 struct mach_header
@@ -66,13 +89,6 @@ struct mach_header
     uint ncmds;
     uint sizeofcmds;
     uint flags;
-}
-
-enum
-{
-    // magic
-    MH_MAGIC_64 = 0xfeedfacf,
-    MH_CIGAM_64 = 0xcffaedfe,
 }
 
 struct mach_header_64
@@ -92,8 +108,27 @@ enum
     // cmd
     LC_SEGMENT      = 1,
     LC_SYMTAB       = 2,
+    LC_SYMSEG       = 3,
+    LC_THREAD       = 4,
+    LC_UNIXTHREAD   = 5,
+    LC_LOADFMVLIB   = 6,
+    LC_IDFVMLIB     = 7,
+    LC_IDENT        = 8,
+    LC_FVMFILE      = 9,
+    LC_PREPAGE      = 10,
     LC_DYSYMTAB     = 11,
-    LC_SEGMENT_64   = 0x19,
+    LC_LOAD_DYLIB   = 12,
+    LC_ID_DYLIB     = 13,
+    LC_ID_DYLINKER  = 15,
+    LC_PREBOUND_DYLIB = 0x10,
+    LC_ROUTINES       = 0x11,
+    LC_SUB_FRAMEWORK  = 0x12,
+    LC_SUB_UMBRELLA   = 0x13,
+    LC_SUB_CLIENT     = 0x14,
+    LC_SUB_LIBRARY    = 0x15,
+    LC_TWOLEVEL_HINTS = 0x16,
+    LC_PREBIND_CKSUM  = 0x17,
+    LC_SEGMENT_64     = 0x19,
 
     /// Build for MacOSX min OS version.
     LC_VERSION_MIN_MACOSX = 0x24,
@@ -368,6 +403,20 @@ enum
     X86_64_RELOC_SIGNED_2               = 7,
     X86_64_RELOC_SIGNED_4               = 8,
     X86_64_RELOC_TLV                    = 9, // for thread local variables
+
+    // for ARM64
+    ARM64_RELOC_UNSIGNED                = 0,
+    ARM64_RELOC_SUBTRACTOR              = 1,
+    ARM64_RELOC_BRANCHY26               = 2,
+    ARM64_RELOC_PAGE21                  = 3,
+    ARM64_RELOC_PAGEOFF12               = 4,
+    ARM64_RELOC_GOT_LOAD_PAGE21         = 5,
+    ARM64_RELOC_GOT_LOAD_PAGEOFF12      = 6,
+    ARM64_RELOC_POINTER_TO_GOT          = 7,
+    ARM64_RELOC_TLVP_LOAD_PAGE21        = 8,
+    ARM64_RELOC_TLVP_LOAD_PAGEOFF12     = 9,
+    ARM64_RELOC_ADDEND                  = 10,
+    ARM64_RELOC_AUTHENTICATED_POINTER   = 11,
 }
 
 struct relocation_info
