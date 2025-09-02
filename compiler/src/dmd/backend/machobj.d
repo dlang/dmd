@@ -957,11 +957,24 @@ void MachObj_term(const(char)[] objfilename)
                     {
                         if (AArch64)
                         {
+                            //symbol_print(*s);
                             switch (s.Sclass)
                             {
                                 case SC.extern_:
-                                    rel.r_type = ARM64_RELOC_BRANCHY26;
-                                    rel.r_pcrel = 1;
+                                case SC.comdat:
+                                case SC.comdef:
+                                case SC.static_:
+                                    if (s.Sfl == FL.func)
+                                    {
+                                        rel.r_type = ARM64_RELOC_BRANCHY26;
+                                        rel.r_pcrel = 1;
+                                    }
+                                    else
+                                    {
+                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                        rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
+                                    }
+                                    assert(s.Sfl != FL.tlsdata);
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = s.Sxtrnnum;
                                     rel.r_length = 2;
@@ -971,8 +984,11 @@ void MachObj_term(const(char)[] objfilename)
                                     nreloc++;
                                     break;
 
-                                case SC.static_:
-                                    rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                case SC.global:
+                                    rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                    if (s.Sfl == FL.tlsdata)
+                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_TLVP_LOAD_PAGEOFF12 : ARM64_RELOC_TLVP_LOAD_PAGE21;
+
                                     rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = s.Sxtrnnum;
@@ -984,6 +1000,7 @@ void MachObj_term(const(char)[] objfilename)
                                     break;
 
                                 case SC.locstat:
+                                    assert(s.Sfl != FL.tlsdata);
                                     rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
                                     rel.r_address = cast(int)r.offset;
@@ -996,6 +1013,7 @@ void MachObj_term(const(char)[] objfilename)
                                     break;
 
                                 default:
+                                    symbol_print(*s);
                                     assert(0);
                             }
 
@@ -1121,6 +1139,7 @@ void MachObj_term(const(char)[] objfilename)
                 }
                 else if (r.rtype == RELaddr && pseg.isCode())
                 {
+                    assert(!AArch64);   // AArch64 BUG
                     srel.r_scattered = 1;
 
                     srel.r_address = cast(uint)r.offset;
@@ -1192,6 +1211,7 @@ void MachObj_term(const(char)[] objfilename)
                 }
                 else
                 {
+                    assert(!AArch64);   // AArch64 BUG
                     rel.r_address = cast(int)r.offset;
                     rel.r_symbolnum = r.targseg;
                     rel.r_pcrel = (r.rtype == RELaddr) ? 0 : 1;
@@ -2717,8 +2737,10 @@ int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_
     int save = cast(int)buf.length();
     buf.position(cast(size_t)offset, retsize);
     printf("offset = x%llx, val = x%llx\n", offset, val);
-    assert(retsize == 4); // only 32 bit fixups supported
-    buf.write32(cast(int)val);
+    if (retsize == 4)
+        buf.write32(cast(int)val);
+    else
+        buf.write64(val);
     if (save > offset + retsize)
         buf.setsize(save);
 
