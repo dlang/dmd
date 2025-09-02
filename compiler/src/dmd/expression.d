@@ -1627,40 +1627,39 @@ extern (C++) final class StringExp : Expression
 
         assert(this.sz == se2.sz, "Comparing string expressions of different sizes");
         //printf("sz = %d, len1 = %d, len2 = %d\n", sz, cast(int)len1, cast(int)len2);
-        if (len1 == len2)
+        if (len1 != len2)
+            return cast(int)(len1 - len2);
+        switch (sz)
         {
-            switch (sz)
-            {
-            case 1:
-                return memcmp(string, se2.string, len1);
+        case 1:
+            return memcmp(string, se2.string, len1);
 
-            case 2:
+        case 2:
+            {
+                wchar* s1 = cast(wchar*)string;
+                wchar* s2 = cast(wchar*)se2.string;
+                foreach (u; 0 .. len)
                 {
-                    wchar* s1 = cast(wchar*)string;
-                    wchar* s2 = cast(wchar*)se2.string;
-                    foreach (u; 0 .. len)
-                    {
-                        if (s1[u] != s2[u])
-                            return s1[u] - s2[u];
-                    }
+                    if (s1[u] != s2[u])
+                        return s1[u] - s2[u];
                 }
-                break;
-            case 4:
-                {
-                    dchar* s1 = cast(dchar*)string;
-                    dchar* s2 = cast(dchar*)se2.string;
-                    foreach (u; 0 .. len)
-                    {
-                        if (s1[u] != s2[u])
-                            return s1[u] - s2[u];
-                    }
-                }
-                break;
-            default:
-                assert(0);
             }
+            break;
+        case 4:
+            {
+                dchar* s1 = cast(dchar*)string;
+                dchar* s2 = cast(dchar*)se2.string;
+                foreach (u; 0 .. len)
+                {
+                    if (s1[u] != s2[u])
+                        return s1[u] - s2[u];
+                }
+            }
+            break;
+        default:
+            assert(0);
         }
-        return cast(int)(len1 - len2);
+        return 0;
     }
 
     override Optional!bool toBool()
