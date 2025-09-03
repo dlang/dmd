@@ -642,6 +642,10 @@ extern (C++) struct Target
         {
             tvalist = Type.tchar.pointerTo();
         }
+        else if (os == Target.OS.OSX && isAArch64)
+        {
+            tvalist = Type.tchar.pointerTo();
+        }
         else if (os & Target.OS.Posix)
         {
             if (isX86_64 || isAArch64)
