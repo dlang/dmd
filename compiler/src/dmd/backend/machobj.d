@@ -1211,7 +1211,35 @@ void MachObj_term(const(char)[] objfilename)
                 }
                 else
                 {
-                    assert(!AArch64);   // AArch64 BUG
+                    //printf("r.rtype: %d r.targseg: %d r.offset: x%llx\n", r.rtype, r.targseg, cast(long)r.offset);
+                    if (AArch64)
+                    {
+                        rel.r_address = cast(int)r.offset;
+                        rel.r_symbolnum = r.targseg;
+                        rel.r_pcrel = (r.rtype == RELaddr) ? 0 : 1;
+                        rel.r_length = 2;
+                        rel.r_extern = 0;
+                        rel.r_type = ARM64_RELOC_UNSIGNED;
+                        rel.r_length = 3;
+
+                        fobjbuf.write(&rel, rel.sizeof);
+                        foffset += rel.sizeof;
+                        nreloc++;
+
+                        int32_t* p64 = patchAddr64(seg, r.offset);
+                        if (rel.r_pcrel)
+                            // Relative address
+                            patch(pseg, r.offset, r.targseg, 0);
+                        else
+                        {   // Absolute address; add in addr of start of targ seg
+//printf("*p = x%x, targ.addr = x%x\n", *p64, cast(int)SecHdrTab64[SegData[r.targseg].SDshtidx].addr);
+//printf("pseg = x%x, r.offset = x%x\n", cast(int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
+                            *p64 += SecHdrTab64[SegData[r.targseg].SDshtidx].addr;
+                            //*p64 -= SecHdrTab64[pseg.SDshtidx].addr;
+                        }
+                        //printf("%d:x%04x before = x%04llx, after = x%04llx pcrel = %d\n", seg, r.offset, before, *p64, rel.r_pcrel);
+                        continue;
+                    }
                     rel.r_address = cast(int)r.offset;
                     rel.r_symbolnum = r.targseg;
                     rel.r_pcrel = (r.rtype == RELaddr) ? 0 : 1;
@@ -2697,7 +2725,7 @@ int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_
         int flags)
 {
     int retsize = (flags & CFoffset64) ? 8 : 4;
-    if (1 || log)
+    if (log)
     {
         debug printf("\nMachObj_reftoidentAArch64('%s' seg %d, offset x%llx, val x%llx, flags x%x) ",
                      s.Sident.ptr,seg,cast(ulong)offset,cast(ulong)val,flags);
@@ -2736,7 +2764,7 @@ int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_
     OutBuffer* buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     buf.position(cast(size_t)offset, retsize);
-    printf("offset = x%llx, val = x%llx\n", offset, val);
+    //printf("offset = x%llx, val = x%llx\n", offset, val);
     if (retsize == 4)
         buf.write32(cast(int)val);
     else
