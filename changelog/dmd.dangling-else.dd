@@ -6,6 +6,6 @@ int i, j;
 if (i)
     if (j)
         return 1;
-    else    // Error: else is dangling, add { } after condition at line 2
+    else    // Error: else is dangling, add { } after condition `if (i)`
         return 2;
 ```
