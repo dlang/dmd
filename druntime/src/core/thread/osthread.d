@@ -394,6 +394,21 @@ class Thread : ThreadBase
         }
     }
 
+    override final void[] savedRegisters() nothrow @nogc
+    {
+        version (Windows)
+        {
+            return m_reg;
+        }
+        else version (Darwin)
+        {
+            return m_reg;
+        }
+        else
+        {
+            return null;
+        }
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // General Actions
@@ -1458,15 +1473,6 @@ in (fn)
 
     fn(sp);
 }
-
-version (Windows)
-private extern (D) void scanWindowsOnly(scope ScanAllThreadsTypeFn scan, ThreadBase _t) nothrow
-{
-    auto t = _t.toThread;
-
-    scan( ScanType.stack, t.m_reg.ptr, t.m_reg.ptr + t.m_reg.length );
-}
-
 
 /**
  * Returns the process ID of the calling process, which is guaranteed to be
