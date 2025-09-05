@@ -369,6 +369,7 @@ SRCS=\
 	src\core\sys\solaris\libelf.d \
 	src\core\sys\solaris\link.d \
 	src\core\sys\solaris\stdlib.d \
+	src\core\sys\solaris\thread.d \
 	src\core\sys\solaris\time.d \
 	src\core\sys\solaris\sys\elf.d \
 	src\core\sys\solaris\sys\elf_386.d \

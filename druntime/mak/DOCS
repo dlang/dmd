@@ -329,6 +329,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_solaris_execinfo.html \
 	$(DOCDIR)\core_sys_solaris_libelf.html \
 	$(DOCDIR)\core_sys_solaris_link.html \
+	$(DOCDIR)\core_sys_solaris_thread.html \
 	$(DOCDIR)\core_sys_solaris_time.html \
 	\
 	$(DOCDIR)\core_sys_solaris_sys_elf.html \

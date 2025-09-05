@@ -125,6 +125,7 @@ version (Solaris)
     import core.sys.posix.sys.wait : idtype_t;
     import core.sys.solaris.sys.priocntl : PC_CLNULL, PC_GETCLINFO, PC_GETPARMS, PC_SETPARMS, pcinfo_t, pcparms_t, priocntl;
     import core.sys.solaris.sys.types : P_MYID, pri_t;
+    import core.sys.solaris.thread : thr_stksegment;
 }
 
 version (GNU)
@@ -1531,7 +1532,6 @@ extern (C) @nogc nothrow
 
     version (PThread_Getattr_NP)  int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
     version (PThread_Attr_Get_NP) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
-    version (Solaris) int thr_stksegment(stack_t* stk);
     version (OpenBSD) int pthread_stackseg_np(pthread_t thread, stack_t* sinfo);
 }
 
