@@ -23,7 +23,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : include, toAlias;
 import dmd.errorsink;
 import dmd.expression;
-import dmd.expressionsem : errorSupplementalInferredAttr;
+import dmd.expressionsem : errorSupplementalInferredAttr, isLvalue;
 import dmd.func;
 import dmd.globals;
 import dmd.init;
@@ -188,7 +188,7 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
             Type t;
             if (ae.type.toBasetype().ty == Tsarray)
             {
-                if (!ae.e2.isLvalue())
+                if (!isLvalue(ae.e2))
                     return;
                 t = ae.type;
             }

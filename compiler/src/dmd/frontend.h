@@ -2398,7 +2398,6 @@ public:
     virtual _d_real toImaginary();
     virtual complex_t toComplex();
     virtual StringExp* toStringExp();
-    virtual bool isLvalue();
     virtual bool checkType();
     Expression* deref();
     int32_t isConst();
@@ -2536,7 +2535,6 @@ public:
 class BinAssignExp : public BinExp
 {
 public:
-    bool isLvalue() final override;
     void accept(Visitor* v) override;
 };
 
@@ -2603,7 +2601,6 @@ public:
     VarDeclaration* lengthVar;
     bool modifiable;
     ArrayExp* syntaxCopy() override;
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
@@ -2658,7 +2655,6 @@ class AssignExp : public BinExp
 public:
     MemorySet memset;
     AssignExp(Loc loc, EXP tok, Expression* e1, Expression* e2);
-    bool isLvalue() final override;
     void accept(Visitor* v) override;
 };
 
@@ -2703,7 +2699,6 @@ public:
     static CallExp* create(Loc loc, Expression* e, Expression* earg1);
     static CallExp* create(Loc loc, FuncDeclaration* fd, Expression* earg1);
     CallExp* syntaxCopy() override;
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
@@ -2715,7 +2710,6 @@ public:
     bool trusted;
     Expression* lowering;
     CastExp* syntaxCopy() override;
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
@@ -2773,7 +2767,6 @@ public:
     const bool isGenerated;
     bool allowCommaExp;
     Expression* originalExp;
-    bool isLvalue() override;
     Optional<bool > toBool() override;
     void accept(Visitor* v) override;
     static void allow(Expression* exp);
@@ -2807,7 +2800,6 @@ class CondExp final : public BinExp
 public:
     Expression* econd;
     CondExp* syntaxCopy() override;
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
@@ -2844,14 +2836,12 @@ public:
 class DelegateFuncptrExp final : public UnaExp
 {
 public:
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
 class DelegatePtrExp final : public UnaExp
 {
 public:
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
@@ -2879,7 +2869,6 @@ class IdentifierExp : public Expression
 public:
     Identifier* ident;
     static IdentifierExp* create(Loc loc, Identifier* ident);
-    bool isLvalue() final override;
     void accept(Visitor* v) override;
 };
 
@@ -2935,7 +2924,6 @@ class DotVarExp final : public UnaExp
 public:
     Declaration* var;
     bool hasOverloads;
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
@@ -2944,7 +2932,6 @@ class DsymbolExp final : public Expression
 public:
     Dsymbol* s;
     bool hasOverloads;
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
@@ -3259,7 +3246,6 @@ public:
     bool modifiable;
     bool indexIsInBounds;
     IndexExp* syntaxCopy() override;
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
@@ -3459,7 +3445,6 @@ class OverExp final : public Expression
 {
 public:
     OverloadSet* vars;
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
@@ -3496,7 +3481,6 @@ public:
 class PtrExp final : public UnaExp
 {
 public:
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
@@ -3591,7 +3575,6 @@ private:
     uint8_t bitFields;
 public:
     SliceExp* syntaxCopy() override;
-    bool isLvalue() override;
     Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
@@ -3625,7 +3608,6 @@ public:
     StringExp* toStringExp() override;
     int32_t compare(const StringExp* const se2) const;
     Optional<bool > toBool() override;
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
@@ -3693,7 +3675,6 @@ public:
     ThisExp(Loc loc, const EXP tok);
     ThisExp* syntaxCopy() override;
     Optional<bool > toBool() override;
-    bool isLvalue() final override;
     void accept(Visitor* v) override;
 };
 
@@ -3725,7 +3706,6 @@ class TemplateExp final : public Expression
 public:
     TemplateDeclaration* td;
     FuncDeclaration* fd;
-    bool isLvalue() override;
     bool checkType() override;
     void accept(Visitor* v) override;
 };
@@ -3803,15 +3783,13 @@ class VarExp final : public SymbolExp
 public:
     bool delegateWasExtracted;
     static VarExp* create(Loc loc, Declaration* var, bool hasOverloads = true);
-    bool equals(const Expression* const e) const override;
-    bool isLvalue() override;
+    bool equals(const RootObject* const o) const override;
     void accept(Visitor* v) override;
 };
 
 class VectorArrayExp final : public UnaExp
 {
 public:
-    bool isLvalue() override;
     void accept(Visitor* v) override;
 };
 
