@@ -251,11 +251,13 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         }
         i.type = t;
         length = 0;
+        bool hasIndices = false;
         for (size_t j = 0; j < i.index.length; j++) // don't replace with foreach; j is modified
         {
             Expression idx = i.index[j];
             if (idx)
             {
+                hasIndices = true;
                 sc = sc.startCTFE();
                 idx = idx.expressionSemantic(sc);
                 sc = sc.endCTFE();
