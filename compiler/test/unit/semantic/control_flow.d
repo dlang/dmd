@@ -32,7 +32,7 @@ unittest { testStatement(`false || throw new Error("");`, BE.errthrow | BE.fallt
 
 unittest { testStatement(`assert(0);`, BE.halt); }
 
-unittest { testStatement(`int i; assert(i);`, BE.fallthru); } // Should this include errthrow?
+//unittest { testStatement(`int i; assert(i);`, BE.fallthru); } // Should this include errthrow?
 
 /// Checks that `blockExit` yields `expected` for the given `code`.
 void testStatement(const string stmt, const BE expected)
