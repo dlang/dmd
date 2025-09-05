@@ -334,12 +334,10 @@ Symbol* toStringSymbol(StringExp se)
 
 void toTraceGC(ref IRState irs, elem* e, Loc loc)
 {
-    static immutable RTLSYM[2][7] map =
+    static immutable RTLSYM[2][5] map =
     [
-
         [ RTLSYM.CALLFINALIZER, RTLSYM.TRACECALLFINALIZER ],
         [ RTLSYM.CALLINTERFACEFINALIZER, RTLSYM.TRACECALLINTERFACEFINALIZER ],
-
 
         [ RTLSYM.ARRAYAPPENDCD, RTLSYM.TRACEARRAYAPPENDCD ],
         [ RTLSYM.ARRAYAPPENDWD, RTLSYM.TRACEARRAYAPPENDWD ],
