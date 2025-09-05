@@ -637,7 +637,7 @@ union in6_addr
 }
 
 
-enum in6_addr IN6ADDR_ANY = { s6_addr8: [0] };
+enum in6_addr IN6ADDR_ANY = { s6_addr8: 0 };
 enum in6_addr IN6ADDR_LOOPBACK = { s6_addr8: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] };
 //alias IN6ADDR_ANY_INIT = IN6ADDR_ANY;
 //alias IN6ADDR_LOOPBACK_INIT = IN6ADDR_LOOPBACK;
