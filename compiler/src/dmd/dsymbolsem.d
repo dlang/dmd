@@ -3418,6 +3418,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         sd.inv = buildInv(sd, sc2);
 
+        sd.rtInfoScope = sc2;
+        sc2.setNoFree();
+
         sd.semanticRun = PASS.semanticdone;
         if (log) printf("-StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", sd, sd.toPrettyChars(), sd.sizeok);
 
@@ -3808,6 +3811,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             return;
         }
+        cldec.rtInfoScope = sc;
+        sc.setNoFree();
+
         cldec.semanticRun = PASS.semantic;
         checkGNUABITag(cldec, sc.linkage);
         checkMustUseReserved(cldec);
