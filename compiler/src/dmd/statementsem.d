@@ -4636,7 +4636,13 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             decls.append(Dsymbol.arraySyntaxCopy(dbody));
         else
         {
-            stmts.push(fs._body.syntaxCopy());
+            if (fs._body)
+                stmts.push(fs._body.syntaxCopy());
+            else
+            {
+                auto a = new Statements();
+                stmts.push(new CompoundStatement(Loc.initial, a));
+            }
             s = new CompoundStatement(loc, stmts);
         }
 
