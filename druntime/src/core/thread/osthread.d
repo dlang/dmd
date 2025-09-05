@@ -358,6 +358,41 @@ class Thread : ThreadBase
             static assert(false, "Architecture not supported." );
         }
     }
+    else version (Darwin)
+    {
+        version (X86)
+        {
+            uint[8]         m_reg; // edi,esi,ebp,esp,ebx,edx,ecx,eax
+        }
+        else version (X86_64)
+        {
+            ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
+                                   // r8,r9,r10,r11,r12,r13,r14,r15
+        }
+        else version (AArch64)
+        {
+            ulong[33]       m_reg; // x0-x31, pc
+        }
+        else version (ARM)
+        {
+            uint[16]        m_reg; // r0-r15
+        }
+        else version (PPC)
+        {
+            // Make the assumption that we only care about non-fp and non-vr regs.
+            // ??? : it seems plausible that a valid address can be copied into a VR.
+            uint[32]        m_reg; // r0-31
+        }
+        else version (PPC64)
+        {
+            // As above.
+            ulong[32]       m_reg; // r0-31
+        }
+        else
+        {
+            static assert(false, "Architecture not supported." );
+        }
+    }
 
 
     ///////////////////////////////////////////////////////////////////////////
@@ -1664,6 +1699,15 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
                 onThreadError( "Unable to load thread state" );
             if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) state.esp;
+            // eax,ebx,ecx,edx,edi,esi,ebp,esp
+            t.m_reg[0] = state.eax;
+            t.m_reg[1] = state.ebx;
+            t.m_reg[2] = state.ecx;
+            t.m_reg[3] = state.edx;
+            t.m_reg[4] = state.edi;
+            t.m_reg[5] = state.esi;
+            t.m_reg[6] = state.ebp;
+            t.m_reg[7] = state.esp;
         }
         else version (X86_64)
         {
@@ -1674,6 +1718,24 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
                 onThreadError( "Unable to load thread state" );
             if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) state.rsp;
+            // rax,rbx,rcx,rdx,rdi,rsi,rbp,rsp
+            t.m_reg[0] = state.rax;
+            t.m_reg[1] = state.rbx;
+            t.m_reg[2] = state.rcx;
+            t.m_reg[3] = state.rdx;
+            t.m_reg[4] = state.rdi;
+            t.m_reg[5] = state.rsi;
+            t.m_reg[6] = state.rbp;
+            t.m_reg[7] = state.rsp;
+            // r8,r9,r10,r11,r12,r13,r14,r15
+            t.m_reg[8]  = state.r8;
+            t.m_reg[9]  = state.r9;
+            t.m_reg[10] = state.r10;
+            t.m_reg[11] = state.r11;
+            t.m_reg[12] = state.r12;
+            t.m_reg[13] = state.r13;
+            t.m_reg[14] = state.r14;
+            t.m_reg[15] = state.r15;
         }
         else version (AArch64)
         {
@@ -1687,6 +1749,12 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             //printf("state count %d (expect %d)\n", count ,ARM_THREAD_STATE64_COUNT);
             if (!t.m_lock)
                 t.m_curr.tstack = cast(void*) state.sp;
+
+            t.m_reg[0..29] = state.x;  // x0-x28
+            t.m_reg[29] = state.fp;    // x29
+            t.m_reg[30] = state.lr;    // x30
+            t.m_reg[31] = state.sp;    // x31
+            t.m_reg[32] = state.pc;
         }
         else version (ARM)
         {
@@ -1702,6 +1770,11 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             //printf("state count %d (expect %d)\n", count ,ARM_THREAD_STATE32_COUNT);
             if (!t.m_lock)
                 t.m_curr.tstack = cast(void*) state.sp;
+
+            t.m_reg[0..13] = state.r;  // r0 - r13
+            t.m_reg[13] = state.sp;
+            t.m_reg[14] = state.lr;
+            t.m_reg[15] = state.pc;
         }
         else version (PPC)
         {
@@ -1712,6 +1785,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
                 onThreadError("Unable to load thread state");
             if (!t.m_lock)
                 t.m_curr.tstack = cast(void*) state.r[1];
+            t.m_reg[] = state.r[];
         }
         else version (PPC64)
         {
@@ -1722,6 +1796,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
                 onThreadError("Unable to load thread state");
             if (!t.m_lock)
                 t.m_curr.tstack = cast(void*) state.r[1];
+            t.m_reg[] = state.r[];
         }
         else
         {
@@ -1881,6 +1956,7 @@ private extern (D) void resume(ThreadBase _t) nothrow @nogc
 
         if ( !t.m_lock )
             t.m_curr.tstack = t.m_curr.bstack;
+        t.m_reg[0 .. $] = 0;
     }
     else version (Posix)
     {
