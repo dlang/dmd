@@ -149,6 +149,7 @@ typedef unsigned long long __uint64_t;
 #define __unaligned
 #define _NO_CRT_STDIO_INLINE 1
 #define _stdcall __stdcall
+#define _declspec __declspec
 
 // This header disables the Windows API Annotations macros
 // Need to include sal.h to get the pragma once to prevent macro redefinition.
