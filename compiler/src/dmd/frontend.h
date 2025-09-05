@@ -6374,6 +6374,7 @@ public:
     DtorDeclaration* tidtor;
     DtorDeclaration* fieldDtor;
     Expression* getRTInfo;
+    Scope* rtInfoScope;
     Visibility visibility;
     bool noDefaultCtor;
     bool disableNew;
