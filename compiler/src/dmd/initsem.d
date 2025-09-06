@@ -52,12 +52,13 @@ import dmd.typesem;
  *
  *  Params:
  *     ai = array initializer to be converted
+ *     itype = if not `null`, the AA type to coerce the initializer to
  *
  *  Returns:
  *     The converted associative array initializer or ErrorExp if `ai`
  *     is not an associative array initializer.
  */
-Expression toAssocArrayLiteral(ArrayInitializer ai)
+Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype)
 {
     //printf("ArrayInitializer::toAssocArrayInitializer(%s)\n", ai.toChars());
     //static int i; if (++i == 2) assert(0);
@@ -72,12 +73,13 @@ Expression toAssocArrayLiteral(ArrayInitializer ai)
     if (!dim)
         return no("invalid associative array initializer `%s`, use `null` instead", ai);
 
+    auto vtype  = itype ? itype.nextOf() : null;
     auto keys   = new Expressions(dim);
     auto values = new Expressions(dim);
     foreach (i, iz; ai.value[])
     {
         assert(iz);
-        auto ev = iz.initializerToExpression();
+        auto ev = iz.initializerToExpression(vtype);
         if (!ev)
             return no("invalid value `%s` in initializer", iz);
         (*values)[i] = ev;
@@ -226,7 +228,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 Expression e;
                 // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
                 if (t.ty == Taarray || i.isAssociativeArray())
-                    e = i.toAssocArrayLiteral();
+                    e = i.toAssocArrayLiteral(t);
                 else
                     e = i.initializerToExpression();
                 // Bugzilla 13987
@@ -1270,7 +1272,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
         if (!itype || itype.toBasetype().isTypeAArray())
             if (!init.type || init.type.isTypeAArray())
                 if (init.isAssociativeArray())
-                    return init.toAssocArrayLiteral();
+                    return init.toAssocArrayLiteral(itype);
 
         uint edim;      // the length of the resulting array literal
         const(uint) amax = 0x80000000;
@@ -1310,10 +1312,12 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
              */
             edim = cast(uint)init.value.length;
             size_t j = 0;
+            bool hasIndex = false;
             foreach (i; 0 .. init.value.length)
             {
                 if (auto e = init.index[i])
                 {
+                    hasIndex = true;
                     if (e.op == EXP.int64)
                     {
                         const uinteger_t idxval = e.toInteger();
@@ -1328,11 +1332,21 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
                 if (j > edim)
                     edim = cast(uint)j;
             }
+            if (hasIndex && itype)
+            {
+                if (auto tsa = itype.isTypeSArray())
+                {
+                    uinteger_t adim = tsa.dim.toInteger();
+                    if (adim > edim && adim < amax)
+                        edim = cast(uint)adim;
+                }
+            }
         }
 
         auto elements = new Expressions(edim);
         elements.zero();
         size_t j = 0;
+        Type elemType = itype ? itype.nextOf() : null;
         foreach (i; 0 .. init.value.length)
         {
             if (auto e = init.index[i])
@@ -1340,7 +1354,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
             assert(j < edim);
             if (Initializer iz = init.value[i])
             {
-                if (Expression ex = iz.initializerToExpression(null, isCfile))
+                if (Expression ex = iz.initializerToExpression(elemType, isCfile))
                 {
                     (*elements)[j] = ex;
                     ++j;
@@ -1354,15 +1368,17 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
 
         /* Fill in any missing elements with the default initializer
          */
+        if (!elemType && t)
+            elemType = t.nextOf();
         Expression defaultInit = null;  // lazily create it
         foreach (ref element; (*elements)[0 .. edim])
         {
             if (!element)
             {
-                if (!init.type) // don't know what type to use
+                if (!elemType) // don't know what type to use
                     return null;
                 if (!defaultInit)
-                    defaultInit = (cast(TypeNext)t).next.defaultInit(Loc.initial, isCfile);
+                    defaultInit = elemType.defaultInit(Loc.initial, isCfile);
                 element = defaultInit;
             }
         }
@@ -1407,22 +1423,6 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
 
     Expression visitExp(ExpInitializer i)
     {
-        if (itype)
-        {
-            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", itype.toChars(), i.exp.toChars());
-            Type tb = itype.toBasetype();
-            Expression e = (i.exp.op == EXP.construct || i.exp.op == EXP.blit) ? (cast(AssignExp)i.exp).e2 : i.exp;
-            if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
-            {
-                TypeSArray tsa = cast(TypeSArray)tb;
-                size_t d = cast(size_t)tsa.dim.toInteger();
-                auto elements = new Expressions(d);
-                for (size_t j = 0; j < d; j++)
-                    (*elements)[j] = e;
-                auto ae = new ArrayLiteralExp(e.loc, itype, elements);
-                return ae;
-            }
-        }
         return i.exp;
     }
 
