@@ -2049,6 +2049,33 @@ public:
         }
     }
 
+    static Expression interpretInitializerExpression(VarDeclaration v)
+    {
+        // It is a bit strange that the interpreter has to deal with initializers
+        // at all as they should have been converted to ConstructExp or similar
+        // during semantic analysis.
+        // Static array initialization from an element expression is a special
+        // case that used to be dealt with in initializerToExpression(), but
+        // is duplicated in ExpressionSemanticVisitor.visit(AssignExp exp). Until
+        // initializer semantics are removed from the interpreter, it has been
+        // moved here.
+        Expression iexp = v._init.initializerToExpression(v.type);
+
+        Type tb = v.type.toBasetype();
+        Expression e = (iexp.op == EXP.construct || iexp.op == EXP.blit) ? (cast(AssignExp)iexp).e2 : iexp;
+        if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
+        {
+            TypeSArray tsa = cast(TypeSArray)tb;
+            size_t d = cast(size_t)tsa.dim.toInteger();
+            auto elements = new Expressions(d);
+            for (size_t j = 0; j < d; j++)
+                (*elements)[j] = e;
+            auto ae = new ArrayLiteralExp(e.loc, v.type, elements);
+            return ae;
+        }
+        return iexp;
+    }
+
     static Expression getVarExp(Loc loc, InterState* istate, Declaration d, CTFEGoal goal)
     {
         Expression e = CTFEExp.cantexp;
@@ -2079,7 +2106,7 @@ public:
                     v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret); // might not be run on aggregate members
                     v.inuse--;
                 }
-                e = v._init.initializerToExpression(v.type);
+                e = interpretInitializerExpression(v);
                 if (!e)
                     return CTFEExp.cantexp;
                 assert(e.type);
@@ -2364,7 +2391,7 @@ public:
                 }
                 else if (v._init.isArrayInitializer())
                 {
-                    result = v._init.initializerToExpression(v.type);
+                    result = interpretInitializerExpression(v);
                     if (result !is null)
                     {
                         if (v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone)
