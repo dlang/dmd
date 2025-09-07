@@ -89,7 +89,10 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype)
             return no("missing key for value `%s` in initializer", iz);
         (*keys)[i] = ei;
     }
-    return new AssocArrayLiteralExp(ai.loc, keys, values);
+    auto aa = new AssocArrayLiteralExp(ai.loc, keys, values);
+    if (itype)
+        aa.type = itype;
+    return aa;
 }
 
 /******************************************
@@ -1423,6 +1426,8 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
 
     Expression visitExp(ExpInitializer i)
     {
+        if (itype && i.exp.type && itype != i.exp.type)
+            i.exp = i.exp.implicitCastTo(null, itype);
         return i.exp;
     }
 
