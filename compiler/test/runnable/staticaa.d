@@ -264,7 +264,9 @@ void test18360()
 // from https://github.com/dlang/dmd/issues/17666
 void test17666()
 {
-    double[int][] aa1 = [[1: 2.0], [3: 4]]; // OK, but infering the type is ambiguous
+    double[int][] a1 = [[1: 2.0], [3: 4]];
+    auto a2 = [[1: 2.0], [3: 4]];
+    static assert(is(typeof(a1) == typeof(a2)));
 }
 
 /////////////////////////////////////////////

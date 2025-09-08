@@ -89,10 +89,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype)
             return no("missing key for value `%s` in initializer", iz);
         (*keys)[i] = ei;
     }
-    auto aa = new AssocArrayLiteralExp(ai.loc, keys, values);
-    if (itype)
-        aa.type = itype;
-    return aa;
+    return new AssocArrayLiteralExp(ai.loc, keys, values);
 }
 
 /******************************************
@@ -1337,6 +1334,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
             }
             if (hasIndex && itype)
             {
+                // if the length is given by the declaration, extend if necessary
                 if (auto tsa = itype.isTypeSArray())
                 {
                     uinteger_t adim = tsa.dim.toInteger();
@@ -1426,8 +1424,6 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
 
     Expression visitExp(ExpInitializer i)
     {
-        if (itype && i.exp.type && itype != i.exp.type)
-            i.exp = i.exp.implicitCastTo(null, itype);
         return i.exp;
     }
 
