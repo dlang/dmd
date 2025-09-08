@@ -3493,7 +3493,8 @@ Lmark:
         // before a fork.
         // This must not happen if fork is called from the GC with the lock already held
 
-        __gshared bool fork_needs_lock = true; // racing condition with cocurrent calls of fork?
+        __gshared bool fork_needs_lock = true; // racing condition with concurrent calls of fork?
+        __gshared int fork_cancel_state = 0;
 
         extern(C) static void _d_gcx_atfork_prepare()
         {
@@ -3501,19 +3502,26 @@ Lmark:
                 os_unblock_gc_signals();
 
             if (instance && fork_needs_lock)
+            {
                 ConservativeGC.lockNR();
+                fork_cancel_state = thread_cancelDisable();
+            }
         }
 
         extern(C) static void _d_gcx_atfork_parent()
         {
             if (instance && fork_needs_lock)
+            {
+                thread_cancelRestore(fork_cancel_state);
                 ConservativeGC.gcLock.unlock();
+            }
         }
 
         extern(C) static void _d_gcx_atfork_child()
         {
             if (instance && fork_needs_lock)
             {
+                thread_cancelRestore(fork_cancel_state);
                 ConservativeGC.gcLock.unlock();
 
                 // make sure the threads and event handles are reinitialized in a fork

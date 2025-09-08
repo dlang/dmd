@@ -2220,6 +2220,39 @@ version (Windows)
 }
 else version (Posix)
 {
+    // NOTE: A thread's cancelability state, determined by pthread_setcancelstate,
+    //       can be enabled (the default for new threads) or disabled.
+    //       If a thread has disabled cancelation, then a cancelation request remains
+    //       queued until the thread enables cancelation.  If a thread has enabled
+    //       cancelation, then its cancelability type determines when cancelation occurs.
+    //
+    // Call these routines when entering/leaving critical sections of the code that
+    // are not cancellation points.
+
+    extern (C) int thread_cancelDisable() nothrow
+    {
+        static if (__traits(compiles, core.sys.posix.pthread.PTHREAD_CANCEL_DISABLE))
+        {
+            import core.sys.posix.pthread : pthread_setcancelstate, PTHREAD_CANCEL_DISABLE;
+            int oldstate;
+            pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
+            return oldstate;
+        }
+        else
+        {
+            return 0;   // No thread cancellation on platform
+        }
+    }
+
+    extern (C) void thread_cancelRestore(int oldstate) nothrow
+    {
+        static if (__traits(compiles, core.sys.posix.pthread.PTHREAD_CANCEL_DISABLE))
+        {
+            import core.sys.posix.pthread : pthread_setcancelstate;
+            pthread_setcancelstate(oldstate, null);
+        }
+    }
+
     private
     {
         //
@@ -2400,6 +2433,9 @@ else version (Posix)
         {
             void op(void* sp) nothrow
             {
+                int cancel_state = thread_cancelDisable();
+                scope(exit) thread_cancelRestore(cancel_state);
+
                 bool supported = thread_preSuspend(getStackTop());
                 assert(supported, "Tried to suspend a detached thread!");
 
