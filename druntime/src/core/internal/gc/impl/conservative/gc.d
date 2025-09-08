@@ -97,10 +97,6 @@ private
         // to avoid inlining - see https://issues.dlang.org/show_bug.cgi?id=13725.
         noreturn onInvalidMemoryOperationError(void* pretend_sideffect = null, string file = __FILE__, size_t line = __LINE__) @trusted pure nothrow @nogc;
         noreturn onOutOfMemoryError(void* pretend_sideffect = null, string file = __FILE__, size_t line = __LINE__) @trusted pure nothrow @nogc;
-
-        version (COLLECT_FORK)
-            version (OSX)
-                pid_t __fork() nothrow;
     }
 
     enum
@@ -3191,11 +3187,7 @@ struct Gcx
         {
             fflush(null); // avoid duplicated FILE* output
         }
-        version (OSX)
-        {
-            auto pid = __fork(); // avoids calling handlers (from libc source code)
-        }
-        else version (linux)
+        version (linux)
         {
             // clone() fits better as we don't want to do anything but scanning in the child process.
             // no fork-handlers are called, so we can avoid deadlocks due to malloc locks. Probably related:
@@ -3213,11 +3205,13 @@ struct Gcx
             auto stack = stackbuf.ptr + (isStackGrowingDown ? stackbuf.length : 0);
             auto pid = clone(&wrap_delegate, stack, flags, &dg);
         }
+        else static if (__traits(compiles, _Fork))
+        {
+            auto pid = _Fork();
+        }
         else
         {
-            fork_needs_lock = false;
-            auto pid = fork();
-            fork_needs_lock = true;
+            auto pid = -1;  // fork based GC not supported
         }
         switch (pid)
         {
@@ -3493,7 +3487,6 @@ Lmark:
         // before a fork.
         // This must not happen if fork is called from the GC with the lock already held
 
-        __gshared bool fork_needs_lock = true; // racing condition with concurrent calls of fork?
         __gshared int fork_cancel_state = 0;
 
         extern(C) static void _d_gcx_atfork_prepare()
@@ -3501,7 +3494,7 @@ Lmark:
             static if (__traits(compiles, os_unblock_gc_signals))
                 os_unblock_gc_signals();
 
-            if (instance && fork_needs_lock)
+            if (instance)
             {
                 ConservativeGC.lockNR();
                 fork_cancel_state = thread_cancelDisable();
@@ -3510,7 +3503,7 @@ Lmark:
 
         extern(C) static void _d_gcx_atfork_parent()
         {
-            if (instance && fork_needs_lock)
+            if (instance)
             {
                 thread_cancelRestore(fork_cancel_state);
                 ConservativeGC.gcLock.unlock();
@@ -3519,7 +3512,7 @@ Lmark:
 
         extern(C) static void _d_gcx_atfork_child()
         {
-            if (instance && fork_needs_lock)
+            if (instance)
             {
                 thread_cancelRestore(fork_cancel_state);
                 ConservativeGC.gcLock.unlock();

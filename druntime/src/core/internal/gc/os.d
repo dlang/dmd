@@ -33,7 +33,11 @@ else version (Posix)
     else version (WatchOS)
         version = Darwin;
 
-    public import core.sys.posix.unistd : fork, pid_t;
+    public import core.sys.posix.unistd : pid_t;
+
+    static import core.sys.posix.unistd;
+    static if (__traits(compiles, core.sys.posix.unistd._Fork))
+        public import core.sys.posix.unistd : _Fork;
 
     static import core.sys.posix.sys.mman;
     static if (__traits(compiles, core.sys.posix.sys.mman.mmap))
