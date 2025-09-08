@@ -33,7 +33,11 @@ else version (Posix)
     else version (WatchOS)
         version = Darwin;
 
-    public import core.sys.posix.unistd : fork, pid_t;
+    public import core.sys.posix.unistd : pid_t;
+
+    static import core.sys.posix.unistd;
+    static if (__traits(compiles, core.sys.posix.unistd._Fork))
+        public import core.sys.posix.unistd : _Fork;
 
     static import core.sys.posix.sys.mman;
     static if (__traits(compiles, core.sys.posix.sys.mman.mmap))
@@ -116,13 +120,13 @@ else static assert(false, "No supported allocation methods available.");
 static if (is(typeof(VirtualAlloc))) // version (GC_Use_Alloc_Win32)
 {
     /**
-    * Indicates if an implementation supports fork().
+    * Indicates if an implementation supports _Fork().
     *
     * The value shown here is just demostrative, the real value is defined based
     * on the OS it's being compiled in.
-    * enum HaveFork = true;
+    * enum AllocSupportsFork = true;
     */
-    enum HaveFork = false;
+    enum AllocSupportsFork = false;
 
     /**
      * Map memory.
@@ -147,7 +151,7 @@ static if (is(typeof(VirtualAlloc))) // version (GC_Use_Alloc_Win32)
 }
 else static if (is(typeof(mmap)))  // else version (GC_Use_Alloc_MMap)
 {
-    enum HaveFork = true;
+    enum AllocSupportsFork = true;
 
     void *os_mem_map(size_t nbytes, bool share = false) nothrow @nogc
     {   void *p;
@@ -165,7 +169,7 @@ else static if (is(typeof(mmap)))  // else version (GC_Use_Alloc_MMap)
 }
 else static if (is(typeof(valloc))) // else version (GC_Use_Alloc_Valloc)
 {
-    enum HaveFork = false;
+    enum AllocSupportsFork = false;
 
     void *os_mem_map(size_t nbytes) nothrow @nogc
     {
@@ -186,7 +190,7 @@ else static if (is(typeof(malloc))) // else version (GC_Use_Alloc_Malloc)
     //       to PAGESIZE alignment, there will be space for a void* at the end
     //       after PAGESIZE bytes used by the GC.
 
-    enum HaveFork = false;
+    enum AllocSupportsFork = false;
 
     import core.internal.gc.impl.conservative.gc;
 

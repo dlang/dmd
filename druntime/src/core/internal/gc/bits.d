@@ -7,7 +7,7 @@
  */
 module core.internal.gc.bits;
 
-import core.internal.gc.os : os_mem_map, os_mem_unmap, HaveFork;
+import core.internal.gc.os : os_mem_map, os_mem_unmap, AllocSupportsFork;
 
 import core.bitop;
 import core.exception : onOutOfMemoryError;
@@ -37,7 +37,7 @@ struct GCBits
     {
         if (data)
         {
-            static if (!HaveFork)
+            static if (!AllocSupportsFork)
                 free(data);
             else if (share)
                 os_mem_unmap(data, nwords * data[0].sizeof);
@@ -50,7 +50,7 @@ struct GCBits
     void alloc(size_t nbits, bool share = false) nothrow
     {
         this.nbits = nbits;
-        static if (!HaveFork)
+        static if (!AllocSupportsFork)
             data = cast(typeof(data[0])*)calloc(nwords, data[0].sizeof);
         else if (share)
             data = cast(typeof(data[0])*)os_mem_map(nwords * data[0].sizeof, true); // Allocate as MAP_SHARED
