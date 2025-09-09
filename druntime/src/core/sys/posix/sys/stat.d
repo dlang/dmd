@@ -1171,9 +1171,6 @@ version (linux)
         extern bool S_TYPEISSEM( stat_t* buf ) { return false; }
         extern bool S_TYPEISSHM( stat_t* buf ) { return false; }
     }
-
-    enum UTIME_NOW = 0x3fffffff;
-    enum UTIME_OMIT = 0x3ffffffe;
 }
 else version (Darwin)
 {
@@ -1306,9 +1303,6 @@ else version (FreeBSD)
     enum S_ISUID    = 0x800; // octal 0004000
     enum S_ISGID    = 0x400; // octal 0002000
     enum S_ISVTX    = 0x200; // octal 0001000
-
-    enum UTIME_NOW = -1;
-    enum UTIME_OMIT = -2;
 }
 else version (NetBSD)
 {
@@ -1604,10 +1598,6 @@ version (CRuntime_Glibc)
     extern (D) bool S_ISREG()( mode_t mode )  { return S_ISTYPE( mode, S_IFREG );  }
     extern (D) bool S_ISLNK()( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK()( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
-
-    int utimensat(int dirfd, const char *pathname,
-        ref const(timespec)[2] times, int flags);
-    int futimens(int fd, ref const(timespec)[2] times);
 }
 else version (Darwin)
 {
@@ -1674,14 +1664,6 @@ else version (FreeBSD)
     extern (D) bool S_ISREG()( mode_t mode )  { return S_ISTYPE( mode, S_IFREG );  }
     extern (D) bool S_ISLNK()( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK()( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
-
-    // Since FreeBSD 11:
-    version (none)
-    {
-        int utimensat(int dirfd, const char *pathname,
-            ref const(timespec)[2] times, int flags);
-        int futimens(int fd, ref const(timespec)[2] times);
-    }
 }
 else version (NetBSD)
 {
@@ -1841,10 +1823,6 @@ else version (CRuntime_Bionic)
     extern (D) bool S_ISREG()( uint mode )  { return S_ISTYPE( mode, S_IFREG );  }
     extern (D) bool S_ISLNK()( uint mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK()( uint mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
-
-    // Added since Lollipop
-    int utimensat(int dirfd, const char *pathname,
-        ref const(timespec)[2] times, int flags);
 }
 else version (CRuntime_Musl)
 {
@@ -1880,9 +1858,6 @@ else version (CRuntime_Musl)
     extern (D) bool S_ISREG()( mode_t mode )  { return S_ISTYPE( mode, S_IFREG );  }
     extern (D) bool S_ISLNK()( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK()( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
-
-    int utimensat(int dirfd, const char *pathname,
-        ref const(timespec)[2] times, int flags);
 }
 else version (CRuntime_UClibc)
 {
@@ -1916,10 +1891,6 @@ else version (CRuntime_UClibc)
     extern (D) bool S_ISREG()( mode_t mode )  { return S_ISTYPE( mode, S_IFREG );  }
     extern (D) bool S_ISLNK()( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK()( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
-
-    int utimensat(int dirfd, const char *pathname,
-    ref const(timespec)[2] times, int flags);
-    int futimens(int fd, ref const(timespec)[2] times);
 }
 else
 {
@@ -1929,12 +1900,18 @@ else
 /*
 int    chmod(const scope char*, mode_t);
 int    fchmod(int, mode_t);
-int    fstat(int, stat*);
-int    lstat(const scope char*, stat*);
+int    fchmodat(int, const scope char*, mode_t, int);
+int    fstat(int, stat_t*);
+int    fstatat(int, const scope char*, stat_t*, int);
+int    futimens(int, ref const(timespec)[2]);
+int    lstat(const scope char*, stat_t*);
 int    mkdir(const scope char*, mode_t);
+int    mkdirat(int, const scope char*, mode_t);
 int    mkfifo(const scope char*, mode_t);
-int    stat(const scope char*, stat*);
+int    mkfifoat(int, const scope char*, mode_t);
+int    stat(const scope char*, stat_t*);
 mode_t umask(mode_t);
+int    utimensat(int, const scope char*, ref const(timespec)[2], int);
 */
 
 int    chmod(const scope char*, mode_t);
@@ -1958,6 +1935,10 @@ version (CRuntime_Glibc)
 
     int   stat64(const scope char*, stat_t*);
     alias stat64 stat;
+
+    int   fstatat64(int, const scope char*, stat_t*, int);
+    alias fstatat64 fstatat;
+
   }
   else
   {
@@ -1965,6 +1946,11 @@ version (CRuntime_Glibc)
     int   lstat(const scope char*, stat_t*);
     int   stat(const scope char*, stat_t*);
   }
+    int   fchmodat(int, const scope char*, mode_t, int);
+    int   futimens(int, ref const(timespec)[2]);
+    int   mkdirat(int, const scope char*, mode_t);
+    int   mkfifoat(int, const scope char*, mode_t);
+    int   utimensat(int, const scope char*, ref const(timespec)[2], int);
 }
 else version (Solaris)
 {
@@ -1973,12 +1959,14 @@ else version (Solaris)
         int fstat(int, stat_t*) @trusted;
         int lstat(const scope char*, stat_t*);
         int stat(const scope char*, stat_t*);
+        int fstatat(int, const scope char*, stat_t*, int);
 
         static if (__USE_LARGEFILE64)
         {
             alias fstat fstat64;
             alias lstat lstat64;
             alias stat stat64;
+            alias fstatat fstatat64;
         }
     }
     else
@@ -1993,14 +1981,23 @@ else version (Solaris)
 
             int   stat64(const scope char*, stat_t*);
             alias stat64 stat;
+
+            int fstatat64(int, const scope char*, stat_t*, int);
+            alias fstatat64 fstatat;
         }
         else
         {
             int fstat(int, stat_t*) @trusted;
             int lstat(const scope char*, stat_t*);
             int stat(const scope char*, stat_t*);
+            int fstatat(int, const scope char*, stat_t*, int);
         }
     }
+    int   fchmodat(int, const scope char*, mode_t, int);
+    int   futimens(int, ref const(timespec)[2]);
+    int   mkdirat(int, const scope char*, mode_t);
+    int   mkfifoat(int, const scope char*, mode_t);
+    int   utimensat(int, const scope char*, ref const(timespec)[2], int);
 }
 else version (Darwin)
 {
@@ -2027,6 +2024,12 @@ else version (Darwin)
         int lstat(const scope char*, stat_t*);
         int stat(const scope char*, stat_t*);
     }
+    int   fchmodat(int, const scope char*, mode_t, int);
+    int   fstatat(int, const scope char*, stat_t*, int);
+    int   futimens(int, ref const(timespec)[2]);
+    int   mkdirat(int, const scope char*, mode_t);
+    int   mkfifoat(int, const scope char*, mode_t);
+    int   utimensat(int, const scope char*, ref const(timespec)[2], int);
 }
 else version (FreeBSD)
 {
@@ -2051,6 +2054,18 @@ else version (FreeBSD)
             pragma(mangle, "stat@FBSD_1.0")  int   stat(const scope char*, stat_t*);
         }
     }
+    static if (__FreeBSD_version >= 800000)
+    {
+        int fchmodat(int, const scope char*, mode_t, int);
+        int fstatat(int, const scope char*, stat_t*, int);
+        int mkdirat(int, const scope char*, mode_t);
+        int mkfifoat(int, const scope char*, mode_t);
+    }
+    static if (__FreeBSD_version >= 1003000)
+    {
+        int futimens(int, ref const(timespec)[2]);
+        int utimensat(int, const scope char*, ref const(timespec)[2], int);
+    }
 }
 else version (NetBSD)
 {
@@ -2060,24 +2075,48 @@ else version (NetBSD)
     alias __fstat50 fstat;
     alias __lstat50 lstat;
     alias __stat50 stat;
+    int   fchmodat(int, const scope char*, mode_t, int);
+    int   fstatat(int, const scope char*, stat_t*, int);
+    int   futimens(int, ref const(timespec)[2]);
+    int   mkdirat(int, const scope char*, mode_t);
+    int   mkfifoat(int, const scope char*, mode_t);
+    int   utimensat(int, const scope char*, ref const(timespec)[2], int);
 }
 else version (OpenBSD)
 {
     int   fstat(int, stat_t*);
     int   lstat(const scope char*, stat_t*);
     int   stat(const scope char*, stat_t*);
+    int   fchmodat(int, const scope char*, mode_t, int);
+    int   fstatat(int, const scope char*, stat_t*, int);
+    int   futimens(int, ref const(timespec)[2]);
+    int   mkdirat(int, const scope char*, mode_t);
+    int   mkfifoat(int, const scope char*, mode_t);
+    int   utimensat(int, const scope char*, ref const(timespec)[2], int);
 }
 else version (DragonFlyBSD)
 {
     int   fstat(int, stat_t*);
     int   lstat(const scope char*, stat_t*);
     int   stat(const scope char*, stat_t*);
+    int   fchmodat(int, const scope char*, mode_t, int);
+    int   fstatat(int, const scope char*, stat_t*, int);
+    int   futimens(int, ref const(timespec)[2]);
+    int   mkdirat(int, const scope char*, mode_t);
+    int   mkfifoat(int, const scope char*, mode_t);
+    int   utimensat(int, const scope char*, ref const(timespec)[2], int);
 }
 else version (CRuntime_Bionic)
 {
     int   fstat(int, stat_t*) @trusted;
     int   lstat(const scope char*, stat_t*);
     int   stat(const scope char*, stat_t*);
+    int   fchmodat(int, const scope char*, mode_t, int);
+    int   fstatat(int, const scope char*, stat_t*, int);
+    int   futimens(int, ref const(timespec)[2]);
+    int   mkdirat(int, const scope char*, mode_t);
+    int   mkfifoat(int, const scope char*, mode_t);
+    int   utimensat(int, const scope char*, ref const(timespec)[2], int);
 }
 else version (CRuntime_Musl)
 {
@@ -2087,10 +2126,17 @@ else version (CRuntime_Musl)
     int fstat(int, stat_t*);
     pragma(mangle, muslRedirTime64Mangle!("lstat", "__lstat_time64"))
     int lstat(const scope char*, stat_t*);
+    pragma(mangle, muslRedirTime64Mangle!("fstatat", "__fstatat_time64"))
+    int   fstatat(int, const scope char*, stat_t*, int);
 
     alias fstat fstat64;
     alias lstat lstat64;
     alias stat stat64;
+    int   fchmodat(int, const scope char*, mode_t, int);
+    int   futimens(int, ref const(timespec)[2]);
+    int   mkdirat(int, const scope char*, mode_t);
+    int   mkfifoat(int, const scope char*, mode_t);
+    int   utimensat(int, const scope char*, ref const(timespec)[2], int);
 }
 else version (CRuntime_UClibc)
 {
@@ -2104,14 +2150,68 @@ else version (CRuntime_UClibc)
 
     int   stat64(const scope char*, stat_t*);
     alias stat64 stat;
+
+    int   fstatat64(int, const scope char*, stat_t*, int);
+    alias fstatat64 fstatat;
   }
   else
   {
     int   fstat(int, stat_t*) @trusted;
     int   lstat(const scope char*, stat_t*);
     int   stat(const scope char*, stat_t*);
+    int   fstatat(int, const scope char*, stat_t*, int);
   }
+    int   fchmodat(int, const scope char*, mode_t, int);
+    int   futimens(int, ref const(timespec)[2]);
+    int   mkdirat(int, const scope char*, mode_t);
+    int   mkfifoat(int, const scope char*, mode_t);
+    int   utimensat(int, const scope char*, ref const(timespec)[2], int);
 }
+
+/*
+UTIME_NOW
+UTIME_OMIT
+*/
+version (linux)
+{
+    enum UTIME_NOW = 0x3fffffff;
+    enum UTIME_OMIT = 0x3ffffffe;
+}
+else version (Darwin)
+{
+    enum UTIME_NOW = -1;
+    enum UTIME_OMIT = -2;
+}
+else version (FreeBSD)
+{
+    enum UTIME_NOW = -1;
+    enum UTIME_OMIT = -2;
+}
+else version (NetBSD)
+{
+    enum UTIME_NOW = 0x3fffffff;
+    enum UTIME_OMIT = 0x3ffffffe;
+}
+else version (OpenBSD)
+{
+    enum UTIME_NOW = -2;
+    enum UTIME_OMIT = -1;
+}
+else version (DragonFlyBSD)
+{
+    enum UTIME_NOW = -1;
+    enum UTIME_OMIT = -2;
+}
+else version (Solaris)
+{
+    enum UTIME_NOW = -1;
+    enum UTIME_OMIT = -2;
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
+
 
 //
 // Typed Memory Objects (TYM)
@@ -2220,15 +2320,18 @@ else
 
 /*
 int mknod(const scope char*, mode_t, dev_t);
+int mknodat(int, const scope char*, mode_t, dev_t);
 */
 
 version (CRuntime_Glibc)
 {
     int mknod(const scope char*, mode_t, dev_t);
+    int mknodat(int, const scope char*, mode_t, dev_t);
 }
 else version (Darwin)
 {
     int mknod(const scope char*, mode_t, dev_t);
+    int mknodat(int, const scope char*, mode_t, dev_t);
 }
 else version (FreeBSD)
 {
@@ -2243,34 +2346,42 @@ else version (FreeBSD)
         else
             pragma(mangle, "mknod@FBSD_1.0") int mknod(const scope char*, mode_t, dev_t);
     }
+    int mknodat(int, const scope char*, mode_t, dev_t);
 }
 else version (NetBSD)
 {
     int mknod(const scope char*, mode_t, dev_t);
+    int mknodat(int, const scope char*, mode_t, dev_t);
 }
 else version (OpenBSD)
 {
     int mknod(const scope char*, mode_t, dev_t);
+    int mknodat(int, const scope char*, mode_t, dev_t);
 }
 else version (DragonFlyBSD)
 {
     int mknod(const scope char*, mode_t, dev_t);
+    int mknodat(int, const scope char*, mode_t, dev_t);
 }
 else version (Solaris)
 {
     int mknod(const scope char*, mode_t, dev_t);
+    int mknodat(int, const scope char*, mode_t, dev_t);
 }
 else version (CRuntime_Bionic)
 {
     int mknod(const scope char*, mode_t, dev_t);
+    int mknodat(int, const scope char*, mode_t, dev_t);
 }
 else version (CRuntime_Musl)
 {
     int mknod(const scope char*, mode_t, dev_t);
+    int mknodat(int, const scope char*, mode_t, dev_t);
 }
 else version (CRuntime_UClibc)
 {
     int mknod(const scope char*, mode_t, dev_t);
+    int mknodat(int, const scope char*, mode_t, dev_t);
 }
 else
 {
