@@ -66,7 +66,7 @@ const struct Foo13899
 {
     int opApply(immutable int delegate(const ref int) pure nothrow dg) pure nothrow
     {
-        return 1;
+        return 0;
     }
 }
 
