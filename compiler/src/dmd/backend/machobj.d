@@ -1080,7 +1080,23 @@ void MachObj_term(const(char)[] objfilename)
                     }
                     else
                     {
-                        if (s.Sclass == SC.extern_ ||
+                        if (AArch64 && s.Sclass == SC.locstat && s.Sfl == FL.tlsdata)
+                        {
+                            rel.r_address = cast(int)r.offset;
+                            rel.r_symbolnum = s.Sxtrnnum;
+                            rel.r_pcrel = 0;
+                            rel.r_length = 3;
+                            rel.r_extern = 1;
+                            rel.r_type = ARM64_RELOC_UNSIGNED;
+                            fobjbuf.write(&rel, rel.sizeof);
+                            foffset += rel.sizeof;
+                            nreloc++;
+                            int32_t* p = patchAddr64(seg, r.offset);
+                            // Absolute address; add in addr of start of targ seg
+                            *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                            //patch(pseg, r.offset, s.Sseg, s.Soffset);
+                        }
+                        else if (s.Sclass == SC.extern_ ||
                             s.Sclass == SC.comdef ||
                             s.Sclass == SC.comdat)
                         {
@@ -1346,7 +1362,7 @@ void MachObj_term(const(char)[] objfilename)
     for (int i = 0; i < dysymtab_cmd.nextdefsym; i++)
     {   Symbol* s = (cast(Symbol**)public_symbuf.buf)[i];
 
-        //printf("Writing public symbol %d:x%x %s\n", s.Sseg, s.Soffset, s.Sident);
+        //printf("Writing public symbol %d:x%x %s\n", s.Sseg, cast(int)s.Soffset, s.Sident.ptr);
         nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
         sym.n_type = N_EXT | N_SECT;
@@ -1976,6 +1992,68 @@ seg_data* MachObj_tlsseg()
     return SegData[seg];
 }
 
+/*******************************************
+ * Emit 24 byte __thread_vars section for AArch64.
+ * Returns:
+ *      segment to write initialization data to
+ */
+@trusted
+int MachObj_thread_vars(ref Symbol s, out targ_size_t offset)
+{
+    printf("MachObj_thread_vars(s)\n");
+    symbol_print(s);
+    /* create _ident$tlv$init Symbol si
+     */
+    Symbol* si;
+    {
+        char[DEST_LEN] dest = void;
+        size_t len = strlen(s.Sident.ptr);
+        char* destr = dest.ptr;
+        if (len > DEST_LEN)
+            destr = cast(char*)mem_malloc(len + 1);
+        destr[0] = '_';
+        memcpy(destr + 1, s.Sident.ptr, len);
+        memcpy(destr + 1 + len, "$tlv$init".ptr, 9); // includes terminating 0
+        si = symbol_name(destr[0 .. 1 + len + 9], SC.locstat, type_fake(TYint));
+
+        if (destr != dest.ptr)
+            mem_free(dest.ptr);
+    }
+
+    /* write _ident$tlv$init to __thread_data section
+     */
+    MachObj_tlsseg_data();
+    si.Sseg = seg_tlsseg_data;
+    si.Sfl = FL.tlsdata;
+    offset = SegData[si.Sseg].SDbuf.length();
+    MachObj_pubdef(si.Sseg, si, offset);
+
+    /* Create __thread_vars section, and s will refer to it
+     */
+    seg_data* tvsegdata = MachObj_tlsseg(); // __thread_vars segment
+    int tvseg = seg_tlsseg;
+    s.Sseg = tvseg;
+    MachObj_pubdef(tvseg, &s, tvsegdata.SDbuf.length());
+
+    /* 3 pointers are written to __thread_vars section:
+     * 1. pointer to __tlv_bootstrap
+     * 2. null pointer
+     * 3. pointer to _ident$tlv$init in the __thread_data section
+     */
+
+    // 1. pointer to __tlv_bootstrap
+    Symbol* stlv_bootstrap = MachObj_tlv_bootstrap();
+    MachObj_reftoident(tvseg, tvsegdata.SDbuf.length(), stlv_bootstrap, 0, CFoff | CFoffset64);
+
+    // 2. null pointer
+    MachObj_write_zeros(tvsegdata, 8);
+
+    // 3. pointer to _ident$tlv$init in the __thread_data section
+    MachObj_reftoident(tvseg, tvsegdata.SDbuf.length(), si, 0, CFoff | CFoffset64);
+
+    assert((tvsegdata.SDbuf.length() % 24) == 0);
+    return si.Sseg;
+}
 
 /*********************************
  * Define segments for Thread Local Storage.
@@ -2223,7 +2301,7 @@ void MachObj_pubdefsize(int seg, Symbol* s, targ_size_t offset, targ_size_t syms
 void MachObj_pubdef(int seg, Symbol* s, targ_size_t offset)
 {
     //printf("MachObj_pubdef(%d:x%llx s=%p, %s)\n", seg, offset, s, s.Sident.ptr);
-    //symbol_print(s);
+    //symbol_print(*s);
     symbol_debug(s);
 
     s.Soffset = offset;

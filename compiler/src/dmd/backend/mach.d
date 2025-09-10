@@ -213,9 +213,13 @@ enum
     S_16BYTE_LITERALS               = 14,
     S_DTRACE_DOF                    = 15,
 
+    S_LAZY_DYLIB_SYMBOL_POINTERS    = 0x10,
     S_THREAD_LOCAL_REGULAR          = 0x11, // template of initial values for TLVs
     S_THREAD_LOCAL_ZEROFILL         = 0x12, // template of initial values for TLVs
     S_THREAD_LOCAL_VARIABLES        = 0x13, // TLV descriptors
+    S_THREAD_LOCAL_VARIABLE_POINTERS = 0x14,
+    S_THREAD_LOCAL_INIT_FUNCTION_POINTERS = 0x15,
+    S_INIT_FUNC_OFFSETS              = 0x16,
 
     SECTION_ATTRIBUTES_USR          = 0xFF000000,
     S_ATTR_PURE_INSTRUCTIONS        = 0x80000000,

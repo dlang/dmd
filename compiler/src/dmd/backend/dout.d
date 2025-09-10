@@ -81,7 +81,7 @@ void outdata(Symbol* s)
     debugy && printf("outdata('%s')\n",s.Sident.ptr);
 
     //printf("outdata('%s', ty=x%x)\n",s.Sident.ptr,s.Stype.Tty);
-    //symbol_print(s);
+    //symbol_print(*s);
 
     // Data segment variables are always live on exit from a function
     s.Sflags |= SFLlivexit;
@@ -257,6 +257,8 @@ void outdata(Symbol* s)
         {
             assert(config.objfmt == OBJ_MACH && I64);
 
+            /* The initializer for the TLS goes into the __thread_data section
+             */
             seg_data* pseg = objmod.tlsseg_data();
             s.Sseg = pseg.SDseg;
             objmod.data_start(s, datasize, s.Sseg);
@@ -266,6 +268,22 @@ void outdata(Symbol* s)
         }
         case mTYthread:
         {
+            if (config.objfmt == OBJ_MACH && config.target_cpu == TARGET_AArch64)
+            {
+                // Special handling
+                import dmd.backend.machobj : MachObj_thread_vars;
+                targ_size_t offseti;
+                int segi = MachObj_thread_vars(*s, offseti);
+                dt_writeToObj(objmod, dtstart, segi, offseti);
+                Offset(segi) = offseti;
+                dt_free(dtstart);
+
+//              if (s.Sclass == SC.global || s.Sclass == SC.static_)
+//                  objmod.pubdefsize(seg,s,s.Soffset,datasize);    // do the definition
+
+                // BUG AArch64: symbolic debug info?
+                return;
+            }
             seg_data* pseg = objmod.tlsseg();
             s.Sseg = pseg.SDseg;
             objmod.data_start(s, datasize, s.Sseg);
