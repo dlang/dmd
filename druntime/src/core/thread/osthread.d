@@ -1153,6 +1153,15 @@ version (CoreDdoc)
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo) nothrow @nogc
     {
     }
+
+    /**
+     * Get the GC signals set by the thread module. This function should be called either
+     * after thread_init() has finished, or after a call thread_setGCSignals().
+     * This function is Posix-only.
+     */
+    extern (C) void thread_getGCSignals(out int suspendSignalNo, out int resumeSignalNo) nothrow @nogc
+    {
+    }
 }
 else version (Posix)
 {
@@ -1171,6 +1180,23 @@ else version (Posix)
     {
         suspendSignalNumber = suspendSignalNo;
         resumeSignalNumber  = resumeSignalNo;
+    }
+
+    extern (C) void thread_getGCSignals(out int suspendSignalNo, out int resumeSignalNo) nothrow @nogc
+    in
+    {
+        assert(suspendSignalNumber != 0);
+        assert(resumeSignalNumber  != 0);
+    }
+    out
+    {
+        assert(suspendSignalNo != 0);
+        assert(resumeSignalNo  != 0);
+    }
+    do
+    {
+        suspendSignalNo = suspendSignalNumber;
+        resumeSignalNo  = resumeSignalNumber;
     }
 }
 
