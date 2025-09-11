@@ -3495,9 +3495,31 @@ Lmark:
 
         __gshared bool fork_needs_lock = true; // racing condition with cocurrent calls of fork?
 
+        // The GC signals might be blocked by `fork` when the atfork prepare
+        // handler is invoked. This guards us from the scenario where we are
+        // waiting for a GC action in another thread to complete, and that thread
+        // decides to call thread_suspendAll, then we must be able to response to
+        // that request, otherwise we end up in a deadlock situation.
+        private static void unblockGCSignals() nothrow @nogc
+        {
+            import core.sys.posix.signal : pthread_sigmask, sigaddset, sigemptyset, sigset_t, SIG_UNBLOCK;
+
+            int suspendSignal = void, resumeSignal = void;
+            thread_getGCSignals(suspendSignal, resumeSignal);
+
+            sigset_t set;
+            sigemptyset(&set);
+            sigaddset(&set, suspendSignal);
+            sigaddset(&set, resumeSignal);
+
+            auto sigmask = pthread_sigmask(SIG_UNBLOCK, &set, null);
+            assert(sigmask == 0, "failed to unblock GC signals");
+        }
 
         extern(C) static void _d_gcx_atfork_prepare()
         {
+            unblockGCSignals();
+
             if (instance && fork_needs_lock)
                 ConservativeGC.lockNR();
         }
