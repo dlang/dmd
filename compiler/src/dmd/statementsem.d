@@ -2597,6 +2597,15 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             if (checkNonAssignmentArrayOp(rs.exp))
                 rs.exp = ErrorExp.get();
 
+            if (fd.ident == Id.apply && rs.exp.isConst() && rs.exp.toInteger() != 0)
+            {
+                // @@@DEPRECATED_2.121
+                // uncomment ErrorExp and call `error`
+                deprecation(rs.exp.loc, "cannot return non-zero compile-time value from `opApply`");
+                deprecationSupplemental(rs.exp.loc, "Any non-zero value must be the result of calling its delegate");
+                //rs.exp = ErrorExp.get();
+            }
+
             // Extract side-effect part
             rs.exp = Expression.extractLast(rs.exp, e0);
             if (rs.exp.isCallExp())
