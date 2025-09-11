@@ -1977,54 +1977,53 @@ extern (C++) final class ArrayLiteralExp : Expression
     override StringExp toStringExp()
     {
         TY telem = type.nextOf().toBasetype().ty;
-        if (telem.isSomeChar || (telem == Tvoid && (!elements || elements.length == 0)))
+        if (!(telem.isSomeChar || (telem == Tvoid && (!elements || elements.length == 0))))
+            return null;
+
+        ubyte sz = 1;
+        if (telem == Twchar)
+            sz = 2;
+        else if (telem == Tdchar)
+            sz = 4;
+
+        OutBuffer buf;
+        if (elements)
         {
-            ubyte sz = 1;
-            if (telem == Twchar)
-                sz = 2;
-            else if (telem == Tdchar)
-                sz = 4;
-
-            OutBuffer buf;
-            if (elements)
+            foreach (i; 0 .. elements.length)
             {
-                foreach (i; 0 .. elements.length)
-                {
-                    auto ch = this[i];
-                    if (ch.op != EXP.int64)
-                        return null;
-                    if (sz == 1)
-                        buf.writeByte(cast(ubyte)ch.toInteger());
-                    else if (sz == 2)
-                        buf.writeword(cast(uint)ch.toInteger());
-                    else
-                        buf.write4(cast(uint)ch.toInteger());
-                }
+                auto ch = this[i];
+                if (ch.op != EXP.int64)
+                    return null;
+                if (sz == 1)
+                    buf.writeByte(cast(ubyte)ch.toInteger());
+                else if (sz == 2)
+                    buf.writeword(cast(uint)ch.toInteger());
+                else
+                    buf.write4(cast(uint)ch.toInteger());
             }
-            char prefix;
-            if (sz == 1)
-            {
-                prefix = 'c';
-                buf.writeByte(0);
-            }
-            else if (sz == 2)
-            {
-                prefix = 'w';
-                buf.writeword(0);
-            }
-            else
-            {
-                prefix = 'd';
-                buf.write4(0);
-            }
-
-            const size_t len = buf.length / sz - 1;
-            auto se = new StringExp(loc, buf.extractSlice()[0 .. len * sz], len, sz, prefix);
-            se.sz = sz;
-            se.type = type;
-            return se;
         }
-        return null;
+        char prefix;
+        if (sz == 1)
+        {
+            prefix = 'c';
+            buf.writeByte(0);
+        }
+        else if (sz == 2)
+        {
+            prefix = 'w';
+            buf.writeword(0);
+        }
+        else
+        {
+            prefix = 'd';
+            buf.write4(0);
+        }
+
+        const size_t len = buf.length / sz - 1;
+        auto se = new StringExp(loc, buf.extractSlice()[0 .. len * sz], len, sz, prefix);
+        se.sz = sz;
+        se.type = type;
+        return se;
     }
 
     override void accept(Visitor v)
@@ -2205,27 +2204,28 @@ extern (C++) final class StructLiteralExp : Expression
     {
         /* Find which field offset is by looking at the field offsets
          */
-        if (elements.length)
+        if (!elements.length)
+            return -1;
+
+        const sz = type.size();
+        if (sz == SIZE_INVALID)
+            return -1;
+        foreach (i, v; sd.fields)
         {
-            const sz = type.size();
-            if (sz == SIZE_INVALID)
-                return -1;
-            foreach (i, v; sd.fields)
+            if (offset != v.offset)
+                continue;
+            if (sz != v.type.size())
+                continue;
+            /* context fields might not be filled. */
+            if (i >= sd.nonHiddenFields())
+                return cast(int)i;
+            if (auto e = (*elements)[i])
             {
-                if (offset == v.offset && sz == v.type.size())
-                {
-                    /* context fields might not be filled. */
-                    if (i >= sd.nonHiddenFields())
-                        return cast(int)i;
-                    if (auto e = (*elements)[i])
-                    {
-                        return cast(int)i;
-                    }
-                    break;
-                }
+                return cast(int)i;
             }
+            return -1;
         }
-        return -1;
+        assert(0);
     }
 
     override void accept(Visitor v)
@@ -2318,16 +2318,16 @@ extern (C++) final class ScopeExp : Expression
             error(loc, "%s `%s` has no type", sds.kind(), sds.toChars());
             return true;
         }
-        if (auto ti = sds.isTemplateInstance())
+        auto ti = sds.isTemplateInstance();
+        if (!ti)
+            return false;
+        //assert(ti.needsTypeInference(sc));
+        if (ti.tempdecl &&
+            ti.semantictiargsdone &&
+            ti.semanticRun == PASS.initial)
         {
-            //assert(ti.needsTypeInference(sc));
-            if (ti.tempdecl &&
-                ti.semantictiargsdone &&
-                ti.semanticRun == PASS.initial)
-            {
-                error(loc, "partial %s `%s` has no type", sds.kind(), toChars());
-                return true;
-            }
+            error(loc, "partial %s `%s` has no type", sds.kind(), toChars());
+            return true;
         }
         return false;
     }
