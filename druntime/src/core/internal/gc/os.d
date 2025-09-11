@@ -85,6 +85,13 @@ else version (Posix)
         return ChildStatus.done;
     }
 
+    version (DragonFlyBSD)
+        version = GCSignalsUnblock;
+    version (FreeBSD)
+        version = GCSignalsUnblock;
+    version (Solaris)
+        version = GCSignalsUnblock;
+
     //version = GC_Use_Alloc_MMap;
 }
 else
@@ -313,5 +320,32 @@ else version (Posix)
         }
         const pages = sysconf(sc);
         return pageSize * pages;
+    }
+}
+
+/**
+   The GC signals might be blocked by `fork` when the atfork prepare
+   handler is invoked. This guards us from the scenario where we are
+   waiting for a GC action in another thread to complete, and that thread
+   decides to call thread_suspendAll, then we must be able to response to
+   that request, otherwise we end up in a deadlock situation.
+ */
+version (GCSignalsUnblock)
+{
+    void os_unblock_gc_signals() nothrow @nogc
+    {
+        import core.sys.posix.signal : pthread_sigmask, sigaddset, sigemptyset, sigset_t, SIG_UNBLOCK;
+        import core.thread : thread_getGCSignals;
+
+        int suspendSignal = void, resumeSignal = void;
+        thread_getGCSignals(suspendSignal, resumeSignal);
+
+        sigset_t set;
+        sigemptyset(&set);
+        sigaddset(&set, suspendSignal);
+        sigaddset(&set, resumeSignal);
+
+        auto sigmask = pthread_sigmask(SIG_UNBLOCK, &set, null);
+        assert(sigmask == 0, "failed to unblock GC signals");
     }
 }
