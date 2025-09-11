@@ -34,9 +34,16 @@ else version (Posix)
         version = Darwin;
 
     public import core.sys.posix.unistd : fork, pid_t;
-    import core.stdc.errno : ECHILD, EINTR, errno;
-    import core.sys.posix.sys.mman : MAP_ANON, MAP_FAILED, MAP_PRIVATE, MAP_SHARED, mmap, munmap, PROT_READ, PROT_WRITE;
-    import core.sys.posix.sys.wait : waitpid, WNOHANG;
+
+    static import core.sys.posix.sys.mman;
+    static if (__traits(compiles, core.sys.posix.sys.mman.mmap))
+        import core.sys.posix.sys.mman : MAP_ANON, MAP_FAILED, MAP_PRIVATE, MAP_SHARED, mmap, munmap, PROT_READ, PROT_WRITE;
+
+    static import core.sys.posix.stdlib;
+    static if (__traits(compiles, core.sys.posix.stdlib.valloc))
+        import core.sys.posix.stdlib : valloc;
+
+    import core.stdc.stdlib : free, malloc;
 
 
     /// Possible results for the wait_pid() function.
@@ -57,6 +64,8 @@ else version (Posix)
     ChildStatus wait_pid(pid_t pid, bool block = true) nothrow @nogc
     {
         import core.exception : onForkError;
+        import core.stdc.errno : ECHILD, EINTR, errno;
+        import core.sys.posix.sys.wait : waitpid, WNOHANG;
 
         int status = void;
         pid_t waited_pid = void;
