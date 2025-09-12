@@ -1091,9 +1091,9 @@ void MachObj_term(const(char)[] objfilename)
                             fobjbuf.write(&rel, rel.sizeof);
                             foffset += rel.sizeof;
                             nreloc++;
-                            int32_t* p = patchAddr64(seg, r.offset);
+                            //int32_t* p = patchAddr64(seg, r.offset);
                             // Absolute address; add in addr of start of targ seg
-                            *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                            //  *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
                             //patch(pseg, r.offset, s.Sseg, s.Soffset);
                         }
                         else if (s.Sclass == SC.extern_ ||
@@ -1994,14 +1994,18 @@ seg_data* MachObj_tlsseg()
 
 /*******************************************
  * Emit 24 byte __thread_vars section for AArch64.
+ * Params:
+ *      s = Symbol for variable to be added to __thread_vars section
+ *      offset = set to offset to start of where to write initializer data
+ *      bss = true to write to __thread_bss, false to __thread_data
  * Returns:
  *      segment to write initialization data to
  */
 @trusted
-int MachObj_thread_vars(ref Symbol s, out targ_size_t offset)
+int MachObj_thread_vars(ref Symbol s, out targ_size_t offset, bool bss)
 {
-    printf("MachObj_thread_vars(s)\n");
-    symbol_print(s);
+    //printf("MachObj_thread_vars(s)\n");
+    //symbol_print(s);
     /* create _ident$tlv$init Symbol si
      */
     Symbol* si;
@@ -2020,12 +2024,21 @@ int MachObj_thread_vars(ref Symbol s, out targ_size_t offset)
             mem_free(dest.ptr);
     }
 
-    /* write _ident$tlv$init to __thread_data section
+    /* write _ident$tlv$init to __thread_bss / __thread_data section
      */
-    MachObj_tlsseg_data();
-    si.Sseg = seg_tlsseg_data;
+    if (bss)
+    {
+        MachObj_tlsseg_bss();
+        si.Sseg = seg_tlsseg_bss;
+        offset = 0;
+    }
+    else
+    {
+        MachObj_tlsseg_data();
+        si.Sseg = seg_tlsseg_data;
+        offset = SegData[si.Sseg].SDbuf.length();
+    }
     si.Sfl = FL.tlsdata;
-    offset = SegData[si.Sseg].SDbuf.length();
     MachObj_pubdef(si.Sseg, si, offset);
 
     /* Create __thread_vars section, and s will refer to it
