@@ -80,7 +80,7 @@ void outdata(Symbol* s)
     debug
     debugy && printf("outdata('%s')\n",s.Sident.ptr);
 
-    //printf("outdata('%s', ty=x%x)\n",s.Sident.ptr,s.Stype.Tty);
+    //printf("outdata('%s', ty=%s)\n",s.Sident.ptr,tym_str(s.Stype.Tty));
     //symbol_print(*s);
 
     // Data segment variables are always live on exit from a function
@@ -152,6 +152,25 @@ void outdata(Symbol* s)
                             assert(config.objfmt == OBJ_MACH && I64);
                             goto case;
                         case mTYthread:
+                        if (config.objfmt == OBJ_MACH && config.target_cpu == TARGET_AArch64)
+                        {
+                            // Special handling
+                            import dmd.backend.machobj : MachObj_thread_vars;
+                            targ_size_t offseti;
+                            int segi = MachObj_thread_vars(*s, offseti, true);
+                            seg_data* pseg = objmod.tlsseg_bss();
+                            s.Sseg = pseg.SDseg;
+                            objmod.data_start(s, datasize, pseg.SDseg);
+                            objmod.lidata(pseg.SDseg, pseg.SDoffset, datasize); // I think this section is readonly, so data should overlap
+                                                                                // instead of being consecutive as gcc emits it
+                            s.Sfl = FL.tlsdata;
+
+                            //              if (s.Sclass == SC.global || s.Sclass == SC.static_)
+                            //                  objmod.pubdefsize(seg,s,s.Soffset,datasize);    // do the definition
+
+                            // BUG AArch64: symbolic debug info?
+                            break;
+                        }
                         {   seg_data* pseg = objmod.tlsseg_bss();
                             s.Sseg = pseg.SDseg;
                             objmod.data_start(s, datasize, pseg.SDseg);
@@ -273,7 +292,7 @@ void outdata(Symbol* s)
                 // Special handling
                 import dmd.backend.machobj : MachObj_thread_vars;
                 targ_size_t offseti;
-                int segi = MachObj_thread_vars(*s, offseti);
+                int segi = MachObj_thread_vars(*s, offseti, false);
                 dt_writeToObj(objmod, dtstart, segi, offseti);
                 Offset(segi) = offseti;
                 dt_free(dtstart);
