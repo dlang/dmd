@@ -1753,6 +1753,68 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 enclosing = ti.enclosing;
         }
 
+        /* Search for the most deeply nested of `dparent` and `enclosing` assigning
+         * `dparent` to `enclosing` if `dparent` is more nested than `enclosing`.
+         *
+         * Returns:
+         *  `true` if an error should be reported
+         */
+        static bool search(Dsymbol dparent, ref Dsymbol enclosing)
+        {
+            if (!dparent || dparent.isModule)
+                return false;
+            if (!enclosing)
+            {
+                enclosing = dparent;
+                return false;
+            }
+            if (enclosing == dparent)
+                return false;
+
+            /* Select the more deeply nested of the two.
+             * Error if one is not nested inside the other.
+             */
+            for (Dsymbol p = enclosing; p; p = p.parent)
+            {
+                if (p == dparent)
+                    return false; // enclosing is most nested
+            }
+            for (Dsymbol p = dparent; p; p = p.parent)
+            {
+                if (p == enclosing)
+                {
+                    enclosing = dparent;
+                    return false; // dparent is most nested
+                }
+            }
+            //https://issues.dlang.org/show_bug.cgi?id=17870
+            auto pc = dparent.isClassDeclaration();
+            auto ec = enclosing.isClassDeclaration();
+            if (pc && ec)
+            {
+                if (pc.isBaseOf(ec, null))
+                    return false;
+                else if (ec.isBaseOf(pc, null))
+                {
+                    enclosing = dparent;
+                    return false;
+                }
+            }
+            return true;
+        }
+        int search2(Dsymbol sa)
+        {
+            Dsymbol dparent = sa.toParent2();
+            if (search(dparent, this.enclosing))
+            {
+                .error(loc, "%s `%s` `%s` is nested in both `%s` and `%s`",
+                       this.kind, this.toPrettyChars(), this.toChars(),
+                       enclosing.toChars(), dparent.toChars());
+                this.errors = true;
+            }
+            //printf("\tnested inside %s as it references %s\n", enclosing.toChars(), sa.toChars());
+            return 1;
+        }
         /* A nested instance happens when an argument references a local
          * symbol that is on the stack.
          */
@@ -1802,50 +1864,16 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 TemplateInstance ti = sa.isTemplateInstance();
                 Declaration d = sa.isDeclaration();
-                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STC.manifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
+                if (td && td.literal)
+                    nested |= search2(sa);
+                if (ti && ti.enclosing)
+                    nested |= search2(sa);
+                if (d && !d.isDataseg()
+                      && !(d.storage_class & STC.manifest)
+                      && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested())
+                      && !isTemplateMixin())
                 {
-                    Dsymbol dparent = sa.toParent2();
-                    if (!dparent || dparent.isModule)
-                        goto L1;
-                    else if (!enclosing)
-                        enclosing = dparent;
-                    else if (enclosing != dparent)
-                    {
-                        /* Select the more deeply nested of the two.
-                         * Error if one is not nested inside the other.
-                         */
-                        for (Dsymbol p = enclosing; p; p = p.parent)
-                        {
-                            if (p == dparent)
-                                goto L1; // enclosing is most nested
-                        }
-                        for (Dsymbol p = dparent; p; p = p.parent)
-                        {
-                            if (p == enclosing)
-                            {
-                                enclosing = dparent;
-                                goto L1; // dparent is most nested
-                            }
-                        }
-                        //https://issues.dlang.org/show_bug.cgi?id=17870
-                        if (dparent.isClassDeclaration() && enclosing.isClassDeclaration())
-                        {
-                            auto pc = dparent.isClassDeclaration();
-                            auto ec = enclosing.isClassDeclaration();
-                            if (pc.isBaseOf(ec, null))
-                                goto L1;
-                            else if (ec.isBaseOf(pc, null))
-                            {
-                                enclosing = dparent;
-                                goto L1;
-                            }
-                        }
-                        .error(loc, "%s `%s` `%s` is nested in both `%s` and `%s`", kind, toPrettyChars, toChars(), enclosing.toChars(), dparent.toChars());
-                        errors = true;
-                    }
-                L1:
-                    //printf("\tnested inside %s as it references %s\n", enclosing.toChars(), sa.toChars());
-                    nested |= 1;
+                    nested |= search2(sa);
                 }
             }
             else if (va)
