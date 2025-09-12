@@ -4870,7 +4870,10 @@ private Statements* flatten(Statement statement, Scope* sc)
             {
                 Statement s = p.parseStatement(ParseStatementFlags.curlyScope);
                 if (!s || global.errors != errors)
+                {
+                    errorSupplemental(s.loc, "while parsing string mixin statement");
                     return errorStatements();
+                }
                 a.push(s);
             }
             return a;
