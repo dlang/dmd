@@ -1815,70 +1815,71 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             //printf("\tnested inside %s as it references %s\n", enclosing.toChars(), sa.toChars());
             return 1;
         }
+        int dsym(Dsymbol sa)
+        {
+            sa = sa.toAlias();
+            TemplateDeclaration td = sa.isTemplateDeclaration();
+            if (td)
+            {
+                TemplateInstance ti = sa.toParent().isTemplateInstance();
+                if (ti && ti.enclosing)
+                    sa = ti;
+            }
+            TemplateInstance ti = sa.isTemplateInstance();
+            Declaration d = sa.isDeclaration();
+            if (td && td.literal)
+                return search2(sa);
+            if (ti && ti.enclosing)
+                return search2(sa);
+            if (d && !d.isDataseg()
+                  && !(d.storage_class & STC.manifest)
+                  && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested())
+                  && !isTemplateMixin())
+            {
+                return search2(sa);
+            }
+            return 0;
+        }
         /* A nested instance happens when an argument references a local
          * symbol that is on the stack.
          */
         foreach (o; *args)
         {
-            Expression ea = isExpression(o);
-            Dsymbol sa = isDsymbol(o);
-            Tuple va = isTuple(o);
-            if (ea)
+            if (Dsymbol sa = isDsymbol(o))
             {
-                if (auto ve = ea.isVarExp())
-                {
-                    sa = ve.var;
-                    goto Lsa;
-                }
-                if (auto te = ea.isThisExp())
-                {
-                    sa = te.var;
-                    goto Lsa;
-                }
-                if (auto fe = ea.isFuncExp())
-                {
-                    if (fe.td)
-                        sa = fe.td;
-                    else
-                        sa = fe.fd;
-                    goto Lsa;
-                }
-                // Emulate Expression.toMangleBuffer call that had exist in TemplateInstance.genIdent.
-                if (ea.op != EXP.int64 && ea.op != EXP.float64 && ea.op != EXP.complex80 && ea.op != EXP.null_ && ea.op != EXP.string_ && ea.op != EXP.arrayLiteral && ea.op != EXP.assocArrayLiteral && ea.op != EXP.structLiteral)
-                {
-                    if (!ea.type.isTypeError())
-                        .error(ea.loc, "%s `%s` expression `%s` is not a valid template value argument", kind, toPrettyChars, ea.toChars());
-                    errors = true;
-                }
+                nested |= dsym(sa);
+                continue;
             }
-            else if (sa)
-            {
-            Lsa:
-                sa = sa.toAlias();
-                TemplateDeclaration td = sa.isTemplateDeclaration();
-                if (td)
-                {
-                    TemplateInstance ti = sa.toParent().isTemplateInstance();
-                    if (ti && ti.enclosing)
-                        sa = ti;
-                }
-                TemplateInstance ti = sa.isTemplateInstance();
-                Declaration d = sa.isDeclaration();
-                if (td && td.literal)
-                    nested |= search2(sa);
-                if (ti && ti.enclosing)
-                    nested |= search2(sa);
-                if (d && !d.isDataseg()
-                      && !(d.storage_class & STC.manifest)
-                      && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested())
-                      && !isTemplateMixin())
-                {
-                    nested |= search2(sa);
-                }
-            }
-            else if (va)
+            else if (Tuple va = isTuple(o))
             {
                 nested |= cast(int)hasNestedArgs(&va.objects, isstatic);
+                continue;
+            }
+            Expression ea = isExpression(o);
+            if (!ea)
+                continue;
+
+            if (auto ve = ea.isVarExp())
+            {
+                nested |= dsym(ve.var);
+                continue;
+            }
+            if (auto te = ea.isThisExp())
+            {
+                nested |= dsym(te.var);
+                continue;
+            }
+            if (auto fe = ea.isFuncExp())
+            {
+                nested |= dsym(fe.td? fe.td : fe.fd);
+                continue;
+            }
+            // Emulate Expression.toMangleBuffer call that had exist in TemplateInstance.genIdent.
+            if (ea.op != EXP.int64 && ea.op != EXP.float64 && ea.op != EXP.complex80 && ea.op != EXP.null_ && ea.op != EXP.string_ && ea.op != EXP.arrayLiteral && ea.op != EXP.assocArrayLiteral && ea.op != EXP.structLiteral)
+            {
+                if (!ea.type.isTypeError())
+                    .error(ea.loc, "%s `%s` expression `%s` is not a valid template value argument", kind, toPrettyChars, ea.toChars());
+                errors = true;
             }
         }
         //printf("-TemplateInstance.hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
