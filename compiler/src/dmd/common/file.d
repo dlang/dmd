@@ -472,21 +472,19 @@ extern(D) static bool writeFile(const(char)* name, const void[] data) nothrow
     {
         int fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, (6 << 6) | (4 << 3) | 4);
         if (fd == -1)
-            goto err;
+            return false;
         if (.write(fd, data.ptr, data.length) != data.length)
-            goto err2;
+        {
+            close(fd);
+            .remove(name);
+            return false;
+        }
         if (close(fd) == -1)
-            goto err;
+            return false;
         return true;
-    err2:
-        close(fd);
-        .remove(name);
-    err:
-        return false;
     }
     else version (Windows)
     {
-        DWORD numwritten; // here because of the gotos
         const nameStr = name[0 .. strlen(name)];
         // work around Windows file path length limitation
         // (see documentation for extendedPathThen).
@@ -499,20 +497,21 @@ extern(D) static bool writeFile(const(char)* name, const void[] data) nothrow
                                 FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
                                 null));
         if (h == INVALID_HANDLE_VALUE)
-            goto err;
-
+            return false;
+        bool errorRet()
+        {
+            CloseHandle(h);
+            nameStr.extendedPathThen!(p => DeleteFileW(p.ptr));
+            return false;
+        }
+        DWORD numwritten;
         if (WriteFile(h, data.ptr, cast(DWORD)data.length, &numwritten, null) != TRUE)
-            goto err2;
+            return errorRet();
         if (numwritten != data.length)
-            goto err2;
+            return errorRet();
         if (!CloseHandle(h))
-            goto err;
+            return false;
         return true;
-    err2:
-        CloseHandle(h);
-        nameStr.extendedPathThen!(p => DeleteFileW(p.ptr));
-    err:
-        return false;
     }
     else
     {
