@@ -1511,6 +1511,28 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeNoreturn)   isTypeNoreturn()   { return ty == Tnoreturn  ? cast(typeof(return))this : null; }
         inout(TypeTag)        isTypeTag()        { return ty == Ttag       ? cast(typeof(return))this : null; }
 
+        inout(TypeArray)      isTypeArray()
+        {
+            switch (ty)
+            {
+            case Tsarray, Tarray, Taarray:
+                return cast(typeof(return))this;
+            default:
+                return null;
+            }
+        }
+        inout(TypeNext)       isTypeNext()
+        {
+            switch (ty)
+            {
+            case Tsarray, Tarray, Taarray:
+            case Tpointer, Treference, Tfunction, Tdelegate, Tslice:
+                    return cast(typeof(return))this;
+            default:
+                return null;
+            }
+        }
+
         extern (D) bool isStaticOrDynamicArray() const { return ty == Tarray || ty == Tsarray; }
     }
 
@@ -1578,6 +1600,8 @@ extern (C++) abstract class TypeNext : Type
         super(ty);
         this.next = next;
     }
+
+    abstract override TypeNext syntaxCopy();
 
     override final int hasWild() const
     {
@@ -2125,6 +2149,8 @@ extern (C++) abstract class TypeArray : TypeNext
     {
         super(ty, next);
     }
+
+    abstract override TypeArray syntaxCopy();
 
     override void accept(Visitor v)
     {
