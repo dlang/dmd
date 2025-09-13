@@ -190,7 +190,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
 
     // Compute again
     tempdecl.onemember = null;
-    if (tempdecl.members)
+    if (tempdecl.members && tempdecl.ident)
     {
         Dsymbol s;
         if (oneMembers(tempdecl.members, s, tempdecl.ident) && s)
@@ -198,6 +198,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
             tempdecl.onemember = s;
             s.parent = tempdecl;
         }
+        tempdecl.computeIsTrivialAlias(s);
     }
 
     /* BUG: should check:
@@ -208,6 +209,44 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
      */
 
     tempdecl.semanticRun = PASS.semanticdone;
+}
+
+private void computeIsTrivialAlias(TemplateDeclaration td, Dsymbol s)
+{
+    /* Set isTrivialAliasSeq if this fits the pattern:
+     *   template AliasSeq(T...) { alias AliasSeq = T; }
+     * or set isTrivialAlias if this fits the pattern:
+     *   template Alias(T) { alias Alias = qualifiers(T); }
+     */
+    if (!(td.parameters && td.parameters.length == 1))
+        return;
+
+    auto ad = s.isAliasDeclaration();
+    if (!ad || !ad.type)
+        return;
+
+    auto ti = ad.type.isTypeIdentifier();
+
+    if (!ti || ti.idents.length != 0)
+        return;
+
+    if (auto ttp = (*td.parameters)[0].isTemplateTupleParameter())
+    {
+        if (ti.ident is ttp.ident &&
+            ti.mod == 0)
+        {
+            //printf("found isTrivialAliasSeq %s %s\n", s.toChars(), ad.type.toChars());
+            td.isTrivialAliasSeq = true;
+        }
+    }
+    else if (auto ttp = (*td.parameters)[0].isTemplateTypeParameter())
+    {
+        if (ti.ident is ttp.ident)
+        {
+            //printf("found isTrivialAlias %s %s\n", s.toChars(), ad.type.toChars());
+            td.isTrivialAlias = true;
+        }
+    }
 }
 
 /// Pair of MATCHes
