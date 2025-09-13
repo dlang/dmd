@@ -79,7 +79,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
             {
                 return specialNoreturnCast(e, t);
             }
-            if (match == MATCH.constant && (e.type.constConv(t) || !e.isLvalue() && e.type.equivalent(t)))
+            if (match == MATCH.constant && (e.type.constConv(t) || !isLvalue(e) && e.type.equivalent(t)))
             {
                 /* Do not emit CastExp for const conversions and
                  * unique conversions on rvalue.
@@ -1436,7 +1436,7 @@ MATCH implicitConvTo(Expression e, Type t)
              * If not, e.e1 is a reference, and its uniqueness does not link
              * to the uniqueness of the referred data.
              */
-            if (t1b.ty == Tsarray && !e.e1.isLvalue())
+            if (t1b.ty == Tsarray && !isLvalue(e.e1))
                 tx = tbn.sarrayOf(t1b.size() / tbn.size());
 
             if (tx)

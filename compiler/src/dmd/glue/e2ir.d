@@ -48,7 +48,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : include, _isZeroInit, toAlias, isPOD;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.expressionsem : fill;
+import dmd.expressionsem : fill, isLvalue;
 import dmd.func;
 import dmd.hdrgen;
 import dmd.id;
@@ -2427,9 +2427,9 @@ elem* toElem(Expression e, ref IRState irs)
                  */
                 bool postblit = false;
                 if (needsPostblit(t1.nextOf()) &&
-                    (ae.e2.op == EXP.slice && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                     ae.e2.op == EXP.cast_  && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                     ae.e2.op != EXP.slice && ae.e2.isLvalue()))
+                    (ae.e2.op == EXP.slice && isLvalue((cast(UnaExp)ae.e2).e1) ||
+                     ae.e2.op == EXP.cast_  && isLvalue((cast(UnaExp)ae.e2).e1) ||
+                     ae.e2.op != EXP.slice && isLvalue(ae.e2)))
                 {
                     postblit = true;
                 }
@@ -2797,9 +2797,9 @@ elem* toElem(Expression e, ref IRState irs)
              * destructors on old assigned elements.
              */
             bool lvalueElem = false;
-            if (ae.e2.op == EXP.slice && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                ae.e2.op == EXP.cast_  && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                ae.e2.op != EXP.slice && ae.e2.isLvalue())
+            if (ae.e2.op == EXP.slice && isLvalue((cast(UnaExp)ae.e2).e1) ||
+                ae.e2.op == EXP.cast_  && isLvalue((cast(UnaExp)ae.e2).e1) ||
+                ae.e2.op != EXP.slice && isLvalue(ae.e2))
             {
                 lvalueElem = true;
             }
@@ -2820,7 +2820,7 @@ elem* toElem(Expression e, ref IRState irs)
             }
             else
             {
-                if (ae.e2.isLvalue)
+                if (isLvalue(ae.e2))
                     assert(0, "Trying to reference `_d_arrayassign_l`, this should not happen!");
                 else
                     assert(0, "Trying to reference `_d_arrayassign_r`, this should not happen!");
