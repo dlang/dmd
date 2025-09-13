@@ -2814,6 +2814,7 @@ public:
 class ConstructExp final : public AssignExp
 {
 public:
+    Expression* lowering;
     void accept(Visitor* v) override;
 };
 
