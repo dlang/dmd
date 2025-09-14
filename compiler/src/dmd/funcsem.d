@@ -3115,7 +3115,7 @@ enum LevelError = -2;
  */
 extern (D) final int getLevel(FuncDeclaration fd1, FuncDeclaration fd2, int intypeof)
 {
-    //printf("FuncDeclaration::getLevel(fd = '%s')\n", fd.toChars());
+    //printf("FuncDeclaration::getLevel(fd2 = '%s')\n", fd2.toChars());
     Dsymbol fd2parent = fd2.toParent2();
     if (fd2parent == fd1)
         return -1;
