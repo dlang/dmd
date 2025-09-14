@@ -2092,6 +2092,13 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         const(bool) tob_isA = ((tob.isIntegral() || tob.isFloating()) && tob.ty != Tvector);
         const(bool) t1b_isA = ((t1b.isIntegral() || t1b.isFloating()) && t1b.ty != Tvector);
 
+        Expression ok()
+        {
+            auto result = new CastExp(e.loc, e, t);
+            result.type = t; // Don't call semantic()
+            //printf("Returning: %s\n", result.toChars());
+            return result;
+        }
         // Try casting the alias this member.
         // Return the expression if it succeeds, null otherwise.
         Expression tryAliasThisCast()
@@ -2109,6 +2116,21 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         }
 
         bool hasAliasThis;
+
+        Expression fail()
+        {
+            /* if the cast cannot be performed, maybe there is an alias
+             * this that can be used for casting.
+             */
+            if (hasAliasThis)
+            {
+                if (auto result = tryAliasThisCast())
+                    return result;
+            }
+            error(e.loc, "cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
+            return ErrorExp.get();
+        }
+
         if (AggregateDeclaration t1ad = isAggregate(t1b))
         {
             AggregateDeclaration toad = isAggregate(tob);
@@ -2120,7 +2142,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     ClassDeclaration tocd = tob.isClassHandle();
                     int offset;
                     if (tocd.isBaseOf(t1cd, &offset))
-                        goto Lok;
+                        return ok();
                 }
                 hasAliasThis = true;
             }
@@ -2131,7 +2153,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             {
                 // Casting static array to vector with same size, e.g. `cast(int4) int[4]`
                 if (t1b.size(e.loc) != tob.size(e.loc))
-                    goto Lfail;
+                    return fail();
                 return new VectorExp(e.loc, e, tob).expressionSemantic(sc);
             }
             //printf("test1 e = %s, e.type = %s, tob = %s\n", e.toChars(), e.type.toChars(), tob.toChars());
@@ -2147,9 +2169,9 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             if (tob.ty == Tsarray)
             {
                 if (t1b.size(e.loc) == tob.size(e.loc))
-                    goto Lok;
+                    return ok();
             }
-            goto Lfail;
+            return fail();
         }
         else if (t1b.implicitConvTo(tob) == MATCH.constant && t.equals(e.type.constOf()))
         {
@@ -2162,13 +2184,13 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         // arithmetic values vs. T*
         if (tob_isA && (t1b_isA || t1b.ty == Tpointer) || t1b_isA && (tob_isA || tob.ty == Tpointer))
         {
-            goto Lok;
+            return ok();
         }
 
         // arithmetic values vs. references or fat values
         if (tob_isA && (t1b_isR || t1b_isFV) || t1b_isA && (tob_isR || tob_isFV))
         {
-            goto Lfail;
+            return fail();
         }
 
         // Bugzlla 3133: A cast between fat values is possible only when the sizes match.
@@ -2181,7 +2203,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             }
 
             if (t1b.size(e.loc) == tob.size(e.loc))
-                goto Lok;
+                return ok();
 
             auto ts = toAutoQualChars(e.type, t);
             error(e.loc, "cannot cast expression `%s` of type `%s` to `%s` because of different sizes",
@@ -2218,9 +2240,9 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                         return ErrorExp.get();
                     }
                 }
-                goto Lok;
+                return ok();
             }
-            goto Lfail;
+            return fail();
         }
 
         /* For references, any reinterpret casts are allowed to same 'ty' type.
@@ -2232,14 +2254,14 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
          *      class/interface A to B  (will be a dynamic cast if possible)
          */
         if (tob.ty == t1b.ty && tob_isR && t1b_isR)
-            goto Lok;
+            return ok();
 
         // typeof(null) <-- non-null references or values
         if (tob.ty == Tnull && t1b.ty != Tnull)
-            goto Lfail; // https://issues.dlang.org/show_bug.cgi?id=14629
+            return fail(); // https://issues.dlang.org/show_bug.cgi?id=14629
         // typeof(null) --> non-null references or arithmetic values
         if (t1b.ty == Tnull && tob.ty != Tnull)
-            goto Lok;
+            return ok();
 
         // Check size mismatch of references.
         // Tarray and Tdelegate are (void*).sizeof*2, but others have (void*).sizeof.
@@ -2249,7 +2271,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             {
                 // T[] da;
                 // cast(U*)da; // ==> cast(U*)da.ptr;
-                goto Lok;
+                return ok();
             }
             if (tob.ty == Tpointer && t1b.ty == Tdelegate)
             {
@@ -2257,31 +2279,17 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 // cast(U*)dg; // ==> cast(U*)dg.ptr;
                 // Note that it happens even when U is a Tfunction!
                 deprecation(e.loc, "casting from %s to %s is deprecated", e.type.toChars(), t.toChars());
-                goto Lok;
+                return ok();
             }
-            goto Lfail;
+            return fail();
         }
 
         if (t1b.ty == Tvoid && tob.ty != Tvoid)
         {
-        Lfail:
-            /* if the cast cannot be performed, maybe there is an alias
-             * this that can be used for casting.
-             */
-            if (hasAliasThis)
-            {
-                if (auto result = tryAliasThisCast())
-                    return result;
-            }
-            error(e.loc, "cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
-            return ErrorExp.get();
+            return fail();
         }
+        return ok();
 
-    Lok:
-        auto result = new CastExp(e.loc, e, t);
-        result.type = t; // Don't call semantic()
-        //printf("Returning: %s\n", result.toChars());
-        return result;
     }
 
     Expression visitError(ErrorExp e)
@@ -2469,7 +2477,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         }
 
         if (e.committed)
-            goto Lcast;
+            return lcast();
 
         static auto X(T, U)(T tf, U tt)
         {
@@ -2582,7 +2590,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 
             default:
                 assert(typeb.nextOf().size() != tb.nextOf().size());
-                goto Lcast;
+                return lcast();
             }
         }
     L2:
@@ -2609,11 +2617,6 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         }
         se.type = t;
         return se;
-
-    Lcast:
-        auto result = new CastExp(e.loc, se, t);
-        result.type = t; // so semantic() won't be run on e
-        return result;
     }
 
     Expression visitAddr(AddrExp e)
