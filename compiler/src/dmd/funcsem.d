@@ -2463,7 +2463,7 @@ int getLevelAndCheck(FuncDeclaration fd, Loc loc, Scope* sc, FuncDeclaration tar
                      Declaration decl)
 {
     int level = fd.getLevel(target, sc.intypeof);
-    if (level != fd.LevelError)
+    if (level != LevelError)
         return level;
     // Don't give error if in template constraint
     if (!sc.inTemplateConstraint)
@@ -2474,7 +2474,7 @@ int getLevelAndCheck(FuncDeclaration fd, Loc loc, Scope* sc, FuncDeclaration tar
                xstatic, fd.kind(), fd.toPrettyChars(), decl.kind(), decl.toChars(),
                target.toPrettyChars());
             .errorSupplemental(decl.loc, "`%s` declared here", decl.toChars());
-        return fd.LevelError;
+        return LevelError;
     }
     return 1;
 }
@@ -3100,6 +3100,64 @@ extern (D) void checkMain(FuncDeclaration fd)
         .error(fd.loc, "%s `%s` must return `int`, `void` or `noreturn`, not `%s`", fd.kind, fd.toPrettyChars, tf.nextOf().toChars());
 }
 
+enum LevelError = -2;
+
+/*****************************************
+ * Determine lexical level difference from `fd1` to nested function `fd2`.
+ * Params:
+ *      fd2 = target of call
+ *      intypeof = !=0 if inside typeof
+ * Returns:
+ *      0       same level
+ *      >0      decrease nesting by number
+ *      -1      increase nesting by 1 (`fd2` is nested within `fd1`)
+ *      LevelError  error, `this` cannot call `fd2`
+ */
+extern (D) final int getLevel(FuncDeclaration fd1, FuncDeclaration fd2, int intypeof)
+{
+    //printf("FuncDeclaration::getLevel(fd = '%s')\n", fd.toChars());
+    Dsymbol fd2parent = fd2.toParent2();
+    if (fd2parent == fd1)
+        return -1;
+
+    Dsymbol s = fd1;
+    int level = 0;
+    while (fd2 != s && fd2parent != s.toParent2())
+    {
+        //printf("\ts = %s, '%s'\n", s.kind(), s.toChars());
+        if (auto thisfd = s.isFuncDeclaration())
+        {
+            if (!thisfd.isNested() && !thisfd.vthis && !intypeof)
+                return LevelError;
+        }
+        else
+        {
+            if (auto thiscd = s.isAggregateDeclaration())
+            {
+                /* AggregateDeclaration::isNested returns true only when
+                 * it has a hidden pointer.
+                 * But, calling the function belongs unrelated lexical scope
+                 * is still allowed inside typeof.
+                 *
+                 * struct Map(alias fun) {
+                 *   typeof({ return fun(); }) RetType;
+                 *   // No member function makes Map struct 'not nested'.
+                 * }
+                 */
+                if (!thiscd.isNested() && !intypeof)
+                    return LevelError;
+            }
+            else
+                return LevelError;
+        }
+
+        s = s.toParentP(fd2);
+        assert(s);
+        level++;
+    }
+    return level;
+}
+
 /* For all functions between outerFunc and f, mark them as needing
  * a closure.
  */
@@ -3189,6 +3247,7 @@ bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc, void* p
     //printf("\t%d\n", bAnyClosures);
     return bAnyClosures;
 }
+
 /*******************************
  * Look at all the variables in this function that are referenced
  * by nested functions, and determine if a closure needs to be
@@ -3933,7 +3992,7 @@ extern (D) bool checkNestedReference(VarDeclaration vd, Scope* sc, Loc loc)
     //printf("\tfdthis = %s\n", fdthis.toChars());
     if (loc.isValid())
     {
-        if (fdthis.getLevelAndCheck(loc, sc, fdv, vd) == fdthis.LevelError)
+        if (fdthis.getLevelAndCheck(loc, sc, fdv, vd) == LevelError)
             return true;
     }
 

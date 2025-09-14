@@ -4065,7 +4065,7 @@ private bool checkNestedFuncReference(FuncDeclaration fd, Scope* sc, Loc loc)
             }
         }
         const lv = fdthis.getLevelAndCheck(loc, sc, fdv, fd);
-        if (lv == fd.LevelError)
+        if (lv == LevelError)
             return true; // error
         if (lv == -1)
             return false; // downlevel call

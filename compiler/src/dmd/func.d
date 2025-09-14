@@ -32,7 +32,6 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : toParentP;
 import dmd.dtemplate;
 import dmd.escape;
 import dmd.expression;
@@ -507,64 +506,6 @@ extern (C++) class FuncDeclaration : Declaration
         }
         return cast(LabelDsymbol)s;
     }
-
-    /*****************************************
-     * Determine lexical level difference from `this` to nested function `fd`.
-     * Params:
-     *      fd = target of call
-     *      intypeof = !=0 if inside typeof
-     * Returns:
-     *      0       same level
-     *      >0      decrease nesting by number
-     *      -1      increase nesting by 1 (`fd` is nested within `this`)
-     *      LevelError  error, `this` cannot call `fd`
-     */
-    extern (D) final int getLevel(FuncDeclaration fd, int intypeof)
-    {
-        //printf("FuncDeclaration::getLevel(fd = '%s')\n", fd.toChars());
-        Dsymbol fdparent = fd.toParent2();
-        if (fdparent == this)
-            return -1;
-
-        Dsymbol s = this;
-        int level = 0;
-        while (fd != s && fdparent != s.toParent2())
-        {
-            //printf("\ts = %s, '%s'\n", s.kind(), s.toChars());
-            if (auto thisfd = s.isFuncDeclaration())
-            {
-                if (!thisfd.isNested() && !thisfd.vthis && !intypeof)
-                    return LevelError;
-            }
-            else
-            {
-                if (auto thiscd = s.isAggregateDeclaration())
-                {
-                    /* AggregateDeclaration::isNested returns true only when
-                     * it has a hidden pointer.
-                     * But, calling the function belongs unrelated lexical scope
-                     * is still allowed inside typeof.
-                     *
-                     * struct Map(alias fun) {
-                     *   typeof({ return fun(); }) RetType;
-                     *   // No member function makes Map struct 'not nested'.
-                     * }
-                     */
-                    if (!thiscd.isNested() && !intypeof)
-                        return LevelError;
-                }
-                else
-                    return LevelError;
-            }
-
-            s = s.toParentP(fd);
-            assert(s);
-            level++;
-        }
-        return level;
-    }
-
-    enum LevelError = -2;
 
     override const(char)* toPrettyChars(bool QualifyTypes = false)
     {
