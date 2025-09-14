@@ -305,7 +305,7 @@ private IDXSTR mach_addmangled(Symbol* s)
 }
 
 /**************************
- * Ouput read only data and generate a symbol for it.
+ * Output read only data and generate a symbol for it.
  *
  */
 
@@ -985,6 +985,7 @@ void MachObj_term(const(char)[] objfilename)
                                     break;
 
                                 case SC.global:
+                                    //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
                                     if (s.Sfl == FL.tlsdata)
                                         rel.r_type = r.rtype == RELadd ? ARM64_RELOC_TLVP_LOAD_PAGEOFF12 : ARM64_RELOC_TLVP_LOAD_PAGE21;
@@ -1004,9 +1005,9 @@ void MachObj_term(const(char)[] objfilename)
                                     rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
                                     rel.r_address = cast(int)r.offset;
-                                    rel.r_symbolnum = s.Sseg;
+                                    rel.r_symbolnum = s.Sxtrnnum;
                                     rel.r_length = 2;
-                                    rel.r_extern = 0;
+                                    rel.r_extern = 1;
                                     fobjbuf.write(&rel, rel.sizeof);
                                     foffset += rel.sizeof;
                                     nreloc++;
