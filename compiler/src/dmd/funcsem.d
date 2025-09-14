@@ -3105,6 +3105,7 @@ enum LevelError = -2;
 /*****************************************
  * Determine lexical level difference from `fd1` to nested function `fd2`.
  * Params:
+ *      fd1 = function
  *      fd2 = target of call
  *      intypeof = !=0 if inside typeof
  * Returns:
@@ -3113,7 +3114,7 @@ enum LevelError = -2;
  *      -1      increase nesting by 1 (`fd2` is nested within `fd1`)
  *      LevelError  error, `this` cannot call `fd2`
  */
-extern (D) final int getLevel(FuncDeclaration fd1, FuncDeclaration fd2, int intypeof)
+extern (D) int getLevel(FuncDeclaration fd1, FuncDeclaration fd2, int intypeof)
 {
     //printf("FuncDeclaration::getLevel(fd2 = '%s')\n", fd2.toChars());
     Dsymbol fd2parent = fd2.toParent2();
