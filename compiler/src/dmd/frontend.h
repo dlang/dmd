@@ -4076,7 +4076,6 @@ public:
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
     const char* kind() const override;
-    bool needsClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
     virtual FuncDeclaration* toAliasFunc();
