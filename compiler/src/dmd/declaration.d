@@ -461,109 +461,108 @@ extern (C++) final class AliasDeclaration : Declaration
          *  simple Overload class (an array) and then later have that resolve
          *  all collisions.
          */
-        if (semanticRun >= PASS.semanticdone)
+        if (semanticRun < PASS.semanticdone)
         {
-            /* Semantic analysis is already finished, and the aliased entity
-             * is not overloadable.
+            /* Don't know yet what the aliased symbol is, so assume it can
+             * be overloaded and check later for correctness.
              */
-            if (type)
+            if (overnext)
+                return overnext.overloadInsert(s);
+            if (s is this)
+                return true;
+            overnext = s;
+            return true;
+        }
+        /* Semantic analysis is already finished, and the aliased entity
+         * is not overloadable.
+         */
+        if (type)
+        {
+            /*
+                If type has been resolved already we could
+                still be inserting an alias from an import.
+
+                If we are handling an alias then pretend
+                it was inserting and return true, if not then
+                false since we didn't even pretend to insert something.
+            */
+            return this._import && this.equals(s);
+        }
+
+        // https://issues.dlang.org/show_bug.cgi?id=23865
+        // only insert if the symbol can be part of a set
+        const s1 = s.toAlias();
+        const isInsertCandidate = s1.isFuncDeclaration() || s1.isOverDeclaration() || s1.isTemplateDeclaration();
+
+        /* When s is added in member scope by static if, mixin("code") or others,
+         * aliassym is determined already. See the case in: test/compilable/test61.d
+         */
+        auto sa = aliassym.toAlias();
+
+        if (auto td = s.toAlias().isTemplateDeclaration())
+            s = td.funcroot ? td.funcroot : td;
+
+        if (auto fd = sa.isFuncDeclaration())
+        {
+            auto fa = new FuncAliasDeclaration(ident, fd);
+            fa.visibility = visibility;
+            fa.parent = parent;
+            aliassym = fa;
+            if (isInsertCandidate)
+                return aliassym.overloadInsert(s);
+        }
+        if (auto td = sa.isTemplateDeclaration())
+        {
+            auto od = new OverDeclaration(ident, td.funcroot ? td.funcroot : td);
+            od.visibility = visibility;
+            od.parent = parent;
+            aliassym = od;
+            if (isInsertCandidate)
+                return aliassym.overloadInsert(s);
+        }
+        if (auto od = sa.isOverDeclaration())
+        {
+            if (sa.ident != ident || sa.parent != parent)
             {
-                /*
-                    If type has been resolved already we could
-                    still be inserting an alias from an import.
-
-                    If we are handling an alias then pretend
-                    it was inserting and return true, if not then
-                    false since we didn't even pretend to insert something.
-                */
-                return this._import && this.equals(s);
-            }
-
-            // https://issues.dlang.org/show_bug.cgi?id=23865
-            // only insert if the symbol can be part of a set
-            const s1 = s.toAlias();
-            const isInsertCandidate = s1.isFuncDeclaration() || s1.isOverDeclaration() || s1.isTemplateDeclaration();
-
-            /* When s is added in member scope by static if, mixin("code") or others,
-             * aliassym is determined already. See the case in: test/compilable/test61.d
-             */
-            auto sa = aliassym.toAlias();
-
-            if (auto td = s.toAlias().isTemplateDeclaration())
-                s = td.funcroot ? td.funcroot : td;
-
-            if (auto fd = sa.isFuncDeclaration())
-            {
-                auto fa = new FuncAliasDeclaration(ident, fd);
-                fa.visibility = visibility;
-                fa.parent = parent;
-                aliassym = fa;
-                if (isInsertCandidate)
-                    return aliassym.overloadInsert(s);
-            }
-            if (auto td = sa.isTemplateDeclaration())
-            {
-                auto od = new OverDeclaration(ident, td.funcroot ? td.funcroot : td);
+                od = new OverDeclaration(ident, od);
                 od.visibility = visibility;
                 od.parent = parent;
                 aliassym = od;
-                if (isInsertCandidate)
-                    return aliassym.overloadInsert(s);
             }
-            if (auto od = sa.isOverDeclaration())
-            {
-                if (sa.ident != ident || sa.parent != parent)
-                {
-                    od = new OverDeclaration(ident, od);
-                    od.visibility = visibility;
-                    od.parent = parent;
-                    aliassym = od;
-                }
-                if (isInsertCandidate)
-                    return od.overloadInsert(s);
-            }
-            if (auto os = sa.isOverloadSet())
-            {
-                if (sa.ident != ident || sa.parent != parent)
-                {
-                    os = new OverloadSet(ident, os);
-                    // TODO: visibility is lost here b/c OverloadSets have no visibility attribute
-                    // Might no be a practical issue, b/c the code below fails to resolve the overload anyhow.
-                    // ----
-                    // module os1;
-                    // import a, b;
-                    // private alias merged = foo; // private alias to overload set of a.foo and b.foo
-                    // ----
-                    // module os2;
-                    // import a, b;
-                    // public alias merged = bar; // public alias to overload set of a.bar and b.bar
-                    // ----
-                    // module bug;
-                    // import os1, os2;
-                    // void test() { merged(123); } // should only look at os2.merged
-                    //
-                    // os.visibility = visibility;
-                    os.parent = parent;
-                    aliassym = os;
-                }
-                if (isInsertCandidate)
-                {
-                    os.push(s);
-                    return true;
-                }
-            }
-            return false;
+            if (isInsertCandidate)
+                return od.overloadInsert(s);
         }
-
-        /* Don't know yet what the aliased symbol is, so assume it can
-         * be overloaded and check later for correctness.
-         */
-        if (overnext)
-            return overnext.overloadInsert(s);
-        if (s is this)
-            return true;
-        overnext = s;
-        return true;
+        if (auto os = sa.isOverloadSet())
+        {
+            if (sa.ident != ident || sa.parent != parent)
+            {
+                os = new OverloadSet(ident, os);
+                // TODO: visibility is lost here b/c OverloadSets have no visibility attribute
+                // Might no be a practical issue, b/c the code below fails to resolve the overload anyhow.
+                // ----
+                // module os1;
+                // import a, b;
+                // private alias merged = foo; // private alias to overload set of a.foo and b.foo
+                // ----
+                // module os2;
+                // import a, b;
+                // public alias merged = bar; // public alias to overload set of a.bar and b.bar
+                // ----
+                // module bug;
+                // import os1, os2;
+                // void test() { merged(123); } // should only look at os2.merged
+                //
+                // os.visibility = visibility;
+                os.parent = parent;
+                aliassym = os;
+            }
+            if (isInsertCandidate)
+            {
+                os.push(s);
+                return true;
+            }
+        }
+        return false;
     }
 
     override const(char)* kind() const
