@@ -2849,14 +2849,14 @@ deprecated:
 
     version (CoreUnittest) unittest
     {
-        assert((zero == TickDuration(0)) == true);
-        assert((TickDuration.max == TickDuration(long.max)) == true);
-        assert((TickDuration.min == TickDuration(long.min)) == true);
-        assert((TickDuration.min < TickDuration.zero) == true);
-        assert((TickDuration.zero < TickDuration.max) == true);
-        assert((TickDuration.min < TickDuration.max) == true);
-        assert((TickDuration.min - TickDuration(1) == TickDuration.max) == true);
-        assert((TickDuration.max + TickDuration(1) == TickDuration.min) == true);
+        assert(zero == TickDuration(0));
+        assert(TickDuration.max == TickDuration(long.max));
+        assert(TickDuration.min == TickDuration(long.min));
+        assert(TickDuration.min < TickDuration.zero);
+        assert(TickDuration.zero < TickDuration.max);
+        assert(TickDuration.min < TickDuration.max);
+        assert(TickDuration.min - TickDuration(1) == TickDuration.max);
+        assert(TickDuration.max + TickDuration(1) == TickDuration.min);
     }
 
 
@@ -3080,12 +3080,12 @@ deprecated:
         {
             auto a = TickDuration.currSystemTick;
             auto result = a += cast(T)TickDuration.currSystemTick;
-            assert((a == result) == true);
+            assert(a == result);
             assert(a.to!("seconds", real)() >= 0);
 
             auto b = TickDuration.currSystemTick;
             result = b -= cast(T)TickDuration.currSystemTick;
-            assert((b == result) == true);
+            assert(b == result);
             assert(b.to!("seconds", real)() <= 0);
 
             foreach (U; AliasSeq!(const TickDuration, immutable TickDuration))
@@ -3144,11 +3144,11 @@ deprecated:
     {
         foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
-            assert((-(cast(T)TickDuration(7)) == TickDuration(-7)) == true);
-            assert((-(cast(T)TickDuration(5)) == TickDuration(-5)) == true);
-            assert((-(cast(T)TickDuration(-7)) == TickDuration(7)) == true);
-            assert((-(cast(T)TickDuration(-5)) == TickDuration(5)) == true);
-            assert((-(cast(T)TickDuration(0)) == TickDuration(0)) == true);
+            assert(-(cast(T)TickDuration(7)) == TickDuration(-7));
+            assert(-(cast(T)TickDuration(5)) == TickDuration(-5));
+            assert(-(cast(T)TickDuration(-7)) == TickDuration(7));
+            assert(-(cast(T)TickDuration(-5)) == TickDuration(5));
+            assert(-(cast(T)TickDuration(0)) == TickDuration(0));
         }
     }
 
@@ -3170,9 +3170,9 @@ deprecated:
             {
                 T t = TickDuration.currSystemTick;
                 U u = t;
-                assert((t == u) == true);
-                assert((TDRvalueOf(t) == u) == true);
-                assert((t == TDRvalueOf(u)) == true);
+                assert(t == u);
+                assert(TDRvalueOf(t) == u);
+                assert(t == TDRvalueOf(u));
             }
         }
 
@@ -3182,20 +3182,20 @@ deprecated:
             {
                 T t = TickDuration.currSystemTick;
                 U u = t + t;
-                assert((t < u) == true);
-                assert((t <= t) == true);
-                assert((u > t) == true);
-                assert((u >= u) == true);
+                assert(t < u);
+                assert(t <= t);
+                assert(u > t);
+                assert(u >= u);
 
-                assert((TDRvalueOf(t) < u) == true);
-                assert((TDRvalueOf(t) <= t) == true);
-                assert((TDRvalueOf(u) > t) == true);
-                assert((TDRvalueOf(u) >= u) == true);
+                assert(TDRvalueOf(t) < u);
+                assert(TDRvalueOf(t) <= t);
+                assert(TDRvalueOf(u) > t);
+                assert(TDRvalueOf(u) >= u);
 
-                assert((t < TDRvalueOf(u)) == true);
-                assert((t <= TDRvalueOf(t)) == true);
-                assert((u > TDRvalueOf(t)) == true);
-                assert((u >= TDRvalueOf(u)) == true);
+                assert(t < TDRvalueOf(u));
+                assert(t <= TDRvalueOf(t));
+                assert(u > TDRvalueOf(t));
+                assert(u >= TDRvalueOf(u));
             }
         }
     }
@@ -3226,7 +3226,7 @@ deprecated:
         TickDuration t1 = curr;
         immutable t2 = curr + curr;
         t1 *= 2;
-        assert((t1 == t2) == true);
+        assert(t1 == t2);
 
         t1 = curr;
         t1 *= 2.0;
@@ -3235,7 +3235,7 @@ deprecated:
 
         t1 = curr;
         t1 *= 2.1;
-        assert((t1 > t2) == true);
+        assert(t1 > t2);
 
         foreach (T; AliasSeq!(const TickDuration, immutable TickDuration))
         {
@@ -3277,7 +3277,7 @@ deprecated:
         immutable t1 = curr;
         TickDuration t2 = curr + curr;
         t2 /= 2;
-        assert((t1 == t2) == true);
+        assert(t1 == t2);
 
         t2 = curr + curr;
         t2 /= 2.0;
@@ -3286,7 +3286,7 @@ deprecated:
 
         t2 = curr + curr;
         t2 /= 2.1;
-        assert((t1 > t2) == true);
+        assert(t1 > t2);
 
         _assertThrown!TimeException(t2 /= 0);
 
@@ -3324,10 +3324,10 @@ deprecated:
         {
             T t1 = TickDuration.currSystemTick;
             T t2 = t1 + t1;
-            assert((t1 * 2 == t2) == true);
+            assert(t1 * 2 == t2);
             immutable tol = TickDuration(cast(long)(_abs(t1.length) * double.epsilon * 2.0));
             assertApprox(t1 * 2.0, t2 - tol, t2 + tol);
-            assert((t1 * 2.1 > t2) == true);
+            assert(t1 * 2.1 > t2);
         }
     }
 
@@ -3363,10 +3363,10 @@ deprecated:
         {
             T t1 = TickDuration.currSystemTick;
             T t2 = t1 + t1;
-            assert((t2 / 2 == t1) == true);
+            assert(t2 / 2 == t1);
             immutable tol = TickDuration(cast(long)(_abs(t2.length) * double.epsilon / 2.0));
             assertApprox(t2 / 2.0, t1 - tol, t1 + tol);
-            assert((t2 / 2.1 < t1) == true);
+            assert(t2 / 2.1 < t1);
 
             _assertThrownDep!TimeException(t2 / 0);
         }
@@ -3694,8 +3694,8 @@ unittest
 
 deprecated unittest
 {
-    assert((abs(TickDuration(17)) == TickDuration(17)) == true);
-    assert((abs(TickDuration(-17)) == TickDuration(17)) == true);
+    assert(abs(TickDuration(17)) == TickDuration(17));
+    assert(abs(TickDuration(-17)) == TickDuration(17));
 }
 
 
