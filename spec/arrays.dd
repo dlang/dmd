@@ -1065,8 +1065,8 @@ $(H3 $(LNAME2 default-initialization, Default Initialization))
 
         $(UL
         $(LI Pointers are initialized to $(D null).)
-        $(LI Static array contents are initialized to the default
-        initializer for the array element type.)
+        $(LI Static array contents are initialized to the
+        $(DDSUBLINK spec/property, init, default initializer) for the array element type.)
         $(LI Dynamic arrays are initialized to having 0 elements and a null `.ptr`.)
         $(LI Associative arrays are initialized to having 0 elements.)
         )
@@ -1093,10 +1093,16 @@ assert(j[0].length == 5);
 
 $(H3 $(LNAME2 void-initialization, Void Initialization))
 
-        $(P Void initialization happens when the $(I Initializer) for
-        an array is $(D void). What it means is that no initialization
-        is done, i.e. the contents of the array will be undefined.
+        $(P Void initialization happens when the $(GLINK2 declaration, Initializer) for
+        an array declaration is $(D void). For a static array,
+        it means no initialization
+        is done - i.e. the contents of the array will be undefined.
         This is most useful as an efficiency optimization.
+        )
+        ---
+        int[256] arr = void; // elements of `arr` have undefined bit-patterns
+        ---
+        $(BEST_PRACTICE
         Void initializations are an advanced technique and should only be used
         when profiling indicates that it matters.
         )
@@ -1137,7 +1143,7 @@ assert(a == [0, 2, 3]);
 ---------
 )
 
-        $(P This is most handy when the array indices are given by $(DDLINK spec/enum, Enums, enums):)
+        $(PANEL This is most handy when the array indices are given by $(DDLINK spec/enum, Enums, enums):
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
@@ -1151,6 +1157,7 @@ int[Color.max + 1] value =
 assert(value == [5, 6, 2]);
 ---------
 )
+        )
 
         $(P Any indices must be known at compile-time.
         Note that if the array type is not specified and every element has an index,
@@ -1185,6 +1192,29 @@ assert(a == [42, 42, 42, 42]);
         $(P These arrays are statically allocated when they appear in global scope.
         Otherwise, they need to be marked with $(D const) or $(D static)
         storage classes to make them statically allocated arrays.)
+
+$(H4 $(LNAME2 static-string, String Literal Initializers))
+
+        $(P A static array of character type is $(RELATIVE_LINK2 default-initialization,
+        default-initialized) the same as other
+        static arrays. However, when initialized from a string literal:)
+
+        * The literal can be of a shorter length than the array.
+        * Any remaining elements are initialized to `\0`.
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+char[10] s1;
+assert(s1[9] == '\xFF'); // char.init
+
+char[10] s2 = "hi";
+assert(s2[9] == '\0');
+---
+)
+        $(RATIONALE A mutable character array's `.ptr` property can be used to
+        obtain a C string (if it has an element which is zero). When that array
+        is initialized with a shorter string literal, it's likely the subsequent
+        code will need zero-termination.)
 
 
 $(H2 $(LNAME2 special-array, Special Array Types))
