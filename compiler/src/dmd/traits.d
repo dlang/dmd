@@ -1182,37 +1182,36 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 auto fd = s.isFuncDeclaration();
                 if (!fd)
                 {
-                    if (includeTemplates)
+                    if (!includeTemplates)
+                        return 0;
+                    auto td = s.isTemplateDeclaration();
+                    if (!td)
+                        return 0;
+                    // if td is part of an overload set we must take a copy
+                    // which shares the same `instances` cache but without
+                    // `overroot` and `overnext` set to avoid overload
+                    // behaviour in the result.
+                    if (td.overnext !is null)
                     {
-                        if (auto td = s.isTemplateDeclaration())
+                        if (td.instances is null)
                         {
-                            // if td is part of an overload set we must take a copy
-                            // which shares the same `instances` cache but without
-                            // `overroot` and `overnext` set to avoid overload
-                            // behaviour in the result.
-                            if (td.overnext !is null)
-                            {
-                                if (td.instances is null)
-                                {
-                                    // create an empty AA just to copy it
-                                    scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
-                                    auto tib = TemplateInstanceBox(ti);
-                                    td.instances[tib] = null;
-                                    td.instances.clear();
-                                }
-                                td = td.syntaxCopy(null);
-                                import core.stdc.string : memcpy;
-                                memcpy(cast(void*) td, cast(void*) s,
-                                        __traits(classInstanceSize, TemplateDeclaration));
-                                td.overroot = null;
-                                td.overnext = null;
-                            }
-
-                            auto e = ex ? new DotTemplateExp(Loc.initial, ex, td)
-                                        : new DsymbolExp(Loc.initial, td);
-                            exps.push(e);
+                            // create an empty AA just to copy it
+                            scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
+                            auto tib = TemplateInstanceBox(ti);
+                            td.instances[tib] = null;
+                            td.instances.clear();
                         }
+                        td = td.syntaxCopy(null);
+                        import core.stdc.string : memcpy;
+                        memcpy(cast(void*) td, cast(void*) s,
+                                __traits(classInstanceSize, TemplateDeclaration));
+                        td.overroot = null;
+                        td.overnext = null;
                     }
+
+                    auto e = ex ? new DotTemplateExp(Loc.initial, ex, td)
+                                : new DsymbolExp(Loc.initial, td);
+                    exps.push(e);
                     return 0;
                 }
                 if (e.ident == Id.getVirtualFunctions && !fd.isVirtual())
