@@ -1713,6 +1713,16 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
             goto L3;
 
         case FL.tlsdata:
+            if (config.exe & EX_OSX64 && cg.AArch64)
+            {
+                if (log) printf("OSX AArch64 threaded\n");
+                uint ins = INSTR.adr(1,0,reg);          // ADRP reg,0x0 RELOC_TLVP_LOAD_PAGE21
+                cdb.gencs1(ins,0,fl,e.Vsym);
+                ins = INSTR.ldr_imm_gen(1,reg,reg,0);   // LDR  reg,[reg] RELOC_TLVP_LOAD_PAGEOFF12
+                cdb.gencs1(ins,0,fl,e.Vsym);
+                cdb.last.Iflags |= CFadd;
+                return;
+            }
             if (config.exe & EX_posix)
             {
                 if (log) printf("posix threaded\n");
