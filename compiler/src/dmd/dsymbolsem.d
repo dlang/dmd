@@ -5409,6 +5409,69 @@ private void trySemantic3(TemplateInstance ti, Scope* sc2)
     --nest;
 }
 
+debug (FindExistingInstance)
+{
+    private __gshared uint nFound, nNotFound, nAdded, nRemoved;
+
+    shared static ~this()
+    {
+        printf("debug (FindExistingInstance) nFound %u, nNotFound: %u, nAdded: %u, nRemoved: %u\n",
+               nFound, nNotFound, nAdded, nRemoved);
+    }
+}
+
+/****************************************************
+ * Given a new instance `tithis` of this TemplateDeclaration,
+ * see if there already exists an instance.
+ *
+ * Params:
+ *   td = template declaration
+ *   tithis = template instance to check
+ *   argumentList = For function templates, needed because different
+ *                  `auto ref` resolutions create different instances,
+ *                  even when template parameters are identical
+ *
+ * Returns: that existing instance, or `null` when it doesn't exist
+ */
+private TemplateInstance findExistingInstance(TemplateDeclaration td, TemplateInstance tithis,
+                                      ArgumentList argumentList)
+{
+    //printf("findExistingInstance() %s\n", tithis.toChars());
+    tithis.fargs = argumentList.arguments;
+    tithis.fnames = argumentList.names;
+    auto tibox = TemplateInstanceBox(tithis);
+    auto p = tibox in td.instances;
+    debug (FindExistingInstance) ++(p ? nFound : nNotFound);
+    //if (p) printf("\tfound %p\n", *p); else printf("\tnot found\n");
+    return p ? *p : null;
+}
+
+/********************************************
+ * Add instance ti to TemplateDeclaration's table of instances.
+ * Return a handle we can use to later remove it if it fails instantiation.
+ */
+private TemplateInstance addInstance(TemplateDeclaration td, TemplateInstance ti)
+{
+    //printf("addInstance() %p %s\n", instances, ti.toChars());
+    auto tibox = TemplateInstanceBox(ti);
+    td.instances[tibox] = ti;
+    debug (FindExistingInstance) ++nAdded;
+    return ti;
+}
+
+/*******************************************
+ * Remove TemplateInstance from table of instances.
+ * Input:
+ *      handle returned by addInstance()
+ */
+private void removeInstance(TemplateDeclaration td, TemplateInstance ti)
+{
+    //printf("removeInstance() %s\n", ti.toChars());
+    auto tibox = TemplateInstanceBox(ti);
+    debug (FindExistingInstance) ++nRemoved;
+    td.instances.remove(tibox);
+}
+
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList argumentList)
 {
     //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);

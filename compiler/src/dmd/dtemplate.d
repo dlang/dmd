@@ -554,67 +554,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return visibility;
     }
 
-    debug (FindExistingInstance)
-    {
-        __gshared uint nFound, nNotFound, nAdded, nRemoved;
-
-        shared static ~this()
-        {
-            printf("debug (FindExistingInstance) nFound %u, nNotFound: %u, nAdded: %u, nRemoved: %u\n",
-                   nFound, nNotFound, nAdded, nRemoved);
-        }
-    }
-
-    /****************************************************
-     * Given a new instance `tithis` of this TemplateDeclaration,
-     * see if there already exists an instance.
-     *
-     * Params:
-     *   tithis = template instance to check
-     *   argumentList = For function templates, needed because different
-     *                  `auto ref` resolutions create different instances,
-     *                  even when template parameters are identical
-     *
-     * Returns: that existing instance, or `null` when it doesn't exist
-     */
-    extern (D) TemplateInstance findExistingInstance(TemplateInstance tithis, ArgumentList argumentList)
-    {
-        //printf("findExistingInstance() %s\n", tithis.toChars());
-        tithis.fargs = argumentList.arguments;
-        tithis.fnames = argumentList.names;
-        auto tibox = TemplateInstanceBox(tithis);
-        auto p = tibox in this.instances;
-        debug (FindExistingInstance) ++(p ? nFound : nNotFound);
-        //if (p) printf("\tfound %p\n", *p); else printf("\tnot found\n");
-        return p ? *p : null;
-    }
-
-    /********************************************
-     * Add instance ti to TemplateDeclaration's table of instances.
-     * Return a handle we can use to later remove it if it fails instantiation.
-     */
-    extern (D) TemplateInstance addInstance(TemplateInstance ti)
-    {
-        //printf("addInstance() %p %s\n", instances, ti.toChars());
-        auto tibox = TemplateInstanceBox(ti);
-        instances[tibox] = ti;
-        debug (FindExistingInstance) ++nAdded;
-        return ti;
-    }
-
-    /*******************************************
-     * Remove TemplateInstance from table of instances.
-     * Input:
-     *      handle returned by addInstance()
-     */
-    extern (D) void removeInstance(TemplateInstance ti)
-    {
-        //printf("removeInstance() %s\n", ti.toChars());
-        auto tibox = TemplateInstanceBox(ti);
-        debug (FindExistingInstance) ++nRemoved;
-        instances.remove(tibox);
-    }
-
     /**
      * Check if the last template parameter is a tuple one,
      * and returns it if so, else returns `null`.
