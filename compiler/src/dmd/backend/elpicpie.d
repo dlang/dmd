@@ -512,7 +512,8 @@ static if (1)
             {
                 e = el_una(OPaddr, TYnptr, e);
                 e = el_bin(OPadd, TYnptr, e, el_long(TYullong, 0));
-                e = el_una(OPind, TYnptr, e);
+                if (config.target_cpu != TARGET_AArch64)
+                    e = el_una(OPind, TYnptr, e);
                 e = el_una(OPind, TYnfunc, e);
 
                 elem* e2 = el_calloc();
