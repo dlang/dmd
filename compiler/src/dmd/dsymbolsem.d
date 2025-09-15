@@ -10095,7 +10095,7 @@ extern (D) bool oneMembers(Dsymbols* members, out Dsymbol ps, Identifier ident)
     for (size_t i = 0; i < members.length; i++)
     {
         Dsymbol sx = (*members)[i];
-        bool x = sx.oneMember(ps, ident); //MYTODO: this temporarily creates a new dependency to dsymbolsem, will need to extract oneMembers() later
+        bool x = sx.oneMember(ps, ident);
         //printf("\t[%d] kind %s = %d, s = %p\n", i, sx.kind(), x, *ps);
         if (!x)
         {
