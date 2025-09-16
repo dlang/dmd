@@ -87,6 +87,7 @@ else version (Posix)
 
     version (Darwin)
     {
+        // Use macOS threads for suspend/resume
         import core.sys.darwin.mach.kern_return : KERN_SUCCESS;
         import core.sys.darwin.mach.port : mach_port_t;
         import core.sys.darwin.mach.thread_act : mach_msg_type_number_t,
@@ -118,14 +119,19 @@ else version (Posix)
              PPC_THREAD_STATE64, PPC_THREAD_STATE64_COUNT, ppc_thread_state64_t;
         }
     }
-}
-
-version (Solaris)
-{
-    import core.sys.posix.sys.wait : idtype_t;
-    import core.sys.solaris.sys.priocntl : PC_CLNULL, PC_GETCLINFO, PC_GETPARMS, PC_SETPARMS, pcinfo_t, pcparms_t, priocntl;
-    import core.sys.solaris.sys.types : P_MYID, pri_t;
-    import core.sys.solaris.thread : thr_stksegment;
+    else version (Solaris)
+    {
+        // Use Solaris threads for suspend/resume
+        import core.sys.posix.sys.wait : idtype_t;
+        import core.sys.solaris.sys.priocntl : PC_CLNULL, PC_GETCLINFO, PC_GETPARMS, PC_SETPARMS, pcinfo_t, pcparms_t, priocntl;
+        import core.sys.solaris.sys.types : P_MYID, pri_t;
+        import core.sys.solaris.thread : thr_stksegment, thr_suspend, thr_continue;
+        import core.sys.solaris.sys.procfs : PR_STOPPED, lwpstatus_t;
+    }
+    else
+    {
+        // Use POSIX threads for suspend/resume
+    }
 }
 
 version (GNU)
@@ -394,6 +400,30 @@ class Thread : ThreadBase
             static assert(false, "Architecture not supported." );
         }
     }
+    else version (Solaris)
+    {
+        version (X86)
+        {
+            uint[8]         m_reg; // edi,esi,ebp,esp,ebx,edx,ecx,eax
+        }
+        else version (X86_64)
+        {
+            ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
+                                   // r8,r9,r10,r11,r12,r13,r14,r15
+        }
+        else version (SPARC)
+        {
+            int[33]         m_reg; // g0-7, o0-7, l0-7, i0-7, pc
+        }
+        else version (SPARC64)
+        {
+            long[33]        m_reg; // g0-7, o0-7, l0-7, i0-7, pc
+        }
+        else
+        {
+            static assert(false, "Architecture not supported." );
+        }
+    }
 
     override final void[] savedRegisters() nothrow @nogc
     {
@@ -402,6 +432,10 @@ class Thread : ThreadBase
             return m_reg;
         }
         else version (Darwin)
+        {
+            return m_reg;
+        }
+        else version (Solaris)
         {
             return m_reg;
         }
@@ -1835,6 +1869,143 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             static assert(false, "Architecture not supported." );
         }
     }
+    else version (Solaris)
+    {
+        if (t.m_addr != pthread_self())
+        {
+            if (thr_suspend(t.m_addr) != 0)
+            {
+                if (!t.isRunning)
+                {
+                    Thread.remove(t);
+                    return false;
+                }
+                onThreadError("Unable to suspend thread");
+            }
+
+            static int getLwpStatus(ulong lwpid, out lwpstatus_t status)
+            {
+                import core.sys.posix.fcntl : open, O_RDONLY;
+                import core.sys.posix.unistd : pread, close;
+                import core.internal.string : unsignedToTempString;
+
+                char[100] path = void;
+                auto pslice = path[0 .. $];
+                immutable n = unsignedToTempString(lwpid);
+                immutable ndigits = n.length;
+
+                // Construct path "/proc/self/lwp/%u/lwpstatus"
+                pslice[0 .. 15] = "/proc/self/lwp/";
+                pslice = pslice[15 .. $];
+                pslice[0 .. ndigits] = n[];
+                pslice = pslice[ndigits .. $];
+                pslice[0 .. 10] = "/lwpstatus";
+                pslice[10] = '\0';
+
+                // Read in lwpstatus data
+                int fd = open(path.ptr, O_RDONLY, 0);
+                if (fd >= 0)
+                {
+                    while (pread(fd, &status, status.sizeof, 0) == status.sizeof)
+                    {
+                        // Should only attempt to read the thread state once it
+                        // has been stopped by thr_suspend
+                        if (status.pr_flags & PR_STOPPED)
+                        {
+                            close(fd);
+                            return 0;
+                        }
+                        // Give it a chance to stop
+                        thread_yield();
+                    }
+                    close(fd);
+                }
+                return -1;
+            }
+
+            lwpstatus_t status = void;
+            if (getLwpStatus(t.m_addr, status) != 0)
+                onThreadError("Unable to load thread state");
+
+            version (X86)
+            {
+                import core.sys.solaris.sys.regset; // REG_xxx
+
+                if (!t.m_lock)
+                    t.m_curr.tstack = cast(void*) status.pr_reg[REG_ESP];
+                // eax,ebx,ecx,edx,edi,esi,ebp,esp
+                t.m_reg[0] = status.pr_reg[REG_EAX];
+                t.m_reg[1] = status.pr_reg[REG_EBX];
+                t.m_reg[2] = status.pr_reg[REG_ECX];
+                t.m_reg[3] = status.pr_reg[REG_EDX];
+                t.m_reg[4] = status.pr_reg[REG_EDI];
+                t.m_reg[5] = status.pr_reg[REG_ESI];
+                t.m_reg[6] = status.pr_reg[REG_EBP];
+                t.m_reg[7] = status.pr_reg[REG_ESP];
+            }
+            else version (X86_64)
+            {
+                import core.sys.solaris.sys.regset; // REG_xxx
+
+                if (!t.m_lock)
+                    t.m_curr.tstack = cast(void*) status.pr_reg[REG_RSP];
+                // rax,rbx,rcx,rdx,rdi,rsi,rbp,rsp
+                t.m_reg[0] = status.pr_reg[REG_RAX];
+                t.m_reg[1] = status.pr_reg[REG_RBX];
+                t.m_reg[2] = status.pr_reg[REG_RCX];
+                t.m_reg[3] = status.pr_reg[REG_RDX];
+                t.m_reg[4] = status.pr_reg[REG_RDI];
+                t.m_reg[5] = status.pr_reg[REG_RSI];
+                t.m_reg[6] = status.pr_reg[REG_RBP];
+                t.m_reg[7] = status.pr_reg[REG_RSP];
+                // r8,r9,r10,r11,r12,r13,r14,r15
+                t.m_reg[8] = status.pr_reg[REG_R8];
+                t.m_reg[9] = status.pr_reg[REG_R9];
+                t.m_reg[10] = status.pr_reg[REG_R10];
+                t.m_reg[11] = status.pr_reg[REG_R11];
+                t.m_reg[12] = status.pr_reg[REG_R12];
+                t.m_reg[13] = status.pr_reg[REG_R13];
+                t.m_reg[14] = status.pr_reg[REG_R14];
+                t.m_reg[15] = status.pr_reg[REG_R15];
+            }
+            else version (SPARC)
+            {
+                import core.sys.solaris.sys.procfs : R_SP, R_PC;
+
+                if (!t.m_lock)
+                    t.m_curr.tstack = cast(void*) status.pr_reg[R_SP];
+                // g0..g7, o0..o7, l0..l7, i0..i7
+                t.m_reg[0 .. 32] = status.pr_reg[0 .. 32];
+                // pc
+                t.m_reg[32] = status.pr_reg[R_PC];
+            }
+            else version (SPARC64)
+            {
+                import core.sys.solaris.sys.procfs : R_SP, R_PC;
+
+                if (!t.m_lock)
+                {
+                    // SPARC V9 has a stack bias of 2047 bytes which must be added to get
+                    // the actual data of the stack frame.
+                    auto tstack = status.pr_reg[R_SP] + 2047;
+                    assert(tstack % 16 == 0);
+                    t.m_curr.tstack = cast(void*) tstack;
+                }
+                // g0..g7, o0..o7, l0..l7, i0..i7
+                t.m_reg[0 .. 32] = status.pr_reg[0 .. 32];
+                // pc
+                t.m_reg[32] = status.pr_reg[R_PC];
+            }
+            else
+            {
+                static assert(false, "Architecture not supported.");
+            }
+        }
+        else if (!t.m_lock)
+        {
+            t.m_curr.tstack = getStackTop();
+        }
+    }
     else version (Posix)
     {
         if ( t.m_addr != pthread_self() )
@@ -1918,6 +2089,8 @@ extern (C) void thread_suspendAll() nothrow
 
         version (Darwin)
         {}
+        else version (Solaris)
+        {}
         else version (Posix)
         {
             // Subtract own thread if we called suspend() on ourselves.
@@ -1990,6 +2163,22 @@ private extern (D) void resume(ThreadBase _t) nothrow @nogc
             t.m_curr.tstack = t.m_curr.bstack;
         t.m_reg[0 .. $] = 0;
     }
+    else version (Solaris)
+    {
+        if (t.m_addr != pthread_self() && thr_continue(t.m_addr) != 0)
+        {
+            if (!t.isRunning)
+            {
+                Thread.remove(t);
+                return;
+            }
+            onThreadError("Unable to resume thread");
+        }
+
+        if (!t.m_lock)
+            t.m_curr.tstack = t.m_curr.bstack;
+        t.m_reg[0 .. $] = 0;
+    }
     else version (Posix)
     {
         if ( t.m_addr != pthread_self() )
@@ -2049,6 +2238,9 @@ extern (C) void thread_init() @nogc nothrow
             assert( thisThread.m_tmach != thisThread.m_tmach.init );
        }
         pthread_atfork(null, null, &initChildAfterFork);
+    }
+    else version (Solaris)
+    {
     }
     else version (Posix)
     {
