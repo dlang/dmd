@@ -385,6 +385,7 @@ COPY=\
 	$(IMPDIR)\core\sys\solaris\sys\elftypes.d \
 	$(IMPDIR)\core\sys\solaris\sys\link.d \
 	$(IMPDIR)\core\sys\solaris\sys\priocntl.d \
+	$(IMPDIR)\core\sys\solaris\sys\procfs.d \
 	$(IMPDIR)\core\sys\solaris\sys\procset.d \
 	$(IMPDIR)\core\sys\solaris\sys\regset.d \
 	$(IMPDIR)\core\sys\solaris\sys\types.d \

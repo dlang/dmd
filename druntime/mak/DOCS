@@ -339,6 +339,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_solaris_sys_elftypes.html \
 	$(DOCDIR)\core_sys_solaris_sys_link.html \
 	$(DOCDIR)\core_sys_solaris_sys_priocntl.html \
+	$(DOCDIR)\core_sys_solaris_sys_procfs.html \
 	$(DOCDIR)\core_sys_solaris_sys_procset.html \
 	$(DOCDIR)\core_sys_solaris_sys_regset.html \
 	$(DOCDIR)\core_sys_solaris_sys_types.html \

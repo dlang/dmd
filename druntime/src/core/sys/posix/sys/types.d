@@ -1006,6 +1006,7 @@ else version (DragonFlyBSD)
 else version (Solaris)
 {
     alias uint pthread_t;
+    alias int lwpid_t; // non-standard
 
     struct pthread_attr_t
     {
