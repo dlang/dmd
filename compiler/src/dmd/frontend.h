@@ -600,7 +600,6 @@ public:
     virtual Identifier* getIdent();
     virtual const char* toPrettyChars(bool QualifyTypes = false);
     virtual const char* kind() const;
-    virtual bool overloadInsert(Dsymbol* s);
     virtual uint64_t size(Loc loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration* isThis();
@@ -1756,7 +1755,6 @@ public:
     Array<Expression* > lastConstraintNegs;
     Array<RootObject* >* lastConstraintTiargs;
     TemplateDeclaration* syntaxCopy(Dsymbol* __param_0_) override;
-    bool overloadInsert(Dsymbol* s) override;
     const char* kind() const override;
     const char* toCharsNoConstraints() const;
     Visibility visible() override;
@@ -4050,7 +4048,6 @@ public:
     Array<Expression* >* fdensureParams(Array<Expression* >* param);
     FuncDeclaration* syntaxCopy(Dsymbol* s) override;
     bool equals(const Dsymbol* const s) const final override;
-    bool overloadInsert(Dsymbol* s) override;
     bool inUnittest();
     LabelDsymbol* searchLabel(Identifier* ident, Loc loc);
     const char* toPrettyChars(bool QualifyTypes = false) override;
@@ -4101,7 +4098,6 @@ public:
     bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
-    bool overloadInsert(Dsymbol* s) override;
     void accept(Visitor* v) override;
 };
 
@@ -4160,7 +4156,6 @@ public:
     bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
-    bool overloadInsert(Dsymbol* s) override;
     void accept(Visitor* v) override;
 };
 
@@ -6831,7 +6826,6 @@ public:
     Dsymbol* _import_;
     static AliasDeclaration* create(Loc loc, Identifier* id, Type* type);
     AliasDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool overloadInsert(Dsymbol* s) override;
     const char* kind() const override;
     Type* getType() override;
     bool isOverloadable() const override;
@@ -6845,7 +6839,6 @@ public:
     Dsymbol* aliassym;
     const char* kind() const override;
     bool equals(const Dsymbol* const s) const override;
-    bool overloadInsert(Dsymbol* s) override;
     bool isOverloadable() const override;
     void accept(Visitor* v) override;
 };
@@ -7127,7 +7120,6 @@ public:
     const char* kind() const override;
     Visibility visible() override;
     Import* syntaxCopy(Dsymbol* s) override;
-    bool overloadInsert(Dsymbol* s) override;
     void accept(Visitor* v) override;
 };
 

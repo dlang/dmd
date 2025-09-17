@@ -40,6 +40,7 @@ namespace dmd
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
     bool isAbstract(ClassDeclaration *cd);
+    bool overloadInsert(Dsymbol *ds, Dsymbol *s);
 }
 
 //enum STC : ulong from astenums.d:
@@ -200,7 +201,6 @@ public:
 
     static AliasDeclaration *create(Loc loc, Identifier *id, Type *type);
     AliasDeclaration *syntaxCopy(Dsymbol *) override;
-    bool overloadInsert(Dsymbol *s) override;
     const char *kind() const override;
     Type *getType() override;
     bool isOverloadable() const override;
@@ -218,7 +218,6 @@ public:
 
     const char *kind() const override;
     bool equals(const RootObject * const o) const override;
-    bool overloadInsert(Dsymbol *s) override;
 
     Dsymbol *isUnique();
     bool isOverloadable() const override;
@@ -699,7 +698,6 @@ public:
     Expressions *fdensureParams(Expressions *fdep);
     bool equals(const RootObject * const o) const override final;
 
-    bool overloadInsert(Dsymbol *s) override;
     bool inUnittest();
     LabelDsymbol *searchLabel(Identifier *ident, Loc loc);
     const char *toPrettyChars(bool QualifyTypes = false) override;
@@ -787,7 +785,6 @@ public:
     bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
-    bool overloadInsert(Dsymbol *s) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -800,7 +797,6 @@ public:
     bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
-    bool overloadInsert(Dsymbol *s) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };

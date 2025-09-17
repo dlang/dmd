@@ -95,6 +95,269 @@ void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
+private bool aliasOverloadInsert(AliasDeclaration ad, Dsymbol s)
+{
+    //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+    //       loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
+
+    /** Aliases aren't overloadable themselves, but if their Aliasee is
+     *  overloadable they are converted to an overloadable Alias (either
+     *  FuncAliasDeclaration or OverDeclaration).
+     *
+     *  This is done by moving the Aliasee into such an overloadable alias
+     *  which is then used to replace the existing Aliasee. The original
+     *  Alias (_this_) remains a useless shell.
+     *
+     *  This is a horrible mess. It was probably done to avoid replacing
+     *  existing AST nodes and references, but it needs a major
+     *  simplification b/c it's too complex to maintain.
+     *
+     *  A simpler approach might be to merge any colliding symbols into a
+     *  simple Overload class (an array) and then later have that resolve
+     *  all collisions.
+     */
+    if (ad.semanticRun < PASS.semanticdone)
+    {
+        /* Don't know yet what the aliased symbol is, so assume it can
+         * be overloaded and check later for correctness.
+         */
+        if (ad.overnext)
+            return ad.overnext.overloadInsert(s);
+        if (s is ad)
+            return true;
+        ad.overnext = s;
+        return true;
+    }
+    /* Semantic analysis is already finished, and the aliased entity
+     * is not overloadable.
+     */
+    if (ad.type)
+    {
+        /*
+            If type has been resolved already we could
+            still be inserting an alias from an import.
+
+            If we are handling an alias then pretend
+            it was inserting and return true, if not then
+            false since we didn't even pretend to insert something.
+        */
+        return ad._import && ad.equals(s);
+    }
+
+    // https://issues.dlang.org/show_bug.cgi?id=23865
+    // only insert if the symbol can be part of a set
+    const s1 = s.toAlias();
+    const isInsertCandidate = s1.isFuncDeclaration() || s1.isOverDeclaration() || s1.isTemplateDeclaration();
+
+    /* When s is added in member scope by static if, mixin("code") or others,
+     * aliassym is determined already. See the case in: test/compilable/test61.d
+     */
+    auto sa = ad.aliassym.toAlias();
+
+    if (auto td = s.toAlias().isTemplateDeclaration())
+        s = td.funcroot ? td.funcroot : td;
+
+    if (auto fd = sa.isFuncDeclaration())
+    {
+        auto fa = new FuncAliasDeclaration(ad.ident, fd);
+        fa.visibility = ad.visibility;
+        fa.parent = ad.parent;
+        ad.aliassym = fa;
+        if (isInsertCandidate)
+            return ad.aliassym.overloadInsert(s);
+    }
+    if (auto td = sa.isTemplateDeclaration())
+    {
+        auto od = new OverDeclaration(ad.ident, td.funcroot ? td.funcroot : td);
+        od.visibility = ad.visibility;
+        od.parent = ad.parent;
+        ad.aliassym = od;
+        if (isInsertCandidate)
+            return ad.aliassym.overloadInsert(s);
+    }
+    if (auto od = sa.isOverDeclaration())
+    {
+        if (sa.ident != ad.ident || sa.parent != ad.parent)
+        {
+            od = new OverDeclaration(ad.ident, od);
+            od.visibility = ad.visibility;
+            od.parent = ad.parent;
+            ad.aliassym = od;
+        }
+        if (isInsertCandidate)
+            return od.overloadInsert(s);
+    }
+    if (auto os = sa.isOverloadSet())
+    {
+        if (sa.ident != ad.ident || sa.parent != ad.parent)
+        {
+            os = new OverloadSet(ad.ident, os);
+            // TODO: visibility is lost here b/c OverloadSets have no visibility attribute
+            // Might no be a practical issue, b/c the code below fails to resolve the overload anyhow.
+            // ----
+            // module os1;
+            // import a, b;
+            // private alias merged = foo; // private alias to overload set of a.foo and b.foo
+            // ----
+            // module os2;
+            // import a, b;
+            // public alias merged = bar; // public alias to overload set of a.bar and b.bar
+            // ----
+            // module bug;
+            // import os1, os2;
+            // void test() { merged(123); } // should only look at os2.merged
+            //
+            // os.visibility = visibility;
+            os.parent = ad.parent;
+            ad.aliassym = os;
+        }
+        if (isInsertCandidate)
+        {
+            os.push(s);
+            return true;
+        }
+    }
+    return false;
+}
+
+/**********************************
+ * Overload existing TemplateDeclaration '_this' with the new one 's'.
+ * Params:
+ *    s = symbol to be inserted
+ * Return: true if successful; i.e. no conflict.
+ */
+private bool templateOverloadInsert(TemplateDeclaration _this, Dsymbol s){
+    static if (LOG)
+    {
+        printf("TemplateDeclaration.overloadInsert('%s')\n", s.toChars());
+    }
+
+    if (FuncDeclaration fd = s.isFuncDeclaration())
+    {
+        if (_this.funcroot)
+            return _this.funcroot.overloadInsert(fd);
+        _this.funcroot = fd;
+        return _this.funcroot.overloadInsert(_this);
+    }
+
+    // https://issues.dlang.org/show_bug.cgi?id=15795
+    // if candidate is an alias and its sema is not run then
+    // insertion can fail because the thing it alias is not known
+    if (AliasDeclaration ad = s.isAliasDeclaration())
+    {
+        if (s._scope)
+            aliasSemantic(ad, s._scope);
+        if (ad.aliassym && ad.aliassym is _this)
+            return false;
+    }
+
+    TemplateDeclaration td = s.toAlias().isTemplateDeclaration();
+    if (!td)
+        return false;
+
+    TemplateDeclaration pthis = _this;
+    TemplateDeclaration* ptd;
+    for (ptd = &pthis; *ptd; ptd = &(*ptd).overnext)
+    {
+    }
+
+    td.overroot = _this;
+    *ptd = td;
+    static if (LOG)
+    {
+        printf("\ttrue: no conflict\n");
+    }
+    return true;
+}
+
+private bool importOverloadInsert(Import _this, Dsymbol s){
+    /* Allow multiple imports with the same package base, but disallow
+     * alias collisions
+     * https://issues.dlang.org/show_bug.cgi?id=5412
+     */
+    assert(_this.ident && _this.ident == s.ident);
+    if (_this.aliasId)
+        return false;
+    const imp = s.isImport();
+    return imp && !imp.aliasId;
+}
+
+/**
+ * Overload _this FuncDeclaration with the new one f.
+ * Return true if successful; i.e. no conflict.
+*/
+private bool funcOverloadInsert(FuncDeclaration _this, Dsymbol s){
+    //printf("FuncDeclaration::overloadInsert(s = %s) _this = %s\n", s.toChars(), toChars());
+    assert(s != _this);
+    if (AliasDeclaration ad = s.isAliasDeclaration())
+    {
+        if (_this.overnext)
+            return _this.overnext.overloadInsert(ad);
+        if (!ad.aliassym && ad.type.ty != Tident && ad.type.ty != Tinstance && ad.type.ty != Ttypeof)
+        {
+            //printf("\tad = '%s'\n", ad.type.toChars());
+            return false;
+        }
+        _this.overnext = ad;
+        //printf("\ttrue: no conflict\n");
+        return true;
+    }
+    TemplateDeclaration td = s.isTemplateDeclaration();
+    if (td)
+    {
+        if (!td.funcroot)
+            td.funcroot = _this;
+        if (_this.overnext)
+            return _this.overnext.overloadInsert(td);
+        _this.overnext = td;
+        return true;
+    }
+    FuncDeclaration fd = s.isFuncDeclaration();
+    if (!fd)
+        return false;
+
+    if (_this.overnext)
+    {
+        td = _this.overnext.isTemplateDeclaration();
+        if (td)
+            fd.overloadInsert(td);
+        else
+            return _this.overnext.overloadInsert(fd);
+    }
+    _this.overnext = fd;
+    //printf("\ttrue: no conflict\n");
+    return true;
+}
+
+private bool overdeclOverloadInsert(OverDeclaration _this, Dsymbol s){
+    //printf("OverDeclaration::overloadInsert('%s') _this.aliassym = %p, _this.overnext = %p\n", s.toChars(), _this.aliassym, _this.overnext);
+    if (_this.overnext)
+        return _this.overnext.overloadInsert(s);
+    if (s == _this)
+        return true;
+    _this.overnext = s;
+    return true;
+}
+
+bool overloadInsert(Dsymbol _this, Dsymbol s)
+{
+    // Cannot overload postblits or destructors
+    if(_this.isPostBlitDeclaration() || _this.isDtorDeclaration())
+        return false;
+    else if(OverDeclaration od = _this.isOverDeclaration())
+        return overdeclOverloadInsert(od, s);
+    else if(FuncDeclaration fd = _this.isFuncDeclaration())
+        return funcOverloadInsert(fd, s);
+    if(Import imp = _this.isImport())
+        return importOverloadInsert(imp, s);
+    else if(TemplateDeclaration td = _this.isTemplateDeclaration())
+        return templateOverloadInsert(td, s);
+    else if (AliasDeclaration ad = _this.isAliasDeclaration())
+        return aliasOverloadInsert(ad, s);
+
+    return false;
+}
+
 /***************************************************
  * Determine the numerical value of the AlignmentDeclaration
  * Params:

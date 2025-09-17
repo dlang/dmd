@@ -230,6 +230,12 @@ bool fillVtbl(BaseClass* bc, ClassDeclaration cd, FuncDeclarations* vtbl, int ne
     return dmd.dsymbolsem.fillVtbl(bc, cd, vtbl, newinstance);
 }
 
+bool overloadInsert(Dsymbol ds, Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.overloadInsert(ds, s);
+}
+
 /***********************************************************
  * dtemplate.d
  */
