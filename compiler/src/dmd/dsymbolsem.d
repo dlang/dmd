@@ -343,7 +343,7 @@ bool overloadInsert(Dsymbol _this, Dsymbol s)
 {
     // Cannot overload postblits or destructors
     if(_this.isPostBlitDeclaration() || _this.isDtorDeclaration())
-        return false; 
+        return false;
     else if(OverDeclaration od = _this.isOverDeclaration())
         return overdeclOverloadInsert(od, s);
     else if(FuncDeclaration fd = _this.isFuncDeclaration())
