@@ -2407,14 +2407,16 @@ Bar
 $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
 
         $(P A typesafe variadic function has D linkage and a variadic
-        parameter declared as either an array or a class.
-        The array or class is constructed from the arguments, and
-        is passed as an array or class object.
+        parameter, which is typically an array. When passing component
+        arguments (e.g. array elements), the variadic parameter is
+        implicitly constructed from the given arguments.
         )
 
-        $(P For dynamic arrays:)
+        $(P A dynamic array variadic parameter accepts either a
+        dynamic array argument or any number of arguments, each of
+        which must implicitly convert to the array element type:)
 
-        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         int sum(int[] ar ...) // typesafe variadic function
         {
@@ -2424,30 +2426,22 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
             return s;
         }
 
-        import std.stdio;
-
         void main()
         {
-            writeln(stan());  // 6
-            writeln(ollie()); // 15
-        }
+            assert(sum(1, 2, 3) == 6);
+            assert(sum() == 0);
 
-        int stan()
-        {
-            return sum(1, 2, 3) + sum(); // returns 6+0
-        }
-
-        int ollie()
-        {
             int[3] ii = [4, 5, 6];
-            return sum(ii);             // returns 15
+            assert(sum(ii) == 15);
         }
         ---
         )
 
-        $(P For static arrays, the number of arguments must
-        match the array dimension.)
+        $(P A static array variadic parameter accepts either a static
+        array argument or a fixed number of arguments which matches
+        the array dimension:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         int sum(int[3] ar ...) // typesafe variadic function
         {
@@ -2457,20 +2451,22 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
             return s;
         }
 
-        int frank()
+        void main()
         {
-            return sum(2, 3);    // error, need 3 values for array
-            return sum(1, 2, 3); // returns 6
-        }
+            int i;
+            //i = sum(2, 3);    // error, need 3 values for array
+            i = sum(1, 2, 3);
+            assert(i == 6);
 
-        int dave()
-        {
             int[3] ii = [4, 5, 6];
+            i = sum(ii);
+            assert(i == 15);
+
             int[] jj = ii;
-            return sum(ii); // returns 15
-            return sum(jj); // error, type mismatch
+            //i = sum(jj); // error, type mismatch
         }
         ---
+        )
 
         $(DDOC_DEPRECATED For class objects:)
 
@@ -2522,7 +2518,8 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
         $(IMPLEMENTATION_DEFINED the variadic object or array instance
         may be constructed on the stack.)
 
-        $(P For other types, the argument is passed by value.)
+        $(P For other types, the variadic parameter matches exactly one
+        argument, which is passed by value.)
 
         ---
         int neil(int i ...)
@@ -2532,6 +2529,7 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
 
         void buzz()
         {
+            neil();     // error, missing argument
             neil(3);    // returns 3
             neil(3, 4); // error, too many arguments
             int[] x;
