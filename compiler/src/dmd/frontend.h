@@ -4047,7 +4047,7 @@ public:
     Array<Expression* >* fdrequireParams(Array<Expression* >* param);
     Array<Expression* >* fdensureParams(Array<Expression* >* param);
     FuncDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool equals(const Dsymbol* econst s) const final override;
+    bool equals(const Dsymbol* const s) const final override;
     bool inUnittest();
     LabelDsymbol* searchLabel(Identifier* ident, Loc loc);
     const char* toPrettyChars(bool QualifyTypes = false) override;
