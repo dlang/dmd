@@ -40,6 +40,7 @@ namespace dmd
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
     bool isAbstract(ClassDeclaration *cd);
+    bool overloadInsert(Dsymbol ds, Dsymbol s);
 }
 
 //enum STC : ulong from astenums.d:
