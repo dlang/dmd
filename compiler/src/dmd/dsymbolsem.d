@@ -95,7 +95,7 @@ void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
-bool aliasOverloadInsert(AliasDeclaration ad, Dsymbol s)
+private bool aliasOverloadInsert(AliasDeclaration ad, Dsymbol s)
 {
     //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
     //       loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
@@ -226,7 +226,7 @@ bool aliasOverloadInsert(AliasDeclaration ad, Dsymbol s)
  *    s = symbol to be inserted
  * Return: true if successful; i.e. no conflict.
  */
-bool templateOverloadInsert(TemplateDeclaration _this, Dsymbol s){
+private bool templateOverloadInsert(TemplateDeclaration _this, Dsymbol s){
     static if (LOG)
     {
         printf("TemplateDeclaration.overloadInsert('%s')\n", s.toChars());
@@ -270,7 +270,7 @@ bool templateOverloadInsert(TemplateDeclaration _this, Dsymbol s){
     return true;
 }
 
-bool importOverloadInsert(Import _this, Dsymbol s){
+private bool importOverloadInsert(Import _this, Dsymbol s){
     /* Allow multiple imports with the same package base, but disallow
      * alias collisions
      * https://issues.dlang.org/show_bug.cgi?id=5412
@@ -286,7 +286,7 @@ bool importOverloadInsert(Import _this, Dsymbol s){
  * Overload _this FuncDeclaration with the new one f.
  * Return true if successful; i.e. no conflict.
 */
-bool funcOverloadInsert(FuncDeclaration _this, Dsymbol s){
+private bool funcOverloadInsert(FuncDeclaration _this, Dsymbol s){
     //printf("FuncDeclaration::overloadInsert(s = %s) _this = %s\n", s.toChars(), toChars());
     assert(s != _this);
     if (AliasDeclaration ad = s.isAliasDeclaration())
@@ -329,7 +329,7 @@ bool funcOverloadInsert(FuncDeclaration _this, Dsymbol s){
     return true;
 }
 
-bool overdeclOverloadInsert(OverDeclaration _this, Dsymbol s){
+private bool overdeclOverloadInsert(OverDeclaration _this, Dsymbol s){
     //printf("OverDeclaration::overloadInsert('%s') _this.aliassym = %p, _this.overnext = %p\n", s.toChars(), _this.aliassym, _this.overnext);
     if (_this.overnext)
         return _this.overnext.overloadInsert(s);
