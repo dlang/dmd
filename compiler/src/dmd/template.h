@@ -83,7 +83,6 @@ public:
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
     TemplateDeclaration *syntaxCopy(Dsymbol *) override;
-    bool overloadInsert(Dsymbol *s) override;
     const char *kind() const override;
 
     Visibility visible() override;
