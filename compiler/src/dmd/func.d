@@ -401,54 +401,6 @@ extern (C++) class FuncDeclaration : Declaration
                faf1.type.equals(faf2.type);
     }
 
-    /****************************************************
-     * Overload this FuncDeclaration with the new one f.
-     * Return true if successful; i.e. no conflict.
-     */
-    override bool overloadInsert(Dsymbol s)
-    {
-        //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s.toChars(), toChars());
-        assert(s != this);
-        if (AliasDeclaration ad = s.isAliasDeclaration())
-        {
-            if (overnext)
-                return overnext.overloadInsert(ad);
-            if (!ad.aliassym && ad.type.ty != Tident && ad.type.ty != Tinstance && ad.type.ty != Ttypeof)
-            {
-                //printf("\tad = '%s'\n", ad.type.toChars());
-                return false;
-            }
-            overnext = ad;
-            //printf("\ttrue: no conflict\n");
-            return true;
-        }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
-        {
-            if (!td.funcroot)
-                td.funcroot = this;
-            if (overnext)
-                return overnext.overloadInsert(td);
-            overnext = td;
-            return true;
-        }
-        FuncDeclaration fd = s.isFuncDeclaration();
-        if (!fd)
-            return false;
-
-        if (overnext)
-        {
-            td = overnext.isTemplateDeclaration();
-            if (td)
-                fd.overloadInsert(td);
-            else
-                return overnext.overloadInsert(fd);
-        }
-        overnext = fd;
-        //printf("\ttrue: no conflict\n");
-        return true;
-    }
-
     /********************************************
      * find function template root in overload list
      */
@@ -1151,11 +1103,6 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
         return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
     }
 
-    override bool overloadInsert(Dsymbol s)
-    {
-        return false; // cannot overload postblits
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1206,11 +1153,6 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
     override bool addPostInvariant()
     {
         return false;
-    }
-
-    override bool overloadInsert(Dsymbol s)
-    {
-        return false; // cannot overload destructors
     }
 
     override void accept(Visitor v)
