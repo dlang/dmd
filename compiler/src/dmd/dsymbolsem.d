@@ -95,6 +95,38 @@ void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
+private uinteger_t aggregateDeclSize(AggregateDeclaration _this, Loc loc)
+{
+    //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
+    bool ok = determineSize(_this, loc);
+    //printf("-AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
+    return ok ? _this.structsize : SIZE_INVALID;
+}
+
+private uinteger_t declSize(Declaration _this, Loc loc)
+{
+    import dmd.typesem: size;
+    assert(_this.type);
+    const sz = _this.type.size();
+    if (sz == SIZE_INVALID)
+        _this.errors = true;
+    return sz;
+}
+
+/*********************************
+ * Returns:
+ *  SIZE_INVALID when the size cannot be determined
+ */
+uinteger_t size(Dsymbol _this, Loc loc)
+{
+    if (auto ad = _this.isAggregateDeclaration())
+        return aggregateDeclSize(ad, loc);
+    else if (auto d = _this.isDeclaration())
+        return declSize(d, loc);
+    .error(loc, "%s `%s` symbol `%s` has no size", _this.kind, _this.toPrettyChars, _this.toChars());
+    return SIZE_INVALID;
+}
+
 private bool funcDeclEquals(const FuncDeclaration _this, const Dsymbol s)
 {
     auto fd1 = _this;
@@ -1111,6 +1143,8 @@ private void checkImportDeprecation(Module m, Loc loc, Scope* sc)
 
 private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
+    import dmd.typesem: size;
+
     alias visit = Visitor.visit;
 
     Scope* sc;
@@ -8592,6 +8626,8 @@ void setFieldOffset(Dsymbol d, AggregateDeclaration ad, FieldState* fieldState, 
 
 private extern(C++) class SetFieldOffsetVisitor : Visitor
 {
+    import dmd.typesem: size;
+
     alias visit = Visitor.visit;
 
     AggregateDeclaration ad;
@@ -9296,6 +9332,8 @@ bool isGNUABITag(Expression e)
  */
 private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
 {
+    import dmd.typesem: size;
+
     //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
     // Destruction of STC.field's is handled by buildDtor()
@@ -9889,6 +9927,8 @@ void finalizeSize(AggregateDeclaration ad)
  */
 bool _isZeroInit(Expression exp)
 {
+    import dmd.typesem: size;
+
     switch (exp.op)
     {
         case EXP.int64:
@@ -10054,6 +10094,8 @@ private bool checkOverlappedFields(AggregateDeclaration ad)
 
 private extern(C++) class FinalizeSizeVisitor : Visitor
 {
+    import dmd.typesem: size;
+
     alias visit = Visitor.visit;
 
     override void visit(ClassDeclaration outerCd)

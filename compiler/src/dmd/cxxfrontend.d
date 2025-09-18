@@ -242,6 +242,12 @@ bool equals(const Dsymbol ds, const Dsymbol s)
     return dmd.dsymbolsem.equals(ds, s);
 }
 
+uinteger_t size(Dsymbol ds, Loc loc)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.size(ds, loc);
+}
+
 /***********************************************************
  * dtemplate.d
  */
@@ -744,12 +750,6 @@ uinteger_t size(Type type, Loc loc)
 {
     import dmd.typesem;
     return dmd.typesem.size(type, loc);
-}
-
-uinteger_t size(Dsymbol ds, Loc loc)
-{
-    import dmd.typesem;
-    return dmd.typesem.size(ds, loc);
 }
 
 MATCH implicitConvTo(Type from, Type to)

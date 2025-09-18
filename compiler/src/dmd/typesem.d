@@ -1600,37 +1600,6 @@ Type getIndirection(Type t)
     return null;
 }
 
-private uinteger_t aggregateDeclSize(AggregateDeclaration _this, Loc loc)
-{
-    //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-    bool ok = determineSize(_this, loc);
-    //printf("-AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-    return ok ? _this.structsize : SIZE_INVALID;
-}
-
-private uinteger_t declSize(Declaration _this, Loc loc)
-{
-    assert(_this.type);
-    const sz = _this.type.size();
-    if (sz == SIZE_INVALID)
-        _this.errors = true;
-    return sz;
-}
-
-/*********************************
- * Returns:
- *  SIZE_INVALID when the size cannot be determined
- */
-uinteger_t size(Dsymbol _this, Loc loc)
-{
-    if (auto ad = _this.isAggregateDeclaration())
-        return aggregateDeclSize(ad, loc);
-    else if (auto d = _this.isDeclaration())
-        return declSize(d, loc);
-    .error(loc, "%s `%s` symbol `%s` has no size", _this.kind, _this.toPrettyChars, _this.toChars());
-    return SIZE_INVALID;
-}
-
 uinteger_t size(Type t)
 {
     return size(t, Loc.initial);
@@ -1770,7 +1739,11 @@ uinteger_t size(Type t, Loc loc)
         case Tinstance:
         case Ttypeof:
         case Treturn:       return visitTypeQualified(cast(TypeQualified)t);
-        case Tstruct:       return t.isTypeStruct().sym.size(loc);
+        case Tstruct:
+        {
+            import dmd.dsymbolsem: size;
+            return t.isTypeStruct().sym.size(loc);
+        }
         case Tenum:         return t.isTypeEnum().sym.getMemtype(loc).size(loc);
         case Tnull:         return t.tvoidptr.size(loc);
         case Tnoreturn:     return 0;
@@ -3658,7 +3631,10 @@ Expression defaultInitLiteral(Type t, Loc loc)
         {
             printf("TypeStruct::defaultInitLiteral() '%s'\n", toChars());
         }
-        ts.sym.size(loc);
+        {
+            import dmd.dsymbolsem: size;
+            ts.sym.size(loc);
+        }
         if (ts.sym.sizeok != Sizeok.done)
             return ErrorExp.get();
 
@@ -4913,7 +4889,10 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 {
                     auto ad = v.isMember();
                     objc.checkOffsetof(e, ad);
-                    ad.size(e.loc);
+                    {
+                        import dmd.dsymbolsem: size;
+                        ad.size(e.loc);
+                    }
                     if (ad.sizeok != Sizeok.done)
                         return ErrorExp.get();
                     uint value;
@@ -5765,7 +5744,10 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
              */
             e = e.expressionSemantic(sc); // do this before turning on noAccessCheck
 
-            mt.sym.size(e.loc); // do semantic of type
+            {
+                import dmd.dsymbolsem: size;
+                mt.sym.size(e.loc); // do semantic of type
+            }
 
             Expression e0;
             Expression ev = e.op == EXP.type ? null : e;

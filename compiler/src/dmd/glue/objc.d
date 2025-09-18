@@ -31,7 +31,7 @@ import dmd.mtype;
 import dmd.objc;
 import dmd.target;
 
-import dmd.typesem: size;
+import dmd.dsymbolsem: size;
 
 import dmd.root.stringtable;
 import dmd.root.array;
