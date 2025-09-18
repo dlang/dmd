@@ -218,7 +218,6 @@ public:
     Dsymbol *aliassym;
 
     const char *kind() const override;
-    bool equals(const RootObject * const o) const override;
 
     Dsymbol *isUnique();
     bool isOverloadable() const override;
@@ -697,7 +696,6 @@ public:
     FuncDeclaration *fdensure(FuncDeclaration *fde);
     Expressions *fdrequireParams(Expressions *fdrp);
     Expressions *fdensureParams(Expressions *fdep);
-    bool equals(const RootObject * const o) const override final;
 
     bool inUnittest();
     LabelDsymbol *searchLabel(Identifier *ident, Loc loc);
