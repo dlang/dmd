@@ -1332,7 +1332,7 @@ public:
                 if (j == i)
                     continue;
                 FuncDeclaration *fd2 = d->vtbl[j]->isFuncDeclaration();
-                if (!dmd::equals((const Dsymbol*) fd2->ident, (const Dsymbol*) fd->ident))
+                if (!fd2->ident->equals(fd->ident))
                     continue;
                 if (fd2->isFuture())
                     continue;
