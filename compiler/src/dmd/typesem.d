@@ -1623,9 +1623,9 @@ private uinteger_t declSize(Declaration _this, Loc loc)
  */
 uinteger_t size(Dsymbol _this, Loc loc)
 {
-    if(auto ad = _this.isAggregateDeclaration())
+    if (auto ad = _this.isAggregateDeclaration())
         return aggregateDeclSize(ad, loc);
-    else if(auto d = _this.isDeclaration())
+    else if (auto d = _this.isDeclaration())
         return declSize(d, loc);
     .error(loc, "%s `%s` symbol `%s` has no size", _this.kind, _this.toPrettyChars, _this.toChars());
     return SIZE_INVALID;
