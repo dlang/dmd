@@ -35,7 +35,6 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.escape;
 import dmd.expression;
-import dmd.funcsem : isUnique;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
