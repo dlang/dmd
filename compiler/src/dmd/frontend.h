@@ -584,7 +584,6 @@ public:
     CPPNamespaceDeclaration* cppnamespace(CPPNamespaceDeclaration* ns);
     UserAttributeDeclaration* userAttribDecl(UserAttributeDeclaration* uad);
     virtual const char* toPrettyCharsHelper();
-    virtual bool equals(const Dsymbol* const s) const;
     bool isAnonymous() const;
     Module* getModule();
     bool isCsymbol();
@@ -4047,7 +4046,6 @@ public:
     Array<Expression* >* fdrequireParams(Array<Expression* >* param);
     Array<Expression* >* fdensureParams(Array<Expression* >* param);
     FuncDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool equals(const Dsymbol* const s) const final override;
     bool inUnittest();
     LabelDsymbol* searchLabel(Identifier* ident, Loc loc);
     const char* toPrettyChars(bool QualifyTypes = false) override;
@@ -6838,7 +6836,6 @@ public:
     Dsymbol* overnext;
     Dsymbol* aliassym;
     const char* kind() const override;
-    bool equals(const Dsymbol* const s) const override;
     bool isOverloadable() const override;
     void accept(Visitor* v) override;
 };
@@ -7132,7 +7129,6 @@ public:
     uint32_t tag;
     Module* mod;
     const char* kind() const override;
-    bool equals(const Dsymbol* const s) const override;
     bool isAncestorPackageOf(const Package* const pkg) const;
     void accept(Visitor* v) override;
     Module* isPackageMod();
