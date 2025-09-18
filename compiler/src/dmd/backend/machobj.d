@@ -893,7 +893,7 @@ void MachObj_term(const(char)[] objfilename)
             for (; r != rend; r++)
             {   Symbol* s = r.targsym;
                 const(char)* rs = r.rtype == RELaddr ? "addr" : "rel";
-                //printf("%d:x%04llx : tseg %d tsym %s REL%s\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs);
+                //printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
                 relocation_info rel;
                 scattered_relocation_info srel;
                 if (s)
@@ -964,14 +964,15 @@ void MachObj_term(const(char)[] objfilename)
                                 case SC.comdat:
                                 case SC.comdef:
                                 case SC.static_:
-                                    if (s.Sfl == FL.func)
+                                    if (s.Sfl == FL.func && r.rtype == RELrel)
                                     {
                                         rel.r_type = ARM64_RELOC_BRANCHY26;
                                         rel.r_pcrel = 1;
                                     }
                                     else
                                     {
-                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                        //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                         rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
                                     }
                                     assert(s.Sfl != FL.tlsdata);
