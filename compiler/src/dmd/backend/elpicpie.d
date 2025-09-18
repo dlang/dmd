@@ -310,7 +310,10 @@ elem* el_ptr(Symbol* s)
         if (config.flags3 & CFG3pic &&
             tyfunc(s.ty()))
         {
-            e = el_picvar(s);
+            if (config.exe & EX_OSX64 && config.target_cpu == TARGET_AArch64)
+                e = el_var(s);
+            else
+                e = el_picvar(s);
         }
         else
             e = el_var(s);
