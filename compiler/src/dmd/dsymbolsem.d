@@ -97,9 +97,6 @@ void dsymbolSemantic(Dsymbol dsym, Scope* sc)
 
 private bool funcDeclEquals(const FuncDeclaration _this, const Dsymbol s)
 {
-    if (_this == s)
-        return true;
-
     auto fd1 = _this;
     auto fd2 = s.isFuncDeclaration();
     if (!fd2)
@@ -132,9 +129,6 @@ private bool funcDeclEquals(const FuncDeclaration _this, const Dsymbol s)
 
 private bool overDeclEquals(const OverDeclaration _this, const Dsymbol s)
 {
-    if (_this == s)
-        return true;
-
     if (auto od2 = s.isOverDeclaration())
         return _this.aliassym.equals(od2.aliassym);
     return _this.aliassym == s;
@@ -143,8 +137,6 @@ private bool overDeclEquals(const OverDeclaration _this, const Dsymbol s)
 private bool packageEquals(const Package _this, const Dsymbol s)
 {
     // custom 'equals' for bug 17441. "package a" and "module a" are not equal
-    if (_this == s)
-        return true;
     auto p = cast(Package)s;
     return p && _this.isModule() == p.isModule() && _this.ident.equals(p.ident);
 }
