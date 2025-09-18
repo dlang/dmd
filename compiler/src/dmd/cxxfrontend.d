@@ -236,6 +236,12 @@ bool overloadInsert(Dsymbol ds, Dsymbol s)
     return dmd.dsymbolsem.overloadInsert(ds, s);
 }
 
+bool equals(const Dsymbol ds, const Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.equals(ds, s);
+}
+
 /***********************************************************
  * dtemplate.d
  */
