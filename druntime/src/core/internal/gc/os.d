@@ -135,7 +135,8 @@ version (CoreDdoc)
     }
 
     /**
-     * Map shared memory.
+     * Map memory that will be shared by child processes.
+     * Note: only available if the OS supports this feature. Use `AllocSupportsShared` to test.
      */
     void *os_mem_map_shared(size_t nbytes) nothrow @nogc
     {
