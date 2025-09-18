@@ -427,4 +427,5 @@ namespace dmd
     void setScope(Dsymbol *d, Scope *sc);
     void importAll(Dsymbol *d, Scope *sc);
     bool hasPointers(Dsymbol *d);
+    uinteger_t size(Dsymbol *ds, Loc loc);
 }
