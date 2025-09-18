@@ -746,6 +746,12 @@ uinteger_t size(Type type, Loc loc)
     return dmd.typesem.size(type, loc);
 }
 
+uinteger_t size(Dsymbol ds, Loc loc)
+{
+    import dmd.typesem;
+    return dmd.typesem.size(ds, loc);
+}
+
 MATCH implicitConvTo(Type from, Type to)
 {
     import dmd.dcast;
