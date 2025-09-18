@@ -411,18 +411,6 @@ extern (C++) class Dsymbol : ASTNode
         return toChars();
     }
 
-    bool equals(const Dsymbol s) const
-    {
-        if (this == s)
-            return true;
-        // Overload sets don't have an ident
-        // Function-local declarations may have identical names
-        // if they are declared in different scopes
-        if (s && ident && s.ident && ident.equals(s.ident) && localNum == s.localNum)
-            return true;
-        return false;
-    }
-
     final bool isAnonymous() const
     {
         return ident is null || ident.isAnonymous;
