@@ -205,7 +205,6 @@ public:
     CPPNamespaceDeclaration* cppnamespace(CPPNamespaceDeclaration* ns);
     UserAttributeDeclaration* userAttribDecl(UserAttributeDeclaration* uad);
     virtual const char *toPrettyCharsHelper(); // helper to print fully qualified (template) arguments
-    virtual bool equals(const RootObject * const o) const;
     bool isAnonymous() const;
     Module *getModule();
     bool isCsymbol();

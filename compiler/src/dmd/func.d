@@ -35,7 +35,6 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.escape;
 import dmd.expression;
-import dmd.funcsem : isUnique;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -364,41 +363,6 @@ extern (C++) class FuncDeclaration : Declaration
         f.fensures = fensures ? Ensure.arraySyntaxCopy(fensures) : null;
         f.fbody = fbody ? fbody.syntaxCopy() : null;
         return f;
-    }
-
-    override final bool equals(const Dsymbol s) const
-    {
-        if (this == s)
-            return true;
-
-        auto fd1 = this;
-        auto fd2 = s.isFuncDeclaration();
-        if (!fd2)
-            return false;
-
-        auto fa1 = fd1.isFuncAliasDeclaration();
-        auto faf1 = fa1 ? fa1.toAliasFunc() : fd1;
-
-        auto fa2 = fd2.isFuncAliasDeclaration();
-        auto faf2 = fa2 ? fa2.toAliasFunc() : fd2;
-
-        if (fa1 && fa2)
-            return faf1.equals(faf2) && fa1.hasOverloads == fa2.hasOverloads;
-
-        bool b1 = fa1 !is null;
-        if (b1 && faf1.isUnique() && !fa1.hasOverloads)
-            b1 = false;
-
-        bool b2 = fa2 !is null;
-        if (b2 && faf2.isUnique() && !fa2.hasOverloads)
-            b2 = false;
-
-        if (b1 != b2)
-            return false;
-
-        return faf1.toParent().equals(faf2.toParent()) &&
-               faf1.ident.equals(faf2.ident) &&
-               faf1.type.equals(faf2.type);
     }
 
     /********************************************

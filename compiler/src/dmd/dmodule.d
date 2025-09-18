@@ -180,15 +180,6 @@ extern (C++) class Package : ScopeDsymbol
         return "package";
     }
 
-    override bool equals(const Dsymbol s) const
-    {
-        // custom 'equals' for bug 17441. "package a" and "module a" are not equal
-        if (this == s)
-            return true;
-        auto p = cast(Package)s;
-        return p && isModule() == p.isModule() && ident.equals(p.ident);
-    }
-
     /****************************************************
      * Input:
      *      packages[]      the pkg1.pkg2 of pkg1.pkg2.mod

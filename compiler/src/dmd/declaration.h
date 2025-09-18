@@ -41,6 +41,7 @@ namespace dmd
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
     bool isAbstract(ClassDeclaration *cd);
     bool overloadInsert(Dsymbol *ds, Dsymbol *s);
+    bool equals(const Dsymbol *ds, const Dsymbol *s);
 }
 
 //enum STC : ulong from astenums.d:
@@ -217,7 +218,6 @@ public:
     Dsymbol *aliassym;
 
     const char *kind() const override;
-    bool equals(const RootObject * const o) const override;
 
     Dsymbol *isUnique();
     bool isOverloadable() const override;
@@ -696,7 +696,6 @@ public:
     FuncDeclaration *fdensure(FuncDeclaration *fde);
     Expressions *fdrequireParams(Expressions *fdrp);
     Expressions *fdensureParams(Expressions *fdep);
-    bool equals(const RootObject * const o) const override final;
 
     bool inUnittest();
     LabelDsymbol *searchLabel(Identifier *ident, Loc loc);

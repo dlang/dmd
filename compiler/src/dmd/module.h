@@ -46,8 +46,6 @@ public:
 
     const char *kind() const override;
 
-    bool equals(const RootObject * const o) const override;
-
     bool isAncestorPackageOf(const Package * const pkg) const;
 
     void accept(Visitor *v) override { v->visit(this); }

@@ -95,6 +95,73 @@ void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
+private bool funcDeclEquals(const FuncDeclaration _this, const Dsymbol s)
+{
+    auto fd1 = _this;
+    auto fd2 = s.isFuncDeclaration();
+    if (!fd2)
+        return false;
+
+    auto fa1 = fd1.isFuncAliasDeclaration();
+    auto faf1 = fa1 ? fa1.toAliasFunc() : fd1;
+
+    auto fa2 = fd2.isFuncAliasDeclaration();
+    auto faf2 = fa2 ? fa2.toAliasFunc() : fd2;
+
+    if (fa1 && fa2)
+        return faf1.equals(faf2) && fa1.hasOverloads == fa2.hasOverloads;
+
+    bool b1 = fa1 !is null;
+    if (b1 && faf1.isUnique() && !fa1.hasOverloads)
+        b1 = false;
+
+    bool b2 = fa2 !is null;
+    if (b2 && faf2.isUnique() && !fa2.hasOverloads)
+        b2 = false;
+
+    if (b1 != b2)
+        return false;
+
+    return faf1.toParent().equals(faf2.toParent()) &&
+           faf1.ident.equals(faf2.ident) &&
+           faf1.type.equals(faf2.type);
+}
+
+private bool overDeclEquals(const OverDeclaration _this, const Dsymbol s)
+{
+    if (auto od2 = s.isOverDeclaration())
+        return _this.aliassym.equals(od2.aliassym);
+    return _this.aliassym == s;
+}
+
+private bool packageEquals(const Package _this, const Dsymbol s)
+{
+    // custom 'equals' for bug 17441. "package a" and "module a" are not equal
+    auto p = cast(Package)s;
+    return p && _this.isModule() == p.isModule() && _this.ident.equals(p.ident);
+}
+
+bool equals(const Dsymbol _this, const Dsymbol s)
+{
+    if (_this == s)
+        return true;
+
+    if(auto fd = _this.isFuncDeclaration())
+        return funcDeclEquals(fd, s);
+    else if (auto od = _this.isOverDeclaration())
+        return overDeclEquals(od, s);
+    else if (auto pkg = _this.isPackage())
+        return packageEquals(pkg, s);
+
+    // Overload sets don't have an ident
+    // Function-local declarations may have identical names
+    // if they are declared in different scopes
+    if (s && _this.ident && s.ident && _this.ident.equals(s.ident) && _this.localNum == s.localNum)
+        return true;
+
+    return false;
+}
+
 private bool aliasOverloadInsert(AliasDeclaration ad, Dsymbol s)
 {
     //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
