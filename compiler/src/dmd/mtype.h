@@ -841,6 +841,7 @@ namespace dmd
     Type *substWildTo(Type *type, unsigned mod);
     uinteger_t size(Type *type);
     uinteger_t size(Type *type, Loc loc);
+    uinteger_t size(Dsymbol *ds, Loc loc);
     MATCH implicitConvTo(Type* from, Type* to);
     MATCH constConv(Type* from, Type* to);
 }

@@ -226,7 +226,6 @@ public:
     virtual Identifier *getIdent();
     virtual const char *toPrettyChars(bool QualifyTypes = false);
     virtual const char *kind() const;
-    virtual uinteger_t size(Loc loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
     virtual bool isExport() const;              // is Dsymbol exported?

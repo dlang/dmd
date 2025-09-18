@@ -122,7 +122,6 @@ public:
     Sizeok sizeok;              // set when structsize contains valid data
 
     virtual Scope *newScope(Scope *sc);
-    uinteger_t size(Loc loc) override final;
     Type *getType() override final;
     bool isDeprecated() const override final; // is aggregate deprecated?
     bool isNested() const;
