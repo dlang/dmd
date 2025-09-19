@@ -3660,7 +3660,7 @@ private bool isTypeIsolatedIndirect(FuncDeclaration fd, Type t)
     // The 'this' reference is a parameter, too
     if (AggregateDeclaration ad = fd.isCtorDeclaration() ? null : fd.isThis())
     {
-        Type tthis = ad.getType().addMod(tf.mod);
+        Type tthis = dmd.dsymbolsem.getType(ad).addMod(tf.mod);
         //printf("\ttthis = %s\n", tthis.toChars());
         if (!traverseIndirections(tthis, t))
             return false;
