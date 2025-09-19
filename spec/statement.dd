@@ -1796,13 +1796,17 @@ $(GNAME GotoStatement):
 
 $(P `goto` transfers to the statement labeled with $(I Identifier).)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-    if (foo)
+    int x = 1;
+    if (x)
         goto L1;
+
     x = 3;
 L1:
-    x++;
+    assert(x == 1);
 ---
+)
 
 $(P The second form, $(CODE goto default;), transfers to the innermost $(GLINK
 DefaultStatement) of an enclosing $(GLINK SwitchStatement).)
@@ -1816,26 +1820,38 @@ DefaultStatement) of an enclosing $(GLINK SwitchStatement).)
         $(GLINK SwitchStatement)
         with a matching *Expression*.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
+int x = 5;
+
 switch (x)
 {
     case 3:
+        writeln("case 3");
         goto case;
     case 4:
+        writeln("case 4");
         goto default;
     case 5:
+        writeln("case 5");
         goto case 4;
     default:
-        x = 4;
+        writeln("default");
         break;
 }
 ---
+)
 
 $(P Any intervening finally clauses are executed, along with releasing any
 intervening synchronization mutexes.)
 
         $(P It is illegal for a $(I GotoStatement) to be used to skip
-        initializations.)
+        initializations within its containing scope.)
+
+        $(BEST_PRACTICE Prefer using a higher-level control-flow construct
+        or a labelled $(GLINK BreakStatement)/$(GLINK ContinueStatement)
+        rather than the $(GRAMMAR_INLINE *`goto` Identifier;*) form.)
+
 
 $(H2 $(LEGACY_LNAME2 WithStatement, with-statement, With Statement))
 
