@@ -185,7 +185,6 @@ public:
 
     TupleDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
-    Type *getType() override;
     bool needThis() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -203,7 +202,6 @@ public:
     static AliasDeclaration *create(Loc loc, Identifier *id, Type *type);
     AliasDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
-    Type *getType() override;
     bool isOverloadable() const override;
 
     void accept(Visitor *v) override { v->visit(this); }

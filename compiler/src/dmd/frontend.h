@@ -612,7 +612,6 @@ public:
     AggregateDeclaration* isMemberDecl();
     AggregateDeclaration* isMemberLocal();
     ClassDeclaration* isClassMember();
-    virtual Type* getType();
     virtual bool needThis();
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
@@ -6371,7 +6370,6 @@ public:
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
     uint64_t size(Loc loc) final override;
-    Type* getType() final override;
     bool isDeprecated() const final override;
     bool isNested() const;
     bool isExport() const final override;
@@ -6811,7 +6809,6 @@ public:
     bool building;
     TupleDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    Type* getType() override;
     bool needThis() override;
     void accept(Visitor* v) override;
 };
@@ -6825,7 +6822,6 @@ public:
     static AliasDeclaration* create(Loc loc, Identifier* id, Type* type);
     AliasDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    Type* getType() override;
     bool isOverloadable() const override;
     void accept(Visitor* v) override;
 };
@@ -7081,7 +7077,6 @@ private:
 public:
     void* sinit;
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
-    Type* getType() override;
     const char* kind() const override;
     bool isDeprecated() const override;
     Visibility visible() override;
