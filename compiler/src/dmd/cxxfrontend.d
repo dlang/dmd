@@ -257,7 +257,7 @@ uinteger_t size(Dsymbol ds, Loc loc)
 void semantic3OnDependencies(Module m)
 {
     import dmd.dsymbolsem;
-    return dmd_dsymbolsem.semantic3OnDependencies(m);
+    return dmd.dsymbolsem.semantic3OnDependencies(m);
 }
 
 void addDeferredSemantic(Dsymbol s)
