@@ -964,39 +964,6 @@ extern (C++) final class Module : Package
             File.remove(docfile.toChars());
     }
 
-    /*******************************************
-     * Can't run semantic on s now, try again later.
-     */
-    extern (D) static void addDeferredSemantic(Dsymbol s)
-    {
-        //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
-        if (!s.deferred)
-        {
-            s.deferred = true;
-            deferred.push(s);
-        }
-    }
-
-    extern (D) static void addDeferredSemantic2(Dsymbol s)
-    {
-        //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
-        if (!s.deferred2)
-        {
-            s.deferred2 = true;
-            deferred2.push(s);
-        }
-    }
-
-    extern (D) static void addDeferredSemantic3(Dsymbol s)
-    {
-        //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
-        if (!s.deferred3)
-        {
-            s.deferred3 = true;
-            deferred3.push(s);
-        }
-    }
-
     /******************************************
      * Run semantic() on deferred symbols.
      */

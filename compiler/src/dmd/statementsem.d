@@ -3700,7 +3700,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             // for the current scope.
             if (s.mod !is null)
             {
-                Module.addDeferredSemantic2(s);     // https://issues.dlang.org/show_bug.cgi?id=14666
+                addDeferredSemantic2(s);     // https://issues.dlang.org/show_bug.cgi?id=14666
                 sc.insert(s);
 
                 foreach (aliasdecl; s.aliasdecls)

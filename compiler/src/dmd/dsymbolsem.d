@@ -95,6 +95,39 @@ void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
+/*******************************************
+ * Can't run semantic on s now, try again later.
+ */
+void addDeferredSemantic(Dsymbol s)
+{
+    //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
+    if (!s.deferred)
+    {
+        s.deferred = true;
+        Module.deferred.push(s);
+    }
+}
+
+void addDeferredSemantic2(Dsymbol s)
+{
+    //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
+    if (!s.deferred2)
+    {
+        s.deferred2 = true;
+        Module.deferred2.push(s);
+    }
+}
+
+void addDeferredSemantic3(Dsymbol s)
+{
+    //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
+    if (!s.deferred3)
+    {
+        s.deferred3 = true;
+        Module.deferred3.push(s);
+    }
+}
+
 private Type tupleDeclGetType(TupleDeclaration _this)
 {
     /* If this tuple represents a type, return that type
@@ -1182,7 +1215,7 @@ void deferDsymbolSemantic(Scope* sc, Dsymbol s, Scope* scx)
 {
     s._scope = scx ? scx : sc.copy();
     s._scope.setNoFree();
-    Module.addDeferredSemantic(s);
+    addDeferredSemantic(s);
 }
 
 struct Ungag
@@ -3079,7 +3112,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         nest--;
 
         /* In DeclDefs scope, TemplateMixin does not have to handle deferred symbols.
-         * Because the members would already call Module.addDeferredSemantic() for themselves.
+         * Because the members would already call addDeferredSemantic() for themselves.
          * See Struct, Class, Interface, and EnumDeclaration.dsymbolSemantic().
          */
         //if (!sc.func && Module.deferred.length > deferred_dim) {}
@@ -4391,7 +4424,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base class %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        Module.addDeferredSemantic(tc.sym);
+                        addDeferredSemantic(tc.sym);
                     cldec.baseok = Baseok.none;
                 }
             L7:
@@ -4472,7 +4505,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        Module.addDeferredSemantic(tc.sym);
+                        addDeferredSemantic(tc.sym);
                     cldec.baseok = Baseok.none;
                 }
                 i++;
@@ -4588,7 +4621,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 // Forward referencee of one or more bases, try again later
                 if (tc.sym._scope)
-                    Module.addDeferredSemantic(tc.sym);
+                    addDeferredSemantic(tc.sym);
                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
                 return deferDsymbolSemantic(sc, cldec, scx);
             }
@@ -5041,7 +5074,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        Module.addDeferredSemantic(tc.sym);
+                        addDeferredSemantic(tc.sym);
                     idec.baseok = Baseok.none;
                 }
                 i++;
@@ -5085,7 +5118,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 // Forward referencee of one or more bases, try again later
                 if (tc.sym._scope)
-                    Module.addDeferredSemantic(tc.sym);
+                    addDeferredSemantic(tc.sym);
                 return deferDsymbolSemantic(sc, idec, scx);
             }
         }
@@ -5769,9 +5802,9 @@ private Dsymbols* appendToModuleMember(TemplateInstance ti)
     a.push(ti);
     ti.memberOf = mi;
     if (mi.semanticRun >= PASS.semantic2done && mi.isRoot())
-        Module.addDeferredSemantic2(ti);
+        addDeferredSemantic2(ti);
     if (mi.semanticRun >= PASS.semantic3done && mi.isRoot())
-        Module.addDeferredSemantic3(ti);
+        addDeferredSemantic3(ti);
     return a;
 }
 
