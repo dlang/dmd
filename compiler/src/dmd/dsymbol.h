@@ -435,4 +435,5 @@ namespace dmd
     void runDeferredSemantic();
     void runDeferredSemantic2();
     void runDeferredSemantic3();
+    bool isOverlappedWith(VarDeclaration *vd, VarDeclaration *v);
 }

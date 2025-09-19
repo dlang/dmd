@@ -16,7 +16,7 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.common.outbuffer : OutBuffer;
 import dmd.dclass : ClassDeclaration, BaseClass;
-import dmd.declaration : TypeInfoDeclaration;
+import dmd.declaration : TypeInfoDeclaration, VarDeclaration;
 import dmd.denum : EnumDeclaration;
 import dmd.dmodule /*: Module*/;
 import dmd.dscope : Scope;
@@ -294,6 +294,11 @@ void runDeferredSemantic3()
 {
     import dmd.dsymbolsem;
     return dmd.dsymbolsem.runDeferredSemantic3();
+}
+
+bool isOverlappedWith(VarDeclaration vd, VarDeclaration v){
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.isOverlappedWith(vd, v);
 }
 
 /***********************************************************

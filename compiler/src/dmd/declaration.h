@@ -289,7 +289,6 @@ public:
     bool isDataseg() override final;
     bool isThreadlocal() override final;
     bool isCTFE();
-    bool isOverlappedWith(VarDeclaration *v);
     bool canTakeAddressOf();
     bool needsScopeDtor();
     // Eliminate need for dynamic_cast

@@ -6899,7 +6899,6 @@ public:
     bool isDataseg() final override;
     bool isThreadlocal() final override;
     bool isCTFE();
-    bool isOverlappedWith(VarDeclaration* v);
     bool canTakeAddressOf();
     bool needsScopeDtor();
     void accept(Visitor* v) override;
