@@ -49,7 +49,6 @@ class TemplateInstance;
 class AggregateDeclaration;
 class LabelDsymbol;
 class ClassDeclaration;
-class Type;
 class Package;
 template <typename T>
 struct Array;
@@ -104,6 +103,7 @@ class StaticAssert;
 class StaticIfDeclaration;
 class CAsmDeclaration;
 class DsymbolTable;
+class Type;
 struct MangleOverride;
 class AliasThis;
 class Expression;
