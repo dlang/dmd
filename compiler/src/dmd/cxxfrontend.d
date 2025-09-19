@@ -248,6 +248,12 @@ Type getType(Dsymbol ds)
     return dmd.dsymbolsem.getType(ds);
 }
 
+uinteger_t size(Dsymbol ds, Loc loc)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.size(ds, loc);
+}
+
 /***********************************************************
  * dtemplate.d
  */

@@ -137,8 +137,6 @@ public:
     bool noUnderscore() const;
 
     const char *kind() const override;
-    uinteger_t size(Loc loc) override final;
-
 
     bool isStatic() const { return (storage_class & STCstatic) != 0; }
     LINK resolvedLinkage() const; // returns the linkage, resolving the target-specific `System` one

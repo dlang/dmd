@@ -662,16 +662,6 @@ extern (C++) class Dsymbol : ASTNode
         return "symbol";
     }
 
-    /*********************************
-     * Returns:
-     *  SIZE_INVALID when the size cannot be determined
-     */
-    ulong size(Loc loc)
-    {
-        .error(loc, "%s `%s` symbol `%s` has no size", kind, toPrettyChars, toChars());
-        return SIZE_INVALID;
-    }
-
     bool isforwardRef()
     {
         return false;
