@@ -16,7 +16,7 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.common.outbuffer : OutBuffer;
 import dmd.dclass : ClassDeclaration, BaseClass;
-import dmd.declaration : TypeInfoDeclaration;
+import dmd.declaration : TypeInfoDeclaration, VarDeclaration;
 import dmd.denum : EnumDeclaration;
 import dmd.dmodule /*: Module*/;
 import dmd.dscope : Scope;
@@ -253,6 +253,12 @@ uinteger_t size(Dsymbol ds, Loc loc)
     import dmd.dsymbolsem;
     return dmd.dsymbolsem.size(ds, loc);
 }
+
+bool isOverlappedWith(VarDeclaration vd, VarDeclaration v){
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.isOverlappedWith(vd, v);
+}
+
 
 /***********************************************************
  * dtemplate.d

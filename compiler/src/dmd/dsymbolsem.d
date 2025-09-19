@@ -95,6 +95,41 @@ void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
+bool isOverlappedWith(VarDeclaration _this, VarDeclaration v)
+{
+    import dmd.typesem : size;
+    const vsz = v.type.size();
+    const tsz = _this.type.size();
+    assert(vsz != SIZE_INVALID && tsz != SIZE_INVALID);
+
+    // Overlap is checked by comparing bit offsets
+    auto bitoffset  = _this.offset * 8;
+    auto vbitoffset =     v.offset * 8;
+
+    // Bitsize of types are overridden by any bitfield widths.
+    ulong tbitsize;
+    if (auto bf = _this.isBitFieldDeclaration())
+    {
+        bitoffset += bf.bitOffset;
+        tbitsize = bf.fieldWidth;
+    }
+    else
+        tbitsize = tsz * 8;
+
+    ulong vbitsize;
+    if (auto vbf = v.isBitFieldDeclaration())
+    {
+        vbitoffset += vbf.bitOffset;
+        vbitsize = vbf.fieldWidth;
+    }
+    else
+        vbitsize = vsz * 8;
+
+    return   bitoffset < vbitoffset + vbitsize &&
+            vbitoffset <  bitoffset + tbitsize;
+}
+
+
 private Type tupleDeclGetType(TupleDeclaration _this)
 {
     /* If this tuple represents a type, return that type
