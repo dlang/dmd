@@ -187,6 +187,7 @@ Type getType(Dsymbol _this)
 
     // is this a type?
     return null;
+}
 
 private uinteger_t aggregateDeclSize(AggregateDeclaration _this, Loc loc)
 {
