@@ -30,7 +30,6 @@ import dmd.dmacro;
 import dmd.doc;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -947,92 +946,6 @@ extern (C++) final class Module : Package
             File.remove(objfile.toChars());
         if (docfile)
             File.remove(docfile.toChars());
-    }
-
-    /******************************************
-     * Run semantic() on deferred symbols.
-     */
-    static void runDeferredSemantic()
-    {
-        __gshared int nested;
-        if (nested)
-            return;
-        //if (deferred.length) printf("+Module::runDeferredSemantic(), len = %ld\n", deferred.length);
-        nested++;
-
-        size_t len;
-        do
-        {
-            len = deferred.length;
-            if (!len)
-                break;
-
-            Dsymbol* todo;
-            Dsymbol* todoalloc = null;
-            Dsymbol tmp;
-            if (len == 1)
-            {
-                todo = &tmp;
-            }
-            else
-            {
-                todo = cast(Dsymbol*)Mem.check(malloc(len * Dsymbol.sizeof));
-                todoalloc = todo;
-            }
-            memcpy(todo, deferred.tdata(), len * Dsymbol.sizeof);
-            foreach (Dsymbol s; Module.deferred[])
-                s.deferred = false;
-            deferred.setDim(0);
-
-            foreach (i; 0..len)
-            {
-                Dsymbol s = todo[i];
-                s.dsymbolSemantic(null);
-                //printf("deferred: %s, parent = %s\n", s.toChars(), s.parent.toChars());
-            }
-            //printf("\tdeferred.length = %ld, len = %ld\n", deferred.length, len);
-            if (todoalloc)
-                free(todoalloc);
-        }
-        while (deferred.length != len); // while making progress
-        nested--;
-        //printf("-Module::runDeferredSemantic(), len = %ld\n", deferred.length);
-    }
-
-    static void runDeferredSemantic2()
-    {
-        Module.runDeferredSemantic();
-
-        Dsymbols* a = &Module.deferred2;
-        for (size_t i = 0; i < a.length; i++)
-        {
-            Dsymbol s = (*a)[i];
-            s.deferred2 = false;
-            //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
-            s.semantic2(null);
-
-            if (global.errors)
-                break;
-        }
-        a.setDim(0);
-    }
-
-    static void runDeferredSemantic3()
-    {
-        Module.runDeferredSemantic2();
-
-        Dsymbols* a = &Module.deferred3;
-        for (size_t i = 0; i < a.length; i++)
-        {
-            Dsymbol s = (*a)[i];
-            s.deferred3 = false;
-            //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());
-            s.semantic3(null);
-
-            if (global.errors)
-                break;
-        }
-        a.setDim(0);
     }
 
     extern (D) static void clearCache() nothrow
