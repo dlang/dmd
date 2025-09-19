@@ -25,7 +25,6 @@ import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : determineSize;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -185,15 +184,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         return fields.length - isNested() - (vthis2 !is null);
     }
-
-    override final ulong size(Loc loc)
-    {
-        //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-        bool ok = determineSize(this, loc);
-        //printf("-AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-        return ok ? structsize : SIZE_INVALID;
-    }
-
 
     override final Type getType()
     {
