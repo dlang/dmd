@@ -967,12 +967,12 @@ bool updateTempDecl(TemplateInstance ti, Scope* sc, Dsymbol s)
     if (!s.parent && global.errors)
         return false;
 
-    if (!s.parent && s.getType())
+    if (!s.parent && dmd.dsymbolsem.getType(s))
     {
-        Dsymbol s2 = s.getType().toDsymbol(sc);
+        Dsymbol s2 = dmd.dsymbolsem.getType(s).toDsymbol(sc);
         if (!s2)
         {
-            .error(ti.loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", ti.toChars(), id.toChars(), id.toChars(), s.getType.kind());
+            .error(ti.loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", ti.toChars(), id.toChars(), id.toChars(), dmd.dsymbolsem.getType(s).kind());
             return false;
         }
         // because s can be the alias created for a TemplateParameter
@@ -4587,7 +4587,7 @@ private MATCH deduceParentInstance(Scope* sc, Dsymbol sym, TypeInstance tpi,
         RootObject id = tpi.idents[tpi.idents.length - 1];
         if (id.dyncast() == DYNCAST.identifier && sym.ident.equals(cast(Identifier)id))
         {
-            Type tparent = sym.parent.getType();
+            Type tparent = dmd.dsymbolsem.getType(sym.parent);
             if (tparent)
             {
                 tpi.idents.length--;
@@ -4722,7 +4722,7 @@ MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
                             //printf("[%d] s = %s %s, s2 = %s %s\n", j, s.kind(), s.toChars(), s2.kind(), s2.toChars());
                             if (s != s2)
                             {
-                                if (Type tx = s2.getType())
+                                if (Type tx = dmd.dsymbolsem.getType(s2))
                                 {
                                     if (s != tx.toDsymbol(sc))
                                         goto Lnomatch;
@@ -4738,7 +4738,7 @@ MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
                     //printf("[e] s = %s\n", s?s.toChars():"(null)");
                     if (tp.isTemplateTypeParameter())
                     {
-                        Type tt = s.getType();
+                        Type tt = dmd.dsymbolsem.getType(s);
                         if (!tt)
                             goto Lnomatch;
                         Type at = cast(Type)dedtypes[i];

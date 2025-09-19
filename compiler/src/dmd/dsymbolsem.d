@@ -95,6 +95,100 @@ void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
+private Type tupleDeclGetType(TupleDeclaration _this)
+{
+    /* If this tuple represents a type, return that type
+     */
+
+    //printf("TupleDeclaration::getType() %s\n", toChars());
+    if (_this.isexp || _this.building)
+        return null;
+    if (_this.tupletype)
+        return _this.tupletype;
+
+    /* It's only a type tuple if all the Object's are types
+     */
+    for (size_t i = 0; i < _this.objects.length; i++)
+    {
+        RootObject o = (*_this.objects)[i];
+        if (!o.isType())
+        {
+            //printf("\tnot[%d], %p, %d\n", i, o, o.dyncast());
+            return null;
+        }
+    }
+
+    /* We know it's a type tuple, so build the TypeTuple
+     */
+    Types* types = cast(Types*)_this.objects;
+    auto args = new Parameters(_this.objects.length);
+    OutBuffer buf;
+    int hasdeco = 1;
+    for (size_t i = 0; i < types.length; i++)
+    {
+        Type t = (*types)[i];
+        //printf("type = %s\n", t.toChars());
+        version (none)
+        {
+            buf.printf("_%s_%d", _this.ident.toChars(), i);
+            auto id = Identifier.idPool(buf.extractSlice());
+            auto arg = new Parameter(Loc.initial, STC.in_, t, id, null);
+        }
+        else
+        {
+            auto arg = new Parameter(Loc.initial, STC.none, t, null, null, null);
+        }
+        (*args)[i] = arg;
+        if (!t.deco)
+            hasdeco = 0;
+    }
+
+    _this.tupletype = new TypeTuple(args);
+    if (hasdeco)
+        return _this.tupletype.typeSemantic(Loc.initial, null);
+
+    return _this.tupletype;
+}
+
+private Type aliasDeclGetType(AliasDeclaration _this)
+{
+    if (_this.type)
+        return _this.type;
+    return toAlias(_this).getType();
+}
+
+private Type aggregateDeclGetType(AggregateDeclaration _this)
+{
+    /* Apply storage classes to forward references. (Issue 22254)
+     * Note: Avoid interfaces for now. Implementing qualifiers on interface
+     * definitions exposed some issues in their TypeInfo generation in DMD.
+     * Related PR: https://github.com/dlang/dmd/pull/13312
+     */
+    if (_this.semanticRun == PASS.initial && !_this.isInterfaceDeclaration())
+    {
+        auto stc = _this.storage_class;
+        if (_this._scope)
+            stc |= _this._scope.stc;
+        _this.type = _this.type.addSTC(stc);
+    }
+    return _this.type;
+}
+
+Type getType(Dsymbol _this)
+{
+    if (auto td = _this.isTupleDeclaration())
+        return tupleDeclGetType(td);
+    else if (auto ad = _this.isAliasDeclaration())
+        return aliasDeclGetType(ad);
+    else if (auto agd = _this.isAggregateDeclaration())
+        return aggregateDeclGetType(agd);
+    else if (auto ed = _this.isEnumDeclaration())
+        return ed.type;
+
+    // is this a type?
+    return null;
+}
+
 private uinteger_t aggregateDeclSize(AggregateDeclaration _this, Loc loc)
 {
     //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);

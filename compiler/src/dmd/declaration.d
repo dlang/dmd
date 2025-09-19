@@ -22,7 +22,6 @@ import dmd.delegatize;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : toAlias;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
@@ -42,7 +41,7 @@ import dmd.root.filename;
 import dmd.target;
 import dmd.targetcompiler;
 import dmd.tokens;
-import dmd.typesem : typeSemantic, size;
+import dmd.typesem : size;
 import dmd.visitor;
 
 
@@ -283,61 +282,6 @@ extern (C++) final class TupleDeclaration : Declaration
         return "sequence";
     }
 
-    override Type getType()
-    {
-        /* If this tuple represents a type, return that type
-         */
-
-        //printf("TupleDeclaration::getType() %s\n", toChars());
-        if (isexp || building)
-            return null;
-        if (tupletype)
-            return tupletype;
-
-        /* It's only a type tuple if all the Object's are types
-         */
-        for (size_t i = 0; i < objects.length; i++)
-        {
-            RootObject o = (*objects)[i];
-            if (!o.isType())
-            {
-                //printf("\tnot[%d], %p, %d\n", i, o, o.dyncast());
-                return null;
-            }
-        }
-
-        /* We know it's a type tuple, so build the TypeTuple
-         */
-        Types* types = cast(Types*)objects;
-        auto args = new Parameters(objects.length);
-        OutBuffer buf;
-        int hasdeco = 1;
-        for (size_t i = 0; i < types.length; i++)
-        {
-            Type t = (*types)[i];
-            //printf("type = %s\n", t.toChars());
-            version (none)
-            {
-                buf.printf("_%s_%d", ident.toChars(), i);
-                auto id = Identifier.idPool(buf.extractSlice());
-                auto arg = new Parameter(Loc.initial, STC.in_, t, id, null);
-            }
-            else
-            {
-                auto arg = new Parameter(Loc.initial, STC.none, t, null, null, null);
-            }
-            (*args)[i] = arg;
-            if (!t.deco)
-                hasdeco = 0;
-        }
-
-        tupletype = new TypeTuple(args);
-        if (hasdeco)
-            return tupletype.typeSemantic(Loc.initial, null);
-
-        return tupletype;
-    }
-
     override bool needThis()
     {
         //printf("TupleDeclaration::needThis(%s)\n", toChars());
@@ -434,13 +378,6 @@ extern (C++) final class AliasDeclaration : Declaration
     override const(char)* kind() const
     {
         return "alias";
-    }
-
-    override Type getType()
-    {
-        if (type)
-            return type;
-        return toAlias(this).getType();
     }
 
     override bool isOverloadable() const

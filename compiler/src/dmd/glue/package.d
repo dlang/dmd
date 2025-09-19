@@ -57,7 +57,7 @@ import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : getLocalClasses;
+import dmd.dsymbolsem : getLocalClasses, getType;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -515,7 +515,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     // tunnel type of "this" to debug info generation
     if (AggregateDeclaration ad = fd.parent.isAggregateDeclaration())
     {
-        .type* t = Type_toCtype(ad.getType());
+        .type* t = Type_toCtype(getType(ad));
         if (cd)
             t = t.Tnext; // skip reference
         f.Fclass = cast(Classsym *)t;

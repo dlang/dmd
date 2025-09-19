@@ -49,7 +49,6 @@ class TemplateInstance;
 class AggregateDeclaration;
 class LabelDsymbol;
 class ClassDeclaration;
-class Type;
 class Package;
 template <typename T>
 struct Array;
@@ -104,6 +103,7 @@ class StaticAssert;
 class StaticIfDeclaration;
 class CAsmDeclaration;
 class DsymbolTable;
+class Type;
 struct MangleOverride;
 class AliasThis;
 class Expression;
@@ -611,7 +611,6 @@ public:
     AggregateDeclaration* isMemberDecl();
     AggregateDeclaration* isMemberLocal();
     ClassDeclaration* isClassMember();
-    virtual Type* getType();
     virtual bool needThis();
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
@@ -6369,7 +6368,6 @@ public:
     bool disableNew;
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
-    Type* getType() final override;
     bool isDeprecated() const final override;
     bool isNested() const;
     bool isExport() const final override;
@@ -6808,7 +6806,6 @@ public:
     bool building;
     TupleDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    Type* getType() override;
     bool needThis() override;
     void accept(Visitor* v) override;
 };
@@ -6822,7 +6819,6 @@ public:
     static AliasDeclaration* create(Loc loc, Identifier* id, Type* type);
     AliasDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    Type* getType() override;
     bool isOverloadable() const override;
     void accept(Visitor* v) override;
 };
@@ -7078,7 +7074,6 @@ private:
 public:
     void* sinit;
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
-    Type* getType() override;
     const char* kind() const override;
     bool isDeprecated() const override;
     Visibility visible() override;

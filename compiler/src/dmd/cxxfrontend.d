@@ -242,6 +242,12 @@ bool equals(const Dsymbol ds, const Dsymbol s)
     return dmd.dsymbolsem.equals(ds, s);
 }
 
+Type getType(Dsymbol ds)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.getType(ds);
+}
+
 uinteger_t size(Dsymbol ds, Loc loc)
 {
     import dmd.dsymbolsem;
