@@ -1804,7 +1804,7 @@ struct Gcx
         }
         debug(INVARIANT) initialized = true;
         version (COLLECT_FORK)
-            shouldFork = config.fork;
+            shouldFork = AllocSupportsShared && config.fork;
 
     }
 
