@@ -41,7 +41,6 @@ import dmd.root.filename;
 import dmd.target;
 import dmd.targetcompiler;
 import dmd.tokens;
-import dmd.typesem : size;
 import dmd.visitor;
 
 
@@ -637,39 +636,6 @@ extern (C++) class VarDeclaration : Declaration
     final bool isCTFE()
     {
         return (storage_class & STC.ctfe) != 0; // || !isDataseg();
-    }
-
-    final bool isOverlappedWith(VarDeclaration v)
-    {
-        const vsz = v.type.size();
-        const tsz = type.size();
-        assert(vsz != SIZE_INVALID && tsz != SIZE_INVALID);
-
-        // Overlap is checked by comparing bit offsets
-        auto bitoffset  =   offset * 8;
-        auto vbitoffset = v.offset * 8;
-
-        // Bitsize of types are overridden by any bitfield widths.
-        ulong tbitsize;
-        if (auto bf = isBitFieldDeclaration())
-        {
-            bitoffset += bf.bitOffset;
-            tbitsize = bf.fieldWidth;
-        }
-        else
-            tbitsize = tsz * 8;
-
-        ulong vbitsize;
-        if (auto vbf = v.isBitFieldDeclaration())
-        {
-            vbitoffset += vbf.bitOffset;
-            vbitsize = vbf.fieldWidth;
-        }
-        else
-            vbitsize = vsz * 8;
-
-        return   bitoffset < vbitoffset + vbitsize &&
-                vbitoffset <  bitoffset + tbitsize;
     }
 
     /*************************************
