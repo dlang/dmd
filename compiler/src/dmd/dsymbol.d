@@ -755,12 +755,6 @@ extern (C++) class Dsymbol : ASTNode
         return ad ? ad.isClassDeclaration() : null;
     }
 
-    // is this a type?
-    Type getType()
-    {
-        return null;
-    }
-
     // need a 'this' pointer?
     bool needThis()
     {
