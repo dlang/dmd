@@ -254,6 +254,12 @@ uinteger_t size(Dsymbol ds, Loc loc)
     return dmd.dsymbolsem.size(ds, loc);
 }
 
+bool isOverlappedWith(VarDeclaration vd, VarDeclaration v){
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.isOverlappedWith(vd, v);
+}
+
+
 /***********************************************************
  * dtemplate.d
  */

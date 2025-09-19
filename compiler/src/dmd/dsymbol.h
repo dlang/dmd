@@ -428,4 +428,5 @@ namespace dmd
     bool hasPointers(Dsymbol *d);
     Type *getType(Dsymbol *d);
     uinteger_t size(Dsymbol *ds, Loc loc);
+    bool isOverlappedWith(VarDeclaration *vd, VarDeclaration *v);
 }
