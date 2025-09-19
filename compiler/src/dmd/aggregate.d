@@ -184,7 +184,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         return fields.length - isNested() - (vthis2 !is null);
     }
-  
+
     // is aggregate deprecated?
     override final bool isDeprecated() const
     {
