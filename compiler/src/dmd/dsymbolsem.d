@@ -6444,6 +6444,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     _scope.minst = tempinst.minst;
     //scope.stc = STC.none;
 
+    // Apply DFA related flagging that this scope may not be used at runtime for conservative (towards ignoring) analysis.
+    if (sc.isKnownToHaveACompileTimeContext)
+        _scope.knownACompileTimeOnlyContext = true;
+
     // Declare each template parameter as an alias for the argument type
     Scope* paramscope = _scope.push();
     paramscope.stc = STC.none;
