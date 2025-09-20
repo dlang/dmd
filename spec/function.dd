@@ -2214,23 +2214,18 @@ $(H4 $(LNAME2 c_style_variadic_functions, C-style Variadic Functions))
         a parameter `...` as the last function parameter.
         It has non-D linkage, such as $(D extern (C)).)
 
-        $(P To access the variadic arguments,
-        import the standard library
-        module $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)).
-        )
-
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        import core.stdc.stdarg;
-
         extern (C) void dry(int x, int y, ...); // C-style Variadic Function
 
         void spin()
         {
             dry(3, 4);      // ok, no variadic arguments
             dry(3, 4, 6.8); // ok, one variadic argument
-            dry(2);         // error, no argument for parameter y
+            //dry(2);       // error, no argument for parameter y
         }
         ---
+        )
 
         $(P There must be at least one non-variadic parameter declared.)
 
@@ -2241,7 +2236,7 @@ $(H4 $(LNAME2 c_style_variadic_functions, C-style Variadic Functions))
         $(P
         C-style variadic functions match the C calling convention for
         variadic functions, and can call C Standard library
-        functions like $(D printf).
+        functions like $(REF_SHORT printf, core,stdc,stdio).
         )
 
         ---
@@ -2255,14 +2250,16 @@ $(H4 $(LNAME2 c_style_variadic_functions, C-style Variadic Functions))
 
         $(P C-style variadic functions cannot be marked as $(D @safe).)
 
+        $(P To access the variadic arguments,
+        import the standard library
+        module $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)).
+        )
 
-        ---
-        void wash()
-        {
-            rinse(3, 4, 5);   // first variadic argument is 5
-        }
-
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ------
         import core.stdc.stdarg;
+        import std.stdio;
+
         extern (C) void rinse(int x, int y, ...)
         {
             va_list args;
@@ -2270,8 +2267,15 @@ $(H4 $(LNAME2 c_style_variadic_functions, C-style Variadic Functions))
             int z;
             va_arg(args, z);   // z is set to 5
             va_end(args);
+            writeln(z);
+        }
+
+        void main()
+        {
+            rinse(3, 4, 5);   // first variadic argument is 5
         }
         ---
+        )
 
 
 $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
@@ -2284,7 +2288,8 @@ $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
         $(P If there are parameters preceding the `...` parameter, there
         must be a comma separating them from the `...`.)
 
-        $(NOTE If the comma is ommitted, it is a $(RELATIVE_LINK2 variadic, TypeSafe Variadic Function).)
+        $(NOTE If the comma is omitted, it is a
+        $(RELATIVE_LINK2 typesafe_variadic_functions, Typesafe Variadic Function).)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ------
@@ -2295,35 +2300,36 @@ $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
         ------
         )
 
-
         $(P Two hidden arguments are passed to the function:)
 
         $(UL
-        $(LI `void* _argptr`)
+        $(LI `_argptr`)
         $(LI `TypeInfo[] _arguments`)
         )
 
-        $(P $(D _argptr) is a
-        reference to the first of the variadic
+        $(P $(D _argptr) is a pointer to the first of the variadic
         arguments. To access the variadic arguments,
         import $(LINK2 $(ROOT_DIR)phobos/core_vararg.html, $(D core.vararg)).
-        Use $(D _argptr) in conjunction with $(D core.va_arg):)
+        Use $(D _argptr) in conjunction with $(REF_SHORT va_arg, core,stdc,stdarg):)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 import core.vararg;
-
-void test()
-{
-    foo(3, 4, 5);   // first variadic argument is 5
-}
+import std.stdio;
 
 @system void foo(int x, int y, ...)
 {
     int z = va_arg!int(_argptr); // z is set to 5 and _argptr is advanced
                                  // to the next argument
+    writeln(z); // 5
+}
+
+void main()
+{
+    foo(3, 4, 5);   // first variadic argument is 5
 }
 ------
-
+)
         $(P $(D _arguments) gives the number of arguments and the `typeid`
         of each, enabling type safety to be checked at run time.)
 
@@ -2370,12 +2376,12 @@ import core.vararg;
         else if (_arguments[i] == typeid(Foo))
         {
             Foo f = va_arg!(Foo)(_argptr);
-            writefln("\t%s", f);
+            writefln("\t%d", f.x);
         }
         else if (_arguments[i] == typeid(Bar))
         {
             Bar b = va_arg!(Bar)(_argptr);
-            writefln("\t%s", b);
+            writefln("\t%d", b.y);
         }
         else
             assert(0);
@@ -2396,18 +2402,20 @@ long
 double
         4.5
 Foo
-        0x00870FE0
+        3
 Bar
-        0x00870FD0
+        4
 ------
 
-    $(P D-style variadic functions cannot be marked as $(D @safe).)
+    $(P D-style variadic functions cannot be marked as $(D @safe) (if
+    they call `va_arg`).)
 
 
 $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
 
         $(P A typesafe variadic function has D linkage and a variadic
-        parameter, which is typically an array. When passing component
+        parameter, which is typically an array followed by `...`.
+        The variadic parameter must be the last one. When passing component
         arguments (e.g. array elements), the variadic parameter is
         implicitly constructed from the given arguments.
         )
