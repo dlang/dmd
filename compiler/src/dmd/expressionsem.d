@@ -2801,21 +2801,55 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
 
         if (!foundType && t0 && !t0.equals(e.type))
         {
-            /* This applies ?: to merge the types. It's backwards;
-             * ?: should call this function to merge types.
-             */
-            condexp.type = null;
-            condexp.e1 = e0;
-            condexp.e2 = e;
-            condexp.loc = e.loc;
-            Expression ex = condexp.expressionSemantic(sc);
-            if (ex.op == EXP.error)
-                e = ex;
+            auto a0 = e0.isArrayLiteralExp();
+            auto a = e.isArrayLiteralExp();
+            auto aa0 = e0.isAssocArrayLiteralExp();
+            auto aa = e.isAssocArrayLiteralExp();
+            if (a0 && a)
+            {
+                // find the common type across all elements of both arrays
+                auto ct = arrayExpressionsToCommonType(sc, a0.elements, a0.basis, a.elements, a.basis);
+                if (!ct)
+                    e = ErrorExp.get();
+                else
+                {
+                    a.type = a0.type = ct.arrayOf();
+                    e = a;
+                }
+            }
+            else if (aa0 && aa)
+            {
+                // find the common type across all keys and values of both arrays
+                Expression nobasis;
+                auto ctkey = arrayExpressionsToCommonType(sc, aa0.keys, nobasis, aa.keys, nobasis);
+                auto ctval = arrayExpressionsToCommonType(sc, aa0.values, nobasis, aa.values, nobasis);
+                if (!ctkey || !ctval)
+                    e = ErrorExp.get();
+                else
+                {
+                    auto taa = new TypeAArray(ctval, ctkey);
+                    aa.type = aa0.type = taa.merge();
+                    e = aa;
+                }
+            }
             else
             {
-                // Convert to common type
-                exps[i] = condexp.e1.castTo(sc, condexp.type);
-                e = condexp.e2.castTo(sc, condexp.type);
+                /* This applies ?: to merge the types. It's backwards;
+                 * ?: should call this function to merge types.
+                 */
+                condexp.type = null;
+                condexp.e1 = e0;
+                condexp.e2 = e;
+                condexp.loc = e.loc;
+                Expression ex = condexp.expressionSemantic(sc);
+                if (ex.op == EXP.error)
+                    e = ex;
+                else
+                {
+                    // Convert to common type
+                    exps[i] = condexp.e1.castTo(sc, condexp.type);
+                    e = condexp.e2.castTo(sc, condexp.type);
+                }
             }
         }
         e0 = e;
@@ -2851,6 +2885,46 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
         exps[i] = e;
     }
     return t0;
+}
+
+/****************************************
+ * The common type across all elements of two arrays
+ * Output:
+ *      exps1 implicitly cast to common type, rewritten in place
+ *      exps2 implicitly cast to common type, rewritten in place
+ * Returns:
+ *      The common type, or `null` if an error has occured
+ */
+private Type arrayExpressionsToCommonType(Scope* sc, Expressions* exps1, ref Expression basis1,
+                                                     Expressions* exps2, ref Expression basis2)
+{
+    const len1 = exps1 ? exps1.length : 0;
+    const len2 = exps2 ? exps2.length : 0;
+    Expressions allexps;
+    allexps.reserve(len1 + len2);
+    for (size_t n = 0; n < len1; n++)
+        allexps.push((*exps1)[n]);
+    for (size_t n = 0; n < len2; n++)
+        allexps.push((*exps2)[n]);
+    if (basis1)
+        allexps.push(basis1);
+    if (basis2)
+        allexps.push(basis2);
+
+    auto commontype = arrayExpressionToCommonType(sc, allexps);
+    if (!commontype)
+        return null;
+
+    if (basis2)
+        basis2 = allexps.pop();
+    if (basis1)
+        basis1 = allexps.pop();
+    for (size_t n = 0; n < len1; n++)
+        (*exps1)[n] = allexps[n];
+    for (size_t n = 0; n < len2; n++)
+        (*exps2)[n] = allexps[n + len1];
+
+    return commontype;
 }
 
 private Expression opAssignToOp(Loc loc, EXP op, Expression e1, Expression e2) @safe
