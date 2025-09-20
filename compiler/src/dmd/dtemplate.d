@@ -434,11 +434,16 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         onemember = s;
         s.parent = this;
 
-        /* Set isTrivialAliasSeq if this fits the pattern:
-         *   template AliasSeq(T...) { alias AliasSeq = T; }
-         * or set isTrivialAlias if this fits the pattern:
-         *   template Alias(T) { alias Alias = qualifiers(T); }
-         */
+        computeTrivialAlias(s);
+    }
+
+    /* Set isTrivialAliasSeq if this fits the pattern:
+     *   template AliasSeq(T...) { alias AliasSeq = T; }
+     * or set isTrivialAlias if this fits the pattern:
+     *   template Alias(T) { alias Alias = qualifiers(T); }
+     */
+    extern (D) void computeTrivialAlias(Dsymbol s)
+    {
         if (!(parameters && parameters.length == 1))
             return;
 
