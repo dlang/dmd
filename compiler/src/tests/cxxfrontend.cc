@@ -338,6 +338,7 @@ void test_expression()
     assert(e->isConst());
 
     Optional<bool> res = e->toBool();
+    assert(!dmd::isLvalue(e));
     assert(res.get());
 }
 

@@ -3389,7 +3389,7 @@ extern (D) bool checkNRVO(FuncDeclaration fd)
             else if (fd.nrvo_var != v)
                 return false;
         }
-        else //if (!exp.isLvalue())    // keep NRVO-ability
+        else //if (!isLvalue(exp))    // keep NRVO-ability
             return false;
     }
     return true;

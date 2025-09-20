@@ -57,6 +57,7 @@ import dmd.dsymbolsem : oneMembers, toAlias;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
+import dmd.expressionsem : resolveLoc, expressionSemantic, resolveProperties, checkValue, isLvalue;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;

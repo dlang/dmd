@@ -527,7 +527,7 @@ Expression opOverloadAssign(AssignExp e, Scope* sc, Type[2] aliasThisStop)
                 /* Do a blit if we can and the rvalue is something like .init,
                  * where a postblit is not necessary.
                  */
-                (sd.hasBlitAssign && !e.e2.isLvalue())))
+                (sd.hasBlitAssign && !isLvalue(e.e2))))
         {
             /* This is bitwise struct assignment. */
             return null;

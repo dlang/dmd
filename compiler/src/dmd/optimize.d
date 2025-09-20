@@ -1192,7 +1192,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
         if (keepLvalue && ex.op == EXP.arrayLiteral)
             return;
         ret = Index(e.type, ex, e.e2, e.indexIsInBounds).copy();
-        if (CTFEExp.isCantExp(ret) || (!ret.isErrorExp() && keepLvalue && !ret.isLvalue()))
+        if (CTFEExp.isCantExp(ret) || (!ret.isErrorExp() && keepLvalue && !isLvalue(ret)))
             ret = e;
     }
 
