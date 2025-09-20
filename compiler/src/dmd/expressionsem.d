@@ -72,6 +72,7 @@ import dmd.optimize;
 import dmd.parse;
 import dmd.printast;
 import dmd.root.array;
+import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.filename;
 import dmd.common.outbuffer;
@@ -95,6 +96,290 @@ import dmd.visitor;
 import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
+
+private bool intExpEquals(const IntegerExp _this, const Expression e)
+{
+    if (_this == e)
+        return true;
+
+    if (auto ne = e.isIntegerExp())
+    {
+        if (_this.type.toHeadMutable().equals(ne.type.toHeadMutable()) && _this.value == ne.value)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+private bool realExpEquals(const RealExp _this, const Expression e)
+{
+    if (_this == e)
+        return true;
+
+    if (auto ne = e.isRealExp())
+    {
+        if (_this.type.toHeadMutable().equals(ne.type.toHeadMutable()) && RealIdentical(_this.value, ne.value))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+private bool complexExpEquals(const ComplexExp _this, const Expression e)
+{
+    if (_this == e)
+        return true;
+
+    if (auto ne = e.isComplexExp())
+    {
+        if (_this.type.toHeadMutable().equals(ne.type.toHeadMutable()) &&
+            RealIdentical(creall(_this.value), creall(ne.value)) &&
+            RealIdentical(cimagl(_this.value), cimagl(ne.value)))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+private bool nullExpEquals(const NullExp _this, const Expression e)
+{
+    return e.op == EXP.null_ && _this.type.equals(e.type);
+}
+
+private bool stringExpEquals(const StringExp _this, const Expression e)
+{
+    //printf("StringExp::equals('%s') %s\n", o.toChars(), toChars());
+    if (auto se = e.isStringExp())
+    {
+        return _this.compare(se) == 0;
+    }
+    return false;
+}
+
+private bool tupleExpEquals(const TupleExp _this, const Expression e)
+{
+    if (_this == e)
+        return true;
+
+    if (auto te = e.isTupleExp())
+    {
+        if (_this.exps.length != te.exps.length)
+            return false;
+        if (_this.e0 && !_this.e0.equals(te.e0) || !_this.e0 && te.e0)
+            return false;
+        foreach (i, e1; *_this.exps)
+        {
+            auto e2 = (*te.exps)[i];
+            if (!e1.equals(e2))
+                return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+private bool arrayLiteralExpEquals(const ArrayLiteralExp _this, const Expression e)
+{
+    if (_this == e)
+        return true;
+
+    if (auto ae = e.isArrayLiteralExp())
+    {
+        if (_this.elements.length != ae.elements.length)
+            return false;
+        if (_this.elements.length == 0 && !_this.type.equals(ae.type))
+        {
+            return false;
+        }
+
+        foreach (i, e1; *_this.elements)
+        {
+            auto e2 = (*ae.elements)[i];
+            auto e1x = e1 ? e1 : _this.basis;
+            auto e2x = e2 ? e2 : ae.basis;
+
+            if (e1x != e2x && (!e1x || !e2x || !e1x.equals(e2x)))
+                return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+private bool assocArrayLiteralExpEquals(const AssocArrayLiteralExp _this, const Expression e)
+{
+    if (_this == e)
+        return true;
+
+    if (auto ae = e.isAssocArrayLiteralExp())
+    {
+        if (_this.keys.length != ae.keys.length)
+            return false;
+        size_t count = 0;
+        foreach (i, key; *_this.keys)
+        {
+            foreach (j, akey; *ae.keys)
+            {
+                if (key.equals(akey))
+                {
+                    if (!(*_this.values)[i].equals((*ae.values)[j]))
+                        return false;
+                    ++count;
+                }
+            }
+        }
+        return count == _this.keys.length;
+    }
+    return false;
+}
+
+private bool structLiteralExpEquals(const StructLiteralExp _this, const Expression e)
+{
+    if (_this == e)
+        return true;
+
+    if (auto se = e.isStructLiteralExp())
+    {
+        if (!_this.type.equals(se.type))
+            return false;
+        if (_this.elements.length != se.elements.length)
+            return false;
+        foreach (i, e1; *_this.elements)
+        {
+            auto e2 = (*se.elements)[i];
+            if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
+                return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+private bool varExpEquals(const VarExp _this, const Expression e)
+{
+    if (_this == e)
+        return true;
+
+    if (auto ne = e.isVarExp())
+    {
+        if (_this.type.toHeadMutable().equals(ne.type.toHeadMutable()) && _this.var == ne.var)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+private bool funcExpEquals(const FuncExp _this, const Expression e)
+{
+    if (_this == e)
+        return true;
+
+    if (auto fe = e.isFuncExp())
+    {
+        return _this.fd == fe.fd;
+    }
+    return false;
+}
+
+private bool mixinExpEquals(const MixinExp _this, const Expression e)
+{
+    if (_this == e)
+        return true;
+
+    if (auto ce = e.isMixinExp())
+    {
+        if (_this.exps.length != ce.exps.length)
+            return false;
+        foreach (i, e1; *_this.exps)
+        {
+            auto e2 = (*ce.exps)[i];
+            if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
+                return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool equals(const Expression _this, const Expression e)
+{
+    if (auto ie = _this.isIntegerExp())
+        return intExpEquals(ie, e);
+    else if (auto re = _this.isRealExp())
+        return realExpEquals(re, e);
+    else if (auto ce = _this.isComplexExp())
+        return complexExpEquals(ce, e);
+    else if (auto ne = _this.isNullExp())
+        return nullExpEquals(ne, e);
+    else if (auto se = _this.isStringExp())
+        return stringExpEquals(se, e);
+    else if (auto te = _this.isTupleExp())
+        return tupleExpEquals(te, e);
+    else if (auto ale = _this.isArrayLiteralExp())
+        return arrayLiteralExpEquals(ale, e);
+    else if (auto aale = _this.isAssocArrayLiteralExp())
+        return assocArrayLiteralExpEquals(aale, e);
+    else if (auto sle = _this.isStructLiteralExp())
+        return structLiteralExpEquals(sle, e);
+    else if (auto ve = _this.isVarExp())
+        return varExpEquals(ve, e);
+    else if (auto fe = _this.isFuncExp())
+        return funcExpEquals(fe, e);
+    else if (auto me = _this.isMixinExp())
+        return mixinExpEquals(me, e);
+
+    return _this is e;
+}
+
+
+/********************************
+ * Test to see if two reals are the same.
+ * Regard NaN's as equivalent.
+ * Regard +0 and -0 as different.
+ * Params:
+ *      x1 = first operand
+ *      x2 = second operand
+ * Returns:
+ *      true if x1 is x2
+ *      else false
+ */
+@safe private bool RealIdentical(real_t x1, real_t x2)
+{
+    return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
+}
+
+private bool realExpIsIdentical(const RealExp _this, const Expression e)
+{
+    if (!equals(_this, e))
+        return false;
+    return CTFloat.isIdentical(_this.value, e.isRealExp().value);
+}
+
+private bool complexExpIsIdentical(const ComplexExp _this, const Expression e)
+{
+    if (!equals(_this, e))
+        return false;
+    // equals() regards different NaN values as 'equals'
+    auto c = e.isComplexExp();
+    return CTFloat.isIdentical(creall(_this.value), creall(c.value)) &&
+           CTFloat.isIdentical(cimagl(_this.value), cimagl(c.value));
+}
+
+/******
+ * Identical, not just equal. I.e. NaNs with different bit patterns are not identical
+ */
+bool isIdentical(const Expression _this, const Expression e)
+{
+    if (auto re = _this.isRealExp())
+        return realExpIsIdentical(re, e);
+    else if (auto ce = _this.isComplexExp())
+        return complexExpIsIdentical(ce, e);
+    return equals(_this, e);
+}
 
 /***********************************
  * Determine if a `this` is needed to access `d`.

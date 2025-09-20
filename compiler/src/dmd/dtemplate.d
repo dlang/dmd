@@ -301,7 +301,7 @@ private size_t expressionHash(Expression e)
 
     default:
         // no custom equals for this expression
-        assert((&e.equals).funcptr is &Expression.equals);
+        //assert((&e.equals).funcptr is &Expression.equals);
         // equals based on identity
         return cast(size_t)cast(void*) e;
     }

@@ -51,7 +51,7 @@ import dmd.root.string;
 import dmd.root.utf;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : toHeadMutable, size, mutableOf, unSharedOf;
+import dmd.typesem : size, mutableOf, unSharedOf;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -320,8 +320,6 @@ extern (C++) abstract class Expression : ASTNode
         this.op = op;
     }
 
-    bool equals(const Expression e) const { return this is e; }
-
     /// Returns: class instance size of this expression (implemented manually because `extern(C++)`)
     final size_t size() nothrow @nogc pure @safe const { return expSize[op]; }
 
@@ -566,15 +564,6 @@ extern (C++) abstract class Expression : ASTNode
         assert(0);
     }
 
-    /******
-     * Identical, not just equal. I.e. NaNs with different bit patterns are not identical
-     */
-    bool isIdentical(const Expression e) const
-    {
-        return equals(e);
-    }
-
-
     /// Statically evaluate this expression to a `bool` if possible
     /// Returns: an optional thath either contains the value or is empty
     Optional!bool toBool()
@@ -745,7 +734,7 @@ extern (C++) abstract class Expression : ASTNode
  */
 extern (C++) final class IntegerExp : Expression
 {
-    private dinteger_t value;
+    dinteger_t value;
 
     extern (D) this(Loc loc, dinteger_t value, Type type)
     {
@@ -773,20 +762,6 @@ extern (C++) final class IntegerExp : Expression
     static IntegerExp create(Loc loc, dinteger_t value, Type type)
     {
         return new IntegerExp(loc, value, type);
-    }
-
-    override bool equals(const Expression e) const
-    {
-        if (this == e)
-            return true;
-        if (auto ne = e.isIntegerExp())
-        {
-            if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && value == ne.value)
-            {
-                return true;
-            }
-        }
-        return false;
     }
 
     override dinteger_t toInteger()
@@ -1024,42 +999,6 @@ extern (C++) final class RealExp : Expression
         return new RealExp(loc, value, type);
     }
 
-    /********************************
-     * Test to see if two reals are the same.
-     * Regard NaN's as equivalent.
-     * Regard +0 and -0 as different.
-     * Params:
-     *      x1 = first operand
-     *      x2 = second operand
-     * Returns:
-     *      true if x1 is x2
-     *      else false
-     */
-    private static bool RealIdentical(real_t x1, real_t x2) @safe
-    {
-        return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
-    }
-    override bool equals(const Expression e) const
-    {
-        if (this == e)
-            return true;
-        if (auto ne = e.isRealExp())
-        {
-            if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && RealIdentical(value, ne.value))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    override bool isIdentical(const Expression e) const
-    {
-        if (!equals(e))
-            return false;
-        return CTFloat.isIdentical(value, e.isRealExp().value);
-    }
-
     override dinteger_t toInteger()
     {
         return cast(sinteger_t)toReal();
@@ -1114,32 +1053,6 @@ extern (C++) final class ComplexExp : Expression
     static ComplexExp create(Loc loc, complex_t value, Type type) @safe
     {
         return new ComplexExp(loc, value, type);
-    }
-
-    override bool equals(const Expression e) const
-    {
-        if (this == e)
-            return true;
-        if (auto ne = e.isComplexExp())
-        {
-            if (type.toHeadMutable().equals(ne.type.toHeadMutable()) &&
-                RealExp.RealIdentical(creall(value), creall(ne.value)) &&
-                RealExp.RealIdentical(cimagl(value), cimagl(ne.value)))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    override bool isIdentical(const Expression e) const
-    {
-        if (!equals(e))
-            return false;
-        // equals() regards different NaN values as 'equals'
-        auto c = e.isComplexExp();
-        return CTFloat.isIdentical(creall(value), creall(c.value)) &&
-               CTFloat.isIdentical(cimagl(value), cimagl(c.value));
     }
 
     override dinteger_t toInteger()
@@ -1331,15 +1244,6 @@ extern (C++) final class NullExp : Expression
         this.type = type;
     }
 
-    override bool equals(const Expression e) const
-    {
-        if (e.op == EXP.null_ && type.equals(e.type))
-        {
-            return true;
-        }
-        return false;
-    }
-
     override Optional!bool toBool()
     {
         // null in any type is false
@@ -1424,16 +1328,6 @@ extern (C++) final class StringExp : Expression
     static StringExp create(Loc loc, const(void)* string, size_t len)
     {
         return new StringExp(loc, string[0 .. len]);
-    }
-
-    override bool equals(const Expression e) const
-    {
-        //printf("StringExp::equals('%s') %s\n", o.toChars(), toChars());
-        if (auto se = e.isStringExp())
-        {
-            return compare(se) == 0;
-        }
-        return false;
     }
 
     /**********************************
@@ -1843,28 +1737,6 @@ extern (C++) final class TupleExp : Expression
         return new TupleExp(loc, e0 ? e0.syntaxCopy() : null, arraySyntaxCopy(exps));
     }
 
-    override bool equals(const Expression e) const
-    {
-        if (this == e)
-            return true;
-
-        if (auto te = e.isTupleExp())
-        {
-            if (exps.length != te.exps.length)
-                return false;
-            if (e0 && !e0.equals(te.e0) || !e0 && te.e0)
-                return false;
-            foreach (i, e1; *exps)
-            {
-                auto e2 = (*te.exps)[i];
-                if (!e1.equals(e2))
-                    return false;
-            }
-            return true;
-        }
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1928,33 +1800,6 @@ extern (C++) final class ArrayLiteralExp : Expression
             null,
             basis ? basis.syntaxCopy() : null,
             arraySyntaxCopy(elements));
-    }
-
-    override bool equals(const Expression e) const
-    {
-        if (this == e)
-            return true;
-        if (auto ae = e.isArrayLiteralExp())
-        {
-            if (elements.length != ae.elements.length)
-                return false;
-            if (elements.length == 0 && !type.equals(ae.type))
-            {
-                return false;
-            }
-
-            foreach (i, e1; *elements)
-            {
-                auto e2 = (*ae.elements)[i];
-                auto e1x = e1 ? e1 : basis;
-                auto e2x = e2 ? e2 : ae.basis;
-
-                if (e1x != e2x && (!e1x || !e2x || !e1x.equals(e2x)))
-                    return false;
-            }
-            return true;
-        }
-        return false;
     }
 
     Expression getElement(size_t i) // use opIndex instead
@@ -2055,32 +1900,6 @@ extern (C++) final class AssocArrayLiteralExp : Expression
         this.values = values;
     }
 
-    override bool equals(const Expression e) const
-    {
-        if (this == e)
-            return true;
-        if (auto ae = e.isAssocArrayLiteralExp())
-        {
-            if (keys.length != ae.keys.length)
-                return false;
-            size_t count = 0;
-            foreach (i, key; *keys)
-            {
-                foreach (j, akey; *ae.keys)
-                {
-                    if (key.equals(akey))
-                    {
-                        if (!(*values)[i].equals((*ae.values)[j]))
-                            return false;
-                        ++count;
-                    }
-                }
-            }
-            return count == keys.length;
-        }
-        return false;
-    }
-
     override AssocArrayLiteralExp syntaxCopy()
     {
         return new AssocArrayLiteralExp(loc, arraySyntaxCopy(keys), arraySyntaxCopy(values));
@@ -2166,27 +1985,6 @@ extern (C++) final class StructLiteralExp : Expression
     static StructLiteralExp create(Loc loc, StructDeclaration sd, void* elements, Type stype = null)
     {
         return new StructLiteralExp(loc, sd, cast(Expressions*)elements, stype);
-    }
-
-    override bool equals(const Expression e) const
-    {
-        if (this == e)
-            return true;
-        if (auto se = e.isStructLiteralExp())
-        {
-            if (!type.equals(se.type))
-                return false;
-            if (elements.length != se.elements.length)
-                return false;
-            foreach (i, e1; *elements)
-            {
-                auto e2 = (*se.elements)[i];
-                if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
-                    return false;
-            }
-            return true;
-        }
-        return false;
     }
 
     override StructLiteralExp syntaxCopy()
@@ -2537,20 +2335,6 @@ extern (C++) final class VarExp : SymbolExp
         return new VarExp(loc, var, hasOverloads);
     }
 
-    override bool equals(const Expression e) const
-    {
-        if (this == e)
-            return true;
-        if (auto ne = e.isVarExp())
-        {
-            if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && var == ne.var)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     override bool isLvalue()
     {
         if (rvalue || var.storage_class & (STC.lazy_ | STC.rvalue | STC.manifest))
@@ -2613,17 +2397,6 @@ extern (C++) final class FuncExp : Expression
         }
         tok = fd.tok; // save original kind of function/delegate/(infer)
         assert(fd.fbody);
-    }
-
-    override bool equals(const Expression e) const
-    {
-        if (this == e)
-            return true;
-        if (auto fe = e.isFuncExp())
-        {
-            return fd == fe.fd;
-        }
-        return false;
     }
 
     override FuncExp syntaxCopy()
@@ -2925,25 +2698,6 @@ extern (C++) final class MixinExp : Expression
     override MixinExp syntaxCopy()
     {
         return new MixinExp(loc, arraySyntaxCopy(exps));
-    }
-
-    override bool equals(const Expression e) const
-    {
-        if (this == e)
-            return true;
-        if (auto ce = e.isMixinExp())
-        {
-            if (exps.length != ce.exps.length)
-                return false;
-            foreach (i, e1; *exps)
-            {
-                auto e2 = (*ce.exps)[i];
-                if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
-                    return false;
-            }
-            return true;
-        }
-        return false;
     }
 
     override void accept(Visitor v)

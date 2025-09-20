@@ -386,6 +386,18 @@ bool fill(StructDeclaration sd, Loc loc,
     return dmd.expressionsem.fill(sd, loc, elements, ctorinit);
 }
 
+bool isIdentical(const Expression exp, const Expression e)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.isIdentical(exp, e);
+}
+
+bool equals(const Expression exp, const Expression e)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.equals(exp, e);
+}
+
 /***********************************************************
  * func.d
  */
