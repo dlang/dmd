@@ -3253,8 +3253,8 @@ public:
 
 class IntegerExp final : public Expression
 {
-    dinteger_t value;
 public:
+    dinteger_t value;
     static IntegerExp* create(Loc loc, dinteger_t value, Type* type);
     dinteger_t toInteger() override;
     _d_real toReal() override;
