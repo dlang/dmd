@@ -108,7 +108,6 @@ public:
     Expression *deref();
 
     int isConst();
-    virtual bool isIdentical(const Expression *e) const;
     virtual Optional<bool> toBool();
     virtual bool hasCode()
     {
@@ -262,7 +261,6 @@ public:
     real_t value;
 
     static RealExp *create(Loc loc, real_t value, Type *type);
-    bool isIdentical(const Expression *e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
     real_t toReal() override;
@@ -278,7 +276,6 @@ public:
     complex_t value;
 
     static ComplexExp *create(Loc loc, complex_t value, Type *type);
-    bool isIdentical(const Expression *e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
     real_t toReal() override;

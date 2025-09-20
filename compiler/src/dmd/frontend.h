@@ -2396,7 +2396,6 @@ public:
     virtual bool checkType();
     Expression* deref();
     int32_t isConst();
-    virtual bool isIdentical(const Expression* const e) const;
     virtual Optional<bool > toBool();
     virtual bool hasCode();
     IntegerExp* isIntegerExp();
@@ -2776,7 +2775,6 @@ class ComplexExp final : public Expression
 public:
     complex_t value;
     static ComplexExp* create(Loc loc, complex_t value, Type* type);
-    bool isIdentical(const Expression* const e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
     _d_real toReal() override;
@@ -3492,7 +3490,6 @@ class RealExp final : public Expression
 public:
     _d_real value;
     static RealExp* create(Loc loc, _d_real value, Type* type);
-    bool isIdentical(const Expression* const e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
     _d_real toReal() override;
