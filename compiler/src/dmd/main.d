@@ -615,7 +615,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     }
     //if (global.errors)
     //    fatal();
-    Module.runDeferredSemantic();
+    runDeferredSemantic();
     if (Module.deferred.length)
     {
         for (size_t i = 0; i < Module.deferred.length; i++)
@@ -633,7 +633,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
             message("semantic2 %s", m.toChars());
         m.semantic2(null);
     }
-    Module.runDeferredSemantic2();
+    runDeferredSemantic2();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
@@ -658,7 +658,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
             modules.push(m);
         }
     }
-    Module.runDeferredSemantic3();
+    runDeferredSemantic3();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
@@ -689,7 +689,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     {
         foreach (i; 1 .. modules[0].aimports.length)
             semantic3OnDependencies(modules[0].aimports[i]);
-        Module.runDeferredSemantic3();
+        runDeferredSemantic3();
 
         const data = (*ob)[];
         if (params.moduleDeps.name)

@@ -254,11 +254,52 @@ uinteger_t size(Dsymbol ds, Loc loc)
     return dmd.dsymbolsem.size(ds, loc);
 }
 
+void semantic3OnDependencies(Module m)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.semantic3OnDependencies(m);
+}
+
+void addDeferredSemantic(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.addDeferredSemantic(s);
+}
+
+void addDeferredSemantic2(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.addDeferredSemantic2(s);
+}
+
+void addDeferredSemantic3(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.addDeferredSemantic3(s);
+}
+
+void runDeferredSemantic()
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.runDeferredSemantic();
+}
+
+void runDeferredSemantic2()
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.runDeferredSemantic2();
+}
+
+void runDeferredSemantic3()
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.runDeferredSemantic3();
+}
+
 bool isOverlappedWith(VarDeclaration vd, VarDeclaration v){
     import dmd.dsymbolsem;
     return dmd.dsymbolsem.isOverlappedWith(vd, v);
 }
-
 
 /***********************************************************
  * dtemplate.d

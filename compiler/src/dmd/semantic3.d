@@ -207,7 +207,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
                 s.semantic3(sc);
 
-                mod.runDeferredSemantic2();
+                runDeferredSemantic2();
             }
         }
         if (mod.userAttribDecl)

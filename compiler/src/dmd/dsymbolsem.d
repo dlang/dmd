@@ -14,6 +14,7 @@ module dmd.dsymbolsem;
 
 import core.stdc.stdio;
 import core.stdc.string;
+import core.stdc.stdlib;
 
 import dmd.aggregate;
 import dmd.aliasthis;
@@ -95,6 +96,140 @@ void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
+// function used to call semantic3 on a module's dependencies
+void semantic3OnDependencies(Module m)
+{
+    if (!m)
+        return;
+
+    if (m.semanticRun > PASS.semantic3)
+        return;
+
+    m.semantic3(null);
+
+    foreach (i; 1 .. m.aimports.length)
+        semantic3OnDependencies(m.aimports[i]);
+}
+
+/*******************************************
+ * Can't run semantic on s now, try again later.
+ */
+void addDeferredSemantic(Dsymbol s)
+{
+    //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
+    if (!s.deferred)
+    {
+        s.deferred = true;
+        Module.deferred.push(s);
+    }
+}
+
+void addDeferredSemantic2(Dsymbol s)
+{
+    //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
+    if (!s.deferred2)
+    {
+        s.deferred2 = true;
+        Module.deferred2.push(s);
+    }
+}
+
+void addDeferredSemantic3(Dsymbol s)
+{
+    //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
+    if (!s.deferred3)
+    {
+        s.deferred3 = true;
+        Module.deferred3.push(s);
+    }
+}
+
+/******************************************
+ * Run semantic() on deferred symbols.
+ */
+void runDeferredSemantic()
+{
+    __gshared int nested;
+    if (nested)
+        return;
+    //if (Module.deferred.length) printf("+Module::runDeferredSemantic(), len = %ld\n", deferred.length);
+    nested++;
+
+    size_t len;
+    do
+    {
+        len = Module.deferred.length;
+        if (!len)
+            break;
+
+        Dsymbol* todo;
+        Dsymbol* todoalloc = null;
+        Dsymbol tmp;
+        if (len == 1)
+        {
+            todo = &tmp;
+        }
+        else
+        {
+            todo = cast(Dsymbol*)Mem.check(malloc(len * Dsymbol.sizeof));
+            todoalloc = todo;
+        }
+        memcpy(todo, Module.deferred.tdata(), len * Dsymbol.sizeof);
+        foreach (Dsymbol s; Module.deferred[])
+            s.deferred = false;
+        Module.deferred.setDim(0);
+
+        foreach (i; 0..len)
+        {
+            Dsymbol s = todo[i];
+            s.dsymbolSemantic(null);
+            //printf("deferred: %s, parent = %s\n", s.toChars(), s.parent.toChars());
+        }
+        //printf("\tdeferred.length = %ld, len = %ld\n", deferred.length, len);
+        if (todoalloc)
+            free(todoalloc);
+    }
+    while (Module.deferred.length != len); // while making progress
+    nested--;
+    //printf("-Module::runDeferredSemantic(), len = %ld\n", deferred.length);
+}
+
+void runDeferredSemantic2()
+{
+    runDeferredSemantic();
+
+    Dsymbols* a = &Module.deferred2;
+    for (size_t i = 0; i < a.length; i++)
+    {
+        Dsymbol s = (*a)[i];
+        s.deferred2 = false;
+        //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
+        s.semantic2(null);
+
+        if (global.errors)
+            break;
+    }
+    a.setDim(0);
+}
+
+void runDeferredSemantic3()
+{
+    runDeferredSemantic2();
+
+    Dsymbols* a = &Module.deferred3;
+    for (size_t i = 0; i < a.length; i++)
+    {
+        Dsymbol s = (*a)[i];
+        s.deferred3 = false;
+        //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());
+        s.semantic3(null);
+
+        if (global.errors)
+            break;
+    }
+    a.setDim(0);
+}
+
 bool isOverlappedWith(VarDeclaration _this, VarDeclaration v)
 {
     import dmd.typesem : size;
@@ -128,7 +263,6 @@ bool isOverlappedWith(VarDeclaration _this, VarDeclaration v)
     return   bitoffset < vbitoffset + vbitsize &&
             vbitoffset <  bitoffset + tbitsize;
 }
-
 
 private Type tupleDeclGetType(TupleDeclaration _this)
 {
@@ -1217,7 +1351,7 @@ void deferDsymbolSemantic(Scope* sc, Dsymbol s, Scope* scx)
 {
     s._scope = scx ? scx : sc.copy();
     s._scope.setNoFree();
-    Module.addDeferredSemantic(s);
+    addDeferredSemantic(s);
 }
 
 struct Ungag
@@ -2885,7 +3019,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             //printf("\tModule('%s'): '%s'.dsymbolSemantic()\n", toChars(), s.toChars());
             s.dsymbolSemantic(sc);
-            m.runDeferredSemantic();
+            runDeferredSemantic();
         });
 
         if (m.userAttribDecl)
@@ -3114,7 +3248,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         nest--;
 
         /* In DeclDefs scope, TemplateMixin does not have to handle deferred symbols.
-         * Because the members would already call Module.addDeferredSemantic() for themselves.
+         * Because the members would already call addDeferredSemantic() for themselves.
          * See Struct, Class, Interface, and EnumDeclaration.dsymbolSemantic().
          */
         //if (!sc.func && Module.deferred.length > deferred_dim) {}
@@ -4426,7 +4560,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base class %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        Module.addDeferredSemantic(tc.sym);
+                        addDeferredSemantic(tc.sym);
                     cldec.baseok = Baseok.none;
                 }
             L7:
@@ -4507,7 +4641,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        Module.addDeferredSemantic(tc.sym);
+                        addDeferredSemantic(tc.sym);
                     cldec.baseok = Baseok.none;
                 }
                 i++;
@@ -4623,7 +4757,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 // Forward referencee of one or more bases, try again later
                 if (tc.sym._scope)
-                    Module.addDeferredSemantic(tc.sym);
+                    addDeferredSemantic(tc.sym);
                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
                 return deferDsymbolSemantic(sc, cldec, scx);
             }
@@ -5076,7 +5210,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        Module.addDeferredSemantic(tc.sym);
+                        addDeferredSemantic(tc.sym);
                     idec.baseok = Baseok.none;
                 }
                 i++;
@@ -5120,7 +5254,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 // Forward referencee of one or more bases, try again later
                 if (tc.sym._scope)
-                    Module.addDeferredSemantic(tc.sym);
+                    addDeferredSemantic(tc.sym);
                 return deferDsymbolSemantic(sc, idec, scx);
             }
         }
@@ -5804,9 +5938,9 @@ private Dsymbols* appendToModuleMember(TemplateInstance ti)
     a.push(ti);
     ti.memberOf = mi;
     if (mi.semanticRun >= PASS.semantic2done && mi.isRoot())
-        Module.addDeferredSemantic2(ti);
+        addDeferredSemantic2(ti);
     if (mi.semanticRun >= PASS.semantic3done && mi.isRoot())
-        Module.addDeferredSemantic3(ti);
+        addDeferredSemantic3(ti);
     return a;
 }
 
@@ -5862,7 +5996,7 @@ private void expandMembers(TemplateInstance ti,Scope* sc2)
         //printf("test3: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
         s.dsymbolSemantic(sc2);
         //printf("test4: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
-        Module.runDeferredSemantic();
+        runDeferredSemantic();
     }
 
     ti.members.foreachDsymbol(&symbolDg);

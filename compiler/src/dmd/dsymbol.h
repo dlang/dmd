@@ -428,5 +428,12 @@ namespace dmd
     bool hasPointers(Dsymbol *d);
     Type *getType(Dsymbol *d);
     uinteger_t size(Dsymbol *ds, Loc loc);
+    void semantic3OnDependencies(Module *m);
+    void addDeferredSemantic(Dsymbol *s);
+    void addDeferredSemantic2(Dsymbol *s);
+    void addDeferredSemantic3(Dsymbol *s);
+    void runDeferredSemantic();
+    void runDeferredSemantic2();
+    void runDeferredSemantic3();
     bool isOverlappedWith(VarDeclaration *vd, VarDeclaration *v);
 }

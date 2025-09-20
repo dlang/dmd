@@ -17584,14 +17584,14 @@ void semanticTypeInfo(Scope* sc, Type t)
         else if (TemplateInstance ti = sd.isInstantiated())
         {
             if (ti.minst && !ti.minst.isRoot())
-                Module.addDeferredSemantic3(sd);
+                addDeferredSemantic3(sd);
         }
         else
         {
             if (sd.inNonRoot())
             {
                 //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd.toChars(), sd.inNonRoot());
-                Module.addDeferredSemantic3(sd);
+                addDeferredSemantic3(sd);
             }
         }
     }

@@ -428,7 +428,7 @@ Run full semantic analysis on a module.
 */
 void fullSemantic(Module m)
 {
-    import dmd.dsymbolsem : dsymbolSemantic, importAll;
+    import dmd.dsymbolsem : dsymbolSemantic, importAll, runDeferredSemantic, runDeferredSemantic2, runDeferredSemantic3;
     import dmd.semantic2 : semantic2;
     import dmd.semantic3 : semantic3;
 
@@ -436,13 +436,13 @@ void fullSemantic(Module m)
     m.importAll(null);
 
     m.dsymbolSemantic(null);
-    Module.runDeferredSemantic();
+    runDeferredSemantic();
 
     m.semantic2(null);
-    Module.runDeferredSemantic2();
+    runDeferredSemantic2();
 
     m.semantic3(null);
-    Module.runDeferredSemantic3();
+    runDeferredSemantic3();
 }
 
 /**

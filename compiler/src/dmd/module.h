@@ -129,9 +129,6 @@ public:
     int needModuleInfo();
     bool isPackageAccessible(Package *p, Visibility visibility, SearchOptFlags flags = (SearchOptFlags)SearchOpt::all) override;
     Dsymbol *symtabInsert(Dsymbol *s) override;
-    static void runDeferredSemantic();
-    static void runDeferredSemantic2();
-    static void runDeferredSemantic3();
     int imports(Module *m);
 
     bool isRoot() { return this->importedFrom == this; }

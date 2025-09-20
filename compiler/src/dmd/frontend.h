@@ -7188,9 +7188,6 @@ public:
     int32_t needModuleInfo();
     bool isPackageAccessible(Package* p, Visibility visibility, uint32_t flags = 0u) override;
     Dsymbol* symtabInsert(Dsymbol* s) override;
-    static void runDeferredSemantic();
-    static void runDeferredSemantic2();
-    static void runDeferredSemantic3();
     int32_t imports(Module* m);
     bool isRoot();
     bool isCoreModule(Identifier* ident);

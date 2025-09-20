@@ -1619,7 +1619,7 @@ public:
         if (d->semanticRun() < PASS::semantic3)
         {
             dmd::functionSemantic3(d);
-            Module::runDeferredSemantic3();
+            dmd::runDeferredSemantic3();
         }
         if (global.errors)
             return;
