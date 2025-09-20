@@ -1757,7 +1757,7 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
             {
                 prettyPrintDsymbol(s, ad.parent);
             }
-            else if (Type type = ad.getType()) // type alias
+            else if (Type type = dmd.dsymbolsem.getType(ad)) // type alias
             {
                 if (type.ty == Tclass || type.ty == Tstruct || type.ty == Tenum)
                 {

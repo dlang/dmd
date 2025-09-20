@@ -22,7 +22,6 @@ import dmd.delegatize;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : toAlias;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
@@ -42,7 +41,6 @@ import dmd.root.filename;
 import dmd.target;
 import dmd.targetcompiler;
 import dmd.tokens;
-import dmd.typesem : typeSemantic, size;
 import dmd.visitor;
 
 
@@ -108,15 +106,6 @@ extern (C++) abstract class Declaration : Dsymbol
     override const(char)* kind() const
     {
         return "declaration";
-    }
-
-    override final ulong size(Loc loc)
-    {
-        assert(type);
-        const sz = type.size();
-        if (sz == SIZE_INVALID)
-            errors = true;
-        return sz;
     }
 
     final bool isStatic() const pure nothrow @nogc @safe
@@ -292,61 +281,6 @@ extern (C++) final class TupleDeclaration : Declaration
         return "sequence";
     }
 
-    override Type getType()
-    {
-        /* If this tuple represents a type, return that type
-         */
-
-        //printf("TupleDeclaration::getType() %s\n", toChars());
-        if (isexp || building)
-            return null;
-        if (tupletype)
-            return tupletype;
-
-        /* It's only a type tuple if all the Object's are types
-         */
-        for (size_t i = 0; i < objects.length; i++)
-        {
-            RootObject o = (*objects)[i];
-            if (!o.isType())
-            {
-                //printf("\tnot[%d], %p, %d\n", i, o, o.dyncast());
-                return null;
-            }
-        }
-
-        /* We know it's a type tuple, so build the TypeTuple
-         */
-        Types* types = cast(Types*)objects;
-        auto args = new Parameters(objects.length);
-        OutBuffer buf;
-        int hasdeco = 1;
-        for (size_t i = 0; i < types.length; i++)
-        {
-            Type t = (*types)[i];
-            //printf("type = %s\n", t.toChars());
-            version (none)
-            {
-                buf.printf("_%s_%d", ident.toChars(), i);
-                auto id = Identifier.idPool(buf.extractSlice());
-                auto arg = new Parameter(Loc.initial, STC.in_, t, id, null);
-            }
-            else
-            {
-                auto arg = new Parameter(Loc.initial, STC.none, t, null, null, null);
-            }
-            (*args)[i] = arg;
-            if (!t.deco)
-                hasdeco = 0;
-        }
-
-        tupletype = new TypeTuple(args);
-        if (hasdeco)
-            return tupletype.typeSemantic(Loc.initial, null);
-
-        return tupletype;
-    }
-
     override bool needThis()
     {
         //printf("TupleDeclaration::needThis(%s)\n", toChars());
@@ -443,13 +377,6 @@ extern (C++) final class AliasDeclaration : Declaration
     override const(char)* kind() const
     {
         return "alias";
-    }
-
-    override Type getType()
-    {
-        if (type)
-            return type;
-        return toAlias(this).getType();
     }
 
     override bool isOverloadable() const
@@ -709,39 +636,6 @@ extern (C++) class VarDeclaration : Declaration
     final bool isCTFE()
     {
         return (storage_class & STC.ctfe) != 0; // || !isDataseg();
-    }
-
-    final bool isOverlappedWith(VarDeclaration v)
-    {
-        const vsz = v.type.size();
-        const tsz = type.size();
-        assert(vsz != SIZE_INVALID && tsz != SIZE_INVALID);
-
-        // Overlap is checked by comparing bit offsets
-        auto bitoffset  =   offset * 8;
-        auto vbitoffset = v.offset * 8;
-
-        // Bitsize of types are overridden by any bitfield widths.
-        ulong tbitsize;
-        if (auto bf = isBitFieldDeclaration())
-        {
-            bitoffset += bf.bitOffset;
-            tbitsize = bf.fieldWidth;
-        }
-        else
-            tbitsize = tsz * 8;
-
-        ulong vbitsize;
-        if (auto vbf = v.isBitFieldDeclaration())
-        {
-            vbitoffset += vbf.bitOffset;
-            vbitsize = vbf.fieldWidth;
-        }
-        else
-            vbitsize = vsz * 8;
-
-        return   bitoffset < vbitoffset + vbitsize &&
-                vbitoffset <  bitoffset + tbitsize;
     }
 
     /*************************************

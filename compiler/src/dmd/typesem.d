@@ -240,7 +240,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
             break;
         }
 
-        Type t = s.getType(); // type symbol, type alias, or type tuple?
+        Type t = dmd.dsymbolsem.getType(s); // type symbol, type alias, or type tuple?
         const errorsave = global.errors;
         SearchOptFlags flags = t is null ? SearchOpt.localsOnly : SearchOpt.ignorePrivateImports;
 
@@ -364,7 +364,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
     Type t;
     while (1)
     {
-        t = s.getType();
+        t = dmd.dsymbolsem.getType(s);
         if (t)
             break;
         ps = s;
@@ -1739,7 +1739,11 @@ uinteger_t size(Type t, Loc loc)
         case Tinstance:
         case Ttypeof:
         case Treturn:       return visitTypeQualified(cast(TypeQualified)t);
-        case Tstruct:       return t.isTypeStruct().sym.size(loc);
+        case Tstruct:
+        {
+            import dmd.dsymbolsem: size;
+            return t.isTypeStruct().sym.size(loc);
+        }
         case Tenum:         return t.isTypeEnum().sym.getMemtype(loc).size(loc);
         case Tnull:         return t.tvoidptr.size(loc);
         case Tnoreturn:     return 0;
@@ -3081,7 +3085,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         Type t;
         Dsymbol s;
         mtype.resolve(loc, sc, e, t, s);
-        if (s && (t = s.getType()) !is null)
+        if (s && (t = dmd.dsymbolsem.getType(s)) !is null)
             t = t.addMod(mtype.mod);
         if (!t)
         {
@@ -3114,7 +3118,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         Type t;
         Dsymbol s;
         mtype.resolve(loc, sc, e, t, s);
-        if (s && (t = s.getType()) !is null)
+        if (s && (t = dmd.dsymbolsem.getType(s)) !is null)
             t = t.addMod(mtype.mod);
         if (!t)
         {
@@ -3627,7 +3631,10 @@ Expression defaultInitLiteral(Type t, Loc loc)
         {
             printf("TypeStruct::defaultInitLiteral() '%s'\n", toChars());
         }
-        ts.sym.size(loc);
+        {
+            import dmd.dsymbolsem: size;
+            ts.sym.size(loc);
+        }
         if (ts.sym.sizeok != Sizeok.done)
             return ErrorExp.get();
 
@@ -4882,7 +4889,10 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 {
                     auto ad = v.isMember();
                     objc.checkOffsetof(e, ad);
-                    ad.size(e.loc);
+                    {
+                        import dmd.dsymbolsem: size;
+                        ad.size(e.loc);
+                    }
                     if (ad.sizeok != Sizeok.done)
                         return ErrorExp.get();
                     uint value;
@@ -5543,7 +5553,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             }
         }
 
-        if (auto t = s.getType())
+        if (auto t = dmd.dsymbolsem.getType(s))
         {
             return (new TypeExp(e.loc, t)).expressionSemantic(sc);
         }
@@ -5734,7 +5744,10 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
              */
             e = e.expressionSemantic(sc); // do this before turning on noAccessCheck
 
-            mt.sym.size(e.loc); // do semantic of type
+            {
+                import dmd.dsymbolsem: size;
+                mt.sym.size(e.loc); // do semantic of type
+            }
 
             Expression e0;
             Expression ev = e.op == EXP.type ? null : e;
@@ -5968,7 +5981,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             }
         }
 
-        if (auto t = s.getType())
+        if (auto t = dmd.dsymbolsem.getType(s))
         {
             return (new TypeExp(e.loc, t)).expressionSemantic(sc);
         }
@@ -6059,7 +6072,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 && d.isFuncDeclaration().objc.selector)
             {
                 auto classRef = new ObjcClassReferenceExp(e.loc, mt.sym);
-                classRef.type = objc.getRuntimeMetaclass(mt.sym).getType();
+                classRef.type = dmd.dsymbolsem.getType((objc.getRuntimeMetaclass(mt.sym)));
                 return new DotVarExp(e.loc, classRef, d).expressionSemantic(sc);
             }
             else if (d.needThis() && sc.intypeof != 1)
@@ -6690,7 +6703,7 @@ Type getComplexLibraryType(Loc loc, Scope* sc, TY ty)
         return *pt;
     }
     s = s.toAlias();
-    if (auto t = s.getType())
+    if (auto t = dmd.dsymbolsem.getType(s))
     {
         if (auto ts = t.toBasetype().isTypeStruct())
         {

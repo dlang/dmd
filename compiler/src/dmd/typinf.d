@@ -24,6 +24,7 @@ import dmd.location;
 import dmd.mtype;
 import dmd.templatesem;
 import dmd.typesem;
+import dmd.dsymbolsem : addDeferredSemantic3;
 import core.stdc.stdio;
 
 /****************************************************
@@ -178,7 +179,7 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
     t.vtinfo = ti; // assign it early to avoid recursion in expressionSemantic
     ti._scope = sc;
     sc.setNoFree();
-    Module.addDeferredSemantic3(ti);
+    addDeferredSemantic3(ti);
     return ti;
 }
 

@@ -14,6 +14,7 @@ module dmd.dsymbolsem;
 
 import core.stdc.stdio;
 import core.stdc.string;
+import core.stdc.stdlib;
 
 import dmd.aggregate;
 import dmd.aliasthis;
@@ -93,6 +94,300 @@ void dsymbolSemantic(Dsymbol dsym, Scope* sc)
 {
     scope v = new DsymbolSemanticVisitor(sc);
     dsym.accept(v);
+}
+
+// function used to call semantic3 on a module's dependencies
+void semantic3OnDependencies(Module m)
+{
+    if (!m)
+        return;
+
+    if (m.semanticRun > PASS.semantic3)
+        return;
+
+    m.semantic3(null);
+
+    foreach (i; 1 .. m.aimports.length)
+        semantic3OnDependencies(m.aimports[i]);
+}
+
+/*******************************************
+ * Can't run semantic on s now, try again later.
+ */
+void addDeferredSemantic(Dsymbol s)
+{
+    //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
+    if (!s.deferred)
+    {
+        s.deferred = true;
+        Module.deferred.push(s);
+    }
+}
+
+void addDeferredSemantic2(Dsymbol s)
+{
+    //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
+    if (!s.deferred2)
+    {
+        s.deferred2 = true;
+        Module.deferred2.push(s);
+    }
+}
+
+void addDeferredSemantic3(Dsymbol s)
+{
+    //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
+    if (!s.deferred3)
+    {
+        s.deferred3 = true;
+        Module.deferred3.push(s);
+    }
+}
+
+/******************************************
+ * Run semantic() on deferred symbols.
+ */
+void runDeferredSemantic()
+{
+    __gshared int nested;
+    if (nested)
+        return;
+    //if (Module.deferred.length) printf("+Module::runDeferredSemantic(), len = %ld\n", deferred.length);
+    nested++;
+
+    size_t len;
+    do
+    {
+        len = Module.deferred.length;
+        if (!len)
+            break;
+
+        Dsymbol* todo;
+        Dsymbol* todoalloc = null;
+        Dsymbol tmp;
+        if (len == 1)
+        {
+            todo = &tmp;
+        }
+        else
+        {
+            todo = cast(Dsymbol*)Mem.check(malloc(len * Dsymbol.sizeof));
+            todoalloc = todo;
+        }
+        memcpy(todo, Module.deferred.tdata(), len * Dsymbol.sizeof);
+        foreach (Dsymbol s; Module.deferred[])
+            s.deferred = false;
+        Module.deferred.setDim(0);
+
+        foreach (i; 0..len)
+        {
+            Dsymbol s = todo[i];
+            s.dsymbolSemantic(null);
+            //printf("deferred: %s, parent = %s\n", s.toChars(), s.parent.toChars());
+        }
+        //printf("\tdeferred.length = %ld, len = %ld\n", deferred.length, len);
+        if (todoalloc)
+            free(todoalloc);
+    }
+    while (Module.deferred.length != len); // while making progress
+    nested--;
+    //printf("-Module::runDeferredSemantic(), len = %ld\n", deferred.length);
+}
+
+void runDeferredSemantic2()
+{
+    runDeferredSemantic();
+
+    Dsymbols* a = &Module.deferred2;
+    for (size_t i = 0; i < a.length; i++)
+    {
+        Dsymbol s = (*a)[i];
+        s.deferred2 = false;
+        //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
+        s.semantic2(null);
+
+        if (global.errors)
+            break;
+    }
+    a.setDim(0);
+}
+
+void runDeferredSemantic3()
+{
+    runDeferredSemantic2();
+
+    Dsymbols* a = &Module.deferred3;
+    for (size_t i = 0; i < a.length; i++)
+    {
+        Dsymbol s = (*a)[i];
+        s.deferred3 = false;
+        //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());
+        s.semantic3(null);
+
+        if (global.errors)
+            break;
+    }
+    a.setDim(0);
+}
+
+bool isOverlappedWith(VarDeclaration _this, VarDeclaration v)
+{
+    import dmd.typesem : size;
+    const vsz = v.type.size();
+    const tsz = _this.type.size();
+    assert(vsz != SIZE_INVALID && tsz != SIZE_INVALID);
+
+    // Overlap is checked by comparing bit offsets
+    auto bitoffset  = _this.offset * 8;
+    auto vbitoffset =     v.offset * 8;
+
+    // Bitsize of types are overridden by any bitfield widths.
+    ulong tbitsize;
+    if (auto bf = _this.isBitFieldDeclaration())
+    {
+        bitoffset += bf.bitOffset;
+        tbitsize = bf.fieldWidth;
+    }
+    else
+        tbitsize = tsz * 8;
+
+    ulong vbitsize;
+    if (auto vbf = v.isBitFieldDeclaration())
+    {
+        vbitoffset += vbf.bitOffset;
+        vbitsize = vbf.fieldWidth;
+    }
+    else
+        vbitsize = vsz * 8;
+
+    return   bitoffset < vbitoffset + vbitsize &&
+            vbitoffset <  bitoffset + tbitsize;
+}
+
+private Type tupleDeclGetType(TupleDeclaration _this)
+{
+    /* If this tuple represents a type, return that type
+     */
+
+    //printf("TupleDeclaration::getType() %s\n", toChars());
+    if (_this.isexp || _this.building)
+        return null;
+    if (_this.tupletype)
+        return _this.tupletype;
+
+    /* It's only a type tuple if all the Object's are types
+     */
+    for (size_t i = 0; i < _this.objects.length; i++)
+    {
+        RootObject o = (*_this.objects)[i];
+        if (!o.isType())
+        {
+            //printf("\tnot[%d], %p, %d\n", i, o, o.dyncast());
+            return null;
+        }
+    }
+
+    /* We know it's a type tuple, so build the TypeTuple
+     */
+    Types* types = cast(Types*)_this.objects;
+    auto args = new Parameters(_this.objects.length);
+    OutBuffer buf;
+    int hasdeco = 1;
+    for (size_t i = 0; i < types.length; i++)
+    {
+        Type t = (*types)[i];
+        //printf("type = %s\n", t.toChars());
+        version (none)
+        {
+            buf.printf("_%s_%d", _this.ident.toChars(), i);
+            auto id = Identifier.idPool(buf.extractSlice());
+            auto arg = new Parameter(Loc.initial, STC.in_, t, id, null);
+        }
+        else
+        {
+            auto arg = new Parameter(Loc.initial, STC.none, t, null, null, null);
+        }
+        (*args)[i] = arg;
+        if (!t.deco)
+            hasdeco = 0;
+    }
+
+    _this.tupletype = new TypeTuple(args);
+    if (hasdeco)
+        return _this.tupletype.typeSemantic(Loc.initial, null);
+
+    return _this.tupletype;
+}
+
+private Type aliasDeclGetType(AliasDeclaration _this)
+{
+    if (_this.type)
+        return _this.type;
+    return toAlias(_this).getType();
+}
+
+private Type aggregateDeclGetType(AggregateDeclaration _this)
+{
+    /* Apply storage classes to forward references. (Issue 22254)
+     * Note: Avoid interfaces for now. Implementing qualifiers on interface
+     * definitions exposed some issues in their TypeInfo generation in DMD.
+     * Related PR: https://github.com/dlang/dmd/pull/13312
+     */
+    if (_this.semanticRun == PASS.initial && !_this.isInterfaceDeclaration())
+    {
+        auto stc = _this.storage_class;
+        if (_this._scope)
+            stc |= _this._scope.stc;
+        _this.type = _this.type.addSTC(stc);
+    }
+    return _this.type;
+}
+
+Type getType(Dsymbol _this)
+{
+    if (auto td = _this.isTupleDeclaration())
+        return tupleDeclGetType(td);
+    else if (auto ad = _this.isAliasDeclaration())
+        return aliasDeclGetType(ad);
+    else if (auto agd = _this.isAggregateDeclaration())
+        return aggregateDeclGetType(agd);
+    else if (auto ed = _this.isEnumDeclaration())
+        return ed.type;
+
+    // is this a type?
+    return null;
+}
+
+private uinteger_t aggregateDeclSize(AggregateDeclaration _this, Loc loc)
+{
+    //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
+    bool ok = determineSize(_this, loc);
+    //printf("-AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
+    return ok ? _this.structsize : SIZE_INVALID;
+}
+
+private uinteger_t declSize(Declaration _this, Loc loc)
+{
+    import dmd.typesem: size;
+    assert(_this.type);
+    const sz = _this.type.size();
+    if (sz == SIZE_INVALID)
+        _this.errors = true;
+    return sz;
+}
+
+/*********************************
+ * Returns:
+ *  SIZE_INVALID when the size cannot be determined
+ */
+uinteger_t size(Dsymbol _this, Loc loc)
+{
+    if (auto ad = _this.isAggregateDeclaration())
+        return aggregateDeclSize(ad, loc);
+    else if (auto d = _this.isDeclaration())
+        return declSize(d, loc);
+    .error(loc, "%s `%s` symbol `%s` has no size", _this.kind, _this.toPrettyChars, _this.toChars());
+    return SIZE_INVALID;
 }
 
 private bool funcDeclEquals(const FuncDeclaration _this, const Dsymbol s)
@@ -1056,7 +1351,7 @@ void deferDsymbolSemantic(Scope* sc, Dsymbol s, Scope* scx)
 {
     s._scope = scx ? scx : sc.copy();
     s._scope.setNoFree();
-    Module.addDeferredSemantic(s);
+    addDeferredSemantic(s);
 }
 
 struct Ungag
@@ -1111,6 +1406,8 @@ private void checkImportDeprecation(Module m, Loc loc, Scope* sc)
 
 private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
+    import dmd.typesem: size;
+
     alias visit = Visitor.visit;
 
     Scope* sc;
@@ -2722,7 +3019,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             //printf("\tModule('%s'): '%s'.dsymbolSemantic()\n", toChars(), s.toChars());
             s.dsymbolSemantic(sc);
-            m.runDeferredSemantic();
+            runDeferredSemantic();
         });
 
         if (m.userAttribDecl)
@@ -2951,7 +3248,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         nest--;
 
         /* In DeclDefs scope, TemplateMixin does not have to handle deferred symbols.
-         * Because the members would already call Module.addDeferredSemantic() for themselves.
+         * Because the members would already call addDeferredSemantic() for themselves.
          * See Struct, Class, Interface, and EnumDeclaration.dsymbolSemantic().
          */
         //if (!sc.func && Module.deferred.length > deferred_dim) {}
@@ -4263,7 +4560,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base class %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        Module.addDeferredSemantic(tc.sym);
+                        addDeferredSemantic(tc.sym);
                     cldec.baseok = Baseok.none;
                 }
             L7:
@@ -4344,7 +4641,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        Module.addDeferredSemantic(tc.sym);
+                        addDeferredSemantic(tc.sym);
                     cldec.baseok = Baseok.none;
                 }
                 i++;
@@ -4460,7 +4757,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 // Forward referencee of one or more bases, try again later
                 if (tc.sym._scope)
-                    Module.addDeferredSemantic(tc.sym);
+                    addDeferredSemantic(tc.sym);
                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
                 return deferDsymbolSemantic(sc, cldec, scx);
             }
@@ -4913,7 +5210,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
-                        Module.addDeferredSemantic(tc.sym);
+                        addDeferredSemantic(tc.sym);
                     idec.baseok = Baseok.none;
                 }
                 i++;
@@ -4957,7 +5254,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 // Forward referencee of one or more bases, try again later
                 if (tc.sym._scope)
-                    Module.addDeferredSemantic(tc.sym);
+                    addDeferredSemantic(tc.sym);
                 return deferDsymbolSemantic(sc, idec, scx);
             }
         }
@@ -5641,9 +5938,9 @@ private Dsymbols* appendToModuleMember(TemplateInstance ti)
     a.push(ti);
     ti.memberOf = mi;
     if (mi.semanticRun >= PASS.semantic2done && mi.isRoot())
-        Module.addDeferredSemantic2(ti);
+        addDeferredSemantic2(ti);
     if (mi.semanticRun >= PASS.semantic3done && mi.isRoot())
-        Module.addDeferredSemantic3(ti);
+        addDeferredSemantic3(ti);
     return a;
 }
 
@@ -5699,7 +5996,7 @@ private void expandMembers(TemplateInstance ti,Scope* sc2)
         //printf("test3: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
         s.dsymbolSemantic(sc2);
         //printf("test4: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
-        Module.runDeferredSemantic();
+        runDeferredSemantic();
     }
 
     ti.members.foreachDsymbol(&symbolDg);
@@ -8592,6 +8889,8 @@ void setFieldOffset(Dsymbol d, AggregateDeclaration ad, FieldState* fieldState, 
 
 private extern(C++) class SetFieldOffsetVisitor : Visitor
 {
+    import dmd.typesem: size;
+
     alias visit = Visitor.visit;
 
     AggregateDeclaration ad;
@@ -9296,6 +9595,8 @@ bool isGNUABITag(Expression e)
  */
 private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
 {
+    import dmd.typesem: size;
+
     //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
     // Destruction of STC.field's is handled by buildDtor()
@@ -9889,6 +10190,8 @@ void finalizeSize(AggregateDeclaration ad)
  */
 bool _isZeroInit(Expression exp)
 {
+    import dmd.typesem: size;
+
     switch (exp.op)
     {
         case EXP.int64:
@@ -10054,6 +10357,8 @@ private bool checkOverlappedFields(AggregateDeclaration ad)
 
 private extern(C++) class FinalizeSizeVisitor : Visitor
 {
+    import dmd.typesem: size;
+
     alias visit = Visitor.visit;
 
     override void visit(ClassDeclaration outerCd)

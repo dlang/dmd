@@ -662,16 +662,6 @@ extern (C++) class Dsymbol : ASTNode
         return "symbol";
     }
 
-    /*********************************
-     * Returns:
-     *  SIZE_INVALID when the size cannot be determined
-     */
-    ulong size(Loc loc)
-    {
-        .error(loc, "%s `%s` symbol `%s` has no size", kind, toPrettyChars, toChars());
-        return SIZE_INVALID;
-    }
-
     bool isforwardRef()
     {
         return false;
@@ -753,12 +743,6 @@ extern (C++) class Dsymbol : ASTNode
     {
         auto ad = isMember();
         return ad ? ad.isClassDeclaration() : null;
-    }
-
-    // is this a type?
-    Type getType()
-    {
-        return null;
     }
 
     // need a 'this' pointer?

@@ -26,7 +26,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : include, toAlias, toParentP, followInstantiationContext;
+import dmd.dsymbolsem : include, toAlias, toParentP, followInstantiationContext, runDeferredSemantic3;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.expressionsem : semanticTypeInfo;
@@ -1799,7 +1799,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
             return false;
         if (!functionSemantic3(fd))
             return false;
-        Module.runDeferredSemantic3();
+        runDeferredSemantic3();
         if (global.errors)
             return false;
         assert(fd.semanticRun >= PASS.semantic3done);

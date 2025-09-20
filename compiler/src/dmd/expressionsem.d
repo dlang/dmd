@@ -2077,7 +2077,7 @@ Lagain:
         return ie.expressionSemantic(sc);
     }
 
-    if (Type t = s.getType())
+    if (Type t = dmd.dsymbolsem.getType(s))
     {
         return (new TypeExp(loc, t)).expressionSemantic(sc);
     }
@@ -2155,7 +2155,7 @@ L1:
     {
         auto cls = ad.isClassDeclaration();
         auto classObj = new ObjcClassReferenceExp(e1.loc, cls);
-        classObj.type = objc.getRuntimeMetaclass(cls).getType();
+        classObj.type = dmd.dsymbolsem.getType(objc.getRuntimeMetaclass(cls));
         return classObj;
     }
 
@@ -4448,7 +4448,7 @@ private void unSpeculative(Scope* sc, RootObject o)
             o = vd.type;
         else if (AliasDeclaration ad = d.isAliasDeclaration())
         {
-            o = ad.getType();
+            o = dmd.dsymbolsem.getType(ad);
             if (!o)
                 o = ad.toAlias();
         }
@@ -5532,7 +5532,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         sds2.dsymbolSemantic(sc);
 
         // (Aggregate|Enum)Declaration
-        if (auto t = sds2.getType())
+        if (auto t = dmd.dsymbolsem.getType(sds2))
         {
             result = (new TypeExp(exp.loc, t)).expressionSemantic(sc);
             return;
@@ -9061,7 +9061,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (auto ad = exp.var.isAliasDeclaration())
         {
-            if (auto t = ad.getType())
+            if (auto t = dmd.dsymbolsem.getType(ad))
             {
                 result = new TypeExp(exp.loc, t).expressionSemantic(sc);
                 return;
@@ -9248,7 +9248,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        exp.type = exp.sym.getType().addMod(exp.e1.type.mod);
+        exp.type = dmd.dsymbolsem.getType(exp.sym).addMod(exp.e1.type.mod);
         result = exp;
     }
 
@@ -15099,7 +15099,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
                 return new OverExp(exp.loc, o);
             }
 
-            if (auto t = s.getType())
+            if (auto t = dmd.dsymbolsem.getType(s))
             {
                 return (new TypeExp(exp.loc, t)).expressionSemantic(sc);
             }
@@ -17869,14 +17869,14 @@ void semanticTypeInfo(Scope* sc, Type t)
         else if (TemplateInstance ti = sd.isInstantiated())
         {
             if (ti.minst && !ti.minst.isRoot())
-                Module.addDeferredSemantic3(sd);
+                addDeferredSemantic3(sd);
         }
         else
         {
             if (sd.inNonRoot())
             {
                 //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd.toChars(), sd.inNonRoot());
-                Module.addDeferredSemantic3(sd);
+                addDeferredSemantic3(sd);
             }
         }
     }

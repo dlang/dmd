@@ -4627,7 +4627,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
              * information available to do it.
              *
              * Casting from a C++ interface to a non-C++ interface
-             * always results in null because there's no way one
+             * always results in null because there is no way one
              * can be derived from the other.
              */
             e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
@@ -4660,6 +4660,9 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     if (ftym == ttym)
         return Lret(ce, e);
 
+    // OSX AArch64 long doubles are 64 bits
+    bool RealIsDouble = target.os == Target.os.OSX && target.isAArch64;
+
     /* Reduce combinatorial explosion by rewriting the 'to' and 'from' types to a
      * generic equivalent (as far as casting goes)
      */
@@ -4675,6 +4678,10 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         case Twchar:    tty = Tuns16;   break;
         case Tdchar:    tty = Tuns32;   break;
         case Tvoid:     return Lpaint(ce, e, ttym);
+
+        case Tfloat80:          if (RealIsDouble) tty = Tfloat64;     break;
+        case Timaginary80:      if (RealIsDouble) tty = Timaginary64; break;
+        case Tcomplex80:        if (RealIsDouble) tty = Tcomplex64;   break;
 
         case Tbool:
         {
@@ -4702,6 +4709,10 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         //  value to cast, hence we discard the cast
         case Tnoreturn:
             return Lret(ce, e);
+
+        case Tfloat80:          if (RealIsDouble) fty = Tfloat64;     break;
+        case Timaginary80:      if (RealIsDouble) fty = Timaginary64; break;
+        case Tcomplex80:        if (RealIsDouble) fty = Tcomplex64;   break;
 
         default:
             break;

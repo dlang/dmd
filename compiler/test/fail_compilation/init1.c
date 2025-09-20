@@ -2,7 +2,7 @@
 ---
 fail_compilation/init1.c(100): Error: array initializer has 4 elements, but array length is 3
 fail_compilation/init1.c(103): Error: `.identifier` expected for C struct field initializer `{[0]=3}`
-fail_compilation/init1.c(104): Error: only 1 designator currently allowed for C struct field initializer `{.a[0]=3}`
+fail_compilation/init1.c(104): Error: only 1 designated initializer allowed for C struct field of type `int`
 fail_compilation/init1.c(106): Error: `[ constant-expression ]` expected for C array element initializer `{.a=3}`
 fail_compilation/init1.c(107): Error: only 1 designator currently allowed for C array element initializer `{[0][1]=3}`
 fail_compilation/init1.c(110): Error: overlapping initialization for field `a` and `b`

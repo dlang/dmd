@@ -49,7 +49,6 @@ class TemplateInstance;
 class AggregateDeclaration;
 class LabelDsymbol;
 class ClassDeclaration;
-class Type;
 class Package;
 template <typename T>
 struct Array;
@@ -104,6 +103,7 @@ class StaticAssert;
 class StaticIfDeclaration;
 class CAsmDeclaration;
 class DsymbolTable;
+class Type;
 struct MangleOverride;
 class AliasThis;
 class Expression;
@@ -599,7 +599,6 @@ public:
     virtual Identifier* getIdent();
     virtual const char* toPrettyChars(bool QualifyTypes = false);
     virtual const char* kind() const;
-    virtual uint64_t size(Loc loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration* isThis();
     virtual bool isExport() const;
@@ -612,7 +611,6 @@ public:
     AggregateDeclaration* isMemberDecl();
     AggregateDeclaration* isMemberLocal();
     ClassDeclaration* isClassMember();
-    virtual Type* getType();
     virtual bool needThis();
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
@@ -6357,8 +6355,6 @@ public:
     bool disableNew;
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
-    uint64_t size(Loc loc) final override;
-    Type* getType() final override;
     bool isDeprecated() const final override;
     bool isNested() const;
     bool isExport() const final override;
@@ -6758,7 +6754,6 @@ private:
     uint8_t bitFields;
 public:
     const char* kind() const override;
-    uint64_t size(Loc loc) final override;
     bool isStatic() const;
     LINK resolvedLinkage() const;
     virtual bool isDelete();
@@ -6798,7 +6793,6 @@ public:
     bool building;
     TupleDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    Type* getType() override;
     bool needThis() override;
     void accept(Visitor* v) override;
 };
@@ -6812,7 +6806,6 @@ public:
     static AliasDeclaration* create(Loc loc, Identifier* id, Type* type);
     AliasDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    Type* getType() override;
     bool isOverloadable() const override;
     void accept(Visitor* v) override;
 };
@@ -6893,7 +6886,6 @@ public:
     bool isDataseg() final override;
     bool isThreadlocal() final override;
     bool isCTFE();
-    bool isOverlappedWith(VarDeclaration* v);
     bool canTakeAddressOf();
     bool needsScopeDtor();
     void accept(Visitor* v) override;
@@ -7068,7 +7060,6 @@ private:
 public:
     void* sinit;
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
-    Type* getType() override;
     const char* kind() const override;
     bool isDeprecated() const override;
     Visibility visible() override;
@@ -7184,9 +7175,6 @@ public:
     int32_t needModuleInfo();
     bool isPackageAccessible(Package* p, Visibility visibility, uint32_t flags = 0u) override;
     Dsymbol* symtabInsert(Dsymbol* s) override;
-    static void runDeferredSemantic();
-    static void runDeferredSemantic2();
-    static void runDeferredSemantic3();
     int32_t imports(Module* m);
     bool isRoot();
     bool isCoreModule(Identifier* ident);

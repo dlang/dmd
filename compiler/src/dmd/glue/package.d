@@ -57,7 +57,7 @@ import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : getLocalClasses;
+import dmd.dsymbolsem : getLocalClasses, getType;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -239,7 +239,7 @@ Symbol* getBzeroSymbol()
 tym_t totym(Type tx)
 {
     // OSX AArch64 long doubles are 64 bits
-    bool OSXAArch64 = target.os == Target.os.OSX && target.isAArch64;
+    bool RealIsDouble = target.os == Target.os.OSX && target.isAArch64;
 
     tym_t t;
     switch (tx.ty)
@@ -255,13 +255,13 @@ tym_t totym(Type tx)
         case Tuns64:    t = TYullong;   break;
         case Tfloat32:  t = TYfloat;    break;
         case Tfloat64:  t = TYdouble;   break;
-        case Tfloat80:  t = OSXAArch64 ? TYdouble : TYldouble;  break;
+        case Tfloat80:  t = RealIsDouble ? TYdouble : TYldouble;  break;
         case Timaginary32: t = TYifloat; break;
         case Timaginary64: t = TYidouble; break;
-        case Timaginary80: t = OSXAArch64 ? TYidouble : TYildouble; break;
+        case Timaginary80: t = RealIsDouble ? TYidouble : TYildouble; break;
         case Tcomplex32: t = TYcfloat;  break;
         case Tcomplex64: t = TYcdouble; break;
-        case Tcomplex80: t = OSXAArch64 ? TYcdouble : TYcldouble; break;
+        case Tcomplex80: t = RealIsDouble ? TYcdouble : TYcldouble; break;
         case Tbool:     t = TYbool;     break;
         case Tchar:     t = TYchar;     break;
         case Twchar:    t = TYwchar_t;  break;
@@ -515,7 +515,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     // tunnel type of "this" to debug info generation
     if (AggregateDeclaration ad = fd.parent.isAggregateDeclaration())
     {
-        .type* t = Type_toCtype(ad.getType());
+        .type* t = Type_toCtype(getType(ad));
         if (cd)
             t = t.Tnext; // skip reference
         f.Fclass = cast(Classsym *)t;
