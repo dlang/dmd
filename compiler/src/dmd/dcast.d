@@ -90,44 +90,41 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
             }
 
             auto ad = isAggregate(e.type);
-            if (ad && ad.aliasthis)
+            if (!ad || !ad.aliasthis)
+                return e.castTo(sc, t);
+            if (!ad.type || ad.type.isTypeError())
+                return e;
+            auto ts = ad.type.isTypeStruct();
+            const adMatch = ts
+                ? ts.implicitConvToWithoutAliasThis(t)
+                : ad.type.isTypeClass().implicitConvToWithoutAliasThis(t);
+
+            if (!adMatch)
+                return e.castTo(sc, t);
+
+            Type tob = t.toBasetype();
+            Type t1b = e.type.toBasetype();
+            if (ad == isAggregate(tob))
+                return e.castTo(sc, t);
+
+            if (t1b.ty == Tclass && tob.ty == Tclass)
             {
-                if (!ad.type || ad.type.isTypeError())
-                    return e;
-                auto ts = ad.type.isTypeStruct();
-                const adMatch = ts
-                    ? ts.implicitConvToWithoutAliasThis(t)
-                    : ad.type.isTypeClass().implicitConvToWithoutAliasThis(t);
-
-                if (!adMatch)
+                ClassDeclaration t1cd = t1b.isClassHandle();
+                ClassDeclaration tocd = tob.isClassHandle();
+                int offset;
+                if (tocd.isBaseOf(t1cd, &offset))
                 {
-                    Type tob = t.toBasetype();
-                    Type t1b = e.type.toBasetype();
-                    if (ad != isAggregate(tob))
-                    {
-                        if (t1b.ty == Tclass && tob.ty == Tclass)
-                        {
-                            ClassDeclaration t1cd = t1b.isClassHandle();
-                            ClassDeclaration tocd = tob.isClassHandle();
-                            int offset;
-                            if (tocd.isBaseOf(t1cd, &offset))
-                            {
-                                auto result = new CastExp(e.loc, e, t);
-                                result.type = t;
-                                return result;
-                            }
-                        }
-
-                        /* Forward the cast to our alias this member, rewrite to:
-                         *   cast(to)e1.aliasthis
-                         */
-                        auto result = resolveAliasThis(sc, e);
-                        return result.castTo(sc, t);
-                   }
+                    auto result = new CastExp(e.loc, e, t);
+                    result.type = t;
+                    return result;
                 }
             }
 
-            return e.castTo(sc, t);
+            /* Forward the cast to our alias this member, rewrite to:
+             *   cast(to)e1.aliasthis
+             */
+            auto result = resolveAliasThis(sc, e);
+            return result.castTo(sc, t);
         }
 
         auto result = e.optimize(WANTvalue);
@@ -136,54 +133,54 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
             return implicitCastTo(result, sc, t);
         }
 
-        if (t.ty != Terror && e.type.ty != Terror)
+        if (t.ty == Terror || e.type.ty == Terror)
         {
-            if (!t.deco)
+            return ErrorExp.get();
+        }
+        if (!t.deco)
+        {
+            error(e.loc, "forward reference to type `%s`", t.toChars());
+            return ErrorExp.get();
+        }
+
+        //printf("type %p ty %d deco %p\n", type, type.ty, type.deco);
+        //type = type.typeSemantic(loc, sc);
+        //printf("type %s t %s\n", type.deco, t.deco);
+        auto ts = toAutoQualChars(e.type, t);
+
+        // Special case for improved diagnostic when const to mutable conversion
+        // fails due to struct/union having pointers
+        if (e.type.ty == Tstruct && t.ty == Tstruct &&
+            e.type.isTypeStruct().sym == t.isTypeStruct().sym &&
+            e.type.mod == MODFlags.const_ && t.mod == 0 && e.type.hasPointers)
+        {
+            auto sym = e.type.isTypeStruct().sym;
+            error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s` because %s `%s` contains pointers or references",
+                e.toErrMsg(), ts[0], ts[1], sym.kind(), sym.toErrMsg());
+            return ErrorExp.get();
+        }
+
+        // Special case for pointer conversions
+        if (e.type.toBasetype().ty == Tpointer && t.toBasetype().ty == Tpointer)
+        {
+            Type fromPointee = e.type.nextOf();
+            Type toPointee = t.nextOf();
+            // Const -> mutable conversion (disallowed)
+            if (fromPointee.isConst() && !toPointee.isConst())
             {
-                error(e.loc, "forward reference to type `%s`", t.toChars());
+                error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toChars(), t.toChars());
+                errorSupplemental(e.loc, "Note: Converting const to mutable requires an explicit cast (`cast(int*)`).");
+                return ErrorExp.get();
             }
-            else
+            // Incompatible pointee types (e.g., int* -> float* )
+            else if (fromPointee.toBasetype().ty != toPointee.toBasetype().ty)
             {
-                //printf("type %p ty %d deco %p\n", type, type.ty, type.deco);
-                //type = type.typeSemantic(loc, sc);
-                //printf("type %s t %s\n", type.deco, t.deco);
-                auto ts = toAutoQualChars(e.type, t);
-
-                // Special case for improved diagnostic when const to mutable conversion
-                // fails due to struct/union having pointers
-                if (e.type.ty == Tstruct && t.ty == Tstruct &&
-                    e.type.isTypeStruct().sym == t.isTypeStruct().sym &&
-                    e.type.mod == MODFlags.const_ && t.mod == 0 && e.type.hasPointers)
-                {
-                    auto sym = e.type.isTypeStruct().sym;
-                    error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s` because %s `%s` contains pointers or references",
-                        e.toErrMsg(), ts[0], ts[1], sym.kind(), sym.toErrMsg());
-                    return ErrorExp.get();
-                }
-
-                // Special case for pointer conversions
-                if (e.type.toBasetype().ty == Tpointer && t.toBasetype().ty == Tpointer)
-                {
-                    Type fromPointee = e.type.nextOf();
-                    Type toPointee = t.nextOf();
-                    // Const -> mutable conversion (disallowed)
-                    if (fromPointee.isConst() && !toPointee.isConst())
-                    {
-                        error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toChars(), t.toChars());
-                        errorSupplemental(e.loc, "Note: Converting const to mutable requires an explicit cast (`cast(int*)`).");
-                        return ErrorExp.get();
-                    }
-                    // Incompatible pointee types (e.g., int* -> float* )
-                    else if (fromPointee.toBasetype().ty != toPointee.toBasetype().ty)
-                    {
-                        error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toChars(), t.toChars());
-                        errorSupplemental(e.loc, "Note: Pointer types point to different base types (`%s` vs `%s`)", fromPointee.toChars(), toPointee.toChars());
-                        return ErrorExp.get();
-                    }
-                }
-                error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`", e.toErrMsg(), ts[0], ts[1]);
+                error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toChars(), t.toChars());
+                errorSupplemental(e.loc, "Note: Pointer types point to different base types (`%s` vs `%s`)", fromPointee.toChars(), toPointee.toChars());
+                return ErrorExp.get();
             }
         }
+        error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`", e.toErrMsg(), ts[0], ts[1]);
         return ErrorExp.get();
     }
 
