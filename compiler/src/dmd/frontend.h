@@ -2382,7 +2382,6 @@ public:
 private:
     uint8_t bitFields;
 public:
-    virtual bool equals(const Expression* const e) const;
     size_t size() const;
     static void _init();
     static void deinitialize();
@@ -2628,7 +2627,6 @@ public:
     AssocArrayLiteralExp* aaLiteral;
     static ArrayLiteralExp* create(Loc loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
-    bool equals(const Expression* const e) const override;
     Expression* getElement(size_t i);
     Optional<bool > toBool() override;
     StringExp* toStringExp() override;
@@ -2667,7 +2665,6 @@ public:
     Array<Expression* >* values;
     Expression* lowering;
     Expression* loweringCtfe;
-    bool equals(const Expression* const e) const override;
     AssocArrayLiteralExp* syntaxCopy() override;
     Optional<bool > toBool() override;
     void accept(Visitor* v) override;
@@ -2781,7 +2778,6 @@ class ComplexExp final : public Expression
 public:
     complex_t value;
     static ComplexExp* create(Loc loc, complex_t value, Type* type);
-    bool equals(const Expression* const e) const override;
     bool isIdentical(const Expression* const e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
@@ -3202,7 +3198,6 @@ public:
     FuncLiteralDeclaration* fd;
     TemplateDeclaration* td;
     TOK tok;
-    bool equals(const Expression* const e) const override;
     FuncExp* syntaxCopy() override;
     bool checkType() override;
     void accept(Visitor* v) override;
@@ -3265,7 +3260,6 @@ class IntegerExp final : public Expression
     dinteger_t value;
 public:
     static IntegerExp* create(Loc loc, dinteger_t value, Type* type);
-    bool equals(const Expression* const e) const override;
     dinteger_t toInteger() override;
     _d_real toReal() override;
     _d_real toImaginary() override;
@@ -3348,7 +3342,6 @@ class MixinExp final : public Expression
 public:
     Array<Expression* >* exps;
     MixinExp* syntaxCopy() override;
-    bool equals(const Expression* const e) const override;
     void accept(Visitor* v) override;
 };
 
@@ -3427,7 +3420,6 @@ public:
 class NullExp final : public Expression
 {
 public:
-    bool equals(const Expression* const e) const override;
     Optional<bool > toBool() override;
     StringExp* toStringExp() override;
     void accept(Visitor* v) override;
@@ -3502,7 +3494,6 @@ class RealExp final : public Expression
 public:
     _d_real value;
     static RealExp* create(Loc loc, _d_real value, Type* type);
-    bool equals(const Expression* const e) const override;
     bool isIdentical(const Expression* const e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
@@ -3614,7 +3605,6 @@ public:
 
     static StringExp* create(Loc loc, const char* s);
     static StringExp* create(Loc loc, const void* string, size_t len);
-    bool equals(const Expression* const e) const override;
     size_t numberOfCodeUnits(int32_t tynto = 0) const;
     void writeTo(void* dest, bool zero, int32_t tyto = 0) const;
     char32_t getCodeUnit(size_t i) const;
@@ -3678,7 +3668,6 @@ public:
     };
 
     static StructLiteralExp* create(Loc loc, StructDeclaration* sd, void* elements, Type* stype = nullptr);
-    bool equals(const Expression* const e) const override;
     StructLiteralExp* syntaxCopy() override;
     void accept(Visitor* v) override;
 };
@@ -3757,7 +3746,6 @@ public:
     Array<Expression* >* exps;
     static TupleExp* create(Loc loc, Array<Expression* >* exps);
     TupleExp* syntaxCopy() override;
-    bool equals(const Expression* const e) const override;
     void accept(Visitor* v) override;
 };
 
@@ -3800,7 +3788,6 @@ class VarExp final : public SymbolExp
 public:
     bool delegateWasExtracted;
     static VarExp* create(Loc loc, Declaration* var, bool hasOverloads = true);
-    bool equals(const Expression* const e) const override;
     bool isLvalue() override;
     void accept(Visitor* v) override;
 };
