@@ -389,13 +389,13 @@ bool fill(StructDeclaration sd, Loc loc,
 bool isIdentical(const Expression exp, const Expression e)
 {
     import dmd.expressionsem;
-    dmd.expressionsem.isIdentical(exp, e);
+    return dmd.expressionsem.isIdentical(exp, e);
 }
 
 bool equals(const Expression exp, const Expression e)
 {
     import dmd.expressionsem;
-    dmd.expressionsem.equals(exp, e);
+    return dmd.expressionsem.equals(exp, e);
 }
 
 /***********************************************************
