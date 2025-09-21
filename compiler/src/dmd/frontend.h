@@ -599,6 +599,7 @@ public:
     virtual Identifier* getIdent();
     virtual const char* toPrettyChars(bool QualifyTypes = false);
     virtual const char* kind() const;
+    virtual uint64_t size(Loc loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration* isThis();
     virtual bool isExport() const;
@@ -6352,6 +6353,7 @@ public:
     bool disableNew;
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
+    uint64_t size(Loc loc) final override;
     bool isDeprecated() const final override;
     bool isNested() const;
     bool isExport() const final override;
@@ -6751,6 +6753,7 @@ private:
     uint8_t bitFields;
 public:
     const char* kind() const override;
+    uint64_t size(Loc loc) final override;
     bool isStatic() const;
     LINK resolvedLinkage() const;
     virtual bool isDelete();

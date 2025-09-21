@@ -108,6 +108,16 @@ extern (C++) abstract class Declaration : Dsymbol
         return "declaration";
     }
 
+    override final ulong size(Loc loc)
+    {
+        assert(type);
+        import dmd.typesem;
+        const sz = type.size();
+        if (sz == SIZE_INVALID)
+            errors = true;
+        return sz;
+    }
+
     final bool isStatic() const pure nothrow @nogc @safe
     {
         return (storage_class & STC.static_) != 0;

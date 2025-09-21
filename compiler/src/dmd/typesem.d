@@ -1739,11 +1739,7 @@ uinteger_t size(Type t, Loc loc)
         case Tinstance:
         case Ttypeof:
         case Treturn:       return visitTypeQualified(cast(TypeQualified)t);
-        case Tstruct:
-        {
-            import dmd.dsymbolsem: size;
-            return t.isTypeStruct().sym.size(loc);
-        }
+        case Tstruct:       return t.isTypeStruct().sym.size(loc);
         case Tenum:         return t.isTypeEnum().sym.getMemtype(loc).size(loc);
         case Tnull:         return t.tvoidptr.size(loc);
         case Tnoreturn:     return 0;
@@ -3631,10 +3627,7 @@ Expression defaultInitLiteral(Type t, Loc loc)
         {
             printf("TypeStruct::defaultInitLiteral() '%s'\n", toChars());
         }
-        {
-            import dmd.dsymbolsem: size;
-            ts.sym.size(loc);
-        }
+        ts.sym.size(loc);
         if (ts.sym.sizeok != Sizeok.done)
             return ErrorExp.get();
 
@@ -4889,10 +4882,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 {
                     auto ad = v.isMember();
                     objc.checkOffsetof(e, ad);
-                    {
-                        import dmd.dsymbolsem: size;
-                        ad.size(e.loc);
-                    }
+                    ad.size(e.loc);
                     if (ad.sizeok != Sizeok.done)
                         return ErrorExp.get();
                     uint value;
@@ -5744,10 +5734,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
              */
             e = e.expressionSemantic(sc); // do this before turning on noAccessCheck
 
-            {
-                import dmd.dsymbolsem: size;
-                mt.sym.size(e.loc); // do semantic of type
-            }
+            mt.sym.size(e.loc); // do semantic of type
 
             Expression e0;
             Expression ev = e.op == EXP.type ? null : e;

@@ -26,7 +26,6 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem: size;
 import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
@@ -274,7 +273,6 @@ enum Covariant
  */
 extern (C++) abstract class Type : ASTNode
 {
-
     TY ty;
     MOD mod; // modifiers MODxxxx
     char* deco;
@@ -633,7 +631,6 @@ extern (C++) abstract class Type : ASTNode
 
     uint alignsize()
     {
-        import dmd.typesem: size;
         return cast(uint)size(this, Loc.initial);
     }
 
@@ -2076,7 +2073,6 @@ extern (C++) final class TypeVector : Type
 
     override uint alignsize()
     {
-        import dmd.typesem: size;
         return cast(uint)basetype.size();
     }
 

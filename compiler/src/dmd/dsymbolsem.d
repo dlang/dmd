@@ -232,7 +232,6 @@ void runDeferredSemantic3()
 
 bool isOverlappedWith(VarDeclaration _this, VarDeclaration v)
 {
-    import dmd.typesem : size;
     const vsz = v.type.size();
     const tsz = _this.type.size();
     assert(vsz != SIZE_INVALID && tsz != SIZE_INVALID);
@@ -368,7 +367,6 @@ private uinteger_t aggregateDeclSize(AggregateDeclaration _this, Loc loc)
 
 private uinteger_t declSize(Declaration _this, Loc loc)
 {
-    import dmd.typesem: size;
     assert(_this.type);
     const sz = _this.type.size();
     if (sz == SIZE_INVALID)
@@ -389,6 +387,7 @@ uinteger_t size(Dsymbol _this, Loc loc)
     .error(loc, "%s `%s` symbol `%s` has no size", _this.kind, _this.toPrettyChars, _this.toChars());
     return SIZE_INVALID;
 }
+import dmd.typesem : size; // alias the overload in this module to not only find size(Dsymbol)
 
 private bool funcDeclEquals(const FuncDeclaration _this, const Dsymbol s)
 {
@@ -1406,8 +1405,6 @@ private void checkImportDeprecation(Module m, Loc loc, Scope* sc)
 
 private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
-    import dmd.typesem: size;
-
     alias visit = Visitor.visit;
 
     Scope* sc;
@@ -8889,8 +8886,6 @@ void setFieldOffset(Dsymbol d, AggregateDeclaration ad, FieldState* fieldState, 
 
 private extern(C++) class SetFieldOffsetVisitor : Visitor
 {
-    import dmd.typesem: size;
-
     alias visit = Visitor.visit;
 
     AggregateDeclaration ad;
@@ -9595,8 +9590,6 @@ bool isGNUABITag(Expression e)
  */
 private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
 {
-    import dmd.typesem: size;
-
     //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
     // Destruction of STC.field's is handled by buildDtor()
@@ -10190,8 +10183,6 @@ void finalizeSize(AggregateDeclaration ad)
  */
 bool _isZeroInit(Expression exp)
 {
-    import dmd.typesem: size;
-
     switch (exp.op)
     {
         case EXP.int64:
@@ -10357,8 +10348,6 @@ private bool checkOverlappedFields(AggregateDeclaration ad)
 
 private extern(C++) class FinalizeSizeVisitor : Visitor
 {
-    import dmd.typesem: size;
-
     alias visit = Visitor.visit;
 
     override void visit(ClassDeclaration outerCd)
