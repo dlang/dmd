@@ -59,6 +59,8 @@ namespace dmd
     Expression *ctfeInterpret(Expression *e);
     void expandTuples(Expressions *exps, ArgumentLabels *names = nullptr);
     Expression *optimize(Expression *exp, int result, bool keepLvalue = false);
+    bool isIdentical(const Expression *exp, const Expression *e);
+    bool equals(const Expression *exp, const Expression *e);
 }
 
 typedef unsigned char OwnedBy;
@@ -93,7 +95,6 @@ public:
     DYNCAST dyncast() const override final { return DYNCAST_EXPRESSION; }
 
     const char* toChars() const final override;
-    virtual bool equals(const Expression * const e) const;
 
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
@@ -107,7 +108,6 @@ public:
     Expression *deref();
 
     int isConst();
-    virtual bool isIdentical(const Expression *e) const;
     virtual Optional<bool> toBool();
     virtual bool hasCode()
     {
@@ -236,7 +236,6 @@ public:
     dinteger_t value;
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
-    bool equals(const Expression * const e) const override;
     dinteger_t toInteger() override;
     real_t toReal() override;
     real_t toImaginary() override;
@@ -262,8 +261,6 @@ public:
     real_t value;
 
     static RealExp *create(Loc loc, real_t value, Type *type);
-    bool equals(const Expression * const e) const override;
-    bool isIdentical(const Expression *e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
     real_t toReal() override;
@@ -279,8 +276,6 @@ public:
     complex_t value;
 
     static ComplexExp *create(Loc loc, complex_t value, Type *type);
-    bool equals(const Expression * const e) const override;
-    bool isIdentical(const Expression *e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
     real_t toReal() override;
@@ -338,7 +333,6 @@ public:
 class NullExp final : public Expression
 {
 public:
-    bool equals(const Expression * const e) const override;
     Optional<bool> toBool() override;
     StringExp *toStringExp() override;
     void accept(Visitor *v) override { v->visit(this); }
@@ -358,7 +352,6 @@ public:
 
     static StringExp *create(Loc loc, const char *s);
     static StringExp *create(Loc loc, const void *s, d_size_t len);
-    bool equals(const Expression * const e) const override;
     char32_t getCodeUnit(d_size_t i) const;
     dinteger_t getIndex(d_size_t i) const;
     StringExp *toStringExp() override;
@@ -396,7 +389,6 @@ public:
 
     static TupleExp *create(Loc loc, Expressions *exps);
     TupleExp *syntaxCopy() override;
-    bool equals(const Expression * const e) const override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -413,7 +405,6 @@ public:
 
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     ArrayLiteralExp *syntaxCopy() override;
-    bool equals(const Expression * const e) const override;
     Expression *getElement(d_size_t i);
     Optional<bool> toBool() override;
     StringExp *toStringExp() override;
@@ -430,7 +421,6 @@ public:
     Expression* lowering;
     Expression* loweringCtfe;
 
-    bool equals(const Expression * const e) const override;
     AssocArrayLiteralExp *syntaxCopy() override;
     Optional<bool> toBool() override;
 
@@ -479,7 +469,6 @@ public:
 
 
     static StructLiteralExp *create(Loc loc, StructDeclaration *sd, void *elements, Type *stype = nullptr);
-    bool equals(const Expression * const e) const override;
     StructLiteralExp *syntaxCopy() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -582,7 +571,6 @@ class VarExp final : public SymbolExp
 public:
     d_bool delegateWasExtracted;
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
-    bool equals(const Expression * const e) const override;
     bool isLvalue() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -608,7 +596,6 @@ public:
     TemplateDeclaration *td;
     TOK tok;
 
-    bool equals(const Expression * const e) const override;
     FuncExp *syntaxCopy() override;
     bool checkType() override;
 

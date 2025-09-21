@@ -25,6 +25,7 @@ import dmd.dstruct;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem : isIdentical;
 import dmd.func;
 import dmd.globals : dinteger_t, sinteger_t, uinteger_t;
 import dmd.location;
