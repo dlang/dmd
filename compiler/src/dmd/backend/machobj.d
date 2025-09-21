@@ -2032,7 +2032,7 @@ int MachObj_thread_vars(ref Symbol s, out targ_size_t offset, bool bss)
     {
         MachObj_tlsseg_bss();
         si.Sseg = seg_tlsseg_bss;
-        offset = 0;
+        offset = SegData[si.Sseg].SDoffset; // don't overlap
     }
     else
     {

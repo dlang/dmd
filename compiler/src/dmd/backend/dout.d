@@ -158,18 +158,15 @@ void outdata(Symbol* s)
                             import dmd.backend.machobj : MachObj_thread_vars;
                             targ_size_t offseti;
                             int segi = MachObj_thread_vars(*s, offseti, true);
-                            seg_data* pseg = objmod.tlsseg_bss();
-                            s.Sseg = pseg.SDseg;
-                            objmod.data_start(s, datasize, pseg.SDseg);
-                            objmod.lidata(pseg.SDseg, pseg.SDoffset, datasize); // I think this section is readonly, so data should overlap
-                                                                                // instead of being consecutive as gcc emits it
+                            dt_writeToObj(objmod, dt, segi, offseti); // need to align first?
+                            Offset(segi) = offseti;
                             s.Sfl = FL.tlsdata;
-
                             //              if (s.Sclass == SC.global || s.Sclass == SC.static_)
                             //                  objmod.pubdefsize(seg,s,s.Soffset,datasize);    // do the definition
 
                             // BUG AArch64: symbolic debug info?
-                            break;
+                            dt_free(dtstart);
+                            return;
                         }
                         {   seg_data* pseg = objmod.tlsseg_bss();
                             s.Sseg = pseg.SDseg;
