@@ -298,5 +298,4 @@ namespace dmd
     TemplateParameter *isTemplateParameter(RootObject *o);
     bool isError(const RootObject *const o);
     void printTemplateStats(bool listInstances, ErrorSink* eSink);
-    bool hasNestedArgs(TemplateInstance *ti, Objects *args, bool isstatic);
 }

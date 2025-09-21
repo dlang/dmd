@@ -871,13 +871,6 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
 /**
  * templatesem.d
  */
-
-bool hasNestedArgs(TemplateInstance ti, Objects* args, bool isstatic)
-{
-    import dmd.templatesem;
-    return dmd.templatesem.hasNestedArgs(ti, args, isstatic);
-}
-
 bool needsCodegen(TemplateInstance ti)
 {
     import dmd.templatesem;
