@@ -53,7 +53,7 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : oneMembers, toAlias;
+import dmd.dsymbolsem : oneMembers;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
