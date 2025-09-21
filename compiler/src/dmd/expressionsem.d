@@ -97,135 +97,84 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
-private bool intExpEquals(const IntegerExp _this, const Expression e)
+bool equals(const Expression _this, const Expression e)
 {
-    if (_this == e)
-        return true;
-
-    if (auto ne = e.isIntegerExp())
+    static bool intExpEquals(const IntegerExp _this, const IntegerExp e)
     {
-        if (_this.type.toHeadMutable().equals(ne.type.toHeadMutable()) && _this.value == ne.value)
-        {
-            return true;
-        }
+        return _this.type.toHeadMutable().equals(e.type.toHeadMutable()) && _this.value == e.value;
     }
-    return false;
-}
 
-private bool realExpEquals(const RealExp _this, const Expression e)
-{
-    if (_this == e)
-        return true;
-
-    if (auto ne = e.isRealExp())
+    static bool realExpEquals(const RealExp _this, const RealExp e)
     {
-        if (_this.type.toHeadMutable().equals(ne.type.toHeadMutable()) && RealIdentical(_this.value, ne.value))
-        {
-            return true;
-        }
+        return _this.type.toHeadMutable().equals(e.type.toHeadMutable()) && RealIdentical(_this.value, e.value);
     }
-    return false;
-}
 
-private bool complexExpEquals(const ComplexExp _this, const Expression e)
-{
-    if (_this == e)
-        return true;
-
-    if (auto ne = e.isComplexExp())
+    static bool complexExpEquals(const ComplexExp _this, const ComplexExp e)
     {
-        if (_this.type.toHeadMutable().equals(ne.type.toHeadMutable()) &&
-            RealIdentical(creall(_this.value), creall(ne.value)) &&
-            RealIdentical(cimagl(_this.value), cimagl(ne.value)))
-        {
-            return true;
-        }
+        return _this.type.toHeadMutable().equals(e.type.toHeadMutable()) &&
+            RealIdentical(creall(_this.value), creall(e.value)) &&
+            RealIdentical(cimagl(_this.value), cimagl(e.value));
     }
-    return false;
-}
 
-private bool nullExpEquals(const NullExp _this, const Expression e)
-{
-    return e.op == EXP.null_ && _this.type.equals(e.type);
-}
-
-private bool stringExpEquals(const StringExp _this, const Expression e)
-{
-    //printf("StringExp::equals('%s') %s\n", o.toChars(), toChars());
-    if (auto se = e.isStringExp())
+    static bool nullExpEquals(const NullExp _this, const NullExp e)
     {
-        return _this.compare(se) == 0;
+        return e.op == EXP.null_ && _this.type.equals(e.type);
     }
-    return false;
-}
 
-private bool tupleExpEquals(const TupleExp _this, const Expression e)
-{
-    if (_this == e)
-        return true;
-
-    if (auto te = e.isTupleExp())
+    static bool stringExpEquals(const StringExp _this, const StringExp e)
     {
-        if (_this.exps.length != te.exps.length)
+        //printf("StringExp::equals('%s') %s\n", o.toChars(), toChars());
+        return _this.compare(e) == 0;
+    }
+
+    static bool tupleExpEquals(const TupleExp _this, const TupleExp e)
+    {
+        if (_this.exps.length != e.exps.length)
             return false;
-        if (_this.e0 && !_this.e0.equals(te.e0) || !_this.e0 && te.e0)
+        if (_this.e0 && !_this.e0.equals(e.e0) || !_this.e0 && e.e0)
             return false;
         foreach (i, e1; *_this.exps)
         {
-            auto e2 = (*te.exps)[i];
+            auto e2 = (*e.exps)[i];
             if (!e1.equals(e2))
                 return false;
         }
         return true;
     }
-    return false;
-}
 
-private bool arrayLiteralExpEquals(const ArrayLiteralExp _this, const Expression e)
-{
-    if (_this == e)
-        return true;
-
-    if (auto ae = e.isArrayLiteralExp())
+    static bool arrayLiteralExpEquals(const ArrayLiteralExp _this, const ArrayLiteralExp e)
     {
-        if (_this.elements.length != ae.elements.length)
+        if (_this.elements.length != e.elements.length)
             return false;
-        if (_this.elements.length == 0 && !_this.type.equals(ae.type))
+        if (_this.elements.length == 0 && !_this.type.equals(e.type))
         {
             return false;
         }
 
         foreach (i, e1; *_this.elements)
         {
-            auto e2 = (*ae.elements)[i];
+            auto e2 = (*e.elements)[i];
             auto e1x = e1 ? e1 : _this.basis;
-            auto e2x = e2 ? e2 : ae.basis;
+            auto e2x = e2 ? e2 : e.basis;
 
             if (e1x != e2x && (!e1x || !e2x || !e1x.equals(e2x)))
                 return false;
         }
         return true;
     }
-    return false;
-}
 
-private bool assocArrayLiteralExpEquals(const AssocArrayLiteralExp _this, const Expression e)
-{
-    if (_this == e)
-        return true;
-
-    if (auto ae = e.isAssocArrayLiteralExp())
+    static bool assocArrayLiteralExpEquals(const AssocArrayLiteralExp _this, const AssocArrayLiteralExp e)
     {
-        if (_this.keys.length != ae.keys.length)
+        if (_this.keys.length != e.keys.length)
             return false;
         size_t count = 0;
         foreach (i, key; *_this.keys)
         {
-            foreach (j, akey; *ae.keys)
+            foreach (j, akey; *e.keys)
             {
                 if (key.equals(akey))
                 {
-                    if (!(*_this.values)[i].equals((*ae.values)[j]))
+                    if (!(*_this.values)[i].equals((*e.values)[j]))
                         return false;
                     ++count;
                 }
@@ -233,106 +182,68 @@ private bool assocArrayLiteralExpEquals(const AssocArrayLiteralExp _this, const 
         }
         return count == _this.keys.length;
     }
-    return false;
-}
 
-private bool structLiteralExpEquals(const StructLiteralExp _this, const Expression e)
-{
-    if (_this == e)
-        return true;
-
-    if (auto se = e.isStructLiteralExp())
+    static bool structLiteralExpEquals(const StructLiteralExp _this, const StructLiteralExp e)
     {
-        if (!_this.type.equals(se.type))
+        if (!_this.type.equals(e.type))
             return false;
-        if (_this.elements.length != se.elements.length)
+        if (_this.elements.length != e.elements.length)
             return false;
         foreach (i, e1; *_this.elements)
         {
-            auto e2 = (*se.elements)[i];
+            auto e2 = (*e.elements)[i];
             if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
                 return false;
         }
         return true;
     }
-    return false;
-}
 
-private bool varExpEquals(const VarExp _this, const Expression e)
-{
-    if (_this == e)
-        return true;
-
-    if (auto ne = e.isVarExp())
+    static bool varExpEquals(const VarExp _this, const VarExp e)
     {
-        if (_this.type.toHeadMutable().equals(ne.type.toHeadMutable()) && _this.var == ne.var)
-        {
-            return true;
-        }
+        return _this.type.toHeadMutable().equals(e.type.toHeadMutable()) && _this.var == e.var;
     }
-    return false;
-}
 
-private bool funcExpEquals(const FuncExp _this, const Expression e)
-{
-    if (_this == e)
-        return true;
-
-    if (auto fe = e.isFuncExp())
+    static bool funcExpEquals(const FuncExp _this, const FuncExp e)
     {
-        return _this.fd == fe.fd;
+        return _this.fd == e.fd;
     }
-    return false;
-}
 
-private bool mixinExpEquals(const MixinExp _this, const Expression e)
-{
-    if (_this == e)
-        return true;
-
-    if (auto ce = e.isMixinExp())
+    static bool mixinExpEquals(const MixinExp _this, const MixinExp e)
     {
-        if (_this.exps.length != ce.exps.length)
+        if (_this.exps.length != e.exps.length)
             return false;
         foreach (i, e1; *_this.exps)
         {
-            auto e2 = (*ce.exps)[i];
+            auto e2 = (*e.exps)[i];
             if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
                 return false;
         }
         return true;
     }
-    return false;
-}
 
-bool equals(const Expression _this, const Expression e)
-{
-    if (auto ie = _this.isIntegerExp())
-        return intExpEquals(ie, e);
-    else if (auto re = _this.isRealExp())
-        return realExpEquals(re, e);
-    else if (auto ce = _this.isComplexExp())
-        return complexExpEquals(ce, e);
-    else if (auto ne = _this.isNullExp())
-        return nullExpEquals(ne, e);
-    else if (auto se = _this.isStringExp())
-        return stringExpEquals(se, e);
-    else if (auto te = _this.isTupleExp())
-        return tupleExpEquals(te, e);
-    else if (auto ale = _this.isArrayLiteralExp())
-        return arrayLiteralExpEquals(ale, e);
-    else if (auto aale = _this.isAssocArrayLiteralExp())
-        return assocArrayLiteralExpEquals(aale, e);
-    else if (auto sle = _this.isStructLiteralExp())
-        return structLiteralExpEquals(sle, e);
-    else if (auto ve = _this.isVarExp())
-        return varExpEquals(ve, e);
-    else if (auto fe = _this.isFuncExp())
-        return funcExpEquals(fe, e);
-    else if (auto me = _this.isMixinExp())
-        return mixinExpEquals(me, e);
+    if (_this == e)
+        return true;
 
-    return _this is e;
+    if (_this.op != e.op)
+        return false;
+
+    switch(_this.op)
+    {
+        case EXP.int64: return intExpEquals(_this.isIntegerExp(), e.isIntegerExp());
+        case EXP.float64: return realExpEquals(_this.isRealExp(), e.isRealExp());
+        case EXP.complex80: return complexExpEquals(_this.isComplexExp(), e.isComplexExp());
+        case EXP.null_: return nullExpEquals(_this.isNullExp(), e.isNullExp());
+        case EXP.string_: return stringExpEquals(_this.isStringExp(), e.isStringExp());
+        case EXP.tuple: return tupleExpEquals(_this.isTupleExp(), e.isTupleExp());
+        case EXP.arrayLiteral: return arrayLiteralExpEquals(_this.isArrayLiteralExp(), e.isArrayLiteralExp());
+        case EXP.assocArrayLiteral: return assocArrayLiteralExpEquals(_this.isAssocArrayLiteralExp(), e.isAssocArrayLiteralExp());
+        case EXP.structLiteral: return structLiteralExpEquals(_this.isStructLiteralExp(), e.isStructLiteralExp());
+        case EXP.variable: return varExpEquals(_this.isVarExp(), e.isVarExp());
+        case EXP.function_: return funcExpEquals(_this.isFuncExp(), e.isFuncExp());
+        case EXP.mixin_: return mixinExpEquals(_this.isMixinExp(), e.isMixinExp());
+
+        default: return _this is e;
+    }
 }
 
 
