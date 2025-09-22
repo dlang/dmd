@@ -59,6 +59,156 @@ alias funcLeastAsSpecialized = dmd.funcsem.leastAsSpecialized;
 
 enum LOG = false;
 
+/*****************************************
+ * Determines if a TemplateInstance will need a nested
+ * generation of the TemplateDeclaration.
+ * Sets enclosing property if so, and returns != 0;
+ */
+bool hasNestedArgs(TemplateInstance _this, Objects* args, bool isstatic)
+{
+    int nested = 0;
+    //printf("TemplateInstance.hasNestedArgs('%s')\n", tempdecl.ident.toChars());
+
+    // arguments from parent instances are also accessible
+    if (!_this.enclosing)
+    {
+        if (TemplateInstance ti = _this.tempdecl.toParent().isTemplateInstance())
+            _this.enclosing = ti.enclosing;
+    }
+
+    /* Search for the most deeply nested of `dparent` and `enclosing` assigning
+     * `dparent` to `enclosing` if `dparent` is more nested than `enclosing`.
+     *
+     * Returns:
+     *  `true` if an error should be reported
+     */
+    static bool search(Dsymbol dparent, ref Dsymbol enclosing)
+    {
+        if (!dparent || dparent.isModule)
+            return false;
+        if (!enclosing)
+        {
+            enclosing = dparent;
+            return false;
+        }
+        if (enclosing == dparent)
+            return false;
+
+        /* Select the more deeply nested of the two.
+         * Error if one is not nested inside the other.
+         */
+        for (Dsymbol p = enclosing; p; p = p.parent)
+        {
+            if (p == dparent)
+                return false; // enclosing is most nested
+        }
+        for (Dsymbol p = dparent; p; p = p.parent)
+        {
+            if (p == enclosing)
+            {
+                enclosing = dparent;
+                return false; // dparent is most nested
+            }
+        }
+        //https://issues.dlang.org/show_bug.cgi?id=17870
+        auto pc = dparent.isClassDeclaration();
+        auto ec = enclosing.isClassDeclaration();
+        if (pc && ec)
+        {
+            if (pc.isBaseOf(ec, null))
+                return false;
+            else if (ec.isBaseOf(pc, null))
+            {
+                enclosing = dparent;
+                return false;
+            }
+        }
+        return true;
+    }
+    int search2(Dsymbol sa)
+    {
+        Dsymbol dparent = sa.toParent2();
+        if (search(dparent, _this.enclosing))
+        {
+            .error(_this.loc, "%s `%s` `%s` is nested in both `%s` and `%s`",
+                   _this.kind, _this.toPrettyChars(), _this.toChars(),
+                   _this.enclosing.toChars(), dparent.toChars());
+            _this.errors = true;
+        }
+        //printf("\tnested inside %s as it references %s\n", enclosing.toChars(), sa.toChars());
+        return 1;
+    }
+    int dsym(Dsymbol sa)
+    {
+        sa = sa.toAlias();
+        TemplateDeclaration td = sa.isTemplateDeclaration();
+        if (td)
+        {
+            TemplateInstance ti = sa.toParent().isTemplateInstance();
+            if (ti && ti.enclosing)
+                sa = ti;
+        }
+        TemplateInstance ti = sa.isTemplateInstance();
+        Declaration d = sa.isDeclaration();
+        if (td && td.literal)
+            return search2(sa);
+        if (ti && ti.enclosing)
+            return search2(sa);
+        if (d && !d.isDataseg()
+              && !(d.storage_class & STC.manifest)
+              && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested())
+              && !_this.isTemplateMixin())
+        {
+            return search2(sa);
+        }
+        return 0;
+    }
+    /* A nested instance happens when an argument references a local
+     * symbol that is on the stack.
+     */
+    foreach (o; *args)
+    {
+        if (Dsymbol sa = isDsymbol(o))
+        {
+            nested |= dsym(sa);
+            continue;
+        }
+        else if (Tuple va = isTuple(o))
+        {
+            nested |= cast(int)_this.hasNestedArgs(&va.objects, isstatic);
+            continue;
+        }
+        Expression ea = isExpression(o);
+        if (!ea)
+            continue;
+
+        if (auto ve = ea.isVarExp())
+        {
+            nested |= dsym(ve.var);
+            continue;
+        }
+        if (auto te = ea.isThisExp())
+        {
+            nested |= dsym(te.var);
+            continue;
+        }
+        if (auto fe = ea.isFuncExp())
+        {
+            nested |= dsym(fe.td? fe.td : fe.fd);
+            continue;
+        }
+        // Emulate Expression.toMangleBuffer call that had exist in TemplateInstance.genIdent.
+        if (ea.op != EXP.int64 && ea.op != EXP.float64 && ea.op != EXP.complex80 && ea.op != EXP.null_ && ea.op != EXP.string_ && ea.op != EXP.arrayLiteral && ea.op != EXP.assocArrayLiteral && ea.op != EXP.structLiteral)
+        {
+            if (!ea.type.isTypeError())
+                .error(ea.loc, "%s `%s` expression `%s` is not a valid template value argument", _this.kind, _this.toPrettyChars, ea.toChars());
+            _this.errors = true;
+        }
+    }
+    //printf("-TemplateInstance.hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
+    return nested != 0;
+}
+
 /************************************
  * Computes hash of expression.
  * Handles all Expression classes and MUST match their equals method,
@@ -4762,22 +4912,21 @@ private MATCH deduceAliasThis(Type t, Scope* sc, Type tparam,
 private MATCH deduceParentInstance(Scope* sc, Dsymbol sym, TypeInstance tpi,
     ref TemplateParameters parameters, ref Objects dedtypes, uint* wm)
 {
-    if (tpi.idents.length)
-    {
-        RootObject id = tpi.idents[tpi.idents.length - 1];
-        if (id.dyncast() == DYNCAST.identifier && sym.ident.equals(cast(Identifier)id))
-        {
-            Type tparent = dmd.dsymbolsem.getType(sym.parent);
-            if (tparent)
-            {
-                tpi.idents.length--;
-                auto m = deduceType(tparent, sc, tpi, parameters, dedtypes, wm);
-                tpi.idents.length++;
-                return m;
-            }
-        }
-    }
-    return MATCH.nomatch;
+    if (!tpi.idents.length)
+        return MATCH.nomatch;
+
+    RootObject id = tpi.idents[tpi.idents.length - 1];
+    if (id.dyncast() != DYNCAST.identifier || !sym.ident.equals(cast(Identifier)id))
+        return MATCH.nomatch;
+
+    Type tparent = dmd.dsymbolsem.getType(sym.parent);
+    if (!tparent)
+        return MATCH.nomatch;
+
+    tpi.idents.length--;
+    auto m = deduceType(tparent, sc, tpi, parameters, dedtypes, wm);
+    tpi.idents.length++;
+    return m;
 }
 
 private MATCH matchAll(TypeDeduced td, Type tt)
@@ -6014,54 +6163,53 @@ private bool deduceFunctionTuple(TypeFunction t, TypeFunction tp,
     ref TemplateParameters parameters, ref Objects dedtypes,
     size_t nfargs, ref size_t nfparams)
 {
-    if (nfparams > 0 && nfargs >= nfparams - 1)
+    if (nfparams == 0 || nfargs < nfparams - 1)
+        return nfargs == nfparams;
+
+    Parameter fparam = tp.parameterList[nfparams - 1];
+    assert(fparam && fparam.type);
+    if (fparam.type.ty != Tident)
+        return nfargs == nfparams;
+
+    TypeIdentifier tid = fparam.type.isTypeIdentifier();
+    if (tid.idents.length != 0)
+        return nfargs == nfparams;
+
+    size_t tupi = 0;
+    for (; tupi < parameters.length; ++tupi)
     {
-        Parameter fparam = tp.parameterList[nfparams - 1];
-        assert(fparam && fparam.type);
-        if (fparam.type.ty == Tident)
+        TemplateParameter tx = parameters[tupi];
+        TemplateTupleParameter tup = tx.isTemplateTupleParameter();
+        if (tup && tup.ident.equals(tid.ident))
+            break;
+    }
+    if (tupi == parameters.length)
+        return nfargs == nfparams;
+
+    size_t tuple_dim = nfargs - (nfparams - 1);
+
+    RootObject o = dedtypes[tupi];
+    if (o)
+    {
+        Tuple tup = isTuple(o);
+        if (!tup || tup.objects.length != tuple_dim)
+            return false;
+        for (size_t i = 0; i < tuple_dim; ++i)
         {
-            TypeIdentifier tid = fparam.type.isTypeIdentifier();
-            if (tid.idents.length == 0)
-            {
-                size_t tupi = 0;
-                for (; tupi < parameters.length; ++tupi)
-                {
-                    TemplateParameter tx = parameters[tupi];
-                    TemplateTupleParameter tup = tx.isTemplateTupleParameter();
-                    if (tup && tup.ident.equals(tid.ident))
-                        break;
-                }
-                if (tupi == parameters.length)
-                    return nfargs == nfparams;
-
-                size_t tuple_dim = nfargs - (nfparams - 1);
-
-                RootObject o = dedtypes[tupi];
-                if (o)
-                {
-                    Tuple tup = isTuple(o);
-                    if (!tup || tup.objects.length != tuple_dim)
-                        return false;
-                    for (size_t i = 0; i < tuple_dim; ++i)
-                    {
-                        if (!rootObjectsEqual(t.parameterList[nfparams - 1 + i].type,
-                                              tup.objects[i]))
-                            return false;
-                    }
-                }
-                else
-                {
-                    auto tup = new Tuple(tuple_dim);
-                    for (size_t i = 0; i < tuple_dim; ++i)
-                        tup.objects[i] = t.parameterList[nfparams - 1 + i].type;
-                    dedtypes[tupi] = tup;
-                }
-                --nfparams; // ignore tuple parameter for further deduction
-                return true;
-            }
+            if (!rootObjectsEqual(t.parameterList[nfparams - 1 + i].type,
+                                  tup.objects[i]))
+                return false;
         }
     }
-    return nfargs == nfparams;
+    else
+    {
+        auto tup = new Tuple(tuple_dim);
+        for (size_t i = 0; i < tuple_dim; ++i)
+            tup.objects[i] = t.parameterList[nfparams - 1 + i].type;
+        dedtypes[tupi] = tup;
+    }
+    --nfparams; // ignore tuple parameter for further deduction
+    return true;
 }
 
 /********************
