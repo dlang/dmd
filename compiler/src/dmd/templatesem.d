@@ -5984,54 +5984,53 @@ private bool deduceFunctionTuple(TypeFunction t, TypeFunction tp,
     ref TemplateParameters parameters, ref Objects dedtypes,
     size_t nfargs, ref size_t nfparams)
 {
-    if (nfparams > 0 && nfargs >= nfparams - 1)
+    if (nfparams == 0 || nfargs < nfparams - 1)
+        return nfargs == nfparams;
+
+    Parameter fparam = tp.parameterList[nfparams - 1];
+    assert(fparam && fparam.type);
+    if (fparam.type.ty != Tident)
+        return nfargs == nfparams;
+
+    TypeIdentifier tid = fparam.type.isTypeIdentifier();
+    if (tid.idents.length != 0)
+        return nfargs == nfparams;
+
+    size_t tupi = 0;
+    for (; tupi < parameters.length; ++tupi)
     {
-        Parameter fparam = tp.parameterList[nfparams - 1];
-        assert(fparam && fparam.type);
-        if (fparam.type.ty == Tident)
+        TemplateParameter tx = parameters[tupi];
+        TemplateTupleParameter tup = tx.isTemplateTupleParameter();
+        if (tup && tup.ident.equals(tid.ident))
+            break;
+    }
+    if (tupi == parameters.length)
+        return nfargs == nfparams;
+
+    size_t tuple_dim = nfargs - (nfparams - 1);
+
+    RootObject o = dedtypes[tupi];
+    if (o)
+    {
+        Tuple tup = isTuple(o);
+        if (!tup || tup.objects.length != tuple_dim)
+            return false;
+        for (size_t i = 0; i < tuple_dim; ++i)
         {
-            TypeIdentifier tid = fparam.type.isTypeIdentifier();
-            if (tid.idents.length == 0)
-            {
-                size_t tupi = 0;
-                for (; tupi < parameters.length; ++tupi)
-                {
-                    TemplateParameter tx = parameters[tupi];
-                    TemplateTupleParameter tup = tx.isTemplateTupleParameter();
-                    if (tup && tup.ident.equals(tid.ident))
-                        break;
-                }
-                if (tupi == parameters.length)
-                    return nfargs == nfparams;
-
-                size_t tuple_dim = nfargs - (nfparams - 1);
-
-                RootObject o = dedtypes[tupi];
-                if (o)
-                {
-                    Tuple tup = isTuple(o);
-                    if (!tup || tup.objects.length != tuple_dim)
-                        return false;
-                    for (size_t i = 0; i < tuple_dim; ++i)
-                    {
-                        if (!rootObjectsEqual(t.parameterList[nfparams - 1 + i].type,
-                                              tup.objects[i]))
-                            return false;
-                    }
-                }
-                else
-                {
-                    auto tup = new Tuple(tuple_dim);
-                    for (size_t i = 0; i < tuple_dim; ++i)
-                        tup.objects[i] = t.parameterList[nfparams - 1 + i].type;
-                    dedtypes[tupi] = tup;
-                }
-                --nfparams; // ignore tuple parameter for further deduction
-                return true;
-            }
+            if (!rootObjectsEqual(t.parameterList[nfparams - 1 + i].type,
+                                  tup.objects[i]))
+                return false;
         }
     }
-    return nfargs == nfparams;
+    else
+    {
+        auto tup = new Tuple(tuple_dim);
+        for (size_t i = 0; i < tuple_dim; ++i)
+            tup.objects[i] = t.parameterList[nfparams - 1 + i].type;
+        dedtypes[tupi] = tup;
+    }
+    --nfparams; // ignore tuple parameter for further deduction
+    return true;
 }
 
 /********************
