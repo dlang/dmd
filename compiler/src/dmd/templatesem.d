@@ -59,6 +59,156 @@ alias funcLeastAsSpecialized = dmd.funcsem.leastAsSpecialized;
 
 enum LOG = false;
 
+/*****************************************
+ * Determines if a TemplateInstance will need a nested
+ * generation of the TemplateDeclaration.
+ * Sets enclosing property if so, and returns != 0;
+ */
+bool hasNestedArgs(TemplateInstance _this, Objects* args, bool isstatic)
+{
+    int nested = 0;
+    //printf("TemplateInstance.hasNestedArgs('%s')\n", tempdecl.ident.toChars());
+
+    // arguments from parent instances are also accessible
+    if (!_this.enclosing)
+    {
+        if (TemplateInstance ti = _this.tempdecl.toParent().isTemplateInstance())
+            _this.enclosing = ti.enclosing;
+    }
+
+    /* Search for the most deeply nested of `dparent` and `enclosing` assigning
+     * `dparent` to `enclosing` if `dparent` is more nested than `enclosing`.
+     *
+     * Returns:
+     *  `true` if an error should be reported
+     */
+    static bool search(Dsymbol dparent, ref Dsymbol enclosing)
+    {
+        if (!dparent || dparent.isModule)
+            return false;
+        if (!enclosing)
+        {
+            enclosing = dparent;
+            return false;
+        }
+        if (enclosing == dparent)
+            return false;
+
+        /* Select the more deeply nested of the two.
+         * Error if one is not nested inside the other.
+         */
+        for (Dsymbol p = enclosing; p; p = p.parent)
+        {
+            if (p == dparent)
+                return false; // enclosing is most nested
+        }
+        for (Dsymbol p = dparent; p; p = p.parent)
+        {
+            if (p == enclosing)
+            {
+                enclosing = dparent;
+                return false; // dparent is most nested
+            }
+        }
+        //https://issues.dlang.org/show_bug.cgi?id=17870
+        auto pc = dparent.isClassDeclaration();
+        auto ec = enclosing.isClassDeclaration();
+        if (pc && ec)
+        {
+            if (pc.isBaseOf(ec, null))
+                return false;
+            else if (ec.isBaseOf(pc, null))
+            {
+                enclosing = dparent;
+                return false;
+            }
+        }
+        return true;
+    }
+    int search2(Dsymbol sa)
+    {
+        Dsymbol dparent = sa.toParent2();
+        if (search(dparent, _this.enclosing))
+        {
+            .error(_this.loc, "%s `%s` `%s` is nested in both `%s` and `%s`",
+                   _this.kind, _this.toPrettyChars(), _this.toChars(),
+                   _this.enclosing.toChars(), dparent.toChars());
+            _this.errors = true;
+        }
+        //printf("\tnested inside %s as it references %s\n", enclosing.toChars(), sa.toChars());
+        return 1;
+    }
+    int dsym(Dsymbol sa)
+    {
+        sa = sa.toAlias();
+        TemplateDeclaration td = sa.isTemplateDeclaration();
+        if (td)
+        {
+            TemplateInstance ti = sa.toParent().isTemplateInstance();
+            if (ti && ti.enclosing)
+                sa = ti;
+        }
+        TemplateInstance ti = sa.isTemplateInstance();
+        Declaration d = sa.isDeclaration();
+        if (td && td.literal)
+            return search2(sa);
+        if (ti && ti.enclosing)
+            return search2(sa);
+        if (d && !d.isDataseg()
+              && !(d.storage_class & STC.manifest)
+              && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested())
+              && !_this.isTemplateMixin())
+        {
+            return search2(sa);
+        }
+        return 0;
+    }
+    /* A nested instance happens when an argument references a local
+     * symbol that is on the stack.
+     */
+    foreach (o; *args)
+    {
+        if (Dsymbol sa = isDsymbol(o))
+        {
+            nested |= dsym(sa);
+            continue;
+        }
+        else if (Tuple va = isTuple(o))
+        {
+            nested |= cast(int)_this.hasNestedArgs(&va.objects, isstatic);
+            continue;
+        }
+        Expression ea = isExpression(o);
+        if (!ea)
+            continue;
+
+        if (auto ve = ea.isVarExp())
+        {
+            nested |= dsym(ve.var);
+            continue;
+        }
+        if (auto te = ea.isThisExp())
+        {
+            nested |= dsym(te.var);
+            continue;
+        }
+        if (auto fe = ea.isFuncExp())
+        {
+            nested |= dsym(fe.td? fe.td : fe.fd);
+            continue;
+        }
+        // Emulate Expression.toMangleBuffer call that had exist in TemplateInstance.genIdent.
+        if (ea.op != EXP.int64 && ea.op != EXP.float64 && ea.op != EXP.complex80 && ea.op != EXP.null_ && ea.op != EXP.string_ && ea.op != EXP.arrayLiteral && ea.op != EXP.assocArrayLiteral && ea.op != EXP.structLiteral)
+        {
+            if (!ea.type.isTypeError())
+                .error(ea.loc, "%s `%s` expression `%s` is not a valid template value argument", _this.kind, _this.toPrettyChars, ea.toChars());
+            _this.errors = true;
+        }
+    }
+    //printf("-TemplateInstance.hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
+    return nested != 0;
+}
+
 /************************************
  * Perform semantic analysis on template.
  * Params:
