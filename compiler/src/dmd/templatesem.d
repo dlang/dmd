@@ -700,7 +700,7 @@ private bool arrayObjectMatch(ref Objects oa1, ref Objects oa2)
  * Returns:
  *  true for match
  */
-bool equalsx(TemplateInstance ti1, TemplateInstance ti2)
+private bool equalsx(TemplateInstance ti1, TemplateInstance ti2)
 {
     //printf("this = %p, ti2 = %p\n", this, ti2);
     assert(ti1.tdtypes.length == ti2.tdtypes.length);
@@ -6438,7 +6438,7 @@ private Expression getValue(Expression e)
     return e;
 }
 
-Expression getExpression(RootObject o)
+private Expression getExpression(RootObject o)
 {
     auto s = isDsymbol(o);
     return s ? .getValue(s) : .getValue(isExpression(o));
