@@ -6133,7 +6133,8 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
     // Try AliasSeq optimization
     if (auto ti = ds.type.isTypeInstance())
     {
-        if (!ti.tempinst.findTempDecl(sc, null))
+        import dmd.templatesem : findTempDecl;
+        if (!findTempDecl(ti.tempinst, sc, null))
             return errorRet();
         if (auto tempinst = isAliasSeq(sc, ti))
         {
