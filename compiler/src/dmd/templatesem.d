@@ -170,7 +170,6 @@ private size_t arrayObjectHash(ref Objects oa1)
     return hash;
 }
 
-
 size_t toHash(TemplateInstance _this)
 {
     if (!_this.hash)
