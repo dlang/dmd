@@ -372,19 +372,20 @@ $(H2 $(LNAME2 implementation, Implementation))
 
     $(H3 $(LNAME2 enums, Enums))
 
-    $(P $(I enumeration-constants) are always typed as `int`.)
+    $(P $(I enumeration-constants) are always typed as integers.)
 
     $(P The expression that defines the value of an $(I enumeration-constant) must
-    be an integral type and evaluate to an integer value that fits in an `int`.)
+    be an integer. if an underlying `int` is specified in the enumeration,
+    the defining expression must evaluate to a value that fits in an `int`.
+    if no underlying `int` is specfied, the compiler chooses a large enough
+    integer type to accomodate the size of the expression.)
 
     ---
     enum E { a = -10, b = 0x81231234 }; // ok
-    enum F { c =  0x812312345678 }; // error, doesn't fit in int
+    enum F { c =  0x812312345678 }; // ok, c expands to 8 byte to accomodate expression
+    enum G : int { c = 0x80000000 }; // error, doesn't fit in int
     enum G { d = 1.0 };             // error, not integral type
     ---
-
-    $(P The enumerated type is `int`.)
-
 
     $(H3 $(LNAME2 bitfields, Bit Fields))
 
