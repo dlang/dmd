@@ -4732,22 +4732,21 @@ private MATCH deduceAliasThis(Type t, Scope* sc, Type tparam,
 private MATCH deduceParentInstance(Scope* sc, Dsymbol sym, TypeInstance tpi,
     ref TemplateParameters parameters, ref Objects dedtypes, uint* wm)
 {
-    if (tpi.idents.length)
-    {
-        RootObject id = tpi.idents[tpi.idents.length - 1];
-        if (id.dyncast() == DYNCAST.identifier && sym.ident.equals(cast(Identifier)id))
-        {
-            Type tparent = dmd.dsymbolsem.getType(sym.parent);
-            if (tparent)
-            {
-                tpi.idents.length--;
-                auto m = deduceType(tparent, sc, tpi, parameters, dedtypes, wm);
-                tpi.idents.length++;
-                return m;
-            }
-        }
-    }
-    return MATCH.nomatch;
+    if (!tpi.idents.length)
+        return MATCH.nomatch;
+
+    RootObject id = tpi.idents[tpi.idents.length - 1];
+    if (id.dyncast() != DYNCAST.identifier || !sym.ident.equals(cast(Identifier)id))
+        return MATCH.nomatch;
+
+    Type tparent = dmd.dsymbolsem.getType(sym.parent);
+    if (!tparent)
+        return MATCH.nomatch;
+
+    tpi.idents.length--;
+    auto m = deduceType(tparent, sc, tpi, parameters, dedtypes, wm);
+    tpi.idents.length++;
+    return m;
 }
 
 private MATCH matchAll(TypeDeduced td, Type tt)
