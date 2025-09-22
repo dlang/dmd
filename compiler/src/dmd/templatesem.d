@@ -4072,10 +4072,27 @@ FuncDeclaration doHeaderInstantiation(TemplateDeclaration td, TemplateInstance t
     return fd;
 }
 
+/****************************************************
+ * Declare parameters of template instance, initialize them with the
+ * template instance arguments.
+ */
+void declareParameters(TemplateInstance ti, Scope* sc)
+{
+    TemplateDeclaration tempdecl = ti.tempdecl.isTemplateDeclaration();
+    assert(tempdecl);
+
+    //printf("TemplateInstance.declareParameters()\n");
+    foreach (i, o; ti.tdtypes) // initializer for tp
+    {
+        TemplateParameter tp = (*tempdecl.parameters)[i];
+        //printf("\ttdtypes[%d] = %p\n", i, o);
+        declareParameter(tempdecl, sc, tp, o);
+    }
+}
 /**************************************************
  * Declare template parameter tp with value o, and install it in the scope sc.
  */
-RootObject declareParameter(TemplateDeclaration td, Scope* sc, TemplateParameter tp, RootObject o)
+private RootObject declareParameter(TemplateDeclaration td, Scope* sc, TemplateParameter tp, RootObject o)
 {
     //printf("TemplateDeclaration.declareParameter('%s', o = %p)\n", tp.ident.toChars(), o);
     Type ta = isType(o);
