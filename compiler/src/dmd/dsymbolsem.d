@@ -5827,31 +5827,6 @@ Dsymbol toParentP(Dsymbol d, Dsymbol p1, Dsymbol p2 = null)
     return followInstantiationContext(d, p1, p2) ? d.toParent2() : d.toParentLocal();
 }
 
-/******************************************************
- * Verifies if the given Identifier is a DRuntime hook. It uses the hooks
- * defined in `id.d`.
- *
- * Params:
- *  id = Identifier to verify
- * Returns:
- *  true if `id` is a DRuntime hook
- *  false otherwise
- */
-private bool isDRuntimeHook(Identifier id)
-{
-    return id == Id._d_HookTraceImpl ||
-        id == Id._d_newclassT || id == Id._d_newclassTTrace ||
-        id == Id._d_arraycatnTX || id == Id._d_arraycatnTXTrace ||
-        id == Id._d_newThrowable || id == Id._d_delThrowable ||
-        id == Id._d_arrayassign_l || id == Id._d_arrayassign_r ||
-        id == Id._d_arraysetassign || id == Id._d_arraysetctor ||
-        id == Id._d_arrayctor ||
-        id == Id._d_arraysetlengthT ||
-        id == Id._d_arraysetlengthTTrace ||
-        id == Id._d_arrayappendT || id == Id._d_arrayappendTTrace ||
-        id == Id._d_arrayappendcTX;
-}
-
 // function used to perform semantic on AliasDeclaration
 void aliasSemantic(AliasDeclaration ds, Scope* sc)
 {

@@ -25,6 +25,7 @@ import dmd.declaration;
 import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
+import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
@@ -51,6 +52,7 @@ import dmd.rootobject;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.templateparamsem;
+import dmd.timetrace;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
@@ -1444,7 +1446,7 @@ bool findTempDecl(TemplateInstance ti, Scope* sc, WithScopeSymbol* pwithsym)
     return true;
 }
 
-private bool findMixinTempDecl(TemplateMixin tm, Scope* sc)
+bool findMixinTempDecl(TemplateMixin tm, Scope* sc)
 {
     // Follow qualifications to find the TemplateDeclaration
     if (!tm.tempdecl)
@@ -1518,6 +1520,32 @@ private bool findMixinTempDecl(TemplateMixin tm, Scope* sc)
     }
     return true;
 }
+
+/******************************************************
+ * Verifies if the given Identifier is a DRuntime hook. It uses the hooks
+ * defined in `id.d`.
+ *
+ * Params:
+ *  id = Identifier to verify
+ * Returns:
+ *  true if `id` is a DRuntime hook
+ *  false otherwise
+ */
+private bool isDRuntimeHook(Identifier id)
+{
+    return id == Id._d_HookTraceImpl ||
+        id == Id._d_newclassT || id == Id._d_newclassTTrace ||
+        id == Id._d_arraycatnTX || id == Id._d_arraycatnTXTrace ||
+        id == Id._d_newThrowable || id == Id._d_delThrowable ||
+        id == Id._d_arrayassign_l || id == Id._d_arrayassign_r ||
+        id == Id._d_arraysetassign || id == Id._d_arraysetctor ||
+        id == Id._d_arrayctor ||
+        id == Id._d_arraysetlengthT ||
+        id == Id._d_arraysetlengthTTrace ||
+        id == Id._d_arrayappendT || id == Id._d_arrayappendTTrace ||
+        id == Id._d_arrayappendcTX;
+}
+
 /******************************
  * See if two objects match
  * Params:
