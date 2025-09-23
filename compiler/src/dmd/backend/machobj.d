@@ -2032,15 +2032,15 @@ int MachObj_thread_vars(ref Symbol s, out targ_size_t offset, bool bss)
     {
         MachObj_tlsseg_bss();
         si.Sseg = seg_tlsseg_bss;
-        offset = SegData[si.Sseg].SDoffset; // don't overlap
     }
     else
     {
         MachObj_tlsseg_data();
         si.Sseg = seg_tlsseg_data;
-        offset = SegData[si.Sseg].SDbuf.length();
     }
     si.Sfl = FL.tlsdata;
+    MachObj_data_start(si, 0,si.Sseg);
+    offset = SegData[si.Sseg].SDoffset;
     MachObj_pubdef(si.Sseg, si, offset);
 
     /* Create __thread_vars section, and s will refer to it
