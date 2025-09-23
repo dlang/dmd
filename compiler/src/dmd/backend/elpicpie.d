@@ -399,7 +399,7 @@ private elem* el_picvar_OSX(Symbol* s)
     int x;
 
     if (log) printf("el_picvar(s = '%s') Sclass = %s\n", s.Sident.ptr, class_str(s.Sclass));
-    //symbol_print(s);
+    //symbol_print(*s);
     symbol_debug(s);
     type_debug(s.Stype);
     e = el_calloc();
@@ -437,6 +437,13 @@ private elem* el_picvar_OSX(Symbol* s)
             }
             else
                 x = 1;
+            if (config.target_cpu == TARGET_AArch64)
+            {
+                if (s.Stype.Tty & mTYthread)
+                    x = 1;
+                else
+                    x = 0;
+            }
 
         case_got:
         {

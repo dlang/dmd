@@ -2040,7 +2040,7 @@ int MachObj_thread_vars(ref Symbol s, out targ_size_t offset, bool bss)
     }
     si.Sfl = FL.tlsdata;
     MachObj_data_start(si, 0,si.Sseg);
-    offset = SegData[si.Sseg].SDbuf.length();
+    offset = SegData[si.Sseg].SDoffset;
     MachObj_pubdef(si.Sseg, si, offset);
 
     /* Create __thread_vars section, and s will refer to it
