@@ -6081,8 +6081,7 @@ private TemplateInstance addInstance(TemplateDeclaration td, TemplateInstance ti
 {
     //printf("addInstance() %p %s\n", instances, ti.toChars());
     auto tibox = TemplateInstanceBox(ti);
-    auto instances = cast(TemplateInstance[TemplateInstanceBox])td.instances;
-    instances[tibox] = ti;
+    (cast(TemplateInstance[TemplateInstanceBox])td.instances)[tibox] = ti;
     debug (FindExistingInstance) ++nAdded;
     return ti;
 }
@@ -6758,12 +6757,11 @@ Laftersemantic:
          */
         //printf("replaceInstance()\n");
         assert(errinst.errors);
-        auto instances = cast(TemplateInstance[TemplateInstanceBox])tempdecl.instances;
         auto ti1 = TemplateInstanceBox(errinst);
-        instances.remove(ti1);
+        (cast(TemplateInstance[TemplateInstanceBox])tempdecl.instances).remove(ti1);
 
         auto ti2 = TemplateInstanceBox(tempinst);
-        instances[ti2] = tempinst;
+        (cast(TemplateInstance[TemplateInstanceBox])tempdecl.instances)[ti2] = tempinst;
     }
 
     static if (LOG)
