@@ -51,7 +51,7 @@ import dmd.root.array;
 import dmd.root.speller;
 import dmd.root.stringtable;
 import dmd.target;
-import dmd.templatesem : TemplateInstance_semanticTiargs;
+import dmd.templatesem : TemplateInstance_semanticTiargs, TemplateInstanceBox;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;

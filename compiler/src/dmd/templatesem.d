@@ -62,6 +62,64 @@ alias funcLeastAsSpecialized = dmd.funcsem.leastAsSpecialized;
 enum LOG = false;
 
 /************************************
+ * This struct is needed for TemplateInstance to be the key in an associative array.
+ * Fixing https://issues.dlang.org/show_bug.cgi?id=15813 would make it unnecessary.
+ */
+struct TemplateInstanceBox
+{
+    TemplateInstance ti;
+
+    this(TemplateInstance ti)
+    {
+        this.ti = ti;
+        this.ti.toHash();
+        assert(this.ti.hash);
+    }
+
+    size_t toHash() const @safe pure nothrow
+    {
+        assert(ti.hash);
+        return ti.hash;
+    }
+
+    bool opEquals(ref const TemplateInstanceBox s) @trusted const
+    {
+        bool res = void;
+        if (ti.inst && s.ti.inst)
+        {
+            /* This clause is only used when an instance with errors
+             * is replaced with a correct instance.
+             */
+            res = ti is s.ti;
+        }
+        else
+        {
+            /* Used when a proposed instance is used to see if there's
+             * an existing instance.
+             */
+            static if (__VERSION__ < 2099) // https://issues.dlang.org/show_bug.cgi?id=22717
+                res = (cast()s.ti).equalsx(cast()ti);
+            else
+                res = (cast()ti).equalsx(cast()s.ti);
+        }
+
+        debug (FindExistingInstance) ++(res ? nHits : nCollisions);
+        return res;
+    }
+
+    debug (FindExistingInstance)
+    {
+        __gshared uint nHits, nCollisions;
+
+        shared static ~this()
+        {
+            printf("debug (FindExistingInstance) TemplateInstanceBox.equals hits: %u collisions: %u\n",
+                   nHits, nCollisions);
+        }
+    }
+}
+
+/************************************
  * Perform semantic analysis on template.
  * Params:
  *      sc = context
@@ -1691,7 +1749,7 @@ private bool arrayObjectMatch(ref Objects oa1, ref Objects oa2)
  * Returns:
  *  true for match
  */
-bool equalsx(TemplateInstance ti1, TemplateInstance ti2)
+private bool equalsx(TemplateInstance ti1, TemplateInstance ti2)
 {
     //printf("this = %p, ti2 = %p\n", this, ti2);
     assert(ti1.tdtypes.length == ti2.tdtypes.length);
