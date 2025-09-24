@@ -51,7 +51,7 @@ import dmd.root.array;
 import dmd.root.speller;
 import dmd.root.stringtable;
 import dmd.target;
-import dmd.templatesem : TemplateInstance_semanticTiargs;
+import dmd.templatesem : TemplateInstance_semanticTiargs, TemplateInstanceBox;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
@@ -1198,8 +1198,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                             // create an empty AA just to copy it
                             scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
                             auto tib = TemplateInstanceBox(ti);
-                            td.instances[tib] = null;
-                            td.instances.clear();
+                            auto instances = (cast(TemplateInstance[TemplateInstanceBox]) td.instances);
+                            instances[tib] = null;
+                            instances.clear();
                         }
                         td = td.syntaxCopy(null);
                         import core.stdc.string : memcpy;

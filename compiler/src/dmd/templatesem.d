@@ -62,6 +62,186 @@ alias funcLeastAsSpecialized = dmd.funcsem.leastAsSpecialized;
 enum LOG = false;
 
 /************************************
+ * Computes hash of expression.
+ * Handles all Expression classes and MUST match their equals method,
+ * i.e. e1.equals(e2) implies expressionHash(e1) == expressionHash(e2).
+ */
+private size_t expressionHash(Expression e)
+{
+    import dmd.root.ctfloat : CTFloat;
+    import dmd.root.hash : calcHash, mixHash;
+
+    switch (e.op)
+    {
+    case EXP.int64:
+        return cast(size_t) e.isIntegerExp().getInteger();
+
+    case EXP.float64:
+        return CTFloat.hash(e.isRealExp().value);
+
+    case EXP.complex80:
+        auto ce = e.isComplexExp();
+        return mixHash(CTFloat.hash(ce.toReal), CTFloat.hash(ce.toImaginary));
+
+    case EXP.identifier:
+        return cast(size_t)cast(void*) e.isIdentifierExp().ident;
+
+    case EXP.null_:
+        return cast(size_t)cast(void*) e.isNullExp().type;
+
+    case EXP.string_:
+        return calcHash(e.isStringExp.peekData());
+
+    case EXP.tuple:
+    {
+        auto te = e.isTupleExp();
+        size_t hash = 0;
+        hash += te.e0 ? expressionHash(te.e0) : 0;
+        foreach (elem; *te.exps)
+            hash = mixHash(hash, expressionHash(elem));
+        return hash;
+    }
+
+    case EXP.arrayLiteral:
+    {
+        auto ae = e.isArrayLiteralExp();
+        size_t hash;
+        foreach (i; 0 .. ae.elements.length)
+            hash = mixHash(hash, expressionHash(ae[i]));
+        return hash;
+    }
+
+    case EXP.assocArrayLiteral:
+    {
+        auto ae = e.isAssocArrayLiteralExp();
+        size_t hash;
+        foreach (i; 0 .. ae.keys.length)
+            // reduction needs associative op as keys are unsorted (use XOR)
+            hash ^= mixHash(expressionHash((*ae.keys)[i]), expressionHash((*ae.values)[i]));
+        return hash;
+    }
+
+    case EXP.structLiteral:
+    {
+        auto se = e.isStructLiteralExp();
+        size_t hash;
+        foreach (elem; *se.elements)
+            hash = mixHash(hash, elem ? expressionHash(elem) : 0);
+        return hash;
+    }
+
+    case EXP.variable:
+        return cast(size_t)cast(void*) e.isVarExp().var;
+
+    case EXP.function_:
+        return cast(size_t)cast(void*) e.isFuncExp().fd;
+
+    default:
+        // no custom equals for this expression
+        //assert((&e.equals).funcptr is &Expression.equals);
+        // equals based on identity
+        return cast(size_t)cast(void*) e;
+    }
+}
+
+/************************************
+ * Return hash of Objects.
+ */
+private size_t arrayObjectHash(ref Objects oa1)
+{
+    import dmd.root.hash : mixHash;
+
+    size_t hash = 0;
+    foreach (o1; oa1)
+    {
+        /* Must follow the logic of match()
+         */
+        if (auto t1 = isType(o1))
+            hash = mixHash(hash, cast(size_t)t1.deco);
+        else if (auto e1 = getExpression(o1))
+            hash = mixHash(hash, expressionHash(e1));
+        else if (auto s1 = isDsymbol(o1))
+        {
+            if (auto fa1 = s1.isFuncAliasDeclaration())
+                s1 = fa1.toAliasFunc();
+            hash = mixHash(hash, mixHash(cast(size_t)cast(void*)s1.getIdent(), cast(size_t)cast(void*)s1.parent));
+        }
+        else if (auto u1 = isTuple(o1))
+            hash = mixHash(hash, arrayObjectHash(u1.objects));
+    }
+    return hash;
+}
+
+size_t toHash(TemplateInstance _this)
+{
+    if (!_this.hash)
+    {
+        _this.hash = cast(size_t)cast(void*)_this.enclosing;
+        _this.hash += arrayObjectHash(_this.tdtypes);
+        _this.hash += _this.hash == 0;
+    }
+    return _this.hash;
+}
+
+/************************************
+ * This struct is needed for TemplateInstance to be the key in an associative array.
+ * Fixing https://issues.dlang.org/show_bug.cgi?id=15813 would make it unnecessary.
+ */
+struct TemplateInstanceBox
+{
+    TemplateInstance ti;
+
+    this(TemplateInstance ti)
+    {
+        this.ti = ti;
+        this.ti.toHash();
+        assert(this.ti.hash);
+    }
+
+    size_t toHash() const @safe pure nothrow
+    {
+        assert(ti.hash);
+        return ti.hash;
+    }
+
+    bool opEquals(ref const TemplateInstanceBox s) @trusted const
+    {
+        bool res = void;
+        if (ti.inst && s.ti.inst)
+        {
+            /* This clause is only used when an instance with errors
+             * is replaced with a correct instance.
+             */
+            res = ti is s.ti;
+        }
+        else
+        {
+            /* Used when a proposed instance is used to see if there's
+             * an existing instance.
+             */
+            static if (__VERSION__ < 2099) // https://issues.dlang.org/show_bug.cgi?id=22717
+                res = (cast()s.ti).equalsx(cast()ti);
+            else
+                res = (cast()ti).equalsx(cast()s.ti);
+        }
+
+        debug (FindExistingInstance) ++(res ? nHits : nCollisions);
+        return res;
+    }
+
+    debug (FindExistingInstance)
+    {
+        __gshared uint nHits, nCollisions;
+
+        shared static ~this()
+        {
+            printf("debug (FindExistingInstance) TemplateInstanceBox.equals hits: %u collisions: %u\n",
+                   nHits, nCollisions);
+        }
+    }
+}
+
+/************************************
  * Perform semantic analysis on template.
  * Params:
  *      sc = context
@@ -303,6 +483,12 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     }
     TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
     assert(tempdecl);
+
+    if (tempdecl.instances is null)
+    {
+        auto inst = new TemplateInstance[TemplateInstanceBox];
+        tempdecl.instances = &inst;
+    }
 
     if (global.params.v.templates)
         TemplateStats.incInstance(tempdecl, tempinst, global.params.v.templatesListInstances);
@@ -871,10 +1057,10 @@ Laftersemantic:
         //printf("replaceInstance()\n");
         assert(errinst.errors);
         auto ti1 = TemplateInstanceBox(errinst);
-        tempdecl.instances.remove(ti1);
+        (*cast(TemplateInstance[TemplateInstanceBox]*)tempdecl.instances).remove(ti1);
 
         auto ti2 = TemplateInstanceBox(tempinst);
-        tempdecl.instances[ti2] = tempinst;
+        (*cast(TemplateInstance[TemplateInstanceBox]*)tempdecl.instances)[ti2] = tempinst;
     }
 
     static if (LOG)
@@ -1274,7 +1460,7 @@ private TemplateInstance findExistingInstance(TemplateDeclaration td, TemplateIn
     tithis.fargs = argumentList.arguments;
     tithis.fnames = argumentList.names;
     auto tibox = TemplateInstanceBox(tithis);
-    auto p = tibox in td.instances;
+    auto p = tibox in (*cast(TemplateInstance[TemplateInstanceBox]*)td.instances);
     debug (FindExistingInstance) ++(p ? nFound : nNotFound);
     //if (p) printf("\tfound %p\n", *p); else printf("\tnot found\n");
     return p ? *p : null;
@@ -1288,7 +1474,7 @@ private TemplateInstance addInstance(TemplateDeclaration td, TemplateInstance ti
 {
     //printf("addInstance() %p %s\n", instances, ti.toChars());
     auto tibox = TemplateInstanceBox(ti);
-    td.instances[tibox] = ti;
+    (*cast(TemplateInstance[TemplateInstanceBox]*) td.instances)[tibox] = ti;
     debug (FindExistingInstance) ++nAdded;
     return ti;
 }
@@ -1303,7 +1489,7 @@ private void removeInstance(TemplateDeclaration td, TemplateInstance ti)
     //printf("removeInstance() %s\n", ti.toChars());
     auto tibox = TemplateInstanceBox(ti);
     debug (FindExistingInstance) ++nRemoved;
-    td.instances.remove(tibox);
+    (*cast(TemplateInstance[TemplateInstanceBox]*)td.instances).remove(tibox);
 }
 
 /******************************************************
@@ -1691,7 +1877,7 @@ private bool arrayObjectMatch(ref Objects oa1, ref Objects oa2)
  * Returns:
  *  true for match
  */
-bool equalsx(TemplateInstance ti1, TemplateInstance ti2)
+private bool equalsx(TemplateInstance ti1, TemplateInstance ti2)
 {
     //printf("this = %p, ti2 = %p\n", this, ti2);
     assert(ti1.tdtypes.length == ti2.tdtypes.length);
@@ -7446,7 +7632,7 @@ private Expression getValue(Expression e)
     return e;
 }
 
-Expression getExpression(RootObject o)
+private Expression getExpression(RootObject o)
 {
     auto s = isDsymbol(o);
     return s ? .getValue(s) : .getValue(isExpression(o));
