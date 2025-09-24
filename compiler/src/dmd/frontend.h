@@ -1801,15 +1801,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-struct TemplateInstanceBox final
-{
-    TemplateInstance* ti;
-    TemplateInstanceBox() :
-        ti()
-    {
-    }
-};
-
 class TemplateMixin final : public TemplateInstance
 {
 public:
@@ -5694,7 +5685,6 @@ struct ASTCodegen final
     using TemplateAliasParameter = ::TemplateAliasParameter;
     using TemplateDeclaration = ::TemplateDeclaration;
     using TemplateInstance = ::TemplateInstance;
-    using TemplateInstanceBox = ::TemplateInstanceBox;
     using TemplateMixin = ::TemplateMixin;
     using TemplateParameter = ::TemplateParameter;
     using TemplatePrevious = ::TemplatePrevious;
