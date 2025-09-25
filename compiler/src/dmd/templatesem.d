@@ -184,18 +184,14 @@ struct TemplateInstanceBox
     this(TemplateInstance ti)
     {
         this.ti = ti;
-        this.toHash();
+        hash = cast(size_t)cast(void*)this.ti.enclosing;
+        hash += arrayObjectHash(this.ti.tdtypes);
+        hash += hash == 0;
         assert(this.hash);
     }
 
-    size_t toHash()
+    size_t toHash() const @safe pure nothrow
     {
-        if (!hash)
-        {
-            hash = cast(size_t)cast(void*)this.ti.enclosing;
-            hash += arrayObjectHash(this.ti.tdtypes);
-            hash += hash == 0;
-        }
         return hash;
     }
 
