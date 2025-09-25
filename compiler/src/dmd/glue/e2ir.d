@@ -5784,7 +5784,16 @@ elem* callfunc(Loc loc,
             e = el_una(OPucall, tyret, ec);
 
         if (tf.parameterList.varargs != VarArg.none)
-            e.Eflags |= EFLAGS_variadic;
+        {
+            if (I64 && config.exe != EX_WIN64)
+                e.Eflags |= EFLAGS_variadic;
+            if (config.exe == EX_OSX64 && target.isAArch64)
+            {
+                const length = tf.parameterList.length;
+                assert(length < ubyte.max); // 254 should be enough for anybody
+                e.numParams = cast(ubyte)(tf.parameterList.length + 1); // +1 means variadic
+            }
+        }
     }
 
     const isCPPCtor = fd && fd._linkage == LINK.cpp && fd.isCtorDeclaration();
