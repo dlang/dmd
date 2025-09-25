@@ -5271,8 +5271,47 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             error(cle.loc, "cannot convert initializer `%s` to expression", toChars(init));
             return setError();
         }
-        result = e;
-        return;
+
+        // leave these to be handled by their respective functions
+        if (e.isStringExp() || e.isStructLiteralExp() || e.isArrayLiteralExp() || e.isAssocArrayLiteralExp())
+        {
+            result = e;
+            return;
+        }
+
+        if (sc.func)
+        {
+            Expression e0;
+            auto ve = extractSideEffect(sc, "__cl", e0, e, true);
+
+            // export (int a = 5, a) so a doesn't forward ref
+            result = new CommaExp(cle.loc, e0, ve).expressionSemantic(sc);
+            return;
+        }
+        else //global variables
+        {
+            Identifier ident = Identifier.generateId("__cl");
+            auto tmp = new VarDeclaration(cle.loc, t, ident, new ExpInitializer(cle.loc, e));
+
+            // static const type ???
+            tmp.storage_class = STC.static_ | STC.const_ | STC.ctfe;
+
+            // for our global variables, we need them in our symbol table
+            if (sc._module)
+            {
+                sc._module.members.push(tmp);
+            }
+            else if (sc.minst)
+            {
+                sc.minst.members.push(tmp);
+            }
+
+            dsymbolSemantic(tmp, sc);
+
+            auto ve = new VarExp(cle.loc, tmp).expressionSemantic(sc);
+            result = ve;
+            return;
+        }
     }
 
     override void visit(TypeExp exp)
@@ -9181,7 +9220,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * since C regards string/array literals as lvalues
              */
             auto e = exp.e1;
-            if(e.isStringExp() || e.isArrayLiteralExp())
+            if (e.isStringExp() || e.isArrayLiteralExp())
             {
                 e.type = typeSemantic(e.type, Loc.initial, sc);
                 // if type is already a pointer exp is an illegal expression of the form `&(&"")`
