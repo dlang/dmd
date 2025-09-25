@@ -1772,7 +1772,6 @@ public:
     Dsymbol* aliasdecl;
     TemplateInstance* inst;
     ScopeDsymbol* argsym;
-    size_t hash;
     Array<Expression* >* fargs;
     Array<ArgumentLabel >* fnames;
     Array<TemplateInstance* >* deferred;
