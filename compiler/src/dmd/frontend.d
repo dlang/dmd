@@ -183,6 +183,7 @@ void deinitializeDMD()
     import dmd.objc : Objc;
     import dmd.target : target;
     import dmd.errors : diagnostics;
+    import dmd.dfa.fast.structure : DFAAllocator;
 
     diagnosticHandler = null;
     fatalErrorHandler = null;
@@ -198,6 +199,7 @@ void deinitializeDMD()
     Objc.deinitialize();
     Dsymbol.deinitialize();
     EscapeState.reset();
+    DFAAllocator.deinitialize();
 
     diagnostics.length = 0;
 }
