@@ -247,7 +247,6 @@ public:
     Dsymbol *aliasdecl;                 // !=NULL if instance is an alias for its sole member
     TemplateInstance *inst;             // refer to existing instance
     ScopeDsymbol *argsym;               // argument symbol table
-    hash_t hash;                        // cached result of toHash()
     Expressions *fargs;                 // for function template, these are the function arguments
     Identifiers *fnames;                // for function template, argument names
 
