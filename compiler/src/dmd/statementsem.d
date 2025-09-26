@@ -810,12 +810,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                             foreachParamCount = tf.parameterList.length;
                             foundMismatch = true;
 
-                            if (fs.aggr && fs.aggr.type && fd.vthis &&
-                                !MODmethodConv(fs.aggr.type.mod, fd.vthis.type.mod))
+                            if (fd.isThis() &&
+                                !MODmethodConv(fs.aggr.type.mod, fd.type.mod))
                             {
-                                auto tthis = fd.vthis.type;
                                 error(fs.loc, "%s method `%s` is not callable using a `%s` foreach aggregate",
-                                    !tthis.mod ? "mutable" : tthis.modToChars(),
+                                    !fd.type.mod ? "mutable" : fd.type.modToChars(),
                                     fd.toPrettyChars(),
                                     fs.aggr.type.toChars());
                                 errorSupplemental(fd.loc, "Consider adding a method type qualifier here");
