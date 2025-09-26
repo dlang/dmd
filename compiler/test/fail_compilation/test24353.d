@@ -17,7 +17,7 @@ fail_compilation/test24353.d(47):        Consider adding a method type qualifier
     int opApply(int delegate(int, int) dg) const shared;
         ^
 fail_compilation/test24353.d(42): Error: cannot uniquely infer `foreach` argument types
-    foreach (e; const S3()) {} // cannot infer
+    foreach (i, e; const S3()) {} // cannot infer
     ^
 ---
 */
@@ -39,7 +39,7 @@ void example()
     const S2 s2;
     foreach (i, e; s2) {} // mod error
 
-    foreach (e; const S3()) {} // cannot infer
+    foreach (i, e; const S3()) {} // cannot infer
 }
 
 struct S2
