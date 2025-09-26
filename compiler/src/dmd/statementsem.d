@@ -792,13 +792,15 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         {
             bool foundMismatch = false;
             size_t foreachParamCount = 0;
+
             if (sapplyOld)
             {
                 if (FuncDeclaration fd = sapplyOld.isFuncDeclaration())
                 {
                     auto fparameters = fd.getParameterList();
 
-                    if (fparameters.length == 1)
+                    // ignore overloads, can't determine which non-matching is closest
+                    if (!fd.overnext && fparameters.length == 1)
                     {
                         // first param should be the callback function
                         Parameter fparam = fparameters[0];
