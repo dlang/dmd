@@ -787,7 +787,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         Dsymbol sapplyOld = sapply; // 'sapply' will be NULL if and after 'inferApplyArgTypes' errors
 
-        /* Check for inference errors and apply mutability checks inline */
+        /* Check for inference errors and apply modifier checks inline */
         if (!inferApplyArgTypes(fs, sc, sapply))
         {
             bool foundMismatch = false;
@@ -810,16 +810,15 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                             foreachParamCount = tf.parameterList.length;
                             foundMismatch = true;
 
-                            // Mutability check
-                            if (fs.aggr && fs.aggr.type && fd.type && fs.aggr.type.isConst() && !fd.type.isConst())
+                            if (fs.aggr && fs.aggr.type && fd.vthis &&
+                                !MODmethodConv(fs.aggr.type.mod, fd.vthis.type.mod))
                             {
-                                // First error: The call site
-                                error(fs.loc, "mutable method `%s.%s` is not callable using a `const` object",
-                                    fd.parent ? fd.parent.toPrettyChars() : "unknown", fd.toChars());
-
-                                // Second error: Suggest how to fix
-                                errorSupplemental(fd.loc, "Consider adding `const` or `inout` here");
-
+                                auto tthis = fd.vthis.type;
+                                error(fs.loc, "%s method `%s` is not callable using a `%s` foreach aggregate",
+                                    !tthis.mod ? "mutable" : tthis.modToChars(),
+                                    fd.toPrettyChars(),
+                                    fs.aggr.type.toChars());
+                                errorSupplemental(fd.loc, "Consider adding a method type qualifier here");
                                 return setError();
                             }
                         }
