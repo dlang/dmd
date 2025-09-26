@@ -1072,6 +1072,10 @@ $(H4 $(LNAME2 typeseq_deduction, Type Sequence Deduction))
 
         void main()
         {
+            // Calls `print` with:
+            // T = int, Args = (char, double)
+            // T = char, Args = (double)
+            // T = double, Args = ()
             print(1, 'a', 6.8);
         }
         ---
@@ -1085,38 +1089,46 @@ a
 6.8
 )
 
-    $(P Type sequences can also be deduced from the type of a delegate
-        or function parameter list passed as a function argument:)
+    $(P Type sequences can also be deduced from the parameter list of a
+        $(DDSUBLINK spec/function, function-pointers-delegates, function pointer or delegate) passed as a function argument:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        size_t arity(R, Args...)(R function(Args) fp) => Args.length;
+
+        int f(int);
+        void g(string, Object);
+
+        static assert(arity((){}) == 0); // R = void, Args = ()
+        static assert(arity(&f) == 1);   // R = int, Args = (int)
+        static assert(arity(&g) == 2);   // R = void, Args = (string, Object)
+        ---
+        )
+        $(P Deduction can partially match a parameter list:)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ----
-        import std.stdio;
-
         /* Partially applies a delegate by tying its first argument to a particular value.
          * R = return type
          * T = first argument type
          * Args = TypeSeq of remaining argument types
          */
-        R delegate(Args) partial(R, T, Args...)(R delegate(T, Args) dg, T first)
+        R delegate(Args) partial(R, T, Args...)(R function(T, Args) dg, T first)
         {
             // return a closure
             return (Args args) => dg(first, args);
         }
 
+        int plus(int x, int y, int z) => x + y + z;
+
         void main()
         {
-            int plus(int x, int y, int z)
-            {
-                return x + y + z;
-            }
-
-            import std.stdio;
-            auto plus_two = partial(&plus, 2);
-            writeln(plus_two(6, 8)); // prints 16
+            auto plus_two = partial(&plus, 2); // R = int, T = int, Args = (int, int)
+            assert(plus_two(6, 8) == 16);
         }
         ----
         )
-        See also: $(REF partial, std,functional)
+        $(P See also: $(REF partial, std,functional).)
 
 $(H4 $(LNAME2 variadic_template_specialization, Specialization))
 
@@ -1365,6 +1377,9 @@ $(H4 $(LNAME2 ifti-restrictions, Restrictions))
         }
         ---
         )
+
+    $(P A *TypeSeq* template parameter $(RELATIVE_LINK2 typeseq_deduction, can be deduced)
+    from function arguments.)
 
 $(H4 $(LNAME2 ifti-conversions, Type Conversions))
 
