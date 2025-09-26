@@ -815,7 +815,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                             if (fd.isThis() &&
                                 !MODmethodConv(fs.aggr.type.mod, fd.type.mod))
                             {
-                                error(fs.loc, "%s method `%s` is not callable using a `%s` foreach aggregate",
+                                error(fs.aggr.loc, "%s method `%s` is not callable using a `%s` foreach aggregate",
                                     !fd.type.mod ? "mutable" : fd.type.modToChars(),
                                     fd.toPrettyChars(),
                                     fs.aggr.type.toChars());
