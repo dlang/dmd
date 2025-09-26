@@ -839,24 +839,6 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             return setError();
         }
 
-        // If inference succeeds, proceed with post-checks
-        if (sapply && sapply.isFuncDeclaration())
-        {
-            FuncDeclaration fd = sapply.isFuncDeclaration();
-
-            if (fs.aggr && fs.aggr.type && fd.type && fs.aggr.type.isConst() && !fd.type.isConst())
-            {
-                // First error: The call site
-                error(fs.loc, "mutable method `%s.%s` is not callable using a `const` object",
-                    fd.parent ? fd.parent.toPrettyChars() : "unknown", fd.toChars());
-
-                // Second error: Suggest how to fix
-                errorSupplemental(fd.loc, "Consider adding `const` or `inout` here");
-
-                return setError();
-            }
-        }
-
         Type tab = fs.aggr.type.toBasetype();
 
         if (tab.ty == Ttuple) // don't generate new scope for tuple loops
