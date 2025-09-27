@@ -384,8 +384,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         if (fld.tok == TOK.delegate_)
                             .error(funcdecl.loc, "%s `%s` cannot be %s members", funcdecl.kind, funcdecl.toErrMsg, ad.kind());
-                        else
-                            fld.tok = TOK.function_;
+                        else if (fld.tok != TOK.function_)
+                            fld.tok = TOK.delegate_;
                     }
                     else
                     {
