@@ -1140,7 +1140,7 @@ L1:
                     break;
                 }
             }
-            if ((next & 0xFF00) == 0 && !(attribute & 0xE0))
+            if ((next < 0x100) && !(attribute & 0xE0)) // basic type?
                 typidx = next | dt;
             else
             {
