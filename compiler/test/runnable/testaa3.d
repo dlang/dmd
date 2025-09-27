@@ -371,6 +371,15 @@ void test12403()
 }
 
 /***************************************************/
+// regressions after converting AA to template
+void test21066()
+{
+    const(int) getValue() { return 0; }
+    int[][string] aa;
+    aa["a"] = [getValue()]; // fails to compile
+}
+
+/***************************************************/
 
 void main()
 {
@@ -396,4 +405,5 @@ void main()
     testTypeinfo();
     test12220();
     test12403();
+    test21066();
 }
