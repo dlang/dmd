@@ -3081,7 +3081,7 @@ bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t pre
     }
 
     if (tybasic(ty) == TYstruct && type_zeroSize(t, fpr.tyf))
-        return 0;               // don't allocate into registers
+        return false;               // don't allocate into registers
 
     ++fpr.i;
 
@@ -3124,7 +3124,7 @@ bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t pre
                 }
             }
             else if (I64 && !targ2)
-                return 0;
+                return false;
         }
     }
 

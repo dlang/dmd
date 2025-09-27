@@ -74,7 +74,12 @@ struct elem
     ubyte Eoper;        // operator (OPxxxx)
     ubyte Ecount;       // # of parents of this elem - 1,
                         // always 0 until CSE elimination is done
-    eflags_t Eflags;
+    union
+    {
+	eflags_t Eflags;  // I64 && config.exe != EX_WIN64
+	ubyte numParams;  // number of declared parameters for variadic functions
+			  // config.exe == EX_OSX64 && target.isAArch64;
+    }
 
     union
     {
