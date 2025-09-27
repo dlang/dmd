@@ -18856,7 +18856,6 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
     // extract side effects in lexical order
     for (size_t i = ekeys.length; i > 0; --i)
         ekeys[i-1] = extractSideEffect(sc, "__aakey", e0, ekeys[i-1]);
-    Expression ev = extractSideEffect(sc, "__aaval", e0, exp.e2);
 
     // generate series of calls to _d_aaGetY
     for (size_t i = ekeys.length; i > 0; --i)
@@ -18896,18 +18895,18 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
         // modifying assignments work with zero-initialized inserted value
         BinExp bex = cast(BinExp)exp.copy();
         bex.e1 = ex;
-        bex.e2 = ev;
+        bex.e2 = exp.e2;
         ex = Expression.combine(e0, bex);
         ex.isCommaExp().originalExp = exp;
         return ex.expressionSemantic(sc);
     }
-    AssignExp ae = new AssignExp(loc, ex, ev);
+    AssignExp ae = new AssignExp(loc, ex, exp.e2);
     auto ts = ie.type.isTypeStruct();
     if (Expression overexp = ts ? ae.opOverloadAssign(sc, aliasThisStop) : null)
     {
         if (overexp.op == EXP.error)
             return overexp;
-        if (auto ey = implicitConvertToStruct(ev, ts.sym, sc))
+        if (auto ey = implicitConvertToStruct(exp.e2, ts.sym, sc))
         {
             // __aafound ? __aaget.opAssign(__aaval) : __aaget.ctor(__aaval)
             ey = new ConstructExp(loc, ex, ey);
@@ -18938,7 +18937,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
             ie1.loweredFrom = ie;
             ex = ie1.expressionSemantic(sc);
             ex = ex.optimize(WANTvalue);
-            ae = new AssignExp(loc, ex, ev);
+            ae = new AssignExp(loc, ex, exp.e2);
             ex = ae.opOverloadAssign(sc, aliasThisStop);
             assert(ex);
         }
