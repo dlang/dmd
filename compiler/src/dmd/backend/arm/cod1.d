@@ -1597,6 +1597,10 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     uint stackalign = REGSIZE;
     if (tyf == TYf16func)
         stackalign = 2;
+
+    // OSX64 only passes explicit parameters in registers; variadic parameters go on stack
+    const numExplicitParams = (config.exe == EX_OSX64) ? e.numParams : 0;
+
     // Figure out which parameters go in registers.
     // Compute numpara, the total bytes pushed on the stack
     FuncParamRegs fpr = FuncParamRegs_create(tyf);
@@ -1614,7 +1618,8 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             psize = REGSIZE;
         }
         //printf("[%d] size = %u, numpara = %d %s\n", i, psize, numpara, tym_str(ep.Ety));
-        if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, parameters[i].reg, parameters[i].reg2))
+        if ((numExplicitParams == 0 || np - i <= numExplicitParams - 1) && // OSX64 does not pass variadic args in registers
+            FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, parameters[i].reg, parameters[i].reg2))
         {
             if (config.exe == EX_WIN64)
                 numpara += REGSIZE;             // allocate stack space for it anyway
