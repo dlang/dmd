@@ -18895,12 +18895,16 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
     // extract side effects in lexical order
     for (size_t i = ekeys.length; i > 0; --i)
         ekeys[i-1] = extractSideEffect(sc, "__aakey", e0, ekeys[i-1]);
-    Expression ev = extractSideEffect(sc, "__aaval", e0, exp.e2);
+    // some implicit conversions are lost when assigning to a temporary, e.g. from array literal
+    auto taa = eaa.type.isTypeAArray();
+    auto match = exp.e2.implicitConvTo(taa.next);
+    auto e2 = match == MATCH.exact || match == MATCH.nomatch ? exp.e2 : exp.e2.implicitCastTo(sc, taa.next);
+    Expression ev = extractSideEffect(sc, "__aaval", e0, e2); // must be evaluated before the insertion
 
     // generate series of calls to _d_aaGetY
     for (size_t i = ekeys.length; i > 0; --i)
     {
-        auto taa = eaa.type.isTypeAArray();
+        taa = eaa.type.isTypeAArray();
         assert (taa); // type must not have changed during rewrite
         Expression func = new IdentifierExp(loc, Id.empty);
         func = new DotIdExp(loc, func, Id.object);
