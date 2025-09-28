@@ -2,7 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail4375k.d-mixin-10(14): Error: else is dangling, add { } after condition at fail_compilation/fail4375k.d-mixin-10(11)
+fail_compilation/fail4375k.d-mixin-11(15): Error: else is dangling, add { } after condition at fail_compilation/fail4375k.d-mixin-11(12)
+fail_compilation/fail4375k.d-mixin-11(12):        while parsing string mixin statement
 ---
 */
 

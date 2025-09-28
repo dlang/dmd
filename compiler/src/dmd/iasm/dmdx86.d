@@ -25,7 +25,7 @@ import dmd.dinterpret;
 import dmd.dmdparams;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : toAlias;
+import dmd.dsymbolsem : toAlias, getType;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
@@ -539,7 +539,7 @@ enum // 64 bit only registers
     _RIP = 0xFF,   // some unique value
 }
 
-immutable REG[65] regtab64 =
+immutable REG[62] regtab64 =
 [
     {"RAX",  _RAX,   _r64 | _rax},
     {"RBX",  _RBX,   _r64},

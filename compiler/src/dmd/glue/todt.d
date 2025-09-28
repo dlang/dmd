@@ -1447,6 +1447,12 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (!sd.members)
             return;
 
+        if (sd.semanticRun < PASS.semantic3done)
+        {
+            import dmd.semantic3 : semanticTypeInfoMembers;
+            semanticTypeInfoMembers(sd);
+        }
+
         if (TemplateInstance ti = sd.isInstantiated())
         {
             if (!ti.needsCodegen())
@@ -1456,12 +1462,6 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                 /* ti.toObjFile() won't get called. So, store these
                  * member functions into object file in here.
                  */
-
-                if (sd.semanticRun < PASS.semantic3done)
-                {
-                    import dmd.semantic3 : semanticTypeInfoMembers;
-                    semanticTypeInfoMembers(sd);
-                }
 
                 if (sd.xeq && sd.xeq != StructDeclaration.xerreq)
                     toObjFile(sd.xeq, global.params.multiobj);

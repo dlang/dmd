@@ -17,15 +17,14 @@ New elements are initialized according to their type:
 - Zero-initialized if applicable
 - Default-initialized via `emplace`
 - Or `memcpy` if trivially copyable
-
----
-int[] a = [1, 2];
-a.length = 3; // becomes _d_arraysetlengthT!(int)(a, 3)
----
 */
 size_t _d_arraysetlengthT(Tarr : T[], T)(return ref scope Tarr arr, size_t newlength);
+-------
+-------
+int[] a = [1, 2];
+a.length = 3; // becomes _d_arraysetlengthT!(int)(a, 3)
 -------
 
 This reduces runtime dependency on `TypeInfo`, making the function more predictable and performant.
 
-See also: $(LINK https://github.com/dlang/dmd/pull/21151, PR #21151)
+See also: $(LINK2 https://github.com/dlang/dmd/pull/21151, PR #21151)

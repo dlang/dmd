@@ -411,18 +411,6 @@ extern (C++) class Dsymbol : ASTNode
         return toChars();
     }
 
-    bool equals(const Dsymbol s) const
-    {
-        if (this == s)
-            return true;
-        // Overload sets don't have an ident
-        // Function-local declarations may have identical names
-        // if they are declared in different scopes
-        if (s && ident && s.ident && ident.equals(s.ident) && localNum == s.localNum)
-            return true;
-        return false;
-    }
-
     final bool isAnonymous() const
     {
         return ident is null || ident.isAnonymous;
@@ -674,22 +662,6 @@ extern (C++) class Dsymbol : ASTNode
         return "symbol";
     }
 
-    bool overloadInsert(Dsymbol s)
-    {
-        //printf("Dsymbol::overloadInsert('%s')\n", s.toChars());
-        return false;
-    }
-
-    /*********************************
-     * Returns:
-     *  SIZE_INVALID when the size cannot be determined
-     */
-    ulong size(Loc loc)
-    {
-        .error(loc, "%s `%s` symbol `%s` has no size", kind, toPrettyChars, toChars());
-        return SIZE_INVALID;
-    }
-
     bool isforwardRef()
     {
         return false;
@@ -771,12 +743,6 @@ extern (C++) class Dsymbol : ASTNode
     {
         auto ad = isMember();
         return ad ? ad.isClassDeclaration() : null;
-    }
-
-    // is this a type?
-    Type getType()
-    {
-        return null;
     }
 
     // need a 'this' pointer?

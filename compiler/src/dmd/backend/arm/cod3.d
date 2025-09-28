@@ -2058,7 +2058,7 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
                 case SC.inline:
                     ggen.flush();
                     ggen.gen32(op);
-                    objmod.reftoident(ggen.seg,ggen.offset,s,0,flags);
+                    objmod.reftoident(ggen.seg,ggen.offset,s,op,flags);
                     break;
 
                 default:

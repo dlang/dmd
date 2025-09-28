@@ -124,6 +124,7 @@ version (linux)
 
     version (CRuntime_Musl)
     {
+        static assert(off_t.sizeof == 8);
         /**
          * Musl versions before v1.2.0 (up to v1.1.24) had different
          * definitions for `time_t` for 32 bits.
@@ -1005,6 +1006,7 @@ else version (DragonFlyBSD)
 else version (Solaris)
 {
     alias uint pthread_t;
+    alias int lwpid_t; // non-standard
 
     struct pthread_attr_t
     {

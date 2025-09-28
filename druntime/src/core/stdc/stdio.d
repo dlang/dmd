@@ -1326,9 +1326,9 @@ else version (CRuntime_Glibc)
         alias vprintf = __vprintfieee128;
         ///
         pragma(scanf)
-        int __isoc99_vfscanfieee128(scope const char* format, va_list arg);
+        int __isoc99_vscanfieee128(scope const char* format, va_list arg);
         ///
-        alias vscanf = __isoc99_vfscanfieee128;
+        alias vscanf = __isoc99_vscanfieee128;
         ///
         pragma(printf)
         int __printfieee128(scope const char* format, scope const ...);

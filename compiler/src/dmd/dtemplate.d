@@ -53,7 +53,6 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : aliasSemantic, toAlias;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -72,9 +71,9 @@ import dmd.optimize;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.rootobject;
-import dmd.templatesem : getExpression, equalsx;
+import dmd.templatesem : TemplateInstanceBox;
 import dmd.tokens;
-import dmd.typesem : typeSemantic, isBaseOf;
+import dmd.typesem : typeSemantic;
 import dmd.visitor;
 
 //debug = FindExistingInstance; // print debug stats of findExistingInstance
@@ -193,118 +192,6 @@ inout(Type) getType(inout RootObject o)
     return t;
 }
 
-}
-
-/************************************
- * Return hash of Objects.
- */
-private size_t arrayObjectHash(ref Objects oa1)
-{
-    import dmd.root.hash : mixHash;
-
-    size_t hash = 0;
-    foreach (o1; oa1)
-    {
-        /* Must follow the logic of match()
-         */
-        if (auto t1 = isType(o1))
-            hash = mixHash(hash, cast(size_t)t1.deco);
-        else if (auto e1 = getExpression(o1))
-            hash = mixHash(hash, expressionHash(e1));
-        else if (auto s1 = isDsymbol(o1))
-        {
-            if (auto fa1 = s1.isFuncAliasDeclaration())
-                s1 = fa1.toAliasFunc();
-            hash = mixHash(hash, mixHash(cast(size_t)cast(void*)s1.getIdent(), cast(size_t)cast(void*)s1.parent));
-        }
-        else if (auto u1 = isTuple(o1))
-            hash = mixHash(hash, arrayObjectHash(u1.objects));
-    }
-    return hash;
-}
-
-
-/************************************
- * Computes hash of expression.
- * Handles all Expression classes and MUST match their equals method,
- * i.e. e1.equals(e2) implies expressionHash(e1) == expressionHash(e2).
- */
-private size_t expressionHash(Expression e)
-{
-    import dmd.root.ctfloat : CTFloat;
-    import dmd.root.hash : calcHash, mixHash;
-
-    switch (e.op)
-    {
-    case EXP.int64:
-        return cast(size_t) e.isIntegerExp().getInteger();
-
-    case EXP.float64:
-        return CTFloat.hash(e.isRealExp().value);
-
-    case EXP.complex80:
-        auto ce = e.isComplexExp();
-        return mixHash(CTFloat.hash(ce.toReal), CTFloat.hash(ce.toImaginary));
-
-    case EXP.identifier:
-        return cast(size_t)cast(void*) e.isIdentifierExp().ident;
-
-    case EXP.null_:
-        return cast(size_t)cast(void*) e.isNullExp().type;
-
-    case EXP.string_:
-        return calcHash(e.isStringExp.peekData());
-
-    case EXP.tuple:
-    {
-        auto te = e.isTupleExp();
-        size_t hash = 0;
-        hash += te.e0 ? expressionHash(te.e0) : 0;
-        foreach (elem; *te.exps)
-            hash = mixHash(hash, expressionHash(elem));
-        return hash;
-    }
-
-    case EXP.arrayLiteral:
-    {
-        auto ae = e.isArrayLiteralExp();
-        size_t hash;
-        foreach (i; 0 .. ae.elements.length)
-            hash = mixHash(hash, expressionHash(ae[i]));
-        return hash;
-    }
-
-    case EXP.assocArrayLiteral:
-    {
-        auto ae = e.isAssocArrayLiteralExp();
-        size_t hash;
-        foreach (i; 0 .. ae.keys.length)
-            // reduction needs associative op as keys are unsorted (use XOR)
-            hash ^= mixHash(expressionHash((*ae.keys)[i]), expressionHash((*ae.values)[i]));
-        return hash;
-    }
-
-    case EXP.structLiteral:
-    {
-        auto se = e.isStructLiteralExp();
-        size_t hash;
-        foreach (elem; *se.elements)
-            hash = mixHash(hash, elem ? expressionHash(elem) : 0);
-        return hash;
-    }
-
-    case EXP.variable:
-        return cast(size_t)cast(void*) e.isVarExp().var;
-
-    case EXP.function_:
-        return cast(size_t)cast(void*) e.isFuncExp().fd;
-
-    default:
-        // no custom equals for this expression
-        assert((&e.equals).funcptr is &Expression.equals);
-        // equals based on identity
-        return cast(size_t)cast(void*) e;
-    }
 }
 
 RootObject objectSyntaxCopy(RootObject o)
@@ -436,56 +323,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return new TemplateDeclaration(loc, ident, p, constraint ? constraint.syntaxCopy() : null, Dsymbol.arraySyntaxCopy(members), ismixin, literal);
     }
 
-    /**********************************
-     * Overload existing TemplateDeclaration 'this' with the new one 's'.
-     * Params:
-     *    s = symbol to be inserted
-     * Return: true if successful; i.e. no conflict.
-     */
-    override bool overloadInsert(Dsymbol s)
-    {
-        static if (LOG)
-        {
-            printf("TemplateDeclaration.overloadInsert('%s')\n", s.toChars());
-        }
-        FuncDeclaration fd = s.isFuncDeclaration();
-        if (fd)
-        {
-            if (funcroot)
-                return funcroot.overloadInsert(fd);
-            funcroot = fd;
-            return funcroot.overloadInsert(this);
-        }
-
-        // https://issues.dlang.org/show_bug.cgi?id=15795
-        // if candidate is an alias and its sema is not run then
-        // insertion can fail because the thing it alias is not known
-        if (AliasDeclaration ad = s.isAliasDeclaration())
-        {
-            if (s._scope)
-                aliasSemantic(ad, s._scope);
-            if (ad.aliassym && ad.aliassym is this)
-                return false;
-        }
-        TemplateDeclaration td = s.toAlias().isTemplateDeclaration();
-        if (!td)
-            return false;
-
-        TemplateDeclaration pthis = this;
-        TemplateDeclaration* ptd;
-        for (ptd = &pthis; *ptd; ptd = &(*ptd).overnext)
-        {
-        }
-
-        td.overroot = this;
-        *ptd = td;
-        static if (LOG)
-        {
-            printf("\ttrue: no conflict\n");
-        }
-        return true;
-    }
-
     override const(char)* kind() const
     {
         return (onemember && onemember.isAggregateDeclaration()) ? onemember.kind() : "template";
@@ -505,67 +342,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     override Visibility visible() pure nothrow @nogc @safe
     {
         return visibility;
-    }
-
-    debug (FindExistingInstance)
-    {
-        __gshared uint nFound, nNotFound, nAdded, nRemoved;
-
-        shared static ~this()
-        {
-            printf("debug (FindExistingInstance) nFound %u, nNotFound: %u, nAdded: %u, nRemoved: %u\n",
-                   nFound, nNotFound, nAdded, nRemoved);
-        }
-    }
-
-    /****************************************************
-     * Given a new instance `tithis` of this TemplateDeclaration,
-     * see if there already exists an instance.
-     *
-     * Params:
-     *   tithis = template instance to check
-     *   argumentList = For function templates, needed because different
-     *                  `auto ref` resolutions create different instances,
-     *                  even when template parameters are identical
-     *
-     * Returns: that existing instance, or `null` when it doesn't exist
-     */
-    extern (D) TemplateInstance findExistingInstance(TemplateInstance tithis, ArgumentList argumentList)
-    {
-        //printf("findExistingInstance() %s\n", tithis.toChars());
-        tithis.fargs = argumentList.arguments;
-        tithis.fnames = argumentList.names;
-        auto tibox = TemplateInstanceBox(tithis);
-        auto p = tibox in this.instances;
-        debug (FindExistingInstance) ++(p ? nFound : nNotFound);
-        //if (p) printf("\tfound %p\n", *p); else printf("\tnot found\n");
-        return p ? *p : null;
-    }
-
-    /********************************************
-     * Add instance ti to TemplateDeclaration's table of instances.
-     * Return a handle we can use to later remove it if it fails instantiation.
-     */
-    extern (D) TemplateInstance addInstance(TemplateInstance ti)
-    {
-        //printf("addInstance() %p %s\n", instances, ti.toChars());
-        auto tibox = TemplateInstanceBox(ti);
-        instances[tibox] = ti;
-        debug (FindExistingInstance) ++nAdded;
-        return ti;
-    }
-
-    /*******************************************
-     * Remove TemplateInstance from table of instances.
-     * Input:
-     *      handle returned by addInstance()
-     */
-    extern (D) void removeInstance(TemplateInstance ti)
-    {
-        //printf("removeInstance() %s\n", ti.toChars());
-        auto tibox = TemplateInstanceBox(ti);
-        debug (FindExistingInstance) ++nRemoved;
-        instances.remove(tibox);
     }
 
     /**
@@ -1439,7 +1215,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     TemplateInstance inst;
 
     ScopeDsymbol argsym;        // argument symbol table
-    size_t hash;                // cached result of toHash()
 
     /// For function template, these are the function fnames(name and loc of it) and arguments
     /// Relevant because different resolutions of `auto ref` parameters
@@ -1678,138 +1453,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return ident;
     }
 
-    extern (D) final size_t toHash()
-    {
-        if (!hash)
-        {
-            hash = cast(size_t)cast(void*)enclosing;
-            hash += arrayObjectHash(tdtypes);
-            hash += hash == 0;
-        }
-        return hash;
-    }
-
-    /*****************************************
-     * Determines if a TemplateInstance will need a nested
-     * generation of the TemplateDeclaration.
-     * Sets enclosing property if so, and returns != 0;
-     */
-    extern (D) final bool hasNestedArgs(Objects* args, bool isstatic)
-    {
-        int nested = 0;
-        //printf("TemplateInstance.hasNestedArgs('%s')\n", tempdecl.ident.toChars());
-
-        // arguments from parent instances are also accessible
-        if (!enclosing)
-        {
-            if (TemplateInstance ti = tempdecl.toParent().isTemplateInstance())
-                enclosing = ti.enclosing;
-        }
-
-        /* A nested instance happens when an argument references a local
-         * symbol that is on the stack.
-         */
-        foreach (o; *args)
-        {
-            Expression ea = isExpression(o);
-            Dsymbol sa = isDsymbol(o);
-            Tuple va = isTuple(o);
-            if (ea)
-            {
-                if (auto ve = ea.isVarExp())
-                {
-                    sa = ve.var;
-                    goto Lsa;
-                }
-                if (auto te = ea.isThisExp())
-                {
-                    sa = te.var;
-                    goto Lsa;
-                }
-                if (auto fe = ea.isFuncExp())
-                {
-                    if (fe.td)
-                        sa = fe.td;
-                    else
-                        sa = fe.fd;
-                    goto Lsa;
-                }
-                // Emulate Expression.toMangleBuffer call that had exist in TemplateInstance.genIdent.
-                if (ea.op != EXP.int64 && ea.op != EXP.float64 && ea.op != EXP.complex80 && ea.op != EXP.null_ && ea.op != EXP.string_ && ea.op != EXP.arrayLiteral && ea.op != EXP.assocArrayLiteral && ea.op != EXP.structLiteral)
-                {
-                    if (!ea.type.isTypeError())
-                        .error(ea.loc, "%s `%s` expression `%s` is not a valid template value argument", kind, toPrettyChars, ea.toChars());
-                    errors = true;
-                }
-            }
-            else if (sa)
-            {
-            Lsa:
-                sa = sa.toAlias();
-                TemplateDeclaration td = sa.isTemplateDeclaration();
-                if (td)
-                {
-                    TemplateInstance ti = sa.toParent().isTemplateInstance();
-                    if (ti && ti.enclosing)
-                        sa = ti;
-                }
-                TemplateInstance ti = sa.isTemplateInstance();
-                Declaration d = sa.isDeclaration();
-                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STC.manifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
-                {
-                    Dsymbol dparent = sa.toParent2();
-                    if (!dparent || dparent.isModule)
-                        goto L1;
-                    else if (!enclosing)
-                        enclosing = dparent;
-                    else if (enclosing != dparent)
-                    {
-                        /* Select the more deeply nested of the two.
-                         * Error if one is not nested inside the other.
-                         */
-                        for (Dsymbol p = enclosing; p; p = p.parent)
-                        {
-                            if (p == dparent)
-                                goto L1; // enclosing is most nested
-                        }
-                        for (Dsymbol p = dparent; p; p = p.parent)
-                        {
-                            if (p == enclosing)
-                            {
-                                enclosing = dparent;
-                                goto L1; // dparent is most nested
-                            }
-                        }
-                        //https://issues.dlang.org/show_bug.cgi?id=17870
-                        if (dparent.isClassDeclaration() && enclosing.isClassDeclaration())
-                        {
-                            auto pc = dparent.isClassDeclaration();
-                            auto ec = enclosing.isClassDeclaration();
-                            if (pc.isBaseOf(ec, null))
-                                goto L1;
-                            else if (ec.isBaseOf(pc, null))
-                            {
-                                enclosing = dparent;
-                                goto L1;
-                            }
-                        }
-                        .error(loc, "%s `%s` `%s` is nested in both `%s` and `%s`", kind, toPrettyChars, toChars(), enclosing.toChars(), dparent.toChars());
-                        errors = true;
-                    }
-                L1:
-                    //printf("\tnested inside %s as it references %s\n", enclosing.toChars(), sa.toChars());
-                    nested |= 1;
-                }
-            }
-            else if (va)
-            {
-                nested |= cast(int)hasNestedArgs(&va.objects, isstatic);
-            }
-        }
-        //printf("-TemplateInstance.hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
-        return nested != 0;
-    }
-
     /****************************************
      * This instance needs an identifier for name mangling purposes.
      * Create one by taking the template declaration name and adding
@@ -1925,64 +1568,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-}
-
-/************************************
- * This struct is needed for TemplateInstance to be the key in an associative array.
- * Fixing https://issues.dlang.org/show_bug.cgi?id=15813 would make it unnecessary.
- */
-struct TemplateInstanceBox
-{
-    TemplateInstance ti;
-
-    this(TemplateInstance ti)
-    {
-        this.ti = ti;
-        this.ti.toHash();
-        assert(this.ti.hash);
-    }
-
-    size_t toHash() const @safe pure nothrow
-    {
-        assert(ti.hash);
-        return ti.hash;
-    }
-
-    bool opEquals(ref const TemplateInstanceBox s) @trusted const
-    {
-        bool res = void;
-        if (ti.inst && s.ti.inst)
-        {
-            /* This clause is only used when an instance with errors
-             * is replaced with a correct instance.
-             */
-            res = ti is s.ti;
-        }
-        else
-        {
-            /* Used when a proposed instance is used to see if there's
-             * an existing instance.
-             */
-            static if (__VERSION__ < 2099) // https://issues.dlang.org/show_bug.cgi?id=22717
-                res = (cast()s.ti).equalsx(cast()ti);
-            else
-                res = (cast()ti).equalsx(cast()s.ti);
-        }
-
-        debug (FindExistingInstance) ++(res ? nHits : nCollisions);
-        return res;
-    }
-
-    debug (FindExistingInstance)
-    {
-        __gshared uint nHits, nCollisions;
-
-        shared static ~this()
-        {
-            printf("debug (FindExistingInstance) TemplateInstanceBox.equals hits: %u collisions: %u\n",
-                   nHits, nCollisions);
-        }
     }
 }
 

@@ -40,7 +40,6 @@ import dmd.dimport;
 import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dstruct;
-import dmd.dsymbolsem : findTempDecl;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
@@ -72,6 +71,7 @@ import dmd.optimize;
 import dmd.parse;
 import dmd.printast;
 import dmd.root.array;
+import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.filename;
 import dmd.common.outbuffer;
@@ -83,7 +83,8 @@ import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.safe;
 import dmd.target;
-import dmd.templatesem : matchWithInstance, deduceType, matchArg, updateTempDecl, semanticTiargs;
+import dmd.targetcompiler;
+import dmd.templatesem : matchWithInstance, deduceType, matchArg, updateTempDecl, semanticTiargs, findTempDecl;
 import dmd.tokens;
 import dmd.traits;
 import dmd.typesem;
@@ -94,6 +95,201 @@ import dmd.visitor;
 import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
+
+bool equals(const Expression _this, const Expression e)
+{
+    static bool intExpEquals(const IntegerExp _this, const IntegerExp e)
+    {
+        return _this.type.toHeadMutable().equals(e.type.toHeadMutable()) && _this.value == e.value;
+    }
+
+    static bool realExpEquals(const RealExp _this, const RealExp e)
+    {
+        return _this.type.toHeadMutable().equals(e.type.toHeadMutable()) && RealIdentical(_this.value, e.value);
+    }
+
+    static bool complexExpEquals(const ComplexExp _this, const ComplexExp e)
+    {
+        return _this.type.toHeadMutable().equals(e.type.toHeadMutable()) &&
+            RealIdentical(creall(_this.value), creall(e.value)) &&
+            RealIdentical(cimagl(_this.value), cimagl(e.value));
+    }
+
+    static bool nullExpEquals(const NullExp _this, const NullExp e)
+    {
+        return e.op == EXP.null_ && _this.type.equals(e.type);
+    }
+
+    static bool stringExpEquals(const StringExp _this, const StringExp e)
+    {
+        //printf("StringExp::equals('%s') %s\n", o.toChars(), toChars());
+        return _this.compare(e) == 0;
+    }
+
+    static bool tupleExpEquals(const TupleExp _this, const TupleExp e)
+    {
+        if (_this.exps.length != e.exps.length)
+            return false;
+        if (_this.e0 && !_this.e0.equals(e.e0) || !_this.e0 && e.e0)
+            return false;
+        foreach (i, e1; *_this.exps)
+        {
+            auto e2 = (*e.exps)[i];
+            if (!e1.equals(e2))
+                return false;
+        }
+        return true;
+    }
+
+    static bool arrayLiteralExpEquals(const ArrayLiteralExp _this, const ArrayLiteralExp e)
+    {
+        if (_this.elements.length != e.elements.length)
+            return false;
+        if (_this.elements.length == 0 && !_this.type.equals(e.type))
+        {
+            return false;
+        }
+
+        foreach (i, e1; *_this.elements)
+        {
+            auto e2 = (*e.elements)[i];
+            auto e1x = e1 ? e1 : _this.basis;
+            auto e2x = e2 ? e2 : e.basis;
+
+            if (e1x != e2x && (!e1x || !e2x || !e1x.equals(e2x)))
+                return false;
+        }
+        return true;
+    }
+
+    static bool assocArrayLiteralExpEquals(const AssocArrayLiteralExp _this, const AssocArrayLiteralExp e)
+    {
+        if (_this.keys.length != e.keys.length)
+            return false;
+        size_t count = 0;
+        foreach (i, key; *_this.keys)
+        {
+            foreach (j, akey; *e.keys)
+            {
+                if (key.equals(akey))
+                {
+                    if (!(*_this.values)[i].equals((*e.values)[j]))
+                        return false;
+                    ++count;
+                }
+            }
+        }
+        return count == _this.keys.length;
+    }
+
+    static bool structLiteralExpEquals(const StructLiteralExp _this, const StructLiteralExp e)
+    {
+        if (!_this.type.equals(e.type))
+            return false;
+        if (_this.elements.length != e.elements.length)
+            return false;
+        foreach (i, e1; *_this.elements)
+        {
+            auto e2 = (*e.elements)[i];
+            if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
+                return false;
+        }
+        return true;
+    }
+
+    static bool varExpEquals(const VarExp _this, const VarExp e)
+    {
+        return _this.type.toHeadMutable().equals(e.type.toHeadMutable()) && _this.var == e.var;
+    }
+
+    static bool funcExpEquals(const FuncExp _this, const FuncExp e)
+    {
+        return _this.fd == e.fd;
+    }
+
+    static bool mixinExpEquals(const MixinExp _this, const MixinExp e)
+    {
+        if (_this.exps.length != e.exps.length)
+            return false;
+        foreach (i, e1; *_this.exps)
+        {
+            auto e2 = (*e.exps)[i];
+            if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
+                return false;
+        }
+        return true;
+    }
+
+    if (_this == e)
+        return true;
+
+    if (_this.op != e.op)
+        return false;
+
+    switch(_this.op)
+    {
+        case EXP.int64: return intExpEquals(_this.isIntegerExp(), e.isIntegerExp());
+        case EXP.float64: return realExpEquals(_this.isRealExp(), e.isRealExp());
+        case EXP.complex80: return complexExpEquals(_this.isComplexExp(), e.isComplexExp());
+        case EXP.null_: return nullExpEquals(_this.isNullExp(), e.isNullExp());
+        case EXP.string_: return stringExpEquals(_this.isStringExp(), e.isStringExp());
+        case EXP.tuple: return tupleExpEquals(_this.isTupleExp(), e.isTupleExp());
+        case EXP.arrayLiteral: return arrayLiteralExpEquals(_this.isArrayLiteralExp(), e.isArrayLiteralExp());
+        case EXP.assocArrayLiteral: return assocArrayLiteralExpEquals(_this.isAssocArrayLiteralExp(), e.isAssocArrayLiteralExp());
+        case EXP.structLiteral: return structLiteralExpEquals(_this.isStructLiteralExp(), e.isStructLiteralExp());
+        case EXP.variable: return varExpEquals(_this.isVarExp(), e.isVarExp());
+        case EXP.function_: return funcExpEquals(_this.isFuncExp(), e.isFuncExp());
+        case EXP.mixin_: return mixinExpEquals(_this.isMixinExp(), e.isMixinExp());
+
+        default: return _this is e;
+    }
+}
+
+
+/********************************
+ * Test to see if two reals are the same.
+ * Regard NaN's as equivalent.
+ * Regard +0 and -0 as different.
+ * Params:
+ *      x1 = first operand
+ *      x2 = second operand
+ * Returns:
+ *      true if x1 is x2
+ *      else false
+ */
+@safe private bool RealIdentical(real_t x1, real_t x2)
+{
+    return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
+}
+
+private bool realExpIsIdentical(const RealExp _this, const Expression e)
+{
+    if (!equals(_this, e))
+        return false;
+    return CTFloat.isIdentical(_this.value, e.isRealExp().value);
+}
+
+private bool complexExpIsIdentical(const ComplexExp _this, const Expression e)
+{
+    if (!equals(_this, e))
+        return false;
+    // equals() regards different NaN values as 'equals'
+    auto c = e.isComplexExp();
+    return CTFloat.isIdentical(creall(_this.value), creall(c.value)) &&
+           CTFloat.isIdentical(cimagl(_this.value), cimagl(c.value));
+}
+
+/******
+ * Identical, not just equal. I.e. NaNs with different bit patterns are not identical
+ */
+bool isIdentical(const Expression _this, const Expression e)
+{
+    if (auto re = _this.isRealExp())
+        return realExpIsIdentical(re, e);
+    else if (auto ce = _this.isComplexExp())
+        return complexExpIsIdentical(ce, e);
+    return equals(_this, e);
+}
 
 /***********************************
  * Determine if a `this` is needed to access `d`.
@@ -1791,7 +1987,7 @@ Lagain:
         return ie.expressionSemantic(sc);
     }
 
-    if (Type t = s.getType())
+    if (Type t = dmd.dsymbolsem.getType(s))
     {
         return (new TypeExp(loc, t)).expressionSemantic(sc);
     }
@@ -1869,7 +2065,7 @@ L1:
     {
         auto cls = ad.isClassDeclaration();
         auto classObj = new ObjcClassReferenceExp(e1.loc, cls);
-        classObj.type = objc.getRuntimeMetaclass(cls).getType();
+        classObj.type = dmd.dsymbolsem.getType(objc.getRuntimeMetaclass(cls));
         return classObj;
     }
 
@@ -4064,7 +4260,7 @@ private bool checkNestedFuncReference(FuncDeclaration fd, Scope* sc, Loc loc)
             }
         }
         const lv = fdthis.getLevelAndCheck(loc, sc, fdv, fd);
-        if (lv == fd.LevelError)
+        if (lv == LevelError)
             return true; // error
         if (lv == -1)
             return false; // downlevel call
@@ -4162,7 +4358,7 @@ private void unSpeculative(Scope* sc, RootObject o)
             o = vd.type;
         else if (AliasDeclaration ad = d.isAliasDeclaration())
         {
-            o = ad.getType();
+            o = dmd.dsymbolsem.getType(ad);
             if (!o)
                 o = ad.toAlias();
         }
@@ -5075,8 +5271,47 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             error(cle.loc, "cannot convert initializer `%s` to expression", toChars(init));
             return setError();
         }
-        result = e;
-        return;
+
+        // leave these to be handled by their respective functions
+        if (e.isStringExp() || e.isStructLiteralExp() || e.isArrayLiteralExp() || e.isAssocArrayLiteralExp())
+        {
+            result = e;
+            return;
+        }
+
+        if (sc.func)
+        {
+            Expression e0;
+            auto ve = extractSideEffect(sc, "__cl", e0, e, true);
+
+            // export (int a = 5, a) so a doesn't forward ref
+            result = new CommaExp(cle.loc, e0, ve).expressionSemantic(sc);
+            return;
+        }
+        else //global variables
+        {
+            Identifier ident = Identifier.generateId("__cl");
+            auto tmp = new VarDeclaration(cle.loc, t, ident, new ExpInitializer(cle.loc, e));
+
+            // static const type ???
+            tmp.storage_class = STC.static_ | STC.const_ | STC.ctfe;
+
+            // for our global variables, we need them in our symbol table
+            if (sc._module)
+            {
+                sc._module.members.push(tmp);
+            }
+            else if (sc.minst)
+            {
+                sc.minst.members.push(tmp);
+            }
+
+            dsymbolSemantic(tmp, sc);
+
+            auto ve = new VarExp(cle.loc, tmp).expressionSemantic(sc);
+            result = ve;
+            return;
+        }
     }
 
     override void visit(TypeExp exp)
@@ -5246,7 +5481,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         sds2.dsymbolSemantic(sc);
 
         // (Aggregate|Enum)Declaration
-        if (auto t = sds2.getType())
+        if (auto t = dmd.dsymbolsem.getType(sds2))
         {
             result = (new TypeExp(exp.loc, t)).expressionSemantic(sc);
             return;
@@ -5851,10 +6086,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (!global.params.useGC && sc.needsCodegen())
             {
-                version(IN_GCC)
-                    error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-fno-rtti`", exp.toErrMsg());
-                else
-                    error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-betterC`", exp.toErrMsg());
+                error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-%s`", exp.toErrMsg(), SwitchVariadic.ptr);
                 return setError();
             }
 
@@ -8778,7 +9010,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (auto ad = exp.var.isAliasDeclaration())
         {
-            if (auto t = ad.getType())
+            if (auto t = dmd.dsymbolsem.getType(ad))
             {
                 result = new TypeExp(exp.loc, t).expressionSemantic(sc);
                 return;
@@ -8965,7 +9197,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        exp.type = exp.sym.getType().addMod(exp.e1.type.mod);
+        exp.type = dmd.dsymbolsem.getType(exp.sym).addMod(exp.e1.type.mod);
         result = exp;
     }
 
@@ -8988,7 +9220,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * since C regards string/array literals as lvalues
              */
             auto e = exp.e1;
-            if(e.isStringExp() || e.isArrayLiteralExp())
+            if (e.isStringExp() || e.isArrayLiteralExp())
             {
                 e.type = typeSemantic(e.type, Loc.initial, sc);
                 // if type is already a pointer exp is an illegal expression of the form `&(&"")`
@@ -14816,7 +15048,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
                 return new OverExp(exp.loc, o);
             }
 
-            if (auto t = s.getType())
+            if (auto t = dmd.dsymbolsem.getType(s))
             {
                 return (new TypeExp(exp.loc, t)).expressionSemantic(sc);
             }
@@ -17586,14 +17818,14 @@ void semanticTypeInfo(Scope* sc, Type t)
         else if (TemplateInstance ti = sd.isInstantiated())
         {
             if (ti.minst && !ti.minst.isRoot())
-                Module.addDeferredSemantic3(sd);
+                addDeferredSemantic3(sd);
         }
         else
         {
             if (sd.inNonRoot())
             {
                 //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd.toChars(), sd.inNonRoot());
-                Module.addDeferredSemantic3(sd);
+                addDeferredSemantic3(sd);
             }
         }
     }

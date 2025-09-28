@@ -16,7 +16,7 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.common.outbuffer : OutBuffer;
 import dmd.dclass : ClassDeclaration, BaseClass;
-import dmd.declaration : TypeInfoDeclaration;
+import dmd.declaration : TypeInfoDeclaration, VarDeclaration;
 import dmd.denum : EnumDeclaration;
 import dmd.dmodule /*: Module*/;
 import dmd.dscope : Scope;
@@ -230,6 +230,77 @@ bool fillVtbl(BaseClass* bc, ClassDeclaration cd, FuncDeclarations* vtbl, int ne
     return dmd.dsymbolsem.fillVtbl(bc, cd, vtbl, newinstance);
 }
 
+bool overloadInsert(Dsymbol ds, Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.overloadInsert(ds, s);
+}
+
+bool equals(const Dsymbol ds, const Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.equals(ds, s);
+}
+
+Type getType(Dsymbol ds)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.getType(ds);
+}
+
+uinteger_t size(Dsymbol ds, Loc loc)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.size(ds, loc);
+}
+
+void semantic3OnDependencies(Module m)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.semantic3OnDependencies(m);
+}
+
+void addDeferredSemantic(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.addDeferredSemantic(s);
+}
+
+void addDeferredSemantic2(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.addDeferredSemantic2(s);
+}
+
+void addDeferredSemantic3(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.addDeferredSemantic3(s);
+}
+
+void runDeferredSemantic()
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.runDeferredSemantic();
+}
+
+void runDeferredSemantic2()
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.runDeferredSemantic2();
+}
+
+void runDeferredSemantic3()
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.runDeferredSemantic3();
+}
+
+bool isOverlappedWith(VarDeclaration vd, VarDeclaration v){
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.isOverlappedWith(vd, v);
+}
+
 /***********************************************************
  * dtemplate.d
  */
@@ -313,6 +384,18 @@ bool fill(StructDeclaration sd, Loc loc,
 {
     import dmd.expressionsem;
     return dmd.expressionsem.fill(sd, loc, elements, ctorinit);
+}
+
+bool isIdentical(const Expression exp, const Expression e)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.isIdentical(exp, e);
+}
+
+bool equals(const Expression exp, const Expression e)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.equals(exp, e);
 }
 
 /***********************************************************

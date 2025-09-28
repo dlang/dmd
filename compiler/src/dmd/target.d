@@ -196,7 +196,8 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
             }
             case OS.OSX:
             {
-                predef("OSX");
+                predef("OSX");          // macOS
+                predef("Apple");        // macOS is one of Apple's operating systems
                 // For legacy compatibility
                 predef("darwin");
                 break;
@@ -638,6 +639,10 @@ extern (C++) struct Target
             return tvalist;
 
         if (os == Target.OS.Windows)
+        {
+            tvalist = Type.tchar.pointerTo();
+        }
+        else if (os == Target.OS.OSX && isAArch64)
         {
             tvalist = Type.tchar.pointerTo();
         }

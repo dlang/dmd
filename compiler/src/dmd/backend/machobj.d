@@ -96,7 +96,6 @@ void MachObj_refGOTsym()
 
 // The object file is built is several separate pieces
 
-
 // String Table  - String table for all other names
 private extern (D) __gshared OutBuffer* symtab_strings;
 
@@ -109,6 +108,8 @@ section_64* SecHdrTab64() { return cast(section_64*)SECbuf.buf; }
 
 __gshared
 {
+
+private bool AArch64;           // true for AArch64, false for X86_64
 
 // The relocation for text and data seems to get lost.
 // Try matching the order gcc output them
@@ -235,6 +236,7 @@ enum
 {
     RELaddr = 0,      // straight address
     RELrel  = 1,      // relative to location to be fixed up
+    RELadd  = 2,      // add in extra bits of relocation
 }
 
 struct Relocation
@@ -245,7 +247,7 @@ struct Relocation
                         // to address of this symbol
     uint targseg;       // if !=0, then location is to be fixed up
                         // to address of start of this segment
-    ubyte rtype;        // RELaddr or RELrel
+    ubyte rtype;        // RELaddr or RELrel or RELadd
     ubyte flag;         // 1: emit SUBTRACTOR/UNSIGNED pair
     short val;          // 0, -1, -2, -4
 }
@@ -303,7 +305,7 @@ private IDXSTR mach_addmangled(Symbol* s)
 }
 
 /**************************
- * Ouput read only data and generate a symbol for it.
+ * Output read only data and generate a symbol for it.
  *
  */
 
@@ -373,6 +375,7 @@ Obj MachObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname
     Obj obj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
 
     cseg = CODE;
+    AArch64 = config.target_cpu == TARGET_AArch64;
     fobjbuf = objbuf;
 
     seg_tlsseg = UNKNOWN;
@@ -513,6 +516,7 @@ int32_t* patchAddr(int seg, targ_size_t offset)
 @trusted
 int32_t* patchAddr64(int seg, targ_size_t offset)
 {
+    //printf("patchAddr64(seg = %d, offset = x%llx)\n", seg, offset);
     return cast(int32_t*)(fobjbuf.buf + SecHdrTab64[SegData[seg].SDshtidx].offset + offset);
 }
 
@@ -643,8 +647,8 @@ void MachObj_term(const(char)[] objfilename)
         mach_header_64 header;
 
         header.magic = MH_MAGIC_64;
-        header.cputype = CPU_TYPE_X86_64;
-        header.cpusubtype = CPU_SUBTYPE_I386_ALL;
+        header.cputype    = AArch64 ? CPU_TYPE_ARM64        : CPU_TYPE_X86_64;
+        header.cpusubtype = AArch64 ? CPU_SUBTYPE_ARM64_ALL : CPU_SUBTYPE_I386_ALL;
         header.filetype = MH_OBJECT;
         header.ncmds = 4;
         header.sizeofcmds = cast(uint)(segment_command_64.sizeof +
@@ -889,13 +893,13 @@ void MachObj_term(const(char)[] objfilename)
             for (; r != rend; r++)
             {   Symbol* s = r.targsym;
                 const(char)* rs = r.rtype == RELaddr ? "addr" : "rel";
-                //printf("%d:x%04llx : tseg %d tsym %s REL%s\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs);
+                //printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
                 relocation_info rel;
                 scattered_relocation_info srel;
                 if (s)
                 {
                     //printf("Relocation\n");
-                    //symbol_print(s);
+                    //symbol_print(*s);
                     if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
                     {
                         if (I64)
@@ -951,7 +955,73 @@ void MachObj_term(const(char)[] objfilename)
                     }
                     else if (pseg.isCode())
                     {
-                        if (I64)
+                        if (AArch64)
+                        {
+                            //symbol_print(*s);
+                            switch (s.Sclass)
+                            {
+                                case SC.extern_:
+                                case SC.comdat:
+                                case SC.comdef:
+                                case SC.static_:
+                                    if (s.Sfl == FL.func && r.rtype == RELrel)
+                                    {
+                                        rel.r_type = ARM64_RELOC_BRANCHY26;
+                                        rel.r_pcrel = 1;
+                                    }
+                                    else
+                                    {
+                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                        //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                        rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
+                                    }
+                                    assert(s.Sfl != FL.tlsdata);
+                                    rel.r_address = cast(int)r.offset;
+                                    rel.r_symbolnum = s.Sxtrnnum;
+                                    rel.r_length = 2;
+                                    rel.r_extern = 1;
+                                    fobjbuf.write(&rel, rel.sizeof);
+                                    foffset += rel.sizeof;
+                                    nreloc++;
+                                    break;
+
+                                case SC.global:
+                                    //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                    rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                    if (s.Sfl == FL.tlsdata)
+                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_TLVP_LOAD_PAGEOFF12 : ARM64_RELOC_TLVP_LOAD_PAGE21;
+
+                                    rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
+                                    rel.r_address = cast(int)r.offset;
+                                    rel.r_symbolnum = s.Sxtrnnum;
+                                    rel.r_length = 2;
+                                    rel.r_extern = 1;
+                                    fobjbuf.write(&rel, rel.sizeof);
+                                    foffset += rel.sizeof;
+                                    nreloc++;
+                                    break;
+
+                                case SC.locstat:
+                                    assert(s.Sfl != FL.tlsdata);
+                                    rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                    rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
+                                    rel.r_address = cast(int)r.offset;
+                                    rel.r_symbolnum = s.Sxtrnnum;
+                                    rel.r_length = 2;
+                                    rel.r_extern = 1;
+                                    fobjbuf.write(&rel, rel.sizeof);
+                                    foffset += rel.sizeof;
+                                    nreloc++;
+                                    break;
+
+                                default:
+                                    symbol_print(*s);
+                                    assert(0);
+                            }
+
+                            continue;
+                        }
+                        else if (I64)
                         {
                             rel.r_type = (r.rtype == RELrel)
                                     ? X86_64_RELOC_BRANCH
@@ -1012,7 +1082,23 @@ void MachObj_term(const(char)[] objfilename)
                     }
                     else
                     {
-                        if (s.Sclass == SC.extern_ ||
+                        if (AArch64 && s.Sclass == SC.locstat && s.Sfl == FL.tlsdata)
+                        {
+                            rel.r_address = cast(int)r.offset;
+                            rel.r_symbolnum = s.Sxtrnnum;
+                            rel.r_pcrel = 0;
+                            rel.r_length = 3;
+                            rel.r_extern = 1;
+                            rel.r_type = ARM64_RELOC_UNSIGNED;
+                            fobjbuf.write(&rel, rel.sizeof);
+                            foffset += rel.sizeof;
+                            nreloc++;
+                            //int32_t* p = patchAddr64(seg, r.offset);
+                            // Absolute address; add in addr of start of targ seg
+                            //  *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                            //patch(pseg, r.offset, s.Sseg, s.Soffset);
+                        }
+                        else if (s.Sclass == SC.extern_ ||
                             s.Sclass == SC.comdef ||
                             s.Sclass == SC.comdat)
                         {
@@ -1071,6 +1157,7 @@ void MachObj_term(const(char)[] objfilename)
                 }
                 else if (r.rtype == RELaddr && pseg.isCode())
                 {
+                    assert(!AArch64);   // AArch64 BUG
                     srel.r_scattered = 1;
 
                     srel.r_address = cast(uint)r.offset;
@@ -1142,6 +1229,35 @@ void MachObj_term(const(char)[] objfilename)
                 }
                 else
                 {
+                    //printf("r.rtype: %d r.targseg: %d r.offset: x%llx\n", r.rtype, r.targseg, cast(long)r.offset);
+                    if (AArch64)
+                    {
+                        rel.r_address = cast(int)r.offset;
+                        rel.r_symbolnum = r.targseg;
+                        rel.r_pcrel = (r.rtype == RELaddr) ? 0 : 1;
+                        rel.r_length = 2;
+                        rel.r_extern = 0;
+                        rel.r_type = ARM64_RELOC_UNSIGNED;
+                        rel.r_length = 3;
+
+                        fobjbuf.write(&rel, rel.sizeof);
+                        foffset += rel.sizeof;
+                        nreloc++;
+
+                        int32_t* p64 = patchAddr64(seg, r.offset);
+                        if (rel.r_pcrel)
+                            // Relative address
+                            patch(pseg, r.offset, r.targseg, 0);
+                        else
+                        {   // Absolute address; add in addr of start of targ seg
+//printf("*p = x%x, targ.addr = x%x\n", *p64, cast(int)SecHdrTab64[SegData[r.targseg].SDshtidx].addr);
+//printf("pseg = x%x, r.offset = x%x\n", cast(int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
+                            *p64 += SecHdrTab64[SegData[r.targseg].SDshtidx].addr;
+                            //*p64 -= SecHdrTab64[pseg.SDshtidx].addr;
+                        }
+                        //printf("%d:x%04x before = x%04llx, after = x%04llx pcrel = %d\n", seg, r.offset, before, *p64, rel.r_pcrel);
+                        continue;
+                    }
                     rel.r_address = cast(int)r.offset;
                     rel.r_symbolnum = r.targseg;
                     rel.r_pcrel = (r.rtype == RELaddr) ? 0 : 1;
@@ -1248,7 +1364,7 @@ void MachObj_term(const(char)[] objfilename)
     for (int i = 0; i < dysymtab_cmd.nextdefsym; i++)
     {   Symbol* s = (cast(Symbol**)public_symbuf.buf)[i];
 
-        //printf("Writing public symbol %d:x%x %s\n", s.Sseg, s.Soffset, s.Sident);
+        //printf("Writing public symbol %d:x%x %s\n", s.Sseg, cast(int)s.Soffset, s.Sident.ptr);
         nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
         sym.n_type = N_EXT | N_SECT;
@@ -1878,6 +1994,81 @@ seg_data* MachObj_tlsseg()
     return SegData[seg];
 }
 
+/*******************************************
+ * Emit 24 byte __thread_vars section for AArch64.
+ * Params:
+ *      s = Symbol for variable to be added to __thread_vars section
+ *      offset = set to offset to start of where to write initializer data
+ *      bss = true to write to __thread_bss, false to __thread_data
+ * Returns:
+ *      segment to write initialization data to
+ */
+@trusted
+int MachObj_thread_vars(ref Symbol s, out targ_size_t offset, bool bss)
+{
+    //printf("MachObj_thread_vars(s)\n");
+    //symbol_print(s);
+    /* create _ident$tlv$init Symbol si
+     */
+    Symbol* si;
+    {
+        char[DEST_LEN] dest = void;
+        size_t len = strlen(s.Sident.ptr);
+        char* destr = dest.ptr;
+        if (len > DEST_LEN)
+            destr = cast(char*)mem_malloc(len + 1);
+        destr[0] = '_';
+        memcpy(destr + 1, s.Sident.ptr, len);
+        memcpy(destr + 1 + len, "$tlv$init".ptr, 9); // includes terminating 0
+        si = symbol_name(destr[0 .. 1 + len + 9], SC.locstat, type_fake(TYint));
+
+        if (destr != dest.ptr)
+            mem_free(dest.ptr);
+    }
+
+    /* write _ident$tlv$init to __thread_bss / __thread_data section
+     */
+    if (bss)
+    {
+        MachObj_tlsseg_bss();
+        si.Sseg = seg_tlsseg_bss;
+    }
+    else
+    {
+        MachObj_tlsseg_data();
+        si.Sseg = seg_tlsseg_data;
+    }
+    si.Sfl = FL.tlsdata;
+    MachObj_data_start(si, 0,si.Sseg);
+    offset = SegData[si.Sseg].SDoffset;
+    MachObj_pubdef(si.Sseg, si, offset);
+
+    /* Create __thread_vars section, and s will refer to it
+     */
+    seg_data* tvsegdata = MachObj_tlsseg(); // __thread_vars segment
+    int tvseg = seg_tlsseg;
+    s.Sseg = tvseg;
+    MachObj_pubdef(tvseg, &s, tvsegdata.SDbuf.length());
+
+    /* 3 pointers are written to __thread_vars section:
+     * 1. pointer to __tlv_bootstrap
+     * 2. null pointer
+     * 3. pointer to _ident$tlv$init in the __thread_data section
+     */
+
+    // 1. pointer to __tlv_bootstrap
+    Symbol* stlv_bootstrap = MachObj_tlv_bootstrap();
+    MachObj_reftoident(tvseg, tvsegdata.SDbuf.length(), stlv_bootstrap, 0, CFoff | CFoffset64);
+
+    // 2. null pointer
+    MachObj_write_zeros(tvsegdata, 8);
+
+    // 3. pointer to _ident$tlv$init in the __thread_data section
+    MachObj_reftoident(tvseg, tvsegdata.SDbuf.length(), si, 0, CFoff | CFoffset64);
+
+    assert((tvsegdata.SDbuf.length() % 24) == 0);
+    return si.Sseg;
+}
 
 /*********************************
  * Define segments for Thread Local Storage.
@@ -2124,8 +2315,8 @@ void MachObj_pubdefsize(int seg, Symbol* s, targ_size_t offset, targ_size_t syms
 @trusted
 void MachObj_pubdef(int seg, Symbol* s, targ_size_t offset)
 {
-    //printf("MachObj_pubdef(%d:x%x s=%p, %s)\n", seg, offset, s, s.Sident.ptr);
-    //symbol_print(s);
+    //printf("MachObj_pubdef(%d:x%llx s=%p, %s)\n", seg, offset, s, s.Sident.ptr);
+    //symbol_print(*s);
     symbol_debug(s);
 
     s.Soffset = offset;
@@ -2189,7 +2380,7 @@ int MachObj_external_def(const(char)* name)
 @trusted
 int MachObj_external(Symbol* s)
 {
-    //printf("MachObj_external('%s') %x\n",s.Sident.ptr,s.Svalue);
+    //printf("MachObj_external('%s') %p\n",s.Sident.ptr,s.Svalue);
     symbol_debug(s);
     extern_symbuf.write((&s)[0 .. 1]);
     s.Sxtrnnum = 1;
@@ -2208,7 +2399,7 @@ int MachObj_external(Symbol* s)
 @trusted
 int MachObj_common_block(Symbol* s,targ_size_t size,targ_size_t count)
 {
-    //printf("MachObj_common_block('%s', size=%d, count=%d)\n",s.Sident.ptr,size,count);
+    //printf("MachObj_common_block('%s', size=%lld, count=%lld)\n",s.Sident.ptr,size,count);
     symbol_debug(s);
 
     // can't have code or thread local comdef's
@@ -2454,6 +2645,9 @@ void MachObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
         int flags)
 {
+    if (AArch64)
+        return MachObj_reftoidentAArch64(seg, offset, s, val, flags);
+
     int retsize = (flags & CFoffset64) ? 8 : 4;
     if (log)
     {
@@ -2618,6 +2812,62 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
     }
     return retsize;
 }
+
+@trusted
+int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
+        int flags)
+{
+    int retsize = (flags & CFoffset64) ? 8 : 4;
+    if (log)
+    {
+        debug printf("\nMachObj_reftoidentAArch64('%s' seg %d, offset x%llx, val x%llx, flags x%x) ",
+                     s.Sident.ptr,seg,cast(ulong)offset,cast(ulong)val,flags);
+        CF_print(flags);
+        debug printf("retsize = %d\n", retsize);
+        //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s.Sseg,s.Sxtrnnum);
+        symbol_print(*s);
+    }
+    assert(seg > 0);
+    if (s.Sclass != SC.locstat && !s.Sxtrnnum)
+    {   // It may get defined later as public or local, so defer
+        size_t numbyteswritten = addtofixlist(s, offset, seg, val, flags);
+        assert(numbyteswritten == retsize);
+    }
+    else
+    {
+        //if (s.Sclass != SCcomdat)
+            //val += s.Soffset;
+        int v = 0;
+        if (flags & CFpc32)
+            v = cast(int)val;
+        if (flags & CFselfrel)
+        {
+            MachObj_addrel(seg, offset, s, 0, RELrel, v);
+        }
+        else if (flags & CFadd)
+        {
+            MachObj_addrel(seg, offset, s, 0, RELadd, v);
+        }
+        else
+        {
+            MachObj_addrel(seg, offset, s, 0, RELaddr, v);
+        }
+    }
+
+    OutBuffer* buf = SegData[seg].SDbuf;
+    int save = cast(int)buf.length();
+    buf.position(cast(size_t)offset, retsize);
+    //printf("offset = x%llx, val = x%llx\n", offset, val);
+    if (retsize == 4)
+        buf.write32(cast(int)val);
+    else
+        buf.write64(val);
+    if (save > offset + retsize)
+        buf.setsize(save);
+
+    return retsize;
+}
+
 
 /*****************************************
  * Generate far16 thunk.

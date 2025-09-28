@@ -168,5 +168,51 @@ else version (LoongArch64)
     enum _LIBUNWIND_CONTEXT_SIZE = 65;
     enum _LIBUNWIND_CURSOR_SIZE = 77;
 }
+else version (MIPS32)
+{
+    version (MIPS_O32)
+    {
+        version (MIPS_HardFloat)
+        {
+            enum _LIBUNWIND_CONTEXT_SIZE = 50;
+            enum _LIBUNWIND_CURSOR_SIZE = 57;
+        }
+        else
+        {
+            enum _LIBUNWIND_CONTEXT_SIZE = 18;
+            enum _LIBUNWIND_CURSOR_SIZE = 24;
+        }
+    }
+    else version (MIPS_N32)
+    {
+        version (MIPS_HardFloat)
+        {
+            enum _LIBUNWIND_CONTEXT_SIZE = 67;
+            enum _LIBUNWIND_CURSOR_SIZE = 74;
+        }
+        else
+        {
+            enum _LIBUNWIND_CONTEXT_SIZE = 35;
+            enum _LIBUNWIND_CURSOR_SIZE = 42;
+        }
+    }
+}
+else version (MIPS64)
+{
+    version (MIPS_N64)
+    {
+        version (MIPS_HardFloat)
+        {
+            enum _LIBUNWIND_CONTEXT_SIZE = 67;
+            enum _LIBUNWIND_CURSOR_SIZE = 79;
+        }
+        else
+        {
+            enum _LIBUNWIND_CONTEXT_SIZE = 35;
+            enum _LIBUNWIND_CURSOR_SIZE = 47;
+        }
+    }
+    else static assert(0, "MIPS_O64 not supported");
+}
 else
     static assert(0, "Platform not supported");
