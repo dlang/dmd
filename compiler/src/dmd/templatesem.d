@@ -197,8 +197,8 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
         {
             tempdecl.onemember = s;
             s.parent = tempdecl;
+            tempdecl.computeIsTrivialAlias(s);
         }
-        tempdecl.computeIsTrivialAlias(s);
     }
 
     /* BUG: should check:
