@@ -3353,7 +3353,7 @@ static if (0)
                     //printf("\t\t************* adding relocation\n");
                     const size_t nbytes = ElfObj_writerel(seg, cast(uint)offset, relinfo, refseg, val);
 // nbytes is 4, refSize is 8, do not know which is correct TODO
-//printf("nbytes: %lld refSize: %d\n", nbytes, refSize);
+//printf("nbytes: %lld refSize: %d val: %lld\n", nbytes, refSize, cast(long)val);
                     assert(nbytes == refSize);
                 }
             }

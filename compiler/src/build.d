@@ -1558,10 +1558,10 @@ auto sourceFiles()
     }
     DmdSources dmd = {
         glue: fileArray(env["D"], "
-            dmsc.d e2ir.d iasm/dmdx86.d iasm/dmdaarch64.d glue.d objc_glue.d
-            s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
+            dmsc.d iasm/dmdx86.d iasm/dmdaarch64.d glue/package.d glue/e2ir.d glue/objc.d
+            glue/s2ir.d glue/tocsym.d glue/toctype.d glue/tocvdebug.d glue/todt.d glue/toir.d glue/toobj.d
         "),
-        driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib/package.d lib/elf.d lib/mach.d lib/mscoff.d
+        driver: fileArray(env["D"], "dinifile.d dmdparams.d lib/package.d lib/elf.d lib/mach.d lib/mscoff.d
             link.d mars.d main.d sarif.d lib/scanelf.d lib/scanmach.d lib/scanmscoff.d timetrace.d vsoptions.d
         "),
         frontend: fileArray(env["D"], "
@@ -1575,7 +1575,7 @@ auto sourceFiles()
             mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
             parse.d pragmasem.d printast.d rootobject.d safe.d
             semantic2.d semantic3.d sideeffect.d statement.d
-            statementsem.d staticassert.d staticcond.d stmtstate.d target.d templatesem.d templateparamsem.d traits.d
+            statementsem.d staticassert.d staticcond.d stmtstate.d target.d targetcompiler.d templatesem.d templateparamsem.d traits.d
             typesem.d typinf.d utils.d
             iasm/package.d iasm/gcc.d
             mangle/package.d mangle/basic.d mangle/cpp.d mangle/cppwin.d

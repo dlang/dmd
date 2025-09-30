@@ -767,7 +767,7 @@ public:
             (void)t->sym->alignment.isDefault();
             (void)t->sym->alignsize;
             (void)t->sym->alignment.get();
-            (void)t->sym->isPOD();
+            (void)dmd::isPOD(t->sym);
             for (size_t i = 0; i < t->sym->members->length; i++)
             {
                 Dsymbol *sym = (*t->sym->members)[i];
@@ -1190,12 +1190,6 @@ public:
                     mi->accept(this);
             }
             (void)dmd::findGetMembers(d);
-            (void)d->sctor;
-            (void)d->sdtor;
-            (void)d->ssharedctor;
-            (void)d->sshareddtor;
-            (void)d->sictor;
-            (void)d->stest;
             (void)d->needmoduleinfo;
         }
         d->semanticRun(PASS::obj);
@@ -1275,7 +1269,9 @@ public:
     {
         if (dmd::isError(d) || !d->members)
             return;
-        if (!d->needsCodegen())
+        if (!dmd::needsCodegen(d))
+            return;
+        if (dmd::isDiscardable(d))
             return;
         for (size_t i = 0; i < d->members->length; i++)
             (*d->members)[i]->accept(this);
@@ -1378,7 +1374,7 @@ public:
                         for (size_t k = 0; k < cd3->vtblInterfaces->length; k++)
                         {
                             BaseClass *bs = (*cd3->vtblInterfaces)[k];
-                            if (bs->fillVtbl(cd2, NULL, 0))
+                            if (dmd::fillVtbl(bs, cd2, NULL, 0))
                             {
                                 if (bc == bs)
                                     break;
@@ -1540,14 +1536,15 @@ public:
             if (!d->isDataseg() && !d->isMember() &&
                 d->_init && !d->_init->isVoidInitializer())
             {
-                Expression *e = d->type->defaultInitLiteral(d->loc);
+                Expression *e = dmd::defaultInitLiteral(d->type, d->loc);
                 e->accept(this);
             }
             return;
         }
         if (d->aliasTuple)
         {
-            d->toAlias()->accept(this);
+            dmd::toAlias(d)->accept(this);
+            (void) dmd::toAlias2(d);
             return;
         }
         if (!d->canTakeAddressOf())
@@ -1569,7 +1566,7 @@ public:
             }
             else
             {
-                Expression *e = d->type->defaultInitLiteral(d->loc);
+                Expression *e = dmd::defaultInitLiteral(d->type, d->loc);
                 e->accept(this);
             }
         }
@@ -1622,7 +1619,7 @@ public:
         if (d->semanticRun() < PASS::semantic3)
         {
             dmd::functionSemantic3(d);
-            Module::runDeferredSemantic3();
+            dmd::runDeferredSemantic3();
         }
         if (global.errors)
             return;
@@ -1777,10 +1774,10 @@ void expression_h(Expression *e, Scope *sc, Type *t, Loc loc, Expressions *es)
 }
 
 void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,
-              Expression *e, Initializer *i, Statement *s, Type *t)
+              Expression *e, Initializer *i, Statement *s, Type *t, ErrorSink *sink)
 {
     dmd::genhdrfile(m, true, buf);
-    dmd::genCppHdrFiles(ms);
+    dmd::genCppHdrFiles(ms, sink);
     dmd::moduleToBuffer(buf, true, m);
     dmd::parametersTypeToChars(pl);
     dmd::toChars(e);

@@ -42,6 +42,7 @@ struct ASTCodegen
     alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;
     alias Ensure                    = dmd.func.Ensure; // workaround for bug in older DMD frontends
     alias ErrorExp                  = dmd.expression.ErrorExp;
+    alias ArgumentLabel             = dmd.expression.ArgumentLabel;
 
     alias MODFlags                  = dmd.mtype.MODFlags;
     alias Type                      = dmd.mtype.Type;

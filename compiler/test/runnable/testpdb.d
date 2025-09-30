@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -gf -mixin=${RESULTS_DIR}/runnable/testpdb.mixin
+// REQUIRED_ARGS: -gf -mixin=${RESULTS_DIR}/runnable/testpdb.mixin -preview=bitfields
 // PERMUTE_ARGS:
 
 import core.time;
@@ -57,6 +57,8 @@ void main(string[] args)
         test18147(session, globals);
 
         test21382(session, globals);
+
+        test21665(session, globals);
 
         source.Release();
         session.Release();
@@ -618,6 +620,62 @@ void test21382(IDiaSession session, IDiaSymbol globals)
     IDiaSymbol virtualSym = searchSymbol(dSym, "virtualFun");
     virtualSym || assert(false, "testpdb.Dsym21382.virtualFun not found");
     virtualSym.get_virtual(&virt) == S_OK && virt || assert(false, "testpdb.Dsym21382.virtualFun is virtual");
+}
+
+// https://github.com/dlang/dmd/issues/18950
+int x18950;
+ref int foo18950() { return x18950; }
+
+void test18950(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol dSym = searchSymbol(globals, "testpdb.foo18950");
+    dSym || assert(false, "testpdb.foo18950 not found");
+
+    IDiaSymbol funcType;
+    dSym.get_type(&funcType) == S_OK || assert(false, "testpdb.foo18950: no type");
+    IDiaSymbol retType;
+    funcType.get_type(&retType) == S_OK || assert(false, "testpdb.foo18950: no return type");
+    DWORD tag;
+    // ref returned as pointer to hidden return value
+    retType.get_symTag(&tag) == S_OK && tag == SymTagEnum.SymTagPointerType
+        || assert(false, "testpdb.foo18950: bad return type");
+}
+
+// https://github.com/dlang/dmd/issues/21665
+struct S21665
+{
+    int itg;
+    int a:3;
+    uint b:6;
+}
+void test21665(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol dSym = searchSymbol(globals, "testpdb.S21665");
+    dSym || assert(false, "testpdb.S21665 not found");
+
+    void checkBitField(string name, uint pos, uint len)()
+    {
+        IDiaSymbol aMember = searchSymbol(dSym, name);
+        string fqn = "testpdb.S21665." ~ name;
+        aMember || assert(false, fqn ~ " not found");
+
+        DWORD loc;
+        LONG off;
+        DWORD bitPos;
+        ULONGLONG bitLen;
+
+        aMember.get_locationType(&loc) == S_OK || assert(false, fqn ~ ": no location type");
+        loc == LocationType.LocIsBitField || assert(false, fqn ~ ": not a bitfield");
+
+        aMember.get_offset(&off) == S_OK || assert(false, fqn ~ ": no offset");
+        off == 4 || assert(false, fqn ~ ": not at offset 4");
+        aMember.get_bitPosition(&bitPos) == S_OK || assert(false, fqn ~ ": no bit position");
+        bitPos == pos || assert(false, fqn ~ ": not at bit position " ~ pos.stringof);
+        aMember.get_length(&bitLen) == S_OK || assert(false, fqn ~ ": no bit length");
+        bitLen == len || assert(false, fqn ~ ": not bit length " ~ len.stringof);
+    }
+    checkBitField!("a", 0, 3);
+    checkBitField!("b", 3, 6);
 }
 
 ///////////////////////////////////////////////

@@ -30,20 +30,16 @@ import dmd.dmacro;
 import dmd.doc;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
-import dmd.expressionsem;
 import dmd.file_manager;
 import dmd.func;
 import dmd.globals;
-import dmd.gluelayer;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.parse;
-import dmd.root.aav;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
@@ -67,25 +63,6 @@ else version (Posix)
 }
 else
     static assert(0);
-
-version (IN_GCC) {}
-else version (IN_LLVM) {}
-else version = MARS;
-
-// function used to call semantic3 on a module's dependencies
-void semantic3OnDependencies(Module m)
-{
-    if (!m)
-        return;
-
-    if (m.semanticRun > PASS.semantic3)
-        return;
-
-    m.semantic3(null);
-
-    foreach (i; 1 .. m.aimports.length)
-        semantic3OnDependencies(m.aimports[i]);
-}
 
 /**
  * Remove generated .di files on error and exit
@@ -185,15 +162,6 @@ extern (C++) class Package : ScopeDsymbol
     override const(char)* kind() const nothrow
     {
         return "package";
-    }
-
-    override bool equals(const RootObject o) const
-    {
-        // custom 'equals' for bug 17441. "package a" and "module a" are not equal
-        if (this == o)
-            return true;
-        auto p = cast(Package)o;
-        return p && isModule() == p.isModule() && ident.equals(p.ident);
     }
 
     /****************************************************
@@ -458,6 +426,7 @@ extern (C++) final class Module : Package
         else if (!FileName.equalsExt(srcfilename, mars_ext) &&
                  !FileName.equalsExt(srcfilename, hdr_ext) &&
                  !FileName.equalsExt(srcfilename, c_ext) &&
+                 !FileName.equalsExt(srcfilename, h_ext) &&
                  !FileName.equalsExt(srcfilename, i_ext) &&
                  !FileName.equalsExt(srcfilename, dd_ext))
         {
@@ -492,12 +461,6 @@ extern (C++) final class Module : Package
     extern (D) static Module create(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
     {
         return new Module(Loc.initial, filename, ident, doDocComment, doHdrGen);
-    }
-
-    static const(char)* find(const(char)* filename)
-    {
-        ImportPathInfo pathThatFoundThis; // is this needed? In fact is this function needed still???
-        return find(filename.toDString, pathThatFoundThis).ptr;
     }
 
     extern (D) static const(char)[] find(const(char)[] filename, out ImportPathInfo pathThatFoundThis)
@@ -703,7 +666,8 @@ extern (C++) final class Module : Package
 
         const(ubyte)[] srctext;
         if (global.preprocess &&
-            FileName.equalsExt(srcfile.toString(), c_ext) &&
+            (FileName.equalsExt(srcfile.toString(), c_ext) ||
+             FileName.equalsExt(srcfile.toString(), h_ext)) &&
             FileName.exists(srcfile.toString()))
         {
             /* Apply C preprocessor to the .c file, returning the contents
@@ -786,10 +750,12 @@ extern (C++) final class Module : Package
         DsymbolTable dst;
         Package ppack = null;
 
-        /* If it has the extension ".c", it is a "C" file.
+        /* If it has the extension ".c" or ".h", it is a "C" file.
          * If it has the extension ".i", it is a preprocessed "C" file.
          */
-        if (FileName.equalsExt(arg, c_ext) || FileName.equalsExt(arg, i_ext))
+        if (FileName.equalsExt(arg, c_ext) ||
+            FileName.equalsExt(arg, h_ext) ||
+            FileName.equalsExt(arg, i_ext))
         {
             filetype = FileType.c;
 
@@ -956,32 +922,6 @@ extern (C++) final class Module : Package
         return needmoduleinfo || global.params.cov;
     }
 
-    /*******************************************
-     * Print deprecation warning if we're deprecated, when
-     * this module is imported from scope sc.
-     *
-     * Params:
-     *  sc = the scope into which we are imported
-     *  loc = the location of the import statement
-     */
-    void checkImportDeprecation(Loc loc, Scope* sc)
-    {
-        if (md && md.isdeprecated && !sc.isDeprecated)
-        {
-            Expression msg = md.msg;
-            if (StringExp se = msg ? msg.toStringExp() : null)
-            {
-                const slice = se.peekString();
-                if (slice.length)
-                {
-                    deprecation(loc, "%s `%s` is deprecated - %.*s", kind, toPrettyChars, cast(int)slice.length, slice.ptr);
-                    return;
-                }
-            }
-            deprecation(loc, "%s `%s` is deprecated", kind, toPrettyChars);
-        }
-    }
-
     override bool isPackageAccessible(Package p, Visibility visibility, SearchOptFlags flags = SearchOpt.all)
     {
         if (insearch) // don't follow import cycles
@@ -1006,125 +946,6 @@ extern (C++) final class Module : Package
             File.remove(objfile.toChars());
         if (docfile)
             File.remove(docfile.toChars());
-    }
-
-    /*******************************************
-     * Can't run semantic on s now, try again later.
-     */
-    extern (D) static void addDeferredSemantic(Dsymbol s)
-    {
-        //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
-        if (!s.deferred)
-        {
-            s.deferred = true;
-            deferred.push(s);
-        }
-    }
-
-    extern (D) static void addDeferredSemantic2(Dsymbol s)
-    {
-        //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
-        if (!s.deferred2)
-        {
-            s.deferred2 = true;
-            deferred2.push(s);
-        }
-    }
-
-    extern (D) static void addDeferredSemantic3(Dsymbol s)
-    {
-        //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
-        if (!s.deferred3)
-        {
-            s.deferred3 = true;
-            deferred3.push(s);
-        }
-    }
-
-    /******************************************
-     * Run semantic() on deferred symbols.
-     */
-    static void runDeferredSemantic()
-    {
-        __gshared int nested;
-        if (nested)
-            return;
-        //if (deferred.length) printf("+Module::runDeferredSemantic(), len = %ld\n", deferred.length);
-        nested++;
-
-        size_t len;
-        do
-        {
-            len = deferred.length;
-            if (!len)
-                break;
-
-            Dsymbol* todo;
-            Dsymbol* todoalloc = null;
-            Dsymbol tmp;
-            if (len == 1)
-            {
-                todo = &tmp;
-            }
-            else
-            {
-                todo = cast(Dsymbol*)Mem.check(malloc(len * Dsymbol.sizeof));
-                todoalloc = todo;
-            }
-            memcpy(todo, deferred.tdata(), len * Dsymbol.sizeof);
-            foreach (Dsymbol s; Module.deferred[])
-                s.deferred = false;
-            deferred.setDim(0);
-
-            foreach (i; 0..len)
-            {
-                Dsymbol s = todo[i];
-                s.dsymbolSemantic(null);
-                //printf("deferred: %s, parent = %s\n", s.toChars(), s.parent.toChars());
-            }
-            //printf("\tdeferred.length = %ld, len = %ld\n", deferred.length, len);
-            if (todoalloc)
-                free(todoalloc);
-        }
-        while (deferred.length != len); // while making progress
-        nested--;
-        //printf("-Module::runDeferredSemantic(), len = %ld\n", deferred.length);
-    }
-
-    static void runDeferredSemantic2()
-    {
-        Module.runDeferredSemantic();
-
-        Dsymbols* a = &Module.deferred2;
-        for (size_t i = 0; i < a.length; i++)
-        {
-            Dsymbol s = (*a)[i];
-            s.deferred2 = false;
-            //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
-            s.semantic2(null);
-
-            if (global.errors)
-                break;
-        }
-        a.setDim(0);
-    }
-
-    static void runDeferredSemantic3()
-    {
-        Module.runDeferredSemantic2();
-
-        Dsymbols* a = &Module.deferred3;
-        for (size_t i = 0; i < a.length; i++)
-        {
-            Dsymbol s = (*a)[i];
-            s.deferred3 = false;
-            //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());
-            s.semantic3(null);
-
-            if (global.errors)
-                break;
-        }
-        a.setDim(0);
     }
 
     extern (D) static void clearCache() nothrow
@@ -1173,16 +994,10 @@ extern (C++) final class Module : Package
     }
 
     // Back end
-    int doppelganger; // sub-module
-    Symbol* cov; // private uint[] __coverage;
+    void* cov; // private uint[] __coverage;
     uint[] covb; // bit array of valid code line numbers
-    Symbol* sictor; // module order independent constructor
-    Symbol* sctor; // module constructor
-    Symbol* sdtor; // module destructor
-    Symbol* ssharedctor; // module shared constructor
-    Symbol* sshareddtor; // module shared destructor
-    Symbol* stest; // module unit test
-    Symbol* sfilename; // symbol for filename
+    void* sfilename; // symbol for filename
+    bool hasCDtor; // this module has a (shared) module constructor or destructor and we are codegenning it
 
     uint[uint] ctfe_cov; /// coverage information from ctfe execution_count[line]
 
@@ -1467,9 +1282,8 @@ FuncDeclaration findGetMembers(ScopeDsymbol dsym)
         {
             Scope sc;
             sc.eSink = global.errorSink;
-            auto parameters = new Parameters();
             Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
-            parameters.push(p);
+            auto parameters = new Parameters(p);
             Type tret = null;
             TypeFunction tf = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
             tfgetmembers = tf.dsymbolSemantic(Loc.initial, &sc).isTypeFunction();

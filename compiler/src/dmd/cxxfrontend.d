@@ -15,8 +15,8 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.common.outbuffer : OutBuffer;
-import dmd.dclass : ClassDeclaration;
-import dmd.declaration : TypeInfoDeclaration;
+import dmd.dclass : ClassDeclaration, BaseClass;
+import dmd.declaration : TypeInfoDeclaration, VarDeclaration;
 import dmd.denum : EnumDeclaration;
 import dmd.dmodule /*: Module*/;
 import dmd.dscope : Scope;
@@ -26,12 +26,13 @@ import dmd.dtemplate /*: TemplateInstance, TemplateParameter, Tuple*/;
 import dmd.errorsink : ErrorSink;
 import dmd.expression /*: Expression*/;
 import dmd.func : FuncDeclaration;
-import dmd.globals;
+import dmd.globals : dinteger_t, uinteger_t, JsonFieldFlags;
 import dmd.identifier : Identifier;
 import dmd.init : Initializer, NeedInterpret;
 import dmd.location : Loc;
 import dmd.mtype /*: Covariant, Type, Parameter, ParameterList*/;
 import dmd.rootobject : RootObject;
+import dmd.semantic3;
 import dmd.statement : Statement, AsmStatement, GccAsmStatement;
 
 // NB: At some point in the future, we can switch to shortened function syntax.
@@ -132,7 +133,7 @@ void gendocfile(Module m, const char* ddoctext_ptr, size_t ddoctext_length,
  */
 FuncDeclaration search_toString(StructDeclaration sd)
 {
-    return dmd.dstruct.search_toString(sd);
+    return dmd.semantic3.search_toString(sd);
 }
 
 /***********************************************************
@@ -205,6 +206,101 @@ void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
     return dmd.dsymbolsem.getLocalClasses(mod, aclasses);
 }
 
+Dsymbol toAlias(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.toAlias(s);
+}
+
+Dsymbol toAlias2(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.toAlias2(s);
+}
+
+bool isPOD(StructDeclaration sd)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.isPOD(sd);
+}
+
+bool fillVtbl(BaseClass* bc, ClassDeclaration cd, FuncDeclarations* vtbl, int newinstance)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.fillVtbl(bc, cd, vtbl, newinstance);
+}
+
+bool overloadInsert(Dsymbol ds, Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.overloadInsert(ds, s);
+}
+
+bool equals(const Dsymbol ds, const Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.equals(ds, s);
+}
+
+Type getType(Dsymbol ds)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.getType(ds);
+}
+
+uinteger_t size(Dsymbol ds, Loc loc)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.size(ds, loc);
+}
+
+void semantic3OnDependencies(Module m)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.semantic3OnDependencies(m);
+}
+
+void addDeferredSemantic(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.addDeferredSemantic(s);
+}
+
+void addDeferredSemantic2(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.addDeferredSemantic2(s);
+}
+
+void addDeferredSemantic3(Dsymbol s)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.addDeferredSemantic3(s);
+}
+
+void runDeferredSemantic()
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.runDeferredSemantic();
+}
+
+void runDeferredSemantic2()
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.runDeferredSemantic2();
+}
+
+void runDeferredSemantic3()
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.runDeferredSemantic3();
+}
+
+bool isOverlappedWith(VarDeclaration vd, VarDeclaration v){
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.isOverlappedWith(vd, v);
+}
+
 /***********************************************************
  * dtemplate.d
  */
@@ -251,10 +347,10 @@ void printTemplateStats(bool listInstances, ErrorSink eSink)
 /***********************************************************
  * dtoh.d
  */
-void genCppHdrFiles(ref Modules ms)
+void genCppHdrFiles(ref Modules ms, ErrorSink eSink)
 {
     import dmd.dtoh;
-    return dmd.dtoh.genCppHdrFiles(ms);
+    return dmd.dtoh.genCppHdrFiles(ms, eSink);
 }
 
 /***********************************************************
@@ -288,6 +384,18 @@ bool fill(StructDeclaration sd, Loc loc,
 {
     import dmd.expressionsem;
     return dmd.expressionsem.fill(sd, loc, elements, ctorinit);
+}
+
+bool isIdentical(const Expression exp, const Expression e)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.isIdentical(exp, e);
+}
+
+bool equals(const Expression exp, const Expression e)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.equals(exp, e);
 }
 
 /***********************************************************
@@ -721,6 +829,12 @@ MATCH constConv(Type from, Type to)
     return dmd.typesem.constConv(from, to);
 }
 
+Expression defaultInitLiteral(Type t, Loc loc)
+{
+    import dmd.typesem;
+    return dmd.typesem.defaultInitLiteral(t, loc);
+}
+
 /***********************************************************
  * typinf.d
  */
@@ -754,6 +868,20 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
     return dmd.typinf.getTypeInfoAssocArrayDeclaration(t, sc);
 }
 
+/**
+ * templatesem.d
+ */
+bool needsCodegen(TemplateInstance ti)
+{
+    import dmd.templatesem;
+    return dmd.templatesem.needsCodegen(ti);
+}
+
+bool isDiscardable(TemplateInstance ti)
+{
+    import dmd.templatesem;
+    return dmd.templatesem.isDiscardable(ti);
+}
 version (IN_LLVM)
 {
     /***********************************************************

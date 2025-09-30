@@ -32,6 +32,7 @@ DOCS=\
 	$(DOCDIR)\core_internal_execinfo.html \
 	$(DOCDIR)\core_internal_hash.html \
 	$(DOCDIR)\core_internal_moving.html \
+	$(DOCDIR)\core_internal_newaa.html \
 	$(DOCDIR)\core_internal_parseoptions.html \
 	$(DOCDIR)\core_internal_postblit.html \
 	$(DOCDIR)\core_internal_spinlock.html \
@@ -328,6 +329,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_solaris_execinfo.html \
 	$(DOCDIR)\core_sys_solaris_libelf.html \
 	$(DOCDIR)\core_sys_solaris_link.html \
+	$(DOCDIR)\core_sys_solaris_thread.html \
 	$(DOCDIR)\core_sys_solaris_time.html \
 	\
 	$(DOCDIR)\core_sys_solaris_sys_elf.html \
@@ -337,7 +339,9 @@ DOCS=\
 	$(DOCDIR)\core_sys_solaris_sys_elftypes.html \
 	$(DOCDIR)\core_sys_solaris_sys_link.html \
 	$(DOCDIR)\core_sys_solaris_sys_priocntl.html \
+	$(DOCDIR)\core_sys_solaris_sys_procfs.html \
 	$(DOCDIR)\core_sys_solaris_sys_procset.html \
+	$(DOCDIR)\core_sys_solaris_sys_regset.html \
 	$(DOCDIR)\core_sys_solaris_sys_types.html \
 	$(DOCDIR)\core_sys_solaris_sys_elf_SPARC.html \
 	\
@@ -559,7 +563,6 @@ DOCS=\
 	$(DOCDIR)\rt_tlsgc.html \
 	$(DOCDIR)\rt_trace.html \
 	$(DOCDIR)\rt_tracegc.html \
-	$(DOCDIR)\rt_aaA.html \
 	$(DOCDIR)\rt_cmath2.html \
 	$(DOCDIR)\rt_critical_.html \
 	$(DOCDIR)\rt_dmain2.html \

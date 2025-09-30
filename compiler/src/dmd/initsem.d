@@ -168,7 +168,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 // Convert initializer to Expression `ex`
                 auto tm = fieldType.addMod(t.mod);
                 auto iz = i.value[j].initializerSemantic(sc, tm, needInterpret);
-                auto ex = iz.initializerToExpression(null, sc.inCfile);
+                auto ex = iz.initializerToExpression(fieldType, sc.inCfile);
                 if (ex.op != EXP.error)
                     i.value[j] = iz;
                 return ex;
@@ -820,20 +820,105 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             {
                 DesigInit di = ci.initializerList[index];
                 Designators* dlist = di.designatorList;
+                VarDeclaration field;
                 if (dlist)
                 {
                     const length = (*dlist).length;
+                    auto id = (*dlist)[0].ident;
                     if (length == 0 || !(*dlist)[0].ident)
                     {
                         error(ci.loc, "`.identifier` expected for C struct field initializer `%s`", toChars(ci));
                         return err();
                     }
+
                     if (length > 1)
                     {
-                        error(ci.loc, "only 1 designator currently allowed for C struct field initializer `%s`", toChars(ci));
-                        return err();
+                        StructDeclaration nstsd = sd; // use this for member structs we wish to traverse
+                        auto subsi = si;
+                        /*
+                         * run this for each designator in the chain until you hit the last
+                         * then perform semantic analysis on the last field in the chain using the previous struct initializer
+                         */
+                        for (size_t i = 0; i < length; i++)
+                        {
+                            int found;
+                            id = (*dlist)[i].ident;
+                            foreach (f; nstsd.fields[])
+                            {
+                                if (f.ident == id)
+                                {
+                                    field = f;
+                                    ++found;
+                                    break;
+                                }
+                            }
+                            if (!found)
+                            {
+                                error(ci.loc, "`.%s` is not a field of `%s`\n", id.toChars(), nstsd.toChars());
+                                return err();
+                            }
+
+                            auto base = field.type.toBasetype();
+
+                            if (i >= length -1)
+                            {
+                                subsi.addInit(id, di.initializer);
+                                ++index;
+                                continue Loop1;
+                            }
+
+                            auto tstr = base.isTypeStruct();
+                            auto tarr = base.isTypeSArray();
+
+                            if (tstr)
+                            {
+                                if (!overlaps(field, nstsd.fields[], subsi))
+                                {
+                                    auto innersi = new StructInitializer(ci.loc);
+                                    subsi.addInit(id, innersi);
+                                    subsi = innersi;
+                                }
+                                else {
+                                    foreach(k, ident; subsi.field[])
+                                    {
+                                        if (ident == id && subsi.value[k])
+                                            subsi = subsi.value[k].isStructInitializer();
+                                    }
+                                }
+                                nstsd = tstr.sym;
+                            }
+                            /*
+                             * once we hit an array, check & attach the array initializer to the struct initializer
+                             * move to the next initializer id and run initializer semantics on it
+                             */
+                            else if (tarr)
+                            {
+                                /*
+                                 * so tempting to check for null cases for field._init.
+                                 * but if your object is set to null on decl, you can't use designators anymore
+                                 * and D does well to default initialize for us
+                                 */
+                                auto ai = field._init.isArrayInitializer();
+
+                                if (ai is null)
+                                {
+                                    ai = new ArrayInitializer(ci.loc);
+                                    subsi.addInit(id, ai);
+                                    field._init = ai;
+                                }
+
+                                auto ndx = (*dlist)[i+1].exp;
+                                ai.addInit(ndx, di.initializer);
+                                ++index;
+                                continue Loop1;
+                            }
+                            else
+                            {
+                                error(ci.loc, "only 1 designated initializer allowed for C struct field of type `%s`", toChars(base));
+                                return err();
+                            }
+                        }
                     }
-                    auto id = (*dlist)[0].ident;
                     foreach (k, f; sd.fields[])         // linear search for now
                     {
                         if (f.ident == id)
@@ -909,7 +994,6 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                         continue Loop1;
                 }
 
-                VarDeclaration field;
                 while (1)   // skip field if it overlaps with previously seen fields
                 {
                     field = sd.fields[fieldi];
@@ -1267,6 +1351,11 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
     {
         //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
         //static int i; if (++i == 2) assert(0);
+        if (!itype || itype.toBasetype().isTypeAArray())
+            if (!init.type || init.type.isTypeAArray())
+                if (init.isAssociativeArray())
+                    return init.toAssocArrayLiteral();
+
         uint edim;      // the length of the resulting array literal
         const(uint) amax = 0x80000000;
         Type t = null;  // type of the array literal being initialized

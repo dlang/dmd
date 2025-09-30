@@ -16,7 +16,7 @@ import core.checkedint;
 
 import dmd.astenums;
 import dmd.declaration;
-import dmd.globals;
+import dmd.dsymbolsem : isPOD;
 import dmd.location;
 import dmd.mtype;
 import dmd.typesem;
@@ -326,7 +326,7 @@ TypeTuple toArgTypes_x86(Type t)
          *      nfields = number of fields in the aggregate (dimension for static arrays)
          *      getFieldInfo = get information about the nth field in the aggregate
          */
-        extern (D) void aggregate(uinteger_t sz, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
+        extern (D) void aggregate(ulong sz, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
         {
             if (nfields == 0)
                 return memory();

@@ -24,7 +24,9 @@ import dmd.expressionsem;
 import dmd.identifier;
 import dmd.globals;
 import dmd.location;
+import dmd.cparse;
 import dmd.parse;
+import dmd.target;
 import dmd.tokens;
 import dmd.statement;
 import dmd.statementsem;
@@ -41,7 +43,9 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope* sc)
 {
     //printf("GccAsmStatement.semantic()\n");
     const bool doUnittests = global.params.parsingUnittestsRequired();
-    scope p = new Parser!ASTCodegen(sc._module, "", false, global.errorSink, &global.compileEnv, doUnittests);
+    scope p = (sc && sc.inCfile)
+        ? new CParser!ASTCodegen(sc._module, "", false, global.errorSink, target.c, null, &global.compileEnv)
+        : new Parser!ASTCodegen(sc._module, "", false, global.errorSink, &global.compileEnv, doUnittests);
 
     // Make a safe copy of the token list before parsing.
     Token* toklist = null;
@@ -203,6 +207,39 @@ Expression semanticAsmString(Scope* sc, Expression exp, const char *s)
 }
 
 /***********************************
+ * Parse a D or ImportC assignment expression
+ */
+Expression parseAssignment(Parser)(Parser p)
+{
+    if (p.Ccompile)
+        return (cast(CParser!ASTCodegen)p).cparseAssignExp();
+
+    return p.parseAssignExp();
+}
+
+/***********************************
+ * Parse a D or ImportC conditional expression
+ */
+Expression parseConditional(Parser)(Parser p)
+{
+    if (p.Ccompile)
+        return (cast(CParser!ASTCodegen)p).cparseCondExp();
+
+    return p.parseCondExp();
+}
+
+/***********************************
+ * Parse a D or ImportC primary expression
+ */
+Expression parsePrimary(Parser)(Parser p)
+{
+    if (p.Ccompile)
+        return (cast(CParser!ASTCodegen)p).cparsePrimaryExp();
+
+    return p.parsePrimaryExp();
+}
+
+/***********************************
  * Parse an expression that evaluates to a string.
  * Grammar:
  *      | AsmStringExpr:
@@ -219,7 +256,7 @@ Expression parseAsmString(Parser)(Parser p)
     {
         // Skip over opening `(`
         p.nextToken();
-        Expression insn = p.parseCondExp();
+        Expression insn = p.parseConditional();
         if (insn.isErrorExp())
             return insn;
 
@@ -235,7 +272,7 @@ Expression parseAsmString(Parser)(Parser p)
         return ErrorExp.get();
     }
 
-    return p.parsePrimaryExp();
+    return p.parsePrimary();
 }
 
 /***********************************
@@ -298,7 +335,7 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
             goto Lerror;
 
         // Parse the assign expression
-        arg = p.parseAssignExp();
+        arg = p.parseAssignment();
         if (arg.isErrorExp())
             goto Lerror;
 
@@ -541,19 +578,21 @@ unittest
     ASTCodegen.Type.tchar = tchar;
 
     // Imitates asmSemantic if version = IN_GCC.
-    static int semanticAsm(Token* tokens)
+    static int semanticAsm(Token* tokens, bool importC)
     {
         const errors = global.errors;
         scope gas = new GccAsmStatement(Loc.initial, tokens);
         const bool doUnittests = false;
-        scope p = new Parser!ASTCodegen(null, ";", false, global.errorSink, &global.compileEnv, doUnittests);
+        scope p = importC
+            ? new CParser!ASTCodegen(null, ";", false, global.errorSink, target.c, null, &global.compileEnv)
+            : new Parser!ASTCodegen(null, ";", false, global.errorSink, &global.compileEnv, doUnittests);
         p.token = *tokens;
         p.parseGccAsm(gas);
         return global.errors - errors;
     }
 
     // Imitates parseStatement for asm statements.
-    static void parseAsm(string input, bool expectError)
+    static void parseAsm(string input, bool expectError, bool importC = false)
     {
         // Generate tokens from input test.
         const bool doUnittests = false;
@@ -591,7 +630,7 @@ unittest
         }
         p.check(TOK.rightCurly);
 
-        auto res = semanticAsm(toklist);
+        auto res = semanticAsm(toklist, importC);
         // Checks for both unexpected passes and failures.
         assert((res == 0) != expectError, input);
     }
@@ -648,6 +687,9 @@ unittest
         // https://github.com/dlang/dmd/issues/21299
         q{ asm { (insn) : (output) (a) : (input) (1) : (clobber); } },
         q{ asm { (['t','e','s','t']) : (['=','r']) (a) : (['r']) (1) : (['m','e','m','o','r','y']); } },
+
+        // https://github.com/dlang/dmd/issues/21679
+        q{ asm { "" : "=r" (s.x); } },
     ];
 
     immutable string[] failAsmTests = [
@@ -716,6 +758,15 @@ unittest
         q{ asm { "" : "" (a) : "" (b) : "" : c : "" (; } },
         q{ asm { "" : "" (a) : "" (b) : "" : c : "" (d; } },
         q{ asm { "" : "" (a) : "" (b) : "" : c : "" (d); } },
+
+        // https://github.com/dlang/dmd/issues/21679
+        q{ asm { "" : "=r" (s->x); } },
+    ];
+
+    immutable string[] passCAsmTests = [
+        // https://github.com/dlang/dmd/issues/21679
+        q{ asm { "" : "=r" (s->x); } },
+        q{ asm { "" : "=r" (s.x); } }
     ];
 
     foreach (test; passAsmTests)
@@ -723,4 +774,7 @@ unittest
 
     foreach (test; failAsmTests)
         parseAsm(test, true);
+
+    foreach (test; passCAsmTests)
+        parseAsm(test, false, /*importC*/true);
 }

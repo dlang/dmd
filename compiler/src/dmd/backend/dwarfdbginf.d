@@ -1793,7 +1793,7 @@ static if (1)
 
         int filenum = dwarf_line_addfile(filename);
 
-        uint ret_type = dwarf_typidx(sfunc.Stype.Tnext);
+        uint ret_type = dwarf_typidx(sfunc.Stype.Tnext, sfunc);
         if (tybasic(sfunc.Stype.Tnext.Tty) == TYvoid)
             ret_type = 0;
 
@@ -2214,7 +2214,7 @@ static if (1)
 
     /* ======================= Type Index ============================== */
 
-    uint dwarf_typidx(type* t)
+    uint dwarf_typidx(type* t, Symbol* sym = null)
     {
         uint idx = 0;
         uint nextidx;
@@ -2488,6 +2488,10 @@ static if (1)
             case TYnref:
             case TYref:
                 nextidx = dwarf_typidx(t.Tnext);
+                if (!nextidx)
+                {
+                    printf("t = %s, sym = %s\n", t.Tident, sym ? sym.Sident.ptr : "(no sym)");
+                }
                 assert(nextidx);
                 code = DWARFAbbrev.write!(abbrevTypeRef);
                 idx = cast(uint)cast(uint)debug_info.buf.length();
@@ -2841,6 +2845,7 @@ static if (1)
                     switch (sf.Sclass)
                     {
                         case SC.member:
+                        case SC.field:
                             fieldidx.write32(dwarf_typidx(sf.Stype));
                             nfields++;
                             break;
@@ -2892,6 +2897,16 @@ static if (1)
                         DW_AT_data_member_location, DW_FORM_block1
                     ]);
 
+                    uint bitfieldcode;
+                    if (st.Sflags & STRbitfields)
+                        bitfieldcode = DWARFAbbrev.write!([
+                            DW_TAG_member,         DW_CHILDREN_no,
+                            DW_AT_name,            DW_FORM_string,
+                            DW_AT_type,            DW_FORM_ref4,
+                            DW_AT_bit_size,        DW_FORM_data1,
+                            DW_AT_data_bit_offset, DW_FORM_data8
+                        ]);
+
                     uint baseclasscode;
                     if (st.Sbase)
                         baseclasscode = DWARFAbbrev.write!([
@@ -2937,13 +2952,23 @@ static if (1)
                                 debug_info.buf.writeStringz(getSymName(sf));      // DW_AT_name
                                 //debug_info.buf.write32(dwarf_typidx(sf.Stype));
                                 uint fi = (cast(uint*)fieldidx.buf)[n];
-                                debug_info.buf.write32(fi);
+                                debug_info.buf.write32(fi);                       // DW_AT_type
                                 n++;
                                 soffset = debug_info.buf.length();
-                                debug_info.buf.writeByte(2);
+                                debug_info.buf.writeByte(2);                      // DW_AT_data_member_location
                                 debug_info.buf.writeByte(DW_OP_plus_uconst);
                                 debug_info.buf.writeuLEB128(cast(uint)sf.Smemoff);
                                 debug_info.buf.buf[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
+                                break;
+
+                            case SC.field:
+                                debug_info.buf.writeuLEB128(bitfieldcode);
+                                debug_info.buf.writeStringz(getSymName(sf));      // DW_AT_name
+                                uint fi = (cast(uint*)fieldidx.buf)[n];
+                                debug_info.buf.write32(fi);                       // DW_AT_type
+                                n++;
+                                debug_info.buf.writeByte(sf.Swidth);              // DW_AT_bit_size
+                                debug_info.buf.write64(sf.Smemoff * 8 + sf.Sbit); // DW_AT_data_bit_offset
                                 break;
 
                             default:

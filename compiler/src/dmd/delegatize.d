@@ -18,6 +18,7 @@ import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.dsymbolsem : toParentP;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -179,6 +180,11 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
                 if (Initializer iz = ai.value[i])
                     iz.accept(this);
             }
+        }
+        override void visit(AssocArrayLiteralExp e)
+        {
+            if (e.lowering)
+                walkPostorder(e.lowering, this);
         }
     }
 

@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/e2ir.d, _e2ir.d)
- * Documentation: https://dlang.org/phobos/dmd_e2ir.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/e2ir.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/e2ir.d, _e2ir.d)
+ * Documentation: https://dlang.org/phobos/dmd_glue_e2ir.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/glue/e2ir.d
  */
 
-module dmd.e2ir;
+module dmd.glue.e2ir;
 
 import core.stdc.stdio;
 import core.stdc.stddef;
@@ -21,6 +21,14 @@ import dmd.root.ctfloat;
 import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.stringtable;
+
+import dmd.glue;
+import dmd.glue.objc;
+import dmd.glue.s2ir;
+import dmd.glue.tocsym;
+import dmd.glue.toctype;
+import dmd.glue.toir;
+import dmd.glue.toobj;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -37,28 +45,22 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : include, _isZeroInit;
+import dmd.dsymbolsem : include, _isZeroInit, toAlias, isPOD;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.expressionsem : fill;
+import dmd.expressionsem : fill, isIdentical;
 import dmd.func;
-import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
-import dmd.objc_glue;
 import dmd.printast;
-import dmd.s2ir;
 import dmd.sideeffect;
 import dmd.statement;
 import dmd.target;
-import dmd.tocsym;
-import dmd.toctype;
-import dmd.toir;
+import dmd.templatesem;
 import dmd.tokens;
-import dmd.toobj;
 import dmd.typinf;
 import dmd.typesem;
 import dmd.visitor;
@@ -79,6 +81,8 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.x86.code_x86;
+
+package(dmd.glue):
 
 alias Elems = Array!(elem *);
 
@@ -150,24 +154,6 @@ bool ISX64REF(ref IRState irs, Expression exp)
     return false;
 }
 
-/********
- * If type is a composite and is to be passed by reference instead of by value
- * Params:
- *      target = target instruction set
- *      t = type
- * Returns:
- *      true if passed by reference
- * Reference:
- *      Procedure Call Standard for the Arm 64-bi Architecture (AArch64) pg 23 B.4
- *      "If the argument type is a Composite Type that is larger than 16 bytes, then the
- *      argument is copied to memory allocated by the caller and the argument is replaced
- *      by a pointer to the copy."
- */
-static bool passTypeByRef(ref const Target target, Type t)
-{
-    return (target.isAArch64 && t.size(Loc.initial) > 16);
-}
-
 /**************************************************
  * Generate a copy from e2 to e1.
  * Params:
@@ -233,16 +219,20 @@ bool type_zeroCopy(type* t)
 
 Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
 {
-    //printf("toStringSymbol() %p\n", stringTab);
+    //printf("toStringSymbol() %s\n", str);
     auto sv = stringTab.update(str, len * sz);
     if (sv.value)
         return sv.value;
 
-    Symbol* si;
+    if (target.isAArch64)
+    {
+        /* Generate string symbol of the form l_str.N
+         */
+    }
 
     if (target.os != Target.OS.Windows)
     {
-        si = out_string_literal(str, cast(uint)len, cast(uint)sz);
+        Symbol* si = out_string_literal(str, cast(uint)len, cast(uint)sz);
         sv.value = si;
         return sv.value;
     }
@@ -296,6 +286,7 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
         }
     }
 
+    Symbol* si;
     si = symbol_calloc(buf[]);
     si.Sclass = SC.comdat;
     si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
@@ -343,15 +334,10 @@ Symbol* toStringSymbol(StringExp se)
 
 void toTraceGC(ref IRState irs, elem* e, Loc loc)
 {
-    static immutable RTLSYM[2][7] map =
+    static immutable RTLSYM[2][5] map =
     [
-
         [ RTLSYM.CALLFINALIZER, RTLSYM.TRACECALLFINALIZER ],
         [ RTLSYM.CALLINTERFACEFINALIZER, RTLSYM.TRACECALLINTERFACEFINALIZER ],
-
-        [ RTLSYM.ARRAYLITERALTX, RTLSYM.TRACEARRAYLITERALTX ],
-        [ RTLSYM.ASSOCARRAYLITERALTX, RTLSYM.TRACEASSOCARRAYLITERALTX ],
-
 
         [ RTLSYM.ARRAYAPPENDCD, RTLSYM.TRACEARRAYAPPENDCD ],
         [ RTLSYM.ARRAYAPPENDWD, RTLSYM.TRACEARRAYAPPENDWD ],
@@ -367,12 +353,6 @@ void toTraceGC(ref IRState irs, elem* e, Loc loc)
     assert(e1.Eoper == OPvar);
 
     auto s = e1.Vsym;
-    /* In -dip1008 code the allocation of exceptions is no longer done by the
-     * gc, but by a manual reference counting mechanism implementend in druntime.
-     * If that is the case, then there is nothing to trace.
-     */
-    if (s == getRtlsym(RTLSYM.NEWTHROW))
-        return;
     foreach (ref m; map)
     {
         if (s == getRtlsym(m[0]))
@@ -628,6 +608,15 @@ Symbol* toExtSymbol(Dsymbol s)
         return toImport(s);
     else
         return toSymbol(s);
+}
+
+private elem* toEfilenamePtr(Module m)
+{
+    //printf("toEfilenamePtr(%s)\n", m.toChars());
+    const(char)* id = m.srcfile.toChars();
+    size_t len = strlen(id);
+    Symbol* s = toStringSymbol(id, len, 1);
+    return el_ptr(s);
 }
 
 /*********************************************
@@ -1160,14 +1149,22 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (tb.ty == Tpointer)
         {
-            e = el_calloc();
-            e.Eoper = OPstring;
-            // freed in el_free
-            const len = cast(size_t)((se.numberOfCodeUnits() + 1) * se.sz);
-            e.Vstring = cast(char *)mem_malloc2(cast(uint) len);
-            se.writeTo(e.Vstring, true);
-            e.Vstrlen = len;
-            e.Ety = TYnptr;
+            if (config.objfmt == OBJ_MACH && target.isAArch64)
+            {
+                Symbol* si = toStringSymbol(se);
+                e = el_ptr(si);
+            }
+            else
+            {
+                e = el_calloc();
+                e.Eoper = OPstring;
+                // freed in el_free
+                const len = cast(size_t)((se.numberOfCodeUnits() + 1) * se.sz);
+                e.Vstring = cast(char *)mem_malloc2(cast(uint) len);
+                se.writeTo(e.Vstring, true);
+                e.Vstrlen = len;
+                e.Ety = TYnptr;
+            }
         }
         else
         {
@@ -1395,14 +1392,13 @@ elem* toElem(Expression e, ref IRState irs)
                 /* Structs return a ref, which gets automatically dereferenced.
                  * But we want a pointer to the instance.
                  */
-                if (!ne.placement)
-                    ez = el_una(OPaddr, TYnptr, ez);
+                ez = el_una(OPaddr, TYnptr, ez);
             }
             else
             {
                 StructLiteralExp sle = StructLiteralExp.create(ne.loc, sd, ne.arguments, t);
                 ez = toElemStructLit(sle, irs, EXP.construct, ev.Vsym, false);
-                if (tybasic(ez.Ety) == TYstruct && !ne.placement)
+                if (tybasic(ez.Ety) == TYstruct || ne.placement)
                     ez = el_una(OPaddr, TYnptr, ez);
             }
             static if (0)
@@ -1413,13 +1409,6 @@ elem* toElem(Expression e, ref IRState irs)
                 if (ezprefix) { printf("ezprefix:\n"); elem_print(ezprefix); }
                 if (ez) { printf("ez:\n"); elem_print(ez); }
                 printf("\n");
-            }
-
-            if (ne.placement)
-            {
-                ez = el_bin(OPstreq,TYstruct,el_copytree(ev),ez);
-                ez.ET = ev.ET;
-                ez = el_una(OPaddr, TYnptr, ez);
             }
 
             e = el_combine(ex, ey);
@@ -1471,13 +1460,8 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (auto taa = t.isTypeAArray())
         {
-            Symbol* s = getRtlsym(RTLSYM.AANEW);
-            elem* ti = getTypeInfo(ne, t, irs);
-            // aaNew(ti)
-            elem* ep = el_params(ti, null);
-            e = el_bin(OPcall, TYnptr, el_var(s), ep);
-            elem_setLoc(e, ne.loc);
-            return e;
+            assert(ne.lowering, "This case should have been rewritten to `_d_aaNew` in the semantic phase");
+            return toElem(ne.lowering, irs);
         }
         else
         {
@@ -2183,18 +2167,7 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (t1.ty == Taarray && t2.ty == Taarray)
         {
-            TypeAArray taa = cast(TypeAArray)t1;
-            Symbol* s = getRtlsym(RTLSYM.AAEQUAL);
-            elem* ti = getTypeInfo(ee, taa, irs);
-            elem* ea1 = toElem(ee.e1, irs);
-            elem* ea2 = toElem(ee.e2, irs);
-            // aaEqual(ti, e1, e2)
-            elem* ep = el_params(ea2, ea1, ti, null);
-            e = el_bin(OPcall, TYint, el_var(s), ep);
-            if (ee.op == EXP.notEqual)
-                e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
-            elem_setLoc(e, ee.loc);
-            return e;
+            assert(false, "This case should have been rewritten to `_d_aaEqual` in the semantic phase");
         }
         else if (eop == OPne && t1.ty == Tvector)
         {
@@ -2284,19 +2257,7 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitIn(InExp ie)
     {
-        elem* key = toElem(ie.e1, irs);
-        elem* aa = toElem(ie.e2, irs);
-        TypeAArray taa = cast(TypeAArray)ie.e2.type.toBasetype();
-
-        // aaInX(aa, keyti, key);
-        key = addressElem(key, ie.e1.type);
-        Symbol* s = getRtlsym(RTLSYM.AAINX);
-        elem* keyti = getTypeInfo(ie, taa.index, irs);
-        elem* ep = el_params(key, keyti, aa, null);
-        elem* e = el_bin(OPcall, totym(ie.type), el_var(s), ep);
-
-        elem_setLoc(e, ie.loc);
-        return e;
+        assert(false, "This case should have been rewritten to `_d_aaIn` in the semantic phase");
     }
 
     /***************************************
@@ -2304,19 +2265,7 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitRemove(RemoveExp re)
     {
-        auto taa = re.e1.type.toBasetype().isTypeAArray();
-        assert(taa);
-        elem* ea = toElem(re.e1, irs);
-        elem* ekey = toElem(re.e2, irs);
-
-        ekey = addressElem(ekey, re.e2.type);
-        Symbol* s = getRtlsym(RTLSYM.AADELX);
-        elem* keyti = getTypeInfo(re, taa.index, irs);
-        elem* ep = el_params(ekey, keyti, ea, null);
-        elem* e = el_bin(OPcall, TYbool, el_var(s), ep);
-
-        elem_setLoc(e, re.loc);
-        return e;
+        assert(false, "This case should have been rewritten to `_d_aaDel` in the semantic phase");
     }
 
     /***************************************
@@ -4026,55 +3975,7 @@ elem* toElem(Expression e, ref IRState irs)
         Type t1 = ie.e1.type.toBasetype();
         if (auto taa = t1.isTypeAArray())
         {
-            // set to:
-            //      *aaGetY(aa, aati, valuesize, &key);
-            // or
-            //      *aaGetRvalueX(aa, keyti, valuesize, &key);
-
-            uint vsize = cast(uint)taa.next.size();
-
-            // n2 becomes the index, also known as the key
-            elem* n2 = toElem(ie.e2, irs);
-
-            /* Turn n2 into a pointer to the index.  If it's an lvalue,
-             * take the address of it. If not, copy it to a temp and
-             * take the address of that.
-             */
-            n2 = addressElem(n2, taa.index);
-
-            elem* valuesize = el_long(TYsize_t, vsize);
-            //printf("valuesize: "); elem_print(valuesize);
-            Symbol* s;
-            elem* ti;
-            if (ie.modifiable)
-            {
-                n1 = el_una(OPaddr, TYnptr, n1);
-                s = getRtlsym(RTLSYM.AAGETY);
-                ti = getTypeInfo(ie.e1, taa.unSharedOf().mutableOf(), irs);
-            }
-            else
-            {
-                s = getRtlsym(RTLSYM.AAGETRVALUEX);
-                ti = getTypeInfo(ie.e1, taa.index, irs);
-            }
-            //printf("taa.index = %s\n", taa.index.toChars());
-            //printf("ti:\n"); elem_print(ti);
-            elem* ep = el_params(n2, valuesize, ti, n1, null);
-            e = el_bin(OPcall, TYnptr, el_var(s), ep);
-            if (irs.arrayBoundsCheck())
-            {
-                elem* n = el_same(e);
-
-                // Construct: ((e || arrayBoundsError), n)
-                auto ea = buildRangeError(irs, ie.loc);
-                e = el_bin(OPoror,TYvoid,e,ea);
-                e = el_bin(OPcomma, TYnptr, e, n);
-            }
-            e = el_una(OPind, totym(ie.type), e);
-            if (tybasic(e.Ety) == TYstruct)
-                e.ET = Type_toCtype(ie.type);
-            elem_setLoc(e, ie.loc);
-            return e;
+            assert(false, "no index lowering for associative array literal");
         }
 
         elem* einit = resolveLengthVar(ie.lengthVar, &n1, t1);
@@ -4181,11 +4082,13 @@ elem* toElem(Expression e, ref IRState irs)
                 * Avoids the whole variadic arg mess.
                 */
 
-                // call _d_arrayliteralTX(ti, dim)
-                e = el_bin(OPcall, TYnptr,
-                    el_var(getRtlsym(RTLSYM.ARRAYLITERALTX)),
-                    el_param(el_long(TYsize_t, dim), getTypeInfo(ale, ale.type, irs)));
-                toTraceGC(irs, e, ale.loc);
+                if (!ale.lowering)
+                {
+                    fprintf(stderr, "Internal Error: array literal %s at %s should have been lowered to a _d_arrayliteralTX template\n",
+                        ale.toChars(), ale.loc.toChars());
+                    assert(0);
+                }
+                e = toElem(ale.lowering, irs);
 
                 Symbol* stmp = symbol_genauto(Type_toCtype(Type.tvoid.pointerTo()));
                 e = el_bin(OPeq, TYnptr, el_var(stmp), e);
@@ -4220,51 +4123,10 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitAssocArrayLiteral(AssocArrayLiteralExp aale)
     {
         //printf("AssocArrayLiteralExp.toElem() %s\n", aale.toChars());
+        if (aale.lowering)
+            return toElem(aale.lowering, irs);
 
-        Type t = aale.type.toBasetype().mutableOf();
-
-        size_t dim = aale.keys.length;
-        if (!dim)
-        {
-            elem* e = el_long(TYnptr, 0);      // empty associative array is the null pointer
-            if (t.ty != Taarray)
-                e = addressElem(e, Type.tvoidptr);
-            return e;
-        }
-
-        // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
-        // Prefer this to avoid the varargs fiasco in 64 bit code
-
-        assert(t.ty == Taarray);
-        Type ta = t;
-
-        Symbol* skeys = null;
-        elem* ekeys = ExpressionsToStaticArray(irs, aale.loc, aale.keys, &skeys);
-
-        Symbol* svalues = null;
-        elem* evalues = ExpressionsToStaticArray(irs, aale.loc, aale.values, &svalues);
-
-        elem* ev = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues));
-        elem* ek = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  ));
-        if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
-        {
-            ev = addressElem(ev, Type.tvoid.arrayOf());
-            ek = addressElem(ek, Type.tvoid.arrayOf());
-        }
-        elem* e = el_params(ev, ek,
-                            getTypeInfo(aale, ta, irs),
-                            null);
-
-        // call _d_assocarrayliteralTX(ti, keys, values)
-        e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM.ASSOCARRAYLITERALTX)),e);
-        toTraceGC(irs, e, aale.loc);
-        if (t != ta)
-            e = addressElem(e, ta);
-        elem_setLoc(e, aale.loc);
-
-        e = el_combine(evalues, e);
-        e = el_combine(ekeys, e);
-        return e;
+        assert(false, "no lowering for associative array literal");
     }
 
     elem* visitStructLiteral(StructLiteralExp sle)
@@ -4765,7 +4627,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
              * information available to do it.
              *
              * Casting from a C++ interface to a non-C++ interface
-             * always results in null because there's no way one
+             * always results in null because there is no way one
              * can be derived from the other.
              */
             e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
@@ -4798,6 +4660,9 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     if (ftym == ttym)
         return Lret(ce, e);
 
+    // OSX AArch64 long doubles are 64 bits
+    bool RealIsDouble = target.os == Target.os.OSX && target.isAArch64;
+
     /* Reduce combinatorial explosion by rewriting the 'to' and 'from' types to a
      * generic equivalent (as far as casting goes)
      */
@@ -4813,6 +4678,10 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         case Twchar:    tty = Tuns16;   break;
         case Tdchar:    tty = Tuns32;   break;
         case Tvoid:     return Lpaint(ce, e, ttym);
+
+        case Tfloat80:          if (RealIsDouble) tty = Tfloat64;     break;
+        case Timaginary80:      if (RealIsDouble) tty = Timaginary64; break;
+        case Tcomplex80:        if (RealIsDouble) tty = Tcomplex64;   break;
 
         case Tbool:
         {
@@ -4840,6 +4709,10 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         //  value to cast, hence we discard the cast
         case Tnoreturn:
             return Lret(ce, e);
+
+        case Tfloat80:          if (RealIsDouble) fty = Tfloat64;     break;
+        case Timaginary80:      if (RealIsDouble) fty = Timaginary64; break;
+        case Tcomplex80:        if (RealIsDouble) fty = Tcomplex64;   break;
 
         default:
             break;
@@ -5447,22 +5320,6 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     }
 }
 
-/******************************************
- * If argument to a function should use OPstrpar,
- * fix it so it does and return it.
- */
-static elem* useOPstrpar(elem* e)
-{
-    tym_t ty = tybasic(e.Ety);
-    if (ty == TYstruct || ty == TYarray)
-    {
-        e = el_una(OPstrpar, TYstruct, e);
-        e.ET = e.E1.ET;
-        assert(e.ET);
-    }
-    return e;
-}
-
 /************************************
  * Call a function.
  */
@@ -5927,7 +5784,16 @@ elem* callfunc(Loc loc,
             e = el_una(OPucall, tyret, ec);
 
         if (tf.parameterList.varargs != VarArg.none)
-            e.Eflags |= EFLAGS_variadic;
+        {
+            if (I64 && config.exe != EX_WIN64)
+                e.Eflags |= EFLAGS_variadic;
+            if (config.exe == EX_OSX64 && target.isAArch64)
+            {
+                const length = tf.parameterList.length;
+                assert(length < ubyte.max); // 254 should be enough for anybody
+                e.numParams = cast(ubyte)(tf.parameterList.length + 1); // +1 means variadic
+            }
+        }
     }
 
     const isCPPCtor = fd && fd._linkage == LINK.cpp && fd.isCtorDeclaration();
@@ -6247,8 +6113,11 @@ elem* sarray_toDarray(Loc loc, Type tfrom, Type tto, elem* e)
         uint tsize = cast(uint)tto.nextOf().size();
 
         // Should have been caught by Expression::castTo
-        assert(tsize != 0 && (dim * fsize) % tsize == 0);
-        dim = (dim * fsize) / tsize;
+        if (tsize != fsize) // allow both 0
+        {
+            assert(tsize != 0 && (dim * fsize) % tsize == 0);
+            dim = (dim * fsize) / tsize;
+        }
     }
     elem* elen = el_long(TYsize_t, dim);
     e = addressElem(e, tfrom);
@@ -7226,4 +7095,43 @@ elem* constructVa_start(elem* e)
     else
         assert(0);
     return e;
+}
+
+/******************************************
+ * If argument to a function should use OPstrpar,
+ * fix it so it does and return it.
+ * Params:
+ *      e = argument to be passed to a function
+ * Returns:
+ *      `e` or `e` converted to an OPstrpar
+ */
+private
+elem* useOPstrpar(elem* e)
+{
+    tym_t ty = tybasic(e.Ety);
+    if (ty == TYstruct || ty == TYarray)
+    {
+        e = el_una(OPstrpar, TYstruct, e);
+        e.ET = e.E1.ET;
+        assert(e.ET);
+    }
+    return e;
+}
+
+/********
+ * If type is a composite and is to be passed by reference instead of by value
+ * Params:
+ *      target = target instruction set
+ *      t = type
+ * Returns:
+ *      true if passed by reference
+ * Reference:
+ *      Procedure Call Standard for the Arm 64-bi Architecture (AArch64) pg 23 B.4
+ *      "If the argument type is a Composite Type that is larger than 16 bytes, then the
+ *      argument is copied to memory allocated by the caller and the argument is replaced
+ *      by a pointer to the copy."
+ */
+private bool passTypeByRef(ref const Target target, Type t)
+{
+    return (target.isAArch64 && t.size(Loc.initial) > 16);
 }

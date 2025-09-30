@@ -1,9 +1,9 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/bitfields2.c(103): Error: bit-field type `float` is not an integer type
-fail_compilation/bitfields2.c(104): Error: bit-field width `3.0` is not an integer constant
-fail_compilation/bitfields2.c(105): Error: bit-field `c` has zero width
-fail_compilation/bitfields2.c(106): Error: width `60` of bit-field `d` does not fit in type `int`
+fail_compilation/bitfields2.c(103): Error: bitfield type `float` is not an integer type
+fail_compilation/bitfields2.c(104): Error: bitfield width `3.0` is not an integer constant
+fail_compilation/bitfields2.c(105): Error: bitfield `c` has zero width
+fail_compilation/bitfields2.c(106): Error: width `60` of bitfield `d` does not fit in type `int`
 ---
  */
 

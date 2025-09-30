@@ -7,8 +7,10 @@ void main()
     testRequire1();
     testRequire2();
     testRequire3();
+    testRequire4();
     testUpdate1();
     testUpdate2();
+    testUpdate3();
     testByKey1();
     testByKey2();
     testByKey3();
@@ -41,6 +43,8 @@ void main()
     testTombstonePurging();
     testClear();
     testTypeInfoCollect();
+    testNew();
+    testAliasThis();
 }
 
 void testKeysValues1()
@@ -225,6 +229,20 @@ void testRequire3() pure
     assert("foo" in aa);
 }
 
+void testRequire4() pure
+{
+    int[int] aa;
+    try
+        aa.require(5, {
+            if (true)
+                throw new Exception("oops");
+            else
+                return 1;
+        }());
+    catch (Exception e) {}
+    assert(5 !in aa);
+}
+
 
 void testUpdate1()
 {
@@ -288,6 +306,23 @@ void testUpdate2()
     aa.update("foo", new Creator, new Updater);
     assert(updated);
 }
+
+void testUpdate3() pure
+{
+    int[int] aa;
+    try
+        aa.update(5, {
+            if (true)
+                throw new Exception("oops");
+            else
+                return 1;
+        }, (ref int v) {
+            throw new Exception("unexpected update");
+        });
+    catch (Exception e) {}
+    assert(5 !in aa);
+}
+
 
 void testByKey1() @safe
 {
@@ -946,4 +981,43 @@ void testTypeInfoCollect()
         auto p = new void*[1];
     s = null; // clear any reference to the entry
     GC.collect(); // used to segfault.
+}
+
+void testNew()
+{
+    auto aa = new long[int]; // call _d_newAA
+    assert(aa.length == 0);
+    foreach (i; 0 .. 100)
+        aa[i] = i * 2;
+    assert(aa.length == 100);
+
+    // not supported in CTFE (it doesn't do much anyway):
+    // static auto aa = new long[int];
+}
+
+void testAliasThis()
+{
+    static struct S
+    {
+        __gshared int numCopies;
+
+        ubyte[long] aa;
+        S* next;
+
+        this(this) { numCopies++; }
+
+        alias aa this;
+    }
+    S s;
+    long key = 1;
+    s.aa[1] = 1; // create and insert
+    assert(S.numCopies == 0);
+    if (auto p = 1 in s)
+        *p = 2;
+    if (auto p = key in s)
+        *p = 3;
+    if (auto p = () { return 1; }() in s)
+        *p = 4;
+    s.remove(1);
+    assert(S.numCopies == 0);
 }

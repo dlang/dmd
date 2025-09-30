@@ -757,7 +757,7 @@ unittest
  * Returns:
  *      the product
  */
-pragma(inline, true)
+// pragma(inline, true)
 uint mulu()(uint x, uint y, ref bool overflow)
 {
     version (D_InlineAsm_X86)         enum useAsm = true;
@@ -827,7 +827,7 @@ ulong mulu()(ulong x, uint y, ref bool overflow)
 }
 
 /// ditto
-pragma(inline, true)
+// pragma(inline, true)
 ulong mulu()(ulong x, ulong y, ref bool overflow)
 {
     version (D_InlineAsm_X86_64)

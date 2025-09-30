@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/toctype.d, _toctype.d)
- * Documentation:  https://dlang.org/phobos/dmd_toctype.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/toctype.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/toctype.d, _toctype.d)
+ * Documentation:  https://dlang.org/phobos/dmd_glue+toctype.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/glue/toctype.d
  */
 
-module dmd.toctype;
+module dmd.glue.toctype;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -20,18 +20,21 @@ import dmd.backend.type;
 
 import dmd.root.rmem;
 
+import dmd.glue;
+import dmd.glue.tocvdebug;
+
 import dmd.astenums;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dmdparams;
 import dmd.dstruct;
+import dmd.dsymbolsem : isPOD;
 import dmd.globals;
-import dmd.glue;
 import dmd.id;
 import dmd.mtype;
 import dmd.typesem;
-import dmd.tocvdebug;
 
+package(dmd.glue):
 
 /*******************
  * Determine backend tym bits corresponding to MOD
@@ -139,7 +142,10 @@ type* Type_toCtype(Type t)
             }
             types[i] = tp;
         }
-        return type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, Type_toCtype(t.next));
+        type* tret = Type_toCtype(t.next);
+        if (t.isRef && tret && tret.Tty != TYvoid && tret.Tty != TYnoreturn) // skip ref for `ref void` or `ref noreturn`
+            tret = type_allocn(TYnref, tret);
+        return type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, tret);
     }
 
     static type* visitDelegate(TypeDelegate t)
@@ -269,13 +275,27 @@ type* Type_toCtype(Type t)
             {
                 foreach (v; t.sym.fields)
                 {
-                    symbol_struct_addField(*cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                    if (auto bf = v.isBitFieldDeclaration())
+                        symbol_struct_addBitField(*cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset, bf.fieldWidth, bf.bitOffset);
+                    else
+                        symbol_struct_addField(*cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
                 }
                 if (auto bc = t.sym.baseClass)
                 {
                     auto ptr_to_basetype = Type_toCtype(bc.type);
                     assert(ptr_to_basetype .Tty == TYnptr);
                     symbol_struct_addBaseClass(*cast(Symbol*)tc.Ttag, ptr_to_basetype.Tnext, 0);
+                }
+            }
+            else
+            {
+                foreach (v; t.sym.fields)
+                {
+                    if (auto bf = v.isBitFieldDeclaration())
+                    {
+                        symbol_struct_hasBitFields(*cast(Symbol*)tc.Ttag);
+                        break;
+                    }
                 }
             }
 

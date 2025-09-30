@@ -310,7 +310,10 @@ elem* el_ptr(Symbol* s)
         if (config.flags3 & CFG3pic &&
             tyfunc(s.ty()))
         {
-            e = el_picvar(s);
+            if (config.exe & EX_OSX64 && config.target_cpu == TARGET_AArch64)
+                e = el_var(s);
+            else
+                e = el_picvar(s);
         }
         else
             e = el_var(s);
@@ -396,7 +399,7 @@ private elem* el_picvar_OSX(Symbol* s)
     int x;
 
     if (log) printf("el_picvar(s = '%s') Sclass = %s\n", s.Sident.ptr, class_str(s.Sclass));
-    //symbol_print(s);
+    //symbol_print(*s);
     symbol_debug(s);
     type_debug(s.Stype);
     e = el_calloc();
@@ -434,6 +437,13 @@ private elem* el_picvar_OSX(Symbol* s)
             }
             else
                 x = 1;
+            if (config.target_cpu == TARGET_AArch64)
+            {
+                if (s.Stype.Tty & mTYthread)
+                    x = 1;
+                else
+                    x = 0;
+            }
 
         case_got:
         {
@@ -512,7 +522,8 @@ static if (1)
             {
                 e = el_una(OPaddr, TYnptr, e);
                 e = el_bin(OPadd, TYnptr, e, el_long(TYullong, 0));
-                e = el_una(OPind, TYnptr, e);
+                if (config.target_cpu != TARGET_AArch64)
+                    e = el_una(OPind, TYnptr, e);
                 e = el_una(OPind, TYnfunc, e);
 
                 elem* e2 = el_calloc();
@@ -521,12 +532,14 @@ static if (1)
                 e2.Ety = s.ty();
                 e2.Eoper = OPrelconst;
                 e2.Ety = TYnptr;
-
-                e2 = el_una(OPind, TYnptr, e2);
-                e2 = el_una(OPind, TYnptr, e2);
-                e2 = el_una(OPaddr, TYnptr, e2);
-                e2 = doptelem(e2, Goal.value | Goal.flags);
-                e2 = el_bin(OPadd, TYnptr, e2, el_long(TYullong, 0));
+                if (config.target_cpu != TARGET_AArch64)
+                {
+                    e2 = el_una(OPind, TYnptr, e2);
+                    e2 = el_una(OPind, TYnptr, e2);
+                    e2 = el_una(OPaddr, TYnptr, e2);
+                    e2 = doptelem(e2, Goal.value | Goal.flags);
+                    e2 = el_bin(OPadd, TYnptr, e2, el_long(TYullong, 0));
+                }
                 e2 = el_bin(OPcall, TYnptr, e, e2);
                 e2 = el_una(OPind, TYint, e2);
                 e = e2;

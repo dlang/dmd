@@ -804,6 +804,128 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     ale.elements.sort!predicate;
 }
 
+/****************
+ * Find virtual function matching identifier and type.
+ * Used to build virtual function tables for interface implementations.
+ * Params:
+ *  _this = ClassDeclaration's vtbl to search
+ *  ident = function's identifier
+ *  tf = function's type
+ * Returns:
+ *  function symbol if found, null if not
+ * Errors:
+ *  prints error message if more than one match
+ */
+FuncDeclaration findFunc(ClassDeclaration _this, Identifier ident, TypeFunction tf)
+{
+    //printf("ClassDeclaration.findFunc(%s, %s) %s\n", ident.toChars(), tf.toChars(), toChars());
+    FuncDeclaration fdmatch = null;
+    FuncDeclaration fdambig = null;
+
+    void updateBestMatch(FuncDeclaration fd)
+    {
+        fdmatch = fd;
+        fdambig = null;
+        //printf("Lfd fdmatch = %s %s [%s]\n", fdmatch.toChars(), fdmatch.type.toChars(), fdmatch.loc.toChars());
+    }
+
+    void searchVtbl(ref Dsymbols vtbl)
+    {
+        bool seenInterfaceVirtual;
+        foreach (s; vtbl)
+        {
+            auto fd = s.isFuncDeclaration();
+            if (!fd)
+                continue;
+
+            // the first entry might be a ClassInfo
+            //printf("\t[%d] = %s\n", i, fd.toChars());
+            if (ident != fd.ident || fd.type.covariant(tf) != Covariant.yes)
+            {
+                //printf("\t\t%d\n", fd.type.covariant(tf));
+                continue;
+            }
+
+            //printf("fd.parent.isClassDeclaration() = %p\n", fd.parent.isClassDeclaration());
+            if (!fdmatch)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            if (fd == fdmatch)
+                continue;
+
+            /* Functions overriding interface functions for extern(C++) with VC++
+             * are not in the normal vtbl, but in vtblFinal. If the implementation
+             * is again overridden in a child class, both would be found here.
+             * The function in the child class should override the function
+             * in the base class, which is done here, because searchVtbl is first
+             * called for the child class. Checking seenInterfaceVirtual makes
+             * sure, that the compared functions are not in the same vtbl.
+             */
+            if (fd.interfaceVirtual &&
+                fd.interfaceVirtual is fdmatch.interfaceVirtual &&
+                !seenInterfaceVirtual &&
+                fdmatch.type.covariant(fd.type) == Covariant.yes)
+            {
+                seenInterfaceVirtual = true;
+                continue;
+            }
+
+            {
+            // Function type matching: exact > covariant
+            MATCH m1 = tf.equals(fd.type) ? MATCH.exact : MATCH.nomatch;
+            MATCH m2 = tf.equals(fdmatch.type) ? MATCH.exact : MATCH.nomatch;
+            if (m1 > m2)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            else if (m1 < m2)
+                continue;
+            }
+            {
+            MATCH m1 = (tf.mod == fd.type.mod) ? MATCH.exact : MATCH.nomatch;
+            MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCH.exact : MATCH.nomatch;
+            if (m1 > m2)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            else if (m1 < m2)
+                continue;
+            }
+            {
+            // The way of definition: non-mixin > mixin
+            MATCH m1 = fd.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
+            MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
+            if (m1 > m2)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            else if (m1 < m2)
+                continue;
+            }
+
+            fdambig = fd;
+            //printf("Lambig fdambig = %s %s [%s]\n", fdambig.toChars(), fdambig.type.toChars(), fdambig.loc.toChars());
+        }
+    }
+
+    searchVtbl(_this.vtbl);
+    for (auto cd = _this; cd; cd = cd.baseClass)
+    {
+        searchVtbl(cd.vtblFinal);
+    }
+
+    if (fdambig)
+        _this.classError("%s `%s` ambiguous virtual function `%s`", fdambig.toChars());
+
+    return fdmatch;
+}
+
+
 /**
  * Try lower a variable's Associative Array initializer to a newaa struct
  * so it can be put in static data.
@@ -813,10 +935,11 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
  */
 void lowerStaticAAs(VarDeclaration vd, Scope* sc)
 {
-    if (vd.storage_class & STC.manifest)
-        return;
     if (auto ei = vd._init.isExpInitializer())
-        lowerStaticAAs(ei.exp, sc);
+    {
+        scope v = new StaticAAVisitor(sc, vd.storage_class);
+        ei.exp.accept(v);
+    }
 }
 
 /**
@@ -828,7 +951,7 @@ void lowerStaticAAs(VarDeclaration vd, Scope* sc)
  */
 void lowerStaticAAs(Expression e, Scope* sc)
 {
-    scope v = new StaticAAVisitor(sc);
+    scope v = new StaticAAVisitor(sc, STC.none);
     e.accept(v);
 }
 
@@ -837,33 +960,26 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
 {
     alias visit = SemanticTimeTransitiveVisitor.visit;
     Scope* sc;
+    STC storage_class;
 
-    this(Scope* sc) scope @safe
+    this(Scope* sc, STC storage_class) scope @safe
     {
         this.sc = sc;
+        this.storage_class = storage_class;
     }
 
     override void visit(AssocArrayLiteralExp aaExp)
     {
-        if (!verifyHookExist(aaExp.loc, *sc, Id._aaAsStruct, "initializing static associative arrays", Id.object))
-            return;
-
-        Expression hookFunc = new IdentifierExp(aaExp.loc, Id.empty);
-        hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id.object);
-        hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id._aaAsStruct);
-        auto arguments = new Expressions();
-        arguments.push(aaExp);
-        Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
-
-        sc = sc.startCTFE();
-        loweredExp = loweredExp.expressionSemantic(sc);
-        loweredExp = resolveProperties(sc, loweredExp);
-        sc = sc.endCTFE();
-        loweredExp = loweredExp.ctfeInterpret();
-
-        aaExp.lowering = loweredExp;
-
-        semanticTypeInfo(sc, loweredExp.type);
+        if (!aaExp.lowering)
+            expressionSemantic(aaExp, sc);
+        assert(aaExp.lowering);
+        if (!(storage_class & STC.manifest)) // manifest constants create runtime copies
+            if (!aaExp.loweringCtfe)
+            {
+                aaExp.loweringCtfe = aaExp.lowering.ctfeInterpret();
+                aaExp.loweringCtfe.accept(this); // lower AAs in keys and values
+            }
+        semanticTypeInfo(sc, aaExp.lowering.type);
     }
 
     // https://issues.dlang.org/show_bug.cgi?id=24602

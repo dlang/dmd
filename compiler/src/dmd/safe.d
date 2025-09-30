@@ -28,7 +28,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.funcsem : isRootTraitsCompilesScope;
-import dmd.globals : FeatureState, global;
+import dmd.globals : FeatureState;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -36,6 +36,7 @@ import dmd.mtype;
 import dmd.rootobject;
 import dmd.root.string : fTuple;
 import dmd.target;
+import dmd.targetcompiler;
 import dmd.tokens;
 import dmd.typesem : hasPointers, arrayOf, size;
 
@@ -85,7 +86,6 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
     if (ad.sizeok != Sizeok.done)
         ad.determineSize(ad.loc);
 
-    import dmd.globals : FeatureState;
     const hasPointers = v.type.hasPointers();
     if (hasPointers)
     {
@@ -355,7 +355,7 @@ bool isTrusted(FuncDeclaration fd)
  * Call when `fd` was just inferred to be @system OR
  * `fd` was @safe and an tried something unsafe.
  * Params:
- *   fd    = function we're gonna rat on
+ *   fd    = function we are gonna rat on
  *   gag   = suppress error message (used in escape.d)
  *   loc   = location of error
  *   format = printf-style format string
@@ -388,10 +388,7 @@ extern (D) void reportSafeError(FuncDeclaration fd, bool gag, Loc loc,
                 buf.writestring(" is not allowed in a `@safe` function");
             else
             {
-                version (IN_GCC)
-                    buf.writestring(" is not allowed in a function with default safety with `-fpreview=safer`");
-                else
-                    buf.writestring(" is not allowed in a function with default safety with `-preview=safer`");
+                buf.printf(" is not allowed in a function with default safety with `-%spreview=safer`", SwitchPrefix.ptr);
             }
             .error(loc, "%s", buf.extractChars());
         }

@@ -560,7 +560,7 @@ extern (D) private immutable uint[2][256] oprw =
  * Same thing, but for groups.
  */
 
-extern (D) private immutable uint[2][8][8] grprw =
+private immutable uint[2][8][4] grprw =
 [
     [
         // Grp 1

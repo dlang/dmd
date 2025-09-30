@@ -26,11 +26,12 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : include;
+import dmd.dsymbolsem : include, toAlias, toParentP, followInstantiationContext, runDeferredSemantic3;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.expressionsem : semanticTypeInfo;
-import dmd.errors;
+import dmd.errors : message;
+import dmd.errorsink;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
@@ -56,8 +57,9 @@ import dmd.inlinecost;
  *
  * Params:
  *    m = module to scan
+ *    eSink = where to report errors
  */
-public void inlineScanModule(Module m)
+public void inlineScanModule(Module m, ErrorSink eSink)
 {
     if (m.semanticRun != PASS.semantic3done)
         return;
@@ -74,14 +76,14 @@ public void inlineScanModule(Module m)
         Dsymbol s = (*m.members)[i];
         //if (global.params.v.verbose)
         //    message("inline scan symbol %s", s.toChars());
-        inlineScanDsymbol(s);
+        inlineScanDsymbol(s, eSink);
     }
     m.semanticRun = PASS.inlinedone;
 }
 
-private void inlineScanDsymbol(Dsymbol s)
+private void inlineScanDsymbol(Dsymbol s, ErrorSink eSink)
 {
-    scope InlineScanVisitorDsymbol v = new InlineScanVisitorDsymbol();
+    scope InlineScanVisitorDsymbol v = new InlineScanVisitorDsymbol(eSink);
     s.accept(v);
 }
 
@@ -111,7 +113,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
     const cost = inlineCostExpression(e);
     if (cost >= COST_MAX)
     {
-        error(e.loc, "cannot inline default argument `%s`", e.toChars());
+        sc.eSink.error(e.loc, "cannot inline default argument `%s`", e.toChars());
         return ErrorExp.get();
     }
     scope ids = new InlineDoState(sc.parent, null);
@@ -731,7 +733,9 @@ public:
             auto lowering = ne.lowering;
             if (lowering)
                 if (auto ce = lowering.isCallExp())
-                    if (ce.f.ident == Id._d_newarrayT || ce.f.ident == Id._d_newarraymTX)
+                    if (ce.f.ident == Id._d_newarrayT ||
+                        ce.f.ident == Id._d_newarraymTX ||
+                        ce.f.ident == Id._d_aaNew)
                     {
                         ne.lowering = doInlineAs!Expression(lowering, ids);
                         goto LhasLowering;
@@ -943,6 +947,9 @@ public:
             auto ce = e.copy().isAssocArrayLiteralExp();
             ce.keys = arrayExpressionDoInline(e.keys);
             ce.values = arrayExpressionDoInline(e.values);
+            if (e.lowering)
+                ce.lowering = doInlineAs!Expression(e.lowering, ids);
+
             result = ce;
 
             semanticTypeInfo(null, e.type);
@@ -1013,10 +1020,12 @@ public:
     // are used to pass the result from 'visit' back to 'inlineScan'
     Statement sresult;
     Expression eresult;
+    ErrorSink eSink;
     bool again;
 
-    extern (D) this() scope @safe
+    extern (D) this(ErrorSink eSink) scope @safe
     {
+        this.eSink = eSink;
     }
 
     override void visit(Statement s)
@@ -1077,9 +1086,8 @@ public:
                 auto s2 = inlineScanExpAsStatement(e.e2);
                 if (!s1 && !s2)
                     return null;
-                auto a = new Statements();
-                a.push(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1);
-                a.push(!s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
+                auto a = new Statements(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1,
+                                        !s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
                 return new CompoundStatement(exp.loc, a);
             }
 
@@ -1286,7 +1294,7 @@ public:
         }
         else
         {
-            inlineScanDsymbol(s);
+            inlineScanDsymbol(s, eSink);
         }
     }
 
@@ -1445,7 +1453,7 @@ public:
                     asStates = false;
             }
 
-            if (canInline(fd, false, false, asStates))
+            if (canInline(fd, false, false, asStates, eSink))
             {
                 expandInline(e.loc, fd, parent, eret, null, e.arguments, asStates, e.vthis2, eresult, sresult, again);
                 if (asStatements && eresult)
@@ -1500,7 +1508,7 @@ public:
         else if (auto dve = e.e1.isDotVarExp())
         {
             fd = dve.var.isFuncDeclaration();
-            if (fd && fd != parent && canInline(fd, true, false, asStatements))
+            if (fd && fd != parent && canInline(fd, true, false, asStatements, eSink))
             {
                 if (dve.e1.op == EXP.call && dve.e1.type.toBasetype().ty == Tstruct)
                 {
@@ -1655,9 +1663,11 @@ private extern (C++) final class InlineScanVisitorDsymbol : Visitor
 {
     alias visit = Visitor.visit;
 public:
+    ErrorSink eSink;
 
-    extern (D) this() scope @safe
+    extern (D) this(ErrorSink eSink) scope @safe
     {
+        this.eSink = eSink;
     }
 
     /*************************************
@@ -1685,7 +1695,7 @@ public:
                 fd.inlineNest++;
                 fd.inlineScanned = true;
 
-                scope InlineScanVisitor v = new InlineScanVisitor();
+                scope InlineScanVisitor v = new InlineScanVisitor(eSink);
                 v.parent = fd;
                 v.inlineScan(fd.fbody);
                 bool again = v.again;
@@ -1751,6 +1761,7 @@ public:
  *  statementsToo = `true` if the function call is placed on ExpStatement.
  *      It means more code-block dependent statements in fd body - ForStatement,
  *      ThrowStatement, etc. can be inlined.
+ *  eSink = where to report errors
  *
  * Returns:
  *  true if the function body can be expanded.
@@ -1760,7 +1771,7 @@ public:
  *    no longer accepts calls of contextful function without valid 'this'.
  *  - Would be able to eliminate `hdrscan` parameter, because it's always false.
  */
-private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsToo)
+private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsToo, ErrorSink eSink)
 {
     int cost;
 
@@ -1788,7 +1799,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
             return false;
         if (!functionSemantic3(fd))
             return false;
-        Module.runDeferredSemantic3();
+        runDeferredSemantic3();
         if (global.errors)
             return false;
         assert(fd.semanticRun >= PASS.semantic3done);
@@ -1945,7 +1956,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         else
             fd.inlineStatusExp = ILS.yes;
 
-        inlineScanDsymbol(fd); // Don't scan recursively for header content scan
+        inlineScanDsymbol(fd, eSink); // Don't scan recursively for header content scan
 
         if (fd.inlineStatusExp == ILS.uninitialized)
         {
@@ -1975,7 +1986,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
 
 Lno:
     if (fd.inlining == PINLINE.always && global.params.useWarnings == DiagnosticReporting.inform)
-        warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
+        eSink.warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
 
     if (!hdrscan) // Don't modify inlineStatus for header content scan
     {

@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/toir.d, _toir.d)
- * Documentation:  https://dlang.org/phobos/dmd_toir.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/toir.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/toir.d, _toir.d)
+ * Documentation:  https://dlang.org/phobos/dmd_gule_toir.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/glue/toir.d
  */
 
-module dmd.toir;
+module dmd.glue.toir;
 
 import core.checkedint;
 import core.stdc.stdio;
@@ -19,6 +19,12 @@ import core.stdc.stdlib;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
+
+import dmd.glue;
+import dmd.glue.e2ir;
+import dmd.glue.tocvdebug;
+import dmd.glue.tocsym;
+import dmd.glue.toctype;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
@@ -41,13 +47,12 @@ import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : followInstantiationContext, toParentP;
 import dmd.dtemplate;
-import dmd.toctype;
-import dmd.e2ir;
 import dmd.errorsink;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals : Param;
-import dmd.glue;
 import dmd.identifier;
 import dmd.id;
 import dmd.location;
@@ -55,8 +60,8 @@ import dmd.mtype;
 import dmd.semantic3 : checkClosure;
 import dmd.typesem;
 import dmd.target;
-import dmd.tocvdebug;
-import dmd.tocsym;
+
+package(dmd.glue):
 
 /****************************************
  * Our label symbol
@@ -119,25 +124,7 @@ struct IRState
     {
         if (m.filetype == FileType.c)
             return false;
-        final switch (params.useArrayBounds)
-        {
-        case CHECKENABLE.off:
-            return false;
-        case CHECKENABLE.on:
-            return true;
-        case CHECKENABLE.safeonly:
-            {
-                if (FuncDeclaration fd = getFunc())
-                {
-                    Type t = fd.type;
-                    if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
-                        return true;
-                }
-                return false;
-            }
-        case CHECKENABLE._default:
-            assert(0);
-        }
+        return dmd.funcsem.arrayBoundsCheck(getFunc());
     }
 
     /****************************
@@ -188,7 +175,8 @@ extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
     /* Generate: *(m.cov + linnum * 4) += 1
      */
     elem* e;
-    e = el_ptr(m.cov);
+    Symbol* mcov = cast(Symbol*) m.cov;
+    e = el_ptr(mcov);
     e = el_bin(OPadd, TYnptr, e, el_long(TYuint, linnum * 4));
     e = el_una(OPind, TYuint, e);
     e = el_bin(OPaddass, TYuint, e, el_long(TYuint, 1));

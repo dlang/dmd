@@ -13,7 +13,7 @@ module dmd.argtypes_sysv_x64;
 
 import dmd.astenums;
 import dmd.declaration;
-import dmd.globals;
+import dmd.dsymbolsem : isPOD;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.target;

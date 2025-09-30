@@ -50,7 +50,7 @@ import dmd.root.string;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.typesem;
+import dmd.typesem : castMod;
 import dmd.visitor;
 
 struct HdrGenState
@@ -2450,6 +2450,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitAssocArrayLiteral(AssocArrayLiteralExp e)
     {
+        if (hgs.vcg_ast && e.lowering)
+        {
+            expToBuffer(e.lowering, PREC.assign, buf, hgs);
+            return;
+        }
         buf.put('[');
         foreach (i, key; *e.keys)
         {
@@ -2525,6 +2530,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitNew(NewExp e)
     {
+        if (hgs.vcg_ast && e.lowering)
+        {
+            expToBuffer(e.lowering, PREC.primary, buf, hgs);
+            return;
+        }
         if (e.thisexp)
         {
             expToBuffer(e.thisexp, PREC.primary, buf, hgs);
@@ -2765,7 +2775,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
             if (commaExtract)
             {
-                expToBuffer(commaExtract, precedence[exp.op], buf, hgs);
+                expToBuffer(commaExtract, expPrecedence(hgs, exp), buf, hgs);
                 return;
             }
         }
@@ -2865,10 +2875,25 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             e.e1.expressionPrettyPrint(buf, hgs);
         }
         else
+        {
+            if (!hgs.vcg_ast && e.loweredFrom)
+            {
+                // restore original syntax for expressions lowered to calls
+                expressionToBuffer(e.loweredFrom, buf, hgs);
+                return;
+            }
             expToBuffer(e.e1, precedence[e.op], buf, hgs);
+        }
         buf.put('(');
         argsToBuffer(e.arguments, buf, hgs, null, e.names);
         buf.put(')');
+    }
+
+    void visitNot(NotExp e)
+    {
+        if (!hgs.vcg_ast && e.loweredFrom)
+            return expressionToBuffer(e.loweredFrom, buf, hgs);
+        return visitUna(e);
     }
 
     void visitPtr(PtrExp e)
@@ -2969,8 +2994,29 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         expToBuffer(e.e2, PREC.primary, buf, hgs);
     }
 
+    void visitCat(CatExp e)
+    {
+        if (hgs.vcg_ast && e.lowering)
+            expressionToBuffer(e.lowering, buf, hgs);
+        else
+            visitBin(e);
+    }
+
+    void visitCatAssign(CatAssignExp e)
+    {
+        if (hgs.vcg_ast && e.lowering)
+            expressionToBuffer(e.lowering, buf, hgs);
+        else
+            visitBin(e);
+    }
+
     void visitIndex(IndexExp e)
     {
+        if (!hgs.vcg_ast && e.loweredFrom)
+        {
+            expressionToBuffer(e.loweredFrom, buf, hgs);
+            return;
+        }
         expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.put('[');
         sizeToBuffer(e.e2, buf, hgs);
@@ -3077,6 +3123,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.delegate_:     return visitDelegate(e.isDelegateExp());
         case EXP.dotType:       return visitDotType(e.isDotTypeExp());
         case EXP.call:          return visitCall(e.isCallExp());
+        case EXP.not:           return visitNot(e.isNotExp());
         case EXP.star:          return visitPtr(e.isPtrExp());
         case EXP.delete_:       return visitDelete(e.isDeleteExp());
         case EXP.cast_:         return visitCast(e.isCastExp());
@@ -3090,6 +3137,10 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.array:         return visitArray(e.isArrayExp());
         case EXP.dot:           return visitDot(e.isDotExp());
         case EXP.index:         return visitIndex(e.isIndexExp());
+        case EXP.concatenate:   return visitCat(e.isCatExp());
+        case EXP.concatenateAssign:     return visitCatAssign(e.isCatAssignExp());
+        case EXP.concatenateElemAssign: return visitCatAssign(e.isCatElemAssignExp());
+        case EXP.concatenateDcharAssign:        return visitCatAssign(e.isCatDcharAssignExp());
         case EXP.minusMinus:
         case EXP.plusPlus:      return visitPost(e.isPostExp());
         case EXP.preMinusMinus:
@@ -3298,7 +3349,7 @@ void toCBufferInstance(const TemplateInstance ti, ref OutBuffer buf, bool qualif
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
 
-    buf.put(ti.name.toChars());
+    buf.put(ti.name == Id.ctor ? "this" : ti.name.toChars());
     tiargsToBuffer(cast() ti, buf, hgs);
 }
 
@@ -3788,15 +3839,33 @@ private void expressionToBuffer(Expression e, ref OutBuffer buf, ref HdrGenState
     expressionPrettyPrint(e, buf, hgs);
 }
 
+// to be called if e could be loweredFrom another expression instead of acessing precedence[e.op] directly
+private PREC expPrecedence(ref HdrGenState hgs, Expression e)
+{
+    if (!hgs.vcg_ast)
+    {
+        if (auto ce = e.isCallExp())
+        {
+            if (ce.loweredFrom)
+                e = ce.loweredFrom;
+        }
+        else if (auto ne = e.isNotExp())
+            if (ne.loweredFrom)
+                e = ne.loweredFrom;
+    }
+    return precedence[e.op];
+}
+
 /**************************************************
  * Write expression out to buf, but wrap it
  * in ( ) if its precedence is less than pr.
  */
 private void expToBuffer(Expression e, PREC pr, ref OutBuffer buf, ref HdrGenState hgs)
 {
+    auto prec = expPrecedence(hgs, e);
     debug
     {
-        if (precedence[e.op] == PREC.zero)
+        if (prec == PREC.zero)
             printf("precedence not defined for token '%s'\n", EXPtoString(e.op).ptr);
     }
     if (e.op == 0xFF)
@@ -3804,13 +3873,13 @@ private void expToBuffer(Expression e, PREC pr, ref OutBuffer buf, ref HdrGenSta
         buf.put("<FF>");
         return;
     }
-    assert(precedence[e.op] != PREC.zero);
+    assert(prec != PREC.zero);
     assert(pr != PREC.zero);
     /* Despite precedence, we don't allow a<b<c expressions.
      * They must be parenthesized.
      */
-    if (precedence[e.op] < pr || (pr == PREC.rel && precedence[e.op] == pr)
-        || (pr >= PREC.or && pr <= PREC.and && precedence[e.op] == PREC.rel))
+    if (prec < pr || (pr == PREC.rel && prec == pr)
+        || (pr >= PREC.or && pr <= PREC.and && prec == PREC.rel))
     {
         buf.put('(');
         e.expressionToBuffer(buf, hgs);

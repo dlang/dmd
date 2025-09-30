@@ -3218,16 +3218,20 @@ L1:
 @trusted
 private elem* elbit(elem* e, Goal goal)
 {
+    //printf("elbit()\n");
+    //elem_print(e);
     tym_t tym1 = e.E1.Ety;
     uint sz = tysize(tym1) * 8;
     elem* e2 = e.E2;
     uint wb = e2.Vuns;
 
     uint w = (wb >> 8) & 0xFF;               // width in bits of field
-    targ_ullong m = (cast(targ_ullong)1 << w) - 1;   // mask w bits wide
+    ulong m = (cast(ulong)1 << w) - 1;       // mask w bits wide
+    if (w == 64)                             // undefined behavior
+        m = ~0L;                             // fix it
     uint b = wb & 0xFF;                      // bits to right of field
     uint c = 0;
-    //printf("w %u + b %u <= sz %u\n", w, b, sz);
+    //printf("wb x%x w x%x + b x%x <= sz x%x\n", wb, w, b, sz);
     assert(w + b <= sz);
 
     if (tyuns(tym1))                      // if uint bit field
@@ -4055,13 +4059,17 @@ static if (0)  // Doesn't work too well, removed
     if (e1.E1.Eoper == OPcomma || OTassign(e1.E1.Eoper))
         return cgel_lvalue(e);
 
+    //printf("elbitassign()\n");
+    //elem_print(e);
     uint t = e.Ety;
     elem* l = e1.E1;                           // lvalue
     elem* r = e.E2;
     tym_t tyl = l.Ety;
     uint sz = tysize(tyl) * 8;
     uint w = (e1.E2.Vuns >> 8);        // width in bits of field
-    targ_ullong m = (cast(targ_ullong)1 << w) - 1;  // mask w bits wide
+    ulong m = (cast(ulong)1 << w) - 1;  // mask w bits wide
+    if (w == 64)                        // undefined behavior
+        m = ~0L;                        // fix it
     uint b = e1.E2.Vuns & 0xFF;        // bits to shift
 
     elem* l2;
@@ -4163,6 +4171,8 @@ private elem* elopass(elem* e, Goal goal)
     Goal wantres = goal;
     if (e1.Eoper == OPbit)
     {
+        //printf("OPbitass()\n");
+        //elem_print(e);
         const op = opeqtoop(e.Eoper);
 
         // Make sure t is uint
@@ -4174,8 +4184,11 @@ private elem* elopass(elem* e, Goal goal)
         tym_t tyl = l.Ety;
         elem* r = e.E2;
         uint w = (e1.E2.Vuns >> 8) & 0xFF; // width in bits of field
-        targ_llong m = (cast(targ_llong)1 << w) - 1;    // mask w bits wide
+        ulong m = (cast(ulong)1 << w) - 1; // mask w bits wide
+        if (w == 64)                       // undefined behavior
+            m = ~0L;                       // fix it
         uint b = e1.E2.Vuns & 0xFF;        // bits to shift
+        //printf("m x%llx w x%x + b x%x <= sz x%x\n", m, w, b, tysize(tyl) * 8);
 
         elem* l2,l3,op2,eres;
 
@@ -4331,7 +4344,9 @@ private elem* elpost(elem* e, Goal goal)
     targ_llong r = el_tolong(e.E2);
 
     uint w = (e1.E2.Vuns >> 8) & 0xFF;  // width in bits of field
-    targ_llong m = (cast(targ_llong)1 << w) - 1;     // mask w bits wide
+    ulong m = (cast(ulong)1 << w) - 1;  // mask w bits wide
+    if (w == 64)                        // undefined behavior
+        m = ~0L;                        // fix it
 
     tym_t ty = e.Ety;
     if (e.Eoper != OPpostinc)

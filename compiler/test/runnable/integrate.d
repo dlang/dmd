@@ -63,13 +63,19 @@ ad sqr(ad x) { return x * x; }
 F pow(F x, int i)
 {
     if(i < 1) return F(1);
-    if(i & 1) if(i == 1) return x; else return x * pow(x,i-1);
+    if(i & 1)
+    {
+        if(i == 1) return x; else return x * pow(x,i-1);
+    }
     return sqr(pow(x,i/2));
 }
 ad pow(ad x, int i)
 {
     if(i < 1) return ad(1);
-    if(i & 1) if(i == 1) return x; else return x * pow(x,i-1);
+    if(i & 1)
+    {
+        if(i == 1) return x; else return x * pow(x,i-1);
+    }
     return sqr(pow(x,i/2));
 }
 

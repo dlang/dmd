@@ -37,7 +37,7 @@ import dmd.dmdparams;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.dtoh;
-import dmd.glue : generateCodeAndWrite;
+import dmd.glue : generateCodeAndWrite, ObjcGlue_initialize;
 import dmd.dmodule;
 import dmd.dmsc : backend_init, backend_term;
 import dmd.doc;
@@ -615,7 +615,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     }
     //if (global.errors)
     //    fatal();
-    Module.runDeferredSemantic();
+    runDeferredSemantic();
     if (Module.deferred.length)
     {
         for (size_t i = 0; i < Module.deferred.length; i++)
@@ -633,7 +633,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
             message("semantic2 %s", m.toChars());
         m.semantic2(null);
     }
-    Module.runDeferredSemantic2();
+    runDeferredSemantic2();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
@@ -658,7 +658,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
             modules.push(m);
         }
     }
-    Module.runDeferredSemantic3();
+    runDeferredSemantic3();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
@@ -669,7 +669,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
         {
             if (params.v.verbose)
                 message("inline scan %s", m.toChars());
-            inlineScanModule(m);
+            inlineScanModule(m, global.errorSink);
         }
     }
 
@@ -689,7 +689,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     {
         foreach (i; 1 .. modules[0].aimports.length)
             semantic3OnDependencies(modules[0].aimports[i]);
-        Module.runDeferredSemantic3();
+        runDeferredSemantic3();
 
         const data = (*ob)[];
         if (params.moduleDeps.name)
@@ -741,7 +741,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     }
 
     if (global.params.cxxhdr.doOutput)
-        genCppHdrFiles(modules);
+        genCppHdrFiles(modules, global.errorSink);
 
     if (global.errors)
         fatal();
@@ -761,6 +761,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     }
 
     {
+        ObjcGlue_initialize();
         timeTraceBeginEvent(TimeTraceEventType.codegenGlobal);
         scope (exit) timeTraceEndEvent(TimeTraceEventType.codegenGlobal);
         generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,

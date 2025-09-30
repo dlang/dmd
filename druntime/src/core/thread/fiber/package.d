@@ -710,8 +710,18 @@ protected:
         }
         else
         {
-            version (Posix) import core.sys.posix.sys.mman : MAP_ANON, MAP_FAILED, MAP_PRIVATE, mmap,
-                mprotect, PROT_NONE, PROT_READ, PROT_WRITE;
+            version (Posix)
+            {
+                static import core.sys.posix.sys.mman;
+                static if (__traits(compiles, core.sys.posix.sys.mman.mmap))
+                {
+                    import core.sys.posix.sys.mman : MAP_ANON, MAP_FAILED, MAP_PRIVATE, mmap,
+                        mprotect, PROT_NONE, PROT_READ, PROT_WRITE;
+                }
+                static import core.sys.posix.stdlib;
+                static if (__traits(compiles, core.sys.posix.stdlib.valloc))
+                    import core.sys.posix.stdlib : valloc;
+            }
             version (OpenBSD) import core.sys.posix.sys.mman : MAP_STACK;
 
             static if ( __traits( compiles, ucontext_t ) )
@@ -1234,7 +1244,9 @@ protected:
         }
         else static if ( __traits( compiles, ucontext_t ) )
         {
-            getcontext( &m_utxt );
+            const status = getcontext( &m_utxt );
+            assert( status == 0 );
+
             m_utxt.uc_stack.ss_sp   = m_pmem;
             m_utxt.uc_stack.ss_size = m_size;
             makecontext( &m_utxt, &fiber_entryPoint, 0 );

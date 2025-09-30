@@ -1597,6 +1597,10 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     uint stackalign = REGSIZE;
     if (tyf == TYf16func)
         stackalign = 2;
+
+    // OSX64 only passes explicit parameters in registers; variadic parameters go on stack
+    const numExplicitParams = (config.exe == EX_OSX64) ? e.numParams : 0;
+
     // Figure out which parameters go in registers.
     // Compute numpara, the total bytes pushed on the stack
     FuncParamRegs fpr = FuncParamRegs_create(tyf);
@@ -1614,7 +1618,8 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             psize = REGSIZE;
         }
         //printf("[%d] size = %u, numpara = %d %s\n", i, psize, numpara, tym_str(ep.Ety));
-        if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, parameters[i].reg, parameters[i].reg2))
+        if ((numExplicitParams == 0 || np - i <= numExplicitParams - 1) && // OSX64 does not pass variadic args in registers
+            FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, parameters[i].reg, parameters[i].reg2))
         {
             if (config.exe == EX_WIN64)
                 numpara += REGSIZE;             // allocate stack space for it anyway
@@ -1675,9 +1680,13 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             {
                 case OPstrctor:
                 case OPstrthis:
-                case OPstrpar:
                 case OPnp_fp:
+                    elem_print(ep);
                     assert(0);
+
+                case OPstrpar:
+                    assert(type_size(ep.ET) == 0);
+                    break;
 
                 default:
                     break;
@@ -2220,9 +2229,15 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     {
         case OPstrctor:
         case OPstrthis:
-        case OPstrpar:
         case OPnp_fp:
             assert(0);
+
+        case OPstrpar:
+            assert(szb == 0);
+            regm_t retregs0 = 0;
+            scodelem(cgstate,cdb, e.E1, retregs0, 0, false);
+            freenode(e);
+            return;
 
         default:
             break;
@@ -2243,12 +2258,22 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     }
     else if (sz == REGSIZE * 2)
     {
-        int grex = I64 ? REX_W << 16 : 0;
-        uint r = findreg(retregs & INSTR.MSW);
-        cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FL.funcarg, funcargtos - REGSIZE);    // MOV -REGSIZE[EBP],r
-        r = findreg(retregs & INSTR.LSW);
-        cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FL.funcarg, funcargtos - REGSIZE * 2); // MOV -2*REGSIZE[EBP],r
-        assert(0);
+        reg_t rmsw = findreg(retregs & INSTR.MSW);
+        code cs;
+        cs.reg = NOREG;
+        cs.base = 31;
+        cs.index = NOREG;
+        cs.IFL1 = FL.const_;
+        cs.IEV1.Voffset = funcargtos - REGSIZE;
+        storeToEA(cs, rmsw, REGSIZE);
+        cs.Iop = setField(cs.Iop,21,10,funcargtos >> field(cs.Iop,31,30));
+        cdb.gen(&cs);
+
+        reg_t rlsw = findreg(retregs & INSTR.LSW);
+        cs.IEV1.Voffset = funcargtos - REGSIZE * 2;
+        storeToEA(cs, rlsw, REGSIZE);
+        cs.Iop = setField(cs.Iop,21,10,funcargtos >> field(cs.Iop,31,30));
+        cdb.gen(&cs);
     }
     else
         assert(0);

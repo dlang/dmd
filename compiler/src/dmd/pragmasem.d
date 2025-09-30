@@ -14,6 +14,7 @@
 module dmd.pragmasem;
 
 import core.stdc.stdio;
+import core.stdc.string;
 
 import dmd.astenums;
 import dmd.arraytypes;
@@ -42,10 +43,35 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
     import dmd.common.outbuffer;
     import dmd.dmodule;
     import dmd.dsymbolsem;
+    import dmd.identifier;
     import dmd.root.rmem;
     import dmd.target;
     import dmd.utils;
 
+    StringExp verifyMangleString(ref Expression e)
+    {
+        auto se = semanticString(sc, e, "mangled name");
+        if (!se)
+            return null;
+        e = se;
+        if (!se.len)
+        {
+            .error(pd.loc, "%s `%s` - zero-length string not allowed for mangled name", pd.kind, pd.toPrettyChars);
+            return null;
+        }
+        if (se.sz != 1)
+        {
+            .error(pd.loc, "%s `%s` - mangled name characters can only be of type `char`", pd.kind, pd.toPrettyChars);
+            return null;
+        }
+
+        auto slice = se.toStringz();
+        if (strlen(slice.ptr) != se.len)
+            .error(pd.loc, "%s `%s` null character not allowed in mangled name", pd.kind, pd.toPrettyChars);
+        mem.xfree(cast(void*)slice.ptr);
+
+        return se;
+    }
     void declarations()
     {
         if (!pd.decl)

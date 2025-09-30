@@ -312,6 +312,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\config.d \
 	$(IMPDIR)\core\sys\posix\dirent.d \
 	$(IMPDIR)\core\sys\posix\dlfcn.d \
+	$(IMPDIR)\core\sys\posix\endian.d \
 	$(IMPDIR)\core\sys\posix\fcntl.d \
 	$(IMPDIR)\core\sys\posix\grp.d \
 	$(IMPDIR)\core\sys\posix\iconv.d \
@@ -373,6 +374,7 @@ COPY=\
 	$(IMPDIR)\core\sys\solaris\libelf.d \
 	$(IMPDIR)\core\sys\solaris\link.d \
 	$(IMPDIR)\core\sys\solaris\stdlib.d \
+	$(IMPDIR)\core\sys\solaris\thread.d \
 	$(IMPDIR)\core\sys\solaris\time.d \
 	\
 	$(IMPDIR)\core\sys\solaris\sys\elf.d \
@@ -383,7 +385,9 @@ COPY=\
 	$(IMPDIR)\core\sys\solaris\sys\elftypes.d \
 	$(IMPDIR)\core\sys\solaris\sys\link.d \
 	$(IMPDIR)\core\sys\solaris\sys\priocntl.d \
+	$(IMPDIR)\core\sys\solaris\sys\procfs.d \
 	$(IMPDIR)\core\sys\solaris\sys\procset.d \
+	$(IMPDIR)\core\sys\solaris\sys\regset.d \
 	$(IMPDIR)\core\sys\solaris\sys\types.d \
 	\
 	$(IMPDIR)\core\sys\windows\accctrl.d \

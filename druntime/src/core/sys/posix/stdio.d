@@ -182,33 +182,20 @@ else version (CRuntime_UClibc)
 }
 else version (CRuntime_Musl)
 {
-    static if ( __USE_FILE_OFFSET64 )
+    int   fgetpos(FILE*, fpos_t *);
+    FILE* fopen(const scope char*, const scope char*);
+    FILE* freopen(const scope char*, const scope char*, FILE*);
+    int   fseek(FILE*, c_long, int);
+    int   fsetpos(FILE*, const scope fpos_t*);
+    FILE* tmpfile();
+
+    static if (__USE_LARGEFILE64)
     {
-        int   fgetpos64(FILE*, fpos_t *);
-        alias fgetpos64 fgetpos;
-
-        FILE* fopen64(const scope char*, const scope char*);
-        alias fopen64 fopen;
-
-        FILE* freopen64(const scope char*, const scope char*, FILE*);
-        alias freopen64 freopen;
-
-        int   fseek(FILE*, c_long, int);
-
-        int   fsetpos64(FILE*, const scope fpos_t*);
-        alias fsetpos64 fsetpos;
-
-        FILE* tmpfile64();
-        alias tmpfile64 tmpfile;
-    }
-    else
-    {
-        int   fgetpos(FILE*, fpos_t *);
-        FILE* fopen(const scope char*, const scope char*);
-        FILE* freopen(const scope char*, const scope char*, FILE*);
-        int   fseek(FILE*, c_long, int);
-        int   fsetpos(FILE*, const scope fpos_t*);
-        FILE* tmpfile();
+        alias fgetpos64 = fgetpos;
+        alias fopen64 = fopen;
+        alias freopen64 = freopen;
+        alias fsetpos64 = fsetpos;
+        alias tmpfile64 = tmpfile;
     }
 }
 else version (Solaris)
@@ -259,6 +246,7 @@ ssize_t getline(char**, size_t*, FILE*);
 char*   gets(char*);
 int     pclose(FILE*);
 FILE*   popen(const scope char*, const scope char*);
+int     renameat(int, const scope char*, int, const scope char*);
 */
 
 version (CRuntime_Glibc)
@@ -287,6 +275,7 @@ version (CRuntime_Glibc)
 
     ssize_t getdelim(char**, size_t*, int, FILE*);
     ssize_t getline(char**, size_t*, FILE*);
+    int     renameat(int, const scope char*, int, const scope char*);
 }
 else version (CRuntime_UClibc)
 {
@@ -315,33 +304,24 @@ else version (CRuntime_UClibc)
 
     ssize_t getdelim(char**, size_t*, int, FILE*);
     ssize_t getline(char**, size_t*, FILE*);
+    int     renameat(int, const scope char*, int, const scope char*);
 }
 else version (CRuntime_Musl)
 {
     enum L_ctermid = 20;
 
-    static if ( __USE_FILE_OFFSET64 )
-    {
-        int   fseeko64(FILE*, off_t, int);
-        alias fseeko64 fseeko;
-    }
-    else
-    {
-        int   fseeko(FILE*, off_t, int);
-    }
+    int   fseeko(FILE*, off_t, int);
+    off_t ftello(FILE*);
 
-    static if ( __USE_FILE_OFFSET64 )
+    static if (__USE_LARGEFILE64)
     {
-        off_t ftello64(FILE*);
-        alias ftello64 ftello;
-    }
-    else
-    {
-        off_t ftello(FILE*);
+        alias fseeko64 = fseeko;
+        alias ftello64 = ftello;
     }
 
     ssize_t getdelim(char**, size_t*, int, FILE*);
     ssize_t getline(char**, size_t*, FILE*);
+    int     renameat(int, const scope char*, int, const scope char*);
 }
 else version (CRuntime_Bionic)
 {
@@ -369,6 +349,7 @@ else version (CRuntime_Bionic)
 
     ssize_t getdelim(char**, size_t*, int, FILE*);
     ssize_t getline(char**, size_t*, FILE*);
+    int     renameat(int, const scope char*, int, const scope char*);
 }
 else version (Darwin)
 {
@@ -379,6 +360,7 @@ else version (Darwin)
 
     ssize_t getdelim(char**, size_t*, int, FILE*);
     ssize_t getline(char**, size_t*, FILE*);
+    int     renameat(int, const scope char*, int, const scope char*);
 }
 else version (FreeBSD)
 {
@@ -393,6 +375,7 @@ else version (FreeBSD)
     {
         ssize_t getdelim(char**, size_t*, int, FILE*);
         ssize_t getline(char**, size_t*, FILE*);
+        int     renameat(int, const scope char*, int, const scope char*);
     }
 }
 else version (NetBSD)
@@ -414,6 +397,7 @@ else version (OpenBSD)
 
     ssize_t getdelim(char**, size_t*, int, FILE*);
     ssize_t getline(char**, size_t*, FILE*);
+    int     renameat(int, const scope char*, int, const scope char*);
 }
 else version (DragonFlyBSD)
 {
@@ -424,6 +408,7 @@ else version (DragonFlyBSD)
 
     ssize_t getdelim(char**, size_t*, int, FILE*);
     ssize_t getline(char**, size_t*, FILE*);
+    int     renameat(int, const scope char*, int, const scope char*);
 }
 else version (Solaris)
 {
@@ -452,6 +437,7 @@ else version (Solaris)
 
     ssize_t getdelim(char**, size_t*, int, FILE*);
     ssize_t getline(char**, size_t*, FILE*);
+    int     renameat(int, const scope char*, int, const scope char*);
 }
 else version (Posix)
 {

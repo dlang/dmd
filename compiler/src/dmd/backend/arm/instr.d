@@ -297,6 +297,24 @@ struct INSTR
         return sbfm(1, 1, 0, 31, Rn, Rd);
     }
 
+    /* UBFM Rd,Rn,#immr,#imms
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ubfm.html
+     */
+    static uint ubfm(uint sf, uint N, uint immr, uint imms, reg_t Rn, reg_t Rd)
+    {
+        return bitfield(sf, 2, N, immr, imms, Rn, Rd);
+    }
+
+    /* UBFIZ Rd,Rn,#lsb,#width
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ubfiz_ubfm.html
+     */
+    static uint ubfiz_ubfm(uint sf, uint N, uint lsb, uint width, reg_t Rn, reg_t Rd)
+    {
+        assert(sf == N);
+        uint mask = ((sf == 1) ? 64 : 32) - 1;
+        return ubfm(sf, N, -lsb & mask, width - 1, Rn, Rd);
+    }
+
     /* Extract
      * EXTR
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm
@@ -857,6 +875,10 @@ struct INSTR
      */
     static uint fcvt_float(uint ftype, uint opcode, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,opcode,Vn & 31,Vd & 31); }
 
+    /* FABS fpreg,fpreg https://www.scs.stanford.edu/~zyedidia/arm64/fabs_float.html
+     */
+    static uint fabs_float(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,1,Vn & 31,Vd & 31); }
+
     /* FNEG fpreg,fpreg https://www.scs.stanford.edu/~zyedidia/arm64/fneg_float.html
      */
     static uint fneg_float(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,2,Vn & 31,Vd & 31); }
@@ -1405,7 +1427,7 @@ struct INSTR
     static uint strh_reg(reg_t Rindex,uint extend,uint S,reg_t Xbase,reg_t Rt)
     {
         // STRH Rt,Xbase,Rindex,extend S
-        return ldst_regoff(0, 1, 0, Rindex, extend, S, Xbase, Rt);
+        return ldst_regoff(1, 0, 0, Rindex, extend, S, Xbase, Rt);
     }
 
     /* STR (register)

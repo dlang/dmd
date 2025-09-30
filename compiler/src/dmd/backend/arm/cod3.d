@@ -131,7 +131,8 @@ void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, 
 
 // https://www.scs.stanford.edu/~zyedidia/arm64/b_cond.html
 // https://www.scs.stanford.edu/~zyedidia/arm64/bc_cond.html
-bool isBranch(uint ins) { return (ins & 0xFF00_0000) == 0x5400_0000; }
+bool isBranch(uint ins) { return ((ins & 0xFF00_0000) == 0x5400_0000) ||
+                                 ((ins & 0x7E00_0000) == 0x3400_0000); }
 
 enum MARS = true;
 
@@ -216,6 +217,7 @@ COND conditionCode(elem* e)
 
     /* Try to rewrite uint comparisons so they rely on just the Carry flag
      */
+    static if (0) // This doesn't work, I don't know why it worked for X86_64
     if (i == 1 && (jp == COND.hi || jp == COND.ls) &&
         (e.E2.Eoper != OPconst && e.E2.Eoper != OPrelconst))
     {
@@ -321,14 +323,43 @@ void gentstreg(ref CodeBuilder cdb, reg_t reg, uint sf)
 // genshift
 
 /**************************
- * Generate a jump instruction.
+ * Generate a conditional branch (immediate) instruction.
+ * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condbranch
  */
 
 @trusted
 void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 {
+    //printf("genBranch(cond: %d)\n", cond);
     code cs;
     cs.Iop = INSTR.b_cond(0, cond);     // offset is 0 for now, fix in codout()
+    cs.Iflags = 0;
+    cs.IFL1 = fltarg;                   // FL.block (or FL.code)
+    cs.IEV1.Vblock = targ;              // target block (or code)
+    if (fltarg == FL.code)
+        (cast(code*)targ).Iflags |= CFtarg;
+    cdb.gen(&cs);
+}
+
+/**************************
+ * Generate a compare and branch (immediate) instruction.
+ * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#compbranch
+ * Params:
+ *      cdb = code sink
+ *      sf = 1 for 64 bit, 0 for 32
+ *      R = register
+ *      op = true for testing for not zero
+ *      fltarg = FL.block or FL.code
+ *      targ = block or code target
+ */
+
+@trusted
+void genCompBranch(ref CodeBuilder cdb, uint sf, reg_t R, bool op, FL fltarg, block* targ)
+{
+    //printf("genCompBranch(sf: %d, R: %d, op: %d)\n", sf, R, op);
+    code cs;
+    uint imm19 = 0;                     // offset is 0 for now, fix in codout()
+    cs.Iop = INSTR.compbranch(sf, op, imm19, R);
     cs.Iflags = 0;
     cs.IFL1 = fltarg;                   // FL.block (or FL.code)
     cs.IEV1.Vblock = targ;              // target block (or code)
@@ -1432,13 +1463,12 @@ bool orr_solution(ulong value, out uint N, out uint immr, out uint imms)
 @trusted
 void assignaddrc(code* c)
 {
+    printf("assignaddrc()\n");
     int sn;
     Symbol* s;
     ubyte rm;
     uint sectionOff;
     ulong offset;
-    reg_t Rn, Rt;
-    uint base = cgstate.EBPtoESP;
     code* csave = c;
 
     for (; c; c = code_next(c))
@@ -1527,7 +1557,7 @@ void assignaddrc(code* c)
         s = c.IEV1.Vsym;
         uint sz = 8;
         uint ins = c.Iop;
-        if (0 && c.IFL1 != FL.unde)
+        if (c.IFL1 != FL.unde)
         {
             printf("FL: %-8s ", fl_str(c.IFL1));
             disassemble(ins);
@@ -1571,6 +1601,7 @@ void assignaddrc(code* c)
                 break;
 
             case FL.stack:       // for EE
+                uint base = cgstate.EBPtoESP;
                 //printf("Soffset = %d, EBPtoESP = %d, base = %d, pointer = %d\n",
                 //s.Soffset,cgstate.EBPtoESP,base,c.IEV1.Vpointer);
                 c.IEV1.Vpointer += s.Soffset + cgstate.EBPtoESP - base - cgstate.EEStack.offset;
@@ -1584,8 +1615,8 @@ void assignaddrc(code* c)
                     break;
                 }
                 assert(field(ins,29,27) == 7 && field(ins,25,24) == 1);
-                Rt = cast(reg_t)field(ins,4,0);
-                Rn = s.Sreglsw;
+                reg_t Rt = cast(reg_t)field(ins,4,0);
+                reg_t Rn = s.Sreglsw;
                 //assert(!c.Voffset);  // fix later
                 c.Iop = INSTR.mov_register(sz > 4, Rn, Rt);
                 c.IFL1 = FL.const_;
@@ -1610,13 +1641,13 @@ void assignaddrc(code* c)
                     c.Iop = INSTR.nop;               // remove references to it
                     break;
                 }
-                static if (0)
+                static if (1)
                 {
-                    //symbol_print(*s);
+                    symbol_print(*s);
                     //printf("c: %p, x%08x\n", c, c.Iop);
-                    printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Voffset = %d\n",
+                    printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Voffset = %d, sectionOff = %d\n",
                         s.Sident.ptr, cast(int)s.Soffset, cast(int)cgstate.Para.size, cast(int)cgstate.BPoff,
-                        cast(int)cgstate.EBPtoESP, cast(int)c.IEV1.Voffset);
+                        cast(int)cgstate.EBPtoESP, cast(int)c.IEV1.Voffset, cast(int)sectionOff);
                 }
                 if (s.Sflags & SFLunambig)
                     c.Iflags |= CFunambig;
@@ -1683,13 +1714,36 @@ void assignaddrc(code* c)
                 uint shift = field(ins,31,30);        // 0:1 1:2 2:4 3:8 shift for imm12
                 uint op24  = field(ins,25,24);
                 uint op11  = field(ins,11,10);
-                if (field(ins,28,23) == 0x22)      // Add/subtract (immediate)
+
+                reg_t Rn = cast(reg_t)field(ins,9,5);
+                reg_t Rt = cast(reg_t)field(ins,4,0);
+                if (Rn == 29 && !cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FL.para))
+                {   /* Convert to SP relative address instead of BP */
+                    //offset += cgstate.EBPtoESP;       // add difference in offset
+                    Rn = 31;
+                    ins = setField(ins,9,5,Rn);       // set Rn to SP
+                }
+
+                if (field(ins,28,23) == 0x22)   // Add/subtract (immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
                 {
+                    // add Rd,Rn,Voffset
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
-//printf("imm12: %d offset: %llx\n", imm12, offset);
+//printf("imm12: %x offset: %llx\n", imm12, offset);
                     imm12 += offset;
-                    assert(imm12 < 0x1000);
-                    ins = setField(ins,21,10,imm12);
+                    ins = setField(ins,21,10,imm12 & 0xFFF);
+                    if (imm12 >= 0x1000)
+                    {
+                        // Add in the shifted part of the offset
+                        // add Rd,Rd,(imm12 >> 12) << 12 // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+                        c.Iop = ins;
+                        code* c2 = code_calloc();
+                        const reg_t Rd2 = cast(reg_t)field(ins,4,0);
+                        c2.Iop = INSTR.add_addsub_imm(1,1,imm12>>12,Rd2,Rd2);
+                        c2.Iop |= ins & (1 << 30);      // SUB
+                        c2.next = c.next;
+                        c.next = c2;
+                        continue;
+                    }
                 }
                 else if (op24 == 1)
                 {
@@ -1710,9 +1764,30 @@ void assignaddrc(code* c)
                     else
                     {
                         imm12 = cast(uint)(offset >> shift);
-//printf("imm12: x%x\n", imm12);
-                        assert(imm12 < 0x1000);
-                        ins = setField(ins,21,10,imm12);
+//printf("offset: %llu x%llx shift: %d imm12: x%x\n", offset,offset,shift,imm12);
+                        if (imm12 < 0x1000)
+                            ins = setField(ins,21,10,imm12);
+                        else
+                        {
+                            // insert extra instruction to load the offset using scratch register R16
+                            enum R16 = 16;              // scratch register
+                            // add R16,Rn,(imm12 >> 12) << 12 // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
+                            const reg_t Rn2 = cast(reg_t)field(ins,9,5);
+                            uint ins2 = INSTR.add_addsub_imm(1,1,imm12>>12,Rn2,R16);
+                            c.Iop = ins2;
+                            c.IFL1 = FL.unde;
+                            c.IEV1.Vpointer = 0;
+
+                            // ldr Rt,[R16,#imm12 & 0xFFF] // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html
+                            ins = setField(ins,9,5,R16);
+                            ins = setField(ins,21,10,imm12 & 0xFFF);
+
+                            code* c2 = code_calloc();
+                            c2.Iop = ins;
+                            c2.next = c.next;
+                            c.next = c2;
+                            continue;
+                        }
                     }
                 }
                 else if (op24 == 0 && op11)       // postinc or predec
@@ -1740,15 +1815,11 @@ void assignaddrc(code* c)
                     ins = setField(ins,20,12,imm9);
                 }
                 else
+                {
+                    disassemble(ins);
                     assert(0);
-
-                Rn = cast(reg_t)field(ins,9,5);
-                Rt = cast(reg_t)field(ins,4,0);
-                if (Rn == 29 && !cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FL.para))
-                {   /* Convert to SP relative address instead of BP */
-                    offset += cgstate.EBPtoESP;       // add difference in offset
-                    ins = setField(ins,9,5,31);       // set Rn to SP
                 }
+
                 c.Iop = ins;
 
                 static if (0)
@@ -1801,7 +1872,7 @@ void assignaddrc(code* c)
 @trusted
 void jmpaddr(code* c)
 {
-    //printf("jmpaddr()\n");
+    printf("jmpaddr()\n");
 
     code* ci,cn,ctarg,cstart;
     uint ad;
@@ -1990,7 +2061,7 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
                 case SC.inline:
                     ggen.flush();
                     ggen.gen32(op);
-                    objmod.reftoident(ggen.seg,ggen.offset,s,0,flags);
+                    objmod.reftoident(ggen.seg,ggen.offset,s,op,flags);
                     break;
 
                 default:

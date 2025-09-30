@@ -3638,10 +3638,10 @@ shared class Bug5504b
 
 void test5504()
 {
-    immutable Bug5504 c;
+    immutable Bug5504 c = new immutable Bug5504;
     c.foo(10);
     c.xx!(int).hoo(10);
-    shared Bug5504b d;
+    shared Bug5504b d = new shared Bug5504b;
     d.foo(10);
     d.xx!(int).hoo(10);
 }
@@ -6043,7 +6043,7 @@ void test7436()
 {
     ubyte a = 10;
     float f = 6;
-    ubyte b = a += f;
+    ubyte b = a += cast(ubyte)f;
     assert(b == 16);
 }
 

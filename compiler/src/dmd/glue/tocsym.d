@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/tocsym.d, _tocsym.d)
- * Documentation:  https://dlang.org/phobos/dmd_tocsym.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/tocsym.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/tocsym.d, _tocsym.d)
+ * Documentation:  https://dlang.org/phobos/dmd_tglue_ocsym.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/glue/tocsym.d
  */
 
-module dmd.tocsym;
+module dmd.glue.tocsym;
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -17,6 +17,11 @@ import core.stdc.string;
 import dmd.root.array;
 import dmd.root.complex;
 import dmd.root.rmem;
+
+import dmd.glue.e2ir;
+import dmd.glue.toctype;
+import dmd.glue.todt;
+import dmd.glue.toir;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -31,7 +36,6 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem : vtblSymbol;
 import dmd.dtemplate;
-import dmd.e2ir;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
@@ -45,9 +49,6 @@ import dmd.mangle;
 import dmd.mtype;
 import dmd.safe : isSafe;
 import dmd.target;
-import dmd.toctype;
-import dmd.todt;
-import dmd.toir;
 import dmd.tokens;
 import dmd.typesem : size;
 import dmd.visitor;
@@ -62,6 +63,7 @@ import dmd.backend.cgcv;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 
+package(dmd.glue):
 
 /*************************************
  * Helper
@@ -824,23 +826,27 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
 {
     assert(cd.isCPPclass());
 
+    __gshared Symbol*[void*] cache;
+
     /* For the symbol std::exception, the type info is _ZTISt9exception
      */
-    if (!cd.cpp_type_info_ptr_sym)
+    if (auto cpp_type_info_ptr_sym = cast(void*)cd in cache)
     {
-        __gshared Symbol* scpp;
-        if (!scpp)
-            scpp = fake_classsym(Id.cpp_type_info_ptr);
-        Symbol* s = toSymbolX(cd, "_cpp_type_info_ptr", SC.comdat, scpp.Stype, "");
-        s.Sfl = FL.data;
-        s.Sflags |= SFLnodebug;
-        auto dtb = DtBuilder(0);
-        cpp_type_info_ptr_toDt(cd, dtb);
-        s.Sdt = dtb.finish();
-        outdata(s);
-        cd.cpp_type_info_ptr_sym = s;
+        return *cpp_type_info_ptr_sym;
     }
-    return cd.cpp_type_info_ptr_sym;
+
+    __gshared Symbol* scpp;
+    if (!scpp)
+        scpp = fake_classsym(Id.cpp_type_info_ptr);
+    Symbol* s = toSymbolX(cd, "_cpp_type_info_ptr", SC.comdat, scpp.Stype, "");
+    s.Sfl = FL.data;
+    s.Sflags |= SFLnodebug;
+    auto dtb = DtBuilder(0);
+    cpp_type_info_ptr_toDt(cd, dtb);
+    s.Sdt = dtb.finish();
+    outdata(s);
+
+    return cache[cast(void*)cd] = s;
 }
 
 /**********************************

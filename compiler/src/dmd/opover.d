@@ -30,7 +30,6 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem;
-import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -129,8 +128,7 @@ Objects* opToArg(Scope* sc, EXP op)
 {
     Expression e = new StringExp(Loc.initial, EXPtoString(stripAssignOp(op)));
     e = e.expressionSemantic(sc);
-    auto tiargs = new Objects();
-    tiargs.push(e);
+    auto tiargs = new Objects(e);
     return tiargs;
 }
 
@@ -340,7 +338,11 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
 
                 // Convert to IndexExp
                 if (ae.arguments.length == 1)
-                    return new IndexExp(ae.loc, ae.e1, (*ae.arguments)[0]).expressionSemantic(sc);
+                {
+                    auto idxexp = new IndexExp(ae.loc, ae.e1, (*ae.arguments)[0]);
+                    idxexp.modifiable = ae.modifiable;
+                    return idxexp.expressionSemantic(sc);
+                }
             }
             break;
         }
@@ -439,8 +441,7 @@ Expression opOverloadCast(CastExp e, Scope* sc, Type att = null)
                 return build_overload(e.loc, sc, e.e1, null, fd);
             }
         }
-        auto tiargs = new Objects();
-        tiargs.push(e.to);
+        auto tiargs = new Objects(e.to);
         return dotTemplateCall(e.e1, Id.opCast, tiargs).expressionSemantic(sc);
     }
     // Didn't find it. Forward to aliasthis
@@ -720,7 +721,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
             /* The explicit cast is necessary for interfaces
              * https://issues.dlang.org/show_bug.cgi?id=4088
              */
-            Type to = ClassDeclaration.object.getType();
+            Type to = dmd.dsymbolsem.getType(ClassDeclaration.object);
             if (cd1.isInterfaceDeclaration())
                 e1x = new CastExp(e.loc, e.e1, t1.isMutable() ? to : to.constOf());
             if (cd2.isInterfaceDeclaration())
@@ -907,6 +908,8 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
 {
     if (auto ae = e.e1.isArrayExp())
     {
+        markArrayExpModifiable(ae);
+
         ae.e1 = ae.e1.expressionSemantic(sc);
         ae.e1 = resolveProperties(sc, ae.e1);
         Expression ae1old = ae.e1;
@@ -992,6 +995,9 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
     }
 
     if (Expression result = e.binSemanticProp(sc))
+        return result;
+
+    if (auto result = rewriteIndexAssign(e, sc, aliasThisStop))
         return result;
 
     // Don't attempt 'alias this' if an error occurred

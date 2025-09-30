@@ -20,6 +20,7 @@ import dmd.declaration;
 import dmd.denum : isSpecialEnumIdent;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : toAlias;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;

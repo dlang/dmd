@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/toobj.d, _toobj.d)
- * Documentation:  https://dlang.org/phobos/dmd_toobj.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/toobj.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/toobj.d, _toobj.d)
+ * Documentation:  https://dlang.org/phobos/dmd_glue_toobj.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/glue/toobj.d
  */
 
-module dmd.toobj;
+module dmd.glue.toobj;
 
 import core.stdc.stdio;
 import core.stdc.stddef;
@@ -21,6 +21,13 @@ import dmd.common.outbuffer;
 import dmd.common.smallbuffer : SmallBuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
+
+import dmd.glue;
+import dmd.glue.objc;
+import dmd.glue.tocsym;
+import dmd.glue.toctype;
+import dmd.glue.tocvdebug;
+import dmd.glue.todt;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -35,29 +42,26 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : getLocalClasses, hasPointers, hasStaticCtorOrDtor, include, isFuncHidden, isAbstract;
+import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden,
+                        isAbstract, toAlias, fillVtbl;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
+import dmd.expressionsem : getDsymbol;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
-import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
-import dmd.objc_glue;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.target;
-import dmd.tocsym;
-import dmd.toctype;
-import dmd.tocvdebug;
-import dmd.todt;
+import dmd.templatesem;
 import dmd.tokens;
 import dmd.traits;
 import dmd.typinf;
@@ -78,149 +82,9 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+package(dmd.glue):
+
 /* ================================================================== */
-
-// Put out instance of ModuleInfo for this Module
-
-void genModuleInfo(Module m)
-{
-    //printf("Module.genmoduleinfo() %s\n", m.toChars());
-
-    if (!Module.moduleinfo)
-    {
-        ObjectNotFound(m.loc, Id.ModuleInfo);
-    }
-
-    Symbol* msym = toSymbol(m);
-
-    //////////////////////////////////////////////
-
-    auto csym = cast(Symbol*)m.csym;
-    csym.Sclass = SC.global;
-    csym.Sfl = FL.data;
-
-    auto dtb = DtBuilder(0);
-
-    ClassDeclarations aclasses;
-    getLocalClasses(m, aclasses);
-
-    // importedModules[]
-    size_t aimports_dim = m.aimports.length;
-    for (size_t i = 0; i < m.aimports.length; i++)
-    {
-        Module mod = m.aimports[i];
-        if (!mod.needmoduleinfo)
-            aimports_dim--;
-    }
-
-    FuncDeclaration sgetmembers = m.findGetMembers();
-
-    // These must match the values in druntime/src/object_.d
-    enum
-    {
-        MIstandalone      = 0x4,
-        MItlsctor         = 0x8,
-        MItlsdtor         = 0x10,
-        MIctor            = 0x20,
-        MIdtor            = 0x40,
-        MIxgetMembers     = 0x80,
-        MIictor           = 0x100,
-        MIunitTest        = 0x200,
-        MIimportedModules = 0x400,
-        MIlocalClasses    = 0x800,
-        MIname            = 0x1000,
-    }
-
-    uint flags = 0;
-    if (!m.needmoduleinfo)
-        flags |= MIstandalone;
-    if (m.sctor)
-        flags |= MItlsctor;
-    if (m.sdtor)
-        flags |= MItlsdtor;
-    if (m.ssharedctor)
-        flags |= MIctor;
-    if (m.sshareddtor)
-        flags |= MIdtor;
-    if (sgetmembers)
-        flags |= MIxgetMembers;
-    if (m.sictor)
-        flags |= MIictor;
-    if (m.stest)
-        flags |= MIunitTest;
-    if (aimports_dim)
-        flags |= MIimportedModules;
-    if (aclasses.length)
-        flags |= MIlocalClasses;
-    flags |= MIname;
-
-    dtb.dword(flags);        // _flags
-    dtb.dword(0);            // _index
-
-    if (flags & MItlsctor)
-        dtb.xoff(m.sctor, 0, TYnptr);
-    if (flags & MItlsdtor)
-        dtb.xoff(m.sdtor, 0, TYnptr);
-    if (flags & MIctor)
-        dtb.xoff(m.ssharedctor, 0, TYnptr);
-    if (flags & MIdtor)
-        dtb.xoff(m.sshareddtor, 0, TYnptr);
-    if (flags & MIxgetMembers)
-        dtb.xoff(toSymbol(sgetmembers), 0, TYnptr);
-    if (flags & MIictor)
-        dtb.xoff(m.sictor, 0, TYnptr);
-    if (flags & MIunitTest)
-        dtb.xoff(m.stest, 0, TYnptr);
-    if (flags & MIimportedModules)
-    {
-        dtb.size(aimports_dim);
-        foreach (i; 0 .. m.aimports.length)
-        {
-            Module mod = m.aimports[i];
-
-            if (!mod.needmoduleinfo)
-                continue;
-
-            Symbol* s = toSymbol(mod);
-
-            /* Weak references don't pull objects in from the library,
-             * they resolve to 0 if not pulled in by something else.
-             * Don't pull in a module just because it was imported.
-             */
-            s.Sflags |= SFLweak;
-            dtb.xoff(s, 0, TYnptr);
-        }
-    }
-    if (flags & MIlocalClasses)
-    {
-        dtb.size(aclasses.length);
-        foreach (i; 0 .. aclasses.length)
-        {
-            ClassDeclaration cd = aclasses[i];
-            dtb.xoff(toSymbol(cd), 0, TYnptr);
-        }
-    }
-    if (flags & MIname)
-    {
-        // Put out module name as a 0-terminated string, to save bytes
-        m.nameoffset = dtb.length();
-        const(char) *name = m.toPrettyChars();
-        m.namelen = strlen(name);
-        dtb.nbytes(name[0 .. m.namelen + 1]);
-        //printf("nameoffset = x%x\n", nameoffset);
-    }
-
-    objc.generateModuleInfo(m);
-    csym.Sdt = dtb.finish();
-    out_readonly(csym);
-    outdata(csym);
-
-    //////////////////////////////////////////////
-
-    objmod.moduleinfo(msym);
-    if (driverParams.exportVisibility == ExpVis.public_)
-        objmod.export_symbol(msym, 0);
-}
 
 /*****************************************
  * write pointer references for typed data to the object file
@@ -327,7 +191,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(FuncDeclaration fd)
         {
-            // in glue.c
+            // in glue/package.d
             FuncDeclaration_toObjFile(fd, multiobj);
         }
 
