@@ -282,6 +282,9 @@ void testHexstring()
     f20635(cast(ubyte[]) x"00");
     f20635(cast(const ubyte[]) x"00");
     f20635(cast(immutable ubyte[]) x"00");
+
+    // https://github.com/dlang/dmd/issues/21256
+    auto s = cast (ubyte []) [x""];
 }
 
 void f20635(const ubyte[] value){}
