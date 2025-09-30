@@ -1870,7 +1870,7 @@ static if (0)
             goto L4;
 
         case FL.extern_:
-            if (config.exe & EX_posix && e.Vsym.ty() & mTYthread)
+            if (config.exe & EX_posix)
             {
                 if (log) printf("posix extern threaded\n");
                 regm_t scratch = ALLREGS & ~mask(reg);
@@ -1893,6 +1893,12 @@ static if (0)
             goto L4;
 
         case FL.data:
+            if (config.exe & EX_OSX64 && cg.AArch64)
+            {
+		if ((e.Vsym.ty() & mTYLINK) == mTYthread)
+		    goto case FL.tlsdata;
+	    }
+	    goto case;
         case FL.udata:
         case FL.got:
         case FL.gotoff:
