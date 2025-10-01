@@ -3822,7 +3822,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     return hash;
 }
 
-/// Provide the .dup array property.
+/// Provide the .dup array property, which creates a duplicate.
 @property auto dup(T)(T[] a)
     if (!is(const(T) : T))
 {
@@ -3854,7 +3854,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 }
 
 
-/// Provide the .idup array property.
+/// Provide the .idup array property, which creates an immutable duplicate.
 @property immutable(T)[] idup(T)(T[] a)
 {
     import core.internal.array.duplication : _dup;
