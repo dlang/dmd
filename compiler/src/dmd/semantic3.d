@@ -1807,10 +1807,12 @@ void semanticRTInfo(AggregateDeclaration ad)
  * verify that such an allocation is allowed under the current compilation
  * settings.
  *
- * Whenever an error is emitted, every nested function that actually closes
- * over a variable is listed in a supplemental diagnostic, together with the
- * location of the captured variable’s declaration.  (This extra walk is
- * skipped when the compiler is gagged.)
+ * Emits errors if:
+ * - A captured variable has a destructor, which is prohibited.
+ * - Closure allocation violates `@nogc` or `-betterC`.
+ *
+ * Additionally, provides supplemental diagnostics listing nested functions
+ * that close over variables, unless the compiler is gagged.
  *
  * See_Also:
  *      $(UL
@@ -1825,6 +1827,33 @@ extern (D) bool checkClosure(FuncDeclaration fd)
     if (!fd.needsClosure())
         return false;
 
+    // Preventing closure construction due to variables with destructor
+    foreach (v; fd.closureVars)
+    {
+        if (!v.type)
+            continue;
+
+        if (auto ts = v.type.isTypeStruct())
+        {
+            if (ts.sym && ts.sym.dtor)
+            {
+                .error(v.loc, "variable `%s` has scoped destruction, cannot build closure", v.toPrettyChars());
+                fd.errors = true;
+                return true;
+            }
+        }
+        else if (auto tc = v.type.isTypeClass())
+        {
+            if (tc.sym && tc.sym.dtor && (v.storage_class & STC.scope_))
+            {
+                .error(v.loc, "scoped class variable `%s` has destructor, cannot build closure", v.toPrettyChars());
+                fd.errors = true;
+                return true;
+            }
+        }
+    }
+
+    // Checking compilation restrictions
     if (fd.setGC(fd.loc, "allocating a closure for `%s()`", fd))
     {
         .error(fd.loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
@@ -1843,7 +1872,8 @@ extern (D) bool checkClosure(FuncDeclaration fd)
         return false;
     }
 
-    FuncDeclarations a;
+    // Additional diagnostics: who captures variables
+    FuncDeclarations reported;
     foreach (v; fd.closureVars)
     {
         foreach (f; v.nestedrefs)
@@ -1856,18 +1886,25 @@ extern (D) bool checkClosure(FuncDeclaration fd)
                 auto fx = s.isFuncDeclaration();
                 if (!fx)
                     continue;
+
                 if (fx.isThis() ||
                     fx.tookAddressOf ||
                     checkEscapingSiblings(fx, fd))
                 {
-                    foreach (f2; a)
+                    bool alreadyReported = false;
+                    foreach (r; reported)
                     {
-                        if (f2 == f)
-                            break LcheckAncestorsOfANestedRef;
+                        if (r == f)
+                        {
+                            alreadyReported = true;
+                            break;
+                        }
                     }
-                    a.push(f);
-                    .errorSupplemental(f.loc, "%s `%s` closes over variable `%s`",
-                        f.kind, f.toErrMsg(), v.toChars());
+                    if (alreadyReported)
+                        break LcheckAncestorsOfANestedRef;
+
+                    reported.push(f);
+                    .errorSupplemental(f.loc, "%s `%s` closes over variable `%s`", f.kind, f.toErrMsg(), v.toChars());
                     if (v.ident != Id.This)
                         .errorSupplemental(v.loc, "`%s` declared here", v.toChars());
 
