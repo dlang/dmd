@@ -7724,7 +7724,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         //printf("inserting '%s' %p into sc = %p\n", s.toChars(), s, sc);
         // Insert into both local scope and function scope.
-        // Must be unique in both.
+        // Must be unique in both (except for importC).
         if (s.ident)
         {
             VarDeclaration v = s.isVarDeclaration();
