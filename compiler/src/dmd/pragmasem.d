@@ -48,30 +48,6 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
     import dmd.target;
     import dmd.utils;
 
-    StringExp verifyMangleString(ref Expression e)
-    {
-        auto se = semanticString(sc, e, "mangled name");
-        if (!se)
-            return null;
-        e = se;
-        if (!se.len)
-        {
-            .error(pd.loc, "%s `%s` - zero-length string not allowed for mangled name", pd.kind, pd.toPrettyChars);
-            return null;
-        }
-        if (se.sz != 1)
-        {
-            .error(pd.loc, "%s `%s` - mangled name characters can only be of type `char`", pd.kind, pd.toPrettyChars);
-            return null;
-        }
-
-        auto slice = se.toStringz();
-        if (strlen(slice.ptr) != se.len)
-            .error(pd.loc, "%s `%s` null character not allowed in mangled name", pd.kind, pd.toPrettyChars);
-        mem.xfree(cast(void*)slice.ptr);
-
-        return se;
-    }
     void declarations()
     {
         if (!pd.decl)
@@ -527,6 +503,8 @@ private bool pragmaStartAddressSemantic(Loc loc, Scope* sc, Expressions* args)
  */
 private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbols* decls)
 {
+    import dmd.root.rmem;
+
     StringExp verifyMangleString(ref Expression e)
     {
         import dmd.mangle : isValidMangling;
@@ -545,44 +523,10 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
             error(loc, "`pragma(mangle)` mangled name characters can only be of type `char`");
             return null;
         }
-        version (all)
-        {
-            import dmd.common.charactertables;
-
-            /* Note: D language specification should not have any assumption about backend
-             * implementation. Ideally pragma(mangle) can accept a string of any content.
-             *
-             * Therefore, this validation is compiler implementation specific.
-             */
-            auto slice = se.peekString();
-            for (size_t i = 0; i < se.len;)
-            {
-                dchar c = slice[i];
-                if (c < 0x80)
-                {
-                    if (c.isValidMangling)
-                    {
-                        ++i;
-                        continue;
-                    }
-                    else
-                    {
-                        error(loc, "`pragma(mangle)` char 0x%02x not allowed in mangled name", c);
-                        break;
-                    }
-                }
-                if (const msg = utf_decodeChar(slice, i, c))
-                {
-                    error(loc, "`pragma(mangle)` %.*s", cast(int)msg.length, msg.ptr);
-                    break;
-                }
-                if (!isAnyIdentifierCharacter(c))
-                {
-                    error(loc, "`pragma(mangle)` char `0x%04x` not allowed in mangled name", c);
-                    break;
-                }
-            }
-        }
+        auto slice = se.toStringz();
+        if (strlen(slice.ptr) != se.len)
+            .error(loc, "pragma `mangle` null character not allowed in mangled name");
+        mem.xfree(cast(void*)slice.ptr);
         return se;
     }
 
@@ -598,7 +542,6 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
             import dmd.dsymbolsem : dsymbolSemantic;
             import dmd.hdrgen : arrayObjectsToBuffer;
             import dmd.identifier : Identifier;
-            import dmd.root.rmem;
 
             s.dsymbolSemantic(sc);
 
