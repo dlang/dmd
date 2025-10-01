@@ -1354,26 +1354,30 @@ $(GNAME GccAsmInstruction):
     $(GLINK GccGotoAsmInstruction)
 
 $(GNAME GccBasicAsmInstruction):
-    $(GLINK2 expression, AssignExpression)
+    $(GLINK2 expression, GccAsmStringExpression)
 
 $(GNAME GccExtAsmInstruction):
-    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK GccAsmOperands)$(OPT)
-    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmOperands)$(OPT)
-    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmClobbers)$(OPT)
+    $(GLINK2 expression, GccAsmStringExpression) $(D :) $(GLINK GccAsmOperands)$(OPT)
+    $(GLINK2 expression, GccAsmStringExpression) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmOperands)$(OPT)
+    $(GLINK2 expression, GccAsmStringExpression) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmClobbers)$(OPT)
 
 $(GNAME GccGotoAsmInstruction):
-    $(GLINK2 expression, AssignExpression) $(D :) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmClobbers)$(OPT) $(D :) $(GLINK GccAsmGotoLabels)$(OPT)
+    $(GLINK2 expression, GccAsmStringExpression) $(D :) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmClobbers)$(OPT) $(D :) $(GLINK GccAsmGotoLabels)$(OPT)
+
+$(GNAME GccAsmStringExpression):
+    $(GLINK_LEX StringLiteral)
+    $(D $(LPAREN)) $(GLINK2 expression, ConditionalExpression) $(D $(RPAREN))
 
 $(GNAME GccAsmOperands):
-    $(GLINK GccSymbolicName)$(OPT) $(GLINK_LEX StringLiteral) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
-    $(GLINK GccSymbolicName)$(OPT) $(GLINK_LEX StringLiteral) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN)) $(D ,) $(GSELF GccAsmOperands)
+    $(GLINK GccSymbolicName)$(OPT) $(GLINK_LEX GccAsmStringExpression) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
+    $(GLINK GccSymbolicName)$(OPT) $(GLINK_LEX GccAsmStringExpression) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN)) $(D ,) $(GSELF GccAsmOperands)
 
 $(GNAME GccSymbolicName):
     $(D [) $(GLINK_LEX Identifier) $(D ])
 
 $(GNAME GccAsmClobbers):
-    $(GLINK_LEX StringLiteral)
-    $(GLINK_LEX StringLiteral) $(D ,) $(GSELF GccAsmClobbers)
+    $(GLINK_LEX GccAsmStringExpression)
+    $(GLINK_LEX GccAsmStringExpression) $(D ,) $(GSELF GccAsmClobbers)
 
 $(GNAME GccAsmGotoLabels):
     $(GLINK_LEX Identifier)

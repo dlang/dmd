@@ -41,9 +41,6 @@ int[3] s;
         $(BEST_PRACTICE
         $(OL
         $(LI Use dynamic arrays for larger arrays.)
-        $(LI Static arrays with 0 elements are useful as the last member
-        of a variable length struct, or as the degenerate case of
-        a template expansion.)
         $(LI Because static arrays are passed to functions by value,
         a larger array can consume a lot of stack space. Use dynamic arrays
         instead.)
@@ -187,8 +184,11 @@ assert(a is b);
     using pointer $(RELATIVE_LINK2 slicing, slicing), so that the number of elements
     to copy is then known.)
 
+
+$(H3 $(LNAME2 static-array-assign, Static Array Assignment))
+
     $(P A static array can be assigned from a dynamic array - the data is copied.
-    The lengths must match:)
+    If the lengths do not match at runtime, a `RangeError` is thrown:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
@@ -236,6 +236,9 @@ assert(b[1] == 2);
 //writeln(b[2]); // compile-time error, index out of bounds
 ---------
 )
+
+    $(P Dynamic and static array indexing is $(RELATIVE_LINK2 bounds, bounds checked)
+    by default.)
 
     $(P See also $(GLINK2 expression, IndexOperation).)
 
@@ -292,6 +295,9 @@ b = b[1..2];
 assert(b == [3]);
 ---------
 )
+
+        $(P Each index in the slice expression is $(RELATIVE_LINK2 bounds, bounds checked)
+        by default.)
 
         $(P $(I Expression)`[]` is shorthand for a slice of the entire array.
         )
@@ -352,12 +358,10 @@ i = bar[$-1]; // retrieves last element of the array
 
 $(H2 $(LNAME2 array-copying, Array Copying))
 
-        $(P When the slice operator appears as the left-hand side of an
-        assignment expression, it means that the contents of the array are the
-        target of the assignment rather than a reference to the array.
-        Array copying happens when the left-hand side is a slice, and the
-        right-hand side is an array of or pointer to the same type.
-        )
+        $(P When a slice expression is the left-hand side of an
+        assignment expression, it means that the contents of the slice are the
+        target of the assignment rather than an array reference.
+        The right-hand side must implicitly convert to an array type.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
@@ -381,6 +385,11 @@ a[0..2] = s[1..3];
 assert(a == [2, 0]);
 ---------
 )
+
+        $(P If the number of elements does not match at runtime, a `RangeError` is thrown.)
+
+        $(RATIONALE Indexing past the end of a slice is a programming error.)
+
 
 $(H3 $(LNAME2 overlapping-copying, Overlapping Copying))
 
@@ -418,12 +427,12 @@ assert(s == [2, 3, 3, 4]);
 )
 
 
-$(H2 $(LNAME2 array-setting, Array Setting))
+$(H2 $(LNAME2 array-setting, Array Filling))
 
         $(P If a slice operator appears as the left-hand side of an assignment
         expression, and the type of the right-hand side is the same as the
-        element type of the left-hand side, then the array contents of the
-        left-hand side are set to the right-hand side.
+        element type of the left-hand side, then each element of the slice
+        expression will be assigned to the value on the right-hand side.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -1056,8 +1065,8 @@ $(H3 $(LNAME2 default-initialization, Default Initialization))
 
         $(UL
         $(LI Pointers are initialized to $(D null).)
-        $(LI Static array contents are initialized to the default
-        initializer for the array element type.)
+        $(LI Static array contents are initialized to the
+        $(DDSUBLINK spec/property, init, default initializer) for the array element type.)
         $(LI Dynamic arrays are initialized to having 0 elements and a null `.ptr`.)
         $(LI Associative arrays are initialized to having 0 elements.)
         )
@@ -1084,10 +1093,16 @@ assert(j[0].length == 5);
 
 $(H3 $(LNAME2 void-initialization, Void Initialization))
 
-        $(P Void initialization happens when the $(I Initializer) for
-        an array is $(D void). What it means is that no initialization
-        is done, i.e. the contents of the array will be undefined.
+        $(P Void initialization happens when the $(GLINK2 declaration, Initializer) for
+        an array declaration is $(D void). For a static array,
+        it means no initialization
+        is done - i.e. the contents of the array will be undefined.
         This is most useful as an efficiency optimization.
+        )
+        ---
+        int[256] arr = void; // elements of `arr` have undefined bit-patterns
+        ---
+        $(BEST_PRACTICE
         Void initializations are an advanced technique and should only be used
         when profiling indicates that it matters.
         )
@@ -1128,7 +1143,7 @@ assert(a == [0, 2, 3]);
 ---------
 )
 
-        $(P This is most handy when the array indices are given by $(DDLINK spec/enum, Enums, enums):)
+        $(PANEL This is most handy when the array indices are given by $(DDLINK spec/enum, Enums, enums):
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
@@ -1142,6 +1157,7 @@ int[Color.max + 1] value =
 assert(value == [5, 6, 2]);
 ---------
 )
+        )
 
         $(P Any indices must be known at compile-time.
         Note that if the array type is not specified and every element has an index,
@@ -1176,6 +1192,29 @@ assert(a == [42, 42, 42, 42]);
         $(P These arrays are statically allocated when they appear in global scope.
         Otherwise, they need to be marked with $(D const) or $(D static)
         storage classes to make them statically allocated arrays.)
+
+$(H4 $(LNAME2 static-string, String Literal Initializers))
+
+        $(P A static array of character type is $(RELATIVE_LINK2 default-initialization,
+        default-initialized) the same as other
+        static arrays. However, when initialized from a string literal:)
+
+        * The literal can be of a shorter length than the array.
+        * Any remaining elements are initialized to `\0`.
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+char[10] s1;
+assert(s1[9] == '\xFF'); // char.init
+
+char[10] s2 = "hi";
+assert(s2[9] == '\0');
+---
+)
+        $(RATIONALE A mutable character array's `.ptr` property can be used to
+        obtain a C string (if it has an element which is zero). When that array
+        is initialized with a shorter string literal, it's likely the subsequent
+        code will need zero-termination.)
 
 
 $(H2 $(LNAME2 special-array, Special Array Types))
@@ -1401,15 +1440,21 @@ writefln("the string is '%s'", str);
 
 $(H3 $(LNAME2 void_arrays, Void Arrays))
 
-    $(P There are special types of array with `void` element type which can hold
-    arrays of any kind. Void arrays are used for
+    $(P There are special types of array with a $(DDSUBLINK spec/type, void, `void`)
+    element type which can hold arrays of any kind. Void arrays are used for
     low-level operations where some kind of array data is being handled, but
     the exact type of the array elements are unimportant. The $(D .length) of a
     void array is the length of the data in bytes, rather than the number of
     elements in its original type. Array indices in slicing
     operations are interpreted as byte indices. A void array cannot be indexed.)
 
-    $(P Arrays of any type can be implicitly converted to a (tail qualified) void array - the
+    $(P Another array can be $(RELATIVE_LINK2 array-copying, copied) into a void array's elements, but not in a
+    $(DDSUBLINK spec/function, safe-functions, `@safe` function).
+    This is because the void array may hold pointers.
+    A void array cannot be $(RELATIVE_LINK2 array-setting, filled).)
+
+    $(P Arrays of any type can be $(DDSUBLINK spec/type, implicit-conversions,
+    implicitly converted) to a (tail qualified) void array - the
     compiler inserts the appropriate calculations so that the $(D .length) of
     the resulting array's size is in bytes rather than number of elements. Void
     arrays cannot be converted back to the original type without using an

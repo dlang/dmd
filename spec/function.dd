@@ -395,22 +395,52 @@ $(GNAME OutStatement):
 
 $(H2 $(LNAME2 function-return-values, Function Return Values))
 
-        $(P At least one $(DDSUBLINK spec/statement, return-statement, return statement)
-        is required if the function specifies a return type that is not void,
+        $(P One $(DDSUBLINK spec/statement, return-statement, return statement) per execution path
+        is required if the function specifies a return type that is not `void`,
         unless:)
         $(UL
-        $(LI the function executes an infinite loop)
-        $(LI the function executes an $(DDSUBLINK spec/expression, assert-ct,
-            `assert(0)` statement))
-        $(LI the function evaluates an expression of type
+        $(LI the path executes an infinite loop)
+        $(LI the path evaluates an $(DDSUBLINK spec/expression, assert-ct,
+            `assert(0)` expression))
+        $(LI the path evaluates an expression of type
             $(DDSUBLINK spec/type, noreturn, `noreturn`))
-        $(LI the function contains inline assembler code)
+        $(LI the path contains inline assembler code)
         )
 
+        $(P Simple forms of the first 3 cases above can be recognized by the compiler,
+        but not all.)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+int error(int i)
+{
+    if (i & 1)
+        i++;
+    else
+        return i;
+
+    // Error: no return statement
+}
+---
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+int f(int i)
+{
+    if (i >= 0)
+        return i;
+
+    assert(0);
+    // OK, no return needed
+}
+---
+)
         $(P Function return values not marked as $(RELATIVE_LINK2 ref-functions, `ref`)
-        are considered to be rvalues.
+        are considered to be rvalues by the calling function.
         This means they cannot be passed by reference to other functions.
         )
+
 
 $(H2 $(LNAME2 pure-functions, Pure Functions))
 
@@ -2184,23 +2214,18 @@ $(H4 $(LNAME2 c_style_variadic_functions, C-style Variadic Functions))
         a parameter `...` as the last function parameter.
         It has non-D linkage, such as $(D extern (C)).)
 
-        $(P To access the variadic arguments,
-        import the standard library
-        module $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)).
-        )
-
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        import core.stdc.stdarg;
-
         extern (C) void dry(int x, int y, ...); // C-style Variadic Function
 
         void spin()
         {
             dry(3, 4);      // ok, no variadic arguments
             dry(3, 4, 6.8); // ok, one variadic argument
-            dry(2);         // error, no argument for parameter y
+            //dry(2);       // error, no argument for parameter y
         }
         ---
+        )
 
         $(P There must be at least one non-variadic parameter declared.)
 
@@ -2211,7 +2236,7 @@ $(H4 $(LNAME2 c_style_variadic_functions, C-style Variadic Functions))
         $(P
         C-style variadic functions match the C calling convention for
         variadic functions, and can call C Standard library
-        functions like $(D printf).
+        functions like $(REF_SHORT printf, core,stdc,stdio).
         )
 
         ---
@@ -2225,14 +2250,16 @@ $(H4 $(LNAME2 c_style_variadic_functions, C-style Variadic Functions))
 
         $(P C-style variadic functions cannot be marked as $(D @safe).)
 
+        $(P To access the variadic arguments,
+        import the standard library
+        module $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)).
+        )
 
-        ---
-        void wash()
-        {
-            rinse(3, 4, 5);   // first variadic argument is 5
-        }
-
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ------
         import core.stdc.stdarg;
+        import std.stdio;
+
         extern (C) void rinse(int x, int y, ...)
         {
             va_list args;
@@ -2240,8 +2267,15 @@ $(H4 $(LNAME2 c_style_variadic_functions, C-style Variadic Functions))
             int z;
             va_arg(args, z);   // z is set to 5
             va_end(args);
+            writeln(z);
+        }
+
+        void main()
+        {
+            rinse(3, 4, 5);   // first variadic argument is 5
         }
         ---
+        )
 
 
 $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
@@ -2254,7 +2288,8 @@ $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
         $(P If there are parameters preceding the `...` parameter, there
         must be a comma separating them from the `...`.)
 
-        $(NOTE If the comma is ommitted, it is a $(RELATIVE_LINK2 variadic, TypeSafe Variadic Function).)
+        $(NOTE If the comma is omitted, it is a
+        $(RELATIVE_LINK2 typesafe_variadic_functions, Typesafe Variadic Function).)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ------
@@ -2265,35 +2300,36 @@ $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
         ------
         )
 
-
         $(P Two hidden arguments are passed to the function:)
 
         $(UL
-        $(LI `void* _argptr`)
+        $(LI `_argptr`)
         $(LI `TypeInfo[] _arguments`)
         )
 
-        $(P $(D _argptr) is a
-        reference to the first of the variadic
+        $(P $(D _argptr) is a pointer to the first of the variadic
         arguments. To access the variadic arguments,
         import $(LINK2 $(ROOT_DIR)phobos/core_vararg.html, $(D core.vararg)).
-        Use $(D _argptr) in conjunction with $(D core.va_arg):)
+        Use $(D _argptr) in conjunction with $(REF_SHORT va_arg, core,stdc,stdarg):)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 import core.vararg;
-
-void test()
-{
-    foo(3, 4, 5);   // first variadic argument is 5
-}
+import std.stdio;
 
 @system void foo(int x, int y, ...)
 {
     int z = va_arg!int(_argptr); // z is set to 5 and _argptr is advanced
                                  // to the next argument
+    writeln(z); // 5
+}
+
+void main()
+{
+    foo(3, 4, 5);   // first variadic argument is 5
 }
 ------
-
+)
         $(P $(D _arguments) gives the number of arguments and the `typeid`
         of each, enabling type safety to be checked at run time.)
 
@@ -2340,12 +2376,12 @@ import core.vararg;
         else if (_arguments[i] == typeid(Foo))
         {
             Foo f = va_arg!(Foo)(_argptr);
-            writefln("\t%s", f);
+            writefln("\t%d", f.x);
         }
         else if (_arguments[i] == typeid(Bar))
         {
             Bar b = va_arg!(Bar)(_argptr);
-            writefln("\t%s", b);
+            writefln("\t%d", b.y);
         }
         else
             assert(0);
@@ -2366,25 +2402,29 @@ long
 double
         4.5
 Foo
-        0x00870FE0
+        3
 Bar
-        0x00870FD0
+        4
 ------
 
-    $(P D-style variadic functions cannot be marked as $(D @safe).)
+    $(P D-style variadic functions cannot be marked as $(D @safe) (if
+    they call `va_arg`).)
 
 
 $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
 
         $(P A typesafe variadic function has D linkage and a variadic
-        parameter declared as either an array or a class.
-        The array or class is constructed from the arguments, and
-        is passed as an array or class object.
+        parameter, which is typically an array followed by `...`.
+        The variadic parameter must be the last one. When passing component
+        arguments (e.g. array elements), the variadic parameter is
+        implicitly constructed from the given arguments.
         )
 
-        $(P For dynamic arrays:)
+        $(P A dynamic array variadic parameter accepts either a
+        dynamic array argument or any number of arguments, each of
+        which must implicitly convert to the array element type:)
 
-        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         int sum(int[] ar ...) // typesafe variadic function
         {
@@ -2394,30 +2434,22 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
             return s;
         }
 
-        import std.stdio;
-
         void main()
         {
-            writeln(stan());  // 6
-            writeln(ollie()); // 15
-        }
+            assert(sum(1, 2, 3) == 6);
+            assert(sum() == 0);
 
-        int stan()
-        {
-            return sum(1, 2, 3) + sum(); // returns 6+0
-        }
-
-        int ollie()
-        {
             int[3] ii = [4, 5, 6];
-            return sum(ii);             // returns 15
+            assert(sum(ii) == 15);
         }
         ---
         )
 
-        $(P For static arrays, the number of arguments must
-        match the array dimension.)
+        $(P A static array variadic parameter accepts either a static
+        array argument or a fixed number of arguments which matches
+        the array dimension:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         int sum(int[3] ar ...) // typesafe variadic function
         {
@@ -2427,20 +2459,22 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
             return s;
         }
 
-        int frank()
+        void main()
         {
-            return sum(2, 3);    // error, need 3 values for array
-            return sum(1, 2, 3); // returns 6
-        }
+            int i;
+            //i = sum(2, 3);    // error, need 3 values for array
+            i = sum(1, 2, 3);
+            assert(i == 6);
 
-        int dave()
-        {
             int[3] ii = [4, 5, 6];
+            i = sum(ii);
+            assert(i == 15);
+
             int[] jj = ii;
-            return sum(ii); // returns 15
-            return sum(jj); // error, type mismatch
+            //i = sum(jj); // error, type mismatch
         }
         ---
+        )
 
         $(DDOC_DEPRECATED For class objects:)
 
@@ -2492,7 +2526,8 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
         $(IMPLEMENTATION_DEFINED the variadic object or array instance
         may be constructed on the stack.)
 
-        $(P For other types, the argument is passed by value.)
+        $(P For other types, the variadic parameter matches exactly one
+        argument, which is passed by value.)
 
         ---
         int neil(int i ...)
@@ -2502,6 +2537,7 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
 
         void buzz()
         {
+            neil();     // error, missing argument
             neil(3);    // returns 3
             neil(3, 4); // error, too many arguments
             int[] x;
@@ -3248,7 +3284,8 @@ uint function(uint) fp2 = &def;
 
 $(H3 $(LNAME2 closures, Delegates & Closures))
 
-        $(P A delegate can be set to a non-static nested function:)
+        $(P A $(DDSUBLINK spec/type, delegates, delegate) can be set to a
+        non-static $(RELATIVE_LINK2 nested, nested function):)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
@@ -3282,8 +3319,9 @@ void main()
         $(P Those referenced stack variables that make up the closure
         are allocated on the GC heap, unless:)
 
-        * The closure is passed to a `scope` parameter.
-        * The closure is an initializer for a `scope` variable.
+        * The closure is passed to a $(RELATIVE_LINK2 scope-parameters, `scope` parameter).
+        * The closure is an initializer for a
+          $(DDSUBLINK spec/attribute, scope, `scope` variable).
         * The closure is assigned to a `scope` variable.
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -3317,7 +3355,7 @@ void main()
         a closure and is an error.
         )
 
-$(H4 $(LNAME2 method-delegates, Method Delegates))
+$(H3 $(LNAME2 method-delegates, Method Delegates))
 
         $(P Delegates to non-static nested functions contain two pieces of
         data: the pointer to the stack frame of the lexically enclosing
@@ -3347,9 +3385,6 @@ void main()
 {
     Foo f = {7};
     int delegate() dg = &f.get; // bind to an instance of Foo and a method
-    assert(dg.ptr == &f);
-    assert(dg.funcptr == &Foo.get);
-
     int i = add1(dg);
     assert(i == 8);
 
@@ -3361,14 +3396,6 @@ void main()
 }
 ------
 )
-
-        $(P The $(D .ptr) property of a delegate will return the
-        $(I context pointer) value as a $(D void*).
-        )
-
-        $(P The $(D .funcptr) property of a delegate will return the
-        $(I function pointer) value as a function type.
-        )
 
 $(H3 $(LNAME2 function-delegate-init, Initialization))
 
@@ -3857,6 +3884,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI No $(DDSUBLINK spec/expression, pointer_arithmetic, pointer arithmetic)
             (including pointer indexing & slicing).)
         $(LI Cannot access array $(DDSUBLINK spec/arrays, ptr-property, `.ptr` property).)
+        $(LI Cannot copy into a $(DDSUBLINK spec/arrays, void_arrays, void array).)
         $(LI Cannot access union fields that:)
             * Have pointers or references overlapping with other types
             * Have invariants overlapping with other types
@@ -4068,15 +4096,15 @@ $(H3 $(LNAME2 safe-values, Safe Values))
 
         $(P A pointer is a safe value when it is one of:)
         $(OL
-            $(LI `null`)
+            $(LI `null` - $(RELATIVE_LINK2 null-dereferences, see below))
             $(LI it points to a memory object that is live and
             the pointed to value in that memory object is safe.)
         )
         $(P Examples:)
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
-        int* n = null; /* n is safe because dereferencing null is a well-defined
-            crash. */
+        int* n = null; /* n is safe because dereferencing null must either crash
+            or abort. */
         int* x = cast(int*) 0xDEADBEEF; /* x is (most likely) unsafe because it
             is not a valid pointer and cannot be dereferenced. */
 
@@ -4167,6 +4195,22 @@ $(H3 $(LNAME2 safe-values, Safe Values))
             $(LI its `.ptr` property is `null` or refers to a memory object that is in a form
             expected by the function.)
         )
+
+$(H3 $(LNAME2 null-dereferences, Null Dereferences))
+
+        $(P When generating `@safe` code, a compliant implementation:)
+
+        - Must not assume that a null dereference will not occur. Optimizations
+          that require that assumption cannot be used for `@safe` functions.
+        - Must generate code that will detect and abort execution:
+          - When a null dereference occurs on systems that by default do not protect
+            access to the first page of memory addresses. (Note that e.g. calling
+            [`mprotect`](https://pubs.opengroup.org/onlinepubs/007904875/functions/mprotect.html)
+            is `@system`).
+          - On all systems when an expression causes a null pointer to be indexed,
+            causing a memory access that is not prevented by the system.
+            $(RED Warning:) $(TT dmd)
+            [has not implemented](https://github.com/dlang/dmd/issues/17776) this yet.
 
 $(H3 $(LNAME2 safe-aliasing, Safe Aliasing))
 

@@ -104,9 +104,9 @@ $(H3 $(LNAME2 struct-members, Struct Members))
         $(LI Fields)
         $(LI $(DDSUBLINK spec/attribute, static, Static) fields)
         $(LI $(RELATIVE_LINK2 anonymous, Anonymous Structs and Unions))
-        $(LI $(DDSUBLINK spec/class, member-functions, member functions)
+        $(LI $(RELATIVE_LINK2 member-functions, Member Functions)
         $(UL
-            $(LI static member functions)
+            $(LI $(DDSUBLINK spec/attribute, static, Static) member functions)
             $(LI $(RELATIVE_LINK2 struct-constructor, Constructors))
             $(LI $(RELATIVE_LINK2 struct-destructor, Destructors))
             $(LI $(RELATIVE_LINK2 Invariant, Invariants))
@@ -2126,6 +2126,39 @@ void main()
 }
 ---
 )
+
+
+$(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
+
+        $(P A struct/union can have non-static member functions,
+        $(DDSUBLINK spec/class, member-functions, like classes).
+        Such functions (called instance methods) have a hidden
+        $(DDSUBLINK spec/expression, this, `this` parameter) which is a reference
+        to the struct instance.
+        However, an instance method can still be called on an rvalue struct instance,
+        even if the method is not const:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int i;
+    int f() => ++i;
+}
+
+void main()
+{
+    //S().i++; // cannot modify, `S().i` is not an lvalue
+    assert(S().f() == 1); // OK
+}
+---
+)
+
+        $(RATIONALE An instance method may have other side effects besides mutating a field,
+        or it may produce a useful return value. In the general case, throwing
+        away changes to a field after the method returns does not necessarily indicate
+        a logic error.)
+
 
 $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
 

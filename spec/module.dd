@@ -228,6 +228,12 @@ $(P $(I ModuleFullyQualifiedName)s in the $(I ImportDeclaration) must be fully
 qualified with whatever packages they are in. They are not considered to be
 relative to the module that imports them.)
 
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI How the compiler resolves the package and module identifiers in an
+    import declaration to its corresponding source files.)
+    ))
+
 $(H3 $(LNAME2 name_lookup, Symbol Name Lookup))
 
 $(P The simplest form of importing is to just list the modules being imported:)

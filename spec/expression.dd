@@ -384,9 +384,13 @@ $(H3 $(LNAME2 simple_assignment_expressions, Simple Assignment Expression))
     as described in $(DDSUBLINK spec/arrays, resize, Setting Dynamic Array Length).
     )
 
-    $(LI If the lvalue is a static array or a slice, the behavior is as
+    $(LI If the left operand is a slice expression, the behavior is as
     described in $(DDSUBLINK spec/arrays, array-copying, Array Copying) and
-    $(DDSUBLINK spec/arrays, array-setting, Array Setting).
+    $(DDSUBLINK spec/arrays, array-setting, Array Filling).
+    )
+
+    $(LI If the lvalue is an array, the behavior is as described in
+    $(DDSUBLINK spec/arrays, assignment, Array Assignment).
     )
 
     $(LI If the lvalue is a user-defined property, the behavior is as
@@ -417,6 +421,19 @@ $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
         $(LI operand $(D a) is only evaluated once,)
         $(LI overloading $(I op) uses a different function than overloading $(I op)`=` does, and)
         $(LI the left operand of $(D >>>=) does not undergo $(INTEGER_PROMOTIONS) before shifting.)
+    )
+
+    $(P Narrowing conversions are allowed. Truncating conversions will be an error.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    void f(short s)
+    {
+        byte b;
+        b += s; // OK, though it may overflow
+        //b += 1.5F; // Deprecated, truncation
+    }
+    ---
     )
 
     $(P For user-defined types, assignment operator expressions are
@@ -1854,22 +1871,22 @@ $(GNAME IndexOperation):
         $(I ArgumentList) and `$` appears in that scope only.
     )
 
-    $(P If the $(I PostfixExpression) is an expression of static or
+      * If the $(I PostfixExpression) is an expression of static or
         dynamic array type, the result of the indexing is an lvalue
         of the *i*th element in the array, where `i` is an integer
         evaluated from $(I ArgumentList).
-        If $(I PostfixExpression) is a pointer `p`, the result is
-        `*(p + i)` (see $(RELATIVE_LINK2 pointer_arithmetic, Pointer Arithmetic)).
-    )
+        See $(DDSUBLINK spec/arrays, indexing, array indexing).
 
-    $(P If the base $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
+      * If $(I PostfixExpression) is a $(DDSUBLINK spec/type, pointers, pointer) `p`, the result is
+        `*(p + i)` (see $(RELATIVE_LINK2 pointer_arithmetic, Pointer Arithmetic)).
+
+      * If the base $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
         then the $(I ArgumentList) must consist of only one argument,
         and that must be statically evaluatable to an integral constant.
         That integral constant $(I n) then selects the $(I n)th
         expression in the $(I ValueSeq), which is the result
         of the $(I IndexOperation).
         It is an error if $(I n) is out of bounds of the $(I ValueSeq).
-    )
 
     $(P The index operator can be $(DDSUBLINK spec/operatoroverloading, array, overloaded).
         Using multiple indices in *ArgumentList* is only supported for operator
@@ -1894,29 +1911,27 @@ $(GNAME Slice):
         The special variable `$` is declared and set to be the number
         of elements in the $(I PostfixExpression) (when available).
         A new declaration scope is created for the evaluation of the
-        $(I AssignExpression)`..`$(I AssignExpression) and `$` appears in
+        $(GRAMMAR_INLINE *AssignExpression* .. *AssignExpression*) and `$` appears in
         that scope only.
     )
 
-    $(P If the base $(I PostfixExpression) is a static or dynamic
+      * If the base $(I PostfixExpression) is a static or dynamic
         array `a`, the result of the slice is a dynamic array
         referencing elements `a[i]` to `a[j-1]` inclusive, where `i`
         and `j` are integers evaluated from the first and second $(I
         AssignExpression) respectively.
-    )
+        See $(DDSUBLINK spec/arrays, slicing, array slicing).
 
-    $(P If the base $(I PostfixExpression) is a pointer `p`, the result
+      * If the base $(I PostfixExpression) is a $(DDSUBLINK spec/type, pointers, pointer) `p`, the result
         will be a dynamic array referencing elements from `p[i]` to `p[j-1]`
         inclusive, where `i` and `j` are integers evaluated from the
         first and second $(I AssignExpression) respectively.
-    )
 
-    $(P If the base $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq)), then
+      * If the base $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq)), then
         the result of the slice is a new $(I ValueSeq) formed
         from the upper and lower bounds, which must statically evaluate
         to integral constants.
         It is an error if those bounds are out of range.
-    )
 
     $(P The first $(I AssignExpression) is taken to be the inclusive
         lower bound
@@ -2853,7 +2868,8 @@ $(H4 $(LNAME2 assert-ct, Compile-time Evaluation))
     $(P If the first $(I AssignExpression) consists entirely of compile time constants,
     and evaluates to `false`, it is a special case - it
     signifies that subsequent statements are unreachable code.
-    Compile Time Function Execution (CTFE) is not attempted.
+    Compile Time Function Execution (CTFE) calls are not attempted for the evaluation.
+    Such an $(GLINK AssertExpression) has type $(DDSUBLINK spec/type, noreturn, `noreturn`).
     )
 
     $(P This allows the compiler to suppress an error when there is a
@@ -2984,7 +3000,7 @@ $(GNAME NewExpression):
     //int[] a = new int[]; // error, need length argument
     ---
     )
-    $(P The $(INLINE_GRAMMAR *Type(NamedArgumentList)*) form allows passing either a single initializer
+    $(P The $(GRAMMAR_INLINE *Type(NamedArgumentList)*) form allows passing either a single initializer
         of the same type, or multiple arguments for more complex types:)
 
     * For class and struct types, *NamedArgumentList* is passed to the constructor.
@@ -3006,9 +3022,9 @@ $(GNAME NewExpression):
     ---
     )
 
-    $(P The $(INLINE_GRAMMAR *Type[AssignExpression]*) form allocates a dynamic array with
+    $(P The $(GRAMMAR_INLINE *Type[AssignExpression]*) form allocates a dynamic array with
         length equal to *AssignExpression*.
-        It is preferred to use the $(INLINE_GRAMMAR *Type(NamedArgumentList)*) form when allocating
+        It is preferred to use the $(GRAMMAR_INLINE *Type(NamedArgumentList)*) form when allocating
         dynamic arrays instead, as it is more general.)
 
     $(NOTE It is not possible to allocate a static array directly with
@@ -3498,7 +3514,7 @@ void foo()
 
 $(H4 $(LNAME2 is-parameter-list, Parameter List Forms))
 
-$(INFORMATIVE_GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
 $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
 $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))

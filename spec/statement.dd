@@ -723,7 +723,7 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
         These functions must each have the signature below:
     )
 
-$(INFORMATIVE_GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(GNAME OpApplyDeclaration):
     `int opApply` `(` `scope` `int delegate` `(` $(I OpApplyParameters) `)` `dg` `)` `;`
 
@@ -1101,29 +1101,29 @@ $(P
         If the aggregate expression is a
         $(DDSUBLINK spec/template, variadic-templates, sequence),
         the loop body is statically expanded once for each element. This is
-        the same as $(DDSUBLINK spec/version, staticforeach, Static Foreach)
-        on a sequence.
+        similar to a $(DDSUBLINK spec/version, staticforeach, *StaticForeachStatement*)
+        on a sequence, though there is a separate scope for each expansion.
 )
         $(P There
-        can be one or two iteration symbols declared. If one, then the symbol
-        is an $(I element alias) of each element in the sequence in turn.
+        can be one or two iteration symbols declared. If one, then it's
+        an $(I element symbol) representing each element in the sequence in turn.
 )
 $(UL
 $(LI
-        If the sequence is a $(I TypeSeq), the element alias is set to each
+        If the sequence is a $(I TypeSeq), the element symbol is set to each
         type in turn.
 )$(LI
-        If the sequence is a $(I ValueSeq), the element alias
-        is set to each value in turn. If the type of the element alias
+        If the sequence is a $(I ValueSeq), the element symbol
+        is set to each value in turn. If the type of the element symbol
         is given, it must be compatible with the type of every sequence element.
-        If no type is given, the type of the element alias will match the type
+        If no type is given, the type of the element symbol will match the type
         of each sequence element, which may change between elements.
 ))
 $(P
         If there are
-        two symbols declared, the first is the $(I index variable)
-        and the second is the $(I element alias). The index
-        must be of `int`, `uint`, `long` or `ulong` type,
+        two symbols declared, the first is the $(I index)
+        and the second is the $(I element). The index symbol
+        must be of `int`, `uint`, `long` or `ulong` type (if specified),
         it cannot be `ref`,
         and it is set to the index of each sequence element.
 )
@@ -1176,6 +1176,46 @@ $(CONSOLE
 7.4 has type double
 hi has type string
 [2, 5] has type int[]
+)
+
+$(H4 $(LNAME2 foreach_sequence_kinds, Symbol Kinds))
+
+        $(P Each $(GLINK ForeachType) declaration (without `alias`/`enum`)
+        will attempt to generate:)
+
+            * Compile-time symbols for values known at compile-time
+            * Runtime variables for elements with values not known at compile-time
+            * Symbolic aliases for elements that don't have values (e.g types)
+
+        $(P `alias` or `enum` can be specified in a *ForeachType*:)
+
+        * The `alias` storage class will create a symbolic alias
+        * The `enum` storage class will create a compile-time constant
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+void main()
+{
+    import std.meta : AliasSeq;
+
+    int i = 1;
+
+    // without `alias`, `a` would be a separate variable initialized from `i`
+    foreach (alias a; AliasSeq!(i, i))
+    {
+        a++;
+    }
+    assert(i == 3);
+
+    foreach (e; AliasSeq!(i, 1))
+    {
+        static if (__traits(compiles, &e))
+            assert(e == 3); // first e is a runtime variable
+        else
+            static assert(e == 1); // second e is a compile-time constant
+    }
+}
+---
 )
 
 $(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
@@ -1465,25 +1505,36 @@ $(GNAME LastExp):
 $(H3 $(LNAME2 no-implicit-fallthrough, No Implicit Fall-Through))
 
 
-        $(P A $(GLINK ScopeStatementList) must either be empty, or be ended with
-        a $(GLINK ContinueStatement), $(GLINK BreakStatement),
-        $(GLINK ReturnStatement), $(GLINK GotoStatement), $(GLINK2 expression, ThrowExpression)
-        or `assert(0)` expression unless this is the last case.)
+        $(P A $(GLINK ScopeStatementList) must either be empty, the last one in the `switch`,
+        or be ended by:)
 
+        * A $(GLINK ContinueStatement), $(GLINK BreakStatement),
+          $(GLINK ReturnStatement), or $(GLINK GotoStatement)
+        * Evaluating an $(DDSUBLINK spec/expression, assert-ct, `assert(0)` expression)
+        * Evaluating an expression of type $(DDSUBLINK spec/type, noreturn, `noreturn`)
+
+        $(P Simple forms of the last 2 cases above can be recognized by the compiler, but not all.)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 --------------
+uint i;
+string message;
+
 switch (i)
 {
     case 1:
-        message ~= "one";
+        message = "one";
         // ERROR: implicit fall-through
     case 2:
         // valid: the body is empty
     default:
-        message ~= "unknown";
+        message = "2 or more";
+        // valid: no more case statements
 }
 --------------
-
-        $(P $(D goto case;) can be used for explicit fall-through:)
+)
+        $(P $(D goto case;) can be used for explicit fall-through to the next
+        *CaseStatement*:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
@@ -1493,7 +1544,7 @@ foreach (i; 1..5)
 {
     switch (i)
     {
-        default:    // valid: ends with 'throw'
+        default:    // valid: ends with `noreturn` expression evaluation
             throw new Exception("unknown number");
 
         case 3:     // valid: ends with 'break' (break out of the 'switch' only)
@@ -1517,7 +1568,7 @@ writeln(message);
 --------------
 )
         $(P $(RELATIVE_LINK2 goto-statement, `goto`) also supports jumping to
-        a specific case or the default case statement.)
+        a specific case or to the default case statement.)
 
 $(H3 $(LNAME2 string-switch, String Switch))
 
@@ -1745,13 +1796,17 @@ $(GNAME GotoStatement):
 
 $(P `goto` transfers to the statement labeled with $(I Identifier).)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-    if (foo)
+    int x = 1;
+    if (x)
         goto L1;
+
     x = 3;
 L1:
-    x++;
+    assert(x == 1);
 ---
+)
 
 $(P The second form, $(CODE goto default;), transfers to the innermost $(GLINK
 DefaultStatement) of an enclosing $(GLINK SwitchStatement).)
@@ -1765,26 +1820,38 @@ DefaultStatement) of an enclosing $(GLINK SwitchStatement).)
         $(GLINK SwitchStatement)
         with a matching *Expression*.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
+int x = 5;
+
 switch (x)
 {
     case 3:
+        writeln("case 3");
         goto case;
     case 4:
+        writeln("case 4");
         goto default;
     case 5:
+        writeln("case 5");
         goto case 4;
     default:
-        x = 4;
+        writeln("default");
         break;
 }
 ---
+)
 
 $(P Any intervening finally clauses are executed, along with releasing any
 intervening synchronization mutexes.)
 
         $(P It is illegal for a $(I GotoStatement) to be used to skip
-        initializations.)
+        initializations within its containing scope.)
+
+        $(BEST_PRACTICE Prefer using a higher-level control-flow construct
+        or a labelled $(GLINK BreakStatement)/$(GLINK ContinueStatement)
+        rather than the $(GRAMMAR_INLINE *`goto` Identifier;*) form.)
+
 
 $(H2 $(LEGACY_LNAME2 WithStatement, with-statement, With Statement))
 
