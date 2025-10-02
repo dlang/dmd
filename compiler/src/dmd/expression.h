@@ -61,6 +61,7 @@ namespace dmd
     Expression *optimize(Expression *exp, int result, bool keepLvalue = false);
     bool isIdentical(const Expression *exp, const Expression *e);
     bool equals(const Expression *exp, const Expression *e);
+    int32_t getFieldIndex(ClassReferenceExp *cre, Type *fieldtype, uint32_t fieldoffset);
 }
 
 typedef unsigned char OwnedBy;
