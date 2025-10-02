@@ -529,8 +529,30 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
 
 // uint getaddrmode
 // void setaddrmode
-// getlvalue_msw
-// getlvalue_lsw
+
+/************************************
+ * Adjust c to represent MSW of 2*REGSIZE lvalue
+ */
+@trusted
+void getlvalue_msw(ref code c)
+{
+    if (c.IFL1 == FL.reg)
+        c.reg = c.IEV1.Vsym.Sregmsw;
+    else
+        c.IEV1.Voffset += REGSIZE;
+}
+
+/************************************
+ * Adjust c to represent LSW of 2*REGSIZE lvalue
+ */
+@trusted
+void getlvalue_lsw(ref code c)
+{
+    if (c.IFL1 == FL.reg)
+        c.reg = c.IEV1.Vsym.Sreglsw;
+    else
+        c.IEV1.Voffset -= REGSIZE;
+}
 
 /******************
  * Compute Effective Address (EA).
