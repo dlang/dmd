@@ -51,7 +51,7 @@ import dmd.root.string;
 import dmd.root.utf;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : size, mutableOf, unSharedOf;
+import dmd.typesem : mutableOf, unSharedOf;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -1992,38 +1992,6 @@ extern (C++) final class StructLiteralExp : Expression
         auto exp = new StructLiteralExp(loc, sd, arraySyntaxCopy(elements), type ? type : stype);
         exp.origin = this;
         return exp;
-    }
-
-    /************************************
-     * Get index of field.
-     * Returns -1 if not found.
-     */
-    extern (D) int getFieldIndex(Type type, uint offset)
-    {
-        /* Find which field offset is by looking at the field offsets
-         */
-        if (!elements.length)
-            return -1;
-
-        const sz = type.size();
-        if (sz == SIZE_INVALID)
-            return -1;
-        foreach (i, v; sd.fields)
-        {
-            if (offset != v.offset)
-                continue;
-            if (sz != v.type.size())
-                continue;
-            /* context fields might not be filled. */
-            if (i >= sd.nonHiddenFields())
-                return cast(int)i;
-            if (auto e = (*elements)[i])
-            {
-                return cast(int)i;
-            }
-            return -1;
-        }
-        assert(0);
     }
 
     override void accept(Visitor v)
@@ -4665,27 +4633,6 @@ extern (C++) final class ClassReferenceExp : Expression
     ClassDeclaration originalClass()
     {
         return value.sd.isClassDeclaration();
-    }
-
-    // Return index of the field, or -1 if not found
-    int getFieldIndex(Type fieldtype, uint fieldoffset)
-    {
-        ClassDeclaration cd = originalClass();
-        uint fieldsSoFar = 0;
-        for (size_t j = 0; j < value.elements.length; j++)
-        {
-            while (j - fieldsSoFar >= cd.fields.length)
-            {
-                fieldsSoFar += cd.fields.length;
-                cd = cd.baseClass;
-            }
-            VarDeclaration v2 = cd.fields[j - fieldsSoFar];
-            if (fieldoffset == v2.offset && fieldtype.size() == v2.type.size())
-            {
-                return cast(int)(value.elements.length - fieldsSoFar - cd.fields.length + (j - fieldsSoFar));
-            }
-        }
-        return -1;
     }
 
     // Return index of the field, or -1 if not found

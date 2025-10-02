@@ -96,6 +96,59 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
+// Return index of the field, or -1 if not found
+int getFieldIndex(ClassReferenceExp _this, Type fieldtype, uint fieldoffset)
+{
+    ClassDeclaration cd = _this.originalClass();
+    uint fieldsSoFar = 0;
+    for (size_t j = 0; j <  _this.value.elements.length; j++)
+    {
+        while (j - fieldsSoFar >= cd.fields.length)
+        {
+            fieldsSoFar += cd.fields.length;
+            cd = cd.baseClass;
+        }
+        VarDeclaration v2 = cd.fields[j - fieldsSoFar];
+        if (fieldoffset == v2.offset && fieldtype.size() == v2.type.size())
+        {
+            return cast(int)( _this.value.elements.length - fieldsSoFar - cd.fields.length + (j - fieldsSoFar));
+        }
+    }
+    return -1;
+}
+
+/************************************
+ * Get index of field.
+ * Returns -1 if not found.
+ */
+int getFieldIndex(StructLiteralExp _this, Type type, uint offset)
+{
+    /* Find which field offset is by looking at the field offsets
+     */
+    if (!_this.elements.length)
+        return -1;
+
+    const sz = type.size();
+    if (sz == SIZE_INVALID)
+        return -1;
+    foreach (i, v; _this.sd.fields)
+    {
+        if (offset != v.offset)
+            continue;
+        if (sz != v.type.size())
+            continue;
+        /* context fields might not be filled. */
+        if (i >= _this.sd.nonHiddenFields())
+            return cast(int)i;
+        if (auto e = (*_this.elements)[i])
+        {
+            return cast(int)i;
+        }
+        return -1;
+    }
+    assert(0);
+}
+
 bool equals(const Expression _this, const Expression e)
 {
     static bool intExpEquals(const IntegerExp _this, const IntegerExp e)
