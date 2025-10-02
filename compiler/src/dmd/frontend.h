@@ -2731,7 +2731,6 @@ class ClassReferenceExp final : public Expression
 public:
     StructLiteralExp* value;
     ClassDeclaration* originalClass();
-    int32_t getFieldIndex(Type* fieldtype, uint32_t fieldoffset);
     int32_t findFieldIndexByName(VarDeclaration* v);
     void accept(Visitor* v) override;
 };
