@@ -401,7 +401,7 @@ bool equals(const Expression exp, const Expression e)
 int getFieldIndex(ClassReferenceExp cre, Type fieldtype, uint fieldoffset)
 {
     import dmd.expressionsem;
-    return dmd.expressionsem.getFieldIndex(cre, fieldtype, fileOffset);
+    return dmd.expressionsem.getFieldIndex(cre, fieldtype, fieldoffset);
 }
 
 /***********************************************************
