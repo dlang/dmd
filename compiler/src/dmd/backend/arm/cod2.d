@@ -1895,10 +1895,10 @@ static if (0)
         case FL.data:
             if (config.exe & EX_OSX64 && cg.AArch64)
             {
-		if ((e.Vsym.ty() & mTYLINK) == mTYthread)
-		    goto case FL.tlsdata;
-	    }
-	    goto case;
+                if ((e.Vsym.ty() & mTYLINK) == mTYthread)
+                    goto case FL.tlsdata;
+            }
+            goto case;
         case FL.udata:
         case FL.got:
         case FL.gotoff:

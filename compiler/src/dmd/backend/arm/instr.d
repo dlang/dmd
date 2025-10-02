@@ -50,6 +50,10 @@ struct INSTR
     enum LSW = 0x5555_5555_5555_5555;
     enum MSW = LSW << 1;
 
+    enum BP = 29;
+    enum SP = 31;
+    enum mBP = 1 << BP;
+
     enum uint nop = 0xD503201F;
 
     alias reg_t = ubyte;

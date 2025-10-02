@@ -407,10 +407,10 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
     if (!cg.hasframe || cg.enforcealign)
     {
         gpoffset += cg.EBPtoESP;
-        fp = 31;        // SP
+        fp = INSTR.SP;        // SP
     }
     else
-        fp = 29;        // BP
+        fp = INSTR.BP;        // BP
 
     while (topush)
     {
