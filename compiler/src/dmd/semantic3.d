@@ -1147,6 +1147,32 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     a.push(new ExpStatement(Loc.initial, de));
                 }
 
+                if (funcdecl.needsClosure())
+                {
+                    foreach (v; funcdecl.closureVars)
+                    {
+                        if (v.inLoop)
+                        {
+                            FuncDeclaration fescaping;
+                            foreach (fnested; v.nestedrefs)
+                            {
+                                if (funcdecl.needsClosureForNestedref(fnested))
+                                {
+                                    fescaping = fnested;
+                                    break;
+                                }
+                            }
+
+                            if (fescaping !is null)
+                            {
+                                // Deprecated in 2.113
+                                deprecation(v.loc, "Using variable `%s` declared in a loop from a closure is deprecated", v.toChars());
+                                deprecationSupplemental(fescaping.loc, "Variable `%s` used in possibly escaping %s `%s`", v.toChars(), funcdecl.kind(), fescaping.toChars());
+                            }
+                        }
+                    }
+                }
+
                 // Merge contracts together with body into one compound statement
 
                 if (freq || fpreinv)
