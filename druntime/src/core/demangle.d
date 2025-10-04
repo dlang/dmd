@@ -184,7 +184,7 @@ pure @safe:
     }
 
 
-    void silent( out bool err_status, void delegate(out bool err_status) pure @safe nothrow dg ) nothrow
+    void silent( out bool err_status, scope void delegate(out bool err_status) pure @safe nothrow dg ) nothrow
     {
         debug(trace) printf( "silent+\n" );
         debug(trace) scope(success) printf( "silent-\n" );
