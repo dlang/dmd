@@ -96,6 +96,105 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
+bool isLvalue(Expression _this)
+{
+    static bool dotVarExpIsLvalue(DotVarExp _this)
+    {
+        if (_this.rvalue)
+            return false;
+        if (_this.e1.op != EXP.structLiteral)
+            return true;
+        auto vd = _this.var.isVarDeclaration();
+        return !(vd && vd.isField());
+    }
+
+    static bool callExpIsLvalue(CallExp _this)
+    {
+        if (_this.rvalue)
+            return false;
+        Type tb = _this.e1.type.toBasetype();
+        if (tb.ty == Tdelegate || tb.ty == Tpointer)
+            tb = tb.nextOf();
+        auto tf = tb.isTypeFunction();
+        if (tf && tf.isRef)
+        {
+            if (auto dve = _this.e1.isDotVarExp())
+                if (dve.var.isCtorDeclaration())
+                    return false;
+            return true; // function returns a reference
+        }
+        return false;
+    }
+
+    static bool castExpIsLvalue(CastExp _this)
+    {
+        //printf("e1.type = %s, to.type = %s\n", e1.type.toChars(), to.toChars());
+        if (_this.rvalue || !_this.e1.isLvalue())
+            return false;
+        return (_this.to.ty == Tsarray && (_this.e1.type.ty == Tvector || _this.e1.type.ty == Tsarray)) ||
+            (_this.to.ty == Taarray && _this.e1.type.ty == Taarray) ||
+            _this.e1.type.mutableOf.unSharedOf().equals(_this.to.mutableOf().unSharedOf());
+    }
+
+    static bool indexExpIsLvalue(IndexExp _this)
+    {
+        if (_this.rvalue)
+            return false;
+        auto t1b = _this.e1.type.toBasetype();
+        if (t1b.isTypeAArray() || t1b.isTypeSArray() ||
+            (_this.e1.isIndexExp() && t1b != t1b.isTypeDArray()))
+        {
+            return _this.e1.isLvalue();
+        }
+        return true;
+    }
+
+    static bool assignExpIsLvalue(AssignExp _this)
+    {
+        // Array-op 'x[] = y[]' should make an rvalue.
+        // Setting array length 'x.length = v' should make an rvalue.
+        if (_this.e1.op == EXP.slice || _this.e1.op == EXP.arrayLength)
+        {
+            return false;
+        }
+        return !_this.rvalue;
+    }
+
+    bool not_rvalue = _this.rvalue == false;
+
+    if (_this.isBinAssignExp())
+        return not_rvalue;
+
+    switch(_this.op)
+    {
+        case EXP.overloadSet: return true;
+        case EXP.identifier, EXP.dollar, EXP.dSymbol, EXP.star: return not_rvalue;
+        // Class `this` should be an rvalue; struct `this` should be an lvalue.
+        case EXP.this_, EXP.super_: return not_rvalue && _this.type.toBasetype().ty != Tclass;
+        /* string literal/slice is rvalue in default, but
+         * conversion to reference of static array is only allowed.
+         */
+        case EXP.string_, EXP.slice: return not_rvalue && (_this.type && _this.type.toBasetype().ty == Tsarray);
+        case EXP.question: return not_rvalue && _this.isCondExp().e1.isLvalue() && _this.isCondExp().e2.isLvalue();
+        case EXP.array: return !( _this.rvalue || (_this.type && _this.type.toBasetype().ty == Tvoid));
+
+        case EXP.vectorArray: return not_rvalue && _this.isVectorArrayExp().e1.isLvalue();
+        case EXP.delegatePointer: return not_rvalue && _this.isDelegatePtrExp().e1.isLvalue();
+        case EXP.delegateFunctionPointer: return not_rvalue && _this.isDelegateFuncptrExp().e1.isLvalue();
+
+        case EXP.comma: return not_rvalue && _this.isCommaExp().e2.isLvalue();
+        case EXP.variable: return !(_this.rvalue || (_this.isVarExp().var.storage_class & (STC.lazy_ | STC.rvalue | STC.manifest)));
+        case EXP.template_: return _this.isTemplateExp().fd !is null;
+
+        case EXP.dotVariable: return dotVarExpIsLvalue(_this.isDotVarExp());
+        case EXP.call: return callExpIsLvalue(_this.isCallExp());
+        case EXP.cast_: return castExpIsLvalue(_this.isCastExp());
+        case EXP.index: return indexExpIsLvalue(_this.isIndexExp());
+        case EXP.assign, EXP.loweredAssignExp, EXP.construct, EXP.blit: return assignExpIsLvalue(cast(AssignExp) _this);
+        default: return false;
+    }
+}
+
 // Return index of the field, or -1 if not found
 int getFieldIndex(ClassReferenceExp _this, Type fieldtype, uint fieldoffset)
 {

@@ -398,6 +398,12 @@ bool equals(const Expression exp, const Expression e)
     return dmd.expressionsem.equals(exp, e);
 }
 
+bool isLvalue(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.isLvalue(exp);
+}
+
 int getFieldIndex(ClassReferenceExp cre, Type fieldtype, uint fieldoffset)
 {
     import dmd.expressionsem;
