@@ -719,8 +719,6 @@ private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticCont
     __gshared SourceLoc old_loc;
     auto loc = info.loc;
     if (global.params.v.errorPrintMode != ErrorPrintMode.simpleError &&
-        // ignore supplemental messages with same loc
-        (loc != old_loc || !info.supplemental) &&
         // ignore invalid files
         loc != SourceLoc.init &&
         // ignore mixins for now
