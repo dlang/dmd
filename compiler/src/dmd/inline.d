@@ -833,6 +833,18 @@ public:
             visit(cast(BinExp)e);
         }
 
+        override void visit(ConstructExp e)
+        {
+            if (e.lowering)
+            {
+                auto ce = cast(ConstructExp)e.copy();
+                ce.lowering = doInlineAs!Expression(ce.lowering, ids);
+                result = ce;
+            }
+            else
+                visit(cast(AssignExp) e);
+        }
+
         override void visit(LoweredAssignExp e)
         {
             result = doInlineAs!Expression(e.lowering, ids);
@@ -1401,6 +1413,14 @@ public:
         }
     L1:
         visit(cast(BinExp)e);
+    }
+
+    override void visit(ConstructExp e)
+    {
+        if (auto lowering = e.lowering)
+            inlineScan(lowering);
+        else
+            visit(cast(AssignExp) e);
     }
 
     override void visit(LoweredAssignExp e)
