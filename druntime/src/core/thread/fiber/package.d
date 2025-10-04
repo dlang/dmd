@@ -153,14 +153,16 @@ package
         version (AsmX86_64_Posix)   {} else
         version (AsmExternal)       {} else
         {
-            // NOTE: The ucontext implementation requires architecture specific
-            //       data definitions to operate so testing for it must be done
-            //       by checking for the existence of ucontext_t rather than by
-            //       a version identifier.  Please note that this is considered
-            //       an obsolescent feature according to the POSIX spec, so a
-            //       custom solution is still preferred.
-            import core.sys.posix.ucontext : getcontext, makecontext, MINSIGSTKSZ, swapcontext, ucontext_t;
+            version = ucontext_Posix;
         }
+    }
+
+    version (ucontext_Posix)
+    {
+        // NOTE: Please note that ucontext is considered an obsolescent
+        //       feature according to the POSIX spec, so a custom
+        //       solution is still preferred.
+        import core.sys.posix.ucontext : getcontext, makecontext, MINSIGSTKSZ, swapcontext, ucontext_t;
     }
 }
 
@@ -188,7 +190,16 @@ package
         //       default stack created by Fiber.initStack or the initial
         //       switch into a new context will fail.
 
-        version (AsmX86_Windows)
+        version (ucontext_Posix)
+        {
+            Fiber   cfib = Fiber.getThis();
+            void*   ucur = cfib.m_ucur;
+
+            *oldp = &ucur;
+            swapcontext( **(cast(ucontext_t***) oldp),
+                          *(cast(ucontext_t**)  newp) );
+        }
+        else version (AsmX86_Windows)
         {
             asm pure nothrow @nogc
             {
@@ -362,15 +373,6 @@ package
                 pop RCX;
                 jmp RCX;
             }
-        }
-        else static if ( __traits( compiles, ucontext_t ) )
-        {
-            Fiber   cfib = Fiber.getThis();
-            void*   ucur = cfib.m_ucur;
-
-            *oldp = &ucur;
-            swapcontext( **(cast(ucontext_t***) oldp),
-                          *(cast(ucontext_t**)  newp) );
         }
         else
             static assert(0, "Not implemented");
@@ -876,7 +878,19 @@ protected:
             }
         }
 
-        version (AsmX86_Windows)
+        version (ucontext_Posix)
+        {
+            const status = getcontext( &m_utxt );
+            assert( status == 0 );
+
+            m_utxt.uc_stack.ss_sp   = m_pmem;
+            m_utxt.uc_stack.ss_size = m_size;
+            makecontext( &m_utxt, &fiber_entryPoint, 0 );
+            // NOTE: If ucontext is being used then the top of the stack will
+            //       be a pointer to the ucontext_t struct for that fiber.
+            push( cast(size_t) &m_utxt );
+        }
+        else version (AsmX86_Windows)
         {
             version (StackGrowsDown) {} else static assert( false );
 
@@ -1241,18 +1255,6 @@ protected:
              * Position the stack pointer above the lr register
              */
             pstack += int.sizeof * 1;
-        }
-        else static if ( __traits( compiles, ucontext_t ) )
-        {
-            const status = getcontext( &m_utxt );
-            assert( status == 0 );
-
-            m_utxt.uc_stack.ss_sp   = m_pmem;
-            m_utxt.uc_stack.ss_size = m_size;
-            makecontext( &m_utxt, &fiber_entryPoint, 0 );
-            // NOTE: If ucontext is being used then the top of the stack will
-            //       be a pointer to the ucontext_t struct for that fiber.
-            push( cast(size_t) &m_utxt );
         }
         else
             static assert(0, "Not implemented");
