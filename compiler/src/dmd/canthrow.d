@@ -23,7 +23,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : include, toAlias;
 import dmd.errorsink;
 import dmd.expression;
-import dmd.expressionsem : errorSupplementalInferredAttr;
+import dmd.expressionsem : errorSupplementalInferredAttr, isLvalue;
 import dmd.func;
 import dmd.globals;
 import dmd.init;
