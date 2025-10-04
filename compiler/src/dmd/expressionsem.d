@@ -168,9 +168,9 @@ bool isLvalue(Expression _this)
     switch(_this.op)
     {
         case EXP.overloadSet: return true;
-        case EXP.identifier, EXP.dSymbol, EXP.star: return not_rvalue;
+        case EXP.identifier, EXP.dollar, EXP.dSymbol, EXP.star: return not_rvalue;
         // Class `this` should be an rvalue; struct `this` should be an lvalue.
-        case EXP.this_: return not_rvalue && _this.type.toBasetype().ty != Tclass;
+        case EXP.this_, EXP.super_: return not_rvalue && _this.type.toBasetype().ty != Tclass;
         /* string literal/slice is rvalue in default, but
          * conversion to reference of static array is only allowed.
          */
@@ -190,7 +190,7 @@ bool isLvalue(Expression _this)
         case EXP.call: return callExpIsLvalue(_this.isCallExp());
         case EXP.cast_: return castExpIsLvalue(_this.isCastExp());
         case EXP.index: return indexExpIsLvalue(_this.isIndexExp());
-        case EXP.assign: return assignExpIsLvalue(_this.isAssignExp());
+        case EXP.assign, EXP.loweredAssignExp, EXP.construct, EXP.blit: return assignExpIsLvalue(cast(AssignExp) _this);
         default: return false;
     }
 }
