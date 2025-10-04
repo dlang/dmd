@@ -476,7 +476,8 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     assert(tempdecl);
     if (tempdecl.instances is null)
     {
-        auto instances = new TemplateInstance[TemplateInstanceBox];
+        alias Instances = TemplateInstance[TemplateInstanceBox];
+        auto instances = new Instances;
         tempdecl.instances = cast(void*) instances;
     }
 

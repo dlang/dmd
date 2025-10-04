@@ -1195,7 +1195,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     {
                         if (td.instances is null)
                         {
-                            auto instances = new TemplateInstance[TemplateInstanceBox];
+                            alias Instances = TemplateInstance[TemplateInstanceBox];
+                            auto instances = new Instances;
                             td.instances = cast(void*) instances;
                             // create an empty AA just to copy it
                             scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
