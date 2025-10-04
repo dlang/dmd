@@ -1091,8 +1091,20 @@ bool emitAnchorName(ref OutBuffer buf, Dsymbol s, Scope* sc, bool includeParent)
     if (dot)
         buf.writeByte('.');
     // Use "this" not "__ctor"
-    TemplateDeclaration td;
-    if (s.isCtorDeclaration() || ((td = s.isTemplateDeclaration()) !is null && td.onemember && td.onemember.isCtorDeclaration()))
+    TemplateDeclaration td = s.isTemplateDeclaration();
+
+    if (td && td.members && td.ident)
+    {
+        Dsymbol ss;
+        if (oneMembers(td.members, ss, td.ident) && ss)
+        {
+            td.onemember = ss;
+            ss.parent = td;
+            td.computeIsTrivialAlias(ss);
+        }
+    }
+
+    if (s.isCtorDeclaration() || (td !is null && td.onemember && td.onemember.isCtorDeclaration()))
     {
         buf.writestring("this");
     }
@@ -1254,6 +1266,17 @@ void expandTemplateMixinComments(TemplateMixin tm, ref OutBuffer buf, Scope* sc)
     TemplateDeclaration td = (tm && tm.tempdecl) ? tm.tempdecl.isTemplateDeclaration() : null;
     if (td && td.members)
     {
+        if(td.ident)
+        {
+            Dsymbol s;
+            if (oneMembers(td.members, s, td.ident) && s)
+            {
+                td.onemember = s;
+                s.parent = td;
+                td.computeIsTrivialAlias(s);
+            }
+        }
+
         for (size_t i = 0; i < td.members.length; i++)
         {
             Dsymbol sm = (*td.members)[i];
@@ -2622,11 +2645,23 @@ Parameter isFunctionParameter(Dsymbols* a, const(char)[] p) @safe
 
 /****************************************************
  */
-Parameter isEponymousFunctionParameter(Dsymbols* a, const(char)[] p) @safe
+Parameter isEponymousFunctionParameter(Dsymbols* a, const(char)[] p)
 {
     foreach (Dsymbol dsym; *a)
     {
         TemplateDeclaration td = dsym.isTemplateDeclaration();
+
+        if (td && td.members && td.ident)
+        {
+            Dsymbol s;
+            if (oneMembers(td.members, s, td.ident) && s)
+            {
+                td.onemember = s;
+                s.parent = td;
+                td.computeIsTrivialAlias(s);
+            }
+        }
+
         if (td && td.onemember)
         {
             /* Case 1: we refer to a template declaration inside the template
