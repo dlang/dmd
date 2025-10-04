@@ -1195,11 +1195,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     {
                         if (td.instances is null)
                         {
+                            auto inst = new TemplateInstance[TemplateInstanceBox];
+                            td.instances = &inst;
                             // create an empty AA just to copy it
                             scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
                             auto tib = TemplateInstanceBox(ti);
-                            td.instances[tib] = null;
-                            td.instances.clear();
+                            inst[tib] = null;
+                            inst.clear();
                         }
                         td = td.syntaxCopy(null);
                         import core.stdc.string : memcpy;

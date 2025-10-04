@@ -474,6 +474,11 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     }
     TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
     assert(tempdecl);
+    if (tempdecl.instances is null)
+    {
+        auto inst = new TemplateInstance[TemplateInstanceBox];
+        tempdecl.instances = &inst;
+    }
 
     if (global.params.v.templates)
         TemplateStats.incInstance(tempdecl, tempinst, global.params.v.templatesListInstances);
@@ -1041,11 +1046,12 @@ Laftersemantic:
          */
         //printf("replaceInstance()\n");
         assert(errinst.errors);
+        auto instances = *cast(TemplateInstance[TemplateInstanceBox]*) tempdecl.instances;
         auto ti1 = TemplateInstanceBox(errinst);
-        tempdecl.instances.remove(ti1);
+        instances.remove(ti1);
 
         auto ti2 = TemplateInstanceBox(tempinst);
-        tempdecl.instances[ti2] = tempinst;
+        instances[ti2] = tempinst;
     }
 
     static if (LOG)
@@ -1445,7 +1451,8 @@ private TemplateInstance findExistingInstance(TemplateDeclaration td, TemplateIn
     tithis.fargs = argumentList.arguments;
     tithis.fnames = argumentList.names;
     auto tibox = TemplateInstanceBox(tithis);
-    auto p = tibox in td.instances;
+    auto insts = *cast(TemplateInstance[TemplateInstanceBox]*) td.instances;
+    auto p = tibox in insts;
     debug (FindExistingInstance) ++(p ? nFound : nNotFound);
     //if (p) printf("\tfound %p\n", *p); else printf("\tnot found\n");
     return p ? *p : null;
@@ -1459,7 +1466,8 @@ private TemplateInstance addInstance(TemplateDeclaration td, TemplateInstance ti
 {
     //printf("addInstance() %p %s\n", instances, ti.toChars());
     auto tibox = TemplateInstanceBox(ti);
-    td.instances[tibox] = ti;
+    auto inst = *cast(TemplateInstance[TemplateInstanceBox]*)td.instances;
+    inst[tibox] = ti;
     debug (FindExistingInstance) ++nAdded;
     return ti;
 }
@@ -1474,7 +1482,7 @@ private void removeInstance(TemplateDeclaration td, TemplateInstance ti)
     //printf("removeInstance() %s\n", ti.toChars());
     auto tibox = TemplateInstanceBox(ti);
     debug (FindExistingInstance) ++nRemoved;
-    td.instances.remove(tibox);
+    (*cast(TemplateInstance[TemplateInstanceBox]*)td.instances).remove(tibox);
 }
 
 /******************************************************
