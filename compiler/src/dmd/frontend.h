@@ -3580,7 +3580,6 @@ public:
     int32_t compare(const StringExp* const se2) const;
     Optional<bool > toBool() override;
     void accept(Visitor* v) override;
-    void accept(Visitor* v) override;
 };
 
 class StructLiteralExp final : public Expression
