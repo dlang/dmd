@@ -977,7 +977,8 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
              * we have a pointer to a long and need an offset to the second
              * word.
              */
-            assert(e1free);
+            if (!e1free)
+                assert(0);
             scodelem(cgstate,cdb, e1, idxregs, keepmsk, true);  // load index register
             pcs.base = findreg(idxregs);
 

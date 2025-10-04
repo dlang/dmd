@@ -1376,7 +1376,8 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
              * word.
              */
 
-            assert(e1free);
+            if (!e1free)
+                assert(0);
             scodelem(cgstate,cdb, e1, idxregs, keepmsk, true);  // load index register
             setaddrmode(pcs, idxregs);
 
