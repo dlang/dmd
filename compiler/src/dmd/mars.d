@@ -479,7 +479,7 @@ extern(C) void flushMixins()
  *
  * Params:
  *      arguments = command line arguments
- *      argc = argument count
+ *      argc = original argument count before adding from DFLAGS
  *      params = set to result of parsing `arguments`
  *      files = set to files pulled from `arguments`
  *      target = more things set to result of parsing `arguments`
