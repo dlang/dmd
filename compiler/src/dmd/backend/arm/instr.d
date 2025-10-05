@@ -1223,10 +1223,10 @@ struct INSTR
         return subs_imm(sf, sh, imm12, Rn, 31);
     }
 
-    /* SUBS Rd, Rn, Rm, shift, #imm6
+    /* SUBS Rd, Rn, Rm{, shift, #imm6}
      * http://www.scs.stanford.edu/~zyedidia/arm64/subs_addsub_shift.html
      */
-    static uint subs_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn, ubyte Rd)
+    static uint subs_addsub_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn, ubyte Rd)
     {
         return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, Rd);
     }

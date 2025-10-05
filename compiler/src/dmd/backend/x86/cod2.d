@@ -3738,6 +3738,9 @@ void cdstrcmp(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 @trusted
 void cdmemcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdmemcmp(cg, cdb, e, pretregs);
+
     char need_DS;
     int segreg;
 
@@ -3765,19 +3768,19 @@ void cdmemcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     tym_t ty1 = e1.E1.Ety;
     if (!tyreg(ty1))
         retregs1 |= mDX;
-    codelem(cgstate,cdb,e1.E1,retregs1,false);
+    codelem(cg,cdb,e1.E1,retregs1,false);
 
     // Get s2 into ES:DI
     regm_t retregs = mDI;
     tym_t ty2 = e1.E2.Ety;
     if (!tyreg(ty2))
         retregs |= mES;
-    scodelem(cgstate,cdb,e1.E2,retregs,retregs1,false);
+    scodelem(cg,cdb,e1.E2,retregs,retregs1,false);
     freenode(e1);
 
     // Get nbytes into CX
     regm_t retregs3 = mCX;
-    scodelem(cgstate,cdb,e.E2,retregs3,retregs | retregs1,false);
+    scodelem(cg,cdb,e.E2,retregs3,retregs | retregs1,false);
 
     // Make sure ES contains proper segment value
     cdb.append(cod2_setES(ty2));
