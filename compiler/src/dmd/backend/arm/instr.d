@@ -1234,7 +1234,7 @@ struct INSTR
     /* CMP Rn, Rm, shift, #imm6
      * http://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_shift.html
      */
-    static uint cmp_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn)
+    static uint cmp_subs_addsub_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn)
     {
         return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, 0x1F);
     }

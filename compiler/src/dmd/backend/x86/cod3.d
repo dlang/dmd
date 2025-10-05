@@ -1630,7 +1630,7 @@ private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t r
             movregconst(cdb,sreg,val,sz == 8  ? 64 : 0);
             getregsNoSave(retregs);
             assert(reg2 == NOREG);
-            cdb.gen1(INSTR.cmp_shift(sz == 8, reg, 0, 0, sreg));    // CMP sreg,reg
+            cdb.gen1(INSTR.cmp_subs_addsub_shift(sz == 8, reg, 0, 0, sreg));    // CMP sreg,reg
         }
     }
     else if (I64 && sz == 8)
