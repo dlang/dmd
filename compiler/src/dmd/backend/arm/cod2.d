@@ -1352,7 +1352,7 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cdb.append(cnop);
 
             cdb.gen1(INSTR.ldst_immpost(3,0,0,8,dstreg,valuereg));      // STR  valuereg,[dstreg],#8        // *dstreg++ = valuereg
-            cdb.gen1(INSTR.cmp_shift(1,dstreg,0,0,limit));              // CMP  limit,dstreg
+            cdb.gen1(INSTR.cmp_subs_addsub_shift(1,dstreg,0,0,limit));              // CMP  limit,dstreg
             genBranch(cdb,COND.ne,FL.code,cast(block*)cnop);            // JNE cnop
         }
 
@@ -1513,7 +1513,7 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
     code* L2 = cdb.last();
     if (szv == REGSIZE * 2)
         cdb.gen1(INSTR.ldst_immpost(imm3,0,0,0,Rp,Rvhi)); // L2: STR  Rvhi,[Rp],#0    // *Rp++ = Rvhi
-    cdb.gen1(INSTR.cmp_shift(1,Rl,0,0,Rp));             // CMP Rp,Rl
+    cdb.gen1(INSTR.cmp_subs_addsub_shift(1,Rl,0,0,Rp));             // CMP Rp,Rl
     genBranch(cdb,COND.ne,FL.code,cast(block*)L2);      // b.ne L2
     cdb.append(c1);
 
@@ -1673,7 +1673,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         cdb.genc1(cdst.Iop,0,FL.unde,0);
 
         cdb.gen1(INSTR.add_addsub_imm(1,0,8,Ri,Ri));    // add  Ri,Ri,#0x8 https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
-        cdb.gen1(INSTR.cmp_shift(0,Rc,0,0,Ri));         // cmp  Ri,Rc
+        cdb.gen1(INSTR.cmp_subs_addsub_shift(0,Rc,0,0,Ri));         // cmp  Ri,Rc
         genBranch(cdb,COND.ne,FL.code,cast(block*)L2);  // b.ne L2
 
         uint offset = 0;

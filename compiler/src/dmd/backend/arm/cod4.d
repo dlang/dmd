@@ -998,9 +998,9 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 uint ins;
                 uint sf = sz == 8;
                 if (reverse)
-                    ins = INSTR.cmp_shift(sf, reg, 0, 0, rreg); // CMP rreg, reg
+                    ins = INSTR.cmp_subs_addsub_shift(sf, reg, 0, 0, rreg); // CMP rreg, reg
                 else
-                    ins = INSTR.cmp_shift(sf, rreg, 0, 0, reg); // CMP reg, rreg
+                    ins = INSTR.cmp_subs_addsub_shift(sf, rreg, 0, 0, reg); // CMP reg, rreg
                 cdb.gen1(ins);
             }
             else
@@ -1010,13 +1010,13 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 // Compare MSW, if they're equal then compare the LSW
                 reg  = findreg( retregs & INSTR.MSW);
                 rreg = findreg(rretregs & INSTR.MSW);
-                uint ins = INSTR.cmp_shift(1, rreg, 0, 0, reg); // CMP reg, rreg
+                uint ins = INSTR.cmp_subs_addsub_shift(1, rreg, 0, 0, reg); // CMP reg, rreg
                 cdb.gen1(ins);
                 genjmp(cdb,JNE,FL.code,cast(block*) ce);      // JNE nop
 
                 reg = findreg(retregs & INSTR.LSW);
                 rreg = findreg(rretregs & INSTR.LSW);
-                ins = INSTR.cmp_shift(1, rreg, 0, 0, reg);      // CMP reg, rreg
+                ins = INSTR.cmp_subs_addsub_shift(1, rreg, 0, 0, reg);      // CMP reg, rreg
                 cdb.gen1(ins);
             }
             break;
