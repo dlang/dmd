@@ -1256,7 +1256,7 @@ void cdmemcmp(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     genBranch(cdb,COND.ne,FL.code,cast(block*) cnop2);  // B.NE L2
 
     cdb.gen1(INSTR.addsub_imm(1,0,0,0,1,Ri,Ri));        // ADD Ri,Ri,1
-    cdb.gen1(INSTR.cmp_shift(1,Ri,0,0,Rn));             // CMP Rn,Ri
+    cdb.gen1(INSTR.cmp_subs_addsub_shift(1,Ri,0,0,Rn)); // CMP Rn,Ri
     genBranch(cdb,COND.ne,FL.code,cast(block*) cnop1);  // B.NE L1
 
     cdb.append(cnop2);                                  // L2:
