@@ -402,13 +402,13 @@ void cod3_setAArch64()
      * r18     Platform Register
      * r17 IP1 intra-procedure-call temporary register
      * r16 IP0 intra-procedure-call scratch register
-     * r9-r15  temporary registers
+     * r9-r15  temporary registers (caller saved)
      * r8      Indirect result location register
      * r0-r7   Parameter / result registers
      *
      * v0-v7   Parameter / result registers
      * v8-v15  Callee-saved registers (only bottom 64 bits need to be saved)
-     * v16-31  Temporary registers
+     * v16-31  Temporary registers (caller saved)
      */
     cgstate.BP = 29;
 
