@@ -1195,14 +1195,16 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     {
                         if (td.instances is null)
                         {
-                            alias Instances = TemplateInstance[TemplateInstanceBox];
-                            auto instances = new Instances;
+                            import dmd.root.aav;
+                            auto instances = new AssocArray!(TemplateInstanceBox, TemplateInstance);
                             td.instances = cast(void*) instances;
                             // create an empty AA just to copy it
                             scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
-                            auto tib = TemplateInstanceBox(ti);
-                            instances[tib] = null;
-                            instances.clear();
+                            auto tib = new TemplateInstanceBox(ti);
+                            auto ptr = instances.getLvalue(tib);
+                            *ptr = null;
+                            assert(instances.length == 0);
+                            //instances.clear();
                         }
                         td = td.syntaxCopy(null);
                         import core.stdc.string : memcpy;

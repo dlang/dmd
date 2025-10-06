@@ -47,6 +47,7 @@ import dmd.mtype;
 import dmd.opover;
 import dmd.optimize;
 import dmd.root.array;
+import dmd.root.aav;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.semantic2;
@@ -176,7 +177,7 @@ private size_t expressionHash(Expression e)
  * This struct is needed for TemplateInstance to be the key in an associative array.
  * Fixing https://issues.dlang.org/show_bug.cgi?id=15813 would make it unnecessary.
  */
-struct TemplateInstanceBox
+extern(C++) class TemplateInstanceBox
 {
     TemplateInstance ti;
     size_t hash; // cached result of toHash()
@@ -476,8 +477,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     assert(tempdecl);
     if (tempdecl.instances is null)
     {
-        alias Instances = TemplateInstance[TemplateInstanceBox];
-        auto instances = new Instances;
+        auto instances = new AssocArray!(TemplateInstanceBox, TemplateInstance);
         tempdecl.instances = cast(void*) instances;
     }
 
@@ -1047,12 +1047,15 @@ Laftersemantic:
          */
         //printf("replaceInstance()\n");
         assert(errinst.errors);
-        auto instances = cast(TemplateInstance[TemplateInstanceBox]) tempdecl.instances;
-        auto ti1 = TemplateInstanceBox(errinst);
-        instances.remove(ti1);
+        auto instances = cast(AssocArray!(TemplateInstanceBox, TemplateInstance)*) tempdecl.instances;
+        auto ti1 = new TemplateInstanceBox(errinst);
+        auto ptr1 = instances.getLvalue(ti1);
+        *ptr1 = null;
+        //instances.remove(ti1);
 
-        auto ti2 = TemplateInstanceBox(tempinst);
-        instances[ti2] = tempinst;
+        auto ti2 = new TemplateInstanceBox(tempinst);
+        auto ptr2 = instances.getLvalue(ti2);
+        *ptr2 = tempinst;
     }
 
     static if (LOG)
@@ -1451,12 +1454,12 @@ private TemplateInstance findExistingInstance(TemplateDeclaration td, TemplateIn
     //printf("findExistingInstance() %s\n", tithis.toChars());
     tithis.fargs = argumentList.arguments;
     tithis.fnames = argumentList.names;
-    auto tibox = TemplateInstanceBox(tithis);
-    auto instances = cast(TemplateInstance[TemplateInstanceBox]) td.instances;
-    auto p = tibox in instances;
+    auto tibox = new TemplateInstanceBox(tithis);
+    auto instances = cast(AssocArray!(TemplateInstanceBox, TemplateInstance)*) td.instances;
+    auto p = (*instances)[tibox];
     debug (FindExistingInstance) ++(p ? nFound : nNotFound);
     //if (p) printf("\tfound %p\n", *p); else printf("\tnot found\n");
-    return p ? *p : null;
+    return p;
 }
 
 /********************************************
@@ -1466,9 +1469,10 @@ private TemplateInstance findExistingInstance(TemplateDeclaration td, TemplateIn
 private TemplateInstance addInstance(TemplateDeclaration td, TemplateInstance ti)
 {
     //printf("addInstance() %p %s\n", instances, ti.toChars());
-    auto tibox = TemplateInstanceBox(ti);
-    auto instances = cast(TemplateInstance[TemplateInstanceBox])td.instances;
-    instances[tibox] = ti;
+    auto tibox = new TemplateInstanceBox(ti);
+    auto instances = cast(AssocArray!(TemplateInstanceBox, TemplateInstance)*) td.instances;
+    auto ptr = instances.getLvalue(tibox);
+    *ptr = ti;
     debug (FindExistingInstance) ++nAdded;
     return ti;
 }
@@ -1481,10 +1485,12 @@ private TemplateInstance addInstance(TemplateDeclaration td, TemplateInstance ti
 private void removeInstance(TemplateDeclaration td, TemplateInstance ti)
 {
     //printf("removeInstance() %s\n", ti.toChars());
-    auto tibox = TemplateInstanceBox(ti);
+    auto tibox = new TemplateInstanceBox(ti);
     debug (FindExistingInstance) ++nRemoved;
-    auto instances = cast(TemplateInstance[TemplateInstanceBox]) td.instances;
-    instances.remove(tibox);
+    auto instances = cast(AssocArray!(TemplateInstanceBox, TemplateInstance)*) td.instances;
+    auto ptr = instances.getLvalue(tibox);
+    *ptr = null;
+    //instances.remove(tibox);
 }
 
 /******************************************************
