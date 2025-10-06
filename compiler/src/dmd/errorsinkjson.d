@@ -3,13 +3,6 @@
  *
  * JSON-based implementation of ErrorSink for DMD.
  * Emits compiler diagnostics as JSON objects for tools, editors, or LSP servers.
- *
- * Copyright:
- *   Copyright (C) 2025 by The D Language Foundation, All Rights Reserved
- * Authors:
- *   (Your name)
- * License:
- *   Boost License 1.0 (https://www.boost.org/LICENSE_1_0.txt)
  */
 
 module errorsinkjson;
@@ -20,7 +13,7 @@ import dmd.location : Loc;
 import std.json : JSONValue, toJSON;
 import std.stdio : writeln;
 
-/// A JSON-based error sink implementation for structured diagnostics.
+/// JSON-based error sink implementation for structured diagnostics.
 class ErrorSinkJson : ErrorSink
 {
 nothrow:
@@ -29,9 +22,7 @@ override:
 
     private JSONValue[] diagnostics;
 
-    /****************************************************
-     * Helper to convert a message into a JSON entry.
-     ****************************************************/
+    /// Helper to convert a message into a JSON entry
     private void addMessage(string severity, Loc loc, const(char)* format, va_list ap)
     {
         char[1024] buf;
@@ -48,9 +39,7 @@ override:
         diagnostics ~= msg;
     }
 
-    /****************************************************
-     * Implementations of all virtual functions from ErrorSink.
-     ****************************************************/
+    /// Implementation of all virtual functions from ErrorSink
 
     void verror(Loc loc, const(char)* format, va_list ap)
     {
@@ -87,9 +76,8 @@ override:
         addMessage("deprecation-supplemental", loc, format, ap);
     }
 
-    /****************************************************
-     * Called when compilation is done; emit JSON output.
-     ****************************************************/
+
+    /// Called when compilation is done
     override void plugSink()
     {
         // Emit all collected diagnostics as a JSON array
