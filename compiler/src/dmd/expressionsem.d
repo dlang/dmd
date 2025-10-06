@@ -12408,16 +12408,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
 
                 // Lower to object._d_array{,set}ctor(e1, e2)
-                Expression id = new IdentifierExp(exp.loc, Id.empty);
-                id = new DotIdExp(exp.loc, id, Id.object);
-                id = new DotIdExp(exp.loc, id, func);
+                Expression lowering = new IdentifierExp(ae.loc, Id.empty);
+                lowering = new DotIdExp(ae.loc, lowering, Id.object);
+                lowering = new DotIdExp(ae.loc, lowering, func);
 
                 auto arguments = new Expressions(new CastExp(ae.loc, ae.e1, t1e.arrayOf).expressionSemantic(sc));
                 if (lowerToArrayCtor)
                 {
                     arguments.push(new CastExp(ae.loc, rhs, t2b.nextOf.arrayOf).expressionSemantic(sc));
-                    Expression ce = new CallExp(exp.loc, id, arguments);
-                    res = ce.expressionSemantic(sc);
+                    lowering = new CallExp(ae.loc, lowering, arguments);
+                    lowering = lowering.expressionSemantic(sc);
                 }
                 else
                 {
@@ -12432,12 +12432,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     else
                         arguments.push(ae.e2);
 
-                    Expression ce = new CallExp(exp.loc, id, arguments);
-                    res = Expression.combine(e0, ce).expressionSemantic(sc);
+                    lowering = new CallExp(ae.loc, lowering, arguments);
+                    lowering = Expression.combine(e0, lowering).expressionSemantic(sc);
                 }
 
+                ae.lowering = lowering;
+
                 if (global.params.v.verbose)
-                    message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
+                    message("lowered   %s =>\n          %s", exp.toChars(), lowering.toChars());
             }
         }
         else if (auto ae = res.isAssignExp())
