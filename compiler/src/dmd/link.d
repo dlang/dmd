@@ -757,7 +757,7 @@ version (Windows)
                     GetLastError();
                 }
 
-                STARTUPINFOA startInf;
+                STARTUPINFOW startInf;
                 startInf.cb = startInf.sizeof;
                 startInf.dwFlags = STARTF_USESTDHANDLES;
                 startInf.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
@@ -765,7 +765,11 @@ version (Windows)
                 startInf.hStdError = GetStdHandle(STD_ERROR_HANDLE);
                 PROCESS_INFORMATION procInf;
 
-                BOOL b = CreateProcessA(null, cmdbuf.peekChars(), null, null, 1, NORMAL_PRIORITY_CLASS, null, null, &startInf, &procInf);
+                wchar[1024] cbuf = void;
+                auto store = SmallBuffer!wchar(cbuf.length, cbuf);
+                auto wcmd = toWStringz(cast(const(char)[])cmdbuf.peekSlice(), store);
+
+                BOOL b = CreateProcessW(null, &wcmd[0], null, null, 1, NORMAL_PRIORITY_CLASS, null, null, &startInf, &procInf);
                 CloseHandle(pipe[1]); // child does not need this end
 
                 ubyte[1024] buffer;

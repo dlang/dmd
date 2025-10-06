@@ -217,6 +217,7 @@ Extend tyToExtend(tym_t ty)
     }
     if (!tyuns(ty))
         extend = cast(Extend)(extend | 4);
+    //debug printf("ty: %s extend: %x\n", tym_str(ty), extend);
     return extend;
 }
 
@@ -1164,6 +1165,109 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     fixresult(cdb,e,retregs,pretregs);
 }
 
+// void cdstrlen(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
+// void cdstrcmp(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
+
+/*********************************
+ * Generate code for memcmp(s1,s2,n) intrinsic.
+ */
+
+@trusted
+void cdmemcmp(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+{
+    /*  ((s1 param s2) param n)
+     */
+
+    elem* e1 = e.E1;
+    assert(e1.Eoper == OPparam);
+
+    // Get s1
+    regm_t retregs1 = cg.allregs;
+    codelem(cg,cdb,e1.E1,retregs1,false);
+    reg_t s1 = findreg(retregs1);
+
+    // Get s2
+    regm_t retregs2 = cg.allregs & ~retregs1;
+    scodelem(cg,cdb,e1.E2,retregs2,retregs1,false);
+    reg_t s2 = findreg(retregs2);
+
+    // Get Rn
+    regm_t retregsn = cg.allregs & ~(retregs1 | retregs2);
+    scodelem(cg,cdb,e.E2,retregsn,retregs1 | retregs2,false);
+    reg_t Rn = findreg(retregsn);
+
+    /*
+        MOV  r,0
+        CBZ  n,L2
+        MOV  i,0
+    L1: LDRB v1,[s1,i]
+        LDRB v2,[s2,i]
+        SUBS r,v1,v2
+        B.NE L2
+        ADD  i,i,1
+        CMP  n,i
+        B.NE L1
+    L2:
+    */
+    /* allocate r,i,v1,v2
+     */
+    regm_t retregsr = cg.allregs & ~(retregs1 | retregs2 | retregsn);
+    reg_t Rr = allocreg(cdb,retregsr,TYint);
+    regm_t retregsi = cg.allregs & ~(retregs1 | retregs2 | retregsn | retregsr);
+    reg_t Ri = allocreg(cdb,retregsi,TYint);
+    regm_t retregsv1 = cg.allregs & ~(retregs1 | retregs2 | retregsn | retregsr | retregsi);
+    reg_t Rv1 = allocreg(cdb,retregsv1,TYint);
+    regm_t retregsv2 = cg.allregs & ~(retregs1 | retregs2 | retregsn | retregsr | retregsi | retregsv1);
+    reg_t Rv2 = allocreg(cdb,retregsv2,TYint);
+
+    getregs(cdb, retregsr | retregsi | retregsv1 | retregsv2);
+
+    //printf("s1: %d s2: n: %d Rr: %d Ri: %d Rv1: %d Rv2: %d\n", s1,s2,Rn,Rr,Ri,Rv1,Rv2);
+
+    movregconst(cdb,Rr,0,pretregs & mPSW);      // MOV Rr,0 setting flags in case Rn is zero
+
+    code* cnop1 = gen1(null, INSTR.nop);        // branch target L1
+    code* cnop2 = gen1(null, INSTR.nop);        // branch target L2
+
+    code cs;
+
+    genCompBranch(cdb,1,Rn,false,FL.code,cast(block*) cnop2);   // CBZ Rn,L2
+
+    movregconst(cdb,Ri,0,0);                    // MOV Ri,0
+
+    cdb.append(cnop1);                          // L1:
+
+    cs.reg = NOREG;
+    cs.base = s1;
+    cs.index = Ri;
+    cs.Sextend = 3; //cast(ubyte)tyToExtend(TYuchar); This encoding is not in the spec?!!
+    loadFromEA(cs,Rv1,4,1);                     // LDRB Rv1,[s1,Ri]
+    cdb.gen(&cs);
+
+    cs.reg = NOREG;
+    cs.base = s2;
+    cs.index = Ri;
+    loadFromEA(cs,Rv2,4,1);                     // LDRB Rv2,[s2,Ri]
+    cdb.gen(&cs);
+
+    cs.Iop = INSTR.subs_addsub_shift(0,Rv1,0,0,Rv2,Rr); // SUBS r,v1,v2
+    cdb.gen(&cs);
+
+    genBranch(cdb,COND.ne,FL.code,cast(block*) cnop2);  // B.NE L2
+
+    cdb.gen1(INSTR.addsub_imm(1,0,0,0,1,Ri,Ri));        // ADD Ri,Ri,1
+    cdb.gen1(INSTR.cmp_subs_addsub_shift(1,Ri,0,0,Rn)); // CMP Rn,Ri
+    genBranch(cdb,COND.ne,FL.code,cast(block*) cnop1);  // B.NE L1
+
+    cdb.append(cnop2);                                  // L2:
+
+    pretregs &= ~mPSW;
+    fixresult(cdb,e,retregsr,pretregs);
+}
+
+//void cdstrcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+//void cdmemcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+
 /*********************************
  * Generate code for memset(s,value,numbytes) intrinsic.
  *      (s OPmemset (numbytes OPparam value))
@@ -1248,7 +1352,7 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cdb.append(cnop);
 
             cdb.gen1(INSTR.ldst_immpost(3,0,0,8,dstreg,valuereg));      // STR  valuereg,[dstreg],#8        // *dstreg++ = valuereg
-            cdb.gen1(INSTR.cmp_shift(1,dstreg,0,0,limit));              // CMP  limit,dstreg
+            cdb.gen1(INSTR.cmp_subs_addsub_shift(1,dstreg,0,0,limit));              // CMP  limit,dstreg
             genBranch(cdb,COND.ne,FL.code,cast(block*)cnop);            // JNE cnop
         }
 
@@ -1409,7 +1513,7 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
     code* L2 = cdb.last();
     if (szv == REGSIZE * 2)
         cdb.gen1(INSTR.ldst_immpost(imm3,0,0,0,Rp,Rvhi)); // L2: STR  Rvhi,[Rp],#0    // *Rp++ = Rvhi
-    cdb.gen1(INSTR.cmp_shift(1,Rl,0,0,Rp));             // CMP Rp,Rl
+    cdb.gen1(INSTR.cmp_subs_addsub_shift(1,Rl,0,0,Rp));             // CMP Rp,Rl
     genBranch(cdb,COND.ne,FL.code,cast(block*)L2);      // b.ne L2
     cdb.append(c1);
 
@@ -1569,7 +1673,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         cdb.genc1(cdst.Iop,0,FL.unde,0);
 
         cdb.gen1(INSTR.add_addsub_imm(1,0,8,Ri,Ri));    // add  Ri,Ri,#0x8 https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
-        cdb.gen1(INSTR.cmp_shift(0,Rc,0,0,Ri));         // cmp  Ri,Rc
+        cdb.gen1(INSTR.cmp_subs_addsub_shift(0,Rc,0,0,Ri));         // cmp  Ri,Rc
         genBranch(cdb,COND.ne,FL.code,cast(block*)L2);  // b.ne L2
 
         uint offset = 0;
@@ -1870,7 +1974,7 @@ static if (0)
             goto L4;
 
         case FL.extern_:
-            if (config.exe & EX_posix && e.Vsym.ty() & mTYthread)
+            if (config.exe & EX_posix)
             {
                 if (log) printf("posix extern threaded\n");
                 regm_t scratch = ALLREGS & ~mask(reg);
@@ -1893,6 +1997,12 @@ static if (0)
             goto L4;
 
         case FL.data:
+            if (config.exe & EX_OSX64 && cg.AArch64)
+            {
+                if ((e.Vsym.ty() & mTYLINK) == mTYthread)
+                    goto case FL.tlsdata;
+            }
+            goto case;
         case FL.udata:
         case FL.got:
         case FL.gotoff:

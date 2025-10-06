@@ -1133,7 +1133,7 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
 
     bool bpure = !f.isPure && sc.func.setImpure(arg.loc, null);
     bool bsafe = !f.isSafe() && !f.isTrusted() && sc.setUnsafe(false, arg.loc, null);
-    bool bnogc = !f.isNogc && sc.func.setGC(arg.loc, null);
+    bool bnogc = !f.isNogc && sc.setGC(sc.func, arg.loc, null);
     if (bpure | bsafe | bnogc)
     {
         const nullptr = "".ptr;
@@ -1246,11 +1246,10 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
         }
 
         // check if the copy constructor may be called to copy the argument
-        if (arg.isLvalue() && !isRef && argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
+        if (arg.isLvalue() && !isRef && argStruct && argStruct == prmStruct && argStruct.hasCopyCtor &&
+            !isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
         {
-            if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
-                return MATCH.nomatch;
-            m = MATCH.exact;
+            return MATCH.nomatch;
         }
         else
         {

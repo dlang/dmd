@@ -56,8 +56,8 @@ nothrow:
 @trusted
 void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    printf("cdeq(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
-    elem_print(e);
+    //printf("cdeq(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
+    //elem_print(e);
 
     reg_t reg;
     code cs;
@@ -152,10 +152,14 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             goto Lp;
         }
         retregs = allregs;        // pick a reg, any reg
+        if (sz == 2 * REGSIZE)
+            retregs &= ~INSTR.mBP;
     }
     if (retregs == mPSW)
     {
         retregs = allregs;
+        if (sz == 2 * REGSIZE)
+            retregs &= ~INSTR.mBP;
     }
     cs.Iop = 0;
     regvar = false;
@@ -177,6 +181,15 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             regvar = true;
             retregs = varregm;
             reg = varreg;       // evaluate directly in target register
+            if (tysize(e1.Ety) == REGSIZE &&
+                tysize(e1.Vsym.Stype.Tty) == 2 * REGSIZE)
+            {
+                if (e1.Voffset)
+                    retregs &= mMSW;
+                else
+                    retregs &= mLSW;
+                reg = findreg(retregs);
+            }
         }
     }
     if (pretregs & mPSW && OTleaf(e1.Eoper))     // if evaluating e1 couldn't change flags
@@ -212,9 +225,19 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     getregs(cdb,varregm);
 
-    reg = findreg(retregs & allregs);
-    storeToEA(cs,reg,sz);
+    reg = findreg(retregs & (sz > REGSIZE ? INSTR.LSW : allregs));
+    storeToEA(cs,reg,sz > REGSIZE ? REGSIZE : sz);
     cdb.gen(&cs);
+    if (sz == 2 * REGSIZE)
+    {
+        reg_t mswreg = findreg(retregs & INSTR.MSW);
+        assert(cs.index == NOREG);  // BUG AArch64 cannot add the '8' offset
+        assert(cs.base != NOREG);
+        cs.Iop = INSTR.str_imm_gen(1, mswreg, cs.base, 8);
+        cdb.gen(&cs);
+    }
+    else
+        assert(sz <= REGSIZE);
 
     if (e1.Ecount ||                    // if lvalue is a CSE or
         regvar)                         // rvalue can't be a CSE
@@ -975,9 +998,9 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 uint ins;
                 uint sf = sz == 8;
                 if (reverse)
-                    ins = INSTR.cmp_shift(sf, reg, 0, 0, rreg); // CMP rreg, reg
+                    ins = INSTR.cmp_subs_addsub_shift(sf, reg, 0, 0, rreg); // CMP rreg, reg
                 else
-                    ins = INSTR.cmp_shift(sf, rreg, 0, 0, reg); // CMP reg, rreg
+                    ins = INSTR.cmp_subs_addsub_shift(sf, rreg, 0, 0, reg); // CMP reg, rreg
                 cdb.gen1(ins);
             }
             else
@@ -987,13 +1010,13 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 // Compare MSW, if they're equal then compare the LSW
                 reg  = findreg( retregs & INSTR.MSW);
                 rreg = findreg(rretregs & INSTR.MSW);
-                uint ins = INSTR.cmp_shift(1, rreg, 0, 0, reg); // CMP reg, rreg
+                uint ins = INSTR.cmp_subs_addsub_shift(1, rreg, 0, 0, reg); // CMP reg, rreg
                 cdb.gen1(ins);
                 genjmp(cdb,JNE,FL.code,cast(block*) ce);      // JNE nop
 
                 reg = findreg(retregs & INSTR.LSW);
                 rreg = findreg(rretregs & INSTR.LSW);
-                ins = INSTR.cmp_shift(1, rreg, 0, 0, reg);      // CMP reg, rreg
+                ins = INSTR.cmp_subs_addsub_shift(1, rreg, 0, 0, reg);      // CMP reg, rreg
                 cdb.gen1(ins);
             }
             break;

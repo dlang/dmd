@@ -50,6 +50,10 @@ struct INSTR
     enum LSW = 0x5555_5555_5555_5555;
     enum MSW = LSW << 1;
 
+    enum BP = 29;
+    enum SP = 31;
+    enum mBP = 1 << BP;
+
     enum uint nop = 0xD503201F;
 
     alias reg_t = ubyte;
@@ -1219,10 +1223,10 @@ struct INSTR
         return subs_imm(sf, sh, imm12, Rn, 31);
     }
 
-    /* SUBS Rd, Rn, Rm, shift, #imm6
+    /* SUBS Rd, Rn, Rm{, shift, #imm6}
      * http://www.scs.stanford.edu/~zyedidia/arm64/subs_addsub_shift.html
      */
-    static uint subs_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn, ubyte Rd)
+    static uint subs_addsub_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn, ubyte Rd)
     {
         return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, Rd);
     }
@@ -1230,7 +1234,7 @@ struct INSTR
     /* CMP Rn, Rm, shift, #imm6
      * http://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_shift.html
      */
-    static uint cmp_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn)
+    static uint cmp_subs_addsub_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn)
     {
         return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, 0x1F);
     }
