@@ -532,12 +532,14 @@ static if (1)
                 e2.Ety = s.ty();
                 e2.Eoper = OPrelconst;
                 e2.Ety = TYnptr;
-
-                e2 = el_una(OPind, TYnptr, e2);
-                e2 = el_una(OPind, TYnptr, e2);
-                e2 = el_una(OPaddr, TYnptr, e2);
-                e2 = doptelem(e2, Goal.value | Goal.flags);
-                e2 = el_bin(OPadd, TYnptr, e2, el_long(TYullong, 0));
+                if (config.target_cpu != TARGET_AArch64)
+                {
+                    e2 = el_una(OPind, TYnptr, e2);
+                    e2 = el_una(OPind, TYnptr, e2);
+                    e2 = el_una(OPaddr, TYnptr, e2);
+                    e2 = doptelem(e2, Goal.value | Goal.flags);
+                    e2 = el_bin(OPadd, TYnptr, e2, el_long(TYullong, 0));
+                }
                 e2 = el_bin(OPcall, TYnptr, e, e2);
                 e2 = el_una(OPind, TYint, e2);
                 e = e2;

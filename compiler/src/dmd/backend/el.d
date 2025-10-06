@@ -76,9 +76,9 @@ struct elem
                         // always 0 until CSE elimination is done
     union
     {
-	eflags_t Eflags;  // I64 && config.exe != EX_WIN64
-	ubyte numParams;  // number of declared parameters for variadic functions
-			  // config.exe == EX_OSX64 && target.isAArch64;
+        eflags_t Eflags;  // I64 && config.exe != EX_WIN64
+        ubyte numParams;  // number of declared parameters for variadic functions
+                          // config.exe == EX_OSX64 && target.isAArch64;
     }
 
     union

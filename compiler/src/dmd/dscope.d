@@ -739,7 +739,19 @@ extern (C++) struct Scope
         if (!scopesym.symtabInsert(s)) // if already in table
         {
             Dsymbol s2 = scopesym.symtabLookup(s, s.ident); // s2 is existing entry
-            return handleTagSymbols(this, s, s2, scopesym);
+
+            auto svar = s.isVarDeclaration();
+            auto s2var = s2.isVarDeclaration();
+            if (((svar && svar.storage_class & STC.extern_) &&
+                    (s2var && s2var.storage_class & STC.extern_) && this.func) ||
+                    s.isFuncDeclaration())
+            {
+                    return handleSymbolRedeclarations(*s._scope, s, s2, scopesym);
+            }
+            else // aside externs and func decls, we should be free to handle tags
+            {
+                return handleTagSymbols(this, s, s2, scopesym);
+            }
         }
         return s; // inserted
     }

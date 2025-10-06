@@ -2245,6 +2245,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // Preset the required type to fail in FuncLiteralDeclaration::semantic3
                 ei.exp = inferType(ei.exp, dsym.type);
 
+            /*
+             * https://issues.dlang.org/show_bug.cgi?id=24474
+             * at function scope, the compiler thinks the type of the variable is not known yet
+             * (semantically complete) so looks like typeof gets locked in a cyclic situation
+             * semantics is actually done. just set it for importc
+             */
+            if (sc.func && dsym.type && dsym.type.deco && sc.inCfile)
+                dsym.semanticRun = PASS.semanticdone;
+
             // If inside function, there is no semantic3() call
             if (sc.func || sc.intypeof == 1)
             {
