@@ -1588,7 +1588,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             // reg: MOV w0,w1
             code cs;
             getlvalue(cdb,cs,e1,0,RM.load);
-            cs.Sextend = (cs.Sextend & 0x100) | Extend.LSL;
+            cs.Sextend = (cs.Sextend & 8) | Extend.LSL; // preserve S bit
             reg = allocreg(cdb,retregs,TYint);
             loadFromEA(cs,reg,4,4);
             cdb.gen(&cs);
@@ -1805,7 +1805,8 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         return;
     }
 
-    //printf("cdbyteint(e = %p, pretregs = %s\n", e, regm_str(pretregs));
+    printf("cdbyteint(e = %p, pretregs = %s\n", e, regm_str(pretregs));
+    elem_print(e);
     const op = e.Eoper;
     elem* e1 = e.E1;
     if (e1.Eoper == OPcomma)
@@ -1815,12 +1816,14 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     if (retregs == 0)
         retregs = cg.allregs;
 
+static if (0) // TODO AArch64
     if (e1.Eoper == OPvar || (e1.Eoper == OPind && !e1.Ecount))
     {
         code cs;
         getlvalue(cdb,cs,e1,0,RM.load);
         Extend extend = (op == OPu8_16) ? Extend.UXTB : Extend.SXTB;
-        cs.Sextend = cast(ubyte)((cs.Sextend & 0x100) | extend);
+        cs.Sextend = cast(ubyte)((cs.Sextend & 8) | extend);  // preserve S bit
+printf("Sextend = x%x\n", cs.Sextend);
         reg_t reg = allocreg(cdb,retregs,TYint);
         loadFromEA(cs,reg,4,1);
         cdb.gen(&cs);
