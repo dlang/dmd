@@ -1872,7 +1872,7 @@ void assignaddrc(code* c)
 @trusted
 void jmpaddr(code* c)
 {
-    printf("jmpaddr()\n");
+    //printf("jmpaddr()\n");
 
     code* ci,cn,ctarg,cstart;
     uint ad;
@@ -1903,7 +1903,7 @@ void jmpaddr(code* c)
             for (ci = cstart; ci != ctarg; ci = code_next(ci))
                 if (!ci || ci == c)
                     assert(0);
-            ad = 4;                 /* - IP displacement            */
+            ad = 0;                 /* - IP displacement            */
             while (ci != c)
             {
                 assert(ci);
