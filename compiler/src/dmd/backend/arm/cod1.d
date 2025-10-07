@@ -57,7 +57,8 @@ nothrow:
  */
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
-    debug printf("loadFromEA() reg: %d, szw: %d, szr: %d offset: %d\n", reg, szw, szr, cast(int)cs.IEV1.Voffset);
+    debug printf("loadFromEA() reg: %d, szw: %d, szr: %d offset: %d S: %d extend: %s\n",
+        reg, szw, szr, cast(int)cs.IEV1.Voffset, cs.Sextend >> 3, ExtendToStr(cast(Extend)(cs.Sextend & 7)));
     assert(szr <= szw);
     cs.Iop = INSTR.nop;
     assert(reg != NOREG);
@@ -103,6 +104,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 
     if (cs.reg != NOREG)
     {
+        // TODO AArch64 the following fails if Sextend indicates a sign extension
         if (cs.reg != reg)  // do not mov onto itself
             cs.Iop = INSTR.mov_register(szw == 8,cs.reg,reg);  // MOV reg,cs.reg
         cs.IFL1 = FL.unde;
@@ -115,6 +117,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         else if (szr == 2)
             cs.Iop = INSTR.ldrh_reg(szw == 8, cs.index, cs.Sextend & 7, cs.Sextend >> 3, cs.base, reg);
         else
+            // the (szr == 4) case is handled when Sextend is UXTW or SXTW, (szr == 8) is LSL or SXTX
             cs.Iop = INSTR.ldr_reg_gen(szw == 8, cs.index, cs.Sextend & 7, cs.Sextend >> 3, cs.base, reg);
     }
     else if (cs.base != NOREG)
@@ -127,9 +130,11 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         else if (szr == 2)
             cs.Iop = signExtend ? INSTR.ldrsh_imm(szw == 8, reg, cs.base, offset)
                                 : INSTR.ldrh_imm (szw == 8, reg, cs.base, offset);
-        else
+        else if (szr == 4)
             cs.Iop = signExtend ? INSTR.ldrsw_imm(offset, cs.base, reg)
                                 : INSTR.ldr_imm_gen(szw == 8, reg, cs.base, offset);
+        else
+            cs.Iop =              INSTR.ldr_imm_gen(szw == 8, reg, cs.base, offset);
     }
     else
         assert(0);
@@ -520,6 +525,8 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
     getlvalue(cdb, cs, e, keepmsk, rmx);
     cs.IEV1.Voffset += offset;
 
+//xyzzy
+printf("sz: %d\n", sz);
     assert(op != LEA);                  // AArch64 does not have LEA
     loadFromEA(cs,reg,sz >= 8 ? sz : 4,sz);
 

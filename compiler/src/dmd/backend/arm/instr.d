@@ -21,15 +21,22 @@ nothrow:
 
 enum Extend
 {
-    UXTB,
-    UXTH,
-    UXTW,
+    UXTB,       // extracts byte and zero extends it to size of register
+    UXTH,       // extracts half-word (16 bits) and zero extends it to size of register
+    UXTW,       // extracts word (32 bits) and zero extends it to size of register
     LSL,
-    UXTX = LSL,
-    SXTB,
+    UXTX = LSL, // extracts extended word (64 bits) and zero extends it to size of register, i.e. is a no-op
+    SXTB,       // signed versions...
     SXTH,
     SXTW,
-    SXTX,
+    SXTX,       // no practical difference from UXTX
+}
+
+@trusted
+const(char)* ExtendToStr(Extend e)
+{
+    static immutable char[8 * 5] table = "UXTB\0UXTH\0UXTW\0UXTX\0SXTB\0SXTH\0SXTW\0SXTX\0";
+    return &table[e * 5];
 }
 
 /************************
@@ -1491,6 +1498,8 @@ struct INSTR
     static uint ldr_reg_gen(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
     {
         // LDR Rt,Rbase,Rindex,extend S
+        assert(S <= 1);
+        assert((extend & 2) && extend < 8); // UXTW LSL SXTW SXTX
         return ldst_regoff(2 | sz, 0, 1, Rindex, extend, S, Rbase, Rt);
     }
 
