@@ -1281,12 +1281,15 @@ struct INSTR
         return log_shift(sf, opc, shift, N, Rm, imm6, Rn, Rd);
     }
 
-    /* MOV Rd, Rn, Rm{, shift #amount}
+    /* MOV Rd, Rm
      * https://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_log_shift.html
      */
     static uint mov_register(uint sf, ubyte Rm, ubyte Rd)
     {
-        return orr_shifted_register(sf, 0, Rm, 0, 31, Rd);
+        uint shift = 0;
+        uint imm6 = 0;
+        ubyte Rzr = 31; // zero register
+        return orr_shifted_register(sf, shift, Rm, imm6, Rzr, Rd);
     }
 
     /* CSINC Rd, Rn, Rm, <cond>?
