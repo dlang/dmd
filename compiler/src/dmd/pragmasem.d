@@ -811,15 +811,22 @@ private void printBacktrace(Loc loc, Scope* sc)
 {
     fprintf(stdout,"Backtrace\n");
     Loc l = loc;
+    Scope*[] scopes;
     for (auto s = sc; s; s = s.enclosing)
     {
+        scopes ~= s;
+    }
+
+    foreach(i, s; scopes){
         if(s.scopesym !is null)
         {
-            fprintf(stdout,"%s: scope: %s\n", l.toChars(), s.scopesym.toChars);
-            if(s.parent)
+            fprintf(stdout,"frame %ld %s: scope: %s\n", i, s.scopesym.loc.toChars(), s.scopesym.toChars);
+            /*            if(s.parent)
             {
                 l = s.parent.loc;
-            }
+                }*/
+        } else {
+            fprintf(stdout, "frame %ld, no scope symbol\n", i);
         }
     }
 }
