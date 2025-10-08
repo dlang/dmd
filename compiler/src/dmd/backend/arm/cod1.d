@@ -57,7 +57,7 @@ nothrow:
  */
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
-    debug printf("loadFromEA() reg: %d, szw: %d, szr: %d offset: %d S: %d extend: %s\n",
+    static if (0) debug printf("loadFromEA() reg: %d, szw: %d, szr: %d offset: %d S: %d extend: %s\n",
         reg, szw, szr, cast(int)cs.IEV1.Voffset, cs.Sextend >> 3, ExtendToStr(cast(Extend)(cs.Sextend & 7)));
     assert(szr <= szw);
     cs.Iop = INSTR.nop;
@@ -104,9 +104,34 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 
     if (cs.reg != NOREG)
     {
-        // TODO AArch64 the following fails if Sextend indicates a sign extension
-        if (cs.reg != reg)  // do not mov onto itself
-            cs.Iop = INSTR.mov_register(szw == 8,cs.reg,reg);  // MOV reg,cs.reg
+        uint sf = szw == 8;
+        void mov()
+        {
+            if (cs.reg != reg)                  // no need to mov onto itself
+                cs.Iop = INSTR.mov_register(sf,cs.reg,reg);  // MOV reg,cs.reg
+        }
+
+        if (szw <= szr)
+        {
+            mov();
+        }
+        else
+        {
+            with (Extend) final switch (cs.Sextend & 7)
+            {
+                case UXTB:      cs.Iop = INSTR.log_imm(sf,0,0,0,0x7,cs.reg,reg); break; // AND sf,x0,x0,#0xFF
+                case UXTH:      cs.Iop = INSTR.log_imm(sf,0,0,0,0x7,cs.reg,reg); break; // AND sf,x0,x0,#0xFFFF
+                case SXTB:      cs.Iop = INSTR.sxtb_sbfm(sf,cs.reg,reg);         break; // SXTB sf,x0,w0
+                case SXTH:      cs.Iop = INSTR.sxth_sbfm(sf,cs.reg,reg);         break; // SXTH sf,x0,w0
+                case SXTW:      cs.Iop = INSTR.sxtw_sbfm(cs.reg,reg);            break; // SXTW sf,x0,w0
+
+                case UXTW:
+                case UXTX:
+                case SXTX:
+                    mov();
+                    break;
+            }
+        }
         cs.IFL1 = FL.unde;
     }
     else if (cs.index != NOREG)
