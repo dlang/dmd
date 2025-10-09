@@ -528,7 +528,14 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
          *    INT x;  // match
          *    long x; // collision
          * We incorrectly ignore these collisions
+         * when their types are not matching, err on type differences
          */
+
+        if (!cTypeEquivalence(vd.type, vd2.type))
+        {
+            .error(vd.loc, "redefinition of `%s` with different type: `%s` vs `%s`",
+                vd2.ident.toChars(), vd2.type.toChars(), vd.type.toChars());
+        }
         return vd2;
     }
 
