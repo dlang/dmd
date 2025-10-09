@@ -410,6 +410,12 @@ int getFieldIndex(ClassReferenceExp cre, Type fieldtype, uint fieldoffset)
     return dmd.expressionsem.getFieldIndex(cre, fieldtype, fieldoffset);
 }
 
+void fillTupleExpExps(TupleExp te, TupleDeclaration tup)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.fillTupleExpExps(te, tup);
+}
+
 /***********************************************************
  * func.d
  */
