@@ -1459,7 +1459,7 @@ private TemplateInstance addInstance(TemplateDeclaration td, TemplateInstance ti
 {
     //printf("addInstance() %p %s\n", instances, ti.toChars());
     auto tibox = TemplateInstanceBox(ti);
-    td.instances[tibox] = ti;
+    (cast(TemplateInstance[TemplateInstanceBox])td.instances)[tibox] = ti;
     debug (FindExistingInstance) ++nAdded;
     return ti;
 }
