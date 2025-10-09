@@ -1703,7 +1703,8 @@ public:
     virtual TemplateAliasParameter* isTemplateAliasParameter();
     virtual TemplateThisParameter* isTemplateThisParameter();
     virtual TemplateTupleParameter* isTemplateTupleParameter();
-    virtual TemplateParameter* syntaxCopy() = 0;    virtual void print(RootObject* oarg, RootObject* oded) = 0;
+    virtual TemplateParameter* syntaxCopy() = 0;
+    virtual void print(RootObject* oarg, RootObject* oded) = 0;
     virtual RootObject* specialization() = 0;
     virtual bool hasDefaultArg() = 0;
     const char* toChars() const override;
