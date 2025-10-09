@@ -1042,10 +1042,10 @@ Laftersemantic:
         //printf("replaceInstance()\n");
         assert(errinst.errors);
         auto ti1 = TemplateInstanceBox(errinst);
-        tempdecl.instances.remove(ti1);
+        (cast(TemplateInstance[TemplateInstanceBox])tempdecl.instances).remove(ti1);
 
         auto ti2 = TemplateInstanceBox(tempinst);
-        tempdecl.instances[ti2] = tempinst;
+        (cast(TemplateInstance[TemplateInstanceBox])tempdecl.instances)[ti2] = tempinst;
     }
 
     static if (LOG)
