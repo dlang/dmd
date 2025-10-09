@@ -14,7 +14,7 @@ module core.internal.array.equality;
 // * dynamic arrays,
 // * (most) arrays of different (unqualified) element types, and
 // * arrays of structs with custom opEquals.
-bool __equals(TArr1 : T1[], TArr2 : T2[], T1, T2)(scope TArr1 lhs, scope TArr2 rhs) @trusted
+bool __equals(T1, T2)(scope T1[] lhs, scope T2[] rhs) @trusted
 {
     if (lhs.length != rhs.length)
         return false;
@@ -22,9 +22,24 @@ bool __equals(TArr1 : T1[], TArr2 : T2[], T1, T2)(scope TArr1 lhs, scope TArr2 r
     if (lhs.length == 0)
         return true;
 
-    alias PureType = bool function(scope TArr1, scope TArr2, size_t) @safe pure nothrow @nogc;
+    alias PureType = bool function(scope T1[], scope T2[], size_t) @safe pure nothrow @nogc;
 
-    return (cast(PureType)&isEqual!(TArr1,TArr2))(lhs[], rhs[], lhs.length);
+    return (cast(PureType)&isEqual!(T1,T2))(lhs, rhs, lhs.length);
+}
+
+pragma(inline, true)
+bool __equals(T1, T2, size_t N)(scope ref T1[N] lhs, scope T2[] rhs) @trusted {
+    return __equals(lhs[], rhs);
+}
+
+pragma(inline, true)
+bool __equals(T1, T2, size_t N)(scope T1[] lhs, scope ref T2[N] rhs) @trusted {
+    return __equals(lhs, rhs[]);
+}
+
+pragma(inline, true)
+bool __equals(T1, T2, size_t N, size_t M)(scope ref T1[N] lhs, scope ref T2[M] rhs) @trusted {
+    return __equals(lhs[], rhs[]);
 }
 
 /******************************
@@ -32,7 +47,7 @@ bool __equals(TArr1 : T1[], TArr2 : T2[], T1, T2)(scope TArr1 lhs, scope TArr2 r
  * Outlined to enable __equals() to be inlined, as dmd cannot inline loops.
  */
 private
-bool isEqual(TArr1 : T1[], TArr2 : T2[], T1, T2)(scope TArr1 lhs, scope TArr2 rhs, size_t length)
+bool isEqual(T1, T2)(scope T1[] lhs, scope T2[] rhs, size_t length)
 {
     // Returns a reference to an array element, eliding bounds check and
     // casting void to ubyte.
