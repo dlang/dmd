@@ -1566,11 +1566,9 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 @trusted
 void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    reg_t reg;
-    regm_t retregs;
-
     //printf("cdshtlng(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
-    int e1comsub = e.E1.Ecount;
+    elem* e1 = e.E1;
+    int e1comsub = e1.Ecount;
     OPER op = e.Eoper;
     if ((pretregs & cg.allregs) == 0)    // if don't need result in regs
     {
@@ -1580,18 +1578,32 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (op == OPu32_64)
     {
-        elem* e1 = e.E1;
-        retregs = pretregs;
+        regm_t retregs = pretregs;
         if (e1.Eoper == OPvar || (e1.Eoper == OPind && !e1.Ecount))
         {
             // EA:  LDR w0,[sp,#8]
             // reg: MOV w0,w1
             code cs;
             getlvalue(cdb,cs,e1,0,RM.load);
-            cs.Sextend = (cs.Sextend & 8) | Extend.LSL; // preserve S bit
-            reg = allocreg(cdb,retregs,TYint);
-            loadFromEA(cs,reg,4,4);
+            cs.Sextend = (cs.Sextend & 8) | Extend.UXTW; // preserve S bit
+            reg_t reg = allocreg(cdb,retregs,TYint);
+            loadFromEA(cs,reg,8,4);
             cdb.gen(&cs);
+            freenode(e1);
+            return;
+        }
+        else if ((e1.Eoper == OPu8_16 || e1.Eoper == OPu16_32) && !e1.Ecount &&
+                 (e1.E1.Eoper == OPvar || (e1.E1.Eoper == OPind && !e1.E1.Ecount)))
+        {
+            // AND x0,x0,0xFF
+            code cs;
+            getlvalue(cdb,cs,e1.E1,0,RM.load);
+            Extend extend = e1.Eoper == OPu8_16 ? Extend.UXTB : Extend.UXTH;
+            cs.Sextend = cast(ubyte)((cs.Sextend & 8) | extend);  // preserve S bit
+            reg_t reg = allocreg(cdb,retregs,TYint);
+            loadFromEA(cs,reg,8,tysize(e1.Ety));
+            cdb.gen(&cs);
+            freenode(e1.E1);
             freenode(e1);
         }
         else
@@ -1608,10 +1620,27 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 // Zero high 32 bits
                 // reg: MOV w0,w1
                 getregs(cdb,retregs);
-                reg = findreg(retregs);
+                reg_t reg = findreg(retregs);
                 cdb.gen1(INSTR.mov_register(0,reg,reg));
             }
         }
+        fixresult(cdb,e,retregs,pretregs);
+        return;
+    }
+    else if (op == OPs32_64 &&
+             ((e1.Eoper == OPs8_16 || e1.Eoper == OPs16_32) && !e1.Ecount &&
+              (e1.E1.Eoper == OPvar || (e1.E1.Eoper == OPind && !e1.E1.Ecount))))
+    {
+        regm_t retregs = pretregs;
+        code cs;
+        getlvalue(cdb,cs,e1.E1,0,RM.load);
+        Extend extend = e1.Eoper == OPs8_16 ? Extend.SXTB : Extend.SXTH;
+        cs.Sextend = cast(ubyte)((cs.Sextend & 8) | extend);  // preserve S bit
+        reg_t reg = allocreg(cdb,retregs,TYint);
+        loadFromEA(cs,reg,8,tysize(e1.Ety));
+        cdb.gen(&cs);
+        freenode(e1.E1);
+        freenode(e1);
         fixresult(cdb,e,retregs,pretregs);
         return;
     }
@@ -1620,7 +1649,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         /* Due to how e1 is calculated, the high 32 bits of the register
          * are already 0.
          */
-        retregs = pretregs;
+        regm_t retregs = pretregs;
         codelem(cgstate,cdb,e.E1,retregs,false);
         fixresult(cdb,e,retregs,pretregs);
         return;
@@ -1628,7 +1657,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     else if (op == OPs16_32 || op == OPu16_32 || op == OPs32_64)
     {
         elem* e11;
-        elem* e1 = e.E1;
+        regm_t retregs;
 
         if (e1.Eoper == OPu8_16 && !e1.Ecount &&
             ((e11 = e1.E1).Eoper == OPvar || (e11.Eoper == OPind && !e11.Ecount))
@@ -1640,7 +1669,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             retregs = pretregs;
             if (!retregs)
                 retregs = cg.allregs;
-            reg = allocreg(cdb,retregs,TYint);
+            reg_t reg = allocreg(cdb,retregs,TYint);
             if (cs.reg != NOREG)
             {
                 //    INSTR.log_imm(sf,opc,N,immr,imms,Rn,Rd)
@@ -1665,7 +1694,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             retregs = pretregs;
             if (!retregs)
                 retregs = cg.allregs;
-            reg = allocreg(cdb,retregs,TYint);
+            reg_t reg = allocreg(cdb,retregs,TYint);
 
             switch (op)
             {
@@ -1724,7 +1753,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             pretregs &= ~mPSW;             // flags are already set
             codelem(cgstate,cdb,e1,retregs,false);
             getregs(cdb,retregs);
-            reg = findreg(retregs);
+            reg_t reg = findreg(retregs);
             if (op == OPu16_32)
             {
                 uint N,immr,imms;
@@ -1746,11 +1775,11 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     else if (pretregs & mPSW)
     {
         // OPs16_32, OPs32_64
-        retregs = pretregs;                // want integer result in AX
+        regm_t retregs = pretregs;         // want integer result in AX
         codelem(cgstate,cdb,e.E1,retregs,false);
         pretregs &= ~mPSW;                 // flags are already set
         getregs(cdb,retregs);
-        reg = findreg(retregs);
+        reg_t reg = findreg(retregs);
         uint size = _tysize[tybasic(e.E1.Ety)];
         uint ins;
         if (op == OPs32_64)
