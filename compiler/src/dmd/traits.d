@@ -1198,7 +1198,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                             // create an empty AA just to copy it
                             scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
                             auto tib = TemplateInstanceBox(ti);
-                            (cast(TemplateInstance[TemplateInstanceBox])td.instances)[tib] = null;
+                            (*(cast(TemplateInstance[TemplateInstanceBox]*) &td.instances))[tib] = null;
                             (cast(TemplateInstance[TemplateInstanceBox])td.instances).clear();
                         }
                         td = td.syntaxCopy(null);
