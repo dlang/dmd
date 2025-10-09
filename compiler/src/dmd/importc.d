@@ -588,6 +588,15 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
          */
         fd2.overloadInsert(fd);
 
+        //for the sake of functions declared in function scope.
+        // check for return type equivalence also
+        auto tf1 = fd.type.isTypeFunction();
+        auto tf2 = fd2.type.isTypeFunction();
+        if (sc.func &&  !cTypeEquivalence(tf1.next, tf2.next) )
+        {
+            .error(fd.loc, "%s `%s` redeclaration with different type", fd.kind, fd.toPrettyChars);
+        }
+
         return fd2;
     }
 
