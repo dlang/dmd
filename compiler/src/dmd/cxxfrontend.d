@@ -883,6 +883,12 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
 /**
  * templatesem.d
  */
+bool declareParameter(TemplateParameter tp, Scope* sc)
+{
+    import dmd.templatesem;
+    return dmd.templatesem.declareParameter(tp, sc);
+}
+
 bool needsCodegen(TemplateInstance ti)
 {
     import dmd.templatesem;
