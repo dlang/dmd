@@ -2,6 +2,7 @@
 ---
 fail_compilation/test22344.c(103): Error: function `test22344.func` redeclaration with different type
 fail_compilation/test22344.c(203): Error: function `test22344.test` redeclaration with different type
+fail_compilation/test22344.c(301): Error: function `test22344.foo` redeclaration with different type
 ---
  */
 
@@ -26,3 +27,8 @@ int test(int x, ...)
 {
     return x;
 }
+
+#line 300
+
+int foo();
+double foo();

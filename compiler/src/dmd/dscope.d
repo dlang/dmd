@@ -746,7 +746,7 @@ extern (C++) struct Scope
                     (s2var && s2var.storage_class & STC.extern_) && this.func) ||
                     s.isFuncDeclaration())
             {
-                    return handleSymbolRedeclarations(*s._scope, s, s2, scopesym);
+                return handleSymbolRedeclarations(this, s, s2, scopesym);
             }
             else // aside externs and func decls, we should be free to handle tags
             {
