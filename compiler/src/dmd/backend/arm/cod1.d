@@ -120,12 +120,12 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
             with (Extend) final switch (cs.Sextend & 7)
             {
                 case UXTB:      cs.Iop = INSTR.log_imm(sf,0,0,0,0x7,cs.reg,reg); break; // AND sf,x0,x0,#0xFF
-                case UXTH:      cs.Iop = INSTR.log_imm(sf,0,0,0,0x7,cs.reg,reg); break; // AND sf,x0,x0,#0xFFFF
+                case UXTH:      cs.Iop = INSTR.log_imm(sf,0,0,0,0xF,cs.reg,reg); break; // AND sf,x0,x0,#0xFFFF
                 case SXTB:      cs.Iop = INSTR.sxtb_sbfm(sf,cs.reg,reg);         break; // SXTB sf,x0,w0
                 case SXTH:      cs.Iop = INSTR.sxth_sbfm(sf,cs.reg,reg);         break; // SXTH sf,x0,w0
                 case SXTW:      cs.Iop = INSTR.sxtw_sbfm(cs.reg,reg);            break; // SXTW sf,x0,w0
 
-                case UXTW:
+                case UXTW:      cs.Iop = INSTR.mov_register(4,cs.reg,reg);       break; // MOV w0,w0
                 case UXTX:
                 case SXTX:
                     mov();
@@ -164,6 +164,24 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
     else
         assert(0);
 }
+
+unittest
+{
+    code cs;
+    cs.Sextend = Extend.UXTB;
+    cs.reg = 0;
+    loadFromEA(cs,0,8,1);
+    assert(cs.Iop == 0x92001C00); // AND x0,x0,#0xFF
+
+    cs.Sextend = Extend.UXTH;
+    loadFromEA(cs,0,8,2);
+    assert(cs.Iop == 0x92003C00); // AND x0,x0,#0xFFFF
+
+    cs.Sextend = Extend.UXTW;
+    loadFromEA(cs,0,8,4);
+    assert(cs.Iop == 0x2A0003E0); // MOV w0,w0
+}
+
 /************************************
  * Given cs which has the Effective Address encoded into it,
  * create a store instruction to reg, and write it to cs.Iop
