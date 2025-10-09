@@ -1474,7 +1474,7 @@ private void removeInstance(TemplateDeclaration td, TemplateInstance ti)
     //printf("removeInstance() %s\n", ti.toChars());
     auto tibox = TemplateInstanceBox(ti);
     debug (FindExistingInstance) ++nRemoved;
-    td.instances.remove(tibox);
+    (cast(TemplateInstance[TemplateInstanceBox])td.instances).remove(tibox);
 }
 
 /******************************************************
