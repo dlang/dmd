@@ -255,7 +255,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     Expression constraint;
 
     // Hash table to look up TemplateInstance's of this TemplateDeclaration
-    TemplateInstance[TemplateInstanceBox] instances;
+    void* instances;
 
     TemplateDeclaration overnext;       // next overloaded TemplateDeclaration
     TemplateDeclaration overroot;       // first in overnext list
