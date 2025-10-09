@@ -237,15 +237,16 @@ void addDefaultCInitializer(VarDeclaration dsym)
 bool cFuncEquivalence(TypeFunction tf1, TypeFunction tf2)
 {
     //printf("cFuncEquivalence()\n  %s\n  %s\n", tf1.toChars(), tf2.toChars());
-    if (tf1.equals(tf2))
-        return true;
+
+    //don't return a match too early if params and pointers match
+    if ((!tf1.equals(tf2)) &&
+        tf1.parameterList.length != 0 && tf2.parameterList.length != 0) // Allow func(void) to match func()
+    {
+        return false;
+    }
 
     if (tf1.linkage != tf2.linkage)
         return false;
-
-    // Allow func(void) to match func()
-    if (tf1.parameterList.length == 0 && tf2.parameterList.length == 0)
-        return true;
 
     if (!cTypeEquivalence(tf1.next, tf2.next))
         return false;   // function return types don't match
@@ -253,10 +254,13 @@ bool cFuncEquivalence(TypeFunction tf1, TypeFunction tf2)
     if (tf1.parameterList.length != tf2.parameterList.length)
         return false;
 
-    if (!tf1.parameterList.hasIdentifierList && !tf2.parameterList.hasIdentifierList) // if both are prototyped
+    if ((!tf1.parameterList.hasIdentifierList && !tf2.parameterList.hasIdentifierList) // if both are prototyped
+        && (tf1.parameterList.length != 0 && tf2.parameterList.length != 0)) // remember, (void), () comparisons are valid
     {
         if (tf1.parameterList.varargs != tf2.parameterList.varargs)
+        {
             return false;
+        }
     }
 
     foreach (i, fparam ; tf1.parameterList)
@@ -581,6 +585,15 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
                 sc._module.tagSymTab[cast(void*)fd] = *ps;
 
             return fd;
+        }
+
+        //for the sake of function scope function decls that are allowed in C.
+        // check for return type equivalence
+        auto tf1 = fd.type.nextOf().isTypeFunction();
+        auto tf2 = fd2.type.nextOf().isTypeFunction();
+        if (sc.inCfile && !tf1.equals(tf2))
+        {
+            .error(fd.loc, "%s `%s` redeclaration with different type", fd.kind, fd.toPrettyChars);
         }
 
         /* Just like with VarDeclaration, the types should match, which needs semantic() to be run on it.
