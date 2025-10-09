@@ -72,7 +72,6 @@ import dmd.optimize;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.rootobject;
-import dmd.templatesem : TemplateInstanceBox;
 import dmd.tokens;
 import dmd.typesem : typeSemantic;
 import dmd.visitor;
