@@ -6,7 +6,7 @@ jobs:
       - image: cimg/base:current-20.04
     parallelism: 1
     steps:
-      - checkout
+      - checkout:
           method: blobless
       - run:
           command: ./.circleci/run.sh install-deps
