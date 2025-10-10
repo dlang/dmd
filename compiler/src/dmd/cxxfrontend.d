@@ -16,7 +16,7 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.common.outbuffer : OutBuffer;
 import dmd.dclass : ClassDeclaration, BaseClass;
-import dmd.declaration : TypeInfoDeclaration, VarDeclaration;
+import dmd.declaration : TypeInfoDeclaration, VarDeclaration, TupleDeclaration;
 import dmd.denum : EnumDeclaration;
 import dmd.dmodule /*: Module*/;
 import dmd.dscope : Scope;
@@ -408,6 +408,12 @@ int getFieldIndex(ClassReferenceExp cre, Type fieldtype, uint fieldoffset)
 {
     import dmd.expressionsem;
     return dmd.expressionsem.getFieldIndex(cre, fieldtype, fieldoffset);
+}
+
+void fillTupleExpExps(TupleExp te, TupleDeclaration tup)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.fillTupleExpExps(te, tup);
 }
 
 /***********************************************************

@@ -5625,6 +5625,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             if (TupleDeclaration tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
+                fillTupleExpExps(e.isTupleExp(), tup);
                 return e.expressionSemantic(sc);
             }
             if (d.needThis() && sc.intypeof != 1)
@@ -6061,6 +6062,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             if (TupleDeclaration tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
+                fillTupleExpExps(e.isTupleExp(), tup);
                 e = e.expressionSemantic(sc);
                 return e;
             }
