@@ -420,13 +420,14 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
 
     // Compute again
     tempdecl.onemember = null;
-    if (tempdecl.members)
+    if (tempdecl.members && tempdecl.ident)
     {
         Dsymbol s;
         if (oneMembers(tempdecl.members, s, tempdecl.ident) && s)
         {
             tempdecl.onemember = s;
             s.parent = tempdecl;
+            tempdecl.computeIsTrivialAlias(s);
         }
     }
 
