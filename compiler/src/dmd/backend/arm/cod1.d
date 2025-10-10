@@ -167,19 +167,20 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 
 unittest
 {
-    code cs;
-    cs.Sextend = Extend.UXTB;
-    cs.reg = 0;
-    loadFromEA(cs,0,8,1);
-    assert(cs.Iop == 0x92001C00); // AND x0,x0,#0xFF
+    //debug printf("test loadFromEA()\n");
 
-    cs.Sextend = Extend.UXTH;
-    loadFromEA(cs,0,8,2);
-    assert(cs.Iop == 0x92003C00); // AND x0,x0,#0xFFFF
+    static uint test(Extend extend, reg_t csreg, reg_t reg, uint szw, uint szr)
+    {
+        code cs;
+        cs.Sextend = cast(ubyte)extend;
+        cs.reg = csreg;
+        loadFromEA(cs,reg,szw,szr);
+        return cs.Iop;
+    }
 
-    cs.Sextend = Extend.UXTW;
-    loadFromEA(cs,0,8,4);
-    assert(cs.Iop == 0x2A0003E0); // MOV w0,w0
+    assert(test(Extend.UXTB, 0, 0, 8, 1) == 0x92001C00); // AND x0,x0,#0xFF
+    assert(test(Extend.UXTH, 0, 0, 8, 2) == 0x92003C00); // AND x0,x0,#0xFFFF
+    assert(test(Extend.UXTW, 0, 0, 4, 2) == 0x2A0003E0); // MOV w0,w0
 }
 
 /************************************
