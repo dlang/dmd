@@ -62,6 +62,7 @@ import dmd.semantic2;
 import dmd.sideeffect;
 import dmd.statement;
 import dmd.target;
+import dmd.targetcompiler;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
@@ -786,18 +787,20 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         Dsymbol sapplyOld = sapply; // 'sapply' will be NULL if and after 'inferApplyArgTypes' errors
 
-        /* Check for inference errors and apply mutability checks inline */
+        /* Check for inference errors and apply modifier checks inline */
         if (!inferApplyArgTypes(fs, sc, sapply))
         {
             bool foundMismatch = false;
             size_t foreachParamCount = 0;
+
             if (sapplyOld)
             {
                 if (FuncDeclaration fd = sapplyOld.isFuncDeclaration())
                 {
                     auto fparameters = fd.getParameterList();
 
-                    if (fparameters.length == 1)
+                    // ignore overloads, can't determine which non-matching is closest
+                    if (!fd.overnext && fparameters.length == 1)
                     {
                         // first param should be the callback function
                         Parameter fparam = fparameters[0];
@@ -809,16 +812,14 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                             foreachParamCount = tf.parameterList.length;
                             foundMismatch = true;
 
-                            // Mutability check
-                            if (fs.aggr && fs.aggr.type && fd.type && fs.aggr.type.isConst() && !fd.type.isConst())
+                            if (fd.isThis() &&
+                                !MODmethodConv(fs.aggr.type.mod, fd.type.mod))
                             {
-                                // First error: The call site
-                                error(fs.loc, "mutable method `%s.%s` is not callable using a `const` object",
-                                    fd.parent ? fd.parent.toPrettyChars() : "unknown", fd.toChars());
-
-                                // Second error: Suggest how to fix
-                                errorSupplemental(fd.loc, "Consider adding `const` or `inout` here");
-
+                                error(fs.aggr.loc, "%s method `%s` is not callable using a `%s` foreach aggregate",
+                                    !fd.type.mod ? "mutable" : fd.type.modToChars(),
+                                    fd.toPrettyChars(),
+                                    fs.aggr.type.toChars());
+                                errorSupplemental(fd.loc, "Consider adding a method type qualifier here");
                                 return setError();
                             }
                         }
@@ -837,24 +838,6 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 error(fs.loc, "cannot uniquely infer `foreach` argument types");
 
             return setError();
-        }
-
-        // If inference succeeds, proceed with post-checks
-        if (sapply && sapply.isFuncDeclaration())
-        {
-            FuncDeclaration fd = sapply.isFuncDeclaration();
-
-            if (fs.aggr && fs.aggr.type && fd.type && fs.aggr.type.isConst() && !fd.type.isConst())
-            {
-                // First error: The call site
-                error(fs.loc, "mutable method `%s.%s` is not callable using a `const` object",
-                    fd.parent ? fd.parent.toPrettyChars() : "unknown", fd.toChars());
-
-                // Second error: Suggest how to fix
-                errorSupplemental(fd.loc, "Consider adding `const` or `inout` here");
-
-                return setError();
-            }
         }
 
         Type tab = fs.aggr.type.toBasetype();
@@ -2596,6 +2579,15 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             if (checkNonAssignmentArrayOp(rs.exp))
                 rs.exp = ErrorExp.get();
 
+            if (fd.ident == Id.apply && rs.exp.isConst() && rs.exp.toInteger() != 0)
+            {
+                // @@@DEPRECATED_2.121
+                // uncomment ErrorExp and call `error`
+                deprecation(rs.exp.loc, "cannot return non-zero compile-time value from `opApply`");
+                deprecationSupplemental(rs.exp.loc, "Any non-zero value must be the result of calling its delegate");
+                //rs.exp = ErrorExp.get();
+            }
+
             // Extract side-effect part
             rs.exp = Expression.extractLast(rs.exp, e0);
             if (rs.exp.isCallExp())
@@ -2715,10 +2707,13 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                      */
                     Scope* sc2 = sc.push();
                     sc2.eSink = global.errorSinkNull;
-                    bool err = checkReturnEscapeRef(*sc2, rs.exp, true);
+                    bool addressable = checkAddressable(rs.exp, sc2, "`ref` return");
+                    bool escapes = checkReturnEscapeRef(*sc2, rs.exp, true);
                     sc2.pop();
 
-                    if (err)
+                    if (!addressable)
+                        turnOffRef(() { checkAddressable(rs.exp, sc, "`ref` return"); });
+                    else if (escapes)
                         turnOffRef(() { checkReturnEscapeRef(*sc, rs.exp, false); });
                     else if (!rs.exp.type.constConv(tf.next))
                         turnOffRef(
@@ -3297,7 +3292,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         if (!global.params.useExceptions)
         {
-            error(tcs.loc, "cannot use try-catch statements with %s", global.params.betterC ? "-betterC".ptr : "-nothrow".ptr);
+            error(tcs.loc, "cannot use try-catch statements with `%s`", global.params.betterC ? "-betterC".ptr : "-nothrow".ptr);
             return setError();
         }
 
@@ -3445,10 +3440,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             // https://issues.dlang.org/show_bug.cgi?id=23159
             if (!global.params.useExceptions)
             {
-                version (IN_GCC)
-                    error(oss.loc, "`%s` cannot be used with `-fno-exceptions`", Token.toChars(oss.tok));
-                else
-                    error(oss.loc, "`%s` cannot be used with -betterC", Token.toChars(oss.tok));
+                error(oss.loc, "`%s` cannot be used with `-%s`", Token.toChars(oss.tok), SwitchScopeGuard);
                 return setError();
             }
 
@@ -3646,7 +3638,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         assert(sc.func);
         if (!(cas.stc & STC.pure_) && sc.func.setImpure(cas.loc, "executing an `asm` statement without `pure` annotation"))
             error(cas.loc, "`asm` statement is assumed to be impure - mark it with `pure` if it is not");
-        if (!(cas.stc & STC.nogc) && sc.func.setGC(cas.loc, "executing an `asm` statement without `@nogc` annotation"))
+        if (!(cas.stc & STC.nogc) && sc.setGC(sc.func, cas.loc, "executing an `asm` statement without `@nogc` annotation"))
             error(cas.loc, "`asm` statement is assumed to use the GC - mark it with `@nogc` if it does not");
         // @@@DEPRECATED_2.114@@@
         // change deprecation() to error(), add `else` and remove `| STC.safe`
@@ -3690,7 +3682,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             // for the current scope.
             if (s.mod !is null)
             {
-                Module.addDeferredSemantic2(s);     // https://issues.dlang.org/show_bug.cgi?id=14666
+                addDeferredSemantic2(s);     // https://issues.dlang.org/show_bug.cgi?id=14666
                 sc.insert(s);
 
                 foreach (aliasdecl; s.aliasdecls)
@@ -3721,10 +3713,8 @@ public bool throwSemantic(Loc loc, ref Expression exp, Scope* sc)
 {
     if (!global.params.useExceptions)
     {
-        version (IN_GCC)
-            loc.error("cannot use `throw` statements with `-fno-exceptions`");
-        else
-            loc.error("cannot use `throw` statements with %s", global.params.betterC ? "-betterC".ptr : "-nothrow".ptr);
+        const(char)* s = SwitchExceptions ? SwitchExceptions : global.params.betterC ? "betterC".ptr : "nothrow".ptr;
+        loc.error("cannot use `throw` statements with `-%s`", s);
         return false;
     }
 
@@ -3977,7 +3967,10 @@ private extern(D) Statement loopReturn(Expression e, Statements* cases, Loc loc)
  */
 private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFunction tfld)
 {
-    auto taa = fs.aggr.type.toBasetype().isTypeAArray();
+    auto tab = fs.aggr.type.toBasetype();
+    auto taa = tab.isTypeAArray();
+    const isStaticOrDynamicArray = tab.isTypeSArray() || tab.isTypeDArray();
+
     auto params = new Parameters();
     foreach (i, p; *fs.parameters)
     {
@@ -4016,13 +4009,29 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
         LcopyArg:
             id = Identifier.generateId("__applyArg", cast(int)i);
 
-            Initializer ie = new ExpInitializer(fs.loc, new IdentifierExp(fs.loc, id));
-            auto v = new VarDeclaration(fs.loc, p.type, p.ident, ie);
+            // Make sure `p.type` matches the signature expected by the druntime helpers.
+            const isIndexParam = i == 0 && fs.parameters.length == 2;
+            Type userType = p.type;
+            Expression initExp = new IdentifierExp(fs.loc, id);
+            if (taa)
+            {
+                p.type = isIndexParam ? taa.index : taa.nextOf();
+                p.type = p.type.substWildTo(MODFlags.const_);
+            }
+            else if (isStaticOrDynamicArray && isIndexParam)
+            {
+                p.type = Type.tsize_t;
+                // If the user used an incompatible index type (e.g., `int` instead
+                // of `size_t` - which is deprecated nowadays), then add a cast.
+                if (!p.type.implicitConvTo(userType))
+                    initExp = new CastExp(fs.loc, initExp, userType);
+            }
+
+            Initializer initializer = new ExpInitializer(fs.loc, initExp);
+            auto v = new VarDeclaration(fs.loc, userType, p.ident, initializer);
             v.storage_class |= STC.temp | (stc & STC.scope_);
             Statement s = new ExpStatement(fs.loc, v);
             fs._body = new CompoundStatement(fs.loc, s, fs._body);
-            if (taa)
-                p.type = (i == 1 || fs.parameters.length == 1 ? taa.nextOf() : taa.index).substWildTo(MODFlags.const_);
         }
         params.push(new Parameter(fs.loc, stc, p.type, id, null, null));
     }
@@ -4843,7 +4852,10 @@ private Statements* flatten(Statement statement, Scope* sc)
             {
                 Statement s = p.parseStatement(ParseStatementFlags.curlyScope);
                 if (!s || global.errors != errors)
+                {
+                    errorSupplemental(s.loc, "while parsing string mixin statement");
                     return errorStatements();
+                }
                 a.push(s);
             }
             return a;

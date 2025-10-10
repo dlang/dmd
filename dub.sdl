@@ -98,6 +98,9 @@ subPackage {
   excludedSourceFiles "compiler/src/dmd/backend/*"
   excludedSourceFiles "compiler/src/dmd/root/*"
   excludedSourceFiles "compiler/src/dmd/common/*"
+  excludedSourceFiles "compiler/src/dmd/iasm/*"
+  excludedSourceFiles "compiler/src/dmd/lib/*"
+  excludedSourceFiles "compiler/src/dmd/irgen/*"
   excludedSourceFiles "compiler/src/dmd/{\
     astbase,\
     console,\
@@ -121,28 +124,9 @@ subPackage {
   }.d"
   excludedSourceFiles "compiler/src/dmd/{\
     dmsc,\
-    e2ir,\
     eh,\
-    glue,\
-    iasmdmd,\
-    iasmgcc,\
-    irstate,\
-    lib/package,\
-    lib/elf,\
-    lib/mach,\
-    lib/mscoff,\
-    lib/scanelf,\
-    lib/scanmach,\
-    lib/scanmscoff,\
     link,\
-    objc_glue,\
-    s2ir,\
-    tocsym,\
-    toctype,\
-    tocvdebug,\
-    toobj,\
-    todt,\
-    toir\
+
   }.d"
 
   dependency "dmd:parser" version="*"

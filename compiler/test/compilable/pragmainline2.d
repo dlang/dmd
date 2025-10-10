@@ -75,3 +75,34 @@ void music()
     auto f = jazz();
     auto b = metal();
 }
+
+// test inlining in core.internal.convert for hash generation
+bool test_toUByte()
+{
+    import core.internal.convert;
+
+    const(ubyte)[] ubarr;
+    int[] iarr = [1, 2, 3];
+    ubarr = toUbyte(iarr);
+    char[] carr = [1, 2, 3];
+    ubarr = toUbyte(carr);
+    long lng = 42;
+    ubarr = toUbyte(lng);
+    char ch = 42;
+    ubarr = toUbyte(ch);
+    static if(is(__vector(int[4])))
+    {
+        __vector(int[4]) vint = [1, 2, 3, 4];
+        ubarr = toUbyte(vint);
+    }
+    enum E { E1, E2, E3 }
+    E eval = E.E1;
+    ubarr = toUbyte(eval);
+    void delegate() dg;
+    ubarr = toUbyte(dg);
+    struct S { int x; }
+    S sval;
+    ubarr = toUbyte(sval);
+	return true;
+}
+static assert(test_toUByte());

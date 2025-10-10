@@ -103,7 +103,20 @@ version (linux)
     alias ulong     dev_t;
     alias uint      gid_t;
     alias uint      mode_t;
-    alias ulong_t   nlink_t;
+
+  version (X86_64)
+    alias ulong nlink_t;
+  else version (S390)
+    alias size_t nlink_t;
+  else version (PPC64)
+    alias size_t nlink_t;
+  else version (MIPS64)
+    alias size_t nlink_t;
+  else version (HPPA64)
+    alias size_t nlink_t;
+  else
+    alias uint nlink_t;
+
     alias int       pid_t;
     //size_t (defined in core.stdc.stddef)
     alias c_long    ssize_t;
@@ -111,6 +124,7 @@ version (linux)
 
     version (CRuntime_Musl)
     {
+        static assert(off_t.sizeof == 8);
         /**
          * Musl versions before v1.2.0 (up to v1.1.24) had different
          * definitions for `time_t` for 32 bits.
@@ -992,6 +1006,7 @@ else version (DragonFlyBSD)
 else version (Solaris)
 {
     alias uint pthread_t;
+    alias int lwpid_t; // non-standard
 
     struct pthread_attr_t
     {

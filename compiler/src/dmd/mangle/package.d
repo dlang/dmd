@@ -145,6 +145,7 @@ import dmd.declaration;
 import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dsymbol;
+import dmd.dsymbolsem : toAlias;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;

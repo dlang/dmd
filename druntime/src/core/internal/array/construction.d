@@ -65,7 +65,7 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from, char* ma
 
     enforceRawArraysConformable("initialization", T.sizeof, vFrom, vTo);
 
-    static if (hasElaborateCopyConstructor!T)
+    static if (__traits(hasCopyConstructor, T))
     {
         size_t i;
         try
@@ -88,8 +88,30 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from, char* ma
     }
     else
     {
-        // blit all elements at once
-        memcpy(cast(void*) to.ptr, from.ptr, to.length * T.sizeof);
+        if (to.length)
+        {
+            // blit all elements at once
+            memcpy(cast(void*) to.ptr, from.ptr, to.length * T.sizeof);
+
+            // call postblits if they exist
+            static if (__traits(hasPostblit, T))
+            {
+                import core.internal.lifetime : __doPostblit;
+                size_t i = 0;
+                try __doPostblit(to, i);
+                catch (Exception o)
+                {
+                    // Destroy, in reverse order, what we've constructed so far
+                    while (i--)
+                    {
+                        auto elem = cast(Unqual!T*) &to[i];
+                        destroy(*elem);
+                    }
+
+                    throw o;
+                }
+            }
+        }
     }
 
     return to;
@@ -441,16 +463,32 @@ unittest
 version (D_ProfileGC)
 {
     /**
-    * TraceGC wrapper around $(REF _d_newitemT, core,lifetime).
+    * TraceGC wrapper around $(REF _d_newarrayT, core,internal.array.construction).
     */
     T[] _d_newarrayTTrace(T)(size_t length, bool isShared, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
     {
         version (D_TypeInfo)
         {
             import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!(T.stringof, "_d_newarrayT"));
+            mixin(TraceHook!("T", "_d_newarrayT"));
 
             return _d_newarrayT!T(length, isShared);
+        }
+        else
+            assert(0, "Cannot create new array if compiling without support for runtime type information!");
+    }
+
+    /**
+    * TraceGC wrapper around $(REF _d_newarrayU, core,internal.array.construction).
+    */
+    T[] _d_newarrayUTrace(T)(size_t length, bool isShared, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
+    {
+        version (D_TypeInfo)
+        {
+            import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
+            mixin(TraceHook!("T", "_d_newarrayU"));
+
+            return _d_newarrayUPureNothrow!T(length, isShared);
         }
         else
             assert(0, "Cannot create new array if compiling without support for runtime type information!");
@@ -580,7 +618,7 @@ version (D_ProfileGC)
         version (D_TypeInfo)
         {
             import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!(T.stringof, "_d_newarraymTX"));
+            mixin(TraceHook!("T", "_d_newarraymTX"));
 
             return _d_newarraymTX!(Tarr, T)(dims, isShared);
         }

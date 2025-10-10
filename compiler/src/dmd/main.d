@@ -37,7 +37,7 @@ import dmd.dmdparams;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.dtoh;
-import dmd.glue : generateCodeAndWrite;
+import dmd.glue : generateCodeAndWrite, ObjcGlue_initialize;
 import dmd.dmodule;
 import dmd.dmsc : backend_init, backend_term;
 import dmd.doc;
@@ -111,7 +111,7 @@ extern (C) int main(int argc, char** argv)
  * Returns:
  * Return code of the application
  */
-extern (C) int _Dmain(char[][])
+extern (C) int _Dmain(const(char)[][] dargs)
 {
     // possibly install memory error handler
     version (DigitalMars)
@@ -144,8 +144,7 @@ extern (C) int _Dmain(char[][])
             fputs(buf.peekChars(), stderr);
         }
 
-    auto args = Runtime.cArgs();
-    return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
+    return tryMain(dargs, global.params);
 }
 
 /************************************************************************************/
@@ -159,14 +158,13 @@ private:
  * provided source file and do semantic analysis on them.
  *
  * Params:
- *   argc = Number of arguments passed via command line
  *   argv = Array of string arguments passed via command line
  *   params = set based on argc, argv
  *
  * Returns:
  *   Application return code
  */
-private int tryMain(size_t argc, const(char)** argv, out Param params)
+private int tryMain(const(char)[][] argv, out Param params)
 {
     import dmd.common.charactertables;
     import dmd.sarif;
@@ -190,7 +188,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
 
     target.setTargetBuildDefaults();
 
-    if (parseCommandlineAndConfig(argc, argv, params, files))
+    if (parseCommandlineAndConfig(argv, params, files))
         return EXIT_FAILURE;
 
     global.compileEnv.previewIn        = params.previewIn;
@@ -452,7 +450,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     if (params.timeTrace)
     {
         import dmd.timetrace;
-        initializeTimeTrace(params.timeTraceGranularityUs, argv[0]);
+        initializeTimeTrace(params.timeTraceGranularityUs, toCString(argv[0]).ptr);
     }
 
     // Create Modules
@@ -615,7 +613,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     }
     //if (global.errors)
     //    fatal();
-    Module.runDeferredSemantic();
+    runDeferredSemantic();
     if (Module.deferred.length)
     {
         for (size_t i = 0; i < Module.deferred.length; i++)
@@ -633,7 +631,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
             message("semantic2 %s", m.toChars());
         m.semantic2(null);
     }
-    Module.runDeferredSemantic2();
+    runDeferredSemantic2();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
@@ -658,7 +656,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
             modules.push(m);
         }
     }
-    Module.runDeferredSemantic3();
+    runDeferredSemantic3();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
@@ -669,7 +667,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
         {
             if (params.v.verbose)
                 message("inline scan %s", m.toChars());
-            inlineScanModule(m);
+            inlineScanModule(m, global.errorSink);
         }
     }
 
@@ -689,7 +687,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     {
         foreach (i; 1 .. modules[0].aimports.length)
             semantic3OnDependencies(modules[0].aimports[i]);
-        Module.runDeferredSemantic3();
+        runDeferredSemantic3();
 
         const data = (*ob)[];
         if (params.moduleDeps.name)
@@ -741,7 +739,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     }
 
     if (global.params.cxxhdr.doOutput)
-        genCppHdrFiles(modules);
+        genCppHdrFiles(modules, global.errorSink);
 
     if (global.errors)
         fatal();
@@ -761,6 +759,7 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
     }
 
     {
+        ObjcGlue_initialize();
         timeTraceBeginEvent(TimeTraceEventType.codegenGlobal);
         scope (exit) timeTraceEndEvent(TimeTraceEventType.codegenGlobal);
         generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
@@ -872,13 +871,12 @@ private int tryMain(size_t argc, const(char)** argv, out Param params)
  * Parses the command line arguments and configuration files
  *
  * Params:
- *   argc = Number of arguments passed via command line
  *   argv = Array of string arguments passed via command line
  *   params = parameters from argv
  *   files = files from argv
  * Returns: true on failure
  */
-bool parseCommandlineAndConfig(size_t argc, const(char)** argv, out Param params, ref Strings files)
+bool parseCommandlineAndConfig(const(char)[][] argv, out Param params, ref Strings files)
 {
     // Detect malformed input
     static bool badArgs()
@@ -887,15 +885,16 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, out Param params
         return true;
     }
 
-    if (argc < 1 || !argv)
+    const size_t argc = argv.length;
+    if (argc < 1)
         return badArgs();
     // Convert argc/argv into arguments[] for easier handling
-    Strings arguments = Strings(argc);
-    for (size_t i = 0; i < argc; i++)
+    Strings arguments = Strings(argv.length);
+    for (size_t i = 0; i < argv.length; i++)
     {
         if (!argv[i])
             return badArgs();
-        arguments[i] = argv[i];
+        arguments[i] = toCString(argv[i]).ptr;
     }
     if (const(char)* missingFile = responseExpand(arguments)) // expand response files
         error(Loc.initial, "cannot open response file '%s'", missingFile);
@@ -988,7 +987,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, out Param params
 
 
 // in druntime:
-alias MainFunc = extern(C) int function(char[][] args);
+alias MainFunc = extern(C) int function(const(char)[][] args);
 extern (C) int _d_run_main(int argc, char** argv, MainFunc dMain);
 
 

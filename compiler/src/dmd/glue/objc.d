@@ -1,19 +1,21 @@
 /**
- * Glue code for Objective-C interop.
+ * glue code for Objective-C interop.
  *
  * Copyright:   Copyright (C) 2015-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/objc_glue.d, _objc_glue.d)
- * Documentation:  https://dlang.org/phobos/dmd_objc_glue.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/objc_glue.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/objc_glue.d, _objc_glue.d)
+ * Documentation:  https://dlang.org/phobos/dmd_glue_objc_glue.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/glue/objc_glue.d
  */
 
-module dmd.objc_glue;
+module dmd.glue.objc;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
+
+import dmd.glue;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -24,11 +26,12 @@ import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.func;
-import dmd.glue;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.objc;
 import dmd.target;
+
+import dmd.dsymbolsem: size;
 
 import dmd.root.stringtable;
 import dmd.root.array;
@@ -44,15 +47,25 @@ import dmd.backend.type;
 import dmd.backend.mach;
 import dmd.backend.obj;
 
-private __gshared ObjcGlue _objc;
+public void ObjcGlue_initialize()
+{
+    if (target.objc.supported)
+        _objc = new Supported;
+    else
+        _objc = new Unsupported;
+}
 
-ObjcGlue objc()
+package(dmd.glue):
+
+private __gshared Objcglue _objc;
+
+Objcglue objc()
 {
     return _objc;
 }
 
 // Should be an interface
-extern(C++) abstract class ObjcGlue
+extern(C++) abstract class Objcglue
 {
     static struct ElemResult
     {
@@ -60,13 +73,6 @@ extern(C++) abstract class ObjcGlue
         elem* ethis;
     }
 
-    static void initialize()
-    {
-        if (target.objc.supported)
-            _objc = new Supported;
-        else
-            _objc = new Unsupported;
-    }
 
     /// Resets the Objective-C glue layer.
     abstract void reset();
@@ -129,7 +135,7 @@ extern(C++) abstract class ObjcGlue
 
 private:
 
-extern(C++) final class Unsupported : ObjcGlue
+extern(C++) final class Unsupported : Objcglue
 {
     override void reset()
     {
@@ -179,7 +185,7 @@ extern(C++) final class Unsupported : ObjcGlue
     }
 }
 
-extern(C++) final class Supported : ObjcGlue
+extern(C++) final class Supported : Objcglue
 {
     extern (D) this()
     {
@@ -204,7 +210,7 @@ extern(C++) final class Supported : ObjcGlue
     override ElemResult setupMethodCall(FuncDeclaration fd, TypeFunction tf,
         bool directcall, elem* ec, elem* ehidden, elem* ethis)
     {
-        import dmd.e2ir : addressElem;
+        import dmd.glue.e2ir : addressElem;
 
         if (directcall) // super call
         {

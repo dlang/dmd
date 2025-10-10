@@ -460,6 +460,19 @@ private void syment_set_name(SymbolTable32* sym, const(char)* name)
     size_t len = strlen(name);
     if (len > 8)
     {   // Use offset into string table
+        // symbols larger than 64kB crash link.exe 14.44 or later with /DEBUG
+        OutBuffer buf;
+        if (len > CV8_MAX_SYMBOL_LENGTH)
+        {
+            import dmd.common.blake3;
+            const hash = blake3((cast(ubyte*)name)[0 .. len]);
+            //truncate and append the first 16 bytes of the hash
+            buf.put(name, CV8_MAX_SYMBOL_LENGTH - 33);
+            buf.put('_');
+            buf.writeHexString(hash[0 .. 16], true);
+            len = buf.length;
+            name = buf.peekChars();
+        }
         IDXSTR idx = MsCoffObj_addstr(string_table, name[0 .. len]);
         sym.Zeros = 0;
         sym.Offset = idx;

@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/e2ir.d, _e2ir.d)
- * Documentation: https://dlang.org/phobos/dmd_e2ir.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/e2ir.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/e2ir.d, _e2ir.d)
+ * Documentation: https://dlang.org/phobos/dmd_glue_e2ir.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/glue/e2ir.d
  */
 
-module dmd.e2ir;
+module dmd.glue.e2ir;
 
 import core.stdc.stdio;
 import core.stdc.stddef;
@@ -21,6 +21,14 @@ import dmd.root.ctfloat;
 import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.stringtable;
+
+import dmd.glue;
+import dmd.glue.objc;
+import dmd.glue.s2ir;
+import dmd.glue.tocsym;
+import dmd.glue.toctype;
+import dmd.glue.toir;
+import dmd.glue.toobj;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -37,29 +45,22 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : include, _isZeroInit;
+import dmd.dsymbolsem : include, _isZeroInit, toAlias, isPOD;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.expressionsem : fill;
+import dmd.expressionsem : fill, isIdentical, isLvalue;
 import dmd.func;
-import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
-import dmd.objc_glue;
 import dmd.printast;
-import dmd.s2ir;
 import dmd.sideeffect;
 import dmd.statement;
 import dmd.target;
 import dmd.templatesem;
-import dmd.tocsym;
-import dmd.toctype;
-import dmd.toir;
 import dmd.tokens;
-import dmd.toobj;
 import dmd.typinf;
 import dmd.typesem;
 import dmd.visitor;
@@ -80,6 +81,8 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.x86.code_x86;
+
+package(dmd.glue):
 
 alias Elems = Array!(elem *);
 
@@ -151,24 +154,6 @@ bool ISX64REF(ref IRState irs, Expression exp)
     return false;
 }
 
-/********
- * If type is a composite and is to be passed by reference instead of by value
- * Params:
- *      target = target instruction set
- *      t = type
- * Returns:
- *      true if passed by reference
- * Reference:
- *      Procedure Call Standard for the Arm 64-bi Architecture (AArch64) pg 23 B.4
- *      "If the argument type is a Composite Type that is larger than 16 bytes, then the
- *      argument is copied to memory allocated by the caller and the argument is replaced
- *      by a pointer to the copy."
- */
-static bool passTypeByRef(ref const Target target, Type t)
-{
-    return (target.isAArch64 && t.size(Loc.initial) > 16);
-}
-
 /**************************************************
  * Generate a copy from e2 to e1.
  * Params:
@@ -234,16 +219,20 @@ bool type_zeroCopy(type* t)
 
 Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
 {
-    //printf("toStringSymbol() %p\n", stringTab);
+    //printf("toStringSymbol() %s\n", str);
     auto sv = stringTab.update(str, len * sz);
     if (sv.value)
         return sv.value;
 
-    Symbol* si;
+    if (target.isAArch64)
+    {
+        /* Generate string symbol of the form l_str.N
+         */
+    }
 
     if (target.os != Target.OS.Windows)
     {
-        si = out_string_literal(str, cast(uint)len, cast(uint)sz);
+        Symbol* si = out_string_literal(str, cast(uint)len, cast(uint)sz);
         sv.value = si;
         return sv.value;
     }
@@ -297,6 +286,7 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
         }
     }
 
+    Symbol* si;
     si = symbol_calloc(buf[]);
     si.Sclass = SC.comdat;
     si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
@@ -344,12 +334,10 @@ Symbol* toStringSymbol(StringExp se)
 
 void toTraceGC(ref IRState irs, elem* e, Loc loc)
 {
-    static immutable RTLSYM[2][7] map =
+    static immutable RTLSYM[2][5] map =
     [
-
         [ RTLSYM.CALLFINALIZER, RTLSYM.TRACECALLFINALIZER ],
         [ RTLSYM.CALLINTERFACEFINALIZER, RTLSYM.TRACECALLINTERFACEFINALIZER ],
-
 
         [ RTLSYM.ARRAYAPPENDCD, RTLSYM.TRACEARRAYAPPENDCD ],
         [ RTLSYM.ARRAYAPPENDWD, RTLSYM.TRACEARRAYAPPENDWD ],
@@ -620,6 +608,15 @@ Symbol* toExtSymbol(Dsymbol s)
         return toImport(s);
     else
         return toSymbol(s);
+}
+
+private elem* toEfilenamePtr(Module m)
+{
+    //printf("toEfilenamePtr(%s)\n", m.toChars());
+    const(char)* id = m.srcfile.toChars();
+    size_t len = strlen(id);
+    Symbol* s = toStringSymbol(id, len, 1);
+    return el_ptr(s);
 }
 
 /*********************************************
@@ -1152,14 +1149,22 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (tb.ty == Tpointer)
         {
-            e = el_calloc();
-            e.Eoper = OPstring;
-            // freed in el_free
-            const len = cast(size_t)((se.numberOfCodeUnits() + 1) * se.sz);
-            e.Vstring = cast(char *)mem_malloc2(cast(uint) len);
-            se.writeTo(e.Vstring, true);
-            e.Vstrlen = len;
-            e.Ety = TYnptr;
+            if (config.objfmt == OBJ_MACH && target.isAArch64)
+            {
+                Symbol* si = toStringSymbol(se);
+                e = el_ptr(si);
+            }
+            else
+            {
+                e = el_calloc();
+                e.Eoper = OPstring;
+                // freed in el_free
+                const len = cast(size_t)((se.numberOfCodeUnits() + 1) * se.sz);
+                e.Vstring = cast(char *)mem_malloc2(cast(uint) len);
+                se.writeTo(e.Vstring, true);
+                e.Vstrlen = len;
+                e.Ety = TYnptr;
+            }
         }
         else
         {
@@ -2829,6 +2834,59 @@ elem* toElem(Expression e, ref IRState irs)
         assert(0);
     }
 
+    /***************************************
+     */
+
+    elem* visitConstruct(ConstructExp ae)
+    {
+        Type t1b = ae.e1.type.toBasetype();
+        if (t1b.ty != Tsarray && t1b.ty != Tarray)
+            return visitAssign(ae);
+
+        // only non-trivial array constructions have been lowered (non-POD elements basically)
+        Type t1e = t1b.nextOf();
+        TypeStruct ts = t1e.baseElemOf().isTypeStruct();
+        if (!ts || !(ts.sym.postblit || ts.sym.hasCopyCtor || ts.sym.dtor))
+            return visitAssign(ae);
+
+        // ref-constructions etc. don't have lowering
+        if (!(t1b.ty == Tsarray || ae.e1.isSliceExp) ||
+            (ae.e1.isVarExp && ae.e1.isVarExp.var.isVarDeclaration.isReference))
+            return visitAssign(ae);
+
+        // Construction from an equivalent other array?
+        Type t2b = ae.e2.type.toBasetype();
+        // skip over a (possibly implicit) cast of a static array RHS to a slice
+        Expression rhs = ae.e2;
+        Type rhsType = t2b;
+        if (t2b.ty == Tarray)
+        {
+            auto ce = rhs.isCastExp();
+            auto ct = ce ? ce.e1.type.toBasetype() : null;
+            if (ct && ct.ty == Tsarray)
+            {
+                rhs = ce.e1;
+                rhsType = ct;
+            }
+        }
+        const lowerToArrayCtor =
+            ((rhsType.ty == Tarray && !rhs.isArrayLiteralExp) ||
+             (rhsType.ty == Tsarray && rhs.isLvalue)) &&
+            t1e.equivalent(t2b.nextOf);
+
+
+        // Construction from a single element?
+        const lowerToArraySetCtor = !lowerToArrayCtor && t1e.equivalent(t2b);
+
+        if (!lowerToArrayCtor && !lowerToArraySetCtor)
+            return visitAssign(ae);
+
+        const hookName = lowerToArrayCtor ? "_d_arrayctor" : "_d_arraysetctor";
+        assert(ae.lowering, "This case should have been rewritten to `" ~ hookName ~ "` in the semantic phase");
+        return toElem(ae.lowering, irs);
+    }
+
+
     elem* visitLoweredAssign(LoweredAssignExp e)
     {
         return toElem(e.lowering, irs);
@@ -4170,7 +4228,7 @@ elem* toElem(Expression e, ref IRState irs)
         case EXP.identity:      return visitIdentity(e.isIdentityExp());
         case EXP.in_:           return visitIn(e.isInExp());
         case EXP.assign:        return visitAssign(e.isAssignExp());
-        case EXP.construct:     return visitAssign(e.isConstructExp());
+        case EXP.construct:     return visitConstruct(e.isConstructExp());
         case EXP.blit:          return visitAssign(e.isBlitExp());
         case EXP.loweredAssignExp: return visitLoweredAssign(e.isLoweredAssignExp());
         case EXP.addAssign:     return visitAddAssign(e.isAddAssignExp());
@@ -4622,7 +4680,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
              * information available to do it.
              *
              * Casting from a C++ interface to a non-C++ interface
-             * always results in null because there's no way one
+             * always results in null because there is no way one
              * can be derived from the other.
              */
             e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
@@ -4655,6 +4713,9 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     if (ftym == ttym)
         return Lret(ce, e);
 
+    // OSX AArch64 long doubles are 64 bits
+    bool RealIsDouble = target.os == Target.os.OSX && target.isAArch64;
+
     /* Reduce combinatorial explosion by rewriting the 'to' and 'from' types to a
      * generic equivalent (as far as casting goes)
      */
@@ -4670,6 +4731,10 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         case Twchar:    tty = Tuns16;   break;
         case Tdchar:    tty = Tuns32;   break;
         case Tvoid:     return Lpaint(ce, e, ttym);
+
+        case Tfloat80:          if (RealIsDouble) tty = Tfloat64;     break;
+        case Timaginary80:      if (RealIsDouble) tty = Timaginary64; break;
+        case Tcomplex80:        if (RealIsDouble) tty = Tcomplex64;   break;
 
         case Tbool:
         {
@@ -4697,6 +4762,10 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         //  value to cast, hence we discard the cast
         case Tnoreturn:
             return Lret(ce, e);
+
+        case Tfloat80:          if (RealIsDouble) fty = Tfloat64;     break;
+        case Timaginary80:      if (RealIsDouble) fty = Timaginary64; break;
+        case Tcomplex80:        if (RealIsDouble) fty = Tcomplex64;   break;
 
         default:
             break;
@@ -5304,22 +5373,6 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     }
 }
 
-/******************************************
- * If argument to a function should use OPstrpar,
- * fix it so it does and return it.
- */
-static elem* useOPstrpar(elem* e)
-{
-    tym_t ty = tybasic(e.Ety);
-    if (ty == TYstruct || ty == TYarray)
-    {
-        e = el_una(OPstrpar, TYstruct, e);
-        e.ET = e.E1.ET;
-        assert(e.ET);
-    }
-    return e;
-}
-
 /************************************
  * Call a function.
  */
@@ -5784,7 +5837,16 @@ elem* callfunc(Loc loc,
             e = el_una(OPucall, tyret, ec);
 
         if (tf.parameterList.varargs != VarArg.none)
-            e.Eflags |= EFLAGS_variadic;
+        {
+            if (I64 && config.exe != EX_WIN64)
+                e.Eflags |= EFLAGS_variadic;
+            if (config.exe == EX_OSX64 && target.isAArch64)
+            {
+                const length = tf.parameterList.length;
+                assert(length < ubyte.max); // 254 should be enough for anybody
+                e.numParams = cast(ubyte)(tf.parameterList.length + 1); // +1 means variadic
+            }
+        }
     }
 
     const isCPPCtor = fd && fd._linkage == LINK.cpp && fd.isCtorDeclaration();
@@ -7086,4 +7148,43 @@ elem* constructVa_start(elem* e)
     else
         assert(0);
     return e;
+}
+
+/******************************************
+ * If argument to a function should use OPstrpar,
+ * fix it so it does and return it.
+ * Params:
+ *      e = argument to be passed to a function
+ * Returns:
+ *      `e` or `e` converted to an OPstrpar
+ */
+private
+elem* useOPstrpar(elem* e)
+{
+    tym_t ty = tybasic(e.Ety);
+    if (ty == TYstruct || ty == TYarray)
+    {
+        e = el_una(OPstrpar, TYstruct, e);
+        e.ET = e.E1.ET;
+        assert(e.ET);
+    }
+    return e;
+}
+
+/********
+ * If type is a composite and is to be passed by reference instead of by value
+ * Params:
+ *      target = target instruction set
+ *      t = type
+ * Returns:
+ *      true if passed by reference
+ * Reference:
+ *      Procedure Call Standard for the Arm 64-bi Architecture (AArch64) pg 23 B.4
+ *      "If the argument type is a Composite Type that is larger than 16 bytes, then the
+ *      argument is copied to memory allocated by the caller and the argument is replaced
+ *      by a pointer to the copy."
+ */
+private bool passTypeByRef(ref const Target target, Type t)
+{
+    return (target.isAArch64 && t.size(Loc.initial) > 16);
 }

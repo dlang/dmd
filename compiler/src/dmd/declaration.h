@@ -40,6 +40,8 @@ namespace dmd
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
     bool isAbstract(ClassDeclaration *cd);
+    bool overloadInsert(Dsymbol *ds, Dsymbol *s);
+    bool equals(const Dsymbol *ds, const Dsymbol *s);
 }
 
 //enum STC : ulong from astenums.d:
@@ -135,8 +137,6 @@ public:
     bool noUnderscore() const;
 
     const char *kind() const override;
-    uinteger_t size(Loc loc) override final;
-
 
     bool isStatic() const { return (storage_class & STCstatic) != 0; }
     LINK resolvedLinkage() const; // returns the linkage, resolving the target-specific `System` one
@@ -183,8 +183,6 @@ public:
 
     TupleDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
-    Type *getType() override;
-    Dsymbol *toAlias2() override;
     bool needThis() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -201,11 +199,7 @@ public:
 
     static AliasDeclaration *create(Loc loc, Identifier *id, Type *type);
     AliasDeclaration *syntaxCopy(Dsymbol *) override;
-    bool overloadInsert(Dsymbol *s) override;
     const char *kind() const override;
-    Type *getType() override;
-    Dsymbol *toAlias() override;
-    Dsymbol *toAlias2() override;
     bool isOverloadable() const override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -220,10 +214,7 @@ public:
     Dsymbol *aliassym;
 
     const char *kind() const override;
-    bool equals(const RootObject * const o) const override;
-    bool overloadInsert(Dsymbol *s) override;
 
-    Dsymbol *toAlias() override;
     Dsymbol *isUnique();
     bool isOverloadable() const override;
 
@@ -298,10 +289,8 @@ public:
     bool isDataseg() override final;
     bool isThreadlocal() override final;
     bool isCTFE();
-    bool isOverlappedWith(VarDeclaration *v);
     bool canTakeAddressOf();
     bool needsScopeDtor();
-    Dsymbol *toAlias() override final;
     // Eliminate need for dynamic_cast
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -702,9 +691,7 @@ public:
     FuncDeclaration *fdensure(FuncDeclaration *fde);
     Expressions *fdrequireParams(Expressions *fdrp);
     Expressions *fdensureParams(Expressions *fdep);
-    bool equals(const RootObject * const o) const override final;
 
-    bool overloadInsert(Dsymbol *s) override;
     bool inUnittest();
     LabelDsymbol *searchLabel(Identifier *ident, Loc loc);
     const char *toPrettyChars(bool QualifyTypes = false) override;
@@ -730,7 +717,6 @@ public:
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
     const char *kind() const override;
-    bool isUnique();
     bool needsClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
@@ -793,7 +779,6 @@ public:
     bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
-    bool overloadInsert(Dsymbol *s) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -806,7 +791,6 @@ public:
     bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
-    bool overloadInsert(Dsymbol *s) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };

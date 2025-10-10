@@ -50,7 +50,7 @@ import dmd.root.string;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.typesem;
+import dmd.typesem : castMod;
 import dmd.visitor;
 
 struct HdrGenState
@@ -3349,7 +3349,7 @@ void toCBufferInstance(const TemplateInstance ti, ref OutBuffer buf, bool qualif
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
 
-    buf.put(ti.name.toChars());
+    buf.put(ti.name == Id.ctor ? "this" : ti.name.toChars());
     tiargsToBuffer(cast() ti, buf, hgs);
 }
 

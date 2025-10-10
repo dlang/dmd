@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/tocvdebug.d, _tocvdebug.d)
- * Documentation:  https://dlang.org/phobos/dmd_tocvdebug.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/tocvdebug.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/tocvdebug.d, _tocvdebug.d)
+ * Documentation:  https://dlang.org/phobos/dmd_glue_tocvdebug.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/glue/tocvdebug.d
  */
 
-module dmd.tocvdebug;
+module dmd.glue.tocvdebug;
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -19,6 +19,8 @@ import core.stdc.time;
 
 import dmd.root.array;
 import dmd.root.rmem;
+
+import dmd.glue.toctype;
 
 import dmd.aggregate;
 import dmd.astenums;
@@ -35,7 +37,6 @@ import dmd.globals;
 import dmd.id;
 import dmd.mtype;
 import dmd.target;
-import dmd.toctype;
 import dmd.visitor;
 
 import dmd.backend.cc;
@@ -50,6 +51,8 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+package(dmd.glue):
 
 /* The CV4 debug format is defined in:
  *      "CV4 Symbolic Debug Information Specification"

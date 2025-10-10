@@ -240,7 +240,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
             break;
         }
 
-        Type t = s.getType(); // type symbol, type alias, or type tuple?
+        Type t = dmd.dsymbolsem.getType(s); // type symbol, type alias, or type tuple?
         const errorsave = global.errors;
         SearchOptFlags flags = t is null ? SearchOpt.localsOnly : SearchOpt.ignorePrivateImports;
 
@@ -364,7 +364,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
     Type t;
     while (1)
     {
-        t = s.getType();
+        t = dmd.dsymbolsem.getType(s);
         if (t)
             break;
         ps = s;
@@ -1133,7 +1133,7 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
 
     bool bpure = !f.isPure && sc.func.setImpure(arg.loc, null);
     bool bsafe = !f.isSafe() && !f.isTrusted() && sc.setUnsafe(false, arg.loc, null);
-    bool bnogc = !f.isNogc && sc.func.setGC(arg.loc, null);
+    bool bnogc = !f.isNogc && sc.setGC(sc.func, arg.loc, null);
     if (bpure | bsafe | bnogc)
     {
         const nullptr = "".ptr;
@@ -1246,11 +1246,10 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
         }
 
         // check if the copy constructor may be called to copy the argument
-        if (arg.isLvalue() && !isRef && argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
+        if (arg.isLvalue() && !isRef && argStruct && argStruct == prmStruct && argStruct.hasCopyCtor &&
+            !isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
         {
-            if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
-                return MATCH.nomatch;
-            m = MATCH.exact;
+            return MATCH.nomatch;
         }
         else
         {
@@ -1356,6 +1355,12 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
         return MATCH.nomatch;
     }
 
+    if (arg.isBitField())
+    {
+        if (pMessage) *pMessage = tf.getParamError(arg, p);
+        return MATCH.nomatch;
+    }
+
     return m;
 }
 
@@ -1369,13 +1374,21 @@ private const(char)* getParamError(TypeFunction tf, Expression arg, Parameter pa
     // when comparing the type with strcmp, we need to drop the qualifier
     bool qual = !arg.type.mutableOf().equals(par.type.mutableOf()) &&
         strcmp(arg.type.mutableOf().toChars(), par.type.mutableOf().toChars()) == 0;
-    auto at = qual ? arg.type.toPrettyChars(true) : arg.type.toChars();
     OutBuffer buf;
-    // only mention rvalue if it's relevant
-    const rv = !arg.isLvalue() && par.isReference() && !(par.storageClass & STC.constscoperef);
-    buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
-        rv ? "rvalue ".ptr : "".ptr, arg.toErrMsg(), at,
-        parameterToChars(par, tf, qual));
+    // only mention rvalue or bitfield if it's relevant
+    if (arg.isBitField())
+    {
+        buf.printf("cannot pass bitfield argument `%s` to parameter `%s`",
+                   arg.toErrMsg(), parameterToChars(par, tf, qual));
+    }
+    else
+    {
+        auto at = qual ? arg.type.toPrettyChars(true) : arg.type.toChars();
+        const rv = !arg.isLvalue() && par.isReference() && !(par.storageClass & STC.constscoperef);
+        buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
+            rv ? "rvalue ".ptr : "".ptr, arg.toErrMsg(), at,
+            parameterToChars(par, tf, qual));
+    }
     return buf.extractChars();
 }
 
@@ -1461,7 +1474,17 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
     default:
         // We can have things as `foo(int[int] wat...)` but they only match
         // with an associative array proper.
-        if (pMessage && trailingArgs.length) *pMessage = tf.getParamError(trailingArgs[0], p);
+        if (!pMessage) {}
+        else if (!trailingArgs.length)
+        {
+            OutBuffer buf;
+            getMatchError(buf, "expected an argument for parameter `%s`",
+                parameterToChars(p, tf, false));
+            *pMessage = buf.extractChars();
+        }
+        else
+            *pMessage = tf.getParamError(trailingArgs[0], p);
+
         return MATCH.nomatch;
     }
 }
@@ -1715,7 +1738,11 @@ uinteger_t size(Type t, Loc loc)
         case Tinstance:
         case Ttypeof:
         case Treturn:       return visitTypeQualified(cast(TypeQualified)t);
-        case Tstruct:       return t.isTypeStruct().sym.size(loc);
+        case Tstruct:
+        {
+            import dmd.dsymbolsem: size;
+            return t.isTypeStruct().sym.size(loc);
+        }
         case Tenum:         return t.isTypeEnum().sym.getMemtype(loc).size(loc);
         case Tnull:         return t.tvoidptr.size(loc);
         case Tnoreturn:     return 0;
@@ -2863,7 +2890,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
                     if (farg && (eparam.storageClass & STC.ref_))
                     {
-                        if (!farg.isLvalue())
+                        if (!farg.isLvalue() || farg.isBitField())
                             eparam.storageClass &= ~STC.ref_; // value parameter
                         eparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
                         eparam.storageClass |= STC.autoref;
@@ -3057,7 +3084,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         Type t;
         Dsymbol s;
         mtype.resolve(loc, sc, e, t, s);
-        if (s && (t = s.getType()) !is null)
+        if (s && (t = dmd.dsymbolsem.getType(s)) !is null)
             t = t.addMod(mtype.mod);
         if (!t)
         {
@@ -3090,7 +3117,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         Type t;
         Dsymbol s;
         mtype.resolve(loc, sc, e, t, s);
-        if (s && (t = s.getType()) !is null)
+        if (s && (t = dmd.dsymbolsem.getType(s)) !is null)
             t = t.addMod(mtype.mod);
         if (!t)
         {
@@ -3468,7 +3495,7 @@ Type trySemantic(Type type, Loc loc, Scope* sc)
         // If `typeSemantic` succeeded, there may have been deprecations that
         // were gagged due the `startGagging` above.  Run again to display
         // those deprecations.  https://issues.dlang.org/show_bug.cgi?id=19107
-        if (global.gaggedWarnings > 0)
+        if (global.gaggedDeprecations > 0)
             typeSemantic(tcopy, loc, sc);
     }
     //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
@@ -3587,6 +3614,98 @@ Type merge2(Type type)
     return t;
 }
 
+private enum LOGDEFAULTINIT = 0;
+/***************************************
+ * Use when we prefer the default initializer to be a literal,
+ * rather than a global immutable variable.
+ */
+Expression defaultInitLiteral(Type t, Loc loc)
+{
+
+    if (t.isTypeError())
+        return ErrorExp.get();
+    if (auto ts = t.isTypeStruct())
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeStruct::defaultInitLiteral() '%s'\n", toChars());
+        }
+        {
+            import dmd.dsymbolsem: size;
+            ts.sym.size(loc);
+        }
+        if (ts.sym.sizeok != Sizeok.done)
+            return ErrorExp.get();
+
+        auto structelems = new Expressions(ts.sym.nonHiddenFields());
+        uint offset = 0;
+        foreach (j; 0 .. structelems.length)
+        {
+            VarDeclaration vd = ts.sym.fields[j];
+            Expression e;
+            if (vd.inuse)
+            {
+                error(loc, "circular reference to `%s`", vd.toPrettyChars());
+                return ErrorExp.get();
+            }
+            if (vd.offset < offset || vd.type.size() == 0)
+                e = null;
+            else if (vd._init)
+            {
+                if (vd._init.isVoidInitializer())
+                    e = null;
+                else
+                    e = vd.getConstInitializer(false);
+            }
+            else
+                e = vd.type.defaultInitLiteral(loc);
+            if (e && e.op == EXP.error)
+                return e;
+            if (e)
+                offset = vd.offset + cast(uint)vd.type.size();
+            (*structelems)[j] = e;
+        }
+        auto structinit = new StructLiteralExp(loc, ts.sym, structelems);
+
+        /* Copy from the initializer symbol for larger symbols,
+         * otherwise the literals expressed as code get excessively large.
+         */
+        if (size(ts, loc) > target.ptrsize * 4 && !ts.needsNested())
+            structinit.useStaticInit = true;
+
+        structinit.type = ts;
+        return structinit;
+    }
+    if (auto tv = t.isTypeVector())
+    {
+        //printf("TypeVector::defaultInitLiteral()\n");
+        assert(tv.basetype.ty == Tsarray);
+        Expression e = tv.basetype.defaultInitLiteral(loc);
+        auto ve = new VectorExp(loc, e, tv);
+        ve.type = tv;
+        ve.dim = cast(int)(tv.basetype.size(loc) / tv.elementType().size(loc));
+        return ve;
+    }
+    if (auto tsa = t.isTypeSArray())
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeSArray::defaultInitLiteral() '%s'\n", toChars());
+        }
+        size_t d = cast(size_t)tsa.dim.toInteger();
+        Expression elementinit;
+        if (tsa.next.ty == Tvoid)
+            elementinit = Type.tuns8.defaultInitLiteral(loc);
+        else
+            elementinit = tsa.next.defaultInitLiteral(loc);
+        auto elements = new Expressions(d);
+        foreach (ref e; *elements)
+            e = null;
+        auto ae = new ArrayLiteralExp(loc, tsa, elementinit, elements);
+        return ae;
+    }
+    return defaultInit(t, loc);
+}
 /***************************************
  * Calculate built-in properties which just the type is necessary.
  *
@@ -4769,7 +4888,10 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 {
                     auto ad = v.isMember();
                     objc.checkOffsetof(e, ad);
-                    ad.size(e.loc);
+                    {
+                        import dmd.dsymbolsem: size;
+                        ad.size(e.loc);
+                    }
                     if (ad.sizeok != Sizeok.done)
                         return ErrorExp.get();
                     uint value;
@@ -5430,7 +5552,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             }
         }
 
-        if (auto t = s.getType())
+        if (auto t = dmd.dsymbolsem.getType(s))
         {
             return (new TypeExp(e.loc, t)).expressionSemantic(sc);
         }
@@ -5503,6 +5625,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             if (TupleDeclaration tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
+                fillTupleExpExps(e.isTupleExp(), tup);
                 return e.expressionSemantic(sc);
             }
             if (d.needThis() && sc.intypeof != 1)
@@ -5621,7 +5744,10 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
              */
             e = e.expressionSemantic(sc); // do this before turning on noAccessCheck
 
-            mt.sym.size(e.loc); // do semantic of type
+            {
+                import dmd.dsymbolsem: size;
+                mt.sym.size(e.loc); // do semantic of type
+            }
 
             Expression e0;
             Expression ev = e.op == EXP.type ? null : e;
@@ -5855,7 +5981,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             }
         }
 
-        if (auto t = s.getType())
+        if (auto t = dmd.dsymbolsem.getType(s))
         {
             return (new TypeExp(e.loc, t)).expressionSemantic(sc);
         }
@@ -5936,6 +6062,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             if (TupleDeclaration tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
+                fillTupleExpExps(e.isTupleExp(), tup);
                 e = e.expressionSemantic(sc);
                 return e;
             }
@@ -5946,7 +6073,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 && d.isFuncDeclaration().objc.selector)
             {
                 auto classRef = new ObjcClassReferenceExp(e.loc, mt.sym);
-                classRef.type = objc.getRuntimeMetaclass(mt.sym).getType();
+                classRef.type = dmd.dsymbolsem.getType((objc.getRuntimeMetaclass(mt.sym)));
                 return new DotVarExp(e.loc, classRef, d).expressionSemantic(sc);
             }
             else if (d.needThis() && sc.intypeof != 1)
@@ -6577,7 +6704,7 @@ Type getComplexLibraryType(Loc loc, Scope* sc, TY ty)
         return *pt;
     }
     s = s.toAlias();
-    if (auto t = s.getType())
+    if (auto t = dmd.dsymbolsem.getType(s))
     {
         if (auto ts = t.toBasetype().isTypeStruct())
         {

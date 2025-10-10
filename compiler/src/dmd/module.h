@@ -46,8 +46,6 @@ public:
 
     const char *kind() const override;
 
-    bool equals(const RootObject * const o) const override;
-
     bool isAncestorPackageOf(const Package * const pkg) const;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -123,7 +121,6 @@ public:
     size_t namelen;             // length of module name in characters
 
     static Module* create(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
-    static const char *find(const char *filename);
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     const char *kind() const override;
@@ -132,9 +129,6 @@ public:
     int needModuleInfo();
     bool isPackageAccessible(Package *p, Visibility visibility, SearchOptFlags flags = (SearchOptFlags)SearchOpt::all) override;
     Dsymbol *symtabInsert(Dsymbol *s) override;
-    static void runDeferredSemantic();
-    static void runDeferredSemantic2();
-    static void runDeferredSemantic3();
     int imports(Module *m);
 
     bool isRoot() { return this->importedFrom == this; }

@@ -57,7 +57,8 @@ nothrow:
  */
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
-    debug printf("loadFromEA() reg: %d, szw: %d, szr: %d offset: %d\n", reg, szw, szr, cast(int)cs.IEV1.Voffset);
+    static if (0) debug printf("loadFromEA() reg: %d, szw: %d, szr: %d offset: %d S: %d extend: %s\n",
+        reg, szw, szr, cast(int)cs.IEV1.Voffset, cs.Sextend >> 3, ExtendToStr(cast(Extend)(cs.Sextend & 7)));
     assert(szr <= szw);
     cs.Iop = INSTR.nop;
     assert(reg != NOREG);
@@ -103,8 +104,34 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 
     if (cs.reg != NOREG)
     {
-        if (cs.reg != reg)  // do not mov onto itself
-            cs.Iop = INSTR.mov_register(szw == 8,cs.reg,reg);  // MOV reg,cs.reg
+        uint sf = szw == 8;
+        void mov()
+        {
+            if (cs.reg != reg)                  // no need to mov onto itself
+                cs.Iop = INSTR.mov_register(sf,cs.reg,reg);  // MOV reg,cs.reg
+        }
+
+        if (szw <= szr)
+        {
+            mov();
+        }
+        else
+        {
+            with (Extend) final switch (cs.Sextend & 7)
+            {
+                case UXTB:      cs.Iop = INSTR.log_imm(sf,0,0,0,0x7,cs.reg,reg); break; // AND sf,x0,x0,#0xFF
+                case UXTH:      cs.Iop = INSTR.log_imm(sf,0,0,0,0xF,cs.reg,reg); break; // AND sf,x0,x0,#0xFFFF
+                case SXTB:      cs.Iop = INSTR.sxtb_sbfm(sf,cs.reg,reg);         break; // SXTB sf,x0,w0
+                case SXTH:      cs.Iop = INSTR.sxth_sbfm(sf,cs.reg,reg);         break; // SXTH sf,x0,w0
+                case SXTW:      cs.Iop = INSTR.sxtw_sbfm(cs.reg,reg);            break; // SXTW sf,x0,w0
+
+                case UXTW:      cs.Iop = INSTR.mov_register(4,cs.reg,reg);       break; // MOV w0,w0
+                case UXTX:
+                case SXTX:
+                    mov();
+                    break;
+            }
+        }
         cs.IFL1 = FL.unde;
     }
     else if (cs.index != NOREG)
@@ -115,6 +142,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         else if (szr == 2)
             cs.Iop = INSTR.ldrh_reg(szw == 8, cs.index, cs.Sextend & 7, cs.Sextend >> 3, cs.base, reg);
         else
+            // the (szr == 4) case is handled when Sextend is UXTW or SXTW, (szr == 8) is LSL or SXTX
             cs.Iop = INSTR.ldr_reg_gen(szw == 8, cs.index, cs.Sextend & 7, cs.Sextend >> 3, cs.base, reg);
     }
     else if (cs.base != NOREG)
@@ -127,13 +155,34 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         else if (szr == 2)
             cs.Iop = signExtend ? INSTR.ldrsh_imm(szw == 8, reg, cs.base, offset)
                                 : INSTR.ldrh_imm (szw == 8, reg, cs.base, offset);
-        else
+        else if (szr == 4)
             cs.Iop = signExtend ? INSTR.ldrsw_imm(offset, cs.base, reg)
                                 : INSTR.ldr_imm_gen(szw == 8, reg, cs.base, offset);
+        else
+            cs.Iop =              INSTR.ldr_imm_gen(szw == 8, reg, cs.base, offset);
     }
     else
         assert(0);
 }
+
+unittest
+{
+    //debug printf("test loadFromEA()\n");
+
+    static uint test(Extend extend, reg_t csreg, reg_t reg, uint szw, uint szr)
+    {
+        code cs;
+        cs.Sextend = cast(ubyte)extend;
+        cs.reg = csreg;
+        loadFromEA(cs,reg,szw,szr);
+        return cs.Iop;
+    }
+
+    assert(test(Extend.UXTB, 0, 0, 8, 1) == 0x92001C00); // AND x0,x0,#0xFF
+    assert(test(Extend.UXTH, 0, 0, 8, 2) == 0x92003C00); // AND x0,x0,#0xFFFF
+    assert(test(Extend.UXTW, 0, 0, 4, 2) == 0x2A0003E0); // MOV w0,w0
+}
+
 /************************************
  * Given cs which has the Effective Address encoded into it,
  * create a store instruction to reg, and write it to cs.Iop
@@ -520,6 +569,8 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
     getlvalue(cdb, cs, e, keepmsk, rmx);
     cs.IEV1.Voffset += offset;
 
+//xyzzy
+printf("sz: %d\n", sz);
     assert(op != LEA);                  // AArch64 does not have LEA
     loadFromEA(cs,reg,sz >= 8 ? sz : 4,sz);
 
@@ -529,8 +580,30 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
 
 // uint getaddrmode
 // void setaddrmode
-// getlvalue_msw
-// getlvalue_lsw
+
+/************************************
+ * Adjust c to represent MSW of 2*REGSIZE lvalue
+ */
+@trusted
+void getlvalue_msw(ref code c)
+{
+    if (c.IFL1 == FL.reg)
+        c.reg = c.IEV1.Vsym.Sregmsw;
+    else
+        c.IEV1.Voffset += REGSIZE;
+}
+
+/************************************
+ * Adjust c to represent LSW of 2*REGSIZE lvalue
+ */
+@trusted
+void getlvalue_lsw(ref code c)
+{
+    if (c.IFL1 == FL.reg)
+        c.reg = c.IEV1.Vsym.Sreglsw;
+    else
+        c.IEV1.Voffset -= REGSIZE;
+}
 
 /******************
  * Compute Effective Address (EA).
@@ -1597,6 +1670,10 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     uint stackalign = REGSIZE;
     if (tyf == TYf16func)
         stackalign = 2;
+
+    // OSX64 only passes explicit parameters in registers; variadic parameters go on stack
+    const numExplicitParams = (config.exe == EX_OSX64) ? e.numParams : 0;
+
     // Figure out which parameters go in registers.
     // Compute numpara, the total bytes pushed on the stack
     FuncParamRegs fpr = FuncParamRegs_create(tyf);
@@ -1614,7 +1691,8 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             psize = REGSIZE;
         }
         //printf("[%d] size = %u, numpara = %d %s\n", i, psize, numpara, tym_str(ep.Ety));
-        if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, parameters[i].reg, parameters[i].reg2))
+        if ((numExplicitParams == 0 || np - i <= numExplicitParams - 1) && // OSX64 does not pass variadic args in registers
+            FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, parameters[i].reg, parameters[i].reg2))
         {
             if (config.exe == EX_WIN64)
                 numpara += REGSIZE;             // allocate stack space for it anyway
@@ -2253,12 +2331,22 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     }
     else if (sz == REGSIZE * 2)
     {
-        int grex = I64 ? REX_W << 16 : 0;
-        uint r = findreg(retregs & INSTR.MSW);
-        cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FL.funcarg, funcargtos - REGSIZE);    // MOV -REGSIZE[EBP],r
-        r = findreg(retregs & INSTR.LSW);
-        cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FL.funcarg, funcargtos - REGSIZE * 2); // MOV -2*REGSIZE[EBP],r
-        assert(0);
+        reg_t rmsw = findreg(retregs & INSTR.MSW);
+        code cs;
+        cs.reg = NOREG;
+        cs.base = 31;
+        cs.index = NOREG;
+        cs.IFL1 = FL.const_;
+        cs.IEV1.Voffset = funcargtos - REGSIZE;
+        storeToEA(cs, rmsw, REGSIZE);
+        cs.Iop = setField(cs.Iop,21,10,funcargtos >> field(cs.Iop,31,30));
+        cdb.gen(&cs);
+
+        reg_t rlsw = findreg(retregs & INSTR.LSW);
+        cs.IEV1.Voffset = funcargtos - REGSIZE * 2;
+        storeToEA(cs, rlsw, REGSIZE);
+        cs.Iop = setField(cs.Iop,21,10,funcargtos >> field(cs.Iop,31,30));
+        cdb.gen(&cs);
     }
     else
         assert(0);

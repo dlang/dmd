@@ -5,12 +5,12 @@
  * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/todt.d, _todt.d)
- * Documentation:  https://dlang.org/phobos/dmd_todt.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/todt.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/todt.d, _todt.d)
+ * Documentation:  https://dlang.org/phobos/dmd_glue_todt.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/glue/todt.d
  */
 
-module dmd.todt;
+module dmd.glue.todt;
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -18,6 +18,10 @@ import core.stdc.string;
 import dmd.root.array;
 import dmd.root.complex;
 import dmd.root.rmem;
+
+import dmd.glue;
+import dmd.glue.tocsym;
+import dmd.glue.toobj;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -35,7 +39,6 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
-import dmd.glue;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
@@ -44,13 +47,13 @@ import dmd.semantic3 : search_toString;
 import dmd.target;
 import dmd.templatesem;
 import dmd.tokens;
-import dmd.tocsym;
-import dmd.toobj;
 import dmd.typesem;
 import dmd.visitor;
 
 import dmd.backend.cc;
 import dmd.backend.dt;
+
+package(dmd.glue):
 
 /* A dt_t is a simple structure representing data to be added
  * to the data segment of the output object file. As such,
@@ -426,7 +429,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             case Tpointer:
                 if (e.sz == 1)
                 {
-                    import dmd.e2ir : toStringSymbol;
+                    import dmd.glue.e2ir : toStringSymbol;
                     import dmd.glue : totym;
                     Symbol* s = toStringSymbol(p, n, e.sz);
                     dtb.xoff(s, 0);
@@ -1444,6 +1447,12 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (!sd.members)
             return;
 
+        if (sd.semanticRun < PASS.semantic3done)
+        {
+            import dmd.semantic3 : semanticTypeInfoMembers;
+            semanticTypeInfoMembers(sd);
+        }
+
         if (TemplateInstance ti = sd.isInstantiated())
         {
             if (!ti.needsCodegen())
@@ -1453,12 +1462,6 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                 /* ti.toObjFile() won't get called. So, store these
                  * member functions into object file in here.
                  */
-
-                if (sd.semanticRun < PASS.semantic3done)
-                {
-                    import dmd.semantic3 : semanticTypeInfoMembers;
-                    semanticTypeInfoMembers(sd);
-                }
 
                 if (sd.xeq && sd.xeq != StructDeclaration.xerreq)
                     toObjFile(sd.xeq, global.params.multiobj);

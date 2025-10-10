@@ -26,6 +26,7 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem: size;
 import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
@@ -45,7 +46,6 @@ import dmd.typesem;
 import dmd.visitor;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
-enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
 
 enum SIZE_INVALID = (~cast(ulong)0);   // error return from size() functions
 
@@ -274,6 +274,7 @@ enum Covariant
  */
 extern (C++) abstract class Type : ASTNode
 {
+
     TY ty;
     MOD mod; // modifiers MODxxxx
     char* deco;
@@ -425,13 +426,31 @@ extern (C++) abstract class Type : ASTNode
         assert(0);
     }
 
-    override bool equals(const RootObject o) const
+    final bool equals(const Type t) const
     {
-        Type t = cast(Type)o;
         //printf("Type::equals(%s, %s)\n", toChars(), t.toChars());
+        if (this == t)
+            return true;
+        if (ty == Ttuple)
+        {
+            if (t.ty != Ttuple)
+                return false;
+            auto t1 = this.isTypeTuple();
+            auto t2 = t.isTypeTuple();
+            if (t1.arguments.length != t2.arguments.length)
+                return false;
+            for (size_t i = 0; i < t1.arguments.length; i++)
+            {
+                const Parameter arg1 = (*t1.arguments)[i];
+                const Parameter arg2 = (*t2.arguments)[i];
+                if (!arg1.type.equals(arg2.type))
+                    return false;
+            }
+            return true;
+        }
         // deco strings are unique
         // and semantic() has been run
-        if (this == o || ((t && deco == t.deco) && deco !is null))
+        if ((t && deco == t.deco) && deco !is null)
         {
             //printf("deco = '%s', t.deco = '%s'\n", deco, t.deco);
             return true;
@@ -614,6 +633,7 @@ extern (C++) abstract class Type : ASTNode
 
     uint alignsize()
     {
+        import dmd.typesem: size;
         return cast(uint)size(this, Loc.initial);
     }
 
@@ -1309,19 +1329,6 @@ extern (C++) abstract class Type : ASTNode
     }
 
     /***************************************
-     * Use when we prefer the default initializer to be a literal,
-     * rather than a global immutable variable.
-     */
-    Expression defaultInitLiteral(Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("Type::defaultInitLiteral() '%s'\n", toChars());
-        }
-        return defaultInit(this, loc);
-    }
-
-    /***************************************
      * Return !=0 if the type or any of its subtypes is wild.
      */
     int hasWild() const
@@ -1555,11 +1562,6 @@ extern (C++) final class TypeError : Type
     {
         // No semantic analysis done, no need to copy
         return this;
-    }
-
-    override Expression defaultInitLiteral(Loc loc)
-    {
-        return ErrorExp.get();
     }
 
     override void accept(Visitor v)
@@ -2074,6 +2076,7 @@ extern (C++) final class TypeVector : Type
 
     override uint alignsize()
     {
+        import dmd.typesem: size;
         return cast(uint)basetype.size();
     }
 
@@ -2101,17 +2104,6 @@ extern (C++) final class TypeVector : Type
     override bool isBoolean()
     {
         return false;
-    }
-
-    override Expression defaultInitLiteral(Loc loc)
-    {
-        //printf("TypeVector::defaultInitLiteral()\n");
-        assert(basetype.ty == Tsarray);
-        Expression e = basetype.defaultInitLiteral(loc);
-        auto ve = new VectorExp(loc, e, this);
-        ve.type = this;
-        ve.dim = cast(int)(basetype.size(loc) / elementType().size(loc));
-        return ve;
     }
 
     TypeBasic elementType()
@@ -2202,25 +2194,6 @@ extern (C++) final class TypeSArray : TypeArray
     override structalign_t alignment()
     {
         return next.alignment();
-    }
-
-    override Expression defaultInitLiteral(Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeSArray::defaultInitLiteral() '%s'\n", toChars());
-        }
-        size_t d = cast(size_t)dim.toInteger();
-        Expression elementinit;
-        if (next.ty == Tvoid)
-            elementinit = tuns8.defaultInitLiteral(loc);
-        else
-            elementinit = next.defaultInitLiteral(loc);
-        auto elements = new Expressions(d);
-        foreach (ref e; *elements)
-            e = null;
-        auto ae = new ArrayLiteralExp(loc, this, elementinit, elements);
-        return ae;
     }
 
     override bool hasUnsafeBitpatterns()
@@ -2993,60 +2966,6 @@ extern (C++) final class TypeStruct : Type
         return sym.alignment;
     }
 
-    /***************************************
-     * Use when we prefer the default initializer to be a literal,
-     * rather than a global immutable variable.
-     */
-    override Expression defaultInitLiteral(Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeStruct::defaultInitLiteral() '%s'\n", toChars());
-        }
-        sym.size(loc);
-        if (sym.sizeok != Sizeok.done)
-            return ErrorExp.get();
-
-        auto structelems = new Expressions(sym.nonHiddenFields());
-        uint offset = 0;
-        foreach (j; 0 .. structelems.length)
-        {
-            VarDeclaration vd = sym.fields[j];
-            Expression e;
-            if (vd.inuse)
-            {
-                error(loc, "circular reference to `%s`", vd.toPrettyChars());
-                return ErrorExp.get();
-            }
-            if (vd.offset < offset || vd.type.size() == 0)
-                e = null;
-            else if (vd._init)
-            {
-                if (vd._init.isVoidInitializer())
-                    e = null;
-                else
-                    e = vd.getConstInitializer(false);
-            }
-            else
-                e = vd.type.defaultInitLiteral(loc);
-            if (e && e.op == EXP.error)
-                return e;
-            if (e)
-                offset = vd.offset + cast(uint)vd.type.size();
-            (*structelems)[j] = e;
-        }
-        auto structinit = new StructLiteralExp(loc, sym, structelems);
-
-        /* Copy from the initializer symbol for larger symbols,
-         * otherwise the literals expressed as code get excessively large.
-         */
-        if (size(this, loc) > target.ptrsize * 4 && !needsNested())
-            structinit.useStaticInit = true;
-
-        structinit.type = this;
-        return structinit;
-    }
-
     override bool isBoolean()
     {
         return false;
@@ -3432,29 +3351,6 @@ extern (C++) final class TypeTuple : Type
         auto t = new TypeTuple(args);
         t.mod = mod;
         return t;
-    }
-
-    override bool equals(const RootObject o) const
-    {
-        Type t = cast(Type)o;
-        //printf("TypeTuple::equals(%s, %s)\n", toChars(), t.toChars());
-        if (this == t)
-            return true;
-        if (auto tt = t.isTypeTuple())
-        {
-            if (arguments.length == tt.arguments.length)
-            {
-                for (size_t i = 0; i < tt.arguments.length; i++)
-                {
-                    const Parameter arg1 = (*arguments)[i];
-                    Parameter arg2 = (*tt.arguments)[i];
-                    if (!arg1.type.equals(arg2.type))
-                        return false;
-                }
-                return true;
-            }
-        }
-        return false;
     }
 
     override void accept(Visitor v)

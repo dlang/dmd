@@ -1266,10 +1266,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             else
             {
-                version (IN_GCC)
-                    error("attribute `scope` cannot be applied with `in`, use `-fpreview=in` instead");
-                else
-                    error("attribute `scope` cannot be applied with `in`, use `-preview=in` instead");
+                error("attribute `scope` cannot be applied with `in`, use `-%spreview=in` instead", compileEnv.switchPrefix.ptr);
             }
             return orig;
         }
@@ -1291,10 +1288,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             else
             {
-                version (IN_GCC)
-                    error("attribute `in` cannot be added after `scope`: remove `scope` and use `-fpreview=in`");
-                else
-                    error("attribute `in` cannot be added after `scope`: remove `scope` and use `-preview=in`");
+                error("attribute `in` cannot be added after `scope`: remove `scope` and use `-%spreview=in`", compileEnv.switchPrefix.ptr);
             }
             return orig;
         }
@@ -4789,9 +4783,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (width)
                 {
                     if (_init)
-                        error("initializer not allowed for bit-field declaration");
+                        error("initializer not allowed for bitfield declaration");
                     if (storage_class)
-                        error("storage class not allowed for bit-field declaration");
+                        error("storage class not allowed for bitfield declaration");
                     s = new AST.BitFieldDeclaration(width.loc, t, ident, width);
                 }
                 else
@@ -5511,7 +5505,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         if (token.value != TOK.else_ && token.value != TOK.catch_ && token.value != TOK.finally_ && lookingForElse.isValid)
         {
-            eSink.warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
+            eSink.error(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
         }
     }
 

@@ -71,6 +71,7 @@ import dmd.tokens;
 import dmd.semantic2;
 import dmd.statement;
 import dmd.target;
+import dmd.targetcompiler;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
@@ -206,7 +207,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
                 s.semantic3(sc);
 
-                mod.runDeferredSemantic2();
+                runDeferredSemantic2();
             }
         }
         if (mod.userAttribDecl)
@@ -423,12 +424,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (!global.params.useTypeInfo || !Type.dtypeinfo || !Type.typeinfotypelist)
                     {
                         if (!global.params.useTypeInfo)
-                        {
-                            version (IN_GCC)
-                                .error(funcdecl.loc, "%s `%s` D-style variadic functions cannot be used with `-fno-rtti`", funcdecl.kind, funcdecl.toPrettyChars);
-                            else
-                                .error(funcdecl.loc, "%s `%s` D-style variadic functions cannot be used with -betterC", funcdecl.kind, funcdecl.toPrettyChars);
-                        }
+                            .error(funcdecl.loc, "%s `%s` D-style variadic functions cannot be used with `-%s`", funcdecl.kind, funcdecl.toPrettyChars, SwitchVariadic.ptr);
                         else if (!Type.typeinfotypelist)
                             .error(funcdecl.loc, "%s `%s` `object.TypeInfo_Tuple` could not be found, but is implicitly used in D-style variadic functions", funcdecl.kind, funcdecl.toPrettyChars);
                         else
@@ -927,6 +923,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 exp = exp.implicitCastTo(sc2, tret);
 
                             exp = exp.toLvalue(sc2, "`ref` return");
+                            checkAddressable(exp, sc2, "`ref` return");
                             checkReturnEscapeRef(*sc2, exp, false);
                             exp = exp.optimize(WANTvalue, /*keepLvalue*/ true);
                         }
@@ -1598,34 +1595,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         sc2.pop();
 
-        // Instantiate RTInfo!S to provide a pointer bitmap for the GC
-        // Don't do it in -betterC or on unused deprecated / error types
-        if (!ad.getRTInfo && global.params.useTypeInfo && Type.rtinfo &&
-            (!ad.isDeprecated() || global.params.useDeprecated != DiagnosticReporting.error) &&
-            (ad.type && ad.type.ty != Terror))
-        {
-            // Evaluate: RTinfo!type
-            auto tiargs = new Objects(ad.type);
-            auto ti = new TemplateInstance(ad.loc, Type.rtinfo, tiargs);
-
-            Scope* sc3 = ti.tempdecl._scope.startCTFE();
-            sc3.tinst = sc.tinst;
-            sc3.minst = sc.minst;
-            if (ad.isDeprecated())
-                sc3.stc |= STC.deprecated_;
-
-            ti.dsymbolSemantic(sc3);
-            ti.semantic2(sc3);
-            ti.semantic3(sc3);
-            auto e = symbolToExp(ti.toAlias(), Loc.initial, sc3, false);
-
-            sc3.endCTFE();
-
-            e = e.ctfeInterpret();
-            ad.getRTInfo = e;
-        }
         if (sd)
             sd.semanticTypeInfoMembers();
+        else
+            ad.semanticRTInfo();
         ad.semanticRun = PASS.semantic3done;
     }
 
@@ -1795,6 +1768,38 @@ void semanticTypeInfoMembers(StructDeclaration sd)
     {
         sd.dtor.semantic3(sd.dtor._scope);
     }
+    sd.semanticRTInfo();
+}
+
+void semanticRTInfo(AggregateDeclaration ad)
+{
+    // Instantiate RTInfo!S to provide a pointer bitmap for the GC
+    // Don't do it in -betterC or on error types
+    if (ad.getRTInfo || !global.params.useTypeInfo || !Type.rtinfo)
+        return;
+    if (!ad.rtInfoScope || !ad.type || ad.type.ty == Terror)
+        return;
+
+    // Evaluate: RTinfo!type
+    auto tiargs = new Objects(ad.type);
+    auto ti = new TemplateInstance(ad.loc, Type.rtinfo, tiargs);
+
+    auto sc = ad.rtInfoScope;
+    Scope* sc3 = ti.tempdecl._scope.startCTFE();
+    sc3.tinst = sc.tinst;
+    sc3.minst = sc.minst;
+    if (ad.isDeprecated())
+        sc3.stc |= STC.deprecated_;
+
+    ti.dsymbolSemantic(sc3);
+    ti.semantic2(sc3);
+    ti.semantic3(sc3);
+    auto e = symbolToExp(ti.toAlias(), Loc.initial, sc3, false);
+
+    sc3.endCTFE();
+
+    e = e.ctfeInterpret();
+    ad.getRTInfo = e;
 }
 
 /**
@@ -1820,7 +1825,7 @@ extern (D) bool checkClosure(FuncDeclaration fd)
     if (!fd.needsClosure())
         return false;
 
-    if (fd.setGC(fd.loc, "allocating a closure for `%s()`", fd))
+    if (setGC(null, fd, fd.loc, "allocating a closure for `%s()`", fd))
     {
         .error(fd.loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
         if (global.gag)     // need not report supplemental errors

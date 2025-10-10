@@ -369,6 +369,7 @@ SRCS=\
 	src\core\sys\solaris\libelf.d \
 	src\core\sys\solaris\link.d \
 	src\core\sys\solaris\stdlib.d \
+	src\core\sys\solaris\thread.d \
 	src\core\sys\solaris\time.d \
 	src\core\sys\solaris\sys\elf.d \
 	src\core\sys\solaris\sys\elf_386.d \
@@ -378,7 +379,9 @@ SRCS=\
 	src\core\sys\solaris\sys\elftypes.d \
 	src\core\sys\solaris\sys\link.d \
 	src\core\sys\solaris\sys\priocntl.d \
+	src\core\sys\solaris\sys\procfs.d \
 	src\core\sys\solaris\sys\procset.d \
+	src\core\sys\solaris\sys\regset.d \
 	src\core\sys\solaris\sys\types.d \
 	\
 	src\core\sys\windows\accctrl.d \

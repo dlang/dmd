@@ -132,7 +132,7 @@ private void _aaMove(V)(ref V src, ref V dst) @trusted
 }
 
 // mimick behaviour of rt.aaA for initialization
-Entry!(K, V)* _newEntry(K, V)(ref K key, ref V value)
+Entry!(K, V)* _newEntry(K, V)(ref K key, auto ref V value)
 {
     static if (__traits(compiles, new Entry!(K, V)(key, value)))
     {
@@ -474,8 +474,10 @@ size_t _d_aaLen(K, V)(inout V[K] a)
 V* _d_aaGetY(K, V, T : V1[K1], K1, V1, K2)(auto ref scope T aa, auto ref K2 key, out bool found)
 {
     ref aax = cast(V[K])cast(V1[K1])aa; // remove outer const from T
-    return _aaGetX!(K, V)(aax, key, found);
+    return _aaGetX!(K, V, K2)(aax, key, found, _noV2());
 }
+
+private struct _noV2 {}
 
 /******************************
  * Lookup key in aa.
@@ -484,12 +486,13 @@ V* _d_aaGetY(K, V, T : V1[K1], K1, V1, K2)(auto ref scope T aa, auto ref K2 key,
  *      a = associative array
  *      key = reference to the key value
  *      found = true if the value was found
+ *      v2 = if key not found, init new value to this (except if type _noV2)
  * Returns:
  *      if key was in the aa, a mutable pointer to the existing value.
  *      If key was not in the aa, a mutable pointer to newly inserted value which
- *      is set to V.init
+ *      is set to v2 or is zero-initialized
  */
-V* _aaGetX(K, V, K2)(auto ref scope V[K] a, auto ref K2 key, out bool found)
+V* _aaGetX(K, V, K2, V2)(auto ref scope V[K] a, auto ref K2 key, out bool found, lazy V2 v2)
 {
     ref aa = _refAA!(K, V)(a);
 
@@ -512,21 +515,26 @@ V* _aaGetX(K, V, K2)(auto ref scope V[K] a, auto ref K2 key, out bool found)
     }
 
     auto pi = aa.findSlotInsert(hash);
-    if (aa.buckets[pi].deleted)
-        --aa.deleted;
     // check load factor and possibly grow
-    else if (++aa.used * GROW_DEN > aa.dim * GROW_NUM)
+    if (!aa.buckets[pi].deleted && (aa.used + 1) * GROW_DEN > aa.dim * GROW_NUM)
     {
         aa.grow();
         pi = aa.findSlotInsert(hash);
         assert(aa.buckets[pi].empty);
     }
 
-    // update search cache and allocate entry
-    aa.firstUsed = min(aa.firstUsed, cast(uint)pi);
+    // allocate entry and update search cache (if not throwing in _newEntry)
     ref p = aa.buckets[pi];
+    static if (is(V2 == _noV2))
+        p.entry = _newEntry!(K, V)(key2);
+    else
+        p.entry = _newEntry!(K, V)(key2, v2);
+    if (p.deleted)
+        --aa.deleted;
+    else
+        aa.used++;
     p.hash = hash;
-    p.entry = _newEntry!(K, V)(key2);
+    aa.firstUsed = min(aa.firstUsed, cast(uint)pi);
     return &p.entry.value;
 }
 

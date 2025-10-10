@@ -1740,7 +1740,14 @@ extern (C++) final class LabelDsymbol : Dsymbol
 extern (C++) class AsmStatement : Statement
 {
     Token* tokens;       // linked list of tokens for one instruction or pseudo op
+    static struct BitFields
+    {
     bool caseSensitive;  // for register names, and only turned on when doing MASM style inline asm
+    bool isVolatile;     // ImportC asm "volatile"
+    bool isInline;       // ImportC asm "inline"
+    }
+    import dmd.common.bitfields;
+    mixin(generateBitFields!(BitFields, ubyte));
 
     extern (D) this(Loc loc, Token* tokens) @safe
     {

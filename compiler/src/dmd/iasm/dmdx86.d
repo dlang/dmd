@@ -25,6 +25,7 @@ import dmd.dinterpret;
 import dmd.dmdparams;
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.dsymbolsem : toAlias, getType;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
@@ -538,7 +539,7 @@ enum // 64 bit only registers
     _RIP = 0xFF,   // some unique value
 }
 
-immutable REG[65] regtab64 =
+immutable REG[62] regtab64 =
 [
     {"RAX",  _RAX,   _r64 | _rax},
     {"RBX",  _RBX,   _r64},
@@ -716,7 +717,7 @@ PTRNTAB asm_classify(OP* pop, OPND[] opnds, out int outNumops)
             if(bInvalid64bit)
                 error(asmstate.loc, "operand for `%s` invalid in 64bit mode", asm_opstr(pop));
             else
-                error(asmstate.loc, "bad type/size of operands `%s`", asm_opstr(pop));
+                error(asmstate.loc, "`%s` instruction requires operands of matching type/size", asm_opstr(pop));
             return;
         }
         bRetry = true;
@@ -726,7 +727,7 @@ PTRNTAB asm_classify(OP* pop, OPND[] opnds, out int outNumops)
     {
         if (bRetry)
         {
-            error(asmstate.loc, "bad type/size of operands `%s`", asm_opstr(pop));
+            error(asmstate.loc, "`%s` instruction requires operands of matching type/size", asm_opstr(pop));
         }
         return ret;
     }
