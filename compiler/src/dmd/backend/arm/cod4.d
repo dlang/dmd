@@ -1590,7 +1590,6 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             loadFromEA(cs,reg,8,4);
             cdb.gen(&cs);
             freenode(e1);
-            return;
         }
         else if ((e1.Eoper == OPu8_16 || e1.Eoper == OPu16_32) && !e1.Ecount &&
                  (e1.E1.Eoper == OPvar || (e1.E1.Eoper == OPind && !e1.E1.Ecount)))
