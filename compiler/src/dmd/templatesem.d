@@ -61,6 +61,63 @@ alias funcLeastAsSpecialized = dmd.funcsem.leastAsSpecialized;
 
 enum LOG = false;
 
+bool declareParameter(TemplateParameter _this, Scope* sc)
+{
+    static bool typeDeclareParameter(TemplateTypeParameter _this, Scope* sc)
+    {
+        //printf("TemplateTypeParameter.declareParameter('%s')\n", ident.toChars());
+        auto ti = new TypeIdentifier(_this.loc, _this.ident);
+        Declaration ad = new AliasDeclaration(_this.loc, _this.ident, ti);
+        return sc.insert(ad) !is null;
+    }
+
+    static bool valueDeclareParameter(TemplateValueParameter _this, Scope* sc)
+    {
+        /*
+            Do type semantic earlier.
+
+            This means for certain erroneous value parameters
+            their "type" can be known earlier and thus a better
+            error message given.
+
+            For example:
+            `template test(x* x) {}`
+            now yields "undefined identifier" rather than the opaque
+            "variable `x` is used as a type".
+         */
+        if (_this.valType)
+            _this.valType = _this.valType.typeSemantic(_this.loc, sc);
+        auto v = new VarDeclaration(_this.loc, _this.valType, _this.ident, null);
+        v.storage_class = STC.templateparameter;
+        return sc.insert(v) !is null;
+    }
+
+    static bool aliasDeclareParameter(TemplateAliasParameter _this, Scope* sc)
+    {
+        auto ti = new TypeIdentifier(_this.loc, _this.ident);
+        Declaration ad = new AliasDeclaration(_this.loc, _this.ident, ti);
+        return sc.insert(ad) !is null;
+    }
+
+    static bool tupleDeclareParameter(TemplateTupleParameter _this, Scope* sc)
+    {
+        auto ti = new TypeIdentifier(_this.loc, _this.ident);
+        Declaration ad = new AliasDeclaration(_this.loc, _this.ident, ti);
+        return sc.insert(ad) !is null;
+    }
+
+    if (auto tp = _this.isTemplateTypeParameter())
+        return typeDeclareParameter(tp, sc);
+    else if (auto vp = _this.isTemplateValueParameter())
+        return valueDeclareParameter(vp, sc);
+    else if (auto ap = _this.isTemplateAliasParameter())
+        return aliasDeclareParameter(ap, sc);
+    else if (auto tup = _this.isTemplateTupleParameter())
+        return tupleDeclareParameter(tup, sc);
+
+    assert(0); // unreachable
+}
+
 /************************************
  * Return hash of Objects.
  */

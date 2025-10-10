@@ -1704,7 +1704,6 @@ public:
     virtual TemplateThisParameter* isTemplateThisParameter();
     virtual TemplateTupleParameter* isTemplateTupleParameter();
     virtual TemplateParameter* syntaxCopy() = 0;
-    virtual bool declareParameter(Scope* sc) = 0;
     virtual void print(RootObject* oarg, RootObject* oded) = 0;
     virtual RootObject* specialization() = 0;
     virtual bool hasDefaultArg() = 0;
@@ -1721,7 +1720,6 @@ public:
     RootObject* defaultAlias;
     TemplateAliasParameter* isTemplateAliasParameter() override;
     TemplateAliasParameter* syntaxCopy() override;
-    bool declareParameter(Scope* sc) override;
     void print(RootObject* oarg, RootObject* oded) override;
     RootObject* specialization() override;
     bool hasDefaultArg() override;
@@ -1852,7 +1850,6 @@ public:
     Type* defaultType;
     TemplateTypeParameter* isTemplateTypeParameter() final override;
     TemplateTypeParameter* syntaxCopy() override;
-    bool declareParameter(Scope* sc) final override;
     void print(RootObject* oarg, RootObject* oded) final override;
     RootObject* specialization() final override;
     bool hasDefaultArg() final override;
@@ -1872,7 +1869,6 @@ class TemplateTupleParameter final : public TemplateParameter
 public:
     TemplateTupleParameter* isTemplateTupleParameter() override;
     TemplateTupleParameter* syntaxCopy() override;
-    bool declareParameter(Scope* sc) override;
     void print(RootObject* oarg, RootObject* oded) override;
     RootObject* specialization() override;
     bool hasDefaultArg() override;
@@ -1887,7 +1883,6 @@ public:
     Expression* defaultValue;
     TemplateValueParameter* isTemplateValueParameter() override;
     TemplateValueParameter* syntaxCopy() override;
-    bool declareParameter(Scope* sc) override;
     void print(RootObject* oarg, RootObject* oded) override;
     RootObject* specialization() override;
     bool hasDefaultArg() override;
