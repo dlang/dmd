@@ -610,6 +610,8 @@ public:
     AttributeViolation* pureViolation;
     AttributeViolation* nothrowViolation;
 
+    void* parametersDFAInfo;
+
     // Formerly FUNCFLAGS
     uint32_t flags;
     bool purityInprocess() const;
