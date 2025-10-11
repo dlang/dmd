@@ -87,6 +87,21 @@ import dmd.visitor;
 
 enum LOG = false;
 
+structalign_t alignment(Scope* _this)
+{
+    if (_this.aligndecl)
+    {
+        auto ad = _this.aligndecl.getAlignment(_this);
+        return ad.salign;
+    }
+    else
+    {
+        structalign_t sa;
+        sa.setDefault();
+        return sa;
+    }
+}
+
 /*************************************
  * Does semantic analysis on the public face of declarations.
  */
