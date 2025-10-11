@@ -39,7 +39,6 @@ import dmd.importc;
 import dmd.location;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
-import dmd.root.speller;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
@@ -572,65 +571,6 @@ extern (C++) struct Scope
             version (LOGSEARCH) if (s) printMsg("-Scope.search() found import", s);
         }
         return s;
-    }
-
-    extern (D) Dsymbol search_correct(Identifier ident)
-    {
-        if (global.gag)
-            return null; // don't do it for speculative compiles; too time consuming
-
-        /************************************************
-         * Given the failed search attempt, try to find
-         * one with a close spelling.
-         * Params:
-         *      seed = identifier to search for
-         *      cost = set to the cost, which rises with each outer scope
-         * Returns:
-         *      Dsymbol if found, null if not
-         */
-        extern (D) Dsymbol scope_search_fp(const(char)[] seed, out int cost)
-        {
-            //printf("scope_search_fp('%s')\n", seed);
-            /* If not in the lexer's string table, it certainly isn't in the symbol table.
-             * Doing this first is a lot faster.
-             */
-            if (!seed.length)
-                return null;
-            Identifier id = Identifier.lookup(seed);
-            if (!id)
-                return null;
-            Scope* sc = &this;
-            Module.clearCache();
-            Dsymbol scopesym;
-            Dsymbol s = sc.search(Loc.initial, id, scopesym, SearchOpt.ignoreErrors);
-            if (!s)
-                return null;
-
-            // Do not show `@disable`d declarations
-            if (auto decl = s.isDeclaration())
-                if (decl.storage_class & STC.disable)
-                    return null;
-            // Or `deprecated` ones if we're not in a deprecated scope
-            if (s.isDeprecated() && !sc.isDeprecated())
-                return null;
-
-            for (cost = 0; sc; sc = sc.enclosing, ++cost)
-                if (sc.scopesym == scopesym)
-                    break;
-            if (scopesym != s.parent)
-            {
-                ++cost; // got to the symbol through an import
-                if (s.visible().kind == Visibility.Kind.private_)
-                    return null;
-            }
-            return s;
-        }
-
-        Dsymbol scopesym;
-        // search for exact name first
-        if (auto s = search(Loc.initial, ident, scopesym, SearchOpt.ignoreErrors))
-            return s;
-        return speller!scope_search_fp(ident.toString());
     }
 
     /************************************
