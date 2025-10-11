@@ -475,6 +475,7 @@ extern (C++) class VarDeclaration : Declaration
         bool dllExport;         /// __declspec(dllexport)
         mixin VarDeclarationExtra;
         bool systemInferred;    /// @system was inferred from initializer
+        bool inLoop;            /// variable is declared in a loop and should not be part of a closure
     }
 
     import dmd.common.bitfields : generateBitFields;
