@@ -820,22 +820,7 @@ extern (C++) struct Scope
             //    assert(0);
         }
     }
-    /******************************
-     */
-    extern (D) structalign_t alignment()
-    {
-        if (aligndecl)
-        {
-            auto ad = aligndecl.getAlignment(&this);
-            return ad.salign;
-        }
-        else
-        {
-            structalign_t sa;
-            sa.setDefault();
-            return sa;
-        }
-    }
+
     @safe @nogc pure nothrow const:
     /**********************************
     * Checks whether the current scope (or any of its parents) is deprecated.
