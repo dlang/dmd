@@ -26,7 +26,7 @@ import dmd.dmodule;
 import dmd.doc;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem: search, getAlignment;
+import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.errors;
