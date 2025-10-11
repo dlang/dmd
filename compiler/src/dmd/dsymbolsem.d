@@ -41,6 +41,7 @@ import dmd.dtemplate;
 import dmd.dversion;
 import dmd.enumsem;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
@@ -145,6 +146,32 @@ Dsymbol search_correct(Scope* _this, Identifier ident)
     if (auto s = _this.search(Loc.initial, ident, scopesym, SearchOpt.ignoreErrors))
         return s;
     return speller!scope_search_fp(ident.toString());
+}
+
+Scope* scopeCreateGlobal(Module _module, ErrorSink eSink)
+{
+    Scope* sc = Scope.alloc();
+    *sc = Scope.init;
+    sc._module = _module;
+    sc.minst = _module;
+    sc.scopesym = new ScopeDsymbol();
+    sc.scopesym.symtab = new DsymbolTable();
+    sc.eSink = eSink;
+    assert(eSink);
+    // Add top level package as member of this global scope
+    Dsymbol m = _module;
+    while (m.parent)
+        m = m.parent;
+    m.addMember(null, sc.scopesym);
+    m.parent = null; // got changed by addMember()
+    sc.previews.setFromParams(global.params);
+
+    if (_module.filetype == FileType.c)
+        sc.inCfile = true;
+    // Create the module scope underneath the global scope
+    sc = sc.push(_module);
+    sc.parent = _module;
+    return sc;
 }
 
 /*************************************
@@ -3079,7 +3106,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Scope* sc = m._scope; // see if already got one from importAll()
         if (!sc)
         {
-            sc = Scope.createGlobal(m, global.errorSink); // create root scope
+            sc = scopeCreateGlobal(m, global.errorSink); // create root scope
         }
 
         //printf("Module = %p, linkage = %d\n", sc.scopesym, sc.linkage);
@@ -3098,7 +3125,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!m._scope)
         {
             sc = sc.pop();
-            sc.pop(); // 2 pops because Scope.createGlobal() created 2
+            sc.pop(); // 2 pops because scopeCreateGlobal() created 2
         }
         m.semanticRun = PASS.semanticdone;
         //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
@@ -7601,7 +7628,7 @@ extern(C++) class ImportAllVisitor : Visitor
          * gets imported, it is unaffected by context.
          * Ignore prevsc.
          */
-        Scope* sc = Scope.createGlobal(m, global.errorSink); // create root scope
+        Scope* sc = scopeCreateGlobal(m, global.errorSink); // create root scope
 
         if (m.md && m.md.msg)
             m.md.msg = semanticString(sc, m.md.msg, "deprecation message");
@@ -7646,7 +7673,7 @@ extern(C++) class ImportAllVisitor : Visitor
             s.importAll(sc);
         }
         sc = sc.pop();
-        sc.pop(); // 2 pops because Scope.createGlobal() created 2
+        sc.pop(); // 2 pops because scopeCreateGlobal() created 2
     }
 
     override void visit(AttribDeclaration atb)
