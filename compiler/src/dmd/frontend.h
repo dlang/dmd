@@ -3904,7 +3904,6 @@ public:
     Array<VarDeclaration* > outerVars;
     static FuncDeclaration* lastMain;
     Array<FuncDeclaration* > siblingCallers;
-    Array<FuncDeclaration* >* inlinedNestedCallees;
     AttributeViolation* safetyViolation;
     AttributeViolation* nogcViolation;
     AttributeViolation* pureViolation;

@@ -2053,6 +2053,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
     }
     scope ids = new InlineDoState(parent, fd);
 
+    version(MARS)
     if (fd.isNested())
     {
         if (!parent.inlinedNestedCallees)
