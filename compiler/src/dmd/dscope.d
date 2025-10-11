@@ -26,7 +26,7 @@ import dmd.dmodule;
 import dmd.doc;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
+import dmd.dsymbolsem: search, getAlignment;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.errors;
@@ -215,32 +215,6 @@ extern (C++) struct Scope
             return s;
         }
         return new Scope();
-    }
-
-    extern (D) static Scope* createGlobal(Module _module, ErrorSink eSink)
-    {
-        Scope* sc = Scope.alloc();
-        *sc = Scope.init;
-        sc._module = _module;
-        sc.minst = _module;
-        sc.scopesym = new ScopeDsymbol();
-        sc.scopesym.symtab = new DsymbolTable();
-        sc.eSink = eSink;
-        assert(eSink);
-        // Add top level package as member of this global scope
-        Dsymbol m = _module;
-        while (m.parent)
-            m = m.parent;
-        m.addMember(null, sc.scopesym);
-        m.parent = null; // got changed by addMember()
-        sc.previews.setFromParams(global.params);
-
-        if (_module.filetype == FileType.c)
-            sc.inCfile = true;
-        // Create the module scope underneath the global scope
-        sc = sc.push(_module);
-        sc.parent = _module;
-        return sc;
     }
 
     extern (D) Scope* copy()
