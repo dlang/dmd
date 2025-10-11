@@ -54,7 +54,7 @@ subPackage {
 
   # generate files `generated/dub/{VERSION,SYSCONFDIR.imp}` for string-imports
   # by building & running the config.d tool
-  preGenerateCommands `"$DUB_EXE" "--compiler=$DC" --single "${DUB_PACKAGE_DIR}config.d" -- "${DUB_PACKAGE_DIR}generated/dub" "${DUB_PACKAGE_DIR}VERSION" /etc`
+  preGenerateCommands `"$DUB_EXE" "--compiler=$DC" --single "${PACKAGE_DIR}/config.d" -- "${PACKAGE_DIR}/generated/dub" "${PACKAGE_DIR}/VERSION" /etc`
 
   stringImportPaths \
     "compiler/src/dmd/res" \
