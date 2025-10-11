@@ -72,6 +72,10 @@ jobs:
           - job_name: Windows x64, LDC
             os: windows-2022
             host_dmd: ldc-latest
+          - job_name: Windows x64, DMD (bootstrap)
+            os: windows-2022
+            host_dmd: dmd-2.079.0
+            disable_debug_for_dmd_unittests: true # no `-debug` - host frontend too old
           - job_name: Windows x86, DMD (latest)
             os: windows-2022
             host_dmd: dmd-latest
@@ -123,6 +127,9 @@ jobs:
         uses: dlang-community/setup-dlang@v1.3.0
         with:
           compiler: ${{ matrix.host_dmd }}
+      - name: 'Windows: Remove DM make.exe bundled with old DMD bootstrap compiler, shadowing GNU make.exe in PATH'
+        if: runner.os == 'Windows' && matrix.host_dmd == 'dmd-2.079.0'
+        run: rm "$(dirname "$(which $DC)")"/make.exe
 
       - name: Set up repos
         run: |
@@ -143,16 +150,18 @@ jobs:
           fi
 
           ci/run.sh setup_repos "$REPO_BRANCH"
+      - name: 'Windows: Set up MSVC environment early for old DMD bootstrap compiler'
+        if: runner.os == 'Windows' && matrix.host_dmd == 'dmd-2.079.0'
+        uses: seanmiddleditch/gha-setup-vsdevenv@v4
+        with:
+          arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
       - name: Build
         run: ${{ matrix.disable_debug_for_dmd_unittests && 'ENABLE_DEBUG=0' || '' }} ci/run.sh build
-        env:
-          # on Windows, `ci/run.sh build` expects the DMD env var to be set to the DMD-CLI-compatible host compiler
-          DMD: ${{ runner.os == 'Windows' && (startsWith(matrix.host_dmd, 'ldc') && 'ldmd2' || 'dmd') || '' }}
       - name: Rebuild dmd (with enabled coverage)
         if: matrix.coverage
         run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ci/run.sh rebuild
       - name: 'Windows: Set up MSVC environment' # some tests need cl.exe etc. in PATH
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && matrix.host_dmd != 'dmd-2.079.0'
         uses: seanmiddleditch/gha-setup-vsdevenv@v4
         with:
           arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
@@ -161,13 +170,6 @@ jobs:
       - name: Test druntime
         if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_druntime
-      - name: 'Windows x86: Add 32-bit libcurl.dll to PATH (required for Phobos unittests)'
-        if: runner.os == 'Windows' && env.MODEL == '32' && !matrix.coverage && (success() || failure())
-        run: |
-          # LDC
-          echo "$(dirname "$(which $DC)")/../lib32" >> $GITHUB_PATH
-          # DMD
-          echo "$(dirname "$(which $DC)")/../bin" >> $GITHUB_PATH
       - name: Test phobos
         if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_phobos
