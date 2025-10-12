@@ -94,6 +94,7 @@ enum LOG = false;
  * until found.
  *
  * Params:
+ *  _this = Scope object
  *  loc = location to use for error messages
  *  ident = name to look up
  *  pscopesym = if supplied and name is found, set to scope that ident was found in, otherwise set to null
