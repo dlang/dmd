@@ -43,7 +43,7 @@ import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.x86.xmm;
 import dmd.backend.arm.cod1 : getlvalue, loadFromEA, storeToEA,CLIB_A,callclib;
 import dmd.backend.arm.cod2 : tyToExtend;
-import dmd.backend.arm.cod3 : COND, conditionCode, gentstreg;
+import dmd.backend.arm.cod3 : COND, conditionCode, gentstreg, loadFloatRegConst;
 import dmd.backend.arm.instr;
 
 
@@ -144,7 +144,10 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 assert(NOREG < 64);  // otherwise mask(NOREG) will not work
                 reg_t r = allocreg(cdb, m, tyml);
                 const p = cast(targ_size_t*) &(e2.EV);
-                movregconst(cdb,r,*p,sz == 8);
+                if (r >= 32)
+                    loadFloatRegConst(cdb,r,e2.EV.Vdouble,sz);
+                else
+                    movregconst(cdb,r,*p,sz == 8);
                 storeToEA(cs,r,sz);
                 cdb.gen(&cs);
             }
