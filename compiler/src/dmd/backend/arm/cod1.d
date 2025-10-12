@@ -82,7 +82,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         {
             // LDR reg,[cs.base, #offset]
             assert(cs.index == NOREG);
-            uint imm12 = cast(uint)cs.IEV1.Voffset;
+            uint imm12 = 0; // cast(uint)cs.IEV1.Voffset added in by assignaddrc()
             uint size, opc;
             INSTR.szToSizeOpc(szw, size, opc);
             if (szr & (szr - 1)) // if misaligned
@@ -569,8 +569,7 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
     getlvalue(cdb, cs, e, keepmsk, rmx);
     cs.IEV1.Voffset += offset;
 
-//xyzzy
-printf("sz: %d\n", sz);
+    //printf("loadea() sz: %d Voffset: %d loadea.offset: %d\n", sz, cast(int)cs.IEV1.Voffset, cast(int)offset);
     assert(op != LEA);                  // AArch64 does not have LEA
     loadFromEA(cs,reg,sz >= 8 ? sz : 4,sz);
 

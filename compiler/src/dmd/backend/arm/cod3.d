@@ -1853,6 +1853,7 @@ void assignaddrc(code* c)
                 if (1) printf("FL: %s\n", fl_str(c.IFL1));
                 assert(0);
         }
+        //printf("after: "); disassemble(ins);
     }
     static if (0)
         for (c = csave; c; c = code_next(c))
