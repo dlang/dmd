@@ -148,6 +148,21 @@ Dsymbol search_correct(Scope* _this, Identifier ident)
     return speller!scope_search_fp(ident.toString());
 }
 
+structalign_t alignment(Scope* _this)
+{
+    if (_this.aligndecl)
+    {
+        auto ad = _this.aligndecl.getAlignment(_this);
+        return ad.salign;
+    }
+    else
+    {
+        structalign_t sa;
+        sa.setDefault();
+        return sa;
+    }
+}
+
 Scope* scopeCreateGlobal(Module _module, ErrorSink eSink)
 {
     Scope* sc = Scope.alloc();
