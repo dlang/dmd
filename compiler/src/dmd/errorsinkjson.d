@@ -1,87 +1,101 @@
 /**
- * errorsinkjson.d
+ * JSON error sink — outputs diagnostics in JSON format.
  *
- * JSON-based implementation of ErrorSink for DMD.
- * Emits compiler diagnostics as JSON objects for tools, editors, or LSP servers.
+ * Copyright:
+ *  Copyright (C) 1999-2025 by The D Language Foundation
+ * License:
+ *  $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Authors:
+ *  SAoC Project (Error message improvements and LSP integration)
  */
 
-module errorsinkjson;
+module dmd.errorsinkjson;
 
-import core.stdc.stdarg : va_list, vsnprintf;
+import core.stdc.stdio;
+import core.stdc.stdarg;
 import dmd.errorsink : ErrorSink;
-import dmd.location : Loc;
-import std.json : JSONValue, toJSON;
-import std.stdio : writeln;
+import dmd.location;
 
-/// JSON-based error sink implementation for structured diagnostics.
+/**
+ * ErrorSinkJson serializes diagnostics into a JSON array and writes to stdout.
+ */
 class ErrorSinkJson : ErrorSink
 {
-nothrow:
-extern (C++):
-override:
+    import core.stdc.stdio;
+    import core.stdc.stdarg;
+  
+  nothrow:
 
-    private JSONValue[] diagnostics;
-
-    /// Helper to convert a message into a JSON entry
-    private void addMessage(string severity, Loc loc, const(char)* format, va_list ap)
+    extern(C++) override void verror(Loc loc, const(char)* format, va_list ap)
     {
-        char[1024] buf;
-        vsnprintf(buf.ptr, buf.length, format, ap);
-
-        string filename = loc.filename ? loc.filename.toString() : "";
-        JSONValue msg = [
-            "file"    : JSONValue(filename),
-            "line"    : JSONValue(loc.linnum),
-            "column"  : JSONValue(loc.charnum),
-            "severity": JSONValue(severity),
-            "message" : JSONValue(buf[0 .. buf.length].idup)
-        ];
-        diagnostics ~= msg;
+        printJSONObject("error",loc,format,ap);
     }
 
-    /// Implementation of all virtual functions from ErrorSink
-
-    void verror(Loc loc, const(char)* format, va_list ap)
+    extern(C++) override void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
     {
-        addMessage("error", loc, format, ap);
     }
 
-    void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
+    extern(C++) override void vwarning(Loc loc, const(char)* format, va_list ap)
     {
-        addMessage("error-supplemental", loc, format, ap);
+        printJSONObject("warning",loc,format,ap);
     }
 
-    void vwarning(Loc loc, const(char)* format, va_list ap)
+    extern(C++) override void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
     {
-        addMessage("warning", loc, format, ap);
     }
 
-    void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
+    extern(C++) override void vdeprecation(Loc loc, const(char)* format, va_list ap)
     {
-        addMessage("warning-supplemental", loc, format, ap);
+        printJSONObject("deprecation",loc,format,ap);
     }
 
-    void vmessage(Loc loc, const(char)* format, va_list ap)
+    extern(C++) override void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap)
     {
-        addMessage("message", loc, format, ap);
     }
 
-    void vdeprecation(Loc loc, const(char)* format, va_list ap)
+    extern(C++) override void vmessage(Loc loc, const(char)* format, va_list ap)
     {
-        addMessage("deprecation", loc, format, ap);
+        printJSONObject("message",loc,format,ap);
     }
 
-    void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap)
+    private void printJSONObject(const(char)* type, Loc loc, const(char)* format, va_list ap) @system nothrow
     {
-        addMessage("deprecation-supplemental", loc, format, ap);
+        const(char)* filename = null;
+        uint line = 0;
+        uint column = 0;
+        if(loc.filename !is null)
+        {
+            filename = loc.filename;
+            line = loc.linnum;
+            column = loc.charnum;
+        }
+        fputc('{',stdout);
+        fprintf(stdout, "\"type\":\"%s\",", type);
+        fprintf(stdout, "\"file\":\"%s\",", filename ? filename : "");
+        fprintf(stdout, "\"line\":%u,", line);
+        fprintf(stdout, "\"column\":%u,", column);
+        fprintf(stdout, "\"message\":\"");
+        vfprintf(stdout, format, ap);
+        fputs("}\n", stdout);
     }
+}
 
+unittest
+{
+    import core.stdc.stdio;
+    import core.stdc.string : strcmp;
 
-    /// Called when compilation is done
-    override void plugSink()
-    {
-        // Emit all collected diagnostics as a JSON array
-        writeln(toJSON(diagnostics));
-        diagnostics.length = 0;
-    }
+    auto sink = new ErrorSinkJSON();
+
+    Loc loc;
+    loc.filename = "main.d".ptr;
+    loc.linnum = 1;
+    loc.charnum = 2;
+
+    sink.verror(loc, "Test error %d", 42);
+   
+    va_list ap;
+    va_start(ap, "unused"); // dummy for demonstration
+    sink.verror(loc, "Undefined variable: %s", ap); // would print directly
+    va_end(ap);
 }
