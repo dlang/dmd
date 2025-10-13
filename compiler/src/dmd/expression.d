@@ -32,7 +32,6 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
-import dmd.expressionsem : getDsymbol;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
@@ -1664,34 +1663,7 @@ extern (C++) final class TupleExp : Expression
     {
         super(loc, EXP.tuple);
         this.exps = new Expressions();
-
-        this.exps.reserve(tup.objects.length);
-        foreach (o; *tup.objects)
-        {
-            if (Dsymbol s = getDsymbol(o))
-            {
-                /* If tuple element represents a symbol, translate to DsymbolExp
-                 * to supply implicit 'this' if needed later.
-                 */
-                Expression e = new DsymbolExp(loc, s);
-                this.exps.push(e);
-            }
-            else if (auto eo = o.isExpression())
-            {
-                auto e = eo.copy();
-                e.loc = loc;    // https://issues.dlang.org/show_bug.cgi?id=15669
-                this.exps.push(e);
-            }
-            else if (auto t = o.isType())
-            {
-                Expression e = new TypeExp(loc, t);
-                this.exps.push(e);
-            }
-            else
-            {
-                error(loc, "`%s` is not an expression", o.toChars());
-            }
-        }
+        // the rest of the constructor is moved to expressionsem.d in fillTupleExpExps function
     }
 
     static TupleExp create(Loc loc, Expressions* exps) @safe

@@ -16,7 +16,7 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.common.outbuffer : OutBuffer;
 import dmd.dclass : ClassDeclaration, BaseClass;
-import dmd.declaration : TypeInfoDeclaration, VarDeclaration;
+import dmd.declaration : TypeInfoDeclaration, VarDeclaration, TupleDeclaration;
 import dmd.denum : EnumDeclaration;
 import dmd.dmodule /*: Module*/;
 import dmd.dscope : Scope;
@@ -301,6 +301,13 @@ bool isOverlappedWith(VarDeclaration vd, VarDeclaration v){
     return dmd.dsymbolsem.isOverlappedWith(vd, v);
 }
 
+Dsymbol search(Scope* sc, Loc loc, Identifier ident, out Dsymbol pscopesym,
+    SearchOptFlags flags = SearchOpt.all)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.search(sc, loc, ident, pscopesym, flags);
+}
+
 /***********************************************************
  * dtemplate.d
  */
@@ -408,6 +415,12 @@ int getFieldIndex(ClassReferenceExp cre, Type fieldtype, uint fieldoffset)
 {
     import dmd.expressionsem;
     return dmd.expressionsem.getFieldIndex(cre, fieldtype, fieldoffset);
+}
+
+void fillTupleExpExps(TupleExp te, TupleDeclaration tup)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.fillTupleExpExps(te, tup);
 }
 
 /***********************************************************
@@ -883,6 +896,12 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
 /**
  * templatesem.d
  */
+bool declareParameter(TemplateParameter tp, Scope* sc)
+{
+    import dmd.templatesem;
+    return dmd.templatesem.declareParameter(tp, sc);
+}
+
 bool needsCodegen(TemplateInstance ti)
 {
     import dmd.templatesem;

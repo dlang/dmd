@@ -96,6 +96,37 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
+void fillTupleExpExps(TupleExp _this, TupleDeclaration tup)
+{
+    _this.exps.reserve(tup.objects.length);
+    foreach (o; *tup.objects)
+    {
+        if (Dsymbol s = getDsymbol(o))
+        {
+            /* If tuple element represents a symbol, translate to DsymbolExp
+             * to supply implicit 'this' if needed later.
+             */
+            Expression e = new DsymbolExp(_this.loc, s);
+            _this.exps.push(e);
+        }
+        else if (auto eo = o.isExpression())
+        {
+            auto e = eo.copy();
+            e.loc = _this.loc;    // https://issues.dlang.org/show_bug.cgi?id=15669
+            _this.exps.push(e);
+        }
+        else if (auto t = o.isType())
+        {
+            Expression e = new TypeExp(_this.loc, t);
+            _this.exps.push(e);
+        }
+        else
+        {
+            error(_this.loc, "`%s` is not an expression", o.toChars());
+        }
+    }
+}
+
 bool isLvalue(Expression _this)
 {
     static bool dotVarExpIsLvalue(DotVarExp _this)
@@ -2149,7 +2180,10 @@ Lagain:
         if (tup.needThis() && hasThis(sc))
             e = new DotVarExp(loc, new ThisExp(loc), tup);
         else
+        {
             e = new TupleExp(loc, tup);
+            fillTupleExpExps(e.isTupleExp(), tup);
+        }
         e = e.expressionSemantic(sc);
         return e;
     }
@@ -4680,7 +4714,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 setError();
             }
         }
-        scope (exit) result.rvalue = exp.rvalue;
+        scope (exit)
+        {
+            if (result !is null)
+                result.rvalue = exp.rvalue;
+        }
 
         Dsymbol scopesym;
         Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
@@ -6772,7 +6810,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     {
                         setError();
                     }
-                    else
+                    else if (result !is null)
                     {
                         result.rvalue = true;
                     }
@@ -15240,6 +15278,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
                     return e;
                 }
                 Expression e = new TupleExp(exp.loc, tup);
+                fillTupleExpExps(e.isTupleExp(), tup);
                 e = e.expressionSemantic(sc);
                 return e;
             }
@@ -17279,7 +17318,7 @@ private VarDeclaration makeThis2Argument(Loc loc, Scope* sc, FuncDeclaration fd)
 bool verifyHookExist(Loc loc, ref Scope sc, Identifier id, string description, Identifier module_ = Id.object)
 {
     Dsymbol pscopesym;
-    auto rootSymbol = sc.search(loc, Id.empty, pscopesym);
+    auto rootSymbol = search(&sc, loc, Id.empty, pscopesym);
     if (auto moduleSymbol = rootSymbol.search(loc, module_))
         if (moduleSymbol.search(loc, id))
           return true;

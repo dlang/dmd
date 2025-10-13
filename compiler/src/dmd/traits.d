@@ -1198,8 +1198,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                             // create an empty AA just to copy it
                             scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
                             auto tib = TemplateInstanceBox(ti);
-                            td.instances[tib] = null;
-                            td.instances.clear();
+                            (*(cast(TemplateInstance[TemplateInstanceBox]*) &td.instances))[tib] = null;
+                            (cast(TemplateInstance[TemplateInstanceBox])td.instances).clear();
                         }
                         td = td.syntaxCopy(null);
                         import core.stdc.string : memcpy;

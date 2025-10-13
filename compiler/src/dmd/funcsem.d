@@ -521,7 +521,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         auto fnext = funcdecl.overnext.isFuncDeclaration();
         funcDeclarationSemantic(sc, fnext);
         auto fn = fnext.type.isTypeFunction();
-        if (!fn || !cFuncEquivalence(f, fn))
+        if (!fn || !cFuncEquivalence(f, fn) || !cTypeEquivalence(f.next, fn.next))
         {
             .error(funcdecl.loc, "%s `%s` redeclaration with different type", funcdecl.kind, funcdecl.toPrettyChars);
             //printf("t1: %s\n", f.toChars());
