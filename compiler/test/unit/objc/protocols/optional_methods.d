@@ -177,9 +177,14 @@ unittest
             @optional void foo()();
         }
 
+        extern (Objective-C)
+        class Bar : Foo
+        {
+        }
+
         void main()
         {
-            Foo f = new Foo;
+            Foo f = new Bar;
             f.foo();
         }
     }.stripDelimited;
@@ -190,7 +195,7 @@ unittest
             "Error: function test.Foo.foo!().foo template cannot be optional"
         ),
         Diagnostic(
-            SourceLoc(filename, 12, 10),
+            SourceLoc(filename, 17, 10),
             "Error: template instance test.Foo.foo!() error instantiating"
         )
     ];
