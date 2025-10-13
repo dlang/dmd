@@ -301,6 +301,13 @@ bool isOverlappedWith(VarDeclaration vd, VarDeclaration v){
     return dmd.dsymbolsem.isOverlappedWith(vd, v);
 }
 
+Dsymbol search(Scope* sc, Loc loc, Identifier ident, out Dsymbol pscopesym,
+    SearchOptFlags flags = SearchOpt.all)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.search(sc, loc, ident, pscopesym, flags);
+}
+
 /***********************************************************
  * dtemplate.d
  */

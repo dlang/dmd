@@ -7242,7 +7242,6 @@ public:
     Identifier* prevAnchor;
     AliasDeclaration* aliasAsg;
     StructDeclaration* argStruct;
-    Dsymbol* search(Loc loc, Identifier* ident, Dsymbol*& pscopesym, uint32_t flags = 0u);
     Scope() :
         enclosing(),
         _module(),

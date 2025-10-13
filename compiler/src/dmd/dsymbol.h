@@ -436,4 +436,5 @@ namespace dmd
     void runDeferredSemantic2();
     void runDeferredSemantic3();
     bool isOverlappedWith(VarDeclaration *vd, VarDeclaration *v);
+    Dsymbol* search(Scope *sc, Loc loc, Identifier* ident, Dsymbol*& pscopesym, uint32_t flags = 0u);
 }
