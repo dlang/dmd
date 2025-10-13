@@ -25,7 +25,7 @@ import dmd.dinterpret;
 import dmd.dmdparams;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : toAlias, getType;
+import dmd.dsymbolsem : toAlias, getType, search;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;

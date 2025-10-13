@@ -71,9 +71,7 @@ import dmd.optimize;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.rootobject;
-import dmd.templatesem : TemplateInstanceBox;
 import dmd.tokens;
-import dmd.typesem : typeSemantic;
 import dmd.visitor;
 
 //debug = FindExistingInstance; // print debug stats of findExistingInstance
@@ -254,7 +252,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     Expression constraint;
 
     // Hash table to look up TemplateInstance's of this TemplateDeclaration
-    TemplateInstance[TemplateInstanceBox] instances;
+    void* instances;
 
     TemplateDeclaration overnext;       // next overloaded TemplateDeclaration
     TemplateDeclaration overroot;       // first in overnext list
@@ -874,8 +872,6 @@ extern (C++) class TemplateParameter : ASTNode
 
     abstract TemplateParameter syntaxCopy();
 
-    abstract bool declareParameter(Scope* sc);
-
     abstract void print(RootObject oarg, RootObject oded);
 
     abstract RootObject specialization();
@@ -925,14 +921,6 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
     override TemplateTypeParameter syntaxCopy()
     {
         return new TemplateTypeParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
-    }
-
-    override final bool declareParameter(Scope* sc)
-    {
-        //printf("TemplateTypeParameter.declareParameter('%s')\n", ident.toChars());
-        auto ti = new TypeIdentifier(loc, ident);
-        Declaration ad = new AliasDeclaration(loc, ident, ti);
-        return sc.insert(ad) !is null;
     }
 
     override final void print(RootObject oarg, RootObject oded)
@@ -1030,27 +1018,6 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
             defaultValue ? defaultValue.syntaxCopy() : null);
     }
 
-    override bool declareParameter(Scope* sc)
-    {
-        /*
-            Do type semantic earlier.
-
-            This means for certain erroneous value parameters
-            their "type" can be known earlier and thus a better
-            error message given.
-
-            For example:
-            `template test(x* x) {}`
-            now yields "undefined identifier" rather than the opaque
-            "variable `x` is used as a type".
-         */
-        if (valType)
-            valType = valType.typeSemantic(loc, sc);
-        auto v = new VarDeclaration(loc, valType, ident, null);
-        v.storage_class = STC.templateparameter;
-        return sc.insert(v) !is null;
-    }
-
     override void print(RootObject oarg, RootObject oded)
     {
         printf(" %s\n", ident.toChars());
@@ -1107,13 +1074,6 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         return new TemplateAliasParameter(loc, ident, specType ? specType.syntaxCopy() : null, objectSyntaxCopy(specAlias), objectSyntaxCopy(defaultAlias));
     }
 
-    override bool declareParameter(Scope* sc)
-    {
-        auto ti = new TypeIdentifier(loc, ident);
-        Declaration ad = new AliasDeclaration(loc, ident, ti);
-        return sc.insert(ad) !is null;
-    }
-
     override void print(RootObject oarg, RootObject oded)
     {
         printf(" %s\n", ident.toChars());
@@ -1158,13 +1118,6 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
     override TemplateTupleParameter syntaxCopy()
     {
         return new TemplateTupleParameter(loc, ident);
-    }
-
-    override bool declareParameter(Scope* sc)
-    {
-        auto ti = new TypeIdentifier(loc, ident);
-        Declaration ad = new AliasDeclaration(loc, ident, ti);
-        return sc.insert(ad) !is null;
     }
 
     override void print(RootObject oarg, RootObject oded)

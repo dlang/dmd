@@ -3638,7 +3638,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         assert(sc.func);
         if (!(cas.stc & STC.pure_) && sc.func.setImpure(cas.loc, "executing an `asm` statement without `pure` annotation"))
             error(cas.loc, "`asm` statement is assumed to be impure - mark it with `pure` if it is not");
-        if (!(cas.stc & STC.nogc) && sc.func.setGC(cas.loc, "executing an `asm` statement without `@nogc` annotation"))
+        if (!(cas.stc & STC.nogc) && sc.setGC(sc.func, cas.loc, "executing an `asm` statement without `@nogc` annotation"))
             error(cas.loc, "`asm` statement is assumed to use the GC - mark it with `@nogc` if it does not");
         // @@@DEPRECATED_2.114@@@
         // change deprecation() to error(), add `else` and remove `| STC.safe`

@@ -128,7 +128,6 @@ public:
     virtual TemplateTupleParameter *isTemplateTupleParameter();
 
     virtual TemplateParameter *syntaxCopy() = 0;
-    virtual bool declareParameter(Scope *sc) = 0;
     virtual void print(RootObject *oarg, RootObject *oded) = 0;
     virtual RootObject *specialization() = 0;
     virtual bool hasDefaultArg() = 0;
@@ -149,7 +148,6 @@ public:
 
     TemplateTypeParameter *isTemplateTypeParameter() override final;
     TemplateTypeParameter *syntaxCopy() override;
-    bool declareParameter(Scope *sc) override final;
     void print(RootObject *oarg, RootObject *oded) override final;
     RootObject *specialization() override final;
     bool hasDefaultArg() override final;
@@ -179,7 +177,6 @@ public:
 
     TemplateValueParameter *isTemplateValueParameter() override;
     TemplateValueParameter *syntaxCopy() override;
-    bool declareParameter(Scope *sc) override;
     void print(RootObject *oarg, RootObject *oded) override;
     RootObject *specialization() override;
     bool hasDefaultArg() override;
@@ -198,7 +195,6 @@ public:
 
     TemplateAliasParameter *isTemplateAliasParameter() override;
     TemplateAliasParameter *syntaxCopy() override;
-    bool declareParameter(Scope *sc) override;
     void print(RootObject *oarg, RootObject *oded) override;
     RootObject *specialization() override;
     bool hasDefaultArg() override;
@@ -213,7 +209,6 @@ class TemplateTupleParameter final : public TemplateParameter
 public:
     TemplateTupleParameter *isTemplateTupleParameter() override;
     TemplateTupleParameter *syntaxCopy() override;
-    bool declareParameter(Scope *sc) override;
     void print(RootObject *oarg, RootObject *oded) override;
     RootObject *specialization() override;
     bool hasDefaultArg() override;
@@ -297,4 +292,5 @@ namespace dmd
     TemplateParameter *isTemplateParameter(RootObject *o);
     bool isError(const RootObject *const o);
     void printTemplateStats(bool listInstances, ErrorSink* eSink);
+    bool declareParameter(TemplateParameter *tp, Scope *sc);
 }

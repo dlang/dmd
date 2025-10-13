@@ -957,6 +957,7 @@ void MachObj_term(const(char)[] objfilename)
                     {
                         if (AArch64)
                         {
+                            //printf("AArch64\n");
                             //symbol_print(*s);
                             switch (s.Sclass)
                             {
@@ -988,7 +989,7 @@ void MachObj_term(const(char)[] objfilename)
                                 case SC.global:
                                     //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
-                                    if (s.Sfl == FL.tlsdata)
+                                    if (s.Sfl == FL.tlsdata || s.Sfl == FL.data && (s.ty() & mTYLINK) == mTYthread)
                                         rel.r_type = r.rtype == RELadd ? ARM64_RELOC_TLVP_LOAD_PAGEOFF12 : ARM64_RELOC_TLVP_LOAD_PAGE21;
 
                                     rel.r_pcrel = r.rtype == RELadd ? 0 : 1;

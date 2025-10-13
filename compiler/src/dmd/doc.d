@@ -72,7 +72,7 @@ void gendocfile(Module m, const char[] ddoctext, const char* datetime, ErrorSink
     // Ddoc files override default macros
     DocComment.parseMacros(m.escapetable, m.macrotable, ddoctext);
 
-    Scope* sc = Scope.createGlobal(m, eSink); // create root scope
+    Scope* sc = scopeCreateGlobal(m, eSink); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
     dc.escapetable = m.escapetable;

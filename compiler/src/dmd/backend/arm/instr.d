@@ -21,15 +21,22 @@ nothrow:
 
 enum Extend
 {
-    UXTB,
-    UXTH,
-    UXTW,
+    UXTB,       // extracts byte and zero extends it to size of register
+    UXTH,       // extracts half-word (16 bits) and zero extends it to size of register
+    UXTW,       // extracts word (32 bits) and zero extends it to size of register
     LSL,
-    UXTX = LSL,
-    SXTB,
+    UXTX = LSL, // extracts extended word (64 bits) and zero extends it to size of register, i.e. is a no-op
+    SXTB,       // signed versions...
     SXTH,
     SXTW,
-    SXTX,
+    SXTX,       // no practical difference from UXTX
+}
+
+@trusted
+const(char)* ExtendToStr(Extend e)
+{
+    static immutable char[8 * 5] table = "UXTB\0UXTH\0UXTW\0UXTX\0SXTB\0SXTH\0SXTW\0SXTX\0";
+    return &table[e * 5];
 }
 
 /************************
@@ -49,6 +56,10 @@ struct INSTR
      */
     enum LSW = 0x5555_5555_5555_5555;
     enum MSW = LSW << 1;
+
+    enum BP = 29;
+    enum SP = 31;
+    enum mBP = 1 << BP;
 
     enum uint nop = 0xD503201F;
 
@@ -1219,10 +1230,10 @@ struct INSTR
         return subs_imm(sf, sh, imm12, Rn, 31);
     }
 
-    /* SUBS Rd, Rn, Rm, shift, #imm6
+    /* SUBS Rd, Rn, Rm{, shift, #imm6}
      * http://www.scs.stanford.edu/~zyedidia/arm64/subs_addsub_shift.html
      */
-    static uint subs_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn, ubyte Rd)
+    static uint subs_addsub_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn, ubyte Rd)
     {
         return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, Rd);
     }
@@ -1230,7 +1241,7 @@ struct INSTR
     /* CMP Rn, Rm, shift, #imm6
      * http://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_shift.html
      */
-    static uint cmp_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn)
+    static uint cmp_subs_addsub_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn)
     {
         return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, 0x1F);
     }
@@ -1270,12 +1281,15 @@ struct INSTR
         return log_shift(sf, opc, shift, N, Rm, imm6, Rn, Rd);
     }
 
-    /* MOV Rd, Rn, Rm{, shift #amount}
+    /* MOV Rd, Rm
      * https://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_log_shift.html
      */
     static uint mov_register(uint sf, ubyte Rm, ubyte Rd)
     {
-        return orr_shifted_register(sf, 0, Rm, 0, 31, Rd);
+        uint shift = 0;
+        uint imm6 = 0;
+        ubyte Rzr = 31; // zero register
+        return orr_shifted_register(sf, shift, Rm, imm6, Rzr, Rd);
     }
 
     /* CSINC Rd, Rn, Rm, <cond>?
@@ -1487,6 +1501,8 @@ struct INSTR
     static uint ldr_reg_gen(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
     {
         // LDR Rt,Rbase,Rindex,extend S
+        assert(S <= 1);
+        assert((extend & 2) && extend < 8); // UXTW LSL SXTW SXTX
         return ldst_regoff(2 | sz, 0, 1, Rindex, extend, S, Rbase, Rt);
     }
 

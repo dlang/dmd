@@ -217,6 +217,7 @@ COND conditionCode(elem* e)
 
     /* Try to rewrite uint comparisons so they rely on just the Carry flag
      */
+    static if (0) // This doesn't work, I don't know why it worked for X86_64
     if (i == 1 && (jp == COND.hi || jp == COND.ls) &&
         (e.E2.Eoper != OPconst && e.E2.Eoper != OPrelconst))
     {
@@ -329,6 +330,7 @@ void gentstreg(ref CodeBuilder cdb, reg_t reg, uint sf)
 @trusted
 void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 {
+    //printf("genBranch(cond: %d)\n", cond);
     code cs;
     cs.Iop = INSTR.b_cond(0, cond);     // offset is 0 for now, fix in codout()
     cs.Iflags = 0;
@@ -354,6 +356,7 @@ void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 @trusted
 void genCompBranch(ref CodeBuilder cdb, uint sf, reg_t R, bool op, FL fltarg, block* targ)
 {
+    //printf("genCompBranch(sf: %d, R: %d, op: %d)\n", sf, R, op);
     code cs;
     uint imm19 = 0;                     // offset is 0 for now, fix in codout()
     cs.Iop = INSTR.compbranch(sf, op, imm19, R);
@@ -404,10 +407,10 @@ void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa
     if (!cg.hasframe || cg.enforcealign)
     {
         gpoffset += cg.EBPtoESP;
-        fp = 31;        // SP
+        fp = INSTR.SP;        // SP
     }
     else
-        fp = 29;        // BP
+        fp = INSTR.BP;        // BP
 
     while (topush)
     {
@@ -1850,6 +1853,7 @@ void assignaddrc(code* c)
                 if (1) printf("FL: %s\n", fl_str(c.IFL1));
                 assert(0);
         }
+        //printf("after: "); disassemble(ins);
     }
     static if (0)
         for (c = csave; c; c = code_next(c))
@@ -1869,7 +1873,7 @@ void assignaddrc(code* c)
 @trusted
 void jmpaddr(code* c)
 {
-    printf("jmpaddr()\n");
+    //printf("jmpaddr()\n");
 
     code* ci,cn,ctarg,cstart;
     uint ad;
@@ -1900,7 +1904,7 @@ void jmpaddr(code* c)
             for (ci = cstart; ci != ctarg; ci = code_next(ci))
                 if (!ci || ci == c)
                     assert(0);
-            ad = 4;                 /* - IP displacement            */
+            ad = 0;                 /* - IP displacement            */
             while (ci != c)
             {
                 assert(ci);

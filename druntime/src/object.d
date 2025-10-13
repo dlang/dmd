@@ -3822,7 +3822,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     return hash;
 }
 
-/// Provide the .dup array property.
+/// Provide the .dup array property, which creates a duplicate.
 @property auto dup(T)(T[] a)
     if (!is(const(T) : T))
 {
@@ -3854,7 +3854,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 }
 
 
-/// Provide the .idup array property.
+/// Provide the .idup array property, which creates an immutable duplicate.
 @property immutable(T)[] idup(T)(T[] a)
 {
     import core.internal.array.duplication : _dup;
@@ -4680,6 +4680,7 @@ version (D_ProfileGC)
     public import core.internal.array.concatenation : _d_arraycatnTXTrace;
     public import core.lifetime : _d_newitemTTrace;
     public import core.internal.array.construction : _d_newarrayTTrace;
+    public import core.internal.array.construction : _d_newarrayUTrace;
     public import core.internal.array.construction : _d_newarraymTXTrace;
     public import core.internal.array.capacity: _d_arraysetlengthTTrace;
     public import core.internal.array.construction : _d_arrayliteralTXTrace;
@@ -4692,6 +4693,7 @@ public import core.internal.array.concatenation : _d_arraycatnTX;
 public import core.internal.array.construction : _d_arrayctor;
 public import core.internal.array.construction : _d_arraysetctor;
 public import core.internal.array.construction : _d_newarrayT;
+public import core.internal.array.construction : _d_newarrayU;
 public import core.internal.array.construction : _d_newarraymTX;
 public import core.internal.array.construction : _d_arrayliteralTX;
 public import core.internal.array.arrayassign : _d_arrayassign_l;

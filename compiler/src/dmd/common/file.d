@@ -32,10 +32,10 @@ version (Windows)
 {
     import core.stdc.wchar_;
     import core.sys.windows.winbase;
-    import core.sys.windows.winnls : CP_ACP;
+    import core.sys.windows.winnls : CP_UTF8;
     import core.sys.windows.winnt;
 
-    enum CodePage = CP_ACP; // assume filenames encoded in system default Windows ANSI code page
+    enum CodePage = CP_UTF8; // assume filenames already gone through Windows ANSI code page -> UTF8 conversion
     enum invalidHandle = INVALID_HANDLE_VALUE;
 }
 else version (Posix)

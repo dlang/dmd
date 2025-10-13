@@ -521,7 +521,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         auto fnext = funcdecl.overnext.isFuncDeclaration();
         funcDeclarationSemantic(sc, fnext);
         auto fn = fnext.type.isTypeFunction();
-        if (!fn || !cFuncEquivalence(f, fn))
+        if (!fn || !cFuncEquivalence(f, fn) || !cTypeEquivalence(f.next, fn.next))
         {
             .error(funcdecl.loc, "%s `%s` redeclaration with different type", funcdecl.kind, funcdecl.toPrettyChars);
             //printf("t1: %s\n", f.toChars());
@@ -3985,10 +3985,6 @@ extern (D) bool checkNestedReference(VarDeclaration vd, Scope* sc, Loc loc)
     if (!fdv || fdv == fdthis)
         return false;
 
-    // Add fdthis to nestedrefs[] if not already there
-    if (!vd.nestedrefs.contains(fdthis))
-        vd.nestedrefs.push(fdthis);
-
     //printf("\tfdv = %s\n", fdv.toChars());
     //printf("\tfdthis = %s\n", fdthis.toChars());
     if (loc.isValid())
@@ -3997,11 +3993,15 @@ extern (D) bool checkNestedReference(VarDeclaration vd, Scope* sc, Loc loc)
             return true;
     }
 
-    // Add this VarDeclaration to fdv.closureVars[] if not already there
     if (!sc.intypeof && !sc.traitsCompiles &&
         // https://issues.dlang.org/show_bug.cgi?id=17605
         (fdv.skipCodegen || !fdthis.skipCodegen))
     {
+        // Add fdthis to nestedrefs[] if not already there
+        if (!vd.nestedrefs.contains(fdthis))
+            vd.nestedrefs.push(fdthis);
+
+        // Add this VarDeclaration to fdv.closureVars[] if not already there
         if (!fdv.closureVars.contains(vd))
             fdv.closureVars.push(vd);
     }
