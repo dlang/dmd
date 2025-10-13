@@ -179,7 +179,7 @@ unittest
 
         void main()
         {
-            Foo f;
+            Foo f = new Foo;
             f.foo();
         }
     }.stripDelimited;
