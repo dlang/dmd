@@ -2905,7 +2905,7 @@ const(char)[] eaString(uint op, ubyte Rn, int offset)
     switch (op)
     {
         case 1:
-            if (offset)
+            if (1 || offset)
             {
                 uint n = snprintf(EA.ptr, cast(uint)EA.length, "[%s],%s", regString(1, Rn).ptr, signedWordtostring(offset).ptr);
                 p = EA[0 .. n];
@@ -3208,8 +3208,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[93] cases64 =      // 64 bit code gen
+    string[94] cases64 =      // 64 bit code gen
     [
+        "B8 00 04 62         str    w2,[x3],#0",
         "78 64 68 23         ldrh   w3,[x1, x4]",
         "78 24 68 43         strh   w3,[x2, x4]",
         "38 64 68 23         ldrb   w3,[x1, x4]",
