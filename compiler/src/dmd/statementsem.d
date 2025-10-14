@@ -3421,11 +3421,14 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             blockexit &= ~BE.throw_;            // don't worry about paths that otherwise may throw
 
         // Don't care about paths that halt, either
-        if ((blockexit & ~BE.halt) == BE.fallthru)
+        // Only rewrite if it was requested.
+        // This has side effects where Error will not run destructors, unsafe.
+        if (global.params.rewriteNoExceptionToSeq && (blockexit & ~BE.halt) == BE.fallthru)
         {
             result = new CompoundStatement(tfs.loc, tfs._body, tfs.finalbody);
             return;
         }
+
         tfs.bodyFallsThru = (blockexit & BE.fallthru) != 0;
         result = tfs;
     }
