@@ -21,6 +21,7 @@ import dmd.arraytypes;
 import dmd.attrib;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.templatesem : computeOneMember;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.globals;
@@ -2147,17 +2148,7 @@ public:
         if (!shouldEmitAndMarkVisited(td))
             return;
 
-        if(td.members && td.ident)
-        {
-            Dsymbol s;
-            if (oneMembers(td.members, s, td.ident) && s)
-            {
-                td.onemember = s;
-                s.parent = td;
-                td.computeIsTrivialAlias(s);
-            }
-        }
-
+        td.computeOneMember();
         if (!td.parameters || !td.onemember || (!td.onemember.isStructDeclaration && !td.onemember.isClassDeclaration && !td.onemember.isFuncDeclaration))
         {
             visit(cast(AST.Dsymbol)td);
