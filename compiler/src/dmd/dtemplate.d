@@ -267,6 +267,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool isTrivialAlias;    /// matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
     bool deprecated_;       /// this template declaration is deprecated
     bool isCmacro;          /// Whether this template is a translation of a C macro
+    bool isComputedOneMember; /// Whether computeOneMeber is called
     Visibility visibility;
 
     // threaded list of previous instantiation attempts on stack
@@ -305,6 +306,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         this.literal = literal;
         this.ismixin = ismixin;
         this.isstatic = true;
+        this.isComputedOneMember = false;
         this.visibility = Visibility(Visibility.Kind.undefined);
     }
 
