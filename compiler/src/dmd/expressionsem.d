@@ -1906,41 +1906,18 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 {
     //printf("e1 = %s %s\n", Token.toChars(e1.op), e1.toChars());
 
-    Expression handleOverloadSet(OverloadSet os)
-    {
-        assert(os);
-        foreach (s; os.a)
-        {
-            auto fd = s.isFuncDeclaration();
-            auto td = s.isTemplateDeclaration();
-            if (fd)
-            {
-                if (fd.type.isTypeFunction().isProperty)
-                    return resolveProperties(sc, e1);
-            }
-            else if (td && td.onemember && (fd = td.onemember.isFuncDeclaration()) !is null)
-            {
-                if (fd.type.isTypeFunction().isProperty ||
-                    (fd.storage_class2 & STC.property) ||
-                    (td._scope.stc & STC.property))
-                    return resolveProperties(sc, e1);
-            }
-        }
-        return e1;
-    }
-
     Expression handleTemplateDecl(TemplateDeclaration td)
     {
         assert(td);
-        if (td.onemember)
+        if (!td.onemember)
+            return e1;
+
+        if (auto fd = td.onemember.isFuncDeclaration())
         {
-            if (auto fd = td.onemember.isFuncDeclaration())
-            {
-                if (fd.type.isTypeFunction().isProperty ||
-                    (fd.storage_class2 & STC.property) ||
-                    (td._scope.stc & STC.property))
-                    return resolveProperties(sc, e1);
-            }
+            if (fd.type.isTypeFunction().isProperty ||
+                (fd.storage_class2 & STC.property) ||
+                (td._scope.stc & STC.property))
+                return resolveProperties(sc, e1);
         }
         return e1;
     }
@@ -1950,6 +1927,20 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
         assert(fd);
         if (fd.type.isTypeFunction().isProperty)
             return resolveProperties(sc, e1);
+        return e1;
+    }
+
+    Expression handleOverloadSet(OverloadSet os)
+    {
+        assert(os);
+        foreach (s; os.a)
+        {
+            if (auto fd = s.isFuncDeclaration())
+                return handleFuncDecl(fd);
+
+            if (auto td = s.isTemplateDeclaration())
+                return handleTemplateDecl(td);
+        }
         return e1;
     }
 

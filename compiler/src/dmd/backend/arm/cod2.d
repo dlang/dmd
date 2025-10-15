@@ -1499,7 +1499,8 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
     uint opc;
     uint imm3;
     INSTR.szToSizeOpc(szv,imm3,opc);    // shift 0..4
-    if (szv == REGSIZE * 2)
+    int is64 = szv == REGSIZE * 2;
+    if (is64)
     {
         imm3 = 3;
         opc = 0;
@@ -1509,12 +1510,12 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
     if (Rp != Rd)
         genmovreg(cdb,Rp,Rd);
 
-    cdb.gen1(INSTR.ldst_immpost(imm3,0,0,0,Rp,Rv));     // L2: STR  Rv,[Rp],#0        // *Rp++ = Rv
+    cdb.gen1(INSTR.str_imm_gen_post_index(is64,szv,Rp,Rv));       // L2: STR  Rv,[Rp],#szv    // *Rp++ = Rv
     code* L2 = cdb.last();
     if (szv == REGSIZE * 2)
-        cdb.gen1(INSTR.ldst_immpost(imm3,0,0,0,Rp,Rvhi)); // L2: STR  Rvhi,[Rp],#0    // *Rp++ = Rvhi
-    cdb.gen1(INSTR.cmp_subs_addsub_shift(1,Rl,0,0,Rp));             // CMP Rp,Rl
-    genBranch(cdb,COND.ne,FL.code,cast(block*)L2);      // b.ne L2
+        cdb.gen1(INSTR.str_imm_gen_post_index(is64,szv,Rp,Rvhi)); // L2: STR  Rvhi,[Rp],#szv  // *Rp++ = Rvhi
+    cdb.gen1(INSTR.cmp_subs_addsub_shift(1,Rl,0,0,Rp));           // CMP Rp,Rl
+    genBranch(cdb,COND.ne,FL.code,cast(block*)L2);                // b.ne L2
     cdb.append(c1);
 
     fixresult(cdb,e,dregs,pretregs);
