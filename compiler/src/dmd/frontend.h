@@ -1744,6 +1744,7 @@ public:
     bool isTrivialAlias;
     bool deprecated_;
     bool isCmacro;
+    bool isComputedOneMember;
     Visibility visibility;
     TemplatePrevious* previous;
     Expression* lastConstraint;
