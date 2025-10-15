@@ -33,6 +33,7 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
@@ -3006,6 +3007,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         if (s)
         {
             auto td = s.isTemplateDeclaration;
+            td.computeOneMember();
             if (td && td.onemember && td.onemember.isAggregateDeclaration)
                 .error(loc, "template %s `%s` is used as a type without instantiation"
                     ~ "; to instantiate it use `%s!(arguments)`",
