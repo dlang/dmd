@@ -61,6 +61,24 @@ alias funcLeastAsSpecialized = dmd.funcsem.leastAsSpecialized;
 
 enum LOG = false;
 
+void computeOneMember(TemplateDeclaration td)
+{
+    if (td is null || td.isComputedOneMember)
+        return;
+
+    if (td && td.members && td.ident)
+    {
+        Dsymbol s;
+        if (oneMembers(td.members, s, td.ident) && s)
+        {
+            td.onemember = s;
+            s.parent = td;
+            td.computeIsTrivialAlias(s);
+        }
+        td.isComputedOneMember = true;
+    }
+}
+
 bool declareParameter(TemplateParameter _this, Scope* sc)
 {
     static bool typeDeclareParameter(TemplateTypeParameter _this, Scope* sc)
