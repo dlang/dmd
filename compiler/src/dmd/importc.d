@@ -528,7 +528,14 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
          *    INT x;  // match
          *    long x; // collision
          * We incorrectly ignore these collisions
+         * when their types are not matching, err on type differences
          */
+
+        if (!cTypeEquivalence(vd.type, vd2.type))
+        {
+            .error(vd.loc, "redefinition of `%s` with different type: `%s` vs `%s`",
+                vd2.ident.toChars(), vd2.type.toChars(), vd.type.toChars());
+        }
         return vd2;
     }
 
@@ -580,6 +587,15 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
          * FuncDeclaration::semantic() detects this, but it relies on .overnext being set.
          */
         fd2.overloadInsert(fd);
+
+        //for the sake of functions declared in function scope.
+        // check for return type equivalence also
+        auto tf1 = fd.type.isTypeFunction();
+        auto tf2 = fd2.type.isTypeFunction();
+        if (sc.func &&  !cTypeEquivalence(tf1.next, tf2.next) )
+        {
+            .error(fd.loc, "%s `%s` redeclaration with different type", fd.kind, fd.toPrettyChars);
+        }
 
         return fd2;
     }

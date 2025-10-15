@@ -21,15 +21,22 @@ nothrow:
 
 enum Extend
 {
-    UXTB,
-    UXTH,
-    UXTW,
+    UXTB,       // extracts byte and zero extends it to size of register
+    UXTH,       // extracts half-word (16 bits) and zero extends it to size of register
+    UXTW,       // extracts word (32 bits) and zero extends it to size of register
     LSL,
-    UXTX = LSL,
-    SXTB,
+    UXTX = LSL, // extracts extended word (64 bits) and zero extends it to size of register, i.e. is a no-op
+    SXTB,       // signed versions...
     SXTH,
     SXTW,
-    SXTX,
+    SXTX,       // no practical difference from UXTX
+}
+
+@trusted
+const(char)* ExtendToStr(Extend e)
+{
+    static immutable char[8 * 5] table = "UXTB\0UXTH\0UXTW\0UXTX\0SXTB\0SXTH\0SXTW\0SXTX\0";
+    return &table[e * 5];
 }
 
 /************************
@@ -1274,12 +1281,15 @@ struct INSTR
         return log_shift(sf, opc, shift, N, Rm, imm6, Rn, Rd);
     }
 
-    /* MOV Rd, Rn, Rm{, shift #amount}
+    /* MOV Rd, Rm
      * https://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_log_shift.html
      */
     static uint mov_register(uint sf, ubyte Rm, ubyte Rd)
     {
-        return orr_shifted_register(sf, 0, Rm, 0, 31, Rd);
+        uint shift = 0;
+        uint imm6 = 0;
+        ubyte Rzr = 31; // zero register
+        return orr_shifted_register(sf, shift, Rm, imm6, Rzr, Rd);
     }
 
     /* CSINC Rd, Rn, Rm, <cond>?
@@ -1346,6 +1356,22 @@ struct INSTR
         uint size = 1;
         uint imm12 = offset & 0xFFF;
         return ldst_pos(1, 0, 0, imm12, Rn, Rt);
+    }
+
+    /* STR (immediate) Post-index
+     * https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_gen.html
+     */
+    static uint str_imm_gen_post_index(uint is64, int simm, ubyte Rn, ubyte Rt)
+    {
+        // STR Rt,[Xn],#simm
+        uint size = 2 + is64;
+        uint imm9 = simm & 0x1FF;
+        return (size << 30) |
+               (7    << 27) |
+               (imm9 << 12) |
+               (1    << 10) |
+               (Rn   <<  5) |
+                Rt;
     }
 
     /* STR (immediate) Unsigned offset
@@ -1491,6 +1517,8 @@ struct INSTR
     static uint ldr_reg_gen(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
     {
         // LDR Rt,Rbase,Rindex,extend S
+        assert(S <= 1);
+        assert((extend & 2) && extend < 8); // UXTW LSL SXTW SXTX
         return ldst_regoff(2 | sz, 0, 1, Rindex, extend, S, Rbase, Rt);
     }
 
