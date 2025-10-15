@@ -53,7 +53,6 @@ import dmd.identifier;
 import dmd.inline;
 import dmd.link;
 import dmd.location;
-import dmd.lsp;
 import dmd.mars;
 import dmd.mtype;
 import dmd.objc;
@@ -358,7 +357,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     {
         fatal();
     }
-    if (files.length == 0 && !params.readStdin && !params.lsp)
+    if (files.length == 0 && !params.readStdin)
     {
         if (params.jsonFieldFlags)
         {
@@ -447,9 +446,6 @@ private int tryMain(const(char)[][] argv, out Param params)
     scope(exit) flushMixins();
     buildImportPath(params.imppath, global.path, global.importPaths);
     buildFileImportPath(params.fileImppath, global.filePath);
-
-    if (params.lsp)
-        return lspMain();
 
     if (params.timeTrace)
     {
@@ -727,7 +723,6 @@ private int tryMain(const(char)[][] argv, out Param params)
                 fatal();
         }
     }
-
     if (params.vcg_ast)
     {
         import dmd.hdrgen;
