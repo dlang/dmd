@@ -209,3 +209,73 @@ class ErrorSinkStderr : ErrorSink
 
     void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap) { }
 }
+
+/**
+ * ErrorSinkJson serializes diagnostics into a JSON array and writes to stdout.
+ */
+class ErrorSinkJson : ErrorSink
+{
+    import core.stdc.stdio;
+    import core.stdc.stdarg;
+  
+  nothrow:
+
+    extern(C++) override void verror(Loc loc, const(char)* format, va_list ap)
+    {
+        printJSONObject("error",loc,format,ap);
+    }
+
+    extern(C++) override void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
+    {
+    }
+
+    extern(C++) override void vwarning(Loc loc, const(char)* format, va_list ap)
+    {
+        printJSONObject("warning",loc,format,ap);
+    }
+
+    extern(C++) override void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
+    {
+    }
+
+    extern(C++) override void vdeprecation(Loc loc, const(char)* format, va_list ap)
+    {
+        printJSONObject("deprecation",loc,format,ap);
+    }
+
+    extern(C++) override void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap)
+    {
+    }
+
+    extern(C++) override void vmessage(Loc loc, const(char)* format, va_list ap)
+    {
+        printJSONObject("message",loc,format,ap);
+    }
+
+    extern(C++) override void plugSink()
+    {
+        import dmd.root.global;
+        global.errorsink = this;
+    }
+
+    private void printJSONObject(const(char)* type, Loc loc, const(char)* format, va_list ap) @system nothrow
+    {
+        const(char)* filename = null;
+        uint line = 0;
+        uint column = 0;
+        if(loc.filename !is null)
+        {
+            filename = loc.filename;
+            line = loc.linnum;
+            column = loc.charnum;
+        }
+        fputc('{',stdout);
+        fprintf(stdout, "\"type\":\"%s\",", type);
+        fprintf(stdout, "\"file\":\"%s\",", filename ? filename : "");
+        fprintf(stdout, "\"line\":%u,", line);
+        fprintf(stdout, "\"column\":%u,", column);
+        fprintf(stdout, "\"message\":\"");
+        vfprintf(stdout, format, ap);
+        fputs("}\n", stdout);
+    }
+}
