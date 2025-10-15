@@ -33,6 +33,7 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.errorsink;
 import dmd.func;
@@ -909,8 +910,9 @@ bool isCVariadicParameter(Dsymbols* a, const(char)[] p) @safe
     return false;
 }
 
-Dsymbol getEponymousMember(TemplateDeclaration td) @safe
+Dsymbol getEponymousMember(TemplateDeclaration td)
 {
+    td.computeOneMember();
     if (!td.onemember)
         return null;
     if (AggregateDeclaration ad = td.onemember.isAggregateDeclaration())
@@ -924,7 +926,7 @@ Dsymbol getEponymousMember(TemplateDeclaration td) @safe
     return null;
 }
 
-TemplateDeclaration getEponymousParent(Dsymbol s) @safe
+TemplateDeclaration getEponymousParent(Dsymbol s)
 {
     if (!s.parent)
         return null;
@@ -1092,18 +1094,7 @@ bool emitAnchorName(ref OutBuffer buf, Dsymbol s, Scope* sc, bool includeParent)
         buf.writeByte('.');
     // Use "this" not "__ctor"
     TemplateDeclaration td = s.isTemplateDeclaration();
-
-    if (td && td.members && td.ident)
-    {
-        Dsymbol ss;
-        if (oneMembers(td.members, ss, td.ident) && ss)
-        {
-            td.onemember = ss;
-            ss.parent = td;
-            td.computeIsTrivialAlias(ss);
-        }
-    }
-
+    td.computeOneMember();
     if (s.isCtorDeclaration() || (td !is null && td.onemember && td.onemember.isCtorDeclaration()))
     {
         buf.writestring("this");
@@ -1266,17 +1257,6 @@ void expandTemplateMixinComments(TemplateMixin tm, ref OutBuffer buf, Scope* sc)
     TemplateDeclaration td = (tm && tm.tempdecl) ? tm.tempdecl.isTemplateDeclaration() : null;
     if (td && td.members)
     {
-        if(td.ident)
-        {
-            Dsymbol s;
-            if (oneMembers(td.members, s, td.ident) && s)
-            {
-                td.onemember = s;
-                s.parent = td;
-                td.computeIsTrivialAlias(s);
-            }
-        }
-
         for (size_t i = 0; i < td.members.length; i++)
         {
             Dsymbol sm = (*td.members)[i];
@@ -2650,18 +2630,7 @@ Parameter isEponymousFunctionParameter(Dsymbols* a, const(char)[] p)
     foreach (Dsymbol dsym; *a)
     {
         TemplateDeclaration td = dsym.isTemplateDeclaration();
-
-        if (td && td.members && td.ident)
-        {
-            Dsymbol s;
-            if (oneMembers(td.members, s, td.ident) && s)
-            {
-                td.onemember = s;
-                s.parent = td;
-                td.computeIsTrivialAlias(s);
-            }
-        }
-
+        td.computeOneMember();
         if (td && td.onemember)
         {
             /* Case 1: we refer to a template declaration inside the template
