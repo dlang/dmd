@@ -63,7 +63,7 @@ enum LOG = false;
 
 void computeOneMember(TemplateDeclaration td)
 {
-    if (td is null || td.isComputedOneMember)
+    if (td is null || td.haveComputedOneMember)
         return;
 
     if (td && td.members && td.ident)
@@ -75,7 +75,7 @@ void computeOneMember(TemplateDeclaration td)
             s.parent = td;
             td.computeIsTrivialAlias(s);
         }
-        td.isComputedOneMember = true;
+        td.haveComputedOneMember = true;
     }
 }
 
