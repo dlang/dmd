@@ -384,7 +384,6 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
             (*tempdecl.origParameters)[i] = tp.syntaxCopy();
         }
     }
-
     for (size_t i = 0; i < tempdecl.parameters.length; i++)
     {
         TemplateParameter tp = (*tempdecl.parameters)[i];
@@ -399,6 +398,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
         }
         if (i + 1 != tempdecl.parameters.length && tp.isTemplateTupleParameter())
         {
+            tempdecl.computeOneMember(); // for .kind
             .error(tempdecl.loc, "%s `%s` template sequence parameter must be the last one", tempdecl.kind, tempdecl.toPrettyChars);
             tempdecl.errors = true;
         }
@@ -3135,7 +3135,6 @@ private bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Sco
 const(char)* getConstraintEvalError(TemplateDeclaration td, ref const(char)* tip)
 {
     import dmd.staticcond;
-
     // there will be a full tree view in verbose mode, and more compact list in the usual
     const full = global.params.v.verbose;
     uint count;
@@ -3358,6 +3357,7 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
     else
     {
         auto tdecl = ti.tempdecl.isTemplateDeclaration();
+        tdecl.computeOneMember();
 
         if (errs != global.errors)
             errorSupplemental(ti.loc, "while looking for match for `%s`", ti.toChars());
