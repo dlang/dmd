@@ -120,6 +120,33 @@ dmd hello.c)
     `.h`, or `.c`, compile `hello` with ImportC.
     )
 
+    $(P A C file that is imported through a package and gets compiled needs
+    to have a module declaration that includes that package. It is done by giving it a
+    label as an importC module using the __module keyword guarded by __IMPORTC__ macro.)
+
+    $(P In C file living in project/net/hi.c)
+    ---
+    #if __IMPORTC__
+    __module net.hi
+    #endif
+
+    int sqrt(int x) { return x * x; }
+    ---
+
+    $(P D file in project/hello.d)
+    ---
+    import net.hi; // C file you need in your D source
+
+    void main()
+    {
+        assert(sqrt(3) == 9);
+    }
+    ---
+
+$(CONSOLE
+user@ -- project % dmd hello.d net/hi.c
+)
+
 $(H2 $(LNAME2 preprocessor, Preprocessor))
 
     $(P ImportC does not have a preprocessor. It is designed to compile C
