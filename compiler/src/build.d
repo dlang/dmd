@@ -1605,7 +1605,7 @@ auto sourceFiles()
             scope.h statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
         "),
         lexer: fileArray(env["D"], "
-            console.d entity.d errors.d errorsink.d errorsinkjson.d file_manager.d globals.d id.d identifier.d lexer.d location.d tokens.d
+            console.d entity.d errors.d errorsink.d file_manager.d globals.d id.d identifier.d lexer.d location.d tokens.d
         ") ~ fileArray(env["ROOT"], "
             array.d bitarray.d ctfloat.d file.d filename.d hash.d port.d region.d rmem.d
             stringtable.d utf.d
