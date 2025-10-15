@@ -30,6 +30,7 @@ import dmd.ctorflow;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.templatesem : computeOneMember;
 import dmd.declaration;
 import dmd.dclass;
 import dmd.dcast;
@@ -606,6 +607,7 @@ bool hasRegularCtor(StructDeclaration sd, bool ignoreDisabled)
     {
         if (auto td = s.isTemplateDeclaration())
         {
+            td.computeOneMember();
             if (ignoreDisabled && td.onemember)
             {
                 if (auto ctorDecl = td.onemember.isCtorDeclaration())
@@ -1909,6 +1911,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     Expression handleTemplateDecl(TemplateDeclaration td)
     {
         assert(td);
+        td.computeOneMember();
         if (!td.onemember)
             return e1;
 
@@ -18234,14 +18237,15 @@ private bool needsTypeInference(TemplateInstance ti, Scope* sc, int flag = 0)
             auto td = s.isTemplateDeclaration();
             if (!td)
                 return 0;
-
             /* If any of the overloaded template declarations need inference,
              * then return true
              */
+            td.computeOneMember();
             if (!td.onemember)
                 return 0;
             if (auto td2 = td.onemember.isTemplateDeclaration())
             {
+                td2.computeOneMember();
                 if (!td2.onemember || !td2.onemember.isFuncDeclaration())
                     return 0;
                 if (ti.tiargs.length >= td.parameters.length - (td.isVariadic() ? 1 : 0))

@@ -78,6 +78,7 @@ public:
     d_bool isTrivialAlias;        // matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
     d_bool deprecated_;           // this template declaration is deprecated
     d_bool isCmacro;              // Whether this template is a translation of a C macro
+    d_bool haveComputedOneMember;   // Whether computeOneMeber has been called
     Visibility visibility;
 
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack

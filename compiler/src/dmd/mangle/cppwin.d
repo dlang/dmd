@@ -21,6 +21,7 @@ import dmd.denum : isSpecialEnumIdent;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem : toAlias;
+import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
@@ -582,6 +583,9 @@ extern(D):
     {
         Dsymbol d = isDsymbol(o);
         Expression e = isExpression(o);
+
+        if (auto _td = d.isTemplateDeclaration())
+            _td.computeOneMember();
 
         if (d && d.isFuncDeclaration())
         {
