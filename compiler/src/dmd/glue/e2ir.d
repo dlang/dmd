@@ -525,14 +525,13 @@ bool isDllImported(Dsymbol symbl)
             // If to access anything in druntime/phobos you need DllImport, verify against this.
             break;
     }
-    const systemLibraryNeedDllImport = driverParams.symImport != SymImport.externalOnly;
 
     // For TypeInfo's check to see if its in druntime and DllImport it
     if (auto tid = symbl.isTypeInfoDeclaration())
     {
         // Built in TypeInfo's are defined in druntime
         if (builtinTypeInfo(tid.tinfo))
-            return systemLibraryNeedDllImport;
+            return true;
 
         // Convert TypeInfo to its symbol
         if (auto ad = isAggregate(tid.type))
@@ -555,7 +554,7 @@ bool isDllImported(Dsymbol symbl)
             // Module is in binary, therefore not DllImport
             return false;
         }
-        else if (systemLibraryNeedDllImport)
+        else if (driverParams.symImport == SymImport.defaultLibsOnly)
         {
             // Filter out all modules that are not in druntime/phobos if we are only doing default libs only
 
