@@ -438,17 +438,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
 
     // Compute again
     tempdecl.onemember = null;
-    if (tempdecl.members && tempdecl.ident)
-    {
-        Dsymbol s;
-        if (oneMembers(tempdecl.members, s, tempdecl.ident) && s)
-        {
-            tempdecl.onemember = s;
-            s.parent = tempdecl;
-            tempdecl.computeIsTrivialAlias(s);
-        }
-    }
-
+    tempdecl.computeOneMember();
     /* BUG: should check:
      *  1. template functions must not introduce virtual functions, as they
      *     cannot be accomodated in the vtbl[]
@@ -1487,6 +1477,7 @@ void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclara
 
     TemplateTypeParameter ttp = (*tempdecl.parameters)[0].isTemplateTypeParameter();
     Type ta = tempinst.tdtypes[0].isType();
+    tempdecl.computeOneMember();
     auto ad = tempdecl.onemember.isAliasDeclaration();
 
     // Note: qualifiers can be in both 'ad.type.mod' and 'ad.storage_class'
@@ -2715,6 +2706,7 @@ MATCH matchWithInstance(Scope* sc, TemplateDeclaration td, TemplateInstance ti, 
             ti.parent = td.parent;
 
         // Similar to doHeaderInstantiation
+        td.computeOneMember();
         FuncDeclaration fd = td.onemember ? td.onemember.isFuncDeclaration() : null;
         if (fd)
         {
@@ -5431,7 +5423,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             return 1;
         }
         //printf("td = %s\n", td.toChars());
-
+        td.computeOneMember();
         auto f = td.onemember ? td.onemember.isFuncDeclaration() : null;
         if (!f)
         {
@@ -5678,6 +5670,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
     if (td_best && ti_best && m.count == 1)
     {
         // Matches to template function
+        td_best.computeOneMember();
         assert(td_best.onemember && td_best.onemember.isFuncDeclaration());
         /* The best match is td_best with arguments tdargs.
          * Now instantiate the template.
