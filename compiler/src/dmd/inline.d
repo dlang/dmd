@@ -1040,6 +1040,13 @@ public:
         this.eSink = eSink;
     }
 
+    void reset()
+    {
+        sresult = null;
+        eresult = null;
+        again = false;
+    }
+
     override void visit(Statement s)
     {
     }
@@ -1284,17 +1291,19 @@ public:
     {
     }
 
-    void scanVar(Dsymbol s)
+    override void visit(DeclarationExp e)
     {
-        //printf("scanVar(%s %s)\n", s.kind(), s.toPrettyChars());
-        if (VarDeclaration vd = s.isVarDeclaration())
+        if (VarDeclaration vd = e.declaration.isVarDeclaration())
         {
             if (TupleDeclaration td = vd.toAlias().isTupleDeclaration())
             {
-                td.foreachVar((s)
+                foreach (o; *td.objects)
                 {
-                    scanVar(s); // TODO
-                });
+                    if (auto te = o.isExpression())
+                    {
+                        inlineScan(te);
+                    }
+                }
             }
             else if (vd._init)
             {
@@ -1304,16 +1313,6 @@ public:
                 }
             }
         }
-        else
-        {
-            inlineScanDsymbol(s, eSink);
-        }
-    }
-
-    override void visit(DeclarationExp e)
-    {
-        //printf("DeclarationExp.inlineScan() %s\n", e.toChars());
-        scanVar(e.declaration);
     }
 
     override void visit(UnaExp e)
@@ -1704,25 +1703,34 @@ public:
         {
             printf("FuncDeclaration.inlineScan('%s')\n", fd.toPrettyChars());
         }
-        if (!(global.params.useInline || fd.hasAlwaysInlines))
+        if (fd.inlineScanned || fd.skipCodegen)
             return;
-        if (fd.isUnitTestDeclaration() && !global.params.useUnitTests || fd.inlineScanned)
+        if (!global.params.useUnitTests && fd.isUnitTestDeclaration())
             return;
-        if (fd.fbody && !fd.isNaked)
+        if (!fd.fbody || fd.isNaked)
+            return;
+
+        if (global.params.useInline || fd.hasAlwaysInlines)
         {
-            while (1)
+            scope InlineScanVisitor v = new InlineScanVisitor(eSink);
+            v.parent = fd;
+
+            do
             {
                 fd.inlineNest++;
                 fd.inlineScanned = true;
-
-                scope InlineScanVisitor v = new InlineScanVisitor(eSink);
-                v.parent = fd;
+                v.reset();
                 v.inlineScan(fd.fbody);
-                bool again = v.again;
-
                 fd.inlineNest--;
-                if (!again)
-                    break;
+            } while (v.again);
+        }
+
+        // Visit local symbols to find nested hasAlwaysInlines functions
+        if (fd.localsymtab)
+        {
+            foreach (keyValue; fd.localsymtab.tab.asRange)
+            {
+                keyValue.value.accept(this);
             }
         }
     }
