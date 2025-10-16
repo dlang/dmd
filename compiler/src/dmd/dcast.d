@@ -1314,73 +1314,69 @@ MATCH implicitConvTo(Expression e, Type t)
             if (sd.isNested())
                 return MATCH.nomatch;
         }
-        if (ntb.isZeroInit(e.loc))
-        {
-            /* Zeros are implicitly convertible, except for special cases.
-             */
-            if (auto tc = ntb.isTypeClass())
-            {
-                /* With new() must look at the class instance initializer.
-                 */
-                ClassDeclaration cd = tc.sym;
-
-                cd.size(e.loc); // resolve any forward references
-
-                if (cd.isNested())
-                    return MATCH.nomatch; // uplevel reference may not be convertible
-
-                assert(!cd.isInterfaceDeclaration());
-
-                struct ClassCheck
-                {
-                    extern (C++) static bool convertible(Expression e, ClassDeclaration cd, MOD mod)
-                    {
-                        for (size_t i = 0; i < cd.fields.length; i++)
-                        {
-                            VarDeclaration v = cd.fields[i];
-                            Initializer _init = v._init;
-                            if (_init)
-                            {
-                                if (_init.isVoidInitializer())
-                                {
-                                }
-                                else if (ExpInitializer ei = _init.isExpInitializer())
-                                {
-                                    // https://issues.dlang.org/show_bug.cgi?id=21319
-                                    // This is to prevent re-analyzing the same expression
-                                    // over and over again.
-                                    if (ei.exp == e)
-                                        return false;
-                                    Type tb = v.type.toBasetype();
-                                    if (implicitMod(ei.exp, tb, mod) == MATCH.nomatch)
-                                        return false;
-                                }
-                                else
-                                {
-                                    /* Enhancement: handle StructInitializer and ArrayInitializer
-                                     */
-                                    return false;
-                                }
-                            }
-                            else if (!v.type.isZeroInit(e.loc))
-                                return false;
-                        }
-                        return cd.baseClass ? convertible(e, cd.baseClass, mod) : true;
-                    }
-                }
-
-                if (!ClassCheck.convertible(e, cd, mod))
-                    return MATCH.nomatch;
-            }
-        }
-        else
+        if (!ntb.isZeroInit(e.loc))
         {
             Expression earg = e.newtype.defaultInitLiteral(e.loc);
             Type targ = e.newtype.toBasetype();
 
             if (implicitMod(earg, targ, mod) == MATCH.nomatch)
                 return MATCH.nomatch;
+            return MATCH.constant;
         }
+        /* Zeros are implicitly convertible, except for special cases.
+         */
+        auto tc = ntb.isTypeClass();
+        if (!tc)
+            return MATCH.constant;
+
+        /* With new() must look at the class instance initializer.
+         */
+        ClassDeclaration cd = tc.sym;
+
+        cd.size(e.loc); // resolve any forward references
+
+        if (cd.isNested())
+            return MATCH.nomatch; // uplevel reference may not be convertible
+
+        assert(!cd.isInterfaceDeclaration());
+
+        static bool convertible(Expression e, ClassDeclaration cd, MOD mod)
+        {
+            for (size_t i = 0; i < cd.fields.length; i++)
+            {
+                VarDeclaration v = cd.fields[i];
+                Initializer _init = v._init;
+                if (_init)
+                {
+                    if (_init.isVoidInitializer())
+                    {
+                    }
+                    else if (ExpInitializer ei = _init.isExpInitializer())
+                    {
+                        // https://issues.dlang.org/show_bug.cgi?id=21319
+                        // This is to prevent re-analyzing the same expression
+                        // over and over again.
+                        if (ei.exp == e)
+                            return false;
+                        Type tb = v.type.toBasetype();
+                        if (implicitMod(ei.exp, tb, mod) == MATCH.nomatch)
+                            return false;
+                    }
+                    else
+                    {
+                        /* Enhancement: handle StructInitializer and ArrayInitializer
+                         */
+                        return false;
+                    }
+                }
+                else if (!v.type.isZeroInit(e.loc))
+                    return false;
+            }
+            return cd.baseClass ? convertible(e, cd.baseClass, mod) : true;
+        }
+
+        if (!ClassCheck.convertible(e, cd, mod))
+            return MATCH.nomatch;
 
         /* Success
          */
