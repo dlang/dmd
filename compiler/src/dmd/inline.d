@@ -51,37 +51,7 @@ import dmd.visitor;
 import dmd.visitor.postorder;
 import dmd.inlinecost;
 
-/***********************************************************
- * Scan function implementations in Module m looking for functions that can be inlined,
- * and inline them in situ.
- *
- * Params:
- *    m = module to scan
- *    eSink = where to report errors
- */
-public void inlineScanModule(Module m, ErrorSink eSink)
-{
-    if (m.semanticRun != PASS.semantic3done)
-        return;
-    m.semanticRun = PASS.inline;
-
-    // Note that modules get their own scope, from scratch.
-    // This is so regardless of where in the syntax a module
-    // gets imported, it is unaffected by context.
-
-    //printf("Module = %p\n", m.sc.scopesym);
-
-    foreach (i; 0 .. m.members.length)
-    {
-        Dsymbol s = (*m.members)[i];
-        //if (global.params.v.verbose)
-        //    message("inline scan symbol %s", s.toChars());
-        inlineScanDsymbol(s, eSink);
-    }
-    m.semanticRun = PASS.inlinedone;
-}
-
-private void inlineScanDsymbol(Dsymbol s, ErrorSink eSink)
+public void inlineScanDsymbol(Dsymbol s, ErrorSink eSink)
 {
     scope InlineScanVisitorDsymbol v = new InlineScanVisitorDsymbol(eSink);
     s.accept(v);
@@ -1040,6 +1010,13 @@ public:
         this.eSink = eSink;
     }
 
+    void reset()
+    {
+        sresult = null;
+        eresult = null;
+        again = false;
+    }
+
     override void visit(Statement s)
     {
     }
@@ -1284,17 +1261,19 @@ public:
     {
     }
 
-    void scanVar(Dsymbol s)
+    override void visit(DeclarationExp e)
     {
-        //printf("scanVar(%s %s)\n", s.kind(), s.toPrettyChars());
-        if (VarDeclaration vd = s.isVarDeclaration())
+        if (VarDeclaration vd = e.declaration.isVarDeclaration())
         {
             if (TupleDeclaration td = vd.toAlias().isTupleDeclaration())
             {
-                td.foreachVar((s)
+                foreach (o; *td.objects)
                 {
-                    scanVar(s); // TODO
-                });
+                    if (auto te = o.isExpression())
+                    {
+                        inlineScan(te);
+                    }
+                }
             }
             else if (vd._init)
             {
@@ -1304,16 +1283,6 @@ public:
                 }
             }
         }
-        else
-        {
-            inlineScanDsymbol(s, eSink);
-        }
-    }
-
-    override void visit(DeclarationExp e)
-    {
-        //printf("DeclarationExp.inlineScan() %s\n", e.toChars());
-        scanVar(e.declaration);
     }
 
     override void visit(UnaExp e)
@@ -1704,26 +1673,44 @@ public:
         {
             printf("FuncDeclaration.inlineScan('%s')\n", fd.toPrettyChars());
         }
-        if (!(global.params.useInline || fd.hasAlwaysInlines))
+        if (fd.inlineScanned || fd.skipCodegen)
             return;
-        if (fd.isUnitTestDeclaration() && !global.params.useUnitTests || fd.inlineScanned)
+        if (!global.params.useUnitTests && fd.isUnitTestDeclaration())
             return;
-        if (fd.fbody && !fd.isNaked)
+        if (!fd.fbody || fd.isNaked)
+            return;
+
+        bool scan = global.params.useInline || fd.hasAlwaysInlines;
+        scope InlineScanVisitor v = new InlineScanVisitor(eSink);
+        v.parent = fd;
+
+        if (scan)
         {
-            while (1)
+            // Inline once in hopes to remove some CallExps
+            fd.inlineScanned = true;
+            fd.inlineNest++;
+            v.inlineScan(fd.fbody);
+            fd.inlineNest--;
+        }
+
+        // Visit local symbols to find nested hasAlwaysInlines functions
+        if (fd.localsymtab)
+        {
+            foreach (keyValue; fd.localsymtab.tab.asRange)
+            {
+                keyValue.value.accept(this);
+            }
+        }
+
+        if (scan)
+        {
+            do
             {
                 fd.inlineNest++;
-                fd.inlineScanned = true;
-
-                scope InlineScanVisitor v = new InlineScanVisitor(eSink);
-                v.parent = fd;
+                v.reset();
                 v.inlineScan(fd.fbody);
-                bool again = v.again;
-
                 fd.inlineNest--;
-                if (!again)
-                    break;
-            }
+            } while (v.again);
         }
     }
 
@@ -1769,6 +1756,30 @@ public:
                 s.accept(this);
             }
         }
+    }
+
+    override void visit(Module m)
+    {
+        if (m.semanticRun != PASS.semantic3done)
+            return;
+
+        m.semanticRun = PASS.inline;
+
+        // Note that modules get their own scope, from scratch.
+        // This is so regardless of where in the syntax a module
+        // gets imported, it is unaffected by context.
+
+        //printf("Module = %p\n", m.sc.scopesym);
+
+        foreach (i; 0 .. m.members.length)
+        {
+            Dsymbol s = (*m.members)[i];
+            //if (global.params.v.verbose)
+            //    message("inline scan symbol %s", s.toChars());
+            s.accept(this);
+        }
+
+        m.semanticRun = PASS.inlinedone;
     }
 }
 
