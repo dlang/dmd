@@ -1773,7 +1773,7 @@ MATCH implicitConvTo(Type from, Type to)
 
         if (tf.covariant(to) != Covariant.yes)
             return MATCH.nomatch;
-        
+
         Type tret = tf.nextOf();
         Type toret = to.nextOf();
         if (tret.ty == Tclass && toret.ty == Tclass)
@@ -1890,7 +1890,7 @@ MATCH implicitConvTo(Type from, Type to)
 
         if (from.arguments.length != tt.arguments.length)
             return MATCH.nomatch;
-        
+
         MATCH m = MATCH.exact;
         for (size_t i = 0; i < tt.arguments.length; i++)
         {
