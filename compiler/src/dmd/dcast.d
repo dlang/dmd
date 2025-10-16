@@ -1656,40 +1656,42 @@ MATCH implicitConvTo(Type from, Type to)
             }
             return MATCH.nomatch;
         }
-        if (auto tsa = to.isTypeSArray())
+        auto tsa = to.isTypeSArray();
+        if (!tsa)
+            return MATCH.nomatch;
+
+        if (from == to)
+            return MATCH.exact;
+
+        if (!from.dim.equals(tsa.dim))
+            return MATCH.nomatch;
+
+        MATCH m = from.next.implicitConvTo(tsa.next);
+
+        /* Allow conversion to non-interface base class.
+         */
+        if (m == MATCH.convert &&
+            from.next.ty == Tclass)
         {
-            if (from == to)
-                return MATCH.exact;
-
-            if (from.dim.equals(tsa.dim))
+            if (auto toc = tsa.next.isTypeClass)
             {
-                MATCH m = from.next.implicitConvTo(tsa.next);
-
-                /* Allow conversion to non-interface base class.
-                 */
-                if (m == MATCH.convert &&
-                    from.next.ty == Tclass)
-                {
-                    if (auto toc = tsa.next.isTypeClass)
-                    {
-                        if (!toc.sym.isInterfaceDeclaration)
-                            return MATCH.convert;
-                    }
-                }
-
-                /* Since static arrays are value types, allow
-                 * conversions from const elements to non-const
-                 * ones, just like we allow conversion from const int
-                 * to int.
-                 */
-                if (m >= MATCH.constant)
-                {
-                    if (from.mod != to.mod)
-                        m = MATCH.constant;
-                    return m;
-                }
+                if (!toc.sym.isInterfaceDeclaration)
+                    return MATCH.convert;
             }
         }
+
+        /* Since static arrays are value types, allow
+         * conversions from const elements to non-const
+         * ones, just like we allow conversion from const int
+         * to int.
+         */
+        if (m >= MATCH.constant)
+        {
+            if (from.mod != to.mod)
+                m = MATCH.constant;
+            return m;
+        }
+
         return MATCH.nomatch;
     }
 
@@ -1699,25 +1701,26 @@ MATCH implicitConvTo(Type from, Type to)
         if (from.equals(to))
             return MATCH.exact;
 
-        if (auto ta = to.isTypeDArray())
+        auto ta = to.isTypeDArray();
+        if (!ta)
+            return visitType(from);
+
+        if (!MODimplicitConv(from.next.mod, ta.next.mod))
+            return MATCH.nomatch; // not const-compatible
+
+        /* Allow conversion to void[]
+         */
+        if (from.next.ty != Tvoid && ta.next.ty == Tvoid)
         {
-            if (!MODimplicitConv(from.next.mod, ta.next.mod))
-                return MATCH.nomatch; // not const-compatible
+            return MATCH.convert;
+        }
 
-            /* Allow conversion to void[]
-             */
-            if (from.next.ty != Tvoid && ta.next.ty == Tvoid)
-            {
-                return MATCH.convert;
-            }
-
-            MATCH m = from.next.constConv(ta.next);
-            if (m > MATCH.nomatch)
-            {
-                if (m == MATCH.exact && from.mod != to.mod)
-                    m = MATCH.constant;
-                return m;
-            }
+        MATCH m = from.next.constConv(ta.next);
+        if (m > MATCH.nomatch)
+        {
+            if (m == MATCH.exact && from.mod != to.mod)
+                m = MATCH.constant;
+            return m;
         }
 
         return visitType(from);
@@ -1729,21 +1732,23 @@ MATCH implicitConvTo(Type from, Type to)
         if (from.equals(to))
             return MATCH.exact;
 
-        if (auto ta = to.isTypeAArray())
+        auto ta = to.isTypeAArray();
+        if (!ta)
+            return visitType(from);
+
+        if (!MODimplicitConv(from.next.mod, ta.next.mod))
+            return MATCH.nomatch; // not const-compatible
+
+        if (!MODimplicitConv(from.index.mod, ta.index.mod))
+            return MATCH.nomatch; // not const-compatible
+
+        MATCH m = from.next.constConv(ta.next);
+        MATCH mi = from.index.constConv(ta.index);
+        if (m > MATCH.nomatch && mi > MATCH.nomatch)
         {
-            if (!MODimplicitConv(from.next.mod, ta.next.mod))
-                return MATCH.nomatch; // not const-compatible
-
-            if (!MODimplicitConv(from.index.mod, ta.index.mod))
-                return MATCH.nomatch; // not const-compatible
-
-            MATCH m = from.next.constConv(ta.next);
-            MATCH mi = from.index.constConv(ta.index);
-            if (m > MATCH.nomatch && mi > MATCH.nomatch)
-            {
-                return MODimplicitConv(from.mod, to.mod) ? MATCH.constant : MATCH.nomatch;
-            }
+            return MODimplicitConv(from.mod, to.mod) ? MATCH.constant : MATCH.nomatch;
         }
+
         return visitType(from);
     }
 
@@ -1766,26 +1771,24 @@ MATCH implicitConvTo(Type from, Type to)
         if (tf.equals(to))
             return MATCH.constant;
 
-        if (tf.covariant(to) == Covariant.yes)
+        if (tf.covariant(to) != Covariant.yes)
+            return MATCH.nomatch;
+        
+        Type tret = tf.nextOf();
+        Type toret = to.nextOf();
+        if (tret.ty == Tclass && toret.ty == Tclass)
         {
-            Type tret = tf.nextOf();
-            Type toret = to.nextOf();
-            if (tret.ty == Tclass && toret.ty == Tclass)
-            {
-                /* https://issues.dlang.org/show_bug.cgi?id=10219
-                 * Check covariant interface return with offset tweaking.
-                 * interface I {}
-                 * class C : Object, I {}
-                 * I function() dg = function C() {}    // should be error
-                 */
-                int offset = 0;
-                if (toret.isBaseOf(tret, &offset) && offset != 0)
-                    return MATCH.nomatch;
-            }
-            return MATCH.convert;
+            /* https://issues.dlang.org/show_bug.cgi?id=10219
+             * Check covariant interface return with offset tweaking.
+             * interface I {}
+             * class C : Object, I {}
+             * I function() dg = function C() {}    // should be error
+             */
+            int offset = 0;
+            if (toret.isBaseOf(tret, &offset) && offset != 0)
+                return MATCH.nomatch;
         }
-
-        return MATCH.nomatch;
+        return MATCH.convert;
     }
 
     MATCH visitPointer(TypePointer from)
@@ -1835,19 +1838,17 @@ MATCH implicitConvTo(Type from, Type to)
         if (from.equals(to))
             return MATCH.exact;
 
-        if (auto toDg = to.isTypeDelegate())
-        {
-            MATCH m = implicitPointerConv(from.next.isTypeFunction(), toDg.next);
+        auto toDg = to.isTypeDelegate();
+        if (!toDg)
+            return MATCH.nomatch;
 
-            // Retain the old behaviour for this refactoring
-            // Should probably be changed to constant to match function pointers
-            if (m > MATCH.convert)
-                m = MATCH.convert;
+        MATCH m = implicitPointerConv(from.next.isTypeFunction(), toDg.next);
 
-            return m;
-        }
-
-        return MATCH.nomatch;
+        // Retain the old behaviour for this refactoring
+        // Should probably be changed to constant to match function pointers
+        if (m > MATCH.convert)
+            return MATCH.convert;
+        return m;
     }
 
     MATCH visitStruct(TypeStruct from)
@@ -1883,23 +1884,23 @@ MATCH implicitConvTo(Type from, Type to)
     {
         if (from == to)
             return MATCH.exact;
-        if (auto tt = to.isTypeTuple())
+        auto tt = to.isTypeTuple();
+        if (!tt)
+            return MATCH.nomatch;
+
+        if (from.arguments.length != tt.arguments.length)
+            return MATCH.nomatch;
+        
+        MATCH m = MATCH.exact;
+        for (size_t i = 0; i < tt.arguments.length; i++)
         {
-            if (from.arguments.length == tt.arguments.length)
-            {
-                MATCH m = MATCH.exact;
-                for (size_t i = 0; i < tt.arguments.length; i++)
-                {
-                    Parameter arg1 = (*from.arguments)[i];
-                    Parameter arg2 = (*tt.arguments)[i];
-                    MATCH mi = arg1.type.implicitConvTo(arg2.type);
-                    if (mi < m)
-                        m = mi;
-                }
-                return m;
-            }
+            Parameter arg1 = (*from.arguments)[i];
+            Parameter arg2 = (*tt.arguments)[i];
+            MATCH mi = arg1.type.implicitConvTo(arg2.type);
+            if (mi < m)
+                m = mi;
         }
-        return MATCH.nomatch;
+        return m;
     }
 
     MATCH visitNull(TypeNull from)
@@ -2293,34 +2294,32 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 
     Expression visitReal(RealExp e)
     {
-        if (!e.type.equals(t))
+        if (e.type.equals(t))
+            return e;
+
+        if ((e.type.isReal() && t.isReal()) || (e.type.isImaginary() && t.isImaginary()))
         {
-            if ((e.type.isReal() && t.isReal()) || (e.type.isImaginary() && t.isImaginary()))
-            {
-                auto result = e.copy();
-                result.type = t;
-                return result;
-            }
-            else
-                return visit(e);
+            auto result = e.copy();
+            result.type = t;
+            return result;
         }
-        return e;
+        else
+            return visit(e);
     }
 
     Expression visitComplex(ComplexExp e)
     {
-        if (!e.type.equals(t))
+        if (e.type.equals(t))
+            return e;
+
+        if (e.type.isComplex() && t.isComplex())
         {
-            if (e.type.isComplex() && t.isComplex())
-            {
-                auto result = e.copy();
-                result.type = t;
-                return result;
-            }
-            else
-                return visit(e);
+            auto result = e.copy();
+            result.type = t;
+            return result;
         }
-        return e;
+        else
+            return visit(e);
     }
 
     Expression visitStructLiteral(StructLiteralExp e)
@@ -3167,47 +3166,50 @@ Expression inferType(Expression e, Type t, int flag = 0)
     Expression visitAle(ArrayLiteralExp ale)
     {
         Type tb = t.toBasetype();
-        if (tb.isStaticOrDynamicArray())
+        if (!tb.isStaticOrDynamicArray())
+            return ale;
+
+        Type tn = tb.nextOf();
+        if (ale.basis)
+            ale.basis = inferType(ale.basis, tn, flag);
+        for (size_t i = 0; i < ale.elements.length; i++)
         {
-            Type tn = tb.nextOf();
-            if (ale.basis)
-                ale.basis = inferType(ale.basis, tn, flag);
-            for (size_t i = 0; i < ale.elements.length; i++)
+            if (Expression e = (*ale.elements)[i])
             {
-                if (Expression e = (*ale.elements)[i])
-                {
-                    e = inferType(e, tn, flag);
-                    (*ale.elements)[i] = e;
-                }
+                e = inferType(e, tn, flag);
+                (*ale.elements)[i] = e;
             }
         }
+
         return ale;
     }
 
     Expression visitAar(AssocArrayLiteralExp aale)
     {
         Type tb = t.toBasetype();
-        if (auto taa = tb.isTypeAArray())
+        auto taa = tb.isTypeAArray();
+        if (!taa)
+            return aale;
+
+        Type ti = taa.index;
+        Type tv = taa.nextOf();
+        for (size_t i = 0; i < aale.keys.length; i++)
         {
-            Type ti = taa.index;
-            Type tv = taa.nextOf();
-            for (size_t i = 0; i < aale.keys.length; i++)
+            if (Expression e = (*aale.keys)[i])
             {
-                if (Expression e = (*aale.keys)[i])
-                {
-                    e = inferType(e, ti, flag);
-                    (*aale.keys)[i] = e;
-                }
-            }
-            for (size_t i = 0; i < aale.values.length; i++)
-            {
-                if (Expression e = (*aale.values)[i])
-                {
-                    e = inferType(e, tv, flag);
-                    (*aale.values)[i] = e;
-                }
+                e = inferType(e, ti, flag);
+                (*aale.keys)[i] = e;
             }
         }
+        for (size_t i = 0; i < aale.values.length; i++)
+        {
+            if (Expression e = (*aale.values)[i])
+            {
+                e = inferType(e, tv, flag);
+                (*aale.values)[i] = e;
+            }
+        }
+
         return aale;
     }
 
@@ -4236,26 +4238,27 @@ Expression integralPromotions(Expression e, Scope* sc)
 void fix16997(Scope* sc, UnaExp ue)
 {
     if (global.params.fix16997 || sc.inCfile)
-        ue.e1 = integralPromotions(ue.e1, sc);          // desired C-like behavor
-    else
     {
-        switch (ue.e1.type.toBasetype.ty)
-        {
-            case Tint8:
-            case Tuns8:
-            case Tint16:
-            case Tuns16:
-            //case Tbool:       // these operations aren't allowed on bool anyway
-            case Tchar:
-            case Twchar:
-            case Tdchar:
-                deprecation(ue.loc, "integral promotion not done for `%s`, remove '-revert=intpromote' switch or `%scast(int)(%s)`",
-                    ue.toChars(), EXPtoString(ue.op).ptr, ue.e1.toChars());
-                break;
+        ue.e1 = integralPromotions(ue.e1, sc);          // desired C-like behavor
+        return;
+    }
 
-            default:
-                break;
-        }
+    switch (ue.e1.type.toBasetype.ty)
+    {
+        case Tint8:
+        case Tuns8:
+        case Tint16:
+        case Tuns16:
+        //case Tbool:       // these operations aren't allowed on bool anyway
+        case Tchar:
+        case Twchar:
+        case Tdchar:
+            deprecation(ue.loc, "integral promotion not done for `%s`, remove '-revert=intpromote' switch or `%scast(int)(%s)`",
+                ue.toChars(), EXPtoString(ue.op).ptr, ue.e1.toChars());
+            return;
+
+        default:
+            return;
     }
 }
 
