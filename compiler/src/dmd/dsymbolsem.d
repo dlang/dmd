@@ -5714,10 +5714,37 @@ private extern(C++) class AddMemberVisitor : Visitor
             if (sc && sc.inCfile && !dsym.isImport())
             // When merging master, replace with: if (sc && sc.inCfile && !dsym.isImport())
             {
+
                 if (handleTagSymbols(*sc, dsym, s2, sds))
                     return;
                 if (handleSymbolRedeclarations(*sc, dsym, s2, sds))
+                {
+
+                    /* https://github.com/dlang/dmd/issues/21925
+                    * declarations at global scope are wrapped in one extern (C) link decls
+                    */
+                    auto members = sc._module.members;
+                    foreach (member; *members)
+                    {
+                        auto decls = cast(LinkDeclaration) member;
+
+                        if (!decls)
+                            continue;
+
+                        auto decl = decls.decl; // now get the symbols affected by the extern(C)
+                        size_t length = (*decl).length;
+                        for (size_t i = 0; i < length; i++)
+                        {
+                            auto dcl = (*decl)[i];
+                            if (dcl.ident == dsym.ident && dcl !is s2)
+                            {
+                                decl.remove(i);
+                                i--; // go back to avoid skipping of any member after remove shifts it
+                            }
+                        }
+                    }
                     return;
+                }
 
                 sds.multiplyDefined(Loc.initial, dsym, s2);  // ImportC doesn't allow overloading
                 dsym.errors = true;
