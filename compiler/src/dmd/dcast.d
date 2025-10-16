@@ -1375,7 +1375,7 @@ MATCH implicitConvTo(Expression e, Type t)
             return cd.baseClass ? convertible(e, cd.baseClass, mod) : true;
         }
 
-        if (!ClassCheck.convertible(e, cd, mod))
+        if (!convertible(e, cd, mod))
             return MATCH.nomatch;
 
         /* Success
