@@ -630,13 +630,6 @@ $(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloa
         were a function.
         )
 
-        $(P Note that merely declaring $(D opCall) automatically disables
-        $(DDSUBLINK spec/struct, StructLiteral, struct literal) syntax.
-        To avoid the limitation, declare a
-        $(DDSUBLINK spec/struct, Struct-Constructor, constructor)
-        so that it takes priority over $(D opCall) in $(D Type(...)) syntax.
-        )
-
     $(SPEC_RUNNABLE_EXAMPLE_RUN
     -------
     struct Multiplier
@@ -676,6 +669,10 @@ $(H3 $(LNAME2 static-opcall, Static opCall))
     }
     -------
     )
+
+        $(P Note that merely declaring a $(D static opCall) automatically disables
+        $(DDSUBLINK spec/struct, StructLiteral, struct literal) syntax.
+        )
 
         $(P Mixing struct constructors and $(D static opCall) is not allowed.)
 
