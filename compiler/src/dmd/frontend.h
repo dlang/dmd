@@ -2381,7 +2381,6 @@ public:
     virtual bool checkType();
     Expression* deref();
     int32_t isConst();
-    virtual Optional<bool > toBool();
     virtual bool hasCode();
     IntegerExp* isIntegerExp();
     ErrorExp* isErrorExp();
@@ -2541,7 +2540,6 @@ public:
 class AddrExp final : public UnaExp
 {
 public:
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -2608,7 +2606,6 @@ public:
     static ArrayLiteralExp* create(Loc loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
     Expression* getElement(size_t i);
-    Optional<bool > toBool() override;
     StringExp* toStringExp() override;
     void accept(Visitor* v) override;
 };
@@ -2645,7 +2642,6 @@ public:
     Expression* lowering;
     Expression* loweringCtfe;
     AssocArrayLiteralExp* syntaxCopy() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -2743,7 +2739,6 @@ public:
     const bool isGenerated;
     bool allowCommaExp;
     Expression* originalExp;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
     static void allow(Expression* exp);
 };
@@ -2758,7 +2753,6 @@ public:
     _d_real toReal() override;
     _d_real toImaginary() override;
     complex_t toComplex() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -3232,7 +3226,6 @@ public:
     _d_real toReal() override;
     _d_real toImaginary() override;
     complex_t toComplex() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
     dinteger_t getInteger();
     IntegerExp* syntaxCopy() override;
@@ -3388,7 +3381,6 @@ public:
 class NullExp final : public Expression
 {
 public:
-    Optional<bool > toBool() override;
     StringExp* toStringExp() override;
     void accept(Visitor* v) override;
 };
@@ -3465,7 +3457,6 @@ public:
     _d_real toReal() override;
     _d_real toImaginary() override;
     complex_t toComplex() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -3544,7 +3535,6 @@ private:
     uint8_t bitFields;
 public:
     SliceExp* syntaxCopy() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -3575,7 +3565,6 @@ public:
     dinteger_t getIndex(size_t i) const;
     StringExp* toStringExp() override;
     int32_t compare(const StringExp* const se2) const;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -3641,7 +3630,6 @@ public:
     VarDeclaration* var;
     ThisExp(Loc loc, const EXP tok);
     ThisExp* syntaxCopy() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -3664,7 +3652,6 @@ class SymOffExp final : public SymbolExp
 {
 public:
     dinteger_t offset;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 

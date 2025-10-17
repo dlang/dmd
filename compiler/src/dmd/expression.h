@@ -64,6 +64,7 @@ namespace dmd
     bool isLvalue(const Expression *exp);
     int32_t getFieldIndex(ClassReferenceExp *cre, Type *fieldtype, uint32_t fieldoffset);
     void fillTupleExpExps(TupleExp *te, TupleDeclaration *tup);
+    Optional<bool> toBool(Expression *exp);
 }
 
 typedef unsigned char OwnedBy;
@@ -110,7 +111,6 @@ public:
     Expression *deref();
 
     int isConst();
-    virtual Optional<bool> toBool();
     virtual bool hasCode()
     {
         return true;
@@ -242,7 +242,6 @@ public:
     real_t toReal() override;
     real_t toImaginary() override;
     complex_t toComplex() override;
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
     dinteger_t getInteger() { return value; }
     template<int v>
@@ -268,7 +267,6 @@ public:
     real_t toReal() override;
     real_t toImaginary() override;
     complex_t toComplex() override;
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -283,7 +281,6 @@ public:
     real_t toReal() override;
     real_t toImaginary() override;
     complex_t toComplex() override;
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -318,7 +315,6 @@ public:
     VarDeclaration *var;
 
     ThisExp *syntaxCopy() override;
-    Optional<bool> toBool() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -332,7 +328,6 @@ public:
 class NullExp final : public Expression
 {
 public:
-    Optional<bool> toBool() override;
     StringExp *toStringExp() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -354,7 +349,6 @@ public:
     char32_t getCodeUnit(d_size_t i) const;
     dinteger_t getIndex(d_size_t i) const;
     StringExp *toStringExp() override;
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
     size_t numberOfCodeUnits(int tynto = 0) const;
     void writeTo(void* dest, bool zero, int tyto = 0) const;
@@ -404,7 +398,6 @@ public:
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     ArrayLiteralExp *syntaxCopy() override;
     Expression *getElement(d_size_t i);
-    Optional<bool> toBool() override;
     StringExp *toStringExp() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -420,7 +413,6 @@ public:
     Expression* loweringCtfe;
 
     AssocArrayLiteralExp *syntaxCopy() override;
-    Optional<bool> toBool() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -555,8 +547,6 @@ class SymOffExp final : public SymbolExp
 {
 public:
     dinteger_t offset;
-
-    Optional<bool> toBool() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -832,7 +822,6 @@ public:
 class AddrExp final : public UnaExp
 {
 public:
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -924,7 +913,6 @@ private:
 
 public:
     SliceExp *syntaxCopy() override;
-    Optional<bool> toBool() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -987,7 +975,6 @@ public:
     d_bool isGenerated;
     d_bool allowCommaExp;
     Expression* originalExp;
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
