@@ -18,6 +18,7 @@
 
 #include "root/complex_t.h"
 #include "root/dcompat.h"
+#include "root/optional.h"
 
 class Type;
 class TypeVector;
@@ -63,6 +64,7 @@ namespace dmd
     bool isLvalue(const Expression *exp);
     int32_t getFieldIndex(ClassReferenceExp *cre, Type *fieldtype, uint32_t fieldoffset);
     void fillTupleExpExps(TupleExp *te, TupleDeclaration *tup);
+    Optional<bool> toBool(Expression *exp);
 }
 
 typedef unsigned char OwnedBy;
