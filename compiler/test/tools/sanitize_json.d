@@ -1,3 +1,5 @@
+module sanitize_json;
+
 import std.exception : assumeUnique;
 import std.conv : text;
 import std.range : take, chain, drop;
@@ -37,6 +39,7 @@ void usage()
 }
 // This module may be imported from d_do_test
 version (NoMain) {} else
+version (NoMainSanitizeJson) {} else
 int main(string[] args)
 {
     getopt(args,

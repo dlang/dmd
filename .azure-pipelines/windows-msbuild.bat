@@ -49,7 +49,7 @@ make -j%N% -C "%DMD_DIR%\..\phobos" MODEL=%MODEL% "DMD=%DMD%" "DMD_DIR=%DMD_DIR%
 echo [STEP]: Building run.d testrunner and its tools
 REM needs to be done before tampering with LIB and DFLAGS env variables (affecting the ldmd2 host compiler too)
 cd "%DMD_DIR%\compiler\test"
-"%HOST_DMD%" -m%MODEL% -g -i run.d || exit /B 4
+"%HOST_DMD%" -m%MODEL% -g -i -Itools -version=NoMainSanitizeJson run.d || exit /B 4
 run.exe tools "BUILD=%CONFIGURATION%" "DMD_MODEL=%PLATFORM%" || exit /B 4
 
 :: FIXME: skip unit_tests temporarily due to unclear (spurious?) CI failures

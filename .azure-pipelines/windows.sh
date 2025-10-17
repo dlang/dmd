@@ -101,7 +101,7 @@ if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
     ../../generated/build.exe -j$N MODEL=$MODEL DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_DEBUG=1 ENABLE_COVERAGE=1 unittest
 fi
 
-"$HOST_DC" -m$MODEL -g -i run.d
+"$HOST_DC" -m$MODEL -g -i -Itools -version=NoMainSanitizeJson run.d
 
 targets=("all")
 args=('ARGS=-O -inline -g') # no -release for faster builds

@@ -204,7 +204,7 @@ jobs:
     #        Running the test suite        #
     ########################################
     - name: Run compiler C++ test suite
-      run: ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d ${{ matrix.os == 'macos-14' && 'HOST_DMD="$PWD/dmd/generated/osx/release/64/dmd"' || '' }}
+      run: $DMD -i -Idmd/compiler/test -Idmd/compiler/test/tools -version=NoMainSanitizeJson -run ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d ${{ matrix.os == 'macos-14' && 'HOST_DMD="$PWD/dmd/generated/osx/release/64/dmd"' || '' }}
 
     - name: Run druntime C++ tests
       run: make -C dmd/druntime -j$N test/stdcpp/.run

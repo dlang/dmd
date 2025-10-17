@@ -36,6 +36,8 @@ Note:
 - [`run.d`](./run.d) will automatically use all available threads. Use e.g. `-j4` if you need a lower parallelism
 - all commands below assume that you are in the `test` directory
 
+Compile with ``-version=D_Do_Test_Main`` to enable the main function.
+
 ### Run only a specific subset
 
 ```console

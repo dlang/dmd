@@ -546,7 +546,9 @@ alias testRunner = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
     .msg("(DC) RUN.D")
     .sources([ testDir.buildPath( "run.d") ])
     .target(env["GENERATED"].buildPath("run".exeName))
-    .command([ env["HOST_DMD_RUN"], "-of=" ~ rundRule.target, "-i", "-I" ~ testDir] ~ rundRule.sources));
+    .command([ env["HOST_DMD_RUN"], "-of=" ~ rundRule.target, "-i", "-I" ~ testDir,
+    "-version=DDoTestMain", "-version=NoMainSanitizeJson"
+    ] ~ rundRule.sources));
 
 
 alias dmdPGO = makeRule!((builder, rule) {

@@ -18,7 +18,7 @@
  *
  * Optional steps are marked with [...]
 */
-module d_do_test;
+module tools.d_do_test;
 
 import std.algorithm;
 import std.array;
@@ -1561,6 +1561,7 @@ class CompareException : Exception
 enum RERUN_TEST = 2;
 
 version(unittest) void main(){} else
+version (DDoTestMain)
 int main(string[] args)
 {
     try
@@ -1592,9 +1593,13 @@ int tryMain(string[] args)
         return 1;
     }
 
+    return tryActualMain(args[1]);
+}
+
+int tryActualMain(string arg) {
     immutable envData = processEnvironment();
 
-    const input_file     = args[1];
+    const input_file     = arg;
     const input_dir      = input_file.dirName();
     const test_base_name = input_file.baseName();
     const test_name      = test_base_name.stripExtension();

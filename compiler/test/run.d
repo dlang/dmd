@@ -16,6 +16,7 @@ import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.forma
        std.string, std.traits, core.atomic;
 
 import tools.paths;
+static import tools.d_do_test;
 
 const scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
 immutable testDirs = ["runnable", "runnable_cxx", "dshell", "compilable", "fail_compilation"];
@@ -49,7 +50,9 @@ immutable slowRunnableTests = [
 enum toolsDir = testPath("tools");
 
 enum TestTool unitTestRunner = { name: "unit_test_runner", extraArgs: [toolsDir.buildPath("paths")] };
-enum TestTool testRunner = { name: "d_do_test", extraArgs: ["-I" ~ toolsDir, "-i", "-version=NoMain"] };
+enum TestTool testRunner = { name: "d_do_test",
+                            extraArgs: ["-I" ~ toolsDir, "-i", "-version=NoMain", "-version=DDoTestMain"],
+                            runner: &rund_do_test };
 enum TestTool testRunnerUnittests = { name: "d_do_test-ut",
                                       customSourceFile: toolsDir.buildPath("d_do_test.d"),
                                       extraArgs: testRunner.extraArgs ~ ["-g", "-unittest"],
@@ -71,6 +74,8 @@ immutable struct TestTool
     bool linksWithTests;
 
     bool runAfterBuild;
+
+    int function(string[]) runner;
 
     alias name this;
 }
@@ -188,18 +193,29 @@ Options:
 
     targets.sort!("a.sortKey < b.sortKey", SwapStrategy.stable);
 
+    foreach(k, v; env)
+        environment[k] = v;
+
+    chdir(scriptDir);
+
     if (targets.length > 0)
     {
         shared string[] failedTargets;
         foreach (target; parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
-            int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
+            int status;
+
+            if (target.runner !is null)
+                status = target.runner(target.args);
+            else
+                status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
+
             if (status != 0)
             {
                 const string name = target.filename
-                            ? target.normalizedTestName
-                            : "`unit` tests: " ~ (cast(string)unitTestRunnerCommand) ~ " " ~ join(target.args, " ");
+                ? target.normalizedTestName
+                : "`unit` tests: " ~ (cast(string)unitTestRunnerCommand) ~ " " ~ join(target.args, " ");
 
                 writeln(">>> TARGET FAILED: ", name);
                 synchronized failedTargets ~= name;
@@ -305,6 +321,7 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
                 "-conf=",
                 "-m"~env["MODEL"],
                 "-of" ~ targetBin,
+                "-O",
                 "-c",
                 sourceFile
             ] ~ getPicFlags(env);
@@ -316,6 +333,7 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
                 hostDMD,
                 "-m"~env["MODEL"],
                 "-of"~targetBin,
+                "-O",
                 sourceFile
             ] ~ getPicFlags(env) ~ tool.extraArgs;
         }
@@ -383,6 +401,8 @@ struct Target
     }
 
     size_t sortKey;
+
+    int function(string[]) runner;
 }
 
 /**
@@ -410,7 +430,8 @@ Target[] predefinedTargets(string[] targets)
             args: [
                 resultsDir.buildPath(testRunner.name.exeName),
                 Target.normalizedTestName(filename)
-            ]
+            ],
+            runner: testRunner.runner
         };
 
         return target;
@@ -659,4 +680,8 @@ Throws: a SilentQuit instance wrapping exitCode
 void quitSilently(const int exitCode)
 {
     throw new SilentQuit(exitCode);
+}
+
+int rund_do_test(string[] args) {
+    return tools.d_do_test.tryActualMain(args[1]);
 }

@@ -141,7 +141,7 @@ coverage()
 
     cp $build_path/dmd _${build_path}/host_dmd_cov
     $builder MODEL=$MODEL BUILD=$BUILD HOST_DMD=$PWD/_${build_path}/host_dmd ENABLE_COVERAGE=1 unittest
-    _${build_path}/host_dmd -Icompiler/test -i -run ./compiler/test/run.d -j$N MODEL=$MODEL BUILD=$BUILD ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 HOST_DMD=$PWD/_${build_path}/host_dmd
+    _${build_path}/host_dmd -Icompiler/test -Icompiler/test/tools -i -version=NoMainSanitizeJson -run ./compiler/test/run.d -j$N MODEL=$MODEL BUILD=$BUILD ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 HOST_DMD=$PWD/_${build_path}/host_dmd
 }
 
 # Checks that all files have been committed and no temporary, untracked files exist.

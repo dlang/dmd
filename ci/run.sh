@@ -128,7 +128,7 @@ test_dmd() {
         rm compiler/test/runnable/gdb4181.d
     fi
 
-    $build_path/dmd -g -i -Icompiler/test -release compiler/test/run.d -ofgenerated/run
+    $build_path/dmd -g -i -Icompiler/test -Icompiler/test/tools -release compiler/test/run.d -version=NoMainSanitizeJson -ofgenerated/run
     generated/run -j$N --environment MODEL=$MODEL HOST_DMD=$build_path/dmd "${args[@]}"
 }
 
