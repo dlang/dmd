@@ -632,6 +632,42 @@ bool hasRegularCtor(StructDeclaration sd, bool ignoreDisabled)
     return result;
 }
 
+/// Returns: whether `s` is a method which can possibly be called without a struct instance.
+/// Used to check whether S() should try to call `S.opCall()` rather than construct a struct literal
+bool hasStaticOverload(Dsymbol s)
+{
+    bool result = false;
+    overloadApply(s, (Dsymbol sym) {
+        if (auto fd = sym.isFuncDeclaration())
+        {
+            if (fd.isStatic)
+            {
+                result = true;
+                return 1;
+            }
+        }
+        else if (auto td = sym.isTemplateDeclaration())
+        {
+            // Consider both `template opCall { static opCall() {} }` and `static opCall()() {}`
+            if (td._scope.stc & STC.static_)
+            {
+                result = true;
+                return 1;
+            }
+            if (auto fd = td.onemember.isFuncDeclaration())
+            {
+                if (fd.isStatic)
+                {
+                    result = true;
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    });
+    return result;
+}
+
 /*****************************************
  * Determine if `this` is available by walking up the enclosing
  * scopes until a function is found.
@@ -7152,8 +7188,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return;
                 }
                 // No constructor, look for overload of opCall
-                if (search_function(sd, Id.opCall))
-                    goto L1;
+                if (auto sym = search_function(sd, Id.opCall))
+                {
+                    // Don't consider opCall on a type with no instance
+                    // if there's no static overload for it
+                    if (!exp.e1.isTypeExp() || hasStaticOverload(sym))
+                        goto L1;
+                }
                 // overload of opCall, therefore it's a call
                 if (exp.e1.op != EXP.type)
                 {
