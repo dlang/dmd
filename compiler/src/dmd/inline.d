@@ -1316,6 +1316,14 @@ public:
         scanVar(e.declaration);
     }
 
+    override void visit(FuncExp e)
+    {
+        if (e.fd.ident != Id.empty)
+        {
+            inlineScanDsymbol(e.td ? cast(Dsymbol)e.td : cast(Dsymbol)e.fd, eSink);
+        }
+    }
+
     override void visit(UnaExp e)
     {
         inlineScan(e.e1);
