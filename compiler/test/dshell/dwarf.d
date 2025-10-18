@@ -31,8 +31,15 @@ int main()
     else
         immutable slash = "/";
 
+    // Some systems are configured for binutils to output localized strings.
+    // Specify LANG=C to disable localization as we test for fixed strings in the output.
+    // https://www.gnu.org/software/gettext/manual/html_node/The-LANGUAGE-variable.html
+    // As an example (assuming binutils is compiled with localization), run
+    //     LANG=ja_JP LANGUAGE=ja_JP objdump -H
+    // to see translated output in action.
+    auto sysObjdump = executeShell("objdump --version", ["LANG": "C"]);
+
     // If the Unix system doesn't have objdump, disable the tests
-    auto sysObjdump = executeShell("objdump --version");
     if (sysObjdump.status)
         return DISABLED;
 
@@ -93,7 +100,8 @@ int main()
         auto objdump = exe ~ ".objdump";
 
         auto objdump_file = File(objdump, "w");
-        run("objdump -W " ~ exe, objdump_file);
+        // Also disable localization here.
+        run("objdump -W " ~ exe, objdump_file, stderr, ["LANG": "C"]);
         objdump_file.close();
 
         auto llvmDwarfdump = executeShell("llvm-dwarfdump --version");
