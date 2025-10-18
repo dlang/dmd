@@ -99,13 +99,13 @@ class ErrorSinkCompiler : ErrorSink
     {
         // Exit if there are no collected diagnostics
         if (!diagnostics.length) return;
-
-        // Generate the SARIF report with the current diagnostics
-        if(global.params.v.messagestyle == MessageStyle.sarif)
+        
+        /// Generate the SARIF report with the current diagnostics
+        if(global.params.v.messageStyle == MessageStyle.sarif)
         {
             generateSarifReport(false);
         }
-        else if(global.params.v.messagestyle == MessageStyle.lsp) /// Generate LSP report for diagnostics
+        else if(global.params.v.messageStyle == MessageStyle.lsp) /// Generate LSP report for diagnostics
         {
             generateLSPDiagnostic();            
         }
@@ -486,7 +486,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
         if (!global.gag)
         {
             info.headerColor = Classification.error;
-            if (global.params.v.messagestyle == MessageStyle.lsp)
+            if (global.params.v.messageStyle == MessageStyle.lsp)
             {
                 addLSPDiagnostic(loc, format, ap, kind);
                 return;
@@ -525,7 +525,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                 if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
                 {
                     info.headerColor = Classification.deprecation;
-                    if (global.params.v.messagestyle == MessageStyle.lsp)
+                    if (global.params.v.messageStyle == MessageStyle.lsp)
                     {
                         addLSPDiagnostic(loc, format, ap, kind);
                         return;
@@ -551,7 +551,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             if (!global.gag)
             {
                 info.headerColor = Classification.warning;
-                if (global.params.v.messagestyle == MessageStyle.lsp)
+                if (global.params.v.messageStyle == MessageStyle.lsp)
                 {
                     addLSPDiagnostic(loc, format, ap, kind);
                     return;
@@ -572,7 +572,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
         if (!global.gag)
         {
             info.headerColor = Classification.tip;
-            if (global.params.v.messagestyle == MessageStyle.lsp)
+            if (global.params.v.messageStyle == MessageStyle.lsp)
             {
                 addLSPDiagnostic(loc, format, ap, kind);
                 return;
@@ -597,7 +597,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
         fputs(tmp.peekChars(), stdout);
         fputc('\n', stdout);
         fflush(stdout);     // ensure it gets written out in case of compiler aborts
-        if (global.params.v.messagestyle == MessageStyle.lsp)
+        if (global.params.v.messageStyle == MessageStyle.lsp)
         {
             addLSPDiagnostic(loc, format, ap, kind);
             return;

@@ -213,7 +213,7 @@ class ErrorSinkStderr : ErrorSink
 /**
  * ErrorSinkLSP serializes diagnostics into a JSON array and writes to stdout.
  */
-class ErrorSinkLSP
+class ErrorSinkLSP : ErrorSink
 {
     import core.stdc.stdio;
     import core.stdc.stdarg;
@@ -233,7 +233,7 @@ class ErrorSinkLSP
         diagnostics ~= Diagnostic(loc, formattedMessage, kind);
     }
 
-    void printLSPDiagnostic(Diagnostic d, OutBuffer ob) nothrow
+    void printLSPDiagnostic(Diagnostic d, ref OutBuffer ob) nothrow
     {
         const(char)[] filename = d.loc.filename;
         uint line = d.loc.linnum;
