@@ -70,9 +70,9 @@ jobs:
           - { os: ubuntu-22.04, compiler: g++-9,  model: 64 }
           - { os: ubuntu-22.04, compiler: g++-9,  model: 32 }
           # macOS, Apple clang from Xcode:
+          # Disabled due to issues with x87: https://github.com/dlang/dmd/issues/21987
+          #- { os: macos-15, xcode: '16.4',   model: 64 }
           - { os: macos-14, xcode: '16.2',   model: 64 }
-          - { os: macos-13, xcode: '15.2',   model: 64 }
-          - { os: macos-13, xcode: '14.3.1', model: 64 }
           # Windows, cl.exe from Visual Studio:
           # NOTE: as of April 2025, image windows-2025 only has VS 2022, so no point in testing that image too
           - { os: windows-2022, model: 64 }

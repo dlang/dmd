@@ -54,20 +54,17 @@ jobs:
             container_image: alpine:3.21
             host_dmd: ldmd2
           # macOS
-          - job_name: macOS 13 x64, DMD (latest)
-            os: macos-13
+          - job_name: macOS 14 x64, DMD (latest)
+            os: macos-14
             host_dmd: dmd
           # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
-          # - job_name: macOS 13 x64, DMD (coverage)
-          #   os: macos-13
-          #   host_dmd: dmd
-          #   coverage: true
-          - job_name: macOS 13 x64, DMD (bootstrap)
-            os: macos-13
-            xcode: '14.3.1' # work around 'ld: multiple errors: symbol count from symbol table and dynamic symbol table differ' with old bootstrap compiler
-            # de-facto bootstrap version on OSX
-            # See: https://github.com/dlang/dmd/pull/13890
-            host_dmd: dmd-2.099.1
+          #- job_name: macOS 14 x64, DMD (coverage)
+          #  os: macos-14
+          #  host_dmd: dmd
+          #  coverage: true
+          - job_name: macOS 14 x64, DMD (bootstrap)
+            os: macos-14
+            host_dmd: dmd-2.107.1
           # Windows
           - job_name: Windows x64, LDC
             os: windows-2022
@@ -79,7 +76,7 @@ jobs:
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container_image }}
-    timeout-minutes: 40
+    timeout-minutes: 60 # OSX tests can still be running runnable at 40
     env:
       # for ci/run.sh:
       OS_NAME: ${{ startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || '')) }}
