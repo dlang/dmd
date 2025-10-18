@@ -32,6 +32,7 @@ import dmd.init : Initializer, NeedInterpret;
 import dmd.location : Loc;
 import dmd.mtype /*: Covariant, Type, Parameter, ParameterList*/;
 import dmd.rootobject : RootObject;
+import dmd.root.optional;
 import dmd.semantic3;
 import dmd.statement : Statement, AsmStatement, GccAsmStatement;
 
@@ -421,6 +422,12 @@ void fillTupleExpExps(TupleExp te, TupleDeclaration tup)
 {
     import dmd.expressionsem;
     return dmd.expressionsem.fillTupleExpExps(te, tup);
+}
+
+Optional!bool toBool(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toBool(exp);
 }
 
 /***********************************************************

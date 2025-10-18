@@ -2317,22 +2317,6 @@ struct complex_t final
     int32_t opEquals(complex_t y) const;
 };
 
-template <typename T>
-struct Optional final
-{
-    T value;
-    bool present;
-    Optional(T value);
-    static Optional<T > create(T val);
-    bool isPresent() const;
-    bool isEmpty() const;
-    T get();
-    bool hasValue(T exp) const;
-    Optional()
-    {
-    }
-};
-
 class Expression : public ASTNode
 {
 public:
@@ -2381,7 +2365,6 @@ public:
     virtual bool checkType();
     Expression* deref();
     int32_t isConst();
-    virtual Optional<bool > toBool();
     virtual bool hasCode();
     IntegerExp* isIntegerExp();
     ErrorExp* isErrorExp();
@@ -2541,7 +2524,6 @@ public:
 class AddrExp final : public UnaExp
 {
 public:
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -2608,7 +2590,6 @@ public:
     static ArrayLiteralExp* create(Loc loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
     Expression* getElement(size_t i);
-    Optional<bool > toBool() override;
     StringExp* toStringExp() override;
     void accept(Visitor* v) override;
 };
@@ -2645,7 +2626,6 @@ public:
     Expression* lowering;
     Expression* loweringCtfe;
     AssocArrayLiteralExp* syntaxCopy() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -2743,7 +2723,6 @@ public:
     const bool isGenerated;
     bool allowCommaExp;
     Expression* originalExp;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
     static void allow(Expression* exp);
 };
@@ -2758,7 +2737,6 @@ public:
     _d_real toReal() override;
     _d_real toImaginary() override;
     complex_t toComplex() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -3232,7 +3210,6 @@ public:
     _d_real toReal() override;
     _d_real toImaginary() override;
     complex_t toComplex() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
     dinteger_t getInteger();
     IntegerExp* syntaxCopy() override;
@@ -3388,7 +3365,6 @@ public:
 class NullExp final : public Expression
 {
 public:
-    Optional<bool > toBool() override;
     StringExp* toStringExp() override;
     void accept(Visitor* v) override;
 };
@@ -3465,7 +3441,6 @@ public:
     _d_real toReal() override;
     _d_real toImaginary() override;
     complex_t toComplex() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -3544,7 +3519,6 @@ private:
     uint8_t bitFields;
 public:
     SliceExp* syntaxCopy() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -3575,7 +3549,6 @@ public:
     dinteger_t getIndex(size_t i) const;
     StringExp* toStringExp() override;
     int32_t compare(const StringExp* const se2) const;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -3641,7 +3614,6 @@ public:
     VarDeclaration* var;
     ThisExp(Loc loc, const EXP tok);
     ThisExp* syntaxCopy() override;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -3664,7 +3636,6 @@ class SymOffExp final : public SymbolExp
 {
 public:
     dinteger_t offset;
-    Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
 
@@ -8114,6 +8085,22 @@ extern _d_real creall(complex_t x);
 extern _d_real cimagl(complex_t x);
 
 extern void browse(const char* url);
+
+template <typename T>
+struct Optional final
+{
+    T value;
+    bool present;
+    Optional(T value);
+    static Optional<T > create(T val);
+    bool isPresent() const;
+    bool isEmpty() const;
+    T get();
+    bool hasValue(T exp) const;
+    Optional()
+    {
+    }
+};
 
 enum class IdentifierTable
 {

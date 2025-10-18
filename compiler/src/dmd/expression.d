@@ -21,7 +21,6 @@ import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
-import dmd.ctfeexpr : isCtfeReferenceValid;
 import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.declaration;
@@ -43,7 +42,6 @@ import dmd.mtype;
 import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
-import dmd.root.optional;
 import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.string;
@@ -554,13 +552,6 @@ extern (C++) abstract class Expression : ASTNode
         assert(0);
     }
 
-    /// Statically evaluate this expression to a `bool` if possible
-    /// Returns: an optional thath either contains the value or is empty
-    Optional!bool toBool()
-    {
-        return typeof(return)();
-    }
-
     bool hasCode()
     {
         return true;
@@ -779,12 +770,6 @@ extern (C++) final class IntegerExp : Expression
     override complex_t toComplex()
     {
         return complex_t(toReal());
-    }
-
-    override Optional!bool toBool()
-    {
-        bool r = toInteger() != 0;
-        return typeof(return)(r);
     }
 
     override void accept(Visitor v)
@@ -1014,11 +999,6 @@ extern (C++) final class RealExp : Expression
         return complex_t(toReal(), toImaginary());
     }
 
-    override Optional!bool toBool()
-    {
-        return typeof(return)(!!value);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1068,11 +1048,6 @@ extern (C++) final class ComplexExp : Expression
     override complex_t toComplex()
     {
         return value;
-    }
-
-    override Optional!bool toBool()
-    {
-        return typeof(return)(!!value);
     }
 
     override void accept(Visitor v)
@@ -1177,12 +1152,6 @@ extern (C++) class ThisExp : Expression
         return r;
     }
 
-    override Optional!bool toBool()
-    {
-        // `this` is never null (what about structs?)
-        return typeof(return)(true);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1216,12 +1185,6 @@ extern (C++) final class NullExp : Expression
     {
         super(loc, EXP.null_);
         this.type = type;
-    }
-
-    override Optional!bool toBool()
-    {
-        // null in any type is false
-        return typeof(return)(false);
     }
 
     override StringExp toStringExp()
@@ -1530,13 +1493,6 @@ extern (C++) final class StringExp : Expression
         return 0;
     }
 
-    override Optional!bool toBool()
-    {
-        // Keep the old behaviour for this refactoring
-        // Should probably match language spec instead and check for length
-        return typeof(return)(true);
-    }
-
     /********************************
      * Convert string contents to a 0 terminated string,
      * allocated by mem.xmalloc().
@@ -1752,12 +1708,6 @@ extern (C++) final class ArrayLiteralExp : Expression
         return el ? el : basis;
     }
 
-    override Optional!bool toBool()
-    {
-        size_t dim = elements ? elements.length : 0;
-        return typeof(return)(dim != 0);
-    }
-
     override StringExp toStringExp()
     {
         TY telem = type.nextOf().toBasetype().ty;
@@ -1842,12 +1792,6 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     override AssocArrayLiteralExp syntaxCopy()
     {
         return new AssocArrayLiteralExp(loc, arraySyntaxCopy(keys), arraySyntaxCopy(values));
-    }
-
-    override Optional!bool toBool()
-    {
-        size_t dim = keys.length;
-        return typeof(return)(dim != 0);
     }
 
     override void accept(Visitor v)
@@ -2202,11 +2146,6 @@ extern (C++) final class SymOffExp : SymbolExp
         }
         super(loc, EXP.symbolOffset, var, hasOverloads);
         this.offset = offset;
-    }
-
-    override Optional!bool toBool()
-    {
-        return typeof(return)(true);
     }
 
     override void accept(Visitor v)
@@ -3022,13 +2961,6 @@ extern (C++) final class AddrExp : UnaExp
         type = t;
     }
 
-    override Optional!bool toBool()
-    {
-        if (isCtfeReferenceValid(e1))
-            return typeof(return)(true);
-        return UnaExp.toBool();
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3277,11 +3209,6 @@ extern (C++) final class SliceExp : UnaExp
         return se;
     }
 
-    override Optional!bool toBool()
-    {
-        return e1.toBool();
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3387,11 +3314,6 @@ extern (C++) final class CommaExp : BinExp
     {
         this(loc, e1, e2);
         originalExp = oe;
-    }
-
-    override Optional!bool toBool()
-    {
-        return e2.toBool();
     }
 
     override void accept(Visitor v)
