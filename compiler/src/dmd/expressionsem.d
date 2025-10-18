@@ -27,6 +27,7 @@ import dmd.canthrow;
 import dmd.chkformat;
 import dmd.cond;
 import dmd.ctorflow;
+import dmd.ctfeexpr : isCtfeReferenceValid;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
@@ -75,6 +76,7 @@ import dmd.root.array;
 import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.filename;
+import dmd.root.optional;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.string;
@@ -96,6 +98,57 @@ import dmd.visitor;
 import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
+
+Optional!bool toBool(Expression _this)
+{
+    static Optional!bool integerToBool(IntegerExp _this)
+    {
+        bool r = _this.toInteger() != 0;
+        return typeof(return)(r);
+    }
+
+    static Optional!bool arrayLiteralToBool(ArrayLiteralExp _this)
+    {
+        size_t dim = _this.elements ? _this.elements.length : 0;
+        return typeof(return)(dim != 0);
+    }
+
+    static Optional!bool assocArrayLiteralToBool(AssocArrayLiteralExp _this)
+    {
+        size_t dim = _this.keys.length;
+        return typeof(return)(dim != 0);
+    }
+
+    static Optional!bool addrToBool(AddrExp _this)
+    {
+        if (isCtfeReferenceValid(_this.e1))
+            return typeof(return)(true);
+        return typeof(return)();
+    }
+
+    switch(_this.op)
+    {
+        case EXP.int64: return integerToBool(_this.isIntegerExp());
+        case EXP.float64: return typeof(return)(!!_this.isRealExp().value);
+        case EXP.complex80: return typeof(return)(!!_this.isComplexExp().value);
+        // `this` is never null (what about structs?)
+        case EXP.this_, EXP.super_: return typeof(return)(true);
+        // null in any type is false
+        case EXP.null_: return typeof(return)(false);
+        // Keep the old behaviour for this refactoring
+        // Should probably match language spec instead and check for length
+        case EXP.string_: return typeof(return)(true);
+        case EXP.arrayLiteral: return arrayLiteralToBool(_this.isArrayLiteralExp());
+        case EXP.assocArrayLiteral: return assocArrayLiteralToBool(_this.isAssocArrayLiteralExp());
+        case EXP.symbolOffset: return typeof(return)(true);
+        case EXP.address: return addrToBool(_this.isAddrExp());
+        case EXP.slice: return _this.isSliceExp().e1.toBool();
+        case EXP.comma: return _this.isCommaExp().e2.toBool();
+        // Statically evaluate this expression to a `bool` if possible
+        // Returns: an optional thath either contains the value or is empty
+        default: return typeof(return)();
+    }
+}
 
 void fillTupleExpExps(TupleExp _this, TupleDeclaration tup)
 {

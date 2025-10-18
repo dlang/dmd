@@ -337,7 +337,7 @@ void test_expression()
     assert(e);
     assert(e->isConst());
 
-    Optional<bool> res = e->toBool();
+    Optional<bool> res = dmd::toBool(e);
     assert(res.get());
 }
 
