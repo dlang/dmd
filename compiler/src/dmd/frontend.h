@@ -2317,22 +2317,6 @@ struct complex_t final
     int32_t opEquals(complex_t y) const;
 };
 
-template <typename T>
-struct Optional final
-{
-    T value;
-    bool present;
-    Optional(T value);
-    static Optional<T > create(T val);
-    bool isPresent() const;
-    bool isEmpty() const;
-    T get();
-    bool hasValue(T exp) const;
-    Optional()
-    {
-    }
-};
-
 class Expression : public ASTNode
 {
 public:
@@ -8101,6 +8085,22 @@ extern _d_real creall(complex_t x);
 extern _d_real cimagl(complex_t x);
 
 extern void browse(const char* url);
+
+template <typename T>
+struct Optional final
+{
+    T value;
+    bool present;
+    Optional(T value);
+    static Optional<T > create(T val);
+    bool isPresent() const;
+    bool isEmpty() const;
+    T get();
+    bool hasValue(T exp) const;
+    Optional()
+    {
+    }
+};
 
 enum class IdentifierTable
 {
