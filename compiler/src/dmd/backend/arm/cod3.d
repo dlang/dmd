@@ -1519,29 +1519,25 @@ void assignaddrc(code* c)
                             cn.next = c.next;
                             c.next = cn;
                         }
+                        assert(0); // TODO AArch64
                     }
                     continue;
 
                 case PSOP.frameptr:
                     // Convert to load of frame pointer
                     // c.Irm is the register to use
+                    reg_t reg = c.Irm;  // set by cod3.cdframeptr()
                     if (cgstate.hasframe && !cgstate.enforcealign)
-                    {   // MOV reg,EBP
-                        c.Iop = 0x89;
-                        if (c.Irm & 8)
-                            c.Irex |= REX_B;
-                        c.Irm = modregrm(3,BP,c.Irm & 7);
+                    {
+                        uint imm12 = cast(uint)(REGSIZE*2 + localsize);
+                        c.Iop = INSTR.addsub_imm(1,0,0,0,imm12,INSTR.BP,reg); // ADD reg,BP,#imm12
+                        //c.Iop = INSTR.mov_register(1,INSTR.BP,reg);  // MOV reg,BP
                     }
                     else
-                    {   // LEA reg,EBPtoESP[ESP]
-                        c.Iop = LEA;
-                        if (c.Irm & 8)
-                            c.Irex |= REX_R;
-                        c.Irm = modregrm(2,c.Irm & 7,4);
-                        c.Isib = modregrm(0,4,SP);
-                        c.Iflags = CFoff;
-                        c.IFL1 = FL.const_;
-                        c.IEV1.Vuns = cgstate.EBPtoESP;
+                    {
+                        uint imm12 = cast(uint)(REGSIZE*2 + localsize + cgstate.EBPtoESP);
+                        c.Iop = INSTR.addsub_imm(1,0,0,0,imm12,INSTR.SP,reg); // ADD reg,SP,#imm12
+                        //c.Iop = INSTR.addsub_imm(1,0,0,0,cgstate.EBPtoESP,INSTR.SP,reg); // ADD reg,SP,#EBPtoESP
                     }
                     continue;
 
