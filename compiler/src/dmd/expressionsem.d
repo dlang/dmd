@@ -30,6 +30,7 @@ import dmd.ctorflow;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.templatesem : computeOneMember;
 import dmd.declaration;
 import dmd.dclass;
 import dmd.dcast;
@@ -606,6 +607,7 @@ bool hasRegularCtor(StructDeclaration sd, bool ignoreDisabled)
     {
         if (auto td = s.isTemplateDeclaration())
         {
+            td.computeOneMember();
             if (ignoreDisabled && td.onemember)
             {
                 if (auto ctorDecl = td.onemember.isCtorDeclaration())
@@ -623,6 +625,42 @@ bool hasRegularCtor(StructDeclaration sd, bool ignoreDisabled)
             {
                 result = true;
                 return 1;
+            }
+        }
+        return 0;
+    });
+    return result;
+}
+
+/// Returns: whether `s` is a method which can possibly be called without a struct instance.
+/// Used to check whether S() should try to call `S.opCall()` rather than construct a struct literal
+bool hasStaticOverload(Dsymbol s)
+{
+    bool result = false;
+    overloadApply(s, (Dsymbol sym) {
+        if (auto fd = sym.isFuncDeclaration())
+        {
+            if (fd.isStatic)
+            {
+                result = true;
+                return 1;
+            }
+        }
+        else if (auto td = sym.isTemplateDeclaration())
+        {
+            // Consider both `template opCall { static opCall() {} }` and `static opCall()() {}`
+            if (td._scope.stc & STC.static_)
+            {
+                result = true;
+                return 1;
+            }
+            if (auto fd = td.onemember.isFuncDeclaration())
+            {
+                if (fd.isStatic)
+                {
+                    result = true;
+                    return 1;
+                }
             }
         }
         return 0;
@@ -1909,6 +1947,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     Expression handleTemplateDecl(TemplateDeclaration td)
     {
         assert(td);
+        td.computeOneMember();
         if (!td.onemember)
             return e1;
 
@@ -7149,8 +7188,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return;
                 }
                 // No constructor, look for overload of opCall
-                if (search_function(sd, Id.opCall))
-                    goto L1;
+                if (auto sym = search_function(sd, Id.opCall))
+                {
+                    // Don't consider opCall on a type with no instance
+                    // if there's no static overload for it
+                    if (!exp.e1.isTypeExp() || hasStaticOverload(sym))
+                        goto L1;
+                }
                 // overload of opCall, therefore it's a call
                 if (exp.e1.op != EXP.type)
                 {
@@ -18234,14 +18278,15 @@ private bool needsTypeInference(TemplateInstance ti, Scope* sc, int flag = 0)
             auto td = s.isTemplateDeclaration();
             if (!td)
                 return 0;
-
             /* If any of the overloaded template declarations need inference,
              * then return true
              */
+            td.computeOneMember();
             if (!td.onemember)
                 return 0;
             if (auto td2 = td.onemember.isTemplateDeclaration())
             {
+                td2.computeOneMember();
                 if (!td2.onemember || !td2.onemember.isFuncDeclaration())
                     return 0;
                 if (ti.tiargs.length >= td.parameters.length - (td.isVariadic() ? 1 : 0))

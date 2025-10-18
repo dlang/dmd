@@ -53,7 +53,6 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : oneMembers;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -268,6 +267,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool isTrivialAlias;    /// matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
     bool deprecated_;       /// this template declaration is deprecated
     bool isCmacro;          /// Whether this template is a translation of a C macro
+    bool haveComputedOneMember; /// Whether computeOneMeber has been called
     Visibility visibility;
 
     // threaded list of previous instantiation attempts on stack
@@ -306,20 +306,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         this.literal = literal;
         this.ismixin = ismixin;
         this.isstatic = true;
+        this.haveComputedOneMember = false;
         this.visibility = Visibility(Visibility.Kind.undefined);
+    }
 
-        // Compute in advance for Ddoc's use
-        // https://issues.dlang.org/show_bug.cgi?id=11153: ident could be NULL if parsing fails.
-        if (!members || !ident)
-            return;
-
-        Dsymbol s;
-        if (!oneMembers(members, s, ident) || !s)
-            return;
-
-        onemember = s;
-        s.parent = this;
-
+    extern(D) void computeIsTrivialAlias(Dsymbol s)
+    {
         /* Set isTrivialAliasSeq if this fits the pattern:
          *   template AliasSeq(T...) { alias AliasSeq = T; }
          * or set isTrivialAlias if this fits the pattern:

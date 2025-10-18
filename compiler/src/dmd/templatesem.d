@@ -61,6 +61,24 @@ alias funcLeastAsSpecialized = dmd.funcsem.leastAsSpecialized;
 
 enum LOG = false;
 
+void computeOneMember(TemplateDeclaration td)
+{
+    if (td is null || td.haveComputedOneMember)
+        return;
+
+    if (td && td.members && td.ident)
+    {
+        Dsymbol s;
+        if (oneMembers(td.members, s, td.ident) && s)
+        {
+            td.onemember = s;
+            s.parent = td;
+            td.computeIsTrivialAlias(s);
+        }
+        td.haveComputedOneMember = true;
+    }
+}
+
 bool declareParameter(TemplateParameter _this, Scope* sc)
 {
     static bool typeDeclareParameter(TemplateTypeParameter _this, Scope* sc)
@@ -366,7 +384,6 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
             (*tempdecl.origParameters)[i] = tp.syntaxCopy();
         }
     }
-
     for (size_t i = 0; i < tempdecl.parameters.length; i++)
     {
         TemplateParameter tp = (*tempdecl.parameters)[i];
@@ -381,6 +398,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
         }
         if (i + 1 != tempdecl.parameters.length && tp.isTemplateTupleParameter())
         {
+            tempdecl.computeOneMember(); // for .kind
             .error(tempdecl.loc, "%s `%s` template sequence parameter must be the last one", tempdecl.kind, tempdecl.toPrettyChars);
             tempdecl.errors = true;
         }
@@ -420,16 +438,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
 
     // Compute again
     tempdecl.onemember = null;
-    if (tempdecl.members)
-    {
-        Dsymbol s;
-        if (oneMembers(tempdecl.members, s, tempdecl.ident) && s)
-        {
-            tempdecl.onemember = s;
-            s.parent = tempdecl;
-        }
-    }
-
+    tempdecl.computeOneMember();
     /* BUG: should check:
      *  1. template functions must not introduce virtual functions, as they
      *     cannot be accomodated in the vtbl[]
@@ -1468,6 +1477,7 @@ void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclara
 
     TemplateTypeParameter ttp = (*tempdecl.parameters)[0].isTemplateTypeParameter();
     Type ta = tempinst.tdtypes[0].isType();
+    tempdecl.computeOneMember();
     auto ad = tempdecl.onemember.isAliasDeclaration();
 
     // Note: qualifiers can be in both 'ad.type.mod' and 'ad.storage_class'
@@ -2696,6 +2706,7 @@ MATCH matchWithInstance(Scope* sc, TemplateDeclaration td, TemplateInstance ti, 
             ti.parent = td.parent;
 
         // Similar to doHeaderInstantiation
+        td.computeOneMember();
         FuncDeclaration fd = td.onemember ? td.onemember.isFuncDeclaration() : null;
         if (fd)
         {
@@ -3124,7 +3135,6 @@ private bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Sco
 const(char)* getConstraintEvalError(TemplateDeclaration td, ref const(char)* tip)
 {
     import dmd.staticcond;
-
     // there will be a full tree view in verbose mode, and more compact list in the usual
     const full = global.params.v.verbose;
     uint count;
@@ -3347,6 +3357,7 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
     else
     {
         auto tdecl = ti.tempdecl.isTemplateDeclaration();
+        tdecl.computeOneMember();
 
         if (errs != global.errors)
             errorSupplemental(ti.loc, "while looking for match for `%s`", ti.toChars());
@@ -5412,7 +5423,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             return 1;
         }
         //printf("td = %s\n", td.toChars());
-
+        td.computeOneMember();
         auto f = td.onemember ? td.onemember.isFuncDeclaration() : null;
         if (!f)
         {
@@ -5659,6 +5670,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
     if (td_best && ti_best && m.count == 1)
     {
         // Matches to template function
+        td_best.computeOneMember();
         assert(td_best.onemember && td_best.onemember.isFuncDeclaration());
         /* The best match is td_best with arguments tdargs.
          * Now instantiate the template.
