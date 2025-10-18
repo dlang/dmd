@@ -719,11 +719,6 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     if (findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs))
         replaceResultsDir(testArgs.executeArgs, envData);
 
-    // Always run main even if compiled with '-unittest' but let
-    // tests switch to another behaviour if necessary
-    if (!testArgs.executeArgs.canFind("--DRT-testmode"))
-        testArgs.executeArgs ~= " --DRT-testmode=run-main";
-
     string extraSourcesStr;
     findTestParameter(envData, file, "EXTRA_SOURCES", extraSourcesStr);
     testArgs.sources = [input_file];
@@ -737,6 +732,21 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         foreach(s; split(compiledImports))
             testArgs.compiledImports ~= input_dir ~ "/" ~ s;
     }
+
+    if (input_file.extension == ".d" && stripExtension(input_file).extension == ".group")
+    {
+        // is this a group test
+        string groupName = input_file.baseName.stripExtension.stripExtension;
+        string groupDir = input_dir ~ "/groups/" ~ groupName;
+
+        foreach(de; dirEntries(groupDir, SpanMode.shallow))
+            testArgs.sources ~= de;
+    }
+
+    // Always run main even if compiled with '-unittest' but let
+    // tests switch to another behaviour if necessary
+    if (!testArgs.executeArgs.canFind("--DRT-testmode"))
+        testArgs.executeArgs ~= " --DRT-testmode=run-main";
 
     findTestParameter(envData, file, "CXXFLAGS", testArgs.cxxflags);
     version (OSX) {
@@ -1561,6 +1571,7 @@ class CompareException : Exception
 enum RERUN_TEST = 2;
 
 version(unittest) void main(){} else
+version(DDoTestNoMain) {} else
 int main(string[] args)
 {
     try
