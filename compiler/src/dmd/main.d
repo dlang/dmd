@@ -184,6 +184,11 @@ private int tryMain(const(char)[][] argv, out Param params)
         {
             generateSarifReport(true);
         }
+
+        if (global.errors == 0 && global.params.v.messagestyle == Messagestyle.lsp)
+        {
+            generateLSPDiagnostic();            
+        }
     }
 
     target.setTargetBuildDefaults();

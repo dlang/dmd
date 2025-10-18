@@ -211,71 +211,77 @@ class ErrorSinkStderr : ErrorSink
 }
 
 /**
- * ErrorSinkJson serializes diagnostics into a JSON array and writes to stdout.
+ * ErrorSinkLSP serializes diagnostics into a JSON array and writes to stdout.
  */
-class ErrorSinkJson : ErrorSink
+class ErrorSinkLSP
 {
     import core.stdc.stdio;
     import core.stdc.stdarg;
-  
-  nothrow:
+    import core.stdc.string;
+    import dmd.common.outbuffer;
+    import dmd.errors;
 
-    extern(C++) override void verror(Loc loc, const(char)* format, va_list ap)
+    void addLSPDiagnostic(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
     {
-        printJSONObject("error",loc,format,ap);
+        char[1024] buffer;
+        int written = vsnprintf(buffer.ptr, buffer.length, format, ap);
+
+        // Handle any truncation
+        string formattedMessage = cast(string) buffer[0 .. (written < 0 || written > buffer.length ? buffer.length : written)].dup;
+
+        // Add the Diagnostic to the global diagnostics array
+        diagnostics ~= Diagnostic(loc, formattedMessage, kind);
     }
 
-    extern(C++) override void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
+    void printLSPDiagnostic(Diagnostic d, OutBuffer ob) nothrow
     {
-    }
-
-    extern(C++) override void vwarning(Loc loc, const(char)* format, va_list ap)
-    {
-        printJSONObject("warning",loc,format,ap);
-    }
-
-    extern(C++) override void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
-    {
-    }
-
-    extern(C++) override void vdeprecation(Loc loc, const(char)* format, va_list ap)
-    {
-        printJSONObject("deprecation",loc,format,ap);
-    }
-
-    extern(C++) override void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap)
-    {
-    }
-
-    extern(C++) override void vmessage(Loc loc, const(char)* format, va_list ap)
-    {
-        printJSONObject("message",loc,format,ap);
-    }
-
-    extern(C++) override void plugSink()
-    {
-        import dmd.root.global;
-        global.errorsink = this;
-    }
-
-    private void printJSONObject(const(char)* type, Loc loc, const(char)* format, va_list ap) @system nothrow
-    {
-        const(char)* filename = null;
-        uint line = 0;
-        uint column = 0;
-        if(loc.filename !is null)
+        const(char)[] filename = d.loc.filename;
+        uint line = d.loc.linnum;
+        uint column = d.loc.charnum;
+        string severity = "";
+        final switch(d.kind)
         {
-            filename = loc.filename;
-            line = loc.linnum;
-            column = loc.charnum;
+            case ErrorKind.error:
+                severity = "error";
+                break;
+            case ErrorKind.deprecation:
+                severity = "deprecation";
+                break;
+            case ErrorKind.warning:
+                severity = "warning";
+                break;
+            case ErrorKind.tip:
+                severity = "tip";
+                break;
+            case ErrorKind.message:
+                severity = "message";
+                break;
         }
-        fputc('{',stdout);
-        fprintf(stdout, "\"type\":\"%s\",", type);
-        fprintf(stdout, "\"file\":\"%s\",", filename ? filename : "");
-        fprintf(stdout, "\"line\":%u,", line);
-        fprintf(stdout, "\"column\":%u,", column);
-        fprintf(stdout, "\"message\":\"");
-        vfprintf(stdout, format, ap);
-        fputs("}\n", stdout);
+        ob.writestring("{");
+        ob.writestring(`"file":"` ~ filename  ~ `",`);
+        ob.writestring(`"severity: "` ~ severity ~ `",`);
+        ob.writestring(`"line: "` ~ linnum ~ `",`);
+        ob.writestring(`"column: "` ~ column ~ `",`);
+        ob.writestring("}");
+    }
+
+    void generateLSPDiagnostic() nothrow
+    {
+        OutBuffer output;
+        foreach(idx, diag ; diagnostics)
+        {
+            printLSPDiagnostic(diag,output);
+            if(idx < diagnostics.length-1)
+            {
+                fputc(',',stdout);
+            }
+            else
+            {
+                fputc('}',stdout);
+            }
+        }
+        const(char)* LSPOutput = output.extractChars();
+        fputs(LSPOutput, stdout);
+        fflush(stdout);
     }
 }
