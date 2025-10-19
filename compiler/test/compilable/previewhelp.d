@@ -19,5 +19,6 @@ Upcoming language changes listed by -preview=name:
   =inclusiveincontracts 'in' contracts of overridden methods must be a superset of parent contract (https://dlang.org/changelog/2.095.0.html#inclusive-incontracts)
   =fixImmutableConv disallow `void[]` data from holding immutable data (https://dlang.org/changelog/2.101.0.html#dmd.fix-immutable-conv, https://issues.dlang.org/show_bug.cgi?id=17148)
   =systemVariables  disable access to variables marked '@system' from @safe code (https://dlang.org/spec/attribute.html#system-variables)
+  =fastdfa          Fast dataflow analysis engine, experimental
 ----
 */
