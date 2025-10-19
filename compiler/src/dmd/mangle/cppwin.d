@@ -584,8 +584,8 @@ extern(D):
         Dsymbol d = isDsymbol(o);
         Expression e = isExpression(o);
 
-        if (auto _td = d.isTemplateDeclaration())
-            _td.computeOneMember();
+        if (d && d.isTemplateDeclaration())
+            d.isTemplateDeclaration().computeOneMember();
 
         if (d && d.isFuncDeclaration())
         {
