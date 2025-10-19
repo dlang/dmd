@@ -81,6 +81,7 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.symbol;
 
 package(dmd.glue):
 
@@ -439,7 +440,15 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(VarDeclaration vd)
         {
-
+            Symbol* symbol_search(const(char)* name)
+            {
+                foreach (sym; globsym[])
+                {
+                    if (strcmp(symbol_ident(*sym), name) == 0)
+                        return sym;
+                }
+                return null;
+            }
             //printf("VarDeclaration.toObjFile(%p '%s' type=%s) visibility %d\n", vd, vd.toChars(), vd.type.toChars(), vd.visibility);
             //printf("\talign = %d\n", vd.alignment);
 
@@ -546,7 +555,18 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (s.Sclass == SC.global && s.Stype.Tty & mTYconst)
                 out_readonly(s);
 
-            outdata(s);
+            // introduce this cheks for C symbols to avoid duplicating the symbol table
+            if (vd.isCsymbol())
+            {
+                if (!symbol_search(symbol_ident(*s)))
+                {
+                    dmd.backend.symbol.symbol_add(globsym, s);
+                    outdata(s);
+                }
+            }
+            else
+                outdata(s);
+
             if (vd.type.isMutable() || !vd._init)
                 write_pointers(vd.type, s, 0);
             if (vd.isExport() || driverParams.exportVisibility == ExpVis.public_)
