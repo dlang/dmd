@@ -2496,11 +2496,11 @@ void elem_print_const(const elem* e)
 
         case TYllong:
         L2:
-            printf("%lldLL ",cast(ulong)e.Vllong);
+            printf("%lldLL x%llxLL",cast(ulong)e.Vllong, cast(ulong)e.Vllong);
             break;
 
         case TYullong:
-            printf("%lluLL ",cast(ulong)e.Vullong);
+            printf("%lluLL x%llxLL",cast(ulong)e.Vullong, cast(ulong)e.Vullong);
             break;
 
         case TYcent:

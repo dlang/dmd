@@ -2863,7 +2863,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
                     case TYfptr:
                     case TYhptr:
                     case TYvptr:
-                        pretregs |= ALLREGS;
+                        pretregs |= cg.allregs;
                         break;
 
                     default:
