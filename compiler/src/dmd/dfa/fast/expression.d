@@ -17,6 +17,7 @@ import dmd.dfa.utils;
 import dmd.common.outbuffer;
 import dmd.location;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.astenums;
 import dmd.tokens;
 import dmd.func;
