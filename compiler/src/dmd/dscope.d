@@ -71,6 +71,14 @@ private extern (D) struct FlagBitFields
     bool canFree;            /// is on free list
     bool fullinst;          /// fully instantiate templates
     bool ctfeBlock;         /// inside a `if (__ctfe)` block
+
+    /**
+    Is any symbol this scope is applied to known to have a compile time only accessible context.
+    This is not the same as `skipCodegen` nor can it be used to contribute to this.
+    It is meant for analysis engines to be conservative in what functions they analyse,
+      to prevent perceived false positives for meta-programming heavy code.
+    */
+    bool knownACompileTimeOnlyContext;
 }
 
 private extern (D) struct NonFlagBitFields
@@ -260,6 +268,7 @@ extern (C++) struct Scope
         s.ctfeBlock = this.ctfeBlock;
         s.previews = this.previews;
         s.lastdc = null;
+        s.knownACompileTimeOnlyContext = this.knownACompileTimeOnlyContext;
         assert(&this != s);
         return s;
     }
@@ -641,5 +650,11 @@ extern (C++) struct Scope
     extern (D) bool hasEdition(Edition edition)
     {
         return _module && _module.edition >= edition;
+    }
+
+    extern (D) bool isKnownToHaveACompileTimeContext()
+    {
+        return this.knownACompileTimeOnlyContext || this.intypeof != 0 || this.traitsCompiles || this.ctfe ||
+            this.condition || this.inTemplateConstraint || this.ctfeBlock;
     }
 }

@@ -35,7 +35,7 @@ struct CodeBuilder
     code** pTail;
 
     enum BADINS = 0x1234_5678;
-    //enum BADINS = 0x00_00_00_33;
+    //enum BADINS = 0x00_00_00_89;
 
   nothrow:
   public:
@@ -110,6 +110,7 @@ struct CodeBuilder
         if (c)
         {
             CodeBuilder cdb = void;
+assert(c.Iop != BADINS);
             cdb.ctor(c);
             append(cdb);
         }
@@ -173,6 +174,7 @@ assert(op != BADINS);
     {
         code* ce = code_calloc();
         ce.Iop = op;
+assert(op != BADINS);
         ce.Irm = cast(ubyte)rm;
         ce.Isib = cast(ubyte)sib;
         ce.Irex = cast(ubyte)((rm | (sib & (REX_B << 16))) >> 16);

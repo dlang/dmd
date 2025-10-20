@@ -181,6 +181,8 @@ extern (C++) struct Param
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
     bool bitfields = true;  // support C style bit fields
+    bool rewriteNoExceptionToSeq; // Allow finally statements that do not throw an Exception
+                                  // in try body to rewrite to a sequence.
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
@@ -216,6 +218,7 @@ extern (C++) struct Param
     FeatureState dtorFields;     // destruct fields of partially constructed objects
                                  // https://issues.dlang.org/show_bug.cgi?id=14246
     FeatureState systemVariables; // limit access to variables marked @system from @safe code
+    bool useFastDFA;                 // Use fast data flow analysis engine
 
     CHECKENABLE useInvariants  = CHECKENABLE._default;  // generate class invariant checks
     CHECKENABLE useIn          = CHECKENABLE._default;  // generate precondition checks
