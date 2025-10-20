@@ -81,7 +81,7 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.symbol;
+//import dmd.backend.symbol;
 
 package(dmd.glue):
 
@@ -560,7 +560,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             {
                 if (!symbol_search(symbol_ident(*s)))
                 {
-                    dmd.backend.symbol.symbol_add(globsym, s);
+                    symbol_add(globsym, s);
                     outdata(s);
                 }
             }
