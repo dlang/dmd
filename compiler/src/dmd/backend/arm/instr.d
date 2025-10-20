@@ -46,6 +46,10 @@ struct INSTR
 {
   pure nothrow:
 
+    /* Integer registers r0-r7, r9-15, r19-28, r29(?)
+     */
+    enum ALLREGS = 0x1FFF_FFFF & ~(1 << 8) & ~(1 << 16) & ~(1 << 17) & ~(1 << 18);
+
     /* Even though the floating point registers are 0..31, we call them V32..V63 so they fit
      * into regm_t. Remember to and them with 31 to generate an instruction
      */
