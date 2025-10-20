@@ -441,7 +441,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         {
             Symbol* symbol_search(const(char)* name)
             {
-                foreach (sym; *cstate.CSpsymtab)
+                foreach (sym; globsym[])
                 {
                     if (strcmp(symbol_ident(*sym), name) == 0)
                         return sym;
@@ -557,10 +557,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // introduce this cheks for C symbols to avoid duplicating the symbol table
             if (vd.isCsymbol())
             {
-                cstate.CSpsymtab = &globsym;
+                //cstate.CSpsymtab = &globsym;
                 if (!symbol_search(symbol_ident(*s)))
                 {
-                    symbol_add(s);
+                    symbol_add(*(&globsym), s);
                     outdata(s);
                 }
             }
