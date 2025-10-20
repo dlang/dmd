@@ -89,6 +89,120 @@ import dmd.visitor;
 
 enum LOG = false;
 
+/* Append vthis field (this.tupleof[$-1]) to make this aggregate type nested.
+ */
+void makeNested(AggregateDeclaration _this)
+{
+    if (_this.enclosing) // if already nested
+        return;
+    if (_this.sizeok == Sizeok.done)
+        return;
+    if (_this.isUnionDeclaration() || _this.isInterfaceDeclaration())
+        return;
+    if (_this.storage_class & STC.static_)
+        return;
+
+    // If nested struct, add in hidden 'this' pointer to outer scope
+    auto s = _this.toParentLocal();
+    if (!s)
+        s = _this.toParent2();
+    if (!s)
+        return;
+    Type t = null;
+    if (auto fd = s.isFuncDeclaration())
+    {
+        _this.enclosing = fd;
+
+        /* https://issues.dlang.org/show_bug.cgi?id=14422
+         * If a nested class parent is a function, its
+         * context pointer (== `outer`) should be void* always.
+         */
+        t = Type.tvoidptr;
+    }
+    else if (auto ad = s.isAggregateDeclaration())
+    {
+        if (_this.isClassDeclaration() && ad.isClassDeclaration())
+        {
+            _this.enclosing = ad;
+        }
+        else if (_this.isStructDeclaration())
+        {
+            if (auto ti = ad.parent.isTemplateInstance())
+            {
+                _this.enclosing = ti.enclosing;
+            }
+        }
+        t = ad.handleType();
+    }
+    if (_this.enclosing)
+    {
+        //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing.toChars());
+        assert(t);
+        if (t.ty == Tstruct)
+            t = Type.tvoidptr; // t should not be a ref type
+
+        assert(!_this.vthis);
+        _this.vthis = new ThisDeclaration(_this.loc, t);
+        //vthis.storage_class |= STC.ref_;
+
+        // Emulate vthis.addMember()
+        _this.members.push(_this.vthis);
+
+        // Emulate vthis.dsymbolSemantic()
+        _this.vthis.storage_class |= STC.field;
+        _this.vthis.parent = _this;
+        _this.vthis.visibility = Visibility(Visibility.Kind.public_);
+        _this.vthis.alignment = t.alignment();
+        _this.vthis.semanticRun = PASS.semanticdone;
+
+        if (_this.sizeok == Sizeok.fwd)
+            _this.fields.push(_this.vthis);
+
+        _this.makeNested2();
+    }
+}
+
+/* Append vthis2 field (this.tupleof[$-1]) to add a second context pointer.
+ */
+void makeNested2(AggregateDeclaration _this)
+{
+    if (_this.vthis2)
+        return;
+    if (!_this.vthis)
+        _this.makeNested();   // can't add second before first
+    if (!_this.vthis)
+        return;
+    if (_this.sizeok == Sizeok.done)
+        return;
+    if (_this.isUnionDeclaration() || _this.isInterfaceDeclaration())
+        return;
+    if (_this.storage_class & STC.static_)
+        return;
+
+    auto s0 = _this.toParentLocal();
+    auto s = _this.toParent2();
+    if (!s || !s0 || s == s0)
+        return;
+    auto cd = s.isClassDeclaration();
+    Type t = cd ? cd.type : Type.tvoidptr;
+
+    _this.vthis2 = new ThisDeclaration(_this.loc, t);
+    //vthis2.storage_class |= STC.ref_;
+
+    // Emulate vthis2.addMember()
+    _this.members.push(_this.vthis2);
+
+    // Emulate vthis2.dsymbolSemantic()
+    _this.vthis2.storage_class |= STC.field;
+    _this.vthis2.parent = _this;
+    _this.vthis2.visibility = Visibility(Visibility.Kind.public_);
+    _this.vthis2.alignment = t.alignment();
+    _this.vthis2.semanticRun = PASS.semanticdone;
+
+    if (_this.sizeok == Sizeok.fwd)
+        _this.fields.push(_this.vthis2);
+}
+
 /************************************
  * Perform unqualified name lookup by following the chain of scopes up
  * until found.
