@@ -72,6 +72,34 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+
+/*************************************
+ * Detect if this is an unsafe type because of the presence of `@system` members
+ * Returns:
+ *  true if so
+ */
+bool hasUnsafeBitpatterns(Type _this)
+{
+    static bool tstructImpl(TypeStruct _this)
+    {
+        import dmd.dsymbolsem : size;
+        _this.sym.size(Loc.initial); // give error for forward references
+        _this.sym.determineTypeProperties();
+        return _this.sym.hasUnsafeBitpatterns;
+    }
+
+    if(auto tb = _this.isTypeBasic())
+        return tb.ty == Tbool;
+
+    switch(_this.ty)
+    {
+        case Tenum: return _this.isTypeEnum().memType().hasUnsafeBitpatterns();
+        case Tstruct: return tstructImpl(_this.isTypeStruct());
+        case Tsarray: return _this.isTypeSArray().next.hasUnsafeBitpatterns();
+        default: return false;
+    }
+}
+
 /*************************************
  * Resolve a tuple index, `s[oindex]`, by figuring out what `s[oindex]` represents.
  * Setting one of pe/pt/ps.

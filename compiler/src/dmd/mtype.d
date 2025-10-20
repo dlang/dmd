@@ -1348,16 +1348,6 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
-    /*************************************
-     * Detect if this is an unsafe type because of the presence of `@system` members
-     * Returns:
-     *  true if so
-     */
-    bool hasUnsafeBitpatterns()
-    {
-        return false;
-    }
-
     /***************************************
      * Returns: true if type has any invariants
      */
@@ -2026,11 +2016,6 @@ extern (C++) final class TypeBasic : Type
         return (flags & TFlags.unsigned) != 0;
     }
 
-    override bool hasUnsafeBitpatterns()
-    {
-        return ty == Tbool;
-    }
-
     // For eliminating dynamic_cast
     override TypeBasic isTypeBasic()
     {
@@ -2194,11 +2179,6 @@ extern (C++) final class TypeSArray : TypeArray
     override structalign_t alignment()
     {
         return next.alignment();
-    }
-
-    override bool hasUnsafeBitpatterns()
-    {
-        return next.hasUnsafeBitpatterns();
     }
 
     override bool hasVoidInitPointers()
@@ -3007,13 +2987,6 @@ extern (C++) final class TypeStruct : Type
         return sym.hasVoidInitPointers;
     }
 
-    override bool hasUnsafeBitpatterns()
-    {
-        sym.size(Loc.initial); // give error for forward references
-        sym.determineTypeProperties();
-        return sym.hasUnsafeBitpatterns;
-    }
-
     override bool hasInvariant()
     {
         sym.size(Loc.initial); // give error for forward references
@@ -3153,11 +3126,6 @@ extern (C++) final class TypeEnum : Type
     override bool hasVoidInitPointers()
     {
         return memType().hasVoidInitPointers();
-    }
-
-    override bool hasUnsafeBitpatterns()
-    {
-        return memType().hasUnsafeBitpatterns();
     }
 
     override bool hasInvariant()
