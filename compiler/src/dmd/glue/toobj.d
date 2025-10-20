@@ -81,7 +81,6 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
-//import dmd.backend.symbol;
 
 package(dmd.glue):
 
@@ -442,7 +441,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         {
             Symbol* symbol_search(const(char)* name)
             {
-                foreach (sym; globsym[])
+                foreach (sym; *cstate.CSpsymtab)
                 {
                     if (strcmp(symbol_ident(*sym), name) == 0)
                         return sym;
@@ -558,9 +557,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // introduce this cheks for C symbols to avoid duplicating the symbol table
             if (vd.isCsymbol())
             {
+                cstate.CSpsymtab = &globsym;
                 if (!symbol_search(symbol_ident(*s)))
                 {
-                    symbol_add(globsym, s);
+                    symbol_add(s);
                     outdata(s);
                 }
             }
