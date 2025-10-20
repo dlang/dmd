@@ -2974,15 +2974,18 @@ $(H3 $(LNAME2 new_expressions, New Expressions))
 
 $(GRAMMAR
 $(GNAME NewExpression):
-    $(D new) $(GLINK2 type, Type)
-    $(D new) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
-    $(D new) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
+    $(D new) $(GLINK PlacementExpression)$(OPT) $(GLINK2 type, Type)
+    $(D new) $(GLINK PlacementExpression)$(OPT) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
+    $(D new) $(GLINK PlacementExpression)$(OPT) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 class, NewAnonClassExpression)
+
+$(GNAME PlacementExpression):
+    $(LPAREN) $(GLINK AssignExpression) $(RPAREN)
 )
 
     $(P $(I NewExpression)s allocate memory on the
         $(DDLINK spec/garbage, Garbage Collection, garbage
-        collected) heap by default.
+        collected) heap unless there is a $(RELATIVE_LINK2 placement-expression, *PlacementExpression*).
     )
 
     $(P `new T` constructs an instance of type `T` and default-initializes it.
@@ -3090,6 +3093,96 @@ $(H4 $(LNAME2 new_multidimensional, Multidimensional Arrays))
             }
         }
         -----------
+
+$(H4 $(LNAME2 placement-expression, Placement Expression))
+
+    $(P The $(I PlacementExpression) explicitly provides the storage for $(I NewExpression) to initialize with
+    the newly created value, rather than using the $(DDLINK spec/garbage, Garbage Collection, garbage
+    collected) heap.)
+
+    $(P If $(I Type) is a basic type or a struct, the $(I PlacementExpression) must produce an lvalue that has a size
+    larger or equal to $(D sizeof($(I Type))).)
+
+    $(P The $(I Type) of the $(I PlacementExpression) need not be the same as the $(I Type) of the object being created.)
+
+    $(P Alternatively, the $(I PlacementExpression) can be a dynamic array, which must represent sufficient memory
+    for the object being created.)
+
+    $(BEST_PRACTICE Using a static array of `void` is preferred for the $(I PlacementExpression).)
+
+    $(P The lifetime of the object presented as an lvalue ends with the execution of the $(I NewExpression),
+    and a new lifetime of the placed object starts after the execution.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    struct S
+    {
+        float d;
+        int i;
+        char c;
+    }
+
+    void main()
+    {
+        S s;
+        S* p = new (s) S(); // lifetime of s ends, lifetime of *p begins
+        assert(p.i == 0 && p.c == 0xFF);
+    }
+    ---
+    )
+
+    (If Type is a class, the $(I PlacementExpression) must produce an lvalue of a type that is of a
+    sufficient size to hold the class object such as `void[__traits(classInstanceSize, Type)]`
+    or a dynamic array representing sufficient memory for the class object.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    class C
+    {
+        int i, j = 4;
+    }
+
+    void main()
+    {
+        void[__traits(classInstanceSize, C)] k = void;
+        C c = new(k) C;
+        assert(c.j == 4);
+        assert(cast(void*) c == k.ptr);
+    }
+    ---
+    )
+
+    $(P $(I PlacementExpression)  cannot be used for associative arrays, as associative arrays
+    are designed to be on the GC heap. The size of the associative array allocated is determined
+    by the runtime library, and cannot be set by the user.)
+
+    $(P The use of $(I PlacementExpression) is not allowed in `@safe` code.)
+
+    $(P To allocate storage with an allocator function such as `malloc()`, a simple template can be used:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    import core.stdc.stdlib;
+
+    struct S { int i = 1, j = 4, k = 9; }
+
+    ref void[T.sizeof] mallocate(T)()
+    {
+        return malloc(T.sizeof)[0 .. T.sizeof];
+    }
+
+    void main()
+    {
+        S* ps = new(mallocate!S()) S;
+        assert(ps.i == 1);
+        assert(ps.j == 4);
+        assert(ps.k == 9);
+    }
+    ---
+    )
+
+
+
 
 $(H3 $(LNAME2 typeid_expressions, Typeid Expressions))
 

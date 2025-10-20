@@ -1520,7 +1520,7 @@ $(H3 $(LNAME2 anonymous, Anonymous Nested Classes))
 
 $(GRAMMAR
 $(GNAME NewAnonClassExpression):
-    $(D new) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK AnonBaseClassList)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D new) $(GLINK2 expression, PlacementExpression)$(OPT) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK AnonBaseClassList)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME ConstructorArgs):
     $(D $(LPAREN)) $(GLINK2 expression, NamedArgumentList)$(OPT) $(D $(RPAREN))
