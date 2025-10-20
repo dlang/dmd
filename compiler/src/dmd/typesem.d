@@ -85,7 +85,7 @@ bool hasUnsafeBitpatterns(Type _this)
         import dmd.dsymbolsem : size;
         _this.sym.size(Loc.initial); // give error for forward references
         _this.sym.determineTypeProperties();
-        return _this.sym.hasUnsafeBitpatterns();
+        return _this.sym.hasUnsafeBitpatterns;
     }
 
     if(auto tb = _this.isTypeBasic())
