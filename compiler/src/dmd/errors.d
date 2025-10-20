@@ -861,9 +861,10 @@ private void printLSPDiagnostic(const(char)* format, va_list ap, ref DiagnosticC
     ++tmp.level;
     if (info.supplemental)
     {
-        tmp.writestring("\"note\":\"");
+        severity = " ";
+        /* tmp.writestring("\"note\":\"");
         tmp.vprintf(format,ap);
-        tmp.writestring(",\n");
+        tmp.writestring(",\n"); */
     }
     else
     {
@@ -902,63 +903,11 @@ private void printLSPDiagnostic(const(char)* format, va_list ap, ref DiagnosticC
     }
     --tmp.level;
     tmp.writestringln("}");
-    /* if (diagnosticHandler !is null)
-    {
-        if (diagnosticHandler(info.loc, info.headerColor, header, format, ap, info.p1, info.p2))
-            return;
-    }
 
-    if (global.params.v.showGaggedErrors && global.gag)
-        fprintf(stderr, "(spec:%d) ", global.gag);
-    auto con = cast(Console) global.console; */
-
-    /*if(info.loc == SourceLoc.init)
-    {
-        filename = info.loc.filename;
-        linnum = info.loc.linnum;
-        column = info.loc.charnum;
-    }*/
+    /// Print LSP Diagnostic from buffer
     
     const(char)* LSPOutput = tmp.extractChars();
     fputs(LSPOutput,stdout);
-    /*if (info.p1)
-    {
-        tmp.writestring(info.p1);
-        tmp.writestring(" ");
-    }
-    if (info.p2)
-    {
-        tmp.writestring(info.p2);
-        tmp.writestring(" ");
-    }
-    tmp.vprintf(format, ap);
-
-    if (con && strchr(tmp.peekChars(), '`'))
-    {
-        colorSyntaxHighlight(tmp);
-        writeHighlights(con, tmp);
-    }
-    else
-    {
-        unescapeBackticks(tmp);
-        fputs(tmp.peekChars(), stderr);
-    }
-    fputc('\n', stderr);
-
-    __gshared SourceLoc old_loc;
-    auto loc = info.loc;
-    if (global.params.v.errorPrintMode != ErrorPrintMode.simpleError &&
-        // ignore invalid files
-        loc != SourceLoc.init &&
-        // ignore mixins for now
-        !loc.filename.startsWith(".d-mixin-") &&
-        !global.params.mixinOut.doOutput)
-    {
-        tmp.reset();
-        printErrorLineContext(tmp, loc.fileContent, loc.fileOffset);
-        fputs(tmp.peekChars(), stderr);
-    }
-    old_loc = loc;*/
     fflush(stdout);     // ensure it gets written out in case of compiler aborts
 }
 
