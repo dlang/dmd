@@ -487,25 +487,32 @@ unittest
     (FuncDeclaration fd)
     {
         // Rewritten as:
-        // bool __os2 = false;
-        // try
-        // {
-        // }
-        // catch(Throwable __o3)
-        // {
-        //     __os2 = true;
-        //     throw __o3;
-        // }
-        // if (!__os2)
-        //     throw new Exception("");
+        //bool __os2 = false;
+        //try
+        //{
+        //    try
+        //    {
+        //    }
+        //    catch(Throwable __o3)
+        //    {
+        //        __os2 = true;
+        //        throw __o3;
+        //    }
+        //}
+        //finally
+        //    if (!__os2)
+        //        throw _d_newclassT();
         //
         // FIXME: null statement at index 1 without errors?!?
         auto stmts = getStatements(fd);
-        assert(stmts.length == 4);
+        assert(stmts.length == 3);
+
+        auto finallyStatement = (*stmts)[2].isTryFinallyStatement();
+        assert(finallyStatement !is null);
 
         // BUG(?): blockexit yields `fallthru` for the try-catch because the exception is typed as `Throwable`
-        testBlockExit(fd, (*stmts)[2], BE.fallthru);
-        assert((*stmts)[2].isTryCatchStatement());
+        testBlockExit(fd, finallyStatement._body, BE.fallthru);
+        assert(finallyStatement._body.isTryCatchStatement());
 
         testBlockExit(fd, fd.fbody, BE.fallthru | BE.throw_);
     });
