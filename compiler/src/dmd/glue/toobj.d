@@ -554,8 +554,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (s.Sclass == SC.global && s.Stype.Tty & mTYconst)
                 out_readonly(s);
 
-            // introduce this cheks for C symbols to avoid duplicating the symbol table
-            if (vd.isCsymbol())
+            // introduce this cheks for C global declarations to avoid duplicating the symbol table
+            if (vd.isCsymbol() && !vd.init)
             {
                 //cstate.CSpsymtab = &globsym;
                 if (!symbol_search(symbol_ident(*s)))
