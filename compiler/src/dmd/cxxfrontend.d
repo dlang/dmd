@@ -867,6 +867,12 @@ Expression defaultInitLiteral(Type t, Loc loc)
     return dmd.typesem.defaultInitLiteral(t, loc);
 }
 
+bool hasUnsafeBitpatterns(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.hasUnsafeBitpatterns(type);
+}
+
 /***********************************************************
  * typinf.d
  */
