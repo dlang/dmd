@@ -22,7 +22,6 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.cond;
-import dmd.ctfeexpr;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
