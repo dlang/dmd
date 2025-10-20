@@ -1099,7 +1099,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 params.v.messageStyle = MessageStyle.sarif;
                 break;
             case "lsp":
-                params.v.messagestyle = MessagesStyle.lsp;
+                params.v.messageStyle = MessageStyle.lsp;
                 break;
             default:
                 error("unknown error style '%.*s', must be 'digitalmars', 'gnu', 'sarif' or 'lsp'", cast(int) style.length, style.ptr);

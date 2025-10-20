@@ -185,9 +185,9 @@ private int tryMain(const(char)[][] argv, out Param params)
             generateSarifReport(true);
         }
 
-        if (global.errors == 0 && global.params.v.messagestyle == Messagestyle.lsp)
+        if (global.errors == 0 && global.params.v.messageStyle == MessageStyle.lsp)
         {
-            generateLSPDiagnostic();            
+            fputs("{}",stdout);      
         }
     }
 

@@ -101,14 +101,8 @@ class ErrorSinkCompiler : ErrorSink
         if (!diagnostics.length) return;
         
         /// Generate the SARIF report with the current diagnostics
-        if(global.params.v.messageStyle == MessageStyle.sarif)
-        {
-            generateSarifReport(false);
-        }
-        else if(global.params.v.messageStyle == MessageStyle.lsp) /// Generate LSP report for diagnostics
-        {
-            generateLSPDiagnostic();            
-        }
+        generateSarifReport(false);
+
         // Clear diagnostics after generating the report
         diagnostics.length = 0;
     }
@@ -488,7 +482,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             info.headerColor = Classification.error;
             if (global.params.v.messageStyle == MessageStyle.lsp)
             {
-                addLSPDiagnostic(loc, format, ap, kind);
+                printLSPDiagnostic(format, ap, info);
                 return;
             }
             if (global.params.v.messageStyle == MessageStyle.sarif)
@@ -527,7 +521,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                     info.headerColor = Classification.deprecation;
                     if (global.params.v.messageStyle == MessageStyle.lsp)
                     {
-                        addLSPDiagnostic(loc, format, ap, kind);
+                        printLSPDiagnostic(format, ap, info);
                         return;
                     }
                     if (global.params.v.messageStyle == MessageStyle.sarif)
@@ -553,7 +547,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                 info.headerColor = Classification.warning;
                 if (global.params.v.messageStyle == MessageStyle.lsp)
                 {
-                    addLSPDiagnostic(loc, format, ap, kind);
+                    printLSPDiagnostic(format, ap, info);
                     return;
                 }
                 if (global.params.v.messageStyle == MessageStyle.sarif)
@@ -574,7 +568,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             info.headerColor = Classification.tip;
             if (global.params.v.messageStyle == MessageStyle.lsp)
             {
-                addLSPDiagnostic(loc, format, ap, kind);
+                printLSPDiagnostic(format, ap, info);
                 return;
             }
             if (global.params.v.messageStyle == MessageStyle.sarif)
@@ -588,6 +582,11 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
 
     case ErrorKind.message:
         OutBuffer tmp;
+        if (global.params.v.messageStyle == MessageStyle.lsp)
+        {
+            printLSPDiagnostic(format, ap, info);
+            return;
+        }
         writeSourceLoc(tmp, info.loc, Loc.showColumns, Loc.messageStyle);
         if (tmp.length)
             fprintf(stdout, "%s: ", tmp.extractChars());
@@ -597,11 +596,6 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
         fputs(tmp.peekChars(), stdout);
         fputc('\n', stdout);
         fflush(stdout);     // ensure it gets written out in case of compiler aborts
-        if (global.params.v.messageStyle == MessageStyle.lsp)
-        {
-            addLSPDiagnostic(loc, format, ap, kind);
-            return;
-        }
         if (global.params.v.messageStyle == MessageStyle.sarif)
         {
             addSarifDiagnostic(loc, format, ap, kind);
@@ -643,6 +637,11 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
         }
         else
             info.headerColor = Classification.error;
+        if(global.params.v.messageStyle == MessageStyle.lsp)
+        {
+            printLSPDiagnostic(format,ap,info);
+            return;
+        }
         printDiagnostic(format, ap, info);
         return;
 
@@ -654,6 +653,11 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
             if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
             {
                 info.headerColor = Classification.deprecation;
+                if(global.params.v.messageStyle == MessageStyle.lsp)
+                {
+                    printLSPDiagnostic(format,ap,info);
+                    return;
+                }
                 printDiagnostic(format, ap, info);
             }
         }
@@ -663,6 +667,11 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
         if (global.params.useWarnings != DiagnosticReporting.off && !global.gag)
         {
             info.headerColor = Classification.warning;
+            if(global.params.v.messageStyle == MessageStyle.lsp)
+            {
+                printLSPDiagnostic(format,ap,info);
+                return;
+            }
             printDiagnostic(format, ap, info);
         }
         return;
@@ -829,6 +838,132 @@ unittest
         "        ^\n"
     );
 }
+
+/**
+ * Just print to stdout in LSP format, doesn't care about gagging.
+ * (format,ap) text within backticks gets syntax highlighted.
+ * Params:
+ *      format  = printf-style format specification
+ *      ap      = printf-style variadic arguments
+ *      info    = context of error
+ */
+
+private void printLSPDiagnostic(const(char)* format, va_list ap, ref DiagnosticContext info)
+{
+    const(char)* severity = "";    // title of error message
+    const(char)[] filename = null;  // file where error occurs
+    uint linnum = 0; // line number where error occurs
+    uint column = 0; // column where error ocuurs
+  
+    OutBuffer tmp;
+    tmp.doindent = true;
+    tmp.writestringln("{");
+    ++tmp.level;
+    if (info.supplemental)
+    {
+        tmp.writestring("\"note\":\"");
+        tmp.vprintf(format,ap);
+        tmp.writestring(",\n");
+    }
+    else
+    {
+        final switch (info.kind)
+        {
+            case ErrorKind.error:       severity = "Error"; break;
+            case ErrorKind.deprecation: severity = "Deprecation"; break;
+            case ErrorKind.warning:     severity = "Warning"; break;
+            case ErrorKind.tip:         severity = "Tip"; break;
+            case ErrorKind.message:     assert(0);
+        }
+          /// Print diagnostic severity (i.e. errors, warnings etc.)
+        tmp.writestring("\"severity\":\"");
+        tmp.writestring(severity);
+        tmp.writestringln("\",");
+
+        /// Print filename
+        tmp.writestring("\"uri\":\"");
+        tmp.writestring(info.loc.filename);
+        tmp.writestringln("\",");
+
+        /// Print line number
+        tmp.writestring("\"line:\":");
+        tmp.printf(`%d,`,info.loc.linnum);
+        tmp.writestringln("");
+
+        /// Print column number
+        tmp.writestring("\"column\":");
+        tmp.printf(`%d,`,info.loc.charnum);
+        tmp.writestringln("");
+    
+        /// Print error message
+        tmp.writestring("\"description\":\"");
+        tmp.vprintf(format,ap);
+        tmp.writestringln("\",");
+    }
+    --tmp.level;
+    tmp.writestringln("}");
+    /* if (diagnosticHandler !is null)
+    {
+        if (diagnosticHandler(info.loc, info.headerColor, header, format, ap, info.p1, info.p2))
+            return;
+    }
+
+    if (global.params.v.showGaggedErrors && global.gag)
+        fprintf(stderr, "(spec:%d) ", global.gag);
+    auto con = cast(Console) global.console; */
+
+    /*if(info.loc == SourceLoc.init)
+    {
+        filename = info.loc.filename;
+        linnum = info.loc.linnum;
+        column = info.loc.charnum;
+    }*/
+    
+    const(char)* LSPOutput = tmp.extractChars();
+    fputs(LSPOutput,stdout);
+    /*if (info.p1)
+    {
+        tmp.writestring(info.p1);
+        tmp.writestring(" ");
+    }
+    if (info.p2)
+    {
+        tmp.writestring(info.p2);
+        tmp.writestring(" ");
+    }
+    tmp.vprintf(format, ap);
+
+    if (con && strchr(tmp.peekChars(), '`'))
+    {
+        colorSyntaxHighlight(tmp);
+        writeHighlights(con, tmp);
+    }
+    else
+    {
+        unescapeBackticks(tmp);
+        fputs(tmp.peekChars(), stderr);
+    }
+    fputc('\n', stderr);
+
+    __gshared SourceLoc old_loc;
+    auto loc = info.loc;
+    if (global.params.v.errorPrintMode != ErrorPrintMode.simpleError &&
+        // ignore invalid files
+        loc != SourceLoc.init &&
+        // ignore mixins for now
+        !loc.filename.startsWith(".d-mixin-") &&
+        !global.params.mixinOut.doOutput)
+    {
+        tmp.reset();
+        printErrorLineContext(tmp, loc.fileContent, loc.fileOffset);
+        fputs(tmp.peekChars(), stderr);
+    }
+    old_loc = loc;*/
+    fflush(stdout);     // ensure it gets written out in case of compiler aborts
+}
+
+
+
 
 /**
  * The type of the fatal error handler
