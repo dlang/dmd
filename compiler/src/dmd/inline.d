@@ -1710,19 +1710,21 @@ public:
         if (!fd.fbody || fd.isNaked)
             return;
 
-        if (global.params.useInline || fd.hasAlwaysInlines)
-        {
-            scope InlineScanVisitor v = new InlineScanVisitor(eSink);
-            v.parent = fd;
+        bool scan = global.params.useInline || fd.hasAlwaysInlines;
+        scope InlineScanVisitor v = new InlineScanVisitor(eSink);
+        v.parent = fd;
 
-            do
-            {
-                fd.inlineNest++;
-                fd.inlineScanned = true;
-                v.reset();
-                v.inlineScan(fd.fbody);
-                fd.inlineNest--;
-            } while (v.again);
+        /* Scan once to ensure functions are inlined using their call graph
+         * order in the same way as regular functions. Do not inline again as
+         * it might involve more functions than those in the lexical call
+         * graph, which will be handled after inlining all nested functions.
+         */
+        if (scan)
+        {
+            fd.inlineScanned = true;
+            fd.inlineNest++;
+            v.inlineScan(fd.fbody);
+            fd.inlineNest--;
         }
 
         // Visit local symbols to find nested hasAlwaysInlines functions
@@ -1732,6 +1734,17 @@ public:
             {
                 keyValue.value.accept(this);
             }
+        }
+
+        if (scan)
+        {
+            do
+            {
+                fd.inlineNest++;
+                v.reset();
+                v.inlineScan(fd.fbody);
+                fd.inlineNest--;
+            } while (v.again);
         }
     }
 
