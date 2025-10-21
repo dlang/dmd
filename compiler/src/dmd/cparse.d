@@ -5723,7 +5723,7 @@ final class CParser(AST) : Parser!AST
                             continue;
                         }
 
-                        case FunctionLike:
+                        caseFunctionLike:
                         {
                             /* Parse `( a, b ) expression`
                              * Create template function:
