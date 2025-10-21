@@ -5819,7 +5819,10 @@ final class CParser(AST) : Parser!AST
                         {
                             auto ident = token.ident;
                             nextToken();
-                            if (token.value == TOK.endOfFile)
+                            if (token.value == TOK.leftParenthesis)
+                                goto caseFunctionLike;
+
+                            if (token.value == TOK.endOfLine)
                             {
                                 /*
                                  * #define identifier value where value can be an identifier.
