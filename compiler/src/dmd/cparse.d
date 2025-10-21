@@ -5548,6 +5548,9 @@ final class CParser(AST) : Parser!AST
                 v.isCmacro = true;       // mark it as coming from a C #define
             if (auto td = s.isTemplateDeclaration())
                 td.isCmacro = true; // mark as coming from a C #define
+            if (auto ad = s.isAliasDeclaration())
+                ad.isCmacro = true; // ditto for vars and templates
+
             /* If it's already defined, replace the earlier
              * definition
              */
@@ -5702,6 +5705,47 @@ final class CParser(AST) : Parser!AST
                             }
                             break;
 
+                        case TOK.identifier:
+                        {
+                            /* check for compiler builtins macros/ or specifier references.
+                             * this is a workaround to avoid trying to resolve macros that
+                             * reference other identifiers or functions
+                             * so D users should avoid using custom macros beginning with __
+                             * to reference identifers
+                             */
+                            auto ident = token.ident;
+                            Specifier sp;
+                            sp.packalign = this.packalign;
+                            auto tspec = cparseDeclarationSpecifiers(LVL.global, sp);
+                            const idx = id.toString();
+                            auto identx = ident.toString();
+
+                            if (!tspec.isTypeIdentifier() || isCBuiltin(identx) || isCBuiltin(idx) ||
+                                isCmacrosame(identx, idx) || (identx.length > 2 && identx[0] == '_' && identx[1] == '_')
+                                || (idx.length > 2 && idx[0] == '_' && idx[1] == '_'))
+                            {
+                                ++p;
+                                continue;
+                            }
+
+                            nextToken();
+                            if (token.value != TOK.endOfFile)
+                            {
+                                ++p;
+                                continue;
+                            }
+
+                            /*
+                             * #define identifier value where value can be an identifier.
+                             * The identifier can be anything, so treat it as an AliasDeclaration.
+                             * Mark it as coming from a C file to skip semantic resolution later.
+                             */
+                            auto als = new AST.AliasDeclaration(scanloc, id, tspec);
+                            addSym(als);
+                            ++p;
+                            continue;
+                        }
+
                         case TOK.leftParenthesis:
                         {
                             /* Look for:
@@ -5828,7 +5872,6 @@ final class CParser(AST) : Parser!AST
                             ++p;
                             continue;
                         }
-
                         default:
                             break;
                     }
@@ -5861,4 +5904,40 @@ final class CParser(AST) : Parser!AST
     }
 
     //}
+}
+
+/*
+ * for few compiler intrinsics the compiler cannot resolve
+ * that we have no knowledge of in D,
+ * set them rawly and don't allow them for now
+ * long term, any user of a C header that is being bocked by an intrinsic,
+ * append to this table
+ */
+immutable string[] builtins = [
+    "_Pre_",
+    "_Maybevalid_impl_",
+    "_Pre_z_",
+    "_Notref_impl_",
+    "_Post_",
+    "X",
+    "_Use_decl_anno_impl_",
+    "vector_size",
+    "complex" // stay away from the C99 _complex keyword that share diffs on windows/POSIX
+];
+
+bool isCBuiltin(const(char)[] name)
+{
+    foreach (b; builtins)
+    {
+        if (b == name)
+            return true;
+    }
+    return false;
+}
+
+bool isCmacrosame(const(char)[] idx, const(char)[] ident)
+{
+    if (idx == ident)
+        return true;
+    return false;
 }

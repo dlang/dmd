@@ -333,6 +333,7 @@ extern (C++) final class AliasDeclaration : Declaration
 
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
+    bool isCmacro;      // check whether it is coming from a C macro
 
     extern (D) this(Loc loc, Identifier ident, Type type) @safe
     {
