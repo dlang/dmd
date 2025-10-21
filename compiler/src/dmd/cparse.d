@@ -5688,21 +5688,6 @@ final class CParser(AST) : Parser!AST
                             }
                             break;
 
-                        case TOK.identifier:
-                            auto ident = token.ident;
-                            nextToken();
-                            if (token.value == TOK.endOfFile)
-                            {
-                                /*
-                                 * #define identifier value where value can be an identifier.
-                                 * the identifier can be anything so just treat it an aliasdecl
-                                 */
-                                auto als = new AST.AliasDeclaration(scanloc, id, new AST.TypeIdentifier(scanloc, ident));
-                                addSym(als);
-                                ++p;
-                                continue;
-                            }
-                            break;
                         case TOK.leftParenthesis:
                         {
                             /* Look for:
@@ -5738,7 +5723,7 @@ final class CParser(AST) : Parser!AST
                             continue;
                         }
 
-                        caseFunctionLike:
+                        case FunctionLike:
                         {
                             /* Parse `( a, b ) expression`
                              * Create template function:
@@ -5830,6 +5815,23 @@ final class CParser(AST) : Parser!AST
                             continue;
                         }
 
+                        case TOK.identifier:
+                        {
+                            auto ident = token.ident;
+                            nextToken();
+                            if (token.value == TOK.endOfFile)
+                            {
+                                /*
+                                 * #define identifier value where value can be an identifier.
+                                 * the identifier can be anything so just treat it an aliasdecl
+                                 */
+                                auto als = new AST.AliasDeclaration(scanloc, id, new AST.TypeIdentifier(scanloc, ident));
+                                addSym(als);
+                                ++p;
+                                continue;
+                            }
+                            break;
+                        }
                         default:
                             break;
                     }
