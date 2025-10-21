@@ -1266,7 +1266,101 @@ void cdmemcmp(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 }
 
 //void cdstrcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
-//void cdmemcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+
+/*********************************
+ * Generate code for memcpy(d,s,n) intrinsic.
+ *  OPmemcpy
+ *   /   \
+ *  d  OPparam
+ *       /   \
+ *      s     n
+ */
+
+@trusted
+void cdmemcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+{
+    printf("cdmemcpy()\n");
+    /*  Generate the following:
+        CBZ  Xn,L2
+        MOV  x5,#0
+      L1:
+        LDRB w4,[Xs,x5]
+        STRB w4,[Xd,x5]
+        ADD  x5,x5,#1
+        CMP  Xn,x5
+        B.NE L1
+      L2:
+     */
+
+    elem* e2 = e.E2;
+    assert(e2.Eoper == OPparam);
+
+    // Get s into Xs
+    regm_t retregs2 = INSTR.ALLREGS & ~pretregs;
+    if (!retregs2)
+        retregs2 = INSTR.ALLREGS;
+    tym_t ty2 = e2.E1.Ety;
+    codelem(cgstate,cdb,e2.E1,retregs2,false);
+    reg_t Xs = findreg(retregs2);
+
+    // Need runtime check if nbytes is 0
+    // (OPconst of 0 would have been removed by elmemcpy() so we should never see that)
+    const zeroCheck = e2.E2.Eoper != OPconst;
+
+    // Get nbytes into Xn
+    regm_t retregs3 = INSTR.ALLREGS & ~(pretregs | retregs2);
+    if (!retregs3)
+        retregs3 = INSTR.ALLREGS & ~(retregs2);
+    scodelem(cgstate,cdb,e2.E2,retregs3,retregs2,false);
+    reg_t Xn = findreg(retregs3);
+    freenode(e2);
+
+    // Get d into Xd (d will be the return value)
+    regm_t retregs1 = INSTR.ALLREGS & pretregs & ~(retregs2 | retregs3);
+    if (!retregs1)
+        retregs1 = INSTR.ALLREGS & ~(retregs2 | retregs3);
+    tym_t ty1 = e.E1.Ety;
+    scodelem(cgstate,cdb,e.E1,retregs1,retregs2 | retregs3,false);
+    reg_t Xd = findreg(retregs1);
+
+    // Allocate R4
+    regm_t retregs4 = INSTR.ALLREGS & ~(retregs1 | retregs2 | retregs3);
+    reg_t R4 = allocreg(cdb,retregs4,TYnptr);
+
+    // Allocate R5
+    regm_t retregs5 = INSTR.ALLREGS & ~(retregs1 | retregs2 | retregs3 | retregs4);
+    reg_t R5 = allocreg(cdb,retregs5,TYnptr);
+
+    code* cnop2 = gen1(null, INSTR.nop);
+    if (zeroCheck)
+        genCompBranch(cdb,1,Xn,0,FL.code,cast(block*)cnop2); // CBZ Xn,L2
+
+    movregconst(cdb,R5,0,0);                            // MOV  x5,#0
+    cgstate.regcon.immed.mval &= ~mask(R5);             // mark x5 as not available
+
+    code cs;
+    cs.reg = NOREG;
+    cs.base = Xs;
+    cs.index = R5;
+    cs.Sextend = Extend.LSL;
+    loadFromEA(cs,R4,1,1);                              // LDRB w4,[Xs,x5]
+    cdb.gen(&cs);
+    code* L1 = cdb.last();
+
+    cs.base = Xd;
+    storeToEA(cs,R4,1);                                 // STRB w4,[Xd,x5]
+    cdb.gen(&cs);
+
+    cdb.gen1(INSTR.addsub_imm(1,0,0,0,1,R5,R5));        // ADD  x5,x5,#1
+
+    cdb.gen1(INSTR.cmp_subs_addsub_shift(1,R5,0,0,Xn)); // CMP Xn,R5
+    genBranch(cdb,COND.ne,FL.code,cast(block*) L1);     // B.NE L1
+
+    cdb.append(cnop2);                                  // L2:
+
+    pretregs &= ~mPSW;
+    fixresult(cdb,e,retregs1,pretregs);
+}
 
 /*********************************
  * Generate code for memset(s,value,numbytes) intrinsic.
