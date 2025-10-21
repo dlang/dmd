@@ -57,7 +57,8 @@ nothrow:
  */
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
-    static if (0) debug printf("loadFromEA() reg: %d, szw: %d, szr: %d offset: %d S: %d extend: %s\n",
+    enum log = false;
+    static if (log) debug printf("loadFromEA() reg: %d, szw: %d, szr: %d offset: %d S: %d extend: %s\n",
         reg, szw, szr, cast(int)cs.IEV1.Voffset, cs.Sextend >> 3, ExtendToStr(cast(Extend)(cs.Sextend & 7)));
     assert(szr <= szw);
     cs.Iop = INSTR.nop;
@@ -97,6 +98,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         }
         else
             assert(0);
+        static if (log) disassemble(cs.Iop);
         return;
     }
 
@@ -163,6 +165,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
     }
     else
         assert(0);
+    static if (log) disassemble(cs.Iop);
 }
 
 unittest
@@ -193,7 +196,8 @@ unittest
  */
 void storeToEA(ref code cs, reg_t reg, uint sz)
 {
-    debug printf("storeToEA() reg: %d, sz: %d offset: %d\n", reg, sz, cast(int)cs.IEV1.Voffset);
+    enum log = false;
+    static if (log) debug printf("storeToEA() reg: %d, sz: %d offset: %d\n", reg, sz, cast(int)cs.IEV1.Voffset);
     cs.Iop = INSTR.nop;
     assert(reg != NOREG);
     if (mask(reg) & INSTR.FLOATREGS)       // if floating point store
@@ -225,6 +229,7 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
         }
         else
             assert(0);
+        static if (log) disassemble(cs.Iop);
         return;
     }
 
@@ -257,6 +262,7 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
     }
     else
         assert(0);
+    static if (log) disassemble(cs.Iop);
 }
 
 /**************************
