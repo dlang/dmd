@@ -972,6 +972,7 @@ void MachObj_term(const(char)[] objfilename)
                                     }
                                     else
                                     {
+                                        // BUG AArch64: failing test20050.d, should pick RELOC_PAGEOFF12 ??!!
                                         rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
                                         //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                         rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
@@ -1024,6 +1025,8 @@ void MachObj_term(const(char)[] objfilename)
                         }
                         else if (I64)
                         {
+                            //printf("I64\n");
+                            //symbol_print(*s);
                             rel.r_type = (r.rtype == RELrel)
                                     ? X86_64_RELOC_BRANCH
                                     : X86_64_RELOC_SIGNED;
