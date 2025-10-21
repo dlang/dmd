@@ -98,11 +98,9 @@ class ErrorSinkCompiler : ErrorSink
     void plugSink()
     {
         // Exit if there are no collected diagnostics
-        if (!diagnostics.length) return;
-        
-        /// Generate the SARIF report with the current diagnostics
+        if (!diagnostics.length) return;        
+        // Generate the SARIF report with the current diagnostics
         generateSarifReport(false);
-
         // Clear diagnostics after generating the report
         diagnostics.length = 0;
     }
@@ -480,11 +478,6 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
         if (!global.gag)
         {
             info.headerColor = Classification.error;
-            if (global.params.v.messageStyle == MessageStyle.lsp)
-            {
-                printLSPDiagnostic(format, ap, info);
-                return;
-            }
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
                 addSarifDiagnostic(loc, format, ap, kind);
@@ -519,11 +512,6 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                 if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
                 {
                     info.headerColor = Classification.deprecation;
-                    if (global.params.v.messageStyle == MessageStyle.lsp)
-                    {
-                        printLSPDiagnostic(format, ap, info);
-                        return;
-                    }
                     if (global.params.v.messageStyle == MessageStyle.sarif)
                     {
                         addSarifDiagnostic(loc, format, ap, kind);
@@ -545,11 +533,6 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             if (!global.gag)
             {
                 info.headerColor = Classification.warning;
-                if (global.params.v.messageStyle == MessageStyle.lsp)
-                {
-                    printLSPDiagnostic(format, ap, info);
-                    return;
-                }
                 if (global.params.v.messageStyle == MessageStyle.sarif)
                 {
                     addSarifDiagnostic(loc, format, ap, kind);
@@ -566,11 +549,6 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
         if (!global.gag)
         {
             info.headerColor = Classification.tip;
-            if (global.params.v.messageStyle == MessageStyle.lsp)
-            {
-                printLSPDiagnostic(format, ap, info);
-                return;
-            }
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
                 addSarifDiagnostic(loc, format, ap, kind);
@@ -636,11 +614,8 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
             info.headerColor = Classification.gagged;
         }
         else
-            info.headerColor = Classification.error;
-        if(global.params.v.messageStyle == MessageStyle.lsp)
         {
-            printLSPDiagnostic(format,ap,info);
-            return;
+            info.headerColor = Classification.error;
         }
         printDiagnostic(format, ap, info);
         return;
@@ -653,11 +628,6 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
             if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
             {
                 info.headerColor = Classification.deprecation;
-                if(global.params.v.messageStyle == MessageStyle.lsp)
-                {
-                    printLSPDiagnostic(format,ap,info);
-                    return;
-                }
                 printDiagnostic(format, ap, info);
             }
         }
@@ -667,11 +637,6 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
         if (global.params.useWarnings != DiagnosticReporting.off && !global.gag)
         {
             info.headerColor = Classification.warning;
-            if(global.params.v.messageStyle == MessageStyle.lsp)
-            {
-                printLSPDiagnostic(format,ap,info);
-                return;
-            }
             printDiagnostic(format, ap, info);
         }
         return;
@@ -691,6 +656,11 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
  */
 private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticContext info)
 {
+    if(global.params.v.messageStyle == MessageStyle.lsp)
+    {
+        printLSPDiagnostic(format,ap,info);
+        return;
+    }
     const(char)* header;    // title of error message
     if (info.supplemental)
         header = "       ";
@@ -861,7 +831,7 @@ private void printLSPDiagnostic(const(char)* format, va_list ap, ref DiagnosticC
     ++tmp.level;
     if (info.supplemental)
     {
-        severity = " ";
+        return;
         /* tmp.writestring("\"note\":\"");
         tmp.vprintf(format,ap);
         tmp.writestring(",\n"); */
