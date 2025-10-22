@@ -5822,7 +5822,7 @@ final class CParser(AST) : Parser!AST
                             if (token.value == TOK.leftParenthesis)
                                 goto caseFunctionLike;
 
-                            if (token.value == TOK.endOfLine)
+                            if (token.value == TOK.endOfFile)
                             {
                                 /*
                                  * #define identifier value where value can be an identifier.

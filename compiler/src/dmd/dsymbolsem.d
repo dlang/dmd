@@ -5923,6 +5923,9 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     // Detect `alias sym = sym;` to prevent creating loops in overload overnext lists.
     if (auto tident = ds.type.isTypeIdentifier())
     {
+        if (sc.inCfile)
+            return;
+
         if (sc.hasEdition(Edition.v2024) && tident.idents.length)
         {
             alias mt = tident;
