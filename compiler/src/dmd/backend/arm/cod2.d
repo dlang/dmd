@@ -1424,6 +1424,7 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         regm_t dstregs = cgstate.allregs & ~(nbytesregs | valueregs);
         scodelem(cgstate,cdb,e.E1,dstregs,nbytesregs | valueregs,false);
         reg_t dstreg = findreg(dstregs);
+        getregs(cdb,dstregs);                      // we will be auto-incrementing dstreg
 
         regm_t retregs;
         if (pretregs)                              // if need return value
@@ -1440,13 +1441,14 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         {
             regm_t limits = cgstate.allregs & ~(nbytesregs | valueregs | dstregs | retregs);
             reg_t limit = regwithvalue(cdb,limits,n / REGSIZE,64);      // MOV limit,#n / REGSIZE
+            getregs(cdb,limits);                                        // we're going to overwrite `limit`
             cdb.gen1(INSTR.addsub_ext(1,0,0,0,limit,6,3,dstreg,limit)); // ADD limit,dstreg,limit,UXTW #3
 
             code* cnop = gen1(null, INSTR.nop);
             cdb.append(cnop);
 
             cdb.gen1(INSTR.ldst_immpost(3,0,0,8,dstreg,valuereg));      // STR  valuereg,[dstreg],#8        // *dstreg++ = valuereg
-            cdb.gen1(INSTR.cmp_subs_addsub_shift(1,dstreg,0,0,limit));              // CMP  limit,dstreg
+            cdb.gen1(INSTR.cmp_subs_addsub_shift(1,dstreg,0,0,limit));  // CMP  limit,dstreg
             genBranch(cdb,COND.ne,FL.code,cast(block*)cnop);            // JNE cnop
         }
 
