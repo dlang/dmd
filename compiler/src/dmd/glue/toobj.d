@@ -439,14 +439,14 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(VarDeclaration vd)
         {
-            Symbol* symbol_search(const(char)* name)
+            bool symbol_search(const(char)* name)
             {
                 foreach (sym; globsym[])
                 {
                     if (strcmp(symbol_ident(*sym), name) == 0)
-                        return sym;
+                        return true;
                 }
-                return null;
+                return false;
             }
             //printf("VarDeclaration.toObjFile(%p '%s' type=%s) visibility %d\n", vd, vd.toChars(), vd.type.toChars(), vd.visibility);
             //printf("\talign = %d\n", vd.alignment);
