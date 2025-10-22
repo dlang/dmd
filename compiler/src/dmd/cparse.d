@@ -5534,6 +5534,8 @@ final class CParser(AST) : Parser!AST
                 v.isCmacro = true;       // mark it as coming from a C #define
             if (auto td = s.isTemplateDeclaration())
                 td.isCmacro = true; // mark as coming from a C #define
+            if (auto ad = s.isAliasDeclaration())
+                ad.isCmacro = true;
             /* If it's already defined, replace the earlier
              * definition
              */
