@@ -506,11 +506,11 @@ struct DFAAnalyzer
                 if (cGate.writeOnVarAtThisPoint < cGate.var.writeCount)
                     continue;
 
-                DFAScopeVar* scv = dfaCommon.acquireScopeVar(cGate.var);
-                if (scv is null)
+                DFAScopeVar* scv2 = dfaCommon.acquireScopeVar(cGate.var);
+                if (scv2 is null)
                     continue;
 
-                DFAConsequence* cCurrent = scv.lr.getContext;
+                DFAConsequence* cCurrent = scv2.lr.getContext;
                 assert(cCurrent !is null);
 
                 cCurrent.joinConsequence(cCurrent, cGate, null, false);
