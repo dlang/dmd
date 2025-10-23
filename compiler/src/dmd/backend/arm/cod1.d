@@ -913,7 +913,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
             }
 
             regm_t idxregs;
-            idxregs = cgstate.allregs & ~keepmsk; // only these can be index regs
+            idxregs = INSTR.ALLREGS & ~keepmsk; // only these can be index regs
             assert(idxregs);
             if ((sz == REGSIZE || sz == 4) &&
                 rm == RM.store)
@@ -1292,7 +1292,7 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
     tym = tybasic(tym);
     reg_t reg = findreg(regm);
     uint sz = _tysize[tym];
-    assert(regm & (cgstate.allregs | INSTR.FLOATREGS));
+    assert(regm & (INSTR.ALLREGS | INSTR.FLOATREGS));
 
     static if (0)
     if (regm & XMMREGS)
@@ -1362,7 +1362,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
     if (outretregs == 0) return;          // if don't want result
     assert(e && retregs);                 // need something to work with
     regm_t forccs = outretregs & mPSW;
-    regm_t forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);
+    regm_t forregs = outretregs & (INSTR.ALLREGS | INSTR.FLOATREGS);
     tym_t tym = tybasic(e.Ety);
 
     if (tym == TYstruct)
@@ -1404,7 +1404,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
         }
         else
         {
-            reg_t reg = findreg(retregs & cgstate.allregs);
+            reg_t reg = findreg(retregs & INSTR.ALLREGS);
             reg_t rreg = allocreg(cdb, outretregs, tym);     // allocate return regs
             cdb.gen1(INSTR.mov_register(sz == 8,reg,rreg));  // MOV rreg,reg
         }
@@ -1596,7 +1596,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
     ClibInfo* cinfo;
     getClibInfo(clib, &s, &cinfo, config.objfmt, config.exe);
 
-    getregs(cdb,(~s.Sregsaved & (cgstate.allregs | INSTR.FLOATREGS | mask(cgstate.BP)) & ~keepmask)); // mask of regs destroyed
+    getregs(cdb,(~s.Sregsaved & (INSTR.ALLREGS | INSTR.FLOATREGS | mask(cgstate.BP)) & ~keepmask)); // mask of regs destroyed
     keepmask &= ~s.Sregsaved;
     int npushed = popcnt(keepmask);
     CodeBuilder cdbpop;
@@ -2045,9 +2045,9 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         }
         else if (!tyfunc(s.ty()) || !(config.flags4 & CFG4optimized))
             // so we can replace func at runtime
-            getregs(cdbe,~fregsaved & (cgstate.allregs | INSTR.FLOATREGS));
+            getregs(cdbe,~fregsaved & (INSTR.ALLREGS | INSTR.FLOATREGS));
         else
-            getregs(cdbe,~s.Sregsaved & (cgstate.allregs | INSTR.FLOATREGS));
+            getregs(cdbe,~s.Sregsaved & (INSTR.ALLREGS | INSTR.FLOATREGS));
         if (strcmp(s.Sident.ptr, "alloca") == 0)
         {
             s = getRtlsym(RTLSYM.ALLOCA);
@@ -2061,7 +2061,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         }
         if (sytab[s.Sclass] & SCSS)    // if function is on stack (!)
         {
-            retregs = (cgstate.allregs | INSTR.FLOATREGS) & ~keepmsk;
+            retregs = (INSTR.ALLREGS | INSTR.FLOATREGS) & ~keepmsk;
             s.Sflags &= ~GTregcand;
             s.Sflags |= SFLread;
             cdrelconst(cgstate,cdbe,e1,retregs);
@@ -2113,12 +2113,12 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
 
         /* Mask of registers destroyed by the function call
          */
-        regm_t desmsk = (cgstate.allregs | INSTR.FLOATREGS) & ~fregsaved; // XMMREGS?
+        regm_t desmsk = (INSTR.ALLREGS | INSTR.FLOATREGS) & ~fregsaved; // XMMREGS?
         //printf("desmsk: %s\n", regm_str(desmsk));
 
         //if ((!OTleaf(e11.Eoper) || e11.Eoper == OPconst) &&
             //(e11.Eoper != OPind || e11.Ecount))
-        retregs = cgstate.allregs & ~keepmsk;
+        retregs = INSTR.ALLREGS & ~keepmsk;
         cgstate.stackclean++;
         scodelem(cgstate,cdbe,e11,retregs,keepmsk,true);
         cgstate.stackclean--;
@@ -2141,7 +2141,7 @@ static if (0)
     if (!cgstate.needframe)
     {
         // If there is a register available for this basic block
-        if (config.flags4 & CFG4optimized && (cgstate.allregs & ~cgstate.regcon.used))
+        if (config.flags4 & CFG4optimized && (INSTR.ALLREGS & ~cgstate.regcon.used))
         { }
         else
         {
@@ -2320,7 +2320,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
         default:
             break;
     }
-    regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : cgstate.allregs;
+    regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : INSTR.ALLREGS;
     scodelem(cgstate,cdb, e, retregs, 0, true);
     if (sz <= REGSIZE || tym == TYldouble)
     {
@@ -2392,7 +2392,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 
     if (outretregs == mPSW)
     {
-        regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : cgstate.allregs;
+        regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : INSTR.ALLREGS;
         loaddata(cdb, e, retregs);
         fixresult(cdb, e, retregs, outretregs);
         return;
@@ -2402,7 +2402,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     int sz = _tysize[tym];
     cs.Iflags = 0;
     flags = outretregs & mPSW;             /* save original                */
-    forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);     // XMMREGS ?
+    forregs = outretregs & (INSTR.ALLREGS | INSTR.FLOATREGS);     // XMMREGS ?
     if (e.Eoper == OPconst)
     {
         if (0 && tyvector(tym) && forregs & XMMREGS)    // TODO AArch64
