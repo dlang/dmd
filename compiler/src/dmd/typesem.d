@@ -72,6 +72,27 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+/***************************************
+ * Returns: true if type has any invariants
+ */
+bool hasInvariant(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+    {
+        return tsa.next.hasInvariant();
+    }
+    else if (auto ts = _this.isTypeStruct())
+    {
+        ts.sym.size(Loc.initial); // give error for forward references
+        ts.sym.determineTypeProperties();
+        return ts.sym.hasInvariant() || ts.sym.hasFieldWithInvariant;
+    }
+    else if (auto te = _this.TypeEnum())
+    {
+        return te.memType().hasInvariant();
+    }
+    return false;
+}
 
 /*************************************
  * Detect if this is an unsafe type because of the presence of `@system` members

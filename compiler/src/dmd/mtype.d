@@ -1348,15 +1348,6 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
-    /***************************************
-     * Returns: true if type has any invariants
-     */
-    bool hasInvariant()
-    {
-        //printf("Type::hasInvariant() %s, %d\n", toChars(), ty);
-        return false;
-    }
-
     /*************************************
      * If this is a type of something, return that something.
      */
@@ -2186,11 +2177,6 @@ extern (C++) final class TypeSArray : TypeArray
         return next.hasVoidInitPointers();
     }
 
-    override bool hasInvariant()
-    {
-        return next.hasInvariant();
-    }
-
     override bool needsDestruction()
     {
         return next.needsDestruction();
@@ -2987,13 +2973,6 @@ extern (C++) final class TypeStruct : Type
         return sym.hasVoidInitPointers;
     }
 
-    override bool hasInvariant()
-    {
-        sym.size(Loc.initial); // give error for forward references
-        sym.determineTypeProperties();
-        return sym.hasInvariant() || sym.hasFieldWithInvariant;
-    }
-
     override MOD deduceWild(Type t, bool isRef)
     {
         if (ty == t.ty && sym == (cast(TypeStruct)t).sym)
@@ -3126,11 +3105,6 @@ extern (C++) final class TypeEnum : Type
     override bool hasVoidInitPointers()
     {
         return memType().hasVoidInitPointers();
-    }
-
-    override bool hasInvariant()
-    {
-        return memType().hasInvariant();
     }
 
     override Type nextOf()
