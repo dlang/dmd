@@ -83,11 +83,12 @@ bool hasInvariant(Type _this)
     }
     else if (auto ts = _this.isTypeStruct())
     {
+        import dmd.dsymbolsem : size;
         ts.sym.size(Loc.initial); // give error for forward references
         ts.sym.determineTypeProperties();
         return ts.sym.hasInvariant() || ts.sym.hasFieldWithInvariant;
     }
-    else if (auto te = _this.TypeEnum())
+    else if (auto te = _this.isTypeEnum())
     {
         return te.memType().hasInvariant();
     }
