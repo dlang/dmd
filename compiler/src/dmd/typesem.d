@@ -72,6 +72,27 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+/************************************
+ * Return alignment to use for this type.
+ */
+structalign_t alignment(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+    {
+        return tsa.next.alignment();
+    }
+    else if (auto ts = _this.isTypeStruct())
+    {
+        import dmd.dsymbolsem : size;
+        if (ts.sym.alignment.isUnknown())
+            ts.sym.size(ts.sym.loc);
+        return ts.sym.alignment;
+    }
+    structalign_t s;
+    s.setDefault();
+    return s;
+}
+
 /***************************************
  * Returns: true if type has any invariants
  */
