@@ -879,6 +879,12 @@ bool hasInvariant(Type type)
     return dmd.typesem.hasInvariant(type);
 }
 
+bool hasVoidInitPointers(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.hasVoidInitPointers(type);
+}
+
 /***********************************************************
  * typinf.d
  */
