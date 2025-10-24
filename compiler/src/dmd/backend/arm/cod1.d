@@ -2449,7 +2449,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                 flags |= 2;
             if (sz == 8)
                 flags |= 64;
-            if (isXMMreg(reg))
+            if (0 && isXMMreg(reg))
             {
                 movxmmconst(cdb, reg, tym, &e.EV, 0);
                 flags = 0;
