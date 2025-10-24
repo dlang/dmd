@@ -2067,7 +2067,6 @@ public:
     size_t getUniqueID() const;
     const char* toChars() const final override;
     char* toPrettyChars(bool QualifyTypes = false);
-    static void _init();
     static void deinitialize();
     virtual uint32_t alignsize();
     void modToBuffer(OutBuffer& buf) const;
