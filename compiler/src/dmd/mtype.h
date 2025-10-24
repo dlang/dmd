@@ -264,7 +264,6 @@ public:
     virtual unsigned char deduceWild(Type *t, bool isRef);
 
     virtual ClassDeclaration *isClassHandle();
-    virtual structalign_t alignment();
     virtual int hasWild() const;
     virtual bool hasVoidInitPointers();
     virtual Type *nextOf();
@@ -394,7 +393,6 @@ public:
     bool isIncomplete();
     unsigned alignsize() override;
     bool isString() override;
-    structalign_t alignment() override;
     bool hasVoidInitPointers() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
@@ -682,7 +680,6 @@ public:
     const char *kind() override;
     unsigned alignsize() override;
     TypeStruct *syntaxCopy() override;
-    structalign_t alignment() override;
     bool isBoolean() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
@@ -837,4 +834,5 @@ namespace dmd
     MATCH constConv(Type* from, Type* to);
     bool hasUnsafeBitpatterns(Type* type);
     bool hasInvariant(Type* type);
+    structalign_t alignment(Type* type);
 }

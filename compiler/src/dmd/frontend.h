@@ -2105,7 +2105,6 @@ public:
     Type* toBasetype();
     virtual uint8_t deduceWild(Type* t, bool isRef);
     virtual ClassDeclaration* isClassHandle();
-    virtual structalign_t alignment();
     virtual int32_t hasWild() const;
     virtual bool hasVoidInitPointers();
     virtual Type* nextOf();
@@ -4745,7 +4744,6 @@ public:
     bool isIncomplete();
     uint32_t alignsize() override;
     bool isString() override;
-    structalign_t alignment() override;
     bool hasVoidInitPointers() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
@@ -4773,7 +4771,6 @@ public:
     const char* kind() const override;
     uint32_t alignsize() override;
     TypeStruct* syntaxCopy() override;
-    structalign_t alignment() override;
     bool isBoolean() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
