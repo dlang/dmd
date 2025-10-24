@@ -328,8 +328,8 @@ __gshared const(char)*[TYMAX] tystring =
         TYullong8   : "ulong[8]",
     ];
 
-    ret[TYullong] = "ullong"; //ret[TYulong]; // c_ulong
-    ret[TYllong]  = "llong";  //ret[TYlong]; // c_long
+    ret[TYullong] = ret[TYulong]; // c_ulong
+    ret[TYllong]  = ret[TYlong]; // c_long
 
     return ret;
 } ();
