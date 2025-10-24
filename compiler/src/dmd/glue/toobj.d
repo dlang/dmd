@@ -439,7 +439,15 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(VarDeclaration vd)
         {
-
+            bool symbol_search(const(char)* name)
+            {
+                foreach (sym; globsym[])
+                {
+                    if (strcmp(symbol_ident(*sym), name) == 0)
+                        return true;
+                }
+                return false;
+            }
             //printf("VarDeclaration.toObjFile(%p '%s' type=%s) visibility %d\n", vd, vd.toChars(), vd.type.toChars(), vd.visibility);
             //printf("\talign = %d\n", vd.alignment);
 
@@ -546,7 +554,19 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (s.Sclass == SC.global && s.Stype.Tty & mTYconst)
                 out_readonly(s);
 
-            outdata(s);
+            // introduce this cheks for C global declarations to avoid duplicating the symbol table
+            if (vd.isCsymbol() && !vd.init)
+            {
+                //cstate.CSpsymtab = &globsym;
+                if (!symbol_search(symbol_ident(*s)))
+                {
+                    symbol_add(*(&globsym), s);
+                    outdata(s);
+                }
+            }
+            else
+                outdata(s);
+
             if (vd.type.isMutable() || !vd._init)
                 write_pointers(vd.type, s, 0);
             if (vd.isExport() || driverParams.exportVisibility == ExpVis.public_)
