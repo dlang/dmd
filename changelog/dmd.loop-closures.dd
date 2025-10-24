@@ -1,0 +1,43 @@
+Using variables declared in a loop from closures has been deprecated
+
+Closures in loops use the same memory for all loop iterations. This
+can lead to unexpected results for variables declared in loops, e.g.:
+
+```D
+import std.stdio;
+void main()
+{
+    void delegate()[] funcs;
+    int[] results;
+    foreach (i; 0..3)
+    {
+        void f()
+        {
+            results ~= i;
+        }
+        funcs ~= &f;
+    }
+    foreach (dg; funcs)
+        dg();
+    writeln(results);
+}
+```
+
+This example prints `[2, 2, 2]`, but many users would expect `[0, 1, 2]`.
+The code now results in a deprecation warning:
+```
+test.d(6): Deprecation: Using variable `i` declared in a loop from a closure is deprecated
+    foreach (i; 0..3)
+    ^
+test.d(8):        Variable `i` used in possibly escaping function `f`
+        void f()
+             ^
+```
+
+Possible solutions:
+* Move variable declarations out of loops, if the closure really should
+  use the same memory.
+* Mark delegate parameters scope if they don't escape, so the compiler
+  does not need to create a closure for local functions.
+* Move the loop body into another function, so every iteration gets
+  a separate closure.
