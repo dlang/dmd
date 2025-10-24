@@ -136,6 +136,7 @@ void makeNested(AggregateDeclaration _this)
     }
     if (_this.enclosing)
     {
+        import dmd.typesem : alignment;
         //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing.toChars());
         assert(t);
         if (t.ty == Tstruct)
@@ -166,6 +167,8 @@ void makeNested(AggregateDeclaration _this)
  */
 void makeNested2(AggregateDeclaration _this)
 {
+    import dmd.typesem : alignment;
+
     if (_this.vthis2)
         return;
     if (!_this.vthis)
@@ -2083,6 +2086,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* If scope's alignment is the default, use the type's alignment,
          * otherwise the scope overrrides.
          */
+        import dmd.typesem : alignment;
         if (dsym.alignment.isDefault())
             dsym.alignment = dsym.type.alignment(); // use type's alignment
 
