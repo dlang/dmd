@@ -2108,7 +2108,6 @@ public:
     virtual structalign_t alignment();
     virtual int32_t hasWild() const;
     virtual bool hasVoidInitPointers();
-    virtual bool hasInvariant();
     virtual Type* nextOf();
     Type* baseElemOf();
     virtual bool needsDestruction();
@@ -4518,7 +4517,6 @@ public:
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
     bool hasVoidInitPointers() override;
-    bool hasInvariant() override;
     Type* nextOf() override;
     void accept(Visitor* v) override;
 };
@@ -4749,7 +4747,6 @@ public:
     bool isString() override;
     structalign_t alignment() override;
     bool hasVoidInitPointers() override;
-    bool hasInvariant() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
@@ -4782,7 +4779,6 @@ public:
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
     bool hasVoidInitPointers() override;
-    bool hasInvariant() override;
     uint8_t deduceWild(Type* t, bool isRef) override;
     void accept(Visitor* v) override;
 };

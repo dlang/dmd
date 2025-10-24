@@ -873,6 +873,12 @@ bool hasUnsafeBitpatterns(Type type)
     return dmd.typesem.hasUnsafeBitpatterns(type);
 }
 
+bool hasInvariant(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.hasInvariant(type);
+}
+
 /***********************************************************
  * typinf.d
  */
