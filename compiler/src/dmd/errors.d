@@ -98,11 +98,9 @@ class ErrorSinkCompiler : ErrorSink
     void plugSink()
     {
         // Exit if there are no collected diagnostics
-        if (!diagnostics.length) return;
-
+        if (!diagnostics.length) return;        
         // Generate the SARIF report with the current diagnostics
         generateSarifReport(false);
-
         // Clear diagnostics after generating the report
         diagnostics.length = 0;
     }
@@ -562,6 +560,11 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
 
     case ErrorKind.message:
         OutBuffer tmp;
+        if (global.params.v.messageStyle == MessageStyle.lsp)
+        {
+            printLSPDiagnostic(format, ap, info);
+            return;
+        }
         writeSourceLoc(tmp, info.loc, Loc.showColumns, Loc.messageStyle);
         if (tmp.length)
             fprintf(stdout, "%s: ", tmp.extractChars());
@@ -611,7 +614,9 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
             info.headerColor = Classification.gagged;
         }
         else
+        {
             info.headerColor = Classification.error;
+        }
         printDiagnostic(format, ap, info);
         return;
 
@@ -651,6 +656,11 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
  */
 private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticContext info)
 {
+    if(global.params.v.messageStyle == MessageStyle.lsp)
+    {
+        printLSPDiagnostic(format,ap,info);
+        return;
+    }
     const(char)* header;    // title of error message
     if (info.supplemental)
         header = "       ";
@@ -798,6 +808,81 @@ unittest
         "        ^\n"
     );
 }
+
+/**
+ * Just print to stdout in LSP format, doesn't care about gagging.
+ * (format,ap) text within backticks gets syntax highlighted.
+ * Params:
+ *      format  = printf-style format specification
+ *      ap      = printf-style variadic arguments
+ *      info    = context of error
+ */
+
+private void printLSPDiagnostic(const(char)* format, va_list ap, ref DiagnosticContext info)
+{
+    const(char)* severity = "";    // title of error message
+    const(char)[] filename = null;  // file where error occurs
+    uint linnum = 0; // line number where error occurs
+    uint column = 0; // column where error ocuurs
+  
+    OutBuffer tmp;
+    tmp.doindent = true;
+    tmp.writestringln("{");
+    ++tmp.level;
+    if (info.supplemental)
+    {
+        return;
+        /* tmp.writestring("\"note\":\"");
+        tmp.vprintf(format,ap);
+        tmp.writestring(",\n"); */
+    }
+    else
+    {
+        final switch (info.kind)
+        {
+            case ErrorKind.error:       severity = "Error"; break;
+            case ErrorKind.deprecation: severity = "Deprecation"; break;
+            case ErrorKind.warning:     severity = "Warning"; break;
+            case ErrorKind.tip:         severity = "Tip"; break;
+            case ErrorKind.message:     assert(0);
+        }
+          /// Print diagnostic severity (i.e. errors, warnings etc.)
+        tmp.writestring("\"severity\":\"");
+        tmp.writestring(severity);
+        tmp.writestringln("\",");
+
+        /// Print filename
+        tmp.writestring("\"uri\":\"");
+        tmp.writestring(info.loc.filename);
+        tmp.writestringln("\",");
+
+        /// Print line number
+        tmp.writestring("\"line:\":");
+        tmp.printf(`%d,`,info.loc.linnum);
+        tmp.writestringln("");
+
+        /// Print column number
+        tmp.writestring("\"column\":");
+        tmp.printf(`%d,`,info.loc.charnum);
+        tmp.writestringln("");
+    
+        /// Print error message
+        tmp.writestring("\"description\":\"");
+        tmp.vprintf(format,ap);
+        tmp.writestringln("\",");
+    }
+    --tmp.level;
+    tmp.writestringln("}");
+
+    /// Print LSP Diagnostic from buffer
+    
+    const(char)* LSPOutput = tmp.extractChars();
+    fputs(LSPOutput,stdout);
+    fflush(stdout);     // ensure it gets written out in case of compiler aborts
+}
+
+
+
 
 /**
  * The type of the fatal error handler
