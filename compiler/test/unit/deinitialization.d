@@ -36,13 +36,13 @@ unittest
     import dmd.target : addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.globals : global;
-    import dmd.typesem : typeInit;
+    import dmd.typesem : Type_init;
 
     assert(Type.stringtable == Type.stringtable.init);
 
     global._init();
 
-    typeInit();
+    Type_init();
     Type.deinitialize();
 
     global.deinitialize();

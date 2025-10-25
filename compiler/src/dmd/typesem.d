@@ -72,7 +72,7 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
-void typeInit()
+void Type_init()
 {
     Type.stringtable._init(14_000);
 

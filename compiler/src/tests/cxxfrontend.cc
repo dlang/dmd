@@ -78,7 +78,7 @@ static void frontend_init()
     target.cpu = CPU::native;
     target._init(global.params);
 
-    dmd::typeInit();
+    dmd::Type_init();
     Id::initialize();
     Module::_init();
     Expression::_init();

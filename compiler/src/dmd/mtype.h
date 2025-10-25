@@ -833,6 +833,6 @@ namespace dmd
     MATCH constConv(Type* from, Type* to);
     bool hasUnsafeBitpatterns(Type* type);
     bool hasInvariant(Type* type);
-    void typeInit();
+    void Type_init();
     structalign_t alignment(Type* type);
 }

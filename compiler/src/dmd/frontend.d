@@ -125,7 +125,7 @@ void initDMD(
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target, defaultTargetOS, addDefaultVersionIdentifiers;
-    import dmd.typesem : typeInit;
+    import dmd.typesem : Type_init;
 
     .diagnosticHandler = diagnosticHandler;
     .fatalErrorHandler = fatalErrorHandler;
@@ -148,7 +148,7 @@ void initDMD(
     target.isX86_64 = (size_t.sizeof == 8);
     target.isX86 = !target.isX86_64;
     target._init(global.params);
-    typeInit();
+    Type_init();
     Id.initialize();
     Module._init();
     Expression._init();
