@@ -72,6 +72,34 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+/*************************************
+ * Detect if type has pointer fields that are initialized to void.
+ * Local stack variables with such void fields can remain uninitialized,
+ * leading to pointer bugs.
+ * Returns:
+ *  true if so
+ */
+
+bool hasVoidInitPointers(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+    {
+        return tsa.next.hasVoidInitPointers();
+    }
+    else if (auto ts = _this.isTypeStruct())
+    {
+        import dmd.dsymbolsem : size;
+        ts.sym.size(Loc.initial); // give error for forward references
+        ts.sym.determineTypeProperties();
+        return ts.sym.hasVoidInitPointers;
+    }
+    else if (auto te = _this.isTypeEnum())
+    {
+        return te.memType().hasVoidInitPointers();
+    }
+    return false;
+}
+
 void Type_init()
 {
     Type.stringtable._init(14_000);

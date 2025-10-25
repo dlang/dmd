@@ -1207,18 +1207,6 @@ extern (C++) abstract class Type : ASTNode
     }
 
     /*************************************
-     * Detect if type has pointer fields that are initialized to void.
-     * Local stack variables with such void fields can remain uninitialized,
-     * leading to pointer bugs.
-     * Returns:
-     *  true if so
-     */
-    bool hasVoidInitPointers()
-    {
-        return false;
-    }
-
-    /*************************************
      * If this is a type of something, return that something.
      */
     Type nextOf()
@@ -2037,11 +2025,6 @@ extern (C++) final class TypeSArray : TypeArray
         return nty.isSomeChar;
     }
 
-    override bool hasVoidInitPointers()
-    {
-        return next.hasVoidInitPointers();
-    }
-
     override bool needsDestruction()
     {
         return next.needsDestruction();
@@ -2824,13 +2807,6 @@ extern (C++) final class TypeStruct : Type
         return false;
     }
 
-    override bool hasVoidInitPointers()
-    {
-        sym.size(Loc.initial); // give error for forward references
-        sym.determineTypeProperties();
-        return sym.hasVoidInitPointers;
-    }
-
     override MOD deduceWild(Type t, bool isRef)
     {
         if (ty == t.ty && sym == (cast(TypeStruct)t).sym)
@@ -2958,11 +2934,6 @@ extern (C++) final class TypeEnum : Type
             return this;
         auto tb = sym.getMemtype(Loc.initial).toBasetype();
         return tb.castMod(mod);         // retain modifier bits from 'this'
-    }
-
-    override bool hasVoidInitPointers()
-    {
-        return memType().hasVoidInitPointers();
     }
 
     override Type nextOf()

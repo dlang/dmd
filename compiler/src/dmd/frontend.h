@@ -2105,7 +2105,6 @@ public:
     virtual uint8_t deduceWild(Type* t, bool isRef);
     virtual ClassDeclaration* isClassHandle();
     virtual int32_t hasWild() const;
-    virtual bool hasVoidInitPointers();
     virtual Type* nextOf();
     Type* baseElemOf();
     virtual bool needsDestruction();
@@ -4514,7 +4513,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    bool hasVoidInitPointers() override;
     Type* nextOf() override;
     void accept(Visitor* v) override;
 };
@@ -4743,7 +4741,6 @@ public:
     bool isIncomplete();
     uint32_t alignsize() override;
     bool isString() override;
-    bool hasVoidInitPointers() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
@@ -4774,7 +4771,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    bool hasVoidInitPointers() override;
     uint8_t deduceWild(Type* t, bool isRef) override;
     void accept(Visitor* v) override;
 };
