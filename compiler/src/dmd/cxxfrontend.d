@@ -891,6 +891,12 @@ bool hasVoidInitPointers(Type type)
     return dmd.typesem.hasVoidInitPointers(type);
 }
 
+void Type_init()
+{
+    import dmd.typesem;
+    return dmd.typesem.Type_init();
+}
+
 /***********************************************************
  * typinf.d
  */

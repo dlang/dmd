@@ -224,7 +224,6 @@ public:
     size_t getUniqueID() const;
     const char *toChars() const override;
     char *toPrettyChars(bool QualifyTypes = false);
-    static void _init();
 
     virtual unsigned alignsize();
     void modToBuffer(OutBuffer& buf) const;
@@ -831,5 +830,6 @@ namespace dmd
     bool hasUnsafeBitpatterns(Type* type);
     bool hasInvariant(Type* type);
     bool hasVoidInitPointers(Type* type);
+    void Type_init();
     structalign_t alignment(Type* type);
 }
