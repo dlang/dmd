@@ -101,7 +101,7 @@ bool hasVoidInitPointers(Type _this)
 }
 /************************************
  * Return alignment to use for this type.
-*/
+ */
 structalign_t alignment(Type _this)
 {
     if (auto tsa = _this.isTypeSArray())
