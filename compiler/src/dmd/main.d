@@ -35,6 +35,7 @@ import dmd.dinifile;
 import dmd.dinterpret;
 import dmd.dmdparams;
 import dmd.dsymbolsem;
+import dmd.typesem : Type_init;
 import dmd.dtemplate;
 import dmd.dtoh;
 import dmd.glue : generateCodeAndWrite, ObjcGlue_initialize;
@@ -375,7 +376,7 @@ private int tryMain(const(char)[][] argv, out Param params)
 
     // Initialization
     target._init(params);
-    Type._init();
+    Type_init();
     Id.initialize();
     Module._init();
     Expression._init();

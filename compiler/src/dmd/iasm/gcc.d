@@ -560,7 +560,7 @@ unittest
     const errors = global.startGagging();
     scope(exit) global.endGagging(errors);
 
-    // If this check fails, then Type._init() was called before reaching here,
+    // If this check fails, then Type_init() was called before reaching here,
     // and the entire chunk of code that follows can be removed.
     assert(ASTCodegen.Type.tint32 is null);
     // Minimally initialize the cached types in ASTCodegen.Type, as they are

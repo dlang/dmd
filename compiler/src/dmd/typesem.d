@@ -72,6 +72,126 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+void Type_init()
+{
+    Type.stringtable._init(14_000);
+
+    // Set basic types
+    __gshared TY* basetab =
+    [
+        Tvoid,
+        Tint8,
+        Tuns8,
+        Tint16,
+        Tuns16,
+        Tint32,
+        Tuns32,
+        Tint64,
+        Tuns64,
+        Tint128,
+        Tuns128,
+        Tfloat32,
+        Tfloat64,
+        Tfloat80,
+        Timaginary32,
+        Timaginary64,
+        Timaginary80,
+        Tcomplex32,
+        Tcomplex64,
+        Tcomplex80,
+        Tbool,
+        Tchar,
+        Twchar,
+        Tdchar,
+        Terror
+    ];
+
+    static Type merge(Type t)
+    {
+        import dmd.mangle.basic : tyToDecoBuffer;
+
+        OutBuffer buf;
+        buf.reserve(3);
+
+        if (t.ty == Tnoreturn)
+            buf.writestring("Nn");
+        else
+            tyToDecoBuffer(buf, t.ty);
+
+        auto sv = t.stringtable.update(buf[]);
+        if (sv.value)
+            return sv.value;
+        t.deco = cast(char*)sv.toDchars();
+        sv.value = t;
+        return t;
+    }
+
+    for (size_t i = 0; basetab[i] != Terror; i++)
+    {
+        Type t = new TypeBasic(basetab[i]);
+        t = merge(t);
+        Type.basic[basetab[i]] = t;
+    }
+    Type.basic[Terror] = new TypeError();
+
+    Type.tnoreturn = new TypeNoreturn();
+    Type.tnoreturn.deco = merge(Type.tnoreturn).deco;
+    Type.basic[Tnoreturn] = Type.tnoreturn;
+
+    Type.tvoid = Type.basic[Tvoid];
+    Type.tint8 = Type.basic[Tint8];
+    Type.tuns8 = Type.basic[Tuns8];
+    Type.tint16 = Type.basic[Tint16];
+    Type.tuns16 = Type.basic[Tuns16];
+    Type.tint32 = Type.basic[Tint32];
+    Type.tuns32 = Type.basic[Tuns32];
+    Type.tint64 = Type.basic[Tint64];
+    Type.tuns64 = Type.basic[Tuns64];
+    Type.tint128 = Type.basic[Tint128];
+    Type.tuns128 = Type.basic[Tuns128];
+    Type.tfloat32 = Type.basic[Tfloat32];
+    Type.tfloat64 = Type.basic[Tfloat64];
+    Type.tfloat80 = Type.basic[Tfloat80];
+
+    Type.timaginary32 = Type.basic[Timaginary32];
+    Type.timaginary64 = Type.basic[Timaginary64];
+    Type.timaginary80 = Type.basic[Timaginary80];
+
+    Type.tcomplex32 = Type.basic[Tcomplex32];
+    Type.tcomplex64 = Type.basic[Tcomplex64];
+    Type.tcomplex80 = Type.basic[Tcomplex80];
+
+    Type.tbool = Type.basic[Tbool];
+    Type.tchar = Type.basic[Tchar];
+    Type.twchar = Type.basic[Twchar];
+    Type.tdchar = Type.basic[Tdchar];
+
+    Type.tshiftcnt = Type.tint32;
+    Type.terror = Type.basic[Terror];
+    Type.tnoreturn = Type.basic[Tnoreturn];
+    Type.tnull = new TypeNull();
+    Type.tnull.deco = merge(Type.tnull).deco;
+
+    Type.tvoidptr = Type.tvoid.pointerTo();
+    Type.tstring = Type.tchar.immutableOf().arrayOf();
+    Type.twstring = Type.twchar.immutableOf().arrayOf();
+    Type.tdstring = Type.tdchar.immutableOf().arrayOf();
+
+    const isLP64 = target.isLP64;
+
+    Type.tsize_t    = Type.basic[isLP64 ? Tuns64 : Tuns32];
+    Type.tptrdiff_t = Type.basic[isLP64 ? Tint64 : Tint32];
+    Type.thash_t = Type.tsize_t;
+
+    static if (__VERSION__ == 2081)
+    {
+        // Related issue: https://issues.dlang.org/show_bug.cgi?id=19134
+        // D 2.081.x regressed initializing class objects at compile time.
+        // As a workaround initialize this global at run-time instead.
+        TypeTuple.empty = new TypeTuple();
+    }
+}
+
 /************************************
  * Return alignment to use for this type.
  */

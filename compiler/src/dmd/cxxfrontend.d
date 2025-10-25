@@ -885,6 +885,12 @@ bool hasInvariant(Type type)
     return dmd.typesem.hasInvariant(type);
 }
 
+void Type_init()
+{
+    import dmd.typesem;
+    return dmd.typesem.Type_init();
+}
+
 /***********************************************************
  * typinf.d
  */
