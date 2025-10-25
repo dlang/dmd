@@ -1318,16 +1318,6 @@ extern (C++) abstract class Type : ASTNode
         return null;
     }
 
-    /************************************
-     * Return alignment to use for this type.
-     */
-    structalign_t alignment()
-    {
-        structalign_t s;
-        s.setDefault();
-        return s;
-    }
-
     /***************************************
      * Return !=0 if the type or any of its subtypes is wild.
      */
@@ -2155,11 +2145,6 @@ extern (C++) final class TypeSArray : TypeArray
         return nty.isSomeChar;
     }
 
-    override structalign_t alignment()
-    {
-        return next.alignment();
-    }
-
     override bool needsDestruction()
     {
         return next.needsDestruction();
@@ -2906,13 +2891,6 @@ extern (C++) final class TypeStruct : Type
     override TypeStruct syntaxCopy()
     {
         return this;
-    }
-
-    override structalign_t alignment()
-    {
-        if (sym.alignment.isUnknown())
-            sym.size(sym.loc);
-        return sym.alignment;
     }
 
     override bool isBoolean()
