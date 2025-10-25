@@ -849,6 +849,12 @@ uinteger_t size(Type type, Loc loc)
     return dmd.typesem.size(type, loc);
 }
 
+structalign_t alignment(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.alignment(type);
+}
+
 MATCH implicitConvTo(Type from, Type to)
 {
     import dmd.dcast;

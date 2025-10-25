@@ -38,7 +38,7 @@ import dmd.root.string : fTuple;
 import dmd.target;
 import dmd.targetcompiler;
 import dmd.tokens;
-import dmd.typesem : hasPointers, arrayOf, size, hasUnsafeBitpatterns, hasInvariant;
+import dmd.typesem : hasPointers, arrayOf, size, hasUnsafeBitpatterns, hasInvariant, alignment;
 
 /*************************************************************
  * Check for unsafe access in @safe code:
