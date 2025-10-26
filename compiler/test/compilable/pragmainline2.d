@@ -127,4 +127,12 @@ void test_newaa()
     assert(aa1 == aa1);
     assert(UnsafeElement() !in aa2);
     aa2[UnsafeElement()] = 1;
+
+    // test inlining of hashOf(Interface)
+    static interface Iface
+    {
+        void foo();
+    }
+    Iface[int] aa3;
+    int[Iface] aa4;
 }
