@@ -20,4 +20,4 @@ void main()
 {
     int ch = num(5);
     writeln(ch);
-} 
+}
