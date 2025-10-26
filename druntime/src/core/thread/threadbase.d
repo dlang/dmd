@@ -188,6 +188,25 @@ class ThreadBase
      */
     abstract Throwable join(bool rethrow = true);
 
+    /**
+     * Filter any exceptions that escaped the thread entry point.
+     * This enables a 'grave digger' approach to exceptions.
+     *
+     * By default this method will call the global handler in core.exception.
+     *
+     * Overriding this method allows a per-thread behavior.
+     *
+     * Params:
+     *         thrown = The thrown exception, may be null after returned.
+     */
+    void filterCaughtThrowable(ref Throwable thrown) @system nothrow
+    {
+        import core.exception : filterThreadThrowableHandler;
+        if (thrown is null)
+            return;
+        else if (auto handler = filterThreadThrowableHandler())
+            handler(thrown);
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // General Properties
