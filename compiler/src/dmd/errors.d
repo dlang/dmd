@@ -821,9 +821,6 @@ unittest
 private void printLSPDiagnostic(const(char)* format, va_list ap, ref DiagnosticContext info)
 {
     const(char)* severity = "";    // title of error message
-    const(char)[] filename = null;  // file where error occurs
-    uint linnum = 0; // line number where error occurs
-    uint column = 0; // column where error ocuurs
   
     OutBuffer tmp;
     tmp.doindent = true;
