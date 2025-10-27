@@ -103,9 +103,19 @@ bool test_toUByte()
     struct S { int x; }
     S sval;
     ubarr = toUbyte(sval);
-	return true;
+    return true;
 }
 static assert(test_toUByte());
+
+// https://github.com/dlang/dmd/issues/20246
+void test_split()
+{
+    // bitop.Split64 only used for 32-bit process
+    import core.bitop;
+    ulong v = 1L << 42;
+    int x = bsr(v);
+    int y = bsf(v);
+}
 
 void test_newaa()
 {
