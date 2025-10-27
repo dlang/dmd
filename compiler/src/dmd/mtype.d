@@ -26,7 +26,6 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem: size;
 import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
@@ -40,7 +39,6 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.stringtable;
-import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
@@ -509,12 +507,6 @@ extern (C++) abstract class Type : ASTNode
     static void deinitialize()
     {
         stringtable = stringtable.init;
-    }
-
-    uint alignsize()
-    {
-        import dmd.typesem: size;
-        return cast(uint)size(this, Loc.initial);
     }
 
     /*********************************
@@ -1824,11 +1816,6 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override uint alignsize()
-    {
-        return target.alignsize(this);
-    }
-
     override bool isIntegral()
     {
         //printf("TypeBasic::isIntegral('%s') x%x\n", toChars(), flags);
@@ -1906,12 +1893,6 @@ extern (C++) final class TypeVector : Type
     override TypeVector syntaxCopy()
     {
         return new TypeVector(basetype.syntaxCopy());
-    }
-
-    override uint alignsize()
-    {
-        import dmd.typesem: size;
-        return cast(uint)basetype.size();
     }
 
     override bool isIntegral()
@@ -2014,11 +1995,6 @@ extern (C++) final class TypeSArray : TypeArray
         return dim.isIntegerExp() && dim.isIntegerExp().getInteger() == 0;
     }
 
-    override uint alignsize()
-    {
-        return next.alignsize();
-    }
-
     override bool isString()
     {
         TY nty = next.toBasetype().ty;
@@ -2074,13 +2050,6 @@ extern (C++) final class TypeDArray : TypeArray
         auto result = new TypeDArray(t);
         result.mod = mod;
         return result;
-    }
-
-    override uint alignsize()
-    {
-        // A DArray consists of two ptr-sized values, so align it on pointer size
-        // boundary
-        return target.ptrsize;
     }
 
     override bool isString()
@@ -2439,11 +2408,6 @@ extern (C++) final class TypeDelegate : TypeNext
         return result;
     }
 
-    override uint alignsize()
-    {
-        return target.ptrsize;
-    }
-
     override bool isBoolean()
     {
         return true;
@@ -2762,12 +2726,6 @@ extern (C++) final class TypeStruct : Type
         return "struct";
     }
 
-    override uint alignsize()
-    {
-        sym.size(Loc.initial); // give error for forward references
-        return sym.alignsize;
-    }
-
     override TypeStruct syntaxCopy()
     {
         return this;
@@ -2858,14 +2816,6 @@ extern (C++) final class TypeEnum : Type
     Type memType()
     {
         return sym.getMemtype(Loc.initial);
-    }
-
-    override uint alignsize()
-    {
-        Type t = memType();
-        if (t.ty == Terror)
-            return 4;
-        return t.alignsize();
     }
 
     override bool isIntegral()
@@ -3220,11 +3170,6 @@ extern (C++) final class TypeNoreturn : Type
     override bool isBoolean()
     {
         return true;  // bottom type can be implicitly converted to any other type
-    }
-
-    override uint alignsize()
-    {
-        return 0;
     }
 
     override void accept(Visitor v)
