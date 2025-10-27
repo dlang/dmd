@@ -72,6 +72,11 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+Type memType(TypeEnum _this)
+{
+    return _this.sym.getMemtype(Loc.initial);
+}
+
 /*************************************
  * Detect if type has pointer fields that are initialized to void.
  * Local stack variables with such void fields can remain uninitialized,

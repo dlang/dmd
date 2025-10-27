@@ -28,7 +28,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem: size;
 import dmd.dtemplate;
-import dmd.enumsem;
+//import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.hdrgen;
@@ -1523,7 +1523,7 @@ extern (C++) abstract class TypeNext : Type
         {
             assert(mcache.scto.mod == (MODFlags.shared_ | MODFlags.const_));
             return mcache.scto;
-        }
+    }
         TypeNext t = cast(TypeNext)Type.makeSharedConst();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
         {
@@ -2855,14 +2855,9 @@ extern (C++) final class TypeEnum : Type
         return this;
     }
 
-    Type memType()
-    {
-        return sym.getMemtype(Loc.initial);
-    }
-
     override uint alignsize()
     {
-        Type t = memType();
+        Type t = this.memType();
         if (t.ty == Terror)
             return 4;
         return t.alignsize();
@@ -2870,62 +2865,62 @@ extern (C++) final class TypeEnum : Type
 
     override bool isIntegral()
     {
-        return memType().isIntegral();
+        return this.memType().isIntegral();
     }
 
     override bool isFloating()
     {
-        return memType().isFloating();
+        return this.memType().isFloating();
     }
 
     override bool isReal()
     {
-        return memType().isReal();
+        return this.memType().isReal();
     }
 
     override bool isImaginary()
     {
-        return memType().isImaginary();
+        return this.memType().isImaginary();
     }
 
     override bool isComplex()
     {
-        return memType().isComplex();
+        return this.memType().isComplex();
     }
 
     override bool isScalar()
     {
-        return memType().isScalar();
+        return this.memType().isScalar();
     }
 
     override bool isUnsigned()
     {
-        return memType().isUnsigned();
+        return this.memType().isUnsigned();
     }
 
     override bool isBoolean()
     {
-        return memType().isBoolean();
+        return this.memType().isBoolean();
     }
 
     override bool isString()
     {
-        return memType().isString();
+        return this.memType().isString();
     }
 
     override bool needsDestruction()
     {
-        return memType().needsDestruction();
+        return this.memType().needsDestruction();
     }
 
     override bool needsCopyOrPostblit()
     {
-        return memType().needsCopyOrPostblit();
+        return this.memType().needsCopyOrPostblit();
     }
 
     override bool needsNested()
     {
-        return memType().needsNested();
+        return this.memType().needsNested();
     }
 
     extern (D) Type toBasetype2()
@@ -2938,7 +2933,7 @@ extern (C++) final class TypeEnum : Type
 
     override Type nextOf()
     {
-        return memType().nextOf();
+        return this.memType().nextOf();
     }
 
     override void accept(Visitor v)
