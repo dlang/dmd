@@ -106,3 +106,33 @@ bool test_toUByte()
 	return true;
 }
 static assert(test_toUByte());
+
+void test_newaa()
+{
+    // inlining of newaa.pure_keyEqual, newaa.compat_key, newaa.pure_hashOf
+    // must be disabled for nested structs
+    struct UnsafeElement
+    {
+        int i;
+        static bool b;
+        ~this(){
+            int[] arr;
+            void* p = arr.ptr + 1; // unsafe
+        }
+    }
+    UnsafeElement[int] aa1;
+    int[UnsafeElement] aa2;
+    aa1[1] = UnsafeElement();
+    assert(0 !in aa1);
+    assert(aa1 == aa1);
+    assert(UnsafeElement() !in aa2);
+    aa2[UnsafeElement()] = 1;
+
+    // test inlining of hashOf(Interface)
+    static interface Iface
+    {
+        void foo();
+    }
+    Iface[int] aa3;
+    int[Iface] aa4;
+}

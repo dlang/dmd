@@ -2600,11 +2600,13 @@ pure nothrow @system unittest
 }
 
 // wipes source after moving
-pragma(inline, true)
 private void wipe(T, Init...)(return scope ref T source, ref const scope Init initializer) @trusted
 if (!Init.length ||
     ((Init.length == 1) && (is(immutable T == immutable Init[0]))))
 {
+    static if (!is(T == struct) || !__traits(isNested, T))
+        pragma(inline, true);
+
     static if (__traits(isStaticArray, T) && hasContextPointers!T)
     {
         for (auto i = 0; i < T.length; i++)
