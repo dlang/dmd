@@ -4499,7 +4499,6 @@ public:
     EnumDeclaration* sym;
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
-    Type* memType();
     uint32_t alignsize() override;
     bool isIntegral() override;
     bool isFloating() override;
