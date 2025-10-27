@@ -187,7 +187,7 @@ private int tryMain(const(char)[][] argv, out Param params)
 
         if (global.errors == 0 && global.params.v.messageStyle == MessageStyle.lsp)
         {
-            fputs("{}",stdout);      
+            generateLSPArray(true);      
         }
     }
 
