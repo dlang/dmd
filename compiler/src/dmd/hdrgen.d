@@ -4343,11 +4343,11 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
         auto baseTy = t.next.toBasetype().ty;
         if (hgs.declstring)
             goto L1;
-        if (baseTy == Tchar)
+        if (baseTy == Tchar && t.isImmutable())
             buf.put("string");
-        else if (baseTy == Twchar)
+        else if (baseTy == Twchar && t.isImmutable())
             buf.put("wstring");
-        else if (baseTy == Tdchar)
+        else if (baseTy == Tdchar && t.isImmutable())
             buf.put("dstring");
         else
         {
