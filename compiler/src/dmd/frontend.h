@@ -2068,7 +2068,6 @@ public:
     const char* toChars() const final override;
     char* toPrettyChars(bool QualifyTypes = false);
     static void deinitialize();
-    virtual uint32_t alignsize();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
     virtual bool isIntegral();
@@ -4434,7 +4433,6 @@ public:
     uint32_t flags;
     const char* kind() const override;
     TypeBasic* syntaxCopy() override;
-    uint32_t alignsize() override;
     bool isIntegral() override;
     bool isFloating() override;
     bool isReal() override;
@@ -4476,7 +4474,6 @@ class TypeDArray final : public TypeArray
 public:
     const char* kind() const override;
     TypeDArray* syntaxCopy() override;
-    uint32_t alignsize() override;
     bool isString() override;
     bool isBoolean() override;
     void accept(Visitor* v) override;
@@ -4488,7 +4485,6 @@ public:
     static TypeDelegate* create(TypeFunction* t);
     const char* kind() const override;
     TypeDelegate* syntaxCopy() override;
-    uint32_t alignsize() override;
     bool isBoolean() override;
     void accept(Visitor* v) override;
 };
@@ -4500,7 +4496,6 @@ public:
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
     Type* memType();
-    uint32_t alignsize() override;
     bool isIntegral() override;
     bool isFloating() override;
     bool isReal() override;
@@ -4693,7 +4688,6 @@ public:
     const char* kind() const override;
     TypeNoreturn* syntaxCopy() override;
     bool isBoolean() override;
-    uint32_t alignsize() override;
     void accept(Visitor* v) override;
 };
 
@@ -4739,7 +4733,6 @@ public:
     const char* kind() const override;
     TypeSArray* syntaxCopy() override;
     bool isIncomplete();
-    uint32_t alignsize() override;
     bool isString() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
@@ -4765,7 +4758,6 @@ public:
     bool inuse;
     static TypeStruct* create(StructDeclaration* sym);
     const char* kind() const override;
-    uint32_t alignsize() override;
     TypeStruct* syntaxCopy() override;
     bool isBoolean() override;
     bool needsDestruction() override;
@@ -4834,7 +4826,6 @@ public:
     static TypeVector* create(Type* basetype);
     const char* kind() const override;
     TypeVector* syntaxCopy() override;
-    uint32_t alignsize() override;
     bool isIntegral() override;
     bool isFloating() override;
     bool isScalar() override;

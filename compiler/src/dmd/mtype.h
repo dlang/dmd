@@ -225,7 +225,6 @@ public:
     const char *toChars() const override;
     char *toPrettyChars(bool QualifyTypes = false);
 
-    virtual unsigned alignsize();
     void modToBuffer(OutBuffer& buf) const;
     char *modToChars() const;
 
@@ -341,7 +340,6 @@ public:
 
     const char *kind() override;
     TypeBasic *syntaxCopy() override;
-    unsigned alignsize() override;
     bool isIntegral() override;
     bool isFloating() override;
     bool isReal() override;
@@ -363,7 +361,6 @@ public:
     static TypeVector *create(Type *basetype);
     const char *kind() override;
     TypeVector *syntaxCopy() override;
-    unsigned alignsize() override;
     bool isIntegral() override;
     bool isFloating() override;
     bool isScalar() override;
@@ -389,7 +386,6 @@ public:
     const char *kind() override;
     TypeSArray *syntaxCopy() override;
     bool isIncomplete();
-    unsigned alignsize() override;
     bool isString() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
@@ -404,7 +400,6 @@ class TypeDArray final : public TypeArray
 public:
     const char *kind() override;
     TypeDArray *syntaxCopy() override;
-    unsigned alignsize() override;
     bool isString() override;
     bool isBoolean() override;
 
@@ -570,7 +565,6 @@ public:
     static TypeDelegate *create(TypeFunction *t);
     const char *kind() override;
     TypeDelegate *syntaxCopy() override;
-    unsigned alignsize() override;
     bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -675,7 +669,6 @@ public:
 
     static TypeStruct *create(StructDeclaration *sym);
     const char *kind() override;
-    unsigned alignsize() override;
     TypeStruct *syntaxCopy() override;
     bool isBoolean() override;
     bool needsDestruction() override;
@@ -693,7 +686,6 @@ public:
 
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
-    unsigned alignsize() override;
     Type *memType(Loc loc);
     bool isIntegral() override;
     bool isFloating() override;
@@ -774,7 +766,6 @@ public:
     const char *kind() override;
     TypeNoreturn *syntaxCopy() override;
     bool isBoolean() override;
-    unsigned alignsize() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -832,4 +823,5 @@ namespace dmd
     bool hasVoidInitPointers(Type* type);
     void Type_init();
     structalign_t alignment(Type* type);
+    unsigned alignsize(Type* type);
 }
