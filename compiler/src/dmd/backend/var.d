@@ -329,7 +329,7 @@ __gshared const(char)*[TYMAX] tystring =
     ];
 
     ret[TYullong] = ret[TYulong]; // c_ulong
-    ret[TYllong] = ret[TYlong]; // c_long
+    ret[TYllong]  = ret[TYlong]; // c_long
 
     return ret;
 } ();

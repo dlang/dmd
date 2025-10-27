@@ -2068,7 +2068,6 @@ public:
     size_t getUniqueID() const;
     const char* toChars() const final override;
     char* toPrettyChars(bool QualifyTypes = false);
-    static void _init();
     static void deinitialize();
     virtual uint32_t alignsize();
     void modToBuffer(OutBuffer& buf) const;
@@ -2106,11 +2105,7 @@ public:
     Type* toBasetype();
     virtual uint8_t deduceWild(Type* t, bool isRef);
     virtual ClassDeclaration* isClassHandle();
-    virtual structalign_t alignment();
     virtual int32_t hasWild() const;
-    virtual bool hasVoidInitPointers();
-    virtual bool hasUnsafeBitpatterns();
-    virtual bool hasInvariant();
     virtual Type* nextOf();
     Type* baseElemOf();
     virtual bool needsDestruction();
@@ -3132,13 +3127,14 @@ enum class TOK : uint8_t
     _Thread_local_ = 216u,
     _assert_ = 217u,
     _import_ = 218u,
-    __cdecl_ = 219u,
-    __declspec_ = 220u,
-    __stdcall_ = 221u,
-    __thread_ = 222u,
-    __pragma_ = 223u,
-    __int128_ = 224u,
-    __attribute___ = 225u,
+    _module = 219u,
+    __cdecl_ = 220u,
+    __declspec_ = 221u,
+    __stdcall_ = 222u,
+    __thread_ = 223u,
+    __pragma_ = 224u,
+    __int128_ = 225u,
+    __attribute___ = 226u,
 };
 
 class FuncExp final : public Expression
@@ -4447,7 +4443,6 @@ public:
     bool isComplex() override;
     bool isScalar() override;
     bool isUnsigned() override;
-    bool hasUnsafeBitpatterns() override;
     TypeBasic* isTypeBasic() override;
     void accept(Visitor* v) override;
 };
@@ -4519,9 +4514,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    bool hasVoidInitPointers() override;
-    bool hasUnsafeBitpatterns() override;
-    bool hasInvariant() override;
     Type* nextOf() override;
     void accept(Visitor* v) override;
 };
@@ -4750,10 +4742,6 @@ public:
     bool isIncomplete();
     uint32_t alignsize() override;
     bool isString() override;
-    structalign_t alignment() override;
-    bool hasUnsafeBitpatterns() override;
-    bool hasVoidInitPointers() override;
-    bool hasInvariant() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
@@ -4780,14 +4768,10 @@ public:
     const char* kind() const override;
     uint32_t alignsize() override;
     TypeStruct* syntaxCopy() override;
-    structalign_t alignment() override;
     bool isBoolean() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    bool hasVoidInitPointers() override;
-    bool hasUnsafeBitpatterns() override;
-    bool hasInvariant() override;
     uint8_t deduceWild(Type* t, bool isRef) override;
     void accept(Visitor* v) override;
 };

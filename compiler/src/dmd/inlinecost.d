@@ -265,12 +265,6 @@ public:
         }
         expressionInlineCost(s.condition);
 
-        if (s.isIfCtfeBlock())
-        {
-            cost = COST_MAX;
-            return;
-        }
-
         /* Specifically allow:
          *  if (condition)
          *      return exp1;
