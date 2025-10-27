@@ -49,7 +49,6 @@ import dmd.root.string;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.typesem : castMod;
 import dmd.visitor;
 
 struct HdrGenState
@@ -4341,14 +4340,14 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitDArray(TypeDArray t)
     {
-        Type ut = t.castMod(0);
+        auto basetype = t.next.toBasetype();
         if (hgs.declstring)
             goto L1;
-        if (ut.equals(Type.tstring))
+        if (basetype.ty == Tchar && basetype.isImmutable())
             buf.put("string");
-        else if (ut.equals(Type.twstring))
+        else if (basetype.ty == Twchar && basetype.isImmutable())
             buf.put("wstring");
-        else if (ut.equals(Type.tdstring))
+        else if (basetype.ty == Tdchar && basetype.isImmutable())
             buf.put("dstring");
         else
         {
