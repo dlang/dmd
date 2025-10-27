@@ -837,7 +837,7 @@ Type referenceTo(Type type)
     return dmd.typesem.referenceTo(type);
 }
 
-Type memType(TypeEnum _this)
+Type memType(TypeEnum type)
 {
     import dmd.typesem;
     return dmd.typesem.memType(type);
