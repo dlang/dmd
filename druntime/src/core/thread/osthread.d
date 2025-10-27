@@ -2368,7 +2368,9 @@ version (Windows)
 
             void append( Throwable t )
             {
-                obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
+                obj.filterCaughtThrowable(t);
+                if (t !is null)
+                    obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
             }
 
             version (D_InlineAsm_X86)
@@ -2535,7 +2537,9 @@ else version (Posix)
 
             void append( Throwable t )
             {
-                obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
+                obj.filterCaughtThrowable(t);
+                if (t !is null)
+                    obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
             }
             try
             {
