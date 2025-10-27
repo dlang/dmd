@@ -2923,14 +2923,6 @@ extern (C++) final class TypeEnum : Type
         return this.memType().needsNested();
     }
 
-    extern (D) Type toBasetype2()
-    {
-        if (!sym.members && !sym.memtype)
-            return this;
-        auto tb = sym.getMemtype(Loc.initial).toBasetype();
-        return tb.castMod(mod);         // retain modifier bits from 'this'
-    }
-
     override Type nextOf()
     {
         return this.memType().nextOf();
