@@ -103,6 +103,46 @@ bool test_toUByte()
     struct S { int x; }
     S sval;
     ubarr = toUbyte(sval);
-	return true;
+    return true;
 }
 static assert(test_toUByte());
+
+// https://github.com/dlang/dmd/issues/20246
+void test_split()
+{
+    // bitop.Split64 only used for 32-bit process
+    import core.bitop;
+    ulong v = 1L << 42;
+    int x = bsr(v);
+    int y = bsf(v);
+}
+
+void test_newaa()
+{
+    // inlining of newaa.pure_keyEqual, newaa.compat_key, newaa.pure_hashOf
+    // must be disabled for nested structs
+    struct UnsafeElement
+    {
+        int i;
+        static bool b;
+        ~this(){
+            int[] arr;
+            void* p = arr.ptr + 1; // unsafe
+        }
+    }
+    UnsafeElement[int] aa1;
+    int[UnsafeElement] aa2;
+    aa1[1] = UnsafeElement();
+    assert(0 !in aa1);
+    assert(aa1 == aa1);
+    assert(UnsafeElement() !in aa2);
+    aa2[UnsafeElement()] = 1;
+
+    // test inlining of hashOf(Interface)
+    static interface Iface
+    {
+        void foo();
+    }
+    Iface[int] aa3;
+    int[Iface] aa4;
+}

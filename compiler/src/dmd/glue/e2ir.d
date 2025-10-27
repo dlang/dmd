@@ -3160,6 +3160,13 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitCond(CondExp ce)
     {
+        // condition `__ctfe`/`!__ctfe` is always false/true at runtime, so skip code generation
+        //  for ce.e1/e2. This can also be the result of inlining an `if (__ctfe)` statement
+        auto ctfecond = ce.econd.op == EXP.not ? (cast(NotExp)ce.econd).e1 : ce.econd;
+        if (auto ve = ctfecond.isVarExp())
+            if (ve.var && ve.var.ident == Id.ctfe)
+                return toElem(ctfecond is ce.econd ? ce.e2 : ce.e1, irs);
+
         elem* ec = toElem(ce.econd, irs);
 
         elem* eleft = toElem(ce.e1, irs);

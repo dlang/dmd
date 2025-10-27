@@ -1513,7 +1513,7 @@ class ConservativeGC : GC
         auto existingUsed = slice.length + offset;
 
         size_t typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
-        if (__setArrayAllocLengthImpl(info, offset + newUsed, atomic, existingUsed, typeInfoSize))
+        if (__setArrayAllocLengthImpl(info, newUsed, atomic, existingUsed, typeInfoSize))
         {
             // could expand without extending
             if (!bic && !atomic)
@@ -5394,6 +5394,31 @@ unittest
     {
         // adjacent allocations likely but not guaranteed
         printf("unexpected pointers %p and %p\n", p.ptr, q.ptr);
+    }
+}
+
+// https://github.com/dlang/dmd/issues/22004
+@safe unittest
+{
+outer:
+    foreach (i; 1 .. 100)
+    {
+        foreach (j; 0 .. i)
+        {
+            int[] orig;
+            orig.length = i;
+            if (orig.capacity == orig.length)
+                // skip legitimate realloc cases
+                continue outer;
+
+            int[] slice = orig[j .. $];
+            assert(slice.capacity != 0);
+
+            auto ptr = &slice[0];
+            slice.length += 1;
+            // should not have realloc'd
+            assert(&slice[0] is ptr);
+        }
     }
 }
 

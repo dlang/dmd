@@ -1304,7 +1304,7 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 {
     if (!(flags & 64))
         value &= 0xFFFF_FFFF;
-    //printf("movregconst(reg=%s, value= %lld (%llx), flags=%llx)\n", regm_str(mask(reg)), value, value, flags);
+    //printf("movregconst(reg=%s, value= %lld x(%llx), flags=x%llx)\n", regm_str(mask(reg)), value, value, flags);
     assert(!(flags & (4 | 16)));
 
     regm_t regm = cgstate.regcon.immed.mval & mask(reg);
