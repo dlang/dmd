@@ -4340,14 +4340,14 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitDArray(TypeDArray t)
     {
-        auto baseTy = t.next.toBasetype().ty;
+        auto basetype = t.next.toBasetype();
         if (hgs.declstring)
             goto L1;
-        if (baseTy == Tchar && t.isImmutable())
+        if (basetype.ty == Tchar && basetype.isImmutable())
             buf.put("string");
-        else if (baseTy == Twchar && t.isImmutable())
+        else if (basetype.ty == Twchar && basetype.isImmutable())
             buf.put("wstring");
-        else if (baseTy == Tdchar && t.isImmutable())
+        else if (basetype.ty == Tdchar && basetype.isImmutable())
             buf.put("dstring");
         else
         {
