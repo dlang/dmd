@@ -72,6 +72,39 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+uint alignsize(Type _this)
+{
+    static uint structAlignsize(TypeStruct _this)
+    {
+        import dmd.dsymbolsem : size;
+        _this.sym.size(Loc.initial); // give error for forward references
+        return _this.sym.alignsize;
+    }
+
+    static uint enumAlignsize(TypeEnum _this)
+    {
+        Type t = _this.memType();
+        if (t.ty == Terror)
+            return 4;
+        return t.alignsize();
+    }
+
+    if (auto tb = _this.isTypeBasic())
+        return target.alignsize(tb);
+
+    switch(_this.ty)
+    {
+        case Tvector: return cast(uint)_this.isTypeVector().basetype.size();
+        case Tsarray: return _this.isTypeSArray().next.alignsize();
+        // A DArray consists of two ptr-sized values, so align it on pointer size boundary
+        case Tarray, Tdelegate: return target.ptrsize;
+        case Tstruct: return structAlignsize(_this.isTypeStruct());
+        case Tenum: return enumAlignsize(_this.isTypeEnum());
+        case Tnoreturn: return 0;
+        default: return cast(uint)size(_this, Loc.initial);
+    }
+}
+
 /*************************************
  * Detect if type has pointer fields that are initialized to void.
  * Local stack variables with such void fields can remain uninitialized,
