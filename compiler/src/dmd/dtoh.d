@@ -1008,7 +1008,7 @@ public:
                     break;
 
                 case EnumKind.String, EnumKind.Enum:
-                    buf.writestring("static ");
+                    buf.writestring("constexpr static ");
                     auto target = determineEnumType(type);
                     target.accept(this);
                     buf.writestring(" const ");
@@ -1691,7 +1691,7 @@ public:
             }
             else
             {
-                buf.writestring("static ");
+                buf.writestring("constexpr static ");
                 auto target = determineEnumType(memberType);
                 target.accept(this);
                 buf.writestring(" const ");
