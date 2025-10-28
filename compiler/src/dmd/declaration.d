@@ -18,7 +18,6 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ctorflow;
 import dmd.dclass;
-import dmd.delegatize;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
