@@ -32,7 +32,6 @@ struct ASTCodegen
     public import dmd.nspace;
     public import dmd.statement;
     public import dmd.staticassert;
-    public import dmd.ctfeexpr;
     public import dmd.init : Designator;
 
 
