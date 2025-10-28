@@ -861,6 +861,12 @@ structalign_t alignment(Type type)
     return dmd.typesem.alignment(type);
 }
 
+uint alignsize(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.alignsize(type);
+}
+
 MATCH implicitConvTo(Type from, Type to)
 {
     import dmd.dcast;
@@ -902,6 +908,7 @@ void Type_init()
     import dmd.typesem;
     return dmd.typesem.Type_init();
 }
+
 
 /***********************************************************
  * typinf.d
