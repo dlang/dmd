@@ -10,4 +10,10 @@ void main()
 
     assert(num == 5);
     assert(func() == 9);
+
+    //https://github.com/dlang/dmd/issues/20478
+
+    static assert(A == B);
+    static assert(A == C);
+    static assert(A == D);
 }
