@@ -19,7 +19,6 @@ import dmd.astenums;
 import dmd.dcast : implicitConvTo;
 import dmd.declaration;
 import dmd.dscope;
-import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
