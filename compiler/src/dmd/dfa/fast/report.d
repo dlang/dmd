@@ -57,7 +57,7 @@ struct DFAReporter
                 var.var.ident.toChars);
     }
 
-    void onEndOfScope(FuncDeclaration fd, ref Loc loc)
+    void onEndOfScope(FuncDeclaration fd, ref const(Loc) loc)
     {
         // this is where we validate escapes, for a specific location
 
