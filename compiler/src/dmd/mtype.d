@@ -39,7 +39,7 @@ import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.stringtable;
 import dmd.tokens;
-import dmd.typesem;
+import dmd.typesem : pointerTo, immutableOf, arrayOf, sharedWildConstOf, sharedConstOf, wildConstOf, sharedWildOf, sharedConstOf;
 import dmd.visitor;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
