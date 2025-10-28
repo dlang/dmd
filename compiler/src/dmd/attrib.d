@@ -24,24 +24,19 @@
 
 module dmd.attrib;
 
-import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.cond;
-import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
-import dmd.func;
 import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
 import dmd.objc; // for objc.addSymbols
 import dmd.common.outbuffer;
-import dmd.root.array; // for each
 import dmd.visitor;
 
 /***********************************************************
