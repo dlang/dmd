@@ -491,12 +491,13 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
 void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 {
     printf("prolog_genvarargs()\n");
+
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
      * so we can reference it via pointers through va_arg().
      *   struct __va_argsave_t {
-     *     ulong[8] regs;      // 8 byte
-     *     ldouble[8] fpregs;  // 16 byte
+     *     ulong[8] regs;       // 8 byte
+     *     float128[8] fpregs;  // 16 byte q registers
      *     struct __va_list_tag // embedded within __va_argsave_t
      *     {
      *         void* stack;  // next stack param
@@ -537,50 +538,57 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 
     if (!cg.hasframe || cg.enforcealign)
         voff += cg.EBPtoESP;
-
-    regm_t namedargs = prolog_namedArgs();
     printf("voff: %llx\n", voff);
-    foreach (reg_t x; 0 .. 8)
-    {
-        if (!(mask(x) & namedargs))  // unnamed arguments would be the ... ones
-        {
-            //printf("offset: x%x %lld\n", cast(uint)voff + x * 8, voff + x * 8);
-            uint offset = cast(uint)voff + x * 8;
-            if (!cg.hasframe || cg.enforcealign)
-                cdb.gen1(INSTR.str_imm_gen(1,x,31,offset)); // STR x,[sp,#offset]
-            else
-                cdb.gen1(INSTR.str_imm_gen(1,x,29,offset)); // STR x,[bp,#offset]
-        }
-    }
 
-    foreach (reg_t q; 32 + 0 .. 32 + 8)
+    /* OSX AArch64 never passes variadic arguments in registers,
+     * so no need to transfer them to memory
+     */
+    if (!(config.exe & EX_OSX64))
     {
-        if (!(mask(q) & namedargs))  // unnamed arguments would be the ... ones
+        regm_t namedargs = prolog_namedArgs();
+        foreach (reg_t x; 0 .. 8)
         {
-            reg_t fp = (!cg.hasframe || cg.enforcealign) ? 31 : 29; // SP : BP
-            uint offset = cast(uint)voff + 8 * 8 + (q & 31) * 16;
-            offset /= 16;                                     // saving 128 bit Q registers
-            cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,fp,q));  // STR q,[sp,#offset]
+            if (!(mask(x) & namedargs))  // unnamed arguments would be the ... ones
+            {
+                //printf("offset: x%x %lld\n", cast(uint)voff + x * 8, voff + x * 8);
+                uint offset = cast(uint)voff + x * 8;
+                if (!cg.hasframe || cg.enforcealign)
+                    cdb.gen1(INSTR.str_imm_gen(1,x,31,offset)); // STR x,[sp,#offset]
+                else
+                    cdb.gen1(INSTR.str_imm_gen(1,x,29,offset)); // STR x,[bp,#offset]
+            }
+        }
+
+        foreach (reg_t q; 32 + 0 .. 32 + 8)
+        {
+            if (!(mask(q) & namedargs))  // unnamed arguments would be the ... ones
+            {
+                reg_t fp = (!cg.hasframe || cg.enforcealign) ? 31 : 29; // SP : BP
+                uint offset = cast(uint)voff + 8 * 8 + (q & 31) * 16;
+                offset /= 16;                                     // saving 128 bit Q registers
+                cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,fp,q));  // STR q,[sp,#offset]
+            }
         }
     }
 
     reg_t reg = 11;
     uint imm12 = cast(uint)(cg.Para.size + cg.Para.offset);
-    assert(imm12 < 0x1000);
+    assert(imm12 < 0x1000);  // BUG AArch64
     cdb.gen1(INSTR.addsub_imm(1,0,0,0,imm12,31,reg));   // ADD reg,sp,imm12
     uint offset = cast(uint)voff+8*8+8*16+8*4;
     printf("voff: %llx offset: %x\n", voff, offset);
-offset &= 0xFFF; // TODO AArch64
-    assert(offset < 0x1000);
+    assert(offset < 0x1000); // BUG AArch64
     cdb.gen1(INSTR.str_imm_gen(1,reg,31,offset));       // STR reg,[sp,#voff+8*8+8*16+8*4]
     useregs(mask(reg));
 }
 
 /********************************
- * Generate elems that implement va_start()
+ * Generate elem that implement va_start()
  * Params:
  *      sv = symbol for __va_argsave
  *      parmn = last named parameter
+ * Returns:
+ *      elem that initializes all __va_list_tag fields
  */
 @trusted
 elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
@@ -592,7 +600,7 @@ elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
      *     ulong[8] regs;        // 8 bytes each
      *     float128[8] fpregs;   // 16 bytes each
      *     // AArch64 Procedure Call Standard 12.2
-     *     struct __va_list_tag // embedded within __va_argsave_t
+     *     struct __va_list_tag // embedded within __va_argsave_t, gen elem to init it
      *     {
      *         void* stack;  // next stack param
      *         void* gr_top; // end of GP arg reg save area
@@ -641,6 +649,15 @@ elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
             ++named_vr;
             namedargs &= ~m;
         }
+    }
+
+    if (config.exe & EX_OSX64)
+    {
+        /* assume all argument registers are consumed,
+         * so that variadic arguments are always on the stack
+         */
+        named_gr = 8;
+        named_vr = 8;
     }
 
     // set stack to address following the last named incoming argument on the stack
