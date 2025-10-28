@@ -20,21 +20,15 @@ import core.checkedint;
 import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.attrib;
 import dmd.declaration;
 import dmd.dscope;
-import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
-import dmd.hdrgen;
-import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
-import dmd.tokens;
 import dmd.visitor;
 
 /**
