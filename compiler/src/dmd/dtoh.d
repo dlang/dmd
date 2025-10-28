@@ -18,8 +18,6 @@ import core.stdc.ctype;
 import dmd.astcodegen;
 import dmd.astenums;
 import dmd.arraytypes;
-import dmd.attrib;
-import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.templatesem : computeOneMember;
 import dmd.errors;
@@ -581,7 +579,6 @@ public:
         debug (Debug_DtoH)
         {
             mixin(traceVisit!s);
-            import dmd.asttypename;
             printf("[AST.Dsymbol enter] %s\n", s.astTypeName().ptr);
         }
     }
@@ -1755,7 +1752,6 @@ public:
         // `this` but accessible via `outer`
         if (auto td = s.isThisDeclaration())
         {
-            import dmd.id;
             this.ident = Id.outer;
         }
         else
@@ -2705,7 +2701,6 @@ public:
         }
         else
         {
-            import dmd.hdrgen;
             // Hex floating point literals were introduced in C++ 17
             const allowHex = global.params.cplusplus >= CppStdRevision.cpp17;
             floatToBuffer(e.type, e.value, *buf, allowHex);
