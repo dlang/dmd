@@ -88,7 +88,7 @@ COPY=\
 	$(IMPDIR)\core\internal\util\array.d \
 	$(IMPDIR)\core\internal\util\math.d \
 	\
-	$(IMPDIR)\core\internal\vararg\aarch64.d \
+	$(IMPDIR)\core\internal\vararg\aapcs64.d \
 	$(IMPDIR)\core\internal\vararg\sysv_x64.d \
 	\
 	$(IMPDIR)\core\stdc\assert_.d \
