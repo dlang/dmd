@@ -63,6 +63,7 @@ DOCS=\
 	\
 	$(DOCDIR)\core_internal_vararg_aarch64.html \
 	$(DOCDIR)\core_internal_vararg_sysv_x64.html \
+	$(DOCDIR)\core_internal_vararg_gnu.html \
 	\
 	$(DOCDIR)\core_internal_backtrace_dwarf.html \
 	$(DOCDIR)\core_internal_backtrace_elf.html \

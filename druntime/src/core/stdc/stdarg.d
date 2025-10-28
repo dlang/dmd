@@ -15,17 +15,17 @@ module core.stdc.stdarg;
 @nogc:
 nothrow:
 
+version (GNU)
+    public import core.internal.vararg.gnu;
+else:
+
 version (X86_64)
 {
     version (Windows) { /* different ABI */ }
     else version = SysV_x64;
 }
 
-version (GNU)
-{
-    import gcc.builtins;
-}
-else version (SysV_x64)
+version (SysV_x64)
 {
     static import core.internal.vararg.sysv_x64;
 
@@ -49,11 +49,7 @@ version (PPC64)   version = PPC_Any;
 version (RISCV32) version = RISCV_Any;
 version (RISCV64) version = RISCV_Any;
 
-version (GNU)
-{
-    // Uses gcc.builtins
-}
-else version (ARM_Any)
+version (ARM_Any)
 {
     // Darwin uses a simpler varargs implementation
     version (OSX) {}
@@ -107,12 +103,7 @@ version (BigEndian)
 /**
  * The argument pointer type.
  */
-version (GNU)
-{
-    alias va_list = __gnuc_va_list;
-    alias __gnuc_va_list = __builtin_va_list;
-}
-else version (SysV_x64)
+version (SysV_x64)
 {
     alias va_list = core.internal.vararg.sysv_x64.va_list;
     public import core.internal.vararg.sysv_x64 : __va_list, __va_list_tag;
@@ -149,11 +140,7 @@ else
  * Initialize ap.
  * parmn should be the last named parameter.
  */
-version (GNU)
-{
-    void va_start(T)(out va_list ap, ref T parmn);
-}
-else version (LDC)
+version (LDC)
 {
     pragma(LDC_va_start)
     void va_start(T)(out va_list ap, ref T parmn) @nogc;
@@ -177,9 +164,6 @@ else version (DigitalMars)
 /**
  * Retrieve and return the next value that is of type T.
  */
-version (GNU)
-    T va_arg(T)(ref va_list ap); // intrinsic
-else
 T va_arg(T)(ref va_list ap)
 {
     version (X86)
@@ -295,9 +279,6 @@ T va_arg(T)(ref va_list ap)
 /**
  * Retrieve and store in parmn the next value that is of type T.
  */
-version (GNU)
-    void va_arg(T)(ref va_list ap, ref T parmn); // intrinsic
-else
 void va_arg(T)(ref va_list ap, ref T parmn)
 {
     parmn = va_arg!T(ap);
@@ -307,11 +288,7 @@ void va_arg(T)(ref va_list ap, ref T parmn)
 /**
  * End use of ap.
  */
-version (GNU)
-{
-    alias va_end = __builtin_va_end;
-}
-else version (LDC)
+version (LDC)
 {
     pragma(LDC_va_end)
     void va_end(va_list ap);
@@ -325,11 +302,7 @@ else version (DigitalMars)
 /**
  * Make a copy of ap.
  */
-version (GNU)
-{
-    alias va_copy = __builtin_va_copy;
-}
-else version (LDC)
+version (LDC)
 {
     pragma(LDC_va_copy)
     void va_copy(out va_list dest, va_list src);
