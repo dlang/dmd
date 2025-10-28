@@ -1514,7 +1514,7 @@ extern (C++) abstract class TypeNext : Type
         {
             assert(mcache.scto.mod == (MODFlags.shared_ | MODFlags.const_));
             return mcache.scto;
-    }
+        }
         TypeNext t = cast(TypeNext)Type.makeSharedConst();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
         {
