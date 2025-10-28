@@ -21,7 +21,6 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.declaration;
 import dmd.dmodule;
-import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.expression;
@@ -30,10 +29,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
-import dmd.opover;
-import dmd.target;
 import dmd.tokens;
-import dmd.typinf;
 import dmd.visitor;
 
 enum StructFlags : int
