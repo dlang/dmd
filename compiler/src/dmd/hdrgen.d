@@ -4083,21 +4083,56 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
         return;
     }
     t.inuse++;
+    bool parenWritten = false;
+    void openParenthesis()
+    {
+        if (!parenWritten)
+        {
+            buf.put('(');
+            parenWritten = true;
+        }
+    }
     if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
     {
+        openParenthesis();
         linkageToBuffer(buf, t.linkage);
         buf.put(' ');
     }
     if (t.linkage == LINK.objc && isStatic)
-        buf.write("static ");
+        buf.put("static ");
     if (t.next)
     {
+        if (t.isRef)
+        {
+            openParenthesis();
+            buf.put("ref ");
+        }
+        immutable bool hasNestedNonParendCallable = {
+            for ({ Type tt = t; TypeNext tn = null; } (tn = tt.isTypeNext) !is null;)
+            {
+                tt = tn.next;
+                switch (tt.ty)
+                {
+                    case Tsarray, Tarray, Taarray, Tpointer, Treference, Tdelegate, Tslice: continue;
+                    case Tfunction:
+                        TypeFunction tf = cast(TypeFunction) tt;
+                        return !tf.isRef && tf.linkage <= LINK.d;
+                    default: return false;
+                }
+            }
+            return false;
+        }();
+        if (hasNestedNonParendCallable) buf.writeByte('(');
         typeToBuffer(t.next, null, buf, hgs);
+        if (hasNestedNonParendCallable) buf.writeByte(')');
         if (ident)
             buf.put(' ');
     }
     else if (hgs.ddoc)
+    {
+        openParenthesis();
         buf.put("auto ");
+    }
     if (ident)
         buf.put(ident);
     parametersToBuffer(t.parameterList, buf, hgs);
@@ -4109,13 +4144,15 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
         MODtoBuffer(buf, t.mod);
     }
 
-    void dg(string str)
+    void writeAttribute(string str)
     {
+        if (str == "ref") return; // 'ref' is handled above
         buf.put(' ');
         buf.put(str);
     }
-    t.attributesApply(&dg);
-
+    t.attributesApply(&writeAttribute);
+    if (parenWritten)
+        buf.put(')');
     t.inuse--;
 }
 
