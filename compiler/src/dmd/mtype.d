@@ -58,6 +58,109 @@ private auto X(T, U)(T m, U n)
     return (m << 4) | n;
 }
 
+/* Helper function for `typeToExpression`. Contains common code
+ * for TypeQualified derived classes.
+ */
+Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
+{
+    //printf("toExpressionHelper(e = %s %s)\n", EXPtoString(e.op).ptr, e.toChars());
+    foreach (id; t.idents[i .. t.idents.length])
+    {
+        //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
+
+        final switch (id.dyncast())
+        {
+            // ... '. ident'
+            case DYNCAST.identifier:
+                e = new DotIdExp(e.loc, e, cast(Identifier)id);
+                break;
+
+            // ... '. name!(tiargs)'
+            case DYNCAST.dsymbol:
+                auto ti = (cast(Dsymbol)id).isTemplateInstance();
+                assert(ti);
+                e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
+                break;
+
+            // ... '[type]'
+            case DYNCAST.type:          // https://issues.dlang.org/show_bug.cgi?id=1215
+                e = new ArrayExp(t.loc, e, new TypeExp(t.loc, cast(Type)id));
+                break;
+
+            // ... '[expr]'
+            case DYNCAST.expression:    // https://issues.dlang.org/show_bug.cgi?id=1215
+                e = new ArrayExp(t.loc, e, cast(Expression)id);
+                break;
+
+            case DYNCAST.object:
+            case DYNCAST.tuple:
+            case DYNCAST.parameter:
+            case DYNCAST.statement:
+            case DYNCAST.condition:
+            case DYNCAST.templateparameter:
+            case DYNCAST.initializer:
+                assert(0);
+        }
+    }
+    return e;
+}
+
+/******************************************
+ * We've mistakenly parsed `t` as a type.
+ * Redo `t` as an Expression only if there are no type modifiers.
+ * Params:
+ *      t = mistaken type
+ * Returns:
+ *      t redone as Expression, null if cannot
+ */
+Expression typeToExpression(Type t)
+{
+    static Expression visitSArray(TypeSArray t)
+    {
+        if (auto e = t.next.typeToExpression())
+            return new ArrayExp(t.dim.loc, e, t.dim);
+        return null;
+    }
+
+    static Expression visitAArray(TypeAArray t)
+    {
+        if (auto e = t.next.typeToExpression())
+        {
+            if (auto ei = t.index.typeToExpression())
+                return new ArrayExp(t.loc, e, ei);
+        }
+        return null;
+    }
+
+    static Expression visitIdentifier(TypeIdentifier t)
+    {
+        return typeToExpressionHelper(t, new IdentifierExp(t.loc, t.ident));
+    }
+
+    static Expression visitInstance(TypeInstance t)
+    {
+        return typeToExpressionHelper(t, new ScopeExp(t.loc, t.tempinst));
+    }
+
+    // easy way to enable 'auto v = new int[mixin("exp")];' in 2.088+
+    static Expression visitMixin(TypeMixin t)
+    {
+        return new TypeExp(t.loc, t);
+    }
+
+    if (t.mod)
+        return null;
+    switch (t.ty)
+    {
+        case Tsarray:   return visitSArray(t.isTypeSArray());
+        case Taarray:   return visitAArray(t.isTypeAArray());
+        case Tident:    return visitIdentifier(t.isTypeIdentifier());
+        case Tinstance: return visitInstance(t.isTypeInstance());
+        case Tmixin:    return visitMixin(t.isTypeMixin());
+        default:        return null;
+    }
+}
+
 /***************************
  * Return !=0 if modfrom can be implicitly converted to modto
  */
