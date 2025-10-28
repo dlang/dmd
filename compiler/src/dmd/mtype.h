@@ -686,7 +686,6 @@ public:
 
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
-    Type *memType(Loc loc);
     bool isIntegral() override;
     bool isFloating() override;
     bool isReal() override;
@@ -823,5 +822,6 @@ namespace dmd
     bool hasVoidInitPointers(Type* type);
     void Type_init();
     structalign_t alignment(Type* type);
+    Type* memType(TypeEnum* type);
     unsigned alignsize(Type* type);
 }

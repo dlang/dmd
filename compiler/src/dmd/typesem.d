@@ -72,6 +72,19 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+Type toBasetype2(TypeEnum _this)
+{
+    if (!_this.sym.members && !_this.sym.memtype)
+        return _this;
+    auto tb = _this.sym.getMemtype(Loc.initial).toBasetype();
+    return tb.castMod(_this.mod); // retain modifier bits from '_this'
+}
+
+Type memType(TypeEnum _this)
+{
+    return _this.sym.getMemtype(Loc.initial);
+}
+
 uint alignsize(Type _this)
 {
     static uint structAlignsize(TypeStruct _this)

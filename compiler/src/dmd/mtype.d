@@ -27,7 +27,6 @@ import dmd.denum;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.hdrgen;
@@ -2813,82 +2812,69 @@ extern (C++) final class TypeEnum : Type
         return this;
     }
 
-    Type memType()
-    {
-        return sym.getMemtype(Loc.initial);
-    }
-
     override bool isIntegral()
     {
-        return memType().isIntegral();
+        return this.memType().isIntegral();
     }
 
     override bool isFloating()
     {
-        return memType().isFloating();
+        return this.memType().isFloating();
     }
 
     override bool isReal()
     {
-        return memType().isReal();
+        return this.memType().isReal();
     }
 
     override bool isImaginary()
     {
-        return memType().isImaginary();
+        return this.memType().isImaginary();
     }
 
     override bool isComplex()
     {
-        return memType().isComplex();
+        return this.memType().isComplex();
     }
 
     override bool isScalar()
     {
-        return memType().isScalar();
+        return this.memType().isScalar();
     }
 
     override bool isUnsigned()
     {
-        return memType().isUnsigned();
+        return this.memType().isUnsigned();
     }
 
     override bool isBoolean()
     {
-        return memType().isBoolean();
+        return this.memType().isBoolean();
     }
 
     override bool isString()
     {
-        return memType().isString();
+        return this.memType().isString();
     }
 
     override bool needsDestruction()
     {
-        return memType().needsDestruction();
+        return this.memType().needsDestruction();
     }
 
     override bool needsCopyOrPostblit()
     {
-        return memType().needsCopyOrPostblit();
+        return this.memType().needsCopyOrPostblit();
     }
 
     override bool needsNested()
     {
-        return memType().needsNested();
-    }
-
-    extern (D) Type toBasetype2()
-    {
-        if (!sym.members && !sym.memtype)
-            return this;
-        auto tb = sym.getMemtype(Loc.initial).toBasetype();
-        return tb.castMod(mod);         // retain modifier bits from 'this'
+        return this.memType().needsNested();
     }
 
     override Type nextOf()
     {
-        return memType().nextOf();
+        return this.memType().nextOf();
     }
 
     override void accept(Visitor v)

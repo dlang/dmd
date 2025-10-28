@@ -837,6 +837,12 @@ Type referenceTo(Type type)
     return dmd.typesem.referenceTo(type);
 }
 
+Type memType(TypeEnum type)
+{
+    import dmd.typesem;
+    return dmd.typesem.memType(type);
+}
+
 uinteger_t size(Type type)
 {
     import dmd.typesem;

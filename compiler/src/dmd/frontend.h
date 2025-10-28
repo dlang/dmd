@@ -4495,7 +4495,6 @@ public:
     EnumDeclaration* sym;
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
-    Type* memType();
     bool isIntegral() override;
     bool isFloating() override;
     bool isReal() override;
