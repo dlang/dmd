@@ -90,6 +90,7 @@ COPY=\
 	\
 	$(IMPDIR)\core\internal\vararg\aarch64.d \
 	$(IMPDIR)\core\internal\vararg\sysv_x64.d \
+	$(IMPDIR)\core\internal\vararg\gnu.d \
 	\
 	$(IMPDIR)\core\stdc\assert_.d \
 	$(IMPDIR)\core\stdc\stdatomic.d \
