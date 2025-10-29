@@ -16,4 +16,8 @@ void main()
     static assert(A == B);
     static assert(A == C);
     static assert(A == D);
+
+    //https://github.com/dlang/dmd/issues/20194
+    assert(test == 9);
+    assert(ABOLD == 7);
 }

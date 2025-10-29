@@ -5728,7 +5728,40 @@ final class CParser(AST) : Parser!AST
                                 continue;
                             }
 
+                            /*
+                             * macros can also refer to functions
+                             * #define test func(2,3)
+                             * where func has its definition elsewhere
+                             * we su much want this evaluated at runtime
+                             * import std.variant and set the type
+                             */
+                            if (token.value == TOK.leftParenthesis)
+                            {
+                                /* import std.variant */
+                                Identifier[] packages;
+                                packages ~= Identifier.idPool("std");
+                                auto imp = new AST.Import(loc, packages, Identifier.idPool("variant"), null, 1);
+                                addSym(imp);
+
+                                /* type the variable as variant */
+                                auto tid = new AST.TypeIdentifier(loc, Identifier.idPool("std"));
+                                tid.addIdent(Identifier.idPool("variant"));
+                                tid.addIdent(Identifier.idPool("Variant"));
+                                auto decl = new AST.VarDeclaration(loc, tid, id, null);
+                                addSym(decl);
+
+                                // wrap assignment in static this
+                                auto f = new AST.StaticCtorDeclaration(loc, Loc.initial, STC.static_);
+                                auto call = new AST.CallExp(loc, new AST.IdentifierExp(loc, ident), cparseArguments());
+                                auto assign = new AST.AssignExp(loc, new AST.IdentifierExp(loc, id), call);
+                                f.fbody = new AST.ExpStatement(loc, assign);
+
+                                ++p;
+                                continue;
+                            }
+
                             nextToken();
+
                             if (token.value != TOK.endOfFile)
                             {
                                 ++p;
@@ -5922,6 +5955,14 @@ immutable string[] builtins = [
     "X",
     "_Use_decl_anno_impl_",
     "vector_size",
+    "INTMAX_C",
+    "UINTMAX_C",
+    "_SAL_L_Source_",
+    "_SAL1_1_Source_",
+    "_SAL2_Source_",
+    "_Pre_equal_to_",
+    "_CRT_DEPRECATE_TEXT",
+    "throw",
     "complex" // stay away from the C99 _complex keyword that share diffs on windows/POSIX
 ];
 

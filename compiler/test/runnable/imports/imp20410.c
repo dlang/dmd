@@ -23,3 +23,9 @@ int function()
 #define B A
 #define C (A)
 #define D (B)
+
+//https://github.com/dlang/dmd/issues/20194
+
+#define test_func(x, y) (x + y)
+#define ABOLD test_func(2,5)
+#define test test_func(5,4)
