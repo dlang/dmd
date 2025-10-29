@@ -65,7 +65,7 @@ version (ARM_Any)
     else version (AArch64)
     {
         version = AAPCS64;
-        static import core.internal.vararg.aarch64;
+        static import core.internal.vararg.aapcs64;
     }
 }
 
@@ -120,9 +120,9 @@ else version (AAPCS32)
 }
 else version (AAPCS64)
 {
-    alias va_list = core.internal.vararg.aarch64.va_list;
+    alias va_list = core.internal.vararg.aapcs64.va_list;
     version (DigitalMars)
-        public import core.internal.vararg.aarch64 : __va_list, __va_list_tag;
+        public import core.internal.vararg.aapcs64 : __va_list, __va_list_tag;
 }
 else version (RISCV_Any)
 {
@@ -213,7 +213,7 @@ T va_arg(T)(ref va_list ap)
     }
     else version (AAPCS64)
     {
-        return core.internal.vararg.aarch64.va_arg!T(ap);
+        return core.internal.vararg.aapcs64.va_arg!T(ap);
     }
     else version (ARM_Any)
     {
