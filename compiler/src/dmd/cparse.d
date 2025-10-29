@@ -5728,7 +5728,25 @@ final class CParser(AST) : Parser!AST
                                 continue;
                             }
 
+                            /*
+                             * macros can also refer to functions
+                             * #define test func(2,3)
+                             * where func has its definition elsewhere
+                             * don't treat them as manifest constants because functions can be eval at runtime
+                             * eg. zlibversion() in zlib where its macro is resolved at runtime
+                             */
+                            if (token.value == TOK.leftParenthesis)
+                            {
+                                auto call = new AST.CallExp(loc, new AST.IdentifierExp(loc, ident), cparseArguments()); // right paren checked here
+                                auto decl = new AST.VarDeclaration(loc, null, id, new AST.ExpInitializer(loc, call), STC.gshared);
+                                addSym(decl);
+
+                                ++p;
+                                continue;
+                            }
+
                             nextToken();
+
                             if (token.value != TOK.endOfFile)
                             {
                                 ++p;
@@ -5922,6 +5940,14 @@ immutable string[] builtins = [
     "X",
     "_Use_decl_anno_impl_",
     "vector_size",
+    "INTMAX_C",
+    "UINTMAX_C",
+    "_SAL_L_Source_",
+    "_SAL1_1_Source_",
+    "_SAL2_Source_",
+    "_Pre_equal_to_",
+    "_CRT_DEPRECATE_TEXT",
+    "throw",
     "complex" // stay away from the C99 _complex keyword that share diffs on windows/POSIX
 ];
 
