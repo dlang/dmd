@@ -17,7 +17,6 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 import dmd.aggregate;
-import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astenums;
@@ -34,10 +33,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
-import dmd.id;
 import dmd.identifier;
-import dmd.init;
-import dmd.lexer;
 import dmd.location;
 import dmd.mtype;
 import dmd.nspace;

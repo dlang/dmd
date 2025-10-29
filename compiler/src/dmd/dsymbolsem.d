@@ -42,7 +42,6 @@ import dmd.dversion;
 import dmd.enumsem;
 import dmd.errors;
 import dmd.errorsink;
-import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -53,7 +52,6 @@ import dmd.identifier;
 import dmd.importc;
 import dmd.init;
 import dmd.initsem;
-import dmd.intrange;
 import dmd.hdrgen;
 import dmd.lexer;
 import dmd.location;
@@ -61,12 +59,9 @@ import dmd.mtype;
 import dmd.mustuse;
 import dmd.nspace;
 import dmd.objc;
-import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
-debug import dmd.printast;
 import dmd.root.array;
-import dmd.root.filename;
 import dmd.root.string;
 import dmd.root.rmem;
 import dmd.root.speller;
@@ -78,11 +73,9 @@ import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.utils;
 import dmd.statement;
 import dmd.target;
 import dmd.targetcompiler;
-import dmd.templateparamsem;
 import dmd.templatesem;
 import dmd.typesem;
 import dmd.visitor;
@@ -265,7 +258,6 @@ Dsymbol search(Scope* _this, Loc loc, Identifier ident, out Dsymbol pscopesym, S
 
     Dsymbol checkAliasThis(AggregateDeclaration ad, Identifier ident, SearchOptFlags flags, Expression* exp)
     {
-        import dmd.mtype;
         if (!ad || !ad.aliasthis)
             return null;
 
@@ -1485,7 +1477,6 @@ bool isPOD(StructDeclaration sd)
     if (sd.ispod != ThreeState.none)
         return (sd.ispod == ThreeState.yes);
 
-    import dmd.clone;
 
     bool hasCpCtorLocal;
     bool hasMoveCtorLocal;

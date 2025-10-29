@@ -14,8 +14,6 @@ module dmd.initsem;
 import core.stdc.stdio;
 import core.checkedint;
 
-import dmd.aggregate;
-import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.dcast;
@@ -617,7 +615,6 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         static if (0)
             if (auto ts = tx.isTypeStruct())
             {
-                import dmd.common.outbuffer;
                 OutBuffer buf;
                 HdrGenState hgs;
                 toCBuffer(ts.sym, buf, hgs);

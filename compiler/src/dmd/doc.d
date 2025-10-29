@@ -45,8 +45,6 @@ import dmd.lexer;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.array;
-import dmd.root.file;
-import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;

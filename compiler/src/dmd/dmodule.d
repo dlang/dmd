@@ -25,12 +25,10 @@ import dmd.common.outbuffer;
 import dmd.compiler;
 import dmd.cparse;
 import dmd.declaration;
-import dmd.dimport;
 import dmd.dmacro;
 import dmd.doc;
 import dmd.dsymbol;
 import dmd.errors;
-import dmd.errorsink;
 import dmd.expression;
 import dmd.file_manager;
 import dmd.func;
@@ -43,11 +41,8 @@ import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.port;
-import dmd.root.rmem;
 import dmd.root.string;
-import dmd.rootobject;
 import dmd.target;
-import dmd.utils;
 import dmd.visitor;
 
 version (Windows)

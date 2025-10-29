@@ -31,13 +31,11 @@ import dmd.globals : dinteger_t, sinteger_t, uinteger_t;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.bitarray;
-import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
 
 /****************************************************************/
 /* A type meant as a union of all the Expression types,

@@ -5485,41 +5485,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-struct UnionExp final
-{
-    #pragma pack(push, 8)
-private:
-    union _AnonStruct_u
-    {
-        char exp[22LLU];
-        char integerexp[32LLU];
-        char errorexp[22LLU];
-        char realexp[48LLU];
-        char complexexp[64LLU];
-        char symoffexp[56LLU];
-        char stringexp[44LLU];
-        char arrayliteralexp[56LLU];
-        char assocarrayliteralexp[56LLU];
-        char structliteralexp[64LLU];
-        char compoundliteralexp[32LLU];
-        char nullexp[22LLU];
-        char dotvarexp[41LLU];
-        char addrexp[32LLU];
-        char indexexp[58LLU];
-        char sliceexp[57LLU];
-        char vectorexp[45LLU];
-    };
-    #pragma pack(pop)
-
-    // Ignoring var u alignment 8
-    _AnonStruct_u u;
-public:
-    UnionExp() :
-        u()
-    {
-    }
-};
-
 enum class MODFlags
 {
     none = 0,
@@ -5902,8 +5867,6 @@ struct ASTCodegen final
     using WhileStatement = ::WhileStatement;
     using WithStatement = ::WithStatement;
     using StaticAssert = ::StaticAssert;
-    using UnionExp = ::UnionExp;
-    using emplaceExp = ::emplaceExp;
     typedef UserAttributeDeclaration* UserAttributeDeclaration;
     typedef Ensure Ensure;
     typedef ErrorExp* ErrorExp;
