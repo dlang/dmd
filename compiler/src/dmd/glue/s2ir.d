@@ -1566,7 +1566,7 @@ void insertFinallyBlockCalls(block* startblock)
                  *  BC.goto_     [BC._try]
                  *  BC._try     [body] [BC._finally]
                  *  body
-                 *x BC.goto_     sflag=n; [finalbody]
+                 *x BC.goto_     sflag=n; [BC._finally]
                  *  BC._finally [BC._lpad] [finalbody] [breakblock]
                  *  BC._lpad    [finalbody]
                  *  finalbody
@@ -1596,15 +1596,8 @@ void insertFinallyBlockCalls(block* startblock)
                     elem* e = el_bin(OPeq, TYint, el_var(sflag), el_long(TYint, flagvalue));
                     b.Belem = el_combine(b.Belem, e);
 
-                    if (blast.bc == BC.iftrue)
-                    {
-                        blast.setNthSucc(0, bf.nthSucc(1));
-                    }
-                    else
-                    {
-                        assert(blast.bc == BC.goto_);
-                        blast.setNthSucc(0, bf.nthSucc(1));
-                    }
+                    assert(blast.bc == BC.goto_ || blast.bc == BC.iftrue);
+                    blast.setNthSucc(0, bf);
 
                     // Create new block, bnew, which will replace retblock
                     block* bnew = dmd.backend.global.block_calloc();
