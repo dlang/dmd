@@ -28,16 +28,6 @@ version (X86_64)
 version (SysV_x64)
 {
     static import core.internal.vararg.sysv_x64;
-
-    version (DigitalMars)
-    {
-        align(16) struct __va_argsave_t
-        {
-            size_t[6] regs;   // RDI,RSI,RDX,RCX,R8,R9
-            real[8] fpregs;   // XMM0..XMM7
-            __va_list va;
-        }
-    }
 }
 
 version (ARM)     version = ARM_Any;
@@ -105,8 +95,7 @@ version (BigEndian)
  */
 version (SysV_x64)
 {
-    alias va_list = core.internal.vararg.sysv_x64.va_list;
-    public import core.internal.vararg.sysv_x64 : __va_list, __va_list_tag;
+    public import core.internal.vararg.sysv_x64 : va_list, __va_list, __va_list_tag;
 }
 else version (AAPCS32)
 {

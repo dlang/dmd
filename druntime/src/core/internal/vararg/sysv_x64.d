@@ -41,6 +41,16 @@ alias __va_list = __va_list_tag;
  */
 alias va_list = __va_list*;
 
+version (DigitalMars)
+{
+    align(16) struct __va_argsave_t
+    {
+        size_t[6] regs;   // RDI,RSI,RDX,RCX,R8,R9
+        real[8] fpregs;   // XMM0..XMM7
+        __va_list va;
+    }
+}
+
 ///
 T va_arg(T)(va_list ap)
 {
