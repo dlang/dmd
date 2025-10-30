@@ -81,6 +81,7 @@ import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.string;
 import dmd.root.utf;
+import dmd.root.rmem;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.sideeffect;
@@ -98,6 +99,80 @@ import dmd.visitor;
 import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
+
+StringExp toStringExp(Expression _this)
+{
+    static StringExp nullExpToStringExp(NullExp _this)
+    {
+        if (_this.type.implicitConvTo(Type.tstring))
+        {
+            auto se = new StringExp(_this.loc, (cast(char*).mem.xcalloc(1, 1))[0 .. 0]);
+            se.type = Type.tstring;
+            return se;
+        }
+        return null;
+    }
+
+    static StringExp arrayLiteralToStringExp(ArrayLiteralExp _this)
+    {
+        TY telem = _this.type.nextOf().toBasetype().ty;
+        if (!(telem.isSomeChar || (telem == Tvoid && (!_this.elements || _this.elements.length == 0))))
+            return null;
+
+        ubyte sz = 1;
+        if (telem == Twchar)
+            sz = 2;
+        else if (telem == Tdchar)
+            sz = 4;
+
+        OutBuffer buf;
+        if (_this.elements)
+        {
+            foreach (i; 0 .. _this.elements.length)
+            {
+                auto ch = _this[i];
+                if (ch.op != EXP.int64)
+                    return null;
+                if (sz == 1)
+                    buf.writeByte(cast(ubyte)ch.toInteger());
+                else if (sz == 2)
+                    buf.writeword(cast(uint)ch.toInteger());
+                else
+                    buf.write4(cast(uint)ch.toInteger());
+            }
+        }
+        char prefix;
+        if (sz == 1)
+        {
+            prefix = 'c';
+            buf.writeByte(0);
+        }
+        else if (sz == 2)
+        {
+            prefix = 'w';
+            buf.writeword(0);
+        }
+        else
+        {
+            prefix = 'd';
+            buf.write4(0);
+        }
+
+        const size_t len = buf.length / sz - 1;
+        auto se = new StringExp(_this.loc, buf.extractSlice()[0 .. len * sz], len, sz, prefix);
+        se.sz = sz;
+        se.type = _this.type;
+        return se;
+    }
+
+    switch(_this.op)
+    {
+        case EXP.null_: return nullExpToStringExp(_this.isNullExp());
+        case EXP.string_: return _this.isStringExp();
+        case EXP.arrayLiteral: return arrayLiteralToStringExp(_this.isArrayLiteralExp());
+        default: return null;
+    }
+}
 
 Optional!bool toBool(Expression _this)
 {

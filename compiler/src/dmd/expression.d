@@ -20,7 +20,6 @@ import core.stdc.string;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
-import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dstruct;
@@ -37,7 +36,6 @@ import dmd.location;
 import dmd.mtype;
 import dmd.root.complex;
 import dmd.root.ctfloat;
-import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.string;
@@ -493,11 +491,6 @@ extern (C++) abstract class Expression : ASTNode
     {
         error(loc, "floating point constant expression expected instead of `%s`", toChars());
         return complex_t(CTFloat.zero);
-    }
-
-    StringExp toStringExp()
-    {
-        return null;
     }
 
     /****************************************
@@ -1183,18 +1176,6 @@ extern (C++) final class NullExp : Expression
         this.type = type;
     }
 
-    override StringExp toStringExp()
-    {
-        if (this.type.implicitConvTo(Type.tstring))
-        {
-            auto se = new StringExp(loc, (cast(char*)mem.xcalloc(1, 1))[0 .. 0]);
-            se.type = Type.tstring;
-            return se;
-        }
-
-        return null;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1418,12 +1399,6 @@ extern (C++) final class StringExp : Expression
             break;
         }
     }
-
-    override StringExp toStringExp()
-    {
-        return this;
-    }
-
 
     /**
      * Compare two `StringExp` by length, then value
@@ -1702,58 +1677,6 @@ extern (C++) final class ArrayLiteralExp : Expression
     {
         auto el = (*elements)[i];
         return el ? el : basis;
-    }
-
-    override StringExp toStringExp()
-    {
-        TY telem = type.nextOf().toBasetype().ty;
-        if (!(telem.isSomeChar || (telem == Tvoid && (!elements || elements.length == 0))))
-            return null;
-
-        ubyte sz = 1;
-        if (telem == Twchar)
-            sz = 2;
-        else if (telem == Tdchar)
-            sz = 4;
-
-        OutBuffer buf;
-        if (elements)
-        {
-            foreach (i; 0 .. elements.length)
-            {
-                auto ch = this[i];
-                if (ch.op != EXP.int64)
-                    return null;
-                if (sz == 1)
-                    buf.writeByte(cast(ubyte)ch.toInteger());
-                else if (sz == 2)
-                    buf.writeword(cast(uint)ch.toInteger());
-                else
-                    buf.write4(cast(uint)ch.toInteger());
-            }
-        }
-        char prefix;
-        if (sz == 1)
-        {
-            prefix = 'c';
-            buf.writeByte(0);
-        }
-        else if (sz == 2)
-        {
-            prefix = 'w';
-            buf.writeword(0);
-        }
-        else
-        {
-            prefix = 'd';
-            buf.write4(0);
-        }
-
-        const size_t len = buf.length / sz - 1;
-        auto se = new StringExp(loc, buf.extractSlice()[0 .. len * sz], len, sz, prefix);
-        se.sz = sz;
-        se.type = type;
-        return se;
     }
 
     override void accept(Visitor v)
