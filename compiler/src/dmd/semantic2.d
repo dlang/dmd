@@ -799,7 +799,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     // `const` (and nor is `StringExp`, by extension).
     static int predicate(const scope Expression* e1, const scope Expression* e2)
     {
-        return (cast(Expression*)e1).toStringExp().compare((cast(Expression*)e2).toStringExp());
+        return (cast(Expression)e1).toStringExp().compare((cast(Expression)e2).toStringExp());
     }
     ale.elements.sort!predicate;
 }
