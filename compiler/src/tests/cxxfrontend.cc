@@ -1137,7 +1137,7 @@ public:
             for (size_t i = 0; i < s->args->length; i++)
             {
                 (void)(*s->names)[i]->toChars();
-                (*s->constraints)[i]->toStringExp()->accept(this);
+                dmd::toStringExp((*s->constraints)[i])->accept(this);
                 (*s->args)[i]->accept(this);
                 (void)s->outputargs;
             }
@@ -1145,7 +1145,7 @@ public:
         if (s->clobbers)
         {
             for (size_t i = 0; i < s->clobbers->length; i++)
-                (*s->clobbers)[i]->toStringExp()->accept(this);
+                dmd::toStringExp((*s->clobbers)[i])->accept(this);
         }
         if (s->labels)
         {
