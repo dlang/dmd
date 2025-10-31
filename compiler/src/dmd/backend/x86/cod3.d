@@ -1043,20 +1043,24 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
         }
 
         case BC._try:
-            if (config.ehmethod == EHmethod.EH_NONE || funcsym_p.Sfunc.Fflags3 & Feh_none)
+            if (config.ehmethod == EHmethod.EH_DM || ehmethod(funcsym_p) == EHmethod.EH_NONE)
             {
                 /* Need to use frame pointer to access locals, not the stack pointer,
                  * because we'll be calling the BC._finally blocks and the stack will be off.
                  */
                 cgstate.needframe = 1;
             }
-            else if (config.ehmethod == EHmethod.EH_SEH || config.ehmethod == EHmethod.EH_WIN32)
+
+            if (config.ehmethod == EHmethod.EH_SEH || config.ehmethod == EHmethod.EH_WIN32)
             {
                 cgstate.usednteh |= NTEH_try;
                 nteh_usevars();
             }
-            else
+            else if (ehmethod(funcsym_p) != EHmethod.EH_NONE)
+            {
                 cgstate.usednteh |= EHtry;
+            }
+
             goto case_goto;
 
         case BC._finally:
