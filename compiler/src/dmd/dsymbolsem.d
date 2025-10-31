@@ -2024,16 +2024,29 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         int inferred = 0;
         if (!dsym.type)
         {
-            if (sc.inCfile && dsym.isCmacro && dsym._init.isExpInitializer().exp.isCallExp())
+            if (sc.inCfile && dsym.isCmacro)
             {
-                auto ce = dsym._init.isExpInitializer().exp.isCallExp();
-                ce = cast(CallExp) expressionSemantic(ce, sc);
-                dsym._init = dsym._init.isExpInitializer();
-                dsym.type = ce.type; // or infer properly
-                dsym.originalType = dsym.type;
-                dsym.semanticRun = PASS.semanticdone;
-                return;
+                if (auto ei = dsym._init.isExpInitializer())
+                {
+                    if (auto ce = ei.exp.isCallExp())
+                    {
+                        auto sc2 = sc.push();
+                        //sc2.flags &= ~SCOPE.ctfe; // ensure no CTFE
+                        // do type inference / semantic analysis safely
+                        ce = cast(CallExp) expressionSemantic(ce, sc2);
+                        sc2.pop();
+
+                        dsym._init = ei;
+                        dsym.type = ce.type;
+                        dsym.originalType = dsym.type.syntaxCopy();
+                        dsym.semanticRun = PASS.semanticdone;
+
+                        // ✅ skip any CTFE
+                        return;
+                    }
+                }
             }
+
 
             dsym.inuse++;
 
