@@ -65,6 +65,7 @@ namespace dmd
     int32_t getFieldIndex(ClassReferenceExp *cre, Type *fieldtype, uint32_t fieldoffset);
     void fillTupleExpExps(TupleExp *te, TupleDeclaration *tup);
     Optional<bool> toBool(Expression *exp);
+    StringExp *toStringExp(Expression *exp);
 }
 
 typedef unsigned char OwnedBy;
@@ -105,7 +106,6 @@ public:
     virtual real_t toReal();
     virtual real_t toImaginary();
     virtual complex_t toComplex();
-    virtual StringExp *toStringExp();
     virtual bool checkType();
     Expression *addressOf();
     Expression *deref();
@@ -328,7 +328,6 @@ public:
 class NullExp final : public Expression
 {
 public:
-    StringExp *toStringExp() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -348,7 +347,6 @@ public:
     static StringExp *create(Loc loc, const void *s, d_size_t len);
     char32_t getCodeUnit(d_size_t i) const;
     dinteger_t getIndex(d_size_t i) const;
-    StringExp *toStringExp() override;
     void accept(Visitor *v) override { v->visit(this); }
     size_t numberOfCodeUnits(int tynto = 0) const;
     void writeTo(void* dest, bool zero, int tyto = 0) const;
@@ -398,7 +396,6 @@ public:
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     ArrayLiteralExp *syntaxCopy() override;
     Expression *getElement(d_size_t i);
-    StringExp *toStringExp() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };

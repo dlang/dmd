@@ -177,6 +177,7 @@ Expression eval_ctfeWrite(Loc loc, FuncDeclaration fd, Expression[] arguments)
     import core.stdc.stdio: fprintf, stderr;
     import dmd.expression: CTFEExp;
     import dmd.ctfeexpr: resolveSlice;
+    import dmd.expressionsem : toStringExp;
 
     Expression e = arguments[0];
     const se = resolveSlice(e).toStringExp();

@@ -430,6 +430,12 @@ Optional!bool toBool(Expression exp)
     return dmd.expressionsem.toBool(exp);
 }
 
+StringExp toStringExp(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toStringExp(exp);
+}
+
 /***********************************************************
  * func.d
  */

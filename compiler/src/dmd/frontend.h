@@ -172,7 +172,6 @@ class TypeMixin;
 class TypeTraits;
 class TypeNoreturn;
 class TypeTag;
-class StringExp;
 class IntegerExp;
 class ErrorExp;
 class VoidInitExp;
@@ -184,6 +183,7 @@ class DsymbolExp;
 class ThisExp;
 class SuperExp;
 class NullExp;
+class StringExp;
 class InterpExp;
 class TupleExp;
 class ArrayLiteralExp;
@@ -2356,7 +2356,6 @@ public:
     virtual _d_real toReal();
     virtual _d_real toImaginary();
     virtual complex_t toComplex();
-    virtual StringExp* toStringExp();
     virtual bool checkType();
     Expression* deref();
     int32_t isConst();
@@ -2585,7 +2584,6 @@ public:
     static ArrayLiteralExp* create(Loc loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
     Expression* getElement(size_t i);
-    StringExp* toStringExp() override;
     void accept(Visitor* v) override;
 };
 
@@ -3361,7 +3359,6 @@ public:
 class NullExp final : public Expression
 {
 public:
-    StringExp* toStringExp() override;
     void accept(Visitor* v) override;
 };
 
@@ -3543,7 +3540,6 @@ public:
     void writeTo(void* dest, bool zero, int32_t tyto = 0) const;
     char32_t getCodeUnit(size_t i) const;
     dinteger_t getIndex(size_t i) const;
-    StringExp* toStringExp() override;
     int32_t compare(const StringExp* const se2) const;
     void accept(Visitor* v) override;
 };
