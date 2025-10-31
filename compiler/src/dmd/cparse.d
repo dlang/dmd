@@ -5738,7 +5738,7 @@ final class CParser(AST) : Parser!AST
                             if (token.value == TOK.leftParenthesis)
                             {
                                 auto call = new AST.CallExp(loc, new AST.IdentifierExp(loc, ident), cparseArguments()); // right paren checked here
-                                auto decl = new AST.VarDeclaration(loc, null, id, new AST.ExpInitializer(loc, call), STC.gshared);
+                                auto decl = new AST.VarDeclaration(loc, null, id, new AST.ExpInitializer(loc, call));
                                 addSym(decl);
 
                                 ++p;

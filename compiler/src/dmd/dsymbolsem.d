@@ -2024,11 +2024,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         int inferred = 0;
         if (!dsym.type)
         {
+            if (sc.inCfile && dsym.isCmacro && dsym._init.isExpInitializer().exp.isCallExp())
+            {
+                auto ce = dsym._init.isExpInitializer().exp.isCallExp();
+                ce = cast(CallExp) expressionSemantic(ce, sc);
+                dsym._init = dsym._init.isExpInitializer();
+                dsym.type = ce.type; // or infer properly
+                dsym.originalType = dsym.type;
+                dsym.semanticRun = PASS.semanticdone;
+                return;
+            }
+
             dsym.inuse++;
 
             // Infering the type requires running semantic,
             // so mark the scope as ctfe if required
             bool needctfe = (dsym.storage_class & (STC.manifest | STC.static_)) != 0 || !sc.func;
+
             if (needctfe)
             {
                 sc.condition = true;
