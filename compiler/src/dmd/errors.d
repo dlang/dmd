@@ -47,6 +47,7 @@ struct Diagnostic
     SourceLoc loc; // The location in the source code where the diagnostic was generated (includes file, line, and column).
     string message; // The text of the diagnostic message, describing the issue.
     ErrorKind kind; // The type of diagnostic, indicating whether it is an error, warning, deprecation, etc.
+    bool supplemental; // true if supplemental message
 }
 
 __gshared Diagnostic[] diagnostics = [];
@@ -98,11 +99,12 @@ class ErrorSinkCompiler : ErrorSink
     void plugSink()
     {
         // Exit if there are no collected diagnostics
-        if (!diagnostics.length) return;
-
+        if (!diagnostics.length) return;        
         // Generate the SARIF report with the current diagnostics
-        generateSarifReport(false);
-
+        if(global.params.v.messageStyle == MessageStyle.lsp)
+            generateLSPArray();
+        else
+            generateSarifReport(false);
         // Clear diagnostics after generating the report
         diagnostics.length = 0;
     }
@@ -562,6 +564,11 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
 
     case ErrorKind.message:
         OutBuffer tmp;
+        if (global.params.v.messageStyle == MessageStyle.lsp)
+        {
+            addLSPDiagnostic(info.loc,format,ap,ErrorKind.message,info.supplemental);
+            return;
+        }
         writeSourceLoc(tmp, info.loc, Loc.showColumns, Loc.messageStyle);
         if (tmp.length)
             fprintf(stdout, "%s: ", tmp.extractChars());
@@ -611,7 +618,9 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
             info.headerColor = Classification.gagged;
         }
         else
+        {
             info.headerColor = Classification.error;
+        }
         printDiagnostic(format, ap, info);
         return;
 
@@ -651,6 +660,11 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
  */
 private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticContext info)
 {
+    if(global.params.v.messageStyle == MessageStyle.lsp)
+    {
+        addLSPDiagnostic(info.loc,format,ap,info.kind,info.supplemental);
+        return;
+    }
     const(char)* header;    // title of error message
     if (info.supplemental)
         header = "       ";
@@ -798,6 +812,136 @@ unittest
         "        ^\n"
     );
 }
+
+/**
+Adds a LSP diagnostic entry to the diagnostics list.
+
+Formats a diagnostic message and appends it to the global diagnostics array, allowing errors, warnings, or other diagnostics to be captured in LSP format.
+
+Params:
+  loc = The location in the source code where the diagnostic was generated (includes file, line, and column).
+  format = The printf-style format string for the diagnostic message.
+  ap = The variadic argument list containing values to format into the diagnostic message.
+  kind = The type of diagnostic, indicating whether it is an error, warning, deprecation, etc.
+*/
+private void addLSPDiagnostic(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind, bool isSupplemental) nothrow
+{
+    char[2048] buffer;
+    int written = vsnprintf(buffer.ptr, buffer.length, format, ap);
+
+    // Handle any truncation
+    string formattedMessage = cast(string) buffer[0 .. (written < 0 || written > buffer.length ? buffer.length : written)].dup;
+
+    // Add the Diagnostic to the global diagnostics array
+    diagnostics ~= Diagnostic(loc, formattedMessage, kind, isSupplemental);
+}
+
+/**
+ * Just print to stdout in LSP format, doesn't care about gagging.
+ * (format,ap) text within backticks gets syntax highlighted.
+ * Params:
+ *      format  = printf-style format specification
+ *      ap      = printf-style variadic arguments
+ *      info    = context of error
+ */
+
+private void printLSPDiagnostic(ref OutBuffer tmp, Diagnostic diag)
+{
+    const(char)* severity = "";    // title of error message
+    if (diag.supplemental)
+    {
+        tmp.writestring("\"supplemental\":\"");
+        tmp.writestring(diag.message);
+        tmp.writestring("\"");  
+    }
+    else
+    {
+        final switch (diag.kind)
+        {
+            case ErrorKind.error:       severity = "Error"; break;
+            case ErrorKind.deprecation: severity = "Deprecation"; break;
+            case ErrorKind.warning:     severity = "Warning"; break;
+            case ErrorKind.tip:         severity = "Tip"; break;
+            case ErrorKind.message:     assert(0);
+        }
+          /// Print diagnostic severity (i.e. errors, warnings etc.)
+        tmp.writestring("\"severity\":\"");
+        tmp.writestring(severity);
+        tmp.writestringln("\",");
+
+        /// Print filename
+        tmp.writestring("\"uri\":\"");
+        tmp.writestring(diag.loc.filename);
+        tmp.writestringln("\",");
+
+        /// Print line number
+        tmp.writestring("\"line:\":");
+        tmp.printf(`%d,`,diag.loc.linnum);
+        tmp.writestringln("");
+
+        /// Print column number
+        tmp.writestring("\"column\":");
+        tmp.printf(`%d,`,diag.loc.charnum);
+        tmp.writestringln("");
+    
+        /// Print error message
+        tmp.writestring("\"description\":\"");
+        tmp.writestring(diag.message);
+        tmp.writestring("\"");
+    }
+}
+
+/**
+ * Generate LSP report containing LSP objects in a diagnostic array
+ */
+
+void generateLSPArray(bool flag = false) nothrow
+{
+    if(flag)
+    {
+        fputs("Diagnostics {}",stdout);
+        return;
+    }
+    OutBuffer tmp;
+    tmp.doindent = true;
+    tmp.spaces = true;
+    tmp.writestringln("Diagnostics {");
+    ++tmp.level;
+    foreach(idx, diag; diagnostics)    
+    {
+        if(!diag.supplemental)
+        {
+            tmp.writestringln("{");
+            ++tmp.level;
+        }
+        printLSPDiagnostic(tmp,diag);
+        if(idx < diagnostics.length-1)
+        {
+            if(diagnostics[idx+1].supplemental)
+            {
+                tmp.writestringln(",");
+            }
+            else
+            {
+                tmp.writestringln("");
+                --tmp.level;
+                tmp.writestringln("},");
+            }
+        }
+        else 
+        {
+            tmp.writestringln("");
+            --tmp.level;
+            tmp.writestringln("}");   
+        }
+    }
+    --tmp.level;
+    tmp.writestring("}");
+    const(char)* LSPOutput = tmp.extractChars();
+    fputs(LSPOutput,stdout);
+    fflush(stdout);     // ensure it gets written out in case of compiler aborts
+}
+
 
 /**
  * The type of the fatal error handler
