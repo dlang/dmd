@@ -1190,6 +1190,7 @@ struct CLIUsage
   =invariant[=[on|off]] Class/struct invariants
   =out[=[on|off]]       Out contracts
   =switch[=[on|off]]    Final switch failure checking
+  =nullderef[=[on|off]] Null dereference error
   =on                   Enable all assertion checking
                         (default for non-release builds)
   =off                  Disable all assertion checking

@@ -4065,3 +4065,34 @@ bool arrayBoundsCheck(FuncDeclaration fd)
         assert(0);
     }
 }
+
+/**********************
+ * Check to see if null dereference checking code has to be generated
+ *
+ * Params:
+ *  fd = function for which code is to be generated
+ * Returns:
+ *  true if do null dereference checking for the given function
+ */
+bool nullDerefCheck(FuncDeclaration fd)
+{
+    final switch (global.params.useNullCheck)
+    {
+        case CHECKENABLE.off:
+            return false;
+        case CHECKENABLE.on:
+            return true;
+        case CHECKENABLE.safeonly:
+            {
+                if (fd)
+                {
+                    Type t = fd.type;
+                    if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
+                        return true;
+                }
+                return false;
+            }
+        case CHECKENABLE._default:
+            assert(0);
+    }
+}
