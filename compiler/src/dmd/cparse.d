@@ -5732,14 +5732,29 @@ final class CParser(AST) : Parser!AST
                              * macros can also refer to functions
                              * #define test func(2,3)
                              * where func has its definition elsewhere
-                             * don't treat them as manifest constants because functions can be eval at runtime
-                             * eg. zlibversion() in zlib where its macro is resolved at runtime
+                             * we su much want this evaluated at runtime
+                             * import std.variant and set the type
                              */
                             if (token.value == TOK.leftParenthesis)
                             {
-                                auto call = new AST.CallExp(loc, new AST.IdentifierExp(loc, ident), cparseArguments()); // right paren checked here
-                                auto decl = new AST.VarDeclaration(loc, null, id, new AST.ExpInitializer(loc, call));
+                                /* import std.variant */
+                                Identifier[] packages;
+                                packages ~= Identifier.idPool("std");
+                                auto imp = new AST.Import(loc, packages, Identifier.idPool("variant"), null, 1);
+                                addSym(imp);
+
+                                /* type the variable as variant */
+                                auto tid = new AST.TypeIdentifier(loc, Identifier.idPool("std"));
+                                tid.addIdent(Identifier.idPool("variant"));
+                                tid.addIdent(Identifier.idPool("Variant"));
+                                auto decl = new AST.VarDeclaration(loc, tid, id, null);
                                 addSym(decl);
+
+                                // wrap assignment in static this
+                                auto f = new AST.StaticCtorDeclaration(loc, Loc.initial, STC.static_);
+                                auto call = new AST.CallExp(loc, new AST.IdentifierExp(loc, ident), cparseArguments());
+                                auto assign = new AST.AssignExp(loc, new AST.IdentifierExp(loc, id), call);
+                                f.fbody = new AST.ExpStatement(loc, assign);
 
                                 ++p;
                                 continue;
