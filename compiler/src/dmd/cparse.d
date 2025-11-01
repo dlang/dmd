@@ -5747,7 +5747,7 @@ final class CParser(AST) : Parser!AST
                                 auto tid = new AST.TypeIdentifier(loc, Identifier.idPool("std"));
                                 tid.addIdent(Identifier.idPool("variant"));
                                 tid.addIdent(Identifier.idPool("Variant"));
-                                auto decl = new AST.VarDeclaration(loc, tid, id, null);
+                                auto decl = new AST.VarDeclaration(loc, tid, id, null, STC.extern_);
                                 addSym(decl);
 
                                 // wrap assignment in static this
