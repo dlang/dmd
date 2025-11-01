@@ -158,10 +158,9 @@ typedef unsigned long long __uint64_t;
 #define _stdcall __stdcall
 #define _declspec __declspec
 
-// This header disables the Windows API Annotations macros
-// Need to include sal.h to get the pragma once to prevent macro redefinition.
-#include "sal.h"
-#include "no_sal2.h"
+// disable the Microsoft Source Code Annotation macros in "sal.h"
+#define _USE_DECLSPECS_FOR_SAL 0
+#define _USE_ATTRIBUTES_FOR_SAL 0
 #endif
 
 /****************************
