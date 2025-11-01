@@ -491,6 +491,7 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
 void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 {
     printf("prolog_genvarargs()\n");
+    symbol_print(*sv);
 
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
@@ -506,7 +507,7 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
      *         int gr_offs;  // offset from gr_top to next GP register arg
      *         int vr_offs;  // offset from vr_top to next FP/SIMD register arg
      *     }
-     *     void* stack_args_save; // set by prolog_genvarargs()
+     *     void* stack_args_save; // set to start of variadics on stack
      *   }
      * The instructions seg fault if data is not aligned on
      * 16 bytes, so this gives us a nice check to ensure no mistakes.
@@ -528,34 +529,39 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
         STR     q6,[sp, #voff+8*8+6*16]
         STR     q7,[sp, #voff+8*8+7*16]
 
-        ADD     reg,sp,Para.size+Para.offset
-        STR     reg,[sp,#voff+8*8+8*16+8*4]         // set __va_argsave.stack_args
+        ADD     reg,sp,Para.size+Para.offset        // offset of start of variadic arguments on stack
+        STR     reg,[sp,#voff+8*8+8*16+8*3+4*2]     // set __va_argsave.stack_args_save
     */
+
+    CodeBuilder cdbx; cdbx.ctor();
 
     /* Save registers into the voff area on the stack
      */
-    targ_size_t voff = cg.Auto.size + cg.BPoff + sv.Soffset;  // EBP offset of start of sv
 
-    if (!cg.hasframe || cg.enforcealign)
-        voff += cg.EBPtoESP;
-    printf("voff: %llx\n", voff);
+    code cs;
+    cs.reg = NOREG;
+    cs.base = (!cg.hasframe || cg.enforcealign) ? 31 : 29; // SP or BP
+    cs.index = NOREG;
 
     /* OSX AArch64 never passes variadic arguments in registers,
      * so no need to transfer them to memory
      */
-    if (!(config.exe & EX_OSX64))
+    if (1 || !(config.exe & EX_OSX64))
     {
+        cs.IEV1.Vsym = sv;
+        cs.IFL1 = sv.Sfl;
+        cs.Iflags = CFoff;
+        cgstate.reflocal = true;
+
         regm_t namedargs = prolog_namedArgs();
         foreach (reg_t x; 0 .. 8)
         {
             if (!(mask(x) & namedargs))  // unnamed arguments would be the ... ones
             {
-                //printf("offset: x%x %lld\n", cast(uint)voff + x * 8, voff + x * 8);
-                uint offset = cast(uint)voff + x * 8;
-                if (!cg.hasframe || cg.enforcealign)
-                    cdb.gen1(INSTR.str_imm_gen(1,x,31,offset)); // STR x,[sp,#offset]
-                else
-                    cdb.gen1(INSTR.str_imm_gen(1,x,29,offset)); // STR x,[bp,#offset]
+                cs.IEV1.Voffset = 0;
+                storeToEA(cs,x,8);                              // STR X,[sp/bp,#offset]
+                cs.IEV1.Voffset = x * 8;
+                cdbx.gen(&cs);
             }
         }
 
@@ -563,30 +569,45 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
         {
             if (!(mask(q) & namedargs))  // unnamed arguments would be the ... ones
             {
-                reg_t fp = (!cg.hasframe || cg.enforcealign) ? 31 : 29; // SP : BP
-                uint offset = cast(uint)voff + 8 * 8 + (q & 31) * 16;
-                offset /= 16;                                     // saving 128 bit Q registers
-                cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,fp,q));  // STR q,[sp,#offset]
+                cs.IEV1.Voffset = 0;
+                storeToEA(cs,q,16);      // STR q,[sp/bp,#offset]
+                cs.IEV1.Voffset = 8 * 8 + (q & 31) * 16;
+                cdbx.gen(&cs);
             }
         }
     }
 
     reg_t reg = 11;
     uint imm12 = cast(uint)(cg.Para.size + cg.Para.offset);
-    assert(imm12 < 0x1000);  // BUG AArch64
-    cdb.gen1(INSTR.addsub_imm(1,0,0,0,imm12,31,reg));   // ADD reg,sp,imm12
-    uint offset = cast(uint)voff+8*8+8*16+8*4;
-    printf("voff: %llx offset: %x\n", voff, offset);
-    assert(offset < 0x1000); // BUG AArch64
-    cdb.gen1(INSTR.str_imm_gen(1,reg,31,offset));       // STR reg,[sp,#voff+8*8+8*16+8*4]
+    assert(imm12 < 0x1000);  // BUG AArch64 overflow check
+    cdbx.gen1(INSTR.addsub_imm(1,0,0,0,imm12,31,reg));   // ADD reg,sp,imm12
+
+    cs.IEV1.Voffset = 8*8+8*16+8*4;             // va_argsave_t.stack_args_save.offsetof
+    storeToEA(cs,reg,8);                        // STR reg,[sp,#va_argsave_t + 8*8+8*16+8*4]
+    cdbx.gen(&cs);
+
     useregs(mask(reg));
+
+    code* cx = cdbx.finish();
+    if (cx)
+    {
+        static if (0)
+        for (code* c = cx; c; c = code_next(c))
+        {
+            printf("Iop %08x  ", c.Iop);
+            disassemble(c.Iop);
+        }
+
+        assignaddrc(cx);
+        cdb.append(cx);
+    }
 }
 
 /********************************
- * Generate elem that implement va_start()
+ * Generate elem that implements va_start()
  * Params:
  *      sv = symbol for __va_argsave
- *      parmn = last named parameter
+ *      parmn = last named parameter (ignored for now)
  * Returns:
  *      elem that initializes all __va_list_tag fields
  */
@@ -685,29 +706,37 @@ elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
      * Then, just copy from `stack_args_save` to `stack_args`.
      * Although, doing (1) might be optimal.
      */
-    elem* e1 = el_bin(OPeq, TYnptr, el_var(sv), el_var(sv)); // stack = stack_args_save
+
+
+    /*
+        sv.stack = sv.stack_args_save;
+        sv.gr_top = &sv.regs[8];
+        sv.vr_top = &sv.fpregs[8];
+        sv.gr_offs = -(8 - named_gr) * 8;
+        sv.vr_offs = -(8 - named_vr) * 16;
+     */
+
+    elem* e1 = el_bin(OPeq, TYnptr, el_var(sv), el_var(sv)); // sv.stack = sv.stack_args_save
     e1.E1.Ety = TYnptr;
     e1.E1.Voffset = OFF.stack;
     e1.E2.Ety = TYnptr;
     e1.E2.Voffset = OFF.stack_args_save;
 
-    // set gr_top to address following the general register save area
-    elem* e2 = el_bin(OPeq, TYptr, el_var(sv), el_ptr(sv));
-    e2.E1.Voffset = OFF.vr_offs;
+    elem* e2 = el_bin(OPeq, TYnptr, el_var(sv), el_ptr(sv));  // sv.gr_top = &sv.regs[8]
+    e2.E1.Ety = TYnptr;
+    e2.E1.Voffset = OFF.gr_top;
+    e2.E2.Voffset = 8*8;
 
-    // set vr_top to address following the FP/SIMD register save area
-    elem* ex3 = el_bin(OPadd, TYptr, el_ptr(sv), el_long(TYlong, 8 * 8));
-    elem* e3 = el_bin(OPeq,TYptr,el_var(sv),ex3);
-    e3.E1.Ety = TYptr;
-    e3.E1.Voffset = OFF.vr_offs;
+    elem* e3 = el_bin(OPeq,TYnptr,el_var(sv),el_ptr(sv)); // sv.vr_top = &sv.fpregs[8];
+    e3.E1.Ety = TYnptr;
+    e3.E1.Voffset = OFF.vr_top;
+    e3.E2.Voffset = 8*8 + 16*8;
 
-    // set gr_offs
-    elem* e4 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_gr) * 8)));
+    elem* e4 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_gr) * 8))); // sv.gr_offs = -(8 - named_gr) * 8;
     e4.E1.Ety = TYint;
     e4.E1.Voffset = OFF.gr_offs;
 
-    // set vr_offs
-    elem* e5 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_vr) * 16)));
+    elem* e5 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_vr) * 16))); // sv.vr_offs = -(8 - named_vr) * 16;
     e5.E1.Ety = TYint;
     e5.E1.Voffset = OFF.vr_offs;
 

@@ -397,9 +397,9 @@ void cod3_setAArch64()
     /* Register usage per "AArch64 Procedure Call Standard"
      * r31 SP  Stack Pointer
      * r30 LR  Link Register
-     * r29 FP  Frame Pointer (BP)
+     * r29 FP  Frame Pointer (BP) (on OSX r29 must always address a valid frame record)
      * r19-r28 Callee-saved registers (if Callee modifies them)
-     * r18     Platform Register
+     * r18     Platform Register (do not use on OSX)
      * r17 IP1 intra-procedure-call temporary register
      * r16 IP0 intra-procedure-call scratch register
      * r9-r15  temporary registers (caller saved)
@@ -410,11 +410,11 @@ void cod3_setAArch64()
      * v8-v15  Callee-saved registers (only bottom 64 bits need to be saved)
      * v16-31  Temporary registers (caller saved)
      */
-    cgstate.BP = 29;
+    cgstate.BP = INSTR.BP;
 
     /* Integer registers r0-r7, r9-15, r19-28, r29(?)
      */
-    cgstate.allregs = 0x1FFF_FFFF & ~(1 << 8) & ~(1 << 16) & ~(1 << 17) & ~(1 << 18);
+    cgstate.allregs = INSTR.ALLREGS;
 
     /* Registers x19-x28, x29, v8-v15
      */
@@ -424,7 +424,7 @@ void cod3_setAArch64()
 
     /* 32 Floating point registers
      */
-    cgstate.fpregs = 0xFFFF_FFFF_0000_0000;
+    cgstate.fpregs = INSTR.FLOATREGS;
 
     /* XMM registers
      */

@@ -5540,7 +5540,9 @@ private elem* elclassinit(elem* e, Goal goal)
 }
 
 /********************************************
- * Handle OPva_start
+ * OPva_start
+ *     /  \
+ *   ap    parmn
  */
 
 @trusted
@@ -5618,14 +5620,14 @@ if (config.exe & EX_windos)
     else
         e.E2 = el_long(TYnptr, 0);
     //elem_print(e);
-
+    return e;
 }
 
 if (config.exe & EX_posix)
 {
     assert(I64); // va_start is not an intrinsic on 32-bit
     // (OPva_start &va)
-    // (OPeq (OPind E1) __va_argsave+offset)
+    // (OPeq (OPind E1) &__va_argsave+offset)
     //elem_print(e);
 
     // Find __va_argsave
@@ -5653,9 +5655,10 @@ if (config.exe & EX_posix)
     else
         e.E2 = el_long(TYnptr, 0);
     //elem_print(e);
+    return e;
 }
 
-    return e;
+    assert(0);
 }
 
 /******************************************

@@ -221,7 +221,7 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
         {
             // STR reg,[cs.base, #offset]
             assert(cs.index == NOREG);
-            uint imm12 = cast(uint)cs.IEV1.Voffset;
+            uint imm12 = 0; // addaddrc() will add in cast(uint)cs.IEV1.Voffset;
             uint size, opc;
             INSTR.szToSizeOpc(sz, size, opc);
             imm12 /= sz;
@@ -1627,6 +1627,9 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
 
 /*******************************
  * Generate code sequence for function call.
+ * The difference between the OSX argument passing convention and the AAPCS64
+ * convention is:
+ * https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms
  */
 
 @trusted

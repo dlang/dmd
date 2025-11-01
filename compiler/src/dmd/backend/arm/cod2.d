@@ -200,7 +200,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
  */
 Extend tyToExtend(tym_t ty)
 {
-    //debug printf("ty: %s\n", tym_str(ty));
+    //debug printf("ty: %s x%x\n", tym_str(ty), ty);
     ty = tybasic(ty);
     assert(tyintegral(ty) || ty == TYnptr);
     Extend extend;
