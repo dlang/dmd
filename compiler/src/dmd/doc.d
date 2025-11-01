@@ -3111,7 +3111,9 @@ struct MarkdownLink
     {
         size_t iStart = i + 1;
         size_t iEnd = iStart;
-        if (iEnd >= buf.length || buf[iEnd] != '[' || (iEnd+1 < buf.length && buf[iEnd+1] == ']'))
+        if (iEnd >= buf.length)
+            return i;
+        if (buf[iEnd] != '[' || (iEnd+1 < buf.length && buf[iEnd+1] == ']'))
         {
             // collapsed reference [foo][] or shortcut reference [foo]
             iStart = delimiter.iStart + delimiter.count - 1;
