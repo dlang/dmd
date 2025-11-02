@@ -81,6 +81,7 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.var;
 
 package(dmd.glue):
 
@@ -439,6 +440,19 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(VarDeclaration vd)
         {
+            static bool symbol_search(VarDeclaration vd)
+            {
+                auto id = vd.ident.toString();
+
+                auto length = gCsym.length;
+                foreach(ident; gCsym)
+                {
+                    if (id == ident)
+                        return true;
+                }
+                gCsym ~= id;
+                return false;
+            }
 
             //printf("VarDeclaration.toObjFile(%p '%s' type=%s) visibility %d\n", vd, vd.toChars(), vd.type.toChars(), vd.visibility);
             //printf("\talign = %d\n", vd.alignment);
@@ -462,6 +476,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             if (!vd.isDataseg() || vd.storage_class & STC.extern_)
+                return;
+
+            if (vd.isCmacro && symbol_search(vd)) // true ==> symbol exists
                 return;
 
             Symbol* s = toSymbol(vd);
