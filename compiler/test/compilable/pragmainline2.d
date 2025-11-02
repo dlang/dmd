@@ -146,3 +146,36 @@ void test_newaa()
     Iface[int] aa3;
     int[Iface] aa4;
 }
+
+void test_stdatomic()
+{
+    import core.stdc.stdatomic;
+
+    // check inlining for the unittests of core.stdc.stdatomic
+    atomic_flag flag;
+    atomic_flag_test_and_set_explicit_impl(&flag, memory_order.memory_order_seq_cst);
+    atomic_flag_clear_explicit_impl(&flag, memory_order.memory_order_seq_cst);
+
+    atomic_signal_fence_impl(memory_order.memory_order_seq_cst);
+    atomic_thread_fence_impl(memory_order.memory_order_seq_cst);
+
+    shared(int) val;
+    atomic_store_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+
+    atomic_load_explicit_impl(&val, memory_order.memory_order_seq_cst);
+
+    atomic_fetch_and_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+    atomic_exchange_explicit_impl(&val, 2, memory_order.memory_order_seq_cst);
+
+    int expected = 2;
+    atomic_compare_exchange_strong_explicit_impl(&val, &expected, 1, memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst);
+
+    expected = 1;
+    atomic_compare_exchange_weak_explicit_impl(&val, &expected, 2, memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst);
+
+    atomic_fetch_add_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+    atomic_fetch_sub_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+    atomic_fetch_or_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+    atomic_fetch_xor_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+    atomic_fetch_and_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+}
