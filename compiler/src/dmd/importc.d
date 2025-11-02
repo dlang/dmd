@@ -490,6 +490,12 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
         if (td.isCmacro) return s2;
     }
 
+    if (auto ad = s.isAliasDeclaration())
+    {
+        if (ad.isCmacro)
+            return s2;
+    }
+
     auto vd = s.isVarDeclaration(); // new declaration
     auto vd2 = s2.isVarDeclaration(); // existing declaration
 
