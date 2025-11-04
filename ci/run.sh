@@ -121,7 +121,7 @@ test_dmd() {
     if [ "$FULL_BUILD" == "true" ] && [ "$OS_NAME" == "linux" ]; then
         local args=() # use all default ARGS
     else
-        local args=(ARGS="-O -inline -release")
+        local args=(ARGS="-inline '-O -release'")
     fi
 
     if type -P apk &>/dev/null; then
