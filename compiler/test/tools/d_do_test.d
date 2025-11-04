@@ -880,11 +880,59 @@ REQUIRED_ARGS(linux32): -fPIC
     assert(args.requiredArgs == "-os=windows", args.requiredArgs);
 }
 
+string[] splitQuoted(string text)
+{
+    import std.utf, std.uni;
+    enum quote = '\'';
+
+    string[] args;
+    size_t pos = 0;
+    while (pos < text.length)
+    {
+        size_t startpos = pos;
+        dchar ch = decode(text, pos);
+        if (isWhite(ch))
+            continue;
+
+        size_t quoted = 0;
+        size_t endpos = pos;
+        while (pos < text.length)
+        {
+            if (ch == quote)
+            {
+                while (pos < text.length)
+                {
+                    dchar ch2 = decode(text, pos);
+                    if (ch2 == quote) // no escaping
+                    {
+                        quoted++;
+                        break;
+                    }
+                }
+                ch = 0;
+            }
+            else
+            {
+                ch = decode(text, pos);
+            }
+            if (isWhite(ch))
+                break;
+            endpos = pos;
+        }
+        if (quoted == 1 && text[startpos] == quote && text[endpos-1] == quote)
+            startpos++, endpos--;
+        auto arg = text[startpos .. endpos].strip;
+        if (!arg.empty)
+            args ~= arg;
+    }
+    return args;
+}
+
 /// Generates all permutations of the space-separated word contained in `argstr`
 string[] combinations(string argstr)
 {
     string[] results;
-    string[] args = split(argstr);
+    string[] args = splitQuoted(argstr);
     long combinations = 1 << args.length;
     for (size_t i = 0; i < combinations; i++)
     {
