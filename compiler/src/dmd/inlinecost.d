@@ -67,7 +67,7 @@ bool tooCostly(int cost) pure nothrow @safe
  */
 int inlineCostExpression(Expression e)
 {
-    scope InlineCostVisitor icv = new InlineCostVisitor(false, true, true, null);
+    scope InlineCostVisitor icv = new InlineCostVisitor(true, false);
     icv.expressionInlineCost(e);
     return icv.cost;
 }
@@ -77,14 +77,13 @@ int inlineCostExpression(Expression e)
  * Determine cost of inlining function
  * Params:
  *      fd = function to determine cost of
- *      hasthis = if the function call has explicit 'this' expression
- *      hdrscan = if generating a header file
+ *      hasThis = if the caller can access the callee's this pointer
  * Returns:
  *      cost of inlining fd
  */
-int inlineCostFunction(FuncDeclaration fd, bool hasthis, bool hdrscan)
+int inlineCostFunction(FuncDeclaration fd, bool hasThis)
 {
-    scope InlineCostVisitor icv = new InlineCostVisitor(hasthis, hdrscan, false, fd);
+    scope InlineCostVisitor icv = new InlineCostVisitor(false, hasThis);
     fd.fbody.accept(icv);
     return icv.cost;
 }
@@ -149,32 +148,28 @@ extern (C++) final class InlineCostVisitor : Visitor
 {
     alias visit = Visitor.visit;
 public:
+    // if the expression being visited is a default argument, which is
+    // specified to be copied at call site and can contain more types of
+    // expression (like alloca) than regular inlining
+    immutable bool callerCopy;
+
+    // if the caller can access the callee's this pointer
+    immutable bool hasThis;
+
     int nested;
-    bool hasthis;
-    bool hdrscan;       // if inline scan for 'header' content
-    bool allowAlloca;
-    FuncDeclaration fd;
     int cost;           // zero start for subsequent AST
 
-    extern (D) this() scope @safe
+    extern (D) this(bool callerCopy, bool hasThis) scope @safe
     {
-    }
-
-    extern (D) this(bool hasthis, bool hdrscan, bool allowAlloca, FuncDeclaration fd) scope @safe
-    {
-        this.hasthis = hasthis;
-        this.hdrscan = hdrscan;
-        this.allowAlloca = allowAlloca;
-        this.fd = fd;
+        this.callerCopy = callerCopy;
+        this.hasThis = hasThis;
     }
 
     extern (D) this(InlineCostVisitor icv) scope @safe
     {
         nested = icv.nested;
-        hasthis = icv.hasthis;
-        hdrscan = icv.hdrscan;
-        allowAlloca = icv.allowAlloca;
-        fd = icv.fd;
+        callerCopy = icv.callerCopy;
+        hasThis = icv.hasThis;
     }
 
     override void visit(Statement s)
@@ -395,18 +390,10 @@ public:
     override void visit(ThisExp e)
     {
         //printf("ThisExp.inlineCost3() %s\n", toChars());
-        if (!fd)
+        if (!hasThis)
         {
             cost = COST_MAX;
             return;
-        }
-        if (!hdrscan)
-        {
-            if (fd.isNested() || !hasthis)
-            {
-                cost = COST_MAX;
-                return;
-            }
         }
         cost++;
     }
@@ -453,7 +440,7 @@ public:
                 cost = COST_MAX; // finish DeclarationExp.doInlineAs
                 return;
             }
-            if (!hdrscan && vd.isDataseg())
+            if (!callerCopy && vd.isDataseg())
             {
                 cost = COST_MAX;
                 return;
@@ -504,7 +491,7 @@ public:
         // can't handle that at present.
         if (e.e1.op == EXP.dotVariable && (cast(DotVarExp)e.e1).e1.op == EXP.super_)
             cost = COST_MAX;
-        else if (e.f && e.f.ident == Id.__alloca && e.f._linkage == LINK.c && !allowAlloca)
+        else if (e.f && e.f.ident == Id.__alloca && e.f._linkage == LINK.c && !callerCopy)
             cost = COST_MAX; // inlining alloca may cause stack overflows
         else
             cost++;
