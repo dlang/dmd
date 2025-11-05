@@ -864,7 +864,23 @@ private void printLSPDiagnostic(ref OutBuffer tmp, Diagnostic diag)
             case ErrorKind.tip:         severity = "Tip"; break;
             case ErrorKind.message:     assert(0);
         }
-          /// Print diagnostic severity (i.e. errors, warnings etc.)
+
+        /// Print line number
+        tmp.writestringln("\"range\":{");
+        ++tmp.level;
+        tmp.writestring("\"start\":{\"line\":");
+        tmp.printf(`'%d',`,diag.loc.linnum);
+        tmp.writestring("\"character:\"");
+        tmp.printf(`'%d'`,diag.loc.charnum);
+        tmp.writestringln("},");
+        tmp.writestring("\"end\":{\"line\":");
+        tmp.printf(`'%d',`,diag.loc.linnum+1);
+        tmp.writestring("\"character:'0'\"");
+        tmp.writestringln("}");
+        --tmp.level;
+        tmp.writestringln("}");
+
+        /// Print diagnostic severity (i.e. errors, warnings etc.)
         tmp.writestring("\"severity\":\"");
         tmp.writestring(severity);
         tmp.writestringln("\",");
@@ -873,16 +889,6 @@ private void printLSPDiagnostic(ref OutBuffer tmp, Diagnostic diag)
         tmp.writestring("\"uri\":\"");
         tmp.writestring(diag.loc.filename);
         tmp.writestringln("\",");
-
-        /// Print line number
-        tmp.writestring("\"line:\":");
-        tmp.printf(`%d,`,diag.loc.linnum);
-        tmp.writestringln("");
-
-        /// Print column number
-        tmp.writestring("\"column\":");
-        tmp.printf(`%d,`,diag.loc.charnum);
-        tmp.writestringln("");
     
         /// Print error message
         tmp.writestring("\"description\":\"");
@@ -905,7 +911,7 @@ void generateLSPArray(bool flag = false) nothrow
     OutBuffer tmp;
     tmp.doindent = true;
     tmp.spaces = true;
-    tmp.writestringln("Diagnostics {");
+    tmp.writestringln("Diagnostics [");
     ++tmp.level;
     foreach(idx, diag; diagnostics)    
     {
@@ -936,7 +942,7 @@ void generateLSPArray(bool flag = false) nothrow
         }
     }
     --tmp.level;
-    tmp.writestring("}");
+    tmp.writestring("]");
     const(char)* LSPOutput = tmp.extractChars();
     fputs(LSPOutput,stdout);
     fflush(stdout);     // ensure it gets written out in case of compiler aborts
