@@ -524,9 +524,9 @@ void ecom(ref CGCS cgcs, ref elem* pe)
                  */
                 if (!OTleaf(op))
                 {
-                    if (e.E1 != ehash.E1)
+                    if (e.E1 != ehash.E1 || !e.E1.Ecount)
                         continue;
-                    if (OTbinary(op) && e.E2 != ehash.E2)
+                    if (OTbinary(op) && (e.E2 != ehash.E2 || !e.E2.Ecount))
                         continue;
                 }
 
