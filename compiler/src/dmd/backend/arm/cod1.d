@@ -1721,7 +1721,8 @@ printf("stackalign: %d\n", stackalign);
             psize = REGSIZE;
         }
         //printf("[%d] size = %u, numpara = %d %s\n", i, psize, numpara, tym_str(ep.Ety));
-        if ((numExplicitParams == 0 || np - i <= numExplicitParams - 1) && // OSX64 does not pass variadic args in registers
+        const bool isVariadic = !(numExplicitParams == 0 || np - i <= numExplicitParams - 1);
+        if (!isVariadic &&      // OSX64 does not pass variadic args in registers
             FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, parameters[i].reg, parameters[i].reg2))
         {
             if (config.exe == EX_WIN64)
@@ -1729,9 +1730,14 @@ printf("stackalign: %d\n", stackalign);
             continue;   // goes in register, not stack
         }
 
+        if (osx_aapcs64 && isVariadic && psize < 8)
+            psize = 8;
+
         // Parameter i goes on the stack
         parameters[i].reg = NOREG;
         uint alignsize = el_alignsize(ep);
+        if (osx_aapcs64 && isVariadic && alignsize < 8)
+            alignsize = 8;
         printf("alignsize: %d\n", alignsize);
         parameters[i].numalign = 0;
         if (alignsize > stackalign || osx_aapcs64)
@@ -1852,16 +1858,23 @@ elem_print(ep);
             CodeBuilder cdbparams;
             cdbparams.ctor();
 
+            const bool isVariadic = !(numExplicitParams == 0 || np - i <= numExplicitParams - 1);
+printf("isVariadic: %d\n", isVariadic);
+
             // Alignment for parameter comes after it was placed on stack
             const uint numalignx = parameters[i].numalign;
 printf("funcargtos: %d numalignx: %d\n", cast(uint)funcargtos, numalignx);
             auto sz = cast(uint)paramsize(ep, tyf);     // size of argument
+            if (osx_aapcs64 && isVariadic && sz < 8)
+                sz = 8;
             uint psize = sizeOnStack(osx_aapcs64, stackalign, sz);
 
             funcargtos -= psize /*_align(stackalign, paramsize(ep, tyf))*/ + numalignx;
 printf("funcargtos: %d\n", cast(uint)funcargtos);
 
             sz = el_alignsize(ep);                       // size after alignment
+            if (osx_aapcs64 && isVariadic && sz < 8)
+                sz = 8;
             //targ_size_t szb = paramsize(ep, tyf);          // size before alignment
             //printf("sz = %d\n", sz, cast(int)sz);
             // targ_size_t sz = _align(stackalign, szb);     // size after alignment
@@ -2029,7 +2042,7 @@ printf("funcargtos: %d\n", cast(uint)funcargtos);
     cdb.append(cdbrestore);
     keepmsk |= saved;
 
-    //printf("funcargtos: %d cg.funcargtos: %d\n", cast(int)funcargtos, cast(int)cg.funcargtos);
+    printf("funcargtos: %d cg.funcargtos: %d\n", cast(int)funcargtos, cast(int)cg.funcargtos);
     assert(funcargtos == 0 && cg.funcargtos == ~0);
     cg.stackclean--;
 
