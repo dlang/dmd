@@ -2207,7 +2207,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitInteger(IntegerExp e)
     {
-        const ulong v = e.toInteger();
+        const ulong v = e.value;
         if (e.type)
         {
             Type t = e.type;
@@ -2222,7 +2222,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
                     {
                         foreach (em; *sym.members)
                         {
-                            if ((cast(EnumMember)em).value.toInteger == v)
+                            if ((cast(EnumMember)em).value.isIntegerExp().value == v)
                             {
                                 const id = em.ident.toString();
                                 buf.printf("%s.%.*s", sym.toChars(), cast(int)id.length, id.ptr);
@@ -3813,7 +3813,7 @@ private void sizeToBuffer(Expression e, ref OutBuffer buf, ref HdrGenState hgs)
     {
         Expression ex = (e.op == EXP.cast_ ? (cast(CastExp)e).e1 : e);
         ex = ex.optimize(WANTvalue);
-        const ulong uval = ex.op == EXP.int64 ? ex.toInteger() : cast(ulong)-1;
+        const ulong uval = ex.op == EXP.int64 ? ex.isIntegerExp().value : cast(ulong)-1;
         if (cast(long)uval >= 0)
         {
             if (uval <= 0xFFFFU)
