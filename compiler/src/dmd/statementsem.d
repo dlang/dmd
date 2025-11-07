@@ -73,6 +73,15 @@ version (DMDLIB)
 }
 
 /*****************************************
+ * Returns:
+ *     `true` iff ready to call `dmd.statementsem.makeTupleForeach`.
+ */
+bool ready(StaticForeach _this)
+{
+    return _this.aggrfe && _this.aggrfe.aggr && _this.aggrfe.aggr.type && _this.aggrfe.aggr.type.toBasetype().ty == Ttuple;
+}
+
+/*****************************************
  * CTFE requires FuncDeclaration::labtab for the interpretation.
  * So fixing the label name inside in/out contracts is necessary
  * for the uniqueness in labtab.
