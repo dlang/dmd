@@ -5474,6 +5474,7 @@ elem* callfunc(Loc loc,
 
         // j=1 if _arguments[] is first argument
         const int j = tf.isDstyleVariadic();
+        const osx_aapcs64 = irs.target.isAArch64 && irs.target.os == Target.OS.OSX;
 
         foreach (const i, arg; *arguments)
         {
@@ -5540,10 +5541,13 @@ elem* callfunc(Loc loc,
 
             /* Do integral promotions. This is not necessary per the C ABI, but
              * some code from the C world seems to rely on it.
-             * OSX AAPCS64 relies on no promotion.
              */
-            const osx_aapcs64 = false; //irs.target.isAArch64 && irs.target.os == Target.OS.OSX;
-            if (op == NotIntrinsic && tyintegral(ea.Ety) && arg.type.size(arg.loc) < 4 && !osx_aapcs64)
+            if (osx_aapcs64)
+            {
+                /* Let cdfunc() in the backend handle this
+                 */
+            }
+            else if (op == NotIntrinsic && tyintegral(ea.Ety) && arg.type.size(arg.loc) < 4)
             {
                 if (ea.Eoper == OPconst)
                 {
