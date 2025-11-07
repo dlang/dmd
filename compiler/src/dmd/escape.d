@@ -24,6 +24,7 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem : calledFunctionType, expToVariable;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals : FeatureState;
