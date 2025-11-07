@@ -28,7 +28,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.func;
 import dmd.globals;
-import dmd.hdrgen;
+import dmd.hdrgen : toChars;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -463,6 +463,7 @@ extern (C++) abstract class Expression : ASTNode
 
     dinteger_t toInteger()
     {
+        // import dmd.hdrgen : EXPtoString;
         //printf("Expression %s\n", EXPtoString(op).ptr);
         if (!type || !type.isTypeError())
             error(loc, "integer constant expression expected instead of `%s`", toChars());
@@ -471,6 +472,7 @@ extern (C++) abstract class Expression : ASTNode
 
     uinteger_t toUInteger()
     {
+        // import dmd.hdrgen : EXPtoString;
         //printf("Expression %s\n", EXPtoString(op).ptr);
         return cast(uinteger_t)toInteger();
     }
@@ -776,7 +778,7 @@ extern (C++) final class IntegerExp : Expression
         this.value = normalize(type.toBasetype().ty, value);
     }
 
-    extern (D) static dinteger_t normalize(TY ty, dinteger_t value)
+    extern (D) private static dinteger_t normalize(TY ty, dinteger_t value)
     {
         /* 'Normalize' the value of the integer to be in range of the type
          */
