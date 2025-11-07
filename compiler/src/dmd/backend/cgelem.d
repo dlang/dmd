@@ -5594,6 +5594,43 @@ private elem* elvalist(elem* e, Goal goal)
         return e;
     }
 
+    if (cgstate.AArch64 && config.exe & EX_OSX64)
+    {
+        // (OPva_start &va)
+        // (OPeq (OPind E1) (OPptr lastNamed+T.sizeof))
+        //elem_print(e);
+
+        // Find last named parameter
+        Symbol* lastNamed = null;
+        Symbol* arguments_typeinfo = null;
+        foreach (s; globsym[])
+        {
+printf("parameter: %s\n", s.Sident.ptr);
+            if (s.Sclass == SC.parameter || s.Sclass == SC.regpar)
+                lastNamed = s;
+            if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "_arguments_typeinfo") == 0)
+                arguments_typeinfo = s;
+        }
+
+        if (!lastNamed)
+            lastNamed = arguments_typeinfo;
+	if (lastNamed)
+	    printf("lastNamed: %s\n", lastNamed ? lastNamed.Sident.ptr : "null");
+
+        e.Eoper = OPeq;
+        e.E1 = el_una(OPind, TYnptr, ap);
+        if (lastNamed)
+        {
+            e.E2 = el_ptr(lastNamed);
+            e.E2.Voffset = (type_size(lastNamed.Stype) + 7) & ~7;
+        }
+        else
+            e.E2 = el_long(TYnptr, 0);
+        // elem_print(e);
+
+        return e;
+    }
+
 if (config.exe & EX_windos)
 {
     assert(config.exe == EX_WIN64); // va_start is not an intrinsic on 32-bit
@@ -5647,7 +5684,12 @@ if (config.exe & EX_posix)
     {
         e.E2 = el_ptr(va_argsave);
         if (cgstate.AArch64)
-            e.E2.Voffset = 8 * 8 + 8 * 16; // offset to struct __va_list_tag
+        {
+            if (config.exe & EX_OSX64)
+                e.E2.Voffset = 0;              // just a char*
+            else
+                e.E2.Voffset = 8 * 8 + 8 * 16; // offset to struct __va_list_tag
+        }
         else
             e.E2.Voffset = 6 * 8 + 8 * 16; // offset to struct __va_list_tag defined in sysv_x64.d
         return el_combine(prolog_genva_start(va_argsave, parmn.Vsym), e);

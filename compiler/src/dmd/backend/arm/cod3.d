@@ -492,6 +492,8 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 {
     printf("prolog_genvarargs()\n");
     symbol_print(*sv);
+    if (config.exe & EX_OSX64)
+	return prolog_genvarargs_osx(cg,cdb,sv);
 
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
@@ -603,6 +605,55 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
     }
 }
 
+private @trusted
+void prolog_genvarargs_osx(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
+{
+    printf("prolog_genvarargs_osx()\n");
+
+    /* Generate code to move any arguments passed in registers into
+     *   struct __va_argsave_t {
+     *     void* stack_args_save; // set to start of variadics on stack
+     *   }
+        ADD     reg,sp,Para.size+Para.offset        // offset of start of variadic arguments on stack
+        STR     reg,[sp,#voff+0]                    // set __va_argsave.stack_args_save
+    */
+
+    CodeBuilder cdbx; cdbx.ctor();
+
+    /* Save registers into the voff area on the stack
+     */
+
+    code cs;
+    cs.reg = NOREG;
+    cs.base = (!cg.hasframe || cg.enforcealign) ? 31 : 29; // SP or BP
+    cs.index = NOREG;
+
+    reg_t reg = 11;
+    uint imm12 = cast(uint)(cg.Para.size + cg.Para.offset);
+    assert(imm12 < 0x1000);  // BUG AArch64 overflow check
+    cdbx.gen1(INSTR.addsub_imm(1,0,0,0,imm12,31,reg));   // ADD reg,sp,imm12
+
+    cs.IEV1.Voffset = 0;            // va_argsave_t.stack_args_save.offsetof
+    storeToEA(cs,reg,8);            // STR reg,[sp,#va_argsave_t + 0]
+    cdbx.gen(&cs);
+
+    useregs(mask(reg));
+
+    code* cx = cdbx.finish();
+    if (cx)
+    {
+        static if (0)
+        for (code* c = cx; c; c = code_next(c))
+        {
+            printf("Iop %08x  ", c.Iop);
+            disassemble(c.Iop);
+        }
+
+        assignaddrc(cx);
+        cdb.append(cx);
+    }
+}
+
 /********************************
  * Generate elem that implements va_start()
  * Params:
@@ -615,6 +666,8 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
 {
     printf("prolog_genva_start()\n");
+    symbol_print(*sv);
+    assert(!(config.exe & EX_OSX64));
 
     /* the stack variable __va_argsave points to an instance of:
      *   struct __va_argsave_t {
