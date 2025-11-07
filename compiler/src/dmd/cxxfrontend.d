@@ -370,17 +370,17 @@ Expression getDefaultValue(EnumDeclaration ed, Loc loc)
     return dmd.enumsem.getDefaultValue(ed, loc);
 }
 
-/***********************************************************
- * expression.d
- */
-void expandTuples(Expressions* exps, ArgumentLabels* names = null)
-{
-    return dmd.expression.expandTuples(exps, names);
-}
 
 /***********************************************************
  * expressionsem.d
  */
+
+void expandTuples(Expressions* exps, ArgumentLabels* names = null)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.expandTuples(exps, names);
+}
+
 Expression expressionSemantic(Expression e, Scope* sc)
 {
     import dmd.expressionsem;

@@ -100,6 +100,192 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
+/***************************************************
+ * Given an Expression, find the variable it really is.
+ *
+ * For example, `a[index]` is really `a`, and `s.f` is really `s`.
+ * Params:
+ *      e = Expression to look at
+ *      deref = number of dereferences encountered
+ * Returns:
+ *      variable if there is one, null if not
+ */
+VarDeclaration expToVariable(Expression e, out int deref)
+{
+    deref = 0;
+    while (1)
+    {
+        switch (e.op)
+        {
+            case EXP.variable:
+                return e.isVarExp().var.isVarDeclaration();
+
+            case EXP.dotVariable:
+                e = e.isDotVarExp().e1;
+                if (e.type.toBasetype().isTypeClass())
+                    deref++;
+
+                continue;
+
+            case EXP.index:
+            {
+                e = e.isIndexExp().e1;
+                if (!e.type.toBasetype().isTypeSArray())
+                    deref++;
+
+                continue;
+            }
+
+            case EXP.slice:
+            {
+                e = e.isSliceExp().e1;
+                if (!e.type.toBasetype().isTypeSArray())
+                    deref++;
+
+                continue;
+            }
+
+            case EXP.super_:
+                return e.isSuperExp().var.isVarDeclaration();
+            case EXP.this_:
+                return e.isThisExp().var.isVarDeclaration();
+
+            // Temporaries for rvalues that need destruction
+            // are of form: (T s = rvalue, s). For these cases
+            // we can just return var declaration of `s`. However,
+            // this is intentionally not calling `Expression.extractLast`
+            // because at this point we cannot infer the var declaration
+            // of more complex generated comma expressions such as the
+            // one for the array append hook.
+            case EXP.comma:
+            {
+                if (auto ve = e.isCommaExp().e2.isVarExp())
+                    return ve.var.isVarDeclaration();
+
+                return null;
+            }
+            default:
+                return null;
+        }
+    }
+}
+
+/**
+ * Get the called function type from a call expression
+ * Params:
+ *   ce = function call expression. Must have had semantic analysis done.
+ * Returns: called function type, or `null` if error / no semantic analysis done
+ */
+TypeFunction calledFunctionType(CallExp ce)
+{
+    Type t = ce.e1.type;
+    if (!t)
+        return null;
+    t = t.toBasetype();
+    if (auto tf = t.isTypeFunction())
+        return tf;
+    if (auto td = t.isTypeDelegate())
+        return td.nextOf().isTypeFunction();
+    return null;
+}
+
+/****************************************
+ * Expand tuples in-place.
+ *
+ * Example:
+ *     When there's a call `f(10, pair: AliasSeq!(20, 30), single: 40)`, the input is:
+ *         `exps =  [10, (20, 30), 40]`
+ *         `names = [null, "pair", "single"]`
+ *     The arrays will be modified to:
+ *         `exps =  [10, 20, 30, 40]`
+ *         `names = [null, "pair", null, "single"]`
+ *
+ * Params:
+ *     exps  = array of Expressions
+ *     names = optional array of names corresponding to Expressions
+ */
+void expandTuples(Expressions* exps, ArgumentLabels* names = null)
+{
+    //printf("expandTuples()\n");
+    if (exps is null)
+        return;
+
+    if (names)
+    {
+        if (exps.length != names.length)
+        {
+            printf("exps.length = %d, names.length = %d\n", cast(int) exps.length, cast(int) names.length);
+            printf("exps = %s, names = %s\n", exps.toChars(), names.toChars());
+            if (exps.length > 0)
+                printf("%s\n", (*exps)[0].loc.toChars());
+            assert(0);
+        }
+    }
+
+    // At `index`, a tuple of length `length` is expanded. Insert corresponding nulls in `names`.
+    void expandNames(size_t index, size_t length)
+    {
+        if (names)
+        {
+            if (length == 0)
+            {
+                names.remove(index);
+                return;
+            }
+            foreach (i; 1 .. length)
+            {
+                names.insert(index + i, ArgumentLabel(cast(Identifier) null, Loc.init));
+            }
+        }
+    }
+
+    for (size_t i = 0; i < exps.length; i++)
+    {
+        Expression arg = (*exps)[i];
+        if (!arg)
+            continue;
+
+        // Look for tuple with 0 members
+        if (auto e = arg.isTypeExp())
+        {
+            if (auto tt = e.type.toBasetype().isTypeTuple())
+            {
+                if (!tt.arguments || tt.arguments.length == 0)
+                {
+                    exps.remove(i);
+                    expandNames(i, 0);
+                    if (i == exps.length)
+                        return;
+                }
+                else // Expand a TypeTuple
+                {
+                    exps.remove(i);
+                    auto texps = new Expressions(tt.arguments.length);
+                    foreach (j, a; *tt.arguments)
+                        (*texps)[j] = new TypeExp(e.loc, a.type);
+                    exps.insert(i, texps);
+                    expandNames(i, texps.length);
+                }
+                i--;
+                continue;
+            }
+        }
+
+        // Inline expand all the tuples
+        while (arg.op == EXP.tuple)
+        {
+            TupleExp te = cast(TupleExp)arg;
+            exps.remove(i); // remove arg
+            exps.insert(i, te.exps); // replace with tuple contents
+            expandNames(i, te.exps.length);
+            if (i == exps.length)
+                return; // empty tuple, no more arguments
+            (*exps)[i] = Expression.combine(te.e0, (*exps)[i]);
+            arg = (*exps)[i];
+        }
+    }
+}
+
 StringExp toStringExp(Expression _this)
 {
     static StringExp nullExpToStringExp(NullExp _this)
