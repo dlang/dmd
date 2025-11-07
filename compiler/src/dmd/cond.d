@@ -229,15 +229,6 @@ extern (C++) final class StaticForeach : RootObject
     {   // TODO: move to druntime?
         return new CallExp(loc, new TypeExp(loc, type), e);
     }
-
-    /*****************************************
-     * Returns:
-     *     `true` iff ready to call `dmd.statementsem.makeTupleForeach`.
-     */
-    extern(D) bool ready()
-    {
-        return aggrfe && aggrfe.aggr && aggrfe.aggr.type && aggrfe.aggr.type.toBasetype().ty == Ttuple;
-    }
 }
 
 /***********************************************************

@@ -74,6 +74,7 @@ import dmd.sideeffect;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.statement;
+import dmd.statementsem : ready;
 import dmd.target;
 import dmd.targetcompiler;
 import dmd.templatesem;

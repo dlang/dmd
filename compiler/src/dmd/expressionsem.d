@@ -18835,8 +18835,9 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
 */
 extern(D) void prepare(StaticForeach sfe, Scope* sc)
 {
-    assert(sc);
+    import dmd.statementsem : ready;
 
+    assert(sc);
     if (sfe.aggrfe)
     {
         sc = sc.startCTFE();
