@@ -1701,6 +1701,11 @@ printf("stackalign: %d\n", stackalign);
     const osx_aapcs64 = config.exe == EX_OSX64;
     const numExplicitParams = osx_aapcs64 ? e.numParams : 0;
 
+    /* Determines if parameter #i is a variadic. The last named parameter is regarded as
+     * variadic for the purposes of alignment
+     */
+    bool isVariadicx(int np, int i) { return (numExplicitParams && np - i + 1 >= numExplicitParams); }
+
     // Figure out which parameters go in registers.
     // Compute numpara, the total bytes pushed on the stack
     uint numpara = 0;               // bytes of parameters
@@ -1709,6 +1714,7 @@ printf("stackalign: %d\n", stackalign);
     {
         elem* ep = parameters[i].e;
         auto sz = cast(uint)paramsize(ep, tyf); // size of argument
+        parameters[i].size = sz;
         uint psize = sizeOnStack(osx_aapcs64, stackalign, sz);
         printf("[%d] psize: %u numpara: %d paramsize: %d ep: %s\n", i, psize, numpara, cast(uint)paramsize(ep,tyf), tym_str(ep.Ety));
         if (config.exe == EX_WIN64)
@@ -1721,7 +1727,7 @@ printf("stackalign: %d\n", stackalign);
             psize = REGSIZE;
         }
         //printf("[%d] size = %u, numpara = %d %s\n", i, psize, numpara, tym_str(ep.Ety));
-        const bool isVariadic = !(numExplicitParams == 0 || np - i <= numExplicitParams - 1);
+        const bool isVariadic = isVariadicx(np, i);
         if (!isVariadic &&      // OSX64 does not pass variadic args in registers
             FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, parameters[i].reg, parameters[i].reg2))
         {
@@ -1839,6 +1845,7 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
      * floating point parameters go into q0..q7 (16 bytes each)
      */
     printf("number of parameters np: %d\n", np);
+    printf("------------------------------------------------\n");
     foreach (i; 0 .. np)
     {
         elem* ep = parameters[i].e;
@@ -1858,13 +1865,13 @@ elem_print(ep);
             CodeBuilder cdbparams;
             cdbparams.ctor();
 
-            const bool isVariadic = !(numExplicitParams == 0 || np - i <= numExplicitParams - 1);
+            const bool isVariadic = isVariadicx(np, i);
 printf("isVariadic: %d\n", isVariadic);
 
             // Alignment for parameter comes after it was placed on stack
             const uint numalignx = parameters[i].numalign;
 printf("funcargtos: %d numalignx: %d\n", cast(uint)funcargtos, numalignx);
-            auto sz = cast(uint)paramsize(ep, tyf);     // size of argument
+            auto sz = parameters[i].size;     // size of argument
             if (osx_aapcs64 && isVariadic && sz < 8)
                 sz = 8;
             uint psize = sizeOnStack(osx_aapcs64, stackalign, sz);
