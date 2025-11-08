@@ -8,7 +8,7 @@
  */
 module core.sys.windows.unknwn;
 version (Windows):
-nothrow:
+@nogc nothrow:
 
 import core.sys.windows.objfwd, core.sys.windows.windef, core.sys.windows.wtypes;
 import core.sys.windows.basetyps;
@@ -22,6 +22,7 @@ extern (Windows) {
 extern (Windows) {
 
     interface IUnknown {
+    @nogc nothrow:
         HRESULT QueryInterface(IID* riid, void** pvObject);
         ULONG AddRef();
         ULONG Release();
@@ -30,6 +31,7 @@ extern (Windows) {
     alias IUnknown LPUNKNOWN;
 
     interface IClassFactory : IUnknown {
+    @nogc nothrow:
         HRESULT CreateInstance(IUnknown UnkOuter, IID* riid, void** pvObject);
         HRESULT LockServer(BOOL fLock);
     }
