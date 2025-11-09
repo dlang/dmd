@@ -19,7 +19,7 @@ import dmd.ctfeexpr;
 import dmd.dmodule;
 import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem : toInteger;
+import dmd.expressionsem : toInteger, toReal;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;

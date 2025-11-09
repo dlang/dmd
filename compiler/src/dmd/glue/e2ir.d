@@ -48,7 +48,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : include, _isZeroInit, toAlias, isPOD;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.expressionsem : fill, isIdentical, isLvalue, toInteger, toUInteger;
+import dmd.expressionsem : fill, isIdentical, isLvalue, toInteger, toUInteger, toComplex;
 import dmd.func;
 import dmd.hdrgen;
 import dmd.id;
