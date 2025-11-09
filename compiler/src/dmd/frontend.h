@@ -2298,10 +2298,6 @@ enum class EXP : uint8_t
     rvalue = 128u,
 };
 
-typedef uint64_t dinteger_t;
-
-typedef uint64_t uinteger_t;
-
 struct complex_t final
 {
     _d_real re;
@@ -3190,6 +3186,8 @@ public:
     IndexExp* syntaxCopy() override;
     void accept(Visitor* v) override;
 };
+
+typedef uint64_t dinteger_t;
 
 class IntegerExp final : public Expression
 {
