@@ -436,6 +436,18 @@ StringExp toStringExp(Expression exp)
     return dmd.expressionsem.toStringExp(exp);
 }
 
+dinteger_t toInteger(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toInteger(exp);
+}
+
+uinteger_t toUInteger(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toUInteger(exp);
+}
+
 /***********************************************************
  * func.d
  */
