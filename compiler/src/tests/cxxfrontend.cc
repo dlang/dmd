@@ -635,7 +635,7 @@ public:
     {
         if (t->dim->isConst() && t->dim->type->isIntegral())
         {
-            (void)t->dim->toUInteger();
+            (void)dmd::toUInteger(t->dim);
             t->next->accept(this);
             (void)t->ctype;
         }
@@ -644,7 +644,7 @@ public:
     }
     void visit(TypeVector *t) override
     {
-        (void)t->basetype->isTypeSArray()->dim->toUInteger();
+        (void)dmd::toUInteger(t->basetype->isTypeSArray()->dim);
         t->elementType()->accept(this);
         if (t->ty == TY::Tvoid)
             Type::tuns8->accept(this);
@@ -750,7 +750,7 @@ public:
                     if (member == NULL)
                         continue;
                     (void)member->ident->toChars();
-                    (void)member->value()->toInteger();
+                    (void)dmd::toInteger(member->value());
                 }
             }
         }
