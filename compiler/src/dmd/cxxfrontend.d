@@ -448,6 +448,18 @@ uinteger_t toUInteger(Expression exp)
     return dmd.expressionsem.toUInteger(exp);
 }
 
+real_t toReal(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toReal(exp);
+}
+
+complex_t toComplex(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toComplex(exp);
+}
+
 /***********************************************************
  * func.d
  */
