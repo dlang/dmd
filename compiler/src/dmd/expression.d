@@ -294,22 +294,6 @@ extern (C++) abstract class Expression : ASTNode
         return a;
     }
 
-    dinteger_t toInteger()
-    {
-        // import dmd.hdrgen : EXPtoString;
-        //printf("Expression %s\n", EXPtoString(op).ptr);
-        if (!type || !type.isTypeError())
-            error(loc, "integer constant expression expected instead of `%s`", toChars());
-        return 0;
-    }
-
-    uinteger_t toUInteger()
-    {
-        // import dmd.hdrgen : EXPtoString;
-        //printf("Expression %s\n", EXPtoString(op).ptr);
-        return cast(uinteger_t)toInteger();
-    }
-
     real_t toReal()
     {
         error(loc, "floating point constant expression expected instead of `%s`", toChars());
@@ -569,12 +553,6 @@ extern (C++) final class IntegerExp : Expression
         return new IntegerExp(loc, value, type);
     }
 
-    override dinteger_t toInteger()
-    {
-        // normalize() is necessary until we fix all the paints of 'type'
-        return value = normalize(type.toBasetype().ty, value);
-    }
-
     override real_t toReal()
     {
         // normalize() is necessary until we fix all the paints of 'type'
@@ -611,7 +589,7 @@ extern (C++) final class IntegerExp : Expression
         this.value = normalize(type.toBasetype().ty, value);
     }
 
-    extern (D) private static dinteger_t normalize(TY ty, dinteger_t value)
+    extern (D) static dinteger_t normalize(TY ty, dinteger_t value)
     {
         /* 'Normalize' the value of the integer to be in range of the type
          */
@@ -798,16 +776,6 @@ extern (C++) final class RealExp : Expression
         return new RealExp(loc, value, type);
     }
 
-    override dinteger_t toInteger()
-    {
-        return cast(sinteger_t)toReal();
-    }
-
-    override uinteger_t toUInteger()
-    {
-        return cast(uinteger_t)toReal();
-    }
-
     override real_t toReal()
     {
         return type.isReal() ? value : CTFloat.zero;
@@ -847,16 +815,6 @@ extern (C++) final class ComplexExp : Expression
     static ComplexExp create(Loc loc, complex_t value, Type type) @safe
     {
         return new ComplexExp(loc, value, type);
-    }
-
-    override dinteger_t toInteger()
-    {
-        return cast(sinteger_t)toReal();
-    }
-
-    override uinteger_t toUInteger()
-    {
-        return cast(uinteger_t)toReal();
     }
 
     override real_t toReal()

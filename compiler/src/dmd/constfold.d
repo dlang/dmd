@@ -25,7 +25,7 @@ import dmd.declaration;
 import dmd.dstruct;
 import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem : getField, isIdentical, toBool;
+import dmd.expressionsem : getField, isIdentical, toBool, toInteger, toUInteger;
 import dmd.globals;
 import dmd.location;
 import dmd.mtype;

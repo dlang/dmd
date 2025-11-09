@@ -30,6 +30,7 @@ import dmd.denum;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dsymbolsem : apply;
+import dmd.expressionsem : toInteger;
 import dmd.dstruct;
 import dmd.dtemplate;
 import dmd.func;

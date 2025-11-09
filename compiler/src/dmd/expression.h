@@ -66,6 +66,8 @@ namespace dmd
     void fillTupleExpExps(TupleExp *te, TupleDeclaration *tup);
     Optional<bool> toBool(Expression *exp);
     StringExp *toStringExp(Expression *exp);
+    dinteger_t toInteger(Expression *exp);
+    uinteger_t toUInteger(Expression *exp);
 }
 
 typedef unsigned char OwnedBy;
@@ -101,8 +103,6 @@ public:
 
     const char* toChars() const final override;
 
-    virtual dinteger_t toInteger();
-    virtual uinteger_t toUInteger();
     virtual real_t toReal();
     virtual real_t toImaginary();
     virtual complex_t toComplex();
@@ -238,7 +238,6 @@ public:
     dinteger_t value;
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
-    dinteger_t toInteger() override;
     real_t toReal() override;
     real_t toImaginary() override;
     complex_t toComplex() override;
@@ -262,8 +261,6 @@ public:
     real_t value;
 
     static RealExp *create(Loc loc, real_t value, Type *type);
-    dinteger_t toInteger() override;
-    uinteger_t toUInteger() override;
     real_t toReal() override;
     real_t toImaginary() override;
     complex_t toComplex() override;
@@ -276,8 +273,6 @@ public:
     complex_t value;
 
     static ComplexExp *create(Loc loc, complex_t value, Type *type);
-    dinteger_t toInteger() override;
-    uinteger_t toUInteger() override;
     real_t toReal() override;
     real_t toImaginary() override;
     complex_t toComplex() override;

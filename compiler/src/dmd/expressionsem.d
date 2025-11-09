@@ -100,6 +100,46 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
+dinteger_t toInteger(Expression _this)
+{
+    if (auto iexp = _this.isIntegerExp())
+    {
+        // normalize() is necessary until we fix all the paints of 'type'
+        return iexp.value = IntegerExp.normalize(iexp.type.toBasetype().ty, iexp.value);
+    }
+    else if (auto rexp = _this.isRealExp())
+    {
+        return cast(sinteger_t)rexp.toReal();
+    }
+
+    else if (auto cexp = _this.isComplexExp())
+    {
+        return cast(sinteger_t)cexp.toReal();
+    }
+
+    // import dmd.hdrgen : EXPtoString;
+    //printf("Expression %s\n", EXPtoString(op).ptr);
+    if (!_this.type || !_this.type.isTypeError())
+        error(_this.loc, "integer constant expression expected instead of `%s`", _this.toChars());
+    return 0;
+}
+
+uinteger_t toUInteger(Expression _this)
+{
+    if (auto rexp = _this.isRealExp())
+    {
+        return cast(uinteger_t)rexp.toReal();
+    }
+    else if (auto cexp = _this.isComplexExp())
+    {
+        return cast(uinteger_t)cexp.toReal();
+    }
+    // import dmd.hdrgen : EXPtoString;
+    //printf("Expression %s\n", EXPtoString(op).ptr);
+    return cast(uinteger_t)_this.toInteger();
+}
+
+
 /***************************************************
  * Given an Expression, find the variable it really is.
  *
