@@ -38,7 +38,7 @@ import dmd.dsymbol;
 import dmd.dstruct;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.expressionsem : getDsymbol;
+import dmd.expressionsem : getDsymbol, toInteger;
 import dmd.func;
 import dmd.id;
 import dmd.init;

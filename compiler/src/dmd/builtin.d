@@ -17,6 +17,7 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem : toInteger;
 import dmd.func;
 import dmd.location;
 import dmd.mangle;

@@ -58,6 +58,7 @@ import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem : getLocalClasses, getType;
+import dmd.expressionsem : toInteger;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;

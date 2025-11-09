@@ -27,7 +27,7 @@ import dmd.attrib;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dsymbolsem : isGNUABITag, toAlias, equals;
-import dmd.expressionsem : toStringExp;
+import dmd.expressionsem : toStringExp, toInteger, toUInteger;
 import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.errors;
