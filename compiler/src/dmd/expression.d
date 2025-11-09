@@ -294,22 +294,10 @@ extern (C++) abstract class Expression : ASTNode
         return a;
     }
 
-    real_t toReal()
-    {
-        error(loc, "floating point constant expression expected instead of `%s`", toChars());
-        return CTFloat.zero;
-    }
-
     real_t toImaginary()
     {
         error(loc, "floating point constant expression expected instead of `%s`", toChars());
         return CTFloat.zero;
-    }
-
-    complex_t toComplex()
-    {
-        error(loc, "floating point constant expression expected instead of `%s`", toChars());
-        return complex_t(CTFloat.zero);
     }
 
     /****************************************
@@ -553,25 +541,9 @@ extern (C++) final class IntegerExp : Expression
         return new IntegerExp(loc, value, type);
     }
 
-    override real_t toReal()
-    {
-        // normalize() is necessary until we fix all the paints of 'type'
-        const ty = type.toBasetype().ty;
-        const val = normalize(ty, value);
-        value = val;
-        return (ty == Tuns64)
-            ? real_t(cast(ulong)val)
-            : real_t(cast(long)val);
-    }
-
     override real_t toImaginary()
     {
         return CTFloat.zero;
-    }
-
-    override complex_t toComplex()
-    {
-        return complex_t(toReal());
     }
 
     override void accept(Visitor v)
@@ -776,19 +748,9 @@ extern (C++) final class RealExp : Expression
         return new RealExp(loc, value, type);
     }
 
-    override real_t toReal()
-    {
-        return type.isReal() ? value : CTFloat.zero;
-    }
-
     override real_t toImaginary()
     {
         return type.isReal() ? CTFloat.zero : value;
-    }
-
-    override complex_t toComplex()
-    {
-        return complex_t(toReal(), toImaginary());
     }
 
     override void accept(Visitor v)
@@ -817,19 +779,9 @@ extern (C++) final class ComplexExp : Expression
         return new ComplexExp(loc, value, type);
     }
 
-    override real_t toReal()
-    {
-        return creall(value);
-    }
-
     override real_t toImaginary()
     {
         return cimagl(value);
-    }
-
-    override complex_t toComplex()
-    {
-        return value;
     }
 
     override void accept(Visitor v)

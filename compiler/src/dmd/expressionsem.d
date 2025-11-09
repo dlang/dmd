@@ -100,6 +100,48 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
+real_t toReal(Expression _this)
+{
+    if (auto iexp = _this.isIntegerExp())
+    {
+        // normalize() is necessary until we fix all the paints of 'type'
+        const ty = iexp.type.toBasetype().ty;
+        const val = iexp.normalize(ty, iexp.value);
+        iexp.value = val;
+        return (ty == Tuns64)
+            ? real_t(cast(ulong)val)
+            : real_t(cast(long)val);
+    }
+    else if (auto rexp = _this.isRealExp())
+    {
+        return rexp.type.isReal() ? rexp.value : CTFloat.zero;
+    }
+    else if (auto cexp = _this.isComplexExp())
+    {
+        return creall(cexp.value);
+    }
+    error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toChars());
+    return CTFloat.zero;
+}
+
+complex_t toComplex(Expression _this)
+{
+    if (auto iexp = _this.isIntegerExp())
+    {
+        return complex_t(iexp.toReal());
+    }
+    else if (auto rexp = _this.isRealExp())
+    {
+        return complex_t(rexp.toReal(), rexp.toImaginary());
+    }
+    else if (auto cexp = _this.isComplexExp())
+    {
+        return cexp.value;
+    }
+    error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toChars());
+    return complex_t(CTFloat.zero);
+}
+
 dinteger_t toInteger(Expression _this)
 {
     if (auto iexp = _this.isIntegerExp())
