@@ -29,7 +29,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : include, toAlias, toParentP, followInstantiationContext, runDeferredSemantic3;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.expressionsem : semanticTypeInfo;
+import dmd.expressionsem : isLvalue, toLvalue, semanticTypeInfo;
 import dmd.errors : message;
 import dmd.errorsink;
 import dmd.func;
@@ -46,7 +46,7 @@ import dmd.opover;
 import dmd.printast;
 import dmd.statement;
 import dmd.tokens;
-import dmd.typesem : pointerTo, sarrayOf;
+import dmd.typesem : mutableOf, pointerTo, sarrayOf;
 import dmd.visitor;
 import dmd.visitor.postorder;
 import dmd.inlinecost;
@@ -153,6 +153,7 @@ private final class InlineDoState
     FuncDeclaration fd; // function being inlined (old parent)
     // inline result
     bool foundReturn;
+    bool needsCopy;
 
     this(Dsymbol parent, FuncDeclaration fd) scope
     {
@@ -367,6 +368,11 @@ public:
     {
         //printf("ReturnStatement.doInlineAs!%s() '%s'\n", Result.stringof.ptr, s.exp ? s.exp.toChars() : "");
         ids.foundReturn = true;
+
+        if (s.exp && s.exp.type.ty == Tstruct)
+        {
+            ids.needsCopy = ids.needsCopy || !canElideCopy(ids.fd, s.exp);
+        }
 
         auto exp = doInlineAs!Expression(s.exp, ids);
         if (!exp) // https://issues.dlang.org/show_bug.cgi?id=14560
@@ -2159,8 +2165,6 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
             if (ethis.type.ty != Tclass)
                 vthis.storage_class = STC.ref_;
-            else
-                vthis.storage_class = STC.in_;
             vthis._linkage = LINK.d;
             vthis.parent = parent;
 
@@ -2295,7 +2299,6 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         auto e = doInlineAs!Expression(fd.fbody, ids);
         fd.inlineNest--;
 
-        import dmd.expressionsem : toLvalue;
         // https://issues.dlang.org/show_bug.cgi?id=11322
         if (tf.isRef)
             e = e.toLvalue(null, "`ref` return");
@@ -2314,8 +2317,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
          * the returned reference is exactly same as vthis, and the 'this' variable
          * already exists at the caller side.
          */
-        if (tf.next.ty == Tstruct && !fd.nrvo_var && !fd.isCtorDeclaration() &&
-            !isConstruction(e))
+        if (ids.needsCopy)
         {
             /* Generate a new variable to hold the result and initialize it with the
              * inlined body of the function:
@@ -2524,4 +2526,87 @@ private bool expNeedsDtor(Expression exp)
 
     scope NeedsDtor ct = new NeedsDtor(exp);
     return walkPostorder(exp, ct);
+}
+
+/************************************************************
+ * Determine if function `fd` can construct expression `re`
+ * directly on caller's frame without extra copying.
+ * Params:
+ *      fd = function
+ *      re = expression to be returned
+ * Returns:
+ *      true if the copy can be elided
+ */
+private bool canElideCopy(FuncDeclaration fd, Expression re)
+{
+    /* On constructor call, copying the return value is is unnecessary because
+     * the returned reference is exactly same as `this`. Also avoid the copy if
+     * NRVO already takes place.
+     */
+    if (fd.isCtorDeclaration() || fd.nrvo_var)
+    {
+        return true;
+    }
+
+    TypeFunction tf = fd.type.isTypeFunction();
+
+    static bool canConstructByRef(Expression e, bool isRef)
+    {
+        if (auto ce = e.isCommaExp())
+        {
+            return canConstructByRef(ce.e2, isRef);
+        }
+        else if (auto ce = e.isCondExp())
+        {
+            return canConstructByRef(ce.e1, isRef) && canConstructByRef(ce.e2, isRef);
+        }
+
+        /* Require the ref-ness between `fd` and `re` to match. Semantics passes
+         * already disallow returning rvalue by reference. Here, inhibit elision
+         * if `fd` returns lvalue by value. Otherwise, mutating the returned object
+         * will mutate the source object, breaking value semantics.
+         */
+        switch (e.op)
+        {
+            /* Only try to elide these types of expression for now. */
+            case EXP.call:
+            case EXP.index:
+            case EXP.structLiteral:
+            case EXP.variable:
+                return isRef || !e.isLvalue();
+            default:
+                return false;
+        }
+    }
+
+    if (!canConstructByRef(re, tf.isRef))
+    {
+        return false;
+    }
+
+    Type origType = tf.nextOf().toBasetype();
+    Type inlinedType = re.type.toBasetype();
+
+    /* If base types do not match or sharedness does not match, force copying
+     * to build a new object.
+    */
+    if (!origType.mutableOf().equals(inlinedType.mutableOf()))
+    {
+        return false;
+    }
+
+    /* Now `fd` and `re` have the same base types, ref-ness and sharedness.
+     * That means `re` is already a temporary if `fd` returns by value.
+     * Converting between mutable and immutable still necessitates a copy,
+     * or it can end up breaking backend assumptions. However, it is allowed to
+     * take up a mutable or immutable object and pretend it is const.
+     */
+    if (origType.isConst() || origType.isWild() ||
+        (origType.isMutable() && inlinedType.isMutable()) ||
+        (origType.isImmutable() && inlinedType.isImmutable()))
+    {
+        return true;
+    }
+
+    return false;
 }
