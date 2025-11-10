@@ -33,6 +33,8 @@ import dmd.location : Loc;
 import dmd.mtype /*: Covariant, Type, Parameter, ParameterList*/;
 import dmd.rootobject : RootObject;
 import dmd.root.optional;
+import dmd.root.longdouble : real_t = longdouble;
+import dmd.root.complex;
 import dmd.semantic3;
 import dmd.statement : Statement, AsmStatement, GccAsmStatement;
 
@@ -446,6 +448,18 @@ uinteger_t toUInteger(Expression exp)
 {
     import dmd.expressionsem;
     return dmd.expressionsem.toUInteger(exp);
+}
+
+real_t toReal(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toReal(exp);
+}
+
+complex_t toComplex(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toComplex(exp);
 }
 
 /***********************************************************
