@@ -2948,7 +2948,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
 /*************************************************
  * Helper function for converting OPparam's into array of Parameters.
  */
-struct Parameter { elem* e; reg_t reg; reg_t reg2; uint numalign; }
+struct Parameter { elem* e; reg_t reg; reg_t reg2; uint size; uint numalign; }
 
 @trusted
 void fillParameters(elem* e, Parameter* parameters, int* pi)
@@ -4245,6 +4245,7 @@ static if (0)
 
 /***************************
  * Determine size of argument e that will be pushed.
+ * Takes into account 0-sized types, based on type of function.
  */
 
 @trusted
