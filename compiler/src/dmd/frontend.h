@@ -2298,16 +2298,6 @@ enum class EXP : uint8_t
     rvalue = 128u,
 };
 
-struct complex_t final
-{
-    _d_real re;
-    _d_real im;
-    complex_t() = delete;
-    complex_t(_d_real re);
-    complex_t(_d_real re, _d_real im);
-    int32_t opEquals(complex_t y) const;
-};
-
 class Expression : public ASTNode
 {
 public:
@@ -2710,6 +2700,16 @@ public:
     Expression* originalExp;
     void accept(Visitor* v) override;
     static void allow(Expression* exp);
+};
+
+struct complex_t final
+{
+    _d_real re;
+    _d_real im;
+    complex_t() = delete;
+    complex_t(_d_real re);
+    complex_t(_d_real re, _d_real im);
+    int32_t opEquals(complex_t y) const;
 };
 
 class ComplexExp final : public Expression
