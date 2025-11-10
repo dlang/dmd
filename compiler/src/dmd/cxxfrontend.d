@@ -33,6 +33,8 @@ import dmd.location : Loc;
 import dmd.mtype /*: Covariant, Type, Parameter, ParameterList*/;
 import dmd.rootobject : RootObject;
 import dmd.root.optional;
+import dmd.root.longdouble : real_t = longdouble;
+import dmd.root.complex;
 import dmd.semantic3;
 import dmd.statement : Statement, AsmStatement, GccAsmStatement;
 
