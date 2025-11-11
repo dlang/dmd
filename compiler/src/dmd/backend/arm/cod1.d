@@ -1666,6 +1666,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     // Easier to deal with parameters as an array: parameters[0..np]
     int np = OTbinary(e.Eoper) ? el_nparams(e.E2) : 0;
     Parameter* parameters = cast(Parameter*)alloca(np * Parameter.sizeof);
+    memset(parameters, 0, Parameter.sizeof * np);
 
     if (np)
     {
@@ -1694,22 +1695,50 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             getregs(cdb, ~sf.Sregsaved & cg.allregs); // XMMREGS?
     }
 
+printf("---------------------------------------\n");
     uint stackalign = REGSIZE;
 printf("stackalign: %d\n", stackalign);
 
     // OSX64 only passes explicit parameters in registers; variadic parameters go on stack
     const osx_aapcs64 = config.exe == EX_OSX64;
-    const numExplicitParams = osx_aapcs64 ? e.numParams : 0;
+    const numExplicitParams = osx_aapcs64 ? e.numParams : 0; // nonzero value means called function is variadic
+printf("numExplicitParams: %d\n", numExplicitParams);
 
-    /* Determines if parameter #i is a variadic. The last named parameter is regarded as
-     * variadic for the purposes of alignment
+    /* Determine properties of arguments, from left to right
      */
-    bool isVariadicx(int np, int i) { return (numExplicitParams && np - i + 1 >= numExplicitParams); }
+    {
+        FuncParamRegs fpr = FuncParamRegs_create(tyf);
+        int apIdx = -1;
+        for (int i = np; --i >= 0;)
+        {
+            Parameter* p = &parameters[i];
+            elem* ep = p.e;
+            p.reg = NOREG;
+            p.isVariadic = numExplicitParams && np - i + 1 > numExplicitParams;
+            if (p.isVariadic)      // OSX64 does not pass variadic args in registers
+                continue;
+            if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, p.reg, p.reg2))
+                continue;        // argument is passed in register
+            /* The rightmost stack allocated argument, excluding variadics and enregisterd ones,
+             * is used to initialize the variadic argument pointer
+             */
+            apIdx = i;
+        }
+        if (apIdx >= 0)
+            parameters[apIdx].isAp = true;  // used for va_start()
 
-    // Figure out which parameters go in registers.
+        /* Print what we have discovered
+         */
+        static if (1)
+            for (int i = np; --i >= 0;)
+            {
+                Parameter* p = &parameters[i];
+                printf("[%d] isVariadic: %d isAp: %d reg: %s e:", i, p.isVariadic, p.isAp, regm_str(mask(p.reg))); elem_print(p.e);
+            }
+    }
+printf("---------------------------------------\n");
     // Compute numpara, the total bytes pushed on the stack
     uint numpara = 0;               // bytes of parameters
-    FuncParamRegs fpr = FuncParamRegs_create(tyf);
     for (int i = np; --i >= 0;)
     {
         elem* ep = parameters[i].e;
@@ -1727,22 +1756,21 @@ printf("stackalign: %d\n", stackalign);
             psize = REGSIZE;
         }
         //printf("[%d] size = %u, numpara = %d %s\n", i, psize, numpara, tym_str(ep.Ety));
-        const bool isVariadic = isVariadicx(np, i);
-        if (!isVariadic &&      // OSX64 does not pass variadic args in registers
-            FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, parameters[i].reg, parameters[i].reg2))
+        const bool isVariadicAlignment = parameters[i].isVariadic | parameters[i].isAp;
+        if (parameters[i].reg != NOREG)         // allocated in register
         {
             if (config.exe == EX_WIN64)
                 numpara += REGSIZE;             // allocate stack space for it anyway
             continue;   // goes in register, not stack
         }
 
-        if (osx_aapcs64 && isVariadic && psize < 8)
+        if (osx_aapcs64 && isVariadicAlignment && psize < 8)
             psize = 8;
 
         // Parameter i goes on the stack
         parameters[i].reg = NOREG;
         uint alignsize = el_alignsize(ep);
-        if (osx_aapcs64 && isVariadic && alignsize < 8)
+        if (osx_aapcs64 && isVariadicAlignment && alignsize < 8)
             alignsize = 8;
         printf("alignsize: %d\n", alignsize);
         parameters[i].numalign = 0;
@@ -1812,8 +1840,8 @@ printf("stackalign: %d\n", stackalign);
         }
     }
 
-    /* stack for parameters is allocated all at once - no pushing
-     * and ensure it is aligned
+    /* stack for parameters is allocated all at once - no pushing.
+     * Ensure it is aligned
      */
 printf("STACKALIGN: %d\n", STACKALIGN);
     uint numalign = -numpara & (STACKALIGN - 1);  // number of bytes needed to align the argument stack to STACKALIGN
@@ -1865,14 +1893,14 @@ elem_print(ep);
             CodeBuilder cdbparams;
             cdbparams.ctor();
 
-            const bool isVariadic = isVariadicx(np, i);
-printf("isVariadic: %d\n", isVariadic);
+            const bool isVariadicAlignment = parameters[i].isVariadic | parameters[i].isAp;
+printf("isVariadicAlignment: %d\n", isVariadicAlignment);
 
             // Alignment for parameter comes after it was placed on stack
             const uint numalignx = parameters[i].numalign;
 printf("funcargtos: %d numalignx: %d\n", cast(uint)funcargtos, numalignx);
             auto sz = parameters[i].size;     // size of argument
-            if (osx_aapcs64 && isVariadic && sz < 8)
+            if (osx_aapcs64 && isVariadicAlignment && sz < 8)
                 sz = 8;
             uint psize = sizeOnStack(osx_aapcs64, stackalign, sz);
 
@@ -1880,7 +1908,7 @@ printf("funcargtos: %d numalignx: %d\n", cast(uint)funcargtos, numalignx);
 printf("funcargtos: %d\n", cast(uint)funcargtos);
 
             sz = el_alignsize(ep);                       // size after alignment
-            if (osx_aapcs64 && isVariadic && sz < 8)
+            if (osx_aapcs64 && isVariadicAlignment && sz < 8)
                 sz = 8;
             //targ_size_t szb = paramsize(ep, tyf);          // size before alignment
             //printf("sz = %d\n", sz, cast(int)sz);
