@@ -164,6 +164,7 @@ int controlc_saw = 0;              /* a control C was seen         */
 symtab_t globsym;               /* global symbol table                  */
 Pstate pstate;                  // parser state
 Cstate cstate;                  // compiler state
+const(char)[][] gCsym;           // hash table for C symbol lookup
 
 uint numcse;        // number of common subexpressions
 
