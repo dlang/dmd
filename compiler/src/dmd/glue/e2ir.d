@@ -433,6 +433,7 @@ elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
         (*pe).ET = ec.E1.ET;
 
         e.Ety = TYnptr;
+        ec.Ety = TYnptr;
         return e;
     }
 
