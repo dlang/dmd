@@ -3,7 +3,7 @@
 /* This test triggers an address miscalculation bug in DMD 2.111
  * with -inline.
  * May not crash if the data segment has a different layout,
- * e.g. when pasted into with another file.
+ * e.g. when pasted into another file.
  */
 
 struct S {
