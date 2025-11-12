@@ -46,7 +46,7 @@ import dmd.opover;
 import dmd.printast;
 import dmd.statement;
 import dmd.tokens;
-import dmd.typesem : pointerTo, sarrayOf;
+import dmd.typesem : mutableOf, pointerTo, sarrayOf;
 import dmd.visitor;
 import dmd.visitor.postorder;
 import dmd.inlinecost;
@@ -120,8 +120,62 @@ public Expression inlineCopy(Expression e, Scope* sc)
     return doInlineAs!Expression(e, ids);
 }
 
+/***********************************************************
+ * Determine if an expression of struct type can be safely moved to a
+ * designated storage, without making any temporary copy. This is basically
+ * a restricted subset of so-called "pure" rvalues, i.e. expressions with no
+ * reference semantics.
+ *
+ * See also `dmd.expressionsem.isLvalue()`.
+ */
+public bool canMoveFrom(Expression e)
+{
+    static bool visitCallExp(CallExp e)
+    {
+        // Constructor or value return
+        auto tb = e.e1.type.toBasetype();
+        if (tb.ty == Tdelegate || tb.ty == Tpointer)
+            tb = tb.nextOf();
+        auto tf = tb.isTypeFunction();
+        if (!tf)
+            return false;
+        if (tf.isRef)
+        {
+            if (auto dve = e.e1.isDotVarExp())
+                if (dve.var.isCtorDeclaration())
+                    return true;
+            return false;
+        }
+        return true;
+    }
 
+    switch (e.op)
+    {
+        case EXP.call:
+            return visitCallExp(e.isCallExp());
+        case EXP.comma:
+            auto ce = e.isCommaExp();
+            return canMoveFrom(ce.e2);
+        case EXP.question:
+            auto ce = e.isCondExp();
+            return canMoveFrom(ce.e1) && canMoveFrom(ce.e2);
 
+        case EXP.structLiteral:
+            // Struct literals can be moved anywhere
+            return true;
+        case EXP.dotVariable:
+            // If an aggregate can be safely moved, so are its fields
+            auto dve = e.isDotVarExp();
+            auto vd = dve.var.isVarDeclaration();
+            return vd && canMoveFrom(dve.e1) && vd.isField();
+        case EXP.variable:
+            // Any variable marked as rvalue can be moved
+            return (e.isVarExp().var.storage_class & STC.rvalue) != 0;
+        default:
+            // Reject other expressions for now
+            return false;
+    }
+}
 
 
 
@@ -153,6 +207,7 @@ private final class InlineDoState
     FuncDeclaration fd; // function being inlined (old parent)
     // inline result
     bool foundReturn;
+    bool needsCopy;
 
     this(Dsymbol parent, FuncDeclaration fd) scope
     {
@@ -367,6 +422,11 @@ public:
     {
         //printf("ReturnStatement.doInlineAs!%s() '%s'\n", Result.stringof.ptr, s.exp ? s.exp.toChars() : "");
         ids.foundReturn = true;
+
+        if (s.exp && s.exp.type.ty == Tstruct)
+        {
+            ids.needsCopy = ids.needsCopy || !canElideCopy(ids.fd, s.exp);
+        }
 
         auto exp = doInlineAs!Expression(s.exp, ids);
         if (!exp) // https://issues.dlang.org/show_bug.cgi?id=14560
@@ -1481,7 +1541,7 @@ public:
 
             if (canInline(fd, parent == fd.toParent2(), asStates, eSink))
             {
-                expandInline(e.loc, fd, parent, eret, null, e.arguments, asStates, e.vthis2, eresult, sresult, again);
+                expandInline(e, fd, parent, eret, null, asStates, eresult, sresult, again);
                 if (asStatements && eresult)
                 {
                     sresult = new ExpStatement(eresult.loc, eresult);
@@ -1545,7 +1605,7 @@ public:
                 }
                 else
                 {
-                    expandInline(e.loc, fd, parent, eret, dve.e1, e.arguments, asStatements, e.vthis2, eresult, sresult, again);
+                    expandInline(e, fd, parent, eret, dve.e1, asStatements, eresult, sresult, again);
                 }
             }
         }
@@ -2021,22 +2081,20 @@ Lno:
  *      ethis.fd(arguments)
  *
  * Params:
- *      callLoc = location of CallExp
+ *      e = original CallExp
  *      fd = function to expand
  *      parent = function that the call to fd is being expanded into
  *      eret = if !null then the lvalue of where the nrvo return value goes
- *      ethis = 'this' reference
- *      arguments = arguments passed to fd
  *      asStatements = expand to Statements rather than Expressions
  *      eresult = if expanding to an expression, this is where the expression is written to
  *      sresult = if expanding to a statement, this is where the statement is written to
  *      again = if true, then fd can be inline scanned again because there may be
  *           more opportunities for inlining
  */
-private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expression eret,
-        Expression ethis, Expressions* arguments, bool asStatements, VarDeclaration vthis2,
-        out Expression eresult, out Statement sresult, out bool again)
+private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration parent, Expression eret,
+        Expression ethis, bool asStatements, out Expression eresult, out Statement sresult, out bool again)
 {
+    Loc callLoc = ecall.loc;
     auto tf = fd.type.isTypeFunction();
     static if (LOG || CANINLINE_LOG || EXPANDINLINE_LOG)
         printf("FuncDeclaration.expandInline('%s', %d)\n", fd.toChars(), asStatements);
@@ -2115,6 +2173,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
     {
         Expression e0;
         ethis = Expression.extractLast(ethis, e0);
+        VarDeclaration vthis2 = ecall.vthis2;
         assert(vthis2 || !fd.hasDualContext);
         if (vthis2)
         {
@@ -2153,8 +2212,6 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
             if (ethis.type.ty != Tclass)
                 vthis.storage_class = STC.ref_;
-            else
-                vthis.storage_class = STC.in_;
             vthis._linkage = LINK.d;
             vthis.parent = parent;
 
@@ -2172,13 +2229,13 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
     // Set up parameters
     Expression eparams;
-    if (arguments && arguments.length)
+    if (ecall.arguments && ecall.arguments.length)
     {
-        assert(fd.parameters.length == arguments.length);
-        foreach (i; 0 .. arguments.length)
+        assert(fd.parameters.length == ecall.arguments.length);
+        foreach (i; 0 .. ecall.arguments.length)
         {
             auto vfrom = (*fd.parameters)[i];
-            auto arg = (*arguments)[i];
+            auto arg = (*ecall.arguments)[i];
 
             auto ei = new ExpInitializer(vfrom.loc, arg);
             auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, ei);
@@ -2197,6 +2254,11 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
                     // The destructor is called on va so take it by ref
                     vto.storage_class |= STC.ref_;
                 }
+            }
+
+            if (arg.rvalue)
+            {
+                vto.storage_class |= STC.ref_;
             }
 
             // Even if vto is STC.lazy_, `vto = arg` is handled correctly in glue layer.
@@ -2308,8 +2370,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
          * the returned reference is exactly same as vthis, and the 'this' variable
          * already exists at the caller side.
          */
-        if (tf.next.ty == Tstruct && !fd.nrvo_var && !fd.isCtorDeclaration() &&
-            !isConstruction(e))
+        if (ids.needsCopy)
         {
             /* Generate a new variable to hold the result and initialize it with the
              * inlined body of the function:
@@ -2343,6 +2404,11 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         eresult = Expression.combine(eresult, eret, ethis, eparams);
         eresult = Expression.combine(eresult, e);
 
+        if (ecall.rvalue || tf.isRvalue)
+        {
+            eresult.rvalue = true;
+        }
+
         static if (EXPANDINLINE_LOG)
             printf("\n[%s] %s expandInline eresult = %s\n",
                 callLoc.toChars(), fd.toPrettyChars(), eresult.toChars());
@@ -2352,45 +2418,6 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
     // in expressions, as we might have inlined statements
     parent.inlineStatusExp = ILS.uninitialized;
 }
-
-/****************************************************
- * Determine if the value of `e` is the result of construction.
- *
- * Params:
- *      e = expression to check
- * Returns:
- *      true for value generated by a constructor or struct literal
- */
-private bool isConstruction(Expression e)
-{
-    e = lastComma(e);
-
-    if (e.op == EXP.structLiteral)
-    {
-        return true;
-    }
-    /* Detect:
-     *    structliteral.ctor(args)
-     */
-    else if (e.op == EXP.call)
-    {
-        auto ce = cast(CallExp)e;
-        if (ce.e1.op == EXP.dotVariable)
-        {
-            auto dve = cast(DotVarExp)ce.e1;
-            auto fd = dve.var.isFuncDeclaration();
-            if (fd && fd.isCtorDeclaration())
-            {
-                if (dve.e1.op == EXP.structLiteral)
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
 
 /***********************************************************
  * Determine if v is 'head const', meaning
@@ -2518,4 +2545,61 @@ private bool expNeedsDtor(Expression exp)
 
     scope NeedsDtor ct = new NeedsDtor(exp);
     return walkPostorder(exp, ct);
+}
+
+/************************************************************
+ * Determine if function `fd` can construct expression `re`
+ * directly on caller's frame without extra copying.
+ * Params:
+ *      fd = function
+ *      re = expression to be returned
+ * Returns:
+ *      true if the copy can be elided
+ */
+private bool canElideCopy(FuncDeclaration fd, Expression re)
+{
+    /* On constructor call, copying the return value is is unnecessary because
+     * the returned reference is exactly same as `this`. Also avoid the copy if
+     * NRVO already takes place.
+     */
+    if (fd.isCtorDeclaration() || fd.nrvo_var)
+    {
+        return true;
+    }
+
+    TypeFunction tf = fd.type.isTypeFunction();
+
+    /* Just inline the returned lvalue if `fd` returns by reference. Otherwise,
+     * check if the returned expression can be moved from.
+     */
+    if (!tf.isRef && !canMoveFrom(re))
+    {
+        return false;
+    }
+
+    Type origType = tf.nextOf().toBasetype();
+    Type inlinedType = re.type.toBasetype();
+
+    /* If base types do not match or sharedness does not match, force copying
+     * to build a new object.
+    */
+    if (!origType.mutableOf().equals(inlinedType.mutableOf()))
+    {
+        return false;
+    }
+
+    /* Now `fd` and `re` have the same base types, ref-ness and sharedness.
+     * That means `re` is already a temporary if `fd` returns by value.
+     * Converting between mutable and immutable still necessitates a copy,
+     * or it can end up breaking backend assumptions. However, it is allowed to
+     * take up a mutable or immutable object and pretend it is const.
+     */
+    if (origType.isConst() || origType.isWild() ||
+        (origType.isMutable() && inlinedType.isMutable()) ||
+        (origType.isImmutable() && inlinedType.isImmutable()))
+    {
+        return true;
+    }
+
+    return false;
 }

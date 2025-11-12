@@ -53,6 +53,7 @@ import dmd.func;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
+import dmd.inline : canMoveFrom;
 import dmd.location;
 import dmd.mtype;
 import dmd.printast;
@@ -458,10 +459,30 @@ elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
         elem* eeq = elAssign(el_var(stmp), e2, t, tx);
         *pe = el_bin(OPcomma,e2.Ety,eeq,el_var(stmp));
     }
+
     tym_t typ = TYnptr;
-    if (e.Eoper == OPind && tybasic(e.E1.Ety) == TYimmutPtr)
-        typ = TYimmutPtr;
-    e = el_una(OPaddr,typ,e);
+
+    if ((*pe).Eoper == OPind)
+    {
+        elem* pea = (*pe).E1;
+
+        if (tybasic(pea.Ety) == TYimmutPtr)
+        {
+            typ = TYimmutPtr;
+        }
+
+        if (pea.Eoper == OPcall || pea.Eoper == OPucall)
+        {
+            *pe = pea;
+            for (elem* ex = e; ex.Eoper == OPcomma; ex = ex.E2)
+            {
+                ex.Ety = typ;
+            }
+            return e;
+        }
+    }
+
+    e = el_una(OPaddr, typ, e);
     return e;
 }
 
@@ -5496,38 +5517,21 @@ elem* callfunc(Loc loc,
 
             if (ISX64REF(irs, arg) && op == NotIntrinsic)
             {
-                /* if the argument is a function call which returns a pointer
-                 * to where the return value goes, that pointer is the pointer
-                 * to the return value
-                 */
-                elem** pea;
-                for (pea = &ea; (*pea).Eoper == OPcomma; pea = &(*pea).E2) // skip past OPcomma's
-                {
-                }
-                if ((*pea).Eoper == OPind &&
-                    (*pea).Ety == TYstruct &&
-                    ((*pea).E1.Eoper == OPcall || (*pea).E1.Eoper == OPucall))
-                {
-                    *pea = (*pea).E1; // remove the OPind
-                    elems[i] = ea;
-
-                    tym_t eaty = (*pea).Ety;
-                    for (elem* ex = ea; ex.Eoper == OPcomma; ex = ex.E2)
-                        ex.Ety = eaty;
-
-                    continue;
-                }
-
                 /* Copy to a temporary, and make the argument a pointer
                  * to that temporary.
                  */
                 VarDeclaration v;
                 if (VarExp ve = arg.lastComma().isVarExp())
                     v = ve.var.isVarDeclaration();
-                bool copy = !(v && (v.isArgDtorVar || v.storage_class & STC.rvalue)); // copy unless the destructor is going to be run on it
-                                                    // then assume the frontend took care of the copying and pass it by ref
-                if (arg.rvalue)                     // marked with __rvalue
-                    copy = false;
+
+                /* Do not copy if the destructor is going to be run on it.
+                 * Assume the frontend took care of the copying and pass it
+                 * by ref.
+                 */
+                bool hasDtor = v && (v.isArgDtorVar || v.storage_class & STC.rvalue);
+
+                /* Also do not copy __rvalue expressions or pure temporaries. */
+                bool copy = !(hasDtor || arg.rvalue || canMoveFrom(arg));
 
                 elems[i] = addressElem(ea, arg.type, copy);
                 continue;
