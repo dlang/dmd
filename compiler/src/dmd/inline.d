@@ -1217,7 +1217,13 @@ public:
 
     override void visit(WithStatement s)
     {
-        inlineScan(s.exp);
+        if (s.wthis && s.wthis._init)
+        {
+            if (auto ie = s.wthis._init.isExpInitializer())
+            {
+                inlineScan(ie.exp);
+            }
+        }
         inlineScan(s._body);
     }
 
