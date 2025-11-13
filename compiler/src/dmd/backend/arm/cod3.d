@@ -493,7 +493,7 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
     printf("prolog_genvarargs()\n");
     symbol_print(*sv);
     if (config.exe & EX_OSX64)
-	return prolog_genvarargs_osx(cg,cdb,sv);
+        return prolog_genvarargs_osx(cg,cdb,sv);
 
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
@@ -545,37 +545,31 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
     cs.base = (!cg.hasframe || cg.enforcealign) ? 31 : 29; // SP or BP
     cs.index = NOREG;
 
-    /* OSX AArch64 never passes variadic arguments in registers,
-     * so no need to transfer them to memory
-     */
-    if (1 || !(config.exe & EX_OSX64))
+    cs.IEV1.Vsym = sv;
+    cs.IFL1 = sv.Sfl;
+    cs.Iflags = CFoff;
+    cgstate.reflocal = true;
+
+    regm_t namedargs = prolog_namedArgs();
+    foreach (reg_t x; 0 .. 8)
     {
-        cs.IEV1.Vsym = sv;
-        cs.IFL1 = sv.Sfl;
-        cs.Iflags = CFoff;
-        cgstate.reflocal = true;
-
-        regm_t namedargs = prolog_namedArgs();
-        foreach (reg_t x; 0 .. 8)
+        if (!(mask(x) & namedargs))  // unnamed arguments would be the ... ones
         {
-            if (!(mask(x) & namedargs))  // unnamed arguments would be the ... ones
-            {
-                cs.IEV1.Voffset = 0;
-                storeToEA(cs,x,8);                              // STR X,[sp/bp,#offset]
-                cs.IEV1.Voffset = x * 8;
-                cdbx.gen(&cs);
-            }
+            cs.IEV1.Voffset = 0;
+            storeToEA(cs,x,8);                              // STR X,[sp/bp,#offset]
+            cs.IEV1.Voffset = x * 8;
+            cdbx.gen(&cs);
         }
+    }
 
-        foreach (reg_t q; 32 + 0 .. 32 + 8)
+    foreach (reg_t q; 32 + 0 .. 32 + 8)
+    {
+        if (!(mask(q) & namedargs))  // unnamed arguments would be the ... ones
         {
-            if (!(mask(q) & namedargs))  // unnamed arguments would be the ... ones
-            {
-                cs.IEV1.Voffset = 0;
-                storeToEA(cs,q,16);      // STR q,[sp/bp,#offset]
-                cs.IEV1.Voffset = 8 * 8 + (q & 31) * 16;
-                cdbx.gen(&cs);
-            }
+            cs.IEV1.Voffset = 0;
+            storeToEA(cs,q,16);      // STR q,[sp/bp,#offset]
+            cs.IEV1.Voffset = 8 * 8 + (q & 31) * 16;
+            cdbx.gen(&cs);
         }
     }
 
@@ -605,23 +599,20 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
     }
 }
 
+/*********************************************
+ * Assign into sv the address of the first variadic parameter
+ */
 private @trusted
 void prolog_genvarargs_osx(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 {
     printf("prolog_genvarargs_osx()\n");
 
-    /* Generate code to move any arguments passed in registers into
-     *   struct __va_argsave_t {
-     *     void* stack_args_save; // set to start of variadics on stack
-     *   }
+    /* generate code to initialize __va_argsave to point to the first variadic argument
         ADD     reg,sp,Para.size+Para.offset        // offset of start of variadic arguments on stack
         STR     reg,[sp,#voff+0]                    // set __va_argsave.stack_args_save
-    */
+     */
 
     CodeBuilder cdbx; cdbx.ctor();
-
-    /* Save registers into the voff area on the stack
-     */
 
     code cs;
     cs.reg = NOREG;
@@ -629,12 +620,14 @@ void prolog_genvarargs_osx(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
     cs.index = NOREG;
 
     reg_t reg = 11;
-    uint imm12 = cast(uint)(cg.Para.size + cg.Para.offset);
+    uint imm12 = cast(uint)(cg.Para.size + cg.Para.offset);  // offset past parameters that went onto the stack
     assert(imm12 < 0x1000);  // BUG AArch64 overflow check
     cdbx.gen1(INSTR.addsub_imm(1,0,0,0,imm12,31,reg));   // ADD reg,sp,imm12
 
-    cs.IEV1.Voffset = 0;            // va_argsave_t.stack_args_save.offsetof
-    storeToEA(cs,reg,8);            // STR reg,[sp,#va_argsave_t + 0]
+    // Store address into __va_argsave
+    cs.IEV1.Vsym = sv;
+    cs.IEV1.Voffset = 0;
+    storeToEA(cs,reg,8);            // STR reg,[sp,#__va_argsave + 0]
     cdbx.gen(&cs);
 
     useregs(mask(reg));
@@ -667,7 +660,7 @@ elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
 {
     printf("prolog_genva_start()\n");
     symbol_print(*sv);
-    assert(!(config.exe & EX_OSX64));
+    assert(!(config.exe & EX_OSX64)); // not needed for OSX64, see backend.cgelem.valist()
 
     /* the stack variable __va_argsave points to an instance of:
      *   struct __va_argsave_t {
