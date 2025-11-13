@@ -150,10 +150,6 @@ class ThreadBase
 
     package void destroyDataStorage() nothrow @nogc
     {
-        // allow the GC to clean up any resources it allocated for this thread.
-        import core.internal.gc.proxy : gc_getProxy;
-        gc_getProxy().cleanupThread(this);
-
         rt_tlsgc_destroy(m_tlsrtdata);
         m_tlsrtdata = null;
     }
@@ -868,12 +864,21 @@ package ThreadT thread_attachThis_tpl(ThreadT)()
  * Deregisters the calling thread from use with the runtime.  If this routine
  * is called for a thread which is not registered, the result is undefined.
  *
+ * Once the thread is removed from the runtime, it must not use the GC because
+ * it does not participate in the Stop-The-World mechanisms. With the default
+ * GC, that has a global lock, this might not cause races, but in GCs with
+ * regional locks, it definitely can cause races.
+ *
  * NOTE: This routine does not run thread-local static destructors when called.
  *       If full functionality as a D thread is desired, the following function
  *       must be called before thread_detachThis, particularly if the thread is
  *       being detached at some indeterminate time before program termination:
  *
  *       $(D extern(C) void rt_moduleTlsDtor();)
+ *
+ *       This also does not call the GC thread cleanup routine. After running
+ *       module dtors, it is recommended to call
+ *       $(D gc_getProxy().cleanupThread(Thread.getThis());)
  *
  * See_Also:
  *     $(REF thread_attachThis, core,thread,osthread)
@@ -889,12 +894,22 @@ extern (C) void thread_detachThis() nothrow @nogc
  * Deregisters the given thread from use with the runtime.  If this routine
  * is called for a thread which is not registered, the result is undefined.
  *
+ * Once the thread is removed from the runtime, it must not use the GC because
+ * it does not participate in the Stop-The-World mechanisms. With the default
+ * GC, that has a global lock, this might not cause races, but in GCs with
+ * regional locks, it definitely can cause races.
+ *
  * NOTE: This routine does not run thread-local static destructors when called.
  *       If full functionality as a D thread is desired, the following function
- *       must be called by the detached thread, particularly if the thread is
- *       being detached at some indeterminate time before program termination:
+ *       must be called by the detached thread before calling this function,
+ *       particularly if the thread is being detached at some indeterminate
+ *       time before program termination:
  *
  *       $(D extern(C) void rt_moduleTlsDtor();)
+ *
+ *       This also does not call the GC thread cleanup routine. After running
+ *       module dtors, it is recommended to call (from the thread itself)
+ *       $(D gc_getProxy().cleanupThread(Thread.getThis());)
  */
 extern (C) void thread_detachByAddr(ThreadID addr)
 {

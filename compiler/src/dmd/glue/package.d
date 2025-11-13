@@ -793,10 +793,17 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     irs.blx = &bx;
 
     // Initialize argptr
-    if (fd.v_argptr)
+    if (fd.v_argptr)   // created for variadic functions
     {
-        // Declare va_argsave
-        if ((target.isX86_64 || target.isAArch64) &&
+        if (target.isAArch64 && target.os == Target.os.OSX)
+        {
+            type* t = type_fake(TYnptr); /// pointer to void
+            // The backend will pick this up by name and set it to the last named parameter
+            Symbol* sv = symbol_name("__va_argsave", SC.auto_, t);
+            sv.Stype.Tty |= mTYvolatile;
+            symbol_add(sv);
+        }
+        else if ((target.isX86_64 || target.isAArch64) &&
             target.os & Target.OS.Posix)
         {
             type* t = target.isX86_64
@@ -813,6 +820,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             Symbol* sa = toSymbol(fd.v_argptr);
             symbol_add(sa);
+            // (&v_argptr OPva_start &lastParam)
             elem* e = el_bin(OPva_start, TYnptr, el_ptr(sa), lastParam ? el_ptr(lastParam) : el_long(TYnptr, 0));
             block_appendexp(irs.blx.curblock, e);
         }

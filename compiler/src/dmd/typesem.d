@@ -67,6 +67,56 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+Type makeConst(Type _this)
+{
+    if (_this.mcache && _this.mcache.cto)
+    {
+        assert(_this.mcache.cto.mod == MODFlags.const_);
+        return _this.mcache.cto;
+    }
+
+    static Type defaultMakeConst(Type _this)
+    {
+        //printf("Type::makeConst() %p, %s\n", this, toChars());
+        Type t = _this.nullAttributes();
+        t.mod = MODFlags.const_;
+        //printf("-Type::makeConst() %p, %s\n", t, toChars());
+        return t;
+    }
+
+    static Type typeNextMakeConst(TypeNext _this)
+    {
+        //printf("TypeNext::makeConst() %p, %s\n", this, toChars());
+        TypeNext t = cast(TypeNext)defaultMakeConst(cast(Type)_this);
+        if (_this.ty != Tfunction && _this.next.ty != Tfunction && !_this.next.isImmutable())
+        {
+            if (_this.next.isShared())
+            {
+                if (_this.next.isWild())
+                    t.next = _this.next.sharedWildConstOf();
+                else
+                    t.next = _this.next.sharedConstOf();
+            }
+            else
+            {
+                if (_this.next.isWild())
+                    t.next = _this.next.wildConstOf();
+                else
+                    t.next = _this.next.constOf();
+            }
+        }
+        //printf("TypeNext::makeConst() returns %p, %s\n", t, t.toChars());
+        return t;
+    }
+
+    switch(_this.ty)
+    {
+        case Tpointer, Treference, Tfunction, Tdelegate, Tslice, Tarray, Taarray, Tsarray:
+            return typeNextMakeConst(cast(TypeNext) _this);
+        default: return defaultMakeConst(_this);
+    }
+}
+
 Type toBasetype2(TypeEnum _this)
 {
     if (!_this.sym.members && !_this.sym.memtype)
