@@ -1159,17 +1159,6 @@ extern (C++) abstract class Type : ASTNode
         return ad && ad.aliasthis && (ad.aliasthis.isDeprecated || ad.aliasthis.sym.isDeprecated);
     }
 
-    Type makeConst()
-    {
-        //printf("Type::makeConst() %p, %s\n", this, toChars());
-        if (mcache && mcache.cto)
-            return mcache.cto;
-        Type t = this.nullAttributes();
-        t.mod = MODFlags.const_;
-        //printf("-Type::makeConst() %p, %s\n", t, toChars());
-        return t;
-    }
-
     Type makeImmutable()
     {
         if (mcache && mcache.ito)
@@ -1530,36 +1519,6 @@ extern (C++) abstract class TypeNext : Type
     override final Type nextOf() @safe
     {
         return next;
-    }
-
-    override final Type makeConst()
-    {
-        //printf("TypeNext::makeConst() %p, %s\n", this, toChars());
-        if (mcache && mcache.cto)
-        {
-            assert(mcache.cto.mod == MODFlags.const_);
-            return mcache.cto;
-        }
-        TypeNext t = cast(TypeNext)Type.makeConst();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
-        {
-            if (next.isShared())
-            {
-                if (next.isWild())
-                    t.next = next.sharedWildConstOf();
-                else
-                    t.next = next.sharedConstOf();
-            }
-            else
-            {
-                if (next.isWild())
-                    t.next = next.wildConstOf();
-                else
-                    t.next = next.constOf();
-            }
-        }
-        //printf("TypeNext::makeConst() returns %p, %s\n", t, t.toChars());
-        return t;
     }
 
     override final Type makeImmutable()

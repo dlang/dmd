@@ -941,6 +941,11 @@ void Type_init()
     return dmd.typesem.Type_init();
 }
 
+Type makeConst(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.makeConst(type);
+}
 
 /***********************************************************
  * typinf.d
