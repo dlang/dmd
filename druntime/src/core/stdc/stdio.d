@@ -1703,14 +1703,14 @@ else version (OpenBSD)
     {
         ///
         void rewind(FILE*);
-	///
-	pure void clearerr(FILE*);
-	///
-	pure int  feof(FILE*);
-	///
-	pure int  ferror(FILE*);
-	///
-	int  fileno(FILE*);
+        ///
+        pure void clearerr(FILE*);
+        ///
+        pure int  feof(FILE*);
+        ///
+        pure int  ferror(FILE*);
+        ///
+        int  fileno(FILE*);
     }
 
     ///

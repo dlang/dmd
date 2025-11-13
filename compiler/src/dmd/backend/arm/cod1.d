@@ -57,7 +57,8 @@ nothrow:
  */
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
-    static if (0) debug printf("loadFromEA() reg: %d, szw: %d, szr: %d offset: %d S: %d extend: %s\n",
+    enum log = false;
+    static if (log) debug printf("loadFromEA() reg: %d, szw: %d, szr: %d offset: %d S: %d extend: %s\n",
         reg, szw, szr, cast(int)cs.IEV1.Voffset, cs.Sextend >> 3, ExtendToStr(cast(Extend)(cs.Sextend & 7)));
     assert(szr <= szw);
     cs.Iop = INSTR.nop;
@@ -82,7 +83,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         {
             // LDR reg,[cs.base, #offset]
             assert(cs.index == NOREG);
-            uint imm12 = cast(uint)cs.IEV1.Voffset;
+            uint imm12 = 0; // cast(uint)cs.IEV1.Voffset added in by assignaddrc()
             uint size, opc;
             INSTR.szToSizeOpc(szw, size, opc);
             if (szr & (szr - 1)) // if misaligned
@@ -97,6 +98,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
         }
         else
             assert(0);
+        static if (log) disassemble(cs.Iop);
         return;
     }
 
@@ -157,12 +159,13 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
                                 : INSTR.ldrh_imm (szw == 8, reg, cs.base, offset);
         else if (szr == 4)
             cs.Iop = signExtend ? INSTR.ldrsw_imm(offset, cs.base, reg)
-                                : INSTR.ldr_imm_gen(szw == 8, reg, cs.base, offset);
+                                : INSTR.ldr_imm_gen(szr == 8, reg, cs.base, offset); // should others be szr too?
         else
             cs.Iop =              INSTR.ldr_imm_gen(szw == 8, reg, cs.base, offset);
     }
     else
         assert(0);
+    static if (log) disassemble(cs.Iop);
 }
 
 unittest
@@ -193,7 +196,8 @@ unittest
  */
 void storeToEA(ref code cs, reg_t reg, uint sz)
 {
-    debug printf("storeToEA() reg: %d, sz: %d offset: %d\n", reg, sz, cast(int)cs.IEV1.Voffset);
+    enum log = false;
+    static if (log) debug printf("storeToEA() reg: %d, sz: %d offset: %d\n", reg, sz, cast(int)cs.IEV1.Voffset);
     cs.Iop = INSTR.nop;
     assert(reg != NOREG);
     if (mask(reg) & INSTR.FLOATREGS)       // if floating point store
@@ -217,7 +221,7 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
         {
             // STR reg,[cs.base, #offset]
             assert(cs.index == NOREG);
-            uint imm12 = cast(uint)cs.IEV1.Voffset;
+            uint imm12 = 0; // addaddrc() will add in cast(uint)cs.IEV1.Voffset;
             uint size, opc;
             INSTR.szToSizeOpc(sz, size, opc);
             imm12 /= sz;
@@ -225,6 +229,7 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
         }
         else
             assert(0);
+        static if (log) disassemble(cs.Iop);
         return;
     }
 
@@ -257,6 +262,7 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
     }
     else
         assert(0);
+    static if (log) disassemble(cs.Iop);
 }
 
 /**************************
@@ -569,8 +575,7 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
     getlvalue(cdb, cs, e, keepmsk, rmx);
     cs.IEV1.Voffset += offset;
 
-//xyzzy
-printf("sz: %d\n", sz);
+    //printf("loadea() sz: %d Voffset: %d loadea.offset: %d\n", sz, cast(int)cs.IEV1.Voffset, cast(int)offset);
     assert(op != LEA);                  // AArch64 does not have LEA
     loadFromEA(cs,reg,sz >= 8 ? sz : 4,sz);
 
@@ -908,7 +913,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
             }
 
             regm_t idxregs;
-            idxregs = cgstate.allregs & ~keepmsk; // only these can be index regs
+            idxregs = INSTR.ALLREGS & ~keepmsk; // only these can be index regs
             assert(idxregs);
             if ((sz == REGSIZE || sz == 4) &&
                 rm == RM.store)
@@ -1287,7 +1292,7 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
     tym = tybasic(tym);
     reg_t reg = findreg(regm);
     uint sz = _tysize[tym];
-    assert(regm & (cgstate.allregs | INSTR.FLOATREGS));
+    assert(regm & (INSTR.ALLREGS | INSTR.FLOATREGS));
 
     static if (0)
     if (regm & XMMREGS)
@@ -1357,7 +1362,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
     if (outretregs == 0) return;          // if don't want result
     assert(e && retregs);                 // need something to work with
     regm_t forccs = outretregs & mPSW;
-    regm_t forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);
+    regm_t forregs = outretregs & (INSTR.ALLREGS | INSTR.FLOATREGS);
     tym_t tym = tybasic(e.Ety);
 
     if (tym == TYstruct)
@@ -1399,7 +1404,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
         }
         else
         {
-            reg_t reg = findreg(retregs & cgstate.allregs);
+            reg_t reg = findreg(retregs & INSTR.ALLREGS);
             reg_t rreg = allocreg(cdb, outretregs, tym);     // allocate return regs
             cdb.gen1(INSTR.mov_register(sz == 8,reg,rreg));  // MOV rreg,reg
         }
@@ -1591,7 +1596,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
     ClibInfo* cinfo;
     getClibInfo(clib, &s, &cinfo, config.objfmt, config.exe);
 
-    getregs(cdb,(~s.Sregsaved & (cgstate.allregs | INSTR.FLOATREGS | mask(cgstate.BP)) & ~keepmask)); // mask of regs destroyed
+    getregs(cdb,(~s.Sregsaved & (INSTR.ALLREGS | INSTR.FLOATREGS | mask(cgstate.BP)) & ~keepmask)); // mask of regs destroyed
     keepmask &= ~s.Sregsaved;
     int npushed = popcnt(keepmask);
     CodeBuilder cdbpop;
@@ -1619,26 +1624,49 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
         fixresult(cdb, e, cinfo.retregs, pretregs);
 }
 
+/***************************
+ * Determines the aligned size of an argument on the argument stack.
+ * Params:
+ *      osx_aapcs64 = Mac variant
+ *      stackalign = typically 8
+ *      argSize = size of the argument
+ * Returns:
+ *      size the argument will consume on the argument stack
+ */
+private
+uint sizeOnStack(bool osx_aapcs64, uint stackalign, uint argSize)
+{
+    if (osx_aapcs64 && argSize <= 4)
+    {
+        immutable ubyte[5] alx = [1,1,2,4,4];
+        stackalign = alx[argSize];
+    }
+    return cast(uint)_align(stackalign, argSize);
+}
+
 
 /*******************************
  * Generate code sequence for function call.
+ * The difference between the OSX argument passing convention and the AAPCS64
+ * convention is:
+ * https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms
  */
 
 @trusted
 void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
-    //printf("cdfunc()\n"); elem_print(e);
+    printf("cdfunc()\n"); elem_print(e);
     assert(e);
-    uint numpara = 0;               // bytes of parameters
-    uint stackpushsave = cgstate.stackpush;   // so we can compute # of parameters
+    uint stackpushsave = cg.stackpush;   // so we can compute # of parameters
     //printf("stackpushsave: %d\n", stackpushsave);
-    cgstate.stackclean++;
+    cg.stackclean++;
     regm_t keepmsk = 0;
     tym_t tyf = tybasic(e.E1.Ety);        // the function type
 
     // Easier to deal with parameters as an array: parameters[0..np]
     int np = OTbinary(e.Eoper) ? el_nparams(e.E2) : 0;
     Parameter* parameters = cast(Parameter*)alloca(np * Parameter.sizeof);
+    memset(parameters, 0, Parameter.sizeof * np);
 
     if (np)
     {
@@ -1651,11 +1679,11 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     if (e.E1.Eoper == OPvar)
         sf = e.E1.Vsym;
 
-    /* Assume called function access statics
+    /* Assume called function accesses TLS statics
      */
     if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64) &&
         config.flags3 & CFG3pic)
-        cgstate.accessedTLS = true;
+        cg.accessedTLS = true;
 
     /* Special handling for call to __tls_get_addr, we must save registers
      * before evaluating the parameter, so that the parameter load and call
@@ -1667,20 +1695,57 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             getregs(cdb, ~sf.Sregsaved & cg.allregs); // XMMREGS?
     }
 
+printf("---------------------------------------\n");
     uint stackalign = REGSIZE;
-    if (tyf == TYf16func)
-        stackalign = 2;
+printf("stackalign: %d\n", stackalign);
 
     // OSX64 only passes explicit parameters in registers; variadic parameters go on stack
-    const numExplicitParams = (config.exe == EX_OSX64) ? e.numParams : 0;
+    const osx_aapcs64 = config.exe == EX_OSX64;
+    const numExplicitParams = osx_aapcs64 ? e.numParams : 0; // nonzero value means called function is variadic
+printf("numExplicitParams: %d\n", numExplicitParams);
 
-    // Figure out which parameters go in registers.
+    /* Determine properties of arguments, from left to right
+     */
+    {
+        FuncParamRegs fpr = FuncParamRegs_create(tyf);
+        int apIdx = -1;
+        for (int i = np; --i >= 0;)
+        {
+            Parameter* p = &parameters[i];
+            elem* ep = p.e;
+            p.reg = NOREG;
+            p.isVariadic = numExplicitParams && np - i + 1 > numExplicitParams;
+            if (p.isVariadic)      // OSX64 does not pass variadic args in registers
+                continue;
+            if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, p.reg, p.reg2))
+                continue;        // argument is passed in register
+            /* The rightmost stack allocated argument, excluding variadics and enregisterd ones,
+             * is used to initialize the variadic argument pointer
+             */
+            apIdx = i;
+        }
+        if (apIdx >= 0)
+            parameters[apIdx].isAp = true;  // used for va_start()
+
+        /* Print what we have discovered
+         */
+        static if (1)
+            for (int i = np; --i >= 0;)
+            {
+                Parameter* p = &parameters[i];
+                printf("[%d] isVariadic: %d isAp: %d reg: %s e:", i, p.isVariadic, p.isAp, regm_str(mask(p.reg))); elem_print(p.e);
+            }
+    }
+printf("---------------------------------------\n");
     // Compute numpara, the total bytes pushed on the stack
-    FuncParamRegs fpr = FuncParamRegs_create(tyf);
+    uint numpara = 0;               // bytes of parameters
     for (int i = np; --i >= 0;)
     {
         elem* ep = parameters[i].e;
-        uint psize = cast(uint)_align(stackalign, paramsize(ep, tyf));     // align on stack boundary
+        auto sz = cast(uint)paramsize(ep, tyf); // size of argument
+        parameters[i].size = sz;
+        uint psize = sizeOnStack(osx_aapcs64, stackalign, sz);
+        printf("[%d] psize: %u numpara: %d paramsize: %d ep: %s\n", i, psize, numpara, cast(uint)paramsize(ep,tyf), tym_str(ep.Ety));
         if (config.exe == EX_WIN64)
         {
             //printf("[%d] size = %u, numpara = %d ep = %p %s\n", i, psize, numpara, ep, tym_str(ep.Ety));
@@ -1691,24 +1756,30 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             psize = REGSIZE;
         }
         //printf("[%d] size = %u, numpara = %d %s\n", i, psize, numpara, tym_str(ep.Ety));
-        if ((numExplicitParams == 0 || np - i <= numExplicitParams - 1) && // OSX64 does not pass variadic args in registers
-            FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, parameters[i].reg, parameters[i].reg2))
+        const bool isVariadicAlignment = parameters[i].isVariadic | parameters[i].isAp;
+        if (parameters[i].reg != NOREG)         // allocated in register
         {
             if (config.exe == EX_WIN64)
                 numpara += REGSIZE;             // allocate stack space for it anyway
             continue;   // goes in register, not stack
         }
 
+        if (osx_aapcs64 && isVariadicAlignment && psize < 8)
+            psize = 8;
+
         // Parameter i goes on the stack
         parameters[i].reg = NOREG;
         uint alignsize = el_alignsize(ep);
+        if (osx_aapcs64 && isVariadicAlignment && alignsize < 8)
+            alignsize = 8;
+        printf("alignsize: %d\n", alignsize);
         parameters[i].numalign = 0;
-        if (alignsize > stackalign)
+        if (alignsize > stackalign || osx_aapcs64)
         {
             if (alignsize > STACKALIGN)
             {
                 STACKALIGN = alignsize;
-                cgstate.enforcealign = true;
+                cg.enforcealign = true;
             }
             uint newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
             parameters[i].numalign = newnumpara - numpara;
@@ -1717,6 +1788,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         }
         numpara += psize;
     }
+    printf("numpara: %d STACKALIGN: %d\n", numpara, STACKALIGN);
 
     if (config.exe == EX_WIN64)
     {
@@ -1724,9 +1796,10 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             numpara = 4 * REGSIZE;
     }
 
-    //printf("numpara = %d, cgstate.stackpush = %d\n", numpara, stackpush);
-    assert((numpara & (REGSIZE - 1)) == 0);             // check alignment
-    assert((cgstate.stackpush & (REGSIZE - 1)) == 0);   // check alignment
+    //printf("numpara = %d, cg.stackpush = %d\n", numpara, stackpush);
+    if (!osx_aapcs64)
+        assert((numpara & (REGSIZE - 1)) == 0);             // check alignment
+    assert((cg.stackpush & (REGSIZE - 1)) == 0);   // check alignment
 
     /* Should consider reordering the order of evaluation of the parameters
      * so that args that go into registers are evaluated after args that get
@@ -1767,21 +1840,21 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         }
     }
 
-    /* stack for parameters is allocated all at once - no pushing
-     * and ensure it is aligned
+    /* stack for parameters is allocated all at once - no pushing.
+     * Ensure it is aligned
      */
-//printf("STACKALIGN: %d\n", STACKALIGN);
-    uint numalign = -numpara & (STACKALIGN - 1);
-//printf("numalign: %d numpara: %d\n", numalign, numpara);
+printf("STACKALIGN: %d\n", STACKALIGN);
+    uint numalign = -numpara & (STACKALIGN - 1);  // number of bytes needed to align the argument stack to STACKALIGN
+printf("numalign: %d numpara: %d\n", numalign, numpara);
     cod3_stackadj(cdb, numalign + numpara);
     cdb.genadjesp(numalign + numpara);
-    cgstate.stackpush += numalign + numpara;
+    cg.stackpush += numalign + numpara;
     stackpushsave += numalign + numpara;
 
-    assert(cgstate.stackpush == stackpushsave);
+    assert(cg.stackpush == stackpushsave);
     if (config.exe == EX_WIN64)
     {
-        //printf("np = %d, numpara = %d, cgstate.stackpush = %d\n", np, numpara, stackpush);
+        //printf("np = %d, numpara = %d, cg.stackpush = %d\n", np, numpara, stackpush);
         assert(numpara == ((np < 4) ? 4 * REGSIZE : np * REGSIZE));
 
         // Allocate stack space for four entries anyway
@@ -1791,39 +1864,62 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     CodeBuilder cdbrestore;
     cdbrestore.ctor();
     regm_t saved = 0;
-    targ_size_t funcargtossave = cgstate.funcargtos;
+    const targ_size_t funcargtossave = cg.funcargtos;
     targ_size_t funcargtos = numpara;
-    //printf("funcargtos1 = %d\n", cast(int)funcargtos);
+    printf("funcargtos1 = %d\n", cast(int)funcargtos);
 
     // TODO AArch64
     /* Parameters go into the registers x0..x7
      * floating point parameters go into q0..q7 (16 bytes each)
      */
+    printf("number of parameters np: %d\n", np);
+    printf("------------------------------------------------\n");
     foreach (i; 0 .. np)
     {
         elem* ep = parameters[i].e;
         reg_t preg = parameters[i].reg;
-        //printf("parameter[%d] = %d, np = %d\n", i, preg, np);
+        printf("\nparameter[%d]: %s\n", i, regm_str(mask(preg)));
         if (preg == NOREG)
         {
+elem_print(ep);
             /* Move parameter on stack, but keep track of registers used
              * in the process. If they interfere with keepmsk, we'll have
              * to save/restore them.
              */
             CodeBuilder cdbsave;
             cdbsave.ctor();
-            regm_t overlap = cgstate.msavereg & keepmsk;
-            cgstate.msavereg |= keepmsk;
+            regm_t overlap = cg.msavereg & keepmsk;
+            cg.msavereg |= keepmsk;
             CodeBuilder cdbparams;
             cdbparams.ctor();
 
+            const bool isVariadicAlignment = parameters[i].isVariadic | parameters[i].isAp;
+printf("isVariadicAlignment: %d\n", isVariadicAlignment);
+
             // Alignment for parameter comes after it was placed on stack
             const uint numalignx = parameters[i].numalign;
-            funcargtos -= _align(stackalign, paramsize(ep, tyf)) + numalignx;
+printf("funcargtos: %d numalignx: %d\n", cast(uint)funcargtos, numalignx);
+            auto sz = parameters[i].size;     // size of argument
+            if (osx_aapcs64 && isVariadicAlignment && sz < 8)
+                sz = 8;
+            uint psize = sizeOnStack(osx_aapcs64, stackalign, sz);
 
-            movParams(cdbparams, ep, stackalign, cast(uint)funcargtos, tyf);
-            regm_t tosave = keepmsk & ~cgstate.msavereg;
-            cgstate.msavereg &= ~keepmsk | overlap;
+            funcargtos -= psize /*_align(stackalign, paramsize(ep, tyf))*/ + numalignx;
+printf("funcargtos: %d\n", cast(uint)funcargtos);
+
+            sz = el_alignsize(ep);                       // size after alignment
+            if (osx_aapcs64 && isVariadicAlignment && sz < 8)
+                sz = 8;
+            //targ_size_t szb = paramsize(ep, tyf);          // size before alignment
+            //printf("sz = %d\n", sz, cast(int)sz);
+            // targ_size_t sz = _align(stackalign, szb);     // size after alignment
+            // assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
+            // assert((sz & (REGSIZE - 1)) == 0);
+
+            movParams(cg, cdbparams, ep, cast(uint)funcargtos, sz);
+
+            regm_t tosave = keepmsk & ~cg.msavereg;
+            cg.msavereg &= ~keepmsk | overlap;
 
             // tosave is the mask to save and restore
             for (reg_t j = 0; tosave; j++)
@@ -1832,8 +1928,8 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                 if (mi & tosave)
                 {
                     uint idx;
-                    cgstate.regsave.save(cdbsave, j, idx);
-                    cgstate.regsave.restore(cdbrestore, j, idx);
+                    cg.regsave.save(cdbsave, j, idx);
+                    cg.regsave.restore(cdbrestore, j, idx);
                     saved |= mi;
                     keepmsk &= ~mi;             // don't need to keep these for rest of params
                     tosave &= ~mi;
@@ -1880,8 +1976,8 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                         if (mi & tosave)
                         {
                             uint idx;
-                            cgstate.regsave.save(cdbsave, j, idx);
-                            cgstate.regsave.restore(cdbrestore, j, idx);
+                            cg.regsave.save(cdbsave, j, idx);
+                            cg.regsave.restore(cdbrestore, j, idx);
                             saved |= mi;
                             keepmsk &= ~mi;             // don't need to keep these for rest of params
                             tosave &= ~mi;
@@ -1890,7 +1986,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                 }
                 cdb.append(cdbsave);
 
-                scodelem(cgstate,cdb, ep, retregs, keepmsk, false);
+                scodelem(cg,cdb, ep, retregs, keepmsk, false);
 
                 // Move result [mreg,lreg] into parameter registers from [preg2,preg]
                 retregs = 0;
@@ -1945,7 +2041,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             {
                 getregs(cdb,retregs);
                 // LEA preg,np[RSP]
-                uint delta = cgstate.stackpush - ep.Vuns;   // stack delta to parameter
+                uint delta = cg.stackpush - ep.Vuns;   // stack delta to parameter
                 cdb.genc1(LEA,
                         (modregrm(0,4,SP) << 8) | modregxrm(2,preg,4), FL.const_,delta);
                 if (I64)
@@ -1955,12 +2051,12 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             else if (ep.Eoper == OPstrpar && config.exe == EX_WIN64 && type_size(ep.ET) == 0)
             {
                 retregs = 0;
-                scodelem(cgstate,cdb, ep.E1, retregs, keepmsk, false);
+                scodelem(cg,cdb, ep.E1, retregs, keepmsk, false);
                 freenode(ep);
             }
             else
             {
-                scodelem(cgstate,cdb, ep, retregs, keepmsk, false);
+                scodelem(cg,cdb, ep, retregs, keepmsk, false);
             }
             keepmsk |= retregs;      // don't change preg when evaluating func address
         }
@@ -1972,7 +2068,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         {   uint sz = 4 * REGSIZE;
             cod3_stackadj(cdb, sz);
             cdb.genadjesp(sz);
-            cgstate.stackpush += sz;
+            cg.stackpush += sz;
         }
     }
 
@@ -1981,12 +2077,12 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     cdb.append(cdbrestore);
     keepmsk |= saved;
 
-    //printf("funcargtos: %d cgstate.funcargtos: %d\n", cast(int)funcargtos, cast(int)cgstate.funcargtos);
-    assert(funcargtos == 0 && cgstate.funcargtos == ~0);
-    cgstate.stackclean--;
+    printf("funcargtos: %d cg.funcargtos: %d\n", cast(int)funcargtos, cast(int)cg.funcargtos);
+    assert(funcargtos == 0 && cg.funcargtos == ~0);
+    cg.stackclean--;
 
     funccall(cdb,e,numpara,numalign,pretregs,keepmsk,false);
-    cgstate.funcargtos = funcargtossave;
+    cg.funcargtos = funcargtossave;
 }
 
 /******************************
@@ -2040,9 +2136,9 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         }
         else if (!tyfunc(s.ty()) || !(config.flags4 & CFG4optimized))
             // so we can replace func at runtime
-            getregs(cdbe,~fregsaved & (cgstate.allregs | INSTR.FLOATREGS));
+            getregs(cdbe,~fregsaved & (INSTR.ALLREGS | INSTR.FLOATREGS));
         else
-            getregs(cdbe,~s.Sregsaved & (cgstate.allregs | INSTR.FLOATREGS));
+            getregs(cdbe,~s.Sregsaved & (INSTR.ALLREGS | INSTR.FLOATREGS));
         if (strcmp(s.Sident.ptr, "alloca") == 0)
         {
             s = getRtlsym(RTLSYM.ALLOCA);
@@ -2056,7 +2152,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         }
         if (sytab[s.Sclass] & SCSS)    // if function is on stack (!)
         {
-            retregs = (cgstate.allregs | INSTR.FLOATREGS) & ~keepmsk;
+            retregs = (INSTR.ALLREGS | INSTR.FLOATREGS) & ~keepmsk;
             s.Sflags &= ~GTregcand;
             s.Sflags |= SFLread;
             cdrelconst(cgstate,cdbe,e1,retregs);
@@ -2108,12 +2204,12 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
 
         /* Mask of registers destroyed by the function call
          */
-        regm_t desmsk = (cgstate.allregs | INSTR.FLOATREGS) & ~fregsaved; // XMMREGS?
+        regm_t desmsk = (INSTR.ALLREGS | INSTR.FLOATREGS) & ~fregsaved; // XMMREGS?
         //printf("desmsk: %s\n", regm_str(desmsk));
 
         //if ((!OTleaf(e11.Eoper) || e11.Eoper == OPconst) &&
             //(e11.Eoper != OPind || e11.Ecount))
-        retregs = cgstate.allregs & ~keepmsk;
+        retregs = INSTR.ALLREGS & ~keepmsk;
         cgstate.stackclean++;
         scodelem(cgstate,cdbe,e11,retregs,keepmsk,true);
         cgstate.stackclean--;
@@ -2136,7 +2232,7 @@ static if (0)
     if (!cgstate.needframe)
     {
         // If there is a register available for this basic block
-        if (config.flags4 & CFG4optimized && (cgstate.allregs & ~cgstate.regcon.used))
+        if (config.flags4 & CFG4optimized && (INSTR.ALLREGS & ~cgstate.regcon.used))
         { }
         else
         {
@@ -2281,22 +2377,22 @@ static if (0)
 }
 
 /***************************
- * Generate code to move argument e on the stack.
+ * Generate code to move argument e on the argument stack.
+ * Params:
+ *      cg = cgstate
+ *      cdb = code sink
+ *      e = argument
+ *      funcargtos = offset from SP to where argument goes
+ *      sz = aligned size of argument
  */
 
 @trusted
-private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funcargtos, tym_t tyf)
+private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint funcargtos, targ_size_t sz)
 {
-    //printf("movParams(e = %p, stackalign = %d, funcargtos = %d)\n", e, stackalign, funcargtos);
-    //printf("movParams()\n"); elem_print(e);
+    printf("movParams(funcargtos: %d sz: %d)\n", funcargtos, cast(uint)sz);
+    elem_print(e);
     assert(e && e.Eoper != OPparam);
 
-    tym_t tym = tybasic(e.Ety);
-    targ_size_t szb = paramsize(e, tyf);          // size before alignment
-    targ_size_t sz = _align(stackalign, szb);     // size after alignment
-    assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
-    assert((sz & (REGSIZE - 1)) == 0);
-    //printf("szb = %d sz = %d\n", cast(int)szb, cast(int)sz);
 
     switch (e.Eoper)
     {
@@ -2306,7 +2402,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
             assert(0);
 
         case OPstrpar:
-            assert(szb == 0);
+            assert(sz == 0);
             regm_t retregs0 = 0;
             scodelem(cgstate,cdb, e.E1, retregs0, 0, false);
             freenode(e);
@@ -2315,37 +2411,38 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
         default:
             break;
     }
-    regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : cgstate.allregs;
+    const tym_t tym = tybasic(e.Ety);
+    regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : INSTR.ALLREGS;
     scodelem(cgstate,cdb, e, retregs, 0, true);
     if (sz <= REGSIZE || tym == TYldouble)
     {
-        reg_t reg = findreg(retregs);
+        const reg_t reg = findreg(retregs);
         code cs;
         cs.reg = NOREG;
-        cs.base = 31;
+        cs.base = INSTR.SP;
         cs.index = NOREG;
-        cs.IFL1 = FL.unde;
+        cs.IFL1 = FL.offset;
         storeToEA(cs, reg, cast(uint)sz);
-        cs.Iop = setField(cs.Iop,21,10,funcargtos >> field(cs.Iop,31,30));
+        cs.IEV1.Voffset = funcargtos;
         cdb.gen(&cs);
     }
     else if (sz == REGSIZE * 2)
     {
-        reg_t rmsw = findreg(retregs & INSTR.MSW);
+        const reg_t rmsw = findreg(retregs & INSTR.MSW);
         code cs;
         cs.reg = NOREG;
-        cs.base = 31;
+        cs.base = INSTR.SP;
         cs.index = NOREG;
-        cs.IFL1 = FL.const_;
-        cs.IEV1.Voffset = funcargtos - REGSIZE;
+        cs.IFL1 = FL.offset;
         storeToEA(cs, rmsw, REGSIZE);
-        cs.Iop = setField(cs.Iop,21,10,funcargtos >> field(cs.Iop,31,30));
+        cs.IEV1.Voffset = funcargtos - REGSIZE;
         cdb.gen(&cs);
 
-        reg_t rlsw = findreg(retregs & INSTR.LSW);
-        cs.IEV1.Voffset = funcargtos - REGSIZE * 2;
+        const reg_t rlsw = findreg(retregs & INSTR.LSW);
+        cs.IFL1 = FL.offset;
+        cs.IEV1.Voffset = 0;
         storeToEA(cs, rlsw, REGSIZE);
-        cs.Iop = setField(cs.Iop,21,10,funcargtos >> field(cs.Iop,31,30));
+        cs.IEV1.Voffset = funcargtos - REGSIZE * 2;
         cdb.gen(&cs);
     }
     else
@@ -2363,22 +2460,23 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     reg_t nreg;
     reg_t sreg;
     opcode_t op;
-    tym_t tym;
     code cs;
-    regm_t flags, forregs, regm;
+    regm_t forregs, regm;
 
     debug
     {
-//        if (debugw)
+        if (debugw)
+        {
             printf("loaddata(e = %p,outretregs = %s)\n",e,regm_str(outretregs));
-        elem_print(e);
+            elem_print(e);
+        }
     }
 
     assert(e);
     elem_debug(e);
     if (outretregs == 0)
         return;
-    tym = tybasic(e.Ety);
+    const tym = tybasic(e.Ety);
     if (tym == TYstruct)
     {
         cdrelconst(cgstate,cdb,e,outretregs);
@@ -2387,7 +2485,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 
     if (outretregs == mPSW)
     {
-        regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : cgstate.allregs;
+        regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : INSTR.ALLREGS;
         loaddata(cdb, e, retregs);
         fixresult(cdb, e, retregs, outretregs);
         return;
@@ -2396,8 +2494,8 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     /* not for flags only */
     int sz = _tysize[tym];
     cs.Iflags = 0;
-    flags = outretregs & mPSW;             /* save original                */
-    forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);     // XMMREGS ?
+    regm_t flags = outretregs & mPSW;             /* save original                */
+    forregs = outretregs & (INSTR.ALLREGS | INSTR.FLOATREGS);     // XMMREGS ?
     if (e.Eoper == OPconst)
     {
         if (0 && tyvector(tym) && forregs & XMMREGS)    // TODO AArch64
@@ -2444,7 +2542,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                 flags |= 2;
             if (sz == 8)
                 flags |= 64;
-            if (isXMMreg(reg))
+            if (0 && isXMMreg(reg))
             {
                 movxmmconst(cdb, reg, tym, &e.EV, 0);
                 flags = 0;

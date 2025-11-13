@@ -26,7 +26,6 @@ import dmd.dmodule;
 import dmd.doc;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.errors;
@@ -39,7 +38,6 @@ import dmd.importc;
 import dmd.location;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
-import dmd.root.speller;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
@@ -73,6 +71,14 @@ private extern (D) struct FlagBitFields
     bool canFree;            /// is on free list
     bool fullinst;          /// fully instantiate templates
     bool ctfeBlock;         /// inside a `if (__ctfe)` block
+
+    /**
+    Is any symbol this scope is applied to known to have a compile time only accessible context.
+    This is not the same as `skipCodegen` nor can it be used to contribute to this.
+    It is meant for analysis engines to be conservative in what functions they analyse,
+      to prevent perceived false positives for meta-programming heavy code.
+    */
+    bool knownACompileTimeOnlyContext;
 }
 
 private extern (D) struct NonFlagBitFields
@@ -217,32 +223,6 @@ extern (C++) struct Scope
         return new Scope();
     }
 
-    extern (D) static Scope* createGlobal(Module _module, ErrorSink eSink)
-    {
-        Scope* sc = Scope.alloc();
-        *sc = Scope.init;
-        sc._module = _module;
-        sc.minst = _module;
-        sc.scopesym = new ScopeDsymbol();
-        sc.scopesym.symtab = new DsymbolTable();
-        sc.eSink = eSink;
-        assert(eSink);
-        // Add top level package as member of this global scope
-        Dsymbol m = _module;
-        while (m.parent)
-            m = m.parent;
-        m.addMember(null, sc.scopesym);
-        m.parent = null; // got changed by addMember()
-        sc.previews.setFromParams(global.params);
-
-        if (_module.filetype == FileType.c)
-            sc.inCfile = true;
-        // Create the module scope underneath the global scope
-        sc = sc.push(_module);
-        sc.parent = _module;
-        return sc;
-    }
-
     extern (D) Scope* copy()
     {
         Scope* sc = Scope.alloc();
@@ -288,6 +268,7 @@ extern (C++) struct Scope
         s.ctfeBlock = this.ctfeBlock;
         s.previews = this.previews;
         s.lastdc = null;
+        s.knownACompileTimeOnlyContext = this.knownACompileTimeOnlyContext;
         assert(&this != s);
         return s;
     }
@@ -412,251 +393,6 @@ extern (C++) struct Scope
                 error(loc, "one path skips field `%s`", v.toChars());
             }
         }
-    }
-
-    /************************************
-     * Perform unqualified name lookup by following the chain of scopes up
-     * until found.
-     *
-     * Params:
-     *  loc = location to use for error messages
-     *  ident = name to look up
-     *  pscopesym = if supplied and name is found, set to scope that ident was found in, otherwise set to null
-     *  flags = modify search based on flags
-     *
-     * Returns:
-     *  symbol if found, null if not
-     */
-    extern (C++) Dsymbol search(Loc loc, Identifier ident, out Dsymbol pscopesym, SearchOptFlags flags = SearchOpt.all)
-    {
-        version (LOGSEARCH)
-        {
-            printf("Scope.search(%p, '%s' flags=x%x)\n", &this, ident.toChars(), flags);
-            // Print scope chain
-            for (Scope* sc = &this; sc; sc = sc.enclosing)
-            {
-                if (!sc.scopesym)
-                    continue;
-                printf("\tscope %s\n", sc.scopesym.toChars());
-            }
-
-            static void printMsg(string txt, Dsymbol s)
-            {
-                printf("%.*s  %s.%s, kind = '%s'\n", cast(int)txt.length, txt.ptr,
-                    s.parent ? s.parent.toChars() : "", s.toChars(), s.kind());
-            }
-        }
-
-        // This function is called only for unqualified lookup
-        assert(!(flags & (SearchOpt.localsOnly | SearchOpt.importsOnly)));
-
-        /* If ident is "start at module scope", only look at module scope
-         */
-        if (ident == Id.empty)
-        {
-            // Look for module scope
-            for (Scope* sc = &this; sc; sc = sc.enclosing)
-            {
-                assert(sc != sc.enclosing);
-                if (!sc.scopesym)
-                    continue;
-                if (Dsymbol s = sc.scopesym.isModule())
-                {
-                    //printMsg("\tfound", s);
-                    pscopesym = sc.scopesym;
-                    return s;
-                }
-            }
-            return null;
-        }
-
-        Dsymbol checkAliasThis(AggregateDeclaration ad, Identifier ident, SearchOptFlags flags, Expression* exp)
-        {
-            import dmd.mtype;
-            if (!ad || !ad.aliasthis)
-                return null;
-
-            Declaration decl = ad.aliasthis.sym.isDeclaration();
-            if (!decl)
-                return null;
-
-            Type t = decl.type;
-            ScopeDsymbol sds;
-            TypeClass tc;
-            TypeStruct ts;
-            switch(t.ty)
-            {
-                case Tstruct:
-                    ts = cast(TypeStruct)t;
-                    sds = ts.sym;
-                    break;
-                case Tclass:
-                    tc = cast(TypeClass)t;
-                    sds = tc.sym;
-                    break;
-                case Tinstance:
-                    sds = (cast(TypeInstance)t).tempinst;
-                    break;
-                case Tenum:
-                    sds = (cast(TypeEnum)t).sym;
-                    break;
-                default: break;
-            }
-
-            if (!sds)
-                return null;
-
-            Dsymbol ret = sds.search(loc, ident, flags);
-            if (ret)
-            {
-                *exp = new DotIdExp(loc, *exp, ad.aliasthis.ident);
-                *exp = new DotIdExp(loc, *exp, ident);
-                return ret;
-            }
-
-            if (!ts && !tc)
-                return null;
-
-            Dsymbol s;
-            *exp = new DotIdExp(loc, *exp, ad.aliasthis.ident);
-            if (ts && !(ts.att & AliasThisRec.tracing))
-            {
-                ts.att = cast(AliasThisRec)(ts.att | AliasThisRec.tracing);
-                s = checkAliasThis(sds.isAggregateDeclaration(), ident, flags, exp);
-                ts.att = cast(AliasThisRec)(ts.att & ~AliasThisRec.tracing);
-            }
-            else if(tc && !(tc.att & AliasThisRec.tracing))
-            {
-                tc.att = cast(AliasThisRec)(tc.att | AliasThisRec.tracing);
-                s = checkAliasThis(sds.isAggregateDeclaration(), ident, flags, exp);
-                tc.att = cast(AliasThisRec)(tc.att & ~AliasThisRec.tracing);
-            }
-            return s;
-        }
-
-        Dsymbol searchScopes(SearchOptFlags flags)
-        {
-            for (Scope* sc = &this; sc; sc = sc.enclosing)
-            {
-                assert(sc != sc.enclosing);
-                if (!sc.scopesym)
-                    continue;
-                //printf("\tlooking in scopesym '%s', kind = '%s', flags = x%x\n", sc.scopesym.toChars(), sc.scopesym.kind(), flags);
-
-                if (sc.scopesym.isModule())
-                    flags |= SearchOpt.unqualifiedModule;    // tell Module.search() that SearchOpt.localsOnly is to be obeyed
-                else if (sc.inCfile && sc.scopesym.isStructDeclaration())
-                    continue;                                // C doesn't have struct scope
-
-                if (Dsymbol s = sc.scopesym.search(loc, ident, flags))
-                {
-                    if (flags & SearchOpt.tagNameSpace)
-                    {
-                        // ImportC: if symbol is not a tag, look for it in tag table
-                        if (!s.isScopeDsymbol())
-                        {
-                            auto ps = cast(void*)s in sc._module.tagSymTab;
-                            if (!ps)
-                                goto NotFound;
-                            s = *ps;
-                        }
-                    }
-                    //printMsg("\tfound local", s);
-                    pscopesym = sc.scopesym;
-                    return s;
-                }
-
-            NotFound:
-                if (sc.previews.fixAliasThis)
-                {
-                    Expression exp = new ThisExp(loc);
-                    if (Dsymbol aliasSym = checkAliasThis(sc.scopesym.isAggregateDeclaration(), ident, flags, &exp))
-                    {
-                        //printf("found aliassym: %s\n", aliasSym.toChars());
-                        pscopesym = new ExpressionDsymbol(exp);
-                        return aliasSym;
-                    }
-                }
-
-                // Stop when we hit a module, but keep going if that is not just under the global scope
-                if (sc.scopesym.isModule() && !(sc.enclosing && !sc.enclosing.enclosing))
-                    break;
-            }
-            return null;
-        }
-
-        if (this.ignoresymbolvisibility)
-            flags |= SearchOpt.ignoreVisibility;
-
-        // First look in local scopes
-        Dsymbol s = searchScopes(flags | SearchOpt.localsOnly);
-        version (LOGSEARCH) if (s) printMsg("-Scope.search() found local", s);
-        if (!s)
-        {
-            // Second look in imported modules
-            s = searchScopes(flags | SearchOpt.importsOnly);
-            version (LOGSEARCH) if (s) printMsg("-Scope.search() found import", s);
-        }
-        return s;
-    }
-
-    extern (D) Dsymbol search_correct(Identifier ident)
-    {
-        if (global.gag)
-            return null; // don't do it for speculative compiles; too time consuming
-
-        /************************************************
-         * Given the failed search attempt, try to find
-         * one with a close spelling.
-         * Params:
-         *      seed = identifier to search for
-         *      cost = set to the cost, which rises with each outer scope
-         * Returns:
-         *      Dsymbol if found, null if not
-         */
-        extern (D) Dsymbol scope_search_fp(const(char)[] seed, out int cost)
-        {
-            //printf("scope_search_fp('%s')\n", seed);
-            /* If not in the lexer's string table, it certainly isn't in the symbol table.
-             * Doing this first is a lot faster.
-             */
-            if (!seed.length)
-                return null;
-            Identifier id = Identifier.lookup(seed);
-            if (!id)
-                return null;
-            Scope* sc = &this;
-            Module.clearCache();
-            Dsymbol scopesym;
-            Dsymbol s = sc.search(Loc.initial, id, scopesym, SearchOpt.ignoreErrors);
-            if (!s)
-                return null;
-
-            // Do not show `@disable`d declarations
-            if (auto decl = s.isDeclaration())
-                if (decl.storage_class & STC.disable)
-                    return null;
-            // Or `deprecated` ones if we're not in a deprecated scope
-            if (s.isDeprecated() && !sc.isDeprecated())
-                return null;
-
-            for (cost = 0; sc; sc = sc.enclosing, ++cost)
-                if (sc.scopesym == scopesym)
-                    break;
-            if (scopesym != s.parent)
-            {
-                ++cost; // got to the symbol through an import
-                if (s.visible().kind == Visibility.Kind.private_)
-                    return null;
-            }
-            return s;
-        }
-
-        Dsymbol scopesym;
-        // search for exact name first
-        if (auto s = search(Loc.initial, ident, scopesym, SearchOpt.ignoreErrors))
-            return s;
-        return speller!scope_search_fp(ident.toString());
     }
 
     /************************************
@@ -846,22 +582,7 @@ extern (C++) struct Scope
             //    assert(0);
         }
     }
-    /******************************
-     */
-    extern (D) structalign_t alignment()
-    {
-        if (aligndecl)
-        {
-            auto ad = aligndecl.getAlignment(&this);
-            return ad.salign;
-        }
-        else
-        {
-            structalign_t sa;
-            sa.setDefault();
-            return sa;
-        }
-    }
+
     @safe @nogc pure nothrow const:
     /**********************************
     * Checks whether the current scope (or any of its parents) is deprecated.
@@ -929,5 +650,11 @@ extern (C++) struct Scope
     extern (D) bool hasEdition(Edition edition)
     {
         return _module && _module.edition >= edition;
+    }
+
+    extern (D) bool isKnownToHaveACompileTimeContext()
+    {
+        return this.knownACompileTimeOnlyContext || this.intypeof != 0 || this.traitsCompiles || this.ctfe ||
+            this.condition || this.inTemplateConstraint || this.ctfeBlock;
     }
 }

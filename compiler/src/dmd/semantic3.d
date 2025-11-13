@@ -75,6 +75,7 @@ import dmd.targetcompiler;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.dfa.entry;
 
 enum LOG = false;
 
@@ -196,7 +197,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
         // gets imported, it is unaffected by context.
-        Scope* sc = Scope.createGlobal(mod, global.errorSink); // create root scope
+        Scope* sc = scopeCreateGlobal(mod, global.errorSink); // create root scope
         //printf("Module = %p\n", sc.scopesym);
         if (mod.members)
         {
@@ -1427,6 +1428,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.type.isTypeFunction().isLive)
         {
             oblive(funcdecl);
+        }
+
+        if (global.params.useFastDFA && global.errors == oldErrors && funcdecl.fbody && funcdecl.type.ty != Terror)
+        {
+            // Don't run DFA if there are errors,
+            //  this is a costly enough operation that it warrents the explicit check.
+            dfaEntry(funcdecl, sc);
         }
 
         /* If this function had instantiated with gagging, error reproduction will be

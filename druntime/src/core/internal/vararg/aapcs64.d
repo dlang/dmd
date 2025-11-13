@@ -1,24 +1,25 @@
 /**
- * Varargs implementation for the AArch64 Procedure Call Standard (not followed by Apple).
+ * Varargs implementation for the AArch64 Procedure Call Standard AAPCS64 (not followed by Apple).
  * Used by core.stdc.stdarg and core.vararg.
+ * Can only be imported with version (AArch64).
  *
  * Reference: https://github.com/ARM-software/abi-aa/blob/master/aapcs64/aapcs64.rst#appendix-variable-argument-lists
  *
- * Copyright: Copyright Digital Mars 2020 - 2020.
+ * Copyright: Copyright Digital Mars 2020 - 2025.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Kinkelin
- * Source: $(DRUNTIMESRC core/internal/vararg/aarch64.d)
+ * Source: $(DRUNTIMESRC core/internal/vararg/aapcs64.d)
  */
 
-module core.internal.vararg.aarch64;
+module core.internal.vararg.aapcs64;
 
-version (AArch64):
+version (AArch64): // core.internal.vararg.aapcs64 is only for version (AArch64)
 
-// Darwin uses a simpler varargs implementation
-version (OSX) {}
-else version (iOS) {}
-else version (TVOS) {}
-else version (WatchOS) {}
+// Darwin uses a simpler varargs implementation than AAPCS64, so should not import this module
+version (OSX)          { }
+else version (iOS)     { }
+else version (TVOS)    { }
+else version (WatchOS) { }
 else:
 
 import core.stdc.stdarg : alignUp;

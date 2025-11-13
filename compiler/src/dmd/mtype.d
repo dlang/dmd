@@ -26,21 +26,16 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem: size;
 import dmd.dtemplate;
-import dmd.enumsem;
-import dmd.errors;
 import dmd.expression;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.stringtable;
-import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
@@ -59,6 +54,109 @@ static if (__VERSION__ < 2095)
 private auto X(T, U)(T m, U n)
 {
     return (m << 4) | n;
+}
+
+/* Helper function for `typeToExpression`. Contains common code
+ * for TypeQualified derived classes.
+ */
+Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
+{
+    //printf("toExpressionHelper(e = %s %s)\n", EXPtoString(e.op).ptr, e.toChars());
+    foreach (id; t.idents[i .. t.idents.length])
+    {
+        //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
+
+        final switch (id.dyncast())
+        {
+            // ... '. ident'
+            case DYNCAST.identifier:
+                e = new DotIdExp(e.loc, e, cast(Identifier)id);
+                break;
+
+            // ... '. name!(tiargs)'
+            case DYNCAST.dsymbol:
+                auto ti = (cast(Dsymbol)id).isTemplateInstance();
+                assert(ti);
+                e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
+                break;
+
+            // ... '[type]'
+            case DYNCAST.type:          // https://issues.dlang.org/show_bug.cgi?id=1215
+                e = new ArrayExp(t.loc, e, new TypeExp(t.loc, cast(Type)id));
+                break;
+
+            // ... '[expr]'
+            case DYNCAST.expression:    // https://issues.dlang.org/show_bug.cgi?id=1215
+                e = new ArrayExp(t.loc, e, cast(Expression)id);
+                break;
+
+            case DYNCAST.object:
+            case DYNCAST.tuple:
+            case DYNCAST.parameter:
+            case DYNCAST.statement:
+            case DYNCAST.condition:
+            case DYNCAST.templateparameter:
+            case DYNCAST.initializer:
+                assert(0);
+        }
+    }
+    return e;
+}
+
+/******************************************
+ * We've mistakenly parsed `t` as a type.
+ * Redo `t` as an Expression only if there are no type modifiers.
+ * Params:
+ *      t = mistaken type
+ * Returns:
+ *      t redone as Expression, null if cannot
+ */
+Expression typeToExpression(Type t)
+{
+    static Expression visitSArray(TypeSArray t)
+    {
+        if (auto e = t.next.typeToExpression())
+            return new ArrayExp(t.dim.loc, e, t.dim);
+        return null;
+    }
+
+    static Expression visitAArray(TypeAArray t)
+    {
+        if (auto e = t.next.typeToExpression())
+        {
+            if (auto ei = t.index.typeToExpression())
+                return new ArrayExp(t.loc, e, ei);
+        }
+        return null;
+    }
+
+    static Expression visitIdentifier(TypeIdentifier t)
+    {
+        return typeToExpressionHelper(t, new IdentifierExp(t.loc, t.ident));
+    }
+
+    static Expression visitInstance(TypeInstance t)
+    {
+        return typeToExpressionHelper(t, new ScopeExp(t.loc, t.tempinst));
+    }
+
+    // easy way to enable 'auto v = new int[mixin("exp")];' in 2.088+
+    static Expression visitMixin(TypeMixin t)
+    {
+        return new TypeExp(t.loc, t);
+    }
+
+    if (t.mod)
+        return null;
+    switch (t.ty)
+    {
+        case Tsarray:   return visitSArray(t.isTypeSArray());
+        case Taarray:   return visitAArray(t.isTypeAArray());
+        case Tident:    return visitIdentifier(t.isTypeIdentifier());
+        case Tinstance: return visitInstance(t.isTypeInstance());
+        case Tmixin:    return visitMixin(t.isTypeMixin());
+        default:        return null;
+    }
 }
 
 /***************************
@@ -500,126 +598,6 @@ extern (C++) abstract class Type : ASTNode
         return buf.extractChars();
     }
 
-    static void _init()
-    {
-        stringtable._init(14_000);
-
-        // Set basic types
-        __gshared TY* basetab =
-        [
-            Tvoid,
-            Tint8,
-            Tuns8,
-            Tint16,
-            Tuns16,
-            Tint32,
-            Tuns32,
-            Tint64,
-            Tuns64,
-            Tint128,
-            Tuns128,
-            Tfloat32,
-            Tfloat64,
-            Tfloat80,
-            Timaginary32,
-            Timaginary64,
-            Timaginary80,
-            Tcomplex32,
-            Tcomplex64,
-            Tcomplex80,
-            Tbool,
-            Tchar,
-            Twchar,
-            Tdchar,
-            Terror
-        ];
-
-        static Type merge(Type t)
-        {
-            import dmd.mangle.basic : tyToDecoBuffer;
-
-            OutBuffer buf;
-            buf.reserve(3);
-
-            if (t.ty == Tnoreturn)
-                buf.writestring("Nn");
-            else
-                tyToDecoBuffer(buf, t.ty);
-
-            auto sv = t.stringtable.update(buf[]);
-            if (sv.value)
-                return sv.value;
-            t.deco = cast(char*)sv.toDchars();
-            sv.value = t;
-            return t;
-        }
-
-        for (size_t i = 0; basetab[i] != Terror; i++)
-        {
-            Type t = new TypeBasic(basetab[i]);
-            t = merge(t);
-            basic[basetab[i]] = t;
-        }
-        basic[Terror] = new TypeError();
-
-        tnoreturn = new TypeNoreturn();
-        tnoreturn.deco = merge(tnoreturn).deco;
-        basic[Tnoreturn] = tnoreturn;
-
-        tvoid = basic[Tvoid];
-        tint8 = basic[Tint8];
-        tuns8 = basic[Tuns8];
-        tint16 = basic[Tint16];
-        tuns16 = basic[Tuns16];
-        tint32 = basic[Tint32];
-        tuns32 = basic[Tuns32];
-        tint64 = basic[Tint64];
-        tuns64 = basic[Tuns64];
-        tint128 = basic[Tint128];
-        tuns128 = basic[Tuns128];
-        tfloat32 = basic[Tfloat32];
-        tfloat64 = basic[Tfloat64];
-        tfloat80 = basic[Tfloat80];
-
-        timaginary32 = basic[Timaginary32];
-        timaginary64 = basic[Timaginary64];
-        timaginary80 = basic[Timaginary80];
-
-        tcomplex32 = basic[Tcomplex32];
-        tcomplex64 = basic[Tcomplex64];
-        tcomplex80 = basic[Tcomplex80];
-
-        tbool = basic[Tbool];
-        tchar = basic[Tchar];
-        twchar = basic[Twchar];
-        tdchar = basic[Tdchar];
-
-        tshiftcnt = tint32;
-        terror = basic[Terror];
-        tnoreturn = basic[Tnoreturn];
-        tnull = new TypeNull();
-        tnull.deco = merge(tnull).deco;
-
-        tvoidptr = tvoid.pointerTo();
-        tstring = tchar.immutableOf().arrayOf();
-        twstring = twchar.immutableOf().arrayOf();
-        tdstring = tdchar.immutableOf().arrayOf();
-
-        const isLP64 = target.isLP64;
-
-        tsize_t    = basic[isLP64 ? Tuns64 : Tuns32];
-        tptrdiff_t = basic[isLP64 ? Tint64 : Tint32];
-        thash_t = tsize_t;
-
-        static if (__VERSION__ == 2081)
-        {
-            // Related issue: https://issues.dlang.org/show_bug.cgi?id=19134
-            // D 2.081.x regressed initializing class objects at compile time.
-            // As a workaround initialize this global at run-time instead.
-            TypeTuple.empty = new TypeTuple();
-        }
-    }
-
     /**
      * Deinitializes the global state of the compiler.
      *
@@ -629,12 +607,6 @@ extern (C++) abstract class Type : ASTNode
     static void deinitialize()
     {
         stringtable = stringtable.init;
-    }
-
-    uint alignsize()
-    {
-        import dmd.typesem: size;
-        return cast(uint)size(this, Loc.initial);
     }
 
     /*********************************
@@ -1318,53 +1290,12 @@ extern (C++) abstract class Type : ASTNode
         return null;
     }
 
-    /************************************
-     * Return alignment to use for this type.
-     */
-    structalign_t alignment()
-    {
-        structalign_t s;
-        s.setDefault();
-        return s;
-    }
-
     /***************************************
      * Return !=0 if the type or any of its subtypes is wild.
      */
     int hasWild() const
     {
         return mod & MODFlags.wild;
-    }
-
-    /*************************************
-     * Detect if type has pointer fields that are initialized to void.
-     * Local stack variables with such void fields can remain uninitialized,
-     * leading to pointer bugs.
-     * Returns:
-     *  true if so
-     */
-    bool hasVoidInitPointers()
-    {
-        return false;
-    }
-
-    /*************************************
-     * Detect if this is an unsafe type because of the presence of `@system` members
-     * Returns:
-     *  true if so
-     */
-    bool hasUnsafeBitpatterns()
-    {
-        return false;
-    }
-
-    /***************************************
-     * Returns: true if type has any invariants
-     */
-    bool hasInvariant()
-    {
-        //printf("Type::hasInvariant() %s, %d\n", toChars(), ty);
-        return false;
     }
 
     /*************************************
@@ -1985,11 +1916,6 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override uint alignsize()
-    {
-        return target.alignsize(this);
-    }
-
     override bool isIntegral()
     {
         //printf("TypeBasic::isIntegral('%s') x%x\n", toChars(), flags);
@@ -2024,11 +1950,6 @@ extern (C++) final class TypeBasic : Type
     override bool isUnsigned()
     {
         return (flags & TFlags.unsigned) != 0;
-    }
-
-    override bool hasUnsafeBitpatterns()
-    {
-        return ty == Tbool;
     }
 
     // For eliminating dynamic_cast
@@ -2072,12 +1993,6 @@ extern (C++) final class TypeVector : Type
     override TypeVector syntaxCopy()
     {
         return new TypeVector(basetype.syntaxCopy());
-    }
-
-    override uint alignsize()
-    {
-        import dmd.typesem: size;
-        return cast(uint)basetype.size();
     }
 
     override bool isIntegral()
@@ -2180,35 +2095,10 @@ extern (C++) final class TypeSArray : TypeArray
         return dim.isIntegerExp() && dim.isIntegerExp().getInteger() == 0;
     }
 
-    override uint alignsize()
-    {
-        return next.alignsize();
-    }
-
     override bool isString()
     {
         TY nty = next.toBasetype().ty;
         return nty.isSomeChar;
-    }
-
-    override structalign_t alignment()
-    {
-        return next.alignment();
-    }
-
-    override bool hasUnsafeBitpatterns()
-    {
-        return next.hasUnsafeBitpatterns();
-    }
-
-    override bool hasVoidInitPointers()
-    {
-        return next.hasVoidInitPointers();
-    }
-
-    override bool hasInvariant()
-    {
-        return next.hasInvariant();
     }
 
     override bool needsDestruction()
@@ -2260,13 +2150,6 @@ extern (C++) final class TypeDArray : TypeArray
         auto result = new TypeDArray(t);
         result.mod = mod;
         return result;
-    }
-
-    override uint alignsize()
-    {
-        // A DArray consists of two ptr-sized values, so align it on pointer size
-        // boundary
-        return target.ptrsize;
     }
 
     override bool isString()
@@ -2625,11 +2508,6 @@ extern (C++) final class TypeDelegate : TypeNext
         return result;
     }
 
-    override uint alignsize()
-    {
-        return target.ptrsize;
-    }
-
     override bool isBoolean()
     {
         return true;
@@ -2948,22 +2826,9 @@ extern (C++) final class TypeStruct : Type
         return "struct";
     }
 
-    override uint alignsize()
-    {
-        sym.size(Loc.initial); // give error for forward references
-        return sym.alignsize;
-    }
-
     override TypeStruct syntaxCopy()
     {
         return this;
-    }
-
-    override structalign_t alignment()
-    {
-        if (sym.alignment.isUnknown())
-            sym.size(sym.loc);
-        return sym.alignment;
     }
 
     override bool isBoolean()
@@ -2998,27 +2863,6 @@ extern (C++) final class TypeStruct : Type
                 return true;
         }
         return false;
-    }
-
-    override bool hasVoidInitPointers()
-    {
-        sym.size(Loc.initial); // give error for forward references
-        sym.determineTypeProperties();
-        return sym.hasVoidInitPointers;
-    }
-
-    override bool hasUnsafeBitpatterns()
-    {
-        sym.size(Loc.initial); // give error for forward references
-        sym.determineTypeProperties();
-        return sym.hasUnsafeBitpatterns;
-    }
-
-    override bool hasInvariant()
-    {
-        sym.size(Loc.initial); // give error for forward references
-        sym.determineTypeProperties();
-        return sym.hasInvariant() || sym.hasFieldWithInvariant;
     }
 
     override MOD deduceWild(Type t, bool isRef)
@@ -3069,105 +2913,69 @@ extern (C++) final class TypeEnum : Type
         return this;
     }
 
-    Type memType()
-    {
-        return sym.getMemtype(Loc.initial);
-    }
-
-    override uint alignsize()
-    {
-        Type t = memType();
-        if (t.ty == Terror)
-            return 4;
-        return t.alignsize();
-    }
-
     override bool isIntegral()
     {
-        return memType().isIntegral();
+        return this.memType().isIntegral();
     }
 
     override bool isFloating()
     {
-        return memType().isFloating();
+        return this.memType().isFloating();
     }
 
     override bool isReal()
     {
-        return memType().isReal();
+        return this.memType().isReal();
     }
 
     override bool isImaginary()
     {
-        return memType().isImaginary();
+        return this.memType().isImaginary();
     }
 
     override bool isComplex()
     {
-        return memType().isComplex();
+        return this.memType().isComplex();
     }
 
     override bool isScalar()
     {
-        return memType().isScalar();
+        return this.memType().isScalar();
     }
 
     override bool isUnsigned()
     {
-        return memType().isUnsigned();
+        return this.memType().isUnsigned();
     }
 
     override bool isBoolean()
     {
-        return memType().isBoolean();
+        return this.memType().isBoolean();
     }
 
     override bool isString()
     {
-        return memType().isString();
+        return this.memType().isString();
     }
 
     override bool needsDestruction()
     {
-        return memType().needsDestruction();
+        return this.memType().needsDestruction();
     }
 
     override bool needsCopyOrPostblit()
     {
-        return memType().needsCopyOrPostblit();
+        return this.memType().needsCopyOrPostblit();
     }
 
     override bool needsNested()
     {
-        return memType().needsNested();
-    }
-
-    extern (D) Type toBasetype2()
-    {
-        if (!sym.members && !sym.memtype)
-            return this;
-        auto tb = sym.getMemtype(Loc.initial).toBasetype();
-        return tb.castMod(mod);         // retain modifier bits from 'this'
-    }
-
-    override bool hasVoidInitPointers()
-    {
-        return memType().hasVoidInitPointers();
-    }
-
-    override bool hasUnsafeBitpatterns()
-    {
-        return memType().hasUnsafeBitpatterns();
-    }
-
-    override bool hasInvariant()
-    {
-        return memType().hasInvariant();
+        return this.memType().needsNested();
     }
 
     override Type nextOf()
     {
-        return memType().nextOf();
+        return this.memType().nextOf();
     }
 
     override void accept(Visitor v)
@@ -3449,11 +3257,6 @@ extern (C++) final class TypeNoreturn : Type
     override bool isBoolean()
     {
         return true;  // bottom type can be implicitly converted to any other type
-    }
-
-    override uint alignsize()
-    {
-        return 0;
     }
 
     override void accept(Visitor v)

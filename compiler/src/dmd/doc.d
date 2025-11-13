@@ -33,6 +33,7 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.errorsink;
 import dmd.func;
@@ -44,8 +45,6 @@ import dmd.lexer;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.array;
-import dmd.root.file;
-import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
@@ -72,7 +71,7 @@ void gendocfile(Module m, const char[] ddoctext, const char* datetime, ErrorSink
     // Ddoc files override default macros
     DocComment.parseMacros(m.escapetable, m.macrotable, ddoctext);
 
-    Scope* sc = Scope.createGlobal(m, eSink); // create root scope
+    Scope* sc = scopeCreateGlobal(m, eSink); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
     dc.escapetable = m.escapetable;
@@ -909,8 +908,9 @@ bool isCVariadicParameter(Dsymbols* a, const(char)[] p) @safe
     return false;
 }
 
-Dsymbol getEponymousMember(TemplateDeclaration td) @safe
+Dsymbol getEponymousMember(TemplateDeclaration td)
 {
+    td.computeOneMember();
     if (!td.onemember)
         return null;
     if (AggregateDeclaration ad = td.onemember.isAggregateDeclaration())
@@ -924,7 +924,7 @@ Dsymbol getEponymousMember(TemplateDeclaration td) @safe
     return null;
 }
 
-TemplateDeclaration getEponymousParent(Dsymbol s) @safe
+TemplateDeclaration getEponymousParent(Dsymbol s)
 {
     if (!s.parent)
         return null;
@@ -1091,8 +1091,9 @@ bool emitAnchorName(ref OutBuffer buf, Dsymbol s, Scope* sc, bool includeParent)
     if (dot)
         buf.writeByte('.');
     // Use "this" not "__ctor"
-    TemplateDeclaration td;
-    if (s.isCtorDeclaration() || ((td = s.isTemplateDeclaration()) !is null && td.onemember && td.onemember.isCtorDeclaration()))
+    TemplateDeclaration td = s.isTemplateDeclaration();
+    td.computeOneMember();
+    if (s.isCtorDeclaration() || (td !is null && td.onemember && td.onemember.isCtorDeclaration()))
     {
         buf.writestring("this");
     }
@@ -2622,11 +2623,12 @@ Parameter isFunctionParameter(Dsymbols* a, const(char)[] p) @safe
 
 /****************************************************
  */
-Parameter isEponymousFunctionParameter(Dsymbols* a, const(char)[] p) @safe
+Parameter isEponymousFunctionParameter(Dsymbols* a, const(char)[] p)
 {
     foreach (Dsymbol dsym; *a)
     {
         TemplateDeclaration td = dsym.isTemplateDeclaration();
+        td.computeOneMember();
         if (td && td.onemember)
         {
             /* Case 1: we refer to a template declaration inside the template
@@ -3109,7 +3111,9 @@ struct MarkdownLink
     {
         size_t iStart = i + 1;
         size_t iEnd = iStart;
-        if (iEnd >= buf.length || buf[iEnd] != '[' || (iEnd+1 < buf.length && buf[iEnd+1] == ']'))
+        if (iEnd >= buf.length)
+            return i;
+        if (buf[iEnd] != '[' || (iEnd+1 < buf.length && buf[iEnd+1] == ']'))
         {
             // collapsed reference [foo][] or shortcut reference [foo]
             iStart = delimiter.iStart + delimiter.count - 1;

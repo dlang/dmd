@@ -25,13 +25,10 @@ import dmd.common.outbuffer;
 import dmd.compiler;
 import dmd.cparse;
 import dmd.declaration;
-import dmd.dimport;
 import dmd.dmacro;
 import dmd.doc;
-import dmd.dscope;
 import dmd.dsymbol;
 import dmd.errors;
-import dmd.errorsink;
 import dmd.expression;
 import dmd.file_manager;
 import dmd.func;
@@ -44,13 +41,8 @@ import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.port;
-import dmd.root.rmem;
 import dmd.root.string;
-import dmd.rootobject;
-import dmd.semantic2;
-import dmd.semantic3;
 import dmd.target;
-import dmd.utils;
 import dmd.visitor;
 
 version (Windows)
@@ -765,7 +757,13 @@ extern (C++) final class Module : Package
             p.nextToken();
             checkCompiledImport();
             members = p.parseModule();
-            assert(!p.md); // C doesn't have module declarations
+            md = p.md;
+            if (md)
+            {
+                this.ident = md.id;
+                dst = Package.resolve(md.packages, &this.parent, &ppack);
+            }
+
             numlines = p.linnum;
         }
         else

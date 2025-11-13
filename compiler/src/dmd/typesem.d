@@ -17,7 +17,6 @@ import core.stdc.stdio;
 
 import dmd.access;
 import dmd.aggregate;
-import dmd.aliasthis;
 import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.astcodegen;
@@ -26,17 +25,16 @@ import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
-import dmd.dimport;
 import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
-import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -50,7 +48,6 @@ import dmd.importc;
 import dmd.init;
 import dmd.initsem;
 import dmd.location;
-import dmd.visitor;
 import dmd.mtype;
 import dmd.mangle;
 import dmd.nogc;
@@ -64,12 +61,276 @@ import dmd.root.rmem;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.string;
-import dmd.root.stringtable;
 import dmd.safe;
 import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
+
+Type toBasetype2(TypeEnum _this)
+{
+    if (!_this.sym.members && !_this.sym.memtype)
+        return _this;
+    auto tb = _this.sym.getMemtype(Loc.initial).toBasetype();
+    return tb.castMod(_this.mod); // retain modifier bits from '_this'
+}
+
+Type memType(TypeEnum _this)
+{
+    return _this.sym.getMemtype(Loc.initial);
+}
+
+uint alignsize(Type _this)
+{
+    static uint structAlignsize(TypeStruct _this)
+    {
+        import dmd.dsymbolsem : size;
+        _this.sym.size(Loc.initial); // give error for forward references
+        return _this.sym.alignsize;
+    }
+
+    static uint enumAlignsize(TypeEnum _this)
+    {
+        Type t = _this.memType();
+        if (t.ty == Terror)
+            return 4;
+        return t.alignsize();
+    }
+
+    if (auto tb = _this.isTypeBasic())
+        return target.alignsize(tb);
+
+    switch(_this.ty)
+    {
+        case Tvector: return cast(uint)_this.isTypeVector().basetype.size();
+        case Tsarray: return _this.isTypeSArray().next.alignsize();
+        // A DArray consists of two ptr-sized values, so align it on pointer size boundary
+        case Tarray, Tdelegate: return target.ptrsize;
+        case Tstruct: return structAlignsize(_this.isTypeStruct());
+        case Tenum: return enumAlignsize(_this.isTypeEnum());
+        case Tnoreturn: return 0;
+        default: return cast(uint)size(_this, Loc.initial);
+    }
+}
+
+/*************************************
+ * Detect if type has pointer fields that are initialized to void.
+ * Local stack variables with such void fields can remain uninitialized,
+ * leading to pointer bugs.
+ * Returns:
+ *  true if so
+ */
+
+bool hasVoidInitPointers(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+    {
+        return tsa.next.hasVoidInitPointers();
+    }
+    else if (auto ts = _this.isTypeStruct())
+    {
+        import dmd.dsymbolsem : size;
+        ts.sym.size(Loc.initial); // give error for forward references
+        ts.sym.determineTypeProperties();
+        return ts.sym.hasVoidInitPointers;
+    }
+    else if (auto te = _this.isTypeEnum())
+    {
+        return te.memType().hasVoidInitPointers();
+    }
+    return false;
+}
+
+void Type_init()
+{
+    Type.stringtable._init(14_000);
+
+    // Set basic types
+    __gshared TY* basetab =
+    [
+        Tvoid,
+        Tint8,
+        Tuns8,
+        Tint16,
+        Tuns16,
+        Tint32,
+        Tuns32,
+        Tint64,
+        Tuns64,
+        Tint128,
+        Tuns128,
+        Tfloat32,
+        Tfloat64,
+        Tfloat80,
+        Timaginary32,
+        Timaginary64,
+        Timaginary80,
+        Tcomplex32,
+        Tcomplex64,
+        Tcomplex80,
+        Tbool,
+        Tchar,
+        Twchar,
+        Tdchar,
+        Terror
+    ];
+
+    static Type merge(Type t)
+    {
+        import dmd.mangle.basic : tyToDecoBuffer;
+
+        OutBuffer buf;
+        buf.reserve(3);
+
+        if (t.ty == Tnoreturn)
+            buf.writestring("Nn");
+        else
+            tyToDecoBuffer(buf, t.ty);
+
+        auto sv = t.stringtable.update(buf[]);
+        if (sv.value)
+            return sv.value;
+        t.deco = cast(char*)sv.toDchars();
+        sv.value = t;
+        return t;
+    }
+
+    for (size_t i = 0; basetab[i] != Terror; i++)
+    {
+        Type t = new TypeBasic(basetab[i]);
+        t = merge(t);
+        Type.basic[basetab[i]] = t;
+    }
+    Type.basic[Terror] = new TypeError();
+
+    Type.tnoreturn = new TypeNoreturn();
+    Type.tnoreturn.deco = merge(Type.tnoreturn).deco;
+    Type.basic[Tnoreturn] = Type.tnoreturn;
+
+    Type.tvoid = Type.basic[Tvoid];
+    Type.tint8 = Type.basic[Tint8];
+    Type.tuns8 = Type.basic[Tuns8];
+    Type.tint16 = Type.basic[Tint16];
+    Type.tuns16 = Type.basic[Tuns16];
+    Type.tint32 = Type.basic[Tint32];
+    Type.tuns32 = Type.basic[Tuns32];
+    Type.tint64 = Type.basic[Tint64];
+    Type.tuns64 = Type.basic[Tuns64];
+    Type.tint128 = Type.basic[Tint128];
+    Type.tuns128 = Type.basic[Tuns128];
+    Type.tfloat32 = Type.basic[Tfloat32];
+    Type.tfloat64 = Type.basic[Tfloat64];
+    Type.tfloat80 = Type.basic[Tfloat80];
+
+    Type.timaginary32 = Type.basic[Timaginary32];
+    Type.timaginary64 = Type.basic[Timaginary64];
+    Type.timaginary80 = Type.basic[Timaginary80];
+
+    Type.tcomplex32 = Type.basic[Tcomplex32];
+    Type.tcomplex64 = Type.basic[Tcomplex64];
+    Type.tcomplex80 = Type.basic[Tcomplex80];
+
+    Type.tbool = Type.basic[Tbool];
+    Type.tchar = Type.basic[Tchar];
+    Type.twchar = Type.basic[Twchar];
+    Type.tdchar = Type.basic[Tdchar];
+
+    Type.tshiftcnt = Type.tint32;
+    Type.terror = Type.basic[Terror];
+    Type.tnoreturn = Type.basic[Tnoreturn];
+    Type.tnull = new TypeNull();
+    Type.tnull.deco = merge(Type.tnull).deco;
+
+    Type.tvoidptr = Type.tvoid.pointerTo();
+    Type.tstring = Type.tchar.immutableOf().arrayOf();
+    Type.twstring = Type.twchar.immutableOf().arrayOf();
+    Type.tdstring = Type.tdchar.immutableOf().arrayOf();
+
+    const isLP64 = target.isLP64;
+
+    Type.tsize_t    = Type.basic[isLP64 ? Tuns64 : Tuns32];
+    Type.tptrdiff_t = Type.basic[isLP64 ? Tint64 : Tint32];
+    Type.thash_t = Type.tsize_t;
+
+    static if (__VERSION__ == 2081)
+    {
+        // Related issue: https://issues.dlang.org/show_bug.cgi?id=19134
+        // D 2.081.x regressed initializing class objects at compile time.
+        // As a workaround initialize this global at run-time instead.
+        TypeTuple.empty = new TypeTuple();
+    }
+}
+
+/************************************
+ * Return alignment to use for this type.
+ */
+structalign_t alignment(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+    {
+        return tsa.next.alignment();
+    }
+    else if (auto ts = _this.isTypeStruct())
+    {
+        import dmd.dsymbolsem : size;
+        if (ts.sym.alignment.isUnknown())
+            ts.sym.size(ts.sym.loc);
+        return ts.sym.alignment;
+    }
+    structalign_t s;
+    s.setDefault();
+    return s;
+}
+
+/***************************************
+ * Returns: true if type has any invariants
+ */
+bool hasInvariant(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+    {
+        return tsa.next.hasInvariant();
+    }
+    else if (auto ts = _this.isTypeStruct())
+    {
+        import dmd.dsymbolsem : size;
+        ts.sym.size(Loc.initial); // give error for forward references
+        ts.sym.determineTypeProperties();
+        return ts.sym.hasInvariant() || ts.sym.hasFieldWithInvariant;
+    }
+    else if (auto te = _this.isTypeEnum())
+    {
+        return te.memType().hasInvariant();
+    }
+    return false;
+}
+
+/*************************************
+ * Detect if this is an unsafe type because of the presence of `@system` members
+ * Returns:
+ *  true if so
+ */
+bool hasUnsafeBitpatterns(Type _this)
+{
+    static bool tstructImpl(TypeStruct _this)
+    {
+        import dmd.dsymbolsem : size;
+        _this.sym.size(Loc.initial); // give error for forward references
+        _this.sym.determineTypeProperties();
+        return _this.sym.hasUnsafeBitpatterns;
+    }
+
+    if(auto tb = _this.isTypeBasic())
+        return tb.ty == Tbool;
+
+    switch(_this.ty)
+    {
+        case Tenum: return _this.isTypeEnum().memType().hasUnsafeBitpatterns();
+        case Tstruct: return tstructImpl(_this.isTypeStruct());
+        case Tsarray: return _this.isTypeSArray().next.hasUnsafeBitpatterns();
+        default: return false;
+    }
+}
 
 /*************************************
  * Resolve a tuple index, `s[oindex]`, by figuring out what `s[oindex]` represents.
@@ -612,62 +873,6 @@ void purityLevel(TypeFunction typeFunction)
     }
 
     tf.purity = typeFunction.purity;
-}
-
-/******************************************
- * We've mistakenly parsed `t` as a type.
- * Redo `t` as an Expression only if there are no type modifiers.
- * Params:
- *      t = mistaken type
- * Returns:
- *      t redone as Expression, null if cannot
- */
-Expression typeToExpression(Type t)
-{
-    static Expression visitSArray(TypeSArray t)
-    {
-        if (auto e = t.next.typeToExpression())
-            return new ArrayExp(t.dim.loc, e, t.dim);
-        return null;
-    }
-
-    static Expression visitAArray(TypeAArray t)
-    {
-        if (auto e = t.next.typeToExpression())
-        {
-            if (auto ei = t.index.typeToExpression())
-                return new ArrayExp(t.loc, e, ei);
-        }
-        return null;
-    }
-
-    static Expression visitIdentifier(TypeIdentifier t)
-    {
-        return typeToExpressionHelper(t, new IdentifierExp(t.loc, t.ident));
-    }
-
-    static Expression visitInstance(TypeInstance t)
-    {
-        return typeToExpressionHelper(t, new ScopeExp(t.loc, t.tempinst));
-    }
-
-    // easy way to enable 'auto v = new int[mixin("exp")];' in 2.088+
-    static Expression visitMixin(TypeMixin t)
-    {
-        return new TypeExp(t.loc, t);
-    }
-
-    if (t.mod)
-        return null;
-    switch (t.ty)
-    {
-        case Tsarray:   return visitSArray(t.isTypeSArray());
-        case Taarray:   return visitAArray(t.isTypeAArray());
-        case Tident:    return visitIdentifier(t.isTypeIdentifier());
-        case Tinstance: return visitInstance(t.isTypeInstance());
-        case Tmixin:    return visitMixin(t.isTypeMixin());
-        default:        return null;
-    }
 }
 
 /*************************************
@@ -3006,6 +3211,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         if (s)
         {
             auto td = s.isTemplateDeclaration;
+            td.computeOneMember();
             if (td && td.onemember && td.onemember.isAggregateDeclaration)
                 .error(loc, "template %s `%s` is used as a type without instantiation"
                     ~ "; to instantiate it use `%s!(arguments)`",
@@ -8074,53 +8280,6 @@ bool isOpaqueType(Type t)
 /******************************* Private *****************************************/
 
 private:
-
-/* Helper function for `typeToExpression`. Contains common code
- * for TypeQualified derived classes.
- */
-Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
-{
-    //printf("toExpressionHelper(e = %s %s)\n", EXPtoString(e.op).ptr, e.toChars());
-    foreach (id; t.idents[i .. t.idents.length])
-    {
-        //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
-
-        final switch (id.dyncast())
-        {
-            // ... '. ident'
-            case DYNCAST.identifier:
-                e = new DotIdExp(e.loc, e, cast(Identifier)id);
-                break;
-
-            // ... '. name!(tiargs)'
-            case DYNCAST.dsymbol:
-                auto ti = (cast(Dsymbol)id).isTemplateInstance();
-                assert(ti);
-                e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
-                break;
-
-            // ... '[type]'
-            case DYNCAST.type:          // https://issues.dlang.org/show_bug.cgi?id=1215
-                e = new ArrayExp(t.loc, e, new TypeExp(t.loc, cast(Type)id));
-                break;
-
-            // ... '[expr]'
-            case DYNCAST.expression:    // https://issues.dlang.org/show_bug.cgi?id=1215
-                e = new ArrayExp(t.loc, e, cast(Expression)id);
-                break;
-
-            case DYNCAST.object:
-            case DYNCAST.tuple:
-            case DYNCAST.parameter:
-            case DYNCAST.statement:
-            case DYNCAST.condition:
-            case DYNCAST.templateparameter:
-            case DYNCAST.initializer:
-                assert(0);
-        }
-    }
-    return e;
-}
 
 /**************************
  * This evaluates exp while setting length to be the number

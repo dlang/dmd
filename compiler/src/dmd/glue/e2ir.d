@@ -48,7 +48,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : include, _isZeroInit, toAlias, isPOD;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.expressionsem : fill, isIdentical, isLvalue;
+import dmd.expressionsem : fill, isIdentical, isLvalue, toInteger, toUInteger, toComplex;
 import dmd.func;
 import dmd.hdrgen;
 import dmd.id;
@@ -433,6 +433,7 @@ elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
         (*pe).ET = ec.E1.ET;
 
         e.Ety = TYnptr;
+        ec.Ety = TYnptr;
         return e;
     }
 
@@ -525,14 +526,13 @@ bool isDllImported(Dsymbol symbl)
             // If to access anything in druntime/phobos you need DllImport, verify against this.
             break;
     }
-    const systemLibraryNeedDllImport = driverParams.symImport != SymImport.externalOnly;
 
     // For TypeInfo's check to see if its in druntime and DllImport it
     if (auto tid = symbl.isTypeInfoDeclaration())
     {
         // Built in TypeInfo's are defined in druntime
         if (builtinTypeInfo(tid.tinfo))
-            return systemLibraryNeedDllImport;
+            return true;
 
         // Convert TypeInfo to its symbol
         if (auto ad = isAggregate(tid.type))
@@ -555,7 +555,7 @@ bool isDllImported(Dsymbol symbl)
             // Module is in binary, therefore not DllImport
             return false;
         }
-        else if (systemLibraryNeedDllImport)
+        else if (driverParams.symImport == SymImport.defaultLibsOnly)
         {
             // Filter out all modules that are not in druntime/phobos if we are only doing default libs only
 
@@ -3161,6 +3161,13 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitCond(CondExp ce)
     {
+        // condition `__ctfe`/`!__ctfe` is always false/true at runtime, so skip code generation
+        //  for ce.e1/e2. This can also be the result of inlining an `if (__ctfe)` statement
+        auto ctfecond = ce.econd.op == EXP.not ? (cast(NotExp)ce.econd).e1 : ce.econd;
+        if (auto ve = ctfecond.isVarExp())
+            if (ve.var && ve.var.ident == Id.ctfe)
+                return toElem(ctfecond is ce.econd ? ce.e2 : ce.e1, irs);
+
         elem* ec = toElem(ce.econd, irs);
 
         elem* eleft = toElem(ce.e1, irs);
@@ -5468,6 +5475,7 @@ elem* callfunc(Loc loc,
 
         // j=1 if _arguments[] is first argument
         const int j = tf.isDstyleVariadic();
+        const osx_aapcs64 = irs.target.isAArch64 && irs.target.os == Target.OS.OSX;
 
         foreach (const i, arg; *arguments)
         {
@@ -5535,7 +5543,12 @@ elem* callfunc(Loc loc,
             /* Do integral promotions. This is not necessary per the C ABI, but
              * some code from the C world seems to rely on it.
              */
-            if (op == NotIntrinsic && tyintegral(ea.Ety) && arg.type.size(arg.loc) < 4)
+            if (osx_aapcs64)
+            {
+                /* Let cdfunc() in the backend handle this
+                 */
+            }
+            else if (op == NotIntrinsic && tyintegral(ea.Ety) && arg.type.size(arg.loc) < 4)
             {
                 if (ea.Eoper == OPconst)
                 {

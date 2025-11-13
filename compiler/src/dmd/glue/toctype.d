@@ -29,6 +29,7 @@ import dmd.denum;
 import dmd.dmdparams;
 import dmd.dstruct;
 import dmd.dsymbolsem : isPOD;
+import dmd.expressionsem : toInteger;
 import dmd.globals;
 import dmd.id;
 import dmd.mtype;

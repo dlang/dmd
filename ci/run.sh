@@ -35,7 +35,8 @@ else
     NM=nm
 
   if [ "$OS_NAME" == "osx" ]; then
-    export PATH="/usr/local/opt/llvm/bin:$PATH"
+    # As of macos-14 gmake won't be used purely based upon the symlink, must force override via PATH.
+    export PATH="/opt/homebrew/opt/make/libexec/gnubin:/usr/local/opt/llvm/bin:$PATH"
   fi
 fi
 
@@ -120,7 +121,7 @@ test_dmd() {
     if [ "$FULL_BUILD" == "true" ] && [ "$OS_NAME" == "linux" ]; then
         local args=() # use all default ARGS
     else
-        local args=(ARGS="-O -inline -release")
+        local args=(ARGS="-inline '-O -release'")
     fi
 
     if type -P apk &>/dev/null; then

@@ -61,6 +61,400 @@ alias funcLeastAsSpecialized = dmd.funcsem.leastAsSpecialized;
 
 enum LOG = false;
 
+/***********************************************************
+ * Check whether the type t representation relies on one or more the template parameters.
+ * Params:
+ *      t           = Tested type, if null, returns false.
+ *      tparams     = Template parameters.
+ *      iStart      = Start index of tparams to limit the tested parameters. If it's
+ *                    nonzero, tparams[0..iStart] will be excluded from the test target.
+ */
+bool reliesOnTident(Type t, TemplateParameters* tparams, size_t iStart = 0)
+{
+    return reliesOnTemplateParameters(t, (*tparams)[0 .. tparams.length]);
+}
+
+/***********************************************************
+ * Check whether the type t representation relies on one or more the template parameters.
+ * Params:
+ *      t           = Tested type, if null, returns false.
+ *      tparams     = Template parameters.
+ */
+bool reliesOnTemplateParameters(Type t, TemplateParameter[] tparams)
+{
+    bool visitVector(TypeVector t)
+    {
+        return t.basetype.reliesOnTemplateParameters(tparams);
+    }
+
+    bool visitAArray(TypeAArray t)
+    {
+        return t.next.reliesOnTemplateParameters(tparams) ||
+               t.index.reliesOnTemplateParameters(tparams);
+    }
+
+    bool visitFunction(TypeFunction t)
+    {
+        foreach (i, fparam; t.parameterList)
+        {
+            if (fparam.type.reliesOnTemplateParameters(tparams))
+                return true;
+        }
+        return t.next.reliesOnTemplateParameters(tparams);
+    }
+
+    bool visitIdentifier(TypeIdentifier t)
+    {
+        foreach (tp; tparams)
+        {
+            if (tp.ident.equals(t.ident))
+                return true;
+        }
+        return false;
+    }
+
+    bool visitInstance(TypeInstance t)
+    {
+        foreach (tp; tparams)
+        {
+            if (t.tempinst.name == tp.ident)
+                return true;
+        }
+
+        if (t.tempinst.tiargs)
+            foreach (arg; *t.tempinst.tiargs)
+            {
+                if (Type ta = isType(arg))
+                {
+                    if (ta.reliesOnTemplateParameters(tparams))
+                        return true;
+                }
+            }
+
+        return false;
+    }
+
+    bool visitTypeof(TypeTypeof t)
+    {
+        //printf("TypeTypeof.reliesOnTemplateParameters('%s')\n", t.toChars());
+        return t.exp.reliesOnTemplateParameters(tparams);
+    }
+
+    bool visitTuple(TypeTuple t)
+    {
+        if (t.arguments)
+            foreach (arg; *t.arguments)
+            {
+                if (arg.type.reliesOnTemplateParameters(tparams))
+                    return true;
+            }
+
+        return false;
+    }
+
+    if (!t)
+        return false;
+
+    Type tb = t.toBasetype();
+    switch (tb.ty)
+    {
+        case Tvector:   return visitVector(tb.isTypeVector());
+        case Taarray:   return visitAArray(tb.isTypeAArray());
+        case Tfunction: return visitFunction(tb.isTypeFunction());
+        case Tident:    return visitIdentifier(tb.isTypeIdentifier());
+        case Tinstance: return visitInstance(tb.isTypeInstance());
+        case Ttypeof:   return visitTypeof(tb.isTypeTypeof());
+        case Ttuple:    return visitTuple(tb.isTypeTuple());
+        case Tenum:     return false;
+        default:        return tb.nextOf().reliesOnTemplateParameters(tparams);
+    }
+}
+
+/***********************************************************
+ * Check whether the expression representation relies on one or more the template parameters.
+ * Params:
+ *      e           = expression to test
+ *      tparams     = Template parameters.
+ * Returns:
+ *      true if it does
+ */
+private bool reliesOnTemplateParameters(Expression e, TemplateParameter[] tparams)
+{
+    extern (C++) final class ReliesOnTemplateParameters : Visitor
+    {
+        alias visit = Visitor.visit;
+    public:
+        TemplateParameter[] tparams;
+        bool result;
+
+        extern (D) this(TemplateParameter[] tparams) @safe
+        {
+            this.tparams = tparams;
+        }
+
+        override void visit(Expression e)
+        {
+            //printf("Expression.reliesOnTemplateParameters('%s')\n", e.toChars());
+        }
+
+        override void visit(IdentifierExp e)
+        {
+            //printf("IdentifierExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            foreach (tp; tparams)
+            {
+                if (e.ident == tp.ident)
+                {
+                    result = true;
+                    return;
+                }
+            }
+        }
+
+        override void visit(TupleExp e)
+        {
+            //printf("TupleExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            if (e.exps)
+            {
+                foreach (ea; *e.exps)
+                {
+                    ea.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(ArrayLiteralExp e)
+        {
+            //printf("ArrayLiteralExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            if (e.elements)
+            {
+                foreach (el; *e.elements)
+                {
+                    el.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(AssocArrayLiteralExp e)
+        {
+            //printf("AssocArrayLiteralExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            foreach (ek; *e.keys)
+            {
+                ek.accept(this);
+                if (result)
+                    return;
+            }
+            foreach (ev; *e.values)
+            {
+                ev.accept(this);
+                if (result)
+                    return;
+            }
+        }
+
+        override void visit(StructLiteralExp e)
+        {
+            //printf("StructLiteralExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            if (e.elements)
+            {
+                foreach (ea; *e.elements)
+                {
+                    ea.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(TypeExp e)
+        {
+            //printf("TypeExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            result = e.type.reliesOnTemplateParameters(tparams);
+        }
+
+        override void visit(NewExp e)
+        {
+            //printf("NewExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            if (e.placement)
+                e.placement.accept(this);
+            if (e.thisexp)
+                e.thisexp.accept(this);
+            result = e.newtype.reliesOnTemplateParameters(tparams);
+            if (!result && e.arguments)
+            {
+                foreach (ea; *e.arguments)
+                {
+                    ea.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(NewAnonClassExp e)
+        {
+            //printf("NewAnonClassExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            result = true;
+        }
+
+        override void visit(FuncExp e)
+        {
+            //printf("FuncExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            result = true;
+        }
+
+        override void visit(TypeidExp e)
+        {
+            //printf("TypeidExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            if (auto ea = isExpression(e.obj))
+                ea.accept(this);
+            else if (auto ta = isType(e.obj))
+                result = ta.reliesOnTemplateParameters(tparams);
+        }
+
+        override void visit(TraitsExp e)
+        {
+            //printf("TraitsExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            if (e.args)
+            {
+                foreach (oa; *e.args)
+                {
+                    if (auto ea = isExpression(oa))
+                        ea.accept(this);
+                    else if (auto ta = isType(oa))
+                        result = ta.reliesOnTemplateParameters(tparams);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(IsExp e)
+        {
+            //printf("IsExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            result = e.targ.reliesOnTemplateParameters(tparams);
+        }
+
+        override void visit(UnaExp e)
+        {
+            //printf("UnaExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            e.e1.accept(this);
+        }
+
+        override void visit(DotTemplateInstanceExp e)
+        {
+            //printf("DotTemplateInstanceExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            visit(e.isUnaExp());
+            if (!result && e.ti.tiargs)
+            {
+                foreach (oa; *e.ti.tiargs)
+                {
+                    if (auto ea = isExpression(oa))
+                        ea.accept(this);
+                    else if (auto ta = isType(oa))
+                        result = ta.reliesOnTemplateParameters(tparams);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(CallExp e)
+        {
+            //printf("CallExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            visit(e.isUnaExp());
+            if (!result && e.arguments)
+            {
+                foreach (ea; *e.arguments)
+                {
+                    ea.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(CastExp e)
+        {
+            //printf("CallExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            visit(e.isUnaExp());
+            // e.to can be null for cast() with no type
+            if (!result && e.to)
+                result = e.to.reliesOnTemplateParameters(tparams);
+        }
+
+        override void visit(SliceExp e)
+        {
+            //printf("SliceExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            visit(e.isUnaExp());
+            if (!result && e.lwr)
+                e.lwr.accept(this);
+            if (!result && e.upr)
+                e.upr.accept(this);
+        }
+
+        override void visit(IntervalExp e)
+        {
+            //printf("IntervalExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            e.lwr.accept(this);
+            if (!result)
+                e.upr.accept(this);
+        }
+
+        override void visit(ArrayExp e)
+        {
+            //printf("ArrayExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            visit(e.isUnaExp());
+            if (!result && e.arguments)
+            {
+                foreach (ea; *e.arguments)
+                    ea.accept(this);
+            }
+        }
+
+        override void visit(BinExp e)
+        {
+            //printf("BinExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            e.e1.accept(this);
+            if (!result)
+                e.e2.accept(this);
+        }
+
+        override void visit(CondExp e)
+        {
+            //printf("BinExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            e.econd.accept(this);
+            if (!result)
+                visit(e.isBinExp());
+        }
+    }
+
+    scope ReliesOnTemplateParameters v = new ReliesOnTemplateParameters(tparams);
+    e.accept(v);
+    return v.result;
+}
+
+void computeOneMember(TemplateDeclaration td)
+{
+    if (td is null || td.haveComputedOneMember)
+        return;
+
+    if (td && td.members && td.ident)
+    {
+        Dsymbol s;
+        if (oneMembers(td.members, s, td.ident) && s)
+        {
+            td.onemember = s;
+            s.parent = td;
+            td.computeIsTrivialAlias(s);
+        }
+        td.haveComputedOneMember = true;
+    }
+}
+
 bool declareParameter(TemplateParameter _this, Scope* sc)
 {
     static bool typeDeclareParameter(TemplateTypeParameter _this, Scope* sc)
@@ -366,7 +760,6 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
             (*tempdecl.origParameters)[i] = tp.syntaxCopy();
         }
     }
-
     for (size_t i = 0; i < tempdecl.parameters.length; i++)
     {
         TemplateParameter tp = (*tempdecl.parameters)[i];
@@ -381,6 +774,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
         }
         if (i + 1 != tempdecl.parameters.length && tp.isTemplateTupleParameter())
         {
+            tempdecl.computeOneMember(); // for .kind
             .error(tempdecl.loc, "%s `%s` template sequence parameter must be the last one", tempdecl.kind, tempdecl.toPrettyChars);
             tempdecl.errors = true;
         }
@@ -420,16 +814,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
 
     // Compute again
     tempdecl.onemember = null;
-    if (tempdecl.members)
-    {
-        Dsymbol s;
-        if (oneMembers(tempdecl.members, s, tempdecl.ident) && s)
-        {
-            tempdecl.onemember = s;
-            s.parent = tempdecl;
-        }
-    }
-
+    tempdecl.computeOneMember();
     /* BUG: should check:
      *  1. template functions must not introduce virtual functions, as they
      *     cannot be accomodated in the vtbl[]
@@ -784,6 +1169,9 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     _scope.tinst = tempinst;
     _scope.minst = tempinst.minst;
     //scope.stc = STC.none;
+
+    if (sc.isKnownToHaveACompileTimeContext)
+        _scope.knownACompileTimeOnlyContext = true;
 
     // Declare each template parameter as an alias for the argument type
     Scope* paramscope = _scope.push();
@@ -1468,6 +1856,7 @@ void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclara
 
     TemplateTypeParameter ttp = (*tempdecl.parameters)[0].isTemplateTypeParameter();
     Type ta = tempinst.tdtypes[0].isType();
+    tempdecl.computeOneMember();
     auto ad = tempdecl.onemember.isAliasDeclaration();
 
     // Note: qualifiers can be in both 'ad.type.mod' and 'ad.storage_class'
@@ -2696,6 +3085,7 @@ MATCH matchWithInstance(Scope* sc, TemplateDeclaration td, TemplateInstance ti, 
             ti.parent = td.parent;
 
         // Similar to doHeaderInstantiation
+        td.computeOneMember();
         FuncDeclaration fd = td.onemember ? td.onemember.isFuncDeclaration() : null;
         if (fd)
         {
@@ -3124,7 +3514,6 @@ private bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Sco
 const(char)* getConstraintEvalError(TemplateDeclaration td, ref const(char)* tip)
 {
     import dmd.staticcond;
-
     // there will be a full tree view in verbose mode, and more compact list in the usual
     const full = global.params.v.verbose;
     uint count;
@@ -3347,6 +3736,7 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
     else
     {
         auto tdecl = ti.tempdecl.isTemplateDeclaration();
+        tdecl.computeOneMember();
 
         if (errs != global.errors)
             errorSupplemental(ti.loc, "while looking for match for `%s`", ti.toChars());
@@ -5412,7 +5802,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             return 1;
         }
         //printf("td = %s\n", td.toChars());
-
+        td.computeOneMember();
         auto f = td.onemember ? td.onemember.isFuncDeclaration() : null;
         if (!f)
         {
@@ -5659,6 +6049,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
     if (td_best && ti_best && m.count == 1)
     {
         // Matches to template function
+        td_best.computeOneMember();
         assert(td_best.onemember && td_best.onemember.isFuncDeclaration());
         /* The best match is td_best with arguments tdargs.
          * Now instantiate the template.

@@ -41,7 +41,7 @@ import dmd.dtemplate;
 import dmd.dversion;
 import dmd.enumsem;
 import dmd.errors;
-import dmd.escape;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -52,7 +52,6 @@ import dmd.identifier;
 import dmd.importc;
 import dmd.init;
 import dmd.initsem;
-import dmd.intrange;
 import dmd.hdrgen;
 import dmd.lexer;
 import dmd.location;
@@ -60,15 +59,13 @@ import dmd.mtype;
 import dmd.mustuse;
 import dmd.nspace;
 import dmd.objc;
-import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
-debug import dmd.printast;
 import dmd.root.array;
-import dmd.root.filename;
 import dmd.root.string;
-import dmd.common.outbuffer;
 import dmd.root.rmem;
+import dmd.root.speller;
+import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.safe;
 import dmd.semantic2;
@@ -76,16 +73,418 @@ import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.utils;
 import dmd.statement;
+import dmd.statementsem : ready;
 import dmd.target;
 import dmd.targetcompiler;
-import dmd.templateparamsem;
 import dmd.templatesem;
 import dmd.typesem;
 import dmd.visitor;
 
 enum LOG = false;
+
+/* Append vthis field (this.tupleof[$-1]) to make this aggregate type nested.
+ */
+void makeNested(AggregateDeclaration _this)
+{
+    if (_this.enclosing) // if already nested
+        return;
+    if (_this.sizeok == Sizeok.done)
+        return;
+    if (_this.isUnionDeclaration() || _this.isInterfaceDeclaration())
+        return;
+    if (_this.storage_class & STC.static_)
+        return;
+
+    // If nested struct, add in hidden 'this' pointer to outer scope
+    auto s = _this.toParentLocal();
+    if (!s)
+        s = _this.toParent2();
+    if (!s)
+        return;
+    Type t = null;
+    if (auto fd = s.isFuncDeclaration())
+    {
+        _this.enclosing = fd;
+
+        /* https://issues.dlang.org/show_bug.cgi?id=14422
+         * If a nested class parent is a function, its
+         * context pointer (== `outer`) should be void* always.
+         */
+        t = Type.tvoidptr;
+    }
+    else if (auto ad = s.isAggregateDeclaration())
+    {
+        if (_this.isClassDeclaration() && ad.isClassDeclaration())
+        {
+            _this.enclosing = ad;
+        }
+        else if (_this.isStructDeclaration())
+        {
+            if (auto ti = ad.parent.isTemplateInstance())
+            {
+                _this.enclosing = ti.enclosing;
+            }
+        }
+        t = ad.handleType();
+    }
+    if (_this.enclosing)
+    {
+        import dmd.typesem : alignment;
+        //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing.toChars());
+        assert(t);
+        if (t.ty == Tstruct)
+            t = Type.tvoidptr; // t should not be a ref type
+
+        assert(!_this.vthis);
+        _this.vthis = new ThisDeclaration(_this.loc, t);
+        //vthis.storage_class |= STC.ref_;
+
+        // Emulate vthis.addMember()
+        _this.members.push(_this.vthis);
+
+        // Emulate vthis.dsymbolSemantic()
+        _this.vthis.storage_class |= STC.field;
+        _this.vthis.parent = _this;
+        _this.vthis.visibility = Visibility(Visibility.Kind.public_);
+        _this.vthis.alignment = t.alignment();
+        _this.vthis.semanticRun = PASS.semanticdone;
+
+        if (_this.sizeok == Sizeok.fwd)
+            _this.fields.push(_this.vthis);
+
+        _this.makeNested2();
+    }
+}
+
+/* Append vthis2 field (this.tupleof[$-1]) to add a second context pointer.
+ */
+void makeNested2(AggregateDeclaration _this)
+{
+    import dmd.typesem : alignment;
+
+    if (_this.vthis2)
+        return;
+    if (!_this.vthis)
+        _this.makeNested();   // can't add second before first
+    if (!_this.vthis)
+        return;
+    if (_this.sizeok == Sizeok.done)
+        return;
+    if (_this.isUnionDeclaration() || _this.isInterfaceDeclaration())
+        return;
+    if (_this.storage_class & STC.static_)
+        return;
+
+    auto s0 = _this.toParentLocal();
+    auto s = _this.toParent2();
+    if (!s || !s0 || s == s0)
+        return;
+    auto cd = s.isClassDeclaration();
+    Type t = cd ? cd.type : Type.tvoidptr;
+
+    _this.vthis2 = new ThisDeclaration(_this.loc, t);
+    //vthis2.storage_class |= STC.ref_;
+
+    // Emulate vthis2.addMember()
+    _this.members.push(_this.vthis2);
+
+    // Emulate vthis2.dsymbolSemantic()
+    _this.vthis2.storage_class |= STC.field;
+    _this.vthis2.parent = _this;
+    _this.vthis2.visibility = Visibility(Visibility.Kind.public_);
+    _this.vthis2.alignment = t.alignment();
+    _this.vthis2.semanticRun = PASS.semanticdone;
+
+    if (_this.sizeok == Sizeok.fwd)
+        _this.fields.push(_this.vthis2);
+}
+
+/************************************
+ * Perform unqualified name lookup by following the chain of scopes up
+ * until found.
+ *
+ * Params:
+ *  _this = Scope object
+ *  loc = location to use for error messages
+ *  ident = name to look up
+ *  pscopesym = if supplied and name is found, set to scope that ident was found in, otherwise set to null
+ *  flags = modify search based on flags
+ *
+ * Returns:
+ *  symbol if found, null if not
+ */
+Dsymbol search(Scope* _this, Loc loc, Identifier ident, out Dsymbol pscopesym, SearchOptFlags flags = SearchOpt.all)
+{
+    version (LOGSEARCH)
+    {
+        printf("Scope.search(%p, '%s' flags=x%x)\n", _this, ident.toChars(), flags);
+        // Print scope chain
+        for (Scope* sc = _this; sc; sc = sc.enclosing)
+        {
+            if (!sc.scopesym)
+                continue;
+            printf("\tscope %s\n", sc.scopesym.toChars());
+        }
+
+        static void printMsg(string txt, Dsymbol s)
+        {
+            printf("%.*s  %s.%s, kind = '%s'\n", cast(int)txt.length, txt.ptr,
+                s.parent ? s.parent.toChars() : "", s.toChars(), s.kind());
+        }
+    }
+
+    // This function is called only for unqualified lookup
+    assert(!(flags & (SearchOpt.localsOnly | SearchOpt.importsOnly)));
+
+    /* If ident is "start at module scope", only look at module scope
+     */
+    if (ident == Id.empty)
+    {
+        // Look for module scope
+        for (Scope* sc = _this; sc; sc = sc.enclosing)
+        {
+            assert(sc != sc.enclosing);
+            if (!sc.scopesym)
+                continue;
+            if (Dsymbol s = sc.scopesym.isModule())
+            {
+                //printMsg("\tfound", s);
+                pscopesym = sc.scopesym;
+                return s;
+            }
+        }
+        return null;
+    }
+
+    Dsymbol checkAliasThis(AggregateDeclaration ad, Identifier ident, SearchOptFlags flags, Expression* exp)
+    {
+        if (!ad || !ad.aliasthis)
+            return null;
+
+        Declaration decl = ad.aliasthis.sym.isDeclaration();
+        if (!decl)
+            return null;
+
+        Type t = decl.type;
+        ScopeDsymbol sds;
+        TypeClass tc;
+        TypeStruct ts;
+        switch(t.ty)
+        {
+            case Tstruct:
+                ts = cast(TypeStruct)t;
+                sds = ts.sym;
+                break;
+            case Tclass:
+                tc = cast(TypeClass)t;
+                sds = tc.sym;
+                break;
+            case Tinstance:
+                sds = (cast(TypeInstance)t).tempinst;
+                break;
+            case Tenum:
+                sds = (cast(TypeEnum)t).sym;
+                break;
+            default: break;
+        }
+
+        if (!sds)
+            return null;
+
+        Dsymbol ret = sds.search(loc, ident, flags);
+        if (ret)
+        {
+            *exp = new DotIdExp(loc, *exp, ad.aliasthis.ident);
+            *exp = new DotIdExp(loc, *exp, ident);
+            return ret;
+        }
+
+        if (!ts && !tc)
+            return null;
+
+        Dsymbol s;
+        *exp = new DotIdExp(loc, *exp, ad.aliasthis.ident);
+        if (ts && !(ts.att & AliasThisRec.tracing))
+        {
+            ts.att = cast(AliasThisRec)(ts.att | AliasThisRec.tracing);
+            s = checkAliasThis(sds.isAggregateDeclaration(), ident, flags, exp);
+            ts.att = cast(AliasThisRec)(ts.att & ~AliasThisRec.tracing);
+        }
+        else if(tc && !(tc.att & AliasThisRec.tracing))
+        {
+            tc.att = cast(AliasThisRec)(tc.att | AliasThisRec.tracing);
+            s = checkAliasThis(sds.isAggregateDeclaration(), ident, flags, exp);
+            tc.att = cast(AliasThisRec)(tc.att & ~AliasThisRec.tracing);
+        }
+        return s;
+    }
+
+    Dsymbol searchScopes(SearchOptFlags flags)
+    {
+        for (Scope* sc = _this; sc; sc = sc.enclosing)
+        {
+            assert(sc != sc.enclosing);
+            if (!sc.scopesym)
+                continue;
+            //printf("\tlooking in scopesym '%s', kind = '%s', flags = x%x\n", sc.scopesym.toChars(), sc.scopesym.kind(), flags);
+
+            if (sc.scopesym.isModule())
+                flags |= SearchOpt.unqualifiedModule;    // tell Module.search() that SearchOpt.localsOnly is to be obeyed
+            else if (sc.inCfile && sc.scopesym.isStructDeclaration())
+                continue;                                // C doesn't have struct scope
+
+            if (Dsymbol s = sc.scopesym.search(loc, ident, flags))
+            {
+                if (flags & SearchOpt.tagNameSpace)
+                {
+                    // ImportC: if symbol is not a tag, look for it in tag table
+                    if (!s.isScopeDsymbol())
+                    {
+                        auto ps = cast(void*)s in sc._module.tagSymTab;
+                        if (!ps)
+                            goto NotFound;
+                        s = *ps;
+                    }
+                }
+                //printMsg("\tfound local", s);
+                pscopesym = sc.scopesym;
+                return s;
+            }
+
+        NotFound:
+            if (sc.previews.fixAliasThis)
+            {
+                Expression exp = new ThisExp(loc);
+                if (Dsymbol aliasSym = checkAliasThis(sc.scopesym.isAggregateDeclaration(), ident, flags, &exp))
+                {
+                    //printf("found aliassym: %s\n", aliasSym.toChars());
+                    pscopesym = new ExpressionDsymbol(exp);
+                    return aliasSym;
+                }
+            }
+
+            // Stop when we hit a module, but keep going if that is not just under the global scope
+            if (sc.scopesym.isModule() && !(sc.enclosing && !sc.enclosing.enclosing))
+                break;
+        }
+        return null;
+    }
+
+    if (_this.ignoresymbolvisibility)
+        flags |= SearchOpt.ignoreVisibility;
+
+    // First look in local scopes
+    Dsymbol s = searchScopes(flags | SearchOpt.localsOnly);
+    version (LOGSEARCH) if (s) printMsg("-Scope.search() found local", s);
+    if (!s)
+    {
+        // Second look in imported modules
+        s = searchScopes(flags | SearchOpt.importsOnly);
+        version (LOGSEARCH) if (s) printMsg("-Scope.search() found import", s);
+    }
+    return s;
+}
+
+Dsymbol search_correct(Scope* _this, Identifier ident)
+{
+    if (global.gag)
+        return null; // don't do it for speculative compiles; too time consuming
+
+    /************************************************
+     * Given the failed search attempt, try to find
+     * one with a close spelling.
+     * Params:
+     *      seed = identifier to search for
+     *      cost = set to the cost, which rises with each outer scope
+     * Returns:
+     *      Dsymbol if found, null if not
+     */
+    Dsymbol scope_search_fp(const(char)[] seed, out int cost)
+    {
+        //printf("scope_search_fp('%s')\n", seed);
+        /* If not in the lexer's string table, it certainly isn't in the symbol table.
+         * Doing this first is a lot faster.
+         */
+        if (!seed.length)
+            return null;
+        Identifier id = Identifier.lookup(seed);
+        if (!id)
+            return null;
+        Scope* sc = _this;
+        Module.clearCache();
+        Dsymbol scopesym;
+        Dsymbol s = sc.search(Loc.initial, id, scopesym, SearchOpt.ignoreErrors);
+        if (!s)
+            return null;
+
+        // Do not show `@disable`d declarations
+        if (auto decl = s.isDeclaration())
+            if (decl.storage_class & STC.disable)
+                return null;
+        // Or `deprecated` ones if we're not in a deprecated scope
+        if (s.isDeprecated() && !sc.isDeprecated())
+            return null;
+
+        for (cost = 0; sc; sc = sc.enclosing, ++cost)
+            if (sc.scopesym == scopesym)
+                break;
+        if (scopesym != s.parent)
+        {
+            ++cost; // got to the symbol through an import
+            if (s.visible().kind == Visibility.Kind.private_)
+                return null;
+        }
+        return s;
+    }
+
+    Dsymbol scopesym;
+    // search for exact name first
+    if (auto s = _this.search(Loc.initial, ident, scopesym, SearchOpt.ignoreErrors))
+        return s;
+    return speller!scope_search_fp(ident.toString());
+}
+
+structalign_t alignment(Scope* _this)
+{
+    if (_this.aligndecl)
+    {
+        auto ad = _this.aligndecl.getAlignment(_this);
+        return ad.salign;
+    }
+    else
+    {
+        structalign_t sa;
+        sa.setDefault();
+        return sa;
+    }
+}
+
+Scope* scopeCreateGlobal(Module _module, ErrorSink eSink)
+{
+    Scope* sc = Scope.alloc();
+    *sc = Scope.init;
+    sc._module = _module;
+    sc.minst = _module;
+    sc.scopesym = new ScopeDsymbol();
+    sc.scopesym.symtab = new DsymbolTable();
+    sc.eSink = eSink;
+    assert(eSink);
+    // Add top level package as member of this global scope
+    Dsymbol m = _module;
+    while (m.parent)
+        m = m.parent;
+    m.addMember(null, sc.scopesym);
+    m.parent = null; // got changed by addMember()
+    sc.previews.setFromParams(global.params);
+
+    if (_module.filetype == FileType.c)
+        sc.inCfile = true;
+    // Create the module scope underneath the global scope
+    sc = sc.push(_module);
+    sc.parent = _module;
+    return sc;
+}
 
 /*************************************
  * Does semantic analysis on the public face of declarations.
@@ -1079,7 +1478,6 @@ bool isPOD(StructDeclaration sd)
     if (sd.ispod != ThreeState.none)
         return (sd.ispod == ThreeState.yes);
 
-    import dmd.clone;
 
     bool hasCpCtorLocal;
     bool hasMoveCtorLocal;
@@ -1680,6 +2078,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* If scope's alignment is the default, use the type's alignment,
          * otherwise the scope overrrides.
          */
+        import dmd.typesem : alignment;
         if (dsym.alignment.isDefault())
             dsym.alignment = dsym.type.alignment(); // use type's alignment
 
@@ -3019,7 +3418,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Scope* sc = m._scope; // see if already got one from importAll()
         if (!sc)
         {
-            sc = Scope.createGlobal(m, global.errorSink); // create root scope
+            sc = scopeCreateGlobal(m, global.errorSink); // create root scope
         }
 
         //printf("Module = %p, linkage = %d\n", sc.scopesym, sc.linkage);
@@ -3038,7 +3437,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!m._scope)
         {
             sc = sc.pop();
-            sc.pop(); // 2 pops because Scope.createGlobal() created 2
+            sc.pop(); // 2 pops because scopeCreateGlobal() created 2
         }
         m.semanticRun = PASS.semanticdone;
         //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
@@ -5437,6 +5836,8 @@ private extern(C++) class AddMemberVisitor : Visitor
 
             if (!s2.overloadInsert(dsym))
             {
+                if (auto _td = s2.isTemplateDeclaration())
+                    _td.computeOneMember();
                 sds.multiplyDefined(Loc.initial, dsym, s2);
                 dsym.errors = true;
             }
@@ -7541,7 +7942,7 @@ extern(C++) class ImportAllVisitor : Visitor
          * gets imported, it is unaffected by context.
          * Ignore prevsc.
          */
-        Scope* sc = Scope.createGlobal(m, global.errorSink); // create root scope
+        Scope* sc = scopeCreateGlobal(m, global.errorSink); // create root scope
 
         if (m.md && m.md.msg)
             m.md.msg = semanticString(sc, m.md.msg, "deprecation message");
@@ -7586,7 +7987,7 @@ extern(C++) class ImportAllVisitor : Visitor
             s.importAll(sc);
         }
         sc = sc.pop();
-        sc.pop(); // 2 pops because Scope.createGlobal() created 2
+        sc.pop(); // 2 pops because scopeCreateGlobal() created 2
     }
 
     override void visit(AttribDeclaration atb)

@@ -16,6 +16,7 @@ import dmd.declaration;
 import dmd.dsymbolsem : isPOD;
 import dmd.mtype;
 import dmd.typesem;
+import dmd.expressionsem : toInteger;
 import dmd.target;
 import dmd.visitor;
 

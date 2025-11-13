@@ -20,21 +20,15 @@ import core.checkedint;
 import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.attrib;
 import dmd.declaration;
 import dmd.dscope;
-import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
-import dmd.hdrgen;
-import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
-import dmd.tokens;
 import dmd.visitor;
 
 /**
@@ -204,120 +198,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     final bool isNested() const
     {
         return enclosing !is null;
-    }
-
-    /* Append vthis field (this.tupleof[$-1]) to make this aggregate type nested.
-     */
-    extern (D) final void makeNested()
-    {
-        if (enclosing) // if already nested
-            return;
-        if (sizeok == Sizeok.done)
-            return;
-        if (isUnionDeclaration() || isInterfaceDeclaration())
-            return;
-        if (storage_class & STC.static_)
-            return;
-
-        // If nested struct, add in hidden 'this' pointer to outer scope
-        auto s = toParentLocal();
-        if (!s)
-            s = toParent2();
-        if (!s)
-            return;
-        Type t = null;
-        if (auto fd = s.isFuncDeclaration())
-        {
-            enclosing = fd;
-
-            /* https://issues.dlang.org/show_bug.cgi?id=14422
-             * If a nested class parent is a function, its
-             * context pointer (== `outer`) should be void* always.
-             */
-            t = Type.tvoidptr;
-        }
-        else if (auto ad = s.isAggregateDeclaration())
-        {
-            if (isClassDeclaration() && ad.isClassDeclaration())
-            {
-                enclosing = ad;
-            }
-            else if (isStructDeclaration())
-            {
-                if (auto ti = ad.parent.isTemplateInstance())
-                {
-                    enclosing = ti.enclosing;
-                }
-            }
-            t = ad.handleType();
-        }
-        if (enclosing)
-        {
-            //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing.toChars());
-            assert(t);
-            if (t.ty == Tstruct)
-                t = Type.tvoidptr; // t should not be a ref type
-
-            assert(!vthis);
-            vthis = new ThisDeclaration(loc, t);
-            //vthis.storage_class |= STC.ref_;
-
-            // Emulate vthis.addMember()
-            members.push(vthis);
-
-            // Emulate vthis.dsymbolSemantic()
-            vthis.storage_class |= STC.field;
-            vthis.parent = this;
-            vthis.visibility = Visibility(Visibility.Kind.public_);
-            vthis.alignment = t.alignment();
-            vthis.semanticRun = PASS.semanticdone;
-
-            if (sizeok == Sizeok.fwd)
-                fields.push(vthis);
-
-            makeNested2();
-        }
-    }
-
-    /* Append vthis2 field (this.tupleof[$-1]) to add a second context pointer.
-     */
-    extern (D) final void makeNested2()
-    {
-        if (vthis2)
-            return;
-        if (!vthis)
-            makeNested();   // can't add second before first
-        if (!vthis)
-            return;
-        if (sizeok == Sizeok.done)
-            return;
-        if (isUnionDeclaration() || isInterfaceDeclaration())
-            return;
-        if (storage_class & STC.static_)
-            return;
-
-        auto s0 = toParentLocal();
-        auto s = toParent2();
-        if (!s || !s0 || s == s0)
-            return;
-        auto cd = s.isClassDeclaration();
-        Type t = cd ? cd.type : Type.tvoidptr;
-
-        vthis2 = new ThisDeclaration(loc, t);
-        //vthis2.storage_class |= STC.ref_;
-
-        // Emulate vthis2.addMember()
-        members.push(vthis2);
-
-        // Emulate vthis2.dsymbolSemantic()
-        vthis2.storage_class |= STC.field;
-        vthis2.parent = this;
-        vthis2.visibility = Visibility(Visibility.Kind.public_);
-        vthis2.alignment = t.alignment();
-        vthis2.semanticRun = PASS.semanticdone;
-
-        if (sizeok == Sizeok.fwd)
-            fields.push(vthis2);
     }
 
     override final bool isExport() const

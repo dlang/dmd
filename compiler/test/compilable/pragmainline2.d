@@ -103,6 +103,79 @@ bool test_toUByte()
     struct S { int x; }
     S sval;
     ubarr = toUbyte(sval);
-	return true;
+    return true;
 }
 static assert(test_toUByte());
+
+// https://github.com/dlang/dmd/issues/20246
+void test_split()
+{
+    // bitop.Split64 only used for 32-bit process
+    import core.bitop;
+    ulong v = 1L << 42;
+    int x = bsr(v);
+    int y = bsf(v);
+}
+
+void test_newaa()
+{
+    // inlining of newaa.pure_keyEqual, newaa.compat_key, newaa.pure_hashOf
+    // must be disabled for nested structs
+    struct UnsafeElement
+    {
+        int i;
+        static bool b;
+        ~this(){
+            int[] arr;
+            void* p = arr.ptr + 1; // unsafe
+        }
+    }
+    UnsafeElement[int] aa1;
+    int[UnsafeElement] aa2;
+    aa1[1] = UnsafeElement();
+    assert(0 !in aa1);
+    assert(aa1 == aa1);
+    assert(UnsafeElement() !in aa2);
+    aa2[UnsafeElement()] = 1;
+
+    // test inlining of hashOf(Interface)
+    static interface Iface
+    {
+        void foo();
+    }
+    Iface[int] aa3;
+    int[Iface] aa4;
+}
+
+void test_stdatomic()
+{
+    import core.stdc.stdatomic;
+
+    // check inlining for the unittests of core.stdc.stdatomic
+    atomic_flag flag;
+    atomic_flag_test_and_set_explicit_impl(&flag, memory_order.memory_order_seq_cst);
+    atomic_flag_clear_explicit_impl(&flag, memory_order.memory_order_seq_cst);
+
+    atomic_signal_fence_impl(memory_order.memory_order_seq_cst);
+    atomic_thread_fence_impl(memory_order.memory_order_seq_cst);
+
+    shared(int) val;
+    atomic_store_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+
+    atomic_load_explicit_impl(&val, memory_order.memory_order_seq_cst);
+
+    atomic_fetch_and_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+    atomic_exchange_explicit_impl(&val, 2, memory_order.memory_order_seq_cst);
+
+    int expected = 2;
+    atomic_compare_exchange_strong_explicit_impl(&val, &expected, 1, memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst);
+
+    expected = 1;
+    atomic_compare_exchange_weak_explicit_impl(&val, &expected, 2, memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst);
+
+    atomic_fetch_add_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+    atomic_fetch_sub_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+    atomic_fetch_or_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+    atomic_fetch_xor_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+    atomic_fetch_and_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
+}

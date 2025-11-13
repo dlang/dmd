@@ -46,6 +46,10 @@ struct INSTR
 {
   pure nothrow:
 
+    /* Integer registers r0-r7, r9-15, r19-28, r29(?)
+     */
+    enum ALLREGS = 0x1FFF_FFFF & ~(1 << 8) & ~(1 << 16) & ~(1 << 17) & ~(1 << 18);
+
     /* Even though the floating point registers are 0..31, we call them V32..V63 so they fit
      * into regm_t. Remember to and them with 31 to generate an instruction
      */
@@ -1356,6 +1360,22 @@ struct INSTR
         uint size = 1;
         uint imm12 = offset & 0xFFF;
         return ldst_pos(1, 0, 0, imm12, Rn, Rt);
+    }
+
+    /* STR (immediate) Post-index
+     * https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_gen.html
+     */
+    static uint str_imm_gen_post_index(uint is64, int simm, ubyte Rn, ubyte Rt)
+    {
+        // STR Rt,[Xn],#simm
+        uint size = 2 + is64;
+        uint imm9 = simm & 0x1FF;
+        return (size << 30) |
+               (7    << 27) |
+               (imm9 << 12) |
+               (1    << 10) |
+               (Rn   <<  5) |
+                Rt;
     }
 
     /* STR (immediate) Unsigned offset

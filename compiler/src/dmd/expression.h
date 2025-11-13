@@ -64,6 +64,12 @@ namespace dmd
     bool isLvalue(const Expression *exp);
     int32_t getFieldIndex(ClassReferenceExp *cre, Type *fieldtype, uint32_t fieldoffset);
     void fillTupleExpExps(TupleExp *te, TupleDeclaration *tup);
+    Optional<bool> toBool(Expression *exp);
+    StringExp *toStringExp(Expression *exp);
+    dinteger_t toInteger(Expression *exp);
+    uinteger_t toUInteger(Expression *exp);
+    real_t toReal(Expression *exp);
+    complex_t toComplex(Expression *exp);
 }
 
 typedef unsigned char OwnedBy;
@@ -99,18 +105,12 @@ public:
 
     const char* toChars() const final override;
 
-    virtual dinteger_t toInteger();
-    virtual uinteger_t toUInteger();
-    virtual real_t toReal();
     virtual real_t toImaginary();
-    virtual complex_t toComplex();
-    virtual StringExp *toStringExp();
     virtual bool checkType();
     Expression *addressOf();
     Expression *deref();
 
     int isConst();
-    virtual Optional<bool> toBool();
     virtual bool hasCode()
     {
         return true;
@@ -238,11 +238,7 @@ public:
     dinteger_t value;
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
-    dinteger_t toInteger() override;
-    real_t toReal() override;
     real_t toImaginary() override;
-    complex_t toComplex() override;
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
     dinteger_t getInteger() { return value; }
     template<int v>
@@ -263,12 +259,7 @@ public:
     real_t value;
 
     static RealExp *create(Loc loc, real_t value, Type *type);
-    dinteger_t toInteger() override;
-    uinteger_t toUInteger() override;
-    real_t toReal() override;
     real_t toImaginary() override;
-    complex_t toComplex() override;
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -278,12 +269,7 @@ public:
     complex_t value;
 
     static ComplexExp *create(Loc loc, complex_t value, Type *type);
-    dinteger_t toInteger() override;
-    uinteger_t toUInteger() override;
-    real_t toReal() override;
     real_t toImaginary() override;
-    complex_t toComplex() override;
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -318,7 +304,6 @@ public:
     VarDeclaration *var;
 
     ThisExp *syntaxCopy() override;
-    Optional<bool> toBool() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -332,8 +317,6 @@ public:
 class NullExp final : public Expression
 {
 public:
-    Optional<bool> toBool() override;
-    StringExp *toStringExp() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -353,8 +336,6 @@ public:
     static StringExp *create(Loc loc, const void *s, d_size_t len);
     char32_t getCodeUnit(d_size_t i) const;
     dinteger_t getIndex(d_size_t i) const;
-    StringExp *toStringExp() override;
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
     size_t numberOfCodeUnits(int tynto = 0) const;
     void writeTo(void* dest, bool zero, int tyto = 0) const;
@@ -404,8 +385,6 @@ public:
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     ArrayLiteralExp *syntaxCopy() override;
     Expression *getElement(d_size_t i);
-    Optional<bool> toBool() override;
-    StringExp *toStringExp() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -420,7 +399,6 @@ public:
     Expression* loweringCtfe;
 
     AssocArrayLiteralExp *syntaxCopy() override;
-    Optional<bool> toBool() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -555,8 +533,6 @@ class SymOffExp final : public SymbolExp
 {
 public:
     dinteger_t offset;
-
-    Optional<bool> toBool() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -832,7 +808,6 @@ public:
 class AddrExp final : public UnaExp
 {
 public:
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -924,7 +899,6 @@ private:
 
 public:
     SliceExp *syntaxCopy() override;
-    Optional<bool> toBool() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -987,7 +961,6 @@ public:
     d_bool isGenerated;
     d_bool allowCommaExp;
     Expression* originalExp;
-    Optional<bool> toBool() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 

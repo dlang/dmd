@@ -1217,7 +1217,13 @@ public:
 
     override void visit(WithStatement s)
     {
-        inlineScan(s.exp);
+        if (s.wthis && s.wthis._init)
+        {
+            if (auto ie = s.wthis._init.isExpInitializer())
+            {
+                inlineScan(ie.exp);
+            }
+        }
         inlineScan(s._body);
     }
 
@@ -1473,7 +1479,7 @@ public:
                     asStates = false;
             }
 
-            if (canInline(fd, false, false, asStates, eSink))
+            if (canInline(fd, parent == fd.toParent2(), asStates, eSink))
             {
                 expandInline(e.loc, fd, parent, eret, null, e.arguments, asStates, e.vthis2, eresult, sresult, again);
                 if (asStatements && eresult)
@@ -1528,7 +1534,7 @@ public:
         else if (auto dve = e.e1.isDotVarExp())
         {
             fd = dve.var.isFuncDeclaration();
-            if (fd && fd != parent && canInline(fd, true, false, asStatements, eSink))
+            if (fd && fd != parent && canInline(fd, !fd.isNested(), asStatements, eSink))
             {
                 if (dve.e1.op == EXP.call && dve.e1.type.toBasetype().ty == Tstruct)
                 {
@@ -1776,8 +1782,7 @@ public:
  * Test that `fd` can be inlined.
  *
  * Params:
- *  hasthis = `true` if the function call has explicit 'this' expression.
- *  hdrscan = `true` if the inline scan is for 'D header' content.
+ *  hasThis = `true` if the caller can access the callee's this pointer.
  *  statementsToo = `true` if the function call is placed on ExpStatement.
  *      It means more code-block dependent statements in fd body - ForStatement,
  *      ThrowStatement, etc. can be inlined.
@@ -1785,23 +1790,18 @@ public:
  *
  * Returns:
  *  true if the function body can be expanded.
- *
- * Todo:
- *  - Would be able to eliminate `hasthis` parameter, because semantic analysis
- *    no longer accepts calls of contextful function without valid 'this'.
- *  - Would be able to eliminate `hdrscan` parameter, because it's always false.
  */
-private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsToo, ErrorSink eSink)
+private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, ErrorSink eSink)
 {
     int cost;
 
     static if (CANINLINE_LOG)
     {
-        printf("FuncDeclaration.canInline(hasthis = %d, statementsToo = %d, '%s')\n",
-            hasthis, statementsToo, fd.toPrettyChars());
+        printf("FuncDeclaration.canInline(hasThis = %d, statementsToo = %d, '%s')\n",
+            hasThis, statementsToo, fd.toPrettyChars());
     }
 
-    if (fd.needThis() && !hasthis)
+    if (fd.needThis() && !hasThis)
         return false;
 
     if (fd.inlineNest)
@@ -1813,7 +1813,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         return false;
     }
 
-    if (fd.semanticRun < PASS.semantic3 && !hdrscan)
+    if (fd.semanticRun < PASS.semantic3)
     {
         if (!fd.fbody)
             return false;
@@ -1901,8 +1901,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
              */
             if (tfnext.ty != Tvoid &&
                 (!fd.hasReturnExp ||
-                 hasDtor(tfnext) && (statementsToo || tfnext.isTypeSArray())) &&
-                !hdrscan)
+                 hasDtor(tfnext) && (statementsToo || tfnext.isTypeSArray())))
             {
                 static if (CANINLINE_LOG)
                 {
@@ -1932,10 +1931,10 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         (fd.ident == Id.require &&
          fd.toParent().isFuncDeclaration() &&
          fd.toParent().isFuncDeclaration().needThis()) ||
-        !hdrscan && (fd.isSynchronized() ||
-                     fd.isImportedSymbol() ||
-                     fd.hasNestedFrameRefs() ||
-                     (fd.isVirtual() && !fd.isFinalFunc())))
+         (fd.isSynchronized() ||
+          fd.isImportedSymbol() ||
+          fd.hasNestedFrameRefs() ||
+          (fd.isVirtual() && !fd.isFinalFunc())))
     {
         static if (CANINLINE_LOG)
         {
@@ -1956,7 +1955,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     }
 
     {
-        cost = inlineCostFunction(fd, hasthis, hdrscan);
+        cost = inlineCostFunction(fd, hasThis);
     }
     static if (CANINLINE_LOG)
     {
@@ -1968,36 +1967,33 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     if (!statementsToo && cost > COST_MAX)
         goto Lno;
 
-    if (!hdrscan)
+    if (statementsToo)
+        fd.inlineStatusStmt = ILS.yes;
+    else
+        fd.inlineStatusExp = ILS.yes;
+
+    inlineScanDsymbol(fd, eSink);
+
+    if (fd.inlineStatusExp == ILS.uninitialized)
     {
-        // Don't modify inlineStatus for header content scan
+        // Need to redo cost computation, as some statements or expressions have been inlined
+        cost = inlineCostFunction(fd, hasThis);
+        static if (CANINLINE_LOG)
+        {
+            printf("recomputed cost = %d for %s\n", cost, fd.toChars());
+        }
+
+        if (tooCostly(cost))
+            goto Lno;
+        if (!statementsToo && cost > COST_MAX)
+            goto Lno;
+
         if (statementsToo)
             fd.inlineStatusStmt = ILS.yes;
         else
             fd.inlineStatusExp = ILS.yes;
-
-        inlineScanDsymbol(fd, eSink); // Don't scan recursively for header content scan
-
-        if (fd.inlineStatusExp == ILS.uninitialized)
-        {
-            // Need to redo cost computation, as some statements or expressions have been inlined
-            cost = inlineCostFunction(fd, hasthis, hdrscan);
-            static if (CANINLINE_LOG)
-            {
-                printf("recomputed cost = %d for %s\n", cost, fd.toChars());
-            }
-
-            if (tooCostly(cost))
-                goto Lno;
-            if (!statementsToo && cost > COST_MAX)
-                goto Lno;
-
-            if (statementsToo)
-                fd.inlineStatusStmt = ILS.yes;
-            else
-                fd.inlineStatusExp = ILS.yes;
-        }
     }
+
     static if (CANINLINE_LOG)
     {
         printf("\t2: yes %s\n", fd.toChars());
@@ -2008,13 +2004,11 @@ Lno:
     if (fd.inlining == PINLINE.always && global.params.useWarnings == DiagnosticReporting.inform)
         eSink.warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
 
-    if (!hdrscan) // Don't modify inlineStatus for header content scan
-    {
-        if (statementsToo)
-            fd.inlineStatusStmt = ILS.no;
-        else
-            fd.inlineStatusExp = ILS.no;
-    }
+    if (statementsToo)
+        fd.inlineStatusStmt = ILS.no;
+    else
+        fd.inlineStatusExp = ILS.no;
+
     static if (CANINLINE_LOG)
     {
         printf("\t2: no %s\n", fd.toChars());

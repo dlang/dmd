@@ -2948,7 +2948,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
 /*************************************************
  * Helper function for converting OPparam's into array of Parameters.
  */
-struct Parameter { elem* e; reg_t reg; reg_t reg2; uint numalign; }
+struct Parameter { elem* e; reg_t reg; reg_t reg2; uint size; uint numalign; bool isVariadic; bool isAp; }
 
 @trusted
 void fillParameters(elem* e, Parameter* parameters, int* pi)
@@ -2961,7 +2961,8 @@ void fillParameters(elem* e, Parameter* parameters, int* pi)
     }
     else
     {
-        parameters[*pi].e = e;
+        Parameter* p = &parameters[*pi];
+        p.e = e;
         (*pi)++;
     }
 }
@@ -3369,6 +3370,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     // Easier to deal with parameters as an array: parameters[0..np]
     int np = OTbinary(e.Eoper) ? el_nparams(e.E2) : 0;
     Parameter* parameters = cast(Parameter*)alloca(np * Parameter.sizeof);
+    memset(parameters, 0,Parameter.sizeof * np);
 
     if (np)
     {
@@ -4245,6 +4247,7 @@ static if (0)
 
 /***************************
  * Determine size of argument e that will be pushed.
+ * Takes into account 0-sized types, based on type of function.
  */
 
 @trusted

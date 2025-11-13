@@ -48,6 +48,7 @@ import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem : followInstantiationContext, toParentP;
+import dmd.expressionsem : toInteger;
 import dmd.dtemplate;
 import dmd.errorsink;
 import dmd.func;
@@ -590,7 +591,7 @@ int intrinsic_op(FuncDeclaration fd)
     return op;
 
 Lva_start:
-    if (target.isX86_64 &&
+    if ((target.isX86_64 || target.isAArch64) &&
         fd.toParent().isTemplateInstance() &&
         id3 == Id.va_start &&
         id2 == Id.stdarg &&

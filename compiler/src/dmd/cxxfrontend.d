@@ -32,6 +32,9 @@ import dmd.init : Initializer, NeedInterpret;
 import dmd.location : Loc;
 import dmd.mtype /*: Covariant, Type, Parameter, ParameterList*/;
 import dmd.rootobject : RootObject;
+import dmd.root.optional;
+import dmd.root.longdouble : real_t = longdouble;
+import dmd.root.complex;
 import dmd.semantic3;
 import dmd.statement : Statement, AsmStatement, GccAsmStatement;
 
@@ -301,6 +304,13 @@ bool isOverlappedWith(VarDeclaration vd, VarDeclaration v){
     return dmd.dsymbolsem.isOverlappedWith(vd, v);
 }
 
+Dsymbol search(Scope* sc, Loc loc, Identifier ident, out Dsymbol pscopesym,
+    SearchOptFlags flags = SearchOpt.all)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.search(sc, loc, ident, pscopesym, flags);
+}
+
 /***********************************************************
  * dtemplate.d
  */
@@ -362,17 +372,17 @@ Expression getDefaultValue(EnumDeclaration ed, Loc loc)
     return dmd.enumsem.getDefaultValue(ed, loc);
 }
 
-/***********************************************************
- * expression.d
- */
-void expandTuples(Expressions* exps, ArgumentLabels* names = null)
-{
-    return dmd.expression.expandTuples(exps, names);
-}
 
 /***********************************************************
  * expressionsem.d
  */
+
+void expandTuples(Expressions* exps, ArgumentLabels* names = null)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.expandTuples(exps, names);
+}
+
 Expression expressionSemantic(Expression e, Scope* sc)
 {
     import dmd.expressionsem;
@@ -414,6 +424,42 @@ void fillTupleExpExps(TupleExp te, TupleDeclaration tup)
 {
     import dmd.expressionsem;
     return dmd.expressionsem.fillTupleExpExps(te, tup);
+}
+
+Optional!bool toBool(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toBool(exp);
+}
+
+StringExp toStringExp(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toStringExp(exp);
+}
+
+dinteger_t toInteger(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toInteger(exp);
+}
+
+uinteger_t toUInteger(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toUInteger(exp);
+}
+
+real_t toReal(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toReal(exp);
+}
+
+complex_t toComplex(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toComplex(exp);
 }
 
 /***********************************************************
@@ -823,6 +869,12 @@ Type referenceTo(Type type)
     return dmd.typesem.referenceTo(type);
 }
 
+Type memType(TypeEnum type)
+{
+    import dmd.typesem;
+    return dmd.typesem.memType(type);
+}
+
 uinteger_t size(Type type)
 {
     import dmd.typesem;
@@ -833,6 +885,18 @@ uinteger_t size(Type type, Loc loc)
 {
     import dmd.typesem;
     return dmd.typesem.size(type, loc);
+}
+
+structalign_t alignment(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.alignment(type);
+}
+
+uint alignsize(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.alignsize(type);
 }
 
 MATCH implicitConvTo(Type from, Type to)
@@ -852,6 +916,31 @@ Expression defaultInitLiteral(Type t, Loc loc)
     import dmd.typesem;
     return dmd.typesem.defaultInitLiteral(t, loc);
 }
+
+bool hasUnsafeBitpatterns(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.hasUnsafeBitpatterns(type);
+}
+
+bool hasInvariant(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.hasInvariant(type);
+}
+
+bool hasVoidInitPointers(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.hasVoidInitPointers(type);
+}
+
+void Type_init()
+{
+    import dmd.typesem;
+    return dmd.typesem.Type_init();
+}
+
 
 /***********************************************************
  * typinf.d

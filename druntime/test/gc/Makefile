@@ -50,6 +50,7 @@ $(ROOT)/printf$(DOTEXE): $(src_gc)
 $(ROOT)/printf$(DOTEXE): private extra_sources = $(src_gc)
 $(ROOT)/printf$(DOTEXE): extra_dflags += \
 	-debug=PRINTF -debug=PRINTF_TO_FILE -debug=COLLECT_PRINTF -version=OnlyLowMemUnittests $(core_ut) -main
+$(ROOT)/printf.done: run_args += >$(ROOT)/printf.log
 
 $(ROOT)/memstomp$(DOTEXE): $(src_lifetime)
 $(ROOT)/memstomp$(DOTEXE): private extra_sources = $(src_lifetime)

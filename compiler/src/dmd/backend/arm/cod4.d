@@ -43,7 +43,7 @@ import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.x86.xmm;
 import dmd.backend.arm.cod1 : getlvalue, loadFromEA, storeToEA,CLIB_A,callclib;
 import dmd.backend.arm.cod2 : tyToExtend;
-import dmd.backend.arm.cod3 : COND, conditionCode, gentstreg;
+import dmd.backend.arm.cod3 : COND, conditionCode, gentstreg, loadFloatRegConst;
 import dmd.backend.arm.instr;
 
 
@@ -56,8 +56,8 @@ nothrow:
 @trusted
 void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    //printf("cdeq(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
-    //elem_print(e);
+    printf("cdeq(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
+    elem_print(e);
 
     reg_t reg;
     code cs;
@@ -144,7 +144,10 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 assert(NOREG < 64);  // otherwise mask(NOREG) will not work
                 reg_t r = allocreg(cdb, m, tyml);
                 const p = cast(targ_size_t*) &(e2.EV);
-                movregconst(cdb,r,*p,sz == 8);
+                if (r >= 32)
+                    loadFloatRegConst(cdb,r,e2.EV.Vdouble,sz);
+                else
+                    movregconst(cdb,r,*p,(sz == 8) ? 64 : 0);
                 storeToEA(cs,r,sz);
                 cdb.gen(&cs);
             }
@@ -1716,7 +1719,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     {
                         uint N,immr,imms;
                         assert(encodeNImmrImms(0xFFFF,N,immr,imms));
-                        uint ins = INSTR.log_imm(0,0,0,immr,imms,reg,reg); // AND Xreg,Xreg,#0xFFFF
+                        uint ins = INSTR.log_imm(0,0,0,immr,imms,cs.reg,reg); // AND Xreg,Xcsreg,#0xFFFF
                         cdb.gen1(ins);
                     }
                     else

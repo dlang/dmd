@@ -1,6 +1,6 @@
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
+  rev: v6.0.0
   hooks:
   - id: trailing-whitespace
     exclude: >
@@ -22,6 +22,6 @@ repos:
   - id: no-commit-to-branch
     args: [--branch, master]
 - repo: https://github.com/sirosen/check-jsonschema
-  rev: 0.23.0
+  rev: 0.34.1
   hooks:
     - id: check-github-workflows

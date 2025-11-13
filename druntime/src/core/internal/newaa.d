@@ -113,7 +113,8 @@ static struct Entry(K, V)
 // backward compatibility conversions
 private ref compat_key(K, K2)(ref K2 key)
 {
-    pragma(inline, true);
+    static if(!(is(K2 == struct) && __traits(isNested, K2)))
+        pragma(inline, true);
     static if (is(K2 == const(char)[]) && is(K == string))
         return (ref (ref return K2 k2) @trusted => *cast(string*)&k2)(key);
     else
@@ -180,7 +181,8 @@ Entry!(K, V)* _newEntry(K, V, K2)(ref K2 key)
 
 template pure_hashOf(K)
 {
-    static if (__traits(compiles, function hash_t(scope const ref K key) pure nothrow @nogc @trusted { return hashOf(cast()key); }))
+    static if (!(is(K == struct) && __traits(isNested, K)) &&
+               __traits(compiles, function hash_t(scope const ref K key) pure nothrow @nogc @trusted { return hashOf(cast()key); }))
     {
         // avoid wrapper call in debug builds if pure nothrow @nogc is inferred
         pragma(inline, true)
@@ -198,7 +200,9 @@ template pure_hashOf(K)
 // this also breaks cyclic inference on recursive data types
 template pure_keyEqual(K1, K2 = K1)
 {
-    static if (__traits(compiles, function bool(ref const K1 k1, ref const K2 k2) pure nothrow @nogc @trusted { return cast()k1 == cast()k2; }))
+    static if (!(is(K1 == struct) && __traits(isNested, K1)) &&
+               !(is(K2 == struct) && __traits(isNested, K2)) &&
+               __traits(compiles, function bool(ref const K1 k1, ref const K2 k2) pure nothrow @nogc @trusted { return cast()k1 == cast()k2; }))
     {
         // avoid wrapper call in debug builds if pure nothrow @nogc is inferred
         pragma(inline, true)

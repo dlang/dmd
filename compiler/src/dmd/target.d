@@ -150,6 +150,9 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
 
+    if (params.trace)
+        VersionCondition.addPredefinedGlobalIdent("D_Profile");
+
     if (params.tracegc)
         VersionCondition.addPredefinedGlobalIdent("D_ProfileGC");
 
@@ -617,6 +620,7 @@ extern (C++) struct Target
      */
     extern (C++) uint fieldalign(Type type)
     {
+        import dmd.typesem : alignsize;
         const size = type.alignsize();
 
         if ((isX86_64 || isAArch64 || os == Target.OS.OSX) && (size == 16 || size == 32))

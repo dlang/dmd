@@ -27,9 +27,11 @@ import dmd.canthrow;
 import dmd.chkformat;
 import dmd.cond;
 import dmd.ctorflow;
+import dmd.ctfeexpr : isCtfeReferenceValid;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.templatesem : computeOneMember;
 import dmd.declaration;
 import dmd.dclass;
 import dmd.dcast;
@@ -74,10 +76,12 @@ import dmd.root.array;
 import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.filename;
+import dmd.root.optional;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.string;
 import dmd.root.utf;
+import dmd.root.rmem;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.sideeffect;
@@ -95,6 +99,399 @@ import dmd.visitor;
 import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
+
+real_t toReal(Expression _this)
+{
+    if (auto iexp = _this.isIntegerExp())
+    {
+        // normalize() is necessary until we fix all the paints of 'type'
+        const ty = iexp.type.toBasetype().ty;
+        const val = iexp.normalize(ty, iexp.value);
+        iexp.value = val;
+        return (ty == Tuns64)
+            ? real_t(cast(ulong)val)
+            : real_t(cast(long)val);
+    }
+    else if (auto rexp = _this.isRealExp())
+    {
+        return rexp.type.isReal() ? rexp.value : CTFloat.zero;
+    }
+    else if (auto cexp = _this.isComplexExp())
+    {
+        return creall(cexp.value);
+    }
+    error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toChars());
+    return CTFloat.zero;
+}
+
+complex_t toComplex(Expression _this)
+{
+    if (auto iexp = _this.isIntegerExp())
+    {
+        return complex_t(iexp.toReal());
+    }
+    else if (auto rexp = _this.isRealExp())
+    {
+        return complex_t(rexp.toReal(), rexp.toImaginary());
+    }
+    else if (auto cexp = _this.isComplexExp())
+    {
+        return cexp.value;
+    }
+    error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toChars());
+    return complex_t(CTFloat.zero);
+}
+
+dinteger_t toInteger(Expression _this)
+{
+    if (auto iexp = _this.isIntegerExp())
+    {
+        // normalize() is necessary until we fix all the paints of 'type'
+        return iexp.value = IntegerExp.normalize(iexp.type.toBasetype().ty, iexp.value);
+    }
+    else if (auto rexp = _this.isRealExp())
+    {
+        return cast(sinteger_t)rexp.toReal();
+    }
+
+    else if (auto cexp = _this.isComplexExp())
+    {
+        return cast(sinteger_t)cexp.toReal();
+    }
+
+    // import dmd.hdrgen : EXPtoString;
+    //printf("Expression %s\n", EXPtoString(op).ptr);
+    if (!_this.type || !_this.type.isTypeError())
+        error(_this.loc, "integer constant expression expected instead of `%s`", _this.toChars());
+    return 0;
+}
+
+uinteger_t toUInteger(Expression _this)
+{
+    if (auto rexp = _this.isRealExp())
+    {
+        return cast(uinteger_t)rexp.toReal();
+    }
+    else if (auto cexp = _this.isComplexExp())
+    {
+        return cast(uinteger_t)cexp.toReal();
+    }
+    // import dmd.hdrgen : EXPtoString;
+    //printf("Expression %s\n", EXPtoString(op).ptr);
+    return cast(uinteger_t)_this.toInteger();
+}
+
+
+/***************************************************
+ * Given an Expression, find the variable it really is.
+ *
+ * For example, `a[index]` is really `a`, and `s.f` is really `s`.
+ * Params:
+ *      e = Expression to look at
+ *      deref = number of dereferences encountered
+ * Returns:
+ *      variable if there is one, null if not
+ */
+VarDeclaration expToVariable(Expression e, out int deref)
+{
+    deref = 0;
+    while (1)
+    {
+        switch (e.op)
+        {
+            case EXP.variable:
+                return e.isVarExp().var.isVarDeclaration();
+
+            case EXP.dotVariable:
+                e = e.isDotVarExp().e1;
+                if (e.type.toBasetype().isTypeClass())
+                    deref++;
+
+                continue;
+
+            case EXP.index:
+            {
+                e = e.isIndexExp().e1;
+                if (!e.type.toBasetype().isTypeSArray())
+                    deref++;
+
+                continue;
+            }
+
+            case EXP.slice:
+            {
+                e = e.isSliceExp().e1;
+                if (!e.type.toBasetype().isTypeSArray())
+                    deref++;
+
+                continue;
+            }
+
+            case EXP.super_:
+                return e.isSuperExp().var.isVarDeclaration();
+            case EXP.this_:
+                return e.isThisExp().var.isVarDeclaration();
+
+            // Temporaries for rvalues that need destruction
+            // are of form: (T s = rvalue, s). For these cases
+            // we can just return var declaration of `s`. However,
+            // this is intentionally not calling `Expression.extractLast`
+            // because at this point we cannot infer the var declaration
+            // of more complex generated comma expressions such as the
+            // one for the array append hook.
+            case EXP.comma:
+            {
+                if (auto ve = e.isCommaExp().e2.isVarExp())
+                    return ve.var.isVarDeclaration();
+
+                return null;
+            }
+            default:
+                return null;
+        }
+    }
+}
+
+/**
+ * Get the called function type from a call expression
+ * Params:
+ *   ce = function call expression. Must have had semantic analysis done.
+ * Returns: called function type, or `null` if error / no semantic analysis done
+ */
+TypeFunction calledFunctionType(CallExp ce)
+{
+    Type t = ce.e1.type;
+    if (!t)
+        return null;
+    t = t.toBasetype();
+    if (auto tf = t.isTypeFunction())
+        return tf;
+    if (auto td = t.isTypeDelegate())
+        return td.nextOf().isTypeFunction();
+    return null;
+}
+
+/****************************************
+ * Expand tuples in-place.
+ *
+ * Example:
+ *     When there's a call `f(10, pair: AliasSeq!(20, 30), single: 40)`, the input is:
+ *         `exps =  [10, (20, 30), 40]`
+ *         `names = [null, "pair", "single"]`
+ *     The arrays will be modified to:
+ *         `exps =  [10, 20, 30, 40]`
+ *         `names = [null, "pair", null, "single"]`
+ *
+ * Params:
+ *     exps  = array of Expressions
+ *     names = optional array of names corresponding to Expressions
+ */
+void expandTuples(Expressions* exps, ArgumentLabels* names = null)
+{
+    //printf("expandTuples()\n");
+    if (exps is null)
+        return;
+
+    if (names)
+    {
+        if (exps.length != names.length)
+        {
+            printf("exps.length = %d, names.length = %d\n", cast(int) exps.length, cast(int) names.length);
+            printf("exps = %s, names = %s\n", exps.toChars(), names.toChars());
+            if (exps.length > 0)
+                printf("%s\n", (*exps)[0].loc.toChars());
+            assert(0);
+        }
+    }
+
+    // At `index`, a tuple of length `length` is expanded. Insert corresponding nulls in `names`.
+    void expandNames(size_t index, size_t length)
+    {
+        if (names)
+        {
+            if (length == 0)
+            {
+                names.remove(index);
+                return;
+            }
+            foreach (i; 1 .. length)
+            {
+                names.insert(index + i, ArgumentLabel(cast(Identifier) null, Loc.init));
+            }
+        }
+    }
+
+    for (size_t i = 0; i < exps.length; i++)
+    {
+        Expression arg = (*exps)[i];
+        if (!arg)
+            continue;
+
+        // Look for tuple with 0 members
+        if (auto e = arg.isTypeExp())
+        {
+            if (auto tt = e.type.toBasetype().isTypeTuple())
+            {
+                if (!tt.arguments || tt.arguments.length == 0)
+                {
+                    exps.remove(i);
+                    expandNames(i, 0);
+                    if (i == exps.length)
+                        return;
+                }
+                else // Expand a TypeTuple
+                {
+                    exps.remove(i);
+                    auto texps = new Expressions(tt.arguments.length);
+                    foreach (j, a; *tt.arguments)
+                        (*texps)[j] = new TypeExp(e.loc, a.type);
+                    exps.insert(i, texps);
+                    expandNames(i, texps.length);
+                }
+                i--;
+                continue;
+            }
+        }
+
+        // Inline expand all the tuples
+        while (arg.op == EXP.tuple)
+        {
+            TupleExp te = cast(TupleExp)arg;
+            exps.remove(i); // remove arg
+            exps.insert(i, te.exps); // replace with tuple contents
+            expandNames(i, te.exps.length);
+            if (i == exps.length)
+                return; // empty tuple, no more arguments
+            (*exps)[i] = Expression.combine(te.e0, (*exps)[i]);
+            arg = (*exps)[i];
+        }
+    }
+}
+
+StringExp toStringExp(Expression _this)
+{
+    static StringExp nullExpToStringExp(NullExp _this)
+    {
+        if (_this.type.implicitConvTo(Type.tstring))
+        {
+            auto se = new StringExp(_this.loc, (cast(char*).mem.xcalloc(1, 1))[0 .. 0]);
+            se.type = Type.tstring;
+            return se;
+        }
+        return null;
+    }
+
+    static StringExp arrayLiteralToStringExp(ArrayLiteralExp _this)
+    {
+        TY telem = _this.type.nextOf().toBasetype().ty;
+        if (!(telem.isSomeChar || (telem == Tvoid && (!_this.elements || _this.elements.length == 0))))
+            return null;
+
+        ubyte sz = 1;
+        if (telem == Twchar)
+            sz = 2;
+        else if (telem == Tdchar)
+            sz = 4;
+
+        OutBuffer buf;
+        if (_this.elements)
+        {
+            foreach (i; 0 .. _this.elements.length)
+            {
+                auto ch = _this[i];
+                if (ch.op != EXP.int64)
+                    return null;
+                if (sz == 1)
+                    buf.writeByte(cast(ubyte)ch.toInteger());
+                else if (sz == 2)
+                    buf.writeword(cast(uint)ch.toInteger());
+                else
+                    buf.write4(cast(uint)ch.toInteger());
+            }
+        }
+        char prefix;
+        if (sz == 1)
+        {
+            prefix = 'c';
+            buf.writeByte(0);
+        }
+        else if (sz == 2)
+        {
+            prefix = 'w';
+            buf.writeword(0);
+        }
+        else
+        {
+            prefix = 'd';
+            buf.write4(0);
+        }
+
+        const size_t len = buf.length / sz - 1;
+        auto se = new StringExp(_this.loc, buf.extractSlice()[0 .. len * sz], len, sz, prefix);
+        se.sz = sz;
+        se.type = _this.type;
+        return se;
+    }
+
+    switch(_this.op)
+    {
+        case EXP.null_: return nullExpToStringExp(_this.isNullExp());
+        case EXP.string_: return _this.isStringExp();
+        case EXP.arrayLiteral: return arrayLiteralToStringExp(_this.isArrayLiteralExp());
+        default: return null;
+    }
+}
+
+Optional!bool toBool(Expression _this)
+{
+    static Optional!bool integerToBool(IntegerExp _this)
+    {
+        bool r = _this.toInteger() != 0;
+        return typeof(return)(r);
+    }
+
+    static Optional!bool arrayLiteralToBool(ArrayLiteralExp _this)
+    {
+        size_t dim = _this.elements ? _this.elements.length : 0;
+        return typeof(return)(dim != 0);
+    }
+
+    static Optional!bool assocArrayLiteralToBool(AssocArrayLiteralExp _this)
+    {
+        size_t dim = _this.keys.length;
+        return typeof(return)(dim != 0);
+    }
+
+    static Optional!bool addrToBool(AddrExp _this)
+    {
+        if (isCtfeReferenceValid(_this.e1))
+            return typeof(return)(true);
+        return typeof(return)();
+    }
+
+    switch(_this.op)
+    {
+        case EXP.int64: return integerToBool(_this.isIntegerExp());
+        case EXP.float64: return typeof(return)(!!_this.isRealExp().value);
+        case EXP.complex80: return typeof(return)(!!_this.isComplexExp().value);
+        // `this` is never null (what about structs?)
+        case EXP.this_, EXP.super_: return typeof(return)(true);
+        // null in any type is false
+        case EXP.null_: return typeof(return)(false);
+        // Keep the old behaviour for this refactoring
+        // Should probably match language spec instead and check for length
+        case EXP.string_: return typeof(return)(true);
+        case EXP.arrayLiteral: return arrayLiteralToBool(_this.isArrayLiteralExp());
+        case EXP.assocArrayLiteral: return assocArrayLiteralToBool(_this.isAssocArrayLiteralExp());
+        case EXP.symbolOffset: return typeof(return)(true);
+        case EXP.address: return addrToBool(_this.isAddrExp());
+        case EXP.slice: return _this.isSliceExp().e1.toBool();
+        case EXP.comma: return _this.isCommaExp().e2.toBool();
+        // Statically evaluate this expression to a `bool` if possible
+        // Returns: an optional thath either contains the value or is empty
+        default: return typeof(return)();
+    }
+}
 
 void fillTupleExpExps(TupleExp _this, TupleDeclaration tup)
 {
@@ -606,6 +1003,7 @@ bool hasRegularCtor(StructDeclaration sd, bool ignoreDisabled)
     {
         if (auto td = s.isTemplateDeclaration())
         {
+            td.computeOneMember();
             if (ignoreDisabled && td.onemember)
             {
                 if (auto ctorDecl = td.onemember.isCtorDeclaration())
@@ -623,6 +1021,42 @@ bool hasRegularCtor(StructDeclaration sd, bool ignoreDisabled)
             {
                 result = true;
                 return 1;
+            }
+        }
+        return 0;
+    });
+    return result;
+}
+
+/// Returns: whether `s` is a method which can possibly be called without a struct instance.
+/// Used to check whether S() should try to call `S.opCall()` rather than construct a struct literal
+bool hasStaticOverload(Dsymbol s)
+{
+    bool result = false;
+    overloadApply(s, (Dsymbol sym) {
+        if (auto fd = sym.isFuncDeclaration())
+        {
+            if (fd.isStatic)
+            {
+                result = true;
+                return 1;
+            }
+        }
+        else if (auto td = sym.isTemplateDeclaration())
+        {
+            // Consider both `template opCall { static opCall() {} }` and `static opCall()() {}`
+            if (td._scope.stc & STC.static_)
+            {
+                result = true;
+                return 1;
+            }
+            if (auto fd = td.onemember.isFuncDeclaration())
+            {
+                if (fd.isStatic)
+                {
+                    result = true;
+                    return 1;
+                }
             }
         }
         return 0;
@@ -1906,41 +2340,19 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 {
     //printf("e1 = %s %s\n", Token.toChars(e1.op), e1.toChars());
 
-    Expression handleOverloadSet(OverloadSet os)
-    {
-        assert(os);
-        foreach (s; os.a)
-        {
-            auto fd = s.isFuncDeclaration();
-            auto td = s.isTemplateDeclaration();
-            if (fd)
-            {
-                if (fd.type.isTypeFunction().isProperty)
-                    return resolveProperties(sc, e1);
-            }
-            else if (td && td.onemember && (fd = td.onemember.isFuncDeclaration()) !is null)
-            {
-                if (fd.type.isTypeFunction().isProperty ||
-                    (fd.storage_class2 & STC.property) ||
-                    (td._scope.stc & STC.property))
-                    return resolveProperties(sc, e1);
-            }
-        }
-        return e1;
-    }
-
     Expression handleTemplateDecl(TemplateDeclaration td)
     {
         assert(td);
-        if (td.onemember)
+        td.computeOneMember();
+        if (!td.onemember)
+            return e1;
+
+        if (auto fd = td.onemember.isFuncDeclaration())
         {
-            if (auto fd = td.onemember.isFuncDeclaration())
-            {
-                if (fd.type.isTypeFunction().isProperty ||
-                    (fd.storage_class2 & STC.property) ||
-                    (td._scope.stc & STC.property))
-                    return resolveProperties(sc, e1);
-            }
+            if (fd.type.isTypeFunction().isProperty ||
+                (fd.storage_class2 & STC.property) ||
+                (td._scope.stc & STC.property))
+                return resolveProperties(sc, e1);
         }
         return e1;
     }
@@ -1950,6 +2362,20 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
         assert(fd);
         if (fd.type.isTypeFunction().isProperty)
             return resolveProperties(sc, e1);
+        return e1;
+    }
+
+    Expression handleOverloadSet(OverloadSet os)
+    {
+        assert(os);
+        foreach (s; os.a)
+        {
+            if (auto fd = s.isFuncDeclaration())
+                return handleFuncDecl(fd);
+
+            if (auto td = s.isTemplateDeclaration())
+                return handleTemplateDecl(td);
+        }
         return e1;
     }
 
@@ -4714,7 +5140,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 setError();
             }
         }
-        scope (exit) result.rvalue = exp.rvalue;
+        scope (exit)
+        {
+            if (result !is null)
+                result.rvalue = exp.rvalue;
+        }
 
         Dsymbol scopesym;
         Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
@@ -6806,7 +7236,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     {
                         setError();
                     }
-                    else
+                    else if (result !is null)
                     {
                         result.rvalue = true;
                     }
@@ -7154,8 +7584,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return;
                 }
                 // No constructor, look for overload of opCall
-                if (search_function(sd, Id.opCall))
-                    goto L1;
+                if (auto sym = search_function(sd, Id.opCall))
+                {
+                    // Don't consider opCall on a type with no instance
+                    // if there's no static overload for it
+                    if (!exp.e1.isTypeExp() || hasStaticOverload(sym))
+                        goto L1;
+                }
                 // overload of opCall, therefore it's a call
                 if (exp.e1.op != EXP.type)
                 {
@@ -17314,7 +17749,7 @@ private VarDeclaration makeThis2Argument(Loc loc, Scope* sc, FuncDeclaration fd)
 bool verifyHookExist(Loc loc, ref Scope sc, Identifier id, string description, Identifier module_ = Id.object)
 {
     Dsymbol pscopesym;
-    auto rootSymbol = sc.search(loc, Id.empty, pscopesym);
+    auto rootSymbol = search(&sc, loc, Id.empty, pscopesym);
     if (auto moduleSymbol = rootSymbol.search(loc, module_))
         if (moduleSymbol.search(loc, id))
           return true;
@@ -18239,14 +18674,15 @@ private bool needsTypeInference(TemplateInstance ti, Scope* sc, int flag = 0)
             auto td = s.isTemplateDeclaration();
             if (!td)
                 return 0;
-
             /* If any of the overloaded template declarations need inference,
              * then return true
              */
+            td.computeOneMember();
             if (!td.onemember)
                 return 0;
             if (auto td2 = td.onemember.isTemplateDeclaration())
             {
+                td2.computeOneMember();
                 if (!td2.onemember || !td2.onemember.isFuncDeclaration())
                     return 0;
                 if (ti.tiargs.length >= td.parameters.length - (td.isVariadic() ? 1 : 0))
@@ -18667,8 +19103,9 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
 */
 extern(D) void prepare(StaticForeach sfe, Scope* sc)
 {
-    assert(sc);
+    import dmd.statementsem : ready;
 
+    assert(sc);
     if (sfe.aggrfe)
     {
         sc = sc.startCTFE();

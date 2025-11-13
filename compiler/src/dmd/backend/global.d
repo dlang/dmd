@@ -52,7 +52,11 @@ void error(T...)(Srcpos srcPos, const(char)* format, T args)
 @safe:
 
 /***********************************
- * Returns: aligned `offset` if it is of size `size`.
+ * Params:
+ *      size = alignment size
+ *      offset = increase until it is on a `size` boundary
+ * Returns:
+ *      aligned `offset`
  */
 targ_size_t _align(targ_size_t size, targ_size_t offset) @trusted
 {

@@ -224,9 +224,7 @@ public:
     size_t getUniqueID() const;
     const char *toChars() const override;
     char *toPrettyChars(bool QualifyTypes = false);
-    static void _init();
 
-    virtual unsigned alignsize();
     void modToBuffer(OutBuffer& buf) const;
     char *modToChars() const;
 
@@ -264,11 +262,7 @@ public:
     virtual unsigned char deduceWild(Type *t, bool isRef);
 
     virtual ClassDeclaration *isClassHandle();
-    virtual structalign_t alignment();
     virtual int hasWild() const;
-    virtual bool hasVoidInitPointers();
-    virtual bool hasUnsafeBitpatterns();
-    virtual bool hasInvariant();
     virtual Type *nextOf();
     Type *baseElemOf();
     virtual bool needsDestruction();
@@ -346,7 +340,6 @@ public:
 
     const char *kind() override;
     TypeBasic *syntaxCopy() override;
-    unsigned alignsize() override;
     bool isIntegral() override;
     bool isFloating() override;
     bool isReal() override;
@@ -368,7 +361,6 @@ public:
     static TypeVector *create(Type *basetype);
     const char *kind() override;
     TypeVector *syntaxCopy() override;
-    unsigned alignsize() override;
     bool isIntegral() override;
     bool isFloating() override;
     bool isScalar() override;
@@ -394,12 +386,7 @@ public:
     const char *kind() override;
     TypeSArray *syntaxCopy() override;
     bool isIncomplete();
-    unsigned alignsize() override;
     bool isString() override;
-    structalign_t alignment() override;
-    bool hasUnsafeBitpatterns() override;
-    bool hasVoidInitPointers() override;
-    bool hasInvariant() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
@@ -413,7 +400,6 @@ class TypeDArray final : public TypeArray
 public:
     const char *kind() override;
     TypeDArray *syntaxCopy() override;
-    unsigned alignsize() override;
     bool isString() override;
     bool isBoolean() override;
 
@@ -579,7 +565,6 @@ public:
     static TypeDelegate *create(TypeFunction *t);
     const char *kind() override;
     TypeDelegate *syntaxCopy() override;
-    unsigned alignsize() override;
     bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -684,16 +669,11 @@ public:
 
     static TypeStruct *create(StructDeclaration *sym);
     const char *kind() override;
-    unsigned alignsize() override;
     TypeStruct *syntaxCopy() override;
-    structalign_t alignment() override;
     bool isBoolean() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    bool hasVoidInitPointers() override;
-    bool hasUnsafeBitpatterns() override;
-    bool hasInvariant() override;
     unsigned char deduceWild(Type *t, bool isRef) override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -706,8 +686,6 @@ public:
 
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
-    unsigned alignsize() override;
-    Type *memType(Loc loc);
     bool isIntegral() override;
     bool isFloating() override;
     bool isReal() override;
@@ -720,9 +698,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    bool hasVoidInitPointers() override;
-    bool hasUnsafeBitpatterns() override;
-    bool hasInvariant() override;
     Type *nextOf() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -790,7 +765,6 @@ public:
     const char *kind() override;
     TypeNoreturn *syntaxCopy() override;
     bool isBoolean() override;
-    unsigned alignsize() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -843,4 +817,11 @@ namespace dmd
     uinteger_t size(Type *type, Loc loc);
     MATCH implicitConvTo(Type* from, Type* to);
     MATCH constConv(Type* from, Type* to);
+    bool hasUnsafeBitpatterns(Type* type);
+    bool hasInvariant(Type* type);
+    bool hasVoidInitPointers(Type* type);
+    void Type_init();
+    structalign_t alignment(Type* type);
+    Type* memType(TypeEnum* type);
+    unsigned alignsize(Type* type);
 }

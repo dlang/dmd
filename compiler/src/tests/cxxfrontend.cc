@@ -78,7 +78,7 @@ static void frontend_init()
     target.cpu = CPU::native;
     target._init(global.params);
 
-    Type::_init();
+    dmd::Type_init();
     Id::initialize();
     Module::_init();
     Expression::_init();
@@ -337,7 +337,7 @@ void test_expression()
     assert(e);
     assert(e->isConst());
 
-    Optional<bool> res = e->toBool();
+    Optional<bool> res = dmd::toBool(e);
     assert(res.get());
 }
 
@@ -635,7 +635,7 @@ public:
     {
         if (t->dim->isConst() && t->dim->type->isIntegral())
         {
-            (void)t->dim->toUInteger();
+            (void)dmd::toUInteger(t->dim);
             t->next->accept(this);
             (void)t->ctype;
         }
@@ -644,7 +644,7 @@ public:
     }
     void visit(TypeVector *t) override
     {
-        (void)t->basetype->isTypeSArray()->dim->toUInteger();
+        (void)dmd::toUInteger(t->basetype->isTypeSArray()->dim);
         t->elementType()->accept(this);
         if (t->ty == TY::Tvoid)
             Type::tuns8->accept(this);
@@ -750,7 +750,7 @@ public:
                     if (member == NULL)
                         continue;
                     (void)member->ident->toChars();
-                    (void)member->value()->toInteger();
+                    (void)dmd::toInteger(member->value());
                 }
             }
         }
@@ -1137,7 +1137,7 @@ public:
             for (size_t i = 0; i < s->args->length; i++)
             {
                 (void)(*s->names)[i]->toChars();
-                (*s->constraints)[i]->toStringExp()->accept(this);
+                dmd::toStringExp((*s->constraints)[i])->accept(this);
                 (*s->args)[i]->accept(this);
                 (void)s->outputargs;
             }
@@ -1145,7 +1145,7 @@ public:
         if (s->clobbers)
         {
             for (size_t i = 0; i < s->clobbers->length; i++)
-                (*s->clobbers)[i]->toStringExp()->accept(this);
+                dmd::toStringExp((*s->clobbers)[i])->accept(this);
         }
         if (s->labels)
         {

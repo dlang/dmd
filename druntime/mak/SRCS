@@ -86,8 +86,9 @@ SRCS=\
 	src\core\internal\util\array.d \
 	src\core\internal\util\math.d \
 	\
-	src\core\internal\vararg\aarch64.d \
+	src\core\internal\vararg\aapcs64.d \
 	src\core\internal\vararg\sysv_x64.d \
+	src\core\internal\vararg\gnu.d \
 	\
 	src\core\stdc\assert_.d \
 	src\core\stdc\stdatomic.d \

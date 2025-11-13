@@ -3971,6 +3971,9 @@ void cdstrcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdmemcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdmemcpy(cg, cdb, e, pretregs);
+
     char need_DS;
     int segreg;
 

@@ -73,6 +73,15 @@ version (DMDLIB)
 }
 
 /*****************************************
+ * Returns:
+ *     `true` iff ready to call `dmd.statementsem.makeTupleForeach`.
+ */
+bool ready(StaticForeach _this)
+{
+    return _this.aggrfe && _this.aggrfe.aggr && _this.aggrfe.aggr.type && _this.aggrfe.aggr.type.toBasetype().ty == Ttuple;
+}
+
+/*****************************************
  * CTFE requires FuncDeclaration::labtab for the interpretation.
  * So fixing the label name inside in/out contracts is necessary
  * for the uniqueness in labtab.
@@ -3421,11 +3430,14 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             blockexit &= ~BE.throw_;            // don't worry about paths that otherwise may throw
 
         // Don't care about paths that halt, either
-        if ((blockexit & ~BE.halt) == BE.fallthru)
+        // Only rewrite if it was requested.
+        // This has side effects where Error will not run destructors, unsafe.
+        if (global.params.rewriteNoExceptionToSeq && (blockexit & ~BE.halt) == BE.fallthru)
         {
             result = new CompoundStatement(tfs.loc, tfs._body, tfs.finalbody);
             return;
         }
+
         tfs.bodyFallsThru = (blockexit & BE.fallthru) != 0;
         result = tfs;
     }

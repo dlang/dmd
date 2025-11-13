@@ -329,7 +329,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
         // gets imported, it is unaffected by context.
-        Scope* sc = Scope.createGlobal(mod, global.errorSink); // create root scope
+        Scope* sc = scopeCreateGlobal(mod, global.errorSink); // create root scope
         //printf("Module = %p\n", sc.scopesym);
         if (mod.members)
         {
@@ -799,7 +799,9 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     // `const` (and nor is `StringExp`, by extension).
     static int predicate(const scope Expression* e1, const scope Expression* e2)
     {
-        return (cast(Expression*)e1).toStringExp().compare((cast(Expression*)e2).toStringExp());
+        Expression e11 = cast(Expression) *e1;
+        Expression e22 = cast(Expression) *e2;
+        return e11.toStringExp().compare(e22.toStringExp());
     }
     ale.elements.sort!predicate;
 }
