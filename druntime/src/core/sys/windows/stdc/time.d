@@ -15,9 +15,7 @@
 
 module core.sys.windows.stdc.time;
 
-version (Windows):
-
-import core.stdc.config;
+version (Windows)  : import core.stdc.config;
 
 extern (C):
 @trusted: // There are only a few functions here that use unsafe C strings.
@@ -25,17 +23,16 @@ nothrow:
 @nogc:
 
 ///
-struct tm
-{
-    int     tm_sec;     /// seconds after the minute - [0, 60]
-    int     tm_min;     /// minutes after the hour - [0, 59]
-    int     tm_hour;    /// hours since midnight - [0, 23]
-    int     tm_mday;    /// day of the month - [1, 31]
-    int     tm_mon;     /// months since January - [0, 11]
-    int     tm_year;    /// years since 1900
-    int     tm_wday;    /// days since Sunday - [0, 6]
-    int     tm_yday;    /// days since January 1 - [0, 365]
-    int     tm_isdst;   /// Daylight Saving Time flag
+struct tm {
+    int tm_sec; /// seconds after the minute - [0, 60]
+    int tm_min; /// minutes after the hour - [0, 59]
+    int tm_hour; /// hours since midnight - [0, 23]
+    int tm_mday; /// day of the month - [1, 31]
+    int tm_mon; /// months since January - [0, 11]
+    int tm_year; /// years since 1900
+    int tm_wday; /// days since Sunday - [0, 6]
+    int tm_yday; /// days since January 1 - [0, 365]
+    int tm_isdst; /// Daylight Saving Time flag
 }
 
 ///
@@ -47,13 +44,42 @@ enum clock_t CLOCKS_PER_SEC = 1000;
 clock_t clock();
 
 ///
-void  tzset();                           // non-standard
+void tzset(); // non-standard
 ///
-void  _tzset();                          // non-standard
+void _tzset(); // non-standard
 ///
-@system char* _strdate(return scope char* s);                 // non-standard
+@system char* _strdate(return scope char* s); // non-standard
 ///
-@system char* _strtime(return scope char* s);                 // non-standard
+@system char* _strtime(return scope char* s); // non-standard
 
 ///
 extern __gshared const(char)*[2] tzname; // non-standard
+
+/*
+version (Win64) {
+    pragma(lib, "libucrt");
+
+    struct timespec {
+        time_t tv_sec;
+        long tv_nsec;
+    }
+
+    enum TIME_UTC = 0;
+
+    int _timespec64_get(const timespec* ts, int base);
+    int _timespec32_get(const timespec* ts, int base);
+    alias timespec_get = _timespec64_get;
+}
+*/
+pragma(lib, "msvcrt");
+
+struct timespec {
+    time_t tv_sec;
+    long tv_nsec;
+}
+
+enum TIME_UTC = 0;
+
+int _timespec64_get(const timespec* ts, int base);
+int _timespec32_get(const timespec* ts, int base);
+alias timespec_get = _timespec64_get;
