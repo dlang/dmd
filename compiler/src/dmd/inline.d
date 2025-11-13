@@ -2256,7 +2256,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
                 }
             }
 
-            if (arg.rvalue)
+            if (arg.rvalue || canMoveFrom(arg))
             {
                 vto.storage_class |= STC.ref_;
             }
