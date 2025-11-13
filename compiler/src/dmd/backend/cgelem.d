@@ -5546,7 +5546,7 @@ private elem* elclassinit(elem* e, Goal goal)
  */
 
 @trusted
-private elem* elvalist(elem* e, Goal goal)
+private elem* elva_start(elem* e, Goal goal)
 {
     assert(e.Eoper == OPva_start);
 
@@ -5622,6 +5622,39 @@ if (config.exe & EX_windos)
     //elem_print(e);
     return e;
 }
+
+    if (cgstate.AArch64 && config.exe & EX_OSX64)
+    {
+        assert(I64); // va_start is not an intrinsic on 32-bit
+
+        /* from stdarg.d:  void va_start(T)(out va_list ap, ref T parmn);
+         *
+         * parmn is ignored, and is replaced with __va_argsave.
+         * __va_argsave is initialized with a pointer to where the first variadic
+         * arg is
+         */
+        //elem_print(e);
+
+        // Find __va_argsave
+        Symbol* va_argsave = null;
+        foreach (s; globsym[])
+        {
+            if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
+            {
+                va_argsave = s;
+                break;
+            }
+        }
+
+        e.Eoper = OPeq;
+        e.E1 = el_una(OPind, TYnptr, ap);  // since ap is an `out` parameter
+        if (va_argsave)
+            e.E2 = el_var(va_argsave);  // *ap = __va_argsave
+        else
+            e.E2 = el_long(TYnptr, 0);
+        //elem_print(e);
+        return e;
+    }
 
 if (config.exe & EX_posix)
 {
@@ -6650,6 +6683,6 @@ private immutable elfp_t[OPMAX] elxxx =
     OPvector:  &elzot,
     OPvecsto:  &elzot,
     OPvecfill: &elzot,
-    OPva_start: &elvalist,
+    OPva_start: &elva_start,
     OPprefetch: &elzot,
 ];
