@@ -40,7 +40,6 @@ import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.string;
 import dmd.root.utf;
-import dmd.target;
 import dmd.tokens;
 import dmd.visitor;
 
@@ -566,6 +565,8 @@ extern (C++) final class IntegerExp : Expression
         /* 'Normalize' the value of the integer to be in range of the type
          */
         dinteger_t result;
+        if (ty == Tpointer)
+            ty = Type.tsize_t.ty;
         switch (ty)
         {
         case Tbool:
@@ -606,15 +607,6 @@ extern (C++) final class IntegerExp : Expression
         case Tuns64:
             result = cast(ulong)value;
             break;
-
-        case Tpointer:
-            if (target.ptrsize == 8)
-                goto case Tuns64;
-            if (target.ptrsize == 4)
-                goto case Tuns32;
-            if (target.ptrsize == 2)
-                goto case Tuns16;
-            assert(0);
 
         default:
             break;
