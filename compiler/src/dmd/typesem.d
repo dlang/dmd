@@ -67,6 +67,16 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+private inout(TypeNext) isTypeNext(inout Type _this)
+{
+    switch(_this.ty)
+    {
+        case Tpointer, Treference, Tfunction, Tdelegate, Tslice, Tarray, Taarray, Tsarray:
+            return cast(typeof(return)) _this;
+        default: return null;
+    }
+}
+
 Type makeConst(Type _this)
 {
     if (_this.mcache && _this.mcache.cto)
@@ -109,12 +119,10 @@ Type makeConst(Type _this)
         return t;
     }
 
-    switch(_this.ty)
-    {
-        case Tpointer, Treference, Tfunction, Tdelegate, Tslice, Tarray, Taarray, Tsarray:
-            return typeNextMakeConst(cast(TypeNext) _this);
-        default: return defaultMakeConst(_this);
-    }
+    if (auto tn = _this.isTypeNext())
+        return typeNextMakeConst(tn);
+
+    return defaultMakeConst(_this);
 }
 
 Type toBasetype2(TypeEnum _this)
