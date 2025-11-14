@@ -947,6 +947,18 @@ Type makeConst(Type type)
     return dmd.typesem.makeConst(type);
 }
 
+Type makeImmutable(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.makeImmutable(type);
+}
+
+Type makeMutable(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.makeMutable(type);
+}
+
 /***********************************************************
  * typinf.d
  */
