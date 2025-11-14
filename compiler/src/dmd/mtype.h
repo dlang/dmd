@@ -249,8 +249,6 @@ public:
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
     bool hasDeprecatedAliasThis();
-    virtual Type *makeShared();
-    virtual Type *makeSharedConst();
     virtual Type *makeWild();
     virtual Type *makeWildConst();
     virtual Type *makeSharedWild();
@@ -315,8 +313,6 @@ public:
 
     int hasWild() const override final;
     Type *nextOf() override final;
-    Type *makeShared() override final;
-    Type *makeSharedConst() override final;
     Type *makeWild() override final;
     Type *makeWildConst() override final;
     Type *makeSharedWild() override final;
@@ -821,4 +817,6 @@ namespace dmd
     Type *makeConst(Type* type);
     Type* makeMutable(Type* type);
     Type* makeImmutable(Type* type);
+    Type* makeShared(Type* type);
+    Type* makeSharedConst(Type* type);
 }
