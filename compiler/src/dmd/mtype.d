@@ -1159,15 +1159,6 @@ extern (C++) abstract class Type : ASTNode
         return ad && ad.aliasthis && (ad.aliasthis.isDeprecated || ad.aliasthis.sym.isDeprecated);
     }
 
-    Type makeImmutable()
-    {
-        if (mcache && mcache.ito)
-            return mcache.ito;
-        Type t = this.nullAttributes();
-        t.mod = MODFlags.immutable_;
-        return t;
-    }
-
     Type makeShared()
     {
         if (mcache && mcache.sto)
@@ -1512,22 +1503,6 @@ extern (C++) abstract class TypeNext : Type
     override final Type nextOf() @safe
     {
         return next;
-    }
-
-    override final Type makeImmutable()
-    {
-        //printf("TypeNext::makeImmutable() %s\n", toChars());
-        if (mcache && mcache.ito)
-        {
-            assert(mcache.ito.isImmutable());
-            return mcache.ito;
-        }
-        TypeNext t = cast(TypeNext)Type.makeImmutable();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
-        {
-            t.next = next.immutableOf();
-        }
-        return t;
     }
 
     override final Type makeShared()

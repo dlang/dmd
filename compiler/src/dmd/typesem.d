@@ -77,6 +77,26 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+Type makeImmutable(Type _this)
+{
+    if (_this.mcache && _this.mcache.ito)
+        return _this.mcache.ito;
+    Type t = _this.nullAttributes();
+    t.mod = MODFlags.immutable_;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeImmutable() %s\n", toChars());
+        TypeNext _t = cast(TypeNext) t;
+        if (tn.ty != Tfunction && tn.next.ty != Tfunction && !tn.next.isImmutable())
+        {
+            _t.next = tn.next.immutableOf();
+        }
+        return _t;
+    }
+    return t;
+}
+
 Type makeMutable(Type _this)
 {
     Type t = _this.nullAttributes();
