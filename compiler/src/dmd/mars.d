@@ -1114,8 +1114,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             case "sarif":
                 params.v.messageStyle = MessageStyle.sarif;
                 break;
+            case "lsp":
+                params.v.messageStyle = MessageStyle.lsp;
+                break;
             default:
-                error("unknown error style '%.*s', must be 'digitalmars', 'gnu', or 'sarif'", cast(int) style.length, style.ptr);
+                error("unknown error style '%.*s', must be 'digitalmars', 'gnu', 'sarif' or 'lsp'", cast(int) style.length, style.ptr);
             }
         }
         else if (startsWith(p + 1, "target"))
