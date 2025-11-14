@@ -78,7 +78,7 @@ struct timespec {
     long tv_nsec;
 }
 
-enum TIME_UTC = 0;
+enum TIME_UTC = 1;
 
 int _timespec64_get(const timespec* ts, int base);
 int _timespec32_get(const timespec* ts, int base);
