@@ -1193,7 +1193,7 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
                 cg.Auto.offset = _align(sz,cg.Auto.offset);
                 s.Soffset = cg.Auto.offset;
                 cg.Auto.offset += sz;
-                //printf("auto    '%s' sz = %d, auto offset =  x%lx\n", s.Sident,sz, cast(long) s.Soffset);
+                //printf("auto    '%s' sz = %d, auto offset =  x%x\n", s.Sident.ptr,cast(int)sz, cast(int)s.Soffset);
 
                 if (alignsize > cg.Auto.alignment)
                     cg.Auto.alignment = alignsize;
