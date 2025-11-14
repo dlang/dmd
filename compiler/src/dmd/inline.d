@@ -1456,14 +1456,8 @@ public:
         inlineScan(e.e1);
         arrayInlineScan(e.arguments);
 
-        //printf("visitCallExp() %s\n", e.toChars());
-        FuncDeclaration fd;
-
-        void inlineFd()
+        void inlineFd(FuncDeclaration fd)
         {
-            if (!fd || fd == parent)
-                return;
-
             /* If the arguments generate temporaries that need destruction, the destruction
              * must be done after the function body is executed.
              * The easiest way to accomplish that is to do the inlining as an Expression.
@@ -1490,51 +1484,59 @@ public:
             }
         }
 
-        /* Pattern match various ASTs looking for indirect function calls, delegate calls,
-         * function literal calls, delegate literal calls, and dot member calls.
-         * If so, and that is only assigned its _init.
-         * If so, do 'copy propagation' of the _init value and try to inline it.
-         */
-        if (auto ve = e.e1.isVarExp())
+        FuncDeclaration resolveCallTarget(Expression e, out Expression explicitThis)
         {
-            fd = ve.var.isFuncDeclaration();
-            if (fd)
-                // delegate call
-                inlineFd();
-            else
+            /* Peel exactly one layer of (*fptr)() or (*&f)().
+             */
+            if (auto pe = e.isPtrExp())
             {
-                // delegate literal call
+                if (pe.e1.isVarExp())
+                    e = pe.e1;
+                else if (auto se = pe.e1.isSymOffExp())
+                    return se.var.isFuncDeclaration();
+                else
+                    return null;
+            }
+
+            /* Pattern match various ASTs looking for indirect function calls, delegate calls,
+             * function literal calls, delegate literal calls, and dot member calls.
+             * If so, and that is only assigned its _init.
+             * If so, do 'copy propagation' of the _init value and try to inline it.
+             */
+            if (auto ve = e.isVarExp())
+            {
+                if (FuncDeclaration fd = ve.var.isFuncDeclaration())
+                    return fd;
+
                 auto v = ve.var.isVarDeclaration();
-                if (v && v._init && v.type.ty == Tdelegate && onlyOneAssign(v, parent))
+                if (!v || !v._init || !onlyOneAssign(v, parent))
+                    return null;
+
+                //printf("init: %s\n", v._init.toChars());
+                auto ei = v._init.isExpInitializer();
+                if (!ei || (ei.exp.op != EXP.blit && ei.exp.op != EXP.construct))
+                    return null;
+
+                Expression e2 = (cast(AssignExp)ei.exp).e2;
+                if (auto se = e2.isSymOffExp())
                 {
-                    //printf("init: %s\n", v._init.toChars());
-                    auto ei = v._init.isExpInitializer();
-                    if (ei && ei.exp.op == EXP.blit)
+                    // function pointer call
+                    return se.var.isFuncDeclaration();
+                }
+                else if (auto fe = e2.isFuncExp())
+                {
+                    // function/delegate literal call
+                    return fe.fd;
+                }
+                else if (auto de = e2.isDelegateExp())
+                {
+                    if (auto ve2 = de.e1.isVarExp())
                     {
-                        Expression e2 = (cast(AssignExp)ei.exp).e2;
-                        if (auto fe = e2.isFuncExp())
-                        {
-                            auto fld = fe.fd;
-                            assert(fld.tok == TOK.delegate_);
-                            fd = fld;
-                            inlineFd();
-                        }
-                        else if (auto de = e2.isDelegateExp())
-                        {
-                            if (auto ve2 = de.e1.isVarExp())
-                            {
-                                fd = ve2.var.isFuncDeclaration();
-                                inlineFd();
-                            }
-                        }
+                        return ve2.var.isFuncDeclaration();
                     }
                 }
             }
-        }
-        else if (auto dve = e.e1.isDotVarExp())
-        {
-            fd = dve.var.isFuncDeclaration();
-            if (fd && fd != parent && canInline(fd, !fd.isNested(), asStatements, eSink))
+            else if (auto dve = e.isDotVarExp())
             {
                 if (dve.e1.op == EXP.call && dve.e1.type.toBasetype().ty == Tstruct)
                 {
@@ -1542,56 +1544,36 @@ public:
                      * of dve.e1, but this won't work if dve.e1 is
                      * a function call.
                      */
+                    return null;
                 }
-                else
-                {
-                    expandInline(e.loc, fd, parent, eret, dve.e1, e.arguments, asStatements, e.vthis2, eresult, sresult, again);
-                }
+
+                explicitThis = dve.e1;
+                return dve.var.isFuncDeclaration();
             }
-        }
-        else if (e.e1.op == EXP.star &&
-                 (cast(PtrExp)e.e1).e1.op == EXP.variable)
-        {
-            auto ve = e.e1.isPtrExp().e1.isVarExp();
-            VarDeclaration v = ve.var.isVarDeclaration();
-            if (v && v._init && onlyOneAssign(v, parent))
+            else if (auto fe = e.isFuncExp())
             {
-                //printf("init: %s\n", v._init.toChars());
-                auto ei = v._init.isExpInitializer();
-                if (ei && ei.exp.op == EXP.blit)
-                {
-                    Expression e2 = (cast(AssignExp)ei.exp).e2;
-                    // function pointer call
-                    if (auto se = e2.isSymOffExp())
-                    {
-                        fd = se.var.isFuncDeclaration();
-                        inlineFd();
-                    }
-                    // function literal call
-                    else if (auto fe = e2.isFuncExp())
-                    {
-                        auto fld = fe.fd;
-                        assert(fld.tok == TOK.function_);
-                        fd = fld;
-                        inlineFd();
-                    }
-                }
+                return fe.fd;
             }
+
+            return null;
         }
-        else if (auto fe = e.e1.isFuncExp())
+
+        //printf("visitCallExp() %s\n", e.toChars());
+        Expression explicitThis;
+        FuncDeclaration fd = resolveCallTarget(e.e1, explicitThis);
+
+        if (!fd || fd == parent)
+            return;
+
+        if (explicitThis)
         {
-            if (fe.fd)
-            {
-                fd = fe.fd;
-                inlineFd();
-            }
-            else
+            if (!canInline(fd, !fd.isNested(), asStatements, eSink))
                 return;
+
+            expandInline(e.loc, fd, parent, eret, explicitThis, e.arguments, asStatements, e.vthis2, eresult, sresult, again);
         }
         else
-        {
-            return;
-        }
+            inlineFd(fd);
 
         if (global.params.v.verbose && (eresult || sresult))
             message("inlined   %s =>\n          %s", fd.toPrettyChars(), parent.toPrettyChars());
