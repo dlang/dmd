@@ -50,6 +50,11 @@ struct tm
 }
 
 public import core.sys.posix.sys.types : time_t, clock_t;
+public import core.sys.posix.time;
+
+int timespec_get(timespec* ts, int base);
+
+enum TIME_UTC = 1;
 
 ///
 version (CRuntime_Glibc)
