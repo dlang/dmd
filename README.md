@@ -1,7 +1,10 @@
+
 <div align="center">
 
 ![dlang logo](https://dlang.org/images/dlogo.png)
+
 # DMD
+
 [![GitHub tag](https://img.shields.io/github/tag-date/dlang/dmd.svg?maxAge=86400&style=flat)](https://github.com/dlang/dmd/releases)
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400&style=flat)](https://codecov.io/gh/dlang/dmd)
 [![license](https://img.shields.io/github/license/dlang/dmd.svg?style=flat)](https://github.com/dlang/dmd/blob/master/LICENSE.txt)
@@ -15,11 +18,11 @@
 ---
 **DMD** is the reference compiler for the D programming language.
 
-Releases, language specification and other resources can be found on the [homepage](https://dlang.org).
-Please refer to the guidelines for [bug reports](CONTRIBUTING.md#reporting-bugs) to
-report a problem or browse the list of open bugs.
+Releases, language specification and other resources can be found on the
+[homepage](https://dlang.org). Please refer to the guidelines for [bug
+reports](CONTRIBUTING.md#reporting-bugs) to report a problem or browse the list of open bugs.
 
-### Overview
+## Overview
 
 This repository is structured into the following directories.
 Refer to their respective `README.md` for more in-depth information.
@@ -37,15 +40,14 @@ Refer to their respective `README.md` for more in-depth information.
 
 With a D compiler and dub installed, dmd can be built with:
 
-```
+```sh
 dub build dmd:compiler
 ```
 
-For more information regarding compiling, installing, and
-hacking on DMD, check the [contribution guide](CONTRIBUTING.md) and
-visit the [D Wiki](https://wiki.dlang.org/DMD).
+For more information regarding compiling, installing, and hacking on DMD, check the [contribution
+guide](CONTRIBUTING.md) and visit the [D Wiki](https://wiki.dlang.org/DMD).
 
 ### Nightlies
 
-Nightly builds based of the current DMD / Phobos `master` branch
-can be found [here](https://github.com/dlang/dmd/releases/tag/nightly).
+Nightly builds based of the current DMD / Phobos `master` branch can be found on
+[the nightly release page](https://github.com/dlang/dmd/releases/tag/nightly).
