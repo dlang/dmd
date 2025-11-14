@@ -1222,13 +1222,6 @@ extern (C++) abstract class Type : ASTNode
         return t;
     }
 
-    Type makeMutable()
-    {
-        Type t = this.nullAttributes();
-        t.mod = mod & MODFlags.shared_;
-        return t;
-    }
-
     /*******************************
      * If this is a shell around another type,
      * get that other type.
@@ -1671,18 +1664,6 @@ extern (C++) abstract class TypeNext : Type
             t.next = next.sharedWildConstOf();
         }
         //printf("TypeNext::makeSharedWildConst() returns %p, %s\n", t, t.toChars());
-        return t;
-    }
-
-    override final Type makeMutable()
-    {
-        //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
-        TypeNext t = cast(TypeNext)Type.makeMutable();
-        if (ty == Tsarray)
-        {
-            t.next = next.mutableOf();
-        }
-        //printf("TypeNext::makeMutable() returns %p, %s\n", t, t.toChars());
         return t;
     }
 

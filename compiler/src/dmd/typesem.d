@@ -77,6 +77,25 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+Type makeMutable(Type _this)
+{
+    Type t = _this.nullAttributes();
+    t.mod = _this.mod & MODFlags.shared_;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
+        TypeNext _t = cast(TypeNext)t;
+        if (tn.ty == Tsarray)
+        {
+            _t.next = tn.next.mutableOf();
+        }
+        //printf("TypeNext::makeMutable() returns %p, %s\n", t, t.toChars());
+        return _t;
+    }
+    return t;
+}
+
 Type makeConst(Type _this)
 {
     if (_this.mcache && _this.mcache.cto)
