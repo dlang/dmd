@@ -2091,8 +2091,6 @@ public:
     bool isNaked() const;
     Type* nullAttributes() const;
     bool hasDeprecatedAliasThis();
-    virtual Type* makeShared();
-    virtual Type* makeSharedConst();
     virtual Type* makeWild();
     virtual Type* makeWildConst();
     virtual Type* makeSharedWild();
@@ -4370,8 +4368,6 @@ public:
     Type* next;
     int32_t hasWild() const final override;
     Type* nextOf() final override;
-    Type* makeShared() final override;
-    Type* makeSharedConst() final override;
     Type* makeWild() final override;
     Type* makeWildConst() final override;
     Type* makeSharedWild() final override;
