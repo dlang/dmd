@@ -1,5 +1,5 @@
 /**
- * D header file for C99.
+ * D header file for C99/C11.
  *
  * $(C_HEADER_DESCRIPTION pubs.opengroup.org/onlinepubs/009695399/basedefs/_time.h.html, _time.h)
  *
@@ -58,15 +58,21 @@ void  _tzset();                          // non-standard
 ///
 extern __gshared const(char)*[2] tzname; // non-standard
 
-pragma(lib, "msvcrt");
-
+/// timespec, introduced in C11
 struct timespec {
     time_t tv_sec;
+    // Do not change tv_nsec to a c_long, this causes segfaults
     long tv_nsec;
 }
 
+/// Base Value used for timespec_get
 enum TIME_UTC = 1;
 
+/// 64-bit version of timespec_get for Windows
 int _timespec64_get(const timespec* ts, int base);
+
+/// 32-bit version of timespec_get for Windows
 int _timespec32_get(const timespec* ts, int base);
+
+/// timespec_get, introduced in C11
 alias timespec_get = _timespec64_get;
