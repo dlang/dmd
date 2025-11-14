@@ -67,6 +67,55 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+private inout(TypeNext) isTypeNext(inout Type _this)
+{
+    switch(_this.ty)
+    {
+        case Tpointer, Treference, Tfunction, Tdelegate, Tslice, Tarray, Taarray, Tsarray:
+            return cast(typeof(return)) _this;
+        default: return null;
+    }
+}
+
+Type makeImmutable(Type _this)
+{
+    if (_this.mcache && _this.mcache.ito)
+        return _this.mcache.ito;
+    Type t = _this.nullAttributes();
+    t.mod = MODFlags.immutable_;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeImmutable() %s\n", toChars());
+        TypeNext _t = cast(TypeNext) t;
+        if (tn.ty != Tfunction && tn.next.ty != Tfunction && !tn.next.isImmutable())
+        {
+            _t.next = tn.next.immutableOf();
+        }
+        return _t;
+    }
+    return t;
+}
+
+Type makeMutable(Type _this)
+{
+    Type t = _this.nullAttributes();
+    t.mod = _this.mod & MODFlags.shared_;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
+        TypeNext _t = cast(TypeNext)t;
+        if (tn.ty == Tsarray)
+        {
+            _t.next = tn.next.mutableOf();
+        }
+        //printf("TypeNext::makeMutable() returns %p, %s\n", t, t.toChars());
+        return _t;
+    }
+    return t;
+}
+
 Type makeConst(Type _this)
 {
     if (_this.mcache && _this.mcache.cto)
@@ -109,12 +158,10 @@ Type makeConst(Type _this)
         return t;
     }
 
-    switch(_this.ty)
-    {
-        case Tpointer, Treference, Tfunction, Tdelegate, Tslice, Tarray, Taarray, Tsarray:
-            return typeNextMakeConst(cast(TypeNext) _this);
-        default: return defaultMakeConst(_this);
-    }
+    if (auto tn = _this.isTypeNext())
+        return typeNextMakeConst(tn);
+
+    return defaultMakeConst(_this);
 }
 
 Type toBasetype2(TypeEnum _this)
