@@ -709,3 +709,67 @@ void orIfUnknown(bool b) @system
     {
     }
 }
+
+void gatedIfVRP(bool gate)
+{
+    int i;
+
+    if (gate)
+    i = 3;
+
+    assert(i == 3); // ok
+}
+
+void orUnknownNonNull(int* ptr)
+{
+    if (!ptr || *ptr == 2)
+    {
+    }
+}
+
+void sliceLength(int[] slice)
+{
+    assert(slice.length == 3); // ok
+    assert(slice.length == 2); // error
+}
+
+struct Complex_f
+{
+    float re, im;
+
+    static Complex_f sqrtc(ref Complex_f z)
+    {
+        if (z.re >= 0)
+        {
+        }
+        return Complex_f.init;
+    }
+}
+
+void loopConditionGreaterThan(int v)
+{
+    int val;
+
+    foreach (i; 0 .. 10)
+    {
+        if (v > 2)
+        assert(val > 0);
+        else
+        val++;
+        v++;
+    }
+}
+
+void paArgInterval(int another)
+{
+    assert(1 <= another && another <= 5);
+    assert(another == 3);
+}
+
+void checkNullOr(int* val2)
+{
+    int* val;
+    if ((val = val2) is null || *val)
+    {
+    }
+}

@@ -66,11 +66,11 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
     }
 
     // Use these if statements for debugging specific things.
-    //if (fd.ident.toString != "incrementEffect") return;
+    //if (fd.ident.toString != "testlocalref") return;
     //if (!(fd.ident.toString == "test3632" || fd.ident.toString == "test")) return;
     //if (fd.loc.linnum < 1380) return;
     //if (fd.getModule.ident.toString != "start") return;
-    //if (strcmp(mangleExact(fd), "_D5ocean4util9container5cache16ExpiringLRUCache__TQvTSQCaQBxQBvQBo20ExpiredCacheReloader__TQzTSQDpQDmQDkQDd25ExpiredCacheReloader_test7TrivialZQCz10CacheValueZQFa19getExpiringOrCreateMFmJbbZPQFi") != 0) return;
+    //if (strcmp(mangleExact(fd), "_D3std6string__T10stripRightTSQBc3utf__T10byCodeUnitTAyaZQrFQhZ14ByCodeUnitImplZQCmFNaNbNiNfQClZQCp") != 0) return;
 
     // Protect functions based upon safetiness of it.
     // It may be desirable to disable some behaviors in @system code, or completely.
