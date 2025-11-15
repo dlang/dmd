@@ -3271,6 +3271,13 @@ elem* toElem(Expression e, ref IRState irs)
             e = addressElem(e, tb1);
             typ = tybasic(e.Ety);
         }
+        else if (irs.nullDerefCheck())
+        {
+            auto ne = buildNullDerefError(irs, dve.loc);
+            auto originale = el_same(e);
+            e = el_bin(OPoror, TYvoid, e, ne);
+            e = el_bin(OPcomma, typ, e, originale);
+        }
 
         const tym = totym(dve.type);
         auto voffset = v.offset;
@@ -3345,6 +3352,16 @@ elem* toElem(Expression e, ref IRState irs)
             ve = new AddrExp(de.loc, ve);
             ve.type = de.vthis2.type.pointerTo();
             ethis2 = toElem(ve, irs);
+
+            if (irs.nullDerefCheck())
+            {
+                // check context pointer
+                auto ne = buildNullDerefError(irs, de.loc);
+                auto originale = el_same(ethis2);
+                auto originalt = ethis2.Ety;
+                ethis2 = el_bin(OPoror, TYvoid, ethis2, ne);
+                ethis2 = el_bin(OPcomma, originalt, ethis2, originale);
+            }
         }
 
         if (de.func.isNested() && !de.func.isThis())
@@ -3363,6 +3380,15 @@ elem* toElem(Expression e, ref IRState irs)
             ethis = toElem(de.e1, irs);
             if (de.e1.type.ty != Tclass && de.e1.type.ty != Tpointer)
                 ethis = addressElem(ethis, de.e1.type);
+
+            if (irs.nullDerefCheck())
+            {
+                auto ne = buildNullDerefError(irs, de.loc);
+                auto originale = el_same(ethis);
+                auto originalt = ethis.Ety;
+                ethis = el_bin(OPoror, TYvoid, ethis, ne);
+                ethis = el_bin(OPcomma, originalt, ethis, originale);
+            }
 
             if (ethis2)
                 ethis2 = setEthis2(de.loc, irs, de.func, ethis2, ethis, eeq);
@@ -3682,6 +3708,16 @@ elem* toElem(Expression e, ref IRState irs)
         {
             e.Ety = TYimmutPtr;     // pointer to immutable
         }
+
+        if (irs.nullDerefCheck())
+        {
+            auto ne = buildNullDerefError(irs, pe.loc);
+            auto originale = el_same(e);
+            auto originalt = e.Ety;
+            e = el_bin(OPoror, TYvoid, e, ne);
+            e = el_bin(OPcomma, originalt, e, originale);
+        }
+
         e = el_una(OPind,totym(pe.type),e);
         if (tybasic(e.Ety) == TYstruct)
         {
@@ -5400,10 +5436,11 @@ elem* callfunc(Loc loc,
     elem* ethis = null;
     elem* eside = null;
     elem* eresult = ehidden;
+    const op = fd ? intrinsic_op(fd) : NotIntrinsic;
 
     version (none)
     {
-        printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p)\n",
+        printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p, op = %d)\n",
             directcall, tret.toChars(), ec, fd);
         printf("ec: "); elem_print(ec);
         if (fd)
@@ -5422,6 +5459,16 @@ elem* callfunc(Loc loc,
         assert(!fd);
         tf = t.nextOf().isTypeFunction();
         assert(tf);
+
+        if (irs.nullDerefCheck() && ec.Eoper != OPvar)
+        {
+            // Copy the delegate into a temporary variable for the null check
+            // This simplifies the IR down to be easier to analyze.
+            Symbol* stmp = symbol_genauto(type_fake(ec.Ety));
+            eside = el_bin(OPeq, ec.Ety, el_var(stmp), ec);
+            ec = el_var(stmp);
+        }
+
         ethis = ec;
         ec = el_same(ethis);
         ethis = el_una(target.isX86_64 || target.isAArch64 ? OP128_64 : OP64_32, TYnptr, ethis); // get this
@@ -5434,14 +5481,61 @@ elem* callfunc(Loc loc,
             tym = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYmfunc;
         else
             tym = totym(tf);
+
         ec = el_una(OPind, tym, ec);
+
+        if (irs.nullDerefCheck())
+        {
+            // You cannot check for ethis being null, lazy parameters can have it be null.
+            // Check only the function parameter.
+
+            auto ne = buildNullDerefError(irs, loc);
+            auto tofree = ec;
+            auto originale = el_same(ec.E1);
+            auto originalt = ec.E1.Ety;
+
+            ec = el_bin(OPoror, TYvoid, ec.E1, ne);
+            ec = el_bin(OPcomma, originalt, ec, originale);
+            ec = el_una(OPind, tym, ec);
+
+            tofree.E1 = null;
+            el_free(tofree);
+        }
+    }
+    else
+    {
+        if (fd is null && irs.nullDerefCheck() && ec.Eoper == OPind)
+        {
+            // check function pointers
+
+            auto ne = buildNullDerefError(irs, loc);
+            auto tofree = ec;
+            auto originale = el_same(ec.E1);
+            auto originalpt = ec.Ety;
+            auto originalt = ec.E1.Ety;
+
+            ec = el_bin(OPoror, TYvoid, ec.E1, ne);
+            ec = el_bin(OPcomma, originalt, ec, originale);
+            ec = el_una(OPind, originalpt, ec);
+
+            tofree.E1 = null;
+            el_free(tofree);
+        }
+    }
+
+    const disableNullDerefCheck = op != NotIntrinsic;
+    if (disableNullDerefCheck)
+        irs.inNullDerefCheckDisable++;
+    scope(exit)
+    {
+        if (disableNullDerefCheck)
+            irs.inNullDerefCheckDisable--;
     }
 
     const ty = fd ? toSymbol(fd).Stype.Tty : ec.Ety;
     const left_to_right = tyrevfunc(ty);   // left-to-right parameter evaluation
                                            // (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
     elem* ep = null;
-    const op = fd ? intrinsic_op(fd) : NotIntrinsic;
 
     // Check for noreturn expression pretending to yield function/delegate pointers
     if (tybasic(ec.Ety) == TYnoreturn)
@@ -5605,7 +5699,7 @@ elem* callfunc(Loc loc,
             !irs.Cfile)     // C11 leaves evaluation order implementation-defined, but
                             // try to match evaluation order of other C compilers
         {
-            eside = fixArgumentEvaluationOrder(elems);
+            eside = el_combine(eside, fixArgumentEvaluationOrder(elems));
         }
 
         foreach (ref e; elems)
@@ -5712,6 +5806,14 @@ elem* callfunc(Loc loc,
             // make virtual call
             assert(ethis);
             elem* ev = el_same(ethis);
+
+            if (irs.nullDerefCheck())
+            {
+                auto ne = buildNullDerefError(irs, loc);
+                ev = el_bin(OPoror, TYvoid, ev, ne);
+                ev = el_bin(OPcomma, TYnptr, ev, el_same(ethis));
+            }
+
             ev = el_una(OPind, TYnptr, ev);
             uint vindex = fd.vtblIndex;
             assert(cast(int)vindex >= 0);
@@ -6901,6 +7003,21 @@ elem* buildRangeError(ref IRState irs, Loc loc)
     case CHECKACTION.D:
         const efile = irs.locToFileElem(loc);
         return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DARRAYP)), el_params(el_long(TYint, loc.linnum), efile, null));
+    }
+}
+
+elem* buildNullDerefError(ref IRState irs, const ref Loc loc)
+{
+    final switch (irs.params.checkAction)
+    {
+        case CHECKACTION.C:
+            return callCAssert(irs, loc, null, null, "null pointer dereference");
+        case CHECKACTION.halt:
+            return genHalt(loc);
+        case CHECKACTION.context:
+        case CHECKACTION.D:
+            const efile = irs.locToFileElem(loc);
+            return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DNULLP)), el_params(el_long(TYint, loc.linnum), efile, null));
     }
 }
 
