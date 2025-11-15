@@ -1159,15 +1159,6 @@ extern (C++) abstract class Type : ASTNode
         return ad && ad.aliasthis && (ad.aliasthis.isDeprecated || ad.aliasthis.sym.isDeprecated);
     }
 
-    Type makeWild()
-    {
-        if (mcache && mcache.wto)
-            return mcache.wto;
-        Type t = this.nullAttributes();
-        t.mod = MODFlags.wild;
-        return t;
-    }
-
     Type makeWildConst()
     {
         if (mcache && mcache.wcto)
@@ -1485,36 +1476,6 @@ extern (C++) abstract class TypeNext : Type
     override final Type nextOf() @safe
     {
         return next;
-    }
-
-    override final Type makeWild()
-    {
-        //printf("TypeNext::makeWild() %s\n", toChars());
-        if (mcache && mcache.wto)
-        {
-            assert(mcache.wto.mod == MODFlags.wild);
-            return mcache.wto;
-        }
-        TypeNext t = cast(TypeNext)Type.makeWild();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
-        {
-            if (next.isShared())
-            {
-                if (next.isConst())
-                    t.next = next.sharedWildConstOf();
-                else
-                    t.next = next.sharedWildOf();
-            }
-            else
-            {
-                if (next.isConst())
-                    t.next = next.wildConstOf();
-                else
-                    t.next = next.wildOf();
-            }
-        }
-        //printf("TypeNext::makeWild() returns %p, %s\n", t, t.toChars());
-        return t;
     }
 
     override final Type makeWildConst()
