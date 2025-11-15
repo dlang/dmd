@@ -1097,6 +1097,8 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
     cg.Auto.initialize();        // automatic & register offset
     cg.EEStack.initialize();     // for SCstack's
 
+    bool osx_aarch64 = (config.exe & EX_OSX64 && config.target_cpu == TARGET_AArch64);
+
     // Set if doing optimization of auto layout
     bool doAutoOpt = estimate && config.flags4 & CFG4optimized;
 
@@ -1224,7 +1226,7 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
                          (tyaggregate(s.ty()) || tyvector(s.ty())))))
                     cg.Para.offset = (cg.Para.offset + (alignsize - 1)) & ~(alignsize - 1);
                 s.Soffset = cg.Para.offset;
-                //printf("%s param offset =  x%lx, alignsize = %d\n", s.Sident, cast(long) s.Soffset, cast(int) alignsize);
+                printf("[%d] %s param offset =  x%lx, alignsize = %d\n", si, s.Sident.ptr, cast(long) s.Soffset, cast(int) alignsize);
                 cg.Para.offset += (s.Sflags & SFLdouble)
                             ? type_size(tstypes[TYdouble])   // float passed as double
                             : type_size(s.Stype);

@@ -187,7 +187,7 @@ L1:
  *      t = type of parameter
  *      tyf = function type
  * Returns:
- *      true if it is
+ *      true if t is a zero size struct
  */
 @trusted
 bool type_zeroSize(type* t, tym_t tyf)
