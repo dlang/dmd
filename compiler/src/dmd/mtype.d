@@ -1159,15 +1159,6 @@ extern (C++) abstract class Type : ASTNode
         return ad && ad.aliasthis && (ad.aliasthis.isDeprecated || ad.aliasthis.sym.isDeprecated);
     }
 
-    Type makeSharedWildConst()
-    {
-        if (mcache && mcache.swcto)
-            return mcache.swcto;
-        Type t = this.nullAttributes();
-        t.mod = MODFlags.shared_ | MODFlags.wildconst;
-        return t;
-    }
-
     /*******************************
      * If this is a shell around another type,
      * get that other type.
@@ -1458,23 +1449,6 @@ extern (C++) abstract class TypeNext : Type
     override final Type nextOf() @safe
     {
         return next;
-    }
-
-    override final Type makeSharedWildConst()
-    {
-        //printf("TypeNext::makeSharedWildConst() %s\n", toChars());
-        if (mcache && mcache.swcto)
-        {
-            assert(mcache.swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
-            return mcache.swcto;
-        }
-        TypeNext t = cast(TypeNext)Type.makeSharedWildConst();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
-        {
-            t.next = next.sharedWildConstOf();
-        }
-        //printf("TypeNext::makeSharedWildConst() returns %p, %s\n", t, t.toChars());
-        return t;
     }
 
     override final MOD deduceWild(Type t, bool isRef)
