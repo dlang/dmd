@@ -71,7 +71,8 @@ I iface = new I();  // error, cannot create instance of interface
 $(H3 $(LNAME2 method-bodies, Interface Method Bodies))
 
     $(P Virtual interface member functions do not have implementations.
-    Interfaces are expected to implement static or final functions.
+    Interfaces can implement $(DDSUBLINK spec/attribute, static, static)
+    or $(DDSUBLINK spec/function, final, final) functions.
     )
 
 ------

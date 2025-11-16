@@ -79,7 +79,7 @@ $(GNAME StorageClass):
     $(DDSUBLINK spec/attribute, static, `static`)
     $(RELATIVE_LINK2 extern, $(D extern))
     $(DDSUBLINK spec/class, abstract, `abstract`)
-    $(DDSUBLINK spec/class, final, `final`)
+    $(DDSUBLINK spec/attribute, final, `final`)
     $(DDSUBLINK spec/function, virtual-functions, `override`)
     $(DDSUBLINK spec/class, synchronized-methods, `synchronized`)
     $(RELATIVE_LINK2 auto-declaration, `auto`)
