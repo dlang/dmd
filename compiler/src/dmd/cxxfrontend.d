@@ -971,6 +971,30 @@ Type makeSharedConst(Type type)
     return dmd.typesem.makeSharedConst(type);
 }
 
+Type makeWild(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.makeWild(type);
+}
+
+Type makeWildConst(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.makeWildConst(type);
+}
+
+Type makeSharedWild(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.makeSharedWild(type);
+}
+
+Type makeSharedWildConst(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.makeSharedWildConst(type);
+}
+
 /***********************************************************
  * typinf.d
  */
