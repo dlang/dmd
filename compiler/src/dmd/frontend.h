@@ -2091,10 +2091,6 @@ public:
     bool isNaked() const;
     Type* nullAttributes() const;
     bool hasDeprecatedAliasThis();
-    virtual Type* makeWild();
-    virtual Type* makeWildConst();
-    virtual Type* makeSharedWild();
-    virtual Type* makeSharedWildConst();
     Type* toBasetype();
     virtual uint8_t deduceWild(Type* t, bool isRef);
     virtual ClassDeclaration* isClassHandle();
@@ -4368,10 +4364,6 @@ public:
     Type* next;
     int32_t hasWild() const final override;
     Type* nextOf() final override;
-    Type* makeWild() final override;
-    Type* makeWildConst() final override;
-    Type* makeSharedWild() final override;
-    Type* makeSharedWildConst() final override;
     uint8_t deduceWild(Type* t, bool isRef) final override;
     void transitive();
     void accept(Visitor* v) override;
