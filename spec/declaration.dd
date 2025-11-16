@@ -81,7 +81,7 @@ $(GNAME StorageClass):
     $(DDSUBLINK spec/class, abstract, `abstract`)
     $(DDSUBLINK spec/class, final, `final`)
     $(DDSUBLINK spec/function, virtual-functions, `override`)
-    $(DDSUBLINK spec/class, synchronized-classes, `synchronized`)
+    $(DDSUBLINK spec/class, synchronized-methods, `synchronized`)
     $(RELATIVE_LINK2 auto-declaration, `auto`)
     $(DDSUBLINK spec/attribute, scope, `scope`)
     $(DDLINK spec/const3, Type Qualifiers, `const`)

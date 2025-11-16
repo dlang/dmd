@@ -2089,7 +2089,7 @@ void g(Object o)
         locked and unlocked as many times as there is recursion.
         )
 
-        $(P See also $(DDSUBLINK spec/class, synchronized-classes, synchronized classes).)
+        $(P See also $(DDSUBLINK spec/class, synchronized-methods, synchronized methods).)
 
 $(H2 $(LEGACY_LNAME2 TryStatement, try-statement, Try Statement))
 

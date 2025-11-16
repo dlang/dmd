@@ -649,7 +649,7 @@ $(H3 $(LNAME2 gshared, $(D __gshared) Attribute))
 
 $(H3 $(LNAME2 synchronized, $(D synchronized) Attribute))
 
-        $(P See $(DDSUBLINK spec/class, synchronized-classes, Synchronized Classes).)
+        $(P See $(DDSUBLINK spec/class, synchronized-methods, Synchronized Methods).)
 
 
 $(H2 $(LNAME2 disable, $(D @disable) Attribute))
