@@ -77,6 +77,30 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+Type makeWildConst(Type _this)
+{
+    if (_this.mcache && _this.mcache.wcto)
+        return _this.mcache.wcto;
+    Type t = _this.nullAttributes();
+    t.mod = MODFlags.wildconst;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeWildConst() %s\n", toChars());
+        TypeNext _t = cast(TypeNext) t;
+        if (tn.ty != Tfunction && tn.next.ty != Tfunction && !tn.next.isImmutable())
+        {
+            if (tn.next.isShared())
+                _t.next = tn.next.sharedWildConstOf();
+            else
+                _t.next = tn.next.wildConstOf();
+        }
+        //printf("TypeNext::makeWildConst() returns %p, %s\n", t, t.toChars());
+        return _t;
+    }
+    return t;
+}
+
 Type makeWild(Type _this)
 {
     if (_this.mcache && _this.mcache.wto)
