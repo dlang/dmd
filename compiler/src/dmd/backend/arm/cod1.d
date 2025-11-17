@@ -1715,7 +1715,7 @@ printf("numExplicitParams: %d\n", numExplicitParams);
             elem* ep = p.e;
             p.reg = NOREG;
             p.isVariadic = numExplicitParams && np - i + 1 > numExplicitParams;
-            if (p.isVariadic)      // OSX64 does not pass variadic args in registers
+            if (p.isVariadic)      // osx_aapcs64 does not pass variadic args in registers
                 continue;
             if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, p.reg, p.reg2))
                 continue;        // argument is passed in register
@@ -1739,12 +1739,49 @@ printf("numExplicitParams: %d\n", numExplicitParams);
 printf("---------------------------------------\n");
     // Compute numpara, the total bytes pushed on the stack
     uint numpara = 0;               // bytes of parameters
+    foreach_reverse (i; 0 .. np)
+    {
+        Parameter* p = &parameters[i];
+        elem* ep = p.e;
+
+        if (p.reg != NOREG)         // allocated in register
+        {
+            if (config.exe == EX_WIN64)
+                numpara += REGSIZE;             // allocate stack space for it anyway
+            continue;   // goes in register, not stack
+        }
+
+        auto sz = cast(uint)paramsize(ep, tyf); // size of argument
+        p.size = sz;
+        if (sz == 0)
+            sz++;               // can't handle 0 length structs
+
+        uint alignsize = el_alignsize(ep);
+        if (alignsize > STACKALIGN)
+            alignsize = STACKALIGN;         // no point if the stack is less aligned
+
+        /* Alignment on OSX64 AArch64 is the same as for struct fields.
+         * If it is a variadic function, the last parameter (lastPar) is aligned on 8 bytes.
+         * Match behavior in backend.arm.cod1.cdfunc()
+         */
+        if (p.isVariadic | p.isAp)
+            numpara = cast(uint)_align(REGSIZE, numpara); /* align on register size */
+        else
+            numpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
+
+        p.offset = numpara;
+        printf("[%d] param offset =  x%x, alignsize = %d\n", i, cast(int) numpara, cast(int) alignsize);
+        numpara += sz;
+    }
+
+static if (0)
     for (int i = np; --i >= 0;)
     {
         elem* ep = parameters[i].e;
         auto sz = cast(uint)paramsize(ep, tyf); // size of argument
         parameters[i].size = sz;
         uint psize = sizeOnStack(osx_aapcs64, stackalign, sz);
+//      numpara = (numpara + (psize - 1)) & ~(psize - 1);       // align to start of parameter
         printf("[%d] psize: %u numpara: %d paramsize: %d ep: %s\n", i, psize, numpara, cast(uint)paramsize(ep,tyf), tym_str(ep.Ety));
         if (config.exe == EX_WIN64)
         {
@@ -1864,9 +1901,6 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
     CodeBuilder cdbrestore;
     cdbrestore.ctor();
     regm_t saved = 0;
-    const targ_size_t funcargtossave = cg.funcargtos;
-    targ_size_t funcargtos = numpara;
-    printf("funcargtos1 = %d\n", cast(int)funcargtos);
 
     // TODO AArch64
     /* Parameters go into the registers x0..x7
@@ -1876,8 +1910,9 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
     printf("------------------------------------------------\n");
     foreach (i; 0 .. np)
     {
-        elem* ep = parameters[i].e;
-        reg_t preg = parameters[i].reg;
+        Parameter* p = &parameters[i];
+        elem* ep = p.e;
+        reg_t preg = p.reg;
         printf("\nparameter[%d]: %s\n", i, regm_str(mask(preg)));
         if (preg == NOREG)
         {
@@ -1898,14 +1933,10 @@ printf("isVariadicAlignment: %d\n", isVariadicAlignment);
 
             // Alignment for parameter comes after it was placed on stack
             const uint numalignx = parameters[i].numalign;
-printf("funcargtos: %d numalignx: %d\n", cast(uint)funcargtos, numalignx);
             auto sz = parameters[i].size;     // size of argument
             if (osx_aapcs64 && isVariadicAlignment && sz < 8)
                 sz = 8;
             uint psize = sizeOnStack(osx_aapcs64, stackalign, sz);
-
-            funcargtos -= psize /*_align(stackalign, paramsize(ep, tyf))*/ + numalignx;
-printf("funcargtos: %d\n", cast(uint)funcargtos);
 
             sz = el_alignsize(ep);                       // size after alignment
             if (osx_aapcs64 && isVariadicAlignment && sz < 8)
@@ -1916,7 +1947,7 @@ printf("funcargtos: %d\n", cast(uint)funcargtos);
             // assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
             // assert((sz & (REGSIZE - 1)) == 0);
 
-            movParams(cg, cdbparams, ep, cast(uint)funcargtos, sz);
+            movParams(cg, cdbparams, ep, p.offset, sz);
 
             regm_t tosave = keepmsk & ~cg.msavereg;
             cg.msavereg &= ~keepmsk | overlap;
@@ -2077,12 +2108,9 @@ printf("funcargtos: %d\n", cast(uint)funcargtos);
     cdb.append(cdbrestore);
     keepmsk |= saved;
 
-    printf("funcargtos: %d cg.funcargtos: %d\n", cast(int)funcargtos, cast(int)cg.funcargtos);
-    assert(funcargtos == 0 && cg.funcargtos == ~0);
     cg.stackclean--;
 
     funccall(cdb,e,numpara,numalign,pretregs,keepmsk,false);
-    cg.funcargtos = funcargtossave;
 }
 
 /******************************

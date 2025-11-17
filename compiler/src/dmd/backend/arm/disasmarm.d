@@ -2587,7 +2587,7 @@ void disassemble(uint c) @trusted
             case ldr(1,0,0): p1 = "strh";  factor = 2; goto Lldr;
             case ldr(1,0,1): p1 = "ldrh";  goto Lldr;
             case ldr(1,0,2): p1 = "ldrsh"; goto Lldr64;
-            case ldr(1,0,3): p1 = "ldrsh"; goto Lldr;
+            case ldr(1,0,3): p1 = "ldrsh"; factor = 2; goto Lldr;
             case ldr(2,0,0): p1 = "str";   format = "%s_imm_gen"; goto Lldr;
             case ldr(2,0,1): p1 = "ldr";   format = "%s_imm_gen"; goto Lldr;
             case ldr(2,0,2): p1 = "ldrsw"; goto Lldrsw;
@@ -3216,8 +3216,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[95] cases64 =      // 64 bit code gen
+    string[96] cases64 =      // 64 bit code gen
     [
+        "79 C0 47 AB         ldrsh  w11,[x29,#0x22]",
         "F8 1F 03 A8         stur   x8,[x29,#-0x10]",
         "B8 00 04 62         str    w2,[x3],#0",
         "78 64 68 23         ldrh   w3,[x1, x4]",

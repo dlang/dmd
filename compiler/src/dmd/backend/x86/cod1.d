@@ -2948,7 +2948,16 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
 /*************************************************
  * Helper function for converting OPparam's into array of Parameters.
  */
-struct Parameter { elem* e; reg_t reg; reg_t reg2; uint size; uint numalign; bool isVariadic; bool isAp; }
+struct Parameter
+{
+    elem* e;
+    reg_t reg, reg2;
+    uint size;
+    uint numalign;
+    uint offset;      // [sp + offset] is where parameter is
+    bool isVariadic;
+    bool isAp;
+}
 
 @trusted
 void fillParameters(elem* e, Parameter* parameters, int* pi)
