@@ -1097,6 +1097,21 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
     cg.Auto.initialize();        // automatic & register offset
     cg.EEStack.initialize();     // for SCstack's
 
+    bool osx_aarch64 = (config.exe & EX_OSX64 && config.target_cpu == TARGET_AArch64);
+
+    bool isVariadic = variadic(funcsym_p.Stype);
+
+    Symbol* lastParam;  // if variadic function, this is index of last parameter that goes on stack
+    if (osx_aarch64 && isVariadic)
+    {
+        foreach (s; symtab[])
+        {
+            if (s.Sclass == SC.parameter)
+                lastParam = s;
+        }
+    }
+    //if (lastParam) printf("lastParam: %s\n", lastParam.Sident.ptr);
+
     // Set if doing optimization of auto layout
     bool doAutoOpt = estimate && config.flags4 & CFG4optimized;
 
@@ -1206,7 +1221,7 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
                 cg.EEStack.offset += sz;
                 break;
 
-            case SC.shadowreg:
+            case SC.shadowreg:  // only on EX_WIN64
             case SC.parameter:
                 if (config.exe == EX_WIN64)
                 {
@@ -1215,16 +1230,31 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
                     cg.Para.offset += 8;
                     break;
                 }
-                /* Alignment on OSX 32 is odd. reals are 16 byte aligned in general,
-                 * but are 4 byte aligned on the OSX 32 stack.
-                 */
-                cg.Para.offset = _align(REGSIZE,cg.Para.offset); /* align on word stack boundary */
-                if (alignsize >= 16 &&
-                    (I64 || (config.exe == EX_OSX &&
-                         (tyaggregate(s.ty()) || tyvector(s.ty())))))
+                if (osx_aarch64)
+                {
+                    /* Alignment on OSX64 AArch64 is the same as for struct fields.
+                     * If it is a variadic function, the last parameter (lastPar) is aligned on 8 bytes.
+                     * Match behavior in backend.arm.cod1.cdfunc()
+                     */
+                    if (s is lastParam)
+                        cg.Para.offset = _align(REGSIZE,cg.Para.offset); /* align on register size */
+                    else
+                        cg.Para.offset = (cg.Para.offset + (alignsize - 1)) & ~(alignsize - 1);
+                }
+                else if (alignsize >= 16 &&
+                         (I64 || (config.exe == EX_OSX &&
+                          (tyaggregate(s.ty()) || tyvector(s.ty())))))
+                {
+                    /* Alignment on OSX 32 is odd. reals are 16 byte aligned in general,
+                     * but are 4 byte aligned on the OSX 32 stack.
+                     */
                     cg.Para.offset = (cg.Para.offset + (alignsize - 1)) & ~(alignsize - 1);
+                }
+                else
+                    cg.Para.offset = _align(REGSIZE,cg.Para.offset); /* align on register size */
+
                 s.Soffset = cg.Para.offset;
-                //printf("%s param offset =  x%lx, alignsize = %d\n", s.Sident, cast(long) s.Soffset, cast(int) alignsize);
+                //printf("[%d] %s param offset =  x%x, alignsize = %d\n", si, s.Sident.ptr, cast(int) s.Soffset, cast(int) alignsize);
                 cg.Para.offset += (s.Sflags & SFLdouble)
                             ? type_size(tstypes[TYdouble])   // float passed as double
                             : type_size(s.Stype);
