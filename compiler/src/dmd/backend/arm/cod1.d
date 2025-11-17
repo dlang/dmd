@@ -1671,7 +1671,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     if (np)
     {
         int n = 0;
-        fillParameters(e.E2, parameters, &n);
+        fillParameters(e.E2, parameters[0 .. np], n);
         assert(n == np);
     }
 
