@@ -3038,7 +3038,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         }
                         else
                         {
-                            at = parseType(&ai, null, &loc);
+                            at = parseType(&ai, &loc);
                         }
                         ae = null;
                         if (token.value == TOK.assign) // = defaultArg
@@ -3211,7 +3211,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                     Ltype:
                         // Type identifier
-                        type = parseType(&ident, null);
+                        type = parseType(&ident);
                         if (type == AST.Type.terror)
                         {
                             type = null;
@@ -3578,10 +3578,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     /* Parse a type and optional identifier
      * Params:
      *  pident       = set to Identifier if there is one, null if not
-     *  ptpl         = if !null, then set to TemplateParameterList
      *  pdeclLoc     = if !null, then set to location of the declarator
      */
-    AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null, Loc* pdeclLoc = null)
+    AST.Type parseType(Identifier* pident = null, Loc* pdeclLoc = null)
     {
         /* Take care of the storage class prefixes that
          * serve as type attributes:
@@ -3641,7 +3640,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         if (pdeclLoc)
             *pdeclLoc = token.loc;
         int alt = 0;
-        t = parseDeclarator(t, alt, pident, ptpl);
+        t = parseDeclarator(t, alt, pident, null);
         checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
 
         t = t.addSTC(stc);
