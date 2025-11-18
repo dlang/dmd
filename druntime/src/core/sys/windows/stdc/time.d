@@ -58,19 +58,20 @@ void  _tzset();                          // non-standard
 ///
 extern __gshared const(char)*[2] tzname; // non-standard
 
-
 // timespec functions, introduced in C11
 alias __time64_t = long;
 alias __time32_t = int;
 
 /// 32-bit timespec struct
-struct _timespec32 {
+struct _timespec32
+{
     __time32_t tv_sec;
     c_long     tv_nsec;
 }
 
 /// 64-bit timespec struct
-struct _timespec64 {
+struct _timespec64
+{
     __time64_t tv_sec;
     c_long     tv_nsec;
 }
