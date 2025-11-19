@@ -623,6 +623,54 @@ bool isLvalue(Expression _this)
     }
 }
 
+/***********************************************************
+ * Determine if copy elision is allowed when copying an expression to
+ * a typed storage. This basically elides a restricted subset of so-called
+ * "pure" rvalues, i.e. expressions with no reference semantics.
+ */
+bool canElideCopy(Expression e, Type to, bool checkMod = true)
+{
+    if (checkMod && !MODimplicitConv(e.type.mod, to.mod))
+        return false;
+
+    static bool visitCallExp(CallExp e)
+    {
+        if (auto dve = e.e1.isDotVarExp())
+            if (dve.var.isCtorDeclaration())
+                return true;
+
+        auto tb = e.e1.type.toBasetype();
+        if (tb.ty == Tdelegate || tb.ty == Tpointer)
+            tb = tb.nextOf();
+        auto tf = tb.isTypeFunction();
+        return tf && !tf.isRef;
+    }
+
+    switch (e.op)
+    {
+        case EXP.call:
+            return visitCallExp(e.isCallExp());
+        case EXP.comma:
+            auto ce = e.isCommaExp();
+            return canElideCopy(ce.e2, to, checkMod);
+        case EXP.question:
+            auto ce = e.isCondExp();
+            return canElideCopy(ce.e1, to, checkMod) && canElideCopy(ce.e2, to, checkMod);
+
+        case EXP.structLiteral:
+            return true;
+        case EXP.dotVariable:
+            // If an aggregate can be elided, so are its fields
+            auto dve = e.isDotVarExp();
+            auto vd = dve.var.isVarDeclaration();
+            return vd && vd.isField() && canElideCopy(dve.e1, dve.e1.type, false);
+        case EXP.variable:
+            return (e.isVarExp().var.storage_class & STC.rvalue) != 0;
+        default:
+            return false;
+    }
+}
+
 // Return index of the field, or -1 if not found
 int getFieldIndex(ClassReferenceExp _this, Type fieldtype, uint fieldoffset)
 {
@@ -1723,7 +1771,7 @@ extern (D) Expression doCopyOrMove(Scope* sc, Expression e, Type t, bool nrvo, b
     {
         e = callCpCtor(sc, e, t, nrvo);
     }
-    else if (move && sd && sd.hasMoveCtor && !e.isCallExp() && !e.isStructLiteralExp())
+    else if (move && sd && sd.hasMoveCtor && !canElideCopy(e, t ? t : e.type, false))
     {
         // #move
         /* Rewrite as:
