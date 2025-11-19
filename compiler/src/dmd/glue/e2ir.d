@@ -468,8 +468,7 @@ elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
         if (tybasic(pea.Ety) == TYimmutPtr)
             typ = TYimmutPtr;
 
-        if ((pea.Eoper == OPcall || pea.Eoper == OPucall) &&
-            (tybasic(pea.Ety) == TYnptr || tybasic(pea.Ety) == TYimmutPtr))
+        if (tybasic(pea.Ety) == TYnptr || tybasic(pea.Ety) == TYimmutPtr)
         {
             *pe = pea;
             for (elem* ex = e; ex.Eoper == OPcomma; ex = ex.E2)
