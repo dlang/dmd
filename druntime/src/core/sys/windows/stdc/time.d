@@ -83,7 +83,7 @@ alias timespec = _timespec64;
 enum TIME_UTC = 1;
 
 /// 64-bit version of timespec_get for Windows
-int _timespec64_get(_timespec64* ts, int base);
+int _timespec64_get(scope const(_timespec64)* ts, int base);
 
 /// 32-bit version of timespec_get for Windows
 int _timespec32_get(_timespec32* ts, int base);
