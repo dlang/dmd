@@ -2948,22 +2948,30 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
 /*************************************************
  * Helper function for converting OPparam's into array of Parameters.
  */
-struct Parameter { elem* e; reg_t reg; reg_t reg2; uint size; uint numalign; bool isVariadic; bool isAp; }
+struct Parameter
+{
+    elem* e;
+    reg_t reg, reg2;
+    uint size;
+    uint numalign;
+    uint offset;      // [sp + offset] is where parameter is
+    bool isVariadic;
+    bool isAp;
+}
 
 @trusted
-void fillParameters(elem* e, Parameter* parameters, int* pi)
+void fillParameters(elem* e, Parameter[] parameters, ref int i)
 {
     if (e.Eoper == OPparam)
     {
-        fillParameters(e.E1, parameters, pi);
-        fillParameters(e.E2, parameters, pi);
+        fillParameters(e.E1, parameters, i);
+        fillParameters(e.E2, parameters, i);
         freenode(e);
     }
     else
     {
-        Parameter* p = &parameters[*pi];
-        p.e = e;
-        (*pi)++;
+        parameters[i].e = e;
+        ++i;
     }
 }
 
@@ -3375,7 +3383,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     if (np)
     {
         int n = 0;
-        fillParameters(e.E2, parameters, &n);
+        fillParameters(e.E2, parameters[0 .. np], n);
         assert(n == np);
     }
 

@@ -3038,7 +3038,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         }
                         else
                         {
-                            at = parseType(&ai, null, &loc);
+                            at = parseType(&ai, &loc);
                         }
                         ae = null;
                         if (token.value == TOK.assign) // = defaultArg
@@ -3211,7 +3211,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                     Ltype:
                         // Type identifier
-                        type = parseType(&ident, null);
+                        type = parseType(&ident);
                         if (type == AST.Type.terror)
                         {
                             type = null;
@@ -3577,11 +3577,18 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     /* Parse a type and optional identifier
      * Params:
-     *  pident       = set to Identifier if there is one, null if not
-     *  ptpl         = if !null, then set to TemplateParameterList
-     *  pdeclLoc     = if !null, then set to location of the declarator
+     *  pident   = set to Identifier if there is one, null if not
+     *  pdeclLoc = if !null, then set to location of the declarator
+     *  stc      = Storage Class
      */
-    AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null, Loc* pdeclLoc = null)
+    AST.Type parseType(STC stc)
+    {
+        return parseType(null, null, stc);
+    }
+
+    ///Ditto
+    AST.Type parseType(Identifier* pident = null, Loc* pdeclLoc = null,
+                       STC stc = STC.none)
     {
         /* Take care of the storage class prefixes that
          * serve as type attributes:
@@ -3594,7 +3601,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
          *        shared inout type
          *  shared inout const type
          */
-        STC stc = STC.none;
         while (1)
         {
             switch (token.value)
@@ -3641,7 +3647,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         if (pdeclLoc)
             *pdeclLoc = token.loc;
         int alt = 0;
-        t = parseDeclarator(t, alt, pident, ptpl);
+        t = parseDeclarator(t, alt, pident, null);
         checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
 
         t = t.addSTC(stc);
@@ -3823,7 +3829,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             // const(type)
             nextToken();
             check(TOK.leftParenthesis);
-            t = parseType().addSTC(STC.const_);
+            t = parseType(STC.const_);
             check(TOK.rightParenthesis);
             break;
 
@@ -3831,7 +3837,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             // immutable(type)
             nextToken();
             check(TOK.leftParenthesis);
-            t = parseType().addSTC(STC.immutable_);
+            t = parseType(STC.immutable_);
             check(TOK.rightParenthesis);
             break;
 
@@ -3839,7 +3845,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             // shared(type)
             nextToken();
             check(TOK.leftParenthesis);
-            t = parseType().addSTC(STC.shared_);
+            t = parseType(STC.shared_);
             check(TOK.rightParenthesis);
             break;
 
@@ -3847,7 +3853,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             // wild(type)
             nextToken();
             check(TOK.leftParenthesis);
-            t = parseType().addSTC(STC.wild);
+            t = parseType(STC.wild);
             check(TOK.rightParenthesis);
             break;
 

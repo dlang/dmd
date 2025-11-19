@@ -243,6 +243,37 @@ void test10()
 }
 
 /********************************/
+// https://github.com/dlang/dmd/issues/22111
+
+__gshared int copyCount11;
+__gshared int moveCount11;
+__gshared int dtorCount11;
+
+struct S11
+{
+    int i;
+    this(S11 rhs) { moveCount11++; }
+    this(ref S rhs) { copyCount11++; }
+    ~this() { dtorCount11++; }
+}
+
+__gshared S11 s11obj;
+
+ref S11 refS11() { return s11obj; }
+ref S11 moveS11() __rvalue { return s11obj; }
+S11 copyRefS11() { return __rvalue(refS11()); }
+S11 copyMoveS11() { return moveS11(); }
+
+void test11()
+{
+    copyRefS11();
+    assert(copyCount11 == 0 && moveCount11 == 1 && dtorCount11 == 2);
+    moveCount11 = dtorCount11 = 0;
+    copyMoveS11();
+    assert(copyCount11 == 0 && moveCount11 == 1 && dtorCount11 == 2);
+}
+
+/********************************/
 
 int main()
 {
@@ -255,6 +286,8 @@ int main()
     test7();
     test8();
     test9();
+    test10();
+    test11();
 
     return 0;
 }

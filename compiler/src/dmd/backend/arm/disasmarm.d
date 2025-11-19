@@ -2378,12 +2378,14 @@ void disassemble(uint c) @trusted
         uint size = field(ins, 31, 30);
         uint VR   = field(ins, 26, 26);
         uint opc  = field(ins, 23, 22);
-        uint imm9 = field(ins, 20, 12);
+         int imm9 = field(ins, 20, 12);
         uint Rn   = field(ins,  9,  5);
         uint Rt   = field(ins,  4,  0);
 
         uint ldur(uint size, uint VR, uint opc) { return (size << 3) | (VR << 2) | opc; }
 
+        if (imm9 & 0x100)
+            imm9 |= 0xFFFF_FE00;        // sign extend
         bool is64 = false;
         const(char)* format = "%s";
         switch (ldur(size,VR,opc))
@@ -2585,7 +2587,7 @@ void disassemble(uint c) @trusted
             case ldr(1,0,0): p1 = "strh";  factor = 2; goto Lldr;
             case ldr(1,0,1): p1 = "ldrh";  goto Lldr;
             case ldr(1,0,2): p1 = "ldrsh"; goto Lldr64;
-            case ldr(1,0,3): p1 = "ldrsh"; goto Lldr;
+            case ldr(1,0,3): p1 = "ldrsh"; factor = 2; goto Lldr;
             case ldr(2,0,0): p1 = "str";   format = "%s_imm_gen"; goto Lldr;
             case ldr(2,0,1): p1 = "ldr";   format = "%s_imm_gen"; goto Lldr;
             case ldr(2,0,2): p1 = "ldrsw"; goto Lldrsw;
@@ -2848,9 +2850,15 @@ const(char)[] wordtostring2(uint w)
 @trusted
 const(char)[] signedWordtostring(int w)
 {
-    __gshared char[1 + 3 + 1 + w.sizeof * 3 + 1 + 1] EA;
+    __gshared char[1 + 3 + 1 + 1 + w.sizeof * 3 + 1 + 1] EA;
 
-    const n = snprintf(EA.ptr, EA.length, ((w <= 16) ? "#%d" : "#0x%X"), w);
+    if (w < 0)
+    {
+        w = -w;
+        const n = snprintf(EA.ptr, EA.length, ((w < 10) ? "#-%d" : "#-0x%X"), w);
+        return EA[0 .. n];
+    }
+    const n = snprintf(EA.ptr, EA.length, ((w <= 10) ? "#%d" : "#0x%X"), w);
     return EA[0 .. n];
 }
 
@@ -3208,8 +3216,10 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[94] cases64 =      // 64 bit code gen
+    string[96] cases64 =      // 64 bit code gen
     [
+        "79 C0 47 AB         ldrsh  w11,[x29,#0x22]",
+        "F8 1F 03 A8         stur   x8,[x29,#-0x10]",
         "B8 00 04 62         str    w2,[x3],#0",
         "78 64 68 23         ldrh   w3,[x1, x4]",
         "78 24 68 43         strh   w3,[x2, x4]",
@@ -3257,10 +3267,10 @@ unittest
         "1A 9F A7 E0         cset  w0,lt",
         "91 40 00 00         add   x0,x0,#0,lsl #12",
         "D5 3B D0 40         mrs   x0,S3_3_c13_c0_2",
-        "A8 C1 7B FD         ldp   x29,x30,[sp],#16",
+        "A8 C1 7B FD         ldp   x29,x30,[sp],#0x10",
         "90 00 00 00         adrp  x0,#0",
-        "A9 01 7B FD         stp   x29,x30,[sp,#16]",
-        "A9 41 7B FD         ldp   x29,x30,[sp,#16]",
+        "A9 01 7B FD         stp   x29,x30,[sp,#0x10]",
+        "A9 41 7B FD         ldp   x29,x30,[sp,#0x10]",
         "B9 40 0B E0         ldr   w0,[sp,#8]",
         "F9 00 5F E3         str   x3,[sp,#0xB8]",
 

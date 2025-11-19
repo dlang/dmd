@@ -490,10 +490,10 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
 @trusted
 void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 {
-    printf("prolog_genvarargs()\n");
-    symbol_print(*sv);
     if (config.exe & EX_OSX64)
         return prolog_genvarargs_osx(cg,cdb,sv);
+    printf("prolog_genvarargs()\n");
+    symbol_print(*sv);
 
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
@@ -605,7 +605,7 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 private @trusted
 void prolog_genvarargs_osx(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 {
-    printf("prolog_genvarargs_osx()\n");
+    //printf("prolog_genvarargs_osx()\n");
 
     /* generate code to initialize __va_argsave to point to the first variadic argument
         ADD     reg,sp,Para.size+Para.offset        // offset of start of variadic arguments on stack
@@ -619,22 +619,31 @@ void prolog_genvarargs_osx(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
     cs.base = (!cg.hasframe || cg.enforcealign) ? 31 : 29; // SP or BP
     cs.index = NOREG;
 
-    reg_t reg = 11;
-    uint imm12 = cast(uint)(cg.Para.size + cg.Para.offset);  // offset past parameters that went onto the stack
+
+    //printf("Para.size: %d Para.offset: %d\n", cast(int)cg.Para.size, cast(int)cg.Para.offset);
+    uint imm12 = cast(uint)(/*cg.Para.size +*/ cg.Para.offset);  // offset past parameters that went onto the stack
+    if (cg.hasframe)
+        imm12 += REGSIZE * 2;
+    imm12 += localsize;
+    //printf("imm12: x%x\n", imm12);
+
     assert(imm12 < 0x1000);  // BUG AArch64 overflow check
+    reg_t reg = 11;          // scratch reg
     cdbx.gen1(INSTR.addsub_imm(1,0,0,0,imm12,31,reg));   // ADD reg,sp,imm12
 
     // Store address into __va_argsave
     cs.IEV1.Vsym = sv;
+    cs.IFL1 = sv.Sfl;
     cs.IEV1.Voffset = 0;
     storeToEA(cs,reg,8);            // STR reg,[sp,#__va_argsave + 0]
     cdbx.gen(&cs);
-
     useregs(mask(reg));
 
     code* cx = cdbx.finish();
     if (cx)
     {
+        assignaddrc(cx);
+
         static if (0)
         for (code* c = cx; c; c = code_next(c))
         {
@@ -642,7 +651,6 @@ void prolog_genvarargs_osx(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
             disassemble(c.Iop);
         }
 
-        assignaddrc(cx);
         cdb.append(cx);
     }
 }
@@ -1720,7 +1728,7 @@ void assignaddrc(code* c)
                 goto L1;
 
             case FL.para:
-                sectionOff = cast(uint)cgstate.Para.size - cgstate.BPoff;    // cancel out add of BPoff
+                sectionOff = /*cast(uint)cgstate.Para.size -*/ cgstate.BPoff;    // cancel out add of BPoff
                 goto L1;
 
             L1:
@@ -1778,10 +1786,11 @@ void assignaddrc(code* c)
 
             L2:
                 offset = cast(int)offset;       // sign extend
-//printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZE*2);
+printf("offset: x%llx localsize: x%llxd REGSIZE*2: x%x\n", offset, localsize, REGSIZE*2);
                 if (cgstate.hasframe)
                     offset += REGSIZE * 2;
                 offset += localsize;
+printf("offset: x%llx\n", offset);
             L3:
                 /*
                         V 22

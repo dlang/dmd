@@ -249,14 +249,6 @@ public:
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
     bool hasDeprecatedAliasThis();
-    virtual Type *makeImmutable();
-    virtual Type *makeShared();
-    virtual Type *makeSharedConst();
-    virtual Type *makeWild();
-    virtual Type *makeWildConst();
-    virtual Type *makeSharedWild();
-    virtual Type *makeSharedWildConst();
-    virtual Type *makeMutable();
     Type *toBasetype();
     virtual unsigned char deduceWild(Type *t, bool isRef);
 
@@ -317,14 +309,6 @@ public:
 
     int hasWild() const override final;
     Type *nextOf() override final;
-    Type *makeImmutable() override final;
-    Type *makeShared() override final;
-    Type *makeSharedConst() override final;
-    Type *makeWild() override final;
-    Type *makeWildConst() override final;
-    Type *makeSharedWild() override final;
-    Type *makeSharedWildConst() override final;
-    Type *makeMutable() override final;
     unsigned char deduceWild(Type *t, bool isRef) override final;
     void transitive();
     void accept(Visitor *v) override { v->visit(this); }
@@ -823,4 +807,12 @@ namespace dmd
     Type* memType(TypeEnum* type);
     unsigned alignsize(Type* type);
     Type *makeConst(Type* type);
+    Type* makeMutable(Type* type);
+    Type* makeImmutable(Type* type);
+    Type* makeShared(Type* type);
+    Type* makeSharedConst(Type* type);
+    Type *makeWild(Type* type);
+    Type *makeWildConst(Type* type);
+    Type *makeSharedWild(Type* type);
+    Type *makeSharedWildConst(Type* type);
 }
