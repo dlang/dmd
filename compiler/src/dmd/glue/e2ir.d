@@ -459,25 +459,20 @@ elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
         *pe = el_bin(OPcomma,e2.Ety,eeq,el_var(stmp));
     }
 
-    tym_t typ = TYnptr;
-
     if ((*pe).Eoper == OPind)
     {
         elem* pea = (*pe).E1;
-
-        if (tybasic(pea.Ety) == TYimmutPtr)
-            typ = TYimmutPtr;
 
         if (tybasic(pea.Ety) == TYnptr || tybasic(pea.Ety) == TYimmutPtr)
         {
             *pe = pea;
             for (elem* ex = e; ex.Eoper == OPcomma; ex = ex.E2)
-                ex.Ety = typ;
+                ex.Ety = pea.Ety;
             return e;
         }
     }
 
-    e = el_una(OPaddr, typ, e);
+    e = el_una(OPaddr, TYnptr, e);
     return e;
 }
 
