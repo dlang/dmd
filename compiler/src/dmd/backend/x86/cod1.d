@@ -2948,7 +2948,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
 /*************************************************
  * Helper function for converting OPparam's into array of Parameters.
  */
-struct Parameter
+package(dmd.backend) struct Parameter
 {
     elem* e;
     reg_t reg, reg2;
