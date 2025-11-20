@@ -1,4 +1,4 @@
-/* PERMUTE_ARGS: -preview=rvaluerefparam
+/* REQUIRED_ARGS: -preview=rvaluerefparam
 /* testing __rvalue */
 
 import core.stdc.stdio;
