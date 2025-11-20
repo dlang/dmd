@@ -324,7 +324,9 @@ static if (1)
         {   0,                // location
             -1,               // register
             4,                // offset
-            [   { 0 },        // 0: EAX
+            [
+                0:
+                { 0 },        // 0: EAX
                 { 0 },        // 1: ECX
                 { 0 },        // 2: EDX
                 { 0 },        // 3: EBX
@@ -340,7 +342,9 @@ static if (1)
         {   0,                // location
             -1,               // register
             8,                // offset
-            [   { 0 },        // 0: RAX
+            [
+                0:
+                { 0 },        // 0: RAX
                 { 0 },        // 1: RBX
                 { 0 },        // 2: RCX
                 { 0 },        // 3: RDX

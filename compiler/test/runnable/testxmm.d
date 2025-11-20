@@ -1576,9 +1576,9 @@ void test15123()
 
 void test15144()
 {
-        enum      ubyte16 csXMM1 = ['a','b','c',0,0,0,0,0];
-        __gshared ubyte16 csXMM2 = ['a','b','c',0,0,0,0,0];
-        immutable ubyte16 csXMM3 = ['a','b','c',0,0,0,0,0];
+        enum      ubyte16 csXMM1 = ['a','b','c',0,0,0,0,0,0,0,0,0,0,0,0,0];
+        __gshared ubyte16 csXMM2 = ['a','b','c',0,0,0,0,0,0,0,0,0,0,0,0,0];
+        immutable ubyte16 csXMM3 = ['a','b','c',0,0,0,0,0,0,0,0,0,0,0,0,0];
         version (D_PIC)
         {
         }
