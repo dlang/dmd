@@ -320,6 +320,11 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             else
             {
                 ulong edim = tsa.dim.toInteger();
+                if (i.dim < edim && !i.defaultInitialize && !i.isCarray)
+                {
+                    error(i.loc, "insufficient array initializers - has %u elements, but needs %llu", i.dim, edim);
+                    return err();
+                }
                 if (i.dim > edim)
                 {
                     error(i.loc, "array initializer has %u elements, but array length is %llu", i.dim, edim);

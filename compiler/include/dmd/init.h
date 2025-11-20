@@ -84,9 +84,10 @@ class ArrayInitializer final : public Initializer
 public:
     Expressions index;  // indices
     Initializers value; // of Initializer *'s
-    unsigned dim;       // length of array being initialized
     Type *type;         // type that array will be used to initialize
-    d_bool isCarray;      // C array semantics
+    unsigned dim;       // length of array being initialized
+    d_bool isCarray;    // C array semantics
+    d_bool defaultInitialze;  // ends with `,...]` meaning "default initialize the rest"
 
     bool isAssociativeArray() const;
 
