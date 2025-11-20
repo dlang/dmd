@@ -2271,11 +2271,6 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         auto e = doInlineAs!Expression(fd.fbody, ids);
         fd.inlineNest--;
 
-        import dmd.expressionsem : toLvalue;
-        // https://issues.dlang.org/show_bug.cgi?id=11322
-        if (tf.isRef)
-            e = e.toLvalue(null, "`ref` return");
-
         /* If the inlined function returns a copy of a struct,
          * and then the return value is used subsequently as an
          * lvalue, as in a struct return that is then used as a 'this'.
