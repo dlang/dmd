@@ -1708,6 +1708,8 @@ elem* toElem(Expression e, ref IRState irs)
     {
         //printf("PostExp.toElem() '%s'\n", pe.toChars());
         elem* e = toElem(pe.e1, irs);
+        if (!OTleaf(e.Eoper) && e.Eoper != OPind)
+            e = el_una(OPind, e.Ety, el_una(OPaddr, TYnptr, e));
         elem* einc = toElem(pe.e2, irs);
         e = el_bin((pe.op == EXP.plusPlus) ? OPpostinc : OPpostdec,
                     e.Ety,e,einc);
