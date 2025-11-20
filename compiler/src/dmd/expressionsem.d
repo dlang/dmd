@@ -17110,7 +17110,7 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
         }
         if (!_this.isLvalue())
             return visit(_this);
-        if (e1.op == EXP.this_ && sc.ctorflow.fieldinit.length && !(sc.ctorflow.callSuper & CSX.any_ctor))
+        if (e1.op == EXP.this_ && sc && sc.ctorflow.fieldinit.length && !(sc.ctorflow.callSuper & CSX.any_ctor))
         {
             if (VarDeclaration vd = var.isVarDeclaration())
             {
