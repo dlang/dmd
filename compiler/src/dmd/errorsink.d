@@ -208,4 +208,5 @@ class ErrorSinkStderr : ErrorSink
     }
 
     void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap) { }
+    
 }
