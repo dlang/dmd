@@ -520,6 +520,10 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
             sds.symtab.update(vd);      // replace vd2 with the definition
             return vd;
         }
+        else if (!i1 && !(vd2.storage_class & STC.extern_)) /* incoming has void void definition */
+        {
+            vd.storage_class |= STC.extern_;
+        }
 
         /* BUG: the types should match, which needs semantic() to be run on it
          *    extern int x;
