@@ -53,7 +53,7 @@ public import core.sys.posix.sys.types : time_t, clock_t;
 public import core.sys.posix.time : timespec;
 
 /// timespec_get introduced in C11
-int timespec_get(timespec* ts, int base);
+@system int timespec_get(timespec* ts, int base);
 
 /// Base Value used for timespec_get
 enum TIME_UTC = 1;
