@@ -1612,6 +1612,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
     override void visit(TypeInfoAssociativeArrayDeclaration ti)
     {
+        if (ti.semanticRun >= PASS.semantic3)
+            return;
+        ti.semanticRun = PASS.semantic3;
+
         auto t = ti.tinfo.isTypeAArray();
         Loc loc = t.loc;
         auto sc2 = sc ? sc : ti._scope;
@@ -1643,19 +1647,24 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // generate ti.xtoHash
         auto hashinst = makeDotExp(Identifier.idPool("aaGetHash"));
         e = expressionSemantic(hashinst, sc2);
-        assert(e.isVarExp() && e.type.isTypeFunction());
-        ti.xtoHash = e.isVarExp().var;
-        if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
-            tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+        if (!e.isErrorExp())
+        {
+            assert(e.isVarExp() && e.type.isTypeFunction());
+            ti.xtoHash = e.isVarExp().var;
+            if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
+                tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+        }
 
         // generate ti.xopEqual
         auto equalinst = makeDotExp(Identifier.idPool("aaOpEqual"));
         e = expressionSemantic(equalinst, sc2);
-        assert(e.isVarExp() && e.type.isTypeFunction());
-        ti.xopEqual = e.isVarExp().var;
-        if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
-            tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
-
+        if (!e.isErrorExp())
+        {
+            assert(e.isVarExp() && e.type.isTypeFunction());
+            ti.xopEqual = e.isVarExp().var;
+            if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
+                tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+        }
         visit(cast(ASTCodegen.TypeInfoDeclaration)ti);
     }
 }
