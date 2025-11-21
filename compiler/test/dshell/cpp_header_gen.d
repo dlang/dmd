@@ -15,7 +15,8 @@ int main()
     Vars.set("CPP_OBJ",     "$OUTPUT_BASE/cpp$OBJ");
     Vars.set("HEADER_EXE",  "$OUTPUT_BASE/test$EXE");
 
-    run("$DMD -m$MODEL -c -lib -of=$LIB -HC=verbose -HCf=$OUTPUT_BASE/library.h $SOURCE_DIR/library.d");
+    // This particular test passes a null pointer from c++ and gets "dereferenced" in D, and will trigger null derference check to error.
+    run("$DMD -m$MODEL -c -lib -of=$LIB -check=nullderef=off -HC=verbose -HCf=$OUTPUT_BASE/library.h $SOURCE_DIR/library.d");
 
     // Dump header if any of the following step fails
     scope (failure)
