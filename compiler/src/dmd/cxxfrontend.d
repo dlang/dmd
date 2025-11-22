@@ -995,6 +995,12 @@ Type makeSharedWildConst(Type type)
     return dmd.typesem.makeSharedWildConst(type);
 }
 
+MOD deduceWild(Type type, Type t, bool isRef)
+{
+    import dmd.typesem;
+    return dmd.typesem.deduceWild(type, t, isRef);
+}
+
 /***********************************************************
  * typinf.d
  */
