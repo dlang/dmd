@@ -417,7 +417,8 @@ void blockopt(ref GlobalOptimizer go, int iter)
             blident(go);                // combine identical blocks
             blreturn(go);               // split out return blocks
             bltailmerge(go);            // do tail merging
-            brtailrecursion(go);        // do tail recursion
+            // https://github.com/dlang/dmd/issues/22069
+            // brtailrecursion(go);     // do tail recursion
             brcombine(go);              // convert graph to expressions
             blexit(go);
             if (iter >= 2)
