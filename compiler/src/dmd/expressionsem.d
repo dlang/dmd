@@ -100,6 +100,19 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
+real_t toImaginary(Expression _this)
+{
+    if (auto ie = _this.isIntegerExp())
+        return CTFloat.zero;
+    else if (auto re = _this.isRealExp)
+        return re.type.isReal() ? CTFloat.zero : re.value;
+    else if (auto ce = _this.isComplexExp())
+        return cimagl(ce.value);
+
+    error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toChars());
+    return CTFloat.zero;
+}
+
 real_t toReal(Expression _this)
 {
     if (auto iexp = _this.isIntegerExp())
