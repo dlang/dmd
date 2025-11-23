@@ -462,6 +462,12 @@ complex_t toComplex(Expression exp)
     return dmd.expressionsem.toComplex(exp);
 }
 
+real_t toImaginary(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toImaginary(exp);
+}
+
 /***********************************************************
  * func.d
  */
