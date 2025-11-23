@@ -1,0 +1,25 @@
+The compiler now inlines `pragma(inline, true)` functions in a separate pass
+
+The compiler now considers `pragma(inline, true)` functions for inlining in a dedicated pass
+before trying to inline other eligible functions. This provides better control of inlining
+decisions, for example:
+
+```d
+auto staticSquares(uint n)()
+{
+    int[n] arr;
+    static foreach(i; 0 .. n)
+        arr[i] = (i + 1) ^^ 2;
+    return arr;
+}
+
+pragma(inline, true) int thirtyThirty()
+{
+    return staticSquares!30[$ - 1];
+}
+```
+
+Previously, `dmd -inline` would first inline `staticSquares()` into `thirtyThirty()` and
+subsequently fail to inline `thirtyThirty()` into its callers. With the new implementation,
+the programmer can expect the compiler to replace calls to `thirtyThirty()` with
+`staticSquares!30[$ - 1]` before making other inlining decisions.
