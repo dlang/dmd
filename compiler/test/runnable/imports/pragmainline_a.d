@@ -1,4 +1,4 @@
-module imports.inline4a;
+module imports.pragmainline_a;
 
 pragma(inline, true)
 int foo()
