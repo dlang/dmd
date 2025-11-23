@@ -658,6 +658,12 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
             return canElideCopy(ce.e1, to, checkMod) && canElideCopy(ce.e2, to, checkMod);
 
         case EXP.structLiteral:
+            auto sd = e.isStructLiteralExp();
+            foreach (elem; *sd.elements)
+            {
+                if (!canElideCopy(elem, elem.type, checkMod))
+                    return false;
+            }
             return true;
         case EXP.dotVariable:
             // If an aggregate can be elided, so are its fields
