@@ -478,7 +478,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         .error(fd.loc, "%s `%s` errors compiling the function", fd.kind, fd.toPrettyChars);
         return;
     }
-    assert(fd.semanticRun == PASS.semantic3done);
+    assert(fd.semanticRun >= PASS.semantic3done && fd.semanticRun <= PASS.inlineAll);
     assert(fd.ident != Id.empty);
 
     for (FuncDeclaration fd2 = fd; fd2; )

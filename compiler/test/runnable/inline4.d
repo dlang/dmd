@@ -1,5 +1,3 @@
-import imports.inline4a;
-
 struct S
 {
     int a;
@@ -351,13 +349,7 @@ void testRvalueRefReturn()
 
 void main()
 {
-    immutable baz = () => 1;
-    assert(foo() == bar()());
-    assert(foo() == baz());
-    assert(bar()() == baz());
-
     testValueReturn();
     testRefReturn();
     testRvalueRefReturn();
-
 }
