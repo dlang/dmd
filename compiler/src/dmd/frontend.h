@@ -2327,7 +2327,6 @@ public:
     virtual Expression* syntaxCopy();
     DYNCAST dyncast() const final override;
     const char* toChars() const final override;
-    virtual _d_real toImaginary();
     virtual bool checkType();
     Expression* deref();
     int32_t isConst();
@@ -2707,7 +2706,6 @@ class ComplexExp final : public Expression
 public:
     complex_t value;
     static ComplexExp* create(Loc loc, complex_t value, Type* type);
-    _d_real toImaginary() override;
     void accept(Visitor* v) override;
 };
 
@@ -3180,7 +3178,6 @@ class IntegerExp final : public Expression
 public:
     dinteger_t value;
     static IntegerExp* create(Loc loc, dinteger_t value, Type* type);
-    _d_real toImaginary() override;
     void accept(Visitor* v) override;
     dinteger_t getInteger();
     IntegerExp* syntaxCopy() override;
@@ -3406,7 +3403,6 @@ class RealExp final : public Expression
 public:
     _d_real value;
     static RealExp* create(Loc loc, _d_real value, Type* type);
-    _d_real toImaginary() override;
     void accept(Visitor* v) override;
 };
 
