@@ -470,15 +470,9 @@ assert(b == [1, 2, 3, 4]); // concatenate two arrays
 ---
 )
 
-        $(P Many languages overload the `+` operator for concatenation.
-        This confusingly leads to a dilemma - does:
-        )
-
----------
-"10" + 3 + 4
----------
-
-        $(P produce the number `17`, the string `"1034"` or the string `"107"` as the
+        $(RATIONALE Many languages overload the `+` operator for concatenation.
+        This confusingly leads to a dilemma - does `"10" + 3 + 4`
+        produce the number `17`, the string `"1034"` or the string `"107"` as the
         result? It isn't obvious, and the language designers wind up carefully
         writing rules to disambiguate it - rules that get incorrectly
         implemented, overlooked, forgotten, and ignored. It's much better to
