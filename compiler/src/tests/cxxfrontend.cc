@@ -633,7 +633,7 @@ public:
     }
     void visit(TypeSArray *t) override
     {
-        if (t->dim->isConst() && t->dim->type->isIntegral())
+        if (t->dim->isConst() && dmd::isIntegral(t->dim->type))
         {
             (void)dmd::toUInteger(t->dim);
             t->next->accept(this);
