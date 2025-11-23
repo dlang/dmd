@@ -995,6 +995,12 @@ Type makeSharedWildConst(Type type)
     return dmd.typesem.makeSharedWildConst(type);
 }
 
+bool isIntegral(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isIntegral(type);
+}
+
 /***********************************************************
  * typinf.d
  */
