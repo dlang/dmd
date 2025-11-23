@@ -77,6 +77,15 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+bool isReal(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.real_) != 0;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isReal();
+    return false;
+}
+
 // real, imaginary, or complex
 bool isFloating(Type _this)
 {

@@ -632,11 +632,6 @@ extern (C++) abstract class Type : ASTNode
         return buf.extractChars();
     }
 
-    bool isReal()
-    {
-        return false;
-    }
-
     bool isImaginary()
     {
         return false;
@@ -1629,11 +1624,6 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override bool isReal()
-    {
-        return (flags & TFlags.real_) != 0;
-    }
-
     override bool isImaginary()
     {
         return (flags & TFlags.imaginary) != 0;
@@ -2602,11 +2592,6 @@ extern (C++) final class TypeEnum : Type
     override TypeEnum syntaxCopy()
     {
         return this;
-    }
-
-    override bool isReal()
-    {
-        return this.memType().isReal();
     }
 
     override bool isImaginary()
