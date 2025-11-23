@@ -51,7 +51,7 @@ import dmd.root.utf;
 import dmd.statement;
 import dmd.semantic2 : findFunc;
 import dmd.tokens;
-import dmd.typesem : mutableOf, equivalent, pointerTo, sarrayOf, arrayOf, size, merge, defaultInitLiteral, isIntegral;
+import dmd.typesem;
 import dmd.utils : arrayCastBigEndian;
 import dmd.visitor;
 
