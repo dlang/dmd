@@ -1808,16 +1808,15 @@ L1:
 ---
 )
 
-$(P The second form, $(CODE goto default;), transfers to the innermost $(GLINK
+$(P The second form, $(GRAMMAR_INLINE `goto default`;), transfers to the innermost $(GLINK
 DefaultStatement) of an enclosing $(GLINK SwitchStatement).)
 
-        $(P The third form, $(CODE goto case;), transfers to the
+        $(P The third form, $(GRAMMAR_INLINE `goto case`;), transfers to the
         next $(GLINK CaseStatement) of the innermost enclosing
         $(GLINK SwitchStatement).)
 
-        $(P The fourth form, $(CODE goto case) *Expression*$(D ;), transfers to the
-        $(GLINK CaseStatement) of the innermost enclosing
-        $(GLINK SwitchStatement)
+        $(P The fourth form, $(GRAMMAR_INLINE `goto case` *Expression*;), transfers to the
+        $(GLINK CaseStatement) of the innermost enclosing $(GLINK SwitchStatement)
         with a matching *Expression*.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -1842,7 +1841,7 @@ switch (x)
 ---
 )
 
-$(P Any intervening finally clauses are executed, along with releasing any
+$(P Any intervening `finally` clauses are executed, along with releasing any
 intervening synchronization mutexes.)
 
         $(P It is illegal for a $(I GotoStatement) to be used to skip
@@ -1850,7 +1849,7 @@ intervening synchronization mutexes.)
 
         $(BEST_PRACTICE Prefer using a higher-level control-flow construct
         or a labelled $(GLINK BreakStatement)/$(GLINK ContinueStatement)
-        rather than the $(GRAMMAR_INLINE *`goto` Identifier;*) form.)
+        rather than the $(GRAMMAR_INLINE `goto` *Identifier*;) form.)
 
 
 $(H2 $(LEGACY_LNAME2 WithStatement, with-statement, With Statement))

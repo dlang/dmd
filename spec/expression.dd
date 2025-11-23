@@ -1911,7 +1911,7 @@ $(GNAME Slice):
         The special variable `$` is declared and set to be the number
         of elements in the $(I PostfixExpression) (when available).
         A new declaration scope is created for the evaluation of the
-        $(GRAMMAR_INLINE *AssignExpression* .. *AssignExpression*) and `$` appears in
+        $(GRAMMAR_INLINE *AssignExpression* `..` *AssignExpression*) and `$` appears in
         that scope only.
     )
 
