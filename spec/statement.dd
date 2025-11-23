@@ -1861,21 +1861,16 @@ $(GRAMMAR
 $(GNAME WithStatement):
     $(D with) $(D $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
     $(D with) $(D $(LPAREN)) $(GLINK2 template, Symbol) $(D $(RPAREN)) $(PSSCOPE)
-    $(D with) $(D $(LPAREN)) $(GLINK2 template, TemplateInstance) $(D $(RPAREN)) $(PSSCOPE)
 )
 
-        where *Expression* evaluates to one of:
+        $(P *Expression* must be a
+        $(DDSUBLINK spec/type, user-defined-types, user-defined type) instance,
+        or a pointer to a user-defined type instance.)
 
-        $(UL
-        $(LI a class reference)
-        $(LI a struct instance)
-        $(LI an enum instance)
-        $(LI a pointer to one of the above)
-        )
+        $(P Within the *ScopeStatement* the referenced expression/symbol is searched first for
+        identifier symbols.)
 
-        Within the with body the referenced object is searched first for
-        identifier symbols.
-
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 enum E { A, B }
 
@@ -1891,11 +1886,12 @@ void test(E e)
     }
 }
 ---
+)
 
-$(P Below, if `ident` is a member of the type of `expression`, the $(I WithStatement):)
+$(P Below, if `ident` is a member of the type of `expr`, the $(I WithStatement):)
 
 ---
-with (expression)
+with (expr)
 {
     ...
     ident;
@@ -1905,20 +1901,19 @@ with (expression)
         is semantically equivalent to:
 
 --------------
-(auto ref tmp)
 {
+    auto ref tmp = expr;
     ...
     tmp.ident;
-}(expression);
+}
 --------------
 
         $(P Note that *Expression* only gets evaluated once and is not copied.
-        The with statement does not change what $(D this) or
+        The `with` statement does not change what $(D this) or
         $(D super) refer to.
         )
 
-        $(P For $(I Symbol) which is a scope or $(I TemplateInstance),
-        the corresponding scope is searched when looking up symbols.
+        $(P For a $(I Symbol) argument, the corresponding scope is searched when looking up symbols.
         For example:
         )
 
@@ -1937,9 +1932,11 @@ with (Foo)
 
         $(P Use of `with` object symbols that shadow local symbols with
         the same identifier are not allowed.
-        This is to reduce the risk of inadvertent breakage of with
+        This is to reduce the risk of inadvertent breakage of `with`
         statements when new members are added to the object declaration.
         )
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 struct S
 {
@@ -1956,7 +1953,7 @@ void main()
     }
 }
 ---
-
+)
         $(P In nested $(I WithStatement)s, the inner-most scope takes precedence.  If
         a symbol cannot be resolved at the inner-most scope, resolution is forwarded
         incrementally up the scope hierarchy.)
