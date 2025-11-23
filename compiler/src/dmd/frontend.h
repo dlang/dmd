@@ -429,8 +429,8 @@ enum class PASS : uint8_t
     semantic2done = 4u,
     semantic3 = 5u,
     semantic3done = 6u,
-    inline_ = 7u,
-    inlinedone = 8u,
+    inlinePragma = 7u,
+    inlineAll = 8u,
     obj = 9u,
 };
 
