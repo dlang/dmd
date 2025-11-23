@@ -77,6 +77,17 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+bool isIntegral(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.integral) != 0;
+    else if (auto tv = _this.isTypeVector())
+        return tv.basetype.nextOf().isIntegral();
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isIntegral();
+    return false;
+}
+
 Type makeSharedWildConst(Type _this)
 {
     if (_this.mcache && _this.mcache.swcto)

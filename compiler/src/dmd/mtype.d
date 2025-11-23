@@ -632,11 +632,6 @@ extern (C++) abstract class Type : ASTNode
         return buf.extractChars();
     }
 
-    bool isIntegral()
-    {
-        return false;
-    }
-
     // real, imaginary, or complex
     bool isFloating()
     {
@@ -1640,12 +1635,6 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override bool isIntegral()
-    {
-        //printf("TypeBasic::isIntegral('%s') x%x\n", toChars(), flags);
-        return (flags & TFlags.integral) != 0;
-    }
-
     override bool isFloating()
     {
         return (flags & TFlags.floating) != 0;
@@ -1717,12 +1706,6 @@ extern (C++) final class TypeVector : Type
     override TypeVector syntaxCopy()
     {
         return new TypeVector(basetype.syntaxCopy());
-    }
-
-    override bool isIntegral()
-    {
-        //printf("TypeVector::isIntegral('%s') x%x\n", toChars(), flags);
-        return basetype.nextOf().isIntegral();
     }
 
     override bool isFloating()
@@ -2635,11 +2618,6 @@ extern (C++) final class TypeEnum : Type
     override TypeEnum syntaxCopy()
     {
         return this;
-    }
-
-    override bool isIntegral()
-    {
-        return this.memType().isIntegral();
     }
 
     override bool isFloating()
