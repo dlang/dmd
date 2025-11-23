@@ -632,12 +632,6 @@ extern (C++) abstract class Type : ASTNode
         return buf.extractChars();
     }
 
-    // real, imaginary, or complex
-    bool isFloating()
-    {
-        return false;
-    }
-
     bool isReal()
     {
         return false;
@@ -1635,11 +1629,6 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override bool isFloating()
-    {
-        return (flags & TFlags.floating) != 0;
-    }
-
     override bool isReal()
     {
         return (flags & TFlags.real_) != 0;
@@ -1706,11 +1695,6 @@ extern (C++) final class TypeVector : Type
     override TypeVector syntaxCopy()
     {
         return new TypeVector(basetype.syntaxCopy());
-    }
-
-    override bool isFloating()
-    {
-        return basetype.nextOf().isFloating();
     }
 
     override bool isScalar()
@@ -2618,11 +2602,6 @@ extern (C++) final class TypeEnum : Type
     override TypeEnum syntaxCopy()
     {
         return this;
-    }
-
-    override bool isFloating()
-    {
-        return this.memType().isFloating();
     }
 
     override bool isReal()
