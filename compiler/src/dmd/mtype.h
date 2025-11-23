@@ -665,7 +665,6 @@ public:
 
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
-    bool isIntegral() override;
     bool isFloating() override;
     bool isReal() override;
     bool isImaginary() override;
