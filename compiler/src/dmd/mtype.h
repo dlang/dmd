@@ -228,8 +228,6 @@ public:
     void modToBuffer(OutBuffer& buf) const;
     char *modToChars() const;
 
-    virtual bool isFloating();   // real, imaginary, or complex
-    virtual bool isReal();
     virtual bool isImaginary();
     virtual bool isComplex();
     virtual bool isScalar();
@@ -321,8 +319,6 @@ public:
 
     const char *kind() override;
     TypeBasic *syntaxCopy() override;
-    bool isFloating() override;
-    bool isReal() override;
     bool isImaginary() override;
     bool isComplex() override;
     bool isScalar() override;
@@ -341,7 +337,6 @@ public:
     static TypeVector *create(Type *basetype);
     const char *kind() override;
     TypeVector *syntaxCopy() override;
-    bool isFloating() override;
     bool isScalar() override;
     bool isUnsigned() override;
     bool isBoolean() override;
@@ -665,8 +660,6 @@ public:
 
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
-    bool isFloating() override;
-    bool isReal() override;
     bool isImaginary() override;
     bool isComplex() override;
     bool isScalar() override;
@@ -812,4 +805,6 @@ namespace dmd
     Type *makeSharedWild(Type* type);
     Type *makeSharedWildConst(Type* type);
     bool isIntegral(Type* type);
+    bool isFloating(Type* type);
+    bool isReal(Type* type);
 }

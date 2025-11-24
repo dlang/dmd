@@ -2070,8 +2070,6 @@ public:
     static void deinitialize();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
-    virtual bool isFloating();
-    virtual bool isReal();
     virtual bool isImaginary();
     virtual bool isComplex();
     virtual bool isScalar();
@@ -4389,8 +4387,6 @@ public:
     uint32_t flags;
     const char* kind() const override;
     TypeBasic* syntaxCopy() override;
-    bool isFloating() override;
-    bool isReal() override;
     bool isImaginary() override;
     bool isComplex() override;
     bool isScalar() override;
@@ -4450,8 +4446,6 @@ public:
     EnumDeclaration* sym;
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
-    bool isFloating() override;
-    bool isReal() override;
     bool isImaginary() override;
     bool isComplex() override;
     bool isScalar() override;
@@ -4779,7 +4773,6 @@ public:
     static TypeVector* create(Type* basetype);
     const char* kind() const override;
     TypeVector* syntaxCopy() override;
-    bool isFloating() override;
     bool isScalar() override;
     bool isUnsigned() override;
     bool isBoolean() override;

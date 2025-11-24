@@ -1007,6 +1007,18 @@ bool isIntegral(Type type)
     return dmd.typesem.isIntegral(type);
 }
 
+bool isFloating(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isFloating(type);
+}
+
+bool isReal(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isReal(type);
+}
+
 /***********************************************************
  * typinf.d
  */
