@@ -354,6 +354,11 @@ void printTemplateStats(bool listInstances, ErrorSink eSink)
     return dmd.dtemplate.printTemplateStats(listInstances, eSink);
 }
 
+void printInstantiationTrace(TemplateInstance ti)
+{
+    return ti.printInstantiationTrace();
+}
+
 /***********************************************************
  * dtoh.d
  */
