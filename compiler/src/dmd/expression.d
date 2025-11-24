@@ -509,8 +509,9 @@ extern (C++) final class IntegerExp : Expression
     extern (D) this(Loc loc, dinteger_t value, Type type)
     {
         super(loc, EXP.int64);
+        assert(type);
         this.type = type;
-        this.value = value;
+        this.value = cast(int)value;
     }
 
     extern (D) this(dinteger_t value)

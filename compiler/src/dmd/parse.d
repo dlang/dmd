@@ -8190,22 +8190,22 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             break;
 
         case TOK.int32Literal:
-            e = new AST.IntegerExp(loc, token.intvalue, AST.Type.tint32);
+            e = AST.newIntegerExp(loc, token.intvalue, AST.Type.tint32);
             nextToken();
             break;
 
         case TOK.uns32Literal:
-            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tuns32);
+            e = AST.newIntegerExp(loc, token.unsvalue, AST.Type.tuns32);
             nextToken();
             break;
 
         case TOK.int64Literal:
-            e = new AST.IntegerExp(loc, token.intvalue, AST.Type.tint64);
+            e = AST.newIntegerExp(loc, token.intvalue, AST.Type.tint64);
             nextToken();
             break;
 
         case TOK.uns64Literal:
-            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tuns64);
+            e = AST.newIntegerExp(loc, token.unsvalue, AST.Type.tuns64);
             nextToken();
             break;
 
@@ -8273,27 +8273,27 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             break;
 
         case TOK.true_:
-            e = new AST.IntegerExp(loc, 1, AST.Type.tbool);
+            e = AST.newIntegerExp(loc, 1, AST.Type.tbool);
             nextToken();
             break;
 
         case TOK.false_:
-            e = new AST.IntegerExp(loc, 0, AST.Type.tbool);
+            e = AST.newIntegerExp(loc, 0, AST.Type.tbool);
             nextToken();
             break;
 
         case TOK.charLiteral:
-            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tchar);
+            e = AST.newIntegerExp(loc, token.unsvalue, AST.Type.tchar);
             nextToken();
             break;
 
         case TOK.wcharLiteral:
-            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.twchar);
+            e = AST.newIntegerExp(loc, token.unsvalue, AST.Type.twchar);
             nextToken();
             break;
 
         case TOK.dcharLiteral:
-            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tdchar);
+            e = AST.newIntegerExp(loc, token.unsvalue, AST.Type.tdchar);
             nextToken();
             break;
 

@@ -137,8 +137,7 @@ IntegerExp newIntegerExp(Loc loc, dinteger_t value, Type type)
 
 IntegerExp newIntegerExp(dinteger_t value)
 {
-    auto exp = new IntegerExp(value);
-    return exp;
+    return new IntegerExp(value);
 }
 
 void setInteger(IntegerExp _this, dinteger_t value)
