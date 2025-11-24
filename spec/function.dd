@@ -547,14 +547,19 @@ $(H4 $(LNAME2 pure-debug, Debugging))
         }
         ---
 
-$(H4 $(LNAME2 pure-nested, Nested Functions))
+$(H3 $(LNAME2 pure-nested, Nested Functions))
 
         $(P $(RELATIVE_LINK2 nested, Nested functions) inside a pure function are implicitly marked as pure.)
 
+        $(P A non-static pure nested function can access (and sometimes mutate) data
+        through its context pointer:)
+
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        pure int foo(int x, immutable int y)
+        pure int foo()
         {
+            int x = 5;
+
             int bar()
             // implicitly marked as pure, to be "weakly pure"
             // since hidden context pointer to foo stack context is mutable
@@ -565,20 +570,17 @@ $(H4 $(LNAME2 pure-nested, Nested Functions))
             }
             pragma(msg, typeof(&bar));  // int delegate() pure
 
-            int baz() immutable
-            // qualifies hidden context pointer with immutable,
-            // and has no other parameters, therefore "strongly pure"
-            {
-                //return x; // error, cannot access mutable data
-                            // through the immutable context pointer
-                return y;   // ok
-            }
-
-            // can call pure nested functions
-            return bar() + baz();
+            bar();
+            return x;
         }
+
+        static assert(foo() == 10);
         ---
         )
+
+        $(NOTE $(RELATIVE_LINK2 nested-qualifiers, Qualifying) a nested function
+        as `immutable` prevents access to mutable data through its context pointer.
+        An immutable pure nested function is strongly pure.)
 
 $(H3 $(LNAME2 pure-factory-functions, Pure Factory Functions))
 
@@ -3146,6 +3148,33 @@ struct Foo
 
         $(P Nested functions always have the D function linkage type.
         )
+
+$(H3 $(LNAME2 nested-qualifiers, Nested Functions with Method Attributes))
+
+        $(P A non-static nested function can have $(GLINK MemberFunctionAttributes).
+        Method attributes (other than the normal $(GLINK FunctionAttributes)) affect
+        the context pointer:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+void test(int x, immutable int y)
+{
+    int foo() // hidden context pointer is mutable
+    {
+        x = 10;     // can access data in enclosing scope
+                    // through the mutable context pointer
+        return x;
+    }
+
+    int bar() immutable // hidden context pointer is immutable
+    {
+        //return x; // error, cannot access nested data
+                    // through the immutable context pointer
+        return y;   // OK, `y` is immutable
+    }
+}
+---
+)
 
 $(H3 $(LNAME2 nested-declaration-order, Declaration Order))
 

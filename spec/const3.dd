@@ -393,6 +393,9 @@ struct S
 }
 ---
 
+        $(P **See also:** $(DDSUBLINK spec/function, nested-qualifiers,
+        Nested Functions with Method Attributes).)
+
 
 $(H2 $(LNAME2 const_type, Const Type))
 
