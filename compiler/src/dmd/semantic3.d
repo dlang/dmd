@@ -1631,6 +1631,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
             return new DotTemplateInstanceExp(loc, id, hook, tiargs);
         }
 
+        void notTemplateFunction(Loc loc, Identifier id)
+        {
+            error(loc, "`%s` isn't a template function", id.toChars());
+        }
+
         // generate ti.entry
         auto tempinst = makeDotExp(Id.Entry);
         auto e = expressionSemantic(tempinst, sc2);
@@ -1645,25 +1650,35 @@ private extern(C++) final class Semantic3Visitor : Visitor
         semanticTypeInfo(sc2, ti.entry); // might get deferred
 
         // generate ti.xtoHash
-        auto hashinst = makeDotExp(Identifier.idPool("aaGetHash"));
+        auto aaGetHash = Identifier.idPool("aaGetHash");
+        auto hashinst = makeDotExp(aaGetHash);
         e = expressionSemantic(hashinst, sc2);
         if (!e.isErrorExp())
         {
-            assert(e.isVarExp() && e.type.isTypeFunction());
-            ti.xtoHash = e.isVarExp().var;
-            if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
-                tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+            if (!e.isVarExp() || !e.type.isTypeFunction())
+                notTemplateFunction(e.loc, aaGetHash);
+            else
+            {
+                ti.xtoHash = e.isVarExp().var;
+                if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
+                    tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+            }
         }
 
         // generate ti.xopEqual
-        auto equalinst = makeDotExp(Identifier.idPool("aaOpEqual"));
+        auto aaOpEqual = Identifier.idPool("aaOpEqual");
+        auto equalinst = makeDotExp(aaOpEqual);
         e = expressionSemantic(equalinst, sc2);
         if (!e.isErrorExp())
         {
-            assert(e.isVarExp() && e.type.isTypeFunction());
-            ti.xopEqual = e.isVarExp().var;
-            if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
-                tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+            if (!e.isVarExp() || !e.type.isTypeFunction())
+                notTemplateFunction(e.loc, aaOpEqual);
+            else
+            {
+                ti.xopEqual = e.isVarExp().var;
+                if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
+                    tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+            }
         }
         visit(cast(ASTCodegen.TypeInfoDeclaration)ti);
     }
