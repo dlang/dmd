@@ -4779,7 +4779,7 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                     }
                     else if (TypeAArray taa = tb.isTypeAArray())
                     {
-                        Expression dim = new IntegerExp(instLoc, fargs.length - argi, Type.tsize_t);
+                        Expression dim = newIntegerExp(instLoc, fargs.length - argi, Type.tsize_t);
 
                         size_t i = templateParameterLookup(taa.index, td.parameters);
                         if (i == IDX_NOTFOUND)

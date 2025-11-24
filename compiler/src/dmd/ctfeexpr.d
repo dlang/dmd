@@ -109,6 +109,9 @@ void emplaceExp(T : Expression, Args...)(void* p, Args args)
         const init = __traits(initSymbol, T);
     p[0 .. __traits(classInstanceSize, T)] = init[];
     (cast(T)p).__ctor(args);
+
+    static if (is( T ==  IntegerExp) && args.length == 3)
+        (cast(T)p).integerExpConstruct(args);
 }
 
 void emplaceExp(T : UnionExp)(T* p, Expression e) nothrow

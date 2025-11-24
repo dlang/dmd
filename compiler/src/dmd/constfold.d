@@ -1295,7 +1295,7 @@ void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, const StringE
     foreach (j; 0 .. len)
     {
         const val = newval.getIndex(j);
-        (*existingAE.elements)[j + firstIndex] = new IntegerExp(newval.loc, val, elemType);
+        (*existingAE.elements)[j + firstIndex] = newIntegerExp(newval.loc, val, elemType);
     }
 }
 

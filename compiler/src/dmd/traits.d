@@ -308,9 +308,9 @@ private Expression pointerBitmap(TraitsExp e, ErrorSink eSink)
         return ErrorExp.get();
 
     auto exps = new Expressions(data.length + 1);
-    (*exps)[0] = new IntegerExp(e.loc, sz, Type.tsize_t);       // [0] is size in bytes of t
+    (*exps)[0] = newIntegerExp(e.loc, sz, Type.tsize_t);       // [0] is size in bytes of t
     foreach (size_t i; 1 .. exps.length)
-        (*exps)[i] = new IntegerExp(e.loc, data[cast(size_t) (i - 1)], Type.tsize_t);
+        (*exps)[i] = newIntegerExp(e.loc, data[cast(size_t) (i - 1)], Type.tsize_t);
 
     auto ale = new ArrayLiteralExp(e.loc, Type.tsize_t.sarrayOf(data.length + 1), exps);
     return ale;
@@ -834,7 +834,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             bitOffset  = 0;
         }
         uint value = e.ident == Id.getBitfieldOffset ? bitOffset : fieldWidth;
-        return new IntegerExp(e.loc, value, Type.tuns32);
+        return newIntegerExp(e.loc, value, Type.tuns32);
     }
     if (e.ident == Id.getProtection || e.ident == Id.getVisibility)
     {
@@ -1275,7 +1275,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
-        return new IntegerExp(e.loc, e.ident == Id.classInstanceSize ? cd.structsize : cd.alignsize, Type.tsize_t);
+        return newIntegerExp(e.loc, e.ident == Id.classInstanceSize ? cd.structsize : cd.alignsize, Type.tsize_t);
     }
     if (e.ident == Id.getAliasThis)
     {
@@ -1963,7 +1963,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         fd = fd.toAliasFunc(); // Necessary to support multiple overloads.
-        return new IntegerExp(e.loc, fd.vtblIndex, Type.tptrdiff_t);
+        return newIntegerExp(e.loc, fd.vtblIndex, Type.tptrdiff_t);
     }
     if (e.ident == Id.getPointerBitmap)
     {
@@ -2070,8 +2070,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto exps = new Expressions(3);
         (*exps)[0] = new StringExp(e.loc, s.loc.filename.toDString());
-        (*exps)[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
-        (*exps)[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
+        (*exps)[1] = newIntegerExp(e.loc, s.loc.linnum,Type.tint32);
+        (*exps)[2] = newIntegerExp(e.loc, s.loc.charnum,Type.tint32);
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }

@@ -3260,7 +3260,7 @@ Expression scaleFactor(BinExp be, Scope* sc)
         if (!t.equals(t2b))
             be.e2 = be.e2.castTo(sc, t);
         eoff = be.e2;
-        be.e2 = new MulExp(be.loc, be.e2, new IntegerExp(Loc.initial, stride, t));
+        be.e2 = new MulExp(be.loc, be.e2, newIntegerExp(Loc.initial, stride, t));
         be.e2.type = t;
         be.type = be.e1.type;
     }
@@ -3277,7 +3277,7 @@ Expression scaleFactor(BinExp be, Scope* sc)
         else
             e = be.e1;
         eoff = e;
-        e = new MulExp(be.loc, e, new IntegerExp(Loc.initial, stride, t));
+        e = new MulExp(be.loc, e, newIntegerExp(Loc.initial, stride, t));
         e.type = t;
         be.type = be.e2.type;
         be.e1 = be.e2;

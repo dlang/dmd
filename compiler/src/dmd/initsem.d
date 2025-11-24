@@ -313,7 +313,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             {
                 // Change to array of known length
                 auto tn = tsa.next.toBasetype();
-                tsa = new TypeSArray(tn, new IntegerExp(Loc.initial, i.dim, Type.tsize_t));
+                tsa = new TypeSArray(tn, newIntegerExp(Loc.initial, i.dim, Type.tsize_t));
                 tx = tsa;      // rewrite caller's type
                 i.type = tsa;  // remember for later passes
             }
@@ -474,7 +474,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             tb.isTypeSArray() && tb.isTypeSArray().isIncomplete())
         {
             StringExp se = i.exp.isStringExp();
-            auto ts = new TypeSArray(tb.nextOf(), new IntegerExp(Loc.initial, se.len + 1, Type.tsize_t));
+            auto ts = new TypeSArray(tb.nextOf(), newIntegerExp(Loc.initial, se.len + 1, Type.tsize_t));
             t = typeSemantic(ts, Loc.initial, sc);
             i.exp.type = t;
             tx = t;

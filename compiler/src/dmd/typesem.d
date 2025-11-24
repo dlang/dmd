@@ -4230,14 +4230,14 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
             const sz = mt.size(loc);
             if (sz == SIZE_INVALID)
                 return ErrorExp.get();
-            return new IntegerExp(loc, sz, Type.tsize_t);
+            return newIntegerExp(loc, sz, Type.tsize_t);
         }
         else if (ident == Id.__xalignof)
         {
             const explicitAlignment = mt.alignment();
             const naturalAlignment = mt.alignsize();
             const actualAlignment = (explicitAlignment.isDefault() ? naturalAlignment : explicitAlignment.get());
-            return new IntegerExp(loc, actualAlignment, Type.tsize_t);
+            return newIntegerExp(loc, actualAlignment, Type.tsize_t);
         }
         else if (ident == Id._init)
         {
@@ -4366,12 +4366,12 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
     {
         Expression integerValue(dinteger_t i)
         {
-            return new IntegerExp(loc, i, mt);
+            return newIntegerExp(loc, i, mt);
         }
 
         Expression intValue(dinteger_t i)
         {
-            return new IntegerExp(loc, i, Type.tint32);
+            return newIntegerExp(loc, i, Type.tint32);
         }
 
         Expression floatValue(real_t r)
@@ -4637,7 +4637,7 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
         }
         if (ident == Id.length)
         {
-            e = new IntegerExp(loc, mt.arguments.length, Type.tsize_t);
+            e = newIntegerExp(loc, mt.arguments.length, Type.tsize_t);
         }
         else if (ident == Id._init)
         {
@@ -5403,7 +5403,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                         else
                             error(v.loc, "`%s` is not a bitfield, cannot apply `%s`", v.toChars(), ident.toChars());
                     }
-                    return new IntegerExp(e.loc, value, Type.tsize_t);
+                    return newIntegerExp(e.loc, value, Type.tsize_t);
                 }
             }
             else if (ident == Id._init)
@@ -5652,7 +5652,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 auto exps = new Expressions();
                 exps.reserve(length);
                 foreach (i; 0 .. length)
-                    exps.push(new IndexExp(e.loc, ev, new IntegerExp(e.loc, i, Type.tsize_t)));
+                    exps.push(new IndexExp(e.loc, ev, newIntegerExp(e.loc, i, Type.tsize_t)));
                 e = new TupleExp(e.loc, e0, exps);
             }
         }
@@ -5681,11 +5681,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             if (e.op == EXP.string_)
             {
                 StringExp se = cast(StringExp)e;
-                return new IntegerExp(se.loc, se.len, Type.tsize_t);
+                return newIntegerExp(se.loc, se.len, Type.tsize_t);
             }
             if (e.op == EXP.null_)
             {
-                return new IntegerExp(e.loc, 0, Type.tsize_t);
+                return newIntegerExp(e.loc, 0, Type.tsize_t);
             }
             if (checkNonAssignmentArrayOp(e))
             {
@@ -6831,7 +6831,7 @@ Expression defaultInit(Type mt, Loc loc, const bool isCfile = false)
         default:
             break;
         }
-        return new IntegerExp(loc, value, mt);
+        return newIntegerExp(loc, value, mt);
     }
 
     Expression visitVector(TypeVector mt)
@@ -7656,7 +7656,7 @@ Type referenceTo(Type type)
 Type sarrayOf(Type type, dinteger_t dim)
 {
     assert(type.deco);
-    Type t = new TypeSArray(type, new IntegerExp(Loc.initial, dim, Type.tsize_t));
+    Type t = new TypeSArray(type, newIntegerExp(Loc.initial, dim, Type.tsize_t));
     // according to TypeSArray.semantic()
     t = t.addMod(type.mod);
     t = t.merge();
