@@ -385,8 +385,8 @@ class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
     Type* entry;
-    Dsymbol* xopEqual;
-    Dsymbol* xtoHash;
+    Declaration* xopEqual;
+    Declaration* xtoHash;
 
     static TypeInfoAssociativeArrayDeclaration *create(Type *tinfo);
 
