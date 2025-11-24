@@ -509,17 +509,8 @@ extern (C++) final class IntegerExp : Expression
     extern (D) this(Loc loc, dinteger_t value, Type type)
     {
         super(loc, EXP.int64);
-        //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type.toChars() : "");
-        assert(type);
-        if (!type.isScalar())
-        {
-            //printf("%s, loc = %d\n", toChars(), loc.linnum);
-            if (type.ty != Terror)
-                error(loc, "integral constant must be scalar type, not `%s`", type.toChars());
-            type = Type.terror;
-        }
         this.type = type;
-        this.value = normalize(type.toBasetype().ty, value);
+        this.value = value;
     }
 
     extern (D) this(dinteger_t value)
@@ -542,65 +533,6 @@ extern (C++) final class IntegerExp : Expression
     dinteger_t getInteger()
     {
         return value;
-    }
-
-    extern (D) void setInteger(dinteger_t value)
-    {
-        this.value = normalize(type.toBasetype().ty, value);
-    }
-
-    extern (D) static dinteger_t normalize(TY ty, dinteger_t value)
-    {
-        /* 'Normalize' the value of the integer to be in range of the type
-         */
-        dinteger_t result;
-        if (ty == Tpointer)
-            ty = Type.tsize_t.ty;
-        switch (ty)
-        {
-        case Tbool:
-            result = (value != 0);
-            break;
-
-        case Tint8:
-            result = cast(byte)value;
-            break;
-
-        case Tchar:
-        case Tuns8:
-            result = cast(ubyte)value;
-            break;
-
-        case Tint16:
-            result = cast(short)value;
-            break;
-
-        case Twchar:
-        case Tuns16:
-            result = cast(ushort)value;
-            break;
-
-        case Tint32:
-            result = cast(int)value;
-            break;
-
-        case Tdchar:
-        case Tuns32:
-            result = cast(uint)value;
-            break;
-
-        case Tint64:
-            result = cast(long)value;
-            break;
-
-        case Tuns64:
-            result = cast(ulong)value;
-            break;
-
-        default:
-            break;
-        }
-        return result;
     }
 
     override IntegerExp syntaxCopy()
