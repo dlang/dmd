@@ -12,7 +12,6 @@ enum SpecialFunc
 enum SpecialInit
 {
     none,
-    char_,
     expression,
     staticArray
 }
@@ -22,7 +21,6 @@ mixin template Field(size_t size, SpecialInit init_)
     static if (size == 1)
     {
         static if (init_ == SpecialInit.none)              ubyte var;
-        else static if (init_ == SpecialInit.char_)        char var;
         else static if (init_ == SpecialInit.expression)   ubyte var = 0x1a;
         else static if (init_ == SpecialInit.staticArray)  ubyte[1] var = [0xcc];
         else static assert(0);
@@ -30,7 +28,6 @@ mixin template Field(size_t size, SpecialInit init_)
     else static if (size == 2)
     {
         static if (init_ == SpecialInit.none)              ushort var;
-        else static if (init_ == SpecialInit.char_)        char[2] var;
         else static if (init_ == SpecialInit.expression)   ushort var = 0x1a1b;
         else static if (init_ == SpecialInit.staticArray)  ubyte[2] var = [0xcc, 0xcd];
         else static assert(0);
@@ -38,7 +35,6 @@ mixin template Field(size_t size, SpecialInit init_)
     else static if (size == 4)
     {
         static if (init_ == SpecialInit.none)              uint var;
-        else static if (init_ == SpecialInit.char_)        char[4] var;
         else static if (init_ == SpecialInit.expression)   uint var = 0x1a1b1c1d;
         else static if (init_ == SpecialInit.staticArray)  ubyte[4] var = [0xcc, 0xcd, 0xce, 0xcf];
         else static assert(0);
@@ -46,7 +42,6 @@ mixin template Field(size_t size, SpecialInit init_)
     else static if (size == 8)
     {
         static if (init_ == SpecialInit.none)              ulong var;
-        else static if (init_ == SpecialInit.char_)        char[8] var;
         else static if (init_ == SpecialInit.expression)   ulong var = 0x1a1b1c1d1e1f2021L;
         else static if (init_ == SpecialInit.staticArray)  ubyte[8] var = [0xcc, 0xcd, 0xce, 0xcf, 0xd0, 0xd1, 0xd2, 0xd3];
         else static assert(0);
@@ -57,10 +52,7 @@ mixin template Field(size_t size, SpecialInit init_)
         else                                               string var = "test";
     }
     else static if (size == 32)
-    {
-        static if (init_ == SpecialInit.char_)             char[32] var;
-        else                                               ubyte[32] var = 0x31;
-    }
+                                                           ubyte[32] var = 0x31;
     else static assert(0);
 }
 
@@ -181,11 +173,11 @@ struct Struct(size_t size, SpecialFunc func, SpecialInit init_)
     }
 }
 
-R testArgument(R, T)(T rv, inout(T*) orig = null)
+T testArgument(T)(T v, inout(T*) check)
 {
-    assert(!orig || rv == *orig);
-    rv = T.init;
-    return rv;
+    assert(v == *check);
+    v = T.init;
+    return v;
 }
 
 pragma(inline, false)
@@ -200,26 +192,33 @@ void testType(S)()
         S s;
     }
 
-    S s2 = s;
+    S sCopy = s;
+    S sInit;
+    ref S sRef = s;
 
-    assert(testArgument!(S, S)(S.init) == S.init);
+    S sEmpty() { return S(); }
+    S sGetter() { return s; }
+    ref S sRefGetter() { return s; }
+
+    assert(testArgument(S.init, &sInit) == S.init);
+    assert(testArgument(sEmpty(), &sInit) == S.init);
+    assert(testArgument(s, &sCopy) == S.init);
+    assert(testArgument(sRef, &sCopy) == S.init);
+    assert(testArgument(sGetter(), &sCopy) == S.init);
+    assert(testArgument(sRefGetter(), &sCopy) == S.init);
 
     static if (S.hasCtor)
-        assert(testArgument!(S, S)(S(0), &s2) == S.init);
-
-    assert(testArgument!(S, S)(s, &s2) == S.init);
-    assert(s == s2);
-    assert(testArgument!(const(S), S)(s, &s2) == S.init);
-    assert(s == s2);
-
-    static if (S.hasCtor)
+    {
+        S sCtor() { return S(0); }
+        assert(testArgument(S(0), &sCopy) == S.init);
+        assert(testArgument(sCtor(), &sCopy) == S.init);
         assert(s.special.var == 0x3a);
+    }
 }
 
 void main()
 {
-    // Skipped here but [0, 2, 3, 5, 64, 65] are also worth testing
-    enum size_t[] size = [1, 4, 8, 9, 16, 17, 32, 33];
+    enum size_t[] size = [1, 3, 4, 8, 9, 16, 17, 32, 33, 64, 65];
 
     // Skip less commonly used combinations to save some time
     enum SpecialFunc[] func = [
@@ -240,11 +239,7 @@ void main()
         // SpecialFunc.PostBlit | SpecialFunc.Dtor,
         SpecialFunc.Dtor];
 
-    enum SpecialInit[] init_ = [
-        SpecialInit.none,
-        SpecialInit.char_,
-        SpecialInit.expression,
-        SpecialInit.staticArray];
+    enum SpecialInit[] init_ = [SpecialInit.none, SpecialInit.expression, SpecialInit.staticArray];
 
     static foreach (i; size)
         static foreach (j; func)
