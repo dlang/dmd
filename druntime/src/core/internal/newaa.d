@@ -222,7 +222,8 @@ private:
         firstUsed = cast(uint) buckets.length;
 
         // only for binary compatibility
-        entryTI = typeid(Entry!(K, V));
+        version(D_TypeInfo)
+            entryTI = typeid(Entry!(K, V));
         hashFn = delegate size_t (scope ref const K key) nothrow pure @nogc @safe {
             return pure_hashOf!K(key);
         };
