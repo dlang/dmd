@@ -46,15 +46,22 @@ $(H2 $(LNAME2 immutable_storage_class, Immutable Storage Class))
 
         $(P
         The simplest immutable declarations use it as a storage class.
-        It can be used to declare manifest constants.
+        It can be used to declare a variable whose value never changes.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 immutable int x = 3;  // x is set to 3
-x = 4;        // error, x is immutable
-char[x] s;    // s is an array of 3 chars
----
+//x = 4;        // error, x is immutable
 
+// x is initialized by a compile-time constant,
+// and it doesn't change, so the compiler knows its value
+static assert(x == 3);
+
+char[x] s;
+static assert(s.length == 3);
+---
+)
         $(P The type can be inferred from the initializer:
         )
 ---
@@ -62,35 +69,45 @@ immutable y = 4; // y is of type int
 y = 5;           // error, y is immutable
 ---
 
-        $(P If the initializer is not present, the immutable can
-        be initialized from the corresponding constructor:
+        $(P If the initializer is not present, the immutable variable can
+        be initialized from the corresponding $(DDSUBLINK spec/module, staticorder,
+        shared static constructor):
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 immutable int z;
-void test()
+
+void main()
 {
-    z = 3; // error, z is immutable
+    assert(z == 3);
+    //z = 4; // error, z is immutable
 }
-static this()
+
+shared static this()
 {
-    z = 3; // ok, can set immutable that doesn't
-           // have static initializer
+    z = 3; // ok, can initialize immutable variable that doesn't
+           // have a static initializer
 }
 ---
+)
         $(P
-        The initializer for a non-local immutable declaration must be
-        evaluatable
-        at compile time:
+        The initializer for a non-$(DDSUBLINK spec/function, local-variables, local)/static
+        immutable declaration must be evaluatable at compile time:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
+immutable x = 3 * 4;
+static assert(x == 12);
+
 int foo(int f) { return f * 3; }
 int i = 5;
-immutable x = 3 * 4;      // ok, 12
-immutable y = i + 1;      // error, cannot evaluate at compile time
-immutable z = foo(2) + 1; // ok, foo(2) can be evaluated at compile time, 7
+//immutable y = i + 1;    // error, cannot evaluate `i` at compile time
+immutable z = foo(2) + 1; // ok, foo(2) can be evaluated at compile time
+static assert(z == 7);
 ---
+)
 
         $(P The initializer for a non-static local immutable declaration
         is evaluated at run time:
@@ -104,8 +121,8 @@ int foo(int f)
 ---
 
         $(P
-        Because immutable is transitive, data referred to by an immutable is
-        also immutable:
+        Because immutable is transitive, data referred to by an immutable
+        variable is also immutable:
         )
 
 ---
@@ -117,6 +134,8 @@ s = "bar";   // error, s is immutable
         $(P Immutable declarations can appear as lvalues, i.e. they can
         have their address taken, and occupy storage.
         )
+
+        $(P **See also:** $(DDSUBLINK spec/enum, manifest_constants, Manifest Constants).)
 
 $(H2 $(LNAME2 const_storage_class, Const Storage Class))
 
@@ -348,6 +367,7 @@ $(H2 $(LNAME2 immutable_member_functions, Immutable Member Functions))
         They are declared as:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 struct S
 {
@@ -355,11 +375,12 @@ struct S
 
     void foo() immutable
     {
-        x = 4;      // error, x is immutable
-        this.x = 4; // error, x is immutable
+        x = 4;      // error, `x` is immutable
+        this = S(); // error, `this` is immutable
     }
 }
 ---
+)
     $(P Note that using $(D_KEYWORD immutable) on the left hand side of a method does not apply to the return type:
     )
 
