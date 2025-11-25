@@ -5704,8 +5704,16 @@ final class CParser(AST) : Parser!AST
 
                         case TOK.identifier:
                         {
+                            const idx = id.toString();
                             auto ident = token.ident;
                             nextToken();
+
+                            if (idx.length > 2 && idx[0] == '_' && idx[1] == '_')
+                            {
+                                ++p;
+                                continue;
+                            }
+
                             /*
                              * macros refering to functions
                              * #define test func(2,3)
