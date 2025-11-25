@@ -388,7 +388,7 @@ $(GNAME OutStatement):
         }
         class C : B
         {
-            override int f() => i; // no `in` contract, `i` can be anything
+            override int f() => i; // no `in` contract, `i` can have any value
         }
 
         B b = new B;
@@ -423,9 +423,9 @@ $(GNAME OutStatement):
         ---
         )
 
-        $(P Conversely, all of the postconditions of the function and its
+        $(P Conversely, all the postconditions of the function and its
         overridden functions must be satisfied.
-        Adding overriding functions then becomes a processes of $(I tightening) the
+        Overriding functions then becomes a process of $(I tightening) the
         postconditions.
         )
 
