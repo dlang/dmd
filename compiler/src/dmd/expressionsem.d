@@ -3163,12 +3163,18 @@ private bool checkImpure(Scope* sc, Loc loc, const(char)* fmt, RootObject arg0)
 
 /*********************************************
  * Calling function f.
- * Check the safety, i.e. if we're in a @safe function
+ * Check the safety, i.e. if we are in a @safe function
  * we can only call @safe or @trusted functions.
- * Returns true if error occurs.
+ * Params:
+ *      f = function being called
+ *      loc = location for error messages
+ *      sc = context
+ *      arguments = array of actual arguments to function call, null for none
+ * Returns: true if unsafe (and diagnostic is generated)
  */
-private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc)
+private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions* arguments)
 {
+    //printf("checkSafety() %s\n", f.toChars());
     if (sc.func == f)
         return false;
     if (sc.intypeof == 1)
@@ -3195,6 +3201,23 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc)
             }
         }
         return false;
+    }
+
+    if (f.printf)
+    {
+        TypeFunction tf = f.type.isTypeFunction();
+        assert(tf);
+        const isVa_list = tf.parameterList.varargs == VarArg.none;
+        const nparams = tf.parameterList.length;
+        const nargs = arguments ? arguments.length : 0;
+        if (nparams == 1 && nargs)
+        {
+            if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
+            {
+                if (isFormatSafe(se.peekString()))
+                    return false;
+            }
+        }
     }
 
     if (!f.isSafe() && !f.isTrusted())
@@ -3320,7 +3343,7 @@ private bool checkPostblit(Type t, ref Loc loc, Scope* sc)
     //checkAccess(sd, loc, sc, sd.postblit);   // necessary?
     bool result = false;
     result |= sd.postblit.checkPurity(loc, sc);
-    result |= sd.postblit.checkSafety(loc, sc);
+    result |= sd.postblit.checkSafety(loc, sc, null);
     result |= sd.postblit.checkNogc(loc, sc);
     return result;
 }
@@ -8122,7 +8145,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.f)
             {
                 exp.f.checkPurity(exp.loc, sc);
-                exp.f.checkSafety(exp.loc, sc);
+                exp.f.checkSafety(exp.loc, sc, exp.arguments);
                 exp.f.checkNogc(exp.loc, sc);
                 if (exp.f.checkNestedFuncReference(sc, exp.loc))
                     return setError();
@@ -10420,7 +10443,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             err |= !functionSemantic(cd.dtor);
             err |= cd.dtor.checkPurity(exp.loc, sc);
-            err |= cd.dtor.checkSafety(exp.loc, sc);
+            err |= cd.dtor.checkSafety(exp.loc, sc, null);
             err |= cd.dtor.checkNogc(exp.loc, sc);
         }
         if (err)
@@ -17677,7 +17700,7 @@ bool checkAddressable(Expression e, Scope* sc, const(char)* action)
  * and usage of `deprecated` and `@disabled`-ed symbols are checked.
  *
  * Params:
- *  exp = expression to check attributes for
+ *  exp = expression to check attributes for (CallExp or NewExp)
  *  sc  = scope of the function
  *  f   = function to be checked
  * Returns: `true` if error occur.
@@ -17687,7 +17710,8 @@ private bool checkFunctionAttributes(Expression exp, Scope* sc, FuncDeclaration 
     bool error = f.checkDisabled(exp.loc, sc);
     error |= f.checkDeprecated(exp.loc, sc);
     error |= f.checkPurity(exp.loc, sc);
-    error |= f.checkSafety(exp.loc, sc);
+    Expressions* arguments = exp.isCallExp() ? exp.isCallExp().arguments : null;
+    error |= f.checkSafety(exp.loc, sc, arguments);
     error |= f.checkNogc(exp.loc, sc);
     return error;
 }
