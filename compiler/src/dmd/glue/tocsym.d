@@ -653,7 +653,7 @@ Classsym* fake_classsym(Identifier id)
         false, false, true, false);
 
     t.Ttag.Sstruct.Sflags = STRglobal;
-    t.Tflags |= TFsizeunknown | TFforward;
+    t.Tflags |= TF.sizeunknown | TF.forward;
     assert(t.Tmangle == 0);
     t.Tmangle = Mangle.d;
     return t.Ttag;

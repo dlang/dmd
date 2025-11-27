@@ -89,10 +89,10 @@ targ_size_t type_size(const type* t)
                 break;
             case TYarray:
             {
-                if (t.Tflags & TFsizeunknown)
+                if (t.Tflags & TF.sizeunknown)
                 {
                 }
-                if (t.Tflags & TFvla)
+                if (t.Tflags & TF.vla)
                 {
                     s = _tysize[pointertype];
                     break;
@@ -145,7 +145,7 @@ uint type_alignsize(type* t)
             switch (tybasic(t.Tty))
             {
                 case TYarray:
-                    if (t.Tflags & TFsizeunknown)
+                    if (t.Tflags & TF.sizeunknown)
                         goto default;
                     t = t.Tnext;
                     continue;
@@ -153,7 +153,7 @@ uint type_alignsize(type* t)
                 case TYstruct:
                     t = t.Ttag.Stype;         // find main instance
                                                 // (for const struct X)
-                    if (t.Tflags & TFsizeunknown)
+                    if (t.Tflags & TF.sizeunknown)
                         goto default;
                     sz = t.Ttag.Sstruct.Salignsize;
                     if (sz > t.Ttag.Sstruct.Sstructalign + 1)
@@ -198,7 +198,7 @@ bool type_zeroSize(type* t, tym_t tyf)
         {
             type* ts = t.Ttag.Stype;     // find main instance
                                            // (for const struct X)
-            if (ts.Tflags & TFsizeunknown)
+            if (ts.Tflags & TF.sizeunknown)
             {
             }
 
@@ -419,9 +419,9 @@ type* type_function(tym_t tyf, type*[] ptypes, bool variadic, type* tret)
         param_append_type(&paramtypes, p);
     }
     type* t = type_allocn(tyf, tret);
-    t.Tflags |= TFprototype;
+    t.Tflags |= TF.prototype;
     if (!variadic)
-        t.Tflags |= TFfixed;
+        t.Tflags |= TF.fixed;
     t.Tparamtypes = paramtypes;
     t.Tcount++;
     return t;
@@ -524,7 +524,7 @@ void type_free(type* t)
         {   param_free(&t.Tparamtypes);
             list_free(&t.Texcspec, cast(list_free_fp)&type_free);
         }
-        else if (t.Tflags & TFvla && t.Tel)
+        else if (t.Tflags & TF.vla && t.Tel)
             el_free(t.Tel);
         else if (t.Tkey && typtr(ty))
             type_free(t.Tkey);
@@ -715,7 +715,7 @@ type* type_copy(type* t)
     switch (tybasic(tn.Tty))
     {
             case TYarray:
-                if (tn.Tflags & TFvla)
+                if (tn.Tflags & TF.vla)
                     tn.Tel = el_copytree(tn.Tel);
                 break;
 
@@ -834,7 +834,7 @@ type* type_setdim(type** pt,targ_size_t dim)
         type_free(t);
         t = tn;
     }
-    t.Tflags &= ~TFsizeunknown; /* we have determined its size */
+    t.Tflags &= ~cast(int)TF.sizeunknown; /* we have determined its size */
     t.Tdim = dim;              /* index of array               */
     return* pt = t;
 }
@@ -848,11 +848,11 @@ type* type_setdependent(type* t)
 {
     type_debug(t);
     if (t.Tcount > 0 &&                        /* if other people pointing at t */
-        !(t.Tflags & TFdependent))
+        !(t.Tflags & TF.dependent))
     {
         t = type_copy(t);
     }
-    t.Tflags |= TFdependent;
+    t.Tflags |= TF.dependent;
     return t;
 }
 
@@ -871,7 +871,7 @@ int type_isdependent(type* t)
     for (; t; t = t.Tnext)
     {
         type_debug(t);
-        if (t.Tflags & TFdependent)
+        if (t.Tflags & TF.dependent)
             goto Lisdependent;
         if (tyfunc(t.Tty) ||
             tybasic(t.Tty) == TYtemplate
@@ -903,7 +903,7 @@ int type_isdependent(type* t)
 Lisdependent:
     //printf("\tis dependent\n");
     // Dependence on a dependent type makes this type dependent as well
-    tstart.Tflags |= TFdependent;
+    tstart.Tflags |= TF.dependent;
     return 1;
 }
 
@@ -943,7 +943,7 @@ int type_isvla(type* t)
     {
         if (tybasic(t.Tty) != TYarray)
             break;
-        if (t.Tflags & TFvla)
+        if (t.Tflags & TF.vla)
             return 1;
         t = t.Tnext;
     }
@@ -963,7 +963,7 @@ void type_print(const type* t)
     printf(" Tmangle=%d",t.Tmangle);
     printf(" Tflags=x%x",t.Tflags);
     printf(" Tcount=%d",t.Tcount);
-    if (!(t.Tflags & TFsizeunknown) &&
+    if (!(t.Tflags & TF.sizeunknown) &&
         tybasic(t.Tty) != TYvoid &&
         tybasic(t.Tty) != TYident &&
         tybasic(t.Tty) != TYtemplate &&
@@ -1305,7 +1305,7 @@ int typematch(type* t1,type* t2,int relax)
                  &&
 
             (tybasic(t1ty) != TYarray || t1.Tdim == t2.Tdim ||
-             t1.Tflags & TFsizeunknown || t2.Tflags & TFsizeunknown)
+             t1.Tflags & TF.sizeunknown || t2.Tflags & TF.sizeunknown)
                  &&
 
             (tybasic(t1ty) != TYstruct
@@ -1318,7 +1318,7 @@ int typematch(type* t1,type* t2,int relax)
                  &&
 
             (!tyfunc(t1ty) ||
-             ((t1.Tflags & TFfixed) == (t2.Tflags & TFfixed) &&
+             ((t1.Tflags & TF.fixed) == (t2.Tflags & TF.fixed) &&
                  paramlstmatch(t1.Tparamtypes,t2.Tparamtypes) ))
          ;
 }
