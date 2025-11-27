@@ -1988,8 +1988,42 @@ final class CParser(AST) : Parser!AST
                         idt = tt.id;
                     }
                 }
+                // C code could use type ids that are known types in D
+                // don't alias them
+                bool checkDType(Identifier ident)
+                {
+                    if (!specifier.scw == SCW.xtypedef && !token.ident) // for typedef declarators
+                        return false;
+
+                    // we can't use TOK values because these types are still
+                    // TOK.identifier at this stage
+                    auto id = ident.toString();
+                    switch (id)
+                    {
+                        case "byte":
+                        case "ubyte":
+                        case "ushort":
+                        case "uint":
+                        case "ulong":
+                        case "cent":
+                        case "ucent":
+                        case "wchar":
+                        case "dchar":
+                        case "ifloat":
+                        case "idouble":
+                        case "ireal":
+                        case "cfloat":
+                        case "cdouble":
+                        case "creal":
+                            return true;
+                        default:
+                            return false;
+                    }
+                }
                 if (isalias)
                 {
+                    if (checkDType(id.name))
+                        return;
                     //printf("AliasDeclaration %s %s\n", id.name.toChars(), dt.toChars());
                     auto ad = new AST.AliasDeclaration(id.loc, id.name, dt);
                     if (id.name == idt)
@@ -2835,7 +2869,6 @@ final class CParser(AST) : Parser!AST
             declarator = DTR.xdirect;
             restore_symbols = false;
         }
-
 
         /* Insert tx -> t into
          *   ts -> ... -> t
