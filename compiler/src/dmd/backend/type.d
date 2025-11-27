@@ -58,14 +58,12 @@ enum
     TFemptyexc    = 0x100,  // tyfunc(): empty exception specification
 }
 
-alias type = TYPE;
-
 public import dmd.backend.symbol : symbol_struct_addField, symbol_struct_addBitField, symbol_struct_hasBitFields, symbol_struct_addBaseClass;
 
 // Return true if type is a struct, class or union
 bool type_struct(const type* t) { return tybasic(t.Tty) == TYstruct; }
 
-struct TYPE
+struct type
 {
     debug ushort id;
     enum IDtype = 0x1234;
@@ -77,7 +75,7 @@ struct TYPE
 
     uint Tcount; // # pointing to this type
     char* Tident; // TYident: identifier; TYdarray, TYaarray: pretty name for debug info
-    TYPE* Tnext; // next in list
+    type* Tnext;  // next in list
                                 // TYenum: gives base type
     union
     {
@@ -97,7 +95,7 @@ struct TYPE
 
 struct typetemp_t
 {
-    TYPE Ttype;
+    type Ttype;
 
     /* Tsym should really be part of a derived class, as we only
         allocate room for it if TYtemplate
