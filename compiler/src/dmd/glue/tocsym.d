@@ -169,7 +169,7 @@ Symbol* toSymbol(Dsymbol s)
             if (vd.noUnderscore)
                 s.Sflags |= SFLnounderscore;
 
-            TYPE* t;
+            type* t;
             if (vd.storage_class & (STC.out_ | STC.ref_))
             {
                 t = type_allocn(TYnref, Type_toCtype(vd.type));
