@@ -47,10 +47,8 @@ __gshared
     type*[TYMAX] tstypes;
     type*[TYMAX] tsptr2types;
 
-    type* tstrace,tsjlib,tsdlib,
-            tslogical;
-    type* tspvoid,tspcvoid;
-    type* tsptrdiff, tssize;
+    type* tstrace, tsjlib, tsdlib, tslogical,
+          tspvoid, tspcvoid, tsptrdiff, tssize;
 }
 
 /***********************
@@ -62,18 +60,16 @@ __gshared
  */
 @trusted @nogc
 targ_size_t type_size(const type* t)
-{   targ_size_t s;
-    tym_t tyb;
-
+{
     type_debug(t);
-    tyb = tybasic(t.Tty);
+    tym_t tyb = tybasic(t.Tty);
 
     debug if (tyb >= TYMAX)
         /*type_print(t),*/
         printf("tyb = x%x\n", tyb);
-
     assert(tyb < TYMAX);
-    s = _tysize[tyb];
+
+    targ_size_t s = _tysize[tyb];
     if (s == cast(targ_size_t) -1)
     {
         switch (tyb)
@@ -138,47 +134,49 @@ targ_size_t type_size(const type* t)
 
 @trusted
 uint type_alignsize(type* t)
-{   targ_size_t sz;
-
-L1:
-    type_debug(t);
-
-    sz = tyalignsize(t.Tty);
-    if (sz == cast(targ_size_t)-1)
+{
+    while (1)
     {
-        switch (tybasic(t.Tty))
+        type_debug(t);
+
+        targ_size_t sz = tyalignsize(t.Tty);
+        if (sz == cast(targ_size_t)-1)
         {
-            case TYarray:
-                if (t.Tflags & TFsizeunknown)
-                    goto err1;
-                t = t.Tnext;
-                goto L1;
-            case TYstruct:
-                t = t.Ttag.Stype;         // find main instance
-                                            // (for const struct X)
-                if (t.Tflags & TFsizeunknown)
-                    goto err1;
-                sz = t.Ttag.Sstruct.Salignsize;
-                if (sz > t.Ttag.Sstruct.Sstructalign + 1)
-                    sz = t.Ttag.Sstruct.Sstructalign + 1;
-                break;
+            switch (tybasic(t.Tty))
+            {
+                case TYarray:
+                    if (t.Tflags & TFsizeunknown)
+                        goto default;
+                    t = t.Tnext;
+                    continue;
 
-            case TYldouble:
-                assert(0);
+                case TYstruct:
+                    t = t.Ttag.Stype;         // find main instance
+                                                // (for const struct X)
+                    if (t.Tflags & TFsizeunknown)
+                        goto default;
+                    sz = t.Ttag.Sstruct.Salignsize;
+                    if (sz > t.Ttag.Sstruct.Sstructalign + 1)
+                        sz = t.Ttag.Sstruct.Sstructalign + 1;
+                    break;
 
-            case TYcdouble:
-                sz = 8;         // not 16
-                break;
+                case TYldouble:
+                    assert(0);
 
-            default:
-            err1:                   // let type_size() handle error messages
-                sz = type_size(t);
-                break;
+                case TYcdouble:
+                    sz = 8;         // not 16
+                    break;
+
+                default:
+                    // let type_size() handle error messages
+                    sz = type_size(t);
+                    break;
+            }
         }
+        //printf("type_alignsize() = %d\n", sz);
+        return cast(uint)sz;
     }
-
-    //printf("type_alignsize() = %d\n", sz);
-    return cast(uint)sz;
+    assert(0);
 }
 
 /***********************************
@@ -203,10 +201,12 @@ bool type_zeroSize(type* t, tym_t tyf)
             if (ts.Tflags & TFsizeunknown)
             {
             }
+
             if (ts.Ttag.Sstruct.Sflags & STR0size)
-//{ printf("0size\n"); type_print(t); *(char*)0=0;
+            {
+                //printf("0size\n"); type_print(t); *(char*)0=0;
                 return true;
-//}
+            }
         }
     }
     return false;
@@ -262,29 +262,31 @@ uint type_paramsize(type* t)
 
 @trusted @nogc
 type* type_alloc(tym_t ty)
-{   type* t;
+{
 
     assert(tybasic(ty) != TYtemplate);
+    type* t;
     if (type_list)
-    {   t = type_list;
+    {
+        t = type_list;
         type_list = t.Tnext;
     }
     else
         t = cast(type*) mem_fmalloc(type.sizeof);
     *t = type();
     t.Tty = ty;
-version (SRCPOS_4TYPES)
-{
-    if (PARSER && config.fulltypes)
-        t.Tsrcpos = getlinnum();
-}
-debug
-{
-    t.id = type.IDtype;
-    type_num++;
-    if (type_num > type_max)
-        type_max = type_num;
-}
+    version (SRCPOS_4TYPES)
+    {
+        if (PARSER && config.fulltypes)
+            t.Tsrcpos = getlinnum();
+    }
+    debug
+    {
+        t.id = type.IDtype;
+        type_num++;
+        if (type_num > type_max)
+            type_max = type_num;
+    }
     //printf("type_alloc() = %p %s\n", t, tym_str(t.Tty));
     //if (t == (type*)0xB6B744) *(char*)0=0;
     return t;
@@ -299,13 +301,13 @@ debug
  */
 @nogc
 type* type_fake(tym_t ty)
-{   type* t;
-
+{
     assert(ty != TYstruct);
 
-    t = type_alloc(ty);
+    type* t = type_alloc(ty);
     if (typtr(ty) || tyfunc(ty))
-    {   t.Tnext = type_alloc(TYvoid);  /* fake with pointer to void    */
+    {
+        t.Tnext = type_alloc(TYvoid);  /* fake with pointer to void    */
         t.Tnext.Tcount = 1;
     }
     return t;
@@ -316,12 +318,11 @@ type* type_fake(tym_t ty)
  */
 
 type* type_allocn(tym_t ty,type* tn)
-{   type* t;
-
+{
     //printf("type_allocn(ty = x%x, tn = %p)\n", ty, tn);
     assert(tn);
     type_debug(tn);
-    t = type_alloc(ty);
+    type* t = type_alloc(ty);
     t.Tnext = tn;
     tn.Tcount++;
     //printf("\tt = %p\n", t);
@@ -510,9 +511,7 @@ type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
 
 @trusted
 void type_free(type* t)
-{   type* tn;
-    tym_t ty;
-
+{
     while (t)
     {
         //printf("type_free(%p, Tcount = %d)\n", t, t.Tcount);
@@ -520,29 +519,23 @@ void type_free(type* t)
         assert(cast(int)t.Tcount != -1);
         if (--t.Tcount)                /* if usage count doesn't go to 0 */
             break;
-        ty = tybasic(t.Tty);
+        tym_t ty = tybasic(t.Tty);
         if (tyfunc(ty))
         {   param_free(&t.Tparamtypes);
             list_free(&t.Texcspec, cast(list_free_fp)&type_free);
-            goto L1;
         }
-        if (t.Tflags & TFvla && t.Tel)
-        {
+        else if (t.Tflags & TFvla && t.Tel)
             el_free(t.Tel);
-            goto L1;
-        }
-        if (t.Tkey && typtr(ty))
+        else if (t.Tkey && typtr(ty))
             type_free(t.Tkey);
-      L1:
+        debug
+        {
+            type_num--;
+            //printf("Free'ing type %p %s\n", t, tym_str(t.Tty));
+            t.id = 0;                      /* no longer a valid type       */
+        }
 
-debug
-{
-        type_num--;
-        //printf("Free'ing type %p %s\n", t, tym_str(t.Tty));
-        t.id = 0;                      /* no longer a valid type       */
-}
-
-        tn = t.Tnext;
+        type* tn = t.Tnext;
         t.Tnext = type_list;
         type_list = t;                  /* link into free list          */
         t = tn;
@@ -553,14 +546,12 @@ version (STATS)
 {
 /* count number of free types available on type list */
 void type_count_free()
-    {
-    type* t;
-    int count;
-
-    for(t=type_list;t;t=t.Tnext)
-        count++;
+{
+    int count = 0;
+    for (type* t = type_list; t; t = t.Tnext)
+        ++count;
     printf("types on free list %d with max of %d\n",count,type_max);
-    }
+}
 }
 
 /**********************************
@@ -568,9 +559,8 @@ void type_count_free()
  */
 
 private type * type_allocbasic(tym_t ty)
-{   type* t;
-
-    t = type_alloc(ty);
+{
+    type* t = type_alloc(ty);
     t.Tmangle = Mangle.c;
     t.Tcount = 1;              /* so it is not inadvertently free'd    */
     return t;
@@ -648,7 +638,7 @@ void type_init()
     // Type of logical expression
     tslogical = (config.flags4 & CFG4bool) ? tstypes[TYbool] : tstypes[TYint];
 
-    for (int i = 0; i < TYMAX; i++)
+    foreach (i; 0 .. TYMAX)
     {
         if (tstypes[i])
         {   tsptr2types[i] = type_allocn(pointertype,tstypes[i]);
@@ -663,51 +653,49 @@ void type_init()
 
 void type_term()
 {
-static if (TERMCODE)
-{
-    type* tn;
-    param_t* pn;
-    int i;
-
-    for (i = 0; i < tstypes.length; i++)
-    {   type* t = tsptr2types[i];
-
-        if (t)
-        {   assert(!(t.Tty & (mTYconst | mTYvolatile | mTYimmutable | mTYshared)));
-            assert(!(t.Tflags));
-            assert(!(t.Tmangle));
-            type_free(t);
+    static if (TERMCODE)
+    {
+        foreach (i; 0 .. tstypes.length)
+        {
+            if (type* t = tsptr2types[i])
+            {
+                assert(!(t.Tty & (mTYconst | mTYvolatile | mTYimmutable | mTYshared)));
+                assert(!(t.Tflags));
+                assert(!(t.Tmangle));
+                type_free(t);
+            }
+            type_free(tstypes[i]);
         }
-        type_free(tstypes[i]);
+
+        type_free(tsclib);
+        type_free(tspvoid);
+        type_free(tspcvoid);
+        type_free(tsjlib);
+        type_free(tstrace);
+
+        while (type_list)
+        {
+            type* tn = type_list.Tnext;
+            mem_ffree(type_list);
+            type_list = tn;
+        }
+
+        while (param_list)
+        {
+            param_t* pn = param_list.Pnext;
+            mem_ffree(param_list);
+            param_list = pn;
+        }
+
+        debug
+        {
+            printf("Max # of types = %d\n",type_max);
+            if (type_num != 0)
+                printf("type_num = %d\n",type_num);
+            //assert(type_num == 0);
+        }
+
     }
-
-    type_free(tsclib);
-    type_free(tspvoid);
-    type_free(tspcvoid);
-    type_free(tsjlib);
-    type_free(tstrace);
-
-    while (type_list)
-    {   tn = type_list.Tnext;
-        mem_ffree(type_list);
-        type_list = tn;
-    }
-
-    while (param_list)
-    {   pn = param_list.Pnext;
-        mem_ffree(param_list);
-        param_list = pn;
-    }
-
-debug
-{
-    printf("Max # of types = %d\n",type_max);
-    if (type_num != 0)
-        printf("type_num = %d\n",type_num);
-/*    assert(type_num == 0);*/
-}
-
-}
 }
 
 /*******************************
@@ -720,12 +708,9 @@ debug
 
 @trusted
 type* type_copy(type* t)
-{   type* tn;
-    param_t* p;
-
+{
     type_debug(t);
-    tn = type_alloc(t.Tty);
-
+    type* tn = type_alloc(t.Tty);
     *tn = *t;
     switch (tybasic(tn.Tty))
     {
@@ -738,10 +723,9 @@ type* type_copy(type* t)
                 if (tyfunc(tn.Tty))
                 {
                     tn.Tparamtypes = null;
-                    for (p = t.Tparamtypes; p; p = p.Pnext)
-                    {   param_t* pn;
-
-                        pn = param_append_type(&tn.Tparamtypes,p.Ptype);
+                    for (param_t* p = t.Tparamtypes; p; p = p.Pnext)
+                    {
+                        param_t* pn = param_append_type(&tn.Tparamtypes,p.Ptype);
                         if (p.Pident)
                         {
                             pn.Pident = cast(char*)mem_strdup(p.Pident);
@@ -749,15 +733,13 @@ type* type_copy(type* t)
                         assert(!p.Pelem);
                     }
                 }
-                else
-                {
-                if (tn.Tkey && typtr(tn.Tty))
+                else if (tn.Tkey && typtr(tn.Tty))
                     tn.Tkey.Tcount++;
-                }
                 break;
     }
     if (tn.Tnext)
-    {   type_debug(tn.Tnext);
+    {
+        type_debug(tn.Tnext);
         tn.Tnext.Tcount++;
     }
     tn.Tcount = 0;
@@ -769,15 +751,14 @@ type* type_copy(type* t)
  */
 
 type* type_setty(type** pt,uint newty)
-{   type* t;
-
-    t = *pt;
+{
+    type* t = *pt;
     type_debug(t);
     if (cast(tym_t)newty != t.Tty)
-    {   if (t.Tcount > 1)              /* if other people pointing at t */
-        {   type* tn;
-
-            tn = type_copy(t);
+    {
+        if (t.Tcount > 1)              /* if other people pointing at t */
+        {
+            type* tn = type_copy(t);
             tn.Tcount++;
             type_free(t);
             t = tn;
@@ -795,11 +776,12 @@ type* type_setty(type** pt,uint newty)
 type* type_settype(type** pt, type* t)
 {
     if (t)
-    {   type_debug(t);
+    {
+        type_debug(t);
         t.Tcount++;
     }
     type_free(*pt);
-    return* pt = t;
+    return *pt = t;
 }
 
 /****************************
@@ -807,16 +789,14 @@ type* type_settype(type** pt, type* t)
  */
 
 type* type_setmangle(type** pt, Mangle mangle)
-{   type* t;
-
-    t = *pt;
+{
+    type* t = *pt;
     type_debug(t);
     if (mangle != type_mangle(t))
     {
         if (t.Tcount > 1)              // if other people pointing at t
-        {   type* tn;
-
-            tn = type_copy(t);
+        {
+            type* tn = type_copy(t);
             tn.Tcount++;
             type_free(t);
             t = tn;
@@ -833,10 +813,9 @@ type* type_setmangle(type** pt, Mangle mangle)
  */
 
 type* type_setcv(type** pt,tym_t cv)
-{   uint ty;
-
+{
     type_debug(*pt);
-    ty = (*pt).Tty & ~(mTYconst | mTYvolatile | mTYimmutable | mTYshared);
+    uint ty = (*pt).Tty & ~(mTYconst | mTYvolatile | mTYimmutable | mTYshared);
     return type_setty(pt,ty | (cv & (mTYconst | mTYvolatile | mTYimmutable | mTYshared)));
 }
 
@@ -845,13 +824,12 @@ type* type_setcv(type** pt,tym_t cv)
  */
 
 type* type_setdim(type** pt,targ_size_t dim)
-{   type* t = *pt;
-
+{
+    type* t = *pt;
     type_debug(t);
     if (t.Tcount > 1)                  /* if other people pointing at t */
-    {   type* tn;
-
-        tn = type_copy(t);
+    {
+        type* tn = type_copy(t);
         tn.Tcount++;
         type_free(t);
         t = tn;
@@ -886,18 +864,18 @@ type* type_setdependent(type* t)
 int type_isdependent(type* t)
 {
     Symbol* stempl;
-    type* tstart;
 
     //printf("type_isdependent(%p)\n", t);
     //type_print(t);
-    for (tstart = t; t; t = t.Tnext)
+    type* tstart = t;
+    for (; t; t = t.Tnext)
     {
         type_debug(t);
         if (t.Tflags & TFdependent)
             goto Lisdependent;
-        if (tyfunc(t.Tty)
-                || tybasic(t.Tty) == TYtemplate
-                )
+        if (tyfunc(t.Tty) ||
+            tybasic(t.Tty) == TYtemplate
+           )
         {
             for (param_t* p = t.Tparamtypes; p; p = p.Pnext)
             {
@@ -938,8 +916,7 @@ Lisdependent:
 
 @trusted
 int type_embed(type* t,type* u)
-{   param_t* p;
-
+{
     for (; t; t = t.Tnext)
     {
         type_debug(t);
@@ -947,7 +924,7 @@ int type_embed(type* t,type* u)
             return 1;
         if (tyfunc(t.Tty))
         {
-            for (p = t.Tparamtypes; p; p = p.Pnext)
+            for (param_t* p = t.Tparamtypes; p; p = p.Pnext)
                 if (type_embed(p.Ptype,u))
                     return 1;
         }
@@ -981,21 +958,24 @@ int type_isvla(type* t)
 @trusted
 void type_print(const type* t)
 {
-  type_debug(t);
-  printf("Tty=%s", tym_str(t.Tty));
-  printf(" Tmangle=%d",t.Tmangle);
-  printf(" Tflags=x%x",t.Tflags);
-  printf(" Tcount=%d",t.Tcount);
-  if (!(t.Tflags & TFsizeunknown) &&
+    type_debug(t);
+    printf("Tty=%s", tym_str(t.Tty));
+    printf(" Tmangle=%d",t.Tmangle);
+    printf(" Tflags=x%x",t.Tflags);
+    printf(" Tcount=%d",t.Tcount);
+    if (!(t.Tflags & TFsizeunknown) &&
         tybasic(t.Tty) != TYvoid &&
         tybasic(t.Tty) != TYident &&
         tybasic(t.Tty) != TYtemplate &&
         tybasic(t.Tty) != TYmfunc &&
         tybasic(t.Tty) != TYarray)
-      printf(" Tsize=%lld", cast(long)type_size(t));
-  printf(" Tnext=%p",t.Tnext);
-  switch (tybasic(t.Tty))
-  {     case TYstruct:
+    {
+        printf(" Tsize=%lld", cast(long)type_size(t));
+    }
+    printf(" Tnext=%p",t.Tnext);
+    switch (tybasic(t.Tty))
+    {
+        case TYstruct:
         case TYmemptr:
             printf(" Ttag=%p,'%s'",t.Ttag,t.Ttag.Sident.ptr);
             //printf(" Sfldlst=%p",t.Ttag.Sstruct.Sfldlst);
@@ -1018,7 +998,7 @@ void type_print(const type* t)
                 {   printf("\nTP%d (%p): ",i++,p);
                     fflush(stdout);
 
-printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext);
+                    printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext);
                     param_debug(p);
                     if (p.Pident)
                         printf("'%s' ", p.Pident);
@@ -1033,14 +1013,12 @@ printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext)
         default:
             if (tyfunc(t.Tty))
             {
-                int i;
-
-                i = 1;
+                int i = 1;
                 for (const(param_t)* p = t.Tparamtypes; p; p = p.Pnext)
                 {   printf("\nP%d (%p): ",i++,p);
                     fflush(stdout);
 
-printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext);
+                    printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext);
                     param_debug(p);
                     if (p.Pident)
                         printf("'%s' ", p.Pident);
@@ -1064,22 +1042,27 @@ void param_t_print(const scope param_t* p)
     if (p.Pident)
         printf("\tPident = '%s'\n", p.Pident);
     if (p.Ptype)
-    {   printf("\tPtype =\n");
+    {
+        printf("\tPtype =\n");
         type_print(p.Ptype);
     }
     if (p.Pelem)
-    {   printf("\tPelem =\n");
+    {
+        printf("\tPelem =\n");
         elem_print(p.Pelem);
     }
     if (p.Pdeftype)
-    {   printf("\tPdeftype =\n");
+    {
+        printf("\tPdeftype =\n");
         type_print(p.Pdeftype);
     }
     if (p.Psym)
-    {   printf("\tPsym = '%s'\n", p.Psym.Sident.ptr);
+    {
+        printf("\tPsym = '%s'\n", p.Psym.Sident.ptr);
     }
     if (p.Pptpl)
-    {   printf("\tPptpl = %p\n", p.Pptpl);
+    {
+        printf("\tPptpl = %p\n", p.Pptpl);
     }
 }
 
@@ -1121,11 +1104,11 @@ param_t* param_calloc()
  */
 
 param_t* param_append_type(param_t** pp,type* t)
-{   param_t* p;
-
-    p = param_calloc();
+{
+    param_t* p = param_calloc();
     while (*pp)
-    {   param_debug(*pp);
+    {
+        param_debug(*pp);
         pp = &((*pp).Pnext);   /* find end of list     */
     }
     *pp = p;                    /* append p to list     */
@@ -1153,11 +1136,12 @@ void param_free_l(param_t* p)
 
 @trusted
 void param_free(param_t** pparamlst)
-{   param_t* p,pn;
-
+{
     //debug_assert(PARSER);
-    for (p = *pparamlst; p; p = pn)
-    {   param_debug(p);
+    param_t* pn;
+    for (param_t* p = *pparamlst; p; p = pn)
+    {
+        param_debug(p);
         pn = p.Pnext;
         type_free(p.Ptype);
         mem_free(p.Pident);
@@ -1181,7 +1165,6 @@ void param_free(param_t** pparamlst)
 uint param_t_length(scope param_t* p)
 {
     uint nparams = 0;
-
     for (; p; p = p.Pnext)
         nparams++;
     return nparams;
@@ -1211,7 +1194,8 @@ param_t* param_t_createTal(scope param_t* p, param_t* ptali)
         if (ptali)
         {
             if (ptali.Ptype)
-            {   (*pp).Ptype = ptali.Ptype;
+            {
+                (*pp).Ptype = ptali.Ptype;
                 (*pp).Ptype.Tcount++;
             }
             if (ptali.Pelem)
@@ -1252,7 +1236,6 @@ param_t* param_t_search(return scope param_t* p, const(char)* id)
 int param_t_searchn(param_t* p, char* id)
 {
     int n = 0;
-
     for (; p; p = p.Pnext)
     {
         if (p.Pident && strcmp(p.Pident, id) == 0)
@@ -1270,10 +1253,9 @@ int param_t_searchn(param_t* p, char* id)
 
 @trusted
 Symbol* param_search(const(char)* name, param_t** pp)
-{   Symbol* s = null;
-    param_t* p;
-
-    p = (*pp).search(cast(char*)name);
+{
+    Symbol* s = null;
+    param_t* p = (*pp).search(cast(char*)name);
     if (p)
     {
         s = p.Psym;
@@ -1292,10 +1274,10 @@ Symbol* param_search(const(char)* name, param_t** pp)
 // Return TRUE if type lists match.
 private int paramlstmatch(param_t* p1,param_t* p2)
 {
-        return p1 == p2 ||
-            p1 && p2 && typematch(p1.Ptype,p2.Ptype,0) &&
-            paramlstmatch(p1.Pnext,p2.Pnext)
-            ;
+    return p1 == p2 ||
+        p1 && p2 && typematch(p1.Ptype,p2.Ptype,0) &&
+        paramlstmatch(p1.Pnext,p2.Pnext)
+        ;
 }
 
 /*************************************************
@@ -1309,12 +1291,11 @@ private int paramlstmatch(param_t* p1,param_t* p2)
 
 @trusted
 int typematch(type* t1,type* t2,int relax)
-{ tym_t t1ty, t2ty;
-  tym_t tym;
+{
+    tym_t t1ty, t2ty;
+    tym_t tym = ~(mTYimport | mTYnaked);
 
-  tym = ~(mTYimport | mTYnaked);
-
-  return t1 == t2 ||
+    return t1 == t2 ||
             t1 && t2 &&
 
             (
