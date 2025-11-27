@@ -83,7 +83,7 @@ bool canInlineFunction(Symbol* sfunc)
     assert(f && tyfunc(t.Tty));
 
     if (/* Cannot inline varargs or unprototyped functions      */
-        (t.Tflags & (TFfixed | TFprototype)) != (TFfixed | TFprototype) ||
+        (t.Tflags & (TF.fixed | TF.prototype)) != (TF.fixed | TF.prototype) ||
         (t.Tty & mTYimport)           // do not inline imported functions
        )
         return no(__LINE__);
