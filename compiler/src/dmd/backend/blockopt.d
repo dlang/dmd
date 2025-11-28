@@ -398,7 +398,7 @@ void block_initvar(Symbol* s)
  */
 
 @trusted
-void blockopt(ref GlobalOptimizer go, int iter)
+void blockopt(ref GlobalOptimizer go)
 {
     if (OPTIMIZER)
     {
@@ -420,8 +420,7 @@ void blockopt(ref GlobalOptimizer go, int iter)
             brtailrecursion(go);        // do tail recursion
             brcombine(go);              // convert graph to expressions
             blexit(go);
-            if (iter >= 2)
-                brmin(go);              // minimize branching
+            brmin(go);                  // minimize branching
 
             // Switched to one block per Statement, do not undo it
             enum merge = false;
@@ -1449,54 +1448,113 @@ private void brmin(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("brmin()\n");
     debug assert(bo.startblock);
-    for (block* b = bo.startblock.Bnext; b; b = b.Bnext)
+
+    Lbb:
+    for (block* b = bo.startblock.Bnext; b && b.Bnext; b = b.Bnext)
     {
-        block* bnext = b.Bnext;
-        if (!bnext)
-            break;
-        foreach (bl; ListRange(b.Bsucc))
+        switch (b.bc)
         {
-            block* bs = list_block(bl);
-            if (bs == bnext)
-                goto L1;
+            case BC.try_:
+            case BC._try:
+            case BC.asm_:
+                // Try blocks must be followed by try body.
+                continue Lbb;
+
+            default:
+                break;
         }
 
-        // b is a block which does not have bnext as a successor.
-        // Look for a successor of b for which everyone must jmp to.
+        switch (b.Bnext.bc)
+        {
+            case BC.iftrue:
+            case BC.switch_:
+            case BC.ifthen:
+            case BC.jmptab:
+                // It is very likely the branch depends on the current block.
+                // Avoid moving the following block.
+                continue Lbb;
 
+            case BC.catch_:
+            case BC.jcatch:
+            case BC._lpad:
+                // Always try to move exception handlers away.
+                // Because the normal flow tends to occupy succ[0],
+                // it would be possible to move exception handlers towards
+                // function exit.
+                break;
+
+            default:
+                // Skip the block if one of the successors is already at Bnext.
+                foreach (bl; ListRange(b.Bsucc))
+                {
+                    if (list_block(bl) == b.Bnext)
+                        continue Lbb;
+                }
+
+                break;
+        }
+
+        // Look for a successor of b for which everyone must jmp to.
+        Lsucc:
         foreach (bl; ListRange(b.Bsucc))
         {
             block* bs = list_block(bl);
-            block* bn;
+
+            // Should have been optimized by blexit().
+            if (bs.bc == BC.exit)
+                continue Lsucc;
+
+            // Do not change the ordering of Btry regions.
+            if (bs.Btry != b.Bnext.Btry)
+                continue Lsucc;
+
+            // Skip successors that are already closest to one of its predecessors.
             foreach (blp; ListRange(bs.Bpred))
             {
-                block* bsp = list_block(blp);
-                if (bsp.Bnext == bs)
-                    goto L2;
+                if (bs == list_block(blp).Bnext)
+                    continue Lsucc;
             }
 
-            // Move bs so it is the Bnext of b
-            for (bn = bnext; 1; bn = bn.Bnext)
+            block* bnext = b.Bnext;
+            block* bn = bnext;
+
+            // Find a successor that can be moved right after the current block.
+            while (true)
             {
+                // If the current successor forms a back edge, skip.
                 if (!bn)
-                    goto L2;
+                    continue Lsucc;
+
                 if (bn.Bnext == bs)
                     break;
+
+                bn = bn.Bnext;
             }
-            bn.Bnext = null;
+
+            // Find a place to insert [bnext .. bs] that is as far as possible.
+            block* bend;
+
+            for (block* bss = bs; bss; bss = bss.Bnext)
+            {
+                if (bss.Btry == bnext.Btry &&
+                    (!bss.Bnext || list_nitems(bss.Bsucc) == 0))
+                {
+                    bend = bss;
+                }
+            }
+
+            if (!bend)
+                continue Lsucc;
+
+            // Move [bnext .. bs] after bend.
             b.Bnext = bs;
-            for (bn = bs; bn.Bnext; bn = bn.Bnext)
-                {}
-            bn.Bnext = bnext;
+            bn.Bnext = bend.Bnext;
+            bend.Bnext = bnext;
+
             debug if (debugc) printf("Moving block %p to appear after %p\n",bs,b);
             go.changes++;
             break;
-
-        L2:
         }
-
-
-    L1:
     }
 }
 
