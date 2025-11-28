@@ -671,7 +671,8 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
             return canElideCopy(ce.e1, to, checkMod) && canElideCopy(ce.e2, to, checkMod);
 
         case EXP.structLiteral:
-            return true;
+            auto sle = e.isStructLiteralExp();
+            return !(checkMod && sle.useStaticInit && to.isMutable());
         case EXP.dotVariable:
             // If an aggregate can be elided, so are its fields
             auto dve = e.isDotVarExp();
