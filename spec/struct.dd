@@ -121,9 +121,10 @@ $(H3 $(LNAME2 struct-members, Struct Members))
     the implementation is free to make bit copies of the struct
     as convenient.)
 
-    $(BEST_PRACTICE
+    $(NOTE
     $(OL
-    $(LI Bit fields are supported with the
+    $(LI Native bit fields are supported with $(RELATIVE_LINK2 bitfields, Bit Field Declarations))
+    $(LI A library implementation of bit fields is available with the
     $(LINK2 https://dlang.org/phobos/std_bitmanip.html#bitfields, bitfields) template.)
     ))
 
@@ -223,6 +224,62 @@ $(H2 $(LNAME2 struct_layout, Struct Layout))
     $(LI Avoid using empty structs when interfacing with C and C++ code.)
     $(LI Avoid using empty structs as parameters or arguments to variadic functions.)
     ))
+
+$(H2 $(LNAME2 bitfields, Bit Field Declarations))
+
+    $(P Bit fields are available under the preview flag $(TT -preview=bitfields))
+
+    $(P A bit field is declared with a $(GLINK2 declaration, BitfieldDeclarator). The bit field width
+    is specified by the $(GLINK2 expression, AssignExpression). It is evaluated at compile time, and
+    must result in an integer expression that ranges from 0 to the number of bits in the type of the
+    bit field.)
+
+    $(P The type of the bit field must be an integral type, signed or unsigned. The values assigned to
+    bit fields must fit into the specified width. The bit field is placed into a unit of memory at least
+    as large as needed to hold a value of the type of the bit field.)
+
+    $(P Anonymous bit fields do not have an $(GLINK_LEX Identifier) for them.)
+
+    $(P A zero width bit field must be anonymous. A zero width bit field causes the next bit field
+    to be placed into the next unit.)
+
+    $(P The address of a bit field cannot be taken.
+    $(D ref) declarations cannot be initialized from bit fields.
+    Arrays of bit fields are not allowed.
+    Bit fields can only be fields in structs, unions and classes.
+    Bit fields must be non-static.
+    )
+
+    ---
+    struct B
+    {
+        int x:3, y:2;
+    }
+
+    static assert(B.sizeof == 4);
+
+    int vaporator(B b)
+    {
+        b.x = 4;
+        b.y = 2;
+        return b.x + b.y; // returns 6
+    }
+    ---
+
+    $(IMPLEMENTATION_DEFINED Reading and writing a bit field may cause reads and writes of other bit
+    fields in the same unit. Any use of bit fields where asynchronous access is possible will produce
+    unreliable results.)
+
+    $(IMPLEMENTATION_DEFINED the layout of the bit fields is implementation defined. In practice, it is
+    expected to be identical to that of the associated C compiler, and ImportC.)
+
+    $(BEST_PRACTICE
+    If data portability is desired, use
+    $(LINK2 https://dlang.org/phobos/std_bitmanip.html#bitfields, std.bitmanip.bitfields).
+    If data compatibility with the associated C compiler is desired, use these bit fields.
+    Although not guaranteed, sticking with `int` and `uint` bit fields will yield the
+    most binary compatibility.
+    )
 
 $(H2 $(LNAME2 POD, Plain Old Data))
 

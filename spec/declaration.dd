@@ -51,6 +51,12 @@ $(GNAME IdentifierInitializers): $(LEGACY_LNAME2 Declarators, DeclaratorIdentifi
 $(GNAME IdentifierInitializer): $(LEGACY_LNAME2 DeclaratorInitializer, DeclaratorIdentifier)
     $(GLINK_LEX Identifier)
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
+    $(GLINK BitfieldDeclarator)
+
+$(GNAME BitfieldDeclarator):
+    $(D :) $(GLINK2 expression, AssignExpression)
+    $(GLINK_LEX Identifier) $(D :) $(GLINK2 expression, ConditionalExpression)
+    $(GLINK_LEX Identifier) $(D :) $(GLINK2 expression, ConditionalExpression) $(D =) $(GLINK Initializer)
 
 $(GNAME Declarator): $(LEGACY_LNAME2 VarDeclarator)
     $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
