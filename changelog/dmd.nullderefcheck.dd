@@ -1,0 +1,8 @@
+On null dereference check is now available
+
+A new check is implemented for when a null dereference occurs.
+
+This can be enabled by using ``-check=nullderef=on``
+What happens may be customized by the ``-checkaction`` switch and by setting a new handler in ``core.exception``.
+
+Due to issues in dmd's backend, not all pointer dereferences are guaranteed to get a check.
