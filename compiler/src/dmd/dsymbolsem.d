@@ -7351,7 +7351,7 @@ private extern(C++) class SearchVisitor : Visitor
             /* $ gives the number of type entries in the type tuple
              */
             auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-            Expression e = new IntegerExp(Loc.initial, tt.arguments.length, Type.tsize_t);
+            Expression e = newIntegerExp(Loc.initial, tt.arguments.length, Type.tsize_t);
             v._init = new ExpInitializer(Loc.initial, e);
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
             v.dsymbolSemantic(sc);
@@ -7366,7 +7366,7 @@ private extern(C++) class SearchVisitor : Visitor
             /* $ gives the number of elements in the tuple
              */
             auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-            Expression e = new IntegerExp(Loc.initial, td.objects.length, Type.tsize_t);
+            Expression e = newIntegerExp(Loc.initial, td.objects.length, Type.tsize_t);
             v._init = new ExpInitializer(Loc.initial, e);
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
             v.dsymbolSemantic(ass._scope);
@@ -7429,7 +7429,7 @@ private extern(C++) class SearchVisitor : Visitor
                 /* It is for an expression tuple, so the
                  * length will be a const.
                  */
-                Expression e = new IntegerExp(Loc.initial, tupexp.exps.length, Type.tsize_t);
+                Expression e = newIntegerExp(Loc.initial, tupexp.exps.length, Type.tsize_t);
                 v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc.initial, e));
                 v.storage_class |= STC.temp | STC.static_ | STC.const_;
             }
@@ -7460,7 +7460,7 @@ private extern(C++) class SearchVisitor : Visitor
                     {
                         assert(0);
                     }
-                    Expression edim = new IntegerExp(Loc.initial, dim, Type.tsize_t);
+                    Expression edim = newIntegerExp(Loc.initial, dim, Type.tsize_t);
                     edim = edim.expressionSemantic(ass._scope);
                     auto tiargs = new Objects(edim);
                     e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
@@ -8872,8 +8872,8 @@ private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
             const sdsz = sd.type.size();
             assert(sdsz != SIZE_INVALID && sdsz != 0);
             const n = sz / sdsz;
-            SliceExp se = new SliceExp(vd.loc, e, new IntegerExp(vd.loc, 0, Type.tsize_t),
-                new IntegerExp(vd.loc, n, Type.tsize_t));
+            SliceExp se = new SliceExp(vd.loc, e, newIntegerExp(vd.loc, 0, Type.tsize_t),
+                newIntegerExp(vd.loc, n, Type.tsize_t));
 
             // Prevent redundant bounds check
             se.upperIsInBounds = true;
