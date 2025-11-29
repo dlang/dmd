@@ -696,11 +696,12 @@ $(H3 $(LNAME2 static-opcall, Static opCall))
 $(H2 $(LEGACY_LNAME2 Assignment, assignment, Assignment Operator Overloading))
 
         $(P The assignment operator $(CODE =) can be overloaded if the
-        left hand side is a struct aggregate, and $(CODE opAssign)
+        left hand side is an aggregate, and $(CODE opAssign)
         is a member function of that aggregate.)
 
-        For struct types, operator overloading for the identity assignment
-        is allowed.
+        $(P For struct types, operator overloading for the
+        $(DDSUBLINK spec/struct, assign-overload, identity assignment)
+        is allowed, as well as assignment from other types.)
 
     ---
     struct S
@@ -716,14 +717,18 @@ $(H2 $(LEGACY_LNAME2 Assignment, assignment, Assignment Operator Overloading))
     s = 1;        // Rewritten to s.opAssign(1);
     ---
 
-        However for class types, identity assignment is not allowed. All class
-        types have reference semantics, so identity assignment by default rebinds
-        the left-hand-side to the argument at the right, and this is not overridable.
+        $(P However for class types, assignment can only be overridden from a type
+        which does not convert to `typeof(this)`.)
+
+        $(RATIONALE All class types have reference semantics, so identity assignment
+        rebinds the left-hand-side class reference to the one on the right. If this
+        was overridable then it would conflict conceptually with a subclass implicitly
+        converting to its base class.)
 
     ---
     class C
     {
-        // If X is the same type as C or the type which is
+        // If X is the same type as C or a type which is
         // implicitly convertible to C, then opAssign would
         // accept identity assignment, which is disallowed.
         // C opAssign(...);
