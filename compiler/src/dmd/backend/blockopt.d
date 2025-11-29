@@ -1525,6 +1525,12 @@ private void brmin(ref GlobalOptimizer go)
                 if (!bn)
                     continue Lsucc;
 
+                // Do not reorder try/finally blocks on Windows, because Bscope_index must match.
+                // Reordering catch handlers are fine, however.
+                static if (SCPP_OR_NTEXCEPTIONS)
+                    if (bn.bc == BC.try_ || bn.bc == BC._try || bn.bc == BC._finally)
+                        continue Lsucc;
+
                 if (bn.Bnext == bs)
                     break;
 
