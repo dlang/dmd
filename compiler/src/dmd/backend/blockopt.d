@@ -398,7 +398,7 @@ void block_initvar(Symbol* s)
  */
 
 @trusted
-void blockopt(ref GlobalOptimizer go, int iter)
+void blockopt(ref GlobalOptimizer go)
 {
     if (OPTIMIZER)
     {
@@ -419,9 +419,8 @@ void blockopt(ref GlobalOptimizer go, int iter)
             bltailmerge(go);            // do tail merging
             brtailrecursion(go);        // do tail recursion
             brcombine(go);              // convert graph to expressions
+            brmin(go);                  // minimize branching
             blexit(go);
-            if (iter >= 2)
-                brmin(go);              // minimize branching
 
             // Switched to one block per Statement, do not undo it
             enum merge = false;
@@ -1449,54 +1448,121 @@ private void brmin(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("brmin()\n");
     debug assert(bo.startblock);
-    for (block* b = bo.startblock.Bnext; b; b = b.Bnext)
+
+    static bool isExceptionHandler(block* b)
     {
-        block* bnext = b.Bnext;
-        if (!bnext)
-            break;
-        foreach (bl; ListRange(b.Bsucc))
+        return b.bc == BC.catch_ || b.bc == BC.jcatch || b.bc == BC._lpad;
+    }
+
+    Lbb:
+    for (block* b = bo.startblock.Bnext; b && b.Bnext; b = b.Bnext)
+    {
+        switch (b.bc)
         {
-            block* bs = list_block(bl);
-            if (bs == bnext)
-                goto L1;
+            case BC.try_:
+            case BC._try:
+            case BC.asm_:
+                // Try blocks must be followed by try body.
+                continue Lbb;
+
+            default:
+                break;
         }
 
-        // b is a block which does not have bnext as a successor.
-        // Look for a successor of b for which everyone must jmp to.
+        // Always try to move exception handlers away.
+        if (!isExceptionHandler(b.Bnext))
+        {
+            // Skip the block if one of the successors is already at Bnext.
+            foreach (bl; ListRange(b.Bsucc))
+            {
+                if (list_block(bl) == b.Bnext)
+                    continue Lbb;
+            }
+        }
+
+        block*[4] succ;   // Successor cache for current block
+        size_t succCount; // Successors are stored in succ[0 .. succCount]
+        size_t succFound; // Number of forward edges to successors
 
         foreach (bl; ListRange(b.Bsucc))
         {
             block* bs = list_block(bl);
-            block* bn;
-            foreach (blp; ListRange(bs.Bpred))
-            {
-                block* bsp = list_block(blp);
-                if (bsp.Bnext == bs)
-                    goto L2;
-            }
 
-            // Move bs so it is the Bnext of b
-            for (bn = bnext; 1; bn = bn.Bnext)
-            {
-                if (!bn)
-                    goto L2;
-                if (bn.Bnext == bs)
+            // Ignore successors that are optimized by blexit(),
+            // require reordering Btry, or are exception handlers.
+            if (bs.bc == BC.exit || bs.Btry != b.Bnext.Btry || isExceptionHandler(bs))
+                continue;
+
+            // Too many successors, skip.
+            if (succCount == succ.length)
+                continue Lbb;
+
+            succ[succCount] = bs;
+            succCount++;
+        }
+
+        block* bend;
+
+        // Find a successor that can be moved right after the current block.
+        for (block* bn = b.Bnext; bn; bn = bn.Bnext)
+        {
+            // Do not reorder try/finally blocks on Windows, because Bscope_index must match.
+            // Reordering catch handlers are fine, however.
+            static if (SCPP_OR_NTEXCEPTIONS)
+                if (bn.bc == BC.try_ || bn.bc == BC._try || bn.bc == BC._finally)
                     break;
-            }
-            bn.Bnext = null;
-            b.Bnext = bs;
-            for (bn = bs; bn.Bnext; bn = bn.Bnext)
-                {}
-            bn.Bnext = bnext;
-            debug if (debugc) printf("Moving block %p to appear after %p\n",bs,b);
-            go.changes++;
-            break;
 
-        L2:
+            Lsucc:
+            foreach (bsc; succ[0 .. succCount])
+            {
+                if (bn.Bnext != bsc)
+                    continue Lsucc;
+
+                succFound++;
+
+                if (bend)
+                    continue Lsucc;
+
+                foreach (blp; ListRange(bsc.Bpred))
+                {
+                    if (bsc == list_block(blp).Bnext)
+                        continue Lsucc;
+                }
+
+                bend = bn;
+            }
         }
 
+        // There is either no eligible successor or a back edge.
+        // Avoid splitting a potential loop into multiple parts.
+        if (!bend || succFound < succCount)
+            continue Lbb;
 
-    L1:
+        // Find a place to insert b.Bnext .. bend.
+        block* bs = bend.Bnext;
+        block* btail = bs;
+
+        while (true)
+        {
+            if (!btail)
+                continue Lbb;
+
+            if (btail.Btry == b.Bnext.Btry &&
+                (!btail.Bnext || list_nitems(btail.Bsucc) == 0))
+            {
+                break;
+            }
+
+            btail = btail.Bnext;
+        }
+
+        // Move b.Bnext .. bend after btail.
+        bend.Bnext = btail.Bnext;
+        btail.Bnext = b.Bnext;
+        b.Bnext = bs;
+
+        debug if (debugc) printf("Moving block %p to appear after %p\n", bs, b);
+        go.changes++;
     }
 }
 

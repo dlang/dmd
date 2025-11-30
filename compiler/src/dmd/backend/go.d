@@ -288,7 +288,7 @@ void optfunc(ref GlobalOptimizer go)
             scanForInlines(funcsym_p);
 
         if (go.mfoptim & MFdc)
-            blockopt(go, 0);            // do block optimization
+            blockopt(go);               // do block optimization
         out_regcand(&globsym);          // recompute register candidates
         go.changes = 0;                 // no changes yet
         sliceStructs(globsym, bo.startblock);
@@ -353,7 +353,7 @@ void optfunc(ref GlobalOptimizer go)
     if (debugc) printf("%d iterations\n",iter);
 
     if (go.mfoptim & MFdc)
-        blockopt(go, 1);                // do block optimization
+        blockopt(go);                 // do block optimization
 
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
