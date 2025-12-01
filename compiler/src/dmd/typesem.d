@@ -82,15 +82,15 @@ bool isString(Type _this)
     if (auto tsa = _this.isTypeSArray())
     {
         TY nty = tsa.next.toBasetype().ty;
-        return nty.isSomeChar;
+        return nty.isSomeChar();
     }
     else if (auto tda = _this.isTypeDArray())
     {
         TY nty = tda.next.toBasetype().ty;
-        return nty.isSomeChar;
+        return nty.isSomeChar();
     }
     else if (auto te = _this.isTypeEnum())
-        return te.memType().isIntegral();
+        return te.memType().isString();
     return false;
 }
 
