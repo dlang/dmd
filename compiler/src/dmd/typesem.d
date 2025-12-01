@@ -77,6 +77,23 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+bool isString(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+    {
+        TY nty = tsa.next.toBasetype().ty;
+        return nty.isSomeChar;
+    }
+    else if (auto tda = _this.isTypeDArray())
+    {
+        TY nty = tda.next.toBasetype().ty;
+        return nty.isSomeChar;
+    }
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isIntegral();
+    return false;
+}
+
 bool isReal(Type _this)
 {
     if (auto tb = _this.isTypeBasic())

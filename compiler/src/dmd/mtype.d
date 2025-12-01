@@ -657,11 +657,6 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
-    bool isString()
-    {
-        return false;
-    }
-
     /**************************
      * Returns true if T can be converted to boolean value.
      */
@@ -1776,12 +1771,6 @@ extern (C++) final class TypeSArray : TypeArray
         return dim.isIntegerExp() && dim.isIntegerExp().getInteger() == 0;
     }
 
-    override bool isString()
-    {
-        TY nty = next.toBasetype().ty;
-        return nty.isSomeChar;
-    }
-
     override bool needsDestruction()
     {
         return next.needsDestruction();
@@ -1831,12 +1820,6 @@ extern (C++) final class TypeDArray : TypeArray
         auto result = new TypeDArray(t);
         result.mod = mod;
         return result;
-    }
-
-    override bool isString()
-    {
-        TY nty = next.toBasetype().ty;
-        return nty.isSomeChar;
     }
 
     override bool isBoolean()
@@ -2617,11 +2600,6 @@ extern (C++) final class TypeEnum : Type
     override bool isBoolean()
     {
         return this.memType().isBoolean();
-    }
-
-    override bool isString()
-    {
-        return this.memType().isString();
     }
 
     override bool needsDestruction()
