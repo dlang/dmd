@@ -77,6 +77,22 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+/**************************
+ * Returns true if T can be converted to boolean value.
+ */
+bool isBoolean(Type _this)
+{
+    switch(_this.ty)
+    {
+        case Tvector, Tstruct: return false;
+        case Tarray, Taarray, Tdelegate, Tclass, Tnull: return true;
+        case Tenum: return _this.isTypeEnum().memType().isBoolean();
+        // bottom type can be implicitly converted to any other type
+        case Tnoreturn: return true;
+        default: return _this.isScalar();
+    }
+}
+
 bool isReal(Type _this)
 {
     if (auto tb = _this.isTypeBasic())

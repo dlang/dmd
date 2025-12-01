@@ -2076,7 +2076,6 @@ public:
     virtual bool isUnsigned();
     virtual bool isScopeClass();
     virtual bool isString();
-    virtual bool isBoolean();
     bool isConst() const;
     bool isImmutable() const;
     bool isMutable() const;
@@ -4376,7 +4375,6 @@ public:
     static TypeAArray* create(Type* t, Type* index);
     const char* kind() const override;
     TypeAArray* syntaxCopy() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4416,7 +4414,6 @@ public:
     ClassDeclaration* isClassHandle() override;
     uint8_t deduceWild(Type* t, bool isRef) override;
     bool isScopeClass() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4426,7 +4423,6 @@ public:
     const char* kind() const override;
     TypeDArray* syntaxCopy() override;
     bool isString() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4436,7 +4432,6 @@ public:
     static TypeDelegate* create(TypeFunction* t);
     const char* kind() const override;
     TypeDelegate* syntaxCopy() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4450,7 +4445,6 @@ public:
     bool isComplex() override;
     bool isScalar() override;
     bool isUnsigned() override;
-    bool isBoolean() override;
     bool isString() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
@@ -4634,7 +4628,6 @@ class TypeNoreturn final : public Type
 public:
     const char* kind() const override;
     TypeNoreturn* syntaxCopy() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4643,7 +4636,6 @@ class TypeNull final : public Type
 public:
     const char* kind() const override;
     TypeNull* syntaxCopy() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4706,7 +4698,6 @@ public:
     static TypeStruct* create(StructDeclaration* sym);
     const char* kind() const override;
     TypeStruct* syntaxCopy() override;
-    bool isBoolean() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
@@ -4775,7 +4766,6 @@ public:
     TypeVector* syntaxCopy() override;
     bool isScalar() override;
     bool isUnsigned() override;
-    bool isBoolean() override;
     TypeBasic* elementType();
     void accept(Visitor* v) override;
 };
