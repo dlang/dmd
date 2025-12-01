@@ -1024,6 +1024,12 @@ bool isReal(Type type)
     return dmd.typesem.isReal(type);
 }
 
+bool isBoolean(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isBoolean(type);
+}
+
 /***********************************************************
  * typinf.d
  */
