@@ -6284,13 +6284,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(p.loc, "PlacementExpression `%s` is an rvalue, but must be an lvalue", p.toChars());
                 return setError();
             }
-            if (sc.setUnsafe(false, p.loc, "`@safe` function `%s` cannot use placement `new`", sc.func))
+            if (sc.setUnsafe(false, p.loc, "placement `new`", sc.func))
             {
                 return setError();
             }
-            if (!exp.placement.type.isNaked)
+            if (!p.type.isNaked)
             {
-                error(p.loc, "PlacementExpression `%s` of type `%s` be unshared and mutable", p.toChars(), toChars(p.type));
+                error(p.loc, "PlacementExpression `%s` of type `%s` must be unshared and mutable", p.toChars(), toChars(p.type));
+                return setError();
+            }
+            if (p.type.ty == Tarray)
+            {
+                error(p.loc, "PlacementExpression cannot be a dynamic array");
                 return setError();
             }
             checkModifiable(exp.placement, sc);
