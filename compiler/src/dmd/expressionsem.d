@@ -17305,7 +17305,7 @@ Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyF
         case EXP.variable:
             auto varExp = cast(VarExp)exp;
 
-            //printf("VarExp::checkModifiable %s", varExp.toChars());
+            printf("VarExp::checkModifiable %s\n", varExp.toChars());
             assert(varExp.type);
             return varExp.var.checkModify(varExp.loc, sc, null, flag);
 
@@ -17499,7 +17499,12 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
 
     Expression visitVar(VarExp exp)
     {
-        //printf("VarExp::modifiableLvalue('%s')\n", exp.var.toChars());
+        printf("VarExp::modifiableLvalue('%s')\n", exp.var.toChars());
+        if (exp.var.storage_class & STC.final_)
+        {
+            error(exp.loc, "cannot modify `final %s`", exp.toErrMsg());
+            return ErrorExp.get();
+        }
         if (exp.var.storage_class & STC.manifest)
         {
             error(exp.loc, "cannot modify manifest constant `%s`", exp.toErrMsg());
@@ -18264,7 +18269,7 @@ enum ModifyFlags
  */
 private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1, ModifyFlags flag)
 {
-    //printf("checkModify() d: %s, e1: %s\n", d.toChars(), e1.toChars());
+    printf("checkModify() d: %s, e1: %s, flag: %x\n", d.toChars(), e1 ? e1.toChars() : "null", flag);
     VarDeclaration v = d.isVarDeclaration();
     if (v && v.canassign)
         return Modifiable.initialization;
