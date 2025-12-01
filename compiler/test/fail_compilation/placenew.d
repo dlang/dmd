@@ -89,7 +89,7 @@ void test8()
     int* ps = new(a) int;
 
     ubyte[a.sizeof] sa;
-    ps = new(sa) int[];
+    int[] ia = new(sa) int[4];
 
     const int s;
     ps = new(s) int;
