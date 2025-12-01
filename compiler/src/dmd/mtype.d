@@ -657,14 +657,6 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
-    /**************************
-     * Returns true if T can be converted to boolean value.
-     */
-    bool isBoolean()
-    {
-        return isScalar();
-    }
-
     final bool isConst() const nothrow pure @nogc @safe
     {
         return (mod & MODFlags.const_) != 0;
@@ -1692,11 +1684,6 @@ extern (C++) final class TypeVector : Type
         return basetype.nextOf().isUnsigned();
     }
 
-    override bool isBoolean()
-    {
-        return false;
-    }
-
     TypeBasic elementType()
     {
         assert(basetype.ty == Tsarray);
@@ -1822,11 +1809,6 @@ extern (C++) final class TypeDArray : TypeArray
         return result;
     }
 
-    override bool isBoolean()
-    {
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1866,11 +1848,6 @@ extern (C++) final class TypeAArray : TypeArray
         auto result = new TypeAArray(t, ti);
         result.mod = mod;
         return result;
-    }
-
-    override bool isBoolean()
-    {
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2170,11 +2147,6 @@ extern (C++) final class TypeDelegate : TypeNext
         auto result = new TypeDelegate(tf);
         result.mod = mod;
         return result;
-    }
-
-    override bool isBoolean()
-    {
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2495,11 +2467,6 @@ extern (C++) final class TypeStruct : Type
         return this;
     }
 
-    override bool isBoolean()
-    {
-        return false;
-    }
-
     override bool needsDestruction()
     {
         return sym.dtor !is null;
@@ -2597,11 +2564,6 @@ extern (C++) final class TypeEnum : Type
         return this.memType().isUnsigned();
     }
 
-    override bool isBoolean()
-    {
-        return this.memType().isBoolean();
-    }
-
     override bool needsDestruction()
     {
         return this.memType().needsDestruction();
@@ -2681,11 +2643,6 @@ extern (C++) final class TypeClass : Type
     override bool isScopeClass()
     {
         return sym.stack;
-    }
-
-    override bool isBoolean()
-    {
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2866,11 +2823,6 @@ extern (C++) final class TypeNull : Type
         return this;
     }
 
-    override bool isBoolean()
-    {
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2896,11 +2848,6 @@ extern (C++) final class TypeNoreturn : Type
     {
         // No semantic analysis done, no need to copy
         return this;
-    }
-
-    override bool isBoolean()
-    {
-        return true;  // bottom type can be implicitly converted to any other type
     }
 
     override void accept(Visitor v)
