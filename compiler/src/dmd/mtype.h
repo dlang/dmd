@@ -233,7 +233,7 @@ public:
     virtual bool isScalar();
     virtual bool isUnsigned();
     virtual bool isScopeClass();
-    virtual bool isString();
+
     bool isConst() const       { return (mod & MODconst) != 0; }
     bool isImmutable() const   { return (mod & MODimmutable) != 0; }
     bool isMutable() const     { return (mod & (MODconst | MODimmutable | MODwild)) == 0; }
@@ -358,7 +358,6 @@ public:
     const char *kind() override;
     TypeSArray *syntaxCopy() override;
     bool isIncomplete();
-    bool isString() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
@@ -372,7 +371,6 @@ class TypeDArray final : public TypeArray
 public:
     const char *kind() override;
     TypeDArray *syntaxCopy() override;
-    bool isString() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -658,7 +656,6 @@ public:
     bool isComplex() override;
     bool isScalar() override;
     bool isUnsigned() override;
-    bool isString() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
@@ -797,5 +794,6 @@ namespace dmd
     bool isIntegral(Type* type);
     bool isFloating(Type* type);
     bool isReal(Type* type);
+    bool isString(Type* type);
     bool isBoolean(Type* type);
 }

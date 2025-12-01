@@ -2075,7 +2075,6 @@ public:
     virtual bool isScalar();
     virtual bool isUnsigned();
     virtual bool isScopeClass();
-    virtual bool isString();
     bool isConst() const;
     bool isImmutable() const;
     bool isMutable() const;
@@ -4422,7 +4421,6 @@ class TypeDArray final : public TypeArray
 public:
     const char* kind() const override;
     TypeDArray* syntaxCopy() override;
-    bool isString() override;
     void accept(Visitor* v) override;
 };
 
@@ -4445,7 +4443,6 @@ public:
     bool isComplex() override;
     bool isScalar() override;
     bool isUnsigned() override;
-    bool isString() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
@@ -4672,7 +4669,6 @@ public:
     const char* kind() const override;
     TypeSArray* syntaxCopy() override;
     bool isIncomplete();
-    bool isString() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;

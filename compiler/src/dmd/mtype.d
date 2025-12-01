@@ -657,11 +657,6 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
-    bool isString()
-    {
-        return false;
-    }
-
     final bool isConst() const nothrow pure @nogc @safe
     {
         return (mod & MODFlags.const_) != 0;
@@ -1763,12 +1758,6 @@ extern (C++) final class TypeSArray : TypeArray
         return dim.isIntegerExp() && dim.isIntegerExp().getInteger() == 0;
     }
 
-    override bool isString()
-    {
-        TY nty = next.toBasetype().ty;
-        return nty.isSomeChar;
-    }
-
     override bool needsDestruction()
     {
         return next.needsDestruction();
@@ -1818,12 +1807,6 @@ extern (C++) final class TypeDArray : TypeArray
         auto result = new TypeDArray(t);
         result.mod = mod;
         return result;
-    }
-
-    override bool isString()
-    {
-        TY nty = next.toBasetype().ty;
-        return nty.isSomeChar;
     }
 
     override void accept(Visitor v)
@@ -2579,11 +2562,6 @@ extern (C++) final class TypeEnum : Type
     override bool isUnsigned()
     {
         return this.memType().isUnsigned();
-    }
-
-    override bool isString()
-    {
-        return this.memType().isString();
     }
 
     override bool needsDestruction()
