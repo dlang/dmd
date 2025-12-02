@@ -17,7 +17,6 @@ import dmd.aggregate;
 import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.printast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -41,6 +40,7 @@ import dmd.intrange;
 import dmd.mtype;
 import dmd.opover;
 import dmd.optimize;
+//import dmd.printast;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
@@ -70,25 +70,25 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
 {
     Expression visit(Expression e)
     {
-        printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
+        //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
         if (const match = (sc && sc.inCfile) ? e.cimplicitConvTo(t) : e.implicitConvTo(t))
         {
-	/* Do not allow taking a mutable pointer to a final
-	 */
-printf("xyzzy\n");
-printAST(e);
-	    SymOffExp es = e.isSymOffExp();
-	    if (es && es.var.storage_class & STC.final_)
-	    {
-printf("xyzzy2\n");
+            /* Do not allow taking a mutable pointer to a final
+             */
+            static if (0) // not sure this is needed
+            {
+            SymOffExp es = e.isSymOffExp();
+            if (es && es.var.storage_class & STC.final_ && es.var.isVarDeclaration())
+            {
                 Type tob = t.toBasetype();
-		if (tob.ty == Tpointer && !tob.nextOf().isConst())
-		{
-		    error(e.loc, "cannot implicitly convert final `%s` to `%s`", es.toChars(), t.toChars());
-		    errorSupplemental(e.loc, "Note: a reference to a final can be done if it is const.");
-		    return ErrorExp.get();
-		}
-	    }
+                if (tob.ty == Tpointer && tob.nextOf().isMutable())
+                {
+                    error(e.loc, "cannot implicitly convert final `%s` to `%s`", es.toChars(), t.toChars());
+                    errorSupplemental(e.loc, "Note: a reference to a final can be done if it is const.");
+                    return ErrorExp.get();
+                }
+            }
+            }
 
             // no need for an extra cast when matching is exact
 
