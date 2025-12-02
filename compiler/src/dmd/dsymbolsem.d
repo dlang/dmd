@@ -2326,9 +2326,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (STC stc = dsym.storage_class & (STC.synchronized_ | STC.override_ | STC.abstract_))
         {
-	    OutBuffer buf;
-	    stcToBuffer(buf, stc);
-	    .error(dsym.loc, "%s `%s` cannot be `%s`", dsym.kind, dsym.toPrettyChars, buf.peekChars());
+            OutBuffer buf;
+            stcToBuffer(buf, stc);
+            .error(dsym.loc, "%s `%s` cannot be `%s`", dsym.kind, dsym.toPrettyChars, buf.peekChars());
             dsym.storage_class &= ~stc; // strip off
         }
 
@@ -2748,20 +2748,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         dsym.storage_class |= STC.nodtor;
                         exp = exp.expressionSemantic(sc);
-printf("dsymIsRef: ref %s = %s;\n", dsym.toChars(), exp.toChars());
                         Type tp = dsym.type;
                         Type ta = exp.type;
-			if (!tp.isConst() &&
-			    exp.isVarExp() &&
-			    exp.isVarExp().var.storage_class & STC.final_)
-			{
-			    .error(dsym.loc, "cannot take mutable ref to final variable `%s`, use `const ref`", exp.toChars());
-			    exp = ErrorExp.get();
-			}
+                        if (tp.isMutable() &&
+                            exp.isVarExp() &&
+                            exp.isVarExp().var.isVarDeclaration() &&
+                            exp.isVarExp().var.storage_class & STC.final_)
+                        {
+                            .error(dsym.loc, "cannot take mutable ref to final variable `%s`, use `const ref`", exp.toChars());
+                            exp = ErrorExp.get();
+                        }
 
-			if (exp.isErrorExp())
-			{
-			}
+                        if (exp.isErrorExp())
+                        {
+                        }
                         else if (!exp.isLvalue())
                         {
                             if (dsym.storage_class & STC.autoref)
