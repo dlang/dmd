@@ -659,10 +659,22 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
         return tf && !tf.isRef;
     }
 
+    static bool visitDotVarExp(DotVarExp e)
+    {
+        auto vd = e.var.isVarDeclaration();
+        if (!vd || !vd.isField())
+            return false;
+
+        auto sd = vd.type.isTypeStruct();
+        if (!sd || sd.needsCopyOrPostblit() || sd.sym.hasMoveCtor)
+            return false;
+
+        // If an aggregate can be elided, so are its fields
+        return canElideCopy(e.e1, e.e1.type, false);
+    }
+
     switch (e.op)
     {
-        case EXP.call:
-            return visitCallExp(e.isCallExp());
         case EXP.comma:
             auto ce = e.isCommaExp();
             return canElideCopy(ce.e2, to, checkMod);
@@ -670,14 +682,13 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
             auto ce = e.isCondExp();
             return canElideCopy(ce.e1, to, checkMod) && canElideCopy(ce.e2, to, checkMod);
 
+        case EXP.call:
+            return visitCallExp(e.isCallExp());
+        case EXP.dotVariable:
+            return visitDotVarExp(e.isDotVarExp());
         case EXP.structLiteral:
             auto sle = e.isStructLiteralExp();
             return !(checkMod && sle.useStaticInit && to.isMutable());
-        case EXP.dotVariable:
-            // If an aggregate can be elided, so are its fields
-            auto dve = e.isDotVarExp();
-            auto vd = dve.var.isVarDeclaration();
-            return vd && vd.isField() && canElideCopy(dve.e1, dve.e1.type, false);
         case EXP.variable:
             return (e.isVarExp().var.storage_class & STC.rvalue) != 0;
         default:

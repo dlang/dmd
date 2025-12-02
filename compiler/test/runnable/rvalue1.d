@@ -275,6 +275,36 @@ void test11()
 
 /********************************/
 
+struct S12{
+    S12* ptr;
+    this(int) { ptr = &this; }
+    this(ref inout S12) { ptr = &this; }
+    this(S12) { ptr = &this; }
+}
+
+struct V12
+{
+    S12 s;
+    this(int) { s = S12(1); }
+}
+
+void foo(S12 s)
+{
+    assert(&s == s.ptr);
+}
+
+S12 bar()
+{
+    return __rvalue(V12(1).s);
+}
+
+void test12()
+{
+    foo(bar());
+}
+
+/********************************/
+
 int main()
 {
     test1();
