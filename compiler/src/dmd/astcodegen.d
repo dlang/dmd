@@ -33,8 +33,9 @@ struct ASTCodegen
     public import dmd.statement;
     public import dmd.staticassert;
     public import dmd.init : Designator;
+    public import dmd.typesem;
 
-
+    alias addSTC                    = dmd.typesem.addSTC;
     alias initializerToExpression   = dmd.initsem.initializerToExpression;
     alias typeToExpression          = dmd.mtype.typeToExpression;
     alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;
