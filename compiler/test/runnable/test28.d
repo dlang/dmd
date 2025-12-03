@@ -1313,7 +1313,8 @@ void foo22160(T)(Vector22160!T*, T* ptr, size_t)
 
 void bar22160(Vector22160!ubyte val)
 {
-	foo22160(&val, val.ptr, val.length);
+    ulong[16] padding = 0x1234567890123456UL;
+    foo22160(&val, val.ptr, val.length);
 }
 
 void test22160()
