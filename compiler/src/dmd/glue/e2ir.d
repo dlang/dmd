@@ -3156,10 +3156,11 @@ elem* toElem(Expression e, ref IRState irs)
     /****************************************
      */
 
-    elem* visitComma(CommaExp ce)
+    elem* visitComma(CommaExp ce, elem* ehidden = null)
     {
         assert(ce.e1 && ce.e2);
         elem* eleft  = toElem(ce.e1, irs);
+        irs.ehidden  = ehidden;
         elem* eright = toElem(ce.e2, irs);
         elem* e = el_combine(eleft, eright);
         if (e)
@@ -3170,21 +3171,29 @@ elem* toElem(Expression e, ref IRState irs)
     /***************************************
      */
 
-    elem* visitCond(CondExp ce)
+    elem* visitCond(CondExp ce, elem* ehidden = null)
     {
         // condition `__ctfe`/`!__ctfe` is always false/true at runtime, so skip code generation
         //  for ce.e1/e2. This can also be the result of inlining an `if (__ctfe)` statement
         auto ctfecond = ce.econd.op == EXP.not ? (cast(NotExp)ce.econd).e1 : ce.econd;
         if (auto ve = ctfecond.isVarExp())
+        {
             if (ve.var && ve.var.ident == Id.ctfe)
+            {
+                irs.ehidden = ehidden;
                 return toElem(ctfecond is ce.econd ? ce.e2 : ce.e1, irs);
+            }
+        }
 
         elem* ec = toElem(ce.econd, irs);
 
+        irs.ehidden = ehidden;
         elem* eleft = toElem(ce.e1, irs);
         if (irs.params.cov && ce.e1.loc.linnum)
             eleft = el_combine(incUsageElem(irs, ce.e1.loc), eleft);
 
+        if (ehidden)
+            irs.ehidden = el_copytree(ehidden);
         elem* eright = toElem(ce.e2, irs);
         if (irs.params.cov && ce.e2.loc.linnum)
             eright = el_combine(incUsageElem(irs, ce.e2.loc), eright);
@@ -3436,16 +3445,13 @@ elem* toElem(Expression e, ref IRState irs)
         return e;
     }
 
-    elem* visitCall(CallExp ce)
+    elem* visitCall(CallExp ce, elem* ehidden = null)
     {
         //printf("[%s] CallExp.toElem('%s') %p, %s\n", ce.loc.toChars(), ce.toChars(), ce, ce.type.toChars());
         assert(ce.e1.type);
         Type t1 = ce.e1.type.toBasetype();
         Type ectype = t1;
         elem* eeq = null;
-
-        elem* ehidden = irs.ehidden;
-        irs.ehidden = null;
 
         elem* ec;
         FuncDeclaration fd = null;
@@ -4219,6 +4225,75 @@ elem* toElem(Expression e, ref IRState irs)
     {
         //printf("ClassReferenceExp.toElem() %p, value=%p, %s\n", e, e.value, e.toChars());
         return el_ptr(toSymbol(e));
+    }
+
+    /*****************************************************/
+    /*                        RVO                        */
+    /*****************************************************/
+    /*                                                   */
+    /*           Please keep this in sync with           */
+    /*          dmd.expressionsem.canElideCopy()         */
+    /*                                                   */
+    /*****************************************************/
+
+    elem* visitVariableRVO(Expression e, elem* ehidden)
+    {
+        elem* el = toElem(e, irs);
+        return elAssign(el_una(OPind, el.Ety, ehidden), el, e.type, null);
+    }
+
+    elem* visitStructLiteralRVO(StructLiteralExp e)
+    {
+        e.sym = irs.shidden;
+        return visitStructLiteral(e);
+    }
+
+    elem* visitCallRVO(CallExp e, elem* ehidden)
+    {
+        FuncDeclaration fd;
+
+        if (auto dve = e.e1.isDotVarExp())
+        {
+            fd = dve.var.isFuncDeclaration();
+            if (fd && fd.isCtorDeclaration())
+            {
+                if (auto sle = dve.e1.isStructLiteralExp())
+                {
+                    sle.sym = irs.shidden;
+                    return visitCall(e);
+                }
+            }
+        }
+        else
+        {
+            fd = e.f;
+        }
+
+        Type t = e.e1.type.toBasetype();
+        if (t.ty == Tdelegate)
+            t = t.nextOf();
+        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, fd && fd.needThis()) == RET.stack)
+            return visitCall(e, ehidden);
+
+        // The return value is passed in registers
+        return visitVariableRVO(e, ehidden);
+    }
+
+    if (irs.ehidden)
+    {
+        elem* ehidden = irs.ehidden;
+        irs.ehidden = null;
+
+        switch (e.op)
+        {
+            case EXP.comma:         return visitComma(e.isCommaExp(), ehidden);
+            case EXP.question:      return visitCond(e.isCondExp(), ehidden);
+            case EXP.call:          return visitCallRVO(e.isCallExp(), ehidden);
+            case EXP.dotVariable:
+            case EXP.variable:      return visitVariableRVO(e, ehidden);
+            case EXP.structLiteral: return visitStructLiteralRVO(e.isStructLiteralExp());
+            default:                assert(0);
+        }
     }
 
     switch (e.op)
