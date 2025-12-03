@@ -3094,9 +3094,9 @@ $(H4 $(LNAME2 new_multidimensional, Multidimensional Arrays))
         }
         -----------
 
-$(H4 $(LNAME2 placement-expression, Placement Expression))
+$(H4 $(LNAME2 placement-expression, Placement New))
 
-    $(P The $(I PlacementExpression) explicitly provides the storage for $(I NewExpression) to initialize with
+    $(P The $(GLINK PlacementExpression) explicitly provides the storage for $(I NewExpression) to initialize with
     the newly created value, rather than using the $(DDLINK spec/garbage, Garbage Collection, garbage
     collected) heap.)
 
@@ -3104,9 +3104,6 @@ $(H4 $(LNAME2 placement-expression, Placement Expression))
     larger or equal to $(D sizeof($(I Type))).)
 
     $(P The $(I Type) of the $(I PlacementExpression) need not be the same as the $(I Type) of the object being created.)
-
-    $(P Alternatively, the $(I PlacementExpression) can be a dynamic array, which must represent sufficient memory
-    for the object being created.)
 
     $(BEST_PRACTICE Using a static array of `void` is preferred for the $(I PlacementExpression).)
 
@@ -3131,7 +3128,7 @@ $(H4 $(LNAME2 placement-expression, Placement Expression))
     ---
     )
 
-    (If Type is a class, the $(I PlacementExpression) must produce an lvalue of a type that is of a
+    $(P If *Type* is a class, the $(I PlacementExpression) must produce an lvalue of a type that is of a
     sufficient size to hold the class object such as `void[__traits(classInstanceSize, Type)]`
     or a dynamic array representing sufficient memory for the class object.)
 
@@ -3152,11 +3149,16 @@ $(H4 $(LNAME2 placement-expression, Placement Expression))
     ---
     )
 
-    $(P $(I PlacementExpression)  cannot be used for associative arrays, as associative arrays
+    $(P Restrictions:)
+    $(UL
+    $(LI The $(I PlacementExpression) type must be mutable and not `shared`.)
+
+    $(LI $(I Type) cannot be an associative array, as associative arrays
     are designed to be on the GC heap. The size of the associative array allocated is determined
     by the runtime library, and cannot be set by the user.)
 
-    $(P The use of $(I PlacementExpression) is not allowed in `@safe` code.)
+    $(LI Placement `new` is not allowed in `@safe` code.)
+    )
 
     $(P To allocate storage with an allocator function such as `malloc()`, a simple template can be used:)
 
