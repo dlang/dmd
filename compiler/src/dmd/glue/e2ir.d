@@ -392,6 +392,8 @@ elem* toElemDtor(Expression e, ref IRState irs)
     if (irs.mayThrow && !canThrow(e, irs.getFunc(), null))
         irs.mayThrow = false;
 
+    bool isRVO = irs.ehidden != null;
+
     const starti = irs.varsInScope.length;
     elem* er = toElem(e, irs);
     const endi = irs.varsInScope.length;
@@ -399,7 +401,7 @@ elem* toElemDtor(Expression e, ref IRState irs)
     irs.mayThrow = mayThrowSave;
 
     // Add destructors
-    elem* ex = appendDtors(irs, er, starti, endi);
+    elem* ex = appendDtors(irs, er, starti, endi, isRVO);
     return ex;
 }
 
@@ -6850,7 +6852,7 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
  *      er with destructors appended
  */
 
-elem* appendDtors(ref IRState irs, elem* er, size_t starti, size_t endi)
+elem* appendDtors(ref IRState irs, elem* er, size_t starti, size_t endi, bool isRVO)
 {
     //printf("appendDtors(%d .. %d)\n", cast(int)starti, cast(int)endi);
 
@@ -6891,17 +6893,14 @@ elem* appendDtors(ref IRState irs, elem* er, size_t starti, size_t endi)
         return er;
     }
 
-    elem **pe;
-    for (pe = &er; (*pe).Eoper == OPcomma; pe = &(*pe).E2)
-    {
-    }
+    elem **pe = el_scancommas(&er);
     elem* erx = *pe;
 
     if (erx.Eoper == OPconst || erx.Eoper == OPrelconst)
     {
         *pe = el_combine(edtors, erx);
     }
-    else if (elemIsLvalue(erx))
+    else if (isRVO || elemIsLvalue(erx))
     {
         /* Lvalue, take a pointer to it
          */
