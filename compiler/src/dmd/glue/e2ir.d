@@ -2612,37 +2612,39 @@ elem* toElem(Expression e, ref IRState irs)
          * If the former, because of aliasing of the return value with
          * function arguments, it'll fail.
          */
-        if (ae.op == EXP.construct && ae.e2.op == EXP.call)
+        if (ae.op == EXP.construct)
         {
-            CallExp ce = cast(CallExp)ae.e2;
-            TypeFunction tf = cast(TypeFunction)ce.e1.type.toBasetype();
-            if (tf.ty == Tfunction && retStyle(tf, ce.f && ce.f.needThis()) == RET.stack)
+            if (CallExp ce = lastComma(ae.e2).isCallExp())
             {
-                elem* ehidden = e1;
-                ehidden = el_una(OPaddr, TYnptr, ehidden);
-                assert(!irs.ehidden);
-                irs.ehidden = ehidden;
-                elem* e = toElem(ae.e2, irs);
-                return setResult2(e);
-            }
-
-            /* Look for:
-             *  v = structliteral.ctor(args)
-             * and have the structliteral write into v, rather than create a temporary
-             * and copy the temporary into v
-             */
-            if (e1.Eoper == OPvar && // no closure variables https://issues.dlang.org/show_bug.cgi?id=17622
-                ae.e1.op == EXP.variable && ce.e1.op == EXP.dotVariable)
-            {
-                auto dve = cast(DotVarExp)ce.e1;
-                auto fd = dve.var.isFuncDeclaration();
-                if (fd && fd.isCtorDeclaration())
+                TypeFunction tf = cast(TypeFunction)ce.e1.type.toBasetype();
+                if (tf.ty == Tfunction && retStyle(tf, ce.f && ce.f.needThis()) == RET.stack)
                 {
-                    if (auto sle = dve.e1.isStructLiteralExp())
+                    elem* ehidden = e1;
+                    ehidden = el_una(OPaddr, TYnptr, ehidden);
+                    assert(!irs.ehidden);
+                    irs.ehidden = ehidden;
+                    elem* e = toElem(ae.e2, irs);
+                    return setResult2(e);
+                }
+
+                /* Look for:
+                 *  v = structliteral.ctor(args)
+                 * and have the structliteral write into v, rather than create a temporary
+                 * and copy the temporary into v
+                 */
+                if (e1.Eoper == OPvar && // no closure variables https://issues.dlang.org/show_bug.cgi?id=17622
+                    ae.e1.op == EXP.variable && ce.e1.op == EXP.dotVariable)
+                {
+                    auto dve = cast(DotVarExp)ce.e1;
+                    auto fd = dve.var.isFuncDeclaration();
+                    if (fd && fd.isCtorDeclaration())
                     {
-                        sle.sym = toSymbol((cast(VarExp)ae.e1).var);
-                        elem* e = toElem(ae.e2, irs);
-                        return setResult2(e);
+                        if (auto sle = dve.e1.isStructLiteralExp())
+                        {
+                            sle.sym = toSymbol((cast(VarExp)ae.e1).var);
+                            elem* e = toElem(ae.e2, irs);
+                            return setResult2(e);
+                        }
                     }
                 }
             }
