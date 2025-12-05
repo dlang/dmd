@@ -15,6 +15,7 @@ import dmd.mtype;
 import dmd.visitor;
 import dmd.identifier;
 import dmd.expression;
+import dmd.typesem : isFloating;
 
 bool isTypeNullable(Type type)
 {

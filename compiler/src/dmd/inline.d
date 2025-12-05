@@ -29,7 +29,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : include, toAlias, toParentP, followInstantiationContext, runDeferredSemantic3;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.expressionsem : semanticTypeInfo;
+import dmd.expressionsem : canElideCopy, semanticTypeInfo;
 import dmd.errors : message;
 import dmd.errorsink;
 import dmd.func;
@@ -52,39 +52,34 @@ import dmd.visitor.postorder;
 import dmd.inlinecost;
 
 /***********************************************************
- * Scan function implementations in Module m looking for functions that can be inlined,
+ * Scan for always-inline functions in Module m to be inlined,
  * and inline them in situ.
  *
  * Params:
  *    m = module to scan
  *    eSink = where to report errors
  */
-public void inlineScanModule(Module m, ErrorSink eSink)
+public void inlineScanPragmaInline(Module m, ErrorSink eSink)
 {
     if (m.semanticRun != PASS.semantic3done)
         return;
-    m.semanticRun = PASS.inline;
 
-    // Note that modules get their own scope, from scratch.
-    // This is so regardless of where in the syntax a module
-    // gets imported, it is unaffected by context.
-
-    //printf("Module = %p\n", m.sc.scopesym);
-
-    foreach (i; 0 .. m.members.length)
-    {
-        Dsymbol s = (*m.members)[i];
-        //if (global.params.v.verbose)
-        //    message("inline scan symbol %s", s.toChars());
-        inlineScanDsymbol(s, eSink);
-    }
-    m.semanticRun = PASS.inlinedone;
+    inlineScanModule(m, PASS.inlinePragma, eSink);
 }
 
-private void inlineScanDsymbol(Dsymbol s, ErrorSink eSink)
+/***********************************************************
+ * Scan all functions in Module m and try to inline them in situ.
+ *
+ * Params:
+ *    m = module to scan
+ *    eSink = where to report errors
+ */
+public void inlineScanAllFunctions(Module m, ErrorSink eSink)
 {
-    scope InlineScanVisitorDsymbol v = new InlineScanVisitorDsymbol(eSink);
-    s.accept(v);
+    if (m.semanticRun != PASS.semantic3done && m.semanticRun != PASS.inlinePragma)
+        return;
+
+    inlineScanModule(m, PASS.inlineAll, eSink);
 }
 
 /***********************************************************
@@ -153,6 +148,7 @@ private final class InlineDoState
     FuncDeclaration fd; // function being inlined (old parent)
     // inline result
     bool foundReturn;
+    bool needsCopy;
 
     this(Dsymbol parent, FuncDeclaration fd) scope
     {
@@ -367,6 +363,16 @@ public:
     {
         //printf("ReturnStatement.doInlineAs!%s() '%s'\n", Result.stringof.ptr, s.exp ? s.exp.toChars() : "");
         ids.foundReturn = true;
+
+        if (!ids.needsCopy && s.exp && s.exp.type.ty == Tstruct)
+        {
+            auto tf = ids.fd.type.isTypeFunction();
+            if (!ids.fd.isCtorDeclaration() && !ids.fd.nrvo_var &&
+                !tf.isRef && !canElideCopy(s.exp, tf.nextOf()))
+            {
+                ids.needsCopy = true;
+            }
+        }
 
         auto exp = doInlineAs!Expression(s.exp, ids);
         if (!exp) // https://issues.dlang.org/show_bug.cgi?id=14560
@@ -623,7 +629,11 @@ public:
 
         override void visit(SuperExp e)
         {
-            assert(ids.vthis);
+            if (!ids.vthis)
+            {
+                result = e;
+                return;
+            }
             result = new VarExp(e.loc, ids.vthis);
             if (ids.fd.hasDualContext)
             {
@@ -1026,18 +1036,30 @@ private Result doInlineAs(Result)(Expression e, InlineDoState ids)
 private extern (C++) final class InlineScanVisitor : Visitor
 {
     alias visit = Visitor.visit;
+
 public:
     FuncDeclaration parent;     // function being scanned
+    PASS pass;
+    ErrorSink eSink;
+
     // As the visit method cannot return a value, these variables
     // are used to pass the result from 'visit' back to 'inlineScan'
     Statement sresult;
     Expression eresult;
-    ErrorSink eSink;
     bool again;
 
-    extern (D) this(ErrorSink eSink) scope @safe
+    extern (D) this(FuncDeclaration parent, PASS pass, ErrorSink eSink) scope @safe
     {
+        this.parent = parent;
+        this.pass = pass;
         this.eSink = eSink;
+    }
+
+    void reset()
+    {
+        sresult = null;
+        eresult = null;
+        again = false;
     }
 
     override void visit(Statement s)
@@ -1290,17 +1312,19 @@ public:
     {
     }
 
-    void scanVar(Dsymbol s)
+    override void visit(DeclarationExp e)
     {
-        //printf("scanVar(%s %s)\n", s.kind(), s.toPrettyChars());
-        if (VarDeclaration vd = s.isVarDeclaration())
+        if (VarDeclaration vd = e.declaration.isVarDeclaration())
         {
             if (TupleDeclaration td = vd.toAlias().isTupleDeclaration())
             {
-                td.foreachVar((s)
+                foreach (o; *td.objects)
                 {
-                    scanVar(s); // TODO
-                });
+                    if (auto te = o.isExpression())
+                    {
+                        inlineScan(te);
+                    }
+                }
             }
             else if (vd._init)
             {
@@ -1310,16 +1334,6 @@ public:
                 }
             }
         }
-        else
-        {
-            inlineScanDsymbol(s, eSink);
-        }
-    }
-
-    override void visit(DeclarationExp e)
-    {
-        //printf("DeclarationExp.inlineScan() %s\n", e.toChars());
-        scanVar(e.declaration);
     }
 
     override void visit(UnaExp e)
@@ -1466,16 +1480,16 @@ public:
             bool asStates = asStatements;
             if (asStates)
             {
-                if (fd.inlineStatusExp == ILS.yes)
+                if (fd.semanticRun == pass && fd.inlineStatusExp == ILS.yes)
                     asStates = false;           // inline as expressions
                                                 // so no need to recompute argumentsNeedDtors()
                 else if (argumentsNeedDtors(e.arguments))
                     asStates = false;
             }
 
-            if (canInline(fd, parent == fd.toParent2(), asStates, eSink))
+            if (canInline(fd, parent == fd.toParent2(), asStates, pass, eSink))
             {
-                expandInline(e.loc, fd, parent, eret, null, e.arguments, asStates, e.vthis2, eresult, sresult, again);
+                expandInline(e, fd, parent, eret, null, asStates, eresult, sresult, again);
                 if (asStatements && eresult)
                 {
                     sresult = new ExpStatement(eresult.loc, eresult);
@@ -1567,10 +1581,10 @@ public:
 
         if (explicitThis)
         {
-            if (!canInline(fd, !fd.isNested(), asStatements, eSink))
+            if (!canInline(fd, !fd.isNested(), asStatements, pass, eSink))
                 return;
 
-            expandInline(e.loc, fd, parent, eret, explicitThis, e.arguments, asStatements, e.vthis2, eresult, sresult, again);
+            expandInline(e, fd, parent, eret, explicitThis, asStatements, eresult, sresult, again);
         }
         else
             inlineFd(fd);
@@ -1670,11 +1684,14 @@ public:
 private extern (C++) final class InlineScanVisitorDsymbol : Visitor
 {
     alias visit = Visitor.visit;
+
 public:
+    PASS pass;
     ErrorSink eSink;
 
-    extern (D) this(ErrorSink eSink) scope @safe
+    extern (D) this(PASS pass, ErrorSink eSink) scope @safe
     {
+        this.pass = pass;
         this.eSink = eSink;
     }
 
@@ -1692,33 +1709,53 @@ public:
         {
             printf("FuncDeclaration.inlineScan('%s')\n", fd.toPrettyChars());
         }
-        if (!(global.params.useInline || fd.hasAlwaysInlines))
+
+        if (!fd.fbody || fd.isNaked || fd.skipCodegen)
             return;
-        if (fd.isUnitTestDeclaration() && !global.params.useUnitTests || fd.inlineScanned)
+
+        if (fd.semanticRun < PASS.semantic3done)
             return;
-        if (fd.fbody && !fd.isNaked)
+
+        if (fd.semanticRun == pass && fd.inlineScanned)
+            return;
+
+        if (fd.isUnitTestDeclaration() && !global.params.useUnitTests)
+            return;
+
+        if (!fd.hasAlwaysInlines && pass == PASS.inlinePragma)
+            return;
+
+        if (fd.semanticRun != pass)
         {
-            while (1)
+            fd.inlineStatusExp = ILS.uninitialized;
+            fd.inlineStatusStmt = ILS.uninitialized;
+        }
+
+        fd.inlineScanned = true;
+        fd.semanticRun = pass;
+
+        scope InlineScanVisitor v = new InlineScanVisitor(fd, pass, eSink);
+
+        do
+        {
+            fd.inlineNest++;
+            v.reset();
+            v.inlineScan(fd.fbody);
+            fd.inlineNest--;
+        } while (v.again);
+
+        if (fd.localsymtab)
+        {
+            foreach (keyValue; fd.localsymtab.tab.asRange)
             {
-                fd.inlineNest++;
-                fd.inlineScanned = true;
-
-                scope InlineScanVisitor v = new InlineScanVisitor(eSink);
-                v.parent = fd;
-                v.inlineScan(fd.fbody);
-                bool again = v.again;
-
-                fd.inlineNest--;
-                if (!again)
-                    break;
+                keyValue.value.accept(this);
             }
         }
     }
 
     override void visit(AttribDeclaration d)
     {
-        Dsymbols* decls = d.include(null);
-        if (decls)
+        if (Dsymbols* decls = d.include(null))
         {
             foreach (i; 0 .. decls.length)
             {
@@ -1761,6 +1798,36 @@ public:
 }
 
 /***********************************************************
+ * Scan function implementations in Module m looking for functions that can be inlined,
+ * and inline them in situ.
+ *
+ * Params:
+ *    m = module to scan
+ *    pass = the current pass (inline1 or inline2)
+ *    eSink = where to report errors
+ */
+private void inlineScanModule(Module m, PASS pass, ErrorSink eSink)
+{
+    assert(pass == PASS.inlinePragma || pass == PASS.inlineAll);
+
+    // Note that modules get their own scope, from scratch.
+    // This is so regardless of where in the syntax a module
+    // gets imported, it is unaffected by context.
+
+    //printf("Module = %p\n", m.sc.scopesym);
+
+    scope v = new InlineScanVisitorDsymbol(pass, eSink);
+
+    foreach (i; 0 .. m.members.length)
+    {
+        Dsymbol s = (*m.members)[i];
+        s.accept(v);
+    }
+
+    m.semanticRun = pass;
+}
+
+/***********************************************************
  * Test that `fd` can be inlined.
  *
  * Params:
@@ -1773,7 +1840,7 @@ public:
  * Returns:
  *  true if the function body can be expanded.
  */
-private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, ErrorSink eSink)
+private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PASS pass, ErrorSink eSink)
 {
     int cost;
 
@@ -1810,6 +1877,15 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, Err
     if (fd.skipCodegen)
         return false;
 
+    // Reset ILS if the decision was made in another pass
+    if (fd.semanticRun != pass)
+    {
+        fd.inlineScanned = false;
+        fd.inlineStatusExp = ILS.uninitialized;
+        fd.inlineStatusStmt = ILS.uninitialized;
+        fd.semanticRun = pass;
+    }
+
     final switch (statementsToo ? fd.inlineStatusStmt : fd.inlineStatusExp)
     {
     case ILS.yes:
@@ -1831,7 +1907,7 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, Err
     final switch (fd.inlining)
     {
     case PINLINE.default_:
-        if (!global.params.useInline)
+        if (pass != PASS.inlineAll)
             return false;
         break;
     case PINLINE.always:
@@ -1954,7 +2030,10 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, Err
     else
         fd.inlineStatusExp = ILS.yes;
 
-    inlineScanDsymbol(fd, eSink);
+    {
+        scope v = new InlineScanVisitorDsymbol(pass, eSink);
+        fd.accept(v);
+    }
 
     if (fd.inlineStatusExp == ILS.uninitialized)
     {
@@ -1983,8 +2062,11 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, Err
     return true;
 
 Lno:
-    if (fd.inlining == PINLINE.always && global.params.useWarnings == DiagnosticReporting.inform)
+    if (fd.inlining == PINLINE.always && pass == PASS.inlinePragma &&
+        global.params.useWarnings == DiagnosticReporting.inform)
+    {
         eSink.warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
+    }
 
     if (statementsToo)
         fd.inlineStatusStmt = ILS.no;
@@ -2003,22 +2085,20 @@ Lno:
  *      ethis.fd(arguments)
  *
  * Params:
- *      callLoc = location of CallExp
+ *      e = original CallExp
  *      fd = function to expand
  *      parent = function that the call to fd is being expanded into
  *      eret = if !null then the lvalue of where the nrvo return value goes
- *      ethis = 'this' reference
- *      arguments = arguments passed to fd
  *      asStatements = expand to Statements rather than Expressions
  *      eresult = if expanding to an expression, this is where the expression is written to
  *      sresult = if expanding to a statement, this is where the statement is written to
  *      again = if true, then fd can be inline scanned again because there may be
  *           more opportunities for inlining
  */
-private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expression eret,
-        Expression ethis, Expressions* arguments, bool asStatements, VarDeclaration vthis2,
-        out Expression eresult, out Statement sresult, out bool again)
+private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration parent, Expression eret,
+        Expression ethis, bool asStatements, out Expression eresult, out Statement sresult, out bool again)
 {
+    Loc callLoc = ecall.loc;
     auto tf = fd.type.isTypeFunction();
     static if (LOG || CANINLINE_LOG || EXPANDINLINE_LOG)
         printf("FuncDeclaration.expandInline('%s', %d)\n", fd.toChars(), asStatements);
@@ -2097,6 +2177,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
     {
         Expression e0;
         ethis = Expression.extractLast(ethis, e0);
+        VarDeclaration vthis2 = ecall.vthis2;
         assert(vthis2 || !fd.hasDualContext);
         if (vthis2)
         {
@@ -2135,8 +2216,6 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
             if (ethis.type.ty != Tclass)
                 vthis.storage_class = STC.ref_;
-            else
-                vthis.storage_class = STC.in_;
             vthis._linkage = LINK.d;
             vthis.parent = parent;
 
@@ -2154,13 +2233,13 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
     // Set up parameters
     Expression eparams;
-    if (arguments && arguments.length)
+    if (ecall.arguments && ecall.arguments.length)
     {
-        assert(fd.parameters.length == arguments.length);
-        foreach (i; 0 .. arguments.length)
+        assert(fd.parameters.length == ecall.arguments.length);
+        foreach (i; 0 .. ecall.arguments.length)
         {
             auto vfrom = (*fd.parameters)[i];
-            auto arg = (*arguments)[i];
+            auto arg = (*ecall.arguments)[i];
 
             auto ei = new ExpInitializer(vfrom.loc, arg);
             auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, ei);
@@ -2180,6 +2259,9 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
                     vto.storage_class |= STC.ref_;
                 }
             }
+
+            if (arg.rvalue)
+                vto.storage_class |= STC.ref_;
 
             // Even if vto is STC.lazy_, `vto = arg` is handled correctly in glue layer.
             ei.exp = new BlitExp(vto.loc, vto, arg);
@@ -2290,8 +2372,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
          * the returned reference is exactly same as vthis, and the 'this' variable
          * already exists at the caller side.
          */
-        if (tf.next.ty == Tstruct && !fd.nrvo_var && !fd.isCtorDeclaration() &&
-            !isConstruction(e))
+        if (ids.needsCopy)
         {
             /* Generate a new variable to hold the result and initialize it with the
              * inlined body of the function:
@@ -2325,6 +2406,9 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         eresult = Expression.combine(eresult, eret, ethis, eparams);
         eresult = Expression.combine(eresult, e);
 
+        if (ecall.rvalue || tf.isRvalue)
+            eresult.rvalue = true;
+
         static if (EXPANDINLINE_LOG)
             printf("\n[%s] %s expandInline eresult = %s\n",
                 callLoc.toChars(), fd.toPrettyChars(), eresult.toChars());
@@ -2334,45 +2418,6 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
     // in expressions, as we might have inlined statements
     parent.inlineStatusExp = ILS.uninitialized;
 }
-
-/****************************************************
- * Determine if the value of `e` is the result of construction.
- *
- * Params:
- *      e = expression to check
- * Returns:
- *      true for value generated by a constructor or struct literal
- */
-private bool isConstruction(Expression e)
-{
-    e = lastComma(e);
-
-    if (e.op == EXP.structLiteral)
-    {
-        return true;
-    }
-    /* Detect:
-     *    structliteral.ctor(args)
-     */
-    else if (e.op == EXP.call)
-    {
-        auto ce = cast(CallExp)e;
-        if (ce.e1.op == EXP.dotVariable)
-        {
-            auto dve = cast(DotVarExp)ce.e1;
-            auto fd = dve.var.isFuncDeclaration();
-            if (fd && fd.isCtorDeclaration())
-            {
-                if (dve.e1.op == EXP.structLiteral)
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
 
 /***********************************************************
  * Determine if v is 'head const', meaning

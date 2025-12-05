@@ -354,6 +354,11 @@ void printTemplateStats(bool listInstances, ErrorSink eSink)
     return dmd.dtemplate.printTemplateStats(listInstances, eSink);
 }
 
+void printInstantiationTrace(TemplateInstance ti)
+{
+    return ti.printInstantiationTrace();
+}
+
 /***********************************************************
  * dtoh.d
  */
@@ -460,6 +465,12 @@ complex_t toComplex(Expression exp)
 {
     import dmd.expressionsem;
     return dmd.expressionsem.toComplex(exp);
+}
+
+real_t toImaginary(Expression exp)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.toImaginary(exp);
 }
 
 /***********************************************************
@@ -999,6 +1010,36 @@ MOD deduceWild(Type type, Type t, bool isRef)
 {
     import dmd.typesem;
     return dmd.typesem.deduceWild(type, t, isRef);
+}
+
+bool isIntegral(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isIntegral(type);
+}
+
+bool isFloating(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isFloating(type);
+}
+
+bool isReal(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isReal(type);
+}
+
+bool isString(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isString(type);
+}
+
+bool isBoolean(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isBoolean(type);
 }
 
 /***********************************************************

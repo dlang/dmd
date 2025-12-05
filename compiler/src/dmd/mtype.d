@@ -632,22 +632,6 @@ extern (C++) abstract class Type : ASTNode
         return buf.extractChars();
     }
 
-    bool isIntegral()
-    {
-        return false;
-    }
-
-    // real, imaginary, or complex
-    bool isFloating()
-    {
-        return false;
-    }
-
-    bool isReal()
-    {
-        return false;
-    }
-
     bool isImaginary()
     {
         return false;
@@ -671,19 +655,6 @@ extern (C++) abstract class Type : ASTNode
     bool isScopeClass()
     {
         return false;
-    }
-
-    bool isString()
-    {
-        return false;
-    }
-
-    /**************************
-     * Returns true if T can be converted to boolean value.
-     */
-    bool isBoolean()
-    {
-        return isScalar();
     }
 
     final bool isConst() const nothrow pure @nogc @safe
@@ -1584,22 +1555,6 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override bool isIntegral()
-    {
-        //printf("TypeBasic::isIntegral('%s') x%x\n", toChars(), flags);
-        return (flags & TFlags.integral) != 0;
-    }
-
-    override bool isFloating()
-    {
-        return (flags & TFlags.floating) != 0;
-    }
-
-    override bool isReal()
-    {
-        return (flags & TFlags.real_) != 0;
-    }
-
     override bool isImaginary()
     {
         return (flags & TFlags.imaginary) != 0;
@@ -1663,17 +1618,6 @@ extern (C++) final class TypeVector : Type
         return new TypeVector(basetype.syntaxCopy());
     }
 
-    override bool isIntegral()
-    {
-        //printf("TypeVector::isIntegral('%s') x%x\n", toChars(), flags);
-        return basetype.nextOf().isIntegral();
-    }
-
-    override bool isFloating()
-    {
-        return basetype.nextOf().isFloating();
-    }
-
     override bool isScalar()
     {
         return basetype.nextOf().isScalar();
@@ -1682,11 +1626,6 @@ extern (C++) final class TypeVector : Type
     override bool isUnsigned()
     {
         return basetype.nextOf().isUnsigned();
-    }
-
-    override bool isBoolean()
-    {
-        return false;
     }
 
     TypeBasic elementType()
@@ -1763,12 +1702,6 @@ extern (C++) final class TypeSArray : TypeArray
         return dim.isIntegerExp() && dim.isIntegerExp().getInteger() == 0;
     }
 
-    override bool isString()
-    {
-        TY nty = next.toBasetype().ty;
-        return nty.isSomeChar;
-    }
-
     override bool needsDestruction()
     {
         return next.needsDestruction();
@@ -1820,17 +1753,6 @@ extern (C++) final class TypeDArray : TypeArray
         return result;
     }
 
-    override bool isString()
-    {
-        TY nty = next.toBasetype().ty;
-        return nty.isSomeChar;
-    }
-
-    override bool isBoolean()
-    {
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1870,11 +1792,6 @@ extern (C++) final class TypeAArray : TypeArray
         auto result = new TypeAArray(t, ti);
         result.mod = mod;
         return result;
-    }
-
-    override bool isBoolean()
-    {
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2174,11 +2091,6 @@ extern (C++) final class TypeDelegate : TypeNext
         auto result = new TypeDelegate(tf);
         result.mod = mod;
         return result;
-    }
-
-    override bool isBoolean()
-    {
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2499,11 +2411,6 @@ extern (C++) final class TypeStruct : Type
         return this;
     }
 
-    override bool isBoolean()
-    {
-        return false;
-    }
-
     override bool needsDestruction()
     {
         return sym.dtor !is null;
@@ -2561,21 +2468,6 @@ extern (C++) final class TypeEnum : Type
         return this;
     }
 
-    override bool isIntegral()
-    {
-        return this.memType().isIntegral();
-    }
-
-    override bool isFloating()
-    {
-        return this.memType().isFloating();
-    }
-
-    override bool isReal()
-    {
-        return this.memType().isReal();
-    }
-
     override bool isImaginary()
     {
         return this.memType().isImaginary();
@@ -2594,16 +2486,6 @@ extern (C++) final class TypeEnum : Type
     override bool isUnsigned()
     {
         return this.memType().isUnsigned();
-    }
-
-    override bool isBoolean()
-    {
-        return this.memType().isBoolean();
-    }
-
-    override bool isString()
-    {
-        return this.memType().isString();
     }
 
     override bool needsDestruction()
@@ -2664,11 +2546,6 @@ extern (C++) final class TypeClass : Type
     override bool isScopeClass()
     {
         return sym.stack;
-    }
-
-    override bool isBoolean()
-    {
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2849,11 +2726,6 @@ extern (C++) final class TypeNull : Type
         return this;
     }
 
-    override bool isBoolean()
-    {
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2879,11 +2751,6 @@ extern (C++) final class TypeNoreturn : Type
     {
         // No semantic analysis done, no need to copy
         return this;
-    }
-
-    override bool isBoolean()
-    {
-        return true;  // bottom type can be implicitly converted to any other type
     }
 
     override void accept(Visitor v)

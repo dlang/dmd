@@ -18,6 +18,7 @@ import dmd.astenums;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem : toInteger, toReal;
+import dmd.typesem : isFloating;
 import dmd.func;
 import dmd.location;
 import dmd.mangle;

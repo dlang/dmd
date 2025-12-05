@@ -32,8 +32,8 @@ extra_dflags += -version=SharedRuntime
 PATH := $(dir $(DRUNTIMESO));$(PATH)
 endif
 
-$(ROOT)/dllgc.done: $(ROOT)/dllgc$(DOTDLL)
-$(ROOT)/dllgc$(DOTDLL): extra_dflags += -version=DLL -od=$(ROOT)/dll
+$(ROOT)/dllgc$(DOTEXE): $(ROOT)/dllgc$(DOTDLL)
+$(ROOT)/dllgc$(DOTDLL): private extra_dflags += -version=DLL -od=$(ROOT)/dll
 endif # Windows
 
 $(ROOT)/dynamiccast.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE) $(ROOT)/%$(DOTDLL)

@@ -69,6 +69,7 @@ namespace dmd
     dinteger_t toInteger(Expression *exp);
     uinteger_t toUInteger(Expression *exp);
     real_t toReal(Expression *exp);
+    real_t toImaginary(Expression *exp);
     complex_t toComplex(Expression *exp);
 }
 
@@ -105,7 +106,6 @@ public:
 
     const char* toChars() const final override;
 
-    virtual real_t toImaginary();
     virtual bool checkType();
     Expression *addressOf();
     Expression *deref();
@@ -238,7 +238,6 @@ public:
     dinteger_t value;
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
-    real_t toImaginary() override;
     void accept(Visitor *v) override { v->visit(this); }
     dinteger_t getInteger() { return value; }
     template<int v>
@@ -259,7 +258,6 @@ public:
     real_t value;
 
     static RealExp *create(Loc loc, real_t value, Type *type);
-    real_t toImaginary() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -269,7 +267,6 @@ public:
     complex_t value;
 
     static ComplexExp *create(Loc loc, complex_t value, Type *type);
-    real_t toImaginary() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 

@@ -633,7 +633,7 @@ public:
     }
     void visit(TypeSArray *t) override
     {
-        if (t->dim->isConst() && t->dim->type->isIntegral())
+        if (t->dim->isConst() && dmd::isIntegral(t->dim->type))
         {
             (void)dmd::toUInteger(t->dim);
             t->next->accept(this);
@@ -1869,6 +1869,7 @@ void template_h(TemplateParameter *tp, Scope *sc, TemplateParameters *tps,
     dmd::isTemplateParameter(o);
     dmd::isError(o);
     dmd::printTemplateStats(true, sink);
+    dmd::printInstantiationTrace (sc->tinst);
 }
 
 void typinf_h(Expression *e, Loc loc, Type *t, Scope *sc)

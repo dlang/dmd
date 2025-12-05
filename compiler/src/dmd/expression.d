@@ -293,12 +293,6 @@ extern (C++) abstract class Expression : ASTNode
         return a;
     }
 
-    real_t toImaginary()
-    {
-        error(loc, "floating point constant expression expected instead of `%s`", toChars());
-        return CTFloat.zero;
-    }
-
     /****************************************
      * Check that the expression has a valid type.
      * If not, generates an error "... has no type".
@@ -540,11 +534,6 @@ extern (C++) final class IntegerExp : Expression
         return new IntegerExp(loc, value, type);
     }
 
-    override real_t toImaginary()
-    {
-        return CTFloat.zero;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -740,11 +729,6 @@ extern (C++) final class RealExp : Expression
         return new RealExp(loc, value, type);
     }
 
-    override real_t toImaginary()
-    {
-        return type.isReal() ? CTFloat.zero : value;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -769,11 +753,6 @@ extern (C++) final class ComplexExp : Expression
     static ComplexExp create(Loc loc, complex_t value, Type type) @safe
     {
         return new ComplexExp(loc, value, type);
-    }
-
-    override real_t toImaginary()
-    {
-        return cimagl(value);
     }
 
     override void accept(Visitor v)

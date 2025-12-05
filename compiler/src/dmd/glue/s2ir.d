@@ -48,7 +48,7 @@ import dmd.statement;
 import dmd.stmtstate;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : pointerTo;
+import dmd.typesem : pointerTo, isString;
 import dmd.visitor;
 
 import dmd.backend.barray;

@@ -738,7 +738,7 @@ idx_t cv4_struct(Classsym* s,int flags)
 
     // Determine if we should do a reference or a definition
     refonly = 1;                        // assume reference only
-    if (MARS || t.Tflags & TFsizeunknown || st.Sflags & STRoutdef)
+    if (MARS || t.Tflags & TF.sizeunknown || st.Sflags & STRoutdef)
     {
         //printf("ref only\n");
     }
@@ -1303,7 +1303,7 @@ else
             break;
 
         case TYarray:
-        {   if (t.Tflags & TFsizeunknown)
+        {   if (t.Tflags & TF.sizeunknown)
                 size = 0;               // don't complain if don't know size
             else
                 size = type_size(t);

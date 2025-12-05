@@ -1655,7 +1655,7 @@ uint sizeOnStack(bool osx_aapcs64, uint stackalign, uint argSize)
 @trusted
 void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
-    printf("cdfunc()\n"); elem_print(e);
+    //printf("cdfunc()\n"); elem_print(e);
     assert(e);
     uint stackpushsave = cg.stackpush;   // so we can compute # of parameters
     //printf("stackpushsave: %d\n", stackpushsave);
@@ -1671,7 +1671,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     if (np)
     {
         int n = 0;
-        fillParameters(e.E2, parameters, &n);
+        fillParameters(e.E2, parameters[0 .. np], n);
         assert(n == np);
     }
 
@@ -1695,14 +1695,14 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             getregs(cdb, ~sf.Sregsaved & cg.allregs); // XMMREGS?
     }
 
-printf("---------------------------------------\n");
+//printf("---------------------------------------\n");
     uint stackalign = REGSIZE;
-printf("stackalign: %d\n", stackalign);
+//printf("stackalign: %d\n", stackalign);
 
     // OSX64 only passes explicit parameters in registers; variadic parameters go on stack
     const osx_aapcs64 = config.exe == EX_OSX64;
     const numExplicitParams = osx_aapcs64 ? e.numParams : 0; // nonzero value means called function is variadic
-printf("numExplicitParams: %d\n", numExplicitParams);
+//printf("numExplicitParams: %d\n", numExplicitParams);
 
     /* Determine properties of arguments, from left to right
      */
@@ -1736,7 +1736,7 @@ printf("numExplicitParams: %d\n", numExplicitParams);
                 printf("[%d] isVariadic: %d isAp: %d reg: %s e:", i, p.isVariadic, p.isAp, regm_str(mask(p.reg))); elem_print(p.e);
             }
     }
-printf("---------------------------------------\n");
+//printf("---------------------------------------\n");
     // Compute numpara, the total bytes pushed on the stack
     uint numpara = 0;               // bytes of parameters
     foreach_reverse (i; 0 .. np)
@@ -1774,58 +1774,7 @@ printf("---------------------------------------\n");
         numpara += sz;
     }
 
-static if (0)
-    for (int i = np; --i >= 0;)
-    {
-        elem* ep = parameters[i].e;
-        auto sz = cast(uint)paramsize(ep, tyf); // size of argument
-        parameters[i].size = sz;
-        uint psize = sizeOnStack(osx_aapcs64, stackalign, sz);
-//      numpara = (numpara + (psize - 1)) & ~(psize - 1);       // align to start of parameter
-        printf("[%d] psize: %u numpara: %d paramsize: %d ep: %s\n", i, psize, numpara, cast(uint)paramsize(ep,tyf), tym_str(ep.Ety));
-        if (config.exe == EX_WIN64)
-        {
-            //printf("[%d] size = %u, numpara = %d ep = %p %s\n", i, psize, numpara, ep, tym_str(ep.Ety));
-            debug
-            if (psize > REGSIZE) elem_print(e);
-
-            assert(psize <= REGSIZE);
-            psize = REGSIZE;
-        }
-        //printf("[%d] size = %u, numpara = %d %s\n", i, psize, numpara, tym_str(ep.Ety));
-        const bool isVariadicAlignment = parameters[i].isVariadic | parameters[i].isAp;
-        if (parameters[i].reg != NOREG)         // allocated in register
-        {
-            if (config.exe == EX_WIN64)
-                numpara += REGSIZE;             // allocate stack space for it anyway
-            continue;   // goes in register, not stack
-        }
-
-        if (osx_aapcs64 && isVariadicAlignment && psize < 8)
-            psize = 8;
-
-        // Parameter i goes on the stack
-        parameters[i].reg = NOREG;
-        uint alignsize = el_alignsize(ep);
-        if (osx_aapcs64 && isVariadicAlignment && alignsize < 8)
-            alignsize = 8;
-        printf("alignsize: %d\n", alignsize);
-        parameters[i].numalign = 0;
-        if (alignsize > stackalign || osx_aapcs64)
-        {
-            if (alignsize > STACKALIGN)
-            {
-                STACKALIGN = alignsize;
-                cg.enforcealign = true;
-            }
-            uint newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
-            parameters[i].numalign = newnumpara - numpara;
-            numpara = newnumpara;
-            assert(config.exe != EX_WIN64);
-        }
-        numpara += psize;
-    }
-    printf("numpara: %d STACKALIGN: %d\n", numpara, STACKALIGN);
+    //printf("numpara: %d STACKALIGN: %d\n", numpara, STACKALIGN);
 
     if (config.exe == EX_WIN64)
     {
@@ -1880,9 +1829,9 @@ static if (0)
     /* stack for parameters is allocated all at once - no pushing.
      * Ensure it is aligned
      */
-printf("STACKALIGN: %d\n", STACKALIGN);
+//printf("STACKALIGN: %d\n", STACKALIGN);
     uint numalign = -numpara & (STACKALIGN - 1);  // number of bytes needed to align the argument stack to STACKALIGN
-printf("numalign: %d numpara: %d\n", numalign, numpara);
+//printf("numalign: %d numpara: %d\n", numalign, numpara);
     cod3_stackadj(cdb, numalign + numpara);
     cdb.genadjesp(numalign + numpara);
     cg.stackpush += numalign + numpara;
@@ -1906,8 +1855,8 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
     /* Parameters go into the registers x0..x7
      * floating point parameters go into q0..q7 (16 bytes each)
      */
-    printf("number of parameters np: %d\n", np);
-    printf("------------------------------------------------\n");
+    //printf("number of parameters np: %d\n", np);
+    //printf("------------------------------------------------\n");
     foreach (i; 0 .. np)
     {
         Parameter* p = &parameters[i];
@@ -1916,7 +1865,7 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
         printf("\nparameter[%d]: %s\n", i, regm_str(mask(preg)));
         if (preg == NOREG)
         {
-elem_print(ep);
+            //elem_print(ep);
             /* Move parameter on stack, but keep track of registers used
              * in the process. If they interfere with keepmsk, we'll have
              * to save/restore them.
@@ -1929,7 +1878,7 @@ elem_print(ep);
             cdbparams.ctor();
 
             const bool isVariadicAlignment = parameters[i].isVariadic | parameters[i].isAp;
-printf("isVariadicAlignment: %d\n", isVariadicAlignment);
+            //printf("isVariadicAlignment: %d\n", isVariadicAlignment);
 
             // Alignment for parameter comes after it was placed on stack
             const uint numalignx = parameters[i].numalign;

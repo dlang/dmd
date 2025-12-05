@@ -1563,6 +1563,12 @@ private void brtailrecursion(ref GlobalOptimizer go)
             }
         */
 
+        funcsym_p.Sfunc.Fflags3 |= Fnotailrecursion;
+        return;
+    }
+    if (anyAddressesOfLocals())
+    {
+        funcsym_p.Sfunc.Fflags3 |= Fnotailrecursion; // https://github.com/dlang/dmd/issues/22069
         return;
     }
 
@@ -2121,4 +2127,23 @@ private void blexit(ref GlobalOptimizer go)
     *pb = null;
 
     bexits.dtor();
+}
+
+/***********************************
+ * Determine if any addresses of locals on the stack are taken.
+ * Returns:
+ *      true for addresses taken
+ */
+@trusted
+private
+bool anyAddressesOfLocals()
+{
+    foreach (si, s; globsym[])
+    {
+        if ((sytab[s.Sclass] & SCSS) &&     // only check stack variables
+            !(s.Sflags & SFLunambig))       // address was taken
+            return true;
+        // can enhance this with Symbol_isDead()
+    }
+    return false;
 }

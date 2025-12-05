@@ -100,6 +100,19 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
+real_t toImaginary(Expression _this)
+{
+    if (auto ie = _this.isIntegerExp())
+        return CTFloat.zero;
+    else if (auto re = _this.isRealExp)
+        return re.type.isReal() ? CTFloat.zero : re.value;
+    else if (auto ce = _this.isComplexExp())
+        return cimagl(ce.value);
+
+    error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toChars());
+    return CTFloat.zero;
+}
+
 real_t toReal(Expression _this)
 {
     if (auto iexp = _this.isIntegerExp())
@@ -620,6 +633,66 @@ bool isLvalue(Expression _this)
         case EXP.index: return indexExpIsLvalue(_this.isIndexExp());
         case EXP.assign, EXP.loweredAssignExp, EXP.construct, EXP.blit: return assignExpIsLvalue(cast(AssignExp) _this);
         default: return false;
+    }
+}
+
+/***********************************************************
+ * Determine if copy elision is allowed when copying an expression to
+ * a typed storage. This basically elides a restricted subset of so-called
+ * "pure" rvalues, i.e. expressions with no reference semantics.
+ */
+bool canElideCopy(Expression e, Type to, bool checkMod = true)
+{
+    if (checkMod && !MODimplicitConv(e.type.mod, to.mod))
+        return false;
+
+    static bool visitCallExp(CallExp e)
+    {
+        if (auto dve = e.e1.isDotVarExp())
+            if (dve.var.isCtorDeclaration())
+                return true;
+
+        auto tb = e.e1.type.toBasetype();
+        if (tb.ty == Tdelegate || tb.ty == Tpointer)
+            tb = tb.nextOf();
+        auto tf = tb.isTypeFunction();
+        return tf && !tf.isRef;
+    }
+
+    static bool visitDotVarExp(DotVarExp e)
+    {
+        auto vd = e.var.isVarDeclaration();
+        if (!vd || !vd.isField())
+            return false;
+
+        auto sd = vd.type.isTypeStruct();
+        if (!sd || sd.needsCopyOrPostblit() || sd.sym.hasMoveCtor)
+            return false;
+
+        // If an aggregate can be elided, so are its fields
+        return canElideCopy(e.e1, e.e1.type, false);
+    }
+
+    switch (e.op)
+    {
+        case EXP.comma:
+            auto ce = e.isCommaExp();
+            return canElideCopy(ce.e2, to, checkMod);
+        case EXP.question:
+            auto ce = e.isCondExp();
+            return canElideCopy(ce.e1, to, checkMod) && canElideCopy(ce.e2, to, checkMod);
+
+        case EXP.call:
+            return visitCallExp(e.isCallExp());
+        case EXP.dotVariable:
+            return visitDotVarExp(e.isDotVarExp());
+        case EXP.structLiteral:
+            auto sle = e.isStructLiteralExp();
+            return !(checkMod && sle.useStaticInit && to.isMutable());
+        case EXP.variable:
+            return (e.isVarExp().var.storage_class & STC.rvalue) != 0;
+        default:
+            return false;
     }
 }
 
@@ -1723,7 +1796,7 @@ extern (D) Expression doCopyOrMove(Scope* sc, Expression e, Type t, bool nrvo, b
     {
         e = callCpCtor(sc, e, t, nrvo);
     }
-    else if (move && sd && sd.hasMoveCtor && !e.isCallExp() && !e.isStructLiteralExp())
+    else if (move && sd && sd.hasMoveCtor && !canElideCopy(e, t ? t : e.type, false))
     {
         // #move
         /* Rewrite as:
@@ -3847,7 +3920,7 @@ private bool checkDefCtor(Loc loc, Type t)
  */
 private bool functionParameters(Loc loc, Scope* sc,
     TypeFunction tf, Expression ethis, Type tthis, ArgumentList argumentList, FuncDeclaration fd,
-    Type* prettype, Expression* peprefix)
+    out Type prettype, out Expression peprefix)
 {
     Expressions* arguments = argumentList.arguments;
     //printf("functionParameters() fd: %s tf: %s\n", fd ? fd.ident.toChars() : "", toChars(tf));
@@ -3857,7 +3930,6 @@ private bool functionParameters(Loc loc, Scope* sc,
     const olderrors = global.errors;
     bool err = false;
     Expression eprefix = null;
-    *peprefix = null;
 
     if (argumentList.names)
     {
@@ -4643,8 +4715,8 @@ private bool functionParameters(Loc loc, Scope* sc,
         tret = tret.substWildTo(wildmatch);
     }
 
-    *prettype = tret;
-    *peprefix = eprefix;
+    prettype = tret;
+    peprefix = eprefix;
     return (err || olderrors != global.errors);
 }
 
@@ -6223,13 +6295,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(p.loc, "PlacementExpression `%s` is an rvalue, but must be an lvalue", p.toChars());
                 return setError();
             }
-            if (sc.setUnsafe(false, p.loc, "`@safe` function `%s` cannot use placement `new`", sc.func))
+            if (sc.setUnsafe(false, p.loc, "placement `new`", sc.func))
             {
                 return setError();
             }
-            if (!exp.placement.type.isNaked)
+            if (!p.type.isNaked)
             {
-                error(p.loc, "PlacementExpression `%s` of type `%s` be unshared and mutable", p.toChars(), toChars(p.type));
+                error(p.loc, "PlacementExpression `%s` of type `%s` must be unshared and mutable", p.toChars(), toChars(p.type));
+                return setError();
+            }
+            if (p.type.ty == Tarray)
+            {
+                error(p.loc, "PlacementExpression cannot be a dynamic array");
                 return setError();
             }
             checkModifiable(exp.placement, sc);
@@ -6502,7 +6579,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 TypeFunction tf = f.type.isTypeFunction();
                 if (!exp.arguments)
                     exp.arguments = new Expressions();
-                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, &exp.type, &exp.argprefix))
+                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, exp.type, exp.argprefix))
                     return setError();
 
                 exp.member = f.isCtorDeclaration();
@@ -6617,7 +6694,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 TypeFunction tf = f.type.isTypeFunction();
                 if (!exp.arguments)
                     exp.arguments = new Expressions();
-                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, &exp.type, &exp.argprefix))
+                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, exp.type, exp.argprefix))
                     return setError();
 
                 exp.member = f.isCtorDeclaration();
@@ -8212,7 +8289,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression argprefix;
         if (!exp.arguments)
             exp.arguments = new Expressions();
-        if (functionParameters(exp.loc, sc, cast(TypeFunction)t1, ethis, tthis, exp.argumentList, exp.f, &exp.type, &argprefix))
+        if (functionParameters(exp.loc, sc, cast(TypeFunction)t1, ethis, tthis, exp.argumentList, exp.f, exp.type, argprefix))
             return setError();
 
         if (!exp.type)
@@ -17062,7 +17139,7 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
         }
         if (!_this.isLvalue())
             return visit(_this);
-        if (e1.op == EXP.this_ && sc.ctorflow.fieldinit.length && !(sc.ctorflow.callSuper & CSX.any_ctor))
+        if (e1.op == EXP.this_ && sc && sc.ctorflow.fieldinit.length && !(sc.ctorflow.callSuper & CSX.any_ctor))
         {
             if (VarDeclaration vd = var.isVarDeclaration())
             {
