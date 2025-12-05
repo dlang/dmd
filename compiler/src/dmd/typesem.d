@@ -83,6 +83,21 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+/********************************
+ * true if when type goes out of scope, it needs a destructor applied.
+ * Only applies to value types, not ref types.
+ */
+bool needsDestruction(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+        return tsa.next.needsDestruction();
+    else if (auto ts = _this.isTypeStruct())
+        return ts.sym.dtor !is null;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().needsDestruction();
+    return false;
+}
+
 bool needsNested(Type _this)
 {
     static bool typeStructNeedsNested(TypeStruct _this)
