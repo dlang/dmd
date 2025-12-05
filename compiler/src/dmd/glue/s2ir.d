@@ -595,8 +595,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                         t = t.nextOf();
                     if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, ce.f && ce.f.needThis()) == RET.stack)
                     {
-                        irs.ehidden = el_var(irs.shidden);
-                        e = toElemDtor(s.exp, irs);
+                        e = toElemDtor(s.exp, irs, el_var(irs.shidden));
                         e = el_una(OPaddr, TYnptr, e);
                         goto L1;
                     }
@@ -617,8 +616,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                         t = t.nextOf();
                     if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, fd && fd.needThis()) == RET.stack)
                     {
-                        irs.ehidden = el_var(irs.shidden);
-                        e = toElemDtor(s.exp, irs);
+                        e = toElemDtor(s.exp, irs, el_var(irs.shidden));
                         e = el_una(OPaddr, TYnptr, e);
                         goto L1;
                     }
