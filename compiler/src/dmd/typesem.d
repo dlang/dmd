@@ -91,6 +91,7 @@ bool isUnsigned(Type _this)
         return tv.basetype.nextOf().isUnsigned();
     else if (auto te = _this.isTypeEnum())
         return te.memType().isUnsigned();
+    return false;
 }
 
 bool isImaginary(Type _this)
