@@ -553,6 +553,7 @@ GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
 unittest
 {
     import dmd.mtype : TypeBasic;
+    import dmd.typesem : merge;
 
     if (!global.errorSink)
         global.errorSink = new ErrorSinkCompiler;
