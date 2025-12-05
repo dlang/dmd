@@ -306,7 +306,6 @@ public:
     int hasWild() const override final;
     Type *nextOf() override final;
     unsigned char deduceWild(Type *t, bool isRef) override final;
-    void transitive();
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -779,6 +778,7 @@ namespace dmd
     bool hasInvariant(Type* type);
     bool hasVoidInitPointers(Type* type);
     void Type_init();
+    void transitive(TypeNext* type);
     structalign_t alignment(Type* type);
     Type* memType(TypeEnum* type);
     unsigned alignsize(Type* type);

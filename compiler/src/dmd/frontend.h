@@ -4356,7 +4356,6 @@ public:
     int32_t hasWild() const final override;
     Type* nextOf() final override;
     uint8_t deduceWild(Type* t, bool isRef) final override;
-    void transitive();
     void accept(Visitor* v) override;
 };
 
