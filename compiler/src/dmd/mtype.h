@@ -248,7 +248,6 @@ public:
     virtual int hasWild() const;
     virtual Type *nextOf();
     Type *baseElemOf();
-    virtual bool needsDestruction();
     virtual bool needsCopyOrPostblit();
 
     TypeFunction *toTypeFunction();
@@ -347,7 +346,6 @@ public:
     const char *kind() override;
     TypeSArray *syntaxCopy() override;
     bool isIncomplete();
-    bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -625,7 +623,6 @@ public:
     static TypeStruct *create(StructDeclaration *sym);
     const char *kind() override;
     TypeStruct *syntaxCopy() override;
-    bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -639,7 +636,6 @@ public:
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
     bool isScalar() override;
-    bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     Type *nextOf() override;
 
@@ -781,6 +777,7 @@ namespace dmd
     bool isComplex(Type* type);
     bool isString(Type* type);
     bool isBoolean(Type* type);
-    bool needsNested(Type* type);
     bool isUnsigned(Type* type);
+    bool needsNested(Type* type);
+    bool needsDestruction(Type* type);
 }

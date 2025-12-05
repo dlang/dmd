@@ -2088,7 +2088,6 @@ public:
     virtual int32_t hasWild() const;
     virtual Type* nextOf();
     Type* baseElemOf();
-    virtual bool needsDestruction();
     virtual bool needsCopyOrPostblit();
     virtual TypeBasic* isTypeBasic();
     TypeFunction* isPtrToFunction();
@@ -4429,7 +4428,6 @@ public:
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
     bool isScalar() override;
-    bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     Type* nextOf() override;
     void accept(Visitor* v) override;
@@ -4654,7 +4652,6 @@ public:
     const char* kind() const override;
     TypeSArray* syntaxCopy() override;
     bool isIncomplete();
-    bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     void accept(Visitor* v) override;
 };
@@ -4678,7 +4675,6 @@ public:
     static TypeStruct* create(StructDeclaration* sym);
     const char* kind() const override;
     TypeStruct* syntaxCopy() override;
-    bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     void accept(Visitor* v) override;
 };
