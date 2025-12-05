@@ -1078,6 +1078,12 @@ bool needsDestruction(Type type)
     return dmd.typesem.needsDestruction(type);
 }
 
+bool needsCopyOrPostblit(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.needsCopyOrPostblit(type);
+}
+
 /***********************************************************
  * typinf.d
  */
