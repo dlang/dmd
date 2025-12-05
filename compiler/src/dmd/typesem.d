@@ -67,6 +67,12 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+void transitive(TypeNext _this)
+{
+    // Invoke transitivity of type attributes
+    _this.next = _this.next.addMod(_this.mod);
+}
+
 private inout(TypeNext) isTypeNext(inout Type _this)
 {
     switch(_this.ty)
@@ -104,6 +110,21 @@ bool needsNested(Type _this)
         return typeStructNeedsNested(ts);
     else if (auto te = _this.isTypeEnum())
         return te.memType().needsNested();
+}
+
+bool isImaginary(Type _this)
+{
+    if (auto te = _this.isTypeEnum())
+        return te.memType().isImaginary();
+    return _this.isImaginaryNonSemantic();
+}
+
+bool isComplex(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.complex) != 0;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isComplex();
     return false;
 }
 
