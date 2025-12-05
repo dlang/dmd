@@ -1841,7 +1841,7 @@ extern (D) Expression doCopyOrMove(Scope* sc, Expression e, Type t, bool nrvo, b
         VarDeclaration vd = new VarDeclaration(e.loc, e.type, Identifier.generateId("__copyrvalue"), null);
         if (nrvo)
             vd.nrvo = true;
-        vd.storage_class |= STC.nodtor;
+        vd.storage_class |= STC.temp | STC.rvalue | STC.nodtor;
         vd.dsymbolSemantic(sc);
         Expression de = new DeclarationExp(e.loc, vd);
         Expression ve = new VarExp(e.loc, vd);
