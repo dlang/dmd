@@ -918,6 +918,20 @@ extern (C++) struct Token
         return true;
     }());
 
+    void checkKeyword()
+    {
+        auto kword = ident.toString();
+        foreach(kw; keywords)
+        {
+            if (kword == "true" || kword == "false")
+                continue;
+            if (tochars[kw] == kword)
+            {
+                ident = Identifier.idPool(kword ~ "_");
+            }
+        }
+    }
+
 nothrow:
 
     extern (D) int isKeyword() pure const @safe @nogc
