@@ -708,6 +708,7 @@ void Type_init()
     for (size_t i = 0; basetab[i] != Terror; i++)
     {
         Type t = new TypeBasic(basetab[i]);
+        .merge(t);
         t = merge(t);
         Type.basic[basetab[i]] = t;
     }
