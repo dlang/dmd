@@ -110,6 +110,7 @@ bool needsNested(Type _this)
         return typeStructNeedsNested(ts);
     else if (auto te = _this.isTypeEnum())
         return te.memType().needsNested();
+    return false;
 }
 
 bool isImaginary(Type _this)
