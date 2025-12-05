@@ -2093,7 +2093,6 @@ public:
     Type* baseElemOf();
     virtual bool needsDestruction();
     virtual bool needsCopyOrPostblit();
-    virtual bool needsNested();
     virtual TypeBasic* isTypeBasic();
     TypeFunction* isPtrToFunction();
     TypeFunction* isFunction_Delegate_PtrToFunction();
@@ -4442,7 +4441,6 @@ public:
     bool isUnsigned() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
-    bool needsNested() override;
     Type* nextOf() override;
     void accept(Visitor* v) override;
 };
@@ -4668,7 +4666,6 @@ public:
     bool isIncomplete();
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
-    bool needsNested() override;
     void accept(Visitor* v) override;
 };
 
@@ -4693,7 +4690,6 @@ public:
     TypeStruct* syntaxCopy() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
-    bool needsNested() override;
     void accept(Visitor* v) override;
 };
 
