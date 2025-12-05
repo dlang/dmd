@@ -250,7 +250,6 @@ public:
     Type *baseElemOf();
     virtual bool needsDestruction();
     virtual bool needsCopyOrPostblit();
-    virtual bool needsNested();
 
     TypeFunction *toTypeFunction();
 
@@ -350,7 +349,6 @@ public:
     bool isIncomplete();
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
-    bool needsNested() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -629,7 +627,6 @@ public:
     TypeStruct *syntaxCopy() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
-    bool needsNested() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -644,7 +641,6 @@ public:
     bool isScalar() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
-    bool needsNested() override;
     Type *nextOf() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -785,5 +781,6 @@ namespace dmd
     bool isComplex(Type* type);
     bool isString(Type* type);
     bool isBoolean(Type* type);
+    bool needsNested(Type* type);
     bool isUnsigned(Type* type);
 }

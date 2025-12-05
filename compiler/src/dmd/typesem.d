@@ -83,6 +83,36 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+bool needsNested(Type _this)
+{
+    static bool typeStructNeedsNested(TypeStruct _this)
+    {
+        if (_this.inuse) return false; // circular type, error instead of crashing
+
+        _this.inuse = true;
+        scope(exit) _this.inuse = false;
+
+        if (_this.sym.isNested())
+            return true;
+
+        for (size_t i = 0; i < _this.sym.fields.length; i++)
+        {
+            VarDeclaration v = _this.sym.fields[i];
+            if (!v.isDataseg() && v.type.needsNested())
+                return true;
+        }
+        return false;
+    }
+
+    if (auto tsa = _this.isTypeSArray())
+        return tsa.next.needsNested();
+    else if (auto ts = _this.isTypeStruct())
+        return typeStructNeedsNested(ts);
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().needsNested();
+    return false;
+}
+
 bool isUnsigned(Type _this)
 {
     if (auto tb = _this.isTypeBasic())
