@@ -84,6 +84,21 @@ private inout(TypeNext) isTypeNext(inout Type _this)
 }
 
 /********************************
+ * true if when type is copied, it needs a copy constructor or postblit
+ * applied. Only applies to value types, not ref types.
+ */
+bool needsCopyOrPostblit(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+        return tsa.next.needsCopyOrPostblit();
+    else if (auto ts = _this.isTypeStruct())
+        return ts.sym.hasCopyCtor || ts.sym.postblit;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().needsCopyOrPostblit();
+    return false;
+}
+
+/********************************
  * true if when type goes out of scope, it needs a destructor applied.
  * Only applies to value types, not ref types.
  */

@@ -1206,15 +1206,6 @@ extern (C++) abstract class Type : ASTNode
         return m;
     }
 
-    /********************************
-     * true if when type is copied, it needs a copy constructor or postblit
-     * applied. Only applies to value types, not ref types.
-     */
-    bool needsCopyOrPostblit()
-    {
-        return false;
-    }
-
     // For eliminating dynamic_cast
     TypeBasic isTypeBasic()
     {
@@ -1649,11 +1640,6 @@ extern (C++) final class TypeSArray : TypeArray
     bool isIncomplete()
     {
         return dim.isIntegerExp() && dim.isIntegerExp().getInteger() == 0;
-    }
-
-    override bool needsCopyOrPostblit()
-    {
-        return next.needsCopyOrPostblit();
     }
 
     override void accept(Visitor v)
@@ -2347,11 +2333,6 @@ extern (C++) final class TypeStruct : Type
         return this;
     }
 
-    override bool needsCopyOrPostblit()
-    {
-        return sym.hasCopyCtor || sym.postblit;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2383,11 +2364,6 @@ extern (C++) final class TypeEnum : Type
     override bool isScalar()
     {
         return this.memType().isScalar();
-    }
-
-    override bool needsCopyOrPostblit()
-    {
-        return this.memType().needsCopyOrPostblit();
     }
 
     override Type nextOf()
