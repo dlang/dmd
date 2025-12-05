@@ -77,6 +77,31 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+// Exposed as it is used in `expressionsem`
+MOD typeDeduceWild(Type _this, Type t, bool isRef)
+{
+    //printf("Type::deduceWild this = '%s', tprm = '%s'\n", toChars(), tprm.toChars());
+    if (t.isWild())
+    {
+        if (_this.isImmutable())
+            return MODFlags.immutable_;
+        if (_this.isWildConst())
+        {
+            if (t.isWildConst())
+                return MODFlags.wild;
+            return MODFlags.wildconst;
+        }
+        if (_this.isWild())
+            return MODFlags.wild;
+        if (_this.isConst())
+            return MODFlags.const_;
+        if (_this.isMutable())
+            return MODFlags.mutable;
+        assert(0);
+    }
+    return 0;
+}
+
 /***************************************
  * Compute MOD bits matching `this` argument type to wild parameter type.
  * Params:
@@ -88,30 +113,6 @@ private inout(TypeNext) isTypeNext(inout Type _this)
  */
 MOD deduceWild(Type _this, Type t, bool isRef)
 {
-    static MOD typeDeduceWild(Type _this, Type t, bool isRef)
-    {
-        //printf("Type::deduceWild this = '%s', tprm = '%s'\n", toChars(), tprm.toChars());
-        if (t.isWild())
-        {
-            if (_this.isImmutable())
-                return MODFlags.immutable_;
-            if (_this.isWildConst())
-            {
-                if (t.isWildConst())
-                    return MODFlags.wild;
-                return MODFlags.wildconst;
-            }
-            if (_this.isWild())
-                return MODFlags.wild;
-            if (_this.isConst())
-                return MODFlags.const_;
-            if (_this.isMutable())
-                return MODFlags.mutable;
-            assert(0);
-        }
-        return 0;
-    }
-
     static MOD typeNextDeduceWild(TypeNext _this, Type t, bool isRef)
     {
         if (_this.ty == Tfunction)
