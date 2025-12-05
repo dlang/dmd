@@ -1231,14 +1231,6 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
-    /*********************************
-     *
-     */
-    bool needsNested()
-    {
-        return false;
-    }
-
     // For eliminating dynamic_cast
     TypeBasic isTypeBasic()
     {
@@ -1710,14 +1702,6 @@ extern (C++) final class TypeSArray : TypeArray
     override bool needsCopyOrPostblit()
     {
         return next.needsCopyOrPostblit();
-    }
-
-    /*********************************
-     *
-     */
-    override bool needsNested()
-    {
-        return next.needsNested();
     }
 
     override void accept(Visitor v)
@@ -2421,25 +2405,6 @@ extern (C++) final class TypeStruct : Type
         return sym.hasCopyCtor || sym.postblit;
     }
 
-    override bool needsNested()
-    {
-        if (inuse) return false; // circular type, error instead of crashing
-
-        inuse = true;
-        scope(exit) inuse = false;
-
-        if (sym.isNested())
-            return true;
-
-        for (size_t i = 0; i < sym.fields.length; i++)
-        {
-            VarDeclaration v = sym.fields[i];
-            if (!v.isDataseg() && v.type.needsNested())
-                return true;
-        }
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2496,11 +2461,6 @@ extern (C++) final class TypeEnum : Type
     override bool needsCopyOrPostblit()
     {
         return this.memType().needsCopyOrPostblit();
-    }
-
-    override bool needsNested()
-    {
-        return this.memType().needsNested();
     }
 
     override Type nextOf()
