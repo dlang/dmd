@@ -100,6 +100,40 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
+/*******************************
+ * Merge results of `ctorflow` into `_this`.
+ * Params:
+ *   _this = scope to merge the results into
+ *   loc = for error messages
+ *   ctorflow = flow results to merge in
+ */
+void merge(Scope* _this, Loc loc, const ref CtorFlow ctorflow)
+{
+    if (!mergeCallSuper(_this.ctorflow.callSuper, ctorflow.callSuper))
+        error(loc, "one path skips constructor");
+
+    const fies = ctorflow.fieldinit;
+    if (!_this.ctorflow.fieldinit.length || !fies.length)
+        return;
+    FuncDeclaration f = _this.func;
+    if (_this.fes)
+        f = _this.fes.func;
+    auto ad = f.isMemberDecl();
+    assert(ad);
+    foreach (i, v; ad.fields)
+    {
+        bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
+        auto fieldInit = &_this.ctorflow.fieldinit[i];
+        const fiesCurrent = fies[i];
+        if (fieldInit.loc is Loc.init)
+            fieldInit.loc = fiesCurrent.loc;
+        if (!mergeFieldInit(_this.ctorflow.fieldinit[i].csx, fiesCurrent.csx) && mustInit)
+        {
+            error(loc, "one path skips field `%s`", v.toChars());
+        }
+    }
+}
+
 real_t toImaginary(Expression _this)
 {
     if (auto ie = _this.isIntegerExp())
@@ -16102,6 +16136,8 @@ Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, bool g
 
 MATCH matchType(FuncExp funcExp, Type to, Scope* sc, FuncExp* presult, ErrorSink eSink)
 {
+    import dmd.typesem : merge;
+
     auto loc = funcExp.loc;
     auto tok = funcExp.tok;
     auto td = funcExp.td;
