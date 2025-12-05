@@ -2070,8 +2070,6 @@ public:
     static void deinitialize();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
-    virtual bool isImaginary();
-    virtual bool isComplex();
     virtual bool isScalar();
     virtual bool isUnsigned();
     virtual bool isScopeClass();
@@ -4382,8 +4380,6 @@ public:
     uint32_t flags;
     const char* kind() const override;
     TypeBasic* syntaxCopy() override;
-    bool isImaginary() override;
-    bool isComplex() override;
     bool isScalar() override;
     bool isUnsigned() override;
     TypeBasic* isTypeBasic() override;
@@ -4436,8 +4432,6 @@ public:
     EnumDeclaration* sym;
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
-    bool isImaginary() override;
-    bool isComplex() override;
     bool isScalar() override;
     bool isUnsigned() override;
     bool needsDestruction() override;

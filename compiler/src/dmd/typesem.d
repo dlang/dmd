@@ -77,6 +77,22 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+bool isImaginary(Type _this)
+{
+    if (auto te = _this.isTypeEnum())
+        return te.memType().isImaginary();
+    return _this.isImaginaryNonSemantic();
+}
+
+bool isComplex(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.complex) != 0;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isComplex();
+    return false;
+}
+
 // Exposed as it is used in `expressionsem`
 MOD typeDeduceWild(Type _this, Type t, bool isRef)
 {

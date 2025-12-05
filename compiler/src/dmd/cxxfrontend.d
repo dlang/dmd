@@ -1030,6 +1030,18 @@ bool isReal(Type type)
     return dmd.typesem.isReal(type);
 }
 
+bool isComplex(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isComplex(type);
+}
+
+bool isImaginary(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isImaginary(type);
+}
+
 bool isString(Type type)
 {
     import dmd.typesem;

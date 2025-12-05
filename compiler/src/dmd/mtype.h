@@ -228,8 +228,6 @@ public:
     void modToBuffer(OutBuffer& buf) const;
     char *modToChars() const;
 
-    virtual bool isImaginary();
-    virtual bool isComplex();
     virtual bool isScalar();
     virtual bool isUnsigned();
     virtual bool isScopeClass();
@@ -316,8 +314,6 @@ public:
 
     const char *kind() override;
     TypeBasic *syntaxCopy() override;
-    bool isImaginary() override;
-    bool isComplex() override;
     bool isScalar() override;
     bool isUnsigned() override;
 
@@ -649,8 +645,6 @@ public:
 
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
-    bool isImaginary() override;
-    bool isComplex() override;
     bool isScalar() override;
     bool isUnsigned() override;
     bool needsDestruction() override;
@@ -791,6 +785,8 @@ namespace dmd
     bool isIntegral(Type* type);
     bool isFloating(Type* type);
     bool isReal(Type* type);
+    bool isImaginary(Type* type);
+    bool isComplex(Type* type);
     bool isString(Type* type);
     bool isBoolean(Type* type);
 }

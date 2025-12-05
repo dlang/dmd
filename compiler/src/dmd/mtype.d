@@ -56,6 +56,14 @@ private auto X(T, U)(T m, U n)
     return (m << 4) | n;
 }
 
+bool isImaginaryNonSemantic(Type _this)
+{
+    assert(_this.isTypeEnum() is null);
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.imaginary) != 0;
+    return false;
+}
+
 /* Helper function for `typeToExpression`. Contains common code
  * for TypeQualified derived classes.
  */
@@ -630,16 +638,6 @@ extern (C++) abstract class Type : ASTNode
         buf.reserve(16);
         modToBuffer(buf);
         return buf.extractChars();
-    }
-
-    bool isImaginary()
-    {
-        return false;
-    }
-
-    bool isComplex()
-    {
-        return false;
     }
 
     bool isScalar()
@@ -1555,16 +1553,6 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override bool isImaginary()
-    {
-        return (flags & TFlags.imaginary) != 0;
-    }
-
-    override bool isComplex()
-    {
-        return (flags & TFlags.complex) != 0;
-    }
-
     override bool isScalar()
     {
         return (flags & (TFlags.integral | TFlags.floating)) != 0;
@@ -2466,16 +2454,6 @@ extern (C++) final class TypeEnum : Type
     override TypeEnum syntaxCopy()
     {
         return this;
-    }
-
-    override bool isImaginary()
-    {
-        return this.memType().isImaginary();
-    }
-
-    override bool isComplex()
-    {
-        return this.memType().isComplex();
     }
 
     override bool isScalar()
