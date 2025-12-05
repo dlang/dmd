@@ -77,6 +77,115 @@ private inout(TypeNext) isTypeNext(inout Type _this)
     }
 }
 
+// Exposed as it is used in `expressionsem`
+MOD typeDeduceWild(Type _this, Type t, bool isRef)
+{
+    //printf("Type::deduceWild this = '%s', tprm = '%s'\n", toChars(), tprm.toChars());
+    if (t.isWild())
+    {
+        if (_this.isImmutable())
+            return MODFlags.immutable_;
+        if (_this.isWildConst())
+        {
+            if (t.isWildConst())
+                return MODFlags.wild;
+            return MODFlags.wildconst;
+        }
+        if (_this.isWild())
+            return MODFlags.wild;
+        if (_this.isConst())
+            return MODFlags.const_;
+        if (_this.isMutable())
+            return MODFlags.mutable;
+        assert(0);
+    }
+    return 0;
+}
+
+/***************************************
+ * Compute MOD bits matching `this` argument type to wild parameter type.
+ * Params:
+ *  _this = base parameter type
+ *  t = corresponding parameter type
+ *  isRef = parameter is `ref` or `out`
+ * Returns:
+ *  MOD bits
+ */
+MOD deduceWild(Type _this, Type t, bool isRef)
+{
+    static MOD typeNextDeduceWild(TypeNext _this, Type t, bool isRef)
+    {
+        if (_this.ty == Tfunction)
+            return 0;
+
+        ubyte wm;
+
+        Type tn = t.nextOf();
+        if (!isRef && (_this.ty == Tarray || _this.ty == Tpointer) && tn)
+        {
+            wm = _this.next.deduceWild(tn, true);
+            if (!wm)
+                wm = typeDeduceWild(cast(Type)_this, t, true);
+        }
+        else
+        {
+            wm = typeDeduceWild(cast(Type)_this, t, isRef);
+            if (!wm && tn)
+                wm = _this.next.deduceWild(tn, true);
+        }
+        return wm;
+    }
+
+    static MOD typeStructDeduceWild(TypeStruct _this, Type t, bool isRef)
+    {
+        if (_this.ty == t.ty && _this.sym == (cast(TypeStruct)t).sym)
+            return typeDeduceWild(cast(Type)_this, t, isRef);
+
+        ubyte wm = 0;
+
+        if (t.hasWild() && _this.sym.aliasthis && !(_this.att & AliasThisRec.tracing))
+        {
+            if (auto ato = aliasthisOf(_this))
+            {
+                _this.att = cast(AliasThisRec)(_this.att | AliasThisRec.tracing);
+                wm = ato.deduceWild(t, isRef);
+                _this.att = cast(AliasThisRec)(_this.att & ~AliasThisRec.tracing);
+            }
+        }
+
+        return wm;
+    }
+
+    static MOD typeClassDeduceWild(TypeClass _this, Type t, bool isRef)
+    {
+        ClassDeclaration cd = t.isClassHandle();
+        if (cd && (_this.sym == cd || cd.isBaseOf(_this.sym, null)))
+            return typeDeduceWild(cast(Type)_this, t, isRef);
+
+        ubyte wm = 0;
+
+        if (t.hasWild() && _this.sym.aliasthis && !(_this.att & AliasThisRec.tracing))
+        {
+            if (auto ato = aliasthisOf(_this))
+            {
+                _this.att = cast(AliasThisRec)(_this.att | AliasThisRec.tracing);
+                wm = ato.deduceWild(t, isRef);
+                _this.att = cast(AliasThisRec)(_this.att & ~AliasThisRec.tracing);
+            }
+        }
+
+        return wm;
+    }
+
+    if (auto tn = _this.isTypeNext())
+        return typeNextDeduceWild(tn, t, isRef);
+    else if (auto ts = _this.isTypeStruct())
+        return typeStructDeduceWild(ts, t, isRef);
+    else if (auto tc = _this.isTypeClass())
+        return typeClassDeduceWild(tc, t, isRef);
+    return typeDeduceWild(_this, t, isRef);
+}
+
 bool isString(Type _this)
 {
     if (auto tsa = _this.isTypeSArray())

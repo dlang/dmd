@@ -1143,38 +1143,6 @@ extern (C++) abstract class Type : ASTNode
         return ((te = isTypeEnum()) !is null) ? te.toBasetype2() : this;
     }
 
-    /***************************************
-     * Compute MOD bits matching `this` argument type to wild parameter type.
-     * Params:
-     *  t = corresponding parameter type
-     *  isRef = parameter is `ref` or `out`
-     * Returns:
-     *  MOD bits
-     */
-    MOD deduceWild(Type t, bool isRef)
-    {
-        //printf("Type::deduceWild this = '%s', tprm = '%s'\n", toChars(), tprm.toChars());
-        if (t.isWild())
-        {
-            if (isImmutable())
-                return MODFlags.immutable_;
-            if (isWildConst())
-            {
-                if (t.isWildConst())
-                    return MODFlags.wild;
-                return MODFlags.wildconst;
-            }
-            if (isWild())
-                return MODFlags.wild;
-            if (isConst())
-                return MODFlags.const_;
-            if (isMutable())
-                return MODFlags.mutable;
-            assert(0);
-        }
-        return 0;
-    }
-
     inout(ClassDeclaration) isClassHandle() inout
     {
         return null;
@@ -1420,30 +1388,6 @@ extern (C++) abstract class TypeNext : Type
     override final Type nextOf() @safe
     {
         return next;
-    }
-
-    override final MOD deduceWild(Type t, bool isRef)
-    {
-        if (ty == Tfunction)
-            return 0;
-
-        ubyte wm;
-
-        Type tn = t.nextOf();
-        if (!isRef && (ty == Tarray || ty == Tpointer) && tn)
-        {
-            wm = next.deduceWild(tn, true);
-            if (!wm)
-                wm = Type.deduceWild(t, true);
-        }
-        else
-        {
-            wm = Type.deduceWild(t, isRef);
-            if (!wm && tn)
-                wm = next.deduceWild(tn, true);
-        }
-
-        return wm;
     }
 
     final void transitive()
@@ -2496,26 +2440,6 @@ extern (C++) final class TypeStruct : Type
         return false;
     }
 
-    override MOD deduceWild(Type t, bool isRef)
-    {
-        if (ty == t.ty && sym == (cast(TypeStruct)t).sym)
-            return Type.deduceWild(t, isRef);
-
-        ubyte wm = 0;
-
-        if (t.hasWild() && sym.aliasthis && !(att & AliasThisRec.tracing))
-        {
-            if (auto ato = aliasthisOf(this))
-            {
-                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                wm = ato.deduceWild(t, isRef);
-                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
-            }
-        }
-
-        return wm;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2617,27 +2541,6 @@ extern (C++) final class TypeClass : Type
     override inout(ClassDeclaration) isClassHandle() inout
     {
         return sym;
-    }
-
-    override MOD deduceWild(Type t, bool isRef)
-    {
-        ClassDeclaration cd = t.isClassHandle();
-        if (cd && (sym == cd || cd.isBaseOf(sym, null)))
-            return Type.deduceWild(t, isRef);
-
-        ubyte wm = 0;
-
-        if (t.hasWild() && sym.aliasthis && !(att & AliasThisRec.tracing))
-        {
-            if (auto ato = aliasthisOf(this))
-            {
-                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                wm = ato.deduceWild(t, isRef);
-                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
-            }
-        }
-
-        return wm;
     }
 
     override bool isScopeClass()
