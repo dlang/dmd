@@ -98,7 +98,6 @@ bool needsDestruction(Type _this)
     return false;
 }
 
-
 bool needsNested(Type _this)
 {
     static bool typeStructNeedsNested(TypeStruct _this)
