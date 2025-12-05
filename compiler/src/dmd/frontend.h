@@ -2070,8 +2070,6 @@ public:
     static void deinitialize();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
-    virtual bool isImaginary();
-    virtual bool isComplex();
     virtual bool isScalar();
     virtual bool isScopeClass();
     bool isConst() const;
@@ -4353,7 +4351,6 @@ public:
     Type* next;
     int32_t hasWild() const final override;
     Type* nextOf() final override;
-    void transitive();
     void accept(Visitor* v) override;
 };
 
@@ -4381,8 +4378,6 @@ public:
     uint32_t flags;
     const char* kind() const override;
     TypeBasic* syntaxCopy() override;
-    bool isImaginary() override;
-    bool isComplex() override;
     bool isScalar() override;
     TypeBasic* isTypeBasic() override;
     void accept(Visitor* v) override;
@@ -4434,8 +4429,6 @@ public:
     EnumDeclaration* sym;
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
-    bool isImaginary() override;
-    bool isComplex() override;
     bool isScalar() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
