@@ -1519,7 +1519,6 @@ extern (C++) final class TypeBasic : Type
         }
         this.dstring = d;
         this.flags = flags;
-        merge(this);
     }
 
     override const(char)* kind() const
