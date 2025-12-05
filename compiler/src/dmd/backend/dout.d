@@ -1041,7 +1041,7 @@ private void writefunc2(Symbol* sfunc, ref GlobalOptimizer go)
     else
     {
         //printf("blockopt()\n");
-        blockopt(go, 0);                /* optimize                     */
+        blockopt(go);                   /* optimize                     */
     }
 
     assert(funcsym_p == sfunc);
