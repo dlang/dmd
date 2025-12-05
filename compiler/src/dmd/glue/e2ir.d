@@ -371,11 +371,12 @@ void toTraceGC(ref IRState irs, elem* e, Loc loc)
  * Params:
  *      e = Expression to convert
  *      irs = context
+ *      ehidden = hidden pointer to place the value, if any
  * Returns:
  *      generated elem tree
  */
 
-elem* toElemDtor(Expression e, ref IRState irs)
+elem* toElemDtor(Expression e, ref IRState irs, elem* ehidden = null)
 {
     //printf("Expression.toElemDtor() %s\n", e.toChars());
 
@@ -393,7 +394,7 @@ elem* toElemDtor(Expression e, ref IRState irs)
         irs.mayThrow = false;
 
     const starti = irs.varsInScope.length;
-    elem* er = toElem(e, irs);
+    elem* er = toElem(e, irs, ehidden);
     const endi = irs.varsInScope.length;
 
     irs.mayThrow = mayThrowSave;
@@ -635,10 +636,11 @@ private elem* toEfilenamePtr(Module m)
  * Params:
  *      e = expression tree
  *      irs = context
+ *      ehidden = hidden pointer to place the value, if any
  * Returns:
  *      backend elem tree
  */
-elem* toElem(Expression e, ref IRState irs)
+elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
 {
     elem* visit(Expression e)
     {
@@ -2610,37 +2612,36 @@ elem* toElem(Expression e, ref IRState irs)
          * If the former, because of aliasing of the return value with
          * function arguments, it'll fail.
          */
-        if (ae.op == EXP.construct && ae.e2.op == EXP.call)
+        if (ae.op == EXP.construct)
         {
-            CallExp ce = cast(CallExp)ae.e2;
-            TypeFunction tf = cast(TypeFunction)ce.e1.type.toBasetype();
-            if (tf.ty == Tfunction && retStyle(tf, ce.f && ce.f.needThis()) == RET.stack)
+            if (CallExp ce = lastComma(ae.e2).isCallExp())
             {
-                elem* ehidden = e1;
-                ehidden = el_una(OPaddr, TYnptr, ehidden);
-                assert(!irs.ehidden);
-                irs.ehidden = ehidden;
-                elem* e = toElem(ae.e2, irs);
-                return setResult2(e);
-            }
-
-            /* Look for:
-             *  v = structliteral.ctor(args)
-             * and have the structliteral write into v, rather than create a temporary
-             * and copy the temporary into v
-             */
-            if (e1.Eoper == OPvar && // no closure variables https://issues.dlang.org/show_bug.cgi?id=17622
-                ae.e1.op == EXP.variable && ce.e1.op == EXP.dotVariable)
-            {
-                auto dve = cast(DotVarExp)ce.e1;
-                auto fd = dve.var.isFuncDeclaration();
-                if (fd && fd.isCtorDeclaration())
+                TypeFunction tf = cast(TypeFunction)ce.e1.type.toBasetype();
+                if (tf.ty == Tfunction && retStyle(tf, ce.f && ce.f.needThis()) == RET.stack)
                 {
-                    if (auto sle = dve.e1.isStructLiteralExp())
+                    elem* eh = el_una(OPaddr, TYnptr, e1);
+                    elem* e = toElem(ae.e2, irs, eh);
+                    return setResult2(e);
+                }
+
+                /* Look for:
+                 *  v = structliteral.ctor(args)
+                 * and have the structliteral write into v, rather than create a temporary
+                 * and copy the temporary into v
+                 */
+                if (e1.Eoper == OPvar && // no closure variables https://issues.dlang.org/show_bug.cgi?id=17622
+                    ae.e1.op == EXP.variable && ce.e1.op == EXP.dotVariable)
+                {
+                    auto dve = cast(DotVarExp)ce.e1;
+                    auto fd = dve.var.isFuncDeclaration();
+                    if (fd && fd.isCtorDeclaration())
                     {
-                        sle.sym = toSymbol((cast(VarExp)ae.e1).var);
-                        elem* e = toElem(ae.e2, irs);
-                        return setResult2(e);
+                        if (auto sle = dve.e1.isStructLiteralExp())
+                        {
+                            sle.sym = toSymbol((cast(VarExp)ae.e1).var);
+                            elem* e = toElem(ae.e2, irs);
+                            return setResult2(e);
+                        }
                     }
                 }
             }
@@ -3160,7 +3161,7 @@ elem* toElem(Expression e, ref IRState irs)
     {
         assert(ce.e1 && ce.e2);
         elem* eleft  = toElem(ce.e1, irs);
-        elem* eright = toElem(ce.e2, irs);
+        elem* eright = toElem(ce.e2, irs, ehidden);
         elem* e = el_combine(eleft, eright);
         if (e)
             elem_setLoc(e, ce.loc);
@@ -3443,9 +3444,6 @@ elem* toElem(Expression e, ref IRState irs)
         Type t1 = ce.e1.type.toBasetype();
         Type ectype = t1;
         elem* eeq = null;
-
-        elem* ehidden = irs.ehidden;
-        irs.ehidden = null;
 
         elem* ec;
         FuncDeclaration fd = null;
