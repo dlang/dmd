@@ -87,7 +87,7 @@ enum LOG = false;
  * Retrieve the .min or .max values.
  * Only valid after semantic analysis.
  * Params:
- *  _this: bit field instance
+ *  _this = bit field instance
  *  id = Id.min or Id.max
  * Returns:
  *  the min or max value
