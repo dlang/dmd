@@ -952,6 +952,12 @@ void Type_init()
     return dmd.typesem.Type_init();
 }
 
+void transitive(TypeNext type)
+{
+    import dmd.typesem;
+    return dmd.typesem.transitive(type);
+}
+
 Type makeConst(Type type)
 {
     import dmd.typesem;
