@@ -15013,54 +15013,48 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (auto die = exp.econd.isDotIdExp())
             die.noderef = true;
 
-        Expression ec = exp.econd.expressionSemantic(sc);
-        ec = resolveProperties(sc, ec);
-        ec = ec.toBoolean(sc);
-
-        CtorFlow ctorflow_root = sc.ctorflow.clone();
-        Expression e1x = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
-        e1x = resolveProperties(sc, e1x);
-
-        CtorFlow ctorflow1 = sc.ctorflow;
-        sc.ctorflow = ctorflow_root;
-        Expression e2x = exp.e2.expressionSemantic(sc).arrayFuncConv(sc);
-        e2x = resolveProperties(sc, e2x);
-
-        sc.merge(exp.loc, ctorflow1);
-        ctorflow1.freeFieldinit();
-
-        if (ec.op == EXP.error)
         {
-            result = ec;
-            return;
-        }
-        if (ec.type == Type.terror)
-            return setError();
-        exp.econd = ec;
+            bool checkForErrors(Expression e)
+            {
+                if (e.op == EXP.error)
+                {
+                    result = e;
+                    return true;
+                }
+                if (e.type == Type.terror)
+                {
+                    setError();
+                    return true;
+                }
+                return false;
+            }
 
-        if (e1x.op == EXP.error)
-        {
-            result = e1x;
-            return;
-        }
-        if (e1x.type == Type.terror)
-            return setError();
-        exp.e1 = e1x;
+            Expression ec = exp.econd.expressionSemantic(sc);
+            ec = resolveProperties(sc, ec);
+            ec = ec.toBoolean(sc);
 
-        if (e2x.op == EXP.error)
-        {
-            result = e2x;
-            return;
-        }
-        if (e2x.type == Type.terror)
-            return setError();
-        exp.e2 = e2x;
+            CtorFlow ctorflow_root = sc.ctorflow.clone();
+            Expression e1x = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
+            e1x = resolveProperties(sc, e1x);
 
-        auto f0 = checkNonAssignmentArrayOp(exp.econd);
-        auto f1 = checkNonAssignmentArrayOp(exp.e1);
-        auto f2 = checkNonAssignmentArrayOp(exp.e2);
-        if (f0 || f1 || f2)
-            return setError();
+            CtorFlow ctorflow1 = sc.ctorflow;
+            sc.ctorflow = ctorflow_root;
+            Expression e2x = exp.e2.expressionSemantic(sc).arrayFuncConv(sc);
+            e2x = resolveProperties(sc, e2x);
+
+            sc.merge(exp.loc, ctorflow1);
+            ctorflow1.freeFieldinit();
+
+            if (checkForErrors(ec))  return;
+            if (checkForErrors(e1x)) return;
+            if (checkForErrors(e2x)) return;
+
+            auto f0 = checkNonAssignmentArrayOp(exp.econd);
+            auto f1 = checkNonAssignmentArrayOp(exp.e1);
+            auto f2 = checkNonAssignmentArrayOp(exp.e2);
+            if (f0 || f1 || f2)
+                return setError();
+        }
 
         Type t1 = exp.e1.type;
         Type t2 = exp.e2.type;
