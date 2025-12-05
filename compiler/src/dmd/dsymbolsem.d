@@ -83,6 +83,33 @@ import dmd.visitor;
 
 enum LOG = false;
 
+/***********************************
+ * Retrieve the .min or .max values.
+ * Only valid after semantic analysis.
+ * Params:
+ *  _this = bit field instance
+ *  id = Id.min or Id.max
+ * Returns:
+ *  the min or max value
+ */
+ulong getMinMax(BitFieldDeclaration _this, Identifier id)
+{
+    const width = _this.fieldWidth;
+    const uns = _this.type.isUnsigned();
+    const min = id == Id.min;
+    ulong v;
+    assert(width != 0);  // should have been rejected in semantic pass
+    if (width == ulong.sizeof * 8)
+        v = uns ? (min ? ulong.min : ulong.max)
+                : (min ?  long.min :  long.max);
+    else
+        v = uns ? (min ? 0
+                       : (1L << width) - 1)
+                : (min ? -(1L << (width - 1))
+                       :  (1L << (width - 1)) - 1);
+    return v;
+}
+
 /* Append vthis field (this.tupleof[$-1]) to make this aggregate type nested.
  */
 void makeNested(AggregateDeclaration _this)

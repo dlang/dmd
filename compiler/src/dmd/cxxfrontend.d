@@ -1066,6 +1066,12 @@ bool needsNested(Type type)
     return dmd.typesem.needsNested(type);
 }
 
+bool isUnsigned(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isUnsigned(type);
+}
+
 /***********************************************************
  * typinf.d
  */

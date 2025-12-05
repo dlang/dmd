@@ -113,6 +113,17 @@ bool needsNested(Type _this)
     return false;
 }
 
+bool isUnsigned(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.unsigned) != 0;
+    else if (auto tv = _this.isTypeVector())
+        return tv.basetype.nextOf().isUnsigned();
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isUnsigned();
+    return false;
+}
+
 bool isImaginary(Type _this)
 {
     if (auto te = _this.isTypeEnum())
