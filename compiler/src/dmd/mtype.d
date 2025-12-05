@@ -647,11 +647,6 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
-    bool isUnsigned()
-    {
-        return false;
-    }
-
     bool isScopeClass()
     {
         return false;
@@ -1626,11 +1621,6 @@ extern (C++) final class TypeBasic : Type
         return (flags & (TFlags.integral | TFlags.floating)) != 0;
     }
 
-    override bool isUnsigned()
-    {
-        return (flags & TFlags.unsigned) != 0;
-    }
-
     // For eliminating dynamic_cast
     override TypeBasic isTypeBasic()
     {
@@ -1677,11 +1667,6 @@ extern (C++) final class TypeVector : Type
     override bool isScalar()
     {
         return basetype.nextOf().isScalar();
-    }
-
-    override bool isUnsigned()
-    {
-        return basetype.nextOf().isUnsigned();
     }
 
     TypeBasic elementType()
@@ -2557,11 +2542,6 @@ extern (C++) final class TypeEnum : Type
     override bool isScalar()
     {
         return this.memType().isScalar();
-    }
-
-    override bool isUnsigned()
-    {
-        return this.memType().isUnsigned();
     }
 
     override bool needsDestruction()
