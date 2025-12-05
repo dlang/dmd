@@ -659,10 +659,22 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
         return tf && !tf.isRef;
     }
 
+    static bool visitDotVarExp(DotVarExp e)
+    {
+        auto vd = e.var.isVarDeclaration();
+        if (!vd || !vd.isField())
+            return false;
+
+        auto sd = vd.type.isTypeStruct();
+        if (!sd || sd.needsCopyOrPostblit() || sd.sym.hasMoveCtor)
+            return false;
+
+        // If an aggregate can be elided, so are its fields
+        return canElideCopy(e.e1, e.e1.type, false);
+    }
+
     switch (e.op)
     {
-        case EXP.call:
-            return visitCallExp(e.isCallExp());
         case EXP.comma:
             auto ce = e.isCommaExp();
             return canElideCopy(ce.e2, to, checkMod);
@@ -670,13 +682,13 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
             auto ce = e.isCondExp();
             return canElideCopy(ce.e1, to, checkMod) && canElideCopy(ce.e2, to, checkMod);
 
-        case EXP.structLiteral:
-            return true;
+        case EXP.call:
+            return visitCallExp(e.isCallExp());
         case EXP.dotVariable:
-            // If an aggregate can be elided, so are its fields
-            auto dve = e.isDotVarExp();
-            auto vd = dve.var.isVarDeclaration();
-            return vd && vd.isField() && canElideCopy(dve.e1, dve.e1.type, false);
+            return visitDotVarExp(e.isDotVarExp());
+        case EXP.structLiteral:
+            auto sle = e.isStructLiteralExp();
+            return !(checkMod && sle.useStaticInit && to.isMutable());
         case EXP.variable:
             return (e.isVarExp().var.storage_class & STC.rvalue) != 0;
         default:
@@ -3908,7 +3920,7 @@ private bool checkDefCtor(Loc loc, Type t)
  */
 private bool functionParameters(Loc loc, Scope* sc,
     TypeFunction tf, Expression ethis, Type tthis, ArgumentList argumentList, FuncDeclaration fd,
-    Type* prettype, Expression* peprefix)
+    out Type prettype, out Expression peprefix)
 {
     Expressions* arguments = argumentList.arguments;
     //printf("functionParameters() fd: %s tf: %s\n", fd ? fd.ident.toChars() : "", toChars(tf));
@@ -3918,7 +3930,6 @@ private bool functionParameters(Loc loc, Scope* sc,
     const olderrors = global.errors;
     bool err = false;
     Expression eprefix = null;
-    *peprefix = null;
 
     if (argumentList.names)
     {
@@ -4704,8 +4715,8 @@ private bool functionParameters(Loc loc, Scope* sc,
         tret = tret.substWildTo(wildmatch);
     }
 
-    *prettype = tret;
-    *peprefix = eprefix;
+    prettype = tret;
+    peprefix = eprefix;
     return (err || olderrors != global.errors);
 }
 
@@ -6284,13 +6295,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(p.loc, "PlacementExpression `%s` is an rvalue, but must be an lvalue", p.toChars());
                 return setError();
             }
-            if (sc.setUnsafe(false, p.loc, "`@safe` function `%s` cannot use placement `new`", sc.func))
+            if (sc.setUnsafe(false, p.loc, "placement `new`", sc.func))
             {
                 return setError();
             }
-            if (!exp.placement.type.isNaked)
+            if (!p.type.isNaked)
             {
-                error(p.loc, "PlacementExpression `%s` of type `%s` be unshared and mutable", p.toChars(), toChars(p.type));
+                error(p.loc, "PlacementExpression `%s` of type `%s` must be unshared and mutable", p.toChars(), toChars(p.type));
+                return setError();
+            }
+            if (p.type.ty == Tarray)
+            {
+                error(p.loc, "PlacementExpression cannot be a dynamic array");
                 return setError();
             }
             checkModifiable(exp.placement, sc);
@@ -6563,7 +6579,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 TypeFunction tf = f.type.isTypeFunction();
                 if (!exp.arguments)
                     exp.arguments = new Expressions();
-                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, &exp.type, &exp.argprefix))
+                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, exp.type, exp.argprefix))
                     return setError();
 
                 exp.member = f.isCtorDeclaration();
@@ -6678,7 +6694,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 TypeFunction tf = f.type.isTypeFunction();
                 if (!exp.arguments)
                     exp.arguments = new Expressions();
-                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, &exp.type, &exp.argprefix))
+                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, exp.type, exp.argprefix))
                     return setError();
 
                 exp.member = f.isCtorDeclaration();
@@ -8273,7 +8289,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression argprefix;
         if (!exp.arguments)
             exp.arguments = new Expressions();
-        if (functionParameters(exp.loc, sc, cast(TypeFunction)t1, ethis, tthis, exp.argumentList, exp.f, &exp.type, &argprefix))
+        if (functionParameters(exp.loc, sc, cast(TypeFunction)t1, ethis, tthis, exp.argumentList, exp.f, exp.type, argprefix))
             return setError();
 
         if (!exp.type)

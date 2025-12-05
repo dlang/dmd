@@ -661,7 +661,7 @@ elem* resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
  *      sthis = the symbol of the current 'this' derived from fd.vthis
  *      fd = the nested function
  */
-TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
+type* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
 {
     if (sthis)
     {

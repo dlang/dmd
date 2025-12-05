@@ -41,48 +41,45 @@ enum Mangle : ubyte
 }
 
 /// Values for Tflags:
-alias type_flags_t = ushort;
-enum
+enum TF : ushort
 {
-    TFprototype   = 1,      // if this function is prototyped
-    TFfixed       = 2,      // if prototype has a fixed # of parameters
-    TFgenerated   = 4,      // C: if we generated the prototype ourselves
-    TFdependent   = 4,      // CPP: template dependent type
-    TFforward     = 8,      // TYstruct: if forward reference of tag name
-    TFsizeunknown = 0x10,   // TYstruct,TYarray: if size of type is unknown
-                            // TYmptr: the Stag is TYident type
-    TFfuncret     = 0x20,   // C++,tyfunc(): overload based on function return value
-    TFfuncparam   = 0x20,   // TYarray: top level function parameter
-    TFstatic      = 0x40,   // TYarray: static dimension
-    TFvla         = 0x80,   // TYarray: variable length array
-    TFemptyexc    = 0x100,  // tyfunc(): empty exception specification
+    prototype   = 1,      // if this function is prototyped
+    fixed       = 2,      // if prototype has a fixed # of parameters
+    generated   = 4,      // C: if we generated the prototype ourselves
+    dependent   = 4,      // CPP: template dependent type
+    forward     = 8,      // TYstruct: if forward reference of tag name
+    sizeunknown = 0x10,   // TYstruct,TYarray: if size of type is unknown
+                          // TYmptr: the Stag is TYident type
+    funcret     = 0x20,   // C++,tyfunc(): overload based on function return value
+    funcparam   = 0x20,   // TYarray: top level function parameter
+    static_     = 0x40,   // TYarray: static dimension
+    vla         = 0x80,   // TYarray: variable length array
+    emptyexc    = 0x100,  // tyfunc(): empty exception specification
 }
-
-alias type = TYPE;
 
 public import dmd.backend.symbol : symbol_struct_addField, symbol_struct_addBitField, symbol_struct_hasBitFields, symbol_struct_addBaseClass;
 
 // Return true if type is a struct, class or union
 bool type_struct(const type* t) { return tybasic(t.Tty) == TYstruct; }
 
-struct TYPE
+struct type
 {
     debug ushort id;
     enum IDtype = 0x1234;
 
     tym_t Tty;     /* mask (TYxxx)                         */
-    type_flags_t Tflags; // TFxxxxx
+    TF Tflags;     // TF.xxxxx
 
     Mangle Tmangle; // name mangling
 
     uint Tcount; // # pointing to this type
     char* Tident; // TYident: identifier; TYdarray, TYaarray: pretty name for debug info
-    TYPE* Tnext; // next in list
+    type* Tnext;  // next in list
                                 // TYenum: gives base type
     union
     {
         targ_size_t Tdim;   // TYarray: # of elements in array
-        elem* Tel;          // TFvla: gives dimension (NULL if '*')
+        elem* Tel;          // TF.vla: gives dimension (NULL if '*')
         param_t* Tparamtypes; // TYfunc, TYtemplate: types of function parameters
         Classsym* Ttag;     // TYstruct,TYmemptr: tag symbol
                             // TYenum,TYvtshape: tag symbol
@@ -97,7 +94,7 @@ struct TYPE
 
 struct typetemp_t
 {
-    TYPE Ttype;
+    type Ttype;
 
     /* Tsym should really be part of a derived class, as we only
         allocate room for it if TYtemplate
@@ -114,7 +111,7 @@ void type_debug(const type* t)
 Mangle type_mangle(const type* t) { return t.Tmangle; }
 
 // Return true if function type has a variable number of arguments
-bool variadic(const type* t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
+bool variadic(const type* t) { return (t.Tflags & (TF.prototype | TF.fixed)) == TF.prototype; }
 
 public import dmd.backend.var : chartype;
 

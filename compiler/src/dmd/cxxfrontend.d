@@ -1036,6 +1036,18 @@ bool isImaginary(Type type)
     return dmd.typesem.isImaginary(type);
 }
 
+bool isString(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isString(type);
+}
+
+bool isBoolean(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isBoolean(type);
+}
+
 /***********************************************************
  * typinf.d
  */

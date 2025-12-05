@@ -346,6 +346,17 @@ void testRvalueRefReturn()
 }
 
 /************************************/
+// https://github.com/dlang/dmd/issues/22157
+class Test22157
+{
+    override string toString()
+	{
+        auto e = { return cast() super; } ();
+        return null;
+    }
+}
+
+/************************************/
 
 void main()
 {
