@@ -1042,6 +1042,12 @@ bool isBoolean(Type type)
     return dmd.typesem.isBoolean(type);
 }
 
+bool needsNested(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.needsNested(type);
+}
+
 /***********************************************************
  * typinf.d
  */
