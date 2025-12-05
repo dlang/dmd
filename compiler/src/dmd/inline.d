@@ -142,6 +142,7 @@ private final class InlineDoState
 {
     // inline context
     VarDeclaration vthis;
+    VarDeclaration vret;
     Dsymbols from;      // old Dsymbols
     Dsymbols to;        // parallel array of new Dsymbols
     Dsymbol parent;     // new parent
@@ -459,6 +460,13 @@ public:
         override void visit(SymOffExp e)
         {
             //printf("SymOffExp.doInlineAs!%s(%s)\n", Result.stringof.ptr, e.toChars());
+            if (ids.vret && e.var.nrvo)
+            {
+                auto ve = e.copy().isSymOffExp();
+                ve.var = ids.vret.isDeclaration();
+                result = ve;
+                return;
+            }
             foreach (i; 0 .. ids.from.length)
             {
                 if (e.var != ids.from[i])
@@ -474,6 +482,13 @@ public:
         override void visit(VarExp e)
         {
             //printf("VarExp.doInlineAs!%s(%s)\n", Result.stringof.ptr, e.toChars());
+            if (ids.vret && e.var.nrvo)
+            {
+                auto ve = e.copy().isVarExp();
+                ve.var = ids.vret.isDeclaration();
+                result = ve;
+                return;
+            }
             foreach (i; 0 .. ids.from.length)
             {
                 if (e.var != ids.from[i])
@@ -663,6 +678,19 @@ public:
                 }
                 if (vd.isStatic())
                     return;
+
+                if (ids.vret && vd.nrvo)
+                {
+                    if (vd._init && !vd._init.isVoidInitializer())
+                    {
+                        result = vd._init.initializerToExpression();
+                        assert(result);
+                        result = doInlineAs!Expression(result, ids);
+                    }
+                    else
+                        result = IntegerExp.literal!0;
+                    return;
+                }
 
                 if (ids.fd && vd == ids.fd.nrvo_var)
                 {
@@ -1228,7 +1256,77 @@ public:
     override void visit(ReturnStatement s)
     {
         //printf("ReturnStatement.inlineScan()\n");
-        inlineScan(s.exp);
+
+        if (!s.exp)
+            return;
+
+        auto makeReturnVar(TypeFunction tf)
+        {
+            auto tmp = Identifier.generateId("__nrvovar");
+            auto vd = new VarDeclaration(s.loc, tf.next, tmp, null);
+            vd.nrvo = true;
+            vd.storage_class = STC.rvalue;
+            vd._linkage = tf.linkage;
+            vd.parent = parent;
+            return vd;
+        }
+
+        Expression e0;
+        auto elast = Expression.extractLast(s.exp, e0);
+        inlineScan(e0);
+
+        if (auto ce = elast.isCallExp())
+        {
+            if (ce.f && ce.f.type && ce.f.isNRVO && ce.f.nrvo_var)
+            {
+                // Generate fake NRVO variable for `return nrvoFunc();`
+                auto vd = makeReturnVar(ce.f.type.isTypeFunction());
+                auto ae = new ConstructExp(s.loc, vd, elast);
+                ae.type = vd.type;
+                vd._init = new ExpInitializer(s.loc, ae);
+
+                auto de = new DeclarationExp(s.loc, vd);
+                de.type = Type.tvoid;
+
+                auto ve = new VarExp(s.loc, vd);
+                auto rewrite = Expression.combine(de, ve);
+
+                inlineScan(rewrite);
+
+                s.exp = Expression.combine(e0, rewrite);
+                return;
+            }
+            else if (auto dve = ce.e1.isDotVarExp())
+            {
+                auto fd = dve.var.isFuncDeclaration();
+                auto sle = dve.e1.isStructLiteralExp();
+                if (fd && fd.type && fd.isCtorDeclaration() && sle)
+                {
+                    // Generate fake NRVO variable for `return StructCtor(...);`
+                    auto vd = makeReturnVar(fd.type.isTypeFunction());
+                    auto ae = new ConstructExp(s.loc, vd, sle);
+                    ae.type = sle.type;
+                    vd._init = new ExpInitializer(s.loc, ae);
+
+                    auto de = new DeclarationExp(s.loc, vd);
+                    de.type = Type.tvoid;
+
+                    ce.e1 = new DotVarExp(s.loc, new VarExp(s.loc, vd), fd);
+                    ce.e1.type = fd.type;
+
+                    auto ve = new VarExp(s.loc, vd);
+                    auto rewrite = Expression.combine(de, Expression.combine(ce, ve));
+
+                    inlineScan(rewrite);
+
+                    s.exp = Expression.combine(e0, rewrite);
+                    return;
+                }
+            }
+        }
+
+        inlineScan(elast);
+        s.exp = Expression.combine(e0, elast);
     }
 
     override void visit(SynchronizedStatement s)
@@ -1399,39 +1497,59 @@ public:
 
     override void visit(AssignExp e)
     {
-        // Look for NRVO, as inlining NRVO function returns require special handling
-        if (e.op == EXP.construct && e.e2.op == EXP.call)
+        void inlineConstruction(AssignExp e)
         {
-            auto ce = e.e2.isCallExp();
-            if (ce.f && ce.f.isNRVO && ce.f.nrvo_var) // NRVO
-            {
-                if (auto ve = e.e1.isVarExp())
-                {
-                    /* Inlining:
-                     *   S s = foo();   // initializing by rvalue
-                     *   S s = S(1);    // constructor call
-                     */
-                    Declaration d = ve.var;
-                    if (d.storage_class & (STC.out_ | STC.ref_)) // refinit
-                        goto L1;
-                }
-                else
-                {
-                    /* Inlining:
-                     *   this.field = foo();   // inside constructor
-                     */
-                    inlineScan(e.e1);
-                }
+            Expression e0;
+            auto elast = Expression.extractLast(e.e2, e0);
+            inlineScan(e.e1); // LHS
+            inlineScan(e0);   // Side effects
 
+            auto ce = elast.isCallExp();
+            if (ce && ce.f)
+            {
                 visitCallExp(ce, e.e1, false);
+
                 if (eresult)
                 {
-                    //printf("call with nrvo: %s ==> %s\n", e.toChars(), eresult.toChars());
+                    if (ce.f.isNRVO && ce.f.nrvo_var)
+                    {
+                        eresult = Expression.combine(e0, eresult);
+                        //printf("call with nrvo: %s ==> %s\n", e.toChars(), eresult.toChars());
+                    }
+                    else
+                    {
+                        e.e2 = Expression.combine(e0, eresult);
+                        eresult = e;
+                    }
+
                     return;
                 }
             }
+
+            inlineScan(elast);
+            e.e2 = Expression.combine(e0, elast);
         }
-    L1:
+
+        // Look for NRVO, as inlining NRVO function returns require special handling
+        if (e.op == EXP.construct)
+        {
+            bool refInit = false;
+
+            /* Inlining:
+             *   S s = ...;    // initializing by rvalue
+             * No NRVO on:
+             *   ref S s = ...;
+             */
+            if (auto ve = e.e1.isVarExp())
+                refInit = (ve.var.storage_class & (STC.out_ | STC.ref_)) != 0;
+
+            if (!refInit)
+            {
+                inlineConstruction(e);
+                return;
+            }
+        }
+
         visit(cast(BinExp)e);
     }
 
@@ -2170,6 +2288,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             ids.to.push(vret);
         }
     }
+    ids.vret = vret;
 
     // Set up vthis
     VarDeclaration vthis;
@@ -2177,9 +2296,8 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
     {
         Expression e0;
         ethis = Expression.extractLast(ethis, e0);
-        VarDeclaration vthis2 = ecall.vthis2;
-        assert(vthis2 || !fd.hasDualContext);
-        if (vthis2)
+
+        if (VarDeclaration vthis2 = ecall.vthis2)
         {
             // void*[2] __this = [ethis, this]
             if (ethis.type.ty == Tstruct)
@@ -2204,7 +2322,6 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
         }
         else
         {
-            //assert(ethis.type.ty != Tpointer);
             if (ethis.type.ty == Tpointer)
             {
                 Type t = ethis.type.nextOf();
@@ -2212,19 +2329,33 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
                 ethis.type = t;
             }
 
-            auto ei = new ExpInitializer(fd.loc, ethis);
-            vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
-            if (ethis.type.ty != Tclass)
-                vthis.storage_class = STC.ref_;
-            vthis._linkage = LINK.d;
-            vthis.parent = parent;
+            if (ethis.isStructLiteralExp() && fd.isCtorDeclaration() && vret)
+            {
+                // Use vret as vthis for struct literal constructor
+                vthis = vret;
+                auto ce = new ConstructExp(fd.loc, vthis, ethis);
+                ce.type = vthis.type;
+                e0 = Expression.combine(e0, ce);
+            }
+            else
+            {
+                auto ei = new ExpInitializer(fd.loc, null);
+                vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
+                vthis._linkage = LINK.d;
+                vthis.parent = parent;
 
-            ei.exp = new ConstructExp(fd.loc, vthis, ethis);
-            ei.exp.type = vthis.type;
+                if (ethis.isStructLiteralExp())
+                    vthis.storage_class = STC.rvalue;
+                else if (ethis.type.ty != Tclass)
+                    vthis.storage_class = STC.ref_;
 
-            auto de = new DeclarationExp(fd.loc, vthis);
-            de.type = Type.tvoid;
-            e0 = Expression.combine(e0, de);
+                ei.exp = new ConstructExp(fd.loc, vthis, ethis);
+                ei.exp.type = vthis.type;
+
+                DeclarationExp de = new DeclarationExp(fd.loc, vthis);
+                de.type = Type.tvoid;
+                e0 = Expression.combine(e0, de);
+            }
         }
         ethis = e0;
 
