@@ -2071,7 +2071,6 @@ public:
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
     virtual bool isScalar();
-    virtual bool isUnsigned();
     virtual bool isScopeClass();
     bool isConst() const;
     bool isImmutable() const;
@@ -4380,7 +4379,6 @@ public:
     const char* kind() const override;
     TypeBasic* syntaxCopy() override;
     bool isScalar() override;
-    bool isUnsigned() override;
     TypeBasic* isTypeBasic() override;
     void accept(Visitor* v) override;
 };
@@ -4432,7 +4430,6 @@ public:
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
     bool isScalar() override;
-    bool isUnsigned() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
@@ -4750,7 +4747,6 @@ public:
     const char* kind() const override;
     TypeVector* syntaxCopy() override;
     bool isScalar() override;
-    bool isUnsigned() override;
     TypeBasic* elementType();
     void accept(Visitor* v) override;
 };
@@ -6736,7 +6732,6 @@ public:
     uint32_t bitOffset;
     BitFieldDeclaration* syntaxCopy(Dsymbol* s) override;
     void accept(Visitor* v) override;
-    uint64_t getMinMax(Identifier* id);
 };
 
 class SymbolDeclaration final : public Declaration

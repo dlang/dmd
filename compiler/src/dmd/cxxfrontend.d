@@ -1060,6 +1060,12 @@ bool isBoolean(Type type)
     return dmd.typesem.isBoolean(type);
 }
 
+bool isUnsigned(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isUnsigned(type);
+}
+
 /***********************************************************
  * typinf.d
  */
