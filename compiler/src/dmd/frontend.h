@@ -4352,7 +4352,6 @@ public:
     Type* next;
     int32_t hasWild() const final override;
     Type* nextOf() final override;
-    void transitive();
     void accept(Visitor* v) override;
 };
 
