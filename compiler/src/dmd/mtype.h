@@ -245,7 +245,6 @@ public:
     Type *nullAttributes() const;
     bool hasDeprecatedAliasThis();
     Type *toBasetype();
-    virtual unsigned char deduceWild(Type *t, bool isRef);
 
     virtual ClassDeclaration *isClassHandle();
     virtual int hasWild() const;
@@ -304,7 +303,6 @@ public:
 
     int hasWild() const override final;
     Type *nextOf() override final;
-    unsigned char deduceWild(Type *t, bool isRef) override final;
     void transitive();
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -637,7 +635,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    unsigned char deduceWild(Type *t, bool isRef) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -670,7 +667,6 @@ public:
     const char *kind() override;
     TypeClass *syntaxCopy() override;
     ClassDeclaration *isClassHandle() override;
-    unsigned char deduceWild(Type *t, bool isRef) override;
     bool isScopeClass() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -787,6 +783,7 @@ namespace dmd
     Type *makeWildConst(Type* type);
     Type *makeSharedWild(Type* type);
     Type *makeSharedWildConst(Type* type);
+    unsigned char deduceWild(Type* type, Type* t, bool isRef);
     bool isIntegral(Type* type);
     bool isFloating(Type* type);
     bool isReal(Type* type);

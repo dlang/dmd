@@ -2086,7 +2086,6 @@ public:
     Type* nullAttributes() const;
     bool hasDeprecatedAliasThis();
     Type* toBasetype();
-    virtual uint8_t deduceWild(Type* t, bool isRef);
     virtual ClassDeclaration* isClassHandle();
     virtual int32_t hasWild() const;
     virtual Type* nextOf();
@@ -4354,7 +4353,6 @@ public:
     Type* next;
     int32_t hasWild() const final override;
     Type* nextOf() final override;
-    uint8_t deduceWild(Type* t, bool isRef) final override;
     void transitive();
     void accept(Visitor* v) override;
 };
@@ -4409,7 +4407,6 @@ public:
     const char* kind() const override;
     TypeClass* syntaxCopy() override;
     ClassDeclaration* isClassHandle() override;
-    uint8_t deduceWild(Type* t, bool isRef) override;
     bool isScopeClass() override;
     void accept(Visitor* v) override;
 };
@@ -4694,7 +4691,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    uint8_t deduceWild(Type* t, bool isRef) override;
     void accept(Visitor* v) override;
 };
 
