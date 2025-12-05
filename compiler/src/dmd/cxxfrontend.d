@@ -1060,16 +1060,22 @@ bool isBoolean(Type type)
     return dmd.typesem.isBoolean(type);
 }
 
+bool isUnsigned(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isUnsigned(type);
+}
+
 bool needsNested(Type type)
 {
     import dmd.typesem;
     return dmd.typesem.needsNested(type);
 }
 
-bool isUnsigned(Type type)
+bool needsDestruction(Type type)
 {
     import dmd.typesem;
-    return dmd.typesem.isUnsigned(type);
+    return dmd.typesem.needsDestruction(type);
 }
 
 /***********************************************************
