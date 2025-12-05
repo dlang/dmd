@@ -231,7 +231,6 @@ public:
     virtual bool isImaginary();
     virtual bool isComplex();
     virtual bool isScalar();
-    virtual bool isUnsigned();
     virtual bool isScopeClass();
 
     bool isConst() const       { return (mod & MODconst) != 0; }
@@ -321,7 +320,6 @@ public:
     bool isImaginary() override;
     bool isComplex() override;
     bool isScalar() override;
-    bool isUnsigned() override;
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic() override;
@@ -337,7 +335,6 @@ public:
     const char *kind() override;
     TypeVector *syntaxCopy() override;
     bool isScalar() override;
-    bool isUnsigned() override;
     TypeBasic *elementType();
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -655,7 +652,6 @@ public:
     bool isImaginary() override;
     bool isComplex() override;
     bool isScalar() override;
-    bool isUnsigned() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
@@ -796,4 +792,5 @@ namespace dmd
     bool isReal(Type* type);
     bool isString(Type* type);
     bool isBoolean(Type* type);
+    bool isUnsigned(Type* type);
 }
