@@ -3992,7 +3992,7 @@ private bool functionParameters(Loc loc, Scope* sc,
      * Start with the `this` argument, later on merge into wildmatch the mod bits of the rest
      * of the arguments.
      */
-    MOD wildmatch = (tthis && !isCtorCall) ? tthis.Type.deduceWild(tf, false) : 0;
+    MOD wildmatch = (tthis && !isCtorCall) ? tthis.typeDeduceWild(tf, false) : 0;
 
     bool done = false;
     foreach (const i; 0 .. n)
