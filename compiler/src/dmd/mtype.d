@@ -1207,15 +1207,6 @@ extern (C++) abstract class Type : ASTNode
     }
 
     /********************************
-     * true if when type goes out of scope, it needs a destructor applied.
-     * Only applies to value types, not ref types.
-     */
-    bool needsDestruction()
-    {
-        return false;
-    }
-
-    /********************************
      * true if when type is copied, it needs a copy constructor or postblit
      * applied. Only applies to value types, not ref types.
      */
@@ -1658,11 +1649,6 @@ extern (C++) final class TypeSArray : TypeArray
     bool isIncomplete()
     {
         return dim.isIntegerExp() && dim.isIntegerExp().getInteger() == 0;
-    }
-
-    override bool needsDestruction()
-    {
-        return next.needsDestruction();
     }
 
     override bool needsCopyOrPostblit()
@@ -2361,11 +2347,6 @@ extern (C++) final class TypeStruct : Type
         return this;
     }
 
-    override bool needsDestruction()
-    {
-        return sym.dtor !is null;
-    }
-
     override bool needsCopyOrPostblit()
     {
         return sym.hasCopyCtor || sym.postblit;
@@ -2402,11 +2383,6 @@ extern (C++) final class TypeEnum : Type
     override bool isScalar()
     {
         return this.memType().isScalar();
-    }
-
-    override bool needsDestruction()
-    {
-        return this.memType().needsDestruction();
     }
 
     override bool needsCopyOrPostblit()
