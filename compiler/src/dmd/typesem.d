@@ -67,6 +67,12 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+void transitive(TypeNext _this)
+{
+    // Invoke transitivity of type attributes
+    _this.next = _this.next.addMod(_this.mod);
+}
+
 private inout(TypeNext) isTypeNext(inout Type _this)
 {
     switch(_this.ty)

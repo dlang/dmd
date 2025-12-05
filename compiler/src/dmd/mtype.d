@@ -1446,13 +1446,6 @@ extern (C++) abstract class TypeNext : Type
         return wm;
     }
 
-    final void transitive()
-    {
-        /* Invoke transitivity of type attributes
-         */
-        next = next.addMod(mod);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
