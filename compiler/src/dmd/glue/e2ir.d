@@ -399,6 +399,13 @@ elem* toElemDtor(Expression e, ref IRState irs, elem* ehidden = null)
 
     irs.mayThrow = mayThrowSave;
 
+    if (ehidden)
+    {
+        // RVO: ensure ehidden is returned
+        elem* eh = el_una(OPind, er.Ety, el_copytree(ehidden));
+        er = el_combine(er, eh);
+    }
+
     // Add destructors
     elem* ex = appendDtors(irs, er, starti, endi);
     return ex;
