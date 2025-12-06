@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -g
+REQUIRED_ARGS: -g -check=nullderef=off
 PERMUTE_ARGS:
 GDB_SCRIPT:
 ---

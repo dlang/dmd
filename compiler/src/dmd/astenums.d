@@ -472,6 +472,14 @@ enum CHECKACTION : ubyte
     context,      /// call D assert with the error context on failure
 }
 
+/// What should happen when a dereference on null happens
+enum CHECKACTIONDEREF : ubyte
+{
+    D,             /// call D hook function
+    Assert,        /// lower to an assert
+    Ignore         /// ignore
+}
+
 extern (C++) struct structalign_t
 {
   private:

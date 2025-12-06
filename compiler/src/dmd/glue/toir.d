@@ -93,6 +93,7 @@ struct IRState
     ErrorSink eSink;                // sink for error messages
     bool mayThrow;                  // the expression being evaluated may throw
     bool Cfile;                     // use C semantics
+    int inNullDerefCheckDisable;    // should the null check be disabled due to backend fragility
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
         const Param* params, const Target* target, ErrorSink eSink)
@@ -125,6 +126,15 @@ struct IRState
         if (m.filetype == FileType.c)
             return false;
         return dmd.funcsem.arrayBoundsCheck(getFunc());
+    }
+
+    /**********************
+     * Returns:
+     *    true if do null dereference checking for the current function
+     */
+    bool nullDerefCheck()
+    {
+        return inNullDerefCheckDisable == 0 && dmd.funcsem.nullDerefCheck(getFunc());
     }
 
     /****************************
