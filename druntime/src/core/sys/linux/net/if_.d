@@ -109,9 +109,9 @@ struct if_settings {
 struct ifreq {
 	union
 	{
-		char[IFNAMSIZ]	ifrn_name;	/* if name, e.g. "en0" */
+		char[IFNAMSIZ]	ifrn_name;		/* if name, e.g. "en0" */
 	}
-	
+
 	union {
 
 		short	ifru_flags;
