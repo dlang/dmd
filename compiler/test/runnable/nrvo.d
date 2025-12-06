@@ -49,8 +49,127 @@ void test2()
 
 /***************************************************/
 
+// The inliner can't inline ctors without moving structs around yet,
+// so `pragma(inline, false)` is used on them.
+
+struct S3
+{
+    S3* ptr;
+
+    this(int)
+    {
+        pragma(inline, false);
+        ptr = &this;
+    }
+
+    @disable this(this);
+
+    void check()
+    {
+        pragma(inline, false);
+        assert(this.ptr is &this);
+    }
+}
+
+S3 make3()
+{
+    return S3(1);
+}
+
+__gshared int i3;
+__gshared bool b3;
+
+S3 f3()
+{
+    i3++;
+    return make3();
+}
+
+pragma(inline, false)
+S3 g3()
+{
+    return b3 ? make3() : f3();
+}
+
+void test3()
+{
+    S3 s1 = f3();
+    s1.check();
+    assert(i3 == 1);
+
+    S3 s2 = g3();
+    s2.check();
+    assert(i3 == 2);
+}
+
+/***************************************************/
+
+// ditto
+
+struct S4
+{
+    S4* ptr;
+
+    this(int)
+    {
+        pragma(inline, false);
+        ptr = &this;
+    }
+
+    this(ref inout S4)
+    {
+        pragma(inline, false);
+        ptr = &this;
+    }
+
+    this(S4)
+    {
+        pragma(inline, false);
+        ptr = &this;
+    }
+
+    void check()
+    {
+        assert(this.ptr is &this);
+    }
+}
+
+struct V4
+{
+    S4 s;
+    this(int)
+    {
+        pragma(inline, false);
+        s = S4(1);
+    }
+}
+
+S4 f4()
+{
+    return __rvalue(V4(1).s);
+}
+
+S4 g4()
+{
+    V4 v = V4(1);
+    S4 s = v.s;
+    return s;
+}
+
+void test4()
+{
+    f4().check();
+
+    S4 s = g4();
+    s.check();
+}
+
+/***************************************************/
+
 void main()
 {
     test1();
     test2();
+    test3();
+    test4();
 }
