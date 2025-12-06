@@ -58,10 +58,35 @@ final:
         return this.endScope(loc);
     }
 
-    DFAScopeRef endScope(ref Loc endLoc)
+    DFAScopeRef endScope(ref Loc endLoc, bool handleLabelPopping = true)
     {
         DFAScopeRef ret = dfaCommon.popScope;
         dfaCommon.sdepth--;
+
+        if (handleLabelPopping)
+        {
+            while (ret.sc.label !is null)
+            {
+                Loc loc = *cast(Loc*)&ret.sc.label.loc;
+
+                dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
+                    ob.printf("End label scope %p:%p %s", ret.sc,
+                        dfaCommon.currentDFAScope, ret.sc.label.ident.toChars);
+                    if (loc.isValid)
+                        appendLoc(ob, loc);
+                    ob.writestring("\n");
+                });
+
+                ret.printStructure("*=", dfaCommon.sdepth, dfaCommon.currentFunction);
+                ret.check;
+
+                seeConvergeStatementLoopyLabels(ret, loc);
+                inLoopyLabel--;
+
+                ret = dfaCommon.popScope;
+                dfaCommon.sdepth--;
+            }
+        }
 
         dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
             ob.printf("End scope %p:%p", ret.sc, dfaCommon.currentDFAScope);
@@ -87,6 +112,28 @@ final:
 
         DFAScopeRef ret = dfaCommon.popScope;
         dfaCommon.sdepth--;
+
+        while (ret.sc.label !is null)
+        {
+            Loc loc = *cast(Loc*)&ret.sc.label.loc;
+
+            dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
+                ob.printf("End label scope %p:%p %s", ret.sc,
+                    dfaCommon.currentDFAScope, ret.sc.label.ident.toChars);
+                if (loc.isValid)
+                    appendLoc(ob, loc);
+                ob.writestring("\n");
+            });
+
+            ret.printStructure("*=", dfaCommon.sdepth, dfaCommon.currentFunction);
+            ret.check;
+
+            seeConvergeStatementLoopyLabels(ret, loc);
+            inLoopyLabel--;
+
+            ret = dfaCommon.popScope;
+            dfaCommon.sdepth--;
+        }
 
         dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
             ob.printf("End scope %p:%p", ret.sc, dfaCommon.currentDFAScope);
@@ -502,7 +549,7 @@ final:
         */
         version (none)
         {
-            if (st.loc.linnum == 342)
+            if (st.loc.linnum == 180)
             {
                 DFAScope* sc = dfaCommon.currentDFAScope;
                 while (sc !is null)
@@ -701,17 +748,16 @@ final:
             break;
 
         case STMT.Label:
+            // Note: it is the responsibility of endScope to handle poping these scopes off
             auto ls = st.isLabelStatement;
             dfaCommon.printStructure((ref OutBuffer ob,
                     scope PrintPrefixType prefix) => ob.printf("label %s %p %p\n",
                     ls.ident !is null ? ls.ident.toChars : null, ls.gotoTarget, ls.gotoTarget));
 
             inLoopyLabel++;
-            scope (exit)
-                inLoopyLabel--;
 
             this.startScope;
-            dfaCommon.currentDFAScope.label = ls.ident;
+            dfaCommon.currentDFAScope.label = ls;
             dfaCommon.setScopeAsLoopyLabel;
             dfaCommon.currentDFAScope.isLoopyLabelKnownToHaveRun = true;
 
@@ -742,21 +788,20 @@ final:
             // by-pass scope statement processing with a dedicated variation here.
             if (ls.statement is null)
             {
-                // empty block, this is ok.
-                scr = this.endScope;
             }
             else if (auto scs = ls.statement.isScopeStatement)
             {
                 this.visit(scs.statement);
-                scr = this.endScope(*cast(Loc*)&ls.loc);
+                scr = this.endScope(*cast(Loc*)&ls.loc, false);
+                inLoopyLabel--;
             }
             else
             {
                 this.visit(ls.statement);
-                scr = this.endScope;
             }
 
-            seeConvergeStatementLoopyLabels(scr, *cast(Loc*)&ls.loc);
+            if (!scr.isNull)
+                seeConvergeStatementLoopyLabels(scr, *cast(Loc*)&ls.loc);
             break;
 
         case STMT.For:
@@ -784,6 +829,10 @@ final:
                 } else {
                     break;
                 }
+            }
+            May also be:
+            for(;condition;) {
+                ...
             }
             */
             if (theCondition !is null)
@@ -1279,7 +1328,7 @@ final:
             printf("Run finalizers up to scope %p", targetHeadScope);
 
             if (targetHeadScope !is null && targetHeadScope.label !is null)
-                printf("%s\n", targetHeadScope.label.toChars);
+                printf("%s\n", targetHeadScope.label.ident.toChars);
             else
                 printf("\n");
         }
@@ -1313,24 +1362,6 @@ final:
                 var.unmodellable = true;
         }
 
-        void perExpr(Expression expr)
-        {
-            if (auto ve = expr.isVarExp)
-            {
-                if (auto vd = ve.var.isVarDeclaration)
-                    perVar(vd);
-            }
-            else if (auto ue = expr.isUnaExp)
-            {
-                perExpr(ue.e1);
-            }
-            else if (auto be = expr.isBinExp)
-            {
-                perExpr(be.e1);
-                perExpr(be.e2);
-            }
-        }
-
-        foreachExpAndVar(s, &perExpr, &perVar);
+        foreachExpAndVar(s, &expWalker.markUnmodellable, &perVar);
     }
 }

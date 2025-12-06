@@ -86,6 +86,9 @@ int concatNullableResult(Type lhs, Type rhs)
 
 int equalityArgTypes(Type lhs, Type rhs)
 {
+    // This logic originally came from dmd's glue layer.
+    // It was copied over and modified so that the DFA is accruate to runtime actions.
+
     // struct
     // floating point
     // lhs && rhs    static, dyamic array
