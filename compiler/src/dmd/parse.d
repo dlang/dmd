@@ -6658,10 +6658,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 nextToken();
                 check(TOK.leftParenthesis);
+                auto param = parseAssignCondition();
                 exp = parseExpression();
-                closeCondition("with", null, exp);
+                closeCondition("with", param, exp);
                 _body = parseStatement(ParseStatementFlags.scope_, null, &endloc);
-                s = new AST.WithStatement(loc, exp, _body, endloc);
+                s = new AST.WithStatement(loc, param, exp, _body, endloc);
                 break;
             }
         case TOK.try_:
