@@ -6661,7 +6661,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 exp = parseExpression();
                 closeCondition("with", null, exp);
                 _body = parseStatement(ParseStatementFlags.scope_, null, &endloc);
-                s = new AST.WithStatement(loc, exp, _body, endloc);
+                s = new AST.WithStatement(loc, null, exp, _body, endloc);
                 break;
             }
         case TOK.try_:

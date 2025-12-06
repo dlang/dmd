@@ -1416,14 +1416,16 @@ extern (C++) final class SynchronizedStatement : Statement
  */
 extern (C++) final class WithStatement : Statement
 {
+    Parameter prm;
     Expression exp;
     Statement _body;
     VarDeclaration wthis;
     Loc endloc;
 
-    extern (D) this(Loc loc, Expression exp, Statement _body, Loc endloc) @safe
+    extern (D) this(Loc loc, Parameter prm, Expression exp, Statement _body, Loc endloc) @safe
     {
         super(loc, STMT.With);
+        this.prm = prm;
         this.exp = exp;
         this._body = _body;
         this.endloc = endloc;
@@ -1431,7 +1433,11 @@ extern (C++) final class WithStatement : Statement
 
     override WithStatement syntaxCopy()
     {
-        return new WithStatement(loc, exp.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
+        return new WithStatement(loc,
+                                 prm ? prm.syntaxCopy() : null,
+                                 exp.syntaxCopy(),
+                                 _body ? _body.syntaxCopy() : null,
+                                 endloc);
     }
 
     override void accept(Visitor v)
