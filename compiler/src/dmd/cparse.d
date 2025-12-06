@@ -5702,6 +5702,36 @@ final class CParser(AST) : Parser!AST
                             }
                             break;
 
+                        case TOK.identifier:
+                        {
+                            const idx = id.toString();
+                            auto ident = token.ident;
+                            nextToken();
+
+                            if (idx.length > 2 && idx[0] == '_' && idx[1] == '_')
+                            {
+                                ++p;
+                                continue;
+                            }
+
+                            /*
+                             * macros refering to functions
+                             * #define test func(2,3)
+                             * where func has its definition elsewhere
+                             * we su much want this evaluated at runtime
+                             * import std.variant and set the type
+                             */
+                            if (token.value == TOK.leftParenthesis)
+                            {
+                                auto call = new AST.CallExp(loc, new AST.IdentifierExp(loc, ident), cparseArguments());
+                                auto var = new AST.VarDeclaration(loc, null, id, new AST.ExpInitializer(loc, call), STC.static_);
+                                addSym(var);
+
+                                ++p;
+                                continue;
+                            }
+                            break;
+                        }
                         case TOK.leftParenthesis:
                         {
                             /* Look for:
