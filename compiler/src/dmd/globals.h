@@ -327,6 +327,7 @@ struct CompileEnv
     d_bool transitionIn;
     d_bool ddocOutput;
     d_bool masm;
+    DString switchPrefix;
     IdentifierCharLookup cCharLookupTable;
     IdentifierCharLookup dCharLookupTable;
 };
