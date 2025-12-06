@@ -189,7 +189,12 @@ public Expression getValue(VarDeclaration vd)
 T ctfeEmplaceExp(T : Expression, Args...)(Args args)
 {
     if (mem.isGCEnabled)
-        return new T(args);
+    {
+        static if (is(T == IntegerExp) && args.length == 3)
+            return newIntegerExp(args);
+        else
+            return new T(args);
+    }
     auto p = ctfeGlobals.region.malloc(__traits(classInstanceSize, T));
     emplaceExp!T(p, args);
     return cast(T)p;

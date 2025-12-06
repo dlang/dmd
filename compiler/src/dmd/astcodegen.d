@@ -28,13 +28,14 @@ struct ASTCodegen
     public import dmd.hdrgen;
     public import dmd.init;
     public import dmd.initsem;
+    public import dmd.expressionsem;
     public import dmd.mtype;
     public import dmd.nspace;
     public import dmd.statement;
     public import dmd.staticassert;
     public import dmd.init : Designator;
 
-
+    alias newIntegerExp             = dmd.expressionsem.newIntegerExp;
     alias initializerToExpression   = dmd.initsem.initializerToExpression;
     alias typeToExpression          = dmd.mtype.typeToExpression;
     alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;

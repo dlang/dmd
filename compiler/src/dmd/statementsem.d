@@ -65,6 +65,7 @@ import dmd.target;
 import dmd.targetcompiler;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.expressionsem;
 import dmd.visitor;
 
 version (DMDLIB)
@@ -945,7 +946,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 {
                     // 'Promote' it to this scope, and replace with a return
                     fs.cases.push(gs);
-                    ss.statement = new ReturnStatement(Loc.initial, new IntegerExp(fs.cases.length + 1));
+                    ss.statement = new ReturnStatement(Loc.initial, newIntegerExp(fs.cases.length + 1));
                 }
             }
 
@@ -1166,7 +1167,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 if (fs.op == TOK.foreach_reverse_)
                     fs.key._init = new ExpInitializer(loc, tmp_length);
                 else
-                    fs.key._init = new ExpInitializer(loc, new IntegerExp(loc, 0, fs.key.type));
+                    fs.key._init = new ExpInitializer(loc, newIntegerExp(loc, 0, fs.key.type));
 
                 auto cs = new Statements();
                 if (vinit)
@@ -1191,7 +1192,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 if (fs.op == TOK.foreach_)
                 {
                     // key += 1
-                    increment = new AddAssignExp(loc, new VarExp(loc, fs.key), new IntegerExp(loc, 1, fs.key.type));
+                    increment = new AddAssignExp(loc, new VarExp(loc, fs.key), newIntegerExp(loc, 1, fs.key.type));
                 }
 
                 // T value = tmp[key];
@@ -2046,7 +2047,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
                     Expressions* args = new Expressions(2);
                     (*args)[0] = new StringExp(ss.loc, ss.loc.filename.toDString());
-                    (*args)[1] = new IntegerExp(ss.loc.linnum);
+                    (*args)[1] = newIntegerExp(ss.loc.linnum);
 
                     sl = new CallExp(ss.loc, sl, args);
                     sl = sl.expressionSemantic(sc);
@@ -2146,7 +2147,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         auto i = 0;
         foreach (c; *csCopy)
         {
-            (*ss.cases)[c.index].exp = new IntegerExp(i++);
+            (*ss.cases)[c.index].exp = newIntegerExp(i++);
         }
 
         //printf("%s\n", ss._body.toChars());
@@ -2375,7 +2376,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             Statement s = crs.statement;
             if (i != lval) // if not last case
                 s = new ExpStatement(crs.loc, cast(Expression)null);
-            Expression e = new IntegerExp(crs.loc, i, crs.first.type);
+            Expression e = newIntegerExp(crs.loc, i, crs.first.type);
             Statement cs = new CaseStatement(crs.loc, e, s);
             statements.push(cs);
         }
@@ -2492,7 +2493,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             {
                 assert(rs.caseDim == 0);
                 sc.fes.cases.push(rs);
-                result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.length + 1));
+                result = new ReturnStatement(Loc.initial, newIntegerExp(sc.fes.cases.length + 1));
                 return;
             }
             if (fd.returnLabel)
@@ -2836,7 +2837,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
                 // Immediately rewrite "this" return statement as:
                 //  return cases.length+1;
-                rs.exp = new IntegerExp(sc.fes.cases.length + 1);
+                rs.exp = newIntegerExp(sc.fes.cases.length + 1);
                 if (e0)
                 {
                     result = new CompoundStatement(rs.loc, new ExpStatement(rs.loc, e0), rs);
@@ -2918,7 +2919,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                          * and 1 is break.
                          */
                         sc.fes.cases.push(bs);
-                        result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.length + 1));
+                        result = new ReturnStatement(Loc.initial, newIntegerExp(sc.fes.cases.length + 1));
                         return;
                     }
                     break; // can't break to it
@@ -3006,7 +3007,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                          * and 1 is break.
                          */
                         sc.fes.cases.push(cs);
-                        result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.length + 1));
+                        result = new ReturnStatement(Loc.initial, newIntegerExp(sc.fes.cases.length + 1));
                         return;
                     }
                     break; // can't continue to it
@@ -3958,7 +3959,7 @@ private extern(D) Statement loopReturn(Expression e, Statements* cases, Loc loc)
     // cases 2...
     foreach (i, c; *cases)
     {
-        s = new CaseStatement(Loc.initial, new IntegerExp(i + 2), c);
+        s = new CaseStatement(Loc.initial, newIntegerExp(i + 2), c);
         a.push(s);
     }
 
@@ -4441,7 +4442,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                          p.type.toChars(), cast(ulong)length);
                 return returnEarly();
             }
-            Initializer ie = new ExpInitializer(Loc.initial, new IntegerExp(k));
+            Initializer ie = new ExpInitializer(Loc.initial, newIntegerExp(k));
             auto var = new VarDeclaration(loc, p.type, p.ident, ie);
             var.storage_class |= STC.foreach_ | STC.manifest;
             if (isStatic)
@@ -4625,7 +4626,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                 foreach (l; 0 .. dim)
                 {
                     auto cp = (*fs.parameters)[l];
-                    Expression init_ = new IndexExp(loc, access, new IntegerExp(loc, l, Type.tsize_t));
+                    Expression init_ = new IndexExp(loc, access, newIntegerExp(loc, l, Type.tsize_t));
                     init_ = init_.expressionSemantic(sc);
                     assert(init_.type);
                     declareVariable(p.storageClass, init_.type, cp.ident, init_, null);
