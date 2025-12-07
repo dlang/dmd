@@ -74,7 +74,7 @@ struct fr_proto_pvc {
 
 struct fr_proto_pvc_info {
 	uint dlci;
-	char[IFNAMSIZ] master;	/* Name of master FRAD device */
+	char[IFNAMSIZ] master = 0;	/* Name of master FRAD device */
 }		/* for returning PVC information only */
 
 struct cisco_proto {
