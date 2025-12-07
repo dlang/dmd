@@ -578,16 +578,23 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         {
             bool nrvo = func.isNRVO && func.nrvo_var;
             bool urvo = !nrvo && canElideCopy(s.exp, s.exp.type, false);
-            elem* ehidden = urvo ? el_var(irs.shidden) : null;
 
+            // Pass shidden in ehidden for URVO
+            elem* ehidden = urvo ? el_var(irs.shidden) : null;
             elem* e = toElemDtor(s.exp, irs, ehidden);
             assert(e);
 
-            if (nrvo || urvo)
+            if (urvo)
             {
-                // In RVO cases, toElemDtor already ensures e references
+                // In URVO cases, toElemDtor already ensures e references
                 // the hidden pointer, so there is no need to rewrite
                 e = el_una(OPaddr, TYnptr, e);
+            }
+            else if (nrvo)
+            {
+                // Return value via hidden pointer passed as parameter
+                // Rewrite to (exp, shidden)
+                e = el_combine(e, el_var(irs.shidden));
             }
             else
             {
@@ -595,8 +602,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 // Rewrite to (*shidden=exp, shidden)
                 elem* es = el_una(OPind, e.Ety, el_var(irs.shidden));
                 es = elAssign(es, e, s.exp.type, null);
-                e = el_var(irs.shidden);
-                e = el_bin(OPcomma, e.Ety, es, e);
+                e = el_combine(es, el_var(irs.shidden));
             }
 
             return finish(e);

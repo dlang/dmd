@@ -69,6 +69,8 @@ struct S3
         pragma(inline, false);
         assert(this.ptr is &this);
     }
+
+    invariant(this.ptr !is null);
 }
 
 S3 make3()
@@ -132,6 +134,8 @@ struct S4
     {
         assert(this.ptr is &this);
     }
+
+    invariant(this.ptr !is null);
 }
 
 struct V4
