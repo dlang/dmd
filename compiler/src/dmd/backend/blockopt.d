@@ -1449,6 +1449,11 @@ private void brmin(ref GlobalOptimizer go)
     debug if (debugc) printf("brmin()\n");
     debug assert(bo.startblock);
 
+    static bool isExceptionHandler(block* b)
+    {
+        return b.bc == BC.catch_ || b.bc == BC.jcatch || b.bc == BC._lpad;
+    }
+
     Lbb:
     for (block* b = bo.startblock.Bnext; b && b.Bnext; b = b.Bnext)
     {
@@ -1459,39 +1464,22 @@ private void brmin(ref GlobalOptimizer go)
             case BC.asm_:
                 // Try blocks must be followed by try body.
                 continue Lbb;
-
             default:
                 break;
         }
 
-        switch (b.Bnext.bc)
+        // Always try to move exception handlers away.
+        // Because the normal flow tends to occupy succ[0],
+        // it would be possible to move exception handlers towards
+        // function exit.
+        if (!isExceptionHandler(b.Bnext))
         {
-            case BC.iftrue:
-            case BC.switch_:
-            case BC.ifthen:
-            case BC.jmptab:
-                // It is very likely the branch depends on the current block.
-                // Avoid moving the following block.
-                continue Lbb;
-
-            case BC.catch_:
-            case BC.jcatch:
-            case BC._lpad:
-                // Always try to move exception handlers away.
-                // Because the normal flow tends to occupy succ[0],
-                // it would be possible to move exception handlers towards
-                // function exit.
-                break;
-
-            default:
-                // Skip the block if one of the successors is already at Bnext.
-                foreach (bl; ListRange(b.Bsucc))
-                {
-                    if (list_block(bl) == b.Bnext)
-                        continue Lbb;
-                }
-
-                break;
+            // Skip the block if one of the successors is already at Bnext.
+            foreach (bl; ListRange(b.Bsucc))
+            {
+                if (list_block(bl) == b.Bnext)
+                    continue Lbb;
+            }
         }
 
         // Look for a successor of b for which everyone must jmp to.
@@ -1500,8 +1488,9 @@ private void brmin(ref GlobalOptimizer go)
         {
             block* bs = list_block(bl);
 
-            // Should have been optimized by blexit().
-            if (bs.bc == BC.exit)
+            // BC.exit should have been optimized by blexit().
+            // Also ignore exception handlers.
+            if (bs.bc == BC.exit || isExceptionHandler(bs))
                 continue Lsucc;
 
             // Do not change the ordering of Btry regions.
@@ -1515,47 +1504,75 @@ private void brmin(ref GlobalOptimizer go)
                     continue Lsucc;
             }
 
+            // ... -> b -> bnext -> ... -> bend -> bs -> ... -> btail -> ...
+            //
+            // b: current block
+            // bs: successor of b
+            // bnext .. bend: if moved away, b would be able to go on to bs
+            //                without a jump
+            // bs .. btail: bnext .. bend has to be moved past these blocks
+
             block* bnext = b.Bnext;
-            block* bn = bnext;
+            block* bend;
+            int interloperLength; // the length of bnext .. bend
 
             // Find a successor that can be moved right after the current block.
-            while (true)
+            for (block* bn = bnext; bn; bn = bn.Bnext)
             {
-                // If the current successor forms a back edge, skip.
-                if (!bn)
-                    continue Lsucc;
-
                 // Do not reorder try/finally blocks on Windows, because Bscope_index must match.
                 // Reordering catch handlers are fine, however.
                 static if (SCPP_OR_NTEXCEPTIONS)
                     if (bn.bc == BC.try_ || bn.bc == BC._try || bn.bc == BC._finally)
                         continue Lsucc;
 
+                interloperLength++;
+
                 if (bn.Bnext == bs)
-                    break;
-
-                bn = bn.Bnext;
-            }
-
-            // Find a place to insert [bnext .. bs] that is as far as possible.
-            block* bend;
-
-            for (block* bss = bs; bss; bss = bss.Bnext)
-            {
-                if (bss.Btry == bnext.Btry &&
-                    (!bss.Bnext || list_nitems(bss.Bsucc) == 0))
                 {
-                    bend = bss;
+                    bend = bn;
+                    break;
                 }
             }
 
             if (!bend)
                 continue Lsucc;
 
-            // Move [bnext .. bs] after bend.
+            block* btail;
+            int moveDistance; // the length of bs ... btail
+
+            // Find a place to insert bnext .. bs that is as far as possible,
+            // as long as it is worthwhile.
+            for (block* bss = bs; bss; bss = bss.Bnext)
+            {
+                moveDistance++;
+
+                if (bss.Btry == bnext.Btry &&
+                    (!bss.Bnext || list_nitems(bss.Bsucc) == 0))
+                {
+                    // A very crude cost model.
+                    // Assume each basic block occupies 20 bytes. L1i cache
+                    // on modern x86 processors fetches line pairs (2 * 64 bytes),
+                    // so a move within 128 bytes (6 basic blocks) is basically free.
+                    // Assume L1i thrashing for anything larger. Most CPUs can fetch
+                    // one cache line (64 bytes) per cycle, i.e. 0.3125 cycle per
+                    // basic block. And a constant 5 cycles for the jump.
+                    // Note this is absurdly unrealistic. Most of the time
+                    // the CPU is smart enough not to thrash anything.
+                    int moveCost = moveDistance > 5 ? moveDistance * 5 / 16 : 0;
+                    int keepCost = interloperLength * 5 / 16 + 5;
+
+                    if (moveCost <= keepCost)
+                        btail = bss;
+                }
+            }
+
+            if (!btail)
+                continue Lsucc;
+
+            // Move bnext .. bend after btail.
             b.Bnext = bs;
-            bn.Bnext = bend.Bnext;
-            bend.Bnext = bnext;
+            bend.Bnext = btail.Bnext;
+            btail.Bnext = bnext;
 
             debug if (debugc) printf("Moving block %p to appear after %p\n",bs,b);
             go.changes++;
