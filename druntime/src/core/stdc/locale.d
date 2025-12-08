@@ -32,7 +32,7 @@ nothrow:
 version (Windows)
 {
     import core.stdc.wchar_ : wchar_t;
-    
+
     // ...Windows Kits\10\Include\10.0.14393.0\ucrt\locale.h
     struct lconv
     {
