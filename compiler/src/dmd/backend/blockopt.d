@@ -1563,6 +1563,8 @@ private void brmin(ref GlobalOptimizer go)
 
                     if (moveCost <= keepCost)
                         btail = bss;
+                    else
+                        break;
                 }
             }
 
