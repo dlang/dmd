@@ -438,13 +438,13 @@ $(H2 $(LNAME2 properties, Properties and Operations))
         array; it is 4 in 32-bit builds and 8 on 64-bit builds.))
         $(TROW $(D length), $(ARGS The number of values in the
         associative array. Unlike for dynamic arrays, it is read-only.))
-        $(TROW $(D dup()), Returns `null` if the associative array is `null`;
+        $(TROW $(OR dup), Returns `null` if the associative array is `null`;
         otherwise returns a newly allocated associative array with copies of the keys and values of the associative array.)
-        $(TROW $(D rehash()), $(ARGS Reorganizes the associative array in place so that lookups
+        $(TROW $(OR rehash), $(ARGS Reorganizes the associative array in place so that lookups
         are more efficient. Calling $(D rehash) is effective when, for example,
         the program is done loading up a symbol table and now needs
         fast lookups in it. Returns a reference to the reorganized array.))
-        $(TROW $(D clear()), $(ARGS Removes all keys and values from an associative array.
+        $(TROW $(OR clear), $(ARGS Removes all keys and values from an associative array.
         The array is not rehashed after removal to allow for the existing storage to be reused.
         This will affect all references to the same instance and is not equivalent to `destroy(aa)`
         which only sets the current reference to `null`.))
@@ -453,26 +453,23 @@ $(H2 $(LNAME2 properties, Properties and Operations))
     $(NOTE There is no built-in `empty` property.
         Phobos provides an implementation of `empty` in $(MREF std,range,primitives).)
 
-    $(P See $(MREF1 object) for examples.)
-
 $(H3 $(LNAME2 iteration-ops, Iteration Operations))
 
     $(TABLE
         $(THEAD Operation, Description)
-        $(TROW $(D keys()), $(ARGS Returns a newly allocated dynamic array containing copies of the keys in
+        $(TROW $(OR keys), $(ARGS Returns a newly allocated dynamic array containing copies of the keys in
         the associative array. The order is consistent with `values()` but otherwise unspecified.))
-        $(TROW $(D values()), $(ARGS Returns a newly allocated dynamic array containing copies of the values in
+        $(TROW $(OR values), $(ARGS Returns a newly allocated dynamic array containing copies of the values in
         the associative array. The order is consistent with `keys()` but otherwise unspecified.))
-        $(TROW $(D byKey()), $(ARGS Returns a forward range enumerating the keys by reference.
+        $(TROW $(OR byKey), $(ARGS Returns a $(MREF_ALTTEXT forward range, std,range,primitives) enumerating the keys by reference.
         The order is consistent with `byValue()` but otherwise unspecified.$(BR)
         $(B Bug:) The keys are provided as mutable, but mutating them is undefined behavior.))
-        $(TROW $(D byValue()), $(ARGS Returns a forward range enumerating the values by reference.
+        $(TROW $(OR byValue), $(ARGS Returns a forward range enumerating the values by reference.
         The order is consistent with `byKey()` but otherwise unspecified.))
-        $(TROW $(D byKeyValue()), $(ARGS Returns a forward range enumerating opaque objects that provide a `key` and a `value` property
-        in an unspecified order. The two properties return their result by reference.$(BR)
-        $(B Bug:) The keys are provided as mutable, but mutating them is undefined behavior.$(BR)
-        **Note:** `byKeyValue()` is not compatible with the $(REF_SHORT Tuple, std,typecons)
-        type in Phobos. For compatibility with `Tuple`, use $(REF byPair, std,array) instead.)))
+        $(TROW $(OR byKeyValue), $(ARGS Returns a forward range enumerating opaque objects that provide `key` and `value` properties.
+        These properties return their result by reference.
+        The order of elements is unspecified.$(BR)
+        $(B Bug:) The keys are provided as mutable, but mutating them is undefined behavior.))
     )
 
     $(P The order of keys and values returned by
@@ -484,33 +481,35 @@ $(H3 $(LNAME2 iteration-ops, Iteration Operations))
         Reorganizing an associative array invalidates any input ranges
         returned by `byKey()`, `byValue()`, and `byKeyValue()`.)
 
-    $(P Calling `keys()` and `values()` incurs an allocation (unless the associative array is `null` or empty).
+    $(BEST_PRACTICE
+      * Calling `keys()` and `values()` incurs an allocation (unless the associative array is `null` or empty).
         Use them if you need an independent copy of the keys and/or values;
-        otherwise consider `byKey()` and `byValue()`.)
+        otherwise consider `byKey()` and `byValue()`.
 
-    $(BEST_PRACTICE Associative arrays support
+      * Associative arrays support
         $(DDSUBLINK spec/statement, foreach_over_associative_arrays, `foreach`)
         directly for value iteration and key-value iteration.
         Use `ref` on the key and value variables when necessary to avoid unnecessary copies.
         For iterating the keys only, use key-value iteration and ignore the value.
         Use `byKey()`, `byValue()`, or `byKeyValue()` for more elaborate cases such as
-        $(MREF_ALTTEXT range algorithms, std,algorithm).)
+        $(MREF_ALTTEXT range algorithms, std,algorithm).
+    )
 
 $(H3 $(LNAME2 lookup-ops, Key Lookup Operations))
 
     $(TABLE
         $(THEAD Operation, Description)
-        $(TROW $(D Value get(Key key, lazy Value defVal)),
+        $(TROW $(D Value $(OR get)(Key key, lazy Value defVal)),
         $(ARGS If the key exists, returns corresponding value;
         otherwise evaluates and returns $(D defVal) without associating it with $(D key).))
-        $(TROW $(D ref Value require(Key key, lazy Value value)),
+        $(TROW $(D ref Value $(OR require)(Key key, lazy Value value)),
         $(ARGS If the key exists, returns corresponding value by reference;
         otherwise evaluates $(D value) and associates it with $(D key) in the associative array,
         then returns the newly stored value by reference.))
-        $(TROW $(D void update(Key key, Creator creator, Updater updater)),
+        $(TROW $(D void $(OR update)(Key key, Creator creator, Updater updater)),
         $(ARGS If the key exists, it calls `updater` with the corresponding value;
         if it returns a value, it associates the value with the key.
-        If the key was not found, it invokes `creator()` and associates the result with the key.))
+        If the key was not found, it invokes `creator` and associates the result with the key.))
     )
 
     $(P The `update` operation works with any `creator` and `updater` that is invokable as specified.
@@ -611,3 +610,4 @@ $(SPEC_SUBNAV_PREV_NEXT arrays, Arrays, struct, Structs and Unions)
 Macros:
         CHAPTER=14
         TITLE=Associative Arrays
+        OR=$(REF1 $1, object)
