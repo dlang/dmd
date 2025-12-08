@@ -2593,6 +2593,8 @@ void buildResultVar(FuncDeclaration fd, Scope* sc, Type tret)
         TypeFunction tf = fd.type.toTypeFunction();
         if (tf.isRef)
             fd.vresult.storage_class |= STC.ref_;
+        else if (target.isReturnOnStack(tf, fd.needThis()))
+            fd.vresult.nrvo = true;
         fd.vresult.type = tret;
         fd.vresult.dsymbolSemantic(sc);
         if (!sc.insert(fd.vresult))
