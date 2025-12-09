@@ -8,7 +8,7 @@ myBool bool
 i
 s
 C6test42__T4T219TiZ1C
-C6test427test219FZ8__mixin11C
+C6test427test219FZ16__mixin_L3568_C31C
 ---
 */
 
