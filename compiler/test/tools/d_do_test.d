@@ -1992,7 +1992,7 @@ int tryMain(string[] args)
                 {
                     try
                     {
-                        string diffUpdatedText = replaceFromDiff(existingText, ce.diff);
+                        string diffUpdatedText = replaceFromDiff(existingText, ce.diff.unifyDirSep("/"));
                         std.file.write(input_file, diffUpdatedText);
                         writefln("\n==> `%s_OUTPUT` of %s has been updated by applying a diff", type, input_file);
                         return Result.returnRerun;
