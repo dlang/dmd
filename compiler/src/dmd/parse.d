@@ -2872,6 +2872,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         auto parameters = new AST.Parameters();
         VarArg varargs = VarArg.none;
         STC varargsStc;
+        bool hasAutoRefParam = false;
 
         // Attributes allowed for ...
         enum VarArgsStc = STC.const_ | STC.immutable_ | STC.shared_ | STC.scope_ | STC.return_ | STC.returnScope | STC.returnRef;
@@ -3007,6 +3008,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 L2:
                     storageClass = appendStorageClass(storageClass, stc);
+                    hasAutoRefParam |= (storageClass & (STC.auto_ | STC.ref_)) == (STC.auto_ | STC.ref_);
                     continue;
 
                 default:
@@ -3038,6 +3040,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         }
                         else
                         {
+                            if (tpl && !*tpl && hasAutoRefParam)
+                                *tpl = new AST.TemplateParameters();
                             at = parseType(&ai, &loc);
                         }
                         ae = null;

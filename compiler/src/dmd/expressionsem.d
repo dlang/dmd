@@ -7177,7 +7177,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         //printf("td = %p, treq = %p\n", td, fd.treq);
         if (exp.td)
         {
-            assert(exp.td.parameters && exp.td.parameters.length);
+            assert(exp.td.parameters);
             exp.td.dsymbolSemantic(sc);
             exp.type = Type.tvoid; // temporary type
 
