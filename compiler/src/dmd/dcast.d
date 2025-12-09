@@ -4262,13 +4262,14 @@ void fix16997(Scope* sc, UnaExp ue)
 }
 
 /***********************************
- * See if both types are arrays that can be compared
+ * See if an AA key can be compared
  * for equality without any casting. Return true if so.
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
-extern (D) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
+extern (D) bool keyCompatibleWithoutCasting(Expression ekey, Type t2)
 {
+    Type t1 = ekey.type;
     t1 = t1.toBasetype();
     t2 = t2.toBasetype();
 
@@ -4276,8 +4277,9 @@ extern (D) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
     {
         if (t1.nextOf().implicitConvTo(t2.nextOf()) >= MATCH.constant || t2.nextOf().implicitConvTo(t1.nextOf()) >= MATCH.constant)
             return true;
+        return false;
     }
-    return false;
+    return implicitConvTo(ekey, t2) >= MATCH.constant;
 }
 
 /******************************************************************/
