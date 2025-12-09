@@ -17,7 +17,7 @@ SED:=sed
 GDB:=gdb
 
 ifeq ($(OS),linux)
-    TESTS+=line_trace line_trace_21656 long_backtrace_trunc rt_trap_exceptions cpp_demangle
+    TESTS+=line_trace line_trace_21656 long_backtrace_trunc rt_trap_exceptions cpp_demangle linux_memory_error_handler
     # registerMemoryAssertHandler requires glibc
     ifndef IS_MUSL
         TESTS+=memoryerror_null_read memoryerror_null_write memoryerror_null_call memoryerror_stackoverflow
@@ -102,6 +102,7 @@ $(ROOT)/memoryerror_null_write.done: stderr_exp="segmentation fault: null pointe
 $(ROOT)/memoryerror_null_call.done: stderr_exp="segmentation fault: null pointer read/write operation"
 $(ROOT)/memoryerror_null_call.done: stderr_exp2="uncaught exception reached top of stack"
 $(ROOT)/memoryerror_stackoverflow.done: stderr_exp="segmentation fault: call stack overflow"
+$(ROOT)/linux_memory_error_handler.done: stderr_exp="success."
 
 $(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
 	@echo Testing $*
@@ -155,3 +156,7 @@ $(ROOT)/rt_trap_exceptions_drt$(DOTEXE): extra_dflags += -g
 $(ROOT)/refcounted$(DOTEXE): extra_dflags+=-dip1008
 $(ROOT)/cpp_demangle$(DOTEXE): extra_ldflags.d+=$(line_trace_dflags)
 $(ROOT)/cpp_demangle$(DOTEXE): extra_ldlibs.d+=-L-lstdc++
+$(ROOT)/memoryerror_null_read$(DOTEXE): extra_dflags += -check=nullderef=off
+$(ROOT)/memoryerror_null_write$(DOTEXE): extra_dflags += -check=nullderef=off
+$(ROOT)/memoryerror_null_call$(DOTEXE): extra_dflags += -check=nullderef=off
+$(ROOT)/linux_memory_error_handler$(DOTEXE): extra_dflags += -check=nullderef=off
