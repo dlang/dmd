@@ -1178,8 +1178,8 @@ Linterfaces:
                     functionToBufferFull(cast(TypeFunction)(fd.type), buf1,
                         new Identifier(fd.toPrettyChars()), hgs, null);
 
-                    error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
-                        funcdeclToChars, buf1.peekChars());
+                    error(funcdecl.loc, "function `%s` does not override any function", funcdeclToChars);
+                    errorSupplemental(fd.loc, "did you mean to override `%s`?", buf1.peekChars());
 
                     // Supplemental error for parameter scope differences
                     auto tf1 = cast(TypeFunction)funcdecl.type;
@@ -1192,8 +1192,6 @@ Linterfaces:
 
                         if (params1.length == params2.length)
                         {
-                            bool hasScopeDifference = false;
-
                             for (size_t i = 0; i < params1.length; i++)
                             {
                                 auto p1 = params1[i];
@@ -1205,14 +1203,7 @@ Linterfaces:
                                 if (!(p2.storageClass & STC.scope_))
                                     continue;
 
-                                if (!hasScopeDifference)
-                                {
-                                    // Intended signature
-                                    errorSupplemental(funcdecl.loc, "Did you intend to override:");
-                                    errorSupplemental(funcdecl.loc, "`%s`", buf1.peekChars());
-                                    hasScopeDifference = true;
-                                }
-                                errorSupplemental(funcdecl.loc, "Parameter %d is missing `scope`",
+                                errorSupplemental(funcdecl.loc, "parameter %d is missing `scope`",
                                 cast(int)(i + 1));
                             }
                         }
