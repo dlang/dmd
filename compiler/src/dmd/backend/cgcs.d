@@ -513,31 +513,40 @@ void ecom(ref CGCS cgcs, ref elem* pe)
                 printf("i: %2d Hhash: %6d Helem: %p\n",
                        cast(int) i,hcs.Hhash,hcs.Helem);
 
-            elem* ehash;
-            if (hash == hcs.Hhash && (ehash = hcs.Helem) != null)
+            if (hash == hcs.Hhash && hcs.Helem != null)
             {
-                /* if elems are the same and we still have room for more    */
-                if (el_match(e,ehash) && ehash.Ecount < 0xFF)
+                elem* ehash = hcs.Helem;
+
+                /* Make sure leaves are already merged as common subexpressions
+                 * before trying to merge the current node with a candidate.
+                 * Otherwise, hash collisions can result in invalid CSE
+                 * (i.e. if a leaf has been clobbered by assignment).
+                 */
+                if (!OTleaf(op))
                 {
-                    /* Make sure leaves are also common subexpressions
-                     * to avoid false matches.
-                     */
-                    if (!OTleaf(op))
-                    {
-                        if (!e.E1.Ecount)
-                            continue;
-                        if (OTbinary(op) && !e.E2.Ecount)
-                            continue;
-                    }
-                    ehash.Ecount++;
-                    pe = ehash;
-
-                    debug if (debugx)
-                        printf("**MATCH** %p with %p\n",e,pe);
-
-                    el_free(e);
-                    return;
+                    if (e.E1 != ehash.E1 || !e.E1.Ecount)
+                        continue;
+                    if (OTbinary(op) && (e.E2 != ehash.E2 || !e.E2.Ecount))
+                        continue;
                 }
+
+                /* Compare parents (the entire subtrees in fact) only when
+                 * the children are eligible, which significantly speeds up
+                 * common subexpression matching. Also, check for overflow.
+                 */
+                if (!el_match(e, ehash) || ehash.Ecount == 0xFF)
+                {
+                    continue;
+                }
+
+                ehash.Ecount++;
+                pe = ehash;
+
+                debug if (debugx)
+                    printf("**MATCH** %p with %p\n",e,pe);
+
+                el_free(e);
+                return;
             }
         }
     }
