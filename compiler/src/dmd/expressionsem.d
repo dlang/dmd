@@ -11483,7 +11483,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  * https://issues.dlang.org/show_bug.cgi?id=2684
                  * see also bug https://issues.dlang.org/show_bug.cgi?id=2954 b
                  */
-                if (!arrayTypeCompatibleWithoutCasting(exp.e2.type, taa.index))
+                if (!keyCompatibleWithoutCasting(exp.e2, taa.index))
                 {
                     exp.e2 = exp.e2.implicitCastTo(sc, taa.index); // type checking
                     if (exp.e2.type == Type.terror)
@@ -14581,7 +14581,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 TypeAArray ta = cast(TypeAArray)t2b;
 
                 // Special handling for array keys
-                if (!arrayTypeCompatibleWithoutCasting(exp.e1.type, ta.index))
+                if (!keyCompatibleWithoutCasting(exp.e1, ta.index))
                 {
                     // Convert key to type of key
                     exp.e1 = exp.e1.implicitCastTo(sc, ta.index);
@@ -19649,7 +19649,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
     foreach (ekey; ekeys)
     {
         Type tidx = ekey.type.toBasetype();
-        if (tidx.ty == Tarray && tidx.nextOf().isMutable())
+        if (tidx.ty == Tarray && tidx.nextOf().isMutable() && !ekey.isArrayLiteralExp())
         {
             error(loc, "associative arrays can only be assigned values with immutable keys, not `%s`", tidx.toChars());
             return ErrorExp.get();
