@@ -2628,10 +2628,10 @@ $(H4 $(LNAME2 lambda-parameter-inference, Parameter Type Inference))
 $(H4 $(LNAME2 function-literal-alias, Function Literal Aliasing))
 
     $(P Function literals can be $(DDSUBLINK spec/declaration, alias, aliased).
-        Aliasing a function literal with unspecified parameter types produces a
+        Aliasing a function literal with unspecified parameter types or `auto ref` parameters produces a
         $(DDSUBLINK spec/template, function-template, function template)
         with type parameters for each unspecified parameter type of the literal.
-        Type inference for the literal is then done when the template is instantiated.)
+        Type and `auto ref` inference for the literal is then done when the template is instantiated.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
