@@ -66,11 +66,11 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
     }
 
     // Use these if statements for debugging specific things.
-    //if (fd.ident.toString != "incrementEffect") return;
+    //if (fd.ident.toString != "switchMakeKnown") return;
     //if (!(fd.ident.toString == "test3632" || fd.ident.toString == "test")) return;
     //if (fd.loc.linnum < 1380) return;
     //if (fd.getModule.ident.toString != "start") return;
-    //if (strcmp(mangleExact(fd), "_D5ocean4util9container5cache16ExpiringLRUCache__TQvTSQCaQBxQBvQBo20ExpiredCacheReloader__TQzTSQDpQDmQDkQDd25ExpiredCacheReloader_test7TrivialZQCz10CacheValueZQFa19getExpiringOrCreateMFmJbbZPQFi") != 0) return;
+    //if (strcmp(mangleExact(fd), "_D4core8internal5array8equality__T7isEqualTxS3dub6recipe13packagerecipe17ConfigurationInfoTxQBwZQCkFNbMAxQCjMQgmZb") != 0) return;
 
     // Protect functions based upon safetiness of it.
     // It may be desirable to disable some behaviors in @system code, or completely.
@@ -122,12 +122,30 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
 
     version (none)
     {
-        printf("function %s : %s = %s at %s\n", fd.getModule.ident.toChars,
+        printf("function s %s : %s = %s at %s\n", fd.getModule.ident.toChars,
                 mangleExact(fd), fd.toFullSignature, fd.loc.toChars);
         fflush(stdout);
     }
 
+    version (none)
+    {
+        import dmd.hdrgen;
+
+        OutBuffer buf;
+        HdrGenState hgs;
+        hgs.vcg_ast = true;
+        toCBuffer(fd, buf, hgs);
+        printf(buf.extractChars);
+    }
+
     stmtWalker.start(fd);
+
+    version (none)
+    {
+        printf("function e %s : %s = %s at %s\n", fd.getModule.ident.toChars,
+                mangleExact(fd), fd.toFullSignature, fd.loc.toChars);
+        fflush(stdout);
+    }
 
     dfaCommon.printIfStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
         ob.printf("------------------------------ %s : %s = %s at ",
