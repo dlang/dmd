@@ -697,9 +697,10 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
         // VarExp generated for `__traits(initSymbol, Aggregate)`?
         if (auto symDec = se.var.isSymbolDeclaration())
         {
-            if (se.type.isTypeDArray())
+            if (auto ta = se.type.isTypeDArray())
             {
-                assert(se.type == Type.tvoid.arrayOf().constOf(), se.toString());
+                // Type must be const(void)[] or const(void[])
+                assert(ta.nextOf() == Type.tvoid.constOf(), se.type.toString());
 
                 // Generate s[0 .. Aggregate.sizeof] for non-zero initialised aggregates
                 // Otherwise create (null, Aggregate.sizeof)
