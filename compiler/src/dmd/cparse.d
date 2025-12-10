@@ -770,28 +770,28 @@ final class CParser(AST) : Parser!AST
 
         case TOK.charLiteral:
         case TOK.int32Literal:
-            e = new AST.IntegerExp(loc, token.intvalue, AST.Type.tint32);
+            e = AST.newIntegerExp(loc, token.intvalue, AST.Type.tint32);
             nextToken();
             break;
 
         case TOK.wcharLiteral:
-            e = new AST.IntegerExp(loc, token.intvalue, AST.Type.tuns16);
+            e = AST.newIntegerExp(loc, token.intvalue, AST.Type.tuns16);
             nextToken();
             break;
 
         case TOK.dcharLiteral:
         case TOK.uns32Literal:
-            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tuns32);
+            e = AST.newIntegerExp(loc, token.unsvalue, AST.Type.tuns32);
             nextToken();
             break;
 
         case TOK.int64Literal:
-            e = new AST.IntegerExp(loc, token.intvalue, AST.Type.tint64);
+            e = AST.newIntegerExp(loc, token.intvalue, AST.Type.tint64);
             nextToken();
             break;
 
         case TOK.uns64Literal:
-            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tuns64);
+            e = AST.newIntegerExp(loc, token.unsvalue, AST.Type.tuns64);
             nextToken();
             break;
 
@@ -882,7 +882,7 @@ final class CParser(AST) : Parser!AST
         default:
             error("expression expected, not `%s`", token.toChars());
             // Anything for e, as long as it's not NULL
-            e = new AST.IntegerExp(loc, 0, AST.Type.tint32);
+            e = AST.newIntegerExp(loc, 0, AST.Type.tint32);
             nextToken();
             break;
         }
@@ -1953,7 +1953,7 @@ final class CParser(AST) : Parser!AST
 
                 if (specifier.vector_size)
                 {
-                    auto length = new AST.IntegerExp(token.loc, specifier.vector_size / dt.size(), AST.Type.tuns32);
+                    auto length = AST.newIntegerExp(token.loc, specifier.vector_size / dt.size(), AST.Type.tuns32);
                     auto tsa = new AST.TypeSArray(dt, length);
                     dt = new AST.TypeVector(tsa);
                     specifier.vector_size = 0;          // used it up
@@ -3047,7 +3047,7 @@ final class CParser(AST) : Parser!AST
 
         if (specifier.vector_size)
         {
-            auto length = new AST.IntegerExp(token.loc, specifier.vector_size / tbase.size(), AST.Type.tuns32);
+            auto length = AST.newIntegerExp(token.loc, specifier.vector_size / tbase.size(), AST.Type.tuns32);
             auto tsa = new AST.TypeSArray(tbase, length);
             AST.Type tv = new AST.TypeVector(tsa);
             specifier.vector_size = 0;          // used it up
@@ -4856,7 +4856,7 @@ final class CParser(AST) : Parser!AST
         const fn = id.toString();  // function-name
         auto efn = new AST.StringExp(loc, fn, fn.length, 1, 'c');
         auto ifn = new AST.ExpInitializer(loc, efn);
-        auto lenfn = new AST.IntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0
+        auto lenfn = AST.newIntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0
         auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
         efn.type = tfn.makeImmutable();
         efn.committed = true;
@@ -5649,7 +5649,7 @@ final class CParser(AST) : Parser!AST
                                 /* Declare manifest constant:
                                  *  enum id = intvalue;
                                  */
-                                AST.Expression e = new AST.IntegerExp(scanloc, intvalue, t);
+                                AST.Expression e = AST.newIntegerExp(scanloc, intvalue, t);
                                 if (hasMinus)
                                     e = new AST.NegExp(scanloc, e);
                                 auto v = new AST.VarDeclaration(scanloc, t, id, new AST.ExpInitializer(scanloc, e), STC.manifest);
