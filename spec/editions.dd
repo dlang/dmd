@@ -6,7 +6,22 @@ $(HEADERNAV_TOC)
 
 $(P Editions provide a way to evolve D by obsoleting
 features while maintaining compatibility with code that uses those
-features.
+features. Editions are a module level feature, i.e. various sections
+of a module cannot be set to different editions.
+)
+
+$(P The edition is set by default, by putting it in the $(GLINK2 module, ModuleDeclartion),
+or with the $(TT -edition) command line switch.
+)
+
+$(P
+Editions are meant to be backwards and forwards compatible; it makes possible a D
+module targeting one edition to import a D module targeting any other edition.
+A template must obey the rules of the edition targeted by the module in which it
+is defined, not the module in which it is instantiated. Compatibility is at the
+source code level; no promises of ABI compatibility are made. All code, old and
+new, must be compiled with the same version of the compiler. Only one version
+of DRuntime, which must support all existing editions, is to be provided with a compiler release.
 )
 
 $(H2 $(LNAME2 grammar, Grammar))
@@ -14,6 +29,52 @@ $(H2 $(LNAME2 grammar, Grammar))
 $(GRAMMAR
 $(GNAME Edition):
     $(GLINK2 lex, DecimalInteger)
+)
+
+$(H2 WWhat can editions do?)
+
+$(UL
+$(LI Deleting existing features -
+This would be the easiest change that could be made in an edition,
+since it would forbid future code from using deprecated features.
+Aside from maintaining the compiler for those features, there would be no impact.)
+
+$(LI Adding new features -
+Editions are not necessary for adding new features that are purely additive,
+i.e., that do not interact with existing features. Editions may backport
+them to previous editions where possible.)
+
+$(LI Changing defaults -
+Defaults matter because they encourage and influence behavior. Newer editions
+could change defaults such as $(TT @system) / $(TT @safe) and others.)
+
+$(LI Changing semantics -
+An edition could make it so that:
+
+```
+shared int i;
+i += 5;
+```
+
+$(P would be lowered to:)
+
+```
+shared int i;
+i.atomicOp!"+="(1);
+```
+)
+)
+
+$(H2 Specifying the Edition)
+
+$(P An edition level is determined by:)
+
+$(OL
+$(LI an explicit 4 digit number corresponding to the year in which the desired edition was released)
+$(LI if no edition is specified, and there is no $(GLINK2 ModuleDeclaration) in the source code,
+the edition used is the $(B Baseline Edition), which corresponds to 2023.)
+$(LI if no edition is specified, and there is a $(GLINK2 ModuleDeclaration) in the source code,
+the edition used is the year the compiler was released.)
 )
 
 $(SPEC_SUBNAV_PREV legacy, Legacy Code)
