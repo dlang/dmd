@@ -84,7 +84,7 @@ path and extension) of the source file name.)
 
 $(GRAMMAR
 $(GNAME ModuleDeclaration):
-    $(GLINK ModuleAttributes)$(OPT) $(D module) $(GLINK ModuleFullyQualifiedName) $(D ;)
+    $(GLINK ModuleAttributes)$(OPT) $(D module) $(GLINK ModuleFullyQualifiedName) $(GLINK2 editions, Edition)$(OPT) $(D ;)
 
 $(GNAME ModuleAttributes):
     $(GLINK ModuleAttribute)

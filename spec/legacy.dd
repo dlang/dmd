@@ -87,7 +87,7 @@ struct Foo
 ---
 
 
-$(SPEC_SUBNAV_PREV glossary, Glossary)
+$(SPEC_SUBNAV_PREV_NEXT glossary, Glossary, editions, Editions)
 )
 
 Macros:
