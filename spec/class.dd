@@ -128,7 +128,8 @@ class B : A { } // B inherits from A
 
 $(H3 $(LNAME2 fields, Fields))
 
-        $(P Class members are always accessed with the `.` operator.
+        $(P Non-static member variables are called fields.
+        Members of a class instance are accessed with the `.` operator.
         )
 
         $(P Members of a base class can be accessed by prepending the name of

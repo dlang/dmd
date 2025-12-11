@@ -4,13 +4,13 @@ $(SPEC_S Structs and Unions,
 
 $(HEADERNAV_TOC)
 
-$(H2 $(LNAME2 intro, Introduction))
+$(H2 $(LNAME2 intro, Overview))
 
     $(P Whereas $(DDLINK spec/class, Classes, classes) are reference types,
     structs and unions are value types.
-    Structs are simple aggregations of data and their
-    associated operations on that data.
     )
+
+$(H3 $(LNAME2 structs, Structs))
 
 $(GRAMMAR
 $(GNAME StructDeclaration):
@@ -23,21 +23,16 @@ $(GNAME AnonStructDeclaration):
     $(D struct) $(GLINK AggregateBody)
 )
 $(GRAMMAR
-$(GNAME UnionDeclaration):
-    $(D union) $(GLINK_LEX Identifier) $(D ;)
-    $(D union) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
-    $(GLINK2 template, UnionTemplateDeclaration)
-    $(I AnonUnionDeclaration)
-
-$(GNAME AnonUnionDeclaration):
-    $(D union) $(GLINK AggregateBody)
-)
-$(GRAMMAR
 $(GNAME AggregateBody):
     $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
 )
 
-    $(P The following example declares a struct type with a single integer field:)
+    $(P Structs are simple aggregations of data and their
+    associated operations on that data.)
+
+    $(P The non-static data members of a struct are called $(I fields).
+    Members of a struct instance are accessed with the `.` operator.
+    The following example declares a struct type with a single integer field:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
@@ -48,7 +43,7 @@ struct S
 
 void main()
 {
-    S a;
+    S a; // declare struct instance
     a.i = 3;
 
     S b = a; // copy a
@@ -58,6 +53,10 @@ void main()
 }
 ---
 )
+    $(P Assigning (or initializing) a struct instance from an
+    $(DDSUBLINK spec/expression, .define-lvalue, lvalue) will copy the original struct.)
+
+$(H3 $(LNAME2 storage, Storage))
 
     $(P For local variables, a struct/union instance is allocated on the stack
     by default. To allocate on the heap, use $(DDSUBLINK spec/expression, new_expressions,
@@ -66,13 +65,35 @@ void main()
     $(PANEL
     A $(LNAME2 struct-pointer, pointer to a struct) or union is automatically
     dereferenced when using the `.` operator to access members.
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
     ---
+    struct S { int i; }
+
     S* p = new S;
-    assert(p.i == 0); // `p.i` is the same as `(*p).i`
+    S* q = p;
+
+    p.i = 2; // `p.i` is the same as `(*p).i`
+    assert(q.i == 2); // q points to the same struct instance as p
     ---
+    )
     $(NOTE There is no `->` operator as in C.)
     )
 
+    $(P **See also:** $(RELATIVE_LINK2 struct_layout, Struct Layout).)
+
+$(H3 $(LNAME2 unions, Unions))
+
+$(GRAMMAR
+$(GNAME UnionDeclaration):
+    $(D union) $(GLINK_LEX Identifier) $(D ;)
+    $(D union) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
+    $(GLINK2 template, UnionTemplateDeclaration)
+    $(I AnonUnionDeclaration)
+
+$(GNAME AnonUnionDeclaration):
+    $(D union) $(GLINK AggregateBody)
+)
     $(P A struct can contain multiple fields which are stored sequentially.
     Conversely, multiple fields in a union use overlapping storage.)
 
@@ -170,8 +191,8 @@ $(H3 $(LNAME2 recursive-types, Recursive Structs and Unions))
 
 $(H2 $(LNAME2 struct_layout, Struct Layout))
 
-    $(P The non-static data members of a struct are called $(I fields). Fields are laid
-    out in lexical order. Fields are aligned according to the $(DDSUBLINK spec/attribute, align, Align Attribute)
+    $(P Fields are laid out in lexical order.
+    Fields are aligned according to the $(DDSUBLINK spec/attribute, align, Align Attribute)
     in effect.
     Unnamed padding is inserted between fields to align fields. There is no padding between
     the first field and the start of the object.
