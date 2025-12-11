@@ -58,7 +58,8 @@ $(TOC Table of Contents,
                 $(A ob.html, Live Functions),
                 $(A windows.html, Windows Programming),
                 $(A glossary.html, Glossary),
-                $(A legacy.html, Legacy Code)
+                $(A legacy.html, Legacy Code),
+                $(A editions.html, Editions)
         ))
 )
 

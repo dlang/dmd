@@ -1,0 +1,26 @@
+Ddoc
+
+$(SPEC_S Editions,
+
+$(HEADERNAV_TOC)
+
+$(P Editions provide a way to evolve D by obsoleting
+features while maintaining compatibility with code that uses those
+features.
+)
+
+$(H2 $(LNAME2 grammar, Grammar))
+
+$(GRAMMAR
+$(GNAME Edition):
+    $(GLINK2 lex, DecimalInteger)
+)
+
+$(SPEC_SUBNAV_PREV legacy, Legacy Code)
+
+)
+
+Macros:
+    CHAPTER=47
+        TITLE=Editions
+        _=
