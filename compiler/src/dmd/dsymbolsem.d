@@ -942,9 +942,6 @@ private bool aliasOverloadInsert(AliasDeclaration ad, Dsymbol s)
      */
     auto sa = ad.aliassym.toAlias();
 
-    if (auto td = s.toAlias().isTemplateDeclaration())
-        s = td.funcroot ? td.funcroot : td;
-
     if (auto fd = sa.isFuncDeclaration())
     {
         auto fa = new FuncAliasDeclaration(ad.ident, fd);
