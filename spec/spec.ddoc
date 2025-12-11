@@ -109,7 +109,8 @@ $(SUBNAV_TEMPLATE
             $(ROOT_DIR)spec/ob.html, Live Functions,
             $(ROOT_DIR)spec/windows.html, Windows Programming,
             $(ROOT_DIR)spec/glossary.html, Glossary,
-            $(ROOT_DIR)spec/legacy.html, Legacy Code
+            $(ROOT_DIR)spec/legacy.html, Legacy Code,
+            $(ROOT_DIR)spec/editions.html, Editions
         )
     )
 )
