@@ -10,12 +10,12 @@ features. Editions are a module level feature, i.e. various sections
 of a module cannot be set to different editions.
 )
 
-$(P The edition is set by default, by putting it in the $(GLINK2 module, ModuleDeclartion),
+$(P The edition is set either by default, by putting it in the $(GLINK2 module, ModuleDeclaration),
 or with the $(TT -edition) command line switch.
 )
 
 $(P
-Editions are meant to be backwards and forwards compatible; it makes possible a D
+Editions are meant to be backwards and forwards compatible; it makes it possible for a D
 module targeting one edition to import a D module targeting any other edition.
 A template must obey the rules of the edition targeted by the module in which it
 is defined, not the module in which it is instantiated. Compatibility is at the
@@ -31,7 +31,7 @@ $(GNAME Edition):
     $(GLINK2 lex, DecimalInteger)
 )
 
-$(H2 WWhat can editions do?)
+$(H2 What can editions do?)
 
 $(UL
 $(LI Deleting existing features -
@@ -71,9 +71,9 @@ $(P An edition level is determined by:)
 
 $(OL
 $(LI an explicit 4 digit number corresponding to the year in which the desired edition was released)
-$(LI if no edition is specified, and there is no $(GLINK2 ModuleDeclaration) in the source code,
+$(LI if no edition is specified, and there is no $(GLINK2 module, ModuleDeclaration) in the source code,
 the edition used is the $(B Baseline Edition), which corresponds to 2023.)
-$(LI if no edition is specified, and there is a $(GLINK2 ModuleDeclaration) in the source code,
+$(LI if no edition is specified, and there is a $(GLINK2 module, ModuleDeclaration) in the source code,
 the edition used is the year the compiler was released.)
 )
 
