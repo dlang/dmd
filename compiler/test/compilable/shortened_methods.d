@@ -46,6 +46,9 @@ struct T
     void inc() {}
     this(this) => inc();
 
+    // https://github.com/dlang/dmd/issues/21576
+    this(int) => inc();
+
     void free() {}
     ~this() => free();
 }

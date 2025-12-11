@@ -3432,24 +3432,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sc.stc &= ~STC.static_; // not a static constructor
 
         funcDeclarationSemantic(sc, ctd);
-        // Check short constructor: this() => expr;
-        if (ctd.fbody)
-        {
-            if (auto s = ctd.fbody.isExpStatement())
-            {
-                if (s.exp)
-                {
-                    auto ce = s.exp.isCallExp();
-                    // check this/super before semantic
-                    if (!ce || (!ce.e1.isThisExp() && !ce.e1.isSuperExp()))
-                    {
-                        s.exp = s.exp.expressionSemantic(sc);
-                        if (s.exp.type.ty != Tvoid)
-                            error(s.loc, "can only return void expression, `this` call or `super` call from constructor");
-                    }
-                }
-            }
-        }
 
         sc.pop();
 

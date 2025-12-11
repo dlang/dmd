@@ -1450,6 +1450,27 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (ctor.semanticRun >= PASS.semantic3)
             return;
 
+        if (!ctor.fbody)
+            return visit(cast(FuncDeclaration)ctor);
+
+        // Check short constructor: this() => expr;
+        if (auto s = ctor.fbody.isExpStatement())
+        {
+            if (s.exp)
+            {
+                auto ce2 = s.exp.isCallExp();
+                // check this/super before semantic
+                if (!ce2 || (!ce2.e1.isThisExp() && !ce2.e1.isSuperExp()))
+                {
+                    s.exp = s.exp.expressionSemantic(sc);
+                    if (s.exp.type.ty != Tvoid)
+                        error(s.loc, "can only return void expression, `this` call or `super` call from constructor");
+
+                    return;
+                }
+            }
+        }
+
         /* If any of the fields of the aggregate have a destructor, add
          *   scope (failure) { this.fieldDtor(); }
          * as the first statement of the constructor (unless the constructor
@@ -1460,7 +1481,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
-        if (!ctor.fbody || !ad || !ad.fieldDtor ||
+        if (!ad || !ad.fieldDtor ||
             global.params.dtorFields == FeatureState.disabled || !global.params.useExceptions || ctor.type.toTypeFunction.isNothrow)
             return visit(cast(FuncDeclaration)ctor);
 
@@ -1532,7 +1553,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         visit(cast(FuncDeclaration)ctor);
     }
-
 
     override void visit(Nspace ns)
     {
