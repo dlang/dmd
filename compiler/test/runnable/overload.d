@@ -1267,7 +1267,7 @@ void test21522()
 struct S21920
 {
     void funB2(char a) {}
-    void funB(int b) {}  
+    void funB(int b) {}
     alias funB = funB2;
     void funB()(float t) {}
 }
