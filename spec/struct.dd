@@ -56,6 +56,10 @@ void main()
     $(P Assigning (or initializing) a struct instance from an
     $(DDSUBLINK spec/expression, .define-lvalue, lvalue) will copy the original struct.)
 
+    $(P A struct is defined to not have an identity; that is,
+    the implementation is free to make bit copies of the struct
+    as convenient.)
+
 $(H3 $(LNAME2 storage, Storage))
 
     $(P For local variables, a struct/union instance is allocated on the stack
@@ -116,56 +120,33 @@ void main()
 ---
 )
 
-$(H2 $(LNAME2 members, Members))
+$(ADEF union-members)
+$(H2 $(LEGACY_LNAME2 struct-members, members, Members))
 
-$(H3 $(LNAME2 struct-members, Struct Members))
-
-    $(P A struct definition can contain:)
-    $(UL
-        $(LI Fields)
-        $(LI $(DDSUBLINK spec/attribute, static, Static) fields)
-        $(LI $(RELATIVE_LINK2 anonymous, Anonymous Structs and Unions))
-        $(LI $(RELATIVE_LINK2 member-functions, Member Functions)
-        $(UL
-            $(LI $(DDSUBLINK spec/attribute, static, Static) member functions)
-            $(LI $(RELATIVE_LINK2 struct-constructor, Constructors))
-            $(LI $(RELATIVE_LINK2 struct-destructor, Destructors))
-            $(LI $(RELATIVE_LINK2 Invariant, Invariants))
-            $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
-        )
-        $(LI $(RELATIVE_LINK2 alias-this, Alias This))
-        $(LI Other declarations (see $(GLINK2 module, DeclDef)))
-        )
+    $(P The following table shows which declarations a struct or union can contain:)
+    $(TABLE
+    $(THEAD Members, Struct, Union)
+    $(TROW Fields, $(YES), $(YES))
+    $(TROW $(RELATIVE_LINK2 bitfields, Bit Fields), $(YES), $(YES))
+    $(TROW $(DDSUBLINK spec/attribute, static, Static) fields, $(YES), $(YES))
+    $(TROW $(RELATIVE_LINK2 anonymous, Anonymous Structs and Unions), $(YES), $(YES))
+    $(TROW $(RELATIVE_LINK2 member-functions, Member Functions), $(YES), $(YES))
+    $(TROW $(DDSUBLINK spec/attribute, static, Static) member functions, $(YES), $(YES))
+    $(TROW $(RELATIVE_LINK2 struct-constructor, Constructors), $(YES), $(YES))
+    $(TROW $(RELATIVE_LINK2 struct-copy-constructor, Copy Constructors), $(YES), $(YES))
+    $(TROW $(RELATIVE_LINK2 struct-postblit, Postblits), $(YES), $(NO))
+    $(TROW $(RELATIVE_LINK2 struct-destructor, Destructors), $(YES), $(NO))
+    $(TROW $(RELATIVE_LINK2 Invariant, Invariants), $(YES), $(NO))
+    $(TROW $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading), $(YES), $(YES))
+    $(TROW $(RELATIVE_LINK2 alias-this, Alias This), $(YES), $(YES))
+    $(TROW Other declarations (see $(GLINK2 module, DeclDef)), $(YES), $(YES))
     )
 
-    $(P A struct is defined to not have an identity; that is,
-    the implementation is free to make bit copies of the struct
-    as convenient.)
+$(H3 $(LNAME2 unions_and_special_memb_funct, Union Limitations))
 
-    $(NOTE
-    $(OL
-    $(LI Native bit fields are supported with $(RELATIVE_LINK2 bitfields, Bit Field Declarations))
-    $(LI A library implementation of bit fields is available with the
-    $(LINK2 https://dlang.org/phobos/std_bitmanip.html#bitfields, bitfields) template.)
-    ))
-
-$(H3 $(LNAME2 union-members, Union Members))
-
-    $(P A union definition can contain:)
-    $(UL
-        $(LI Fields)
-        $(LI $(DDSUBLINK spec/attribute, static, Static) fields)
-        $(LI $(RELATIVE_LINK2 anonymous, Anonymous Structs and Unions))
-        $(LI $(DDSUBLINK spec/class, member-functions, member functions)
-        $(UL
-            $(LI static member functions)
-            $(LI $(RELATIVE_LINK2 UnionConstructor, Constructors))
-            $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
-        )
-        $(LI $(RELATIVE_LINK2 alias-this, Alias This))
-        $(LI Other declarations (see $(GLINK2 module, DeclDef)))
-        )
-    )
+    $(P Unions may not have postblits, destructors, or invariants.
+    A constructed field with a destructor may need to be $(RELATIVE_LINK2 union-field-destruction,
+    destroyed manually).)
 
 $(H3 $(LNAME2 recursive-types, Recursive Structs and Unions))
 
@@ -2778,10 +2759,6 @@ $(H2 $(LNAME2 nested, Nested Structs))
     $(P $(B Warning): For nested structs, $(DDSUBLINK spec/property, init-vs-construction,
         `.init` is not the same as default construction).)
 
-
-$(H2 $(LNAME2 unions_and_special_memb_funct, Unions and Special Member Functions))
-
-    $(P Unions may not have postblits, destructors, or invariants.)
 
 $(SPEC_SUBNAV_PREV_NEXT hash-map, Associative Arrays, class, Classes)
 )
