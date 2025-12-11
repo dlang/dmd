@@ -378,6 +378,28 @@ $(GNAME OutStatement):
         functions then becomes a process of $(I loosening) the preconditions.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        class B
+        {
+            int i;
+
+            int f() in (i == 5) => 5;
+        }
+        class C : B
+        {
+            override int f() => i; // no `in` contract, `i` can have any value
+        }
+
+        B b = new B;
+        assert(b.i == 0);
+        //b.f(); // AssertError, `i == 5` failed
+
+        b = new C;
+        assert(b.f() == 0); // OK
+        ---
+        )
+
         $(P A function without preconditions means its precondition is always
         satisfied.
         Therefore if any
@@ -386,10 +408,45 @@ $(GNAME OutStatement):
         effect.
         )
 
-        $(P Conversely, all of the postconditions of the function and its
-        overridden functions must to be satisfied.
-        Adding overriding functions then becomes a processes of $(I tightening) the
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        class C : Object
+        {
+            int x;
+
+            override string toString()
+            in (x > 0) // Error, Object.toString has no `in` contract
+            {
+                return "";
+            }
+        }
+        ---
+        )
+
+        $(P Conversely, all the postconditions of the function and its
+        overridden functions must be satisfied.
+        Overriding functions then becomes a process of $(I tightening) the
         postconditions.
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        class B
+        {
+            int i;
+
+            int f() out (; i > 5) => i;
+        }
+        class C : B
+        {
+            override int f() out (; i < 10) => i;
+        }
+
+        B b = new C;
+        b.f(); // AssertError, `i > 5` failed
+        b.i = 10;
+        b.f(); // AssertError, `i < 10` failed
+        ---
         )
 
 
