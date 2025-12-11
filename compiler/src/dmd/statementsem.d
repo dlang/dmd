@@ -2536,16 +2536,44 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         if (fd.isCtorDeclaration())
         {
-            if (rs.exp)
-            {
-                error(rs.loc, "cannot return expression from constructor");
-                errors = true;
-            }
-
             // Constructors implicitly do:
             //      return this;
-            rs.exp = new ThisExp(Loc.initial);
-            rs.exp.type = tret;
+            auto ctorReturn = new ThisExp(Loc.initial);
+            ctorReturn.type = tret;
+
+            bool isConstructorCall(Expression e)
+            {
+                auto ce = e.isCallExp();
+                if (!ce)
+                    return false;
+
+                auto dve = ce.e1.isDotVarExp();
+                if (!dve)
+                    return false;
+
+                return dve.var.isThis !is null;
+            }
+
+            if (rs.exp)
+            {
+                rs.exp = rs.exp.expressionSemantic(sc);
+
+                if (rs.exp.type.ty != Tvoid && !isConstructorCall(rs.exp))
+                {
+
+                    error(rs.loc, "can only return void expression, `this` call or `super` call from constructor");
+                    errors = true;
+                    rs.exp = ErrorExp.get();
+                }
+                else
+                {
+                    rs.exp = new CommaExp(rs.loc, rs.exp, ctorReturn).expressionSemantic(sc);
+                }
+            }
+            else
+            {
+                rs.exp = ctorReturn;
+            }
         }
         else if (rs.exp)
         {
