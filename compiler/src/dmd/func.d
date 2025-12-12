@@ -327,6 +327,7 @@ extern (C++) class FuncDeclaration : Declaration
             this.storage_class &= ~(STC.TYPECTOR | STC.FUNCATTR);
         }
         this.endloc = endloc;
+        this.isSetInferRetType = false;
         if (noreturn)
             this.noreturn = true;
     }
