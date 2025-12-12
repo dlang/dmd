@@ -1027,7 +1027,16 @@ protected:
         {
             push( 0x00000000_00000000 );                            // Return address of fiber_entryPoint call
             push( cast(size_t) &fiber_entryPoint );                 // RIP
-            push( cast(size_t) m_ctxt.bstack );                     // RBP
+            version (OSX)
+            {
+                // backtrace() needs this to be null to terminate
+                // the stack walk on macOS x86_64
+                push( 0x00000000_00000000 );                        // RBP
+            }
+            else
+            {
+                push( cast(size_t) m_ctxt.bstack );                 // RBP
+            }
             push( 0x00000000_00000000 );                            // RBX
             push( 0x00000000_00000000 );                            // R12
             push( 0x00000000_00000000 );                            // R13
