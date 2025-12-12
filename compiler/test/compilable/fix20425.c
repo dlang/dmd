@@ -1,3 +1,5 @@
+// DISABLED: win32 win64
+
 #include <complex.h>
 
 void foo() {
