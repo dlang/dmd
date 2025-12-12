@@ -3464,6 +3464,17 @@ Lagain:
 
         Type memberType = ts.sym.fields[0].type.toBasetype();
 
+        /* encure the complex member types fall under one of the complex types */
+        switch (memberType.toBasetype().ty)
+        {
+            case Tfloat32:
+            case Tfloat64:
+            case Tfloat80:
+                break;
+            default:
+                return false;
+        }
+
         switch (t2.toBasetype().ty)
         {
             case Tfloat32:
