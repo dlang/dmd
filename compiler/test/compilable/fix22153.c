@@ -5,6 +5,8 @@
 
 static void static_fun();
 
+void (*funcptr)() = &static_fun;
+
 void lib_fun()
 {
 	static_fun();
