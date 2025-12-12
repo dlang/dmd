@@ -4014,7 +4014,7 @@ private bool functionParameters(Loc loc, Scope* sc,
     }
 
     // If inferring return type, and semantic3() needs to be run if not already run
-    if (!tf.next && fd.inferRetType)
+    if (!tf.next && fd.FdInferRetType())
     {
         functionSemantic(fd);
     }
@@ -8359,7 +8359,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else if (auto ve = exp.e1.isVarExp())
                 fd = cast(FuncDeclaration)ve.var;
 
-            if (fd && fd.inferRetType && sc && sc.func == fd)
+            if (fd && fd.FdInferRetType() && sc && sc.func == fd)
             {
                 error(exp.loc, "can't infer return type in function `%s`", fd.toChars());
             }
@@ -16263,7 +16263,7 @@ MATCH matchType(FuncExp funcExp, Type to, Scope* sc, FuncExp* presult, ErrorSink
     auto tfx = fd.type.isTypeFunction();
     bool convertMatch = (type.ty != to.ty);
 
-    if (fd.inferRetType && tfx.next.implicitConvTo(tof.next) == MATCH.convert)
+    if (fd.FdInferRetType() && tfx.next.implicitConvTo(tof.next) == MATCH.convert)
     {
         /* If return type is inferred and covariant return,
          * tweak return statements to required return type.

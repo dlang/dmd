@@ -256,7 +256,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.errors = true;
 
             // Mark that the return type could not be inferred
-            if (funcdecl.inferRetType)
+            if (funcdecl.FdInferRetType())
             {
                 assert(funcdecl.type);
                 auto tf = funcdecl.type.isTypeFunction();
@@ -307,10 +307,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (!funcdecl.type || funcdecl.type.ty != Tfunction)
             return;
         TypeFunction f = cast(TypeFunction)funcdecl.type;
-        if (!funcdecl.inferRetType && f.next.ty == Terror)
+        if (!funcdecl.FdInferRetType() && f.next.ty == Terror)
             return;
 
-        if (!funcdecl.fbody && funcdecl.inferRetType && !f.next)
+        if (!funcdecl.fbody && funcdecl.FdInferRetType() && !f.next)
         {
             .error(funcdecl.loc, "%s `%s` has no function body with return type inference", funcdecl.kind, funcdecl.toPrettyChars);
             return;
@@ -623,7 +623,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 assert(funcdecl.type == f || (funcdecl.type.ty == Tfunction && f.purity == PURE.impure && (cast(TypeFunction)funcdecl.type).purity >= PURE.fwdref));
                 f = cast(TypeFunction)funcdecl.type;
 
-                if (funcdecl.inferRetType)
+                if (funcdecl.FdInferRetType())
                 {
                     // If no return type inferred yet, then infer a void
                     if (!f.next)
