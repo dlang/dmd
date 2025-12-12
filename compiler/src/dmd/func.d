@@ -113,6 +113,7 @@ private struct FUNCFLAG
     bool hasSemantic3Errors; /// If errors in semantic3 this function's frame ptr
     bool hasNoEH;            /// No exception unwinding is needed
     bool inferRetType;       /// Return type is to be inferred
+    bool isSetInferRetType;  /// whether inferRetType is set
     bool hasDualContext;     /// has a dual-context 'this' parameter
 
     bool hasAlwaysInlines;   /// Contains references to functions that must be inlined
@@ -328,12 +329,6 @@ extern (C++) class FuncDeclaration : Declaration
         this.endloc = endloc;
         if (noreturn)
             this.noreturn = true;
-
-        /* The type given for "infer the return type" is a TypeFunction with
-         * NULL for the return type.
-         */
-        if (type && type.nextOf() is null)
-            this.inferRetType = true;
     }
 
     static FuncDeclaration create(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type, bool noreturn = false)

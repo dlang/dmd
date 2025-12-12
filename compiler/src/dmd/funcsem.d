@@ -68,6 +68,19 @@ import dmd.visitor;
 import dmd.visitor.statement_rewrite_walker;
 
 
+bool FdInferRetType(FuncDeclaration _this)
+{
+    if (_this.isSetInferRetType)
+        return _this.inferRetType;
+
+    /* The type given for "infer the return type" is a TypeFunction with
+     * NULL for the return type.
+     */
+    _this.inferRetType = _this.type && _this.type.nextOf() is null;
+    _this.isSetInferRetType = true;
+    return _this.inferRetType;
+}
+
 /**********************************
  * Generate a FuncDeclaration for a runtime library function.
  */
@@ -304,7 +317,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         funcdecl.storage_class &= ~STC.TYPECTOR;
 
     auto tf = funcdecl.type.isTypeFunction();
-    if ((funcdecl.storage_class & STC.auto_) && tf.isRef && !funcdecl.inferRetType)
+    if ((funcdecl.storage_class & STC.auto_) && tf.isRef && !funcdecl.FdInferRetType())
     {
         if (!(funcdecl.storage_class & STC.autoref))
         {
@@ -572,7 +585,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         funcdecl.overnext = null;   // don't overload the redeclarations
     }
 
-    if ((funcdecl.storage_class & STC.auto_) && !f.isRef && !funcdecl.inferRetType)
+    if ((funcdecl.storage_class & STC.auto_) && !f.isRef && !funcdecl.FdInferRetType())
         .error(funcdecl.loc, "%s `%s` storage class `auto` has no effect if return type is not inferred", funcdecl.kind, funcdecl.toPrettyChars);
 
     if (f.isReturn && !funcdecl.needThis() && !funcdecl.isNested())
@@ -1376,7 +1389,7 @@ bool functionSemantic(FuncDeclaration fd)
     // - When the function body contains any errors, we cannot assume
     //   the inferred return type is valid.
     //   So, the body errors should become the function signature error.
-    if (fd.inferRetType && fd.type && !fd.type.nextOf())
+    if (fd.FdInferRetType() && fd.type && !fd.type.nextOf())
         return fd.functionSemantic3();
 
     TemplateInstance ti;
@@ -1515,7 +1528,7 @@ extern (D) bool checkForwardRef(FuncDeclaration fd, Loc loc)
      */
     if (!fd.type.deco)
     {
-        bool inSemantic3 = (fd.inferRetType && fd.semanticRun >= PASS.semantic3);
+        bool inSemantic3 = (fd.FdInferRetType() && fd.semanticRun >= PASS.semantic3);
         .error(loc, "forward reference to %s`%s`",
             (inSemantic3 ? "inferred return type of function " : "").ptr,
             fd.toChars());
@@ -2536,7 +2549,7 @@ private bool canInferAttributes(FuncDeclaration fd, Scope* sc)
          * If we have an auto virtual function we can infer
          * the attributes.
          */
-        !(fd.inferRetType && !fd.isCtorDeclaration()))
+        !(fd.FdInferRetType() && !fd.isCtorDeclaration()))
         return false;               // since they may be overridden
     if (sc.func &&
         /********** this is for backwards compatibility for the moment ********/
@@ -2545,7 +2558,7 @@ private bool canInferAttributes(FuncDeclaration fd, Scope* sc)
     if (fd.isFuncLiteralDeclaration() ||               // externs are not possible with literals
         (fd.storage_class & STC.inference) ||          // do attribute inference
         fd.isGenerated ||                              // compiler generated function
-        (fd.inferRetType && !fd.isCtorDeclaration()))
+        (fd.FdInferRetType() && !fd.isCtorDeclaration()))
         return true;
     if (fd.isInstantiated())
     {
@@ -2992,7 +3005,7 @@ void modifyReturns(FuncLiteralDeclaration fld, Scope* sc, Type tret)
     // Also update the inferred function type to match the new return type.
     // This is required so the code generator does not try to cast the
     // modified returns back to the original type.
-    if (fld.inferRetType && fld.type.nextOf() != tret)
+    if (fld.FdInferRetType() && fld.type.nextOf() != tret)
         fld.type.toTypeFunction().next = tret;
 }
 
@@ -3044,7 +3057,7 @@ extern (D) void checkMain(FuncDeclaration fd)
     if (!retType)
     {
         // auto main(), check after semantic
-        assert(fd.inferRetType);
+        assert(fd.FdInferRetType());
         return;
     }
 
