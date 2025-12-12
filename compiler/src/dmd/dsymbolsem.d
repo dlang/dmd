@@ -8945,7 +8945,7 @@ bool isAbstract(ClassDeclaration cd)
         static int virtualSemantic(Dsymbol s, void*)
         {
             auto fd = s.isFuncDeclaration();
-            if (fd && !(fd.storage_class & STC.static_) && !fd.isUnitTestDeclaration())
+            if (fd && !(fd.storage_class & STC.static_) && !fd.isUnitTestDeclaration() && !fd.isCtorDeclaration())
                 fd.dsymbolSemantic(null);
             return 0;
         }
