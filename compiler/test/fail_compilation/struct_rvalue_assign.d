@@ -12,22 +12,16 @@ void main ()
     foo() = S.init;
     foo() += 5;
     ++foo();
+    cast(void) ~foo(); // other unary ops are OK
 }
 
-S foo()
-{
-    return S.init;
-}
+S foo() => S.init;
 
 struct S
 {
     int i;
 
-    void opAssign(S s)
-    {
-        this.i = s.i;
-    }
-
+    void opAssign(S s) {}
     void opOpAssign(string op : "+")(int) {}
-    void opUnary(string op : "++")() {}
+    void opUnary(string op)() {}
 }
