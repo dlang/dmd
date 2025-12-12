@@ -752,46 +752,6 @@ extern (C++) class FuncDeclaration : Declaration
         return ParameterList(null, VarArg.none);
     }
 
-    /**********************************
-     * Generate a FuncDeclaration for a runtime library function.
-     */
-    extern(D) static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, STC stc = STC.none)
-    {
-        return genCfunc(fparams, treturn, Identifier.idPool(name[0 .. strlen(name)]), stc);
-    }
-
-    extern(D) static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, STC stc = STC.none)
-    {
-        FuncDeclaration fd;
-        TypeFunction tf;
-        Dsymbol s;
-        __gshared DsymbolTable st = null;
-
-        //printf("genCfunc(name = '%s')\n", id.toChars());
-        //printf("treturn\n\t"); treturn.print();
-
-        // See if already in table
-        if (!st)
-            st = new DsymbolTable();
-        s = st.lookup(id);
-        if (s)
-        {
-            fd = s.isFuncDeclaration();
-            assert(fd);
-            assert(fd.type.nextOf().equals(treturn));
-        }
-        else
-        {
-            tf = new TypeFunction(ParameterList(fparams), treturn, LINK.c, stc);
-            fd = new FuncDeclaration(Loc.initial, Loc.initial, id, STC.static_, tf);
-            fd.visibility = Visibility(Visibility.Kind.public_);
-            fd._linkage = LINK.c;
-
-            st.insert(fd);
-        }
-        return fd;
-    }
-
     inout(FuncDeclaration) toAliasFunc() inout @safe
     {
         return this;
