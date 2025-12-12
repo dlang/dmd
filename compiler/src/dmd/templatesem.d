@@ -6098,7 +6098,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
          * For auto function, completion should be deferred to the end of
          * its semantic3. Should not complete it in here.
          */
-        if (tf.next && !m.lastf.inferRetType)
+        if (tf.next && !m.lastf.FdInferRetType())
         {
             m.lastf.type = tf.typeSemantic(loc, sc);
         }

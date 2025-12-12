@@ -2570,7 +2570,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             rs.exp = rs.exp.expressionSemantic(sc);
             rs.exp = rs.exp.arrayFuncConv(sc);
             // If we're returning by ref, allow the expression to be `shared`
-            const returnSharedRef = (tf.isRef && (fd.inferRetType || tret.isShared()));
+            const returnSharedRef = (tf.isRef && (fd.FdInferRetType() || tret.isShared()));
             rs.exp.checkSharedAccess(sc, returnSharedRef);
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
@@ -2582,7 +2582,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 rs.exp = ErrorExp.get();
             if (auto f = isFuncAddress(rs.exp))
             {
-                if (fd.inferRetType && f.checkForwardRef(rs.exp.loc))
+                if (fd.FdInferRetType() && f.checkForwardRef(rs.exp.loc))
                     rs.exp = ErrorExp.get();
             }
             if (checkNonAssignmentArrayOp(rs.exp))
@@ -2649,7 +2649,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         if (rs.exp)
         {
-            if (fd.inferRetType) // infer return type
+            if (fd.FdInferRetType()) // infer return type
             {
                 if (!tret)
                 {
@@ -2748,7 +2748,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             auto resType = e0 ? e0.type : Type.tvoid;
 
             // infer return type
-            if (fd.inferRetType)
+            if (fd.FdInferRetType())
             {
                 // 1. First `return <noreturn exp>?`
                 // 2. Potentially found a returning branch, update accordingly
