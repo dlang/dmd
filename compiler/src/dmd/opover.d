@@ -538,15 +538,28 @@ Expression opOverloadAssign(AssignExp e, Scope* sc, Type[2] aliasThisStop)
     bool choseReverse;
     if (auto result = pickBestBinaryOverload(sc, null, s, null, e, choseReverse))
     {
-        if (!sc.intypeof && e.e1.type.ty == Tstruct && !e.e1.isLvalue())
+        if (checkRvalueAssign(sc, e.e1, "assign to"))
         {
-            error(e.e1.loc, "cannot assign to struct rvalue `%s`",
-                e.e1.toChars());
             return ErrorExp.get();
         }
         return result;
     }
     return binAliasThis(e, sc, aliasThisStop);
+}
+
+bool checkRvalueAssign(Scope *sc, Expression e, const char *op)
+{
+    if (!sc.intypeof && e.type && e.type.ty == Tstruct && !e.isLvalue())
+    {
+        TypeStruct ts = cast(TypeStruct)e.type;
+        // nested struct may assign data outside of the struct, e.g. ae.utils.array.list(args)
+        if (!ts.sym.isNested())
+        {
+            error(e.loc, "cannot %s struct rvalue `%s`", op, e.toChars());
+            return true;
+        }
+    }
+    return false;
 }
 
 Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
@@ -1011,9 +1024,8 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
     if (e.e1.type.isTypeError() || e.e2.type.isTypeError())
         return ErrorExp.get();
 
-    if (!sc.intypeof && e.e1.type.ty == Tstruct && !e.e1.isLvalue())
+    if (checkRvalueAssign(sc, e.e1, "modify"))
     {
-        error(e.e1.loc, "cannot assign to struct rvalue `%s`", e.e1.toChars());
         return ErrorExp.get();
     }
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
