@@ -114,6 +114,20 @@ Cent neg(Cent c)
 }
 
 /*****************************
+ * Absolute value
+ * Note: This is a signed operation.
+ * Params:
+ *      c = Cent to get absolute value of
+ * Returns:
+ * absolute value of c
+ */
+pure
+Cent abs(Cent c)
+{
+    return (cast(I)c.hi < 0) ? neg(c) : c;
+}
+
+/*****************************
  * Increment
  * Params:
  *      c = Cent to increment
@@ -237,11 +251,14 @@ in (n < Ubits * 2)
 
 /*****************************
  * Arithmetic shift right n bits
+ *
+ * Note: This is a signed shift (preserves the sign bit).
+ *
  * Params:
  *      c = Cent to shift
  *      n = number of bits to shift
  * Returns:
- *      shifted value
+ * shifted value
  */
 pure
 Cent sar(Cent c, uint n)
@@ -417,11 +434,12 @@ Cent sub(Cent c1, Cent c2)
 
 /****************************
  * Multiply c1 * c2.
+ * Note: The algorithm is identical for both signed and unsigned multiplication.
  * Params:
- *      c1 = operand 1
- *      c2 = operand 2
+ * c1 = operand 1
+ * c2 = operand 2
  * Returns:
- *      c1 * c2
+ * c1 * c2
  */
 pure
 Cent mul(Cent c1, Cent c2)
@@ -721,11 +739,12 @@ U udivmod(Cent c1, U c2, out U modulus)
 
 /****************************
  * Signed divide c1 / c2.
+ * Note: Performs signed division. Use udiv() for unsigned division.
  * Params:
- *      c1 = dividend
- *      c2 = divisor
+ * c1 = dividend
+ * c2 = divisor
  * Returns:
- *      quotient c1 / c2
+ * quotient c1 / c2
  */
 pure
 Cent div(Cent c1, Cent c2)
@@ -766,6 +785,38 @@ Cent divmod(Cent c1, Cent c2, out Cent modulus)
     }
     else
         return udivmod(c1, c2, modulus);
+}
+
+/*****************************
+ * Unsigned remainder c1 % c2.
+ * Params:
+ *      c1 = dividend
+ *      c2 = divisor
+ * Returns:
+ * remainder c1 % c2
+ */
+pure
+Cent urem(Cent c1, Cent c2)
+{
+    Cent modulus;
+    udivmod(c1, c2, modulus);
+    return modulus;
+}
+
+/*****************************
+ * Signed remainder c1 % c2.
+ * Params:
+ *      c1 = dividend
+ *      c2 = divisor
+ * Returns:
+ * remainder c1 % c2
+ */
+pure
+Cent rem(Cent c1, Cent c2)
+{
+    Cent modulus;
+    divmod(c1, c2, modulus);
+    return modulus;
 }
 
 /****************************
@@ -1052,4 +1103,14 @@ unittest
     assert(ror(C7_9, 1) == ror1(C7_9));
     assert(rol(C7_9, 0) == C7_9);
     assert(ror(C7_9, 0) == C7_9);
+
+    // Test abs()
+    assert(abs(Cm10) == C10);
+    assert(abs(C10) == C10);
+    assert(abs(C0) == C0);
+
+    // Test rem/urem
+    assert(rem(C10, C3) == C1);   // 10 % 3 = 1
+    assert(urem(C10, C3) == C1);
+    assert(rem(Cm10, C3) == Cm1); // -10 % 3 = -1
 }
