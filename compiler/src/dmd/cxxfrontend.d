@@ -474,21 +474,20 @@ real_t toImaginary(Expression exp)
 }
 
 /***********************************************************
- * func.d
+ * funcsem.d
  */
 FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = STC.none)
 {
-    return FuncDeclaration.genCfunc(fparams, treturn, name, cast(STC) stc);
+    import dmd.funcsem;
+    return dmd.funcsem.genCfunc(fparams, treturn, name, cast(STC) stc);
 }
 
 FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = STC.none)
 {
-    return FuncDeclaration.genCfunc(fparams, treturn, id, cast(STC) stc);
+    import dmd.funcsem;
+    return dmd.funcsem.genCfunc(fparams, treturn, id, cast(STC) stc);
 }
 
-/***********************************************************
- * funcsem.d
- */
 bool functionSemantic(FuncDeclaration fd)
 {
     import dmd.funcsem;
