@@ -37,11 +37,12 @@ namespace dmd
     bool checkClosure(FuncDeclaration* fd);
     MATCH leastAsSpecialized(FuncDeclaration *f, FuncDeclaration *g, ArgumentLabels *names);
     PURE isPure(FuncDeclaration *f);
+    bool needsClosure(FuncDeclaration *fd);
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
     bool isAbstract(ClassDeclaration *cd);
     bool overloadInsert(Dsymbol *ds, Dsymbol *s);
-    bool equals(const Dsymbol *ds, const Dsymbol *s);
+    bool equals(const Dsymbol * const ds, const Dsymbol * const s);
 }
 
 //enum STC : ulong from astenums.d:
@@ -719,7 +720,6 @@ public:
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
     const char *kind() const override;
-    bool needsClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
 
