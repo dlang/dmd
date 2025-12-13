@@ -2317,17 +2317,16 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
 {
     TemplateInstance ti;
 
-    extern (D) this(Loc loc, Expression e, Identifier name, Objects* tiargs)
-    {
-        super(loc, EXP.dotTemplateInstance, e);
-        //printf("DotTemplateInstanceExp()\n");
-        this.ti = new TemplateInstance(loc, name, tiargs);
-    }
-
     extern (D) this(Loc loc, Expression e, TemplateInstance ti) @safe
     {
         super(loc, EXP.dotTemplateInstance, e);
         this.ti = ti;
+    }
+
+    extern (D) this(Loc loc, Expression e, Identifier name, Objects* tiargs)
+    {
+        //printf("DotTemplateInstanceExp()\n");
+        this(loc, e, new TemplateInstance(loc, name, tiargs));
     }
 
     override DotTemplateInstanceExp syntaxCopy()
