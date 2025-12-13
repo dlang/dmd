@@ -10598,7 +10598,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e1x;
             return;
         }
-        if (e1x.checkType())
+        if (!e1x.hasValidType())
             return setError();
         exp.e1 = e1x;
 

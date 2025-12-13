@@ -297,13 +297,13 @@ extern (C++) abstract class Expression : ASTNode
      * Check that the expression has a valid type.
      * If not, generates an error "... has no type".
      * Returns:
-     *      true if the expression is not valid.
+     *      true if the expression has a valid type.
      * Note:
-     *      When this function returns true, `checkValue()` should also return true.
+     *      When this function returns false, `checkValue()` should also return true.
      */
-    bool checkType()
+    bool hasValidType()
     {
-        return false;
+        return true;
     }
 
     /******************************
@@ -1557,10 +1557,10 @@ extern (C++) final class TypeExp : Expression
         return new TypeExp(loc, type.syntaxCopy());
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
         error(loc, "type `%s` is not an expression", toChars());
-        return true;
+        return false;
     }
 
     override void accept(Visitor v)
@@ -1595,25 +1595,25 @@ extern (C++) final class ScopeExp : Expression
         return new ScopeExp(loc, sds.syntaxCopy(null));
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
         if (sds.isPackage())
         {
             error(loc, "%s `%s` has no type", sds.kind(), sds.toChars());
-            return true;
+            return false;
         }
         auto ti = sds.isTemplateInstance();
         if (!ti)
-            return false;
+            return true;
         //assert(ti.needsTypeInference(sc));
         if (ti.tempdecl &&
             ti.semantictiargsdone &&
             ti.semanticRun == PASS.initial)
         {
             error(loc, "partial %s `%s` has no type", sds.kind(), toChars());
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
     override void accept(Visitor v)
@@ -1638,10 +1638,10 @@ extern (C++) final class TemplateExp : Expression
         this.fd = fd;
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
         error(loc, "%s `%s` has no type", td.kind(), toChars());
-        return true;
+        return false;
     }
 
     override void accept(Visitor v)
@@ -1874,14 +1874,14 @@ extern (C++) final class FuncExp : Expression
         return new FuncExp(loc, fd);
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
         if (td)
         {
             error(loc, "template lambda has no type");
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
     override void accept(Visitor v)
@@ -2274,10 +2274,10 @@ extern (C++) final class DotTemplateExp : UnaExp
         this.td = td;
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
         error(loc, "%s `%s` has no type", td.kind(), toChars());
-        return true;
+        return false;
     }
 
     override void accept(Visitor v)
@@ -2334,17 +2334,17 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
         return new DotTemplateInstanceExp(loc, e1.syntaxCopy(), ti.name, TemplateInstance.arraySyntaxCopy(ti.tiargs));
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
-        // Same logic as ScopeExp.checkType()
+        // Same logic as ScopeExp.hasValidType()
         if (ti.tempdecl &&
             ti.semantictiargsdone &&
             ti.semanticRun == PASS.initial)
         {
             error(loc, "partial %s `%s` has no type", ti.kind(), toChars());
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
     override void accept(Visitor v)
