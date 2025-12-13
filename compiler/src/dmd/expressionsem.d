@@ -11642,7 +11642,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // printf("PreExp::semantic('%s')\n", toChars());
         if (Expression e = exp.opOverloadUnary(sc))
         {
-            if (checkRvalueAssign(sc, exp.e1, "modify"))
+            if (checkRvalueAssign(sc, exp.e1, Id.opUnary))
             {
                 e = ErrorExp.get();
             }

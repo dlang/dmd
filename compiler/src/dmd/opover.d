@@ -538,7 +538,7 @@ Expression opOverloadAssign(AssignExp e, Scope* sc, Type[2] aliasThisStop)
     bool choseReverse;
     if (auto result = pickBestBinaryOverload(sc, null, s, null, e, choseReverse))
     {
-        if (checkRvalueAssign(sc, e.e1, "assign to"))
+        if (checkRvalueAssign(sc, e.e1, Id.opAssign))
         {
             return ErrorExp.get();
         }
@@ -547,7 +547,7 @@ Expression opOverloadAssign(AssignExp e, Scope* sc, Type[2] aliasThisStop)
     return binAliasThis(e, sc, aliasThisStop);
 }
 
-bool checkRvalueAssign(Scope *sc, Expression e, const char *op)
+bool checkRvalueAssign(Scope *sc, Expression e, Identifier op)
 {
     if (!sc.intypeof && e.type && e.type.ty == Tstruct && !e.isLvalue())
     {
@@ -555,7 +555,10 @@ bool checkRvalueAssign(Scope *sc, Expression e, const char *op)
         // nested struct may assign data outside of the struct, e.g. ae.utils.array.list(args)
         if (!ts.sym.isNested())
         {
-            error(e.loc, "cannot %s struct rvalue `%s`", op, e.toChars());
+            const char* action = op == Id.opAssign ? "assign to" : "modify";
+            error(e.loc, "cannot %s struct rvalue `%s`", action, e.toChars());
+            errorSupplemental(e.loc, "if the assignment is used for side-effects, call `%s` directly",
+                op.toChars());
             return true;
         }
     }
@@ -1024,7 +1027,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
     if (e.e1.type.isTypeError() || e.e2.type.isTypeError())
         return ErrorExp.get();
 
-    if (checkRvalueAssign(sc, e.e1, "modify"))
+    if (checkRvalueAssign(sc, e.e1, Id.opOpAssign))
     {
         return ErrorExp.get();
     }
