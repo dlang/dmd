@@ -242,7 +242,8 @@ $(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversio
     $(P Any $(RELATIVE_LINK2 pointers, pointer) implicitly converts to a `void` pointer -
     see below.)
 
-    $(P Casting between pointers and non-pointers is allowed. Some pointer casts
+    $(P $(DDSUBLINK spec/expression, cast_pointers, Casting between)
+    pointers and non-pointers is allowed. Some pointer casts
     are disallowed in $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe` code).)
 
     $(BEST_PRACTICE do not cast any pointer to a non-pointer type that points to data
@@ -295,7 +296,8 @@ void function(int) fp = &f; // pure is covariant with non-pure
 $(H4 $(LNAME2 class-conversions, Class Conversions))
 
     $(P A derived class can be implicitly converted to its base class, but going
-    the other way requires an explicit cast. For example:)
+    the other way requires an $(DDSUBLINK spec/expression, cast_class, explicit cast).
+    For example:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 -------------------
@@ -646,7 +648,8 @@ $(P A `bool` value can be implicitly converted to any integral type, with
 $(P The numeric literals `0` and `1` can be implicitly converted to the `bool`
 values `false` and `true`, respectively. Casting an expression to `bool` means
 testing `!=0` for arithmetic types, and `!=null` for
-pointers or references.)
+pointers or references. See $(DDSUBLINK spec/statement, boolean-conditions,
+Boolean Conversion) for details.)
 
 $(UNDEFINED_BEHAVIOR)
 * Interpreting a value with a byte representation
