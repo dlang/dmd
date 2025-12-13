@@ -3445,6 +3445,60 @@ Lagain:
     t1b = t1.toBasetype();
     t2b = t2.toBasetype();
 
+    static bool isComplexStruct(Type t)
+    {
+        if (t.ty != Tstruct)
+            return false;
+
+        TypeStruct ts = t.isTypeStruct();
+
+        return ts.sym.toString() == "_Complex";
+    }
+
+    static bool isComplexStructOfType(Type t, Type t2)
+    {
+        if (!isComplexStruct(t))
+            return false;
+
+        TypeStruct ts = t.toBasetype().isTypeStruct();
+
+        Type memberType = ts.sym.fields[0].type.toBasetype();
+
+        /* encure the complex member types fall under one of the complex types */
+        switch (memberType.toBasetype().ty)
+        {
+            case Tfloat32:
+            case Tfloat64:
+            case Tfloat80:
+                break;
+            default:
+                return false;
+        }
+
+        switch (t2.toBasetype().ty)
+        {
+            case Tfloat32:
+            case Tfloat64:
+            case Tfloat80:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /* check for complex structure and an associate complex type in a single condexp */
+    if (sc && sc.inCfile)
+    {
+        if (isComplexStructOfType(t1b, t2b))
+        {
+            return Lret(e1.type.toBasetype());
+        }
+        else if (isComplexStructOfType(t2b, t1b))
+        {
+            return Lret(e2.type.toBasetype());
+        }
+    }
+
     const ty = implicitConvCommonTy(t1b.ty, t2b.ty);
     if (ty != Terror)
     {
