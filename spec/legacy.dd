@@ -24,6 +24,8 @@ $(COMMENT
         $(TROW Escaping $(DDSUBLINK spec/attribute, scope, `scope`) data,
             `scope` is $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md,
             enforced) in `@safe` code, 2024)
+        $(TROW $(RELATIVE_LINK2 struct-assign, Assigning to struct rvalue),
+            Disallow for structs which overload e.g. `opAssign`, 2024)
 
         $(COMMENT Not enforced yet)
         $(TROW `alias` target first syntax, use `alias name = target` instead.)
@@ -92,6 +94,35 @@ struct Foo
     }
 }
 ---
+
+$(H2 $(LNAME2 struct-assign, Assigning to struct rvalue))
+
+    $(P It has always been an error for POD structs to assign from an rvalue.
+        From the 2024 edition, it is also an error to assign from a struct rvalue when
+        it would call `opAssign`, `opOpAssign`, `opUnary!"++"`, or `opUnary!"--"`.)
+
+---
+struct S
+{
+    int i;
+    void opAssign(S s);
+}
+
+S foo() => S.init;
+
+void main()
+{
+    foo() = S(2); // no-op
+}
+---
+    $(P Unless an overloaded assignment has side-effects, the assignment
+    will have no effect and indicates a bug.)
+
+$(H3 Corrective Action)
+
+    $(P If side-effects are needed, call e.g.
+    `opAssign` directly. Note: Calling a non-const method on a struct rvalue
+    $(DDSUBLINK spec/struct, member-functions, is allowed).)
 
 
 $(SPEC_SUBNAV_PREV_NEXT glossary, Glossary, editions, Editions)
