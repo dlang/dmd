@@ -14,14 +14,21 @@ $(COMMENT
     )
 
     $(TABLE2 Legacy Features,
-        $(THEAD Feature, Summary)
+        $(THEAD Feature, Summary, $(DDLINK spec/editions, Editions, Edition) check)
+
+        $(COMMENT 2024)
         $(TROW $(RELATIVE_LINK2 body, `body` keyword), $(D body) after a contract statement -
-            use $(D do) instead)
+            use $(D do) instead, 2024)
+        $(TROW $(RELATIVE_LINK2 alias-instance-member, Aliasing an instance member),
+            Use `typeof(instance).member` instead, 2024)
+        $(TROW Escaping $(DDSUBLINK spec/attribute, scope, `scope`) data,
+            `scope` is $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md,
+            enforced) in `@safe` code, 2024)
+
+        $(COMMENT Not enforced yet)
         $(TROW `alias` target first syntax, use `alias name = target` instead.)
         $(TROW Struct/union postblit, use a $(DDSUBLINK spec/struct, struct-copy-constructor,
             copy constructor) instead.)
-        $(TROW $(RELATIVE_LINK2 alias-instance-member, Aliasing an instance member),
-            use `typeof(instance).member` instead.)
     )
 
 $(H2 $(LNAME2 body, `body` keyword))
