@@ -1,13 +1,17 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/struct_rvalue_assign.d(12): Error: cannot assign to struct rvalue `foo()`
-fail_compilation/struct_rvalue_assign.d(13): Error: cannot modify struct rvalue `foo()`
-fail_compilation/struct_rvalue_assign.d(14): Error: cannot modify struct rvalue `foo()`
+fail_compilation/struct_rvalue_assign.d(16): Error: cannot assign to struct rvalue `foo()`
+fail_compilation/struct_rvalue_assign.d(16):        if the assignment is used for side-effects, call `opAssign` directly
+fail_compilation/struct_rvalue_assign.d(17): Error: cannot modify struct rvalue `foo()`
+fail_compilation/struct_rvalue_assign.d(17):        if the assignment is used for side-effects, call `opOpAssign` directly
+fail_compilation/struct_rvalue_assign.d(18): Error: cannot modify struct rvalue `foo()`
+fail_compilation/struct_rvalue_assign.d(18):        if the assignment is used for side-effects, call `opUnary` directly
 ---
 */
+module sra 2024;
 
-void main ()
+void main()
 {
     foo() = S.init;
     foo() += 5;

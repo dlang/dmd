@@ -549,7 +549,8 @@ Expression opOverloadAssign(AssignExp e, Scope* sc, Type[2] aliasThisStop)
 
 bool checkRvalueAssign(Scope *sc, Expression e, Identifier op)
 {
-    if (!sc.intypeof && e.type && e.type.ty == Tstruct && !e.isLvalue())
+    if (!sc.intypeof && sc.hasEdition(Edition.v2024) &&
+        e.type && e.type.ty == Tstruct && !e.isLvalue())
     {
         TypeStruct ts = cast(TypeStruct)e.type;
         // nested struct may assign data outside of the struct, e.g. ae.utils.array.list(args)
