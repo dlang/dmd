@@ -2606,7 +2606,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 rs.exp = resolveAliasThis(sc, rs.exp);
 
             rs.exp = resolveProperties(sc, rs.exp);
-            if (rs.exp.checkType())
+            if (!rs.exp.hasValidType())
                 rs.exp = ErrorExp.get();
             if (auto f = isFuncAddress(rs.exp))
             {

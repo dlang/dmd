@@ -5259,7 +5259,7 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
             !mt.exp.type.isTypeTuple())
         {
             if (!sc.inCfile && // in (extended) C typeof may be used on types as with sizeof
-                mt.exp.checkType())
+                !mt.exp.hasValidType())
                 goto Lerr;
 
             /* Today, 'typeof(func)' returns void if func is a
