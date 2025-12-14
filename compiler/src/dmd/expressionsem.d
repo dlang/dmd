@@ -17989,11 +17989,17 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
-                typeb.isStaticOrDynamicArray() && tynto.isSomeChar &&
-                se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
+                typeb.isStaticOrDynamicArray() && tynto.isSomeChar)
             {
-                e = se.castTo(sc, t);
-                goto L1;
+                string s;
+                size_t len = se.numberOfCodeUnits(tynto, s);
+                if (s)
+                    error(se.loc, "%.*s", cast(int)s.length, s.ptr);
+                if (len < (cast(TypeSArray)tb).dim.toInteger())
+                {
+                    e = se.castTo(sc, t);
+                    goto L1;
+                }
             }
         }
 

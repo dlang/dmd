@@ -662,7 +662,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 assert(e.op == EXP.string_);
 
                 StringExp se = e.isStringExp();
-                char* name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
+                string s;
+                char* name = cast(char *)mem.xmalloc(se.numberOfCodeUnits(0, s) + 1);
 
                 se.writeTo(name, true);
 

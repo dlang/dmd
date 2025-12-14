@@ -3652,7 +3652,8 @@ code* asm_db_parse(OP* pop)
                 }
                 else if (auto se = e.isStringExp())
                 {
-                    const len = se.numberOfCodeUnits();
+                    string s;
+                    const len = se.numberOfCodeUnits(0, s);
                     auto q = se.peekString().ptr;
                     if (q)
                     {

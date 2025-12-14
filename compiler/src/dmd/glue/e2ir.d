@@ -308,7 +308,8 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
 Symbol* toStringSymbol(StringExp se)
 {
     Symbol* si;
-    const n = cast(int)se.numberOfCodeUnits();
+    string s;
+    const n = cast(int)se.numberOfCodeUnits(0, s);
     if (se.sz == 1)
     {
         const slice = se.peekString();
@@ -1158,7 +1159,9 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
         if (tb.ty == Tarray)
         {
             Symbol* si = toStringSymbol(se);
-            e = el_pair(TYdarray, el_long(TYsize_t, se.numberOfCodeUnits()), el_ptr(si));
+            string s;
+            const n = cast(int)se.numberOfCodeUnits(0, s);
+            e = el_pair(TYdarray, el_long(TYsize_t, n), el_ptr(si));
         }
         else if (tb.ty == Tsarray)
         {
@@ -1180,7 +1183,9 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
                 e = el_calloc();
                 e.Eoper = OPstring;
                 // freed in el_free
-                const len = cast(size_t)((se.numberOfCodeUnits() + 1) * se.sz);
+                string s;
+                const n = cast(int)se.numberOfCodeUnits(0, s);
+                const len = cast(size_t)((n + 1) * se.sz);
                 e.Vstring = cast(char *)mem_malloc2(cast(uint) len);
                 se.writeTo(e.Vstring, true);
                 e.Vstrlen = len;
