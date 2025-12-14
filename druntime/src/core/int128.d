@@ -502,6 +502,50 @@ Cent mul(ulong u1, ulong u2)
     return mul(Cent(lo: u1), Cent(lo: u2));
 }
 
+/*****************************
+* Multiply c1 * c2 with unsigned overflow check.
+ * Params:
+ *      c1 = operand 1
+ *      c2 = operand 2
+ * overflow = set to true if overflow occurs
+ * Returns:
+ *      c1 * c2
+ */
+pure
+Cent umul(Cent c1, Cent c2, out bool overflow)
+{
+    Cent r = mul(c1, c2);
+    if (!tst(c1) || !tst(c2))
+    {
+        overflow = false;
+        return r;
+    }
+    overflow = (udiv(r, c1) != c2);
+    return r;
+}
+
+/*****************************
+ * Multiply c1 * c2 with signed overflow check.
+ * Params:
+ *      c1 = operand 1
+ *      c2 = operand 2
+ * overflow = set to true if overflow occurs
+ * Returns:
+ *      c1 * c2
+ */
+pure
+Cent mul(Cent c1, Cent c2, out bool overflow)
+{
+    Cent r = mul(c1, c2);
+    if (!tst(c1) || !tst(c2))
+    {
+        overflow = false;
+        return r;
+    }
+    overflow = (div(r, c1) != c2);
+    return r;
+}
+
 unittest
 {
     assert(mul(3, 42) == Cent(lo: 126));
@@ -1052,4 +1096,38 @@ unittest
     assert(ror(C7_9, 1) == ror1(C7_9));
     assert(rol(C7_9, 0) == C7_9);
     assert(ror(C7_9, 0) == C7_9);
+
+
+    bool overflow;
+    Cent res;
+
+    // 1. Unsigned Overflow Test
+    // Max * 2 should overflow
+    Cent maxU = {lo: ulong.max, hi: ulong.max};
+    res = umul(maxU, C2, overflow);
+    assert(overflow); 
+    assert(res == mul(maxU, C2)); // Result should still match wrapped mul
+
+    // Small numbers should NOT overflow
+    res = umul(C10, C3, overflow);
+    assert(!overflow);
+    assert(res == C30);
+
+    // 2. Signed Overflow Test
+    // Max positive * 2 should overflow
+    Cent maxS = {lo: ulong.max, hi: long.max}; // 0x7FFF...FFFF
+    res = mul(maxS, C2, overflow);
+    assert(overflow);
+
+    // Min negative * -1 should overflow (classic 2's complement edge case)
+    // Cent.min is {0, 0x8000...}
+    Cent minS = {lo: 0, hi: 0x8000000000000000UL};
+    res = mul(minS, Cm1, overflow);
+    assert(overflow);
+
+    // Normal signed multiply
+    res = mul(Cm10, C3, overflow);
+    assert(!overflow);
+    assert(res == neg(C30));
 }
+
