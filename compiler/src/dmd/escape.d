@@ -810,7 +810,9 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
         // If va's lifetime encloses v's, then error
         if (va && !(vaIsFirstRef && v.isReturn()) && va.enclosesLifetimeOf(v))
         {
-            if (sc.setUnsafeDIP1000(gag, ae.loc, "assigning address of variable `%s` to `%s` with longer lifetime", v, va))
+            if (sc.hasEdition(Edition.v2024)
+                ? setUnsafe(&sc, gag, ae.loc, "assigning address of variable `%s` to `%s` with longer lifetime", v, va)
+                : sc.setUnsafeDIP1000(gag, ae.loc, "assigning address of variable `%s` to `%s` with longer lifetime", v, va))
             {
                 result = true;
                 return;
@@ -1211,7 +1213,9 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                 else
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=17029
-                    result |= sc.setUnsafeDIP1000(gag, e.loc, "returning scope variable `%s`", v);
+                    result |= sc.hasEdition(Edition.v2024)
+                        ? setUnsafe(&sc, gag, e.loc, "returning scope variable `%s`", v)
+                        : sc.setUnsafeDIP1000(gag, e.loc, "returning scope variable `%s`", v);
                     return;
                 }
             }
