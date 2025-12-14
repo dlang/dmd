@@ -965,10 +965,11 @@ extern (C++) final class StringExp : Expression
      * as tynto.
      * Params:
      *      tynto = code unit type of the target encoding
+     *      s = set to error message on invalid string
      * Returns:
      *      number of code units
      */
-    size_t numberOfCodeUnits(int tynto = 0) const
+    extern (D) size_t numberOfCodeUnits(int tynto, out .string s) const
     {
         int encSize;
         switch (tynto)
@@ -991,11 +992,9 @@ extern (C++) final class StringExp : Expression
         case 1:
             for (size_t u = 0; u < len;)
             {
-                if (const s = utf_decodeChar(string[0 .. len], u, c))
-                {
-                    error(loc, "%.*s", cast(int)s.length, s.ptr);
+                s = utf_decodeChar(string[0 .. len], u, c);
+                if (s)
                     return 0;
-                }
                 result += utf_codeLength(encSize, c);
             }
             break;
@@ -1003,11 +1002,9 @@ extern (C++) final class StringExp : Expression
         case 2:
             for (size_t u = 0; u < len;)
             {
-                if (const s = utf_decodeWchar(wstring[0 .. len], u, c))
-                {
-                    error(loc, "%.*s", cast(int)s.length, s.ptr);
+                s = utf_decodeWchar(wstring[0 .. len], u, c);
+                if (s)
                     return 0;
-                }
                 result += utf_codeLength(encSize, c);
             }
             break;

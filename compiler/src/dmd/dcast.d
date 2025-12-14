@@ -680,7 +680,10 @@ MATCH implicitConvTo(Expression e, Type t)
                 {
                     if (e.committed && tynto != tyn)
                         return MATCH.nomatch;
-                    size_t fromlen = e.numberOfCodeUnits(tynto);
+                    string s;
+                    size_t fromlen = e.numberOfCodeUnits(tynto, s);
+                    if (s)
+                        error(e.loc, "%.*s", cast(int)s.length, s.ptr);
                     size_t tolen = cast(size_t)t.isTypeSArray().dim.toInteger();
                     if (tolen < fromlen)
                         return MATCH.nomatch;
@@ -702,7 +705,10 @@ MATCH implicitConvTo(Expression e, Type t)
                 {
                     if (e.committed && tynto != tyn)
                         return MATCH.nomatch;
-                    size_t fromlen = e.numberOfCodeUnits(tynto);
+                    string s;
+                    size_t fromlen = e.numberOfCodeUnits(tynto, s);
+                    if (s)
+                        error(e.loc, "%.*s", cast(int)s.length, s.ptr);
                     size_t tolen = cast(size_t)t.isTypeSArray().dim.toInteger();
                     if (tolen < fromlen)
                         return MATCH.nomatch;
