@@ -511,13 +511,13 @@ extern (C++) final class IntegerExp : Expression
         super(loc, EXP.int64);
         //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type.toChars() : "");
         assert(type);
-        if (!type.isScalar())
-        {
-            //printf("%s, loc = %d\n", toChars(), loc.linnum);
-            if (type.ty != Terror)
-                error(loc, "integral constant must be scalar type, not `%s`", type.toChars());
-            type = Type.terror;
-        }
+
+        /* Verify no path to the following assert failure.
+         * Weirdly, the isScalar() includes floats - see enumsem.enumMemberSemantic() for the
+         * base type. This is possibly a bug.
+         */
+        assert(type.isScalar() || type.ty == Terror);
+
         this.type = type;
         this.value = normalize(type.toBasetype().ty, value);
     }
