@@ -1296,6 +1296,7 @@ S67 make67()
 __gshared int i67;
 
 S67 f67()
+out (s; s.ptr == &s)
 {
     i67++;
     return make67();
