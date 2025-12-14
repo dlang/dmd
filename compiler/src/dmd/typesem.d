@@ -2671,6 +2671,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
     Type visitComplex(TypeBasic t)
     {
+        /* begins from here */
         if (!sc.inCfile)
             return visitType(t);
 
