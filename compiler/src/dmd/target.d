@@ -83,6 +83,8 @@ ubyte defaultTargetOSMajor() @safe
             return 13;
         else version (TARGET_FREEBSD14)
             return 14;
+        else version (TARGET_FREEBSD15)
+            return 15;
         else
             return 0;
     }
