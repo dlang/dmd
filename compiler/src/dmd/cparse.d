@@ -752,7 +752,7 @@ final class CParser(AST) : Parser!AST
             const id = token.ident.toString();
             if (id.length > 2 && id[0] == '_' && id[1] == '_')  // leading double underscore
             {
-                if (token.ident is Id.FUNCTION) //__FUNCTION__ predefined macro
+                if (token.ident is Id.FUNCTION || token.ident is Id.PRETTY_FUNCTION) //__FUNCTION__ predefined macro
                 {
                     e = new AST.FuncInitExp(loc);
                     nextToken();
