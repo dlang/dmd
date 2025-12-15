@@ -74,6 +74,8 @@ typedef unsigned short __uint16_t;
 typedef unsigned int __uint32_t;
 typedef unsigned long long __uint64_t;
 
+#define __FUNCTION__ __func__
+
 /*********************
  * Obsolete detritus
  */
