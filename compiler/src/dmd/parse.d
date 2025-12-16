@@ -4637,9 +4637,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             if (isAliasDeclaration)
             {
-                AST.Declaration v;
-                AST.Initializer _init = null;
-
+                if (ident && mod.edition >= Edition.v2024)
+                {
+                    eSink.error(token.loc, "use `alias %s = ...;` syntax instead of `alias ... %s;`",
+                        ident.toChars(), ident.toChars());
+                }
                 /* Aliases can no longer have multiple declarators, storage classes,
                  * linkages, or auto declarations.
                  * These never made any sense, anyway.
@@ -4650,6 +4652,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (udas)
                     error("user-defined attributes not allowed for `alias` declarations");
 
+                AST.Initializer _init = null;
                 if (token.value == TOK.assign)
                 {
                     nextToken();
@@ -4659,7 +4662,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     error("alias cannot have initializer");
                 }
-                v = new AST.AliasDeclaration(aliasLoc, ident, t);
+                AST.Declaration v = new AST.AliasDeclaration(aliasLoc, ident, t);
 
                 v.storage_class = storage_class;
                 if (pAttrs)
