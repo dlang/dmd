@@ -12,7 +12,7 @@ void foo()
 int bar(int a, int b)
 {
     assert(strcmp(__FUNCTION__, "bar") == 0);
-    assert(strcmp(__PRETTY_FUNCTION__, "int foo(int, int)") == 0);
+    assert(strcmp(__PRETTY_FUNCTION__, "int bar(int, int)") == 0);
     return 0;
 }
 
