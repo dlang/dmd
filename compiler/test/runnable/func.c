@@ -19,5 +19,5 @@ int bar(int a, int b)
 int main()
 {
     foo();
-    return bar();
+    return bar(4, 6);
 }
