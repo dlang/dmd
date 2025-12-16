@@ -4,6 +4,7 @@
 
 void foo()
 {
+    printf("function is %s", __PRETTY_FUNCTION__ );
     assert(strcmp(__FUNCTION__, "foo") == 0);
     assert(strcmp(__PRETTY_FUNCTION__, "void foo()") == 0);
 
