@@ -37,6 +37,7 @@ final class CParser(AST) : Parser!AST
 
     bool addFuncName;           /// add declaration of __func__ to function symbol table
     bool refFuncName;           // declaration of __FUNCTION__
+    bool pretFuncName;          // declaration for __PRETTY_FUNCTION__
     bool importBuiltins;        /// seen use of C compiler builtins, so import __importc_builtins;
 
     private
@@ -755,6 +756,9 @@ final class CParser(AST) : Parser!AST
             {
                 if (token.ident is Id.FUNCTION)
                     refFuncName = true; // implicitly declare __FUNCTION__
+
+                if (token.ident is Id.PRETTY_FUNCTION)
+                    pretFuncName = true; // implicitly declare __PRETTY_FUNCTION__
 
                 if (token.ident is Id.__func__)
                 {
@@ -2231,6 +2235,7 @@ final class CParser(AST) : Parser!AST
         /* gets set to true if somebody references __func__ in this function, //ditto for __FUNCTION__ */
         addFuncName = false;
         refFuncName = false;
+        pretFuncName = false;
         const locFunc = token.loc;
 
         auto body = cparseStatement(ParseStatementFlags.curly);  // don't start a new scope; continue with parameter scope
@@ -2248,6 +2253,9 @@ final class CParser(AST) : Parser!AST
 
         if (refFuncName)
             stmts.push(createFuncName(locFunc, id.name, Id.FUNCTION));
+
+        if (pretFuncName)
+            stmts.push(createPrettyFunc(locFunc, fd));
 
         stmts.push(body);
 
@@ -4868,11 +4876,41 @@ final class CParser(AST) : Parser!AST
         const fn = id.toString();  // function-name
         auto efn = new AST.StringExp(loc, fn, fn.length, 1, 'c');
         auto ifn = new AST.ExpInitializer(loc, efn);
-        auto lenfn = new AST.IntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0
+        auto lenfn = new AST.IntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0, ditto for __pretty_chars__
         auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
         efn.type = tfn.makeImmutable();
         efn.committed = true;
         auto sfn = new AST.VarDeclaration(loc, tfn, cident, ifn, STC.gshared | STC.immutable_);
+        auto e = new AST.DeclarationExp(loc, sfn);
+        return new AST.ExpStatement(loc, e);
+    }
+
+    /* function for C __PRETTY_FUNCTION__ */
+    private AST.Statement createPrettyFunc(Loc loc, AST.FuncDeclaration fd)
+    {
+        auto tf = fd.type.isTypeFunction();
+        auto funcSig = tf.next.toString();
+        funcSig ~= " ";
+        funcSig ~= fd.ident.toString();
+        funcSig ~= "(";
+
+        foreach (i, fparam ; tf.parameterList)
+        {
+            if (i > 0)
+                funcSig ~= ", ";
+
+            AST.Type t = tf.parameterList[i].type;
+            funcSig ~= t.toString();
+        }
+        funcSig ~= ")";
+
+        auto efn = new AST.StringExp(loc, funcSig);
+        auto ifn = new AST.ExpInitializer(loc, efn);
+        auto lenfn = new AST.IntegerExp(loc, funcSig.length + 1, AST.Type.tuns32); // +1 for terminating 0
+        auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
+        efn.type = tfn.makeImmutable();
+        efn.committed = true;
+        auto sfn = new AST.VarDeclaration(loc, tfn, Id.PRETTY_FUNCTION, ifn, STC.gshared | STC.immutable_);
         auto e = new AST.DeclarationExp(loc, sfn);
         return new AST.ExpStatement(loc, e);
     }
