@@ -2235,17 +2235,13 @@ class Lexer
 
             if (*p == '\'')
             {
-                string str;
-                const s = p;
-                p--;
-                while(*p != '\'')
+                const(char)* s = p - 1;
+                while(*s != '\'')
                 {
-                    str = *p ~ str;
-                    p--;
+                    s--;
                 }
-                p=s;
-                str ~= '\0';
-                error("character constant has multiple characters - did you mean \"%s\"?",str.ptr);
+                s++;
+                error("character constant has multiple characters - did you mean \"%.*s\"?", cast(int) (p - s), s);
                 p++;
             }
             else
