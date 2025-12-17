@@ -1035,6 +1035,12 @@ bool isFloating(Type type)
     return dmd.typesem.isFloating(type);
 }
 
+bool isScalar(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isScalar(type);
+}
+
 bool isReal(Type type)
 {
     import dmd.typesem;
