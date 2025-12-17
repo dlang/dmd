@@ -499,6 +499,16 @@ extern (C++) abstract class Expression : ASTNode
     }
 }
 
+// Approximate Non-semantic version of the `Type.isScalar` function in `typesem`
+bool _isRoughlyScalar(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.integral | TFlags.floating) != 0;
+    else if (_this.ty == Tenum || _this.ty == Tpointer) // the enum is possibly scalar
+        return true;
+    return false;
+}
+
 /***********************************************************
  * A compile-time known integer value
  */
@@ -516,7 +526,7 @@ extern (C++) final class IntegerExp : Expression
          * Weirdly, the isScalar() includes floats - see enumsem.enumMemberSemantic() for the
          * base type. This is possibly a bug.
          */
-        assert(type.isScalar() || type.ty == Terror);
+        assert(_isRoughlyScalar(type) || type.ty == Terror);
 
         this.type = type;
         this.value = normalize(type.toBasetype().ty, value);

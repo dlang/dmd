@@ -143,6 +143,19 @@ bool needsNested(Type _this)
     return false;
 }
 
+bool isScalar(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & (TFlags.integral | TFlags.floating)) != 0;
+    else if (auto tv = _this.isTypeVector())
+        return tv.basetype.nextOf().isScalar();
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isScalar();
+    else if (_this.isTypePointer())
+        return true;
+    return false;
+}
+
 bool isUnsigned(Type _this)
 {
     if (auto tb = _this.isTypeBasic())

@@ -2070,7 +2070,6 @@ public:
     static void deinitialize();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
-    virtual bool isScalar();
     virtual bool isScopeClass();
     bool isConst() const;
     bool isImmutable() const;
@@ -4374,7 +4373,6 @@ public:
     uint32_t flags;
     const char* kind() const override;
     TypeBasic* syntaxCopy() override;
-    bool isScalar() override;
     TypeBasic* isTypeBasic() override;
     void accept(Visitor* v) override;
 };
@@ -4425,7 +4423,6 @@ public:
     EnumDeclaration* sym;
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
-    bool isScalar() override;
     Type* nextOf() override;
     void accept(Visitor* v) override;
 };
@@ -4622,7 +4619,6 @@ public:
     static TypePointer* create(Type* t);
     const char* kind() const override;
     TypePointer* syntaxCopy() override;
-    bool isScalar() override;
     void accept(Visitor* v) override;
 };
 
@@ -4733,7 +4729,6 @@ public:
     static TypeVector* create(Type* basetype);
     const char* kind() const override;
     TypeVector* syntaxCopy() override;
-    bool isScalar() override;
     TypeBasic* elementType();
     void accept(Visitor* v) override;
 };
