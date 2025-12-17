@@ -229,6 +229,11 @@ void check(Type _this)
             assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
         if (swcto)
             assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    default:
+        assert(0);
+    }
 
     Type tn = _this.nextOf();
     if (tn && _this.ty != Tfunction && tn.ty != Tfunction && _this.ty != Tenum)
