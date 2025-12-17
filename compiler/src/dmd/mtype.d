@@ -640,11 +640,6 @@ extern (C++) abstract class Type : ASTNode
         return buf.extractChars();
     }
 
-    bool isScalar()
-    {
-        return false;
-    }
-
     bool isScopeClass()
     {
         return false;
@@ -1514,11 +1509,6 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override bool isScalar()
-    {
-        return (flags & (TFlags.integral | TFlags.floating)) != 0;
-    }
-
     // For eliminating dynamic_cast
     override TypeBasic isTypeBasic()
     {
@@ -1560,11 +1550,6 @@ extern (C++) final class TypeVector : Type
     override TypeVector syntaxCopy()
     {
         return new TypeVector(basetype.syntaxCopy());
-    }
-
-    override bool isScalar()
-    {
-        return basetype.nextOf().isScalar();
     }
 
     TypeBasic elementType()
@@ -1749,11 +1734,6 @@ extern (C++) final class TypePointer : TypeNext
         auto result = new TypePointer(t);
         result.mod = mod;
         return result;
-    }
-
-    override bool isScalar()
-    {
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2358,11 +2338,6 @@ extern (C++) final class TypeEnum : Type
     override TypeEnum syntaxCopy()
     {
         return this;
-    }
-
-    override bool isScalar()
-    {
-        return this.memType().isScalar();
     }
 
     override Type nextOf()
