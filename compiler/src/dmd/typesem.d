@@ -229,11 +229,6 @@ void check(Type _this)
             assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
         if (swcto)
             assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
-        break;
-
-    default:
-        assert(0);
-    }
 
     Type tn = _this.nextOf();
     if (tn && _this.ty != Tfunction && tn.ty != Tfunction && _this.ty != Tenum)
@@ -258,6 +253,141 @@ void check(Type _this)
         }
         tn.check();
     }
+}
+
+/**********************************
+ * For our new type '_this', which is type-constructed from t,
+ * fill in the cto, ito, sto, scto, wto shortcuts.
+ */
+void fixTo(Type _this, Type t)
+{
+    // If fixing this: immutable(T*) by t: immutable(T)*,
+    // cache t to this.xto won't break transitivity.
+    Type mto = null;
+    Type tn = _this.nextOf();
+    if (!tn || _this.ty != Tsarray && tn.mod == t.nextOf().mod)
+    {
+        switch (t.mod)
+        {
+        case 0:
+            mto = t;
+            break;
+
+        case MODFlags.const_:
+            _this.getMcache();
+            _this.mcache.cto = t;
+            break;
+
+        case MODFlags.wild:
+            _this.getMcache();
+            _this.mcache.wto = t;
+            break;
+
+        case MODFlags.wildconst:
+            _this.getMcache();
+            _this.mcache.wcto = t;
+            break;
+
+        case MODFlags.shared_:
+            _this.getMcache();
+            _this.mcache.sto = t;
+            break;
+
+        case MODFlags.shared_ | MODFlags.const_:
+            _this.getMcache();
+            _this.mcache.scto = t;
+            break;
+
+        case MODFlags.shared_ | MODFlags.wild:
+            _this.getMcache();
+            _this.mcache.swto = t;
+            break;
+
+        case MODFlags.shared_ | MODFlags.wildconst:
+            _this.getMcache();
+            _this.mcache.swcto = t;
+            break;
+
+        case MODFlags.immutable_:
+            _this.getMcache();
+            _this.mcache.ito = t;
+            break;
+
+        default:
+            break;
+        }
+    }
+    assert(_this.mod != t.mod);
+
+    if (_this.mod)
+    {
+        _this.getMcache();
+        t.getMcache();
+    }
+    switch (_this.mod)
+    {
+    case 0:
+        break;
+
+    case MODFlags.const_:
+        _this.mcache.cto = mto;
+        t.mcache.cto = _this;
+        break;
+
+    case MODFlags.wild:
+        _this.mcache.wto = mto;
+        t.mcache.wto = _this;
+        break;
+
+    case MODFlags.wildconst:
+        _this.mcache.wcto = mto;
+        t.mcache.wcto = _this;
+        break;
+
+    case MODFlags.shared_:
+        _this.mcache.sto = mto;
+        t.mcache.sto = _this;
+        break;
+
+    case MODFlags.shared_ | MODFlags.const_:
+        _this.mcache.scto = mto;
+        t.mcache.scto = _this;
+        break;
+
+    case MODFlags.shared_ | MODFlags.wild:
+        _this.mcache.swto = mto;
+        t.mcache.swto = _this;
+        break;
+
+    case MODFlags.shared_ | MODFlags.wildconst:
+        _this.mcache.swcto = mto;
+        t.mcache.swcto = _this;
+        break;
+
+    case MODFlags.immutable_:
+        t.mcache.ito = _this;
+        if (t.mcache.cto)
+            t.mcache.cto.getMcache().ito = _this;
+        if (t.mcache.sto)
+            t.mcache.sto.getMcache().ito = _this;
+        if (t.mcache.scto)
+            t.mcache.scto.getMcache().ito = _this;
+        if (t.mcache.wto)
+            t.mcache.wto.getMcache().ito = _this;
+        if (t.mcache.wcto)
+            t.mcache.wcto.getMcache().ito = _this;
+        if (t.mcache.swto)
+            t.mcache.swto.getMcache().ito = _this;
+        if (t.mcache.swcto)
+            t.mcache.swcto.getMcache().ito = _this;
+        break;
+
+    default:
+        assert(0);
+    }
+    _this.check();
+    t.check();
+    //printf("fixTo: %s, %s\n", toChars(), t.toChars());
 }
 
 void transitive(TypeNext _this)
@@ -333,6 +463,19 @@ bool needsNested(Type _this)
         return typeStructNeedsNested(ts);
     else if (auto te = _this.isTypeEnum())
         return te.memType().needsNested();
+    return false;
+}
+
+bool isScalar(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & (TFlags.integral | TFlags.floating)) != 0;
+    else if (auto tv = _this.isTypeVector())
+        return tv.basetype.nextOf().isScalar();
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isScalar();
+    else if (_this.isTypePointer())
+        return true;
     return false;
 }
 

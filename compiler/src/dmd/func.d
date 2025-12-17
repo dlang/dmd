@@ -332,8 +332,13 @@ extern (C++) class FuncDeclaration : Declaration
         /* The type given for "infer the return type" is a TypeFunction with
          * NULL for the return type.
          */
-        if (type && type.nextOf() is null)
-            this.inferRetType = true;
+        if (type)
+        {
+            if (auto tf = type.isTypeFunction())
+                this.inferRetType = tf.next is null;
+            else
+                assert(0); // unreachable
+        }
     }
 
     static FuncDeclaration create(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type, bool noreturn = false)

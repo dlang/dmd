@@ -640,11 +640,6 @@ extern (C++) abstract class Type : ASTNode
         return buf.extractChars();
     }
 
-    bool isScalar()
-    {
-        return false;
-    }
-
     bool isScopeClass()
     {
         return false;
@@ -714,142 +709,6 @@ extern (C++) abstract class Type : ASTNode
         if (t.ty == Tclass)
             (cast(TypeClass)t).att = AliasThisRec.fwdref;
         return t;
-    }
-
-    /**********************************
-     * For our new type 'this', which is type-constructed from t,
-     * fill in the cto, ito, sto, scto, wto shortcuts.
-     */
-    extern (D) final void fixTo(Type t)
-    {
-        // If fixing this: immutable(T*) by t: immutable(T)*,
-        // cache t to this.xto won't break transitivity.
-        Type mto = null;
-        Type tn = nextOf();
-        if (!tn || ty != Tsarray && tn.mod == t.nextOf().mod)
-        {
-            switch (t.mod)
-            {
-            case 0:
-                mto = t;
-                break;
-
-            case MODFlags.const_:
-                getMcache();
-                mcache.cto = t;
-                break;
-
-            case MODFlags.wild:
-                getMcache();
-                mcache.wto = t;
-                break;
-
-            case MODFlags.wildconst:
-                getMcache();
-                mcache.wcto = t;
-                break;
-
-            case MODFlags.shared_:
-                getMcache();
-                mcache.sto = t;
-                break;
-
-            case MODFlags.shared_ | MODFlags.const_:
-                getMcache();
-                mcache.scto = t;
-                break;
-
-            case MODFlags.shared_ | MODFlags.wild:
-                getMcache();
-                mcache.swto = t;
-                break;
-
-            case MODFlags.shared_ | MODFlags.wildconst:
-                getMcache();
-                mcache.swcto = t;
-                break;
-
-            case MODFlags.immutable_:
-                getMcache();
-                mcache.ito = t;
-                break;
-
-            default:
-                break;
-            }
-        }
-        assert(mod != t.mod);
-
-        if (mod)
-        {
-            getMcache();
-            t.getMcache();
-        }
-        switch (mod)
-        {
-        case 0:
-            break;
-
-        case MODFlags.const_:
-            mcache.cto = mto;
-            t.mcache.cto = this;
-            break;
-
-        case MODFlags.wild:
-            mcache.wto = mto;
-            t.mcache.wto = this;
-            break;
-
-        case MODFlags.wildconst:
-            mcache.wcto = mto;
-            t.mcache.wcto = this;
-            break;
-
-        case MODFlags.shared_:
-            mcache.sto = mto;
-            t.mcache.sto = this;
-            break;
-
-        case MODFlags.shared_ | MODFlags.const_:
-            mcache.scto = mto;
-            t.mcache.scto = this;
-            break;
-
-        case MODFlags.shared_ | MODFlags.wild:
-            mcache.swto = mto;
-            t.mcache.swto = this;
-            break;
-
-        case MODFlags.shared_ | MODFlags.wildconst:
-            mcache.swcto = mto;
-            t.mcache.swcto = this;
-            break;
-
-        case MODFlags.immutable_:
-            t.mcache.ito = this;
-            if (t.mcache.cto)
-                t.mcache.cto.getMcache().ito = this;
-            if (t.mcache.sto)
-                t.mcache.sto.getMcache().ito = this;
-            if (t.mcache.scto)
-                t.mcache.scto.getMcache().ito = this;
-            if (t.mcache.wto)
-                t.mcache.wto.getMcache().ito = this;
-            if (t.mcache.wcto)
-                t.mcache.wcto.getMcache().ito = this;
-            if (t.mcache.swto)
-                t.mcache.swto.getMcache().ito = this;
-            if (t.mcache.swcto)
-                t.mcache.swcto.getMcache().ito = this;
-            break;
-
-        default:
-            assert(0);
-        }
-
-        this.check();
-        t.check();
-        //printf("fixTo: %s, %s\n", toChars(), t.toChars());
     }
 
     /*************************************
@@ -1321,11 +1180,6 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override bool isScalar()
-    {
-        return (flags & (TFlags.integral | TFlags.floating)) != 0;
-    }
-
     // For eliminating dynamic_cast
     override TypeBasic isTypeBasic()
     {
@@ -1369,16 +1223,11 @@ extern (C++) final class TypeVector : Type
         return new TypeVector(basetype.syntaxCopy());
     }
 
-    override bool isScalar()
-    {
-        return basetype.nextOf().isScalar();
-    }
-
     TypeBasic elementType()
     {
         assert(basetype.ty == Tsarray);
         TypeSArray t = cast(TypeSArray)basetype;
-        TypeBasic tb = t.nextOf().isTypeBasic();
+        TypeBasic tb = t.next.isTypeBasic();
         assert(tb);
         return tb;
     }
@@ -1556,11 +1405,6 @@ extern (C++) final class TypePointer : TypeNext
         auto result = new TypePointer(t);
         result.mod = mod;
         return result;
-    }
-
-    override bool isScalar()
-    {
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2165,11 +2009,6 @@ extern (C++) final class TypeEnum : Type
     override TypeEnum syntaxCopy()
     {
         return this;
-    }
-
-    override bool isScalar()
-    {
-        return this.memType().isScalar();
     }
 
     override Type nextOf()

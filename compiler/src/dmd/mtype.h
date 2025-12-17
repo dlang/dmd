@@ -228,7 +228,6 @@ public:
     void modToBuffer(OutBuffer& buf) const;
     char *modToChars() const;
 
-    virtual bool isScalar();
     virtual bool isScopeClass();
 
     bool isConst() const       { return (mod & MODconst) != 0; }
@@ -309,7 +308,6 @@ public:
 
     const char *kind() override;
     TypeBasic *syntaxCopy() override;
-    bool isScalar() override;
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic() override;
@@ -324,7 +322,6 @@ public:
     static TypeVector *create(Type *basetype);
     const char *kind() override;
     TypeVector *syntaxCopy() override;
-    bool isScalar() override;
     TypeBasic *elementType();
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -378,7 +375,6 @@ public:
     static TypePointer *create(Type *t);
     const char *kind() override;
     TypePointer *syntaxCopy() override;
-    bool isScalar() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -632,7 +628,6 @@ public:
 
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
-    bool isScalar() override;
     Type *nextOf() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -768,6 +763,7 @@ namespace dmd
     unsigned char deduceWild(Type* type, Type* t, bool isRef);
     bool isIntegral(Type* type);
     bool isFloating(Type* type);
+    bool isScalar(Type* type);
     bool isReal(Type* type);
     bool isImaginary(Type* type);
     bool isComplex(Type* type);
