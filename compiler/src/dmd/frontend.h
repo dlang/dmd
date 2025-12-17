@@ -4458,7 +4458,7 @@ enum class PURE : uint8_t
 class TypeFunction final : public TypeNext
 {
 public:
-    Type _next; // next at initialization time of this class, which should not be changed after
+    Type *_next; // next at initialization time of this class, which should not be changed after
     ParameterList parameterList;
 private:
     struct BitFields final
