@@ -1815,7 +1815,7 @@ extern (C++) final class TypeFunction : TypeNext
 {
     // .next is the return type
 
-    Type _next; // next during the initialization of this class, which should not be changed
+    Type _retType; // treturn during the initialization of this class, which should not be changed
 
     ParameterList parameterList;   // function parameters
 
@@ -1857,7 +1857,7 @@ extern (C++) final class TypeFunction : TypeNext
         assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.max);
         this.parameterList = pl;
         this.linkage = linkage;
-        this._next = treturn;
+        this._retType = treturn;
 
         if (stc & STC.pure_)
             this.purity = PURE.fwdref;

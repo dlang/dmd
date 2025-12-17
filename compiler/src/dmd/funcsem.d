@@ -79,7 +79,7 @@ bool FdInferRetType(FuncDeclaration _this)
     if (_this.type)
     {
         if (auto tf = _this.type.isTypeFunction())
-            next = tf._next;
+            next = tf._retType;
         else
             next = _this.type.nextOf();
     }
