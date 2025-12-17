@@ -460,7 +460,7 @@ class TypeFunction final : public TypeNext
 {
 public:
     // .next is the return type
-
+    Type _next; // next at initialization time of this class, which should not be changed after
     ParameterList parameterList; // function parameters
     uint16_t bitFields;
     LINK linkage;                // calling convention
