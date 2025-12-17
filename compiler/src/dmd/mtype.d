@@ -1571,7 +1571,7 @@ extern (C++) final class TypeVector : Type
     {
         assert(basetype.ty == Tsarray);
         TypeSArray t = cast(TypeSArray)basetype;
-        TypeBasic tb = t.nextOf().isTypeBasic();
+        TypeBasic tb = t.next.isTypeBasic();
         assert(tb);
         return tb;
     }
