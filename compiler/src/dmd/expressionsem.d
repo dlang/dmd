@@ -5306,16 +5306,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         if (!e.type)
             e.type = Type.tfloat64;
-        else if (!e.type.isImaginary || !sc.inCfile)
-        {
-            e.type = e.type.typeSemantic(e.loc, sc);
-            result = e;
-            return;
-        }
+
+        e.type = e.type.typeSemantic(e.loc, sc);
+        result = e;
+        return;
 
         /* Convert to core.stdc.config.complex
+         * exempt C from this
          */
-        Type t = getComplexLibraryType(e.loc, sc, e.type.ty);
+        /*Type t = getComplexLibraryType(e.loc, sc, e.type.ty);
         if (t.ty == Terror)
             return setError();
 
@@ -5331,12 +5330,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         /* Construct ts{re : 0.0, im : e}
          */
-        TypeStruct ts = t.isTypeStruct;
+        /*TypeStruct ts = t.isTypeStruct;
         Expressions* elements = new Expressions(2);
         (*elements)[0] = new RealExp(e.loc,    CTFloat.zero, tf);
         (*elements)[1] = new RealExp(e.loc, e.toImaginary(), tf);
         Expression sle = new StructLiteralExp(e.loc, ts.sym, elements);
-        result = sle.expressionSemantic(sc);
+        result = sle.expressionSemantic(sc);*/
     }
 
     override void visit(ComplexExp e)
