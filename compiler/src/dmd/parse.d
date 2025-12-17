@@ -150,7 +150,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 error("module edition %lld must be in the range %d ... %d", edition, Edition.min, Edition.max);
                 edition = edition.min;
             }
-            mod.edition = cast(Edition)edition;
+            // ModuleDeclaration edition can't lower -edition flag's edition
+            if (edition > mod.edition)
+                mod.edition = cast(Edition)edition;
             nextToken();
         }
 
