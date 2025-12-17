@@ -957,7 +957,7 @@ public:
         s->getRelatedLabeled()->accept(this);
         s->condition->accept(this);
         Type *condtype = s->condition->type->toBasetype();
-        if (!condtype->isScalar())
+        if (!dmd::isScalar(condtype))
             assert(0);
         if (s->cases)
         {
@@ -975,7 +975,7 @@ public:
     void visit(CaseStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
-        if (s->exp->type->isScalar())
+        if (dmd::isScalar(s->exp->type))
             s->exp->accept(this);
         else
             (void)s->index;
@@ -1549,7 +1549,7 @@ public:
         }
         if (!d->canTakeAddressOf())
         {
-            if (!d->type->isScalar())
+            if (!dmd::isScalar(d->type))
                 visitDeclaration(d);
         }
         else if (d->isDataseg() && !(d->storage_class & STCextern))
