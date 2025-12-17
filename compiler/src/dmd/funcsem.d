@@ -67,7 +67,6 @@ import dmd.typesem;
 import dmd.visitor;
 import dmd.visitor.statement_rewrite_walker;
 
-
 bool FdInferRetType(FuncDeclaration _this)
 {
     if (_this.isSetInferRetType)
@@ -76,7 +75,15 @@ bool FdInferRetType(FuncDeclaration _this)
     /* The type given for "infer the return type" is a TypeFunction with
      * NULL for the return type.
      */
-    _this.inferRetType = _this.type && _this.type.nextOf() is null;
+    Type next = null;
+    if (_this.type)
+    {
+        if (auto tf = _this.type.isTypeFunction())
+            next = tf._next;
+        else
+            next = _this.type.nextOf();
+    }
+    _this.inferRetType = _this.type && next is null;
     _this.isSetInferRetType = true;
     return _this.inferRetType;
 }
