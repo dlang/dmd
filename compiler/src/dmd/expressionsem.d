@@ -535,8 +535,95 @@ Optional!bool toBool(Expression _this)
         case EXP.slice: return _this.isSliceExp().e1.toBool();
         case EXP.comma: return _this.isCommaExp().e2.toBool();
         // Statically evaluate this expression to a `bool` if possible
-        // Returns: an optional thath either contains the value or is empty
+        // Returns: an optional that either contains the value or is empty
         default: return typeof(return)();
+    }
+}
+
+/****************************************
+ * Check that the expression `e` has a valid type.
+ * If not, generates an error "... has no type".
+ * Params:
+ *	e = Expression to check
+ * Returns:
+ *      true if the expression has a valid type.
+ * Note:
+ *      When this function returns false, `checkValue()` should also return true.
+ */
+bool hasValidType(Expression e)
+{
+    static bool visitTypeExp(TypeExp e)
+    {
+        error(e.loc, "type `%s` is not an expression", e.toChars());
+        return false;
+    }
+
+    static bool visitScopeExp(ScopeExp e)
+    {
+        if (e.sds.isPackage())
+        {
+            error(e.loc, "%s `%s` has no type", e.sds.kind(), e.sds.toChars());
+            return false;
+        }
+        auto ti = e.sds.isTemplateInstance();
+        if (!ti)
+            return true;
+        //assert(ti.needsTypeInference(sc));
+        if (ti.tempdecl &&
+            ti.semantictiargsdone &&
+            ti.semanticRun == PASS.initial)
+        {
+            error(e.loc, "partial %s `%s` has no type", e.sds.kind(), e.toChars());
+            return false;
+        }
+        return true;
+    }
+
+    static bool visitTemplateExp(TemplateExp e)
+    {
+        error(e.loc, "%s `%s` has no type", e.td.kind(), e.toChars());
+        return false;
+    }
+
+    static bool visitFuncExp(FuncExp e)
+    {
+        if (e.td)
+        {
+            error(e.loc, "template lambda has no type");
+            return false;
+        }
+        return true;
+    }
+
+    static bool visitDotTemplateExp(DotTemplateExp e)
+    {
+        error(e.loc, "%s `%s` has no type", e.td.kind(), e.toChars());
+        return false;
+    }
+
+    static bool visitDotTemplateInstanceExp(DotTemplateInstanceExp e)
+    {
+        // Same logic as ScopeExp.hasValidType()
+        if (e.ti.tempdecl &&
+            e.ti.semantictiargsdone &&
+            e.ti.semanticRun == PASS.initial)
+        {
+            error(e.loc, "partial %s `%s` has no type", e.ti.kind(), e.toChars());
+            return false;
+        }
+        return true;
+    }
+
+    switch (e.op)
+    {
+	case EXP.type:                   return visitTypeExp(e.isTypeExp());
+	case EXP.scope_:                 return visitScopeExp(e.isScopeExp());
+	case EXP.template_:              return visitTemplateExp(e.isTemplateExp());
+	case EXP.function_:              return visitFuncExp(e.isFuncExp());
+	case EXP.dotTemplateDeclaration: return visitDotTemplateExp(e.isDotTemplateExp());
+	case EXP.dotTemplateInstance:    return visitDotTemplateInstanceExp(e.isDotTemplateInstanceExp());
+
+        default: return true;
     }
 }
 

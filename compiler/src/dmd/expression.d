@@ -293,19 +293,6 @@ extern (C++) abstract class Expression : ASTNode
         return a;
     }
 
-    /****************************************
-     * Check that the expression has a valid type.
-     * If not, generates an error "... has no type".
-     * Returns:
-     *      true if the expression has a valid type.
-     * Note:
-     *      When this function returns false, `checkValue()` should also return true.
-     */
-    bool hasValidType()
-    {
-        return true;
-    }
-
     /******************************
      * If this is a reference, dereference it.
      */
@@ -1564,12 +1551,6 @@ extern (C++) final class TypeExp : Expression
         return new TypeExp(loc, type.syntaxCopy());
     }
 
-    override bool hasValidType()
-    {
-        error(loc, "type `%s` is not an expression", toChars());
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1602,27 +1583,6 @@ extern (C++) final class ScopeExp : Expression
         return new ScopeExp(loc, sds.syntaxCopy(null));
     }
 
-    override bool hasValidType()
-    {
-        if (sds.isPackage())
-        {
-            error(loc, "%s `%s` has no type", sds.kind(), sds.toChars());
-            return false;
-        }
-        auto ti = sds.isTemplateInstance();
-        if (!ti)
-            return true;
-        //assert(ti.needsTypeInference(sc));
-        if (ti.tempdecl &&
-            ti.semantictiargsdone &&
-            ti.semanticRun == PASS.initial)
-        {
-            error(loc, "partial %s `%s` has no type", sds.kind(), toChars());
-            return false;
-        }
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1643,12 +1603,6 @@ extern (C++) final class TemplateExp : Expression
         //printf("TemplateExp(): %s\n", td.toChars());
         this.td = td;
         this.fd = fd;
-    }
-
-    override bool hasValidType()
-    {
-        error(loc, "%s `%s` has no type", td.kind(), toChars());
-        return false;
     }
 
     override void accept(Visitor v)
@@ -1872,16 +1826,6 @@ extern (C++) final class FuncExp : Expression
         // https://issues.dlang.org/show_bug.cgi?id=13481
         // Prevent multiple semantic analysis of lambda body.
         return new FuncExp(loc, fd);
-    }
-
-    override bool hasValidType()
-    {
-        if (td)
-        {
-            error(loc, "template lambda has no type");
-            return false;
-        }
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2274,12 +2218,6 @@ extern (C++) final class DotTemplateExp : UnaExp
         this.td = td;
     }
 
-    override bool hasValidType()
-    {
-        error(loc, "%s `%s` has no type", td.kind(), toChars());
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2332,19 +2270,6 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
     override DotTemplateInstanceExp syntaxCopy()
     {
         return new DotTemplateInstanceExp(loc, e1.syntaxCopy(), ti.name, TemplateInstance.arraySyntaxCopy(ti.tiargs));
-    }
-
-    override bool hasValidType()
-    {
-        // Same logic as ScopeExp.hasValidType()
-        if (ti.tempdecl &&
-            ti.semantictiargsdone &&
-            ti.semanticRun == PASS.initial)
-        {
-            error(loc, "partial %s `%s` has no type", ti.kind(), toChars());
-            return false;
-        }
-        return true;
     }
 
     override void accept(Visitor v)
