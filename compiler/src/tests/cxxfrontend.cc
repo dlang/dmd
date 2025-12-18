@@ -1005,7 +1005,7 @@ public:
         if (s->exp == NULL || s->exp->type->toBasetype()->ty == TY::Tvoid)
             return;
         TypeFunction *tf = func->type->toTypeFunction();
-        Type *type = func->tintro != NULL ? func->tintro->nextOf() : tf->nextOf();
+        Type *type = func->tintro != NULL ? dmd::nextOf(func->tintro) : dmd::nextOf(tf);
         if ((func->isMain() || func->isCMain()) && type->toBasetype()->ty == TY::Tvoid)
             type = Type::tint32;
         if (func->shidden)
@@ -1254,9 +1254,9 @@ public:
     {
         if (!func || !func->isAuto())
             return;
-        Type *tb = func->type->nextOf()->baseElemOf();
+        Type *tb = dmd::nextOf(func->type)->baseElemOf();
         while (tb->ty == TY::Tarray || tb->ty == TY::Tpointer)
-            tb = tb->nextOf()->baseElemOf();
+            tb = dmd::nextOf(tb)->baseElemOf();
         TemplateInstance *ti = NULL;
         if (tb->ty == TY::Tstruct)
             ti = tb->isTypeStruct()->sym->isInstantiated();
@@ -1481,7 +1481,7 @@ public:
             (void)fd->isGenerated();
             (void)fd->ident;
             (void)fd->storage_class;
-            (void)fd->type->nextOf()->isTypeNoreturn();
+            (void)dmd::nextOf(fd->type)->isTypeNoreturn();
         }
         else
         {
