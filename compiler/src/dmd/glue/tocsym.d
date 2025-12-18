@@ -50,7 +50,7 @@ import dmd.mtype;
 import dmd.safe : isSafe;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : size, alignment, alignsize;
+import dmd.typesem;
 import dmd.visitor;
 
 import dmd.backend.cdef;

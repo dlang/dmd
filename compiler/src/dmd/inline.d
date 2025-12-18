@@ -46,7 +46,7 @@ import dmd.opover;
 import dmd.printast;
 import dmd.statement;
 import dmd.tokens;
-import dmd.typesem : pointerTo, sarrayOf;
+import dmd.typesem : pointerTo, sarrayOf, nextOf;
 import dmd.visitor;
 import dmd.visitor.postorder;
 import dmd.inlinecost;
