@@ -19,6 +19,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.backend.barray;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
@@ -884,14 +885,14 @@ private void out_regcand_walk(elem* e, ref bool addressOfParam)
 @trusted
 void writefunc(Symbol* sfunc)
 {
-    import dmd.backend.var : go;
+    import dmd.backend.var : go, bo;
     cstate.CSpsymtab = &globsym;
-    writefunc2(sfunc, go);
+    writefunc2(sfunc, go, bo);
     cstate.CSpsymtab = null;
 }
 
 @trusted
-private void writefunc2(Symbol* sfunc, ref GlobalOptimizer go)
+private void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
 {
     func_t* f = sfunc.Sfunc;
 
@@ -1021,8 +1022,8 @@ private void writefunc2(Symbol* sfunc, ref GlobalOptimizer go)
                 s.Sflags &= ~(SFLunambig | GTregcand);
     }
 
-    block_pred();                       // compute predecessors to blocks
-    block_compbcount(go);               // eliminate unreachable blocks
+    block_pred(bo);                       // compute predecessors to blocks
+    block_compbcount(go, bo);               // eliminate unreachable blocks
 
     debug { } else
     {
@@ -1035,13 +1036,13 @@ private void writefunc2(Symbol* sfunc, ref GlobalOptimizer go)
     if (go.mfoptim)
     {
         OPTIMIZER = 1;
-        optfunc(go);                    /* optimize function            */
+        optfunc(go, bo);                    /* optimize function            */
         OPTIMIZER = 0;
     }
     else
     {
         //printf("blockopt()\n");
-        blockopt(go, 0);                /* optimize                     */
+        blockopt(go, bo, 0);                /* optimize                     */
     }
 
     assert(funcsym_p == sfunc);
@@ -1076,7 +1077,7 @@ private void writefunc2(Symbol* sfunc, ref GlobalOptimizer go)
     else
     {
         sfunc.Sfunc.Fstartblock = null;
-        blocklist_free(&bo.startblock);
+        blocklist_free(bo, &bo.startblock);
     }
 
     objmod.func_term(sfunc);

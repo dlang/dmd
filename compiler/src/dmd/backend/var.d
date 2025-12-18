@@ -20,6 +20,7 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.dlist;
 import dmd.backend.goh;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.symtab;
@@ -168,6 +169,7 @@ Cstate cstate;                  // compiler state
 uint numcse;        // number of common subexpressions
 
 GlobalOptimizer go;
+BlockOpt bo;
 
 /* From debug.c */
 const(char)*[32] regstring = ["AX","CX","DX","BX","SP","BP","SI","DI",
