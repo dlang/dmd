@@ -18,6 +18,7 @@ import core.stdc.stdlib;
 import core.stdc.time;
 
 import dmd.backend.cc;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.global;
@@ -129,9 +130,9 @@ private __gshared
  */
 
 @trusted
-void constprop(ref GlobalOptimizer go)
+void constprop(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    rd_compute(go, eqrelinc);
+    rd_compute(go, bo, eqrelinc);
     intranges(go, eqrelinc.rellist, eqrelinc.inclist);        // compute integer ranges
     eqeqranges(eqrelinc.eqeqlist);       // see if we can eliminate some relationals
 
@@ -144,15 +145,15 @@ void constprop(ref GlobalOptimizer go)
  */
 
 @trusted
-private void rd_compute(ref GlobalOptimizer go, ref EqRelInc eqrelinc)
+private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eqrelinc)
 {
     if (debugc) printf("constprop()\n");
     assert(bo.dfo);
-    flowrd(go);               /* compute reaching definitions (rd)    */
+    flowrd(go, bo);           /* compute reaching definitions (rd)    */
     if (go.defnod.length == 0)     /* if no reaching defs                  */
         return;
     assert(eqrelinc.rellist.length == 0 && eqrelinc.inclist.length == 0 && eqrelinc.eqeqlist.length == 0);
-    block_clearvisit();
+    block_clearvisit(bo);
     foreach (b; bo.dfo[])    // for each block
     {
         switch (b.bc)
@@ -832,7 +833,7 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
             // ib:      block of increment
             // rb:      block of relational
             i = loopcheck(ib,ib,rb);
-            block_clearvisit();
+            block_clearvisit(bo);
             if (i)
                 continue;
         }
@@ -950,7 +951,7 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
     if (!(sytab[v.Sclass] & SCRD))
         return false;
 
-    rd_compute(go, eqrelinc);     // compute rellist, inclist, eqeqlist
+    rd_compute(go, bo, eqrelinc);     // compute rellist, inclist, eqeqlist
 
     /* Find `erel` in `rellist`
      */
@@ -1036,7 +1037,7 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
      * rel.pblock = block of relational
      */
     int i = loopcheck(iel.pblock,iel.pblock,rel.pblock);
-    block_clearvisit();
+    block_clearvisit(bo);
     if (i)
     {
         if (log) printf("\tnot loopcheck()\n");
@@ -1074,7 +1075,7 @@ private int loopcheck(block* start,block* inc,block* rel)
 
 
 @trusted
-public void copyprop(ref GlobalOptimizer go)
+public void copyprop(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     out_regcand(&globsym);
     if (debugc) printf("copyprop()\n");
@@ -1083,7 +1084,7 @@ public void copyprop(ref GlobalOptimizer go)
 Louter:
     while (1)
     {
-        flowcp(go);               /* compute available copy statements    */
+        flowcp(go, bo);           /* compute available copy statements    */
         if (go.exptop <= 1)
             return;             // none available
         static if (0)
@@ -1370,10 +1371,10 @@ private __gshared
 }
 
 @trusted
-public void rmdeadass(ref GlobalOptimizer go)
+public void rmdeadass(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     if (debugc) printf("rmdeadass()\n");
-    flowlv();                       /* compute live variables       */
+    flowlv(bo);                     /* compute live variables       */
     foreach (b; bo.dfo[])         // for each block b
     {
         if (!b.Belem)          /* if no elems at all           */
@@ -1801,7 +1802,7 @@ public void deadvar()
 
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
-        flowlv();                       /* compute live variables       */
+        flowlv(bo);                       /* compute live variables       */
         foreach (i, s; globsym[])
         {
             if (s.Srange /*&& s.Sclass != CLMOS*/)
@@ -1867,19 +1868,19 @@ private void dvwalk(elem* n,uint i)
 private __gshared vec_t blockseen; /* which blocks we have visited         */
 
 @trusted
-public void verybusyexp(ref GlobalOptimizer go)
+public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     elem** pn;
 
     if (debugc) printf("verybusyexp()\n");
-    flowvbe(go);                      /* compute VBEs                 */
+    flowvbe(go, bo);                  /* compute VBEs                 */
     if (go.exptop <= 1) return;        /* if no VBEs                   */
     assert(go.expblk.length);
-    if (blockinit())
+    if (blockinit(bo))
         return;                     // can't handle ASM blocks
-    compdom();                      /* compute dominators           */
+    compdom(bo);                    /* compute dominators           */
     /*setvecdim(go.exptop);*/
-    genkillae(go);                  /* compute Bgen and Bkill for   */
+    genkillae(go, bo);              /* compute Bgen and Bkill for   */
                                     /* AEs                          */
     /*chkvecdim(go.exptop,0);*/
     blockseen = vec_calloc(bo.dfo.length);
@@ -1936,7 +1937,7 @@ public void verybusyexp(ref GlobalOptimizer go)
         {
             if (go.expnod[j] == null ||
                 !!OTleaf(go.expnod[j].Eoper) ||
-                !dom(b,go.expblk[j]))
+                !dom(bo, b,go.expblk[j]))
                 vec_clearbit(j,b.Bout);
             else
                 done = false;
