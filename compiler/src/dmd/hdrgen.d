@@ -3200,7 +3200,7 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
         default:
             break;
         }
-        if (t.isImaginary())
+        if (t.isImaginaryNonSemantic())
             buf.put('i');
     }
 }

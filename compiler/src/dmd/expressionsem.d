@@ -100,6 +100,40 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
+/*******************************
+ * Merge results of `ctorflow` into `_this`.
+ * Params:
+ *   _this = scope to merge the results into
+ *   loc = for error messages
+ *   ctorflow = flow results to merge in
+ */
+void merge(Scope* _this, Loc loc, const ref CtorFlow ctorflow)
+{
+    if (!mergeCallSuper(_this.ctorflow.callSuper, ctorflow.callSuper))
+        error(loc, "one path skips constructor");
+
+    const fies = ctorflow.fieldinit;
+    if (!_this.ctorflow.fieldinit.length || !fies.length)
+        return;
+    FuncDeclaration f = _this.func;
+    if (_this.fes)
+        f = _this.fes.func;
+    auto ad = f.isMemberDecl();
+    assert(ad);
+    foreach (i, v; ad.fields)
+    {
+        bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
+        auto fieldInit = &_this.ctorflow.fieldinit[i];
+        const fiesCurrent = fies[i];
+        if (fieldInit.loc is Loc.init)
+            fieldInit.loc = fiesCurrent.loc;
+        if (!mergeFieldInit(_this.ctorflow.fieldinit[i].csx, fiesCurrent.csx) && mustInit)
+        {
+            error(loc, "one path skips field `%s`", v.toChars());
+        }
+    }
+}
+
 real_t toImaginary(Expression _this)
 {
     if (auto ie = _this.isIntegerExp())
@@ -745,10 +779,22 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
         return tf && !tf.isRef;
     }
 
+    static bool visitDotVarExp(DotVarExp e)
+    {
+        auto vd = e.var.isVarDeclaration();
+        if (!vd || !vd.isField())
+            return false;
+
+        auto sd = vd.type.isTypeStruct();
+        if (!sd || sd.needsCopyOrPostblit() || sd.sym.hasMoveCtor)
+            return false;
+
+        // If an aggregate can be elided, so are its fields
+        return canElideCopy(e.e1, e.e1.type, false);
+    }
+
     switch (e.op)
     {
-        case EXP.call:
-            return visitCallExp(e.isCallExp());
         case EXP.comma:
             auto ce = e.isCommaExp();
             return canElideCopy(ce.e2, to, checkMod);
@@ -756,13 +802,13 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
             auto ce = e.isCondExp();
             return canElideCopy(ce.e1, to, checkMod) && canElideCopy(ce.e2, to, checkMod);
 
-        case EXP.structLiteral:
-            return true;
+        case EXP.call:
+            return visitCallExp(e.isCallExp());
         case EXP.dotVariable:
-            // If an aggregate can be elided, so are its fields
-            auto dve = e.isDotVarExp();
-            auto vd = dve.var.isVarDeclaration();
-            return vd && vd.isField() && canElideCopy(dve.e1, dve.e1.type, false);
+            return visitDotVarExp(e.isDotVarExp());
+        case EXP.structLiteral:
+            auto sle = e.isStructLiteralExp();
+            return !(checkMod && sle.useStaticInit && to.isMutable());
         case EXP.variable:
             return (e.isVarExp().var.storage_class & STC.rvalue) != 0;
         default:
@@ -1881,7 +1927,7 @@ extern (D) Expression doCopyOrMove(Scope* sc, Expression e, Type t, bool nrvo, b
         VarDeclaration vd = new VarDeclaration(e.loc, e.type, Identifier.generateId("__copyrvalue"), null);
         if (nrvo)
             vd.nrvo = true;
-        vd.storage_class |= STC.nodtor;
+        vd.storage_class |= STC.temp | STC.rvalue | STC.nodtor;
         vd.dsymbolSemantic(sc);
         Expression de = new DeclarationExp(e.loc, vd);
         Expression ve = new VarExp(e.loc, vd);
@@ -3262,12 +3308,18 @@ private bool checkImpure(Scope* sc, Loc loc, const(char)* fmt, RootObject arg0)
 
 /*********************************************
  * Calling function f.
- * Check the safety, i.e. if we're in a @safe function
+ * Check the safety, i.e. if we are in a @safe function
  * we can only call @safe or @trusted functions.
- * Returns true if error occurs.
+ * Params:
+ *      f = function being called
+ *      loc = location for error messages
+ *      sc = context
+ *      arguments = array of actual arguments to function call, null for none
+ * Returns: true if unsafe (and diagnostic is generated)
  */
-private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc)
+private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions* arguments)
 {
+    //printf("checkSafety() %s\n", f.toChars());
     if (sc.func == f)
         return false;
     if (sc.intypeof == 1)
@@ -3294,6 +3346,23 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc)
             }
         }
         return false;
+    }
+
+    if (f.printf)
+    {
+        TypeFunction tf = f.type.isTypeFunction();
+        assert(tf);
+        const isVa_list = tf.parameterList.varargs == VarArg.none;
+        const nparams = tf.parameterList.length;
+        const nargs = arguments ? arguments.length : 0;
+        if (nparams == 1 && nargs)
+        {
+            if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
+            {
+                if (isFormatSafe(se.peekString()))
+                    return false;
+            }
+        }
     }
 
     if (!f.isSafe() && !f.isTrusted())
@@ -3419,7 +3488,7 @@ private bool checkPostblit(Type t, ref Loc loc, Scope* sc)
     //checkAccess(sd, loc, sc, sd.postblit);   // necessary?
     bool result = false;
     result |= sd.postblit.checkPurity(loc, sc);
-    result |= sd.postblit.checkSafety(loc, sc);
+    result |= sd.postblit.checkSafety(loc, sc, null);
     result |= sd.postblit.checkNogc(loc, sc);
     return result;
 }
@@ -3994,7 +4063,7 @@ private bool checkDefCtor(Loc loc, Type t)
  */
 private bool functionParameters(Loc loc, Scope* sc,
     TypeFunction tf, Expression ethis, Type tthis, ArgumentList argumentList, FuncDeclaration fd,
-    Type* prettype, Expression* peprefix)
+    out Type prettype, out Expression peprefix)
 {
     Expressions* arguments = argumentList.arguments;
     //printf("functionParameters() fd: %s tf: %s\n", fd ? fd.ident.toChars() : "", toChars(tf));
@@ -4004,7 +4073,6 @@ private bool functionParameters(Loc loc, Scope* sc,
     const olderrors = global.errors;
     bool err = false;
     Expression eprefix = null;
-    *peprefix = null;
 
     if (argumentList.names)
     {
@@ -4067,7 +4135,7 @@ private bool functionParameters(Loc loc, Scope* sc,
      * Start with the `this` argument, later on merge into wildmatch the mod bits of the rest
      * of the arguments.
      */
-    MOD wildmatch = (tthis && !isCtorCall) ? tthis.Type.deduceWild(tf, false) : 0;
+    MOD wildmatch = (tthis && !isCtorCall) ? tthis.typeDeduceWild(tf, false) : 0;
 
     bool done = false;
     foreach (const i; 0 .. n)
@@ -4790,8 +4858,8 @@ private bool functionParameters(Loc loc, Scope* sc,
         tret = tret.substWildTo(wildmatch);
     }
 
-    *prettype = tret;
-    *peprefix = eprefix;
+    prettype = tret;
+    peprefix = eprefix;
     return (err || olderrors != global.errors);
 }
 
@@ -6370,13 +6438,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(p.loc, "PlacementExpression `%s` is an rvalue, but must be an lvalue", p.toChars());
                 return setError();
             }
-            if (sc.setUnsafe(false, p.loc, "`@safe` function `%s` cannot use placement `new`", sc.func))
+            if (sc.setUnsafe(false, p.loc, "placement `new`", sc.func))
             {
                 return setError();
             }
-            if (!exp.placement.type.isNaked)
+            if (!p.type.isNaked)
             {
-                error(p.loc, "PlacementExpression `%s` of type `%s` be unshared and mutable", p.toChars(), toChars(p.type));
+                error(p.loc, "PlacementExpression `%s` of type `%s` must be unshared and mutable", p.toChars(), toChars(p.type));
+                return setError();
+            }
+            if (p.type.ty == Tarray)
+            {
+                error(p.loc, "PlacementExpression cannot be a dynamic array");
                 return setError();
             }
             checkModifiable(exp.placement, sc);
@@ -6649,7 +6722,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 TypeFunction tf = f.type.isTypeFunction();
                 if (!exp.arguments)
                     exp.arguments = new Expressions();
-                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, &exp.type, &exp.argprefix))
+                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, exp.type, exp.argprefix))
                     return setError();
 
                 exp.member = f.isCtorDeclaration();
@@ -6764,7 +6837,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 TypeFunction tf = f.type.isTypeFunction();
                 if (!exp.arguments)
                     exp.arguments = new Expressions();
-                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, &exp.type, &exp.argprefix))
+                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, exp.type, exp.argprefix))
                     return setError();
 
                 exp.member = f.isCtorDeclaration();
@@ -7213,7 +7286,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         //printf("td = %p, treq = %p\n", td, fd.treq);
         if (exp.td)
         {
-            assert(exp.td.parameters && exp.td.parameters.length);
+            assert(exp.td.parameters);
             exp.td.dsymbolSemantic(sc);
             exp.type = Type.tvoid; // temporary type
 
@@ -8221,7 +8294,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.f)
             {
                 exp.f.checkPurity(exp.loc, sc);
-                exp.f.checkSafety(exp.loc, sc);
+                exp.f.checkSafety(exp.loc, sc, exp.arguments);
                 exp.f.checkNogc(exp.loc, sc);
                 if (exp.f.checkNestedFuncReference(sc, exp.loc))
                     return setError();
@@ -8359,7 +8432,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression argprefix;
         if (!exp.arguments)
             exp.arguments = new Expressions();
-        if (functionParameters(exp.loc, sc, cast(TypeFunction)t1, ethis, tthis, exp.argumentList, exp.f, &exp.type, &argprefix))
+        if (functionParameters(exp.loc, sc, cast(TypeFunction)t1, ethis, tthis, exp.argumentList, exp.f, exp.type, argprefix))
             return setError();
 
         if (!exp.type)
@@ -10519,7 +10592,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             err |= !functionSemantic(cd.dtor);
             err |= cd.dtor.checkPurity(exp.loc, sc);
-            err |= cd.dtor.checkSafety(exp.loc, sc);
+            err |= cd.dtor.checkSafety(exp.loc, sc, null);
             err |= cd.dtor.checkNogc(exp.loc, sc);
         }
         if (err)
@@ -10611,7 +10684,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e1x;
             return;
         }
-        if (e1x.checkType())
+        if (!e1x.hasValidType())
             return setError();
         exp.e1 = e1x;
 
@@ -11519,7 +11592,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  * https://issues.dlang.org/show_bug.cgi?id=2684
                  * see also bug https://issues.dlang.org/show_bug.cgi?id=2954 b
                  */
-                if (!arrayTypeCompatibleWithoutCasting(exp.e2.type, taa.index))
+                if (!keyCompatibleWithoutCasting(exp.e2, taa.index))
                 {
                     exp.e2 = exp.e2.implicitCastTo(sc, taa.index); // type checking
                     if (exp.e2.type == Type.terror)
@@ -14617,7 +14690,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 TypeAArray ta = cast(TypeAArray)t2b;
 
                 // Special handling for array keys
-                if (!arrayTypeCompatibleWithoutCasting(exp.e1.type, ta.index))
+                if (!keyCompatibleWithoutCasting(exp.e1, ta.index))
                 {
                     // Convert key to type of key
                     exp.e1 = exp.e1.implicitCastTo(sc, ta.index);
@@ -16172,6 +16245,8 @@ Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, bool g
 
 MATCH matchType(FuncExp funcExp, Type to, Scope* sc, FuncExp* presult, ErrorSink eSink)
 {
+    import dmd.typesem : merge;
+
     auto loc = funcExp.loc;
     auto tok = funcExp.tok;
     auto td = funcExp.td;
@@ -17698,7 +17773,7 @@ private bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
             "taking the address of local variable `%s`" :
             "taking the address of stack-allocated local variable `%s`";
         if (sc.useDIP1000 != FeatureState.enabled &&
-            !(v.storage_class & STC.temp) &&
+            (!(v.storage_class & STC.temp) || v.storage_class & STC.result) &&
             sc.setUnsafe(false, exp.loc, msg.ptr, v))
         {
             return false;
@@ -17776,7 +17851,7 @@ bool checkAddressable(Expression e, Scope* sc, const(char)* action)
  * and usage of `deprecated` and `@disabled`-ed symbols are checked.
  *
  * Params:
- *  exp = expression to check attributes for
+ *  exp = expression to check attributes for (CallExp or NewExp)
  *  sc  = scope of the function
  *  f   = function to be checked
  * Returns: `true` if error occur.
@@ -17786,7 +17861,8 @@ private bool checkFunctionAttributes(Expression exp, Scope* sc, FuncDeclaration 
     bool error = f.checkDisabled(exp.loc, sc);
     error |= f.checkDeprecated(exp.loc, sc);
     error |= f.checkPurity(exp.loc, sc);
-    error |= f.checkSafety(exp.loc, sc);
+    Expressions* arguments = exp.isCallExp() ? exp.isCallExp().arguments : null;
+    error |= f.checkSafety(exp.loc, sc, arguments);
     error |= f.checkNogc(exp.loc, sc);
     return error;
 }
@@ -17999,11 +18075,17 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
-                typeb.isStaticOrDynamicArray() && tynto.isSomeChar &&
-                se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
+                typeb.isStaticOrDynamicArray() && tynto.isSomeChar)
             {
-                e = se.castTo(sc, t);
-                goto L1;
+                string s;
+                size_t len = se.numberOfCodeUnits(tynto, s);
+                if (s)
+                    error(se.loc, "%.*s", cast(int)s.length, s.ptr);
+                if (len < (cast(TypeSArray)tb).dim.toInteger())
+                {
+                    e = se.castTo(sc, t);
+                    goto L1;
+                }
             }
         }
 
@@ -19683,7 +19765,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
     foreach (ekey; ekeys)
     {
         Type tidx = ekey.type.toBasetype();
-        if (tidx.ty == Tarray && tidx.nextOf().isMutable())
+        if (tidx.ty == Tarray && tidx.nextOf().isMutable() && !ekey.isArrayLiteralExp())
         {
             error(loc, "associative arrays can only be assigned values with immutable keys, not `%s`", tidx.toChars());
             return ErrorExp.get();

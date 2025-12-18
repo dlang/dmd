@@ -684,32 +684,6 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
     {
         v.visit(this);
     }
-
-    /***********************************
-     * Retrieve the .min or .max values.
-     * Only valid after semantic analysis.
-     * Params:
-     *  id = Id.min or Id.max
-     * Returns:
-     *  the min or max value
-     */
-    final ulong getMinMax(Identifier id)
-    {
-        const width = fieldWidth;
-        const uns = type.isUnsigned();
-        const min = id == Id.min;
-        ulong v;
-        assert(width != 0);  // should have been rejected in semantic pass
-        if (width == ulong.sizeof * 8)
-            v = uns ? (min ? ulong.min : ulong.max)
-                    : (min ?  long.min :  long.max);
-        else
-            v = uns ? (min ? 0
-                           : (1L << width) - 1)
-                    : (min ? -(1L << (width - 1))
-                           :  (1L << (width - 1)) - 1);
-        return v;
-    }
 }
 
 /***********************************************************
@@ -949,8 +923,8 @@ extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
 extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
 {
     Type entry; // type of TypeInfo_AssociativeArray.Entry!(t.index, t.next)
-    Dsymbol xopEqual; // implementation of TypeInfo_AssociativeArray.equals
-    Dsymbol xtoHash;  // implementation of TypeInfo_AssociativeArray.getHash
+    Declaration xopEqual; // implementation of TypeInfo_AssociativeArray.equals
+    Declaration xtoHash;  // implementation of TypeInfo_AssociativeArray.getHash
 
     extern (D) this(Type tinfo)
     {

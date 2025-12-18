@@ -48,7 +48,8 @@ import dmd.statement;
 import dmd.stmtstate;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : pointerTo;
+import dmd.typesem : pointerTo, isString;
+import dmd.funcsem : genCfunc;
 import dmd.visitor;
 
 import dmd.backend.barray;
@@ -595,8 +596,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                         t = t.nextOf();
                     if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, ce.f && ce.f.needThis()) == RET.stack)
                     {
-                        irs.ehidden = el_var(irs.shidden);
-                        e = toElemDtor(s.exp, irs);
+                        e = toElemDtor(s.exp, irs, el_var(irs.shidden));
                         e = el_una(OPaddr, TYnptr, e);
                         goto L1;
                     }
@@ -617,8 +617,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                         t = t.nextOf();
                     if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, fd && fd.needThis()) == RET.stack)
                     {
-                        irs.ehidden = el_var(irs.shidden);
-                        e = toElemDtor(s.exp, irs);
+                        e = toElemDtor(s.exp, irs, el_var(irs.shidden));
                         e = el_una(OPaddr, TYnptr, e);
                         goto L1;
                     }
@@ -1030,7 +1029,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                          * Note that this is worst case code because it always sets up an exception handler.
                          * At some point should try to do better.
                          */
-                        FuncDeclaration fdend = FuncDeclaration.genCfunc(null, Type.tvoid, "__cxa_end_catch");
+                        FuncDeclaration fdend = genCfunc(null, Type.tvoid, "__cxa_end_catch");
                         Expression ec = VarExp.create(Loc.initial, fdend);
                         Expression ecc = CallExp.create(Loc.initial, ec);
                         ecc.type = Type.tvoid;

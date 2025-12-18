@@ -489,6 +489,7 @@ else version (CRuntime_Musl)
     enum CLOCK_SGI_CYCLE = 10;
     enum CLOCK_TAI = 11;
 
+    pragma(mangle, muslRedirTime64Mangle!("nanosleep", "__nanosleep_time64"))
     int nanosleep(const scope timespec*, timespec*);
 
     pragma(mangle, muslRedirTime64Mangle!("clock_getres", "__clock_getres_time64"))

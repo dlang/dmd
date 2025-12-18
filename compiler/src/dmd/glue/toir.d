@@ -85,7 +85,6 @@ struct IRState
     Symbol* sclosure;               // pointer to closure instance
     BlockState* blx;
     Dsymbols* deferToObj;           // array of Dsymbol's to run toObjFile(bool multiobj) on later
-    elem* ehidden;                  // transmit hidden pointer to CallExp::toElem()
     Symbol* startaddress;
     Array!(elem*)* varsInScope;     // variables that are in scope that will need destruction later
     Label*[void*]* labels;          // table of labels used/declared in function
@@ -661,7 +660,7 @@ elem* resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
  *      sthis = the symbol of the current 'this' derived from fd.vthis
  *      fd = the nested function
  */
-TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
+type* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
 {
     if (sthis)
     {

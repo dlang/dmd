@@ -354,6 +354,11 @@ void printTemplateStats(bool listInstances, ErrorSink eSink)
     return dmd.dtemplate.printTemplateStats(listInstances, eSink);
 }
 
+void printInstantiationTrace(TemplateInstance ti)
+{
+    return ti.printInstantiationTrace();
+}
+
 /***********************************************************
  * dtoh.d
  */
@@ -469,21 +474,20 @@ real_t toImaginary(Expression exp)
 }
 
 /***********************************************************
- * func.d
+ * funcsem.d
  */
 FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = STC.none)
 {
-    return FuncDeclaration.genCfunc(fparams, treturn, name, cast(STC) stc);
+    import dmd.funcsem;
+    return dmd.funcsem.genCfunc(fparams, treturn, name, cast(STC) stc);
 }
 
 FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = STC.none)
 {
-    return FuncDeclaration.genCfunc(fparams, treturn, id, cast(STC) stc);
+    import dmd.funcsem;
+    return dmd.funcsem.genCfunc(fparams, treturn, id, cast(STC) stc);
 }
 
-/***********************************************************
- * funcsem.d
- */
 bool functionSemantic(FuncDeclaration fd)
 {
     import dmd.funcsem;
@@ -506,6 +510,12 @@ PURE isPure(FuncDeclaration fd)
 {
     import dmd.funcsem;
     return dmd.funcsem.isPure(fd);
+}
+
+bool needsClosure(FuncDeclaration fd)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.needsClosure(fd);
 }
 
 /***********************************************************
@@ -947,6 +957,12 @@ void Type_init()
     return dmd.typesem.Type_init();
 }
 
+void transitive(TypeNext type)
+{
+    import dmd.typesem;
+    return dmd.typesem.transitive(type);
+}
+
 Type makeConst(Type type)
 {
     import dmd.typesem;
@@ -1001,6 +1017,12 @@ Type makeSharedWildConst(Type type)
     return dmd.typesem.makeSharedWildConst(type);
 }
 
+MOD deduceWild(Type type, Type t, bool isRef)
+{
+    import dmd.typesem;
+    return dmd.typesem.deduceWild(type, t, isRef);
+}
+
 bool isIntegral(Type type)
 {
     import dmd.typesem;
@@ -1013,10 +1035,64 @@ bool isFloating(Type type)
     return dmd.typesem.isFloating(type);
 }
 
+bool isScalar(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isScalar(type);
+}
+
 bool isReal(Type type)
 {
     import dmd.typesem;
     return dmd.typesem.isReal(type);
+}
+
+bool isComplex(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isComplex(type);
+}
+
+bool isImaginary(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isImaginary(type);
+}
+
+bool isString(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isString(type);
+}
+
+bool isBoolean(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isBoolean(type);
+}
+
+bool isUnsigned(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isUnsigned(type);
+}
+
+bool needsNested(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.needsNested(type);
+}
+
+bool needsDestruction(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.needsDestruction(type);
+}
+
+bool needsCopyOrPostblit(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.needsCopyOrPostblit(type);
 }
 
 /***********************************************************

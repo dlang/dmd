@@ -297,13 +297,13 @@ extern (C++) abstract class Expression : ASTNode
      * Check that the expression has a valid type.
      * If not, generates an error "... has no type".
      * Returns:
-     *      true if the expression is not valid.
+     *      true if the expression has a valid type.
      * Note:
-     *      When this function returns true, `checkValue()` should also return true.
+     *      When this function returns false, `checkValue()` should also return true.
      */
-    bool checkType()
+    bool hasValidType()
     {
-        return false;
+        return true;
     }
 
     /******************************
@@ -499,6 +499,16 @@ extern (C++) abstract class Expression : ASTNode
     }
 }
 
+// Approximate Non-semantic version of the `Type.isScalar` function in `typesem`
+bool _isRoughlyScalar(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.integral | TFlags.floating) != 0;
+    else if (_this.ty == Tenum || _this.ty == Tpointer) // the enum is possibly scalar
+        return true;
+    return false;
+}
+
 /***********************************************************
  * A compile-time known integer value
  */
@@ -510,6 +520,11 @@ extern (C++) final class IntegerExp : Expression
     {
         super(loc, EXP.int64);
         assert(type);
+        /* Verify no path to the following assert failure.
+         * Weirdly, the isScalar() includes floats - see enumsem.enumMemberSemantic() for the
+         * base type. This is possibly a bug.
+         */
+        assert(_isRoughlyScalar(type) || type.ty == Terror);
         this.type = type;
         this.value = cast(int)value;
     }
@@ -898,10 +913,11 @@ extern (C++) final class StringExp : Expression
      * as tynto.
      * Params:
      *      tynto = code unit type of the target encoding
+     *      s = set to error message on invalid string
      * Returns:
      *      number of code units
      */
-    size_t numberOfCodeUnits(int tynto = 0) const
+    extern (D) size_t numberOfCodeUnits(int tynto, out .string s) const
     {
         int encSize;
         switch (tynto)
@@ -924,11 +940,9 @@ extern (C++) final class StringExp : Expression
         case 1:
             for (size_t u = 0; u < len;)
             {
-                if (const s = utf_decodeChar(string[0 .. len], u, c))
-                {
-                    error(loc, "%.*s", cast(int)s.length, s.ptr);
+                s = utf_decodeChar(string[0 .. len], u, c);
+                if (s)
                     return 0;
-                }
                 result += utf_codeLength(encSize, c);
             }
             break;
@@ -936,11 +950,9 @@ extern (C++) final class StringExp : Expression
         case 2:
             for (size_t u = 0; u < len;)
             {
-                if (const s = utf_decodeWchar(wstring[0 .. len], u, c))
-                {
-                    error(loc, "%.*s", cast(int)s.length, s.ptr);
+                s = utf_decodeWchar(wstring[0 .. len], u, c);
+                if (s)
                     return 0;
-                }
                 result += utf_codeLength(encSize, c);
             }
             break;
@@ -1490,10 +1502,10 @@ extern (C++) final class TypeExp : Expression
         return new TypeExp(loc, type.syntaxCopy());
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
         error(loc, "type `%s` is not an expression", toChars());
-        return true;
+        return false;
     }
 
     override void accept(Visitor v)
@@ -1528,25 +1540,25 @@ extern (C++) final class ScopeExp : Expression
         return new ScopeExp(loc, sds.syntaxCopy(null));
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
         if (sds.isPackage())
         {
             error(loc, "%s `%s` has no type", sds.kind(), sds.toChars());
-            return true;
+            return false;
         }
         auto ti = sds.isTemplateInstance();
         if (!ti)
-            return false;
+            return true;
         //assert(ti.needsTypeInference(sc));
         if (ti.tempdecl &&
             ti.semantictiargsdone &&
             ti.semanticRun == PASS.initial)
         {
             error(loc, "partial %s `%s` has no type", sds.kind(), toChars());
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
     override void accept(Visitor v)
@@ -1571,10 +1583,10 @@ extern (C++) final class TemplateExp : Expression
         this.fd = fd;
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
         error(loc, "%s `%s` has no type", td.kind(), toChars());
-        return true;
+        return false;
     }
 
     override void accept(Visitor v)
@@ -1807,14 +1819,14 @@ extern (C++) final class FuncExp : Expression
         return new FuncExp(loc, fd);
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
         if (td)
         {
             error(loc, "template lambda has no type");
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
     override void accept(Visitor v)
@@ -2207,10 +2219,10 @@ extern (C++) final class DotTemplateExp : UnaExp
         this.td = td;
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
         error(loc, "%s `%s` has no type", td.kind(), toChars());
-        return true;
+        return false;
     }
 
     override void accept(Visitor v)
@@ -2250,17 +2262,16 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
 {
     TemplateInstance ti;
 
-    extern (D) this(Loc loc, Expression e, Identifier name, Objects* tiargs)
-    {
-        super(loc, EXP.dotTemplateInstance, e);
-        //printf("DotTemplateInstanceExp()\n");
-        this.ti = new TemplateInstance(loc, name, tiargs);
-    }
-
     extern (D) this(Loc loc, Expression e, TemplateInstance ti) @safe
     {
         super(loc, EXP.dotTemplateInstance, e);
         this.ti = ti;
+    }
+
+    extern (D) this(Loc loc, Expression e, Identifier name, Objects* tiargs)
+    {
+        //printf("DotTemplateInstanceExp()\n");
+        this(loc, e, new TemplateInstance(loc, name, tiargs));
     }
 
     override DotTemplateInstanceExp syntaxCopy()
@@ -2268,17 +2279,17 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
         return new DotTemplateInstanceExp(loc, e1.syntaxCopy(), ti.name, TemplateInstance.arraySyntaxCopy(ti.tiargs));
     }
 
-    override bool checkType()
+    override bool hasValidType()
     {
-        // Same logic as ScopeExp.checkType()
+        // Same logic as ScopeExp.hasValidType()
         if (ti.tempdecl &&
             ti.semantictiargsdone &&
             ti.semanticRun == PASS.initial)
         {
             error(loc, "partial %s `%s` has no type", ti.kind(), toChars());
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
     override void accept(Visitor v)

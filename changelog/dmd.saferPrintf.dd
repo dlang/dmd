@@ -1,0 +1,15 @@
+Allow some forms of printf calls to be treated as @safe
+
+`printf` function calls in general are unsafe. Most calls, however, are safe.
+This change examines the format string to `printf` and allows format strings
+that do not include `s` formats to be allowed in @safe code.
+
+For example:
+
+```d
+@safe void func(int i, char* s)
+{
+    printf("i is %d\n", i);  // allowed
+    printf("s is %s\n", s);  // unsafe, not allowed
+}
+```

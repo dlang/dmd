@@ -1403,7 +1403,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 return false;
             }
-            if (isCppNonMappableType(f.next.toBasetype()))
+            if (isCppNonMappableType(f.next.toBasetype()) && !funcdecl.skipCodegen)
             {
                 .error(funcdecl.loc, "%s `%s` cannot return type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), f.next.toChars());
                 if (f.next.isTypeDArray())
@@ -1458,6 +1458,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (ctor.semanticRun >= PASS.semantic3)
             return;
 
+        if (!ctor.fbody)
+            return visit(cast(FuncDeclaration)ctor);
+
+
         /* If any of the fields of the aggregate have a destructor, add
          *   scope (failure) { this.fieldDtor(); }
          * as the first statement of the constructor (unless the constructor
@@ -1468,7 +1472,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
-        if (!ctor.fbody || !ad || !ad.fieldDtor ||
+        if (!ad || !ad.fieldDtor ||
             global.params.dtorFields == FeatureState.disabled || !global.params.useExceptions || ctor.type.toTypeFunction.isNothrow)
             return visit(cast(FuncDeclaration)ctor);
 
@@ -1540,7 +1544,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         visit(cast(FuncDeclaration)ctor);
     }
-
 
     override void visit(Nspace ns)
     {
@@ -1631,6 +1634,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
             return new DotTemplateInstanceExp(loc, id, hook, tiargs);
         }
 
+        void notTemplateFunction(Loc loc, Identifier id)
+        {
+            error(loc, "`%s` isn't a template function", id.toChars());
+        }
+
         // generate ti.entry
         auto tempinst = makeDotExp(Id.Entry);
         auto e = expressionSemantic(tempinst, sc2);
@@ -1645,25 +1653,35 @@ private extern(C++) final class Semantic3Visitor : Visitor
         semanticTypeInfo(sc2, ti.entry); // might get deferred
 
         // generate ti.xtoHash
-        auto hashinst = makeDotExp(Identifier.idPool("aaGetHash"));
+        auto aaGetHash = Identifier.idPool("aaGetHash");
+        auto hashinst = makeDotExp(aaGetHash);
         e = expressionSemantic(hashinst, sc2);
         if (!e.isErrorExp())
         {
-            assert(e.isVarExp() && e.type.isTypeFunction());
-            ti.xtoHash = e.isVarExp().var;
-            if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
-                tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+            if (!e.isVarExp() || !e.type.isTypeFunction())
+                notTemplateFunction(e.loc, aaGetHash);
+            else
+            {
+                ti.xtoHash = e.isVarExp().var;
+                if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
+                    tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+            }
         }
 
         // generate ti.xopEqual
-        auto equalinst = makeDotExp(Identifier.idPool("aaOpEqual"));
+        auto aaOpEqual = Identifier.idPool("aaOpEqual");
+        auto equalinst = makeDotExp(aaOpEqual);
         e = expressionSemantic(equalinst, sc2);
         if (!e.isErrorExp())
         {
-            assert(e.isVarExp() && e.type.isTypeFunction());
-            ti.xopEqual = e.isVarExp().var;
-            if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
-                tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+            if (!e.isVarExp() || !e.type.isTypeFunction())
+                notTemplateFunction(e.loc, aaOpEqual);
+            else
+            {
+                ti.xopEqual = e.isVarExp().var;
+                if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
+                    tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+            }
         }
         visit(cast(ASTCodegen.TypeInfoDeclaration)ti);
     }

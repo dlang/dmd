@@ -361,40 +361,6 @@ extern (C++) struct Scope
         return pop();
     }
 
-
-    /*******************************
-     * Merge results of `ctorflow` into `this`.
-     * Params:
-     *   loc = for error messages
-     *   ctorflow = flow results to merge in
-     */
-    extern (D) void merge(Loc loc, const ref CtorFlow ctorflow)
-    {
-        if (!mergeCallSuper(this.ctorflow.callSuper, ctorflow.callSuper))
-            error(loc, "one path skips constructor");
-
-        const fies = ctorflow.fieldinit;
-        if (!this.ctorflow.fieldinit.length || !fies.length)
-            return;
-        FuncDeclaration f = func;
-        if (fes)
-            f = fes.func;
-        auto ad = f.isMemberDecl();
-        assert(ad);
-        foreach (i, v; ad.fields)
-        {
-            bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-            auto fieldInit = &this.ctorflow.fieldinit[i];
-            const fiesCurrent = fies[i];
-            if (fieldInit.loc is Loc.init)
-                fieldInit.loc = fiesCurrent.loc;
-            if (!mergeFieldInit(this.ctorflow.fieldinit[i].csx, fiesCurrent.csx) && mustInit)
-            {
-                error(loc, "one path skips field `%s`", v.toChars());
-            }
-        }
-    }
-
     /************************************
      * Maybe `ident` was a C or C++ name. Check for that,
      * and suggest the D equivalent.

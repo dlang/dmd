@@ -149,6 +149,7 @@ extern (C++) final class StaticForeach : RootObject
         auto tf = new TypeFunction(ParameterList(), null, LINK.default_, STC.none);
         auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
         fd.fbody = s;
+        fd.skipCodegen = true;
         auto fe = new FuncExp(loc, fd);
         auto ce = new CallExp(loc, fe, new Expressions());
         return ce;

@@ -629,7 +629,11 @@ public:
 
         override void visit(SuperExp e)
         {
-            assert(ids.vthis);
+            if (!ids.vthis)
+            {
+                result = e;
+                return;
+            }
             result = new VarExp(e.loc, ids.vthis);
             if (ids.fd.hasDualContext)
             {
