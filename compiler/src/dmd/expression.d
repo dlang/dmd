@@ -1776,14 +1776,7 @@ extern (C++) final class SymOffExp : SymbolExp
     {
         if (auto v = var.isVarDeclaration())
         {
-            // FIXME: This error report will never be handled anyone.
-            // It should be done before the SymOffExp construction.
-            if (v.needThis())
-            {
-                auto t = v.isThis();
-                assert(t);
-                .error(loc, "taking the address of non-static variable `%s` requires an instance of `%s`", v.toChars(), t.toChars());
-            }
+            assert(!v.needThis()); // make sure the error message is no longer necessary
             hasOverloads = false;
         }
         super(loc, EXP.symbolOffset, var, hasOverloads);
