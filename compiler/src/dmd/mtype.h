@@ -245,7 +245,6 @@ public:
 
     virtual ClassDeclaration *isClassHandle();
     virtual int hasWild() const;
-    virtual Type *nextOf();
     Type *baseElemOf();
 
     TypeFunction *toTypeFunction();
@@ -296,7 +295,6 @@ public:
     Type *next;
 
     int hasWild() const override final;
-    Type *nextOf() override final;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -628,7 +626,6 @@ public:
 
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
-    Type *nextOf() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -760,6 +757,7 @@ namespace dmd
     Type *makeWildConst(Type* type);
     Type *makeSharedWild(Type* type);
     Type *makeSharedWildConst(Type* type);
+    Type *nextOf(Type* type);
     unsigned char deduceWild(Type* type, Type* t, bool isRef);
     bool isIntegral(Type* type);
     bool isFloating(Type* type);
