@@ -4806,6 +4806,11 @@ struct ASTBase
         }
     }
 
+    static IntegerExp newIntegerExp(Loc loc, dinteger_t value, Type type)
+    {
+        return new IntegerExp(loc, value, type);
+    }
+
     extern (C++) final class NewAnonClassExp : Expression
     {
         Expression thisexp;     // if !=null, 'this' for class being allocated
