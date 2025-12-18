@@ -2315,7 +2315,6 @@ public:
     virtual Expression* syntaxCopy();
     DYNCAST dyncast() const final override;
     const char* toChars() const final override;
-    virtual bool hasValidType();
     Expression* deref();
     int32_t isConst();
     virtual bool hasCode();
@@ -2809,7 +2808,6 @@ class DotTemplateExp final : public UnaExp
 {
 public:
     TemplateDeclaration* td;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
@@ -2818,7 +2816,6 @@ class DotTemplateInstanceExp final : public UnaExp
 public:
     TemplateInstance* ti;
     DotTemplateInstanceExp* syntaxCopy() override;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3104,7 +3101,6 @@ public:
     TemplateDeclaration* td;
     TOK tok;
     FuncExp* syntaxCopy() override;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3405,7 +3401,6 @@ class ScopeExp final : public Expression
 public:
     ScopeDsymbol* sds;
     ScopeExp* syntaxCopy() override;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3592,7 +3587,6 @@ class TemplateExp final : public Expression
 public:
     TemplateDeclaration* td;
     FuncDeclaration* fd;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3633,7 +3627,6 @@ class TypeExp final : public Expression
 {
 public:
     TypeExp* syntaxCopy() override;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
