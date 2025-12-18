@@ -816,14 +816,6 @@ extern (C++) abstract class Type : ASTNode
     }
 
     /*************************************
-     * If this is a type of something, return that something.
-     */
-    Type nextOf()
-    {
-        return null;
-    }
-
-    /*************************************
      * If this is a type of static array, return its base element type.
      */
     final Type baseElemOf()
@@ -1011,16 +1003,6 @@ extern (C++) abstract class TypeNext : Type
         if (ty == Tdelegate)
             return Type.hasWild();
         return mod & MODFlags.wild || (next && next.hasWild());
-    }
-
-    /*******************************
-     * For TypeFunction, nextOf() can return NULL if the function return
-     * type is meant to be inferred, and semantic() hasn't yet been run
-     * on the function. After semantic(), it must no longer be NULL.
-     */
-    override final Type nextOf() @safe
-    {
-        return next;
     }
 
     override void accept(Visitor v)
@@ -2009,11 +1991,6 @@ extern (C++) final class TypeEnum : Type
     override TypeEnum syntaxCopy()
     {
         return this;
-    }
-
-    override Type nextOf()
-    {
-        return this.memType().nextOf();
     }
 
     override void accept(Visitor v)
