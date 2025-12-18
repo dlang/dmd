@@ -1017,6 +1017,12 @@ Type makeSharedWildConst(Type type)
     return dmd.typesem.makeSharedWildConst(type);
 }
 
+Type nextOf(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.nextOf(type);
+}
+
 MOD deduceWild(Type type, Type t, bool isRef)
 {
     import dmd.typesem;
