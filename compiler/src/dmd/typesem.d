@@ -67,6 +67,199 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+/***************************
+ * Look for bugs in constructing types.
+ */
+void check(Type _this)
+{
+    if (_this.mcache)
+    with (_this.mcache)
+    switch (_this.mod)
+    {
+    case 0:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.const_:
+        if (cto)
+            assert(cto.mod == 0);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.wild:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == 0);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.wildconst:
+        assert(!cto || cto.mod == MODFlags.const_);
+        assert(!ito || ito.mod == MODFlags.immutable_);
+        assert(!sto || sto.mod == MODFlags.shared_);
+        assert(!scto || scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        assert(!wto || wto.mod == MODFlags.wild);
+        assert(!wcto || wcto.mod == 0);
+        assert(!swto || swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        assert(!swcto || swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == 0);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_ | MODFlags.const_:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == 0);
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_ | MODFlags.wild:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == 0);
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_ | MODFlags.wildconst:
+        assert(!cto || cto.mod == MODFlags.const_);
+        assert(!ito || ito.mod == MODFlags.immutable_);
+        assert(!sto || sto.mod == MODFlags.shared_);
+        assert(!scto || scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        assert(!wto || wto.mod == MODFlags.wild);
+        assert(!wcto || wcto.mod == MODFlags.wildconst);
+        assert(!swto || swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        assert(!swcto || swcto.mod == 0);
+        break;
+
+    case MODFlags.immutable_:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == 0);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    default:
+        assert(0);
+    }
+
+    Type tn = _this.nextOf();
+    if (tn && _this.ty != Tfunction && tn.ty != Tfunction && _this.ty != Tenum)
+    {
+        // Verify transitivity
+        switch (_this.mod)
+        {
+        case 0:
+        case MODFlags.const_:
+        case MODFlags.wild:
+        case MODFlags.wildconst:
+        case MODFlags.shared_:
+        case MODFlags.shared_ | MODFlags.const_:
+        case MODFlags.shared_ | MODFlags.wild:
+        case MODFlags.shared_ | MODFlags.wildconst:
+        case MODFlags.immutable_:
+            assert(tn.mod == MODFlags.immutable_ || (tn.mod & _this.mod) == _this.mod);
+            break;
+
+        default:
+            assert(0);
+        }
+        tn.check();
+    }
+}
+
 /**********************************
  * For our new type '_this', which is type-constructed from t,
  * fill in the cto, ito, sto, scto, wto shortcuts.
@@ -197,7 +390,6 @@ void fixTo(Type _this, Type t)
     default:
         assert(0);
     }
-
     _this.check();
     t.check();
     //printf("fixTo: %s, %s\n", toChars(), t.toChars());
