@@ -175,10 +175,17 @@ bool isSafeCast(Expression e, Type tfrom, Type tto, ref string msg)
     // Implicit conversions are always safe
     if (tfrom.implicitConvTo(tto))
         return true;
-
     if (!tto.hasPointers())
+    {
+        // casting to bool is safe as it's a special op
+        // casting to struct with non-pointer @system field is not @safe
+        if (tto.ty != Tbool && tto.hasUnsafeBitpatterns())
+        {
+            msg = "Target element type has unsafe bit patterns";
+            return false;
+        }
         return true;
-
+    }
     auto tfromb = tfrom.toBasetype();
     auto ttob = tto.toBasetype();
 
