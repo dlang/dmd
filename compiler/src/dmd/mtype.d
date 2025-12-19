@@ -51,7 +51,7 @@ static if (__VERSION__ < 2095)
     private alias StringValueType = StringValue!Type;
 }
 
-private auto X(T, U)(T m, U n)
+private auto X(T, U)(T m, U n) nothrow
 {
     return (m << 4) | n;
 }
@@ -509,7 +509,7 @@ extern (C++) abstract class Type : ASTNode
             return sizeTy;
         }();
 
-    final extern (D) this(TY ty) scope @safe
+    final extern (D) this(TY ty) scope @safe nothrow
     {
         this.ty = ty;
     }
@@ -532,7 +532,7 @@ extern (C++) abstract class Type : ASTNode
         assert(0);
     }
 
-    final bool equals(const Type t) const
+    final bool equals(const Type t) const nothrow
     {
         //printf("Type::equals(%s, %s)\n", toChars(), t.toChars());
         if (this == t)
@@ -566,20 +566,20 @@ extern (C++) abstract class Type : ASTNode
     }
 
     // kludge for template.isType()
-    override final DYNCAST dyncast() const
+    override final DYNCAST dyncast() const nothrow
     {
         return DYNCAST.type;
     }
 
     /// Returns a non-zero unique ID for this Type, or returns 0 if the Type does not (yet) have a unique ID.
     /// If `semantic()` has not been run, 0 is returned.
-    final size_t getUniqueID() const
+    final size_t getUniqueID() const nothrow
     {
         return cast(size_t) deco;
     }
 
     extern (D)
-    final Mcache* getMcache()
+    final Mcache* getMcache() nothrow
     {
         if (!mcache)
             mcache = cast(Mcache*) mem.xcalloc(Mcache.sizeof, 1);
@@ -612,7 +612,7 @@ extern (C++) abstract class Type : ASTNode
      * This can be used to restore the state set by `_init` to its original
      * state.
      */
-    static void deinitialize()
+    static void deinitialize() nothrow
     {
         stringtable = stringtable.init;
     }
@@ -640,7 +640,7 @@ extern (C++) abstract class Type : ASTNode
         return buf.extractChars();
     }
 
-    bool isScopeClass()
+    bool isScopeClass() nothrow
     {
         return false;
     }
@@ -873,7 +873,7 @@ extern (C++) abstract class Type : ASTNode
     }
 
     // For eliminating dynamic_cast
-    TypeBasic isTypeBasic()
+    TypeBasic isTypeBasic() nothrow
     {
         return null;
     }
@@ -944,7 +944,7 @@ extern (C++) abstract class Type : ASTNode
         v.visit(this);
     }
 
-    final TypeFunction toTypeFunction()
+    final TypeFunction toTypeFunction() nothrow
     {
         if (ty != Tfunction)
             assert(0);
@@ -975,12 +975,12 @@ extern (C++) final class TypeError : Type
         super(Terror);
     }
 
-    override const(char)* kind() const
+    override const(char)* kind() const nothrow
     {
         return "error";
     }
 
-    override TypeError syntaxCopy()
+    override TypeError syntaxCopy() nothrow
     {
         // No semantic analysis done, no need to copy
         return this;

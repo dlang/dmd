@@ -544,7 +544,7 @@ Optional!bool toBool(Expression _this)
  * Check that the expression `e` has a valid type.
  * If not, generates an error "... has no type".
  * Params:
- *	e = Expression to check
+ *      e = Expression to check
  * Returns:
  *      true if the expression has a valid type.
  * Note:
@@ -616,12 +616,12 @@ bool hasValidType(Expression e)
 
     switch (e.op)
     {
-	case EXP.type:                   return visitTypeExp(e.isTypeExp());
-	case EXP.scope_:                 return visitScopeExp(e.isScopeExp());
-	case EXP.template_:              return visitTemplateExp(e.isTemplateExp());
-	case EXP.function_:              return visitFuncExp(e.isFuncExp());
-	case EXP.dotTemplateDeclaration: return visitDotTemplateExp(e.isDotTemplateExp());
-	case EXP.dotTemplateInstance:    return visitDotTemplateInstanceExp(e.isDotTemplateInstanceExp());
+        case EXP.type:                   return visitTypeExp(e.isTypeExp());
+        case EXP.scope_:                 return visitScopeExp(e.isScopeExp());
+        case EXP.template_:              return visitTemplateExp(e.isTemplateExp());
+        case EXP.function_:              return visitFuncExp(e.isFuncExp());
+        case EXP.dotTemplateDeclaration: return visitDotTemplateExp(e.isDotTemplateExp());
+        case EXP.dotTemplateInstance:    return visitDotTemplateInstanceExp(e.isDotTemplateInstanceExp());
 
         default: return true;
     }
