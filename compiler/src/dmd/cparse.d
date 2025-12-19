@@ -4885,7 +4885,7 @@ final class CParser(AST) : Parser!AST
         return new AST.ExpStatement(loc, e);
     }
 
-    /* function for C __PRETTY_FUNCTION__ */
+    /* function for C __PRETTY_FUNCTION__ for non-linux systems */
     private AST.Statement createPrettyFunc(Loc loc, AST.FuncDeclaration fd)
     {
         auto tf = fd.type.isTypeFunction();
