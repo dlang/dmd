@@ -18,6 +18,8 @@ if [ ! -z ${HOST_DC+x} ] ; then HOST_DMD=${HOST_DC}; fi
 if [ -z ${HOST_DMD+x} ] ; then echo "Variable 'HOST_DMD' needs to be set."; exit 1; fi
 # CI_DFLAGS: Optional flags to pass to the build
 if [ -z ${CI_DFLAGS+x} ] ; then CI_DFLAGS=""; fi
+# LIB_DFLAGS: Optional flags for druntime and phobos
+if [ -z ${LIB_DFLAGS+x} ] ; then LIB_DFLAGS=""; fi
 
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
 build_path=generated/$OS_NAME/release/$MODEL
@@ -68,8 +70,8 @@ build() {
         generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
     fi
     generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
-    make -j$N -C druntime MODEL=$MODEL
-    make -j$N -C ../phobos MODEL=$MODEL
+    make -j$N -C druntime MODEL=$MODEL DFLAGS="$LIB_DFLAGS"
+    make -j$N -C ../phobos MODEL=$MODEL DFLAGS="$LIB_DFLAGS"
     if [ "$OS_NAME" != "windows" ]; then
         deactivate # deactivate host compiler
     fi
@@ -135,12 +137,12 @@ test_dmd() {
 
 # build and run druntime unit tests
 test_druntime() {
-    make -j$N -C druntime MODEL=$MODEL unittest
+    make -j$N -C druntime MODEL=$MODEL DFLAGS="$LIB_DFLAGS" unittest
 }
 
 # build and run Phobos unit tests
 test_phobos() {
-    make -j$N -C ../phobos MODEL=$MODEL unittest
+    make -j$N -C ../phobos MODEL=$MODEL DFLAGS="$LIB_DFLAGS" unittest
 
     if [ "$OS_NAME" == "windows" ]; then
         echo "FIXME: Skipping publictests on Windows (test failures)"
@@ -151,13 +153,13 @@ test_phobos() {
     else
         source ~/dlang/*/activate # activate host compiler - need dub
 
-        make -j$N -C ../phobos MODEL=$MODEL publictests
-        make -j$N -C ../phobos MODEL=$MODEL publictests NO_BOUNDSCHECKS=1
+        make -j$N -C ../phobos MODEL=$MODEL DFLAGS="$LIB_DFLAGS" publictests
+        make -j$N -C ../phobos MODEL=$MODEL DFLAGS="$LIB_DFLAGS" publictests NO_BOUNDSCHECKS=1
 
         if [ "$OS_NAME" == "osx" ]; then
             echo "FIXME: Skipping betterc on macOS (Apple linker assertions)"
         else
-            make -j$N -C ../phobos MODEL=$MODEL betterc
+            make -j$N -C ../phobos MODEL=$MODEL DFLAGS="$LIB_DFLAGS" betterc
         fi
 
         deactivate # deactivate host compiler
