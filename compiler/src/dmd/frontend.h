@@ -2085,7 +2085,6 @@ public:
     Type* toBasetype();
     virtual ClassDeclaration* isClassHandle();
     virtual int32_t hasWild() const;
-    virtual Type* nextOf();
     Type* baseElemOf();
     virtual TypeBasic* isTypeBasic();
     TypeFunction* isPtrToFunction();
@@ -4338,7 +4337,6 @@ class TypeNext : public Type
 public:
     Type* next;
     int32_t hasWild() const final override;
-    Type* nextOf() final override;
     void accept(Visitor* v) override;
 };
 
@@ -4416,7 +4414,6 @@ public:
     EnumDeclaration* sym;
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
-    Type* nextOf() override;
     void accept(Visitor* v) override;
 };
 

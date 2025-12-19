@@ -30,6 +30,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.statement;
 import dmd.statementsem;
+import dmd.typesem;
 
 /***********************************
  * Parse and run semantic analysis on a GccAsmStatement.

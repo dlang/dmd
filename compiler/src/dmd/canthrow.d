@@ -21,6 +21,7 @@ import dmd.dsymbolsem : include, toAlias;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : errorSupplementalInferredAttr, isLvalue, calledFunctionType;
+import dmd.typesem : nextOf;
 import dmd.func;
 import dmd.globals;
 import dmd.mtype;

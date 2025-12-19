@@ -67,6 +67,23 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+/*************************************
+ * If this is a type of something, return that something.
+ */
+Type nextOf(Type _this)
+{
+    /*******************************
+     * For TypeFunction, nextOf() can return NULL if the function return
+     * type is meant to be inferred, and semantic() hasn't yet been run
+     * on the function. After semantic(), it must no longer be NULL.
+     */
+    if (auto tn = _this.isTypeNext())
+        return tn.next;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().nextOf();
+    return null;
+}
+
 /***************************
  * Look for bugs in constructing types.
  */
