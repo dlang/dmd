@@ -1,3 +1,5 @@
+// DISABLED: win32 win64
+
 // https://github.com/dlang/dmd/issues/22259
 
 #include <complex.h>
