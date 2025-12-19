@@ -6343,7 +6343,7 @@ struct ASTBase
 
     extern (C++) final class ErrorExp : Expression
     {
-        private extern (D) this()
+        extern (D) this()
         {
             super(Loc.initial, EXP.error, __traits(classInstanceSize, ErrorExp));
             type = Type.terror;
