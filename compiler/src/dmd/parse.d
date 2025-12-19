@@ -8731,7 +8731,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             error("expression expected, not `%s`", token.toChars());
         Lerr:
             // Anything for e, as long as it's not NULL
-            e = AST.ErrorExp.get();
+            e = new AST.ErrorExp();
             nextToken();
             break;
         }
@@ -8873,7 +8873,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                         error("identifier expected following `%s.`, not `%s`",
                             t.toChars(), token.toChars());
-                        return AST.ErrorExp.get();
+                        return new AST.ErrorExp();
                     }
                     e = new AST.DotIdExp(loc, new AST.TypeExp(loc, t), token.ident);
                     nextToken();
@@ -8987,7 +8987,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                     {
                                         error("identifier or new keyword expected following `(...)`.");
                                         nextToken();
-                                        return AST.ErrorExp.get();
+                                        return new AST.ErrorExp();
                                     }
                                     e = new AST.TypeExp(loc, t);
                                     e.parens = true;
