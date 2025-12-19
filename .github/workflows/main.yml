@@ -28,6 +28,11 @@ jobs:
             os: ubuntu-22.04
             host_dmd: dmd-2.079.0
             disable_debug_for_dmd_unittests: true # no `-debug` - host frontend too old
+          # For now only Linux x64 DMD edition test
+          - job_name: Ubuntu 22.04 x64, DMD (2024 edition)
+            os: ubuntu-22.04
+            host_dmd: dmd
+            ci_dflags: -edition=2024
           - job_name: Ubuntu 22.04 x86, DMD (latest)
             os: ubuntu-22.04
             model: 32
@@ -84,6 +89,7 @@ jobs:
       HOST_DMD: ${{ matrix.host_dmd }}
       # N is set dynamically below
       FULL_BUILD: true
+      CI_DFLAGS: ${{ matrix.ci_dflags || '' }}
       # for coverage:
       DMD_TEST_COVERAGE: ${{ matrix.coverage && '1' || '0' }}
       # work around https://issues.dlang.org/show_bug.cgi?id=23517
