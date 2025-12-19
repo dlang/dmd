@@ -1755,25 +1755,20 @@ FuncDeclaration search_toString(StructDeclaration sd)
  */
 void semanticTypeInfoMembers(StructDeclaration sd)
 {
-    if (sd.xeq &&
-        sd.xeq._scope &&
-        sd.xeq.semanticRun < PASS.semantic3done)
+    void runSemantic(ref FuncDeclaration fd, ref FuncDeclaration errFd)
     {
-        const errors = global.startGagging();
-        sd.xeq.semantic3(sd.xeq._scope);
-        if (global.endGagging(errors))
-            sd.xeq = sd.xerreq;
+        if (fd && fd._scope && fd.semanticRun < PASS.semantic3done)
+        {
+            const errors = global.startGagging();
+            fd.semantic3(fd._scope);
+            if (global.endGagging(errors))
+                fd = errFd;
+        }
     }
 
-    if (sd.xcmp &&
-        sd.xcmp._scope &&
-        sd.xcmp.semanticRun < PASS.semantic3done)
-    {
-        const errors = global.startGagging();
-        sd.xcmp.semantic3(sd.xcmp._scope);
-        if (global.endGagging(errors))
-            sd.xcmp = sd.xerrcmp;
-    }
+    runSemantic(sd.xeq, sd.xerreq);
+    runSemantic(sd.xcmp, sd.xerrcmp);
+
 
     FuncDeclaration ftostr = search_toString(sd);
     if (ftostr &&
