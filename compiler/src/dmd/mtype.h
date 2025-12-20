@@ -425,7 +425,6 @@ public:
     static Parameter *create(Loc loc, StorageClass storageClass, Type *type, Identifier *ident,
                              Expression *defaultArg, UserAttributeDeclaration *userAttribDecl);
     Parameter *syntaxCopy();
-    Type *isLazyArray();
     bool isLazy() const;
     bool isReference() const;
     // kludge for template.isType()
@@ -758,6 +757,7 @@ namespace dmd
     Type *makeSharedWildConst(Type* type);
     Type *nextOf(Type* type);
     Type *baseElemOf(Type* type);
+    Type *isLazyArray(Parameter* param);
     unsigned char deduceWild(Type* type, Type* t, bool isRef);
     bool isIntegral(Type* type);
     bool isFloating(Type* type);

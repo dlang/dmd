@@ -815,43 +815,6 @@ extern (C++) abstract class Type : ASTNode
         return mod & MODFlags.wild;
     }
 
-    /****************************************
-     * Return the mask that an integral type will
-     * fit into.
-     */
-    extern (D) final ulong sizemask()
-    {
-        ulong m;
-        switch (toBasetype().ty)
-        {
-        case Tbool:
-            m = 1;
-            break;
-        case Tchar:
-        case Tint8:
-        case Tuns8:
-            m = 0xFF;
-            break;
-        case Twchar:
-        case Tint16:
-        case Tuns16:
-            m = 0xFFFFU;
-            break;
-        case Tdchar:
-        case Tint32:
-        case Tuns32:
-            m = 0xFFFFFFFFU;
-            break;
-        case Tint64:
-        case Tuns64:
-            m = 0xFFFFFFFFFFFFFFFFUL;
-            break;
-        default:
-            assert(0);
-        }
-        return m;
-    }
-
     // For eliminating dynamic_cast
     TypeBasic isTypeBasic() nothrow
     {
@@ -2423,33 +2386,6 @@ extern (C++) final class Parameter : ASTNode
     Parameter syntaxCopy()
     {
         return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
-    }
-
-    /****************************************************
-     * Determine if parameter is a lazy array of delegates.
-     * If so, return the return type of those delegates.
-     * If not, return NULL.
-     *
-     * Returns T if the type is one of the following forms:
-     *      T delegate()[]
-     *      T delegate()[dim]
-     */
-    Type isLazyArray()
-    {
-        Type tb = type.toBasetype();
-        if (tb.isStaticOrDynamicArray())
-        {
-            Type tel = (cast(TypeArray)tb).next.toBasetype();
-            if (auto td = tel.isTypeDelegate())
-            {
-                TypeFunction tf = td.next.toTypeFunction();
-                if (tf.parameterList.varargs == VarArg.none && tf.parameterList.length == 0)
-                {
-                    return tf.next; // return type of delegate
-                }
-            }
-        }
-        return null;
     }
 
     /// Returns: Whether the function parameter is lazy

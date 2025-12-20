@@ -1029,6 +1029,12 @@ Type baseElemOf(Type type)
     return dmd.typesem.baseElemOf(type);
 }
 
+Type isLazyArray(Parameter param)
+{
+    import dmd.typesem;
+    return dmd.typesem.isLazyArray(param);
+}
+
 MOD deduceWild(Type type, Type t, bool isRef)
 {
     import dmd.typesem;

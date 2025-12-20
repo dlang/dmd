@@ -4293,7 +4293,6 @@ public:
     UserAttributeDeclaration* userAttribDecl;
     static Parameter* create(Loc loc, StorageClass storageClass, Type* type, Identifier* ident, Expression* defaultArg, UserAttributeDeclaration* userAttribDecl);
     Parameter* syntaxCopy();
-    Type* isLazyArray();
     bool isLazy() const;
     bool isReference() const;
     DYNCAST dyncast() const override;
