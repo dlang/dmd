@@ -53,7 +53,7 @@ int STACKALIGN = 2;             // varies for each function
 
 /// Is fl data?
 bool[FL.max + 1] datafl = datafl_init;
-extern (D) private enum datafl_init =
+private enum datafl_init =
 () {
     bool[FL.max + 1] datafl;
     foreach (fl; [ FL.data, FL.udata, FL.reg, FL.pseudo, FL.auto_, FL.fast, FL.para, FL.extern_,
@@ -70,7 +70,7 @@ extern (D) private enum datafl_init =
 
 /// Is fl on the stack?
 bool[FL.max + 1] stackfl = stackfl_init;
-extern (D) private enum stackfl_init =
+private enum stackfl_init =
 () {
     bool[FL.max + 1] stackfl;
     foreach (fl; [ FL.auto_, FL.fast, FL.para, FL.cs, FL.fltreg, FL.allocatmp, FL.bprel, FL.stack, FL.regsave,
@@ -85,7 +85,7 @@ extern (D) private enum stackfl_init =
 
 /// What segment register is associated with it?
 ubyte[FL.max + 1] segfl = segfl_init;
-extern (D) private enum segfl_init =
+private enum segfl_init =
 () {
     ubyte[FL.max + 1] segfl;
 
@@ -148,7 +148,7 @@ extern (D) private enum segfl_init =
 
 /// Is fl in the symbol table?
 bool[FL.max + 1] flinsymtab = flinsymtab_init;
-extern (D) private enum flinsymtab_init =
+private enum flinsymtab_init =
 () {
     bool[FL.max + 1] flinsymtab;
     foreach (fl; [ FL.data, FL.udata, FL.reg, FL.pseudo, FL.auto_, FL.fast, FL.para, FL.extern_, FL.func,

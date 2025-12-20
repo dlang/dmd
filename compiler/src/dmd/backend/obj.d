@@ -500,7 +500,7 @@ public import dmd.backend.var : objmod;
  * Returns:
  *      declarations as a string suitable for mixin
  */
-private extern (D)
+private
 string ObjMemDecl(string pattern)
 {
     string r =
@@ -518,7 +518,7 @@ string ObjMemDecl(string pattern)
  * Returns:
  *      mixin string with static dispatch
  */
-private extern (D)
+private
 string genRetVal(string arg)
 {
     return
@@ -541,7 +541,7 @@ string genRetVal(string arg)
  * Returns:
  *      boilerplate string
  */
-private extern (D)
+private
 string gen(string pattern, string arg)
 {
     foreach (i; 0 .. pattern.length)

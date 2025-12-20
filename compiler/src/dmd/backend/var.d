@@ -184,7 +184,7 @@ type* chartype;                 /* default 'char' type                  */
 Obj objmod = null;
 
 __gshared uint[256] tytab = tytab_init;
-extern (D) private enum tytab_init =
+private enum tytab_init =
 () {
     uint[256] tab;
     foreach (i; TXptr)        { tab[i] |= TYFLptr; }
@@ -338,7 +338,7 @@ __gshared const(char)*[TYMAX] tystring =
 
 /// Map to unsigned version of type
 __gshared tym_t[256] tytouns = tytouns_init;
-extern (D) private enum tytouns_init =
+private enum tytouns_init =
 () {
     tym_t[256] tab;
     foreach (ty; 0 .. TYMAX)
@@ -382,7 +382,7 @@ extern (D) private enum tytouns_init =
 
 /// Map to relaxed version of type
 __gshared ubyte[TYMAX] _tyrelax = _tyrelax_init;
-extern(D) private enum _tyrelax_init = (){
+private enum _tyrelax_init = (){
     ubyte[TYMAX] tab;
     foreach (ty; 0 .. TYMAX)
     {
@@ -418,7 +418,7 @@ extern(D) private enum _tyrelax_init = (){
 
 /// Map to equivalent version of type
 __gshared ubyte[TYMAX] tyequiv = tyequiv_init;
-extern (D) private enum tyequiv_init =
+private enum tyequiv_init =
 () {
     ubyte[TYMAX] tab;
     foreach (ty; 0 .. TYMAX)

@@ -32,7 +32,7 @@ enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
 enum VERSIONHEX = "0x900";      // for __DMC__ macro
 enum VERSIONINT = 0x900;        // for precompiled headers and DLL version
 
-extern (D) template xversion(string s)
+template xversion(string s)
 {
     enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
 }

@@ -249,7 +249,7 @@ void compdom(ref BlockOpt bo)
 }
 
 @trusted
-private extern (D) void compdom(block*[] dfo)
+private void compdom(block*[] dfo)
 {
     assert(dfo.length);
     block* sb = dfo[0];                  // starting block
@@ -322,7 +322,7 @@ bool dom(ref BlockOpt bo, const block* A, const block* B)
  * Find all the loops.
  */
 
-private extern (D) void findloops(ref BlockOpt bo, block*[] dfo, ref Loops loops)
+private void findloops(ref BlockOpt bo, block*[] dfo, ref Loops loops)
 {
     freeloop(loops);
 
@@ -3193,7 +3193,6 @@ private void elimopeqs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
  */
 
 @trusted
-extern (D)
 private size_t simfl(famlist[] fams, tym_t tym)
 {
     size_t sofar = fams.length;
@@ -3492,7 +3491,7 @@ private int countrefs2(const(elem)* e, const Symbol* s)
 
 @trusted
 private
-extern(D) void elimspec(ref GlobalOptimizer go, const ref Loop loop, block*[] dfo)
+void elimspec(ref GlobalOptimizer go, const ref Loop loop, block*[] dfo)
 {
     // Visit each block in loop
     for (size_t i = 0; (i = vec_index(i, loop.Lloop)) < dfo.length; ++i)
