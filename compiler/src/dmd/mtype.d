@@ -2831,35 +2831,6 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
     dg(trustToString(trustAttrib));
 }
 
-/**
- * If the type is a class or struct, returns the symbol for it,
- * else null.
- */
-AggregateDeclaration isAggregate(Type t)
-{
-    t = t.toBasetype();
-    if (auto tc = t.isTypeClass())
-        return tc.sym;
-    if (auto ts = t.isTypeStruct())
-        return ts.sym;
-    return null;
-}
-
-/***************************************************
- * Determine if type t can be indexed or sliced given that it is not an
- * aggregate with operator overloads.
- * Params:
- *      t = type to check
- * Returns:
- *      true if an expression of type t can be e1 in an array expression
- */
-bool isIndexableNonAggregate(Type t)
-{
-    t = t.toBasetype();
-    return (t.ty == Tpointer || t.isStaticOrDynamicArray() || t.ty == Taarray ||
-            t.ty == Ttuple || t.ty == Tvector);
-}
-
 /***************************************
  * Computes how a parameter may be returned.
  * Shrinking the representation is necessary because STC is so wide
