@@ -67,6 +67,34 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+
+/****************************************************
+ * Determine if parameter is a lazy array of delegates.
+ * If so, return the return type of those delegates.
+ * If not, return NULL.
+ *
+ * Returns T if the type is one of the following forms:
+ *      T delegate()[]
+ *      T delegate()[dim]
+ */
+Type isLazyArray(Parameter _this)
+{
+    Type tb = _this.type.toBasetype();
+    if (tb.isStaticOrDynamicArray())
+    {
+        Type tel = (cast(TypeArray)tb).next.toBasetype();
+        if (auto td = tel.isTypeDelegate())
+        {
+            TypeFunction tf = td.next.toTypeFunction();
+            if (tf.parameterList.varargs == VarArg.none && tf.parameterList.length == 0)
+            {
+                return tf.next; // return type of delegate
+            }
+        }
+    }
+    return null;
+}
+
 /*************************************
  * If this is a type of something, return that something.
  */
