@@ -626,14 +626,6 @@ JsonFieldFlags tryParseJsonField(const(char)* fieldName)
 }
 
 /***********************************************************
- * mtype.d
- */
-AggregateDeclaration isAggregate(Type t)
-{
-    return dmd.mtype.isAggregate(t);
-}
-
-/***********************************************************
  * optimize.d
  */
 Expression optimize(Expression e, int result, bool keepLvalue = false)
@@ -692,6 +684,12 @@ bool tpsemantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
 /***********************************************************
  * typesem.d
  */
+AggregateDeclaration isAggregate(Type t)
+{
+    import dmd.typesem;
+    return dmd.typesem.isAggregate(t);
+}
+
 bool hasPointers(Type t)
 {
     import dmd.typesem;
