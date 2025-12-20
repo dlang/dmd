@@ -1037,7 +1037,7 @@ public:
                 sle = s->exp->isStructLiteralExp();
             if (sle != NULL)
             {
-                type->baseElemOf()->isTypeStruct()->sym->accept(this);
+                dmd::baseElemOf(type)->isTypeStruct()->sym->accept(this);
                 sle->sym = (Symbol*)func->shidden;
             }
             s->exp->accept(this);
