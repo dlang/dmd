@@ -245,7 +245,6 @@ public:
 
     virtual ClassDeclaration *isClassHandle();
     virtual int hasWild() const;
-    Type *baseElemOf();
 
     TypeFunction *toTypeFunction();
 
@@ -758,6 +757,7 @@ namespace dmd
     Type *makeSharedWild(Type* type);
     Type *makeSharedWildConst(Type* type);
     Type *nextOf(Type* type);
+    Type *baseElemOf(Type* type);
     unsigned char deduceWild(Type* type, Type* t, bool isRef);
     bool isIntegral(Type* type);
     bool isFloating(Type* type);
