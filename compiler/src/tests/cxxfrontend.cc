@@ -956,7 +956,7 @@ public:
     {
         s->getRelatedLabeled()->accept(this);
         s->condition->accept(this);
-        Type *condtype = s->condition->type->toBasetype();
+        Type *condtype = dmd::baseElemOf(s->condition->type);
         if (!dmd::isScalar(condtype))
             assert(0);
         if (s->cases)
@@ -1254,9 +1254,9 @@ public:
     {
         if (!func || !func->isAuto())
             return;
-        Type *tb = dmd::nextOf(func->type)->baseElemOf();
+        Type *tb = dmd::baseElemOf(dmd::nextOf(func->type));
         while (tb->ty == TY::Tarray || tb->ty == TY::Tpointer)
-            tb = dmd::nextOf(tb)->baseElemOf();
+            tb = dmd::baseElemOf(dmd::nextOf(tb));
         TemplateInstance *ti = NULL;
         if (tb->ty == TY::Tstruct)
             ti = tb->isTypeStruct()->sym->isInstantiated();
