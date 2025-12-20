@@ -815,18 +815,6 @@ extern (C++) abstract class Type : ASTNode
         return mod & MODFlags.wild;
     }
 
-    /*************************************
-     * If this is a type of static array, return its base element type.
-     */
-    final Type baseElemOf()
-    {
-        Type t = toBasetype();
-        TypeSArray tsa;
-        while ((tsa = t.isTypeSArray()) !is null)
-            t = tsa.next.toBasetype();
-        return t;
-    }
-
     /****************************************
      * Return the mask that an integral type will
      * fit into.

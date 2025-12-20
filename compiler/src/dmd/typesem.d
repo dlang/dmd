@@ -68,6 +68,18 @@ import dmd.target;
 import dmd.tokens;
 
 /*************************************
+ * If _this is a type of static array, return its base element type.
+ */
+Type baseElemOf(Type _this)
+{
+    Type t = _this.toBasetype();
+    TypeSArray tsa;
+    while ((tsa = t.isTypeSArray()) !is null)
+        t = tsa.next.toBasetype();
+    return t;
+}
+
+/*************************************
  * If this is a type of something, return that something.
  */
 Type nextOf(Type _this)
