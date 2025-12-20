@@ -67,6 +67,71 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+
+/****************************************************
+ * Determine if parameter is a lazy array of delegates.
+ * If so, return the return type of those delegates.
+ * If not, return NULL.
+ *
+ * Returns T if the type is one of the following forms:
+ *      T delegate()[]
+ *      T delegate()[dim]
+ */
+Type isLazyArray(Parameter _this)
+{
+    Type tb = _this.type.toBasetype();
+    if (tb.isStaticOrDynamicArray())
+    {
+        Type tel = (cast(TypeArray)tb).next.toBasetype();
+        if (auto td = tel.isTypeDelegate())
+        {
+            TypeFunction tf = td.next.toTypeFunction();
+            if (tf.parameterList.varargs == VarArg.none && tf.parameterList.length == 0)
+            {
+                return tf.next; // return type of delegate
+            }
+        }
+    }
+    return null;
+}
+
+/****************************************
+ * Return the mask that an integral type will
+ * fit into.
+ */
+ulong sizemask(Type _this)
+{
+    ulong m;
+    switch (_this.toBasetype().ty)
+    {
+    case Tbool:
+        m = 1;
+        break;
+    case Tchar:
+    case Tint8:
+    case Tuns8:
+        m = 0xFF;
+        break;
+    case Twchar:
+    case Tint16:
+    case Tuns16:
+        m = 0xFFFFU;
+        break;
+    case Tdchar:
+    case Tint32:
+    case Tuns32:
+        m = 0xFFFFFFFFU;
+        break;
+    case Tint64:
+    case Tuns64:
+        m = 0xFFFFFFFFFFFFFFFFUL;
+        break;
+    default:
+        assert(0);
+    }
+    return m;
+}
+
 /*************************************
  * If this is a type of something, return that something.
  */
