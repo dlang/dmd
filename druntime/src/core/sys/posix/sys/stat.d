@@ -653,29 +653,41 @@ version (linux)
     {
         version (CRuntime_Musl)
         {
+            // Matches struct stat from musl arch/arm/bits/stat.h
+            // See: https://git.musl-libc.org/cgit/musl/tree/arch/arm/bits/stat.h?h=v1.2.3
+            //
+            // Type definitions from https://git.musl-libc.org/cgit/musl/tree/include/alltypes.h.in?h=v1.2.3
+            // with ARM-specific _Int64=long long and _Reg=int from
+            // https://git.musl-libc.org/cgit/musl/tree/arch/arm/bits/alltypes.h.in?h=v1.2.3#n3
+            //
+            // Key 64-bit LFS types (always 64-bit on musl):
+            //   dev_t     = unsigned _Int64 = unsigned long long  (line 31)
+            //   off_t     = _Int64          = long long           (line 29)
+            //   ino_t     = unsigned _Int64 = unsigned long long  (line 30)
+            //   blkcnt_t  = _Int64          = long long           (line 33)
+            //   blksize_t = long            = long (32-bit)       (line 32)
+            //   nlink_t   = unsigned _Reg   = unsigned int        (line 28)
             struct stat_t
             {
-                dev_t st_dev;
-                ushort __pad1;
-                c_long __st_ino;
+                ulong st_dev;
+                int __st_dev_padding;
+                c_long __st_ino_truncated;
                 mode_t st_mode;
-                nlink_t st_nlink;
+                uint st_nlink;
                 uid_t st_uid;
                 gid_t st_gid;
-                dev_t st_rdev;
-                ushort __pad2;
-                off_t st_size;
-                blksize_t st_blksize;
-                blkcnt_t st_blocks;
-                private struct __timespec32
+                ulong st_rdev;
+                int __st_rdev_padding;
+                long st_size;
+                c_long st_blksize;
+                long st_blocks;
+                struct __timespec32
                 {
                     c_long tv_sec;
                     c_long tv_nsec;
                 }
-                __timespec32 __st_atim32;
-                __timespec32 __st_mtim32;
-                __timespec32 __st_ctim32;
-                ino_t st_ino;
+                __timespec32 __st_atim32, __st_mtim32, __st_ctim32;
+                ulong st_ino;
                 timespec st_atim;
                 timespec st_mtim;
                 timespec st_ctim;
