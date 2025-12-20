@@ -95,6 +95,43 @@ Type isLazyArray(Parameter _this)
     return null;
 }
 
+/****************************************
+ * Return the mask that an integral type will
+ * fit into.
+ */
+ulong sizemask(Type _this)
+{
+    ulong m;
+    switch (_this.toBasetype().ty)
+    {
+    case Tbool:
+        m = 1;
+        break;
+    case Tchar:
+    case Tint8:
+    case Tuns8:
+        m = 0xFF;
+        break;
+    case Twchar:
+    case Tint16:
+    case Tuns16:
+        m = 0xFFFFU;
+        break;
+    case Tdchar:
+    case Tint32:
+    case Tuns32:
+        m = 0xFFFFFFFFU;
+        break;
+    case Tint64:
+    case Tuns64:
+        m = 0xFFFFFFFFFFFFFFFFUL;
+        break;
+    default:
+        assert(0);
+    }
+    return m;
+}
+
 /*************************************
  * If this is a type of something, return that something.
  */
