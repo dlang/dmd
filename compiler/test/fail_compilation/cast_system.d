@@ -30,3 +30,8 @@ void main() @safe
     int[1] a;
     s = cast(UniqueInt) a; // doesn't call ctor
 }
+
+void ok() @safe
+{
+    auto b = cast(bool) 7; // OK
+}
