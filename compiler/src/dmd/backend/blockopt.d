@@ -1234,7 +1234,6 @@ private void blreturn(ref GlobalOptimizer go, ref BlockOpt bo)
  */
 
 @trusted
-extern (D)
 private void bl_enlist2(ref Barray!(elem*) elems, elem* e)
 {
     if (e)
@@ -1284,7 +1283,6 @@ private list_t bl_enlist(elem* e)
  * Take a list of expressions and convert it back into an expression tree.
  */
 
-extern (D)
 private elem* bl_delist2(elem*[] elems)
 {
     elem* result = null;

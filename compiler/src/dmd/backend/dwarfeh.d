@@ -419,7 +419,7 @@ int actionTableInsert(OutBuffer* atbuf, int ttindex, int nextoffset)
  * See_Also:
  *      https://en.wikipedia.org/wiki/LEB128
  */
-private extern(D) uint uLEB128(ref const(ubyte)[] data)
+private uint uLEB128(ref const(ubyte)[] data)
 {
     const(ubyte)* q = data.ptr;
     uint result = 0;
@@ -449,7 +449,7 @@ private extern(D) uint uLEB128(ref const(ubyte)[] data)
  * See_Also:
  *      https://en.wikipedia.org/wiki/LEB128
  */
-private extern(D) int sLEB128(ref const(ubyte)[] data)
+private int sLEB128(ref const(ubyte)[] data)
 {
     const(ubyte)* q = data.ptr;
     ubyte byte_;

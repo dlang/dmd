@@ -181,12 +181,12 @@ struct Rarray(T)
         return barray[i];
     }
 
-    extern (D) inout(T)[] opSlice() inout nothrow pure @nogc
+    inout(T)[] opSlice() inout nothrow pure @nogc
     {
         return barray[0 .. length];
     }
 
-    extern (D) inout(T)[] opSlice(size_t a, size_t b) inout nothrow pure @nogc
+    inout(T)[] opSlice(size_t a, size_t b) inout nothrow pure @nogc
     {
         assert(a <= b && b <= length);
         return barray[a .. b];
