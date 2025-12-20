@@ -1021,6 +1021,12 @@ Type nextOf(Type type)
     return dmd.typesem.nextOf(type);
 }
 
+Type baseElemOf(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.baseElemOf(type);
+}
+
 Type isLazyArray(Parameter param)
 {
     import dmd.typesem;

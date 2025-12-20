@@ -24,7 +24,7 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem : calledFunctionType, expToVariable;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals : FeatureState;
@@ -38,7 +38,7 @@ import dmd.printast;
 import dmd.rootobject;
 import dmd.safe;
 import dmd.tokens;
-import dmd.typesem : hasPointers, parameterStorageClass, nextOf;
+import dmd.typesem;
 import dmd.visitor;
 import dmd.arraytypes;
 
