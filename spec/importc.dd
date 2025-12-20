@@ -402,9 +402,9 @@ $(H2 $(LNAME2 implementation, Implementation))
     $(P $(I enumeration-constants) are always typed as integers.)
 
     $(P The expression that defines the value of an $(I enumeration-constant) must
-    be an integer. if an underlying `int` is specified in the enumeration,
+    be an integer. If an underlying `int` $(RELATIVE_LINK2 enumbasetype, is specified) in the enumeration,
     the defining expression must evaluate to a value that fits in an `int`.
-    if no underlying `int` is specfied, the compiler chooses a large enough
+    If no underlying `int` is specified, the compiler chooses a large enough
     integer type to accomodate the size of the expression.)
 
     ---
@@ -559,7 +559,7 @@ $(H2 $(LNAME2 extensions, Extensions))
     the dialect of inline assembly as described in the documentation of the
     $(LINK2 https://dlang.org/spec/iasm.html, D x86 Inline Assembler).)
 
-    $(P `asm` in a function or variable declaration may be used to specify the
+    $(P `asm(mangleName)` in a function or variable declaration may be used to specify the
     mangle name for a symbol. Its use is analogous to
     $(LINK2 https://dlang.org/spec/pragma.html#mangle, pragma mangle).)
 
@@ -603,7 +603,7 @@ struct s { int a; };
 
 void g(int s)
 {
-    struct s* p = (struct s*)malloc(sizeof(struct s));
+    struct s* p = (struct s*)malloc(sizeof(struct s)); // unambiguous
     p->a = s;
 }
 )
@@ -615,7 +615,7 @@ struct s { int a; };
 
 void g(int s)
 {
-    s* p = (s*)malloc(sizeof(s));
+    s* p = (s*)malloc(sizeof(s)); // error: parser matches `s` to `int s`
     p->a = s;
 }
 )
@@ -623,16 +623,16 @@ void g(int s)
     $(H3 $(LNAME2 ctfe, Compile Time Function Execution))
 
     $(P Evaluating constant expressions includes executing functions in the
-    same manner as D's CTFE can.
-    A $(I constant-expression) invokes CTFE.)
+    same manner as D's $(DDSUBLINK spec/function, interpretation, CTFE) can.
+    A $(I constant-expression) invokes compile-time evaluation.)
 
     $(P Examples:)
 
 $(CCODE
-_Static_assert("\x1"[0] == 1, "failed");
+_Static_assert("\x1"[0] == 1, "indexing should be 1");
 
 int mint1() { return -1; }
-_Static_assert(mint1() == -1, "failed");
+_Static_assert(mint1() == -1, "call should be -1");
 
 const int a = 7;
 int b = a; // sets b to 7
