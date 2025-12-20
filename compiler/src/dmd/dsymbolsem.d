@@ -2553,7 +2553,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         "`void` initializing a struct with an invariant");
                 else if (dsym.type.toBasetype().ty == Tbool)
                     sc.setUnsafePreview(global.params.systemVariables, false, dsym.loc,
-                        "void intializing a bool (which must always be 0 or 1)");
+                        "`void` initializing a `bool` (which must always be 0 or 1)");
                 else if (dsym.type.hasUnsafeBitpatterns())
                     sc.setUnsafePreview(global.params.systemVariables, false, dsym.loc,
                         "`void` initializing a type with unsafe bit patterns");
