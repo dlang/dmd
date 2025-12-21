@@ -1430,6 +1430,8 @@ struct AttributeViolation
 
     string action;   /// Action that made the attribute fail to get inferred
 
+    VarDeclaration scopeVar;  /// For scope violations: the parameter whose scope status caused the issue
+
     this(Loc loc, FuncDeclaration fd) { this.loc = loc; this.fd = fd; }
 
     this(Loc loc, const(char)* fmt, RootObject[] args)
@@ -1444,5 +1446,11 @@ struct AttributeViolation
             args.length > 3 && args[3] ? args[3].toErrMsg() : "",
         );
         this.action = buf.extractSlice();
+    }
+
+    this(Loc loc, const(char)* fmt, VarDeclaration scopeVar, RootObject[] args)
+    {
+        this(loc, fmt, args);
+        this.scopeVar = scopeVar;
     }
 }

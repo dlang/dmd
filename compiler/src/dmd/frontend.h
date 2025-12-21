@@ -3708,10 +3708,12 @@ struct AttributeViolation final
     Loc loc;
     FuncDeclaration* fd;
     _d_dynamicArray< const char > action;
+    VarDeclaration* scopeVar;
     AttributeViolation() :
         loc(),
         fd(),
-        action()
+        action(),
+        scopeVar()
     {
     }
 };
