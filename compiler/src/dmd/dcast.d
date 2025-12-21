@@ -4279,7 +4279,13 @@ extern (D) bool keyCompatibleWithoutCasting(Expression ekey, Type t2)
             return true;
         return false;
     }
-    return implicitConvTo(ekey, t2) >= MATCH.constant;
+    if (implicitConvTo(ekey, t2) < MATCH.constant)
+        return false;
+    if (auto ts = t1.isTypeStruct())
+        return implicitConvToThroughAliasThis(ts, t2) == MATCH.nomatch;
+    if (auto tc = t1.isTypeClass())
+        return implicitConvToThroughAliasThis(tc, t2) == MATCH.nomatch;
+    return true;
 }
 
 /******************************************************************/
