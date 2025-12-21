@@ -87,7 +87,19 @@ uid_t
 
 version (linux)
 {
-  static if ( __USE_FILE_OFFSET64 )
+  // Musl always uses 64-bit off_t, blkcnt_t, ino_t on all arches (LFS by default).
+  // See: https://git.musl-libc.org/cgit/musl/tree/include/alltypes.h.in?h=v1.2.3#n29
+  //   off_t:    _Int64           -> long long (signed 64-bit)
+  //   ino_t:    unsigned _Int64  -> unsigned long long (64-bit)
+  //   blkcnt_t: _Int64           -> long long (signed 64-bit)
+  // For ARM, _Int64 = long long: https://git.musl-libc.org/cgit/musl/tree/arch/arm/bits/alltypes.h.in?h=v1.2.3#n3
+  version (CRuntime_Musl)
+  {
+    alias long      blkcnt_t;
+    alias ulong     ino_t;
+    alias long      off_t;
+  }
+  else static if ( __USE_FILE_OFFSET64 )
   {
     alias long      blkcnt_t;
     alias ulong     ino_t;
@@ -313,7 +325,17 @@ useconds_t
 
 version (linux)
 {
-  static if ( __USE_FILE_OFFSET64 )
+  // Musl always uses 64-bit fsblkcnt_t, fsfilcnt_t on all arches (LFS by default).
+  // See: https://git.musl-libc.org/cgit/musl/tree/include/alltypes.h.in?h=v1.2.3#n34
+  //   fsblkcnt_t: unsigned _Int64  -> unsigned long long (64-bit)
+  //   fsfilcnt_t: unsigned _Int64  -> unsigned long long (64-bit)
+  // For ARM, _Int64 = long long: https://git.musl-libc.org/cgit/musl/tree/arch/arm/bits/alltypes.h.in?h=v1.2.3#n3
+  version (CRuntime_Musl)
+  {
+    alias ulong     fsblkcnt_t;
+    alias ulong     fsfilcnt_t;
+  }
+  else static if ( __USE_FILE_OFFSET64 )
   {
     alias ulong     fsblkcnt_t;
     alias ulong     fsfilcnt_t;
