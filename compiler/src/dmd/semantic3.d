@@ -228,20 +228,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         timeTraceBeginEvent(TimeTraceEventType.sema3);
         scope (exit) timeTraceEndEvent(TimeTraceEventType.sema3, funcdecl);
 
-        /* Determine if function should add `return 0;`
-         */
-        bool addReturn0()
-        {
-            //printf("addReturn0()\n");
-            auto f = funcdecl.type.isTypeFunction();
-
-            // C11 5.1.2.2.3
-            if (sc.inCfile && funcdecl.isCMain() && f.next.ty == Tint32)
-                return true;
-
-            return f.next.ty == Tvoid && (funcdecl.isMain() || funcdecl.isCMain());
-        }
-
         VarDeclaration _arguments = null;
 
         if (!funcdecl.parent)
@@ -644,7 +630,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         Expression exp = (*funcdecl.returns)[i].exp;
                         if (exp.op == EXP.variable && (cast(VarExp)exp).var == funcdecl.vresult)
                         {
-                            if (addReturn0())
+                            if (fds.addReturn0())
                                 exp.type = Type.tint32;
                             else
                                 exp.type = f.next;
@@ -836,7 +822,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 if (funcdecl.returns)
                 {
-                    bool implicit0 = addReturn0();
+                    bool implicit0 = fds.addReturn0();
                     Type tret = implicit0 ? Type.tint32 : f.next;
                     assert(tret.ty != Tvoid);
                     if (funcdecl.vresult || funcdecl.returnLabel)
@@ -1187,7 +1173,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         a.push(s);
                     }
                 }
-                if (addReturn0())
+                if (fds.addReturn0())
                 {
                     // Add a return 0; statement
                     Statement s = new ReturnStatement(Loc.initial, IntegerExp.literal!0);
@@ -1719,6 +1705,21 @@ private struct FuncDeclSem3
                 }
             }
         }
+    }
+
+    /* Determine if function should add `return 0;`
+     */
+    bool addReturn0()
+    {
+        //printf("addReturn0()\n");
+        auto f = funcdecl.type.isTypeFunction();
+        if (!f) return false;
+
+        // C11 5.1.2.2.3
+        if (sc.inCfile && funcdecl.isCMain() && f.next.ty == Tint32)
+            return true;
+
+        return f.next.ty == Tvoid && (funcdecl.isMain() || funcdecl.isCMain());
     }
 }
 
