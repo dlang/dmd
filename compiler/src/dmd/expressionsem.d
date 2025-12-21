@@ -3164,6 +3164,12 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
     if (s.action.length > 0)
     {
         errorFunc(s.loc, "and %.*s makes it fail to infer `%.*s`", s.action.fTuple.expand, attr.fTuple.expand);
+        // For scope violations, also print why the target parameter is not scope
+        if (s.scopeVar)
+        {
+            import dmd.escape : printScopeReason;
+            printScopeReason(errorFunc, s.scopeVar, 10, false);
+        }
     }
     else if (s.fd)
     {

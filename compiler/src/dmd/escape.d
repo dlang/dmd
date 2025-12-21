@@ -293,7 +293,7 @@ bool checkAssocArrayLiteralEscape(ref Scope sc, AssocArrayLiteralExp ae, bool ga
  *    recursionLimit = recursion limit for printing the reason
  *    positive = true for telling why v is scope, false for telling why v is not scope
  */
-private
+public
 void printScopeReason(E)(E printFunc, VarDeclaration v, int recursionLimit, bool positive)
 {
     recursionLimit--;
@@ -375,8 +375,8 @@ bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parI
             (desc ~ " `%s` assigned to non-scope anonymous parameter");
 
         if (isThis ?
-            sc.setUnsafeDIP1000(gag, arg.loc, msg, arg, fdc.toParent2(), fdc) :
-            sc.setUnsafeDIP1000(gag, arg.loc, msg, v, parId ? parId : fdc, fdc))
+            sc.setUnsafeDIP1000(gag, arg.loc, vPar, msg, arg, fdc.toParent2(), fdc) :
+            sc.setUnsafeDIP1000(gag, arg.loc, vPar, msg, v, parId ? parId : fdc, fdc))
         {
             result = true;
             printScopeReason(previewSupplementalFunc(sc.isDeprecated(), sc.useDIP1000), vPar, 10, false);
@@ -2212,6 +2212,14 @@ bool setUnsafeDIP1000(ref Scope sc, bool gag, Loc loc, const(char)* msg,
     RootObject[] args...)
 {
     return setUnsafePreview(&sc, sc.useDIP1000, gag, loc, msg, args);
+}
+
+/// Overload for scope violations that also stores the variable whose scope status caused the issue
+private
+bool setUnsafeDIP1000(ref Scope sc, bool gag, Loc loc, VarDeclaration scopeVar,
+    const(char)* msg, RootObject[] args...)
+{
+    return setUnsafePreview(&sc, sc.useDIP1000, gag, loc, scopeVar, msg, args);
 }
 
 /***************************************
