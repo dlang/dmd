@@ -119,7 +119,8 @@ void write_instance_pointers(Type type, Symbol* s, uint offset)
         return;
 
     Array!(ulong) data;
-    const ulong sz = getTypePointerBitmap(Loc.initial, type, data, global.errorSink);
+    ulong count;
+    const ulong sz = getTypePointerBitmap(Loc.initial, type, data, global.errorSink, count);
     if (sz == ulong.max)
         return;
 
