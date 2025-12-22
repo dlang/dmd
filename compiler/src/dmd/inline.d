@@ -141,13 +141,13 @@ enum EXPANDINLINE_LOG = false;
 private final class InlineDoState
 {
     // inline context
+    Expression eret;    // expression returned to in case of NRVO
     VarDeclaration vthis;
     Dsymbols from;      // old Dsymbols
     Dsymbols to;        // parallel array of new Dsymbols
     Dsymbol parent;     // new parent
     FuncDeclaration fd; // function being inlined (old parent)
     // inline result
-    Expression eret;    // expression returned to in case of NRVO
     bool foundReturn;
     bool propagateNRVO;
 
@@ -390,6 +390,10 @@ public:
 
             if (ids.eret)
             {
+                /* Perform RVO emplacement into eret.
+                 * Generate:
+                 *   ( eret ) = ( exp ), ( eret )
+                 */
                 auto ce = new ConstructExp(s.loc, ids.eret.copy(), exp);
                 ce.type = exp.type;
                 result = Expression.combine(ce, ids.eret.copy());
@@ -510,12 +514,15 @@ public:
             if (ids.eret && ids.fd &&
                 (ids.fd.isNRVO && e.var == ids.fd.nrvo_var || e.var.nrvo))
             {
+                // Deoptimize here and turn SymOffExp back into (&( eret ) + offset),
+                // because eret might have no symbol.
                 result = new AddrExp(e.loc, ids.eret.copy());
                 result.type = e.type;
 
                 if (e.offset)
                 {
-                    result = new AddExp(e.loc, result, new IntegerExp(e.loc, e.offset, Type.tsize_t));
+                    auto ie = new IntegerExp(e.loc, e.offset, Type.tsize_t);
+                    result = new AddExp(e.loc, result, ie);
                     result.type = e.type;
                 }
 
@@ -1513,7 +1520,8 @@ public:
 
         inlineScan(e.e1); // LHS
 
-        // Look for NRVO, as inlining NRVO function returns require special handling
+        // Look for NRVO and emplace the return value into LHS directly
+        // when expanding the function call on RHS.
         if (e.op == EXP.construct &&
             (e.e2.type.ty == Tstruct || e.e2.type.ty == Tsarray))
         {
@@ -1563,6 +1571,8 @@ public:
      *  e = the function call
      *  eret = if !null, then this is the lvalue of the nrvo function result
      *  asStatements = if inline as statements rather than as an Expression
+     *  propagateNRVO = if the parent function returns the result immediately,
+     *      so NRVO variables have to be preserved in the parent
      * Returns:
      *  this.eresult if asStatements == false
      *  this.sresult if asStatements == true
@@ -2194,6 +2204,7 @@ Lno:
  *      parent = function that the call to fd is being expanded into
  *      eret = if !null then the lvalue of where the nrvo return value goes
  *      asStatements = expand to Statements rather than Expressions
+ *      propagateNRVO = preserve NRVO status of variables
  *      eresult = if expanding to an expression, this is where the expression is written to
  *      sresult = if expanding to a statement, this is where the statement is written to
  *      again = if true, then fd can be inline scanned again because there may be
@@ -2232,10 +2243,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
         }
         else
         {
-            // Create a pointer to the field to be initialized.
-            // This depends on the fact that objects are already initialized
-            // with its init bit pattern before the initializer is run, so
-            // it is possible to take a pointer to the object.
+            // Use a pointer to the expression (field or static array) to be initialized.
 
             auto ei = new ExpInitializer(callLoc, null);
             auto tmp = Identifier.generateId("__retptr");
@@ -2315,7 +2323,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             ei.exp = new ConstructExp(fd.loc, vthis, ethis);
             ei.exp.type = vthis.type;
 
-            DeclarationExp de = new DeclarationExp(fd.loc, vthis);
+            auto de = new DeclarationExp(fd.loc, vthis);
             de.type = Type.tvoid;
             e0 = Expression.combine(e0, de);
         }
