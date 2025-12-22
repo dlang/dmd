@@ -5218,6 +5218,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
         return;
 
+        /* this is commented out for complex conversion for importC */
         /* Convert to core.stdc.config.complex
          * exempt C from this
          */

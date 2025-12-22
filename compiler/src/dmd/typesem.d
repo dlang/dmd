@@ -2674,18 +2674,17 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         return visitType(t);
 
 
-        //import std.stdio;
-        //writeln(t);
-        /* begins from here */
-        //if (!sc.inCfile) //
-        //return visitType(t); // both C and D gets here
+        /* this is commented out for a complex conversion for importC */
+        /*if (!sc.inCfile)
+        return visitType(t);
 
-        //auto tc = getComplexLibraryType(loc, sc, t.ty);
-        //if (tc.ty == Terror)
-        //    return tc;
+        auto tc = getComplexLibraryType(loc, sc, t.ty);
+        if (tc.ty == Terror)
+            return tc;
 
-        //writeln("here", tc);
-        //return tc.addMod(t.mod).merge();
+        writeln("here", tc);
+        return tc.addMod(t.mod).merge();
+        */
     }
 
     Type visitVector(TypeVector mtype)
