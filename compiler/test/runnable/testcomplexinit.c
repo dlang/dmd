@@ -2,6 +2,7 @@
 
 #include <complex.h>
 #include <stdio.h>
+#include <assert.h>
 
 struct com
 {
