@@ -529,18 +529,18 @@ private Cent umulExtended(Cent a, Cent b, out Cent excess) pure
     excess = p3; // Start high part with p3
 
     // Add p1 to middle
-    auto p1_shifted = Cent(0, p1.lo);
+    auto p1_shifted = Cent(hi: p1.lo);
     res = add(res, p1_shifted);
     if (res.hi < p1.lo) // Add carry if addition overflowed
         excess = inc(excess);
-    excess = add(excess, Cent(p1.hi, 0)); // Add high part of p1 to excess
+    excess = add(excess, Cent(lo: p1.hi)); // Add high part of p1 to excess
 
     // Add p2 to middle
-    auto p2_shifted = Cent(0, p2.lo);
+    auto p2_shifted = Cent(hi: p2.lo);
     res = add(res, p2_shifted);
     if (res.hi < p2.lo) // Add carry if addition overflowed
         excess = inc(excess);
-    excess = add(excess, Cent(p2.hi, 0)); // Add high part of p2 to excess
+    excess = add(excess, Cent(lo: p2.hi)); // Add high part of p2 to excess
 
     return res;
 }
@@ -1184,9 +1184,8 @@ unittest
     // -2 * -2 = 4 (No Overflow)
     res = mul(neg(C2), neg(C2), overflow);
     assert(!overflow);
-    assert(res == Cent(4));
+    assert(res == Cent(lo: 4));
     
-    // Additional tests requested by reviewer
     assert(mul(Cm10, C1, overflow) == Cm10);
     assert(!overflow);
     
@@ -1198,10 +1197,7 @@ unittest
     
     // Cs_3 is {lo:3, hi:I.min}
     assert(mul(Cs_3, C10, overflow) == C30); 
-    // This looks like overflow because hi part is discarded/overflowed? 
-    // Wait, let's check the logic: 
-    // Cs_3 is a huge negative number or small number?
-    // Actually, let's stick to simple verified cases first to avoid test failures.
+    assert(overflow);
     
     assert(mul(Cm10, Cm10, overflow) == C100);
     assert(!overflow);
