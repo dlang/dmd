@@ -5758,7 +5758,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
     /***
-     * Parse an assignment condition for `if`, `switch` or `while` statements.
+     * Parse an assignment condition for `if`, `switch`, `while` or `with` statements.
      *
      * Returns:
      *      The variable that is declared inside the condition
@@ -5845,7 +5845,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             param = new AST.Parameter(aloc, storageClass, at, ai, null, null);
         }
         else if (storageClass != 0)
-            error("found `%s` while expecting `=` or identifier", n.toChars());
+            return null;
 
         return param;
     }
