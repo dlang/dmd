@@ -288,19 +288,15 @@ struct V12
     this(int) { s = S12(1); }
 }
 
-void foo(S12 s)
-{
-    assert(&s == s.ptr);
-}
-
-S12 bar()
+S12 foo12()
 {
     return __rvalue(V12(1).s);
 }
 
 void test12()
 {
-    foo(bar());
+    S12 s = foo12();
+    assert(&s == s.ptr);
 }
 
 /********************************/
@@ -318,6 +314,7 @@ int main()
     test9();
     test10();
     test11();
+    test12();
 
     return 0;
 }
