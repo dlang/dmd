@@ -5,7 +5,7 @@
 void foo()
 {
     assert(strcmp(__FUNCTION__, "foo") == 0);
-    assert(strstr(__PRETTY_FUNCTION__, "foo"));
+    assert(strstr(__PRETTY_FUNCTION__, "foo")); // make room for runtime differences
 }
 
 int bar(int a, int b)
