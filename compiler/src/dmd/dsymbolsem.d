@@ -3378,7 +3378,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("UserAttributeDeclaration::semantic() %p\n", this);
         if (uad.decl && !uad._scope)
             uad.Dsymbol.setScope(sc); // for function local symbols
+
+        // https://github.com/dlang/dmd/pull/22296
+        // Evaluate attributes in speculative context.
+        sc = sc.push();
+        sc.minst = null;
+        sc.tinst = null;
         arrayExpressionSemantic(uad.atts.peekSlice(), sc, true);
+        sc = sc.pop();
+
         return attribSemantic(uad);
     }
 
