@@ -1358,6 +1358,40 @@ void test22160()
 }
 
 /*******************************************/
+// https://github.com/dlang/dmd/issues/22292
+
+struct Vector22292(T)
+{
+    T[] payload = [1];
+
+    ~this() nothrow
+    {
+        payload = null;
+    }
+
+    void check(ref Vector22292 val)
+    {
+        assert(val.payload.length == 1);
+    }
+}
+
+struct DEREncoder2
+{
+    ref Vector22292!int getContentsUnlocked()
+    {
+        return m_contents;
+    }
+
+    Vector22292!int m_contents;
+}
+
+void test22292()
+{
+    Vector22292!int o;
+    o.check(DEREncoder2().getContentsUnlocked());
+}
+
+/*******************************************/
 
 void main()
 {
@@ -1425,6 +1459,7 @@ void main()
     test18576();
     test67();
     test22160();
+    test22292();
 
     printf("Success\n");
 }

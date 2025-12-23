@@ -1582,7 +1582,7 @@ public:
         inlineScan(e.e1);
         arrayInlineScan(e.arguments);
 
-        void inlineFd(FuncDeclaration fd)
+        void inlineFd(FuncDeclaration fd, Expression explicitThis)
         {
             /* If the arguments generate temporaries that need destruction, the destruction
              * must be done after the function body is executed.
@@ -1599,9 +1599,27 @@ public:
                     asStates = false;
             }
 
-            if (canInline(fd, parent == fd.toParent2(), asStates, pass, eSink))
+            bool hasThis;
+            if (explicitThis)
             {
-                expandInline(e, fd, parent, eret, null, asStates, propagateNRVO,
+                /* If ethis is explicitly given by a DotVarExp, fd can be inlined
+                 * as long as it does not require another `this` pointer.
+                 * Inlining the case where one pointer can be accessed from another
+                 * is not implemented yet.
+                 */
+                hasThis = !fd.isNested();
+            }
+            else
+            {
+                /* Otherwise, `this` pointer is captured from parent. Only allow
+                 * immediate nested functions to reference `this` pointer.
+                 */
+                hasThis = parent == fd.toParent2();
+            }
+
+            if (canInline(fd, hasThis, asStates, pass, eSink))
+            {
+                expandInline(e, fd, parent, eret, explicitThis, asStates, propagateNRVO,
                              eresult, sresult, again);
                 if (asStatements && eresult)
                 {
@@ -1692,16 +1710,7 @@ public:
         if (!fd || fd == parent)
             return;
 
-        if (explicitThis)
-        {
-            if (!canInline(fd, !fd.isNested(), asStatements, pass, eSink))
-                return;
-
-            expandInline(e, fd, parent, eret, explicitThis, asStatements,
-                         propagateNRVO, eresult, sresult, again);
-        }
-        else
-            inlineFd(fd);
+        inlineFd(fd, explicitThis);
 
         if (global.params.v.verbose && (eresult || sresult))
             message("inlined   %s =>\n          %s", fd.toPrettyChars(), parent.toPrettyChars());
