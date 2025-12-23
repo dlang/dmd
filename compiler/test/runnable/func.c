@@ -11,7 +11,7 @@ void foo()
 int bar(int a, int b)
 {
     assert(strcmp(__FUNCTION__, "bar") == 0);
-    assert(strstr(__PRETTY_FUNCTION__, "bar"));
+    assert(strstr(__PRETTY_FUNCTION__, "bar")); // ditto for bar
     return 0;
 }
 
