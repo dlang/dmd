@@ -41,6 +41,17 @@ enum DFACleanup = __VERSION__ >= 2102;
 
 //version = DebugJoinMeetOp;
 
+
+/***********************************************************
+ * The central context for a DFA run.
+ *
+ * This structure manages the memory allocator, holds references to global
+ * variables (like return values), and tracks the current scope being analyzed.
+ *
+ * Performance Note:
+ * It uses a custom `DFAAllocator` (bump-pointer allocator) to avoid the overhead
+ * of the GC or standard `malloc` for the thousands of tiny nodes created during analysis.
+ */
 struct DFACommon
 {
     DFAAllocator allocator;
@@ -1194,6 +1205,17 @@ struct DFACaseState
     DFAScopeRef jumpedTo; // When its jumped to this case, this is the meet'd state
 }
 
+/***********************************************************
+ * Represents the identity of a variable being tracked.
+ *
+ * This does NOT store the current value of the variable (that changes depending on
+ * where you are in the code). Instead, it stores immutable properties like:
+ * - Is it a boolean? (`isBoolean`)
+ * - Can it be null? (`isNullable`)
+ * - Is it a reference to another variable? (`base1`, `indexVar`)
+ *
+ * Think of this as the "Key" in a map, where the "Value" is the DFALattice.
+ */
 struct DFAVar
 {
     private
@@ -1602,6 +1624,16 @@ struct DFAScopeRef
     }
 }
 
+/***********************************************************
+ * Represents a specific region of code execution (a scope).
+ *
+ * As the DFA walks through the code, it pushes and pops scopes.
+ * Each scope holds a table (`buckets`) of the current state of variables
+ * within that block.
+ *
+ * When the analysis branches (e.g., inside an `if`), a new child scope is
+ * created to track the state changes specific to that branch.
+ */
 struct DFAScope
 {
     private
@@ -2187,6 +2219,13 @@ struct DFALatticeRef
     }
 }
 
+/***********************************************************
+ * The collection of values and facts known about a variable.
+ *
+ * A DFALattice contains one or more `DFAConsequence` nodes.
+ * Each `DFAConsequence` represents the state of a variable at the current
+ * point in time.
+ */
 struct DFALattice
 {
     private
@@ -3424,6 +3463,14 @@ struct DFAPAValue
     }
 }
 
+/***********************************************************
+ * A specific fact known about a variable at the current point in time.
+ *
+ * Examples of consequences:
+ * - "This variable is definitely not null" (`nullable == NonNull`)
+ * - "This variable is True" (`truthiness == True`)
+ * - "This variable has the integer value 5" (`pa` - Point Analysis)
+ */
 struct DFAConsequence
 {
     private
