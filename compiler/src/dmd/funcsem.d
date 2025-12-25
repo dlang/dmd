@@ -2066,18 +2066,27 @@ private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecate
     int printed = 0; // number of candidates printed
     int count = 0; // total candidates
     bool child; // true if inside an eponymous template
-    const(char)* errorPrefix() @safe
+    const(char)* errorPrefix() @system
     {
+        static char[128] buf;
         if (child)
             return "  - Containing: ";
 
         // align with blank spaces after first message
-        enum plural = "Candidates are: ";
-        enum spaces = "                ";
+        // enum plural = "There are %d candidates: ";
+        // enum spaces = "                         ";
         if (printed)
-            return spaces;
-
-        return (count == 1) ? "Candidate is: " : plural;
+        {
+            snprintf(buf.ptr,buf.length,"  Candidate %d is: ",printed+1);
+            return buf.ptr;
+        }
+        if(count == 1)
+            return "Candidate is: ";
+        else
+        {
+            fprintf(stderr,"\tThere are multiple candidates\n");
+            return "Candidate 1 is: "; 
+        }
     }
     bool matchSymbol(Dsymbol s, bool print)
     {
