@@ -3080,10 +3080,10 @@ bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t pre
         ty2 = TYdouble;
     }
 
-    // Treat array of 1 the same as its element type
-    // (Don't put volatile parameters in registers)
+    // Collapse single-element arrays to their element type, except for
+    // volatile parameters and SysV x86-64 (only Win64 or 32-bit platforms).
     if (tybasic(ty) == TYarray && tybasic(t.Tty) == TYarray && t.Tdim == 1 && !(t.Tty & mTYvolatile)
-        && type_size(t.Tnext) > 1)
+        && type_size(t.Tnext) > 1 && (I32 || config.exe == EX_WIN64))
     {
         t = t.Tnext;
         ty = t.Tty;
@@ -3331,7 +3331,8 @@ void argtypes(type* t, out type* arg1type, out type* arg2type)
                 }
                 else if (tybasic(tyn) == TYldouble || tybasic(tyn) == TYildouble)
                 {
-                    arg1type = tstypes[tybasic(tyn)];
+                    // `real` parameters (and arrays of `real`)
+                    // must be passed via memory
                     return;
                 }
             }
