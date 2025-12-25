@@ -2520,7 +2520,7 @@ extern (C++) final class Parameter : ASTNode
         if (eparam is null)
             return 0;
 
-        Type t = eparam.type.toBasetype();
+        Type t = eparam.type;
         if (auto tu = t.isTypeTuple())
         {
             // Check for empty tuples
