@@ -720,6 +720,12 @@ Type merge2(Type type)
     return dmd.typesem.merge2(type);
 }
 
+Type toBasetype(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.toBasetype(type);
+}
+
 Expression defaultInit(Type mt, Loc loc, const bool isCfile = false)
 {
     import dmd.typesem;
