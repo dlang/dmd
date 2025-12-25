@@ -10749,10 +10749,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (!exp.to.equals(exp.e1.type) && exp.mod == cast(ubyte)~0)
         {
+            // Remove the outer 'if' check so we can enter here even for void*
             if (Expression e = exp.opOverloadCast(sc))
             {
-                result = e.implicitCastTo(sc, exp.to);
-                return;
+                // https://issues.dlang.org/show_bug.cgi?id=22260
+                // If casting to void*, only ignore opCast if it returns a class.
+                // (Returning a class causes infinite recursion. Returning a pointer is valid).
+                bool ignore = false;
+                if (exp.to.ty == Tpointer && exp.to.nextOf().ty == Tvoid)
+                {
+                    if (e.type.toBasetype().ty == Tclass)
+                        ignore = true;
+                }
+
+                if (!ignore)
+                {
+                    result = e.implicitCastTo(sc, exp.to);
+                    return;
+                }
             }
         }
 
