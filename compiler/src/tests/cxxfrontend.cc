@@ -1002,11 +1002,11 @@ public:
     }
     void visit(ReturnStatement *s) override
     {
-        if (s->exp == NULL || s->exp->type->toBasetype()->ty == TY::Tvoid)
+        if (s->exp == NULL || dmd::toBasetype(s->exp->type)->ty == TY::Tvoid)
             return;
         TypeFunction *tf = func->type->toTypeFunction();
         Type *type = func->tintro != NULL ? dmd::nextOf(func->tintro) : dmd::nextOf(tf);
-        if ((func->isMain() || func->isCMain()) && type->toBasetype()->ty == TY::Tvoid)
+        if ((func->isMain() || func->isCMain()) && dmd::toBasetype(type)->ty == TY::Tvoid)
             type = Type::tint32;
         if (func->shidden)
         {
@@ -1093,7 +1093,7 @@ public:
     }
     void visit(ThrowStatement *s) override
     {
-        s->exp->type->toBasetype()->isClassHandle()->accept(this);
+        dmd::toBasetype(s->exp->type)->isClassHandle()->accept(this);
         s->exp->accept(this);
     }
     void visit(TryCatchStatement *s) override
