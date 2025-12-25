@@ -580,7 +580,7 @@ static if (1)
      *      offset = offset of the bytes in `buf` to replace
      *      data = bytes to write
      */
-    extern(D) void rewrite(T)(OutBuffer* buf, size_t offset, T data)
+    void rewrite(T)(OutBuffer* buf, size_t offset, T data)
     {
         *(cast(T*)&buf.buf[offset]) = data;
     }
@@ -1007,7 +1007,7 @@ static if (1)
         dwarf_initfile(filename ? filename[0 .. strlen(filename)] : null);
     }
 
-    extern(D) void dwarf_initfile(const(char)[] filename)
+    void dwarf_initfile(const(char)[] filename)
     {
         if (config.ehmethod == EHmethod.EH_DWARF)
         {
@@ -1377,7 +1377,7 @@ static if (1)
      *      aachars = AAchars where to add `str`
      *      str = string to add to `aachars`
      */
-    extern(D) uint addToAAchars(ref AAchars* aachars, const(char)[] str)
+    uint addToAAchars(ref AAchars* aachars, const(char)[] str)
     {
         if (!aachars)
         {
@@ -1400,7 +1400,7 @@ static if (1)
      * Returns:
      *      The directory name
      */
-    extern(D) const(char)[] retrieveDirectory(const(char)* path)
+    const(char)[] retrieveDirectory(const(char)* path)
     {
         assert(path);
         // Retrieve directory from path
@@ -1414,7 +1414,7 @@ static if (1)
                          modname ? modname[0 .. strlen(modname)] : null);
     }
 
-    extern(D) void dwarf_initmodule(const(char)[] filename, const(char)[] modname)
+    void dwarf_initmodule(const(char)[] filename, const(char)[] modname)
     {
         if (modname)
         {
@@ -2293,10 +2293,10 @@ static if (1)
                 // We make a copy of the type to strip off the const qualifier and
                 // recurse, and then add the const abbrev code. To avoid ending in a
                 // loop if the type references the const version of itself somehow,
-                // we need to set TFforward here, because setting TFforward during
+                // we need to set TF.forward here, because setting TF.forward during
                 // member generation of dwarf_typidx(tnext) has no effect on t itself.
-                const ushort old_flags = t.Tflags;
-                t.Tflags |= TFforward;
+                const TF old_flags = t.Tflags;
+                t.Tflags |= TF.forward;
 
                 tnext = type_copy(t);
                 tnext.Tcount++;
@@ -2706,7 +2706,7 @@ static if (1)
                     DW_TAG_subrange_type, DW_CHILDREN_no,
                     DW_AT_type,           DW_FORM_ref4,
                 ];
-                uint code2 = (t.Tflags & TFsizeunknown)
+                uint code2 = (t.Tflags & TF.sizeunknown)
                     ? DWARFAbbrev.write!(abbrevTypeSubrange2)
                     : DWARFAbbrev.write!(abbrevTypeSubrange);
                 uint idxbase = dwarf_typidx(tssize);
@@ -2721,7 +2721,7 @@ static if (1)
 
                 debug_info.buf.writeuLEB128(code2);       // DW_TAG_subrange_type
                 debug_info.buf.write32(idxbase);          // DW_AT_type
-                if (!(t.Tflags & TFsizeunknown))
+                if (!(t.Tflags & TF.sizeunknown))
                     debug_info.buf.write32(t.Tdim ? cast(uint)t.Tdim - 1 : 0);    // DW_AT_upper_bound
 
                 debug_info.buf.writeByte(0);              // no more children
@@ -2823,7 +2823,7 @@ static if (1)
                     0,                      0,
                 ];
 
-                if (t.Tflags & (TFsizeunknown | TFforward))
+                if (t.Tflags & (TF.sizeunknown | TF.forward))
                 {
                     abbrevTypeStruct1[0] = dwarf_classify_struct(st.Sflags);
                     code = dwarf_abbrev_code(abbrevTypeStruct1.ptr, (abbrevTypeStruct1).sizeof);
@@ -2838,7 +2838,7 @@ static if (1)
 
                 // Count number of fields
                 uint nfields = 0;
-                t.Tflags |= TFforward;
+                t.Tflags |= TF.forward;
                 foreach (sl; ListRange(st.Sfldlst))
                 {
                     Symbol* sf = list_symbol(sl);
@@ -2859,7 +2859,7 @@ static if (1)
                 for (auto bc = st.Sbase; bc; bc = bc.BCnext)
                     baseclassidx.write32(dwarf_typidx(bc.BCbase.Stype));
 
-                t.Tflags &= ~TFforward;
+                t.Tflags &= ~cast(int)TF.forward;
                 if (nfields == 0 && !st.Sbase)
                 {
                     abbrevTypeStruct0[0] = dwarf_classify_struct(st.Sflags);
@@ -3095,7 +3095,7 @@ static if (1)
 
     /* ======================= Abbreviation Codes ====================== */
 
-    extern(D) private struct DWARFAbbrev
+    private struct DWARFAbbrev
     {
         nothrow:
 

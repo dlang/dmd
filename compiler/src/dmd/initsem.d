@@ -447,11 +447,17 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
-                typeb.isStaticOrDynamicArray() && tynto.isSomeChar &&
-                se.numberOfCodeUnits(tynto) < tb.isTypeSArray().dim.toInteger())
+                typeb.isStaticOrDynamicArray() && tynto.isSomeChar)
             {
-                i.exp = se.castTo(sc, t);
-                goto L1;
+                string s;
+                size_t len = se.numberOfCodeUnits(tynto, s);
+                if (s)
+                    error(se.loc, "%.*s", cast(int)s.length, s.ptr);
+                if (len < tb.isTypeSArray().dim.toInteger())
+                {
+                    i.exp = se.castTo(sc, t);
+                    goto L1;
+                }
             }
 
             /* Lop off terminating 0 of initializer for:

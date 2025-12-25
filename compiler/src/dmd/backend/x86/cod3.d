@@ -1666,7 +1666,7 @@ private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t r
     }
 }
 
-@trusted extern (D)
+@trusted
 private void ifthen(CGstate cg, ref CodeBuilder cdb, scope CaseVal[] casevals,
         uint sz, reg_t reg, reg_t reg2, reg_t sreg, block* bdefault, bool last)
 {

@@ -157,7 +157,7 @@ TARGET_ARCH.d = $(model_flag)
 
 ########## Other common code ##########
 
-.PHONY: all cleam
+.PHONY: all clean
 all: $(TESTS:%=$(OBJDIR)/%.done)
 
 $(OBJDIR)/%.done: $(OBJDIR)/%$(DOTEXE)

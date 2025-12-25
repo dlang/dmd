@@ -18,6 +18,8 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 
+nothrow:
+
 ///
 alias responseExpand = responseExpandFrom!lookupInEnvironment;
 

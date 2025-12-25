@@ -83,6 +83,8 @@ ubyte defaultTargetOSMajor() @safe
             return 13;
         else version (TARGET_FREEBSD14)
             return 14;
+        else version (TARGET_FREEBSD15)
+            return 15;
         else
             return 0;
     }
@@ -314,7 +316,7 @@ extern (C++) struct Target
     import dmd.location;
     import dmd.astenums : LINK, TY;
     import dmd.mtype : Type, TypeFunction, TypeTuple;
-    import dmd.typesem : pointerTo, size;
+    import dmd.typesem;
     import dmd.root.ctfloat : real_t;
     import dmd.statement : Statement;
     import dmd.tokens : EXP;

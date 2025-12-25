@@ -19,6 +19,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.cc;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.oper;
@@ -203,7 +204,7 @@ private void freeloop(ref Loops loops)
  */
 
 @trusted
-bool blockinit()
+bool blockinit(ref BlockOpt bo)
 {
     bool hasasm = false;
 
@@ -242,13 +243,13 @@ bool blockinit()
  */
 
 @trusted
-void compdom()
+void compdom(ref BlockOpt bo)
 {
     compdom(bo.dfo[]);
 }
 
 @trusted
-private extern (D) void compdom(block*[] dfo)
+private void compdom(block*[] dfo)
 {
     assert(dfo.length);
     block* sb = dfo[0];                  // starting block
@@ -311,7 +312,7 @@ private extern (D) void compdom(block*[] dfo)
  */
 
 @trusted
-bool dom(const block* A, const block* B)
+bool dom(ref BlockOpt bo, const block* A, const block* B)
 {
     assert(A && B && bo.dfo && bo.dfo[A.Bdfoidx] == A);
     return vec_testbit(A.Bdfoidx,B.Bdom) != 0;
@@ -321,7 +322,7 @@ bool dom(const block* A, const block* B)
  * Find all the loops.
  */
 
-private extern (D) void findloops(block*[] dfo, ref Loops loops)
+private void findloops(ref BlockOpt bo, block*[] dfo, ref Loops loops)
 {
     freeloop(loops);
 
@@ -337,8 +338,8 @@ private extern (D) void findloops(block*[] dfo, ref Loops loops)
         {
             block* s = list_block(bl);      // each successor s to b
             assert(s);
-            if (dom(s,b))                   // if s dominates b
-                buildloop(loops, s, b);     // we found a loop
+            if (dom(bo, s, b))              // if s dominates b
+                buildloop(bo, loops, s, b); // we found a loop
         }
     }
 
@@ -382,7 +383,7 @@ private uint loop_weight(uint weight, int factor) pure
  */
 
 @trusted
-private void buildloop(ref Loops ploops,block* head,block* tail)
+private void buildloop(ref BlockOpt bo, ref Loops ploops, block* head, block* tail)
 {
     //printf("buildloop()\n");
 
@@ -543,7 +544,7 @@ L1:
  */
 
 @trusted
-private bool looprotate(ref GlobalOptimizer go, ref Loop l)
+private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 {
     block* tail = l.Ltail;
     block* head = l.Lhead;
@@ -576,7 +577,7 @@ private bool looprotate(ref GlobalOptimizer go, ref Loop l)
         // switches would be too expensive in terms of code
         // generated).
 
-        auto head2 = block_calloc(); // create new head block
+        auto head2 = block_calloc(bo); // create new head block
         head2.Btry = head.Btry;
         head2.Bflags = head.Bflags;
         head.Bflags = BFL.nomerg;       // move flags over to head2
@@ -676,7 +677,7 @@ private __gshared
  */
 
 @trusted
-void loopopt(ref GlobalOptimizer go)
+void loopopt(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     __gshared Loops startloop_cache;
 
@@ -684,27 +685,27 @@ void loopopt(ref GlobalOptimizer go)
 
     if (debugc) printf("loopopt()\n");
 restart:
-    if (blockinit())                    // init block data
+    if (blockinit(bo))                  // init block data
     {
-        findloops(bo.dfo[], startloop);    // Compute Bweights
+        findloops(bo, bo.dfo[], startloop);    // Compute Bweights
         freeloop(startloop);            // free existing loops
         startloop_cache = startloop;
         return;                         // can't handle ASM blocks
     }
-    compdom();                          // compute dominators
-    findloops(bo.dfo[], startloop);              // find the loops
+    compdom(bo);                        // compute dominators
+    findloops(bo, bo.dfo[], startloop);        // find the loops
 
   L3:
     while (1)
     {
         foreach (ref l; startloop)
         {
-            if (looprotate(go, l))              // rotate the loop
+            if (looprotate(go, bo, l))          // rotate the loop
             {
-                compdfo(bo.dfo, bo.startblock);
-                blockinit();
-                compdom();
-                findloops(bo.dfo[], startloop);
+                compdfo(bo, bo.dfo, bo.startblock);
+                blockinit(bo);
+                compdom(bo);
+                findloops(bo, bo.dfo[], startloop);
                 continue L3;
             }
         }
@@ -722,7 +723,7 @@ restart:
         {
             if (debugc) printf("Generating preheader for loop\n");
             addblk = true;              // add one
-            block* p = block_calloc();  // the preheader
+            block* p = block_calloc(bo);  // the preheader
             block* h = l.Lhead;         // loop header
 
             /* Find parent of h */
@@ -775,10 +776,10 @@ restart:
     } /* for */
     if (addblk)                         /* if any blocks were added      */
     {
-        compdfo(bo.dfo, bo.startblock);                      /* compute depth-first order    */
-        blockinit();
-        compdom();
-        findloops(bo.dfo[], startloop);          // recompute block info
+        compdfo(bo, bo.dfo, bo.startblock);              /* compute depth-first order    */
+        blockinit(bo);
+        compdom(bo);
+        findloops(bo, bo.dfo[], startloop);    // recompute block info
         addblk = false;
     }
 
@@ -795,12 +796,12 @@ restart:
         {
             foreach (ref l; startloop)
             {
-                if (loopunroll(go, l))
+                if (loopunroll(go, bo, l))
                 {
-                    compdfo(bo.dfo, bo.startblock);                      // compute depth-first order
-                    blockinit();
-                    compdom();
-                    findloops(bo.dfo[], startloop);    // recompute block info
+                    compdfo(bo, bo.dfo, bo.startblock);  // compute depth-first order
+                    blockinit(bo);
+                    compdom(bo);
+                    findloops(bo, bo.dfo[], startloop);  // recompute block info
                     doflow = true;
                     continue L2;
                 }
@@ -822,9 +823,9 @@ restart:
         assert(l.Lpreheader);
         if (doflow)
         {
-            flowrd(go);             /* compute reaching definitions  */
-            flowlv();               /* compute live variables        */
-            flowae(go);             // compute available expressions
+            flowrd(go, bo);         /* compute reaching definitions  */
+            flowlv(bo);             /* compute live variables        */
+            flowae(go, bo);         // compute available expressions
             doflow = false;         /* no need to redo it           */
             if (go.defnod.length == 0)     /* if no definition elems       */
                 break;              /* no need to optimize          */
@@ -911,10 +912,10 @@ restart:
 
         if (go.mfoptim & MFliv)
         {
-            loopiv(go, l);          /* induction variables          */
+            loopiv(go, bo, l);      /* induction variables          */
             if (addblk)             /* if we added a block          */
             {
-                compdfo(bo.dfo, bo.startblock);
+                compdfo(bo, bo.dfo, bo.startblock);
                 goto restart;       /* play it safe and start over  */
             }
         }
@@ -1982,26 +1983,26 @@ private void newfamlist(famlist* fl, tym_t ty)
  */
 
 @trusted
-private void loopiv(ref GlobalOptimizer go, ref Loop l)
+private void loopiv(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 {
     if (debugc) printf("loopiv(%p)\n", &l);
     assert(l.Livlist.length == 0 && l.Lopeqlist.length == 0);
     elimspec(go, l, bo.dfo);
     if (doflow)
     {
-        flowrd(go);             /* compute reaching defs                */
-        flowlv();               /* compute live variables               */
-        flowae(go);             // compute available expressions
+        flowrd(go, bo);         /* compute reaching defs                */
+        flowlv(bo);             /* compute live variables               */
+        flowae(go, bo);         // compute available expressions
         doflow = false;
     }
     findbasivs(go, l);          /* find basic induction variables       */
     findopeqs(go, l);           // find op= variables
-    findivfams(l);              /* find IV families                     */
-    elimfrivivs(l);             /* eliminate less useful family IVs     */
+    findivfams(bo, l);          /* find IV families                     */
+    elimfrivivs(bo, l);         /* eliminate less useful family IVs     */
     intronvars(go, l);          /* introduce new variables              */
-    elimbasivs(go, l);          /* eliminate basic IVs                  */
+    elimbasivs(go, bo, l);      /* eliminate basic IVs                  */
     if (!addblk)                // adding a block changes the Binlv
-        elimopeqs(go, l);       // eliminate op= variables
+        elimopeqs(go, bo, l);   // eliminate op= variables
 
     foreach (ref iv; l.Livlist)
         iv.reset();
@@ -2301,7 +2302,7 @@ private void findopeqs(ref GlobalOptimizer go, ref Loop l)
  */
 
 @trusted
-private void findivfams(ref Loop l)
+private void findivfams(ref BlockOpt bo, ref Loop l)
 {
     if (debugc) printf("findivfams(%p)\n", &l);
     foreach (ref biv; l.Livlist)
@@ -2511,7 +2512,7 @@ private void ivfamelems(Iv* biv,elem** pn)
  */
 
 @trusted
-private void elimfrivivs(ref Loop l)
+private void elimfrivivs(ref BlockOpt bo, ref Loop l)
 {
     foreach (ref biv; l.Livlist)
     {
@@ -2523,7 +2524,7 @@ private void elimfrivivs(ref Loop l)
         if (debugc) printf("nfams = %d\n", cast(int)nfams);
 
         /* Compute number of references to biv  */
-        if (onlyref(biv.IVbasic,l,*biv.IVincr,nrefs))
+        if (onlyref(bo, biv.IVbasic,l,*biv.IVincr,nrefs))
                 nrefs--;
         if (debugc) printf("nrefs = %d\n",nrefs);
         assert(nrefs + 1 >= nfams);
@@ -2799,7 +2800,7 @@ private bool funcprev(ref GlobalOptimizer go, ref Iv biv, ref famlist fl)
  */
 
 @trusted
-private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
+private void elimbasivs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 {
     if (debugc) printf("elimbasivs(%p)\n", &l);
     foreach (ref biv; l.Livlist)
@@ -2815,7 +2816,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
         assert(symbol_isintab(X));
         tym_t ty = X.ty();
         int refcount;
-        elem** pref = onlyref(X,l,einc,refcount);
+        elem** pref = onlyref(bo, X,l,einc,refcount);
 
         /* if only ref of X is of the form (X) or (X relop e) or (e relop X) */
         if (pref != null && refcount <= 1)
@@ -2823,7 +2824,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
             if (!biv.IVfamily.length)
                 continue;
 
-            if (catchRef(X, l))
+            if (catchRef(bo, X, l))
                 continue;
 
             elem* ref_ = *pref;
@@ -3049,7 +3050,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
                     /* more than one predecessor to b.      */
                     if (list_next(b.Bpred))
                     {
-                        block* bn = block_calloc();
+                        block* bn = block_calloc(bo);
                         bn.Btry = b.Btry;
                         bn.bc = BC.goto_;
                         bn.Bnext = bo.dfo[i].Bnext;
@@ -3123,7 +3124,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
  */
 
 @trusted
-private void elimopeqs(ref GlobalOptimizer go, ref Loop l)
+private void elimopeqs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 {
     elem** pref;
     Symbol* X;
@@ -3142,7 +3143,7 @@ private void elimopeqs(ref GlobalOptimizer go, ref Loop l)
 
         X = biv.IVbasic;
         assert(symbol_isintab(X));
-        pref = onlyref(X,l,*biv.IVincr,refcount);
+        pref = onlyref(bo, X,l,*biv.IVincr,refcount);
 
         // if only ref of X is of the form (X) or (X relop e) or (e relop X)
         if (pref != null && refcount <= 1)
@@ -3192,7 +3193,6 @@ private void elimopeqs(ref GlobalOptimizer go, ref Loop l)
  */
 
 @trusted
-extern (D)
 private size_t simfl(famlist[] fams, tym_t tym)
 {
     size_t sofar = fams.length;
@@ -3335,7 +3335,7 @@ Lf2:
  *      true if x is used outside the try block
  */
 @trusted
-private bool catchRef(Symbol* x, ref Loop l)
+private bool catchRef(ref BlockOpt bo, Symbol* x, ref Loop l)
 {
     block* btry = l.Lhead.Btry;
     if (!btry)
@@ -3377,7 +3377,7 @@ private __gshared
 }
 
 @trusted
-private elem ** onlyref(Symbol* x, ref Loop l,elem* incn, out int refcount)
+private elem ** onlyref(ref BlockOpt bo, Symbol* x, ref Loop l,elem* incn, out int refcount)
 {
     uint i;
 
@@ -3491,7 +3491,7 @@ private int countrefs2(const(elem)* e, const Symbol* s)
 
 @trusted
 private
-extern(D) void elimspec(ref GlobalOptimizer go, const ref Loop loop, block*[] dfo)
+void elimspec(ref GlobalOptimizer go, const ref Loop loop, block*[] dfo)
 {
     // Visit each block in loop
     for (size_t i = 0; (i = vec_index(i, loop.Lloop)) < dfo.length; ++i)
@@ -3690,7 +3690,7 @@ private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment,
  *      true if loop was unrolled
  */
 @trusted
-bool loopunroll(ref GlobalOptimizer go, ref Loop l)
+bool loopunroll(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 {
     const bool log = false;
     if (log) printf("loopunroll(%p)\n", &l);

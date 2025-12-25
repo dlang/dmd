@@ -2070,16 +2070,7 @@ public:
     static void deinitialize();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
-    virtual bool isIntegral();
-    virtual bool isFloating();
-    virtual bool isReal();
-    virtual bool isImaginary();
-    virtual bool isComplex();
-    virtual bool isScalar();
-    virtual bool isUnsigned();
     virtual bool isScopeClass();
-    virtual bool isString();
-    virtual bool isBoolean();
     bool isConst() const;
     bool isImmutable() const;
     bool isMutable() const;
@@ -2092,14 +2083,8 @@ public:
     Type* nullAttributes() const;
     bool hasDeprecatedAliasThis();
     Type* toBasetype();
-    virtual uint8_t deduceWild(Type* t, bool isRef);
     virtual ClassDeclaration* isClassHandle();
     virtual int32_t hasWild() const;
-    virtual Type* nextOf();
-    Type* baseElemOf();
-    virtual bool needsDestruction();
-    virtual bool needsCopyOrPostblit();
-    virtual bool needsNested();
     virtual TypeBasic* isTypeBasic();
     TypeFunction* isPtrToFunction();
     TypeFunction* isFunction_Delegate_PtrToFunction();
@@ -2328,8 +2313,6 @@ public:
     virtual Expression* syntaxCopy();
     DYNCAST dyncast() const final override;
     const char* toChars() const final override;
-    virtual _d_real toImaginary();
-    virtual bool checkType();
     Expression* deref();
     int32_t isConst();
     virtual bool hasCode();
@@ -2708,7 +2691,6 @@ class ComplexExp final : public Expression
 public:
     complex_t value;
     static ComplexExp* create(Loc loc, complex_t value, Type* type);
-    _d_real toImaginary() override;
     void accept(Visitor* v) override;
 };
 
@@ -2824,7 +2806,6 @@ class DotTemplateExp final : public UnaExp
 {
 public:
     TemplateDeclaration* td;
-    bool checkType() override;
     void accept(Visitor* v) override;
 };
 
@@ -2833,7 +2814,6 @@ class DotTemplateInstanceExp final : public UnaExp
 public:
     TemplateInstance* ti;
     DotTemplateInstanceExp* syntaxCopy() override;
-    bool checkType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3119,7 +3099,6 @@ public:
     TemplateDeclaration* td;
     TOK tok;
     FuncExp* syntaxCopy() override;
-    bool checkType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3181,7 +3160,6 @@ class IntegerExp final : public Expression
 public:
     dinteger_t value;
     static IntegerExp* create(Loc loc, dinteger_t value, Type* type);
-    _d_real toImaginary() override;
     void accept(Visitor* v) override;
     dinteger_t getInteger();
     IntegerExp* syntaxCopy() override;
@@ -3407,7 +3385,6 @@ class RealExp final : public Expression
 public:
     _d_real value;
     static RealExp* create(Loc loc, _d_real value, Type* type);
-    _d_real toImaginary() override;
     void accept(Visitor* v) override;
 };
 
@@ -3422,7 +3399,6 @@ class ScopeExp final : public Expression
 public:
     ScopeDsymbol* sds;
     ScopeExp* syntaxCopy() override;
-    bool checkType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3510,7 +3486,6 @@ public:
 
     static StringExp* create(Loc loc, const char* s);
     static StringExp* create(Loc loc, const void* string, size_t len);
-    size_t numberOfCodeUnits(int32_t tynto = 0) const;
     void writeTo(void* dest, bool zero, int32_t tyto = 0) const;
     char32_t getCodeUnit(size_t i) const;
     dinteger_t getIndex(size_t i) const;
@@ -3610,7 +3585,6 @@ class TemplateExp final : public Expression
 public:
     TemplateDeclaration* td;
     FuncDeclaration* fd;
-    bool checkType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3651,7 +3625,6 @@ class TypeExp final : public Expression
 {
 public:
     TypeExp* syntaxCopy() override;
-    bool checkType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3734,10 +3707,12 @@ struct AttributeViolation final
     Loc loc;
     FuncDeclaration* fd;
     _d_dynamicArray< const char > action;
+    VarDeclaration* scopeVar;
     AttributeViolation() :
         loc(),
         fd(),
-        action()
+        action(),
+        scopeVar()
     {
     }
 };
@@ -4320,7 +4295,6 @@ public:
     UserAttributeDeclaration* userAttribDecl;
     static Parameter* create(Loc loc, StorageClass storageClass, Type* type, Identifier* ident, Expression* defaultArg, UserAttributeDeclaration* userAttribDecl);
     Parameter* syntaxCopy();
-    Type* isLazyArray();
     bool isLazy() const;
     bool isReference() const;
     DYNCAST dyncast() const override;
@@ -4363,9 +4337,6 @@ class TypeNext : public Type
 public:
     Type* next;
     int32_t hasWild() const final override;
-    Type* nextOf() final override;
-    uint8_t deduceWild(Type* t, bool isRef) final override;
-    void transitive();
     void accept(Visitor* v) override;
 };
 
@@ -4383,7 +4354,6 @@ public:
     static TypeAArray* create(Type* t, Type* index);
     const char* kind() const override;
     TypeAArray* syntaxCopy() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4394,13 +4364,6 @@ public:
     uint32_t flags;
     const char* kind() const override;
     TypeBasic* syntaxCopy() override;
-    bool isIntegral() override;
-    bool isFloating() override;
-    bool isReal() override;
-    bool isImaginary() override;
-    bool isComplex() override;
-    bool isScalar() override;
-    bool isUnsigned() override;
     TypeBasic* isTypeBasic() override;
     void accept(Visitor* v) override;
 };
@@ -4424,9 +4387,7 @@ public:
     const char* kind() const override;
     TypeClass* syntaxCopy() override;
     ClassDeclaration* isClassHandle() override;
-    uint8_t deduceWild(Type* t, bool isRef) override;
     bool isScopeClass() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4435,8 +4396,6 @@ class TypeDArray final : public TypeArray
 public:
     const char* kind() const override;
     TypeDArray* syntaxCopy() override;
-    bool isString() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4446,7 +4405,6 @@ public:
     static TypeDelegate* create(TypeFunction* t);
     const char* kind() const override;
     TypeDelegate* syntaxCopy() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4456,19 +4414,6 @@ public:
     EnumDeclaration* sym;
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
-    bool isIntegral() override;
-    bool isFloating() override;
-    bool isReal() override;
-    bool isImaginary() override;
-    bool isComplex() override;
-    bool isScalar() override;
-    bool isUnsigned() override;
-    bool isBoolean() override;
-    bool isString() override;
-    bool needsDestruction() override;
-    bool needsCopyOrPostblit() override;
-    bool needsNested() override;
-    Type* nextOf() override;
     void accept(Visitor* v) override;
 };
 
@@ -4647,7 +4592,6 @@ class TypeNoreturn final : public Type
 public:
     const char* kind() const override;
     TypeNoreturn* syntaxCopy() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4656,7 +4600,6 @@ class TypeNull final : public Type
 public:
     const char* kind() const override;
     TypeNull* syntaxCopy() override;
-    bool isBoolean() override;
     void accept(Visitor* v) override;
 };
 
@@ -4666,7 +4609,6 @@ public:
     static TypePointer* create(Type* t);
     const char* kind() const override;
     TypePointer* syntaxCopy() override;
-    bool isScalar() override;
     void accept(Visitor* v) override;
 };
 
@@ -4693,10 +4635,6 @@ public:
     const char* kind() const override;
     TypeSArray* syntaxCopy() override;
     bool isIncomplete();
-    bool isString() override;
-    bool needsDestruction() override;
-    bool needsCopyOrPostblit() override;
-    bool needsNested() override;
     void accept(Visitor* v) override;
 };
 
@@ -4719,11 +4657,6 @@ public:
     static TypeStruct* create(StructDeclaration* sym);
     const char* kind() const override;
     TypeStruct* syntaxCopy() override;
-    bool isBoolean() override;
-    bool needsDestruction() override;
-    bool needsCopyOrPostblit() override;
-    bool needsNested() override;
-    uint8_t deduceWild(Type* t, bool isRef) override;
     void accept(Visitor* v) override;
 };
 
@@ -4786,11 +4719,6 @@ public:
     static TypeVector* create(Type* basetype);
     const char* kind() const override;
     TypeVector* syntaxCopy() override;
-    bool isIntegral() override;
-    bool isFloating() override;
-    bool isScalar() override;
-    bool isUnsigned() override;
-    bool isBoolean() override;
     TypeBasic* elementType();
     void accept(Visitor* v) override;
 };
@@ -6776,7 +6704,6 @@ public:
     uint32_t bitOffset;
     BitFieldDeclaration* syntaxCopy(Dsymbol* s) override;
     void accept(Visitor* v) override;
-    uint64_t getMinMax(Identifier* id);
 };
 
 class SymbolDeclaration final : public Declaration
@@ -6841,8 +6768,8 @@ class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
     Type* entry;
-    Dsymbol* xopEqual;
-    Dsymbol* xtoHash;
+    Declaration* xopEqual;
+    Declaration* xtoHash;
     static TypeInfoAssociativeArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v) override;
 };

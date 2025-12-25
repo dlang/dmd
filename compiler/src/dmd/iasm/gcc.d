@@ -30,6 +30,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.statement;
 import dmd.statementsem;
+import dmd.typesem;
 
 /***********************************
  * Parse and run semantic analysis on a GccAsmStatement.
@@ -188,7 +189,8 @@ Expression semanticAsmString(Scope* sc, Expression exp, const char *s)
 {
     import dmd.dcast : implicitCastTo;
     import dmd.dsymbolsem : resolveAliasThis;
-    import dmd.mtype : isAggregate, Type;
+    import dmd.mtype : Type;
+    import dmd.typesem : isAggregate;
 
     exp = expressionSemantic(exp, sc);
 
@@ -553,6 +555,7 @@ GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
 unittest
 {
     import dmd.mtype : TypeBasic;
+    import dmd.typesem : merge;
 
     if (!global.errorSink)
         global.errorSink = new ErrorSinkCompiler;
@@ -573,8 +576,10 @@ unittest
         ASTCodegen.Type.tchar = null;
     }
     scope tint32 = new TypeBasic(ASTCodegen.Tint32);
+    tint32.merge();
     ASTCodegen.Type.tint32 = tint32;
     scope tchar = new TypeBasic(ASTCodegen.Tchar);
+    tchar.merge();
     ASTCodegen.Type.tchar = tchar;
 
     // Imitates asmSemantic if version = IN_GCC.

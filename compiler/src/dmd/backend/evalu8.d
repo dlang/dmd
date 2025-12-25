@@ -1941,7 +1941,7 @@ static if (0) // && MARS
  * instead of the soft long double ones.
  */
 
-extern (D) targ_ldouble el_toldoubled(elem* e)
+targ_ldouble el_toldoubled(elem* e)
 {
     targ_ldouble result;
 
@@ -1974,13 +1974,13 @@ extern (D) targ_ldouble el_toldoubled(elem* e)
  */
 version (CRuntime_Microsoft)
 {
-    extern (D) private targ_ldouble _modulo(targ_ldouble x, targ_ldouble y)
+    private targ_ldouble _modulo(targ_ldouble x, targ_ldouble y)
     {
         return cast(targ_ldouble)fmodl(cast(real)x, cast(real)y);
     }
     import core.stdc.math : isnan;
     static if (!is(targ_ldouble == real))
-        extern (D) private int isnan(targ_ldouble x)
+        private int isnan(targ_ldouble x)
         {
             return isnan(cast(real)x);
         }

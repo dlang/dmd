@@ -228,16 +228,8 @@ public:
     void modToBuffer(OutBuffer& buf) const;
     char *modToChars() const;
 
-    virtual bool isIntegral();
-    virtual bool isFloating();   // real, imaginary, or complex
-    virtual bool isReal();
-    virtual bool isImaginary();
-    virtual bool isComplex();
-    virtual bool isScalar();
-    virtual bool isUnsigned();
     virtual bool isScopeClass();
-    virtual bool isString();
-    virtual bool isBoolean();
+
     bool isConst() const       { return (mod & MODconst) != 0; }
     bool isImmutable() const   { return (mod & MODimmutable) != 0; }
     bool isMutable() const     { return (mod & (MODconst | MODimmutable | MODwild)) == 0; }
@@ -250,15 +242,9 @@ public:
     Type *nullAttributes() const;
     bool hasDeprecatedAliasThis();
     Type *toBasetype();
-    virtual unsigned char deduceWild(Type *t, bool isRef);
 
     virtual ClassDeclaration *isClassHandle();
     virtual int hasWild() const;
-    virtual Type *nextOf();
-    Type *baseElemOf();
-    virtual bool needsDestruction();
-    virtual bool needsCopyOrPostblit();
-    virtual bool needsNested();
 
     TypeFunction *toTypeFunction();
 
@@ -308,9 +294,6 @@ public:
     Type *next;
 
     int hasWild() const override final;
-    Type *nextOf() override final;
-    unsigned char deduceWild(Type *t, bool isRef) override final;
-    void transitive();
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -322,13 +305,6 @@ public:
 
     const char *kind() override;
     TypeBasic *syntaxCopy() override;
-    bool isIntegral() override;
-    bool isFloating() override;
-    bool isReal() override;
-    bool isImaginary() override;
-    bool isComplex() override;
-    bool isScalar() override;
-    bool isUnsigned() override;
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic() override;
@@ -343,11 +319,6 @@ public:
     static TypeVector *create(Type *basetype);
     const char *kind() override;
     TypeVector *syntaxCopy() override;
-    bool isIntegral() override;
-    bool isFloating() override;
-    bool isScalar() override;
-    bool isUnsigned() override;
-    bool isBoolean() override;
     TypeBasic *elementType();
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -368,10 +339,6 @@ public:
     const char *kind() override;
     TypeSArray *syntaxCopy() override;
     bool isIncomplete();
-    bool isString() override;
-    bool needsDestruction() override;
-    bool needsCopyOrPostblit() override;
-    bool needsNested() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -382,8 +349,6 @@ class TypeDArray final : public TypeArray
 public:
     const char *kind() override;
     TypeDArray *syntaxCopy() override;
-    bool isString() override;
-    bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -397,7 +362,6 @@ public:
     static TypeAArray *create(Type *t, Type *index);
     const char *kind() override;
     TypeAArray *syntaxCopy() override;
-    bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -408,7 +372,6 @@ public:
     static TypePointer *create(Type *t);
     const char *kind() override;
     TypePointer *syntaxCopy() override;
-    bool isScalar() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -462,7 +425,6 @@ public:
     static Parameter *create(Loc loc, StorageClass storageClass, Type *type, Identifier *ident,
                              Expression *defaultArg, UserAttributeDeclaration *userAttribDecl);
     Parameter *syntaxCopy();
-    Type *isLazyArray();
     bool isLazy() const;
     bool isReference() const;
     // kludge for template.isType()
@@ -547,7 +509,6 @@ public:
     static TypeDelegate *create(TypeFunction *t);
     const char *kind() override;
     TypeDelegate *syntaxCopy() override;
-    bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -652,11 +613,6 @@ public:
     static TypeStruct *create(StructDeclaration *sym);
     const char *kind() override;
     TypeStruct *syntaxCopy() override;
-    bool isBoolean() override;
-    bool needsDestruction() override;
-    bool needsCopyOrPostblit() override;
-    bool needsNested() override;
-    unsigned char deduceWild(Type *t, bool isRef) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -668,19 +624,6 @@ public:
 
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
-    bool isIntegral() override;
-    bool isFloating() override;
-    bool isReal() override;
-    bool isImaginary() override;
-    bool isComplex() override;
-    bool isScalar() override;
-    bool isUnsigned() override;
-    bool isBoolean() override;
-    bool isString() override;
-    bool needsDestruction() override;
-    bool needsCopyOrPostblit() override;
-    bool needsNested() override;
-    Type *nextOf() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -695,9 +638,7 @@ public:
     const char *kind() override;
     TypeClass *syntaxCopy() override;
     ClassDeclaration *isClassHandle() override;
-    unsigned char deduceWild(Type *t, bool isRef) override;
     bool isScopeClass() override;
-    bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -736,7 +677,6 @@ public:
     const char *kind() override;
 
     TypeNull *syntaxCopy() override;
-    bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -746,7 +686,6 @@ class TypeNoreturn final : public Type
 public:
     const char *kind() override;
     TypeNoreturn *syntaxCopy() override;
-    bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -803,6 +742,7 @@ namespace dmd
     bool hasInvariant(Type* type);
     bool hasVoidInitPointers(Type* type);
     void Type_init();
+    void transitive(TypeNext* type);
     structalign_t alignment(Type* type);
     Type* memType(TypeEnum* type);
     unsigned alignsize(Type* type);
@@ -815,4 +755,20 @@ namespace dmd
     Type *makeWildConst(Type* type);
     Type *makeSharedWild(Type* type);
     Type *makeSharedWildConst(Type* type);
+    Type *nextOf(Type* type);
+    Type *baseElemOf(Type* type);
+    Type *isLazyArray(Parameter* param);
+    unsigned char deduceWild(Type* type, Type* t, bool isRef);
+    bool isIntegral(Type* type);
+    bool isFloating(Type* type);
+    bool isScalar(Type* type);
+    bool isReal(Type* type);
+    bool isImaginary(Type* type);
+    bool isComplex(Type* type);
+    bool isString(Type* type);
+    bool isBoolean(Type* type);
+    bool isUnsigned(Type* type);
+    bool needsNested(Type* type);
+    bool needsDestruction(Type* type);
+    bool needsCopyOrPostblit(Type* type);
 }

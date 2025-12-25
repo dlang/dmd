@@ -680,7 +680,10 @@ MATCH implicitConvTo(Expression e, Type t)
                 {
                     if (e.committed && tynto != tyn)
                         return MATCH.nomatch;
-                    size_t fromlen = e.numberOfCodeUnits(tynto);
+                    string s;
+                    size_t fromlen = e.numberOfCodeUnits(tynto, s);
+                    if (s)
+                        error(e.loc, "%.*s", cast(int)s.length, s.ptr);
                     size_t tolen = cast(size_t)t.isTypeSArray().dim.toInteger();
                     if (tolen < fromlen)
                         return MATCH.nomatch;
@@ -702,7 +705,10 @@ MATCH implicitConvTo(Expression e, Type t)
                 {
                     if (e.committed && tynto != tyn)
                         return MATCH.nomatch;
-                    size_t fromlen = e.numberOfCodeUnits(tynto);
+                    string s;
+                    size_t fromlen = e.numberOfCodeUnits(tynto, s);
+                    if (s)
+                        error(e.loc, "%.*s", cast(int)s.length, s.ptr);
                     size_t tolen = cast(size_t)t.isTypeSArray().dim.toInteger();
                     if (tolen < fromlen)
                         return MATCH.nomatch;
@@ -3445,6 +3451,60 @@ Lagain:
     t1b = t1.toBasetype();
     t2b = t2.toBasetype();
 
+    static bool isComplexStruct(Type t)
+    {
+        if (t.ty != Tstruct)
+            return false;
+
+        TypeStruct ts = t.isTypeStruct();
+
+        return ts.sym.toString() == "_Complex";
+    }
+
+    static bool isComplexStructOfType(Type t, Type t2)
+    {
+        if (!isComplexStruct(t))
+            return false;
+
+        TypeStruct ts = t.toBasetype().isTypeStruct();
+
+        Type memberType = ts.sym.fields[0].type.toBasetype();
+
+        /* encure the complex member types fall under one of the complex types */
+        switch (memberType.toBasetype().ty)
+        {
+            case Tfloat32:
+            case Tfloat64:
+            case Tfloat80:
+                break;
+            default:
+                return false;
+        }
+
+        switch (t2.toBasetype().ty)
+        {
+            case Tfloat32:
+            case Tfloat64:
+            case Tfloat80:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /* check for complex structure and an associate complex type in a single condexp */
+    if (sc && sc.inCfile)
+    {
+        if (isComplexStructOfType(t1b, t2b))
+        {
+            return Lret(e1.type.toBasetype());
+        }
+        else if (isComplexStructOfType(t2b, t1b))
+        {
+            return Lret(e2.type.toBasetype());
+        }
+    }
+
     const ty = implicitConvCommonTy(t1b.ty, t2b.ty);
     if (ty != Terror)
     {
@@ -4262,13 +4322,14 @@ void fix16997(Scope* sc, UnaExp ue)
 }
 
 /***********************************
- * See if both types are arrays that can be compared
+ * See if an AA key can be compared
  * for equality without any casting. Return true if so.
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
-extern (D) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
+extern (D) bool keyCompatibleWithoutCasting(Expression ekey, Type t2)
 {
+    Type t1 = ekey.type;
     t1 = t1.toBasetype();
     t2 = t2.toBasetype();
 
@@ -4276,8 +4337,15 @@ extern (D) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
     {
         if (t1.nextOf().implicitConvTo(t2.nextOf()) >= MATCH.constant || t2.nextOf().implicitConvTo(t1.nextOf()) >= MATCH.constant)
             return true;
+        return false;
     }
-    return false;
+    if (implicitConvTo(ekey, t2) < MATCH.constant)
+        return false;
+    if (auto ts = t1.isTypeStruct())
+        return implicitConvToThroughAliasThis(ts, t2) == MATCH.nomatch;
+    if (auto tc = t1.isTypeClass())
+        return implicitConvToThroughAliasThis(tc, t2) == MATCH.nomatch;
+    return true;
 }
 
 /******************************************************************/

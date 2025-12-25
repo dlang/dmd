@@ -332,8 +332,13 @@ extern (C++) class FuncDeclaration : Declaration
         /* The type given for "infer the return type" is a TypeFunction with
          * NULL for the return type.
          */
-        if (type && type.nextOf() is null)
-            this.inferRetType = true;
+        if (type)
+        {
+            if (auto tf = type.isTypeFunction())
+                this.inferRetType = tf.next is null;
+            else
+                assert(0); // unreachable
+        }
     }
 
     static FuncDeclaration create(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type, bool noreturn = false)
@@ -750,46 +755,6 @@ extern (C++) class FuncDeclaration : Declaration
         }
 
         return ParameterList(null, VarArg.none);
-    }
-
-    /**********************************
-     * Generate a FuncDeclaration for a runtime library function.
-     */
-    extern(D) static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, STC stc = STC.none)
-    {
-        return genCfunc(fparams, treturn, Identifier.idPool(name[0 .. strlen(name)]), stc);
-    }
-
-    extern(D) static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, STC stc = STC.none)
-    {
-        FuncDeclaration fd;
-        TypeFunction tf;
-        Dsymbol s;
-        __gshared DsymbolTable st = null;
-
-        //printf("genCfunc(name = '%s')\n", id.toChars());
-        //printf("treturn\n\t"); treturn.print();
-
-        // See if already in table
-        if (!st)
-            st = new DsymbolTable();
-        s = st.lookup(id);
-        if (s)
-        {
-            fd = s.isFuncDeclaration();
-            assert(fd);
-            assert(fd.type.nextOf().equals(treturn));
-        }
-        else
-        {
-            tf = new TypeFunction(ParameterList(fparams), treturn, LINK.c, stc);
-            fd = new FuncDeclaration(Loc.initial, Loc.initial, id, STC.static_, tf);
-            fd.visibility = Visibility(Visibility.Kind.public_);
-            fd._linkage = LINK.c;
-
-            st.insert(fd);
-        }
-        return fd;
     }
 
     inout(FuncDeclaration) toAliasFunc() inout @safe
@@ -1465,6 +1430,8 @@ struct AttributeViolation
 
     string action;   /// Action that made the attribute fail to get inferred
 
+    VarDeclaration scopeVar;  /// For scope violations: the parameter whose scope status caused the issue
+
     this(Loc loc, FuncDeclaration fd) { this.loc = loc; this.fd = fd; }
 
     this(Loc loc, const(char)* fmt, RootObject[] args)
@@ -1479,5 +1446,11 @@ struct AttributeViolation
             args.length > 3 && args[3] ? args[3].toErrMsg() : "",
         );
         this.action = buf.extractSlice();
+    }
+
+    this(Loc loc, const(char)* fmt, VarDeclaration scopeVar, RootObject[] args)
+    {
+        this(loc, fmt, args);
+        this.scopeVar = scopeVar;
     }
 }

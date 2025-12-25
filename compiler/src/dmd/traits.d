@@ -165,11 +165,14 @@ ulong getTypePointerBitmap(Loc loc, Type t, ref Array!(ulong) data, ErrorSink eS
             ulong nextsize = t.next.size();
             if (nextsize == SIZE_INVALID)
                 error = true;
-            ulong dim = t.dim.toInteger();
-            for (ulong i = 0; i < dim; i++)
+            if (t.hasPointers)
             {
-                offset = arrayoff + i * nextsize;
-                visit(t.next);
+                ulong dim = t.dim.toInteger();
+                for (ulong i = 0; i < dim; i++)
+                {
+                    offset = arrayoff + i * nextsize;
+                    visit(t.next);
+                }
             }
             offset = arrayoff;
         }

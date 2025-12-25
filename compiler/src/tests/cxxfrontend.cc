@@ -633,7 +633,7 @@ public:
     }
     void visit(TypeSArray *t) override
     {
-        if (t->dim->isConst() && t->dim->type->isIntegral())
+        if (t->dim->isConst() && dmd::isIntegral(t->dim->type))
         {
             (void)dmd::toUInteger(t->dim);
             t->next->accept(this);
@@ -956,8 +956,8 @@ public:
     {
         s->getRelatedLabeled()->accept(this);
         s->condition->accept(this);
-        Type *condtype = s->condition->type->toBasetype();
-        if (!condtype->isScalar())
+        Type *condtype = dmd::baseElemOf(s->condition->type);
+        if (!dmd::isScalar(condtype))
             assert(0);
         if (s->cases)
         {
@@ -975,7 +975,7 @@ public:
     void visit(CaseStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
-        if (s->exp->type->isScalar())
+        if (dmd::isScalar(s->exp->type))
             s->exp->accept(this);
         else
             (void)s->index;
@@ -1005,7 +1005,7 @@ public:
         if (s->exp == NULL || s->exp->type->toBasetype()->ty == TY::Tvoid)
             return;
         TypeFunction *tf = func->type->toTypeFunction();
-        Type *type = func->tintro != NULL ? func->tintro->nextOf() : tf->nextOf();
+        Type *type = func->tintro != NULL ? dmd::nextOf(func->tintro) : dmd::nextOf(tf);
         if ((func->isMain() || func->isCMain()) && type->toBasetype()->ty == TY::Tvoid)
             type = Type::tint32;
         if (func->shidden)
@@ -1037,7 +1037,7 @@ public:
                 sle = s->exp->isStructLiteralExp();
             if (sle != NULL)
             {
-                type->baseElemOf()->isTypeStruct()->sym->accept(this);
+                dmd::baseElemOf(type)->isTypeStruct()->sym->accept(this);
                 sle->sym = (Symbol*)func->shidden;
             }
             s->exp->accept(this);
@@ -1254,9 +1254,9 @@ public:
     {
         if (!func || !func->isAuto())
             return;
-        Type *tb = func->type->nextOf()->baseElemOf();
+        Type *tb = dmd::baseElemOf(dmd::nextOf(func->type));
         while (tb->ty == TY::Tarray || tb->ty == TY::Tpointer)
-            tb = tb->nextOf()->baseElemOf();
+            tb = dmd::baseElemOf(dmd::nextOf(tb));
         TemplateInstance *ti = NULL;
         if (tb->ty == TY::Tstruct)
             ti = tb->isTypeStruct()->sym->isInstantiated();
@@ -1481,7 +1481,7 @@ public:
             (void)fd->isGenerated();
             (void)fd->ident;
             (void)fd->storage_class;
-            (void)fd->type->nextOf()->isTypeNoreturn();
+            (void)dmd::nextOf(fd->type)->isTypeNoreturn();
         }
         else
         {
@@ -1549,7 +1549,7 @@ public:
         }
         if (!d->canTakeAddressOf())
         {
-            if (!d->type->isScalar())
+            if (!dmd::isScalar(d->type))
                 visitDeclaration(d);
         }
         else if (d->isDataseg() && !(d->storage_class & STCextern))
@@ -1869,6 +1869,7 @@ void template_h(TemplateParameter *tp, Scope *sc, TemplateParameters *tps,
     dmd::isTemplateParameter(o);
     dmd::isError(o);
     dmd::printTemplateStats(true, sink);
+    dmd::printInstantiationTrace (sc->tinst);
 }
 
 void typinf_h(Expression *e, Loc loc, Type *t, Scope *sc)

@@ -14,6 +14,7 @@
 module dmd.funcsem;
 
 import core.stdc.stdio;
+import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -65,6 +66,47 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 import dmd.visitor.statement_rewrite_walker;
+
+
+/**********************************
+ * Generate a FuncDeclaration for a runtime library function.
+ */
+FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, STC stc = STC.none)
+{
+    return genCfunc(fparams, treturn, Identifier.idPool(name[0 .. strlen(name)]), stc);
+}
+
+FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, STC stc = STC.none)
+{
+    FuncDeclaration fd;
+    TypeFunction tf;
+    Dsymbol s;
+    __gshared DsymbolTable st = null;
+
+    //printf("genCfunc(name = '%s')\n", id.toChars());
+    //printf("treturn\n\t"); treturn.print();
+
+    // See if already in table
+    if (!st)
+        st = new DsymbolTable();
+    s = st.lookup(id);
+    if (s)
+    {
+        fd = s.isFuncDeclaration();
+        assert(fd);
+        assert(fd.type.nextOf().equals(treturn));
+    }
+    else
+    {
+        tf = new TypeFunction(ParameterList(fparams), treturn, LINK.c, stc);
+        fd = new FuncDeclaration(Loc.initial, Loc.initial, id, STC.static_, tf);
+        fd.visibility = Visibility(Visibility.Kind.public_);
+        fd._linkage = LINK.c;
+
+        st.insert(fd);
+    }
+    return fd;
+}
 
 /* Tweak all return statements and dtor call for nrvo_var, for correct NRVO.
  */
@@ -1178,8 +1220,8 @@ Linterfaces:
                     functionToBufferFull(cast(TypeFunction)(fd.type), buf1,
                         new Identifier(fd.toPrettyChars()), hgs, null);
 
-                    error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
-                        funcdeclToChars, buf1.peekChars());
+                    error(funcdecl.loc, "function `%s` does not override any function", funcdeclToChars);
+                    errorSupplemental(fd.loc, "did you mean to override `%s`?", buf1.peekChars());
 
                     // Supplemental error for parameter scope differences
                     auto tf1 = cast(TypeFunction)funcdecl.type;
@@ -1192,8 +1234,6 @@ Linterfaces:
 
                         if (params1.length == params2.length)
                         {
-                            bool hasScopeDifference = false;
-
                             for (size_t i = 0; i < params1.length; i++)
                             {
                                 auto p1 = params1[i];
@@ -1205,14 +1245,7 @@ Linterfaces:
                                 if (!(p2.storageClass & STC.scope_))
                                     continue;
 
-                                if (!hasScopeDifference)
-                                {
-                                    // Intended signature
-                                    errorSupplemental(funcdecl.loc, "Did you intend to override:");
-                                    errorSupplemental(funcdecl.loc, "`%s`", buf1.peekChars());
-                                    hasScopeDifference = true;
-                                }
-                                errorSupplemental(funcdecl.loc, "Parameter %d is missing `scope`",
+                                errorSupplemental(funcdecl.loc, "parameter %d is missing `scope`",
                                 cast(int)(i + 1));
                             }
                         }
@@ -3847,14 +3880,14 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
 
     int overloadApplyRecurse(Dsymbol fstart, scope int delegate(Dsymbol) dg, Scope* sc)
     {
-        // Detect cyclic calls.
-        if (visited.contains(fstart))
-            return 0;
-        visited.push(fstart);
-
         Dsymbol next;
         for (auto d = fstart; d; d = next)
         {
+            // Detect cyclic calls.
+            if (visited.contains(d))
+                return 0;
+            visited.push(d);
+
             import dmd.access : checkSymbolAccess;
             if (auto od = d.isOverDeclaration())
             {
@@ -3911,6 +3944,13 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
             }
             else if (auto td = d.isTemplateDeclaration())
             {
+                // Sometimes funcroot is not in the .overnext chain
+                // in such case we have to recurse into it
+                if(td.funcroot)
+                {
+                    if (int r = overloadApplyRecurse(td.funcroot, dg, sc))
+                        return r;
+                }
                 if (int r = dg(td))
                     return r;
                 next = td.overnext;

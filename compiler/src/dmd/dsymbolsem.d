@@ -83,6 +83,33 @@ import dmd.visitor;
 
 enum LOG = false;
 
+/***********************************
+ * Retrieve the .min or .max values.
+ * Only valid after semantic analysis.
+ * Params:
+ *  _this = bit field instance
+ *  id = Id.min or Id.max
+ * Returns:
+ *  the min or max value
+ */
+ulong getMinMax(BitFieldDeclaration _this, Identifier id)
+{
+    const width = _this.fieldWidth;
+    const uns = _this.type.isUnsigned();
+    const min = id == Id.min;
+    ulong v;
+    assert(width != 0);  // should have been rejected in semantic pass
+    if (width == ulong.sizeof * 8)
+        v = uns ? (min ? ulong.min : ulong.max)
+                : (min ?  long.min :  long.max);
+    else
+        v = uns ? (min ? 0
+                       : (1L << width) - 1)
+                : (min ? -(1L << (width - 1))
+                       :  (1L << (width - 1)) - 1);
+    return v;
+}
+
 /* Append vthis field (this.tupleof[$-1]) to make this aggregate type nested.
  */
 void makeNested(AggregateDeclaration _this)
@@ -914,9 +941,6 @@ private bool aliasOverloadInsert(AliasDeclaration ad, Dsymbol s)
      * aliassym is determined already. See the case in: test/compilable/test61.d
      */
     auto sa = ad.aliassym.toAlias();
-
-    if (auto td = s.toAlias().isTemplateDeclaration())
-        s = td.funcroot ? td.funcroot : td;
 
     if (auto fd = sa.isFuncDeclaration())
     {
@@ -2529,7 +2553,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         "`void` initializing a struct with an invariant");
                 else if (dsym.type.toBasetype().ty == Tbool)
                     sc.setUnsafePreview(global.params.systemVariables, false, dsym.loc,
-                        "void intializing a bool (which must always be 0 or 1)");
+                        "`void` initializing a `bool` (which must always be 0 or 1)");
                 else if (dsym.type.hasUnsafeBitpatterns())
                     sc.setUnsafePreview(global.params.systemVariables, false, dsym.loc,
                         "`void` initializing a type with unsafe bit patterns");
@@ -3840,24 +3864,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sc.stc &= ~STC.static_; // not a static constructor
 
         funcDeclarationSemantic(sc, ctd);
-        // Check short constructor: this() => expr;
-        if (ctd.fbody)
-        {
-            if (auto s = ctd.fbody.isExpStatement())
-            {
-                if (s.exp)
-                {
-                    auto ce = s.exp.isCallExp();
-                    // check this/super before semantic
-                    if (!ce || (!ce.e1.isThisExp() && !ce.e1.isSuperExp()))
-                    {
-                        s.exp = s.exp.expressionSemantic(sc);
-                        if (s.exp.type.ty != Tvoid)
-                            error(s.loc, "can only return void expression, `this` call or `super` call from constructor");
-                    }
-                }
-            }
-        }
 
         sc.pop();
 
@@ -9373,7 +9379,7 @@ bool isAbstract(ClassDeclaration cd)
         static int virtualSemantic(Dsymbol s, void*)
         {
             auto fd = s.isFuncDeclaration();
-            if (fd && !(fd.storage_class & STC.static_) && !fd.isUnitTestDeclaration())
+            if (fd && !(fd.storage_class & STC.static_) && !fd.isUnitTestDeclaration() && !fd.isCtorDeclaration())
                 fd.dsymbolSemantic(null);
             return 0;
         }

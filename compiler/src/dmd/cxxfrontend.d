@@ -354,6 +354,11 @@ void printTemplateStats(bool listInstances, ErrorSink eSink)
     return dmd.dtemplate.printTemplateStats(listInstances, eSink);
 }
 
+void printInstantiationTrace(TemplateInstance ti)
+{
+    return ti.printInstantiationTrace();
+}
+
 /***********************************************************
  * dtoh.d
  */
@@ -462,22 +467,27 @@ complex_t toComplex(Expression exp)
     return dmd.expressionsem.toComplex(exp);
 }
 
-/***********************************************************
- * func.d
- */
-FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = STC.none)
+real_t toImaginary(Expression exp)
 {
-    return FuncDeclaration.genCfunc(fparams, treturn, name, cast(STC) stc);
-}
-
-FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = STC.none)
-{
-    return FuncDeclaration.genCfunc(fparams, treturn, id, cast(STC) stc);
+    import dmd.expressionsem;
+    return dmd.expressionsem.toImaginary(exp);
 }
 
 /***********************************************************
  * funcsem.d
  */
+FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = STC.none)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.genCfunc(fparams, treturn, name, cast(STC) stc);
+}
+
+FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = STC.none)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.genCfunc(fparams, treturn, id, cast(STC) stc);
+}
+
 bool functionSemantic(FuncDeclaration fd)
 {
     import dmd.funcsem;
@@ -500,6 +510,12 @@ PURE isPure(FuncDeclaration fd)
 {
     import dmd.funcsem;
     return dmd.funcsem.isPure(fd);
+}
+
+bool needsClosure(FuncDeclaration fd)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.needsClosure(fd);
 }
 
 /***********************************************************
@@ -610,14 +626,6 @@ JsonFieldFlags tryParseJsonField(const(char)* fieldName)
 }
 
 /***********************************************************
- * mtype.d
- */
-AggregateDeclaration isAggregate(Type t)
-{
-    return dmd.mtype.isAggregate(t);
-}
-
-/***********************************************************
  * optimize.d
  */
 Expression optimize(Expression e, int result, bool keepLvalue = false)
@@ -676,6 +684,12 @@ bool tpsemantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
 /***********************************************************
  * typesem.d
  */
+AggregateDeclaration isAggregate(Type t)
+{
+    import dmd.typesem;
+    return dmd.typesem.isAggregate(t);
+}
+
 bool hasPointers(Type t)
 {
     import dmd.typesem;
@@ -941,6 +955,12 @@ void Type_init()
     return dmd.typesem.Type_init();
 }
 
+void transitive(TypeNext type)
+{
+    import dmd.typesem;
+    return dmd.typesem.transitive(type);
+}
+
 Type makeConst(Type type)
 {
     import dmd.typesem;
@@ -993,6 +1013,102 @@ Type makeSharedWildConst(Type type)
 {
     import dmd.typesem;
     return dmd.typesem.makeSharedWildConst(type);
+}
+
+Type nextOf(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.nextOf(type);
+}
+
+Type baseElemOf(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.baseElemOf(type);
+}
+
+Type isLazyArray(Parameter param)
+{
+    import dmd.typesem;
+    return dmd.typesem.isLazyArray(param);
+}
+
+MOD deduceWild(Type type, Type t, bool isRef)
+{
+    import dmd.typesem;
+    return dmd.typesem.deduceWild(type, t, isRef);
+}
+
+bool isIntegral(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isIntegral(type);
+}
+
+bool isFloating(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isFloating(type);
+}
+
+bool isScalar(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isScalar(type);
+}
+
+bool isReal(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isReal(type);
+}
+
+bool isComplex(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isComplex(type);
+}
+
+bool isImaginary(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isImaginary(type);
+}
+
+bool isString(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isString(type);
+}
+
+bool isBoolean(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isBoolean(type);
+}
+
+bool isUnsigned(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isUnsigned(type);
+}
+
+bool needsNested(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.needsNested(type);
+}
+
+bool needsDestruction(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.needsDestruction(type);
+}
+
+bool needsCopyOrPostblit(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.needsCopyOrPostblit(type);
 }
 
 /***********************************************************

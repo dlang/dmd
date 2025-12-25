@@ -50,7 +50,7 @@ import dmd.mtype;
 import dmd.safe : isSafe;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : size, alignment, alignsize;
+import dmd.typesem;
 import dmd.visitor;
 
 import dmd.backend.cdef;
@@ -169,7 +169,7 @@ Symbol* toSymbol(Dsymbol s)
             if (vd.noUnderscore)
                 s.Sflags |= SFLnounderscore;
 
-            TYPE* t;
+            type* t;
             if (vd.storage_class & (STC.out_ | STC.ref_))
             {
                 t = type_allocn(TYnref, Type_toCtype(vd.type));
@@ -653,7 +653,7 @@ Classsym* fake_classsym(Identifier id)
         false, false, true, false);
 
     t.Ttag.Sstruct.Sflags = STRglobal;
-    t.Tflags |= TFsizeunknown | TFforward;
+    t.Tflags |= TF.sizeunknown | TF.forward;
     assert(t.Tmangle == 0);
     t.Tmangle = Mangle.d;
     return t.Ttag;

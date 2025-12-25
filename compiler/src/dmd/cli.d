@@ -14,6 +14,8 @@
  */
 module dmd.cli;
 
+nothrow @safe:
+
 /* The enum TargetOS is an exact copy of the one in dmd.globals.
  * Duplicated here because this file is stand-alone.
  */
@@ -91,21 +93,16 @@ Params:
     w = ASCII i string to capitalize
 Returns: capitalized string
 */
-static string capitalize(string w)
+private string capitalize(string w) @trusted
 {
-    char[] result = cast(char[]) w;
-    char c1 = w.length ? w[0] : '\0';
-
-    if (c1 >= 'a' && c1 <= 'z')
+    if (w.length && w[0] >= 'a' && w[0] <= 'z')
     {
-        enum adjustment = 'A' - 'a';
-
-        result = new char[] (w.length);
-        result[0] = cast(char) (c1 + adjustment);
+        char[] result = new char[] (w.length);
+        result[0] = cast(char)(w[0] + 'A' - 'a');
         result[1 .. $] = w[1 .. $];
+        w = cast(string) result;
     }
-
-    return cast(string) result;
+    return w;
 }
 
 /**
@@ -350,9 +347,9 @@ dmd -cov -unittest myprog.d
                 $(LI $(I all): All)
             )`,
         ),
-        Option("edition[=<NNNN>G[<filename>]]",
-            "set language edition to edition year, apply to <filename>",
-            "set edition to default, to a particular year NNNN, apply only to a particular $(I filename)"
+        Option("edition[=<NNNN>[<filename>]]",
+            "set language edition to year <NNNN>, apply to <filename>",
+            "set edition to default which is 2023, to a particular year $(I NNNN), apply edition only to $(I filename)"
         ),
         Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",

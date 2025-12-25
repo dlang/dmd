@@ -3184,7 +3184,8 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
 
     if (type)
     {
-        Type t = type.toBasetype();
+        Type t = type.toBaseTypeNonSemantic();
+
         switch (t.ty)
         {
         case Tfloat32:
@@ -3200,7 +3201,7 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
         default:
             break;
         }
-        if (t.isImaginary())
+        if (t.isImaginaryNonSemantic())
             buf.put('i');
     }
 }
@@ -4340,7 +4341,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitDArray(TypeDArray t)
     {
-        auto basetype = t.next.toBasetype();
+        auto basetype = t.next;
         if (hgs.declstring)
             goto L1;
         if (basetype.ty == Tchar && basetype.isImmutable())

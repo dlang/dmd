@@ -31,6 +31,7 @@ import dmd.backend.code;
 import dmd.backend.ty;
 
 import dmd.backend.barray;
+import dmd.backend.var : bo;
 
 static if (NTEXCEPTIONS)
     enum SCPP_OR_NTEXCEPTIONS = true;
@@ -57,10 +58,8 @@ struct BlockOpt
     block blkzero;          // storage allocator
 }
 
-__gshared BlockOpt bo;
-
 @trusted
-pragma(inline, true) block* block_calloc_i()
+pragma(inline, true) block* block_calloc_i(ref BlockOpt bo)
 {
     block* b;
 
@@ -75,9 +74,9 @@ pragma(inline, true) block* block_calloc_i()
     return b;
 }
 
-block* block_calloc()
+block* block_calloc(ref BlockOpt bo)
 {
-    return block_calloc_i();
+    return block_calloc_i(bo);
 }
 
 /*********************************
@@ -99,7 +98,7 @@ Goal bc_goal(BC bc)
  */
 
 @trusted
-void block_term()
+void block_term(ref BlockOpt bo)
 {
     while (bo.block_freelist)
     {
@@ -114,12 +113,12 @@ void block_term()
  */
 
 @trusted
-void block_next(BlockState* bctx, BC bc, block* bn)
+void block_next(ref BlockOpt bo, BlockState* bctx, BC bc, block* bn)
 {
     bctx.curblock.bc = bc;
     bo.block_last = bctx.curblock;
     if (!bn)
-        bn = block_calloc_i();
+        bn = block_calloc_i(bo);
     bctx.curblock.Bnext = bn;                // next block
     bctx.curblock = bctx.curblock.Bnext;     // new current block
     bctx.curblock.Btry = bctx.tryblock;
@@ -130,12 +129,12 @@ void block_next(BlockState* bctx, BC bc, block* bn)
  * Finish up this block and start the next one.
  */
 
-block* block_goto(BlockState* bx, BC bc, block* bn)
+block* block_goto(ref BlockOpt bo, BlockState* bx, BC bc, block* bn)
 {
     block* b;
 
     b = bx.curblock;
-    block_next(bx,bc,bn);
+    block_next(bo, bx,bc,bn);
     b.appendSucc(bx.curblock);
     return bx.curblock;
 }
@@ -150,7 +149,7 @@ version (COMPILE)
 
 void block_goto()
 {
-    block_goto(block_calloc());
+    block_goto(block_calloc(bo));
 }
 
 void block_goto(block* bn)
@@ -179,7 +178,7 @@ void block_goto(block* bgoto,block* bnew)
  */
 
 @trusted
-void block_ptr()
+void block_ptr(ref BlockOpt bo)
 {
     //printf("block_ptr()\n");
 
@@ -196,7 +195,7 @@ void block_ptr()
  */
 
 @trusted
-void block_pred()
+void block_pred(ref BlockOpt bo)
 {
     //printf("block_pred()\n");
     for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
@@ -220,7 +219,7 @@ void block_pred()
  */
 
 @trusted
-void block_clearvisit()
+void block_clearvisit(ref BlockOpt bo)
 {
     for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
         b.Bflags = cast(BFL)(b.Bflags & ~cast(uint)BFL.visited); // mark as unvisited
@@ -246,24 +245,24 @@ void block_visit(block* b)
  * Compute number of parents (Bcount) of each basic block.
  */
 @trusted
-void block_compbcount(ref GlobalOptimizer go)
+void block_compbcount(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    block_clearvisit();
+    block_clearvisit(bo);
     block_visit(bo.startblock);                    // visit all reachable blocks
-    elimblks(go);                               // eliminate unvisited blocks
+    elimblks(go, bo);                               // eliminate unvisited blocks
 }
 
 /*******************************
  * Free list of blocks.
  */
 
-void blocklist_free(block** pb)
+void blocklist_free(ref BlockOpt bo, block** pb)
 {
     block* bn;
     for (block* b = *pb; b; b = bn)
     {
         bn = b.Bnext;
-        block_free(b);
+        block_free(bo, b);
     }
     *pb = null;
 }
@@ -297,7 +296,7 @@ void block_optimizer_free(block* b)
  */
 
 @trusted
-void block_free(block* b)
+void block_free(ref BlockOpt bo, block* b)
 {
     assert(b);
     if (b.Belem)
@@ -398,11 +397,11 @@ void block_initvar(Symbol* s)
  */
 
 @trusted
-void blockopt(ref GlobalOptimizer go, int iter)
+void blockopt(ref GlobalOptimizer go, ref BlockOpt bo, int iter)
 {
     if (OPTIMIZER)
     {
-        blassertsplit(go);              // only need this once
+        blassertsplit(go, bo);              // only need this once
 
         int iterationLimit = 200;
         if (iterationLimit < bo.dfo.length)
@@ -412,27 +411,27 @@ void blockopt(ref GlobalOptimizer go, int iter)
         {
             //printf("changes = %d, count = %d, dfo.length = %d\n",go.changes,count,dfo.length);
             go.changes = 0;
-            bropt(go);                  // branch optimization
-            brrear();                   // branch rearrangement
-            blident(go);                // combine identical blocks
-            blreturn(go);               // split out return blocks
-            bltailmerge(go);            // do tail merging
-            brtailrecursion(go);        // do tail recursion
-            brcombine(go);              // convert graph to expressions
-            blexit(go);
+            bropt(go, bo);                  // branch optimization
+            brrear(bo);                   // branch rearrangement
+            blident(go, bo);                // combine identical blocks
+            blreturn(go, bo);               // split out return blocks
+            bltailmerge(go, bo);            // do tail merging
+            brtailrecursion(go, bo);        // do tail recursion
+            brcombine(go, bo);              // convert graph to expressions
+            blexit(go, bo);
             if (iter >= 2)
-                brmin(go);              // minimize branching
+                brmin(go, bo);              // minimize branching
 
             // Switched to one block per Statement, do not undo it
             enum merge = false;
 
             do
             {
-                compdfo(bo.dfo, bo.startblock); // compute depth first order (DFO)
-                elimblks(go);           /* remove blocks not in DFO      */
+                compdfo(bo, bo.dfo, bo.startblock); // compute depth first order (DFO)
+                elimblks(go, bo);           /* remove blocks not in DFO      */
                 assert(count < iterationLimit);
                 count++;
-            } while (merge && mergeblks());      // merge together blocks
+            } while (merge && mergeblks(bo));      // merge together blocks
         } while (go.changes);
 
         debug if (debugw)
@@ -478,9 +477,9 @@ void blockopt(ref GlobalOptimizer go, int iter)
             bo.startblock.Belem = el_combine(e, bo.startblock.Belem);
         }
 
-        bropt(go);                      /* branch optimization           */
-        brrear();                       /* branch rearrangement          */
-        comsubs(go);                    /* eliminate common subexpressions */
+        bropt(go, bo);                      /* branch optimization           */
+        brrear(bo);                       /* branch rearrangement          */
+        comsubs(go, bo);                    /* eliminate common subexpressions */
 
         debug if (debugb)
         {
@@ -496,7 +495,7 @@ void blockopt(ref GlobalOptimizer go, int iter)
  */
 
 @trusted
-void brcombine(ref GlobalOptimizer go)
+void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugc) printf("brcombine()\n");
     //WRfunc("brcombine()", funcsym_p, startblock);
@@ -627,7 +626,7 @@ void brcombine(ref GlobalOptimizer go)
  */
 
 @trusted
-private void bropt(ref GlobalOptimizer go)
+private void bropt(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugc) printf("bropt()\n");
     for (block* b = bo.startblock; b; b = b.Bnext)   // for each block
@@ -752,7 +751,7 @@ private void bropt(ref GlobalOptimizer go)
  */
 
 @trusted
-private void brrear()
+private void brrear(ref BlockOpt bo)
 {
     debug if (debugc) printf("brrear()\n");
     for (block* b = bo.startblock; b; b = b.Bnext)   // for each block
@@ -835,11 +834,11 @@ private void brrear()
  *      dfo = array to fill in in DFO
  *      startblock = list of blocks
  */
-void compdfo(ref Barray!(block*) dfo, block* startblock)
+void compdfo(ref BlockOpt bo, ref Barray!(block*) dfo, block* startblock)
 {
     debug if (debugc) printf("compdfo()\n");
     debug assert(OPTIMIZER);
-    block_clearvisit();
+    block_clearvisit(bo);
     dfo.setLength(0);
 
     /******************************
@@ -897,7 +896,7 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
  */
 
 @trusted
-private void elimblks(ref GlobalOptimizer go)
+private void elimblks(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugc) printf("elimblks()\n");
     block* bf = null;
@@ -934,7 +933,7 @@ private void elimblks(ref GlobalOptimizer go)
     for ( ; bf; bf = b)
     {
         b = bf.Bnext;
-        block_free(bf);
+        block_free(bo, bf);
     }
 
     debug if (debugc) printf("elimblks done\n");
@@ -953,7 +952,7 @@ private void elimblks(ref GlobalOptimizer go)
  */
 
 @trusted
-private int mergeblks()
+private int mergeblks(ref BlockOpt bo)
 {
     int merge = 0;
 
@@ -1022,7 +1021,7 @@ private int mergeblks()
                     bL2.Bnext = bo.startblock.Bnext;
                     bo.startblock = bL2;   // new start
 
-                    block_free(b);
+                    block_free(bo, b);
                     break;              // dfo[] is now invalid
                 }
             }
@@ -1036,7 +1035,7 @@ private int mergeblks()
  */
 
 @trusted
-private void blident(ref GlobalOptimizer go)
+private void blident(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugc) printf("blident()\n");
     assert(bo.startblock);
@@ -1167,7 +1166,7 @@ private void blident(ref GlobalOptimizer go)
  */
 
 @trusted
-private void blreturn(ref GlobalOptimizer go)
+private void blreturn(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     if (!(go.mfoptim & MFtime))            /* if optimized for space       */
     {
@@ -1210,7 +1209,7 @@ private void blreturn(ref GlobalOptimizer go)
                 debug if (debugc)
                     printf("blreturn: splitting block B%d\n",b.Bdfoidx);
 
-                block* bn = block_calloc();
+                block* bn = block_calloc(bo);
                 bn.bc = BC.ret;
                 bn.Bnext = b.Bnext;
                 static if(SCPP_OR_NTEXCEPTIONS)
@@ -1226,7 +1225,7 @@ private void blreturn(ref GlobalOptimizer go)
             }
         }
 
-        blident(go);                    /* combine return blocks        */
+        blident(go, bo);                    /* combine return blocks        */
     }
 }
 
@@ -1235,7 +1234,6 @@ private void blreturn(ref GlobalOptimizer go)
  */
 
 @trusted
-extern (D)
 private void bl_enlist2(ref Barray!(elem*) elems, elem* e)
 {
     if (e)
@@ -1285,7 +1283,6 @@ private list_t bl_enlist(elem* e)
  * Take a list of expressions and convert it back into an expression tree.
  */
 
-extern (D)
 private elem* bl_delist2(elem*[] elems)
 {
     elem* result = null;
@@ -1311,7 +1308,7 @@ private elem* bl_delist(list_t el)
  */
 
 @trusted
-private void bltailmerge(ref GlobalOptimizer go)
+private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugc) printf("bltailmerge()\n");
     assert(OPTIMIZER);
@@ -1373,7 +1370,7 @@ private void bltailmerge(ref GlobalOptimizer go)
                     debug if (debugc)
                         printf("tail merging: %p and %p\n", b, bn);
 
-                    block* bnew = block_calloc();
+                    block* bnew = block_calloc(bo);
                     bnew.Bnext = bn.Bnext;
                     bnew.bc = b.bc;
                     static if (SCPP_OR_NTEXCEPTIONS)
@@ -1445,7 +1442,7 @@ private void bltailmerge(ref GlobalOptimizer go)
  */
 
 @trusted
-private void brmin(ref GlobalOptimizer go)
+private void brmin(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugc) printf("brmin()\n");
     debug assert(bo.startblock);
@@ -1546,7 +1543,7 @@ private void block_check()
  */
 
 @trusted
-private void brtailrecursion(ref GlobalOptimizer go)
+private void brtailrecursion(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     if (funcsym_p.Sfunc.Fflags3 & Fnotailrecursion)
         return;
@@ -1563,6 +1560,12 @@ private void brtailrecursion(ref GlobalOptimizer go)
             }
         */
 
+        funcsym_p.Sfunc.Fflags3 |= Fnotailrecursion;
+        return;
+    }
+    if (anyAddressesOfLocals())
+    {
+        funcsym_p.Sfunc.Fflags3 |= Fnotailrecursion; // https://github.com/dlang/dmd/issues/22069
         return;
     }
 
@@ -1603,8 +1606,8 @@ private void brtailrecursion(ref GlobalOptimizer go)
             {
                 /* Split OPcond into a BC.iftrue block and two return blocks
                  */
-                block* b1 = block_calloc();
-                block* b2 = block_calloc();
+                block* b1 = block_calloc(bo);
+                block* b2 = block_calloc(bo);
 
                 b1.Belem = e.E2.E1;
                 e.E2.E1 = null;
@@ -1673,7 +1676,7 @@ private void brtailrecursion(ref GlobalOptimizer go)
 
                 // Create a new startblock, bs, because startblock cannot
                 // have predecessors.
-                block* bs = block_calloc();
+                block* bs = block_calloc(bo);
                 bs.bc = BC.goto_;
                 bs.Bnext = bo.startblock;
                 list_append(&bs.Bsucc,bo.startblock);
@@ -1746,7 +1749,7 @@ private elem* assignparams(elem** pe,int* psi,elem** pe2)
  */
 
 @trusted
-private void emptyloops(ref GlobalOptimizer go)
+private void emptyloops(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugc) printf("emptyloops()\n");
     for (block* b = bo.startblock; b; b = b.Bnext)
@@ -1817,7 +1820,7 @@ private void emptyloops(ref GlobalOptimizer go)
  */
 
 @trusted
-private void funcsideeffects()
+private void funcsideeffects(ref BlockOpt bo)
 {
     //printf("funcsideeffects('%s')\n",funcsym_p.Sident);
     for (block* b = bo.startblock; b; b = b.Bnext)
@@ -1901,7 +1904,7 @@ private int el_anyframeptr(elem* e)
  */
 
 @trusted
-private void blassertsplit(ref GlobalOptimizer go)
+private void blassertsplit(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugc) printf("blassertsplit()\n");
     Barray!(elem*) elems;
@@ -1967,7 +1970,7 @@ private void blassertsplit(ref GlobalOptimizer go)
             }
 
             // Create exit block
-            block* bexit = block_calloc();
+            block* bexit = block_calloc(bo);
             bexit.bc = BC.exit;
             bexit.Belem = e.E2;
 
@@ -1991,7 +1994,7 @@ private void blassertsplit(ref GlobalOptimizer go)
 
             /* Split b into two blocks, [b,b2]
              */
-            block* b2 = block_calloc();
+            block* b2 = block_calloc(bo);
             b2.Bnext = b.Bnext;
             b.Bnext = b2;
             b2.bc = b.bc;
@@ -2042,7 +2045,7 @@ private void blassertsplit(ref GlobalOptimizer go)
  * Detect exit blocks and move them to the end.
  */
 @trusted
-private void blexit(ref GlobalOptimizer go)
+private void blexit(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugc)
         printf("blexit()\n");
@@ -2121,4 +2124,23 @@ private void blexit(ref GlobalOptimizer go)
     *pb = null;
 
     bexits.dtor();
+}
+
+/***********************************
+ * Determine if any addresses of locals on the stack are taken.
+ * Returns:
+ *      true for addresses taken
+ */
+@trusted
+private
+bool anyAddressesOfLocals()
+{
+    foreach (si, s; globsym[])
+    {
+        if ((sytab[s.Sclass] & SCSS) &&     // only check stack variables
+            !(s.Sflags & SFLunambig))       // address was taken
+            return true;
+        // can enhance this with Symbol_isDead()
+    }
+    return false;
 }
