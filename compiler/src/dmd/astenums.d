@@ -150,7 +150,7 @@ enum STC : ulong  // transfer changes to declaration.h
 alias StorageClass = ulong;
 
 /********
- * Determine if it's the ambigous case of where `return` attaches to.
+ * Determine if it's the ambiguous case of where `return` attaches to.
  * Params:
  *   stc = STC flags
  * Returns:
