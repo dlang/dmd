@@ -1056,6 +1056,20 @@ Type makeConst(Type _this)
     return defaultMakeConst(_this);
 }
 
+/*******************************
+ * If _this is a shell around another type,
+ * get that other type.
+ */
+Type toBasetype(Type _this)
+{
+    /* This function is used heavily.
+     * De-virtualize it so it can be easily inlined.
+     */
+    if (auto te = _this.isTypeEnum())
+        return te.toBasetype2();
+    return _this;
+}
+
 Type toBasetype2(TypeEnum _this)
 {
     if (!_this.sym.members && !_this.sym.memtype)

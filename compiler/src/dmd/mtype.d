@@ -800,19 +800,6 @@ extern (C++) abstract class Type : ASTNode
         return ad && ad.aliasthis && (ad.aliasthis.isDeprecated || ad.aliasthis.sym.isDeprecated);
     }
 
-    /*******************************
-     * If this is a shell around another type,
-     * get that other type.
-     */
-    final Type toBasetype()
-    {
-        /* This function is used heavily.
-         * De-virtualize it so it can be easily inlined.
-         */
-        TypeEnum te;
-        return ((te = isTypeEnum()) !is null) ? te.toBasetype2() : this;
-    }
-
     inout(ClassDeclaration) isClassHandle() inout
     {
         return null;
