@@ -961,12 +961,12 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
             if (const n = importHint(id.toString()))
                 error(loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(id))
-                error(mt.loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
+                error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
             else if (const q = Scope.search_correct_C(id))
-                error(mt.loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
+                error(loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
             else if ((id == Id.This   && sc.getStructClassScope()) ||
                      (id == Id._super && sc.getClassScope()))
-                error(mt.loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", p, p);
+                error(loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", p, p);
             else
                 error(mt.loc, "undefined identifier `%s`", p);
         }
@@ -6434,6 +6434,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             Expression res = mt.sym.getMemtype(Loc.initial).dotExp(sc, e, ident, DotExpFlag.gag);
             if (!(flag & 1) && !res)
             {
+                
                 if (auto ns = mt.sym.search_correct(ident))
                     error(e.loc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toChars(), mt.toChars(), mt.toChars(),
                         ns.toChars());
