@@ -67,6 +67,77 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+/*************************************
+ * Apply STCxxxx bits to existing type.
+ * Use *before* semantic analysis is run.
+ */
+Type addSTC(Type _this, STC stc)
+{
+    Type t = _this;
+    if (t.isImmutable())
+    {
+        return t;
+    }
+    else if (stc & STC.immutable_)
+    {
+        t = t.makeImmutable();
+        return t;
+    }
+
+    if ((stc & STC.shared_) && !t.isShared())
+    {
+        if (t.isWild())
+        {
+            if (t.isConst())
+                t = t.makeSharedWildConst();
+            else
+                t = t.makeSharedWild();
+        }
+        else
+        {
+            if (t.isConst())
+                t = t.makeSharedConst();
+            else
+                t = t.makeShared();
+        }
+    }
+    if ((stc & STC.const_) && !t.isConst())
+    {
+        if (t.isShared())
+        {
+            if (t.isWild())
+                t = t.makeSharedWildConst();
+            else
+                t = t.makeSharedConst();
+        }
+        else
+        {
+            if (t.isWild())
+                t = t.makeWildConst();
+            else
+                t = t.makeConst();
+        }
+    }
+    if ((stc & STC.wild) && !t.isWild())
+    {
+        if (t.isShared())
+        {
+            if (t.isConst())
+                t = t.makeSharedWildConst();
+            else
+                t = t.makeSharedWild();
+        }
+        else
+        {
+            if (t.isConst())
+                t = t.makeWildConst();
+            else
+                t = t.makeWild();
+        }
+    }
+
+    return t;
+}
 
 /***************************************************
  * Determine if type t can be indexed or sliced given that it is not an

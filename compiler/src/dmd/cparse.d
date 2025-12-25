@@ -4937,7 +4937,7 @@ final class CParser(AST) : Parser!AST
         // `const` is always applied to the return type, not the
         // type function itself.
         if (auto tf = t.isTypeFunction())
-            tf.next = tf.next.addSTC(STC.const_);
+            tf.next = AST.addSTC(tf.next, STC.const_);
         else if (auto tt = t.isTypeTag())
             tt.mod |= MODFlags.const_;
         else
@@ -4946,7 +4946,7 @@ final class CParser(AST) : Parser!AST
              */
             auto tn = t.nextOf();
             if (!tn || tn.isConst())
-                t = t.addSTC(STC.const_);
+                t = AST.addSTC(t, STC.const_);
         }
         return t;
     }

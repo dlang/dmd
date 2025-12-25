@@ -2552,7 +2552,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         AST.Expression constraint = tpl ? parseConstraint() : null;
 
         AST.Type tf = new AST.TypeFunction(parameterList, null, linkage, stc); // ReturnType -> auto
-        tf = tf.addSTC(stc);
+        tf = AST.addSTC(tf, stc);
 
         auto f = new AST.CtorDeclaration(loc, Loc.initial, stc, tf);
         AST.Dsymbol s = parseContracts(f, !!tpl);
@@ -3654,7 +3654,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         t = parseDeclarator(t, alt, pident, null);
         checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
 
-        t = t.addSTC(stc);
+        t = AST.addSTC(t, stc);
         return t;
     }
 
@@ -4095,7 +4095,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         if (save == TOK.function_)
                             error("`const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions");
                         else
-                            tf = cast(AST.TypeFunction)tf.addSTC(stc);
+                            tf = cast(AST.TypeFunction)AST.addSTC(tf, stc);
                     }
                     t = save == TOK.delegate_ ? new AST.TypeDelegate(tf) : new AST.TypePointer(tf); // pointer to function
                     continue;
@@ -4269,7 +4269,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     STC stc = parsePostfix(storageClass, pudas);
 
                     AST.Type tf = new AST.TypeFunction(parameterList, t, linkage, stc);
-                    tf = tf.addSTC(stc);
+                    tf = AST.addSTC(tf, stc);
                     if (pdisable)
                         *pdisable = stc & STC.disable ? true : false;
 
@@ -5280,7 +5280,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
 
         auto tf = new AST.TypeFunction(parameterList, tret, linkage, stc);
-        tf = cast(AST.TypeFunction)tf.addSTC(stc);
+        tf = cast(AST.TypeFunction)AST.addSTC(tf, stc);
         auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, save, null, null, stc & STC.auto_);
 
         if (token.value == TOK.goesTo)
@@ -8849,7 +8849,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 else
                 {
                     AST.Type t = parseType(); // cast( type )
-                    t = t.addSTC(AST.ModToStc(m)); // cast( const type )
+                    t = AST.addSTC(t, AST.ModToStc(m)); // cast( const type )
                     check(TOK.rightParenthesis);
                     e = parseUnaryExp();
                     e = new AST.CastExp(loc, e, t);
@@ -8864,7 +8864,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 STC stc = parseTypeCtor();
 
                 AST.Type t = parseBasicType();
-                t = t.addSTC(stc);
+                t = AST.addSTC(t, stc);
 
                 if (stc == 0 && token.value == TOK.dot)
                 {
@@ -9636,7 +9636,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         const stc = parseTypeCtor();
         auto t = parseBasicType(true);
         t = parseTypeSuffixes(t);
-        t = t.addSTC(stc);
+        t = AST.addSTC(t, stc);
         if (t.ty == Taarray)
         {
             AST.TypeAArray taa = cast(AST.TypeAArray)t;
