@@ -6434,7 +6434,6 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             Expression res = mt.sym.getMemtype(Loc.initial).dotExp(sc, e, ident, DotExpFlag.gag);
             if (!(flag & 1) && !res)
             {
-                
                 if (auto ns = mt.sym.search_correct(ident))
                     error(e.loc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toChars(), mt.toChars(), mt.toChars(),
                         ns.toChars());
