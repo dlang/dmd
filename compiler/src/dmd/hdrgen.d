@@ -3184,7 +3184,9 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
 
     if (type)
     {
-        switch (type.ty)
+        Type t = type.toBaseTypeNonSemantic();
+
+        switch (t.ty)
         {
         case Tfloat32:
         case Timaginary32:
@@ -3199,7 +3201,7 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
         default:
             break;
         }
-        if (type.isImaginaryNonSemantic())
+        if (t.isImaginaryNonSemantic())
             buf.put('i');
     }
 }

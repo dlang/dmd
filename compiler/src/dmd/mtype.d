@@ -64,6 +64,13 @@ bool isImaginaryNonSemantic(Type _this)
     return false;
 }
 
+Type toBaseTypeNonSemantic(Type _this)
+{
+    if (auto te = _this.isTypeEnum())
+        return te.sym.memtype.toBaseTypeNonSemantic();
+    return _this;
+}
+
 /* Helper function for `typeToExpression`. Contains common code
  * for TypeQualified derived classes.
  */
