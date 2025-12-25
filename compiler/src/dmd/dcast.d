@@ -1604,6 +1604,13 @@ MATCH implicitConvTo(Type from, Type to)
             if (from.flags & TFlags.complex && !(tob.flags & TFlags.complex))
                 return MATCH.nomatch;
 
+            // Allow complex float to complex double promotion    
+            if ((from.flags & TFlags.complex) && (tob.flags & TFlags.complex))
+            {
+                if (from.size(Loc.initial) <= tob.size(Loc.initial))
+                    return MATCH.convert;
+            }
+            
             // Disallow implicit conversion of real or imaginary to complex
             if (from.flags & (TFlags.real_ | TFlags.imaginary) && tob.flags & TFlags.complex)
                 return MATCH.nomatch;
