@@ -67,7 +67,11 @@ bool isImaginaryNonSemantic(Type _this)
 Type toBaseTypeNonSemantic(Type _this)
 {
     if (auto te = _this.isTypeEnum())
+    {
+        if (!te.sym.members && !te.sym.memtype)
+            return te;
         return te.sym.memtype.toBaseTypeNonSemantic();
+    }
     return _this;
 }
 
