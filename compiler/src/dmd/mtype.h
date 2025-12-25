@@ -241,7 +241,6 @@ public:
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
     bool hasDeprecatedAliasThis();
-    Type *toBasetype();
 
     virtual ClassDeclaration *isClassHandle();
     virtual int hasWild() const;
@@ -734,6 +733,7 @@ namespace dmd
     Type *addMod(Type *type, MOD mod);
     Type *addStorageClass(Type *type, StorageClass stc);
     Type *substWildTo(Type *type, unsigned mod);
+    Type *toBasetype(Type *type);
     uinteger_t size(Type *type);
     uinteger_t size(Type *type, Loc loc);
     MATCH implicitConvTo(Type* from, Type* to);

@@ -2082,7 +2082,6 @@ public:
     bool isNaked() const;
     Type* nullAttributes() const;
     bool hasDeprecatedAliasThis();
-    Type* toBasetype();
     virtual ClassDeclaration* isClassHandle();
     virtual int32_t hasWild() const;
     virtual TypeBasic* isTypeBasic();
