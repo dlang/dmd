@@ -516,7 +516,7 @@ extern (C++) final class IntegerExp : Expression
         assert(_isRoughlyScalar(type) || type.ty == Terror);
 
         this.type = type;
-        this.value = normalize(type.toBasetype().ty, value);
+        this.value = normalize(type.toBaseTypeNonSemantic().ty, value);
     }
 
     extern (D) this(dinteger_t value)
@@ -543,7 +543,7 @@ extern (C++) final class IntegerExp : Expression
 
     extern (D) void setInteger(dinteger_t value)
     {
-        this.value = normalize(type.toBasetype().ty, value);
+        this.value = normalize(type.toBaseTypeNonSemantic().ty, value);
     }
 
     extern (D) static dinteger_t normalize(TY ty, dinteger_t value)
