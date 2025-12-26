@@ -35,7 +35,6 @@ import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.objc; // for objc.addSymbols
 import dmd.common.outbuffer;
 import dmd.visitor;
 
