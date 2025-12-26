@@ -67,6 +67,12 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
+bool hasDeprecatedAliasThis(Type _this)
+{
+    auto ad = isAggregate(_this);
+    return ad && ad.aliasthis && (ad.aliasthis.isDeprecated || ad.aliasthis.sym.isDeprecated);
+}
+
 /*************************************
  * Apply STCxxxx bits to existing type.
  * Use *before* semantic analysis is run.

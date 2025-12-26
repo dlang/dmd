@@ -37,7 +37,6 @@ import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.stringtable;
 import dmd.tokens;
-import dmd.typesem;
 import dmd.visitor;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
@@ -720,12 +719,6 @@ extern (C++) abstract class Type : ASTNode
         if (t.ty == Tclass)
             (cast(TypeClass)t).att = AliasThisRec.fwdref;
         return t;
-    }
-
-    final bool hasDeprecatedAliasThis()
-    {
-        auto ad = isAggregate(this);
-        return ad && ad.aliasthis && (ad.aliasthis.isDeprecated || ad.aliasthis.sym.isDeprecated);
     }
 
     inout(ClassDeclaration) isClassHandle() inout

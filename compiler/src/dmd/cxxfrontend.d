@@ -684,6 +684,12 @@ bool tpsemantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
 /***********************************************************
  * typesem.d
  */
+bool hasDeprecatedAliasThis(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.hasDeprecatedAliasThis(type);
+}
+
 AggregateDeclaration isAggregate(Type t)
 {
     import dmd.typesem;

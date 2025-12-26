@@ -2081,7 +2081,6 @@ public:
     bool isSharedWild() const;
     bool isNaked() const;
     Type* nullAttributes() const;
-    bool hasDeprecatedAliasThis();
     virtual ClassDeclaration* isClassHandle();
     virtual int32_t hasWild() const;
     virtual TypeBasic* isTypeBasic();

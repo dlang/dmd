@@ -240,7 +240,6 @@ public:
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
-    bool hasDeprecatedAliasThis();
 
     virtual ClassDeclaration *isClassHandle();
     virtual int hasWild() const;
@@ -771,4 +770,5 @@ namespace dmd
     bool needsNested(Type* type);
     bool needsDestruction(Type* type);
     bool needsCopyOrPostblit(Type* type);
+    bool hasDeprecatedAliasThis(Type* type);
 }
