@@ -2072,9 +2072,6 @@ private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecate
         if (child)
             return "  - Containing: ";
 
-        // align with blank spaces after first message
-        // enum plural = "There are %d candidates: ";
-        // enum spaces = "                         ";
         if (printed)
         {
             snprintf(buf.ptr,buf.length,"  Candidate %d is: ",printed+1);
@@ -2084,8 +2081,7 @@ private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecate
             return "Candidate is: ";
         else
         {
-            fprintf(stderr,"\tThere are multiple candidates\n");
-            return "Candidate 1 is: "; 
+            return "Candidate 1 is";
         }
     }
     bool matchSymbol(Dsymbol s, bool print)
