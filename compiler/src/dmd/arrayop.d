@@ -30,7 +30,7 @@ import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.tokens;
-import dmd.typesem : isAssignable, nextOf;
+import dmd.typesem : isAssignable, nextOf, toBasetype;
 import dmd.visitor;
 
 /**********************************************

@@ -22,6 +22,7 @@ import dmd.func;
 import dmd.identifier;
 import dmd.statement;
 import dmd.expression;
+import dmd.typesem;
 import dmd.timetrace;
 import dmd.astenums;
 import dmd.mtype;
