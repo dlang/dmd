@@ -70,18 +70,15 @@ int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
     arrayExpressionSemantic(udas.peekSlice(), sc, true);
 
     return udas.each!((uda) {
-        if (!uda.isTupleExp())
-            return 0;
-
-        auto exps = uda.isTupleExp().exps;
-
-        return exps.each!((e) {
-            assert(e);
-
-            if (auto result = dg(e))
-                return result;
-
-            return 0;
-        });
+        if (auto te = uda.isTupleExp())
+        {
+            return te.exps.each!((e) {
+                assert(e);
+                if (auto result = dg(e))
+                    return result;
+                return 0;
+            });
+        }
+        return 0;
     });
 }

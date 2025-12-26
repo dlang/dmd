@@ -640,16 +640,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(AttribDeclaration ad)
         {
-            Dsymbols* d = ad.include(null);
-
-            if (d)
-            {
-                for (size_t i = 0; i < d.length; i++)
-                {
-                    Dsymbol s = (*d)[i];
-                    s.accept(this);
-                }
-            }
+            ad.include(null).each!(s => s.accept(this));
         }
 
         override void visit(PragmaDeclaration pd)
@@ -1221,18 +1212,10 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
 Louter:
     for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
     {
-        if (pc.members)
+        if (pc.members.any!(sm => (cast(Dsymbol)sm).hasPointers()))
         {
-            for (size_t i = 0; i < pc.members.length; i++)
-            {
-                Dsymbol sm = (*pc.members)[i];
-                //printf("sm = %s %s\n", sm.kind(), sm.toChars());
-                if (sm.hasPointers())
-                {
-                    flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
-                    break Louter;
-                }
-            }
+            flags &= ~ClassFlags.noPointers;
+            break;
         }
     }
 

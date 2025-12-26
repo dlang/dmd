@@ -213,24 +213,19 @@ do
     size_t nodeIndex = 0;
     while (nodeIndex < matchNodes.length)
     {
-        //printf("matcher ");printMatcher(nodeIndex);printf("\n");
         auto info = matchNodes[nodeIndex++];
         if (info.depth <= components.totalLength())
         {
-            size_t nodeOffset = 0;
-            for (auto range = components;;range.popFront())
-            {
-                if (range.empty || nodeOffset >= info.depth)
-                {
-                    // MATCH
-                    return !info.isExclude;
-                }
-                if (!(range.front is matchNodes[nodeIndex + nodeOffset].id))
-                {
-                    break;
-                }
-                nodeOffset++;
-            }
+            auto range = components;
+            bool match = matchNodes[nodeIndex .. nodeIndex + info.depth].all!((patternNode) {
+                if (range.empty || range.front !is patternNode.id)
+                    return false;
+                range.popFront();
+                return true;
+            });
+
+            if (match)
+                return !info.isExclude;
         }
         nodeIndex += info.depth;
     }
@@ -301,8 +296,7 @@ private void createMatchNodes()
 
     if (matchNodes.length != 0)
         return;
-    foreach (modulePattern; includeModulePatterns)
-    {
+    includeModulePatterns.each!((modulePattern) {
         const depth = parseModulePatternDepth(modulePattern[0 .. strlen(modulePattern)]);
         const entryIndex = findSortedIndexToAddForDepth(depth);
         matchNodes.split(entryIndex, depth + 1);
@@ -311,11 +305,8 @@ private void createMatchNodes()
         // user only wants to include modules that were explicitly given, which
         // changes the default behavior from inclusion to exclusion.
         if (includeByDefault && !matchNodes[entryIndex].isExclude)
-        {
-             //printf("Matcher: found 'include pattern', switching default behavior to exclusion\n");
             includeByDefault = false;
-        }
-    }
+    });
 
     // Add the default 1 depth matchers
     MatcherNode[8] defaultDepth1MatchNodes = [

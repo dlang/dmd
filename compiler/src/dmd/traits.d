@@ -165,14 +165,11 @@ ulong getTypePointerBitmap(Loc loc, Type t, ref Array!(ulong) data, ErrorSink eS
             ulong nextsize = t.next.size();
             if (nextsize == SIZE_INVALID)
                 error = true;
-            if (t.hasPointers)
+            ulong dim = t.dim.toInteger();
+            for (ulong i = 0; i < dim; i++)
             {
-                ulong dim = t.dim.toInteger();
-                for (ulong i = 0; i < dim; i++)
-                {
-                    offset = arrayoff + i * nextsize;
-                    visit(t.next);
-                }
+                offset = arrayoff + i * nextsize;
+                visit(t.next);
             }
             offset = arrayoff;
         }
@@ -235,14 +232,13 @@ ulong getTypePointerBitmap(Loc loc, Type t, ref Array!(ulong) data, ErrorSink eS
         void visitStruct(TypeStruct t)
         {
             ulong structoff = offset;
-            foreach (v; t.sym.fields)
-            {
+            t.sym.fields.each!((v) {
                 offset = structoff + v.offset;
                 if (v.type.ty == Tclass)
                     setpointer(offset);
                 else
                     visit(v.type);
-            }
+            });
             offset = structoff;
         }
 
@@ -406,28 +402,27 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         if (!dim)
             return False();
-        foreach (o; *e.args)
-        {
+
+        bool match = e.args.all!((o) {
+            auto ro = cast(RootObject)o;
+
             static if (is(T == Type))
-                auto y = getType(o);
+                auto y = getType(ro);
 
             static if (is(T : Dsymbol))
             {
-                auto s = getDsymbolWithoutExpCtx(o);
-                if (!s)
-                    return False();
+                auto s = getDsymbolWithoutExpCtx(ro);
+                if (!s) return false;
             }
-            static if (is(T == Dsymbol))
-                alias y = s;
-            static if (is(T == Declaration))
-                auto y = s.isDeclaration();
-            static if (is(T == FuncDeclaration))
-                auto y = s.isFuncDeclaration();
 
-            if (!y || !fp(y))
-                return False();
-        }
-        return True();
+            static if (is(T == Dsymbol)) alias y = s;
+            static if (is(T == Declaration)) auto y = s.isDeclaration();
+            static if (is(T == FuncDeclaration)) auto y = s.isFuncDeclaration();
+
+            return (y && fp(y));
+        });
+
+        return match ? True() : False();
     }
 
     alias isTypeX = isX!Type;
@@ -2315,16 +2310,7 @@ private bool isSame(RootObject o1, RootObject o2, Scope* sc)
     // to compare for equality as the order of overloads
     // might not be the same
 Lnext:
-    foreach(overload1; overSet1.a)
-    {
-        foreach(overload2; overSet2.a)
-        {
-            if (overload1 == overload2)
-                continue Lnext;
-        }
-        return false;
-    }
-    return true;
+    return overSet1.a[].all!(o1 => overSet2.a[].any!(o2 => o1 == o2));
 }
 
 

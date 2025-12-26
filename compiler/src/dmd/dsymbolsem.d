@@ -703,15 +703,8 @@ private Type tupleDeclGetType(TupleDeclaration _this)
 
     /* It's only a type tuple if all the Object's are types
      */
-    for (size_t i = 0; i < _this.objects.length; i++)
-    {
-        RootObject o = (*_this.objects)[i];
-        if (!o.isType())
-        {
-            //printf("\tnot[%d], %p, %d\n", i, o, o.dyncast());
-            return null;
-        }
-    }
+    if (!_this.objects.all!(o => o.isType()))
+    return null;
 
     /* We know it's a type tuple, so build the TypeTuple
      */
