@@ -135,6 +135,97 @@ Scope* newScope(AggregateDeclaration _this, Scope* sc)
     return defaultNewScope(_this, sc);
 }
 
+void addObjcSymbols(Dsymbol _this, ClassDeclarations* classes, ClassDeclarations* categories)
+{
+    if (auto ad = _this.isAttribDeclaration())
+        objc.addSymbols(ad, classes, categories);
+    else if (auto cd = _this.isClassDeclaration())
+        objc.addSymbols(cd, classes, categories);
+}
+
+/************************************
+ * Maybe `ident` was a C or C++ name. Check for that,
+ * and suggest the D equivalent.
+ * Params:
+ *  ident = unknown identifier
+ * Returns:
+ *  D identifier string if found, null if not
+ */
+const(char)* search_correct_C(Identifier ident)
+{
+    import dmd.astenums : Twchar;
+    TOK tok;
+    if (ident == Id.NULL)
+        tok = TOK.null_;
+    else if (ident == Id.TRUE)
+        tok = TOK.true_;
+    else if (ident == Id.FALSE)
+        tok = TOK.false_;
+    else if (ident == Id.unsigned)
+        tok = TOK.uns32;
+    else if (ident == Id.wchar_t)
+        tok = target.c.wchar_tsize == 2 ? TOK.wchar_ : TOK.dchar_;
+    else
+        return null;
+    return Token.toChars(tok);
+}
+
+/******************************
+ * Add symbol s to innermost symbol table.
+ * Params:
+ *  _this = scope object
+ *  s = symbol to insert
+ * Returns:
+ *  null if already in table, `s` if not
+ */
+Dsymbol insert(Scope* _this, Dsymbol s)
+{
+    //printf("insert() %s\n", s.toChars());
+    if (VarDeclaration vd = s.isVarDeclaration())
+    {
+        if (_this.lastVar)
+            vd.lastVar = _this.lastVar;
+        _this.lastVar = vd;
+    }
+    else if (WithScopeSymbol ss = s.isWithScopeSymbol())
+    {
+        if (VarDeclaration vd = ss.withstate.wthis)
+        {
+            if (_this.lastVar)
+                vd.lastVar = _this.lastVar;
+            _this.lastVar = vd;
+        }
+        return null;
+    }
+
+    auto scopesym = _this.inner().scopesym;
+    //printf("\t\tscopesym = %p\n", scopesym);
+    if (!scopesym.symtab)
+        scopesym.symtab = new DsymbolTable();
+    if (!_this.inCfile)
+        return scopesym.symtabInsert(s);
+
+    // ImportC insert
+    if (!scopesym.symtabInsert(s)) // if already in table
+    {
+        Dsymbol s2 = scopesym.symtabLookup(s, s.ident); // s2 is existing entry
+
+        auto svar = s.isVarDeclaration();
+        auto s2var = s2.isVarDeclaration();
+        if (((svar && svar.storage_class & STC.extern_) &&
+                (s2var && s2var.storage_class & STC.extern_) && _this.func) ||
+                s.isFuncDeclaration())
+        {
+            return handleSymbolRedeclarations(*_this, s, s2, scopesym);
+        }
+        else // aside externs and func decls, we should be free to handle tags
+        {
+            return handleTagSymbols(*_this, s, s2, scopesym);
+        }
+    }
+    return s; // inserted
+}
+
 /*******************************************
  * Look for member of the form:
  *      const(MemberInfo)[] getMembers(string);

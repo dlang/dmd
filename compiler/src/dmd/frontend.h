@@ -615,7 +615,6 @@ public:
     virtual bool needThis();
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
-    virtual void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories);
     virtual void addComment(const char* comment);
     const char* comment();
     void comment(const char* comment);
@@ -6227,7 +6226,6 @@ class AttribDeclaration : public Dsymbol
 public:
     Array<Dsymbol* >* decl;
     const char* kind() const override;
-    void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
     void accept(Visitor* v) override;
 };
 
@@ -6512,7 +6510,6 @@ public:
     virtual bool isCPPinterface() const;
     virtual int32_t vtblOffset() const;
     const char* kind() const override;
-    void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
     Dsymbol* vtblsym;
     void accept(Visitor* v) override;
 };

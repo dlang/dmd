@@ -286,8 +286,6 @@ public:
     virtual int vtblOffset() const;
     const char *kind() const override;
 
-    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories) override final;
-
     // Back end
     Dsymbol *vtblsym;
 
