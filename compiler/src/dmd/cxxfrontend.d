@@ -114,14 +114,6 @@ void mangleToBuffer(TemplateInstance ti, ref OutBuffer buf)
 }
 
 /***********************************************************
- * dmodule.d
- */
-FuncDeclaration findGetMembers(ScopeDsymbol dsym)
-{
-    return dmd.dmodule.findGetMembers(dsym);
-}
-
-/***********************************************************
  * doc.d
  */
 void gendocfile(Module m, const char* ddoctext_ptr, size_t ddoctext_length,
@@ -316,6 +308,12 @@ Dsymbol search(Scope* sc, Loc loc, Identifier ident, out Dsymbol pscopesym,
 {
     import dmd.dsymbolsem;
     return dmd.dsymbolsem.search(sc, loc, ident, pscopesym, flags);
+}
+
+FuncDeclaration findGetMembers(ScopeDsymbol dsym)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.findGetMembers(dsym);
 }
 
 /***********************************************************
