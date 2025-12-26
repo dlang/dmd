@@ -311,6 +311,12 @@ Dsymbol search(Scope* sc, Loc loc, Identifier ident, out Dsymbol pscopesym,
     return dmd.dsymbolsem.search(sc, loc, ident, pscopesym, flags);
 }
 
+void addObjcSymbols(Dsymbol sym, ClassDeclarations* classes, ClassDeclarations* categories)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.addObjcSymbols(sym, classes, categories);
+}
+
 /***********************************************************
  * dtemplate.d
  */
