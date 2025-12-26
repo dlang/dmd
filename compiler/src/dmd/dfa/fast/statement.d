@@ -1,6 +1,13 @@
 /**
  * Statement walker for the fast Data Flow Analysis engine.
  *
+ * This module implements the AST visitor that handles Control Flow.
+ * It is responsible for:
+ * 1. Managing Scopes: Pushing and popping `DFAScope` as it enters/leaves blocks.
+ * 2. Handling Branching: Splitting execution for `if` and `switch` statements.
+ * 3. Handling Loops: Managing state for `for`, `while`, and `do` loops.
+ * 4. Handling Jumps: Resolving `break`, `continue`, `goto`, and `return`.
+ *
  * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:   $(LINK2 https://cattermole.co.nz, Richard (Rikki) Andrew Cattermole)
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -29,6 +36,17 @@ import dmd.mtype;
 import dmd.declaration;
 import core.stdc.stdio;
 
+/***********************************************************
+ * Visits Statement nodes to drive the Data Flow Analysis.
+ *
+ * This class navigates the structure of the function. When it encounters
+ * control flow (like an `if` statement), it acts as a traffic director:
+ * 1. It creates a new Scope for the "True" branch.
+ * 2. It analyzes that branch.
+ * 3. It creates a new Scope for the "False" branch.
+ * 4. It analyzes that branch.
+ * 5. It calls `analyzer.converge...` to merge the results back together.
+ */
 extern (D) class StatementWalker : SemanticTimeTransitiveVisitor
 {
     alias visit = SemanticTimeTransitiveVisitor.visit;
@@ -581,6 +599,8 @@ final:
                 expWalker.seeConvergeExpression(walkExpression(null,
                         dfaCommon.getReturnVariable, exp));
 
+            // Mark the current scope as having returned.
+            // This signals that no code after this point in the current block is reachable.
             dfaCommon.currentDFAScope.haveJumped = true;
             dfaCommon.currentDFAScope.haveReturned = true;
             analyzer.reporter.onEndOfScope(dfaCommon.currentFunction, exp.loc);
@@ -626,6 +646,13 @@ final:
                 appendLoc(ob, ifs.loc);
                 ob.writestring("\n");
             });
+
+            // CRITICAL: We split the analysis here.
+            // 1. We analyze the condition to see if it implies anything about variables
+            //    (e.g., `if (ptr)` implies `ptr` is NonNull in the true branch).
+            // 2. We visit the `ifbody` with that knowledge.
+            // 3. We visit the `elsebody` (if it exists).
+            // 4. We merge the resulting states from both branches.
 
             bool ignoreTrueBranch, ignoreFalseBranch;
             bool unknownBranchTaken;
@@ -814,6 +841,14 @@ final:
                 appendLoc(ob, fs.endloc);
                 ob.writestring("\n");
             });
+
+            // Loops are handled by creating a "LoopyLabel" scope.
+            // This allows `break` and `continue` statements inside the loop
+            // to find this scope and update the state accordingly.
+            //
+            // Since this is a single-pass engine, we do not iterate until convergence.
+            // Instead, we analyze the body once, and then use `convergeStatementLoopyLabels`
+            // to assume the worst-case scenario for variables modified in the loop.
 
             inLoopyLabel++;
             scope (exit)

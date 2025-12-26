@@ -1,6 +1,19 @@
 /**
  * Entry point into Data Flow Analysis engine.
  *
+ * This engine performs a structural analysis of the code to detect
+ * issues like nullability and truthiness.
+ *
+ * Design:
+ * - Structural Definition Algorithm: It performs a single forward pass
+ * over the AST (O(1) cost per node), minimizing compilation time.
+ * - Non-Iterative: Unlike "chaotic iteration" solvers (which can be O(n^2)),
+ * this engine does not loop until convergence. It tries to limit its visitation of each node to once.
+ *
+ * See_Also:
+ * https://forum.dlang.org/post/xmssfygefvldeiyodfya@forum.dlang.org
+ * (Why we should not enable a slow DFA by default)
+ *
  * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
  * Authors:   $(LINK2 https://cattermole.co.nz, Richard (Rikki) Andrew Cattermole)
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -41,7 +54,22 @@ void dfaEntry(FuncDeclaration fd, Scope* sc)
 }
 
 private:
-
+/***********************************************************
+ * Performs the fast Data Flow Analysis on a function declaration.
+ *
+ * This function acts as the coordinator. It:
+ * 1. Checks if the function needs analysis (skips CTFE-only code).
+ * 2. Instantiates the components:
+ *  - StatementWalker: Traverses statements (if, while, return).
+ *  - ExpressionWalker: Traverses expressions (a + b, func()).
+ *  - DFAAnalyzer: Tracks the state of variables (The Brain).
+ * 3. Wires them together but separates them for separation of concerns reasons.
+ * 4. Starts the single-pass walk.
+ *
+ * Params:
+ *      fd = The function to analyze.
+ *      sc = The scope of the function.
+ */
 void fastDFA(FuncDeclaration fd, Scope* sc)
 {
     import dmd.dfa.fast.structure;

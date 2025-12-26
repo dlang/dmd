@@ -1,6 +1,15 @@
 /**
  * Analysis engine for the fast Data Flow Analysis engine.
  *
+ * This module implements the mathematical core of the DFA.
+ * It is responsible for:
+ * 1. Transfer Functions: Calculating how specific operations (Assign, Math, Equal)
+ * transform the abstract state (Lattice) of variables.
+ * 2. Convergence (Confluence): Merging states from different control flow paths
+ * (e.g., merging the "True" and "False" branches of an if-statement).
+ * 3. Loop Approximation: Handling loops in O(1) time by making conservative
+ * assumptions rather than iterating to a fixed point.
+ *
  * Has the convergence and transfer functions.
  *
  * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
@@ -26,6 +35,16 @@ import core.stdc.stdio;
 
 //version = DebugJoinMeetOp;
 
+/***********************************************************
+ * The core analyzer that manipulates the Lattice state.
+ *
+ * This struct provides the overarching join/meet logic, while the specific
+ * merge logic is handled in `DFAConsequence`.
+ *
+ * It is responsible for:
+ * - Orchestrating the convergence of scopes (calculating the final state after a block exits).
+ * - Managing high-level state transfers between the AST walkers and the internal lattice.
+ */
 struct DFAAnalyzer
 {
     DFACommon* dfaCommon;
@@ -95,6 +114,23 @@ struct DFAAnalyzer
         return ret;
     }
 
+    /***********************************************************
+     * Merges the states from the True and False branches of an If statement.
+     *
+     * This handles the "Diamond" control flow pattern.
+     * 1. It compares the state at the end of the "True" block vs the "False" block.
+     * 2. It identifies "Gates" (variables used in the condition, e.g., `if (ptr)`).
+     * 3. It calculates the union (Join) of the states to determine the state
+     * after the If statement completes.
+     *
+     * Params:
+     * condition = The lattice state of the condition expression.
+     * scrTrue = The final state of the True scope.
+     * scrFalse = The final state of the False scope.
+     * haveFalseBody = True if the if-statement has an `else` block.
+     * unknownBranchTaken = True if the condition result is not statically known (Maybe).
+     * predicateNegation = State of the predicate negation (0: unknown, 1: negated, 2: not negated).
+     */
     void convergeStatementIf(DFALatticeRef condition, DFAScopeRef scrTrue,
             DFAScopeRef scrFalse, bool haveFalseBody, bool unknownBranchTaken,
             int predicateNegation)
@@ -552,7 +588,18 @@ struct DFAAnalyzer
                 handle(scv.lrGateNegatedPredicate);
         }
     }
-
+    /***********************************************************
+     * Converges a loop or labelled block.
+     *
+     * Fast-DFA Optimization:
+     * Unlike traditional "Slow DFAs" which iterate a loop until the state settles
+     * (Fixed Point Iteration), this engine visits the loop body once.
+     *
+     * To ensure safety without iteration:
+     * 1. It checks if variables modified in the loop are used inconsistently.
+     * 2. If a variable is modified in a way that creates uncertainty (e.g., incrementing),
+     * it assumes the "Worst Case" (Unknown state) for that variable after the loop.
+     */
     void convergeStatementLoopyLabels(DFAScopeRef containing, ref Loc loc)
     {
         const scopeHaveRun = containing.sc.isLoopyLabelKnownToHaveRun;
@@ -1047,6 +1094,17 @@ struct DFAAnalyzer
         }
     }
 
+    /***********************************************************
+     * Updates the state of a variable after an assignment (`a = b`).
+     *
+     * This moves the state from the RHS (Right Hand Side) lattice to the
+     * LHS (Left Hand Side) variable.
+     *
+     * Logic:
+     * - Direct Assignment: `a = 5` (a becomes 5).
+     * - Pointer Assignment: `*p = 5` (We don't change `p`, we assume memory at `p` changed).
+     * - Construct: `int a = 5` (Initialization).
+     */
     DFALatticeRef transferAssign(DFALatticeRef assignTo, bool construct, bool isBlit,
             DFALatticeRef lr, int alteredState, DFALatticeRef indexLR = DFALatticeRef.init)
     {
@@ -2047,6 +2105,13 @@ private:
 
     // Converge, see Lattice (Abstract algebra) meet operation (lower bound)
     // Operates on a given lattice to converge into current scope's variable state
+    /***********************************************************
+     * The Lattice 'Meet' operation (Intersection / Lower Bound).
+     *
+     * Used when we are combining facts that MUST be true.
+     * Example: If `x` is NonNull in path A AND `x` is NonNull in path B,
+     * then `x` is NonNull.
+     */
     DFALatticeRef meet(DFALatticeRef lhs, DFALatticeRef rhs,
             int filterDepthOfVariable = 0, bool couldScopeNotHaveRan = false)
     {
@@ -2110,6 +2175,13 @@ private:
 
     // Converge, see Lattice (Abstract algebra) meet operation (upper bound)
     // Operates on a given lattice to converge into current scope's variable state
+    /***********************************************************
+     * The Lattice 'Join' operation (Union / Upper Bound).
+     *
+     * Used when merging diverging paths where EITHER could have happened.
+     * Example: If `x` is 5 in path A, and `x` is 6 in path B.
+     * Join(A, B) -> `x` is "Unknown Integer" (because it could be either).
+     */
     DFALatticeRef join(DFALatticeRef lhs, DFALatticeRef rhs, int filterDepthOfVariable = 0,
             DFAVar* ignoreLHSCtx = null, bool ignoreWriteCount = false, bool unknownAware = false)
     {
