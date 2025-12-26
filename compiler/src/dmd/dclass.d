@@ -398,13 +398,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return "class";
     }
 
-    /****************************************
-     */
-    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
-    {
-        .objc.addSymbols(this, classes, categories);
-    }
-
     // Back end
     Dsymbol vtblsym;
 

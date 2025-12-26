@@ -765,10 +765,6 @@ extern (C++) class Dsymbol : ASTNode
         assert(0);
     }
 
-    void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
-    {
-    }
-
     /****************************************
      * Add documentation comment to Dsymbol.
      * Ignore NULL comments.

@@ -83,6 +83,14 @@ import dmd.visitor;
 
 enum LOG = false;
 
+void addObjcSymbols(Dsymbol _this, ClassDeclarations* classes, ClassDeclarations* categories)
+{
+    if (auto ad = _this.isAttribDeclaration())
+        objc.addSymbols(ad, classes, categories);
+    else if (auto cd = _this.isClassDeclaration())
+        objc.addSymbols(cd, classes, categories);
+}
+
 /************************************
  * Maybe `ident` was a C or C++ name. Check for that,
  * and suggest the D equivalent.
