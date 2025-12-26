@@ -803,6 +803,7 @@ final class CParser(AST) : Parser!AST
             nextToken();
             break;
 
+        /* start float16 */
         case TOK.float32Literal:
             e = new AST.RealExp(loc, token.floatvalue, AST.Type.tfloat32);
             nextToken();
