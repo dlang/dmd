@@ -103,13 +103,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return "attribute";
     }
 
-    /****************************************
-     */
-    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
-    {
-        objc.addSymbols(this, classes, categories);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
