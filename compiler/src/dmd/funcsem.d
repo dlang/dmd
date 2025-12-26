@@ -2081,6 +2081,7 @@ private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecate
             return "Candidate is: ";
         else
         {
+            message("\tThere are multiple candidates");
             return "Candidate 1 is";
         }
     }
