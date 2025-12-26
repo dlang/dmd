@@ -5566,7 +5566,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(exp.loc, "`%s` is not defined, perhaps `import %.*s;` is needed?", exp.ident.toChars(), cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(exp.ident))
                 error(exp.loc, "undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toChars(), s2.kind(), s2.toChars());
-            else if (const p = Scope.search_correct_C(exp.ident))
+            else if (const p = search_correct_C(exp.ident))
                 error(exp.loc, "undefined identifier `%s`, did you mean `%s`?", exp.ident.toChars(), p);
             else if (exp.ident == Id.dollar)
                 error(exp.loc, "undefined identifier `$`");

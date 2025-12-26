@@ -83,6 +83,33 @@ import dmd.visitor;
 
 enum LOG = false;
 
+/************************************
+ * Maybe `ident` was a C or C++ name. Check for that,
+ * and suggest the D equivalent.
+ * Params:
+ *  ident = unknown identifier
+ * Returns:
+ *  D identifier string if found, null if not
+ */
+const(char)* search_correct_C(Identifier ident)
+{
+    import dmd.astenums : Twchar;
+    TOK tok;
+    if (ident == Id.NULL)
+        tok = TOK.null_;
+    else if (ident == Id.TRUE)
+        tok = TOK.true_;
+    else if (ident == Id.FALSE)
+        tok = TOK.false_;
+    else if (ident == Id.unsigned)
+        tok = TOK.uns32;
+    else if (ident == Id.wchar_t)
+        tok = target.c.wchar_tsize == 2 ? TOK.wchar_ : TOK.dchar_;
+    else
+        return null;
+    return Token.toChars(tok);
+}
+
 /******************************
  * Add symbol s to innermost symbol table.
  * Params:
