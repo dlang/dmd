@@ -83,6 +83,62 @@ import dmd.visitor;
 
 enum LOG = false;
 
+/******************************
+ * Add symbol s to innermost symbol table.
+ * Params:
+ *  _this = scope object
+ *  s = symbol to insert
+ * Returns:
+ *  null if already in table, `s` if not
+ */
+Dsymbol insert(Scope* _this, Dsymbol s)
+{
+    //printf("insert() %s\n", s.toChars());
+    if (VarDeclaration vd = s.isVarDeclaration())
+    {
+        if (_this.lastVar)
+            vd.lastVar = _this.lastVar;
+        _this.lastVar = vd;
+    }
+    else if (WithScopeSymbol ss = s.isWithScopeSymbol())
+    {
+        if (VarDeclaration vd = ss.withstate.wthis)
+        {
+            if (_this.lastVar)
+                vd.lastVar = _this.lastVar;
+            _this.lastVar = vd;
+        }
+        return null;
+    }
+
+    auto scopesym = _this.inner().scopesym;
+    //printf("\t\tscopesym = %p\n", scopesym);
+    if (!scopesym.symtab)
+        scopesym.symtab = new DsymbolTable();
+    if (!_this.inCfile)
+        return scopesym.symtabInsert(s);
+
+    // ImportC insert
+    if (!scopesym.symtabInsert(s)) // if already in table
+    {
+        Dsymbol s2 = scopesym.symtabLookup(s, s.ident); // s2 is existing entry
+
+        auto svar = s.isVarDeclaration();
+        auto s2var = s2.isVarDeclaration();
+        if (((svar && svar.storage_class & STC.extern_) &&
+                (s2var && s2var.storage_class & STC.extern_) && _this.func) ||
+                s.isFuncDeclaration())
+        {
+            return handleSymbolRedeclarations(*_this, s, s2, scopesym);
+        }
+        else // aside externs and func decls, we should be free to handle tags
+        {
+            return handleTagSymbols(*_this, s, s2, scopesym);
+        }
+    }
+    return s; // inserted
+}
+
 /***********************************
  * Retrieve the .min or .max values.
  * Only valid after semantic analysis.
