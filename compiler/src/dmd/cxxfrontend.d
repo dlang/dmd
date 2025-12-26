@@ -299,9 +299,16 @@ void runDeferredSemantic3()
     return dmd.dsymbolsem.runDeferredSemantic3();
 }
 
-bool isOverlappedWith(VarDeclaration vd, VarDeclaration v){
+bool isOverlappedWith(VarDeclaration vd, VarDeclaration v)
+{
     import dmd.dsymbolsem;
     return dmd.dsymbolsem.isOverlappedWith(vd, v);
+}
+
+Scope* newScope(AggregateDeclaration ad, Scope* sc)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.newScope(ad, sc);
 }
 
 Dsymbol search(Scope* sc, Loc loc, Identifier ident, out Dsymbol pscopesym,
