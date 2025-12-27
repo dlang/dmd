@@ -1603,13 +1603,6 @@ MATCH implicitConvTo(Type from, Type to)
             // Disallow implicit conversion from complex to non-complex
             if (from.flags & TFlags.complex && !(tob.flags & TFlags.complex))
                 return MATCH.nomatch;
-
-            // Allow complex float to complex double promotion
-            if ((from.flags & TFlags.complex) && (tob.flags & TFlags.complex))
-            {
-                if (from.size(Loc.initial) <= tob.size(Loc.initial))
-                    return MATCH.convert;
-            }
             // Disallow implicit conversion of real or imaginary to complex
             if (from.flags & (TFlags.real_ | TFlags.imaginary) && tob.flags & TFlags.complex)
                 return MATCH.nomatch;
@@ -1617,6 +1610,12 @@ MATCH implicitConvTo(Type from, Type to)
             // Disallow implicit conversion to-from real and imaginary
             if ((from.flags & (TFlags.real_ | TFlags.imaginary)) != (tob.flags & (TFlags.real_ | TFlags.imaginary)))
                 return MATCH.nomatch;
+            // Allow complex float to complex double promotion
+            if ((from.flags & TFlags.complex) && (tob.flags & TFlags.complex))
+            {
+                if (from.size(Loc.initial) < tob.size(Loc.initial))
+                    return MATCH.convert;
+            }
         }
         return MATCH.convert;
 
