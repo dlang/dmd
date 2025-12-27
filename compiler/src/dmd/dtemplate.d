@@ -157,12 +157,7 @@ bool isError(const RootObject o)
  */
 bool arrayObjectIsError(const ref Objects args)
 {
-    foreach (const o; args)
-    {
-        if (isError(o))
-            return true;
-    }
-    return false;
+    return args[].any!isError;
 }
 
 /***********************
