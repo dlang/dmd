@@ -138,8 +138,29 @@ real_t toImaginary(Expression _this)
 {
     if (auto ie = _this.isIntegerExp())
         return CTFloat.zero;
-    else if (auto re = _this.isRealExp)
-        return re.type.isReal() ? CTFloat.zero : re.value;
+    else if (auto rexp = _this.isRealExp)
+    {
+        real_t result = rexp.value;
+
+        if (!rexp.type.isReal()) // the ! is the only difference from toReal()
+        {
+            const sz = size(rexp.type);
+            if (sz == 4)
+            {
+                float f = cast(float)result;    // force round to float with x87 instructions
+                result = f;
+            }
+            else if (sz == 8)
+            {
+                double d = cast(double)result;
+                result = d;
+            }
+            rexp.value = result;        // in case of further casting
+        }
+        else
+            result = CTFloat.zero;
+        return result;
+    }
     else if (auto ce = _this.isComplexExp())
         return cimagl(ce.value);
 
@@ -147,6 +168,14 @@ real_t toImaginary(Expression _this)
     return CTFloat.zero;
 }
 
+/***********************************
+ * Interpret the value from IntegerExp, RealExp, or ComplexExp
+ * as a correctly typed floating point number.
+ * Params:
+ *      _this = Expression
+ * Returns:
+ *      floating point value, zero on error
+ */
 real_t toReal(Expression _this)
 {
     if (auto iexp = _this.isIntegerExp())
@@ -161,7 +190,29 @@ real_t toReal(Expression _this)
     }
     else if (auto rexp = _this.isRealExp())
     {
-        return rexp.type.isReal() ? rexp.value : CTFloat.zero;
+        /* Conversions are handled here instead of in RealExp's constructor
+         * because the type sent to the constructor is not semantically known yet
+         */
+        real_t result = rexp.value;
+
+        if (rexp.type.isReal())
+        {
+            const sz = size(rexp.type);
+            if (sz == 4)
+            {
+                float f = cast(float)result;    // force round to float with x87 instructions
+                result = f;
+            }
+            else if (sz == 8)
+            {
+                double d = cast(double)result;
+                result = d;
+            }
+            rexp.value = result;        // in case of further casting
+        }
+        else
+            result = CTFloat.zero;
+        return result;
     }
     else if (auto cexp = _this.isComplexExp())
     {
