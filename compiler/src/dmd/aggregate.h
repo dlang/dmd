@@ -121,7 +121,6 @@ public:
     d_bool disableNew;            // disallow allocations using `new`
     Sizeok sizeok;              // set when structsize contains valid data
 
-    virtual Scope *newScope(Scope *sc);
     bool isDeprecated() const override final; // is aggregate deprecated?
     bool isNested() const;
     bool isExport() const override final;
@@ -273,7 +272,6 @@ public:
     static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
     const char *toPrettyChars(bool QualifyTypes = false) override;
     ClassDeclaration *syntaxCopy(Dsymbol *s) override;
-    Scope *newScope(Scope *sc) override;
 
     #define OFFSET_RUNTIME 0x76543210
     #define OFFSET_FWDREF 0x76543211
@@ -298,7 +296,6 @@ class InterfaceDeclaration final : public ClassDeclaration
 {
 public:
     InterfaceDeclaration *syntaxCopy(Dsymbol *s) override;
-    Scope *newScope(Scope *sc) override;
     bool isBaseOf(ClassDeclaration *cd, int *poffset) override;
     const char *kind() const override;
     int vtblOffset() const override;
