@@ -10749,10 +10749,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (!exp.to.equals(exp.e1.type) && exp.mod == cast(ubyte)~0)
         {
-            if (Expression e = exp.opOverloadCast(sc))
+            if (exp.to.ty != Tpointer || exp.to.nextOf().ty != Tvoid)
             {
-                result = e.implicitCastTo(sc, exp.to);
-                return;
+                if (Expression e = exp.opOverloadCast(sc))
+                {
+                    result = e.implicitCastTo(sc, exp.to);
+                    return;
+                }
             }
         }
 
