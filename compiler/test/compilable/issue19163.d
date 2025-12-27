@@ -18,8 +18,3 @@ void test()
     TestStruct m;
     enum nameAttr = getNamedAttribute!(m.a);
 }
-
-void main()
-{
-    test();
-}
