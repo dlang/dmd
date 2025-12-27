@@ -2452,6 +2452,10 @@ $(GNAME FunctionLiteral):
     $(GLINK2 statement, BlockStatement)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 
+$(GNAME RefOrAutoRef):
+    $(D ref)
+    $(D auto ref)
+
 $(GNAME BasicTypeWithSuffixes):
     $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT)
 
@@ -2464,26 +2468,41 @@ $(GNAME ParameterWithMemberAttributes):
 $(GNAME FunctionLiteralBody):
     $(D =>) $(GLINK AssignExpression)
     $(GLINK2 function, SpecifiedFunctionBody)
-
-$(GNAME RefOrAutoRef):
-    $(D ref)
-    $(D auto ref)
 )
 
     $(P $(I FunctionLiteral)s enable embedding anonymous functions
         and anonymous delegates directly into expressions.
         Short function literals are known as $(LNAME2 lambdas, $(I lambdas)).
     )
-      * $(I Type) is the return type of the function or delegate -
-        if omitted it is $(RELATIVE_LINK2 lambda-return-type, inferred).
+      * $(I BasicTypeWithSuffixes) is the return type of the function or delegate -
+        if omitted it is $(RELATIVE_LINK2 lambda-return-type, inferred) from the body.
       * $(I ParameterWithAttributes) or $(I ParameterWithMemberAttributes)
         can be used to specify the parameters for the function. If these are
         omitted, the function defaults to the empty parameter list $(D ( )).
-      * Parameter types can be $(RELATIVE_LINK2 lambda-parameter-inference, omitted).
-      * The type of a function literal is a
-        $(DDSUBLINK spec/function, closures, delegate or a pointer to function).
+      * The parameter type can be omitted. Either $(RELATIVE_LINK2 lambda-parameter-inference,
+        it will be inferred), or the literal $(RELATIVE_LINK2 function-literal-alias,
+        will be a template). If a $(GLINK2 function, Parameter) has an *Identifier* as its
+        *BasicType* with no *Declarator*, the *Identifier* will be the parameter name
+        and the type is not specified.
+      * Function literals can be $(DDSUBLINK spec/declaration, alias, aliased).
 
-    $(P For example:)
+    $(P Examples:)
+    ---
+    // Literal with `int` parameter and `int` return type
+    function int(int x) { return x; }
+    (int x) { return x; } // Same (unless delegate expected)
+    (int x) => x          // Same
+
+    (x) => x    // Template, unless parameter type can be inferred
+    x => x      // Same
+
+    () { ... }  // Literal with no parameters and inferred return type
+    { ... }     // Same
+    ---
+
+    $(P The type of a (non-template) function literal is a
+        $(DDSUBLINK spec/function, function-pointers, function pointer) or a
+        $(DDSUBLINK spec/type, delegates, delegate). For example:)
 
         -------------
         int function(char c) fp; // declare pointer to a function
@@ -2625,23 +2644,30 @@ $(H4 $(LNAME2 lambda-parameter-inference, Parameter Type Inference))
         auto fp = (i) { return 1; }; // error, cannot infer type of `i`
         ---
 
-$(H4 $(LNAME2 function-literal-alias, Function Literal Aliasing))
+$(H4 $(LNAME2 function-literal-alias, Function Literal Templates))
 
-    $(P Function literals can be $(DDSUBLINK spec/declaration, alias, aliased).
-        Aliasing a function literal with unspecified parameter types or `auto ref` parameters produces a
-        $(DDSUBLINK spec/template, function-template, function template)
-        with type parameters for each unspecified parameter type of the literal.
-        Type and `auto ref` inference for the literal is then done when the template is instantiated.)
+    $(P A function literal will be a template when it has either:)
+
+      * An unspecified parameter type and no context to infer it from.
+      * An $(DDSUBLINK spec/template, auto-ref-parameters, `auto ref` parameter).
+
+    $(P The template will have a type parameter for each unspecified parameter
+        type in the literal. Implicit instantiation is supported when the literal
+        is called (like $(DDSUBLINK spec/template, ifti, IFTI) for a function template).
+        `auto ref` parameters are only supported when the literal is implicitly
+        instantiated.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        alias fpt = (i) { return i; }; // ok, infer type of `i` when used
-        //auto fpt(T)(T i) { return i; } // equivalent
+        alias fpt = (i) { return i; }; // OK, infer type of `i` when called
+        //auto fpt(T) = (T i) { return i; }; // equivalent
+        static assert(__traits(isTemplate, fpt));
 
         auto v = fpt(4);    // `i` is inferred as int
         auto d = fpt(10.3); // `i` is inferred as double
 
-        alias fp = fpt!float;
+        alias fp = fpt!float; // `fp` is a function pointer
+        static assert(is(typeof(*fp) == function));
         auto f = fp(0); // f is a float
         ---
         )

@@ -370,7 +370,7 @@ $(GNAME AliasAssignment):
     * Packages
     * Functions
     * $(RELATIVE_LINK2 alias-overload, Overload Sets)
-    * $(DDSUBLINK spec/expression, function-literal-alias, Function Literals)
+    * $(DDSUBLINK spec/expression, function_literals, Function Literals)
     * Templates
     * Template Instantiations
     * Other Alias Declarations
