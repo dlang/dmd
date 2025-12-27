@@ -17,7 +17,6 @@ import core.stdc.string;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
-import dmd.dmodule;
 import dmd.dscope;
 import dmd.errors;
 import dmd.expression;
@@ -35,6 +34,7 @@ import dmd.statement;
 import dmd.declaration;
 import dmd.dstruct;
 import dmd.func;
+
 
 /***********************************************************
  */
@@ -237,9 +237,9 @@ extern (C++) final class StaticForeach : RootObject
 extern (C++) class DVCondition : Condition
 {
     Identifier ident;
-    Module mod;
+    void* mod; // of type Module
 
-    extern (D) this(Loc loc, Module mod, Identifier ident) @safe
+    extern (D) this(Loc loc, void* mod, Identifier ident) @safe
     {
         super(loc);
         this.mod = mod;
@@ -301,7 +301,7 @@ extern (C++) final class DebugCondition : DVCondition
      *           If `null`, this conditiion will use an integer level.
      *  loc = Location in the source file
      */
-    extern (D) this(Loc loc, Module mod, Identifier ident) @safe
+    extern (D) this(Loc loc, void* mod, Identifier ident) @safe
     {
         super(loc, mod, ident);
     }
@@ -544,7 +544,7 @@ extern (C++) final class VersionCondition : DVCondition
      *           If `null`, this conditiion will use an integer level.
      *  loc = Location in the source file
      */
-    extern (D) this(Loc loc, Module mod, Identifier ident) @safe
+    extern (D) this(Loc loc, void* mod, Identifier ident) @safe
     {
         super(loc, mod, ident);
     }
@@ -605,23 +605,4 @@ bool findCondition(ref Identifiers ids, Identifier ident) @safe nothrow pure
             return true;
     }
     return false;
-}
-
-// Helper for printing dependency information
-public void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType)
-{
-    if (!global.params.moduleDeps.buffer || global.params.moduleDeps.name)
-        return;
-    OutBuffer* ob = global.params.moduleDeps.buffer;
-    Module imod = sc ? sc._module : condition.mod;
-    if (!imod)
-        return;
-    ob.writestring(depType);
-    ob.writestring(imod.toPrettyChars());
-    ob.writestring(" (");
-    escapePath(ob, imod.srcfile.toChars());
-    ob.writestring(") : ");
-    if (condition.ident)
-        ob.writestring(condition.ident.toString());
-    ob.writeByte('\n');
 }

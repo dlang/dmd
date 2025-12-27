@@ -15,7 +15,6 @@ module dmd.dsymbolsem;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
-
 import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.arraytypes;
@@ -80,8 +79,28 @@ import dmd.targetcompiler;
 import dmd.templatesem;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.utils : escapePath;
 
 enum LOG = false;
+
+// Helper for printing dependency information
+void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType)
+{
+    if (!global.params.moduleDeps.buffer || global.params.moduleDeps.name)
+        return;
+    OutBuffer* ob = global.params.moduleDeps.buffer;
+    Module imod = sc ? sc._module : cast(Module) condition.mod;
+    if (!imod)
+        return;
+    ob.writestring(depType);
+    ob.writestring(imod.toPrettyChars());
+    ob.writestring(" (");
+    escapePath(ob, imod.srcfile.toChars());
+    ob.writestring(") : ");
+    if (condition.ident)
+        ob.writestring(condition.ident.toString());
+    ob.writeByte('\n');
+}
 
 void addObjcSymbols(Dsymbol _this, ClassDeclarations* classes, ClassDeclarations* categories)
 {

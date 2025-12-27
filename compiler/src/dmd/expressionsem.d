@@ -19482,7 +19482,7 @@ private extern(C++) class IncludeVisitor : Visitor {
         bool definedInModule = false;
         if (dc.ident)
         {
-            if (dc.mod.debugids && findCondition(*dc.mod.debugids, dc.ident))
+            if ((cast(Module) dc.mod).debugids && findCondition(*(cast(Module)dc.mod).debugids, dc.ident))
             {
                 dc.inc = Include.yes;
                 definedInModule = true;
@@ -19491,9 +19491,9 @@ private extern(C++) class IncludeVisitor : Visitor {
                 dc.inc = Include.yes;
             else
             {
-                if (!dc.mod.debugidsNot)
-                    dc.mod.debugidsNot = new Identifiers();
-                dc.mod.debugidsNot.push(dc.ident);
+                if (!(cast(Module) dc.mod).debugidsNot)
+                    (cast(Module) dc.mod).debugidsNot = new Identifiers();
+                (cast(Module) dc.mod).debugidsNot.push(dc.ident);
             }
         }
         else if (global.params.debugEnabled)
@@ -19518,7 +19518,7 @@ private extern(C++) class IncludeVisitor : Visitor {
         bool definedInModule = false;
         if (vc.ident)
         {
-            if (vc.mod.versionids && findCondition(*vc.mod.versionids, vc.ident))
+            if ((cast(Module)vc.mod).versionids && findCondition(*(cast(Module)vc.mod).versionids, vc.ident))
             {
                 vc.inc = Include.yes;
                 definedInModule = true;
@@ -19527,9 +19527,9 @@ private extern(C++) class IncludeVisitor : Visitor {
                 vc.inc = Include.yes;
             else
             {
-                if (!vc.mod.versionidsNot)
-                    vc.mod.versionidsNot = new Identifiers();
-                vc.mod.versionidsNot.push(vc.ident);
+                if (!(cast(Module)vc.mod).versionidsNot)
+                    (cast(Module)vc.mod).versionidsNot = new Identifiers();
+                (cast(Module)vc.mod).versionidsNot.push(vc.ident);
             }
         }
         if (!definedInModule &&
