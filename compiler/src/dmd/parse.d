@@ -2390,7 +2390,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
             check(TOK.rightParenthesis);
         }
-        return new AST.DebugCondition(loc, mod, id);
+        return new AST.DebugCondition(loc, cast(void*) mod, id);
     }
 
     /**************************************
@@ -2444,7 +2444,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
         else
             error("(condition) expected following `version`");
-        return new AST.VersionCondition(loc, mod, id);
+        return new AST.VersionCondition(loc, cast(void*) mod, id);
     }
 
     /***********************************************

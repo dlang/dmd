@@ -94,11 +94,32 @@ import dmd.traits;
 import dmd.typesem;
 import dmd.typinf;
 import dmd.utils;
-import dmd.utils : arrayCastBigEndian;
+import dmd.statement;
 import dmd.visitor;
 import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
+
+
+/*****************************************
+ * Wrap a statement into a function literal and call it.
+ *
+ * Params:
+ *     loc = The source location.
+ *     s  = The statement.
+ * Returns:
+ *     AST of the expression `(){ s; }()` with location loc.
+ */
+Expression wrapAndCall(StaticForeach _this, Loc loc, Statement s)
+{
+    auto tf = new TypeFunction(ParameterList(), null, LINK.default_, STC.none);
+    auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
+    fd.fbody = s;
+    fd.skipCodegen = true;
+    auto fe = new FuncExp(loc, fd);
+    auto ce = new CallExp(loc, fe, new Expressions());
+    return ce;
+}
 
 /*******************************
  * Merge results of `ctorflow` into `_this`.
@@ -19482,7 +19503,7 @@ private extern(C++) class IncludeVisitor : Visitor {
         bool definedInModule = false;
         if (dc.ident)
         {
-            if (dc.mod.debugids && findCondition(*dc.mod.debugids, dc.ident))
+            if ((cast(Module) dc.mod).debugids && findCondition(*(cast(Module)dc.mod).debugids, dc.ident))
             {
                 dc.inc = Include.yes;
                 definedInModule = true;
@@ -19491,9 +19512,9 @@ private extern(C++) class IncludeVisitor : Visitor {
                 dc.inc = Include.yes;
             else
             {
-                if (!dc.mod.debugidsNot)
-                    dc.mod.debugidsNot = new Identifiers();
-                dc.mod.debugidsNot.push(dc.ident);
+                if (!(cast(Module) dc.mod).debugidsNot)
+                    (cast(Module) dc.mod).debugidsNot = new Identifiers();
+                (cast(Module) dc.mod).debugidsNot.push(dc.ident);
             }
         }
         else if (global.params.debugEnabled)
@@ -19518,7 +19539,7 @@ private extern(C++) class IncludeVisitor : Visitor {
         bool definedInModule = false;
         if (vc.ident)
         {
-            if (vc.mod.versionids && findCondition(*vc.mod.versionids, vc.ident))
+            if ((cast(Module)vc.mod).versionids && findCondition(*(cast(Module)vc.mod).versionids, vc.ident))
             {
                 vc.inc = Include.yes;
                 definedInModule = true;
@@ -19527,9 +19548,9 @@ private extern(C++) class IncludeVisitor : Visitor {
                 vc.inc = Include.yes;
             else
             {
-                if (!vc.mod.versionidsNot)
-                    vc.mod.versionidsNot = new Identifiers();
-                vc.mod.versionidsNot.push(vc.ident);
+                if (!(cast(Module)vc.mod).versionidsNot)
+                    (cast(Module)vc.mod).versionidsNot = new Identifiers();
+                (cast(Module)vc.mod).versionidsNot.push(vc.ident);
             }
         }
         if (!definedInModule &&
