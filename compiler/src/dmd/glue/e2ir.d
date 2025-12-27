@@ -169,6 +169,16 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
     //printf("e1:\n"); elem_print(e1);
     //printf("e2:\n"); elem_print(e2);
     //if (t) printf("t: %s\n", t.toChars());
+
+    // handle implicit conversion from function pointer to delegate
+    if (tybasic(e1.Ety) == TYdelegate &&
+        tybasic(e2.Ety) != TYdelegate &&
+        typtr(e2.Ety) &&
+        tysize(e2.Ety) == tysize(TYnptr))
+    {
+        e2 = el_pair(TYdelegate, el_long(TYnptr, 0), e2);
+    }
+
     elem* e = el_bin(OPeq, e2.Ety, e1, e2);
     switch (tybasic(e2.Ety))
     {
