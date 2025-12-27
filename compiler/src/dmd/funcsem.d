@@ -2102,7 +2102,7 @@ private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecate
                 buf[pos++] = suffix[i];
             }
             buf[pos] = '\0';
-            return buf.ptr;
+            return &buf[0];
         }
         if(count == 1)
             return "Candidate is: ";
