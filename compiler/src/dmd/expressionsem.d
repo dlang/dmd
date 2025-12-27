@@ -94,11 +94,32 @@ import dmd.traits;
 import dmd.typesem;
 import dmd.typinf;
 import dmd.utils;
-import dmd.utils : arrayCastBigEndian;
+import dmd.statement;
 import dmd.visitor;
 import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
+
+
+/*****************************************
+ * Wrap a statement into a function literal and call it.
+ *
+ * Params:
+ *     loc = The source location.
+ *     s  = The statement.
+ * Returns:
+ *     AST of the expression `(){ s; }()` with location loc.
+ */
+Expression wrapAndCall(StaticForeach _this, Loc loc, Statement s)
+{
+    auto tf = new TypeFunction(ParameterList(), null, LINK.default_, STC.none);
+    auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
+    fd.fbody = s;
+    fd.skipCodegen = true;
+    auto fe = new FuncExp(loc, fd);
+    auto ce = new CallExp(loc, fe, new Expressions());
+    return ce;
+}
 
 /*******************************
  * Merge results of `ctorflow` into `_this`.
