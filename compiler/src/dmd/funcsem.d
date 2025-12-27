@@ -2066,23 +2066,49 @@ private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecate
     int printed = 0; // number of candidates printed
     int count = 0; // total candidates
     bool child; // true if inside an eponymous template
-    const(char)* errorPrefix() @system
+    const(char)* errorPrefix() @safe
     {
         static char[128] buf;
+        size_t pos = 0;
         if (child)
             return "  - Containing: ";
 
         if (printed)
         {
-            snprintf(buf.ptr,buf.length,"  Candidate %d is: ",printed+1);
+            enum prefix = "Candidate "; // Prefix of the message to be displayed
+            foreach(i; 0 .. prefix.length)
+            {
+                buf[pos++] = prefix[i];
+            }
+            static char[64] tmp; // Buffer to store digits of the number
+            int idx = 0 ; // index for tmp buffer
+            int copy = printed + 1; // Stores the candidate number that will be displayed 
+            // store the reversed number
+            while(copy)
+            {
+                tmp[idx++] = cast(char)('0' + copy%10);
+                copy /= 10;                
+            }
+            tmp[idx] = '\0';
+            // in place reversal of digits
+            for(int end = idx-1 ; end>=0 ;end--)
+            {
+                buf[pos++] = tmp[end];            
+            }
+            // Suffix of the message
+            enum suffix = " is: ";
+            foreach(i;0 .. suffix.length)
+            {
+                buf[pos++] = suffix[i];
+            }
+            buf[pos] = '\0';
             return buf.ptr;
         }
         if(count == 1)
             return "Candidate is: ";
         else
         {
-            message("\tThere are multiple candidates");
-            return "Candidate 1 is";
+            return "Candidate 1 is: ";
         }
     }
     bool matchSymbol(Dsymbol s, bool print)
