@@ -8,13 +8,18 @@ static NameAttribute getNamedAttribute(alias S)()
     return __traits(getAttributes, S)[0];
 }
 
-struct MyStruct
+struct TestStruct
 {
     @NameAttribute({ return 42; }) int a;
 }
 
+void test()
+{
+    TestStruct m;
+    enum nameAttr = getNamedAttribute!(m.a);
+}
+
 void main()
 {
-    MyStruct m;
-    enum nameAttr = getNamedAttribute!(m.a);
+    test();
 }
