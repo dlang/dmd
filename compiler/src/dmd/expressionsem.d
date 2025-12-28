@@ -18007,6 +18007,29 @@ Expression getConstInitializer(VarDeclaration vd, bool needFullType = true)
 }
 
 /*******************************************
+ * Check whether there is an AA literal somewhere inside the expression
+ */
+private bool hasAALiteralExp(Expression e)
+{
+    extern (C++) final class HasAALiteral : StoppableVisitor
+    {
+        alias visit = typeof(super).visit;
+
+        override void visit(Expression)
+        {
+        }
+        override void visit(AssocArrayLiteralExp aae)
+        {
+            stop = true;
+        }
+    }
+
+    scope HasAALiteral hal = new HasAALiteral;
+    walkPostorder(e, hal);
+    return hal.stop;
+}
+
+/*******************************************
  * Helper function for the expansion of manifest constant.
  */
 private Expression expandInitializer(VarDeclaration vd, Loc loc)
@@ -18020,9 +18043,10 @@ private Expression expandInitializer(VarDeclaration vd, Loc loc)
         return ErrorExp.get();
     }
 
-    e = e.copy();
-    if (auto aae = e.isAssocArrayLiteralExp())
-        aae.lowering = null; // need to redo lowering as it contains temporary variables that must be renamed
+    if (hasAALiteralExp(e))
+        e = e.syntaxCopy(); // need to redo lowering as it contains temporary variables that must be renamed
+    else
+        e = e.copy();
     e.loc = loc;    // for better error message
     return e;
 }
