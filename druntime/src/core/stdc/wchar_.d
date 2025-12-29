@@ -138,7 +138,7 @@ else version (Windows)
         union ___value
         {
             wint_t __wch = 0;
-            char __wchb[4];
+            char[4] __wchb;
         }
         ___value __value;
     }
