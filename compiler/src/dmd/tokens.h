@@ -290,6 +290,7 @@ enum class TOK : unsigned char
     pragma,
     int128_,
     attribute__,
+    float16,
 
     MAX,
 };
