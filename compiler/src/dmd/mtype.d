@@ -439,6 +439,7 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared Type tuns64;
     extern (C++) __gshared Type tint128;
     extern (C++) __gshared Type tuns128;
+    extern (C++) __gshared Type tfloat16;
     extern (C++) __gshared Type tfloat32;
     extern (C++) __gshared Type tfloat64;
     extern (C++) __gshared Type tfloat80;
@@ -927,6 +928,11 @@ extern (C++) final class TypeBasic : Type
         case Tuns32:
             d = Token.toChars(TOK.uns32);
             flags |= TFlags.integral | TFlags.unsigned;
+            break;
+
+        case Tfloat16:
+            d = Token.toChars(TOK.float16);
+            flags |= TFlags.floating | TFlags.real_;
             break;
 
         case Tfloat32:
@@ -2822,6 +2828,7 @@ mixin template VisitType(Result)
             case TY.Tuns32:
             case TY.Tint64:
             case TY.Tuns64:
+            case TY.Tfloat16:
             case TY.Tfloat32:
             case TY.Tfloat64:
             case TY.Tfloat80:

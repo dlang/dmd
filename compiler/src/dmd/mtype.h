@@ -72,6 +72,7 @@ enum class TY : uint8_t
     Tint64,
 
     Tuns64,
+    Tfloat16,
     Tfloat32,
     Tfloat64,
     Tfloat80,
@@ -162,6 +163,7 @@ public:
     static Type *tuns64;
     static Type *tint128;
     static Type *tuns128;
+    static Type *tfloat16;
     static Type *tfloat32;
     static Type *tfloat64;
     static Type *tfloat80;
