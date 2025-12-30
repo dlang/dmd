@@ -9,7 +9,7 @@ void main()
     {
         real r = 0.5000000894069671353303618843710864894092082977294921875;
         assert(r == 0x1.000002fffffffcp-1);
-        float d = r;
+        double d = r;
         assert(d == 0x1.000003p-1);
         float f = r;
         assert(f == 0x1.000002p-1);
