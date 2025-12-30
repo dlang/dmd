@@ -283,8 +283,8 @@ enum TOK : ubyte
     __thread,
     __pragma,
     __int128,
-    __attribute__,
     float16,
+    __attribute__,
 }
 
 /// Expression nodes
