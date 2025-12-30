@@ -9,6 +9,9 @@ void main()
     {
         real r = 0.5000000894069671353303618843710864894092082977294921875;
         float f = r;
-        assert(f == 0x1.000002p-1);
+        import std.stdio, std.format;
+        stderr.writefln("f: %a", f);
+        stderr.writefln("int view: %X", *(cast(uint*) &f));  // expected: 3F000001
+        assert(f == 0x1.000002p-1, format!"%a"(f));
     }
 }
