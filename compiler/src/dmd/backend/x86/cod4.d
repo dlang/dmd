@@ -3391,7 +3391,7 @@ void longcmp(ref CodeBuilder cdb, elem* e, bool jcond, FL fltarg, code* targ)
     OPld_d
  */
 @trusted
-void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
+void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     if (cg.AArch64)
     {
@@ -3457,7 +3457,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 
                 if (config.fpxmmregs && (pretregs & XMMREGS))
                 {
-                    if (I64 && e.Eoper == OPd_f && e.E1 && e.E1.Eoper == OPld_d)
+                    if (I64 && e.E1.Eoper == OPld_d)
                     {
                         // avoid double rounding for: (real -> double) -> float
                         regm_t retregsx = mST0 | (pretregs & mPSW);
