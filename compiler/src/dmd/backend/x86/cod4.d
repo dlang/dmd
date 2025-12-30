@@ -3457,7 +3457,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
                 if (config.fpxmmregs && (pretregs & XMMREGS))
                 {
-                    if (I64 && e.E1.Eoper == OPld_d)
+                    if (e.E1.Eoper == OPld_d)
                     {
                         // avoid double rounding for: (real -> double) -> float
                         regm_t retregsx = mST0 | (pretregs & mPSW);
