@@ -3226,13 +3226,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
     Type visitComplex(TypeBasic t)
     {
-        if (!sc.inCfile)
-            return visitType(t);
-
-        auto tc = getComplexLibraryType(loc, sc, t.ty);
-        if (tc.ty == Terror)
-            return tc;
-        return tc.addMod(t.mod).merge();
+        return visitType(t);
     }
 
     Type visitVector(TypeVector mtype)
