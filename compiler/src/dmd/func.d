@@ -631,23 +631,6 @@ extern (C++) class FuncDeclaration : Declaration
         return toAliasFunc().isThis() !is null;
     }
 
-    // Determine if a function is pedantically virtual
-    final bool isVirtualMethod()
-    {
-        if (toAliasFunc() != this)
-            return toAliasFunc().isVirtualMethod();
-
-        //printf("FuncDeclaration::isVirtualMethod() %s\n", toChars());
-        if (!isVirtual())
-            return false;
-        // If it's a final method, and does not override anything, then it is not virtual
-        if (isFinalFunc() && foverrides.length == 0)
-        {
-            return false;
-        }
-        return true;
-    }
-
     // Determine if function goes into virtual function pointer table
     bool isVirtual() const
     {

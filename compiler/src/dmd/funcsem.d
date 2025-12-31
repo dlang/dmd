@@ -67,6 +67,24 @@ import dmd.typesem;
 import dmd.visitor;
 import dmd.visitor.statement_rewrite_walker;
 
+// Determine if a function is pedantically virtual
+bool isVirtualMethod(FuncDeclaration _this)
+{
+    if (_this.toAliasFunc() != _this)
+        return _this.toAliasFunc().isVirtualMethod();
+
+    //printf("FuncDeclaration::isVirtualMethod() %s\n", toChars());
+    if (!_this.isVirtual())
+        return false;
+
+    // If it's a final method, and does not override anything, then it is not virtual
+    if (_this.isFinalFunc() && _this.foverrides.length == 0)
+    {
+        return false;
+    }
+    return true;
+}
+
 
 /***********************************************
  * Determine if function's variables are referenced by a function
