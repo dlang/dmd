@@ -908,6 +908,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 auto filename = p + 1+7+1+4;
                 files.push(filename);
                 params.editionFiles[filename] = params.edition;
+                // FIXME: params.edition should not be set when there's a filename
+                error("`-edition` is not supported with a filename yet");
             }
         }
         else if (arg == "-fIBT")

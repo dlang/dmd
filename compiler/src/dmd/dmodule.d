@@ -437,7 +437,7 @@ extern (C++) final class Module : Package
         if (doHdrGen)
             hdrfile = setOutfilename(global.params.dihdr.name, global.params.dihdr.dir, arg, hdr_ext);
 
-        this.edition = Edition.min;
+        this.edition = global.params.edition;
     }
 
     extern (D) this(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
@@ -1260,36 +1260,4 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
     }
 
     return buf;
-}
-
-/*******************************************
- * Look for member of the form:
- *      const(MemberInfo)[] getMembers(string);
- * Returns NULL if not found
- */
-FuncDeclaration findGetMembers(ScopeDsymbol dsym)
-{
-    import dmd.opover : search_function;
-    Dsymbol s = search_function(dsym, Id.getmembers);
-    FuncDeclaration fdx = s ? s.isFuncDeclaration() : null;
-    version (none)
-    {
-        // Finish
-        __gshared TypeFunction tfgetmembers;
-        if (!tfgetmembers)
-        {
-            Scope sc;
-            sc.eSink = global.errorSink;
-            Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
-            auto parameters = new Parameters(p);
-            Type tret = null;
-            TypeFunction tf = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
-            tfgetmembers = tf.dsymbolSemantic(Loc.initial, &sc).isTypeFunction();
-        }
-        if (fdx)
-            fdx = fdx.overloadExactMatch(tfgetmembers);
-    }
-    if (fdx && fdx.isVirtual())
-        fdx = null;
-    return fdx;
 }

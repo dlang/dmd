@@ -30,6 +30,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.statement;
 import dmd.statementsem;
+import dmd.typesem;
 
 /***********************************
  * Parse and run semantic analysis on a GccAsmStatement.
@@ -188,7 +189,8 @@ Expression semanticAsmString(Scope* sc, Expression exp, const char *s)
 {
     import dmd.dcast : implicitCastTo;
     import dmd.dsymbolsem : resolveAliasThis;
-    import dmd.mtype : isAggregate, Type;
+    import dmd.mtype : Type;
+    import dmd.typesem : isAggregate;
 
     exp = expressionSemantic(exp, sc);
 

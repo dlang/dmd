@@ -304,7 +304,7 @@ version (none)
 {
     import core.stdc.stdlib;
 
-    extern (D) int main(string[] args)
+    int main(string[] args)
     {
         if (args.length == 2)
         {

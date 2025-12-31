@@ -18,6 +18,7 @@ import core.stdc.stdio;
 import core.stdc.time;
 
 import dmd.backend.cc;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.global;
@@ -70,13 +71,13 @@ private bool cse_float(elem* e)
  *              (this is generally target-dependent)
  */
 @trusted
-void builddags(ref GlobalOptimizer go)
+void builddags(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     vec_t aevec;
 
     debug if (debugc) printf("builddags()\n");
     assert(bo.dfo);
-    flowae(go);                       /* compute available expressions */
+    flowae(go, bo);                   /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
         return;
     aetype = Aetype.cse;
@@ -592,15 +593,15 @@ L1:
  */
 
 @trusted
-void boolopt(ref GlobalOptimizer go)
+void boolopt(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     vec_t aevec;
     vec_t aevecval;
 
     debug if (debugc) printf("boolopt()\n");
     if (!bo.dfo.length)
-        compdfo(bo.dfo, bo.startblock);
-    flowae(go);                       /* compute available expressions */
+        compdfo(bo, bo.dfo, bo.startblock);
+    flowae(go, bo);                   /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
         return;
     static if (0)

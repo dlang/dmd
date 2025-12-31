@@ -580,7 +580,7 @@ static if (1)
      *      offset = offset of the bytes in `buf` to replace
      *      data = bytes to write
      */
-    extern(D) void rewrite(T)(OutBuffer* buf, size_t offset, T data)
+    void rewrite(T)(OutBuffer* buf, size_t offset, T data)
     {
         *(cast(T*)&buf.buf[offset]) = data;
     }
@@ -1007,7 +1007,7 @@ static if (1)
         dwarf_initfile(filename ? filename[0 .. strlen(filename)] : null);
     }
 
-    extern(D) void dwarf_initfile(const(char)[] filename)
+    void dwarf_initfile(const(char)[] filename)
     {
         if (config.ehmethod == EHmethod.EH_DWARF)
         {
@@ -1377,7 +1377,7 @@ static if (1)
      *      aachars = AAchars where to add `str`
      *      str = string to add to `aachars`
      */
-    extern(D) uint addToAAchars(ref AAchars* aachars, const(char)[] str)
+    uint addToAAchars(ref AAchars* aachars, const(char)[] str)
     {
         if (!aachars)
         {
@@ -1400,7 +1400,7 @@ static if (1)
      * Returns:
      *      The directory name
      */
-    extern(D) const(char)[] retrieveDirectory(const(char)* path)
+    const(char)[] retrieveDirectory(const(char)* path)
     {
         assert(path);
         // Retrieve directory from path
@@ -1414,7 +1414,7 @@ static if (1)
                          modname ? modname[0 .. strlen(modname)] : null);
     }
 
-    extern(D) void dwarf_initmodule(const(char)[] filename, const(char)[] modname)
+    void dwarf_initmodule(const(char)[] filename, const(char)[] modname)
     {
         if (modname)
         {
@@ -3095,7 +3095,7 @@ static if (1)
 
     /* ======================= Abbreviation Codes ====================== */
 
-    extern(D) private struct DWARFAbbrev
+    private struct DWARFAbbrev
     {
         nothrow:
 

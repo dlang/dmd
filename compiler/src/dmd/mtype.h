@@ -228,7 +228,6 @@ public:
     void modToBuffer(OutBuffer& buf) const;
     char *modToChars() const;
 
-    virtual bool isScalar();
     virtual bool isScopeClass();
 
     bool isConst() const       { return (mod & MODconst) != 0; }
@@ -241,13 +240,9 @@ public:
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
-    bool hasDeprecatedAliasThis();
-    Type *toBasetype();
 
     virtual ClassDeclaration *isClassHandle();
     virtual int hasWild() const;
-    virtual Type *nextOf();
-    Type *baseElemOf();
 
     TypeFunction *toTypeFunction();
 
@@ -297,7 +292,6 @@ public:
     Type *next;
 
     int hasWild() const override final;
-    Type *nextOf() override final;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -309,7 +303,6 @@ public:
 
     const char *kind() override;
     TypeBasic *syntaxCopy() override;
-    bool isScalar() override;
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic() override;
@@ -324,7 +317,6 @@ public:
     static TypeVector *create(Type *basetype);
     const char *kind() override;
     TypeVector *syntaxCopy() override;
-    bool isScalar() override;
     TypeBasic *elementType();
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -378,7 +370,6 @@ public:
     static TypePointer *create(Type *t);
     const char *kind() override;
     TypePointer *syntaxCopy() override;
-    bool isScalar() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -432,7 +423,6 @@ public:
     static Parameter *create(Loc loc, StorageClass storageClass, Type *type, Identifier *ident,
                              Expression *defaultArg, UserAttributeDeclaration *userAttribDecl);
     Parameter *syntaxCopy();
-    Type *isLazyArray();
     bool isLazy() const;
     bool isReference() const;
     // kludge for template.isType()
@@ -632,8 +622,6 @@ public:
 
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
-    bool isScalar() override;
-    Type *nextOf() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -744,6 +732,7 @@ namespace dmd
     Type *addMod(Type *type, MOD mod);
     Type *addStorageClass(Type *type, StorageClass stc);
     Type *substWildTo(Type *type, unsigned mod);
+    Type *toBasetype(Type *type);
     uinteger_t size(Type *type);
     uinteger_t size(Type *type, Loc loc);
     MATCH implicitConvTo(Type* from, Type* to);
@@ -765,9 +754,13 @@ namespace dmd
     Type *makeWildConst(Type* type);
     Type *makeSharedWild(Type* type);
     Type *makeSharedWildConst(Type* type);
+    Type *nextOf(Type* type);
+    Type *baseElemOf(Type* type);
+    Type *isLazyArray(Parameter* param);
     unsigned char deduceWild(Type* type, Type* t, bool isRef);
     bool isIntegral(Type* type);
     bool isFloating(Type* type);
+    bool isScalar(Type* type);
     bool isReal(Type* type);
     bool isImaginary(Type* type);
     bool isComplex(Type* type);
@@ -777,4 +770,5 @@ namespace dmd
     bool needsNested(Type* type);
     bool needsDestruction(Type* type);
     bool needsCopyOrPostblit(Type* type);
+    bool hasDeprecatedAliasThis(Type* type);
 }
