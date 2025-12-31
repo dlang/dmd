@@ -42,9 +42,13 @@ typedef struct TYPE type;
 
 namespace dmd
 {
+    void Type_init();
     Type *typeSemantic(Type *t, Loc loc, Scope *sc);
     Type *merge(Type *type);
     Expression *defaultInitLiteral(Type *t, Loc loc);
+    Type *toBasetype(Type *type);
+    Type *nextOf(Type* type);
+    Type *baseElemOf(Type* type);
 }
 
 enum class TY : uint8_t
@@ -215,6 +219,8 @@ public:
 
     static Type *basic[(int)TY::TMAX];
 
+    static void _init() { return dmd::Type_init(); }
+
     virtual const char *kind();
     Type *copy() const;
     virtual Type *syntaxCopy();
@@ -240,6 +246,10 @@ public:
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
+
+    Type *toBasetype() { return dmd::toBasetype(this); }
+    Type *nextOf()     { return dmd::nextOf(this); }
+    Type *baseElemOf() { return dmd::baseElemOf(this); }
 
     virtual ClassDeclaration *isClassHandle();
     virtual int hasWild() const;
@@ -732,7 +742,6 @@ namespace dmd
     Type *addMod(Type *type, MOD mod);
     Type *addStorageClass(Type *type, StorageClass stc);
     Type *substWildTo(Type *type, unsigned mod);
-    Type *toBasetype(Type *type);
     uinteger_t size(Type *type);
     uinteger_t size(Type *type, Loc loc);
     MATCH implicitConvTo(Type* from, Type* to);
@@ -740,7 +749,6 @@ namespace dmd
     bool hasUnsafeBitpatterns(Type* type);
     bool hasInvariant(Type* type);
     bool hasVoidInitPointers(Type* type);
-    void Type_init();
     void transitive(TypeNext* type);
     structalign_t alignment(Type* type);
     Type* memType(TypeEnum* type);
@@ -754,8 +762,6 @@ namespace dmd
     Type *makeWildConst(Type* type);
     Type *makeSharedWild(Type* type);
     Type *makeSharedWildConst(Type* type);
-    Type *nextOf(Type* type);
-    Type *baseElemOf(Type* type);
     Type *isLazyArray(Parameter* param);
     unsigned char deduceWild(Type* type, Type* t, bool isRef);
     bool isIntegral(Type* type);
