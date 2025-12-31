@@ -1771,6 +1771,7 @@ void expression_h(Expression *e, Scope *sc, Type *t, Loc loc, Expressions *es)
     dmd::ctfeInterpret(e);
     dmd::expandTuples(es);
     dmd::optimize(e, 0);
+    dmd::isLvalue(e);
 }
 
 void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,
