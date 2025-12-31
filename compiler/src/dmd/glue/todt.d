@@ -583,7 +583,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         }
         Symbol* s = toSymbol(e.fd);
         toObjFile(e.fd, false);
-        if (e.fd.tok == TOK.delegate_)
+        if (e.type.ty == Tdelegate)
             dtb.size(0);
         dtb.xoff(s, 0);
     }

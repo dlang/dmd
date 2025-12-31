@@ -20,6 +20,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 
 import dmd.backend.cc;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.el;
@@ -42,11 +43,11 @@ nothrow:
  */
 
 @trusted
-public void comsubs(ref GlobalOptimizer go)
+public void comsubs(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugx) printf("comsubs(%p)\n",bo.startblock);
 
-    comsubs2(bo.startblock, cgcsdata, go);
+    comsubs2(bo.startblock, cgcsdata, go, bo);
 
     debug if (debugx)
         printf("done with comsubs()\n");
@@ -74,10 +75,10 @@ alias hash_t = uint;    // for hash values
  * String together as many blocks as we can.
  */
 @trusted
-void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go)
+void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go, ref BlockOpt bo)
 {
     // No longer just compute Bcount - eliminate unreachable blocks too
-    block_compbcount(go);                 // eliminate unreachable blocks
+    block_compbcount(go, bo);                 // eliminate unreachable blocks
 
     cgcs.start();
 

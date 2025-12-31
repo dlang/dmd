@@ -35,7 +35,6 @@ import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.objc; // for objc.addSymbols
 import dmd.common.outbuffer;
 import dmd.visitor;
 
@@ -101,13 +100,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
     override const(char)* kind() const
     {
         return "attribute";
-    }
-
-    /****************************************
-     */
-    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
-    {
-        objc.addSymbols(this, classes, categories);
     }
 
     override void accept(Visitor v)

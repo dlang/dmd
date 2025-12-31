@@ -83,6 +83,181 @@ import dmd.visitor;
 
 enum LOG = false;
 
+/***************************************
+ * Create a new scope from sc.
+ * semantic, semantic2 and semantic3 will use this for aggregate members.
+ */
+Scope* newScope(AggregateDeclaration _this, Scope* sc)
+{
+    static Scope* defaultNewScope(AggregateDeclaration _this, Scope* sc)
+    {
+        auto sc2 = sc.push(_this);
+        sc2.stc &= STC.flowThruAggregate;
+        sc2.parent = _this;
+        sc2.inunion = _this.isUnionDeclaration();
+        sc2.visibility = Visibility(Visibility.Kind.public_);
+        sc2.explicitVisibility = false;
+        sc2.aligndecl = null;
+        sc2.userAttribDecl = null;
+        sc2.namespace = null;
+        return sc2;
+    }
+
+    static Scope* classNewScope(ClassDeclaration _this, Scope* sc)
+    {
+        auto sc2 = defaultNewScope(_this, sc);
+        if (_this.isCOMclass())
+        {
+            /* This enables us to use COM objects under Linux and
+             * work with things like XPCOM
+             */
+            sc2.linkage = target.systemLinkage();
+        }
+        return sc2;
+    }
+
+    static Scope* interfaceNewScope(InterfaceDeclaration _this, Scope* sc)
+    {
+        auto sc2 = classNewScope(_this, sc);
+        if (_this.com)
+            sc2.linkage = LINK.windows;
+        else if (_this.classKind == ClassKind.cpp)
+            sc2.linkage = LINK.cpp;
+        else if (_this.classKind == ClassKind.objc)
+            sc2.linkage = LINK.objc;
+        return sc2;
+    }
+
+    if (auto _id = _this.isInterfaceDeclaration())
+        return interfaceNewScope(_id, sc);
+    else if (auto cd = _this.isClassDeclaration())
+        return classNewScope(cd, sc);
+    return defaultNewScope(_this, sc);
+}
+
+void addObjcSymbols(Dsymbol _this, ClassDeclarations* classes, ClassDeclarations* categories)
+{
+    if (auto ad = _this.isAttribDeclaration())
+        objc.addSymbols(ad, classes, categories);
+    else if (auto cd = _this.isClassDeclaration())
+        objc.addSymbols(cd, classes, categories);
+}
+
+/************************************
+ * Maybe `ident` was a C or C++ name. Check for that,
+ * and suggest the D equivalent.
+ * Params:
+ *  ident = unknown identifier
+ * Returns:
+ *  D identifier string if found, null if not
+ */
+const(char)* search_correct_C(Identifier ident)
+{
+    import dmd.astenums : Twchar;
+    TOK tok;
+    if (ident == Id.NULL)
+        tok = TOK.null_;
+    else if (ident == Id.TRUE)
+        tok = TOK.true_;
+    else if (ident == Id.FALSE)
+        tok = TOK.false_;
+    else if (ident == Id.unsigned)
+        tok = TOK.uns32;
+    else if (ident == Id.wchar_t)
+        tok = target.c.wchar_tsize == 2 ? TOK.wchar_ : TOK.dchar_;
+    else
+        return null;
+    return Token.toChars(tok);
+}
+
+/******************************
+ * Add symbol s to innermost symbol table.
+ * Params:
+ *  _this = scope object
+ *  s = symbol to insert
+ * Returns:
+ *  null if already in table, `s` if not
+ */
+Dsymbol insert(Scope* _this, Dsymbol s)
+{
+    //printf("insert() %s\n", s.toChars());
+    if (VarDeclaration vd = s.isVarDeclaration())
+    {
+        if (_this.lastVar)
+            vd.lastVar = _this.lastVar;
+        _this.lastVar = vd;
+    }
+    else if (WithScopeSymbol ss = s.isWithScopeSymbol())
+    {
+        if (VarDeclaration vd = ss.withstate.wthis)
+        {
+            if (_this.lastVar)
+                vd.lastVar = _this.lastVar;
+            _this.lastVar = vd;
+        }
+        return null;
+    }
+
+    auto scopesym = _this.inner().scopesym;
+    //printf("\t\tscopesym = %p\n", scopesym);
+    if (!scopesym.symtab)
+        scopesym.symtab = new DsymbolTable();
+    if (!_this.inCfile)
+        return scopesym.symtabInsert(s);
+
+    // ImportC insert
+    if (!scopesym.symtabInsert(s)) // if already in table
+    {
+        Dsymbol s2 = scopesym.symtabLookup(s, s.ident); // s2 is existing entry
+
+        auto svar = s.isVarDeclaration();
+        auto s2var = s2.isVarDeclaration();
+        if (((svar && svar.storage_class & STC.extern_) &&
+                (s2var && s2var.storage_class & STC.extern_) && _this.func) ||
+                s.isFuncDeclaration())
+        {
+            return handleSymbolRedeclarations(*_this, s, s2, scopesym);
+        }
+        else // aside externs and func decls, we should be free to handle tags
+        {
+            return handleTagSymbols(*_this, s, s2, scopesym);
+        }
+    }
+    return s; // inserted
+}
+
+/*******************************************
+ * Look for member of the form:
+ *      const(MemberInfo)[] getMembers(string);
+ * Returns NULL if not found
+ */
+FuncDeclaration findGetMembers(ScopeDsymbol dsym)
+{
+    import dmd.opover : search_function;
+    Dsymbol s = search_function(dsym, Id.getmembers);
+    FuncDeclaration fdx = s ? s.isFuncDeclaration() : null;
+    version (none)
+    {
+        // Finish
+        __gshared TypeFunction tfgetmembers;
+        if (!tfgetmembers)
+        {
+            Scope sc;
+            sc.eSink = global.errorSink;
+            Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
+            auto parameters = new Parameters(p);
+            Type tret = null;
+            TypeFunction tf = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
+            tfgetmembers = tf.dsymbolSemantic(Loc.initial, &sc).isTypeFunction();
+        }
+        if (fdx)
+            fdx = fdx.overloadExactMatch(tfgetmembers);
+    }
+    if (fdx && fdx.isVirtual())
+        fdx = null;
+    return fdx;
+}
+
 /***********************************
  * Retrieve the .min or .max values.
  * Only valid after semantic analysis.
@@ -2553,7 +2728,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         "`void` initializing a struct with an invariant");
                 else if (dsym.type.toBasetype().ty == Tbool)
                     sc.setUnsafePreview(global.params.systemVariables, false, dsym.loc,
-                        "void intializing a bool (which must always be 0 or 1)");
+                        "`void` initializing a `bool` (which must always be 0 or 1)");
                 else if (dsym.type.hasUnsafeBitpatterns())
                     sc.setUnsafePreview(global.params.systemVariables, false, dsym.loc,
                         "`void` initializing a type with unsafe bit patterns");

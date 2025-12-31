@@ -253,7 +253,6 @@ enum
 }
 
 IDXSEC      MAP_SEG2SECIDX(int seg) { return SegData[seg].SDshtidx; }
-extern (D)
 IDXSYM      MAP_SEG2SYMIDX(int seg) { return SegData[seg].SDsymidx; }
 Elf32_Shdr* MAP_SEG2SEC(int seg)    { return &elfobj.SecHdrTab[MAP_SEG2SECIDX(seg)]; }
 int         MAP_SEG2TYP(int seg)    { return MAP_SEG2SEC(seg).sh_flags & SHF_EXECINSTR ? CODE : DATA; }
@@ -2040,7 +2039,7 @@ static if (0)
 }
 }
 
-private extern (D) char* unsstr(uint value)
+private char* unsstr(uint value)
 {
     __gshared char[64] buffer = void;
 
@@ -2057,8 +2056,7 @@ private extern (D) char* unsstr(uint value)
  *      mangled name with terminating 0
  */
 
-private extern (D)
-char[] obj_mangle2(ref Symbol s, char[] dest)
+private char[] obj_mangle2(ref Symbol s, char[] dest)
 {
     //printf("ElfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
     symbol_debug(&s);
@@ -3434,8 +3432,7 @@ static if (TERMCODE)
 }
 +/
 
-private extern (D)
-int elf_align(targ_size_t size,int foffset)
+private int elf_align(targ_size_t size,int foffset)
 {
     if (size <= 1)
         return foffset;

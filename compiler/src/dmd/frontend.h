@@ -50,8 +50,6 @@ class AggregateDeclaration;
 class LabelDsymbol;
 class ClassDeclaration;
 class Package;
-template <typename T>
-struct Array;
 class UnitTestDeclaration;
 class EnumMember;
 class TemplateDeclaration;
@@ -102,6 +100,8 @@ class MixinDeclaration;
 class StaticAssert;
 class StaticIfDeclaration;
 class CAsmDeclaration;
+template <typename T>
+struct Array;
 class DsymbolTable;
 class Type;
 struct MangleOverride;
@@ -615,7 +615,6 @@ public:
     virtual bool needThis();
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
-    virtual void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories);
     virtual void addComment(const char* comment);
     const char* comment();
     void comment(const char* comment);
@@ -2070,7 +2069,6 @@ public:
     static void deinitialize();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
-    virtual bool isScalar();
     virtual bool isScopeClass();
     bool isConst() const;
     bool isImmutable() const;
@@ -2082,12 +2080,8 @@ public:
     bool isSharedWild() const;
     bool isNaked() const;
     Type* nullAttributes() const;
-    bool hasDeprecatedAliasThis();
-    Type* toBasetype();
     virtual ClassDeclaration* isClassHandle();
     virtual int32_t hasWild() const;
-    virtual Type* nextOf();
-    Type* baseElemOf();
     virtual TypeBasic* isTypeBasic();
     TypeFunction* isPtrToFunction();
     TypeFunction* isFunction_Delegate_PtrToFunction();
@@ -2316,7 +2310,6 @@ public:
     virtual Expression* syntaxCopy();
     DYNCAST dyncast() const final override;
     const char* toChars() const final override;
-    virtual bool hasValidType();
     Expression* deref();
     int32_t isConst();
     virtual bool hasCode();
@@ -2810,7 +2803,6 @@ class DotTemplateExp final : public UnaExp
 {
 public:
     TemplateDeclaration* td;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
@@ -2819,7 +2811,6 @@ class DotTemplateInstanceExp final : public UnaExp
 public:
     TemplateInstance* ti;
     DotTemplateInstanceExp* syntaxCopy() override;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3105,7 +3096,6 @@ public:
     TemplateDeclaration* td;
     TOK tok;
     FuncExp* syntaxCopy() override;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3406,7 +3396,6 @@ class ScopeExp final : public Expression
 public:
     ScopeDsymbol* sds;
     ScopeExp* syntaxCopy() override;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3593,7 +3582,6 @@ class TemplateExp final : public Expression
 public:
     TemplateDeclaration* td;
     FuncDeclaration* fd;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3634,7 +3622,6 @@ class TypeExp final : public Expression
 {
 public:
     TypeExp* syntaxCopy() override;
-    bool hasValidType() override;
     void accept(Visitor* v) override;
 };
 
@@ -3717,10 +3704,12 @@ struct AttributeViolation final
     Loc loc;
     FuncDeclaration* fd;
     _d_dynamicArray< const char > action;
+    VarDeclaration* scopeVar;
     AttributeViolation() :
         loc(),
         fd(),
-        action()
+        action(),
+        scopeVar()
     {
     }
 };
@@ -4303,7 +4292,6 @@ public:
     UserAttributeDeclaration* userAttribDecl;
     static Parameter* create(Loc loc, StorageClass storageClass, Type* type, Identifier* ident, Expression* defaultArg, UserAttributeDeclaration* userAttribDecl);
     Parameter* syntaxCopy();
-    Type* isLazyArray();
     bool isLazy() const;
     bool isReference() const;
     DYNCAST dyncast() const override;
@@ -4346,7 +4334,6 @@ class TypeNext : public Type
 public:
     Type* next;
     int32_t hasWild() const final override;
-    Type* nextOf() final override;
     void accept(Visitor* v) override;
 };
 
@@ -4374,7 +4361,6 @@ public:
     uint32_t flags;
     const char* kind() const override;
     TypeBasic* syntaxCopy() override;
-    bool isScalar() override;
     TypeBasic* isTypeBasic() override;
     void accept(Visitor* v) override;
 };
@@ -4425,8 +4411,6 @@ public:
     EnumDeclaration* sym;
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
-    bool isScalar() override;
-    Type* nextOf() override;
     void accept(Visitor* v) override;
 };
 
@@ -4622,7 +4606,6 @@ public:
     static TypePointer* create(Type* t);
     const char* kind() const override;
     TypePointer* syntaxCopy() override;
-    bool isScalar() override;
     void accept(Visitor* v) override;
 };
 
@@ -4733,7 +4716,6 @@ public:
     static TypeVector* create(Type* basetype);
     const char* kind() const override;
     TypeVector* syntaxCopy() override;
-    bool isScalar() override;
     TypeBasic* elementType();
     void accept(Visitor* v) override;
 };
@@ -6174,7 +6156,6 @@ public:
     bool noDefaultCtor;
     bool disableNew;
     Sizeok sizeok;
-    virtual Scope* newScope(Scope* sc);
     bool isDeprecated() const final override;
     bool isNested() const;
     bool isExport() const final override;
@@ -6245,7 +6226,6 @@ class AttribDeclaration : public Dsymbol
 public:
     Array<Dsymbol* >* decl;
     const char* kind() const override;
-    void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
     void accept(Visitor* v) override;
 };
 
@@ -6517,7 +6497,6 @@ public:
     static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass* >* baseclasses, Array<Dsymbol* >* members, bool inObject);
     const char* toPrettyChars(bool qualifyTypes = false) override;
     ClassDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     enum : int32_t { OFFSET_RUNTIME = 1985229328 };
 
     enum : int32_t { OFFSET_FWDREF = 1985229329 };
@@ -6531,7 +6510,6 @@ public:
     virtual bool isCPPinterface() const;
     virtual int32_t vtblOffset() const;
     const char* kind() const override;
-    void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
     Dsymbol* vtblsym;
     void accept(Visitor* v) override;
 };
@@ -6540,7 +6518,6 @@ class InterfaceDeclaration final : public ClassDeclaration
 {
 public:
     InterfaceDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     bool isBaseOf(ClassDeclaration* cd, int32_t* poffset) override;
     const char* kind() const override;
     int32_t vtblOffset() const override;

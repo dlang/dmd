@@ -153,24 +153,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     }
 
     /***************************************
-     * Create a new scope from sc.
-     * semantic, semantic2 and semantic3 will use this for aggregate members.
-     */
-    Scope* newScope(Scope* sc)
-    {
-        auto sc2 = sc.push(this);
-        sc2.stc &= STC.flowThruAggregate;
-        sc2.parent = this;
-        sc2.inunion = isUnionDeclaration();
-        sc2.visibility = Visibility(Visibility.Kind.public_);
-        sc2.explicitVisibility = false;
-        sc2.aligndecl = null;
-        sc2.userAttribDecl = null;
-        sc2.namespace = null;
-        return sc2;
-    }
-
-    /***************************************
      * Returns:
      *      The total number of fields minus the number of hidden fields.
      */

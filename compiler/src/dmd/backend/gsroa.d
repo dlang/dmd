@@ -60,7 +60,7 @@ struct SymInfo
  *      sia = where to put gathered information
  */
 @trusted
-extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[] sia, const(elem)* e)
+private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[] sia, const(elem)* e)
 {
     while (1)
     {
@@ -225,7 +225,7 @@ extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[]
  *      e = expression tree to rewrite in place
  */
 @trusted
-extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[] sia, elem* e)
+private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[] sia, elem* e)
 {
     while (1)
     {

@@ -106,7 +106,6 @@ public:
 
     const char* toChars() const final override;
 
-    virtual bool hasValidType();
     Expression *addressOf();
     Expression *deref();
 
@@ -451,7 +450,6 @@ class TypeExp final : public Expression
 {
 public:
     TypeExp *syntaxCopy() override;
-    bool hasValidType() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -461,7 +459,6 @@ public:
     ScopeDsymbol *sds;
 
     ScopeExp *syntaxCopy() override;
-    bool hasValidType() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -471,7 +468,6 @@ public:
     TemplateDeclaration *td;
     FuncDeclaration *fd;
 
-    bool hasValidType() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -565,7 +561,6 @@ public:
     TOK tok;
 
     FuncExp *syntaxCopy() override;
-    bool hasValidType() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -707,7 +702,6 @@ class DotTemplateExp final : public UnaExp
 public:
     TemplateDeclaration *td;
 
-    bool hasValidType() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -726,7 +720,6 @@ public:
     TemplateInstance *ti;
 
     DotTemplateInstanceExp *syntaxCopy() override;
-    bool hasValidType() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 

@@ -382,8 +382,6 @@ public import dmd.backend.cgelem : swaprel;
 
 //#define EOP(e)  (!OTleaf((e)->Eoper))
 
-extern (D):
-
 immutable ubyte[OPMAX] optab1 =
 () {
     ubyte[OPMAX] tab;

@@ -31,7 +31,7 @@ import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dsymbolsem : apply;
 import dmd.expressionsem : toInteger;
-import dmd.typesem : isIntegral;
+import dmd.typesem;
 import dmd.dstruct;
 import dmd.dtemplate;
 import dmd.func;

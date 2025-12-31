@@ -2943,73 +2943,6 @@ struct ASTBase
             return t;
         }
 
-        final Type addSTC(StorageClass stc)
-        {
-            Type t = this;
-            if (t.isImmutable())
-            {
-            }
-            else if (stc & STC.immutable_)
-            {
-                t = t.makeImmutable();
-            }
-            else
-            {
-                if ((stc & STC.shared_) && !t.isShared())
-                {
-                    if (t.isWild())
-                    {
-                        if (t.isConst())
-                            t = t.makeSharedWildConst();
-                        else
-                            t = t.makeSharedWild();
-                    }
-                    else
-                    {
-                        if (t.isConst())
-                            t = t.makeSharedConst();
-                        else
-                            t = t.makeShared();
-                    }
-                }
-                if ((stc & STC.const_) && !t.isConst())
-                {
-                    if (t.isShared())
-                    {
-                        if (t.isWild())
-                            t = t.makeSharedWildConst();
-                        else
-                            t = t.makeSharedConst();
-                    }
-                    else
-                    {
-                        if (t.isWild())
-                            t = t.makeWildConst();
-                        else
-                            t = t.makeConst();
-                    }
-                }
-                if ((stc & STC.wild) && !t.isWild())
-                {
-                    if (t.isShared())
-                    {
-                        if (t.isConst())
-                            t = t.makeSharedWildConst();
-                        else
-                            t = t.makeSharedWild();
-                    }
-                    else
-                    {
-                        if (t.isConst())
-                            t = t.makeWildConst();
-                        else
-                            t = t.makeWild();
-                    }
-                }
-            }
-            return t;
-        }
-
         Expression toExpression()
         {
             return null;
@@ -6343,7 +6276,7 @@ struct ASTBase
 
     extern (C++) final class ErrorExp : Expression
     {
-        private extern (D) this()
+        extern (D) this()
         {
             super(Loc.initial, EXP.error, __traits(classInstanceSize, ErrorExp));
             type = Type.terror;
@@ -6966,6 +6899,73 @@ struct ASTBase
     {
         extern (C++) __gshared int ptrsize;
         extern (C++) __gshared bool isLP64;
+    }
+
+    static Type addSTC(Type _this, StorageClass stc)
+    {
+        Type t = _this;
+        if (t.isImmutable())
+        {
+        }
+        else if (stc & STC.immutable_)
+        {
+            t = t.makeImmutable();
+        }
+        else
+        {
+            if ((stc & STC.shared_) && !t.isShared())
+            {
+                if (t.isWild())
+                {
+                    if (t.isConst())
+                        t = t.makeSharedWildConst();
+                    else
+                        t = t.makeSharedWild();
+                }
+                else
+                {
+                    if (t.isConst())
+                        t = t.makeSharedConst();
+                    else
+                        t = t.makeShared();
+                }
+            }
+            if ((stc & STC.const_) && !t.isConst())
+            {
+                if (t.isShared())
+                {
+                    if (t.isWild())
+                        t = t.makeSharedWildConst();
+                    else
+                        t = t.makeSharedConst();
+                }
+                else
+                {
+                    if (t.isWild())
+                        t = t.makeWildConst();
+                    else
+                        t = t.makeConst();
+                }
+            }
+            if ((stc & STC.wild) && !t.isWild())
+            {
+                if (t.isShared())
+                {
+                    if (t.isConst())
+                        t = t.makeSharedWildConst();
+                    else
+                        t = t.makeSharedWild();
+                }
+                else
+                {
+                    if (t.isConst())
+                        t = t.makeWildConst();
+                    else
+                        t = t.makeWild();
+                }
+            }
+        }
+        return t;
     }
 }
 

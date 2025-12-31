@@ -40,7 +40,7 @@ import dmd.rootobject : RootObject, DYNCAST;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
-import dmd.typesem : unqualify;
+import dmd.typesem : unqualify, toBasetype;
 import dmd.visitor;
 import dmd.visitor.postorder;
 

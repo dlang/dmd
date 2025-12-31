@@ -350,10 +350,40 @@ void testRvalueRefReturn()
 class Test22157
 {
     override string toString()
-	{
+    {
         auto e = { return cast() super; } ();
         return null;
     }
+}
+
+/************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22089
+
+struct S22089
+{
+    @disable this(ref return scope typeof(this) rhs);
+    @disable this(this);
+    void* cons;
+    this(int i)
+    {
+        cons = cast(void*)&this;
+    }
+    void start()
+    {
+        void* s = cast(void*)&this;
+        assert(cons == s);
+    }
+}
+
+auto fun22089()
+{
+    return S22089(42);
+}
+
+void test22089()
+{
+    auto op = fun22089();
+    op.start();
 }
 
 /************************************/
@@ -363,4 +393,5 @@ void main()
     testValueReturn();
     testRefReturn();
     testRvalueRefReturn();
+    test22089();
 }

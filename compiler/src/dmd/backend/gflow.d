@@ -17,6 +17,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.cc;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.global;
@@ -94,9 +95,9 @@ private __gshared
  */
 
 @trusted
-void flowrd(ref GlobalOptimizer go)
+void flowrd(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    rdgenkill(go);            /* Compute Bgen and Bkill for RDs       */
+    rdgenkill(go, bo);        /* Compute Bgen and Bkill for RDs       */
     if (go.defnod.length == 0)     /* if no definition elems               */
         return;             /* no analysis to be done               */
 
@@ -155,7 +156,7 @@ void flowrd(ref GlobalOptimizer go)
  */
 
 @trusted
-private void rdgenkill(ref GlobalOptimizer go)
+private void rdgenkill(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     /* Compute number of definition elems. */
     uint num_unambig_def = 0;
@@ -509,10 +510,10 @@ private void accumrd(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem* n,uint d
  */
 
 @trusted
-void flowae(ref GlobalOptimizer go)
+void flowae(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     flowxx = AE;
-    flowaecp(go, AE);
+    flowaecp(go, bo, AE);
 }
 
 /**************************** COPY PROPAGATION ************************/
@@ -527,10 +528,10 @@ void flowae(ref GlobalOptimizer go)
  */
 
 @trusted
-void flowcp(ref GlobalOptimizer go)
+void flowcp(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     flowxx = CP;
-    flowaecp(go, CP);
+    flowaecp(go, bo, CP);
 }
 
 /*****************************************
@@ -541,9 +542,9 @@ void flowcp(ref GlobalOptimizer go)
  */
 
 @trusted
-private void flowaecp(ref GlobalOptimizer go, int flowxx)
+private void flowaecp(ref GlobalOptimizer go, ref BlockOpt bo, int flowxx)
 {
-    aecpgenkill(go, flowxx);   // Compute Bgen and Bkill for AEs or CPs
+    aecpgenkill(go, bo, flowxx);   // Compute Bgen and Bkill for AEs or CPs
     if (go.exptop <= 1)        /* if no expressions                    */
         return;
 
@@ -671,7 +672,7 @@ private void flowaecp(ref GlobalOptimizer go, int flowxx)
  */
 
 @trusted
-private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
+private void aecpgenkill(ref GlobalOptimizer go, ref BlockOpt bo, int flowxx)
 {
     block* this_block;
 
@@ -1022,7 +1023,7 @@ private void defstarkill(ref GlobalOptimizer go)
  */
 
 @trusted
-void genkillae(ref GlobalOptimizer go)
+void genkillae(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     flowxx = AE;
     assert(go.exptop > 1);
@@ -1334,9 +1335,9 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
  */
 
 @trusted
-void flowlv()
+void flowlv(ref BlockOpt bo)
 {
-    lvgenkill();            /* compute Bgen and Bkill for LVs.      */
+    lvgenkill(bo);            /* compute Bgen and Bkill for LVs.      */
     //assert(globsym.length);  /* should be at least some symbols      */
 
     /* Create a vector of all the variables that are live on exit   */
@@ -1423,7 +1424,7 @@ void flowlv()
  */
 
 @trusted
-private void lvgenkill()
+private void lvgenkill(ref BlockOpt bo)
 {
     /* Compute ambigsym, a vector of all variables that could be    */
     /* referenced by a* e or a call.                                */
@@ -1672,10 +1673,10 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
  */
 
 @trusted
-void flowvbe(ref GlobalOptimizer go)
+void flowvbe(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     flowxx = VBE;
-    aecpgenkill(go, VBE);   // compute Bgen and Bkill for VBEs
+    aecpgenkill(go, bo, VBE);   // compute Bgen and Bkill for VBEs
     if (go.exptop <= 1)     /* if no candidates for VBEs            */
         return;
 

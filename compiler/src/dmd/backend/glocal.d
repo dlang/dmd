@@ -20,6 +20,7 @@ import core.stdc.string;
 import core.stdc.time;
 
 import dmd.backend.cc;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.global;
@@ -73,7 +74,7 @@ struct loc_t
 // temporary generation and register usage.
 
 @trusted
-void localize(ref GlobalOptimizer go)
+void localize(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     if (debugc) printf("localize()\n");
 

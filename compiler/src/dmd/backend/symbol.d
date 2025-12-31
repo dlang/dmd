@@ -30,6 +30,7 @@ import dmd.backend.oper;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.var : bo;
 
 
 nothrow:
@@ -499,7 +500,7 @@ debug
                 func_t* f = s.Sfunc;
 
                 debug assert(f);
-                blocklist_free(&f.Fstartblock);
+                blocklist_free(bo, &f.Fstartblock);
                 freesymtab(f.Flocsym[].ptr,0,f.Flocsym.length);
 
                 f.Flocsym.dtor();
