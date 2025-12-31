@@ -85,7 +85,6 @@ bool isVirtualMethod(FuncDeclaration _this)
     return true;
 }
 
-
 /***********************************************
  * Determine if function's variables are referenced by a function
  * nested within it.
