@@ -13,8 +13,8 @@ fail_compilation/ufcs.d(40):        Candidate is: `templateF()()`
 fail_compilation/ufcs.d(33): Error: no property `templateO` for `s` of type `S`
 fail_compilation/ufcs.d(33):        the following error occured while looking for a UFCS match
 fail_compilation/ufcs.d(33): Error: none of the overloads of template `ufcs.templateO` are callable using argument types `!()(S)`
-fail_compilation/ufcs.d(42):        Candidates are: `templateO()(int x)`
-fail_compilation/ufcs.d(43):                        `templateO()(float y)`
+fail_compilation/ufcs.d(42):        Candidate 1 is: `templateO()(int x)`
+fail_compilation/ufcs.d(43):        Candidate 2 is: `templateO()(float y)`
 fail_compilation/ufcs.d(36): Error: no property `local` for `s` of type `ufcs.S`
 fail_compilation/ufcs.d(35):        cannot call function `local` with UFCS because it is not declared at module scope
 fail_compilation/ufcs.d(26):        struct `S` defined here

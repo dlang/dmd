@@ -2,8 +2,8 @@
 TEST_OUTPUT:
 ---
 fail_compilation/diag10415.d(36): Error: none of the overloads of `x` are callable using argument types `(int) const`
-fail_compilation/diag10415.d(13):        Candidates are: `diag10415.C.x() const`
-fail_compilation/diag10415.d(18):                        `diag10415.C.x(int __param_0)`
+fail_compilation/diag10415.d(13):        Candidate 1 is: `diag10415.C.x() const`
+fail_compilation/diag10415.d(18):        Candidate 2 is: `diag10415.C.x(int __param_0)`
 fail_compilation/diag10415.d(39): Error: d.x is not an lvalue
 ---
 */
