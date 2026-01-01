@@ -7,7 +7,7 @@ fail_compilation/pragmamangle1.d(44): Error: `pragma(mangle)` must be attached t
 fail_compilation/pragmamangle1.d(46): Error: `pragma(mangle)` must be attached to a declaration
 fail_compilation/pragmamangle1.d(53): Error: `pragma(mangle)` expects string literal argument for mangled name
 fail_compilation/pragmamangle1.d(56): Error: `pragma(mangle)` zero-length string not allowed for mangled name
-fail_compilation/pragmamangle1.d(59): Error: pragma(mangle)` expects 1 or 2 arguments
+fail_compilation/pragmamangle1.d(59): Error: `pragma(mangle)` expects 1 or 2 arguments
 fail_compilation/pragmamangle1.d(62): Error: `pragma(mangle)` cannot apply to a template declaration
 fail_compilation/pragmamangle1.d(62):        use `template cannot_apply(Args...) { pragma(mangle, "template") ... }`
 fail_compilation/pragmamangle1.d(65): Error: `pragma(mangle)` takes a single argument that must be a string literal
