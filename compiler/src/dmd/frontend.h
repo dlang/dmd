@@ -2859,7 +2859,7 @@ public:
     void accept(Visitor* v) override;
 };
 
-enum class TOK : uint8_t
+enum class TOK : uint16_t
 {
     reserved = 0u,
     leftParenthesis = 1u,
@@ -3087,7 +3087,8 @@ enum class TOK : uint8_t
     __thread_ = 223u,
     __pragma_ = 224u,
     __int128_ = 225u,
-    __attribute___ = 226u,
+    float16 = 226u,
+    __attribute___ = 227u,
 };
 
 class FuncExp final : public Expression
