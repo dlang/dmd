@@ -3,7 +3,7 @@ EXTRA_FILES: imports/constraints.d
 REQUIRED_ARGS: -verrors=context
 TEST_OUTPUT:
 ----
-fail_compilation/constraints_func3.d(87): Error: none of the overloads of template `imports.constraints.overload` are callable using argument types `!()(int)`
+fail_compilation/constraints_func4.d(87): Error: none of the overloads of template `imports.constraints.overload` are callable using argument types `!()(int)`
 fail_compilation/imports/constraints.d(39):        Candidate 1 is: `overload(T)(T v)`
   with `T = int`
   must satisfy the following constraint:
@@ -14,7 +14,7 @@ fail_compilation/imports/constraints.d(40):        Candidate 2 is: `overload(T)(
 `       !P!T`
 fail_compilation/imports/constraints.d(41):        Candidate 3 is: `overload(T)(T v1, T v2)`
 fail_compilation/imports/constraints.d(42):        Candidate 4 is: `overload(T, V)(T v1, V v2)`
-fail_compilation/constraints_func3.d(88): Error: none of the overloads of template `imports.constraints.overload` are callable using argument types `!()(int, string)`
+fail_compilation/constraints_func4.d(88): Error: none of the overloads of template `imports.constraints.overload` are callable using argument types `!()(int, string)`
 fail_compilation/imports/constraints.d(39):        Candidate 1 is: `overload(T)(T v)`
 fail_compilation/imports/constraints.d(40):        Candidate 2 is: `overload(T)(T v)`
 fail_compilation/imports/constraints.d(41):        Candidate 3 is: `overload(T)(T v1, T v2)`
@@ -24,21 +24,21 @@ fail_compilation/imports/constraints.d(42):        Candidate 4 is: `overload(T, 
   must satisfy one of the following constraints:
 `       N!T
        N!V`
-fail_compilation/constraints_func3.d(90): Error: template `variadic` is not callable using argument types `!()()`
+fail_compilation/constraints_func4.d(90): Error: template `variadic` is not callable using argument types `!()()`
 fail_compilation/imports/constraints.d(43):        Candidate is: `variadic(A, T...)(A a, T v)`
-fail_compilation/constraints_func3.d(91): Error: template `variadic` is not callable using argument types `!()(int)`
+fail_compilation/constraints_func4.d(91): Error: template `variadic` is not callable using argument types `!()(int)`
 fail_compilation/imports/constraints.d(43):        Candidate is: `variadic(A, T...)(A a, T v)`
   with `A = int,
        T = ()`
   must satisfy the following constraint:
 `       N!int`
-fail_compilation/constraints_func3.d(92): Error: template `variadic` is not callable using argument types `!()(int, int)`
+fail_compilation/constraints_func4.d(92): Error: template `variadic` is not callable using argument types `!()(int, int)`
 fail_compilation/imports/constraints.d(43):        Candidate is: `variadic(A, T...)(A a, T v)`
   with `A = int,
        T = (int)`
   must satisfy the following constraint:
 `       N!int`
-fail_compilation/constraints_func3.d(93): Error: template `variadic` is not callable using argument types `!()(int, int, int)`
+fail_compilation/constraints_func4.d(93): Error: template `variadic` is not callable using argument types `!()(int, int, int)`
 fail_compilation/imports/constraints.d(43):        Candidate is: `variadic(A, T...)(A a, T v)`
   with `A = int,
        T = (int, int)`
