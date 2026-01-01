@@ -198,7 +198,6 @@ enum TY : ubyte
     Tint64,
 
     Tuns64,
-    Tfloat16,
     Tfloat32,
     Tfloat64,
     Tfloat80,
@@ -222,6 +221,7 @@ enum TY : ubyte
 
     Tnull,
     Tvector,
+    Tfloat16,
     Tint128,
     Tuns128,
     Ttraits,

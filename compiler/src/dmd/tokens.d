@@ -595,8 +595,8 @@ private immutable TOK[] keywords =
     TOK.__thread,
     TOK.__pragma,
     TOK.__int128,
-    TOK.__attribute__,
     TOK.float16,
+    TOK.__attribute__,
 ];
 
 // Initialize the identifier pool
