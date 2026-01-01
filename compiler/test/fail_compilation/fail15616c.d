@@ -11,17 +11,12 @@ fail_compilation/fail15616c.d(35):        Candidate 5 is: `fail15616c.foo(string
 fail_compilation/fail15616c.d(38):        Candidate 6 is: `fail15616c.foo(string a, string b, string c)`
 fail_compilation/fail15616c.d(23):        Candidate 7 is: `foo(T)(T a)`
   with `T = double`
-  whose parameters have the following constraints:
-  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-`  > is(T == float)
-`  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
+  must satisfy the following constraint:
+`       is(T == float)`
 fail_compilation/fail15616c.d(26):        Candidate 8 is: `foo(T)(T a)`
   with `T = double`
-  whose parameters have the following constraints:
-  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-`  > is(T == char)
-`  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-  Tip: not satisfied constraints are marked with `>`
+  must satisfy the following constraint:
+`       is(T == char)`
 ---
 */
 

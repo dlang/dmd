@@ -5,23 +5,7 @@ TEST_OUTPUT:
 fail_compilation/fail15616d.d(44): Error: none of the overloads of `foo` are callable using argument types `(double)`
 fail_compilation/fail15616d.d(17):        Candidate 1 is: `fail15616d.foo(int a)`
 fail_compilation/fail15616d.d(20):        Candidate 2 is: `fail15616d.foo(int a, int b)`
-fail_compilation/fail15616d.d(29):        Candidate 3 is: `fail15616d.foo(int a, int b, int c)`
-fail_compilation/fail15616d.d(32):        Candidate 4 is: `fail15616d.foo(string a)`
-fail_compilation/fail15616d.d(35):        Candidate 5 is: `fail15616d.foo(string a, string b)`
-fail_compilation/fail15616d.d(38):        Candidate 6 is: `fail15616d.foo(string a, string b, string c)`
-fail_compilation/fail15616d.d(23):        Candidate 7 is: `foo(T)(T a)`
-  with `T = double`
-  whose parameters have the following constraints:
-  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-`  > is(T == float)
-`  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-fail_compilation/fail15616d.d(26):        Candidate 8 is: `foo(T)(T a)`
-  with `T = double`
-  whose parameters have the following constraints:
-  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-`  > is(T == char)
-`  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-  Tip: not satisfied constraints are marked with `>`
+fail_compilation/fail15616d.d(44):        ... (6 more, -v to show) ...
 ---
 */
 
