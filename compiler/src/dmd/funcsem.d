@@ -2082,18 +2082,18 @@ private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecate
             }
             static char[64] tmp; // Buffer to store digits of the number
             int idx = 0 ; // index for tmp buffer
-            int copy = printed + 1; // Stores the candidate number that will be displayed 
+            int copy = printed + 1; // Stores the candidate number that will be displayed
             // store the reversed number
             while(copy)
             {
                 tmp[idx++] = cast(char)('0' + copy%10);
-                copy /= 10;                
+                copy /= 10;   
             }
             tmp[idx] = '\0';
             // in place reversal of digits
             for(int end = idx-1 ; end>=0 ;end--)
             {
-                buf[pos++] = tmp[end];            
+                buf[pos++] = tmp[end];         
             }
             // Suffix of the message
             enum suffix = " is: ";
