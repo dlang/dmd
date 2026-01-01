@@ -687,7 +687,7 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
     }
     if (args.length > 2)
     {
-        error(loc, "pragma(mangle)` expects 1 or 2 arguments");
+        error(loc, "`pragma(mangle)` expects 1 or 2 arguments");
         return false;
     }
 
