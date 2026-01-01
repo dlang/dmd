@@ -32,7 +32,7 @@ class Identifier;
         ?       &&      ||
  */
 
-enum class TOK : unsigned char
+enum class TOK : unsigned short // accomodate room for float16 addition
 {
     reserved,
 

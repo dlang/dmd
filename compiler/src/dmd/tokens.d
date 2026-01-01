@@ -23,7 +23,7 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.utf;
 
-enum TOK : ubyte
+enum TOK : ushort
 {
     reserved,
 
