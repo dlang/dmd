@@ -2087,13 +2087,13 @@ private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecate
             while(copy)
             {
                 tmp[idx++] = cast(char)('0' + copy%10);
-                copy /= 10;   
+                copy /= 10;
             }
             tmp[idx] = '\0';
             // in place reversal of digits
             for(int end = idx-1 ; end>=0 ;end--)
             {
-                buf[pos++] = tmp[end];         
+                buf[pos++] = tmp[end];
             }
             // Suffix of the message
             enum suffix = " is: ";
