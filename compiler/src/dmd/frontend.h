@@ -3087,8 +3087,7 @@ enum class TOK : uint16_t
     __thread_ = 223u,
     __pragma_ = 224u,
     __int128_ = 225u,
-    float16 = 226u,
-    __attribute___ = 227u,
+    __attribute___ = 226u,
 };
 
 class FuncExp final : public Expression
