@@ -10,13 +10,13 @@ fail_compilation/fail15616b.d(29):        Candidate 3 is: `fail15616b.foo(int a,
 fail_compilation/fail15616b.d(32):        Candidate 4 is: `fail15616b.foo(string a)`
 fail_compilation/fail15616b.d(35):        Candidate 5 is: `fail15616b.foo(string a, string b)`
 fail_compilation/fail15616b.d(38):        Candidate 6 is: `fail15616b.foo(string a, string b, string c)`
-fail_compilation/fail15616b.d(44):        ... (2 more, -v to show) ...
+fail_compilation/fail15616b.d(23):        Candidate 7 is: `foo(T)(T a)`
   with `T = double`
   whose parameters have the following constraints:
   `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
 `  > is(T == float)
 `  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-fail_compilation/fail15616b.d(26):                        `foo(T)(T a)`
+fail_compilation/fail15616b.d(26):        Candidate 8 is: `foo(T)(T a)`
   with `T = double`
   whose parameters have the following constraints:
   `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`

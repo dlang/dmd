@@ -3,7 +3,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/diag11078.d(19): Error: none of the overloads of `value` are callable using argument types `(double)`
 fail_compilation/diag11078.d(12):        Candidate 1 is: `diag11078.S1.value()`
-fail_compilation/diag11078.d(13):        Candidate 2 is: `diag11078.S1.value(int n)
+fail_compilation/diag11078.d(13):        Candidate 2 is: `diag11078.S1.value(int n)`
 ---
 */
 
