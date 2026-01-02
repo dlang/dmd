@@ -653,18 +653,6 @@ extern (C++) class FuncDeclaration : Declaration
         return (cd !is null) && (cd.storage_class & STC.final_);
     }
 
-    bool addPreInvariant()
-    {
-        auto ad = isThis();
-        return (ad && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked);
-    }
-
-    bool addPostInvariant()
-    {
-        auto ad = isThis();
-        return (ad && ad.inv && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked);
-    }
-
     override const(char)* kind() const
     {
         return this.isGenerated ? "generated function" : "function";
@@ -867,16 +855,6 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         return tok == TOK.delegate_ ? super.isThis() : null;
     }
 
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return false;
-    }
-
     override const(char)* kind() const
     {
         // GCC requires the (char*) casts
@@ -926,16 +904,6 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
              isMoveCtor ? "move constructor" : "constructor";
     }
 
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -958,16 +926,6 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
         auto dd = new PostBlitDeclaration(loc, endloc, storage_class, ident);
         FuncDeclaration.syntaxCopy(dd);
         return dd;
-    }
-
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
     }
 
     override void accept(Visitor v)
@@ -1005,16 +963,6 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
         return "destructor";
     }
 
-    override bool addPreInvariant()
-    {
-        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
-    }
-
-    override bool addPostInvariant()
-    {
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1048,16 +996,6 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
     override final inout(AggregateDeclaration) isThis() inout @nogc nothrow pure @safe
     {
         return null;
-    }
-
-    override final bool addPreInvariant() @nogc nothrow pure @safe
-    {
-        return false;
-    }
-
-    override final bool addPostInvariant() @nogc nothrow pure @safe
-    {
-        return false;
     }
 
     override void accept(Visitor v)
@@ -1124,16 +1062,6 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
         return null;
     }
 
-    override final bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override final bool addPostInvariant()
-    {
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1184,16 +1112,6 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
         return id;
     }
 
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1239,16 +1157,6 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         return null;
     }
 
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1276,16 +1184,6 @@ extern (C++) final class NewDeclaration : FuncDeclaration
     override const(char)* kind() const
     {
         return "allocator";
-    }
-
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return false;
     }
 
     override void accept(Visitor v)
