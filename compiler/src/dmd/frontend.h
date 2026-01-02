@@ -3919,7 +3919,6 @@ public:
     virtual bool isNested() const;
     AggregateDeclaration* isThis() override;
     bool needThis() final override;
-    virtual bool isVirtual() const;
     bool isFinalFunc() const;
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
@@ -3936,7 +3935,6 @@ public:
     bool isMoveCtor;
     CtorDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
     void accept(Visitor* v) override;
@@ -3947,7 +3945,6 @@ class DtorDeclaration final : public FuncDeclaration
 public:
     DtorDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
     void accept(Visitor* v) override;
@@ -3972,7 +3969,6 @@ public:
     FuncLiteralDeclaration* syntaxCopy(Dsymbol* s) override;
     bool isNested() const override;
     AggregateDeclaration* isThis() override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
     const char* kind() const override;
@@ -3984,7 +3980,6 @@ class InvariantDeclaration final : public FuncDeclaration
 {
 public:
     InvariantDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
     void accept(Visitor* v) override;
@@ -3995,7 +3990,6 @@ class NewDeclaration final : public FuncDeclaration
 public:
     NewDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
     void accept(Visitor* v) override;
@@ -4049,7 +4043,6 @@ class PostBlitDeclaration final : public FuncDeclaration
 {
 public:
     PostBlitDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
     void accept(Visitor* v) override;
@@ -4060,7 +4053,6 @@ class StaticCtorDeclaration : public FuncDeclaration
 public:
     StaticCtorDeclaration* syntaxCopy(Dsymbol* s) override;
     AggregateDeclaration* isThis() final override;
-    bool isVirtual() const final override;
     bool addPreInvariant() final override;
     bool addPostInvariant() final override;
     void accept(Visitor* v) override;
@@ -4080,7 +4072,6 @@ public:
     VarDeclaration* vgate;
     StaticDtorDeclaration* syntaxCopy(Dsymbol* s) override;
     AggregateDeclaration* isThis() final override;
-    bool isVirtual() const final override;
     bool addPreInvariant() final override;
     bool addPostInvariant() final override;
     void accept(Visitor* v) override;
@@ -4100,7 +4091,6 @@ public:
     Array<FuncDeclaration* > deferredNested;
     UnitTestDeclaration* syntaxCopy(Dsymbol* s) override;
     AggregateDeclaration* isThis() override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
     void accept(Visitor* v) override;

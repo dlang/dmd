@@ -45,6 +45,7 @@ namespace dmd
     bool equals(const Dsymbol * const ds, const Dsymbol * const s);
     bool hasNestedFrameRefs(FuncDeclaration *fd);
     bool isVirtualMethod(FuncDeclaration *fd);
+    bool isVirtual(const FuncDeclaration *fd);
 }
 
 //enum STC : ulong from astenums.d:
@@ -716,7 +717,7 @@ public:
     virtual bool isNested() const;
     AggregateDeclaration *isThis() override;
     bool needThis() override final;
-    virtual bool isVirtual() const;
+    bool isVirtual() const { return dmd::isVirtual(this); };
     bool isFinalFunc() const;
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
@@ -751,7 +752,6 @@ public:
     FuncLiteralDeclaration *syntaxCopy(Dsymbol *) override;
     bool isNested() const override;
     AggregateDeclaration *isThis() override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
@@ -767,7 +767,6 @@ public:
     d_bool isMoveCtor;
     CtorDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
@@ -778,7 +777,6 @@ class PostBlitDeclaration final : public FuncDeclaration
 {
 public:
     PostBlitDeclaration *syntaxCopy(Dsymbol *) override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
@@ -790,7 +788,6 @@ class DtorDeclaration final : public FuncDeclaration
 public:
     DtorDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
@@ -802,7 +799,6 @@ class StaticCtorDeclaration : public FuncDeclaration
 public:
     StaticCtorDeclaration *syntaxCopy(Dsymbol *) override;
     AggregateDeclaration *isThis() override final;
-    bool isVirtual() const override final;
     bool addPreInvariant() override final;
     bool addPostInvariant() override final;
 
@@ -825,7 +821,6 @@ public:
 
     StaticDtorDeclaration *syntaxCopy(Dsymbol *) override;
     AggregateDeclaration *isThis() override final;
-    bool isVirtual() const override final;
     bool addPreInvariant() override final;
     bool addPostInvariant() override final;
 
@@ -844,7 +839,6 @@ class InvariantDeclaration final : public FuncDeclaration
 {
 public:
     InvariantDeclaration *syntaxCopy(Dsymbol *) override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
@@ -861,7 +855,6 @@ public:
 
     UnitTestDeclaration *syntaxCopy(Dsymbol *) override;
     AggregateDeclaration *isThis() override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
@@ -873,7 +866,6 @@ class NewDeclaration final : public FuncDeclaration
 public:
     NewDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
-    bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
