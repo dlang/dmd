@@ -529,6 +529,18 @@ bool needsClosure(FuncDeclaration fd)
     return dmd.funcsem.needsClosure(fd);
 }
 
+bool hasNestedFrameRefs(FuncDeclaration fd)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.hasNestedFrameRefs(fd);
+}
+
+bool isVirtualMethod(FuncDeclaration fd)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.isVirtualMethod(fd);
+}
+
 /***********************************************************
  * hdrgen.d
  */

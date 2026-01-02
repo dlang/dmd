@@ -170,6 +170,7 @@ public:
     static StructDeclaration *create(Loc loc, Identifier *id, bool inObject);
     StructDeclaration *syntaxCopy(Dsymbol *s) override;
     const char *kind() const override;
+    bool hasCopyConstruction();
     bool zeroInit() const;          // !=0 if initialize with 0 fill
     bool zeroInit(bool v);
     bool hasIdentityAssign() const; // true if has identity opAssign

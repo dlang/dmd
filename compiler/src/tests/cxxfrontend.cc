@@ -78,7 +78,7 @@ static void frontend_init()
     target.cpu = CPU::native;
     target._init(global.params);
 
-    dmd::Type_init();
+    Type::_init();
     Id::initialize();
     Module::_init();
     Expression::_init();
@@ -956,7 +956,7 @@ public:
     {
         s->getRelatedLabeled()->accept(this);
         s->condition->accept(this);
-        Type *condtype = dmd::baseElemOf(s->condition->type);
+        Type *condtype = s->condition->type->toBasetype();
         if (!dmd::isScalar(condtype))
             assert(0);
         if (s->cases)
@@ -1002,11 +1002,11 @@ public:
     }
     void visit(ReturnStatement *s) override
     {
-        if (s->exp == NULL || dmd::toBasetype(s->exp->type)->ty == TY::Tvoid)
+        if (s->exp == NULL || s->exp->type->toBasetype()->ty == TY::Tvoid)
             return;
         TypeFunction *tf = func->type->toTypeFunction();
-        Type *type = func->tintro != NULL ? dmd::nextOf(func->tintro) : dmd::nextOf(tf);
-        if ((func->isMain() || func->isCMain()) && dmd::toBasetype(type)->ty == TY::Tvoid)
+        Type *type = func->tintro != NULL ? func->tintro->nextOf() : tf->nextOf();
+        if ((func->isMain() || func->isCMain()) && type->toBasetype()->ty == TY::Tvoid)
             type = Type::tint32;
         if (func->shidden)
         {
@@ -1037,7 +1037,7 @@ public:
                 sle = s->exp->isStructLiteralExp();
             if (sle != NULL)
             {
-                dmd::baseElemOf(type)->isTypeStruct()->sym->accept(this);
+                type->baseElemOf()->isTypeStruct()->sym->accept(this);
                 sle->sym = (Symbol*)func->shidden;
             }
             s->exp->accept(this);
@@ -1093,7 +1093,7 @@ public:
     }
     void visit(ThrowStatement *s) override
     {
-        dmd::toBasetype(s->exp->type)->isClassHandle()->accept(this);
+        s->exp->type->toBasetype()->isClassHandle()->accept(this);
         s->exp->accept(this);
     }
     void visit(TryCatchStatement *s) override
@@ -1254,9 +1254,9 @@ public:
     {
         if (!func || !func->isAuto())
             return;
-        Type *tb = dmd::baseElemOf(dmd::nextOf(func->type));
+        Type *tb = func->type->nextOf()->baseElemOf();
         while (tb->ty == TY::Tarray || tb->ty == TY::Tpointer)
-            tb = dmd::baseElemOf(dmd::nextOf(tb));
+            tb = tb->nextOf()->baseElemOf();
         TemplateInstance *ti = NULL;
         if (tb->ty == TY::Tstruct)
             ti = tb->isTypeStruct()->sym->isInstantiated();
@@ -1481,7 +1481,7 @@ public:
             (void)fd->isGenerated();
             (void)fd->ident;
             (void)fd->storage_class;
-            (void)dmd::nextOf(fd->type)->isTypeNoreturn();
+            (void)fd->type->nextOf()->isTypeNoreturn();
         }
         else
         {
@@ -1771,6 +1771,7 @@ void expression_h(Expression *e, Scope *sc, Type *t, Loc loc, Expressions *es)
     dmd::ctfeInterpret(e);
     dmd::expandTuples(es);
     dmd::optimize(e, 0);
+    dmd::isLvalue(e);
 }
 
 void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,

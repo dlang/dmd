@@ -35,6 +35,7 @@ import dmd.typesem;
 import dmd.dstruct;
 import dmd.dtemplate;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.id;
 import dmd.mtype;

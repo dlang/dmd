@@ -3391,7 +3391,7 @@ void longcmp(ref CodeBuilder cdb, elem* e, bool jcond, FL fltarg, code* targ)
     OPld_d
  */
 @trusted
-void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
+void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     if (cg.AArch64)
     {
@@ -3454,9 +3454,20 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             case OPd_f:
                 if (tycomplex(e.E1.Ety))
                     goto Lcomplex;
-                if (config.fpxmmregs && pretregs & XMMREGS)
+
+                if (config.fpxmmregs && (pretregs & XMMREGS))
                 {
-                    xmmcnvt(cdb, e, pretregs);
+                    if (e.E1.Eoper == OPld_d)
+                    {
+                        // avoid double rounding for: (real -> double) -> float
+                        regm_t retregsx = mST0 | (pretregs & mPSW);
+                        codelem(cgstate, cdb, e.E1.E1, retregsx, false);
+                        fixresult87(cdb, e, retregsx, pretregs);
+                    }
+                    else
+                    {
+                        xmmcnvt(cdb, e, pretregs);
+                    }
                     return;
                 }
 

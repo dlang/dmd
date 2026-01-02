@@ -61,7 +61,7 @@ namespace dmd
     Expression *optimize(Expression *exp, int result, bool keepLvalue = false);
     bool isIdentical(const Expression *exp, const Expression *e);
     bool equals(const Expression *exp, const Expression *e);
-    bool isLvalue(const Expression *exp);
+    bool isLvalue(Expression *exp);
     int32_t getFieldIndex(ClassReferenceExp *cre, Type *fieldtype, uint32_t fieldoffset);
     void fillTupleExpExps(TupleExp *te, TupleDeclaration *tup);
     Optional<bool> toBool(Expression *exp);

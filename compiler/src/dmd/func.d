@@ -631,23 +631,6 @@ extern (C++) class FuncDeclaration : Declaration
         return toAliasFunc().isThis() !is null;
     }
 
-    // Determine if a function is pedantically virtual
-    final bool isVirtualMethod()
-    {
-        if (toAliasFunc() != this)
-            return toAliasFunc().isVirtualMethod();
-
-        //printf("FuncDeclaration::isVirtualMethod() %s\n", toChars());
-        if (!isVirtual())
-            return false;
-        // If it's a final method, and does not override anything, then it is not virtual
-        if (isFinalFunc() && foverrides.length == 0)
-        {
-            return false;
-        }
-        return true;
-    }
-
     // Determine if function goes into virtual function pointer table
     bool isVirtual() const
     {
@@ -708,38 +691,6 @@ extern (C++) class FuncDeclaration : Declaration
     override const(char)* kind() const
     {
         return this.isGenerated ? "generated function" : "function";
-    }
-
-    /***********************************************
-     * Determine if function's variables are referenced by a function
-     * nested within it.
-     */
-    final bool hasNestedFrameRefs()
-    {
-        if (closureVars.length)
-            return true;
-
-        /* If a virtual function has contracts, assume its variables are referenced
-         * by those contracts, even if they aren't. Because they might be referenced
-         * by the overridden or overriding function's contracts.
-         * This can happen because frequire and fensure are implemented as nested functions,
-         * and they can be called directly by an overriding function and the overriding function's
-         * context had better match, or
-         * https://issues.dlang.org/show_bug.cgi?id=7335 will bite.
-         */
-        if (fdrequire || fdensure)
-            return true;
-
-        if (foverrides.length && isVirtualMethod())
-        {
-            for (size_t i = 0; i < foverrides.length; i++)
-            {
-                FuncDeclaration fdv = foverrides[i];
-                if (fdv.hasNestedFrameRefs())
-                    return true;
-            }
-        }
-        return false;
     }
 
     /*********************************************

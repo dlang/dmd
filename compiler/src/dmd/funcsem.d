@@ -67,6 +67,55 @@ import dmd.typesem;
 import dmd.visitor;
 import dmd.visitor.statement_rewrite_walker;
 
+// Determine if a function is pedantically virtual
+bool isVirtualMethod(FuncDeclaration _this)
+{
+    if (_this.toAliasFunc() != _this)
+        return _this.toAliasFunc().isVirtualMethod();
+
+    //printf("FuncDeclaration::isVirtualMethod() %s\n", toChars());
+    if (!_this.isVirtual())
+        return false;
+
+    // If it's a final method, and does not override anything, then it is not virtual
+    if (_this.isFinalFunc() && _this.foverrides.length == 0)
+    {
+        return false;
+    }
+    return true;
+}
+
+/***********************************************
+ * Determine if function's variables are referenced by a function
+ * nested within it.
+ */
+bool hasNestedFrameRefs(FuncDeclaration _this)
+{
+    if (_this.closureVars.length)
+        return true;
+
+    /* If a virtual function has contracts, assume its variables are referenced
+     * by those contracts, even if they aren't. Because they might be referenced
+     * by the overridden or overriding function's contracts.
+     * This can happen because frequire and fensure are implemented as nested functions,
+     * and they can be called directly by an overriding function and the overriding function's
+     * context had better match, or
+     * https://issues.dlang.org/show_bug.cgi?id=7335 will bite.
+     */
+    if (_this.fdrequire || _this.fdensure)
+        return true;
+
+    if (_this.foverrides.length && _this.isVirtualMethod())
+    {
+        for (size_t i = 0; i < _this.foverrides.length; i++)
+        {
+            FuncDeclaration fdv = _this.foverrides[i];
+            if (fdv.hasNestedFrameRefs())
+                return true;
+        }
+    }
+    return false;
+}
 
 /**********************************
  * Generate a FuncDeclaration for a runtime library function.
@@ -2593,6 +2642,8 @@ void buildResultVar(FuncDeclaration fd, Scope* sc, Type tret)
         TypeFunction tf = fd.type.toTypeFunction();
         if (tf.isRef)
             fd.vresult.storage_class |= STC.ref_;
+        else if (target.isReturnOnStack(tf, fd.needThis()))
+            fd.vresult.nrvo = true;
         fd.vresult.type = tret;
         fd.vresult.dsymbolSemantic(sc);
         if (!sc.insert(fd.vresult))
