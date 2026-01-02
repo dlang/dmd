@@ -9069,6 +9069,7 @@ struct Port final
     static char* strupr(char* s);
     static bool isFloat32LiteralOutOfRange(const char* s);
     static bool isFloat64LiteralOutOfRange(const char* s);
+    static _d_real strtold(const char* p);
     static void writelongLE(uint32_t value, void* buffer);
     static uint32_t readlongLE(const void* const buffer);
     static void writelongBE(uint32_t value, void* buffer);

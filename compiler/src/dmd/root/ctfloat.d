@@ -21,15 +21,15 @@ nothrow:
 
 // Type used by the front-end for compile-time reals
 public import dmd.root.longdouble : real_t = longdouble;
+import dmd.root.port;
 
 private
 {
     version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
 
-    version(CRuntime_Microsoft) extern (C++)
+    version(CRuntime_Microsoft)
     {
         public import dmd.root.longdouble : longdouble_soft, ld_sprint;
-        import dmd.root.strtold;
     }
 }
 
@@ -167,22 +167,12 @@ extern (C++) struct CTFloat
         return isIdentical(fabs(r), real_t.infinity);
     }
 
+
     @system
     static real_t parse(const(char)* literal, out bool isOutOfRange)
     {
         errno = 0;
-        version(CRuntime_DigitalMars)
-        {
-            auto save = __locale_decpoint;
-            __locale_decpoint = ".";
-        }
-        version(CRuntime_Microsoft)
-        {
-            auto r = cast(real_t) strtold_dm(literal, null);
-        }
-        else
-            auto r = strtold(literal, null);
-        version(CRuntime_DigitalMars) __locale_decpoint = save;
+        auto r = Port.strtold(literal);
         isOutOfRange = (errno == ERANGE);
         return r;
     }

@@ -11,6 +11,8 @@
 
 module dmd.root.port;
 
+import dmd.root.longdouble;
+
 import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.string;
@@ -31,6 +33,8 @@ private extern (C)
 
         int _atoflt(float*  value, const(char)* str);
         int _atodbl(double* value, const(char)* str);
+
+        int _atoldbl(longdouble_soft* value, const(char)* str);
     }
 }
 
@@ -132,6 +136,41 @@ extern (C++) struct Port
         {
             const result = strtod(s, null);
             return resultOutOfRange(result, errno);
+        }
+    }
+
+    static longdouble strtold(const(char) *p)
+    {
+        version (CRuntime_DigitalMars)
+        {
+            auto save = __locale_decpoint;
+            __locale_decpoint = ".";
+            scope(exit)
+                __locale_decpoint = save;
+        }
+        version (CRuntime_Microsoft)
+        {
+            longdouble_soft r;
+            if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X'))
+            {
+                // _atoldbl() limits hex exponents by decimal max/min eponents
+                import dmd.root.strtold;
+                r = strtold_dm(p, null);
+            }
+            else
+            {
+                // strtold_dm() does not properly round decimal numbers
+                int res = _atoldbl(&r, p);
+                if (r.exponent() == 0x7fff && r.mantissa == 0)
+                    r.mantissa = 0x8000_0000_0000_0000UL; // pseudo-infinity -> infinity
+                if (res == _UNDERFLOW || res == _OVERFLOW)
+                    errno = ERANGE;
+            }
+            return cast(longdouble) r;
+        }
+        else
+        {
+            return .strtold(p, null);
         }
     }
 
