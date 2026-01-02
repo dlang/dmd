@@ -1514,7 +1514,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
         if (!(sc && sc.inCfile))
         {
             if (const n = importHint(id.toString()))
-                error(mt.loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
+                error(loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(id))
                 error(mt.loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
             else if (const q = search_correct_C(id))
@@ -1527,7 +1527,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
         }
         else {
             if (const n = cIncludeHint(id.toString()))
-                error(mt.loc, "`%s` is not defined, perhaps `#include %.*s` ?", p, cast(int)n.length, n.ptr);
+                error(loc, "`%s` is not defined, perhaps `#include %.*s` ?", p, cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(id))
                 error(mt.loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
             else
