@@ -213,22 +213,20 @@ public:
 
             debug (stomp)
             {
-                if (data.ptr && data.ptr != &smallarray[0])
+                if (data.ptr)
                 {
                     if (length < data.length)
-                        memset(data.ptr + length, 0xFF,
-                            (data.length - length) * T.sizeof);
+                        memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
                 }
             }
             else
             {
                 if (mem.isGCEnabled)
                 {
-                    if (data.ptr && data.ptr != &smallarray[0])
+                    if (data.ptr)
                     {
                         if (length < data.length)
-                            memset(data.ptr + length, 0xFF,
-                                (data.length - length) * T.sizeof);
+                            memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
                     }
                 }
             }
