@@ -67,6 +67,84 @@ import dmd.typesem;
 import dmd.visitor;
 import dmd.visitor.statement_rewrite_walker;
 
+bool addPostInvariant(FuncDeclaration _this)
+{
+    static bool visitFuncDeclaration(FuncDeclaration _this)
+    {
+        auto ad = _this.isThis();
+        return (
+            ad &&
+            ad.inv &&
+            global.params.useInvariants == CHECKENABLE.on &&
+            (_this.visibility.kind == Visibility.Kind.protected_ ||
+            _this.visibility.kind == Visibility.Kind.public_ ||
+            _this.visibility.kind == Visibility.Kind.export_) &&
+            !_this.isNaked
+        );
+    }
+
+    switch(_this.dsym)
+    {
+        case DSYM.funcLiteralDeclaration:
+        case DSYM.dtorDeclaration:
+        case DSYM.staticCtorDeclaration:
+        case DSYM.sharedStaticCtorDeclaration:
+        case DSYM.staticDtorDeclaration:
+        case DSYM.sharedStaticDtorDeclaration:
+        case DSYM.invariantDeclaration:
+        case DSYM.unitTestDeclaration:
+        case DSYM.newDeclaration:
+            return false;
+        case DSYM.ctorDeclaration:
+        {
+            auto cd = _this.isCtorDeclaration();
+            return (cd.isThis() && cd.vthis && global.params.useInvariants == CHECKENABLE.on);
+        }
+        case DSYM.postBlitDeclaration:
+        {
+            auto dd = _this.isPostBlitDeclaration();
+            return (dd.isThis() && dd.vthis && global.params.useInvariants == CHECKENABLE.on);
+        }
+        default: return visitFuncDeclaration(_this);
+    }
+}
+
+bool addPreInvariant(FuncDeclaration _this)
+{
+    static bool visitFuncDeclaration(FuncDeclaration _this)
+    {
+        return (
+            _this.isThis() &&
+            global.params.useInvariants == CHECKENABLE.on &&
+            (_this.visibility.kind == Visibility.Kind.protected_ ||
+            _this.visibility.kind == Visibility.Kind.public_ ||
+            _this.visibility.kind == Visibility.Kind.export_) &&
+            !_this.isNaked
+        );
+    }
+
+    switch(_this.dsym)
+    {
+        case DSYM.funcLiteralDeclaration:
+        case DSYM.ctorDeclaration:
+        case DSYM.postBlitDeclaration:
+        case DSYM.staticCtorDeclaration:
+        case DSYM.sharedStaticCtorDeclaration:
+        case DSYM.staticDtorDeclaration:
+        case DSYM.sharedStaticDtorDeclaration:
+        case DSYM.invariantDeclaration:
+        case DSYM.unitTestDeclaration:
+        case DSYM.newDeclaration:
+            return false;
+        case DSYM.dtorDeclaration:
+        {
+            auto dd = _this.isDtorDeclaration();
+            return (dd.isThis() && dd.vthis && global.params.useInvariants == CHECKENABLE.on);
+        }
+        default: return visitFuncDeclaration(_this);
+    }
+}
+
 // Determine if a function is pedantically virtual
 bool isVirtualMethod(FuncDeclaration _this)
 {

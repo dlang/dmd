@@ -676,18 +676,6 @@ extern (C++) class FuncDeclaration : Declaration
         return (cd !is null) && (cd.storage_class & STC.final_);
     }
 
-    bool addPreInvariant()
-    {
-        auto ad = isThis();
-        return (ad && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked);
-    }
-
-    bool addPostInvariant()
-    {
-        auto ad = isThis();
-        return (ad && ad.inv && global.params.useInvariants == CHECKENABLE.on && (visibility.kind == Visibility.Kind.protected_ || visibility.kind == Visibility.Kind.public_ || visibility.kind == Visibility.Kind.export_) && !this.isNaked);
-    }
-
     override const(char)* kind() const
     {
         return this.isGenerated ? "generated function" : "function";
@@ -895,16 +883,6 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         return false;
     }
 
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return false;
-    }
-
     override const(char)* kind() const
     {
         // GCC requires the (char*) casts
@@ -959,16 +937,6 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
         return false;
     }
 
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -996,16 +964,6 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
     override bool isVirtual() const
     {
         return false;
-    }
-
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
     }
 
     override void accept(Visitor v)
@@ -1050,16 +1008,6 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
         return vtblIndex != -1;
     }
 
-    override bool addPreInvariant()
-    {
-        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
-    }
-
-    override bool addPostInvariant()
-    {
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1096,16 +1044,6 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
     }
 
     override final bool isVirtual() const @nogc nothrow pure @safe
-    {
-        return false;
-    }
-
-    override final bool addPreInvariant() @nogc nothrow pure @safe
-    {
-        return false;
-    }
-
-    override final bool addPostInvariant() @nogc nothrow pure @safe
     {
         return false;
     }
@@ -1179,16 +1117,6 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
         return false;
     }
 
-    override final bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override final bool addPostInvariant()
-    {
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1244,16 +1172,6 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
         return false;
     }
 
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1304,16 +1222,6 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         return false;
     }
 
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1344,16 +1252,6 @@ extern (C++) final class NewDeclaration : FuncDeclaration
     }
 
     override bool isVirtual() const
-    {
-        return false;
-    }
-
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
     {
         return false;
     }

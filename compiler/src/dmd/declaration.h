@@ -718,8 +718,6 @@ public:
     bool needThis() override final;
     virtual bool isVirtual() const;
     bool isFinalFunc() const;
-    virtual bool addPreInvariant();
-    virtual bool addPostInvariant();
     const char *kind() const override;
     ParameterList getParameterList();
 
@@ -752,8 +750,6 @@ public:
     bool isNested() const override;
     AggregateDeclaration *isThis() override;
     bool isVirtual() const override;
-    bool addPreInvariant() override;
-    bool addPostInvariant() override;
 
     const char *kind() const override;
     const char *toPrettyChars(bool QualifyTypes = false) override;
@@ -768,8 +764,6 @@ public:
     CtorDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
     bool isVirtual() const override;
-    bool addPreInvariant() override;
-    bool addPostInvariant() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -779,8 +773,6 @@ class PostBlitDeclaration final : public FuncDeclaration
 public:
     PostBlitDeclaration *syntaxCopy(Dsymbol *) override;
     bool isVirtual() const override;
-    bool addPreInvariant() override;
-    bool addPostInvariant() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -791,8 +783,6 @@ public:
     DtorDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
     bool isVirtual() const override;
-    bool addPreInvariant() override;
-    bool addPostInvariant() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -803,8 +793,6 @@ public:
     StaticCtorDeclaration *syntaxCopy(Dsymbol *) override;
     AggregateDeclaration *isThis() override final;
     bool isVirtual() const override final;
-    bool addPreInvariant() override final;
-    bool addPostInvariant() override final;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -826,8 +814,6 @@ public:
     StaticDtorDeclaration *syntaxCopy(Dsymbol *) override;
     AggregateDeclaration *isThis() override final;
     bool isVirtual() const override final;
-    bool addPreInvariant() override final;
-    bool addPostInvariant() override final;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -845,8 +831,6 @@ class InvariantDeclaration final : public FuncDeclaration
 public:
     InvariantDeclaration *syntaxCopy(Dsymbol *) override;
     bool isVirtual() const override;
-    bool addPreInvariant() override;
-    bool addPostInvariant() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -862,8 +846,6 @@ public:
     UnitTestDeclaration *syntaxCopy(Dsymbol *) override;
     AggregateDeclaration *isThis() override;
     bool isVirtual() const override;
-    bool addPreInvariant() override;
-    bool addPostInvariant() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -874,8 +856,6 @@ public:
     NewDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
     bool isVirtual() const override;
-    bool addPreInvariant() override;
-    bool addPostInvariant() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
