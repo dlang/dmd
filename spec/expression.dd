@@ -832,6 +832,10 @@ $(GNAME RelExpression):
         The result type of a relational expression is $(D bool).
     )
 
+    $(P If both operands are pointers, they shall point to compatible types.
+    They also shall point to the same memory object, or the memory location
+    immediately following the same memory object.)
+
 $(H3 $(LNAME2 array_comparisons, Array Comparisons))
 
     $(P For static and dynamic arrays, the result of a *CmpExpression*
@@ -1080,6 +1084,9 @@ assert(a[2] == 4);
         operands. In this calculation the assumed size of $(D void) is one byte.
         It is an error if the pointers point to different types.
         The type of the result is $(D ptrdiff_t).
+        Both operands shall point to compatible types.
+        Both operands shall point to the same memory object, or the memory location
+        immediately following the same memory object.
     )
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
