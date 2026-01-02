@@ -45,8 +45,6 @@ namespace dmd
     bool equals(const Dsymbol * const ds, const Dsymbol * const s);
     bool hasNestedFrameRefs(FuncDeclaration *fd);
     bool isVirtualMethod(FuncDeclaration *fd);
-    bool addPreInvariant(FuncDeclaration *fd);
-    bool addPostInvariant(FuncDeclaration *fd);
 }
 
 //enum STC : ulong from astenums.d:
@@ -720,8 +718,6 @@ public:
     bool needThis() override final;
     virtual bool isVirtual() const;
     bool isFinalFunc() const;
-    bool addPreInvariant() { return dmd::addPreInvariant(this); };
-    bool addPostInvariant() { return dmd::addPostInvariant(this); };
     const char *kind() const override;
     ParameterList getParameterList();
 
