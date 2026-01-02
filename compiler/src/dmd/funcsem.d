@@ -102,7 +102,7 @@ bool addPostInvariant(FuncDeclaration _this)
         }
         case DSYM.postBlitDeclaration:
         {
-            auto dd = _this.isDtorDeclaration();
+            auto dd = _this.isPostBlitDeclaration();
             return (dd.isThis() && dd.vthis && global.params.useInvariants == CHECKENABLE.on);
         }
         default: return visitFuncDeclaration(_this);
