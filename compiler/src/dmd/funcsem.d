@@ -113,7 +113,9 @@ bool isVirtual(const FuncDeclaration _this)
         case DSYM.ctorDeclaration:
         case DSYM.postBlitDeclaration:
         case DSYM.staticCtorDeclaration:
+        case DSYM.sharedStaticCtorDeclaration:
         case DSYM.staticDtorDeclaration:
+        case DSYM.sharedStaticDtorDeclaration:
         case DSYM.invariantDeclaration:
         case DSYM.unitTestDeclaration:
         case DSYM.newDeclaration:
