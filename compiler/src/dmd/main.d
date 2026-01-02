@@ -565,30 +565,6 @@ private int tryMain(const(char)[][] argv, out Param params)
     if (global.errors)
         fatal();
 
-    if (params.dihdr.doOutput)
-    {
-        /* Generate 'header' import files.
-         * Since 'header' import files must be independent of command
-         * line switches and what else is imported, they are generated
-         * before any semantic analysis.
-         */
-        OutBuffer buf;
-        foreach (m; modules)
-        {
-            if (m.filetype == FileType.dhdr)
-                continue;
-            if (params.v.verbose)
-                message("import    %s", m.toChars());
-
-            buf.reset();         // reuse the buffer
-            genhdrfile(m, params.dihdr.fullOutput, buf);
-            if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
-                fatal();
-        }
-    }
-    if (global.errors)
-        removeHdrFilesAndFail(params, modules);
-
     {
     timeTraceBeginEvent(TimeTraceEventType.semaGeneral);
     scope (exit) timeTraceEndEvent(TimeTraceEventType.semaGeneral);
@@ -660,6 +636,31 @@ private int tryMain(const(char)[][] argv, out Param params)
     runDeferredSemantic3();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
+
+    if (params.dihdr.doOutput)
+    {
+        /* Generate 'header' import files.
+         * We do this after full semantic analysis (semantic3) so that
+         * inferred attributes (e.g. for 'auto' functions) are correctly
+         * emitted in the header.
+         */
+        OutBuffer buf;
+        foreach (m; modules)
+        {
+            if (m.filetype == FileType.dhdr)
+                continue;
+            if (params.v.verbose)
+                message("import    %s", m.toChars());
+            buf.reset();         // reuse the buffer
+            genhdrfile(m, params.dihdr.fullOutput, buf);
+            if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
+                fatal();
+        }
+    }
+
+    if (global.errors)
+        removeHdrFilesAndFail(params, modules);
+
 
     // Scan for modules with always inline functions
     foreach (m; modules)
