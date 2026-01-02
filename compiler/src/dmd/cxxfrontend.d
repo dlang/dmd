@@ -541,6 +541,18 @@ bool isVirtualMethod(FuncDeclaration fd)
     return dmd.funcsem.isVirtualMethod(fd);
 }
 
+bool addPreInvariant(FuncDeclaration fd)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.addPreInvariant(fd);
+}
+
+bool addPostInvariant(FuncDeclaration fd)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.addPostInvariant(fd);
+}
+
 /***********************************************************
  * hdrgen.d
  */
