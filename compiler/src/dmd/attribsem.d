@@ -33,19 +33,34 @@ import dmd.expressionsem;
 import dmd.location;
 import dmd.root.array; // for each
 
-
+/**
+ * Retrieves the attributes associated with a UserAttributeDeclaration.
+ * Returns:
+ * A pointer to Expressions containing the attributes, or null if none exist.
+ */
 Expressions* getAttributes(UserAttributeDeclaration a)
 {
+    if (!a.userAttribDecl && (!a.atts || !a.atts.length))
+        return null;
+
     if (auto sc = a._scope)
     {
         a._scope = null;
-        arrayExpressionSemantic(a.atts.peekSlice(), sc);
+        if (a.atts)
+            arrayExpressionSemantic(a.atts.peekSlice(), sc);
     }
+
     auto exps = new Expressions();
+
     if (a.userAttribDecl && a.userAttribDecl !is a)
-        exps.push(new TupleExp(Loc.initial, a.userAttribDecl.getAttributes()));
+    {
+        if (auto parentAtts = a.userAttribDecl.getAttributes())
+            exps.push(new TupleExp(Loc.initial, parentAtts));
+    }
+
     if (a.atts && a.atts.length)
         exps.push(new TupleExp(Loc.initial, a.atts));
+
     return exps;
 }
 
@@ -53,13 +68,13 @@ Expressions* getAttributes(UserAttributeDeclaration a)
  * Iterates the UDAs attached to the given symbol.
  *
  * Params:
- *  sym = the symbol to get the UDAs from
- *  sc = scope to use for semantic analysis of UDAs
- *  dg = called once for each UDA
+ * sym = the symbol to get the UDAs from
+ * sc = scope to use for semantic analysis of UDAs
+ * dg = called once for each UDA
  *
  * Returns:
- *  If `dg` returns `!= 0`, stops the iteration and returns that value.
- *  Otherwise, returns 0.
+ * If `dg` returns `!= 0`, stops the iteration and returns that value.
+ * Otherwise, returns 0.
  */
 int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
 {
@@ -67,21 +82,17 @@ int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
         return 0;
 
     auto udas = sym.userAttribDecl.getAttributes();
+    if (!udas)
+        return 0;
+
     arrayExpressionSemantic(udas.peekSlice(), sc, true);
 
     return udas.each!((uda) {
-        if (!uda.isTupleExp())
-            return 0;
+        if (!uda) return 0;
 
-        auto exps = uda.isTupleExp().exps;
-
-        return exps.each!((e) {
-            assert(e);
-
-            if (auto result = dg(e))
-                return result;
-
-            return 0;
-        });
+        if (auto te = uda.isTupleExp())
+            return te.exps.each!((e) => dg(e));
+        else
+            return dg(uda);
     });
 }
