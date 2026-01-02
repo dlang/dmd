@@ -55,27 +55,19 @@ U[] _dup(T, U)(T[] a) if (!__traits(isPOD, T))
     {
         import core.lifetime: copyEmplace;
         import core.internal.array.construction: _d_newarrayU;
-        import core.memory : GC;
-        import core.internal.traits : Unqual;
         U[] res = () @trusted {
             auto arr = cast(U*) _d_newarrayU!T(a.length, is(T == shared));
             size_t i;
-            try
+            scope (failure)
             {
-                for (; i < a.length; i++)
-                {
-                    copyEmplace(a.ptr[i], arr[i]);
-                }
+                import core.internal.lifetime: emplaceInitializer;
+                // Initialize all remaining elements to not destruct garbage
+                foreach (j; i .. a.length)
+                    emplaceInitializer(cast() arr[j]);
             }
-            catch (Throwable t)
+            for (; i < a.length; i++)
             {
-                while (i--)
-                {
-                    auto elem = cast(Unqual!U*) &arr[i];
-                    destroy(*elem);
-                }
-                GC.free(GC.addrOf(cast(void*) arr));
-                throw t;
+                copyEmplace(a.ptr[i], arr[i]);
             }
             return cast(U[])(arr[0..a.length]);
         } ();
