@@ -5629,6 +5629,24 @@ final class CParser(AST) : Parser!AST
             ++p; // advance to start of next line
         }
 
+        /* Create a nullary template function from an expression:
+         *   auto id()() { return exp; }
+         */
+        void addNullaryTemplate(AST.Expression exp, Identifier id)
+        {
+            auto ret = new AST.ReturnStatement(exp.loc, exp);
+            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, STC.none);
+            STC stc = STC.auto_;
+            auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
+            auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
+            fd.fbody = ret;
+            AST.Dsymbols* decldefs = new AST.Dsymbols();
+            decldefs.push(fd);
+            AST.TemplateParameters* tpl = new AST.TemplateParameters();
+            auto tempdecl = new AST.TemplateDeclaration(exp.loc, id, tpl, null, decldefs, false);
+            addSym(tempdecl);
+        }
+
         while (p < endp)
         {
             //printf("|%s|\n", p);
@@ -5774,18 +5792,7 @@ final class CParser(AST) : Parser!AST
                             // would have different semantics in D vs C when used as `X * 2`.
                             if (!exp.isCallExp())
                                 break;
-                            auto ret = new AST.ReturnStatement(exp.loc, exp);
-                            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, STC.none);
-                            STC stc = STC.auto_;
-                            auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
-                            auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
-                            fd.fbody = ret;
-                            AST.Dsymbols* decldefs = new AST.Dsymbols();
-                            decldefs.push(fd);
-                            AST.TemplateParameters* tpl = new AST.TemplateParameters();
-                            AST.Expression constraint = null;
-                            auto tempdecl = new AST.TemplateDeclaration(exp.loc, id, tpl, constraint, decldefs, false);
-                            addSym(tempdecl);
+                            addNullaryTemplate(exp, id);
                             ++p;
                             continue;
                         }
@@ -5809,18 +5816,7 @@ final class CParser(AST) : Parser!AST
                             nextToken();
                             if (token.value != TOK.endOfFile)
                                 break;
-                            auto ret = new AST.ReturnStatement(exp.loc, exp);
-                            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, STC.none);
-                            STC stc = STC.auto_;
-                            auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
-                            auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
-                            fd.fbody = ret;
-                            AST.Dsymbols* decldefs = new AST.Dsymbols();
-                            decldefs.push(fd);
-                            AST.TemplateParameters* tpl = new AST.TemplateParameters();
-                            AST.Expression constraint = null;
-                            auto tempdecl = new AST.TemplateDeclaration(exp.loc, id, tpl, constraint, decldefs, false);
-                            addSym(tempdecl);
+                            addNullaryTemplate(exp, id);
                             ++p;
                             continue;
                         }
