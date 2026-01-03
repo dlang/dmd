@@ -537,9 +537,33 @@ Expression opOverloadAssign(AssignExp e, Scope* sc, Type[2] aliasThisStop)
 
     bool choseReverse;
     if (auto result = pickBestBinaryOverload(sc, null, s, null, e, choseReverse))
+    {
+        if (checkRvalueAssign(sc, e.e1, Id.opAssign))
+        {
+            return ErrorExp.get();
+        }
         return result;
-
+    }
     return binAliasThis(e, sc, aliasThisStop);
+}
+
+bool checkRvalueAssign(Scope *sc, Expression e, Identifier op)
+{
+    if (!sc.intypeof && sc.hasEdition(Edition.v2024) &&
+        e.type && e.type.ty == Tstruct && !e.isLvalue())
+    {
+        TypeStruct ts = cast(TypeStruct)e.type;
+        // nested struct may assign data outside of the struct, e.g. ae.utils.array.list(args)
+        if (!ts.sym.isNested())
+        {
+            const char* action = op == Id.opAssign ? "assign to" : "modify";
+            error(e.loc, "cannot %s struct rvalue `%s`", action, e.toChars());
+            errorSupplemental(e.loc, "if the assignment is used for side-effects, call `%s` directly",
+                op.toChars());
+            return true;
+        }
+    }
+    return false;
 }
 
 Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
@@ -1004,6 +1028,10 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
     if (e.e1.type.isTypeError() || e.e2.type.isTypeError())
         return ErrorExp.get();
 
+    if (checkRvalueAssign(sc, e.e1, Id.opOpAssign))
+    {
+        return ErrorExp.get();
+    }
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     Dsymbol s = search_function(ad1, Id.opOpAssign);
     if (s && !(s.isTemplateDeclaration() || s.isOverloadSet()))
