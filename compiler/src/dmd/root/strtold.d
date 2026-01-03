@@ -380,6 +380,34 @@ Lerr:
     goto L1;
 }
 
+// use _atoldbl for decimal floating point parsing to avoid rounding issues in the version above
+private extern(C) int _atoldbl(longdouble_soft* value, const(char)* str);
+
+private enum _OVERFLOW  = 3;   /* overflow range error */
+private enum _UNDERFLOW = 4;   /* underflow range error */
+
+longdouble strtold_ms(const(char) *p, char** pend)
+{
+    longdouble_soft r;
+    if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X'))
+    {
+        // _atoldbl() limits hex exponents by decimal max/min eponents
+        import dmd.root.strtold;
+        r = strtold_dm(p, pend);
+    }
+    else
+    {
+        // strtold_dm() does not properly round decimal numbers
+        assert(pend is null); // not supported
+        int res = _atoldbl(&r, p);
+        if (r.exponent() == 0x7fff && r.mantissa == 0)
+            r.mantissa = 0x8000_0000_0000_0000UL; // pseudo-infinity -> infinity
+        if (res == _UNDERFLOW || res == _OVERFLOW)
+            errno = ERANGE;
+    }
+    return cast(longdouble) r;
+}
+
 /************************* Test ************************************/
 static if (0)
 {
