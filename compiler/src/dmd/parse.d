@@ -5758,14 +5758,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
     /***
-     * Parse an assignment condition for `if`, `switch` or `while` statements.
+     * Parse an assignment condition for `if`, `switch`, `while` or `with` statements.
      *
      * Returns:
      *      The variable that is declared inside the condition
      */
-    AST.Parameter parseAssignCondition()
+    AST.Parameter parseAssignCondition(bool _with = false)
     {
-        AST.Parameter param = null;
         STC storageClass = STC.none;
         STC stc = STC.none;
     Lwhile:
@@ -5834,7 +5833,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             const aloc = token.loc;
             nextToken();
             check(TOK.assign);
-            param = new AST.Parameter(aloc, storageClass, at, ai, null, null);
+            return new AST.Parameter(aloc, storageClass, at, ai, null, null);
         }
         else if (isDeclaration(&token, NeedDeclaratorId.must, TOK.assign, null))
         {
@@ -5842,12 +5841,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             const aloc = token.loc;
             AST.Type at = parseType(&ai);
             check(TOK.assign);
-            param = new AST.Parameter(aloc, storageClass, at, ai, null, null);
+            return new AST.Parameter(aloc, storageClass, at, ai, null, null);
         }
-        else if (storageClass != 0)
+        else if (storageClass != 0 && !_with)
+        {
             error("found `%s` while expecting `=` or identifier", n.toChars());
-
-        return param;
+        }
+        return null;
     }
 
     /*****************************************
@@ -6659,10 +6659,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 nextToken();
                 check(TOK.leftParenthesis);
+                auto param = parseAssignCondition(true);
                 exp = parseExpression();
-                closeCondition("with", null, exp);
+                closeCondition("with", param, exp);
                 _body = parseStatement(ParseStatementFlags.scope_, null, &endloc);
-                s = new AST.WithStatement(loc, exp, _body, endloc);
+                s = new AST.WithStatement(loc, param, exp, _body, endloc);
                 break;
             }
         case TOK.try_:
