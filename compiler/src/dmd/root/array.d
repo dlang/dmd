@@ -30,6 +30,7 @@ debug
 extern (C++) struct Array(T)
 {
     size_t length;
+    alias opSlice this;
 
 private:
     T[] data;
@@ -51,7 +52,11 @@ public:
 
     ~this() pure nothrow
     {
-        debug (stomp) memset(data.ptr, 0xFF, data.length);
+        debug (stomp)
+        {
+            if (data.ptr)
+                memset(data.ptr, 0xFF, data.length * T.sizeof);
+        }
         if (data.ptr && data.ptr != &smallarray[0])
             mem.xfree(data.ptr);
     }
@@ -60,10 +65,11 @@ public:
     // int, and c++ header generation doesn't accept wrapping this in static if
     extern(D) this()(T[] elems ...) pure nothrow if (is(T == struct) || is(T == class))
     {
-        this(elems.length);
+        this.reserve(elems.length);
+        this.length = elems.length;
         foreach(i; 0 .. elems.length)
         {
-            this[i] = elems[i];
+            this.data[i] = elems[i];
         }
     }
 
@@ -72,50 +78,56 @@ public:
     {
         static const(char)[] toStringImpl(alias toStringFunc, Array)(Array* a, bool quoted = false)
         {
-            const(char)[][] buf = (cast(const(char)[]*)mem.xcalloc((char[]).sizeof, a.length))[0 .. a.length];
-            size_t len = 2; // [ and ]
-            const seplen = quoted ? 3 : 1; // ',' or null terminator and optionally '"'
-            if (a.length == 0)
-                len += 1; // null terminator
-            else
+            const size_t n = a.length;
+            if (n == 0) return "[]";
+
+            const(char)[] nullStr = "null";
+            const(char)[][] buf = (cast(const(char)[]*)mem.xcalloc((char[]).sizeof, n))[0..n];
+            size_t len = 2;
+            foreach (u; 0 .. n)
             {
-                foreach (u; 0 .. a.length)
-                {
-                    static if (is(typeof(a.data[u] is null)))
+                static if (is(typeof(a.data[u] is null)))
+                    if (a.data[u] is null)
                     {
-                        if (a.data[u] is null)
-                            buf[u] = "null";
-                        else
-                            buf[u] = toStringFunc(a.data[u]);
+                        buf[u] = nullStr;
                     }
                     else
                     {
                         buf[u] = toStringFunc(a.data[u]);
-                    }
+                    }                else
+                    buf[u] = toStringFunc(a.data[u]);
 
-                    len += buf[u].length + seplen;
-                }
+                len += buf[u].length;
+                if (u > 0) len += 1;
+                if (quoted) len += 2;
             }
-            char[] str = (cast(char*)mem.xmalloc_noscan(len))[0..len];
 
-            str[0] = '[';
-            char* p = str.ptr + 1;
-            foreach (u; 0 .. a.length)
+            char* str = cast(char*)mem.xmalloc_noscan(len + 1);
+            char* p = str;
+
+            *p++ = '[';
+            foreach (u; 0 .. n)
             {
-                if (u)
+                if (u > 0)
                     *p++ = ',';
+
                 if (quoted)
                     *p++ = '"';
-                memcpy(p, buf[u].ptr, buf[u].length);
-                p += buf[u].length;
+
+                if (buf[u].length)
+                {
+                    memcpy(p, buf[u].ptr, buf[u].length);
+                    p += buf[u].length;
+                }
+
                 if (quoted)
                     *p++ = '"';
             }
             *p++ = ']';
             *p = 0;
-            assert(p - str.ptr == str.length - 1); // null terminator
+            assert(cast(size_t)(p - str) == len);
             mem.xfree(buf.ptr);
-            return str[0 .. $-1];
+            return str[0 .. len];
         }
 
         static if (is(typeof(T.init.toString())))
@@ -131,6 +143,7 @@ public:
             assert(0);
         }
     }
+
     ///ditto
     const(char)* toChars() const
     {
@@ -196,28 +209,38 @@ public:
                 const allocdim = length + increment;
                 debug (stomp)
                 {
-                    // always move using allocate-copy-stomp-free
                     auto p = cast(T*)mem.xmalloc(allocdim * T.sizeof);
                     memcpy(p, data.ptr, length * T.sizeof);
                     memset(data.ptr, 0xFF, data.length * T.sizeof);
                     mem.xfree(data.ptr);
+                    data = p[0 .. allocdim];
                 }
                 else
+                {
                     auto p = cast(T*)mem.xrealloc(data.ptr, allocdim * T.sizeof);
-                data = p[0 .. allocdim];
+                    data = p[0 .. allocdim];
+                }
             }
 
             debug (stomp)
             {
-                if (length < data.length)
-                    memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
-            }
-            else
-            {
-                if (mem.isGCEnabled)
+                if (data.ptr && data.ptr != &smallarray[0])
+                {
                     if (length < data.length)
-                        memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
+                        memset(data.ptr + length, 0xFF,
+                            (data.length - length) * T.sizeof);
+                }
             }
+            else if (mem.isGCEnabled)
+            {
+                if (data.ptr && data.ptr != &smallarray[0])
+                {
+                    if (length < data.length)
+                        memset(data.ptr + length, 0xFF,
+                            (data.length - length) * T.sizeof);
+                }
+            }
+
         }
 
         if (data.length - length < nentries)  // false means hot path
@@ -390,6 +413,295 @@ public:
 
     deprecated("use `.length` instead")
     extern(D) size_t dim() const @nogc nothrow pure @safe { return length; }
+
+    /******************************************
+    * Removes the element at index `i`, replacing it with the last element.
+    * Doesn't preserve the order of elements, but runs in O(1) time.
+    * Params:
+    * i = index of the element to remove
+    */
+    void swapRemove(size_t i) pure nothrow @nogc
+    {
+        assert(i < length);
+        if (i + 1 != length)
+            data[i] = data[length - 1];
+        length--;
+        debug (stomp) memset(data.ptr + length, 0xFF, T.sizeof);
+    }
+
+    /******************************************
+    * Removes all elements that satisfy the predicate.
+    * Uses the Erase-Remove algorithm (stable, O(N)).
+    * Returns: reference to the array for chaining.
+    */
+    extern (D) ref Array!T removeIf(scope bool delegate(T) predicate)
+    {
+        size_t j = 0;
+        for (size_t i = 0; i < this.length; i++)
+        {
+            if (!predicate(this[i]))
+            {
+                if (i != j)
+                    this[j] = this[i];
+                j++;
+            }
+        }
+
+        debug (stomp)
+        {
+            if (this.length > j)
+                memset(this.tdata() + j, 0xFF, (this.length - j) * T.sizeof);
+        }
+
+        this.length = j;
+        return this;
+    }
+
+
+    /******************************************
+    * Returns the total number of elements the array can store
+    * without reallocating memory (including the SSO buffer).
+    */
+    size_t capacity() const pure nothrow @nogc @safe
+    {
+        return data.length;
+    }
+
+    /******************************************
+    * Frees up unused memory by reducing `capacity` to `length`.
+    * Useful for saving RAM after large lists are completed.
+    */
+    void shrinkToFit() pure nothrow
+    {
+        if (length <= SMALLARRAYCAP)
+        {
+            if (data.ptr != &smallarray[0])
+            {
+                T[] oldData = data;
+                memcpy(smallarray.ptr, oldData.ptr, length * T.sizeof);
+                data = smallarray[];
+                mem.xfree(oldData.ptr);
+            }
+        }
+        else if (length < data.length)
+        {
+            auto p = cast(T*)mem.xrealloc(data.ptr, length * T.sizeof);
+            data = p[0 .. length];
+        }
+    }
+}
+
+/**
+ * Returns true if at least one element of the range satisfies the predicate.
+ */
+pragma(inline, false)
+bool any(alias predicate, Range)(scope Range range)
+if (isInputRange!Range && isPredicateOf!(predicate, ElementType!Range))
+{
+    for (; !range.empty; range.popFront())
+    {
+        if (predicate(range.front))
+            return true;
+    }
+    return false;
+}
+
+/**
+ * Returns true if at least one element satisfies the predicate.
+ * Returns false if the array pointer is null or the array is empty.
+ */
+pragma(inline, false)
+bool any(alias predicate, T)(scope const(Array!T)* array)
+{
+    return array && (*array)[].any!predicate;
+}
+
+/**
+ * Returns true if all elements of the range satisfy the predicate.
+ * Returns true for an empty range (vacuum truth).
+ */
+pragma(inline, false)
+bool all(alias predicate, Range)( scope Range range)
+if (isInputRange!Range && isPredicateOf!(predicate, ElementType!Range))
+{
+    for (; !range.empty; range.popFront())
+    {
+        if (!predicate(range.front))
+            return false;
+    }
+    return true;
+}
+
+/**
+* Helper overload for pointers to Array!T (often used in DMD).
+* Returns true if the array pointer is null, empty, or all elements satisfy the predicate.
+ */
+pragma(inline, false)
+bool all(alias predicate, T)(scope const(Array!T)* array)
+{
+    // Vacuum truth: if the array doesn't exist, no element violates the condition.
+    return !array || (*array)[].all!predicate;
+}
+
+unittest
+{
+    auto arr = Array!int();
+    arr.push(10).push(20).push(30).push(40);
+
+    arr.swapRemove(1);
+    assert(arr.length == 3);
+    assert(arr[1] == 40);
+    assert(arr[0] == 10);
+    assert(arr[2] == 30);
+
+    auto arr2 = Array!int();
+    foreach (i; 0 .. 10) arr2.push(cast(int)i);
+
+    arr2.removeIf(n => n % 2 == 0);
+
+    assert(arr2.length == 5);
+    assert(arr2[0] == 1);
+    assert(arr2[1] == 3);
+    assert(arr2[2] == 5);
+    assert(arr2[3] == 7);
+    assert(arr2[4] == 9);
+}
+
+unittest
+{
+    auto arr = Array!int();
+    arr.push(1).push(1).push(1);
+
+    arr.removeIf(n => n == 1);
+    assert(arr.length == 0);
+
+    auto arr2 = Array!int();
+    arr2.push(100);
+    arr2.swapRemove(0);
+    assert(arr2.length == 0);
+}
+
+unittest
+{
+    import std.stdio;
+
+    auto arr = Array!int(0);
+    // push & pushSlice
+    arr.push(10).push(20);
+    arr.pushSlice([30, 40]);
+    assert(arr[] == [10, 20, 30, 40]);
+
+    // remove
+    arr.remove(1);  // remove 20
+    assert(arr[] == [10, 30, 40]);
+
+    // swapRemove
+    arr.swapRemove(0); // remove 10
+    assert(arr[] == [40, 30]);
+
+    // removeIf
+    arr.removeIf(n => n == 30);
+    assert(arr[] == [40]);
+    arr.removeIf(n => n == 100); // no match
+    assert(arr[] == [40]);
+
+    // setDim
+    arr.setDim(3);
+    assert(arr.length == 3);
+    arr.setDim(1);
+    assert(arr.length == 1);
+
+    // shrinkToFit
+    auto capBefore = arr.capacity();
+    arr.shrinkToFit();
+    assert(arr.capacity() == arr.length || arr.capacity() == Array!int.SMALLARRAYCAP);
+
+    // peekSlice & opSlice
+    auto slice1 = peekSlice(&arr);
+    auto slice2 = arr[];
+    assert(slice1[] == slice2[]);
+
+    // shift & pop
+    arr.shift(99);
+    assert(arr[0] == 99);
+    auto last = arr.pop();
+    assert(arr.length == 0 || arr.length >= 1);
+
+    // reverse
+    arr.pushSlice([1,2,3]);
+    reverse(arr);
+    assert(arr[] == [3, 2, 1, 99]);
+
+    // zero
+    arr.zero();
+    foreach(e; arr[])
+        assert(e == 0);
+}
+
+/// Unittests for any and all (base logic and ranges)
+unittest
+{
+    // Testing with a static array (Range interface)
+    enum a = [1, 10, 20, 30].staticArray;
+
+    // any tests
+    static assert( a[].any!(e => e == 20));
+    static assert(!a[].any!(e => e == 5));
+    static assert(!((int[]).init).any!(e => e > 0)); // Empty range -> false
+
+    // all tests
+    static assert( a[].all!(e => e > 0));
+    static assert(!a[].all!(e => e > 15));
+    static assert(((int[]).init).all!(e => e > 0));  // Vacuum truth: empty range -> true
+}
+
+// length = 0, pointer is not null
+unittest
+{
+    auto arr = new Array!int();
+    assert(!arr.any!(e => true));
+    assert( arr.all!(e => false));
+    mem.xfree(arr);
+}
+
+/// Unittests for pointer overloads (DMD-specific usage)
+unittest
+{
+    import dmd.root.rmem;
+
+    auto arr = new Array!int();
+    arr.push(10);
+    arr.push(20);
+
+    // any on pointer
+    assert( arr.any!(e => e == 10));
+    assert(!arr.any!(e => e == 30));
+
+    // all on pointer
+    assert( arr.all!(e => e >= 10));
+    assert(!arr.all!(e => e == 10));
+
+    // null pointer checks
+    Array!int* emptyArr = null;
+    assert(!emptyArr.any!(e => true));  // null -> false
+    assert( emptyArr.all!(e => false)); // null -> true (vacuum truth)
+
+    mem.xfree(arr);
+}
+
+/// Testing with complex types and range chaining (map/filter)
+unittest
+{
+    static struct Item { string id; bool error; }
+
+    auto items = Array!Item();
+    items.push(Item("valid", false));
+    items.push(Item("invalid", true));
+    // Chain: filter -> any
+    assert(items[].filter!(i => i.error).any!(i => i.id == "invalid"));
+
+    // Chain: map -> all
+    assert(items[].map!(i => i.id).all!(id => id.length > 0));
 }
 
 unittest
@@ -499,7 +811,8 @@ unittest
  */
 @property inout(T)[] peekSlice(T)(inout(Array!T)* array) pure nothrow @nogc
 {
-    return array ? (*array)[] : null;
+    if (array) return (*array)[];
+    return null;
 }
 
 /**
@@ -550,23 +863,43 @@ unittest
 }
 
 /**
- * Reverse an array in-place.
+ * Reverses the elements of the given Array!T in-place.
+ *
  * Params:
- *      a = array
+ *      arr = the Array!T to reverse
+ *
  * Returns:
- *      reversed a[]
+ *      a reference to the same Array!T, now reversed
+ *
+ * Example:
+ *      auto arr = Array!int();
+ *      arr.pushSlice([1,2,3]);
+ *      reverse(arr); // arr[] == [3,2,1]
  */
-T[] reverse(T)(T[] a) pure nothrow @nogc @safe
+ref Array!T reverse(T)(ref Array!T arr) pure nothrow @nogc
 {
-    if (a.length > 1)
+    auto a = arr.tdata();
+    const len = arr.length;
+    const mid = len / 2;
+
+    foreach (i; 0 .. mid)
     {
-        const mid = (a.length + 1) >> 1;
-        foreach (i; 0 .. mid)
-        {
-            T e = a[i];
-            a[i] = a[$ - 1 - i];
-            a[$ - 1 - i] = e;
-        }
+        auto tmp = a[i];
+        a[i] = a[len - 1 - i];
+        a[len - 1 - i] = tmp;
+    }
+    return arr;
+}
+
+T[] reverse(T)(T[] a) pure nothrow @nogc
+{
+    const len = a.length;
+    const mid = len / 2;
+    foreach (i; 0 .. mid)
+    {
+        auto tmp = a[i];
+        a[i] = a[len - 1 - i];
+        a[len - 1 - i] = tmp;
     }
     return a;
 }

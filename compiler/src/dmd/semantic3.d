@@ -1880,6 +1880,10 @@ extern (D) bool checkClosure(FuncDeclaration fd)
     }
 
     FuncDeclarations a;
+
+    if (fd.closureVars.length > 0)
+        a.reserve(fd.closureVars.length);
+
     foreach (v; fd.closureVars)
     {
         foreach (f; v.nestedrefs)
@@ -1907,6 +1911,6 @@ extern (D) bool checkClosure(FuncDeclaration fd)
             }
         }
     }
-
+    a.shrinkToFit();
     return true;
 }
