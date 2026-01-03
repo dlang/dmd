@@ -3933,7 +3933,6 @@ public:
     bool isMoveCtor;
     CtorDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-
     void accept(Visitor* v) override;
 };
 
@@ -3942,7 +3941,6 @@ class DtorDeclaration final : public FuncDeclaration
 public:
     DtorDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-
     void accept(Visitor* v) override;
 };
 
@@ -3965,7 +3963,6 @@ public:
     FuncLiteralDeclaration* syntaxCopy(Dsymbol* s) override;
     bool isNested() const override;
     AggregateDeclaration* isThis() override;
-
     const char* kind() const override;
     const char* toPrettyChars(bool QualifyTypes = false) override;
     void accept(Visitor* v) override;
@@ -3975,7 +3972,6 @@ class InvariantDeclaration final : public FuncDeclaration
 {
 public:
     InvariantDeclaration* syntaxCopy(Dsymbol* s) override;
-
     void accept(Visitor* v) override;
 };
 
@@ -3984,7 +3980,6 @@ class NewDeclaration final : public FuncDeclaration
 public:
     NewDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-
     void accept(Visitor* v) override;
 };
 
@@ -4036,7 +4031,6 @@ class PostBlitDeclaration final : public FuncDeclaration
 {
 public:
     PostBlitDeclaration* syntaxCopy(Dsymbol* s) override;
-
     void accept(Visitor* v) override;
 };
 
@@ -4045,7 +4039,6 @@ class StaticCtorDeclaration : public FuncDeclaration
 public:
     StaticCtorDeclaration* syntaxCopy(Dsymbol* s) override;
     AggregateDeclaration* isThis() final override;
-
     void accept(Visitor* v) override;
 };
 
@@ -4063,7 +4056,6 @@ public:
     VarDeclaration* vgate;
     StaticDtorDeclaration* syntaxCopy(Dsymbol* s) override;
     AggregateDeclaration* isThis() final override;
-
     void accept(Visitor* v) override;
 };
 
@@ -4081,7 +4073,6 @@ public:
     Array<FuncDeclaration* > deferredNested;
     UnitTestDeclaration* syntaxCopy(Dsymbol* s) override;
     AggregateDeclaration* isThis() override;
-
     void accept(Visitor* v) override;
 };
 
