@@ -25,11 +25,10 @@ import dmd.root.port;
 
 private
 {
-    version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
-
     version(CRuntime_Microsoft)
     {
-        public import dmd.root.longdouble : longdouble_soft, ld_sprint;
+        import dmd.root.longdouble : longdouble_soft, ld_sprint;
+        import dmd.root.strtold : strtold = strtold_ms;
     }
 }
 
@@ -172,7 +171,7 @@ extern (C++) struct CTFloat
     static real_t parse(const(char)* literal, out bool isOutOfRange)
     {
         errno = 0;
-        auto r = Port.strtold(literal);
+        auto r = strtold(literal, null);
         isOutOfRange = (errno == ERANGE);
         return r;
     }
