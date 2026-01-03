@@ -541,6 +541,12 @@ bool isVirtualMethod(FuncDeclaration fd)
     return dmd.funcsem.isVirtualMethod(fd);
 }
 
+bool isVirtual(const FuncDeclaration fd)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.isVirtual(fd);
+}
+
 /***********************************************************
  * hdrgen.d
  */

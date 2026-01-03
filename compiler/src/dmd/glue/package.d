@@ -64,7 +64,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
-import dmd.funcsem : onlyOneMain;
+import dmd.funcsem : onlyOneMain, isVirtual;
 import dmd.globals;
 import dmd.identifier;
 import dmd.id;

@@ -45,6 +45,7 @@ namespace dmd
     bool equals(const Dsymbol * const ds, const Dsymbol * const s);
     bool hasNestedFrameRefs(FuncDeclaration *fd);
     bool isVirtualMethod(FuncDeclaration *fd);
+    bool isVirtual(const FuncDeclaration *fd);
 }
 
 //enum STC : ulong from astenums.d:
@@ -716,7 +717,7 @@ public:
     virtual bool isNested() const;
     AggregateDeclaration *isThis() override;
     bool needThis() override final;
-    virtual bool isVirtual() const;
+    bool isVirtual() const { return dmd::isVirtual(this); };
     bool isFinalFunc() const;
     const char *kind() const override;
     ParameterList getParameterList();
@@ -749,7 +750,6 @@ public:
     FuncLiteralDeclaration *syntaxCopy(Dsymbol *) override;
     bool isNested() const override;
     AggregateDeclaration *isThis() override;
-    bool isVirtual() const override;
 
     const char *kind() const override;
     const char *toPrettyChars(bool QualifyTypes = false) override;
@@ -763,7 +763,6 @@ public:
     d_bool isMoveCtor;
     CtorDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
-    bool isVirtual() const override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -772,7 +771,6 @@ class PostBlitDeclaration final : public FuncDeclaration
 {
 public:
     PostBlitDeclaration *syntaxCopy(Dsymbol *) override;
-    bool isVirtual() const override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -782,7 +780,6 @@ class DtorDeclaration final : public FuncDeclaration
 public:
     DtorDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
-    bool isVirtual() const override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -792,7 +789,6 @@ class StaticCtorDeclaration : public FuncDeclaration
 public:
     StaticCtorDeclaration *syntaxCopy(Dsymbol *) override;
     AggregateDeclaration *isThis() override final;
-    bool isVirtual() const override final;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -813,7 +809,6 @@ public:
 
     StaticDtorDeclaration *syntaxCopy(Dsymbol *) override;
     AggregateDeclaration *isThis() override final;
-    bool isVirtual() const override final;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -830,7 +825,7 @@ class InvariantDeclaration final : public FuncDeclaration
 {
 public:
     InvariantDeclaration *syntaxCopy(Dsymbol *) override;
-    bool isVirtual() const override;
+
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -845,7 +840,6 @@ public:
 
     UnitTestDeclaration *syntaxCopy(Dsymbol *) override;
     AggregateDeclaration *isThis() override;
-    bool isVirtual() const override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -855,7 +849,6 @@ class NewDeclaration final : public FuncDeclaration
 public:
     NewDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
-    bool isVirtual() const override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };

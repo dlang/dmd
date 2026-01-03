@@ -145,6 +145,67 @@ bool addPreInvariant(FuncDeclaration _this)
     }
 }
 
+// Determine if function goes into virtual function pointer table
+bool isVirtual(const FuncDeclaration _this)
+{
+    static bool visitFuncDeclaration(const FuncDeclaration _this)
+    {
+       if (_this.toAliasFunc() != _this)
+            return _this.toAliasFunc().isVirtual();
+
+        auto p = _this.toParent();
+
+        if (!_this.isMember || !p.isClassDeclaration)
+            return false;
+
+        if (p.isClassDeclaration.classKind == ClassKind.objc)
+            return objc.isVirtual(_this);
+
+        version (none)
+        {
+            printf("FuncDeclaration::isVirtual(%s)\n", _this.toChars());
+            printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n",
+                _this.isMember(),
+                _this.isStatic(),
+                _this.visibility.kind == Visibility.Kind.private_,
+                _this.isCtorDeclaration() !is null,
+                _this._linkage != LINK.d
+            );
+            printf("result is %d\n",
+                _this.isMember() &&
+                !(_this.isStatic() || _this.visibility.kind == Visibility.Kind.private_ || _this.visibility.kind == Visibility.Kind.package_) &&
+                p.isClassDeclaration() &&
+                !(p.isInterfaceDeclaration() && _this.isFinalFunc())
+            );
+        }
+
+        return !(_this.isStatic() ||
+                 _this.visibility.kind == Visibility.Kind.private_ ||
+                 _this.visibility.kind == Visibility.Kind.package_) &&
+                !(p.isInterfaceDeclaration() && _this.isFinalFunc());
+    }
+
+    switch(_this.dsym)
+    {
+        case DSYM.funcLiteralDeclaration:
+        case DSYM.ctorDeclaration:
+        case DSYM.postBlitDeclaration:
+        case DSYM.staticCtorDeclaration:
+        case DSYM.sharedStaticCtorDeclaration:
+        case DSYM.staticDtorDeclaration:
+        case DSYM.sharedStaticDtorDeclaration:
+        case DSYM.invariantDeclaration:
+        case DSYM.unitTestDeclaration:
+        case DSYM.newDeclaration:
+            return false;
+        // D dtor's don't get put into the vtbl[]
+        // this is a hack so that extern(C++) destructors report as virtual
+        // which are manually added to the vtable
+        case DSYM.dtorDeclaration: return _this.vtblIndex != -1;
+        default: return visitFuncDeclaration(_this);
+    }
+}
+
 // Determine if a function is pedantically virtual
 bool isVirtualMethod(FuncDeclaration _this)
 {
