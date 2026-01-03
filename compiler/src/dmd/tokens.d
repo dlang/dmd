@@ -23,7 +23,7 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.utf;
 
-enum TOK : ubyte
+enum TOK : ushort
 {
     reserved,
 
@@ -283,6 +283,7 @@ enum TOK : ubyte
     __thread,
     __pragma,
     __int128,
+    float16,
     __attribute__,
 }
 
@@ -594,6 +595,7 @@ private immutable TOK[] keywords =
     TOK.__thread,
     TOK.__pragma,
     TOK.__int128,
+    TOK.float16,
     TOK.__attribute__,
 ];
 
@@ -617,7 +619,7 @@ static immutable TOK[TOK.max + 1] Ckeywords =
     with (TOK)
     {
         TOK[TOK.max + 1] tab = identifier;  // default to identifier
-        enum Ckwds = [ auto_, break_, case_, char_, const_, continue_, default_, do_, float64, else_,
+        enum Ckwds = [ auto_, break_, case_, char_, const_, continue_, default_, do_, float16, float64, else_,
                        enum_, extern_, float32, for_, goto_, if_, inline, int32, int64, register,
                        restrict, return_, int16, signed, sizeof_, static_, struct_, switch_, typedef_,
                        union_, unsigned, void_, volatile, while_, asm_, typeof_,
@@ -910,6 +912,7 @@ extern (C++) struct Token
         TOK.__pragma       : "__pragma",
         TOK.__int128       : "__int128",
         TOK.__attribute__  : "__attribute__",
+        TOK.float16         : "_Float16",
     ];
 
     static assert(() {
@@ -1115,6 +1118,7 @@ nothrow:
         case TOK.uns64:
         case TOK.int128:
         case TOK.uns128:
+        case TOK.float16:
         case TOK.float32:
         case TOK.float64:
         case TOK.float80:

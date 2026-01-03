@@ -87,6 +87,7 @@ ImpCnvTab generateImpCnvTab()
         Tuns32,
         Tint64,
         Tuns64,
+        Tfloat16,
         Tfloat32,
         Tfloat64,
         Tfloat80,

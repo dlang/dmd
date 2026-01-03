@@ -2858,7 +2858,7 @@ public:
     void accept(Visitor* v) override;
 };
 
-enum class TOK : uint8_t
+enum class TOK : uint16_t
 {
     reserved = 0u,
     leftParenthesis = 1u,
