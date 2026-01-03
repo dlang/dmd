@@ -63,3 +63,8 @@ int pr16199c()
 #define NEGATIVE_U64 -4LLU
 #define NEGATIVE_F32 -5.0f
 #define NEGATIVE_F64 -6.0
+
+// https://github.com/dlang/dmd/pull/22347 - bare function-like macro calls
+#define DOUBLE(x) ((x) * 2)
+#define BARE_CALL DOUBLE(5)          // bare function-like macro call (no outer parens)
+#define PAREN_CALL (DOUBLE(5))       // parenthesized call (already works)

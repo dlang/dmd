@@ -39,3 +39,8 @@ static assert(is(typeof(NEGATIVE_I64) == long));
 static assert(is(typeof(NEGATIVE_U64) == ulong));
 static assert(is(typeof(NEGATIVE_F32) == float));
 static assert(is(typeof(NEGATIVE_F64) == double));
+
+// https://github.com/dlang/dmd/pull/22347 - bare function-like macro calls
+static assert(DOUBLE(5) == 10);
+static assert(BARE_CALL == 10);      // bare call now works
+static assert(PAREN_CALL == 10);     // parenthesized already worked
