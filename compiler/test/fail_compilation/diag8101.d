@@ -1,33 +1,33 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8101.d(62): Error: function `f_0` is not callable using argument types `()`
-fail_compilation/diag8101.d(62):        too few arguments, expected 1, got 0
-fail_compilation/diag8101.d(34):        `diag8101.f_0(int)` declared here
-fail_compilation/diag8101.d(63): Error: none of the overloads of `f_1` are callable using argument types `()`
-fail_compilation/diag8101.d(36):        Candidates are: `diag8101.f_1(int)`
-fail_compilation/diag8101.d(37):                        `diag8101.f_1(int, int)`
-fail_compilation/diag8101.d(64): Error: none of the overloads of `f_2` are callable using argument types `()`
-fail_compilation/diag8101.d(39):        Candidates are: `diag8101.f_2(int)`
-fail_compilation/diag8101.d(40):                        `diag8101.f_2(int, int)`
-fail_compilation/diag8101.d(41):                        `diag8101.f_2(int, int, int)`
-fail_compilation/diag8101.d(42):                        `diag8101.f_2(int, int, int, int)`
-fail_compilation/diag8101.d(43):                        `diag8101.f_2(int, int, int, int, int)`
-fail_compilation/diag8101.d(44):                        `diag8101.f_2(int, int, int, int, int, int)`
-fail_compilation/diag8101.d(64):        ... (1 more, -v to show) ...
-fail_compilation/diag8101.d(66): Error: template `t_0` is not callable using argument types `!()()`
-fail_compilation/diag8101.d(47):        Candidate is: `t_0(T1)()`
-fail_compilation/diag8101.d(67): Error: none of the overloads of template `diag8101.t_1` are callable using argument types `!()()`
-fail_compilation/diag8101.d(49):        Candidates are: `t_1(T1)()`
-fail_compilation/diag8101.d(50):                        `t_1(T1, T2)()`
-fail_compilation/diag8101.d(68): Error: none of the overloads of template `diag8101.t_2` are callable using argument types `!()()`
-fail_compilation/diag8101.d(52):        Candidates are: `t_2(T1)()`
-fail_compilation/diag8101.d(53):                        `t_2(T1, T2)()`
-fail_compilation/diag8101.d(54):                        `t_2(T1, T2, T3)()`
-fail_compilation/diag8101.d(55):                        `t_2(T1, T2, T3, T4)()`
-fail_compilation/diag8101.d(56):                        `t_2(T1, T2, T3, T4, T5)()`
-fail_compilation/diag8101.d(57):                        `t_2(T1, T2, T3, T4, T5, T6)()`
-fail_compilation/diag8101.d(68):        ... (1 more, -v to show) ...
+fail_compilation\diag8101.d(62): Error: function `f_0` is not callable using argument types `()`
+fail_compilation\diag8101.d(62):        too few arguments, expected 1, got 0
+fail_compilation\diag8101.d(34):        `diag8101.f_0(int)` declared here
+fail_compilation\diag8101.d(63): Error: none of the overloads of `f_1` are callable using argument types `()`
+fail_compilation\diag8101.d(36):        Candidate 1 is: `diag8101.f_1(int)`
+fail_compilation\diag8101.d(37):        Candidate 2 is: `diag8101.f_1(int, int)`
+fail_compilation\diag8101.d(64): Error: none of the overloads of `f_2` are callable using argument types `()`
+fail_compilation\diag8101.d(39):        Candidate 1 is: `diag8101.f_2(int)`
+fail_compilation\diag8101.d(40):        Candidate 2 is: `diag8101.f_2(int, int)`
+fail_compilation\diag8101.d(41):        Candidate 3 is: `diag8101.f_2(int, int, int)`
+fail_compilation\diag8101.d(42):        Candidate 4 is: `diag8101.f_2(int, int, int, int)`
+fail_compilation\diag8101.d(43):        Candidate 5 is: `diag8101.f_2(int, int, int, int, int)`
+fail_compilation\diag8101.d(44):        Candidate 6 is: `diag8101.f_2(int, int, int, int, int, int)`
+fail_compilation\diag8101.d(64):        ... (1 more, -v to show) ...
+fail_compilation\diag8101.d(66): Error: template `t_0` is not callable using argument types `!()()`
+fail_compilation\diag8101.d(47):        Candidate is: `t_0(T1)()`
+fail_compilation\diag8101.d(67): Error: none of the overloads of template `diag8101.t_1` are callable using argument types `!()()`
+fail_compilation\diag8101.d(49):        Candidate 1 is: `t_1(T1)()`
+fail_compilation\diag8101.d(50):        Candidate 2 is: `t_1(T1, T2)()`
+fail_compilation\diag8101.d(68): Error: none of the overloads of template `diag8101.t_2` are callable using argument types `!()()`
+fail_compilation\diag8101.d(52):        Candidate 1 is: `t_2(T1)()`
+fail_compilation\diag8101.d(53):        Candidate 2 is: `t_2(T1, T2)()`
+fail_compilation\diag8101.d(54):        Candidate 3 is: `t_2(T1, T2, T3)()`
+fail_compilation\diag8101.d(55):        Candidate 4 is: `t_2(T1, T2, T3, T4)()`
+fail_compilation\diag8101.d(56):        Candidate 5 is: `t_2(T1, T2, T3, T4, T5)()`
+fail_compilation\diag8101.d(57):        Candidate 6 is: `t_2(T1, T2, T3, T4, T5, T6)()`
+fail_compilation\diag8101.d(68):        ... (1 more, -v to show) ...
 ---
 */
 
