@@ -640,7 +640,7 @@ $(H2 $(LNAME2 bool, $(D bool)))
 $(P The bool type is a byte-size type that can only hold the value `true` or
 `false`.)
 
-$(P The only operators that can accept operands of type bool are: $(CODE_AMP)
+$(P The only operators that directly accept operands of type bool are: $(CODE_AMP),
 $(CODE_PIPE), $(D ^), $(CODE_AMP)$(D =), $(CODE_PIPE)$(D =), $(D ^=), !,
 $(CODE_AMP)$(CODE_AMP), $(CODE_PIPE)$(CODE_PIPE), and $(D ?:).)
 
@@ -660,8 +660,13 @@ $(UNDEFINED_BEHAVIOR)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
+bool b = 1; // int literal converted to `true`
+assert(b);
+assert(b + b == 2); // b promoted to int
+
 byte i = 2;
-bool b = cast(bool) i; // OK, same as `i != 0`
+//b = i; // Error
+b = cast(bool) i; // OK, same as `i != 0`
 assert(b);
 
 bool* p = cast(bool*) &i; // unsafe cast
