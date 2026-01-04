@@ -1809,6 +1809,15 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     void visitFuncDeclaration(FuncDeclaration f)
     {
         //printf("FuncDeclaration::toCBuffer() '%s'\n", f.toChars());
+        StorageClass stc = f.storage_class;
+        if (f.inferRetType)
+        {
+            if (auto tf = f.type.isTypeFunction())
+            {
+                if (tf.next)
+                    stc &= ~STC.auto_;
+            }
+        }
 
         // https://issues.dlang.org/show_bug.cgi?id=24891
         // return/scope storage classes are printed as part of function type
