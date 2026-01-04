@@ -23,7 +23,7 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.utf;
 
-enum TOK : ushort
+enum TOK : ubyte
 {
     reserved,
 
@@ -619,13 +619,13 @@ static immutable TOK[TOK.max + 1] Ckeywords =
     with (TOK)
     {
         TOK[TOK.max + 1] tab = identifier;  // default to identifier
-        enum Ckwds = [ auto_, break_, case_, char_, const_, continue_, default_, do_, float16, float64, else_,
+        enum Ckwds = [ auto_, break_, case_, char_, const_, continue_, default_, do_, float64, else_,
                        enum_, extern_, float32, for_, goto_, if_, inline, int32, int64, register,
                        restrict, return_, int16, signed, sizeof_, static_, struct_, switch_, typedef_,
                        union_, unsigned, void_, volatile, while_, asm_, typeof_,
                        _Alignas, _Alignof, _Atomic, _Bool, _Complex, _Generic, _Imaginary, _Noreturn,
                        _Static_assert, _Thread_local,
-                       _import, _module, __cdecl, __declspec, __stdcall, __thread, __pragma, __int128, __attribute__,
+                       _import, _module, __cdecl, __declspec, __stdcall, __thread, __pragma, __int128, float16, __attribute__,
                        _assert ];
 
         foreach (kw; Ckwds)
