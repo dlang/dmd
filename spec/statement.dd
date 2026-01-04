@@ -275,7 +275,7 @@ $(H3 $(LNAME2 boolean-conditions, Boolean Conversion))
         $(P The following type instances are supported in a condition:)
 
         $(UL
-        $(LI $(DDSUBLINK spec/type, FundamentalType, Fundamental types) are `true` when non-zero)
+        $(LI $(DDSUBLINK spec/type, ArithmeticType, Arithmetic types) are `true` when non-zero)
         $(LI Pointers are `true` when non-null)
         $(LI Reference types are `true` when non-null)
         $(LI A user-defined type with a valid $(DDSUBLINK spec/operatoroverloading, cast, `opCast!bool()`) method will be called for the result. Otherwise, any

@@ -42,7 +42,10 @@ $(GNAME VectorBaseType):
     $(GLINK Type)
 
 $(GNAME FundamentalType):
-$(MULTICOLS 5,
+    $(D void)
+    $(GLINK ArithmeticType)
+
+$(GNAME ArithmeticType):
     $(D bool)
     $(D byte)
     $(D ubyte)
@@ -66,7 +69,6 @@ $(MULTICOLS 5,
     $(D cfloat)
     $(D cdouble)
     $(D creal)
-    $(D void))
 
 $(GNAME TypeSuffixes):
     $(GLINK TypeSuffix) $(GSELF TypeSuffixes)$(OPT)
@@ -647,8 +649,8 @@ $(P A `bool` value can be implicitly converted to any integral type, with
 
 $(P The numeric literals `0` and `1` can be implicitly converted to the `bool`
 values `false` and `true`, respectively. Casting an expression to `bool` means
-testing `!=0` for arithmetic types, and `!=null` for
-pointers or references. See $(DDSUBLINK spec/statement, boolean-conditions,
+testing `!=0` for an $(GLINK ArithmeticType), and `!=null` for
+pointers or reference types. See $(DDSUBLINK spec/statement, boolean-conditions,
 Boolean Conversion) for details.)
 
 $(UNDEFINED_BEHAVIOR)

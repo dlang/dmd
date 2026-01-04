@@ -103,9 +103,8 @@ $(H2 $(LNAME2 types, Type Traits))
 
 $(H3 $(GNAME isArithmetic))
 
-        $(P If the arguments are all either types that are arithmetic types,
-        or expressions that are typed as arithmetic types, then $(D true)
-        is returned.
+        $(P If the arguments are all either a type that is an $(GLINK2 type, ArithmeticType),
+        or an expression that is typed as such, then $(D true) is returned.
         Otherwise, $(D false) is returned.
         If there are no arguments, $(D false) is returned.)
 
@@ -118,21 +117,12 @@ import std.stdio;
 void main()
 {
     int i;
-    writeln(__traits(isArithmetic, int));
-    writeln(__traits(isArithmetic, i, i+1, int));
-    writeln(__traits(isArithmetic));
-    writeln(__traits(isArithmetic, int*));
+    static assert(__traits(isArithmetic, int));
+    static assert(__traits(isArithmetic, i, i+1, int));
+    static assert(!__traits(isArithmetic));
+    static assert(!__traits(isArithmetic, int*));
 }
 ---
-)
-
-        Prints:
-
-$(CONSOLE
-true
-true
-false
-false
 )
 
 $(H3 $(GNAME isFloating))
