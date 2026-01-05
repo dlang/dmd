@@ -242,7 +242,26 @@ private bool lambdaHasSideEffect(Expression e, bool assumeImpureCalls = false)
 bool discardValue(Expression e)
 {
     if (lambdaHasSideEffect(e)) // check side-effect shallowly
+    {
+        // check assignment to struct rvalue
+        auto ce = e.isCallExp();
+        if (ce && ce.fromOpAssignment)
+        {
+            if (auto dve = ce.e1.isDotVarExp())
+            {
+                auto lhs = dve.e1;
+                auto ts = lhs.type.isTypeStruct();
+                if (ts && !lhs.isLvalue() && !ts.sym.hasPointerField) // Don't disallow writing to data through a pointer field
+                {
+                    error(lhs.loc, "assignment to struct rvalue `%s` is discarded",
+                        lhs.toChars());
+                    errorSupplemental(e.loc, "if the assignment is needed to modify a global, call `%s` directly or use an lvalue",
+                        dve.var.toChars());
+                }
+            }
+        }
         return false;
+    }
     switch (e.op)
     {
     case EXP.cast_:
