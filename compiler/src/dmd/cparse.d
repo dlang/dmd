@@ -5629,6 +5629,24 @@ final class CParser(AST) : Parser!AST
             ++p; // advance to start of next line
         }
 
+        /* Create a nullary template function from an expression:
+         *   auto id()() { return exp; }
+         */
+        void addNullaryTemplate(AST.Expression exp, Identifier id)
+        {
+            auto ret = new AST.ReturnStatement(exp.loc, exp);
+            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, STC.none);
+            STC stc = STC.auto_;
+            auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
+            auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
+            fd.fbody = ret;
+            AST.Dsymbols* decldefs = new AST.Dsymbols();
+            decldefs.push(fd);
+            AST.TemplateParameters* tpl = new AST.TemplateParameters();
+            auto tempdecl = new AST.TemplateDeclaration(exp.loc, id, tpl, null, decldefs, false);
+            addSym(tempdecl);
+        }
+
         while (p < endp)
         {
             //printf("|%s|\n", p);
@@ -5752,6 +5770,33 @@ final class CParser(AST) : Parser!AST
                             }
                             break;
 
+                        case TOK.identifier:
+                        {
+                            /* Look for:
+                             *  #define ID identifier ( args )
+                             * where the macro body is exactly a function-like macro call
+                             * (no additional operators that could cause precedence issues).
+                             * Rewrite to a template function:
+                             *  auto ID()() { return identifier(args); }
+                             */
+                            if (params)
+                                break;                          // function-like macro with params handled elsewhere
+                            eLatch.sawErrors = false;
+                            auto exp = cparseExpression();
+                            if (eLatch.sawErrors)               // parsing errors
+                                break;                          // abandon this #define
+                            if (token.value != TOK.endOfFile)   // did not consume the entire line
+                                break;
+                            // Only allow bare function calls to avoid precedence issues.
+                            // E.g., `#define X FUNC(5)` is safe, but `#define X FUNC(5) + 1`
+                            // would have different semantics in D vs C when used as `X * 2`.
+                            if (!exp.isCallExp())
+                                break;
+                            addNullaryTemplate(exp, id);
+                            ++p;
+                            continue;
+                        }
+
                         case TOK.leftParenthesis:
                         {
                             /* Look for:
@@ -5771,18 +5816,7 @@ final class CParser(AST) : Parser!AST
                             nextToken();
                             if (token.value != TOK.endOfFile)
                                 break;
-                            auto ret = new AST.ReturnStatement(exp.loc, exp);
-                            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, STC.none);
-                            STC stc = STC.auto_;
-                            auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
-                            auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
-                            fd.fbody = ret;
-                            AST.Dsymbols* decldefs = new AST.Dsymbols();
-                            decldefs.push(fd);
-                            AST.TemplateParameters* tpl = new AST.TemplateParameters();
-                            AST.Expression constraint = null;
-                            auto tempdecl = new AST.TemplateDeclaration(exp.loc, id, tpl, constraint, decldefs, false);
-                            addSym(tempdecl);
+                            addNullaryTemplate(exp, id);
                             ++p;
                             continue;
                         }
