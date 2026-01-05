@@ -3232,6 +3232,32 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             sym.parent = sc.scopesym;
             sym.endlinnum = ws.endloc.linnum;
         }
+        else if (ws.prm)
+        {
+            /* Re-write to
+             * {
+             *   auto prm = exp
+             *   with(prm)
+             *   {
+             *     ...
+             *   }
+             * }
+             */
+            auto tmp_init = new ExpInitializer(ws.loc, ws.exp);
+            auto tmp = new VarDeclaration(ws.loc, ws.prm.type, ws.prm.ident, tmp_init);
+            // tmp.storage_class |= STC.temp; //NOTE(mojo): idk
+            tmp.dsymbolSemantic(sc);
+
+            auto es = new ExpStatement(ws.loc, tmp);
+            ws.exp = new VarExp(ws.loc, tmp);
+
+            ws.prm = null;
+            auto cs = new CompoundStatement(ws.loc, es, ws);
+            Statement ss = new ScopeStatement(ws.loc, cs, ws.endloc);
+            result = ss.statementSemantic(sc);
+
+            return;
+        }
         else
         {
             Type texp = ws.exp.type;

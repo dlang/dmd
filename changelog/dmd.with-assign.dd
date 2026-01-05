@@ -1,0 +1,4 @@
+Add support for `with(auto x = expression())`
+
+Added support for using `with` statements with an expression initialiser as an `AssignExpression`, like `if`, `while` for` and `switch`.
+For backwards compatibility, `with` still also accepts a qualified expression without assignment to a variable as in `with(immutable expression())`.

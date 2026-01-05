@@ -2321,13 +2321,15 @@ struct ASTBase
 
     extern (C++) final class WithStatement : Statement
     {
+        Parameter prm;
         Expression exp;
         Statement _body;
         Loc endloc;
 
-        extern (D) this(Loc loc, Expression exp, Statement _body, Loc endloc)
+        extern (D) this(Loc loc, Parameter prm, Expression exp, Statement _body, Loc endloc)
         {
             super(loc, STMT.With);
+            this.prm = prm;
             this.exp = exp;
             this._body = _body;
             this.endloc = endloc;
