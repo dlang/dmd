@@ -5779,8 +5779,7 @@ final class CParser(AST) : Parser!AST
                              * Rewrite to a template function:
                              *  auto ID()() { return identifier(args); }
                              */
-                            if (params)
-                                break;                          // function-like macro with params handled elsewhere
+                            assert(!params);                    // would be TOK.leftParenthesis
                             eLatch.sawErrors = false;
                             auto exp = cparseExpression();
                             if (eLatch.sawErrors)               // parsing errors
