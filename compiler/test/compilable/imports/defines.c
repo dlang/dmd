@@ -68,3 +68,4 @@ int pr16199c()
 #define DOUBLE(x) ((x) * 2)
 #define BARE_CALL DOUBLE(5)          // bare function-like macro call (no outer parens)
 #define PAREN_CALL (DOUBLE(5))       // parenthesized call (already works)
+#define WRAPPER(x) DOUBLE(x)         // function-like macro calling another macro

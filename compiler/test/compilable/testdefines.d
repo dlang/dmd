@@ -44,3 +44,4 @@ static assert(is(typeof(NEGATIVE_F64) == double));
 static assert(DOUBLE(5) == 10);
 static assert(BARE_CALL == 10);      // bare call now works
 static assert(PAREN_CALL == 10);     // parenthesized already worked
+static assert(WRAPPER(3) == 6);      // function-like macro calling another macro
