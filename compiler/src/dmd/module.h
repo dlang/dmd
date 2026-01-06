@@ -30,13 +30,6 @@ enum PKG
     PKGpackage  // already determined that's an actual package
 };
 
-enum class Edition : uint16_t
-{
-    v2023 = 2023,
-    v2024,
-    v2025,
-};
-
 class Package : public ScopeDsymbol
 {
 public:

@@ -72,6 +72,7 @@ static void frontend_init()
     global._init();
     global.compileEnv.vendor = "Front-End Tester";
     global.params.objname = NULL;
+    global.params.edition = Edition::v2023;
 
     target.os = Target::OS_linux;
     target.isX86_64 = true;

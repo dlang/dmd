@@ -66,6 +66,13 @@ enum JsonFieldFlags
     semantics    = (1 << 3)
 };
 
+enum class Edition : uint16_t
+{
+    v2023 = 2023,
+    v2024,
+    v2025,
+};
+
 enum CppStdRevision
 {
     CppStdRevisionCpp98 = 199711,
@@ -204,7 +211,7 @@ struct Param
     Help help;
     Verbose v;
 
-    unsigned short edition;      // edition year
+    Edition edition;             // edition year
     void* editionFiles;          // Edition corresponding to a filespec
 
     // Options for `-preview=/-revert=`
