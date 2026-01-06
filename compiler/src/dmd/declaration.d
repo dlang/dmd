@@ -26,7 +26,6 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
-import dmd.intrange;
 import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
@@ -429,7 +428,7 @@ extern (C++) class VarDeclaration : Declaration
     TupleDeclaration aliasTuple;    // when `this` is really a tuple of declarations
     VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
     Expression edtor;               // if !=null, does the destruction of the variable
-    IntRange* range;                // if !=null, the variable is known to be within the range
+    void* range;                    // (of type IntRange*) if !=null, the variable is known to be within the range
 
     uint endlinnum;                 // line number of end of scope that this var lives in
     uint offset;

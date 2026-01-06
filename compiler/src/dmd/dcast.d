@@ -4486,7 +4486,7 @@ IntRange getIntRange(Expression e)
         Expression ie;
         VarDeclaration vd = e.var.isVarDeclaration();
         if (vd && vd.range)
-            return vd.range._cast(e.type);
+            return (cast(IntRange*)vd.range)._cast(e.type);
         if (vd && vd._init && !vd.type.isMutable() && (ie = vd.getConstInitializer()) !is null)
             return getIntRange(ie);
         return visit(e);

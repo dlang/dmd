@@ -1219,7 +1219,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                         {
                             /* Limit the range of the key to the specified range
                              */
-                            v.range = new IntRange(fs.key.range.imin, fs.key.range.imax - SignExtendedNumber(1));
+                            v.range = new IntRange((cast(IntRange*)fs.key.range).imin, (cast(IntRange*)fs.key.range).imax - SignExtendedNumber(1));
                         }
                     }
                 }
@@ -1622,7 +1622,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             {
                 /* Limit the range of the key to the specified range
                  */
-                v.range = new IntRange(fs.key.range.imin, fs.key.range.imax - SignExtendedNumber(1));
+                v.range = new IntRange((cast(IntRange*)fs.key.range).imin, (cast(IntRange*)fs.key.range).imax - SignExtendedNumber(1));
             }
         }
         if (fs.param.storageClass & STC.ref_)
