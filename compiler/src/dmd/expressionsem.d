@@ -4924,7 +4924,7 @@ private void lowerCastExp(CastExp cex, Scope* sc)
 
     int offset;
     if ((cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
-            || cdfrom.classKind == ClassKind.cpp)
+        || cdfrom.classKind == ClassKind.cpp || cdto.classKind == ClassKind.cpp)
         return;
 
     Identifier hook = Id._d_cast;
