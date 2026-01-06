@@ -30,6 +30,7 @@ debug
 extern (C++) struct Array(T)
 {
     size_t length;
+    alias opSlice this;
 
 private:
     T[] data;
@@ -64,10 +65,11 @@ public:
     // int, and c++ header generation doesn't accept wrapping this in static if
     extern(D) this()(T[] elems ...) pure nothrow if (is(T == struct) || is(T == class))
     {
-        this(elems.length);
+        this.reserve(elems.length);
+        this.length = elems.length;
         foreach(i; 0 .. elems.length)
         {
-            this[i] = elems[i];
+            this.data[i] = elems[i];
         }
     }
 
@@ -76,50 +78,61 @@ public:
     {
         static const(char)[] toStringImpl(alias toStringFunc, Array)(Array* a, bool quoted = false)
         {
-            const(char)[][] buf = (cast(const(char)[]*)mem.xcalloc((char[]).sizeof, a.length))[0 .. a.length];
-            size_t len = 2; // [ and ]
-            const seplen = quoted ? 3 : 1; // ',' or null terminator and optionally '"'
-            if (a.length == 0)
-                len += 1; // null terminator
-            else
+            const size_t n = a.length;
+            if (n == 0) return "[]";
+
+            const(char)[] nullStr = "null";
+            const(char)[][] buf = (cast(const(char)[]*)mem.xcalloc((char[]).sizeof, n))[0..n];
+            size_t len = 2;
+            foreach (u; 0 .. n)
             {
-                foreach (u; 0 .. a.length)
+                static if (is(typeof(a.data[u] is null)))
                 {
-                    static if (is(typeof(a.data[u] is null)))
+                    if (a.data[u] is null)
                     {
-                        if (a.data[u] is null)
-                            buf[u] = "null";
-                        else
-                            buf[u] = toStringFunc(a.data[u]);
+                        buf[u] = nullStr;
                     }
                     else
                     {
                         buf[u] = toStringFunc(a.data[u]);
                     }
-
-                    len += buf[u].length + seplen;
                 }
-            }
-            char[] str = (cast(char*)mem.xmalloc_noscan(len))[0..len];
+                else
+                {
+                    buf[u] = toStringFunc(a.data[u]);
+                }
 
-            str[0] = '[';
-            char* p = str.ptr + 1;
-            foreach (u; 0 .. a.length)
+                len += buf[u].length;
+                if (u > 0) len += 1;
+                if (quoted) len += 2;
+            }
+
+            char* str = cast(char*)mem.xmalloc_noscan(len + 1);
+            char* p = str;
+
+            *p++ = '[';
+            foreach (u; 0 .. n)
             {
-                if (u)
+                if (u > 0)
                     *p++ = ',';
+
                 if (quoted)
                     *p++ = '"';
-                memcpy(p, buf[u].ptr, buf[u].length);
-                p += buf[u].length;
+
+                if (buf[u].length)
+                {
+                    memcpy(p, buf[u].ptr, buf[u].length);
+                    p += buf[u].length;
+                }
+
                 if (quoted)
                     *p++ = '"';
             }
             *p++ = ']';
             *p = 0;
-            assert(p - str.ptr == str.length - 1); // null terminator
+            assert(cast(size_t)(p - str) == len);
             mem.xfree(buf.ptr);
-            return str[0 .. $-1];
+            return str[0 .. len];
         }
 
         static if (is(typeof(T.init.toString())))
@@ -205,10 +218,13 @@ public:
                     memcpy(p, data.ptr, length * T.sizeof);
                     memset(data.ptr, 0xFF, data.length * T.sizeof);
                     mem.xfree(data.ptr);
+                    data = p[0 .. allocdim];
                 }
                 else
+                {
                     auto p = cast(T*)mem.xrealloc(data.ptr, allocdim * T.sizeof);
-                data = p[0 .. allocdim];
+                    data = p[0 .. allocdim];
+                }
             }
 
             debug (stomp)
