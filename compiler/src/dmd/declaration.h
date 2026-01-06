@@ -235,7 +235,7 @@ public:
     TupleDeclaration *aliasTuple;  // if `this` is really a tuple of declarations
     VarDeclaration *lastVar;    // Linked list of variables for goto-skips-init detection
     Expression *edtor;          // if !=NULL, does the destruction of the variable
-    IntRange *range;            // if !NULL, the variable is known to be within the range
+    void *range;                // (of type IntRange*) if !NULL, the variable is known to be within the range
 
     unsigned endlinnum;         // line number of end of scope that this var lives in
     unsigned offset;

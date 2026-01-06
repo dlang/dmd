@@ -6594,7 +6594,7 @@ public:
     TupleDeclaration* aliasTuple;
     VarDeclaration* lastVar;
     Expression* edtor;
-    IntRange* range;
+    void* range;
     uint32_t endlinnum;
     uint32_t offset;
     uint32_t sequenceNumber;
