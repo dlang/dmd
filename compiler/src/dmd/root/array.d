@@ -51,7 +51,11 @@ public:
 
     ~this() pure nothrow
     {
-        debug (stomp) memset(data.ptr, 0xFF, data.length);
+        debug (stomp)
+        {
+            if (data.ptr)
+                memset(data.ptr, 0xFF, data.length * T.sizeof);
+        }
         if (data.ptr && data.ptr != &smallarray[0])
             mem.xfree(data.ptr);
     }
@@ -209,14 +213,22 @@ public:
 
             debug (stomp)
             {
-                if (length < data.length)
-                    memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
+                if (data.ptr)
+                {
+                    if (length < data.length)
+                        memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
+                }
             }
             else
             {
                 if (mem.isGCEnabled)
-                    if (length < data.length)
-                        memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
+                {
+                    if (data.ptr)
+                    {
+                        if (length < data.length)
+                            memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
+                    }
+                }
             }
         }
 
