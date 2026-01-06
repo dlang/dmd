@@ -965,6 +965,20 @@ struct S
 ---
 )
 
+---
+@safe int[] foo() {
+    int[3] arr = [1,2,3];
+    int[] slice = arr[]; // slice picks up scope attribute
+    return slice;        // error, returning scope variable `slice` is not allowed
+}
+
+int[] slice;
+@safe void abc() {
+    int[3] arr = [1,2,3];
+    slice = arr[]; // error, assigning address of variable `arr` to `slice` with longer lifetime
+}
+---
+
 $(P
     $(DDSUBLINK spec/function, scope-parameters, Scope Parameters) are treated the same as scope local variables,
     except that returning them is allowed when the function has $(DDSUBLINK spec/function, function-attribute-inference, Function Attribute Inference).
