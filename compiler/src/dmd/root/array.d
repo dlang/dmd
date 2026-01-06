@@ -205,10 +205,13 @@ public:
                     memcpy(p, data.ptr, length * T.sizeof);
                     memset(data.ptr, 0xFF, data.length * T.sizeof);
                     mem.xfree(data.ptr);
+                    data = p[0 .. allocdim];
                 }
                 else
+                {
                     auto p = cast(T*)mem.xrealloc(data.ptr, allocdim * T.sizeof);
-                data = p[0 .. allocdim];
+                    data = p[0 .. allocdim];
+                }
             }
 
             debug (stomp)
