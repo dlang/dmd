@@ -50,6 +50,50 @@ import dmd.typesem;
 
 enum LOG = false;
 
+IntRange _cast(IntRange _this, Type type)
+{
+    if (!type.isIntegral() || type.toBasetype().isTypeVector())
+        return _this;
+    if (!type.isUnsigned())
+        return _this.castSigned(type.sizemask());
+    if (type.toBasetype().ty == Tdchar)
+        return _this.castDchar();
+        return _this.castUnsigned(type.sizemask());
+}
+
+IntRange castUnsigned(IntRange _this, Type type)
+{
+    if (!type.isIntegral() || type.toBasetype().isTypeVector())
+        return _this.castUnsigned(ulong.max);
+    if (type.toBasetype().ty == Tdchar)
+        return _this.castDchar();
+    return _this.castUnsigned(type.sizemask());
+}
+
+IntRange intRangeFromType(Type type)
+{
+    return intRangeFromType(type, type.isUnsigned());
+}
+
+IntRange intRangeFromType(Type type, bool isUnsigned)
+{
+    if (!type.isIntegral() || type.toBasetype().isTypeVector())
+        return IntRange.widest();
+
+    uinteger_t mask = type.sizemask();
+    auto lower = SignExtendedNumber(0);
+    auto upper = SignExtendedNumber(mask);
+    if (type.toBasetype().ty == Tdchar)
+        upper.value = 0x10FFFFUL;
+    else if (!isUnsigned)
+    {
+        lower.value = ~(mask >> 1);
+        lower.negative = true;
+        upper.value = (mask >> 1);
+    }
+    return IntRange(lower, upper);
+}
+
 /**
  * Attempt to implicitly cast the expression into type `t`.
  *
@@ -304,7 +348,7 @@ MATCH implicitConvTo(Expression e, Type t)
         if (e.type.isIntegral() && t.isIntegral() && e.type.isTypeBasic() && t.isTypeBasic())
         {
             IntRange src = getIntRange(e);
-            IntRange target = IntRange.fromType(t);
+            IntRange target = intRangeFromType(t);
             if (target.contains(src))
             {
                 return MATCH.convert;
@@ -4358,7 +4402,7 @@ IntRange getIntRange(Expression e)
 {
     IntRange visit(Expression e)
     {
-        return IntRange.fromType(e.type);
+        return intRangeFromType(e.type);
     }
 
     IntRange visitInteger(IntegerExp e)
@@ -4462,7 +4506,7 @@ IntRange getIntRange(Expression e)
 
     IntRange visitUshr(UshrExp e)
     {
-        IntRange ir1 = getIntRange(e.e1).castUnsigned(e.e1.type);
+        IntRange ir1 = castUnsigned(getIntRange(e.e1), e.e1.type);
         IntRange ir2 = getIntRange(e.e2);
 
         return (ir1 >>> ir2)._cast(e.type);
@@ -4486,7 +4530,7 @@ IntRange getIntRange(Expression e)
         Expression ie;
         VarDeclaration vd = e.var.isVarDeclaration();
         if (vd && vd.range)
-            return vd.range._cast(e.type);
+            return _cast(*vd.range, e.type);
         if (vd && vd._init && !vd.type.isMutable() && (ie = vd.getConstInitializer()) !is null)
             return getIntRange(ie);
         return visit(e);

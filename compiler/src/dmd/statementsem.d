@@ -1019,7 +1019,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                         if (tab.isTypeDArray())
                         {
                             // check if overflow is possible
-                            const maxLen = IntRange.fromType(tindex).imax.value + 1;
+                            const maxLen = intRangeFromType(tindex).imax.value + 1;
                             if (auto ale = fs.aggr.isArrayLiteralExp())
                                 err = ale.elements.length > maxLen;
                             else if (auto se = fs.aggr.isSliceExp())
@@ -1082,7 +1082,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                         IntRange dimrange = getIntRange(ta.dim);
                         // https://issues.dlang.org/show_bug.cgi?id=12504
                         dimrange.imax = SignExtendedNumber(dimrange.imax.value-1);
-                        if (!IntRange.fromType(fs.key.type).contains(dimrange))
+                        if (!intRangeFromType(fs.key.type).contains(dimrange))
                         {
                             error(fs.loc, "index type `%s` cannot cover index range 0..%llu",
                                      p.type.toChars(), ta.dim.toInteger());
@@ -4489,7 +4489,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             IntRange dimrange = IntRange(SignExtendedNumber(length))._cast(Type.tsize_t);
             // https://issues.dlang.org/show_bug.cgi?id=12504
             dimrange.imax = SignExtendedNumber(dimrange.imax.value-1);
-            if (!IntRange.fromType(p.type).contains(dimrange))
+            if (!intRangeFromType(p.type).contains(dimrange))
             {
                 error(fs.loc, "index type `%s` cannot cover index range 0..%llu",
                          p.type.toChars(), cast(ulong)length);

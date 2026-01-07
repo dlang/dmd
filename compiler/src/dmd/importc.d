@@ -631,7 +631,7 @@ void cEnumSemantic(Scope* sc, EnumDeclaration ed)
     // C11 6.7.2.2-2 value must be representable as an int.
     // The sizemask represents all values that int will fit into,
     // from 0..uint.max.  We want to cover int.min..uint.max.
-    IntRange ir = IntRange.fromType(commonType);
+    IntRange ir = intRangeFromType(commonType);
 
     void emSemantic(EnumMember em, ref ulong nextValue)
     {
