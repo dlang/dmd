@@ -18949,8 +18949,12 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
         ekeys[i-1] = extractSideEffect(sc, "__aakey", e0, ekeys[i-1]);
     // some implicit conversions are lost when assigning to a temporary, e.g. from array literal
     auto taa = eaa.type.isTypeAArray();
-    auto match = exp.e2.implicitConvTo(taa.next);
-    auto e2 = match == MATCH.exact || match == MATCH.nomatch ? exp.e2 : exp.e2.implicitCastTo(sc, taa.next);
+    Expression e2 = exp.e2;
+    if (exp.isAssignExp()) // must keep original types for op=
+    {
+        auto match = exp.e2.implicitConvTo(taa.next);
+        e2 = match == MATCH.exact || match == MATCH.nomatch ? exp.e2 : exp.e2.implicitCastTo(sc, taa.next);
+    }
     Expression ev = extractSideEffect(sc, "__aaval", e0, e2); // must be evaluated before the insertion
 
     // generate series of calls to _d_aaGetY
