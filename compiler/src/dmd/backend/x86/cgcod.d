@@ -2413,7 +2413,9 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                 //printf("mMSW = x%x, mLSW = x%x\n", mMSW, mLSW);
                 elem_print(e);
             }
-
+            // Check for the crash operator
+            if (e.Eoper == OPrpair)
+                return;
             assert(OTleaf(e.Eoper));        /* must have both for operators */
             goto reload;
         }
