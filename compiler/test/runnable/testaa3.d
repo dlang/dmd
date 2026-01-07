@@ -384,6 +384,15 @@ void test21066()
     aa2[[getValue()]] = "a"; // no problem because key type is automatically const(int)[]
 }
 
+void test22354()
+{
+    int[][][string] aa;  // AA with nested array value type
+    int[] elem;
+    aa["x"] = null;
+    aa["x"] ~= null;     // This append is silently lost!
+    assert(aa["x"].length == 1);  // FAILS: length is still 0
+}
+
 /***************************************************/
 
 void main()
@@ -411,4 +420,5 @@ void main()
     test12220();
     test12403();
     test21066();
+    test22354();
 }
