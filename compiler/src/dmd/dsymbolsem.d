@@ -8656,14 +8656,56 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
                 isunion);
 
             // Add to the anon fields the base offset of this anonymous aggregate
-            //printf("anon fields, anonoffset = %d\n", anonoffset);
-            foreach (const i; fieldstart .. ad.fields.length)
-            {
-                VarDeclaration v = ad.fields[i];
-                //printf("\t[%d] %s %d\n", i, v.toChars(), v.offset);
-                v.offset += anond.anonoffset;
-            }
+            //printf("anon fields, anonoffset = %d\n", anond.anonoffset);
+            if (anond.anonoffset)
+                anond.decl.foreachDsymbol( (s) => s.adjustBaseOffset(anond.anonoffset) );
         }
+    }
+}
+
+// Adds `offset` as the new base offset of all field members in `d`.
+private void adjustBaseOffset(Dsymbol d, uint offset)
+{
+    switch (d.dsym)
+    {
+        case DSYM.nspace:
+            auto ns = cast(Nspace)d;
+            ns.members.foreachDsymbol( s => s.adjustBaseOffset(offset) );
+            break;
+
+        case DSYM.templateMixin:
+            auto tm = cast(TemplateMixin)d;
+            tm.members.foreachDsymbol( s => s.adjustBaseOffset(offset) );
+            break;
+
+        case DSYM.anonDeclaration:
+            auto ad = cast(AnonDeclaration)d;
+            if (ad.decl)
+                ad.decl.foreachDsymbol( s => s.adjustBaseOffset(offset) );
+            break;
+
+        case DSYM.bitFieldDeclaration:
+            auto bfd = cast(BitFieldDeclaration)d;
+            bfd.offset += offset;
+            //printf("\t%s %d : %d\n", bfd.toChars(), bfd.offset, bfd.bitOffset);
+            break;
+
+        default:
+            if (auto vd = d.isVarDeclaration())
+            {
+                if (vd.aliasTuple)
+                    vd.aliasTuple.foreachVar( s => s.adjustBaseOffset(offset) );
+                else if (vd.isField())
+                {
+                    vd.offset += offset;
+                    //printf("\t%s %d\n", vd.toChars(), vd.offset);
+                }
+            }
+            else if (auto atd = d.isAttribDeclaration())
+            {
+                atd.include(null).foreachDsymbol( s => s.adjustBaseOffset(offset) );
+            }
+            break;
     }
 }
 
