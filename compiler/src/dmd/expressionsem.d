@@ -5305,7 +5305,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         result = e;
         auto ce = e.isCallExp();
-        if (!ce)
+        // rvalue error in discardValue from 2024 edition
+        if (!ce || !sc.hasEdition(Edition.v2024))
             return;
         ce.fromOpAssignment = true;
     }
