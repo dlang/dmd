@@ -2594,6 +2594,7 @@ public:
     bool inDebugStatement;
     bool ignoreAttributes;
     bool isUfcsRewrite;
+    bool fromOpAssignment;
     VarDeclaration* vthis2;
     Expression* loweredFrom;
     static CallExp* create(Loc loc, Expression* e, Array<Expression* >* exps);
