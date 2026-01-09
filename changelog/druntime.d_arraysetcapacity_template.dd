@@ -1,3 +1,0 @@
-Templatize `_d_arraysetcapacity` runtime hook
-
-This refactorization discards the `TypeInfo` parameter, replacing it with a template type parameter.
