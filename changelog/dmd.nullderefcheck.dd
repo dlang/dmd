@@ -1,0 +1,10 @@
+An optional check for null dereference is added
+
+A new check has been implemented that injects code to check a pointer for null before it is dereferenced.
+
+It will be typically be used if you need a backtrace generated (when one is not automatically done), or if you want to catch and handle the Error as part of a scheduler.
+
+This can be enabled by using ``-check=nullderef=on`` by default it is off.
+What happens may be customized by the ``-checkaction`` switch and by setting a new handler in ``core.exception``.
+
+Due to issues in dmd's backend, not all pointer dereferences are guaranteed to get a check.

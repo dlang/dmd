@@ -224,6 +224,7 @@ extern (C++) struct Param
     CHECKENABLE useIn          = CHECKENABLE._default;  // generate precondition checks
     CHECKENABLE useOut         = CHECKENABLE._default;  // generate postcondition checks
     CHECKENABLE useArrayBounds = CHECKENABLE._default;  // when to generate code for array bounds checks
+    CHECKENABLE useNullCheck   = CHECKENABLE._default;  // when to generate code for null dereference checks
     CHECKENABLE useAssert      = CHECKENABLE._default;  // when to generate code for assert()'s
     CHECKENABLE useSwitchError = CHECKENABLE._default;  // check for switches without a default
     CHECKENABLE boundscheck    = CHECKENABLE._default;  // state of -boundscheck switch

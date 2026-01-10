@@ -71,7 +71,7 @@ struct DFAReporter
         }
     }
 
-    void onLoopyLabelLessNullThan(DFAVar* var, ref const(Loc) loc)
+    void onLoopyLabelLessNullThan(DFAVar* var, ref const Loc loc)
     {
         if (var !is null && !var.isModellable)
             return;
@@ -88,7 +88,7 @@ struct DFAReporter
      * to guarantee a non-null output, this ensures the variable is actually non-null
      * when the scope exits.
      */
-    void onEndOfScope(FuncDeclaration fd, ref Loc loc)
+    void onEndOfScope(FuncDeclaration fd, ref const Loc loc)
     {
         // this is where we validate escapes, for a specific location
 

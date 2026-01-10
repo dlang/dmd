@@ -9,6 +9,7 @@
  */
 
 module etc.linux.memoryerror;
+public import core.exception : InvalidPointerError, NullPointerError;
 
 version (linux)
 {
@@ -92,73 +93,6 @@ version (MemoryErrorSupported)
         auto oldptr = &oldSigactionMemoryError;
 
         return !sigaction(SIGSEGV, oldptr, null);
-    }
-
-    /**
-     * Thrown on POSIX systems when a SIGSEGV signal is received.
-     */
-    class InvalidPointerError : Error
-    {
-        this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) nothrow
-        {
-            super("", file, line, next);
-        }
-
-        this(Throwable next, string file = __FILE__, size_t line = __LINE__) nothrow
-        {
-            super("", file, line, next);
-        }
-    }
-
-    /**
-     * Thrown on null pointer dereferences.
-     */
-    class NullPointerError : InvalidPointerError
-    {
-        this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) nothrow
-        {
-            super(file, line, next);
-        }
-
-        this(Throwable next, string file = __FILE__, size_t line = __LINE__) nothrow
-        {
-            super(file, line, next);
-        }
-    }
-
-    unittest
-    {
-        int* getNull() { return null; }
-
-        assert(registerMemoryErrorHandler());
-
-        bool b;
-
-        try
-        {
-            *getNull() = 42;
-        }
-        catch (NullPointerError)
-        {
-            b = true;
-        }
-
-        assert(b);
-
-        b = false;
-
-        try
-        {
-            *getNull() = 42;
-        }
-        catch (InvalidPointerError)
-        {
-            b = true;
-        }
-
-        assert(b);
-
-        assert(deregisterMemoryErrorHandler());
     }
 
     // Signal handler space.

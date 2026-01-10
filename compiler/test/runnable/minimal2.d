@@ -1,5 +1,5 @@
 // DFLAGS:
-// REQUIRED_ARGS: -defaultlib=
+// REQUIRED_ARGS: -defaultlib= -check=nullderef=off
 // EXTRA_SOURCES: extra-files/minimal/object.d
 
 // This test ensures that interfaces and classes can be used in a minimal
