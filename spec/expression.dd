@@ -3241,22 +3241,24 @@ $(GNAME TypeidExpression):
         of the dynamic type (i.e. the most derived type).
         The $(I Expression) is always executed.)
 
-        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         class A { }
         class B : A { }
 
         void main()
         {
-            import std.stdio;
+            TypeInfo tid = typeid(int);
+            assert(tid.toString() == "int");
 
-            writeln(typeid(int));        // int
             uint i;
-            writeln(typeid(i++));        // uint
-            writeln(i);                  // 1
+            tid = typeid(i++);
+            assert(i == 1); // `i` was incremented
+            assert(tid == typeid(uint));
+
             A a = new B();
-            writeln(typeid(a));          // B
-            writeln(typeid(typeof(a)));  // A
+            assert(typeid(a) == typeid(B)); // get dynamic type of `a`
+            assert(typeid(typeof(a)) == typeid(A));
         }
         ---
         )
