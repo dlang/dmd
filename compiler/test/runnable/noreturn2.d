@@ -145,6 +145,20 @@ void testAccess()
         foo(a);
         assert(false, "Unreachable!"); // Ditto
     });
+
+    testAssertFailure(__LINE__ + 3, msg,
+    {
+        noreturn v;
+        auto id = typeid(v);
+    });
+
+    // test condition
+    testAssertFailure(__LINE__ + 3, msg,
+    {
+        noreturn v;
+        if (v)
+            return;
+    });
 }
 
 /*****************************************/

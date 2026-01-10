@@ -8705,9 +8705,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (ea)
         {
             if (auto sym = getDsymbol(ea))
+            {
                 ea = symbolToExp(sym, exp.loc, sc, false);
+                ea = checkNoreturnVarAccess(ea);
+            }
             else
                 ea = ea.expressionSemantic(sc);
+
             ea = resolveProperties(sc, ea);
             ta = ea.type;
             if (ea.op == EXP.type)
@@ -18225,6 +18229,7 @@ Expression toBoolean(Expression exp, Scope* sc)
                 break;
             }
 
+            e = checkNoreturnVarAccess(e);
             if (!t.isBoolean())
             {
                 if (tb != Type.terror)
