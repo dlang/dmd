@@ -15,6 +15,11 @@ name: build-release
 on:
   workflow_dispatch:
     inputs:
+      branch:
+        description: 'Branch to build from'
+        required: true
+        type: string
+        default: stable
       tag:
         description: 'Release tag (e.g., v2.109.0)'
         required: true
@@ -28,10 +33,10 @@ on:
 jobs:
   # Build and package a new release for all supported platforms
   build-all-releases:
-    name: Build release from stable
+    name: Build release from ${{ github.event.inputs.branch }}
     uses: dlang/installer/.github/workflows/build_release_template.yml@master
     with:
-      release_branch: stable
+      release_branch: ${{ github.event.inputs.branch }}
 
   # Bundles and publishes the entire release
   generate_release:
@@ -82,4 +87,4 @@ jobs:
           artifacts: ${{ steps.list-artifacts.outputs.artifacts_directory }}/*
           artifactErrorsFailBuild: true
           tag: ${{ github.event.inputs.tag }}
-          commit: stable
+          commit: ${{ github.event.inputs.branch }}
