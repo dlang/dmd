@@ -5569,7 +5569,7 @@ bool TemplateInstance_semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int fl
  *      errorHelper = delegate to send error message to if not null
  */
 void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
-    Type tthis, ArgumentList argumentList, void delegate(const(char)*, Loc argloc) scope errorHelper = null)
+    Type tthis, ArgumentList argumentList, void delegate(const(char)*, Loc argloc = Loc.initial) scope errorHelper = null)
 {
     version (none)
     {
@@ -5678,7 +5678,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         MATCH mfa = callMatch(fd, tf, tthis_fd, argumentList, 0, errorHelper, sc);
         //printf("test1: mfa = %d\n", mfa);
         if (failMessage)
-            errorHelper(failMessage, Loc.initial);
+            errorHelper(failMessage);
         if (mfa == MATCH.nomatch)
             return 0;
 
