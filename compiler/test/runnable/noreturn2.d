@@ -102,20 +102,16 @@ void testAccess()
 {
     enum msg = "Accessed expression of type `noreturn`";
 
-    // FIXME: Another assertion failure in the backend trying to generate noreturn.sizeof = 0 byte assignment
-    version (FIXME)
-    testAssertFailure(__LINE__ + 3, msg, function noreturn()
+    testAssertFailure(__LINE__ + 3, msg,
     {
         noreturn a;
         noreturn b = a;
     });
 
-    if (false) // read does not assert!
-    testAssertFailure(__LINE__ + 3, msg, function noreturn()
+    testAssertFailure(__LINE__ + 3, msg,
     {
         noreturn a;
         int b = a;
-        assert(false, "Unreachable!"); // Statement above not detected as noreturn
     });
 
     testAssertFailure(__LINE__ + 2, msg, function noreturn()
@@ -123,14 +119,12 @@ void testAccess()
         cast(noreturn) 1;
     });
 
-    version (FIXME)
-    testAssertFailure(__LINE__ + 3, msg, function noreturn()
+    testAssertFailure(__LINE__ + 3, msg,
     {
         noreturn a;
         noreturn b = cast(noreturn) 1;
     });
 
-    if (false) // Read does not assert
     testAssertFailure(__LINE__ + 3, msg, function noreturn()
     {
         noreturn a;
