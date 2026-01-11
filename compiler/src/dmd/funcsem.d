@@ -1916,7 +1916,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             if(argloc == Loc.initial)
                 errorSupplemental(loc, failMessage);
             else
-                errorSupplemental(argloc, failMessage);                
+                errorSupplemental(argloc, failMessage);       
             calledHelper = true;
         }
 
@@ -1988,7 +1988,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     {
         if(argloc == Loc.initial)
             errorSupplemental(loc, failMessage);
-        else            
+        else
             errorSupplemental(argloc, failMessage);
     }
 
