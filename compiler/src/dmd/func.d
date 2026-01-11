@@ -1216,15 +1216,13 @@ struct AttributeViolation
     this(Loc loc, const(char)* fmt, RootObject[] args)
     {
         this.loc = loc;
-        assert(args.length <= 4); // expand if necessary
         OutBuffer buf;
-        buf.printf(fmt,
-            args.length > 0 && args[0] ? args[0].toErrMsg() : "",
-            args.length > 1 && args[1] ? args[1].toErrMsg() : "",
-            args.length > 2 && args[2] ? args[2].toErrMsg() : "",
-            args.length > 3 && args[3] ? args[3].toErrMsg() : "",
-        );
-        this.action = buf.extractSlice();
+        foreach (arg; args[])
+        {
+            if (arg)
+                buf.writestring(arg.toErrMsg());
+        }
+        this.action = buf.extractSlice(true);
     }
 
     this(Loc loc, const(char)* fmt, VarDeclaration scopeVar, RootObject[] args)
