@@ -49,25 +49,39 @@ bool __equals(T1, T2, size_t N, size_t M)(scope ref T1[N] lhs, scope ref T2[M] r
 private
 bool isEqual(T1, T2)(scope T1[] lhs, scope T2[] rhs, size_t length)
 {
-    // Returns a reference to an array element, eliding bounds check and
-    // casting void to ubyte.
-    pragma(inline, true)
-    static ref at(T)(scope T[] r, size_t i) @trusted
+    static if (is(T1 == T2) &&
+               (__traits(isIntegral, T1) || is(T1 == char) || is(T1 == wchar) ||
+                is(T1 == dchar) || is(T1 == bool) || is(T1 == class)))
+    {
+        foreach (i; 0 .. length)
+        {
+            if (lhs.ptr[i] != rhs.ptr[i])
+                return false;
+        }
+        return true;
+    }
+    else
+    {
+        // Returns a reference to an array element, eliding bounds check and
+        // casting void to ubyte.
+        pragma(inline, true)
+        static ref at(T)(scope T[] r, size_t i) @trusted
         // exclude opaque structs due to https://issues.dlang.org/show_bug.cgi?id=20959
         if (!(is(T == struct) && !is(typeof(T.sizeof))))
-    {
-        static if (is(T == void))
-            return (cast(ubyte[]) r)[i];
-        else
-            return r[i];
-    }
+        {
+            static if (is(T == void))
+                return (cast(ubyte[]) r)[i];
+            else
+                return r[i];
+        }
 
-    foreach (const i; 0 .. length)
-    {
-        if (at(lhs, i) != at(rhs, i))
-            return false;
+        foreach (const i; 0 .. length)
+        {
+            if (at(lhs, i) != at(rhs, i))
+                return false;
+        }
+        return true;
     }
-    return true;
 }
 
 @safe unittest
