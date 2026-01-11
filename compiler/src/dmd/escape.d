@@ -817,7 +817,9 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
         // If va's lifetime encloses v's, then error
         if (va && !(vaIsFirstRef && v.isReturn()) && va.enclosesLifetimeOf(v))
         {
-            if (sc.setUnsafeDIP1000(gag, ae.loc, "assigning address of variable `%s` to `%s` with longer lifetime", v, va))
+            if (sc.hasEdition(Edition.v2024)
+                ? setUnsafe(&sc, gag, ae.loc, "assigning address of variable `%s` to `%s` with longer lifetime", v, va)
+                : sc.setUnsafeDIP1000(gag, ae.loc, "assigning address of variable `%s` to `%s` with longer lifetime", v, va))
             {
                 result = true;
                 return;
@@ -1218,7 +1220,18 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                 else
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=17029
-                    if (sc.setUnsafeDIP1000(gag, e.loc, "returning scope variable `%s`", v))
+                    if (sc.hasEdition(Edition.v2024))
+                    {
+			const char* format = (v.storage_class & STC.scopeinferred)
+				? "returning `%s` inferred as scope as it may leak a reference to the stack"
+				: "returning scope variable `%s` as it may leak a reference to the stack";
+                        if (setUnsafe(&sc, gag, e.loc, format, v))
+                        {
+                            result = true;
+                            return;
+                        }
+                    }
+                    else if (sc.setUnsafeDIP1000(gag, e.loc, "returning scope variable `%s`", v))
                     {
                         printScopeReason(previewSupplementalFunc(sc.isDeprecated(), sc.useDIP1000), v, 10, true);
                         result = true;
