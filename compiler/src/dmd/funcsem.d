@@ -3502,7 +3502,7 @@ bool needsClosure(FuncDeclaration fd)
      * is already set to `true` upon entering this function when the
      * struct/class refers to a local variable and a closure is needed.
      */
-    //printf("FuncDeclaration::needsClosure() %s\n", toPrettyChars());
+    //printf("FuncDeclaration::needsClosure() %s\n", fd.toPrettyChars());
 
     if (fd.requiresClosure)
         goto Lyes;
@@ -3517,46 +3517,9 @@ bool needsClosure(FuncDeclaration fd)
             FuncDeclaration f = v.nestedrefs[j];
             assert(f != fd);
 
-            /* __require and __ensure will always get called directly,
-             * so they never make outer functions closure.
-             */
-            if (f.ident == Id.require || f.ident == Id.ensure)
-                continue;
-
-            //printf("\t\tf = %p, %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f, f.toChars(), f.isVirtual(), f.isThis(), f.tookAddressOf);
-
-            /* Look to see if f escapes. We consider all parents of f within
-             * this, and also all siblings which call f; if any of them escape,
-             * so does f.
-             * Mark all affected functions as requiring closures.
-             */
-            for (Dsymbol s = f; s && s != fd; s = s.toParentP(fd))
+            if (needsClosureForNestedref(fd, f))
             {
-                FuncDeclaration fx = s.isFuncDeclaration();
-                if (!fx)
-                    continue;
-                if (fx.isThis() || fx.tookAddressOf)
-                {
-                    //printf("\t\tfx = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", fx.toChars(), fx.isVirtual(), fx.isThis(), fx.tookAddressOf);
-
-                    /* Mark as needing closure any functions between this and f
-                     */
-                    markAsNeedingClosure((fx == f) ? fx.toParentP(fd) : fx, fd);
-
-                    fd.requiresClosure = true;
-                }
-
-                /* We also need to check if any sibling functions that
-                 * called us, have escaped. This is recursive: we need
-                 * to check the callers of our siblings.
-                 */
-                if (checkEscapingSiblings(fx, fd))
-                    fd.requiresClosure = true;
-
-                /* https://issues.dlang.org/show_bug.cgi?id=12406
-                 * Iterate all closureVars to mark all descendant
-                 * nested functions that access to the closing context of this function.
-                 */
+                fd.requiresClosure = true;
             }
         }
     }
@@ -3567,6 +3530,55 @@ bool needsClosure(FuncDeclaration fd)
 
 Lyes:
     return true;
+}
+
+final bool needsClosureForNestedref(FuncDeclaration fd, FuncDeclaration f)
+{
+    bool result;
+    assert(f != fd);
+
+    /* __require and __ensure will always get called directly,
+     * so they never make outer functions closure.
+     */
+    if (f.ident == Id.require || f.ident == Id.ensure)
+        return false;
+
+    //printf("\t\tf = %p, %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f, f.toChars(), f.isVirtual(), f.isThis(), f.tookAddressOf);
+
+    /* Look to see if f escapes. We consider all parents of f within
+     * this, and also all siblings which call f; if any of them escape,
+     * so does f.
+     * Mark all affected functions as requiring closures.
+     */
+    for (Dsymbol s = f; s && s != fd; s = s.toParentP(fd))
+    {
+        FuncDeclaration fx = s.isFuncDeclaration();
+        if (!fx)
+            continue;
+        if (fx.isThis() || fx.tookAddressOf)
+        {
+            //printf("\t\tfx = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", fx.toChars(), fx.isVirtual(), fx.isThis(), fx.tookAddressOf);
+
+            /* Mark as needing closure any functions between this and f
+             */
+            markAsNeedingClosure((fx == f) ? fx.toParentP(fd) : fx, fd);
+
+            result = true;
+        }
+
+        /* We also need to check if any sibling functions that
+         * called us, have escaped. This is recursive: we need
+         * to check the callers of our siblings.
+         */
+        if (checkEscapingSiblings(fx, fd))
+            result = true;
+
+        /* https://issues.dlang.org/show_bug.cgi?id=12406
+         * Iterate all closureVars to mark all descendant
+         * nested functions that access to the closing context of this function.
+         */
+    }
+    return result;
 }
 
 /***********************************************
