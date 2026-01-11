@@ -2330,13 +2330,17 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
             if (errorHelper)
             {
                 if (u >= args.length)
+                {
                     getMatchError(buf, "missing argument for parameter #%d: `%s`",
                                   u + 1, parameterToChars(p, tf, false));
+                    errorHelper(buf.peekChars(),p.loc);
+                }
                 // If an error happened previously, `pMessage` was already filled
                 else if (buf.length == 0)
+                {
                     buf.writestring(tf.getParamError(args[u], p));
-
-                errorHelper(buf.peekChars(),args[u].loc);
+                    errorHelper(buf.peekChars(),args[u].loc);
+                }
             }
             return MATCH.nomatch;
         }
