@@ -603,7 +603,7 @@ final:
             // This signals that no code after this point in the current block is reachable.
             dfaCommon.currentDFAScope.haveJumped = true;
             dfaCommon.currentDFAScope.haveReturned = true;
-            analyzer.reporter.onEndOfScope(dfaCommon.currentFunction, exp.loc);
+            analyzer.reporter.onEndOfScope(dfaCommon.currentFunction, st.loc);
             break;
 
         case STMT.Compound:
@@ -895,6 +895,7 @@ final:
                 dfaCommon.currentDFAScope.inConditional = true;
                 dfaCommon.setScopeAsLoopyLabel;
 
+                if (theCondition !is null)
                 {
                     dfaCommon.printStructure((ref OutBuffer ob,
                             scope PrintPrefixType prefix) => ob.writestring("For condition:\n"));
@@ -909,6 +910,8 @@ final:
 
                     expWalker.seeAssert(lrCondition, theCondition.loc, true);
                 }
+                else
+                    dfaCommon.currentDFAScope.isLoopyLabelKnownToHaveRun = true;
 
                 dfaCommon.printStructure((ref OutBuffer ob,
                         scope PrintPrefixType prefix) => ob.writestring("For body:\n"));

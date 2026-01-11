@@ -275,6 +275,49 @@ unittest
     }
 }
 
+/**
+ * When an unmapped pointer is accessed this may be thrown via a signal handler.
+ */
+class InvalidPointerError : Error
+{
+    @safe pure nothrow @nogc this(string file, size_t line)
+    {
+        this(file, line, cast(Throwable)null);
+    }
+
+    @safe pure nothrow @nogc this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
+        this("Invalid pointer access", file, line, next);
+    }
+
+    @safe pure nothrow @nogc this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
+        super(msg, file, line, next);
+    }
+}
+
+/**
+ * Thrown when a null dereference may occur.
+ *
+ * Depends upon null dereference check, or a signal handler to throw.
+ */
+class NullPointerError : InvalidPointerError
+{
+    @safe pure nothrow @nogc this(string file, size_t line)
+    {
+        this(file, line, cast(Throwable)null);
+    }
+
+    @safe pure nothrow @nogc this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
+        this("Null pointer dereference", file, line, next);
+    }
+
+    @safe pure nothrow @nogc this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
+        super(msg, file, line, next);
+    }
+}
 
 /**
  * Thrown on finalize error.
@@ -532,6 +575,7 @@ private __gshared
 {
     AssertHandler _assertHandler = null;
     FilterThreadThrowableHandler _filterThreadThrowableHandler = null;
+    NullDerefHandler _nullDerefHandler = null;
 }
 
 
@@ -567,6 +611,23 @@ alias FilterThreadThrowableHandler = void function(ref Throwable) @system nothro
 @property void filterThreadThrowableHandler(FilterThreadThrowableHandler handler) @trusted nothrow @nogc
 {
     _filterThreadThrowableHandler = handler;
+}
+
+/**
+Gets/sets null dereference handler. null means the default handler is used.
+*/
+alias NullDerefHandler = void function(string file, size_t line) nothrow;
+
+/// ditto
+@property NullDerefHandler nullDerefHandler() @trusted nothrow @nogc
+{
+    return _nullDerefHandler;
+}
+
+/// ditto
+@property void nullDerefHandler(NullDerefHandler handler) @trusted nothrow @nogc
+{
+    _nullDerefHandler = handler;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -608,6 +669,21 @@ extern (C) void onAssertErrorMsg( string file, size_t line, string msg ) nothrow
     _assertHandler( file, line, msg );
 }
 
+/**
+ * A callback for null dereference errors in D.
+ * The user-supplied dereference handler will be called if one has been supplied,
+ * otherwise an $(LREF NullPointerError) will be thrown.
+ *
+ * Params:
+ *  file = The name of the file that signaled this error.
+ *  line = The line number on which this error occured.
+ */
+extern(C) void onNullPointerError(string file = __FILE__, size_t line = __LINE__) nothrow
+{
+    if (_nullDerefHandler is null)
+        throw staticError!NullPointerError(file, line);
+    _nullDerefHandler(file, line);
+}
 
 /**
  * A callback for unittest errors in D.  The user-supplied unittest handler
@@ -883,6 +959,12 @@ extern (C)
     void _d_arraybounds_index(string file, uint line, size_t index, size_t length)
     {
         onArrayIndexError(index, length, file, line);
+    }
+
+    void _d_nullpointerp(immutable(char*) file, uint line)
+    {
+        import core.stdc.string : strlen;
+        onNullPointerError(file[0 .. strlen(file)], line);
     }
 }
 
