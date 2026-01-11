@@ -20,16 +20,16 @@ mixin template mixinBar() {
 }
 
 static assert(cFoo.mangleof == "cFoo");
-static assert(dFoo.mangleof == "_D21mixinTemplateMangling8__mixin54dFooFZv");
+static assert(dFoo.mangleof == "_D21mixinTemplateMangling14__mixin_L15_C14dFooFZv");
 static assert(cVar.mangleof == "cVar");
-static assert(dVar.mangleof == "_D21mixinTemplateMangling8__mixin54dVari");
+static assert(dVar.mangleof == "_D21mixinTemplateMangling14__mixin_L15_C14dVari");
 static assert(cBar.mangleof == "cBar");
-static assert(dBar.mangleof == "_D21mixinTemplateMangling8__mixin5Qj4dBarFZv");
+static assert(dBar.mangleof == "_D21mixinTemplateMangling14__mixin_L15_C114__mixin_L12_C14dBarFZv");
 
 struct S {
     mixin mixinFoo;
-    static assert(cFoo.mangleof == "_D21mixinTemplateMangling1S8__mixin14cFooMUZv");
-    static assert(cBar.mangleof == "_D21mixinTemplateMangling1S8__mixin18__mixin54cBarMUZv");
-    static assert(dBar.mangleof == "_D21mixinTemplateMangling1S8__mixin18__mixin54dBarMFZv");
-    static assert(dFoo.mangleof == "_D21mixinTemplateMangling1S8__mixin14dFooMFZv");
+    static assert(cFoo.mangleof == "_D21mixinTemplateMangling1S14__mixin_L30_C54cFooMUZv");
+    static assert(cBar.mangleof == "_D21mixinTemplateMangling1S14__mixin_L30_C514__mixin_L12_C14cBarMUZv");
+    static assert(dBar.mangleof == "_D21mixinTemplateMangling1S14__mixin_L30_C514__mixin_L12_C14dBarMFZv");
+    static assert(dFoo.mangleof == "_D21mixinTemplateMangling1S14__mixin_L30_C54dFooMFZv");
 }
