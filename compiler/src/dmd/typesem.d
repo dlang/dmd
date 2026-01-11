@@ -2165,7 +2165,7 @@ extern(D) Expressions* resolveNamedArgs(TypeFunction tf, ArgumentList argumentLi
  *      MATCHxxxx
  */
 extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, ArgumentList argumentList,
-        int flag = 0, void delegate(const(char)*) scope errorHelper = null, Scope* sc = null)
+        int flag = 0, void delegate(const(char)*, Loc = Loc.initial) scope errorHelper = null, Scope* sc = null)
 {
     //printf("callMatch() fd: %s, tf: %s\n", fd ? fd.ident.toChars() : "null", toChars(tf));
     MATCH match = MATCH.exact; // assume exact match
@@ -2324,7 +2324,7 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
                     return vmatch < match ? vmatch : match;
                 // Error message was already generated in `matchTypeSafeVarArgs`
                 if (failMessage)
-                    errorHelper(failMessage);
+                    errorHelper(failMessage,args[u].loc);
                 return MATCH.nomatch;
             }
             if (errorHelper)
@@ -2336,7 +2336,7 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
                 else if (buf.length == 0)
                     buf.writestring(tf.getParamError(args[u], p));
 
-                errorHelper(buf.peekChars());
+                errorHelper(buf.peekChars(),args[u].loc);
             }
             return MATCH.nomatch;
         }
