@@ -15968,7 +15968,10 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
             if (s.isPackage())
                 error(exp.loc, "undefined identifier `%s` in %s `%s`, perhaps add `static import %s;`", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.toPrettyChars());
             else
+            {
                 error(exp.loc, "undefined identifier `%s` in %s `%s`, did you mean %s `%s`?", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.kind(), s.toChars());
+                errorSupplemental(s.loc, "`%s` located here", s.toPrettyChars(true));
+            }
         }
         else
             error(exp.loc, "undefined identifier `%s` in %s `%s`", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars());
