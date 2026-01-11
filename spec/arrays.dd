@@ -83,7 +83,8 @@ int* p;
         )
 
         $(BEST_PRACTICE Most conventional uses for pointers can be replaced with
-        dynamic arrays, $(D ref) and $(D out) $(DDSUBLINK spec/function, parameters, parameters),
+        dynamic arrays, $(DDSUBLINK spec/declaration, ref-storage, `ref` declarations),
+        $(DDSUBLINK spec/function, ref-params, `out` parameters),
         and reference types.
         )
 

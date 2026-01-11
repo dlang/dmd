@@ -863,7 +863,7 @@ $(H4 $(LNAME2 ref-variables, `ref` Variables))
 
         $(P From version 2.111, `ref` can be used to declare local, static, extern, and global variables.)
 
-$(COMMENT SPEC_RUNNABLE_EXAMPLE_RUN)
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 struct S { int a; }
 
@@ -875,13 +875,14 @@ void main()
     assert(s.a == 3);
 }
 ---
+)
 
         $(BEST_PRACTICE Use a `ref` variable instead of a pointer when pointer
         arithmetic is not needed.)
 
         $(P `auto ref` can also be used to declare local, static, extern, and global variables.)
 
-$(COMMENT SPEC_RUNNABLE_EXAMPLE_COMPILE)
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void f()
 {
@@ -891,6 +892,7 @@ void f()
     static assert( __traits(isRef, y));
 }
 ---
+)
 
         $(P See also: $(DDSUBLINK spec/template, auto-ref-parameters, `auto ref`)
         template function parameters.)
