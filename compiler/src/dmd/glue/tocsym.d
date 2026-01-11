@@ -104,6 +104,7 @@ Symbol* toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type* t, const(cha
 }
 
 /*************************************
+ * Convert D symbol to backend symbol.
  */
 
 Symbol* toSymbol(Dsymbol s)
@@ -551,6 +552,27 @@ Symbol* toSymbol(Dsymbol s)
     return v.result;
 }
 
+/*************************************
+ * Convert D symbol to backend symbol.
+ * Unlike toSymbol, this function also resolves
+ * NRVO variables to the hidden pointer.
+ */
+Symbol* toSymbolNRVO(Dsymbol s)
+{
+    if (auto parent = s.toParent2())
+    {
+        auto fd = parent.isFuncDeclaration();
+        auto var = s.isVarDeclaration();
+        bool nrvo = fd && var && (fd.isNRVO && fd.nrvo_var == var || var.nrvo && fd.shidden);
+
+        if (nrvo)
+        {
+            return cast(Symbol*)fd.shidden;
+        }
+    }
+
+    return toSymbol(s);
+}
 
 /*************************************
  * Create Windows import symbol from backend Symbol.

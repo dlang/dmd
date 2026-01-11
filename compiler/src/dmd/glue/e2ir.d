@@ -704,7 +704,7 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
             }
         }
 
-        Symbol* s = toSymbol(se.var);
+        Symbol* s = toSymbolNRVO(se.var);
 
         // VarExp generated for `__traits(initSymbol, Aggregate)`?
         if (auto symDec = se.var.isSymbolDeclaration())
@@ -731,9 +731,7 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
         if (se.var.toParent2())
             fd = se.var.toParent2().isFuncDeclaration();
 
-        const bool nrvo = fd && (fd.isNRVO && fd.nrvo_var == se.var || se.var.nrvo && fd.shidden);
-        if (nrvo)
-            s = cast(Symbol*)fd.shidden;
+        const bool nrvo = fd && s == fd.shidden;
 
         if (s.Sclass == SC.auto_ || s.Sclass == SC.parameter || s.Sclass == SC.shadowreg)
         {
@@ -2658,14 +2656,11 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
                 {
                     auto dve = cast(DotVarExp)ce.e1;
                     auto fd = dve.var.isFuncDeclaration();
-                    if (fd && fd.isCtorDeclaration())
+                    auto sle = dve.e1.isStructLiteralExp();
+                    if (fd && fd.isCtorDeclaration() && sle)
                     {
-                        if (auto sle = dve.e1.isStructLiteralExp())
-                        {
-                            sle.sym = toSymbol((cast(VarExp)ae.e1).var);
-                            elem* e = toElem(ae.e2, irs);
-                            return setResult2(e);
-                        }
+                        elem* e = toElem(ae.e2, irs, e1);
+                        return setResult2(e);
                     }
                 }
             }
@@ -3202,15 +3197,17 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
         auto ctfecond = ce.econd.op == EXP.not ? (cast(NotExp)ce.econd).e1 : ce.econd;
         if (auto ve = ctfecond.isVarExp())
             if (ve.var && ve.var.ident == Id.ctfe)
-                return toElem(ctfecond is ce.econd ? ce.e2 : ce.e1, irs);
+                return toElem(ctfecond is ce.econd ? ce.e2 : ce.e1, irs, ehidden);
 
         elem* ec = toElem(ce.econd, irs);
 
-        elem* eleft = toElem(ce.e1, irs);
+        elem* eleft = toElem(ce.e1, irs, ehidden);
         if (irs.params.cov && ce.e1.loc.linnum)
             eleft = el_combine(incUsageElem(irs, ce.e1.loc), eleft);
 
-        elem* eright = toElem(ce.e2, irs);
+        if (ehidden)
+            ehidden = el_copytree(ehidden);
+        elem* eright = toElem(ce.e2, irs, ehidden);
         if (irs.params.cov && ce.e2.loc.linnum)
             eright = el_combine(incUsageElem(irs, ce.e2.loc), eright);
 
@@ -4241,6 +4238,85 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
     {
         //printf("ClassReferenceExp.toElem() %p, value=%p, %s\n", e, e.value, e.toChars());
         return el_ptr(toSymbol(e));
+    }
+
+    /*****************************************************/
+    /*                 RVO special cases                 */
+    /*****************************************************/
+
+    elem* moveToHiddenPtr(Expression e)
+    {
+        // Generate (*ehidden=e, ehidden)
+        elem* el = toElem(e, irs);
+        elem* ea = elAssign(el_una(OPind, el.Ety, ehidden), el, e.type, null);
+        return el_combine(ea, el_copytree(ehidden));
+    }
+
+    elem* doCallRVO(CallExp e)
+    {
+        FuncDeclaration fd;
+
+        if (auto dve = e.e1.isDotVarExp())
+        {
+            fd = dve.var.isFuncDeclaration();
+            auto sle = dve.e1.isStructLiteralExp();
+            if (fd && fd.isCtorDeclaration() && sle)
+            {
+                assert(ehidden.Eoper == OPvar);
+                sle.sym = ehidden.Vsym;
+                return toElem(e, irs);
+            }
+        }
+        else
+        {
+            fd = e.f;
+        }
+
+        // If fd is eligible for RVO, invoke visitCall directly to pick up ehidden
+        Type t = e.e1.type.toBasetype();
+        if (t.ty == Tdelegate)
+            t = t.nextOf();
+        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, fd && fd.needThis()) == RET.stack)
+            return visitCall(e);
+
+        // The return value is passed in registers
+        return moveToHiddenPtr(e);
+    }
+
+    elem* doVariableRVO(VarExp e)
+    {
+        // Replace e with ehidden if e.var is already the hidden variable
+        if (ehidden.Eoper == OPvar && ehidden.Vsym == toSymbolNRVO(e.var))
+        {
+            return ehidden;
+        }
+
+        // Otherwise a move is inevitable
+        return moveToHiddenPtr(e);
+    }
+
+    elem* doStructLiteralRVO(StructLiteralExp e)
+    {
+        // Patch e.sym and proceed as if there is no RVO
+        assert(ehidden.Eoper == OPvar);
+        e.sym = ehidden.Vsym;
+        return toElem(e, irs);
+    }
+
+    if (ehidden)
+    {
+        // Catch unhandled RVO cases
+        // Please keep in sync with dmd.expressionsem.canElideCopy()
+        switch (e.op)
+        {
+            case EXP.comma:         return visitComma(e.isCommaExp());
+            case EXP.question:      return visitCond(e.isCondExp());
+            case EXP.call:          return doCallRVO(e.isCallExp());
+            case EXP.variable:      return doVariableRVO(e.isVarExp());
+            case EXP.dotVariable:   return moveToHiddenPtr(e);
+            case EXP.structLiteral: return doStructLiteralRVO(e.isStructLiteralExp());
+            default:                assert(0);
+        }
     }
 
     switch (e.op)
