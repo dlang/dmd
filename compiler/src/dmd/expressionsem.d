@@ -761,6 +761,10 @@ bool isLvalue(Expression _this)
  * Determine if copy elision is allowed when copying an expression to
  * a typed storage. This basically elides a restricted subset of so-called
  * "pure" rvalues, i.e. expressions with no reference semantics.
+ *
+ * Note: Please try to keep `dmd.glue.e2ir.toElem()` in sync with this.
+ * It is not destructive to fail to elide a copy, but it is always better
+ * to stay consistent.
  */
 bool canElideCopy(Expression e, Type to, bool checkMod = true)
 {
