@@ -62,3 +62,5 @@ untracked_files/
 # Just in case
 /dmd
 .DS_Store
+/compiler/src/vcbuild/*.filters
+/compiler/src/vcbuild/*.sources
