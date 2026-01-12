@@ -465,7 +465,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     scope (exit) timeTraceEndEvent(TimeTraceEventType.codegenFunction, fd);
 
     if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration()
-        && !(fd.isCrtCtor || fd.isCrtDtor))
+        && !(fd.isCrtCtor || fd.isCrtDtor) && !(fd.storage_class & STC.static_ && fd.isCsymbol()))
     {
         obj_append(fd);
         return;

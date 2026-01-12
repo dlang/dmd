@@ -575,50 +575,16 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
         if (fd.fbody)                   // fd is the definition
         {
             if (log) printf(" replace existing with new\n");
-
-            /* transfer definition to the declaration
-             * for internal resolution for static library
-             * only if they're already matching
-             */
-
-            if (fd.storage_class & STC.static_ &&
-                fd2.storage_class & STC.static_ )
-            {
-                fd.type = typeSemantic(fd.type, fd.loc, &sc);
-                fd2.type = typeSemantic(fd2.type, fd2.loc, &sc);
-
-                auto tfunc1 = fd.type.isTypeFunction();
-                auto tfunc2 = fd2.type.isTypeFunction();
-
-                if ( !cTypeEquivalence(tfunc1.next, tfunc2.next) || !cFuncEquivalence(tfunc1, tfunc2))
-                {
-                    .error(fd.loc, "%s `%s` redeclaration with different type", fd.kind, fd.toPrettyChars);
-                }
-
-                fd2.fbody = fd.fbody;
-                fd.fbody = null;
-
-                fd2.type = fd.type;
-                fd2.parameters = fd.parameters;
-                fd2._linkage = fd._linkage;
-                fd2.storage_class |= fd.storage_class;
-
-                fd.storage_class |= STC.disable; // disable previous definition for backend
-            }
-            else
-            {
-                sds.symtab.update(fd);
-            }
-
+            sds.symtab.update(fd);  // replace fd2 in symbol table with fd
             fd.overnext = fd2;
 
             /* If fd2 is covering a tag symbol, then fd has to cover the same one
              */
             auto ps = cast(void*)fd2 in sc._module.tagSymTab;
             if (ps)
-                sc._module.tagSymTab[cast(void*)fd2] = *ps;
+                sc._module.tagSymTab[cast(void*)fd] = *ps;
 
-            return fd2;
+            return fd;
         }
 
         /* Just like with VarDeclaration, the types should match, which needs semantic() to be run on it.
