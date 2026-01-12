@@ -2324,7 +2324,7 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
                     return vmatch < match ? vmatch : match;
                 // Error message was already generated in `matchTypeSafeVarArgs`
                 if (failMessage)
-                    errorHelper(failMessage,args[u].loc);
+                    errorHelper(failMessage);
                 return MATCH.nomatch;
             }
             if (errorHelper)
@@ -2333,7 +2333,7 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
                 {
                     getMatchError(buf, "missing argument for parameter #%d: `%s`",
                                   u + 1, parameterToChars(p, tf, false));
-                    errorHelper(buf.peekChars(),p.loc);
+                    errorHelper(buf.peekChars());
                 }
                 // If an error happened previously, `pMessage` was already filled
                 else if (buf.length == 0)
