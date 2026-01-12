@@ -22,7 +22,6 @@ import dmd.ctorflow;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmodule;
-import dmd.doc;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
@@ -190,7 +189,7 @@ extern (C++) struct Scope
     // user defined attributes
     UserAttributeDeclaration userAttribDecl;
 
-    DocComment* lastdc;        /// documentation comment for last symbol at this scope
+    void* lastdc;              /// documentation comment for last symbol at this scope (DocComment*)
     uint[void*] anchorCounts;  /// lookup duplicate anchor name count
     Identifier prevAnchor;     /// qualified symbol name of last doc anchor
 
