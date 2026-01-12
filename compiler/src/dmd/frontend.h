@@ -6929,7 +6929,7 @@ public:
     Array<Identifier* >* versionids;
     Array<Identifier* >* versionidsNot;
     MacroTable macrotable;
-    Escape* _escapetable;
+    void* _escapetable;
     size_t nameoffset;
     size_t namelen;
     static Module* create(const char* filename, Identifier* ident, int32_t doDocComment, int32_t doHdrGen);
