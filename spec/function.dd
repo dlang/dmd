@@ -3991,6 +3991,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
             * Pointers/reference types
             * Types with invariants
             * Unsafe values
+        $(LI Cannot use $(GLINK2 expression, RvalueExpression).)
         )
 
         $(NOTE When indexing or slicing an array, an out of bounds access
