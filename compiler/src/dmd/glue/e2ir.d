@@ -2653,15 +2653,6 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
                 return setResult2(e);
             }
 
-            /* Implement:
-             *  S struct = func()
-             */
-            if (ae.op == EXP.construct && canElideCopy(ae.e2, ae.e1.type, false))
-            {
-                elem* e = toElem(ae.e2, irs, e1);
-                return setResult2(e);
-            }
-
             //printf("toElemBin() '%s'\n", ae.toChars());
 
             if (auto sle = ae.e2.isStructLiteralExp())
@@ -2707,6 +2698,15 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
             }
 
             /* Implement:
+             *  S struct = func()
+             */
+            if (ae.op == EXP.construct && canElideCopy(ae.e2, ae.e1.type, false))
+            {
+                elem* e = toElem(ae.e2, irs, e1);
+                return setResult2(e);
+            }
+
+            /* Implement:
              *  (struct = struct)
              */
             elem* e2 = toElem(ae.e2, irs);
@@ -2734,15 +2734,6 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
                 elem* e = el_param(enbytes, evalue);
                 e = el_bin(OPmemset,TYnptr,el,e);
                 e = el_combine(ey, e);
-                return setResult2(e);
-            }
-
-            /* Implement:
-             *  S[n] sarray = func()
-             */
-            if (ae.op == EXP.construct && canElideCopy(ae.e2, ae.e1.type, false))
-            {
-                elem* e = toElem(ae.e2, irs, e1);
                 return setResult2(e);
             }
 
@@ -2801,6 +2792,15 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
                     elem* e = el_bin(OPeq, e2.Ety, e1, e2);
                     return setResult2(e);
                 }
+            }
+
+            /* Implement:
+             *  S[n] sarray = func()
+             */
+            if (ae.op == EXP.construct && canElideCopy(ae.e2, ae.e1.type, false))
+            {
+                elem* e = toElem(ae.e2, irs, e1);
+                return setResult2(e);
             }
 
             /* https://issues.dlang.org/show_bug.cgi?id=13661
