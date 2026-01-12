@@ -53,6 +53,17 @@ import dmd.root.utf;
 import dmd.tokens;
 import dmd.visitor;
 
+
+/** Lazily initializes and returns the escape table.
+Turns out it eats a lot of memory.
+*/
+Escape* escapetable(Module _this) nothrow
+{
+    if (!_this._escapetable)
+        _this._escapetable = new Escape();
+    return cast(Escape*) _this._escapetable;
+}
+
 /****************************************************
  * Generate Ddoc text for Module `m` and append it to `outbuf`.
  * Params:

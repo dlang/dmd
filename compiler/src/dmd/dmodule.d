@@ -26,7 +26,6 @@ import dmd.compiler;
 import dmd.cparse;
 import dmd.declaration;
 import dmd.dmacro;
-import dmd.doc;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
@@ -394,7 +393,7 @@ extern (C++) final class Module : Package
     Identifiers* versionidsNot; // forward referenced version identifiers
 
     MacroTable macrotable;      // document comment macros
-    Escape* _escapetable;       // document comment escapes
+    void* _escapetable;         // document comment escapes (Escape*)
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
@@ -1020,15 +1019,6 @@ extern (C++) final class Module : Package
         }
     }
 
-    /** Lazily initializes and returns the escape table.
-    Turns out it eats a lot of memory.
-    */
-    extern(D) Escape* escapetable() nothrow
-    {
-        if (!_escapetable)
-            _escapetable = new Escape();
-        return _escapetable;
-    }
 }
 
 /***********************************************************
