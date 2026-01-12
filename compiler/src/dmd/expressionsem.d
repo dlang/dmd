@@ -5301,7 +5301,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         setError();
     }
 
-    void setOpOverloadAssign(Expression e)
+    // `e` calls opAssign, opOpAssign, opUnary!++, opUnary!-- when lowered from an assignment
+    private void setOpOverloadAssign(Expression e)
     {
         result = e;
         auto ce = e.isCallExp();
