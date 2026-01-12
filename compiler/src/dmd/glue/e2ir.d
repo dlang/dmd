@@ -4345,6 +4345,7 @@ private:
  */
 elem* Dsymbol_toElem(Dsymbol s, ref IRState irs)
 {
+    //printf("Dsymbol_toElem() %s\n", s.toChars());
     elem* e = null;
 
     void symbolDg(Dsymbol s)
@@ -4352,7 +4353,6 @@ elem* Dsymbol_toElem(Dsymbol s, ref IRState irs)
         e = el_combine(e, Dsymbol_toElem(s, irs));
     }
 
-    //printf("Dsymbol_toElem() %s\n", s.toChars());
     if (auto vd = s.isVarDeclaration())
     {
         s = s.toAlias();
@@ -6860,8 +6860,15 @@ elem* appendDtors(ref IRState irs, elem* er, size_t starti, size_t endi)
         e.ET = erx.ET;
         *pe = e;
     }
+    else if (erx.Eoper == OPinfo)
+    {
+        *pe = el_combine(erx, edtors);
+    }
     else
     {
+        //printf("el_copytotmp()\n");
+        //printf("erx:\n");    elem_print(erx);
+        //printf("edtors:\n"); elem_print(edtors);
         elem* e = el_copytotmp(erx);
         erx = el_combine(erx, edtors);
         *pe = el_combine(erx, e);
