@@ -1391,11 +1391,11 @@ void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
         {
             if (s && sc.lastdc && isDitto(com))
             {
-                sc.lastdc.a.push(s);
+                (cast(DocComment*) sc.lastdc).a.push(s);
                 return;
             }
             // Put previous doc comment if exists
-            if (DocComment* dc = sc.lastdc)
+            if (auto dc = cast(DocComment*) sc.lastdc)
             {
                 assert(dc.a.length > 0, "Expects at least one declaration for a" ~
                     "documentation comment");

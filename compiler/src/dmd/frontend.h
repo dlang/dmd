@@ -7044,7 +7044,7 @@ public:
     bool explicitVisibility(bool v);
     Previews previews;
     UserAttributeDeclaration* userAttribDecl;
-    DocComment* lastdc;
+    void* lastdc;
     void* anchorCounts;
     Identifier* prevAnchor;
     AliasDeclaration* aliasAsg;
