@@ -1414,6 +1414,22 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
             }
         }
 
+        // enforce the element type only if the dimensions match, otherwise the value
+        // might be used as an initializer for the whole array at another dimension
+        Type isTypeArray(Type tn)
+        {
+            auto ty = tn ? tn.ty : Tnone;
+            return ty == Tarray || ty == Tsarray || ty == Taarray || ty == Tvector ? tn : null;
+        }
+        Type tnext = isTypeArray(itype);
+        auto initn = init;
+        while (tnext && initn)
+        {
+            tnext = isTypeArray(tnext.nextOf());
+            initn = initn.value.length ? initn.value[0].isArrayInitializer() : null;
+        }
+        Type telem = itype && !tnext && !initn ? itype.nextOf() : null;
+
         auto elements = new Expressions(edim);
         elements.zero();
         size_t j = 0;
@@ -1424,7 +1440,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
             assert(j < edim);
             if (Initializer iz = init.value[i])
             {
-                if (Expression ex = iz.initializerToExpression(null, isCfile))
+                if (Expression ex = iz.initializerToExpression(telem, isCfile))
                 {
                     (*elements)[j] = ex;
                     ++j;
