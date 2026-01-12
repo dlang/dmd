@@ -123,7 +123,6 @@ struct IntRange;
 struct ModuleDeclaration;
 template <typename Datum>
 struct FileMapping;
-struct Escape;
 class LabelStatement;
 class SwitchStatement;
 class Statement;
