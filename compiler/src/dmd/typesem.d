@@ -4919,7 +4919,7 @@ Expression defaultInitLiteral(Type t, Loc loc)
             return ErrorExp.get();
 
         auto structelems = new Expressions(ts.sym.nonHiddenFields());
-        uint offset = 0;
+        ulong bitoffset = 0;
         foreach (j; 0 .. structelems.length)
         {
             VarDeclaration vd = ts.sym.fields[j];
@@ -4929,7 +4929,11 @@ Expression defaultInitLiteral(Type t, Loc loc)
                 error(loc, "circular reference to `%s`", vd.toPrettyChars());
                 return ErrorExp.get();
             }
-            if (vd.offset < offset || vd.type.size() == 0)
+            ulong vbitoffset = vd.offset * 8;
+            auto vbf = vd.isBitFieldDeclaration();
+            if (vbf)
+                vbitoffset += vbf.bitOffset;
+            if (vbitoffset < bitoffset || vd.type.size() == 0)
                 e = null;
             else if (vd._init)
             {
@@ -4943,7 +4947,12 @@ Expression defaultInitLiteral(Type t, Loc loc)
             if (e && e.op == EXP.error)
                 return e;
             if (e)
-                offset = vd.offset + cast(uint)vd.type.size();
+            {
+                if (vbf)
+                    bitoffset = vbitoffset + vbf.fieldWidth;
+                else
+                    bitoffset = vbitoffset + vd.type.size() * 8;
+            }
             (*structelems)[j] = e;
         }
         auto structinit = new StructLiteralExp(loc, ts.sym, structelems);
