@@ -123,14 +123,12 @@ struct IntRange;
 struct ModuleDeclaration;
 template <typename Datum>
 struct FileMapping;
-struct Escape;
 class LabelStatement;
 class SwitchStatement;
 class Statement;
 class TryFinallyStatement;
 class ScopeGuardStatement;
 class ErrorSink;
-struct DocComment;
 class WithStatement;
 struct AA;
 class CaseStatement;
@@ -6929,7 +6927,7 @@ public:
     Array<Identifier* >* versionids;
     Array<Identifier* >* versionidsNot;
     MacroTable macrotable;
-    Escape* _escapetable;
+    void* _escapetable;
     size_t nameoffset;
     size_t namelen;
     static Module* create(const char* filename, Identifier* ident, int32_t doDocComment, int32_t doHdrGen);
@@ -7089,7 +7087,7 @@ public:
         argStruct()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, uint16_t bitFields2 = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, uint16_t bitFields2 = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, void* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),

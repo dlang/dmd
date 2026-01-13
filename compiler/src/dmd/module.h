@@ -108,7 +108,7 @@ public:
     Identifiers *versionidsNot; // forward referenced version identifiers
 
     MacroTable macrotable;      // document comment macros
-    Escape *escapetable;        // document comment escapes
+    void *escapetable;          // document comment escapes (Escape*)
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
