@@ -8251,7 +8251,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            void errorHelper(const(char)* failMessage) scope
+            void errorHelper(const(char)* failMessage, Loc argLoc = Loc.initial) scope
             {
                 OutBuffer buf;
                 buf.writeByte('(');
@@ -8264,7 +8264,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 .error(exp.loc, "%s `%s` is not callable using argument types `%s`",
                     p, exp.e1.toErrMsg(), buf.peekChars());
                 if (failMessage)
-                    errorSupplemental(exp.loc, "%s", failMessage);
+                {
+                    // Point to the specific argument that caused the error otherwise use the function call location
+                    errorSupplemental(argLoc != Loc.initial ? argLoc : exp.loc, "%s", failMessage);
+                }
             }
 
             if (callMatch(exp.f, tf, null, exp.argumentList, 0, &errorHelper, sc) == MATCH.nomatch)
@@ -8327,7 +8330,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
 
-                void errorHelper2(const(char)* failMessage) scope
+                void errorHelper2(const(char)* failMessage, Loc argLoc = Loc.initial) scope
                 {
                     OutBuffer buf;
                     buf.writeByte('(');
@@ -8345,7 +8348,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     .error(exp.loc, "%s `%s` is not callable using argument types `%s`",
                         exp.f.kind(), exp.f.toErrMsg(), buf.peekChars());
                     if (failMessage)
-                        errorSupplemental(exp.loc, "%s", failMessage);
+                    {
+                        // Point to the specific argument that caused the error otherwise use the function call location
+                        errorSupplemental(argLoc != Loc.initial ? argLoc : exp.loc, "%s", failMessage);
+                    }
                     .errorSupplemental(exp.f.loc, "`%s%s` declared here", exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList));
                     exp.f = null;
                 }
