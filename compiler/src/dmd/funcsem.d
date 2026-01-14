@@ -1908,15 +1908,12 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
         }
 
         bool calledHelper;
-        void errorHelper(const(char)* failMessage, Loc argloc) scope
+        void errorHelper(const(char)* failMessage, Loc argloc = Loc.initial) scope
         {
             .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
                    fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
                    tf.modToChars(), fargsBuf.peekChars());
-            if(argloc == Loc.initial)
-                errorSupplemental(loc, failMessage);
-            else
-                errorSupplemental(argloc, failMessage);
+            errorSupplemental(loc, failMessage);
             calledHelper = true;
         }
 
@@ -1984,12 +1981,9 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
         }
     }
 
-    void errorHelper2(const(char)* failMessage, Loc argloc) scope
+    void errorHelper2(const(char)* failMessage, Loc argloc = Loc.initial) scope
     {
-        if(argloc == Loc.initial)
-            errorSupplemental(loc, failMessage);
-        else
-            errorSupplemental(argloc, failMessage);
+        errorSupplemental(loc, failMessage);
     }
 
     functionResolve(m, orig_s, loc, sc, tiargs, tthis, argumentList, &errorHelper2);
