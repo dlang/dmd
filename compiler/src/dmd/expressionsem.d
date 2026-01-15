@@ -8264,7 +8264,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 .error(exp.loc, "%s `%s` is not callable using argument types `%s`",
                     p, exp.e1.toErrMsg(), buf.peekChars());
                 if (failMessage)
-                    errorSupplemental(exp.loc, "%s", failMessage);
+                    errorSupplemental((argloc !is Loc.initial) ? argloc : exp.loc, "%s", failMessage);
             }
 
             if (callMatch(exp.f, tf, null, exp.argumentList, 0, &errorHelper, sc) == MATCH.nomatch)
