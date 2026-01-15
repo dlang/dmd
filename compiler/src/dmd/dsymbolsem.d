@@ -3195,7 +3195,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!dsym.type.isIntegral())
         {
             // C11 6.7.2.1-5
-            error(width.loc, "bitfield type `%s` is not an integer type", dsym.type.toChars());
+            error(dsym.loc, "bitfield type `%s` is not an integer type", dsym.type.toChars());
             dsym.errors = true;
         }
         if (!width.isIntegerExp())
