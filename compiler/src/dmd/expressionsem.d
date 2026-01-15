@@ -8345,7 +8345,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     .error(exp.loc, "%s `%s` is not callable using argument types `%s`",
                         exp.f.kind(), exp.f.toErrMsg(), buf.peekChars());
                     if (failMessage)
-                        errorSupplemental((argloc !is Loc.initial) ? argloc : exp.loc, "%s",  failMessage);
+                        errorSupplemental((argloc !is Loc.initial) ? argloc : exp.loc, "%s", failMessage);
                     .errorSupplemental(exp.f.loc, "`%s%s` declared here", exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList));
                     exp.f = null;
                 }
