@@ -1597,29 +1597,18 @@ void assignaddrc(code* c)
                     //printf("fix ESP\n");
                     if (cgstate.hasframe)
                     {
-                        // LEA ESP,-EBPtoESP[EBP]
-                        c.Iop = LEA;
-                        if (c.Irm & 8)
-                            c.Irex |= REX_R;
-                        c.Irm = modregrm(2,SP,BP);
-                        c.Iflags = CFoff;
-                        c.IFL1 = FL.const_;
-                        c.IEV1.Vuns = -cgstate.EBPtoESP;
+                        c.Iop = INSTR.sub_addsub_imm(1,0,cgstate.EBPtoESP,INSTR.SP,BP); // SUB SP,BP,#EBPtoESP
                         if (cgstate.enforcealign)
                         {
-                            // AND ESP, -STACKALIGN
                             code* cn = code_calloc();
-                            cn.Iop = 0x81;
-                            cn.Irm = modregrm(3, 4, SP);
-                            cn.Iflags = CFoff;
-                            cn.IFL2 = FL.const_;
-                            cn.IEV2.Vsize_t = -STACKALIGN;
-                            if (I64)
-                                c.Irex |= REX_W;
+
+                            uint N,immr,imms;
+                            assert(encodeNImmrImms(-cast(long)STACKALIGN,N,immr,imms));
+                            cn.Iop = INSTR.log_imm(1,0,N,immr,imms,SP,SP);      // AND SP,SP,#-STACKALIGN
+
                             cn.next = c.next;
                             c.next = cn;
                         }
-                        assert(0); // TODO AArch64
                     }
                     continue;
 
