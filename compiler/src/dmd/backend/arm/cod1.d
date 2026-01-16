@@ -640,8 +640,8 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
     tym_t e1ty;
     Symbol* s;
 
-    printf("getlvalue(e = %p, keepmsk = %s)\n", e, regm_str(keepmsk));
-    elem_print(e);
+    //printf("getlvalue(e = %p, keepmsk = %s)\n", e, regm_str(keepmsk));
+    //elem_print(e);
     assert(e);
     elem_debug(e);
     if (e.Eoper == OPvar || e.Eoper == OPrelconst)
@@ -1862,7 +1862,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         Parameter* p = &parameters[i];
         elem* ep = p.e;
         reg_t preg = p.reg;
-        printf("\nparameter[%d]: %s\n", i, regm_str(mask(preg)));
+        //printf("\nparameter[%d]: %s\n", i, regm_str(mask(preg)));
         if (preg == NOREG)
         {
             //elem_print(ep);

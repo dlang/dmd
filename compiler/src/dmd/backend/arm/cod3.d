@@ -1563,7 +1563,7 @@ bool orr_solution(ulong value, out uint N, out uint immr, out uint imms)
 @trusted
 void assignaddrc(code* c)
 {
-    printf("assignaddrc()\n");
+    //printf("assignaddrc()\n");
     int sn;
     Symbol* s;
     ubyte rm;
@@ -1653,7 +1653,7 @@ void assignaddrc(code* c)
         s = c.IEV1.Vsym;
         uint sz = 8;
         uint ins = c.Iop;
-        if (c.IFL1 != FL.unde)
+        if (0 && c.IFL1 != FL.unde)
         {
             printf("FL: %-8s ", fl_str(c.IFL1));
             disassemble(ins);

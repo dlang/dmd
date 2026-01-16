@@ -990,6 +990,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass* bc)
 {
     //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
     uint csymoffset = target.classinfosize;    // must be ClassInfo.size
+    //printf("target.classinfosize: %d\n", csymoffset);
     csymoffset += cd.vtblInterfaces.length * (4 * target.ptrsize);
 
     for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
