@@ -8398,8 +8398,8 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             ad.structsize, ad.alignsize,
             isunion);
 
-        //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
-        //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad.toChars(), offset, memsize);
+        //printf("\t%s: memalignsize = %d\n", vd.toChars(), memalignsize);
+        //printf(" addField '%s' to '%s' at offset %d, size = %d\n", vd.toChars(), ad.toChars(), fieldState.offset, memsize);
     }
 
     override void visit(BitFieldDeclaration bfd)

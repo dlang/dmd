@@ -457,6 +457,8 @@ extern (C++) struct Target
         if (isLP64 || isAArch64)
         {
             ptrsize = 8;
+            /* This is affected by version WithArgTypes in object.d
+             */
             classinfosize = 0x98+16; // 168
         }
 

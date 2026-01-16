@@ -97,7 +97,8 @@ else version (X86_64)
 else version (AArch64)
 {
     // Apple uses a trivial varargs implementation
-    version (OSX) {}
+    version (DigitalMars) version = WithArgTypes; // is this needed?
+    else version (OSX) {}
     else version (iOS) {}
     else version (TVOS) {}
     else version (WatchOS) {}
