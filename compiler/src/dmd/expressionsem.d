@@ -4187,6 +4187,10 @@ private bool functionParameters(Loc loc, Scope* sc,
             arg = arg.resolveLoc(loc, sc);
             (*arguments)[i] = arg;
         }
+        else if (!(p.storageClass & (STC.ref_ | STC.out_)))
+        {
+            (*arguments)[i] = checkNoreturnVarAccess(arg);
+        }
 
         if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nparams) // https://dlang.org/spec/function.html#variadic
         {
