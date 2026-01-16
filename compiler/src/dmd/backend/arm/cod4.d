@@ -1431,7 +1431,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 
             regm_t retregs = pretregs & cg.allregs;
             if (retregs == 0)
-                retregs = ALLREGS & cgstate.allregs;
+                retregs = INSTR.ALLREGS & cgstate.allregs;
             const tym = tybasic(e.Ety);
             reg_t Rd = allocreg(cdb,retregs,tym);       // destination integer register
 
@@ -1474,7 +1474,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         case OPu16_d:    // and w0,w0,#0xFFFF // ucvtf d31,w0
         case OPu32_d:    // ucvtf d31,w0
         case OPu64_d:    // ucvtf d31,x0
-            regm_t retregs1 = ALLREGS;
+            regm_t retregs1 = INSTR.ALLREGS;
             codelem(cgstate,cdb,e.E1,retregs1,false);
             reg_t Rn = findreg(retregs1);               // source integer register
 
@@ -2050,7 +2050,7 @@ void cdpopcnt(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t retregs = pretregs & cg.allregs;
     if (retregs == 0)                   /* if no return regs speced     */
                                         /* (like if wanted flags only)  */
-        retregs = ALLREGS & posregs;    // give us some
+        retregs = INSTR.ALLREGS & posregs;    // give us some
     reg_t Rd = allocreg(cdb, retregs, tyml); // destination register
 
     const R1 = findreg(retregs1);       // source register
