@@ -1,7 +1,7 @@
 /**
  * Find out in what ways control flow can exit a statement block.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/blockexit.d, _blockexit.d)
@@ -21,6 +21,7 @@ import dmd.declaration;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : toBool;
+import dmd.typesem : toBasetype;
 import dmd.func;
 import dmd.globals;
 import dmd.id;

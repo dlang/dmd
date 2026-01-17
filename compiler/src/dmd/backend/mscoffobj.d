@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/mscoffobj.d, backend/mscoffobj.d)
@@ -62,7 +62,7 @@ char* strupr(char* s)
     return s;
 }
 
-private extern (D) __gshared OutBuffer* fobjbuf;
+private __gshared OutBuffer* fobjbuf;
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
 
@@ -102,10 +102,10 @@ IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER*)ScnhdrBuf.
     segidx_t segidx_xdata = UNKNOWN;
     segidx_t segidx_pdata = UNKNOWN;
 
-    extern (D) int jumpTableSeg;     // segment index for __jump_table
+    int jumpTableSeg;     // segment index for __jump_table
 
-    extern (D) OutBuffer* indirectsymbuf2;      // indirect symbol table of Symbol*'s
-    extern (D) int pointersSeg;      // segment index for __pointers
+    OutBuffer* indirectsymbuf2;      // indirect symbol table of Symbol*'s
+    int pointersSeg;      // segment index for __pointers
 
     OutBuffer* ptrref_buf;           // buffer for pointer references
     OutBuffer* impref_buf;           // buffer for import table references
@@ -117,7 +117,7 @@ IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER*)ScnhdrBuf.
  * to be added last to the symbol table.
  * Obviously, there can be only one.
  */
-    extern (D) IDXSTR extdef;
+    IDXSTR extdef;
 
 // Each compiler segment is a section
 // Predefined compiler segments CODE,DATA,CDATA,UDATA map to indexes
@@ -138,8 +138,8 @@ int mscoff_seg_data_isCode(const ref seg_data sd)
 
 
 
-private extern (D) segidx_t seg_tlsseg = UNKNOWN;
-private extern (D) segidx_t seg_tlsseg_bss = UNKNOWN;
+private segidx_t seg_tlsseg = UNKNOWN;
+private segidx_t seg_tlsseg_bss = UNKNOWN;
 
 }
 
@@ -396,20 +396,20 @@ void MsCoffObj_initfile(const(char)* filename, const(char)* csegname, const(char
  */
 
 @trusted
-private extern (D)
+private
 int32_t* MsCoffObj_patchAddr(int seg, targ_size_t offset)
 {
     return cast(int32_t*)(fobjbuf.buf + ScnhdrTab[SegData[seg].SDshtidx].PointerToRawData + offset);
 }
 
 @trusted
-private extern (D)
+private
 int32_t* MsCoffObj_patchAddr64(int seg, targ_size_t offset)
 {
     return cast(int32_t*)(fobjbuf.buf + ScnhdrTab[SegData[seg].SDshtidx].PointerToRawData + offset);
 }
 
-private extern (D)
+private
 static if (0)
 {
 @trusted
@@ -1019,7 +1019,6 @@ void MsCoffObj_startaddress(Symbol* s)
  */
 
 @trusted
-extern (D)
 bool MsCoffObj_includelib(scope const char[] name)
 {
     int seg = MsCoffObj_seg_drectve();
@@ -1193,7 +1192,7 @@ void MsCoffObj_ehtables(Symbol* sfunc,uint size,Symbol* ehsym)
 
 /*********************************************
  * Put out symbols that define the beginning/end of the .deh_eh section.
- * This gets called if this is the module with "extern (D) main()" in it.
+ * This gets called if this is the module with "main()" in it.
  */
 
 @trusted
@@ -1689,7 +1688,7 @@ static if (0) // NOT_DONE
 }
 
 @trusted
-private extern (D) char* unsstr(uint value)
+private char* unsstr(uint value)
 {
     __gshared char[64] buffer;
 
@@ -1705,7 +1704,7 @@ private extern (D) char* unsstr(uint value)
  */
 
 @trusted
-private extern (D)
+private
 void obj_mangle2(ref Symbol s, ref OutBuffer buf)
 {
     //printf("MsCoffObj_mangle(s = %p, '%s'), mangle = x%x\n",s,s.Sident.ptr,type_mangle(s.Stype));
@@ -2482,7 +2481,7 @@ void MsCoffObj_write_pointerRef(Symbol* s, uint soff)
  *      segments = lazy indices into tls / data pointer sections
  */
 @trusted
-extern (D) private void objflush_pointerRef(Symbol* s, uint soff, ref segidx_t[2] segments)
+private void objflush_pointerRef(Symbol* s, uint soff, ref segidx_t[2] segments)
 {
     bool isTls = (s.Sfl == FL.tlsdata);
 
@@ -2507,7 +2506,7 @@ extern (D) private void objflush_pointerRef(Symbol* s, uint soff, ref segidx_t[2
  * to the object file
  */
 @trusted
-extern (D) private void objflush_pointerRefs()
+private void objflush_pointerRefs()
 {
     if (!ptrref_buf)
         return;
@@ -2557,7 +2556,7 @@ void write_importTableRef(segidx_t seg, targ_size_t soff, Symbol* imp)
  * to the object file as a crt_constructor function
  */
 @trusted
-extern (D) private void objflush_importTableRefs()
+private void objflush_importTableRefs()
 {
     if (!impref_buf)
         return;

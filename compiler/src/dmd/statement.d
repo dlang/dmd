@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/statement.html, Statements)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/statement.d, _statement.d)
@@ -1416,14 +1416,16 @@ extern (C++) final class SynchronizedStatement : Statement
  */
 extern (C++) final class WithStatement : Statement
 {
+    Parameter prm;
     Expression exp;
     Statement _body;
     VarDeclaration wthis;
     Loc endloc;
 
-    extern (D) this(Loc loc, Expression exp, Statement _body, Loc endloc) @safe
+    extern (D) this(Loc loc, Parameter prm, Expression exp, Statement _body, Loc endloc) @safe
     {
         super(loc, STMT.With);
+        this.prm = prm;
         this.exp = exp;
         this._body = _body;
         this.endloc = endloc;
@@ -1431,7 +1433,11 @@ extern (C++) final class WithStatement : Statement
 
     override WithStatement syntaxCopy()
     {
-        return new WithStatement(loc, exp.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
+        return new WithStatement(loc,
+                                 prm ? prm.syntaxCopy() : null,
+                                 exp.syntaxCopy(),
+                                 _body ? _body.syntaxCopy() : null,
+                                 endloc);
     }
 
     override void accept(Visitor v)

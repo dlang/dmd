@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -241,7 +241,6 @@ public:
     virtual bool needThis();                    // need a 'this' pointer?
     virtual Visibility visible();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
-    virtual void addObjcSymbols(ClassDeclarations *, ClassDeclarations *) { }
 
     virtual void addComment(const utf8_t *comment);
     const utf8_t *comment();                      // current value of comment
@@ -437,4 +436,6 @@ namespace dmd
     void runDeferredSemantic3();
     bool isOverlappedWith(VarDeclaration *vd, VarDeclaration *v);
     Dsymbol* search(Scope *sc, Loc loc, Identifier* ident, Dsymbol*& pscopesym, uint32_t flags = 0u);
+    Scope *newScope(AggregateDeclaration * ad, Scope *sc);
+    void addObjcSymbols(Dsymbol *s, ClassDeclarations *, ClassDeclarations *);
 }

@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/elem.d, backend/elem.d)
@@ -1635,6 +1635,8 @@ elem* el_ctor_dtor(elem* ec, elem* ed, out elem* pedtor)
         Vconst c = Vconst.init;
         elem* e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 0
         er = el_bin(OPinfo, ec ? ec.Ety : TYvoid, ector, el_combine(e_flag_0, ec));
+//        if (ec && tybasic(ec.Ety) == TYstruct)
+//            er.ET = ec.ET;
 
         /* A destructor always executes code, or we wouldn't need
          * eh for it.
@@ -1667,7 +1669,11 @@ elem* el_ctor_dtor(elem* ec, elem* ed, out elem* pedtor)
         ector.Ety = TYvoid;
 //      ector.ed.Edecl = decl;
         if (ec)
+        {
             er = el_bin(OPinfo,ec.Ety,ector,ec);
+//            if (tybasic(ec.Ety) == TYstruct)
+//                er.ET = ec.ET;
+        }
         else
             /* Remember that a "constructor" may execute no code, hence
              * the need for OPinfo if there is code to execute.

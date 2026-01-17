@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -121,7 +121,6 @@ public:
     d_bool disableNew;            // disallow allocations using `new`
     Sizeok sizeok;              // set when structsize contains valid data
 
-    virtual Scope *newScope(Scope *sc);
     bool isDeprecated() const override final; // is aggregate deprecated?
     bool isNested() const;
     bool isExport() const override final;
@@ -171,6 +170,7 @@ public:
     static StructDeclaration *create(Loc loc, Identifier *id, bool inObject);
     StructDeclaration *syntaxCopy(Dsymbol *s) override;
     const char *kind() const override;
+    bool hasCopyConstruction();
     bool zeroInit() const;          // !=0 if initialize with 0 fill
     bool zeroInit(bool v);
     bool hasIdentityAssign() const; // true if has identity opAssign
@@ -273,7 +273,6 @@ public:
     static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
     const char *toPrettyChars(bool QualifyTypes = false) override;
     ClassDeclaration *syntaxCopy(Dsymbol *s) override;
-    Scope *newScope(Scope *sc) override;
 
     #define OFFSET_RUNTIME 0x76543210
     #define OFFSET_FWDREF 0x76543211
@@ -288,8 +287,6 @@ public:
     virtual int vtblOffset() const;
     const char *kind() const override;
 
-    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories) override final;
-
     // Back end
     Dsymbol *vtblsym;
 
@@ -300,7 +297,6 @@ class InterfaceDeclaration final : public ClassDeclaration
 {
 public:
     InterfaceDeclaration *syntaxCopy(Dsymbol *s) override;
-    Scope *newScope(Scope *sc) override;
     bool isBaseOf(ClassDeclaration *cd, int *poffset) override;
     const char *kind() const override;
     int vtblOffset() const override;

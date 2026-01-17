@@ -14,7 +14,7 @@
  * - Protection (`private`, `public`)
  * - Deprecated declarations (`@deprecated`)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/attrib.d, _attrib.d)
@@ -35,7 +35,6 @@ import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.objc; // for objc.addSymbols
 import dmd.common.outbuffer;
 import dmd.visitor;
 
@@ -101,13 +100,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
     override const(char)* kind() const
     {
         return "attribute";
-    }
-
-    /****************************************
-     */
-    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
-    {
-        objc.addSymbols(this, classes, categories);
     }
 
     override void accept(Visitor v)

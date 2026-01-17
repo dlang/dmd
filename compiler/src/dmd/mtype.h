@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -42,9 +42,13 @@ typedef struct TYPE type;
 
 namespace dmd
 {
+    void Type_init();
     Type *typeSemantic(Type *t, Loc loc, Scope *sc);
     Type *merge(Type *type);
     Expression *defaultInitLiteral(Type *t, Loc loc);
+    Type *toBasetype(Type *type);
+    Type *nextOf(Type* type);
+    Type *baseElemOf(Type* type);
 }
 
 enum class TY : uint8_t
@@ -215,6 +219,8 @@ public:
 
     static Type *basic[(int)TY::TMAX];
 
+    static void _init() { return dmd::Type_init(); }
+
     virtual const char *kind();
     Type *copy() const;
     virtual Type *syntaxCopy();
@@ -228,7 +234,6 @@ public:
     void modToBuffer(OutBuffer& buf) const;
     char *modToChars() const;
 
-    virtual bool isScalar();
     virtual bool isScopeClass();
 
     bool isConst() const       { return (mod & MODconst) != 0; }
@@ -241,13 +246,13 @@ public:
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
-    bool hasDeprecatedAliasThis();
-    Type *toBasetype();
+
+    Type *toBasetype() { return dmd::toBasetype(this); }
+    Type *nextOf()     { return dmd::nextOf(this); }
+    Type *baseElemOf() { return dmd::baseElemOf(this); }
 
     virtual ClassDeclaration *isClassHandle();
     virtual int hasWild() const;
-    virtual Type *nextOf();
-    Type *baseElemOf();
 
     TypeFunction *toTypeFunction();
 
@@ -297,7 +302,6 @@ public:
     Type *next;
 
     int hasWild() const override final;
-    Type *nextOf() override final;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -309,7 +313,6 @@ public:
 
     const char *kind() override;
     TypeBasic *syntaxCopy() override;
-    bool isScalar() override;
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic() override;
@@ -324,7 +327,6 @@ public:
     static TypeVector *create(Type *basetype);
     const char *kind() override;
     TypeVector *syntaxCopy() override;
-    bool isScalar() override;
     TypeBasic *elementType();
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -378,7 +380,6 @@ public:
     static TypePointer *create(Type *t);
     const char *kind() override;
     TypePointer *syntaxCopy() override;
-    bool isScalar() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -432,7 +433,6 @@ public:
     static Parameter *create(Loc loc, StorageClass storageClass, Type *type, Identifier *ident,
                              Expression *defaultArg, UserAttributeDeclaration *userAttribDecl);
     Parameter *syntaxCopy();
-    Type *isLazyArray();
     bool isLazy() const;
     bool isReference() const;
     // kludge for template.isType()
@@ -632,8 +632,6 @@ public:
 
     const char *kind() override;
     TypeEnum *syntaxCopy() override;
-    bool isScalar() override;
-    Type *nextOf() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -751,7 +749,6 @@ namespace dmd
     bool hasUnsafeBitpatterns(Type* type);
     bool hasInvariant(Type* type);
     bool hasVoidInitPointers(Type* type);
-    void Type_init();
     void transitive(TypeNext* type);
     structalign_t alignment(Type* type);
     Type* memType(TypeEnum* type);
@@ -765,9 +762,11 @@ namespace dmd
     Type *makeWildConst(Type* type);
     Type *makeSharedWild(Type* type);
     Type *makeSharedWildConst(Type* type);
+    Type *isLazyArray(Parameter* param);
     unsigned char deduceWild(Type* type, Type* t, bool isRef);
     bool isIntegral(Type* type);
     bool isFloating(Type* type);
+    bool isScalar(Type* type);
     bool isReal(Type* type);
     bool isImaginary(Type* type);
     bool isComplex(Type* type);
@@ -777,4 +776,5 @@ namespace dmd
     bool needsNested(Type* type);
     bool needsDestruction(Type* type);
     bool needsCopyOrPostblit(Type* type);
+    bool hasDeprecatedAliasThis(Type* type);
 }

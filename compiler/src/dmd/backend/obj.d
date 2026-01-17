@@ -3,7 +3,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/obj.d, backend/obj.d)
@@ -500,7 +500,7 @@ public import dmd.backend.var : objmod;
  * Returns:
  *      declarations as a string suitable for mixin
  */
-private extern (D)
+private
 string ObjMemDecl(string pattern)
 {
     string r =
@@ -518,7 +518,7 @@ string ObjMemDecl(string pattern)
  * Returns:
  *      mixin string with static dispatch
  */
-private extern (D)
+private
 string genRetVal(string arg)
 {
     return
@@ -541,7 +541,7 @@ string genRetVal(string arg)
  * Returns:
  *      boilerplate string
  */
-private extern (D)
+private
 string gen(string pattern, string arg)
 {
     foreach (i; 0 .. pattern.length)

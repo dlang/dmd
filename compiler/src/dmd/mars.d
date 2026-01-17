@@ -4,7 +4,7 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mars.d, _mars.d)
@@ -908,6 +908,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 auto filename = p + 1+7+1+4;
                 files.push(filename);
                 params.editionFiles[filename] = params.edition;
+                // FIXME: params.edition should not be set when there's a filename
+                error("`-edition` is not supported with a filename yet");
             }
         }
         else if (arg == "-fIBT")

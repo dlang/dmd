@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/module.html, Modules)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dmodule.d, _dmodule.d)
@@ -26,7 +26,6 @@ import dmd.compiler;
 import dmd.cparse;
 import dmd.declaration;
 import dmd.dmacro;
-import dmd.doc;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
@@ -394,7 +393,7 @@ extern (C++) final class Module : Package
     Identifiers* versionidsNot; // forward referenced version identifiers
 
     MacroTable macrotable;      // document comment macros
-    Escape* _escapetable;       // document comment escapes
+    void* _escapetable;         // document comment escapes (Escape*)
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
@@ -437,7 +436,7 @@ extern (C++) final class Module : Package
         if (doHdrGen)
             hdrfile = setOutfilename(global.params.dihdr.name, global.params.dihdr.dir, arg, hdr_ext);
 
-        this.edition = Edition.min;
+        this.edition = global.params.edition;
     }
 
     extern (D) this(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
@@ -1020,15 +1019,6 @@ extern (C++) final class Module : Package
         }
     }
 
-    /** Lazily initializes and returns the escape table.
-    Turns out it eats a lot of memory.
-    */
-    extern(D) Escape* escapetable() nothrow
-    {
-        if (!_escapetable)
-            _escapetable = new Escape();
-        return _escapetable;
-    }
 }
 
 /***********************************************************
@@ -1260,36 +1250,4 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
     }
 
     return buf;
-}
-
-/*******************************************
- * Look for member of the form:
- *      const(MemberInfo)[] getMembers(string);
- * Returns NULL if not found
- */
-FuncDeclaration findGetMembers(ScopeDsymbol dsym)
-{
-    import dmd.opover : search_function;
-    Dsymbol s = search_function(dsym, Id.getmembers);
-    FuncDeclaration fdx = s ? s.isFuncDeclaration() : null;
-    version (none)
-    {
-        // Finish
-        __gshared TypeFunction tfgetmembers;
-        if (!tfgetmembers)
-        {
-            Scope sc;
-            sc.eSink = global.errorSink;
-            Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
-            auto parameters = new Parameters(p);
-            Type tret = null;
-            TypeFunction tf = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
-            tfgetmembers = tf.dsymbolSemantic(Loc.initial, &sc).isTypeFunction();
-        }
-        if (fdx)
-            fdx = fdx.overloadExactMatch(tfgetmembers);
-    }
-    if (fdx && fdx.isVirtual())
-        fdx = null;
-    return fdx;
 }

@@ -8,7 +8,7 @@
  * i.e. rewriting trees to less expensive trees.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cgelem.d, backend/cgelem.d)
@@ -2144,6 +2144,10 @@ private elem* elcond(elem* e, Goal goal)
                 el_free(e1);
                 return elcond(e,goal);
             }
+            if (e1.Ety == TYnoreturn)
+            {
+                return el_selecte1(e);
+            }
             if (!OPTIMIZER)
                 break;
 
@@ -2475,6 +2479,12 @@ L2:
         goto L2;
     }
 
+    if (e1.Ety == TYnoreturn)
+    {
+        e = el_selecte1(e);
+        goto Lret;
+    }
+
     if ((OTopeq(e1op) || e1op == OPeq) &&
         (e1.E1.Eoper == OPvar || e1.E1.Eoper == OPind) &&
         !el_sideeffect(e1.E1)
@@ -2775,6 +2785,11 @@ private elem* eloror(elem* e, Goal goal)
         return eloror(e, goal);
     }
 
+    if (e1.Ety == TYnoreturn)
+    {
+        return el_selecte1(e);
+    }
+
     elem* e2 = e.E2;
     if (OTboolnop(e2.Eoper))
     {
@@ -3073,6 +3088,10 @@ private elem* elandand(elem* e, Goal goal)
         e1.E1 = null;
         el_free(e1);
         return elandand(e, goal);
+    }
+    if (e1.Ety == TYnoreturn)
+    {
+        return el_selecte1(e);
     }
     elem* e2 = e.E2;
     if (OTboolnop(e2.Eoper))

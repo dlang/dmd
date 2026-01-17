@@ -1,7 +1,7 @@
 /**
  * Semantic analysis of initializers.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/initsem.d, _initsem.d)
@@ -447,11 +447,17 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
-                typeb.isStaticOrDynamicArray() && tynto.isSomeChar &&
-                se.numberOfCodeUnits(tynto) < tb.isTypeSArray().dim.toInteger())
+                typeb.isStaticOrDynamicArray() && tynto.isSomeChar)
             {
-                i.exp = se.castTo(sc, t);
-                goto L1;
+                string s;
+                size_t len = se.numberOfCodeUnits(tynto, s);
+                if (s)
+                    error(se.loc, "%.*s", cast(int)s.length, s.ptr);
+                if (len < tb.isTypeSArray().dim.toInteger())
+                {
+                    i.exp = se.castTo(sc, t);
+                    goto L1;
+                }
             }
 
             /* Lop off terminating 0 of initializer for:
@@ -624,6 +630,19 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         /* Rewrite CInitializer into ExpInitializer, ArrayInitializer, or StructInitializer
          */
         t = t.toBasetype();
+
+        bool isComplexInitilaizer()
+        {
+            switch (t.ty)
+            {
+                case Tcomplex32:
+                case Tcomplex64:
+                case Tcomplex80:
+                    return true;
+                default:
+                    return false;
+            }
+        }
 
         if (auto tv = t.isTypeVector())
             t = tv.basetype;
@@ -1139,6 +1158,24 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         else if (ExpInitializer ei = isBraceExpression())
         {
             return visitExp(ei);
+        }
+        else if (isComplexInitilaizer())
+        {
+            /* just convert _Complex = { a, b} to _Complex =. a + b*i */
+            if (ci.initializerList[].length != 2)
+            {
+                error(ci.loc, "only two initializers required for complex type `%s`", t.toChars());
+                return err();
+            }
+            auto rexp = ci.initializerList[0].initializer.initializerToExpression();
+            auto imexp = ci.initializerList[1].initializer.initializerToExpression();
+
+            import dmd.root.ctfloat;
+            auto newExpr = new AddExp(ci.loc, rexp,
+            new MulExp(ci.loc, imexp, new RealExp(ci.loc, CTFloat.one, Type.timaginary64)));
+
+            auto ce = new ExpInitializer(ci.loc, newExpr);
+            return ce.initializerSemantic(sc, t, needInterpret);
         }
         else
         {

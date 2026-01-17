@@ -10,7 +10,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/arm/cod3.d, backend/cod3.d)
@@ -847,6 +847,7 @@ void epilog(block* b)
         cdbx.gencs(I16 ? 0x9A : CALL,0,FL.func,s);      // CALLF _trace
         code_orflag(cdbx.last(),CFoff | CFselfrel);
         useregs((ALLREGS | mBP | mES) & ~s.Sregsaved);
+	assert(0);	// TODO AArch64
     }
 
     if (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
@@ -1360,7 +1361,7 @@ void loadFloatRegConst(ref CodeBuilder cdb, reg_t vreg, double value, uint sz)
     {
         float f = value;
         uint i = *cast(uint*)&f;
-        regm_t retregs = ALLREGS;                       // TODO cg.allregs?
+        regm_t retregs = INSTR.FLOATREGS;
         reg_t reg = allocreg(cdb, retregs, TYfloat);
         movregconst(cdb,reg,i,0);                         // MOV reg,i
         cdb.gen1(INSTR.fmov_float_gen(0,0,0,7,reg,vreg)); // FMOV Sd,Wn
@@ -1368,7 +1369,7 @@ void loadFloatRegConst(ref CodeBuilder cdb, reg_t vreg, double value, uint sz)
     else if (sz == 8)
     {
         ulong i = *cast(ulong*)&value;
-        regm_t retregs = ALLREGS;                       // TODO cg.allregs?
+        regm_t retregs = INSTR.FLOATREGS;
         reg_t reg = allocreg(cdb, retregs, TYdouble);
         movregconst(cdb,reg,i,64);                        // MOV reg,i
         cdb.gen1(INSTR.fmov_float_gen(1,1,0,7,reg,vreg)); // FMOV Dd,Xn
@@ -1563,7 +1564,7 @@ bool orr_solution(ulong value, out uint N, out uint immr, out uint imms)
 @trusted
 void assignaddrc(code* c)
 {
-    printf("assignaddrc()\n");
+    //printf("assignaddrc()\n");
     int sn;
     Symbol* s;
     ubyte rm;
@@ -1597,29 +1598,18 @@ void assignaddrc(code* c)
                     //printf("fix ESP\n");
                     if (cgstate.hasframe)
                     {
-                        // LEA ESP,-EBPtoESP[EBP]
-                        c.Iop = LEA;
-                        if (c.Irm & 8)
-                            c.Irex |= REX_R;
-                        c.Irm = modregrm(2,SP,BP);
-                        c.Iflags = CFoff;
-                        c.IFL1 = FL.const_;
-                        c.IEV1.Vuns = -cgstate.EBPtoESP;
+                        c.Iop = INSTR.sub_addsub_imm(1,0,cgstate.EBPtoESP,INSTR.SP,BP); // SUB SP,BP,#EBPtoESP
                         if (cgstate.enforcealign)
                         {
-                            // AND ESP, -STACKALIGN
                             code* cn = code_calloc();
-                            cn.Iop = 0x81;
-                            cn.Irm = modregrm(3, 4, SP);
-                            cn.Iflags = CFoff;
-                            cn.IFL2 = FL.const_;
-                            cn.IEV2.Vsize_t = -STACKALIGN;
-                            if (I64)
-                                c.Irex |= REX_W;
+
+                            uint N,immr,imms;
+                            assert(encodeNImmrImms(-cast(long)STACKALIGN,N,immr,imms));
+                            cn.Iop = INSTR.log_imm(1,0,N,immr,imms,SP,SP);      // AND SP,SP,#-STACKALIGN
+
                             cn.next = c.next;
                             c.next = cn;
                         }
-                        assert(0); // TODO AArch64
                     }
                     continue;
 
@@ -1653,7 +1643,7 @@ void assignaddrc(code* c)
         s = c.IEV1.Vsym;
         uint sz = 8;
         uint ins = c.Iop;
-        if (c.IFL1 != FL.unde)
+        if (0 && c.IFL1 != FL.unde)
         {
             printf("FL: %-8s ", fl_str(c.IFL1));
             disassemble(ins);

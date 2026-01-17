@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/var.d, backend/var.d)
@@ -20,6 +20,7 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.dlist;
 import dmd.backend.goh;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.symtab;
@@ -168,6 +169,7 @@ Cstate cstate;                  // compiler state
 uint numcse;        // number of common subexpressions
 
 GlobalOptimizer go;
+BlockOpt bo;
 
 /* From debug.c */
 const(char)*[32] regstring = ["AX","CX","DX","BX","SP","BP","SI","DI",
@@ -182,7 +184,7 @@ type* chartype;                 /* default 'char' type                  */
 Obj objmod = null;
 
 __gshared uint[256] tytab = tytab_init;
-extern (D) private enum tytab_init =
+private enum tytab_init =
 () {
     uint[256] tab;
     foreach (i; TXptr)        { tab[i] |= TYFLptr; }
@@ -336,7 +338,7 @@ __gshared const(char)*[TYMAX] tystring =
 
 /// Map to unsigned version of type
 __gshared tym_t[256] tytouns = tytouns_init;
-extern (D) private enum tytouns_init =
+private enum tytouns_init =
 () {
     tym_t[256] tab;
     foreach (ty; 0 .. TYMAX)
@@ -380,7 +382,7 @@ extern (D) private enum tytouns_init =
 
 /// Map to relaxed version of type
 __gshared ubyte[TYMAX] _tyrelax = _tyrelax_init;
-extern(D) private enum _tyrelax_init = (){
+private enum _tyrelax_init = (){
     ubyte[TYMAX] tab;
     foreach (ty; 0 .. TYMAX)
     {
@@ -416,7 +418,7 @@ extern(D) private enum _tyrelax_init = (){
 
 /// Map to equivalent version of type
 __gshared ubyte[TYMAX] tyequiv = tyequiv_init;
-extern (D) private enum tyequiv_init =
+private enum tyequiv_init =
 () {
     ubyte[TYMAX] tab;
     foreach (ty; 0 .. TYMAX)

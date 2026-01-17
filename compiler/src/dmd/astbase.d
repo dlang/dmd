@@ -1,7 +1,7 @@
 /**
  * Defines AST nodes for the parsing stage.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/astbase.d, _astbase.d)
  * Documentation:  https://dlang.org/phobos/dmd_astbase.html
@@ -2321,13 +2321,15 @@ struct ASTBase
 
     extern (C++) final class WithStatement : Statement
     {
+        Parameter prm;
         Expression exp;
         Statement _body;
         Loc endloc;
 
-        extern (D) this(Loc loc, Expression exp, Statement _body, Loc endloc)
+        extern (D) this(Loc loc, Parameter prm, Expression exp, Statement _body, Loc endloc)
         {
             super(loc, STMT.With);
+            this.prm = prm;
             this.exp = exp;
             this._body = _body;
             this.endloc = endloc;
@@ -2940,73 +2942,6 @@ struct ASTBase
 
             Type t = this;
             assert(t);
-            return t;
-        }
-
-        final Type addSTC(StorageClass stc)
-        {
-            Type t = this;
-            if (t.isImmutable())
-            {
-            }
-            else if (stc & STC.immutable_)
-            {
-                t = t.makeImmutable();
-            }
-            else
-            {
-                if ((stc & STC.shared_) && !t.isShared())
-                {
-                    if (t.isWild())
-                    {
-                        if (t.isConst())
-                            t = t.makeSharedWildConst();
-                        else
-                            t = t.makeSharedWild();
-                    }
-                    else
-                    {
-                        if (t.isConst())
-                            t = t.makeSharedConst();
-                        else
-                            t = t.makeShared();
-                    }
-                }
-                if ((stc & STC.const_) && !t.isConst())
-                {
-                    if (t.isShared())
-                    {
-                        if (t.isWild())
-                            t = t.makeSharedWildConst();
-                        else
-                            t = t.makeSharedConst();
-                    }
-                    else
-                    {
-                        if (t.isWild())
-                            t = t.makeWildConst();
-                        else
-                            t = t.makeConst();
-                    }
-                }
-                if ((stc & STC.wild) && !t.isWild())
-                {
-                    if (t.isShared())
-                    {
-                        if (t.isConst())
-                            t = t.makeSharedWildConst();
-                        else
-                            t = t.makeSharedWild();
-                    }
-                    else
-                    {
-                        if (t.isConst())
-                            t = t.makeWildConst();
-                        else
-                            t = t.makeWild();
-                    }
-                }
-            }
             return t;
         }
 
@@ -6343,7 +6278,7 @@ struct ASTBase
 
     extern (C++) final class ErrorExp : Expression
     {
-        private extern (D) this()
+        extern (D) this()
         {
             super(Loc.initial, EXP.error, __traits(classInstanceSize, ErrorExp));
             type = Type.terror;
@@ -6966,6 +6901,73 @@ struct ASTBase
     {
         extern (C++) __gshared int ptrsize;
         extern (C++) __gshared bool isLP64;
+    }
+
+    static Type addSTC(Type _this, StorageClass stc)
+    {
+        Type t = _this;
+        if (t.isImmutable())
+        {
+        }
+        else if (stc & STC.immutable_)
+        {
+            t = t.makeImmutable();
+        }
+        else
+        {
+            if ((stc & STC.shared_) && !t.isShared())
+            {
+                if (t.isWild())
+                {
+                    if (t.isConst())
+                        t = t.makeSharedWildConst();
+                    else
+                        t = t.makeSharedWild();
+                }
+                else
+                {
+                    if (t.isConst())
+                        t = t.makeSharedConst();
+                    else
+                        t = t.makeShared();
+                }
+            }
+            if ((stc & STC.const_) && !t.isConst())
+            {
+                if (t.isShared())
+                {
+                    if (t.isWild())
+                        t = t.makeSharedWildConst();
+                    else
+                        t = t.makeSharedConst();
+                }
+                else
+                {
+                    if (t.isWild())
+                        t = t.makeWildConst();
+                    else
+                        t = t.makeConst();
+                }
+            }
+            if ((stc & STC.wild) && !t.isWild())
+            {
+                if (t.isShared())
+                {
+                    if (t.isConst())
+                        t = t.makeSharedWildConst();
+                    else
+                        t = t.makeSharedWild();
+                }
+                else
+                {
+                    if (t.isConst())
+                        t = t.makeWildConst();
+                    else
+                        t = t.makeWild();
+                }
+            }
+        }
+        return t;
     }
 }
 

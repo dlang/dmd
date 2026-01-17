@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/arrays.html#array-operations, Array Operations)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/arrayop.d, _arrayop.d)
@@ -30,7 +30,7 @@ import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.tokens;
-import dmd.typesem : isAssignable;
+import dmd.typesem : isAssignable, nextOf, toBasetype;
 import dmd.visitor;
 
 /**********************************************

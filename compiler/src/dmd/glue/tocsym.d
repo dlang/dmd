@@ -1,7 +1,7 @@
 /**
  * Convert a D symbol to a symbol the linker understands (with mangled name).
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/tocsym.d, _tocsym.d)
@@ -39,6 +39,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.glue;
 import dmd.identifier;
@@ -50,7 +51,7 @@ import dmd.mtype;
 import dmd.safe : isSafe;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : size, alignment, alignsize;
+import dmd.typesem;
 import dmd.visitor;
 
 import dmd.backend.cdef;

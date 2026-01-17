@@ -3,7 +3,7 @@
  *
  * Specification: ($LINK2 https://dlang.org/spec/expression.html, Expressions)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/expression.d, _expression.d)
@@ -293,19 +293,6 @@ extern (C++) abstract class Expression : ASTNode
         return a;
     }
 
-    /****************************************
-     * Check that the expression has a valid type.
-     * If not, generates an error "... has no type".
-     * Returns:
-     *      true if the expression has a valid type.
-     * Note:
-     *      When this function returns false, `checkValue()` should also return true.
-     */
-    bool hasValidType()
-    {
-        return true;
-    }
-
     /******************************
      * If this is a reference, dereference it.
      */
@@ -499,6 +486,16 @@ extern (C++) abstract class Expression : ASTNode
     }
 }
 
+// Approximate Non-semantic version of the `Type.isScalar` function in `typesem`
+bool _isRoughlyScalar(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.integral | TFlags.floating) != 0;
+    else if (_this.ty == Tenum || _this.ty == Tpointer) // the enum is possibly scalar
+        return true;
+    return false;
+}
+
 /***********************************************************
  * A compile-time known integer value
  */
@@ -511,15 +508,15 @@ extern (C++) final class IntegerExp : Expression
         super(loc, EXP.int64);
         //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type.toChars() : "");
         assert(type);
-        if (!type.isScalar())
-        {
-            //printf("%s, loc = %d\n", toChars(), loc.linnum);
-            if (type.ty != Terror)
-                error(loc, "integral constant must be scalar type, not `%s`", type.toChars());
-            type = Type.terror;
-        }
+
+        /* Verify no path to the following assert failure.
+         * Weirdly, the isScalar() includes floats - see enumsem.enumMemberSemantic() for the
+         * base type. This is possibly a bug.
+         */
+        assert(_isRoughlyScalar(type) || type.ty == Terror);
+
         this.type = type;
-        this.value = normalize(type.toBasetype().ty, value);
+        this.value = normalize(type.toBaseTypeNonSemantic().ty, value);
     }
 
     extern (D) this(dinteger_t value)
@@ -546,7 +543,7 @@ extern (C++) final class IntegerExp : Expression
 
     extern (D) void setInteger(dinteger_t value)
     {
-        this.value = normalize(type.toBasetype().ty, value);
+        this.value = normalize(type.toBaseTypeNonSemantic().ty, value);
     }
 
     extern (D) static dinteger_t normalize(TY ty, dinteger_t value)
@@ -965,10 +962,11 @@ extern (C++) final class StringExp : Expression
      * as tynto.
      * Params:
      *      tynto = code unit type of the target encoding
+     *      s = set to error message on invalid string
      * Returns:
      *      number of code units
      */
-    size_t numberOfCodeUnits(int tynto = 0) const
+    extern (D) size_t numberOfCodeUnits(int tynto, out .string s) const
     {
         int encSize;
         switch (tynto)
@@ -991,11 +989,9 @@ extern (C++) final class StringExp : Expression
         case 1:
             for (size_t u = 0; u < len;)
             {
-                if (const s = utf_decodeChar(string[0 .. len], u, c))
-                {
-                    error(loc, "%.*s", cast(int)s.length, s.ptr);
+                s = utf_decodeChar(string[0 .. len], u, c);
+                if (s)
                     return 0;
-                }
                 result += utf_codeLength(encSize, c);
             }
             break;
@@ -1003,11 +999,9 @@ extern (C++) final class StringExp : Expression
         case 2:
             for (size_t u = 0; u < len;)
             {
-                if (const s = utf_decodeWchar(wstring[0 .. len], u, c))
-                {
-                    error(loc, "%.*s", cast(int)s.length, s.ptr);
+                s = utf_decodeWchar(wstring[0 .. len], u, c);
+                if (s)
                     return 0;
-                }
                 result += utf_codeLength(encSize, c);
             }
             break;
@@ -1557,12 +1551,6 @@ extern (C++) final class TypeExp : Expression
         return new TypeExp(loc, type.syntaxCopy());
     }
 
-    override bool hasValidType()
-    {
-        error(loc, "type `%s` is not an expression", toChars());
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1595,27 +1583,6 @@ extern (C++) final class ScopeExp : Expression
         return new ScopeExp(loc, sds.syntaxCopy(null));
     }
 
-    override bool hasValidType()
-    {
-        if (sds.isPackage())
-        {
-            error(loc, "%s `%s` has no type", sds.kind(), sds.toChars());
-            return false;
-        }
-        auto ti = sds.isTemplateInstance();
-        if (!ti)
-            return true;
-        //assert(ti.needsTypeInference(sc));
-        if (ti.tempdecl &&
-            ti.semantictiargsdone &&
-            ti.semanticRun == PASS.initial)
-        {
-            error(loc, "partial %s `%s` has no type", sds.kind(), toChars());
-            return false;
-        }
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1636,12 +1603,6 @@ extern (C++) final class TemplateExp : Expression
         //printf("TemplateExp(): %s\n", td.toChars());
         this.td = td;
         this.fd = fd;
-    }
-
-    override bool hasValidType()
-    {
-        error(loc, "%s `%s` has no type", td.kind(), toChars());
-        return false;
     }
 
     override void accept(Visitor v)
@@ -1769,14 +1730,7 @@ extern (C++) final class SymOffExp : SymbolExp
     {
         if (auto v = var.isVarDeclaration())
         {
-            // FIXME: This error report will never be handled anyone.
-            // It should be done before the SymOffExp construction.
-            if (v.needThis())
-            {
-                auto t = v.isThis();
-                assert(t);
-                .error(loc, "taking the address of non-static variable `%s` requires an instance of `%s`", v.toChars(), t.toChars());
-            }
+            assert(!v.needThis()); // make sure the error message is no longer necessary
             hasOverloads = false;
         }
         super(loc, EXP.symbolOffset, var, hasOverloads);
@@ -1872,16 +1826,6 @@ extern (C++) final class FuncExp : Expression
         // https://issues.dlang.org/show_bug.cgi?id=13481
         // Prevent multiple semantic analysis of lambda body.
         return new FuncExp(loc, fd);
-    }
-
-    override bool hasValidType()
-    {
-        if (td)
-        {
-            error(loc, "template lambda has no type");
-            return false;
-        }
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2274,12 +2218,6 @@ extern (C++) final class DotTemplateExp : UnaExp
         this.td = td;
     }
 
-    override bool hasValidType()
-    {
-        error(loc, "%s `%s` has no type", td.kind(), toChars());
-        return false;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2332,19 +2270,6 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
     override DotTemplateInstanceExp syntaxCopy()
     {
         return new DotTemplateInstanceExp(loc, e1.syntaxCopy(), ti.name, TemplateInstance.arraySyntaxCopy(ti.tiargs));
-    }
-
-    override bool hasValidType()
-    {
-        // Same logic as ScopeExp.hasValidType()
-        if (ti.tempdecl &&
-            ti.semantictiargsdone &&
-            ti.semanticRun == PASS.initial)
-        {
-            error(loc, "partial %s `%s` has no type", ti.kind(), toChars());
-            return false;
-        }
-        return true;
     }
 
     override void accept(Visitor v)

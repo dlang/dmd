@@ -1,7 +1,7 @@
 /**
  * Converts expressions to Intermediate Representation (IR) for the backend.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/e2ir.d, _e2ir.d)
@@ -48,7 +48,8 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : include, _isZeroInit, toAlias, isPOD;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.expressionsem : canElideCopy, fill, isIdentical, isLvalue, toInteger, toUInteger, toComplex;
+import dmd.expressionsem;
+import dmd.funcsem : isVirtual;
 import dmd.func;
 import dmd.hdrgen;
 import dmd.id;
@@ -169,6 +170,16 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
     //printf("e1:\n"); elem_print(e1);
     //printf("e2:\n"); elem_print(e2);
     //if (t) printf("t: %s\n", t.toChars());
+
+    // handle implicit conversion from function pointer to delegate
+    if (tybasic(e1.Ety) == TYdelegate &&
+        tybasic(e2.Ety) != TYdelegate &&
+        typtr(e2.Ety) &&
+        tysize(e2.Ety) == tysize(TYnptr))
+    {
+        e2 = el_pair(TYdelegate, el_long(TYnptr, 0), e2);
+    }
+
     elem* e = el_bin(OPeq, e2.Ety, e1, e2);
     switch (tybasic(e2.Ety))
     {
@@ -308,7 +319,8 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
 Symbol* toStringSymbol(StringExp se)
 {
     Symbol* si;
-    const n = cast(int)se.numberOfCodeUnits();
+    string s;
+    const n = cast(int)se.numberOfCodeUnits(0, s);
     if (se.sz == 1)
     {
         const slice = se.peekString();
@@ -1158,7 +1170,9 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
         if (tb.ty == Tarray)
         {
             Symbol* si = toStringSymbol(se);
-            e = el_pair(TYdarray, el_long(TYsize_t, se.numberOfCodeUnits()), el_ptr(si));
+            string s;
+            const n = cast(int)se.numberOfCodeUnits(0, s);
+            e = el_pair(TYdarray, el_long(TYsize_t, n), el_ptr(si));
         }
         else if (tb.ty == Tsarray)
         {
@@ -1180,7 +1194,9 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
                 e = el_calloc();
                 e.Eoper = OPstring;
                 // freed in el_free
-                const len = cast(size_t)((se.numberOfCodeUnits() + 1) * se.sz);
+                string s;
+                const n = cast(int)se.numberOfCodeUnits(0, s);
+                const len = cast(size_t)((n + 1) * se.sz);
                 e.Vstring = cast(char *)mem_malloc2(cast(uint) len);
                 se.writeTo(e.Vstring, true);
                 e.Vstrlen = len;
@@ -4329,6 +4345,7 @@ private:
  */
 elem* Dsymbol_toElem(Dsymbol s, ref IRState irs)
 {
+    //printf("Dsymbol_toElem() %s\n", s.toChars());
     elem* e = null;
 
     void symbolDg(Dsymbol s)
@@ -4336,7 +4353,6 @@ elem* Dsymbol_toElem(Dsymbol s, ref IRState irs)
         e = el_combine(e, Dsymbol_toElem(s, irs));
     }
 
-    //printf("Dsymbol_toElem() %s\n", s.toChars());
     if (auto vd = s.isVarDeclaration())
     {
         s = s.toAlias();
@@ -6844,8 +6860,15 @@ elem* appendDtors(ref IRState irs, elem* er, size_t starti, size_t endi)
         e.ET = erx.ET;
         *pe = e;
     }
+    else if (erx.Eoper == OPinfo)
+    {
+        *pe = el_combine(erx, edtors);
+    }
     else
     {
+        //printf("el_copytotmp()\n");
+        //printf("erx:\n");    elem_print(erx);
+        //printf("edtors:\n"); elem_print(edtors);
         elem* e = el_copytotmp(erx);
         erx = el_combine(erx, edtors);
         *pe = el_combine(erx, e);

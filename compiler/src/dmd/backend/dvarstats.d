@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2015-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     Rainer Schuetze
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/dvarstats.d, backend/dvarstats.d)
@@ -117,7 +117,7 @@ private extern (C) static int cmpLifeTime(scope const void* p1, scope const void
 }
 
 // a parent scope contains the creation offset of the child scope
-private static extern(D) SYMIDX isParentScope(ref Barray!LifeTime lifetimes, SYMIDX parent, SYMIDX si)
+private static SYMIDX isParentScope(ref Barray!LifeTime lifetimes, SYMIDX parent, SYMIDX si)
 {
     if (parent == SYMIDX.max) // full function
         return true;
@@ -126,7 +126,7 @@ private static extern(D) SYMIDX isParentScope(ref Barray!LifeTime lifetimes, SYM
 }
 
 // find a symbol that includes the creation of the given symbol as part of its life time
-private static extern(D) SYMIDX findParentScope(ref Barray!LifeTime lifetimes, SYMIDX si)
+private static SYMIDX findParentScope(ref Barray!LifeTime lifetimes, SYMIDX si)
 {
     if (si != SYMIDX.max)
     {

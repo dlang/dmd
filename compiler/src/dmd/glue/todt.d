@@ -2,7 +2,7 @@
  * Put initializers and objects created from CTFE into a `dt_t` data structure
  * so the backend puts them into the data segment.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/todt.d, _todt.d)
@@ -409,7 +409,8 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         Type t = e.type.toBasetype();
 
         // BUG: should implement some form of static string pooling
-        const n = cast(int)e.numberOfCodeUnits();
+        string s2;
+        const n = cast(int)e.numberOfCodeUnits(0, s2);
         const(char)* p;
         char* q;
         if (e.sz == 1)
@@ -582,7 +583,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         }
         Symbol* s = toSymbol(e.fd);
         toObjFile(e.fd, false);
-        if (e.fd.tok == TOK.delegate_)
+        if (e.type.ty == Tdelegate)
             dtb.size(0);
         dtb.xoff(s, 0);
     }
@@ -1108,7 +1109,10 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCt
             // https://issues.dlang.org/show_bug.cgi?id=1914
             // https://issues.dlang.org/show_bug.cgi?id=3198
             if (auto se = e.isStringExp())
-                len /= se.numberOfCodeUnits();
+            {
+                string s;
+                len /= se.numberOfCodeUnits(0, s);
+            }
             else if (auto ae = e.isArrayLiteralExp())
                 len /= ae.elements.length;
         }

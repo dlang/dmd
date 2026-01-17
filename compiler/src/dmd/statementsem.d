@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/statement.html, Statements)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/statementsem.d, _statementsem.d)
@@ -1019,7 +1019,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                         if (tab.isTypeDArray())
                         {
                             // check if overflow is possible
-                            const maxLen = IntRange.fromType(tindex).imax.value + 1;
+                            const maxLen = intRangeFromType(tindex).imax.value + 1;
                             if (auto ale = fs.aggr.isArrayLiteralExp())
                                 err = ale.elements.length > maxLen;
                             else if (auto se = fs.aggr.isSliceExp())
@@ -1082,7 +1082,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                         IntRange dimrange = getIntRange(ta.dim);
                         // https://issues.dlang.org/show_bug.cgi?id=12504
                         dimrange.imax = SignExtendedNumber(dimrange.imax.value-1);
-                        if (!IntRange.fromType(fs.key.type).contains(dimrange))
+                        if (!intRangeFromType(fs.key.type).contains(dimrange))
                         {
                             error(fs.loc, "index type `%s` cannot cover index range 0..%llu",
                                      p.type.toChars(), ta.dim.toInteger());
@@ -3232,6 +3232,32 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             sym.parent = sc.scopesym;
             sym.endlinnum = ws.endloc.linnum;
         }
+        else if (ws.prm)
+        {
+            /* Re-write to
+             * {
+             *   auto prm = exp
+             *   with(prm)
+             *   {
+             *     ...
+             *   }
+             * }
+             */
+            auto tmp_init = new ExpInitializer(ws.loc, ws.exp);
+            auto tmp = new VarDeclaration(ws.loc, ws.prm.type, ws.prm.ident, tmp_init);
+            // tmp.storage_class |= STC.temp; //NOTE(mojo): idk
+            tmp.dsymbolSemantic(sc);
+
+            auto es = new ExpStatement(ws.loc, tmp);
+            ws.exp = new VarExp(ws.loc, tmp);
+
+            ws.prm = null;
+            auto cs = new CompoundStatement(ws.loc, es, ws);
+            Statement ss = new ScopeStatement(ws.loc, cs, ws.endloc);
+            result = ss.statementSemantic(sc);
+
+            return;
+        }
         else
         {
             Type texp = ws.exp.type;
@@ -4463,7 +4489,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             IntRange dimrange = IntRange(SignExtendedNumber(length))._cast(Type.tsize_t);
             // https://issues.dlang.org/show_bug.cgi?id=12504
             dimrange.imax = SignExtendedNumber(dimrange.imax.value-1);
-            if (!IntRange.fromType(p.type).contains(dimrange))
+            if (!intRangeFromType(p.type).contains(dimrange))
             {
                 error(fs.loc, "index type `%s` cannot cover index range 0..%llu",
                          p.type.toChars(), cast(ulong)length);

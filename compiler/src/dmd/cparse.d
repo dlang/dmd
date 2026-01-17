@@ -3,7 +3,7 @@
  *
  * Specification: C11
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cparse.d, _cparse.d)
@@ -27,7 +27,7 @@ import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.tokens;
-import dmd.typesem : size, makeImmutable;
+import dmd.typesem : size, makeImmutable, nextOf;
 
 /***********************************************************
  */
@@ -36,6 +36,8 @@ final class CParser(AST) : Parser!AST
     AST.Dsymbols* symbols;      // symbols declared in current scope
 
     bool addFuncName;           /// add declaration of __func__ to function symbol table
+    bool refFuncName;           // declaration of __FUNCTION__
+    bool pretFuncName;          // declaration for __PRETTY_FUNCTION__
     bool importBuiltins;        /// seen use of C compiler builtins, so import __importc_builtins;
 
     private
@@ -752,6 +754,12 @@ final class CParser(AST) : Parser!AST
             const id = token.ident.toString();
             if (id.length > 2 && id[0] == '_' && id[1] == '_')  // leading double underscore
             {
+                if (token.ident is Id.FUNCTION)
+                    refFuncName = true; // implicitly declare __FUNCTION__
+
+                if (token.ident is Id.PRETTY_FUNCTION)
+                    pretFuncName = true; // implicitly declare __PRETTY_FUNCTION__
+
                 if (token.ident is Id.__func__)
                 {
                     addFuncName = true;     // implicitly declare __func__
@@ -2224,7 +2232,10 @@ final class CParser(AST) : Parser!AST
             }
         }
 
-        addFuncName = false;    // gets set to true if somebody references __func__ in this function
+        /* gets set to true if somebody references __func__ in this function, //ditto for __FUNCTION__ */
+        addFuncName = false;
+        refFuncName = false;
+        pretFuncName = false;
         const locFunc = token.loc;
 
         auto body = cparseStatement(ParseStatementFlags.curly);  // don't start a new scope; continue with parameter scope
@@ -2235,11 +2246,20 @@ final class CParser(AST) : Parser!AST
         auto fd = new AST.FuncDeclaration(id.loc, prevloc, id.name, stc, ft, specifier.noreturn);
         specifiersToFuncDeclaration(fd, specifier);
 
+        auto stmts = new AST.Statements();
+
         if (addFuncName)
-        {
-            auto s = createFuncName(locFunc, id.name);
-            body = new AST.CompoundStatement(locFunc, s, body);
-        }
+            stmts.push(createFuncName(locFunc, id.name, Id.__func__));
+
+        if (refFuncName)
+            stmts.push(createFuncName(locFunc, id.name, Id.FUNCTION));
+
+        if (pretFuncName)
+            stmts.push(createPrettyFunc(locFunc, fd));
+
+        stmts.push(body);
+
+        body = new AST.CompoundStatement(locFunc, stmts);
         fd.fbody = body;
 
         // TODO add `symbols` to the function's local symbol table `sc2` in FuncDeclaration::semantic3()
@@ -4849,18 +4869,48 @@ final class CParser(AST) : Parser!AST
      *    loc = location for this declaration
      *    id = identifier of function
      * Returns:
-     *    statement representing the declaration of __func__
+     *    statement representing the declaration of __func__, __FUNCTION__, or __PRETTY-FUNCTION__
      */
-    private AST.Statement createFuncName(Loc loc, Identifier id)
+    private AST.Statement createFuncName(Loc loc, Identifier id, Identifier cident)
     {
         const fn = id.toString();  // function-name
         auto efn = new AST.StringExp(loc, fn, fn.length, 1, 'c');
         auto ifn = new AST.ExpInitializer(loc, efn);
-        auto lenfn = new AST.IntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0
+        auto lenfn = new AST.IntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0, ditto for __pretty_chars__
         auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
         efn.type = tfn.makeImmutable();
         efn.committed = true;
-        auto sfn = new AST.VarDeclaration(loc, tfn, Id.__func__, ifn, STC.gshared | STC.immutable_);
+        auto sfn = new AST.VarDeclaration(loc, tfn, cident, ifn, STC.gshared | STC.immutable_);
+        auto e = new AST.DeclarationExp(loc, sfn);
+        return new AST.ExpStatement(loc, e);
+    }
+
+    /* function for C __PRETTY_FUNCTION__ for non-linux systems */
+    private AST.Statement createPrettyFunc(Loc loc, AST.FuncDeclaration fd)
+    {
+        auto tf = fd.type.isTypeFunction();
+        auto funcSig = tf.next.toString();
+        funcSig ~= " ";
+        funcSig ~= fd.ident.toString();
+        funcSig ~= "(";
+
+        foreach (i, fparam ; tf.parameterList)
+        {
+            if (i > 0)
+                funcSig ~= ", ";
+
+            AST.Type t = tf.parameterList[i].type;
+            funcSig ~= t.toString();
+        }
+        funcSig ~= ")";
+
+        auto efn = new AST.StringExp(loc, funcSig);
+        auto ifn = new AST.ExpInitializer(loc, efn);
+        auto lenfn = new AST.IntegerExp(loc, funcSig.length + 1, AST.Type.tuns32); // +1 for terminating 0
+        auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
+        efn.type = tfn.makeImmutable();
+        efn.committed = true;
+        auto sfn = new AST.VarDeclaration(loc, tfn, Id.PRETTY_FUNCTION, ifn, STC.gshared | STC.immutable_);
         auto e = new AST.DeclarationExp(loc, sfn);
         return new AST.ExpStatement(loc, e);
     }
@@ -4887,7 +4937,7 @@ final class CParser(AST) : Parser!AST
         // `const` is always applied to the return type, not the
         // type function itself.
         if (auto tf = t.isTypeFunction())
-            tf.next = tf.next.addSTC(STC.const_);
+            tf.next = AST.addSTC(tf.next, STC.const_);
         else if (auto tt = t.isTypeTag())
             tt.mod |= MODFlags.const_;
         else
@@ -4896,7 +4946,7 @@ final class CParser(AST) : Parser!AST
              */
             auto tn = t.nextOf();
             if (!tn || tn.isConst())
-                t = t.addSTC(STC.const_);
+                t = AST.addSTC(t, STC.const_);
         }
         return t;
     }
@@ -5579,6 +5629,24 @@ final class CParser(AST) : Parser!AST
             ++p; // advance to start of next line
         }
 
+        /* Create a nullary template function from an expression:
+         *   auto id()() { return exp; }
+         */
+        void addNullaryTemplate(AST.Expression exp, Identifier id)
+        {
+            auto ret = new AST.ReturnStatement(exp.loc, exp);
+            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, STC.none);
+            STC stc = STC.auto_;
+            auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
+            auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
+            fd.fbody = ret;
+            AST.Dsymbols* decldefs = new AST.Dsymbols();
+            decldefs.push(fd);
+            AST.TemplateParameters* tpl = new AST.TemplateParameters();
+            auto tempdecl = new AST.TemplateDeclaration(exp.loc, id, tpl, null, decldefs, false);
+            addSym(tempdecl);
+        }
+
         while (p < endp)
         {
             //printf("|%s|\n", p);
@@ -5702,6 +5770,32 @@ final class CParser(AST) : Parser!AST
                             }
                             break;
 
+                        case TOK.identifier:
+                        {
+                            /* Look for:
+                             *  #define ID identifier ( args )
+                             * where the macro body is exactly a function-like macro call
+                             * (no additional operators that could cause precedence issues).
+                             * Rewrite to a template function:
+                             *  auto ID()() { return identifier(args); }
+                             */
+                            assert(!params);                    // would be TOK.leftParenthesis
+                            eLatch.sawErrors = false;
+                            auto exp = cparseExpression();
+                            if (eLatch.sawErrors)               // parsing errors
+                                break;                          // abandon this #define
+                            if (token.value != TOK.endOfFile)   // did not consume the entire line
+                                break;
+                            // Only allow bare function calls to avoid precedence issues.
+                            // E.g., `#define X FUNC(5)` is safe, but `#define X FUNC(5) + 1`
+                            // would have different semantics in D vs C when used as `X * 2`.
+                            if (!exp.isCallExp())
+                                break;
+                            addNullaryTemplate(exp, id);
+                            ++p;
+                            continue;
+                        }
+
                         case TOK.leftParenthesis:
                         {
                             /* Look for:
@@ -5721,18 +5815,7 @@ final class CParser(AST) : Parser!AST
                             nextToken();
                             if (token.value != TOK.endOfFile)
                                 break;
-                            auto ret = new AST.ReturnStatement(exp.loc, exp);
-                            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, STC.none);
-                            STC stc = STC.auto_;
-                            auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
-                            auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
-                            fd.fbody = ret;
-                            AST.Dsymbols* decldefs = new AST.Dsymbols();
-                            decldefs.push(fd);
-                            AST.TemplateParameters* tpl = new AST.TemplateParameters();
-                            AST.Expression constraint = null;
-                            auto tempdecl = new AST.TemplateDeclaration(exp.loc, id, tpl, constraint, decldefs, false);
-                            addSym(tempdecl);
+                            addNullaryTemplate(exp, id);
                             ++p;
                             continue;
                         }

@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1995-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cgsched.d, backend/cgsched.d)
@@ -178,7 +178,7 @@ enum
     FX    = 0x10,    /// pairable with FXCH instruction
 }
 
-extern (D) private immutable ubyte[256] pentcycl =
+private immutable ubyte[256] pentcycl =
 [
         UV,UV,UV,UV,    UV,UV,NP,NP,    // 0
         UV,UV,UV,UV,    UV,UV,NP,NP,    // 8
@@ -233,7 +233,7 @@ enum
     F     = 0x8000000,      /// flags
 }
 
-extern (D) private immutable uint[2][256] oprw =
+private immutable uint[2][256] oprw =
 [
       // 00
       [ EA|R|B, F|EA|B ],       // ADD
@@ -622,7 +622,7 @@ private immutable uint[2][8][4] grprw =
  *          [1] = write
  */
 
-extern (D) private immutable uint[2][8][8] grpf1 =
+private immutable uint[2][8][8] grpf1 =
 [
     [
         // 0xD8
@@ -719,7 +719,7 @@ extern (D) private immutable uint[2][8][8] grpf1 =
  * Micro-ops for floating point opcodes 0xD8..0xDF, with Irm < 0xC0.
  */
 
-extern (D) private immutable ubyte[8][8] uopsgrpf1 =
+private immutable ubyte[8][8] uopsgrpf1 =
 [
     [
         // 0xD8
@@ -817,7 +817,7 @@ extern (D) private immutable ubyte[8][8] uopsgrpf1 =
  * 5 means 'complex'
  */
 
-extern (D) private immutable ubyte[256] insuops =
+private immutable ubyte[256] insuops =
 [       0,0,0,0,        1,1,4,5,                /* 00 */
         0,0,0,0,        1,1,4,0,                /* 08 */
         0,0,0,0,        2,2,4,5,                /* 10 */
@@ -852,7 +852,7 @@ extern (D) private immutable ubyte[256] insuops =
         1,1,5,5,        4,4,0,0,                /* F8 */
 ];
 
-extern (D) private immutable ubyte[8] uopsx = [ 1,1,2,5,1,1,1,5 ];
+private immutable ubyte[8] uopsx = [ 1,1,2,5,1,1,1,5 ];
 
 /************************************************
  * Determine number of micro-ops for Pentium Pro and Pentium II processors.

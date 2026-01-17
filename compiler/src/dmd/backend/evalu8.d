@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/evalu8.d, backend/evalu8.d)
@@ -1941,7 +1941,7 @@ static if (0) // && MARS
  * instead of the soft long double ones.
  */
 
-extern (D) targ_ldouble el_toldoubled(elem* e)
+targ_ldouble el_toldoubled(elem* e)
 {
     targ_ldouble result;
 
@@ -1974,13 +1974,13 @@ extern (D) targ_ldouble el_toldoubled(elem* e)
  */
 version (CRuntime_Microsoft)
 {
-    extern (D) private targ_ldouble _modulo(targ_ldouble x, targ_ldouble y)
+    private targ_ldouble _modulo(targ_ldouble x, targ_ldouble y)
     {
         return cast(targ_ldouble)fmodl(cast(real)x, cast(real)y);
     }
     import core.stdc.math : isnan;
     static if (!is(targ_ldouble == real))
-        extern (D) private int isnan(targ_ldouble x)
+        private int isnan(targ_ldouble x)
         {
             return isnan(cast(real)x);
         }

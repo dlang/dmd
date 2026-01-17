@@ -4,7 +4,7 @@
  * Specification: $(LINK2 https://dlang.org/spec/struct.html, Structs, Unions),
  *                $(LINK2 https://dlang.org/spec/class.html, Class).
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/aggregate.d, _aggregate.d)
@@ -150,24 +150,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         super(loc, id);
         visibility = Visibility(Visibility.Kind.public_);
-    }
-
-    /***************************************
-     * Create a new scope from sc.
-     * semantic, semantic2 and semantic3 will use this for aggregate members.
-     */
-    Scope* newScope(Scope* sc)
-    {
-        auto sc2 = sc.push(this);
-        sc2.stc &= STC.flowThruAggregate;
-        sc2.parent = this;
-        sc2.inunion = isUnionDeclaration();
-        sc2.visibility = Visibility(Visibility.Kind.public_);
-        sc2.explicitVisibility = false;
-        sc2.aligndecl = null;
-        sc2.userAttribDecl = null;
-        sc2.namespace = null;
-        return sc2;
     }
 
     /***************************************

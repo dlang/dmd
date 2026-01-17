@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/class.html, Classes)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dclass.d, _dclass.d)
@@ -30,7 +30,6 @@ import dmd.location;
 import dmd.mtype;
 import dmd.objc;
 import dmd.root.rmem;
-import dmd.target;
 import dmd.visitor;
 
 /***********************************************************
@@ -261,19 +260,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return cd;
     }
 
-    override Scope* newScope(Scope* sc)
-    {
-        auto sc2 = super.newScope(sc);
-        if (isCOMclass())
-        {
-            /* This enables us to use COM objects under Linux and
-             * work with things like XPCOM
-             */
-            sc2.linkage = target.systemLinkage();
-        }
-        return sc2;
-    }
-
     /*********************************************
      * Determine if 'this' is a base class of cd.
      * This is used to detect circular inheritance only.
@@ -398,13 +384,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return "class";
     }
 
-    /****************************************
-     */
-    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
-    {
-        .objc.addSymbols(this, classes, categories);
-    }
-
     // Back end
     Dsymbol vtblsym;
 
@@ -441,19 +420,6 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
               : new InterfaceDeclaration(loc, ident, null);
         ClassDeclaration.syntaxCopy(id);
         return id;
-    }
-
-
-    override Scope* newScope(Scope* sc)
-    {
-        auto sc2 = super.newScope(sc);
-        if (com)
-            sc2.linkage = LINK.windows;
-        else if (classKind == ClassKind.cpp)
-            sc2.linkage = LINK.cpp;
-        else if (classKind == ClassKind.objc)
-            sc2.linkage = LINK.objc;
-        return sc2;
     }
 
     /*******************************************

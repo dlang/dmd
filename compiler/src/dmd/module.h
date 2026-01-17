@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -28,13 +28,6 @@ enum PKG
     PKGunknown, // not yet determined whether it's a package.d or not
     PKGmodule,  // already determined that's an actual package.d
     PKGpackage  // already determined that's an actual package
-};
-
-enum class Edition : uint16_t
-{
-    v2023 = 2023,
-    v2024,
-    v2025,
 };
 
 class Package : public ScopeDsymbol
@@ -115,7 +108,7 @@ public:
     Identifiers *versionidsNot; // forward referenced version identifiers
 
     MacroTable macrotable;      // document comment macros
-    Escape *escapetable;        // document comment escapes
+    void *escapetable;          // document comment escapes (Escape*)
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters

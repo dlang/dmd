@@ -1,7 +1,7 @@
 /**
  * Inline assembler for the GCC D compiler.
  *
- *              Copyright (C) 2018-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2018-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/iasmgcc.d, _iasmgcc.d)
@@ -30,6 +30,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.statement;
 import dmd.statementsem;
+import dmd.typesem;
 
 /***********************************
  * Parse and run semantic analysis on a GccAsmStatement.
@@ -188,7 +189,8 @@ Expression semanticAsmString(Scope* sc, Expression exp, const char *s)
 {
     import dmd.dcast : implicitCastTo;
     import dmd.dsymbolsem : resolveAliasThis;
-    import dmd.mtype : isAggregate, Type;
+    import dmd.mtype : Type;
+    import dmd.typesem : isAggregate;
 
     exp = expressionSemantic(exp, sc);
 

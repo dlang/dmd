@@ -1,7 +1,7 @@
 /**
  * Semantic analysis for D types.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/typesem.d, _typesem.d)
@@ -66,6 +66,534 @@ import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
+
+bool hasDeprecatedAliasThis(Type _this)
+{
+    auto ad = isAggregate(_this);
+    return ad && ad.aliasthis && (ad.aliasthis.isDeprecated || ad.aliasthis.sym.isDeprecated);
+}
+
+/*************************************
+ * Apply STCxxxx bits to existing type.
+ * Use *before* semantic analysis is run.
+ */
+Type addSTC(Type _this, STC stc)
+{
+    Type t = _this;
+    if (t.isImmutable())
+    {
+        return t;
+    }
+    else if (stc & STC.immutable_)
+    {
+        t = t.makeImmutable();
+        return t;
+    }
+
+    if ((stc & STC.shared_) && !t.isShared())
+    {
+        if (t.isWild())
+        {
+            if (t.isConst())
+                t = t.makeSharedWildConst();
+            else
+                t = t.makeSharedWild();
+        }
+        else
+        {
+            if (t.isConst())
+                t = t.makeSharedConst();
+            else
+                t = t.makeShared();
+        }
+    }
+    if ((stc & STC.const_) && !t.isConst())
+    {
+        if (t.isShared())
+        {
+            if (t.isWild())
+                t = t.makeSharedWildConst();
+            else
+                t = t.makeSharedConst();
+        }
+        else
+        {
+            if (t.isWild())
+                t = t.makeWildConst();
+            else
+                t = t.makeConst();
+        }
+    }
+    if ((stc & STC.wild) && !t.isWild())
+    {
+        if (t.isShared())
+        {
+            if (t.isConst())
+                t = t.makeSharedWildConst();
+            else
+                t = t.makeSharedWild();
+        }
+        else
+        {
+            if (t.isConst())
+                t = t.makeWildConst();
+            else
+                t = t.makeWild();
+        }
+    }
+
+    return t;
+}
+
+/***************************************************
+ * Determine if type t can be indexed or sliced given that it is not an
+ * aggregate with operator overloads.
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      true if an expression of type t can be e1 in an array expression
+ */
+bool isIndexableNonAggregate(Type t)
+{
+    t = t.toBasetype();
+    return (t.ty == Tpointer || t.isStaticOrDynamicArray() || t.ty == Taarray ||
+            t.ty == Ttuple || t.ty == Tvector);
+}
+
+/**
+ * If the type is a class or struct, returns the symbol for it,
+ * else null.
+ */
+AggregateDeclaration isAggregate(Type t)
+{
+    t = t.toBasetype();
+    if (auto tc = t.isTypeClass())
+        return tc.sym;
+    if (auto ts = t.isTypeStruct())
+        return ts.sym;
+    return null;
+}
+
+/****************************************************
+ * Determine if parameter is a lazy array of delegates.
+ * If so, return the return type of those delegates.
+ * If not, return NULL.
+ *
+ * Returns T if the type is one of the following forms:
+ *      T delegate()[]
+ *      T delegate()[dim]
+ */
+Type isLazyArray(Parameter _this)
+{
+    Type tb = _this.type.toBasetype();
+    if (tb.isStaticOrDynamicArray())
+    {
+        Type tel = (cast(TypeArray)tb).next.toBasetype();
+        if (auto td = tel.isTypeDelegate())
+        {
+            TypeFunction tf = td.next.toTypeFunction();
+            if (tf.parameterList.varargs == VarArg.none && tf.parameterList.length == 0)
+            {
+                return tf.next; // return type of delegate
+            }
+        }
+    }
+    return null;
+}
+
+/****************************************
+ * Return the mask that an integral type will
+ * fit into.
+ */
+ulong sizemask(Type _this)
+{
+    ulong m;
+    switch (_this.toBasetype().ty)
+    {
+    case Tbool:
+        m = 1;
+        break;
+    case Tchar:
+    case Tint8:
+    case Tuns8:
+        m = 0xFF;
+        break;
+    case Twchar:
+    case Tint16:
+    case Tuns16:
+        m = 0xFFFFU;
+        break;
+    case Tdchar:
+    case Tint32:
+    case Tuns32:
+        m = 0xFFFFFFFFU;
+        break;
+    case Tint64:
+    case Tuns64:
+        m = 0xFFFFFFFFFFFFFFFFUL;
+        break;
+    default:
+        assert(0);
+    }
+    return m;
+}
+
+/*************************************
+ * If _this is a type of static array, return its base element type.
+ */
+Type baseElemOf(Type _this)
+{
+    Type t = _this.toBasetype();
+    TypeSArray tsa;
+    while ((tsa = t.isTypeSArray()) !is null)
+        t = tsa.next.toBasetype();
+    return t;
+}
+
+/*************************************
+ * If this is a type of something, return that something.
+ */
+Type nextOf(Type _this)
+{
+    /*******************************
+     * For TypeFunction, nextOf() can return NULL if the function return
+     * type is meant to be inferred, and semantic() hasn't yet been run
+     * on the function. After semantic(), it must no longer be NULL.
+     */
+    if (auto tn = _this.isTypeNext())
+        return tn.next;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().nextOf();
+    return null;
+}
+
+/***************************
+ * Look for bugs in constructing types.
+ */
+void check(Type _this)
+{
+    if (_this.mcache)
+    with (_this.mcache)
+    switch (_this.mod)
+    {
+    case 0:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.const_:
+        if (cto)
+            assert(cto.mod == 0);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.wild:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == 0);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.wildconst:
+        assert(!cto || cto.mod == MODFlags.const_);
+        assert(!ito || ito.mod == MODFlags.immutable_);
+        assert(!sto || sto.mod == MODFlags.shared_);
+        assert(!scto || scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        assert(!wto || wto.mod == MODFlags.wild);
+        assert(!wcto || wcto.mod == 0);
+        assert(!swto || swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        assert(!swcto || swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == 0);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_ | MODFlags.const_:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == 0);
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_ | MODFlags.wild:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == 0);
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_ | MODFlags.wildconst:
+        assert(!cto || cto.mod == MODFlags.const_);
+        assert(!ito || ito.mod == MODFlags.immutable_);
+        assert(!sto || sto.mod == MODFlags.shared_);
+        assert(!scto || scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        assert(!wto || wto.mod == MODFlags.wild);
+        assert(!wcto || wcto.mod == MODFlags.wildconst);
+        assert(!swto || swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        assert(!swcto || swcto.mod == 0);
+        break;
+
+    case MODFlags.immutable_:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == 0);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    default:
+        assert(0);
+    }
+
+    Type tn = _this.nextOf();
+    if (tn && _this.ty != Tfunction && tn.ty != Tfunction && _this.ty != Tenum)
+    {
+        // Verify transitivity
+        switch (_this.mod)
+        {
+        case 0:
+        case MODFlags.const_:
+        case MODFlags.wild:
+        case MODFlags.wildconst:
+        case MODFlags.shared_:
+        case MODFlags.shared_ | MODFlags.const_:
+        case MODFlags.shared_ | MODFlags.wild:
+        case MODFlags.shared_ | MODFlags.wildconst:
+        case MODFlags.immutable_:
+            assert(tn.mod == MODFlags.immutable_ || (tn.mod & _this.mod) == _this.mod);
+            break;
+
+        default:
+            assert(0);
+        }
+        tn.check();
+    }
+}
+
+/**********************************
+ * For our new type '_this', which is type-constructed from t,
+ * fill in the cto, ito, sto, scto, wto shortcuts.
+ */
+void fixTo(Type _this, Type t)
+{
+    // If fixing this: immutable(T*) by t: immutable(T)*,
+    // cache t to this.xto won't break transitivity.
+    Type mto = null;
+    Type tn = _this.nextOf();
+    if (!tn || _this.ty != Tsarray && tn.mod == t.nextOf().mod)
+    {
+        switch (t.mod)
+        {
+        case 0:
+            mto = t;
+            break;
+
+        case MODFlags.const_:
+            _this.getMcache();
+            _this.mcache.cto = t;
+            break;
+
+        case MODFlags.wild:
+            _this.getMcache();
+            _this.mcache.wto = t;
+            break;
+
+        case MODFlags.wildconst:
+            _this.getMcache();
+            _this.mcache.wcto = t;
+            break;
+
+        case MODFlags.shared_:
+            _this.getMcache();
+            _this.mcache.sto = t;
+            break;
+
+        case MODFlags.shared_ | MODFlags.const_:
+            _this.getMcache();
+            _this.mcache.scto = t;
+            break;
+
+        case MODFlags.shared_ | MODFlags.wild:
+            _this.getMcache();
+            _this.mcache.swto = t;
+            break;
+
+        case MODFlags.shared_ | MODFlags.wildconst:
+            _this.getMcache();
+            _this.mcache.swcto = t;
+            break;
+
+        case MODFlags.immutable_:
+            _this.getMcache();
+            _this.mcache.ito = t;
+            break;
+
+        default:
+            break;
+        }
+    }
+    assert(_this.mod != t.mod);
+
+    if (_this.mod)
+    {
+        _this.getMcache();
+        t.getMcache();
+    }
+    switch (_this.mod)
+    {
+    case 0:
+        break;
+
+    case MODFlags.const_:
+        _this.mcache.cto = mto;
+        t.mcache.cto = _this;
+        break;
+
+    case MODFlags.wild:
+        _this.mcache.wto = mto;
+        t.mcache.wto = _this;
+        break;
+
+    case MODFlags.wildconst:
+        _this.mcache.wcto = mto;
+        t.mcache.wcto = _this;
+        break;
+
+    case MODFlags.shared_:
+        _this.mcache.sto = mto;
+        t.mcache.sto = _this;
+        break;
+
+    case MODFlags.shared_ | MODFlags.const_:
+        _this.mcache.scto = mto;
+        t.mcache.scto = _this;
+        break;
+
+    case MODFlags.shared_ | MODFlags.wild:
+        _this.mcache.swto = mto;
+        t.mcache.swto = _this;
+        break;
+
+    case MODFlags.shared_ | MODFlags.wildconst:
+        _this.mcache.swcto = mto;
+        t.mcache.swcto = _this;
+        break;
+
+    case MODFlags.immutable_:
+        t.mcache.ito = _this;
+        if (t.mcache.cto)
+            t.mcache.cto.getMcache().ito = _this;
+        if (t.mcache.sto)
+            t.mcache.sto.getMcache().ito = _this;
+        if (t.mcache.scto)
+            t.mcache.scto.getMcache().ito = _this;
+        if (t.mcache.wto)
+            t.mcache.wto.getMcache().ito = _this;
+        if (t.mcache.wcto)
+            t.mcache.wcto.getMcache().ito = _this;
+        if (t.mcache.swto)
+            t.mcache.swto.getMcache().ito = _this;
+        if (t.mcache.swcto)
+            t.mcache.swcto.getMcache().ito = _this;
+        break;
+
+    default:
+        assert(0);
+    }
+    _this.check();
+    t.check();
+    //printf("fixTo: %s, %s\n", toChars(), t.toChars());
+}
 
 void transitive(TypeNext _this)
 {
@@ -140,6 +668,19 @@ bool needsNested(Type _this)
         return typeStructNeedsNested(ts);
     else if (auto te = _this.isTypeEnum())
         return te.memType().needsNested();
+    return false;
+}
+
+bool isScalar(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & (TFlags.integral | TFlags.floating)) != 0;
+    else if (auto tv = _this.isTypeVector())
+        return tv.basetype.nextOf().isScalar();
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isScalar();
+    else if (_this.isTypePointer())
+        return true;
     return false;
 }
 
@@ -592,6 +1133,20 @@ Type makeConst(Type _this)
     return defaultMakeConst(_this);
 }
 
+/*******************************
+ * If _this is a shell around another type,
+ * get that other type.
+ */
+Type toBasetype(Type _this)
+{
+    /* This function is used heavily.
+     * De-virtualize it so it can be easily inlined.
+     */
+    if (auto te = _this.isTypeEnum())
+        return te.toBasetype2();
+    return _this;
+}
+
 Type toBasetype2(TypeEnum _this)
 {
     if (!_this.sym.members && !_this.sym.memtype)
@@ -961,12 +1516,12 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
             if (const n = importHint(id.toString()))
                 error(loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(id))
-                error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
-            else if (const q = Scope.search_correct_C(id))
-                error(loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
+                error(mt.loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
+            else if (const q = search_correct_C(id))
+                error(mt.loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
             else if ((id == Id.This   && sc.getStructClassScope()) ||
                      (id == Id._super && sc.getClassScope()))
-                error(loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", p, p);
+                error(mt.loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", p, p);
             else
                 error(mt.loc, "undefined identifier `%s`", p);
         }
@@ -974,9 +1529,9 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
             if (const n = cIncludeHint(id.toString()))
                 error(loc, "`%s` is not defined, perhaps `#include %.*s` ?", p, cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(id))
-                error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
+                error(mt.loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
             else
-                error(loc, "undefined identifier `%s`", p);
+                error(mt.loc, "undefined identifier `%s`", p);
         }
 
         pt = Type.terror;
@@ -1610,7 +2165,7 @@ extern(D) Expressions* resolveNamedArgs(TypeFunction tf, ArgumentList argumentLi
  *      MATCHxxxx
  */
 extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, ArgumentList argumentList,
-        int flag = 0, void delegate(const(char)*) scope errorHelper = null, Scope* sc = null)
+        int flag = 0, void delegate(const(char)*, Loc argloc = Loc.initial) scope errorHelper = null, Scope* sc = null)
 {
     //printf("callMatch() fd: %s, tf: %s\n", fd ? fd.ident.toChars() : "null", toChars(tf));
     MATCH match = MATCH.exact; // assume exact match
@@ -1775,12 +2330,20 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
             if (errorHelper)
             {
                 if (u >= args.length)
+                {
                     getMatchError(buf, "missing argument for parameter #%d: `%s`",
                                   u + 1, parameterToChars(p, tf, false));
+                }
                 // If an error happened previously, `pMessage` was already filled
                 else if (buf.length == 0)
+                {
                     buf.writestring(tf.getParamError(args[u], p));
-
+                    if(args[u].loc !is Loc.initial)
+                    {
+                        errorHelper(buf.peekChars(),args[u].loc);
+                        return MATCH.nomatch;
+                    }
+                }
                 errorHelper(buf.peekChars());
             }
             return MATCH.nomatch;
@@ -2671,13 +3234,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
     Type visitComplex(TypeBasic t)
     {
-        if (!sc.inCfile)
-            return visitType(t);
-
-        auto tc = getComplexLibraryType(loc, sc, t.ty);
-        if (tc.ty == Terror)
-            return tc;
-        return tc.addMod(t.mod).merge();
+        return visitType(t);
     }
 
     Type visitVector(TypeVector mtype)
@@ -4370,7 +4927,7 @@ Expression defaultInitLiteral(Type t, Loc loc)
             return ErrorExp.get();
 
         auto structelems = new Expressions(ts.sym.nonHiddenFields());
-        uint offset = 0;
+        ulong bitoffset = 0;
         foreach (j; 0 .. structelems.length)
         {
             VarDeclaration vd = ts.sym.fields[j];
@@ -4380,7 +4937,11 @@ Expression defaultInitLiteral(Type t, Loc loc)
                 error(loc, "circular reference to `%s`", vd.toPrettyChars());
                 return ErrorExp.get();
             }
-            if (vd.offset < offset || vd.type.size() == 0)
+            ulong vbitoffset = vd.offset * 8;
+            auto vbf = vd.isBitFieldDeclaration();
+            if (vbf)
+                vbitoffset += vbf.bitOffset;
+            if (vbitoffset < bitoffset || vd.type.size() == 0)
                 e = null;
             else if (vd._init)
             {
@@ -4394,7 +4955,12 @@ Expression defaultInitLiteral(Type t, Loc loc)
             if (e && e.op == EXP.error)
                 return e;
             if (e)
-                offset = vd.offset + cast(uint)vd.type.size();
+            {
+                if (vbf)
+                    bitoffset = vbitoffset + vbf.fieldWidth;
+                else
+                    bitoffset = vbitoffset + vd.type.size() * 8;
+            }
             (*structelems)[j] = e;
         }
         auto structinit = new StructLiteralExp(loc, ts.sym, structelems);

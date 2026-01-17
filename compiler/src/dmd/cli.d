@@ -5,7 +5,7 @@
  * However, this file will be used to generate the
  * $(LINK2 https://dlang.org/dmd-linux.html, online documentation) and MAN pages.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cli.d, _cli.d)
@@ -13,6 +13,8 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/cli.d
  */
 module dmd.cli;
+
+nothrow @safe:
 
 /* The enum TargetOS is an exact copy of the one in dmd.globals.
  * Duplicated here because this file is stand-alone.
@@ -91,21 +93,16 @@ Params:
     w = ASCII i string to capitalize
 Returns: capitalized string
 */
-static string capitalize(string w)
+private string capitalize(string w) @trusted
 {
-    char[] result = cast(char[]) w;
-    char c1 = w.length ? w[0] : '\0';
-
-    if (c1 >= 'a' && c1 <= 'z')
+    if (w.length && w[0] >= 'a' && w[0] <= 'z')
     {
-        enum adjustment = 'A' - 'a';
-
-        result = new char[] (w.length);
-        result[0] = cast(char) (c1 + adjustment);
+        char[] result = new char[] (w.length);
+        result[0] = cast(char)(w[0] + 'A' - 'a');
         result[1 .. $] = w[1 .. $];
+        w = cast(string) result;
     }
-
-    return cast(string) result;
+    return w;
 }
 
 /**

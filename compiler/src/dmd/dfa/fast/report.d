@@ -1,7 +1,13 @@
 /**
  * Reporting mechanism for the fast Data Flow Analysis engine.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * This module translates the abstract state of the DFA into concrete compiler errors.
+ * It is responsible for:
+ * 1. Null Checks: Reporting errors when null pointers are dereferenced.
+ * 2. Contract Validation: Ensuring functions fulfill their `out` contracts (e.g., returning non-null).
+ * 3. Logic Errors: Detecting assertions that are provably false at compile time.
+ *
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:   $(LINK2 https://cattermole.co.nz, Richard (Rikki) Andrew Cattermole)
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dfa/fast/report.d, dfa/fast/report.d)
@@ -18,11 +24,28 @@ import core.stdc.stdio;
 
 alias Fact = ParameterDFAInfo.Fact;
 
+/***********************************************************
+ * The interface for reporting DFA errors and warnings.
+ *
+ * This struct acts as the sink for all findings. It checks if a specific
+ * violation (like a null dereference) should be reported based on the
+ * variable's modellability and depth, then sends it to the global `ErrorSink`.
+ */
 struct DFAReporter
 {
     DFACommon* dfaCommon;
     ErrorSink errorSink;
 
+    /***********************************************************
+     * Reports an error if a variable is dereferenced while known to be null.
+     *
+     * This is triggered by expressions like `*ptr` or `ptr.field` when the DFA
+     * determines `ptr` has a `Nullable.Null` state.
+     *
+     * Params:
+     *      on = The consequence containing the variable state (must be Nullable).
+     *      loc = The source location of the dereference.
+     */
     void onDereference(DFAConsequence* on, ref Loc loc)
     {
         if (!dfaCommon.debugUnknownAST && on is null)
@@ -57,6 +80,14 @@ struct DFAReporter
                 var.var.ident.toChars);
     }
 
+    /***********************************************************
+     * Validates constraints at the end of a scope.
+     *
+     * This checks if output parameters (like `out` or `ref` parameters) meet their
+     * guaranteed post-conditions. For example, if a function parameter is marked
+     * to guarantee a non-null output, this ensures the variable is actually non-null
+     * when the scope exits.
+     */
     void onEndOfScope(FuncDeclaration fd, ref Loc loc)
     {
         // this is where we validate escapes, for a specific location
@@ -159,6 +190,12 @@ struct DFAReporter
         });
     }
 
+    /***********************************************************
+     * Reports an error if an assertion is statically provable to be false.
+     *
+     * If the DFA determines that the condition `x` in `assert(x)` is definitively false
+     * (e.g., `assert(null)` or `assert(0)` after analysis), it reports this logic error.
+     */
     void onAssertIsFalse(ref DFALatticeRef lr, ref Loc loc)
     {
         DFAConsequence* cctx;
@@ -168,6 +205,11 @@ struct DFAReporter
         errorSink.error(loc, "Assert can be proven to be false");
     }
 
+    /***********************************************************
+     * Reports an error if a function argument violates the callee's expectations.
+     *
+     * Example: Passing `null` to a function parameter marked as requiring non-null.
+     */
     void onFunctionCallArgumentLessThan(DFAConsequence* c,
             ParameterDFAInfo* paramInfo, FuncDeclaration calling, ref Loc loc)
     {

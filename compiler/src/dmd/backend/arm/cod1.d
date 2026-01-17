@@ -7,7 +7,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/arm/cod1.d, backend/cod1.d)
@@ -640,8 +640,8 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
     tym_t e1ty;
     Symbol* s;
 
-    printf("getlvalue(e = %p, keepmsk = %s)\n", e, regm_str(keepmsk));
-    elem_print(e);
+    //printf("getlvalue(e = %p, keepmsk = %s)\n", e, regm_str(keepmsk));
+    //elem_print(e);
     assert(e);
     elem_debug(e);
     if (e.Eoper == OPvar || e.Eoper == OPrelconst)
@@ -748,7 +748,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                  ) ||
                  (e12.Eoper == OPconst && !e1.Ecount && el_signx32(e12))) &&
                 e1.Ecount == e1.Ecomsub &&
-                (!e1.Ecount || (~keepmsk & ALLREGS & INSTR.MSW)) &&
+                (!e1.Ecount || (~keepmsk & INSTR.ALLREGS & INSTR.MSW)) &&
                 tysize(e11.Ety) == REGSIZE
                )
             {
@@ -808,7 +808,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                     {
                         int rbase;
 
-                        scratchm = ALLREGS & ~keepmsk;
+                        scratchm = INSTR.ALLREGS & ~keepmsk;
                         const r = allocreg(cdb, scratchm, TYint);
 
                         if (ssflags & SSFLnobase1)
@@ -1862,7 +1862,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         Parameter* p = &parameters[i];
         elem* ep = p.e;
         reg_t preg = p.reg;
-        printf("\nparameter[%d]: %s\n", i, regm_str(mask(preg)));
+        //printf("\nparameter[%d]: %s\n", i, regm_str(mask(preg)));
         if (preg == NOREG)
         {
             //elem_print(ep);

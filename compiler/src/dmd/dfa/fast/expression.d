@@ -1,7 +1,14 @@
 /**
  * Expression walker for the fast Data Flow Analysis engine.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * This module tracks how values flow through expressions.
+ * It is responsible for:
+ * 1. Tracking Assignments: Updating the state of variables when they are written to.
+ * 2. Inferring Facts: Learning about variables from conditions (e.g., `if (ptr)`).
+ * 3. Handling Function Calls: Managing side effects and return values.
+ * 4. Modeling Arithmetic: Tracking ranges of values (Point Analysis) to detect overflows.
+ *
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:   $(LINK2 https://cattermole.co.nz, Richard (Rikki) Andrew Cattermole)
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dfa/fast/expression.d, dfa/fast/expression.d)
@@ -18,6 +25,7 @@ import dmd.common.outbuffer;
 import dmd.location;
 import dmd.expression;
 import dmd.expressionsem;
+import dmd.typesem;
 import dmd.astenums;
 import dmd.tokens;
 import dmd.func;
@@ -28,6 +36,12 @@ import dmd.arraytypes;
 import dmd.rootobject;
 import core.stdc.stdio;
 
+/***********************************************************
+ * Visits Expression nodes to track data flow.
+ *
+ * This struct implements the logic for how expressions affect the DFA state.
+ * It translates AST operations (like `+`, `=`, `==`) into `DFALatticeRef` updates.
+ */
 struct ExpressionWalker
 {
     DFACommon* dfaCommon;
@@ -67,6 +81,19 @@ struct ExpressionWalker
         dfaCommon.currentDFAScope.check;
     }
 
+    /***********************************************************
+     * Handles variable assignment (e.g., `x = y`).
+     *
+     * This function updates the `assignTo` variable in the current scope
+     * to reflect the new state derived from `lr` (the right-hand side).
+     *
+     * Params:
+     *      assignTo = The variable being written to.
+     *      construct = True if this is an initialization (e.g., `int x = 5;`), false if reassignment.
+     *      lr = The lattice state of the value being assigned.
+     *      isBlit = True if the assignment is a bitwise copy (blit).
+     *      alteredState = An integer representing a specific state alteration or flag.
+     */
     DFALatticeRef seeAssign(DFAVar* assignTo, bool construct, DFALatticeRef lr,
             bool isBlit = false, int alteredState = 0)
     {
@@ -107,6 +134,13 @@ struct ExpressionWalker
         return ret;
     }
 
+    /***********************************************************
+     * Handles equality checks (e.g., `x == y` or `x is y`).
+     *
+     * This is critical for control flow. If the DFA sees `if (x == null)`,
+     * this function records that relationship so the `StatementWalker` can
+     * create a scope where `x` is known to be null.
+     */
     DFALatticeRef seeEqual(DFALatticeRef lhs, DFALatticeRef rhs, bool truthiness,
             Type lhsType, Type rhsType)
     {
@@ -346,6 +380,15 @@ struct ExpressionWalker
         return ret;
     }
 
+    /***********************************************************
+     * The main dispatch loop for expressions.
+     *
+     * Visits an expression node and returns the resulting Lattice state.
+     * This handles the recursion for complex expressions like `(a + b) * c`.
+     *
+     * Returns:
+     * A `DFALatticeRef` representing the computed value/state of the expression.
+     */
     DFALatticeRef walk(Expression expr)
     {
         if (expr is null || dfaCommon.currentDFAScope.haveJumped)
@@ -775,6 +818,9 @@ struct ExpressionWalker
             }
 
         case EXP.assert_:
+            // User assertions act as facts for the DFA.
+            // `assert(x != null)` tells the engine that `x` is NonNull
+            // for all subsequent code in this scope.
             auto ae = expr.isAssertExp;
             DFALatticeRef lr = this.walk(ae.e1);
             seeAssert(lr, ae.e1.loc);

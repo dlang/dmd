@@ -2,7 +2,7 @@
  * Test the C++ compiler interface of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2017-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2017-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tests/cxxfrontend.c, _cxxfrontend.c)
@@ -72,13 +72,14 @@ static void frontend_init()
     global._init();
     global.compileEnv.vendor = "Front-End Tester";
     global.params.objname = NULL;
+    global.params.edition = Edition::v2023;
 
     target.os = Target::OS_linux;
     target.isX86_64 = true;
     target.cpu = CPU::native;
     target._init(global.params);
 
-    dmd::Type_init();
+    Type::_init();
     Id::initialize();
     Module::_init();
     Expression::_init();
@@ -957,7 +958,7 @@ public:
         s->getRelatedLabeled()->accept(this);
         s->condition->accept(this);
         Type *condtype = s->condition->type->toBasetype();
-        if (!condtype->isScalar())
+        if (!dmd::isScalar(condtype))
             assert(0);
         if (s->cases)
         {
@@ -975,7 +976,7 @@ public:
     void visit(CaseStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
-        if (s->exp->type->isScalar())
+        if (dmd::isScalar(s->exp->type))
             s->exp->accept(this);
         else
             (void)s->index;
@@ -1549,7 +1550,7 @@ public:
         }
         if (!d->canTakeAddressOf())
         {
-            if (!d->type->isScalar())
+            if (!dmd::isScalar(d->type))
                 visitDeclaration(d);
         }
         else if (d->isDataseg() && !(d->storage_class & STCextern))
@@ -1771,6 +1772,7 @@ void expression_h(Expression *e, Scope *sc, Type *t, Loc loc, Expressions *es)
     dmd::ctfeInterpret(e);
     dmd::expandTuples(es);
     dmd::optimize(e, 0);
+    dmd::isLvalue(e);
 }
 
 void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,

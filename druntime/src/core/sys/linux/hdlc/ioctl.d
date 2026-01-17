@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
 module core.sys.linux.hdlc.ioctl;
 
+version (linux):
 import core.sys.linux.net.if_ : IFNAMSIZ;
 
-version (linux):
 extern(C):
 @nogc:
 nothrow:

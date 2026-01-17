@@ -3,7 +3,7 @@
  *
  * Specification: ($LINK2 https://dlang.org/spec/expression.html, Expressions)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/expressionsem.d, _expressionsem.d)
@@ -535,8 +535,95 @@ Optional!bool toBool(Expression _this)
         case EXP.slice: return _this.isSliceExp().e1.toBool();
         case EXP.comma: return _this.isCommaExp().e2.toBool();
         // Statically evaluate this expression to a `bool` if possible
-        // Returns: an optional thath either contains the value or is empty
+        // Returns: an optional that either contains the value or is empty
         default: return typeof(return)();
+    }
+}
+
+/****************************************
+ * Check that the expression `e` has a valid type.
+ * If not, generates an error "... has no type".
+ * Params:
+ *      e = Expression to check
+ * Returns:
+ *      true if the expression has a valid type.
+ * Note:
+ *      When this function returns false, `checkValue()` should also return true.
+ */
+bool hasValidType(Expression e)
+{
+    static bool visitTypeExp(TypeExp e)
+    {
+        error(e.loc, "type `%s` is not an expression", e.toChars());
+        return false;
+    }
+
+    static bool visitScopeExp(ScopeExp e)
+    {
+        if (e.sds.isPackage())
+        {
+            error(e.loc, "%s `%s` has no type", e.sds.kind(), e.sds.toChars());
+            return false;
+        }
+        auto ti = e.sds.isTemplateInstance();
+        if (!ti)
+            return true;
+        //assert(ti.needsTypeInference(sc));
+        if (ti.tempdecl &&
+            ti.semantictiargsdone &&
+            ti.semanticRun == PASS.initial)
+        {
+            error(e.loc, "partial %s `%s` has no type", e.sds.kind(), e.toChars());
+            return false;
+        }
+        return true;
+    }
+
+    static bool visitTemplateExp(TemplateExp e)
+    {
+        error(e.loc, "%s `%s` has no type", e.td.kind(), e.toChars());
+        return false;
+    }
+
+    static bool visitFuncExp(FuncExp e)
+    {
+        if (e.td)
+        {
+            error(e.loc, "template lambda has no type");
+            return false;
+        }
+        return true;
+    }
+
+    static bool visitDotTemplateExp(DotTemplateExp e)
+    {
+        error(e.loc, "%s `%s` has no type", e.td.kind(), e.toChars());
+        return false;
+    }
+
+    static bool visitDotTemplateInstanceExp(DotTemplateInstanceExp e)
+    {
+        // Same logic as ScopeExp.hasValidType()
+        if (e.ti.tempdecl &&
+            e.ti.semantictiargsdone &&
+            e.ti.semanticRun == PASS.initial)
+        {
+            error(e.loc, "partial %s `%s` has no type", e.ti.kind(), e.toChars());
+            return false;
+        }
+        return true;
+    }
+
+    switch (e.op)
+    {
+        case EXP.type:                   return visitTypeExp(e.isTypeExp());
+        case EXP.scope_:                 return visitScopeExp(e.isScopeExp());
+        case EXP.template_:              return visitTemplateExp(e.isTemplateExp());
+        case EXP.function_:              return visitFuncExp(e.isFuncExp());
+        case EXP.dotTemplateDeclaration: return visitDotTemplateExp(e.isDotTemplateExp());
+        case EXP.dotTemplateInstance:    return visitDotTemplateInstanceExp(e.isDotTemplateInstanceExp());
+
+        default: return true;
     }
 }
 
@@ -3077,6 +3164,12 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
     if (s.action.length > 0)
     {
         errorFunc(s.loc, "and %.*s makes it fail to infer `%.*s`", s.action.fTuple.expand, attr.fTuple.expand);
+        // For scope violations, also print why the target parameter is not scope
+        if (s.scopeVar)
+        {
+            import dmd.escape : printScopeReason;
+            printScopeReason(errorFunc, s.scopeVar, 10, false);
+        }
     }
     else if (s.fd)
     {
@@ -4831,7 +4924,7 @@ private void lowerCastExp(CastExp cex, Scope* sc)
 
     int offset;
     if ((cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
-            || cdfrom.classKind == ClassKind.cpp)
+        || cdfrom.classKind == ClassKind.cpp || cdto.classKind == ClassKind.cpp)
         return;
 
     Identifier hook = Id._d_cast;
@@ -5213,37 +5306,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         if (!e.type)
             e.type = Type.tfloat64;
-        else if (!e.type.isImaginary || !sc.inCfile)
-        {
-            e.type = e.type.typeSemantic(e.loc, sc);
-            result = e;
-            return;
-        }
 
-        /* Convert to core.stdc.config.complex
-         */
-        Type t = getComplexLibraryType(e.loc, sc, e.type.ty);
-        if (t.ty == Terror)
-            return setError();
-
-        Type tf;
-        switch (e.type.ty)
-        {
-            case Timaginary32: tf = Type.tfloat32; break;
-            case Timaginary64: tf = Type.tfloat64; break;
-            case Timaginary80: tf = Type.tfloat80; break;
-            default:
-                assert(0);
-        }
-
-        /* Construct ts{re : 0.0, im : e}
-         */
-        TypeStruct ts = t.isTypeStruct;
-        Expressions* elements = new Expressions(2);
-        (*elements)[0] = new RealExp(e.loc,    CTFloat.zero, tf);
-        (*elements)[1] = new RealExp(e.loc, e.toImaginary(), tf);
-        Expression sle = new StructLiteralExp(e.loc, ts.sym, elements);
-        result = sle.expressionSemantic(sc);
+        e.type = e.type.typeSemantic(e.loc, sc);
+        result = e;
+        return;
     }
 
     override void visit(ComplexExp e)
@@ -5473,7 +5539,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(exp.loc, "`%s` is not defined, perhaps `import %.*s;` is needed?", exp.ident.toChars(), cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(exp.ident))
                 error(exp.loc, "undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toChars(), s2.kind(), s2.toChars());
-            else if (const p = Scope.search_correct_C(exp.ident))
+            else if (const p = search_correct_C(exp.ident))
                 error(exp.loc, "undefined identifier `%s`, did you mean `%s`?", exp.ident.toChars(), p);
             else if (exp.ident == Id.dollar)
                 error(exp.loc, "undefined identifier `$`");
@@ -8185,7 +8251,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            void errorHelper(const(char)* failMessage) scope
+            void errorHelper(const(char)* failMessage, Loc argloc) scope
             {
                 OutBuffer buf;
                 buf.writeByte('(');
@@ -8198,7 +8264,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 .error(exp.loc, "%s `%s` is not callable using argument types `%s`",
                     p, exp.e1.toErrMsg(), buf.peekChars());
                 if (failMessage)
-                    errorSupplemental(exp.loc, "%s", failMessage);
+                    errorSupplemental((argloc !is Loc.initial) ? argloc : exp.loc, "%s", failMessage);
             }
 
             if (callMatch(exp.f, tf, null, exp.argumentList, 0, &errorHelper, sc) == MATCH.nomatch)
@@ -8261,7 +8327,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
 
-                void errorHelper2(const(char)* failMessage) scope
+                void errorHelper2(const(char)* failMessage, Loc argloc) scope
                 {
                     OutBuffer buf;
                     buf.writeByte('(');
@@ -8279,7 +8345,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     .error(exp.loc, "%s `%s` is not callable using argument types `%s`",
                         exp.f.kind(), exp.f.toErrMsg(), buf.peekChars());
                     if (failMessage)
-                        errorSupplemental(exp.loc, "%s", failMessage);
+                        errorSupplemental((argloc !is Loc.initial) ? argloc : exp.loc, "%s", failMessage);
                     .errorSupplemental(exp.f.loc, "`%s%s` declared here", exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList));
                     exp.f = null;
                 }
@@ -8639,9 +8705,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (ea)
         {
             if (auto sym = getDsymbol(ea))
+            {
                 ea = symbolToExp(sym, exp.loc, sc, false);
+                ea = checkNoreturnVarAccess(ea);
+            }
             else
                 ea = ea.expressionSemantic(sc);
+
             ea = resolveProperties(sc, ea);
             ta = ea.type;
             if (ea.op == EXP.type)
@@ -15898,7 +15968,10 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
             if (s.isPackage())
                 error(exp.loc, "undefined identifier `%s` in %s `%s`, perhaps add `static import %s;`", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.toPrettyChars());
             else
+            {
                 error(exp.loc, "undefined identifier `%s` in %s `%s`, did you mean %s `%s`?", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.kind(), s.toChars());
+                errorSupplemental(s.loc, "`%s` located here", s.toPrettyChars(true));
+            }
         }
         else
             error(exp.loc, "undefined identifier `%s` in %s `%s`", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars());
@@ -17989,11 +18062,17 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
-                typeb.isStaticOrDynamicArray() && tynto.isSomeChar &&
-                se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
+                typeb.isStaticOrDynamicArray() && tynto.isSomeChar)
             {
-                e = se.castTo(sc, t);
-                goto L1;
+                string s;
+                size_t len = se.numberOfCodeUnits(tynto, s);
+                if (s)
+                    error(se.loc, "%.*s", cast(int)s.length, s.ptr);
+                if (len < (cast(TypeSArray)tb).dim.toInteger())
+                {
+                    e = se.castTo(sc, t);
+                    goto L1;
+                }
             }
         }
 
@@ -18153,6 +18232,7 @@ Expression toBoolean(Expression exp, Scope* sc)
                 break;
             }
 
+            e = checkNoreturnVarAccess(e);
             if (!t.isBoolean())
             {
                 if (tb != Type.terror)
@@ -18764,6 +18844,29 @@ Expression getConstInitializer(VarDeclaration vd, bool needFullType = true)
 }
 
 /*******************************************
+ * Check whether there is an AA literal somewhere inside the expression
+ */
+private bool hasAALiteralExp(Expression e)
+{
+    extern (C++) final class HasAALiteral : StoppableVisitor
+    {
+        alias visit = typeof(super).visit;
+
+        override void visit(Expression)
+        {
+        }
+        override void visit(AssocArrayLiteralExp aae)
+        {
+            stop = true;
+        }
+    }
+
+    scope HasAALiteral hal = new HasAALiteral;
+    walkPostorder(e, hal);
+    return hal.stop;
+}
+
+/*******************************************
  * Helper function for the expansion of manifest constant.
  */
 private Expression expandInitializer(VarDeclaration vd, Loc loc)
@@ -18777,9 +18880,10 @@ private Expression expandInitializer(VarDeclaration vd, Loc loc)
         return ErrorExp.get();
     }
 
-    e = e.copy();
-    if (auto aae = e.isAssocArrayLiteralExp())
-        aae.lowering = null; // need to redo lowering as it contains temporary variables that must be renamed
+    if (hasAALiteralExp(e))
+        e = e.syntaxCopy(); // need to redo lowering as it contains temporary variables that must be renamed
+    else
+        e = e.copy();
     e.loc = loc;    // for better error message
     return e;
 }
@@ -19684,8 +19788,12 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
         ekeys[i-1] = extractSideEffect(sc, "__aakey", e0, ekeys[i-1]);
     // some implicit conversions are lost when assigning to a temporary, e.g. from array literal
     auto taa = eaa.type.isTypeAArray();
-    auto match = exp.e2.implicitConvTo(taa.next);
-    auto e2 = match == MATCH.exact || match == MATCH.nomatch ? exp.e2 : exp.e2.implicitCastTo(sc, taa.next);
+    Expression e2 = exp.e2;
+    if (exp.isAssignExp()) // must keep original types for op=
+    {
+        auto match = exp.e2.implicitConvTo(taa.next);
+        e2 = match == MATCH.exact || match == MATCH.nomatch ? exp.e2 : exp.e2.implicitCastTo(sc, taa.next);
+    }
     Expression ev = extractSideEffect(sc, "__aaval", e0, e2); // must be evaluated before the insertion
 
     // generate series of calls to _d_aaGetY

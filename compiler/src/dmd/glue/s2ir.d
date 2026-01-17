@@ -1,7 +1,7 @@
 /**
  * Convert statements to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/s2ir.d, _s2ir.d)
@@ -48,11 +48,12 @@ import dmd.statement;
 import dmd.stmtstate;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : pointerTo, isString;
+import dmd.typesem;
 import dmd.funcsem : genCfunc;
 import dmd.visitor;
 
 import dmd.backend.barray;
+import dmd.backend.blockopt : BlockOpt, block_next;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
@@ -64,6 +65,7 @@ import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.obj;
+import dmd.backend.var : bo;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
@@ -90,7 +92,7 @@ void Statement_toIR(Statement s, ref IRState irs)
             //printf("  KV: %s = %s\n", keyValue.key.toChars(), keyValue.value.toChars());
             LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
             if (label.statement)
-                label.statement.extra = dmd.backend.global.block_calloc();
+                label.statement.extra = dmd.backend.global.block_calloc(bo);
         }
 
     StmtState stmtstate;
@@ -99,6 +101,18 @@ void Statement_toIR(Statement s, ref IRState irs)
 
 void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 {
+    static import dmd.backend.blockopt;
+
+    void block_next(BlockState* bctx, BC bc, block* bn)
+    {
+        return dmd.backend.blockopt.block_next(bo, bctx, bc, bn);
+    }
+
+    block* block_goto(BlockState* bx, BC bc, block* bn)
+    {
+        return dmd.backend.blockopt.block_goto(bo, bx, bc, bn);
+    }
+
     /****************************************
      * This should be overridden by each statement class.
      */
@@ -129,7 +143,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         StmtState mystate = StmtState(stmtstate, s);
 
         // bexit is the block that gets control after this IfStatement is done
-        block* bexit = mystate.breakBlock ? mystate.breakBlock : dmd.backend.global.block_calloc();
+        block* bexit = mystate.breakBlock ? mystate.breakBlock : dmd.backend.global.block_calloc(bo);
 
         incUsage(irs, s.loc);
         e = toElemDtor(s.condition, irs);
@@ -1230,7 +1244,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 Statement_toIR(s.finalbody, irs, &finallyState);
             block_goto(blx, BC.goto_, retblock);
 
-            block_next(blx,BC._ret,breakblock);
+            block_next(blx, BC._ret, breakblock);
         }
         else if (config.ehmethod == EHmethod.EH_NONE || blx.funcsym.Sfunc.Fflags3 & Feh_none)
         {
@@ -1512,7 +1526,7 @@ void insertFinallyBlockCalls(block* startblock)
                 // Rewrite into a BC.goto_ => BC.ret
                 if (!bcret)
                 {
-                    bcret = dmd.backend.global.block_calloc();
+                    bcret = dmd.backend.global.block_calloc(bo);
                     bcret.bc = BC.ret;
                 }
                 b.bc = BC.goto_;
@@ -1528,7 +1542,7 @@ void insertFinallyBlockCalls(block* startblock)
                     goto case BC.ret;
                 if (!bcretexp)
                 {
-                    bcretexp = dmd.backend.global.block_calloc();
+                    bcretexp = dmd.backend.global.block_calloc(bo);
                     bcretexp.bc = BC.retexp;
                     type* t;
                     if ((ty == TYstruct || ty == TYarray) && e.ET)
@@ -1599,7 +1613,7 @@ void insertFinallyBlockCalls(block* startblock)
                     blast.setNthSucc(0, bf);
 
                     // Create new block, bnew, which will replace retblock
-                    block* bnew = dmd.backend.global.block_calloc();
+                    block* bnew = dmd.backend.global.block_calloc(bo);
 
                     /* Rewrite BC._ret block as:
                      *  if (sflag == flagvalue) goto breakblock; else goto bnew;
@@ -1739,9 +1753,9 @@ private void setScopeIndex(BlockState* blx, block* b, int scope_index)
  * Allocate a new block, and set the tryblock.
  */
 
-private block* block_calloc(BlockState* blx) @safe
+private block* block_calloc(BlockState* blx) @trusted
 {
-    block* b = dmd.backend.global.block_calloc();
+    block* b = dmd.backend.global.block_calloc(bo);
     b.Btry = blx.tryblock;
     return b;
 }

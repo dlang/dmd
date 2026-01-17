@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#nogc-functions, No-GC Functions)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/nogc.d, _nogc.d)
@@ -18,11 +18,12 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.attrib;
 import dmd.common.outbuffer;
 import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
-import dmd.dsymbol : PASS;
+import dmd.dsymbol : PASS, Dsymbol;
 import dmd.dtemplate : isDsymbol;
 import dmd.errors;
 import dmd.escape;
@@ -40,7 +41,7 @@ import dmd.rootobject : RootObject, DYNCAST;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
-import dmd.typesem : unqualify;
+import dmd.typesem : unqualify, toBasetype;
 import dmd.visitor;
 import dmd.visitor.postorder;
 
@@ -76,14 +77,32 @@ public:
     override void visit(DeclarationExp e)
     {
         // Note that, walkPostorder does not support DeclarationExp today.
-        VarDeclaration v = e.declaration.isVarDeclaration();
-        if (v && !(v.storage_class & STC.manifest) && !v.isDataseg() && v._init)
+        void visitDecl(Dsymbol d)
         {
-            if (ExpInitializer ei = v._init.isExpInitializer())
+            if (VarDeclaration v = d.isVarDeclaration())
             {
-                doCond(ei.exp);
+                if (!(v.storage_class & STC.manifest) && !v.isDataseg() && v._init && !v.isCsymbol())
+                {
+                    if (ExpInitializer ei = v._init.isExpInitializer())
+                    {
+                        doCond(ei.exp);
+                    }
+                }
+            }
+            else if (AttribDeclaration ad = d.isAttribDeclaration())
+            {
+                // Don't recurse into anonymous declarations (unions/structs)
+                // as their members aren't meant to be processed here
+                if (ad.isAnonDeclaration())
+                    return;
+                if (ad.decl)
+                {
+                    foreach (s; *ad.decl)
+                        visitDecl(s);
+                }
             }
         }
+        visitDecl(e.declaration);
     }
 
     /**

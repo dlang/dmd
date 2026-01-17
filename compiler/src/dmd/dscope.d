@@ -3,7 +3,7 @@
  *
  * Not to be confused with the `scope` storage class.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dscope.d, _dscope.d)
@@ -16,31 +16,21 @@ module dmd.dscope;
 import core.stdc.stdio;
 import core.stdc.string;
 import dmd.aggregate;
-import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.ctorflow;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmodule;
-import dmd.doc;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.expression;
-import dmd.errors;
 import dmd.errorsink;
 import dmd.func;
 import dmd.globals;
-import dmd.id;
 import dmd.identifier;
-import dmd.importc;
-import dmd.location;
-import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.statement;
-import dmd.target;
-import dmd.tokens;
 
 //version=LOGSEARCH;
 
@@ -199,7 +189,7 @@ extern (C++) struct Scope
     // user defined attributes
     UserAttributeDeclaration userAttribDecl;
 
-    DocComment* lastdc;        /// documentation comment for last symbol at this scope
+    void* lastdc;              /// documentation comment for last symbol at this scope (DocComment*)
     uint[void*] anchorCounts;  /// lookup duplicate anchor name count
     Identifier prevAnchor;     /// qualified symbol name of last doc anchor
 
@@ -361,33 +351,6 @@ extern (C++) struct Scope
         return pop();
     }
 
-    /************************************
-     * Maybe `ident` was a C or C++ name. Check for that,
-     * and suggest the D equivalent.
-     * Params:
-     *  ident = unknown identifier
-     * Returns:
-     *  D identifier string if found, null if not
-     */
-    extern (D) static const(char)* search_correct_C(Identifier ident)
-    {
-        import dmd.astenums : Twchar;
-        TOK tok;
-        if (ident == Id.NULL)
-            tok = TOK.null_;
-        else if (ident == Id.TRUE)
-            tok = TOK.true_;
-        else if (ident == Id.FALSE)
-            tok = TOK.false_;
-        else if (ident == Id.unsigned)
-            tok = TOK.uns32;
-        else if (ident == Id.wchar_t)
-            tok = target.c.wchar_tsize == 2 ? TOK.wchar_ : TOK.dchar_;
-        else
-            return null;
-        return Token.toChars(tok);
-    }
-
     /***************************
      * Find the innermost scope with a symbol table.
      * Returns:
@@ -401,61 +364,6 @@ extern (C++) struct Scope
                 return sc;
         }
         return null;
-    }
-
-    /******************************
-     * Add symbol s to innermost symbol table.
-     * Params:
-     *  s = symbol to insert
-     * Returns:
-     *  null if already in table, `s` if not
-     */
-    extern (D) Dsymbol insert(Dsymbol s)
-    {
-        //printf("insert() %s\n", s.toChars());
-        if (VarDeclaration vd = s.isVarDeclaration())
-        {
-            if (lastVar)
-                vd.lastVar = lastVar;
-            lastVar = vd;
-        }
-        else if (WithScopeSymbol ss = s.isWithScopeSymbol())
-        {
-            if (VarDeclaration vd = ss.withstate.wthis)
-            {
-                if (lastVar)
-                    vd.lastVar = lastVar;
-                lastVar = vd;
-            }
-            return null;
-        }
-
-        auto scopesym = inner().scopesym;
-        //printf("\t\tscopesym = %p\n", scopesym);
-        if (!scopesym.symtab)
-            scopesym.symtab = new DsymbolTable();
-        if (!this.inCfile)
-            return scopesym.symtabInsert(s);
-
-        // ImportC insert
-        if (!scopesym.symtabInsert(s)) // if already in table
-        {
-            Dsymbol s2 = scopesym.symtabLookup(s, s.ident); // s2 is existing entry
-
-            auto svar = s.isVarDeclaration();
-            auto s2var = s2.isVarDeclaration();
-            if (((svar && svar.storage_class & STC.extern_) &&
-                    (s2var && s2var.storage_class & STC.extern_) && this.func) ||
-                    s.isFuncDeclaration())
-            {
-                return handleSymbolRedeclarations(this, s, s2, scopesym);
-            }
-            else // aside externs and func decls, we should be free to handle tags
-            {
-                return handleTagSymbols(this, s, s2, scopesym);
-            }
-        }
-        return s; // inserted
     }
 
     /********************************************

@@ -2,7 +2,7 @@
  * Top level code for the code generator.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/x86/cgcod.d, backend/cgcod.d)
@@ -3275,7 +3275,6 @@ void andregcon(const ref con_t pregconsave)
  *    code = array of instruction bytes
  */
 @trusted
-extern (D)
 void disassemble(ubyte[] code)
 {
     printf("%s:\n", funcsym_p.Sident.ptr);
@@ -3316,7 +3315,7 @@ void disassemble(ubyte[] code)
  * Params:
  *      ins = instruction to decode
  */
-@trusted extern (D) void disassemble(uint ins)
+@trusted void disassemble(uint ins)
 {
     @trusted
     void put(char c) { printf("%c", c); }
