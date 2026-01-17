@@ -550,17 +550,17 @@ private Cent umulExtended(Cent a, Cent b, out Cent excess) pure
  * Params:
  *      c1 = operand 1
  *      c2 = operand 2
- *      overflow = set to true if overflow occurs
+ *      overflow = set if an overflow occurs, is not affected otherwise
  * Returns:
  *      c1 * c2
  */
 pure
-Cent umul(Cent c1, Cent c2, out bool overflow)
+Cent umul(Cent c1, Cent c2, ref bool overflow)
 {
     Cent excess;
     Cent res = umulExtended(c1, c2, excess);
     // Unsigned overflow happens if the top 128 bits (excess) are not zero
-    overflow = tst(excess);
+    overflow |= tst(excess);
     return res;
 }
 
@@ -569,12 +569,12 @@ Cent umul(Cent c1, Cent c2, out bool overflow)
  * Params:
  *      c1 = operand 1
  *      c2 = operand 2
- *      overflow = set to true if overflow occurs
+ *      overflow = set if an overflow occurs, is not affected otherwise
  * Returns:
  *      c1 * c2
  */
 pure
-Cent mul(Cent c1, Cent c2, out bool overflow)
+Cent mul(Cent c1, Cent c2, ref bool overflow)
 {
     Cent excess;
     Cent res = umulExtended(c1, c2, excess);
@@ -590,9 +590,9 @@ Cent mul(Cent c1, Cent c2, out bool overflow)
     // If result is negative, excess must be -1 (all ones).
     // If result is positive, excess must be 0 (all zeros).
     if (cast(I)res.hi < 0)
-        overflow = tst(com(excess)); // ~excess != 0
+        overflow |= tst(com(excess)); // ~excess != 0
     else
-        overflow = tst(excess);      // excess != 0
+        overflow |= tst(excess);      // excess != 0
 
     return res;
 }
@@ -1160,6 +1160,9 @@ unittest
     assert(overflow);
     assert(res == mul(maxU, C2));
 
+    // Reset overflow for the next test
+    overflow = false; 
+
     // Small numbers -> No Overflow
     res = umul(C10, C3, overflow);
     assert(!overflow);
@@ -1171,37 +1174,58 @@ unittest
     res = mul(maxS, C2, overflow);
     assert(overflow);
 
+    // Reset overflow
+    overflow = false;
+
     // Cent.min * -1 -> Overflow (classic edge case)
     Cent minS = {lo: 0, hi: 0x8000000000000000UL};
     res = mul(minS, Cm1, overflow);
     assert(overflow);
+
+    // Reset overflow
+    overflow = false;
 
     // Cent.min * 1 -> No Overflow
     res = mul(minS, C1, overflow);
     assert(!overflow);
     assert(res == minS);
 
+    // Reset overflow
+    overflow = false;
+
     // -2 * -2 = 4 (No Overflow)
     res = mul(neg(C2), neg(C2), overflow);
     assert(!overflow);
     assert(res == Cent(lo: 4));
     
+    // Reset overflow
+    overflow = false;
     assert(mul(Cm10, C1, overflow) == Cm10);
     assert(!overflow);
     
+    // Reset overflow
+    overflow = false;
     assert(mul(C1, Cm10, overflow) == Cm10);
     assert(!overflow);
     
+    // Reset overflow
+    overflow = false;
     assert(mul(C9_3, C10, overflow) == C90_30);
     assert(!overflow);
     
     // Cs_3 is {lo:3, hi:I.min}
+    // This expects overflow, so technically reset is optional if prev failed, but good practice
+    overflow = false; 
     assert(mul(Cs_3, C10, overflow) == C30); 
     assert(overflow);
     
+    // Reset overflow
+    overflow = false;
     assert(mul(Cm10, Cm10, overflow) == C100);
     assert(!overflow);
     
+    // Reset overflow
+    overflow = false;
     assert(mul(C20_0, Cm1, overflow) == Cm20_0);
     assert(!overflow);
 }
