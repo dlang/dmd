@@ -748,7 +748,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                  ) ||
                  (e12.Eoper == OPconst && !e1.Ecount && el_signx32(e12))) &&
                 e1.Ecount == e1.Ecomsub &&
-                (!e1.Ecount || (~keepmsk & ALLREGS & INSTR.MSW)) &&
+                (!e1.Ecount || (~keepmsk & INSTR.ALLREGS & INSTR.MSW)) &&
                 tysize(e11.Ety) == REGSIZE
                )
             {
@@ -808,7 +808,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                     {
                         int rbase;
 
-                        scratchm = ALLREGS & ~keepmsk;
+                        scratchm = INSTR.ALLREGS & ~keepmsk;
                         const r = allocreg(cdb, scratchm, TYint);
 
                         if (ssflags & SSFLnobase1)

@@ -262,7 +262,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t retregs = pretregs & cg.allregs;
     if (retregs == 0)                   /* if no return regs speced     */
                                         /* (like if wanted flags only)  */
-        retregs = ALLREGS & posregs;    // give us some
+        retregs = INSTR.ALLREGS & posregs;    // give us some
     reg_t Rd = allocreg(cdb, retregs, ty);
 
     reg_t Rn = findreg(retregs1);
@@ -317,7 +317,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     regm_t retregs = pretregs & cg.allregs;
     if (retregs == 0)                   // if no return regs speced (i.e. flags only)
-        retregs = ALLREGS & posregs;    // give us some
+        retregs = INSTR.ALLREGS & posregs;    // give us some
 
     reg_t Rdividend = findreg(retregs1);  // dividend
     reg_t Rdivisor  = findreg(retregs2);  // divisor
@@ -434,7 +434,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         regm_t retregs = pretregs & cg.allregs;
         if (retregs == 0)                   // if no return regs speced
                                             // (like if wanted flags only)
-            retregs = ALLREGS & posregs;    // give us some
+            retregs = INSTR.ALLREGS & posregs;    // give us some
         const tym = tybasic(e.Ety);
         reg_t Rd = allocreg(cdb, retregs, tym); // destination register
 
@@ -522,7 +522,7 @@ void cdbswap(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t retregs = pretregs & cg.allregs;
     if (retregs == 0)                   /* if no return regs speced     */
                                         /* (like if wanted flags only)  */
-        retregs = ALLREGS & posregs;    // give us some
+        retregs = INSTR.ALLREGS & posregs;    // give us some
     reg_t Rd = allocreg(cdb, retregs, tyml);
 
     const Rn = findreg(retregs1);
@@ -767,7 +767,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         retregs &= ~mPSW;
         if (!retregs)
-            retregs = ALLREGS;
+            retregs = INSTR.ALLREGS;
         codelem(cgstate,cdb1,e21,retregs,false);
         fixresult(cdb1,e21,retregs,pretregs);
     }
@@ -805,7 +805,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         retregs &= ~mPSW;
         if (!retregs)
-            retregs = ALLREGS;
+            retregs = INSTR.ALLREGS;
         codelem(cgstate,cdb2,e22,retregs,false);
         fixresult(cdb2,e22,retregs,pretregs);
     }
@@ -1013,7 +1013,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t retregs = pretregs & cg.allregs;
     if (retregs == 0)                   /* if no return regs speced     */
                                         /* (like if wanted flags only)  */
-        retregs = ALLREGS & posregs;    // give us some
+        retregs = INSTR.ALLREGS & posregs;    // give us some
     reg_t Rd = allocreg(cdb, retregs, tyml);
 
     reg_t Rn = findreg(retregs1);
@@ -1090,7 +1090,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     regm_t retregs = pretregs & cg.allregs;
     if (retregs == 0)                   /* if no return regs speced (such as mPSW)     */
-        retregs = ALLREGS & posregs;    // give us some
+        retregs = INSTR.ALLREGS & posregs;    // give us some
     reg_t Rt = allocreg(cdb, retregs, tym);
 
     uint size;
@@ -1099,8 +1099,8 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (sz == 2 * REGSIZE)
     {
-        reg_t Rlsw = findreg(retregs & ALLREGS & INSTR.LSW);
-        reg_t Rmsw = findreg(retregs & ALLREGS & INSTR.MSW);
+        reg_t Rlsw = findreg(retregs & INSTR.ALLREGS & INSTR.LSW);
+        reg_t Rmsw = findreg(retregs & INSTR.ALLREGS & INSTR.MSW);
         uint imm12 = 0;
         if (Rn == Rlsw)                 // collision, reverse load order
         {
@@ -2075,7 +2075,7 @@ static if (0)
             if (config.exe & EX_posix)
             {
                 if (log) printf("posix extern threaded\n");
-                regm_t scratch = ALLREGS & ~mask(reg);
+                regm_t scratch = INSTR.ALLREGS & ~mask(reg);
                 reg_t r = allocreg(cdb, scratch, TYoffset);
                 uint ins = INSTR.systemmove(1,INSTR.tpidr_el0,r);  // MRS r,tpidr_el0
                 cdb.gen1(ins);
@@ -2316,7 +2316,7 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     regm_t retregs = pretregs & cg.allregs;
     if (retregs == 0)                   /* if no return regs speced     */
                                         /* (like if wanted flags only)  */
-        retregs = ALLREGS & posregs;    // give us some
+        retregs = INSTR.ALLREGS & posregs;    // give us some
     reg_t Rd = allocreg(cdb, retregs, tyml);
 
     const Rn = findreg(retregs1);
@@ -2461,7 +2461,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if ((retregs & INSTR.LSW) == 0)
                 retregs |= INSTR.LSW & ~idxregs;
         if ((retregs & INSTR.MSW) == 0)
-                retregs |= ALLREGS & INSTR.MSW;
+                retregs |= INSTR.ALLREGS & INSTR.MSW;
         assert(retregs & INSTR.MSW && retregs & INSTR.LSW);
         const reg = allocreg(cdb,retregs,tyml);
         uint sreg = findreg(retregs & INSTR.LSW);

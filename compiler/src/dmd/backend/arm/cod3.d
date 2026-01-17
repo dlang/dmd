@@ -847,6 +847,7 @@ void epilog(block* b)
         cdbx.gencs(I16 ? 0x9A : CALL,0,FL.func,s);      // CALLF _trace
         code_orflag(cdbx.last(),CFoff | CFselfrel);
         useregs((ALLREGS | mBP | mES) & ~s.Sregsaved);
+	assert(0);	// TODO AArch64
     }
 
     if (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
@@ -1360,7 +1361,7 @@ void loadFloatRegConst(ref CodeBuilder cdb, reg_t vreg, double value, uint sz)
     {
         float f = value;
         uint i = *cast(uint*)&f;
-        regm_t retregs = ALLREGS;                       // TODO cg.allregs?
+        regm_t retregs = INSTR.FLOATREGS;
         reg_t reg = allocreg(cdb, retregs, TYfloat);
         movregconst(cdb,reg,i,0);                         // MOV reg,i
         cdb.gen1(INSTR.fmov_float_gen(0,0,0,7,reg,vreg)); // FMOV Sd,Wn
@@ -1368,7 +1369,7 @@ void loadFloatRegConst(ref CodeBuilder cdb, reg_t vreg, double value, uint sz)
     else if (sz == 8)
     {
         ulong i = *cast(ulong*)&value;
-        regm_t retregs = ALLREGS;                       // TODO cg.allregs?
+        regm_t retregs = INSTR.FLOATREGS;
         reg_t reg = allocreg(cdb, retregs, TYdouble);
         movregconst(cdb,reg,i,64);                        // MOV reg,i
         cdb.gen1(INSTR.fmov_float_gen(1,1,0,7,reg,vreg)); // FMOV Dd,Xn
