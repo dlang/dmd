@@ -291,6 +291,8 @@ void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
     cs.IEV1.Vsym = null;
     cs.IEV1.Voffset = slot;
     uint szr = tysize(tym);
+    if (szr > 8)
+        szr = 8;
     uint szw = szr == 8 ? 8 : 4;
     loadFromEA(cs, reg, szw, szr);
     cdb.gen(&cs);
@@ -847,7 +849,7 @@ void epilog(block* b)
         cdbx.gencs(I16 ? 0x9A : CALL,0,FL.func,s);      // CALLF _trace
         code_orflag(cdbx.last(),CFoff | CFselfrel);
         useregs((ALLREGS | mBP | mES) & ~s.Sregsaved);
-	assert(0);	// TODO AArch64
+        assert(0);      // TODO AArch64
     }
 
     if (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
