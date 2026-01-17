@@ -2401,10 +2401,20 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     else                                  /* reg pair is req'd            */
     if (sz <= 2 * REGSIZE)
     {
+        regm_t xMSW = mMSW;
+        regm_t xLSW = mLSW | mBP;
+        regm_t xALLREGS = ALLREGS;
+        if (AArch64)
+        {
+            xMSW = INSTR.MSW;
+            xLSW = INSTR.LSW;
+            xALLREGS = INSTR.ALLREGS;
+        }
+
         reg_t msreg,lsreg;
 
         /* see if we have both  */
-        if (!((emask | csemask) & mMSW && (emask | csemask) & (mLSW | mBP)))
+        if (!((emask | csemask) & xMSW && (emask | csemask) & xLSW))
         {                               /* we don't have both           */
             debug if (!OTleaf(e.Eoper))
             {
@@ -2419,30 +2429,30 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         }
 
         /* Look for right vals in any regs      */
-        regm_t regm = pretregs & mMSW;
+        regm_t regm = pretregs & xMSW;
         if (emask & regm)
             msreg = findreg(emask & regm);
-        else if (emask & mMSW)
-            msreg = findregmsw(emask);
+        else if (emask & xMSW)
+            msreg = findreg(emask & xMSW);
         else                    /* reload from cse array        */
         {
             if (!regm)
-                regm = mMSW & ALLREGS;
+                regm = xMSW & xALLREGS;
             msreg = allocreg(cdb,regm,TYint);
-            loadcse(cdb,e,msreg,mMSW);
+            loadcse(cdb,e,msreg,xMSW);
         }
 
-        regm = pretregs & (mLSW | mBP);
+        regm = pretregs & xLSW;
         if (emask & regm)
             lsreg = findreg(emask & regm);
-        else if (emask & (mLSW | mBP))
-            lsreg = findreglsw(emask);
+        else if (emask & xLSW)
+            lsreg = findreg(emask & xLSW);
         else
         {
             if (!regm)
-                regm = mLSW;
+                regm = xLSW;
             lsreg = allocreg(cdb,regm,TYint);
-            loadcse(cdb,e,lsreg,mLSW | mBP);
+            loadcse(cdb,e,lsreg,xLSW);
         }
 
         regm = mask(msreg) | mask(lsreg);       /* mask of result       */
