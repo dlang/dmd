@@ -2137,6 +2137,7 @@ extern (C++) final class ImportExp : UnaExp
 extern (C++) final class AssertExp : UnaExp
 {
     Expression msg;
+    Expression loweredFrom;
 
     extern (D) this(Loc loc, Expression e, Expression msg = null) @safe
     {

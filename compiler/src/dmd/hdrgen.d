@@ -2799,6 +2799,9 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitAssert(AssertExp e)
     {
+        if (e.loweredFrom)
+            return e.loweredFrom.expressionPrettyPrint(buf, hgs);
+
         buf.put("assert(");
         expToBuffer(e.e1, PREC.assign, buf, hgs);
         if (e.msg)

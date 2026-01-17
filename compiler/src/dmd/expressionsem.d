@@ -2072,7 +2072,9 @@ Expression checkNoreturnVarAccess(Expression exp)
     {
         auto msg = new StringExp(exp.loc, "Accessed expression of type `noreturn`");
         msg.type = Type.tstring;
-        result = new AssertExp(exp.loc, IntegerExp.literal!0, msg);
+        auto ae = new AssertExp(exp.loc, IntegerExp.literal!0, msg);
+        ae.loweredFrom = exp;
+        result = ae;
         result.type = exp.type;
     }
 
