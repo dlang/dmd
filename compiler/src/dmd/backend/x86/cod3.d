@@ -7073,7 +7073,7 @@ nothrow:
     void flushx()
     {
         // Emit accumulated bytes to code segment
-        debug assert(index < bytes.length);
+        debug assert(index <= bytes.length);
 
         if (disasmBuf)                     // write to buffer for disassembly
         {
