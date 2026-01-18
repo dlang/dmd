@@ -677,7 +677,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
             cod3_ptrchk(cdb, pcs, keepmsk);        // validate pointer code
     }
 
-    printf("fl: %s\n", fl_str(fl));
+    //printf("fl: %s\n", fl_str(fl));
     switch (fl)
     {
         case FL.oper:
@@ -1729,7 +1729,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
         /* Print what we have discovered
          */
-        static if (1)
+        static if (0)
             for (int i = np; --i >= 0;)
             {
                 Parameter* p = &parameters[i];

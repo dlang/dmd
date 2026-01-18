@@ -1668,7 +1668,7 @@ static if (0)
         uint size = _tysize[tym];
         bool AArch64 = cgstate.AArch64;
         if (AArch64)
-            outretregs &= cgstate.allregs | INSTR.FLOATREGS;
+            outretregs &= INSTR.ALLREGS | INSTR.FLOATREGS;
         else
             outretregs &= mES | cgstate.allregs | XMMREGS | INSTR.FLOATREGS;
         regm_t retregs = outretregs;
@@ -1729,11 +1729,11 @@ L3:
         // TODO AArch64 needs work on floating point and complex floats
         if (AArch64)
         {
-            if (size <= REGSIZE || retregs & INSTR.FLOATREGS)
+            if (size <= REGSIZE /*|| retregs & INSTR.FLOATREGS*/)
             {
                 // If only one index register, prefer to not use LSW registers
-                if (!cgstate.regcon.indexregs && r & ~INSTR.LSW)
-                    r &= ~INSTR.LSW;
+//                if (!cgstate.regcon.indexregs && r & ~INSTR.LSW)
+//                    r &= ~INSTR.LSW;
 
                 if (cgstate.pass == BackendPass.final_ && r & ~lastRetregs[0])
                 {   // Try not to always allocate the same register,
