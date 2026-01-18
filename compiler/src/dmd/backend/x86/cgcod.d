@@ -1777,7 +1777,7 @@ L3:
                         assert(retregs);
                         goto L1;
                     }
-                    lsreg = findreglsw(r);
+                    lsreg = findreg(r & INSTR.LSW);
                     if (msreg == NOREG)
                     {
                         retregs &= INSTR.MSW;
