@@ -236,7 +236,10 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         reg_t mswreg = findreg(retregs & INSTR.MSW);
         assert(cs.index == NOREG);  // BUG AArch64 cannot add the '8' offset
         assert(cs.base != NOREG);
-        cs.Iop = INSTR.str_imm_gen(1, mswreg, cs.base, 8);
+        if (mask(mswreg) & INSTR.FLOATREGS)
+            cs.Iop = INSTR.str_imm_fpsimd(3, 0, 8, cs.base, mswreg); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+        else
+            cs.Iop = INSTR.str_imm_gen(1, mswreg, cs.base, 8);
         cdb.gen(&cs);
     }
     else

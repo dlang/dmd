@@ -1155,23 +1155,25 @@ struct INSTR
     /* https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
      * STR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
      */
-    static uint str_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt)
+    static uint str_imm_fpsimd(uint size, uint opc, uint imm9, reg_t Rn, reg_t Vt)
     {
-        assert(imm12 < 0x1000);
+        assert(Vt & 32);
+        assert(imm9 < 0x200);
         assert(size < 4);
         assert(opc  < 4);
-        return ldst_pos(size,1,opc,imm12,Rn,Vt);
+        return ldst_pos(size,1,opc,imm9,Rn,Vt);
     }
 
     /* https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
      * LDR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
      */
-    static uint ldr_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt)
+    static uint ldr_imm_fpsimd(uint size, uint opc, uint imm9, reg_t Rn, reg_t Vt)
     {
-        assert(imm12 < 0x1000);
+        assert(Vt & 32);
+        assert(imm9 < 0x200);
         assert(size < 4);
         assert(opc  < 4);
-        return ldst_pos(size,1,opc | 1,imm12,Rn,Vt);
+        return ldst_pos(size,1,opc | 1,imm9,Rn,Vt);
     }
 
     /* https://www.scs.stanford.edu/~zyedidia/arm64/ldrsw_imm.html
