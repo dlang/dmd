@@ -2030,7 +2030,7 @@ uint calcblksize(code* c)
 @trusted
 uint calccodsize(code* c)
 {
-    if (c.Iop == INSTR.nop)
+    if (c.Iop == INSTR.nop || (c.Iop & PSOP.mask) == PSOP.root)
         return 0;
     return 4;
 }
