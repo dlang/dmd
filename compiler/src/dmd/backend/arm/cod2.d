@@ -1627,8 +1627,8 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
 @trusted
 void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    printf("cdstreq(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
-    elem_print(e);
+    //printf("cdstreq(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
+    //elem_print(e);
     char need_DS = false;
     elem* e1 = e.E1;
     elem* e2 = e.E2;
