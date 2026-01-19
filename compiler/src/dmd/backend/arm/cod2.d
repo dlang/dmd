@@ -202,7 +202,7 @@ Extend tyToExtend(tym_t ty)
 {
     //debug printf("ty: %s x%x\n", tym_str(ty), ty);
     ty = tybasic(ty);
-    assert(tyintegral(ty) || ty == TYnptr);
+    assert(tyintegral(ty) || ty == TYnptr || ty == TYnref);
     Extend extend;
     const sz = tysize(ty);
     with (Extend) switch (sz)
