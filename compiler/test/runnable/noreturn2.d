@@ -102,20 +102,16 @@ void testAccess()
 {
     enum msg = "Accessed expression of type `noreturn`";
 
-    // FIXME: Another assertion failure in the backend trying to generate noreturn.sizeof = 0 byte assignment
-    version (FIXME)
-    testAssertFailure(__LINE__ + 3, msg, function noreturn()
+    testAssertFailure(__LINE__ + 3, msg,
     {
         noreturn a;
         noreturn b = a;
     });
 
-    if (false) // read does not assert!
-    testAssertFailure(__LINE__ + 3, msg, function noreturn()
+    testAssertFailure(__LINE__ + 3, msg,
     {
         noreturn a;
         int b = a;
-        assert(false, "Unreachable!"); // Statement above not detected as noreturn
     });
 
     testAssertFailure(__LINE__ + 2, msg, function noreturn()
@@ -123,27 +119,38 @@ void testAccess()
         cast(noreturn) 1;
     });
 
-    version (FIXME)
-    testAssertFailure(__LINE__ + 3, msg, function noreturn()
+    testAssertFailure(__LINE__ + 3, msg,
     {
         noreturn a;
         noreturn b = cast(noreturn) 1;
     });
 
-    if (false) // Read does not assert
     testAssertFailure(__LINE__ + 3, msg, function noreturn()
     {
         noreturn a;
         return a;
     });
 
-    if (false) // Read does not assert
+    // FIXME: assertion failure in the backend in paramsize() - noreturn.sizeof = 0
+    // https://github.com/dlang/dmd/issues/20286
+    version (FIXME)
     testAssertFailure(__LINE__ + 4, msg, function noreturn()
     {
         static void foo(noreturn) {}
         noreturn a;
         foo(a);
         assert(false, "Unreachable!"); // Ditto
+    });
+
+    testAssertFailure(__LINE__ + 5, msg,
+    {
+        static fv(int) {}
+        static fr(ref noreturn a)
+        {
+            fv(a); // asserts
+        }
+        noreturn a;
+        fr(a); // OK, passes &a
     });
 
     testAssertFailure(__LINE__ + 3, msg,

@@ -2072,7 +2072,9 @@ Expression checkNoreturnVarAccess(Expression exp)
     {
         auto msg = new StringExp(exp.loc, "Accessed expression of type `noreturn`");
         msg.type = Type.tstring;
-        result = new AssertExp(exp.loc, IntegerExp.literal!0, msg);
+        auto ae = new AssertExp(exp.loc, IntegerExp.literal!0, msg);
+        ae.loweredFrom = exp;
+        result = ae;
         result.type = exp.type;
     }
 
@@ -4186,6 +4188,10 @@ private bool functionParameters(Loc loc, Scope* sc,
         {
             arg = arg.resolveLoc(loc, sc);
             (*arguments)[i] = arg;
+        }
+        else if (!(p.storageClass & (STC.ref_ | STC.out_)))
+        {
+            (*arguments)[i] = checkNoreturnVarAccess(arg);
         }
 
         if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nparams) // https://dlang.org/spec/function.html#variadic

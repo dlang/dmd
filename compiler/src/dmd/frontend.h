@@ -2542,6 +2542,7 @@ class AssertExp final : public UnaExp
 {
 public:
     Expression* msg;
+    Expression* loweredFrom;
     AssertExp* syntaxCopy() override;
     void accept(Visitor* v) override;
 };
