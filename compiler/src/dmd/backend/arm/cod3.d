@@ -494,8 +494,8 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 {
     if (config.exe & EX_OSX64)
         return prolog_genvarargs_osx(cg,cdb,sv);
-    printf("prolog_genvarargs()\n");
-    symbol_print(*sv);
+    //printf("prolog_genvarargs()\n");
+    //symbol_print(*sv);
 
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
@@ -668,8 +668,8 @@ void prolog_genvarargs_osx(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 @trusted
 elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
 {
-    printf("prolog_genva_start()\n");
-    symbol_print(*sv);
+    //printf("prolog_genva_start()\n");
+    //symbol_print(*sv);
     assert(!(config.exe & EX_OSX64)); // not needed for OSX64, see backend.cgelem.valist()
 
     /* the stack variable __va_argsave points to an instance of:
@@ -1729,7 +1729,7 @@ void assignaddrc(code* c)
                     c.Iop = INSTR.nop;               // remove references to it
                     break;
                 }
-                static if (1)
+                static if (0)
                 {
                     symbol_print(*s);
                     //printf("c: %p, x%08x\n", c, c.Iop);
@@ -1778,11 +1778,11 @@ void assignaddrc(code* c)
 
             L2:
                 offset = cast(int)offset;       // sign extend
-printf("offset: x%llx localsize: x%llxd REGSIZE*2: x%x\n", offset, localsize, REGSIZE*2);
+//printf("offset: x%llx localsize: x%llxd REGSIZE*2: x%x\n", offset, localsize, REGSIZE*2);
                 if (cgstate.hasframe)
                     offset += REGSIZE * 2;
                 offset += localsize;
-printf("offset: x%llx\n", offset);
+//printf("offset: x%llx\n", offset);
             L3:
                 /*
                         V 22
