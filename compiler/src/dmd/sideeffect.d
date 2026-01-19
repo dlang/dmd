@@ -242,7 +242,24 @@ private bool lambdaHasSideEffect(Expression e, bool assumeImpureCalls = false)
 bool discardValue(Expression e)
 {
     if (lambdaHasSideEffect(e)) // check side-effect shallowly
+    {
+        // check for e.g. `arrayLiteral[index] = expr;`
+        if (e.isAssignExp() || e.isBinAssignExp() || e.isPostExp())
+        {
+            Expression e1;
+            if (auto be = e.isBinExp()) // includes PostExp
+                e1 = be.e1;
+            else if (auto ce = e.isPreExp())
+                e1 = ce.e1;
+
+            if (auto ie = e1 ? e1.isIndexExp() : null)
+            {
+                if (ie.e1.isArrayLiteralExp())
+                    error(e.loc, "discarded assignment to indexed array literal");
+            }
+        }
         return false;
+    }
     switch (e.op)
     {
     case EXP.cast_:
