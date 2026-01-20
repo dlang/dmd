@@ -653,17 +653,19 @@ version (linux)
     {
         version (CRuntime_Musl)
         {
+            // Matches struct stat from musl arch/arm/bits/stat.h
+            // See: https://git.musl-libc.org/cgit/musl/tree/arch/arm/bits/stat.h?h=v1.2.3
             struct stat_t
             {
                 dev_t st_dev;
-                ushort __pad1;
-                c_long __st_ino;
+                int __st_dev_padding;
+                c_long __st_ino_truncated;
                 mode_t st_mode;
                 nlink_t st_nlink;
                 uid_t st_uid;
                 gid_t st_gid;
                 dev_t st_rdev;
-                ushort __pad2;
+                int __st_rdev_padding;
                 off_t st_size;
                 blksize_t st_blksize;
                 blkcnt_t st_blocks;
