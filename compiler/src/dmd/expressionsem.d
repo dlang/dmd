@@ -2066,19 +2066,36 @@ Expression checkNoreturnVarAccess(Expression exp)
 {
     assert(exp.type);
 
-    Expression result = exp;
-    if (exp.type.isTypeNoreturn() && !exp.isAssertExp() &&
-        !exp.isThrowExp() && !exp.isCallExp())
+    if (!exp.type.isTypeNoreturn())
+        return exp;
+
+    switch (exp.op)
     {
+    case EXP.assert_:
+    case EXP.throw_:
+    case EXP.call:
+        return exp;
+
+    case EXP.question:
+        CondExp ce = cast(CondExp)exp;
+        ce.e1 = checkNoreturnVarAccess(ce.e1);
+        ce.e2 = checkNoreturnVarAccess(ce.e2);
+        return ce;
+
+    case EXP.comma:
+        CommaExp ce = cast(CommaExp)exp;
+        ce.e1 = checkNoreturnVarAccess(ce.e1);
+        ce.e2 = checkNoreturnVarAccess(ce.e2);
+        return ce;
+
+    default:
         auto msg = new StringExp(exp.loc, "Accessed expression of type `noreturn`");
         msg.type = Type.tstring;
         auto ae = new AssertExp(exp.loc, IntegerExp.literal!0, msg);
         ae.loweredFrom = exp;
-        result = ae;
-        result.type = exp.type;
+        ae.type = exp.type;
+        return ae;
     }
-
-    return result;
 }
 
 /******************************
@@ -15220,15 +15237,23 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             rewriteCNull(exp.e2, t2);
         }
 
-        if (t1.ty == Tnoreturn)
+        if (t1 == t2)
+        {
+            exp.type = t1;
+        }
+        // If only one of the operands is noreturn, cast it to the type of
+        // the other operand.
+        else if (t1.ty == Tnoreturn)
         {
             exp.type = t2;
-            exp.e1 = specialNoreturnCast(exp.e1, exp.type);
+            if (t2.ty != Tnoreturn)
+                exp.e1 = specialNoreturnCast(exp.e1, exp.type);
         }
         else if (t2.ty == Tnoreturn)
         {
             exp.type = t1;
-            exp.e2 = specialNoreturnCast(exp.e2, exp.type);
+            if (t1.ty != Tnoreturn)
+                exp.e2 = specialNoreturnCast(exp.e2, exp.type);
         }
         // If either operand is void the result is void, we have to cast both
         // the expression to void so that we explicitly discard the expression
@@ -15240,8 +15265,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.e1 = exp.e1.castTo(sc, exp.type);
             exp.e2 = exp.e2.castTo(sc, exp.type);
         }
-        else if (t1 == t2)
-            exp.type = t1;
         else
         {
             if (Expression ex = typeCombine(exp, sc))

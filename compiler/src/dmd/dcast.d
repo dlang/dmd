@@ -4585,7 +4585,7 @@ IntRange getIntRange(Expression e)
  * However, the dmd backend does not like a naive cast from a noreturn expression
  * (particularly an `assert(0)`) so this function generates:
  *
- * `(assert(0), value)` instead of `cast(to)(assert(0))`.
+ * `(value, assert(0))` instead of `cast(to)(assert(0))`.
  *
  * `value` is currently `to.init` however it cannot be read so could be made simpler.
  * Params:
