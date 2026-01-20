@@ -1817,7 +1817,12 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                     assert(0);
 
                 case OPstrpar:
-                    assert(type_size(ep.ET) == 0);
+                    /* OPstrpar is only used for 0-sized structs. Depending on the
+                     * OS and type of the function being called, it's size can be
+                     * set at 0 or 1. But for parameters, a slot is used for it in
+                     * either case.
+                     */
+                    assert(type_size(ep.ET) <= 1); // a 0-sized struct
                     break;
 
                 default:
@@ -2366,8 +2371,8 @@ static if (0)
 @trusted
 private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint funcargtos, targ_size_t sz)
 {
-    printf("movParams(funcargtos: %d sz: %d)\n", funcargtos, cast(uint)sz);
-    elem_print(e);
+    //printf("movParams(funcargtos: %d sz: %d)\n", funcargtos, cast(uint)sz);
+    //elem_print(e);
     assert(e && e.Eoper != OPparam);
 
 
@@ -2379,7 +2384,7 @@ private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint funcar
             assert(0);
 
         case OPstrpar:
-            assert(sz == 0);
+            assert(sz <= 16);   // a zero-sized struct, but still occupies aligned space on stack
             regm_t retregs0 = 0;
             scodelem(cgstate,cdb, e.E1, retregs0, 0, false);
             freenode(e);

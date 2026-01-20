@@ -9921,7 +9921,7 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
 
     override void visit(StructDeclaration sd)
     {
-        //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
+        //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", sd.toChars(), sd.sizeok);
         assert(sd.sizeok != Sizeok.done);
 
         if (sd.sizeok == Sizeok.inProcess)
