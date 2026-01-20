@@ -320,6 +320,42 @@ private extern(C++) final class Semantic2Visitor : Visitor
         vd.semanticRun = PASS.semantic2done;
     }
 
+    override void visit(BitFieldDeclaration bfd)
+    {
+        visit(cast(VarDeclaration)bfd);
+        if (bfd.semanticRun != PASS.semantic2done)
+            return;
+
+        if (bfd.fieldWidth == 0)
+            return;
+
+        if (!bfd._init)
+            return;
+
+        auto ei = bfd._init.isExpInitializer();
+        if (!ei)
+            return;
+
+        if (!ei.exp.isIntegerExp())
+            return;
+
+        import dmd.intrange;
+        auto value = getIntRange(ei.exp);
+
+        const bool isUnsigned = bfd.type.isUnsigned();
+        auto bounds = IntRange(
+            SignExtendedNumber(bfd.getMinMax(Id.min), !isUnsigned),
+            SignExtendedNumber(bfd.getMinMax(Id.max), false)
+        );
+
+        if (!bounds.contains(value))
+        {
+            const uwidth = bfd.fieldWidth;
+            error(ei.loc, "bitfield initializer `%s` does not fit in %d bit%s",
+                ei.exp.toChars(), cast(int) uwidth, uwidth == 1 ? "".ptr : "s".ptr);
+        }
+    }
+
     override void visit(Module mod)
     {
         //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);

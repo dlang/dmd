@@ -3174,6 +3174,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
 
+        if (dsym.isAnonymous() && dsym._init)
+        {
+             .error(dsym.loc, "anonymous bitfield cannot have default initializer");
+             dsym._init = null;
+        }
+
         visit(cast(VarDeclaration)dsym);
         if (dsym.errors)
             return;

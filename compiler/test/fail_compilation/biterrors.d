@@ -1,7 +1,6 @@
 /*
  * TEST_OUTPUT:
 ---
-fail_compilation/biterrors.d(103): Error: initializer not allowed for bitfield declaration
 fail_compilation/biterrors.d(104): Error: storage class not allowed for bitfield declaration
 ---
  */

@@ -1002,13 +1002,32 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                 auto value = ie.getInteger();
                 const width = bf.fieldWidth;
                 const mask = (1L << width) - 1;
-                bitFieldValue = (bitFieldValue & ~(mask << bitOffset)) | ((value & mask) << bitOffset);
+                bitFieldValue = (bitFieldValue & ~(mask << bf.bitOffset)) | ((value & mask) << bf.bitOffset);
                 //printf("bitFieldValue x%llx\n", bitFieldValue);
             }
             else
                 Expression_toDt(e, dtbx);    // convert e to an initializer dt
         }
-        else if (!bf)
+        else if (bf)
+        {
+            if (Initializer init = vd._init)
+            {
+                if (init.isVoidInitializer())
+                    continue;
+
+                assert(vd.semanticRun >= PASS.semantic2done);
+                auto ei = init.isExpInitializer();
+                assert(ei);
+                auto ie = ei.exp.isIntegerExp();
+                assert(ie);
+
+                auto value = ie.getInteger();
+                const width = bf.fieldWidth;
+                const mask = (1L << width) - 1;
+                bitFieldValue = (bitFieldValue & ~(mask << bf.bitOffset)) | ((value & mask) << bf.bitOffset);
+            }
+        }
+        else
         {
             if (Initializer init = vd._init)
             {
