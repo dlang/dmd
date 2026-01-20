@@ -190,7 +190,11 @@ uint type_alignsize(type* t)
 @trusted
 bool type_zeroSize(type* t, tym_t tyf)
 {
-    if (tyf != TYjfunc && config.exe & (EX_FREEBSD | EX_OPENBSD | EX_OSX))
+    //printf("type_zeroSize(t: %p tyf: %s)\n", t, tym_str(tyf));
+    //type_print(t);
+    if (tyf != TYjfunc &&
+        (config.exe & (EX_FREEBSD | EX_OPENBSD | EX_OSX) ||
+         config.exe & EX_OSX64 && config.target_cpu == TARGET_AArch64)) // the Arm Mac
     {
         /* Use clang convention for 0 size structs
          */
@@ -204,7 +208,7 @@ bool type_zeroSize(type* t, tym_t tyf)
 
             if (ts.Ttag.Sstruct.Sflags & STR0size)
             {
-                //printf("0size\n"); type_print(t); *(char*)0=0;
+                //printf("0size\n"); type_print(t);
                 return true;
             }
         }
@@ -222,6 +226,7 @@ bool type_zeroSize(type* t, tym_t tyf)
  */
 uint type_parameterSize(type* t, tym_t tyf)
 {
+    //debug printf("type_parameterSize(t: %p)\n", t);
     if (type_zeroSize(t, tyf))
         return 0;
     return cast(uint)type_size(t);
@@ -465,7 +470,7 @@ type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
 {
     static if (0)
     {
-        printf("type_struct_class(%s, %p, %p)\n", name, arg1type, arg2type);
+        printf("type_struct_class(%s, %p, %p, is0size: %d)\n", name, arg1type, arg2type, is0size);
         if (arg1type)
         {
             printf("arg1type:\n");
