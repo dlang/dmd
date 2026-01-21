@@ -76,7 +76,12 @@ import dmd.targetcompiler;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
-import dmd.dfa.entry;
+
+version (IN_GCC) { /* Not using Fast DFA */ }
+else version = FastDFA;
+
+version (FastDFA)
+    import dmd.dfa.entry;
 
 enum LOG = false;
 
@@ -1421,11 +1426,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
             oblive(funcdecl);
         }
 
-        if (global.params.useFastDFA && global.errors == oldErrors && funcdecl.fbody && funcdecl.type.ty != Terror)
+        version (FastDFA)
         {
-            // Don't run DFA if there are errors,
-            //  this is a costly enough operation that it warrents the explicit check.
-            dfaEntry(funcdecl, sc);
+            if (global.params.useFastDFA && global.errors == oldErrors && funcdecl.fbody && funcdecl.type.ty != Terror)
+            {
+                // Don't run DFA if there are errors,
+                //  this is a costly enough operation that it warrents the explicit check.
+                dfaEntry(funcdecl, sc);
+            }
         }
 
         /* If this function had instantiated with gagging, error reproduction will be
