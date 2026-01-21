@@ -1,14 +1,13 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22328.d(17): Error: cannot modify the content of array literal `[1, 2, 3]`
-fail_compilation/fail22328.d(17): Error: cannot modify the content of array literal `[1, 2, 3]`
-fail_compilation/fail22328.d(17): Error: cannot modify expression `[1, 2, 3][2]` because it is not an lvalue
-fail_compilation/fail22328.d(18): Error: cannot modify the content of array literal `[10, 20]`
-fail_compilation/fail22328.d(18): Error: cannot modify the content of array literal `[10, 20]`
-fail_compilation/fail22328.d(18): Error: cannot modify expression `[10, 20][0]` because it is not an lvalue
-fail_compilation/fail22328.d(20): Error: cannot modify the content of array literal `[1, 2, 3]`
-fail_compilation/fail22328.d(22): Error: cannot take address of expression `[1, 2, 3][0]` because it is not an lvalue
+fail_compilation/fail22328.d(16): Error: cannot modify the content of array literal `[1, 2, 3]`
+fail_compilation/fail22328.d(16): Error: cannot modify the content of array literal `[1, 2, 3]`
+fail_compilation/fail22328.d(16): Error: discarded assignment to indexed array literal
+fail_compilation/fail22328.d(17): Error: cannot modify the content of array literal `[10, 20]`
+fail_compilation/fail22328.d(17): Error: cannot modify the content of array literal `[10, 20]`
+fail_compilation/fail22328.d(17): Error: discarded assignment to indexed array literal
+fail_compilation/fail22328.d(19): Error: cannot modify the content of array literal `[1, 2, 3]`
 ---
 */
 
