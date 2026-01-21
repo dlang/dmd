@@ -421,6 +421,8 @@ extern (C++) final class OverDeclaration : Declaration
 }
 
 /***********************************************************
+ * Note: dsymbolSemantic turns a VarDeclaration inside a function into
+ * AssignExp(e1: VarExp, e2: ConstructExp or BlitExp).
  */
 extern (C++) class VarDeclaration : Declaration
 {

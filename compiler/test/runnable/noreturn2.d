@@ -114,6 +114,20 @@ void testAccess()
         int b = a;
     });
 
+    testAssertFailure(__LINE__ + 4, msg,
+    {
+        noreturn a;
+        auto p = &a; // OK
+        int b = *p;
+    });
+
+    testAssertFailure(__LINE__ + 4, msg,
+    {
+        noreturn a;
+        ref r = a; // OK, reads &a
+        int b = r; // asserts
+    });
+
     testAssertFailure(__LINE__ + 2, msg, function noreturn()
     {
         cast(noreturn) 1;
