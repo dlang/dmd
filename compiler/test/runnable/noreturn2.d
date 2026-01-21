@@ -180,6 +180,13 @@ void testAccess()
         if (v)
             return;
     });
+
+    // https://github.com/dlang/dmd/issues/22430
+    testAssertFailure(__LINE__ + 3, msg,
+    {
+        noreturn a;
+        auto b = true ? a : 1;
+    });
 }
 
 /*****************************************/
