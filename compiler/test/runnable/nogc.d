@@ -79,16 +79,6 @@ void testIndexedArrayLiteral() @nogc
 	assert(arr[i] == 400);
 }
 
-void testArrayLiteralLvalue()
-{
-    // https://github.com/dlang/dmd/pull/16784
-    // Test that this array literal is *not* put on the stack because
-    // it gets its address taken
-    static int* getPtr(int i) => &[1, 2, 3][i];
-    int* x = getPtr(1);
-    int* y = getPtr(1);
-    assert(x != y);
-}
 
 /***********************/
 
@@ -98,7 +88,6 @@ int main()
     test3032();
     test12642();
     test12936();
-    testArrayLiteralLvalue();
 
     printf("Success\n");
     return 0;

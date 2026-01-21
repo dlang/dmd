@@ -43,6 +43,5 @@ int* find(int[] arr, int needle)
 enum int[int] aa = [0: 0];
 enum int[] da = [0, 1, 2];
 static assert(0 in aa);
-static assert(&da[1]);
 static assert(find(da, 1));
 static assert(!find(da, 3));

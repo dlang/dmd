@@ -17561,7 +17561,24 @@ Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyF
 
             //printf("SliceExp::checkModifiable %s\n", sliceExp.toChars());
             auto e1 = sliceExp.e1;
-            if (e1.type.ty == Tsarray || (e1.op == EXP.index && e1.type.ty != Tarray) || e1.op == EXP.slice)
+
+            if (e1.op == EXP.arrayLiteral || e1.op == EXP.structLiteral)
+            {
+                if (!(flag & ModifyFlags.noError))
+                {
+                    if (e1.type.ty != Terror)
+                    {
+                        error(exp.loc, "cannot modify the content of %s literal `%s`",
+                            e1.op == EXP.arrayLiteral ? "array".ptr : "struct".ptr,
+                            e1.toChars());
+                    }
+                }
+                return Modifiable.no;
+            }
+
+            if (e1.type.ty == Tsarray ||
+                (e1.op == EXP.index && e1.type.ty != Tarray) ||
+                e1.op == EXP.slice)
             {
                 return e1.checkModifiable(sc, flag);
             }
@@ -17573,6 +17590,15 @@ Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyF
         case EXP.index:
             auto indexExp = cast(IndexExp)exp;
             auto e1 = indexExp.e1;
+
+            if (e1.op == EXP.arrayLiteral || e1.op == EXP.structLiteral)
+            {
+                 if (!(flag & ModifyFlags.noError))
+                            error(exp.loc, "cannot modify the content of %s literal `%s`",
+                            e1.op == EXP.arrayLiteral ? "array".ptr : "struct".ptr,
+                            e1.toChars());
+                 return Modifiable.no;
+            }
             if (e1.type.ty == Tsarray ||
                 e1.type.ty == Taarray ||
                 (e1.op == EXP.index && e1.type.ty != Tarray) ||
