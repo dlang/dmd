@@ -1101,6 +1101,9 @@ void reconcileCommands(ref Param params, ref Target target)
 
         if (params.useSwitchError == CHECKENABLE._default)
             params.useSwitchError = CHECKENABLE.off;
+
+        if (params.useNullCheck == CHECKENABLE._default)
+            params.useNullCheck = CHECKENABLE.off;
     }
     else
     {
@@ -1121,6 +1124,9 @@ void reconcileCommands(ref Param params, ref Target target)
 
         if (params.useSwitchError == CHECKENABLE._default)
             params.useSwitchError = CHECKENABLE.on;
+
+        if (params.useNullCheck == CHECKENABLE._default)
+            params.useNullCheck = CHECKENABLE.off;
     }
 
     if (params.betterC)

@@ -3307,6 +3307,8 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
             e = addressElem(e, tb1);
             typ = tybasic(e.Ety);
         }
+        else if (irs.nullDerefCheck())
+            applyNullDerefErrorCheck(e, typ, irs, dve.loc);
 
         const tym = totym(dve.type);
         auto voffset = v.offset;
@@ -3381,6 +3383,12 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
             ve = new AddrExp(de.loc, ve);
             ve.type = de.vthis2.type.pointerTo();
             ethis2 = toElem(ve, irs);
+
+            if (irs.nullDerefCheck())
+            {
+                // check context pointer
+                applyNullDerefErrorCheck(ethis2, ethis2.Ety, irs, de.loc);
+            }
         }
 
         if (de.func.isNested() && !de.func.isThis())
@@ -3399,6 +3407,9 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
             ethis = toElem(de.e1, irs);
             if (de.e1.type.ty != Tclass && de.e1.type.ty != Tpointer)
                 ethis = addressElem(ethis, de.e1.type);
+
+            if (irs.nullDerefCheck())
+                applyNullDerefErrorCheck(ethis, ethis.Ety, irs, de.loc);
 
             if (ethis2)
                 ethis2 = setEthis2(de.loc, irs, de.func, ethis2, ethis, eeq);
@@ -3715,6 +3726,10 @@ elem* toElem(Expression e, ref IRState irs, elem* ehidden = null)
         {
             e.Ety = TYimmutPtr;     // pointer to immutable
         }
+
+        if (irs.nullDerefCheck())
+            applyNullDerefErrorCheck(e, e.Ety, irs, pe.loc);
+
         e = el_una(OPind,totym(pe.type),e);
         if (tybasic(e.Ety) == TYstruct)
         {
@@ -5432,11 +5447,13 @@ elem* callfunc(Loc loc,
 {
     elem* ethis = null;
     elem* eside = null;
+    elem* delegateNullCheck = null;
     elem* eresult = ehidden;
+    const op = fd ? intrinsic_op(fd) : NotIntrinsic;
 
     version (none)
     {
-        printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p)\n",
+        printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p, op = %d)\n",
             directcall, tret.toChars(), ec, fd);
         printf("ec: "); elem_print(ec);
         if (fd)
@@ -5455,10 +5472,7 @@ elem* callfunc(Loc loc,
         assert(!fd);
         tf = t.nextOf().isTypeFunction();
         assert(tf);
-        ethis = ec;
-        ec = el_same(ethis);
-        ethis = el_una(target.isX86_64 || target.isAArch64 ? OP128_64 : OP64_32, TYnptr, ethis); // get this
-        ec = array_toPtr(t, ec);                // get funcptr
+
         tym_t tym;
         /* Delegates use the same calling convention as member functions.
          * For extern(C++) on Win32 this differs from other functions.
@@ -5467,14 +5481,74 @@ elem* callfunc(Loc loc,
             tym = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYmfunc;
         else
             tym = totym(tf);
-        ec = el_una(OPind, tym, ec);
+
+        elem* delRef;
+
+        if (irs.nullDerefCheck() && el_sideeffect(ec))
+        {
+            // The expression that is a reference to the delegate has a side effect,
+            //  it has been stored into a temporary variable with the reference to that temporary in delRef.
+            // Only needed if we're doing a null check.
+
+            delegateNullCheck = ec;
+            delRef = el_copytotmp(delegateNullCheck);
+        }
+        else
+        {
+            // The expression that is a reference to the delegate hasn't got a side effect,
+            //  could be a variable.
+            // We don't need to keep track of the original value therefore, we can use it directly.
+
+            delRef = ec;
+        }
+
+        elem* thisptr = el_una(target.isX86_64 || target.isAArch64 ? OP128_64 : OP64_32, TYnptr, el_same(delRef)); // get this
+        elem* funcptr = array_toPtr(t, delRef);                // get funcptr
+
+        if (irs.nullDerefCheck())
+        {
+            // We're doing a null check.
+            // delegateNullCheck may be null here.
+
+            // Ensure that the context pointer and function pointer is stored in a known place before doing the null check,
+            //  on the function pointer only.
+            // The context pointer shouldn't need to be checked,
+            //  and can't be due to lazy being able to have a null context pointer.
+            elem* combined = el_combine(el_same(thisptr), el_same(funcptr));
+
+            applyNullDerefErrorCheck(combined, TYnptr, irs, loc);
+
+            // No need to check if delegateNullCheck is non-null, combined will be used if it is.
+            delegateNullCheck = el_combine(delegateNullCheck, combined);
+            // delegateNullCheck here holds the temporary storage (if needed) for function pointer, context pointer, input to those two.
+        }
+
+        ethis = thisptr;
+        ec = el_una(OPind, tym, funcptr);
+    }
+    else
+    {
+        if (fd is null && irs.nullDerefCheck() && ec.Eoper == OPind)
+        {
+            // check function pointers
+            applyNullDerefErrorCheck(ec.E1, ec.E1.Ety, irs, loc);
+        }
+    }
+
+    // Prevent intrinsics from having null checks, these cause backend errors.
+    const disableNullDerefCheck = op != NotIntrinsic;
+    if (disableNullDerefCheck)
+        irs.countNullDerefCheckDisable++;
+    scope(exit)
+    {
+        if (disableNullDerefCheck)
+            irs.countNullDerefCheckDisable--;
     }
 
     const ty = fd ? toSymbol(fd).Stype.Tty : ec.Ety;
     const left_to_right = tyrevfunc(ty);   // left-to-right parameter evaluation
                                            // (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
     elem* ep = null;
-    const op = fd ? intrinsic_op(fd) : NotIntrinsic;
 
     // Check for noreturn expression pretending to yield function/delegate pointers
     if (tybasic(ec.Ety) == TYnoreturn)
@@ -5732,6 +5806,10 @@ elem* callfunc(Loc loc,
             // make virtual call
             assert(ethis);
             elem* ev = el_same(ethis);
+
+            if (irs.nullDerefCheck())
+                applyNullDerefErrorCheck(ev, TYnptr, irs, loc);
+
             ev = el_una(OPind, TYnptr, ev);
             uint vindex = fd.vtblIndex;
             assert(cast(int)vindex >= 0);
@@ -5914,6 +5992,8 @@ elem* callfunc(Loc loc,
     {
         e.ET = Type_toCtype(tret);
     }
+
+    eside = el_combine(delegateNullCheck, eside);
     e = el_combine(eside, e);
     return e;
 }
@@ -6928,6 +7008,29 @@ elem* buildRangeError(ref IRState irs, Loc loc)
     case CHECKACTION.D:
         const efile = irs.locToFileElem(loc);
         return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DARRAYP)), el_params(el_long(TYint, loc.linnum), efile, null));
+    }
+}
+
+void applyNullDerefErrorCheck(ref elem* e, tym_t type, ref IRState irs, const ref Loc loc)
+{
+    auto ne = buildNullDerefError(irs, loc);
+    auto originale = el_same(e);
+    e = el_bin(OPoror, TYvoid, e, ne);
+    e = el_bin(OPcomma, type, e, originale);
+}
+
+elem* buildNullDerefError(ref IRState irs, const ref Loc loc)
+{
+    final switch (irs.params.checkAction)
+    {
+        case CHECKACTION.C:
+            return callCAssert(irs, loc, null, null, "null pointer dereference");
+        case CHECKACTION.halt:
+            return genHalt(loc);
+        case CHECKACTION.context:
+        case CHECKACTION.D:
+            const efile = irs.locToFileElem(loc);
+            return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DNULLP)), el_params(el_long(TYint, loc.linnum), efile, null));
     }
 }
 

@@ -89,6 +89,7 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.DARRAYP:                symbolz(ps,FL.func,FREGSAVED,"_d_arrayboundsp", SFLexit, t); break;
         case RTLSYM.DARRAY_SLICEP:          symbolz(ps,FL.func,FREGSAVED,"_d_arraybounds_slicep", SFLexit, t); break;
         case RTLSYM.DARRAY_INDEXP:          symbolz(ps,FL.func,FREGSAVED,"_d_arraybounds_indexp", SFLexit, t); break;
+        case RTLSYM.DNULLP:                 symbolz(ps,FL.func,FREGSAVED,"_d_nullpointerp", SFLexit, t); break;
         case RTLSYM.DINVARIANT:             symbolz(ps,FL.func,FREGSAVED,"_D2rt10invariant_12_d_invariantFC6ObjectZv", 0, tsdlib); break;
         case RTLSYM.MEMCPY:                 symbolz(ps,FL.func,FREGSAVED,"memcpy",    0, t); break;
         case RTLSYM.MEMSET8:                symbolz(ps,FL.func,FREGSAVED,"memset",    0, t); break;
