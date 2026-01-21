@@ -29,7 +29,10 @@ struct ll_ThreadData
 {
     ThreadID tid;
     version (Windows)
+    {
         void delegate() nothrow cbDllUnload;
+        void* hMod; // HMODULE containing the unload callback
+    }
 }
 
 version (GNU)

@@ -33,7 +33,8 @@ PATH := $(dir $(DRUNTIMESO));$(PATH)
 endif
 
 $(ROOT)/dllgc$(DOTEXE): $(ROOT)/dllgc$(DOTDLL)
-$(ROOT)/dllgc$(DOTDLL): private extra_dflags += -version=DLL -od=$(ROOT)/dll
+$(ROOT)/dllgc$(DOTDLL): private extra_dflags += -version=DLL -od=$(ROOT)/dll -L/PDB:$(ROOT)/dllgc_dll.pdb
+$(ROOT)/dynamiccast$(DOTDLL): private extra_dflags += -L/PDB:$(ROOT)/dynamiccast_dll.pdb
 endif # Windows
 
 $(ROOT)/dynamiccast.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE) $(ROOT)/%$(DOTDLL)
