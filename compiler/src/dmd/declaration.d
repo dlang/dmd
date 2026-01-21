@@ -663,9 +663,9 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
     uint fieldWidth;
     uint bitOffset;
 
-    final extern (D) this(Loc loc, Type type, Identifier ident, Expression width)
+    final extern (D) this(Loc loc, Type type, Identifier ident, Expression width, Initializer _init = null)
     {
-        super(loc, type, ident, null);
+        super(loc, type, ident, _init);
         this.dsym = DSYM.bitFieldDeclaration;
         this.width = width;
         this.storage_class |= STC.field;
@@ -675,7 +675,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
     {
         //printf("BitFieldDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
-        auto bf = new BitFieldDeclaration(loc, type ? type.syntaxCopy() : null, ident, width.syntaxCopy());
+        auto bf = new BitFieldDeclaration(loc, type ? type.syntaxCopy() : null, ident, width.syntaxCopy(), _init ? _init.syntaxCopy() : null);
         bf.comment = comment;
         return bf;
     }

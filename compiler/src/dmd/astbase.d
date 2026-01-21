@@ -539,10 +539,9 @@ struct ASTBase
         uint fieldWidth;
         uint bitOffset;
 
-        final extern (D) this(Loc loc, Type type, Identifier id, Expression width)
+        final extern (D) this(Loc loc, Type type, Identifier id, Expression width, Initializer _init = null)
         {
-            super(loc, type, id, cast(Initializer)null, cast(StorageClass)STC.none);
-
+            super(loc, type, id, _init, cast(StorageClass)STC.none);
             this.width = width;
             this.storage_class |= STC.field;
         }

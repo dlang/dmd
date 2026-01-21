@@ -1,0 +1,16 @@
+Support for default values in C-style bitfields
+
+D now supports specifying default values for C-style bitfields in structs and classes.
+This brings valid D code closer to behavior allowed in C++20 and allows for more concise initialization of bitfield members.
+
+Value range checking is performed at compile-time to ensure the default value fits within the specified number of bits.
+
+-------
+struct S
+{
+    int a : 4 = 2;   // OK
+    int b : 2 = 5;   // Error: bitfield initializer `5` does not fit in 2 bits
+    uint c : 1 = 1;  // OK
+    bool d : 1 = 1;  // OK
+}
+-------
