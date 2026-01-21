@@ -1463,6 +1463,10 @@ extern (D) Expression incompatibleTypes(BinExp e, Scope* sc = null)
         error(e.loc, "incompatible types for `(%s) %s (%s)`: `%s` and `%s`",
             e.e1.toErrMsg(), thisOp, e.e2.toErrMsg(), ts[0], ts[1]);
     }
+
+    if (sc && sc.tinst)
+        sc.tinst.printInstantiationTrace();
+
     return ErrorExp.get();
 }
 
