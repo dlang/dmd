@@ -12082,10 +12082,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 e2x.checkSharedAccess(sc))
                 return setError();
 
-            auto etmp = checkNoreturnVarAccess(e2x);
-            if (etmp != e2x)
-                return setResult(etmp);
-
+            // taking address of noreturn instance is OK
+            if (!(exp.e1.isVarExp() && exp.e1.isVarExp().var.storage_class & STC.ref_))
+            {
+                auto etmp = checkNoreturnVarAccess(e2x);
+                if (etmp != e2x)
+                    return setResult(etmp);
+            }
             exp.e2 = e2x;
         }
 
