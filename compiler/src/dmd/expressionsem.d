@@ -2064,10 +2064,7 @@ Returns:
 
 Expression checkNoreturnVarAccess(Expression exp)
 {
-    assert(exp.type);
-
-    if (!exp.type.isTypeNoreturn())
-        return exp;
+    assert(exp);
 
     switch (exp.op)
     {
@@ -2089,6 +2086,9 @@ Expression checkNoreturnVarAccess(Expression exp)
         return ce;
 
     default:
+        if (!exp.type || !exp.type.isTypeNoreturn())
+            return exp;
+
         auto msg = new StringExp(exp.loc, "Accessed expression of type `noreturn`");
         msg.type = Type.tstring;
         auto ae = new AssertExp(exp.loc, IntegerExp.literal!0, msg);
