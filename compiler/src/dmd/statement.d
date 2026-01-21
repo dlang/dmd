@@ -383,6 +383,10 @@ extern (C++) class ExpStatement : Statement
         this.exp = exp;
     }
 
+    /*******************************
+     * Creates a DeclarationExp inside a statement.
+     * Use in place of *DeclarationStatement* from D grammar.
+     */
     final extern (D) this(Loc loc, Dsymbol declaration) @safe
     {
         super(loc, STMT.Exp);
