@@ -1152,122 +1152,196 @@ static if (NTEXCEPTIONS)
             reg_t reg1, reg2;
             retregs = allocretregs(cgstate, e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
             //printf("reg1: %d, reg2: %d\n", reg1, reg2);
-            //printf("allocretregs returns %llx %s\n", retregs, regm_str(retregs));
+            //printf("allocretregs e.Ety: %s returns %llx %s, reg1: %d reg2: %d\n", tym_str(e.Ety), retregs, regm_str(retregs), reg1, reg2);
 
-            reg_t lreg = NOREG;
-            reg_t mreg = NOREG;
-            if (reg1 == NOREG)
-            {}
-            else if (tybasic(e.Ety) == TYcfloat)
-                lreg = ST01;
-            else if (mask(reg1) & (mST0 | mST01))
-                lreg = reg1;
-            else if (reg2 == NOREG)
-                lreg = reg1;
-            else if (mask(reg1) & XMMREGS)
+            if (AArch64)
             {
-                lreg = XMM0;
-                mreg = XMM1;
-            }
-            else
-            {
-                lreg = mask(reg1) & mLSW ? reg1 : AX;
-                mreg = mask(reg2) & mMSW ? reg2 : DX;
-            }
-            if (reg1 != NOREG)
-                retregs = (mask(lreg) | mask(mreg)) & ~mask(NOREG);
-
-            // For the final load into the return regs, don't set cgstate.regcon.used,
-            // so that the optimizer can potentially use retregs for register
-            // variable assignments.
-
-            if (config.flags4 & CFG4optimized)
-            {   regm_t usedsave;
-
-                docommas(cdb,e);
-                usedsave = cgstate.regcon.used;
-                if (!OTleaf(e.Eoper))
-                    gencodelem(cdb,e,retregs,true);
+                reg_t lreg = NOREG;
+                reg_t mreg = NOREG;
+                if (reg1 == NOREG)
+                {   }
+                else if (reg2 == NOREG)
+                    lreg = reg1;
+                else if (mask(reg1) & INSTR.FLOATREGS)
+                {
+                    lreg = 32;
+                    mreg = 33;
+                }
                 else
                 {
-                    if (e.Eoper == OPconst)
-                        cgstate.regcon.mvar = 0;
-                    gencodelem(cdb,e,retregs,true);
-                    cgstate.regcon.used = usedsave;
-                    if (e.Eoper == OPvar)
-                    {   Symbol* s = e.Vsym;
+                    lreg = mask(reg1) & INSTR.LSW ? reg1 : 0;
+                    mreg = mask(reg2) & INSTR.MSW ? reg2 : 1;
+                }
 
-                        if (s.Sfl == FL.reg && s.Sregm != mAX)
-                            *retsym = s;
+                if (reg1 != NOREG)
+                    retregs = (mask(lreg) | mask(mreg)) & ~mask(NOREG);
+                if (config.flags4 & CFG4optimized)
+                {
+                    // For the final load into the return regs, don't set cgstate.regcon.used,
+                    // so that the optimizer can potentially use retregs for register
+                    // variable assignments.
+                    docommas(cdb,e);
+                    if (OTleaf(e.Eoper))
+                    {
+                        const usedsave = cgstate.regcon.used;
+                        if (e.Eoper == OPconst)
+                            cgstate.regcon.mvar = 0;
+                        gencodelem(cdb,e,retregs,true);
+                        cgstate.regcon.used = usedsave;
+                        if (e.Eoper == OPvar)
+                        {
+                            Symbol* s = e.Vsym;
+                            if (s.Sfl == FL.reg && s.Sregm != mask(0))
+                                *retsym = s;
+                        }
+                    }
+                    else
+                        gencodelem(cdb,e,retregs,true);
+                }
+                else
+                {
+                    gencodelem(cdb,e,retregs,true);
+                    //printf("retregs3: %s reg1reg2: %s lregmreg: %s\n", regm_str(retregs), regm_str(mask(reg1)|mask(reg2)), regm_str(mask(lreg)|mask(mreg)));
+                }
+
+                if (reg1 == NOREG)
+                {
+                }
+                // fix return registers
+                else if (reg2 == NOREG)
+                    assert(lreg == reg1);
+                else for (int v = 0; v < 2; v++)
+                {
+                    if (v ^ (reg1 != mreg))
+                        genmovreg(cdb, reg1, lreg);
+                    else
+                        genmovreg(cdb, reg2, mreg);
+                }
+                if (reg1 != NOREG)
+                    retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
+                goto L4;
+            }
+            else // X86_64
+            {
+                reg_t lreg = NOREG;
+                reg_t mreg = NOREG;
+                if (reg1 == NOREG)
+                {   }
+                else if (tybasic(e.Ety) == TYcfloat)
+                    lreg = ST01;
+                else if (mask(reg1) & (mST0 | mST01))
+                    lreg = reg1;
+                else if (reg2 == NOREG)
+                    lreg = reg1;
+                else if (mask(reg1) & XMMREGS)
+                {
+                    lreg = XMM0;
+                    mreg = XMM1;
+                }
+                else
+                {
+                    lreg = mask(reg1) & mLSW ? reg1 : AX;
+                    mreg = mask(reg2) & mMSW ? reg2 : DX;
+                }
+
+                if (reg1 != NOREG)
+                    retregs = (mask(lreg) | mask(mreg)) & ~mask(NOREG);
+
+                // For the final load into the return regs, don't set cgstate.regcon.used,
+                // so that the optimizer can potentially use retregs for register
+                // variable assignments.
+
+                if (config.flags4 & CFG4optimized)
+                {   regm_t usedsave;
+
+                    docommas(cdb,e);
+                    usedsave = cgstate.regcon.used;
+                    if (!OTleaf(e.Eoper))
+                        gencodelem(cdb,e,retregs,true);
+                    else
+                    {
+                        if (e.Eoper == OPconst)
+                            cgstate.regcon.mvar = 0;
+                        gencodelem(cdb,e,retregs,true);
+                        cgstate.regcon.used = usedsave;
+                        if (e.Eoper == OPvar)
+                        {   Symbol* s = e.Vsym;
+
+                            if (s.Sfl == FL.reg && s.Sregm != mAX)
+                                *retsym = s;
+                        }
                     }
                 }
-            }
-            else
-            {
-                gencodelem(cdb,e,retregs,true);
-            }
-
-            if (reg1 == NOREG)
-            {
-            }
-            else if ((mask(reg1) | mask(reg2)) & (mST0 | mST01))
-            {
-                assert(reg1 == lreg && reg2 == NOREG);
-                regm_t pretregs = mask(reg1) | mask(reg2);
-                fixresult87(cdb, e, retregs, pretregs, true);
-            }
-            // fix return registers
-            else if (tybasic(e.Ety) == TYcfloat)
-            {
-                assert(lreg == ST01);
-                if (I64)
+                else
                 {
-                    assert(reg2 == NOREG);
-                    // spill
-                    pop87();
-                    pop87();
-                    cdb.genfltreg(0xD9, 3, tysize(TYfloat));
-                    genfwait(cdb);
-                    cdb.genfltreg(0xD9, 3, 0);
-                    genfwait(cdb);
-                    // reload
-                    if (config.exe == EX_WIN64)
+                    gencodelem(cdb,e,retregs,true);
+                }
+
+                if (reg1 == NOREG)
+                {
+                }
+                else if ((mask(reg1) | mask(reg2)) & (mST0 | mST01))
+                {
+                    assert(reg1 == lreg && reg2 == NOREG);
+                    regm_t pretregs = mask(reg1) | mask(reg2);
+                    fixresult87(cdb, e, retregs, pretregs, true);
+                }
+                // fix return registers
+                else if (tybasic(e.Ety) == TYcfloat)
+                {
+                    assert(lreg == ST01);
+                    if (I64)
                     {
-                        assert(reg1 == AX);
-                        cdb.genfltreg(LOD, reg1, 0);
-                        code_orrex(cdb.last(), REX_W);
+                        assert(reg2 == NOREG);
+                        // spill
+                        pop87();
+                        pop87();
+                        cdb.genfltreg(0xD9, 3, tysize(TYfloat));
+                        genfwait(cdb);
+                        cdb.genfltreg(0xD9, 3, 0);
+                        genfwait(cdb);
+                        // reload
+                        if (config.exe == EX_WIN64)
+                        {
+                            assert(reg1 == AX);
+                            cdb.genfltreg(LOD, reg1, 0);
+                            code_orrex(cdb.last(), REX_W);
+                        }
+                        else
+                        {
+                            assert(reg1 == XMM0);
+                            cdb.genxmmreg(xmmload(TYdouble), reg1, 0, TYdouble);
+                        }
                     }
                     else
                     {
-                        assert(reg1 == XMM0);
-                        cdb.genxmmreg(xmmload(TYdouble), reg1, 0, TYdouble);
+                        assert(reg1 == AX && reg2 == DX);
+                        regm_t pretregs = mask(reg1) | mask(reg2);
+                        fixresult_complex87(cdb, e, retregs, pretregs, true);
                     }
                 }
-                else
+                else if (reg2 == NOREG)
+                    assert(lreg == reg1);
+                else for (int v = 0; v < 2; v++)
                 {
-                    assert(reg1 == AX && reg2 == DX);
-                    regm_t pretregs = mask(reg1) | mask(reg2);
-                    fixresult_complex87(cdb, e, retregs, pretregs, true);
+                    if (v ^ (reg1 != mreg))
+                        genmovreg(cdb, reg1, lreg);
+                    else
+                        genmovreg(cdb, reg2, mreg);
                 }
+                if (reg1 != NOREG)
+                    retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
             }
-            else if (reg2 == NOREG)
-                assert(lreg == reg1);
-            else for (int v = 0; v < 2; v++)
-            {
-                if (v ^ (reg1 != mreg))
-                    genmovreg(cdb, reg1, lreg);
-                else
-                    genmovreg(cdb, reg2, mreg);
-            }
-            if (reg1 != NOREG)
-                retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
             goto L4;
 
         case BC.ret:
             retregs = 0;
             gencodelem(cdb,e,retregs,true);
         L4:
-            if (retregs == mST0)
+            if (AArch64)
+            {
+            }
+            else if (retregs == mST0)
             {   assert(global87.stackused == 1);
                 pop87();                // account for return value
             }
