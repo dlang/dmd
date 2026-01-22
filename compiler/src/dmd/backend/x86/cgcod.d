@@ -2794,7 +2794,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
         assert(0);
     }
 
-    regm_t tmask = cg.AArch64 ? (cg.allregs | INSTR.FLOATREGS)
+    regm_t tmask = cg.AArch64 ? (INSTR.ALLREGS | INSTR.FLOATREGS)
                               : (mES | ALLREGS | mBP | XMMREGS);
     if (!(constflag & 1) && pretregs & tmask & ~cg.regcon.mvar)
         pretregs &= ~cg.regcon.mvar;                      /* can't use register vars */
@@ -2911,7 +2911,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
                 }
                 if (cg.AArch64)
                 {
-                    pretregs = tyfloating(e.Ety) ? INSTR.FLOATREGS : cg.allregs;
+                    pretregs = tyfloating(e.Ety) ? INSTR.FLOATREGS : INSTR.ALLREGS;
                 }
             }
             loaddata(cdb,e,pretregs);
