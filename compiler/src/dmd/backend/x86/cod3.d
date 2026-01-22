@@ -5347,40 +5347,6 @@ int branch(block* bl,int flag)
                 {
                     c.Iflags &= ~CFjmp16;      // a branch is ok
                     bytesaved += I16 ? 3 : 4;
-
-                    // Replace a cond jump around a call to a function that
-                    // never returns with a cond jump to that function.
-                    if (config.flags4 & CFG4optimized &&
-                        config.target_cpu >= TARGET_80386 &&
-                        disp == (I16 ? 3 : 5) &&
-                        cn &&
-                        cn.Iop == CALL &&
-                        cn.IFL2 == FL.func &&
-                        cn.IEV2.Vsym.Sflags & SFLexit &&
-                        !(cn.Iflags & (CFtarg | CFtarg2))
-                       )
-                    {
-                        cn.Iop = 0x0F00 | ((c.Iop & 0x0F) ^ 0x81);
-                        c.Iop = NOP;
-                        c.IEV2.Vcode = null;
-                        bytesaved++;
-
-                        // If nobody else points to ct, we can remove the CFtarg
-                        if (flag && ct)
-                        {
-                            code* cx;
-                            for (cx = bl.Bcode; 1; cx = code_next(cx))
-                            {
-                                if (!cx)
-                                {
-                                    ct.Iflags &= ~CFtarg;
-                                    break;
-                                }
-                                if (cx.IEV2.Vcode == ct)
-                                    break;
-                            }
-                        }
-                    }
                 }
                 csize = calccodsize(c);
             }
