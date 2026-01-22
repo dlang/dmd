@@ -1,20 +1,24 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22384.d(32): Error: bitfield `z` has zero width
-fail_compilation/fail22384.d(36): Error: bitfield type `float` is not an integer type
-fail_compilation/fail22384.d(36): Error: bitfield `f` has zero width
-fail_compilation/fail22384.d(37): Error: bitfield type `float` is not an integer type
-fail_compilation/fail22384.d(38): Error: bitfield type `float` is not an integer type
-fail_compilation/fail22384.d(39): Error: bitfield type `float` is not an integer type
-fail_compilation/fail22384.d(44): Error: anonymous bitfield cannot have default initializer
-fail_compilation/fail22384.d(21): Error: bitfield initializer `4294967295u` does not fit in 4 bits
-fail_compilation/fail22384.d(26): Error: bitfield initializer `E.B` does not fit in 2 bits
-fail_compilation/fail22384.d(30): Error: bitfield initializer `4` does not fit in 3 bits
-fail_compilation/fail22384.d(31): Error: bitfield initializer `65` does not fit in 7 bits
-fail_compilation/fail22384.d(43): Error: cannot implicitly convert expression `4.2F` of type `float` to `int`
-fail_compilation/fail22384.d(45): Error: bitfield initializer `65` does not fit in 7 bits
-fail_compilation/fail22384.d(46): Error: cannot implicitly convert expression `42` of type `int` to `bool`
+fail_compilation/fail22384.d(36): Error: bitfield `z` cannot have zero width
+fail_compilation/fail22384.d(40): Error: bitfield `f` cannot be of non-integral type `float`
+fail_compilation/fail22384.d(41): Error: bitfield `f2` cannot be of non-integral type `float`
+fail_compilation/fail22384.d(42): Error: bitfield `f3` cannot be of non-integral type `float`
+fail_compilation/fail22384.d(43): Error: bitfield `f4` cannot be of non-integral type `float`
+fail_compilation/fail22384.d(48): Error: anonymous bitfield cannot have default initializer
+fail_compilation/fail22384.d(25): Error: default initializer `4294967295u` is not representable as bitfield type `uint:4`
+fail_compilation/fail22384.d(25):        bitfield `d` default initializer must be a value between `0..15`
+fail_compilation/fail22384.d(30): Error: default initializer `E.B` is not representable as bitfield type `int:2`
+fail_compilation/fail22384.d(30):        bitfield `b` default initializer must be a value between `-2..1`
+fail_compilation/fail22384.d(34): Error: default initializer `4` is not representable as bitfield type `int:3`
+fail_compilation/fail22384.d(34):        bitfield `x` default initializer must be a value between `-4..3`
+fail_compilation/fail22384.d(35): Error: default initializer `65` is not representable as bitfield type `int:7`
+fail_compilation/fail22384.d(35):        bitfield `y` default initializer must be a value between `-64..63`
+fail_compilation/fail22384.d(47): Error: cannot implicitly convert expression `4.2F` of type `float` to `int`
+fail_compilation/fail22384.d(49): Error: default initializer `65` is not representable as bitfield type `int:7`
+fail_compilation/fail22384.d(49):        bitfield `j` default initializer must be a value between `-64..63`
+fail_compilation/fail22384.d(50): Error: cannot implicitly convert expression `42` of type `int` to `bool`
 ---
 */
 struct S {
