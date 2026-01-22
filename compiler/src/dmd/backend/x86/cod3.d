@@ -1210,12 +1210,19 @@ static if (NTEXCEPTIONS)
                 // fix return registers
                 else if (reg2 == NOREG)
                     assert(lreg == reg1);
-                else for (int v = 0; v < 2; v++)
+                else
                 {
-                    if (v ^ (reg1 != mreg))
-                        genmovreg(cdb, reg1, lreg);
-                    else
+                    // (reg1,reg2) = (lreg,mreg)
+                    if (reg1 == mreg)
+                    {
                         genmovreg(cdb, reg2, mreg);
+                        genmovreg(cdb, reg1, lreg);
+                    }
+                    else
+                    {
+                        genmovreg(cdb, reg1, lreg);
+                        genmovreg(cdb, reg2, mreg);
+                    }
                 }
                 if (reg1 != NOREG)
                     retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
@@ -1322,12 +1329,19 @@ static if (NTEXCEPTIONS)
                 }
                 else if (reg2 == NOREG)
                     assert(lreg == reg1);
-                else for (int v = 0; v < 2; v++)
+                else
                 {
-                    if (v ^ (reg1 != mreg))
-                        genmovreg(cdb, reg1, lreg);
-                    else
+                    // (reg1,reg2) = (lreg,mreg)
+                    if (reg1 == mreg)
+                    {
                         genmovreg(cdb, reg2, mreg);
+                        genmovreg(cdb, reg1, lreg);
+                    }
+                    else
+                    {
+                        genmovreg(cdb, reg1, lreg);
+                        genmovreg(cdb, reg2, mreg);
+                    }
                 }
                 if (reg1 != NOREG)
                     retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
