@@ -171,7 +171,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
     import dmd.cond : VersionCondition;
 
     alias predef = VersionCondition.addPredefinedGlobalIdent;
-    if (tgt.cpu >= CPU.sse2)
+    if ((tgt.isX86_64 || tgt.isX86) && tgt.cpu >= CPU.sse2)
     {
         predef("D_SIMD");
         if (tgt.cpu >= CPU.avx)
@@ -1351,7 +1351,7 @@ extern (C++) struct Target
      */
     extern (D) bool isXmmSupported() @safe
     {
-        return (isX86_64 || isAArch64) || (isX86 && os == Target.OS.OSX);
+        return (isX86_64 /*|| isAArch64*/) || (isX86 && os == Target.OS.OSX);
     }
 
     /**
