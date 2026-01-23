@@ -1384,7 +1384,7 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         return;
     }
 
-    if (enumbytes.Eoper == OPconst ||
+    if (evalue.Eoper == OPconst ||
         evalue.Eoper == OPstrpar) // happens if evalue is a struct of 0 size
     {
         // Get nbytes into nbytesreg
@@ -1606,8 +1606,15 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
     if (Rp != Rd)
         genmovreg(cdb,Rp,Rd);
 
-    assert(szv == 4 || szv == 8);
-    cdb.gen1(INSTR.str_imm_gen_post_index(is64,szv,Rp,Rv));       // L2: STR  Rv,[Rp],#szv    // *Rp++ = Rv
+    if (szv == 2)
+    {
+        cdb.gen1(INSTR.str_imm_gen_post_index(is64,szv,Rp,Rv));   // STRH Rv,[Rp],#2
+    }
+    else
+    {
+        assert(szv == 4 || szv == 8);
+        cdb.gen1(INSTR.str_imm_gen_post_index(is64,szv,Rp,Rv));   // L2: STR  Rv,[Rp],#szv    // *Rp++ = Rv
+    }
     code* L2 = cdb.last();
     if (szv == REGSIZE * 2)
         cdb.gen1(INSTR.str_imm_gen_post_index(is64,szv,Rp,Rvhi)); // L2: STR  Rvhi,[Rp],#szv  // *Rp++ = Rvhi
