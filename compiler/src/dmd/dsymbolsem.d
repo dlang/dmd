@@ -3174,10 +3174,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
 
-        if (dsym.isAnonymous() && dsym._init)
+        const bool isAnonymous = dsym.isAnonymous();
+        if (isAnonymous && dsym._init)
         {
-             .error(dsym.loc, "anonymous bitfield cannot have default initializer");
+             .error(dsym._init.loc, "anonymous bitfield cannot have default initializer");
              dsym._init = null;
+             dsym.errors = true;
         }
 
         visit(cast(VarDeclaration)dsym);
@@ -3201,8 +3203,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!dsym.type.isIntegral())
         {
             // C11 6.7.2.1-5
-            error(dsym.loc, "bitfield type `%s` is not an integer type", dsym.type.toChars());
+            if (isAnonymous)
+                error(dsym.loc, "anonymous bitfield cannot be of non-integral type `%s`", dsym.type.toChars());
+            else
+                error(dsym.loc, "bitfield `%s` cannot be of non-integral type `%s`", dsym.toChars(), dsym.type.toChars());
             dsym.errors = true;
+            return;
         }
         if (!width.isIntegerExp())
         {
@@ -3210,19 +3216,33 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.errors = true;
         }
         const uwidth = width.toInteger(); // uwidth is unsigned
-        if (uwidth == 0 && !dsym.isAnonymous())
+        if (uwidth == 0 && !isAnonymous)
         {
-            error(width.loc, "bitfield `%s` has zero width", dsym.toChars());
+            error(dsym.loc, "bitfield `%s` cannot have zero width", dsym.toChars());
             dsym.errors = true;
         }
-        const sz = dsym.type.size();
-        if (sz == SIZE_INVALID)
-            dsym.errors = true;
-        const max_width = sz * 8;
-        if (uwidth > max_width)
+        if (cast(long)uwidth < 0)
         {
-            error(width.loc, "width `%lld` of bitfield `%s` does not fit in type `%s`", cast(long)uwidth, dsym.toChars(), dsym.type.toChars());
+            if (isAnonymous)
+                error(width.loc, "anonymous bitfield has negative width `%lld`", cast(long)uwidth);
+            else
+                error(width.loc, "bitfield `%s` has negative width `%lld`", dsym.toChars(), cast(long)uwidth);
             dsym.errors = true;
+        }
+        else
+        {
+            const sz = dsym.type.size();
+            if (sz == SIZE_INVALID)
+                dsym.errors = true;
+            const max_width = sz * 8;
+            if (uwidth > max_width)
+            {
+                if (isAnonymous)
+                    error(width.loc, "width `%lld` of anonymous bitfield does not fit in type `%s`", cast(long)uwidth, dsym.type.toChars());
+                else
+                    error(width.loc, "width `%lld` of bitfield `%s` does not fit in type `%s`", cast(long)uwidth, dsym.toChars(), dsym.type.toChars());
+                dsym.errors = true;
+            }
         }
         dsym.fieldWidth = cast(uint)uwidth;
     }
@@ -7046,10 +7066,20 @@ bool determineFields(AggregateDeclaration ad)
         {
             if (ad == tvs.sym)
             {
+                if (ad.type.ty == Terror || ad.errors)
+                    return 1;   // failed already
+
                 const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
-                .error(ad.loc, "%s `%s` cannot have field `%s` with %ssame struct type", ad.kind, ad.toPrettyChars, v.toChars(), psz);
-                ad.type = Type.terror;
-                ad.errors = true;
+                if (!v.isAnonymous())
+                    .error(v.loc, "%s `%s` cannot have field `%s` with %ssame struct type", ad.kind, ad.toPrettyChars, v.toChars(), psz);
+                else
+                    .error(v.loc, "%s `%s` cannot have anonymous field with %ssame struct type", ad.kind, ad.toPrettyChars, psz);
+                // Don't cache errors from speculative semantic
+                if (!global.gag)
+                {
+                    ad.type = Type.terror;
+                    ad.errors = true;
+                }
                 return 1;
             }
         }
@@ -8439,10 +8469,9 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
         uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
         if (log) printf("          memsize: %u memalignsize: %u\n", memsize, memalignsize);
 
-        if (bfd.fieldWidth == 0 && !anon)
-            error(bfd.loc, "named bit fields cannot have 0 width");
-        if (bfd.fieldWidth > memsize * 8)
-            error(bfd.loc, "bit field width %d is larger than type", bfd.fieldWidth);
+        // Handled in dsymbolSemantic as errors
+        assert(bfd.fieldWidth != 0 || anon, "named bit fields cannot have 0 width");
+        assert(bfd.fieldWidth <= memsize * 8, "bit field width is larger than type");
 
         const style = target.c.bitFieldStyle;
         if (style != TargetC.BitFieldStyle.MS && style != TargetC.BitFieldStyle.Gcc_Clang)

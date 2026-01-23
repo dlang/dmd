@@ -4505,6 +4505,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             isAliasDeclaration = true;
         }
 
+        const typeLoc = token.loc;
         AST.Type ts;
 
         if (!autodecl)
@@ -4797,7 +4798,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     if (storage_class)
                         error("storage class not allowed for bitfield declaration");
-                    s = new AST.BitFieldDeclaration(loc, t, ident, width, _init);
+                    s = new AST.BitFieldDeclaration(ident.isAnonymous() ? typeLoc : loc, t, ident, width, _init);
                 }
                 else
                 {

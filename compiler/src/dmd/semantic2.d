@@ -351,8 +351,14 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (!bounds.contains(value))
         {
             const uwidth = bfd.fieldWidth;
-            error(ei.loc, "bitfield initializer `%s` does not fit in %d bit%s",
-                ei.exp.toChars(), cast(int) uwidth, uwidth == 1 ? "".ptr : "s".ptr);
+            error(ei.loc, "default initializer `%s` is not representable as bitfield type `%s:%lld`",
+                  ei.exp.toChars(), bfd.type.toBasetype().toChars(), cast(long)uwidth);
+            if (isUnsigned)
+                errorSupplemental(bfd.loc, "bitfield `%s` default initializer must be a value between `%llu..%llu`",
+                                  bfd.toChars(), bounds.imin.value, bounds.imax.value);
+            else
+                errorSupplemental(bfd.loc, "bitfield `%s` default initializer must be a value between `%lld..%lld`",
+                                  bfd.toChars(), bounds.imin.value, bounds.imax.value);
         }
     }
 
