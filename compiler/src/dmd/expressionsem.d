@@ -5301,6 +5301,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         setError();
     }
 
+    void setOpOverloadAssign(Expression e)
+    {
+        result = e;
+        auto ce = e.isCallExp();
+        if (!ce)
+            return;
+        ce.fromOpAssignment = true;
+    }
+
     /**************************
      * Semantically analyze Expression.
      * Determine types, fold constants, etc.
@@ -9171,10 +9180,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
 
         if (Expression e = exp.opOverloadBinaryAssign(sc, aliasThisStop))
-        {
-            result = e;
-            return;
-        }
+            return setOpOverloadAssign(e);
 
         Expression e;
         if (exp.e1.op == EXP.arrayLength)
@@ -11811,10 +11817,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // printf("PreExp::semantic('%s')\n", toChars());
         if (Expression e = exp.opOverloadUnary(sc))
-        {
-            result = e;
-            return;
-        }
+            return setOpOverloadAssign(e);
 
         // Rewrite as e1+=1 or e1-=1
         Expression e;
@@ -12554,10 +12557,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else if (exp.op == EXP.assign)
             {
                 if (Expression e = exp.isAssignExp().opOverloadAssign(sc, aliasThisStop))
-                {
-                    result = e;
-                    return;
-                }
+                    return setOpOverloadAssign(e);
             }
             else
                 assert(exp.op == EXP.blit);
@@ -12574,10 +12574,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.op == EXP.assign && !exp.e2.implicitConvTo(exp.e1.type))
             {
                 if (Expression e = exp.isAssignExp().opOverloadAssign(sc, aliasThisStop))
-                {
-                    result = e;
-                    return;
-                }
+                    return setOpOverloadAssign(e);
             }
             if (exp.e2.checkValue())
                 return setError();
@@ -13242,10 +13239,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(PowAssignExp exp)
     {
         if (Expression e = exp.opOverloadBinaryAssign(sc, aliasThisStop))
-        {
-            result = e;
-            return;
-        }
+            return setOpOverloadAssign(e);
 
         if (exp.suggestOpOpAssign(sc, parent) ||
             exp.e1.checkReadModifyWrite(exp.op, exp.e2))
@@ -13319,13 +13313,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(CatAssignExp exp)
     {
-
         //printf("CatAssignExp::semantic() %s\n", exp.toChars());
         if (Expression e = exp.opOverloadBinaryAssign(sc, aliasThisStop))
-        {
-            result = e;
-            return;
-        }
+            return setOpOverloadAssign(e);
 
         if (exp.suggestOpOpAssign(sc, parent))
             return setError();
