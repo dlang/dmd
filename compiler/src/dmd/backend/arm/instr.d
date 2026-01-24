@@ -46,14 +46,31 @@ struct INSTR
 {
   pure nothrow:
 
+    /* Register usage per "AArch64 Procedure Call Standard"
+     * r31 SP  Stack Pointer
+     * r30 LR  Link Register
+     * r29 FP  Frame Pointer (BP) (on OSX r29 must always address a valid frame record)
+     * r19-r28 Callee-saved registers (if Callee modifies them)
+     * r18     Platform Register (do not use on OSX)
+     * r17 IP1 intra-procedure-call temporary register
+     * r16 IP0 intra-procedure-call scratch register
+     * r9-r15  temporary registers (caller saved)
+     * r8      Indirect result location register
+     * r0-r7   Parameter / result registers
+     *
+     * v0-v7   Parameter / result registers
+     * v8-v15  Callee-saved registers (only bottom 64 bits need to be saved)
+     * v16-31  Temporary registers (caller saved)
+     */
+
     /* Integer registers r0-r7, r9-15, r19-28, r29(?)
      */
     enum ALLREGS = 0x1FFF_FFFF & ~(1 << 8) & ~(1 << 16) & ~(1 << 17) & ~(1 << 18);
 
     /* Even though the floating point registers are 0..31, we call them V32..V63 so they fit
-     * into regm_t. Remember to and them with 31 to generate an instruction
+     * into regm_t. Remember to AND them with 31 to generate an instruction
      */
-    enum FLOATREGS = 0x01FF_FFFF_0000_0000;
+    enum FLOATREGS = 0x01FF_FFFF_0000_0000; // V32..V56 (V57-V63 are used for X86_64 use)
     static assert((FLOATREGS & (1UL << 57 /*REGMAX*/)) == 0);
 
     /* most and least significant register masks

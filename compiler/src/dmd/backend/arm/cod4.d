@@ -72,7 +72,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     int e2oper = e2.Eoper;
     tym_t tyml = tybasic(e1.Ety);              // type of lvalue
     regm_t retregs = pretregs;
-    regm_t allregs = tyfloating(tyml) ? INSTR.FLOATREGS : cgstate.allregs;
+    const regm_t allregs = tyfloating(tyml) ? INSTR.FLOATREGS : INSTR.ALLREGS;
 
     if (0 && tyxmmreg(tyml))    // TODO AArch64
     {
@@ -139,7 +139,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             {
                 /* Move constant into r, then store r into EA
                  */
-                regm_t m = tyfloating(tyml) ? INSTR.FLOATREGS : cg.allregs;
+                regm_t m = allregs;
                 m &= ~(mask(cs.base) | mask(cs.index));
                 assert(NOREG < 64);  // otherwise mask(NOREG) will not work
                 reg_t r = allocreg(cdb, m, tyml);
@@ -188,9 +188,9 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 tysize(e1.Vsym.Stype.Tty) == 2 * REGSIZE)
             {
                 if (e1.Voffset)
-                    retregs &= mMSW;
+                    retregs &= INSTR.MSW;
                 else
-                    retregs &= mLSW;
+                    retregs &= INSTR.LSW;
                 reg = findreg(retregs);
             }
         }
