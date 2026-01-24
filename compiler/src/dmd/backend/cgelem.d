@@ -767,7 +767,7 @@ private elem* elmemset(elem* e, Goal goal)
      */
 
     const sz = tysize(evalue.Ety);
-    int nelems = cast(int)el_tolong(enelems);
+    long nelems = el_tolong(enelems);
     ulong value = el_tolong(evalue);
 
     if (sz * nelems > REGSIZE * 4)
@@ -795,9 +795,9 @@ private elem* elmemset(elem* e, Goal goal)
     }
     e.E1 = null;             // so we can free e later
 
-    for (int offset = 0; offset < sz * nelems; )
+    for (ulong offset = 0; offset < sz * nelems; )
     {
-        int left = sz * nelems - offset;
+        ulong left = sz * nelems - offset;
         if (left > REGSIZE)
             left = REGSIZE;
         tym_t tyv;
