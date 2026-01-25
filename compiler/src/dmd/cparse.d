@@ -5785,9 +5785,34 @@ final class CParser(AST) : Parser!AST
 
                         case TOK.identifier:
                         {
-                            /* check for compiler builtins macros/ or specifier references.
-                             * this is a workaround to avoid trying to resolve macros that
-                             * reference other identifiers or functions
+                            if (peekNext() == TOK.leftParenthesis)
+                            {
+                                /* Look for:
+                                 *  #define ID identifier ( args )
+                                 * where the macro body is exactly a function-like macro call
+                                 * (no additional operators that could cause precedence issues).
+                                 * Rewrite to a template function:
+                                 *  auto ID()() { return identifier(args); }
+                                 */
+
+                                assert(!params);                    // would be TOK.leftParenthesis
+                                eLatch.sawErrors = false;
+                                auto exp = cparseExpression();
+                                if (eLatch.sawErrors)               // parsing errors
+                                    break;                          // abandon this #define
+                                if (token.value != TOK.endOfFile)   // did not consume the entire line
+                                    break;
+                                // Only allow bare function calls to avoid precedence issues.
+                                // E.g., `#define X FUNC(5)` is safe, but `#define X FUNC(5) + 1`
+                                // would have different semantics in D vs C when used as `X * 2`.
+                                if (!exp.isCallExp())
+                                    break;
+                                addNullaryTemplate(exp, id);
+                                ++p;
+                                continue;
+                            }
+
+                            /* for macros referencing other identifiers
                              * so D users should avoid using custom macros beginning with __
                              * to reference identifers
                              */
