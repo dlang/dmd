@@ -6569,6 +6569,7 @@ public:
     Dsymbol* aliassym;
     Dsymbol* overnext;
     Dsymbol* _import_;
+    bool isCmacro;
     static AliasDeclaration* create(Loc loc, Identifier* id, Type* type);
     AliasDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;

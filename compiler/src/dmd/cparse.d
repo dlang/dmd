@@ -5598,6 +5598,9 @@ final class CParser(AST) : Parser!AST
                 v.isCmacro = true;       // mark it as coming from a C #define
             if (auto td = s.isTemplateDeclaration())
                 td.isCmacro = true; // mark as coming from a C #define
+            if (auto ad = s.isAliasDeclaration())
+                ad.isCmacro = true; // ditto for vars and templates
+
             /* If it's already defined, replace the earlier
              * definition
              */
@@ -5666,7 +5669,17 @@ final class CParser(AST) : Parser!AST
                         continue;
                     }
                     const params = *p == '(';
-                    nextToken();
+
+                    AST.Type t1spec;
+                    if (peekNext() == TOK.identifier)
+                    {
+                        /* ensure that we are not handling type specifiers */
+                        Specifier sp1;
+                        sp1.packalign = this.packalign;
+                        t1spec = cparseDeclarationSpecifiers(LVL.global, sp1); // next token already moved
+                    }
+                    else
+                        nextToken();
 
                     AST.Type t;
 
@@ -5772,26 +5785,58 @@ final class CParser(AST) : Parser!AST
 
                         case TOK.identifier:
                         {
-                            /* Look for:
-                             *  #define ID identifier ( args )
-                             * where the macro body is exactly a function-like macro call
-                             * (no additional operators that could cause precedence issues).
-                             * Rewrite to a template function:
-                             *  auto ID()() { return identifier(args); }
+                            /* check for compiler builtins macros/ or specifier references.
+                             * this is a workaround to avoid trying to resolve macros that
+                             * reference other identifiers or functions
+                             * so D users should avoid using custom macros beginning with __
+                             * to reference identifers
                              */
-                            assert(!params);                    // would be TOK.leftParenthesis
-                            eLatch.sawErrors = false;
-                            auto exp = cparseExpression();
-                            if (eLatch.sawErrors)               // parsing errors
-                                break;                          // abandon this #define
-                            if (token.value != TOK.endOfFile)   // did not consume the entire line
-                                break;
-                            // Only allow bare function calls to avoid precedence issues.
-                            // E.g., `#define X FUNC(5)` is safe, but `#define X FUNC(5) + 1`
-                            // would have different semantics in D vs C when used as `X * 2`.
-                            if (!exp.isCallExp())
-                                break;
-                            addNullaryTemplate(exp, id);
+                            auto ident = token.ident;
+                            Specifier sp;
+                            sp.packalign = this.packalign;
+                            auto tspec = cparseDeclarationSpecifiers(LVL.global, sp);
+                            const idx = id.toString();
+                            auto identx = ident.toString();
+
+                            // find t1spec at the base macro
+                            // type specifiers are not aliased
+                            if (!t1spec.isTypeIdentifier() || !tspec.isTypeIdentifier() || (identx == idx)
+                                || (identx.length > 2 && identx[0] == '_' && identx[1] == '_')
+                                || (idx.length > 2 && idx[0] == '_' && idx[1] == '_'))
+                            {
+                                ++p;
+                                continue;
+                            }
+
+                            version( Windows)
+                            {
+                                /*
+                                 * on windows, MSVC doesn't use POSIX syle complex->_Complex macro
+                                 * for complex types. uses C++ std complex struct. we don't get to filter
+                                 * that as part of the declaration spcifiers so conflicts with import compare in runtime
+                                 * so we manually filter that ourselves
+                                 */
+                                if (idx == "complex" || identx == "complex")
+                                {
+                                     ++p;
+                                    continue;
+                                }
+                            }
+
+                            nextToken();
+                            if (token.value != TOK.endOfFile)
+                            {
+                                ++p;
+                                continue;
+                            }
+
+                            /*
+                             * #define identifier value where value can be an identifier.
+                             * The identifier can be anything, so treat it as an AliasDeclaration.
+                             * Mark it as coming from a C file to skip semantic resolution later.
+                             */
+                            auto als = new AST.AliasDeclaration(scanloc, id, tspec);
+                            addSym(als);
                             ++p;
                             continue;
                         }
@@ -5911,7 +5956,6 @@ final class CParser(AST) : Parser!AST
                             ++p;
                             continue;
                         }
-
                         default:
                             break;
                     }
