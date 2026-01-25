@@ -863,23 +863,30 @@ private elem* elmemcpy(elem* e, Goal goal)
                 el_free(ex);
                 return optelem(e, Goal.value);
             }
-            // Convert OPmemcpy to OPstreq
-            e.Eoper = OPstreq;
-            type* t = type_allocn(TYarray, tstypes[TYchar]);
-            t.Tdim = cast(uint)el_tolong(ex.E2);
-            e.ET = t;
-            t.Tcount++;
-            e.E1 = el_una(OPind,TYstruct,e.E1);
-            e.E2 = el_una(OPind,TYstruct,ex.E1);
-            ex.E1 = null;
-            el_free(ex);
-            ex = el_copytree(e.E1.E1);
-            if (tysize(e.Ety) > tysize(ex.Ety))
-                ex = el_una(OPnp_fp,e.Ety,ex);
-            e = el_bin(OPcomma,e.Ety,e,ex);
-            if (el_sideeffect(e.E2))
-                fixside(&e.E1.E1.E1,&e.E2);
-            return optelem(e, Goal.value);
+
+            // Unfortunately the optimizer casts type sizes to int
+            // Set up a safeguard for this optimization
+            const sz = el_tolong(ex.E2);
+            if (sz <= int.max)
+            {
+                // Convert OPmemcpy to OPstreq
+                e.Eoper = OPstreq;
+                type* t = type_allocn(TYarray, tstypes[TYchar]);
+                t.Tdim = sz;
+                e.ET = t;
+                t.Tcount++;
+                e.E1 = el_una(OPind,TYstruct,e.E1);
+                e.E2 = el_una(OPind,TYstruct,ex.E1);
+                ex.E1 = null;
+                el_free(ex);
+                ex = el_copytree(e.E1.E1);
+                if (tysize(e.Ety) > tysize(ex.Ety))
+                    ex = el_una(OPnp_fp,e.Ety,ex);
+                e = el_bin(OPcomma,e.Ety,e,ex);
+                if (el_sideeffect(e.E2))
+                    fixside(&e.E1.E1.E1,&e.E2);
+                return optelem(e, Goal.value);
+            }
         }
 
         /+ The following fails the autotester for Linux32 and FreeBSD32

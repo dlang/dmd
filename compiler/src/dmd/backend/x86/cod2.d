@@ -4444,7 +4444,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     elem* e1 = e.E1;
     elem* e2 = e.E2;
     int segreg;
-    uint numbytes = cast(uint)type_size(e.ET);          // # of bytes in structure/union
+    targ_size_t numbytes = type_size(e.ET);          // # of bytes in structure/union
     ubyte rex = I64 ? REX_W : 0;
 
     //printf("cdstreq(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
@@ -4555,45 +4555,32 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         while (numbytes--)
             cdb.gen1(0xA4);         // MOVSB
     }
+    else if (I64 && (numbytes & (REGSIZE - 1)) == 0)
+    {
+        // Generate REP MOVSQ if the size is a multiple of 8
+        numbytes /= REGSIZE;
+        getregs_imm(cdb,mCX);
+        movregconst(cdb,CX,numbytes,0);
+        cdb.gen1(0xF3);
+        cdb.gen1(REX | REX_W);
+        cdb.gen1(0xA5);
+        cgstate.regimmed_set(CX,0);
+    }
     else
     {
-static if (1)
-{
-        uint remainder = numbytes & (REGSIZE - 1);
-        numbytes /= REGSIZE;            // number of words
+        // Otherwise generate REP MOVSD (never both)
+        const COPYSIZE = REGSIZE < 4 ? REGSIZE : 4;
+        targ_size_t remainder = numbytes & (COPYSIZE - 1);
+        numbytes /= COPYSIZE;            // number of words
         getregs_imm(cdb,mCX);
         movregconst(cdb,CX,numbytes,0);   // # of bytes/words
         cdb.gen1(0xF3);                 // REP
-        if (REGSIZE == 8)
-            cdb.gen1(REX | REX_W);
         cdb.gen1(0xA5);                 // REP MOVSD
         cgstate.regimmed_set(CX,0);             // note that CX == 0
-        if (I64 && remainder >= 4)
-        {
-            cdb.gen1(0xA5);         // MOVSD
-            remainder -= 4;
-        }
         for (; remainder; remainder--)
         {
             cdb.gen1(0xA4);             // MOVSB
         }
-}
-else
-{
-        uint movs;
-        if (numbytes & (REGSIZE - 1))   // if odd
-            movs = 0xA4;                // MOVSB
-        else
-        {
-            movs = 0xA5;                // MOVSW
-            numbytes /= REGSIZE;        // # of words
-        }
-        getregs_imm(cdb,mCX);
-        movregconst(cdb,CX,numbytes,0);   // # of bytes/words
-        cdb.gen1(0xF3);                 // REP
-        cdb.gen1(movs);
-        cgstate.regimmed_set(CX,0);             // note that CX == 0
-}
     }
     if (need_DS)
         cdb.gen1(0x1F);                 // POP  DS
