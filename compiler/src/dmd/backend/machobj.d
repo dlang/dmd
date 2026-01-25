@@ -977,7 +977,8 @@ void MachObj_term(const(char)[] objfilename)
                                         rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                         rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
                                     }
-                                    assert(s.Sfl != FL.tlsdata);
+                                    if (s.Sfl == FL.tlsdata && s.Sclass == SC.comdat)
+                                        goto case SC.global;
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = s.Sxtrnnum;
                                     rel.r_length = 2;
