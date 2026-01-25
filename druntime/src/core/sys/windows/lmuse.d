@@ -45,7 +45,7 @@ struct USE_INFO_0 {
     LPWSTR ui0_local;
     LPWSTR ui0_remote;
 }
-alias USE_INFO_0* PUSE_INFO_0, LPUSE_INFO_0;
+alias PUSE_INFO_0 = USE_INFO_0*, LPUSE_INFO_0 = USE_INFO_0*;
 
 struct USE_INFO_1 {
     LPWSTR ui1_local;
@@ -56,7 +56,7 @@ struct USE_INFO_1 {
     DWORD ui1_refcount;
     DWORD ui1_usecount;
 }
-alias USE_INFO_1* PUSE_INFO_1, LPUSE_INFO_1;
+alias PUSE_INFO_1 = USE_INFO_1*, LPUSE_INFO_1 = USE_INFO_1*;
 
 struct USE_INFO_2 {
     LPWSTR ui2_local;
@@ -69,7 +69,7 @@ struct USE_INFO_2 {
     LPWSTR ui2_username;
     LPWSTR ui2_domainname;
 }
-alias USE_INFO_2* PUSE_INFO_2, LPUSE_INFO_2;
+alias PUSE_INFO_2 = USE_INFO_2*, LPUSE_INFO_2 = USE_INFO_2*;
 
 extern (Windows) {
     NET_API_STATUS NetUseAdd(LPWSTR, DWORD, PBYTE, PDWORD);

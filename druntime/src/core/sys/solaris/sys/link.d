@@ -75,7 +75,7 @@ enum SYMINFO_FLG_DEFERRED    = 0x0200;
 enum SYMINFO_BT_NONE       = 0xfffd;
 enum SYMINFO_BT_EXTERN     = 0xfffc;
 
-alias link_map Link_map;
+alias Link_map = link_map;
 
 struct link_map
 {
@@ -92,7 +92,7 @@ struct link_map
 
 version (_SYSCALL32)
 {
-alias link_map32 Link_map32;
+alias Link_map32 = link_map32;
 
 struct link_map32
 {

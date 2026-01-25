@@ -954,7 +954,7 @@ version (linux)
             c_ulong __unused4;
             c_ulong __unused5;
         }
-        static if (__USE_LARGEFILE64) alias stat_t stat64_t;
+        static if (__USE_LARGEFILE64) alias stat64_t = stat_t;
 
         static if (__WORDSIZE == 64)
             static assert(stat_t.sizeof == 144);
@@ -1458,7 +1458,7 @@ else version (Solaris)
             char[_ST_FSTYPSZ] st_fstype = 0;
         }
 
-        static if (__USE_LARGEFILE64) alias stat_t stat64_t;
+        static if (__USE_LARGEFILE64) alias stat64_t = stat_t;
     }
     else
     {
@@ -1530,9 +1530,9 @@ else version (Solaris)
         }
 
         static if (__USE_FILE_OFFSET64)
-            alias stat64_t stat_t;
+            alias stat_t = stat64_t;
         else
-            alias stat32_t stat_t;
+            alias stat_t = stat32_t;
 
     }
 
@@ -1930,16 +1930,16 @@ version (CRuntime_Glibc)
   static if ( __USE_LARGEFILE64 )
   {
     int   fstat64(int, stat_t*) @trusted;
-    alias fstat64 fstat;
+    alias fstat = fstat64;
 
     int   lstat64(const scope char*, stat_t*);
-    alias lstat64 lstat;
+    alias lstat = lstat64;
 
     int   stat64(const scope char*, stat_t*);
-    alias stat64 stat;
+    alias stat = stat64;
 
     int   fstatat64(int, const scope char*, stat_t*, int);
-    alias fstatat64 fstatat;
+    alias fstatat = fstatat64;
 
   }
   else
@@ -1965,10 +1965,10 @@ else version (Solaris)
 
         static if (__USE_LARGEFILE64)
         {
-            alias fstat fstat64;
-            alias lstat lstat64;
-            alias stat stat64;
-            alias fstatat fstatat64;
+            alias fstat64 = fstat;
+            alias lstat64 = lstat;
+            alias stat64 = stat;
+            alias fstatat64 = fstatat;
         }
     }
     else
@@ -1976,16 +1976,16 @@ else version (Solaris)
         static if (__USE_LARGEFILE64)
         {
             int   fstat64(int, stat_t*) @trusted;
-            alias fstat64 fstat;
+            alias fstat = fstat64;
 
             int   lstat64(const scope char*, stat_t*);
-            alias lstat64 lstat;
+            alias lstat = lstat64;
 
             int   stat64(const scope char*, stat_t*);
-            alias stat64 stat;
+            alias stat = stat64;
 
             int fstatat64(int, const scope char*, stat_t*, int);
-            alias fstatat64 fstatat;
+            alias fstatat = fstatat64;
         }
         else
         {
@@ -2074,9 +2074,9 @@ else version (NetBSD)
     int   __fstat50(int, stat_t*);
     int   __lstat50(const scope char*, stat_t*);
     int   __stat50(const scope char*, stat_t*);
-    alias __fstat50 fstat;
-    alias __lstat50 lstat;
-    alias __stat50 stat;
+    alias fstat = __fstat50;
+    alias lstat = __lstat50;
+    alias stat = __stat50;
     int   fchmodat(int, const scope char*, mode_t, int);
     int   fstatat(int, const scope char*, stat_t*, int);
     int   futimens(int, ref const(timespec)[2]);
@@ -2131,9 +2131,9 @@ else version (CRuntime_Musl)
     pragma(mangle, muslRedirTime64Mangle!("fstatat", "__fstatat_time64"))
     int   fstatat(int, const scope char*, stat_t*, int);
 
-    alias fstat fstat64;
-    alias lstat lstat64;
-    alias stat stat64;
+    alias fstat64 = fstat;
+    alias lstat64 = lstat;
+    alias stat64 = stat;
     int   fchmodat(int, const scope char*, mode_t, int);
     int   futimens(int, ref const(timespec)[2]);
     int   mkdirat(int, const scope char*, mode_t);
@@ -2145,16 +2145,16 @@ else version (CRuntime_UClibc)
   static if ( __USE_LARGEFILE64 )
   {
     int   fstat64(int, stat_t*) @trusted;
-    alias fstat64 fstat;
+    alias fstat = fstat64;
 
     int   lstat64(const scope char*, stat_t*);
-    alias lstat64 lstat;
+    alias lstat = lstat64;
 
     int   stat64(const scope char*, stat_t*);
-    alias stat64 stat;
+    alias stat = stat64;
 
     int   fstatat64(int, const scope char*, stat_t*, int);
-    alias fstatat64 fstatat;
+    alias fstatat = fstatat64;
   }
   else
   {

@@ -76,8 +76,8 @@ enum UNISP_NAME_A = "Microsoft Unified Security Protocol Provider";
 enum UNISP_NAME_W = "Microsoft Unified Security Protocol Provider"w;
 enum SECBUFFER_VERSION = 0;
 
-alias UNICODE_STRING SECURITY_STRING;
-alias UNICODE_STRING* PSECURITY_STRING;
+alias SECURITY_STRING = UNICODE_STRING;
+alias PSECURITY_STRING = UNICODE_STRING*;
 
 extern(Windows):
 
@@ -85,29 +85,29 @@ struct SecHandle {
     ULONG_PTR dwLower;
     ULONG_PTR dwUpper;
 }
-alias SecHandle* PSecHandle;
+alias PSecHandle = SecHandle*;
 struct SecBuffer {
     ULONG cbBuffer;
     ULONG BufferType;
     PVOID pvBuffer;
 }
-alias SecBuffer* PSecBuffer;
-alias SecHandle CredHandle;
-alias PSecHandle PCredHandle;
-alias SecHandle CtxtHandle;
-alias PSecHandle PCtxtHandle;
+alias PSecBuffer = SecBuffer*;
+alias CredHandle = SecHandle;
+alias PCredHandle = PSecHandle;
+alias CtxtHandle = SecHandle;
+alias PCtxtHandle = PSecHandle;
 struct SECURITY_INTEGER {
     uint LowPart;
     int HighPart;
 }
-alias SECURITY_INTEGER TimeStamp;
-alias SECURITY_INTEGER* PTimeStamp;
+alias TimeStamp = SECURITY_INTEGER;
+alias PTimeStamp = SECURITY_INTEGER*;
 struct SecBufferDesc {
     ULONG ulVersion;
     ULONG cBuffers;
     PSecBuffer pBuffers;
 }
-alias SecBufferDesc* PSecBufferDesc;
+alias PSecBufferDesc = SecBufferDesc*;
 struct SecPkgContext_StreamSizes {
     ULONG cbHeader;
     ULONG cbTrailer;
@@ -115,22 +115,22 @@ struct SecPkgContext_StreamSizes {
     ULONG cBuffers;
     ULONG cbBlockSize;
 }
-alias SecPkgContext_StreamSizes* PSecPkgContext_StreamSizes;
+alias PSecPkgContext_StreamSizes = SecPkgContext_StreamSizes*;
 struct SecPkgContext_Sizes {
     ULONG cbMaxToken;
     ULONG cbMaxSignature;
     ULONG cbBlockSize;
     ULONG cbSecurityTrailer;
 }
-alias SecPkgContext_Sizes* PSecPkgContext_Sizes;
+alias PSecPkgContext_Sizes = SecPkgContext_Sizes*;
 struct SecPkgContext_AuthorityW {
     SEC_WCHAR* sAuthorityName;
 }
-alias SecPkgContext_AuthorityW* PSecPkgContext_AuthorityW;
+alias PSecPkgContext_AuthorityW = SecPkgContext_AuthorityW*;
 struct SecPkgContext_AuthorityA {
     SEC_CHAR* sAuthorityName;
 }
-alias SecPkgContext_AuthorityA* PSecPkgContext_AuthorityA;
+alias PSecPkgContext_AuthorityA = SecPkgContext_AuthorityA*;
 struct SecPkgContext_KeyInfoW {
     SEC_WCHAR* sSignatureAlgorithmName;
     SEC_WCHAR* sEncryptAlgorithmName;
@@ -138,7 +138,7 @@ struct SecPkgContext_KeyInfoW {
     ULONG SignatureAlgorithm;
     ULONG EncryptAlgorithm;
 }
-alias SecPkgContext_KeyInfoW* PSecPkgContext_KeyInfoW;
+alias PSecPkgContext_KeyInfoW = SecPkgContext_KeyInfoW*;
 struct SecPkgContext_KeyInfoA {
     SEC_CHAR* sSignatureAlgorithmName;
     SEC_CHAR* sEncryptAlgorithmName;
@@ -146,20 +146,20 @@ struct SecPkgContext_KeyInfoA {
     ULONG SignatureAlgorithm;
     ULONG EncryptAlgorithm;
 }
-alias SecPkgContext_KeyInfoA* PSecPkgContext_KeyInfoA;
+alias PSecPkgContext_KeyInfoA = SecPkgContext_KeyInfoA*;
 struct SecPkgContext_LifeSpan {
     TimeStamp tsStart;
     TimeStamp tsExpiry;
 }
-alias SecPkgContext_LifeSpan* PSecPkgContext_LifeSpan;
+alias PSecPkgContext_LifeSpan = SecPkgContext_LifeSpan*;
 struct SecPkgContext_NamesW {
     SEC_WCHAR* sUserName;
 }
-alias SecPkgContext_NamesW* PSecPkgContext_NamesW;
+alias PSecPkgContext_NamesW = SecPkgContext_NamesW*;
 struct SecPkgContext_NamesA {
     SEC_CHAR* sUserName;
 }
-alias SecPkgContext_NamesA* PSecPkgContext_NamesA;
+alias PSecPkgContext_NamesA = SecPkgContext_NamesA*;
 struct SecPkgInfoW {
     ULONG fCapabilities;
     USHORT wVersion;
@@ -168,7 +168,7 @@ struct SecPkgInfoW {
     SEC_WCHAR* Name;
     SEC_WCHAR* Comment;
 }
-alias SecPkgInfoW* PSecPkgInfoW;
+alias PSecPkgInfoW = SecPkgInfoW*;
 struct SecPkgInfoA {
     ULONG fCapabilities;
     USHORT wVersion;
@@ -177,51 +177,51 @@ struct SecPkgInfoA {
     SEC_CHAR* Name;
     SEC_CHAR* Comment;
 }
-alias SecPkgInfoA* PSecPkgInfoA;
+alias PSecPkgInfoA = SecPkgInfoA*;
 /* supported only in win2k+, so it should be a PSecPkgInfoW */
 /* PSDK does not say it has ANSI/Unicode versions */
 struct SecPkgContext_PackageInfo {
     PSecPkgInfoW PackageInfo;
 }
-alias SecPkgContext_PackageInfo* PSecPkgContext_PackageInfo;
+alias PSecPkgContext_PackageInfo = SecPkgContext_PackageInfo*;
 struct SecPkgCredentials_NamesW {
     SEC_WCHAR* sUserName;
 }
-alias SecPkgCredentials_NamesW* PSecPkgCredentials_NamesW;
+alias PSecPkgCredentials_NamesW = SecPkgCredentials_NamesW*;
 struct SecPkgCredentials_NamesA {
     SEC_CHAR* sUserName;
 }
-alias SecPkgCredentials_NamesA* PSecPkgCredentials_NamesA;
+alias PSecPkgCredentials_NamesA = SecPkgCredentials_NamesA*;
 
 /* TODO: missing type in SDK */
-alias void function() SEC_GET_KEY_FN;
+alias SEC_GET_KEY_FN = void function();
 
-alias SECURITY_STATUS function(PULONG,PSecPkgInfoW*) ENUMERATE_SECURITY_PACKAGES_FN_W;
-alias SECURITY_STATUS function(PULONG,PSecPkgInfoA*) ENUMERATE_SECURITY_PACKAGES_FN_A;
-alias SECURITY_STATUS function(PCredHandle,ULONG,PVOID) QUERY_CREDENTIALS_ATTRIBUTES_FN_W;
-alias SECURITY_STATUS function(PCredHandle,ULONG,PVOID) QUERY_CREDENTIALS_ATTRIBUTES_FN_A;
-alias SECURITY_STATUS function(SEC_WCHAR*,SEC_WCHAR*,ULONG,PLUID,PVOID,SEC_GET_KEY_FN,PVOID,PCredHandle,PTimeStamp) ACQUIRE_CREDENTIALS_HANDLE_FN_W;
-alias SECURITY_STATUS function(SEC_CHAR*,SEC_CHAR*,ULONG,PLUID,PVOID,SEC_GET_KEY_FN,PVOID,PCredHandle,PTimeStamp) ACQUIRE_CREDENTIALS_HANDLE_FN_A;
-alias SECURITY_STATUS function(PCredHandle) FREE_CREDENTIALS_HANDLE_FN;
-alias SECURITY_STATUS function(PCredHandle,PCtxtHandle,SEC_WCHAR*,ULONG,ULONG,ULONG,PSecBufferDesc,ULONG,PCtxtHandle,PSecBufferDesc,PULONG,PTimeStamp) INITIALIZE_SECURITY_CONTEXT_FN_W;
-alias SECURITY_STATUS function(PCredHandle,PCtxtHandle,SEC_CHAR*,ULONG,ULONG,ULONG,PSecBufferDesc,ULONG,PCtxtHandle,PSecBufferDesc,PULONG,PTimeStamp) INITIALIZE_SECURITY_CONTEXT_FN_A;
-alias SECURITY_STATUS function(PCredHandle,PCtxtHandle,PSecBufferDesc,ULONG,ULONG,PCtxtHandle,PSecBufferDesc,PULONG,PTimeStamp) ACCEPT_SECURITY_CONTEXT_FN;
-alias SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc) COMPLETE_AUTH_TOKEN_FN;
-alias SECURITY_STATUS function(PCtxtHandle) DELETE_SECURITY_CONTEXT_FN;
-alias SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc) APPLY_CONTROL_TOKEN_FN_W;
-alias SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc) APPLY_CONTROL_TOKEN_FN_A;
-alias SECURITY_STATUS function(PCtxtHandle,ULONG,PVOID) QUERY_CONTEXT_ATTRIBUTES_FN_A;
-alias SECURITY_STATUS function(PCtxtHandle,ULONG,PVOID) QUERY_CONTEXT_ATTRIBUTES_FN_W;
-alias SECURITY_STATUS function(PCtxtHandle) IMPERSONATE_SECURITY_CONTEXT_FN;
-alias SECURITY_STATUS function(PCtxtHandle) REVERT_SECURITY_CONTEXT_FN;
-alias SECURITY_STATUS function(PCtxtHandle,ULONG,PSecBufferDesc,ULONG) MAKE_SIGNATURE_FN;
-alias SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc,ULONG,PULONG) VERIFY_SIGNATURE_FN;
-alias SECURITY_STATUS function(PVOID) FREE_CONTEXT_BUFFER_FN;
-alias SECURITY_STATUS function(SEC_CHAR*,PSecPkgInfoA*) QUERY_SECURITY_PACKAGE_INFO_FN_A;
-alias SECURITY_STATUS function(PCtxtHandle,HANDLE*) QUERY_SECURITY_CONTEXT_TOKEN_FN;
-alias SECURITY_STATUS function(SEC_WCHAR*,PSecPkgInfoW*) QUERY_SECURITY_PACKAGE_INFO_FN_W;
-alias SECURITY_STATUS function(PCtxtHandle,ULONG,PSecBufferDesc,ULONG) ENCRYPT_MESSAGE_FN;
-alias SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc,ULONG,PULONG) DECRYPT_MESSAGE_FN;
+alias ENUMERATE_SECURITY_PACKAGES_FN_W = SECURITY_STATUS function(PULONG,PSecPkgInfoW*);
+alias ENUMERATE_SECURITY_PACKAGES_FN_A = SECURITY_STATUS function(PULONG,PSecPkgInfoA*);
+alias QUERY_CREDENTIALS_ATTRIBUTES_FN_W = SECURITY_STATUS function(PCredHandle,ULONG,PVOID);
+alias QUERY_CREDENTIALS_ATTRIBUTES_FN_A = SECURITY_STATUS function(PCredHandle,ULONG,PVOID);
+alias ACQUIRE_CREDENTIALS_HANDLE_FN_W = SECURITY_STATUS function(SEC_WCHAR*,SEC_WCHAR*,ULONG,PLUID,PVOID,SEC_GET_KEY_FN,PVOID,PCredHandle,PTimeStamp);
+alias ACQUIRE_CREDENTIALS_HANDLE_FN_A = SECURITY_STATUS function(SEC_CHAR*,SEC_CHAR*,ULONG,PLUID,PVOID,SEC_GET_KEY_FN,PVOID,PCredHandle,PTimeStamp);
+alias FREE_CREDENTIALS_HANDLE_FN = SECURITY_STATUS function(PCredHandle);
+alias INITIALIZE_SECURITY_CONTEXT_FN_W = SECURITY_STATUS function(PCredHandle,PCtxtHandle,SEC_WCHAR*,ULONG,ULONG,ULONG,PSecBufferDesc,ULONG,PCtxtHandle,PSecBufferDesc,PULONG,PTimeStamp);
+alias INITIALIZE_SECURITY_CONTEXT_FN_A = SECURITY_STATUS function(PCredHandle,PCtxtHandle,SEC_CHAR*,ULONG,ULONG,ULONG,PSecBufferDesc,ULONG,PCtxtHandle,PSecBufferDesc,PULONG,PTimeStamp);
+alias ACCEPT_SECURITY_CONTEXT_FN = SECURITY_STATUS function(PCredHandle,PCtxtHandle,PSecBufferDesc,ULONG,ULONG,PCtxtHandle,PSecBufferDesc,PULONG,PTimeStamp);
+alias COMPLETE_AUTH_TOKEN_FN = SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc);
+alias DELETE_SECURITY_CONTEXT_FN = SECURITY_STATUS function(PCtxtHandle);
+alias APPLY_CONTROL_TOKEN_FN_W = SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc);
+alias APPLY_CONTROL_TOKEN_FN_A = SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc);
+alias QUERY_CONTEXT_ATTRIBUTES_FN_A = SECURITY_STATUS function(PCtxtHandle,ULONG,PVOID);
+alias QUERY_CONTEXT_ATTRIBUTES_FN_W = SECURITY_STATUS function(PCtxtHandle,ULONG,PVOID);
+alias IMPERSONATE_SECURITY_CONTEXT_FN = SECURITY_STATUS function(PCtxtHandle);
+alias REVERT_SECURITY_CONTEXT_FN = SECURITY_STATUS function(PCtxtHandle);
+alias MAKE_SIGNATURE_FN = SECURITY_STATUS function(PCtxtHandle,ULONG,PSecBufferDesc,ULONG);
+alias VERIFY_SIGNATURE_FN = SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc,ULONG,PULONG);
+alias FREE_CONTEXT_BUFFER_FN = SECURITY_STATUS function(PVOID);
+alias QUERY_SECURITY_PACKAGE_INFO_FN_A = SECURITY_STATUS function(SEC_CHAR*,PSecPkgInfoA*);
+alias QUERY_SECURITY_CONTEXT_TOKEN_FN = SECURITY_STATUS function(PCtxtHandle,HANDLE*);
+alias QUERY_SECURITY_PACKAGE_INFO_FN_W = SECURITY_STATUS function(SEC_WCHAR*,PSecPkgInfoW*);
+alias ENCRYPT_MESSAGE_FN = SECURITY_STATUS function(PCtxtHandle,ULONG,PSecBufferDesc,ULONG);
+alias DECRYPT_MESSAGE_FN = SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc,ULONG,PULONG);
 
 /* No, it really is FreeCredentialsHandle, see the thread beginning
  * http://sourceforge.net/mailarchive/message.php?msg_id=4321080 for a
@@ -255,7 +255,7 @@ struct SecurityFunctionTableW{
     ENCRYPT_MESSAGE_FN EncryptMessage;
     DECRYPT_MESSAGE_FN DecryptMessage;
 }
-alias SecurityFunctionTableW* PSecurityFunctionTableW;
+alias PSecurityFunctionTableW = SecurityFunctionTableW*;
 struct SecurityFunctionTableA{
     uint dwVersion;
     ENUMERATE_SECURITY_PACKAGES_FN_A EnumerateSecurityPackagesA;
@@ -285,9 +285,9 @@ struct SecurityFunctionTableA{
     ENCRYPT_MESSAGE_FN EncryptMessage;
     DECRYPT_MESSAGE_FN DecryptMessage;
 }
-alias SecurityFunctionTableA* PSecurityFunctionTableA;
-alias PSecurityFunctionTableA function() INIT_SECURITY_INTERFACE_A;
-alias PSecurityFunctionTableW function() INIT_SECURITY_INTERFACE_W;
+alias PSecurityFunctionTableA = SecurityFunctionTableA*;
+alias INIT_SECURITY_INTERFACE_A = PSecurityFunctionTableA function();
+alias INIT_SECURITY_INTERFACE_W = PSecurityFunctionTableW function();
 
 SECURITY_STATUS FreeCredentialsHandle(PCredHandle);
 SECURITY_STATUS EnumerateSecurityPackagesA(PULONG,PSecPkgInfoA*);
@@ -321,61 +321,61 @@ PSecurityFunctionTableA InitSecurityInterfaceA();
 PSecurityFunctionTableW InitSecurityInterfaceW();
 
 version (Unicode) {
-    alias UNISP_NAME_W UNISP_NAME;
-    alias SecPkgInfoW SecPkgInfo;
-    alias PSecPkgInfoW PSecPkgInfo;
-    alias SecPkgCredentials_NamesW SecPkgCredentials_Names;
-    alias PSecPkgCredentials_NamesW PSecPkgCredentials_Names;
-    alias SecPkgContext_AuthorityW SecPkgContext_Authority;
-    alias PSecPkgContext_AuthorityW PSecPkgContext_Authority;
-    alias SecPkgContext_KeyInfoW SecPkgContext_KeyInfo;
-    alias PSecPkgContext_KeyInfoW PSecPkgContext_KeyInfo;
-    alias SecPkgContext_NamesW SecPkgContext_Names;
-    alias PSecPkgContext_NamesW PSecPkgContext_Names;
-    alias SecurityFunctionTableW SecurityFunctionTable;
-    alias PSecurityFunctionTableW PSecurityFunctionTable;
-    alias AcquireCredentialsHandleW AcquireCredentialsHandle;
-    alias EnumerateSecurityPackagesW EnumerateSecurityPackages;
-    alias InitializeSecurityContextW InitializeSecurityContext;
-    alias QueryContextAttributesW QueryContextAttributes;
-    alias QueryCredentialsAttributesW QueryCredentialsAttributes;
-    alias QuerySecurityPackageInfoW QuerySecurityPackageInfo;
-    alias ApplyControlTokenW ApplyControlToken;
-    alias ENUMERATE_SECURITY_PACKAGES_FN_W ENUMERATE_SECURITY_PACKAGES_FN;
-    alias QUERY_CREDENTIALS_ATTRIBUTES_FN_W QUERY_CREDENTIALS_ATTRIBUTES_FN;
-    alias ACQUIRE_CREDENTIALS_HANDLE_FN_W ACQUIRE_CREDENTIALS_HANDLE_FN;
-    alias INITIALIZE_SECURITY_CONTEXT_FN_W INITIALIZE_SECURITY_CONTEXT_FN;
-    alias APPLY_CONTROL_TOKEN_FN_W APPLY_CONTROL_TOKEN_FN;
-    alias QUERY_CONTEXT_ATTRIBUTES_FN_W QUERY_CONTEXT_ATTRIBUTES_FN;
-    alias QUERY_SECURITY_PACKAGE_INFO_FN_W QUERY_SECURITY_PACKAGE_INFO_FN;
-    alias INIT_SECURITY_INTERFACE_W INIT_SECURITY_INTERFACE;
+    alias UNISP_NAME = UNISP_NAME_W;
+    alias SecPkgInfo = SecPkgInfoW;
+    alias PSecPkgInfo = PSecPkgInfoW;
+    alias SecPkgCredentials_Names = SecPkgCredentials_NamesW;
+    alias PSecPkgCredentials_Names = PSecPkgCredentials_NamesW;
+    alias SecPkgContext_Authority = SecPkgContext_AuthorityW;
+    alias PSecPkgContext_Authority = PSecPkgContext_AuthorityW;
+    alias SecPkgContext_KeyInfo = SecPkgContext_KeyInfoW;
+    alias PSecPkgContext_KeyInfo = PSecPkgContext_KeyInfoW;
+    alias SecPkgContext_Names = SecPkgContext_NamesW;
+    alias PSecPkgContext_Names = PSecPkgContext_NamesW;
+    alias SecurityFunctionTable = SecurityFunctionTableW;
+    alias PSecurityFunctionTable = PSecurityFunctionTableW;
+    alias AcquireCredentialsHandle = AcquireCredentialsHandleW;
+    alias EnumerateSecurityPackages = EnumerateSecurityPackagesW;
+    alias InitializeSecurityContext = InitializeSecurityContextW;
+    alias QueryContextAttributes = QueryContextAttributesW;
+    alias QueryCredentialsAttributes = QueryCredentialsAttributesW;
+    alias QuerySecurityPackageInfo = QuerySecurityPackageInfoW;
+    alias ApplyControlToken = ApplyControlTokenW;
+    alias ENUMERATE_SECURITY_PACKAGES_FN = ENUMERATE_SECURITY_PACKAGES_FN_W;
+    alias QUERY_CREDENTIALS_ATTRIBUTES_FN = QUERY_CREDENTIALS_ATTRIBUTES_FN_W;
+    alias ACQUIRE_CREDENTIALS_HANDLE_FN = ACQUIRE_CREDENTIALS_HANDLE_FN_W;
+    alias INITIALIZE_SECURITY_CONTEXT_FN = INITIALIZE_SECURITY_CONTEXT_FN_W;
+    alias APPLY_CONTROL_TOKEN_FN = APPLY_CONTROL_TOKEN_FN_W;
+    alias QUERY_CONTEXT_ATTRIBUTES_FN = QUERY_CONTEXT_ATTRIBUTES_FN_W;
+    alias QUERY_SECURITY_PACKAGE_INFO_FN = QUERY_SECURITY_PACKAGE_INFO_FN_W;
+    alias INIT_SECURITY_INTERFACE = INIT_SECURITY_INTERFACE_W;
 }else{
-    alias UNISP_NAME_A UNISP_NAME;
-    alias SecPkgInfoA SecPkgInfo;
-    alias PSecPkgInfoA PSecPkgInfo;
-    alias SecPkgCredentials_NamesA SecPkgCredentials_Names;
-    alias PSecPkgCredentials_NamesA PSecPkgCredentials_Names;
-    alias SecPkgContext_AuthorityA SecPkgContext_Authority;
-    alias PSecPkgContext_AuthorityA PSecPkgContext_Authority;
-    alias SecPkgContext_KeyInfoA SecPkgContext_KeyInfo;
-    alias PSecPkgContext_KeyInfoA PSecPkgContext_KeyInfo;
-    alias SecPkgContext_NamesA SecPkgContext_Names;
-    alias PSecPkgContext_NamesA PSecPkgContext_Names;
-    alias SecurityFunctionTableA SecurityFunctionTable;
-    alias PSecurityFunctionTableA PSecurityFunctionTable;
-    alias AcquireCredentialsHandleA AcquireCredentialsHandle;
-    alias EnumerateSecurityPackagesA EnumerateSecurityPackages;
-    alias InitializeSecurityContextA InitializeSecurityContext;
-    alias QueryContextAttributesA QueryContextAttributes;
-    alias QueryCredentialsAttributesA QueryCredentialsAttributes;
-    alias QuerySecurityPackageInfoA QuerySecurityPackageInfo;
-    alias ApplyControlTokenA ApplyControlToken;
-    alias ENUMERATE_SECURITY_PACKAGES_FN_A ENUMERATE_SECURITY_PACKAGES_FN;
-    alias QUERY_CREDENTIALS_ATTRIBUTES_FN_A QUERY_CREDENTIALS_ATTRIBUTES_FN;
-    alias ACQUIRE_CREDENTIALS_HANDLE_FN_A ACQUIRE_CREDENTIALS_HANDLE_FN;
-    alias INITIALIZE_SECURITY_CONTEXT_FN_A INITIALIZE_SECURITY_CONTEXT_FN;
-    alias APPLY_CONTROL_TOKEN_FN_A APPLY_CONTROL_TOKEN_FN;
-    alias QUERY_CONTEXT_ATTRIBUTES_FN_A QUERY_CONTEXT_ATTRIBUTES_FN;
-    alias QUERY_SECURITY_PACKAGE_INFO_FN_A QUERY_SECURITY_PACKAGE_INFO_FN;
-    alias INIT_SECURITY_INTERFACE_A INIT_SECURITY_INTERFACE;
+    alias UNISP_NAME = UNISP_NAME_A;
+    alias SecPkgInfo = SecPkgInfoA;
+    alias PSecPkgInfo = PSecPkgInfoA;
+    alias SecPkgCredentials_Names = SecPkgCredentials_NamesA;
+    alias PSecPkgCredentials_Names = PSecPkgCredentials_NamesA;
+    alias SecPkgContext_Authority = SecPkgContext_AuthorityA;
+    alias PSecPkgContext_Authority = PSecPkgContext_AuthorityA;
+    alias SecPkgContext_KeyInfo = SecPkgContext_KeyInfoA;
+    alias PSecPkgContext_KeyInfo = PSecPkgContext_KeyInfoA;
+    alias SecPkgContext_Names = SecPkgContext_NamesA;
+    alias PSecPkgContext_Names = PSecPkgContext_NamesA;
+    alias SecurityFunctionTable = SecurityFunctionTableA;
+    alias PSecurityFunctionTable = PSecurityFunctionTableA;
+    alias AcquireCredentialsHandle = AcquireCredentialsHandleA;
+    alias EnumerateSecurityPackages = EnumerateSecurityPackagesA;
+    alias InitializeSecurityContext = InitializeSecurityContextA;
+    alias QueryContextAttributes = QueryContextAttributesA;
+    alias QueryCredentialsAttributes = QueryCredentialsAttributesA;
+    alias QuerySecurityPackageInfo = QuerySecurityPackageInfoA;
+    alias ApplyControlToken = ApplyControlTokenA;
+    alias ENUMERATE_SECURITY_PACKAGES_FN = ENUMERATE_SECURITY_PACKAGES_FN_A;
+    alias QUERY_CREDENTIALS_ATTRIBUTES_FN = QUERY_CREDENTIALS_ATTRIBUTES_FN_A;
+    alias ACQUIRE_CREDENTIALS_HANDLE_FN = ACQUIRE_CREDENTIALS_HANDLE_FN_A;
+    alias INITIALIZE_SECURITY_CONTEXT_FN = INITIALIZE_SECURITY_CONTEXT_FN_A;
+    alias APPLY_CONTROL_TOKEN_FN = APPLY_CONTROL_TOKEN_FN_A;
+    alias QUERY_CONTEXT_ATTRIBUTES_FN = QUERY_CONTEXT_ATTRIBUTES_FN_A;
+    alias QUERY_SECURITY_PACKAGE_INFO_FN = QUERY_SECURITY_PACKAGE_INFO_FN_A;
+    alias INIT_SECURITY_INTERFACE = INIT_SECURITY_INTERFACE_A;
 }

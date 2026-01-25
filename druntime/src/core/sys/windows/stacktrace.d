@@ -27,7 +27,7 @@ debug(PRINTF) import core.stdc.stdio;
 extern(Windows) void RtlCaptureContext(CONTEXT* ContextRecord) @nogc;
 extern(Windows) DWORD GetEnvironmentVariableA(LPCSTR lpName, LPSTR pBuffer, DWORD nSize);
 
-extern(Windows) alias USHORT function(ULONG FramesToSkip, ULONG FramesToCapture, PVOID *BackTrace, PULONG BackTraceHash) @nogc RtlCaptureStackBackTraceFunc;
+extern(Windows) alias RtlCaptureStackBackTraceFunc = USHORT function(ULONG FramesToSkip, ULONG FramesToCapture, PVOID *BackTrace, PULONG BackTraceHash) @nogc;
 
 private __gshared RtlCaptureStackBackTraceFunc RtlCaptureStackBackTrace;
 private __gshared CRITICAL_SECTION mutex; // cannot use core.sync.mutex.Mutex unfortunately (cyclic dependency...)

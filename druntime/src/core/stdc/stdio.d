@@ -373,7 +373,7 @@ enum
 version (CRuntime_Microsoft)
 {
     ///
-    alias long fpos_t;
+    alias fpos_t = long;
 
     ///
     struct _iobuf
@@ -382,7 +382,7 @@ version (CRuntime_Microsoft)
     }
 
     ///
-    alias shared(_iobuf) FILE;
+    alias FILE = shared(_iobuf);
 }
 else version (CRuntime_Glibc)
 {
@@ -432,9 +432,9 @@ else version (CRuntime_Glibc)
     }
 
     ///
-    alias _IO_FILE _iobuf;
+    alias _iobuf = _IO_FILE;
     ///
-    alias shared(_IO_FILE) FILE;
+    alias FILE = shared(_IO_FILE);
 }
 else version (WASI)
 {
@@ -446,9 +446,9 @@ else version (WASI)
     struct _IO_FILE;
 
     ///
-    alias _IO_FILE _iobuf; // needed for phobos
+    alias _iobuf = _IO_FILE; // needed for phobos
     ///
-    alias shared(_IO_FILE) FILE;
+    alias FILE = shared(_IO_FILE);
 }
 else version (CRuntime_Musl)
 {
@@ -460,14 +460,14 @@ else version (CRuntime_Musl)
     struct _IO_FILE;
 
     ///
-    alias _IO_FILE _iobuf; // needed for phobos
+    alias _iobuf = _IO_FILE; // needed for phobos
     ///
-    alias shared(_IO_FILE) FILE;
+    alias FILE = shared(_IO_FILE);
 }
 else version (Darwin)
 {
     ///
-    alias long fpos_t;
+    alias fpos_t = long;
 
     ///
     struct __sFILE
@@ -500,9 +500,9 @@ else version (Darwin)
     }
 
     ///
-    alias __sFILE _iobuf;
+    alias _iobuf = __sFILE;
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (FreeBSD)
 {
@@ -510,7 +510,7 @@ else version (FreeBSD)
     import core.stdc.wchar_ : mbstate_t;
 
     ///
-    alias off_t fpos_t;
+    alias fpos_t = off_t;
 
     ///
     struct __sFILE
@@ -549,14 +549,14 @@ else version (FreeBSD)
     }
 
     ///
-    alias __sFILE _iobuf;
+    alias _iobuf = __sFILE;
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (NetBSD)
 {
     ///
-    alias off_t fpos_t;
+    alias fpos_t = off_t;
 
     ///
     struct __sFILE
@@ -593,9 +593,9 @@ else version (NetBSD)
     }
 
     ///
-    alias __sFILE _iobuf;
+    alias _iobuf = __sFILE;
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (OpenBSD)
 {
@@ -609,13 +609,13 @@ else version (OpenBSD)
     }
 
     ///
-    alias __sFILE _iobuf;
+    alias _iobuf = __sFILE;
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (DragonFlyBSD)
 {
-    alias off_t fpos_t;
+    alias fpos_t = off_t;
 
     /// See /usr/include/stdio.h
     struct __FILE_public
@@ -628,15 +628,15 @@ else version (DragonFlyBSD)
         ssize_t         _lbfsize;       /* 0 or -_bf._size, for inline putc */
     }
 
-    alias __FILE_public _iobuf;
-    alias shared(__FILE_public) FILE;
+    alias _iobuf = __FILE_public;
+    alias FILE = shared(__FILE_public);
 }
 else version (Solaris)
 {
     import core.stdc.wchar_ : mbstate_t;
 
     ///
-    alias c_long fpos_t;
+    alias fpos_t = c_long;
 
     version (D_LP64)
     {
@@ -673,12 +673,12 @@ else version (Solaris)
         }
     }
     ///
-    alias shared(_iobuf) FILE;
+    alias FILE = shared(_iobuf);
 }
 else version (CRuntime_Bionic)
 {
     ///
-    alias c_long fpos_t; // couldn't use off_t because of static if issue
+    alias fpos_t = c_long; // couldn't use off_t because of static if issue
 
     ///
     struct __sFILE
@@ -711,9 +711,9 @@ else version (CRuntime_Bionic)
     }
 
     ///
-    alias __sFILE _iobuf;
+    alias _iobuf = __sFILE;
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (CRuntime_Newlib)
 {
@@ -762,9 +762,9 @@ else version (CRuntime_Newlib)
     }
 
     ///
-    alias __sFILE _iobuf; // needed for phobos
+    alias _iobuf = __sFILE; // needed for phobos
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (CRuntime_UClibc)
 {
@@ -788,7 +788,7 @@ else version (CRuntime_UClibc)
        int function(void* __cookie)                                             close;
     }
 
-    alias _IO_cookie_io_functions_t cookie_io_functions_t;
+    alias cookie_io_functions_t = _IO_cookie_io_functions_t;
 
     ///
     struct __STDIO_FILE_STRUCT
@@ -813,9 +813,9 @@ else version (CRuntime_UClibc)
     }
 
     ///
-    alias __STDIO_FILE_STRUCT _iobuf;
+    alias _iobuf = __STDIO_FILE_STRUCT;
     ///
-    alias shared(__STDIO_FILE_STRUCT) FILE;
+    alias FILE = shared(__STDIO_FILE_STRUCT);
 }
 else
 {
@@ -925,11 +925,11 @@ else version (Darwin)
     private extern shared FILE* __stderrp;
 
     ///
-    alias __stdinp  stdin;
+    alias stdin = __stdinp;
     ///
-    alias __stdoutp stdout;
+    alias stdout = __stdoutp;
     ///
-    alias __stderrp stderr;
+    alias stderr = __stderrp;
 }
 else version (FreeBSD)
 {
@@ -948,11 +948,11 @@ else version (FreeBSD)
     private extern shared FILE* __stderrp;
 
     ///
-    alias __stdinp  stdin;
+    alias stdin = __stdinp;
     ///
-    alias __stdoutp stdout;
+    alias stdout = __stdoutp;
     ///
-    alias __stderrp stderr;
+    alias stderr = __stderrp;
 }
 else version (NetBSD)
 {
@@ -971,11 +971,11 @@ else version (NetBSD)
     @property auto __stdout()() { return &__sF[1]; }
     @property auto __stderr()() { return &__sF[2]; }
     ///
-    alias __stdin stdin;
+    alias stdin = __stdin;
     ///
-    alias __stdout stdout;
+    alias stdout = __stdout;
     ///
-    alias __stderr stderr;
+    alias stderr = __stderr;
 }
 else version (OpenBSD)
 {
@@ -1000,11 +1000,11 @@ else version (OpenBSD)
     @property auto __stderr1()() { return cast(FILE*)__stderr; }
 
     ///
-    alias __stdin1 stdin;
+    alias stdin = __stdin1;
     ///
-    alias __stdout1 stdout;
+    alias stdout = __stdout1;
     ///
-    alias __stderr1 stderr;
+    alias stderr = __stderr1;
 }
 else version (DragonFlyBSD)
 {
@@ -1019,9 +1019,9 @@ else version (DragonFlyBSD)
     private extern shared FILE* __stdoutp;
     private extern shared FILE* __stderrp;
 
-    alias __stdinp  stdin;
-    alias __stdoutp stdout;
-    alias __stderrp stderr;
+    alias stdin = __stdinp;
+    alias stdout = __stdoutp;
+    alias stderr = __stderrp;
 }
 else version (Solaris)
 {
@@ -1209,73 +1209,73 @@ version (MinGW)
     pragma(printf)
     int __mingw_fprintf(FILE* stream, scope const char* format, scope const ...);
     ///
-    alias __mingw_fprintf fprintf;
+    alias fprintf = __mingw_fprintf;
 
     ///
     pragma(scanf)
     int __mingw_fscanf(FILE* stream, scope const char* format, scope ...);
     ///
-    alias __mingw_fscanf fscanf;
+    alias fscanf = __mingw_fscanf;
 
     ///
     pragma(printf)
     int __mingw_sprintf(scope char* s, scope const char* format, scope const ...);
     ///
-    alias __mingw_sprintf sprintf;
+    alias sprintf = __mingw_sprintf;
 
     ///
     pragma(scanf)
     int __mingw_sscanf(scope const char* s, scope const char* format, scope ...);
     ///
-    alias __mingw_sscanf sscanf;
+    alias sscanf = __mingw_sscanf;
 
     ///
     pragma(printf)
     int __mingw_vfprintf(FILE* stream, scope const char* format, va_list arg);
     ///
-    alias __mingw_vfprintf vfprintf;
+    alias vfprintf = __mingw_vfprintf;
 
     ///
     pragma(scanf)
     int __mingw_vfscanf(FILE* stream, scope const char* format, va_list arg);
     ///
-    alias __mingw_vfscanf vfscanf;
+    alias vfscanf = __mingw_vfscanf;
 
     ///
     pragma(printf)
     int __mingw_vsprintf(scope char* s, scope const char* format, va_list arg);
     ///
-    alias __mingw_vsprintf vsprintf;
+    alias vsprintf = __mingw_vsprintf;
 
     ///
     pragma(scanf)
     int __mingw_vsscanf(scope const char* s, scope const char* format, va_list arg);
     ///
-    alias __mingw_vsscanf vsscanf;
+    alias vsscanf = __mingw_vsscanf;
 
     ///
     pragma(printf)
     int __mingw_vprintf(scope const char* format, va_list arg);
     ///
-    alias __mingw_vprintf vprintf;
+    alias vprintf = __mingw_vprintf;
 
     ///
     pragma(scanf)
     int __mingw_vscanf(scope const char* format, va_list arg);
     ///
-    alias __mingw_vscanf vscanf;
+    alias vscanf = __mingw_vscanf;
 
     ///
     pragma(printf)
     int __mingw_printf(scope const char* format, scope const ...);
     ///
-    alias __mingw_printf printf;
+    alias printf = __mingw_printf;
 
     ///
     pragma(scanf)
     int __mingw_scanf(scope const char* format, scope ...);
     ///
-    alias __mingw_scanf scanf;
+    alias scanf = __mingw_scanf;
 }
 else version (CRuntime_Glibc)
 {
@@ -1508,17 +1508,17 @@ version (CRuntime_Microsoft)
     pragma(printf)
     int   __mingw_snprintf(scope char* s, size_t n, scope const char* fmt, scope const ...);
     ///
-    alias __mingw_snprintf _snprintf;
+    alias _snprintf = __mingw_snprintf;
     ///
-    alias __mingw_snprintf snprintf;
+    alias snprintf = __mingw_snprintf;
 
     ///
     pragma(printf)
     int   __mingw_vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
     ///
-    alias __mingw_vsnprintf _vsnprintf;
+    alias _vsnprintf = __mingw_vsnprintf;
     ///
-    alias __mingw_vsnprintf vsnprintf;
+    alias vsnprintf = __mingw_vsnprintf;
   }
   else
   {

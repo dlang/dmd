@@ -45,25 +45,25 @@ version (CRuntime_Glibc)
         version (D_X32)
         {
             // X32 kernel interface is 64-bit.
-            alias long slong_t;
-            alias ulong ulong_t;
+            alias slong_t = long;
+            alias ulong_t = ulong;
         }
         else
         {
-            alias c_long slong_t;
-            alias c_ulong ulong_t;
+            alias slong_t = c_long;
+            alias ulong_t = c_ulong;
         }
     }
     else
     {
-        alias c_long slong_t;
-        alias c_ulong ulong_t;
+        alias slong_t = c_long;
+        alias ulong_t = c_ulong;
     }
 }
 else
 {
-    alias c_long slong_t;
-    alias c_ulong ulong_t;
+    alias slong_t = c_long;
+    alias ulong_t = c_ulong;
 }
 
 //
@@ -89,15 +89,15 @@ version (linux)
 {
   static if ( __USE_FILE_OFFSET64 )
   {
-    alias long      blkcnt_t;
-    alias ulong     ino_t;
-    alias long      off_t;
+    alias blkcnt_t = long;
+    alias ino_t = ulong;
+    alias off_t = long;
   }
   else
   {
-    alias slong_t   blkcnt_t;
-    alias ulong_t   ino_t;
-    alias slong_t   off_t;
+    alias blkcnt_t = slong_t;
+    alias ino_t = ulong_t;
+    alias off_t = slong_t;
   }
     // musl overrides blksize_t to int on some 64-bit architectures.
     // Default: long (https://git.musl-libc.org/cgit/musl/tree/include/alltypes.h.in?h=v1.2.3#n32)
@@ -107,20 +107,20 @@ version (linux)
     version (CRuntime_Musl)
     {
         version (AArch64)
-            alias int blksize_t;
+            alias blksize_t = int;
         else version (RISCV64)
-            alias int blksize_t;
+            alias blksize_t = int;
         else version (LoongArch64)
-            alias int blksize_t;
+            alias blksize_t = int;
         else
-            alias slong_t blksize_t;
+            alias blksize_t = slong_t;
     }
     else
-        alias slong_t blksize_t;
+        alias blksize_t = slong_t;
 
-    alias ulong     dev_t;
-    alias uint      gid_t;
-    alias uint      mode_t;
+    alias dev_t = ulong;
+    alias gid_t = uint;
+    alias mode_t = uint;
 
     // musl defines nlink_t as unsigned _Reg (= unsigned int on 32-bit, unsigned long on 64-bit),
     // with arch-specific overrides.
@@ -130,32 +130,32 @@ version (linux)
     version (CRuntime_Musl)
     {
         version (MIPS64)
-            alias uint nlink_t;
+            alias nlink_t = uint;
         else version (X86_64)
-            alias ulong nlink_t;
+            alias nlink_t = ulong;
         else
-            alias uint nlink_t;
+            alias nlink_t = uint;
     }
     else
     {
         version (X86_64)
-            alias ulong nlink_t;
+            alias nlink_t = ulong;
         else version (S390)
-            alias size_t nlink_t;
+            alias nlink_t = size_t;
         else version (PPC64)
-            alias size_t nlink_t;
+            alias nlink_t = size_t;
         else version (MIPS64)
-            alias size_t nlink_t;
+            alias nlink_t = size_t;
         else version (HPPA64)
-            alias size_t nlink_t;
+            alias nlink_t = size_t;
         else
-            alias uint nlink_t;
+            alias nlink_t = uint;
     }
 
-    alias int       pid_t;
+    alias pid_t = int;
     //size_t (defined in core.stdc.stddef)
-    alias c_long    ssize_t;
-    alias uint      uid_t;
+    alias ssize_t = c_long;
+    alias uid_t = uint;
 
     version (CRuntime_Musl)
     {
@@ -180,153 +180,153 @@ version (linux)
          * one can recompile druntime with `CRuntime_Musl_Pre_Time64`.
          */
         version (D_X32)
-           alias long   time_t;
+           alias time_t = long;
         else version (CRuntime_Musl_Pre_Time64)
-            alias c_long time_t;
+            alias time_t = c_long;
         else
-            alias long  time_t;
+            alias time_t = long;
     }
     else
     {
-        alias slong_t   time_t;
+        alias time_t = slong_t;
     }
 }
 else version (Darwin)
 {
-    alias long      blkcnt_t;
-    alias int       blksize_t;
-    alias int       dev_t;
-    alias uint      gid_t;
-    alias ulong     ino_t;
-    alias ushort    mode_t;
-    alias ushort    nlink_t;
-    alias long      off_t;
-    alias int       pid_t;
+    alias blkcnt_t = long;
+    alias blksize_t = int;
+    alias dev_t = int;
+    alias gid_t = uint;
+    alias ino_t = ulong;
+    alias mode_t = ushort;
+    alias nlink_t = ushort;
+    alias off_t = long;
+    alias pid_t = int;
     //size_t (defined in core.stdc.stddef)
-    alias c_long    ssize_t;
-    alias c_long    time_t;
-    alias uint      uid_t;
+    alias ssize_t = c_long;
+    alias time_t = c_long;
+    alias uid_t = uint;
 }
 else version (FreeBSD)
 {
     import core.sys.freebsd.config;
 
     // https://github.com/freebsd/freebsd/blob/master/sys/sys/_types.h
-    alias long      blkcnt_t;
-    alias uint      blksize_t;
+    alias blkcnt_t = long;
+    alias blksize_t = uint;
 
     static if (__FreeBSD_version >= 1200000)
     {
-        alias ulong dev_t;
-        alias ulong ino_t;
-        alias ulong nlink_t;
+        alias dev_t = ulong;
+        alias ino_t = ulong;
+        alias nlink_t = ulong;
     }
     else
     {
-        alias uint   dev_t;
-        alias uint   ino_t;
-        alias ushort nlink_t;
+        alias dev_t = uint;
+        alias ino_t = uint;
+        alias nlink_t = ushort;
     }
 
-    alias uint      gid_t;
-    alias ushort    mode_t;
-    alias long      off_t;
-    alias int       pid_t;
+    alias gid_t = uint;
+    alias mode_t = ushort;
+    alias off_t = long;
+    alias pid_t = int;
     //size_t (defined in core.stdc.stddef)
-    alias c_long    ssize_t;
-    alias c_long    time_t;
-    alias uint      uid_t;
-    alias uint      fflags_t; // non-standard
+    alias ssize_t = c_long;
+    alias time_t = c_long;
+    alias uid_t = uint;
+    alias fflags_t = uint; // non-standard
 }
 else version (NetBSD)
 {
-    alias long      blkcnt_t;
-    alias int       blksize_t;
-    alias ulong     dev_t;
-    alias uint      gid_t;
-    alias ulong     ino_t;
-    alias uint      mode_t;
-    alias uint      nlink_t;
-    alias ulong     off_t;
-    alias int       pid_t;
+    alias blkcnt_t = long;
+    alias blksize_t = int;
+    alias dev_t = ulong;
+    alias gid_t = uint;
+    alias ino_t = ulong;
+    alias mode_t = uint;
+    alias nlink_t = uint;
+    alias off_t = ulong;
+    alias pid_t = int;
     //size_t (defined in core.stdc.stddef)
-    alias c_long      ssize_t;
-    alias c_long      time_t;
-    alias uint        uid_t;
+    alias ssize_t = c_long;
+    alias time_t = c_long;
+    alias uid_t = uint;
 }
 else version (OpenBSD)
 {
-    alias char*     caddr_t;
-    alias long      blkcnt_t;
-    alias int       blksize_t;
-    alias int       dev_t;
-    alias uint      gid_t;
-    alias ulong     ino_t;
-    alias uint      mode_t;
-    alias uint      nlink_t;
-    alias long      off_t;
-    alias int       pid_t;
+    alias caddr_t = char*;
+    alias blkcnt_t = long;
+    alias blksize_t = int;
+    alias dev_t = int;
+    alias gid_t = uint;
+    alias ino_t = ulong;
+    alias mode_t = uint;
+    alias nlink_t = uint;
+    alias off_t = long;
+    alias pid_t = int;
     //size_t (defined in core.stdc.stddef)
-    alias c_long    ssize_t;
-    alias long      time_t;
-    alias uint      uid_t;
+    alias ssize_t = c_long;
+    alias time_t = long;
+    alias uid_t = uint;
 }
 else version (DragonFlyBSD)
 {
-    alias long      blkcnt_t;
-    alias long      blksize_t;
-    alias uint      dev_t;
-    alias uint      gid_t;
-    alias long      ino_t;
-    alias ushort    mode_t;
-    alias uint      nlink_t;
-    alias long      off_t;      //__off_t (defined in /usr/include/sys/stdint.h -> core.stdc.stddef)
-    alias int       pid_t;      // size_t (defined in /usr/include/sys/stdint.h -> core.stdc.stddef)
-    alias c_long    ssize_t;
-    alias long      time_t;
-    alias uint      uid_t;
+    alias blkcnt_t = long;
+    alias blksize_t = long;
+    alias dev_t = uint;
+    alias gid_t = uint;
+    alias ino_t = long;
+    alias mode_t = ushort;
+    alias nlink_t = uint;
+    alias off_t = long;      //__off_t (defined in /usr/include/sys/stdint.h -> core.stdc.stddef)
+    alias pid_t = int;      // size_t (defined in /usr/include/sys/stdint.h -> core.stdc.stddef)
+    alias ssize_t = c_long;
+    alias time_t = long;
+    alias uid_t = uint;
 }
 else version (Solaris)
 {
-    alias char* caddr_t;
-    alias c_long daddr_t;
-    alias short cnt_t;
+    alias caddr_t = char*;
+    alias daddr_t = c_long;
+    alias cnt_t = short;
 
     static if (__USE_FILE_OFFSET64)
     {
-        alias long blkcnt_t;
-        alias ulong ino_t;
-        alias long off_t;
+        alias blkcnt_t = long;
+        alias ino_t = ulong;
+        alias off_t = long;
     }
     else
     {
-        alias c_long blkcnt_t;
-        alias c_ulong ino_t;
-        alias c_long off_t;
+        alias blkcnt_t = c_long;
+        alias ino_t = c_ulong;
+        alias off_t = c_long;
     }
 
     version (D_LP64)
     {
-        alias blkcnt_t blkcnt64_t;
-        alias ino_t ino64_t;
-        alias off_t off64_t;
+        alias blkcnt64_t = blkcnt_t;
+        alias ino64_t = ino_t;
+        alias off64_t = off_t;
     }
     else
     {
-        alias long blkcnt64_t;
-        alias ulong ino64_t;
-        alias long off64_t;
+        alias blkcnt64_t = long;
+        alias ino64_t = ulong;
+        alias off64_t = long;
     }
 
-    alias uint blksize_t;
-    alias c_ulong dev_t;
-    alias uid_t gid_t;
-    alias uint mode_t;
-    alias uint nlink_t;
-    alias int pid_t;
-    alias c_long ssize_t;
-    alias c_long time_t;
-    alias uint uid_t;
+    alias blksize_t = uint;
+    alias dev_t = c_ulong;
+    alias gid_t = uid_t;
+    alias mode_t = uint;
+    alias nlink_t = uint;
+    alias pid_t = int;
+    alias ssize_t = c_long;
+    alias time_t = c_long;
+    alias uid_t = uint;
 }
 else
 {
@@ -350,94 +350,94 @@ version (linux)
 {
   static if ( __USE_FILE_OFFSET64 )
   {
-    alias ulong     fsblkcnt_t;
-    alias ulong     fsfilcnt_t;
+    alias fsblkcnt_t = ulong;
+    alias fsfilcnt_t = ulong;
   }
   else
   {
-    alias ulong_t   fsblkcnt_t;
-    alias ulong_t   fsfilcnt_t;
+    alias fsblkcnt_t = ulong_t;
+    alias fsfilcnt_t = ulong_t;
   }
-    alias slong_t   clock_t;
-    alias uint      id_t;
-    alias int       key_t;
-    alias slong_t   suseconds_t;
-    alias uint      useconds_t;
+    alias clock_t = slong_t;
+    alias id_t = uint;
+    alias key_t = int;
+    alias suseconds_t = slong_t;
+    alias useconds_t = uint;
 }
 else version (Darwin)
 {
-    alias uint   fsblkcnt_t;
-    alias uint   fsfilcnt_t;
-    alias c_long clock_t;
-    alias uint   id_t;
-    alias int    key_t;
-    alias int    suseconds_t;
-    alias uint   useconds_t;
+    alias fsblkcnt_t = uint;
+    alias fsfilcnt_t = uint;
+    alias clock_t = c_long;
+    alias id_t = uint;
+    alias key_t = int;
+    alias suseconds_t = int;
+    alias useconds_t = uint;
 }
 else version (FreeBSD)
 {
-    alias ulong     fsblkcnt_t;
-    alias ulong     fsfilcnt_t;
-    alias c_long    clock_t;
-    alias long      id_t;
-    alias c_long    key_t;
-    alias c_long    suseconds_t;
-    alias uint      useconds_t;
+    alias fsblkcnt_t = ulong;
+    alias fsfilcnt_t = ulong;
+    alias clock_t = c_long;
+    alias id_t = long;
+    alias key_t = c_long;
+    alias suseconds_t = c_long;
+    alias useconds_t = uint;
 }
 else version (NetBSD)
 {
-    alias ulong     fsblkcnt_t;
-    alias ulong     fsfilcnt_t;
-    alias c_long    clock_t;
-    alias long      id_t;
-    alias c_long    key_t;
-    alias c_long    suseconds_t;
-    alias uint      useconds_t;
+    alias fsblkcnt_t = ulong;
+    alias fsfilcnt_t = ulong;
+    alias clock_t = c_long;
+    alias id_t = long;
+    alias key_t = c_long;
+    alias suseconds_t = c_long;
+    alias useconds_t = uint;
 }
 else version (OpenBSD)
 {
-    alias ulong     fsblkcnt_t;
-    alias ulong     fsfilcnt_t;
-    alias long      clock_t;
-    alias uint      id_t;
-    alias c_long    key_t;
-    alias c_long    suseconds_t;
-    alias uint      useconds_t;
+    alias fsblkcnt_t = ulong;
+    alias fsfilcnt_t = ulong;
+    alias clock_t = long;
+    alias id_t = uint;
+    alias key_t = c_long;
+    alias suseconds_t = c_long;
+    alias useconds_t = uint;
 }
 else version (DragonFlyBSD)
 {
-    alias ulong     fsblkcnt_t;
-    alias ulong     fsfilcnt_t;
-    alias c_long    clock_t;
-    alias long      id_t;
-    alias c_long    key_t;
-    alias c_long    suseconds_t;
-    alias uint      useconds_t;
+    alias fsblkcnt_t = ulong;
+    alias fsfilcnt_t = ulong;
+    alias clock_t = c_long;
+    alias id_t = long;
+    alias key_t = c_long;
+    alias suseconds_t = c_long;
+    alias useconds_t = uint;
 }
 else version (Solaris)
 {
     static if (__USE_FILE_OFFSET64)
     {
-        alias ulong fsblkcnt_t;
-        alias ulong fsfilcnt_t;
+        alias fsblkcnt_t = ulong;
+        alias fsfilcnt_t = ulong;
     }
     else
     {
-        alias c_ulong fsblkcnt_t;
-        alias c_ulong fsfilcnt_t;
+        alias fsblkcnt_t = c_ulong;
+        alias fsfilcnt_t = c_ulong;
     }
 
-    alias c_long clock_t;
-    alias int id_t;
-    alias int key_t;
-    alias c_long suseconds_t;
-    alias uint useconds_t;
+    alias clock_t = c_long;
+    alias id_t = int;
+    alias key_t = int;
+    alias suseconds_t = c_long;
+    alias useconds_t = uint;
 
-    alias id_t taskid_t;
-    alias id_t projid_t;
-    alias id_t poolid_t;
-    alias id_t zoneid_t;
-    alias id_t ctid_t;
+    alias taskid_t = id_t;
+    alias projid_t = id_t;
+    alias poolid_t = id_t;
+    alias zoneid_t = id_t;
+    alias ctid_t = id_t;
 }
 else
 {
@@ -692,7 +692,7 @@ version (CRuntime_Glibc)
         c_long __align;
     }
 
-    private alias int __atomic_lock_t;
+    private alias __atomic_lock_t = int;
 
     private struct _pthread_fastlock
     {
@@ -700,7 +700,7 @@ version (CRuntime_Glibc)
         __atomic_lock_t __spinlock;
     }
 
-    private alias void* _pthread_descr;
+    private alias _pthread_descr = void*;
 
     union pthread_cond_t
     {
@@ -714,7 +714,7 @@ version (CRuntime_Glibc)
         int __align;
     }
 
-    alias uint pthread_key_t;
+    alias pthread_key_t = uint;
 
     union pthread_mutex_t
     {
@@ -728,7 +728,7 @@ version (CRuntime_Glibc)
         int __align;
     }
 
-    alias int pthread_once_t;
+    alias pthread_once_t = int;
 
     struct pthread_rwlock_t
     {
@@ -742,7 +742,7 @@ version (CRuntime_Glibc)
         c_long __align;
     }
 
-    alias c_ulong pthread_t;
+    alias pthread_t = c_ulong;
 }
 else version (CRuntime_Musl)
 {
@@ -804,7 +804,7 @@ else version (CRuntime_Musl)
         uint[2] __attr;
     }
 
-    alias uint pthread_key_t;
+    alias pthread_key_t = uint;
 
     struct pthread_condattr_t
     {
@@ -816,9 +816,9 @@ else version (CRuntime_Musl)
         uint __attr;
     }
 
-    alias int pthread_once_t;
+    alias pthread_once_t = int;
 
-    alias c_ulong pthread_t;
+    alias pthread_t = c_ulong;
 }
 else version (Darwin)
 {
@@ -872,7 +872,7 @@ else version (Darwin)
         byte[__PTHREAD_CONDATTR_SIZE__]     __opaque;
     }
 
-    alias c_ulong pthread_key_t;
+    alias pthread_key_t = c_ulong;
 
     struct pthread_mutex_t
     {
@@ -911,22 +911,22 @@ else version (Darwin)
         byte[__PTHREAD_SIZE__]  __opaque;
     }
 
-    alias _opaque_pthread_t* pthread_t;
+    alias pthread_t = _opaque_pthread_t*;
 }
 else version (FreeBSD)
 {
-    alias int lwpid_t; // non-standard
+    alias lwpid_t = int; // non-standard
 
-    alias void* pthread_attr_t;
-    alias void* pthread_cond_t;
-    alias void* pthread_condattr_t;
-    alias void* pthread_key_t;
-    alias void* pthread_mutex_t;
-    alias void* pthread_mutexattr_t;
-    alias void* pthread_once_t;
-    alias void* pthread_rwlock_t;
-    alias void* pthread_rwlockattr_t;
-    alias void* pthread_t;
+    alias pthread_attr_t = void*;
+    alias pthread_cond_t = void*;
+    alias pthread_condattr_t = void*;
+    alias pthread_key_t = void*;
+    alias pthread_mutex_t = void*;
+    alias pthread_mutexattr_t = void*;
+    alias pthread_once_t = void*;
+    alias pthread_rwlock_t = void*;
+    alias pthread_rwlockattr_t = void*;
+    alias pthread_t = void*;
 }
 else version (NetBSD)
 {
@@ -993,55 +993,55 @@ else version (NetBSD)
         void*   ptra_private;
     }
 
-    alias uint pthread_key_t;
-    alias void* pthread_t;
+    alias pthread_key_t = uint;
+    alias pthread_t = void*;
 }
 else version (OpenBSD)
 {
-    alias void* pthread_attr_t;
-    alias void* pthread_cond_t;
-    alias void* pthread_condattr_t;
-    alias int   pthread_key_t;
-    alias void* pthread_mutex_t;
-    alias void* pthread_mutexattr_t;
+    alias pthread_attr_t = void*;
+    alias pthread_cond_t = void*;
+    alias pthread_condattr_t = void*;
+    alias pthread_key_t = int;
+    alias pthread_mutex_t = void*;
+    alias pthread_mutexattr_t = void*;
 
     private struct pthread_once
     {
         int state;
         pthread_mutex_t mutex;
     }
-    alias pthread_once pthread_once_t;
+    alias pthread_once_t = pthread_once;
 
-    alias void* pthread_rwlock_t;
-    alias void* pthread_rwlockattr_t;
-    alias void* pthread_t;
+    alias pthread_rwlock_t = void*;
+    alias pthread_rwlockattr_t = void*;
+    alias pthread_t = void*;
 }
 else version (DragonFlyBSD)
 {
-    alias int lwpid_t;
+    alias lwpid_t = int;
 
-    alias void* pthread_attr_t;
-    alias void* pthread_cond_t;
-    alias void* pthread_condattr_t;
-    alias void* pthread_key_t;
-    alias void* pthread_mutex_t;
-    alias void* pthread_mutexattr_t;
+    alias pthread_attr_t = void*;
+    alias pthread_cond_t = void*;
+    alias pthread_condattr_t = void*;
+    alias pthread_key_t = void*;
+    alias pthread_mutex_t = void*;
+    alias pthread_mutexattr_t = void*;
 
     private struct pthread_once
     {
         int state;
         pthread_mutex_t mutex;
     }
-    alias pthread_once pthread_once_t;
+    alias pthread_once_t = pthread_once;
 
-    alias void* pthread_rwlock_t;
-    alias void* pthread_rwlockattr_t;
-    alias void* pthread_t;
+    alias pthread_rwlock_t = void*;
+    alias pthread_rwlockattr_t = void*;
+    alias pthread_t = void*;
 }
 else version (Solaris)
 {
-    alias uint pthread_t;
-    alias int lwpid_t; // non-standard
+    alias pthread_t = uint;
+    alias lwpid_t = int; // non-standard
 
     struct pthread_attr_t
     {
@@ -1127,7 +1127,7 @@ else version (Solaris)
         ulong[4] __pthread_once_pad;
     }
 
-    alias uint pthread_key_t;
+    alias pthread_key_t = uint;
 }
 else version (CRuntime_Bionic)
 {
@@ -1150,8 +1150,8 @@ else version (CRuntime_Bionic)
             int[1] __private;
     }
 
-    alias c_long pthread_condattr_t;
-    alias int    pthread_key_t;
+    alias pthread_condattr_t = c_long;
+    alias pthread_key_t = int;
 
     struct pthread_mutex_t
     {
@@ -1161,8 +1161,8 @@ else version (CRuntime_Bionic)
             int[1] __private;
     }
 
-    alias c_long pthread_mutexattr_t;
-    alias int    pthread_once_t;
+    alias pthread_mutexattr_t = c_long;
+    alias pthread_once_t = int;
 
     struct pthread_rwlock_t
     {
@@ -1172,8 +1172,8 @@ else version (CRuntime_Bionic)
             int[10] __private;
     }
 
-    alias c_long pthread_rwlockattr_t;
-    alias c_long pthread_t;
+    alias pthread_rwlockattr_t = c_long;
+    alias pthread_t = c_long;
 }
 else version (CRuntime_UClibc)
 {
@@ -1260,7 +1260,7 @@ else version (CRuntime_UClibc)
         c_long __align;
     }
 
-    alias uint pthread_key_t;
+    alias pthread_key_t = uint;
 
     struct __pthread_slist_t
     {
@@ -1295,7 +1295,7 @@ else version (CRuntime_UClibc)
         c_long __align;
     }
 
-    alias int pthread_once_t;
+    alias pthread_once_t = int;
 
     struct pthread_rwlock_t
     {
@@ -1333,7 +1333,7 @@ else version (CRuntime_UClibc)
         c_long __align;
     }
 
-    alias c_ulong pthread_t;
+    alias pthread_t = c_ulong;
 }
 else
 {
@@ -1364,23 +1364,23 @@ version (CRuntime_Glibc)
 }
 else version (FreeBSD)
 {
-    alias void* pthread_barrier_t;
-    alias void* pthread_barrierattr_t;
+    alias pthread_barrier_t = void*;
+    alias pthread_barrierattr_t = void*;
 }
 else version (NetBSD)
 {
-    alias void* pthread_barrier_t;
-    alias void* pthread_barrierattr_t;
+    alias pthread_barrier_t = void*;
+    alias pthread_barrierattr_t = void*;
 }
 else version (OpenBSD)
 {
-    alias void* pthread_barrier_t;
-    alias void* pthread_barrierattr_t;
+    alias pthread_barrier_t = void*;
+    alias pthread_barrierattr_t = void*;
 }
 else version (DragonFlyBSD)
 {
-    alias void* pthread_barrier_t;
-    alias void* pthread_barrierattr_t;
+    alias pthread_barrier_t = void*;
+    alias pthread_barrierattr_t = void*;
 }
 else version (Darwin)
 {
@@ -1457,11 +1457,11 @@ pthread_spinlock_t
 
 version (CRuntime_Glibc)
 {
-    alias int pthread_spinlock_t; // volatile
+    alias pthread_spinlock_t = int; // volatile
 }
 else version (FreeBSD)
 {
-    alias void* pthread_spinlock_t;
+    alias pthread_spinlock_t = void*;
 }
 else version (NetBSD)
 {
@@ -1469,23 +1469,23 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
-    alias void* pthread_spinlock_t;
+    alias pthread_spinlock_t = void*;
 }
 else version (DragonFlyBSD)
 {
-    alias void* pthread_spinlock_t;
+    alias pthread_spinlock_t = void*;
 }
 else version (Solaris)
 {
-    alias pthread_mutex_t pthread_spinlock_t;
+    alias pthread_spinlock_t = pthread_mutex_t;
 }
 else version (CRuntime_UClibc)
 {
-    alias int pthread_spinlock_t; // volatile
+    alias pthread_spinlock_t = int; // volatile
 }
 else version (CRuntime_Musl)
 {
-    alias int pthread_spinlock_t;
+    alias pthread_spinlock_t = int;
 }
 
 //

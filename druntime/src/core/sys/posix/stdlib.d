@@ -167,7 +167,7 @@ else version (NetBSD)
 {
     int setenv(const scope char*, const scope char*, int);
     int __unsetenv13(const scope char*);
-    alias __unsetenv13 unsetenv;
+    alias unsetenv = __unsetenv13;
     void* valloc(size_t); // LEGACY non-standard
 }
 else version (OpenBSD)
@@ -339,7 +339,7 @@ version (CRuntime_Glibc)
   static if ( __USE_LARGEFILE64 )
   {
     int    mkstemp64(char*);
-    alias  mkstemp64 mkstemp;
+    alias  mkstemp = mkstemp64;
   }
   else
   {
@@ -656,14 +656,14 @@ else version (Solaris)
         int mkstemp(char*);
 
         static if ( __USE_LARGEFILE64 )
-            alias mkstemp mkstemp64;
+            alias mkstemp64 = mkstemp;
     }
     else
     {
         int mkstemp64(char*);
 
         static if ( __USE_LARGEFILE64 )
-            alias mkstemp64 mkstemp;
+            alias mkstemp = mkstemp64;
         else
             int mkstemp(char*);
     }
@@ -702,7 +702,7 @@ else version (CRuntime_UClibc)
   static if ( __USE_LARGEFILE64 )
   {
     int    mkstemp64(char*);
-    alias  mkstemp64 mkstemp;
+    alias  mkstemp = mkstemp64;
   }
   else
   {

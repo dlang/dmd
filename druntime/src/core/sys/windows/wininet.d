@@ -746,11 +746,11 @@ alias HINTERNET = HANDLE;
     HANDLE h;
     alias h this;
 }*/
-alias HINTERNET* LPHINTERNET;
+alias LPHINTERNET = HINTERNET*;
 
-alias LONGLONG GROUPID;
-alias WORD INTERNET_PORT;
-alias WORD* LPINTERNET_PORT;
+alias GROUPID = LONGLONG;
+alias INTERNET_PORT = WORD;
+alias LPINTERNET_PORT = WORD*;
 
 enum INTERNET_SCHEME {
     INTERNET_SCHEME_PARTIAL = -2,
@@ -770,13 +770,13 @@ enum INTERNET_SCHEME {
     INTERNET_SCHEME_FIRST = INTERNET_SCHEME_FTP,
     INTERNET_SCHEME_LAST = INTERNET_SCHEME_RES
 }
-alias INTERNET_SCHEME* LPINTERNET_SCHEME;
+alias LPINTERNET_SCHEME = INTERNET_SCHEME*;
 
 struct INTERNET_ASYNC_RESULT {
     DWORD_PTR dwResult;
     DWORD dwError;
 }
-alias INTERNET_ASYNC_RESULT* LPINTERNET_ASYNC_RESULT;
+alias LPINTERNET_ASYNC_RESULT = INTERNET_ASYNC_RESULT*;
 
 struct INTERNET_DIAGNOSTIC_SOCKET_INFO {
     DWORD_PTR Socket;
@@ -784,20 +784,20 @@ struct INTERNET_DIAGNOSTIC_SOCKET_INFO {
     DWORD     DestPort;
     DWORD     Flags;
 }
-alias INTERNET_DIAGNOSTIC_SOCKET_INFO* LPINTERNET_DIAGNOSTIC_SOCKET_INFO;
+alias LPINTERNET_DIAGNOSTIC_SOCKET_INFO = INTERNET_DIAGNOSTIC_SOCKET_INFO*;
 
 struct INTERNET_PREFETCH_STATUS {
     DWORD dwStatus;
     DWORD dwSize;
 }
-alias INTERNET_PREFETCH_STATUS* LPINTERNET_PREFETCH_STATUS;
+alias LPINTERNET_PREFETCH_STATUS = INTERNET_PREFETCH_STATUS*;
 
 struct INTERNET_PROXY_INFO {
     DWORD dwAccessType;
     LPCTSTR lpszProxy;
     LPCTSTR lpszProxyBypass;
 }
-alias INTERNET_PROXY_INFO* LPINTERNET_PROXY_INFO;
+alias LPINTERNET_PROXY_INFO = INTERNET_PROXY_INFO*;
 
 struct INTERNET_PER_CONN_OPTIONA {
     DWORD   dwOption;
@@ -807,7 +807,7 @@ struct INTERNET_PER_CONN_OPTIONA {
         FILETIME ftValue;
     }
 }
-alias INTERNET_PER_CONN_OPTIONA* LPINTERNET_PER_CONN_OPTIONA;
+alias LPINTERNET_PER_CONN_OPTIONA = INTERNET_PER_CONN_OPTIONA*;
 
 struct INTERNET_PER_CONN_OPTIONW {
     DWORD   dwOption;
@@ -817,7 +817,7 @@ struct INTERNET_PER_CONN_OPTIONW {
         FILETIME ftValue;
     }
 }
-alias INTERNET_PER_CONN_OPTIONW* LPINTERNET_PER_CONN_OPTIONW;
+alias LPINTERNET_PER_CONN_OPTIONW = INTERNET_PER_CONN_OPTIONW*;
 
 struct INTERNET_PER_CONN_OPTION_LISTA {
     DWORD   dwSize;
@@ -826,7 +826,7 @@ struct INTERNET_PER_CONN_OPTION_LISTA {
     DWORD   dwOptionError;
     LPINTERNET_PER_CONN_OPTIONA  pOptions;
 }
-alias INTERNET_PER_CONN_OPTION_LISTA* LPINTERNET_PER_CONN_OPTION_LISTA;
+alias LPINTERNET_PER_CONN_OPTION_LISTA = INTERNET_PER_CONN_OPTION_LISTA*;
 
 struct INTERNET_PER_CONN_OPTION_LISTW {
     DWORD   dwSize;
@@ -835,7 +835,7 @@ struct INTERNET_PER_CONN_OPTION_LISTW {
     DWORD   dwOptionError;
     LPINTERNET_PER_CONN_OPTIONW  pOptions;
 }
-alias INTERNET_PER_CONN_OPTION_LISTW* LPINTERNET_PER_CONN_OPTION_LISTW;
+alias LPINTERNET_PER_CONN_OPTION_LISTW = INTERNET_PER_CONN_OPTION_LISTW*;
 
 enum {
     INTERNET_PER_CONN_FLAGS                        = 1,
@@ -871,7 +871,7 @@ struct INTERNET_VERSION_INFO {
     DWORD dwMajorVersion;
     DWORD dwMinorVersion;
 }
-alias INTERNET_VERSION_INFO* LPINTERNET_VERSION_INFO;
+alias LPINTERNET_VERSION_INFO = INTERNET_VERSION_INFO*;
 
 struct URL_COMPONENTSA {
     DWORD           dwStructSize = URL_COMPONENTSA.sizeof;
@@ -890,7 +890,7 @@ struct URL_COMPONENTSA {
     LPSTR           lpszExtraInfo;
     DWORD           dwExtraInfoLength;
 }
-alias URL_COMPONENTSA* LPURL_COMPONENTSA;
+alias LPURL_COMPONENTSA = URL_COMPONENTSA*;
 
 struct URL_COMPONENTSW {
     DWORD  dwStructSize = URL_COMPONENTSW.sizeof;
@@ -909,7 +909,7 @@ struct URL_COMPONENTSW {
     LPWSTR lpszExtraInfo;
     DWORD  dwExtraInfoLength;
 }
-alias URL_COMPONENTSW* LPURL_COMPONENTSW;
+alias LPURL_COMPONENTSW = URL_COMPONENTSW*;
 
 struct INTERNET_CERTIFICATE_INFO {
     FILETIME ftExpiry;
@@ -921,11 +921,10 @@ struct INTERNET_CERTIFICATE_INFO {
     LPTSTR   lpszEncryptionAlgName;
     DWORD    dwKeySize;
 }
-alias INTERNET_CERTIFICATE_INFO* LPINTERNET_CERTIFICATE_INFO;
+alias LPINTERNET_CERTIFICATE_INFO = INTERNET_CERTIFICATE_INFO*;
 
-extern (Windows) alias void function(HINTERNET, DWORD_PTR, DWORD, PVOID, DWORD)
-  INTERNET_STATUS_CALLBACK;
-alias INTERNET_STATUS_CALLBACK* LPINTERNET_STATUS_CALLBACK;
+extern (Windows) alias INTERNET_STATUS_CALLBACK = void function(HINTERNET, DWORD_PTR, DWORD, PVOID, DWORD);
+alias LPINTERNET_STATUS_CALLBACK = INTERNET_STATUS_CALLBACK*;
 
 enum INTERNET_INVALID_STATUS_CALLBACK
   = cast(INTERNET_STATUS_CALLBACK) -1;
@@ -938,7 +937,7 @@ struct GOPHER_FIND_DATAA {
     FILETIME LastModificationTime;
     CHAR[MAX_GOPHER_LOCATOR_LENGTH+1] Locator = 0;
 }
-alias GOPHER_FIND_DATAA* LPGOPHER_FIND_DATAA;
+alias LPGOPHER_FIND_DATAA = GOPHER_FIND_DATAA*;
 
 struct GOPHER_FIND_DATAW {
     WCHAR[MAX_GOPHER_DISPLAY_TEXT+1] DisplayString = 0;
@@ -948,49 +947,49 @@ struct GOPHER_FIND_DATAW {
     FILETIME LastModificationTime;
     WCHAR[MAX_GOPHER_LOCATOR_LENGTH+1] Locator = 0;
 }
-alias GOPHER_FIND_DATAW* LPGOPHER_FIND_DATAW;
+alias LPGOPHER_FIND_DATAW = GOPHER_FIND_DATAW*;
 
 struct GOPHER_ADMIN_ATTRIBUTE_TYPE {
     LPCTSTR Comment;
     LPCTSTR EmailAddress;
 }
-alias GOPHER_ADMIN_ATTRIBUTE_TYPE* LPGOPHER_ADMIN_ATTRIBUTE_TYPE;
+alias LPGOPHER_ADMIN_ATTRIBUTE_TYPE = GOPHER_ADMIN_ATTRIBUTE_TYPE*;
 
 struct GOPHER_MOD_DATE_ATTRIBUTE_TYPE {
     FILETIME DateAndTime;
 }
-alias GOPHER_MOD_DATE_ATTRIBUTE_TYPE* LPGOPHER_MOD_DATE_ATTRIBUTE_TYPE;
+alias LPGOPHER_MOD_DATE_ATTRIBUTE_TYPE = GOPHER_MOD_DATE_ATTRIBUTE_TYPE*;
 
 struct GOPHER_TTL_ATTRIBUTE_TYPE {
     DWORD Ttl;
 }
-alias GOPHER_TTL_ATTRIBUTE_TYPE* LPGOPHER_TTL_ATTRIBUTE_TYPE;
+alias LPGOPHER_TTL_ATTRIBUTE_TYPE = GOPHER_TTL_ATTRIBUTE_TYPE*;
 
 struct GOPHER_SCORE_ATTRIBUTE_TYPE {
     INT Score;
 }
-alias GOPHER_SCORE_ATTRIBUTE_TYPE* LPGOPHER_SCORE_ATTRIBUTE_TYPE;
+alias LPGOPHER_SCORE_ATTRIBUTE_TYPE = GOPHER_SCORE_ATTRIBUTE_TYPE*;
 
 struct GOPHER_SCORE_RANGE_ATTRIBUTE_TYPE {
     INT LowerBound;
     INT UpperBound;
 }
-alias GOPHER_SCORE_RANGE_ATTRIBUTE_TYPE* LPGOPHER_SCORE_RANGE_ATTRIBUTE_TYPE;
+alias LPGOPHER_SCORE_RANGE_ATTRIBUTE_TYPE = GOPHER_SCORE_RANGE_ATTRIBUTE_TYPE*;
 
 struct GOPHER_SITE_ATTRIBUTE_TYPE {
     LPCTSTR Site;
 }
-alias GOPHER_SITE_ATTRIBUTE_TYPE* LPGOPHER_SITE_ATTRIBUTE_TYPE;
+alias LPGOPHER_SITE_ATTRIBUTE_TYPE = GOPHER_SITE_ATTRIBUTE_TYPE*;
 
 struct GOPHER_ORGANIZATION_ATTRIBUTE_TYPE {
     LPCTSTR Organization;
 }
-alias GOPHER_ORGANIZATION_ATTRIBUTE_TYPE* LPGOPHER_ORGANIZATION_ATTRIBUTE_TYPE;
+alias LPGOPHER_ORGANIZATION_ATTRIBUTE_TYPE = GOPHER_ORGANIZATION_ATTRIBUTE_TYPE*;
 
 struct GOPHER_LOCATION_ATTRIBUTE_TYPE {
     LPCTSTR Location;
 }
-alias GOPHER_LOCATION_ATTRIBUTE_TYPE* LPGOPHER_LOCATION_ATTRIBUTE_TYPE;
+alias LPGOPHER_LOCATION_ATTRIBUTE_TYPE = GOPHER_LOCATION_ATTRIBUTE_TYPE*;
 
 struct GOPHER_GEOGRAPHICAL_LOCATION_ATTRIBUTE_TYPE {
     INT DegreesNorth;
@@ -1000,52 +999,51 @@ struct GOPHER_GEOGRAPHICAL_LOCATION_ATTRIBUTE_TYPE {
     INT MinutesEast;
     INT SecondsEast;
 }
-alias GOPHER_GEOGRAPHICAL_LOCATION_ATTRIBUTE_TYPE*
-  LPGOPHER_GEOGRAPHICAL_LOCATION_ATTRIBUTE_TYPE;
+alias LPGOPHER_GEOGRAPHICAL_LOCATION_ATTRIBUTE_TYPE = GOPHER_GEOGRAPHICAL_LOCATION_ATTRIBUTE_TYPE*;
 
 struct GOPHER_TIMEZONE_ATTRIBUTE_TYPE {
     INT Zone;
 }
-alias GOPHER_TIMEZONE_ATTRIBUTE_TYPE* LPGOPHER_TIMEZONE_ATTRIBUTE_TYPE;
+alias LPGOPHER_TIMEZONE_ATTRIBUTE_TYPE = GOPHER_TIMEZONE_ATTRIBUTE_TYPE*;
 
 struct GOPHER_PROVIDER_ATTRIBUTE_TYPE {
     LPCTSTR Provider;
 }
-alias GOPHER_PROVIDER_ATTRIBUTE_TYPE* LPGOPHER_PROVIDER_ATTRIBUTE_TYPE;
+alias LPGOPHER_PROVIDER_ATTRIBUTE_TYPE = GOPHER_PROVIDER_ATTRIBUTE_TYPE*;
 
 struct GOPHER_VERSION_ATTRIBUTE_TYPE {
     LPCTSTR Version;
 }
-alias GOPHER_VERSION_ATTRIBUTE_TYPE* LPGOPHER_VERSION_ATTRIBUTE_TYPE;
+alias LPGOPHER_VERSION_ATTRIBUTE_TYPE = GOPHER_VERSION_ATTRIBUTE_TYPE*;
 
 struct GOPHER_ABSTRACT_ATTRIBUTE_TYPE {
     LPCTSTR ShortAbstract;
     LPCTSTR AbstractFile;
 }
-alias GOPHER_ABSTRACT_ATTRIBUTE_TYPE* LPGOPHER_ABSTRACT_ATTRIBUTE_TYPE;
+alias LPGOPHER_ABSTRACT_ATTRIBUTE_TYPE = GOPHER_ABSTRACT_ATTRIBUTE_TYPE*;
 
 struct GOPHER_VIEW_ATTRIBUTE_TYPE {
     LPCTSTR ContentType;
     LPCTSTR Language;
     DWORD   Size;
 }
-alias GOPHER_VIEW_ATTRIBUTE_TYPE* LPGOPHER_VIEW_ATTRIBUTE_TYPE;
+alias LPGOPHER_VIEW_ATTRIBUTE_TYPE = GOPHER_VIEW_ATTRIBUTE_TYPE*;
 
 struct GOPHER_VERONICA_ATTRIBUTE_TYPE {
     BOOL TreeWalk;
 }
-alias GOPHER_VERONICA_ATTRIBUTE_TYPE* LPGOPHER_VERONICA_ATTRIBUTE_TYPE;
+alias LPGOPHER_VERONICA_ATTRIBUTE_TYPE = GOPHER_VERONICA_ATTRIBUTE_TYPE*;
 
 struct GOPHER_ASK_ATTRIBUTE_TYPE {
     LPCTSTR QuestionType;
     LPCTSTR QuestionText;
 }
-alias GOPHER_ASK_ATTRIBUTE_TYPE* LPGOPHER_ASK_ATTRIBUTE_TYPE;
+alias LPGOPHER_ASK_ATTRIBUTE_TYPE = GOPHER_ASK_ATTRIBUTE_TYPE*;
 
 struct GOPHER_UNKNOWN_ATTRIBUTE_TYPE {
     LPCTSTR Text;
 }
-alias GOPHER_UNKNOWN_ATTRIBUTE_TYPE* LPGOPHER_UNKNOWN_ATTRIBUTE_TYPE;
+alias LPGOPHER_UNKNOWN_ATTRIBUTE_TYPE = GOPHER_UNKNOWN_ATTRIBUTE_TYPE*;
 
 struct GOPHER_ATTRIBUTE_TYPE {
     DWORD CategoryId;
@@ -1070,11 +1068,10 @@ struct GOPHER_ATTRIBUTE_TYPE {
         GOPHER_UNKNOWN_ATTRIBUTE_TYPE               Unknown;
     } /+AttributeType;+/
 }
-alias GOPHER_ATTRIBUTE_TYPE* LPGOPHER_ATTRIBUTE_TYPE;
+alias LPGOPHER_ATTRIBUTE_TYPE = GOPHER_ATTRIBUTE_TYPE*;
 
 extern (Windows)
-alias BOOL function(LPGOPHER_ATTRIBUTE_TYPE, DWORD)
-  GOPHER_ATTRIBUTE_ENUMERATOR;
+alias GOPHER_ATTRIBUTE_ENUMERATOR = BOOL function(LPGOPHER_ATTRIBUTE_TYPE, DWORD);
 
 struct INTERNET_CACHE_ENTRY_INFOA {
     DWORD    dwStructSize = INTERNET_CACHE_ENTRY_INFOA.sizeof;
@@ -1094,7 +1091,7 @@ struct INTERNET_CACHE_ENTRY_INFOA {
     LPSTR    lpszFileExtension;
     DWORD    dwReserved;
 }
-alias INTERNET_CACHE_ENTRY_INFOA* LPINTERNET_CACHE_ENTRY_INFOA;
+alias LPINTERNET_CACHE_ENTRY_INFOA = INTERNET_CACHE_ENTRY_INFOA*;
 
 struct INTERNET_CACHE_ENTRY_INFOW {
     DWORD    dwStructSize = INTERNET_CACHE_ENTRY_INFOW.sizeof;
@@ -1114,7 +1111,7 @@ struct INTERNET_CACHE_ENTRY_INFOW {
     LPWSTR   lpszFileExtension;
     DWORD    dwReserved;
 }
-alias INTERNET_CACHE_ENTRY_INFOW* LPINTERNET_CACHE_ENTRY_INFOW;
+alias LPINTERNET_CACHE_ENTRY_INFOW = INTERNET_CACHE_ENTRY_INFOW*;
 
 struct INTERNET_BUFFERSA {
     DWORD              dwStructSize = INTERNET_BUFFERSA.sizeof;
@@ -1128,7 +1125,7 @@ struct INTERNET_BUFFERSA {
     DWORD              dwOffsetLow;
     DWORD              dwOffsetHigh;
 }
-alias INTERNET_BUFFERSA* LPINTERNET_BUFFERSA;
+alias LPINTERNET_BUFFERSA = INTERNET_BUFFERSA*;
 
 struct INTERNET_BUFFERSW {
     DWORD              dwStructSize = INTERNET_BUFFERSW.sizeof;
@@ -1142,7 +1139,7 @@ struct INTERNET_BUFFERSW {
     DWORD              dwOffsetLow;
     DWORD              dwOffsetHigh;
 }
-alias INTERNET_BUFFERSW* LPINTERNET_BUFFERSW;
+alias LPINTERNET_BUFFERSW = INTERNET_BUFFERSW*;
 
 enum size_t
     GROUP_OWNER_STORAGE_SIZE =   4,
@@ -1157,7 +1154,7 @@ struct INTERNET_CACHE_GROUP_INFOA {
     DWORD[GROUP_OWNER_STORAGE_SIZE] dwOwnerStorage;
     CHAR[GROUPNAME_MAX_LENGTH]      szGroupName = 0;
 }
-alias INTERNET_CACHE_GROUP_INFOA* LPINTERNET_CACHE_GROUP_INFOA;
+alias LPINTERNET_CACHE_GROUP_INFOA = INTERNET_CACHE_GROUP_INFOA*;
 
 struct INTERNET_CACHE_GROUP_INFOW {
     DWORD dwGroupSize;
@@ -1168,7 +1165,7 @@ struct INTERNET_CACHE_GROUP_INFOW {
     DWORD[GROUP_OWNER_STORAGE_SIZE] dwOwnerStorage;
     WCHAR[GROUPNAME_MAX_LENGTH]     szGroupName = 0;
 }
-alias INTERNET_CACHE_GROUP_INFOW* LPINTERNET_CACHE_GROUP_INFOW;
+alias LPINTERNET_CACHE_GROUP_INFOW = INTERNET_CACHE_GROUP_INFOW*;
 
 extern (Windows) {
     BOOL InternetTimeFromSystemTime(SYSTEMTIME*, DWORD, LPSTR, DWORD);
@@ -1331,129 +1328,129 @@ extern (Windows) {
 }
 
 version (Unicode) {
-    alias INTERNET_PER_CONN_OPTIONW INTERNET_PER_CONN_OPTION;
-    alias LPINTERNET_PER_CONN_OPTIONW LPINTERNET_PER_CONN_OPTION;
-    alias INTERNET_PER_CONN_OPTION_LISTW INTERNET_PER_CONN_OPTION_LIST;
-    alias LPINTERNET_PER_CONN_OPTION_LISTW LPINTERNET_PER_CONN_OPTION_LIST;
-    alias URL_COMPONENTSW URL_COMPONENTS;
-    alias LPURL_COMPONENTSW LPURL_COMPONENTS;
-    alias GOPHER_FIND_DATAW GOPHER_FIND_DATA;
-    alias LPGOPHER_FIND_DATAW LPGOPHER_FIND_DATA;
-    alias INTERNET_CACHE_ENTRY_INFOW INTERNET_CACHE_ENTRY_INFO;
-    alias LPINTERNET_CACHE_ENTRY_INFOW LPINTERNET_CACHE_ENTRY_INFO;
-    alias INTERNET_BUFFERSW INTERNET_BUFFERS;
-    alias INTERNET_CACHE_GROUP_INFOW INTERNET_CACHE_GROUP_INFO;
-    alias LPINTERNET_CACHE_GROUP_INFOW LPINTERNET_CACHE_GROUP_INFO;
-    alias InternetCrackUrlW InternetCrackUrl;
-    alias InternetCreateUrlW InternetCreateUrl;
-    alias InternetCanonicalizeUrlW InternetCanonicalizeUrl;
-    alias InternetCheckConnectionW InternetCheckConnection;
-    alias InternetCombineUrlW InternetCombineUrl;
-    alias InternetOpenW InternetOpen;
-    alias InternetConnectW InternetConnect;
-    alias InternetOpenUrlW InternetOpenUrl;
-    alias InternetFindNextFileW InternetFindNextFile;
-    alias InternetQueryOptionW InternetQueryOption;
-    alias InternetSetOptionW InternetSetOption;
-    alias InternetSetOptionExW InternetSetOptionEx;
-    alias InternetGetLastResponseInfoW InternetGetLastResponseInfo;
-    alias InternetReadFileExW InternetReadFileEx;
-    alias FtpFindFirstFileW FtpFindFirstFile;
-    alias FtpGetFileW FtpGetFile;
-    alias FtpPutFileW FtpPutFile;
-    alias FtpDeleteFileW FtpDeleteFile;
-    alias FtpRenameFileW FtpRenameFile;
-    alias FtpOpenFileW FtpOpenFile;
-    alias FtpCreateDirectoryW FtpCreateDirectory;
-    alias FtpRemoveDirectoryW FtpRemoveDirectory;
-    alias FtpSetCurrentDirectoryW FtpSetCurrentDirectory;
-    alias FtpGetCurrentDirectoryW FtpGetCurrentDirectory;
-    alias FtpCommandW FtpCommand;
-    alias GopherGetLocatorTypeW GopherGetLocatorType;
-    alias GopherCreateLocatorW GopherCreateLocator;
-    alias GopherFindFirstFileW GopherFindFirstFile;
-    alias GopherOpenFileW GopherOpenFile;
-    alias GopherGetAttributeW GopherGetAttribute;
-    alias HttpSendRequestW HttpSendRequest;
-    alias HttpOpenRequestW HttpOpenRequest;
-    alias HttpAddRequestHeadersW HttpAddRequestHeaders;
-    alias HttpQueryInfoW HttpQueryInfo;
-    alias InternetSetCookieW InternetSetCookie;
-    alias InternetGetCookieW InternetGetCookie;
-    alias CreateUrlCacheEntryW CreateUrlCacheEntry;
-    alias RetrieveUrlCacheEntryStreamW RetrieveUrlCacheEntryStream;
-    alias FindNextUrlCacheEntryW FindNextUrlCacheEntry;
-    alias CommitUrlCacheEntryW CommitUrlCacheEntry;
-    alias GetUrlCacheEntryInfoW GetUrlCacheEntryInfo;
-    alias SetUrlCacheEntryInfoW SetUrlCacheEntryInfo;
-    alias FindFirstUrlCacheEntryW FindFirstUrlCacheEntry;
-    alias RetrieveUrlCacheEntryFileW RetrieveUrlCacheEntryFile;
-    alias HttpSendRequestExW HttpSendRequestEx;
-    alias HttpEndRequestW HttpEndRequest;
-    alias GetUrlCacheGroupAttributeW GetUrlCacheGroupAttribute;
-    alias SetUrlCacheGroupAttributeW SetUrlCacheGroupAttribute;
+    alias INTERNET_PER_CONN_OPTION = INTERNET_PER_CONN_OPTIONW;
+    alias LPINTERNET_PER_CONN_OPTION = LPINTERNET_PER_CONN_OPTIONW;
+    alias INTERNET_PER_CONN_OPTION_LIST = INTERNET_PER_CONN_OPTION_LISTW;
+    alias LPINTERNET_PER_CONN_OPTION_LIST = LPINTERNET_PER_CONN_OPTION_LISTW;
+    alias URL_COMPONENTS = URL_COMPONENTSW;
+    alias LPURL_COMPONENTS = LPURL_COMPONENTSW;
+    alias GOPHER_FIND_DATA = GOPHER_FIND_DATAW;
+    alias LPGOPHER_FIND_DATA = LPGOPHER_FIND_DATAW;
+    alias INTERNET_CACHE_ENTRY_INFO = INTERNET_CACHE_ENTRY_INFOW;
+    alias LPINTERNET_CACHE_ENTRY_INFO = LPINTERNET_CACHE_ENTRY_INFOW;
+    alias INTERNET_BUFFERS = INTERNET_BUFFERSW;
+    alias INTERNET_CACHE_GROUP_INFO = INTERNET_CACHE_GROUP_INFOW;
+    alias LPINTERNET_CACHE_GROUP_INFO = LPINTERNET_CACHE_GROUP_INFOW;
+    alias InternetCrackUrl = InternetCrackUrlW;
+    alias InternetCreateUrl = InternetCreateUrlW;
+    alias InternetCanonicalizeUrl = InternetCanonicalizeUrlW;
+    alias InternetCheckConnection = InternetCheckConnectionW;
+    alias InternetCombineUrl = InternetCombineUrlW;
+    alias InternetOpen = InternetOpenW;
+    alias InternetConnect = InternetConnectW;
+    alias InternetOpenUrl = InternetOpenUrlW;
+    alias InternetFindNextFile = InternetFindNextFileW;
+    alias InternetQueryOption = InternetQueryOptionW;
+    alias InternetSetOption = InternetSetOptionW;
+    alias InternetSetOptionEx = InternetSetOptionExW;
+    alias InternetGetLastResponseInfo = InternetGetLastResponseInfoW;
+    alias InternetReadFileEx = InternetReadFileExW;
+    alias FtpFindFirstFile = FtpFindFirstFileW;
+    alias FtpGetFile = FtpGetFileW;
+    alias FtpPutFile = FtpPutFileW;
+    alias FtpDeleteFile = FtpDeleteFileW;
+    alias FtpRenameFile = FtpRenameFileW;
+    alias FtpOpenFile = FtpOpenFileW;
+    alias FtpCreateDirectory = FtpCreateDirectoryW;
+    alias FtpRemoveDirectory = FtpRemoveDirectoryW;
+    alias FtpSetCurrentDirectory = FtpSetCurrentDirectoryW;
+    alias FtpGetCurrentDirectory = FtpGetCurrentDirectoryW;
+    alias FtpCommand = FtpCommandW;
+    alias GopherGetLocatorType = GopherGetLocatorTypeW;
+    alias GopherCreateLocator = GopherCreateLocatorW;
+    alias GopherFindFirstFile = GopherFindFirstFileW;
+    alias GopherOpenFile = GopherOpenFileW;
+    alias GopherGetAttribute = GopherGetAttributeW;
+    alias HttpSendRequest = HttpSendRequestW;
+    alias HttpOpenRequest = HttpOpenRequestW;
+    alias HttpAddRequestHeaders = HttpAddRequestHeadersW;
+    alias HttpQueryInfo = HttpQueryInfoW;
+    alias InternetSetCookie = InternetSetCookieW;
+    alias InternetGetCookie = InternetGetCookieW;
+    alias CreateUrlCacheEntry = CreateUrlCacheEntryW;
+    alias RetrieveUrlCacheEntryStream = RetrieveUrlCacheEntryStreamW;
+    alias FindNextUrlCacheEntry = FindNextUrlCacheEntryW;
+    alias CommitUrlCacheEntry = CommitUrlCacheEntryW;
+    alias GetUrlCacheEntryInfo = GetUrlCacheEntryInfoW;
+    alias SetUrlCacheEntryInfo = SetUrlCacheEntryInfoW;
+    alias FindFirstUrlCacheEntry = FindFirstUrlCacheEntryW;
+    alias RetrieveUrlCacheEntryFile = RetrieveUrlCacheEntryFileW;
+    alias HttpSendRequestEx = HttpSendRequestExW;
+    alias HttpEndRequest = HttpEndRequestW;
+    alias GetUrlCacheGroupAttribute = GetUrlCacheGroupAttributeW;
+    alias SetUrlCacheGroupAttribute = SetUrlCacheGroupAttributeW;
 } else {
-    alias INTERNET_PER_CONN_OPTIONA INTERNET_PER_CONN_OPTION;
-    alias LPINTERNET_PER_CONN_OPTIONA LPINTERNET_PER_CONN_OPTION;
-    alias INTERNET_PER_CONN_OPTION_LISTA INTERNET_PER_CONN_OPTION_LIST;
-    alias LPINTERNET_PER_CONN_OPTION_LISTA LPINTERNET_PER_CONN_OPTION_LIST;
-    alias URL_COMPONENTSA URL_COMPONENTS;
-    alias LPURL_COMPONENTSA LPURL_COMPONENTS;
-    alias GOPHER_FIND_DATAA GOPHER_FIND_DATA;
-    alias LPGOPHER_FIND_DATAA LPGOPHER_FIND_DATA;
-    alias INTERNET_CACHE_ENTRY_INFOA INTERNET_CACHE_ENTRY_INFO;
-    alias LPINTERNET_CACHE_ENTRY_INFOA LPINTERNET_CACHE_ENTRY_INFO;
-    alias INTERNET_BUFFERSA INTERNET_BUFFERS;
-    alias INTERNET_CACHE_GROUP_INFOA INTERNET_CACHE_GROUP_INFO;
-    alias LPINTERNET_CACHE_GROUP_INFOA LPINTERNET_CACHE_GROUP_INFO;
-    alias GopherGetAttributeA GopherGetAttribute;
-    alias InternetCrackUrlA InternetCrackUrl;
-    alias InternetCreateUrlA InternetCreateUrl;
-    alias InternetCanonicalizeUrlA InternetCanonicalizeUrl;
-    alias InternetCheckConnectionA InternetCheckConnection;
-    alias InternetCombineUrlA InternetCombineUrl;
-    alias InternetOpenA InternetOpen;
-    alias InternetConnectA InternetConnect;
-    alias InternetOpenUrlA InternetOpenUrl;
-    alias InternetFindNextFileA InternetFindNextFile;
-    alias InternetQueryOptionA InternetQueryOption;
-    alias InternetSetOptionA InternetSetOption;
-    alias InternetSetOptionExA InternetSetOptionEx;
-    alias InternetGetLastResponseInfoA InternetGetLastResponseInfo;
-    alias InternetReadFileExA InternetReadFileEx;
-    alias FtpFindFirstFileA FtpFindFirstFile;
-    alias FtpGetFileA FtpGetFile;
-    alias FtpPutFileA FtpPutFile;
-    alias FtpDeleteFileA FtpDeleteFile;
-    alias FtpRenameFileA FtpRenameFile;
-    alias FtpOpenFileA FtpOpenFile;
-    alias FtpCreateDirectoryA FtpCreateDirectory;
-    alias FtpRemoveDirectoryA FtpRemoveDirectory;
-    alias FtpSetCurrentDirectoryA FtpSetCurrentDirectory;
-    alias FtpGetCurrentDirectoryA FtpGetCurrentDirectory;
-    alias FtpCommandA FtpCommand;
-    alias GopherGetLocatorTypeA GopherGetLocatorType;
-    alias GopherCreateLocatorA GopherCreateLocator;
-    alias GopherFindFirstFileA GopherFindFirstFile;
-    alias GopherOpenFileA GopherOpenFile;
-    alias HttpSendRequestA HttpSendRequest;
-    alias HttpOpenRequestA HttpOpenRequest;
-    alias HttpAddRequestHeadersA HttpAddRequestHeaders;
-    alias HttpQueryInfoA HttpQueryInfo;
-    alias InternetSetCookieA InternetSetCookie;
-    alias InternetGetCookieA InternetGetCookie;
-    alias CreateUrlCacheEntryA CreateUrlCacheEntry;
-    alias RetrieveUrlCacheEntryStreamA RetrieveUrlCacheEntryStream;
-    alias FindNextUrlCacheEntryA FindNextUrlCacheEntry;
-    alias CommitUrlCacheEntryA CommitUrlCacheEntry;
-    alias GetUrlCacheEntryInfoA GetUrlCacheEntryInfo;
-    alias SetUrlCacheEntryInfoA SetUrlCacheEntryInfo;
-    alias FindFirstUrlCacheEntryA FindFirstUrlCacheEntry;
-    alias RetrieveUrlCacheEntryFileA RetrieveUrlCacheEntryFile;
-    alias HttpSendRequestExA HttpSendRequestEx;
-    alias HttpEndRequestA HttpEndRequest;
-    alias GetUrlCacheGroupAttributeA GetUrlCacheGroupAttribute;
-    alias SetUrlCacheGroupAttributeA SetUrlCacheGroupAttribute;
+    alias INTERNET_PER_CONN_OPTION = INTERNET_PER_CONN_OPTIONA;
+    alias LPINTERNET_PER_CONN_OPTION = LPINTERNET_PER_CONN_OPTIONA;
+    alias INTERNET_PER_CONN_OPTION_LIST = INTERNET_PER_CONN_OPTION_LISTA;
+    alias LPINTERNET_PER_CONN_OPTION_LIST = LPINTERNET_PER_CONN_OPTION_LISTA;
+    alias URL_COMPONENTS = URL_COMPONENTSA;
+    alias LPURL_COMPONENTS = LPURL_COMPONENTSA;
+    alias GOPHER_FIND_DATA = GOPHER_FIND_DATAA;
+    alias LPGOPHER_FIND_DATA = LPGOPHER_FIND_DATAA;
+    alias INTERNET_CACHE_ENTRY_INFO = INTERNET_CACHE_ENTRY_INFOA;
+    alias LPINTERNET_CACHE_ENTRY_INFO = LPINTERNET_CACHE_ENTRY_INFOA;
+    alias INTERNET_BUFFERS = INTERNET_BUFFERSA;
+    alias INTERNET_CACHE_GROUP_INFO = INTERNET_CACHE_GROUP_INFOA;
+    alias LPINTERNET_CACHE_GROUP_INFO = LPINTERNET_CACHE_GROUP_INFOA;
+    alias GopherGetAttribute = GopherGetAttributeA;
+    alias InternetCrackUrl = InternetCrackUrlA;
+    alias InternetCreateUrl = InternetCreateUrlA;
+    alias InternetCanonicalizeUrl = InternetCanonicalizeUrlA;
+    alias InternetCheckConnection = InternetCheckConnectionA;
+    alias InternetCombineUrl = InternetCombineUrlA;
+    alias InternetOpen = InternetOpenA;
+    alias InternetConnect = InternetConnectA;
+    alias InternetOpenUrl = InternetOpenUrlA;
+    alias InternetFindNextFile = InternetFindNextFileA;
+    alias InternetQueryOption = InternetQueryOptionA;
+    alias InternetSetOption = InternetSetOptionA;
+    alias InternetSetOptionEx = InternetSetOptionExA;
+    alias InternetGetLastResponseInfo = InternetGetLastResponseInfoA;
+    alias InternetReadFileEx = InternetReadFileExA;
+    alias FtpFindFirstFile = FtpFindFirstFileA;
+    alias FtpGetFile = FtpGetFileA;
+    alias FtpPutFile = FtpPutFileA;
+    alias FtpDeleteFile = FtpDeleteFileA;
+    alias FtpRenameFile = FtpRenameFileA;
+    alias FtpOpenFile = FtpOpenFileA;
+    alias FtpCreateDirectory = FtpCreateDirectoryA;
+    alias FtpRemoveDirectory = FtpRemoveDirectoryA;
+    alias FtpSetCurrentDirectory = FtpSetCurrentDirectoryA;
+    alias FtpGetCurrentDirectory = FtpGetCurrentDirectoryA;
+    alias FtpCommand = FtpCommandA;
+    alias GopherGetLocatorType = GopherGetLocatorTypeA;
+    alias GopherCreateLocator = GopherCreateLocatorA;
+    alias GopherFindFirstFile = GopherFindFirstFileA;
+    alias GopherOpenFile = GopherOpenFileA;
+    alias HttpSendRequest = HttpSendRequestA;
+    alias HttpOpenRequest = HttpOpenRequestA;
+    alias HttpAddRequestHeaders = HttpAddRequestHeadersA;
+    alias HttpQueryInfo = HttpQueryInfoA;
+    alias InternetSetCookie = InternetSetCookieA;
+    alias InternetGetCookie = InternetGetCookieA;
+    alias CreateUrlCacheEntry = CreateUrlCacheEntryA;
+    alias RetrieveUrlCacheEntryStream = RetrieveUrlCacheEntryStreamA;
+    alias FindNextUrlCacheEntry = FindNextUrlCacheEntryA;
+    alias CommitUrlCacheEntry = CommitUrlCacheEntryA;
+    alias GetUrlCacheEntryInfo = GetUrlCacheEntryInfoA;
+    alias SetUrlCacheEntryInfo = SetUrlCacheEntryInfoA;
+    alias FindFirstUrlCacheEntry = FindFirstUrlCacheEntryA;
+    alias RetrieveUrlCacheEntryFile = RetrieveUrlCacheEntryFileA;
+    alias HttpSendRequestEx = HttpSendRequestExA;
+    alias HttpEndRequest = HttpEndRequestA;
+    alias GetUrlCacheGroupAttribute = GetUrlCacheGroupAttributeA;
+    alias SetUrlCacheGroupAttribute = SetUrlCacheGroupAttributeA;
 }
 
-alias INTERNET_BUFFERS* LPINTERNET_BUFFERS;
+alias LPINTERNET_BUFFERS = INTERNET_BUFFERS*;

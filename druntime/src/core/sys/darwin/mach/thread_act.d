@@ -45,10 +45,10 @@ version (PPC64)
 
 version (i386)
 {
-    alias mach_port_t thread_act_t;
-    alias void        thread_state_t;
-    alias int         thread_state_flavor_t;
-    alias natural_t   mach_msg_type_number_t;
+    alias thread_act_t = mach_port_t;
+    alias thread_state_t = void;
+    alias thread_state_flavor_t = int;
+    alias mach_msg_type_number_t = natural_t;
 
     enum
     {
@@ -136,8 +136,8 @@ version (i386)
         x86_THREAD_STATE_COUNT   = cast(mach_msg_type_number_t)( x86_thread_state_t.sizeof / int.sizeof ),
     }
 
-    alias x86_THREAD_STATE          MACHINE_THREAD_STATE;
-    alias x86_THREAD_STATE_COUNT    MACHINE_THREAD_STATE_COUNT;
+    alias MACHINE_THREAD_STATE = x86_THREAD_STATE;
+    alias MACHINE_THREAD_STATE_COUNT = x86_THREAD_STATE_COUNT;
 
     mach_port_t   mach_thread_self();
     kern_return_t thread_suspend(thread_act_t);

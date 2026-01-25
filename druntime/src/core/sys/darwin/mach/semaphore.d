@@ -30,12 +30,12 @@ nothrow:
 public import core.sys.darwin.mach.kern_return;
 public import core.sys.darwin.mach.port;
 
-alias mach_port_t   task_t;
-alias mach_port_t   thread_t;
-alias mach_port_t   semaphore_t;
-alias int           sync_policy_t;
+alias task_t = mach_port_t;
+alias thread_t = mach_port_t;
+alias semaphore_t = mach_port_t;
+alias sync_policy_t = int;
 
-alias int clock_res_t;
+alias clock_res_t = int;
 struct mach_timespec_t
 {
         uint        tv_sec;

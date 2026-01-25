@@ -60,8 +60,8 @@ int       inet_pton(int, const scope char*, void*);
 
 version (CRuntime_Glibc)
 {
-    alias uint16_t in_port_t;
-    alias uint32_t in_addr_t;
+    alias in_port_t = uint16_t;
+    alias in_addr_t = uint32_t;
 
     struct in_addr
     {
@@ -83,8 +83,8 @@ version (CRuntime_Glibc)
 }
 else version (Darwin)
 {
-    alias uint16_t in_port_t;
-    alias uint32_t in_addr_t;
+    alias in_port_t = uint16_t;
+    alias in_addr_t = uint32_t;
 
     struct in_addr
     {
@@ -106,8 +106,8 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    alias uint16_t in_port_t;
-    alias uint32_t in_addr_t;
+    alias in_port_t = uint16_t;
+    alias in_addr_t = uint32_t;
 
     struct in_addr
     {
@@ -129,8 +129,8 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
-    alias uint16_t in_port_t;
-    alias uint32_t in_addr_t;
+    alias in_port_t = uint16_t;
+    alias in_addr_t = uint32_t;
 
     struct in_addr
     {
@@ -152,8 +152,8 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
-    alias uint16_t in_port_t;
-    alias uint32_t in_addr_t;
+    alias in_port_t = uint16_t;
+    alias in_addr_t = uint32_t;
 
     struct in_addr
     {
@@ -185,8 +185,8 @@ else version (OpenBSD)
 }
 else version (DragonFlyBSD)
 {
-    alias uint16_t in_port_t;
-    alias uint32_t in_addr_t;
+    alias in_port_t = uint16_t;
+    alias in_addr_t = uint32_t;
 
     struct in_addr
     {
@@ -208,8 +208,8 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    alias uint16_t in_port_t;
-    alias uint32_t in_addr_t;
+    alias in_port_t = uint16_t;
+    alias in_addr_t = uint32_t;
 
     struct in_addr
     {
@@ -231,7 +231,7 @@ else version (Solaris)
 }
 else version (CRuntime_Bionic)
 {
-    alias uint32_t in_addr_t;
+    alias in_addr_t = uint32_t;
 
     struct in_addr
     {
@@ -263,8 +263,8 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
-    alias uint16_t in_port_t;
-    alias uint32_t in_addr_t;
+    alias in_port_t = uint16_t;
+    alias in_addr_t = uint32_t;
 
     struct in_addr
     {
@@ -286,8 +286,8 @@ else version (CRuntime_Musl)
 }
 else version (CRuntime_UClibc)
 {
-    alias uint16_t in_port_t;
-    alias uint32_t in_addr_t;
+    alias in_port_t = uint16_t;
+    alias in_addr_t = uint32_t;
 
     struct in_addr
     {

@@ -81,8 +81,8 @@ struct OLECMD {
     DWORD cmdf;
 }
 
-alias IOleInPlaceSite LPOLEINPLACESITE;
-alias IEnumOleDocumentViews LPENUMOLEDOCUMENTVIEWS;
+alias LPOLEINPLACESITE = IOleInPlaceSite;
+alias LPENUMOLEDOCUMENTVIEWS = IEnumOleDocumentViews;
 
 extern (C) extern const IID
     IID_IContinueCallback,

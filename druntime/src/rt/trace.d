@@ -93,7 +93,7 @@ void updateFileName(ref char[] filename, string name)
         assert(0, "Memory allocation failed");
 }
 
-alias long timer_t;
+alias timer_t = long;
 
 /////////////////////////////////////
 //

@@ -18,10 +18,10 @@ align(1) struct GUID {  // size is 16
     WORD    Data3;
     BYTE[8] Data4;
 }
-alias GUID UUID, /*IID, CLSID, */FMTID, uuid_t;
+alias UUID = GUID, /*IID, CLSID, */FMTID = GUID, uuid_t = GUID;
 alias IID = const(GUID);
 alias CLSID = const(GUID);
 
-alias GUID* LPGUID, LPCLSID, LPIID;
-alias const(GUID)* LPCGUID, REFGUID, REFIID, REFCLSID, REFFMTID;
-alias uint error_status_t, PROPID;
+alias LPGUID = GUID*, LPCLSID = GUID*, LPIID = GUID*;
+alias LPCGUID = const(GUID)*, REFGUID = const(GUID)*, REFIID = const(GUID)*, REFCLSID = const(GUID)*, REFFMTID = const(GUID)*;
+alias error_status_t = uint, PROPID = uint;

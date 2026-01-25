@@ -30,7 +30,7 @@ interface IRAPIStream
     HRESULT GetRapiStat(RAPISTREAMFLAG, DWORD*);
 }
 
-alias HRESULT function(DWORD, BYTE, DWORD, BYTE, IRAPIStream) RAPIEXT;
+alias RAPIEXT = HRESULT function(DWORD, BYTE, DWORD, BYTE, IRAPIStream);
 
 struct RAPIINIT
 {

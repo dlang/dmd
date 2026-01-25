@@ -61,7 +61,7 @@ enum SHT_SUNW_versym    = 0x6fffffff;
 extern (D)
 {
     auto ELF32_ST_VISIBILITY(O)(O o) { return o & 0x07; }
-    alias ELF32_ST_VISIBILITY ELF64_ST_VISIBILITY;
+    alias ELF64_ST_VISIBILITY = ELF32_ST_VISIBILITY;
 }
 
 enum STV_EXPORTED  = 4;
@@ -100,12 +100,12 @@ struct Elf32_Cap
     }
 }
 
-alias Elf32_Word Elf32_Capinfo;
-alias Elf32_Word Elf32_Capchain;
+alias Elf32_Capinfo = Elf32_Word;
+alias Elf32_Capchain = Elf32_Word;
 
-alias ELF32_M_SYM ELF32_C_SYM;
-alias ELF32_M_SIZE ELF32_C_GROUP;
-alias ELF32_M_INFO ELF32_C_INFO;
+alias ELF32_C_SYM = ELF32_M_SYM;
+alias ELF32_C_GROUP = ELF32_M_SIZE;
+alias ELF32_C_INFO = ELF32_M_INFO;
 
 struct Elf64_Cap
 {
@@ -117,8 +117,8 @@ struct Elf64_Cap
     }
 }
 
-alias Elf64_Xword Elf64_Capinfo;
-alias Elf64_Word  Elf64_Capchain;
+alias Elf64_Capinfo = Elf64_Xword;
+alias Elf64_Capchain = Elf64_Word;
 
 extern (D)
 {

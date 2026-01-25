@@ -197,7 +197,7 @@ version (CRuntime_Glibc)
     static if ( __USE_FILE_OFFSET64 )
     {
         dirent* readdir64(DIR*);
-        alias   readdir64 readdir;
+        alias   readdir = readdir64;
     }
     else
     {
@@ -256,7 +256,7 @@ else version (FreeBSD)
         DT_WHT      = 14
     }
 
-    alias void* DIR;
+    alias DIR = void*;
 
     version (GNU)
     {
@@ -285,10 +285,10 @@ else version (NetBSD)
         DT_WHT      = 14
     }
 
-    alias void* DIR;
+    alias DIR = void*;
 
     dirent* __readdir30(DIR*);
-    alias __readdir30 readdir;
+    alias readdir = __readdir30;
 }
 else version (OpenBSD)
 {
@@ -304,7 +304,7 @@ else version (OpenBSD)
         DT_SOCK     = 12,
     }
 
-    alias void* DIR;
+    alias DIR = void*;
 
     dirent* readdir(DIR*);
 }
@@ -324,7 +324,7 @@ else version (DragonFlyBSD)
         DT_DBF      = 15,         /* database record file */
     }
 
-    alias void* DIR;
+    alias DIR = void*;
 
     dirent* readdir(DIR*);
 }
@@ -348,7 +348,7 @@ else version (Solaris)
         static if (__USE_LARGEFILE64)
         {
             dirent* readdir64(DIR*);
-            alias readdir64 readdir;
+            alias readdir = readdir64;
         }
         else
         {
@@ -429,7 +429,7 @@ else version (CRuntime_UClibc)
     static if ( __USE_FILE_OFFSET64 )
     {
         dirent* readdir64(DIR*);
-        alias   readdir64 readdir;
+        alias   readdir = readdir64;
     }
     else
     {
@@ -471,7 +471,7 @@ else version (NetBSD)
 {
     int     closedir(DIR*);
     DIR*    __opendir30(const scope char*);
-    alias __opendir30 opendir;
+    alias opendir = __opendir30;
     void    rewinddir(DIR*);
 }
 else
@@ -494,7 +494,7 @@ version (CRuntime_Glibc)
   static if ( __USE_LARGEFILE64 )
   {
     int   readdir64_r(DIR*, dirent*, dirent**);
-    alias readdir64_r readdir_r;
+    alias readdir_r = readdir64_r;
   }
   else
   {
@@ -529,7 +529,7 @@ else version (DragonFlyBSD)
 else version (NetBSD)
 {
     int __readdir_r30(DIR*, dirent*, dirent**);
-    alias __readdir_r30 readdir_r;
+    alias readdir_r = __readdir_r30;
 }
 else version (OpenBSD)
 {
@@ -540,7 +540,7 @@ else version (Solaris)
     static if (__USE_LARGEFILE64)
     {
         int readdir64_r(DIR*, dirent*, dirent**);
-        alias readdir64_r readdir_r;
+        alias readdir_r = readdir64_r;
     }
     else
     {
@@ -560,7 +560,7 @@ else version (CRuntime_UClibc)
   static if ( __USE_LARGEFILE64 )
   {
     int   readdir64_r(DIR*, dirent*, dirent**);
-    alias readdir64_r readdir_r;
+    alias readdir_r = readdir64_r;
   }
   else
   {

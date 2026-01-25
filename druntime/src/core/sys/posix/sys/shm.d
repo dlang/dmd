@@ -58,7 +58,7 @@ version (linux)
     enum SHM_RND        = 0x02000; // 020000
     enum SHM_REMAP      = 0x4000; // 040000
 
-    alias c_ulong   shmatt_t;
+    alias shmatt_t = c_ulong;
 
     /* For any changes, please check /usr/include/bits/shm.h */
     struct shmid_ds
@@ -83,7 +83,7 @@ else version (FreeBSD)
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
 
-    alias c_ulong   shmatt_t;
+    alias shmatt_t = c_ulong;
 
     struct shmid_ds_old // <= FreeBSD7
     {
@@ -115,7 +115,7 @@ else version (NetBSD)
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
 
-    alias c_ulong   shmatt_t;
+    alias shmatt_t = c_ulong;
 
     struct shmid_ds
     {
@@ -135,7 +135,7 @@ else version (OpenBSD)
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
 
-    alias short shmatt_t;
+    alias shmatt_t = short;
 
     struct shmid_ds
     {
@@ -158,7 +158,7 @@ else version (DragonFlyBSD)
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
 
-    alias c_ulong   shmatt_t;
+    alias shmatt_t = c_ulong;
 
     struct shmid_ds
     {
@@ -198,7 +198,7 @@ int   shmget(key_t, size_t, int);
 version (CRuntime_Glibc)
 {
     int   __getpagesize();
-    alias __getpagesize SHMLBA;
+    alias SHMLBA = __getpagesize;
 
     void* shmat(int, const scope void*, int);
     int   shmctl(int, int, shmid_ds*);
@@ -273,7 +273,7 @@ else version (CRuntime_Bionic)
 else version (CRuntime_UClibc)
 {
     int   __getpagesize();
-    alias __getpagesize SHMLBA;
+    alias SHMLBA = __getpagesize;
 
     void* shmat(int, const scope void*, int);
     int   shmctl(int, int, shmid_ds*);

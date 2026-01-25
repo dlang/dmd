@@ -51,19 +51,19 @@ enum WTS_CONNECTSTATE_CLASS {
 struct WTS_SERVER_INFOW {
     LPWSTR pServerName;
 }
-alias WTS_SERVER_INFOW* PWTS_SERVER_INFOW;
+alias PWTS_SERVER_INFOW = WTS_SERVER_INFOW*;
 
 struct WTS_SERVER_INFOA {
     LPSTR pServerName;
 }
-alias WTS_SERVER_INFOA* PWTS_SERVER_INFOA;
+alias PWTS_SERVER_INFOA = WTS_SERVER_INFOA*;
 
 version (Unicode) {
-    alias WTS_SERVER_INFOW  WTS_SERVER_INFO;
-    alias PWTS_SERVER_INFOW PWTS_SERVER_INFO;
+    alias WTS_SERVER_INFO = WTS_SERVER_INFOW;
+    alias PWTS_SERVER_INFO = PWTS_SERVER_INFOW;
 } else {
-    alias WTS_SERVER_INFOA  WTS_SERVER_INFO;
-    alias PWTS_SERVER_INFOA PWTS_SERVER_INFO;
+    alias WTS_SERVER_INFO = WTS_SERVER_INFOA;
+    alias PWTS_SERVER_INFO = PWTS_SERVER_INFOA;
 }
 
 struct WTS_SESSION_INFOW {
@@ -71,21 +71,21 @@ struct WTS_SESSION_INFOW {
     LPWSTR pWinStationName;
     WTS_CONNECTSTATE_CLASS State;
 }
-alias WTS_SESSION_INFOW* PWTS_SESSION_INFOW;
+alias PWTS_SESSION_INFOW = WTS_SESSION_INFOW*;
 
 struct WTS_SESSION_INFOA {
     DWORD SessionId;
     LPSTR pWinStationName;
     WTS_CONNECTSTATE_CLASS State;
 }
-alias WTS_SESSION_INFOA* PWTS_SESSION_INFOA;
+alias PWTS_SESSION_INFOA = WTS_SESSION_INFOA*;
 
 version (Unicode) {
-    alias WTS_SESSION_INFOW  WTS_SESSION_INFO;
-    alias PWTS_SESSION_INFOW PWTS_SESSION_INFO;
+    alias WTS_SESSION_INFO = WTS_SESSION_INFOW;
+    alias PWTS_SESSION_INFO = PWTS_SESSION_INFOW;
 } else {
-    alias WTS_SESSION_INFOA  WTS_SESSION_INFO;
-    alias PWTS_SESSION_INFOA PWTS_SESSION_INFO;
+    alias WTS_SESSION_INFO = WTS_SESSION_INFOA;
+    alias PWTS_SESSION_INFO = PWTS_SESSION_INFOA;
 }
 
 struct WTS_PROCESS_INFOW {
@@ -94,7 +94,7 @@ struct WTS_PROCESS_INFOW {
     LPWSTR pProcessName;
     PSID pUserSid;
 }
-alias WTS_PROCESS_INFOW* PWTS_PROCESS_INFOW;
+alias PWTS_PROCESS_INFOW = WTS_PROCESS_INFOW*;
 
 struct WTS_PROCESS_INFOA {
     DWORD SessionId;
@@ -102,14 +102,14 @@ struct WTS_PROCESS_INFOA {
     LPSTR pProcessName;
     PSID pUserSid;
 }
-alias WTS_PROCESS_INFOA* PWTS_PROCESS_INFOA;
+alias PWTS_PROCESS_INFOA = WTS_PROCESS_INFOA*;
 
 version (Unicode) {
-    alias WTS_PROCESS_INFOW  WTS_PROCESS_INFO;
-    alias PWTS_PROCESS_INFOW PWTS_PROCESS_INFO;
+    alias WTS_PROCESS_INFO = WTS_PROCESS_INFOW;
+    alias PWTS_PROCESS_INFO = PWTS_PROCESS_INFOW;
 } else {
-    alias WTS_PROCESS_INFOA  WTS_PROCESS_INFO;
-    alias PWTS_PROCESS_INFOA PWTS_PROCESS_INFO;
+    alias WTS_PROCESS_INFO = WTS_PROCESS_INFOA;
+    alias PWTS_PROCESS_INFO = PWTS_PROCESS_INFOA;
 }
 
 enum {
@@ -150,14 +150,14 @@ struct WTS_CLIENT_ADDRESS {
     DWORD    AddressFamily;
     BYTE[20] Address;
 }
-alias WTS_CLIENT_ADDRESS* PWTS_CLIENT_ADDRESS;
+alias PWTS_CLIENT_ADDRESS = WTS_CLIENT_ADDRESS*;
 
 struct WTS_CLIENT_DISPLAY {
     DWORD HorizontalResolution;
     DWORD VerticalResolution;
     DWORD ColorDepth;
 }
-alias WTS_CLIENT_DISPLAY* PWTS_CLIENT_DISPLAY;
+alias PWTS_CLIENT_DISPLAY = WTS_CLIENT_DISPLAY*;
 
 enum WTS_CONFIG_CLASS {
     WTSUserConfigInitialProgram,
@@ -202,23 +202,23 @@ enum WTS_VIRTUAL_CLASS {
 }
 
 version (Unicode) {
-    alias WTSEnumerateServersW WTSEnumerateServers;
-    alias WTSOpenServerW WTSOpenServer;
-    alias WTSEnumerateSessionsW WTSEnumerateSessions;
-    alias WTSEnumerateProcessesW WTSEnumerateProcesses;
-    alias WTSQuerySessionInformationW WTSQuerySessionInformation;
-    alias WTSQueryUserConfigW WTSQueryUserConfig;
-    alias WTSSetUserConfigW WTSSetUserConfig;
-    alias WTSSendMessageW WTSSendMessage;
+    alias WTSEnumerateServers = WTSEnumerateServersW;
+    alias WTSOpenServer = WTSOpenServerW;
+    alias WTSEnumerateSessions = WTSEnumerateSessionsW;
+    alias WTSEnumerateProcesses = WTSEnumerateProcessesW;
+    alias WTSQuerySessionInformation = WTSQuerySessionInformationW;
+    alias WTSQueryUserConfig = WTSQueryUserConfigW;
+    alias WTSSetUserConfig = WTSSetUserConfigW;
+    alias WTSSendMessage = WTSSendMessageW;
 } else {
-    alias WTSEnumerateServersA WTSEnumerateServers;
-    alias WTSOpenServerA WTSOpenServer;
-    alias WTSEnumerateSessionsA WTSEnumerateSessions;
-    alias WTSEnumerateProcessesA WTSEnumerateProcesses;
-    alias WTSQuerySessionInformationA WTSQuerySessionInformation;
-    alias WTSQueryUserConfigA WTSQueryUserConfig;
-    alias WTSSetUserConfigA WTSSetUserConfig;
-    alias WTSSendMessageA WTSSendMessage;
+    alias WTSEnumerateServers = WTSEnumerateServersA;
+    alias WTSOpenServer = WTSOpenServerA;
+    alias WTSEnumerateSessions = WTSEnumerateSessionsA;
+    alias WTSEnumerateProcesses = WTSEnumerateProcessesA;
+    alias WTSQuerySessionInformation = WTSQuerySessionInformationA;
+    alias WTSQueryUserConfig = WTSQueryUserConfigA;
+    alias WTSSetUserConfig = WTSSetUserConfigA;
+    alias WTSSendMessage = WTSSendMessageA;
 }
 
 extern(Windows) {
@@ -293,7 +293,7 @@ static if (_WIN32_WINNT >= 0x600) {
         USHORT                            OutBufLength;
         WCHAR[MAX_PATH + 1]               DeviceId = 0;
     }
-    alias WTSCLIENTW* PWTSCLIENTW;
+    alias PWTSCLIENTW = WTSCLIENTW*;
 
     struct WTSCLIENTA {
         CHAR[CLIENTNAME_LENGTH + 1]       ClientName = 0;
@@ -316,14 +316,14 @@ static if (_WIN32_WINNT >= 0x600) {
         USHORT                            OutBufLength;
         CHAR[MAX_PATH + 1]                DeviceId = 0;
     }
-    alias WTSCLIENTA* PWTSCLIENTA;
+    alias PWTSCLIENTA = WTSCLIENTA*;
 
     version (Unicode) {
-        alias WTSCLIENTW  WTSCLIENT;
-        alias PWTSCLIENTW PWTSCLIENT;
+        alias WTSCLIENT = WTSCLIENTW;
+        alias PWTSCLIENT = PWTSCLIENTW;
     } else {
-        alias WTSCLIENTA  WTSCLIENT;
-        alias PWTSCLIENTA PWTSCLIENT;
+        alias WTSCLIENT = WTSCLIENTA;
+        alias PWTSCLIENT = PWTSCLIENTA;
     }
 
     struct WTSINFOW {
@@ -344,7 +344,7 @@ static if (_WIN32_WINNT >= 0x600) {
         LARGE_INTEGER                LogonTime;
         LARGE_INTEGER                CurrentTime;
     }
-    alias WTSINFOW* PWTSINFOW;
+    alias PWTSINFOW = WTSINFOW*;
 
     struct WTSINFOA {
         WTS_CONNECTSTATE_CLASS      State;
@@ -364,14 +364,14 @@ static if (_WIN32_WINNT >= 0x600) {
         LARGE_INTEGER               LogonTime;
         LARGE_INTEGER               CurrentTime;
     }
-    alias WTSINFOA* PWTSINFOA;
+    alias PWTSINFOA = WTSINFOA*;
 
     version (Unicode) {
-        alias WTSINFOW  WTSINFO;
-        alias PWTSINFOW PWTSINFO;
+        alias WTSINFO = WTSINFOW;
+        alias PWTSINFO = PWTSINFOW;
     } else {
-        alias WTSINFOA  WTSINFO;
-        alias PWTSINFOA PWTSINFO;
+        alias WTSINFO = WTSINFOA;
+        alias PWTSINFO = PWTSINFOA;
     }
 
     extern(Windows) {
@@ -410,11 +410,11 @@ static if (_WIN32_WINNT >= 0x600) {
         );
 
         version (Unicode) {
-            alias WTSStartRemoteControlSessionW WTSStartRemoteControlSession;
-            alias WTSConnectSessionW WTSConnectSession;
+            alias WTSStartRemoteControlSession = WTSStartRemoteControlSessionW;
+            alias WTSConnectSession = WTSConnectSessionW;
         } else {
-            alias WTSStartRemoteControlSessionA WTSStartRemoteControlSession;
-            alias WTSConnectSessionA WTSConnectSession;
+            alias WTSStartRemoteControlSession = WTSStartRemoteControlSessionA;
+            alias WTSConnectSession = WTSConnectSessionA;
         }
 
         WINBOOL WTSStopRemoteControlSession(

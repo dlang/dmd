@@ -82,9 +82,9 @@ version (linux)
     }
 
     static if (__USE_FILE_OFFSET64)
-        alias ulong rlim_t;
+        alias rlim_t = ulong;
     else
-        alias c_ulong rlim_t;
+        alias rlim_t = c_ulong;
 
     static if (__USE_FILE_OFFSET64)
         enum RLIM_INFINITY = 0xffffffffffffffffUL;
@@ -159,7 +159,7 @@ else version (Darwin)
         PRIO_USER    = 2,
     }
 
-    alias ulong rlim_t;
+    alias rlim_t = ulong;
 
     enum
     {
@@ -201,7 +201,7 @@ else version (FreeBSD)
         PRIO_USER    = 2,
     }
 
-    alias long rlim_t;
+    alias rlim_t = long;
 
     enum
     {
@@ -221,7 +221,7 @@ else version (FreeBSD)
         timeval ru_utime;
         timeval ru_stime;
         c_long ru_maxrss;
-        alias ru_ixrss ru_first;
+        alias ru_first = ru_ixrss;
         c_long ru_ixrss;
         c_long ru_idrss;
         c_long ru_isrss;
@@ -235,7 +235,7 @@ else version (FreeBSD)
         c_long ru_nsignals;
         c_long ru_nvcsw;
         c_long ru_nivcsw;
-        alias ru_nivcsw ru_last;
+        alias ru_last = ru_nivcsw;
     }
 
     enum
@@ -258,7 +258,7 @@ else version (NetBSD)
         PRIO_USER    = 2,
     }
 
-    alias long rlim_t;
+    alias rlim_t = long;
 
     enum
     {
@@ -278,7 +278,7 @@ else version (NetBSD)
         timeval ru_utime;
         timeval ru_stime;
         c_long ru_maxrss;
-        alias ru_ixrss ru_first;
+        alias ru_first = ru_ixrss;
         c_long ru_ixrss;
         c_long ru_idrss;
         c_long ru_isrss;
@@ -292,7 +292,7 @@ else version (NetBSD)
         c_long ru_nsignals;
         c_long ru_nvcsw;
         c_long ru_nivcsw;
-        alias ru_nivcsw ru_last;
+        alias ru_last = ru_nivcsw;
     }
 
     enum
@@ -315,7 +315,7 @@ else version (OpenBSD)
         PRIO_USER    = 2,
     }
 
-    alias ulong rlim_t;
+    alias rlim_t = ulong;
 
     enum
     {
@@ -336,7 +336,7 @@ else version (OpenBSD)
         timeval ru_utime;
         timeval ru_stime;
         c_long ru_maxrss;
-        alias ru_ixrss ru_first;
+        alias ru_first = ru_ixrss;
         c_long ru_ixrss;
         c_long ru_idrss;
         c_long ru_isrss;
@@ -350,7 +350,7 @@ else version (OpenBSD)
         c_long ru_nsignals;
         c_long ru_nvcsw;
         c_long ru_nivcsw;
-        alias ru_nivcsw ru_last;
+        alias ru_last = ru_nivcsw;
     }
 
     enum
@@ -374,7 +374,7 @@ else version (DragonFlyBSD)
         PRIO_USER    = 2,
     }
 
-    alias long rlim_t;
+    alias rlim_t = long;
 
     enum
     {
@@ -394,7 +394,7 @@ else version (DragonFlyBSD)
         timeval ru_utime;
         timeval ru_stime;
         c_long ru_maxrss;
-        alias ru_ixrss ru_first;
+        alias ru_first = ru_ixrss;
         c_long ru_ixrss;
         c_long ru_idrss;
         c_long ru_isrss;
@@ -408,7 +408,7 @@ else version (DragonFlyBSD)
         c_long ru_nsignals;
         c_long ru_nvcsw;
         c_long ru_nivcsw;
-        alias ru_nivcsw ru_last;
+        alias ru_last = ru_nivcsw;
     }
 
     enum
@@ -431,7 +431,7 @@ else version (Solaris)
         PRIO_USER    = 2,
     }
 
-    alias c_ulong rlim_t;
+    alias rlim_t = c_ulong;
 
     enum : c_long
     {
@@ -564,8 +564,8 @@ else version (CRuntime_Musl)
     int setpriority(int, id_t, int);
     int getrlimit(int, rlimit*);
     int setrlimit(int, const scope rlimit*);
-    alias getrlimit getrlimit64;
-    alias setrlimit setrlimit64;
+    alias getrlimit64 = getrlimit;
+    alias setrlimit64 = setrlimit;
     pragma(mangle, muslRedirTime64Mangle!("getrusage", "__getrusage_time64"))
     int getrusage(int, rusage*);
 }

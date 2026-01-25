@@ -42,8 +42,8 @@ struct HEAPLIST32 {
     ULONG_PTR th32HeapID;
     DWORD dwFlags;
 }
-alias HEAPLIST32* PHEAPLIST32;
-alias HEAPLIST32* LPHEAPLIST32;
+alias PHEAPLIST32 = HEAPLIST32*;
+alias LPHEAPLIST32 = HEAPLIST32*;
 
 struct HEAPENTRY32 {
     SIZE_T dwSize;
@@ -56,8 +56,8 @@ struct HEAPENTRY32 {
     DWORD th32ProcessID;
     ULONG_PTR th32HeapID;
 }
-alias HEAPENTRY32* PHEAPENTRY32;
-alias HEAPENTRY32* LPHEAPENTRY32;
+alias PHEAPENTRY32 = HEAPENTRY32*;
+alias LPHEAPENTRY32 = HEAPENTRY32*;
 
 struct PROCESSENTRY32W {
     DWORD dwSize;
@@ -71,8 +71,8 @@ struct PROCESSENTRY32W {
     DWORD dwFlags;
     WCHAR[MAX_PATH] szExeFile = 0;
 }
-alias PROCESSENTRY32W* PPROCESSENTRY32W;
-alias PROCESSENTRY32W* LPPROCESSENTRY32W;
+alias PPROCESSENTRY32W = PROCESSENTRY32W*;
+alias LPPROCESSENTRY32W = PROCESSENTRY32W*;
 
 struct THREADENTRY32 {
     DWORD dwSize;
@@ -83,8 +83,8 @@ struct THREADENTRY32 {
     LONG tpDeltaPri;
     DWORD dwFlags;
 }
-alias THREADENTRY32* PTHREADENTRY32;
-alias THREADENTRY32* LPTHREADENTRY32;
+alias PTHREADENTRY32 = THREADENTRY32*;
+alias LPTHREADENTRY32 = THREADENTRY32*;
 
 struct MODULEENTRY32W {
     DWORD dwSize;
@@ -98,17 +98,17 @@ struct MODULEENTRY32W {
     WCHAR[MAX_MODULE_NAME32 + 1] szModule = 0;
     WCHAR[MAX_PATH] szExePath = 0;
 }
-alias MODULEENTRY32W* PMODULEENTRY32W;
-alias MODULEENTRY32W* LPMODULEENTRY32W;
+alias PMODULEENTRY32W = MODULEENTRY32W*;
+alias LPMODULEENTRY32W = MODULEENTRY32W*;
 
 version (Unicode) {
-    alias PROCESSENTRY32W PROCESSENTRY32;
-    alias PPROCESSENTRY32W PPROCESSENTRY32;
-    alias LPPROCESSENTRY32W LPPROCESSENTRY32;
+    alias PROCESSENTRY32 = PROCESSENTRY32W;
+    alias PPROCESSENTRY32 = PPROCESSENTRY32W;
+    alias LPPROCESSENTRY32 = LPPROCESSENTRY32W;
 
-    alias MODULEENTRY32W MODULEENTRY32;
-    alias PMODULEENTRY32W PMODULEENTRY32;
-    alias LPMODULEENTRY32W LPMODULEENTRY32;
+    alias MODULEENTRY32 = MODULEENTRY32W;
+    alias PMODULEENTRY32 = PMODULEENTRY32W;
+    alias LPMODULEENTRY32 = LPMODULEENTRY32W;
 } else {
     struct PROCESSENTRY32 {
         DWORD dwSize;
@@ -122,8 +122,8 @@ version (Unicode) {
         DWORD dwFlags;
         CHAR[MAX_PATH] szExeFile = 0;
     }
-    alias PROCESSENTRY32* PPROCESSENTRY32;
-    alias PROCESSENTRY32* LPPROCESSENTRY32;
+    alias PPROCESSENTRY32 = PROCESSENTRY32*;
+    alias LPPROCESSENTRY32 = PROCESSENTRY32*;
 
     struct MODULEENTRY32 {
         DWORD dwSize;
@@ -137,8 +137,8 @@ version (Unicode) {
         char[MAX_MODULE_NAME32 + 1] szModule = 0;
         char[MAX_PATH] szExePath = 0;
     }
-    alias MODULEENTRY32* PMODULEENTRY32;
-    alias MODULEENTRY32* LPMODULEENTRY32;
+    alias PMODULEENTRY32 = MODULEENTRY32*;
+    alias LPMODULEENTRY32 = MODULEENTRY32*;
 }
 
 
@@ -158,10 +158,10 @@ extern(Windows) nothrow @nogc {
 }
 
 version (Unicode) {
-    alias Module32FirstW Module32First;
-    alias Module32NextW Module32Next;
-    alias Process32FirstW Process32First;
-    alias Process32NextW Process32Next;
+    alias Module32First = Module32FirstW;
+    alias Module32Next = Module32NextW;
+    alias Process32First = Process32FirstW;
+    alias Process32Next = Process32NextW;
 } else {
     extern(Windows) nothrow @nogc {
         BOOL Module32First(HANDLE,LPMODULEENTRY32);

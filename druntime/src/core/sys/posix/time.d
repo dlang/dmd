@@ -257,7 +257,7 @@ else version (Solaris)
         c_long tv_nsec;
     }
 
-    alias timespec timestruc_t;
+    alias timestruc_t = timespec;
 }
 else
 {
@@ -286,8 +286,8 @@ version (CRuntime_Glibc)
     enum CLOCK_REALTIME         = 0;
     enum TIMER_ABSTIME          = 0x01;
 
-    alias int clockid_t;
-    alias void* timer_t;
+    alias clockid_t = int;
+    alias timer_t = void*;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -325,8 +325,8 @@ else version (FreeBSD)
     enum CLOCK_REALTIME      = 0;
     enum TIMER_ABSTIME       = 0x01;
 
-    alias int clockid_t; // <sys/_types.h>
-    alias int timer_t;
+    alias clockid_t = int; // <sys/_types.h>
+    alias timer_t = int;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -351,8 +351,8 @@ else version (DragonFlyBSD)
     enum CLOCK_REALTIME      = 0;
     enum TIMER_ABSTIME       = 0x01;
 
-    alias int clockid_t; // <sys/_types.h>
-    alias int timer_t;
+    alias clockid_t = int; // <sys/_types.h>
+    alias timer_t = int;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -375,8 +375,8 @@ else version (NetBSD)
     enum CLOCK_REALTIME      = 0;
     enum TIMER_ABSTIME       = 0x01;
 
-    alias int clockid_t; // <sys/_types.h>
-    alias int timer_t;
+    alias clockid_t = int; // <sys/_types.h>
+    alias timer_t = int;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -399,8 +399,8 @@ else version (OpenBSD)
     enum CLOCK_REALTIME      = 0;
     enum TIMER_ABSTIME       = 0x1;
 
-    alias int clockid_t; // <sys/_types.h>
-    alias int timer_t;
+    alias clockid_t = int; // <sys/_types.h>
+    alias timer_t = int;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -421,8 +421,8 @@ else version (Solaris)
     enum CLOCK_REALTIME = 3; // <sys/time_impl.h>
     enum TIMER_ABSOLUTE = 0x1;
 
-    alias int clockid_t;
-    alias int timer_t;
+    alias clockid_t = int;
+    alias timer_t = int;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -452,8 +452,8 @@ else version (CRuntime_Bionic)
     enum CLOCK_REALTIME_HR = 4;
     enum TIMER_ABSTIME     = 0x01;
 
-    alias int   clockid_t;
-    alias void* timer_t; // Updated since Lollipop
+    alias clockid_t = int;
+    alias timer_t = void*; // Updated since Lollipop
 
     int clock_getres(int, timespec*);
     int clock_gettime(int, timespec*);
@@ -468,8 +468,8 @@ else version (CRuntime_Musl)
 {
     static assert(timespec.sizeof == 16);
 
-    alias int clockid_t;
-    alias void* timer_t;
+    alias clockid_t = int;
+    alias timer_t = void*;
 
     struct itimerspec
     {
@@ -524,8 +524,8 @@ else version (CRuntime_UClibc)
 
     enum TIMER_ABSTIME          = 0x01;
 
-    alias int clockid_t;
-    alias void* timer_t;
+    alias clockid_t = int;
+    alias timer_t = void*;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -686,7 +686,7 @@ else version (Solaris)
 
     tm* getdate(const scope char*);
     char* __strptime_dontzero(const scope char*, const scope char*, tm*);
-    alias __strptime_dontzero strptime;
+    alias strptime = __strptime_dontzero;
 }
 else version (CRuntime_Bionic)
 {

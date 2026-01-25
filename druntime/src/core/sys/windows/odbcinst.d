@@ -142,27 +142,27 @@ static if (ODBCVER >= 0x0300) {
 }
 
 version (Unicode) {
-    alias SQLConfigDataSourceW SQLConfigDataSource;
-    alias SQLConfigDriverW SQLConfigDriver;
-    alias SQLCreateDataSourceW SQLCreateDataSource;
-    alias SQLGetAvailableDriversW SQLGetAvailableDrivers;
-    alias SQLGetInstalledDriversW SQLGetInstalledDrivers;
-    alias SQLGetPrivateProfileStringW SQLGetPrivateProfileString;
-    alias SQLGetTranslatorW SQLGetTranslator;
-    alias SQLInstallDriverW SQLInstallDriver;
-    alias SQLInstallDriverExW SQLInstallDriverEx;
-    alias SQLInstallDriverManagerW SQLInstallDriverManager;
-    alias SQLInstallerErrorW SQLInstallerError;
-    alias SQLInstallODBCW SQLInstallODBC;
-    deprecated alias SQLInstallTranslatorW SQLInstallTranslator;
-    alias SQLInstallTranslatorExW SQLInstallTranslatorEx;
-    alias SQLPostInstallerErrorW SQLPostInstallerError;
-    alias SQLReadFileDSNW SQLReadFileDSN;
-    alias SQLRemoveDriverW SQLRemoveDriver;
-    alias SQLRemoveDSNFromIniW SQLRemoveDSNFromIni;
-    alias SQLRemoveTranslatorW SQLRemoveTranslator;
-    alias SQLValidDSNW SQLValidDSN;
-    alias SQLWriteDSNToIniW SQLWriteDSNToIni;
-    alias SQLWriteFileDSNW SQLWriteFileDSN;
-    alias SQLWritePrivateProfileStringW SQLWritePrivateProfileString;
+    alias SQLConfigDataSource = SQLConfigDataSourceW;
+    alias SQLConfigDriver = SQLConfigDriverW;
+    alias SQLCreateDataSource = SQLCreateDataSourceW;
+    alias SQLGetAvailableDrivers = SQLGetAvailableDriversW;
+    alias SQLGetInstalledDrivers = SQLGetInstalledDriversW;
+    alias SQLGetPrivateProfileString = SQLGetPrivateProfileStringW;
+    alias SQLGetTranslator = SQLGetTranslatorW;
+    alias SQLInstallDriver = SQLInstallDriverW;
+    alias SQLInstallDriverEx = SQLInstallDriverExW;
+    alias SQLInstallDriverManager = SQLInstallDriverManagerW;
+    alias SQLInstallerError = SQLInstallerErrorW;
+    alias SQLInstallODBC = SQLInstallODBCW;
+    deprecated alias SQLInstallTranslator = SQLInstallTranslatorW;
+    alias SQLInstallTranslatorEx = SQLInstallTranslatorExW;
+    alias SQLPostInstallerError = SQLPostInstallerErrorW;
+    alias SQLReadFileDSN = SQLReadFileDSNW;
+    alias SQLRemoveDriver = SQLRemoveDriverW;
+    alias SQLRemoveDSNFromIni = SQLRemoveDSNFromIniW;
+    alias SQLRemoveTranslator = SQLRemoveTranslatorW;
+    alias SQLValidDSN = SQLValidDSNW;
+    alias SQLWriteDSNToIni = SQLWriteDSNToIniW;
+    alias SQLWriteFileDSN = SQLWriteFileDSNW;
+    alias SQLWritePrivateProfileString = SQLWritePrivateProfileStringW;
 }

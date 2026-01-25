@@ -165,7 +165,7 @@ static if (_GNU_SOURCE)
 {
     enum RTLD_NEXT = cast(void *)-1L;
     enum RTLD_DEFAULT = cast(void *)0;
-    alias c_long Lmid_t;
+    alias Lmid_t = c_long;
     enum LM_ID_BASE = 0;
     enum LM_ID_NEWLM = -1;
 }

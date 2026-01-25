@@ -27,13 +27,13 @@ extern (Windows) {
         ULONG Release();
     }
 
-    alias IUnknown LPUNKNOWN;
+    alias LPUNKNOWN = IUnknown;
 
     interface IClassFactory : IUnknown {
         HRESULT CreateInstance(IUnknown UnkOuter, IID* riid, void** pvObject);
         HRESULT LockServer(BOOL fLock);
     }
-    alias IClassFactory LPCLASSFACTORY;
+    alias LPCLASSFACTORY = IClassFactory;
 
     /+
     // These do not seem to be necessary (or desirable) for D.

@@ -59,20 +59,20 @@ static assert (is(typeof({
     test(NULL);
 })));
 
-alias ubyte        BYTE;
-alias ubyte*       PBYTE, LPBYTE;
-alias ushort       USHORT, WORD, ATOM;
-alias ushort*      PUSHORT, PWORD, LPWORD;
-alias uint         ULONG, DWORD, UINT, COLORREF;
-alias uint*        PULONG, PDWORD, LPDWORD, PUINT, LPUINT, LPCOLORREF;
-alias int          WINBOOL, BOOL, INT, LONG, HFILE, HRESULT;
-alias int*         PWINBOOL, LPWINBOOL, PBOOL, LPBOOL, PINT, LPINT, LPLONG;
-alias float        FLOAT;
-alias float*       PFLOAT;
-alias const(void)* PCVOID, LPCVOID;
+alias BYTE = ubyte;
+alias PBYTE = ubyte*, LPBYTE = ubyte*;
+alias USHORT = ushort, WORD = ushort, ATOM = ushort;
+alias PUSHORT = ushort*, PWORD = ushort*, LPWORD = ushort*;
+alias ULONG = uint, DWORD = uint, UINT = uint, COLORREF = uint;
+alias PULONG = uint*, PDWORD = uint*, LPDWORD = uint*, PUINT = uint*, LPUINT = uint*, LPCOLORREF = uint*;
+alias WINBOOL = int, BOOL = int, INT = int, LONG = int, HFILE = int, HRESULT = int;
+alias PWINBOOL = int*, LPWINBOOL = int*, PBOOL = int*, LPBOOL = int*, PINT = int*, LPINT = int*, LPLONG = int*;
+alias FLOAT = float;
+alias PFLOAT = float*;
+alias PCVOID = const(void)*, LPCVOID = const(void)*;
 
-alias UINT_PTR WPARAM;
-alias LONG_PTR LPARAM, LRESULT;
+alias WPARAM = UINT_PTR;
+alias LPARAM = LONG_PTR, LRESULT = LONG_PTR;
 
 alias HHOOK = HANDLE;
 alias HGLOBAL = HANDLE;
@@ -106,14 +106,14 @@ alias HWND = HANDLE;
 alias HWINSTA = HANDLE;
 alias HKL = HANDLE;
 alias HCURSOR = HANDLE;
-alias HKEY* PHKEY;
+alias PHKEY = HKEY*;
 
 static if (_WIN32_WINNT >= 0x500) {
     alias HTERMINAL = HANDLE;
     alias HWINEVENTHOOK = HANDLE;
 }
 
-alias extern (Windows) INT_PTR function() nothrow FARPROC, NEARPROC, PROC;
+alias FARPROC = extern (Windows) INT_PTR function() nothrow, NEARPROC = extern (Windows) INT_PTR function() nothrow, PROC = extern (Windows) INT_PTR function() nothrow;
 
 struct RECT {
     LONG left;
@@ -121,29 +121,29 @@ struct RECT {
     LONG right;
     LONG bottom;
 }
-alias RECT RECTL;
-alias RECT*        PRECT, NPRECT, LPRECT, PRECTL, LPRECTL;
-alias const(RECT)* LPCRECT, LPCRECTL;
+alias RECTL = RECT;
+alias PRECT = RECT*, NPRECT = RECT*, LPRECT = RECT*, PRECTL = RECT*, LPRECTL = RECT*;
+alias LPCRECT = const(RECT)*, LPCRECTL = const(RECT)*;
 
 struct POINT {
     LONG x;
     LONG y;
 }
-alias POINT POINTL;
-alias POINT* PPOINT, NPPOINT, LPPOINT, PPOINTL, LPPOINTL;
+alias POINTL = POINT;
+alias PPOINT = POINT*, NPPOINT = POINT*, LPPOINT = POINT*, PPOINTL = POINT*, LPPOINTL = POINT*;
 
 struct SIZE {
     LONG cx;
     LONG cy;
 }
-alias SIZE SIZEL;
-alias SIZE* PSIZE, LPSIZE, PSIZEL, LPSIZEL;
+alias SIZEL = SIZE;
+alias PSIZE = SIZE*, LPSIZE = SIZE*, PSIZEL = SIZE*, LPSIZEL = SIZE*;
 
 struct POINTS {
     SHORT x;
     SHORT y;
 }
-alias POINTS* PPOINTS, LPPOINTS;
+alias PPOINTS = POINTS*, LPPOINTS = POINTS*;
 
 enum : BOOL {
     FALSE = 0,

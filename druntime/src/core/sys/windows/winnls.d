@@ -15,7 +15,7 @@ pragma(lib, "kernel32");
 
 import core.sys.windows.basetsd, core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
 
-alias DWORD LCTYPE, CALTYPE, CALID, LGRPID, GEOID, GEOTYPE, GEOCLASS;
+alias LCTYPE = DWORD, CALTYPE = DWORD, CALID = DWORD, LGRPID = DWORD, GEOID = DWORD, GEOTYPE = DWORD, GEOCLASS = DWORD;
 
 enum size_t
     MAX_DEFAULTCHAR =  2,
@@ -496,31 +496,27 @@ enum DWORD WC_NO_BEST_FIT_CHARS = 1024;
 } // (_WIN32_WINNT >= 0x500)
 
 extern (Windows) {
-    alias BOOL function(LPSTR) CALINFO_ENUMPROCA;
-    alias BOOL function(LPWSTR) CALINFO_ENUMPROCW;
-    alias BOOL function(LPSTR, CALID) CALINFO_ENUMPROCEXA;
-    alias BOOL function(LPWSTR, CALID) CALINFO_ENUMPROCEXW;
-    alias BOOL function(LGRPID, LPSTR, LPSTR, DWORD, LONG_PTR)
-      LANGUAGEGROUP_ENUMPROCA;
-    alias BOOL function(LGRPID, LPWSTR, LPWSTR, DWORD, LONG_PTR)
-      LANGUAGEGROUP_ENUMPROCW;
-    alias BOOL function(LGRPID, LCID, LPSTR, LONG_PTR)
-      LANGGROUPLOCALE_ENUMPROCA;
-    alias BOOL function(LGRPID, LCID, LPWSTR, LONG_PTR)
-      LANGGROUPLOCALE_ENUMPROCW;
-    alias BOOL function(LPWSTR, LONG_PTR) UILANGUAGE_ENUMPROCW;
-    alias BOOL function(LPSTR, LONG_PTR) UILANGUAGE_ENUMPROCA;
-    alias BOOL function(LPSTR) LOCALE_ENUMPROCA;
-    alias BOOL function(LPWSTR) LOCALE_ENUMPROCW;
-    alias BOOL function(LPSTR) CODEPAGE_ENUMPROCA;
-    alias BOOL function(LPWSTR) CODEPAGE_ENUMPROCW;
-    alias BOOL function(LPSTR) DATEFMT_ENUMPROCA;
-    alias BOOL function(LPWSTR) DATEFMT_ENUMPROCW;
-    alias BOOL function(LPSTR, CALID) DATEFMT_ENUMPROCEXA;
-    alias BOOL function(LPWSTR, CALID) DATEFMT_ENUMPROCEXW;
-    alias BOOL function(LPSTR) TIMEFMT_ENUMPROCA;
-    alias BOOL function(LPWSTR) TIMEFMT_ENUMPROCW;
-    alias BOOL function(GEOID) GEO_ENUMPROC;
+    alias CALINFO_ENUMPROCA = BOOL function(LPSTR);
+    alias CALINFO_ENUMPROCW = BOOL function(LPWSTR);
+    alias CALINFO_ENUMPROCEXA = BOOL function(LPSTR, CALID);
+    alias CALINFO_ENUMPROCEXW = BOOL function(LPWSTR, CALID);
+    alias LANGUAGEGROUP_ENUMPROCA = BOOL function(LGRPID, LPSTR, LPSTR, DWORD, LONG_PTR);
+    alias LANGUAGEGROUP_ENUMPROCW = BOOL function(LGRPID, LPWSTR, LPWSTR, DWORD, LONG_PTR);
+    alias LANGGROUPLOCALE_ENUMPROCA = BOOL function(LGRPID, LCID, LPSTR, LONG_PTR);
+    alias LANGGROUPLOCALE_ENUMPROCW = BOOL function(LGRPID, LCID, LPWSTR, LONG_PTR);
+    alias UILANGUAGE_ENUMPROCW = BOOL function(LPWSTR, LONG_PTR);
+    alias UILANGUAGE_ENUMPROCA = BOOL function(LPSTR, LONG_PTR);
+    alias LOCALE_ENUMPROCA = BOOL function(LPSTR);
+    alias LOCALE_ENUMPROCW = BOOL function(LPWSTR);
+    alias CODEPAGE_ENUMPROCA = BOOL function(LPSTR);
+    alias CODEPAGE_ENUMPROCW = BOOL function(LPWSTR);
+    alias DATEFMT_ENUMPROCA = BOOL function(LPSTR);
+    alias DATEFMT_ENUMPROCW = BOOL function(LPWSTR);
+    alias DATEFMT_ENUMPROCEXA = BOOL function(LPSTR, CALID);
+    alias DATEFMT_ENUMPROCEXW = BOOL function(LPWSTR, CALID);
+    alias TIMEFMT_ENUMPROCA = BOOL function(LPSTR);
+    alias TIMEFMT_ENUMPROCW = BOOL function(LPWSTR);
+    alias GEO_ENUMPROC = BOOL function(GEOID);
 }
 
 enum NLS_FUNCTION {
@@ -551,7 +547,7 @@ struct CPINFO {
     BYTE[MAX_DEFAULTCHAR] DefaultChar;
     BYTE[MAX_LEADBYTES]   LeadByte;
 }
-alias CPINFO* LPCPINFO;
+alias LPCPINFO = CPINFO*;
 
 struct CPINFOEXA {
     UINT                  MaxCharSize;
@@ -561,7 +557,7 @@ struct CPINFOEXA {
     UINT                  CodePage;
     CHAR[MAX_PATH]        CodePageName = 0;
 }
-alias CPINFOEXA* LPCPINFOEXA;
+alias LPCPINFOEXA = CPINFOEXA*;
 
 struct CPINFOEXW {
     UINT                  MaxCharSize;
@@ -571,7 +567,7 @@ struct CPINFOEXW {
     UINT                  CodePage;
     WCHAR[MAX_PATH]       CodePageName = 0;
 }
-alias CPINFOEXW* LPCPINFOEXW;
+alias LPCPINFOEXW = CPINFOEXW*;
 
 struct CURRENCYFMTA {
     UINT  NumDigits;
@@ -583,7 +579,7 @@ struct CURRENCYFMTA {
     UINT  PositiveOrder;
     LPSTR lpCurrencySymbol;
 }
-alias CURRENCYFMTA* LPCURRENCYFMTA;
+alias LPCURRENCYFMTA = CURRENCYFMTA*;
 
 struct CURRENCYFMTW {
     UINT   NumDigits;
@@ -595,14 +591,14 @@ struct CURRENCYFMTW {
     UINT   PositiveOrder;
     LPWSTR lpCurrencySymbol;
 }
-alias CURRENCYFMTW* LPCURRENCYFMTW;
+alias LPCURRENCYFMTW = CURRENCYFMTW*;
 
 struct NLSVERSIONINFO {
     DWORD dwNLSVersionInfoSize;
     DWORD dwNLSVersion;
     DWORD dwDefinedVersion;
 }
-alias NLSVERSIONINFO* LPNLSVERSIONINFO;
+alias LPNLSVERSIONINFO = NLSVERSIONINFO*;
 
 struct NUMBERFMTA {
     UINT  NumDigits;
@@ -612,7 +608,7 @@ struct NUMBERFMTA {
     LPSTR lpThousandSep;
     UINT  NegativeOrder;
 }
-alias NUMBERFMTA* LPNUMBERFMTA;
+alias LPNUMBERFMTA = NUMBERFMTA*;
 
 struct NUMBERFMTW {
     UINT   NumDigits;
@@ -622,7 +618,7 @@ struct NUMBERFMTW {
     LPWSTR lpThousandSep;
     UINT   NegativeOrder;
 }
-alias NUMBERFMTW* LPNUMBERFMTW;
+alias LPNUMBERFMTW = NUMBERFMTW*;
 
 extern (Windows) nothrow @nogc {
     int CompareStringA(LCID, DWORD, LPCSTR, int, LPCSTR, int);
@@ -716,96 +712,96 @@ extern (Windows) nothrow @nogc {
 }
 
 version (Unicode) {
-    alias CALINFO_ENUMPROCW CALINFO_ENUMPROC;
-    alias CALINFO_ENUMPROCEXW CALINFO_ENUMPROCEX;
-    alias LOCALE_ENUMPROCW LOCALE_ENUMPROC;
-    alias CODEPAGE_ENUMPROCW CODEPAGE_ENUMPROC;
-    alias DATEFMT_ENUMPROCW DATEFMT_ENUMPROC;
-    alias DATEFMT_ENUMPROCEXW DATEFMT_ENUMPROCEX;
-    alias TIMEFMT_ENUMPROCW TIMEFMT_ENUMPROC;
-    alias LANGUAGEGROUP_ENUMPROCW LANGUAGEGROUP_ENUMPROC;
-    alias LANGGROUPLOCALE_ENUMPROCW LANGGROUPLOCALE_ENUMPROC;
-    alias UILANGUAGE_ENUMPROCW UILANGUAGE_ENUMPROC;
-    alias CPINFOEXW CPINFOEX;
-    alias LPCPINFOEXW LPCPINFOEX;
-    alias CURRENCYFMTW CURRENCYFMT;
-    alias LPCURRENCYFMTW LPCURRENCYFMT;
-    alias NUMBERFMTW NUMBERFMT;
-    alias LPNUMBERFMTW LPNUMBERFMT;
-    alias CompareStringW CompareString;
-    alias EnumCalendarInfoW EnumCalendarInfo;
-    alias EnumSystemCodePagesW EnumSystemCodePages;
-    alias EnumSystemLocalesW EnumSystemLocales;
-    alias EnumTimeFormatsW EnumTimeFormats;
-    alias FoldStringW FoldString;
-    alias GetCalendarInfoW GetCalendarInfo;
-    alias GetCPInfoExW GetCPInfoEx;
-    alias GetCurrencyFormatW GetCurrencyFormat;
-    alias GetDateFormatW GetDateFormat;
-    alias GetGeoInfoW GetGeoInfo;
-    alias GetLocaleInfoW GetLocaleInfo;
-    alias GetNumberFormatW GetNumberFormat;
-    alias GetStringTypeExW GetStringTypeEx;
-    alias GetTimeFormatW GetTimeFormat;
-    alias LCMapStringW LCMapString;
-    alias SetCalendarInfoW SetCalendarInfo;
-    alias SetLocaleInfoW SetLocaleInfo;
+    alias CALINFO_ENUMPROC = CALINFO_ENUMPROCW;
+    alias CALINFO_ENUMPROCEX = CALINFO_ENUMPROCEXW;
+    alias LOCALE_ENUMPROC = LOCALE_ENUMPROCW;
+    alias CODEPAGE_ENUMPROC = CODEPAGE_ENUMPROCW;
+    alias DATEFMT_ENUMPROC = DATEFMT_ENUMPROCW;
+    alias DATEFMT_ENUMPROCEX = DATEFMT_ENUMPROCEXW;
+    alias TIMEFMT_ENUMPROC = TIMEFMT_ENUMPROCW;
+    alias LANGUAGEGROUP_ENUMPROC = LANGUAGEGROUP_ENUMPROCW;
+    alias LANGGROUPLOCALE_ENUMPROC = LANGGROUPLOCALE_ENUMPROCW;
+    alias UILANGUAGE_ENUMPROC = UILANGUAGE_ENUMPROCW;
+    alias CPINFOEX = CPINFOEXW;
+    alias LPCPINFOEX = LPCPINFOEXW;
+    alias CURRENCYFMT = CURRENCYFMTW;
+    alias LPCURRENCYFMT = LPCURRENCYFMTW;
+    alias NUMBERFMT = NUMBERFMTW;
+    alias LPNUMBERFMT = LPNUMBERFMTW;
+    alias CompareString = CompareStringW;
+    alias EnumCalendarInfo = EnumCalendarInfoW;
+    alias EnumSystemCodePages = EnumSystemCodePagesW;
+    alias EnumSystemLocales = EnumSystemLocalesW;
+    alias EnumTimeFormats = EnumTimeFormatsW;
+    alias FoldString = FoldStringW;
+    alias GetCalendarInfo = GetCalendarInfoW;
+    alias GetCPInfoEx = GetCPInfoExW;
+    alias GetCurrencyFormat = GetCurrencyFormatW;
+    alias GetDateFormat = GetDateFormatW;
+    alias GetGeoInfo = GetGeoInfoW;
+    alias GetLocaleInfo = GetLocaleInfoW;
+    alias GetNumberFormat = GetNumberFormatW;
+    alias GetStringTypeEx = GetStringTypeExW;
+    alias GetTimeFormat = GetTimeFormatW;
+    alias LCMapString = LCMapStringW;
+    alias SetCalendarInfo = SetCalendarInfoW;
+    alias SetLocaleInfo = SetLocaleInfoW;
 
     static if (_WIN32_WINNT >= 0x410) {
-        alias EnumCalendarInfoExW EnumCalendarInfoEx;
-        alias EnumDateFormatsExW EnumDateFormatsEx;
+        alias EnumCalendarInfoEx = EnumCalendarInfoExW;
+        alias EnumDateFormatsEx = EnumDateFormatsExW;
     }
 
     static if (_WIN32_WINNT >= 0x500) {
-        alias EnumSystemLanguageGroupsW EnumSystemLanguageGroups;
-        alias EnumLanguageGroupLocalesW EnumLanguageGroupLocales;
-        alias EnumUILanguagesW EnumUILanguages;
+        alias EnumSystemLanguageGroups = EnumSystemLanguageGroupsW;
+        alias EnumLanguageGroupLocales = EnumLanguageGroupLocalesW;
+        alias EnumUILanguages = EnumUILanguagesW;
     }
 
 } else {
-    alias CALINFO_ENUMPROCA CALINFO_ENUMPROC;
-    alias CALINFO_ENUMPROCEXA CALINFO_ENUMPROCEX;
-    alias LOCALE_ENUMPROCA LOCALE_ENUMPROC;
-    alias CODEPAGE_ENUMPROCA CODEPAGE_ENUMPROC;
-    alias DATEFMT_ENUMPROCA DATEFMT_ENUMPROC;
-    alias DATEFMT_ENUMPROCEXA DATEFMT_ENUMPROCEX;
-    alias TIMEFMT_ENUMPROCA TIMEFMT_ENUMPROC;
-    alias LANGUAGEGROUP_ENUMPROCA LANGUAGEGROUP_ENUMPROC;
-    alias LANGGROUPLOCALE_ENUMPROCA LANGGROUPLOCALE_ENUMPROC;
-    alias UILANGUAGE_ENUMPROCA UILANGUAGE_ENUMPROC;
-    alias CPINFOEXA CPINFOEX;
-    alias LPCPINFOEXA LPCPINFOEX;
-    alias CURRENCYFMTA CURRENCYFMT;
-    alias LPCURRENCYFMTA LPCURRENCYFMT;
-    alias NUMBERFMTA NUMBERFMT;
-    alias LPNUMBERFMTA LPNUMBERFMT;
-    alias CompareStringA CompareString;
-    alias EnumCalendarInfoA EnumCalendarInfo;
-    alias EnumSystemCodePagesA EnumSystemCodePages;
-    alias EnumSystemLocalesA EnumSystemLocales;
-    alias EnumTimeFormatsA EnumTimeFormats;
-    alias FoldStringA FoldString;
-    alias GetCalendarInfoA GetCalendarInfo;
-    alias GetCPInfoExA GetCPInfoEx;
-    alias GetCurrencyFormatA GetCurrencyFormat;
-    alias GetDateFormatA GetDateFormat;
-    alias GetGeoInfoA GetGeoInfo;
-    alias GetLocaleInfoA GetLocaleInfo;
-    alias GetNumberFormatA GetNumberFormat;
-    alias GetStringTypeExA GetStringTypeEx;
-    alias GetTimeFormatA GetTimeFormat;
-    alias LCMapStringA LCMapString;
-    alias SetCalendarInfoA SetCalendarInfo;
-    alias SetLocaleInfoA SetLocaleInfo;
+    alias CALINFO_ENUMPROC = CALINFO_ENUMPROCA;
+    alias CALINFO_ENUMPROCEX = CALINFO_ENUMPROCEXA;
+    alias LOCALE_ENUMPROC = LOCALE_ENUMPROCA;
+    alias CODEPAGE_ENUMPROC = CODEPAGE_ENUMPROCA;
+    alias DATEFMT_ENUMPROC = DATEFMT_ENUMPROCA;
+    alias DATEFMT_ENUMPROCEX = DATEFMT_ENUMPROCEXA;
+    alias TIMEFMT_ENUMPROC = TIMEFMT_ENUMPROCA;
+    alias LANGUAGEGROUP_ENUMPROC = LANGUAGEGROUP_ENUMPROCA;
+    alias LANGGROUPLOCALE_ENUMPROC = LANGGROUPLOCALE_ENUMPROCA;
+    alias UILANGUAGE_ENUMPROC = UILANGUAGE_ENUMPROCA;
+    alias CPINFOEX = CPINFOEXA;
+    alias LPCPINFOEX = LPCPINFOEXA;
+    alias CURRENCYFMT = CURRENCYFMTA;
+    alias LPCURRENCYFMT = LPCURRENCYFMTA;
+    alias NUMBERFMT = NUMBERFMTA;
+    alias LPNUMBERFMT = LPNUMBERFMTA;
+    alias CompareString = CompareStringA;
+    alias EnumCalendarInfo = EnumCalendarInfoA;
+    alias EnumSystemCodePages = EnumSystemCodePagesA;
+    alias EnumSystemLocales = EnumSystemLocalesA;
+    alias EnumTimeFormats = EnumTimeFormatsA;
+    alias FoldString = FoldStringA;
+    alias GetCalendarInfo = GetCalendarInfoA;
+    alias GetCPInfoEx = GetCPInfoExA;
+    alias GetCurrencyFormat = GetCurrencyFormatA;
+    alias GetDateFormat = GetDateFormatA;
+    alias GetGeoInfo = GetGeoInfoA;
+    alias GetLocaleInfo = GetLocaleInfoA;
+    alias GetNumberFormat = GetNumberFormatA;
+    alias GetStringTypeEx = GetStringTypeExA;
+    alias GetTimeFormat = GetTimeFormatA;
+    alias LCMapString = LCMapStringA;
+    alias SetCalendarInfo = SetCalendarInfoA;
+    alias SetLocaleInfo = SetLocaleInfoA;
 
     static if (_WIN32_WINNT >= 0x410) {
-        alias EnumCalendarInfoExA EnumCalendarInfoEx;
-        alias EnumDateFormatsExA EnumDateFormatsEx;
+        alias EnumCalendarInfoEx = EnumCalendarInfoExA;
+        alias EnumDateFormatsEx = EnumDateFormatsExA;
     }
 
     static if (_WIN32_WINNT >= 0x500) {
-        alias EnumSystemLanguageGroupsA EnumSystemLanguageGroups;
-        alias EnumLanguageGroupLocalesA EnumLanguageGroupLocales;
-        alias EnumUILanguagesA EnumUILanguages;
+        alias EnumSystemLanguageGroups = EnumSystemLanguageGroupsA;
+        alias EnumLanguageGroupLocales = EnumLanguageGroupLocalesA;
+        alias EnumUILanguages = EnumUILanguagesA;
     }
 }
