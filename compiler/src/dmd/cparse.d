@@ -5808,21 +5808,6 @@ final class CParser(AST) : Parser!AST
                                 continue;
                             }
 
-                            version( Windows)
-                            {
-                                /*
-                                 * on windows, MSVC doesn't use POSIX syle complex->_Complex macro
-                                 * for complex types. uses C++ std complex struct. we don't get to filter
-                                 * that as part of the declaration spcifiers so conflicts with import compare in runtime
-                                 * so we manually filter that ourselves
-                                 */
-                                if (idx == "complex" || identx == "complex")
-                                {
-                                     ++p;
-                                    continue;
-                                }
-                            }
-
                             nextToken();
                             if (token.value != TOK.endOfFile)
                             {
