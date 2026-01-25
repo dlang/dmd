@@ -790,7 +790,7 @@ void cgreg_dst_regs(reg_t* dst_integer_reg, reg_t* dst_float_reg)
 }
 
 @trusted
-void cgreg_set_priorities(tym_t ty, const(reg_t)** pseq, const(reg_t)** pseqmsw)
+void cgreg_set_priorities(tym_t ty, out const(reg_t)[] pseq, out const(reg_t)[] pseqmsw)
 {
     //printf("cgreg_set_priorities %s\n", regm_str(ty));
     const sz = tysize(ty);
@@ -802,29 +802,29 @@ void cgreg_set_priorities(tym_t ty, const(reg_t)** pseq, const(reg_t)** pseqmsw)
             tym_t tyb = tybasic(ty);
             if (tyb == TYcfloat || tyb == TYcdouble || tyb == TYcldouble)
             {
-                static immutable ubyte[13] fltmsw1 = [33,35,37,39,41,43,45,47,49,51,53,55,NOREG];
-                static immutable ubyte[14] fltlsw1 = [32,34,36,38,40,42,44,46,48,50,52,54,56,NOREG];
-                *pseq = fltlsw1.ptr;
-                *pseqmsw = fltmsw1.ptr;
+                static immutable reg_t[12] fltmsw1 = [33,35,37,39,41,43,45,47,49,51,53,55];
+                static immutable reg_t[13] fltlsw1 = [32,34,36,38,40,42,44,46,48,50,52,54,56];
+                pseq = fltlsw1[];
+                pseqmsw = fltmsw1[];
                 debug
                 {
                     regm_t msw;
-                    for (const(ubyte)* p = *pseq;    *p != NOREG; ++p) msw |= mask(*p);
+                    foreach (r; fltmsw1[]) msw |= mask(r);
                     assert(msw == (INSTR.FLOATREGS & INSTR.MSW));
 
                     regm_t lsw;
-                    for (const(ubyte)* p = *pseqmsw; *p != NOREG; ++p) lsw |= mask(*p);
+                    foreach (r; fltlsw1[]) msw |= mask(r);
                     assert(lsw == (INSTR.FLOATREGS & INSTR.LSW));
                 }
             }
             else
             {
-                static immutable ubyte[26] flt = [32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,NOREG];
-                *pseq = flt.ptr;
+                static immutable reg_t[25] flt = [32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56];
+                pseq = flt[];
                 debug
                 {
                     regm_t msk;
-                    for (const(ubyte)* p = *pseq;    *p != NOREG; ++p) msk |= mask(*p);
+                    foreach (r; flt[]) msk |= mask(r);
                     assert(msk == INSTR.FLOATREGS);
                 }
             }
@@ -833,29 +833,29 @@ void cgreg_set_priorities(tym_t ty, const(reg_t)** pseq, const(reg_t)** pseqmsw)
         {
             if (sz == REGSIZE * 2)
             {
-                static immutable ubyte[14] intmsw1 = [1,3,5,7,9,11,13,15,19,21,23,25,27,NOREG];
-                static immutable ubyte[13] intlsw1 = [0,2,4,6,10,12,14,20,22,24,26,28,NOREG];
-                *pseq = intlsw1.ptr;
-                *pseqmsw = intmsw1.ptr;
+                static immutable reg_t[13] intmsw1 = [1,3,5,7,9,11,13,15,19,21,23,25,27];
+                static immutable reg_t[12] intlsw1 = [0,2,4,6,10,12,14,20,22,24,26,28];
+                pseq = intlsw1[];
+                pseqmsw = intmsw1[];
                 debug
                 {
                     regm_t msw;
-                    for (const(ubyte)* p = *pseq;    *p != NOREG; ++p) msw |= mask(*p);
+                    foreach (r; intmsw1[]) msw |= mask(r);
                     assert(msw == (INSTR.ALLREGS & INSTR.MSW));
 
                     regm_t lsw;
-                    for (const(ubyte)* p = *pseqmsw; *p != NOREG; ++p) lsw |= mask(*p);
+                    foreach (r; intlsw1[]) lsw |= mask(r);
                     assert(lsw == (INSTR.ALLREGS & INSTR.LSW));
                 }
             }
             else
             {   // R10 is reserved for the static link
-                static immutable ubyte[26] intx = [0,1,2,3,4,5,6,7,9,10,11,12,13,14,15,19,20,21,22,23,24,25,26,27,28,NOREG];
-                *pseq = cast(ubyte*)intx.ptr;
+                static immutable reg_t[25] intx = [0,1,2,3,4,5,6,7,9,10,11,12,13,14,15,19,20,21,22,23,24,25,26,27,28];
+                pseq = intx[];
                 debug
                 {
                     regm_t msk;
-                    for (const(ubyte)* p = *pseq; *p != NOREG; ++p) msk |= mask(*p);
+                    foreach (r; intx[]) msk |= mask(r);
                     assert(msk == INSTR.ALLREGS);
                 }
             }
@@ -865,54 +865,56 @@ void cgreg_set_priorities(tym_t ty, const(reg_t)** pseq, const(reg_t)** pseqmsw)
 
     if (tyxmmreg(ty))
     {
-        static immutable ubyte[9] sequence = [XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG];
-        *pseq = sequence.ptr;
+        static immutable reg_t[8] sequence = [XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7];
+        pseq = sequence[];
     }
     else if (I64)
     {
         if (sz == REGSIZE * 2)
         {
-            static immutable ubyte[3] seqmsw1 = [CX,DX,NOREG];
-            static immutable ubyte[5] seqlsw1 = [AX,BX,SI,DI,NOREG];
-            *pseq = seqlsw1.ptr;
-            *pseqmsw = seqmsw1.ptr;
+            static immutable reg_t[2] seqmsw1 = [CX,DX];
+            static immutable reg_t[4] seqlsw1 = [AX,BX,SI,DI];
+            pseq = seqlsw1[];
+            pseqmsw = seqmsw1[];
         }
         else
         {   // R10 is reserved for the static link
-            static immutable ubyte[15] sequence2 = [AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG];
-            *pseq = cast(ubyte*)sequence2.ptr;
+            static immutable reg_t[14] sequence2 = [AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP];
+            pseq = sequence2[];
         }
     }
     else if (I32)
     {
         if (sz == REGSIZE * 2)
         {
-            static immutable ubyte[5] seqlsw3 = [AX,BX,SI,DI,NOREG];
-            static immutable ubyte[3] seqmsw3 = [CX,DX,NOREG];
-            *pseq = seqlsw3.ptr;
-            *pseqmsw = seqmsw3.ptr;
+            static immutable reg_t[4] seqlsw3 = [AX,BX,SI,DI];
+            static immutable reg_t[2] seqmsw3 = [CX,DX];
+            pseq = seqlsw3[];
+            pseqmsw = seqmsw3[];
         }
         else
         {
-            static immutable ubyte[8] sequence4 = [AX,CX,DX,BX,SI,DI,BP,NOREG];
-            *pseq = sequence4.ptr;
+            static immutable reg_t[7] sequence4 = [AX,CX,DX,BX,SI,DI,BP];
+            pseq = sequence4[];
         }
     }
-    else
-    {   assert(I16);
+    else if (I16)
+    {
         if (typtr(ty))
         {
             // For pointer types, try to pick index register first
-            static immutable ubyte[8] seqidx5 = [BX,SI,DI,AX,CX,DX,BP,NOREG];
-            *pseq = seqidx5.ptr;
+            static immutable reg_t[7] seqidx5 = [BX,SI,DI,AX,CX,DX,BP];
+            pseq = seqidx5[];
         }
         else
         {
             // Otherwise, try to pick index registers last
-            static immutable ubyte[8] sequence6 = [AX,CX,DX,BX,SI,DI,BP,NOREG];
-            *pseq = sequence6.ptr;
+            static immutable reg_t[7] sequence6 = [AX,CX,DX,BX,SI,DI,BP];
+            pseq = sequence6[];
         }
     }
+    else
+        assert(0);
 }
 
 /*******************************************

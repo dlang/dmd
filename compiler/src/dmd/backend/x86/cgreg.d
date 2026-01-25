@@ -906,12 +906,12 @@ int cgreg_assign(Symbol* retsym)
         }
 
         // Select sequence of registers to try to map s onto
-        const(reg_t)* pseq;                     // sequence to try for LSW
-        const(reg_t)* pseqmsw = null;           // sequence to try for MSW, null if none
-        cgreg_set_priorities(ty, &pseq, &pseqmsw);
+        const(reg_t)[] pseq;                     // sequence to try for LSW
+        const(reg_t)[] pseqmsw = null;           // sequence to try for MSW, null if none
+        cgreg_set_priorities(ty, pseq, pseqmsw);
 
         u.benefit = 0;
-        for (int i = 0; pseq[i] != NOREG; i++)
+        for (int i = 0; i < pseq.length; i++)
         {
             reg_t reg = pseq[i];
 
@@ -964,29 +964,28 @@ static if (0 && TARGET_LINUX)
                 reg_t regmsw = NOREG;
 
                 // Now assign MSW
-                if (pseqmsw)
+                foreach (r2; pseqmsw[])
                 {
-                    for (uint regj = 0; 1; regj++)
+                    if (r2 == reg)              // can't assign msw and lsw to same reg
+                        continue;
+                    if ((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) &&
+                        (1UL << r2) & regparams &&
+                        r2 != s.Spreg2)
+                        continue;
+
+                    debug if (debugr)
+                    {   printf(".%s",regstring[r2]);
+                        vec_println(regrange[r2]);
+                    }
+
+                    if (vec_disjoint(s.Slvreg,regrange[r2]))
                     {
-                        regmsw = pseqmsw[regj];
-                        if (regmsw == NOREG)
-                            goto Ltried;                // tried and failed to assign MSW
-                        if (regmsw == reg)              // can't assign msw and lsw to same reg
-                            continue;
-                        if ((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) &&
-                            (1UL << regmsw) & regparams &&
-                            regmsw != s.Spreg2)
-                            continue;
-
-                        debug if (debugr)
-                        {   printf(".%s",regstring[regmsw]);
-                            vec_println(regrange[regmsw]);
-                        }
-
-                        if (vec_disjoint(s.Slvreg,regrange[regmsw]))
-                            break;
+                        regmsw = r2;
+                        break;
                     }
                 }
+                if (regmsw == NOREG && pseqmsw.length)
+                    goto Ltried;                // tried and failed to assign MSW
                 vec_copy(v,s.Slvreg);
                 u.benefit = benefit;
                 u.reglsw = reg;
