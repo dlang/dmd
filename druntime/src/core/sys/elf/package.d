@@ -11,30 +11,30 @@ nothrow:
 
 import core.stdc.stdint;
 
-alias uint16_t Elf32_Half;
-alias uint16_t Elf64_Half;
+alias Elf32_Half = uint16_t;
+alias Elf64_Half = uint16_t;
 
-alias uint32_t Elf32_Word;
-alias int32_t  Elf32_Sword;
-alias uint32_t Elf64_Word;
-alias int32_t  Elf64_Sword;
+alias Elf32_Word = uint32_t;
+alias Elf32_Sword = int32_t;
+alias Elf64_Word = uint32_t;
+alias Elf64_Sword = int32_t;
 
-alias uint64_t Elf32_Xword;
-alias int64_t  Elf32_Sxword;
-alias uint64_t Elf64_Xword;
-alias int64_t  Elf64_Sxword;
+alias Elf32_Xword = uint64_t;
+alias Elf32_Sxword = int64_t;
+alias Elf64_Xword = uint64_t;
+alias Elf64_Sxword = int64_t;
 
-alias uint32_t Elf32_Addr;
-alias uint64_t Elf64_Addr;
+alias Elf32_Addr = uint32_t;
+alias Elf64_Addr = uint64_t;
 
-alias uint32_t Elf32_Off;
-alias uint64_t Elf64_Off;
+alias Elf32_Off = uint32_t;
+alias Elf64_Off = uint64_t;
 
-alias uint16_t Elf32_Section;
-alias uint16_t Elf64_Section;
+alias Elf32_Section = uint16_t;
+alias Elf64_Section = uint16_t;
 
-alias Elf32_Half Elf32_Versym;
-alias Elf64_Half Elf64_Versym;
+alias Elf32_Versym = Elf32_Half;
+alias Elf64_Versym = Elf64_Half;
 
 enum EI_NIDENT = 16;
 
@@ -492,9 +492,9 @@ extern (D)
     auto ELF32_ST_BIND(T)(T val) { return cast(ubyte)val >> 4; }
     auto ELF32_ST_TYPE(T)(T val) { return val & 0xf; }
     auto ELF32_ST_INFO(B, T)(B bind, T type) { return (bind << 4) + (type & 0xf); }
-    alias ELF32_ST_BIND ELF64_ST_BIND;
-    alias ELF32_ST_TYPE ELF64_ST_TYPE;
-    alias ELF32_ST_INFO ELF64_ST_INFO;
+    alias ELF64_ST_BIND = ELF32_ST_BIND;
+    alias ELF64_ST_TYPE = ELF32_ST_TYPE;
+    alias ELF64_ST_INFO = ELF32_ST_INFO;
 }
 
 enum STB_LOCAL =       0;
@@ -866,9 +866,9 @@ extern (D)
     auto ELF32_M_INFO(S, SZ)(S sym, SZ size) { return (sym << 8) + cast(ubyte)size; }
 }
 
-alias ELF32_M_SYM ELF64_M_SYM;
-alias ELF32_M_SIZE ELF64_M_SIZE;
-alias ELF32_M_INFO ELF64_M_INFO;
+alias ELF64_M_SYM = ELF32_M_SYM;
+alias ELF64_M_SIZE = ELF32_M_SIZE;
+alias ELF64_M_INFO = ELF32_M_INFO;
 enum EF_CPU32 =        0x00810000;
 
 enum R_68K_NONE =      0;
@@ -1380,7 +1380,7 @@ enum LL_EXPORTS =        (1 << 3);
 enum LL_DELAY_LOAD =     (1 << 4);
 enum LL_DELTA =          (1 << 5);
 
-alias Elf32_Addr Elf32_Conflict;
+alias Elf32_Conflict = Elf32_Addr;
 
 enum EF_PARISC_TRAPNIL =       0x00010000;
 enum EF_PARISC_EXT =           0x00020000;

@@ -65,7 +65,7 @@ T va_arg(T)(va_list ap)
         }
         else static if (U.length == 1)
         {   // Arg is passed in one register
-            alias U[0] T1;
+            alias T1 = U[0];
             static if (is(T1 == double) || is(T1 == float) || is(T1 == __vector))
             {   // Passed in XMM register
                 if (ap.offset_fpregs < (6 * 8 + 16 * 8))
@@ -99,8 +99,8 @@ T va_arg(T)(va_list ap)
         }
         else static if (U.length == 2)
         {   // Arg is passed in two registers
-            alias U[0] T1;
-            alias U[1] T2;
+            alias T1 = U[0];
+            alias T2 = U[1];
 
             T result = void;
             auto p1 = cast(T1*) &result;

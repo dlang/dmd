@@ -50,7 +50,7 @@ enum
 
 enum SEARCHFS_MAX_SEARCHPARMS = 4096;
 
-alias uint text_encoding_t, fsobj_type_t, fsobj_tag_t, fsfile_type_t, fsvolid_t, attrgroup_t;
+alias text_encoding_t = uint, fsobj_type_t = uint, fsobj_tag_t = uint, fsfile_type_t = uint, fsvolid_t = uint, attrgroup_t = uint;
 
 struct attrlist
 {

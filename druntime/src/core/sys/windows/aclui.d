@@ -30,7 +30,7 @@ struct SI_OBJECT_INFO {
     LPWSTR    pszPageTitle;
     GUID      guidObjectType;
 }
-alias SI_OBJECT_INFO* PSI_OBJECT_INFO;
+alias PSI_OBJECT_INFO = SI_OBJECT_INFO*;
 
 // values for SI_OBJECT_INFO.dwFlags
 enum DWORD
@@ -66,7 +66,7 @@ const(GUID)* pguid;
     LPCWSTR      pszName;
     DWORD        dwFlags;
 }
-alias SI_ACCESS* PSI_ACCESS;
+alias PSI_ACCESS = SI_ACCESS*;
 
 // values for SI_ACCESS.dwFlags
 enum DWORD
@@ -81,7 +81,7 @@ const(GUID)* pguid;
     ULONG        dwFlags;
     LPCWSTR      pszName;
 }
-alias SI_INHERIT_TYPE* PSI_INHERIT_TYPE;
+alias PSI_INHERIT_TYPE = SI_INHERIT_TYPE*;
 
 /* values for SI_INHERIT_TYPE.dwFlags
    INHERIT_ONLY_ACE, CONTAINER_INHERIT_ACE, OBJECT_INHERIT_ACE
@@ -105,7 +105,7 @@ interface ISecurityInformation : IUnknown {
     HRESULT GetInheritTypes(PSI_INHERIT_TYPE*, ULONG*);
     HRESULT PropertySheetPageCallback(HWND, UINT, SI_PAGE_TYPE);
 }
-alias ISecurityInformation LPSECURITYINFO;
+alias LPSECURITYINFO = ISecurityInformation;
 
 /* Comment from MinGW
  * TODO: ISecurityInformation2, IEffectivePermission, ISecurityObjectTypeInfo

@@ -13,7 +13,7 @@ pragma(lib, "ole32");
 
 import core.sys.windows.windef, core.sys.windows.wingdi, core.sys.windows.uuid;
 
-alias LPCSTR OLE_LPCSTR;
+alias OLE_LPCSTR = LPCSTR;
 
 /+#define LRESULT LONG
 #define HGLOBAL HANDLE+/
@@ -40,7 +40,7 @@ struct OLETARGETDEVICE {
     BYTE   _otdData;
     BYTE*  otdData() return { return &_otdData; }
 }
-alias OLETARGETDEVICE* LPOLETARGETDEVICE;
+alias LPOLETARGETDEVICE = OLETARGETDEVICE*;
 
 enum OLESTATUS {
     OLE_OK,
@@ -144,7 +144,7 @@ enum OLEOPT_RENDER {
     olerender_format
 }
 
-alias WORD OLECLIPFORMAT;
+alias OLECLIPFORMAT = WORD;
 
 enum OLEOPT_UPDATE {
     oleupdate_always,
@@ -156,7 +156,7 @@ enum OLEOPT_UPDATE {
 }
 
 alias HOBJECT = HANDLE;
-alias LONG_PTR LHSERVER, LHCLIENTDOC, LHSERVERDOC;
+alias LHSERVER = LONG_PTR, LHCLIENTDOC = LONG_PTR, LHSERVERDOC = LONG_PTR;
 
 struct OLEOBJECTVTBL {
     extern (Windows) {
@@ -207,36 +207,36 @@ struct OLEOBJECTVTBL {
 //#endif
     }
 }
-alias OLEOBJECTVTBL* LPOLEOBJECTVTBL;
+alias LPOLEOBJECTVTBL = OLEOBJECTVTBL*;
 
 //#ifndef OLE_INTERNAL
 struct OLEOBJECT {
     LPOLEOBJECTVTBL lpvtbl;
 }
-alias OLEOBJECT* LPOLEOBJECT;
+alias LPOLEOBJECT = OLEOBJECT*;
 //#endif
 
 struct OLECLIENTVTBL {
     extern (Windows) int function(LPOLECLIENT, OLE_NOTIFICATION, LPOLEOBJECT) CallBack;
 }
-alias OLECLIENTVTBL* LPOLECLIENTVTBL;
+alias LPOLECLIENTVTBL = OLECLIENTVTBL*;
 
 struct OLECLIENT {
     LPOLECLIENTVTBL lpvtbl;
 }
-alias OLECLIENT* LPOLECLIENT;
+alias LPOLECLIENT = OLECLIENT*;
 
 struct OLESTREAMVTBL {
     extern (Windows):
     DWORD function(LPOLESTREAM, void*, DWORD) Get;
     DWORD function(LPOLESTREAM, void*, DWORD) Put;
 }
-alias OLESTREAMVTBL* LPOLESTREAMVTBL;
+alias LPOLESTREAMVTBL = OLESTREAMVTBL*;
 
 struct OLESTREAM {
     LPOLESTREAMVTBL lpstbl;
 }
-alias OLESTREAM* LPOLESTREAM;
+alias LPOLESTREAM = OLESTREAM*;
 
 enum OLE_SERVER_USE {
     OLE_SERVER_MULTI,
@@ -257,12 +257,12 @@ struct OLESERVERVTBL {
     OLESTATUS function(LPOLESERVER) Release;
     OLESTATUS function(LPOLESERVER, HGLOBAL) Execute;
 }
-alias OLESERVERVTBL* LPOLESERVERVTBL;
+alias LPOLESERVERVTBL = OLESERVERVTBL*;
 
 struct OLESERVER {
     LPOLESERVERVTBL lpvtbl;
 }
-alias OLESERVER* LPOLESERVER;
+alias LPOLESERVER = OLESERVER*;
 
 struct OLESERVERDOCVTBL {
 extern (Windows):
@@ -276,12 +276,12 @@ extern (Windows):
     OLESTATUS function(LPOLESERVERDOC, LOGPALETTE*) SetColorScheme;
     OLESTATUS function(LPOLESERVERDOC, HGLOBAL) Execute;
 }
-alias OLESERVERDOCVTBL* LPOLESERVERDOCVTBL;
+alias LPOLESERVERDOCVTBL = OLESERVERDOCVTBL*;
 
 struct OLESERVERDOC {
     LPOLESERVERDOCVTBL lpvtbl;
 }
-alias OLESERVERDOC* LPOLESERVERDOC;
+alias LPOLESERVERDOC = OLESERVERDOC*;
 
 extern (Windows) nothrow @nogc {
     OLESTATUS OleDelete(LPOLEOBJECT);

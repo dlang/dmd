@@ -27,15 +27,15 @@ alias nullptr_t = typeof(null);
 version (Windows)
 {
     ///
-    alias wchar wchar_t;
+    alias wchar_t = wchar;
 }
 else version (Posix)
 {
     ///
-    alias dchar wchar_t;
+    alias wchar_t = dchar;
 }
 else version (WASI)
 {
     ///
-    alias dchar wchar_t;
+    alias wchar_t = dchar;
 }

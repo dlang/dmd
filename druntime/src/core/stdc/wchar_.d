@@ -149,11 +149,11 @@ else version (Windows)
 else
 {
     ///
-    alias int mbstate_t;
+    alias mbstate_t = int;
 }
 
 ///
-alias wchar_t wint_t;
+alias wint_t = wchar_t;
 
 ///
 enum wchar_t WEOF = 0xFFFF;

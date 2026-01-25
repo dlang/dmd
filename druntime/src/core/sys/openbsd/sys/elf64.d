@@ -14,10 +14,10 @@ nothrow:
 import core.stdc.stdint;
 public import core.sys.openbsd.sys.elf_common;
 
-alias uint64_t Elf64_Lword;
-alias Elf64_Word Elf64_Hashelt;
-alias Elf64_Xword Elf64_Size;
-alias Elf64_Sxword Elf64_Ssize;
+alias Elf64_Lword = uint64_t;
+alias Elf64_Hashelt = Elf64_Word;
+alias Elf64_Size = Elf64_Xword;
+alias Elf64_Ssize = Elf64_Sxword;
 
 struct Elf64_Dyn
 {
@@ -36,7 +36,7 @@ extern (D) pure
     auto ELF64_R_TYPE_INFO(D, T)(D d, T t) { return cast(Elf64_Xword) d << 8 + cast(Elf64_Xword) t; }
 }
 
-alias Elf_Note Elf64_Nhdr;
+alias Elf64_Nhdr = Elf_Note;
 
 struct Elf64_Cap
 {

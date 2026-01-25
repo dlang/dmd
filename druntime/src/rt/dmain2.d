@@ -89,7 +89,7 @@ extern (C) string[] rt_args()
 // be fine to leave it as __gshared.
 extern (C) __gshared bool rt_trapExceptions = true;
 
-alias void delegate(Throwable) ExceptionHandler;
+alias ExceptionHandler = void delegate(Throwable);
 
 /**
  * Keep track of how often rt_init/rt_term were called.
@@ -179,7 +179,7 @@ bool isRuntimeInitialized() @nogc nothrow {
 /**********************************************
  * Trace handler
  */
-alias Throwable.TraceInfo function(void* ptr) TraceHandler;
+alias TraceHandler = Throwable.TraceInfo function(void* ptr);
 private __gshared TraceHandler traceHandler = null;
 private __gshared Throwable.TraceDeallocator traceDeallocator = null;
 
@@ -250,7 +250,7 @@ extern (C) CArgs rt_cArgs() @nogc
 }
 
 /// Type of the D main() function (`_Dmain`).
-private alias extern(C) int function(char[][] args) MainFunc;
+private alias MainFunc = extern(C) int function(char[][] args);
 
 /**
  * Sets up the D char[][] command-line args, initializes druntime,
@@ -644,7 +644,7 @@ extern (C) void _d_print_throwable(Throwable t)
                 // by loading it dynamically as needed
                 if (auto user32 = LoadLibraryW("user32.dll"))
                 {
-                    alias typeof(&MessageBoxW) PMessageBoxW;
+                    alias PMessageBoxW = typeof(&MessageBoxW) ;
                     if (auto pMessageBoxW = cast(PMessageBoxW) GetProcAddress(user32, "MessageBoxW"))
                         pMessageBoxW(null, buf.get(), caption.get(), MB_ICONERROR);
                     FreeLibrary(user32);

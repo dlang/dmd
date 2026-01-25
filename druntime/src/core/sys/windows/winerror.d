@@ -15,7 +15,7 @@ version (Windows):
 
 import core.sys.windows.windef;
 
-alias int SCODE; // was in core.sys.windows.wtypes.
+alias SCODE = int; // was in core.sys.windows.wtypes.
 
 enum : uint {
     ERROR_SUCCESS                                         =     0,

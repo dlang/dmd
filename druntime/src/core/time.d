@@ -112,7 +112,7 @@ struct mach_timebase_info_data_t
     uint denom;
 }
 
-alias mach_timebase_info_data_t* mach_timebase_info_t;
+alias mach_timebase_info_t = mach_timebase_info_data_t*;
 
 kern_return_t mach_timebase_info(mach_timebase_info_t);
 
@@ -1561,8 +1561,8 @@ public:
             static assert(!is(typeof(d.split("hnsecs", "seconds", "msecs")())));
             static assert(!is(typeof(d.split("seconds", "hnecs", "msecs")())));
             static assert(!is(typeof(d.split("seconds", "msecs", "msecs")())));
-            alias AliasSeq!("nsecs", "hnsecs", "usecs", "msecs", "seconds",
-                              "minutes", "hours", "days", "weeks") timeStrs;
+            alias timeStrs = AliasSeq!("nsecs", "hnsecs", "usecs", "msecs", "seconds",
+                              "minutes", "hours", "days", "weeks");
             foreach (i, str; timeStrs[1 .. $])
                 static assert(!is(typeof(d.split!(timeStrs[i - 1], str)())));
 

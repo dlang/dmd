@@ -19,6 +19,6 @@ version (Solaris):
 nothrow:
 @nogc:
 
-alias short pri_t;
+alias pri_t = short;
 
 enum P_MYID = -1;

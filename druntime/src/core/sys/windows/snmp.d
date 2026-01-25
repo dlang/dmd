@@ -145,10 +145,10 @@ enum : DWORD {
     SNMP_AUTHAPI_TRIV_AUTH_FAILED,
 }
 
-alias INT SNMPAPI;
-alias LONG AsnInteger32;
-alias ULONG AsnUnsigned32, AsnCounter32, AsnGauge32, AsnTimeticks;
-alias ULARGE_INTEGER AsnCounter64;
+alias SNMPAPI = INT;
+alias AsnInteger32 = LONG;
+alias AsnUnsigned32 = ULONG, AsnCounter32 = ULONG, AsnGauge32 = ULONG, AsnTimeticks = ULONG;
+alias AsnCounter64 = ULARGE_INTEGER;
 
 align (4):
 
@@ -158,15 +158,14 @@ align (4):
     UINT  length;
     BOOL  dynamic;
 }
-alias AsnOctetString AsnBits, AsnSequence, AsnImplicitSequence,
-  AsnIPAddress, AsnNetworkAddress, AsnDisplayString, AsnOpaque;
+alias AsnBits = AsnOctetString, AsnSequence = AsnOctetString, AsnImplicitSequence = AsnOctetString, AsnIPAddress = AsnOctetString, AsnNetworkAddress = AsnOctetString, AsnDisplayString = AsnOctetString, AsnOpaque = AsnOctetString;
 
 struct AsnObjectIdentifier {
 align (4):
     UINT  idLength;
     UINT* ids;
 }
-alias AsnObjectIdentifier AsnObjectName;
+alias AsnObjectName = AsnObjectIdentifier;
 
 struct AsnAny {
 align (4):
@@ -187,7 +186,7 @@ align (4):
     }
     _asnValue asnValue;
 }
-alias AsnAny AsnObjectSyntax;
+alias AsnObjectSyntax = AsnAny;
 
 struct SnmpVarBind {
 align (4):
@@ -240,37 +239,37 @@ extern (Windows) {
     VOID SnmpUtilVarBindListFree(SnmpVarBindList*);
 }
 
-alias SnmpUtilMemAlloc SNMP_malloc;
-alias SnmpUtilMemFree SNMP_free;
-alias SnmpUtilMemReAlloc SNMP_realloc;
-alias SnmpUtilMemAlloc SNMP_DBG_malloc;
-alias SnmpUtilMemFree SNMP_DBG_free;
-alias SnmpUtilMemReAlloc SNMP_DBG_realloc;
-alias SnmpUtilOidAppend SNMP_oidappend;
-alias SnmpUtilOidCmp SNMP_oidcmp;
-alias SnmpUtilOidCpy SNMP_oidcpy;
-alias SnmpUtilOidFree SNMP_oidfree;
-alias SnmpUtilOidNCmp SNMP_oidncmp;
-alias SnmpUtilPrintAsnAny SNMP_printany;
-alias SnmpUtilVarBindCpy SNMP_CopyVarBind;
-alias SnmpUtilVarBindListCpy SNMP_CopyVarBindList;
-alias SnmpUtilVarBindFree SNMP_FreeVarBind;
-alias SnmpUtilVarBindListFree SNMP_FreeVarBindList;
-alias ASN_IPADDRESS ASN_RFC1155_IPADDRESS;
-alias ASN_COUNTER32 ASN_RFC1155_COUNTER;
-alias ASN_GAUGE32 ASN_RFC1155_GAUGE;
-alias ASN_TIMETICKS ASN_RFC1155_TIMETICKS;
-alias ASN_OPAQUE ASN_RFC1155_OPAQUE;
-alias ASN_OCTETSTRING ASN_RFC1213_DISPSTRING;
-alias SNMP_PDU_GET ASN_RFC1157_GETREQUEST;
-alias SNMP_PDU_GETNEXT ASN_RFC1157_GETNEXTREQUEST;
-alias SNMP_PDU_RESPONSE ASN_RFC1157_GETRESPONSE;
-alias SNMP_PDU_SET ASN_RFC1157_SETREQUEST;
-alias SNMP_PDU_V1TRAP ASN_RFC1157_TRAP;
-alias ASN_CONTEXT ASN_CONTEXTSPECIFIC;
-alias ASN_PRIMITIVE ASN_PRIMATIVE;
-alias SnmpVarBindList RFC1157VarBindList;
-alias SnmpVarBind RFC1157VarBind;
-alias AsnInteger32 AsnInteger;
-alias AsnCounter32 AsnCounter;
-alias AsnGauge32 AsnGauge;
+alias SNMP_malloc = SnmpUtilMemAlloc;
+alias SNMP_free = SnmpUtilMemFree;
+alias SNMP_realloc = SnmpUtilMemReAlloc;
+alias SNMP_DBG_malloc = SnmpUtilMemAlloc;
+alias SNMP_DBG_free = SnmpUtilMemFree;
+alias SNMP_DBG_realloc = SnmpUtilMemReAlloc;
+alias SNMP_oidappend = SnmpUtilOidAppend;
+alias SNMP_oidcmp = SnmpUtilOidCmp;
+alias SNMP_oidcpy = SnmpUtilOidCpy;
+alias SNMP_oidfree = SnmpUtilOidFree;
+alias SNMP_oidncmp = SnmpUtilOidNCmp;
+alias SNMP_printany = SnmpUtilPrintAsnAny;
+alias SNMP_CopyVarBind = SnmpUtilVarBindCpy;
+alias SNMP_CopyVarBindList = SnmpUtilVarBindListCpy;
+alias SNMP_FreeVarBind = SnmpUtilVarBindFree;
+alias SNMP_FreeVarBindList = SnmpUtilVarBindListFree;
+alias ASN_RFC1155_IPADDRESS = ASN_IPADDRESS;
+alias ASN_RFC1155_COUNTER = ASN_COUNTER32;
+alias ASN_RFC1155_GAUGE = ASN_GAUGE32;
+alias ASN_RFC1155_TIMETICKS = ASN_TIMETICKS;
+alias ASN_RFC1155_OPAQUE = ASN_OPAQUE;
+alias ASN_RFC1213_DISPSTRING = ASN_OCTETSTRING;
+alias ASN_RFC1157_GETREQUEST = SNMP_PDU_GET;
+alias ASN_RFC1157_GETNEXTREQUEST = SNMP_PDU_GETNEXT;
+alias ASN_RFC1157_GETRESPONSE = SNMP_PDU_RESPONSE;
+alias ASN_RFC1157_SETREQUEST = SNMP_PDU_SET;
+alias ASN_RFC1157_TRAP = SNMP_PDU_V1TRAP;
+alias ASN_CONTEXTSPECIFIC = ASN_CONTEXT;
+alias ASN_PRIMATIVE = ASN_PRIMITIVE;
+alias RFC1157VarBindList = SnmpVarBindList;
+alias RFC1157VarBind = SnmpVarBind;
+alias AsnInteger = AsnInteger32;
+alias AsnCounter = AsnCounter32;
+alias AsnGauge = AsnGauge32;

@@ -74,10 +74,10 @@ version (CRuntime_Glibc) {
     static if ( __USE_FILE_OFFSET64 )
     {
         int statvfs64 (const char * file, statvfs_t* buf);
-        alias statvfs64 statvfs;
+        alias statvfs = statvfs64;
 
         int fstatvfs64 (int fildes, statvfs_t *buf) @trusted;
-        alias fstatvfs64 fstatvfs;
+        alias fstatvfs = fstatvfs64;
     }
     else
     {

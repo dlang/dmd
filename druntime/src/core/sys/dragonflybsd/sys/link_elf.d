@@ -44,7 +44,7 @@ struct link_map
     void*           l_ld;
     link_map*       l_next, l_prev;
 }
-alias link_map Link_map;
+alias Link_map = link_map;
 
 enum
 {
@@ -73,8 +73,8 @@ struct dl_phdr_info
 }
 
 
-private alias int function(dl_phdr_info*, size_t, void *) dl_iterate_phdr_cb;
-private alias int function(dl_phdr_info*, size_t, void *) @nogc dl_iterate_phdr_cb_ngc;
+private alias dl_iterate_phdr_cb = int function(dl_phdr_info*, size_t, void *);
+private alias dl_iterate_phdr_cb_ngc = int function(dl_phdr_info*, size_t, void *) @nogc;
 
 int dl_iterate_phdr(dl_iterate_phdr_cb __callback, void*__data);
 int dl_iterate_phdr(dl_iterate_phdr_cb_ngc __callback, void*__data) @nogc;

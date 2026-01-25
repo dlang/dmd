@@ -115,21 +115,21 @@ version (CRuntime_Glibc)
     static if ( __USE_FILE_OFFSET64 )
     {
         int   fgetpos64(FILE*, fpos_t *);
-        alias fgetpos64 fgetpos;
+        alias fgetpos = fgetpos64;
 
         FILE* fopen64(const scope char*, const scope char*);
-        alias fopen64 fopen;
+        alias fopen = fopen64;
 
         FILE* freopen64(const scope char*, const scope char*, FILE*);
-        alias freopen64 freopen;
+        alias freopen = freopen64;
 
         int   fseek(FILE*, c_long, int);
 
         int   fsetpos64(FILE*, const scope fpos_t*);
-        alias fsetpos64 fsetpos;
+        alias fsetpos = fsetpos64;
 
         FILE* tmpfile64();
-        alias tmpfile64 tmpfile;
+        alias tmpfile = tmpfile64;
     }
     else
     {
@@ -154,21 +154,21 @@ else version (CRuntime_UClibc)
     static if ( __USE_FILE_OFFSET64 )
     {
         int   fgetpos64(FILE*, fpos_t *);
-        alias fgetpos64 fgetpos;
+        alias fgetpos = fgetpos64;
 
         FILE* fopen64(const scope char*, const scope char*);
-        alias fopen64 fopen;
+        alias fopen = fopen64;
 
         FILE* freopen64(const scope char*, const scope char*, FILE*);
-        alias freopen64 freopen;
+        alias freopen = freopen64;
 
         int   fseek(FILE*, c_long, int);
 
         int   fsetpos64(FILE*, const scope fpos_t*);
-        alias fsetpos64 fsetpos;
+        alias fsetpos = fsetpos64;
 
         FILE* tmpfile64();
-        alias tmpfile64 tmpfile;
+        alias tmpfile = tmpfile64;
     }
     else
     {
@@ -256,7 +256,7 @@ version (CRuntime_Glibc)
     static if ( __USE_FILE_OFFSET64 )
     {
         int   fseeko64(FILE*, off_t, int);
-        alias fseeko64 fseeko;
+        alias fseeko = fseeko64;
     }
     else
     {
@@ -266,7 +266,7 @@ version (CRuntime_Glibc)
     static if ( __USE_FILE_OFFSET64 )
     {
         off_t ftello64(FILE*);
-        alias ftello64 ftello;
+        alias ftello = ftello64;
     }
     else
     {
@@ -285,7 +285,7 @@ else version (CRuntime_UClibc)
     static if ( __USE_FILE_OFFSET64 )
     {
         int   fseeko64(FILE*, off_t, int);
-        alias fseeko64 fseeko;
+        alias fseeko = fseeko64;
     }
     else
     {
@@ -295,7 +295,7 @@ else version (CRuntime_UClibc)
     static if ( __USE_FILE_OFFSET64 )
     {
         off_t ftello64(FILE*);
-        alias ftello64 ftello;
+        alias ftello = ftello64;
     }
     else
     {
@@ -330,7 +330,7 @@ else version (CRuntime_Bionic)
     static if ( __USE_FILE_OFFSET64 )
     {
         int   fseeko64(FILE*, off_t, int);
-        alias fseeko64 fseeko;
+        alias fseeko = fseeko64;
     }
     else
     {
@@ -340,7 +340,7 @@ else version (CRuntime_Bionic)
     static if ( __USE_FILE_OFFSET64 )
     {
         off_t ftello64(FILE*);
-        alias ftello64 ftello;
+        alias ftello = ftello64;
     }
     else
     {

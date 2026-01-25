@@ -1041,8 +1041,8 @@ if (func.length == 1 /*&& isCallable!func*/)
     static assert(is( typeof(test) == FunctionTypeOf!test ));
     static assert(is( typeof(test) == FunctionTypeOf!test_fp ));
     static assert(is( typeof(test) == FunctionTypeOf!test_dg ));
-    alias int GetterType() @property;
-    alias int SetterType(int) @property;
+    alias GetterType = int() @property;
+    alias SetterType = int(int) @property;
     static assert(is( FunctionTypeOf!propGet == GetterType ));
     static assert(is( FunctionTypeOf!propSet == SetterType ));
 

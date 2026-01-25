@@ -19,7 +19,7 @@ deprecated {
         LPWSTR cfgi0_data;
     }
 
-    alias CONFIG_INFO_0* PCONFIG_INFO_0, LPCONFIG_INFO_0;
+    alias PCONFIG_INFO_0 = CONFIG_INFO_0*, LPCONFIG_INFO_0 = CONFIG_INFO_0*;
 
     extern (Windows) {
         NET_API_STATUS NetConfigGet(LPCWSTR, LPCWSTR, LPCWSTR, PBYTE*);

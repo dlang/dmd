@@ -21,17 +21,17 @@ version (X86_64) version = X86_Any;
 
 extern (C):
 
-alias uintptr_t _Unwind_Word;
-alias intptr_t _Unwind_Sword;
-alias uintptr_t _Unwind_Ptr;
-alias uintptr_t _Unwind_Internal_Ptr;
+alias _Unwind_Word = uintptr_t;
+alias _Unwind_Sword = intptr_t;
+alias _Unwind_Ptr = uintptr_t;
+alias _Unwind_Internal_Ptr = uintptr_t;
 
-alias ulong _Unwind_Exception_Class;
+alias _Unwind_Exception_Class = ulong;
 
-alias uintptr_t _uleb128_t;
-alias intptr_t _sleb128_t;
+alias _uleb128_t = uintptr_t;
+alias _sleb128_t = intptr_t;
 
-alias int _Unwind_Reason_Code;
+alias _Unwind_Reason_Code = int;
 enum
 {
     _URC_NO_REASON = 0,
@@ -47,7 +47,7 @@ enum
 version (ARM_EABI_UNWINDER)
     enum _URC_FAILURE = 9;
 
-alias int _Unwind_Action;
+alias _Unwind_Action = int;
 enum _Unwind_Action _UA_SEARCH_PHASE  = 1;
 enum _Unwind_Action _UA_CLEANUP_PHASE = 2;
 enum _Unwind_Action _UA_HANDLER_FRAME = 4;

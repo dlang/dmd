@@ -36,7 +36,7 @@ extern(C) {
 
 private
 {
-    alias bool function(Object) CollectHandler;
+    alias CollectHandler = bool function(Object);
     __gshared CollectHandler collectHandler = null;
 
     extern (C) void _d_monitordelete(Object h, bool det);
@@ -153,7 +153,7 @@ extern (C) void _d_delinterface(void** p)
 
 
 // used for deletion
-private extern (D) alias void function (Object) fp_t;
+private extern (D) alias fp_t = void function (Object);
 
 
 /**

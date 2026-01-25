@@ -13,10 +13,10 @@ extern (C):
 import core.stdc.stdint;
 public import core.sys.dragonflybsd.sys.elf_common;
 
-alias uint64_t Elf32_Lword;
-alias Elf32_Word Elf32_Hashelt;
-alias Elf32_Word Elf32_Size;
-alias Elf32_Sword Elf32_Ssize;
+alias Elf32_Lword = uint64_t;
+alias Elf32_Hashelt = Elf32_Word;
+alias Elf32_Size = Elf32_Word;
+alias Elf32_Ssize = Elf32_Sword;
 
 struct Elf32_Dyn
 {
@@ -28,7 +28,7 @@ struct Elf32_Dyn
   } _d_un d_un;
 }
 
-alias Elf_Note Elf32_Nhdr;
+alias Elf32_Nhdr = Elf_Note;
 
 struct Elf32_Cap
 {

@@ -23,8 +23,8 @@ public import core.sys.windows.rpcnsi;
 public import core.sys.windows.rpcnterr;
 public import core.sys.windows.winerror;
 
-alias MIDL_user_allocate midl_user_allocate;
-alias MIDL_user_free midl_user_free;
+alias midl_user_allocate = MIDL_user_allocate;
+alias midl_user_free = MIDL_user_free;
 
 extern (Windows) nothrow @nogc {
     int I_RpcMapWin32Status(RPC_STATUS);

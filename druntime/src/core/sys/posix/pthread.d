@@ -473,8 +473,8 @@ int pthread_atfork(void function(), void function(), void function());
     int pthread_cancel(pthread_t);
 }
 
-alias void function(void*) _pthread_cleanup_routine;
-alias void function(void*) @nogc _pthread_cleanup_routine_nogc;
+alias _pthread_cleanup_routine = void function(void*);
+alias _pthread_cleanup_routine_nogc = void function(void*) @nogc;
 version (CRuntime_Glibc)
 {
     struct _pthread_cleanup_buffer

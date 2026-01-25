@@ -39,9 +39,9 @@ struct tm
 }
 
 ///
-alias c_long time_t;
+alias time_t = c_long;
 ///
-alias c_long clock_t;
+alias clock_t = c_long;
 
 enum clock_t CLOCKS_PER_SEC = 1000;
 clock_t clock();

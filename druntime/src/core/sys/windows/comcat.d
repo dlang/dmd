@@ -14,7 +14,7 @@ import core.sys.windows.ole2;
 import core.sys.windows.basetyps, core.sys.windows.cguid, core.sys.windows.objbase, core.sys.windows.unknwn,
   core.sys.windows.windef, core.sys.windows.wtypes;
 
-alias IEnumGUID LPENUMGUID;
+alias LPENUMGUID = IEnumGUID;
 
 interface IEnumGUID : IUnknown {
     HRESULT Next(ULONG, GUID*, ULONG*);
@@ -23,25 +23,25 @@ interface IEnumGUID : IUnknown {
     HRESULT Clone(LPENUMGUID*);
 }
 
-alias GUID CATID;
-alias REFGUID REFCATID;
-alias GUID_NULL CATID_NULL;
-alias IsEqualGUID IsEqualCATID;
+alias CATID = GUID;
+alias REFCATID = REFGUID;
+alias CATID_NULL = GUID_NULL;
+alias IsEqualCATID = IsEqualGUID;
 
 struct CATEGORYINFO {
     CATID        catid;
     LCID         lcid;
     OLECHAR[128] szDescription = 0;
 }
-alias CATEGORYINFO* LPCATEGORYINFO;
+alias LPCATEGORYINFO = CATEGORYINFO*;
 
-alias IEnumGUID IEnumCATID;
-alias LPENUMGUID LPENUMCATID;
-alias IID_IEnumGUID IID_IEnumCATID;
+alias IEnumCATID = IEnumGUID;
+alias LPENUMCATID = LPENUMGUID;
+alias IID_IEnumCATID = IID_IEnumGUID;
 
-alias IEnumGUID IEnumCLSID;
-alias LPENUMGUID LPENUMCLSID;
-alias IID_IEnumGUID IID_IEnumCLSID;
+alias IEnumCLSID = IEnumGUID;
+alias LPENUMCLSID = LPENUMGUID;
+alias IID_IEnumCLSID = IID_IEnumGUID;
 
 interface ICatInformation : IUnknown {
     HRESULT EnumCategories(LCID, LPENUMCATEGORYINFO*);
@@ -52,7 +52,7 @@ interface ICatInformation : IUnknown {
     HRESULT EnumImplCategoriesOfClass(REFCLSID, LPENUMCATID*);
     HRESULT EnumReqCategoriesOfClass(REFCLSID, LPENUMCATID*);
 }
-alias ICatInformation LPCATINFORMATION;
+alias LPCATINFORMATION = ICatInformation;
 
 interface ICatRegister : IUnknown {
     HRESULT RegisterCategories(ULONG, CATEGORYINFO*);
@@ -62,7 +62,7 @@ interface ICatRegister : IUnknown {
     HRESULT RegisterClassReqCategories(REFCLSID, ULONG, CATID*);
     HRESULT UnRegisterClassReqCategories(REFCLSID, ULONG, CATID*);
 }
-alias ICatRegister LPCATREGISTER;
+alias LPCATREGISTER = ICatRegister;
 
 interface IEnumCATEGORYINFO : IUnknown {
     HRESULT Next(ULONG, CATEGORYINFO*, ULONG*);
@@ -70,4 +70,4 @@ interface IEnumCATEGORYINFO : IUnknown {
     HRESULT Reset();
     HRESULT Clone(LPENUMCATEGORYINFO*);
 }
-alias IEnumCATEGORYINFO LPENUMCATEGORYINFO;
+alias LPENUMCATEGORYINFO = IEnumCATEGORYINFO;

@@ -53,9 +53,9 @@ else version (CRuntime_Bionic)
 else
 {
     ///
-    alias wchar_t wctrans_t;
+    alias wctrans_t = wchar_t;
     ///
-    alias wchar_t wctype_t;
+    alias wctype_t = wchar_t;
 }
 
 ///

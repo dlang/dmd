@@ -54,7 +54,7 @@ version (CRuntime_Glibc)
 {
     private
     {
-        alias c_long __fd_mask;
+        alias __fd_mask = c_long;
         enum uint __NFDBITS = 8 * __fd_mask.sizeof;
 
         extern (D) auto __FDELT()( int d ) pure
@@ -175,7 +175,7 @@ else version (FreeBSD)
 {
     private
     {
-        alias c_ulong __fd_mask;
+        alias __fd_mask = c_ulong;
         enum _NFDBITS = __fd_mask.sizeof * 8;
     }
 
@@ -225,7 +225,7 @@ else version (NetBSD)
 {
     private
     {
-        alias c_ulong __fd_mask;
+        alias __fd_mask = c_ulong;
         enum _NFDBITS = __fd_mask.sizeof * 8;
     }
 
@@ -275,7 +275,7 @@ else version (OpenBSD)
 {
     private
     {
-        alias uint __fd_mask;
+        alias __fd_mask = uint;
         enum _NFDBITS = __fd_mask.sizeof * 8;
     }
 
@@ -323,7 +323,7 @@ else version (DragonFlyBSD)
 {
     private
     {
-        alias c_ulong __fd_mask;
+        alias __fd_mask = c_ulong;
         enum _NFDBITS = __fd_mask.sizeof * 8;
     }
 
@@ -373,7 +373,7 @@ else version (Solaris)
 {
     private
     {
-        alias c_long fds_mask;
+        alias fds_mask = c_long;
 
         enum _NBBY = 8;
         enum FD_NFDBITS = fds_mask.sizeof * _NBBY;
@@ -416,7 +416,7 @@ else version (CRuntime_Bionic)
 {
     private
     {
-        alias c_ulong __fd_mask;
+        alias __fd_mask = c_ulong;
         enum uint __NFDBITS = 8 * __fd_mask.sizeof;
 
         extern (D) auto __FDELT()( int d ) pure
@@ -465,7 +465,7 @@ else version (CRuntime_Musl)
 {
     enum FD_SETSIZE = 1024;
 
-    alias ulong fd_mask;
+    alias fd_mask = ulong;
 
     private
     {
@@ -514,7 +514,7 @@ else version (CRuntime_UClibc)
 {
     private
     {
-        alias c_long __fd_mask;
+        alias __fd_mask = c_long;
         enum uint __NFDBITS = 8 * __fd_mask.sizeof;
 
         extern (D) auto __FDELT()( int d ) pure

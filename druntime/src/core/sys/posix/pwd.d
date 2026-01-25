@@ -230,9 +230,9 @@ else version (FreeBSD)
 else version (NetBSD)
 {
     int __getpwnam_r50(const scope char*, passwd*, char*, size_t, passwd**);
-    alias __getpwnam_r50 getpwnam_r;
+    alias getpwnam_r = __getpwnam_r50;
     int __getpwuid_r50(uid_t, passwd*, char*, size_t, passwd**);
-    alias __getpwuid_r50 getpwuid_r;
+    alias getpwuid_r = __getpwuid_r50;
 }
 else version (OpenBSD)
 {

@@ -163,7 +163,7 @@ enum : DWORD {
     DICS_FLAG_CONFIGGENERAL  = 4
 }
 
-alias UINT DI_FUNCTION;
+alias DI_FUNCTION = UINT;
 
 enum : DI_FUNCTION {
     DIF_SELECTDEVICE = 1,
@@ -566,7 +566,7 @@ enum : DWORD {
     INFINFO_INF_PATH_LIST_SEARCH // = 5
 }
 
-alias DWORD LogSeverity;
+alias LogSeverity = DWORD;
 enum : LogSeverity {
     LogSevInformation,
     LogSevWarning,
@@ -856,11 +856,11 @@ enum : DWORD {
     SRCLIST_NOSTRIPPLATFORM = 0x00000400
 }
 
-alias PVOID HINF;
-alias PVOID HDSKSPC;
+alias HINF = PVOID;
+alias HDSKSPC = PVOID;
 alias HDEVINFO = HANDLE;
-alias PVOID HSPFILEQ;
-alias PVOID HSPFILELOG;
+alias HSPFILEQ = PVOID;
+alias HSPFILELOG = PVOID;
 
 enum SetupFileLogInfo {
     SetupFileLogSourceFilename,
@@ -882,7 +882,7 @@ struct INFCONTEXT {
     UINT  Section;
     UINT  Line;
 }
-alias INFCONTEXT* PINFCONTEXT;
+alias PINFCONTEXT = INFCONTEXT*;
 
 mixin AlignedStr!(_alignVal, "SP_INF_INFORMATION", q{
     DWORD InfStyle;
@@ -890,7 +890,7 @@ mixin AlignedStr!(_alignVal, "SP_INF_INFORMATION", q{
     BYTE[1] _VersionData;
     BYTE* VersionData() return { return _VersionData.ptr; }
 });
-alias SP_INF_INFORMATION* PSP_INF_INFORMATION;
+alias PSP_INF_INFORMATION = SP_INF_INFORMATION*;
 
 struct SP_ALTPLATFORM_INFO {
     DWORD cbSize = SP_ALTPLATFORM_INFO.sizeof;
@@ -900,21 +900,21 @@ struct SP_ALTPLATFORM_INFO {
     WORD  ProcessorArchitecture;
     WORD  Reserved;
 }
-alias SP_ALTPLATFORM_INFO* PSP_ALTPLATFORM_INFO;
+alias PSP_ALTPLATFORM_INFO = SP_ALTPLATFORM_INFO*;
 
 struct SP_ORIGINAL_FILE_INFO_A {
     DWORD cbSize = SP_ORIGINAL_FILE_INFO_A.sizeof;
     CHAR[MAX_PATH] OriginalInfName = 0;
     CHAR[MAX_PATH] OriginalCatalogName = 0;
 }
-alias SP_ORIGINAL_FILE_INFO_A* PSP_ORIGINAL_FILE_INFO_A;
+alias PSP_ORIGINAL_FILE_INFO_A = SP_ORIGINAL_FILE_INFO_A*;
 
 struct SP_ORIGINAL_FILE_INFO_W {
     DWORD cbSize = SP_ORIGINAL_FILE_INFO_W.sizeof;
     WCHAR[MAX_PATH] OriginalInfName = 0;
     WCHAR[MAX_PATH] OriginalCatalogName = 0;
 }
-alias SP_ORIGINAL_FILE_INFO_W* PSP_ORIGINAL_FILE_INFO_W;
+alias PSP_ORIGINAL_FILE_INFO_W = SP_ORIGINAL_FILE_INFO_W*;
 
 struct FILEPATHS_A {
     PCSTR Target;
@@ -922,7 +922,7 @@ struct FILEPATHS_A {
     UINT  Win32Error;
     DWORD Flags;
 }
-alias FILEPATHS_A* PFILEPATHS_A;
+alias PFILEPATHS_A = FILEPATHS_A*;
 
 struct FILEPATHS_W {
     PCWSTR Target;
@@ -930,7 +930,7 @@ struct FILEPATHS_W {
     UINT   Win32Error;
     DWORD  Flags;
 }
-alias FILEPATHS_W* PFILEPATHS_W;
+alias PFILEPATHS_W = FILEPATHS_W*;
 
 struct SOURCE_MEDIA_A {
     PCSTR Reserved;
@@ -940,7 +940,7 @@ struct SOURCE_MEDIA_A {
     PCSTR SourceFile;
     DWORD Flags;
 }
-alias SOURCE_MEDIA_A* PSOURCE_MEDIA_A;
+alias PSOURCE_MEDIA_A = SOURCE_MEDIA_A*;
 
 struct SOURCE_MEDIA_W {
     PCWSTR Reserved;
@@ -950,7 +950,7 @@ struct SOURCE_MEDIA_W {
     PCWSTR SourceFile;
     DWORD  Flags;
 }
-alias SOURCE_MEDIA_W* PSOURCE_MEDIA_W;
+alias PSOURCE_MEDIA_W = SOURCE_MEDIA_W*;
 
 struct CABINET_INFO_A {
     PCSTR  CabinetPath;
@@ -959,7 +959,7 @@ struct CABINET_INFO_A {
     USHORT SetId;
     USHORT CabinetNumber;
 }
-alias CABINET_INFO_A* PCABINET_INFO_A;
+alias PCABINET_INFO_A = CABINET_INFO_A*;
 
 struct CABINET_INFO_W {
     PCWSTR CabinetPath;
@@ -968,7 +968,7 @@ struct CABINET_INFO_W {
     USHORT SetId;
     USHORT CabinetNumber;
 }
-alias CABINET_INFO_W* PCABINET_INFO_W;
+alias PCABINET_INFO_W = CABINET_INFO_W*;
 
 mixin AlignedStr!(_alignVal, "FILE_IN_CABINET_INFO_A", q{
     PCSTR NameInCabinet;
@@ -979,7 +979,7 @@ mixin AlignedStr!(_alignVal, "FILE_IN_CABINET_INFO_A", q{
     WORD  DosAttribs;
     CHAR[MAX_PATH] FullTargetName = 0;
 });
-alias FILE_IN_CABINET_INFO_A* PFILE_IN_CABINET_INFO_A;
+alias PFILE_IN_CABINET_INFO_A = FILE_IN_CABINET_INFO_A*;
 
 mixin AlignedStr!(_alignVal, "FILE_IN_CABINET_INFO_W", q{
     PCWSTR NameInCabinet;
@@ -990,7 +990,7 @@ mixin AlignedStr!(_alignVal, "FILE_IN_CABINET_INFO_W", q{
     WORD   DosAttribs;
     WCHAR[MAX_PATH] FullTargetName = 0;
 });
-alias FILE_IN_CABINET_INFO_W* PFILE_IN_CABINET_INFO_W;
+alias PFILE_IN_CABINET_INFO_W = FILE_IN_CABINET_INFO_W*;
 
 struct SP_FILE_COPY_PARAMS_A {
     DWORD    cbSize = SP_FILE_COPY_PARAMS_A.sizeof;
@@ -1006,7 +1006,7 @@ struct SP_FILE_COPY_PARAMS_A {
     HINF     LayoutInf;
     PCSTR    SecurityDescriptor;
 }
-alias SP_FILE_COPY_PARAMS_A* PSP_FILE_COPY_PARAMS_A;
+alias PSP_FILE_COPY_PARAMS_A = SP_FILE_COPY_PARAMS_A*;
 
 struct SP_FILE_COPY_PARAMS_W {
     DWORD    cbSize = SP_FILE_COPY_PARAMS_W.sizeof;
@@ -1022,7 +1022,7 @@ struct SP_FILE_COPY_PARAMS_W {
     HINF     LayoutInf;
     PCWSTR   SecurityDescriptor;
 }
-alias SP_FILE_COPY_PARAMS_W* PSP_FILE_COPY_PARAMS_W;
+alias PSP_FILE_COPY_PARAMS_W = SP_FILE_COPY_PARAMS_W*;
 
 struct SP_DEVINFO_DATA {
     DWORD     cbSize = SP_DEVINFO_DATA.sizeof;
@@ -1030,7 +1030,7 @@ struct SP_DEVINFO_DATA {
     DWORD     DevInst;
     ULONG_PTR Reserved;
 }
-alias SP_DEVINFO_DATA* PSP_DEVINFO_DATA;
+alias PSP_DEVINFO_DATA = SP_DEVINFO_DATA*;
 
 mixin AlignedStr!(_alignVal, "SP_DEVICE_INTERFACE_DATA", q{
     DWORD     cbSize = SP_DEVICE_INTERFACE_DATA.sizeof;
@@ -1038,28 +1038,28 @@ mixin AlignedStr!(_alignVal, "SP_DEVICE_INTERFACE_DATA", q{
     DWORD     Flags;
     ULONG_PTR Reserved;
 });
-alias SP_DEVICE_INTERFACE_DATA* PSP_DEVICE_INTERFACE_DATA;
-deprecated alias SP_DEVICE_INTERFACE_DATA SP_INTERFACE_DEVICE_DATA;
-deprecated alias SP_DEVICE_INTERFACE_DATA* PSP_INTERFACE_DEVICE_DATA;
+alias PSP_DEVICE_INTERFACE_DATA = SP_DEVICE_INTERFACE_DATA*;
+deprecated alias SP_INTERFACE_DEVICE_DATA = SP_DEVICE_INTERFACE_DATA;
+deprecated alias PSP_INTERFACE_DEVICE_DATA = SP_DEVICE_INTERFACE_DATA*;
 
 mixin AlignedStr!(_alignVal, "SP_DEVICE_INTERFACE_DETAIL_DATA_A", q{
     DWORD cbSize = SP_DEVICE_INTERFACE_DETAIL_DATA_A.sizeof;
     CHAR[1] _DevicePath = 0;
     CHAR* DevicePath() return { return _DevicePath.ptr; }
 });
-alias SP_DEVICE_INTERFACE_DETAIL_DATA_A* PSP_DEVICE_INTERFACE_DETAIL_DATA_A;
+alias PSP_DEVICE_INTERFACE_DETAIL_DATA_A = SP_DEVICE_INTERFACE_DETAIL_DATA_A*;
 
 mixin AlignedStr!(_alignVal, "SP_DEVICE_INTERFACE_DETAIL_DATA_W", q{
     DWORD  cbSize = SP_DEVICE_INTERFACE_DETAIL_DATA_W.sizeof;
     WCHAR[1] _DevicePath = 0;
     WCHAR* DevicePath() return { return _DevicePath.ptr; }
 });
-alias SP_DEVICE_INTERFACE_DETAIL_DATA_W* PSP_DEVICE_INTERFACE_DETAIL_DATA_W;
+alias PSP_DEVICE_INTERFACE_DETAIL_DATA_W = SP_DEVICE_INTERFACE_DETAIL_DATA_W*;
 
-deprecated alias SP_DEVICE_INTERFACE_DETAIL_DATA_A SP_INTERFACE_DEVICE_DETAIL_DATA_A;
-deprecated alias SP_DEVICE_INTERFACE_DETAIL_DATA_A* PSP_INTERFACE_DEVICE_DETAIL_DATA_A;
-deprecated alias SP_DEVICE_INTERFACE_DETAIL_DATA_W SP_INTERFACE_DEVICE_DETAIL_DATA_W;
-deprecated alias SP_DEVICE_INTERFACE_DETAIL_DATA_W* PSP_INTERFACE_DEVICE_DETAIL_DATA_W;
+deprecated alias SP_INTERFACE_DEVICE_DETAIL_DATA_A = SP_DEVICE_INTERFACE_DETAIL_DATA_A;
+deprecated alias PSP_INTERFACE_DEVICE_DETAIL_DATA_A = SP_DEVICE_INTERFACE_DETAIL_DATA_A*;
+deprecated alias SP_INTERFACE_DEVICE_DETAIL_DATA_W = SP_DEVICE_INTERFACE_DETAIL_DATA_W;
+deprecated alias PSP_INTERFACE_DEVICE_DETAIL_DATA_W = SP_DEVICE_INTERFACE_DETAIL_DATA_W*;
 
 mixin AlignedStr!(_alignVal, "SP_DEVINFO_LIST_DETAIL_DATA_A", q{
     DWORD  cbSize = SP_DEVINFO_LIST_DETAIL_DATA_A.sizeof;
@@ -1067,7 +1067,7 @@ mixin AlignedStr!(_alignVal, "SP_DEVINFO_LIST_DETAIL_DATA_A", q{
     HANDLE RemoteMachineHandle;
     CHAR[SP_MAX_MACHINENAME_LENGTH] RemoteMachineName = 0;
 });
-alias SP_DEVINFO_LIST_DETAIL_DATA_A* PSP_DEVINFO_LIST_DETAIL_DATA_A;
+alias PSP_DEVINFO_LIST_DETAIL_DATA_A = SP_DEVINFO_LIST_DETAIL_DATA_A*;
 
 mixin AlignedStr!(_alignVal, "SP_DEVINFO_LIST_DETAIL_DATA_W", q{
     DWORD  cbSize = SP_DEVINFO_LIST_DETAIL_DATA_W.sizeof;
@@ -1075,10 +1075,10 @@ mixin AlignedStr!(_alignVal, "SP_DEVINFO_LIST_DETAIL_DATA_W", q{
     HANDLE RemoteMachineHandle;
     WCHAR[SP_MAX_MACHINENAME_LENGTH] RemoteMachineName = 0;
 });
-alias SP_DEVINFO_LIST_DETAIL_DATA_W* PSP_DEVINFO_LIST_DETAIL_DATA_W;
+alias PSP_DEVINFO_LIST_DETAIL_DATA_W = SP_DEVINFO_LIST_DETAIL_DATA_W*;
 
-extern(Windows) alias UINT function(PVOID, UINT, UINT_PTR, UINT_PTR) PSP_FILE_CALLBACK_A;
-extern(Windows) alias UINT function(PVOID, UINT, UINT_PTR, UINT_PTR) PSP_FILE_CALLBACK_W;
+extern(Windows) alias PSP_FILE_CALLBACK_A = UINT function(PVOID, UINT, UINT_PTR, UINT_PTR);
+extern(Windows) alias PSP_FILE_CALLBACK_W = UINT function(PVOID, UINT, UINT_PTR, UINT_PTR);
 
 struct SP_DEVINSTALL_PARAMS_A {
     DWORD               cbSize = SP_DEVINSTALL_PARAMS_A.sizeof;
@@ -1092,7 +1092,7 @@ struct SP_DEVINSTALL_PARAMS_A {
     DWORD               Reserved;
     CHAR[MAX_PATH]      DriverPath = 0;
 }
-alias SP_DEVINSTALL_PARAMS_A* PSP_DEVINSTALL_PARAMS_A;
+alias PSP_DEVINSTALL_PARAMS_A = SP_DEVINSTALL_PARAMS_A*;
 
 struct SP_DEVINSTALL_PARAMS_W {
     DWORD               cbSize = SP_DEVINSTALL_PARAMS_W.sizeof;
@@ -1106,26 +1106,26 @@ struct SP_DEVINSTALL_PARAMS_W {
     DWORD               Reserved;
     WCHAR[MAX_PATH]     DriverPath = 0;
 }
-alias SP_DEVINSTALL_PARAMS_W* PSP_DEVINSTALL_PARAMS_W;
+alias PSP_DEVINSTALL_PARAMS_W = SP_DEVINSTALL_PARAMS_W*;
 
 struct SP_CLASSINSTALL_HEADER {
     DWORD       cbSize = SP_CLASSINSTALL_HEADER.sizeof;
     DI_FUNCTION InstallFunction;
 }
-alias SP_CLASSINSTALL_HEADER* PSP_CLASSINSTALL_HEADER;
+alias PSP_CLASSINSTALL_HEADER = SP_CLASSINSTALL_HEADER*;
 
 struct SP_ENABLECLASS_PARAMS {
     SP_CLASSINSTALL_HEADER ClassInstallHeader;
     GUID                   ClassGuid;
     DWORD                  EnableMessage;
 }
-alias SP_ENABLECLASS_PARAMS* PSP_ENABLECLASS_PARAMS;
+alias PSP_ENABLECLASS_PARAMS = SP_ENABLECLASS_PARAMS*;
 
 struct SP_MOVEDEV_PARAMS {
     SP_CLASSINSTALL_HEADER ClassInstallHeader;
     SP_DEVINFO_DATA        SourceDeviceInfoData;
 }
-alias SP_MOVEDEV_PARAMS* PSP_MOVEDEV_PARAMS;
+alias PSP_MOVEDEV_PARAMS = SP_MOVEDEV_PARAMS*;
 
 struct SP_PROPCHANGE_PARAMS {
     SP_CLASSINSTALL_HEADER ClassInstallHeader;
@@ -1133,21 +1133,21 @@ struct SP_PROPCHANGE_PARAMS {
     DWORD                  Scope;
     DWORD                  HwProfile;
 }
-alias SP_PROPCHANGE_PARAMS* PSP_PROPCHANGE_PARAMS;
+alias PSP_PROPCHANGE_PARAMS = SP_PROPCHANGE_PARAMS*;
 
 struct SP_REMOVEDEVICE_PARAMS {
     SP_CLASSINSTALL_HEADER ClassInstallHeader;
     DWORD                  Scope;
     DWORD                  HwProfile;
 }
-alias SP_REMOVEDEVICE_PARAMS* PSP_REMOVEDEVICE_PARAMS;
+alias PSP_REMOVEDEVICE_PARAMS = SP_REMOVEDEVICE_PARAMS*;
 
 struct SP_UNREMOVEDEVICE_PARAMS {
     SP_CLASSINSTALL_HEADER ClassInstallHeader;
     DWORD                  Scope;
     DWORD                  HwProfile;
 }
-alias SP_UNREMOVEDEVICE_PARAMS* PSP_UNREMOVEDEVICE_PARAMS;
+alias PSP_UNREMOVEDEVICE_PARAMS = SP_UNREMOVEDEVICE_PARAMS*;
 
 struct SP_SELECTDEVICE_PARAMS_A {
     SP_CLASSINSTALL_HEADER    ClassInstallHeader;
@@ -1157,7 +1157,7 @@ struct SP_SELECTDEVICE_PARAMS_A {
     CHAR[MAX_SUBTITLE_LEN]    SubTitle = 0;
     BYTE[2]                   Reserved;
 }
-alias SP_SELECTDEVICE_PARAMS_A* PSP_SELECTDEVICE_PARAMS_A;
+alias PSP_SELECTDEVICE_PARAMS_A = SP_SELECTDEVICE_PARAMS_A*;
 
 struct SP_SELECTDEVICE_PARAMS_W {
     SP_CLASSINSTALL_HEADER     ClassInstallHeader;
@@ -1166,16 +1166,16 @@ struct SP_SELECTDEVICE_PARAMS_W {
     WCHAR[MAX_LABEL_LEN]       ListLabel = 0;
     WCHAR[MAX_SUBTITLE_LEN]    SubTitle = 0;
 }
-alias SP_SELECTDEVICE_PARAMS_W* PSP_SELECTDEVICE_PARAMS_W;
+alias PSP_SELECTDEVICE_PARAMS_W = SP_SELECTDEVICE_PARAMS_W*;
 
-extern(Windows) alias BOOL function(PVOID, DWORD) PDETECT_PROGRESS_NOTIFY;
+extern(Windows) alias PDETECT_PROGRESS_NOTIFY = BOOL function(PVOID, DWORD);
 
 struct SP_DETECTDEVICE_PARAMS {
     SP_CLASSINSTALL_HEADER  ClassInstallHeader;
     PDETECT_PROGRESS_NOTIFY DetectProgressNotify;
     PVOID                   ProgressNotifyParam;
 }
-alias SP_DETECTDEVICE_PARAMS* PSP_DETECTDEVICE_PARAMS;
+alias PSP_DETECTDEVICE_PARAMS = SP_DETECTDEVICE_PARAMS*;
 
 struct SP_INSTALLWIZARD_DATA {
     SP_CLASSINSTALL_HEADER ClassInstallHeader;
@@ -1187,7 +1187,7 @@ struct SP_INSTALLWIZARD_DATA {
     LPARAM                 PrivateData;
     HWND                   hwndWizardDlg;
 }
-alias SP_INSTALLWIZARD_DATA* PSP_INSTALLWIZARD_DATA;
+alias PSP_INSTALLWIZARD_DATA = SP_INSTALLWIZARD_DATA*;
 
 struct SP_NEWDEVICEWIZARD_DATA {
     SP_CLASSINSTALL_HEADER ClassInstallHeader;
@@ -1196,35 +1196,35 @@ struct SP_NEWDEVICEWIZARD_DATA {
     DWORD                  NumDynamicPages;
     HWND                   hwndWizardDlg;
 }
-alias SP_NEWDEVICEWIZARD_DATA* PSP_NEWDEVICEWIZARD_DATA;
-alias SP_NEWDEVICEWIZARD_DATA SP_ADDPROPERTYPAGE_DATA;
-alias SP_NEWDEVICEWIZARD_DATA* PSP_ADDPROPERTYPAGE_DATA;
+alias PSP_NEWDEVICEWIZARD_DATA = SP_NEWDEVICEWIZARD_DATA*;
+alias SP_ADDPROPERTYPAGE_DATA = SP_NEWDEVICEWIZARD_DATA;
+alias PSP_ADDPROPERTYPAGE_DATA = SP_NEWDEVICEWIZARD_DATA*;
 
 struct SP_TROUBLESHOOTER_PARAMS_A {
     SP_CLASSINSTALL_HEADER ClassInstallHeader;
     CHAR[MAX_PATH]         ChmFile = 0;
     CHAR[MAX_PATH]         HtmlTroubleShooter = 0;
 }
-alias SP_TROUBLESHOOTER_PARAMS_A* PSP_TROUBLESHOOTER_PARAMS_A;
+alias PSP_TROUBLESHOOTER_PARAMS_A = SP_TROUBLESHOOTER_PARAMS_A*;
 
 struct SP_TROUBLESHOOTER_PARAMS_W {
     SP_CLASSINSTALL_HEADER ClassInstallHeader;
     WCHAR[MAX_PATH]        ChmFile = 0;
     WCHAR[MAX_PATH]        HtmlTroubleShooter = 0;
 }
-alias SP_TROUBLESHOOTER_PARAMS_W* PSP_TROUBLESHOOTER_PARAMS_W;
+alias PSP_TROUBLESHOOTER_PARAMS_W = SP_TROUBLESHOOTER_PARAMS_W*;
 
 struct SP_POWERMESSAGEWAKE_PARAMS_A {
     SP_CLASSINSTALL_HEADER ClassInstallHeader;
     CHAR[LINE_LEN*2]       PowerMessageWake = 0;
 }
-alias SP_POWERMESSAGEWAKE_PARAMS_A* PSP_POWERMESSAGEWAKE_PARAMS_A;
+alias PSP_POWERMESSAGEWAKE_PARAMS_A = SP_POWERMESSAGEWAKE_PARAMS_A*;
 
 struct SP_POWERMESSAGEWAKE_PARAMS_W {
     SP_CLASSINSTALL_HEADER ClassInstallHeader;
     WCHAR[LINE_LEN*2]      PowerMessageWake = 0;
 }
-alias SP_POWERMESSAGEWAKE_PARAMS_W* PSP_POWERMESSAGEWAKE_PARAMS_W;
+alias PSP_POWERMESSAGEWAKE_PARAMS_W = SP_POWERMESSAGEWAKE_PARAMS_W*;
 
 mixin AlignedStr!(_alignVal, "SP_DRVINFO_DATA_V2_A", q{
     DWORD          cbSize = SP_DRVINFO_DATA_V2_A.sizeof;
@@ -1236,7 +1236,7 @@ mixin AlignedStr!(_alignVal, "SP_DRVINFO_DATA_V2_A", q{
     FILETIME       DriverDate;
     DWORDLONG      DriverVersion;
 });
-alias SP_DRVINFO_DATA_V2_A* PSP_DRVINFO_DATA_V2_A;
+alias PSP_DRVINFO_DATA_V2_A = SP_DRVINFO_DATA_V2_A*;
 
 mixin AlignedStr!(_alignVal, "SP_DRVINFO_DATA_V2_W", q{
     DWORD           cbSize = SP_DRVINFO_DATA_V2_A.sizeof;
@@ -1248,7 +1248,7 @@ mixin AlignedStr!(_alignVal, "SP_DRVINFO_DATA_V2_W", q{
     FILETIME        DriverDate;
     DWORDLONG       DriverVersion;
 });
-alias SP_DRVINFO_DATA_V2_W* PSP_DRVINFO_DATA_V2_W;
+alias PSP_DRVINFO_DATA_V2_W = SP_DRVINFO_DATA_V2_W*;
 
 struct SP_DRVINFO_DATA_V1_A {
     DWORD          cbSize = SP_DRVINFO_DATA_V1_A.sizeof;
@@ -1258,7 +1258,7 @@ struct SP_DRVINFO_DATA_V1_A {
     CHAR[LINE_LEN] MfgName = 0;
     CHAR[LINE_LEN] ProviderName = 0;
 }
-alias SP_DRVINFO_DATA_V1_A* PSP_DRVINFO_DATA_V1_A;
+alias PSP_DRVINFO_DATA_V1_A = SP_DRVINFO_DATA_V1_A*;
 
 struct SP_DRVINFO_DATA_V1_W {
     DWORD           cbSize = SP_DRVINFO_DATA_V1_W.sizeof;
@@ -1268,35 +1268,35 @@ struct SP_DRVINFO_DATA_V1_W {
     WCHAR[LINE_LEN] MfgName = 0;
     WCHAR[LINE_LEN] ProviderName = 0;
 }
-alias SP_DRVINFO_DATA_V1_W* PSP_DRVINFO_DATA_V1_W;
+alias PSP_DRVINFO_DATA_V1_W = SP_DRVINFO_DATA_V1_W*;
 
 version (Unicode) {
-    alias SP_DRVINFO_DATA_V1_W SP_DRVINFO_DATA_V1;
-    alias SP_DRVINFO_DATA_V2_W SP_DRVINFO_DATA_V2;
+    alias SP_DRVINFO_DATA_V1 = SP_DRVINFO_DATA_V1_W;
+    alias SP_DRVINFO_DATA_V2 = SP_DRVINFO_DATA_V2_W;
 } else {
-    alias SP_DRVINFO_DATA_V1_A SP_DRVINFO_DATA_V1;
-    alias SP_DRVINFO_DATA_V2_A SP_DRVINFO_DATA_V2;
+    alias SP_DRVINFO_DATA_V1 = SP_DRVINFO_DATA_V1_A;
+    alias SP_DRVINFO_DATA_V2 = SP_DRVINFO_DATA_V2_A;
 }
-alias SP_DRVINFO_DATA_V1* PSP_DRVINFO_DATA_V1;
-alias SP_DRVINFO_DATA_V2* PSP_DRVINFO_DATA_V2;
+alias PSP_DRVINFO_DATA_V1 = SP_DRVINFO_DATA_V1*;
+alias PSP_DRVINFO_DATA_V2 = SP_DRVINFO_DATA_V2*;
 
 static if (USE_SP_DRVINFO_DATA_V1) {
-    alias SP_DRVINFO_DATA_V1_A SP_DRVINFO_DATA_A;
-    alias SP_DRVINFO_DATA_V1_A* PSP_DRVINFO_DATA_A;
-    alias SP_DRVINFO_DATA_V1_W SP_DRVINFO_DATA_W;
-    alias SP_DRVINFO_DATA_V1_W* PSP_DRVINFO_DATA_W;
-    alias SP_DRVINFO_DATA_V1 SP_DRVINFO_DATA;
-    alias SP_DRVINFO_DATA_V1* PSP_DRVINFO_DATA;
+    alias SP_DRVINFO_DATA_A = SP_DRVINFO_DATA_V1_A;
+    alias PSP_DRVINFO_DATA_A = SP_DRVINFO_DATA_V1_A*;
+    alias SP_DRVINFO_DATA_W = SP_DRVINFO_DATA_V1_W;
+    alias PSP_DRVINFO_DATA_W = SP_DRVINFO_DATA_V1_W*;
+    alias SP_DRVINFO_DATA = SP_DRVINFO_DATA_V1;
+    alias PSP_DRVINFO_DATA = SP_DRVINFO_DATA_V1*;
 } else {
-    alias SP_DRVINFO_DATA_V2_A SP_DRVINFO_DATA_A;
-    alias SP_DRVINFO_DATA_V2_A* PSP_DRVINFO_DATA_A;
-    alias SP_DRVINFO_DATA_V2_W SP_DRVINFO_DATA_W;
-    alias SP_DRVINFO_DATA_V2_W* PSP_DRVINFO_DATA_W;
-    alias SP_DRVINFO_DATA_V2 SP_DRVINFO_DATA;
-    alias SP_DRVINFO_DATA_V2* PSP_DRVINFO_DATA;
+    alias SP_DRVINFO_DATA_A = SP_DRVINFO_DATA_V2_A;
+    alias PSP_DRVINFO_DATA_A = SP_DRVINFO_DATA_V2_A*;
+    alias SP_DRVINFO_DATA_W = SP_DRVINFO_DATA_V2_W;
+    alias PSP_DRVINFO_DATA_W = SP_DRVINFO_DATA_V2_W*;
+    alias SP_DRVINFO_DATA = SP_DRVINFO_DATA_V2;
+    alias PSP_DRVINFO_DATA = SP_DRVINFO_DATA_V2*;
 }
 
-extern(Windows) alias DWORD function(HDEVINFO, PSP_DEVINFO_DATA, PSP_DEVINFO_DATA, PVOID) PSP_DETSIG_CMPPROC;
+extern(Windows) alias PSP_DETSIG_CMPPROC = DWORD function(HDEVINFO, PSP_DEVINFO_DATA, PSP_DEVINFO_DATA, PVOID);
 
 mixin AlignedStr!(_alignVal, "SP_DRVINFO_DETAIL_DATA_A", q{
     DWORD          cbSize = SP_DRVINFO_DETAIL_DATA_A.sizeof;
@@ -1310,7 +1310,7 @@ mixin AlignedStr!(_alignVal, "SP_DRVINFO_DETAIL_DATA_A", q{
     CHAR[1]        _HardwareID = 0;
     CHAR*          HardwareID() return { return _HardwareID.ptr; }
 });
-alias SP_DRVINFO_DETAIL_DATA_A* PSP_DRVINFO_DETAIL_DATA_A;
+alias PSP_DRVINFO_DETAIL_DATA_A = SP_DRVINFO_DETAIL_DATA_A*;
 
 mixin AlignedStr!(_alignVal, "SP_DRVINFO_DETAIL_DATA_W", q{
     DWORD           cbSize = SP_DRVINFO_DETAIL_DATA_W.sizeof;
@@ -1324,7 +1324,7 @@ mixin AlignedStr!(_alignVal, "SP_DRVINFO_DETAIL_DATA_W", q{
     WCHAR[1]        _HardwareID = 0;
     WCHAR*          HardwareID() return { return _HardwareID.ptr; }
 });
-alias SP_DRVINFO_DETAIL_DATA_W* PSP_DRVINFO_DETAIL_DATA_W;
+alias PSP_DRVINFO_DETAIL_DATA_W = SP_DRVINFO_DETAIL_DATA_W*;
 
 struct SP_DRVINSTALL_PARAMS {
     DWORD cbSize = SP_DRVINSTALL_PARAMS.sizeof;
@@ -1333,21 +1333,21 @@ struct SP_DRVINSTALL_PARAMS {
     DWORD_PTR PrivateData;
     DWORD Reserved;
 }
-alias SP_DRVINSTALL_PARAMS* PSP_DRVINSTALL_PARAMS;
+alias PSP_DRVINSTALL_PARAMS = SP_DRVINSTALL_PARAMS*;
 
 struct COINSTALLER_CONTEXT_DATA {
     BOOL  PostProcessing;
     DWORD InstallResult;
     PVOID PrivateData;
 }
-alias COINSTALLER_CONTEXT_DATA* PCOINSTALLER_CONTEXT_DATA;
+alias PCOINSTALLER_CONTEXT_DATA = COINSTALLER_CONTEXT_DATA*;
 
 struct SP_CLASSIMAGELIST_DATA {
     DWORD      cbSize = SP_CLASSIMAGELIST_DATA.sizeof;
     HIMAGELIST ImageList;
     ULONG_PTR  Reserved;
 }
-alias SP_CLASSIMAGELIST_DATA* PSP_CLASSIMAGELIST_DATA;
+alias PSP_CLASSIMAGELIST_DATA = SP_CLASSIMAGELIST_DATA*;
 
 struct SP_PROPSHEETPAGE_REQUEST {
     DWORD            cbSize = SP_PROPSHEETPAGE_REQUEST.sizeof;
@@ -1355,88 +1355,88 @@ struct SP_PROPSHEETPAGE_REQUEST {
     HDEVINFO         DeviceInfoSet;
     PSP_DEVINFO_DATA DeviceInfoData;
 }
-alias SP_PROPSHEETPAGE_REQUEST* PSP_PROPSHEETPAGE_REQUEST;
+alias PSP_PROPSHEETPAGE_REQUEST = SP_PROPSHEETPAGE_REQUEST*;
 
 struct SP_BACKUP_QUEUE_PARAMS_A {
     DWORD cbSize = SP_BACKUP_QUEUE_PARAMS_A.sizeof;
     CHAR[MAX_PATH] FullInfPath = 0;
     INT FilenameOffset;
 }
-alias SP_BACKUP_QUEUE_PARAMS_A* PSP_BACKUP_QUEUE_PARAMS_A;
+alias PSP_BACKUP_QUEUE_PARAMS_A = SP_BACKUP_QUEUE_PARAMS_A*;
 
 struct SP_BACKUP_QUEUE_PARAMS_W {
     DWORD cbSize = SP_BACKUP_QUEUE_PARAMS_W.sizeof;
     WCHAR[MAX_PATH] FullInfPath = 0;
     INT FilenameOffset;
 }
-alias SP_BACKUP_QUEUE_PARAMS_W* PSP_BACKUP_QUEUE_PARAMS_W;
+alias PSP_BACKUP_QUEUE_PARAMS_W = SP_BACKUP_QUEUE_PARAMS_W*;
 
 version (Unicode) {
-    alias SP_ORIGINAL_FILE_INFO_W SP_ORIGINAL_FILE_INFO;
-    alias SP_ORIGINAL_FILE_INFO_W* PSP_ORIGINAL_FILE_INFO;
-    alias FILEPATHS_W FILEPATHS;
-    alias FILEPATHS_W* PFILEPATHS;
-    alias SOURCE_MEDIA_W SOURCE_MEDIA;
-    alias SOURCE_MEDIA_W* PSOURCE_MEDIA;
-    alias CABINET_INFO_W CABINET_INFO;
-    alias CABINET_INFO_W* PCABINET_INFO;
-    alias FILE_IN_CABINET_INFO_W FILE_IN_CABINET_INFO;
-    alias FILE_IN_CABINET_INFO_W* PFILE_IN_CABINET_INFO;
-    alias SP_FILE_COPY_PARAMS_W SP_FILE_COPY_PARAMS;
-    alias SP_FILE_COPY_PARAMS_W* PSP_FILE_COPY_PARAMS;
-    alias SP_DEVICE_INTERFACE_DETAIL_DATA_W SP_DEVICE_INTERFACE_DETAIL_DATA;
-    alias SP_DEVICE_INTERFACE_DETAIL_DATA_W* PSP_DEVICE_INTERFACE_DETAIL_DATA;
+    alias SP_ORIGINAL_FILE_INFO = SP_ORIGINAL_FILE_INFO_W;
+    alias PSP_ORIGINAL_FILE_INFO = SP_ORIGINAL_FILE_INFO_W*;
+    alias FILEPATHS = FILEPATHS_W;
+    alias PFILEPATHS = FILEPATHS_W*;
+    alias SOURCE_MEDIA = SOURCE_MEDIA_W;
+    alias PSOURCE_MEDIA = SOURCE_MEDIA_W*;
+    alias CABINET_INFO = CABINET_INFO_W;
+    alias PCABINET_INFO = CABINET_INFO_W*;
+    alias FILE_IN_CABINET_INFO = FILE_IN_CABINET_INFO_W;
+    alias PFILE_IN_CABINET_INFO = FILE_IN_CABINET_INFO_W*;
+    alias SP_FILE_COPY_PARAMS = SP_FILE_COPY_PARAMS_W;
+    alias PSP_FILE_COPY_PARAMS = SP_FILE_COPY_PARAMS_W*;
+    alias SP_DEVICE_INTERFACE_DETAIL_DATA = SP_DEVICE_INTERFACE_DETAIL_DATA_W;
+    alias PSP_DEVICE_INTERFACE_DETAIL_DATA = SP_DEVICE_INTERFACE_DETAIL_DATA_W*;
     deprecated {
-        alias SP_DEVICE_INTERFACE_DETAIL_DATA_W SP_INTERFACE_DEVICE_DETAIL_DATA;
-        alias SP_DEVICE_INTERFACE_DETAIL_DATA_W* PSP_INTERFACE_DEVICE_DETAIL_DATA;
+        alias SP_INTERFACE_DEVICE_DETAIL_DATA = SP_DEVICE_INTERFACE_DETAIL_DATA_W;
+        alias PSP_INTERFACE_DEVICE_DETAIL_DATA = SP_DEVICE_INTERFACE_DETAIL_DATA_W*;
     }
-    alias SP_DEVINFO_LIST_DETAIL_DATA_W SP_DEVINFO_LIST_DETAIL_DATA;
-    alias SP_DEVINFO_LIST_DETAIL_DATA_W *PSP_DEVINFO_LIST_DETAIL_DATA;
-    alias SP_DEVINSTALL_PARAMS_W SP_DEVINSTALL_PARAMS;
-    alias SP_DEVINSTALL_PARAMS_W* PSP_DEVINSTALL_PARAMS;
-    alias SP_SELECTDEVICE_PARAMS_W SP_SELECTDEVICE_PARAMS;
-    alias SP_SELECTDEVICE_PARAMS_W* PSP_SELECTDEVICE_PARAMS;
-    alias SP_TROUBLESHOOTER_PARAMS_W SP_TROUBLESHOOTER_PARAMS;
-    alias SP_TROUBLESHOOTER_PARAMS_W* PSP_TROUBLESHOOTER_PARAMS;
-    alias SP_POWERMESSAGEWAKE_PARAMS_W SP_POWERMESSAGEWAKE_PARAMS;
-    alias SP_POWERMESSAGEWAKE_PARAMS_W* PSP_POWERMESSAGEWAKE_PARAMS;
-    alias SP_DRVINFO_DETAIL_DATA_W SP_DRVINFO_DETAIL_DATA;
-    alias SP_DRVINFO_DETAIL_DATA_W* PSP_DRVINFO_DETAIL_DATA;
-    alias SP_BACKUP_QUEUE_PARAMS_W SP_BACKUP_QUEUE_PARAMS;
-    alias SP_BACKUP_QUEUE_PARAMS_W* PSP_BACKUP_QUEUE_PARAMS;
+    alias SP_DEVINFO_LIST_DETAIL_DATA = SP_DEVINFO_LIST_DETAIL_DATA_W;
+    alias PSP_DEVINFO_LIST_DETAIL_DATA = SP_DEVINFO_LIST_DETAIL_DATA_W *;
+    alias SP_DEVINSTALL_PARAMS = SP_DEVINSTALL_PARAMS_W;
+    alias PSP_DEVINSTALL_PARAMS = SP_DEVINSTALL_PARAMS_W*;
+    alias SP_SELECTDEVICE_PARAMS = SP_SELECTDEVICE_PARAMS_W;
+    alias PSP_SELECTDEVICE_PARAMS = SP_SELECTDEVICE_PARAMS_W*;
+    alias SP_TROUBLESHOOTER_PARAMS = SP_TROUBLESHOOTER_PARAMS_W;
+    alias PSP_TROUBLESHOOTER_PARAMS = SP_TROUBLESHOOTER_PARAMS_W*;
+    alias SP_POWERMESSAGEWAKE_PARAMS = SP_POWERMESSAGEWAKE_PARAMS_W;
+    alias PSP_POWERMESSAGEWAKE_PARAMS = SP_POWERMESSAGEWAKE_PARAMS_W*;
+    alias SP_DRVINFO_DETAIL_DATA = SP_DRVINFO_DETAIL_DATA_W;
+    alias PSP_DRVINFO_DETAIL_DATA = SP_DRVINFO_DETAIL_DATA_W*;
+    alias SP_BACKUP_QUEUE_PARAMS = SP_BACKUP_QUEUE_PARAMS_W;
+    alias PSP_BACKUP_QUEUE_PARAMS = SP_BACKUP_QUEUE_PARAMS_W*;
 } else {
-    alias SP_ORIGINAL_FILE_INFO_A SP_ORIGINAL_FILE_INFO;
-    alias SP_ORIGINAL_FILE_INFO_A* PSP_ORIGINAL_FILE_INFO;
-    alias FILEPATHS_A FILEPATHS;
-    alias FILEPATHS_A* PFILEPATHS;
-    alias SOURCE_MEDIA_A SOURCE_MEDIA;
-    alias SOURCE_MEDIA_A* PSOURCE_MEDIA;
-    alias CABINET_INFO_A CABINET_INFO;
-    alias CABINET_INFO_A* PCABINET_INFO;
-    alias FILE_IN_CABINET_INFO_A FILE_IN_CABINET_INFO;
-    alias FILE_IN_CABINET_INFO_A* PFILE_IN_CABINET_INFO;
-    alias SP_FILE_COPY_PARAMS_A SP_FILE_COPY_PARAMS;
-    alias SP_FILE_COPY_PARAMS_A* PSP_FILE_COPY_PARAMS;
-    alias SP_DEVICE_INTERFACE_DETAIL_DATA_A SP_DEVICE_INTERFACE_DETAIL_DATA;
-    alias SP_DEVICE_INTERFACE_DETAIL_DATA_A* PSP_DEVICE_INTERFACE_DETAIL_DATA;
+    alias SP_ORIGINAL_FILE_INFO = SP_ORIGINAL_FILE_INFO_A;
+    alias PSP_ORIGINAL_FILE_INFO = SP_ORIGINAL_FILE_INFO_A*;
+    alias FILEPATHS = FILEPATHS_A;
+    alias PFILEPATHS = FILEPATHS_A*;
+    alias SOURCE_MEDIA = SOURCE_MEDIA_A;
+    alias PSOURCE_MEDIA = SOURCE_MEDIA_A*;
+    alias CABINET_INFO = CABINET_INFO_A;
+    alias PCABINET_INFO = CABINET_INFO_A*;
+    alias FILE_IN_CABINET_INFO = FILE_IN_CABINET_INFO_A;
+    alias PFILE_IN_CABINET_INFO = FILE_IN_CABINET_INFO_A*;
+    alias SP_FILE_COPY_PARAMS = SP_FILE_COPY_PARAMS_A;
+    alias PSP_FILE_COPY_PARAMS = SP_FILE_COPY_PARAMS_A*;
+    alias SP_DEVICE_INTERFACE_DETAIL_DATA = SP_DEVICE_INTERFACE_DETAIL_DATA_A;
+    alias PSP_DEVICE_INTERFACE_DETAIL_DATA = SP_DEVICE_INTERFACE_DETAIL_DATA_A*;
     deprecated {
-        alias SP_DEVICE_INTERFACE_DETAIL_DATA_A SP_INTERFACE_DEVICE_DETAIL_DATA;
-        alias SP_DEVICE_INTERFACE_DETAIL_DATA_A* PSP_INTERFACE_DEVICE_DETAIL_DATA;
+        alias SP_INTERFACE_DEVICE_DETAIL_DATA = SP_DEVICE_INTERFACE_DETAIL_DATA_A;
+        alias PSP_INTERFACE_DEVICE_DETAIL_DATA = SP_DEVICE_INTERFACE_DETAIL_DATA_A*;
     }
-    alias SP_DEVINFO_LIST_DETAIL_DATA_A SP_DEVINFO_LIST_DETAIL_DATA;
-    alias SP_DEVINFO_LIST_DETAIL_DATA_A* PSP_DEVINFO_LIST_DETAIL_DATA;
-    alias SP_DEVINSTALL_PARAMS_A SP_DEVINSTALL_PARAMS;
-    alias SP_DEVINSTALL_PARAMS_A* PSP_DEVINSTALL_PARAMS;
-    alias SP_SELECTDEVICE_PARAMS_A SP_SELECTDEVICE_PARAMS;
-    alias SP_SELECTDEVICE_PARAMS_A* PSP_SELECTDEVICE_PARAMS;
-    alias SP_TROUBLESHOOTER_PARAMS_A SP_TROUBLESHOOTER_PARAMS;
-    alias SP_TROUBLESHOOTER_PARAMS_A* PSP_TROUBLESHOOTER_PARAMS;
-    alias SP_POWERMESSAGEWAKE_PARAMS_A SP_POWERMESSAGEWAKE_PARAMS;
-    alias SP_POWERMESSAGEWAKE_PARAMS_A* PSP_POWERMESSAGEWAKE_PARAMS;
-    alias SP_DRVINFO_DETAIL_DATA_A SP_DRVINFO_DETAIL_DATA;
-    alias SP_DRVINFO_DETAIL_DATA_A* PSP_DRVINFO_DETAIL_DATA;
-    alias SP_BACKUP_QUEUE_PARAMS_A SP_BACKUP_QUEUE_PARAMS;
-    alias SP_BACKUP_QUEUE_PARAMS_A* PSP_BACKUP_QUEUE_PARAMS;
+    alias SP_DEVINFO_LIST_DETAIL_DATA = SP_DEVINFO_LIST_DETAIL_DATA_A;
+    alias PSP_DEVINFO_LIST_DETAIL_DATA = SP_DEVINFO_LIST_DETAIL_DATA_A*;
+    alias SP_DEVINSTALL_PARAMS = SP_DEVINSTALL_PARAMS_A;
+    alias PSP_DEVINSTALL_PARAMS = SP_DEVINSTALL_PARAMS_A*;
+    alias SP_SELECTDEVICE_PARAMS = SP_SELECTDEVICE_PARAMS_A;
+    alias PSP_SELECTDEVICE_PARAMS = SP_SELECTDEVICE_PARAMS_A*;
+    alias SP_TROUBLESHOOTER_PARAMS = SP_TROUBLESHOOTER_PARAMS_A;
+    alias PSP_TROUBLESHOOTER_PARAMS = SP_TROUBLESHOOTER_PARAMS_A*;
+    alias SP_POWERMESSAGEWAKE_PARAMS = SP_POWERMESSAGEWAKE_PARAMS_A;
+    alias PSP_POWERMESSAGEWAKE_PARAMS = SP_POWERMESSAGEWAKE_PARAMS_A*;
+    alias SP_DRVINFO_DETAIL_DATA = SP_DRVINFO_DETAIL_DATA_A;
+    alias PSP_DRVINFO_DETAIL_DATA = SP_DRVINFO_DETAIL_DATA_A*;
+    alias SP_BACKUP_QUEUE_PARAMS = SP_BACKUP_QUEUE_PARAMS_A;
+    alias PSP_BACKUP_QUEUE_PARAMS = SP_BACKUP_QUEUE_PARAMS_A*;
 }
 
 extern (Windows) {
@@ -1732,253 +1732,253 @@ extern (Windows) {
 }
 
 deprecated {
-    alias SetupDiCreateDeviceInterfaceW SetupDiCreateInterfaceDeviceW;
-    alias SetupDiCreateDeviceInterfaceRegKeyW SetupDiCreateInterfaceDeviceRegKeyW;
-    alias SetupDiOpenDeviceInterfaceW SetupDiOpenInterfaceDeviceW;
-    alias SetupDiGetDeviceInterfaceDetailW SetupDiGetInterfaceDeviceDetailW;
-    alias SetupDiCreateDeviceInterfaceA SetupDiCreateInterfaceDeviceA;
-    alias SetupDiCreateDeviceInterfaceRegKeyA SetupDiCreateInterfaceDeviceRegKeyA;
-    alias SetupDiOpenDeviceInterfaceA SetupDiOpenInterfaceDeviceA;
-    alias SetupDiGetDeviceInterfaceDetailA SetupDiGetInterfaceDeviceDetailA;
+    alias SetupDiCreateInterfaceDeviceW = SetupDiCreateDeviceInterfaceW;
+    alias SetupDiCreateInterfaceDeviceRegKeyW = SetupDiCreateDeviceInterfaceRegKeyW;
+    alias SetupDiOpenInterfaceDeviceW = SetupDiOpenDeviceInterfaceW;
+    alias SetupDiGetInterfaceDeviceDetailW = SetupDiGetDeviceInterfaceDetailW;
+    alias SetupDiCreateInterfaceDeviceA = SetupDiCreateDeviceInterfaceA;
+    alias SetupDiCreateInterfaceDeviceRegKeyA = SetupDiCreateDeviceInterfaceRegKeyA;
+    alias SetupDiOpenInterfaceDeviceA = SetupDiOpenDeviceInterfaceA;
+    alias SetupDiGetInterfaceDeviceDetailA = SetupDiGetDeviceInterfaceDetailA;
 }
 
 version (Unicode) {
-    alias PSP_FILE_CALLBACK_W PSP_FILE_CALLBACK;
-    alias SetupAddInstallSectionToDiskSpaceListW SetupAddInstallSectionToDiskSpaceList;
-    alias SetupAddSectionToDiskSpaceListW SetupAddSectionToDiskSpaceList;
-    alias SetupAddToDiskSpaceListW SetupAddToDiskSpaceList;
-    alias SetupAddToSourceListW SetupAddToSourceList;
-    alias SetupAdjustDiskSpaceListW SetupAdjustDiskSpaceList;
-    alias SetupBackupErrorW SetupBackupError;
-    alias SetupCommitFileQueueW SetupCommitFileQueue;
-    alias SetupCopyErrorW SetupCopyError;
-    alias SetupCopyOEMInfW SetupCopyOEMInf;
-    alias SetupCreateDiskSpaceListW SetupCreateDiskSpaceList;
-    alias SetupDecompressOrCopyFileW SetupDecompressOrCopyFile;
-    alias SetupDefaultQueueCallbackW SetupDefaultQueueCallback;
-    alias SetupDeleteErrorW SetupDeleteError;
-    alias SetupDiBuildClassInfoListExW SetupDiBuildClassInfoListEx;
-    alias SetupDiClassGuidsFromNameExW SetupDiClassGuidsFromNameEx;
-    alias SetupDiClassGuidsFromNameW SetupDiClassGuidsFromName;
-    alias SetupDiClassNameFromGuidExW SetupDiClassNameFromGuidEx;
-    alias SetupDiClassNameFromGuidW SetupDiClassNameFromGuid;
-    alias SetupDiCreateDeviceInfoListExW SetupDiCreateDeviceInfoListEx;
-    alias SetupDiCreateDeviceInfoW SetupDiCreateDeviceInfo;
-    alias SetupDiCreateDeviceInterfaceRegKeyW SetupDiCreateDeviceInterfaceRegKey;
-    deprecated alias SetupDiCreateDeviceInterfaceRegKeyW SetupDiCreateInterfaceDeviceRegKey;
-    alias SetupDiCreateDeviceInterfaceW SetupDiCreateDeviceInterface;
-    deprecated alias SetupDiCreateDeviceInterfaceW SetupDiCreateInterfaceDevice;
-    alias SetupDiCreateDevRegKeyW SetupDiCreateDevRegKey;
-    alias SetupDiEnumDriverInfoW SetupDiEnumDriverInfo;
-    alias SetupDiGetActualSectionToInstallW SetupDiGetActualSectionToInstall;
-    alias SetupDiGetClassDescriptionExW SetupDiGetClassDescriptionEx;
-    alias SetupDiGetClassDescriptionW SetupDiGetClassDescription;
-    alias SetupDiGetClassDevPropertySheetsW SetupDiGetClassDevPropertySheets;
-    alias SetupDiGetClassDevsExW SetupDiGetClassDevsEx;
-    alias SetupDiGetClassDevsW SetupDiGetClassDevs;
-    alias SetupDiGetClassImageListExW SetupDiGetClassImageListEx;
-    alias SetupDiGetClassInstallParamsW SetupDiGetClassInstallParams;
-    alias SetupDiGetClassRegistryPropertyW SetupDiGetClassRegistryProperty;
-    alias SetupDiGetDeviceInfoListDetailW SetupDiGetDeviceInfoListDetail;
-    alias SetupDiGetDeviceInstallParamsW SetupDiGetDeviceInstallParams;
-    alias SetupDiGetDeviceInstanceIdW SetupDiGetDeviceInstanceId;
-    alias SetupDiGetDeviceInterfaceDetailW SetupDiGetDeviceInterfaceDetail;
-    deprecated alias SetupDiGetDeviceInterfaceDetailW SetupDiGetInterfaceDeviceDetail;
-    alias SetupDiGetDeviceRegistryPropertyW SetupDiGetDeviceRegistryProperty;
-    alias SetupDiGetDriverInfoDetailW SetupDiGetDriverInfoDetail;
-    alias SetupDiGetDriverInstallParamsW SetupDiGetDriverInstallParams;
-    alias SetupDiGetHwProfileFriendlyNameExW SetupDiGetHwProfileFriendlyNameEx;
-    alias SetupDiGetHwProfileFriendlyNameW SetupDiGetHwProfileFriendlyName;
-    alias SetupDiGetHwProfileListExW SetupDiGetHwProfileListEx;
-    alias SetupDiGetINFClassW SetupDiGetINFClass;
-    alias SetupDiGetSelectedDriverW SetupDiGetSelectedDriver;
-    alias SetupDiInstallClassExW SetupDiInstallClassEx;
-    alias SetupDiInstallClassW SetupDiInstallClass;
-    alias SetupDiOpenClassRegKeyExW SetupDiOpenClassRegKeyEx;
-    alias SetupDiOpenDeviceInfoW SetupDiOpenDeviceInfo;
-    alias SetupDiOpenDeviceInterfaceW SetupDiOpenDeviceInterface;
-    deprecated alias SetupDiOpenDeviceInterfaceW SetupDiOpenInterfaceDevice;
-    alias SetupDiSetClassInstallParamsW SetupDiSetClassInstallParams;
-    alias SetupDiSetClassRegistryPropertyW SetupDiSetClassRegistryProperty;
-    alias SetupDiSetDeviceInstallParamsW SetupDiSetDeviceInstallParams;
-    alias SetupDiSetDeviceRegistryPropertyW SetupDiSetDeviceRegistryProperty;
-    alias SetupDiSetDriverInstallParamsW SetupDiSetDriverInstallParams;
-    alias SetupDiSetSelectedDriverW SetupDiSetSelectedDriver;
-    alias SetupDuplicateDiskSpaceListW SetupDuplicateDiskSpaceList;
-    alias SetupFindFirstLineW SetupFindFirstLine;
-    alias SetupFindNextMatchLineW SetupFindNextMatchLine;
-    alias SetupFreeSourceListW SetupFreeSourceList;
-    alias SetupGetBackupInformationW SetupGetBackupInformation;
-    alias SetupGetFileCompressionInfoW SetupGetFileCompressionInfo;
-    alias SetupGetInfFileListW SetupGetInfFileList;
-    alias SetupGetInfInformationW SetupGetInfInformation;
-    alias SetupGetLineByIndexW SetupGetLineByIndex;
-    alias SetupGetLineCountW SetupGetLineCount;
-    alias SetupGetLineTextW SetupGetLineText;
-    alias SetupGetMultiSzFieldW SetupGetMultiSzField;
-    alias SetupGetSourceFileLocationW SetupGetSourceFileLocation;
-    alias SetupGetSourceFileSizeW SetupGetSourceFileSize;
-    alias SetupGetSourceInfoW SetupGetSourceInfo;
-    alias SetupGetStringFieldW SetupGetStringField;
-    alias SetupGetTargetPathW SetupGetTargetPath;
-    alias SetupInitializeFileLogW SetupInitializeFileLog;
-    alias SetupInstallFileExW SetupInstallFileEx;
-    alias SetupInstallFilesFromInfSectionW SetupInstallFilesFromInfSection;
-    alias SetupInstallFileW SetupInstallFile;
-    alias SetupInstallFromInfSectionW SetupInstallFromInfSection;
-    alias SetupInstallServicesFromInfSectionExW SetupInstallServicesFromInfSectionEx;
-    alias SetupInstallServicesFromInfSectionW SetupInstallServicesFromInfSection;
-    alias SetupIterateCabinetW SetupIterateCabinet;
-    alias SetupLogErrorW SetupLogError;
-    alias SetupLogFileW SetupLogFile;
-    alias SetupOpenAppendInfFileW SetupOpenAppendInfFile;
-    alias SetupOpenInfFileW SetupOpenInfFile;
-    alias SetupPromptForDiskW SetupPromptForDisk;
-    alias SetupQueryDrivesInDiskSpaceListW SetupQueryDrivesInDiskSpaceList;
-    alias SetupQueryFileLogW SetupQueryFileLog;
-    alias SetupQueryInfFileInformationW SetupQueryInfFileInformation;
-    alias SetupQueryInfOriginalFileInformationW SetupQueryInfOriginalFileInformation;
-    alias SetupQueryInfVersionInformationW SetupQueryInfVersionInformation;
-    alias SetupQuerySourceListW SetupQuerySourceList;
-    alias SetupQuerySpaceRequiredOnDriveW SetupQuerySpaceRequiredOnDrive;
-    alias SetupQueueCopyIndirectW SetupQueueCopyIndirect;
-    alias SetupQueueCopySectionW SetupQueueCopySection;
-    alias SetupQueueCopyW SetupQueueCopy;
-    alias SetupQueueDefaultCopyW SetupQueueDefaultCopy;
-    alias SetupQueueDeleteSectionW SetupQueueDeleteSection;
-    alias SetupQueueDeleteW SetupQueueDelete;
-    alias SetupQueueRenameSectionW SetupQueueRenameSection;
-    alias SetupQueueRenameW SetupQueueRename;
-    alias SetupRemoveFileLogEntryW SetupRemoveFileLogEntry;
-    alias SetupRemoveFromDiskSpaceListW SetupRemoveFromDiskSpaceList;
-    alias SetupRemoveFromSourceListW SetupRemoveFromSourceList;
-    alias SetupRemoveInstallSectionFromDiskSpaceListW SetupRemoveInstallSectionFromDiskSpaceList;
-    alias SetupRemoveSectionFromDiskSpaceListW SetupRemoveSectionFromDiskSpaceList;
-    alias SetupRenameErrorW SetupRenameError;
-    alias SetupScanFileQueueW SetupScanFileQueue;
-    alias SetupSetDirectoryIdExW SetupSetDirectoryIdEx;
-    alias SetupSetDirectoryIdW SetupSetDirectoryId;
-    alias SetupSetFileQueueAlternatePlatformW SetupSetFileQueueAlternatePlatform;
-    alias SetupSetPlatformPathOverrideW SetupSetPlatformPathOverride;
-    alias SetupSetSourceListW SetupSetSourceList;
+    alias PSP_FILE_CALLBACK = PSP_FILE_CALLBACK_W;
+    alias SetupAddInstallSectionToDiskSpaceList = SetupAddInstallSectionToDiskSpaceListW;
+    alias SetupAddSectionToDiskSpaceList = SetupAddSectionToDiskSpaceListW;
+    alias SetupAddToDiskSpaceList = SetupAddToDiskSpaceListW;
+    alias SetupAddToSourceList = SetupAddToSourceListW;
+    alias SetupAdjustDiskSpaceList = SetupAdjustDiskSpaceListW;
+    alias SetupBackupError = SetupBackupErrorW;
+    alias SetupCommitFileQueue = SetupCommitFileQueueW;
+    alias SetupCopyError = SetupCopyErrorW;
+    alias SetupCopyOEMInf = SetupCopyOEMInfW;
+    alias SetupCreateDiskSpaceList = SetupCreateDiskSpaceListW;
+    alias SetupDecompressOrCopyFile = SetupDecompressOrCopyFileW;
+    alias SetupDefaultQueueCallback = SetupDefaultQueueCallbackW;
+    alias SetupDeleteError = SetupDeleteErrorW;
+    alias SetupDiBuildClassInfoListEx = SetupDiBuildClassInfoListExW;
+    alias SetupDiClassGuidsFromNameEx = SetupDiClassGuidsFromNameExW;
+    alias SetupDiClassGuidsFromName = SetupDiClassGuidsFromNameW;
+    alias SetupDiClassNameFromGuidEx = SetupDiClassNameFromGuidExW;
+    alias SetupDiClassNameFromGuid = SetupDiClassNameFromGuidW;
+    alias SetupDiCreateDeviceInfoListEx = SetupDiCreateDeviceInfoListExW;
+    alias SetupDiCreateDeviceInfo = SetupDiCreateDeviceInfoW;
+    alias SetupDiCreateDeviceInterfaceRegKey = SetupDiCreateDeviceInterfaceRegKeyW;
+    deprecated alias SetupDiCreateInterfaceDeviceRegKey = SetupDiCreateDeviceInterfaceRegKeyW;
+    alias SetupDiCreateDeviceInterface = SetupDiCreateDeviceInterfaceW;
+    deprecated alias SetupDiCreateInterfaceDevice = SetupDiCreateDeviceInterfaceW;
+    alias SetupDiCreateDevRegKey = SetupDiCreateDevRegKeyW;
+    alias SetupDiEnumDriverInfo = SetupDiEnumDriverInfoW;
+    alias SetupDiGetActualSectionToInstall = SetupDiGetActualSectionToInstallW;
+    alias SetupDiGetClassDescriptionEx = SetupDiGetClassDescriptionExW;
+    alias SetupDiGetClassDescription = SetupDiGetClassDescriptionW;
+    alias SetupDiGetClassDevPropertySheets = SetupDiGetClassDevPropertySheetsW;
+    alias SetupDiGetClassDevsEx = SetupDiGetClassDevsExW;
+    alias SetupDiGetClassDevs = SetupDiGetClassDevsW;
+    alias SetupDiGetClassImageListEx = SetupDiGetClassImageListExW;
+    alias SetupDiGetClassInstallParams = SetupDiGetClassInstallParamsW;
+    alias SetupDiGetClassRegistryProperty = SetupDiGetClassRegistryPropertyW;
+    alias SetupDiGetDeviceInfoListDetail = SetupDiGetDeviceInfoListDetailW;
+    alias SetupDiGetDeviceInstallParams = SetupDiGetDeviceInstallParamsW;
+    alias SetupDiGetDeviceInstanceId = SetupDiGetDeviceInstanceIdW;
+    alias SetupDiGetDeviceInterfaceDetail = SetupDiGetDeviceInterfaceDetailW;
+    deprecated alias SetupDiGetInterfaceDeviceDetail = SetupDiGetDeviceInterfaceDetailW;
+    alias SetupDiGetDeviceRegistryProperty = SetupDiGetDeviceRegistryPropertyW;
+    alias SetupDiGetDriverInfoDetail = SetupDiGetDriverInfoDetailW;
+    alias SetupDiGetDriverInstallParams = SetupDiGetDriverInstallParamsW;
+    alias SetupDiGetHwProfileFriendlyNameEx = SetupDiGetHwProfileFriendlyNameExW;
+    alias SetupDiGetHwProfileFriendlyName = SetupDiGetHwProfileFriendlyNameW;
+    alias SetupDiGetHwProfileListEx = SetupDiGetHwProfileListExW;
+    alias SetupDiGetINFClass = SetupDiGetINFClassW;
+    alias SetupDiGetSelectedDriver = SetupDiGetSelectedDriverW;
+    alias SetupDiInstallClassEx = SetupDiInstallClassExW;
+    alias SetupDiInstallClass = SetupDiInstallClassW;
+    alias SetupDiOpenClassRegKeyEx = SetupDiOpenClassRegKeyExW;
+    alias SetupDiOpenDeviceInfo = SetupDiOpenDeviceInfoW;
+    alias SetupDiOpenDeviceInterface = SetupDiOpenDeviceInterfaceW;
+    deprecated alias SetupDiOpenInterfaceDevice = SetupDiOpenDeviceInterfaceW;
+    alias SetupDiSetClassInstallParams = SetupDiSetClassInstallParamsW;
+    alias SetupDiSetClassRegistryProperty = SetupDiSetClassRegistryPropertyW;
+    alias SetupDiSetDeviceInstallParams = SetupDiSetDeviceInstallParamsW;
+    alias SetupDiSetDeviceRegistryProperty = SetupDiSetDeviceRegistryPropertyW;
+    alias SetupDiSetDriverInstallParams = SetupDiSetDriverInstallParamsW;
+    alias SetupDiSetSelectedDriver = SetupDiSetSelectedDriverW;
+    alias SetupDuplicateDiskSpaceList = SetupDuplicateDiskSpaceListW;
+    alias SetupFindFirstLine = SetupFindFirstLineW;
+    alias SetupFindNextMatchLine = SetupFindNextMatchLineW;
+    alias SetupFreeSourceList = SetupFreeSourceListW;
+    alias SetupGetBackupInformation = SetupGetBackupInformationW;
+    alias SetupGetFileCompressionInfo = SetupGetFileCompressionInfoW;
+    alias SetupGetInfFileList = SetupGetInfFileListW;
+    alias SetupGetInfInformation = SetupGetInfInformationW;
+    alias SetupGetLineByIndex = SetupGetLineByIndexW;
+    alias SetupGetLineCount = SetupGetLineCountW;
+    alias SetupGetLineText = SetupGetLineTextW;
+    alias SetupGetMultiSzField = SetupGetMultiSzFieldW;
+    alias SetupGetSourceFileLocation = SetupGetSourceFileLocationW;
+    alias SetupGetSourceFileSize = SetupGetSourceFileSizeW;
+    alias SetupGetSourceInfo = SetupGetSourceInfoW;
+    alias SetupGetStringField = SetupGetStringFieldW;
+    alias SetupGetTargetPath = SetupGetTargetPathW;
+    alias SetupInitializeFileLog = SetupInitializeFileLogW;
+    alias SetupInstallFileEx = SetupInstallFileExW;
+    alias SetupInstallFilesFromInfSection = SetupInstallFilesFromInfSectionW;
+    alias SetupInstallFile = SetupInstallFileW;
+    alias SetupInstallFromInfSection = SetupInstallFromInfSectionW;
+    alias SetupInstallServicesFromInfSectionEx = SetupInstallServicesFromInfSectionExW;
+    alias SetupInstallServicesFromInfSection = SetupInstallServicesFromInfSectionW;
+    alias SetupIterateCabinet = SetupIterateCabinetW;
+    alias SetupLogError = SetupLogErrorW;
+    alias SetupLogFile = SetupLogFileW;
+    alias SetupOpenAppendInfFile = SetupOpenAppendInfFileW;
+    alias SetupOpenInfFile = SetupOpenInfFileW;
+    alias SetupPromptForDisk = SetupPromptForDiskW;
+    alias SetupQueryDrivesInDiskSpaceList = SetupQueryDrivesInDiskSpaceListW;
+    alias SetupQueryFileLog = SetupQueryFileLogW;
+    alias SetupQueryInfFileInformation = SetupQueryInfFileInformationW;
+    alias SetupQueryInfOriginalFileInformation = SetupQueryInfOriginalFileInformationW;
+    alias SetupQueryInfVersionInformation = SetupQueryInfVersionInformationW;
+    alias SetupQuerySourceList = SetupQuerySourceListW;
+    alias SetupQuerySpaceRequiredOnDrive = SetupQuerySpaceRequiredOnDriveW;
+    alias SetupQueueCopyIndirect = SetupQueueCopyIndirectW;
+    alias SetupQueueCopySection = SetupQueueCopySectionW;
+    alias SetupQueueCopy = SetupQueueCopyW;
+    alias SetupQueueDefaultCopy = SetupQueueDefaultCopyW;
+    alias SetupQueueDeleteSection = SetupQueueDeleteSectionW;
+    alias SetupQueueDelete = SetupQueueDeleteW;
+    alias SetupQueueRenameSection = SetupQueueRenameSectionW;
+    alias SetupQueueRename = SetupQueueRenameW;
+    alias SetupRemoveFileLogEntry = SetupRemoveFileLogEntryW;
+    alias SetupRemoveFromDiskSpaceList = SetupRemoveFromDiskSpaceListW;
+    alias SetupRemoveFromSourceList = SetupRemoveFromSourceListW;
+    alias SetupRemoveInstallSectionFromDiskSpaceList = SetupRemoveInstallSectionFromDiskSpaceListW;
+    alias SetupRemoveSectionFromDiskSpaceList = SetupRemoveSectionFromDiskSpaceListW;
+    alias SetupRenameError = SetupRenameErrorW;
+    alias SetupScanFileQueue = SetupScanFileQueueW;
+    alias SetupSetDirectoryIdEx = SetupSetDirectoryIdExW;
+    alias SetupSetDirectoryId = SetupSetDirectoryIdW;
+    alias SetupSetFileQueueAlternatePlatform = SetupSetFileQueueAlternatePlatformW;
+    alias SetupSetPlatformPathOverride = SetupSetPlatformPathOverrideW;
+    alias SetupSetSourceList = SetupSetSourceListW;
 } else {
-    alias PSP_FILE_CALLBACK_A PSP_FILE_CALLBACK;
-    alias SetupAddInstallSectionToDiskSpaceListA SetupAddInstallSectionToDiskSpaceList;
-    alias SetupAddSectionToDiskSpaceListA SetupAddSectionToDiskSpaceList;
-    alias SetupAddToDiskSpaceListA SetupAddToDiskSpaceList;
-    alias SetupAddToSourceListA SetupAddToSourceList;
-    alias SetupAdjustDiskSpaceListA SetupAdjustDiskSpaceList;
-    alias SetupBackupErrorA SetupBackupError;
-    alias SetupCommitFileQueueA SetupCommitFileQueue;
-    alias SetupCopyErrorA SetupCopyError;
-    alias SetupCopyOEMInfA SetupCopyOEMInf;
-    alias SetupCreateDiskSpaceListA SetupCreateDiskSpaceList;
-    alias SetupDecompressOrCopyFileA SetupDecompressOrCopyFile;
-    alias SetupDefaultQueueCallbackA SetupDefaultQueueCallback;
-    alias SetupDeleteErrorA SetupDeleteError;
-    alias SetupDiBuildClassInfoListExA SetupDiBuildClassInfoListEx;
-    alias SetupDiClassGuidsFromNameA SetupDiClassGuidsFromName;
-    alias SetupDiClassGuidsFromNameExA SetupDiClassGuidsFromNameEx;
-    alias SetupDiClassNameFromGuidA SetupDiClassNameFromGuid;
-    alias SetupDiClassNameFromGuidExA SetupDiClassNameFromGuidEx;
-    alias SetupDiCreateDeviceInfoA SetupDiCreateDeviceInfo;
-    alias SetupDiCreateDeviceInfoListExA SetupDiCreateDeviceInfoListEx;
-    alias SetupDiCreateDeviceInterfaceA SetupDiCreateDeviceInterface;
-    deprecated alias SetupDiCreateDeviceInterfaceA SetupDiCreateInterfaceDevice;
-    alias SetupDiCreateDeviceInterfaceRegKeyA SetupDiCreateDeviceInterfaceRegKey;
-    deprecated alias SetupDiCreateDeviceInterfaceRegKeyA SetupDiCreateInterfaceDeviceRegKey;
-    alias SetupDiCreateDevRegKeyA SetupDiCreateDevRegKey;
-    alias SetupDiDeleteDeviceInterfaceData SetupDiDeleteInterfaceDeviceData;
-    alias SetupDiEnumDriverInfoA SetupDiEnumDriverInfo;
-    alias SetupDiGetActualSectionToInstallA SetupDiGetActualSectionToInstall;
-    alias SetupDiGetClassDescriptionA SetupDiGetClassDescription;
-    alias SetupDiGetClassDescriptionExA SetupDiGetClassDescriptionEx;
-    alias SetupDiGetClassDevPropertySheetsA SetupDiGetClassDevPropertySheets;
-    alias SetupDiGetClassDevsA SetupDiGetClassDevs;
-    alias SetupDiGetClassDevsExA SetupDiGetClassDevsEx;
-    alias SetupDiGetClassImageListExA SetupDiGetClassImageListEx;
-    alias SetupDiGetClassInstallParamsA SetupDiGetClassInstallParams;
-    alias SetupDiGetClassRegistryPropertyA SetupDiGetClassRegistryProperty;
-    alias SetupDiGetDeviceInfoListDetailA SetupDiGetDeviceInfoListDetail;
-    alias SetupDiGetDeviceInstallParamsA SetupDiGetDeviceInstallParams;
-    alias SetupDiGetDeviceInstanceIdA SetupDiGetDeviceInstanceId;
-    alias SetupDiGetDeviceInterfaceDetailA SetupDiGetDeviceInterfaceDetail;
-    deprecated alias SetupDiGetDeviceInterfaceDetailA SetupDiGetInterfaceDeviceDetail;
-    alias SetupDiGetDeviceRegistryPropertyA SetupDiGetDeviceRegistryProperty;
-    alias SetupDiGetDriverInfoDetailA SetupDiGetDriverInfoDetail;
-    alias SetupDiGetDriverInstallParamsA SetupDiGetDriverInstallParams;
-    alias SetupDiGetHwProfileFriendlyNameA SetupDiGetHwProfileFriendlyName;
-    alias SetupDiGetHwProfileFriendlyNameExA SetupDiGetHwProfileFriendlyNameEx;
-    alias SetupDiGetHwProfileListExA SetupDiGetHwProfileListEx;
-    alias SetupDiGetINFClassA SetupDiGetINFClass;
-    alias SetupDiGetSelectedDriverA SetupDiGetSelectedDriver;
-    alias SetupDiInstallClassA SetupDiInstallClass;
-    alias SetupDiInstallClassExA SetupDiInstallClassEx;
-    alias SetupDiOpenClassRegKeyExA SetupDiOpenClassRegKeyEx;
-    alias SetupDiOpenDeviceInfoA SetupDiOpenDeviceInfo;
-    alias SetupDiOpenDeviceInterfaceA SetupDiOpenDeviceInterface;
-    deprecated alias SetupDiOpenDeviceInterfaceA SetupDiOpenInterfaceDevice;
-    alias SetupDiSetClassInstallParamsA SetupDiSetClassInstallParams;
-    alias SetupDiSetClassRegistryPropertyA SetupDiSetClassRegistryProperty;
-    alias SetupDiSetDeviceInstallParamsA SetupDiSetDeviceInstallParams;
-    alias SetupDiSetDeviceRegistryPropertyA SetupDiSetDeviceRegistryProperty;
-    alias SetupDiSetDriverInstallParamsA SetupDiSetDriverInstallParams;
-    alias SetupDiSetSelectedDriverA SetupDiSetSelectedDriver;
-    alias SetupDuplicateDiskSpaceListA SetupDuplicateDiskSpaceList;
-    alias SetupFindFirstLineA SetupFindFirstLine;
-    alias SetupFindNextMatchLineA SetupFindNextMatchLine;
-    alias SetupFreeSourceListA SetupFreeSourceList;
-    alias SetupGetBackupInformationA SetupGetBackupInformation;
-    alias SetupGetFileCompressionInfoA SetupGetFileCompressionInfo;
-    alias SetupGetInfFileListA SetupGetInfFileList;
-    alias SetupGetInfInformationA SetupGetInfInformation;
-    alias SetupGetLineByIndexA SetupGetLineByIndex;
-    alias SetupGetLineCountA SetupGetLineCount;
-    alias SetupGetLineTextA SetupGetLineText;
-    alias SetupGetMultiSzFieldA SetupGetMultiSzField;
-    alias SetupGetSourceFileLocationA SetupGetSourceFileLocation;
-    alias SetupGetSourceFileSizeA SetupGetSourceFileSize;
-    alias SetupGetSourceInfoA SetupGetSourceInfo;
-    alias SetupGetStringFieldA SetupGetStringField;
-    alias SetupGetTargetPathA SetupGetTargetPath;
-    alias SetupInitializeFileLogA SetupInitializeFileLog;
-    alias SetupInstallFileA SetupInstallFile;
-    alias SetupInstallFileExA SetupInstallFileEx;
-    alias SetupInstallFilesFromInfSectionA SetupInstallFilesFromInfSection;
-    alias SetupInstallFromInfSectionA SetupInstallFromInfSection;
-    alias SetupInstallServicesFromInfSectionA SetupInstallServicesFromInfSection;
-    alias SetupInstallServicesFromInfSectionExA SetupInstallServicesFromInfSectionEx;
-    alias SetupIterateCabinetA SetupIterateCabinet;
-    alias SetupLogErrorA SetupLogError;
-    alias SetupLogFileA SetupLogFile;
-    alias SetupOpenAppendInfFileA SetupOpenAppendInfFile;
-    alias SetupOpenInfFileA SetupOpenInfFile;
-    alias SetupPromptForDiskA SetupPromptForDisk;
-    alias SetupQueryDrivesInDiskSpaceListA SetupQueryDrivesInDiskSpaceList;
-    alias SetupQueryFileLogA SetupQueryFileLog;
-    alias SetupQueryInfFileInformationA SetupQueryInfFileInformation;
-    alias SetupQueryInfOriginalFileInformationA SetupQueryInfOriginalFileInformation;
-    alias SetupQueryInfVersionInformationA SetupQueryInfVersionInformation;
-    alias SetupQuerySourceListA SetupQuerySourceList;
-    alias SetupQuerySpaceRequiredOnDriveA SetupQuerySpaceRequiredOnDrive;
-    alias SetupQueueCopyA SetupQueueCopy;
-    alias SetupQueueCopyIndirectA SetupQueueCopyIndirect;
-    alias SetupQueueCopySectionA SetupQueueCopySection;
-    alias SetupQueueDefaultCopyA SetupQueueDefaultCopy;
-    alias SetupQueueDeleteA SetupQueueDelete;
-    alias SetupQueueDeleteSectionA SetupQueueDeleteSection;
-    alias SetupQueueRenameA SetupQueueRename;
-    alias SetupQueueRenameSectionA SetupQueueRenameSection;
-    alias SetupRemoveFileLogEntryA SetupRemoveFileLogEntry;
-    alias SetupRemoveFromDiskSpaceListA SetupRemoveFromDiskSpaceList;
-    alias SetupRemoveFromSourceListA SetupRemoveFromSourceList;
-    alias SetupRemoveInstallSectionFromDiskSpaceListA SetupRemoveInstallSectionFromDiskSpaceList;
-    alias SetupRemoveSectionFromDiskSpaceListA SetupRemoveSectionFromDiskSpaceList;
-    alias SetupRenameErrorA SetupRenameError;
-    alias SetupScanFileQueueA SetupScanFileQueue;
-    alias SetupSetDirectoryIdA SetupSetDirectoryId;
-    alias SetupSetDirectoryIdExA SetupSetDirectoryIdEx;
-    alias SetupSetFileQueueAlternatePlatformA SetupSetFileQueueAlternatePlatform;
-    alias SetupSetPlatformPathOverrideA SetupSetPlatformPathOverride;
-    alias SetupSetSourceListA SetupSetSourceList;
+    alias PSP_FILE_CALLBACK = PSP_FILE_CALLBACK_A;
+    alias SetupAddInstallSectionToDiskSpaceList = SetupAddInstallSectionToDiskSpaceListA;
+    alias SetupAddSectionToDiskSpaceList = SetupAddSectionToDiskSpaceListA;
+    alias SetupAddToDiskSpaceList = SetupAddToDiskSpaceListA;
+    alias SetupAddToSourceList = SetupAddToSourceListA;
+    alias SetupAdjustDiskSpaceList = SetupAdjustDiskSpaceListA;
+    alias SetupBackupError = SetupBackupErrorA;
+    alias SetupCommitFileQueue = SetupCommitFileQueueA;
+    alias SetupCopyError = SetupCopyErrorA;
+    alias SetupCopyOEMInf = SetupCopyOEMInfA;
+    alias SetupCreateDiskSpaceList = SetupCreateDiskSpaceListA;
+    alias SetupDecompressOrCopyFile = SetupDecompressOrCopyFileA;
+    alias SetupDefaultQueueCallback = SetupDefaultQueueCallbackA;
+    alias SetupDeleteError = SetupDeleteErrorA;
+    alias SetupDiBuildClassInfoListEx = SetupDiBuildClassInfoListExA;
+    alias SetupDiClassGuidsFromName = SetupDiClassGuidsFromNameA;
+    alias SetupDiClassGuidsFromNameEx = SetupDiClassGuidsFromNameExA;
+    alias SetupDiClassNameFromGuid = SetupDiClassNameFromGuidA;
+    alias SetupDiClassNameFromGuidEx = SetupDiClassNameFromGuidExA;
+    alias SetupDiCreateDeviceInfo = SetupDiCreateDeviceInfoA;
+    alias SetupDiCreateDeviceInfoListEx = SetupDiCreateDeviceInfoListExA;
+    alias SetupDiCreateDeviceInterface = SetupDiCreateDeviceInterfaceA;
+    deprecated alias SetupDiCreateInterfaceDevice = SetupDiCreateDeviceInterfaceA;
+    alias SetupDiCreateDeviceInterfaceRegKey = SetupDiCreateDeviceInterfaceRegKeyA;
+    deprecated alias SetupDiCreateInterfaceDeviceRegKey = SetupDiCreateDeviceInterfaceRegKeyA;
+    alias SetupDiCreateDevRegKey = SetupDiCreateDevRegKeyA;
+    alias SetupDiDeleteInterfaceDeviceData = SetupDiDeleteDeviceInterfaceData;
+    alias SetupDiEnumDriverInfo = SetupDiEnumDriverInfoA;
+    alias SetupDiGetActualSectionToInstall = SetupDiGetActualSectionToInstallA;
+    alias SetupDiGetClassDescription = SetupDiGetClassDescriptionA;
+    alias SetupDiGetClassDescriptionEx = SetupDiGetClassDescriptionExA;
+    alias SetupDiGetClassDevPropertySheets = SetupDiGetClassDevPropertySheetsA;
+    alias SetupDiGetClassDevs = SetupDiGetClassDevsA;
+    alias SetupDiGetClassDevsEx = SetupDiGetClassDevsExA;
+    alias SetupDiGetClassImageListEx = SetupDiGetClassImageListExA;
+    alias SetupDiGetClassInstallParams = SetupDiGetClassInstallParamsA;
+    alias SetupDiGetClassRegistryProperty = SetupDiGetClassRegistryPropertyA;
+    alias SetupDiGetDeviceInfoListDetail = SetupDiGetDeviceInfoListDetailA;
+    alias SetupDiGetDeviceInstallParams = SetupDiGetDeviceInstallParamsA;
+    alias SetupDiGetDeviceInstanceId = SetupDiGetDeviceInstanceIdA;
+    alias SetupDiGetDeviceInterfaceDetail = SetupDiGetDeviceInterfaceDetailA;
+    deprecated alias SetupDiGetInterfaceDeviceDetail = SetupDiGetDeviceInterfaceDetailA;
+    alias SetupDiGetDeviceRegistryProperty = SetupDiGetDeviceRegistryPropertyA;
+    alias SetupDiGetDriverInfoDetail = SetupDiGetDriverInfoDetailA;
+    alias SetupDiGetDriverInstallParams = SetupDiGetDriverInstallParamsA;
+    alias SetupDiGetHwProfileFriendlyName = SetupDiGetHwProfileFriendlyNameA;
+    alias SetupDiGetHwProfileFriendlyNameEx = SetupDiGetHwProfileFriendlyNameExA;
+    alias SetupDiGetHwProfileListEx = SetupDiGetHwProfileListExA;
+    alias SetupDiGetINFClass = SetupDiGetINFClassA;
+    alias SetupDiGetSelectedDriver = SetupDiGetSelectedDriverA;
+    alias SetupDiInstallClass = SetupDiInstallClassA;
+    alias SetupDiInstallClassEx = SetupDiInstallClassExA;
+    alias SetupDiOpenClassRegKeyEx = SetupDiOpenClassRegKeyExA;
+    alias SetupDiOpenDeviceInfo = SetupDiOpenDeviceInfoA;
+    alias SetupDiOpenDeviceInterface = SetupDiOpenDeviceInterfaceA;
+    deprecated alias SetupDiOpenInterfaceDevice = SetupDiOpenDeviceInterfaceA;
+    alias SetupDiSetClassInstallParams = SetupDiSetClassInstallParamsA;
+    alias SetupDiSetClassRegistryProperty = SetupDiSetClassRegistryPropertyA;
+    alias SetupDiSetDeviceInstallParams = SetupDiSetDeviceInstallParamsA;
+    alias SetupDiSetDeviceRegistryProperty = SetupDiSetDeviceRegistryPropertyA;
+    alias SetupDiSetDriverInstallParams = SetupDiSetDriverInstallParamsA;
+    alias SetupDiSetSelectedDriver = SetupDiSetSelectedDriverA;
+    alias SetupDuplicateDiskSpaceList = SetupDuplicateDiskSpaceListA;
+    alias SetupFindFirstLine = SetupFindFirstLineA;
+    alias SetupFindNextMatchLine = SetupFindNextMatchLineA;
+    alias SetupFreeSourceList = SetupFreeSourceListA;
+    alias SetupGetBackupInformation = SetupGetBackupInformationA;
+    alias SetupGetFileCompressionInfo = SetupGetFileCompressionInfoA;
+    alias SetupGetInfFileList = SetupGetInfFileListA;
+    alias SetupGetInfInformation = SetupGetInfInformationA;
+    alias SetupGetLineByIndex = SetupGetLineByIndexA;
+    alias SetupGetLineCount = SetupGetLineCountA;
+    alias SetupGetLineText = SetupGetLineTextA;
+    alias SetupGetMultiSzField = SetupGetMultiSzFieldA;
+    alias SetupGetSourceFileLocation = SetupGetSourceFileLocationA;
+    alias SetupGetSourceFileSize = SetupGetSourceFileSizeA;
+    alias SetupGetSourceInfo = SetupGetSourceInfoA;
+    alias SetupGetStringField = SetupGetStringFieldA;
+    alias SetupGetTargetPath = SetupGetTargetPathA;
+    alias SetupInitializeFileLog = SetupInitializeFileLogA;
+    alias SetupInstallFile = SetupInstallFileA;
+    alias SetupInstallFileEx = SetupInstallFileExA;
+    alias SetupInstallFilesFromInfSection = SetupInstallFilesFromInfSectionA;
+    alias SetupInstallFromInfSection = SetupInstallFromInfSectionA;
+    alias SetupInstallServicesFromInfSection = SetupInstallServicesFromInfSectionA;
+    alias SetupInstallServicesFromInfSectionEx = SetupInstallServicesFromInfSectionExA;
+    alias SetupIterateCabinet = SetupIterateCabinetA;
+    alias SetupLogError = SetupLogErrorA;
+    alias SetupLogFile = SetupLogFileA;
+    alias SetupOpenAppendInfFile = SetupOpenAppendInfFileA;
+    alias SetupOpenInfFile = SetupOpenInfFileA;
+    alias SetupPromptForDisk = SetupPromptForDiskA;
+    alias SetupQueryDrivesInDiskSpaceList = SetupQueryDrivesInDiskSpaceListA;
+    alias SetupQueryFileLog = SetupQueryFileLogA;
+    alias SetupQueryInfFileInformation = SetupQueryInfFileInformationA;
+    alias SetupQueryInfOriginalFileInformation = SetupQueryInfOriginalFileInformationA;
+    alias SetupQueryInfVersionInformation = SetupQueryInfVersionInformationA;
+    alias SetupQuerySourceList = SetupQuerySourceListA;
+    alias SetupQuerySpaceRequiredOnDrive = SetupQuerySpaceRequiredOnDriveA;
+    alias SetupQueueCopy = SetupQueueCopyA;
+    alias SetupQueueCopyIndirect = SetupQueueCopyIndirectA;
+    alias SetupQueueCopySection = SetupQueueCopySectionA;
+    alias SetupQueueDefaultCopy = SetupQueueDefaultCopyA;
+    alias SetupQueueDelete = SetupQueueDeleteA;
+    alias SetupQueueDeleteSection = SetupQueueDeleteSectionA;
+    alias SetupQueueRename = SetupQueueRenameA;
+    alias SetupQueueRenameSection = SetupQueueRenameSectionA;
+    alias SetupRemoveFileLogEntry = SetupRemoveFileLogEntryA;
+    alias SetupRemoveFromDiskSpaceList = SetupRemoveFromDiskSpaceListA;
+    alias SetupRemoveFromSourceList = SetupRemoveFromSourceListA;
+    alias SetupRemoveInstallSectionFromDiskSpaceList = SetupRemoveInstallSectionFromDiskSpaceListA;
+    alias SetupRemoveSectionFromDiskSpaceList = SetupRemoveSectionFromDiskSpaceListA;
+    alias SetupRenameError = SetupRenameErrorA;
+    alias SetupScanFileQueue = SetupScanFileQueueA;
+    alias SetupSetDirectoryId = SetupSetDirectoryIdA;
+    alias SetupSetDirectoryIdEx = SetupSetDirectoryIdExA;
+    alias SetupSetFileQueueAlternatePlatform = SetupSetFileQueueAlternatePlatformA;
+    alias SetupSetPlatformPathOverride = SetupSetPlatformPathOverrideA;
+    alias SetupSetSourceList = SetupSetSourceListA;
 }

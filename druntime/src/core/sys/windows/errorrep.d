@@ -36,7 +36,7 @@ extern (Windows) nothrow @nogc {
 }
 
 version (Unicode) {
-    alias AddERExcludedApplicationW AddERExcludedApplication;
+    alias AddERExcludedApplication = AddERExcludedApplicationW;
 } else {
-    alias AddERExcludedApplicationA AddERExcludedApplication;
+    alias AddERExcludedApplication = AddERExcludedApplicationA;
 }

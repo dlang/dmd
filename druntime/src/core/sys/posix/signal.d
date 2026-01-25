@@ -108,14 +108,14 @@ int raise(int sig);                    (defined in core.stdc.signal)
 
 //sig_atomic_t (defined in core.stdc.signal)
 
-private alias void function(int) sigfn_t;
-private alias void function(int, siginfo_t*, void*) sigactfn_t;
+private alias sigfn_t = void function(int);
+private alias sigactfn_t = void function(int, siginfo_t*, void*);
 
 // nothrow versions
 nothrow @nogc
 {
-    private alias void function(int) sigfn_t2;
-    private alias void function(int, siginfo_t*, void*) sigactfn_t2;
+    private alias sigfn_t2 = void function(int);
+    private alias sigactfn_t2 = void function(int, siginfo_t*, void*);
 }
 
 enum
@@ -1037,7 +1037,7 @@ else version (Darwin)
 {
     enum SIG_HOLD = cast(sigfn_t2) 5;
 
-    alias uint sigset_t;
+    alias sigset_t = uint;
 
     enum SA_NOCLDSTOP = 8; // (CX|XSI)
 
@@ -1492,15 +1492,15 @@ else version (NetBSD)
     int __sigsuspend14(const scope sigset_t*);
     int sigwait(const scope sigset_t*, int*);
 
-    alias __sigaction14 sigaction;
-    alias __sigaddset14 sigaddset;
-    alias __sigdelset14 sigdelset;
-    alias __sigemptyset14 sigemptyset;
-    alias __sigfillset14 sigfillset;
-    alias __sigismember14 sigismember;
-    alias __sigpending14 sigpending;
-    alias __sigprocmask14 sigprocmask;
-    alias __sigsuspend14 sigsuspend;
+    alias sigaction = __sigaction14;
+    alias sigaddset = __sigaddset14;
+    alias sigdelset = __sigdelset14;
+    alias sigemptyset = __sigemptyset14;
+    alias sigfillset = __sigfillset14;
+    alias sigismember = __sigismember14;
+    alias sigpending = __sigpending14;
+    alias sigprocmask = __sigprocmask14;
+    alias sigsuspend = __sigsuspend14;
 }
 else version (OpenBSD)
 {
