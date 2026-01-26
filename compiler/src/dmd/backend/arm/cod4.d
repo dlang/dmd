@@ -102,6 +102,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         if (e2oper == OPconst &&       // if rvalue is a constant
             !(evalinregister(e2) && plenty) &&
+            !tycomplex(tyml) &&
             !e1.Ecount)        // and no CSE headaches
         {
             // Look for special case of (*p++ = ...), where p is a register variable
@@ -159,11 +160,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             retregs &= ~INSTR.mBP;
     }
     if (retregs == mPSW)
-    {
         retregs = allregs;
-        if (sz == 2 * REGSIZE)
-            retregs &= ~INSTR.mBP;
-    }
     cs.Iop = 0;
     regvar = false;
     if (config.flags4 & CFG4optimized)
