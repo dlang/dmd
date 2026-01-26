@@ -767,7 +767,7 @@ private elem* elmemset(elem* e, Goal goal)
      */
 
     const sz = tysize(evalue.Ety);
-    int nelems = cast(int)el_tolong(enelems);
+    long nelems = el_tolong(enelems);
     ulong value = el_tolong(evalue);
 
     if (sz * nelems > REGSIZE * 4)
@@ -795,9 +795,9 @@ private elem* elmemset(elem* e, Goal goal)
     }
     e.E1 = null;             // so we can free e later
 
-    for (int offset = 0; offset < sz * nelems; )
+    for (ulong offset = 0; offset < sz * nelems; )
     {
-        int left = sz * nelems - offset;
+        ulong left = sz * nelems - offset;
         if (left > REGSIZE)
             left = REGSIZE;
         tym_t tyv;
@@ -863,23 +863,30 @@ private elem* elmemcpy(elem* e, Goal goal)
                 el_free(ex);
                 return optelem(e, Goal.value);
             }
-            // Convert OPmemcpy to OPstreq
-            e.Eoper = OPstreq;
-            type* t = type_allocn(TYarray, tstypes[TYchar]);
-            t.Tdim = cast(uint)el_tolong(ex.E2);
-            e.ET = t;
-            t.Tcount++;
-            e.E1 = el_una(OPind,TYstruct,e.E1);
-            e.E2 = el_una(OPind,TYstruct,ex.E1);
-            ex.E1 = null;
-            el_free(ex);
-            ex = el_copytree(e.E1.E1);
-            if (tysize(e.Ety) > tysize(ex.Ety))
-                ex = el_una(OPnp_fp,e.Ety,ex);
-            e = el_bin(OPcomma,e.Ety,e,ex);
-            if (el_sideeffect(e.E2))
-                fixside(&e.E1.E1.E1,&e.E2);
-            return optelem(e, Goal.value);
+
+            // Unfortunately the optimizer casts type sizes to int
+            // Set up a safeguard for this optimization
+            const sz = el_tolong(ex.E2);
+            if (sz <= int.max)
+            {
+                // Convert OPmemcpy to OPstreq
+                e.Eoper = OPstreq;
+                type* t = type_allocn(TYarray, tstypes[TYchar]);
+                t.Tdim = sz;
+                e.ET = t;
+                t.Tcount++;
+                e.E1 = el_una(OPind,TYstruct,e.E1);
+                e.E2 = el_una(OPind,TYstruct,ex.E1);
+                ex.E1 = null;
+                el_free(ex);
+                ex = el_copytree(e.E1.E1);
+                if (tysize(e.Ety) > tysize(ex.Ety))
+                    ex = el_una(OPnp_fp,e.Ety,ex);
+                e = el_bin(OPcomma,e.Ety,e,ex);
+                if (el_sideeffect(e.E2))
+                    fixside(&e.E1.E1.E1,&e.E2);
+                return optelem(e, Goal.value);
+            }
         }
 
         /+ The following fails the autotester for Linux32 and FreeBSD32

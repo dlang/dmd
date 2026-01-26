@@ -4142,7 +4142,6 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     reg_t vreg;
     tym_t ty1;
     int segreg;
-    targ_uns numbytes;
     uint m;
 
     //printf("cdmemset(pretregs = %s)\n", regm_str(pretregs));
@@ -4183,11 +4182,6 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     else
         value = 0xDEADBEEF;     // stop annoying false positives that value is not inited
-
-    if (enumbytes.Eoper == OPconst)
-    {
-        numbytes = cast(uint)cast(targ_size_t)el_tolong(enumbytes);
-    }
 
     // Get nbytes into CX
     regm_t retregs2 = 0;
@@ -4249,24 +4243,20 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (enumbytes.Eoper == OPconst)
     {
+        targ_size_t numbytes = cast(targ_size_t)el_tolong(enumbytes);
+        const COPYSIZE = REGSIZE < 4 ? REGSIZE : 4;
+
         getregs(cdb,mDI);
-        if (const numwords = numbytes / REGSIZE)
+        if (const numwords = numbytes / COPYSIZE)
         {
-            regwithvalue(cdb,mCX,numwords, I64 ? 64 : 0);
+            regwithvalue(cdb,mCX,numwords, 0);
             getregs(cdb,mCX);
             cdb.gen1(0xF3);                     // REP
-            cdb.gen1(STOS);                     // STOSW/D/Q
-            if (I64)
-                code_orrex(cdb.last(), REX_W);
+            cdb.gen1(STOS);                     // STOSW/D
             cgstate.regimmed_set(CX, 0);                // CX is now 0
         }
 
-        auto remainder = numbytes & (REGSIZE - 1);
-        if (I64 && remainder >= 4)
-        {
-            cdb.gen1(STOS);                     // STOSD
-            remainder -= 4;
-        }
+        auto remainder = numbytes & (COPYSIZE - 1);
         for (; remainder; --remainder)
             cdb.gen1(STOSB);                    // STOSB
         fixresult(cdb,e,mES|mBX,pretregs);
@@ -4293,7 +4283,7 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     /*  MOV   sreg,ECX
         SHR   ECX,n
         REP
-        STOSD/Q
+        STOSD
 
         ADC   ECX,ECX
         REP
@@ -4308,20 +4298,11 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const sreg = allocreg(cdb,regs,TYint);
     genregs(cdb,0x89,CX,sreg);                        // MOV sreg,ECX (32 bits only)
 
-    const n = I64 ? 3 : 2;
+    const n = 2;
     cdb.genc2(0xC1, grex | modregrm(3,5,CX), n);      // SHR ECX,n
 
     cdb.gen1(0xF3);                                   // REP
-    cdb.gen1(STOS);                                   // STOSD/Q
-    if (I64)
-        code_orrex(cdb.last(), REX_W);
-
-    if (I64)
-    {
-        cdb.gen2(0x11,modregrm(3,CX,CX));             // ADC ECX,ECX
-        cdb.gen1(0xF3);                               // REP
-        cdb.gen1(STOS);                               // STOSD
-    }
+    cdb.gen1(STOS);                                   // STOSD
 
     genregs(cdb,0x89,sreg,CX);                        // MOV ECX,sreg (32 bits only)
     cdb.genc2(0x81, modregrm(3,4,CX), 3);             // AND ECX,3
@@ -4463,7 +4444,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     elem* e1 = e.E1;
     elem* e2 = e.E2;
     int segreg;
-    uint numbytes = cast(uint)type_size(e.ET);          // # of bytes in structure/union
+    targ_size_t numbytes = type_size(e.ET);          // # of bytes in structure/union
     ubyte rex = I64 ? REX_W : 0;
 
     //printf("cdstreq(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
@@ -4574,45 +4555,32 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         while (numbytes--)
             cdb.gen1(0xA4);         // MOVSB
     }
+    else if (I64 && (numbytes & (REGSIZE - 1)) == 0)
+    {
+        // Generate REP MOVSQ if the size is a multiple of 8
+        numbytes /= REGSIZE;
+        getregs_imm(cdb,mCX);
+        movregconst(cdb,CX,numbytes,0);
+        cdb.gen1(0xF3);
+        cdb.gen1(REX | REX_W);
+        cdb.gen1(0xA5);
+        cgstate.regimmed_set(CX,0);
+    }
     else
     {
-static if (1)
-{
-        uint remainder = numbytes & (REGSIZE - 1);
-        numbytes /= REGSIZE;            // number of words
+        // Otherwise generate REP MOVSD (never both)
+        const COPYSIZE = REGSIZE < 4 ? REGSIZE : 4;
+        targ_size_t remainder = numbytes & (COPYSIZE - 1);
+        numbytes /= COPYSIZE;            // number of words
         getregs_imm(cdb,mCX);
         movregconst(cdb,CX,numbytes,0);   // # of bytes/words
         cdb.gen1(0xF3);                 // REP
-        if (REGSIZE == 8)
-            cdb.gen1(REX | REX_W);
         cdb.gen1(0xA5);                 // REP MOVSD
         cgstate.regimmed_set(CX,0);             // note that CX == 0
-        if (I64 && remainder >= 4)
-        {
-            cdb.gen1(0xA5);         // MOVSD
-            remainder -= 4;
-        }
         for (; remainder; remainder--)
         {
             cdb.gen1(0xA4);             // MOVSB
         }
-}
-else
-{
-        uint movs;
-        if (numbytes & (REGSIZE - 1))   // if odd
-            movs = 0xA4;                // MOVSB
-        else
-        {
-            movs = 0xA5;                // MOVSW
-            numbytes /= REGSIZE;        // # of words
-        }
-        getregs_imm(cdb,mCX);
-        movregconst(cdb,CX,numbytes,0);   // # of bytes/words
-        cdb.gen1(0xF3);                 // REP
-        cdb.gen1(movs);
-        cgstate.regimmed_set(CX,0);             // note that CX == 0
-}
     }
     if (need_DS)
         cdb.gen1(0x1F);                 // POP  DS
