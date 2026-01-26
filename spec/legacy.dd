@@ -19,6 +19,7 @@ $(COMMENT
         $(COMMENT 2024)
         $(TROW $(RELATIVE_LINK2 body, `body` keyword), $(D body) after a contract statement -
             use $(D do) instead, 2024)
+        $(TROW $(RELATIVE_LINK2 alias-syntax, `alias target name;` syntax), use `alias name = target;` instead, 2024)
         $(TROW $(RELATIVE_LINK2 alias-instance-member, Aliasing an instance member),
             Use `typeof(instance).member` instead, 2024)
         $(TROW Escaping $(DDSUBLINK spec/attribute, scope, `scope`) data,
@@ -28,7 +29,6 @@ $(COMMENT
             Disallow for structs which overload e.g. `opAssign`, 2024)
 
         $(COMMENT Not enforced yet)
-        $(TROW `alias` target first syntax, use `alias name = target` instead.)
         $(TROW Struct/union postblit, use a $(DDSUBLINK spec/struct, struct-copy-constructor,
             copy constructor) instead.)
     )
@@ -64,6 +64,13 @@ $(H3 Corrective Action)
         which led to frequent trouble for people interfacing with other languages
         (e.g. javascript) or auto-generating code.
     )
+
+$(H2 $(LNAME2 alias-syntax, `alias target name;` syntax))
+
+    $(P From the 2024 edition, $(GLINK2 declaration, AliasDeclaration) only supports
+    `alias name = target;` syntax. This is easier to find the symbol identifier,
+    particularly when `target` is a complex symbol. The target first order came
+    from C's `typedef` syntax.)
 
 $(H2 $(LNAME2 alias-instance-member, Aliasing an instance member))
 
