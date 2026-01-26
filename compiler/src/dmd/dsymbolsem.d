@@ -9987,14 +9987,28 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
         if (sd.structsize == 0)
         {
             sd.hasNoFields = true;
-            sd.alignsize = 1;
+
+            // alignsize has already been set when the struct consists only of
+            // zero sized fields.
+            if (sd.alignsize == 0)
+                sd.alignsize = 1;
 
             // A fine mess of what size a zero sized struct should be
             final switch (sd.classKind)
             {
                 case ClassKind.d:
-                case ClassKind.cpp:
                     sd.structsize = 1;
+                    break;
+
+                case ClassKind.cpp:
+                    if (sd.fields.length == 0 ||
+                        target.c.bitFieldStyle == TargetC.BitFieldStyle.MS)
+                    {
+                        // Give struct a size when there's no named fields
+                        sd.structsize = 1;
+                    }
+                    else
+                        sd.structsize = 0;
                     break;
 
                 case ClassKind.c:

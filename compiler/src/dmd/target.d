@@ -1491,7 +1491,7 @@ struct TargetC
         if (bitFieldStyle == BitFieldStyle.Gcc_Clang)
         {
             // sufficient for DMD's currently supported architectures
-            return !bfd.isAnonymous();
+            return !bfd.isAnonymous() || target.isAArch64;
         }
         assert(0);
     }
