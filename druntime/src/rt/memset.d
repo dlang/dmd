@@ -1,20 +1,13 @@
 /**
  * Contains a memset implementation used by compiler-generated code.
  *
- * Copyright: Copyright Digital Mars 2004 - 2010.
- * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * Copyright: Copyright Digital Mars 2004 - 2026
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Walter Bright
  * Source: $(DRUNTIMESRC rt/_memset.d)
  */
 
-/*          Copyright Digital Mars 2004 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.memset;
-
-import rt.util.utility : d_cdouble, d_creal;
 
 extern (C)
 {
@@ -70,6 +63,8 @@ long *_memset64(long *p, long value, size_t count)
     return pstart;
 }
 
+struct d_cdouble { double re, im; }
+
 d_cdouble *_memset128(d_cdouble *p, d_cdouble value, size_t count)
 {
     d_cdouble *pstart = p;
@@ -99,6 +94,8 @@ real *_memset80(real *p, real value, size_t count)
         *p = value;
     return pstart;
 }
+
+struct d_creal { real re, im; }
 
 d_creal *_memset160(d_creal *p, d_creal value, size_t count)
 {
