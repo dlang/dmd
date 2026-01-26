@@ -2491,6 +2491,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 
         if (tyfloating(tym))
         {
+            assert(!tycomplex(tym));  // TODO AArch64
             const vreg = allocreg(cdb, forregs, tym);     // allocate floating point register
             double value = e.Vfloat;
             if (sz == 8)

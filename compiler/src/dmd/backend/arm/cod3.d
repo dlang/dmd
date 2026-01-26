@@ -1350,6 +1350,7 @@ void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t ty = TYMAX)
 @trusted
 void loadFloatRegConst(ref CodeBuilder cdb, reg_t vreg, double value, uint sz)
 {
+    //printf("loadFloatRegConst(vreg: %d, value: %g, sz: %u)\n", vreg, value, sz);
     assert(vreg & 32);
     ubyte imm8;
     if (encodeHFD(value, imm8))
@@ -1378,7 +1379,7 @@ void loadFloatRegConst(ref CodeBuilder cdb, reg_t vreg, double value, uint sz)
     }
     else
         assert(0);
-    //cgstate.regimmed_set(vreg,value); // TODO
+    //cgstate.regimmed_set(vreg,value); // TODO AArch64
 }
 
 /******************************
