@@ -229,8 +229,6 @@ $(H2 $(LNAME2 struct_layout, Struct Layout))
 
 $(H2 $(LNAME2 bitfields, Bit Field Declarations))
 
-    $(P Bit fields are available under the preview flag $(TT -preview=bitfields))
-
     $(P A bit field is declared with a $(GLINK2 declaration, BitfieldDeclarator). The bit field width
     is specified by the $(GLINK2 expression, AssignExpression). It is evaluated at compile time, and
     must result in an integer expression that ranges from 0 to the number of bits in the type of the
