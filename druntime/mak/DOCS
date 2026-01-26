@@ -578,4 +578,4 @@ DOCS=\
 	$(DOCDIR)\rt_cover.html \
 	\
 	$(DOCDIR)\rt_util_typeinfo.html \
-	$(DOCDIR)\rt_util_utility.html \
+

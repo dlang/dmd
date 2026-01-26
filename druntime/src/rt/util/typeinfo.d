@@ -7,7 +7,6 @@
  * Source: $(DRUNTIMESRC rt/util/_typeinfo.d)
  */
 module rt.util.typeinfo;
-import rt.util.utility : d_cfloat, d_cdouble, d_creal, isComplex;
 static import core.internal.hash;
 
 // Three-way compare for integrals: negative if `lhs < rhs`, positive if `lhs > rhs`, 0 otherwise.
@@ -449,52 +448,6 @@ deprecated class TypeInfo_p : TypeInfoGeneric!double
 deprecated class TypeInfo_j : TypeInfoGeneric!real
 {
     override string toString() const pure nothrow @safe { return "ireal"; }
-}
-
-// All complex floating-point types.
-
-// cfloat @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_q : TypeInfoGeneric!d_cfloat
-{
-    override string toString() const pure nothrow @safe { return "cfloat"; }
-
-    const: nothrow: pure: @trusted:
-    static if (__traits(hasMember, TypeInfo, "argTypes"))
-        override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-        {
-            arg1 = typeid(double);
-            return 0;
-        }
-}
-
-// cdouble @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_r : TypeInfoGeneric!d_cdouble
-{
-    override string toString() const pure nothrow @safe { return "cdouble"; }
-
-    const: nothrow: pure: @trusted:
-    static if (__traits(hasMember, TypeInfo, "argTypes"))
-        override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-        {
-            arg1 = typeid(double);
-            arg2 = typeid(double);
-            return 0;
-        }
-}
-
-// creal @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_c : TypeInfoGeneric!d_creal
-{
-    override string toString() const pure nothrow @safe { return "creal"; }
-
-    const: nothrow: pure: @trusted:
-    static if (__traits(hasMember, TypeInfo, "argTypes"))
-        override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-        {
-            arg1 = typeid(real);
-            arg2 = typeid(real);
-            return 0;
-        }
 }
 
 // Arrays of all integrals.
