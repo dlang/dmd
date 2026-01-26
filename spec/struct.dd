@@ -236,6 +236,9 @@ $(H2 $(LNAME2 bitfields, Bit Field Declarations))
     must result in an integer expression that ranges from 0 to the number of bits in the type of the
     bit field.)
 
+    $(P Bit fields can have an $(GLINK2 declaration, Initializer), which must evaluate to a compile-time constant
+    and must fit within the width of the bit field.)
+
     $(P The type of the bit field must be an integral type, signed or unsigned. The values assigned to
     bit fields must fit into the specified width. The bit field is placed into a unit of memory at least
     as large as needed to hold a value of the type of the bit field.)
@@ -255,7 +258,7 @@ $(H2 $(LNAME2 bitfields, Bit Field Declarations))
     ---
     struct B
     {
-        int x:3, y:2;
+        int x:3 = 2, y:2;
     }
 
     static assert(B.sizeof == 4);
