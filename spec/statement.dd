@@ -778,6 +778,7 @@ $(GNAME OpApplyParameter):
         If there are no more elements to iterate,
         apply must return 0.)
     )
+    $(UNDEFINED_BEHAVIOR Returning a nonzero value that is not the result of calling the delegate.)
 
     $(P The result of calling the delegate will be nonzero if the *ForeachStatement*
         body executes a matching $(GLINK BreakStatement), $(GLINK ReturnStatement), or
