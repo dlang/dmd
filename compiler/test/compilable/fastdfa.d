@@ -44,7 +44,7 @@ int* nullable1(int* ptr)
         ret = ptr;
     }
 
-    int v = *ret; // ideally would error, but not required
+    int v = *ret; // no error, cannot know state of ret
     return ret;
 }
 
@@ -266,25 +266,6 @@ void loopy11()
 
         i++;
     }
-}
-
-void theSitchFinally()
-{
-    {
-        goto Label;
-    }
-
-    {
-    Label:
-    }
-
-    int* ptr;
-
-    scope (exit)
-        int vS = *ptr;
-
-    int vMid = *ptr;
-    truthinessNo;
 }
 
 void nodeFind()

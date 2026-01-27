@@ -2,27 +2,30 @@
  * REQUIRED_ARGS: -preview=fastdfa
  * TEST_OUTPUT:
 ---
-fail_compilation/fastdfa.d(47): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(57): Error: Argument is expected to be non-null but was null
-fail_compilation/fastdfa.d(50):        For parameter `ptr` in argument 0
-fail_compilation/fastdfa.d(64): Error: Variable `ptr` was required to be non-null and has become null
-fail_compilation/fastdfa.d(85): Error: Variable `ptr` was required to be non-null and has become null
-fail_compilation/fastdfa.d(100): Error: Dereference on null variable `ptr`
-fail_compilation/fastdfa.d(122): Error: Dereference on null variable `ptr`
-fail_compilation/fastdfa.d(139): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(145): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(154): Error: Dereference on null variable `ptr`
-fail_compilation/fastdfa.d(169): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(177): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(179): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(186): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(193): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(197): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(199): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(209): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(210): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(50): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(65): Error: Argument is expected to be non-null but was null
+fail_compilation/fastdfa.d(58):        For parameter `ptr` in argument 0
+fail_compilation/fastdfa.d(83): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(81): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(91): Error: Variable `ptr` was required to be non-null and has become null
+fail_compilation/fastdfa.d(112): Error: Variable `ptr` was required to be non-null and has become null
+fail_compilation/fastdfa.d(127): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(149): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(166): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(172): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(181): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(196): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(204): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(206): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(213): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(220): Error: Assert can be proven to be false
 fail_compilation/fastdfa.d(224): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(233): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(226): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(236): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(237): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(251): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(260): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(276): Error: Assert can be proven to be false
 ---
  */
 
@@ -47,6 +50,11 @@ void conditionalAssert()
     assert(c); // Error: c is false
 }
 
+bool truthinessNo()
+{
+    return false;
+}
+
 int nonnull1(int* ptr)
 {
     return *ptr;
@@ -55,6 +63,25 @@ int nonnull1(int* ptr)
 void nonnullCall()
 {
     nonnull1(null); // error
+}
+
+void theSitchFinally()
+{
+    {
+        goto Label;
+    }
+
+    {
+        Label:
+    }
+
+    int* ptr;
+
+    scope (exit)
+        int vS = *ptr; // error
+
+    int vMid = *ptr; // error
+    truthinessNo;
 }
 
 void loopy6()
@@ -232,4 +259,19 @@ void paSliceLengthAppend()
 
     assert(text.length == 5); // error
     assert(text.length == 11); // no error
+}
+
+void checkPtrExact() {
+    int* a = new int;
+    int* b = a;
+
+    if (a is b) {
+        // ok
+    } else {
+        bool c;
+        assert(c); // should not error
+    }
+
+    assert(a is b); // no error
+    assert(a !is b); // error
 }
