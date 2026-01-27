@@ -2172,7 +2172,14 @@ static if (0)
                 cs.IEV1.Vsym = e.Vsym;
                 cs.IEV1.Voffset = 0;
                 cdb.gen(&cs);
-                cdb.gen1(INSTR.addsub_imm(1,0,0,sh,cast(uint)e.Voffset,reg,reg)); // ADD reg,reg,Voffset
+                uint op = 0;    // add
+                int off = cast(int)e.Voffset;
+                if (off < 0)
+                {
+                    op = 1;     // sub
+                    off = -off;
+                }
+                cdb.gen1(INSTR.addsub_imm(1,op,0,sh,off,reg,reg)); // ADD/SUB reg,reg,Voffset
                 // TODO AArch64 common subexpressions?
                 //loadea(cdb,e,cs,LEA,reg,0,0,0);   // LEA reg,EA
             }
