@@ -2,12 +2,15 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/deprecations.d(43): Deprecation: struct `deprecations.S` is deprecated
-fail_compilation/deprecations.d(64):        instantiated from here: `otherPar!()`
-fail_compilation/deprecations.d(55): Deprecation: struct `deprecations.S` is deprecated
-fail_compilation/deprecations.d(65):        instantiated from here: `otherVar!()`
-fail_compilation/deprecations.d(55): Deprecation: struct `deprecations.S` is deprecated
-fail_compilation/deprecations.d(65):        instantiated from here: `otherVar!()`
+fail_compilation/deprecations.d(46): Deprecation: struct `deprecations.S` is deprecated
+fail_compilation/deprecations.d(19):        `S` is declared here
+fail_compilation/deprecations.d(67):        instantiated from here: `otherPar!()`
+fail_compilation/deprecations.d(58): Deprecation: struct `deprecations.S` is deprecated
+fail_compilation/deprecations.d(19):        `S` is declared here
+fail_compilation/deprecations.d(68):        instantiated from here: `otherVar!()`
+fail_compilation/deprecations.d(58): Deprecation: struct `deprecations.S` is deprecated
+fail_compilation/deprecations.d(19):        `S` is declared here
+fail_compilation/deprecations.d(68):        instantiated from here: `otherVar!()`
 ---
 
 https://issues.dlang.org/show_bug.cgi?id=20474
