@@ -167,7 +167,7 @@ struct DFAReporter
 
                     if (scv.var.isByRef)
                     {
-                        if (scv.var.writeCount > 0)
+                        if (scv.var.writeCount > 1)
                         {
                             if (param.notNullOut == Fact.Unspecified)
                                 param.notNullOut = Fact.NotGuaranteed;
@@ -227,6 +227,35 @@ struct DFAReporter
         }
         else
             errorSink.errorSupplemental(calling.loc, "For parameter `this` in called function");
+    }
+
+    void onReadOfUninitialized(DFAVar* var, ref DFALatticeRef lr, ref Loc loc)
+    {
+        if (!var.isModellable || var.declaredAtDepth == 0)
+            return;
+
+        errorSink.error(loc,
+                "Expression reads from an uninitialized variable, it must be written to at least once before reading");
+
+        if (var.var !is null)
+            errorSink.errorSupplemental(var.var.loc, "For variable `%s`", var.var.ident.toChars);
+
+        version (none)
+        {
+            lr.printActual("uninit report");
+
+            dfaCommon.allocator.allVariables((DFAVar* var) {
+                printf("var %p base1=%p, base2=%p, writeCount=%d, isStaticArray=%d",
+                    var, var.base1, var.base2, var.writeCount, var.isStaticArray);
+
+                if (var.var !is null)
+                {
+                    printf(", `%s` at %s", var.var.ident.toChars, var.var.loc.toChars);
+                }
+
+                printf("\n");
+            });
+        }
     }
 }
 

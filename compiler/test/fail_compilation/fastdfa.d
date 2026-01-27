@@ -2,27 +2,37 @@
  * REQUIRED_ARGS: -preview=fastdfa
  * TEST_OUTPUT:
 ---
-fail_compilation/fastdfa.d(47): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(57): Error: Argument is expected to be non-null but was null
-fail_compilation/fastdfa.d(50):        For parameter `ptr` in argument 0
-fail_compilation/fastdfa.d(64): Error: Variable `ptr` was required to be non-null and has become null
-fail_compilation/fastdfa.d(85): Error: Variable `ptr` was required to be non-null and has become null
-fail_compilation/fastdfa.d(100): Error: Dereference on null variable `ptr`
-fail_compilation/fastdfa.d(122): Error: Dereference on null variable `ptr`
-fail_compilation/fastdfa.d(139): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(145): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(154): Error: Dereference on null variable `ptr`
-fail_compilation/fastdfa.d(169): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(177): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(57): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(72): Error: Argument is expected to be non-null but was null
+fail_compilation/fastdfa.d(65):        For parameter `ptr` in argument 0
+fail_compilation/fastdfa.d(90): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(88): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(98): Error: Variable `ptr` was required to be non-null and has become null
+fail_compilation/fastdfa.d(119): Error: Variable `ptr` was required to be non-null and has become null
+fail_compilation/fastdfa.d(134): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(156): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(173): Error: Assert can be proven to be false
 fail_compilation/fastdfa.d(179): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(186): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(193): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(197): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(199): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(209): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(210): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(224): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(188): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(203): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(211): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(213): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(220): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(227): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(231): Error: Assert can be proven to be false
 fail_compilation/fastdfa.d(233): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(243): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(244): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(258): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(267): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(283): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(289): Error: Expression reads from an uninitialized variable, it must be written to at least once before reading
+fail_compilation/fastdfa.d(288):        For variable `val1`
+fail_compilation/fastdfa.d(292): Error: Expression reads from an uninitialized variable, it must be written to at least once before reading
+fail_compilation/fastdfa.d(288):        For variable `val1`
+fail_compilation/fastdfa.d(299): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(306): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(342): Error: Assert can be proven to be false
 ---
  */
 
@@ -47,6 +57,11 @@ void conditionalAssert()
     assert(c); // Error: c is false
 }
 
+bool truthinessNo()
+{
+    return false;
+}
+
 int nonnull1(int* ptr)
 {
     return *ptr;
@@ -55,6 +70,25 @@ int nonnull1(int* ptr)
 void nonnullCall()
 {
     nonnull1(null); // error
+}
+
+void theSitchFinally()
+{
+    {
+        goto Label;
+    }
+
+    {
+        Label:
+    }
+
+    int* ptr;
+
+    scope (exit)
+        int vS = *ptr; // error
+
+    int vMid = *ptr; // error
+    truthinessNo;
 }
 
 void loopy6()
@@ -232,4 +266,79 @@ void paSliceLengthAppend()
 
     assert(text.length == 5); // error
     assert(text.length == 11); // no error
+}
+
+void checkPtrExact() {
+    int* a = new int;
+    int* b = a;
+
+    if (a is b) {
+        // ok
+    } else {
+        bool c;
+        assert(c); // should not error
+    }
+
+    assert(a is b); // no error
+    assert(a !is b); // error
+}
+
+void readFromUninit1() @trusted
+{
+    int val1 = void;
+    int val2 = val1; // error
+
+    int* ptr = &val1;
+    int val3 = *ptr; // error
+}
+
+void seeEffectViaObject1(bool condition) @trusted
+{
+    bool a = true, b = true;
+    bool got = *(condition ? &a : &b);
+    assert(!got); // error
+}
+
+void seeEffectViaObject2(bool condition) @trusted
+{
+    bool a = false, b = false;
+    bool got = *(condition ? &a : &b);
+    assert(got); // error
+}
+
+void valueLoop1()
+{
+    int* obj = new int, oldObj = obj;
+
+    foreach (i; 0 .. 0)
+    {
+        obj = new int;
+    }
+
+    // only true branch taken
+    if (obj is oldObj)
+    {
+    }
+    else
+    {
+        bool b;
+        assert(b); // ok
+    }
+
+    obj = oldObj;
+
+    foreach (i; 0 .. 10)
+    {
+        obj = new int;
+    }
+
+    // both branches must be taken
+    if (obj is oldObj)
+    {
+    }
+    else
+    {
+        bool b;
+        assert(b); // error: cannot know state of obj after loop (null)
+    }
 }

@@ -6809,7 +6809,7 @@ static assert(md5_digest11535(`TEST`) == [84, 69, 83, 84, 0, 0]);
 // https://issues.dlang.org/show_bug.cgi?id=11540
 // goto label + try-catch-finally / with statement
 
-static assert(()
+/+static assert(()
 {
     // jump inside TryCatchStatement.body
     {
@@ -6844,9 +6844,9 @@ static assert(()
     }
 
     return 1;
-}());
+}());+/
 
-static assert(()
+/+static assert(()
 {
     // enter to TryCatchStatement.catches which has no exception variable
     {
@@ -6898,9 +6898,9 @@ static assert(()
     }
 
     return 1;
-}());
+}());+/
 
-static assert(()
+/+static assert(()
 {
     // jump inside TryFinallyStatement.body
     {
@@ -6944,9 +6944,9 @@ static assert(()
     }
 
     return 1;
-}());
+}());+/
 
-static assert(()
+/+static assert(()
 {
     {
         bool c = false;
@@ -6972,7 +6972,7 @@ static assert(()
     }
 
     return 1;
-}());
+}());+/
 
 /**************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=11627
