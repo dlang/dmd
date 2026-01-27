@@ -2,6 +2,73 @@
  * REQUIRED_ARGS: -preview=fastdfa
  */
 
+void typeNextIterate(Type t)
+{
+    Type ts;
+
+    {
+        Type ta = new Type;
+        Type* pt;
+
+        for (pt = &ts; *pt != t; pt = &(cast(TypeNext)*pt).next) // no error
+        {
+        }
+
+        *pt = ta;
+    }
+}
+
+void test8()
+{
+    bool b;
+    bool* pb = &b;
+
+    assert(b == false);
+    *pb = true;
+    assert(b == true);
+    *pb = false;
+    assert(b == false);
+}
+
+void uninitWithFuncCheck()
+{
+    struct Foo
+    {
+        bool isB;
+
+        void initThis(bool b)
+        {
+            this.isB = b;
+        }
+    }
+
+    Foo foo = void;
+    foo.initThis = false; // ok, we can't know if a method will initialize
+}
+
+string apUninitWrite(void* ap)
+{
+    string result = void;
+    auto p1 = cast(size_t*) &result;
+
+    *p1 = *cast(size_t*) ap; // no error its a write after all
+    return result;
+}
+
+void pointerArithmeticObj()
+{
+    ubyte[4] storage;
+
+    ubyte* ptr = &storage[1];
+    ptr++;
+}
+
+void pickPtr(bool condition)
+{
+    int i1, i2;
+    int* ptr = condition ? &i1 : &i2;
+}
+
 @safe:
 
 bool isNull1(int* ptr)
@@ -44,7 +111,7 @@ int* nullable1(int* ptr)
         ret = ptr;
     }
 
-    int v = *ret; // ideally would error, but not required
+    int v = *ret; // no error, cannot know state of ret
     return ret;
 }
 
@@ -266,25 +333,6 @@ void loopy11()
 
         i++;
     }
-}
-
-void theSitchFinally()
-{
-    {
-        goto Label;
-    }
-
-    {
-    Label:
-    }
-
-    int* ptr;
-
-    scope (exit)
-        int vS = *ptr;
-
-    int vMid = *ptr;
-    truthinessNo;
 }
 
 void nodeFind()
@@ -810,4 +858,266 @@ void checkEqualAssignInt(string str)
 
     i = (str == "hello");
     assert(i == 1);
+}
+
+int* checkPtrFromStructNoEffect()
+{
+    // Make sure no effect can come from a field via a pointer.
+
+    static struct PtrFromStruct
+    {
+        static PtrFromStruct* global;
+        int field;
+    }
+
+    PtrFromStruct* ptrFromStruct()
+    {
+        return PtrFromStruct.global;
+    }
+
+    if (auto p = ptrFromStruct())
+    return &p.field;
+    return null;
+}
+
+void initDefault()
+{
+    bool b;
+    bool got = b;
+}
+
+void seeEffectOnObject1(bool condition)
+{
+    bool* a = new bool(true), b = new bool(true);
+    bool got = *(condition ? a : b);
+    assert(!got); // would be nice to error, but won't due to indirection
+}
+
+void seeEffectOnObject2(bool condition)
+{
+    bool* a = new bool(false), b = new bool(false);
+    bool got = *(condition ? a : b);
+    assert(got); // would be nice to error, but won't due to indirection
+}
+
+void checkLengthDeref(int[] slice)
+{
+    static bool expectNonNull(ref int[] arr)
+    {
+        int v = arr[0];
+        return true;
+    }
+
+    if (slice.length && expectNonNull(slice))
+    {
+    }
+}
+
+void uninitMsgPut1()
+{
+    static void uninitMsgSinkPut(ref char[] buf, string text)
+    {
+    }
+
+    char[1024] buf = void;
+    char[] sink = buf; // cast
+
+    uninitMsgSinkPut(sink, "ok"); // mutates buf
+
+    char[1024] result = buf; // ok
+}
+
+void uninitMsgPut2()
+{
+    static void uninitMsgSinkPut(ref char[] buf, string text)
+    {
+    }
+
+    char[1024] buf = void;
+    char[] sink = buf[]; // slice
+
+    uninitMsgSinkPut(sink, "ok"); // mutates buf
+
+    char[1024] result = buf; // ok
+}
+
+void loopInLoopCount()
+{
+    int count;
+    auto sample = [99];
+
+    foreach (j; sample)
+    {
+        if (j == 0)
+        {
+        }
+        else if (j == 99)
+        ++count;
+    }
+
+    assert(9 < count);
+}
+
+struct Ternary
+{
+    private ubyte value = 6;
+
+    static Ternary make(ubyte b)
+    {
+        Ternary r = void;
+        r.value = b; // no error
+        return r; // no error
+    }
+}
+
+class TypeNext
+{
+    Type next;
+}
+
+class Type
+{
+
+}
+
+void uninitStackPtrOf()
+{
+    char[4] buf;
+    auto ptr = buf.ptr;
+
+    if (ptr is buf.ptr)
+    {
+    }
+    else
+    {
+        bool b;
+        assert(b); // ok, branch not taken
+    }
+}
+
+struct BigFoo
+{
+    ubyte[256] buf;
+
+    static BigFoo getUninitBigFoo()
+    {
+        BigFoo ret = void;
+        return ret; // no error
+    }
+}
+
+void initOverBranches(bool gate)
+{
+    int value = void;
+
+    for (;;)
+    {
+        if (gate)
+        value = 1;
+        else
+        value = 2;
+
+        if (value > 0)
+        break;
+    }
+}
+
+void uninitTestConditionAndDoLoop(bool b) {
+    size_t bufStart = void;
+    if (b)
+    {
+        bufStart = 39;
+        do
+        {
+        } while (true);
+    }
+    else
+    {
+        bufStart = 39;
+        do
+        {
+        } while (true);
+    }
+
+    const minw = bufStart;
+}
+
+void checkFloatInit1_1(bool condition)
+{
+    float v;
+    float t = v; // ok, not a math op
+
+    if (condition)
+        v = 2;
+
+    float u = v * 2; // no error
+}
+
+void checkFloatInit2_1(bool condition)
+{
+    float v = float.init;
+    float t = v; // ok
+
+    if (condition)
+        v = 2;
+
+    float u = v * 2; // no error
+}
+
+void checkFloatInit3_1(bool condition)
+{
+    float v = 0;
+    float t = v; // ok
+
+    if (condition)
+        v = 2;
+
+    float u = v * 2; // no error
+}
+
+void readFromUninit2()
+{
+    struct Foo
+    {
+        int val;
+    }
+
+    Foo foo = void;
+    foo.val = 2; // ok, partial initialization
+}
+
+void checkFloatInit2_2(bool condition)
+{
+    float v = float.init;
+    float t = v * 2; // ok
+
+    if (condition)
+        v = 2;
+
+    float u = v * 2; // no error
+}
+
+void checkFloatInit3_2(bool condition)
+{
+    float v = 0;
+    float t = v * 2; // ok
+
+    if (condition)
+        v = 2;
+
+    float u = v * 2; // no error
+}
+
+void checkFloatInit4(float[] array) {
+    foreach(e; array) {
+        float t = e * 2; // no error
+    }
+}
+
+void checkFloatInit5() {
+    float thing = 2;
+
+    if (float var = thing) {
+        float t = var * 2;
+    }
 }
