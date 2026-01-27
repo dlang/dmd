@@ -2007,6 +2007,14 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
     assert((ms & cgstate.regcon.cse.mops) == ms);
     cgstate.regcon.cse.mops &= ~ms;
 
+    regm_t xMSW = mMSW;
+    regm_t xLSW = mLSW | mBP;
+    if (cgstate.AArch64)
+    {
+        xMSW = INSTR.MSW;
+        xLSW = INSTR.LSW;
+    }
+
     /* Skip CSEs that are already saved */
     for (regm_t regm = 1; regm < mask(NUMREGS); regm <<= 1)
     {
@@ -2018,8 +2026,8 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
             {
                 if (sz <= REGSIZE ||
                     sz <= 2 * REGSIZE &&
-                        (regm & mMSW && cse.regm & mMSW ||
-                         regm & mLSW && cse.regm & mLSW) ||
+                        (regm & xMSW && cse.regm & xMSW ||
+                         regm & xLSW && cse.regm & xLSW) ||
                     sz == 4 * REGSIZE && regm == cse.regm
                    )
                 {
@@ -2105,7 +2113,7 @@ bool cssave(elem* e, regm_t regm, bool opsflag)
 
         //printf("cssave(e = %p, regm = %s, opsflag = x%x)\n", e, regm_str(regm), opsflag);
         if (cgstate.AArch64)
-            regm &= cgstate.allregs | INSTR.FLOATREGS;
+            regm &= INSTR.ALLREGS | INSTR.FLOATREGS;
         else
             regm &= mBP | ALLREGS | mES | XMMREGS;    /* just to be sure              */
 /+
@@ -2131,7 +2139,7 @@ bool cssave(elem* e, regm_t regm, bool opsflag)
                     cgstate.regcon.cse.mval |= mi;
                     if (opsflag)
                         cgstate.regcon.cse.mops |= mi;
-                    //printf("cssave set: regcon.cse.value[%s] = %p\n",regstring[i],e);
+                    //printf("cssave set: regcon.cse.value[%s] = %p\n",regm_str(mi),e);
                     cgstate.regcon.cse.value[i] = e;
                     result = true;
                 }
@@ -2147,6 +2155,7 @@ bool cssave(elem* e, regm_t regm, bool opsflag)
 @trusted
 bool evalinregister(elem* e)
 {
+    //printf("evalinregister()\n");
     if (config.exe == EX_WIN64 && e.Eoper == OPrelconst)
         return true;
 
@@ -2158,6 +2167,7 @@ bool evalinregister(elem* e)
         return true;
 
     // Need to rethink this code if float or double can be CSE'd
+    bool AArch64 = cgstate.AArch64;
     uint sz = tysize(e.Ety);
     if (e.Ecount == e.Ecomsub)    /* elem is a CSE that needs     */
                                     /* to be generated              */
@@ -2168,7 +2178,7 @@ bool evalinregister(elem* e)
         {
             // Do it only if at least 2 registers are available
             regm_t m = cgstate.allregs & ~cgstate.regcon.mvar;
-            if (sz == 1)
+            if (sz == 1 && !AArch64)
                 m &= BYTEREGS;
             if (m & (m - 1))        // if more than one register
             {   // Need to be at least 3 registers available, as
@@ -2194,7 +2204,12 @@ bool evalinregister(elem* e)
     if (sz <= REGSIZE)
         return emask != 0;      /* the CSE is in a register     */
     if (sz <= 2 * REGSIZE)
-        return (emask & mMSW) && (emask & mLSW);
+    {
+        if (AArch64)
+            return (emask & INSTR.MSW) && (emask & INSTR.LSW);
+        else
+            return (emask & mMSW) && (emask & mLSW);
+    }
     return true;                    /* cop-out for now              */
 }
 
@@ -2861,7 +2876,12 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
                 (s.Sregm & pretregs) == s.Sregm)
             {
                 if (tysize(e.Ety) <= REGSIZE && tysize(s.Stype.Tty) == 2 * REGSIZE)
-                    pretregs &= mPSW | (s.Sregm & mLSW);
+                {
+                    if (cg.AArch64)
+                        pretregs &= mPSW | (s.Sregm & INSTR.LSW);
+                    else
+                        pretregs &= mPSW | (s.Sregm & mLSW);
+                }
                 else
                     pretregs &= mPSW | s.Sregm;
             }
@@ -2968,7 +2988,12 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,r
             uint sz1 = tysize(e.Ety);
             uint sz2 = tysize(e.Vsym.Stype.Tty);
             if (sz1 <= REGSIZE && sz2 > REGSIZE)
-                regm &= mLSW | XMMREGS;
+            {
+                if (cg.AArch64)
+                    regm &= INSTR.LSW;
+                else
+                    regm &= mLSW | XMMREGS;
+            }
             fixresult(cdb,e,regm,pretregs);
             cssave(e,regm,0);
             freenode(e);
