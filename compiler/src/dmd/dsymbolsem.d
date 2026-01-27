@@ -1613,6 +1613,8 @@ bool checkDeprecated(Dsymbol d, Loc loc, Scope* sc)
     else
         deprecation(loc, "%s `%s` is deprecated", d.kind, d.toPrettyChars);
 
+    deprecationSupplemental(d.loc, "`%s` is declared here", d.toErrMsg);
+
     if (auto ti = sc.parent ? sc.parent.isInstantiated() : null)
         ti.printInstantiationTrace(Classification.deprecation);
     else if (auto ti = sc.parent ? sc.parent.isTemplateInstance() : null)
