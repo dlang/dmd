@@ -20,6 +20,7 @@ import dmd.location;
 import dmd.func;
 import dmd.errorsink;
 import dmd.declaration;
+import dmd.astenums;
 import core.stdc.stdio;
 
 alias Fact = ParameterDFAInfo.Fact;
@@ -167,7 +168,7 @@ struct DFAReporter
 
                     if (scv.var.isByRef)
                     {
-                        if (scv.var.writeCount > 0)
+                        if (scv.var.writeCount > 1)
                         {
                             if (param.notNullOut == Fact.Unspecified)
                                 param.notNullOut = Fact.NotGuaranteed;
@@ -227,6 +228,59 @@ struct DFAReporter
         }
         else
             errorSink.errorSupplemental(calling.loc, "For parameter `this` in called function");
+    }
+
+    void onReadOfUninitialized(DFAVar* var, ref DFALatticeRef lr, ref Loc loc, bool forMathOp)
+    {
+        if (!var.isModellable || var.declaredAtDepth == 0 || (!forMathOp
+                && var.isFloatingPoint) || var.var is null)
+            return;
+        else if ((var.var.storage_class & STC.temp) != 0)
+            return; // Compiler generated, likely to be "fine"
+        else if (var.declaredAtDepth < dfaCommon.lastLoopyLabel.depth)
+            return; // Can we really know what state the variable is in? I don't think so.
+
+        // The reason floating point is special cased here, is to allow catching of mathematical operations,
+        //  on a floating point typed variable, that was default initialized.
+        // The NaN will propagate on that operation, which is basically never wanted.
+        // It is essentially a special case of uninitialized variables,
+        //  where the default could never be what someone wants, even if it was zero.
+        const floatingPointDefaultInit = var.isFloatingPoint && var.wasDefaultInitialized;
+
+        if (floatingPointDefaultInit)
+        {
+            errorSink.error(loc,
+                    "Expression reads a default initialized variable that is a floating point type");
+            errorSink.errorSupplemental(loc,
+                    "It will have the value of Not Any Number(nan), it will be propagated with mathematical operations");
+
+            errorSink.errorSupplemental(var.var.loc, "For variable `%s`", var.var.ident.toChars);
+            errorSink.errorSupplemental(var.var.loc,
+                    "Initialize to %s.nan or 0 explicitly to disable this error", var.var.type.kind);
+        }
+        else
+        {
+            errorSink.error(loc,
+                    "Expression reads from an uninitialized variable, it must be written to at least once before reading");
+            errorSink.errorSupplemental(var.var.loc, "For variable `%s`", var.var.ident.toChars);
+        }
+
+        version (none)
+        {
+            lr.printActual("uninit report");
+
+            dfaCommon.allocator.allVariables((DFAVar* var) {
+                printf("var %p base1=%p, base2=%p, writeCount=%d, isStaticArray=%d",
+                    var, var.base1, var.base2, var.writeCount, var.isStaticArray);
+
+                if (var.var !is null)
+                {
+                    printf(", `%s` at %s", var.var.ident.toChars, var.var.loc.toChars);
+                }
+
+                printf("\n");
+            });
+        }
     }
 }
 

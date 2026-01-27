@@ -141,6 +141,16 @@ struct DFAAnalyzer
         // False body should never be null.
         assert(!scrFalse.isNull);
 
+        version (none)
+        {
+            printf("Converging an if statement %d %d, haveFalseBody=%d, unknownBranchTaken=%d, predicateNegation=%d\n",
+                    scrTrue.isNull, scrFalse.isNull, haveFalseBody,
+                    unknownBranchTaken, predicateNegation);
+            condition.printActual("condition");
+            scrTrue.printActual("true");
+            scrFalse.printActual("false");
+        }
+
         void protectLoopAgainst(ref DFAScopeRef scr)
         {
             if (dfaCommon.lastLoopyLabel is null)
@@ -457,11 +467,13 @@ struct DFAAnalyzer
                 // In scenario d we've both jumped, any effects at that time were already copied to the jump point.
                 // Nothing for us to do in that scenario.
 
-                if (!scrTrue.sc.haveJumped)
+                if (scrTrue.sc.haveJumped)
+                {
+                    // Both jumped, no state to converge.
+                }
                 {
                     // In scenario a, neither has jumped, any effects at the end of their bodies should be meet'd.
                     // Then we can converge that into parent scope.
-
                     protectGate;
                     DFAScopeRef meeted = meetScope(scrTrue, scrFalse, true);
                     assert(!meeted.isNull);
@@ -739,6 +751,18 @@ struct DFAAnalyzer
             }
         }
 
+        void checkForDifferentObjects(DFAConsequence* oldC, DFAConsequence* newC)
+        {
+            if (oldC.obj !is newC.obj)
+                newC.obj = null;
+        }
+
+        void checkForPA(DFAConsequence* oldC, DFAConsequence* newC)
+        {
+            if (oldC.pa != newC.pa)
+                newC.pa = DFAPAValue.Unknown;
+        }
+
         foreach (var, l2; beforeScopeState)
         {
             DFAScopeVar* oldState = dfaCommon.acquireScopeVar(var);
@@ -746,6 +770,8 @@ struct DFAAnalyzer
             if (oldState is null || newState is null)
                 continue;
 
+            checkForDifferentObjects(oldState.lr.lattice.context, l2.context);
+            checkForPA(oldState.lr.lattice.context, l2.context);
             checkForNull(newState, oldState.lr.lattice.context, l2.context);
             checkForAssignAfterAssert(beforeScopeState, newState, l2);
         }
@@ -759,6 +785,8 @@ struct DFAAnalyzer
             if (oldState is null || newState is null)
                 continue;
 
+            checkForDifferentObjects(oldState.lr.lattice.context, l2.context);
+            checkForPA(oldState.lr.lattice.context, l2.context);
             checkForNull(newState, oldState.lr.lattice.context, l2.context);
             checkForAssignAfterAssert(containing, newState, l2);
         }
@@ -854,6 +882,14 @@ struct DFAAnalyzer
     void convergeFunctionCallArgument(DFALatticeRef lr, ParameterDFAInfo* paramInfo,
             ulong paramStorageClass, FuncDeclaration calling, ref Loc loc)
     {
+
+        const isByRef = (paramStorageClass & (STC.ref_ | STC.out_)) != 0;
+        const couldEscape = (paramStorageClass & STC.scope_) == 0
+            || (paramStorageClass & (STC.return_ | STC.returnScope | STC.returnRef)) != 0;
+
+        // A function call argument, may initialize the parameter if its by-ref or if its the this pointer.
+        this.onRead(lr, loc, paramInfo is null || paramInfo.parameterId == -1 || isByRef, isByRef);
+
         DFAVar* ctx;
         DFAConsequence* cctx = lr.getContext(ctx);
 
@@ -863,10 +899,6 @@ struct DFAAnalyzer
             if (paramInfo.notNullIn == Fact.Guaranteed && cctx.nullable == Nullable.Null)
                 reporter.onFunctionCallArgumentLessThan(cctx, paramInfo, calling, loc);
         }
-
-        const isByRef = (paramStorageClass & (STC.ref_ | STC.out_)) != 0;
-        const couldEscape = (paramStorageClass & STC.scope_) == 0
-            || (paramStorageClass & (STC.return_ | STC.returnScope | STC.returnRef)) != 0;
 
         bool seePointer(DFAVar* var)
         {
@@ -882,10 +914,20 @@ struct DFAAnalyzer
                     if (couldEscape)
                         root.unmodellable = true;
 
+                    DFAConsequence* rootCctx = lr.findConsequence(root);
+
                     // Put the state of the var into an unknown state,
                     //  this prevents it from infesting other variables.
                     DFALatticeRef temp = dfaCommon.makeLatticeRef;
-                    temp.setContext(root);
+                    DFAConsequence* newCctx = temp.setContext(root);
+
+                    if (isByRef && root.isNullable && (cctx.nullable != Nullable.Null
+                        || paramInfo is null || paramInfo.notNullOut != Fact.NotGuaranteed))
+                    {
+                        // Object could've changed.
+                        newCctx.obj = dfaCommon.makeObject(rootCctx !is null ? rootCctx.obj : null);
+                    }
+
                     seeWrite(root, temp);
                     this.convergeExpression(temp, true);
 
@@ -893,9 +935,8 @@ struct DFAAnalyzer
 
                     if (root !is var)
                     {
-                        DFAConsequence* c = lr.findConsequence(root);
-                        if (c !is null)
-                            c.maybeTopSeen = true;
+                        if (rootCctx !is null)
+                            rootCctx.maybeTopSeen = true;
                     }
                     else
                         handledVar = true;
@@ -905,6 +946,18 @@ struct DFAAnalyzer
             return handledVar;
         }
 
+        void seeObject(DFAObject* obj)
+        {
+            obj.walkRoots((DFAObject* root) {
+                if (root.storageFor !is null)
+                {
+                    DFAScope* sideEffectScope = dfaCommon.getSideEffectScope();
+                    DFAScopeVar* scv = sideEffectScope.getScopeVar(root.storageFor);
+                    seeWrite(root.storageFor, scv.lr);
+                }
+            });
+        }
+
         if (ctx is null)
         {
             lr.walkMaybeTops((c) {
@@ -912,6 +965,8 @@ struct DFAAnalyzer
                     return true;
 
                 seePointer(c.var);
+                if (c.obj !is null)
+                    seeObject(c.obj);
                 return true;
             });
         }
@@ -919,6 +974,8 @@ struct DFAAnalyzer
         {
             if (seePointer(ctx))
                 cctx.maybeTopSeen = true;
+            if (cctx !is null && cctx.obj !is null)
+                seeObject(cctx.obj);
         }
 
         this.convergeExpression(lr, true);
@@ -929,6 +986,7 @@ struct DFAAnalyzer
     {
         if (lr.isNull)
             return;
+        onRead(lr, loc);
 
         const currentDepth = dfaCommon.currentDFAScope.depth;
         bool modellable = true;
@@ -962,7 +1020,6 @@ struct DFAAnalyzer
         {
             if (c.var is null || c.var.haveBase)
                 return;
-
             DFAScopeVar* scv = dfaCommon.acquireScopeVar(c.var);
             c.var.assertedCount++;
 
@@ -1004,6 +1061,7 @@ struct DFAAnalyzer
                 {
                     printf("    %d:%d\n", old.truthiness, old.nullable);
                 }
+
                 return lattice;
             });
         }
@@ -1029,11 +1087,23 @@ struct DFAAnalyzer
                 However we don't need the actual predicate integer (see ExpressionWalker.walkCondition).
                 The flag in the consequence is enough, as !!gate should set the lr to unknown not false.
                 */
+
                 if (DFAConsequence* gateCctx = lr.getGateConsequence)
                 {
                     if (DFAScopeVar* gateSCV = dfaCommon.lastLoopyLabel.findScopeVar(gateCctx.var))
                     {
-                        if (gateSCV.gatePredicateWriteCount != gateCctx.writeOnVarAtThisPoint)
+                        version (none)
+                        {
+                            printf("gate for %p, %d != %d - %d\n", gateCctx.var, gateSCV.gatePredicateWriteCount,
+                                    gateCctx.writeOnVarAtThisPoint,
+                                    cast(int)(gateCctx.var.param !is null));
+
+                            printf("    %d %d %d %d\n", gateCctx.invertedOnce,
+                                    gateSCV.assertTrueDepth, gateSCV.assertFalseDepth, currentDepth);
+                        }
+
+                        if (gateSCV.gatePredicateWriteCount != gateCctx.writeOnVarAtThisPoint - cast(
+                                int)(gateCctx.var.param !is null))
                         {
                         }
                         else if (!gateCctx.invertedOnce)
@@ -1058,6 +1128,14 @@ struct DFAAnalyzer
         {
             if (DFAScopeVar* gateSCV = dfaCommon.lastLoopyLabel.getScopeVar(gateCctx.var))
             {
+                version (none)
+                {
+                    printf("gate store %p, %d %d %d\n", gateCctx.var,
+                            gateSCV.assignDepth, gateSCV.assertDepth, currentDepth);
+                    printf("    %d %d %d\n", gateCctx.truthiness,
+                            gateSCV.assertTrueDepth, gateSCV.assertFalseDepth);
+                }
+
                 if (gateSCV.assignDepth == 0 || gateSCV.assertDepth > currentDepth)
                 {
                     gateSCV.assertDepth = currentDepth;
@@ -1106,16 +1184,21 @@ struct DFAAnalyzer
      * - Construct: `int a = 5` (Initialization).
      */
     DFALatticeRef transferAssign(DFALatticeRef assignTo, bool construct, bool isBlit,
-            DFALatticeRef lr, int alteredState, DFALatticeRef indexLR = DFALatticeRef.init)
+            DFALatticeRef lr, int alteredState, ref Loc loc,
+            DFALatticeRef indexLR = DFALatticeRef.init)
     {
+
         DFAVar* assignToCtx = assignTo.getContextVar;
         DFAVar* lrCtx;
         DFAConsequence* lrCctx = lr.getContext(lrCtx);
-
         const noLR = lrCctx is null;
         const lrIsTruthy = !noLR ? lrCctx.truthiness == Truthiness.True : false;
         const unmodellable = lrCtx !is null && !lrCtx.isModellable;
         DFALatticeRef ret;
+
+        this.onRead(assignTo, loc, true);
+        // Explicitly allow returns of uninitialized variables.
+        this.onRead(lr, loc, assignToCtx !is null && assignToCtx is dfaCommon.getReturnVariable);
 
         if (assignToCtx !is null)
         {
@@ -1128,7 +1211,7 @@ struct DFAAnalyzer
             assignToCtx.visitIfReferenceToAnotherVar((contextVar) {
                 wasDereferenced = true;
 
-                // This is a dereference: *var = expr;
+                // This is a dereference: *contextVar = expr;
                 // Which means the effects of lr don't really apply to the lhs.
 
                 if (contextVar.isTruthy || contextVar.isNullable)
@@ -1164,7 +1247,6 @@ struct DFAAnalyzer
         else
         {
             ret = join(assignTo, lr.copyWithoutInfiniteLifetime, 0, null);
-
             DFAConsequence* c = ret.addConsequence(null);
             ret.setContext(c);
 
@@ -1189,7 +1271,6 @@ struct DFAAnalyzer
 
         if (!indexLR.isNull)
             ret = this.transferLogicalAnd(ret, indexLR);
-
         DFAConsequence* retCctx = ret.addConsequence(assignToCtx);
         ret.setContext(retCctx);
 
@@ -1227,22 +1308,73 @@ struct DFAAnalyzer
         if (retCctx.truthiness == Truthiness.Maybe)
             retCctx.truthiness = Truthiness.Unknown;
 
-        if (lrCtx !is null)
-        {
-            lrCtx.visitReferenceToAnotherVar((var) {
-                // escapes, who knows what its gonna look like after this
-                var.unmodellable = true;
-
-                DFAConsequence* c = ret.addConsequence(var);
-                c.truthiness = Truthiness.Unknown;
-                c.nullable = Nullable.Unknown;
-            });
-        }
-
         if (assignToCtx !is null)
         {
-            if (!construct)
-                seeWrite(assignToCtx, ret);
+            bool exactlyOneRoot;
+
+            assignToCtx.visitIfReadOfReferenceToAnotherVar((root) {
+                DFAConsequence* c = assignTo.findConsequence(root);
+
+                if (c !is null && c.obj !is null)
+                {
+                    DFAVar* firstRoot;
+                    int rootCount;
+
+                    c.obj.walkRoots((objRoot) {
+                        if (objRoot.storageFor !is null && !objRoot.storageFor.haveBase)
+                        {
+                            if (firstRoot !is null)
+                            {
+                                objRoot.storageFor.unmodellable = true;
+                                DFAConsequence* cUnk = ret.addConsequence(objRoot.storageFor);
+                                cUnk.truthiness = Truthiness.Unknown;
+                                cUnk.nullable = Nullable.Unknown;
+                            }
+                            else
+                                firstRoot = objRoot.storageFor;
+
+                            rootCount++;
+                        }
+                    });
+
+                    if (rootCount == 1)
+                    {
+                        exactlyOneRoot = true;
+                        this.seeWrite(firstRoot, ret);
+
+                        DFAConsequence* c2 = ret.addConsequence(firstRoot);
+                        c2.truthiness = retCctx.truthiness;
+                        c2.nullable = retCctx.nullable;
+                        c2.pa = retCctx.pa;
+                    }
+                    else if (rootCount > 1)
+                    {
+                        firstRoot.unmodellable = true;
+                        DFAConsequence* cUnk = ret.addConsequence(firstRoot);
+                        cUnk.truthiness = Truthiness.Unknown;
+                        cUnk.nullable = Nullable.Unknown;
+                    }
+                }
+            });
+
+            if ((!assignToCtx.haveBase && assignToCtx.var is null)
+                    || (assignToCtx.haveBase && !exactlyOneRoot))
+            {
+                if (lrCctx !is null && lrCctx.obj !is null)
+                {
+                    lrCctx.obj.walkRoots((objRoot) {
+                        if (objRoot.storageFor !is null && !objRoot.storageFor.haveBase)
+                        {
+                            objRoot.storageFor.unmodellable = true;
+                            DFAConsequence* cUnk = ret.addConsequence(objRoot.storageFor);
+                            cUnk.truthiness = Truthiness.Unknown;
+                            cUnk.nullable = Nullable.Unknown;
+                        }
+                    });
+                }
+            }
+
+            seeWrite(assignToCtx, ret);
 
             ret.setContext(assignToCtx);
             DFAScopeVar* scv = this.convergeExpression(ret.copy, true);
@@ -1292,7 +1424,7 @@ struct DFAAnalyzer
                     You don't want the condition variable to effect the output lattice truthiness,
                      but you do want the variable to alter.
                     */
-                    requireMaybeContext = true;
+                    requireMaybeContext = c.truthiness <= Truthiness.Maybe;
                     c.truthiness = c.truthiness == Truthiness.False
                         ? Truthiness.True : Truthiness.False;
                 }
@@ -1322,7 +1454,7 @@ struct DFAAnalyzer
             if (requireMaybeContext)
             {
                 DFAConsequence* newCctx = lr.acquireConstantAsContext(Truthiness.Maybe,
-                        Nullable.Unknown);
+                        Nullable.Unknown, null);
                 // Don't forget to patch the maybe's, impacts asserts.
                 newCctx.maybe = cctx.var;
             }
@@ -1339,8 +1471,12 @@ struct DFAAnalyzer
         assert(lhsCctx !is null);
         assert(rhsCctx !is null);
 
-        DFAPAValue newValue = lhsCctx.pa;
+        if (lhsCctx.obj !is null)
+            lhsCctx.obj.mayNotBeExactPointer = true;
+        if (rhsCctx.obj !is null)
+            rhsCctx.obj.mayNotBeExactPointer = true;
 
+        DFAPAValue newValue = lhsCctx.pa;
         final switch (op)
         {
         case PAMathOp.add:
@@ -1434,9 +1570,9 @@ struct DFAAnalyzer
 
                 if (couldBeNull)
                     reporter.onDereference(ctx, loc);
-                else if (!dfaCommon.currentDFAScope.inConditional && ctx.writeOnVarAtThisPoint == 0
-                        && ctx.var !is null && ctx.var.assertedCount == 0
-                        && ctx.var.param !is null && !ctx.var.param.specifiedByUser)
+                else if (ctx.var !is null && ctx.var.param !is null
+                        && !ctx.var.param.specifiedByUser && !dfaCommon.currentDFAScope.inConditional
+                        && ctx.writeOnVarAtThisPoint == 1 && ctx.var.assertedCount == 0)
                 {
                     if (dfaCommon.debugIt)
                         printf("Infer variable as non-null `%s` at %s\n",
@@ -1456,7 +1592,7 @@ struct DFAAnalyzer
 
     /// See_Also: equalityArgTypes
     DFALatticeRef transferEqual(DFALatticeRef lhs, DFALatticeRef rhs,
-            bool equalityIsTrue, EqualityArgType equalityType)
+            bool equalityIsTrue, EqualityArgType equalityType, bool isIdentity)
     {
         // struct
         // floating point
@@ -1466,11 +1602,14 @@ struct DFAAnalyzer
         DFAConsequence* lhsCctx = lhs.getContext, rhsCctx = rhs.getContext;
         if (lhsCctx is null || rhsCctx is null)
             return DFALatticeRef.init;
+
         DFAVar* lhsVar = lhsCctx.var, rhsVar = rhsCctx.var;
+        Truthiness expectedTruthiness;
 
         bool couldBeUnknown;
-        checkVRPVar(lhsVar, couldBeUnknown);
-        checkVRPVar(rhsVar, couldBeUnknown);
+
+        checkPAVar(lhsVar, couldBeUnknown);
+        checkPAVar(rhsVar, couldBeUnknown);
 
         const treatAsInteger = equalityType == EqualityArgType.Unknown;
         const treatAsPointer = equalityType == EqualityArgType.DynamicArray
@@ -1488,8 +1627,6 @@ struct DFAAnalyzer
             ob.writestring("\n");
         });
 
-        Truthiness expectedTruthiness;
-
         if ((lhsVar is null || lhsVar.isModellable) && (rhsVar is null || rhsVar.isModellable))
         {
             expectedTruthiness = Truthiness.Maybe;
@@ -1498,7 +1635,12 @@ struct DFAAnalyzer
             {
                 if (treatAsPointer)
                 {
-                    if (lhsCctx.nullable == Nullable.Null && lhsCctx.nullable == rhsCctx.nullable)
+                    if (lhsCctx.nullable == Nullable.NonNull && rhsCctx.nullable == Nullable.NonNull
+                            && lhsCctx.obj !is null && lhsCctx.obj is rhsCctx.obj
+                            && !lhsCctx.obj.mayNotBeExactPointer)
+                        expectedTruthiness = isIdentity ? Truthiness.True : Truthiness.Maybe;
+                    else if (lhsCctx.nullable == Nullable.Null
+                            && lhsCctx.nullable == rhsCctx.nullable)
                         expectedTruthiness = Truthiness.True;
                     else if (lhsCctx.truthiness == Truthiness.False
                             && lhsCctx.truthiness == rhsCctx.truthiness)
@@ -1541,7 +1683,13 @@ struct DFAAnalyzer
                         expectedTruthiness = Truthiness.True;
                     else if (lhsCctx.nullable == Nullable.NonNull
                             && lhsCctx.nullable == rhsCctx.nullable)
-                        expectedTruthiness = Truthiness.Maybe;
+                    {
+                        if (lhsCctx.obj !is null && lhsCctx.obj is rhsCctx.obj
+                                && !lhsCctx.obj.mayNotBeExactPointer)
+                            expectedTruthiness = isIdentity ? Truthiness.False : Truthiness.Maybe;
+                        else
+                            expectedTruthiness = Truthiness.Maybe;
+                    }
                     else if (lhsCctx.nullable == Nullable.Null
                             && lhsCctx.nullable == rhsCctx.nullable)
                         expectedTruthiness = Truthiness.False;
@@ -1617,7 +1765,8 @@ struct DFAAnalyzer
         DFALatticeRef ret = transferLogicalAnd(lhs, rhs);
 
         {
-            DFAConsequence* c = ret.acquireConstantAsContext(expectedTruthiness, Nullable.Unknown);
+            DFAConsequence* c = ret.acquireConstantAsContext(expectedTruthiness,
+                    Nullable.Unknown, null);
             c.invertedOnce = expectedInvertedOnce;
 
             if (DFAConsequence* c2 = ret.findConsequence(rhsVar))
@@ -1693,8 +1842,8 @@ struct DFAAnalyzer
         assert(rhsCctx !is null);
 
         bool couldBeUnknown;
-        checkVRPVar(lhsCctx.var, couldBeUnknown);
-        checkVRPVar(rhsCctx.var, couldBeUnknown);
+        checkPAVar(lhsCctx.var, couldBeUnknown);
+        checkPAVar(rhsCctx.var, couldBeUnknown);
 
         Truthiness expectedTruthiness;
 
@@ -1740,7 +1889,7 @@ struct DFAAnalyzer
         }
 
         DFALatticeRef ret = this.transferLogicalAnd(lhs, rhs);
-        ret.acquireConstantAsContext(expectedTruthiness, Nullable.Unknown);
+        ret.acquireConstantAsContext(expectedTruthiness, Nullable.Unknown, null);
         return ret;
     }
 
@@ -1919,6 +2068,7 @@ struct DFAAnalyzer
 
         // Now add the consequences that are both in lhs and rhs,
         //  that are not maybe tops.
+
         foreach (oldC; lhs)
         {
             if (oldC.var is null || oldC.maybeTopSeen)
@@ -1956,10 +2106,20 @@ struct DFAAnalyzer
 
         this.convergeStatementIf(condition, scrTrue, scrFalse, false,
                 unknownBranchTaken, predicateNegation);
-        DFAVar* asContext = dfaCommon.findVariablePair(lrTrue.getContextVar, lrFalse.getContextVar);
+
+        DFAVar* trueVar, falseVar;
+        DFAConsequence* trueCctx = lrTrue.getContext(trueVar),
+            falseCctx = lrFalse.getContext(falseVar);
+
+        DFAObject* trueObj = trueCctx !is null ? trueCctx.obj : null;
+        DFAObject* falseObj = falseCctx !is null ? falseCctx.obj : null;
+
+        DFAVar* asContext = dfaCommon.findVariablePair(trueVar, falseVar);
 
         DFALatticeRef ret = meet(lrTrue, lrFalse, 0, true);
-        ret.setContext(asContext);
+
+        DFAConsequence* cctx = ret.setContext(asContext);
+        cctx.obj = dfaCommon.makeObject(trueObj, falseObj);
         return ret;
     }
 
@@ -1999,6 +2159,135 @@ struct DFAAnalyzer
             ret.sc.haveReturned = true;
 
         return ret;
+    }
+
+    void onRead(ref DFALatticeRef lr, ref Loc loc, bool willInit = false,
+            bool isByRef = false, bool forMathOp = false)
+    {
+        version (none)
+        {
+            lr.printStructure("READ READ READ");
+            printf("READ READ value %d %d\n", willInit, isByRef);
+        }
+
+        // Called by statement, expressions and analysis.
+        DFAVar* contextVar;
+        DFAConsequence* cctx = lr.getContext(contextVar);
+
+        if (contextVar is null)
+            return;
+        assert(cctx !is null);
+
+        DFALatticeRef toStore;
+
+        void seeRootObject(DFAObject* root)
+        {
+            version (none)
+            {
+                printf("root object %p var %p\n", root, root.storageFor);
+            }
+
+            // Don't apply effects from a variable that isn't actually modelled i.e. indirection.
+
+            if (root.storageFor !is null && !root.storageFor.haveBase)
+            {
+                DFALatticeRef lr = dfaCommon.acquireLattice(root.storageFor);
+                DFAConsequence* cctx = lr.getContext;
+
+                if (cctx !is null && cctx.writeOnVarAtThisPoint == 0)
+                    reporter.onReadOfUninitialized(root.storageFor, lr, loc, forMathOp);
+
+                if (toStore.isNull)
+                    toStore = lr;
+                else
+                    toStore = meet(toStore, lr);
+            }
+        }
+
+        if (willInit)
+        {
+            // We differentiate if it is some form of initialize either lhs or rhs and isByRef because initialization of a struct member
+            // does not necessarily read the struct itself (offsets are fine), whereas ref parameters
+            // likely imply a read or dependency that requires initialization.
+
+            // When initializing (writing), we only care if we are reading a variable to determine the address.
+            // e.g. `*ptr = 2` reads `ptr`. `struct.field = 2` does NOT read `struct`.
+            // `visitIfReadOfReferenceToAnotherVar` implements this logic (dereferences read base, offsets do not).
+
+            contextVar.visitIfReadOfReferenceToAnotherVar((DFAVar* root) {
+                if (root.var is null || root is contextVar || root.unmodellable
+                    || root.haveInfiniteLifetime)
+                    return;
+
+                DFAConsequence* c = lr.findConsequence(root);
+                if (c is null)
+                    return;
+
+                if (c.writeOnVarAtThisPoint == 0)
+                    reporter.onReadOfUninitialized(root, lr, loc, forMathOp);
+            });
+        }
+        else if (isByRef)
+        {
+            // For ref params, we generally require initialization unless it's 'out', but 'out' should be handled elsewhere/differently?
+            // Existing logic assumes 'ref' requires init.
+
+            contextVar.visitIfReferenceToAnotherVar((DFAVar* root) {
+                if (root.var is null || root is contextVar || root.unmodellable
+                    || root.haveInfiniteLifetime)
+                    return;
+
+                DFAConsequence* c = lr.findConsequence(root);
+                if (c is null)
+                    return;
+
+                if (c.writeOnVarAtThisPoint == 0)
+                    reporter.onReadOfUninitialized(root, lr, loc, forMathOp);
+                else if (c.obj !is null)
+                    c.obj.walkRoots(&seeRootObject);
+            });
+        }
+        else
+        {
+            // We don't care about the case where indirection is involved.
+            // int val1 = void;
+            // int* ptr = &val1;
+            // int val2 = *ptr; // no error
+
+            if (!contextVar.haveBase)
+            {
+                if (contextVar.var !is null && cctx.writeOnVarAtThisPoint == 0)
+                    reporter.onReadOfUninitialized(contextVar, lr, loc, forMathOp);
+            }
+
+            contextVar.visitIfReadOfReferenceToAnotherVar((DFAVar* root) {
+                version (none)
+                {
+                    printf("got a variable %p %p\n", root, root.var);
+                    printf("    %d %d %d\n", root.haveBase, root.unmodellable,
+                        root.haveInfiniteLifetime);
+                }
+
+                if (root.haveBase || root.unmodellable || root.haveInfiniteLifetime)
+                    return;
+
+                DFAConsequence* c = lr.findConsequence(root);
+                if (c is null)
+                    return;
+
+                version (none)
+                {
+                    printf("    %d\n", c.writeOnVarAtThisPoint);
+                }
+
+                if (root.var !is null && c.writeOnVarAtThisPoint == 0)
+                    reporter.onReadOfUninitialized(root, lr, loc, forMathOp);
+                else if (c.obj !is null)
+                    c.obj.walkRoots(&seeRootObject);
+            });
+
+            cctx.copyFrom(toStore.getContext);
+        }
     }
 
 private:
@@ -2103,8 +2392,6 @@ private:
         return ret;
     }
 
-    // Converge, see Lattice (Abstract algebra) meet operation (lower bound)
-    // Operates on a given lattice to converge into current scope's variable state
     /***********************************************************
      * The Lattice 'Meet' operation (Intersection / Lower Bound).
      *
@@ -2173,8 +2460,6 @@ private:
         return ret;
     }
 
-    // Converge, see Lattice (Abstract algebra) meet operation (upper bound)
-    // Operates on a given lattice to converge into current scope's variable state
     /***********************************************************
      * The Lattice 'Join' operation (Union / Upper Bound).
      *
@@ -2302,7 +2587,7 @@ private:
         return ret;
     }
 
-    void checkVRPVar(DFAVar* var, ref bool couldBeUnknown)
+    void checkPAVar(DFAVar* var, ref bool couldBeUnknown)
     {
         if (var is null)
             return;
@@ -2314,19 +2599,21 @@ private:
     void seeWrite(ref DFAVar* assignTo, ref DFALatticeRef from)
     {
         assert(assignTo !is null);
-        assignTo.writeCount++;
-
         const currentDepth = dfaCommon.currentDFAScope.depth;
 
-        dfaCommon.acquireScopeVar(assignTo);
-        DFAConsequence* c = from.findConsequence(assignTo);
-        if (c !is null)
-            c.writeOnVarAtThisPoint = assignTo.writeCount;
+        assignTo.walkRoots((root) {
+            root.writeCount++;
 
-        if (DFAScopeVar* scv = dfaCommon.lastLoopyLabel.findScopeVar(assignTo))
-        {
-            if (scv.assignDepth == 0 || scv.assignDepth > currentDepth)
-                scv.assignDepth = currentDepth;
-        }
+            dfaCommon.acquireScopeVar(root);
+
+            if (DFAScopeVar* scv = dfaCommon.lastLoopyLabel.findScopeVar(root))
+            {
+                if (scv.assignDepth == 0 || scv.assignDepth > currentDepth)
+                    scv.assignDepth = currentDepth;
+            }
+
+            DFAConsequence* c = from.addConsequence(root);
+            c.writeOnVarAtThisPoint = root.writeCount;
+        });
     }
 }
