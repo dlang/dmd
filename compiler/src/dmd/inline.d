@@ -331,6 +331,14 @@ public:
         {
             alias e1 = ifbody;
             alias e2 = elsebody;
+
+            // It is possible that one branch has no code, or that two branches
+            // have incompatible types. Use a placeholder value to prevent backend issues.
+            if (e1 && e1.type.toBasetype().ty == Tvoid)
+                e1 = Expression.combine(e1, new NullExp(econd.loc, Type.tvoid));
+            if (e2 && e2.type.toBasetype().ty == Tvoid)
+                e2 = Expression.combine(e2, new NullExp(econd.loc, Type.tvoid));
+
             if (e1 && e2)
             {
                 result = new CondExp(econd.loc, econd, e1, e2);
