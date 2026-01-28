@@ -2194,8 +2194,12 @@ $(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
         $(DDSUBLINK spec/class, member-functions, like classes).
         Such functions (called instance methods) have a hidden
         $(DDSUBLINK spec/expression, this, `this` parameter) which is a reference
-        to the struct instance.
-        However, an instance method can still be called on an rvalue struct instance,
+        to the struct instance.)
+
+        $(P A method can have $(GLINK2 function, MemberFunctionAttributes), e.g.
+        $(DDSUBLINK spec/const3, immutable_member_functions, `immutable` methods).)
+
+        $(P An instance method can still be called on an rvalue struct instance,
         even if the method is not const:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE

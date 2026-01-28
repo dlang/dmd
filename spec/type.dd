@@ -680,14 +680,17 @@ $(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK Type) $(GLINK2 function, Par
 
 $(P Function types are not included in the $(GLINK Type) grammar.
 A function type e.g. `int(int)` $(DDSUBLINK spec/declaration, alias-function, can be aliased).
-A function type is only used for type tests or as the target type of a pointer.)
+A function type is only used for type tests (see below) or as the target type of a pointer.)
 
 $(P Instantiating a function type is illegal. Instead, a pointer to function
-or delegate can be used. Those have these type forms respectively:)
+or delegate can be used.)
+
+$(H3 $(LNAME2 function-pointers, Function Pointers))
+
+$(P A function pointer type has the following form:)
 
 $(GRAMMAR_INFORMATIVE
 $(GLINK Type) `function` $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
-$(GLINK Type) `delegate` $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -703,7 +706,11 @@ $(P See $(DDSUBLINK spec/function, function-pointers, Function Pointers).)
 
 $(H3 $(LNAME2 delegates, Delegates))
 
-$(P Delegates are an aggregate of two pieces of data, a *context pointer* and
+$(GRAMMAR_INFORMATIVE
+$(GLINK Type) `delegate` $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+)
+
+$(P A delegate is an aggregate of two pieces of data, a *context pointer* and
 a *function pointer*. A valid delegate holds either:)
 
 * An object reference and a pointer to a non-static

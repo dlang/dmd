@@ -85,7 +85,7 @@ $(NOTE In D2, declaring a parameter `final` is a semantic error, but not a parse
 
 $(P See also: $(RELATIVE_LINK2 param-storage, parameter storage classes).)
 
-$(H3 Function Attributes)
+$(H3 $(LNAME2 attributes, Function Attributes))
 
 $(GRAMMAR
 $(GNAME FunctionAttributes):
@@ -110,6 +110,22 @@ $(GNAME MemberFunctionAttribute):
     $(D shared)
     $(GLINK FunctionAttribute)
 )
+    $(P *FunctionAttributes* come after function parameters in a $(GLINK FuncDeclaration)
+    or $(RELATIVE_LINK2 function-pointer-attributes, function pointer), unlike
+    $(GLINK2 attribute, Attributes) which precede a declaration.)
+
+    $(P A $(DDSUBLINK spec/struct, constructor-attributes, constructor),
+    $(DDSUBLINK spec/struct, member-functions, member function),
+    $(DDSUBLINK spec/type, delegates, delegate) or
+    $(RELATIVE_LINK2 nested-qualifiers, nested function) can have *MemberFunctionAttributes*,
+    which extends *FunctionAttributes*. Note that some function/method attributes are also
+    declaration *Attributes* - see $(DDSUBLINK spec/declaration, methods-returning-qualified,
+    Methods Returning a Qualified Type).)
+
+    $(P See also:)
+
+    * $(DDSUBLINK spec/attribute, function-attributes, Function Attributes)
+    * $(DDSUBLINK spec/attribute, class-attributes, OOP Attributes)
 
 $(H3 $(LNAME2 function-bodies, Function Bodies))
 
@@ -3319,7 +3335,8 @@ $(H2 $(LNAME2 function-pointers-delegates, Function Pointers, Delegates and Clos
 
 $(H3 $(LNAME2 function-pointers, Function Pointers))
 
-        $(P A function pointer is declared with the `function` keyword:)
+        $(P A $(DDSUBLINK spec/type, function-pointers, function pointer)
+        is declared with the `function` keyword:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
@@ -3327,7 +3344,7 @@ void f(int);
 void function(int) fp = &f; // fp is a pointer to a function taking an int
 ---
 )
-        $(P A function pointer can point to a static nested function:)
+        $(P A function pointer can point to a static $(RELATIVE_LINK2 nested, nested function):)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
@@ -3483,28 +3500,44 @@ void main()
 ------
 )
 
+$(H3 $(LNAME2 function-pointer-attributes, Attributes))
+
+        $(P A function pointer or delegate can have $(GLINK FunctionAttributes) or
+        $(GLINK MemberFunctionAttributes) respectively. A function pointer/delegate type
+        implicitly converts to a more-loosely qualified type (i.e. when the original
+        type is covariant with the destination type).)
+
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        void function() pure pfp;
+        void function() fp = pfp; // OK, impure `fp` can call pure
+        pfp = fp; // Error, pure `pfp` cannot call impure
+        ---
+        )
+
 $(H3 $(LNAME2 function-delegate-init, Initialization))
 
         $(P Function pointers are zero-initialized by default.
         They can be initialized to the address of any function (including a function literal).
         Initialization with the address of a function that requires a context pointer
-        is not allowed in @safe functions.
+        is not allowed in $(RELATIVE_LINK2 safe-functions, `@safe` functions).
         )
 
         $(UNDEFINED_BEHAVIOR Calling a function pointer that was set to point to
         a function that requires a context pointer.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
         struct S
         {
-            static int sfunc();
+            static int sfunc() @safe;
             int member();   // has hidden `this` reference parameter
         }
 
         @safe void sun()
         {
-            int function() fp = &S.sfunc;
+            int function() @safe fp = &S.sfunc;
             fp(); // Ok
             fp = &S.member; // error
         }
@@ -3515,6 +3548,7 @@ $(H3 $(LNAME2 function-delegate-init, Initialization))
             fp(); // undefined behavior
         }
         ---
+        )
 
         $(P Delegates are zero-initialized by default.
         They can be initialized by taking the address of a non-static member function,
