@@ -309,7 +309,7 @@ extern (C++) struct Global
     Array!(const(char)*) filePath;     /// Array of char*'s which form the file import lookup path
 
     private enum string _version = import("VERSION");
-    char[26] datetime;      /// string returned by ctime()
+    char[26] datetime;      /// string returned by asctime()
     CompileEnv compileEnv;
 
     Param params;           /// command line parameters
@@ -408,15 +408,19 @@ extern (C++) struct Global
         import core.stdc.stdlib : getenv;
 
         time_t ct;
+        const(char)* p;
         // https://issues.dlang.org/show_bug.cgi?id=20444
-        if (auto p = getenv("SOURCE_DATE_EPOCH"))
+        if (auto epoch = getenv("SOURCE_DATE_EPOCH"))
         {
-            if (!ct.parseDigits(p[0 .. strlen(p)]))
-                errorSink.error(Loc.initial, "value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", p);
+            if (!ct.parseDigits(epoch[0 .. strlen(epoch)]))
+                errorSink.error(Loc.initial, "value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", epoch);
+            p = asctime(gmtime(&ct));
         }
         else
+        {
             core.stdc.time.time(&ct);
-        const p = ctime(&ct);
+            p = ctime(&ct); // asctime(localtime(&ct))
+        }
         assert(p);
         datetime[] = p[0 .. 26];
 
