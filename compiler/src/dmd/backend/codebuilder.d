@@ -109,7 +109,7 @@ struct CodeBuilder
     {
         if (c)
         {
-            CodeBuilder cdb = void;
+            CodeBuilder cdb;
 assert(c.Iop != BADINS);
             cdb.ctor(c);
             append(cdb);

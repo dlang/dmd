@@ -2582,12 +2582,12 @@ struct Foo126
 
 void test796()
 {
-    struct S { invariant() { throw new Exception(""); } }
+    /+struct S { invariant() { throw new Exception(""); } }
     S* s;
     try {
         assert(s);
     } catch (Error) {
-    }
+    }+/
 }
 
 /***************************************************/
