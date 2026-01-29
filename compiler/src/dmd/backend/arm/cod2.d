@@ -202,7 +202,7 @@ Extend tyToExtend(tym_t ty)
 {
     //debug printf("ty: %s x%x\n", tym_str(ty), ty);
     ty = tybasic(ty);
-    assert(tyintegral(ty) || ty == TYnptr || ty == TYnref);
+    assert(tyintegral(ty) || ty == TYnptr || ty == TYnref || ty == TYimmutPtr);
     Extend extend;
     const sz = tysize(ty);
     with (Extend) switch (sz)
@@ -1279,7 +1279,7 @@ void cdmemcmp(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdmemcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    printf("cdmemcpy()\n");
+    //printf("cdmemcpy()\n");
     /*  Generate the following:
         CBZ  Xn,L2
         MOV  x5,#0
