@@ -93,6 +93,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
             else
             {
                 imm12 /= szr;
+                //debug printf("szw: %d size: %d opc: %d\n", szw, size, opc);
                 cs.Iop = INSTR.ldr_imm_fpsimd(size,opc,imm12,cs.base,reg);
             }
         }

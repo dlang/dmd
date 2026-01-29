@@ -1835,19 +1835,19 @@ void assignaddrc(code* c)
                         continue;
                     }
                 }
-                else if (op24 == 1)
+                else if (op24 == 1) // Load/store register (unsigned immediate)
                 {
-//printf("shift: %d opc: %d\n", shift, opc);
                     uint VR = field(ins,26,26);
+                    //printf("sz: %d shift: %d VR: %d opc: %d\n", field(ins,31,30), VR, shift, opc);
                     if (opc & 2 && shift == 0 && VR == 1)
                         shift = 4;
                     assert(field(ins,29,27) == 7);
                     uint imm12 = field(ins,21,10); // unsigned 12 bits
-//printf("shift: %d offset: x%llx imm12: x%x\n", shift, offset, imm12);
+                    //printf("shift: %d offset: x%llx imm12: x%x\n", shift, offset, imm12);
                     offset += imm12 << shift;      // add in imm
                     if (offset & ((1 << shift) - 1)) // misaligned access
                     {
-                        ins = setField(ins,25,24,0);       // switch to unscaled immediate
+                        ins = setField(ins,25,24,0);       // switch to Load/store register (unscaled immediate)
                         ins = setField(ins,21,10,cast(uint)offset << 2);
                         assert(offset < 0x100);            // only unsigned 8 bits of offset
                     }
