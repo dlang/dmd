@@ -1159,7 +1159,8 @@ struct INSTR
         assert(imm12 <= 0xFFF);
         assert(VR == (Vt > 31));
         reg_t Rt = Vt & 31;
-        return (size  << 30) |
+        uint ins =
+               (size  << 30) |
                (7     << 27) |
                (VR    << 26) |
                (1     << 24) |
@@ -1167,6 +1168,7 @@ struct INSTR
                (imm12 << 10) |
                (Rn    <<  5) |
                 Rt;
+        return ins;
     }
 
     /* https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
