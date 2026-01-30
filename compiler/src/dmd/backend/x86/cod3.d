@@ -324,8 +324,15 @@ bool hasModregrm(scope const code* c)
 @trusted
 void cod3_setdefault()
 {
-    cgstate.BP = BP;
+    CGstate* cg = &cgstate;
+
+    cg.BP = BP;
     fregsaved = mBP | mSI | mDI;
+
+    /* hi and lo register masks
+     */
+    cg.mMSW = mMSW;
+    cg.mLSW = mLSW;
 }
 
 /********************************
@@ -334,7 +341,9 @@ void cod3_setdefault()
 @trusted
 void cod3_set32()
 {
-    cgstate.BP = BP;
+    CGstate* cg = &cgstate;
+
+    cg.BP = BP;
 
     inssize[0xA0] = T|5;
     inssize[0xA1] = T|5;
@@ -352,7 +361,12 @@ void cod3_set32()
         v = W|T|6;
 
     TARGET_STACKALIGN = config.fpxmmregs ? 16 : 4;
-    cgstate.allregs = mAX|mBX|mCX|mDX|mSI|mDI;
+    cg.allregs = mAX|mBX|mCX|mDX|mSI|mDI;
+
+    /* hi and lo register masks
+     */
+    cg.mMSW = mMSW;
+    cg.mLSW = mLSW;
 }
 
 /********************************
@@ -362,7 +376,9 @@ void cod3_set32()
 @trusted
 void cod3_set64()
 {
-    cgstate.BP = BP;
+    CGstate* cg = &cgstate;
+
+    cg.BP = BP;
 
     inssize[0xA0] = T|5;                // MOV AL,mem
     inssize[0xA1] = T|5;                // MOV RAX,mem
@@ -382,7 +398,12 @@ void cod3_set64()
         v = W|T|6;
 
     TARGET_STACKALIGN = config.fpxmmregs ? 16 : 8;
-    cgstate.allregs = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
+    cg.allregs = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
+
+    /* hi and lo register masks
+     */
+    cg.mMSW = mMSW;
+    cg.mLSW = mLSW;
 }
 
 /********************************
@@ -392,7 +413,8 @@ void cod3_set64()
 @trusted
 void cod3_setAArch64()
 {
-    cgstate.AArch64 = true;
+    CGstate* cg = &cgstate;
+    cg.AArch64 = true;
 
     /* Register usage per "AArch64 Procedure Call Standard"
      * r31 SP  Stack Pointer
@@ -410,11 +432,11 @@ void cod3_setAArch64()
      * v8-v15  Callee-saved registers (only bottom 64 bits need to be saved)
      * v16-31  Temporary registers (caller saved)
      */
-    cgstate.BP = INSTR.BP;
+    cg.BP = INSTR.BP;
 
     /* Integer registers r0-r7, r9-15, r19-28, r29(?)
      */
-    cgstate.allregs = INSTR.ALLREGS;
+    cg.allregs = INSTR.ALLREGS;
 
     /* Registers x19-x28, x29, v8-v15
      */
@@ -424,11 +446,16 @@ void cod3_setAArch64()
 
     /* 32 Floating point registers
      */
-    cgstate.fpregs = INSTR.FLOATREGS;
+    cg.fpregs = INSTR.FLOATREGS;
+
+    /* hi and lo register masks
+     */
+    cg.mMSW = INSTR.MSW;
+    cg.mLSW = INSTR.LSW;
 
     /* XMM registers
      */
-    cgstate.xmmregs = 0;  // implement later
+    cg.xmmregs = 0;  // TODO AArch64
 
     TARGET_STACKALIGN = 16;
 }
