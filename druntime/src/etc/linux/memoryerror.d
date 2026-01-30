@@ -50,6 +50,7 @@ import ucontext = core.sys.posix.ucontext;
 
 version (MemoryAssertSupported)
 {
+    import core.stdc.stdlib : malloc;
     import core.sys.posix.signal : SA_ONSTACK, sigaltstack, SIGSTKSZ, stack_t;
 }
 
@@ -423,7 +424,30 @@ version (MemoryAssertSupported)
 
         // Set up alternate stack, because segfaults can be caused by stack overflow,
         // in which case the stack is already exhausted
-        __gshared ubyte[SIGSTKSZ] altStack;
+
+        __gshared void[] altStack; // lazily allocated once only via malloc; never free'd
+        if (altStack.ptr is null)
+        {
+            version (CRuntime_Glibc)
+            {
+                // glibc v2.34 switched to a dynamic SIGSTKSZ
+                import core.sys.posix.unistd : sysconf, _SC_SIGSTKSZ;
+
+                auto size = sysconf(_SC_SIGSTKSZ);
+                if (size <= 0)
+                    size = SIGSTKSZ;
+            }
+            else
+            {
+                const size = SIGSTKSZ;
+            }
+
+            if (auto p = malloc(size))
+                altStack = p[0 .. size];
+            else
+                return false;
+        }
+
         stack_t ss;
         ss.ss_sp = altStack.ptr;
         ss.ss_size = altStack.length;

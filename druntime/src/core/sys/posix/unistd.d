@@ -671,7 +671,21 @@ version (CRuntime_Glibc)
         _SC_LEVEL4_CACHE_LINESIZE,
 
         _SC_IPV6 = _SC_LEVEL1_ICACHE_SIZE + 50,
-        _SC_RAW_SOCKETS
+        _SC_RAW_SOCKETS,
+        _SC_V7_ILP32_OFF32,
+        _SC_V7_ILP32_OFFBIG,
+        _SC_V7_LP64_OFF64,
+        _SC_V7_LPBIG_OFFBIG,
+        _SC_SS_REPL_MAX,
+        _SC_TRACE_EVENT_NAME_MAX,
+        _SC_TRACE_NAME_MAX,
+        _SC_TRACE_SYS_MAX,
+        _SC_TRACE_USER_EVENT_MAX,
+        _SC_XOPEN_STREAMS,
+        _SC_THREAD_ROBUST_PRIO_INHERIT,
+        _SC_THREAD_ROBUST_PRIO_PROTECT,
+        _SC_MINSIGSTKSZ,
+        _SC_SIGSTKSZ,
     }
 }
 else version (Darwin)
