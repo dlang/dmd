@@ -736,7 +736,8 @@ public:
                         return;
                     }
                 }
-                if (vd.isStatic())
+
+                if (vd.isStatic() || (vd.storage_class & STC.manifest))
                     return;
 
                 bool varIsNRVO = ids.fd && (ids.fd.isNRVO && vd == ids.fd.nrvo_var || vd.nrvo);
