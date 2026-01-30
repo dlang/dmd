@@ -2005,7 +2005,9 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
 {
     //printf("cse_save() ms: %s\n", regm_str(ms));
     assert((ms & cgstate.regcon.cse.mops) == ms);
-    cgstate.regcon.cse.mops &= ~ms;
+
+    auto cg = &cgstate;
+    cg.regcon.cse.mops &= ~ms;
 
     regm_t xMSW = mMSW;
     regm_t xLSW = mLSW | mBP;
