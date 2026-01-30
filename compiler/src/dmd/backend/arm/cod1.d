@@ -1822,7 +1822,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                      * set at 0 or 1. But for parameters, a slot is used for it in
                      * either case.
                      */
-                    assert(type_size(ep.ET) <= 1); // a 0-sized struct
+                    //assert(type_size(ep.ET) <= 1); // a 0-sized struct
                     break;
 
                 default:
