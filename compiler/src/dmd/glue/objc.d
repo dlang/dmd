@@ -390,7 +390,7 @@ struct Segments
 
         const seg = segmentData[id];
 
-        version (OSX)
+        if (target.os == Target.OS.OSX)
         {
             return segments[id] = Obj.getsegment(
                 seg.sectionName,
@@ -402,7 +402,7 @@ struct Segments
 
         else
         {
-            // This should never happen. If the platform is not OSX an error
+            // This should never happen. If the target platform is not OSX an error
             // should have occurred sooner which should have prevented the
             // code from getting here.
             assert(0);
