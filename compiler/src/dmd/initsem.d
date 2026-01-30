@@ -422,6 +422,9 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         if (i.exp.op == EXP.type)
         {
             error(i.exp.loc, "initializer must be an expression, not `%s`", i.exp.toChars());
+            // If the error location differs from the initializer location, show where it was used
+            if (i.exp.loc != i.loc)
+                errorSupplemental(i.loc, "used in initialization here");
             return err();
         }
         // Make sure all pointers are constants

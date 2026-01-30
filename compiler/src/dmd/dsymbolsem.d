@@ -2481,7 +2481,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (i == 0)
                             einit = Expression.combine(te.e0, einit);
                     }
-                    ti = new ExpInitializer(einit.loc, einit);
+                    // Use the original initializer location, not the tuple element's location,
+                    // so error messages point to the declaration site
+                    ti = new ExpInitializer(dsym._init ? dsym._init.loc : einit.loc, einit);
                 }
                 else
                     ti = dsym._init ? dsym._init.syntaxCopy() : null;
