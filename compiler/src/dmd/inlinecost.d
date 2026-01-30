@@ -319,8 +319,8 @@ public:
 
     override void visit(ThrowStatement s)
     {
-        cost += STATEMENT_COST;
-        s.exp.accept(this);
+        cost++;
+        expressionInlineCost(s.exp);
     }
 
     /* -------------------------- */

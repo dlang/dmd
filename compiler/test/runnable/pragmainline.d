@@ -50,4 +50,11 @@ void main()
     assert(bar()() == baz());
 
     testAlwaysInline();
+
+    bool caught = false;
+    try
+        throws(throws(1));
+    catch (Exception e)
+        caught = true;
+    assert(caught);
 }
