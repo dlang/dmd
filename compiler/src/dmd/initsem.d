@@ -425,6 +425,23 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             // If the error location differs from the initializer location, show where it was used
             if (i.exp.loc != i.loc)
                 errorSupplemental(i.loc, "used in initialization here");
+            // If the type is a struct or class, suggest adding () to construct an instance
+            if (auto ts = i.exp.type.isTypeStruct())
+            {
+                // Check if the struct can be default-constructed (no required args)
+                if (!ts.sym.hasCopyCtor && (!ts.sym.ctor || ts.sym.defaultCtor))
+                    errorSupplemental(i.exp.loc, "perhaps use `%s()` to construct a value of the type", i.exp.toChars());
+                else if (ts.sym.ctor && !ts.sym.hasCopyCtor)
+                    errorSupplemental(i.exp.loc, "perhaps use `%s(...)` to construct a value of the type", i.exp.toChars());
+            }
+            else if (auto tc = i.exp.type.isTypeClass())
+            {
+                // Check if the class can be default-constructed
+                if (!tc.sym.noDefaultCtor && (!tc.sym.ctor || tc.sym.defaultCtor))
+                    errorSupplemental(i.exp.loc, "perhaps use `new %s()` to construct a value of the type", i.exp.toChars());
+                else if (tc.sym.ctor)
+                    errorSupplemental(i.exp.loc, "perhaps use `new %s(...)` to construct a value of the type", i.exp.toChars());
+            }
             return err();
         }
         // Make sure all pointers are constants
