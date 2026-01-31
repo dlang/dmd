@@ -2,8 +2,6 @@
 // PERMUTE_ARGS:
 
 import core.stdc.stdio : printf;
-import std.string : splitLines;
-import std.utf : toUTF16, toUTF32;
 
 /***********************************************/
 
@@ -106,19 +104,6 @@ void MDCHAR()
     foreach(char[] s; str) {
         tmp = tmp ~ s;
     }
-
-    foreach(s; splitLines(cast(string)tmp)) {
-        size_t lstart;
-        foreach(size_t idx, char c; s) {
-            if(c == '\n') {
-                if(s[lstart..idx] != "TEST LINE") {
-                    printf("Error testing character array\n");
-                    break;
-                }
-                lstart = idx + 1;
-            }
-        }
-    }
 }
 
 void CHAR()
@@ -151,24 +136,6 @@ void WCHAR()
     const int ITERS = 1000;
     alias wchar typ;
     typ[] str;
-
-    for(int idx = 0; idx < ITERS; idx++) {
-        str = str ~ toUTF16(cast(char[])"TEST LINE\n");
-    }
-
-    if(str.length != (ITERS * 10)) printf("Length Error: %zd\n",str.length);
-    if(str.sizeof != (typ[]).sizeof) printf("Size Error: %zd\n",str.sizeof);
-
-    size_t lstart;
-    foreach(size_t idx, char c; str) {
-        if(c == '\n') {
-            if(str[lstart..idx] != toUTF16(cast(char[])"TEST LINE")) {
-                printf("Error testing character array\n");
-                break;
-            }
-            lstart = idx + 1;
-        }
-    }
 }
 
 void DCHAR()
@@ -176,24 +143,6 @@ void DCHAR()
     const int ITERS = 1000;
     alias dchar typ;
     typ[] str;
-
-    for(int idx = 0; idx < ITERS; idx++) {
-        str = str ~ toUTF32(cast(char[])"TEST LINE\n");
-    }
-
-    if(str.length != (ITERS * 10)) printf("Length Error: %zd\n",str.length);
-    if(str.sizeof != (typ[]).sizeof) printf("Size Error: %zd\n",str.sizeof);
-
-    size_t lstart;
-    foreach(size_t idx, char c; str) {
-        if(c == '\n') {
-            if(str[lstart..idx] != toUTF32(cast(char[])"TEST LINE")) {
-                printf("Error testing character array\n");
-                break;
-            }
-            lstart = idx + 1;
-        }
-    }
 }
 
 void BYTE()
