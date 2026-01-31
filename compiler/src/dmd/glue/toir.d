@@ -597,6 +597,11 @@ int intrinsic_op(FuncDeclaration fd)
         if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)
             return NotIntrinsic;
     }
+    else if (target.isAArch64)
+    {
+        if (op == OPbsf || op == OPbsr)
+            return NotIntrinsic;        // TODO AArch64
+    }
     return op;
 
 Lva_start:
