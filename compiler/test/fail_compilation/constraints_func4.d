@@ -6,37 +6,37 @@ TEST_OUTPUT:
 fail_compilation/constraints_func4.d(90): Error: none of the overloads of template `imports.constraints.overload` are callable using argument types `!()(int)`
     overload(0);
             ^
-fail_compilation/imports/constraints.d(39):        Candidates are: `overload(T)(T v)`
+fail_compilation/imports/constraints.d(39):        Candidate 1 is: `overload(T)(T v)`
   with `T = int`
   must satisfy the following constraint:
 `       N!T`
 void overload(T)(T v) if (N!T);
      ^
-fail_compilation/imports/constraints.d(40):                        `overload(T)(T v)`
+fail_compilation/imports/constraints.d(40):        Candidate 2 is: `overload(T)(T v)`
   with `T = int`
   must satisfy the following constraint:
 `       !P!T`
 void overload(T)(T v) if (!P!T);
      ^
-fail_compilation/imports/constraints.d(41):                        `overload(T)(T v1, T v2)`
+fail_compilation/imports/constraints.d(41):        Candidate 3 is: `overload(T)(T v1, T v2)`
 void overload(T)(T v1, T v2) if (N!T);
      ^
-fail_compilation/imports/constraints.d(42):                        `overload(T, V)(T v1, V v2)`
+fail_compilation/imports/constraints.d(42):        Candidate 4 is: `overload(T, V)(T v1, V v2)`
 void overload(T, V)(T v1, V v2) if (N!T || N!V);
      ^
 fail_compilation/constraints_func4.d(91): Error: none of the overloads of template `imports.constraints.overload` are callable using argument types `!()(int, string)`
     overload(0, "");
             ^
-fail_compilation/imports/constraints.d(39):        Candidates are: `overload(T)(T v)`
+fail_compilation/imports/constraints.d(39):        Candidate 1 is: `overload(T)(T v)`
 void overload(T)(T v) if (N!T);
      ^
-fail_compilation/imports/constraints.d(40):                        `overload(T)(T v)`
+fail_compilation/imports/constraints.d(40):        Candidate 2 is: `overload(T)(T v)`
 void overload(T)(T v) if (!P!T);
      ^
-fail_compilation/imports/constraints.d(41):                        `overload(T)(T v1, T v2)`
+fail_compilation/imports/constraints.d(41):        Candidate 3 is: `overload(T)(T v1, T v2)`
 void overload(T)(T v1, T v2) if (N!T);
      ^
-fail_compilation/imports/constraints.d(42):                        `overload(T, V)(T v1, V v2)`
+fail_compilation/imports/constraints.d(42):        Candidate 4 is: `overload(T, V)(T v1, V v2)`
   with `T = int,
        V = string`
   must satisfy one of the following constraints:

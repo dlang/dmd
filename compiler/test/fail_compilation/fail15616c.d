@@ -3,17 +3,17 @@ REQUIRED_ARGS: -verror-supplements=0
 TEST_OUTPUT:
 ---
 fail_compilation/fail15616c.d(44): Error: none of the overloads of `foo` are callable using argument types `(double)`
-fail_compilation/fail15616c.d(17):        Candidates are: `fail15616c.foo(int a)`
-fail_compilation/fail15616c.d(20):                        `fail15616c.foo(int a, int b)`
-fail_compilation/fail15616c.d(29):                        `fail15616c.foo(int a, int b, int c)`
-fail_compilation/fail15616c.d(32):                        `fail15616c.foo(string a)`
-fail_compilation/fail15616c.d(35):                        `fail15616c.foo(string a, string b)`
-fail_compilation/fail15616c.d(38):                        `fail15616c.foo(string a, string b, string c)`
-fail_compilation/fail15616c.d(23):                        `foo(T)(T a)`
+fail_compilation/fail15616c.d(17):        Candidate 1 is: `fail15616c.foo(int a)`
+fail_compilation/fail15616c.d(20):        Candidate 2 is: `fail15616c.foo(int a, int b)`
+fail_compilation/fail15616c.d(29):        Candidate 3 is: `fail15616c.foo(int a, int b, int c)`
+fail_compilation/fail15616c.d(32):        Candidate 4 is: `fail15616c.foo(string a)`
+fail_compilation/fail15616c.d(35):        Candidate 5 is: `fail15616c.foo(string a, string b)`
+fail_compilation/fail15616c.d(38):        Candidate 6 is: `fail15616c.foo(string a, string b, string c)`
+fail_compilation/fail15616c.d(23):        Candidate 7 is: `foo(T)(T a)`
   with `T = double`
   must satisfy the following constraint:
 `       is(T == float)`
-fail_compilation/fail15616c.d(26):                        `foo(T)(T a)`
+fail_compilation/fail15616c.d(26):        Candidate 8 is: `foo(T)(T a)`
   with `T = double`
   must satisfy the following constraint:
 `       is(T == char)`
