@@ -2,6 +2,14 @@
 
 First off, thanks for your interest in contributing!
 
+In this document there are a lot of helpful tips to assist in your contributing goals.
+Such as how to [report bugs](#reporting-bugs) and their place in your interaction with the D community.
+For enhancements to a codebase that are not a bug, see [General guidelines](#general-guidelines) for general expectations.
+
+For DMD specifically the sections [DMD Best Practices](#dmd-best-practices) and
+[The following will not be viewed with favor](#the-following-will-not-be-viewed-with-favor)
+will be useful in helping you understand how it could be perceived.
+
 For video guides, you can watch [D Contributor Tutorials on YouTube](https://www.youtube.com/playlist?list=PLIldXzSkPUXXSkM5NjBAGNIdkd4Q2Zf0R).
 
 ## Reporting bugs
@@ -105,6 +113,8 @@ git checkout -b fix-bug
 
 - Confine a PR to addressing one issue, unless multiple issues are different aspects of the same bug.
 
+- Using tools to help you contribute is a good thing, but they cannot take over for you.
+    If you need help please ask for it, don't let an unthinking tool rule the PR queue, that's for humans to mess up!
 
 - If the pull request affects the language specifications in any way (i.e. changing the grammar, deprecating a feature, or adding a new one),
   a pull request to [the specification in the dlang.org repository](https://github.com/dlang/dlang.org) should be submitted in parallel.
@@ -271,6 +281,10 @@ significant improvement.
 
 3. Reformatting into your personal style. Please stick with the existing style.
 Use the [D Style](https://dlang.org/dstyle.html#phobos_documentation) for new code.
+
+4. The intended purpose of open collaboration is to enable positive changes.
+A contributor must intend for it to be a positive addition with personal vetting of the contribution.
+Relying on a tool to make a decision is not collaboration.
 
 As always, treating the above as a sacred writ is a huge mistake. Use
 your best judgment on a case-by-case basis. Blindly doing things just
