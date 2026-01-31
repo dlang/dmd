@@ -479,6 +479,32 @@ public:
         //printf("ImportStatement.doInlineAs!%s()\n", Result.stringof.ptr);
     }
 
+    override void visit(WhileStatement s)
+    {
+        //printf("WhileStatement.doInlineAs!%s()\n", Result.stringof.ptr);
+        static if (asStatements)
+        {
+            auto scond = doInlineAs!Expression(s.condition, ids);
+            auto sbody = doInlineAs!Statement(s._body, ids);
+            result = new WhileStatement(s.loc, scond, sbody, s.endloc, s.param);
+        }
+        else
+            assert(0);  // cannot be inlined as an Expression
+    }
+
+    override void visit(DoStatement s)
+    {
+        //printf("DoStatement.doInlineAs!%s()\n", Result.stringof.ptr);
+        static if (asStatements)
+        {
+            auto scond = doInlineAs!Expression(s.condition, ids);
+            auto sbody = doInlineAs!Statement(s._body, ids);
+            result = new DoStatement(s.loc, sbody, scond, s.endloc);
+        }
+        else
+            assert(0);  // cannot be inlined as an Expression
+    }
+
     override void visit(ForStatement s)
     {
         //printf("ForStatement.doInlineAs!%s()\n", Result.stringof.ptr);
@@ -491,7 +517,25 @@ public:
             result = new ForStatement(s.loc, sinit, scond, sincr, sbody, s.endloc);
         }
         else
-            result = null;  // cannot be inlined as an Expression
+            assert(0);  // cannot be inlined as an Expression
+    }
+
+    override void visit(BreakStatement s)
+    {
+        //printf("BreakStatement.doInlineAs!%s()\n", Result.stringof.ptr);
+        static if (asStatements)
+            result = new BreakStatement(s.loc, s.ident);
+        else
+            assert(0);  // cannot be inlined as an Expression
+    }
+
+    override void visit(ContinueStatement s)
+    {
+        //printf("ContinueStatement.doInlineAs!%s()\n", Result.stringof.ptr);
+        static if (asStatements)
+            result = new ContinueStatement(s.loc, s.ident);
+        else
+            assert(0);  // cannot be inlined as an Expression
     }
 
     override void visit(ThrowStatement s)

@@ -301,6 +301,32 @@ public:
     {
     }
 
+    override void visit(WhileStatement s)
+    {
+        cost += STATEMENT_COST;
+        if (s.condition)
+            s.condition.accept(this);
+        if (s._body)
+        {
+            nestedLoop += 1;
+            s._body.accept(this);
+            nestedLoop -= 1;
+        }
+    }
+
+    override void visit(DoStatement s)
+    {
+        cost += STATEMENT_COST;
+        if (s.condition)
+            s.condition.accept(this);
+        if (s._body)
+        {
+            nestedLoop += 1;
+            s._body.accept(this);
+            nestedLoop -= 1;
+        }
+    }
+
     override void visit(ForStatement s)
     {
         cost += STATEMENT_COST;
@@ -317,6 +343,22 @@ public:
             nestedLoop -= 1;
         }
         //printf("ForStatement: inlineCost = %d\n", cost);
+    }
+
+    override void visit(BreakStatement s)
+    {
+        if (!nestedLoop || s.ident)
+            cost = COST_MAX;
+        else
+            cost++;
+    }
+
+    override void visit(ContinueStatement s)
+    {
+        if (!nestedLoop || s.ident)
+            cost = COST_MAX;
+        else
+            cost++;
     }
 
     override void visit(ThrowStatement s)
