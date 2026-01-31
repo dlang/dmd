@@ -3357,7 +3357,7 @@ void disassemble(ubyte[] code)
     @trusted
     void put(char c) { printf("%c", c); }
 
-    dmd.backend.arm.disasmarm.getopstring(&put, (cast(ubyte*)&ins)[0..4], 0, 4, 64, false, true, false,
+    dmd.backend.arm.disasmarm.getopstring(&put, (cast(ubyte*)&ins)[0..4], 0, 4, 64, false, true, /*bURL*/ true,
             null, null, null, null);
     printf("\n");
 }

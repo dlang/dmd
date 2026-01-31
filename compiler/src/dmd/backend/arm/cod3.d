@@ -1813,9 +1813,13 @@ void assignaddrc(code* c)
                     offset += imm12 << shift;      // add in imm
                     if (offset & ((1 << shift) - 1)) // misaligned access
                     {
-                        ins = setField(ins,25,24,0);       // switch to Load/store register (unscaled immediate)
-                        ins = setField(ins,21,10,cast(uint)offset << 2);
-                        assert(offset < 0x100);            // only unsigned 8 bits of offset
+                        if (offset < 0x100)            // only unsigned 8 bits of offset
+                        {
+                            ins = setField(ins,25,24,0);       // switch to Load/store register (unscaled immediate)
+                            ins = setField(ins,21,10,cast(uint)offset << 2);
+                        }
+                        else
+                            goto Lextra;
                     }
                     else
                     {
@@ -1825,6 +1829,7 @@ void assignaddrc(code* c)
                             ins = setField(ins,21,10,imm12);
                         else
                         {
+                        Lextra:
                             // insert extra instruction to load the offset using scratch register R16
                             enum R16 = 16;              // scratch register
                             // add R16,Rn,(imm12 >> 12) << 12 // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
