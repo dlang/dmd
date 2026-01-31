@@ -313,7 +313,11 @@ public:
         if (s.increment)
             s.increment.accept(this);
         if (s._body)
+        {
+            nested += 1;
             s._body.accept(this);
+            nested -= 1;
+        }
         //printf("ForStatement: inlineCost = %d\n", cost);
     }
 
