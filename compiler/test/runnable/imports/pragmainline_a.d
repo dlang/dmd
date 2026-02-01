@@ -37,3 +37,9 @@ int value()
 {
     return 10;
 }
+
+pragma(inline, true)
+noreturn throws(T)(T param)
+{
+    throw new Exception("");
+}

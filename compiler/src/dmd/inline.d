@@ -471,7 +471,10 @@ public:
         static if (asStatements)
             result = new ThrowStatement(s.loc, doInlineAs!Expression(s.exp, ids));
         else
-            result = null;  // cannot be inlined as an Expression
+        {
+            result = new ThrowExp(s.loc, doInlineAs!Expression(s.exp, ids));
+            result.type = Type.tnoreturn;
+        }
     }
 
     // Expression -> (Statement | Expression)
@@ -2081,7 +2084,7 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PAS
         {
             /* for the isTypeSArray() case see https://github.com/dlang/dmd/pull/16145#issuecomment-1932776873
              */
-            if (tfnext.ty != Tvoid &&
+            if (tfnext.ty != Tvoid && tfnext.ty != Tnoreturn &&
                 (!fd.hasReturnExp ||
                  hasDtor(tfnext) && (statementsToo || tfnext.isTypeSArray())))
             {
@@ -2470,7 +2473,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             e = e.toLvalue(null, "`ref` return");
 
         // https://issues.dlang.org/show_bug.cgi?id=15210
-        if (tf.next.ty == Tvoid && e && e.type.ty != Tvoid)
+        if (tf.next.ty == Tvoid && e && e.type.ty != Tvoid && e.type.ty != Tnoreturn)
         {
             e = new CastExp(callLoc, e, Type.tvoid);
             e.type = Type.tvoid;
