@@ -1371,6 +1371,7 @@ void cdmemcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdmemset(pretregs = %s)\n", regm_str(pretregs));
+    //elem_print(e);
     elem* e2 = e.E2;
     assert(e2.Eoper == OPparam);
 
@@ -1384,14 +1385,18 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         return;
     }
 
-    if (evalue.Eoper == OPconst ||
-        evalue.Eoper == OPstrpar) // happens if evalue is a struct of 0 size
+    /* generate inline code if numbytes and value are constants
+     */
+    if (enumbytes.Eoper == OPconst &&
+        (evalue.Eoper == OPconst ||
+         evalue.Eoper == OPstrpar)) // happens if evalue is a struct of 0 size
     {
         // Get nbytes into nbytesreg
         regm_t nbytesregs = cgstate.allregs & ~pretregs;
         if (!nbytesregs)
             nbytesregs = cgstate.allregs;
         codelem(cgstate,cdb,enumbytes,nbytesregs,false);
+        nbytesregs = 0;
 
         ulong value = evalue.Eoper == OPstrpar ? 0 : el_tolong(evalue) & 0xFF;
         value |= value << 8;
@@ -1464,7 +1469,8 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         return;
     }
 
-    /* ptr => x0
+    /* call memset()
+     * ptr => x0
      * value => w1
      * num => x2
      */
