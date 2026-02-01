@@ -4504,8 +4504,6 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
     regm_t shadowregm = 0;
     foreach (s; globsym[])
     {
-        uint sz = cast(uint)type_size(s.Stype);
-
         if (!((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) && s.Sfl != FL.reg))
             continue;
         // Argument is passed in a register
@@ -4525,6 +4523,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
             argtypes(t, targ1, t2);
             if (targ1)
                 t = targ1;
+            //printf("t: %s t2: %s\n", tym_str(t.Tty), tym_str(t2.Tty));
         }
 
         // If struct just wraps another type
@@ -4554,9 +4553,12 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         if (!cgstate.hasframe || (cgstate.enforcealign && s.Sclass != SC.shadowreg))
             offset += cgstate.EBPtoESP;
 
+//        uint sz = cast(uint)type_size(s.Stype);
         reg_t preg = s.Spreg;
         foreach (i; 0 .. 2)     // twice, once for each possible parameter register
         {
+            //printf("i: %d t: %s\n", i, tym_str(t.Tty));
+            uint sz = cast(uint)type_size(t);
             static type* type_arrayBase(type* ta)
             {
                 while (tybasic(ta.Tty) == TYarray)

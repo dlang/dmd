@@ -105,7 +105,7 @@ struct INSTR
             case 4:  size = 2; opc = 0; break;  // St single
             case 8:  size = 3; opc = 0; break;  // Dt double
             case 16: size = 0; opc = 2; break;  // Qt quad
-            default: assert(0);
+            default: debug printf("sz: %u\n", sz); assert(0);
         }
     }
 
