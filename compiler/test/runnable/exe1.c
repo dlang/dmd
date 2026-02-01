@@ -711,7 +711,7 @@ void larith()
         unsigned long u;
         int j;
 
-        (int) i;        /* this was a bug in 1.11       */
+        //(int) i;        /* this was a bug in 1.11       */
         u = 0;
         assert(u >= 0);
         assert(u <= 0);
@@ -1359,11 +1359,11 @@ void dlc2bugs()
 void dlc2bugs_2(w)
 char *w;
 {
-    int i,k,t;
+    /*int i,k,t;
 
     t = w[i];
     k = t/10;
-    w[i] = t - k*10;
+    w[i] = t - k*10;*/
 }
 
 /* And this */

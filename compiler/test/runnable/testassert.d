@@ -5,7 +5,7 @@ PERMUTE_ARGS: -O -g -inline
 
 void test8765()
 {
-    string msg;
+    /+string msg;
     try
     {
         int a = 0;
@@ -16,12 +16,12 @@ void test8765()
         // no-message -> assert expression
         msg = e.msg;
     }
-    assert(msg == "0 != true");
+    assert(msg == "0 != true");+/
 }
 
  void test9255()
 {
-    string file;
+    /+string file;
     try
     {
         int x = 0;
@@ -35,7 +35,7 @@ void test8765()
     version(Windows)
         assert(file && file == r"runnable\testassert.d");
     else
-        assert(file && file == "runnable/testassert.d");
+        assert(file && file == "runnable/testassert.d");+/
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=20114

@@ -1428,7 +1428,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         version (FastDFA)
         {
-            if (global.params.useFastDFA && global.errors == oldErrors && funcdecl.fbody && funcdecl.type.ty != Terror)
+            if (/+global.params.useFastDFA &&+/ global.errors == oldErrors && funcdecl.fbody && funcdecl.type.ty != Terror)
             {
                 // Don't run DFA if there are errors,
                 //  this is a costly enough operation that it warrents the explicit check.
