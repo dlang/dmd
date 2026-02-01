@@ -6109,8 +6109,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (!global.params.useGC && sc.needsCodegen())
             {
-                error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-%s`", exp.toErrMsg(), SwitchVariadic.ptr);
-                return setError();
+                if (sc.func)
+                {
+                    sc.func.skipCodegen = true; // same net result as calling checkGC
+                    goto LskipNewArrayLowering; // not checked in sc.needsCodegen() !?
+                }
             }
 
             if (!sc.needsCodegen())
