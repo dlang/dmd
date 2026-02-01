@@ -789,6 +789,7 @@ public:
                 vto.parent = ids.parent;
                 vto.csym = null;
                 vto.nrvo = ids.propagateNRVO && varIsNRVO;
+                vto.ctfeAdrOnStack = VarDeclaration.AdrOnStackNone;
 
                 ids.from.push(vd);
                 ids.to.push(vto);
@@ -876,14 +877,8 @@ public:
         {
             auto ce = cast(CastExp)e.copy();
             if (auto lowering = ce.lowering)
-            {
                 ce.lowering = doInlineAs!Expression(lowering, ids);
-            }
-            else
-            {
-                ce.e1 = doInlineAs!Expression(e.e1, ids);
-            }
-
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
             result = ce;
         }
 
@@ -901,11 +896,9 @@ public:
 
             if (auto lowering = ce.lowering)
                 ce.lowering = doInlineAs!Expression(lowering, ids);
-            else
-            {
-                ce.e1 = doInlineAs!Expression(e.e1, ids);
-                ce.e2 = doInlineAs!Expression(e.e2, ids);
-            }
+
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
+            ce.e2 = doInlineAs!Expression(e.e2, ids);
 
             result = ce;
         }
@@ -915,12 +908,10 @@ public:
             auto cae = cast(CatAssignExp) e.copy();
 
             if (auto lowering = cae.lowering)
-                cae.lowering = doInlineAs!Expression(cae.lowering, ids);
-            else
-            {
-                cae.e1 = doInlineAs!Expression(e.e1, ids);
-                cae.e2 = doInlineAs!Expression(e.e2, ids);
-            }
+                cae.lowering = doInlineAs!Expression(lowering, ids);
+
+            cae.e1 = doInlineAs!Expression(e.e1, ids);
+            cae.e2 = doInlineAs!Expression(e.e2, ids);
 
             result = cae;
         }
@@ -948,14 +939,12 @@ public:
 
         override void visit(ConstructExp e)
         {
-            if (e.lowering)
-            {
-                auto ce = cast(ConstructExp)e.copy();
+            auto ce = cast(ConstructExp)e.copy();
+            if (ce.lowering)
                 ce.lowering = doInlineAs!Expression(ce.lowering, ids);
-                result = ce;
-            }
-            else
-                visit(cast(AssignExp) e);
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
+            ce.e2 = doInlineAs!Expression(e.e2, ids);
+            result = ce;
         }
 
         override void visit(LoweredAssignExp e)
@@ -1003,6 +992,7 @@ public:
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
                 vto.csym = null;
+                vto.ctfeAdrOnStack = VarDeclaration.AdrOnStackNone;
 
                 ids.from.push(vd);
                 ids.to.push(vto);
@@ -1031,6 +1021,7 @@ public:
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
                 vto.csym = null;
+                vto.ctfeAdrOnStack = VarDeclaration.AdrOnStackNone;
 
                 ids.from.push(vd);
                 ids.to.push(vto);
