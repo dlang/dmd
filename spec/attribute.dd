@@ -670,13 +670,19 @@ void main()
 }
 ---
 
-        $(P $(DDSUBLINK spec/struct, disable_default_construction, `@disable this();`)
+    $(UL
+        $(LI An $(GLINK2 enum, EnumMember) can have the `@disable` attribute.
+        )
+        $(LI $(DDSUBLINK spec/struct, disable_default_construction, `@disable this();`)
         inside a struct disallows default construction.
         )
-
-        $(P $(DDSUBLINK spec/struct, disable-copy, Disabling a struct copy constructor)
+        $(LI $(DDSUBLINK spec/struct, disable-copy, Disabling a struct copy constructor)
         makes the struct not copyable.
         )
+        $(LI $(DDSUBLINK spec/struct, disable-move, Disabling a struct move constructor)
+        makes the struct not movable.
+        )
+    )
 
 
 $(H2 $(LNAME2 safe, $(D @safe), $(D @trusted), and $(D @system) Attributes))
