@@ -713,35 +713,6 @@ $(H3 $(GNAME initSymbol))
 
 $(H2 $(LNAME2 functions, Function Traits))
 
-$(H3 $(GNAME isDisabled))
-
-    $(P Takes one argument and returns `true` if it's a function declaration
-    marked with `@disable`.)
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-struct Foo
-{
-    @disable void foo();
-    void bar(){}
-}
-
-static assert(__traits(isDisabled, Foo.foo));
-static assert(!__traits(isDisabled, Foo.bar));
----
-)
-
-    $(P For any other declaration, even if `@disable` is a syntactically valid
-    attribute, `false` is returned because the annotation has no effect.)
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-@disable struct Bar{}
-
-static assert(!__traits(isDisabled, Bar));
----
-)
-
 $(H3 $(GNAME getVirtualIndex))
 
   $(P Takes a single argument which must evaluate to a function.
@@ -1247,6 +1218,35 @@ struct A
 static assert(__traits(isDeprecated, i));
 static assert(!__traits(isDeprecated, A.foo));
 static assert(__traits(isDeprecated, A.bar));
+---
+)
+
+$(H3 $(GNAME isDisabled))
+
+    $(P Takes one argument and returns `true` if it's a function/variable declaration
+    marked with $(DDSUBLINK spec/attribute, disable, `@disable`).)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct Foo
+{
+    @disable void foo();
+    void bar(){}
+}
+
+static assert(__traits(isDisabled, Foo.foo));
+static assert(!__traits(isDisabled, Foo.bar));
+---
+)
+
+    $(P For any other declaration, even if `@disable` is a syntactically valid
+    attribute, `false` is returned because the annotation has no effect.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+@disable struct Bar{}
+
+static assert(!__traits(isDisabled, Bar));
 ---
 )
 
