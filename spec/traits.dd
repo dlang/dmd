@@ -1230,10 +1230,12 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 struct Foo
 {
+    @disable int i;
     @disable void foo();
     void bar(){}
 }
 
+static assert(__traits(isDisabled, Foo.i));
 static assert(__traits(isDisabled, Foo.foo));
 static assert(!__traits(isDisabled, Foo.bar));
 ---
