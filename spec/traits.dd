@@ -87,7 +87,6 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 toType, $(D toType))
     $(RELATIVE_LINK2 initSymbol, $(D initSymbol))
     $(RELATIVE_LINK2 parameters, $(D parameters))
-    $(RELATIVE_LINK2 fullyQualifiedName, $(D fullyQualifiedName))
 
 $(GNAME TraitsArguments):
     $(GLINK TraitsArgument)
@@ -1196,18 +1195,24 @@ $(H2 $(LNAME2 symbols, Symbol Traits))
 
 $(H3 $(GNAME fullyQualifiedName))
 
-    $(P Gets the fully qualified name of a type or symbol.)
+    $(P Gets the fully qualified name of a type or symbol.
+    Takes one argument, which can be a type, expression, or symbol, and returns a string.
+    If the argument is an expression `e` which is not a symbol, the result will be the
+    same as for an argument `typeof(e)`.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
------------------
-module myModule;
+---
+module plugh;
+
+static assert(__traits(fullyQualifiedName, int) == "int"); // type
+static assert(__traits(fullyQualifiedName, new Object) == "object.Object"); // expression
 
 int i;
-static assert(__traits(fullyQualifiedName, i) == "myModule.i");
+static assert(__traits(fullyQualifiedName, i) == "plugh.i"); // symbol
 
 struct MyStruct {}
-static assert(__traits(fullyQualifiedName, const MyStruct[]) == "const(myModule.MyStruct[])");
------------------
+static assert(__traits(fullyQualifiedName, const MyStruct[]) == "const(plugh.MyStruct[])"); // type
+---
 )
 
 $(H3 $(GNAME isNested))
@@ -1623,43 +1628,6 @@ void main()
 $(CONSOLE
 export
 public
-)
-
-$(H3 $(GNAME fullyQualifiedName))
-
-        $(P Takes one argument, which can be a type, expression, or symbol, and returns a string.)
-
-        $(UL
-        $(LI A $(D type) returns a string representing the type.)
-        $(LI A $(D expression) returns a string representing the type of the expression.)
-        $(LI A $(D symbol) returns a string representing the fully qualified name of the symbol.)
-        )
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-module plugh;
-import std.stdio;
-
-void main()
-{
-    auto s = __traits(fullyQualifiedName, int);
-    writeln(s);
-
-    auto t = __traits(fullyQualifiedName, 1.0);
-    writeln(t);
-
-    auto u = __traits(fullyQualifiedName, t);
-    writeln(u);
-}
----
-)
-
-        Prints:
-
-$(CONSOLE
-int
-double
-plugh.main.t
 )
 
 $(H3 $(GNAME getProtection))
