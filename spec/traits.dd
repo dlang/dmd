@@ -547,8 +547,8 @@ pragma(msg, __traits(getAliasThis, int));
         Prints:
 
 $(CONSOLE
-tuple("var")
-tuple()
+AliasSeq!("var")
+AliasSeq!()
 )
 
 $(H3 $(GNAME getPointerBitmap))
@@ -958,14 +958,15 @@ $(SECTION3 $(GNAME getFunctionVariadicStyle),
         Takes one argument which must either be a function symbol, or a type
         that is a function, delegate or a function pointer.
         It returns a string identifying the kind of
-        $(LINK2 function.html#variadic, variadic arguments) that are supported.
+        $(DDSUBLINK spec/function, variadic, variadic arguments) that are supported.
     )
 
     $(TABLE2 getFunctionVariadicStyle,
         $(THEAD result, kind, access, example)
         $(TROW $(D "none"), not a variadic function, $(NBSP), $(D void foo();))
         $(TROW $(D "argptr"), D style variadic function, $(D _argptr) and $(D _arguments), $(D void bar(...)))
-        $(TROW $(D "stdarg"), C style variadic function, $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)), $(D extern (C) void abc(int, ...)))
+        $(TROW $(D "stdarg"), C style variadic function, $(MREF core,stdc,stdarg),
+            $(D extern (C) void abc(int, ...)))
         $(TROW $(D "typesafe"), typesafe variadic function, array on stack, $(D void def(int[] ...)))
     )
 
@@ -1033,8 +1034,8 @@ pragma(msg, __traits(getFunctionAttributes, S.test));
         Prints:
 
 $(CONSOLE
-tuple("pure", "nothrow", "@system")
-tuple("const", "@system")
+AliasSeq!("pure", "nothrow", "@system")
+AliasSeq!("const", "@system")
 )
 
     $(P Note that some attributes can be inferred. For example:)
@@ -1048,7 +1049,7 @@ pragma(msg, __traits(getFunctionAttributes, (int x) @trusted { return x * 2; }))
         Prints:
 
 $(CONSOLE
-tuple("pure", "nothrow", "@nogc", "@trusted")
+AliasSeq!("pure", "nothrow", "@nogc", "@trusted")
 )
 )
 )
@@ -1253,7 +1254,7 @@ $(H3 $(GNAME isNested))
     stores a context pointer, otherwise it returns $(D false).
     Nested types can be  $(DDSUBLINK spec/class, nested, classes),
     $(DDSUBLINK spec/struct, nested, structs), and
-    $(DDSUBLINK spec/function, variadicnested, functions).)
+    $(DDSUBLINK spec/function, nested, functions).)
 
 $(H3 $(GNAME isFuture))
 
@@ -1265,7 +1266,8 @@ $(H3 $(GNAME isFuture))
 $(H3 $(GNAME isDeprecated))
 
     $(P Takes one argument. It returns `true` if the argument is a symbol
-    marked with the `deprecated` keyword, otherwise `false`.)
+    marked with the $(DDSUBLINK spec/attribute, deprecated, `deprecated`) keyword,
+    otherwise `false`.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
@@ -1387,12 +1389,9 @@ static assert(__traits(identifier, var) == "var");
 
 $(SECTION3 $(GNAME getAttributes),
     $(P
-        Takes one argument, a symbol. Returns a sequence of all attached user-defined attributes.
-        If no UDAs exist it will return an empty sequence
-    )
-
-    $(P
-        For more information, see: $(DDSUBLINK spec/attribute, uda, User-Defined Attributes)
+        Takes one argument, a symbol. Returns a sequence of all attached
+        $(DDSUBLINK spec/attribute, uda, user-defined attributes).
+        If no UDAs exist it will return an empty sequence.
     )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1412,27 +1411,28 @@ pragma(msg, __traits(getAttributes, c));
         Prints:
 
 $(CONSOLE
-tuple(3)
-tuple("string", 7)
-tuple((Foo))
+AliasSeq!(3)
+AliasSeq!("string", 7)
+AliasSeq!((Foo))
 )
 )
 
 $(SECTION3 $(GNAME getBitfieldOffset),
-     $(P Takes one argument, a qualified name that resolve to a field in a struct or class.
+     $(P Takes one argument, a qualified symbol that resolves to a field in a struct or class.
+     The result is a `uint`.
      )
-     $(P If the field is a bitfield, it returns as a `uint` the bit number of the least significant
+     $(P If the field is a bitfield, it returns the bit number of the least significant
      bit in the field. The rightmost bit is at offset 0, the leftmost bit is at offset 31 (for
      32 bit int fields).
      )
-     $(P If the field is a not bitfield, it returns as a `uint` the number 0.
+     $(P If the field is not a bitfield, it returns the number 0.
      )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 struct S
 {
-    int a,b;
+    int a, b;
     int :2, c:3;
 }
 
@@ -1444,18 +1444,19 @@ static assert(__traits(getBitfieldOffset, S.c) == 2);
 )
 
 $(SECTION3 $(GNAME getBitfieldWidth),
-     $(P Takes one argument, a qualified name that resolve to a field in a struct or class.
+     $(P Takes one argument, a qualified symbol that resolves to a field in a struct or class.
+     The result is a `uint`.
      )
-     $(P If the field is a bitfield, it returns as a `uint` the width of the bit field as
+     $(P If the field is a bitfield, it returns the width of the bit field as
      a number of bits.
      )
-     $(P If the field is a not bitfield, it returns the number of bits in the type.
+     $(P If the field is not a bitfield, it returns the number of bits in the type.
      )
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 struct S
 {
-    int a,b;
+    int a, b;
     int :2, c:3;
 }
 
@@ -1469,7 +1470,7 @@ $(H3 $(GNAME getLinkage))
 
         $(P Takes one argument, which is a declaration symbol, or the type of a function, delegate,
         pointer to function, struct, class, or interface.
-        Returns a string representing the $(LINK2 attribute.html#LinkageAttribute, LinkageAttribute)
+        Returns a string representing the $(GLINK2 attribute, LinkageAttribute)
         of the declaration.
         The string is one of:
         )
@@ -1600,16 +1601,19 @@ bar(int n)
 )
 
 $(H3 $(GNAME getCppNamespaces))
+
     $(P The argument is a symbol.
     The result is a *ValueSeq* of strings, possibly empty, that correspond to the namespaces the symbol resides in.
     )
+
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-extern(C++, "ns")
-struct Foo {}
+extern(C++, "ns") struct Foo {}
 struct Bar {}
 extern(C++, __traits(getCppNamespaces, Foo)) struct Baz {}
+
 static assert(__traits(getCppNamespaces, Foo) ==  __traits(getCppNamespaces, Baz));
+
 void main()
 {
     static assert(__traits(getCppNamespaces, Foo)[0] == "ns");

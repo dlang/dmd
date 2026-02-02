@@ -1135,7 +1135,7 @@ $(GNAME UserDefinedAttribute):
 )
 
     $(P
-        User-Defined Attributes (UDA) are compile-time annotations that can be attached
+        User-Defined Attributes (UDAs) are compile-time annotations that can be attached
         to a declaration. These attributes can then be queried, extracted, and manipulated
         at compile time. There is no runtime component to them.
     )
