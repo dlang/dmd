@@ -1287,7 +1287,6 @@ struct S67
     @disable this(this);
 }
 
-pragma(inline, false)
 S67 make67()
 {
     return S67(1);
@@ -1306,6 +1305,10 @@ void test67()
 {
     S67 s = f67();
     assert(s.ptr == &s);
+
+    S67 s2 = make67();
+    auto closure = () { assert(s2.ptr == &s2); };
+    closure();
 }
 
 /*******************************************/
