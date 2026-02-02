@@ -1392,11 +1392,7 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
          evalue.Eoper == OPstrpar)) // happens if evalue is a struct of 0 size
     {
         // Get nbytes into nbytesreg
-        regm_t nbytesregs = cgstate.allregs & ~pretregs;
-        if (!nbytesregs)
-            nbytesregs = cgstate.allregs;
-        codelem(cgstate,cdb,enumbytes,nbytesregs,false);
-        nbytesregs = 0;
+        regm_t nbytesregs = 0;
 
         ulong value = evalue.Eoper == OPstrpar ? 0 : el_tolong(evalue) & 0xFF;
         value |= value << 8;
@@ -1441,7 +1437,8 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             genmovreg(cdb,retreg,dstreg);           // MOV retreg,dstreg
         }
 
-        uint numbytes = cast(uint)el_tolong(enumbytes);
+        const uint numbytes = cast(uint)el_tolong(enumbytes);
+	freenode(enumbytes);
         if (const n = numbytes & ~(REGSIZE - 1))
         {
             regm_t limits = cgstate.allregs & ~(nbytesregs | valueregs | dstregs | retregs);
