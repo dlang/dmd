@@ -1046,13 +1046,41 @@ tuple("pure", "nothrow", "@nogc", "@trusted")
 )
 
 
+$(H2 $(LNAME2 variables, Variable Traits))
+
+$(H3 $(GNAME isRef))
+
+        $(P Takes one argument. If that argument is a variable/parameter declaration
+        which has the $(DDSUBLINK spec/declaration, ref-storage, $(D ref) storage class),
+        `true` is returned, otherwise $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void foo(ref int x, int y)
+{
+    static assert(__traits(isRef, x));
+    static assert(!__traits(isRef, y));
+
+    int i;
+    ref j = i;
+    static assert(!__traits(isRef, i));
+    static assert(__traits(isRef, j));
+}
+
+ref int get();
+// get returns by reference, but it's not a ref itself
+static assert(!__traits(isRef, get));
+---
+)
+
 $(H2 $(LNAME2 function-parameters, Function Parameter Traits))
 
-$(H3 $(GNAME isRef), $(GNAME isOut), $(GNAME isLazy))
+$(H3 $(GNAME isOut), $(GNAME isLazy))
 
-        $(P Takes one argument. If that argument is a declaration,
-        $(D true) is returned if it is $(D_KEYWORD ref), $(D_KEYWORD out),
-        or $(D_KEYWORD lazy), otherwise $(D false).
+        $(P Takes one argument. If that argument is a declaration which
+        is $(D_KEYWORD out) or $(D_KEYWORD lazy), $(D true) is returned,
+        otherwise $(D false).
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
