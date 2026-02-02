@@ -1836,8 +1836,8 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         return;
     }
 
-    printf("cdbyteint(e = %p, pretregs = %s\n", e, regm_str(pretregs));
-    elem_print(e);
+    //printf("cdbyteint(e = %p, pretregs = %s\n", e, regm_str(pretregs));
+    //elem_print(e);
     const op = e.Eoper;
     elem* e1 = e.E1;
     if (e1.Eoper == OPcomma)
