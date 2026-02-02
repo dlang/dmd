@@ -318,6 +318,14 @@ $(H3 $(GNAME isFinalClass))
         $(P Works like $(D isAbstractClass), except it's for final
         classes.)
 
+$(H3 $(GNAME isCOMClass))
+
+        $(P Takes one argument. If that argument is a symbol that refers to a
+        $(DDSUBLINK spec/class, ClassDeclaration, class declaration) which is a
+        $(DDSUBLINK spec/interface, com-interfaces, COM) class then $(D true) is returned,
+        otherwise $(D false).
+        )
+
 $(H3 $(GNAME isCopyable))
 
 $(P Takes one argument. If that argument is a copyable type then $(D true) is returned,
@@ -1332,12 +1340,6 @@ static assert(__traits(isPackage, std.algorithm));
 static assert(!__traits(isPackage, std.algorithm.sorting));
 ---
 )
-
-$(H3 $(GNAME isCOMClass))
-        $(P Takes one argument. If that argument is a symbol that refers to a
-        $(DDSUBLINK spec/class, ClassDeclaration, class declaration) and is a COM class then $(D true) is retuned,
-        otherwise $(D false).
-        )
 
 $(H3 $(GNAME hasMember))
 
