@@ -396,9 +396,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
-                if (sinit.Sclass == SC.extern_)
+                if (sinit.Sclass == SC.extern_ &&
+                    strcmp(sinit.Sident.ptr, "__bzeroBytes") != 0) // might be from another object file
                 {
-                    if (sinit == bzeroSymbol) assert(0);
                     sinit.Sclass = sd.isInstantiated() ? SC.comdat : SC.global;
                     sinit.Sfl = FL.data;
                     auto dtb = DtBuilder(0);
@@ -589,8 +589,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     scclass = SC.comdat;
 
                 // Generate static initializer
-                toInitializer(ed);
-                auto sinit = cast(Symbol*) ed.sinit;
+                auto sinit = toInitializer(ed);
                 sinit.Sclass = scclass;
                 sinit.Sfl = FL.data;
                 auto dtb = DtBuilder(0);
