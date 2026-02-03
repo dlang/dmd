@@ -1416,7 +1416,7 @@ in (fn)
                 enum int j = 13 + i; // source register
                 asm pure nothrow @nogc
                 {
-                    "stw "~regname~j.stringof~", %0" : "=m" (regs[i]);
+                    ("stw "~regname~j.stringof~", %0") : "=m" (regs[i]);
                 }
             }}
             sp = cast(void*)&regs[0];
@@ -1433,7 +1433,7 @@ in (fn)
                 enum int j = 13 + i; // source register
                 asm pure nothrow @nogc
                 {
-                    "std "~regname~j.stringof~", %0" : "=m" (regs[i]);
+                    ("std "~regname~j.stringof~", %0") : "=m" (regs[i]);
                 }
             }}
             sp = cast(void*)&regs[0];
