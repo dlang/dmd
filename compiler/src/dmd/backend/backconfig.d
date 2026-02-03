@@ -607,12 +607,25 @@ void util_setAArch64(exefmt_t exe)
     {
         _tysize[TYldouble] = 16;
         _tysize[TYildouble] = 16;
-        _tysize[TYcldouble] = 16;
+        _tysize[TYcldouble] = 32;
     }
     if (exe & EX_windos)
     {
         _tyalignsize[TYldouble] = 16;
         _tyalignsize[TYildouble] = 16;
         _tyalignsize[TYcldouble] = 16;
+    }
+
+    if (exe & EX_OSX64)
+    {
+        _tysize[TYldouble] = 8;
+        _tysize[TYildouble] = 8;
+        _tysize[TYcldouble] = 16;
+    }
+    if (exe & EX_OSX64)
+    {
+        _tyalignsize[TYldouble] = 8;
+        _tyalignsize[TYildouble] = 8;
+        _tyalignsize[TYcldouble] = 8;
     }
 }
