@@ -493,6 +493,13 @@ extern (C++) struct Target
             }
         }
 
+        if (isAArch64 && os & Target.OS.OSX)  // OSX for AArch64 has 8 byte reals
+        {
+            realsize = 8;
+            realpad = 0;
+            realalignsize = 8;
+        }
+
         c.initialize(params, this);
         cpp.initialize(params, this);
         objc.initialize(params, this);
