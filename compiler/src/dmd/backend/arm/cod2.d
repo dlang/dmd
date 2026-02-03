@@ -83,7 +83,6 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     reg_t Rn = findreg(retregs1);
 
     regm_t retregs2 = posregs & ~retregs1;
-//printf("retregs1: %s retregs2: %s\n", regm_str(retregs1), regm_str(retregs2));
     scodelem(cg, cdb, e2, retregs2, retregs1, false);
     reg_t Rm = findreg(retregs2);
 
@@ -415,8 +414,9 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         regm_t retregs = pretregs & cgstate.allregs;
         if (!retregs)
             retregs = cgstate.allregs;
-        const Rd = findreg(retregs);
+        const Rd = allocreg(cdb, retregs, tybasic(e.Ety));
         const cond = op == OPnot ? COND.ne : COND.eq;
+        sz = tysize(e.Ety);
         cdb.gen1(INSTR.cset(sz == 8,cond,Rd));          // CSET Rd,eq
         uint N,immr,imms;
         assert(encodeNImmrImms(0xFF,N,immr,imms));
@@ -438,6 +438,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         const tym = tybasic(e.Ety);
         reg_t Rd = allocreg(cdb, retregs, tym); // destination register
 
+        sz = tysize(e.Ety);
         uint sf = sz == 8;
 
         cdb.gen1(INSTR.cmp_imm(sf,0,0,R1));  // CMP R1,#0
@@ -1438,7 +1439,7 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         }
 
         const uint numbytes = cast(uint)el_tolong(enumbytes);
-	freenode(enumbytes);
+        freenode(enumbytes);
         if (const n = numbytes & ~(REGSIZE - 1))
         {
             regm_t limits = cgstate.allregs & ~(nbytesregs | valueregs | dstregs | retregs);
