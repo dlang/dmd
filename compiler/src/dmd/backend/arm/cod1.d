@@ -1904,23 +1904,11 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
             movParams(cg, cdbparams, ep, p.offset, sz);
 
-            regm_t tosave = keepmsk & ~cg.msavereg;
+            regm_t tosave = keepmsk & ~cg.msavereg;          // registers to save and restore
             cg.msavereg &= ~keepmsk | overlap;
-
-            // tosave is the mask to save and restore
-            for (reg_t j = 0; tosave; j++)
-            {
-                regm_t mi = mask(j);
-                if (mi & tosave)
-                {
-                    uint idx;
-                    cg.regsave.save(cdbsave, j, idx);
-                    cg.regsave.restore(cdbrestore, j, idx);
-                    saved |= mi;
-                    keepmsk &= ~mi;             // don't need to keep these for rest of params
-                    tosave &= ~mi;
-                }
-            }
+            saved |= tosave;
+            keepmsk &= ~tosave;             // don't need to keep these for rest of params
+            gensaverestore(tosave,cdbsave,cdbrestore);
 
             cdb.append(cdbsave);
             cdb.append(cdbparams);
@@ -1954,21 +1942,9 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                 if (keepmsk & retregs)
                 {
                     regm_t tosave = keepmsk & retregs;
-
-                    // tosave is the mask to save and restore
-                    for (reg_t j = 0; tosave; j++)
-                    {
-                        regm_t mi = mask(j);
-                        if (mi & tosave)
-                        {
-                            uint idx;
-                            cg.regsave.save(cdbsave, j, idx);
-                            cg.regsave.restore(cdbrestore, j, idx);
-                            saved |= mi;
-                            keepmsk &= ~mi;             // don't need to keep these for rest of params
-                            tosave &= ~mi;
-                        }
-                    }
+                    saved |= tosave;
+                    keepmsk &= ~tosave;             // don't need to keep these for rest of params
+                    gensaverestore(tosave,cdbsave,cdbrestore);
                 }
                 cdb.append(cdbsave);
 
