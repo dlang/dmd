@@ -1059,7 +1059,8 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
         d = -d;
         op = 1;                            // switch from ADD to SUB
     }
-    if (thunkty == TYmfunc || thunkty == TYjfunc || thunkty == TYnfunc)
+    if (thunkty == TYmfunc || thunkty == TYjfunc || thunkty == TYnfunc ||
+        thunkty == TYnsfunc) // not totally sure about TYnsfunc
     {
         uint sh = 0;
         reg_t r0 = 0;
@@ -1067,6 +1068,7 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
     }
     else
     {
+        debug printf("thunkty: %s\n", tym_str(thunkty));
         assert(0);
     }
 
