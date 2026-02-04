@@ -85,9 +85,10 @@ private:
     void calculate()
     {
         import core.stdc.stdio;
-        import std.conv : text;
-        import std.uni;
-        import std.algorithm : sort;
+        import core.stdc.string : strlen;
+        // import std.conv : text;
+        // import std.uni;
+        // import std.algorithm : sort;
 
         int maxLineNumber;
         minLineNumber = int.max;
@@ -101,8 +102,29 @@ private:
             if (diag.end > maxLineNumber)
                 maxLineNumber = diag.end;
         }
+        // diagnostics.sort!((a, b) => a.start < b.start || (a.start == b.start && a.end < b.end));
 
-        diagnostics.sort!((a, b) => a.start < b.start || (a.start == b.start && a.end < b.end));
+        void sortDiagnostics(ref Diagnostic[] diagnostics) // bubble sort to sort diagnostics
+        {
+            for(int i=0; i<diagnostics.length; i++)
+            {
+                bool swapped = false;
+                for(int j=i+1; j<diagnostics.length; j++)
+                {
+                    if(diagnostics[j].start < diagnostics[i].start || (diagnostics[j].start == diagnostics[i].start 
+                        && diagnostics[j].end < diagnostics[i].end))
+                    {
+                        Diagnostic temp = diagnostics[j];
+                        diagnostics[j] = diagnostics[i];
+                        diagnostics[i] = temp;
+                        swapped = true;
+                    }
+                }
+                if(!swapped)
+                    break;
+            }
+        }
+        sortDiagnostics(diagnostics);
 
         // Calculate the line number length, to get the required with and without number strings.
         {
@@ -113,7 +135,11 @@ private:
             temp[] = ' ';
 
             columnWithoutNumber = cast(string) temp;
-            columnNumberFormat = text("%", lineNumberLength, "d\0");
+
+            char[16] buf;
+            snprintf(buf.ptr,buf.length,"%d",lineNumberLength);
+
+            columnNumberFormat = cast(string) buf[0 .. strlen(buf.ptr)];
         }
     }
 
@@ -391,7 +417,8 @@ private:
     uint graphemesBetweenPositions(int line, int startColumn, int endColumn,
             ref Diagnostic diag, ref Message message)
     {
-        import std.uni;
+        // import std.uni;
+        import dmd.root.utf;
 
         string text = getSourceCode(line);
 
@@ -400,9 +427,19 @@ private:
 
         text = text[startColumn .. endColumn];
         uint count;
+        size_t i = startColumn;
 
-        foreach (_; text.byGrapheme)
+        /*foreach (_; text.byGrapheme)
         {
+            count++;
+        }*/
+        while(i<endColumn)
+        {
+            dchar c;
+            if(utf_decodeChar(text,i,c) !is null)
+            {
+                break;
+            }
             count++;
         }
 
