@@ -52,20 +52,25 @@ $(GNAME IdentifierInitializer): $(LEGACY_LNAME2 DeclaratorInitializer, Declarato
     $(GLINK_LEX Identifier)
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
     $(GLINK BitfieldDeclarator)
+    $(GLINK BitfieldDeclarator) $(D =) $(GLINK Initializer)
 
 $(GNAME BitfieldDeclarator):
     $(D :) $(GLINK2 expression, AssignExpression)
     $(GLINK_LEX Identifier) $(D :) $(GLINK2 expression, ConditionalExpression)
-    $(GLINK_LEX Identifier) $(D :) $(GLINK2 expression, ConditionalExpression) $(D =) $(GLINK Initializer)
 
 $(GNAME Declarator): $(LEGACY_LNAME2 VarDeclarator)
     $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
 )
 
-    $(P See also:)
-    * $(RELATIVE_LINK2 declaration_syntax, Declaration Syntax)
-    * $(GLINK AutoDeclaration)
-    * $(DDSUBLINK spec/template, variable-template, Variable Templates)
+    * When *StorageClasses* includes `enum`, each *Identifier* will be a
+      $(DDSUBLINK spec/enum, single_member, manifest constant).
+    * When the type is omitted, the declaration is an $(GLINK AutoDeclaration).
+    * When there's a *BitfieldDeclarator*, the declaration is a
+      $(DDSUBLINK spec/struct, bitfields, bit field).
+    * When the *Identifier* has *TemplateParameters*, it is a
+      $(DDSUBLINK spec/template, variable-template, variable template).
+
+    $(P See also: $(RELATIVE_LINK2 declaration_syntax, Declaration Syntax).)
 
 $(H3 $(LNAME2 storage-classes, Storage Classes))
 
@@ -81,7 +86,7 @@ $(GNAME StorageClass):
     $(GLINK2 attribute, AlignAttribute)
     $(GLINK2 attribute, AtAttribute)
     $(DDSUBLINK spec/attribute, deprecated, `deprecated`)
-    $(DDSUBLINK spec/enum, manifest_constants, `enum`)
+    $(DDSUBLINK spec/enum, single_member, `enum`)
     $(DDSUBLINK spec/attribute, static, `static`)
     $(RELATIVE_LINK2 extern, $(D extern))
     $(DDSUBLINK spec/class, abstract, `abstract`)

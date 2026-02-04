@@ -354,16 +354,17 @@ enum
 }
 ---
 
-$(H2 $(LNAME2 single_member, Single Member Anonymous Enum))
+$(H3 $(LNAME2 single_member, Single Member Syntax))
 
         $(P If there is only one member of an anonymous enum, the `{ }` can
-        be omitted. Gramatically speaking, this is an $(GLINK2 declaration, AutoDeclaration).
+        be omitted. Gramatically, this is a form of $(GLINK2 declaration, VarDeclarations).
         )
 
 ---
 enum i = 4;      // i is 4 of type int
 enum long l = 3; // l is 3 of type long
 ---
+        $(P This is also known as a *manifest constant*.)
 
 $(H2 $(LNAME2 manifest_constants, Manifest Constants))
 
