@@ -988,14 +988,24 @@ extern (C++) struct Target
      */
     extern (C++) TypeTuple toArgTypes(Type t)
     {
-        import dmd.argtypes_x86 : toArgTypes_x86;
         import dmd.argtypes_sysv_x64 : toArgTypes_sysv_x64;
-        if (isX86_64 || isAArch64)
+        if (isX86_64)
         {
             // no argTypes for Win64 yet
             return isPOSIX ? toArgTypes_sysv_x64(t) : null;
         }
-        return toArgTypes_x86(t);
+        else if (isX86)
+        {
+            import dmd.argtypes_x86 : toArgTypes_x86;
+            return toArgTypes_x86(t);
+        }
+        else if (isAArch64)
+        {
+            import dmd.argtypes_aarch64 : toArgTypes_aarch64;
+            return toArgTypes_aarch64(t);
+        }
+        else
+            assert(0);
     }
 
     /**
@@ -1073,9 +1083,19 @@ extern (C++) struct Target
                     return true;
             }
         }
-        else if ((isX86_64 || isAArch64) && isPOSIX)
+        else if (isX86_64 && isPOSIX)
         {
             TypeTuple tt = toArgTypes_sysv_x64(tn);
+            if (!tt)
+                return false; // void
+
+            return !tt.arguments.length;
+        }
+        else if (isAArch64 && isPOSIX)
+        {
+            import dmd.argtypes_aarch64 : toArgTypes_aarch64;
+
+            TypeTuple tt = toArgTypes_aarch64(tn);
             if (!tt)
                 return false; // void
 
