@@ -1223,8 +1223,9 @@ static assert(__traits(isDeprecated, A.bar));
 
 $(H3 $(GNAME isDisabled))
 
-    $(P Takes one argument and returns `true` if it's a function/variable declaration
-    marked with $(DDSUBLINK spec/attribute, disable, `@disable`).)
+    $(P Takes one argument and returns `true` if it's a function, variable,
+    manifest constant or enum member declaration marked with
+    $(DDSUBLINK spec/attribute, disable, `@disable`).)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
