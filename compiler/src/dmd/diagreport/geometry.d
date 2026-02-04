@@ -1,7 +1,5 @@
 module dmd.diagreport.geometry;
-
 import dmd.diagreport.defs;
-import std.stdio;
 
 struct TimeLineGeometry
 {
