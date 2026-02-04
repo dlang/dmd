@@ -1226,7 +1226,7 @@ private elem* elmin(elem* e, Goal goal)
         }
 
         // Replace (e - e) with (0)
-        if (el_match(e1,e2) && !el_sideeffect(e1))
+        if (el_match(e1,e2) && !el_sideeffect(e1) && !tyfloating(e1.Ety))
         {
             el_free(e);
             e = el_calloc();
