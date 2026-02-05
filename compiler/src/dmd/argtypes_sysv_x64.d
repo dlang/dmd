@@ -11,6 +11,7 @@
 
 module dmd.argtypes_sysv_x64;
 
+import core.stdc.stdio;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.dsymbolsem : isPOD;
@@ -95,7 +96,10 @@ TypeTuple toArgTypes_sysv_x64(Type t)
                                       Type.tfloat32;
         }
         else
+        {
+            debug printf("class: %d\n", c);
             assert(0, "Unexpected class");
+        }
     }
 
     return N == 1

@@ -161,10 +161,32 @@ type* Type_toCtype(Type t)
         //printf("TypeStruct::toCtype() '%s'\n", t.sym.toChars());
         if (t.mod == 0)
         {
-            // Create a new backend type
             StructDeclaration sym = t.sym;
             auto arg1type = sym.argType(0);
             auto arg2type = sym.argType(1);
+
+            //if (arg1type) printf("  arg1type: %s\n", arg1type.toChars());
+            //if (arg2type) printf("  arg2type: %s\n", arg2type.toChars());
+
+            /* Adjust arg1type and arg2type based on toArgTypes_aarch64() putting things in a static array
+             * instead of arg1type and arg2type
+             */
+            if (arg1type && arg1type.isTypeSArray())
+            {
+                auto tsa = arg1type.isTypeSArray();
+                if (auto dim = tsa.dim.toInteger())
+                {
+                    Type arg = tsa.next;
+                    arg1type = arg;
+                    if (dim == 2)
+                    {
+                        assert(!arg2type);
+                        arg2type = arg;
+                    }
+                }
+            }
+
+            // Create a new backend type
             t.ctype = type_struct_class(sym.toPrettyChars(true), sym.alignsize, sym.structsize, arg1type ? Type_toCtype(arg1type) : null, arg2type ? Type_toCtype(arg2type) : null, sym.isUnionDeclaration() !is null, false, sym.isPOD() != 0, sym.hasNoFields);
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)

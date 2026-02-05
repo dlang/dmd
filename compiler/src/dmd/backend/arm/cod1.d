@@ -1385,11 +1385,19 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
         bool opsflag = false;
         if (tyfloating(tym))
         {
-            assert(retregs & INSTR.FLOATREGS);
+            assert(outretregs & INSTR.FLOATREGS);
             reg_t Vn = findreg(retregs);
             reg_t Vd = allocreg(cdb, outretregs, tym);  // allocate return regs
+            //printf("Vn: %d Vd: %d\n", Vn, Vd);
             uint ftype = INSTR.szToFtype(sz);
-            cdb.gen1(INSTR.fmov(ftype,Vn,Vd));  // FMOV Vd,Vn
+            if (Vn < 32) // move integer to float
+            {
+                cdb.gen1(INSTR.fmov_float_gen(1,ftype,0,7,Vn,Vd));   // FMOV Vd,Rn https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
+            }
+            else // move float to float
+            {
+                cdb.gen1(INSTR.fmov(ftype,Vn,Vd));  // FMOV Vd,Vn
+            }
         }
         else if (sz > REGSIZE)
         {
@@ -2223,6 +2231,7 @@ static if (0)
 
     reg_t reg1, reg2;
     retregs = allocretregs(cgstate, e.Ety, e.ET, tym1, reg1, reg2);
+    //printf("retregs: %s e.Ety: %s tym1: %s\n", regm_str(retregs), tym_str(e.Ety), tym_str(tym1));
 
     assert(retregs || !pretregs);
 
@@ -2549,6 +2558,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 
                 cgstate.mfuncreg &= ~pregm;
                 cgstate.regcon.used |= pregm;
+                //printf("pregm: %s outretregs: %s\n", regm_str(pregm), regm_str(outretregs));
                 fixresult(cdb,e,pregm,outretregs);
                 return;
             }

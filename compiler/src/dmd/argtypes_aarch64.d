@@ -11,6 +11,7 @@
 
 module dmd.argtypes_aarch64;
 
+import core.stdc.stdio;
 import dmd.astenums;
 import dmd.dsymbolsem : isPOD;
 import dmd.mtype;
@@ -32,6 +33,7 @@ import dmd.expressionsem : toUInteger;
  */
 TypeTuple toArgTypes_aarch64(Type t)
 {
+    //printf("toArgTypes_aarch64() %s\n", t.toChars());
     if (t == Type.terror)
         return new TypeTuple(t);
 
