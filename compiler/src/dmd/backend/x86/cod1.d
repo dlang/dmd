@@ -3113,6 +3113,9 @@ bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t pre
             {
                 targ1 = t.Ttag.Sstruct.Sarg1type;
                 targ2 = t.Ttag.Sstruct.Sarg2type;
+                //type_print(t);
+                //if (targ1) type_print(targ1);
+                //if (targ2) type_print(targ2);
             }
             else if (tybasic(t.Tty) == TYarray)
             {
@@ -4108,6 +4111,7 @@ static if (0)
 
     reg_t reg1, reg2;
     retregs = allocretregs(cgstate, e.Ety, e.ET, tym1, reg1, reg2);
+    //printf("retregs: %s e.Ety: %s tym1: %s\n", regm_str(retregs), tym_str(e.Ety), tym_str(tym1));
 
     assert(retregs || !pretregs);
 

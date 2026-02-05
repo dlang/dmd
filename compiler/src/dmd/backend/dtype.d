@@ -25,7 +25,6 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-
 nothrow:
 @safe:
 
@@ -482,6 +481,7 @@ type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
             type_print(arg2type);
         }
     }
+
     Symbol* s = symbol_calloc(name[0 .. strlen(name)]);
     s.Sclass = SC.struct_;
     s.Sstruct = struct_calloc();

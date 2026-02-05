@@ -1002,6 +1002,17 @@ extern (C++) struct Target
         else if (isAArch64)
         {
             import dmd.argtypes_aarch64 : toArgTypes_aarch64;
+            static if (0)
+            {
+                auto tt = toArgTypes_aarch64(t);
+                if (tt)
+                    foreach (i; 0 .. tt.arguments.length)
+                    {
+                        Parameter p = (*tt.arguments)[i];
+                        printf("i: %d t: %s\n", cast(int)i, p.type.toChars());
+                    }
+                return tt;
+            }
             return toArgTypes_aarch64(t);
         }
         else
