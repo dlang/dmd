@@ -1021,3 +1021,38 @@ void testAliasThis()
     s.remove(1);
     assert(S.numCopies == 0);
 }
+
+void test22510()
+{
+    static struct S(AA)
+    {
+        AA aa_;
+        auto aa() inout => this.aa_.dup;
+    }
+    auto testDup(AA)()
+    {
+        S!AA s;
+        return s.aa();
+    }
+    auto aa_ii = testDup!(int[int])();
+    static assert(is(typeof(aa_ii) == int[int]));
+
+    auto aa_cii = testDup!(const(int[int]))();
+    static assert(is(typeof(aa_cii) == int[int]));
+
+    static struct T
+    {
+        char[] s; // non const indirection disallows conversion of const(T) -> T when copying
+    }
+    auto aa_it = testDup!(int[T])();
+    static assert(is(typeof(aa_it) == int[T]));
+
+    auto aa_cit = testDup!(const(int[T]))();
+    static assert(is(typeof(aa_cit) == int[T]));
+
+    auto aa_ti = testDup!(T[int])();
+    static assert(is(typeof(aa_ti) == T[int]));
+
+    auto aa_cti = testDup!(const(T[int]))();
+    static assert(is(typeof(aa_cti) == const(T)[int]));
+}
