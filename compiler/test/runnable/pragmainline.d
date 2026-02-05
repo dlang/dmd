@@ -1,4 +1,5 @@
 // REQUIRED_ARGS: -wi
+// EXTRA_FILES: imports/pragmainline_a.d
 /* TEST_OUTPUT:
 ---
 ---
