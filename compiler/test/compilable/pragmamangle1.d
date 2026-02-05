@@ -3,8 +3,9 @@ module pragmamangle;
 
 version (Posix): // Itanium C++ ABI only
 
-string ctfe_function() { return "mangle_" ~ "ctfe_" ~ "function"; }
-immutable string const_variable = "mangle_const";
+string ctfe(string s) { return "mangle_" ~ "ctfe_" ~ s; }
+immutable string const_function = "mangle_const_function";
+immutable string const_variable = "mangle_const_variable";
 
 // This mangle string doesn't propagate to tests that use type_symbol.
 pragma(mangle, "Q_should_mangle_string_propagate")
@@ -23,17 +24,17 @@ static assert(test_pokeattr1.mangleof == "mangle_attribute");
 /* 2a. For variables and functions there must be one AssignExpression and it
  * must evaluate at compile time to a string literal
  */
-pragma(mangle, ctfe_function) void test_fun2a1();
+pragma(mangle, ctfe("function")) void test_fun2a1();
 static assert(test_fun2a1.mangleof == "mangle_ctfe_function");
 
-pragma(mangle, const_variable) void test_fun2a2();
-static assert(test_fun2a2.mangleof == "mangle_const");
+pragma(mangle, const_function) void test_fun2a2();
+static assert(test_fun2a2.mangleof == "mangle_const_function");
 
-pragma(mangle, ctfe_function) int test_var2a1;
-static assert(test_var2a1.mangleof == "mangle_ctfe_function");
+pragma(mangle, ctfe("variable")) int test_var2a1;
+static assert(test_var2a1.mangleof == "mangle_ctfe_variable");
 
 pragma(mangle, const_variable) int test_var2a2;
-static assert(test_var2a2.mangleof == "mangle_const");
+static assert(test_var2a2.mangleof == "mangle_const_variable");
 
 /* 2b. For aggregates there may be one or two AssignExpressions, one of which
  * must evaluate at compile time to a string literal and one which must
