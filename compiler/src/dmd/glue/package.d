@@ -361,7 +361,7 @@ tym_t totym(Type tx)
                     if (target.os == Target.OS.Windows)
                     {
                     }
-                    else if (!target.isX86_64 && retStyle(tf, false) == RET.stack)
+                    else if (target.isX86 && retStyle(tf, false) == RET.stack)
                         t = TYhfunc;
                     break;
 
