@@ -133,9 +133,8 @@ union sigval
 
 version (Solaris)
 {
-    import core.sys.posix.unistd;
-
     @property int SIGRTMIN() nothrow @nogc {
+        import core.sys.posix.unistd : sysconf, _SC_SIGRT_MIN;
         __gshared int sig = -1;
         if (sig == -1) {
             sig = cast(int)sysconf(_SC_SIGRT_MIN);
@@ -144,6 +143,7 @@ version (Solaris)
     }
 
     @property int SIGRTMAX() nothrow @nogc {
+        import core.sys.posix.unistd : sysconf, _SC_SIGRT_MAX;
         __gshared int sig = -1;
         if (sig == -1) {
             sig = cast(int)sysconf(_SC_SIGRT_MAX);
