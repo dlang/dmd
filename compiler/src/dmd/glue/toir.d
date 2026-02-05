@@ -599,7 +599,7 @@ int intrinsic_op(FuncDeclaration fd)
     }
     else if (target.isAArch64)
     {
-        if (op == OPbsf || op == OPbsr)
+        if (op == OPbsf || op == OPbsr || op == OPbtc || op == OPbtr || op == OPbts)
             return NotIntrinsic;        // TODO AArch64
     }
     return op;
