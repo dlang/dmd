@@ -14050,6 +14050,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Type t1n = t1.nextOf().toBasetype();
             Type t2n = t2.nextOf().toBasetype();
 
+            if (t1.ty == Tarray && t2.ty == Tarray)
+                // the dmd backend generates 'repe cmpsb' instead of a call to memcmp,
+                //  which has (very) bad performance on a lot of processors. So restore the
+                //  dmd 2.111 condition of always lowering to __equals for arrays.
+                // Though not affected, LDC and GDC are likely to inline and optimize
+                //  whatever version is selected here, so do this unconditionally.
+                // See https://github.com/dlang/dmd/issues/21976
+                if (!t1n.ty.isSomeChar) // likely to be short
+                    return false;
+
             if (t1n.size() != t2n.size())
                 return false;
 
