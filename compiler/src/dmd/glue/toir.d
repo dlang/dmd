@@ -1158,8 +1158,6 @@ void buildCapture(FuncDeclaration fd)
 {
     if (!driverParams.symdebug)
         return;
-    if (target.objectFormat() != Target.ObjectFormat.coff)  // toDebugClosure only implemented for CodeView,
-        return;                 //  but optlink crashes for negative field offsets
 
     if (fd.closureVars.length && !fd.needsClosure)
     {
