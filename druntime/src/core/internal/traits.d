@@ -565,7 +565,9 @@ unittest
 
 template hasIndirections(T)
 {
-    static if (is(T == enum))
+    static if (is(Unqual!T == void))
+        enum hasIndirections = true;
+    else static if (is(T == enum))
         enum hasIndirections = hasIndirections!(OriginalType!T);
     else static if (is(T == struct) || is(T == union))
         enum hasIndirections = anySatisfy!(.hasIndirections, typeof(T.tupleof));
@@ -580,7 +582,8 @@ template hasIndirections(T)
 }
 
 @safe unittest
-{
+{   
+    static assert(hasIndirections!void);
     static assert(!hasIndirections!int);
     static assert(!hasIndirections!(const int));
 
@@ -735,11 +738,11 @@ template hasIndirections(T)
 // https://github.com/dlang/dmd/issues/20812
 @safe unittest
 {
-    static assert(!hasIndirections!void);
-    static assert(!hasIndirections!(const void));
-    static assert(!hasIndirections!(inout void));
-    static assert(!hasIndirections!(immutable void));
-    static assert(!hasIndirections!(shared void));
+    static assert(hasIndirections!void);
+    static assert(hasIndirections!(const void));
+    static assert(hasIndirections!(inout void));
+    static assert(hasIndirections!(immutable void));
+    static assert(hasIndirections!(shared void));
 
     static assert( hasIndirections!(void*));
     static assert( hasIndirections!(const void*));
