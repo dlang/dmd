@@ -29,7 +29,6 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 inout, $(D inout))
     $(RELATIVE_LINK2 override, $(D override))
     $(RELATIVE_LINK2 ref, $(D ref))
-    $(RELATIVE_LINK2 return, $(D return))
     $(RELATIVE_LINK2 __rvalue, $(D __rvalue))
     $(RELATIVE_LINK2 scope, $(D scope))
     $(RELATIVE_LINK2 shared, $(D shared))
