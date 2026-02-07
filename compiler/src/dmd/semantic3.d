@@ -294,7 +294,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             return;
         funcdecl.semanticRun = PASS.semantic3;
         funcdecl.hasSemantic3Errors = false;
-        funcdecl.saferD = sc.previews.safer;
+        funcdecl.saferD = sc.previews.safer && !sc.inCfile;
 
         if (!funcdecl.type || funcdecl.type.ty != Tfunction)
             return;
