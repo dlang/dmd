@@ -10,7 +10,7 @@ struct T
 {
 }
 
-void main()
+void test()
 {
     auto result = 10 / T();  // int / T requires opBinaryRight on T
 }
