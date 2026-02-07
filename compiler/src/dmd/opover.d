@@ -612,7 +612,7 @@ bool suggestBinaryOverloads(BinExp e, Scope* sc)
             return true;
         }
         error(e.loc, "operator `%s` is not defined for type `%s`", EXPtoString(e.op).ptr, e.e2.type.toChars);
-        errorSupplemental(ad2.loc, "perhaps overload the operator with `auto opBinaryRight(string op : \"%s\")(%s rhs) {}`", EXPtoString(e.op).ptr, e.e1.type.toChars);
+        errorSupplemental(ad2.loc, "perhaps overload the operator with `auto opBinaryRight(string op : \"%s\")(%s lhs) {}`", EXPtoString(e.op).ptr, e.e1.type.toChars);
         return true;
     }
     return false;
