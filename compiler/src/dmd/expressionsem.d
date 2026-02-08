@@ -2721,6 +2721,7 @@ Lagain:
                 error(loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
             else            // variable type cannot be determined
                 error(loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
+            printResolutionTrace();
             return ErrorExp.get();
         }
         if (v.type.ty == Terror)
@@ -10237,6 +10238,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 else
                     error(exp.loc, "forward reference to type `%s` of expression `%s`", exp.e1.type.toChars(), exp.e1.toErrMsg());
+                printResolutionTrace();
                 return setError();
             }
         }
@@ -15833,6 +15835,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
                         error(exp.loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
                     else
                         error(exp.loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
+                    printResolutionTrace();
                     return ErrorExp.get();
                 }
                 if (v.type.isTypeError())
