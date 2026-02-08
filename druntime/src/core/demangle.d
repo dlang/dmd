@@ -2292,16 +2292,26 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             {
                 result ~= d.buf[lastpos .. d.pos];
             }
-            else if (lastpos > d.pos)
+            else
             {
-                // roll back to earlier position
-                while (replacements.length > 0 && replacements[$-1].pos > d.pos)
-                    replacements = replacements[0 .. $-1];
-
-                if (replacements.length > 0)
-                    result.length = replacements[$-1].respos + d.pos - replacements[$-1].pos;
+                if (lastpos <= d.pos)
+                {
+                    return;
+                }
                 else
-                    result.length = d.pos;
+                {
+                    // roll back to earlier position
+                    while (replacements.length > 0 && replacements[$-1].pos > d.pos)
+                        replacements = replacements[0 .. $-1];
+
+                    if (replacements.length > 0)
+                        result.length = replacements[$-1].respos + d.pos - replacements[$-1].pos;
+                    else
+                        result.length = d.pos;
+                    return;
+                }
+
+                return;
             }
         }
 
@@ -2384,25 +2394,31 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
         {
             if (d.front != 'Q')
                 return null;
-
-            flushPosition(d);
-
-            auto refPos = d.pos;
-            d.popFront();
-            auto n = d.decodeBackref();
-            if (n == 0 || n > refPos)
+            else
             {
-                // invalid back reference
-                errStatus = true;
+                flushPosition(d);
+
+                auto refPos = d.pos;
+                d.popFront();
+                auto n = d.decodeBackref();
+                if (n == 0 || n > refPos)
+                {
+                    // invalid back reference
+                    errStatus = true;
+                    return null;
+                }
+                else
+                {
+                    size_t npos = positionInResult(refPos - n);
+                    size_t reslen = result.length;
+                    encodeBackref(reslen - npos);
+
+                    lastpos = d.pos;
+                    return result[reslen .. $]; // anything but null
+                }
+
                 return null;
             }
-
-            size_t npos = positionInResult(refPos - n);
-            size_t reslen = result.length;
-            encodeBackref(reslen - npos);
-
-            lastpos = d.pos;
-            return result[reslen .. $]; // anything but null
         }
 
         void encodeBackref(size_t relpos) scope
