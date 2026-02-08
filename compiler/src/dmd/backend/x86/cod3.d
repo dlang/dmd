@@ -680,13 +680,20 @@ void cod3_buildmodulector(OutBuffer* buf, int codeOffset, int refOffset)
 /*****************************
  * Given a type, return a mask of
  * registers to hold that type.
- * Input:
- *      tyf     function type
+ * Params:
+ *      tym = type
+ *      tyf = function type
+ * Returns:
+ *      mask of registers
  */
 
 @trusted
 regm_t regmask(tym_t tym, tym_t tyf)
 {
+    bool AArch64 = cgstate.AArch64;
+    if (AArch64)
+        return dmd.backend.arm.cod3.regmask(tym, tyf);
+
     switch (tybasic(tym))
     {
         case TYvoid:
