@@ -105,7 +105,8 @@ void arithmetic_expression_selftest()
     }
 
     if (fail)
-	printf("fail: x%x\n", fail);
+        printf("fail: x%x\n", fail);
+    assert(!fail);
 }
 
 int main()
