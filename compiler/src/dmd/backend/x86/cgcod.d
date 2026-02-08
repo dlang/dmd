@@ -1680,23 +1680,35 @@ static if (0)
         if ((retregs & cgstate.regcon.mvar) == retregs) // if exactly in reg vars
         {
             reg_t outreg;
-            if (size <= REGSIZE || (retregs & XMMREGS) || (retregs & INSTR.FLOATREGS))
+            if (AArch64)
+            {
+                if (tycomplex(tym))
+                {
+                    outreg = findreg(retregs & INSTR.MSW);
+                    assert(retregs & INSTR.LSW);
+                }
+                else if (size <= REGSIZE || (retregs & INSTR.FLOATREGS))
+                {
+                    outreg = findreg(retregs);
+                    assert(retregs == mask(outreg));
+                }
+                else if (size <= 2 * REGSIZE)
+                {
+                    outreg = findreg(retregs & INSTR.MSW);
+                    assert(retregs & INSTR.LSW);
+                }
+                else
+                    assert(0);
+            }
+            else if (size <= REGSIZE || (retregs & XMMREGS))
             {
                 outreg = findreg(retregs);
                 assert(retregs == mask(outreg)); /* no more bits are set */
             }
             else if (size <= 2 * REGSIZE)
             {
-                if (AArch64)
-                {
-                    outreg = findreg(retregs & INSTR.MSW);
-                    assert(retregs & INSTR.LSW);
-                }
-                else
-                {
-                    outreg = findregmsw(retregs);
-                    assert(retregs & mLSW);
-                }
+                outreg = findregmsw(retregs);
+                assert(retregs & mLSW);
             }
             else
                 assert(0);
