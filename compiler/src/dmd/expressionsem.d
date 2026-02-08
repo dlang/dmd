@@ -6305,6 +6305,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!v.type)
                 {
                     error(exp.loc, "forward reference of %s `%s`", v.kind(), v.toChars());
+                    printResolutionTrace();
                     return setError();
                 }
                 if ((v.storage_class & STC.manifest) && v._init)
