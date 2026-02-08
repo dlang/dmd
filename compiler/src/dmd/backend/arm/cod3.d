@@ -128,6 +128,114 @@ void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, 
     cdb.gen(&cs);
 }
 
+/*****************************
+ * Given a type, return a mask of
+ * registers to hold that type.
+ * Params:
+ *      tym = type
+ *      tyf = function type
+ * Returns:
+ *      mask of registers
+ */
+
+@trusted
+regm_t regmask(tym_t tym, tym_t tyf)
+{
+    assert(cgstate.AArch64);
+
+    switch (tybasic(tym))
+    {
+        case TYvoid:
+        case TYnoreturn:
+        case TYstruct:
+        case TYarray:
+            return 0;
+
+        case TYbool:
+        case TYwchar_t:
+        case TYchar16:
+        case TYchar:
+        case TYschar:
+        case TYuchar:
+        case TYshort:
+        case TYushort:
+        case TYint:
+        case TYuint:
+        case TYnullptr:
+        case TYnptr:
+        case TYnref:
+        case TYsptr:
+        case TYcptr:
+        case TYimmutPtr:
+        case TYsharePtr:
+        case TYrestrictPtr:
+        case TYfgPtr:
+        case TYlong:
+        case TYulong:
+        case TYdchar:
+        case TYllong:
+        case TYullong:
+            return 1; // r0
+
+        case TYfloat:
+        case TYifloat:
+            return mask(32); // v0
+
+        case TYfptr:
+        case TYhptr:
+        case TYvptr:
+            assert(0);
+
+        case TYcent:
+        case TYucent:
+            return mask(1) | mask(0); // r1,r0
+
+        case TYdouble:
+        case TYdouble_alias:
+        case TYidouble:
+        case TYldouble:
+        case TYildouble:
+            return mask(32); // v0
+
+        case TYcfloat:
+        case TYcdouble:
+        case TYcldouble:
+            return mask(33) | mask(32); // v33,v32
+
+        // SIMD vector types
+        case TYfloat4:
+        case TYdouble2:
+        case TYschar16:
+        case TYuchar16:
+        case TYshort8:
+        case TYushort8:
+        case TYlong4:
+        case TYulong4:
+        case TYllong2:
+        case TYullong2:
+
+        case TYfloat8:
+        case TYdouble4:
+        case TYschar32:
+        case TYuchar32:
+        case TYshort16:
+        case TYushort16:
+        case TYlong8:
+        case TYulong8:
+        case TYllong4:
+        case TYullong4:
+            if (!config.fpxmmregs)
+            {   printf("SIMD operations not supported on this platform\n");
+                exit(1);
+            }
+            goto default;
+
+        default:
+            debug printf("%s\n", tym_str(tym));
+            assert(0);
+    }
+}
+
 
 // https://www.scs.stanford.edu/~zyedidia/arm64/b_cond.html
 // https://www.scs.stanford.edu/~zyedidia/arm64/bc_cond.html
@@ -1293,17 +1401,20 @@ L3:
 @trusted
 void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t ty = TYMAX)
 {
-    if (to & INSTR.FLOATREGS)
+    if (to != from)
     {
-        // floating point
-        uint ftype = INSTR.szToFtype(ty == TYMAX ? 8 : _tysize[ty]);
-        cdb.gen1(INSTR.fmov(ftype, from & 31, to & 31));
-    }
-    else
-    {
-        // integer
-        uint sf = ty == TYMAX || _tysize[ty] == 8;
-        cdb.gen1(INSTR.mov_register(sf, from, to));    // MOV to,from
+        if (mask(to) & INSTR.FLOATREGS)
+        {
+            // floating point
+            uint ftype = INSTR.szToFtype(ty == TYMAX ? 8 : _tysize[ty]);
+            cdb.gen1(INSTR.fmov(ftype, from & 31, to & 31));
+        }
+        else
+        {
+            // integer
+            uint sf = ty == TYMAX || _tysize[ty] == 8;
+            cdb.gen1(INSTR.mov_register(sf, from, to));    // MOV to,from
+        }
     }
 }
 

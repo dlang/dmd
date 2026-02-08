@@ -2477,7 +2477,25 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 
         if (tyfloating(tym))
         {
-            assert(!tycomplex(tym));  // TODO AArch64
+            forregs = outretregs & INSTR.FLOATREGS;
+            if (tycomplex(tym))
+            {
+                const vreg_im = allocreg(cdb, forregs, tym);     // allocate floating point register
+                const vreg_re = findreg(forregs & INSTR.LSW);
+                double value_re = e.Vcfloat.re;
+                double value_im = e.Vcfloat.im;
+                if (sz == 16)
+                {
+                    value_re = e.Vcdouble.re;
+                    value_im = e.Vcdouble.im;
+                }
+                else if (sz == 32)
+                    assert(0);          // TODO AArch64 for Linux
+                loadFloatRegConst(cdb,vreg_re,value_re,sz / 2);
+                loadFloatRegConst(cdb,vreg_im,value_im,sz / 2);
+                fixresult(cdb, e, forregs, outretregs);
+                return;
+            }
             const vreg = allocreg(cdb, forregs, tym);     // allocate floating point register
             double value = e.Vfloat;
             if (sz == 8)
