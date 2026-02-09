@@ -86,6 +86,8 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
             return dve.var;
         if (auto dte = e.isDotTemplateExp())
             return dte.td;
+        if (auto de = e.isDsymbolExp())
+            return de.s;
     }
     return getDsymbol(oarg);
 }
@@ -1058,6 +1060,38 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             {
                 ex = typeDotIdExp(e.loc, decl.type, id);
                 goto doSemantic;
+            }
+        }
+
+        /* Lightweight path for getMember on aggregate types: when the
+         * member is a function that would trigger eager body compilation
+         * (functionSemantic3) during expressionSemantic, resolve via
+         * sym.search() and return a DsymbolExp with the type pre-set.
+         * This avoids the functionSemantic → functionSemantic3 cascade
+         * that causes circular dependency errors when iterating
+         * allMembers on types with auto-return methods.
+         *
+         * Covers functions with inferRetType (auto return) and
+         * instantiated functions (from template structs) that get eager
+         * body compilation via the isInstantiated() path in
+         * functionSemantic (funcsem.d).
+         *
+         * DsymbolExp is used (not VarExp) to avoid typeof's
+         * checkForwardRef → functionSemantic cascade (typesem.d).
+         */
+        if (sym && e.ident == Id.getMember && sym.isAggregateDeclaration())
+        {
+            if (auto sm = sym.search(e.loc, id))
+            {
+                if (auto fd = sm.isFuncDeclaration())
+                {
+                    if (fd.type && (fd.inferRetType || fd.isInstantiated()))
+                    {
+                        auto dse = new DsymbolExp(e.loc, fd);
+                        dse.type = fd.type;
+                        return dse;
+                    }
+                }
             }
         }
 

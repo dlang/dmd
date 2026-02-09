@@ -5397,6 +5397,19 @@ bool TemplateInstance_semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int fl
                      * const substitution in TemplateValueParameter.matchArg().
                      */
                 }
+                else if (auto dse = ea.isDsymbolExp())
+                {
+                    /* A DsymbolExp wrapping a function is a symbol reference,
+                     * not a value to be CTFE-interpreted. Store directly as a
+                     * dsymbol without calling functionSemantic — the caller
+                     * only needs the symbol identity (e.g. for getAttributes).
+                     */
+                    if (dse.s.isFuncDeclaration() || dse.s.isOverDeclaration())
+                    {
+                        (*tiargs)[j] = dse.s;
+                        continue;
+                    }
+                }
                 else if (definitelyValueParameter(ea))
                 {
                     if (ea.checkValue()) // check void expression
