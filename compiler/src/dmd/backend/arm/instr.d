@@ -946,8 +946,27 @@ struct INSTR
      */
     static uint fmov_float_imm(uint ftype, uint imm8, reg_t Vd) { return (0x1E << 24) | (ftype << 22) | (1 << 21) | (imm8 << 13) | (4 << 10) | (Vd & 31); }
 
-    /* Floating-point condistional compare
+    /* Floating-point conditional compare https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatccmp
      */
+    static uint floatccmp(uint ftype, reg_t Vm, uint cond, reg_t Vn, uint op, uint nzcv)
+    {
+        assert(Vm >= 32 && Vn >= 32);
+        return (0x1E << 24) | (ftype << 22) | (1 << 21) | ((Vm & 31) << 16) | (cond << 12) | (1 << 10) | ((Vn & 31) << 5) | (op << 4) | nzcv;
+    }
+
+    /* FCCMP Vn,Vm,#nzcv,cond  https://www.scs.stanford.edu/~zyedidia/arm64/fccmp_float.html
+     */
+    static uint fccmp_float(uint ftype, reg_t Vm, uint cond, reg_t Vn, uint nzcv)
+    {
+        return floatccmp(ftype, Vm, cond, Vn, 0, nzcv);
+    }
+
+    /* FCCMPE Vn,Vm,#nzcv,cond  https://www.scs.stanford.edu/~zyedidia/arm64/fccmpe_float.html
+     */
+    static uint fccmpe_float(uint ftype, reg_t Vm, uint cond, reg_t Vn, uint nzcv)
+    {
+        return floatccmp(ftype, Vm, cond, Vn, 1, nzcv);
+    }
 
     /* Floating-point data-processing (2 source) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
      */
