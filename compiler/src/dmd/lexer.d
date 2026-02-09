@@ -62,7 +62,11 @@ struct CompileEnv
  */
 class Lexer
 {
-    private __gshared OutBuffer stringbuffer;
+    private __gshared
+    {
+        OutBuffer stringbuffer;
+        OutBuffer stringbufferforidentifiers; // functions that use stringbuffer can call scan that needs this.
+    }
 
     BaseLoc* baseLoc;       // Used to generate `scanloc`, which is just an index into this data structure
     Loc scanloc;            // for error messages
@@ -1496,8 +1500,8 @@ class Lexer
         else
         {
             // Slow path for identifiers with UCNs and UTF8 characters
-            stringbuffer.setsize(0);
-            stringbuffer.writestring(t.ptr[0 .. p - t.ptr]);
+            stringbufferforidentifiers.setsize(0);
+            stringbufferforidentifiers.writestring(t.ptr[0 .. p - t.ptr]);
 
         IdentLoop:
             while (1)
@@ -1509,7 +1513,7 @@ class Lexer
                 if (isidchar(*p))
                 {
                     const c = *p++;
-                    stringbuffer.writeByte(c);
+                    stringbufferforidentifiers.writeByte(c);
                     continue;
                 }
                 else if (*p & 0x80)
@@ -1571,10 +1575,10 @@ class Lexer
                     error(t.loc, "character 0x%04x is not allowed as a start character in an identifier", u);
                 else if (!charLookup.isContinue(u))
                     error(t.loc, "character 0x%04x is not allowed as a continue character in an identifier", u);
-                stringbuffer.writeUTF8(u);
+                stringbufferforidentifiers.writeUTF8(u);
             }
 
-            id = Identifier.idPool(stringbuffer[], false);
+            id = Identifier.idPool(stringbufferforidentifiers[], false);
         }
 
         t.ident = id;
