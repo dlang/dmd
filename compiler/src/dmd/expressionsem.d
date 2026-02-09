@@ -8900,13 +8900,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         {
-            Scope* sc2 = sc.copy(); // keep sc.flags
-            sc2.tinst = null;
-            sc2.minst = null;
-            sc2.fullinst = true;
-            sc2.traitsCompiles = true;
-            Type t = dmd.typesem.trySemantic(e.targ, e.loc, sc2);
-            sc2.pop();
+            // Fast path: is(__traits(getMember, T, "name") ...)
+            // Resolve member type via sym.search() without triggering
+            // functionSemantic cascade that causes circular dependency errors.
+            Type t;
+            if (auto tt = e.targ.isTypeTraits())
+            {
+                import dmd.typesem : getMemberTypeFastPath;
+                t = getMemberTypeFastPath(tt.exp, sc);
+            }
+            if (!t)
+            {
+                Scope* sc2 = sc.copy(); // keep sc.flags
+                sc2.tinst = null;
+                sc2.minst = null;
+                sc2.fullinst = true;
+                sc2.traitsCompiles = true;
+                t = dmd.typesem.trySemantic(e.targ, e.loc, sc2);
+                sc2.pop();
+            }
             if (!t) // errors, so condition is false
                 return no();
             e.targ = t;

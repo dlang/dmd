@@ -5479,6 +5479,65 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
  *      e = if exp should remain an Expression, set e to that Expression else null
  *
  */
+/**
+ * Fast path for `__traits(getMember, T, "name")` in a type context.
+ *
+ * Resolves the member via `sym.search()` and returns its type without
+ * triggering `expressionSemantic` / `functionSemantic`, avoiding the eager
+ * body compilation that can cause circular dependency errors.
+ * Returns `null` if the pattern doesn't match or lightweight resolution fails,
+ * so the caller falls back to the full `semanticTraits` path.
+ */
+package Type getMemberTypeFastPath(TraitsExp exp, Scope* sc)
+{
+    if (exp.ident != Id.getMember)
+        return null;
+    if (!exp.args || exp.args.length != 2)
+        return null;
+
+    // Resolve getMember's arguments (T and "name") — cheap, no body compilation.
+    import dmd.templatesem : TemplateInstance_semanticTiargs;
+    if (!TemplateInstance_semanticTiargs(exp.loc, sc, exp.args, 3))
+        return null;
+
+    // Extract the member name string.
+    auto ex = isExpression((*exp.args)[1]);
+    if (!ex)
+        return null;
+    ex = ex.ctfeInterpret();
+    auto se = ex.toStringExp();
+    if (!se || se.len == 0)
+        return null;
+    se = se.toUTF8(sc);
+    if (se.sz != 1)
+        return null;
+    auto id = Identifier.idPool(se.peekString());
+
+    // Get the Dsymbol for the type/aggregate.
+    Dsymbol sym = getDsymbol((*exp.args)[0]);
+    if (!sym)
+        return null;
+
+    // Lightweight member lookup (same mechanism hasMember uses).
+    auto sm = sym.search(exp.loc, id);
+    if (!sm)
+        return null;
+
+    // Return the member's type if already resolved.
+    if (auto fd = sm.isFuncDeclaration())
+    {
+        if (fd.type && fd.type.isTypeFunction())
+            return fd.type;
+    }
+    if (auto vd = sm.isVarDeclaration())
+    {
+        if (vd.type)
+            return vd.type;
+    }
+
+    return null;
+}
+
 private void resolveExp(Expression exp, out Type t, out Expression e, out Dsymbol s)
 {
     if (exp.isTypeExp())
