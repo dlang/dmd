@@ -18970,7 +18970,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
         auto tiargs = new Objects(taa.index, taa.next);
         func = new DotTemplateInstanceExp(loc, func, hook, tiargs);
 
-        auto arguments = new Expressions(eaa, ekeys[i-1], new IdentifierExp(loc, idfound));
+        auto arguments = new Expressions(eaa, ekeys[i-1], new VarExp(loc, varfound));
         eaa = new CallExp(loc, func, arguments);
         if (i > 1)
         {
@@ -19027,7 +19027,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
                 ex = new CastExp(ex.loc, ex, Type.tvoid);
                 ey = new CastExp(ey.loc, ey, Type.tvoid);
             }
-            Expression condfound = new IdentifierExp(loc, idfound);
+            Expression condfound = new VarExp(loc, varfound);
             ex = new CondExp(loc, condfound, ex, ey);
             ex = Expression.combine(e0, ex);
             ex.isCommaExp().originalExp = exp;
