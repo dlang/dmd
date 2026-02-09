@@ -1741,7 +1741,11 @@ L3:
         // TODO AArch64 needs work on floating point and complex floats
         if (AArch64)
         {
-            if (size <= REGSIZE /*|| retregs & INSTR.FLOATREGS*/)
+            if (tycomplex(tym))
+            {
+                goto Lpair;
+            }
+            else if (size <= REGSIZE /*|| retregs & INSTR.FLOATREGS*/)
             {
                 // If only one index register, prefer to not use LSW registers
 //                if (!cgstate.regcon.indexregs && r & ~INSTR.LSW)
@@ -1766,6 +1770,7 @@ L3:
             }
             else if (size <= 2 * REGSIZE)
             {
+              Lpair:
                 /* Select pair with both regs free. Failing */
                 /* that, select pair with one reg free.             */
 
@@ -1905,8 +1910,10 @@ L3:
 
         if (retregs & cgstate.regcon.mvar)              // if conflict with reg vars
         {
+            bool pair = AArch64 ? (tycomplex(tym) || size > REGSIZE)
+                                : size > REGSIZE;
             regm_t PAIR = AArch64 ? 1|2 : mAX | mDX;
-            if (!(size > REGSIZE && outretregs == PAIR))
+            if (!(pair && outretregs == PAIR))
             {
                 retregs = (outretregs &= ~(retregs & cgstate.regcon.mvar));
                 goto L1;                // try other registers
