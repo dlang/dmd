@@ -91,6 +91,60 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
 }
 
 /**
+ * Fast path for `__traits(getAttributes, __traits(getMember, T, "name"))`.
+ *
+ * Resolves the member via `sym.search()` without triggering `functionSemantic`,
+ * avoiding the eager body compilation that can cause forward reference errors
+ * in introspection-heavy code. Falls back to `null` if the pattern doesn't
+ * match or the lightweight resolution fails.
+ */
+private Expression getAttributesOfMemberFastPath(TraitsExp e, Scope* sc)
+{
+    auto inner = isExpression((*e.args)[0]);
+    if (!inner)
+        return null;
+    auto te = inner.isTraitsExp();
+    if (!te || te.ident != Id.getMember)
+        return null;
+    if (!te.args || te.args.length != 2)
+        return null;
+
+    // Resolve getMember's own arguments (T and "name") — this is cheap,
+    // just type resolution and string evaluation, no body compilation.
+    if (!TemplateInstance_semanticTiargs(te.loc, sc, te.args, 3))
+        return null;
+
+    // Extract the member name string.
+    auto ex = isExpression((*te.args)[1]);
+    if (!ex)
+        return null;
+    ex = ex.ctfeInterpret();
+    auto se = ex.toStringExp();
+    if (!se || se.len == 0)
+        return null;
+    se = se.toUTF8(sc);
+    if (se.sz != 1)
+        return null;
+    auto id = Identifier.idPool(se.peekString());
+
+    // Get the Dsymbol for the type/aggregate.
+    Dsymbol sym = getDsymbol((*te.args)[0]);
+    if (!sym)
+        return null;
+
+    // Lightweight member lookup (same mechanism hasMember uses).
+    auto sm = sym.search(e.loc, id);
+    if (!sm)
+        return null;
+
+    // Read UDAs directly from the Dsymbol — no expressionSemantic needed.
+    auto udad = sm.userAttribDecl;
+    auto exps = udad ? udad.getAttributes() : new Expressions();
+    auto tup = new TupleExp(e.loc, exps);
+    return tup.expressionSemantic(sc);
+}
+
+/**
  * Fill an array of target size_t values that indicate possible pointer words in memory
  *  if interpreted as the type given as argument.
  *  One bit in the array per pointer-sized piece of memory
@@ -1298,6 +1352,15 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.getAttributes)
     {
+        // Fast path: __traits(getAttributes, __traits(getMember, T, "name"))
+        // Resolves the member via sym.search() without triggering functionSemantic,
+        // avoiding eager body compilation that can cause forward reference errors.
+        if (dim == 1)
+        {
+            if (auto result = getAttributesOfMemberFastPath(e, sc))
+                return result;
+        }
+
         /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
          * a symbol should not be folded to a constant.
          * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
