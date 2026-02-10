@@ -18836,8 +18836,8 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
     {
         // __aaget = _d_aaGetRvalueX(aa, key), __aaget ? __aaget : onRangeError(__FILE__, __LINE__)
         auto ei = new ExpInitializer(loc, e0);
-        auto vartmp = Identifier.generateId("__aaget");
-        auto vardecl = new VarDeclaration(loc, null, vartmp, ei, STC.exptemp);
+        auto id = Identifier.generateId("__aaget");
+        auto vardecl = new VarDeclaration(loc, null, id, ei, STC.exptemp);
         auto declexp = new DeclarationExp(loc, vardecl);
 
         //Expression idrange = new IdentifierExp(loc, Identifier.idPool("_d_arraybounds"));
@@ -18847,9 +18847,9 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
         auto locargs = new Expressions(new FileInitExp(loc, EXP.file), new LineInitExp(loc));
         auto ex = new CallExp(loc, idrange, locargs);
 
-        auto idvar1 = new IdentifierExp(loc, vartmp);
-        auto idvar2 = new IdentifierExp(loc, vartmp);
-        auto cond = new CondExp(loc, idvar1, idvar2, ex);
+        auto ve1 = new VarExp(loc, vardecl);
+        auto ve2 = new VarExp(loc, vardecl);
+        auto cond = new CondExp(loc, ve1, ve2, ex);
         auto comma = new CommaExp(loc, declexp, cond);
         return comma;
     }
