@@ -294,7 +294,7 @@ template hasElaborateDestructor(S)
     }
     else static if (is(S == struct))
     {
-        enum hasElaborateDestructor = __traits(compiles, (S s) => s.__xdtor);
+        enum hasElaborateDestructor = __traits(compiles, (S s) => (cast() s).__xdtor);
     }
     else
     {
@@ -315,6 +315,7 @@ template hasElaborateDestructor(S)
     static assert( hasElaborateDestructor!(HasDestructor[42]));
     static assert(!hasElaborateDestructor!(HasDestructor[0]));
     static assert(!hasElaborateDestructor!(HasDestructor[]));
+    static assert( hasElaborateDestructor!(immutable HasDestructor));
 
     static struct HasDestructor2 { HasDestructor s; }
     static assert( hasElaborateDestructor!HasDestructor2);
