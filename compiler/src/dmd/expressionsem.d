@@ -18832,7 +18832,7 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
     auto call = new CallExp(loc, func, arguments);
     e0 = Expression.combine(e0, call);
 
-    if (arrayBoundsCheck(sc.func))
+    if (sc.func && arrayBoundsCheck(sc.func))
     {
         // __aaget = _d_aaGetRvalueX(aa, key), __aaget ? __aaget : onRangeError(__FILE__, __LINE__)
         auto ei = new ExpInitializer(loc, e0);
