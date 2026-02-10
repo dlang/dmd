@@ -814,6 +814,42 @@ regm_t regmask(tym_t tym, tym_t tyf)
     }
 }
 
+/**********************************
+ * Determine if type is represented by a register pair.
+ * Params:
+ *      AArch64 = true if AArch64 target
+ *      ty = ty to check
+ *      retregs = register mask that ty is for
+ * Returns:
+ *      true if ty needs a register pair
+ */
+@trusted
+bool isRegisterPair(bool AArch64, tym_t tym, regm_t retregs)
+{
+    tym = tybasic(tym);
+    uint size = _tysize[tym];
+    if (AArch64)
+    {
+        if (tycomplex(tym))
+            return true;
+        else if (size <= REGSIZE || tyfloating(tym))
+            return false;
+        else if (size <= 2 * REGSIZE)
+            return true;
+        else
+            assert(0);
+    }
+    else /* X86_64 */
+    {
+        if (size <= REGSIZE || (retregs & XMMREGS)) // not sure we need XMMREGS check
+            return false;
+        else if (size <= 2 * REGSIZE)
+            return true;
+        else
+            assert(0);
+    }
+}
+
 /*******************************
  * setup register allocator parameters with platform specific data
  */
