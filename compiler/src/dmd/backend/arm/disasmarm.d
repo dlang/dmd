@@ -2209,6 +2209,7 @@ void disassemble(uint c) @trusted
             p3 = (Rm == 0 && (opcode2 & 8)) ? "#0.0" : fregString(rbuf[4..8],"sd h"[ftype],Rm);
         }
     }
+    else
 
     // Floating-point immediate http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatimm
     if (field(ins,31,24) == 0x1E && field(ins,21,21) == 1 && field(ins,12,10) == 4)
@@ -2226,7 +2227,33 @@ void disassemble(uint c) @trusted
     }
     else
 
-    // Floating-point conditional compare
+    // Floating-point conditional compare https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatccmp
+    if (field(ins, 30, 30) == 0 && field(ins, 28, 24) == 0x1E && field(ins,21,21) == 1 && field(ins, 11, 10) == 1)
+    {
+        url = "floatccmp";
+
+        uint M       = field(ins,31,31);
+        uint S       = field(ins,29,29);
+        uint ftype   = field(ins,23,22);
+        uint Rm      = field(ins,20,16);
+        uint cond    = field(ins,15,12);
+        uint Rn      = field(ins, 9, 5);
+        uint op      = field(ins, 4, 4);
+        uint nzcv    = field(ins, 3, 0);
+
+        if (M == 0 && S == 0)
+        {
+            // fccmp d5,d5,#0,vs
+            url = op ? "fccmpe_float" : "fccmp_float";
+            p1 = op ? "fccmpe" : "fccmp";
+            p2 = fregString(rbuf[0..4],"sd h"[ftype],Rn);
+            p3 = fregString(rbuf[0..4],"sd h"[ftype],Rm);
+            uint n = snprintf(buf.ptr, cast(uint)buf.length,"#0x%x", nzcv);
+            p4 = buf[0 .. n];
+            p5 = condstring[cond];
+        }
+    }
+    else
 
     // Floating-point data-processing (2 source) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
     if (field(ins, 30, 30) == 0 && field(ins, 28, 24) == 0x1E && field(ins,21,21) == 1 &&  field(ins, 11, 10) == 2)
@@ -3216,8 +3243,10 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[96] cases64 =      // 64 bit code gen
+    string[98] cases64 =      // 64 bit code gen
     [
+        "1E 65 64 A0         fccmp  d5,d5,#0x0,vs",
+        "1E 65 64 B0         fccmpe d5,d5,#0x0,vs",
         "79 C0 47 AB         ldrsh  w11,[x29,#0x22]",
         "F8 1F 03 A8         stur   x8,[x29,#-0x10]",
         "B8 00 04 62         str    w2,[x3],#0",
