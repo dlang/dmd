@@ -7071,7 +7071,6 @@ private Expression interpret_aaGetY(UnionExp* pue, InterState* istate, Expressio
     if (!result)
     {
         aalit.keys.push(ekey);
-        result = copyLiteral(aa.type.nextOf().defaultInitLiteral(aa.loc)).copy();
         idx = aalit.values.length;
         aalit.values.push(result);
     }
