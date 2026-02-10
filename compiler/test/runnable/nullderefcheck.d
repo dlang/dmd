@@ -26,27 +26,13 @@ void main()
 
 void wrap(alias test)(int expectedLine)
 {
-    gotFile = null;
-    gotLine = 0;
     try
     {
         test();
+        assert(0);
     }
-    catch (Error)
+    catch (Error e)
     {
+        assert(e.line == expectedLine);
     }
-    assert(gotFile == __FILE__);
-    assert(gotLine == expectedLine);
-}
-
-string gotFile;
-uint gotLine;
-
-extern (C) void _d_nullpointerp(immutable(char*) file, uint line)
-{
-    import core.stdc.string : strlen;
-
-    gotFile = file[0 .. strlen(file)];
-    gotLine = line;
-    throw new Error("");
 }
