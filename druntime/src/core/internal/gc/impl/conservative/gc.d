@@ -3525,8 +3525,8 @@ Lmark:
                         cstdlib.free(Gcx.instance.scanThreadData);
                         Gcx.instance.numScanThreads = 0;
                         Gcx.instance.scanThreadData = null;
-                        Gcx.instance.busyThreads = 0;
-                        Gcx.instance.stackLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
+                        atomicStore(Gcx.instance.busyThreads, 0);
+                        (cast() Gcx.instance.stackLock) = AlignedSpinLock(SpinLock.Contention.brief);
 
                         memset(&Gcx.instance.evStackFilled, 0, Gcx.instance.evStackFilled.sizeof);
                         memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
