@@ -141,6 +141,10 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 
 $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types))
 
+    $(P A *derived data type* is a $(GLINK Type) which either has a $(GLINK TypeSuffix),
+    or it is a $(DDSUBLINK spec/template, homogeneous_sequences, type sequence).
+    These include:)
+
     $(UL
     $(LI Pointers)
     $(LI $(DDSUBLINK spec/arrays, static-arrays, Static Arrays))
@@ -148,7 +152,6 @@ $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types)
     $(LI $(DDLINK spec/hash-map, Associative Array, Associative Arrays))
     $(LI $(RELATIVE_LINK2 functions, Function Types))
     $(LI $(RELATIVE_LINK2 delegates, Delegate Types))
-    $(LI $(DDSUBLINK spec/template, homogeneous_sequences, Type Sequences))
     )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -164,6 +167,13 @@ import std.meta : AliasSeq;
 AliasSeq!(int, string) tsi; // type sequence instance
 ---
 )
+
+    $(P A derived data type is composed from at least one *subtype*. A subtype
+    is a type in its own right. For example, a dynamic array `int[][]` has an element
+    type of `int[]`, which is also its subtype. `int[]` in turn has a subtype of `int`.)
+
+    $(NOTE A derived data type is distinct from a
+    $(DDLINK spec/class, Classes, derived class type).)
 
 $(H3 $(LNAME2 pointers, Pointers))
 
