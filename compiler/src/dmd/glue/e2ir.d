@@ -711,6 +711,20 @@ elem* toElem(Expression e, ref IRState irs)
             }
         }
 
+        /* Check for @__ctfe functions - they cannot be referenced at runtime
+         */
+        if (FuncDeclaration fd = se.var.isFuncDeclaration())
+        {
+            if (auto tf = fd.type.isTypeFunction())
+            {
+                if (tf.isCtfeOnly)
+                {
+                    irs.eSink.error(se.loc, "function `%s` is `@__ctfe` and cannot be used at runtime", fd.toPrettyChars());
+                    return el_long(TYsize_t, 0);
+                }
+            }
+        }
+
         Symbol* s = toSymbol(se.var);
 
         // VarExp generated for `__traits(initSymbol, Aggregate)`?
