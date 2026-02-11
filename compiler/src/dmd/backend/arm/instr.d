@@ -93,10 +93,26 @@ struct INSTR
                                                       3;    // half-precision
                                    }
 
-    /* Convert size of floating point type to size,opc
+    /* Convert size of floating point type to size,opc for LDR instructions
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
+     */
+    static void szToSizeOpcLdr(uint sz, out uint size, out uint opc)
+    {
+        switch (sz)
+        {
+            case 1:  size = 0; opc = 1; break;  // Bt byte
+            case 2:  size = 1; opc = 1; break;  // Ht half
+            case 4:  size = 2; opc = 1; break;  // St single
+            case 8:  size = 3; opc = 1; break;  // Dt double
+            case 16: size = 0; opc = 3; break;  // Qt quad
+            default: debug printf("sz: %u\n", sz); assert(0);
+        }
+    }
+
+    /* Convert size of floating point type to size,opc for STR instructions
      * https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
      */
-    static void szToSizeOpc(uint sz, ref uint size, ref uint opc)
+    static void szToSizeOpcStr(uint sz, out uint size, out uint opc)
     {
         switch (sz)
         {

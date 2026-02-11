@@ -85,7 +85,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
             assert(cs.index == NOREG);
             uint imm12 = 0; // cast(uint)cs.IEV1.Voffset added in by assignaddrc()
             uint size, opc;
-            INSTR.szToSizeOpc(szw, size, opc);
+            INSTR.szToSizeOpcLdr(szw, size, opc);
             if (szr & (szr - 1)) // if misaligned
             {
                 cs.Iop = INSTR.ldur_imm_fpsimd(size,opc,imm12,cs.base,reg);
@@ -224,7 +224,7 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
             assert(cs.index == NOREG);
             uint imm12 = 0; // addaddrc() will add in cast(uint)cs.IEV1.Voffset;
             uint size, opc;
-            INSTR.szToSizeOpc(sz, size, opc);
+            INSTR.szToSizeOpcStr(sz, size, opc);
             imm12 /= sz;
             cs.Iop = INSTR.str_imm_fpsimd(size,opc,imm12,cs.base,reg);
         }

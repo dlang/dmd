@@ -4623,7 +4623,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                         {
                             // STR preg,[bp,#offset]
                             uint size, opc;
-                            INSTR.szToSizeOpc(sz, size, opc);
+                            INSTR.szToSizeOpcStr(sz, size, opc);
                             imm /= sz;
                             cdb.gen1(INSTR.str_imm_fpsimd(size,opc,imm,29,preg)); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
                         }
@@ -4659,7 +4659,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                         if (mask(preg) & INSTR.FLOATREGS)
                         {
                             uint size, opc;
-                            INSTR.szToSizeOpc(sz, size, opc);
+                            INSTR.szToSizeOpcStr(sz, size, opc);
                             imm /= sz;
                             cdb.gen1(INSTR.str_imm_fpsimd(size,opc,imm,31,preg)); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
                         }
