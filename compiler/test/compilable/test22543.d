@@ -5,3 +5,7 @@ enum int[string] aa = [
 ];
 
 int i = aa["a"];
+
+void foo() {
+    static int j = aa["a"];
+}
