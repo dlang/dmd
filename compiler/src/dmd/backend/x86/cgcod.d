@@ -1673,6 +1673,7 @@ static if (0)
             outretregs &= mES | cgstate.allregs | XMMREGS | INSTR.FLOATREGS;
         regm_t retregs = outretregs;
         regm_t[] lastRetregs = cgstate.lastRetregs[];
+        bool isPair = isRegisterPair(AArch64, tym, retregs);
 
         debug if (retregs == 0)
             printf("allocreg: file %s(%d)\n", file, line);
@@ -1680,38 +1681,16 @@ static if (0)
         if ((retregs & cgstate.regcon.mvar) == retregs) // if exactly in reg vars
         {
             reg_t outreg;
-            if (AArch64)
+            if (isPair)
             {
-                if (tycomplex(tym))
-                {
-                    outreg = findreg(retregs & INSTR.MSW);
-                    assert(retregs & INSTR.LSW);
-                }
-                else if (size <= REGSIZE || (retregs & INSTR.FLOATREGS))
-                {
-                    outreg = findreg(retregs);
-                    assert(retregs == mask(outreg));
-                }
-                else if (size <= 2 * REGSIZE)
-                {
-                    outreg = findreg(retregs & INSTR.MSW);
-                    assert(retregs & INSTR.LSW);
-                }
-                else
-                    assert(0);
+                outreg = findreg(retregs & (AArch64 ? INSTR.MSW : mMSW));
+                assert(retregs & (AArch64 ? INSTR.LSW : mLSW));
             }
-            else if (size <= REGSIZE || (retregs & XMMREGS))
+            else
             {
                 outreg = findreg(retregs);
                 assert(retregs == mask(outreg)); /* no more bits are set */
             }
-            else if (size <= 2 * REGSIZE)
-            {
-                outreg = findregmsw(retregs);
-                assert(retregs & mLSW);
-            }
-            else
-                assert(0);
             getregs(cdb,retregs);
             return outreg;
         }
@@ -1738,39 +1717,17 @@ L3:
             }
         }
 
+        static if (0)
+        {
+            printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s outretregs %s, reg %d, tym x%x\n",
+                tym_str(tym),file,line,regm_str(cgstate.regcon.mvar),regm_str(cgstate.msavereg),regm_str(outretregs),reg,tym);
+        }
+
         // TODO AArch64 needs work on floating point and complex floats
         if (AArch64)
         {
-            if (tycomplex(tym))
+            if (isPair)
             {
-                goto Lpair;
-            }
-            else if (size <= REGSIZE /*|| retregs & INSTR.FLOATREGS*/)
-            {
-                // If only one index register, prefer to not use LSW registers
-//                if (!cgstate.regcon.indexregs && r & ~INSTR.LSW)
-//                    r &= ~INSTR.LSW;
-
-                if (cgstate.pass == BackendPass.final_ && r & ~lastRetregs[0])
-                {   // Try not to always allocate the same register,
-                    // to schedule better
-
-                    foreach (lastr; lastRetregs)
-                    {
-                        if (regm_t rx = r & ~lastr)
-                            r = rx;
-                        else
-                            break;
-                    }
-                    if (r & ~cgstate.mfuncreg)
-                        r &= ~cgstate.mfuncreg;
-                }
-                reg = findreg(r);
-                retregs = mask(reg);
-            }
-            else if (size <= 2 * REGSIZE)
-            {
-              Lpair:
                 /* Select pair with both regs free. Failing */
                 /* that, select pair with one reg free.             */
 
@@ -1807,26 +1764,11 @@ L3:
             }
             else
             {
-                debug
-                {
-                    printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s outretregs %s, reg %d, tym x%x\n",
-                        tym_str(tym),file,line,regm_str(cgstate.regcon.mvar),regm_str(cgstate.msavereg),regm_str(outretregs),reg,tym);
-                }
-                assert(0);
-            }
-        }
-        else // X86_64
-        {
-            if (size <= REGSIZE || retregs & XMMREGS)
-            {
-                if (r & ~mBP)
-                    r &= ~mBP;
-
                 // If only one index register, prefer to not use LSW registers
-                if (!cgstate.regcon.indexregs && r & ~mLSW)
-                    r &= ~mLSW;
+//                if (!cgstate.regcon.indexregs && r & ~INSTR.LSW)
+//                    r &= ~INSTR.LSW;
 
-                if (cgstate.pass == BackendPass.final_ && r & ~lastRetregs[0] && !I16)
+                if (cgstate.pass == BackendPass.final_ && r & ~lastRetregs[0])
                 {   // Try not to always allocate the same register,
                     // to schedule better
 
@@ -1843,7 +1785,10 @@ L3:
                 reg = findreg(r);
                 retregs = mask(reg);
             }
-            else if (size <= 2 * REGSIZE)
+        }
+        else // X86_64
+        {
+            if (isPair)
             {
                 /* Select pair with both regs free. Failing */
                 /* that, select pair with one reg free.             */
@@ -1888,24 +1833,43 @@ L3:
                 reg = (msreg == ES) ? lsreg : msreg;
                 retregs = mask(msreg) | mask(lsreg);
             }
-            else if (I16 && (tym == TYdouble || tym == TYdouble_alias))
-            {
-                debug
-                if (retregs != DOUBLEREGS)
-                    printf("retregs = %s, outretregs = %s\n", regm_str(retregs), regm_str(outretregs));
-
-                assert(retregs == DOUBLEREGS);
-                reg = AX;
-            }
             else
             {
-                debug
-                {
-                    printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s outretregs %s, reg %d, tym x%x\n",
-                        tym_str(tym),file,line,regm_str(cgstate.regcon.mvar),regm_str(cgstate.msavereg),regm_str(outretregs),reg,tym);
+                if (r & ~mBP)
+                    r &= ~mBP;
+
+                // If only one index register, prefer to not use LSW registers
+                if (!cgstate.regcon.indexregs && r & ~mLSW)
+                    r &= ~mLSW;
+
+                if (cgstate.pass == BackendPass.final_ && r & ~lastRetregs[0] && !I16)
+                {   // Try not to always allocate the same register,
+                    // to schedule better
+
+                    foreach (lastr; lastRetregs)
+                    {
+                        if (regm_t rx = r & ~lastr)
+                            r = rx;
+                        else
+                            break;
+                    }
+                    if (r & ~cgstate.mfuncreg)
+                        r &= ~cgstate.mfuncreg;
                 }
-                assert(0);
+                reg = findreg(r);
+                retregs = mask(reg);
             }
+        }
+
+        static if (0) // no longer needed
+        if (I16 && (tym == TYdouble || tym == TYdouble_alias))
+        {
+            debug
+            if (retregs != DOUBLEREGS)
+                printf("retregs = %s, outretregs = %s\n", regm_str(retregs), regm_str(outretregs));
+
+            assert(retregs == DOUBLEREGS);
+            reg = AX;
         }
 
         if (retregs & cgstate.regcon.mvar)              // if conflict with reg vars
