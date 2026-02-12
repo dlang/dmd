@@ -86,7 +86,7 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
         uint imm12 = idx;
         uint sz = 8;
         uint size, opc;
-        INSTR.szToSizeOpc(sz, size, opc);
+        INSTR.szToSizeOpcStr(sz, size, opc);
         imm12 /= sz;
         cs.Iop = INSTR.str_imm_fpsimd(size,opc,imm12,cs.base,reg);
     }
@@ -119,7 +119,7 @@ void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, 
         uint imm12 = idx;
         uint sz = 8;
         uint size, opc;
-        INSTR.szToSizeOpc(sz, size, opc);
+        INSTR.szToSizeOpcLdr(sz, size, opc);
         imm12 /= sz;
         cs.Iop = INSTR.ldr_imm_fpsimd(size,opc,imm12,cs.base,reg);
     }

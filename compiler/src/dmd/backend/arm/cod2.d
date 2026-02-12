@@ -1071,19 +1071,44 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     codelem(cg,cdb,e.E1,retregs1,false);
     const Rn = findreg(retregs1);           // Rn is the pointer
 
+    bool isPair = isRegisterPair(true, tym, 0);
+
     if (tyfloating(tym))
     {
         regm_t retregs = pretregs & INSTR.FLOATREGS;
         if (retregs == 0)                   /* if no return regs speced (such as mPSW)     */
             retregs = INSTR.FLOATREGS;      // give us some
-        reg_t Rt = allocreg(cdb, retregs, tym);
 
-        code cs;
-        cs.base = Rn;
-        cs.reg = NOREG;
-        cs.index = NOREG;
-        loadFromEA(cs, Rt, sz, sz);     // LDR reg,[cs.base]
-        cdb.gen1(cs.Iop);
+        if (isPair)
+        {
+            reg_t Rlsw = findreg(retregs & INSTR.FLOATREGS & INSTR.LSW);
+            reg_t Rmsw = findreg(retregs & INSTR.FLOATREGS & INSTR.MSW);
+            uint imm12 = 0;
+            uint size;
+            uint opc;
+            INSTR.szToSizeOpcLdr(sz / 2, size, opc);
+            //printf("sz: %d size: %d, opc: %d\n", sz, size, opc);
+            if (Rn == Rlsw)                 // collision, reverse load order
+            {
+                cdb.gen1(INSTR.ldst_pos(size,1,opc,imm12+1,Rn,Rmsw)); // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
+                cdb.gen1(INSTR.ldst_pos(size,1,opc,imm12  ,Rn,Rlsw)); // LDR Rlsw,[Rn,#imm12]
+            }
+            else
+            {
+                cdb.gen1(INSTR.ldst_pos(size,1,opc,imm12  ,Rn,Rlsw));
+                cdb.gen1(INSTR.ldst_pos(size,1,opc,imm12+1,Rn,Rmsw));
+            }
+        }
+        else
+        {
+            code cs;
+            cs.base = Rn;
+            cs.reg = NOREG;
+            cs.index = NOREG;
+            reg_t Rt = allocreg(cdb, retregs, tym);
+            loadFromEA(cs, Rt, sz, sz);     // LDR Rt,[cs.base]
+            cdb.gen1(cs.Iop);
+        }
 
         fixresult(cdb,e,retregs,pretregs);
         return;
@@ -1094,11 +1119,8 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         retregs = INSTR.ALLREGS & posregs;    // give us some
     reg_t Rt = allocreg(cdb, retregs, tym);
 
-    uint size;
-    uint VR = 0;
-    uint opc;
 
-    if (sz == 2 * REGSIZE)
+    if (isPair)
     {
         reg_t Rlsw = findreg(retregs & INSTR.ALLREGS & INSTR.LSW);
         reg_t Rmsw = findreg(retregs & INSTR.ALLREGS & INSTR.MSW);
@@ -1120,6 +1142,8 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     uint decode(uint to, uint from, bool uns) { return to * 4 * 2 + from * 2 + uns; }
 
     // TODO AArch64 consider loadFromEA() instead
+    uint opc;
+    uint size;
     switch (decode(sz == 8 ? 8 : 4, sz, uns))
     {
     /*
@@ -1160,6 +1184,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             assert(0);
     }
 
+    uint VR = 0;
     uint imm12 = 0;
     cdb.gen1(INSTR.ldst_pos(size,VR,opc,imm12,Rn,Rt));
 
@@ -1598,7 +1623,7 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
     uint option = tyToExtend(enelems.Ety);
     uint opc;
     uint imm3;
-    INSTR.szToSizeOpc(szv,imm3,opc);    // shift 0..4
+    INSTR.szToSizeOpcStr(szv,imm3,opc);    // shift 0..4
     int is64 = szv == REGSIZE * 2;
     if (is64)
     {
