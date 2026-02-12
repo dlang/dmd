@@ -538,8 +538,9 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
     cs.Iop = op;
     tym_t tym = e.Ety;
     int sz = tysize(tym);
-    if (tybasic(tym) == TYucent)
-        sz = 8;
+    bool isPair = isRegisterPair(true, tym, 0);
+    if (isPair)
+        sz >>= 1;
 
     /* Determine if location we want to get is in a register. If so,      */
     /* substitute the register for the EA.                                */
@@ -550,7 +551,7 @@ void loadea(ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_
     {
         assert(OTleaf(e.Eoper));         /* can't handle operands         */
         regm_t rm = cgstate.regcon.cse.mval & ~cgstate.regcon.cse.mops & ~cgstate.regcon.mvar; // possible regs
-        if (sz == REGSIZE * 2)          // value is in 2 registers
+        if (isPair)                      // value is in 2 registers
         {
             if (offset)
                 rm &= INSTR.MSW;             /* only high words      */
@@ -2464,6 +2465,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     cs.Iflags = 0;
     regm_t flags = outretregs & mPSW;             /* save original                */
     forregs = outretregs & (INSTR.ALLREGS | INSTR.FLOATREGS);     // XMMREGS ?
+    bool isPair = isRegisterPair(false,tym,0);
     if (e.Eoper == OPconst)
     {
         if (0 && tyvector(tym) && forregs & XMMREGS)    // TODO AArch64
@@ -2478,7 +2480,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         if (tyfloating(tym))
         {
             forregs = outretregs & INSTR.FLOATREGS;
-            if (tycomplex(tym))
+            if (isPair)
             {
                 const vreg_im = allocreg(cdb, forregs, tym);     // allocate floating point register
                 const vreg_re = findreg(forregs & INSTR.LSW);
@@ -2664,7 +2666,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                 loadea(cdb, e, cs, opmv, reg, 0, 0, 0, RM.load);
             }
         }
-        else if (sz <= 2 * REGSIZE)
+        else if (isPair)
         {
             reg = findreg(forregs & INSTR.MSW);
             loadea(cdb, e, cs, 0x8B, reg, REGSIZE, forregs, 0); // MOV reg,data+2
@@ -2673,7 +2675,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         }
         else if (sz >= 8)
         {
-            if ((outretregs & (mSTACK | mPSW)) == mSTACK)
+            if (0 && (outretregs & (mSTACK | mPSW)) == mSTACK)
             {
                 // Note that we allocreg(DOUBLEREGS) needlessly
                 cgstate.stackchanged = 1;
