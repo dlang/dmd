@@ -4598,9 +4598,10 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 
 //        uint sz = cast(uint)type_size(s.Stype);
         reg_t preg = s.Spreg;
+        //printf("Spreg: %d Spreg2: %d\n", preg, s.Spreg2);
         foreach (i; 0 .. 2)     // twice, once for each possible parameter register
         {
-            //printf("i: %d t: %s\n", i, tym_str(t.Tty));
+            //printf("i: %d t: %s offset: %d\n", i, tym_str(t.Tty), cast(int)offset);
             uint sz = cast(uint)type_size(t);
             static type* type_arrayBase(type* ta)
             {
@@ -4621,11 +4622,22 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                         uint imm = cast(uint)(offset + localsize + 16);
                         if (tyfloating(t.Tty))
                         {
+                            if (tycomplex(t.Tty))
+                            {
+                                sz /= 2;
+                            }
                             // STR preg,[bp,#offset]
                             uint size, opc;
                             INSTR.szToSizeOpcStr(sz, size, opc);
                             imm /= sz;
                             cdb.gen1(INSTR.str_imm_fpsimd(size,opc,imm,29,preg)); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+                            if (tycomplex(t.Tty))
+                            {
+                                /* want to add sz, not REGSIZE, for Spreg2
+                                 * so account for adding REGSIZE at end of loop
+                                 */
+                                offset += sz - REGSIZE;
+                            }
                         }
                         else
                             // STR preg,bp,#offset
