@@ -35,7 +35,7 @@ struct CodeBuilder
     code** pTail;
 
     enum BADINS = 0x1234_5678;
-//    enum BADINS = 0x3D_80_07_A1;
+//    enum BADINS = 0x3D_C0_07_A0;
 
   nothrow:
   public:
