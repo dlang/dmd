@@ -1671,7 +1671,10 @@ regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, ou
                 break;
             if (I32)
                 goto case TYllong;
-            ty1 = TYdouble;
+            if (AArch64)
+                ty1 = ty2 = TYfloat;
+            else
+                ty1 = TYdouble;
             break;
 
         case TYcldouble:
@@ -4525,9 +4528,9 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 {
     //printf("prolog_loadparams() %s\n", funcsym_p.Sident.ptr);
     debug
+    if (debugr)
     foreach (s; globsym[])
     {
-        if (debugr)
         if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
         {
             printf("symbol '%s' is fastpar in register [l %s, m %s]\n", s.Sident.ptr,
