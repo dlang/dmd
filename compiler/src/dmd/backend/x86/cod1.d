@@ -3143,6 +3143,7 @@ bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t pre
     reg_t* preg = &preg1;
     int regcntsave = fpr.regcnt;
     int xmmcntsave = fpr.xmmcnt;
+    bool AArch64 = cgstate.AArch64;
 
     if (config.exe == EX_WIN64)
     {
@@ -3174,10 +3175,12 @@ bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t pre
         }
 
         if (tybasic(ty) == TYcfloat
-            && fpr.numfloatregs - fpr.xmmcnt >= 1)
+            && fpr.numfloatregs - fpr.xmmcnt >= (1 + AArch64))
         {
             // Allocate XMM register
             preg1 = fpr.floatregs[fpr.xmmcnt++];
+            if (AArch64)
+                preg2 = fpr.floatregs[fpr.xmmcnt++];
             return true;
         }
     }
@@ -3216,7 +3219,7 @@ bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t pre
         }
         if (fpr.xmmcnt < fpr.numfloatregs)
         {
-            if (tyfloating(ty) && cgstate.AArch64)
+            if (tyfloating(ty) && AArch64)
             {
                 *preg = fpr.floatregs[fpr.xmmcnt];
                 ++fpr.xmmcnt;

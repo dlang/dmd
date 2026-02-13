@@ -2465,7 +2465,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     cs.Iflags = 0;
     regm_t flags = outretregs & mPSW;             /* save original                */
     forregs = outretregs & (INSTR.ALLREGS | INSTR.FLOATREGS);     // XMMREGS ?
-    bool isPair = isRegisterPair(false,tym,0);
+    bool isPair = isRegisterPair(true,tym,0);
     if (e.Eoper == OPconst)
     {
         if (0 && tyvector(tym) && forregs & XMMREGS)    // TODO AArch64
@@ -2651,6 +2651,13 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             loadea(cdb,e,cs,0,reg,0,0,0,RM.load);
             outretregs = mask(reg) | flags;
         }
+        else if (isPair)
+        {
+            reg = findreg(forregs & INSTR.MSW);
+            loadea(cdb, e, cs, 0x8B, reg, REGSIZE, forregs, 0); // MOV reg,data+2
+            reg = findreg(forregs & INSTR.LSW);
+            loadea(cdb, e, cs, 0x8B, reg, 0, forregs, 0);       // MOV reg,data
+        }
         else if (sz <= REGSIZE)
         {
             if (tyfloating(tym))
@@ -2665,13 +2672,6 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                 opcode_t opmv = PSOP.ldr | (29 << 5);
                 loadea(cdb, e, cs, opmv, reg, 0, 0, 0, RM.load);
             }
-        }
-        else if (isPair)
-        {
-            reg = findreg(forregs & INSTR.MSW);
-            loadea(cdb, e, cs, 0x8B, reg, REGSIZE, forregs, 0); // MOV reg,data+2
-            reg = findreg(forregs & INSTR.LSW);
-            loadea(cdb, e, cs, 0x8B, reg, 0, forregs, 0);       // MOV reg,data
         }
         else if (sz >= 8)
         {
