@@ -196,6 +196,9 @@ $(H3 $(LNAME2 subtypes, Subtypes))
     $(TROW `T[`*AssignExpression*`]`, `T`)
     $(TROW `V[K]`, $(ARGS `K`, `V`))
     )
+    $(P $(DDLINK spec/const3, Type Qualifiers, Applying a type qualifier) to
+    a derived data type will also apply it to all its subtypes.)
+
     $(P See also: $(DDSUBLINK spec/expression, is-derived-data-type,
         Pattern Matching a Derived Data Type).)
 

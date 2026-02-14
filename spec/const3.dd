@@ -6,8 +6,10 @@ $(HEADERNAV_TOC)
 
         $(P Type qualifiers modify a type by applying a $(GLINK2 type, TypeCtor).
         $(I TypeCtor)s are: $(D const), $(D immutable), $(D shared), and $(D inout).
-        Each applies transitively to all subtypes.
-        )
+        Each applies transitively to:)
+
+        - All subtypes of a $(DDSUBLINK spec/type, derived-data-types, derived data type)
+        - All fields of an aggregate type
 
 $(H2 $(LNAME2 const_and_immutable, Const and Immutable))
 
