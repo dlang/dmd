@@ -1666,25 +1666,38 @@ $(GNAME CastQual):
     $(D cast $(LPAREN)) $(GLINK2 type, TypeCtors)$(OPT) $(D $(RPAREN)) $(GLINK UnaryExpression)
 )
 
-    $(P A $(I CastQual) replaces the qualifiers in the type of
-        the $(I UnaryExpression):)
+    $(P Casting with no type or qualifiers removes
+        any top-level $(D const), $(D immutable), $(D shared) or $(D inout)
+        type modifiers from the type of the $(I UnaryExpression).
+        For a $(DDSUBLINK spec/type, derived-data-types, derived data type), the subtypes
+        will remain qualified.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         shared int x;
-        static assert(is(typeof(cast(const)x) == const int));
+        static assert(is(typeof(cast() x) == int));
+
+        const int[] a;
+        // element type remains const
+        static assert(is(typeof(cast() a) == const(int)[]));
+
+        struct S { int p; }
+        const S cs;
+        static assert(is(typeof(cast() cs) == S));
         ---
         )
 
-    $(P Casting with no type or qualifiers removes
-        any top level $(D const), $(D immutable), $(D shared) or $(D inout)
-        type modifiers from the type
-        of the $(I UnaryExpression).)
+    $(P $(GRAMMAR_INLINE `cast(`*TypeCtors*`)`) first removes any top-level type qualifier
+        in the type of the $(I UnaryExpression), then adds the *TypeCtors*:)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         shared int x;
-        static assert(is(typeof(cast()x) == int));
+        static assert(is(typeof(cast(const) x) == const int));
+
+        shared int[] a;
+        // element type remains shared
+        static assert(is(typeof(cast(const) a) == const shared(int)[]));
         ---
         )
 
