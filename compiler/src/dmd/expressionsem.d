@@ -14203,12 +14203,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        // When array comparison is not lowered to `__equals`, `memcmp` is used, but
-        // GC checks occur before the expression is lowered to `memcmp` in e2ir.d.
-        // Thus, we will consider the literal arrays as on-stack arrays to avoid issues
-        // during GC checks.
+        // Remaining array comparisons are trivially memcmp-able.
+        // Allocate array-literal operands on the stack, since they don't
+        // escape during the comparison; enabling @nogc for these.
         if (isArrayComparison)
         {
+            exp.e1 = exp.e1.optimize(WANTvalue);
+            exp.e2 = exp.e2.optimize(WANTvalue);
+
             if (auto ale1 = exp.e1.isArrayLiteralExp())
             {
                 ale1.onstack = true;
