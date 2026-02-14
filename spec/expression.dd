@@ -3518,8 +3518,8 @@ void foo()
 -------------
 )
 
-        $(H5 $(LNAME2 is-identifier-convert, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D $(RPAREN))
-        )
+        $(H5 $(LNAME2 is-identifier-convert,
+            `is (` $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) `)`))
 
         $(P
         If *TypeSpecialization* is a type,
