@@ -1,0 +1,39 @@
+New operator overload Unwrap if true for structs
+
+A new operator overload has been added, called ``opUnwrapIfTrue``.
+It is used with structs, for optional and error result types that will normally be marked as ``@mustuse``.
+
+Return true using ``opCast(T:bool)()`` to trigger the if branch that will automatically unwrap the value into a variable declaration.
+
+```d
+import core.attribute : mustuse;
+
+@mustuse // not required
+struct Result(Type) {
+    private {
+        Type value;
+        bool haveValue;
+    }
+
+    this(Type value) {
+        this.value = value;
+        this.haveValue = true;
+    }
+
+    bool opCast(T:bool)() => haveValue;
+
+    Type opUnwrapIfTrue() {
+        assert(haveValue);
+        return value;
+    }
+}
+
+Result!int result = Result!int(99);
+
+if (int value = result) {
+    // got a value!
+    assert(value == 99);
+} else {
+    // oh noes an error or default init state
+}
+```

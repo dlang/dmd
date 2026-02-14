@@ -244,6 +244,7 @@ immutable Msgtable[] msgtable =
     { "opOpAssign" },
     { "opIndexOpAssign" },
     { "opSliceOpAssign" },
+    { "opUnwrapIfTrue" },
 
     { "classNew", "new" },
     { "classDelete", "delete" },
