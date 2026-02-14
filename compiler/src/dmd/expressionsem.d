@@ -681,8 +681,19 @@ bool isLvalue(Expression _this)
         if (tf && tf.isRef)
         {
             if (auto dve = _this.e1.isDotVarExp())
+            {
                 if (dve.var.isCtorDeclaration())
-                    return false;
+                {
+                    // Allow taking the address of explicit constructor calls,
+                    // but not (__stmp = S(), __stmp).__ctor().
+                    auto ve = lastComma(dve.e1).isVarExp();
+
+                    if (ve && (ve.var.storage_class & STC.temp) != 0)
+                        return false;
+
+                    return isLvalue(dve.e1);
+                }
+            }
             return true; // function returns a reference
         }
         return false;
@@ -761,6 +772,10 @@ bool isLvalue(Expression _this)
  * Determine if copy elision is allowed when copying an expression to
  * a typed storage. This basically elides a restricted subset of so-called
  * "pure" rvalues, i.e. expressions with no reference semantics.
+ *
+ * Note: Please try to keep `dmd.glue.e2ir.toElemRVO()` in sync with this.
+ * It is not destructive to fail to elide a copy, but it is always better
+ * to stay consistent.
  */
 bool canElideCopy(Expression e, Type to, bool checkMod = true)
 {
@@ -770,8 +785,19 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
     static bool visitCallExp(CallExp e)
     {
         if (auto dve = e.e1.isDotVarExp())
+        {
             if (dve.var.isCtorDeclaration())
-                return true;
+            {
+                // Allow (__stmp = S(), __stmp).__ctor() to be elided,
+                // but force a copy for (s2 = s1.__ctor()).
+                auto ve = lastComma(dve.e1).isVarExp();
+
+                if (ve && (ve.var.storage_class & STC.temp) != 0)
+                    return true;
+
+                return canElideCopy(dve.e1, e.type, false);
+            }
+        }
 
         auto tb = e.e1.type.toBasetype();
         if (tb.ty == Tdelegate || tb.ty == Tpointer)
@@ -12302,7 +12328,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         ? cast(DotVarExp)ce.e1 : null;
                     if (sd.ctor && ce && dve && dve.var.isCtorDeclaration() &&
                         // https://issues.dlang.org/show_bug.cgi?id=19389
-                        dve.e1.op != EXP.dotVariable &&
+                        canElideCopy(ce, t1, false) &&
                         e2y.type.implicitConvTo(t1))
                     {
                         /* Look for form of constructor call which is:
@@ -12413,7 +12439,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 return;
                             }
                         }
-                        else if (sd.hasMoveCtor && (!e2x.isCallExp() || e2x.rvalue) && !e2x.isStructLiteralExp())
+                        else if (sd.hasMoveCtor && (e2x.rvalue || !canElideCopy(e2x, t1, false)))
                         {
                             // #move
                             /* The !e2x.isCallExp() is because it is already an rvalue
