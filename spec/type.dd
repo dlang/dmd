@@ -152,11 +152,11 @@ $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types)
 
     $(UL
     $(LI $(RELATIVE_LINK2 pointers, Pointers))
+        - $(RELATIVE_LINK2 function-pointers, Function Pointer Types)
+    $(LI $(RELATIVE_LINK2 delegates, Delegate Types))
     $(LI $(DDSUBLINK spec/arrays, static-arrays, Static Arrays))
     $(LI $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Arrays))
     $(LI $(DDLINK spec/hash-map, Associative Array, Associative Arrays))
-    $(LI $(RELATIVE_LINK2 function-pointers, Function Pointer Types))
-    $(LI $(RELATIVE_LINK2 delegates, Delegate Types))
     $(LI $(DDSUBLINK spec/template, seq-ops, Indexed/sliced) type sequences)
     )
     $(P Examples:)
@@ -177,12 +177,27 @@ AliasSeq!(int, string) tsi; // type sequence instance
 ---
 )
 
-    $(P A derived data type is composed from at least one *subtype*. A subtype
-    is a type in its own right. For example, a dynamic array `int[][]` has an element
-    type of `int[]`, which is also its subtype. `int[]` in turn has a subtype of `int`.)
-
     $(NOTE A derived data type is distinct from a
     $(DDLINK spec/class, Classes, derived class type).)
+
+$(H3 $(LNAME2 subtypes, Subtypes))
+
+    $(P A derived data type is composed from at least one *subtype*:)
+
+    $(TABLE
+    $(THEAD Type, Subtypes)
+    $(TROW *TypeCtor*`(T)`, `T`)
+    $(TROW `T*`, `T`)
+    $(TROW `R function(Params)`,
+        $(ARGS `R(Params)` - see $(RELATIVE_LINK2 functions, Function Types)))
+    $(TROW `R delegate(Params)`,
+        $(ARGS `R(Params)`, `void*`))
+    $(TROW `T[]`, `T`)
+    $(TROW `T[`*AssignExpression*`]`, `T`)
+    $(TROW `V[K]`, $(ARGS `K`, `V`))
+    )
+    $(P See also: $(DDSUBLINK spec/expression, is-derived-data-type,
+        Pattern Matching a Derived Data Type).)
 
 $(H3 $(LNAME2 pointers, Pointers))
 
