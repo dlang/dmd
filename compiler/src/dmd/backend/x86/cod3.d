@@ -837,7 +837,7 @@ bool isRegisterPair(bool AArch64, tym_t tym, regm_t retregs)
         else if (size <= 2 * REGSIZE)
             return true;
         else
-            assert(0);
+            return false; // TYvoid
     }
     else /* X86_64 */
     {
@@ -846,7 +846,7 @@ bool isRegisterPair(bool AArch64, tym_t tym, regm_t retregs)
         else if (size <= 2 * REGSIZE)
             return true;
         else
-            assert(0);
+            return false; // TYvoid
     }
 }
 
