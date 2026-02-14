@@ -430,6 +430,12 @@ bool isLvalue(Expression exp)
     return dmd.expressionsem.isLvalue(exp);
 }
 
+bool canElideCopy(Expression exp, Type to, bool checkMod)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.canElideCopy(exp, to, checkMod);
+}
+
 int getFieldIndex(ClassReferenceExp cre, Type fieldtype, uint fieldoffset)
 {
     import dmd.expressionsem;
