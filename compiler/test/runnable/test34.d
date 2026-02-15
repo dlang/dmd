@@ -576,7 +576,9 @@ ulong foo32()
 
 void test32()
 {
-        assert(foo32()==1176576510);
+        assert(/*foo32()==1176576510 ||*/  // previous version held floats internally at higher precision
+               foo32()==1176576512);  // newer version has float precision
+                                      // https://github.com/dlang/dmd/pull/22270
 }
 
 /************************************************/
