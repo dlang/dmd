@@ -298,24 +298,12 @@ template hasElaborateDestructor(S)
         // this should be the implementation, but until that's fixed, we need the
         // uncommented code.
         // enum hasElaborateDestructor = __traits(hasMember, S, "__xdtor");
-
-        enum hasElaborateDestructor = hasDtor([__traits(allMembers, S)]);
+        enum hasElaborateDestructor = __traits(compiles, (S s) => (cast() s).__xdtor);
     }
     else
     {
         enum bool hasElaborateDestructor = false;
     }
-}
-
-private bool hasDtor(string[] members)
-{
-    foreach (name; members)
-    {
-        if (name == "__xdtor")
-            return true;
-    }
-
-    return false;
 }
 
 @safe unittest
@@ -331,6 +319,7 @@ private bool hasDtor(string[] members)
     static assert( hasElaborateDestructor!(HasDestructor[42]));
     static assert(!hasElaborateDestructor!(HasDestructor[0]));
     static assert(!hasElaborateDestructor!(HasDestructor[]));
+    static assert( hasElaborateDestructor!(immutable HasDestructor));
 
     static struct HasDestructor2 { HasDestructor s; }
     static assert( hasElaborateDestructor!HasDestructor2);
@@ -363,6 +352,25 @@ private bool hasDtor(string[] members)
     static assert( hasElaborateDestructor!S2);
     static assert( hasElaborateDestructor!S3);
     static assert(!hasElaborateDestructor!S6);
+}
+
+// https://github.com/dlang/dmd/issues/21967
+version (CoreUnittest)
+private struct Test21967
+{
+    // Note: Foward referencing was failing due to:
+    // https://github.com/dlang/dmd/issues/22524
+    static assert(hasElaborateDestructor!C);
+    enum before = hasElaborateDestructor!C;
+    static assert(before);
+
+    struct C
+    {
+        ~this() {}
+    }
+    static assert(hasElaborateDestructor!C);
+    enum after = hasElaborateDestructor!C;
+    static assert(after);
 }
 
 // std.traits.hasElaborateCopyDestructor
