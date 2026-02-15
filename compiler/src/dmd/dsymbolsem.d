@@ -83,6 +83,73 @@ import dmd.visitor;
 
 enum LOG = false;
 
+/***********************************************
+ * Resolution context tracking for forward/circular reference error chains.
+ *
+ * Maintains a stack of symbols currently being resolved during semantic
+ * analysis. When a forward or circular reference error occurs, the stack
+ * is walked to print supplemental messages showing the dependency chain.
+ *
+ * This is analogous to `TemplateInstance.printInstantiationTrace()` in
+ * `dtemplate.d`, but for variable type inference and struct size resolution.
+ */
+
+/// Entry in the resolution context stack.
+struct ResolutionEntry
+{
+    Dsymbol sym;        /// The symbol being resolved
+    Loc loc;            /// Where the resolution was triggered from
+}
+
+/// Stack tracking the chain of symbols currently being resolved.
+__gshared ResolutionEntry[64] resolutionStack;
+__gshared uint resolutionDepth;
+
+/// RAII helper to push/pop resolution context entries.
+struct ResolutionContext
+{
+    @disable this();
+    @disable this(this);
+
+    this(Dsymbol sym, Loc loc) nothrow
+    {
+        if (resolutionDepth < resolutionStack.length)
+            resolutionStack[resolutionDepth] = ResolutionEntry(sym, loc);
+        ++resolutionDepth;
+    }
+
+    ~this() nothrow
+    {
+        --resolutionDepth;
+    }
+}
+
+/// Print the current resolution chain as supplemental error messages.
+/// Called after a forward/circular reference error to show the dependency path.
+void printResolutionTrace()
+{
+    if (global.gag)
+        return;
+
+    const max_shown = global.params.v.errorSupplementCount();
+    const depth = resolutionDepth < resolutionStack.length
+                ? resolutionDepth : cast(uint) resolutionStack.length;
+
+    if (depth == 0)
+        return;
+
+    uint shown = 0;
+    // Walk from top of stack (most recent) to bottom (root cause)
+    for (uint i = depth; i > 0 && shown < max_shown; --i)
+    {
+        auto entry = resolutionStack[i - 1];
+        if (entry.sym is null)
+            continue;
+        errorSupplemental(entry.loc, "while resolving `%s`", entry.sym.toPrettyChars());
+        ++shown;
+    }
+}
+
 /***************************************
  * Create a new scope from sc.
  * semantic, semantic2 and semantic3 will use this for aggregate members.
@@ -2226,6 +2293,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         int inferred = 0;
         if (!dsym.type)
         {
+            auto _resolveCtx = ResolutionContext(dsym, dsym.loc);
             dsym.inuse++;
 
             // Infering the type requires running semantic,
@@ -4582,6 +4650,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sd.type.ty != Terror)
             {
                 .error(sd.loc, "%s `%s` circular or forward reference", sd.kind, sd.toPrettyChars);
+                printResolutionTrace();
                 sd.errors = true;
                 sd.type = Type.terror;
             }
@@ -7867,7 +7936,10 @@ private extern(C++) class SearchVisitor : Visitor
         {
             // .stringof is always defined (but may be hidden by some other symbol)
             if(ident != Id.stringof && !(flags & SearchOpt.ignoreErrors) && sd.semanticRun < PASS.semanticdone)
+            {
                 .error(loc, "%s `%s` is forward referenced when looking for `%s`", sd.kind, sd.toPrettyChars, ident.toChars());
+                printResolutionTrace();
+            }
             return setResult(null);
         }
 
@@ -9207,6 +9279,8 @@ bool determineSize(AggregateDeclaration ad, Loc loc)
         return false;
     }
 
+    auto _resolveCtx = ResolutionContext(ad, loc);
+
     if (ad._scope)
         dsymbolSemantic(ad, null);
 
@@ -9233,7 +9307,10 @@ bool determineSize(AggregateDeclaration ad, Loc loc)
 Lfail:
     // There's unresolvable forward reference.
     if (ad.type != Type.terror)
+    {
         error(loc, "%s `%s` no size because of forward reference", ad.kind, ad.toPrettyChars);
+        printResolutionTrace();
+    }
     // Don't cache errors from speculative semantic, might be resolvable later.
     // https://issues.dlang.org/show_bug.cgi?id=16574
     if (!global.gag)

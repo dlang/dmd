@@ -1678,6 +1678,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
                 error(loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
             else
                 error(loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
+            printResolutionTrace();
             pt = Type.terror;
             return;
         }
@@ -6826,6 +6827,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                     error(e.loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
                 else
                     error(e.loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
+                printResolutionTrace();
                 return ErrorExp.get();
             }
             if (v.type.ty == Terror)
@@ -7257,6 +7259,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                     error(e.loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
                 else
                     error(e.loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
+                printResolutionTrace();
                 return ErrorExp.get();
             }
             if (v.type.ty == Terror)
