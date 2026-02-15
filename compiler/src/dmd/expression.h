@@ -62,6 +62,7 @@ namespace dmd
     bool isIdentical(const Expression *exp, const Expression *e);
     bool equals(const Expression *exp, const Expression *e);
     bool isLvalue(Expression *exp);
+    bool canElideCopy(Expression *exp, Type *to, bool checkMod = true);
     int32_t getFieldIndex(ClassReferenceExp *cre, Type *fieldtype, uint32_t fieldoffset);
     void fillTupleExpExps(TupleExp *te, TupleDeclaration *tup);
     Optional<bool> toBool(Expression *exp);
