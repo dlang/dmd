@@ -3,21 +3,21 @@ EXTRA_FILES: imports/constraints.d
 TEST_OUTPUT:
 ----
 fail_compilation/constraints_func3.d(53): Error: none of the overloads of template `imports.constraints.overload` are callable using argument types `!()(int)`
-fail_compilation/imports/constraints.d(39):        Candidates are: `overload(T)(T v)`
+fail_compilation/imports/constraints.d(39):        Candidate 1 is: `overload(T)(T v)`
   with `T = int`
   must satisfy the following constraint:
 `       N!T`
-fail_compilation/imports/constraints.d(40):                        `overload(T)(T v)`
+fail_compilation/imports/constraints.d(40):        Candidate 2 is: `overload(T)(T v)`
   with `T = int`
   must satisfy the following constraint:
 `       !P!T`
-fail_compilation/imports/constraints.d(41):                        `overload(T)(T v1, T v2)`
-fail_compilation/imports/constraints.d(42):                        `overload(T, V)(T v1, V v2)`
+fail_compilation/imports/constraints.d(41):        Candidate 3 is: `overload(T)(T v1, T v2)`
+fail_compilation/imports/constraints.d(42):        Candidate 4 is: `overload(T, V)(T v1, V v2)`
 fail_compilation/constraints_func3.d(54): Error: none of the overloads of template `imports.constraints.overload` are callable using argument types `!()(int, string)`
-fail_compilation/imports/constraints.d(39):        Candidates are: `overload(T)(T v)`
-fail_compilation/imports/constraints.d(40):                        `overload(T)(T v)`
-fail_compilation/imports/constraints.d(41):                        `overload(T)(T v1, T v2)`
-fail_compilation/imports/constraints.d(42):                        `overload(T, V)(T v1, V v2)`
+fail_compilation/imports/constraints.d(39):        Candidate 1 is: `overload(T)(T v)`
+fail_compilation/imports/constraints.d(40):        Candidate 2 is: `overload(T)(T v)`
+fail_compilation/imports/constraints.d(41):        Candidate 3 is: `overload(T)(T v1, T v2)`
+fail_compilation/imports/constraints.d(42):        Candidate 4 is: `overload(T, V)(T v1, V v2)`
   with `T = int,
        V = string`
   must satisfy one of the following constraints:
