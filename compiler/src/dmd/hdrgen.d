@@ -3470,6 +3470,7 @@ string stcToString(ref STC stc) @safe
         SCstring(STC.disable, "@disable"),
         SCstring(STC.future, "@__future"),
         SCstring(STC.local, "__local"),
+        SCstring(STC.ctfeOnly, "@__ctfe"),
     ];
     foreach (ref entry; table)
     {

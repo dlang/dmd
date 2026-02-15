@@ -3883,6 +3883,7 @@ struct ASTBase
             incomplete      = 0x0200, // return type or default arguments removed
             inoutParam      = 0x0400, // inout on the parameters
             inoutQual       = 0x0800, // inout on the qualifier
+            isCtfeOnly      = 0x1000, // is @__ctfe
         }
 
         LINK linkage;               // calling convention
@@ -3909,6 +3910,8 @@ struct ASTBase
                 this.isProperty = true;
             if (stc & STC.live)
                 this.isLive = true;
+            if (stc & STC.ctfeOnly)
+                this.isCtfeOnly = true;
 
             if (stc & STC.ref_)
                 this.isRef = true;
@@ -3943,6 +3946,7 @@ struct ASTBase
             t.isScopeInferred = isScopeInferred;
             t.isInOutParam = isInOutParam;
             t.isInOutQual = isInOutQual;
+            t.isCtfeOnly = isCtfeOnly;
             t.trust = trust;
             t.fargs = fargs;
             return t;
@@ -4091,6 +4095,19 @@ struct ASTBase
             if (v) funcFlags |= FunctionFlag.inoutQual;
             else funcFlags &= ~FunctionFlag.inoutQual;
         }
+
+        /// set or get if the function has the `@__ctfe` attribute
+        bool isCtfeOnly() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.isCtfeOnly) != 0;
+        }
+        /// ditto
+        void isCtfeOnly(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.isCtfeOnly;
+            else funcFlags &= ~FunctionFlag.isCtfeOnly;
+        }
+
         /// Returns: `true` the function is `isInOutQual` or `isInOutParam` ,`false` otherwise.
         bool iswild() const pure nothrow @safe @nogc
         {
@@ -6860,6 +6877,7 @@ struct ASTBase
             SCstring(STC.disable, "@disable"),
             SCstring(STC.future, "@__future"),
             SCstring(STC.local, "__local"),
+            SCstring(STC.ctfeOnly, "@__ctfe"),
         ];
         foreach (ref entry; table)
         {
