@@ -63,6 +63,7 @@ private:
  *  - StatementWalker: Traverses statements (if, while, return).
  *  - ExpressionWalker: Traverses expressions (a + b, func()).
  *  - DFAAnalyzer: Tracks the state of variables (The Brain).
+ *  - DFAReporter: Reports errors and handles inferring.
  * 3. Wires them together but separates them for separation of concerns reasons.
  * 4. Starts the single-pass walk.
  *
@@ -94,11 +95,11 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
     }
 
     // Use these if statements for debugging specific things.
-    //if (fd.ident.toString != "switchMakeKnown") return;
-    //if (!(fd.ident.toString == "test3632" || fd.ident.toString == "test")) return;
-    //if (fd.loc.linnum < 1380) return;
+    //if (fd.ident.toString != "checkFloatInit5") return;
+    //if (!(fd.ident.toString == "replaceReferenceDefinition" || fd.ident.toString == "extractReferences")) return;
+    //if (fd.loc.linnum != 54) return;
     //if (fd.getModule.ident.toString != "start") return;
-    //if (strcmp(mangleExact(fd), "_D4core8internal5array8equality__T7isEqualTxS3dub6recipe13packagerecipe17ConfigurationInfoTxQBwZQCkFNbMAxQCjMQgmZb") != 0) return;
+    //if (strcmp(mangleExact(fd), "_D4core9exception15ArraySliceError6__ctorMFNaNbNiNfmmmAyamC6object9ThrowableZCQCyQCwQCp") != 0) return;
 
     // Protect functions based upon safetiness of it.
     // It may be desirable to disable some behaviors in @system code, or completely.
@@ -115,6 +116,8 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
     ExpressionWalker expWalker;
     DFAAnalyzer analyzer;
     DFAReporter reporter;
+
+    dfaCommon.allocator.dfaCommon = &dfaCommon;
 
     stmtWalker.dfaCommon = &dfaCommon;
     expWalker.dfaCommon = &dfaCommon;
