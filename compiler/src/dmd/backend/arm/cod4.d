@@ -73,6 +73,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     tym_t tyml = tybasic(e1.Ety);              // type of lvalue
     regm_t retregs = pretregs;
     const regm_t allregs = tyfloating(tyml) ? INSTR.FLOATREGS : INSTR.ALLREGS;
+    bool isPair = isRegisterPair(true,tyml,0);
 
     if (0 && tyxmmreg(tyml))    // TODO AArch64
     {
@@ -102,7 +103,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         if (e2oper == OPconst &&       // if rvalue is a constant
             !(evalinregister(e2) && plenty) &&
-            !tycomplex(tyml) &&
+            !isPair &&
             !e1.Ecount)        // and no CSE headaches
         {
             // Look for special case of (*p++ = ...), where p is a register variable
@@ -156,8 +157,6 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             goto Lp;
         }
         retregs = allregs;        // pick a reg, any reg
-        if (sz == 2 * REGSIZE)
-            retregs &= ~INSTR.mBP;
     }
     if (retregs == mPSW)
         retregs = allregs;
@@ -225,18 +224,17 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     getregs(cdb,varregm);
 
-    reg = findreg(retregs & (sz > REGSIZE ? INSTR.LSW : allregs));
-    storeToEA(cs,reg,sz > REGSIZE ? REGSIZE : sz);
+    reg = findreg(retregs & (isPair ? INSTR.LSW : allregs));
+    storeToEA(cs,reg,sz / 2);
     cdb.gen(&cs);
-    if (sz == 2 * REGSIZE)
+    if (isPair)
     {
+        // do the MSW
         reg_t mswreg = findreg(retregs & INSTR.MSW);
         assert(cs.index == NOREG);  // BUG AArch64 cannot add the '8' offset
         assert(cs.base != NOREG);
-        if (mask(mswreg) & INSTR.FLOATREGS)
-            cs.Iop = INSTR.str_imm_fpsimd(3, 0, 8, cs.base, mswreg); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
-        else
-            cs.Iop = INSTR.str_imm_gen(1, mswreg, cs.base, 8);
+        cs.IEV1.Voffset = sz / 2;
+        storeToEA(cs, mswreg, sz / 2);
         cdb.gen(&cs);
     }
     else
@@ -255,6 +253,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 Lp:
     if (postinc)
     {
+        assert(!tyfloating(tyml));      // TODO AArch64
         reg_t ireg = cs.base;
         uint sh = 0;
         uint op = postinc > 0 ? 0 : 1; // ADD/SUB

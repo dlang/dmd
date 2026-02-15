@@ -2294,9 +2294,11 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     tym_t tym = tybasic(e.Ety);
     uint sz = _tysize[tym];
     uint byte_ = sz == 1;
+    bool isPair = isRegisterPair(AArch64, tym, pretregs);
 
-    if (sz <= REGSIZE ||
-        (!AArch64 && tyxmmreg(tym) && config.fpxmmregs)) // if data will fit in one register
+    if (AArch64 ? !isPair :
+        (sz <= REGSIZE ||
+         (!AArch64 && tyxmmreg(tym) && config.fpxmmregs))) // if data will fit in one register
     {
         /* First see if it is already in a correct register     */
 
@@ -2399,7 +2401,8 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         assert(0);                      /* should have found it         */
     }
     else                                  /* reg pair is req'd            */
-    if (sz <= 2 * REGSIZE)
+    if (isPair)
+//    if (sz <= 2 * REGSIZE)
     {
         regm_t xMSW = mMSW;
         regm_t xLSW = mLSW | mBP;
@@ -2408,7 +2411,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         {
             xMSW = INSTR.MSW;
             xLSW = INSTR.LSW;
-            xALLREGS = INSTR.ALLREGS;
+            xALLREGS = INSTR.ALLREGS | INSTR.FLOATREGS;
         }
 
         reg_t msreg,lsreg;
