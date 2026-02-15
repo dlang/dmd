@@ -1652,17 +1652,44 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         sym.parent = sc.scopesym;
         sym.endlinnum = ifs.endloc.linnum;
         Scope* scd = sc.push(sym);
+
+        Expression unwrapSideEffectDecl, unwrapSideEffectRef;
+
         if (ifs.param)
         {
             /* Declare param, which we will set to be the
              * result of condition.
              */
+
+            // Analyze the condition, that will initialize the variable.
+            if (Expression unwrapOriginalCondition = ifs.condition.trySemantic(scd))
+            {
+                if (auto ts = unwrapOriginalCondition.type.isTypeStruct)
+                {
+                    if (Dsymbol fd = search_function(ts.sym, Id.opUnwrapIfTrue))
+                    {
+                        // We have the operator overload opUnwrapIfTrue,
+                        // Split out original value into a temporary so that we can check truthiness and grab its value.
+
+                        // (auto __unwrit = condition)
+                        // __unwrit
+                        unwrapSideEffectRef = extractSideEffect(scd, "__unwrit", unwrapSideEffectDecl, ifs.condition, true);
+
+                        // __unwrit.opUnwrapIfTrue()
+                        ifs.condition = new CallExp(ifs.condition.loc, new DotIdExp(ifs.condition.loc, unwrapSideEffectRef.copy, Id.opUnwrapIfTrue));
+                    }
+                }
+            }
+
+            // Create the variable declaration (T var = condition)
+            // Symbol semantic on this, will take the type from the condition and put it straight onto the variable declaration.
             auto ei = new ExpInitializer(ifs.loc, ifs.condition);
             ifs.match = new VarDeclaration(ifs.loc, ifs.param.type, ifs.param.ident, ei);
             ifs.match.parent = scd.func;
             ifs.match.storage_class |= ifs.param.storageClass;
             ifs.match.dsymbolSemantic(scd);
 
+            // Transform the condition expression into: (T var = condition, var)
             auto de = new DeclarationExp(ifs.loc, ifs.match);
             auto ve = new VarExp(ifs.loc, ifs.match);
             ifs.condition = new CommaExp(ifs.loc, de, ve);
@@ -1696,10 +1723,30 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         if (checkNonAssignmentArrayOp(ifs.condition))
             ifs.condition = ErrorExp.get();
 
-        // Convert to boolean after declaring param so this works:
-        //  if (S param = S()) {}
-        // where S is a struct that defines opCast!bool.
-        ifs.condition = ifs.condition.toBoolean(scd);
+        // Turn the condition into a truthiness check.
+        if (unwrapSideEffectDecl !is null)
+        {
+            // Need to combine these two expressions:
+            // (T __unwrit = condition)
+            // (U param = __unwrit.opUnwrapIfTrue)
+            // Into:
+            // (T __unwrit = condition, __unwrit) && (U param = __unwrit.opUnwrapIfTrue, true)
+
+            Expression firstHalf = Expression.combine(unwrapSideEffectDecl, unwrapSideEffectRef).toBoolean(scd);
+            // Strictly speaking the extra (... , true) isn't required, but without it,
+            //  it may get analyzed as if the truthiness of the unwrapped value as mattering (which it doesn't).
+            Expression secondHalf = Expression.combine(ifs.condition, new IntegerExp(ifs.condition.loc, 1, Type.tbool));
+
+            ifs.condition = new LogicalExp(ifs.condition.loc, EXP.andAnd, firstHalf, secondHalf);
+            ifs.condition.expressionSemantic(scd);
+        }
+        else
+        {
+            // Convert to boolean after declaring param so this works:
+            //  if (S param = S()) {}
+            // where S is a struct that defines opCast!bool.
+            ifs.condition = ifs.condition.toBoolean(scd);
+        }
 
         // If we can short-circuit evaluate the if statement, don't do the
         // semantic analysis of the skipped code.
