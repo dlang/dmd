@@ -90,6 +90,44 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
     return getDsymbol(oarg);
 }
 
+/**************************************
+ * Lightweight member lookup for `getMemberAttributes` and `getMemberType`.
+ *
+ * Resolves the two arguments (aggregate/type and member name string) and
+ * performs a `sym.search()` — the same mechanism `hasMember` uses — without
+ * triggering `expressionSemantic` or `functionSemantic`.
+ *
+ * Returns:
+ *      The found `Dsymbol`, or `null` on any failure.
+ *      `id` is set to the member name identifier on success.
+ */
+private Dsymbol searchMember(TraitsExp e, Scope* sc, out Identifier id)
+{
+    if (!e.args || e.args.length != 2)
+        return null;
+
+    if (!TemplateInstance_semanticTiargs(e.loc, sc, e.args, 3))
+        return null;
+
+    auto ex = isExpression((*e.args)[1]);
+    if (!ex)
+        return null;
+    ex = ex.ctfeInterpret();
+    auto se = ex.toStringExp();
+    if (!se || se.len == 0)
+        return null;
+    se = se.toUTF8(sc);
+    if (se.sz != 1)
+        return null;
+    id = Identifier.idPool(se.peekString());
+
+    Dsymbol sym = getDsymbol((*e.args)[0]);
+    if (!sym)
+        return null;
+
+    return sym.search(e.loc, id);
+}
+
 /**
  * Fill an array of target size_t values that indicate possible pointer words in memory
  *  if interpreted as the type given as argument.
@@ -1295,6 +1333,75 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         Expression ex = new TupleExp(e.loc, exps);
         ex = ex.expressionSemantic(sc);
         return ex;
+    }
+    if (e.ident == Id.getMemberAttributes)
+    {
+        if (dim != 2)
+            return dimError(2);
+
+        Identifier id;
+        auto sm = searchMember(e, sc, id);
+        if (!sm)
+        {
+            error(e.loc, "no property `%s`", id ? id.toChars() : "??".ptr);
+            return ErrorExp.get();
+        }
+
+        // Same overload deprecation checks as getAttributes
+        if (auto fd = sm.isFuncDeclaration())
+        {
+            if (fd.overnext)
+            {
+                deprecation(e.loc, "`__traits(getMemberAttributes)` may only be used for individual functions, not the overload set `%s`", fd.toChars());
+                deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
+            }
+        }
+        if (auto td = sm.isTemplateDeclaration())
+        {
+            if (td.overnext)
+            {
+                deprecation(e.loc, "`__traits(getMemberAttributes)` may only be used for individual functions, not the overload set `%s`", td.ident.toChars());
+                deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
+            }
+        }
+        if (sm.isImport())
+            sm = sm.isImport().mod;
+
+        auto udad = sm.userAttribDecl;
+        auto exps = udad ? udad.getAttributes() : new Expressions();
+        auto tup = new TupleExp(e.loc, exps);
+        return tup.expressionSemantic(sc);
+    }
+    if (e.ident == Id.getMemberType)
+    {
+        if (dim != 2)
+            return dimError(2);
+
+        Identifier id;
+        auto sm = searchMember(e, sc, id);
+        if (!sm)
+        {
+            error(e.loc, "no property `%s`", id ? id.toChars() : "??".ptr);
+            return ErrorExp.get();
+        }
+
+        Type t = null;
+        if (auto fd = sm.isFuncDeclaration())
+            t = fd.type;
+        else if (auto vd = sm.isVarDeclaration())
+            t = vd.type;
+        else if (auto ad2 = sm.isAggregateDeclaration())
+            t = ad2.type;
+        else if (auto ed = sm.isEnumDeclaration())
+            t = ed.type;
+
+        if (!t)
+        {
+            error(e.loc, "cannot determine type of member `%s`", id.toChars());
+            return ErrorExp.get();
+        }
+
+        return new TypeExp(e.loc, t);
     }
     if (e.ident == Id.getAttributes)
     {
