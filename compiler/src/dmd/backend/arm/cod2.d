@@ -93,8 +93,44 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     regm_t PSW = pretregs & mPSW;
 
+    bool isPair = isRegisterPair(true, ty, 0);
+
     if (tyfloating(ty1))
     {
+        if (isPair)
+        {
+            assert(sz != 32);           // TODO AArch64
+            Rd = findreg(retregs  & INSTR.LSW);
+            Rn = findreg(retregs1 & INSTR.LSW);
+            Rm = findreg(retregs2 & INSTR.LSW);
+
+            reg_t Rd0 = findreg(retregs  & INSTR.MSW);
+            reg_t Rn0 = findreg(retregs1 & INSTR.MSW);
+            reg_t Rm0 = findreg(retregs2 & INSTR.MSW);
+
+            const ftype = INSTR.szToFtype(sz / 2);
+            switch (e.Eoper)
+            {
+                // FADD/FSUB (extended register)
+                // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
+                case OPadd:
+                    cdb.gen1(INSTR.fadd_float(ftype,Rm0,Rn0,Rd0));  // FADD Rd0,Rn0,Rm0 LSW
+                    cdb.gen1(INSTR.fadd_float(ftype,Rm,Rn,Rd));     // FADD Rd,Rn,Rm    MSW
+                    break;
+
+                case OPmin:
+                    cdb.gen1(INSTR.fsub_float(ftype,Rm0,Rn0,Rd0));  // FSUB Rd0,Rn0,Rm0 LSW
+                    cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm    MSW
+                    break;
+
+                default:
+                    assert(0);
+            }
+            pretregs = retregs | PSW;
+            fixresult(cdb,e,retregs,pretregs);
+            return;
+        }
+
         if (sz == 16)                   // 128 bit float
         {
             uint clib;
