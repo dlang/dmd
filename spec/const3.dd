@@ -8,7 +8,7 @@ $(HEADERNAV_TOC)
         $(I TypeCtor)s are: $(D const), $(D immutable), $(D shared), and $(D inout).
         Each applies transitively to:)
 
-        - All subtypes of a $(DDSUBLINK spec/type, derived-data-types, derived data type)
+        - All $(DDSUBLINK spec/type, component-types, component types) of a derived data type
         - All fields of an aggregate type
 
 $(H2 $(LNAME2 const_and_immutable, Const and Immutable))

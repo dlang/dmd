@@ -3301,9 +3301,9 @@ $(GNAME TypeSpecialization):
     $(UL
     $(LI compare types for equivalence)
     $(LI determine if one type can be implicitly converted to another)
-    $(LI deduce the subtypes of a type using
-        $(RELATIVE_LINK2 is-parameter-list, pattern matching))
-    $(LI deduce the template arguments of a type template instance)
+    $(LI use $(RELATIVE_LINK2 is-parameter-list, pattern matching) to:)
+        - deduce the types used in a derived data type
+        - deduce the template and template arguments of a type template instance
     )
     $(P
         The result of an $(I IsExpression) is a boolean which is `true`

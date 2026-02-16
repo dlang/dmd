@@ -180,12 +180,12 @@ AliasSeq!(int, string) tsi; // type sequence instance
     $(NOTE A derived data type is distinct from a
     $(DDLINK spec/class, Classes, derived class type).)
 
-$(H3 $(LNAME2 subtypes, Subtypes))
+$(H3 $(LNAME2 component-types, Component Types))
 
-    $(P A derived data type is composed from at least one *subtype*:)
+    $(P A derived data type has at least one *component type*:)
 
     $(TABLE
-    $(THEAD Type, Subtypes)
+    $(THEAD Type, Component Types)
     $(TROW *TypeCtor*`(T)`, `T`)
     $(TROW `T*`, `T`)
     $(TROW `R function(Params)`,
@@ -197,7 +197,7 @@ $(H3 $(LNAME2 subtypes, Subtypes))
     $(TROW `V[K]`, $(ARGS `K`, `V`))
     )
     $(P $(DDLINK spec/const3, Type Qualifiers, Applying a type qualifier) to
-    a derived data type will also apply it to all its subtypes.)
+    a derived data type will also apply it to all its component types.)
 
     $(P See also: $(DDSUBLINK spec/expression, is-derived-data-type,
         Pattern Matching a Derived Data Type).)
