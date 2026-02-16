@@ -1477,31 +1477,6 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             semanticTypeInfoMembers(sd);
         }
 
-        if (TemplateInstance ti = sd.isInstantiated())
-        {
-            if (!ti.needsCodegen())
-            {
-                assert(ti.minst || sd.requestTypeInfo);
-
-                /* ti.toObjFile() won't get called. So, store these
-                 * member functions into object file in here.
-                 */
-
-                if (sd.xeq && sd.xeq != StructDeclaration.xerreq)
-                    toObjFile(sd.xeq, global.params.multiobj);
-                if (sd.xcmp && sd.xcmp != StructDeclaration.xerrcmp)
-                    toObjFile(sd.xcmp, global.params.multiobj);
-                if (FuncDeclaration ftostr = search_toString(sd))
-                    toObjFile(ftostr, global.params.multiobj);
-                if (sd.xhash)
-                    toObjFile(sd.xhash, global.params.multiobj);
-                if (sd.postblit)
-                    toObjFile(sd.postblit, global.params.multiobj);
-                if (sd.dtor)
-                    toObjFile(sd.dtor, global.params.multiobj);
-            }
-        }
-
         /* Put out:
          *  char[] mangledName;
          *  void[] init;

@@ -429,6 +429,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
                  */
                 sd.members.foreachDsymbol( (s) { s.accept(this); } );
 
+                /* Emit the special __xopEquals/__xopCmp/__xtoHash member functions
+                 * required for the TypeInfo, but not added as struct members.
+                 * (Note that `postblit` and `tidtor` are struct members in `sd.members`.)
+                 */
                 if (sd.xeq && sd.xeq != StructDeclaration.xerreq)
                     sd.xeq.accept(this);
                 if (sd.xcmp && sd.xcmp != StructDeclaration.xerrcmp)
