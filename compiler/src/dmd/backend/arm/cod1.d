@@ -1200,8 +1200,13 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                 pcs.base = NOREG;
                 pcs.index = NOREG;
                 pcs.reg = s.Sreglsw;
-                if (e.Voffset == REGSIZE && sz == REGSIZE)
+
+                uint off = REGSIZE;
+                if (tycomplex(ty))
+                    off = tysize(ty) / 2;
+                if (e.Voffset == off && sz == off)
                     pcs.reg = s.Sregmsw;
+
                 break;
             }
             if (config.flags3 & CFG3pic &&

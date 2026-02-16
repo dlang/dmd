@@ -480,38 +480,84 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     //elem_print(e);
     elem* e1 = e.E1;
     tym_t ty1 = tybasic(e1.Ety);
-    const sz1 = _tysize[ty1];
+    auto sz1 = _tysize[ty1];
     code cs;
     regm_t retregs;
     reg_t reg;
+    bool isPair = isRegisterPair(true, ty1, 0);
 
     if (e.Eoper == OPnegass)
     {
-        assert(sz1 <= 8);       // not for 128 bit operands
         bool regvar;
         getlvalue(cdb,cs,e1,0);
-        if (cs.reg == NOREG)
+        if (isPair)
         {
-            retregs = INSTR.FLOATREGS;
-            reg = allocreg(cdb,retregs,ty1);
+            reg_t reglsw, regmsw;
+            sz1 /= 2;
+            assert(sz1 <= 8);       // TODO AArch64 128 bit operands
+            uint ftype = INSTR.szToFtype(sz1);
+            if (cs.reg != NOREG)
+            {
+                regvar = true;          // the lvalue is in a register pair
+                reglsw = cs.reg;
+                assert(cs.IFL1 == FL.reg);
+                regmsw = cs.IEV1.Vsym.Sregmsw;
+                retregs = mask(reglsw) | mask(regmsw);
+                getregs(cdb,retregs);
+                cdb.gen1(INSTR.fneg_float(ftype, reglsw, reglsw)); // fneg reglsw,reglsw
+                cdb.gen1(INSTR.fneg_float(ftype, regmsw, regmsw)); // fneg regmsw,regmsw
+            }
+            else
+            {
+                // lvalue is an EA referred to by base/index
+                assert(cs.IFL1 != FL.reg);
+                retregs = INSTR.FLOATREGS;
+                allocreg(cdb,retregs,ty1);
+                reglsw = findreg(retregs & INSTR.LSW);
+                regmsw = findreg(retregs & INSTR.MSW);
+
+                uint szw = sz1;
+                loadFromEA(cs, reglsw, szw, sz1);
+                cdb.gen(&cs);
+
+                cdb.gen1(INSTR.fneg_float(ftype, reglsw, reglsw)); // fneg reglsw,reglsw
+                storeToEA(cs, reglsw, szw);
+                cdb.gen(&cs);
+
+                cs.IEV1.Voffset += sz1;
+                loadFromEA(cs, regmsw, szw, sz1);
+                cdb.gen(&cs);
+
+                cdb.gen1(INSTR.fneg_float(ftype, regmsw, regmsw)); // fneg regmsw,regmsw
+                storeToEA(cs, regmsw, szw);
+                cdb.gen(&cs);
+            }
         }
         else
         {
-            regvar = true;
-            retregs = mask(cs.reg);
-            getregs(cdb,retregs);
-            reg = cs.reg;
+            assert(sz1 <= 8);       // TODO AArch64 128 bit floats
+            if (cs.reg == NOREG)
+            {
+                retregs = INSTR.FLOATREGS;
+                reg = allocreg(cdb,retregs,ty1);
+            }
+            else
+            {
+                regvar = true;
+                retregs = mask(cs.reg);
+                getregs(cdb,retregs);
+                reg = cs.reg;
+            }
+            uint szw = sz1;
+            loadFromEA(cs, reg, szw, sz1);
+            cdb.gen(&cs);
+            assert(reg & 32);
+            uint ftype = INSTR.szToFtype(sz1);
+            cdb.gen1(INSTR.fneg_float(ftype, reg, reg)); // fneg reg,reg
+            storeToEA(cs, reg, szw);
+            cdb.gen(&cs);
+            retregs = mask(reg);
         }
-        uint szw = sz1 == 8 ? 8 : 4;
-        loadFromEA(cs, reg, szw, sz1);
-        cdb.gen(&cs);
-        assert(reg & 32);
-        uint ftype = INSTR.szToFtype(sz1);
-        cdb.gen1(INSTR.fneg_float(ftype, reg, reg)); // fneg reg,reg
-        storeToEA(cs, reg, szw);
-        cdb.gen(&cs);
-
-        retregs = mask(reg);
         pretregs &= ~mPSW;
 
         if (e1.Ecount ||                     // if lvalue is a CSE or
