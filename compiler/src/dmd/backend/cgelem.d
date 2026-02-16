@@ -6510,6 +6510,7 @@ private bool canHappenAfter(elem* a, elem* b)
 @trusted private
 bool useOPnegass(tym_t tym)
 {
+    //printf("useOPnegass() tym: %s\n", tym_str(tym));
     const ty = tybasic(tym);
     return !(config.target_cpu == TARGET_AArch64 && (ty == TYldouble || ty == TYildouble));
 }
