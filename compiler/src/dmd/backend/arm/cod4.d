@@ -592,7 +592,9 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (isregvar(e1,varregm,varreg) && // if lvalue is register variable
             doinreg(e1.Vsym,e2)            // and we can compute directly into it
            )
-        {   regvar = true;
+        {
+            assert(!isPair);            // TODO AArch64
+            regvar = true;
             retregs = varregm;
             reg = varreg;               // evaluate directly in target register
             getregs(cdb,retregs);       // destroy these regs
@@ -605,12 +607,58 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         retregs = pretregs & INSTR.FLOATREGS & ~rretregs;
         if (!retregs)
             retregs = INSTR.FLOATREGS & ~rretregs;
-        reg = allocreg(cdb,retregs,ty1);
-        loadFromEA(cs,reg,sz1,sz1);
+        allocreg(cdb,retregs,ty1);
+        reg = findreg(isPair ? retregs & INSTR.LSW : retregs);
+        if (isPair)
+            loadFromEA(cs,reg,sz1 / 2,sz1 / 2);
+        else
+            loadFromEA(cs,reg,sz1,sz1);
         cdb.gen(&cs);
     }
 
-    if (sz1 == 16)      // 128 bit float
+    if (isPair)
+    {
+        sz1 /= 2;
+        rreg = findreg(rretregs & INSTR.LSW);
+        reg_t Rd = reg, Rn = rreg, Rm = reg;    // reg = rreg + reg
+        const uint ftype = INSTR.szToFtype(sz1);
+        switch (e.Eoper)
+        {
+            // FADD/FSUB (extended register)
+            // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
+            case OPaddass:
+                cdb.gen1(INSTR.fadd_float(ftype,Rn,Rm,Rd));     // FADD Rd,Rn,Rm
+                if (!regvar)
+                {
+                    storeToEA(cs,reg,sz1);
+                    cdb.gen(&cs);
+                }
+
+                reg  = findreg(retregs  & INSTR.MSW);
+                rreg = findreg(rretregs & INSTR.MSW);
+                if (cs.reg == NOREG)
+                    cs.IEV1.Voffset += sz1;
+                else
+                    cs.reg = reg;
+                loadFromEA(cs,reg,sz1,sz1);
+                cdb.gen(&cs);
+                Rd = reg, Rn = rreg, Rm = reg;                  // reg = rreg + reg
+                cdb.gen1(INSTR.fadd_float(ftype,Rn,Rm,Rd));     // FADD Rd,Rn,Rm
+                break;
+
+            case OPminass:
+                cdb.gen1(INSTR.fsub_float(ftype,Rn,Rm,Rd));     // FSUB Rd,Rn,Rm
+                break;
+
+            case OPmulass:
+            case OPdivass:
+                assert(0); // TODO AArch64
+
+            default:
+                assert(0);
+        }
+    }
+    else if (sz1 == 16)      // 128 bit float
     {
         CLIB_A clib;
         switch (e.Eoper)
@@ -631,7 +679,7 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     else
     {
-        reg_t Rd = reg, Rn = rreg, Rm = reg;
+        const reg_t Rd = reg, Rn = rreg, Rm = reg;
         uint ftype = INSTR.szToFtype(sz1);
         switch (e.Eoper)
         {

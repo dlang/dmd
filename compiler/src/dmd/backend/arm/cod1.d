@@ -1371,6 +1371,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
     regm_t forccs = outretregs & mPSW;
     regm_t forregs = outretregs & (INSTR.ALLREGS | INSTR.FLOATREGS);
     tym_t tym = tybasic(e.Ety);
+    bool isPair = isRegisterPair(true, tym, 0);
 
     if (tym == TYstruct)
     {
@@ -1388,8 +1389,32 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
         outretregs = retregs;
     else if (forregs)             // if return the result in registers
     {
-        bool opsflag = false;
-        if (tyfloating(tym))
+        if (isPair)
+        {
+            sz /= 2;
+            reg_t msreg = findreg(retregs & INSTR.MSW);
+            reg_t lsreg = findreg(retregs & INSTR.LSW);
+
+            allocreg(cdb, outretregs, tym);  // allocate return regs
+            reg_t msrreg = findreg(outretregs & INSTR.MSW);
+            reg_t lsrreg = findreg(outretregs & INSTR.LSW);
+
+            // should fix genmovreg() to do this work
+            if (tyfloating(tym))
+            {
+                const uint ftype = INSTR.szToFtype(sz);
+                assert((msreg & lsreg & msrreg & lsrreg) & 32);      // ensure all fp registers
+                cdb.gen1(INSTR.fmov(ftype,msreg,msrreg));            // FMOV msrreg,msreg
+                cdb.gen1(INSTR.fmov(ftype,lsreg,lsrreg));            // FMOV lsrreg,lsreg
+            }
+            else
+            {
+                assert(((msreg | lsreg | msrreg | lsrreg) & 32) == 0); // ensure all gp registers
+                cdb.gen1(INSTR.mov_register(sz == 8,msreg,msrreg));  // MOV msrreg,msreg
+                cdb.gen1(INSTR.mov_register(sz == 8,lsreg,lsrreg));  // MOV lsrreg,lsreg
+            }
+        }
+        else if (tyfloating(tym))
         {
             assert(outretregs & INSTR.FLOATREGS);
             reg_t Vn = findreg(retregs);
@@ -1405,25 +1430,13 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
                 cdb.gen1(INSTR.fmov(ftype,Vn,Vd));  // FMOV Vd,Vn
             }
         }
-        else if (sz > REGSIZE)
-        {
-            reg_t msreg = findreg(retregs & INSTR.MSW);
-            reg_t lsreg = findreg(retregs & INSTR.LSW);
-
-            allocreg(cdb, outretregs, tym);  // allocate return regs
-            reg_t msrreg = findreg(outretregs & INSTR.MSW);
-            reg_t lsrreg = findreg(outretregs & INSTR.LSW);
-
-            cdb.gen1(INSTR.mov_register(sz == 8,msreg,msrreg));  // MOV msrreg,msreg
-            cdb.gen1(INSTR.mov_register(sz == 8,lsreg,lsrreg));  // MOV lsrreg,lsreg
-        }
         else
         {
             reg_t reg = findreg(retregs & INSTR.ALLREGS);
             reg_t rreg = allocreg(cdb, outretregs, tym);     // allocate return regs
             cdb.gen1(INSTR.mov_register(sz == 8,reg,rreg));  // MOV rreg,reg
         }
-        cssave(e,retregs | outretregs,opsflag);
+        cssave(e,retregs | outretregs,false);
         // Commented out due to Bugzilla 8840
         //forregs = 0;    // don't care about result in reg cuz real result is in rreg
         retregs = outretregs & ~mPSW;
