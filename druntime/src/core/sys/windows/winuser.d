@@ -3720,8 +3720,8 @@ nothrow @nogc {
 alias GetWindow GetNextWindow;
 
 extern (Windows) nothrow @nogc:
-LONG DispatchMessageA(const(MSG)*);
-LONG DispatchMessageW(const(MSG)*);
+LRESULT DispatchMessageA(const(MSG)*);
+LRESULT DispatchMessageW(const(MSG)*);
 int DlgDirListA(HWND, LPSTR, int, int, UINT);
 int DlgDirListW(HWND, LPWSTR, int, int, UINT);
 int DlgDirListComboBoxA(HWND, LPSTR, int, int, UINT);
@@ -4034,8 +4034,8 @@ BOOL ScreenToClient(HWND, LPPOINT);
 BOOL ScrollDC(HDC, int, int, LPCRECT, LPCRECT, HRGN, LPRECT);
 BOOL ScrollWindow(HWND, int, int, LPCRECT, LPCRECT);
 int ScrollWindowEx(HWND, int, int, LPCRECT, LPCRECT, HRGN, LPRECT, UINT);
-LONG SendDlgItemMessageA(HWND, int, UINT, WPARAM, LPARAM);
-LONG SendDlgItemMessageW(HWND, int, UINT, WPARAM, LPARAM);
+LRESULT SendDlgItemMessageA(HWND, int, UINT, WPARAM, LPARAM);
+LRESULT SendDlgItemMessageW(HWND, int, UINT, WPARAM, LPARAM);
 LRESULT SendMessageA(HWND, UINT, WPARAM, LPARAM);
 BOOL SendMessageCallbackA(HWND, UINT, WPARAM, LPARAM, SENDASYNCPROC, ULONG_PTR);
 BOOL SendMessageCallbackW(HWND, UINT, WPARAM, LPARAM, SENDASYNCPROC, ULONG_PTR);
