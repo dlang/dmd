@@ -191,10 +191,11 @@ $(H3 $(LNAME2 component-types, Component Types))
     $(TROW `R function(Params)`,
         $(ARGS `R(Params)` - see $(RELATIVE_LINK2 functions, Function Types)))
     $(TROW `R delegate(Params)`,
-        $(ARGS `R(Params)`, `void*`))
+        $(ARGS `R function(Params)`, `void*`))
     $(TROW `T[]`, `T`)
     $(TROW `T[`*AssignExpression*`]`, `T`)
     $(TROW `V[K]`, $(ARGS `K`, `V`))
+    $(TROW `AliasSeq!(Params)`, `Params`)
     )
     $(P $(DDLINK spec/const3, Type Qualifiers, Applying a type qualifier) to
     a derived data type will also apply it to all its component types.)
