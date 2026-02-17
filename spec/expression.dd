@@ -1210,11 +1210,13 @@ $(GNAME ComplementExpression):
 $(H3 $(LNAME2 delete_expressions, Delete Expressions))
 
 $(GRAMMAR
+$(GLEGACY
 $(GNAME DeleteExpression):
-    $(D delete) $(GLINK UnaryExpression)
+    $(D delete) $(GLINK UnaryExpression))
 )
-    $(DDOC_DEPRECATED `delete` has been deprecated.  Instead, please use $(REF1 destroy, object)
-    if feasible, or $(REF __delete, core, memory) as a last resort.)
+    $(LEGACY_PANEL `delete` $(DDSUBLINK deprecate, delete, has been removed).
+    Instead, use $(REF1 destroy, object) if feasible, or
+    $(REF __delete, core, memory) as a last resort.
 
     $(P If the $(I UnaryExpression) is a class object reference, and
         there is a destructor for that class, the destructor
@@ -1252,6 +1254,7 @@ $(GNAME DeleteExpression):
     $(LI Using `delete` to free memory not allocated by the garbage collector.)
     $(LI Referring to data that has been the operand of `delete`.)
     ))
+    )
 
 $(H3 $(LNAME2 cast_expressions, Cast Expressions))
 
