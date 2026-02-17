@@ -60,7 +60,7 @@ $(P would be lowered to:)
 
 ```
 shared int i;
-i.atomicOp!"+="(1);
+i.atomicOp!"+="(5);
 ```
 )
 )
