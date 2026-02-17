@@ -1287,7 +1287,7 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     )
 
-    $(LI When a parameter is returned by value from a function and Named Returned Value Optimization (NRVO)
+    $(LI When a parameter is returned by value from a function and Named Return Value Optimization (NRVO)
     cannot be performed:)
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
