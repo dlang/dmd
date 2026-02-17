@@ -2276,6 +2276,8 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     const tyml = tybasic(e.E1.Ety);
     const sz = _tysize[tyml];
+    bool isPair = isRegisterPair(true, tyml, 0);
+
     if (tyfloating(tyml))
     {
         regm_t retregs = pretregs & INSTR.FLOATREGS;
@@ -2285,15 +2287,24 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         codelem(cgstate,cdb,e.E1,retregs,false);
         getregs(cdb,retregs);               // retregs will be destroyed
 
-        const Vn = findreg(retregs);
-
-        if (sz == 16)                   // 128 bit float
+        if (isPair)
+        {
+            const szx = sz / 2;
+            assert(szx != 16);              // TODO AArch64 128 bit floats
+            const reg_t reglsw = findreg(retregs & INSTR.LSW);
+            const reg_t regmsw = findreg(retregs & INSTR.MSW);
+            const ftype = INSTR.szToFtype(szx);
+            cdb.gen1(INSTR.fneg_float(ftype, reglsw, reglsw)); // fneg reglsw,reglsw
+            cdb.gen1(INSTR.fneg_float(ftype, regmsw, regmsw)); // fneg regmsw,regmsw
+        }
+        else if (sz == 16)                  // 128 bit float
         {
             /* Generate:
                 FMOV Xn,Vn.d[1] // upper 64 bits
                 EOR  Xn,Xn,#0x8000_0000_0000_0000  // toggle sign bit
                 FMOV Vn.d[1],Xn // store upper 64 bits
              */
+            const Vn = findreg(retregs);
             // Alloc Xn
             regm_t retregsx = cg.allregs;
             const Xn = allocreg(cdb,retregsx,TYllong); // scratch register Xn
@@ -2307,6 +2318,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         }
         else
         {
+            const Vn = findreg(retregs);
             const ftype = INSTR.szToFtype(sz);
             cdb.gen1(INSTR.fneg_float(ftype, Vn, Vn));
         }
@@ -2321,6 +2333,8 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     codelem(cg,cdb,e.E1,retregs,false);
     getregs(cdb,retregs);               // retregs will be destroyed
     const Rm = findreg(retregs);
+
+    assert(!isPair);
 
     /* NEG  https://www.scs.stanford.edu/~zyedidia/arm64/neg_sub_addsub_shift.html
      * NEGS https://www.scs.stanford.edu/~zyedidia/arm64/negs_subs_addsub_shift.html
