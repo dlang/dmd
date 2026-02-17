@@ -1395,7 +1395,12 @@ L3:
 /**************************
  * Generate a MOV to,from register instruction.
  * Smart enough to dump redundant register moves, and segment
- * register moves.
+ * register moves. No conversions are done.
+ * Params:
+ *      cdb = code sink
+ *      to = destination register
+ *      from = source register
+ *      ty = type, TYMAX means use full register
  */
 
 @trusted
@@ -1403,17 +1408,31 @@ void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t ty = TYMAX)
 {
     if (to != from)
     {
-        if (mask(to) & INSTR.FLOATREGS)
-        {
-            // floating point
-            uint ftype = INSTR.szToFtype(ty == TYMAX ? 8 : _tysize[ty]);
-            cdb.gen1(INSTR.fmov(ftype, from & 31, to & 31));
-        }
-        else
+        if (!((to | from) & 32)) // both are gp registers
         {
             // integer
-            uint sf = ty == TYMAX || _tysize[ty] == 8;
-            cdb.gen1(INSTR.mov_register(sf, from, to));    // MOV to,from
+            const uint sf = ty == TYMAX || _tysize[ty] == 8;
+            cdb.gen1(INSTR.mov_register(sf, from, to));    // MOV gp,gp https://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_log_shift.html
+
+        }
+        else // one or both are floating point registers
+        {
+            const uint ftype = INSTR.szToFtype(ty == TYMAX ? 8 : _tysize[ty]);
+            if (to & from & 32) // both are fp registers
+            {
+                // floating point
+                cdb.gen1(INSTR.fmov(ftype, from, to));               // FMOV fp,fp https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float.html
+            }
+            else if ((to & 32) && !(from & 32))
+            {
+                cdb.gen1(INSTR.fmov_float_gen(1,ftype,0,7,from,to)); // FMOV fp,gp https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
+            }
+            else if (!(to & 32) && (from & 32))
+            {
+                cdb.gen1(INSTR.fmov_float_gen(1,ftype,0,6,from,to)); // FMOV gp,fp https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
+            }
+            else
+                assert(0);
         }
     }
 }
