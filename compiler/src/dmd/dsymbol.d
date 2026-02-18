@@ -47,7 +47,7 @@ import dmd.tokens;
 import dmd.visitor;
 
 import dmd.common.outbuffer;
-
+import dmd.dsymbolsem;
 /***************************************
  * Calls dg(Dsymbol* sym) for each Dsymbol.
  * If dg returns !=0, stops and returns that value else returns 0.
@@ -765,16 +765,6 @@ extern (C++) class Dsymbol : ASTNode
         assert(0);
     }
 
-    /****************************************
-     * Add documentation comment to Dsymbol.
-     * Ignore NULL comments.
-     */
-    void addComment(const(char)* comment)
-    {
-        import dmd.dsymbolsem;
-        dmd.dsymbolsem.addComment(this, comment);
-    }
-
     /// get documentation comment for this Dsymbol
     final const(char)* comment()
     {
@@ -786,9 +776,6 @@ extern (C++) class Dsymbol : ASTNode
         }
         return null;
     }
-
-    /* Shell around addComment() to avoid disruption for the moment */
-    final void comment(const(char)* comment) { addComment(comment); }
 
     extern (D) __gshared const(char)*[void*] commentHashTable;
 
@@ -1072,7 +1059,7 @@ public:
     {
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
-        sds.comment = comment;
+        sds.addComment(comment);
         sds.members = arraySyntaxCopy(members);
         sds.endlinnum = endlinnum;
         return sds;

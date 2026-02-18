@@ -17,6 +17,8 @@ import dmd.dsymbol;
 import dmd.identifier;
 import dmd.location;
 import dmd.visitor;
+import dmd.dsymbolsem;
+
 
 /***********************************************************
  */
@@ -95,7 +97,7 @@ extern (C++) final class Import : Dsymbol
     {
         assert(!s);
         auto si = new Import(loc, packages, id, aliasId, isstatic);
-        si.comment = comment;
+        si.addComment(comment);
         assert(!(isstatic && names.length));
         if (names.length && !si.aliasId)
             si.ident = null;

@@ -29,6 +29,8 @@ import dmd.rootobject;
 import dmd.root.string;
 import dmd.tokens;
 import dmd.expression;
+import dmd.dsymbolsem;
+
 
 alias CompileEnv = dmd.lexer.CompileEnv;
 

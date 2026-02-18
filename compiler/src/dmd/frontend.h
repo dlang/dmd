@@ -613,9 +613,7 @@ public:
     virtual bool needThis();
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
-    virtual void addComment(const char* comment);
     const char* comment();
-    void comment(const char* comment);
     UnitTestDeclaration* ddocUnittest();
     void ddocUnittest(UnitTestDeclaration* utd);
     bool inNonRoot();
