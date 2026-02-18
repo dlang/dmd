@@ -1,3 +1,5 @@
+// REQUIRED_ARGS:
+
 struct S1
 {
     int a;

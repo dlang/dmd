@@ -459,16 +459,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
-        if (agg.sizeok != Sizeok.done)
-        {
-            agg.size(e.loc);
-        }
-        if (agg.sizeok != Sizeok.done)
-        {
-            error(e.loc, "%s `%s` is forward referenced", agg.kind(), agg.toChars());
-            return ErrorExp.get();
-        }
-
         auto o2 = (*e.args)[1];
         auto s2 = getDsymbolWithoutExpCtx(o2); 
         auto v = s2 ? s2.isVarDeclaration() : null;
@@ -484,23 +474,31 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         // an anonymous union that contains this field.
         import dmd.attrib : AnonDeclaration;
         
-        if (agg.members)
+        // Try to resolve forward reference if needed
+        if (agg.semanticRun < PASS.semanticdone)
+            agg.dsymbolSemantic(null);
+        
+        // Check if the aggregate has been defined
+        if (!agg.members)
         {
-            foreach (member; *agg.members)
+            error(e.loc, "%s `%s` is forward referenced", agg.kind(), agg.toChars());
+            return ErrorExp.get();
+        }
+        
+        foreach (member; *agg.members)
+        {
+            if (auto anon = member.isAnonDeclaration())
             {
-                if (auto anon = member.isAnonDeclaration())
+                // Check if this is an anonymous union
+                if (anon.isunion)
                 {
-                    // Check if this is an anonymous union
-                    if (anon.isunion)
+                    // Check if our field is in this anonymous union
+                    if (anon.decl)
                     {
-                        // Check if our field is in this anonymous union
-                        if (anon.decl)
+                        foreach (anonMember; *anon.decl)
                         {
-                            foreach (anonMember; *anon.decl)
-                            {
-                                if (anonMember == v)
-                                    return True();
-                            }
+                            if (anonMember == v)
+                                return True();
                         }
                     }
                 }
@@ -2410,7 +2408,7 @@ private void traitNotFound(TraitsExp e)
         initialized = true;     // lazy initialization
 
         // All possible traits
-        __gshared Identifier*[59] idents =
+        __gshared Identifier*[60] idents =
         [
             &Id.allMembers,
             &Id.child,
@@ -2442,6 +2440,7 @@ private void traitNotFound(TraitsExp e)
             &Id.identifier,
             &Id.isAbstractClass,
             &Id.isAbstractFunction,
+            &Id.isAnonymousUnion,
             &Id.isArithmetic,
             &Id.isAssociativeArray,
             &Id.isCopyable,

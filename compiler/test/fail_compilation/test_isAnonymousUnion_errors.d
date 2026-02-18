@@ -1,11 +1,11 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test_isAnonymousUnion_errors.d(101): Error: expected 2 arguments for `isAnonymousUnion` but had 0
-fail_compilation/test_isAnonymousUnion_errors.d(102): Error: expected 2 arguments for `isAnonymousUnion` but had 1
-fail_compilation/test_isAnonymousUnion_errors.d(103): Error: expected 2 arguments for `isAnonymousUnion` but had 3
-fail_compilation/test_isAnonymousUnion_errors.d(104): Error: first argument is not an aggregate type
-fail_compilation/test_isAnonymousUnion_errors.d(105): Error: second argument is not a field
+fail_compilation/test_isAnonymousUnion_errors.d(100): Error: expected 2 arguments for `isAnonymousUnion` but had 0
+fail_compilation/test_isAnonymousUnion_errors.d(101): Error: expected 2 arguments for `isAnonymousUnion` but had 1
+fail_compilation/test_isAnonymousUnion_errors.d(102): Error: expected 2 arguments for `isAnonymousUnion` but had 3
+fail_compilation/test_isAnonymousUnion_errors.d(103): Error: first argument is not an aggregate type
+fail_compilation/test_isAnonymousUnion_errors.d(104): Error: second argument to `__traits(isAnonymousUnion)` is not a field
 ---
 */
 
