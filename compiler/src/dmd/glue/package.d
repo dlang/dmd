@@ -258,13 +258,13 @@ tym_t totym(Type tx)
         case Tuns64:    t = TYullong;   break;
         case Tfloat32:  t = TYfloat;    break;
         case Tfloat64:  t = TYdouble;   break;
-        case Tfloat80:  t = RealIsDouble ? TYdouble : TYldouble;  break;
+        case Tfloat80:  t = RealIsDouble ? TYdouble : TYreal;  break;
         case Timaginary32: t = TYifloat; break;
         case Timaginary64: t = TYidouble; break;
-        case Timaginary80: t = RealIsDouble ? TYidouble : TYildouble; break;
+        case Timaginary80: t = RealIsDouble ? TYidouble : TYireal; break;
         case Tcomplex32: t = TYcfloat;  break;
         case Tcomplex64: t = TYcdouble; break;
-        case Tcomplex80: t = RealIsDouble ? TYcdouble : TYcldouble; break;
+        case Tcomplex80: t = RealIsDouble ? TYcdouble : TYcreal; break;
         case Tbool:     t = TYbool;     break;
         case Tchar:     t = TYchar;     break;
         case Twchar:    t = TYwchar_t;  break;
@@ -294,13 +294,13 @@ tym_t totym(Type tx)
             else if (id == Id.__c_ulong)
                 t = tb.ty == Tuns32 ? TYulong : TYullong;
             else if (id == Id.__c_long_double)
-                t = tb.size() == 8 ? TYdouble : TYldouble;
+                t = tb.size() == 8 ? TYdouble : TYreal;
             else if (id == Id.__c_complex_float)
                 t = TYcfloat;
             else if (id == Id.__c_complex_double)
                 t = TYcdouble;
             else if (id == Id.__c_complex_real)
-                t = tb.size() == 16 ? TYcdouble : TYcldouble;
+                t = tb.size() == 16 ? TYcdouble : TYcreal;
             else
                 t = totym(tb);
             break;

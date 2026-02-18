@@ -30,7 +30,7 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.ty;
-import dmd.backend.evalu8 : el_toldoubled;
+import dmd.backend.evalu8 : el_toreald;
 
 
 nothrow:
@@ -131,9 +131,9 @@ private void ndp_fstp(ref CodeBuilder cdb, size_t i, tym_t ty)
             cdb.genc1(0xDD,modregrm(2,3,BPRM),FL.ndp,i); // FSTP m64real i[BP]
             break;
 
-        case TYldouble:
-        case TYildouble:
-        case TYcldouble:
+        case TYreal:
+        case TYireal:
+        case TYcreal:
             cdb.genc1(0xDB,modregrm(2,7,BPRM),FL.ndp,i); // FSTP m80real i[BP]
             break;
 
@@ -160,9 +160,9 @@ private void ndp_fld(ref CodeBuilder cdb, size_t i, tym_t ty)
             cdb.genc1(0xDD,modregrm(2,0,BPRM),FL.ndp,i);
             break;
 
-        case TYldouble:
-        case TYildouble:
-        case TYcldouble:
+        case TYreal:
+        case TYireal:
+        case TYcreal:
             cdb.genc1(0xDB,modregrm(2,5,BPRM),FL.ndp,i); // FLD m80real i[BP]
             break;
 
@@ -425,18 +425,18 @@ void gensaverestore87(regm_t regm, ref CodeBuilder cdbsave, ref CodeBuilder cdbr
 
     auto ndp0 = NDP(el_calloc());
     const i = getemptyslot(global87.save, ndp0);  // this blocks slot [i] for the life of this function
-    ndp_fstp(cdbsave, i, TYldouble);
+    ndp_fstp(cdbsave, i, TYreal);
 
     CodeBuilder cdb2a;
     cdb2a.ctor();
-    ndp_fld(cdb2a, i, TYldouble);
+    ndp_fld(cdb2a, i, TYreal);
 
     if (regm == mST01)
     {
         auto ndp1 = NDP(el_calloc());
         const j = getemptyslot(global87.save, ndp1);
-        ndp_fstp(cdbsave, j, TYldouble);
-        ndp_fld(cdbrestore, j, TYldouble);
+        ndp_fstp(cdbsave, j, TYreal);
+        ndp_fld(cdbrestore, j, TYreal);
     }
 
     cdbrestore.append(cdb2a);
@@ -652,7 +652,7 @@ ubyte loadconst(elem* e, int im)
     static if (real.sizeof < 10)
     {
         import dmd.root.longdouble;
-        immutable targ_ldouble[7] ldval =
+        immutable targ_real[7] ldval =
         [ld_zero,ld_one,ld_pi,ld_log2t,ld_log2e,ld_log2,ld_ln2];
     }
     else
@@ -662,7 +662,7 @@ ubyte loadconst(elem* e, int im)
         enum M_LOG2E_L     = 0x1.71547652b82fe178p+0L;       // 1.4427 fldl2e
         enum M_LOG2_L      = 0x1.34413509f79fef32p-2L;       // 0.30103 fldlg2
         enum M_LN2_L       = 0x1.62e42fefa39ef358p-1L;       // 0.693147 fldln2
-        immutable targ_ldouble[7] ldval =
+        immutable targ_real[7] ldval =
         [0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L];
     }
 
@@ -673,7 +673,7 @@ ubyte loadconst(elem* e, int im)
     int i;
     targ_float f;
     targ_double d;
-    targ_ldouble ld;
+    targ_real ld;
     int sz;
     int zero;
     void* p;
@@ -700,10 +700,10 @@ ubyte loadconst(elem* e, int im)
                 p = &d;
                 break;
 
-            case TYldouble:
-            case TYildouble:
-            case TYcldouble:
-                ld = e.Vldouble;
+            case TYreal:
+            case TYireal:
+            case TYcreal:
+                ld = e.Vreal;
                 sz = 10;
                 p = &ld;
                 break;
@@ -728,8 +728,8 @@ ubyte loadconst(elem* e, int im)
                 p = &d;
                 break;
 
-            case TYcldouble:
-                ld = e.Vcldouble.im;
+            case TYcreal:
+                ld = e.Vcreal.im;
                 sz = 10;
                 p = &ld;
                 break;
@@ -959,7 +959,7 @@ void orth87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         sz2 /= 2;
 
     OPER eoper = e.Eoper;
-    if (eoper == OPmul && e2.Eoper == OPconst && el_toldoubled(e.E2) == 2.0L)
+    if (eoper == OPmul && e2.Eoper == OPconst && el_toreald(e.E2) == 2.0L)
     {
         // Perform "mul 2.0" as fadd ST(0), ST
         regm_t retregs = mST0;
@@ -980,80 +980,80 @@ void orth87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         case X(OPadd, TYfloat, TYfloat):
         case X(OPadd, TYdouble, TYdouble):
         case X(OPadd, TYdouble_alias, TYdouble_alias):
-        case X(OPadd, TYldouble, TYldouble):
-        case X(OPadd, TYldouble, TYdouble):
-        case X(OPadd, TYdouble, TYldouble):
+        case X(OPadd, TYreal, TYreal):
+        case X(OPadd, TYreal, TYdouble):
+        case X(OPadd, TYdouble, TYreal):
         case X(OPadd, TYifloat, TYifloat):
         case X(OPadd, TYidouble, TYidouble):
-        case X(OPadd, TYildouble, TYildouble):
+        case X(OPadd, TYireal, TYireal):
             op = 0;                             // FADDP
             break;
 
         case X(OPmin, TYfloat, TYfloat):
         case X(OPmin, TYdouble, TYdouble):
         case X(OPmin, TYdouble_alias, TYdouble_alias):
-        case X(OPmin, TYldouble, TYldouble):
-        case X(OPmin, TYldouble, TYdouble):
-        case X(OPmin, TYdouble, TYldouble):
+        case X(OPmin, TYreal, TYreal):
+        case X(OPmin, TYreal, TYdouble):
+        case X(OPmin, TYdouble, TYreal):
         case X(OPmin, TYifloat, TYifloat):
         case X(OPmin, TYidouble, TYidouble):
-        case X(OPmin, TYildouble, TYildouble):
+        case X(OPmin, TYireal, TYireal):
             op = 4;                             // FSUBP
             break;
 
         case X(OPmul, TYfloat, TYfloat):
         case X(OPmul, TYdouble, TYdouble):
         case X(OPmul, TYdouble_alias, TYdouble_alias):
-        case X(OPmul, TYldouble, TYldouble):
-        case X(OPmul, TYldouble, TYdouble):
-        case X(OPmul, TYdouble, TYldouble):
+        case X(OPmul, TYreal, TYreal):
+        case X(OPmul, TYreal, TYdouble):
+        case X(OPmul, TYdouble, TYreal):
         case X(OPmul, TYifloat, TYifloat):
         case X(OPmul, TYidouble, TYidouble):
-        case X(OPmul, TYildouble, TYildouble):
+        case X(OPmul, TYireal, TYireal):
         case X(OPmul, TYfloat, TYifloat):
         case X(OPmul, TYdouble, TYidouble):
-        case X(OPmul, TYldouble, TYildouble):
+        case X(OPmul, TYreal, TYireal):
         case X(OPmul, TYifloat, TYfloat):
         case X(OPmul, TYidouble, TYdouble):
-        case X(OPmul, TYildouble, TYldouble):
+        case X(OPmul, TYireal, TYreal):
             op = 1;                             // FMULP
             break;
 
         case X(OPdiv, TYfloat, TYfloat):
         case X(OPdiv, TYdouble, TYdouble):
         case X(OPdiv, TYdouble_alias, TYdouble_alias):
-        case X(OPdiv, TYldouble, TYldouble):
-        case X(OPdiv, TYldouble, TYdouble):
-        case X(OPdiv, TYdouble, TYldouble):
+        case X(OPdiv, TYreal, TYreal):
+        case X(OPdiv, TYreal, TYdouble):
+        case X(OPdiv, TYdouble, TYreal):
         case X(OPdiv, TYifloat, TYifloat):
         case X(OPdiv, TYidouble, TYidouble):
-        case X(OPdiv, TYildouble, TYildouble):
+        case X(OPdiv, TYireal, TYireal):
             op = 6;                             // FDIVP
             break;
 
         case X(OPmod, TYfloat, TYfloat):
         case X(OPmod, TYdouble, TYdouble):
         case X(OPmod, TYdouble_alias, TYdouble_alias):
-        case X(OPmod, TYldouble, TYldouble):
+        case X(OPmod, TYreal, TYreal):
         case X(OPmod, TYfloat, TYifloat):
         case X(OPmod, TYdouble, TYidouble):
-        case X(OPmod, TYldouble, TYildouble):
+        case X(OPmod, TYreal, TYireal):
         case X(OPmod, TYifloat, TYifloat):
         case X(OPmod, TYidouble, TYidouble):
-        case X(OPmod, TYildouble, TYildouble):
+        case X(OPmod, TYireal, TYireal):
         case X(OPmod, TYifloat, TYfloat):
         case X(OPmod, TYidouble, TYdouble):
-        case X(OPmod, TYildouble, TYldouble):
+        case X(OPmod, TYireal, TYreal):
             op = cast(uint) -1;
             break;
 
         case X(OPeqeq, TYfloat, TYfloat):
         case X(OPeqeq, TYdouble, TYdouble):
         case X(OPeqeq, TYdouble_alias, TYdouble_alias):
-        case X(OPeqeq, TYldouble, TYldouble):
+        case X(OPeqeq, TYreal, TYreal):
         case X(OPeqeq, TYifloat, TYifloat):
         case X(OPeqeq, TYidouble, TYidouble):
-        case X(OPeqeq, TYildouble, TYildouble):
+        case X(OPeqeq, TYireal, TYireal):
         {
             assert(OTrel(e.Eoper));
             assert((pretregs & mST0) == 0);
@@ -1141,55 +1141,55 @@ void orth87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPadd, TYcfloat, TYcfloat):
         case X(OPadd, TYcdouble, TYcdouble):
-        case X(OPadd, TYcldouble, TYcldouble):
+        case X(OPadd, TYcreal, TYcreal):
         case X(OPadd, TYcfloat, TYfloat):
         case X(OPadd, TYcdouble, TYdouble):
-        case X(OPadd, TYcldouble, TYldouble):
+        case X(OPadd, TYcreal, TYreal):
         case X(OPadd, TYfloat, TYcfloat):
         case X(OPadd, TYdouble, TYcdouble):
-        case X(OPadd, TYldouble, TYcldouble):
+        case X(OPadd, TYreal, TYcreal):
             goto Lcomplex;
 
         case X(OPadd, TYifloat, TYcfloat):
         case X(OPadd, TYidouble, TYcdouble):
-        case X(OPadd, TYildouble, TYcldouble):
+        case X(OPadd, TYireal, TYcreal):
             goto Lcomplex2;
 
         case X(OPmin, TYcfloat, TYcfloat):
         case X(OPmin, TYcdouble, TYcdouble):
-        case X(OPmin, TYcldouble, TYcldouble):
+        case X(OPmin, TYcreal, TYcreal):
         case X(OPmin, TYcfloat, TYfloat):
         case X(OPmin, TYcdouble, TYdouble):
-        case X(OPmin, TYcldouble, TYldouble):
+        case X(OPmin, TYcreal, TYreal):
         case X(OPmin, TYfloat, TYcfloat):
         case X(OPmin, TYdouble, TYcdouble):
-        case X(OPmin, TYldouble, TYcldouble):
+        case X(OPmin, TYreal, TYcreal):
             goto Lcomplex;
 
         case X(OPmin, TYifloat, TYcfloat):
         case X(OPmin, TYidouble, TYcdouble):
-        case X(OPmin, TYildouble, TYcldouble):
+        case X(OPmin, TYireal, TYcreal):
             goto Lcomplex2;
 
         case X(OPmul, TYcfloat, TYcfloat):
         case X(OPmul, TYcdouble, TYcdouble):
-        case X(OPmul, TYcldouble, TYcldouble):
+        case X(OPmul, TYcreal, TYcreal):
             goto Lcomplex;
 
         case X(OPdiv, TYcfloat, TYcfloat):
         case X(OPdiv, TYcdouble, TYcdouble):
-        case X(OPdiv, TYcldouble, TYcldouble):
+        case X(OPdiv, TYcreal, TYcreal):
         case X(OPdiv, TYfloat, TYcfloat):
         case X(OPdiv, TYdouble, TYcdouble):
-        case X(OPdiv, TYldouble, TYcldouble):
+        case X(OPdiv, TYreal, TYcreal):
         case X(OPdiv, TYifloat, TYcfloat):
         case X(OPdiv, TYidouble, TYcdouble):
-        case X(OPdiv, TYildouble, TYcldouble):
+        case X(OPdiv, TYireal, TYcreal):
             goto Lcomplex;
 
         case X(OPdiv, TYifloat,   TYfloat):
         case X(OPdiv, TYidouble,  TYdouble):
-        case X(OPdiv, TYildouble, TYldouble):
+        case X(OPdiv, TYireal, TYreal):
             op = 6;                             // FDIVP
             break;
 
@@ -1250,25 +1250,25 @@ void orth87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPeqeq, TYcfloat, TYcfloat):
         case X(OPeqeq, TYcdouble, TYcdouble):
-        case X(OPeqeq, TYcldouble, TYcldouble):
+        case X(OPeqeq, TYcreal, TYcreal):
         case X(OPeqeq, TYcfloat, TYifloat):
         case X(OPeqeq, TYcdouble, TYidouble):
-        case X(OPeqeq, TYcldouble, TYildouble):
+        case X(OPeqeq, TYcreal, TYireal):
         case X(OPeqeq, TYcfloat, TYfloat):
         case X(OPeqeq, TYcdouble, TYdouble):
-        case X(OPeqeq, TYcldouble, TYldouble):
+        case X(OPeqeq, TYcreal, TYreal):
         case X(OPeqeq, TYifloat, TYcfloat):
         case X(OPeqeq, TYidouble, TYcdouble):
-        case X(OPeqeq, TYildouble, TYcldouble):
+        case X(OPeqeq, TYireal, TYcreal):
         case X(OPeqeq, TYfloat, TYcfloat):
         case X(OPeqeq, TYdouble, TYcdouble):
-        case X(OPeqeq, TYldouble, TYcldouble):
+        case X(OPeqeq, TYreal, TYcreal):
         case X(OPeqeq, TYfloat, TYifloat):
         case X(OPeqeq, TYdouble, TYidouble):
-        case X(OPeqeq, TYldouble, TYildouble):
+        case X(OPeqeq, TYreal, TYireal):
         case X(OPeqeq, TYifloat, TYfloat):
         case X(OPeqeq, TYidouble, TYdouble):
-        case X(OPeqeq, TYildouble, TYldouble):
+        case X(OPeqeq, TYireal, TYreal):
         {
             loadComplex(cdb,e1);
             loadComplex(cdb,e2);
@@ -1281,17 +1281,17 @@ void orth87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPadd, TYfloat, TYifloat):
         case X(OPadd, TYdouble, TYidouble):
-        case X(OPadd, TYldouble, TYildouble):
+        case X(OPadd, TYreal, TYireal):
         case X(OPadd, TYifloat, TYfloat):
         case X(OPadd, TYidouble, TYdouble):
-        case X(OPadd, TYildouble, TYldouble):
+        case X(OPadd, TYireal, TYreal):
 
         case X(OPmin, TYfloat, TYifloat):
         case X(OPmin, TYdouble, TYidouble):
-        case X(OPmin, TYldouble, TYildouble):
+        case X(OPmin, TYreal, TYireal):
         case X(OPmin, TYifloat, TYfloat):
         case X(OPmin, TYidouble, TYdouble):
-        case X(OPmin, TYildouble, TYldouble):
+        case X(OPmin, TYireal, TYreal):
         {
             regm_t retregs = mST0;
             codelem(cgstate,cdb,e1, retregs, false);
@@ -1309,13 +1309,13 @@ void orth87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPadd, TYcfloat, TYifloat):
         case X(OPadd, TYcdouble, TYidouble):
-        case X(OPadd, TYcldouble, TYildouble):
+        case X(OPadd, TYcreal, TYireal):
             op = 0;
             goto Lci;
 
         case X(OPmin, TYcfloat, TYifloat):
         case X(OPmin, TYcdouble, TYidouble):
-        case X(OPmin, TYcldouble, TYildouble):
+        case X(OPmin, TYcreal, TYireal):
             op = 4;
             goto Lci;
 
@@ -1333,13 +1333,13 @@ void orth87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPmul, TYcfloat, TYfloat):
         case X(OPmul, TYcdouble, TYdouble):
-        case X(OPmul, TYcldouble, TYldouble):
+        case X(OPmul, TYcreal, TYreal):
             imaginary = false;
             goto Lcmul;
 
         case X(OPmul, TYcfloat, TYifloat):
         case X(OPmul, TYcdouble, TYidouble):
-        case X(OPmul, TYcldouble, TYildouble):
+        case X(OPmul, TYcreal, TYireal):
             imaginary = true;
         Lcmul:
         {
@@ -1368,13 +1368,13 @@ void orth87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPmul, TYfloat, TYcfloat):
         case X(OPmul, TYdouble, TYcdouble):
-        case X(OPmul, TYldouble, TYcldouble):
+        case X(OPmul, TYreal, TYcreal):
             imaginary = false;
             goto Lcmul2;
 
         case X(OPmul, TYifloat, TYcfloat):
         case X(OPmul, TYidouble, TYcdouble):
-        case X(OPmul, TYildouble, TYcldouble):
+        case X(OPmul, TYireal, TYcreal):
             imaginary = true;
         Lcmul2:
         {
@@ -1394,7 +1394,7 @@ void orth87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPdiv, TYcfloat, TYfloat):
         case X(OPdiv, TYcdouble, TYdouble):
-        case X(OPdiv, TYcldouble, TYldouble):
+        case X(OPdiv, TYcreal, TYreal):
         {
             loadComplex(cdb,e1);
             regm_t retregs = mST0;
@@ -1410,7 +1410,7 @@ void orth87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPdiv, TYcfloat, TYifloat):
         case X(OPdiv, TYcdouble, TYidouble):
-        case X(OPdiv, TYcldouble, TYildouble):
+        case X(OPdiv, TYcreal, TYireal):
         {
             loadComplex(cdb,e1);
             cdb.genf2(0xD9,0xC8 + 1);        // FXCH ST(1)
@@ -1429,10 +1429,10 @@ void orth87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         case X(OPmod, TYcfloat, TYfloat):
         case X(OPmod, TYcdouble, TYdouble):
-        case X(OPmod, TYcldouble, TYldouble):
+        case X(OPmod, TYcreal, TYreal):
         case X(OPmod, TYcfloat, TYifloat):
         case X(OPmod, TYcdouble, TYidouble):
-        case X(OPmod, TYcldouble, TYildouble):
+        case X(OPmod, TYcreal, TYireal):
         {
             /*
                         fld     E1.re
@@ -1585,7 +1585,7 @@ private void loadComplex(ref CodeBuilder cdb,elem* e)
     {
         case TYfloat:
         case TYdouble:
-        case TYldouble:
+        case TYreal:
             retregs = mST0;
             codelem(cgstate,cdb,e,retregs,false);
             // Convert to complex with a 0 for the imaginary part
@@ -1595,7 +1595,7 @@ private void loadComplex(ref CodeBuilder cdb,elem* e)
 
         case TYifloat:
         case TYidouble:
-        case TYildouble:
+        case TYireal:
             // Convert to complex with a 0 for the real part
             push87(cdb);
             cdb.gen2(0xD9,0xEE);              // FLDZ
@@ -1605,7 +1605,7 @@ private void loadComplex(ref CodeBuilder cdb,elem* e)
 
         case TYcfloat:
         case TYcdouble:
-        case TYcldouble:
+        case TYcreal:
             sz /= 2;
             retregs = mST01;
             codelem(cgstate,cdb,e,retregs,false);
@@ -1649,7 +1649,7 @@ void load87(ref CodeBuilder cdb,elem* e,uint eoffset,ref regm_t outretregs,elem*
     tym_t ty = tybasic(e.Ety);
     uint mf = (ty == TYfloat || ty == TYifloat || ty == TYcfloat) ? MFfloat : MFdouble;
     bool noted = false;
-    if ((ty == TYldouble || ty == TYildouble) &&
+    if ((ty == TYreal || ty == TYireal) &&
         op != -1 && e.Eoper != OPd_ld)
         goto Ldefault;
 L5:
@@ -1702,9 +1702,9 @@ L5:
                     case TYdouble_alias:
                         loadea(cdb,e,cs,ESC(mf,1),0,0,0,0); // FLD var
                         break;
-                    case TYldouble:
-                    case TYildouble:
-                    case TYcldouble:
+                    case TYreal:
+                    case TYireal:
+                    case TYcreal:
                         loadea(cdb,e,cs,0xDB,5,0,0,0);      // FLD var
                         break;
                     default:
@@ -1936,8 +1936,8 @@ int cmporder87(elem* e)
                 goto ret1;
 
         case OPconst:
-            if (loadconst(e, 0) || tybasic(e.Ety) == TYldouble
-                                || tybasic(e.Ety) == TYildouble)
+            if (loadconst(e, 0) || tybasic(e.Ety) == TYreal
+                                || tybasic(e.Ety) == TYireal)
             {
                 //printf("ret 1, loadconst(e) = %d\n", loadconst(e));
                 goto ret1;
@@ -1946,8 +1946,8 @@ int cmporder87(elem* e)
 
         case OPvar:
         case OPind:
-            if (tybasic(e.Ety) == TYldouble ||
-                tybasic(e.Ety) == TYildouble)
+            if (tybasic(e.Ety) == TYreal ||
+                tybasic(e.Ety) == TYireal)
                 goto ret1;
             goto ret0;
 
@@ -1995,15 +1995,15 @@ void eq87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         case TYifloat:
         case TYfloat:       op1 = ESC(MFfloat,1);   op2 = 3; break;
 
-        case TYildouble:
-        case TYldouble:     op1 = 0xDB;             op2 = 7; break;
+        case TYireal:
+        case TYreal:     op1 = 0xDB;             op2 = 7; break;
 
         default:
             assert(0);
     }
     if (pretregs & (mST0 | ALLREGS | mBP | XMMREGS)) // if want result on stack too
     {
-        if (ty1 == TYldouble || ty1 == TYildouble)
+        if (ty1 == TYreal || ty1 == TYireal)
         {
             push87(cdb);
             cdb.genf2(0xD9,0xC0);           // FLD ST(0)
@@ -2041,7 +2041,7 @@ void eq87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         }
         cs.Irm |= modregrm(0,op2,0);            // OR in reg field
         cdb.gen(&cs);
-        if (tysize(TYldouble) == 12)
+        if (tysize(TYreal) == 12)
         {
             /* This deals with the fact that 10 byte reals really
              * occupy 12 bytes by zeroing the extra 2 bytes.
@@ -2057,7 +2057,7 @@ void eq87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 cdb.gen(&cs);
             }
         }
-        else if (tysize(TYldouble) == 16)
+        else if (tysize(TYreal) == 16)
         {
             /* This deals with the fact that 10 byte reals really
              * occupy 16 bytes by zeroing the extra 6 bytes.
@@ -2108,13 +2108,13 @@ void complex_eq87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         case TYcdouble:     op1 = ESC(MFdouble,1);  op2 = 3; break;
         case TYcfloat:      op1 = ESC(MFfloat,1);   op2 = 3; break;
-        case TYcldouble:    op1 = 0xDB;             op2 = 7; break;
+        case TYcreal:    op1 = 0xDB;             op2 = 7; break;
         default:
             assert(0);
     }
     if (pretregs & (mST01 | mXMM0 | mXMM1))  // if want result on stack too
     {
-        if (ty1 == TYcldouble)
+        if (ty1 == TYcreal)
         {
             push87(cdb);
             push87(cdb);
@@ -2158,7 +2158,7 @@ void complex_eq87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     cdb.gen(&cs);
     if (fxch)
         cdb.genf2(0xD9,0xC8 + 1);       // FXCH ST(1)
-    if (tysize(TYldouble) == 12)
+    if (tysize(TYreal) == 12)
     {
         if (op1 == 0xDB)
         {
@@ -2173,7 +2173,7 @@ void complex_eq87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cdb.gen(&cs);               // MOV EA+22,0
         }
     }
-    if (tysize(TYldouble) == 16)
+    if (tysize(TYreal) == 16)
     {
         if (op1 == 0xDB)
         {
@@ -2276,12 +2276,12 @@ public void opass87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         case TYdouble:      op1 = ESC(MFdouble,1);  op2 = 3; break;
         case TYifloat:
         case TYfloat:       op1 = ESC(MFfloat,1);   op2 = 3; break;
-        case TYildouble:
-        case TYldouble:     op1 = 0xDB;             op2 = 7; break;
+        case TYireal:
+        case TYreal:     op1 = 0xDB;             op2 = 7; break;
 
         case TYcfloat:
         case TYcdouble:
-        case TYcldouble:
+        case TYcreal:
             if (e.Eoper == OPmodass)
                 opmod_complex87(cdb, e, pretregs);
             else
@@ -2311,7 +2311,7 @@ public void opass87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         push87(cdb);
         cs.Iop = op1;
-        if (ty1 == TYldouble || ty1 == TYildouble)
+        if (ty1 == TYreal || ty1 == TYireal)
             cs.Irm |= modregrm(0, 5, 0);    // FLD tbyte ptr ...
         cdb.gen(&cs);
         cdb.genf2(0xD9,0xC8 + 1);           // FXCH ST(1)
@@ -2337,7 +2337,7 @@ public void opass87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         push87(cdb);
         cs.Iop = op1;
-        if (ty1 == TYldouble || ty1 == TYildouble)
+        if (ty1 == TYreal || ty1 == TYireal)
             cs.Irm |= modregrm(0, 5, 0);    // FLD tbyte ptr ...
         cdb.gen(&cs);                       // FLD   e.E1
 
@@ -2348,7 +2348,7 @@ public void opass87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         pop87();
     }
-    else if (ty1 == TYldouble || ty1 == TYildouble)
+    else if (ty1 == TYreal || ty1 == TYireal)
     {
         push87(cdb);
         cs.Iop = op1;
@@ -2368,7 +2368,7 @@ public void opass87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     // if want result in registers
     if (pretregs & (mST0 | ALLREGS | mBP))
     {
-        if (ty1 == TYldouble || ty1 == TYildouble)
+        if (ty1 == TYreal || ty1 == TYireal)
         {
             push87(cdb);
             cdb.genf2(0xD9,0xC0);           // FLD ST(0)
@@ -2430,7 +2430,7 @@ private void opmod_complex87(ref CodeBuilder cdb, elem* e,ref regm_t pretregs)
     {
         case TYcdouble:  cs.Iop = ESC(MFdouble,1);      break;
         case TYcfloat:   cs.Iop = ESC(MFfloat,1);       break;
-        case TYcldouble: cs.Iop = 0xDB; cs.Irm |= modregrm(0, 5, 0); break;
+        case TYcreal: cs.Iop = 0xDB; cs.Irm |= modregrm(0, 5, 0); break;
         default:
             assert(0);
     }
@@ -2540,7 +2540,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         case OPpostdec:
         case OPminass:
         L1:
-            if (ty1 == TYcldouble)
+            if (ty1 == TYcreal)
             {
                 push87(cdb);
                 push87(cdb);
@@ -2676,7 +2676,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         case OPmulass:
             push87(cdb);
             push87(cdb);
-            if (ty1 == TYcldouble)
+            if (ty1 == TYcreal)
             {
                 cs.Iop = 0xDB;
                 cs.Irm |= modregrm(0, 5, 0);    // FLD tbyte ptr ...
@@ -2721,7 +2721,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             push87(cdb);
             push87(cdb);
             idxregs = idxregm(&cs);             // mask of index regs used
-            if (ty1 == TYcldouble)
+            if (ty1 == TYcreal)
             {
                 cs.Iop = 0xDB;
                 cs.Irm |= modregrm(0, 5, 0);    // FLD tbyte ptr ...
@@ -2799,12 +2799,12 @@ void cdnegass87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     modEA(cdb,&cs);
     cs.Irm |= modregrm(0,6,0);
     cs.Iop = 0x80;
-    if (tysize(TYldouble) > 10)
+    if (tysize(TYreal) > 10)
     {
-        if (tyml == TYldouble || tyml == TYildouble)
+        if (tyml == TYreal || tyml == TYireal)
             cs.IEV1.Voffset += 10 - 1;
-        else if (tyml == TYcldouble)
-            cs.IEV1.Voffset += tysize(TYldouble) + 10 - 1;
+        else if (tyml == TYcreal)
+            cs.IEV1.Voffset += tysize(TYreal) + 10 - 1;
         else
             cs.IEV1.Voffset += sz - 1;
     }
@@ -2828,8 +2828,8 @@ void cdnegass87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             case TYidouble:
             case TYdouble:
             case TYdouble_alias:        cs.Iop = 0xDD;  op = 0; break;
-            case TYildouble:
-            case TYldouble:             cs.Iop = 0xDB;  op = 5; break;
+            case TYireal:
+            case TYreal:             cs.Iop = 0xDB;  op = 5; break;
             default:
                 assert(0);
         }
@@ -2871,9 +2871,9 @@ void post87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         case TYifloat:
         case TYfloat:
         case TYcfloat:      op1 = ESC(MFfloat,1);   reg = 0;        break;
-        case TYildouble:
-        case TYldouble:
-        case TYcldouble:    op1 = 0xDB;             reg = 5;        break;
+        case TYireal:
+        case TYreal:
+        case TYcreal:    op1 = 0xDB;             reg = 5;        break;
         default:
             assert(0);
     }
@@ -3468,8 +3468,8 @@ void cdind87(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 cs.Iop = 0xDD;
                 break;
 
-            case TYildouble:
-            case TYldouble:
+            case TYireal:
+            case TYreal:
                 cs.Iop = 0xDB;
                 cs.Irm |= modregrm(0,5,0);
                 break;
@@ -3827,7 +3827,7 @@ void cload87(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     {
         case TYcfloat:      mf = MFfloat;           break;
         case TYcdouble:     mf = MFdouble;          break;
-        case TYcldouble:    break;
+        case TYcreal:    break;
         default:            assert(0);
     }
     switch (e.Eoper)
@@ -3848,7 +3848,7 @@ void cload87(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                     cdb.gen(&cs);
                     break;
 
-                case TYcldouble:
+                case TYcreal:
                     loadea(cdb,e,cs,0xDB,5,0,0,0);             // FLD var
                     cs.IEV1.Voffset += sz;
                     cdb.gen(&cs);

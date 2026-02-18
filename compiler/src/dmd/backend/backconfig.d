@@ -417,13 +417,13 @@ void out_config_debug(
 void util_set16()
 {
     // The default is 16 bits
-    _tysize[TYldouble] = 10;
-    _tysize[TYildouble] = 10;
-    _tysize[TYcldouble] = 20;
+    _tysize[TYreal] = 10;
+    _tysize[TYireal] = 10;
+    _tysize[TYcreal] = 20;
 
-    _tyalignsize[TYldouble] = 2;
-    _tyalignsize[TYildouble] = 2;
-    _tyalignsize[TYcldouble] = 2;
+    _tyalignsize[TYreal] = 2;
+    _tyalignsize[TYireal] = 2;
+    _tyalignsize[TYcreal] = 2;
 }
 
 /*******************************
@@ -448,21 +448,21 @@ void util_set32(exefmt_t exe)
     _tysize[TYnref] = LONGSIZE;
 if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
 {
-    _tysize[TYldouble] = 12;
-    _tysize[TYildouble] = 12;
-    _tysize[TYcldouble] = 24;
+    _tysize[TYreal] = 12;
+    _tysize[TYireal] = 12;
+    _tysize[TYcreal] = 24;
 }
 if (exe & (EX_OSX | EX_OSX64))
 {
-    _tysize[TYldouble] = 16;
-    _tysize[TYildouble] = 16;
-    _tysize[TYcldouble] = 32;
+    _tysize[TYreal] = 16;
+    _tysize[TYireal] = 16;
+    _tysize[TYcreal] = 32;
 }
 if (exe & EX_windos)
 {
-    _tysize[TYldouble] = 10;
-    _tysize[TYildouble] = 10;
-    _tysize[TYcldouble] = 20;
+    _tysize[TYreal] = 10;
+    _tysize[TYireal] = 10;
+    _tysize[TYcreal] = 20;
 }
 
     _tysize[TYsptr] = LONGSIZE;
@@ -479,21 +479,21 @@ if (exe & EX_windos)
     _tyalignsize[TYnptr] = LONGSIZE;
 if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
 {
-    _tyalignsize[TYldouble] = 4;
-    _tyalignsize[TYildouble] = 4;
-    _tyalignsize[TYcldouble] = 4;
+    _tyalignsize[TYreal] = 4;
+    _tyalignsize[TYireal] = 4;
+    _tyalignsize[TYcreal] = 4;
 }
 else if (exe & (EX_OSX | EX_OSX64))
 {
-    _tyalignsize[TYldouble] = 16;
-    _tyalignsize[TYildouble] = 16;
-    _tyalignsize[TYcldouble] = 16;
+    _tyalignsize[TYreal] = 16;
+    _tyalignsize[TYireal] = 16;
+    _tyalignsize[TYcreal] = 16;
 }
 if (exe & EX_windos)
 {
-    _tyalignsize[TYldouble] = 2;
-    _tyalignsize[TYildouble] = 2;
-    _tyalignsize[TYcldouble] = 2;
+    _tyalignsize[TYreal] = 2;
+    _tyalignsize[TYireal] = 2;
+    _tyalignsize[TYcreal] = 2;
 }
 
     _tyalignsize[TYsptr] = LONGSIZE;
@@ -535,15 +535,15 @@ void util_set64(exefmt_t exe)
     if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD |
                       EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64))
     {
-        _tysize[TYldouble] = 16;
-        _tysize[TYildouble] = 16;
-        _tysize[TYcldouble] = 32;
+        _tysize[TYreal] = 16;
+        _tysize[TYireal] = 16;
+        _tysize[TYcreal] = 32;
     }
     if (exe & EX_windos)
     {
-        _tysize[TYldouble] = 10;
-        _tysize[TYildouble] = 10;
-        _tysize[TYcldouble] = 20;
+        _tysize[TYreal] = 10;
+        _tysize[TYireal] = 10;
+        _tysize[TYcreal] = 20;
     }
     _tysize[TYsptr] = 8;
     _tysize[TYcptr] = 8;
@@ -559,21 +559,21 @@ void util_set64(exefmt_t exe)
     _tyalignsize[TYnref] = 8;
     if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
     {
-        _tyalignsize[TYldouble] = 16;
-        _tyalignsize[TYildouble] = 16;
-        _tyalignsize[TYcldouble] = 16;
+        _tyalignsize[TYreal] = 16;
+        _tyalignsize[TYireal] = 16;
+        _tyalignsize[TYcreal] = 16;
     }
     if (exe & (EX_OSX | EX_OSX64))
     {
-        _tyalignsize[TYldouble] = 16;
-        _tyalignsize[TYildouble] = 16;
-        _tyalignsize[TYcldouble] = 16;
+        _tyalignsize[TYreal] = 16;
+        _tyalignsize[TYireal] = 16;
+        _tyalignsize[TYcreal] = 16;
     }
     if (exe & EX_windos)
     {
-        _tyalignsize[TYldouble] = 2;
-        _tyalignsize[TYildouble] = 2;
-        _tyalignsize[TYcldouble] = 2;
+        _tyalignsize[TYreal] = 2;
+        _tyalignsize[TYireal] = 2;
+        _tyalignsize[TYcreal] = 2;
     }
     _tyalignsize[TYsptr] = 8;
     _tyalignsize[TYcptr] = 8;
@@ -605,27 +605,27 @@ void util_setAArch64(exefmt_t exe)
 
     if (exe & EX_windos)
     {
-        _tysize[TYldouble] = 16;
-        _tysize[TYildouble] = 16;
-        _tysize[TYcldouble] = 32;
+        _tysize[TYreal] = 16;
+        _tysize[TYireal] = 16;
+        _tysize[TYcreal] = 32;
     }
     if (exe & EX_windos)
     {
-        _tyalignsize[TYldouble] = 16;
-        _tyalignsize[TYildouble] = 16;
-        _tyalignsize[TYcldouble] = 16;
+        _tyalignsize[TYreal] = 16;
+        _tyalignsize[TYireal] = 16;
+        _tyalignsize[TYcreal] = 16;
     }
 
     if (exe & EX_OSX64)
     {
-        _tysize[TYldouble] = 8;
-        _tysize[TYildouble] = 8;
-        _tysize[TYcldouble] = 16;
+        _tysize[TYreal] = 8;
+        _tysize[TYireal] = 8;
+        _tysize[TYcreal] = 16;
     }
     if (exe & EX_OSX64)
     {
-        _tyalignsize[TYldouble] = 8;
-        _tyalignsize[TYildouble] = 8;
-        _tyalignsize[TYcldouble] = 8;
+        _tyalignsize[TYreal] = 8;
+        _tyalignsize[TYireal] = 8;
+        _tyalignsize[TYcreal] = 8;
     }
 }

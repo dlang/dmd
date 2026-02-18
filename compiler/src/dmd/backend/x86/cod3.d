@@ -763,8 +763,8 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYullong:
             return I64 ? cast(regm_t) mAX : (I32 ? mDX | mAX : DOUBLEREGS);
 
-        case TYldouble:
-        case TYildouble:
+        case TYreal:
+        case TYireal:
             return mST0;
 
         case TYcfloat:
@@ -775,9 +775,9 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYcdouble:
             if (I64)
                 return mXMM0 | mXMM1;
-            goto case TYcldouble;
+            goto case TYcreal;
 
-        case TYcldouble:
+        case TYcreal:
             return mST01;
 
         // SIMD vector types
@@ -870,7 +870,7 @@ void cgreg_set_priorities(tym_t ty, out const(reg_t)[] pseq, out const(reg_t)[] 
         if (tyfloating(ty))
         {
             tym_t tyb = tybasic(ty);
-            if (tyb == TYcfloat || tyb == TYcdouble || tyb == TYcldouble)
+            if (tyb == TYcfloat || tyb == TYcdouble || tyb == TYcreal)
             {
                 static immutable reg_t[12] fltmsw1 = [33,35,37,39,41,43,45,47,49,51,53,55];
                 static immutable reg_t[13] fltlsw1 = [32,34,36,38,40,42,44,46,48,50,52,54,56];
@@ -1677,7 +1677,7 @@ regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, ou
                 ty1 = TYdouble;
             break;
 
-        case TYcldouble:
+        case TYcreal:
             if (tyfb == TYjfunc && I32)
                 break;
             if (I32)
@@ -1783,17 +1783,17 @@ regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, ou
             goto case 4;
 
         case 16:
-            if (AArch64 && tym == TYldouble)
+            if (AArch64 && tym == TYreal)
                 return rralloc.fpt();
             goto default;
 
         default:
             assert(!AArch64);
-            if (tybasic(tym) == TYldouble || tybasic(tym) == TYildouble)
+            if (tybasic(tym) == TYreal || tybasic(tym) == TYireal)
             {
                 return ST0;
             }
-            else if (tybasic(tym) == TYcldouble)
+            else if (tybasic(tym) == TYcreal)
             {
                 return ST01;
             }
@@ -2602,7 +2602,7 @@ int jmpopcode(elem* e)
     op = e.Eoper;
     tym_t tymx = tybasic(e.Ety);
     bool needsNanCheck = tyfloating(tymx) && config.inline8087 &&
-        (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
+        (tymx == TYreal || tymx == TYireal || tymx == TYcreal ||
          tymx == TYcdouble || tymx == TYcfloat ||
          (tyxmmreg(tymx) && config.fpxmmregs && e.Ecount != e.Ecomsub) ||
          op == OPind ||
@@ -5959,7 +5959,7 @@ void assignaddrc(code* c)
 
             case FL.ndp:
                 assert(c.IEV1.Vuns < global87.save.length);
-                c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + cgstate.NDPoff + cgstate.BPoff;
+                c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYreal) + cgstate.NDPoff + cgstate.BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 

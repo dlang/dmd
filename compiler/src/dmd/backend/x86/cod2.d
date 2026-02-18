@@ -202,7 +202,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             config.fpxmmregs && tyxmmreg(ty1) &&
             !(pretregs & mST0) &&
             !(pretregs & mST01) &&
-            !(ty == TYldouble || ty == TYildouble)  // watch out for shrinkLongDoubleConstantIfPossible()
+            !(ty == TYreal || ty == TYireal)  // watch out for shrinkLongDoubleConstantIfPossible()
            )
         {
             orthxmm(cdb,e,pretregs);
@@ -927,7 +927,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (tyvector(tyml) ||
             config.fpxmmregs && oper != OPmod && tyxmmreg(tyml) &&
             !(pretregs & mST0) &&
-            !(ty == TYldouble || ty == TYildouble) &&  // watch out for shrinkLongDoubleConstantIfPossible()
+            !(ty == TYreal || ty == TYireal) &&  // watch out for shrinkLongDoubleConstantIfPossible()
             !tycomplex(ty) && // SIMD code is not set up to deal with complex mul/div
             !(ty == TYllong)  //   or passing to function through integer register
            )
@@ -1316,7 +1316,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (tyvector(tyml) ||
             config.fpxmmregs && oper != OPmod && tyxmmreg(tyml) &&
             !(pretregs & mST0) &&
-            !(ty == TYldouble || ty == TYildouble) &&  // watch out for shrinkLongDoubleConstantIfPossible()
+            !(ty == TYreal || ty == TYireal) &&  // watch out for shrinkLongDoubleConstantIfPossible()
             !tycomplex(ty) && // SIMD code is not set up to deal with complex mul/div
             !(ty == TYllong)  //   or passing to function through integer register
            )
@@ -4662,9 +4662,9 @@ void cdrelconst(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         case TYstruct:
         case TYarray:
-        case TYldouble:
-        case TYildouble:
-        case TYcldouble:
+        case TYreal:
+        case TYireal:
+        case TYcreal:
             tym = TYnptr;               // don't confuse allocreg()
             if (I16 && pretregs & (mES | mCX) || e.Ety & mTYfar)
             {

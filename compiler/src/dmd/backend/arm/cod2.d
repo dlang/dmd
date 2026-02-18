@@ -1979,9 +1979,9 @@ void cdrelconst(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         case TYstruct:
         case TYarray:
-        case TYldouble:
-        case TYildouble:
-        case TYcldouble:
+        case TYreal:
+        case TYireal:
+        case TYcreal:
             tym = TYnptr;               // don't confuse allocreg()
             break;
 

@@ -193,13 +193,13 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYdouble:
         case TYdouble_alias:
         case TYidouble:
-        case TYldouble:
-        case TYildouble:
+        case TYreal:
+        case TYireal:
             return mask(32); // v0
 
         case TYcfloat:
         case TYcdouble:
-        case TYcldouble:
+        case TYcreal:
             return mask(33) | mask(32); // v33,v32
 
         // SIMD vector types

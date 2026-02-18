@@ -39,7 +39,7 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.ty;
-import dmd.backend.evalu8 : el_toldoubled;
+import dmd.backend.evalu8 : el_toreald;
 import dmd.backend.x86.xmm;
 import dmd.backend.arm.cod1 : getlvalue, loadFromEA, storeToEA,CLIB_A,callclib;
 import dmd.backend.arm.cod2 : tyToExtend;
@@ -1052,7 +1052,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         scodelem(cgstate,cdb,e2,retregs2,retregs1,true); // right leaf
         reg_t Vm = findreg(retregs1);
         reg_t Vn = findreg(retregs2);
-        if (tym == TYldouble || tym == TYildouble)
+        if (tym == TYreal || tym == TYireal)
         {
             CLIB_A clib;
             switch (jop)

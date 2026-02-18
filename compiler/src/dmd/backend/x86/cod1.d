@@ -3335,7 +3335,7 @@ void argtypes(type* t, out type* arg1type, out type* arg2type)
                     arg1type = ts;
                     return;
                 }
-                else if (tybasic(tyn) == TYldouble || tybasic(tyn) == TYildouble)
+                else if (tybasic(tyn) == TYreal || tybasic(tyn) == TYireal)
                 {
                     // `real` parameters (and arrays of `real`)
                     // must be passed via memory
@@ -4354,8 +4354,8 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
                 cs.IFL2 = FL.const_;
                 targ_size_t* p = cast(targ_size_t*) &(e.EV);
                 cs.IEV2.Vsize_t = *p;
-                if (I64 && tym == TYcldouble)
-                    // The alignment of EV.Vcldouble is not the same on the compiler
+                if (I64 && tym == TYcreal)
+                    // The alignment of EV.Vcreal is not the same on the compiler
                     // as on the target
                     goto Lbreak;
                 if (I64 && sz >= 8)
@@ -4450,9 +4450,9 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
                     r = 3;
                     break;
 
-                case TYldouble:
-                case TYildouble:
-                case TYcldouble:
+                case TYreal:
+                case TYireal:
+                case TYcreal:
                     op = 0xDB;
                     r = 7;
                     break;
@@ -4736,7 +4736,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     !tyfloating(tym))
                     break;
 
-                if (tym == TYldouble || tym == TYildouble || tycomplex(tym))
+                if (tym == TYreal || tym == TYireal || tycomplex(tym))
                     break;
 
                 code cs;
@@ -4926,7 +4926,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             if (I32 && szb == 10)           // special case for long double constants
             {
                 assert(sz == 12);
-                targ_int value = e.Vushort8[4]; // pick upper 2 bytes of Vldouble
+                targ_int value = e.Vushort8[4]; // pick upper 2 bytes of Vreal
                 cgstate.stackpush += sz;
                 cdb.genadjesp(cast(int)sz);
                 for (int i = 0; i < 3; ++i)
@@ -4936,13 +4936,13 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                         cdb.genpush(reg);               // PUSH reg
                     else
                         cdb.genc2(0x68,0,value);        // PUSH value
-                    value = e.Vulong4[i ^ 1];       // treat Vldouble as 2 element array of 32 bit uint
+                    value = e.Vulong4[i ^ 1];       // treat Vreal as 2 element array of 32 bit uint
                 }
                 freenode(e);
                 return;
             }
 
-            assert(I64 || sz <= tysize(TYldouble));
+            assert(I64 || sz <= tysize(TYreal));
             int i = cast(int)sz;
             if (!I16 && i == 2)
                 flag = CFopsize;
@@ -4979,7 +4979,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                         break;
 
                     case 4:
-                        if (tym == TYldouble || tym == TYildouble)
+                        if (tym == TYreal || tym == TYireal)
                             /* The size is 10 bytes, and since we have 2 bytes left over,
                              * just read those 2 bytes, not 4.
                              * Otherwise we're reading uninitialized data.
@@ -5130,9 +5130,9 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     r = 3;
                     break;
 
-                case TYldouble:
-                case TYildouble:
-                case TYcldouble:
+                case TYreal:
+                case TYireal:
+                case TYcreal:
                     op = 0xDB;
                     r = 7;
                     break;
@@ -5380,7 +5380,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                     c.Iflags |= CFpsw;                      // need the flags on last OR
             }
         }
-        else if (sz == tysize(TYldouble))               // TYldouble
+        else if (sz == tysize(TYreal))               // TYreal
             load87(cdb, e, 0, outretregs, null, -1);
         else
         {

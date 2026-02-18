@@ -2564,15 +2564,15 @@ static if (1)
             case TYdouble:
                 ate = DW_ATE_float;
                 goto Lsignedstr;
-            case TYldouble:
+            case TYreal:
             case TYifloat:
             case TYidouble:
-            case TYildouble:
+            case TYireal:
                 ate = DW_ATE_imaginary_float;
                 goto Lsignedstr;
             case TYcfloat:
             case TYcdouble:
-            case TYcldouble:
+            case TYcreal:
                 ate = DW_ATE_complex_float;
                 goto Lsignedstr;
             Lsignedstr:

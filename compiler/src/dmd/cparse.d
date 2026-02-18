@@ -2395,7 +2395,6 @@ final class CParser(AST) : Parser!AST
             xllong     = 0x40,
             xfloat     = 0x80,
             xdouble    = 0x100,
-            xldouble   = 0x200,
             xtag       = 0x400,
             xident     = 0x800,
             xvoid      = 0x1000,

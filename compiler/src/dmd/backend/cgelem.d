@@ -174,9 +174,9 @@ int elemisone(elem* e)
                 if (el_tolong(e) != 1)
                     goto nomatch;
                 break;
-            case TYldouble:
-            case TYildouble:
-                if (e.Vldouble != 1)
+            case TYreal:
+            case TYireal:
+                if (e.Vreal != 1)
                     goto nomatch;
                 break;
             case TYdouble:
@@ -239,9 +239,9 @@ int elemisnegone(elem* e)
                 if (el_tolong(e) != -1)
                     goto nomatch;
                 break;
-            case TYldouble:
-            //case TYildouble:
-                if (e.Vldouble != -1)
+            case TYreal:
+            //case TYireal:
+                if (e.Vreal != -1)
                     goto nomatch;
                 break;
             case TYdouble:
@@ -3616,9 +3616,9 @@ elem* elstruct(elem* e, Goal goal)
 
         case 10:
         case 12:
-            if (tysize(TYldouble) == sz && targ1 && !targ2 && tybasic(targ1.Tty) == TYldouble)
+            if (tysize(TYreal) == sz && targ1 && !targ2 && tybasic(targ1.Tty) == TYreal)
             {
-                tym = TYldouble;
+                tym = TYreal;
                 goto L1;
             }
             goto case 9;
@@ -4548,7 +4548,7 @@ private elem* elcmp(elem* e, Goal goal)
             return optelem(e, Goal.value);
         }
 
-        if (e1.Eoper == OPd_ld && tysize(e1.Ety) == tysize(TYldouble) && cast(targ_double)e2.Vldouble == e2.Vldouble)
+        if (e1.Eoper == OPd_ld && tysize(e1.Ety) == tysize(TYreal) && cast(targ_double)e2.Vreal == e2.Vreal)
         {
             /* Remove unnecessary OPd_ld operator
              */
@@ -4556,7 +4556,7 @@ private elem* elcmp(elem* e, Goal goal)
             e1.E1 = null;
             el_free(e1);
             e2.Ety = e.E1.Ety;
-            e2.Vdouble = cast(targ_double)e2.Vldouble;
+            e2.Vdouble = cast(targ_double)e2.Vreal;
             return optelem(e, Goal.value);
         }
 
@@ -5248,7 +5248,7 @@ private elem* elu64_d(elem* e, Goal goal)
     {
         pu = &e.E1.E1;
         *pu = optelem(*pu, Goal.value);
-        ty = TYldouble;
+        ty = TYreal;
     }
     else if (e.Eoper == OPd_f && e.E1.Eoper == OPu64_d)
     {
@@ -5308,24 +5308,24 @@ private elem* elu64_d(elem* e, Goal goal)
             fixside(&u, &u1);
 
         elem* eop1 = el_una(OPs64_d, TYdouble, u1);
-        eop1 = el_una(OPd_ld, TYldouble, eop1);
+        eop1 = el_una(OPd_ld, TYreal, eop1);
 
         elem* eoff = el_calloc();
         eoff.Eoper = OPconst;
-        eoff.Ety = TYldouble;
-        eoff.Vldouble = 0x1p+64;
+        eoff.Ety = TYreal;
+        eoff.Vreal = 0x1p+64;
 
         elem* u2 = el_copytree(u1);
         u2 = el_una(OPs64_d, TYdouble, u2);
-        u2 = el_una(OPd_ld, TYldouble, u2);
+        u2 = el_una(OPd_ld, TYreal, u2);
 
-        elem* eop2 = el_bin(OPadd, TYldouble, u2, eoff);
+        elem* eop2 = el_bin(OPadd, TYreal, u2, eoff);
 
-        elem* r = el_bin(OPcond, TYldouble,
+        elem* r = el_bin(OPcond, TYreal,
                         el_bin(OPge, OPbool, u, el_long(TYllong, 0)),
-                        el_bin(OPcolon, TYldouble, eop1, eop2));
+                        el_bin(OPcolon, TYreal, eop1, eop2));
 
-        if (ty != TYldouble)
+        if (ty != TYreal)
             r = el_una(OPtoprec, e.Ety, r);
 
         *pu = null;
@@ -6512,7 +6512,7 @@ bool useOPnegass(tym_t tym)
 {
     //printf("useOPnegass() tym: %s\n", tym_str(tym));
     const ty = tybasic(tym);
-    return !(config.target_cpu == TARGET_AArch64 && (ty == TYldouble || ty == TYildouble));
+    return !(config.target_cpu == TARGET_AArch64 && (ty == TYreal || ty == TYireal));
 }
 
 /***************************************************
