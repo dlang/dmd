@@ -439,7 +439,41 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     OPER op = e.Eoper;
     uint sz = tysize(e1.Ety);
 
-    if (tyfloating(e1.Ety))
+    if (tycomplex(e1.Ety))
+    {
+
+        /* Generate:
+         fcmp   d31,#0.0 // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatcmp
+         movi   d31,#0x0 // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
+         fccmp  d30,d31,#0x0,eq // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatccmp
+         cset   w0,eq    // OPnot:eq OPbool:ne // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condsel
+        */
+
+        regm_t retregs1 = INSTR.FLOATREGS;
+        codelem(cgstate,cdb,e.E1,retregs1,1);
+        const d0 = findreg(retregs1 & INSTR.LSW);
+        const d1 = findreg(retregs1 & INSTR.MSW);
+        const ftype = INSTR.szToFtype(sz / 2);
+        cdb.gen1(INSTR.fcmp_float(ftype,0,d1));     // FCMP d1,#0.0 https://www.scs.stanford.edu/~zyedidia/arm64/fcmp_float.html
+        cdb.gen1(INSTR.movi_advsimd(0,1,0xE,0,d1)); // MOVI d1,#0x0 https://www.scs.stanford.edu/~zyedidia/arm64/movi_advsimd.html
+        const cond = 0;                             // eq
+        const nzcv = 0;                             // #<nzcv>
+        cdb.gen1(INSTR.fccmp_float(ftype,d1,cond,d0,nzcv)); // FCCMP d0,d1,#0x0,eq https://www.scs.stanford.edu/~zyedidia/arm64/fccmp_float.html
+
+        regm_t retregs = pretregs & cgstate.allregs;
+        if (!retregs)
+            retregs = cgstate.allregs;
+        const Rd = allocreg(cdb, retregs, tybasic(e.Ety));
+        const condx = op == OPnot ? COND.ne : COND.eq;
+        sz = tysize(e.Ety);
+        cdb.gen1(INSTR.cset(sz == 8,condx,Rd));     // CSET Rd,eq  https://www.scs.stanford.edu/~zyedidia/arm64/cset_csinc.html
+        //uint N,immr,imms;
+        //assert(encodeNImmrImms(0xFF,N,immr,imms));
+        //cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,Rd,Rd)); // AND Rd,Rd,#0xFF
+        pretregs &= ~mPSW;                          // flags already set
+        fixresult(cdb,e,retregs,pretregs);
+    }
+    else if (tyfloating(e1.Ety))
     {
         regm_t retregs1 = INSTR.FLOATREGS;
         codelem(cgstate,cdb,e.E1,retregs1,1);
