@@ -2038,12 +2038,16 @@ void disassemble(uint c) @trusted
         uint o2 = field(ins,11,11);
         uint Rd = field(ins,4,0);
 
-        if (Q == 1 && op == 1 && cmode == 0xE)
+        if (op == 1 && cmode == 0xE)
         {
             url2 = "movi_advsimd";
             p1 = "movi";    // https://www.scs.stanford.edu/~zyedidia/arm64/movi_advsimd.html
             // TODO AArch64 implement https://www.scs.stanford.edu/~zyedidia/arm64/shared_pseudocode.html#impl-shared.AdvSIMDExpandImm.3
-            uint n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.2d,#0x%x", Rd, abcdefgh);
+            uint n;
+            if (Q)
+                n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.2d,#0x%x", Rd, abcdefgh);
+            else
+                n = snprintf(buf.ptr, cast(uint)buf.length, "d%d,#0x%x", Rd, abcdefgh);
             p2 = buf[0 .. n];
         }
     }
@@ -2247,7 +2251,7 @@ void disassemble(uint c) @trusted
             url = op ? "fccmpe_float" : "fccmp_float";
             p1 = op ? "fccmpe" : "fccmp";
             p2 = fregString(rbuf[0..4],"sd h"[ftype],Rn);
-            p3 = fregString(rbuf[0..4],"sd h"[ftype],Rm);
+            p3 = fregString(rbuf[4..8],"sd h"[ftype],Rm);
             uint n = snprintf(buf.ptr, cast(uint)buf.length,"#0x%x", nzcv);
             p4 = buf[0 .. n];
             p5 = condstring[cond];
@@ -3243,8 +3247,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[98] cases64 =      // 64 bit code gen
+    string[100] cases64 =      // 64 bit code gen
     [
+        "1E 61 04 00         fccmp  d0,d1,#0x0,eq",
         "1E 65 64 A0         fccmp  d5,d5,#0x0,vs",
         "1E 65 64 B0         fccmpe d5,d5,#0x0,vs",
         "79 C0 47 AB         ldrsh  w11,[x29,#0x22]",
@@ -3260,6 +3265,7 @@ unittest
         "B8 00 93 E0         stur   w0,[sp,#9]",
         "F8 00 84 5F         str    xzr,[x2],#8",
         "6F 00 E4 01         movi   v1.2d,#0x0",
+        "2F 00 E4 1F         movi   d31,#0x0",
         "9E AF 00 3E         fmov   v30.d[1],x1",
         "4E BE 1F C0         mov    v0.16b,v30.16b",
         "D4 20 00 20         brk    #1",
