@@ -188,9 +188,10 @@ $(H3 $(LNAME2 component-types, Component Types))
     $(THEAD Type, Component Types)
     $(TROW *TypeCtor*`(T)`, `T`)
     $(TROW `T*`, `T`)
-    $(TROW `R function(Params)`,
+    $(COMMENT TROW `R function(Params)`,
         $(ARGS `R(Params)` - see $(RELATIVE_LINK2 functions, Function Types)))
-    $(TROW `R delegate(Params)`,
+    $(COMMENT It's unclear if delegates should have component types)
+    $(COMMENT TROW `R delegate(Params)`,
         $(ARGS `R function(Params)`, `void*`))
     $(TROW `T[]`, `T`)
     $(TROW `T[`*AssignExpression*`]`, `T`)
