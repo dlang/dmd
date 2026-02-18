@@ -41,6 +41,26 @@ struct S3
 static assert(!__traits(isAnonymousUnion, S3, S3.x));
 static assert(!__traits(isAnonymousUnion, S3, S3.y));
 
+// Nested case: anonymous union INSIDE a named union (limitation test)
+struct S4
+{
+    union Outer
+    {
+        int x;
+        // Anonymous union nested inside the named union Outer
+        union
+        {
+            int nested1;
+            float nested2;
+        }
+    }
+    Outer outer;
+}
+static assert(!__traits(isAnonymousUnion, S4, S4.outer));
+static assert(__traits(isAnonymousUnion, S4.Outer, S4.outer.nested1));
+static assert(__traits(isAnonymousUnion, S4.Outer, S4.outer.nested2));
+static assert(!__traits(isAnonymousUnion, S4.Outer, S4.outer.x));
+
 // Class with anonymous union
 class C1
 {
