@@ -303,7 +303,7 @@ template hasElaborateDestructor(S)
             static struct S2
             {
                 S s;
-                void test() => __xdtor;
+                static assert(is(typeof(__xdtor)));
             }
         });
     }
