@@ -418,6 +418,7 @@ immutable Msgtable[] msgtable =
     { "isAbstractClass" },
     { "isArithmetic" },
     { "isAssociativeArray" },
+    { "isAnonymousUnion" },
     { "isBitfield" },
     { "isFinalClass" },
     { "isTemplate" },
