@@ -298,7 +298,14 @@ template hasElaborateDestructor(S)
         // this should be the implementation, but until that's fixed, we need the
         // uncommented code.
         // enum hasElaborateDestructor = __traits(hasMember, S, "__xdtor");
-        enum hasElaborateDestructor = __traits(compiles, (S s) => (cast() s).__xdtor);
+        // Note: we have to avoid triggering opDispatch to placate runnable/b6400.d
+        enum hasElaborateDestructor = __traits(compiles, {
+            static struct S2
+            {
+                S s;
+                void test() => __xdtor;
+            }
+        });
     }
     else
     {
