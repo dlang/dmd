@@ -21,14 +21,14 @@ import rt.monitor_, core.atomic;
 extern (C) void _d_critical_init() @nogc nothrow
 {
     initMutex(cast(Mutex*)&gcs.mtx);
-    head = &gcs;
+    atomicStore(head, &gcs);
 }
 
 extern (C) void _d_critical_term() @nogc nothrow
 {
     // This function is only ever called by the runtime shutdown code
     // and therefore is single threaded so the following cast is fine.
-    auto h = cast()head;
+    auto h = cast(D_CRITICAL_SECTION*) atomicLoad(head);
     for (auto p = h; p; p = p.next)
         destroyMutex(cast(Mutex*)&p.mtx);
 }
@@ -81,8 +81,8 @@ void ensureMutex(shared(D_CRITICAL_SECTION)* cs)
         if (atomicLoad!(MemoryOrder.raw)(cs.next) is null)
         {
             initMutex(cast(Mutex*)&cs.mtx);
-            auto ohead = head;
-            head = cs;
+            auto ohead = atomicLoad(head);
+            atomicStore(head, cs);
             atomicStore!(MemoryOrder.rel)(cs.next, ohead);
         }
         unlockMutex(cast(Mutex*)&gcs.mtx);

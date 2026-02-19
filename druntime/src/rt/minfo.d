@@ -183,7 +183,7 @@ struct ModuleGroup
         {
         case "deprecate":
             // Option deprecated in 2.101, remove in 2.111
-            fprintf(stderr, "`--DRT-oncycle=deprecate` is no longer supported, using `abort` instead\n");
+            fprintf(cast()stderr, "`--DRT-oncycle=deprecate` is no longer supported, using `abort` instead\n");
             break;
         case "abort":
             onCycle = abort;
@@ -375,7 +375,7 @@ struct ModuleGroup
                                 case print:
                                     // print the message
                                     buildCycleMessage(idx, midx, (string x) {
-                                                      fprintf(stderr, "%.*s", cast(int) x.length, x.ptr);
+                                                      fprintf(cast()stderr, "%.*s", cast(int) x.length, x.ptr);
                                                       });
                                     // continue on as if this is correct.
                                     break;
@@ -520,7 +520,7 @@ struct ModuleGroup
             !doSort(MItlsctor | MItlsdtor, _tlsctors))
         {
             // print a warning
-            fprintf(stderr, "Deprecation 16211 warning:\n"
+            fprintf(cast()stderr, "Deprecation 16211 warning:\n"
                 ~ "A cycle has been detected in your program that was undetected prior to DMD\n"
                 ~ "2.072. This program will continue, but will not operate when using DMD 2.074\n"
                 ~ "to compile. Use runtime option --DRT-oncycle=print to see the cycle details.\n");
