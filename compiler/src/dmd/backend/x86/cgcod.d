@@ -780,7 +780,7 @@ else
     //printf("CSoff = x%x, size = x%x, alignment = %x\n",
         //cast(int)cg.CSoff, CSE.size(), cast(int)CSE.alignment);
 
-    cg.NDPoff = alignsection(cg.CSoff - global87.save.length * tysize(TYldouble), REGSIZE, bias);
+    cg.NDPoff = alignsection(cg.CSoff - global87.save.length * tysize(TYreal), REGSIZE, bias);
 
     regm_t topush = fregsaved & ~cg.mfuncreg;          // mask of registers that need saving
     cg.pushoffuse = false;

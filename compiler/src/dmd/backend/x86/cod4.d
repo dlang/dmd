@@ -39,7 +39,7 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.ty;
-import dmd.backend.evalu8 : el_toldoubled;
+import dmd.backend.evalu8 : el_toreald;
 import dmd.backend.x86.xmm;
 
 
@@ -394,7 +394,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             eq87(cdb,e,pretregs);
             return;
         }
-        if (tyml == TYldouble || tyml == TYildouble)
+        if (tyml == TYreal || tyml == TYireal)
         {
             eq87(cdb,e,pretregs);
             return;

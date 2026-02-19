@@ -75,7 +75,7 @@ private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[] sia, const
                     const n = nthSlice(e);
                     const sz = getSize(e);
                     if (sz == 2 * SLICESIZE && !tyfv(e.Ety) &&
-                        tybasic(e.Ety) != TYldouble && tybasic(e.Ety) != TYildouble)
+                        tybasic(e.Ety) != TYreal && tybasic(e.Ety) != TYireal)
                     {
                         // Rewritten as OPpair later
                     }
@@ -270,7 +270,7 @@ private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[] sia, elem
                             {
                                 case TYcfloat:   tyop = TYfloat;   break;
                                 case TYcdouble:  tyop = TYdouble;  break;
-                                case TYcldouble: tyop = TYldouble; break;
+                                case TYcreal: tyop = TYreal; break;
                                 default:
                                     assert(0);
                             }

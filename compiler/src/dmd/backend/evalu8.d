@@ -96,9 +96,9 @@ int boolres(elem* e)
                 case TYdouble:
                 case TYidouble:
                 case TYdouble_alias:
-                case TYildouble:
-                case TYldouble:
-                {   targ_ldouble ld = el_toldoubled(e);
+                case TYireal:
+                case TYreal:
+                {   targ_real ld = el_toreald(e);
 
                     if (isnan(ld))
                         b = 1;
@@ -119,11 +119,11 @@ int boolres(elem* e)
                     else
                         b = e.Vcdouble.re != 0 || e.Vcdouble.im != 0;
                     break;
-                case TYcldouble:
-                    if (isnan(e.Vcldouble.re) || isnan(e.Vcldouble.im))
+                case TYcreal:
+                    if (isnan(e.Vcreal.re) || isnan(e.Vcreal.im))
                         b = 1;
                     else
-                        b = e.Vcldouble.re != 0 || e.Vcldouble.im != 0;
+                        b = e.Vcreal.re != 0 || e.Vcreal.im != 0;
                     break;
 
                 case TYstruct:  // happens on syntax error of (struct x)0
@@ -282,7 +282,7 @@ elem* evalu8(elem* e, Goal goal)
     uint op;
     targ_int i1,i2;
     targ_llong l1,l2;
-    targ_ldouble d1,d2;
+    targ_real d1,d2;
     elem esave = void;
 
     static bool unordered(T)(T d1, T d2) { return isnan(d1) || isnan(d2); }
@@ -305,7 +305,7 @@ elem* evalu8(elem* e, Goal goal)
             if (e2.Eoper == OPconst && !tyvector(e2.Ety))
             {
                 i2 = cast(targ_int)(l2 = el_tolong(e2));
-                d2 = el_toldoubled(e2);
+                d2 = el_toreald(e2);
             }
             else
                 return e;
@@ -320,7 +320,7 @@ elem* evalu8(elem* e, Goal goal)
             d2 = 0;             // "
         }
         i1 = cast(targ_int)(l1 = el_tolong(e1));
-        d1 = el_toldoubled(e1);
+        d1 = el_toreald(e1);
         tym = tybasic(typemask(e1));    /* type of op is type of left child */
 
         // Huge pointers are always evaluated at runtime
@@ -346,8 +346,8 @@ static if (0)
       debug printf("tym1 = x%lx, tym2 = x%lx, e2 = %g\n",tym,tym2,e2.Vdouble);
 
       Vconst u;
-      debug printf("d1 = x%16llx\n", (u.Vldouble = d1, u.Vullong));
-      debug printf("d2 = x%16llx\n", (u.Vldouble = d2, u.Vullong));
+      debug printf("d1 = x%16llx\n", (u.Vreal = d1, u.Vullong));
+      debug printf("d2 = x%16llx\n", (u.Vreal = d2, u.Vullong));
   }
 }
   switch (op)
@@ -393,19 +393,19 @@ static if (0)
                         assert(0);
                 }
                 break;
-            case TYldouble:
+            case TYreal:
                 switch (tym2)
                 {
-                    case TYldouble:
-                        e.Vldouble = d1 + d2;
+                    case TYreal:
+                        e.Vreal = d1 + d2;
                         break;
-                    case TYildouble:
-                        e.Vcldouble.re = d1;
-                        e.Vcldouble.im = d2;
+                    case TYireal:
+                        e.Vcreal.re = d1;
+                        e.Vcreal.im = d2;
                         break;
-                    case TYcldouble:
-                        e.Vcldouble.re = d1 + e2.Vcldouble.re;
-                        e.Vcldouble.im = 0  + e2.Vcldouble.im;
+                    case TYcreal:
+                        e.Vcreal.re = d1 + e2.Vcreal.re;
+                        e.Vcreal.im = 0  + e2.Vcreal.im;
                         break;
                     default:
                         assert(0);
@@ -447,19 +447,19 @@ static if (0)
                         assert(0);
                 }
                 break;
-            case TYildouble:
+            case TYireal:
                 switch (tym2)
                 {
-                    case TYldouble:
-                        e.Vcldouble.re = d2;
-                        e.Vcldouble.im = d1;
+                    case TYreal:
+                        e.Vcreal.re = d2;
+                        e.Vcreal.im = d1;
                         break;
-                    case TYildouble:
-                        e.Vldouble = d1 + d2;
+                    case TYireal:
+                        e.Vreal = d1 + d2;
                         break;
-                    case TYcldouble:
-                        e.Vcldouble.re = 0  + e2.Vcldouble.re;
-                        e.Vcldouble.im = d1 + e2.Vcldouble.im;
+                    case TYcreal:
+                        e.Vcreal.re = 0  + e2.Vcreal.re;
+                        e.Vcreal.im = d1 + e2.Vcreal.im;
                         break;
                     default:
                         assert(0);
@@ -503,20 +503,20 @@ static if (0)
                         assert(0);
                 }
                 break;
-            case TYcldouble:
+            case TYcreal:
                 switch (tym2)
                 {
-                    case TYldouble:
-                        e.Vcldouble.re = e1.Vcldouble.re + d2;
-                        e.Vcldouble.im = e1.Vcldouble.im;
+                    case TYreal:
+                        e.Vcreal.re = e1.Vcreal.re + d2;
+                        e.Vcreal.im = e1.Vcreal.im;
                         break;
-                    case TYildouble:
-                        e.Vcldouble.re = e1.Vcldouble.re;
-                        e.Vcldouble.im = e1.Vcldouble.im + d2;
+                    case TYireal:
+                        e.Vcreal.re = e1.Vcreal.re;
+                        e.Vcreal.im = e1.Vcreal.im + d2;
                         break;
-                    case TYcldouble:
-                        e.Vcldouble.re = e1.Vcldouble.re + e2.Vcldouble.re;
-                        e.Vcldouble.im = e1.Vcldouble.im + e2.Vcldouble.im;
+                    case TYcreal:
+                        e.Vcreal.re = e1.Vcreal.re + e2.Vcreal.re;
+                        e.Vcreal.im = e1.Vcreal.im + e2.Vcreal.im;
                         break;
                     default:
                         assert(0);
@@ -590,19 +590,19 @@ static if (0)
                         assert(0);
                 }
                 break;
-            case TYldouble:
+            case TYreal:
                 switch (tym2)
                 {
-                    case TYldouble:
-                        e.Vldouble = d1 - d2;
+                    case TYreal:
+                        e.Vreal = d1 - d2;
                         break;
-                    case TYildouble:
-                        e.Vcldouble.re =  d1;
-                        e.Vcldouble.im = -d2;
+                    case TYireal:
+                        e.Vcreal.re =  d1;
+                        e.Vcreal.im = -d2;
                         break;
-                    case TYcldouble:
-                        e.Vcldouble.re = d1 - e2.Vcldouble.re;
-                        e.Vcldouble.im = 0  - e2.Vcldouble.im;
+                    case TYcreal:
+                        e.Vcreal.re = d1 - e2.Vcreal.re;
+                        e.Vcreal.im = 0  - e2.Vcreal.im;
                         break;
                     default:
                         assert(0);
@@ -644,19 +644,19 @@ static if (0)
                         assert(0);
                 }
                 break;
-            case TYildouble:
+            case TYireal:
                 switch (tym2)
                 {
-                    case TYldouble:
-                        e.Vcldouble.re = -d2;
-                        e.Vcldouble.im =  d1;
+                    case TYreal:
+                        e.Vcreal.re = -d2;
+                        e.Vcreal.im =  d1;
                         break;
-                    case TYildouble:
-                        e.Vldouble = d1 - d2;
+                    case TYireal:
+                        e.Vreal = d1 - d2;
                         break;
-                    case TYcldouble:
-                        e.Vcldouble.re = 0  - e2.Vcldouble.re;
-                        e.Vcldouble.im = d1 - e2.Vcldouble.im;
+                    case TYcreal:
+                        e.Vcreal.re = 0  - e2.Vcreal.re;
+                        e.Vcreal.im = d1 - e2.Vcreal.im;
                         break;
                     default:
                         assert(0);
@@ -700,20 +700,20 @@ static if (0)
                         assert(0);
                 }
                 break;
-            case TYcldouble:
+            case TYcreal:
                 switch (tym2)
                 {
-                    case TYldouble:
-                        e.Vcldouble.re = e1.Vcldouble.re - d2;
-                        e.Vcldouble.im = e1.Vcldouble.im;
+                    case TYreal:
+                        e.Vcreal.re = e1.Vcreal.re - d2;
+                        e.Vcreal.im = e1.Vcreal.im;
                         break;
-                    case TYildouble:
-                        e.Vcldouble.re = e1.Vcldouble.re;
-                        e.Vcldouble.im = e1.Vcldouble.im - d2;
+                    case TYireal:
+                        e.Vcreal.re = e1.Vcreal.re;
+                        e.Vcreal.im = e1.Vcreal.im - d2;
                         break;
-                    case TYcldouble:
-                        e.Vcldouble.re = e1.Vcldouble.re - e2.Vcldouble.re;
-                        e.Vcldouble.im = e1.Vcldouble.im - e2.Vcldouble.im;
+                    case TYcreal:
+                        e.Vcreal.re = e1.Vcreal.re - e2.Vcreal.re;
+                        e.Vcreal.im = e1.Vcreal.im - e2.Vcreal.im;
                         break;
                     default:
                         assert(0);
@@ -777,16 +777,16 @@ static if (0)
                             assert(0);
                     }
                     break;
-                case TYldouble:
+                case TYreal:
                     switch (tym2)
                     {
-                        case TYldouble:
-                        case TYildouble:
-                            e.Vldouble = d1 * d2;
+                        case TYreal:
+                        case TYireal:
+                            e.Vreal = d1 * d2;
                             break;
-                        case TYcldouble:
-                            e.Vcldouble.re = d1 * e2.Vcldouble.re;
-                            e.Vcldouble.im = d1 * e2.Vcldouble.im;
+                        case TYcreal:
+                            e.Vcreal.re = d1 * e2.Vcreal.re;
+                            e.Vcreal.im = d1 * e2.Vcreal.im;
                             break;
                         default:
                             assert(0);
@@ -826,18 +826,18 @@ static if (0)
                             assert(0);
                     }
                     break;
-                case TYildouble:
+                case TYireal:
                     switch (tym2)
                     {
-                        case TYldouble:
-                            e.Vldouble = d1 * d2;
+                        case TYreal:
+                            e.Vreal = d1 * d2;
                             break;
-                        case TYildouble:
-                            e.Vldouble = -d1 * d2;
+                        case TYireal:
+                            e.Vreal = -d1 * d2;
                             break;
-                        case TYcldouble:
-                            e.Vcldouble.re = -d1 * e2.Vcldouble.im;
-                            e.Vcldouble.im =  d1 * e2.Vcldouble.re;
+                        case TYcreal:
+                            e.Vcreal.re = -d1 * e2.Vcreal.im;
+                            e.Vcreal.im =  d1 * e2.Vcreal.re;
                             break;
                         default:
                             assert(0);
@@ -879,19 +879,19 @@ static if (0)
                             assert(0);
                     }
                     break;
-                case TYcldouble:
+                case TYcreal:
                     switch (tym2)
                     {
-                        case TYldouble:
-                            e.Vcldouble.re = e1.Vcldouble.re * d2;
-                            e.Vcldouble.im = e1.Vcldouble.im * d2;
+                        case TYreal:
+                            e.Vcreal.re = e1.Vcreal.re * d2;
+                            e.Vcreal.im = e1.Vcreal.im * d2;
                             break;
-                        case TYildouble:
-                            e.Vcldouble.re = -e1.Vcldouble.im * d2;
-                            e.Vcldouble.im =  e1.Vcldouble.re * d2;
+                        case TYireal:
+                            e.Vcreal.re = -e1.Vcreal.im * d2;
+                            e.Vcreal.im =  e1.Vcreal.re * d2;
                             break;
-                        case TYcldouble:
-                            e.Vcldouble = Complex_ld.mul(e1.Vcldouble, e2.Vcldouble);
+                        case TYcreal:
+                            e.Vcreal = Complex_ld.mul(e1.Vcreal, e2.Vcreal);
                             break;
                         default:
                             assert(0);
@@ -948,9 +948,9 @@ static if (0)
                         case TYdouble_alias:
                             e.Vdouble = e1.Vdouble / e2.Vdouble;
                             break;
-                        case TYldouble:
-                            // cast is required because Vldouble is a soft type on windows
-                            e.Vdouble = cast(double)(e1.Vdouble / e2.Vldouble);
+                        case TYreal:
+                            // cast is required because Vreal is a soft type on windows
+                            e.Vdouble = cast(double)(e1.Vdouble / e2.Vreal);
                             break;
                         case TYidouble:
                             e.Vdouble = -e1.Vdouble / e2.Vdouble;
@@ -964,19 +964,19 @@ static if (0)
                             assert(0);
                     }
                     break;
-                case TYldouble:
+                case TYreal:
                     switch (tym2)
                     {
-                        case TYldouble:
-                            e.Vldouble = d1 / d2;
+                        case TYreal:
+                            e.Vreal = d1 / d2;
                             break;
-                        case TYildouble:
-                            e.Vldouble = -d1 / d2;
+                        case TYireal:
+                            e.Vreal = -d1 / d2;
                             break;
-                        case TYcldouble:
-                            e.Vcldouble.re = d1;
-                            e.Vcldouble.im = 0;
-                            e.Vcldouble = Complex_ld.div(e.Vcldouble, e2.Vcldouble);
+                        case TYcreal:
+                            e.Vcreal.re = d1;
+                            e.Vcreal.im = 0;
+                            e.Vcreal = Complex_ld.div(e.Vcreal, e2.Vcreal);
                             break;
                         default:
                             assert(0);
@@ -1014,17 +1014,17 @@ static if (0)
                             assert(0);
                     }
                     break;
-                case TYildouble:
+                case TYireal:
                     switch (tym2)
                     {
-                        case TYldouble:
-                        case TYildouble:
-                            e.Vldouble = d1 / d2;
+                        case TYreal:
+                        case TYireal:
+                            e.Vreal = d1 / d2;
                             break;
-                        case TYcldouble:
-                            e.Vcldouble.re = 0;
-                            e.Vcldouble.im = d1;
-                            e.Vcldouble = Complex_ld.div(e.Vcldouble, e2.Vcldouble);
+                        case TYcreal:
+                            e.Vcreal.re = 0;
+                            e.Vcreal.im = d1;
+                            e.Vcreal = Complex_ld.div(e.Vcreal, e2.Vcreal);
                             break;
                         default:
                             assert(0);
@@ -1066,19 +1066,19 @@ static if (0)
                             assert(0);
                     }
                     break;
-                case TYcldouble:
+                case TYcreal:
                     switch (tym2)
                     {
-                        case TYldouble:
-                            e.Vcldouble.re = e1.Vcldouble.re / d2;
-                            e.Vcldouble.im = e1.Vcldouble.im / d2;
+                        case TYreal:
+                            e.Vcreal.re = e1.Vcreal.re / d2;
+                            e.Vcreal.im = e1.Vcreal.im / d2;
                             break;
-                        case TYildouble:
-                            e.Vcldouble.re =  e1.Vcldouble.im / d2;
-                            e.Vcldouble.im = -e1.Vcldouble.re / d2;
+                        case TYireal:
+                            e.Vcreal.re =  e1.Vcreal.im / d2;
+                            e.Vcreal.im = -e1.Vcreal.re / d2;
                             break;
-                        case TYcldouble:
-                            e.Vcldouble = Complex_ld.div(e1.Vcldouble, e2.Vcldouble);
+                        case TYcreal:
+                            e.Vcreal = Complex_ld.div(e1.Vcreal, e2.Vcreal);
                             break;
                         default:
                             assert(0);
@@ -1126,9 +1126,9 @@ static if (0)
                 case TYifloat:
                     e.Vfloat = fmodf(e1.Vfloat,e2.Vfloat);
                     break;
-                case TYldouble:
-                case TYildouble:
-                    e.Vldouble = _modulo(d1, d2);
+                case TYreal:
+                case TYireal:
+                    e.Vreal = _modulo(d1, d2);
                     break;
                 case TYcfloat:
                     switch (tym2)
@@ -1154,13 +1154,13 @@ static if (0)
                             assert(0);
                     }
                     break;
-                case TYcldouble:
+                case TYcreal:
                     switch (tym2)
                     {
-                        case TYldouble:
-                        case TYildouble:
-                            e.Vcldouble.re = _modulo(e1.Vcldouble.re, d2);
-                            e.Vcldouble.im = _modulo(e1.Vcldouble.im, d2);
+                        case TYreal:
+                        case TYireal:
+                            e.Vcreal.re = _modulo(e1.Vcreal.re, d2);
+                            e.Vcreal.im = _modulo(e1.Vcreal.im, d2);
                             break;
                         default:
                             assert(0);
@@ -1317,8 +1317,8 @@ static if (0)
             default:
                 if (tyfloating(tym))
                 {
-                    e.Vcldouble.re = d1;
-                    e.Vcldouble.im = d2;
+                    e.Vcreal.re = d1;
+                    e.Vcreal.im = d2;
                 }
                 else
                 {
@@ -1360,8 +1360,8 @@ static if (0)
             default:
                 if (tyfloating(tym))
                 {
-                    e.Vcldouble.re = d2;
-                    e.Vcldouble.im = d1;
+                    e.Vcreal.re = d2;
+                    e.Vcreal.im = d1;
                 }
                 else
                 {
@@ -1373,7 +1373,7 @@ static if (0)
 
     case OPneg:
         // Avoid converting NANS to NAN
-        memcpy(&e.Vcldouble,&e1.Vcldouble,e.Vcldouble.sizeof);
+        memcpy(&e.Vcreal,&e1.Vcreal,e.Vcreal.sizeof);
         switch (tym)
         {   case TYdouble:
             case TYidouble:
@@ -1384,9 +1384,9 @@ static if (0)
             case TYifloat:
                 e.Vfloat = -e.Vfloat;
                 break;
-            case TYldouble:
-            case TYildouble:
-                e.Vldouble = -e.Vldouble;
+            case TYreal:
+            case TYireal:
+                e.Vreal = -e.Vreal;
                 break;
             case TYcfloat:
                 e.Vcfloat.re = -e.Vcfloat.re;
@@ -1396,9 +1396,9 @@ static if (0)
                 e.Vcdouble.re = -e.Vcdouble.re;
                 e.Vcdouble.im = -e.Vcdouble.im;
                 break;
-            case TYcldouble:
-                e.Vcldouble.re = -e.Vcldouble.re;
-                e.Vcldouble.im = -e.Vcldouble.im;
+            case TYcreal:
+                e.Vcreal.re = -e.Vcreal.re;
+                e.Vcreal.im = -e.Vcreal.im;
                 break;
 
             case TYcent:
@@ -1427,9 +1427,9 @@ else
                 e.Vfloat = fabs(e1.Vfloat);
 
                 break;
-            case TYldouble:
-            case TYildouble:
-                e.Vldouble = fabsl(d1);
+            case TYreal:
+            case TYireal:
+                e.Vreal = fabsl(d1);
                 break;
             case TYcfloat:
                 e.Vfloat = cast(float)Complex_f.abs(e1.Vcfloat);
@@ -1437,8 +1437,8 @@ else
             case TYcdouble:
                 e.Vdouble = cast(double)Complex_d.abs(e1.Vcdouble);
                 break;
-            case TYcldouble:
-                e.Vldouble = Complex_ld.abs(e1.Vcldouble);
+            case TYcreal:
+                e.Vreal = Complex_ld.abs(e1.Vcreal);
                 break;
             case TYcent:
             case TYucent:
@@ -1545,19 +1545,19 @@ else
                         b = cast(int)((e1.Vcdouble.re == e2.Vcdouble.re) &&
                                       (e1.Vcdouble.im == e2.Vcdouble.im));
                     break;
-                case TYcldouble:
-                    if (isnan(e1.Vcldouble.re) || isnan(e1.Vcldouble.im) ||
-                        isnan(e2.Vcldouble.re) || isnan(e2.Vcldouble.im))
+                case TYcreal:
+                    if (isnan(e1.Vcreal.re) || isnan(e1.Vcreal.im) ||
+                        isnan(e2.Vcreal.re) || isnan(e2.Vcreal.im))
                         b = 0;
                     else
-                        b = cast(int)((e1.Vcldouble.re == e2.Vcldouble.re) &&
-                                      (e1.Vcldouble.im == e2.Vcldouble.im));
+                        b = cast(int)((e1.Vcreal.re == e2.Vcreal.re) &&
+                                      (e1.Vcreal.im == e2.Vcreal.im));
                     break;
                 default:
                     b = cast(int)(d1 == d2);
                     break;
             }
-            //printf("%Lg + %Lgi, %Lg + %Lgi\n", e1.Vcldouble.re, e1.Vcldouble.im, e2.Vcldouble.re, e2.Vcldouble.im);
+            //printf("%Lg + %Lgi, %Lg + %Lgi\n", e1.Vcreal.re, e1.Vcreal.im, e2.Vcreal.re, e2.Vcreal.im);
         }
         else if (tym == TYcent || tym == TYucent)
             b = cast(int)(e1.Vcent == e2.Vcent);
@@ -1673,14 +1673,14 @@ else
             e.Vcdouble.im = e1.Vcfloat.im;
         break;
     case OPd_ld:
-        e.Vldouble = e1.Vdouble;
+        e.Vreal = e1.Vdouble;
         if (tycomplex(tym))
-            e.Vcldouble.im = e1.Vcdouble.im;
+            e.Vcreal.im = e1.Vcdouble.im;
         break;
     case OPld_d:
-        e.Vdouble = cast(double)e1.Vldouble;
+        e.Vdouble = cast(double)e1.Vreal;
         if (tycomplex(tym))
-            e.Vcdouble.im = cast(double)e1.Vcldouble.im;
+            e.Vcdouble.im = cast(double)e1.Vcreal.im;
         break;
     case OPc_r:
         e.EV = e1.EV;
@@ -1694,8 +1694,8 @@ else
             case TYcdouble:
                 e.Vdouble = e1.Vcdouble.im;
                 break;
-            case TYcldouble:
-                e.Vldouble = e1.Vcldouble.im;
+            case TYcreal:
+                e.Vreal = e1.Vcreal.im;
                 break;
             default:
                 assert(0);
@@ -1941,9 +1941,9 @@ static if (0) // && MARS
  * instead of the soft long double ones.
  */
 
-targ_ldouble el_toldoubled(elem* e)
+targ_real el_toreald(elem* e)
 {
-    targ_ldouble result;
+    targ_real result;
 
     elem_debug(e);
     assert(e.Eoper == OPconst);
@@ -1958,9 +1958,9 @@ targ_ldouble el_toldoubled(elem* e)
         case TYdouble_alias:
             result = e.Vdouble;
             break;
-        case TYldouble:
-        case TYildouble:
-            result = e.Vldouble;
+        case TYreal:
+        case TYireal:
+            result = e.Vreal;
             break;
         default:
             result = 0;
@@ -1974,13 +1974,13 @@ targ_ldouble el_toldoubled(elem* e)
  */
 version (CRuntime_Microsoft)
 {
-    private targ_ldouble _modulo(targ_ldouble x, targ_ldouble y)
+    private targ_real _modulo(targ_real x, targ_real y)
     {
-        return cast(targ_ldouble)fmodl(cast(real)x, cast(real)y);
+        return cast(targ_real)fmodl(cast(real)x, cast(real)y);
     }
     import core.stdc.math : isnan;
-    static if (!is(targ_ldouble == real))
-        private int isnan(targ_ldouble x)
+    static if (!is(targ_real == real))
+        private int isnan(targ_real x)
         {
             return isnan(cast(real)x);
         }

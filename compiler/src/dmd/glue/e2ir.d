@@ -1076,9 +1076,9 @@ elem* toElem(Expression e, ref IRState irs)
                 e.Vdouble = cast(double) re.value;
                 break;
 
-            case TYldouble:
-            case TYildouble:
-                e.Vldouble = re.value;
+            case TYreal:
+            case TYireal:
+                e.Vreal = re.value;
                 break;
 
             default:
@@ -1145,9 +1145,9 @@ elem* toElem(Expression e, ref IRState irs)
                 }
                 break;
 
-            case TYcldouble:
-                e.Vcldouble.re = re;
-                e.Vcldouble.im = im;
+            case TYcreal:
+                e.Vcreal.re = re;
+                e.Vcreal.im = im;
                 break;
 
             default:
@@ -5116,7 +5116,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
             case X(Tfloat80,Tcomplex32):
             case X(Tfloat80,Tcomplex64):
             case X(Tfloat80,Tcomplex80):
-                e = el_bin(OPadd,TYcldouble,e,el_long(TYildouble,0));
+                e = el_bin(OPadd,TYcreal,e,el_long(TYireal,0));
                 fty = Tcomplex80;
                 continue;
 
@@ -5202,7 +5202,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
             case X(Timaginary80,Tcomplex32):
             case X(Timaginary80,Tcomplex64):
             case X(Timaginary80,Tcomplex80):
-                e = el_bin(OPadd,TYcldouble,el_long(TYldouble,0),e);
+                e = el_bin(OPadd,TYcreal,el_long(TYreal,0),e);
                 fty = Tcomplex80;
                 continue;
 
@@ -5287,13 +5287,13 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
             case X(Tcomplex80,Tfloat32):
             case X(Tcomplex80,Tfloat64):
             case X(Tcomplex80,Tfloat80):
-                e = el_una(OPc_r, TYldouble, e);
+                e = el_una(OPc_r, TYreal, e);
                 fty = Tfloat80;
                 continue;
             case X(Tcomplex80,Timaginary32):
             case X(Tcomplex80,Timaginary64):
             case X(Tcomplex80,Timaginary80):
-                e = el_una(OPc_i, TYildouble, e);
+                e = el_una(OPc_i, TYireal, e);
                 fty = Timaginary80;
                 continue;
             case X(Tcomplex80,Tcomplex32):
@@ -5746,7 +5746,7 @@ elem* callfunc(Loc loc,
             {
                 elem* et = e.E1;
                 e.E1 = el_una(OPs32_d, TYdouble, e.E2);
-                e.E1 = el_una(OPd_ld, TYldouble, e.E1);
+                e.E1 = el_una(OPd_ld, TYreal, e.E1);
                 e.E2 = et;
             }
             else if (op == OPyl2x || op == OPyl2xp1)
@@ -5793,7 +5793,7 @@ elem* callfunc(Loc loc,
             {
             case X(TYfloat, TYfloat):     // float -> float
             case X(TYdouble, TYdouble):   // double -> double
-            case X(TYldouble, TYldouble): // real -> real
+            case X(TYreal, TYreal): // real -> real
                 e = ep;
                 break;
 
@@ -5801,7 +5801,7 @@ elem* callfunc(Loc loc,
                 e = el_una(OPf_d, tyret, ep);
                 break;
 
-            case X(TYfloat, TYldouble):   // float -> real
+            case X(TYfloat, TYreal):   // float -> real
                 e = el_una(OPf_d, TYdouble, ep);
                 e = el_una(OPd_ld, tyret, e);
                 break;
@@ -5810,16 +5810,16 @@ elem* callfunc(Loc loc,
                 e = el_una(OPd_f, tyret, ep);
                 break;
 
-            case X(TYdouble, TYldouble):  // double -> real
+            case X(TYdouble, TYreal):  // double -> real
                 e = el_una(OPd_ld, tyret, ep);
                 break;
 
-            case X(TYldouble, TYfloat):   // real -> float
+            case X(TYreal, TYfloat):   // real -> float
                 e = el_una(OPld_d, TYdouble, ep);
                 e = el_una(OPd_f, tyret, e);
                 break;
 
-            case X(TYldouble, TYdouble):  // real -> double
+            case X(TYreal, TYdouble):  // real -> double
                 e = el_una(OPld_d, tyret, ep);
                 break;
             }
@@ -6375,8 +6375,8 @@ Lagain:
             case RTLSYM.MEMSET16:     tym = TYshort;    break;
             case RTLSYM.MEMSET32:     tym = TYlong;     break;
             case RTLSYM.MEMSET64:     tym = TYllong;    break;
-            case RTLSYM.MEMSET80:     tym = TYldouble;  break;
-            case RTLSYM.MEMSET160:    tym = TYcldouble; break;
+            case RTLSYM.MEMSET80:     tym = TYreal;  break;
+            case RTLSYM.MEMSET160:    tym = TYcreal; break;
             case RTLSYM.MEMSET128:    tym = TYcdouble;  break;
             case RTLSYM.MEMSET128ii:  tym = TYucent;    break;
             case RTLSYM.MEMSETFLOAT:  tym = TYfloat;    break;

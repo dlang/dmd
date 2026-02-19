@@ -1325,7 +1325,7 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
     if (tyfloating(tym))
     {
         assert(reg & 32);
-        if (tym == TYldouble || tym == TYildouble)
+        if (tym == TYreal || tym == TYireal)
         {
             /*
                 fmov q0,reg
@@ -2401,7 +2401,7 @@ private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint funcar
     const tym_t tym = tybasic(e.Ety);
     regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : INSTR.ALLREGS;
     scodelem(cgstate,cdb, e, retregs, 0, true);
-    if (sz <= REGSIZE || tym == TYldouble)
+    if (sz <= REGSIZE || tym == TYreal)
     {
         const reg_t reg = findreg(retregs);
         code cs;
@@ -2521,8 +2521,8 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             if (sz == 8)
                 value = e.Vdouble;
             else if (sz == 16)
-                // cannot implicitly convert expression `(*e).EV.Vldouble` of type `longdouble_soft` to `double` [D:\a\1\s\compiler\src\vcbuild\dmd.vcxproj]
-                value = cast(double)e.Vldouble;
+                // cannot implicitly convert expression `(*e).EV.Vreal` of type `longdouble_soft` to `double` [D:\a\1\s\compiler\src\vcbuild\dmd.vcxproj]
+                value = cast(double)e.Vreal;
             loadFloatRegConst(cdb,vreg,value,sz);
             fixresult(cdb, e, forregs, outretregs);
             return;
@@ -2664,7 +2664,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             loadea(cdb, e, cs, opmv, reg, 0, 0, 0, RM.load); // MOVSS/MOVSD reg,data
             checkSetVex(cdb.last(),tym);
         }
-        else if (sz == 16 && tym == TYldouble) // TODO complex numbers?
+        else if (sz == 16 && tym == TYreal) // TODO complex numbers?
         {
             loadea(cdb,e,cs,0,reg,0,0,0,RM.load);
             outretregs = mask(reg) | flags;

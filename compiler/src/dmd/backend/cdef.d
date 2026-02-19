@@ -126,7 +126,7 @@ alias targ_llong = long;
 alias targ_ullong = ulong;
 alias targ_float = float;
 alias targ_double = double;
-public import dmd.root.longdouble : targ_ldouble = longdouble;
+public import dmd.root.longdouble : targ_real = longdouble;
 
 // Extract most significant register from constant
 ulong MSREG(ulong p) { return (REGSIZE == 2) ? p >> 16 : ((targ_llong.sizeof == 8) ? p >> 32 : 0); }
@@ -638,24 +638,24 @@ import dmd.backend.bcomplex;
 
 union Vconst
 {
-        targ_char       Vchar;
+        targ_char       Vchar;          // 8 bits
         targ_schar      Vschar;
         targ_uchar      Vuchar;
-        targ_short      Vshort;
+        targ_short      Vshort;         // 16 bits
         targ_ushort     Vushort;
-        targ_int        Vint;
+        targ_int        Vint;           // 32 bits
         targ_uns        Vuns;
-        targ_long       Vlong;
+        targ_long       Vlong;          // 32 bits
         targ_ulong      Vulong;
-        targ_llong      Vllong;
+        targ_llong      Vllong;         // 64 bits
         targ_ullong     Vullong;
-        Cent            Vcent;
-        targ_float      Vfloat = void; // FIXME: Floats have a void-initializer to give
+        Cent            Vcent;          // 128 bits
+        targ_float      Vfloat = void;  // FIXME: Floats have a void-initializer so
         targ_double     Vdouble = void; // the union has an all-zero initializer, see also bugzilla #23841
-        targ_ldouble    Vldouble = void;
+        targ_real    Vreal = void;
         Complex_f       Vcfloat = void;   // 2x float
         Complex_d       Vcdouble = void;  // 2x double
-        Complex_ld      Vcldouble = void; // 2x long double
+        Complex_ld      Vcreal = void; // 2x long double
         targ_size_t     Vpointer;
         targ_ptrdiff_t  Vptrdiff;
         targ_uchar      Vreg;   // register number for OPreg elems

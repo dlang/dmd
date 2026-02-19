@@ -159,7 +159,7 @@ uint type_alignsize(type* t)
                         sz = t.Ttag.Sstruct.Sstructalign + 1;
                     break;
 
-                case TYldouble:
+                case TYreal:
                     assert(0);
 
                 case TYcdouble:
@@ -594,13 +594,13 @@ void type_init()
     tstypes[TYfloat]   = type_allocbasic(TYfloat);
     tstypes[TYdouble]  = type_allocbasic(TYdouble);
     tstypes[TYdouble_alias]  = type_allocbasic(TYdouble_alias);
-    tstypes[TYldouble] = type_allocbasic(TYldouble);
+    tstypes[TYreal] = type_allocbasic(TYreal);
     tstypes[TYifloat]  = type_allocbasic(TYifloat);
     tstypes[TYidouble] = type_allocbasic(TYidouble);
-    tstypes[TYildouble] = type_allocbasic(TYildouble);
+    tstypes[TYireal] = type_allocbasic(TYireal);
     tstypes[TYcfloat]   = type_allocbasic(TYcfloat);
     tstypes[TYcdouble]  = type_allocbasic(TYcdouble);
-    tstypes[TYcldouble] = type_allocbasic(TYcldouble);
+    tstypes[TYcreal] = type_allocbasic(TYcreal);
 
     if (I64)
     {

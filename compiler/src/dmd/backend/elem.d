@@ -27,7 +27,7 @@ import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.dvec;
 import dmd.backend.el;
-import dmd.backend.evalu8 : el_toldoubled;
+import dmd.backend.evalu8 : el_toreald;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.mem;
@@ -843,14 +843,14 @@ elem* el_long(tym_t t,targ_llong val)
             e.Vdouble = val;
             break;
 
-        case TYldouble:
-        case TYildouble:
-            e.Vldouble = val;
+        case TYreal:
+        case TYireal:
+            e.Vreal = val;
             break;
 
         case TYcfloat:
         case TYcdouble:
-        case TYcldouble:
+        case TYcreal:
             assert(0);
 
         default:
@@ -1181,14 +1181,14 @@ elem* el_convfloat(ref GlobalOptimizer go, elem* e)
             assert(sz == (e.Vdouble).sizeof);
             break;
 
-        case TYldouble:
-        case TYildouble:
+        case TYreal:
+        case TYireal:
             /* The size, alignment, and padding of long doubles may be different
              * from host to target
              */
             p = buffer.ptr;
             memset(buffer.ptr, 0, sz);                      // ensure padding is 0
-            memcpy(buffer.ptr, &e.Vldouble, 10);
+            memcpy(buffer.ptr, &e.Vreal, 10);
             break;
 
         case TYcfloat:
@@ -1201,11 +1201,11 @@ elem* el_convfloat(ref GlobalOptimizer go, elem* e)
             assert(sz == (e.Vcdouble).sizeof);
             break;
 
-        case TYcldouble:
+        case TYcreal:
             p = buffer.ptr;
             memset(buffer.ptr, 0, sz);
-            memcpy(buffer.ptr, &e.Vcldouble.re, 10);
-            memcpy(buffer.ptr + tysize(TYldouble), &e.Vcldouble.im, 10);
+            memcpy(buffer.ptr, &e.Vcreal.re, 10);
+            memcpy(buffer.ptr + tysize(TYreal), &e.Vcreal.im, 10);
             break;
 
         default:
@@ -1214,10 +1214,10 @@ elem* el_convfloat(ref GlobalOptimizer go, elem* e)
 
     static if (0)
     {
-        printf("%gL+%gLi\n", cast(double)e.Vcldouble.re, cast(double)e.Vcldouble.im);
+        printf("%gL+%gLi\n", cast(double)e.Vcreal.re, cast(double)e.Vcreal.im);
         printf("el_convfloat() %g %g sz=%d\n", e.Vcdouble.re, e.Vcdouble.im, sz);
         printf("el_convfloat(): sz = %d\n", sz);
-        ushort* p = cast(ushort*)&e.Vcldouble;
+        ushort* p = cast(ushort*)&e.Vcreal;
         for (int i = 0; i < sz/2; i++) printf("%04x ", p[i]);
         printf("\n");
     }
@@ -1252,22 +1252,22 @@ elem* el_convreal(ref GlobalOptimizer go, elem* e)
     void* p;
     switch (tybasic(ty))
     {
-        case TYldouble:
-        case TYildouble:
+        case TYreal:
+        case TYireal:
             /* The size, alignment, and padding of long doubles may be different
              * from host to target
              */
             p = buffer.ptr;
             // TODO AArch64 these are supposed to be 128 bit floats, not 80 bit
             memset(buffer.ptr, 0, sz);                      // ensure padding is 0
-            memcpy(buffer.ptr, &e.Vldouble, 10);
+            memcpy(buffer.ptr, &e.Vreal, 10);
             break;
 
-        case TYcldouble:
+        case TYcreal:
             p = buffer.ptr;
             memset(buffer.ptr, 0, sz);
-            memcpy(buffer.ptr, &e.Vcldouble.re, 10);
-            memcpy(buffer.ptr + tysize(TYldouble), &e.Vcldouble.im, 10);
+            memcpy(buffer.ptr, &e.Vcreal.re, 10);
+            memcpy(buffer.ptr + tysize(TYreal), &e.Vcreal.im, 10);
             break;
 
         default:
@@ -1276,10 +1276,10 @@ elem* el_convreal(ref GlobalOptimizer go, elem* e)
 
     static if (0)
     {
-        printf("%gL+%gLi\n", cast(double)e.Vcldouble.re, cast(double)e.Vcldouble.im);
+        printf("%gL+%gLi\n", cast(double)e.Vcreal.re, cast(double)e.Vcreal.im);
         printf("el_convfloat() %g %g sz=%d\n", e.Vcdouble.re, e.Vcdouble.im, sz);
         printf("el_convfloat(): sz = %d\n", sz);
-        ushort* p = cast(ushort*)&e.Vcldouble;
+        ushort* p = cast(ushort*)&e.Vcreal;
         for (int i = 0; i < sz/2; i++) printf("%04x ", p[i]);
         printf("\n");
     }
@@ -1414,7 +1414,7 @@ static if (1)
 @trusted
 void shrinkLongDoubleConstantIfPossible(elem* e)
 {
-    if (e.Eoper == OPconst && e.Ety == TYldouble)
+    if (e.Eoper == OPconst && e.Ety == TYreal)
     {
         /* Check to see if it can be converted into a double (this happens
          * when the low bits are all zero, and the exponent is in the
@@ -1422,7 +1422,7 @@ void shrinkLongDoubleConstantIfPossible(elem* e)
          * Use 'volatile' to prevent optimizer from folding away the conversions,
          * and thereby missing the truncation in the conversion to double.
          */
-        auto v = e.Vldouble;
+        auto v = e.Vreal;
         double vDouble;
 
         version (CRuntime_Microsoft)
@@ -1487,7 +1487,7 @@ elem* el_convert(ref GlobalOptimizer go, elem* e)
              * in this case, we preserve the constant 2.
              */
             if (tyreal(e.Ety) &&       // don't bother with imaginary or complex
-                e.E2.Eoper == OPconst && el_toldoubled(e.E2) == 2.0L &&
+                e.E2.Eoper == OPconst && el_toreald(e.E2) == 2.0L &&
                 !go.AArch64)           // TODO AArch64 do the *2 optimization
             {
                 e.E1 = el_convert(go, e.E1);
@@ -1895,9 +1895,9 @@ L1:
                             return false;
                         break;
 
-                    case TYldouble:
-                    case TYildouble:
-                        static if ((n1.Vldouble).sizeof > 10)
+                    case TYreal:
+                    case TYireal:
+                        static if ((n1.Vreal).sizeof > 10)
                         {
                             /* sizeof is 12, but actual size is 10 */
                             if (memcmp(&n1.EV,&n2.EV,10))
@@ -1905,7 +1905,7 @@ L1:
                         }
                         else
                         {
-                            if (memcmp(&n1.EV,&n2.EV,(n1.Vldouble).sizeof))
+                            if (memcmp(&n1.EV,&n2.EV,(n1.Vreal).sizeof))
                                 return false;
                         }
                         break;
@@ -1948,17 +1948,17 @@ L1:
                             return false;
                         break;
 
-                    case TYcldouble:
-                        static if ((n1.Vldouble).sizeof > 10)
+                    case TYcreal:
+                        static if ((n1.Vreal).sizeof > 10)
                         {
                             /* sizeof is 12, but actual size of each part is 10 */
                             if (memcmp(&n1.EV,&n2.EV,10) ||
-                                memcmp(&n1.Vldouble + 1, &n2.Vldouble + 1, 10))
+                                memcmp(&n1.Vreal + 1, &n2.Vreal + 1, 10))
                                 return false;
                         }
                         else
                         {
-                            if (memcmp(&n1.EV,&n2.EV,(n1.Vcldouble).sizeof))
+                            if (memcmp(&n1.EV,&n2.EV,(n1.Vcreal).sizeof))
                                 return false;
                         }
                         break;
@@ -2145,16 +2145,16 @@ targ_llong el_tolong(elem* e)
             break;
 
         case TYdouble_alias:
-        case TYldouble:
+        case TYreal:
         case TYdouble:
         case TYfloat:
-        case TYildouble:
+        case TYireal:
         case TYidouble:
         case TYifloat:
-        case TYcldouble:
+        case TYcreal:
         case TYcdouble:
         case TYcfloat:
-            result = cast(targ_llong)el_toldoubled(e);
+            result = cast(targ_llong)el_toreald(e);
             break;
 
         case TYcent:
@@ -2230,7 +2230,7 @@ bool el_signx32(const elem* e)
 
 version (CRuntime_Microsoft)
 {
-longdouble_soft el_toldouble(elem* e)
+longdouble_soft el_toreal(elem* e)
 {
     longdouble_soft result;
     elem_debug(e);
@@ -2248,12 +2248,12 @@ longdouble_soft el_toldouble(elem* e)
             result = longdouble_soft(e.Vdouble);
             break;
 
-        case TYldouble:
-        case TYildouble:
-            static if (is(typeof(e.Vldouble) == real))
-                result = longdouble_soft(e.Vldouble);
+        case TYreal:
+        case TYireal:
+            static if (is(typeof(e.Vreal) == real))
+                result = longdouble_soft(e.Vreal);
             else
-                result = longdouble_soft(cast(real)e.Vldouble);
+                result = longdouble_soft(cast(real)e.Vreal);
             break;
 
         default:
@@ -2265,9 +2265,9 @@ longdouble_soft el_toldouble(elem* e)
 }
 else
 {
-targ_ldouble el_toldouble(elem* e)
+targ_real el_toreal(elem* e)
 {
-    targ_ldouble result;
+    targ_real result;
     elem_debug(e);
     assert(e.Eoper == OPconst);
     switch (tybasic(typemask(e)))
@@ -2283,9 +2283,9 @@ targ_ldouble el_toldouble(elem* e)
             result = e.Vdouble;
             break;
 
-        case TYldouble:
-        case TYildouble:
-            result = e.Vldouble;
+        case TYreal:
+        case TYireal:
+            result = e.Vreal;
             break;
 
         default:
@@ -2523,20 +2523,20 @@ void elem_print_const(const elem* e)
             printf("%g ",cast(double)e.Vdouble);
             break;
 
-        case TYldouble:
+        case TYreal:
         {
             version (CRuntime_Microsoft)
             {
-                const buffer_len = 3 + 3 * (targ_ldouble).sizeof + 1;
+                const buffer_len = 3 + 3 * (targ_real).sizeof + 1;
                 char[buffer_len] buffer = void;
-                static if (is(typeof(e.Vldouble) == real))
-                    ld_sprint(buffer.ptr, buffer_len, 'g', longdouble_soft(e.Vldouble));
+                static if (is(typeof(e.Vreal) == real))
+                    ld_sprint(buffer.ptr, buffer_len, 'g', longdouble_soft(e.Vreal));
                 else
-                    ld_sprint(buffer.ptr, buffer_len, 'g', longdouble_soft(cast(real)e.Vldouble));
+                    ld_sprint(buffer.ptr, buffer_len, 'g', longdouble_soft(cast(real)e.Vreal));
                 printf("%s ", buffer.ptr);
             }
             else
-                printf("%Lg ", e.Vldouble);
+                printf("%Lg ", e.Vreal);
             break;
         }
 
@@ -2548,8 +2548,8 @@ void elem_print_const(const elem* e)
             printf("%gi ", cast(double)e.Vdouble);
             break;
 
-        case TYildouble:
-            printf("%gLi ", cast(double)e.Vldouble);
+        case TYireal:
+            printf("%gLi ", cast(double)e.Vreal);
             break;
 
         case TYcfloat:
@@ -2560,8 +2560,8 @@ void elem_print_const(const elem* e)
             printf("%g+%gi ", cast(double)e.Vcdouble.re, cast(double)e.Vcdouble.im);
             break;
 
-        case TYcldouble:
-            printf("%gL+%gLi ", cast(double)e.Vcldouble.re, cast(double)e.Vcldouble.im);
+        case TYcreal:
+            printf("%gL+%gLi ", cast(double)e.Vcreal.re, cast(double)e.Vcreal.im);
             break;
 
         // SIMD 16 byte vector types        // D type

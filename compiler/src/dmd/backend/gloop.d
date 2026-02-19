@@ -21,7 +21,7 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
-import dmd.backend.evalu8 : el_toldoubled;
+import dmd.backend.evalu8 : el_toreald;
 import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
@@ -1914,8 +1914,8 @@ private void newfamlist(famlist* fl, tym_t ty)
             c.Vdouble = 1;
             break;
 
-        case TYldouble:
-            c.Vldouble = 1;
+        case TYreal:
+            c.Vreal = 1;
             break;
 
         case TYbool:
@@ -1965,7 +1965,7 @@ private void newfamlist(famlist* fl, tym_t ty)
     }
     fl.c1 = el_const(ty, c);               /* c1 = 1               */
 
-    c.Vldouble = 0;
+    c.Vreal = 0;
     if (typtr(ty))
     {
         ty = TYint;
@@ -2914,7 +2914,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
              */
             if (!tyuns(ty) &&
                 (tyintegral(ty) && el_tolong(fl.c1) < 0 ||
-                 tyfloating(ty) && el_toldoubled(fl.c1) < 0.0))
+                 tyfloating(ty) && el_toreald(fl.c1) < 0.0))
                 refEoper = swaprel(refEoper);
 
             /* Replace (X relop e) with (X relop (short)e)
@@ -3299,9 +3299,9 @@ private bool flcmp(const ref famlist f1, const ref famlist f2)
                         goto Lf2;
                 break;
 
-            case TYldouble:
-                if (t2.Vldouble == 1.0 ||
-                    t1.Vldouble != 1.0 && f2.c2.Vldouble == 0)
+            case TYreal:
+                if (t2.Vreal == 1.0 ||
+                    t1.Vreal != 1.0 && f2.c2.Vreal == 0)
                         goto Lf2;
                 break;
 

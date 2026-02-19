@@ -1093,13 +1093,13 @@ L1:
         case TYfloat:
         case TYdouble:
         case TYdouble_alias:
-        case TYldouble:
+        case TYreal:
         case TYifloat:
         case TYidouble:
-        case TYildouble:
+        case TYireal:
         case TYcfloat:
         case TYcdouble:
-        case TYcldouble:
+        case TYcreal:
         case TYbool:
         case TYwchar_t:
         case TYdchar:
@@ -1978,13 +1978,13 @@ private void cv4_func(Funcsym* s, ref symtab_t symtab)
                 assert(I32);
                 goto case_edxeax;
 
-            case TYldouble:
-            case TYildouble:
+            case TYreal:
+            case TYireal:
                 goto case_st0;
 
             case TYcfloat:
             case TYcdouble:
-            case TYcldouble:
+            case TYcreal:
                 goto case_st01;
 
             case_ax:

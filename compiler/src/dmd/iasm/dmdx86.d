@@ -3532,7 +3532,7 @@ code* asm_db_parse(OP* pop)
         targ_ullong ul;
         targ_float f;
         targ_double d;
-        targ_ldouble ld;
+        targ_real ld;
         byte[10] value;
     }
     DT dt;
