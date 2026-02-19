@@ -1593,7 +1593,7 @@ bool isregvar(elem* e, ref regm_t pregm, ref reg_t preg)
                 {   cgstate.refparam = true;
                     cgstate.reflocal = true;
                 }
-                reg = e.Voffset == REGSIZE ? s.Sregmsw : s.Sreglsw;
+                reg = e.Voffset ? s.Sregmsw : s.Sreglsw;  // e.Voffset implies a register pair
                 regm = s.Sregm;
                 //assert(tyreg(s.ty()));
 static if (0)
@@ -1617,6 +1617,7 @@ static if (0)
                 return true;
 
             case FL.pseudo:
+                assert(!cgstate.AArch64);       // pseudo-registers are only for the X86 and X86_64
                 uint u = s.Sreglsw;
                 regm_t m = mask(u);
                 if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
