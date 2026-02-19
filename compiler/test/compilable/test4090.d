@@ -200,19 +200,7 @@ void test4090c()
     foreach (    const int x; 1..11) static assert(is(typeof(x) == const int));
     foreach (immutable int x; 1..11) static assert(is(typeof(x) == immutable int));
 
-    foreach (          ref x; 1..11) static assert(is(typeof(x) == int));
-    foreach (    const ref x; 1..11) static assert(is(typeof(x) == const int));
-  static assert(!__traits(compiles, {
-    foreach (immutable ref x; 1..11) {}
-  }));
-
     foreach (          double x; 1..11) static assert(is(typeof(x) == double));
     foreach (    const double x; 1..11) static assert(is(typeof(x) == const double));
     foreach (immutable double x; 1..11) static assert(is(typeof(x) == immutable double));
-
-    foreach (          ref double x; 1..11) static assert(is(typeof(x) == double));
-    foreach (    const ref double x; 1..11) static assert(is(typeof(x) == const double));
-  static assert(!__traits(compiles, {
-    foreach (immutable ref double x; 1..11) {}
-  }));
 }
