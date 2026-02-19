@@ -1151,6 +1151,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         if (isPair)
         {
+            allocreg(cdb,retregs,tym);
             reg_t Rlsw = findreg(retregs & INSTR.FLOATREGS & INSTR.LSW);
             reg_t Rmsw = findreg(retregs & INSTR.FLOATREGS & INSTR.MSW);
             uint imm12 = 0;
