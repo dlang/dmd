@@ -708,7 +708,7 @@ extern (C++) final class Module : Package
          */
         if (buf.length>= 4 && buf[0..4] == "Ddoc")
         {
-            commentHashTable[cast(void*)this] = buf.ptr + 4;;
+            commentHashTable[cast(void*)this] = buf.ptr + 4;
             filetype = FileType.ddoc;
             if (!docfile)
                 setDocfile();
