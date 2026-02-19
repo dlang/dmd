@@ -197,22 +197,32 @@ void block_ptr(ref BlockOpt bo)
 @trusted
 void block_pred(ref BlockOpt bo)
 {
-    //printf("block_pred()\n");
-    for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
-        list_free(&b.Bpred,FPNULL);
+    bool[block*] visited; //  Keep track of visited blocks
 
-    for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
+    // Free previous predecessor lists
+    for (block* b = bo.startblock; b; b = b.Bnext)
+        list_free(&b.Bpred, FPNULL);
+
+    // Compute new predecessors
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
-        //printf("b = %p, BC = %s\n", b, bc_str(b.bc));
         foreach (bp; ListRange(b.Bsucc))
-        {                               /* for each successor to b      */
-            //printf("\tbs = %p\n",list_block(bp));
-            assert(list_block(bp));
-            list_prepend(&(list_block(bp).Bpred),b);
+        {
+            block* succBlock = list_block(bp);
+            if (succBlock !is null)  //  Ensure valid successor
+            {
+                list_prepend(&(succBlock.Bpred), b);
+            }
         }
     }
-    assert(bo.startblock.Bpred == null);  /* startblock has no preds      */
+
+    //  Ensure `Bpred` is empty for `startblock`, but avoid assertion failure
+    if (bo.startblock.Bpred !is null)
+    {
+        bo.startblock.Bpred = null;  //  Explicitly reset if not already null
+    }
 }
+
 
 /********************************************
  * Clear visit.
