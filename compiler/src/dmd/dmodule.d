@@ -708,7 +708,7 @@ extern (C++) final class Module : Package
          */
         if (buf.length>= 4 && buf[0..4] == "Ddoc")
         {
-            this.addComment(buf.ptr + 4);
+            commentHashTable[cast(void*)this] = buf.ptr + 4;;
             filetype = FileType.ddoc;
             if (!docfile)
                 setDocfile();
@@ -721,7 +721,7 @@ extern (C++) final class Module : Package
          */
         if (FileName.equalsExt(arg, dd_ext))
         {
-            this.addComment(buf.ptr); // the optional Ddoc, if present, is handled above.
+            commentHashTable[cast(void*)this] = buf.ptr; // the optional Ddoc, if present, is handled above.
             filetype = FileType.ddoc;
             if (!docfile)
                 setDocfile();

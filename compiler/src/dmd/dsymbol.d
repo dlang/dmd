@@ -47,7 +47,6 @@ import dmd.tokens;
 import dmd.visitor;
 
 import dmd.common.outbuffer;
-import dmd.dsymbolsem;
 /***************************************
  * Calls dg(Dsymbol* sym) for each Dsymbol.
  * If dg returns !=0, stops and returns that value else returns 0.
@@ -1059,7 +1058,9 @@ public:
     {
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
-        sds.addComment(comment);
+        if (const c = this.comment()){
+            commentHashTable[cast(void*)sds] = c;
+        }
         sds.members = arraySyntaxCopy(members);
         sds.endlinnum = endlinnum;
         return sds;

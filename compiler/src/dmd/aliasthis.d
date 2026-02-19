@@ -19,7 +19,6 @@ import dmd.dsymbol;
 import dmd.identifier;
 import dmd.location;
 import dmd.visitor;
-import dmd.dsymbolsem;
 
 /***********************************************************
  * alias ident this;
@@ -42,7 +41,9 @@ extern (C++) final class AliasThis : Dsymbol
     {
         assert(!s);
         auto at = new AliasThis(loc, ident);
-        at.addComment(comment);
+        if (const c = this.comment()){
+            commentHashTable[cast(void*)at] = c;
+        }
         return at;
     }
 
