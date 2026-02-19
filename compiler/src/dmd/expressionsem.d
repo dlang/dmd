@@ -4099,7 +4099,7 @@ private bool functionParameters(Loc loc, Scope* sc,
     //printf("functionParameters() fd: %s tf: %s\n", fd ? fd.ident.toChars() : "", toChars(tf));
     assert(arguments);
     assert(fd || tf.next);
-    const size_t nparams = tf.parameterList.length;
+    const size_t nparams = tf.parameterList.length; // number of parameters
     const olderrors = global.errors;
     bool err = false;
     Expression eprefix = null;
@@ -4121,7 +4121,7 @@ private bool functionParameters(Loc loc, Scope* sc,
         arguments.setDim(0);
         arguments.pushSlice((*resolvedArgs)[]);
     }
-    size_t nargs = arguments ? arguments.length : 0;
+    size_t nargs = arguments ? arguments.length : 0; // number of arguments
 
     if (nargs > nparams && tf.parameterList.varargs == VarArg.none)
     {
@@ -4158,7 +4158,6 @@ private bool functionParameters(Loc loc, Scope* sc,
 
     const isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
 
-    const size_t n = (nargs > nparams) ? nargs : nparams; // n = max(nargs, nparams)
 
     /* If the function return type has wildcards in it, we'll need to figure out the actual type
      * based on the actual argument types.
@@ -4168,12 +4167,13 @@ private bool functionParameters(Loc loc, Scope* sc,
     MOD wildmatch = (tthis && !isCtorCall) ? tthis.typeDeduceWild(tf, false) : 0;
 
     bool done = false;
+    const size_t n = (nargs > nparams) ? nargs : nparams; // n = max(nargs, nparams)
     foreach (const i; 0 .. n)
     {
         Expression arg = (i < nargs) ? (*arguments)[i] : null;
 
         if (i >= nparams)
-            break;
+            break;              // this loop is not for variadic arguments
 
         bool errorArgs()
         {
@@ -4183,7 +4183,7 @@ private bool functionParameters(Loc loc, Scope* sc,
 
         Parameter p = tf.parameterList[i];
 
-        if (!arg)
+        if (!arg) // the argument is missing, so use the default arg
         {
             if (!p.defaultArg)
             {
@@ -4221,10 +4221,11 @@ private bool functionParameters(Loc loc, Scope* sc,
             if (MATCH m = arg.implicitConvTo(p.type))
             {
                 if (p.type.nextOf() && arg.implicitConvTo(p.type.nextOf()) >= m)
-                    goto L2;
+                { }
                 else if (nargs != nparams)
                     return errorArgs();
-                goto L1;
+                else
+                    goto L1;
             }
         L2:
             Type tb = p.type.toBasetype();
@@ -4433,39 +4434,61 @@ private bool functionParameters(Loc loc, Scope* sc,
                 // Look for mutable misaligned pointer, etc., in @safe mode
                 err |= checkUnsafeAccess(sc, arg, false, true);
             }
-            else if (p.storageClass & STC.ref_)
+            else if (p.storageClass & (STC.ref_ | STC.out_))
             {
-                if (sc.previews.rvalueRefParam &&
-                    !arg.isLvalue() &&
-                    targ.isCopyable())
-                {   /* allow rvalues to be passed to ref parameters by copying
-                     * them to a temp, then pass the temp as the argument
-                     */
-                    auto v = copyToTemp(STC.none, "__rvalue", arg);
-                    Expression ev = new DeclarationExp(arg.loc, v);
-                    ev = new CommaExp(arg.loc, ev, new VarExp(arg.loc, v));
-                    arg = ev.expressionSemantic(sc);
+                if (VarExp ve = arg.isVarExp())
+                {
+                    if (ve.var.storage_class & STC.final_ &&
+                        ve.var.isVarDeclaration() &&
+                        p.type.isMutable() &&
+                        !(p.storageClass & STC.final_))
+                    {
+                        /* func(ref int p);
+                           final int ve = 3;
+                           func(ve); // error
+                         */
+                        const char* msg = p.storageClass & STC.ref_
+                                ? "cannot modify final `%s` with ref to mutable"
+                                : "cannot pass final `%s` to `out` parameter";
+                        error(arg.loc, msg, ve.toErrMsg());
+                        err = true;
+                    }
                 }
-                arg = arg.toLvalue(sc, "create `ref` parameter from");
 
-                // Look for mutable misaligned pointer, etc., in @safe mode
-                err |= checkUnsafeAccess(sc, arg, false, true);
-            }
-            else if (p.storageClass & STC.out_)
-            {
-                Type t = arg.type;
-                if (!t.isMutable() || !t.isAssignable()) // check blit assignable
+                if (p.storageClass & STC.ref_)
                 {
-                    error(arg.loc, "cannot modify struct `%s` with immutable members", arg.toChars());
-                    err = true;
-                }
-                else
-                {
-                    // Look for misaligned pointer, etc., in @safe mode
+                    if (sc.previews.rvalueRefParam &&
+                        !arg.isLvalue() &&
+                        targ.isCopyable())
+                    {   /* allow rvalues to be passed to ref parameters by copying
+                         * them to a temp, then pass the temp as the argument
+                         */
+                        auto v = copyToTemp(STC.none, "__rvalue", arg);
+                        Expression ev = new DeclarationExp(arg.loc, v);
+                        ev = new CommaExp(arg.loc, ev, new VarExp(arg.loc, v));
+                        arg = ev.expressionSemantic(sc);
+                    }
+                    arg = arg.toLvalue(sc, "create `ref` parameter from");
+
+                    // Look for mutable misaligned pointer, etc., in @safe mode
                     err |= checkUnsafeAccess(sc, arg, false, true);
-                    err |= checkDefCtor(arg.loc, t); // t must be default constructible
                 }
-                arg = arg.toLvalue(sc, "create `out` parameter from");
+                else // STC.out_
+                {
+                    Type t = arg.type;
+                    if (!t.isMutable() || !t.isAssignable()) // check blit assignable
+                    {
+                        error(arg.loc, "cannot modify struct `%s` with immutable members", arg.toChars());
+                        err = true;
+                    }
+                    else
+                    {
+                        // Look for misaligned pointer, etc., in @safe mode
+                        err |= checkUnsafeAccess(sc, arg, false, true);
+                        err |= checkDefCtor(arg.loc, t); // t must be default constructible
+                    }
+                    arg = arg.toLvalue(sc, "create `out` parameter from");
+                }
             }
             else if (p.isLazy())
             {
@@ -10241,7 +10264,23 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        exp.type = exp.e1.type.pointerTo();
+        /* Taking the address of a `final` variable means making a pointer to const
+         */
+        bool toConst = false;
+        if (exp.e1.type.isMutable())
+        {
+            if (VarExp ve = exp.e1.isVarExp())
+            {
+                if (VarDeclaration v = ve.var.isVarDeclaration())
+                {
+                    if (v.storage_class & STC.final_)
+                        toConst = true;
+                }
+            }
+        }
+
+        exp.type = toConst ? exp.e1.type.constOf().pointerTo()
+                           : exp.e1.type.pointerTo();
 
         // See if this should really be a delegate
         if (exp.e1.op == EXP.dotVariable)
@@ -10272,16 +10311,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else if (exp.e1.op == EXP.variable)
         {
             VarExp ve = cast(VarExp)exp.e1;
-            VarDeclaration v = ve.var.isVarDeclaration();
-            if (v)
+            if (VarDeclaration v = ve.var.isVarDeclaration())
             {
                 if (!checkAddressVar(sc, exp.e1, v))
                     return setError();
 
                 v.checkPurity(ve.loc, sc);
             }
-            FuncDeclaration f = ve.var.isFuncDeclaration();
-            if (f)
+
+            if (FuncDeclaration f = ve.var.isFuncDeclaration())
             {
                 /* Because nested functions cannot be overloaded,
                  * mark here that we took its address because castTo()
@@ -17481,7 +17519,7 @@ Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyF
         case EXP.variable:
             auto varExp = cast(VarExp)exp;
 
-            //printf("VarExp::checkModifiable %s", varExp.toChars());
+            //printf("VarExp::checkModifiable %s\n", varExp.toChars());
             assert(varExp.type);
             return varExp.var.checkModify(varExp.loc, sc, null, flag);
 
@@ -17629,6 +17667,7 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
     Expression visit(Expression exp)
     {
         //printf("Expression::modifiableLvalue() %s, type = %s\n", exp.toChars(), exp.type.toChars());
+        //printAST(exp);
         // See if this expression is a modifiable lvalue (i.e. not const)
         if (exp.isBinAssignExp())
             return exp.toLvalue(sc, "modify");
@@ -17676,6 +17715,11 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
     Expression visitVar(VarExp exp)
     {
         //printf("VarExp::modifiableLvalue('%s')\n", exp.var.toChars());
+        if (exp.var.storage_class & STC.final_)
+        {
+            error(exp.loc, "cannot modify `final %s`", exp.toErrMsg());
+            return ErrorExp.get();
+        }
         if (exp.var.storage_class & STC.manifest)
         {
             error(exp.loc, "cannot modify manifest constant `%s`", exp.toErrMsg());
@@ -17701,6 +17745,30 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
             else
                 error(exp.loc, "function pointed to by `%s` is not an lvalue and cannot be modified", var.toChars());
             return ErrorExp.get();
+        }
+        return visit(exp);
+    }
+
+    Expression visitIndex(IndexExp exp)
+    {
+        //printf("IndexExp::modifiableLvalue() %s, type %s\n", exp.toChars(), exp.type.toChars());
+        auto e1 = exp.e1;
+        while (1)
+        {
+            if (auto e1x = e1.isIndexExp())
+            {
+                e1 = e1x.e1;
+                continue;
+            }
+            break;
+        }
+        if (auto ve = e1.isVarExp())
+        {
+            if (ve.type.isTypeSArray() && ve.var.storage_class & STC.final_)
+            {
+                error(exp.loc, "cannot modify `final %s`", exp.toErrMsg());
+                return ErrorExp.get();
+            }
         }
         return visit(exp);
     }
@@ -17753,6 +17821,7 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
         case EXP.string_:                 return visitString(_this.isStringExp());
         case EXP.variable:                return visitVar(_this.isVarExp());
         case EXP.star:                    return visitPtr(_this.isPtrExp());
+        case EXP.index:                   return visitIndex(_this.isIndexExp());
         case EXP.slice:                   return visitSlice(_this.isSliceExp());
         case EXP.comma:                   return visitComma(_this.isCommaExp());
         case EXP.delegatePointer:         return visitDelegatePtr(_this.isDelegatePtrExp());
@@ -18448,7 +18517,7 @@ enum ModifyFlags
  */
 private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1, ModifyFlags flag)
 {
-    //printf("checkModify() d: %s, e1: %s\n", d.toChars(), e1.toChars());
+    //printf("checkModify() d: %s, e1: %s, flag: %x\n", d.toChars(), e1 ? e1.toChars() : "null", flag);
     VarDeclaration v = d.isVarDeclaration();
     if (v && v.canassign)
         return Modifiable.initialization;
