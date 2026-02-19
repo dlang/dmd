@@ -452,7 +452,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto o1 = (*e.args)[0];
         auto s1 = getDsymbol(o1);
         auto agg = s1 ? s1.isAggregateDeclaration() : null;
-        
+
         if (!agg)
         {
             error(e.loc, "first argument is not an aggregate type");
@@ -460,7 +460,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         auto o2 = (*e.args)[1];
-        auto s2 = getDsymbolWithoutExpCtx(o2); 
+        auto s2 = getDsymbolWithoutExpCtx(o2);
         auto v = s2 ? s2.isVarDeclaration() : null;
 
         if (!v || !v.isField())
@@ -473,18 +473,18 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         // We need to search through the aggregate's members to find if there's
         // an anonymous union that contains this field.
         import dmd.attrib : AnonDeclaration;
-        
+
         // Try to resolve forward reference if needed
         if (agg.semanticRun < PASS.semanticdone)
             agg.dsymbolSemantic(null);
-        
+
         // Check if the aggregate has been defined
         if (!agg.members)
         {
             error(e.loc, "%s `%s` is forward referenced", agg.kind(), agg.toChars());
             return ErrorExp.get();
         }
-        
+
         foreach (member; *agg.members)
         {
             if (auto anon = member.isAnonDeclaration())

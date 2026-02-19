@@ -8812,6 +8812,7 @@ struct Id final
     static Identifier* isAbstractClass;
     static Identifier* isArithmetic;
     static Identifier* isAssociativeArray;
+    static Identifier* isAnonymousUnion;
     static Identifier* isBitfield;
     static Identifier* isFinalClass;
     static Identifier* isTemplate;
