@@ -587,9 +587,11 @@ template hasIndirections(T)
     else static if (__traits(isAssociativeArray, T) || is(T == class) || is(T == interface))
         enum hasIndirections = true;
     else static if (is(T == E[N], E, size_t N))
-        enum hasIndirections = T.sizeof && (is(immutable E == immutable void) || hasIndirections!(BaseElemOf!E));
+        enum hasIndirections = T.sizeof && hasIndirections!(BaseElemOf!E);
     else static if (isFunctionPointer!T)
         enum hasIndirections = false;
+    else static if (is(immutable(T) == immutable(void)))
+        enum hasIndirections = true;
     else
         enum hasIndirections = isPointer!T || isDelegate!T || isDynamicArray!T;
 }
@@ -750,11 +752,11 @@ template hasIndirections(T)
 // https://github.com/dlang/dmd/issues/20812
 @safe unittest
 {
-    static assert(!hasIndirections!void);
-    static assert(!hasIndirections!(const void));
-    static assert(!hasIndirections!(inout void));
-    static assert(!hasIndirections!(immutable void));
-    static assert(!hasIndirections!(shared void));
+    static assert( hasIndirections!void);
+    static assert( hasIndirections!(const void));
+    static assert( hasIndirections!(inout void));
+    static assert( hasIndirections!(immutable void));
+    static assert( hasIndirections!(shared void));
 
     static assert( hasIndirections!(void*));
     static assert( hasIndirections!(const void*));
