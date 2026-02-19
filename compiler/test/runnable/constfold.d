@@ -575,7 +575,7 @@ void test14459()
 /************************************/
 // https://issues.dlang.org/show_bug.cgi?id=15607
 
-static immutable char[2][4] code_base = [ "??", 12 ];
+static immutable char[2][4] code_base = [ 0: "??", 12 ];
 static assert(code_base[0] == "??");
 static assert(code_base[1] == [12, 12]);
 static assert(code_base[2] == typeof(code_base[2]).init);

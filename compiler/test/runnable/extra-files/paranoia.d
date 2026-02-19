@@ -2220,7 +2220,7 @@ very_serious:
  void
  Heading()
 {
-  static  CHARP[20]head = [
+  static  CHARP[15]head = [
 	"Users are invited to help debug and augment this program so it will",
 	"cope with unanticipated and newly uncovered arithmetic pathologies.\n",
 	"Please send suggestions and interesting results to",
@@ -2278,7 +2278,7 @@ very_serious:
  /* Converted from Brian Wichmann's Pascal version to C by Thos Sumner,
 	with further massaging by David M. Gay. */
 
-  static  CHARP[20]hist = [
+  static  CHARP[18]hist = [
 	"The program attempts to discriminate among",
 	"   FLAWs, like lack of a sticky bit,",
 	"   Serious DEFECTs, like lack of a guard digit, and",
