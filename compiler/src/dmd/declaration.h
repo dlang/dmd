@@ -606,9 +606,9 @@ public:
 
     // Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
-
+#if MARS
     FuncDeclarations *inlinedNestedCallees;
-
+#endif
     AttributeViolation* safetyViolation;
     AttributeViolation* nogcViolation;
     AttributeViolation* pureViolation;

@@ -2239,6 +2239,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
     scope ids = new InlineDoState(parent, fd);
     ids.propagateNRVO = propagateNRVO;
 
+    version(MARS)
     if (fd.isNested())
     {
         if (!parent.inlinedNestedCallees)
