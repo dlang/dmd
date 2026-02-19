@@ -31,8 +31,6 @@ enum class ErrorKind
 #endif
 
 // Print a warning, deprecation, or error, accepts printf-like format specifiers.
-D_ATTRIBUTE_FORMAT(2, 3) void warning(Loc loc, const char *format, ...);
-D_ATTRIBUTE_FORMAT(2, 3) void warningSupplemental(Loc loc, const char *format, ...);
 D_ATTRIBUTE_FORMAT(2, 3) void deprecation(Loc loc, const char *format, ...);
 D_ATTRIBUTE_FORMAT(2, 3) void deprecationSupplemental(Loc loc, const char *format, ...);
 D_ATTRIBUTE_FORMAT(2, 3) void error(Loc loc, const char *format, ...);
