@@ -527,7 +527,7 @@ shared static ~this()
         trace_merge(&groot);
 
         // Report results
-        FILE* fplog = trace_logfilename.length == 0 ? stdout :
+        FILE* fplog = trace_logfilename.length == 0 ? cast()stdout :
             fopen(trace_logfilename.ptr, "w");
         if (fplog)
         {
@@ -545,10 +545,10 @@ shared static ~this()
             psymbols = null;
         }
         else
-            fprintf(stderr, "cannot write '%s'", trace_logfilename.ptr);
+            fprintf(cast()stderr, "cannot write '%s'", trace_logfilename.ptr);
 
         // Output function link order
-        FILE* fpdef = trace_deffilename.length == 0 ? stdout :
+        FILE* fpdef = trace_deffilename.length == 0 ? cast()stdout :
             fopen(trace_deffilename.ptr, "w");
         if (fpdef)
         {
@@ -557,7 +557,7 @@ shared static ~this()
             fclose(fpdef);
         }
         else
-            fprintf(stderr, "cannot write '%s'", trace_deffilename.ptr);
+            fprintf(cast()stderr, "cannot write '%s'", trace_deffilename.ptr);
     }
 }
 

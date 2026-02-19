@@ -653,7 +653,9 @@ class Thread : ThreadBase
             auto local = atomicLoad(mixin("cache." ~ which));
             if (local != local.min) return local;
             // There will be benign races
-            cache = loadPriorities;
+            auto loaded = loadPriorities;
+            static foreach (i, _; loaded.tupleof)
+                atomicStore(cache.tupleof[i], loaded.tupleof[i]);
             return atomicLoad(mixin("cache." ~ which));
         }
 

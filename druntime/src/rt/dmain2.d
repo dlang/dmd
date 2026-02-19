@@ -515,9 +515,9 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
                 if (utResult.summarize)
                 {
                     if (utResult.passed == 0)
-                        .fprintf(.stderr, "No unittests run\n");
+                        .fprintf(cast().stderr, "No unittests run\n");
                     else
-                        .fprintf(.stderr, "%d modules passed unittests\n",
+                        .fprintf(cast().stderr, "%d modules passed unittests\n",
                                  cast(int)utResult.passed);
                 }
                 if (utResult.runMain)
@@ -528,7 +528,7 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
             else
             {
                 if (utResult.summarize)
-                    .fprintf(.stderr, "%d/%d modules FAILED unittests\n",
+                    .fprintf(cast().stderr, "%d/%d modules FAILED unittests\n",
                              cast(int)(utResult.executed - utResult.passed),
                              cast(int)utResult.executed);
                 result = EXIT_FAILURE;
@@ -549,9 +549,9 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
     tryExec(&runAll);
 
     // Issue 10344: flush stdout and return nonzero on failure
-    if (.fflush(.stdout) != 0)
+    if (.fflush(cast().stdout) != 0)
     {
-        .fprintf(.stderr, "Failed to flush stdout: %s\n", .strerror(.errno));
+        .fprintf(cast().stderr, "Failed to flush stdout: %s\n", .strerror(.errno));
         if (result == 0)
         {
             result = EXIT_FAILURE;
@@ -628,7 +628,7 @@ extern (C) void _d_print_throwable(Throwable t)
 
         // ensure the exception is shown at the beginning of the line, while also
         // checking whether stderr is a valid file
-        int written = fprintf(stderr, "\n");
+        int written = fprintf(cast()stderr, "\n");
         if (written <= 0)
         {
             WSink buf;
@@ -654,7 +654,7 @@ extern (C) void _d_print_throwable(Throwable t)
             }
             return;
         }
-        auto hStdErr = windowsHandle(fileno(stderr));
+        auto hStdErr = windowsHandle(fileno(cast()stderr));
         CONSOLE_SCREEN_BUFFER_INFO sbi = void;
         const isConsole = GetConsoleScreenBufferInfo(hStdErr, &sbi) != 0;
         if (isConsole)
@@ -682,7 +682,7 @@ extern (C) void _d_print_throwable(Throwable t)
 
     void sink(in char[] buf) scope nothrow
     {
-        fwrite(buf.ptr, char.sizeof, buf.length, stderr);
+        fwrite(buf.ptr, char.sizeof, buf.length, cast()stderr);
     }
     formatThrowable(t, &sink);
 }
