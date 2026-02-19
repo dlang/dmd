@@ -52,17 +52,17 @@ coverage_environment_template: &COVERAGE_ENVIRONMENT_TEMPLATE
   CODECOV_TOKEN: ENCRYPTED[cc6ce01618eaee6c9a08ebc81446a9233588df3b2c6ba4e30ffb7715ee9815734ccfd9fcec4f6abfc6a1b9dd8253110d]
 
 # FreeBSD
-freebsd13_task:
-  name: FreeBSD 13.0 x64, DMD ($TASK_NAME_TYPE)
+freebsd14_task:
+  name: FreeBSD 14.2 x64, DMD ($TASK_NAME_TYPE)
   allow_failures: true # might be out of credits
   freebsd_instance:
-    image_family: freebsd-13-0
+    image_family: freebsd-14-2
     cpu: 4
     memory: 8G
   timeout_in: 60m
   environment:
     OS_NAME: freebsd
-    CI_DFLAGS: -version=TARGET_FREEBSD13
+    CI_DFLAGS: -version=TARGET_FREEBSD14
     matrix:
       - TASK_NAME_TYPE: coverage
         << : *COVERAGE_ENVIRONMENT_TEMPLATE
