@@ -8,6 +8,15 @@ RUN_OUTPUT:
 1.000000 2.000000 3.000000
 Success
 ---
+TEST_OUTPUT:
+---
+runnable/inline.d(625): Deprecation: Using variable `x` declared in a loop from a closure is deprecated
+    foreach (ref x; arr)
+    ^
+runnable/inline.d(627):        Variable `x` used in possibly escaping function `__lambda_L627_C34`
+        auto m = MapResult13244!(c => x[c])([0]);
+                                 ^
+---
 */
 
 import core.stdc.stdio;

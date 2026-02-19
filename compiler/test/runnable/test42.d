@@ -3,6 +3,12 @@ REQUIRED_ARGS:
 TEST_OUTPUT:
 ---
 success
+runnable/test42.d(817): Deprecation: Using variable `d` declared in a loop from a closure is deprecated
+    foreach(d;k)
+    ^
+runnable/test42.d(820):        Variable `d` used in possibly escaping function `foo`
+        string foo() {assert(d!="");return d;}
+               ^
 myInt int
 myBool bool
 i
@@ -62,7 +68,7 @@ void test3()
 {
     auto i = mixin("__LINE__");
     printf("%d\n", i);
-    assert(i == 63);
+    assert(i == 69);
 }
 
 /***************************************************/
