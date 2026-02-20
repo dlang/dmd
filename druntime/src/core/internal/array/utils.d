@@ -157,6 +157,13 @@ void[] __arrayAlloc(T)(size_t arrSize) @trusted
     return null;
 }
 
+// https://github.com/dlang/dmd/issues/22517
+@system unittest
+{
+    auto arr = new void[10];
+    assert((GC.getAttr(&arr[0]) & BlkAttr.NO_SCAN) == 0);
+}
+
 /**
 Given an array of length `size` that needs to be expanded to `newlength`,
 compute a new capacity.
