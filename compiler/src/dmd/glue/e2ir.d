@@ -465,7 +465,14 @@ elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
         return e;
     }
 
-    if (alwaysCopy || ((*pe).Eoper != OPvar && (*pe).Eoper != OPind))
+    static bool hasAddress(elem* e)
+    {
+        if (e.Eoper == OPeq || e.Eoper == OPstreq)
+            e = e.E1;
+        return e.Eoper == OPvar || e.Eoper == OPind;
+    }
+
+    if (alwaysCopy || !hasAddress(*pe))
     {
         elem* e2 = *pe;
         type* tx;
@@ -6737,25 +6744,28 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
         return ep;
     }
 
+    elem* e;
+    // struct symbol to initialize with the literal
+    Symbol* stmp = sym;
+
     if (sle.useStaticInit)
     {
         /* Use the struct declaration's init symbol
          */
-        elem* e = el_var(toInitializer(sle.sd));
+        e = el_var(toInitializer(sle.sd));
         e.ET = Type_toCtype(sle.sd.type);
         elem_setLoc(e, sle.loc);
 
-        if (sym)
+        if (!stmp && sle.type.isMutable())
+            stmp = symbol_genauto(Type_toCtype(sle.sd.type));
+
+        if (stmp)
         {
-            elem* ev = el_var(sym);
+            elem* ev = el_var(stmp);
             if (tybasic(ev.Ety) == TYnptr)
                 ev = el_una(OPind, e.Ety, ev);
             ev.ET = e.ET;
             e = elAssign(ev, e, null, ev.ET);
-
-            //ev = el_var(sym);
-            //ev.ET = e.ET;
-            //e = el_combine(e, ev);
             elem_setLoc(e, sle.loc);
         }
         if (forcetype)
@@ -6763,10 +6773,8 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
         return e;
     }
 
-    // struct symbol to initialize with the literal
-    Symbol* stmp = sym ? sym : symbol_genauto(Type_toCtype(sle.sd.type));
-
-    elem* e = null;
+    if (!stmp)
+        stmp = symbol_genauto(Type_toCtype(sle.sd.type));
 
     /* If a field has explicit initializer (*sle.elements)[i] != null),
      * any other overlapped fields won't have initializer. It's asserted by
