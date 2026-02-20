@@ -1219,17 +1219,13 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
 Louter:
     for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
     {
-        if (pc.members)
+        foreach (vd; pc.fields)
         {
-            for (size_t i = 0; i < pc.members.length; i++)
+            //printf("vd = %s %s\n", vd.kind(), vd.toChars());
+            if (vd.hasPointers())
             {
-                Dsymbol sm = (*pc.members)[i];
-                //printf("sm = %s %s\n", sm.kind(), sm.toChars());
-                if (sm.hasPointers())
-                {
-                    flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
-                    break Louter;
-                }
+                flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
+                break Louter;
             }
         }
     }
