@@ -143,15 +143,25 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 
 $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types))
 
+    $(P A derived data type is a $(GLINK Type) which either:)
+
+    * is $(GRAMMAR_INLINE $(GLINK TypeCtor) $(GLINK Type))
+    * is $(GRAMMAR_INLINE $(GLINK TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)))
+    * is a $(DDSUBLINK spec/template, homogeneous_sequences, type sequence)
+    * has a $(GLINK TypeSuffix)
+
+    $(P Types with a *TypeSuffix* are:)
+
     $(UL
-    $(LI Pointers)
+    $(LI $(RELATIVE_LINK2 pointers, Pointers))
+        - $(RELATIVE_LINK2 function-pointers, Function Pointer Types)
+    $(LI $(RELATIVE_LINK2 delegates, Delegate Types))
     $(LI $(DDSUBLINK spec/arrays, static-arrays, Static Arrays))
     $(LI $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Arrays))
     $(LI $(DDLINK spec/hash-map, Associative Array, Associative Arrays))
-    $(LI $(RELATIVE_LINK2 functions, Function Types))
-    $(LI $(RELATIVE_LINK2 delegates, Delegate Types))
-    $(LI $(DDSUBLINK spec/template, homogeneous_sequences, Type Sequences))
+    $(LI $(DDSUBLINK spec/template, seq-ops, Indexed/sliced) type sequences)
     )
+    $(P Examples:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
@@ -162,10 +172,39 @@ int[] da; // dynamic array/slice
 int[string] aa; // associative array
 void function() fp; // function pointer
 
+const(int) v = 2; // constant
+
 import std.meta : AliasSeq;
 AliasSeq!(int, string) tsi; // type sequence instance
 ---
 )
+
+    $(NOTE A derived data type is distinct from a
+    $(DDLINK spec/class, Classes, derived class type).)
+
+$(H3 $(LNAME2 component-types, Component Types))
+
+    $(P A derived data type has at least one *component type*:)
+
+    $(TABLE
+    $(THEAD Type, Component Types)
+    $(TROW *TypeCtor*`(T)`, `T`)
+    $(TROW `T*`, `T`)
+    $(COMMENT TROW `R function(Params)`,
+        $(ARGS `R(Params)` - see $(RELATIVE_LINK2 functions, Function Types)))
+    $(COMMENT It's unclear if delegates should have component types)
+    $(COMMENT TROW `R delegate(Params)`,
+        $(ARGS `R function(Params)`, `void*`))
+    $(TROW `T[]`, `T`)
+    $(TROW `T[`*AssignExpression*`]`, `T`)
+    $(TROW `V[K]`, $(ARGS `K`, `V`))
+    $(TROW `AliasSeq!(Params)`, `Params`)
+    )
+    $(P $(DDLINK spec/const3, Type Qualifiers, Applying a type qualifier) to
+    a derived data type will also apply it to all its component types.)
+
+    $(P See also: $(DDSUBLINK spec/expression, is-derived-data-type,
+        Pattern Matching a Derived Data Type).)
 
 $(H3 $(LNAME2 pointers, Pointers))
 
