@@ -83,9 +83,16 @@ $(LI $(RELATIVE_LINK2 cast_qualifier, `cast(`$(I TypeCtors)$(OPT)`)`) when appli
 $(H3 $(LNAME2 .define-rvalue, Rvalue))
 
 $(P Expressions that are not lvalues are *rvalues*. Rvalues include all literals, special value keywords such as `__FILE__` and `__LINE__`,
-`enum` values, and the result of expressions not defined as lvalues above.)
+`enum` values, $(GLINK RvalueExpression), and the result of expressions not defined as lvalues above.)
 
-$(P The built-in address-of operator (unary `&`) may only be applied to lvalues.)
+* The built-in address-of operator (unary `&`) may only be applied to lvalues.
+* A $(DDSUBLINK spec/declaration, ref-storage, `ref` declaration) only binds to lvalues.
+
+---
+ref r = 1; // error
+enum e = 1;
+int* p = &e; // error
+---
 
 $(H3 $(LNAME2 .define-smallest-short-circuit, Smallest Short-Circuit Expression))
 
@@ -3773,45 +3780,50 @@ $(GNAME RvalueExpression):
     $(D __rvalue $(LPAREN)) $(GLINK AssignExpression) $(D $(RPAREN))
 )
 
-    $(P The $(I RvalueExpression) causes the embedded $(I AssignExpression) to be
-    treated as an rvalue whether it is an rvalue or an lvalue.)
+    $(P An $(I RvalueExpression) causes the embedded $(I AssignExpression) to be
+    treated as an rvalue whether it is an rvalue or an $(RELATIVE_LINK2 .define-lvalue, lvalue).)
 
-$(H4 Overloading)
+$(H4 $(LNAME2 rvalue-overloading, Overloading))
 
-    $(P If both ref and non-ref parameter overloads are present, an rvalue is preferably matched to the
-    non-ref parameters, and an lvalue is preferably matched to the ref parameter.
+    $(P If both $(DDSUBLINK spec/function, ref-params, ref) and non-ref parameter overloads are present for a function argument, an rvalue is preferably matched to the
+    non-ref parameter, and an lvalue is preferably matched to the ref parameter.
     An $(I RvalueExpression) will preferably match with the non-ref parameter.)
 
-$(H4 Semantics of Arguments Matched to Rvalue Parameters)
+$(H4 $(LNAME2 rvalue-parameter, Semantics of Arguments Matched to Rvalue Parameters))
 
-    $(P An rvalue argument is owned by the function called. Hence, if an lvalue is matched
-    to the rvalue argument, a copy is made of the lvalue to be passed to the function. The function
+    $(P An rvalue function argument is owned by the function called. Hence, if an lvalue is matched
+    to an rvalue function parameter, a copy is made of the lvalue to be passed to the function. The function
     will then call the destructor (if any) on the parameter at the conclusion of the function.
-    An rvalue argument is not copied, as it is assumed to already be unique, and is also destroyed at
+    An rvalue argument is not copied, as it is assumed to already be unique, and it is also destroyed at
     the conclusion of the function.)
 
-    $(P The called function's semantics are the same whether a parameter originated as an rvalue
-    or is a copy of an lvalue.
+    $(P The called function's semantics are the same, whether a parameter originated as an rvalue
+    or it is a copy of an lvalue.
     This means that an $(I RvalueExpression) argument destroys the expression upon function return.
     Attempts to continue to use the lvalue expression are invalid. The compiler won't always be able
-    to detect a use after being passed to the function, which means that the destructor for the object
+    to detect a use of the lvalue after it has been passed to the function, which means that the destructor for the object
     must reset the object's contents to its initial value, or at least a benign value that can
     be destructed more than once.
     )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
+import core.stdc.stdlib;
+
 struct S
 {
     ubyte* p;
+
     ~this()
     {
-      free(p);
-      // add `p = null;` here to prevent double free
+        free(p);
+        // add `p = null;` here to prevent double free
     }
 }
 
 void aggh(S s)
 {
+    // destructor of `s` called here, freeing `s.p`
 }
 
 void oops()
@@ -3819,28 +3831,42 @@ void oops()
     S s;
     s.p = cast(ubyte*)malloc(10);
     aggh(__rvalue(s));
-    // destructor of s called at end of scope, double-freeing s.p
+    // destructor of `s` called at end of scope, double-freeing `s.p`
 }
 ---
+)
 
-    $(P $(I RvalueExpression)s enable the use of $(I move constructor)s and $(I move assignment)s.)
+    $(P $(I RvalueExpression)s enable the use of $(DDSUBLINK spec/struct, struct-move-constructor,
+    move constructors) and $(I move assignment)s.)
 
-$(H4 $(LNAME2 __rvalue-function-attribute, As a function attribute))
+$(H4 $(LNAME2 __rvalue-function-attribute, `__rvalue` Function Attribute))
 
-    $(P It is also allowed to use the $(CODE __rvalue) keyword as a function attribute. The presence of this
-    attribute will infer the $(I RvalueExpression) upon the function call expression at the call-site,
-    as if applied to the function's return value. This is only accepted on functions that return by reference.
+    $(P The $(CODE __rvalue) keyword is also allowed as a function attribute.
+    This makes the function's return value be treated as an $(I RvalueExpression).
+    The attribute is only accepted on functions that return by reference.
     )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-ref S fun(return ref S s) __rvalue
+struct S
+{
+    int* p;
+    this(S rhs) { p = rhs.p; rhs.p = null; }
+    this(ref S) { assert(0); }
+}
+ref S move(return ref S s) __rvalue
 {
     return s;
 }
 
 S s;
-S t = fun(s); // call inferred as: __rvalue(fun(s))
+s.p = new int(5);
+// construct `t` by calling S's move constructor
+S t = move(s); // call lowered to `__rvalue(move(s))`
+assert(s.p is null);
+assert(*t.p == 5);
 ---
+)
 
 $(H3 $(LNAME2 specialkeywords, Special Keywords))
 
