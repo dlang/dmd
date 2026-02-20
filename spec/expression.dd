@@ -3521,8 +3521,8 @@ void foo()
 -------------
 )
 
-        $(H5 $(LNAME2 is-identifier-convert, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D $(RPAREN))
-        )
+        $(H5 $(LNAME2 is-identifier-convert,
+            `is (` $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) `)`))
 
         $(P
         If *TypeSpecialization* is a type,
@@ -3659,21 +3659,33 @@ void foo()
 $(H4 $(LNAME2 is-parameter-list, Parameter List Forms))
 
 $(GRAMMAR_INFORMATIVE
-$(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
-$(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
-$(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
-$(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+$(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D ,) $(I TemplateParameterList) $(D $(RPAREN))
+$(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D ,) $(I TemplateParameterList) $(D $(RPAREN))
+$(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(I TemplateParameterList) $(D $(RPAREN))
+$(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D ,) $(I TemplateParameterList) $(D $(RPAREN))
 )
 
-        $(P
-        More complex types can be pattern matched. The
-        $(I TemplateParameterList) declares symbols based on the
+        $(P When $(GLINK TypeSpecialization) parses as a *Type*, the following
+        can be pattern matched:)
+
+        - A type template instantiation
+        - A $(DDSUBLINK spec/type, derived-data-types, derived data type)
+
+        $(P The $(GLINK2 template, TemplateParameterList) declares symbols based on the
         parts of the pattern that are matched, analogously to the
-        way $(DDSUBLINK spec/template, parameters_specialization,
-        implied template parameters) are matched.
+        way implied template parameters are matched (see e.g.
+        $(DDSUBLINK spec/template, parameters_specialization, type parameter
+        specialization)).
+        Just like for a *TemplateDeclaration*, each declared
+        $(GLINK2 template, TemplateParameter) can have a specialization.
         )
 
-$(P $(B Example:) Matching a Template Instantiation))
+$(H5 $(LNAME2 is-type-template, Matching a Type Template Instantiation))
+
+        - A $(GLINK2 template, TemplateAliasParameter) must be used to
+          match the template symbol.
+        - A $(GLINK2 template, TemplateSequenceParameter) is used to
+          match zero or more $(GLINK2 template, TemplateArgument)s.
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
@@ -3683,6 +3695,7 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     }
     alias Tup2 = Tuple!(int, string);
 
+    // `Template!Args` is the pattern
     static if (is(Tup2 : Template!Args, alias Template, Args...))
     {
         static assert(__traits(isSame, Template, Tuple));
@@ -3707,35 +3720,46 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         )
 
+$(H5 $(LNAME2 is-derived-data-type, Matching a Derived Data Type))
+
 $(P $(B Example:) Matching an Associative Array)
+
+        - `V` is declared for the AA value type
+        - `K` is declared for the AA key type
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     alias AA = long[string];
 
-    static if (is(AA T : T[U], U : string)) // T[U] is the pattern
+    // V[K] is the pattern
+    // K must be convertible to string
+    static if (is(AA V : V[K], K : string))
     {
-        pragma(msg, T);  // long
-        pragma(msg, U);  // string
+        pragma(msg, V);  // long
+        pragma(msg, K);  // string
     }
 
-    // no match, B is not an int
+    // no match because B is not convertible to int
     static assert(!is(AA A : A[B], B : int));
     ---
 )
 
 $(P $(B Example:) Matching a Static Array)
 
+        - `E` is declared for the array element type
+        - A $(GLINK2 template, TemplateValueParameter) is used to
+          match the array length
+
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
-    static if (is(int[10] W : W[len], int len)) // W[len] is the pattern
+    static if (is(int[10] E : E[len], size_t len)) // E[len] is the pattern
     {
         static assert(len == 10);
     }
-    static assert(is(W == int));
+    static assert(is(E == int));
 
     // no match, len should be 10
-    static assert(!is(int[10] X : X[len], int len : 5));
+    static assert(!is(int[10] X : X[len], size_t len : 5));
     ---
 )
 

@@ -40,17 +40,6 @@ $(GNAME TemplateParameterList):
     }
     ---
 
-    $(P A template parameter can have a *specialization* which
-        constrains an argument the $(I TemplateParameter) can
-        accept.)
-
-    ---
-    template t(T : int) // type T must implicitly convert to int
-    {
-        ...
-    }
-    ---
-
     $(P If multiple templates with the same $(I Identifier) are
         declared, they are distinct if they have different parameters
         or are differently specialized.
@@ -278,6 +267,17 @@ $(GNAME TemplateParameter):
     $(LI Alias parameters can take almost any symbol.)
     $(LI Sequence parameters can take zero or more types, values or symbols.)
     )
+
+    $(P A template parameter can have a *specialization* which
+        constrains an argument the $(I TemplateParameter) can
+        accept.)
+
+    ---
+    template t(T : int) // type T must implicitly convert to int
+    {
+        ...
+    }
+    ---
 
     $(P $(RELATIVE_LINK2 template_parameter_def_values, A default argument)
         specifies the type, value or symbol to use for the
