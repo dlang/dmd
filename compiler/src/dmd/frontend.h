@@ -8193,6 +8193,8 @@ extern bool c_isxdigit(const int32_t c);
 
 extern bool c_isalnum(const int32_t c);
 
+extern bool isAlphaASCII(const char32_t c);
+
 extern void error(Loc loc, const char* format, ...);
 
 extern void error(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);

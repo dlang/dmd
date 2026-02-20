@@ -62,7 +62,11 @@ struct CompileEnv
  */
 class Lexer
 {
-    private __gshared OutBuffer stringbuffer;
+    private __gshared
+    {
+        OutBuffer stringbuffer;
+        OutBuffer stringbuffersecondary; // functions that use stringbuffer can call scan that needs this.
+    }
 
     BaseLoc* baseLoc;       // Used to generate `scanloc`, which is just an index into this data structure
     Loc scanloc;            // for error messages
@@ -1431,7 +1435,7 @@ class Lexer
                     p++;
                     break;
                 default:
-                    if (isalpha(*p) || (p != idstart && isdigit(*p)))
+                    if (isAlphaASCII(*p) || (p != idstart && isdigit(*p)))
                         continue;
                     error(loc, "unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
                     c = '?';
@@ -1766,7 +1770,7 @@ class Lexer
         uint blankrol = 0;
         uint startline = 0;
         p++;
-        stringbuffer.setsize(0);
+        stringbuffersecondary.setsize(0);
         while (1)
         {
             const s = p;
@@ -1785,7 +1789,7 @@ class Lexer
                 }
                 if (hereid)
                 {
-                    stringbuffer.writeUTF8(c);
+                    stringbuffersecondary.writeUTF8(c);
                     continue;
                 }
                 break;
@@ -1825,7 +1829,7 @@ class Lexer
                     delimright = ']';
                 else if (c == '<')
                     delimright = '>';
-                else if (isalpha(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c)))
+                else if (isAlphaASCII(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c)))
                 {
                     // Start of identifier; must be a heredoc
                     Token tok;
@@ -1875,7 +1879,7 @@ class Lexer
                     goto Ldone;
 
                 // we're looking for a new identifier token
-                if (startline && (isalpha(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c))) && hereid)
+                if (startline && (isAlphaASCII(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c))) && hereid)
                 {
                     Token tok;
                     auto psave = p;
@@ -1890,7 +1894,7 @@ class Lexer
                     }
                     p = psave;
                 }
-                stringbuffer.writeUTF8(c);
+                stringbuffersecondary.writeUTF8(c);
                 startline = 0;
             }
         }
@@ -1903,7 +1907,7 @@ class Lexer
             error("delimited string must end in `\"`");
         else
             error(token.loc, "delimited string must end in `%c\"`", delimright);
-        result.setString(stringbuffer);
+        result.setString(stringbuffersecondary);
         stringPostfix(result);
     }
 
@@ -2398,7 +2402,7 @@ class Lexer
             case '.':
                 if (p[1] == '.')
                     goto Ldone; // if ".."
-                if (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80)
+                if (isAlphaASCII(p[1]) || p[1] == '_' || p[1] & 0x80)
                 {
                     if (Ccompile && (p[1] == 'f' || p[1] == 'F' || p[1] == 'l' || p[1] == 'L'))
                         goto Lreal;  // if `0.f` or `0.L`
@@ -2471,7 +2475,7 @@ class Lexer
             case '.':
                 if (p[1] == '.')
                     goto Ldone; // if ".."
-                if (base <= 10 && n > 0 && (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80))
+                if (base <= 10 && n > 0 && (isAlphaASCII(p[1]) || p[1] == '_' || p[1] & 0x80))
                 {
                     if (Ccompile && base == 10 &&
                         (p[1] == 'e' || p[1] == 'E' || p[1] == 'f' || p[1] == 'F' || p[1] == 'l' || p[1] == 'L'))
