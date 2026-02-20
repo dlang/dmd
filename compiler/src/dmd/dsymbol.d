@@ -1058,7 +1058,8 @@ public:
     {
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
-        if (const c = this.comment()){
+        if (const c = this.comment())
+        {
             commentHashTable[cast(void*)sds] = c;
         }
         sds.members = arraySyntaxCopy(members);

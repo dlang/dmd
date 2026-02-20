@@ -18,7 +18,6 @@ import dmd.dsymbol;
 import dmd.identifier;
 import dmd.location;
 import dmd.visitor;
-import dmd.dsymbolsem;
 /***********************************************************
  * DebugSymbol's happen for statements like:
  *      debug = identifier;
@@ -39,7 +38,10 @@ extern (C++) final class DebugSymbol : Dsymbol
     {
         assert(!s);
         auto ds = new DebugSymbol(loc, ident);
-        ds.addComment(comment);
+        if (const c = this.comment())
+        {
+            commentHashTable[cast(void*)ds] = c;
+        }
         return ds;
     }
 
@@ -75,7 +77,10 @@ extern (C++) final class VersionSymbol : Dsymbol
     {
         assert(!s);
         auto ds = new VersionSymbol(loc, ident);
-        ds.addComment(comment);
+        if (const c = this.comment())
+        {
+            commentHashTable[cast(void*)ds] = c;
+        }
         return ds;
     }
 
