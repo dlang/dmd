@@ -123,6 +123,8 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D char), $(D '\xFF'), unsigned 8 bit (UTF-8 code unit))
     $(TROW $(D wchar), $(D '\uFFFF'), unsigned 16 bit (UTF-16 code unit))
     $(TROW $(D dchar), $(D '\U0000FFFF'), unsigned 32 bit (UTF-32 code unit))
+    $(TROW $(D typeof(null)), $(D null), type of the null literal)
+    $(TROW $(RELATIVE_LINK2 noreturn, $(D typeof(*null))), $(D assert(0)), bottom type that has no values)
     )
 
     $(P Endianness of basic types is part of the $(DDSUBLINK spec/abi, endianness, ABI))
