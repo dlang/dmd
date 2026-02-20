@@ -105,7 +105,7 @@ $(GNAME MemberFunctionAttribute):
     $(D const)
     $(D immutable)
     $(D inout)
-    $(D return)
+    $(RELATIVE_LINK2 struct-return-methods, `return`) `ref`$(OPT)
     $(D scope)
     $(D shared)
     $(GLINK FunctionAttribute)
@@ -1982,7 +1982,8 @@ void uranus()
 $(H4 $(LNAME2 struct-return-methods, Struct Return Methods))
 
         $(P Struct non-static methods can be marked with the `return` attribute to ensure a returned
-        reference will not outlive the struct instance.
+        reference will not outlive the struct instance. This is the same as the
+        `return ref` method attribute.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_FAIL
