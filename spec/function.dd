@@ -2686,11 +2686,13 @@ $(H3 $(LNAME2 hidden-parameters, Hidden Parameters))
             $(DDSUBLINK spec/expression, this, `this` reference), which refers to the object for which
             the function is called.
         )
-        $(LI D-style variadic functions have
-            $(RELATIVE_LINK2 d_style_variadic_functions, hidden parameters).)
+        $(LI $(RELATIVE_LINK2 d_style_variadic_functions, D-style variadic functions)
+            have hidden parameters.)
+        $(LI $(RELATIVE_LINK2 nested, Nested functions) have a hidden context
+            pointer parameter.)
         $(LI
-            Functions with `Objective-C` linkage have an additional hidden,
-            unnamed, parameter which is the selector it was called with.
+            $(DDSUBLINK spec/class, objc-member-functions,
+                Member functions with `Objective-C` linkage) have a hidden parameter.
         )
         )
 
