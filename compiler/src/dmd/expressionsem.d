@@ -808,8 +808,7 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
         case EXP.dotVariable:
             return visitDotVarExp(e.isDotVarExp());
         case EXP.structLiteral:
-            auto sle = e.isStructLiteralExp();
-            return !(checkMod && sle.useStaticInit && to.isMutable());
+            return true;
         case EXP.variable:
             return (e.isVarExp().var.storage_class & STC.rvalue) != 0;
         default:
