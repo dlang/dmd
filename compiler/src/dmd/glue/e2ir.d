@@ -1449,8 +1449,7 @@ elem* toElem(Expression e, ref IRState irs)
             {
                 StructLiteralExp sle = StructLiteralExp.create(ne.loc, sd, ne.arguments, t);
                 ez = toElemStructLit(sle, irs, EXP.construct, ev.Vsym, false);
-                if (tybasic(ez.Ety) == TYstruct || ne.placement)
-                    ez = el_una(OPaddr, TYnptr, ez);
+                ez = el_una(OPaddr, TYnptr, ez);
             }
             static if (0)
             {
@@ -6714,8 +6713,9 @@ elem* toElemCall(CallExp ce, ref IRState irs, elem* ehidden = null)
  *      sym = struct symbol to initialize with the literal. If null, an auto is created
  *      fillHoles = Fill in alignment holes with zero. Set to
  *                  false if allocated by operator new, as the holes are already zeroed.
+ * Returns:
+ *      generated elem tree with type TYstruct
  */
-
 elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym, bool fillHoles)
 {
     //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
@@ -6993,6 +6993,8 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
     }
 
     elem* ev = el_var(stmp);
+    if (tybasic(ev.Ety) == TYnptr)
+        ev = el_una(OPind, totym(sle.sd.type), ev);
     ev.ET = Type_toCtype(sle.sd.type);
     e = el_combine(e, ev);
     elem_setLoc(e, sle.loc);
