@@ -403,7 +403,7 @@ public:
             auto tf = ids.fd.type.isTypeFunction();
 
             if (exp.type.ty == Tstruct && !tf.isRef &&
-                !ids.fd.isCtorDeclaration() && !canElideCopy(s.exp, tf.nextOf()))
+                !ids.fd.isCtorDeclaration() && !canElideCopy(s.exp, tf.nextOf(), true))
             {
                 /* If the inlined function returns a copy of a struct,
                  * and then the return value is used subsequently as an

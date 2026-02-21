@@ -5518,7 +5518,7 @@ elem* callfunc(Loc loc,
                 bool hasDtor = v && (v.isArgDtorVar || v.storage_class & STC.rvalue);
 
                 /* Also do not copy __rvalue expressions or temporaries that can be elided. */
-                bool copy = !(hasDtor || arg.rvalue || (param && canElideCopy(arg, param.type)));
+                bool copy = !(hasDtor || arg.rvalue || (param && canElideCopy(arg, param.type, true)));
 
                 elems[i] = addressElem(ea, arg.type, copy);
                 continue;
