@@ -353,6 +353,14 @@ struct INSTR
         return bitfield(sf, 2, N, immr, imms, Rn, Rd);
     }
 
+    /* BFM Rd,Rn,#immr,#imms (bitfield move/insert)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/bfm.html
+     */
+    static uint bfm(uint sf, uint N, uint immr, uint imms, reg_t Rn, reg_t Rd)
+    {
+        return bitfield(sf, 1, N, immr, imms, Rn, Rd);
+    }
+
     /* UBFIZ Rd,Rn,#lsb,#width
      * https://www.scs.stanford.edu/~zyedidia/arm64/ubfiz_ubfm.html
      */
@@ -363,8 +371,43 @@ struct INSTR
         return ubfm(sf, N, -lsb & mask, width - 1, Rn, Rd);
     }
 
+    /* LSL Rd,Rn,#shift (an alias of UBFM)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/lsl_ubfm.html
+     */
+    static uint lsl_ubfm(uint sf, uint shift, reg_t Rn, reg_t Rd)
+    {
+        uint regsize = sf ? 64 : 32;
+        uint mask = regsize - 1;
+        return ubfm(sf, sf, (-shift) & mask, regsize - 1 - shift, Rn, Rd);
+    }
+
+    /* LSR Rd,Rn,#shift (an alias of UBFM)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/lsr_ubfm.html
+     */
+    static uint lsr_ubfm(uint sf, uint shift, reg_t Rn, reg_t Rd)
+    {
+        uint regsize = sf ? 64 : 32;
+        return ubfm(sf, sf, shift, regsize - 1, Rn, Rd);
+    }
+
+    /* ROR Rd,Rn,#shift (an alias of EXTR)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ror_extr.html
+     */
+    static uint ror_extr(uint sf, uint shift, reg_t Rn, reg_t Rd)
+    {
+        return extract(sf, 0, sf, 0, Rn, shift, Rn, Rd);
+    }
+
+    /* EXTR Rd,Rn,Rm,#lsb
+     * https://www.scs.stanford.edu/~zyedidia/arm64/extr.html
+     */
+    static uint extr(uint sf, reg_t Rm, uint lsb, reg_t Rn, reg_t Rd)
+    {
+        return extract(sf, 0, sf, 0, Rm, lsb, Rn, Rd);
+    }
+
     /* Extract
-     * EXTR
+     * EXTR (low-level encoding function)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#extract
      */
@@ -538,6 +581,38 @@ struct INSTR
                 Rd;
     }
 
+    /* LSLV Rd,Rn,Rm (variable shift left)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/lsl_lslv.html
+     */
+    static uint lslv(uint sf, reg_t Rm, reg_t Rn, reg_t Rd)
+    {
+        return dp_2src(sf, 0, Rm, 0x08, Rn, Rd);
+    }
+
+    /* LSRV Rd,Rn,Rm (variable shift right)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/lsr_lsrv.html
+     */
+    static uint lsrv(uint sf, reg_t Rm, reg_t Rn, reg_t Rd)
+    {
+        return dp_2src(sf, 0, Rm, 0x09, Rn, Rd);
+    }
+
+    /* ASRV Rd,Rn,Rm (variable arithmetic shift right)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/asr_asrv.html
+     */
+    static uint asrv(uint sf, reg_t Rm, reg_t Rn, reg_t Rd)
+    {
+        return dp_2src(sf, 0, Rm, 0x0A, Rn, Rd);
+    }
+
+    /* RORV Rd,Rn,Rm (variable rotate right)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ror_rorv.html
+     */
+    static uint rorv(uint sf, reg_t Rm, reg_t Rn, reg_t Rd)
+    {
+        return dp_2src(sf, 0, Rm, 0x0B, Rn, Rd);
+    }
+
     /* Logical (shifted register)
      * AND/BIC/ORR/ORN/EOR/ANDS/BICS Rd, Rn, Rm, {shift #amount}
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#log_shift
@@ -604,10 +679,42 @@ struct INSTR
         return (sf   << 31) |
                (op   << 30) |
                (S    << 29) |
-               (0xD0 << 24) |
+               (0xD0 << 21) |
                (Rm   << 16) |
                (Rn   <<  5) |
                 Rd;
+    }
+
+    /* ADC Rd,Rn,Rm (add with carry)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/adc.html
+     */
+    static uint adc(uint sf, reg_t Rm, reg_t Rn, reg_t Rd)
+    {
+        return addsub_carry(sf, 0, 0, Rm, Rn, Rd);
+    }
+
+    /* ADCS Rd,Rn,Rm (add with carry, set flags)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/adcs.html
+     */
+    static uint adcs(uint sf, reg_t Rm, reg_t Rn, reg_t Rd)
+    {
+        return addsub_carry(sf, 0, 1, Rm, Rn, Rd);
+    }
+
+    /* SBC Rd,Rn,Rm (subtract with carry)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sbc.html
+     */
+    static uint sbc(uint sf, reg_t Rm, reg_t Rn, reg_t Rd)
+    {
+        return addsub_carry(sf, 1, 0, Rm, Rn, Rd);
+    }
+
+    /* SBCS Rd,Rn,Rm (subtract with carry, set flags)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sbcs.html
+     */
+    static uint sbcs(uint sf, reg_t Rm, reg_t Rn, reg_t Rd)
+    {
+        return addsub_carry(sf, 1, 1, Rm, Rn, Rd);
     }
 
     /* Add/subtract (checked pointer)
@@ -1156,7 +1263,19 @@ struct INSTR
      */
 
     /* Load/store register (immediate pre-indexed)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpre
      */
+    static uint ldst_immpre(uint size, uint VR, uint opc, uint imm9, ubyte Rn, ubyte Rt)
+    {
+        return (size << 30) |
+               (7    << 27) |
+               (VR   << 26) |
+               (opc  << 22) |
+               (imm9 << 12) |
+               (3    << 10) |  // bits [11:10] = 11 for pre-indexed
+               (Rn   <<  5) |
+                Rt;
+    }
 
     /* STR <Vt>,[<Xn|SP>,#<simm>]! Pre-index https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
      */
