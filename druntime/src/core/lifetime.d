@@ -2858,7 +2858,11 @@ T* _d_newitemT(T)() @trusted
         flags |= GC.BlkAttr.FINALIZE;
 
     version(D_TypeInfo)
+    {
+        assert(!(typeid(T).flags & 1) == !!(flags & GC.BlkAttr.NO_SCAN),
+            "hasIndirections incompatible with TypeInfo flags");
         auto p = GC.malloc(itemSize, flags, typeid(T));
+    }
     else
         auto p = GC.malloc(itemSize, flags, null);
 
