@@ -1382,7 +1382,7 @@ Dsymbol toAlias2(Dsymbol s)
 {
     if (auto ad = s.isAliasDeclaration())
     {
-        if (ad.inuse)
+        if (ad.inuse && !ad.isCmacro) // c amcro can refer to itself and compile
         {
             .error(ad.loc, "%s `%s` recursive alias declaration", ad.kind, ad.toPrettyChars);
             return ad;
@@ -1457,7 +1457,7 @@ private Dsymbol toAliasImpl(AliasDeclaration ad)
             ad.inuse = 0;
         }
     }
-    if (ad.inuse)
+    if (ad.inuse && !ad.isCmacro) // C macros can refer to itself and compile
     {
         .error(ad.loc, "%s `%s` recursive alias declaration", ad.kind, ad.toPrettyChars);
         return err();
@@ -6032,8 +6032,9 @@ private extern(C++) class AddMemberVisitor : Visitor
             }
 
             // If using C tag/prototype/forward declaration rules
+            // remember, C allows rdececlarations of macros too
+             //(!sc.inCfie && dsym.isAliasDeclaration().isCmacro && s2.isAliasDeclaration().isCmacro)))
             if (sc && sc.inCfile && !dsym.isImport())
-            // When merging master, replace with: if (sc && sc.inCfile && !dsym.isImport())
             {
                 if (handleTagSymbols(*sc, dsym, s2, sds))
                     return;
@@ -6535,15 +6536,26 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     // Detect `alias sym = sym;` to prevent creating loops in overload overnext lists.
     if (auto tident = ds.type.isTypeIdentifier())
     {
-        if (sc.hasEdition(Edition.v2024) && tident.idents.length)
+        if ((sc.hasEdition(Edition.v2024) && tident.idents.length) || ds.isCmacro)
         {
             alias mt = tident;
             Dsymbol pscopesym;
             Dsymbol s = sc.search(ds.loc, mt.ident, pscopesym);
+            /* if the definition of the imported macro from C that points to an identifier,
+             * doesn't exist stop processing quietely and do not emit any error as similar to C
+             */
+            if (!s && sc.inCfile && ds.isCmacro)
+            {
+                ds.aliassym = null;
+                ds.errors = false;                      // no error flag
+                ds.semanticRun = PASS.semanticdone;     // mark semantic as complete
+                ds.inuse = 0;                           // clear recursion flag
+                return;
+            }
             // detect `alias a = var1.member_var;` which confusingly resolves to
             // `typeof(var1).member_var`, which can be valid inside the aggregate type
             if (s && s.isVarDeclaration() &&
-                mt.ident != Id.This && mt.ident != Id._super)
+                mt.ident != Id.This && mt.ident != Id._super && (!ds.isCmacro && !sc.inCfile)) // don't let a C macro alias pass here
             {
                 s = tident.toDsymbol(sc);
                 // don't error for `var1.static_symbol`
@@ -6557,7 +6569,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             }
         }
         // Selective imports are allowed to alias to the same name `import mod : sym=sym`.
-        if (!ds._import)
+        if (!ds._import && (!ds.isCmacro && !sc.inCfile)) // C identifier macros are not allowed here
         {
             if (tident.ident is ds.ident && !tident.idents.length)
             {
