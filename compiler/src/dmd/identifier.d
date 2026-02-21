@@ -222,11 +222,15 @@ nothrow:
      *      parent      = (optional) extra part to be used in uniqueness check,
      *                    if (prefix1, loc1) == (prefix2, loc2), but
      *                    parent1 != parent2, no new name will be generated.
+     *      mustBeUnique = require unique identifier.
+     *                     append counter to generated name if this prefix +
+     *                     location has been encountered before
      * Returns:
      *      Identifier (inside Identifier.idPool) with deterministic name based
      *      on the source location.
      */
-    extern (D) static Identifier generateIdWithLoc(string prefix, Loc loc, const void* parent = null)
+    extern (D) static Identifier generateIdWithLoc(string prefix, Loc loc,
+        const void* parent = null, bool mustBeUnique = true)
     {
         // generate `<prefix>_L<line>_C<col>`
         auto sl = SourceLoc(loc);
@@ -236,6 +240,9 @@ nothrow:
         idBuf.print(sl.line);
         idBuf.writestring("_C");
         idBuf.print(sl.column);
+
+        if (!mustBeUnique)
+            return idPool(idBuf[]);
 
         /**
          * Make sure the identifiers are unique per filename, i.e., per module/mixin

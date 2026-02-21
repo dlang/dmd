@@ -3747,8 +3747,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             /* Assign scope local unique identifier, as same as lambdas.
              */
-            const(char)[] s = "__mixin";
-
             if (FuncDeclaration func = sc.parent.isFuncDeclaration())
             {
                 tm.symtab = func.localsymtab;
@@ -3763,7 +3761,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 tm.symtab = sc.parent.isScopeDsymbol().symtab;
             L1:
                 assert(tm.symtab);
-                tm.ident = Identifier.generateId(s, tm.symtab.length + 1);
+                tm.ident = Identifier.generateIdWithLoc("__mixin", tm.loc, null, /*mustBeUnique:*/ false);
                 tm.symtab.insert(tm);
             }
         }
