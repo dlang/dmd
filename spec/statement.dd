@@ -262,13 +262,31 @@ $(GNAME ElseStatement):
         $(P If there is a declared *Identifier* variable,
         $(RELATIVE_LINK2 condition-variables, it is evaluated).
         Otherwise, *Expression* is evaluated. The result is converted to a
-        boolean.)
-
-        $(P If the boolean is `true`, the $(I ThenStatement) is transferred
-        to, otherwise the $(I ElseStatement) is transferred to.)
+        boolean.
+        If the boolean is `true`, the $(I ThenStatement) is executed,
+        otherwise the $(I ElseStatement) is executed.)
 
         $(P The $(I ElseStatement) is associated with the innermost `if`
-        statement which does not already have an associated $(I ElseStatement).)
+        statement which does not already have an associated $(I ElseStatement).
+        From 2.112, it is an error to use `else` when there is an unmatched
+        `else` clause from an earlier *IfStatement*:)
+
+        $(COMMENT SPEC_RUNNABLE_EXAMPLE_FAIL)
+        ---
+        bool b;
+        int c;
+
+        if (b)
+            if (c)
+                return;
+        else // Error: else is dangling, add { } after condition
+            c++;
+        ---
+
+        $(P Instead, use a $(GLINK BlockStatement) to contain the second *IfStatement*.)
+
+        $(RATIONALE It can be ambiguous as to which *IfStatement* a dangling `else`
+        relates to. Making bug-prone syntax illegal reduces the potential for bugs.)
 
 $(H3 $(LNAME2 boolean-conditions, Boolean Conversion))
 
@@ -293,7 +311,7 @@ $(H3 $(LNAME2 boolean-conditions, Boolean Conversion))
 $(H3 $(LNAME2 condition-variables, Condition Variables))
 
         $(P
-        When an $(I Identifier) form of *IfCondition* is used, a
+        When an $(I Identifier) form of $(GLINK IfCondition) is used, a
         variable is declared with that name and initialized to the
         value of the $(I Expression).
         )
