@@ -18,7 +18,6 @@ import dmd.identifier;
 import dmd.location;
 import dmd.visitor;
 
-
 /***********************************************************
  */
 extern (C++) final class Import : Dsymbol

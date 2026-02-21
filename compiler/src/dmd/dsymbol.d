@@ -45,7 +45,6 @@ import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
-import dmd.lexer;
 import dmd.common.outbuffer;
 /***************************************
  * Calls dg(Dsymbol* sym) for each Dsymbol.
@@ -99,13 +98,13 @@ void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
     }
 }
 
-void addComment(Dsymbol d, const(char)* comment)
+private void addComment(Dsymbol d, const(char)* comment)
 {
     scope v = new AddCommentVisitor(comment);
     d.accept(v);
 }
 
-extern (C++) class AddCommentVisitor: Visitor
+extern (C++) private class AddCommentVisitor: Visitor
 {
     alias visit = Visitor.visit;
 
@@ -132,6 +131,7 @@ extern (C++) class AddCommentVisitor: Visitor
         if (strcmp(*p, comment) != 0)
         {
             // Concatenate the two
+            import dmd.lexer;
             *p = Lexer.combineComments((*p).toDString(), comment.toDString(), true);
         }
     }
@@ -832,8 +832,7 @@ extern (C++) class Dsymbol : ASTNode
     }
     final void addComment(const(char)* c)
     {
-        scope v = new AddCommentVisitor(c);
-        this.accept(v);
+        .addComment(this, c);
     }
     extern (D) __gshared const(char)*[void*] commentHashTable;
 
