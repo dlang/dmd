@@ -45,7 +45,7 @@ import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
-
+import dmd.lexer;
 import dmd.common.outbuffer;
 /***************************************
  * Calls dg(Dsymbol* sym) for each Dsymbol.
@@ -98,6 +98,61 @@ void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
         }
     }
 }
+
+void addComment(Dsymbol d, const(char)* comment)
+{
+    scope v = new AddCommentVisitor(comment);
+    d.accept(v);
+}
+
+extern (C++) class AddCommentVisitor: Visitor
+{
+    alias visit = Visitor.visit;
+
+    const(char)* comment;
+
+    this(const(char)* comment)
+    {
+        this.comment = comment;
+    }
+
+    override void visit(Dsymbol d)
+    {
+        if (!comment || !*comment)
+            return;
+
+        //printf("addComment '%s' to Dsymbol %p '%s'\n", comment, this, toChars());
+        void* h = cast(void*)d;      // just the pointer is the key
+        auto p = h in d.commentHashTable;
+        if (!p)
+        {
+            d.commentHashTable[h] = comment;
+            return;
+        }
+        if (strcmp(*p, comment) != 0)
+        {
+            // Concatenate the two
+            *p = Lexer.combineComments((*p).toDString(), comment.toDString(), true);
+        }
+    }
+    override void visit(AttribDeclaration atd)
+    {
+        if (comment && atd.decl)
+        {
+            atd.decl.foreachDsymbol( s => s.addComment(comment) );
+        }
+    }
+    override void visit(ConditionalDeclaration cd)
+    {
+        if (comment)
+        {
+            cd.decl    .foreachDsymbol( s => s.addComment(comment) );
+            cd.elsedecl.foreachDsymbol( s => s.addComment(comment) );
+        }
+    }
+    override void visit(StaticForeachDeclaration sfd) {}
+}
+
 
 struct Visibility
 {
@@ -775,7 +830,11 @@ extern (C++) class Dsymbol : ASTNode
         }
         return null;
     }
-
+    final void addComment(const(char)* c)
+    {
+        scope v = new AddCommentVisitor(c);
+        this.accept(v);
+    }
     extern (D) __gshared const(char)*[void*] commentHashTable;
 
 
@@ -1058,10 +1117,7 @@ public:
     {
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
-        if (const c = this.comment())
-        {
-            commentHashTable[cast(void*)sds] = c;
-        }
+        sds.addComment(comment);
         sds.members = arraySyntaxCopy(members);
         sds.endlinnum = endlinnum;
         return sds;

@@ -43,7 +43,6 @@ import dmd.root.port;
 import dmd.root.string;
 import dmd.target;
 import dmd.visitor;
-import dmd.dsymbolsem;
 
 version (Windows)
 {
@@ -708,7 +707,7 @@ extern (C++) final class Module : Package
          */
         if (buf.length>= 4 && buf[0..4] == "Ddoc")
         {
-            commentHashTable[cast(void*)this] = buf.ptr + 4;
+            this.addComment(buf.ptr + 4);
             filetype = FileType.ddoc;
             if (!docfile)
                 setDocfile();
@@ -721,7 +720,7 @@ extern (C++) final class Module : Package
          */
         if (FileName.equalsExt(arg, dd_ext))
         {
-            commentHashTable[cast(void*)this] = buf.ptr; // the optional Ddoc, if present, is handled above.
+            this.addComment(buf.ptr); // the optional Ddoc, if present, is handled above.
             filetype = FileType.ddoc;
             if (!docfile)
                 setDocfile();

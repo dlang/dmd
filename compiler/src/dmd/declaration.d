@@ -361,9 +361,7 @@ extern (C++) final class AliasDeclaration : Declaration
         //printf("AliasDeclaration::syntaxCopy()\n");
         assert(!s);
         AliasDeclaration sa = type ? new AliasDeclaration(loc, ident, type.syntaxCopy()) : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
-        if (const c = this.comment()){
-            commentHashTable[cast(void*)sa] = c;
-        }
+        sa.addComment(comment);
         sa.storage_class = storage_class;
         return sa;
     }
@@ -514,9 +512,7 @@ extern (C++) class VarDeclaration : Declaration
         //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
         auto v = new VarDeclaration(loc, type ? type.syntaxCopy() : null, ident, _init ? _init.syntaxCopy() : null, storage_class);
-        if (const c = this.comment()){
-            commentHashTable[cast(void*)v] = c;
-        }
+        v.addComment(comment);
         return v;
     }
 
@@ -682,9 +678,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
         //printf("BitFieldDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
         auto bf = new BitFieldDeclaration(loc, type ? type.syntaxCopy() : null, ident, width.syntaxCopy(), _init ? _init.syntaxCopy() : null);
-        if (const c = this.comment()){
-            commentHashTable[cast(void*)bf] = c;
-        }
+        bf.addComment(comment);
         return bf;
     }
 

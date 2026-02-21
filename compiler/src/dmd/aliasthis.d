@@ -41,9 +41,7 @@ extern (C++) final class AliasThis : Dsymbol
     {
         assert(!s);
         auto at = new AliasThis(loc, ident);
-        if (const c = this.comment()){
-            commentHashTable[cast(void*)at] = c;
-        }
+        at.addComment(comment);
         return at;
     }
 

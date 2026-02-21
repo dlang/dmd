@@ -38,10 +38,7 @@ extern (C++) final class DebugSymbol : Dsymbol
     {
         assert(!s);
         auto ds = new DebugSymbol(loc, ident);
-        if (const c = this.comment())
-        {
-            commentHashTable[cast(void*)ds] = c;
-        }
+        ds.addComment(comment);
         return ds;
     }
 
@@ -78,9 +75,7 @@ extern (C++) final class VersionSymbol : Dsymbol
         assert(!s);
         auto ds = new VersionSymbol(loc, ident);
         if (const c = this.comment())
-        {
-            commentHashTable[cast(void*)ds] = c;
-        }
+        ds.addComment(comment);
         return ds;
     }
 

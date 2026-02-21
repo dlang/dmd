@@ -96,9 +96,7 @@ extern (C++) final class Import : Dsymbol
     {
         assert(!s);
         auto si = new Import(loc, packages, id, aliasId, isstatic);
-        if (const c = this.comment()){
-            commentHashTable[cast(void*)si] = c;
-        }
+        si.addComment(comment);
         assert(!(isstatic && names.length));
         if (names.length && !si.aliasId)
             si.ident = null;
