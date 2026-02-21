@@ -681,8 +681,19 @@ bool isLvalue(Expression _this)
         if (tf && tf.isRef)
         {
             if (auto dve = _this.e1.isDotVarExp())
+            {
                 if (dve.var.isCtorDeclaration())
-                    return false;
+                {
+                    // Allow taking the address of explicit constructor calls,
+                    // but not (__stmp = S(), __stmp).__ctor().
+
+                    auto ve = lastComma(dve.e1).isVarExp();
+                    if (ve && (ve.var.storage_class & STC.temp) != 0)
+                        return false;
+
+                    return isLvalue(dve.e1);
+                }
+            }
             return true; // function returns a reference
         }
         return false;
@@ -775,8 +786,19 @@ bool canElideCopy(Expression e, Type to, bool checkMod = false)
     static bool visitCallExp(CallExp e)
     {
         if (auto dve = e.e1.isDotVarExp())
+        {
             if (dve.var.isCtorDeclaration())
-                return true;
+            {
+                // Allow (__stmp = S(), __stmp).__ctor() to be elided,
+                // but force a copy for (s2 = s1.__ctor()).
+
+                auto ve = lastComma(dve.e1).isVarExp();
+                if (ve && (ve.var.storage_class & STC.temp) != 0)
+                    return true;
+
+                return canElideCopy(dve.e1, e.type);
+            }
+        }
 
         auto tb = e.e1.type.toBasetype();
         if (tb.ty == Tdelegate || tb.ty == Tpointer)

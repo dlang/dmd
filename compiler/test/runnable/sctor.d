@@ -465,6 +465,40 @@ void test19389()
     assert(bar.b.x == 7); // fails
 }
 
+/***************************************************/
+// https://github.com/dlang/dmd/issues/22604
+
+struct S22604
+{
+    S22604* ptr;
+
+    this(int)
+    {
+        ptr = &this;
+    }
+
+    this(this)
+    {
+        ptr = &this;
+    }
+}
+
+struct T22604
+{
+    S22604 a, b;
+
+    this(int)
+    {
+        a = b = S22604(1);
+    }
+}
+
+void test22604()
+{
+    T22604 t = T22604(1);
+    assert(t.a.ptr is &t.a);
+    assert(t.b.ptr is &t.b);
+}
 
 /***************************************************/
 
@@ -478,6 +512,7 @@ int main()
     test14944();
     test15869();
     test19389();
+    test22604();
 
     printf("Success\n");
     return 0;
