@@ -1802,19 +1802,35 @@ static if (1)
         uint formalcode = 0;
         uint variablecode = 0;
 
+        uint formalcode_notype = 0;
+        uint variablecode_notype = 0;
+
         DWARFAbbrev dwarfabbrev;
 
         foreach (sa; globsym[])
         {
             if (sa.Sflags & SFLnodebug) continue;
 
+            // 1. STANDARD DEFINITION (With Type)
             static immutable uint[14] formal_var_abbrev_suffix =
             [
                 DW_AT_name,       DW_FORM_string,
                 DW_AT_type,       DW_FORM_ref4,
                 DW_AT_artificial, DW_FORM_flag,
-                DW_AT_decl_file,   DW_FORM_data1,
-                DW_AT_decl_line,   DW_FORM_udata,
+                DW_AT_decl_file,  DW_FORM_data1,
+                DW_AT_decl_line,  DW_FORM_udata,
+                DW_AT_decl_column, DW_FORM_udata,
+                DW_AT_location,    DW_FORM_block1,
+            ];
+
+            // 2. NEW DEFINITION (No Type) - ADD THIS
+            static immutable uint[12] formal_var_abbrev_suffix_notype =
+            [
+                DW_AT_name,       DW_FORM_string,
+                // DW_AT_type REMOVED
+                DW_AT_artificial, DW_FORM_flag,
+                DW_AT_decl_file,  DW_FORM_data1,
+                DW_AT_decl_line,  DW_FORM_udata,
                 DW_AT_decl_column, DW_FORM_udata,
                 DW_AT_location,    DW_FORM_block1,
             ];
@@ -1825,11 +1841,23 @@ static if (1)
                 case SC.regpar:
                 case SC.fastpar:
                     // discard index
-                    cast(void)dwarf_typidx(sa.Stype);
-                    if (!formalcode)
+                    uint tidx = cast(uint)dwarf_typidx(sa.Stype);
+
+                    if (tidx == 0) // noreturn
                     {
-                        dwarfabbrev.append(DW_TAG_formal_parameter, DW_CHILDREN_no);
-                        formalcode = dwarfabbrev.awrite!formal_var_abbrev_suffix;
+                        if (!formalcode_notype) // Only define if not already defined
+                        {
+                            dwarfabbrev.append(DW_TAG_formal_parameter, DW_CHILDREN_no);
+                            formalcode_notype = dwarfabbrev.awrite!formal_var_abbrev_suffix_notype;
+                        }
+                    }
+                    else // Normal type
+                    {
+                        if (!formalcode)
+                        {
+                            dwarfabbrev.append(DW_TAG_formal_parameter, DW_CHILDREN_no);
+                            formalcode = dwarfabbrev.awrite!formal_var_abbrev_suffix;
+                        }
                     }
                     haveparameters = DW_CHILDREN_yes;
                     break;
@@ -1839,11 +1867,23 @@ static if (1)
                 case SC.register:
                 case SC.pseudo:
                     // discard index
-                    cast(void)dwarf_typidx(sa.Stype);
-                    if (!variablecode)
+                    uint tidx = cast(uint)dwarf_typidx(sa.Stype);
+
+                    if (tidx == 0) // noreturn
                     {
-                        dwarfabbrev.append(DW_TAG_variable, DW_CHILDREN_no);
-                        variablecode = dwarfabbrev.awrite!formal_var_abbrev_suffix;
+                        if (!variablecode_notype)
+                        {
+                            dwarfabbrev.append(DW_TAG_variable, DW_CHILDREN_no);
+                            variablecode_notype = dwarfabbrev.awrite!formal_var_abbrev_suffix_notype;
+                        }
+                    }
+                    else // Normal type
+                    {
+                        if (!variablecode)
+                        {
+                            dwarfabbrev.append(DW_TAG_variable, DW_CHILDREN_no);
+                            variablecode = dwarfabbrev.awrite!formal_var_abbrev_suffix;
+                        }
                     }
                     haveparameters = DW_CHILDREN_yes;
                     break;
@@ -1950,8 +1990,7 @@ static if (1)
         {
             foreach (sa; globsym[])
             {
-                if (sa.Sflags & SFLnodebug)
-                    continue;
+                if (sa.Sflags & SFLnodebug) continue;
 
                 uint vcode;
 
@@ -1960,22 +1999,29 @@ static if (1)
                     case SC.parameter:
                     case SC.regpar:
                     case SC.fastpar:
-                        vcode = formalcode;
+                        vcode = (dwarf_typidx(sa.Stype) == 0) ? formalcode_notype : formalcode;
                         goto L1;
                     case SC.auto_:
                     case SC.register:
                     case SC.pseudo:
                     case SC.bprel:
-                        vcode = variablecode;
+                        vcode = (dwarf_typidx(sa.Stype) == 0) ? variablecode_notype : variablecode;
                     L1:
                     {
                         uint soffset;
                         uint tidx = dwarf_typidx(sa.Stype);
 
                         debug_info.buf.writeuLEB128(vcode);           // abbreviation code
-                        debug_info.buf.writeStringz(getSymName(sa));   // DW_AT_name
-                        debug_info.buf.write32(tidx);                 // DW_AT_type
-                        debug_info.buf.writeByte(sa.Sflags & SFLartifical ? 1 : 0); // DW_FORM_tag
+                        debug_info.buf.writeStringz(getSymName(sa));  // DW_AT_name
+
+                        // --- FIX START: Only write type if NOT 0 ---
+                        if (tidx != 0)
+                        {
+                            debug_info.buf.write32(tidx);             // DW_AT_type
+                        }
+                        // --- FIX END ---
+
+                        debug_info.buf.writeByte(sa.Sflags & SFLartifical ? 1 : 0); // DW_FORM_flag
                         debug_info.buf.writeByte(cast(ubyte)filenum);               // DW_AT_decl_file
                         debug_info.buf.writeuLEB128(sa.lposscopestart.Slinnum);     // DW_AT_decl_line
                         debug_info.buf.writeuLEB128(sa.lposscopestart.Scharnum);    // DW_AT_decl_column
@@ -2007,8 +2053,6 @@ static if (1)
                             }
                         L2:
                             targ_size_t closptr_off = sa.Sscope.Soffset; // __closptr offset
-                            //printf("dwarf closure: sym: %s, closptr: %s, ptr_off: %lli, memb_off: %lli\n",
-                            //    sa.Sident.ptr, sa.Sscope.Sident.ptr, closptr_off, memb_off);
 
                             debug_info.buf.writeByte(DW_OP_fbreg);
                             debug_info.buf.writesLEB128(cast(uint)(cgstate.Auto.size + cgstate.BPoff - cgstate.Para.size + closptr_off)); // closure pointer offset from frame base
@@ -2133,21 +2177,44 @@ static if (1)
             case SC.global:
                 typidx = dwarf_typidx(t);
 
-                code = DWARFAbbrev.write!([
-                    DW_TAG_variable, DW_CHILDREN_no,
-                    DW_AT_name,      DW_FORM_string,
-                    DW_AT_type,      DW_FORM_ref4,
-                    DW_AT_external,  DW_FORM_flag,
-                    DW_AT_location,  DW_FORM_block1,
-                ]);
+                // --- FIX START: Handle noreturn (typidx == 0) ---
+                if (typidx == 0)
+                {
+                    // Create an abbreviation explicitly WITHOUT DW_AT_type
+                    code = DWARFAbbrev.write!([
+                        DW_TAG_variable, DW_CHILDREN_no,
+                        DW_AT_name,      DW_FORM_string,
+                        // DW_AT_type is REMOVED here
+                        DW_AT_external,  DW_FORM_flag,
+                        DW_AT_location,  DW_FORM_block1,
+                    ]);
 
-                debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.writeStringz(getSymName(s));// DW_AT_name
-                debug_info.buf.write32(typidx);           // DW_AT_type
-                debug_info.buf.writeByte(1);              // DW_AT_external
+                    debug_info.buf.writeuLEB128(code);          // abbreviation code
+                    debug_info.buf.writeStringz(getSymName(s)); // DW_AT_name
+                    // We DO NOT write the typidx here
+                    debug_info.buf.writeByte(1);                // DW_AT_external
+                }
+                else
+                {
+                    // ORIGINAL LOGIC: Include DW_AT_type
+                    code = DWARFAbbrev.write!([
+                        DW_TAG_variable, DW_CHILDREN_no,
+                        DW_AT_name,      DW_FORM_string,
+                        DW_AT_type,      DW_FORM_ref4,
+                        DW_AT_external,  DW_FORM_flag,
+                        DW_AT_location,  DW_FORM_block1,
+                    ]);
 
+                    debug_info.buf.writeuLEB128(code);          // abbreviation code
+                    debug_info.buf.writeStringz(getSymName(s)); // DW_AT_name
+                    debug_info.buf.write32(typidx);             // DW_AT_type
+                    debug_info.buf.writeByte(1);                // DW_AT_external
+                }
+                // --- FIX END ---
+
+                // The rest of the logic remains unchanged:
                 soffset = cast(uint)debug_info.buf.length();
-                debug_info.buf.writeByte(2);                      // DW_FORM_block1
+                debug_info.buf.writeByte(2);              // DW_FORM_block1
 
                 if (config.objfmt == OBJ_ELF)
                 {
@@ -2364,6 +2431,13 @@ static if (1)
             DW_TAG_member,              DW_CHILDREN_no,
             DW_AT_name,                 DW_FORM_string,
             DW_AT_type,                 DW_FORM_ref4,
+            DW_AT_data_member_location, DW_FORM_block1,
+        ];
+
+        static immutable ubyte[6] abbrevTypeMember_notype =
+        [
+            DW_TAG_member,              DW_CHILDREN_no,
+            DW_AT_name,                 DW_FORM_string,
             DW_AT_data_member_location, DW_FORM_block1,
         ];
 
@@ -2845,6 +2919,29 @@ static if (1)
                     switch (sf.Sclass)
                     {
                         case SC.member:
+                        {
+                            uint fi = (cast(uint*)fieldidx.buf)[n];
+                            n++;
+
+                            if (fi == 0)
+                            {
+                                debug_info.buf.writeuLEB128(membercode_notype);
+                                debug_info.buf.writeStringz(getSymName(sf));
+                            }
+                            else
+                            {
+                                debug_info.buf.writeuLEB128(membercode);
+                                debug_info.buf.writeStringz(getSymName(sf));
+                                debug_info.buf.write32(fi);
+                            }
+
+                            soffset = debug_info.buf.length();
+                            debug_info.buf.writeByte(2);
+                            debug_info.buf.writeByte(DW_OP_plus_uconst);
+                            debug_info.buf.writeuLEB128(cast(uint)sf.Smemoff);
+                            debug_info.buf.buf[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
+                            break;
+                        }
                         case SC.field:
                             fieldidx.write32(dwarf_typidx(sf.Stype));
                             nfields++;
@@ -2894,6 +2991,12 @@ static if (1)
                         DW_TAG_member,              DW_CHILDREN_no,
                         DW_AT_name,                 DW_FORM_string,
                         DW_AT_type,                 DW_FORM_ref4,
+                        DW_AT_data_member_location, DW_FORM_block1
+                    ]);
+
+                    uint membercode_notype = DWARFAbbrev.write!([
+                        DW_TAG_member,              DW_CHILDREN_no,
+                        DW_AT_name,                 DW_FORM_string,
                         DW_AT_data_member_location, DW_FORM_block1
                     ]);
 
