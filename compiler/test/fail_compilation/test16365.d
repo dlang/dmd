@@ -1,11 +1,14 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test16365.d(20): Error: taking address of member `f1` without `this` reference is not allowed in a `@safe` function
-fail_compilation/test16365.d(22): Error: cannot implicitly convert expression `&f2` of type `void delegate() pure nothrow @nogc @safe` to `void function() @safe`
-fail_compilation/test16365.d(27): Error: using `dg.funcptr` is not allowed in a `@safe` function
+fail_compilation/test16365.d(23): Error: taking address of member `f1` without `this` reference is not allowed in a `@safe` function
+fail_compilation/test16365.d(25): Error: cannot implicitly convert expression `&f2` of type `void delegate() pure nothrow @nogc @safe` to `void function() @safe`
+fail_compilation/test16365.d(29): Error: assigning address of variable `s` to `dg` with longer lifetime is not allowed in a `@safe` function
+fail_compilation/test16365.d(30): Error: using `dg.funcptr` is not allowed in a `@safe` function
 ---
 */
+
+module test16365 2024;
 
 // https://issues.dlang.org/show_bug.cgi?id=16365
 
