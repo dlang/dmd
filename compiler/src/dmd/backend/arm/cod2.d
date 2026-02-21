@@ -2509,6 +2509,11 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     const tym_t tyml = tybasic(e.E1.Ety);
+    if (tycomplex(tyml))
+    {
+        complexPost(cg, cdb, e, pretregs);
+        return;
+    }
     if (tyfloating(tyml))
     {
         floatPost(cg, cdb, e, pretregs);
@@ -2631,6 +2636,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
  * Do OPpostinc and OPpostdec on floating point lvalue
  */
 @trusted
+private
 void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("floatPost(pretregs = %s)\n", regm_str(pretregs));
@@ -2682,12 +2688,11 @@ void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         tstresult(cdb, mask(reg),ty1,false);
 
         // If lvalue is a register variable, mark it as modified
-        getregs(cdb,reg);
+        getregs(cdb,retregs);
 
         regm_t vretregs = INSTR.FLOATREGS & ~mask(cs.reg);
         reg_t vreg = allocreg(cdb,vretregs,ty1);
         double value = sz == 8 ? e2.Vdouble : e2.Vfloat;
-        uint opx = e.Eoper == OPpostinc ? 0 : 1;
         loadFloatRegConst(cdb,vreg,value,sz);                   // FMOV vreg,value
 
         switch (e.Eoper)
@@ -2739,6 +2744,145 @@ void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         storeToEA(cs,reg,sz);
         cdb.gen(&cs);                         // STR reg,EA
+    }
+
+    if (e1.Ecount ||                          // if lvalue is a CSE or
+        regvar)                               // rvalue can't be a CSE
+    {
+        getregs_imm(cdb,retregs);             // necessary if both lvalue and
+                                              //  rvalue are CSEs (since a reg
+                                              //  can hold only one e at a time)
+        cssave(e1,retregs,!OTleaf(e1.Eoper)); // if lvalue is a CSE
+    }
+
+    fixresult(cdb,e,resultregs,pretregs);
+    freenode(e1);
+}
+
+/******************************
+ * Do OPpostinc and OPpostdec on floating point lvalue
+ */
+@trusted
+private
+void complexPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+{
+    //printf("complexPost(pretregs = %s)\n", regm_str(pretregs));
+    //elem_print(e);
+
+    // Much similarity to floatPost()
+
+    elem* e1 = e.E1;
+    elem* e2 = e.E2;
+    const tym_t ty1 = tybasic(e.E1.Ety);
+    const sz = _tysize[ty1] / 2;
+    assert(sz <= 8);            // TODO AArch64 16 byte floats
+    const ftype = INSTR.szToFtype(sz);
+
+    regm_t retregs;
+    reg_t reg;
+    reg_t regmsw;
+    bool regvar = false;
+    if (config.flags4 & CFG4optimized)
+    {
+        // Be careful of cases like (x = x+x+x). We cannot evaluate in
+        // x if x is in a register.
+        reg_t varreg;
+        regm_t varregm;
+        if (isregvar(e1,varregm,varreg) &&    // if lvalue is register variable
+            doinreg(e1.Vsym,e2)         // and we can compute directly into it
+           )
+        {
+            regvar = true;
+            retregs = varregm;
+            reg = varreg;               // evaluate directly in target register
+            regmsw = findreg(varregm & INSTR.MSW);
+            getregs(cdb,retregs);       // destroy these regs
+        }
+    }
+
+    code cs;
+    if (!regvar)
+    {
+        getlvalue(cdb,cs,e1,0,RM.rw);                // get EA
+        retregs = INSTR.FLOATREGS & ~pretregs;
+        if (!retregs)
+            retregs = INSTR.FLOATREGS;
+        allocreg(cdb,retregs,ty1);
+        reg = findreg(retregs & INSTR.LSW);
+        loadFromEA(cs,reg,sz == 8 ? 8 : 4,sz);
+        cdb.gen(&cs);
+        regmsw = findreg(retregs & INSTR.MSW);
+        cs.IEV1.Voffset += sz;
+        loadFromEA(cs,regmsw,sz == 8 ? 8 : 4,sz);
+        cdb.gen(&cs);                           // consider using LDP regmsw,reg,[EA]
+        cs.IEV1.Voffset -= sz;
+    }
+
+    if (regvar && pretregs == mPSW)
+    {
+        tstresult(cdb,retregs,ty1,false);
+
+        // If lvalue is a register variable, mark it as modified
+        getregs(cdb,retregs);
+
+        regm_t vretregs = INSTR.FLOATREGS & ~retregs;
+        reg_t vreg = allocreg(cdb,vretregs,ty1);
+        loadFloatRegConst(cdb,vreg,1,sz);                   // FMOV vreg,value
+
+        switch (e.Eoper)
+        {
+            case OPpostinc:
+                cdb.gen1(INSTR.fadd_float(ftype,vreg,reg,reg)); // FADD Rd,Rn,Rm
+                break;
+
+            case OPpostdec:
+                cdb.gen1(INSTR.fsub_float(ftype,vreg,reg,reg)); // FSUB Rd,Rn,Rm
+                break;
+
+            default:
+                assert(0);
+        }
+
+        freenode(e2);
+        return;
+    }
+
+    // Result register pair
+    regm_t resultregs = INSTR.FLOATREGS & pretregs & ~retregs;
+    if (!resultregs)
+        resultregs = INSTR.FLOATREGS & ~retregs;
+    allocreg(cdb,resultregs, ty1);
+    reg_t resultreg = findreg(resultregs & INSTR.LSW);
+    reg_t resultregmsw = findreg(resultregs & INSTR.MSW);
+
+    cdb.gen1(INSTR.fmov(ftype,reg,resultreg));  // FMOV resultreg,reg
+    cdb.gen1(INSTR.fmov(ftype,regmsw,resultregmsw));  // FMOV resultreg,reg
+
+    regm_t vretregs = INSTR.FLOATREGS & ~retregs & ~resultregs;
+    reg_t vreg = allocreg(cdb,vretregs,ty1);
+    loadFloatRegConst(cdb,vreg,1,sz);       // FMOV vreg,value
+
+    switch (e.Eoper)
+    {
+        case OPpostinc:
+            cdb.gen1(INSTR.fadd_float(ftype,vreg,reg,reg)); // FADD Rd,Rn,Rm
+            break;
+
+        case OPpostdec:
+            cdb.gen1(INSTR.fsub_float(ftype,vreg,reg,reg)); // FSUB Rd,Rn,Rm
+            break;
+
+        default:
+            assert(0);
+    }
+
+    if (!regvar)
+    {
+        storeToEA(cs,reg,sz);
+        cdb.gen(&cs);                         // STR reg,EA
+        cs.IEV1.Voffset += sz;
+        storeToEA(cs,regmsw,sz);
+        cdb.gen(&cs);                         // STR regmsw,EA
     }
 
     if (e1.Ecount ||                          // if lvalue is a CSE or
