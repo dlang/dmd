@@ -1527,24 +1527,15 @@ bool hasPointers(Type t)
     bool visitType(Type _)              { return false; }
     bool visitDArray(TypeDArray _)      { return true; }
     bool visitAArray(TypeAArray _)      { return true; }
-    bool visitPointer(TypePointer _)    { return true; }
+    bool visitPointer(TypePointer t)    { return !t.isPtrToFunction(); }
     bool visitDelegate(TypeDelegate _)  { return true; }
     bool visitClass(TypeClass _)        { return true; }
     bool visitEnum(TypeEnum t)          { return t.memType().hasPointers(); }
 
-    /* Although null isn't dereferencable, treat it as a pointer type for
-     * attribute inference, generic code, etc.
-     */
-    bool visitNull(TypeNull _)          { return true; }
-
     bool visitSArray(TypeSArray t)
     {
-        /* Don't want to do this, because:
-         *    struct S { T* array[0]; }
-         * may be a variable length struct.
-         */
-        //if (dim.toInteger() == 0)
-        //    return false;
+        if (t.dim.toInteger() == 0)
+            return false;
 
         if (t.next.ty == Tvoid)
         {
@@ -1578,7 +1569,6 @@ bool hasPointers(Type t)
         case Tstruct:       return visitStruct(t.isTypeStruct());
         case Tenum:         return visitEnum(t.isTypeEnum());
         case Tclass:        return visitClass(t.isTypeClass());
-        case Tnull:         return visitNull(t.isTypeNull());
     }
 }
 

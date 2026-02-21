@@ -2717,6 +2717,22 @@ T _d_newThrowable(T)() @trusted
     assert(e.refcount() == 1);
 }
 
+private template classInstanceHasPointers(T)
+if (is(T == class))
+{
+    import core.internal.traits : anySatisfy, hasIndirections;
+
+    enum anyFieldHasPointers = __traits(isNested, T) // hidden context pointer
+                               || anySatisfy!(hasIndirections, typeof(T.tupleof));
+    static if (anyFieldHasPointers)
+        enum classInstanceHasPointers = true;
+    // check base classes recursively
+    else static if (is(T BaseTypes == super) && is(BaseTypes[0] == class))
+        enum classInstanceHasPointers = classInstanceHasPointers!(BaseTypes[0]);
+    else
+        enum classInstanceHasPointers = false;
+}
+
 /**
  * Create a new class instance.
  * Allocates memory and sets fields to their initial value, but does not call a
@@ -2729,10 +2745,9 @@ T _d_newThrowable(T)() @trusted
 T _d_newclassT(T)() @trusted
 if (is(T == class))
 {
-    import core.internal.traits : hasIndirections;
     import core.exception : onOutOfMemoryError;
-    import core.memory : pureMalloc;
-    import core.memory : GC;
+    import core.internal.traits : Unqual;
+    import core.memory : GC, pureMalloc;
 
     alias BlkAttr = GC.BlkAttr;
 
@@ -2757,11 +2772,18 @@ if (is(T == class))
          */
         static if (__traits(hasMember, T, "__dtor") && __traits(getLinkage, T) != "C++")
             attr |= BlkAttr.FINALIZE;
-        static if (!hasIndirections!T)
+
+        alias U = Unqual!T;
+        static if (!classInstanceHasPointers!U) // unqual for less instantiations
             attr |= BlkAttr.NO_SCAN;
 
         version(D_TypeInfo)
+        {
+            assert(!(typeid(U).m_flags & TypeInfo_Class.ClassFlags.noPointers) ==
+                   !(attr & BlkAttr.NO_SCAN),
+                   "classInstanceHasPointers incompatible with TypeInfo noPointers flag");
             p = GC.malloc(init.length, attr, typeid(T));
+        }
         else
             p = GC.malloc(init.length, attr, null);
         debug(PRINTF) printf(" p = %p\n", p);
@@ -2836,7 +2858,11 @@ T* _d_newitemT(T)() @trusted
         flags |= GC.BlkAttr.FINALIZE;
 
     version(D_TypeInfo)
+    {
+        assert(!(typeid(T).flags & 1) == !!(flags & GC.BlkAttr.NO_SCAN),
+            "hasIndirections incompatible with TypeInfo flags");
         auto p = GC.malloc(itemSize, flags, typeid(T));
+    }
     else
         auto p = GC.malloc(itemSize, flags, null);
 
