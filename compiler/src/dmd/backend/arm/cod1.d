@@ -1325,7 +1325,20 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
     if (tyfloating(tym))
     {
         assert(reg & 32);
-        if (tym == TYreal || tym == TYireal)
+        if (tycomplex(tym))
+        {
+            sz /= 2;
+            assert(sz <= 8);            // TODO AArch64 16 byte floats
+            const regm_t V0 = findreg(regm & INSTR.LSW);
+            const regm_t V1 = findreg(regm & INSTR.MSW);
+            const ftype = INSTR.szToFtype(sz);
+            cdb.gen1(INSTR.fcmp_float(ftype,0,V0));             // FCMP V0,#0.0
+            code* cnop = gen1(null, INSTR.nop);
+            genBranch(cdb, COND.ne, FL.code, cast(block*)cnop); // B.ne cnop1;
+            cdb.gen1(INSTR.fcmp_float(ftype,0,V1));             // FCMP V1,#0.0
+            cdb.append(cnop);                                   // cnop1:
+        }
+        else if (sz == 16)              // 128 byte floats
         {
             /*
                 fmov q0,reg
