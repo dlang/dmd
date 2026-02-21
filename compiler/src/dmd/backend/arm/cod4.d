@@ -478,6 +478,19 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("floatOpass(e=%p, pretregs = %s)\n",e,regm_str(pretregs));
     //elem_print(e);
+    /* pretregs = registers being returned
+     * idxregs = registers used for EA
+     * retregs1 = registers for e.E1
+     * retregs2 = registers for e.E2
+     * retregs = result registers
+     * So:
+     *  idxregs = &e1
+     *  retregs1 = *idxregs
+     *  retregs2 = e2
+     *  retregs = retregs1 op retregs2
+     *  *idxregs = retregs
+     *  pretregs = retregs
+     */
     elem* e1 = e.E1;
     tym_t ty1 = tybasic(e1.Ety);
     auto sz1 = _tysize[ty1];
@@ -485,6 +498,8 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t retregs;
     reg_t reg;
     bool isPair = isRegisterPair(true, ty1, 0);
+    if (isPair)
+        sz1 /= 2;
 
     if (e.Eoper == OPnegass)
     {
@@ -493,7 +508,6 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (isPair)
         {
             reg_t reglsw, regmsw;
-            sz1 /= 2;
             assert(sz1 <= 8);       // TODO AArch64 128 bit operands
             uint ftype = INSTR.szToFtype(sz1);
             if (cs.reg != NOREG)
@@ -575,12 +589,14 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     elem* e2 = e.E2;
-    regm_t rretregs = INSTR.FLOATREGS & ~pretregs;
-    if (!rretregs)
-        rretregs = INSTR.FLOATREGS;
+    regm_t retregs2 = INSTR.FLOATREGS & ~pretregs;
+    if (!retregs2)
+        retregs2 = INSTR.FLOATREGS;
+    if (isPair && (e.Eoper == OPmulass || e.Eoper == OPdivass))
+        retregs2 = mask(34)|mask(35);       // v2|v3
 
-    codelem(cgstate,cdb,e2,rretregs,false); // eval right leaf
-    reg_t rreg = findreg(rretregs);
+    codelem(cgstate,cdb,e2,retregs2,false); // eval right leaf
+    reg_t rreg = findreg(retregs2);
 
     bool regvar = false;
     if (0 && config.flags4 & CFG4optimized) // TODO AArch64
@@ -603,10 +619,12 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (!regvar)
     {
-        getlvalue(cdb,cs,e1,rretregs,RM.rw);         // get EA
-        retregs = pretregs & INSTR.FLOATREGS & ~rretregs;
+        getlvalue(cdb,cs,e1,retregs2,RM.rw);         // get EA
+        retregs = pretregs & INSTR.FLOATREGS & ~retregs2;
         if (!retregs)
-            retregs = INSTR.FLOATREGS & ~rretregs;
+            retregs = INSTR.FLOATREGS & ~retregs2;
+        if (isPair && (e.Eoper == OPmulass || e.Eoper == OPdivass))
+            retregs = mask(32)|mask(33);            // v0|v1
         allocreg(cdb,retregs,ty1);
         reg = findreg(isPair ? retregs & INSTR.LSW : retregs);
         if (isPair)
@@ -618,16 +636,18 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (isPair)
     {
-        sz1 /= 2;
-        rreg = findreg(rretregs & INSTR.LSW);
+        rreg = findreg(retregs2 & INSTR.LSW);
         reg_t Rd = reg, Rn = rreg, Rm = reg;    // reg = rreg + reg
         const uint ftype = INSTR.szToFtype(sz1);
+        uint clib;
+        assert(sz1 != 2 && sz1 != 16);          // halffloat and float128
         switch (e.Eoper)
         {
             // FADD/FSUB (extended register)
             // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
             case OPaddass:
                 cdb.gen1(INSTR.fadd_float(ftype,Rn,Rm,Rd));     // FADD Rd,Rn,Rm
+            L1:
                 if (!regvar)
                 {
                     storeToEA(cs,reg,sz1);
@@ -635,7 +655,7 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 }
 
                 reg  = findreg(retregs  & INSTR.MSW);
-                rreg = findreg(rretregs & INSTR.MSW);
+                rreg = findreg(retregs2 & INSTR.MSW);
                 if (cs.reg == NOREG)
                     cs.IEV1.Voffset += sz1;
                 else
@@ -643,16 +663,32 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 loadFromEA(cs,reg,sz1,sz1);
                 cdb.gen(&cs);
                 Rd = reg, Rn = rreg, Rm = reg;                  // reg = rreg + reg
-                cdb.gen1(INSTR.fadd_float(ftype,Rn,Rm,Rd));     // FADD Rd,Rn,Rm
+                if (e.Eoper == OPaddass)
+                    cdb.gen1(INSTR.fadd_float(ftype,Rn,Rm,Rd));     // FADD Rd,Rn,Rm
+                else
+                    cdb.gen1(INSTR.fsub_float(ftype,Rn,Rm,Rd));     // FSUB Rd,Rn,Rm
                 break;
 
             case OPminass:
                 cdb.gen1(INSTR.fsub_float(ftype,Rn,Rm,Rd));     // FSUB Rd,Rn,Rm
-                break;
+                goto L1;
 
             case OPmulass:
+                clib = sz1 == 8 ? CLIB_A.muldc3 : CLIB_A.mulsc3;
+                goto Lclib;
+
             case OPdivass:
-                assert(0); // TODO AArch64
+                clib = sz1 == 8 ? CLIB_A.divdc3 : CLIB_A.divsc3;
+            Lclib:
+                regm_t idxregs = idxregm(cs);
+                callclib(cdb,e,clib,pretregs,idxregs);
+                if (!regvar)
+                {
+                    storeToEA(cs,reg,sz1);
+                    cdb.gen(&cs);
+                    cs.IEV1.Voffset += sz1;
+                }
+                break;
 
             default:
                 assert(0);

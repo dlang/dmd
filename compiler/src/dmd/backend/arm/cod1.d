@@ -1479,6 +1479,10 @@ enum CLIB_A
     lttf2,
     letf2,
     memset,
+    mulsc3,
+    muldc3,
+    divsc3,
+    divdc3,
 }
 
 private
@@ -1517,10 +1521,19 @@ void initClibInfo(ref Symbol*[CLIB_A.max + 1] clibsyms, ref ClibInfo[CLIB_A.max 
 private
 void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t objfmt, exefmt_t exe)
 {
+    enum r0r1 = mask(32) | mask(33);
+    enum r2r3 = r0r1 >> 2;
+
     void declare(string name)
     {
         s = symboly(name, mask(32));
         cinfo.retregs = mask(32);
+    }
+
+    void declare2(string name)
+    {
+        s = symboly(name, r0r1 | r2r3);
+        cinfo.retregs = r0r1;
     }
 
     switch (clib)
@@ -1587,6 +1600,11 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
             cinfo.retregs = mask(0);
             break;
         }
+
+        case CLIB_A.mulsc3: declare2("__mulsc3"); break;
+        case CLIB_A.muldc3: declare2("__muldc3"); break;
+        case CLIB_A.divsc3: declare2("__divsc3"); break;
+        case CLIB_A.divdc3: declare2("__divdc3"); break;
 
         default:
             assert(0);

@@ -300,6 +300,20 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyfloating(ty1))
     {
+        if (tycomplex(ty1))
+        {
+            regm_t retregs1 = mask(32) | mask(33);
+            codelem(cg, cdb, e1, retregs1, false);
+            regm_t retregs2 = mask(34) | mask(35);
+            scodelem(cg, cdb, e2, retregs2, retregs1, false);
+            if (ty1 == TYcfloat)
+                callclib(cdb,e,CLIB_A.mulsc3,pretregs,0);
+            else if (ty1 == TYcdouble)
+                callclib(cdb,e,CLIB_A.muldc3,pretregs,0);
+            else
+                assert(0);
+            return;
+        }
         cdorth(cg, cdb, e, pretregs);
         return;
     }
@@ -356,6 +370,20 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyfloating(ty1))
     {
+        if (tycomplex(ty1))
+        {
+            regm_t retregs1 = mask(32) | mask(33);
+            codelem(cg, cdb, e1, retregs1, false);
+            regm_t retregs2 = mask(34) | mask(35);
+            scodelem(cg, cdb, e2, retregs2, retregs1, false);
+            if (ty1 == TYcfloat)
+                callclib(cdb,e,CLIB_A.divsc3,pretregs,0);
+            else if (ty1 == TYcdouble)
+                callclib(cdb,e,CLIB_A.divdc3,pretregs,0);
+            else
+                assert(0);
+            return;
+        }
         cdorth(cg, cdb, e, pretregs);
         return;
     }
