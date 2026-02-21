@@ -974,7 +974,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         if (funcdecl.vresult)
                         {
                             // Create: return vresult = exp;
-                            if (canElideCopy(exp, funcdecl.vresult.type, false))
+                            if (canElideCopy(exp, funcdecl.vresult.type))
                                 exp = new ConstructExp(rs.loc, funcdecl.vresult, exp);
                             else
                                 exp = new BlitExp(rs.loc, funcdecl.vresult, exp);

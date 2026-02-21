@@ -761,8 +761,13 @@ bool isLvalue(Expression _this)
  * Determine if copy elision is allowed when copying an expression to
  * a typed storage. This basically elides a restricted subset of so-called
  * "pure" rvalues, i.e. expressions with no reference semantics.
+ *
+ * Note: Please avoid using `checkMod` parameter because `canElideCopy()`
+ * essentially defines a value category and should eventually be merged with
+ * `isLvalue()` to return [isLvalue, allowEmplacement].
+ * Checking type compatibility here is only a stopgap measure.
  */
-bool canElideCopy(Expression e, Type to, bool checkMod = true)
+bool canElideCopy(Expression e, Type to, bool checkMod = false)
 {
     if (checkMod && !MODimplicitConv(e.type.mod, to.mod))
         return false;
@@ -791,7 +796,7 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
             return false;
 
         // If an aggregate can be elided, so are its fields
-        return canElideCopy(e.e1, e.e1.type, false);
+        return canElideCopy(e.e1, e.e1.type);
     }
 
     switch (e.op)
@@ -1920,7 +1925,7 @@ extern (D) Expression doCopyOrMove(Scope* sc, Expression e, Type t, bool nrvo, b
     {
         e = callCpCtor(sc, e, t, nrvo);
     }
-    else if (move && sd && sd.hasMoveCtor && !canElideCopy(e, t ? t : e.type, false))
+    else if (move && sd && sd.hasMoveCtor && !canElideCopy(e, t ? t : e.type))
     {
         // #move
         /* Rewrite as:
