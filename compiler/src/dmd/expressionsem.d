@@ -13692,6 +13692,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         t1.toChars(), t2.toChars());
                     return setError();
                 }
+                else if (sc.hasEdition(Edition.v2024) &&
+                         sc.setUnsafe(false, exp.loc, "pointer subtraction"))
+                {
+                    return setError();
+                }
 
                 // Need to divide the result by the stride
                 // Replace (ptr - ptr) with (ptr - ptr) / stride
