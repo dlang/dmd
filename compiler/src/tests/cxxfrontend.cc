@@ -602,6 +602,7 @@ public:
         case TY::Tuns64:
         case TY::Tint128:
         case TY::Tuns128:
+        case TY::Tfloat16:
         case TY::Tfloat32:
         case TY::Tfloat64:
         case TY::Tfloat80:

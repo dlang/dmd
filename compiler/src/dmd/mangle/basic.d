@@ -18,6 +18,7 @@ immutable char[TMAX] mangleChar =
     Tchar        : 'a',
     Tbool        : 'b',
     Tcomplex80   : 'c',
+    Tfloat16     : 'f',
     Tfloat64     : 'd',
     Tfloat80     : 'e',
     Tfloat32     : 'f',

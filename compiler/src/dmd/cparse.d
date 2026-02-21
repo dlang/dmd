@@ -331,6 +331,7 @@ final class CParser(AST) : Parser!AST
         case TOK.int32:
         case TOK.int64:
         case TOK.__int128:
+        case TOK.float16:
         case TOK.float32:
         case TOK.float64:
         case TOK.signed:
@@ -2403,6 +2404,7 @@ final class CParser(AST) : Parser!AST
             xcomplex   = 0x10000,
             x_Atomic   = 0x20000,
             xint128    = 0x40000,
+            xsfloat    = 0x80000, // do a short float for float16
         }
 
         AST.Type t;
@@ -2448,6 +2450,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.int32:      tkwx = TKW.xint;       break;
                 case TOK.int64:      tkwx = TKW.xlong;      break;
                 case TOK.__int128:   tkwx = TKW.xint128;    break;
+                case TOK.float16:    tkwx = TKW.xsfloat;    break;
                 case TOK.float32:    tkwx = TKW.xfloat;     break;
                 case TOK.float64:    tkwx = TKW.xdouble;    break;
                 case TOK.void_:      tkwx = TKW.xvoid;      break;
@@ -2665,6 +2668,8 @@ final class CParser(AST) : Parser!AST
             case TKW.xvoid:                     t = AST.Type.tvoid; break;
             case TKW.xbool:                     t = boolsize == 1 ? AST.Type.tbool : integerTypeForSize(boolsize); break;
 
+
+            case TKW.xsfloat:                   t = AST.Type.tfloat16; break;
             case TKW.xfloat:                    t = AST.Type.tfloat32; break;
             case TKW.xdouble:                   t = AST.Type.tfloat64; break;
             case TKW.xlong | TKW.xdouble:       t = realType(RTFlags.realfloat); break;
@@ -4340,6 +4345,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.int32:
                 case TOK.int64:
                 case TOK.__int128:
+                case TOK.float16:
                 case TOK.float32:
                 case TOK.float64:
                 case TOK.signed:
@@ -4561,6 +4567,7 @@ final class CParser(AST) : Parser!AST
             case TOK.int32:
             case TOK.int64:
             case TOK.__int128:
+            case TOK.float16:
             case TOK.float32:
             case TOK.float64:
             case TOK.void_:
