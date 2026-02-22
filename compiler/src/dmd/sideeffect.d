@@ -11,6 +11,8 @@
 
 module dmd.sideeffect;
 
+import dmd.dtemplate;
+import dmd.dsymbol;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
@@ -391,6 +393,25 @@ bool discardValue(Expression e)
             }
         }
         return !seenSideEffect;
+    case EXP.scope_:
+        {
+            if (auto se = e.isScopeExp())
+            {
+                if (auto ti = se.sds.isTemplateInstance())
+                {
+                    if (!ti.aliasdecl && ti.tempdecl)
+                    {
+                        error(e.loc, "`%s` matches multiple overloads exactly", se.sds.toChars());
+                    }
+                }
+                else if (se.sds && se.sds.isOverloadSet())
+                {
+                    error(e.loc, "`%s` matches multiple overloads exactly", se.sds.toChars());
+                }
+            }
+            error(e.loc, "`%s` has no effect", e.toErrMsg());
+            return true;
+        }
     default:
         break;
     }
