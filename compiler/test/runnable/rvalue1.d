@@ -284,19 +284,23 @@ struct S12{
 
 struct V12
 {
-    S12 s;
-    this(int) { s = S12(1); }
+    S12 a, b;
+    this(int) { a = b = S12(1); }
 }
 
 S12 foo12()
 {
-    return __rvalue(V12(1).s);
+    return __rvalue(V12(1).a);
 }
 
 void test12()
 {
     S12 s = foo12();
     assert(&s == s.ptr);
+
+    V12 v = V12(1);
+    assert(&v.a == v.a.ptr);
+    assert(&v.b == v.b.ptr);
 }
 
 /********************************/
