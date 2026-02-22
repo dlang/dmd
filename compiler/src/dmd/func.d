@@ -18,6 +18,7 @@
 
 module dmd.func;
 
+import dmd.dsymbolsem;
 import core.stdc.stdio;
 import core.stdc.string;
 import dmd.aggregate;
@@ -470,12 +471,12 @@ extern (C++) class FuncDeclaration : Declaration
 
     final bool isMain() const
     {
-        return ident == Id.main && resolvedLinkage() != LINK.c && !isMember() && !isNested();
+        return ident == Id.main && dmd.dsymbolsem.resolvedLinkage(this) != LINK.c && !isMember() && !isNested();
     }
 
     final bool isCMain() const
     {
-        return ident == Id.main && resolvedLinkage() == LINK.c && !isMember() && !isNested();
+        return ident == Id.main && dmd.dsymbolsem.resolvedLinkage(this) == LINK.c && !isMember() && !isNested();
     }
 
     final bool isWinMain() const
@@ -489,18 +490,18 @@ extern (C++) class FuncDeclaration : Declaration
         }
         else
         {
-            return ident == Id.WinMain && resolvedLinkage() != LINK.c && !isMember();
+            return ident == Id.WinMain && dmd.dsymbolsem.resolvedLinkage(this) != LINK.c && !isMember();
         }
     }
 
     final bool isDllMain() const
     {
-        return ident == Id.DllMain && resolvedLinkage() != LINK.c && !isMember();
+        return ident == Id.DllMain && dmd.dsymbolsem.resolvedLinkage(this) != LINK.c && !isMember();
     }
 
     final bool isRtInit() const
     {
-        return ident == Id.rt_init && resolvedLinkage() == LINK.c && !isMember() && !isNested();
+        return ident == Id.rt_init && dmd.dsymbolsem.resolvedLinkage(this) == LINK.c && !isMember() && !isNested();
     }
 
     override final bool isExport() const

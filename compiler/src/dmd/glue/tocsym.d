@@ -11,6 +11,7 @@
 
 module dmd.glue.tocsym;
 
+import dmd.dsymbolsem;
 import core.stdc.stdio;
 import core.stdc.string;
 
@@ -287,7 +288,7 @@ Symbol* toSymbol(Dsymbol s)
             }
 
             Mangle m = Mangle.none;
-            final switch (vd.resolvedLinkage())
+            final switch (dmd.dsymbolsem.resolvedLinkage(vd))
             {
                 case LINK.windows:
                     m = target.isX86 ? Mangle.stdcall : Mangle.c;
@@ -439,7 +440,7 @@ Symbol* toSymbol(Dsymbol s)
             }
             else
             {
-                final switch (fd.resolvedLinkage())
+                final switch (dmd.dsymbolsem.resolvedLinkage(fd))
                 {
                     case LINK.windows:
                         t.Tmangle = target.isX86 ? Mangle.stdcall : Mangle.c;
