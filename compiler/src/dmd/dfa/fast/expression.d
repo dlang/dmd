@@ -34,6 +34,8 @@ import dmd.mtype;
 import dmd.dtemplate;
 import dmd.arraytypes;
 import dmd.rootobject;
+import dmd.id;
+import dmd.dsymbol;
 import core.stdc.stdio;
 
 /***********************************************************
@@ -91,23 +93,24 @@ struct ExpressionWalker
      *      assignTo = The variable being written to.
      *      construct = True if this is an initialization (e.g., `int x = 5;`), false if reassignment.
      *      lr = The lattice state of the value being assigned.
+     *      loc = Source file location of the assignment.
      *      isBlit = True if the assignment is a bitwise copy (blit).
      *      alteredState = An integer representing a specific state alteration or flag.
      */
     DFALatticeRef seeAssign(DFAVar* assignTo, bool construct, DFALatticeRef lr,
-            bool isBlit = false, int alteredState = 0)
+            ref Loc loc, bool isBlit = false, int alteredState = 0)
     {
         DFALatticeRef assignTo2 = dfaCommon.makeLatticeRef;
         assignTo2.setContext(assignTo);
 
         dfaCommon.check;
-        DFALatticeRef ret = seeAssign(assignTo2, construct, lr, isBlit);
+        DFALatticeRef ret = seeAssign(assignTo2, construct, lr, loc, isBlit);
         dfaCommon.check;
 
         return ret;
     }
 
-    DFALatticeRef seeAssign(DFALatticeRef assignTo, bool construct, DFALatticeRef lr,
+    DFALatticeRef seeAssign(DFALatticeRef assignTo, bool construct, DFALatticeRef lr, ref Loc loc,
             bool isBlit = false, int alteredState = 0, DFALatticeRef indexLR = DFALatticeRef.init)
     {
         dfaCommon.printState((ref OutBuffer ob, scope PrintPrefixType prefix) => ob.printf(
@@ -122,7 +125,7 @@ struct ExpressionWalker
         assert(analyzer !is null);
         dfaCommon.check;
         DFALatticeRef ret = analyzer.transferAssign(assignTo, construct,
-                isBlit, lr, alteredState, indexLR);
+                isBlit, lr, alteredState, loc, indexLR);
         dfaCommon.check;
 
         ret.check;
@@ -135,7 +138,7 @@ struct ExpressionWalker
     }
 
     /***********************************************************
-     * Handles equality checks (e.g., `x == y` or `x is y`).
+     * Handles equality checks (e.g., `x == y`).
      *
      * This is critical for control flow. If the DFA sees `if (x == null)`,
      * this function records that relationship so the `StatementWalker` can
@@ -156,7 +159,36 @@ struct ExpressionWalker
         rhs.printState("rhs", dfaCommon.sdepth, dfaCommon.currentFunction, dfaCommon.edepth);
 
         dfaCommon.check;
-        DFALatticeRef ret = analyzer.transferEqual(lhs, rhs, truthiness, equalityType);
+        DFALatticeRef ret = analyzer.transferEqual(lhs, rhs, truthiness, equalityType, false);
+        dfaCommon.check;
+
+        ret.printState("result", dfaCommon.sdepth, dfaCommon.currentFunction, dfaCommon.edepth);
+        return ret;
+    }
+
+    /***********************************************************
+     * Handles equality checks (e.g., `x is y`).
+     *
+     * This is critical for control flow. If the DFA sees `if (x == null)`,
+     * this function records that relationship so the `StatementWalker` can
+     * create a scope where `x` is known to be null.
+     */
+    DFALatticeRef seeEqualIdentity(DFALatticeRef lhs, DFALatticeRef rhs,
+            bool truthiness, Type lhsType, Type rhsType)
+    {
+        const equalityType = equalityArgTypes(lhsType, rhsType);
+
+        dfaCommon.printState((ref OutBuffer ob, scope PrintPrefixType prefix) {
+            ob.printf("Equal identity iff=%d, ty=%d:%d, ety=%d", truthiness,
+                lhsType.ty, rhsType !is null ? rhsType.ty : -1, equalityType);
+            ob.writestring("\n");
+        });
+
+        lhs.printState("lhs", dfaCommon.sdepth, dfaCommon.currentFunction, dfaCommon.edepth);
+        rhs.printState("rhs", dfaCommon.sdepth, dfaCommon.currentFunction, dfaCommon.edepth);
+
+        dfaCommon.check;
+        DFALatticeRef ret = analyzer.transferEqual(lhs, rhs, truthiness, equalityType, true);
         dfaCommon.check;
 
         ret.printState("result", dfaCommon.sdepth, dfaCommon.currentFunction, dfaCommon.edepth);
@@ -319,23 +351,27 @@ struct ExpressionWalker
         return ret;
     }
 
-    DFALatticeRef entry(DFAVar* assignTo, DFAVar* constructInto, Expression exp)
+    void seeRead(ref DFALatticeRef lr, ref Loc loc)
     {
-        DFALatticeRef lattice = walk(exp);
-        lattice.check;
+        dfaCommon.printStateln("Seeing read of lr");
+        lr.printState("read lr", dfaCommon.sdepth, dfaCommon.currentFunction, dfaCommon.edepth);
 
-        if (assignTo !is null)
-            return seeAssign(assignTo, false, lattice);
-        else if (constructInto !is null)
-            return seeAssign(constructInto, true, lattice);
-        else
-            return lattice;
+        analyzer.onRead(lr, loc);
+    }
+
+    void seeReadMathOp(ref DFALatticeRef lr, ref Loc loc)
+    {
+        dfaCommon.printStateln("Seeing read of math op lr");
+        lr.printState("read lr", dfaCommon.sdepth, dfaCommon.currentFunction, dfaCommon.edepth);
+
+        analyzer.onRead(lr, loc, false, false, true);
     }
 
     DFALatticeRef adaptConditionForBranch(Expression expr, bool truthiness)
     {
         if (expr is null)
             return DFALatticeRef.init;
+
         return this.adaptConditionForBranch(this.walk(expr), expr.type, truthiness);
     }
 
@@ -356,9 +392,9 @@ struct ExpressionWalker
             DFALatticeRef against = dfaCommon.makeLatticeRef;
 
             if (truthiness)
-                against.acquireConstantAsContext(Truthiness.True, Nullable.NonNull);
+                against.acquireConstantAsContext(Truthiness.True, Nullable.NonNull, null);
             else
-                against.acquireConstantAsContext(Truthiness.False, Nullable.Null);
+                against.acquireConstantAsContext(Truthiness.False, Nullable.Null, null);
 
             ret = this.seeEqual(ret, against, truthiness, type, null);
         }
@@ -391,7 +427,7 @@ struct ExpressionWalker
      */
     DFALatticeRef walk(Expression expr)
     {
-        if (expr is null || dfaCommon.currentDFAScope.haveJumped)
+        if (expr is null)
             return DFALatticeRef.init;
 
         dfaCommon.edepth++;
@@ -487,6 +523,17 @@ struct ExpressionWalker
 
                 DFAConsequence* c = ret.addConsequence(varOffset);
                 ret.setContext(c);
+
+                c.obj = dfaCommon.makeObject(varBase);
+
+                if (varBase.declaredAtDepth > 0)
+                {
+                    c.truthiness = Truthiness.True;
+                    c.nullable = Nullable.NonNull;
+                }
+
+                if (soe.offset != 0)
+                    c.obj.mayNotBeExactPointer = true;
             }
             else if (auto fd = soe.var.isFuncDeclaration)
             {
@@ -495,7 +542,8 @@ struct ExpressionWalker
                 //  even if it probably doesn't make sense to be doing it.
 
                 ret = dfaCommon.makeLatticeRef;
-                ret.acquireConstantAsContext(Truthiness.True, Nullable.NonNull);
+                ret.acquireConstantAsContext(Truthiness.True, Nullable.NonNull,
+                        dfaCommon.makeObject);
             }
             else
             {
@@ -520,63 +568,122 @@ struct ExpressionWalker
                 if (ctx !is null)
                 {
                     DFAVar* varOffset = dfaCommon.findOffsetVar(0, ctx);
-                    ret.setContext(varOffset);
+                    DFAConsequence* cctx = ret.setContext(varOffset);
+
+                    cctx.obj = dfaCommon.makeObject(ctx);
+
+                    if (ctx.declaredAtDepth > 0)
+                    {
+                        cctx.truthiness = Truthiness.True;
+                        cctx.nullable = Nullable.NonNull;
+                    }
                 }
             }
 
             return ret;
 
         case EXP.declaration:
-            auto decl = expr.isDeclarationExp.declaration;
-
-            if (auto var = decl.isVarDeclaration)
             {
-                DFAVar* dfaVar = dfaCommon.findVariable(var);
-                dfaVar.declaredAtDepth = dfaCommon.currentDFAScope.depth;
-                dfaCommon.acquireScopeVar(dfaVar);
+                auto symbol = expr.isDeclarationExp.declaration;
 
-                if (var._init is null)
+                void eachDeclarationSymbol(Dsymbol symbol)
                 {
-                    // we can ignore this case, its likely from meta-programming
-                    return DFALatticeRef.init;
-                }
-                else
-                {
-                    final switch (var._init.kind)
+                    if (auto var = symbol.isVarDeclaration)
                     {
-                    case InitKind.exp:
-                        auto ei = var._init.isExpInitializer;
+                        if (var.ident !is null)
+                        {
+                            dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
+                                ob.printf("Declaring variable: %s\n", var.ident.toChars);
+                            });
+                        }
 
-                        // does this var escape another? Can't model that.
-                        if ((var.storage_class & STC.ref_) == STC.ref_)
-                            markUnmodellable(ei.exp);
+                        DFAVar* dfaVar = dfaCommon.findVariable(var);
+                        dfaVar.declaredAtDepth = dfaCommon.currentDFAScope.depth;
+                        DFAScopeVar* scv = dfaCommon.acquireScopeVar(dfaVar);
+                        DFAConsequence* cctx = scv.lr.getContext;
 
-                        DFALatticeRef lr = this.walk(ei.exp);
+                        // ImportC supports syntax as: Type var = var;
+                        // Bit of a problem that...
+                        // Due to the construct expression on rhs, is going to see var as being uninitialized.
+                        // What we'll do instead, is init ALL VARIABLES, and based upon the init expression, uninitialize it.
 
-                        if (ei.exp.isConstructExp || ei.exp.isBlitExp)
-                            return lr;
-                        else
-                            return seeAssign(dfaVar, true, lr);
+                        {
+                            dfaVar.writeCount = 1;
+                            cctx.writeOnVarAtThisPoint = 1;
+                        }
 
-                    case InitKind.array:
-                        auto ai = var._init.isArrayInitializer;
-                        DFALatticeRef lr = dfaCommon.makeLatticeRef;
-                        DFAConsequence* c = lr.addConsequence(dfaVar);
-                        lr.setContext(c);
+                        if (var._init !is null)
+                        {
+                            final switch (var._init.kind)
+                            {
+                            case InitKind.exp:
+                                auto ei = var._init.isExpInitializer;
 
-                        return seeAssign(dfaVar, true, lr, false, ai.value.length > 0 ? 3 : 2);
+                                if (ei.loc == var.loc && (var.storage_class & STC.foreach_) == 0)
+                                {
+                                    // This is default initialization
 
-                    case InitKind.void_:
-                    case InitKind.error:
-                    case InitKind.struct_:
-                    case InitKind.C_:
-                    case InitKind.default_:
-                        return DFALatticeRef.init;
+                                    if (dfaVar.isFloatingPoint)
+                                    {
+                                        // Floating point initializes to NaN which is NOT a good default.
+                                        // Allow explicit, but not default initialization.
+                                        dfaVar.wasDefaultInitialized = true;
+                                        goto case InitKind.void_;
+                                    }
+                                }
+
+                                // does this var escape another? Can't model that.
+                                if ((var.storage_class & STC.ref_) == STC.ref_)
+                                    markUnmodellable(ei.exp);
+
+                                DFALatticeRef lr = this.walk(ei.exp);
+
+                                if (!(ei.exp.isConstructExp || ei.exp.isBlitExp))
+                                    seeAssign(dfaVar, true, lr, ei.exp.loc);
+                                break;
+
+                            case InitKind.array:
+                                auto ai = var._init.isArrayInitializer;
+                                DFALatticeRef lr = dfaCommon.makeLatticeRef;
+                                DFAConsequence* c = lr.addConsequence(dfaVar);
+                                lr.setContext(c);
+
+                                seeAssign(dfaVar, true, lr, ai.loc, false,
+                                        ai.value.length > 0 ? 3 : 2);
+                                break;
+
+                            case InitKind.void_:
+                                dfaVar.writeCount = 0;
+                                cctx.writeOnVarAtThisPoint = 0;
+                                break;
+
+                            case InitKind.error:
+                            case InitKind.struct_:
+                            case InitKind.C_:
+                            case InitKind.default_:
+                                break;
+                            }
+                        }
                     }
                 }
-            }
-            else
+
+                if (auto ad = symbol.isAttribDeclaration)
+                {
+                    // ImportC wraps their declarations
+
+                    if (ad.decl !is null)
+                    {
+                        foreach (symbol2; *ad.decl)
+                        {
+                            eachDeclarationSymbol(symbol2);
+                        }
+                    }
+                }
+                else
+                    eachDeclarationSymbol(symbol);
+
                 return DFALatticeRef.init;
+            }
 
         case EXP.construct:
             auto ce = expr.isConstructExp;
@@ -586,7 +693,8 @@ struct ExpressionWalker
 
             dfaCommon.printStateln("construct rhs");
             DFALatticeRef rhs = this.walk(ce.e2);
-            return seeAssign(lhs, true, rhs);
+
+            return seeAssign(lhs, true, rhs, ce.loc);
 
         case EXP.negate: // -x
             auto ue = expr.isUnaExp;
@@ -611,7 +719,17 @@ struct ExpressionWalker
             auto be = expr.isBlitExp;
 
             dfaCommon.printStateln("blit lhs");
-            DFALatticeRef lhs = this.walk(be.e1), rhs;
+            DFALatticeRef lhs, rhs;
+
+            if (auto se = be.e1.isSliceExp)
+            {
+                // if we're bliting to a static array, let's ignore the empty slice.
+                assert(se.upr is null);
+                assert(se.lwr is null);
+                lhs = this.walk(se.e1);
+            }
+            else
+                lhs = this.walk(be.e1);
 
             if (auto e2ve = be.e2.isVarExp)
             {
@@ -620,7 +738,8 @@ struct ExpressionWalker
                     // this evaluates out to a type
 
                     rhs = dfaCommon.makeLatticeRef;
-                    rhs.acquireConstantAsContext(Truthiness.True, Nullable.NonNull);
+                    rhs.acquireConstantAsContext(Truthiness.True,
+                            Nullable.NonNull, dfaCommon.makeObject);
 
                     goto BlitAssignRet;
                 }
@@ -630,7 +749,7 @@ struct ExpressionWalker
             rhs = this.walk(be.e2);
 
         BlitAssignRet:
-            DFALatticeRef ret = seeAssign(lhs, true, rhs, true);
+            DFALatticeRef ret = seeAssign(lhs, true, rhs, be.loc, true);
             return ret;
 
         case EXP.assign:
@@ -664,8 +783,8 @@ struct ExpressionWalker
 
             dfaCommon.printStateln("assign rhs");
             DFALatticeRef rhs = this.walk(ae.e2);
-            DFALatticeRef ret = seeAssign(lhs, false, rhs, false, lhsIndex !is null ? 3 : 0,
-                    indexLR);
+            DFALatticeRef ret = seeAssign(lhs, false, rhs, ae.loc, false,
+                    lhsIndex !is null ? 3 : 0, indexLR);
 
             if (ret.isNull)
             {
@@ -694,6 +813,8 @@ struct ExpressionWalker
                 DFAVar* lhsCtx;
                 DFAConsequence* lhsCctx = lhs.getContext(lhsCtx);
 
+                DFAObject* lhsObject;
+
                 Type lhsType = ie.e1.type;
                 bool resultHasEffect;
 
@@ -715,6 +836,12 @@ struct ExpressionWalker
                     {
                         lhsCctx.truthiness = Truthiness.True;
                         lhsCctx.nullable = Nullable.NonNull;
+                    }
+
+                    if (lhsCctx.obj !is null)
+                    {
+                        lhsObject = lhsCctx.obj;
+                        lhsObject.mayNotBeExactPointer = true;
                     }
                 }
 
@@ -748,14 +875,20 @@ struct ExpressionWalker
 
                 dfaCommon.printStateln("Slice base");
                 DFALatticeRef base = this.walk(se.e1);
-                DFAVar* baseCtx = base.getContextVar;
+                DFAVar* baseCtx;
+                DFAConsequence* baseCctx = base.getContext(baseCtx);
 
                 if (se.lwr is null && se.upr is null)
                 {
                     // Equivalent to doing slice[]
-                    DFAVar* indexVar = dfaCommon.findIndexVar(baseCtx);
-                    DFAConsequence* newCctx = base.addConsequence(indexVar);
+                    DFAVar* asSliceVar = dfaCommon.findAsSliceVar(baseCtx);
+                    DFAConsequence* newCctx = base.addConsequence(asSliceVar);
                     base.setContext(newCctx);
+
+                    if (baseCctx !is null && baseCctx.obj !is null)
+                        newCctx.obj = baseCctx.obj;
+                    else
+                        newCctx.obj = dfaCommon.makeObject(baseCtx);
                     return base;
                 }
 
@@ -828,7 +961,7 @@ struct ExpressionWalker
 
         case EXP.halt:
             DFALatticeRef lr = dfaCommon.makeLatticeRef;
-            lr.acquireConstantAsContext(Truthiness.False, Nullable.Unknown);
+            lr.acquireConstantAsContext(Truthiness.False, Nullable.Unknown, null);
 
             seeAssert(lr, expr.loc);
             // Evaluates to void
@@ -846,11 +979,13 @@ struct ExpressionWalker
             if (ret.isNull)
                 ret = dfaCommon.makeLatticeRef;
 
-            DFAConsequence* c = ret.addConsequence(dfaCommon.getInfiniteLifetimeVariable);
+            DFAVar* var = dfaCommon.getInfiniteLifetimeVariable;
+            DFAConsequence* c = ret.addConsequence(var);
             ret.setContext(c);
 
             c.truthiness = Truthiness.True;
             c.nullable = Nullable.NonNull;
+            c.obj = dfaCommon.makeObject;
             return ret;
 
         case EXP.andAnd:
@@ -860,10 +995,27 @@ struct ExpressionWalker
             dfaCommon.currentDFAScope.sideEffectFree = true;
             DFALatticeRef inProgress;
 
+            // if lhs is false, so will the andAnd
+
             // assume rhs could be andAnd
             while (be !is null)
             {
                 DFALatticeRef lhs = this.walk(be.e1);
+                seeRead(lhs, be.e1.loc);
+
+                {
+                    lhs = this.adaptConditionForBranch(lhs, be.e1.type, true);
+                    DFAConsequence* c = lhs.getContext;
+
+                    if (c !is null && c.truthiness == Truthiness.False)
+                    {
+                        inProgress = dfaCommon.makeLatticeRef;
+                        inProgress.acquireConstantAsContext(Truthiness.False,
+                                Nullable.Unknown, null);
+                        break;
+                    }
+                }
+
                 this.seeSilentAssert(lhs.copy);
 
                 if (inProgress.isNull)
@@ -879,6 +1031,22 @@ struct ExpressionWalker
                 else
                 {
                     DFALatticeRef rhs = this.walk(be.e2);
+                    seeRead(rhs, be.e2.loc);
+                    rhs = this.adaptConditionForBranch(rhs, be.e2.type, true);
+
+                    {
+                        rhs = this.adaptConditionForBranch(rhs, be.e1.type, true);
+                        DFAConsequence* c = rhs.getContext;
+
+                        if (c !is null && c.truthiness == Truthiness.False)
+                        {
+                            inProgress = dfaCommon.makeLatticeRef;
+                            inProgress.acquireConstantAsContext(Truthiness.False,
+                                    Nullable.Unknown, null);
+                            break;
+                        }
+                    }
+
                     inProgress = seeLogicalAnd(inProgress, rhs);
                     break;
                 }
@@ -1017,7 +1185,7 @@ struct ExpressionWalker
                         lhs.addConsequence(lhsLengthVar, lhsCctx);
                     }
 
-                    return this.seeAssign(lhs, false, rhs, false, alteredState);
+                    return this.seeAssign(lhs, false, rhs, be.loc, false, alteredState);
                 }
                 else
                 {
@@ -1561,7 +1729,7 @@ struct ExpressionWalker
                     dfaCommon.printStateln("!is rhs");
                     DFALatticeRef rhs = seeExp(be.e2, negated2, 0);
 
-                    return seeEqual(lhs, rhs, applyByTest == 2, be.e1.type, be.e2.type);
+                    return seeEqualIdentity(lhs, rhs, applyByTest == 2, be.e1.type, be.e2.type);
                 }
 
             case EXP.equal: // ==
@@ -1587,7 +1755,7 @@ struct ExpressionWalker
                     dfaCommon.printStateln("is rhs");
                     DFALatticeRef rhs = seeExp(be.e2, negated2, 0);
 
-                    return seeEqual(lhs, rhs, applyByTest != 1, be.e1.type, be.e2.type);
+                    return seeEqualIdentity(lhs, rhs, applyByTest != 1, be.e1.type, be.e2.type);
                 }
 
             case EXP.string_:
@@ -1596,8 +1764,14 @@ struct ExpressionWalker
 
                     // A string literal even when empty will be non-null and true.
                     DFALatticeRef ret = dfaCommon.makeLatticeRef;
-                    DFAConsequence* cctx = ret.acquireConstantAsContext(se.len > 0
-                            ? Truthiness.True : Truthiness.Maybe, Nullable.NonNull);
+
+                    DFAVar* var = dfaCommon.getInfiniteLifetimeVariable;
+                    DFAConsequence* cctx = ret.addConsequence(var);
+                    ret.setContext(cctx);
+
+                    cctx.truthiness = se.len > 0 ? Truthiness.True : Truthiness.Maybe;
+                    cctx.nullable = Nullable.NonNull;
+                    cctx.obj = dfaCommon.makeObject;
                     cctx.pa = DFAPAValue(se.len);
                     return ret;
                 }
@@ -1633,7 +1807,13 @@ struct ExpressionWalker
                     if (ret.isNull)
                         ret = dfaCommon.makeLatticeRef;
 
-                    ret.acquireConstantAsContext(Truthiness.True, Nullable.NonNull);
+                    DFAVar* var = dfaCommon.getInfiniteLifetimeVariable;
+                    DFAConsequence* cctx = ret.addConsequence(var);
+                    ret.setContext(cctx);
+
+                    cctx.truthiness = Truthiness.True;
+                    cctx.nullable = Nullable.NonNull;
+                    cctx.obj = dfaCommon.makeObject;
                     return ret;
                 }
 
@@ -1651,15 +1831,17 @@ struct ExpressionWalker
                                         negated, 0), null, 0, null, ele.loc);
                         }
 
-                        DFAConsequence* cctx = ret.addConsequence(
-                                dfaCommon.getInfiniteLifetimeVariable);
+                        DFAVar* var = dfaCommon.getInfiniteLifetimeVariable;
+                        DFAConsequence* cctx = ret.addConsequence(var);
                         ret.setContext(cctx);
+
                         cctx.truthiness = Truthiness.True;
                         cctx.nullable = Nullable.NonNull;
                         cctx.pa = DFAPAValue(ale.elements.length);
+                        cctx.obj = dfaCommon.makeObject;
                     }
                     else
-                        ret.acquireConstantAsContext(Truthiness.Maybe, Nullable.Null);
+                        ret.acquireConstantAsContext(Truthiness.Maybe, Nullable.Null, null);
 
                     return ret;
                 }
@@ -1671,14 +1853,16 @@ struct ExpressionWalker
 
                     if (aale.keys !is null && aale.keys.length > 0)
                     {
-                        DFAConsequence* cctx = ret.addConsequence(
-                                dfaCommon.getInfiniteLifetimeVariable);
+                        DFAVar* var = dfaCommon.getInfiniteLifetimeVariable;
+                        DFAConsequence* cctx = ret.addConsequence(var);
                         ret.setContext(cctx);
+
                         cctx.truthiness = Truthiness.True;
                         cctx.nullable = Nullable.NonNull;
+                        cctx.obj = dfaCommon.makeObject;
                     }
                     else
-                        ret.acquireConstantAsContext(Truthiness.False, Nullable.Null);
+                        ret.acquireConstantAsContext(Truthiness.False, Nullable.Null, null);
 
                     return ret;
                 }
@@ -1814,31 +1998,57 @@ struct ExpressionWalker
                     DFALatticeRef ret = seeExp(ce.e1, negated, 0);
                     ret.check;
 
-                    if (ce.to is null || ce.to.isTypeClass)
+                    if (ce.to is null || ce.to.isTypeClass || ce.to is Type.tvoid)
                     {
-                        // ideally we'd model up casts, and only disallow down casts
+                        // For classes: ideally we'd model up casts, and only disallow down casts
+                        // For void: no side effects wrt. convergance
+
                         ret = dfaCommon.makeLatticeRef;
-                        ret.acquireConstantAsContext(Truthiness.Unknown, Nullable.Unknown);
+                        ret.acquireConstantAsContext(Truthiness.Unknown, Nullable.Unknown, null);
                     }
                     else
                     {
                         if (ret.isNull)
                             ret = dfaCommon.makeLatticeRef;
 
-                        DFAConsequence* cctx = ret.getContext;
+                        bool paHandled;
+
+                        DFAVar* baseVar;
+                        DFAConsequence* cctx = ret.getContext(baseVar);
                         if (cctx is null)
                             cctx = ret.acquireConstantAsContext;
 
-                        if (cctx.var !is null && cctx.var.isNullable && !isTypeNullable(ce.to))
+                        if (baseVar !is null)
                         {
-                            // This prevents pointer integer checks from infecting pointers
+                            if (baseVar.isNullable && !isTypeNullable(ce.to))
+                            {
+                                // This prevents pointer integer checks from infecting pointers
 
-                            cctx = ret.acquireConstantAsContext(cctx.truthiness, cctx.nullable);
+                                cctx = ret.acquireConstantAsContext(cctx.truthiness,
+                                        cctx.nullable, null);
+                            }
+                            else if (baseVar.isStaticArray && ce.to.isTypeDArray)
+                            {
+                                DFAVar* asSliceVar = dfaCommon.findAsSliceVar(baseVar);
+
+                                Truthiness truthiness = cctx.truthiness;
+                                DFAPAValue oldPA = cctx.pa;
+                                DFAObject* newObj = cctx.obj !is null ? cctx.obj
+                                    : dfaCommon.makeObject(baseVar);
+
+                                cctx = ret.addConsequence(asSliceVar);
+                                ret.setContext(cctx);
+
+                                cctx.nullable = Nullable.NonNull;
+                                cctx.truthiness = truthiness;
+                                cctx.pa = oldPA;
+                                cctx.obj = newObj;
+                            }
                         }
 
                         // If we're doing any kind of cast to anything that is not an integer,
                         //  we have no idea if VRP is going to still be accurate.
-                        if (!cctx.pa.canFitIn(ce.to))
+                        if (!paHandled && !cctx.pa.canFitIn(ce.to))
                             cctx.pa = DFAPAValue.Unknown;
                     }
 
@@ -1856,6 +2066,22 @@ struct ExpressionWalker
                     {
                         if (auto vd = ve.var.isVarDeclaration)
                         {
+                            if (vd.ident is Id.withSym)
+                            {
+                                // Copied from function semantic analysis checkNestedReference function.
+                                // With statements sometimes have temporaries that do get written out,
+                                //  pretend we're the initializer instead.
+
+                                auto ez = vd._init.isExpInitializer();
+                                assert(ez);
+
+                                Expression e = ez.exp;
+                                if (e.op == EXP.construct || e.op == EXP.blit)
+                                    e = (cast(AssignExp) e).e2;
+
+                                return this.walk(e);
+                            }
+
                             DFAVar* var = dfaCommon.findVariable(vd);
 
                             if (var !is null)
@@ -2028,6 +2254,7 @@ struct ExpressionWalker
                             toNegate = this.adaptConditionForBranch(lhs.copy, oe.e1.type, false);
                         }
 
+                        seeRead(lhs, oe.e1.loc);
                         lhs.printState("or lhs", dfaCommon.sdepth,
                                 dfaCommon.currentFunction, dfaCommon.edepth);
 
@@ -2066,6 +2293,7 @@ struct ExpressionWalker
                         DFALatticeRef rhs = this.walk(oe.e2);
                         rhs.printState("or rhs", dfaCommon.sdepth,
                                 dfaCommon.currentFunction, dfaCommon.edepth);
+                        seeRead(rhs, oe.e2.loc);
 
                         stmtWalker.endScope;
 
@@ -2086,10 +2314,12 @@ struct ExpressionWalker
     {
         dfaCommon.printStateln("math op lhs");
         DFALatticeRef lhs = this.walk(be.e1);
+        seeReadMathOp(lhs, be.e1.loc);
         lhs.check;
 
         dfaCommon.printStateln("math op rhs");
         DFALatticeRef rhs = this.walk(be.e2);
+        seeReadMathOp(rhs, be.e2.loc);
         rhs.check;
 
         DFALatticeRef ret = this.seeMathOp(lhs, rhs, be.type, op);
@@ -2101,16 +2331,16 @@ struct ExpressionWalker
     {
         dfaCommon.printStateln("math assign1 op lhs");
         DFALatticeRef lhs = this.walk(be.e1);
+        assert(!lhs.isNull);
         lhs.check;
 
         DFAConsequence* lhsCctx = lhs.getContext;
-
-        assert(!lhs.isNull);
         assert(lhsCctx !is null);
 
         dfaCommon.printStateln("math assign1 op rhs");
         DFALatticeRef rhs = this.walk(be.e2);
         rhs.check;
+        seeReadMathOp(rhs, be.e2.loc);
 
         DFAPAValue oldPA;
         bool useOldPA;
@@ -2118,22 +2348,39 @@ struct ExpressionWalker
         if (op == PAMathOp.postInc)
         {
             op = PAMathOp.add;
+            useOldPA = true;
             oldPA = lhsCctx.pa;
         }
         else if (op == PAMathOp.postDec)
         {
             op = PAMathOp.sub;
+            useOldPA = true;
             oldPA = lhsCctx.pa;
         }
 
+        DFAObject* lhsObject = lhsCctx.obj;
         DFALatticeRef ret = this.seeMathOp(lhs.copy, rhs, be.type, op);
         ret.check;
 
-        ret = this.seeAssign(lhs, false, ret);
-        DFAConsequence* cctx = ret.acquireConstantAsContext;
+        ret = this.seeAssign(lhs, false, ret, be.loc);
+        ret.check;
 
-        if (useOldPA)
-            cctx.pa = oldPA;
+        {
+            DFAConsequence* cctx;
+
+            if (useOldPA)
+            {
+                cctx = ret.acquireConstantAsContext;
+                cctx.pa = oldPA;
+            }
+            else
+                cctx = ret.getContext;
+
+            cctx.obj = lhsObject;
+
+            if (lhsObject !is null)
+                lhsObject.mayNotBeExactPointer = true;
+        }
 
         return ret;
     }
@@ -2142,12 +2389,28 @@ struct ExpressionWalker
     {
         dfaCommon.printStateln("math assign2 op lhs");
         DFALatticeRef lhs = this.walk(ue.e1);
+        assert(!lhs.isNull);
         lhs.check;
+
+        DFAConsequence* lhsCctx = lhs.getContext;
+        assert(lhsCctx !is null);
+        DFAObject* lhsObject = lhsCctx.obj;
 
         DFALatticeRef ret = this.seeMathOp(lhs.copy, rhs, ue.type, op);
         ret.check;
+        seeReadMathOp(rhs, ue.loc);
 
-        return this.seeAssign(lhs, false, ret);
+        ret = this.seeAssign(lhs, false, ret, ue.loc);
+        ret.check;
+
+        DFAConsequence* cctx = ret.getContext;
+        cctx.obj = lhsObject;
+
+        if (lhsObject !is null)
+            lhsObject.mayNotBeExactPointer = true;
+
+        ret.printStructure("math assign2 ret");
+        return ret;
     }
 
     DFALatticeRef callFunction(FuncDeclaration toCallFunction, Expression thisPointer,
@@ -2229,7 +2492,9 @@ struct ExpressionWalker
             {
                 dfaCommon.printStateln("This:");
                 DFALatticeRef thisExp = this.walk(thisPointer);
-                thisExp = this.seeDereference(thisPointer.loc, thisExp);
+
+                if (isTypeNullable(thisPointer.type))
+                    thisExp = this.seeDereference(thisPointer.loc, thisExp);
 
                 this.seeConvergeFunctionCallArgument(thisExp, thisPointerInfo,
                         0, toCallFunction, thisPointer.loc);
@@ -2316,7 +2581,8 @@ struct ExpressionWalker
                 DFALatticeRef ret = dfaCommon.makeLatticeRef;
 
                 if (returnInfo !is null && returnInfo.notNullOut == Fact.Guaranteed)
-                    ret.acquireConstantAsContext(Truthiness.True, Nullable.NonNull);
+                    ret.acquireConstantAsContext(Truthiness.True,
+                            Nullable.NonNull, dfaCommon.makeObject);
                 else
                     ret.acquireConstantAsContext;
 
@@ -2392,8 +2658,8 @@ struct ExpressionWalker
         if (assign)
         {
             rhsCctx.pa = pa;
-            ret = this.seeAssign(lhs, false, rhs, false, nullableResult == 1
-                    || nullableResult == 2 ? 3 : 0);
+            ret = this.seeAssign(lhs, false, rhs, be.loc, false,
+                    nullableResult == 1 || nullableResult == 2 ? 3 : 0);
         }
         else
         {
