@@ -2412,9 +2412,30 @@ private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint funcar
             break;
     }
     const tym_t tym = tybasic(e.Ety);
+    bool isPair = isRegisterPair(true, tym, 0);
     regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : INSTR.ALLREGS;
     scodelem(cgstate,cdb, e, retregs, 0, true);
-    if (sz <= REGSIZE || tym == TYreal)
+    if (isPair)
+    {
+        uint szx = cast(uint)sz / 2;
+        const reg_t rmsw = findreg(retregs & INSTR.MSW);
+        code cs;
+        cs.reg = NOREG;
+        cs.base = INSTR.SP;
+        cs.index = NOREG;
+        cs.IFL1 = FL.offset;
+        storeToEA(cs, rmsw, szx);
+        cs.IEV1.Voffset = funcargtos - szx;
+        cdb.gen(&cs);
+
+        const reg_t rlsw = findreg(retregs & INSTR.LSW);
+        cs.IFL1 = FL.offset;
+        cs.IEV1.Voffset = 0;
+        storeToEA(cs, rlsw, szx);
+        cs.IEV1.Voffset = funcargtos - szx * 2;
+        cdb.gen(&cs);
+    }
+    else
     {
         const reg_t reg = findreg(retregs);
         code cs;
@@ -2426,27 +2447,6 @@ private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint funcar
         cs.IEV1.Voffset = funcargtos;
         cdb.gen(&cs);
     }
-    else if (sz == REGSIZE * 2)
-    {
-        const reg_t rmsw = findreg(retregs & INSTR.MSW);
-        code cs;
-        cs.reg = NOREG;
-        cs.base = INSTR.SP;
-        cs.index = NOREG;
-        cs.IFL1 = FL.offset;
-        storeToEA(cs, rmsw, REGSIZE);
-        cs.IEV1.Voffset = funcargtos - REGSIZE;
-        cdb.gen(&cs);
-
-        const reg_t rlsw = findreg(retregs & INSTR.LSW);
-        cs.IFL1 = FL.offset;
-        cs.IEV1.Voffset = 0;
-        storeToEA(cs, rlsw, REGSIZE);
-        cs.IEV1.Voffset = funcargtos - REGSIZE * 2;
-        cdb.gen(&cs);
-    }
-    else
-        assert(0);
 }
 
 /******************************

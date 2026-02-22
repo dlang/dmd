@@ -42,7 +42,7 @@ import dmd.backend.ty;
 import dmd.backend.evalu8 : el_toreald;
 import dmd.backend.x86.xmm;
 import dmd.backend.arm.cod1 : getlvalue, loadFromEA, storeToEA,CLIB_A,callclib;
-import dmd.backend.arm.cod2 : tyToExtend;
+import dmd.backend.arm.cod2 : idxregm, tyToExtend;
 import dmd.backend.arm.cod3 : COND, conditionCode, gentstreg, loadFloatRegConst;
 import dmd.backend.arm.instr;
 
@@ -374,7 +374,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
          */
         getlvalue(cdb,cs,e1,0);             // get lvalue
         modEA(cdb,&cs);
-        regm_t keepmsk = idxregm(&cs);
+        regm_t keepmsk = idxregm(cs);
         retregs = mPSW;
         if (OTconv(e2.Eoper))
         {
@@ -669,11 +669,7 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             case OPdivass:      clib = CLIB_A.div; break;
             default:            assert(0);
         }
-        regm_t idxregs;         // save index registers so we can do the storeToEA() later
-        if (cs.base != NOREG)
-            idxregs |= mask(cs.base);
-        if (cs.index != NOREG)
-            idxregs |= mask(cs.index);
+        regm_t idxregs = idxregm(cs);  // save index registers so we can do the storeToEA() later
         regm_t dummy;
         callclib(cdb,null,clib,dummy,idxregs);
     }
