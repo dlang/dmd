@@ -2256,16 +2256,48 @@ private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecate
     bool child; // true if inside an eponymous template
     const(char)* errorPrefix() @safe
     {
+        static char[128] buf;
+        size_t pos = 0;
         if (child)
             return "  - Containing: ";
 
-        // align with blank spaces after first message
-        enum plural = "Candidates are: ";
-        enum spaces = "                ";
         if (printed)
-            return spaces;
-
-        return (count == 1) ? "Candidate is: " : plural;
+        {
+            enum prefix = "Candidate "; // Prefix of the message to be displayed
+            foreach(i; 0 .. prefix.length)
+            {
+                buf[pos++] = prefix[i];
+            }
+            static char[64] tmp; // Buffer to store digits of the number
+            int idx = 0 ; // index for tmp buffer
+            int copy = printed + 1; // Stores the candidate number that will be displayed
+            // store the reversed number
+            while(copy)
+            {
+                tmp[idx++] = cast(char)('0' + copy%10);
+                copy /= 10;
+            }
+            tmp[idx] = '\0';
+            // in place reversal of digits
+            for(int end = idx-1 ; end>=0 ;end--)
+            {
+                buf[pos++] = tmp[end];
+            }
+            // Suffix of the message
+            enum suffix = " is: ";
+            foreach(i;0 .. suffix.length)
+            {
+                buf[pos++] = suffix[i];
+            }
+            buf[pos] = '\0';
+            return &buf[0];
+        }
+        if(count == 1)
+            return "Candidate is: ";
+        else
+        {
+            return "Candidate 1 is: ";
+        }
     }
     bool matchSymbol(Dsymbol s, bool print)
     {
