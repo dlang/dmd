@@ -79,6 +79,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         this.doUnittests = doUnittests;
     }
 
+    /******************
+     * Language edition that is in force
+     */
+    override bool hasEdition(Edition edition) const pure @nogc @safe
+    {
+        return this.mod && this.mod.edition >= edition;
+    }
+
     /++
      + Parse a module, i.e. the optional `module x.y.z` declaration and all declarations
      + found in the current file.
