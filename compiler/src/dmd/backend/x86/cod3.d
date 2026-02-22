@@ -883,7 +883,7 @@ void cgreg_set_priorities(tym_t ty, out const(reg_t)[] pseq, out const(reg_t)[] 
                     assert(msw == (INSTR.FLOATREGS & INSTR.MSW));
 
                     regm_t lsw;
-                    foreach (r; fltlsw1[]) msw |= mask(r);
+                    foreach (r; fltlsw1[]) lsw |= mask(r);
                     assert(lsw == (INSTR.FLOATREGS & INSTR.LSW));
                 }
             }
