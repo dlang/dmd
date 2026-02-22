@@ -1652,24 +1652,70 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         sym.parent = sc.scopesym;
         sym.endlinnum = ifs.endloc.linnum;
         Scope* scd = sc.push(sym);
+
         if (ifs.param)
         {
             /* Declare param, which we will set to be the
              * result of condition.
              */
-            auto ei = new ExpInitializer(ifs.loc, ifs.condition);
-            ifs.match = new VarDeclaration(ifs.loc, ifs.param.type, ifs.param.ident, ei);
+
+            bool unWrapIfTrue;
+
+            // Analyze the condition, that will initialize the variable.
+            // If its a struct and that struct has a operator overload opUnwrapIfTrue,
+            //  then we'll be transforming to include unwrap support.
+            if (Expression unwrapOriginalCondition = ifs.condition.trySemantic(scd))
+            {
+                if (auto ts = unwrapOriginalCondition.type.isTypeStruct)
+                    unWrapIfTrue = search_function(ts.sym, Id.opUnwrapIfTrue) !is null;
+            }
+
+            // Create the variable declaration (T var = condition) or (T __unwrit = condition)
+            if(!unWrapIfTrue)
+            {
+                auto ei = new ExpInitializer(ifs.loc, ifs.condition);
+                ifs.match = new VarDeclaration(ifs.loc, ifs.param.type, ifs.param.ident, ei);
+                ifs.match.storage_class |= ifs.param.storageClass;
+            }
+            else
+                ifs.match = copyToTemp(STC.none, "__unwrit", ifs.condition);
+
             ifs.match.parent = scd.func;
-            ifs.match.storage_class |= ifs.param.storageClass;
             ifs.match.dsymbolSemantic(scd);
 
+            // Transform the condition expression into: (T var = condition, var)
             auto de = new DeclarationExp(ifs.loc, ifs.match);
             auto ve = new VarExp(ifs.loc, ifs.match);
             ifs.condition = new CommaExp(ifs.loc, de, ve);
             ifs.condition = ifs.condition.expressionSemantic(scd);
 
+            if (unWrapIfTrue)
+            {
+                // T var = __unwrit.opUnwrapIfTrue();
+
+                // A wrapper will be placed around the variable declaration that was requested by the user.
+                // It'll destruct the __unwrit variable.
+                // This var will be dealt with by glue code.
+                // As a result, this goes first.
+
+                auto ei = new ExpInitializer(ifs.condition.loc,
+                new CallExp(ifs.condition.loc, new DotIdExp(ifs.condition.loc, ve, Id.opUnwrapIfTrue)));
+                auto vd = new VarDeclaration(ifs.condition.loc, ifs.param.type, ifs.param.ident, ei);
+
+                // Copy the storage classes from the parameter, without the unwrap call it's done earlier.
+                vd.storage_class |= ifs.param.storageClass;
+
+                // Prepend the declaration of the wanted variable to the if statements true branch.
+                ifs.ifbody = new CompoundStatement(ifs.loc, new ExpStatement(ifs.loc, new DeclarationExp(vd.loc, vd)), ifs.ifbody);
+            }
+
             if (ifs.match.edtor)
             {
+                // For variable declarations (Type val = condition)
+                //  this is for all intents and purposes before the if statement, not in it.
+                // Due to the truthiness test occuring on the variable declaration,
+                //  not the condition that initialized it.
+
                 Statement sdtor = new DtorExpStatement(ifs.loc, ifs.match.edtor, ifs.match);
                 sdtor = new ScopeGuardStatement(ifs.loc, TOK.onScopeExit, sdtor);
                 ifs.ifbody = new CompoundStatement(ifs.loc, sdtor, ifs.ifbody);
@@ -1696,6 +1742,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         if (checkNonAssignmentArrayOp(ifs.condition))
             ifs.condition = ErrorExp.get();
 
+        // Turn the condition into a truthiness check.
         // Convert to boolean after declaring param so this works:
         //  if (S param = S()) {}
         // where S is a struct that defines opCast!bool.
