@@ -597,6 +597,41 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         return isCopyable(t) ? True() : False();
     }
+    if (e.ident == Id.hasElaborateDestructor)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        auto t = isType(o);
+        if (!t)
+        {
+            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+                    e.ident.toChars(), o.toChars());
+            return ErrorExp.get();
+        }
+
+        while (1)
+        {
+            t = t.toBasetype();     // get the base in case `t` is an `enum`
+
+            if (auto tsa = t.isTypeSArray())
+            {
+                if (tsa.dim.toInteger())
+                {
+                    t = tsa.next;
+                    continue;
+                }
+            }
+            else if (auto ts = t.isTypeStruct())
+            {
+                ts.sym.dsymbolSemantic(sc);
+                if (ts.sym.dtor)
+                    return True();
+            }
+            return False();
+        }
+    }
 
     if (e.ident == Id.isNested)
     {
