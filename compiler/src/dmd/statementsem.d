@@ -2191,6 +2191,12 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 Type t = cs.exp.type.toBasetype();
                 if (v && (t.isIntegral() || t.ty == Tclass))
                 {
+                    if (sc.hasEdition(Edition.v2024))
+                    {
+                        error(ve.loc, "`case` with a runtime variable is obsolete");
+                        errors = true;
+                        goto L1;
+                    }
                     /* Flag that we need to do special code generation
                     * for this, i.e. generate a sequence of if-then-else
                     */
