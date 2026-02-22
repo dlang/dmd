@@ -443,6 +443,70 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         });
     }
 
+    if (e.ident == Id.isAnonymousUnion)
+    {
+        if (dim != 2) {
+            return dimError(2);
+        }
+
+        auto o1 = (*e.args)[0];
+        auto s1 = getDsymbol(o1);
+        auto agg = s1 ? s1.isAggregateDeclaration() : null;
+
+        if (!agg)
+        {
+            error(e.loc, "first argument is not an aggregate type");
+            return ErrorExp.get();
+        }
+
+        auto o2 = (*e.args)[1];
+        auto s2 = getDsymbolWithoutExpCtx(o2);
+        auto v = s2 ? s2.isVarDeclaration() : null;
+
+        if (!v || !v.isField())
+        {
+            error(e.loc, "second argument to `__traits(isAnonymousUnion)` is not a field");
+            return ErrorExp.get();
+        }
+
+        // Anonymous union members are flattened into the parent aggregate.
+        // We need to search through the aggregate's members to find if there's
+        // an anonymous union that contains this field.
+        import dmd.attrib : AnonDeclaration;
+
+        // Try to resolve forward reference if needed
+        if (agg.semanticRun < PASS.semanticdone)
+            agg.dsymbolSemantic(null);
+
+        // Check if the aggregate has been defined
+        if (!agg.members)
+        {
+            error(e.loc, "%s `%s` is forward referenced", agg.kind(), agg.toChars());
+            return ErrorExp.get();
+        }
+
+        foreach (member; *agg.members)
+        {
+            if (auto anon = member.isAnonDeclaration())
+            {
+                // Check if this is an anonymous union
+                if (anon.isunion)
+                {
+                    // Check if our field is in this anonymous union
+                    if (anon.decl)
+                    {
+                        foreach (anonMember; *anon.decl)
+                        {
+                            if (anonMember == v)
+                                return True();
+                        }
+                    }
+                }
+            }
+        }
+
+        return False();
+    }
     if (e.ident == Id.isArithmetic)
     {
         return isTypeX(t => t.isIntegral() || t.isFloating());
@@ -2344,7 +2408,7 @@ private void traitNotFound(TraitsExp e)
         initialized = true;     // lazy initialization
 
         // All possible traits
-        __gshared Identifier*[59] idents =
+        __gshared Identifier*[60] idents =
         [
             &Id.allMembers,
             &Id.child,
@@ -2376,6 +2440,7 @@ private void traitNotFound(TraitsExp e)
             &Id.identifier,
             &Id.isAbstractClass,
             &Id.isAbstractFunction,
+            &Id.isAnonymousUnion,
             &Id.isArithmetic,
             &Id.isAssociativeArray,
             &Id.isCopyable,

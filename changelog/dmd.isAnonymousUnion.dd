@@ -1,0 +1,25 @@
+New trait `__traits(isAnonymousUnion, aggregate, field)` to detect anonymous union membership
+
+D now provides a compile-time trait to check whether a field belongs to an anonymous union within a struct or class. This is useful for serialization libraries, code generators, and other metaprogramming tasks that need to identify overlapping field storage.
+
+The trait takes two arguments: an aggregate type and a field name, returning `true` if the field is a member of an anonymous union.
+
+```d
+struct S
+{
+    int a;
+    union
+    {
+        int x;
+        float y;
+    }
+    int b;
+}
+
+static assert(__traits(isAnonymousUnion, S, S.x));  // true
+static assert(__traits(isAnonymousUnion, S, S.y));  // true
+static assert(!__traits(isAnonymousUnion, S, S.a)); // false
+static assert(!__traits(isAnonymousUnion, S, S.b)); // false
+```
+
+This trait complements existing reflection capabilities and enables safer handling of tagged unions and variant types in generic code.
