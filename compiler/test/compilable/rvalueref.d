@@ -17,3 +17,6 @@ int toString(Writer)(ref Writer sink) => 3;
 int toString(void delegate(scope const(char)[]) sink) => 4;
 void put() {}
 static assert(toString(dst => put()) == 4);
+
+void constConv(ref uint value) {}
+void testConstConv() { constConv(42); }
