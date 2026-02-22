@@ -50,6 +50,24 @@ __gshared int cdcmp_flag;
 
 import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 
+/********************************
+ * Determine index registers used by Effective Address addressing mode.
+ * Params:
+ *      c = code with EA filled in
+ * Returns:
+ *      mask of index registers
+ */
+
+regm_t idxregm(const ref code cs)
+{
+    regm_t regm = 0;
+    if (cs.base != NOREG)
+        regm |= mask(cs.base);
+    if (cs.index != NOREG)
+        regm |= mask(cs.index);
+    return regm;
+}
+
 /*****************************
  * Handle operators which are more or less orthogonal
  * OPadd, OPmin, OPand, OPor, OPxor
@@ -2549,11 +2567,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     else if (sz <= REGSIZE)
     {
-        regm_t idxregs;         // mask of index regs used
-        if (cs.base != NOREG)
-            idxregs |= mask(cs.base);
-        if (cs.index != NOREG)
-            idxregs |= mask(cs.index);
+        regm_t idxregs = idxregm(cs);         // mask of index regs used
         regm_t retregs = possregs & ~idxregs & pretregs;
         if (retregs == 0)
             retregs = possregs & ~idxregs;
