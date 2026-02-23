@@ -58,6 +58,7 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 fullyQualifiedName, $(D fullyQualifiedName))
     $(RELATIVE_LINK2 getAliasThis, $(D getAliasThis))
     $(RELATIVE_LINK2 getAttributes, $(D getAttributes))
+    $(RELATIVE_LINK2 isBitfield, $(D isBitfield))
     $(RELATIVE_LINK2 getBitfieldOffset, $(D getBitfieldOffset))
     $(RELATIVE_LINK2 getBitfieldWidth, $(D getBitfieldWidth))
     $(RELATIVE_LINK2 getFunctionAttributes, $(D getFunctionAttributes))
@@ -1422,6 +1423,26 @@ $(CONSOLE
 AliasSeq!(3)
 AliasSeq!("string", 7)
 AliasSeq!((Foo))
+)
+)
+
+$(SECTION3 $(GNAME isBitfield),
+     $(P Takes one argument, a qualified symbol that resolves to a field in a struct or class.
+     The result is `true` if the symbol is a $(DDSUBLINK spec/struct, bitfields, bitfield).
+     )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int a;
+    int b:2, c:6;
+}
+
+static assert(!__traits(isBitfield, S.a));
+static assert(__traits(isBitfield, S.b));
+static assert(__traits(isBitfield, S.c));
+---
 )
 )
 
