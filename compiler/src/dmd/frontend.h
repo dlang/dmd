@@ -8877,6 +8877,7 @@ struct Id final
     static Identifier* isCopyable;
     static Identifier* toType;
     static Identifier* parameters;
+    static Identifier* hasElaborateDestructor;
     static Identifier* allocator;
     static Identifier* basic_string;
     static Identifier* basic_istream;
