@@ -12424,7 +12424,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 }
 
                                 /* Rewrite as:
-                                 *  (e1 = e2).postblit();
+                                 *  (e1 = e2).postblit(), e1;
                                  *
                                  * Blit assignment e1 = e2 returns a reference to the original e1,
                                  * then call the postblit on it.
@@ -12436,6 +12436,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 e = new BlitExp(exp.loc, e, e2x);
                                 e = new DotVarExp(exp.loc, e, sd.postblit, false);
                                 e = new CallExp(exp.loc, e);
+                                e = new CommaExp(exp.loc, e, e1x);
                                 result = e.expressionSemantic(sc);
                                 return;
                             }

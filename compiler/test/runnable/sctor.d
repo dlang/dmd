@@ -485,11 +485,11 @@ struct S22604
 
 struct T22604
 {
-    S22604 a, b;
+    S22604 a, b, c, d;
 
     this(int)
     {
-        a = b = S22604(1);
+        a = b = c = d = S22604(1);
     }
 }
 
@@ -498,6 +498,8 @@ void test22604()
     T22604 t = T22604(1);
     assert(t.a.ptr is &t.a);
     assert(t.b.ptr is &t.b);
+    assert(t.c.ptr is &t.c);
+    assert(t.d.ptr is &t.d);
 }
 
 /***************************************************/
