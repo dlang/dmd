@@ -445,67 +445,67 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
     if (e.ident == Id.isAnonymousUnion)
     {
-        if (dim != 2) {
-            return dimError(2);
-        }
+        if (dim != 1)
+            return dimError(1);
 
-        auto o1 = (*e.args)[0];
-        auto s1 = getDsymbol(o1);
-        auto agg = s1 ? s1.isAggregateDeclaration() : null;
-
-        if (!agg)
+        return isDeclX((d)
         {
-            error(e.loc, "first argument is not an aggregate type");
-            return ErrorExp.get();
-        }
+            auto v = d.isVarDeclaration();
+            if (!v || !v.isField())
+                return false;
 
-        auto o2 = (*e.args)[1];
-        auto s2 = getDsymbolWithoutExpCtx(o2);
-        auto v = s2 ? s2.isVarDeclaration() : null;
+            // Get the parent aggregate
+            auto agg = v.toParent().isAggregateDeclaration();
+            if (!agg)
+                return false;
 
-        if (!v || !v.isField())
-        {
-            error(e.loc, "second argument to `__traits(isAnonymousUnion)` is not a field");
-            return ErrorExp.get();
-        }
+            // Try to resolve forward reference if needed
+            if (agg.semanticRun < PASS.semanticdone)
+                agg.dsymbolSemantic(null);
 
-        // Anonymous union members are flattened into the parent aggregate.
-        // We need to search through the aggregate's members to find if there's
-        // an anonymous union that contains this field.
-        import dmd.attrib : AnonDeclaration;
+            // Check if the aggregate has been defined
+            if (!agg.members)
+                return false;
 
-        // Try to resolve forward reference if needed
-        if (agg.semanticRun < PASS.semanticdone)
-            agg.dsymbolSemantic(null);
+            // Anonymous union members are flattened into the parent aggregate.
+            // Search through the aggregate's members to find if there's
+            // an anonymous union that contains this field (possibly nested).
+            import dmd.attrib : AnonDeclaration;
 
-        // Check if the aggregate has been defined
-        if (!agg.members)
-        {
-            error(e.loc, "%s `%s` is forward referenced", agg.kind(), agg.toChars());
-            return ErrorExp.get();
-        }
-
-        foreach (member; *agg.members)
-        {
-            if (auto anon = member.isAnonDeclaration())
+            // Recursive helper to search through AnonDeclarations
+            bool searchAnonDecl(AnonDeclaration anon)
             {
-                // Check if this is an anonymous union
-                if (anon.isunion)
+                if (!anon.decl)
+                    return false;
+
+                foreach (anonMember; *anon.decl)
                 {
-                    // Check if our field is in this anonymous union
-                    if (anon.decl)
+                    // Direct match - return whether THIS level is a union
+                    if (anonMember == v)
+                        return anon.isunion;
+
+                    // Recursively search nested AnonDeclarations
+                    if (auto nestedAnon = anonMember.isAnonDeclaration())
                     {
-                        foreach (anonMember; *anon.decl)
-                        {
-                            if (anonMember == v)
-                                return True();
-                        }
+                        // If found in nested declaration, propagate the result
+                        if (searchAnonDecl(nestedAnon))
+                            return true;
                     }
                 }
+                return false;
             }
-        }
 
-        return False();
+            foreach (member; *agg.members)
+            {
+                if (auto anon = member.isAnonDeclaration())
+                {
+                    if (searchAnonDecl(anon))
+                        return true;
+                }
+            }
+
+            return false;
+        });
     }
     if (e.ident == Id.isArithmetic)
     {
