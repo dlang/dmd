@@ -1,0 +1,6 @@
+Added `__traits(hasElaborateDestructor, T)`
+
+Equivalent to `std.traits.hasElaborateDestructor!T`.
+True if T or any type directly embedded in the representation of T defines an *elaborate destructor*.
+Elaborate destructors are introduced by defining `~this()` for a struct.
+Classes and unions never have elaborate destructors, even though classes may define `~this()`.
