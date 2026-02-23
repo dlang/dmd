@@ -2769,6 +2769,7 @@ void buildResultVar(FuncDeclaration fd, Scope* sc, Type tret)
          * fbody.dsymbolSemantic() running, vresult.type might be modified.
          */
         fd.vresult = new VarDeclaration(loc, tret, Id.result, null);
+        fd.vresult._init = new VoidInitializer(loc); // hdrgen requires _init
         fd.vresult.storage_class |= STC.nodtor | STC.temp;
         if (!fd.isVirtual())
             fd.vresult.storage_class |= STC.const_;
