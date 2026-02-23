@@ -450,7 +450,7 @@ Expression extractSideEffect(Scope* sc, const char[] name,
     stc |= (e.isLvalue() ? STC.ref_ : STC.rvalue);
     auto vd = copyToTemp(stc, name, e);
 
-    e0 = Expression.combine(e0, new DeclarationExp(vd.loc, vd)
+    e0 = combine(e0, new DeclarationExp(vd.loc, vd)
                                 .expressionSemantic(sc));
 
     return new VarExp(vd.loc, vd)

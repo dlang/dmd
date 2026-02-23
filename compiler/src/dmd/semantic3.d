@@ -982,7 +982,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             exp.type = funcdecl.vresult.type;
 
                             if (rs.caseDim)
-                                exp = Expression.combine(exp, new IntegerExp(rs.caseDim));
+                                exp = combine(exp, new IntegerExp(rs.caseDim));
                         }
                         else if (funcdecl.tintro && !tret.equals(funcdecl.tintro.nextOf()))
                         {
