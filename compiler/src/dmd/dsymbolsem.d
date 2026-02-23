@@ -2274,13 +2274,21 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 if (auto ide = d.isIdentifierExp())
                 {
-                    if (ide.ident == Id.dollar && dsym._init)
+                    if (ide.ident == Id.dollar)
                     {
-                        Expression ie = dsym._init.initializerToExpression(dsym.type, sc.inCfile);
-                        if (auto ale = ie.isArrayLiteralExp())
+                        if (!dsym._init || dsym._init.isVoidInitializer())
                         {
-                            dinteger_t len = ale.elements.length;
-                            tsa.dim = new IntegerExp(dsym.loc, len, Type.tsize_t);
+                            .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+                            tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                        }
+                        else
+                        {
+                            Expression ie = dsym._init.initializerToExpression(dsym.type, sc.inCfile);
+                            if (auto ale = ie.isArrayLiteralExp())
+                            {
+                                dinteger_t len = ale.elements.length;
+                                tsa.dim = new IntegerExp(dsym.loc, len, Type.tsize_t);
+                            }
                         }
                     }
                 }
