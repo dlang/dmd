@@ -2268,6 +2268,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.inuse--;
             sc2.pop();
         }
+        if (auto tsa = dsym.type.isTypeSArray())
+        {
+            if (auto d = tsa.dim)
+            {
+                if (auto ide = d.isIdentifierExp())
+                {
+                    if (ide.ident == Id.dollar && dsym._init)
+                    {
+                        Expression ie = dsym._init.initializerToExpression(dsym.type, sc.inCfile);
+                        if (auto ale = ie.isArrayLiteralExp())
+                        {
+                            dinteger_t len = ale.elements.length;
+                            tsa.dim = new IntegerExp(dsym.loc, len, Type.tsize_t);
+                        }
+                    }
+                }
+            }
+        }
         //printf(" semantic type = %s\n", dsym.type ? dsym.type.toChars() : "null");
         if (dsym.type.ty == Terror)
             dsym.errors = true;
