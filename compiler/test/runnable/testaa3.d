@@ -429,6 +429,23 @@ void testShared()
 
 /***************************************************/
 
+// https://github.com/dlang/dmd/issues/22567
+void test22567()
+{
+    struct S
+    {
+        string[string] data;
+        alias this = data;
+    }
+
+    S[string] foo;
+    foo["bar"] = S();
+    foo["bar"]["baz"] = "boom";
+    assert(foo["bar"]["baz"] == "boom");
+}
+
+/***************************************************/
+
 void main()
 {
     assert(testLiteral());
@@ -456,4 +473,5 @@ void main()
     test21066();
     test22354();
     testShared();
+    test22567();
 }
