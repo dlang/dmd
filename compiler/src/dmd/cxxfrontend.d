@@ -393,30 +393,6 @@ Expression getDefaultValue(EnumDeclaration ed, Loc loc)
  * expressionsem.d
  */
 
-Expression combine(Expression e1, Expression e2)
-{
-    import dmd.expressionsem;
-    return dmd.expressionsem.combine(e1, e2);
-}
-
-Expression combine(Expression e1, Expression e2, Expression e3)
-{
-    import dmd.expressionsem;
-    return dmd.expressionsem.combine(e1, e2, e3);
-}
-
-Expression combine(Expression e1, Expression e2, Expression e3, Expression e4)
-{
-    import dmd.expressionsem;
-    return dmd.expressionsem.combine(e1, e2, e3, e4);
-}
-
-Expression extractLast(Expression e, out Expression e0)
-{
-    import dmd.expressionsem;
-    return dmd.expressionsem.extractLast(e, e0);
-}
-
 void expandTuples(Expressions* exps, ArgumentLabels* names = null)
 {
     import dmd.expressionsem;
