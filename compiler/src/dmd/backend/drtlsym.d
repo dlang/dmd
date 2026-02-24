@@ -91,6 +91,7 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.DARRAY_INDEXP:          symbolz(ps,FL.func,FREGSAVED,"_d_arraybounds_indexp", SFLexit, t); break;
         case RTLSYM.DNULLP:                 symbolz(ps,FL.func,FREGSAVED,"_d_nullpointerp", SFLexit, t); break;
         case RTLSYM.DINVARIANT:             symbolz(ps,FL.func,FREGSAVED,"_D2rt10invariant_12_d_invariantFC6ObjectZv", 0, tsdlib); break;
+        case RTLSYM.MEMCMP:                 symbolz(ps,FL.func,FREGSAVED,"memcmp",    0, t); break;
         case RTLSYM.MEMCPY:                 symbolz(ps,FL.func,FREGSAVED,"memcpy",    0, t); break;
         case RTLSYM.MEMSET8:                symbolz(ps,FL.func,FREGSAVED,"memset",    0, t); break;
         case RTLSYM.MEMSET16:               symbolz(ps,FL.func,FREGSAVED,"_memset16", 0, t); break;

@@ -35,6 +35,7 @@ enum RTLSYM
     DARRAY_INDEXP,
     DNULLP,
     DINVARIANT,
+    MEMCMP,
     MEMCPY,
     MEMSET8,
     MEMSET16,

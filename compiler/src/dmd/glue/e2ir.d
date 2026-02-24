@@ -2193,8 +2193,16 @@ elem* toElem(Expression e, ref IRState irs)
 
                 elem* esize = t2.ty == Tsarray ? esiz2 : esiz1;
 
-                e = el_param(eptr1, eptr2);
-                e = el_bin(OPmemcmp, TYint, e, esize);
+                if (1)
+                {
+                    // Use library function as it is heavily optimized:
+                    // int memcmp(const void* eptr1, const void* eptr2, size_t esize);
+                    e = el_bin(OPcall,TYint,el_var(getRtlsym(RTLSYM.MEMCMP)),el_params(esize, eptr2, eptr1, null));
+                }
+                else
+                {
+                    e = el_bin(OPmemcmp, TYint, el_param(eptr1, eptr2), esize);
+                }
                 e = el_bin(eop, TYint, e, el_long(TYint, 0));
 
                 elem* elen = t2.ty == Tsarray ? elen2 : elen1;
@@ -2276,12 +2284,20 @@ elem* toElem(Expression e, ref IRState irs)
             es1 = addressElem(es1, ie.e1.type);
             elem* es2 = toElem(ie.e2, irs);
             es2 = addressElem(es2, ie.e2.type);
-            e = el_param(es1, es2);
-            elem* ecount;
             // In case of `real`, don't compare padding bits
             // https://issues.dlang.org/show_bug.cgi?id=3632
-            ecount = el_long(TYsize_t, (t1.ty == TY.Tfloat80) ? (t1.size() - target.realpad) : t1.size());
-            e = el_bin(OPmemcmp, TYint, e, ecount);
+            elem* ecount = el_long(TYsize_t, (t1.ty == TY.Tfloat80) ? (t1.size() - target.realpad) : t1.size());
+            if (1)
+            {
+                // Use library function as it is heavily optimized:
+                // int memcmp(const void* eptr1, const void* eptr2, size_t esize);
+                e = el_bin(OPcall,TYint,el_var(getRtlsym(RTLSYM.MEMCMP)),el_params(ecount, es2, es1, null));
+            }
+            else
+            {
+                elem* ep = el_param(es1, es2);
+                e = el_bin(OPmemcmp, TYint, ep, ecount);
+            }
             e = el_bin(eop, TYint, e, el_long(TYint, 0));
             elem_setLoc(e, ie.loc);
         }
