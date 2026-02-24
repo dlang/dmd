@@ -129,6 +129,8 @@ class Statement;
 class TryFinallyStatement;
 class ScopeGuardStatement;
 class ErrorSink;
+class WithStatement;
+struct AA;
 class CaseStatement;
 class Catch;
 struct Designator;
@@ -138,8 +140,6 @@ class Parameter;
 class ReturnStatement;
 class ScopeStatement;
 class TemplateParameter;
-struct AA;
-class WithStatement;
 class TemplateTypeParameter;
 class TemplateValueParameter;
 class TemplateAliasParameter;
@@ -1215,6 +1215,15 @@ public:
         {}
 };
 
+template <typename K, typename V>
+struct AssocArray final
+{
+    AA* aa;
+    AssocArray()
+    {
+    }
+};
+
 template <typename AST>
 class ParseTimeVisitor
 {
@@ -1636,71 +1645,6 @@ enum class StructFlags
     hasPointers = 1,
 };
 
-class AddCommentVisitor : public Visitor
-{
-public:
-    using Visitor::visit;
-    const char* comment;
-    AddCommentVisitor(const char* comment);
-    void visit(Dsymbol* d) override;
-    void visit(AttribDeclaration* atd) override;
-    void visit(ConditionalDeclaration* cd) override;
-    void visit(StaticForeachDeclaration* sfd) override;
-};
-
-class AliasAssign final : public Dsymbol
-{
-public:
-    Identifier* ident;
-    Type* type;
-    Dsymbol* aliassym;
-    AliasAssign* syntaxCopy(Dsymbol* s) override;
-    const char* kind() const override;
-    void accept(Visitor* v) override;
-};
-
-class ArrayScopeSymbol final : public ScopeDsymbol
-{
-public:
-    RootObject* arrayContent;
-    void accept(Visitor* v) override;
-};
-
-class CAsmDeclaration final : public Dsymbol
-{
-public:
-    Expression* code;
-    void accept(Visitor* v) override;
-};
-
-template <typename K, typename V>
-struct AssocArray final
-{
-    AA* aa;
-    AssocArray()
-    {
-    }
-};
-
-class DsymbolTable final : public RootObject
-{
-public:
-    AssocArray<Identifier*, Dsymbol* > tab;
-    Dsymbol* lookup(const Identifier* const ident);
-    void update(Dsymbol* s);
-    Dsymbol* insert(Dsymbol* s);
-    Dsymbol* insert(const Identifier* const ident, Dsymbol* s);
-    size_t length() const;
-    DsymbolTable();
-};
-
-class ExpressionDsymbol final : public Dsymbol
-{
-public:
-    Expression* exp;
-    ExpressionDsymbol(Expression* exp);
-};
-
 struct FieldState final
 {
     uint32_t offset;
@@ -1728,24 +1672,6 @@ struct FieldState final
         {}
 };
 
-class ForwardingScopeDsymbol final : public ScopeDsymbol
-{
-public:
-    Dsymbol* symtabInsert(Dsymbol* s) override;
-    Dsymbol* symtabLookup(Dsymbol* s, Identifier* id) override;
-    void importScope(Dsymbol* s, Visibility visibility) override;
-    const char* kind() const override;
-};
-
-class OverloadSet final : public Dsymbol
-{
-public:
-    Array<Dsymbol* > a;
-    void push(Dsymbol* s);
-    const char* kind() const override;
-    void accept(Visitor* v) override;
-};
-
 enum class SearchOpt : uint32_t
 {
     all = 0u,
@@ -1760,13 +1686,6 @@ enum class SearchOpt : uint32_t
 };
 
 typedef uint32_t SearchOptFlags;
-
-class WithScopeSymbol final : public ScopeDsymbol
-{
-public:
-    WithStatement* withstate;
-    void accept(Visitor* v) override;
-};
 
 enum : int32_t { IDX_NOTFOUND = 305419896 };
 
@@ -5530,7 +5449,6 @@ struct ASTCodegen final
     using StructDeclaration = ::StructDeclaration;
     using StructFlags = ::StructFlags;
     using UnionDeclaration = ::UnionDeclaration;
-    using AddCommentVisitor = ::AddCommentVisitor;
     using AliasAssign = ::AliasAssign;
     using ArrayScopeSymbol = ::ArrayScopeSymbol;
     using CAsmDeclaration = ::CAsmDeclaration;
@@ -7268,6 +7186,75 @@ class UnionDeclaration final : public StructDeclaration
 public:
     UnionDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
+    void accept(Visitor* v) override;
+};
+
+class WithScopeSymbol final : public ScopeDsymbol
+{
+public:
+    WithStatement* withstate;
+    void accept(Visitor* v) override;
+};
+
+class ArrayScopeSymbol final : public ScopeDsymbol
+{
+public:
+    RootObject* arrayContent;
+    void accept(Visitor* v) override;
+};
+
+class OverloadSet final : public Dsymbol
+{
+public:
+    Array<Dsymbol* > a;
+    void push(Dsymbol* s);
+    const char* kind() const override;
+    void accept(Visitor* v) override;
+};
+
+class ForwardingScopeDsymbol final : public ScopeDsymbol
+{
+public:
+    Dsymbol* symtabInsert(Dsymbol* s) override;
+    Dsymbol* symtabLookup(Dsymbol* s, Identifier* id) override;
+    void importScope(Dsymbol* s, Visibility visibility) override;
+    const char* kind() const override;
+};
+
+class ExpressionDsymbol final : public Dsymbol
+{
+public:
+    Expression* exp;
+    ExpressionDsymbol(Expression* exp);
+};
+
+class AliasAssign final : public Dsymbol
+{
+public:
+    Identifier* ident;
+    Type* type;
+    Dsymbol* aliassym;
+    AliasAssign* syntaxCopy(Dsymbol* s) override;
+    const char* kind() const override;
+    void accept(Visitor* v) override;
+};
+
+class DsymbolTable final : public RootObject
+{
+public:
+    AssocArray<Identifier*, Dsymbol* > tab;
+    Dsymbol* lookup(const Identifier* const ident);
+    void update(Dsymbol* s);
+    Dsymbol* insert(Dsymbol* s);
+    Dsymbol* insert(const Identifier* const ident, Dsymbol* s);
+    size_t length() const;
+    DsymbolTable();
+};
+
+class CAsmDeclaration final : public Dsymbol
+{
+public:
+    Expression* code;
     void accept(Visitor* v) override;
 };
 

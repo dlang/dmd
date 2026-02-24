@@ -18,6 +18,7 @@ import dmd.dsymbol;
 import dmd.identifier;
 import dmd.location;
 import dmd.visitor;
+
 /***********************************************************
  * DebugSymbol's happen for statements like:
  *      debug = identifier;
@@ -74,7 +75,6 @@ extern (C++) final class VersionSymbol : Dsymbol
     {
         assert(!s);
         auto ds = new VersionSymbol(loc, ident);
-        if (const c = this.comment())
         ds.addComment(comment);
         return ds;
     }
