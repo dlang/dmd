@@ -66,4 +66,3 @@ void main()
 	assert(arr12[1] == 'b');
 	assert(arr12[2] == 'c');
 }
-
