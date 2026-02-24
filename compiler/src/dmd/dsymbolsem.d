@@ -2268,6 +2268,70 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.inuse--;
             sc2.pop();
         }
+        static void inferSArrayDim(TypeSArray tsa, Expression ie, Loc loc, Scope* sc)
+        {
+            if (!tsa || !ie)
+                return;
+            if (auto d = tsa.dim)
+            {
+                if (auto ide = d.isIdentifierExp())
+                {
+                    if (ide.ident == Id.dollar)
+                    {
+                        if (auto ale = ie.isArrayLiteralExp())
+                        {
+                            dinteger_t len = ale.elements.length;
+                            tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
+                            if (auto innerTsa = tsa.next.isTypeSArray())
+                            {
+                                if (ale.elements.length > 0)
+                                {
+                                    auto firstElem = (*ale.elements)[0];
+                                    inferSArrayDim(innerTsa, firstElem, loc, sc);
+                                }
+                            }
+                        }
+                        else if (ie.type)
+                        {
+                            Type tb = ie.type.toBasetype();
+                            if (auto tsan = tb.isTypeSArray())
+                            {
+                                tsa.dim = tsan.dim;
+                            }
+                            else if (auto ne = ie.isNewExp())
+                            {
+                                Type nb = ne.newtype.toBasetype();
+                                if (auto nsa = nb.isTypeSArray())
+                                {
+                                    tsa.dim = nsa.dim;
+                                }
+                                else if (ne.arguments && ne.arguments.length == 1)
+                                {
+                                    auto arg = (*ne.arguments)[0];
+                                    if (auto intExp = arg.isIntegerExp())
+                                    {
+                                        tsa.dim = new IntegerExp(loc, intExp.value, Type.tsize_t);
+                                    }
+                                    else
+                                    {
+                                        tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+                                    }
+                                }
+                                else
+                                {
+                                    tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+                                }
+                            }
+                            else
+                            {
+                                tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         if (auto tsa = dsym.type.isTypeSArray())
         {
             if (auto d = tsa.dim)
@@ -2283,11 +2347,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         }
                         else
                         {
-                            Expression ie = dsym._init.initializerToExpression(dsym.type, sc.inCfile);
-                            if (auto ale = ie.isArrayLiteralExp())
+                            Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
+                            if (ie && ie.op != EXP.error)
                             {
-                                dinteger_t len = ale.elements.length;
-                                tsa.dim = new IntegerExp(dsym.loc, len, Type.tsize_t);
+                                ie = ie.expressionSemantic(sc);
+                                ie = ie.optimize(WANTvalue);
+                                inferSArrayDim(tsa, ie, dsym.loc, sc);
+                                if (auto ale = ie.isArrayLiteralExp())
+                                    dsym._init = new ExpInitializer(dsym.loc, ale);
                             }
                         }
                     }
