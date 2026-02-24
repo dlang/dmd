@@ -597,7 +597,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         return isCopyable(t) ? True() : False();
     }
-    if (e.ident == Id.hasElaborateDestructor)
+    if (e.ident == Id.needsDestruction)
     {
         if (dim != 1)
             return dimError(1);

@@ -1,6 +1,16 @@
-Added `__traits(hasElaborateDestructor, T)`
+Added `__traits(needsDestruction, T)`
 
-Equivalent to `std.traits.hasElaborateDestructor!T`.
+Equivalent to `std.traits.needsDestruction!T`.
 True if T or any type directly embedded in the representation of T defines an *elaborate destructor*.
 Elaborate destructors are introduced by defining `~this()` for a struct.
 Classes and unions never have elaborate destructors, even though classes may define `~this()`.
+
+---
+class C { ~this(); }
+struct S { ~this(); }
+
+static assert(!__traits(needsDestruction, C));
+static assert(__traits(needsDestruction, S));
+static assert(!__traits(needsDestruction, S[0]));
+static assert(__traits(needsDestruction, S[1]));
+---

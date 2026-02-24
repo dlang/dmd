@@ -287,7 +287,7 @@ template hasElaborateMove(S)
 
 // Used by std.traits.hasElaborateDestructor
 // TODO inline this in druntime
-enum hasElaborateDestructor(S) = __traits(hasElaborateDestructor, S);
+enum hasElaborateDestructor(S) = __traits(needsDestruction, S);
 
 @safe unittest
 {
