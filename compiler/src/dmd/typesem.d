@@ -633,7 +633,7 @@ bool needsCopyOrPostblit(Type _this)
 bool needsDestruction(Type _this)
 {
     if (auto tsa = _this.isTypeSArray())
-        return tsa.next.needsDestruction();
+        return _this.size() && tsa.next.needsDestruction();
     else if (auto ts = _this.isTypeStruct())
         return ts.sym.dtor !is null;
     else if (auto te = _this.isTypeEnum())
