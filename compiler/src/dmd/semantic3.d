@@ -1888,9 +1888,32 @@ extern (D) bool checkClosure(FuncDeclaration fd)
     else
     {
         fd.printGCUsage(fd.loc, "using closure causes GC allocation");
+
+        findClosureVars(fd, (FuncDeclaration f, VarDeclaration v) {
+            if (!fd.vgcEnabled)
+                return;
+
+            .message(f.loc, "vgc: %s `%s` closes over variable `%s`",
+                f.kind, f.toErrMsg(), v.toErrMsg());
+            if (v.ident != Id.This)
+                .message(v.loc, "vgc: `%s` declared here", v.toErrMsg());
+        });
         return false;
     }
 
+    findClosureVars(fd, (FuncDeclaration f, VarDeclaration v) {
+        .errorSupplemental(f.loc, "%s `%s` closes over variable `%s`",
+            f.kind, f.toErrMsg(), v.toErrMsg());
+        if (v.ident != Id.This)
+            .errorSupplemental(v.loc, "`%s` declared here", v.toErrMsg());
+    });
+    return true;
+}
+
+/// For an outer function `fd`, find inner functions that cause a closure to be generated for it.
+/// Pass to `sink` each nested function along with the local variable that closes over `fd`'s stackframe
+private void findClosureVars(FuncDeclaration fd, scope void delegate(FuncDeclaration, VarDeclaration) sink)
+{
     FuncDeclarations a;
 
     if (fd.closureVars.length > 0)
@@ -1913,16 +1936,11 @@ extern (D) bool checkClosure(FuncDeclaration fd)
                     if (!a.contains(f))
                     {
                         a.push(f);
-                        .errorSupplemental(f.loc, "%s `%s` closes over variable `%s`",
-                            f.kind, f.toErrMsg(), v.toChars());
-                        if (v.ident != Id.This)
-                            .errorSupplemental(v.loc, "`%s` declared here", v.toChars());
+                        sink(f, v);
                     }
                     break LcheckAncestorsOfANestedRef;
                 }
             }
         }
     }
-
-    return true;
 }
