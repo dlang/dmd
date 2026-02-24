@@ -443,7 +443,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         });
     }
 
-    if (e.ident == Id.isAnonymousUnion)
+    if (e.ident == Id.isOverlapped)
     {
         if (dim != 1)
             return dimError(1);
@@ -454,57 +454,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             if (!v || !v.isField())
                 return false;
 
-            // Get the parent aggregate
-            auto agg = v.toParent().isAggregateDeclaration();
-            if (!agg)
-                return false;
-
-            // Try to resolve forward reference if needed
-            if (agg.semanticRun < PASS.semanticdone)
-                agg.dsymbolSemantic(null);
-
-            // Check if the aggregate has been defined
-            if (!agg.members)
-                return false;
-
-            // Anonymous union members are flattened into the parent aggregate.
-            // Search through the aggregate's members to find if there's
-            // an anonymous union that contains this field (possibly nested).
-            import dmd.attrib : AnonDeclaration;
-
-            // Recursive helper to search through AnonDeclarations
-            bool searchAnonDecl(AnonDeclaration anon)
+            // Ensure semantic analysis is complete
+            if (auto agg = v.toParent().isAggregateDeclaration())
             {
-                if (!anon.decl)
-                    return false;
-
-                foreach (anonMember; *anon.decl)
-                {
-                    // Direct match - return whether THIS level is a union
-                    if (anonMember == v)
-                        return anon.isunion;
-
-                    // Recursively search nested AnonDeclarations
-                    if (auto nestedAnon = anonMember.isAnonDeclaration())
-                    {
-                        // If found in nested declaration, propagate the result
-                        if (searchAnonDecl(nestedAnon))
-                            return true;
-                    }
-                }
-                return false;
+                if (agg.semanticRun < PASS.semanticdone)
+                    agg.dsymbolSemantic(null);
             }
 
-            foreach (member; *agg.members)
-            {
-                if (auto anon = member.isAnonDeclaration())
-                {
-                    if (searchAnonDecl(anon))
-                        return true;
-                }
-            }
-
-            return false;
+            return v.overlapped;
         });
     }
     if (e.ident == Id.isArithmetic)
@@ -2440,7 +2397,7 @@ private void traitNotFound(TraitsExp e)
             &Id.identifier,
             &Id.isAbstractClass,
             &Id.isAbstractFunction,
-            &Id.isAnonymousUnion,
+            &Id.isOverlapped,
             &Id.isArithmetic,
             &Id.isAssociativeArray,
             &Id.isCopyable,
