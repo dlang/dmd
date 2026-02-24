@@ -2291,6 +2291,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                 }
                             }
                         }
+                        else if (auto se = ie.isStringExp())
+                        {
+                            Type next = tsa.next.toBasetype();
+                            if (next.ty == TY.Tchar || next.ty == TY.Twchar || next.ty == TY.Tdchar)
+                                tsa.dim = new IntegerExp(loc, se.len, Type.tsize_t);
+                            else
+                                tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+                        }
                         else if (ie.type)
                         {
                             Type tb = ie.type.toBasetype();

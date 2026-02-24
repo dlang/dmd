@@ -54,4 +54,15 @@ void main()
 	assert(arr10.length == 1);
 	assert(arr10[0] == 3.0f);
 	static assert(arr10.length == 1);
+
+	string[$] arr11 = "abc";
+	assert(arr11.length == 1);
+	assert(arr11[0] == "abc");
+	static assert(arr11.length == 1);
+
+	char[$] arr12 = "abc";
+	assert(arr12.length == 3);
+	assert(arr12[0] == 'a');
+	assert(arr12[1] == 'b');
+	assert(arr12[2] == 'c');
 }
