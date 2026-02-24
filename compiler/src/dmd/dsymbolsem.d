@@ -2268,6 +2268,39 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.inuse--;
             sc2.pop();
         }
+        static bool hasUnresolvedDollar(Type t)
+        {
+            if (auto tsa = t.isTypeSArray())
+            {
+                if (auto d = tsa.dim)
+                {
+                    if (auto ide = d.isIdentifierExp())
+                    {
+                        if (ide.ident == Id.dollar)
+                            return true;
+                    }
+                }
+                return hasUnresolvedDollar(tsa.next);
+            }
+            return false;
+        }
+
+        static void resolveDollarToZero(Type t, Loc loc)
+        {
+            if (auto tsa = t.isTypeSArray())
+            {
+                if (auto d = tsa.dim)
+                {
+                    if (auto ide = d.isIdentifierExp())
+                    {
+                        if (ide.ident == Id.dollar)
+                            tsa.dim = new IntegerExp(loc, 0, Type.tsize_t);
+                    }
+                }
+                resolveDollarToZero(tsa.next, loc);
+            }
+        }
+
         static void inferSArrayDim(TypeSArray tsa, Expression ie, Loc loc, Scope* sc)
         {
             if (!tsa || !ie)
@@ -2367,6 +2400,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         }
                     }
                 }
+            }
+            if (hasUnresolvedDollar(tsa.next))
+            {
+                .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+                resolveDollarToZero(tsa.next, dsym.loc);
+                return;
             }
         }
         //printf(" semantic type = %s\n", dsym.type ? dsym.type.toChars() : "null");
