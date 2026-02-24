@@ -28,7 +28,7 @@ void main()
 	assert(arr6.length == 2);
 
 	int[N] arrn(size_t N)()
-	{ 
+	{
 	    int[N] res;
 	    return res;
 	}
@@ -36,7 +36,7 @@ void main()
 	assert(arr7.length == 2);
 	static assert(arr7.length == 2);
 
-	int[2][$] arr8 = [[1, 2], [3, 4], [5, 6]]; 
+	int[2][$] arr8 = [[1, 2], [3, 4], [5, 6]];
 	assert(arr8.length == 3);
 	assert(arr8[0].length == 2);
 	static assert(arr8.length == 3);
@@ -66,3 +66,4 @@ void main()
 	assert(arr12[1] == 'b');
 	assert(arr12[2] == 'c');
 }
+
