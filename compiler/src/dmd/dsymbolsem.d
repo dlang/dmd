@@ -143,6 +143,15 @@ void addObjcSymbols(Dsymbol _this, ClassDeclarations* classes, ClassDeclarations
         objc.addSymbols(cd, classes, categories);
 }
 
+private void fixupInvariantIdent(InvariantDeclaration invd, size_t offset)
+{
+    OutBuffer idBuf;
+    idBuf.writestring("__invariant");
+    idBuf.print(offset);
+
+    invd.ident = Identifier.idPool(idBuf[]);
+}
+
 /************************************
  * Maybe `ident` was a C or C++ name. Check for that,
  * and suggest the D equivalent.
