@@ -449,7 +449,7 @@ void computeOneMember(TemplateDeclaration td)
         {
             td.onemember = s;
             s.parent = td;
-            computeIsTrivialAlias(td, s);
+            td.computeIsTrivialAlias(s);
         }
         td.haveComputedOneMember = true;
     }
