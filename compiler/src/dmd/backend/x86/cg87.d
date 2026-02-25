@@ -649,19 +649,31 @@ ubyte loadconst(elem* e, int im)
     immutable double[7] dval =
         [0.0,1.0,PI,LOG2T,LOG2E,LOG2,LN2];
 
+    enum M_PI_L        = 0x1.921fb54442d1846ap+1L;       // 3.14159 fldpi
+    enum M_LOG2T_L     = 0x1.a934f0979a3715fcp+1L;       // 3.32193 fldl2t
+    enum M_LOG2E_L     = 0x1.71547652b82fe178p+0L;       // 1.4427 fldl2e
+    enum M_LOG2_L      = 0x1.34413509f79fef32p-2L;       // 0.30103 fldlg2
+    enum M_LN2_L       = 0x1.62e42fefa39ef358p-1L;       // 0.693147 fldln2
+
     static if (real.sizeof < 10)
     {
-        import dmd.root.longdouble;
-        immutable targ_real[7] ldval =
-        [ld_zero,ld_one,ld_pi,ld_log2t,ld_log2e,ld_log2,ld_ln2];
+        version (CRuntime_Microsoft)
+        {
+            // only for longdouble_soft
+            import dmd.root.longdouble;
+            immutable targ_real[7] ldval =
+            [ld_zero,ld_one,ld_pi,ld_log2t,ld_log2e,ld_log2,ld_ln2];
+        }
+        else
+        {
+            // AArch64 cross-compiling for X86_64, but targ_real is still 64 bits instead of 80.
+            // Should fix longdouble_soft so it gives 80 emulation on AArch64
+            immutable targ_real[7] ldval =
+            [0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L];
+        }
     }
     else
     {
-        enum M_PI_L        = 0x1.921fb54442d1846ap+1L;       // 3.14159 fldpi
-        enum M_LOG2T_L     = 0x1.a934f0979a3715fcp+1L;       // 3.32193 fldl2t
-        enum M_LOG2E_L     = 0x1.71547652b82fe178p+0L;       // 1.4427 fldl2e
-        enum M_LOG2_L      = 0x1.34413509f79fef32p-2L;       // 0.30103 fldlg2
-        enum M_LN2_L       = 0x1.62e42fefa39ef358p-1L;       // 0.693147 fldln2
         immutable targ_real[7] ldval =
         [0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L];
     }
