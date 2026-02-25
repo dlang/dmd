@@ -443,6 +443,27 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         });
     }
 
+    if (e.ident == Id.isOverlapped)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        return isDeclX((d)
+        {
+            auto v = d.isVarDeclaration();
+            if (!v || !v.isField())
+                return false;
+
+            // Ensure semantic analysis is complete
+            if (auto agg = v.toParent().isAggregateDeclaration())
+            {
+                if (agg.semanticRun < PASS.semanticdone)
+                    agg.dsymbolSemantic(null);
+            }
+
+            return v.overlapped;
+        });
+    }
     if (e.ident == Id.isArithmetic)
     {
         return isTypeX(t => t.isIntegral() || t.isFloating());
@@ -2344,7 +2365,7 @@ private void traitNotFound(TraitsExp e)
         initialized = true;     // lazy initialization
 
         // All possible traits
-        __gshared Identifier*[59] idents =
+        __gshared Identifier*[60] idents =
         [
             &Id.allMembers,
             &Id.child,
@@ -2376,6 +2397,7 @@ private void traitNotFound(TraitsExp e)
             &Id.identifier,
             &Id.isAbstractClass,
             &Id.isAbstractFunction,
+            &Id.isOverlapped,
             &Id.isArithmetic,
             &Id.isAssociativeArray,
             &Id.isCopyable,
