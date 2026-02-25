@@ -2780,7 +2780,7 @@ void buildResultVar(FuncDeclaration fd, Scope* sc, Type tret)
     if (sc && fd.vresult.semanticRun == PASS.initial)
     {
         TypeFunction tf = fd.type.toTypeFunction();
-        if (tf.isRef)
+        if (fd.isNRVO || tf.isRef)
             fd.vresult.storage_class |= STC.ref_;
         else if (target.isReturnOnStack(tf, fd.needThis()))
             fd.vresult.nrvo = true;

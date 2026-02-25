@@ -975,11 +975,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                         if (funcdecl.vresult)
                         {
+                            Scope* scret = rs.fesFunc ? rs.fesFunc._scope : sc2;
+
                             // Create: return (vresult = exp, vresult);
                             exp = new ConstructExp(rs.loc, funcdecl.vresult, exp);
-                            exp.type = funcdecl.vresult.type;
+                            exp = exp.expressionSemantic(scret);
                             exp = Expression.combine(exp, new VarExp(rs.loc, funcdecl.vresult));
-                            exp = exp.expressionSemantic(sc2);
 
                             if (rs.caseDim)
                                 exp = Expression.combine(exp, new IntegerExp(rs.caseDim));
