@@ -18884,6 +18884,26 @@ Expression revertIndexAssignToRvalues(IndexExp ie, Scope* sc)
     return lowerAAIndexRead(ie, sc);
 }
 
+// Ditto, but traverses DotVarExp from `alias this` rewrites.
+private Expression revertModifiableAAIndexReads(Expression e, Scope* sc)
+{
+    // Recurse through dot-accesses (alias this produces DotVarExp on an inner IndexExp)
+    if (auto dve = e.isDotVarExp())
+    {
+        dve.e1 = revertModifiableAAIndexReads(dve.e1, sc);
+        return e;
+    }
+    if (auto ie = e.isIndexExp())
+    {
+        // Recurse first to handle deeper nesting
+        ie.e1 = revertModifiableAAIndexReads(ie.e1, sc);
+        // Lower a modifiable AA IndexExp to an rvalue read
+        if (ie.modifiable && ie.e1.type.isTypeAArray())
+            return lowerAAIndexRead(ie, sc);
+    }
+    return e;
+}
+
 // helper for rewriteAAIndexAssign
 private Expression implicitConvertToStruct(Expression ev, StructDeclaration sd, Scope* sc)
 {
@@ -18934,6 +18954,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
     // find the AA of multi dimensional access
     for (auto ieaa = ie.e1.isIndexExp(); ieaa && ieaa.e1.type.isTypeAArray(); ieaa = ieaa.e1.isIndexExp())
         eaa = ieaa.e1;
+    eaa = revertModifiableAAIndexReads(eaa, sc);
     eaa = extractSideEffect(sc, "__aatmp", e0, eaa);
     // collect all keys of multi dimensional access
     Expressions ekeys;
