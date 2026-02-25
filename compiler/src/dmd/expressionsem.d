@@ -18884,6 +18884,7 @@ Expression revertIndexAssignToRvalues(IndexExp ie, Scope* sc)
     return lowerAAIndexRead(ie, sc);
 }
 
+// Ditto, but traverses DotVarExp from `alias this` rewrites.
 private Expression revertModifiableAAIndexReads(Expression e, Scope* sc)
 {
     // Recurse through dot-accesses (alias this produces DotVarExp on an inner IndexExp)
