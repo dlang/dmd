@@ -152,6 +152,24 @@ private void fixupInvariantIdent(InvariantDeclaration invd, size_t offset)
     invd.ident = Identifier.idPool(idBuf[]);
 }
 
+/*********************************************
+ * Determine if `_this` is a base class of `cd`.
+ * This is used to detect circular inheritance only.
+ */
+bool isBaseOf2(ClassDeclaration _this, ClassDeclaration cd) pure nothrow @nogc
+{
+    if (!cd)
+        return false;
+    //printf("ClassDeclaration.isBaseOf2(this = '%s', cd = '%s')\n", _this.toChars(), cd.toChars());
+    for (size_t i = 0; i < cd.baseclasses.length; i++)
+    {
+        BaseClass* b = (*cd.baseclasses)[i];
+        if (b.sym == _this || _this.isBaseOf2(b.sym))
+            return true;
+    }
+    return false;
+}
+
 /************************************
  * Maybe `ident` was a C or C++ name. Check for that,
  * and suggest the D equivalent.

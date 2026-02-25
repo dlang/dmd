@@ -260,24 +260,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return cd;
     }
 
-    /*********************************************
-     * Determine if 'this' is a base class of cd.
-     * This is used to detect circular inheritance only.
-     */
-    extern (D) final bool isBaseOf2(ClassDeclaration cd) pure nothrow @nogc
-    {
-        if (!cd)
-            return false;
-        //printf("ClassDeclaration.isBaseOf2(this = '%s', cd = '%s')\n", toChars(), cd.toChars());
-        for (size_t i = 0; i < cd.baseclasses.length; i++)
-        {
-            BaseClass* b = (*cd.baseclasses)[i];
-            if (b.sym == this || isBaseOf2(b.sym))
-                return true;
-        }
-        return false;
-    }
-
     enum OFFSET_RUNTIME = 0x76543210;
     enum OFFSET_FWDREF = 0x76543211;
 
