@@ -299,44 +299,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         this.visibility = Visibility(Visibility.Kind.undefined);
     }
 
-    extern(D) void computeIsTrivialAlias(Dsymbol s)
-    {
-        /* Set isTrivialAliasSeq if this fits the pattern:
-         *   template AliasSeq(T...) { alias AliasSeq = T; }
-         * or set isTrivialAlias if this fits the pattern:
-         *   template Alias(T) { alias Alias = qualifiers(T); }
-         */
-        if (!(parameters && parameters.length == 1))
-            return;
-
-        auto ad = s.isAliasDeclaration();
-        if (!ad || !ad.type)
-            return;
-
-        auto ti = ad.type.isTypeIdentifier();
-
-        if (!ti || ti.idents.length != 0)
-            return;
-
-        if (auto ttp = (*parameters)[0].isTemplateTupleParameter())
-        {
-            if (ti.ident is ttp.ident &&
-                ti.mod == 0)
-            {
-                //printf("found isTrivialAliasSeq %s %s\n", s.toChars(), ad.type.toChars());
-                isTrivialAliasSeq = true;
-            }
-        }
-        else if (auto ttp = (*parameters)[0].isTemplateTypeParameter())
-        {
-            if (ti.ident is ttp.ident)
-            {
-                //printf("found isTrivialAlias %s %s\n", s.toChars(), ad.type.toChars());
-                isTrivialAlias = true;
-            }
-        }
-    }
-
     override TemplateDeclaration syntaxCopy(Dsymbol)
     {
         //printf("TemplateDeclaration.syntaxCopy()\n");
