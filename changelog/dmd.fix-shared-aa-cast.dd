@@ -1,0 +1,20 @@
+Fix `cast()` not fully stripping qualifiers from array and associative array types
+
+`cast()` with no qualifier argument is meant to strip all qualifiers from a
+type. Due to how the compiler propagates qualifiers transitively into element
+types during semantic analysis, `cast()` on a qualified array or associative
+array was only removing qualifiers from the outer type, leaving them on the
+element/value type.
+
+-------
+shared(int[int]) a;
+// Previously yielded shared(int)[int] — now correctly yields int[int]
+static assert(is(typeof(cast() a) == int[int]));
+
+const(int[]) b;
+// Previously yielded const(int)[] — now correctly yields int[]
+static assert(is(typeof(cast() b) == int[]));
+-------
+
+This affected any code that removed `shared` or `const` from an array or AA
+using `cast()`, such as when accessing a `shared` AA protected by a mutex.

@@ -7347,6 +7347,14 @@ Type unSharedOf(Type type)
         t = type.nullAttributes();
         t.mod = type.mod & ~MODFlags.shared_;
         t.ctype = type.ctype;
+        // typeSemantic calls transitive() on arrays and AAs, which propagates
+        // the qualifier into the element/value type. Strip shared from next
+        // here to undo that propagation.
+        if (auto tn = cast(TypeNext) t)
+        {
+            if (t.ty == Tarray || t.ty == Tsarray || t.ty == Taarray)
+                tn.next = tn.next.unSharedOf();
+        }
         t = t.merge();
         t.fixTo(type);
     }
@@ -7478,7 +7486,8 @@ Type unqualify(Type type, uint m)
                 t = new TypeSArray(utn, (cast(TypeSArray)type).dim);
             else if (type.ty == Taarray)
             {
-                t = new TypeAArray(utn, (cast(TypeAArray)type).index);
+                auto taa = cast(TypeAArray) type;
+                t = new TypeAArray(utn, taa.index.unqualify(m));
             }
             else
                 assert(0);

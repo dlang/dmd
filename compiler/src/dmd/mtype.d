@@ -1788,7 +1788,12 @@ extern (C++) abstract class TypeNext : Type
     {
         //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
         TypeNext t = cast(TypeNext)Type.makeMutable();
-        if (ty == Tsarray)
+        // typeSemantic calls transitive() on these types, which propagates the
+        // outer qualifier into next. Strip it from next only when the outer type
+        // has const/immutable/wild bits — plain-shared or unqualified types were
+        // never propagated into next by this path so next should not be touched.
+        if (mod & ~MODFlags.shared_ &&
+            (ty == Tsarray || ty == Tarray || ty == Taarray))
         {
             t.next = next.mutableOf();
         }
