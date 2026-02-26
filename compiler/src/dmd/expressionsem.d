@@ -16724,7 +16724,14 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             if (e.placement)
                 check(e.placement, false);
             if (e.thisexp)
-                check(e.thisexp, false);
+            {
+                // In a shared constructor, accessing the current
+                // `this` is safe for nested allocation.
+                // See test_nosharedaccess_ctor_nested_new.d
+                if (!(sc.func && sc.func.isCtorDeclaration() && sc.func.type.isShared() &&
+                      e.thisexp.isThisExp()))
+                    check(e.thisexp, false);
+            }
             return false;
         }
 
