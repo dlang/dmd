@@ -427,6 +427,22 @@ void testShared()
     assert(2 in iprocesses);
 }
 
+// https://github.com/dlang/dmd/issues/22556
+void test22556()
+{
+    static struct RefCounted(T)
+    {
+        this(this) {}
+    }
+    struct S {}
+    alias R = RefCounted!S;
+    shared R[string] foo;
+
+    (cast (R[string]) foo).clear; // WORKS
+    (cast() foo).clear; // FAILS with 2.112.0, WORKS with 2.111.0
+    static assert(!__traits(compiles, foo.clear));
+}
+
 /***************************************************/
 
 // https://github.com/dlang/dmd/issues/22567
@@ -474,4 +490,5 @@ void main()
     test22354();
     testShared();
     test22567();
+    test22556();
 }
