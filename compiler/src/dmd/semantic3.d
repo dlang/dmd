@@ -975,7 +975,19 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                         if (funcdecl.vresult)
                         {
-                            Scope* scret = rs.fesFunc ? rs.fesFunc._scope : sc2;
+                            Scope* scret = sc2;
+
+                            if (rs.fesFunc)
+                            {
+                                /* Semantic of the rewritten statements should be run
+                                 * inside their respective nested function bodies,
+                                 * but function body scopes have already been lost.
+                                 * Create a new scope over definition scope and pretend.
+                                 * FIXME: find a better way and remove this hack
+                                 */
+                                scret = rs.fesFunc._scope.push();
+                                scret.parent = rs.fesFunc;
+                            }
 
                             // Create: return (vresult = exp, vresult);
                             exp = new ConstructExp(rs.loc, funcdecl.vresult, exp);
