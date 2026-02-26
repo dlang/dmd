@@ -2985,14 +2985,28 @@ alias AssociativeArray(Key, Value) = Value[Key];
  *      aa =     The associative array.
  */
 void clear(Value, Key)(Value[Key] aa) @trusted
+if (!is(Value == shared))
 {
     _aaClear(aa);
 }
 
 /** ditto */
 void clear(Value, Key)(Value[Key]* aa) @trusted
+if (!is(Value == shared))
 {
     (*aa).clear();
+}
+
+/** ditto */
+void clear(Value, Key)(shared(Value)[Key] aa)
+{
+    return (cast(Value[Key])aa).clear();
+}
+
+/** ditto */
+void clear(Value, Key)(shared(Value)[Key]* aa)
+{
+    (cast(Value[Key])*aa).clear();
 }
 
 ///
