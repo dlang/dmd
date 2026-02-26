@@ -28,6 +28,7 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
+import dmd.initsem : initializerToExpression;
 import dmd.location;
 import dmd.root.filename;
 import dmd.visitor;
@@ -1001,7 +1002,7 @@ public:
                     buf.writestring(" { ");
                     writeIdentifier(vd, true);
                     buf.writestring(" = ");
-                    auto ie = AST.initializerToExpression(vd._init).isIntegerExp();
+                    auto ie = initializerToExpression(vd._init).isIntegerExp();
                     visitInteger(ie.toInteger(), type);
                     buf.writestring(" };");
                     break;
@@ -1013,7 +1014,7 @@ public:
                     buf.writestring(" const ");
                     writeIdentifier(vd, true);
                     buf.writestring(" = ");
-                    auto e = AST.initializerToExpression(vd._init);
+                    auto e = initializerToExpression(vd._init);
                     printExpressionFor(target, e);
                     buf.writestring(";");
                     break;
@@ -1363,7 +1364,7 @@ public:
 
                 if (vd._init)
                 {
-                    auto e = AST.initializerToExpression(vd._init);
+                    auto e = initializerToExpression(vd._init);
                     printExpressionFor(vd.type, e, true);
                 }
                 buf.printf(")");
@@ -2801,7 +2802,7 @@ public:
     private static AST.Expression findDefaultInitializer(AST.VarDeclaration vd)
     {
         if (vd._init && !vd._init.isVoidInitializer())
-            return AST.initializerToExpression(vd._init);
+            return initializerToExpression(vd._init);
         if (auto ts = vd.type.isTypeStruct())
         {
             if (!ts.sym.noDefaultCtor && !ts.sym.isUnionDeclaration())

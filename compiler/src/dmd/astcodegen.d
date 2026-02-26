@@ -27,7 +27,6 @@ struct ASTCodegen
     public import dmd.func;
     public import dmd.hdrgen;
     public import dmd.init;
-    public import dmd.initsem;
     public import dmd.mtype;
     public import dmd.nspace;
     public import dmd.statement;
@@ -36,7 +35,6 @@ struct ASTCodegen
     public import dmd.typesem;
 
     alias addSTC                    = dmd.typesem.addSTC;
-    alias initializerToExpression   = dmd.initsem.initializerToExpression;
     alias typeToExpression          = dmd.mtype.typeToExpression;
     alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;
     alias Ensure                    = dmd.func.Ensure; // workaround for bug in older DMD frontends
