@@ -3443,7 +3443,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         sc = sc.push();
         sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.gshared);
-        sc.inunion = scd.isunion ? scd : null;
+        sc.inunion = scd.isunion ? scd : sc.inunion;
         sc.resetAllFlags();
         for (size_t i = 0; i < scd.decl.length; i++)
         {
