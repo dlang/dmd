@@ -893,6 +893,7 @@ Ldone:
      */
     funcdecl._scope = sc.copy();
     funcdecl._scope.setNoFree();
+    funcdecl._scope.parent = funcdecl;
 
     __gshared bool printedMain = false; // semantic might run more than once
     if (global.params.v.verbose && !printedMain)
