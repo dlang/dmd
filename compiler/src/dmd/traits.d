@@ -1684,9 +1684,11 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", s.toChars());
             return ErrorExp.get();
         }
+        // https://issues.dlang.org/show_bug.cgi?id=13668
         // https://github.com/dlang/dmd/issues/22524
-        if (auto sd = sds.isStructDeclaration())
-            sd.dsymbolSemantic(sc);
+        // resolve forward references
+        if (sds.semanticRun < PASS.semanticdone)
+            sds.dsymbolSemantic(sc);
 
         auto idents = new Identifiers();
 
@@ -1765,10 +1767,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto cd = sds.isClassDeclaration();
         if (cd && e.ident == Id.allMembers)
         {
-            if (cd.semanticRun < PASS.semanticdone)
-                cd.dsymbolSemantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668
-                                   // Try to resolve forward reference
-
             void pushBaseMembersDg(ClassDeclaration cd)
             {
                 for (size_t i = 0; i < cd.baseclasses.length; i++)
