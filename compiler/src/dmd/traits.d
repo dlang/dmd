@@ -588,7 +588,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
-        t = t.toBasetype();     // get the base in case `t` is an `enum`
+        // get enum base or static array element type
+        t = t.baseElemOf();
 
         if (auto ts = t.isTypeStruct())
         {
