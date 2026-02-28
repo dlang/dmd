@@ -1829,7 +1829,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             numpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
 
         p.offset = numpara;
-        printf("[%d] param offset =  x%x, alignsize = %d\n", i, cast(int) numpara, cast(int) alignsize);
+        //printf("[%d] param offset =  x%x, alignsize = %d\n", i, cast(int) numpara, cast(int) alignsize);
         numpara += sz;
     }
 
@@ -2435,22 +2435,22 @@ private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint funcar
     scodelem(cgstate,cdb, e, retregs, 0, true);
     if (isPair)
     {
-        uint szx = cast(uint)sz / 2;
+        uint szx = cast(uint)tysize(tym) / 2;
         const reg_t rmsw = findreg(retregs & INSTR.MSW);
         code cs;
         cs.reg = NOREG;
         cs.base = INSTR.SP;
         cs.index = NOREG;
         cs.IFL1 = FL.offset;
-        storeToEA(cs, rmsw, szx);
-        cs.IEV1.Voffset = funcargtos - szx;
+        storeToEA(cs, rmsw, cast(uint)sz + szx);
+        cs.IEV1.Voffset = funcargtos;
         cdb.gen(&cs);
 
         const reg_t rlsw = findreg(retregs & INSTR.LSW);
         cs.IFL1 = FL.offset;
         cs.IEV1.Voffset = 0;
-        storeToEA(cs, rlsw, szx);
-        cs.IEV1.Voffset = funcargtos - szx * 2;
+        storeToEA(cs, rlsw, cast(uint)sz);
+        cs.IEV1.Voffset = funcargtos;
         cdb.gen(&cs);
     }
     else
