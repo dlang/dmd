@@ -582,7 +582,11 @@ private int tryMain(const(char)[][] argv, out Param params)
 
             buf.reset();         // reuse the buffer
             genhdrfile(m, params.dihdr.fullOutput, buf);
-            if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
+            if (params.dihdr.name == "-") {
+                size_t n = fwrite(buf[].ptr, 1, buf.length, stdout);
+                assert(n == buf.length);
+            }
+            else if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
                 fatal();
         }
     }
