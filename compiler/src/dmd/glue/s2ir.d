@@ -907,19 +907,30 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
              *          HALT
              */
             // volatile so optimizer won't delete it
-            Symbol* seax = symbol_name("__EAX", SC.pseudo, type_fake(mTYvolatile | TYnptr));
-            seax.Sreglsw = 0;          // EAX, RAX, whatevs
-            symbol_add(seax);
-            Symbol* sedx = symbol_name("__EDX", SC.pseudo, type_fake(mTYvolatile | TYint));
-            sedx.Sreglsw = 2;          // EDX, RDX, whatevs
-            symbol_add(sedx);
+            Symbol* sreg0, sreg1;
+            if (irs.target.isAArch64)
+            {
+                sreg0 = symbol_name("__R0", SC.pseudo, type_fake(mTYvolatile | TYnptr));
+                sreg0.Sreglsw = 0;          // R0
+                sreg1 = symbol_name("__R1", SC.pseudo, type_fake(mTYvolatile | TYint));
+                sreg1.Sreglsw = 1;          // R1
+            }
+            else
+            {
+                sreg0 = symbol_name("__EAX", SC.pseudo, type_fake(mTYvolatile | TYnptr));
+                sreg0.Sreglsw = 0;          // EAX, RAX, whatevs
+                sreg1 = symbol_name("__EDX", SC.pseudo, type_fake(mTYvolatile | TYint));
+                sreg1.Sreglsw = 2;          // EDX, RDX, whatevs
+            }
+            symbol_add(sreg0);
+            symbol_add(sreg1);
             Symbol* shandler = symbol_name("__handler", SC.auto_, tstypes[TYint]);
             symbol_add(shandler);
             Symbol* seo = symbol_name("__exception_object", SC.auto_, tspvoid);
             symbol_add(seo);
 
-            elem* e1 = el_bin(OPeq, TYvoid, el_var(shandler), el_var(sedx)); // __handler = __RDX
-            elem* e2 = el_bin(OPeq, TYvoid, el_var(seo), el_var(seax)); // __exception_object = __RAX
+            elem* e1 = el_bin(OPeq, TYvoid, el_var(shandler), el_var(sreg1)); // __handler = __RDX
+            elem* e2 = el_bin(OPeq, TYvoid, el_var(seo),      el_var(sreg0)); // __exception_object = __RAX
 
             version (none)
             {

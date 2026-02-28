@@ -1617,10 +1617,18 @@ static if (0)
                 return true;
 
             case FL.pseudo:
-                assert(!cgstate.AArch64);       // pseudo-registers are only for the X86 and X86_64
-                uint u = s.Sreglsw;
+                reg_t u = s.Sreglsw;
                 regm_t m = mask(u);
-                if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
+                if (cgstate.AArch64)
+                {
+                    if (m & (INSTR.ALLREGS | INSTR.FLOATREGS))
+                    {
+                        preg = u;
+                        pregm = m;
+                        return true;
+                    }
+                }
+                else if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
                 {
                     preg = u & 7;
                     pregm = m;
