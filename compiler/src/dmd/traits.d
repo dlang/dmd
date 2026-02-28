@@ -1684,6 +1684,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", s.toChars());
             return ErrorExp.get();
         }
+        // https://github.com/dlang/dmd/issues/22524
+        if (auto sd = sds.isStructDeclaration())
+            sd.dsymbolSemantic(sc);
 
         auto idents = new Identifiers();
 
