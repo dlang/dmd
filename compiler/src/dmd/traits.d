@@ -610,6 +610,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     e.ident.toChars(), o.toChars());
             return ErrorExp.get();
         }
+        // FIXME should just check t.needsDestruction() but that doesn't run dsymbolSemantic
 
         // T[0]
         if (!t.size())
