@@ -53,6 +53,8 @@ extern (C)
 		Callback cb = void;
 	}
 	extern __gshared int[cast(ULONG)3] arr;
+	alias _IO_lock_t = void;
+	void mylib_hello();
 	/+enum int __DATE__ = 1+/;
 	/+enum int __TIME__ = 1+/;
 	/+enum int __TIMESTAMP__ = 1+/;
@@ -131,3 +133,6 @@ int arr[(ULONG) 3];
 #define DEF 123
 #define SQL_DRIVER_STMT_ATTR_BASE   0x00004000  // 32-bit
 #define ABC 64
+
+typedef void _IO_lock_t;
+void mylib_hello(void);
