@@ -68,7 +68,7 @@ struct Renderer
         string squiggle = "^";
     }
 
-    void render()
+    void render() 
     {
         if (diagnostics.length == 0)
             return;

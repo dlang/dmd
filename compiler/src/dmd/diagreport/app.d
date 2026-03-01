@@ -1,36 +1,43 @@
 module dmd.diagreport.app;
 
 import core.stdc.stdio : vprintf, fflush, stderr;
+import core.stdc.string;
 import dmd.common.outbuffer;
+import dmd.errors;
 import dmd.diagreport.defs;
 import dmd.diagreport.geometry;
 import dmd.diagreport.renderer;
+import dmd.location;
 // import std.stdio;
 // import std.conv;
 import std.range;
 // import std.array;
 import std.string;
 
-/*void addDFADiagnostic(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
+
+/// Function to convert dmd.errors.Diagnostic object to dmd.diagreport.defs.Diagnostic objects
+dmd.diagreport.defs.Diagnostic convert(dmd.errors.Diagnostic d) nothrow
 {
-    char[1024] buffer;
-    int written = vsnprintf(buffer.ptr, buffer.length, format, ap);
-    string messagesText = cast(string) buffer[0 .. (written < 0 || written > buffer.length ? buffer.length : written)].dup;
-    // add diagnostic to the array
-    if(diagnostics.length == 0 || diagnostics[diagnostics.length-1].filename == loc.filename)
-    {
-        Diagnostic diag;
-        diag start = loc.line;
-        diag end = loc.line + 1;
-        diag.Message = Message(loc.column,)
-    }
-    else
-    {
+    dmd.diagreport.defs.Diagnostic obj;
+    obj.start = d.loc.line;
+    obj.end = d.loc.line;
+    obj.originalOffset = d.loc.fileOffset;
+    obj.startMessage.startColumn = cast(int) getMessageStartColumn(d.loc.fileContent, d.loc.fileOffset);
+    obj.startMessage.isMultiline = false;
+    return obj;
+}
 
+/// function to call event() for diagnostics
+void callEvent(ref dmd.errors.Diagnostic[] diagnostics) nothrow
+{
+    foreach(d; diagnostics)
+    {
+        dmd.diagreport.defs.Diagnostic diag = convert(d);
+        event(cast(string) d.loc.filename, cast(string) d.loc.fileContent, d.loc.line, [diag], [d.message], null);
     }
-}*/
+}
 
-void event(string filename, string source, int firstLineNumber, Diagnostic[] diagnostics, string[] messagesText, Help[] help)
+void event(string filename, string source, int firstLineNumber, dmd.diagreport.defs.Diagnostic[] diagnostics, string[] messagesText, Help[] help) nothrow
 {
     OutBuffer buf;
     string[] lines = source.splitLines;
@@ -88,8 +95,52 @@ void event(string filename, string source, int firstLineNumber, Diagnostic[] dia
     fflush(stderr);
 }
 
-void printDiagnostic(ref OutBuffer buf, string[] arr...)
+void printDiagnostic(ref OutBuffer buf, string[] arr...) nothrow
 {
     foreach(s; arr)
         buf.write(s);
+}
+
+// Given an error happening in source code `text`and at index `offset`, get the offending line
+// and a caret pointing to the error
+size_t getMessageStartColumn(const(char)[] text, size_t offset) nothrow @safe
+{
+    import dmd.root.utf : utf_decodeChar;
+
+    if (offset >= text.length)
+        return 0; // Out of bounds (missing source content in SourceLoc)
+
+    // Scan backwards for beginning of line
+    size_t s = offset;
+    while (s > 0 && text[s - 1] != '\n')
+        s--;
+
+    const line = text[s .. $];
+    const byteColumn = offset - s; // column as reported in the error message (byte offset)
+    enum tabWidth = 4;
+
+    size_t currentColumn = 0;
+    size_t caretColumn = 0; // actual display column taking into account tabs and unicode characters
+    for (size_t i = 0; i < line.length; )
+    {
+        dchar u;
+        const start = i;
+        const msg = utf_decodeChar(line, i, u);
+        assert(msg is null, msg);
+        if (u == '\t')
+        {
+            // How many spaces until column is the next multiple of tabWidth
+            const equivalentSpaces = tabWidth - (currentColumn % tabWidth);
+            currentColumn += equivalentSpaces;
+        }
+        else if (u == '\r' || u == '\n')
+            break;
+        else
+        {
+            currentColumn++;
+        }
+        if (i <= byteColumn)
+            caretColumn = currentColumn;
+    }
+    return caretColumn;
 }
