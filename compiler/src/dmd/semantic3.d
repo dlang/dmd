@@ -975,7 +975,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                         if (funcdecl.vresult)
                         {
-                            Scope* scret = rs.fesFunc ? rs.fesFunc._scope : sc2;
+                            Scope* scret = sc2;
+
+                            if (rs.fesFunc)
+                            {
+                                // Borrow context pointer's scope for vresult.
+                                assert(rs.fesFunc.vthis);
+                                scret = rs.fesFunc.vthis._scope;
+                            }
 
                             // Create: return (vresult = exp, vresult);
                             exp = new ConstructExp(rs.loc, funcdecl.vresult, exp);

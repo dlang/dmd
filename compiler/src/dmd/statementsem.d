@@ -2774,6 +2774,21 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                  *    return x; return 3;  // ok, x can be a value
                  */
             }
+
+            if (rs.fesFunc &&
+                (!tf.isRef || (fd.storage_class & STC.auto_)))
+            {
+                /* In foreach inside non-ref or auto ref functions,
+                 * invoke copy/move constructor but ignore errors.
+                 * This relaxes attributes for the nested function and
+                 * allows semantic3 to generate the copy.
+                 * If the parent's attributes reject such a copy,
+                 * semantic3 would still error out.
+                 */
+                const olderrors = global.startGagging();
+                doCopyOrMove(sc, rs.exp, rs.exp.type, false, true);
+                global.endGagging(olderrors);
+            }
         }
         else
         {
