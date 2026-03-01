@@ -4547,7 +4547,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
         buf.put("noreturn");
     }
 
-    if (hgs.importcHdr && !hgs.inCAlias && t.mcache && t.mcache.typedefIdent)
+    if (hgs.importcHdr && !hgs.inCAlias && t.mcache && t.mcache.typedefIdent && !t.isTypeBasic())
     {
         buf.put(t.mcache.typedefIdent.toString());
         return;
