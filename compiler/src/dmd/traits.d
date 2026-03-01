@@ -1126,6 +1126,18 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 // Prevent semantic() from replacing Symbol with its initializer
                 die.wantsym = true;
             ex = ex.expressionSemantic(scx);
+            if (ex)
+            {
+                import dmd.access : symbolIsVisible;
+                import dmd.safe : setUnsafe;
+                auto msym = getDsymbolWithoutExpCtx(ex);
+                // https://github.com/dlang/dmd/issues/19721
+                if (msym && !symbolIsVisible(sc, msym))
+                {
+                    if (sc.setUnsafe(false, e.loc, "accessing member `%s`", id))
+                        return ErrorExp.get();
+                }
+            }
             return ex;
         }
         else if (e.ident == Id.getVirtualFunctions ||
