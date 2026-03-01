@@ -531,6 +531,7 @@ DOCS=\
 	$(DOCDIR)\core_builtins.html \
 	\
 	$(DOCDIR)\etc_linux_memoryerror.html \
+	$(DOCDIR)\etc_valgrind_valgrind.html \
 	\
 	$(DOCDIR)\core_internal_gc_bits.html \
 	$(DOCDIR)\core_internal_gc_blkcache.html \

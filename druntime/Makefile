@@ -326,6 +326,9 @@ $(DOC_OUTPUT_DIR)/core_builtins.html : import/core/builtins.d $(DMD)
 $(DOC_OUTPUT_DIR)/etc_linux_%.html : import/etc/linux/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOC_OUTPUT_DIR)/etc_valgrind_%.html : import/etc/valgrind/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOC_OUTPUT_DIR)/gc_%.html : import/gc/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
