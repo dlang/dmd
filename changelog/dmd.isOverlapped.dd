@@ -1,0 +1,44 @@
+New trait `__traits(isOverlapped, field)` to detect overlapping fields
+
+D now provides a compile-time trait to check whether a struct or class field overlaps with other fields in memory. This is useful for serialization libraries, code generators, and metaprogramming tasks that need to identify fields sharing the same memory location.
+
+The trait takes a single field argument, returning `true` if the field's storage overlaps with other fields (typically because it is part of a union).
+
+```d
+struct S
+{
+    int a;
+    union
+    {
+        int x;  // overlaps with y
+        float y;  // overlaps with x
+    }
+    int b;
+}
+
+static assert(__traits(isOverlapped, S.x));  // true
+static assert(__traits(isOverlapped, S.y));  // true
+static assert(!__traits(isOverlapped, S.a)); // false - regular field
+static assert(!__traits(isOverlapped, S.b)); // false - regular field
+```
+
+The trait works with both anonymous and named unions:
+
+```d
+union NamedUnion
+{
+    int x;
+    float y;
+}
+
+static assert(__traits(isOverlapped, NamedUnion.x));  // true
+static assert(__traits(isOverlapped, NamedUnion.y));  // true
+```
+
+This trait is particularly useful for:
+- Serialization libraries that need to handle only one field from overlapping sets
+- Understanding memory layout and field interaction
+- Implementing correct destructors for types with overlapping fields
+- Generic code that needs to reason about field storage semantics
+
+The trait exposes DMD's internal overlap tracking (`VarDeclaration.overlapped`), providing a direct way to query this semantic property.
