@@ -20,7 +20,6 @@ import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.declaration;
-import dmd.dscope;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.func;
