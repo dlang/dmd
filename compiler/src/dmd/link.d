@@ -960,8 +960,10 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         // generate unique temporary file name for preprocessed output
         char[MAX_PATH] tempDir = void;
         char[MAX_PATH] tempFile = void;
-        GetTempPathA(MAX_PATH, tempDir.ptr);
-        GetTempFileNameA(tempDir.ptr, "dmd", 0, tempFile.ptr);
+        if (GetTempPathA(MAX_PATH, tempDir.ptr) == 0)
+            return STATUS_FAILED;
+        if (GetTempFileNameA(tempDir.ptr, "dmd", 0, tempFile.ptr) == 0)
+            return STATUS_FAILED;
         const(char)[] ifilename = tempFile[0 .. strlen(tempFile.ptr) + 1];
         ifilename = xarraydup(ifilename);
         const(char)[] output = ifilename;
