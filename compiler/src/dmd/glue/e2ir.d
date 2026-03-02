@@ -5770,6 +5770,7 @@ elem* callfunc(Loc loc,
                 e.E1 = el_una(OPs32_d, TYdouble, e.E2);
                 e.E1 = el_una(OPd_ld, TYreal, e.E1);
                 e.E2 = et;
+                assert(!(config.exe == EX_OSX64 && target.isAArch64)); // TODO AArch64
             }
             else if (op == OPyl2x || op == OPyl2xp1)
             {
@@ -5809,13 +5810,19 @@ elem* callfunc(Loc loc,
             e = constructVa_start(ep);
         else if (op == OPtoPrec)
         {
+            const bool RealIsDouble = _tysize[TYreal] == 8;
+            if (RealIsDouble)
+            {
+                assert(tybasic(ep.Ety) != TYreal);
+                assert(tybasic(tyret) != TYreal);
+            }
             static int X(int fty, int tty) { return fty * TMAX + tty; }
 
             final switch (X(tybasic(ep.Ety), tybasic(tyret)))
             {
             case X(TYfloat, TYfloat):     // float -> float
             case X(TYdouble, TYdouble):   // double -> double
-            case X(TYreal, TYreal): // real -> real
+            case X(TYreal, TYreal):       // real -> real
                 e = ep;
                 break;
 

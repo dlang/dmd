@@ -1686,13 +1686,6 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 
         case OPd_ld:    // call __extenddftf2
         case OPld_d:    // call __trunctfdf2
-            if (sz == 8 && tysize(e.E1.Ety) == 8)       // same size means no-op
-            {
-                codelem(cgstate,cdb,e.E1,pretregs,false);
-                freenode(e);
-                return;
-            }
-
             regm_t retregs1 = mask(32);
             codelem(cgstate,cdb,e.E1,retregs1,false);
             import dmd.backend.arm.cod1 : CLIB_A, callclib;
