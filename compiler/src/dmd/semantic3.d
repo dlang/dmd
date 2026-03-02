@@ -846,7 +846,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         if (tret.ty == Terror)
                         {
                             // https://issues.dlang.org/show_bug.cgi?id=13702
+                            // https://issues.dlang.org/show_bug.cgi?id=22671
+                            // GC allocations inside `if (__ctfe)` blocks are always allowed
+                            const prevCtfeBlock = sc2.ctfeBlock;
+                            if (rs.inCtfeBlock)
+                                sc2.ctfeBlock = true;
                             exp = exp.checkGC(sc2);
+                            sc2.ctfeBlock = prevCtfeBlock;
                             continue;
                         }
 
@@ -971,7 +977,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 checkReturnEscape(*sc2, exp, false);
                         }
 
+                        // https://issues.dlang.org/show_bug.cgi?id=22671
+                        // GC allocations inside `if (__ctfe)` blocks are always allowed
+                        const prevCtfeBlock = sc2.ctfeBlock;
+                        if (rs.inCtfeBlock)
+                            sc2.ctfeBlock = true;
                         exp = exp.checkGC(sc2);
+                        sc2.ctfeBlock = prevCtfeBlock;
 
                         if (funcdecl.vresult)
                         {
