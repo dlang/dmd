@@ -54,6 +54,7 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 hasCopyConstructor, $(D hasCopyConstructor))
     $(RELATIVE_LINK2 hasMoveConstructor, $(D hasMoveConstructor))
     $(RELATIVE_LINK2 hasPostblit, $(D hasPostblit))
+    $(RELATIVE_LINK2 needsDestruction, $(D needsDestruction))
     $(RELATIVE_LINK2 identifier, $(D identifier))
     $(RELATIVE_LINK2 fullyQualifiedName, $(D fullyQualifiedName))
     $(RELATIVE_LINK2 getAliasThis, $(D getAliasThis))
@@ -519,6 +520,25 @@ void main()
 }
 ---
 )
+
+$(H3 $(GNAME needsDestruction))
+
+    $(P The result is `true` if T is a value type needing elaborate destruction.
+        This includes structs with explicit `~this()` destructors and/or
+        compiler-generated destructors (caused by fields needing destruction),
+        static arrays thereof, and enums with such base types.
+    )
+
+$(COMMENT SPEC_RUNNABLE_EXAMPLE_COMPILE)
+---
+class C { ~this(); }
+struct S { ~this(); }
+
+static assert(!__traits(needsDestruction, C));
+static assert(__traits(needsDestruction, S));
+static assert(!__traits(needsDestruction, S[0]));
+static assert(__traits(needsDestruction, S[1]));
+---
 
 $(H3 $(GNAME getAliasThis))
 
