@@ -1,4 +1,4 @@
-// https://issues.dlang.org/show_bug.cgi?id=22663
+// https://github.com/dlang/dmd/issues/22663
 
 void main()
 {
