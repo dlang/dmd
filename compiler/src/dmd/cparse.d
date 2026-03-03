@@ -5075,10 +5075,10 @@ final class CParser(AST) : Parser!AST
             if (pt && *pt)
                 t = *pt;
         }
-if ((t.mcache && t.mcache.typedefIdent) || t.isTypeBasic()) {
-    t = t.copy();
-    t.mcache = null;
-}
+        if ((t.mcache && t.mcache.typedefIdent) || t.isTypeBasic()) {
+            t = t.copy();
+            t.mcache = null;
+        }
         t.getMcache().typedefIdent = id;
         auto tab = cast(void*[void*])(typedefTab[$ - 1]);
         tab[cast(void*)id] = cast(void*)t;
