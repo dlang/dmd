@@ -103,6 +103,10 @@ enum RTLSYM
     C__ASSERT_FAIL,
     C__ASSERT_RTN,
 
+    FMODF,
+    FMOD,
+    FMODL,
+
     CXA_ATEXIT
 }
 

@@ -188,6 +188,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     break;
 
                 default:
+                    elem_print(e);
                     assert(0);
             }
         }
