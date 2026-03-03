@@ -57,8 +57,7 @@ extern (C)
 	void mylib_hello1();
 	alias NOPE2 = int;
 	int mylib_hello2();
-	int mylib_hello2();
-	int mylib_hello3(void*);
+	void mylib_hello3(void*);
 	/+enum int __DATE__ = 1+/;
 	/+enum int __TIME__ = 1+/;
 	/+enum int __TIMESTAMP__ = 1+/;
