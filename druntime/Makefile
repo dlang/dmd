@@ -222,7 +222,7 @@ $(DOC_OUTPUT_DIR)/core_sync_%.html : import/core/sync/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_bionic_%.html : import/core/sys/bionic/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -version=CRuntime_Bionic -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_darwin_%.html : import/core/sys/darwin/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -version=Darwin -Df$@ project.ddoc $(DOCFMT) $<
