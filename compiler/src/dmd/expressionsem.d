@@ -8711,7 +8711,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         if (decl && (decl.storage_class & STC.local))
                             continue;
                         if (sc.func.fes)
-                        { 
+                        {
                             error(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
                             errorSupplemental(s2.loc, "declared here");
                         }
