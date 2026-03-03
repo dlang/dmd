@@ -4082,6 +4082,7 @@ struct HdrGenState final
     bool fullDump;
     bool importcHdr;
     bool inCAlias;
+    bool inFuncReturn;
     bool doFuncBodies;
     bool vcg_ast;
     bool skipConstraints;
@@ -4101,6 +4102,7 @@ struct HdrGenState final
         fullDump(),
         importcHdr(),
         inCAlias(),
+        inFuncReturn(),
         doFuncBodies(),
         vcg_ast(),
         skipConstraints(),
@@ -4116,12 +4118,13 @@ struct HdrGenState final
         inEnumDecl()
     {
     }
-    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool inCAlias = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool errorMsg = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
+    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool inCAlias = false, bool inFuncReturn = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool errorMsg = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
         hdrgen(hdrgen),
         ddoc(ddoc),
         fullDump(fullDump),
         importcHdr(importcHdr),
         inCAlias(inCAlias),
+        inFuncReturn(inFuncReturn),
         doFuncBodies(doFuncBodies),
         vcg_ast(vcg_ast),
         skipConstraints(skipConstraints),
