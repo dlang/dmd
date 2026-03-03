@@ -5075,17 +5075,10 @@ final class CParser(AST) : Parser!AST
             if (pt && *pt)
                 t = *pt;
         }
-        if (t.mcache && t.mcache.typedefIdent)
-        {
-            t = t.copy();
-            t.mcache = null;
-        }
-        else if (t.isTypeBasic())
-        {
-            // Basic types like void, int, etc. are global shared instances.
-            // Copy before setting typedefIdent to avoid polluting the shared type.
-            t = t.copy();
-        }
+if ((t.mcache && t.mcache.typedefIdent) || t.isTypeBasic()) {
+    t = t.copy();
+    t.mcache = null;
+}
         t.getMcache().typedefIdent = id;
         auto tab = cast(void*[void*])(typedefTab[$ - 1]);
         tab[cast(void*)id] = cast(void*)t;
