@@ -852,6 +852,9 @@ extern (C++) final class ForeachStatement : Statement
     Statements* cases;          // put breaks, continues, gotos and returns here
     ScopeStatements* gotos;     // forward referenced goto's go here
 
+    bool hasReturnExp;          // has return exp; statement
+    Statement lowering;         // statement we lower to
+
     extern (D) this(Loc loc, TOK op, Parameters* parameters, Expression aggr, Statement _body, Loc endloc) @safe
     {
         super(loc, STMT.Foreach);

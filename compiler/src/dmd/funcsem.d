@@ -370,7 +370,7 @@ public:
             auto catches = new Catches(ctch);
 
             Statement s2 = new TryCatchStatement(Loc.initial, s._body, catches);
-            fd.hasNoEH = false;
+            fd.hasCatches = true;
             replaceCurrent(s2);
             s2.accept(this);
         }
@@ -1687,6 +1687,15 @@ extern (D) void declareThis(FuncDeclaration fd, Scope* sc)
     fd.vthis.parent = fd;
     if (ad)
         fd.objc.selectorParameter = .objc.createSelectorParameter(fd, sc);
+
+    if (fd.fes && !fd.vthis._scope)
+    {
+        /* If foreach nested function, save the scope to allow outer semantic
+         * to access internal context pointer.
+         */
+        fd.vthis._scope = sc.copy();
+        fd.vthis._scope.setNoFree();
+    }
 }
 
 /****************************************************

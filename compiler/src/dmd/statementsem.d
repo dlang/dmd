@@ -958,6 +958,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     return null;
             }
 
+            if (fs.hasReturnExp && sc.fes)
+                sc.fes.hasReturnExp = true;
+
             Expression ec;
             switch (tab.ty)
             {
@@ -971,7 +974,15 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 return null;
 
             e = Expression.combine(e, ec);
-            return loopReturn(e, fs.cases, loc);
+            Statement lrs = loopReturn(e, fs.cases, loc);
+
+            if (!e.type && fs.hasReturnExp)
+            {
+                e.type = Type.tint32;
+                fs.lowering = lrs;
+            }
+
+            return lrs;
         }
 
         switch (tab.ty)
@@ -2888,6 +2899,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 //  return vresult;
                 Statement s = new ReturnStatement(Loc.initial, new VarExp(Loc.initial, fd.vresult));
                 sc.fes.cases.push(s);
+                sc.fes.hasReturnExp = true;
 
                 // Save receiver index for the later rewriting from:
                 //  return exp;
@@ -3847,6 +3859,8 @@ private extern(D) Expression applyOpApply(ForeachStatement fs, Expression flde,
     Expression ec;
     ec = new DotIdExp(fs.loc, fs.aggr, sapply.ident);
     ec = new CallExp(fs.loc, ec, flde);
+    if (fs.hasReturnExp) // would be rewritten in semantic3, run semantic later
+        return ec;
     ec = ec.expressionSemantic(sc2);
     if (ec.isErrorExp())
         return null;
@@ -3873,6 +3887,8 @@ private extern(D) Expression applyDelegate(ForeachStatement fs, Expression flde,
         fs.aggr = de.e1;
     }
     ec = new CallExp(fs.loc, fs.aggr, flde);
+    if (fs.hasReturnExp) // would be rewritten in semantic3, run semantic later
+        return ec;
     ec = ec.expressionSemantic(sc2);
     if (ec.op == EXP.error)
         return null;
