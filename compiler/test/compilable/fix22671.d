@@ -1,4 +1,4 @@
-// https://issues.dlang.org/show_bug.cgi?id=22671
+// https://github.com/dlang/dmd/issues/22671
 // GC allocations inside `if (__ctfe)` blocks should be allowed in @nogc functions
 
 class Foo {}

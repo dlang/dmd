@@ -5180,6 +5180,7 @@ public:
     Expression* exp;
     size_t caseDim;
     FuncDeclaration* fesFunc;
+    bool inCtfeBlock;
     ReturnStatement* syntaxCopy() override;
     ReturnStatement* endsWithReturnStatement() override;
     void accept(Visitor* v) override;
