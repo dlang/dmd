@@ -1854,9 +1854,30 @@ elem* toElem(Expression e, ref IRState irs)
             ev = el_una(OPind, tym, ev);
         }
         elem* er = toElem(be.e2, irs);
-        elem* e = el_bin(op, tym, el, er);
-        e = el_combine(e, ev);
 
+        elem* e;
+        if (op == OPmodass &&
+            target.isAArch64 &&                 // x87 has FPREM instruction, others use fmod()
+            isFloating(be.type))
+        {
+            assert(!isComplex(be.type));
+
+            tym_t tym1 = tybasic(typemask(el));
+            RTLSYM rtlsym;
+            switch (_tysize[tym1])
+            {
+                case 4:  rtlsym = RTLSYM.FMODF; break;  // float
+                case 8:  rtlsym = RTLSYM.FMOD ; break;  // double
+                default: rtlsym = RTLSYM.FMODL; break;  // real
+            }
+
+            e = el_bin(OPcall,tym,el_var(getRtlsym(rtlsym)),el_param(el, er));
+        }
+        else
+        {
+            e = el_bin(op, tym, el, er);
+        }
+        e = el_combine(e, ev);
         elem_setLoc(e,be.loc);
         return e;
     }
@@ -1949,6 +1970,27 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitMod(ModExp e)
     {
+        if (target.isAArch64 &&                 // x87 has FPREM instruction, others use fmod()
+            isFloating(e.type))
+        {
+            assert(!isComplex(e.type));
+            elem* el = toElem(e.e1, irs);
+            elem* er = toElem(e.e2, irs);
+
+            tym_t tym1 = tybasic(typemask(el));
+            RTLSYM rtlsym;
+            switch (_tysize[tym1])
+            {
+                case 4:  rtlsym = RTLSYM.FMODF; break;  // float
+                case 8:  rtlsym = RTLSYM.FMOD ; break;  // double
+                default: rtlsym = RTLSYM.FMODL; break;  // real
+            }
+
+            tym_t tym = totym(e.type);
+            elem* eresult = el_bin(OPcall,tym,el_var(getRtlsym(rtlsym)),el_param(el, er));
+            elem_setLoc(eresult, e.loc);
+            return eresult;
+        }
         return toElemBin(e, OPmod);
     }
 

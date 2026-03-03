@@ -156,7 +156,11 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.C__ASSERT_FAIL:         symbolz(ps,FL.func,FREGSAVED,"__assert_fail", SFLexit, t); break;
         case RTLSYM.C__ASSERT_RTN:          symbolz(ps,FL.func,FREGSAVED,"__assert_rtn", SFLexit, t); break;
 
-        case RTLSYM.CXA_ATEXIT:          symbolz(ps,FL.func,FREGSAVED,"__cxa_atexit", 0, t); break;
+        case RTLSYM.FMODF:                  symbolz(ps,FL.func,FREGSAVED,"fmodf", 0, t); break;  // C library function fmodf()
+        case RTLSYM.FMOD:                   symbolz(ps,FL.func,FREGSAVED,"fmod",  0, t); break;  // C library function fmod()
+        case RTLSYM.FMODL:                  symbolz(ps,FL.func,FREGSAVED,"fmodl", 0, t); break;  // C library function fmodl()
+
+        case RTLSYM.CXA_ATEXIT:             symbolz(ps,FL.func,FREGSAVED,"__cxa_atexit", 0, t); break;
         default:
             assert(0);
     }
