@@ -225,16 +225,16 @@ $(DOC_OUTPUT_DIR)/core_sys_bionic_%.html : import/core/sys/bionic/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_darwin_%.html : import/core/sys/darwin/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -os=OSX -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=osx -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_darwin_mach_%.html : import/core/sys/darwin/mach/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -os=OSX -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=osx -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_darwin_netinet_%.html : import/core/sys/darwin/netinet/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -os=OSX -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=osx -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_darwin_sys_%.html : import/core/sys/darwin/sys/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -os=OSX -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=osx -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_dragonflybsd_%.html : import/core/sys/dragonflybsd/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -os=dragonflybsd -Df$@ project.ddoc $(DOCFMT) $<
