@@ -41,7 +41,7 @@ import dmd.dversion;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
-import dmd.expressionsem;
+import dmd.expressionsem : combine;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
