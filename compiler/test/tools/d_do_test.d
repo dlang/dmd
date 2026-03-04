@@ -2277,9 +2277,25 @@ int runBashTest(string input_dir, string test_name, const ref EnvData envData)
  */
 int runGDBTestWithLock(const ref EnvData envData, int delegate() fun)
 {
+    import core.thread : Thread;
+    import std.datetime : dur;
+    import std.conv: text;
+
     // Tests failed on SemaphoreCI when multiple GDB tests were run at once
-    scope lockfile = File(envData.results_dir.buildPath("gdb.lock"), "w");
-    lockfile.lock();
+    const lockPath = envData.results_dir.buildPath("gdb.lock");
+    scope lockfile = File(lockPath, "w");
+    enum maxWaitSeconds = 30;
+    auto waitTime = StopWatch(AutoStart.yes);
+    while (!lockfile.tryLock())
+    {
+        if (waitTime.peek.total!"seconds" >= maxWaitSeconds)
+        {
+            throw new Exception(
+                text("Time out waiting for ", lockPath, " after ", maxWaitSeconds,
+                     " seconds. A stale stopped test process may still hold the lock."));
+        }
+        Thread.sleep(100.msecs);
+    }
     scope (exit) lockfile.unlock();
 
     return fun();

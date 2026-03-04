@@ -242,7 +242,6 @@ public:
     virtual Visibility visible();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
 
-    virtual void addComment(const utf8_t *comment);
     const utf8_t *comment();                      // current value of comment
 
     UnitTestDeclaration *ddocUnittest();

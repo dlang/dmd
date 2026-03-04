@@ -326,6 +326,9 @@ $(DOC_OUTPUT_DIR)/core_builtins.html : import/core/builtins.d $(DMD)
 $(DOC_OUTPUT_DIR)/etc_linux_%.html : import/etc/linux/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOC_OUTPUT_DIR)/etc_valgrind_%.html : import/etc/valgrind/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOC_OUTPUT_DIR)/gc_%.html : import/gc/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
@@ -373,7 +376,7 @@ $(IMPDIR)/%.h : src/%.h
 ######################## Build DMD if non-existent ##############################
 
 ../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE):
-	$(MAKE) -C .. dmd BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL) DMD=""
+	"$(MAKE)" -C .. dmd BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL) DMD=""
 
 # alias using the absolute path (the Phobos Makefile specifies an absolute path)
 $(abspath ../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)): ../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)
@@ -441,7 +444,7 @@ unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
 else
 unittest : unittest-debug unittest-release
 unittest-%: target
-	$(MAKE) -f $(MAKEFILE) unittest OS=$(OS) MODEL=$(MODEL) DMD=$(DMD) BUILD=$*
+	"$(MAKE)" -f $(MAKEFILE) unittest OS=$(OS) MODEL=$(MODEL) DMD=$(DMD) BUILD=$*
 endif
 
 ifeq ($(OS),linux)
@@ -503,14 +506,14 @@ ifeq (linux,$(OS))
 endif
 
 test/%/.run: test/%/Makefile $(DMD)
-	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) BUILD=$(BUILD) \
+	$(QUIET)"$(MAKE)" -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) BUILD=$(BUILD) \
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) LINKDL=$(LINKDL) \
 		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)' PIC=$(PIC) SHARED=$(SHARED) IS_MUSL=$(IS_MUSL)
 
 test/%/.clean: test/%/Makefile
-	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) BUILD=$(BUILD) clean
+	$(QUIET)"$(MAKE)" -C test/$* MODEL=$(MODEL) OS=$(OS) BUILD=$(BUILD) clean
 ifeq (0,$(BUILD_WAS_SPECIFIED))
-	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) BUILD=debug clean
+	$(QUIET)"$(MAKE)" -C test/$* MODEL=$(MODEL) OS=$(OS) BUILD=debug clean
 endif
 
 #################### benchmark suite ##########################
@@ -591,7 +594,7 @@ test_extractor: $(TESTS_EXTRACTOR)
 ################################################################################
 
 betterc: | $(TESTS_EXTRACTOR) $(BETTERCTESTS_DIR)/.directory
-	$(MAKE) $$(find src -type f -name '*.d' | sed 's/[.]d/.betterc/')
+	"$(MAKE)" $$(find src -type f -name '*.d' | sed 's/[.]d/.betterc/')
 
 %.betterc: %.d | $(TESTS_EXTRACTOR) $(BETTERCTESTS_DIR)/.directory
 	@$(TESTS_EXTRACTOR) --betterC --attributes betterC \

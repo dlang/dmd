@@ -745,8 +745,19 @@ bool isLvalue(Expression _this)
         if (tf && tf.isRef)
         {
             if (auto dve = _this.e1.isDotVarExp())
+            {
                 if (dve.var.isCtorDeclaration())
-                    return false;
+                {
+                    // Allow taking the address of explicit constructor calls,
+                    // but not (__stmp = S(), __stmp).__ctor().
+
+                    auto ve = lastComma(dve.e1).isVarExp();
+                    if (ve && (ve.var.storage_class & STC.temp) != 0)
+                        return false;
+
+                    return isLvalue(dve.e1);
+                }
+            }
             return true; // function returns a reference
         }
         return false;
@@ -825,8 +836,13 @@ bool isLvalue(Expression _this)
  * Determine if copy elision is allowed when copying an expression to
  * a typed storage. This basically elides a restricted subset of so-called
  * "pure" rvalues, i.e. expressions with no reference semantics.
+ *
+ * Note: Please avoid using `checkMod` parameter because `canElideCopy()`
+ * essentially defines a value category and should eventually be merged with
+ * `isLvalue()` to return [isLvalue, allowEmplacement].
+ * Checking type compatibility here is only a stopgap measure.
  */
-bool canElideCopy(Expression e, Type to, bool checkMod = true)
+bool canElideCopy(Expression e, Type to, bool checkMod = false)
 {
     if (checkMod && !MODimplicitConv(e.type.mod, to.mod))
         return false;
@@ -834,8 +850,19 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
     static bool visitCallExp(CallExp e)
     {
         if (auto dve = e.e1.isDotVarExp())
+        {
             if (dve.var.isCtorDeclaration())
-                return true;
+            {
+                // Allow (__stmp = S(), __stmp).__ctor() to be elided,
+                // but force a copy for (s2 = s1.__ctor()).
+
+                auto ve = lastComma(dve.e1).isVarExp();
+                if (ve && (ve.var.storage_class & STC.temp) != 0)
+                    return true;
+
+                return canElideCopy(dve.e1, e.type);
+            }
+        }
 
         auto tb = e.e1.type.toBasetype();
         if (tb.ty == Tdelegate || tb.ty == Tpointer)
@@ -855,7 +882,7 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
             return false;
 
         // If an aggregate can be elided, so are its fields
-        return canElideCopy(e.e1, e.e1.type, false);
+        return canElideCopy(e.e1, e.e1.type);
     }
 
     switch (e.op)
@@ -872,8 +899,7 @@ bool canElideCopy(Expression e, Type to, bool checkMod = true)
         case EXP.dotVariable:
             return visitDotVarExp(e.isDotVarExp());
         case EXP.structLiteral:
-            auto sle = e.isStructLiteralExp();
-            return !(checkMod && sle.useStaticInit && to.isMutable());
+            return true;
         case EXP.variable:
             return (e.isVarExp().var.storage_class & STC.rvalue) != 0;
         default:
@@ -1985,7 +2011,7 @@ extern (D) Expression doCopyOrMove(Scope* sc, Expression e, Type t, bool nrvo, b
     {
         e = callCpCtor(sc, e, t, nrvo);
     }
-    else if (move && sd && sd.hasMoveCtor && !canElideCopy(e, t ? t : e.type, false))
+    else if (move && sd && sd.hasMoveCtor && !canElideCopy(e, t ? t : e.type))
     {
         // #move
         /* Rewrite as:
@@ -12462,7 +12488,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 }
 
                                 /* Rewrite as:
-                                 *  (e1 = e2).postblit();
+                                 *  (e1 = e2).postblit(), e1;
                                  *
                                  * Blit assignment e1 = e2 returns a reference to the original e1,
                                  * then call the postblit on it.
@@ -12474,6 +12500,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 e = new BlitExp(exp.loc, e, e2x);
                                 e = new DotVarExp(exp.loc, e, sd.postblit, false);
                                 e = new CallExp(exp.loc, e);
+                                e = new CommaExp(exp.loc, e, e1x);
                                 result = e.expressionSemantic(sc);
                                 return;
                             }
@@ -16761,7 +16788,14 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             if (e.placement)
                 check(e.placement, false);
             if (e.thisexp)
-                check(e.thisexp, false);
+            {
+                // In a shared constructor, accessing the current
+                // `this` is safe for nested allocation.
+                // See test_nosharedaccess_ctor_nested_new.d
+                if (!(sc.func && sc.func.isCtorDeclaration() && sc.func.type.isShared() &&
+                      e.thisexp.isThisExp()))
+                    check(e.thisexp, false);
+            }
             return false;
         }
 

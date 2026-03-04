@@ -443,6 +443,27 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         });
     }
 
+    if (e.ident == Id.isOverlapped)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        return isDeclX((d)
+        {
+            auto v = d.isVarDeclaration();
+            if (!v || !v.isField())
+                return false;
+
+            // Ensure semantic analysis is complete
+            if (auto agg = v.toParent().isAggregateDeclaration())
+            {
+                if (agg.semanticRun < PASS.semanticdone)
+                    agg.dsymbolSemantic(null);
+            }
+
+            return v.overlapped;
+        });
+    }
     if (e.ident == Id.isArithmetic)
     {
         return isTypeX(t => t.isIntegral() || t.isFloating());
@@ -588,7 +609,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
-        t = t.toBasetype();     // get the base in case `t` is an `enum`
+        // get enum base or static array element type
+        t = t.baseElemOf();
 
         if (auto ts = t.isTypeStruct())
         {
@@ -596,6 +618,36 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         return isCopyable(t) ? True() : False();
+    }
+    if (e.ident == Id.needsDestruction)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        auto t = isType(o);
+        if (!t)
+        {
+            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+                    e.ident.toChars(), o.toChars());
+            return ErrorExp.get();
+        }
+        // FIXME should just check t.needsDestruction() but that doesn't run dsymbolSemantic
+
+        // T[0]
+        if (!t.size())
+            return False();
+
+        // get the base in case `t` is an `enum`
+        // handle static arrays
+        t = t.baseElemOf();
+        if (auto ts = t.isTypeStruct())
+        {
+            ts.sym.dsymbolSemantic(sc);
+            if (ts.sym.dtor)
+                return True();
+        }
+        return False();
     }
 
     if (e.ident == Id.isNested)
@@ -1095,6 +1147,18 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 // Prevent semantic() from replacing Symbol with its initializer
                 die.wantsym = true;
             ex = ex.expressionSemantic(scx);
+            if (ex)
+            {
+                import dmd.access : symbolIsVisible;
+                import dmd.safe : setUnsafe;
+                auto msym = getDsymbolWithoutExpCtx(ex);
+                // https://github.com/dlang/dmd/issues/19721
+                if (msym && !symbolIsVisible(sc, msym))
+                {
+                    if (sc.setUnsafe(false, e.loc, "accessing member `%s`", id))
+                        return ErrorExp.get();
+                }
+            }
             return ex;
         }
         else if (e.ident == Id.getVirtualFunctions ||
@@ -1684,6 +1748,11 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", s.toChars());
             return ErrorExp.get();
         }
+        // https://issues.dlang.org/show_bug.cgi?id=13668
+        // https://github.com/dlang/dmd/issues/22524
+        // resolve forward references
+        if (sds.semanticRun < PASS.semanticdone)
+            sds.dsymbolSemantic(sc);
 
         auto idents = new Identifiers();
 
@@ -1762,10 +1831,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto cd = sds.isClassDeclaration();
         if (cd && e.ident == Id.allMembers)
         {
-            if (cd.semanticRun < PASS.semanticdone)
-                cd.dsymbolSemantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668
-                                   // Try to resolve forward reference
-
             void pushBaseMembersDg(ClassDeclaration cd)
             {
                 for (size_t i = 0; i < cd.baseclasses.length; i++)
@@ -2344,7 +2409,7 @@ private void traitNotFound(TraitsExp e)
         initialized = true;     // lazy initialization
 
         // All possible traits
-        __gshared Identifier*[59] idents =
+        __gshared Identifier*[60] idents =
         [
             &Id.allMembers,
             &Id.child,
@@ -2376,6 +2441,7 @@ private void traitNotFound(TraitsExp e)
             &Id.identifier,
             &Id.isAbstractClass,
             &Id.isAbstractFunction,
+            &Id.isOverlapped,
             &Id.isArithmetic,
             &Id.isAssociativeArray,
             &Id.isCopyable,

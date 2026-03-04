@@ -35,6 +35,7 @@ enum RTLSYM
     DARRAY_INDEXP,
     DNULLP,
     DINVARIANT,
+    MEMCMP,
     MEMCPY,
     MEMSET8,
     MEMSET16,
@@ -101,6 +102,10 @@ enum RTLSYM
     C__ASSERT,
     C__ASSERT_FAIL,
     C__ASSERT_RTN,
+
+    FMODF,
+    FMOD,
+    FMODL,
 
     CXA_ATEXIT
 }

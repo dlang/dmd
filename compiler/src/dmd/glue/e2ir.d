@@ -465,7 +465,14 @@ elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
         return e;
     }
 
-    if (alwaysCopy || ((*pe).Eoper != OPvar && (*pe).Eoper != OPind))
+    static bool hasAddress(elem* e)
+    {
+        if (e.Eoper == OPeq || e.Eoper == OPstreq)
+            e = e.E1;
+        return e.Eoper == OPvar || e.Eoper == OPind;
+    }
+
+    if (alwaysCopy || !hasAddress(*pe))
     {
         elem* e2 = *pe;
         type* tx;
@@ -1442,8 +1449,7 @@ elem* toElem(Expression e, ref IRState irs)
             {
                 StructLiteralExp sle = StructLiteralExp.create(ne.loc, sd, ne.arguments, t);
                 ez = toElemStructLit(sle, irs, EXP.construct, ev.Vsym, false);
-                if (tybasic(ez.Ety) == TYstruct || ne.placement)
-                    ez = el_una(OPaddr, TYnptr, ez);
+                ez = el_una(OPaddr, TYnptr, ez);
             }
             static if (0)
             {
@@ -1848,9 +1854,30 @@ elem* toElem(Expression e, ref IRState irs)
             ev = el_una(OPind, tym, ev);
         }
         elem* er = toElem(be.e2, irs);
-        elem* e = el_bin(op, tym, el, er);
-        e = el_combine(e, ev);
 
+        elem* e;
+        if (op == OPmodass &&
+            target.isAArch64 &&                 // x87 has FPREM instruction, others use fmod()
+            isFloating(be.type))
+        {
+            assert(!isComplex(be.type));
+
+            tym_t tym1 = tybasic(typemask(el));
+            RTLSYM rtlsym;
+            switch (_tysize[tym1])
+            {
+                case 4:  rtlsym = RTLSYM.FMODF; break;  // float
+                case 8:  rtlsym = RTLSYM.FMOD ; break;  // double
+                default: rtlsym = RTLSYM.FMODL; break;  // real
+            }
+
+            e = el_bin(OPcall,tym,el_var(getRtlsym(rtlsym)),el_param(el, er));
+        }
+        else
+        {
+            e = el_bin(op, tym, el, er);
+        }
+        e = el_combine(e, ev);
         elem_setLoc(e,be.loc);
         return e;
     }
@@ -1943,6 +1970,27 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitMod(ModExp e)
     {
+        if (target.isAArch64 &&                 // x87 has FPREM instruction, others use fmod()
+            isFloating(e.type))
+        {
+            assert(!isComplex(e.type));
+            elem* el = toElem(e.e1, irs);
+            elem* er = toElem(e.e2, irs);
+
+            tym_t tym1 = tybasic(typemask(el));
+            RTLSYM rtlsym;
+            switch (_tysize[tym1])
+            {
+                case 4:  rtlsym = RTLSYM.FMODF; break;  // float
+                case 8:  rtlsym = RTLSYM.FMOD ; break;  // double
+                default: rtlsym = RTLSYM.FMODL; break;  // real
+            }
+
+            tym_t tym = totym(e.type);
+            elem* eresult = el_bin(OPcall,tym,el_var(getRtlsym(rtlsym)),el_param(el, er));
+            elem_setLoc(eresult, e.loc);
+            return eresult;
+        }
         return toElemBin(e, OPmod);
     }
 
@@ -2187,8 +2235,16 @@ elem* toElem(Expression e, ref IRState irs)
 
                 elem* esize = t2.ty == Tsarray ? esiz2 : esiz1;
 
-                e = el_param(eptr1, eptr2);
-                e = el_bin(OPmemcmp, TYint, e, esize);
+                if (1)
+                {
+                    // Use library function as it is heavily optimized:
+                    // int memcmp(const void* eptr1, const void* eptr2, size_t esize);
+                    e = el_bin(OPcall,TYint,el_var(getRtlsym(RTLSYM.MEMCMP)),el_params(esize, eptr2, eptr1, null));
+                }
+                else
+                {
+                    e = el_bin(OPmemcmp, TYint, el_param(eptr1, eptr2), esize);
+                }
                 e = el_bin(eop, TYint, e, el_long(TYint, 0));
 
                 elem* elen = t2.ty == Tsarray ? elen2 : elen1;
@@ -2270,12 +2326,20 @@ elem* toElem(Expression e, ref IRState irs)
             es1 = addressElem(es1, ie.e1.type);
             elem* es2 = toElem(ie.e2, irs);
             es2 = addressElem(es2, ie.e2.type);
-            e = el_param(es1, es2);
-            elem* ecount;
             // In case of `real`, don't compare padding bits
             // https://issues.dlang.org/show_bug.cgi?id=3632
-            ecount = el_long(TYsize_t, (t1.ty == TY.Tfloat80) ? (t1.size() - target.realpad) : t1.size());
-            e = el_bin(OPmemcmp, TYint, e, ecount);
+            elem* ecount = el_long(TYsize_t, (t1.ty == TY.Tfloat80) ? (t1.size() - target.realpad) : t1.size());
+            if (1)
+            {
+                // Use library function as it is heavily optimized:
+                // int memcmp(const void* eptr1, const void* eptr2, size_t esize);
+                e = el_bin(OPcall,TYint,el_var(getRtlsym(RTLSYM.MEMCMP)),el_params(ecount, es2, es1, null));
+            }
+            else
+            {
+                elem* ep = el_param(es1, es2);
+                e = el_bin(OPmemcmp, TYint, ep, ecount);
+            }
             e = el_bin(eop, TYint, e, el_long(TYint, 0));
             elem_setLoc(e, ie.loc);
         }
@@ -5511,7 +5575,7 @@ elem* callfunc(Loc loc,
                 bool hasDtor = v && (v.isArgDtorVar || v.storage_class & STC.rvalue);
 
                 /* Also do not copy __rvalue expressions or temporaries that can be elided. */
-                bool copy = !(hasDtor || arg.rvalue || (param && canElideCopy(arg, param.type)));
+                bool copy = !(hasDtor || arg.rvalue || (param && canElideCopy(arg, param.type, true)));
 
                 elems[i] = addressElem(ea, arg.type, copy);
                 continue;
@@ -5748,6 +5812,7 @@ elem* callfunc(Loc loc,
                 e.E1 = el_una(OPs32_d, TYdouble, e.E2);
                 e.E1 = el_una(OPd_ld, TYreal, e.E1);
                 e.E2 = et;
+                assert(!(config.exe == EX_OSX64 && target.isAArch64)); // TODO AArch64
             }
             else if (op == OPyl2x || op == OPyl2xp1)
             {
@@ -5787,13 +5852,19 @@ elem* callfunc(Loc loc,
             e = constructVa_start(ep);
         else if (op == OPtoPrec)
         {
+            const bool RealIsDouble = _tysize[TYreal] == 8;
+            if (RealIsDouble)
+            {
+                assert(tybasic(ep.Ety) != TYreal);
+                assert(tybasic(tyret) != TYreal);
+            }
             static int X(int fty, int tty) { return fty * TMAX + tty; }
 
             final switch (X(tybasic(ep.Ety), tybasic(tyret)))
             {
             case X(TYfloat, TYfloat):     // float -> float
             case X(TYdouble, TYdouble):   // double -> double
-            case X(TYreal, TYreal): // real -> real
+            case X(TYreal, TYreal):       // real -> real
                 e = ep;
                 break;
 
@@ -6707,8 +6778,9 @@ elem* toElemCall(CallExp ce, ref IRState irs, elem* ehidden = null)
  *      sym = struct symbol to initialize with the literal. If null, an auto is created
  *      fillHoles = Fill in alignment holes with zero. Set to
  *                  false if allocated by operator new, as the holes are already zeroed.
+ * Returns:
+ *      generated elem tree with type TYstruct
  */
-
 elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym, bool fillHoles)
 {
     //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
@@ -6737,25 +6809,28 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
         return ep;
     }
 
+    elem* e;
+    // struct symbol to initialize with the literal
+    Symbol* stmp = sym;
+
     if (sle.useStaticInit)
     {
         /* Use the struct declaration's init symbol
          */
-        elem* e = el_var(toInitializer(sle.sd));
+        e = el_var(toInitializer(sle.sd));
         e.ET = Type_toCtype(sle.sd.type);
         elem_setLoc(e, sle.loc);
 
-        if (sym)
+        if (!stmp && sle.type.isMutable())
+            stmp = symbol_genauto(Type_toCtype(sle.sd.type));
+
+        if (stmp)
         {
-            elem* ev = el_var(sym);
+            elem* ev = el_var(stmp);
             if (tybasic(ev.Ety) == TYnptr)
                 ev = el_una(OPind, e.Ety, ev);
             ev.ET = e.ET;
             e = elAssign(ev, e, null, ev.ET);
-
-            //ev = el_var(sym);
-            //ev.ET = e.ET;
-            //e = el_combine(e, ev);
             elem_setLoc(e, sle.loc);
         }
         if (forcetype)
@@ -6763,10 +6838,8 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
         return e;
     }
 
-    // struct symbol to initialize with the literal
-    Symbol* stmp = sym ? sym : symbol_genauto(Type_toCtype(sle.sd.type));
-
-    elem* e = null;
+    if (!stmp)
+        stmp = symbol_genauto(Type_toCtype(sle.sd.type));
 
     /* If a field has explicit initializer (*sle.elements)[i] != null),
      * any other overlapped fields won't have initializer. It's asserted by
@@ -6985,6 +7058,8 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
     }
 
     elem* ev = el_var(stmp);
+    if (tybasic(ev.Ety) == TYnptr)
+        ev = el_una(OPind, totym(sle.sd.type), ev);
     ev.ET = Type_toCtype(sle.sd.type);
     e = el_combine(e, ev);
     elem_setLoc(e, sle.loc);

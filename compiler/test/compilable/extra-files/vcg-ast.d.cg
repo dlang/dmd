@@ -61,7 +61,7 @@ class C : Object
 		}
 		__require();
 		this.__invariant();
-		__result = 2;
+		__result = 2 , __result;
 		goto __returnLabel;
 		__returnLabel:
 		this.__invariant();

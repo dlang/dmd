@@ -1325,7 +1325,20 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
     if (tyfloating(tym))
     {
         assert(reg & 32);
-        if (tym == TYreal || tym == TYireal)
+        if (tycomplex(tym))
+        {
+            sz /= 2;
+            assert(sz <= 8);            // TODO AArch64 16 byte floats
+            const regm_t V0 = findreg(regm & INSTR.LSW);
+            const regm_t V1 = findreg(regm & INSTR.MSW);
+            const ftype = INSTR.szToFtype(sz);
+            cdb.gen1(INSTR.fcmp_float(ftype,0,V0));             // FCMP V0,#0.0
+            code* cnop = gen1(null, INSTR.nop);
+            genBranch(cdb, COND.ne, FL.code, cast(block*)cnop); // B.ne cnop1;
+            cdb.gen1(INSTR.fcmp_float(ftype,0,V1));             // FCMP V1,#0.0
+            cdb.append(cnop);                                   // cnop1:
+        }
+        else if (sz == 16)              // 128 byte floats
         {
             /*
                 fmov q0,reg
@@ -1466,6 +1479,10 @@ enum CLIB_A
     lttf2,
     letf2,
     memset,
+    mulsc3,
+    muldc3,
+    divsc3,
+    divdc3,
 }
 
 private
@@ -1504,10 +1521,19 @@ void initClibInfo(ref Symbol*[CLIB_A.max + 1] clibsyms, ref ClibInfo[CLIB_A.max 
 private
 void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t objfmt, exefmt_t exe)
 {
+    enum r0r1 = mask(32) | mask(33);
+    enum r2r3 = r0r1 >> 2;
+
     void declare(string name)
     {
         s = symboly(name, mask(32));
         cinfo.retregs = mask(32);
+    }
+
+    void declare2(string name)
+    {
+        s = symboly(name, r0r1 | r2r3);
+        cinfo.retregs = r0r1;
     }
 
     switch (clib)
@@ -1574,6 +1600,11 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
             cinfo.retregs = mask(0);
             break;
         }
+
+        case CLIB_A.mulsc3: declare2("__mulsc3"); break;
+        case CLIB_A.muldc3: declare2("__muldc3"); break;
+        case CLIB_A.divsc3: declare2("__divsc3"); break;
+        case CLIB_A.divdc3: declare2("__divdc3"); break;
 
         default:
             assert(0);
@@ -1798,7 +1829,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             numpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
 
         p.offset = numpara;
-        printf("[%d] param offset =  x%x, alignsize = %d\n", i, cast(int) numpara, cast(int) alignsize);
+        //printf("[%d] param offset =  x%x, alignsize = %d\n", i, cast(int) numpara, cast(int) alignsize);
         numpara += sz;
     }
 
@@ -2399,9 +2430,30 @@ private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint funcar
             break;
     }
     const tym_t tym = tybasic(e.Ety);
+    bool isPair = isRegisterPair(true, tym, 0);
     regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : INSTR.ALLREGS;
     scodelem(cgstate,cdb, e, retregs, 0, true);
-    if (sz <= REGSIZE || tym == TYreal)
+    if (isPair)
+    {
+        uint szx = cast(uint)tysize(tym) / 2;
+        const reg_t rmsw = findreg(retregs & INSTR.MSW);
+        code cs;
+        cs.reg = NOREG;
+        cs.base = INSTR.SP;
+        cs.index = NOREG;
+        cs.IFL1 = FL.offset;
+        storeToEA(cs, rmsw, cast(uint)sz + szx);
+        cs.IEV1.Voffset = funcargtos;
+        cdb.gen(&cs);
+
+        const reg_t rlsw = findreg(retregs & INSTR.LSW);
+        cs.IFL1 = FL.offset;
+        cs.IEV1.Voffset = 0;
+        storeToEA(cs, rlsw, cast(uint)sz);
+        cs.IEV1.Voffset = funcargtos;
+        cdb.gen(&cs);
+    }
+    else
     {
         const reg_t reg = findreg(retregs);
         code cs;
@@ -2413,27 +2465,6 @@ private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint funcar
         cs.IEV1.Voffset = funcargtos;
         cdb.gen(&cs);
     }
-    else if (sz == REGSIZE * 2)
-    {
-        const reg_t rmsw = findreg(retregs & INSTR.MSW);
-        code cs;
-        cs.reg = NOREG;
-        cs.base = INSTR.SP;
-        cs.index = NOREG;
-        cs.IFL1 = FL.offset;
-        storeToEA(cs, rmsw, REGSIZE);
-        cs.IEV1.Voffset = funcargtos - REGSIZE;
-        cdb.gen(&cs);
-
-        const reg_t rlsw = findreg(retregs & INSTR.LSW);
-        cs.IFL1 = FL.offset;
-        cs.IEV1.Voffset = 0;
-        storeToEA(cs, rlsw, REGSIZE);
-        cs.IEV1.Voffset = funcargtos - REGSIZE * 2;
-        cdb.gen(&cs);
-    }
-    else
-        assert(0);
 }
 
 /******************************

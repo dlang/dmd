@@ -39,7 +39,7 @@ extern (C++) final class DebugSymbol : Dsymbol
     {
         assert(!s);
         auto ds = new DebugSymbol(loc, ident);
-        ds.comment = comment;
+        ds.addComment(comment);
         return ds;
     }
 
@@ -75,7 +75,7 @@ extern (C++) final class VersionSymbol : Dsymbol
     {
         assert(!s);
         auto ds = new VersionSymbol(loc, ident);
-        ds.comment = comment;
+        ds.addComment(comment);
         return ds;
     }
 

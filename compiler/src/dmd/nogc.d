@@ -294,16 +294,20 @@ Expression checkGC(Expression e, Scope* sc)
     return e;
 }
 
-extern (D) void printGCUsage(FuncDeclaration fd, Loc loc, const(char)* warn)
+/// Returns: whether GC usage inside `fd` should be printed for the -vgc flag
+extern (D) bool vgcEnabled(FuncDeclaration fd)
 {
     if (!global.params.v.gc)
-        return;
+        return false;
 
     Module m = fd.getModule();
-    if (m && m.isRoot() && !fd.inUnittest())
-    {
+    return (m && m.isRoot() && !fd.inUnittest());
+}
+
+extern (D) void printGCUsage(FuncDeclaration fd, Loc loc, const(char)* warn)
+{
+    if (vgcEnabled(fd))
         message(loc, "vgc: %s", warn);
-    }
 }
 
 /**

@@ -42,7 +42,7 @@ import dmd.backend.ty;
 import dmd.backend.evalu8 : el_toreald;
 import dmd.backend.x86.xmm;
 import dmd.backend.arm.cod1 : getlvalue, loadFromEA, storeToEA,CLIB_A,callclib;
-import dmd.backend.arm.cod2 : tyToExtend;
+import dmd.backend.arm.cod2 : idxregm, tyToExtend;
 import dmd.backend.arm.cod3 : COND, conditionCode, gentstreg, loadFloatRegConst;
 import dmd.backend.arm.instr;
 
@@ -374,7 +374,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
          */
         getlvalue(cdb,cs,e1,0);             // get lvalue
         modEA(cdb,&cs);
-        regm_t keepmsk = idxregm(&cs);
+        regm_t keepmsk = idxregm(cs);
         retregs = mPSW;
         if (OTconv(e2.Eoper))
         {
@@ -478,6 +478,19 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("floatOpass(e=%p, pretregs = %s)\n",e,regm_str(pretregs));
     //elem_print(e);
+    /* pretregs = registers being returned
+     * idxregs = registers used for EA
+     * retregs1 = registers for e.E1
+     * retregs2 = registers for e.E2
+     * retregs = result registers
+     * So:
+     *  idxregs = &e1
+     *  retregs1 = *idxregs
+     *  retregs2 = e2
+     *  retregs = retregs1 op retregs2
+     *  *idxregs = retregs
+     *  pretregs = retregs
+     */
     elem* e1 = e.E1;
     tym_t ty1 = tybasic(e1.Ety);
     auto sz1 = _tysize[ty1];
@@ -485,6 +498,8 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t retregs;
     reg_t reg;
     bool isPair = isRegisterPair(true, ty1, 0);
+    if (isPair)
+        sz1 /= 2;
 
     if (e.Eoper == OPnegass)
     {
@@ -493,7 +508,6 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (isPair)
         {
             reg_t reglsw, regmsw;
-            sz1 /= 2;
             assert(sz1 <= 8);       // TODO AArch64 128 bit operands
             uint ftype = INSTR.szToFtype(sz1);
             if (cs.reg != NOREG)
@@ -575,12 +589,14 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     elem* e2 = e.E2;
-    regm_t rretregs = INSTR.FLOATREGS & ~pretregs;
-    if (!rretregs)
-        rretregs = INSTR.FLOATREGS;
+    regm_t retregs2 = INSTR.FLOATREGS & ~pretregs;
+    if (!retregs2)
+        retregs2 = INSTR.FLOATREGS;
+    if (isPair && (e.Eoper == OPmulass || e.Eoper == OPdivass))
+        retregs2 = mask(34)|mask(35);       // v2|v3
 
-    codelem(cgstate,cdb,e2,rretregs,false); // eval right leaf
-    reg_t rreg = findreg(rretregs);
+    codelem(cgstate,cdb,e2,retregs2,false); // eval right leaf
+    reg_t rreg = findreg(retregs2);
 
     bool regvar = false;
     if (0 && config.flags4 & CFG4optimized) // TODO AArch64
@@ -603,10 +619,12 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (!regvar)
     {
-        getlvalue(cdb,cs,e1,rretregs,RM.rw);         // get EA
-        retregs = pretregs & INSTR.FLOATREGS & ~rretregs;
+        getlvalue(cdb,cs,e1,retregs2,RM.rw);         // get EA
+        retregs = pretregs & INSTR.FLOATREGS & ~retregs2;
         if (!retregs)
-            retregs = INSTR.FLOATREGS & ~rretregs;
+            retregs = INSTR.FLOATREGS & ~retregs2;
+        if (isPair && (e.Eoper == OPmulass || e.Eoper == OPdivass))
+            retregs = mask(32)|mask(33);            // v0|v1
         allocreg(cdb,retregs,ty1);
         reg = findreg(isPair ? retregs & INSTR.LSW : retregs);
         if (isPair)
@@ -618,16 +636,18 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (isPair)
     {
-        sz1 /= 2;
-        rreg = findreg(rretregs & INSTR.LSW);
+        rreg = findreg(retregs2 & INSTR.LSW);
         reg_t Rd = reg, Rn = rreg, Rm = reg;    // reg = rreg + reg
         const uint ftype = INSTR.szToFtype(sz1);
+        uint clib;
+        assert(sz1 != 2 && sz1 != 16);          // halffloat and float128
         switch (e.Eoper)
         {
             // FADD/FSUB (extended register)
             // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
             case OPaddass:
                 cdb.gen1(INSTR.fadd_float(ftype,Rn,Rm,Rd));     // FADD Rd,Rn,Rm
+            L1:
                 if (!regvar)
                 {
                     storeToEA(cs,reg,sz1);
@@ -635,7 +655,7 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 }
 
                 reg  = findreg(retregs  & INSTR.MSW);
-                rreg = findreg(rretregs & INSTR.MSW);
+                rreg = findreg(retregs2 & INSTR.MSW);
                 if (cs.reg == NOREG)
                     cs.IEV1.Voffset += sz1;
                 else
@@ -643,16 +663,32 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 loadFromEA(cs,reg,sz1,sz1);
                 cdb.gen(&cs);
                 Rd = reg, Rn = rreg, Rm = reg;                  // reg = rreg + reg
-                cdb.gen1(INSTR.fadd_float(ftype,Rn,Rm,Rd));     // FADD Rd,Rn,Rm
+                if (e.Eoper == OPaddass)
+                    cdb.gen1(INSTR.fadd_float(ftype,Rn,Rm,Rd));     // FADD Rd,Rn,Rm
+                else
+                    cdb.gen1(INSTR.fsub_float(ftype,Rn,Rm,Rd));     // FSUB Rd,Rn,Rm
                 break;
 
             case OPminass:
                 cdb.gen1(INSTR.fsub_float(ftype,Rn,Rm,Rd));     // FSUB Rd,Rn,Rm
-                break;
+                goto L1;
 
             case OPmulass:
+                clib = sz1 == 8 ? CLIB_A.muldc3 : CLIB_A.mulsc3;
+                goto Lclib;
+
             case OPdivass:
-                assert(0); // TODO AArch64
+                clib = sz1 == 8 ? CLIB_A.divdc3 : CLIB_A.divsc3;
+            Lclib:
+                regm_t idxregs = idxregm(cs);
+                callclib(cdb,e,clib,pretregs,idxregs);
+                if (!regvar)
+                {
+                    storeToEA(cs,reg,sz1);
+                    cdb.gen(&cs);
+                    cs.IEV1.Voffset += sz1;
+                }
+                break;
 
             default:
                 assert(0);
@@ -669,11 +705,7 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             case OPdivass:      clib = CLIB_A.div; break;
             default:            assert(0);
         }
-        regm_t idxregs;         // save index registers so we can do the storeToEA() later
-        if (cs.base != NOREG)
-            idxregs |= mask(cs.base);
-        if (cs.index != NOREG)
-            idxregs |= mask(cs.index);
+        regm_t idxregs = idxregm(cs);  // save index registers so we can do the storeToEA() later
         regm_t dummy;
         callclib(cdb,null,clib,dummy,idxregs);
     }
@@ -1044,42 +1076,60 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         reverse ^= 1;
     }
 
+    bool isPair = isRegisterPair(true, tym, 0);
+
     if (tyfloating(tym))
     {
         regm_t retregs1 = INSTR.FLOATREGS;
         codelem(cgstate,cdb,e1,retregs1,1);              // compute left leaf
         regm_t retregs2 = INSTR.FLOATREGS & ~retregs1;
         scodelem(cgstate,cdb,e2,retregs2,retregs1,true); // right leaf
-        reg_t Vm = findreg(retregs1);
-        reg_t Vn = findreg(retregs2);
-        if (tym == TYreal || tym == TYireal)
+        if (tycomplex(tym))
         {
-            CLIB_A clib;
-            switch (jop)
-            {
-                case COND.eq:   clib = CLIB_A.eqtf2; break;
-                case COND.ne:   clib = CLIB_A.netf2; break;
-                case COND.lt:   clib = CLIB_A.lttf2; break;
-                case COND.le:   clib = CLIB_A.letf2; break;
-                case COND.gt:   clib = CLIB_A.gttf2; break;
-                case COND.ge:   clib = CLIB_A.getf2; break;
-                default:        assert(0);
-            }
-            regm_t dummy;
-            callclib(cdb,null,clib,dummy,0);
-            gentstreg(cdb,0,0);                          // CMP w0,#0
+            reg_t reg1lsw = findreg(retregs1 & INSTR.LSW);
+            reg_t reg1msw = findreg(retregs1 & INSTR.MSW);
+            reg_t reg2lsw = findreg(retregs2 & INSTR.LSW);
+            reg_t reg2msw = findreg(retregs2 & INSTR.MSW);
+
+            const uint ftype = INSTR.szToFtype(sz / 2);
+            cdb.gen1(INSTR.fcmp_float(ftype,reg2lsw,reg1lsw));     // FCMP reg1lsw,reg2lsw https://www.scs.stanford.edu/~zyedidia/arm64/fcmp_float.html
+            cdb.gen1(INSTR.fccmp_float(ftype,reg2msw,jop,reg1msw,0)); // FCCMP reg1msw,reg2msw,#0x0,eq https://www.scs.stanford.edu/~zyedidia/arm64/fccmp_float.html
+                // CSET w0,eq
         }
         else
         {
-            uint ftype = INSTR.szToFtype(sz);
-            cdb.gen1(INSTR.fcmpe_float(ftype,Vn,Vm));    // FCMPE Vn,Vm
+            if (sz == 32)
+            {
+                CLIB_A clib;
+                switch (jop)
+                {
+                    case COND.eq:   clib = CLIB_A.eqtf2; break;
+                    case COND.ne:   clib = CLIB_A.netf2; break;
+                    case COND.lt:   clib = CLIB_A.lttf2; break;
+                    case COND.le:   clib = CLIB_A.letf2; break;
+                    case COND.gt:   clib = CLIB_A.gttf2; break;
+                    case COND.ge:   clib = CLIB_A.getf2; break;
+                    default:        assert(0);
+                }
+                regm_t dummy;
+                callclib(cdb,null,clib,dummy,0);
+                gentstreg(cdb,0,0);                          // CMP w0,#0
+                assert(0);      // TODO AArch64 registers not right for library call
+            }
+            else
+            {
+                reg_t reg1 = findreg(retregs1);
+                reg_t reg2 = findreg(retregs2);
+                uint ftype = INSTR.szToFtype(sz);
+                cdb.gen1(INSTR.fcmpe_float(ftype,reg2,reg1));    // FCMPE reg2,reg1
+            }
         }
         goto L3;
     }
 
     retregs = cgstate.allregs;
 
-    ce = sz > REGSIZE ? gennop(ce) : null;
+    ce = isPair ? gennop(ce) : null;
 
     switch (e2.Eoper)
     {
@@ -1087,22 +1137,8 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             scodelem(cgstate,cdb,e1,retregs,0,true);        // compute left leaf
             rretregs = cgstate.allregs & ~retregs;
             scodelem(cgstate,cdb,e2,rretregs,retregs,true); // get right leaf
-            if (sz <= REGSIZE)                              // CMP reg,rreg
+            if (isPair)
             {
-                reg = findreg(retregs);                     // get reg that e1 is in
-                rreg = findreg(rretregs);
-                uint ins;
-                uint sf = sz == 8;
-                if (reverse)
-                    ins = INSTR.cmp_subs_addsub_shift(sf, reg, 0, 0, rreg); // CMP rreg, reg
-                else
-                    ins = INSTR.cmp_subs_addsub_shift(sf, rreg, 0, 0, reg); // CMP reg, rreg
-                cdb.gen1(ins);
-            }
-            else
-            {
-                assert(sz == 2 * REGSIZE);
-
                 // Compare MSW, if they're equal then compare the LSW
                 reg  = findreg( retregs & INSTR.MSW);
                 rreg = findreg(rretregs & INSTR.MSW);
@@ -1113,6 +1149,18 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 reg = findreg(retregs & INSTR.LSW);
                 rreg = findreg(rretregs & INSTR.LSW);
                 ins = INSTR.cmp_subs_addsub_shift(1, rreg, 0, 0, reg);      // CMP reg, rreg
+                cdb.gen1(ins);
+            }
+            else
+            {
+                reg = findreg(retregs);                     // get reg that e1 is in
+                rreg = findreg(rretregs);
+                uint ins;
+                uint sf = sz == 8;
+                if (reverse)
+                    ins = INSTR.cmp_subs_addsub_shift(sf, reg, 0, 0, rreg); // CMP rreg, reg
+                else
+                    ins = INSTR.cmp_subs_addsub_shift(sf, rreg, 0, 0, reg); // CMP reg, rreg
                 cdb.gen1(ins);
             }
             break;
@@ -1414,6 +1462,7 @@ L3:
             // not sure if `and w0,w0,#0xFF` is also needed here
             pretregs &= ~mPSW;
             fixresult(cdb,e,resregs,pretregs);
+            return;
         }
         else static if (0)
         {

@@ -613,9 +613,8 @@ public:
     virtual bool needThis();
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
-    virtual void addComment(const char* comment);
     const char* comment();
-    void comment(const char* comment);
+    void addComment(const char* c);
     UnitTestDeclaration* ddocUnittest();
     void ddocUnittest(UnitTestDeclaration* utd);
     bool inNonRoot();
@@ -4083,6 +4082,7 @@ struct HdrGenState final
     bool fullDump;
     bool importcHdr;
     bool inCAlias;
+    bool inFuncReturn;
     bool doFuncBodies;
     bool vcg_ast;
     bool skipConstraints;
@@ -4102,6 +4102,7 @@ struct HdrGenState final
         fullDump(),
         importcHdr(),
         inCAlias(),
+        inFuncReturn(),
         doFuncBodies(),
         vcg_ast(),
         skipConstraints(),
@@ -4117,12 +4118,13 @@ struct HdrGenState final
         inEnumDecl()
     {
     }
-    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool inCAlias = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool errorMsg = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
+    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool inCAlias = false, bool inFuncReturn = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool errorMsg = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
         hdrgen(hdrgen),
         ddoc(ddoc),
         fullDump(fullDump),
         importcHdr(importcHdr),
         inCAlias(inCAlias),
+        inFuncReturn(inFuncReturn),
         doFuncBodies(doFuncBodies),
         vcg_ast(vcg_ast),
         skipConstraints(skipConstraints),
@@ -5180,6 +5182,7 @@ class ReturnStatement final : public Statement
 public:
     Expression* exp;
     size_t caseDim;
+    FuncDeclaration* fesFunc;
     ReturnStatement* syntaxCopy() override;
     ReturnStatement* endsWithReturnStatement() override;
     void accept(Visitor* v) override;
@@ -7286,18 +7289,6 @@ public:
     void visit(StaticForeachDeclaration* sfd) override;
 };
 
-class AddCommentVisitor : public Visitor
-{
-public:
-    using Visitor::visit;
-    const char* comment;
-    AddCommentVisitor(const char* comment);
-    void visit(Dsymbol* d) override;
-    void visit(AttribDeclaration* atd) override;
-    void visit(ConditionalDeclaration* cd) override;
-    void visit(StaticForeachDeclaration* sfd) override;
-};
-
 class NrvoWalker final : public StatementRewriteWalker
 {
 public:
@@ -8812,6 +8803,7 @@ struct Id final
     static Identifier* isAbstractClass;
     static Identifier* isArithmetic;
     static Identifier* isAssociativeArray;
+    static Identifier* isOverlapped;
     static Identifier* isBitfield;
     static Identifier* isFinalClass;
     static Identifier* isTemplate;
@@ -8877,6 +8869,7 @@ struct Id final
     static Identifier* isCopyable;
     static Identifier* toType;
     static Identifier* parameters;
+    static Identifier* needsDestruction;
     static Identifier* allocator;
     static Identifier* basic_string;
     static Identifier* basic_istream;

@@ -1209,6 +1209,36 @@ void testLDC326()
 }
 
 /***************************************/
+// https://github.com/dlang/dmd/issues/22629
+
+struct Collection2
+{
+    this(ref Collection2) {}
+
+    int opApply(int delegate(Collection2))
+    {
+        return 0;
+    }
+}
+
+Collection2 testForeach2(ref Collection2 level1, ref Collection2 level2)
+{
+    foreach (first; level1) {
+        foreach (second; level2)
+            return second;
+    }
+
+    return Collection2();
+}
+
+void test22629()
+{
+    Collection2 c1, c2;
+    testForeach2(c1, c2);
+}
+
+
+/***************************************/
 
 int main()
 {
@@ -1241,6 +1271,7 @@ int main()
     test14653();
     test17041();
     testLDC326();
+    test22629();
 
     printf("Success\n");
     return 0;

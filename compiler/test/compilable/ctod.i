@@ -53,6 +53,11 @@ extern (C)
 		Callback cb = void;
 	}
 	extern __gshared int[cast(ULONG)3] arr;
+	alias NOPE1 = void;
+	void mylib_hello1();
+	alias NOPE2 = int;
+	int mylib_hello2();
+	void mylib_hello3(void*);
 	/+enum int __DATE__ = 1+/;
 	/+enum int __TIME__ = 1+/;
 	/+enum int __TIMESTAMP__ = 1+/;
@@ -131,3 +136,11 @@ int arr[(ULONG) 3];
 #define DEF 123
 #define SQL_DRIVER_STMT_ATTR_BASE   0x00004000  // 32-bit
 #define ABC 64
+
+typedef void NOPE1;
+void mylib_hello1(void);
+
+typedef int NOPE2;
+int mylib_hello2(void);
+
+void mylib_hello3(void*);

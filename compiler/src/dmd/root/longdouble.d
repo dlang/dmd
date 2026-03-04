@@ -16,6 +16,8 @@ version (CRuntime_Microsoft)
     static if (real.sizeof > 8)
         alias longdouble = real;
     else
+        // Need to fix longdouble_soft so it works for compiler built with AArch64 but
+        // generating X86_64 code
         alias longdouble = longdouble_soft;
 }
 else
@@ -33,6 +35,7 @@ version(D_InlineAsm_X86_64)
 else version(D_InlineAsm_X86)
     version = AsmX86;
 else
+    // yes, AArch64 host needs to emulate 80 bit real to cross compile for X86_64
     static assert(false, "longdouble_soft not supported on this platform");
 
 bool initFPU()

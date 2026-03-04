@@ -1773,6 +1773,7 @@ void expression_h(Expression *e, Scope *sc, Type *t, Loc loc, Expressions *es)
     dmd::expandTuples(es);
     dmd::optimize(e, 0);
     dmd::isLvalue(e);
+    dmd::canElideCopy(e, t);
 }
 
 void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,
