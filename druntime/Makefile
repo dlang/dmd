@@ -249,7 +249,7 @@ $(DOC_OUTPUT_DIR)/core_sys_elf_%.html : import/core/sys/elf/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_freebsd_%.html : import/core/sys/freebsd/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -os=freebsd $@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=freebsd -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_freebsd_netinet_%.html : import/core/sys/freebsd/netinet/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -os=freebsd -Df$@ project.ddoc $(DOCFMT) $<
