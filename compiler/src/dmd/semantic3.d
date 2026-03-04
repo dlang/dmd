@@ -41,7 +41,7 @@ import dmd.dversion;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
-import dmd.expressionsem : combine;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
@@ -980,7 +980,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             // Create: return (vresult = exp, vresult);
                             exp = new ConstructExp(rs.loc, funcdecl.vresult, exp);
                             exp = exp.expressionSemantic(scret);
-                            exp = Expression.combine(exp, new VarExp(rs.loc, funcdecl.vresult));
+                            exp = combine(exp, new VarExp(rs.loc, funcdecl.vresult));
 
                             if (rs.caseDim)
                                 exp = combine(exp, new IntegerExp(rs.caseDim));
