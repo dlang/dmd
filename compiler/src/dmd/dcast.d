@@ -2092,7 +2092,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         const(bool) tob_isA = ((tob.isIntegral() || tob.isFloating()) && tob.ty != Tvector);
         const(bool) t1b_isA = ((t1b.isIntegral() || t1b.isFloating()) && t1b.ty != Tvector);
 
-        Expression ok()
+        CastExp ok()
         {
             auto result = new CastExp(e.loc, e, t);
             result.type = t; // Don't call semantic()
@@ -2134,17 +2134,16 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         if (AggregateDeclaration t1ad = isAggregate(t1b))
         {
             AggregateDeclaration toad = isAggregate(tob);
-            if (t1ad != toad && t1ad.aliasthis)
+            if (t1ad != toad)
             {
                 if (t1b.ty == Tclass && tob.ty == Tclass)
                 {
-                    ClassDeclaration t1cd = t1b.isClassHandle();
-                    ClassDeclaration tocd = tob.isClassHandle();
-                    int offset;
-                    if (tocd.isBaseOf(t1cd, &offset))
-                        return ok();
+                    auto ce = ok();
+                    lowerCastExp(ce, sc);
+                    return ce;
                 }
-                hasAliasThis = true;
+
+                hasAliasThis = t1ad.aliasthis !is null;
             }
         }
         else if (tob.ty == Tvector && t1b.ty != Tvector)
