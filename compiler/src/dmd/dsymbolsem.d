@@ -702,7 +702,17 @@ Scope* scopeCreateGlobal(Module _module, ErrorSink eSink)
  */
 void dsymbolSemantic(Dsymbol dsym, Scope* sc)
 {
-    scope v = new DsymbolSemanticVisitor(sc);
+    scope v = new DsymbolSemanticVisitor(sc, false);
+    dsym.accept(v);
+}
+
+/*************************************
+ * Does shallow semantic analysis on the public face of declarations.
+ * For pointer-like types, this skips deep semantic analysis of the pointee.
+ */
+void dsymbolSemantic(Dsymbol dsym, Scope* sc, bool shallow)
+{
+    scope v = new DsymbolSemanticVisitor(sc, shallow);
     dsym.accept(v);
 }
 
@@ -2019,9 +2029,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     alias visit = Visitor.visit;
 
     Scope* sc;
-    this(Scope* sc) scope @safe
+    bool shallow;
+    this(Scope* sc, bool shallow = false) scope @safe
     {
         this.sc = sc;
+        this.shallow = shallow;
     }
 
     override void visit(Dsymbol dsym)
@@ -2179,6 +2191,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (!sc)
             return;
+
+        /* Shallow semantic analysis for pointer-like field types.
+         * Pointer types (T*, T[], class, T[key], function, delegate) have known size (target.ptrsize)
+         *  without needing to analyze the pointee type.
+         * This prevents false-positive cyclic reference errors for valid recursive data structures.
+         */
+        if (shallow && dsym.isField() && isPointerLike(dsym.type))
+        {
+            // For pointer-like types, just resolve the type without deep pointee analysis
+            if (dsym.type)
+            {
+                if (!dsym.originalType)
+                    dsym.originalType = dsym.type.syntaxCopy();
+                dsym.type = dsym.type.typeSemantic(dsym.loc, sc);
+            }
+            dsym.semanticRun = PASS.semanticdone;
+            return;
+        }
 
         dsym.semanticRun = PASS.semantic;
 
@@ -7054,7 +7084,17 @@ bool determineFields(AggregateDeclaration ad)
             return 0;
 
         if (v.semanticRun < PASS.semanticdone)
-            v.dsymbolSemantic(null);
+        {
+            // For pointer-like field types, use shallow semantic to avoid
+            //  false-positive cyclic reference errors.
+            // Pointer types have a known size without needing to analyze the pointee type.
+            // The semantic analysis of the type,
+            //  should be triggered through other means.
+            if (isPointerLike(v.type))
+                dsymbolSemantic(v, null, true);
+            else
+                v.dsymbolSemantic(null);
+        }
         // Return in case a recursive determineFields triggered by v.semantic already finished
         if (ad.sizeok != Sizeok.none)
             return 1;

@@ -711,6 +711,26 @@ bool isComplex(Type _this)
     return false;
 }
 
+/*************************************
+ * Check if a type is pointer-like (has known fixed size without analyzing pointee).
+ * Pointer types (T*, T[], class, T[key], function, delegate) all have size target.ptrsize
+ * without needing to analyze the pointed-to type.
+ */
+bool isPointerLike(Type _this)
+{
+    if (_this is null)
+        return false;
+
+    switch (_this.ty)
+    {
+        case Tarray, Taarray, Tpointer, Treference, Tfunction, Tclass, Tdelegate:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 // Exposed as it is used in `expressionsem`
 MOD typeDeduceWild(Type _this, Type t, bool isRef)
 {

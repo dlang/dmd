@@ -477,7 +477,7 @@ final:
             TypeFunction tf = fd.type.isTypeFunction();
             assert(tf !is null);
 
-            var.isNullable = tf.isRef || isTypeNullable(tf.next);
+            var.isNullable = tf.isRef || isPointerLike(tf.next);
             scv = dfaCommon.acquireScopeVar(var);
 
             dfaCommon.printStructure((ref OutBuffer ob,

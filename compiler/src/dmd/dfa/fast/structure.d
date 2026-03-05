@@ -3987,7 +3987,7 @@ struct DFAConsequence
 private:
 void applyType(DFAVar* var, VarDeclaration vd)
 {
-    var.isNullable = vd.isRef || isTypeNullable(vd.type);
+    var.isNullable = vd.isRef || isPointerLike(vd.type);
     var.isTruthy = isTypeTruthy(vd.type);
 
     var.isStaticArray = vd.type.isTypeSArray !is null;

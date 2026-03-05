@@ -15,32 +15,7 @@ import dmd.mtype;
 import dmd.visitor;
 import dmd.identifier;
 import dmd.expression;
-import dmd.typesem : isFloating;
-
-/***********************************************************
- * Checks if a type is capable of being null at runtime.
- *
- * The DFA uses this to determine if a null-check is required
- * for a specific variable.
- *
- * Returns:
- *      true if the type is a pointer, array, class, delegate, etc.
- */
-bool isTypeNullable(Type type)
-{
-    if (type is null)
-        return false;
-
-    switch (type.ty)
-    {
-    case TY.Tarray, TY.Taarray, TY.Tpointer, TY.Treference, TY.Tfunction,
-            TY.Tclass, TY.Tdelegate:
-            return true;
-
-    default:
-        return false;
-    }
-}
+import dmd.typesem : isFloating, isPointerLike;
 
 /***********************************************************
  * Checks if a type can be evaluated as a boolean (truthy/falsey).
@@ -156,7 +131,7 @@ EqualityArgType equalityArgTypes(Type lhs, Type rhs)
         return EqualityArgType.DynamicArray;
     else if (lhs.ty == Taarray && rhs.ty == Taarray)
         return EqualityArgType.AssociativeArray;
-    else if (isTypeNullable(lhs))
+    else if (isPointerLike(lhs))
         return EqualityArgType.Nullable;
     else
         return EqualityArgType.Unknown;

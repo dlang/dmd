@@ -2020,7 +2020,7 @@ struct ExpressionWalker
 
                         if (baseVar !is null)
                         {
-                            if (baseVar.isNullable && !isTypeNullable(ce.to))
+                            if (baseVar.isNullable && !isPointerLike(ce.to))
                             {
                                 // This prevents pointer integer checks from infecting pointers
 
@@ -2493,7 +2493,7 @@ struct ExpressionWalker
                 dfaCommon.printStateln("This:");
                 DFALatticeRef thisExp = this.walk(thisPointer);
 
-                if (isTypeNullable(thisPointer.type))
+                if (isPointerLike(thisPointer.type))
                     thisExp = this.seeDereference(thisPointer.loc, thisExp);
 
                 this.seeConvergeFunctionCallArgument(thisExp, thisPointerInfo,
