@@ -2037,9 +2037,9 @@ private elem* elnot(elem* e, Goal goal)
             }
             else if (tybasic(e1.Ety) == TYbool && tysize(e.Ety) == 1)
             {
-                // !e1 => (e1 & 1) ^ 1
-                elem* normalized = el_bin(OPand, e1.Ety, e1, el_long(e1.Ety, 1));
-                e = el_bin(OPxor, e1.Ety, normalized, el_long(e1.Ety, 1));
+                // !e1 => (e1 ^ 1)
+                e.Eoper = OPxor;
+                e.E2 = el_long(e1.Ety,1);
                 e = optelem(e, goal);
             }
             else
