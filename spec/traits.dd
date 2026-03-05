@@ -22,6 +22,7 @@ $(GNAME TraitsExpression):
 $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 isAbstractClass, $(D isAbstractClass))
     $(RELATIVE_LINK2 isArithmetic, $(D isArithmetic))
+    $(RELATIVE_LINK2 isOverlapped, $(D isOverlapped))
     $(RELATIVE_LINK2 isAssociativeArray, $(D isAssociativeArray))
     $(RELATIVE_LINK2 isFinalClass, $(D isFinalClass))
     $(RELATIVE_LINK2 isPOD, $(D isPOD))
@@ -123,6 +124,45 @@ void main()
     static assert(!__traits(isArithmetic));
     static assert(!__traits(isArithmetic, int*));
 }
+---
+)
+
+$(H3 $(GNAME isOverlapped))
+
+        $(P Takes one argument, which must be a field of an aggregate type.
+        Returns $(D true) if the field's memory is overlapped with other fields
+        (i.e., the field is a member of a union, either anonymous or named),
+        $(D false) otherwise.
+        )
+
+        $(P For non-field arguments (types, literals, aggregate types themselves),
+        returns $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int a;
+    union
+    {
+        int x;
+        float y;
+    }
+}
+
+static assert(__traits(isOverlapped, S.x));
+static assert(__traits(isOverlapped, S.y));
+static assert(!__traits(isOverlapped, S.a));
+
+union U
+{
+    int x;
+    float y;
+}
+
+static assert(__traits(isOverlapped, U.x));
+static assert(__traits(isOverlapped, U.y));
 ---
 )
 
