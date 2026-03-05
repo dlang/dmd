@@ -1076,6 +1076,9 @@ dmd -cov -unittest myprog.d
             "https://dlang.org/spec/attribute.html#system-variables"),
         Feature("fastdfa", "useFastDFA",
             "Fast dataflow analysis engine, experimental"),
+        Feature("warnunusedparams", "warnUnused",
+            "enable warnings for unused function parameters",
+            "https://dlang.org/spec/function.html#unused-params"),
     ];
 }
 
