@@ -11,7 +11,8 @@
 
 module rt.dwarfeh;
 
-version (Posix):
+version (Posix) { version = DWARFEH; }
+version (DWARFEH):
 
 // debug = EH_personality;
 
