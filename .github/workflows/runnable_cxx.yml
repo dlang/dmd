@@ -197,7 +197,7 @@ jobs:
         if [[ '${{ matrix.os }}' == macos-14 ]]; then
           # DMD doesn't work on arm64 yet. Make LDC host compiler cross-compile
           # DMD to x86_64, and then use implicit Rosetta emulation.
-          extraFlags=(COMPILER_DFLAGS="-mtriple=x86_64-apple-macos14")
+          extraFlags=(HOST_DFLAGS="-mtriple=x86_64-apple-macos14")
         fi
         make -C dmd    -j$N "${extraFlags[@]}"
         make -C phobos -j$N

@@ -16,7 +16,7 @@
 #     make -j$(nproc) dmd-test
 #
 # See compiler/src/build.d for variables affecting the compiler build.
-# Use COMPILER_DFLAGS (not DFLAGS) for extra flags (for the host compiler) to be used for the compiler build.
+# Use HOST_DFLAGS (not DFLAGS) for extra flags (for the host compiler) to be used for the compiler build.
 
 include compiler/src/osmodel.mak
 
@@ -49,11 +49,11 @@ GENERATED:=generated
 BUILD_EXE:=$(GENERATED)/build$(EXE)
 RUN_EXE:=$(GENERATED)/run$(EXE)
 
-# forward any COMPILER_DFLAGS as DFLAGS for the build tool
-ifeq (,$(COMPILER_DFLAGS))
+# forward any HOST_DFLAGS as DFLAGS for the build tool
+ifeq (,$(HOST_DFLAGS))
     BUILD_CMD:=$(BUILD_EXE)
 else
-    BUILD_CMD:=$(BUILD_EXE) DFLAGS='$(COMPILER_DFLAGS)'
+    BUILD_CMD:=$(BUILD_EXE) DFLAGS='$(HOST_DFLAGS)'
 endif
 
 .PHONY: all clean test html install \

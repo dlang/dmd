@@ -73,7 +73,7 @@ fi
 
 cd "$DMD_DIR"
 "$GNU_MAKE" -j$N MODEL=$MODEL HOST_DMD=$HOST_DC BUILD=debug "${disable_debug_for_unittests[@]}" dmd-unittest
-"$GNU_MAKE" -j$N MODEL=$MODEL HOST_DMD=$HOST_DC COMPILER_DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_RELEASE=1 ENABLE_ASSERTS=1 dmd
+"$GNU_MAKE" -j$N MODEL=$MODEL HOST_DMD=$HOST_DC HOST_DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_RELEASE=1 ENABLE_ASSERTS=1 dmd
 
 DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd.exe"
 
@@ -95,7 +95,7 @@ cd "$DMD_DIR/compiler/test"
 if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
     # Recompile debug dmd + unittests
     rm -rf "$DMD_DIR/generated/windows"
-    "$GNU_MAKE" -j$N -C "$DMD_DIR" MODEL=$MODEL HOST_DMD=$HOST_DC COMPILER_DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_DEBUG=1 ENABLE_COVERAGE=1 dmd dmd-unittest
+    "$GNU_MAKE" -j$N -C "$DMD_DIR" MODEL=$MODEL HOST_DMD=$HOST_DC HOST_DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_DEBUG=1 ENABLE_COVERAGE=1 dmd dmd-unittest
 fi
 
 "$HOST_DC" -m$MODEL -g -i run.d
