@@ -153,6 +153,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_darwin_sys_cdefs.html \
 	$(DOCDIR)\core_sys_darwin_sys_event.html \
 	$(DOCDIR)\core_sys_darwin_sys_mman.html \
+	$(DOCDIR)\core_sys_darwin_sys_sysctl.html \
 	\
 	$(DOCDIR)\core_sys_dragonflybsd_dlfcn.html \
 	$(DOCDIR)\core_sys_dragonflybsd_err.html \
@@ -174,6 +175,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_dragonflybsd_sys_link_elf.html \
 	$(DOCDIR)\core_sys_dragonflybsd_sys_mman.html \
 	$(DOCDIR)\core_sys_dragonflybsd_sys_socket.html \
+	$(DOCDIR)\core_sys_dragonflybsd_sys_sysctl.html \
 	\
 	$(DOCDIR)\core_sys_elf_package.html \
 	\
@@ -199,6 +201,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_freebsd_sys_mman.html \
 	$(DOCDIR)\core_sys_freebsd_sys_event.html \
 	$(DOCDIR)\core_sys_freebsd_sys_mount.html \
+	$(DOCDIR)\core_sys_freebsd_sys_sysctl.html \
 	\
 	$(DOCDIR)\core_sys_linux_config.html \
 	$(DOCDIR)\core_sys_linux_dlfcn.html \
@@ -250,6 +253,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_netbsd_sys_featuretest.html \
 	$(DOCDIR)\core_sys_netbsd_sys_link_elf.html \
 	$(DOCDIR)\core_sys_netbsd_sys_mman.html \
+	$(DOCDIR)\core_sys_netbsd_sys_sysctl.html \
 	\
 	$(DOCDIR)\core_sys_openbsd_dlfcn.html \
 	$(DOCDIR)\core_sys_openbsd_err.html \
@@ -263,6 +267,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_openbsd_sys_elf_common.html \
 	$(DOCDIR)\core_sys_openbsd_sys_link_elf.html \
 	$(DOCDIR)\core_sys_openbsd_sys_mman.html \
+	$(DOCDIR)\core_sys_openbsd_sys_sysctl.html \
 	\
 	$(DOCDIR)\core_sys_posix_config.html \
 	$(DOCDIR)\core_sys_posix_iconv.html \

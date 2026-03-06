@@ -221,6 +221,7 @@ $(DOC_OUTPUT_DIR)/core_sync.html : import/core/sync/package.d $(DMD)
 $(DOC_OUTPUT_DIR)/core_sync_%.html : import/core/sync/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+# FIXME enable CRuntime_Bionic
 $(DOC_OUTPUT_DIR)/core_sys_bionic_%.html : import/core/sys/bionic/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
