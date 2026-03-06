@@ -1389,7 +1389,9 @@ private void blcodgen(ref CGstate cg, block* bl)
         CodeBuilder cdbload; cdbload.ctor();
         CodeBuilder cdbstore; cdbstore.ctor();
 
-        sflsave = cast(FL*) alloca(globsym.length * FL.sizeof);
+        // BUG AArch64 alloca() not implemented yet for AArch64
+        //sflsave = cast(FL*) alloca(globsym.length * FL.sizeof);
+        sflsave = cast(FL*) mem_malloc(globsym.length * FL.sizeof);
         foreach (i, s; globsym[])
         {
             sflsave[i] = s.Sfl;
@@ -1461,6 +1463,8 @@ private void blcodgen(ref CGstate cg, block* bl)
         Symbol* s = globsym[i];
         s.Sfl = sflsave[i];    // undo block register assignments
     }
+    if (sflsave)
+        mem_free(sflsave);
 
     if (cg.reflocal)
         bl.Bflags |= BFL.reflocal;
