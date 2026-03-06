@@ -116,6 +116,19 @@ assert(c.Iop != BADINS);
         }
     }
 
+    /***
+     * Replace instruction `c` with the code sequence in `this`.
+     */
+    @trusted
+    void patch(code* c)
+    {
+        code* last = this.last();
+        last.next = c.next;
+        code* h = this.finish();
+        *c = *h;                // overwrite head of c with start of cdb
+        c.next = h.next;
+    }
+
     void gen(code* cs)
     {
         /* this is a high usage routine */

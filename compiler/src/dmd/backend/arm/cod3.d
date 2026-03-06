@@ -1753,12 +1753,7 @@ void assignaddrc(code* c)
                         // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_shift
                         cdb.gen1(INSTR.addsub_shift(1,0,0,0,R16,0,BPorSP,reg)); // ADD reg,BPorSP,R16 https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_shift.html
 
-                        // Awkwardly replace c with cdb
-                        code* last = cdb.last();
-                        last.next = c.next;
-                        code* h = cdb.finish();
-                        c.Iop = h.Iop;
-                        c.next = h.next;
+                        cdb.patch(c);   // Replace c with cdb
                     }
                     else
                         c.Iop = INSTR.addsub_imm(1,0,0,0,imm12,BPorSP,reg); // ADD reg,BPorSP,#imm12
