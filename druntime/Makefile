@@ -221,8 +221,9 @@ $(DOC_OUTPUT_DIR)/core_sync.html : import/core/sync/package.d $(DMD)
 $(DOC_OUTPUT_DIR)/core_sync_%.html : import/core/sync/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+# FIXME enable CRuntime_Bionic
 $(DOC_OUTPUT_DIR)/core_sys_bionic_%.html : import/core/sys/bionic/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=linux -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_darwin_%.html : import/core/sys/darwin/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -os=osx -Df$@ project.ddoc $(DOCFMT) $<
@@ -258,13 +259,13 @@ $(DOC_OUTPUT_DIR)/core_sys_freebsd_sys_%.html : import/core/sys/freebsd/sys/%.d 
 	$(DMD) $(DDOCFLAGS) -os=freebsd -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_linux_%.html : import/core/sys/linux/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=linux -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_linux_netinet_%.html : import/core/sys/linux/netinet/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=linux -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_linux_sys_%.html : import/core/sys/linux/sys/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=linux -Df$@ project.ddoc $(DOCFMT) $<
 
 # Note: no `-os=netbsd` option
 $(DOC_OUTPUT_DIR)/core_sys_netbsd_%.html : import/core/sys/netbsd/%.d $(DMD)
@@ -279,23 +280,24 @@ $(DOC_OUTPUT_DIR)/core_sys_openbsd_%.html : import/core/sys/openbsd/%.d $(DMD)
 $(DOC_OUTPUT_DIR)/core_sys_openbsd_sys_%.html : import/core/sys/openbsd/sys/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -os=openbsd -Df$@ project.ddoc $(DOCFMT) $<
 
+# Use -os=linux to define Posix version
 $(DOC_OUTPUT_DIR)/core_sys_posix_%.html : import/core/sys/posix/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=linux -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_posix_arpa_%.html : import/core/sys/posix/arpa/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=linux -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_posix_net_%.html : import/core/sys/posix/net/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=linux -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_posix_netinet_%.html : import/core/sys/posix/netinet/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=linux -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_posix_stdc_%.html : import/core/sys/posix/stdc/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=linux -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_posix_sys_%.html : import/core/sys/posix/sys/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -os=linux -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_solaris_%.html : import/core/sys/solaris/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -os=solaris -Df$@ project.ddoc $(DOCFMT) $<
