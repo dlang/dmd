@@ -1558,7 +1558,6 @@ done:
  */
 
 @trusted
-private
 void movregconstant(ref CodeBuilder cdb,reg_t reg,ulong value,uint sf)
 {
     if (!sf)
