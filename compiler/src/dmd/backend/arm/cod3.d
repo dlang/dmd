@@ -1525,117 +1525,134 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
             gentstreg(cdb,reg,(flags & 64) != 0);
         return;
     }
-    else
+
+    // See if another register has the right value
+    reg_t r = 0;
+    for (regm_t mreg = cgstate.regcon.immed.mval; mreg; mreg >>= 1)
     {
-
-        // See if another register has the right value
-        reg_t r = 0;
-        for (regm_t mreg = cgstate.regcon.immed.mval; mreg; mreg >>= 1)
+        if (mreg & 1 && cgstate.regcon.immed.value[r] == value)
         {
-            if (mreg & 1 && cgstate.regcon.immed.value[r] == value)
-            {
-                genmovreg(cdb,reg,r);
-                goto done;
-            }
-            r++;
+            genmovreg(cdb,reg,r);
+            goto done;
         }
-
-        // loading a constant into the lower 32 bits zeros out the upper 32 bits
-        if ((value & 0xFFFF_FFFF_0000_0000) == 0)
-            flags &= ~64;
-
-        uint sf = (flags & 64) != 0;
-        uint opc = 2;               // MOVZ
-        uint hw = 0;
-        uint imm16 = value & 0xFFFF;
-        reg_t Rd = reg;
-        ulong value2 = value;
-
-        // Look for shortcuts using ORR
-        // Either ORR for the whole thing,
-        // or ORR to OR set the high 32 bits same as the low 32
-        // (not implemented)
-
-        // Look for shortcuts using MOVN
-        if (sf)
-        {
-            if ((value & 0xFFFF_FFFF_FFFF_0000) == 0xFFFF_FFFF_FFFF_0000)
-            {
-                imm16 = ~imm16 & 0xFFFF;
-                opc = 0;            // MOVN
-                value2 = 0;
-            }
-            else if ((value & 0xFFFF_FFFF_0000_FFFF) == 0xFFFF_FFFF_0000_FFFF)
-            {
-                imm16 = ~(value >> 16) & 0xFFFF;
-                opc = 0;            // MOVN
-                value2 = 0;
-                hw = 1;
-            }
-            else if ((value & 0xFFFF_0000_FFFF_FFFF) == 0xFFFF_0000_FFFF_FFFF)
-            {
-                imm16 = ~(value >> 32) & 0xFFFF;
-                opc = 0;            // MOVN
-                value2 = 0;
-                hw = 2;
-            }
-            else if ((value & 0x0000_FFFF_FFFF_FFFF) == 0x0000_FFFF_FFFF_FFFF)
-            {
-                imm16 = ~(value >> 48) & 0xFFFF;
-                opc = 0;            // MOVN
-                value2 = 0;
-                hw = 3;
-            }
-        }
-        else
-        {
-            if ((value & 0xFFFF_0000) == 0xFFFF_0000)
-            {
-                imm16 = ~imm16 & 0xFFFF;
-                opc = 0;            // MOVN
-                value2 = 0;
-            }
-            else if ((value & 0x0000_FFFF) == 0x0000_FFFF)
-            {
-                imm16 = ~(value >> 16) & 0xFFFF;
-                opc = 0;            // MOVN
-                value2 = 0;
-                hw = 1;
-            }
-        }
-
-        if ((value2 >> (hw * 16)) & 0xFFFF_FFFF_FFFF_0000)
-        {
-            // Check for ORR one instruction solution
-            uint N, immr, imms;
-            if (orr_solution(value2, N, immr, imms)) // TODO AArch64 not implemented yet
-            {
-                // MOV Rd,#imm
-                // http://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_log_imm.html
-                cdb.gen1(INSTR.log_imm(sf, 1, N, immr, imms, 31, Rd));
-                goto done;
-            }
-        }
-
-        while (1)
-        {
-            if (imm16 || value2 == 0)
-            {
-                cdb.gen1(INSTR.movewide(sf, opc, hw, imm16, Rd));
-                opc = 3;            // MOVK
-            }
-            value2 >>= 16;
-            if (!value2)
-                break;
-            imm16 = value2 & 0xFFFF;
-            ++hw;
-        }
+        r++;
     }
+
+    movregconstant(cdb,reg,value,(flags & 64) != 0);
+
 done:
     if (flags & mPSW)
         gentstreg(cdb,reg,(flags & 64) != 0);
     //printf("set reg %d to %lld\n", reg, value);
     cgstate.regimmed_set(reg,value);
+}
+
+/******************************
+ * Generate code to move 32 or 64 bit constant value into reg.
+ * Do not take context into account.
+ * Params:
+ *      cdb = code sink for generated output
+ *      reg = target register
+ *      value = value to move into register
+ *      sf = if set, then 64 bit value
+ */
+
+@trusted
+private
+void movregconstant(ref CodeBuilder cdb,reg_t reg,ulong value,uint sf)
+{
+    if (!sf)
+        value &= 0xFFFF_FFFF;
+    //printf("movregconstant(reg=%s, value= %lld x(%llx), sf=%d)\n", regm_str(mask(reg)), value, value, sf);
+
+    // loading a constant into the lower 32 bits zeros out the upper 32 bits
+    if ((value & 0xFFFF_FFFF_0000_0000) == 0)
+        sf = 0;
+
+    uint opc = 2;               // MOVZ
+    uint hw = 0;
+    uint imm16 = value & 0xFFFF;
+    ulong value2 = value;
+
+    // Look for shortcuts using ORR
+    // Either ORR for the whole thing,
+    // or ORR to OR set the high 32 bits same as the low 32
+    // (not implemented)
+
+    // Look for shortcuts using MOVN
+    if (sf)
+    {
+        if ((value & 0xFFFF_FFFF_FFFF_0000) == 0xFFFF_FFFF_FFFF_0000)
+        {
+            imm16 = ~imm16 & 0xFFFF;
+            opc = 0;            // MOVN
+            value2 = 0;
+        }
+        else if ((value & 0xFFFF_FFFF_0000_FFFF) == 0xFFFF_FFFF_0000_FFFF)
+        {
+            imm16 = ~(value >> 16) & 0xFFFF;
+            opc = 0;            // MOVN
+            value2 = 0;
+            hw = 1;
+        }
+        else if ((value & 0xFFFF_0000_FFFF_FFFF) == 0xFFFF_0000_FFFF_FFFF)
+        {
+            imm16 = ~(value >> 32) & 0xFFFF;
+            opc = 0;            // MOVN
+            value2 = 0;
+            hw = 2;
+        }
+        else if ((value & 0x0000_FFFF_FFFF_FFFF) == 0x0000_FFFF_FFFF_FFFF)
+        {
+            imm16 = ~(value >> 48) & 0xFFFF;
+            opc = 0;            // MOVN
+            value2 = 0;
+            hw = 3;
+        }
+    }
+    else
+    {
+        if ((value & 0xFFFF_0000) == 0xFFFF_0000)
+        {
+            imm16 = ~imm16 & 0xFFFF;
+            opc = 0;            // MOVN
+            value2 = 0;
+        }
+        else if ((value & 0x0000_FFFF) == 0x0000_FFFF)
+        {
+            imm16 = ~(value >> 16) & 0xFFFF;
+            opc = 0;            // MOVN
+            value2 = 0;
+            hw = 1;
+        }
+    }
+
+    if ((value2 >> (hw * 16)) & 0xFFFF_FFFF_FFFF_0000)
+    {
+        // Check for ORR one instruction solution
+        uint N, immr, imms;
+        if (orr_solution(value2, N, immr, imms)) // TODO AArch64 not implemented yet
+        {
+            // MOV reg,#imm
+            // http://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_log_imm.html
+            cdb.gen1(INSTR.log_imm(sf, 1, N, immr, imms, 31, reg));
+            return;
+        }
+    }
+
+    while (1)
+    {
+        if (imm16 || value2 == 0)
+        {
+            cdb.gen1(INSTR.movewide(sf, opc, hw, imm16, reg));
+            opc = 3;            // MOVK
+        }
+        value2 >>= 16;
+        if (!value2)
+            break;
+        imm16 = value2 & 0xFFFF;
+        ++hw;
+    }
 }
 
 /**********************************
@@ -1718,18 +1735,33 @@ void assignaddrc(code* c)
                     // Convert to load of frame pointer
                     // c.Irm is the register to use
                     reg_t reg = c.Irm;  // set by cod3.cdframeptr()
-                    if (cgstate.hasframe && !cgstate.enforcealign)
+                    reg_t BPorSP = INSTR.BP;
+                    uint imm12 = cast(uint)(REGSIZE*2 + localsize);
+                    if (!cgstate.hasframe || cgstate.enforcealign)
                     {
-                        uint imm12 = cast(uint)(REGSIZE*2 + localsize);
-                        c.Iop = INSTR.addsub_imm(1,0,0,0,imm12,INSTR.BP,reg); // ADD reg,BP,#imm12
-                        //c.Iop = INSTR.mov_register(1,INSTR.BP,reg);  // MOV reg,BP
+                        BPorSP = INSTR.SP;
+                        imm12 += cgstate.EBPtoESP;
+                    }
+
+                    if (imm12 >= 0x1000)
+                    {
+                        // imm12 overflowed. Compute offset into R16 instead
+                        enum R16 = 16;  // scratch register
+                        CodeBuilder cdb;
+                        cdb.ctor();
+                        movregconstant(cdb,R16,imm12,0);        // R16 = imm12
+                        // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_shift
+                        cdb.gen1(INSTR.addsub_shift(1,0,0,0,R16,0,BPorSP,reg)); // ADD reg,BPorSP,R16 https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_shift.html
+
+                        // Awkwardly replace c with cdb
+                        code* last = cdb.last();
+                        last.next = c.next;
+                        code* h = cdb.finish();
+                        c.Iop = h.Iop;
+                        c.next = h.next;
                     }
                     else
-                    {
-                        uint imm12 = cast(uint)(REGSIZE*2 + localsize + cgstate.EBPtoESP);
-                        c.Iop = INSTR.addsub_imm(1,0,0,0,imm12,INSTR.SP,reg); // ADD reg,SP,#imm12
-                        //c.Iop = INSTR.addsub_imm(1,0,0,0,cgstate.EBPtoESP,INSTR.SP,reg); // ADD reg,SP,#EBPtoESP
-                    }
+                        c.Iop = INSTR.addsub_imm(1,0,0,0,imm12,BPorSP,reg); // ADD reg,BPorSP,#imm12
                     continue;
 
                 case PSOP.ldr:
