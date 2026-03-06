@@ -1475,7 +1475,7 @@ void processEnvironmentCxx()
 
     auto cxxFlags = warnings ~ [
         "-g", "-fno-exceptions", "-fno-rtti", "-fno-common", "-fasynchronous-unwind-tables", "-DMARS=1",
-        env["MODEL_FLAG"], env["PIC_FLAG"],
+        env["PIC_FLAG"],
     ];
 
     if (env.getNumberedBool("ENABLE_COVERAGE"))
@@ -1497,7 +1497,14 @@ void processEnvironmentCxx()
     }
 
     // Retain user-defined flags
-    flags["CXXFLAGS"] = cxxFlags ~= flags.get("CXXFLAGS", []);
+    const userCxxFlags = flags.get("CXXFLAGS", []);
+    cxxFlags ~= userCxxFlags;
+
+    // omit model flag with user-specified `-arch` for clang
+    if (!userCxxFlags.any!(f => f.startsWith("-arch")))
+        cxxFlags ~= env["MODEL_FLAG"];
+
+    flags["CXXFLAGS"] = cxxFlags;
 }
 
 /// Returns: the host C++ compiler, either "g++" or "clang++"

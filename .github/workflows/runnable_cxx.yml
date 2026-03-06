@@ -215,10 +215,8 @@ jobs:
       if: runner.os != 'Windows' # not supported by build.d yet
       run: |
         set -eux
+        extraFlags=()
         if [[ '${{ matrix.os }}' == macos-14 ]]; then
-          # switch from LDC to freshly built DMD as host compiler
-          export HOST_DMD="$PWD/dmd/generated/osx/release/64/dmd"
-          export CXXFLAGS="-arch x86_64"
-          rm ./dmd/generated/osx/release/64/*.o
+          extraFlags=(HOST_DMD=ldmd2 DFLAGS="-mtriple=x86_64-apple-macos14" CXXFLAGS="-arch x86_64")
         fi
-        ./dmd/generated/build cxx-unittest
+        ./dmd/generated/build cxx-unittest "${extraFlags[@]}"
