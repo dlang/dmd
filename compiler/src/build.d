@@ -1203,16 +1203,8 @@ void parseEnvironment()
         env.setDefault("ENABLE_DEBUG", "1");
 
     // detect Model
-    auto model = env.setDefault("MODEL", detectModel);
-    if (env.getDefault("DFLAGS", "").canFind("-mtriple", "-march"))
-    {
-        // Don't pass `-m32|64` flag when explicitly passing triple or arch.
-        env["MODEL_FLAG"] = "";
-    }
-    else
-    {
-        env["MODEL_FLAG"] = "-m" ~ env["MODEL"];
-    }
+    const model = env.setDefault("MODEL", detectModel);
+    env["MODEL_FLAG"] = "-m" ~ model;
 
     // detect PIC
     version(Posix)
@@ -1371,7 +1363,7 @@ void processEnvironment()
     else
         env.setDefault("ZIP", "zip");
 
-    string[] dflags = ["-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
+    string[] dflags = ["-w", "-de", env["PIC_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
 
     // TODO: add support for dObjc
     auto dObjc = false;
@@ -1438,13 +1430,17 @@ void processEnvironment()
         dflags ~= ["-fsanitize="~sanitizers];
     }
 
+    // Retain user-defined flags
+    const userDflags = flags.get("DFLAGS", []);
+    dflags ~= userDflags;
+
     // Determine the version of FreeBSD that we're building on if the target OS
     // version has not already been set.
     version (FreeBSD)
     {
         import std.ascii : isDigit;
 
-        if (flags.get("DFLAGS", []).find!(a => a.startsWith("-version=TARGET_FREEBSD"))().empty)
+        if (!userDflags.any!(f => f.startsWith("-version=TARGET_FREEBSD")))
         {
             // uname -K gives the kernel version, e.g. 1400097. The first two
             // digits correspond to the major version of the OS.
@@ -1455,8 +1451,11 @@ void processEnvironment()
         }
     }
 
-    // Retain user-defined flags
-    flags["DFLAGS"] = dflags ~= flags.get("DFLAGS", []);
+    // LDC errors when using `-m32|64` along with `-mtriple` or `-march`
+    if (!userDflags.any!(f => f.startsWith("-mtriple") || f.startsWith("-march")))
+        dflags ~= env["MODEL_FLAG"];
+
+    flags["DFLAGS"] = dflags;
 }
 
 /// Setup environment for a C++ compiler
@@ -1476,7 +1475,7 @@ void processEnvironmentCxx()
 
     auto cxxFlags = warnings ~ [
         "-g", "-fno-exceptions", "-fno-rtti", "-fno-common", "-fasynchronous-unwind-tables", "-DMARS=1",
-        env["MODEL_FLAG"], env["PIC_FLAG"],
+        env["PIC_FLAG"],
     ];
 
     if (env.getNumberedBool("ENABLE_COVERAGE"))
@@ -1498,7 +1497,14 @@ void processEnvironmentCxx()
     }
 
     // Retain user-defined flags
-    flags["CXXFLAGS"] = cxxFlags ~= flags.get("CXXFLAGS", []);
+    const userCxxFlags = flags.get("CXXFLAGS", []);
+    cxxFlags ~= userCxxFlags;
+
+    // omit model flag with user-specified `-arch` for clang
+    if (!userCxxFlags.any!(f => f.startsWith("-arch")))
+        cxxFlags ~= env["MODEL_FLAG"];
+
+    flags["CXXFLAGS"] = cxxFlags;
 }
 
 /// Returns: the host C++ compiler, either "g++" or "clang++"
