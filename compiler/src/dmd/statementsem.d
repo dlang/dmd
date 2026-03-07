@@ -2480,6 +2480,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         //printf("ReturnStatement.dsymbolSemantic() %s\n", toChars(rs));
 
+        rs.inCtfeBlock = sc.ctfeBlock;
+
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
 
         if (fd.fes)
