@@ -3296,7 +3296,7 @@ private elem* elbit(elem* e, Goal goal)
     e2.Ety = e.Ety;
 
     OPER shift = OPshr;
-    if (!tyuns(tym1))
+    if (!tyuns(tym1) && tybasic(tym1) != TYbool)
         shift = OPashr;
     e.E1 = el_bin(shift,tym1,
                 el_bin(OPshl,tym1,e.E1,el_long(TYint,c)),
