@@ -48,7 +48,6 @@ import dmd.expression;
 import dmd.file_manager;
 import dmd.hdrgen;
 import dmd.globals;
-import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.inline;
