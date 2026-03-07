@@ -1724,7 +1724,15 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
     // Easier to deal with parameters as an array: parameters[0..np]
     int np = OTbinary(e.Eoper) ? el_nparams(e.E2) : 0;
-    Parameter* parameters = cast(Parameter*)alloca(np * Parameter.sizeof);
+    version (AArch64) // TODO AArch64
+    {
+        Parameter* parameters = cast(Parameter*)mem_malloc(np * Parameter.sizeof);
+        scope (exit) mem_free(parameters);
+    }
+    else
+    {
+        Parameter* parameters = cast(Parameter*)alloca(np * Parameter.sizeof);
+    }
     memset(parameters, 0, Parameter.sizeof * np);
 
     if (np)

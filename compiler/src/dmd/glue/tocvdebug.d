@@ -289,7 +289,13 @@ void cv_udt(const char* id, uint typidx)
         return cv8_udt(id, typidx);
 
     const len = strlen(id);
-    ubyte* debsym = cast(ubyte *) alloca(39 + IDOHD + len);
+    version (AArch64) // TODO AArch64
+    {
+        ubyte* debsym = cast(ubyte *) Mem.xmalloc(39 + IDOHD + len);
+        scope (exit) Mem.xfree(debsym);
+    }
+    else
+        ubyte* debsym = cast(ubyte *) alloca(39 + IDOHD + len);
 
     // Output a 'user-defined type' for the tag name
     TOWORD(debsym + 2,S_UDT);
