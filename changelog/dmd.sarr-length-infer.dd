@@ -1,0 +1,7 @@
+Add support for static array length inference
+
+Added support for using `$` to automatically infer the length of a static array from its initializer. This allows for cleaner declarations without manually counting elements.
+
+```d
+int[$] arr = [1, 2, 3]; // Length is inferred as 3
+```
