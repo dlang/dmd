@@ -100,6 +100,70 @@ import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
+/**********************************
+ * Combine e1 and e2 by CommaExp if both are not NULL.
+ */
+extern (D) Expression combine(Expression e1, Expression e2) @safe
+{
+    if (e1)
+    {
+        if (e2)
+        {
+            e1 = new CommaExp(e1.loc, e1, e2);
+            e1.type = e2.type;
+        }
+    }
+    else
+        e1 = e2;
+    return e1;
+}
+
+extern (D) Expression combine(Expression e1, Expression e2, Expression e3) @safe
+{
+    return combine(combine(e1, e2), e3);
+}
+
+extern (D) Expression combine(Expression e1, Expression e2, Expression e3, Expression e4) @safe
+{
+    return combine(combine(e1, e2), combine(e3, e4));
+}
+
+/**********************************
+ * If 'e' is a tree of commas, returns the rightmost expression
+ * by stripping off it from the tree. The remained part of the tree
+ * is returned via e0.
+ * Otherwise 'e' is directly returned and e0 is set to NULL.
+ */
+extern (D) Expression extractLast(Expression e, out Expression e0) @trusted
+{
+    if (e.op != EXP.comma)
+    {
+        return e;
+    }
+
+    CommaExp ce = cast(CommaExp)e;
+    if (ce.e2.op != EXP.comma)
+    {
+        e0 = ce.e1;
+        return ce.e2;
+    }
+    else
+    {
+        e0 = e;
+
+        Expression* pce = &ce.e2;
+        while ((cast(CommaExp)(*pce)).e2.op == EXP.comma)
+        {
+            pce = &(cast(CommaExp)(*pce)).e2;
+        }
+        assert((*pce).op == EXP.comma);
+        ce = cast(CommaExp)(*pce);
+        *pce = ce.e1;
+
+        return ce.e2;
+    }
+}
+
 /*******************************
  * Merge results of `ctorflow` into `_this`.
  * Params:
@@ -282,7 +346,7 @@ VarDeclaration expToVariable(Expression e, out int deref)
             // Temporaries for rvalues that need destruction
             // are of form: (T s = rvalue, s). For these cases
             // we can just return var declaration of `s`. However,
-            // this is intentionally not calling `Expression.extractLast`
+            // this is intentionally not calling `extractLast`
             // because at this point we cannot infer the var declaration
             // of more complex generated comma expressions such as the
             // one for the array append hook.
@@ -409,7 +473,7 @@ void expandTuples(Expressions* exps, ArgumentLabels* names = null)
             expandNames(i, te.exps.length);
             if (i == exps.length)
                 return; // empty tuple, no more arguments
-            (*exps)[i] = Expression.combine(te.e0, (*exps)[i]);
+            (*exps)[i] = combine(te.e0, (*exps)[i]);
             arg = (*exps)[i];
         }
     }
@@ -1649,7 +1713,7 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
 private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
 {
     Expression e0;
-    Expression e1 = Expression.extractLast(ue.e1, e0);
+    Expression e1 = extractLast(ue.e1, e0);
     // https://issues.dlang.org/show_bug.cgi?id=12585
     // Extract the side effect part if ue.e1 is comma.
 
@@ -1808,7 +1872,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
             // If $ was used, declare it now
             Expression de = new DeclarationExp(ae.loc, ae.lengthVar);
             de = de.expressionSemantic(sc);
-            pe0 = Expression.combine(pe0, de);
+            pe0 = combine(pe0, de);
         }
         sc = sc.pop();
 
@@ -1889,7 +1953,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, ref Expressio
         // If $ was used, declare it now
         Expression de = new DeclarationExp(ae.loc, ae.lengthVar);
         de = de.expressionSemantic(sc);
-        pe0 = Expression.combine(pe0, de);
+        pe0 = combine(pe0, de);
     }
 
     sc = sc.pop();
@@ -1967,7 +2031,7 @@ extern (D) Expression doCopyOrMove(Scope* sc, Expression e, Type t, bool nrvo, b
         er = new DotIdExp(e.loc, ve, Id.ctor);  // ve.ctor
         er = new CallExp(e.loc, er, e);         // ve.ctor(e)
         er = new CommaExp(e.loc, er, new VarExp(e.loc, vd)); // ve.ctor(e),vd
-        er = Expression.combine(de, er);        // de,ve.ctor(e),vd
+        er = combine(de, er);        // de,ve.ctor(e),vd
 
         e = er.expressionSemantic(sc);
     }
@@ -2026,7 +2090,7 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType, boo
     Expression ve = new VarExp(e.loc, tmp);
     de.type = Type.tvoid;
     ve.type = e.type;
-    return Expression.combine(de, ve);
+    return combine(de, ve);
 }
 
 /************************************************
@@ -2283,7 +2347,7 @@ private void hookDtors(CondExp ce, Scope* sc)
                 de = de.expressionSemantic(sc);
 
                 Expression ve = new VarExp(ce.econd.loc, vcond);
-                ce.econd = Expression.combine(de, ve);
+                ce.econd = combine(de, ve);
             }
 
             //printf("\t++v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
@@ -4554,7 +4618,7 @@ private bool functionParameters(Loc loc, Scope* sc,
                     auto declareTmp = new DeclarationExp(ale.loc, tmp);
                     auto castToSlice = new CastExp(ale.loc, new VarExp(ale.loc, tmp),
                         p.type.substWildTo(MODFlags.mutable));
-                    arg = CommaExp.combine(declareTmp, castToSlice);
+                    arg = combine(declareTmp, castToSlice);
                     arg = arg.expressionSemantic(sc);
                 }
                 else if (auto fe = a.isFuncExp())
@@ -4822,7 +4886,7 @@ private bool functionParameters(Loc loc, Scope* sc,
 
                 // eprefix => (eprefix, auto __pfx/y = arg)
                 auto ae = new DeclarationExp(loc, tmp);
-                eprefix = Expression.combine(eprefix, ae.expressionSemantic(sc));
+                eprefix = combine(eprefix, ae.expressionSemantic(sc));
 
                 // arg => __pfx/y
                 arg = new VarExp(loc, tmp);
@@ -4842,7 +4906,7 @@ private bool functionParameters(Loc loc, Scope* sc,
                 if (!callerDestroysArgs && i == lastPrefix)
                 {
                     auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), IntegerExp.createBool(true));
-                    eprefix = Expression.combine(eprefix, e.expressionSemantic(sc));
+                    eprefix = combine(eprefix, e.expressionSemantic(sc));
                 }
             }
             else // not part of 'eprefix'
@@ -7116,7 +7180,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (newprefix)
         {
-            result = Expression.combine(newprefix, exp);
+            result = combine(newprefix, exp);
             return;
         }
         result = exp;
@@ -8071,7 +8135,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (!exp.f.needThis())
             {
-                exp.e1 = Expression.combine(ue.e1, new VarExp(exp.loc, exp.f, false));
+                exp.e1 = combine(ue.e1, new VarExp(exp.loc, exp.f, false));
             }
             else
             {
@@ -8513,7 +8577,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     lowerCastExp(cex, sc);
                 }
-                result = Expression.combine(argprefix, casted_exp);
+                result = combine(argprefix, casted_exp);
                 return;
             }
         }
@@ -8524,7 +8588,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.f.tookAddressOf = 0;
         }
 
-        result = Expression.combine(argprefix, exp);
+        result = combine(argprefix, exp);
 
         if (isSuper)
         {
@@ -8578,7 +8642,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             exp.vthis2 = makeThis2Argument(exp.loc, sc, exp.f);
             Expression de = new DeclarationExp(exp.loc, exp.vthis2);
-            result = Expression.combine(de, result);
+            result = combine(de, result);
             result = result.expressionSemantic(sc);
         }
     }
@@ -9565,7 +9629,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     tmp.dsymbolSemantic(sc);
 
                     auto decl = new DeclarationExp(op.loc, tmp);
-                    temporariesPrefix = Expression.combine(temporariesPrefix, decl);
+                    temporariesPrefix = combine(temporariesPrefix, decl);
 
                     op = new VarExp(op.loc, tmp);
                     op = op.expressionSemantic(sc);
@@ -9765,7 +9829,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         result = !temporariesPrefix
             ? exp
-            : Expression.combine(temporariesPrefix, exp).expressionSemantic(sc);
+            : combine(temporariesPrefix, exp).expressionSemantic(sc);
     }
 
     override void visit(ThrowExp te)
@@ -9940,7 +10004,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 // (e1, fd)
                 auto e = symbolToExp(fd, exp.loc, sc, false);
-                result = Expression.combine(exp.e1, e);
+                result = combine(exp.e1, e);
                 return;
             }
 
@@ -10084,7 +10148,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             VarDeclaration vthis2 = makeThis2Argument(e.loc, sc, f);
             e.vthis2 = vthis2;
             Expression de = new DeclarationExp(e.loc, vthis2);
-            result = Expression.combine(de, result);
+            result = combine(de, result);
             result = result.expressionSemantic(sc);
         }
     }
@@ -11582,7 +11646,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             TupleExp te = cast(TupleExp)exp.e2;
             if (te.exps && te.exps.length == 1)
-                exp.e2 = Expression.combine(te.e0, (*te.exps)[0]); // bug 4444 fix
+                exp.e2 = combine(te.e0, (*te.exps)[0]); // bug 4444 fix
         }
         if (sc != scx)
             sc = sc.pop();
@@ -11693,7 +11757,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (exp.e1.op == EXP.tuple)
                 {
                     e = (*te.exps)[cast(size_t)index];
-                    e = Expression.combine(te.e0, e);
+                    e = combine(te.e0, e);
                 }
                 else
                     e = new TypeExp(exp.e1.loc, Parameter.getNth(tup.arguments, cast(size_t)index).type);
@@ -11918,8 +11982,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              *   e1=(e0,e2) => e0,(e1=e2)
              */
             Expression e0;
-            exp.e2 = Expression.extractLast(e2comma, e0);
-            Expression e = Expression.combine(e0, exp);
+            exp.e2 = extractLast(e2comma, e0);
+            Expression e = combine(e0, exp);
             return setResult(e.expressionSemantic(sc));
         }
 
@@ -11986,7 +12050,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     else
                         res = res.expressionSemantic(sc);
                     if (res)
-                        return setResult(Expression.combine(e0, res));
+                        return setResult(combine(e0, res));
                 }
 
             Lfallback:
@@ -12015,7 +12079,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     res = new DotIdExp(exp.loc, ae.e1, Id.opSliceAssign);
                     res = new CallExp(exp.loc, res, a);
                     res = res.expressionSemantic(sc);
-                    return setResult(Expression.combine(e0, res));
+                    return setResult(combine(e0, res));
                 }
 
                 // No operator overloading member function found yet, but
@@ -12165,7 +12229,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     e = IntegerExp.literal!0;
                     e = new CastExp(exp.loc, e, Type.tvoid); // avoid "has no effect" error
-                    e = Expression.combine(tup1.e0, tup2.e0, e);
+                    e = combine(tup1.e0, tup2.e0, e);
                 }
                 else
                 {
@@ -12176,7 +12240,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         Expression ex2 = (*tup2.exps)[i];
                         (*exps)[i] = new AssignExp(exp.loc, ex1, ex2);
                     }
-                    e = new TupleExp(exp.loc, Expression.combine(tup1.e0, tup2.e0), exps);
+                    e = new TupleExp(exp.loc, combine(tup1.e0, tup2.e0), exps);
                 }
                 return setResult(e.expressionSemantic(sc));
             }
@@ -12362,9 +12426,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             return setError();
 
                         Expression e0;
-                        Expression.extractLast(e2x, e0);
+                        extractLast(e2x, e0);
 
-                        auto e = Expression.combine(e0, ae, cx);
+                        auto e = combine(e0, ae, cx);
                         e = e.expressionSemantic(sc);
                         result = e;
                         return;
@@ -12769,7 +12833,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression se = new SliceExp(ale.loc, ale.e1, lc, lc);
                 Expression as = new AssignExp(ale.loc, ale.e1, se);
                 as = as.expressionSemantic(sc);
-                auto res = Expression.combine(as, exp.e2);
+                auto res = combine(as, exp.e2);
                 res.type = ale.type;
                 return setResult(res);
             }
@@ -13162,7 +13226,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         arguments.push(ae.e2);
 
                     lowering = new CallExp(ae.loc, lowering, arguments);
-                    lowering = Expression.combine(e0, lowering).expressionSemantic(sc);
+                    lowering = combine(e0, lowering).expressionSemantic(sc);
                 }
 
                 ae.lowering = lowering;
@@ -13252,9 +13316,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         arguments.push(value2);
 
         Expression ce = new CallExp(ae.loc, id, arguments);
-        res = Expression.combine(eValue2, ce).expressionSemantic(sc);
+        res = combine(eValue2, ce).expressionSemantic(sc);
         if (isArrayAssign)
-            res = Expression.combine(res, ae.e1).expressionSemantic(sc).checkGC(sc);
+            res = combine(res, ae.e1).expressionSemantic(sc).checkGC(sc);
 
         if (global.params.v.verbose)
             message("lowered   %s =>\n          %s", ae.toChars(), res.toChars());
@@ -13313,7 +13377,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             Expression e0 = null;
             Expression e = exp;
-            e = Expression.extractLast(e, e0);
+            e = extractLast(e, e0);
             assert(e == exp);
 
             if (exp.e1.op == EXP.variable)
@@ -13332,7 +13396,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 e = new AssignExp(exp.loc, new VarExp(exp.e1.loc, v), e);
                 e = new CommaExp(exp.loc, de, e);
             }
-            e = Expression.combine(e0, e);
+            e = combine(e0, e);
             e = e.expressionSemantic(sc);
             result = e;
             return;
@@ -13548,10 +13612,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto elem = new IndexExp(exp.loc, value1, new MinExp(exp.loc, ale, IntegerExp.literal!1));
                 auto ae = new ConstructExp(exp.loc, elem, value2);
 
-                auto e0 = Expression.combine(ce, ae).expressionSemantic(sc);
-                e0 = Expression.combine(e0, value1);
-                e0 = Expression.combine(eValue1, e0);
-                e0 = Expression.combine(eValue2, e0);
+                auto e0 = combine(ce, ae).expressionSemantic(sc);
+                e0 = combine(e0, value1);
+                e0 = combine(eValue1, e0);
+                e0 = combine(eValue2, e0);
 
                 exp.lowering = e0.expressionSemantic(sc);
                 *output = exp;
@@ -14678,7 +14742,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto arguments = new Expressions(ie.e2, ekey);
         auto ce = new CallExp(ie.loc, id, arguments);
         ce.loweredFrom = ie;
-        e1 = Expression.combine(e1, ce);
+        e1 = combine(e1, ce);
         return e1.expressionSemantic(sc);
     }
 
@@ -19728,7 +19792,7 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
     Expression e0;
     auto arguments = new Expressions(eaa, ekey);
     auto call = new CallExp(loc, func, arguments);
-    e0 = Expression.combine(e0, call);
+    e0 = combine(e0, call);
 
     if (arrayBoundsCheck(sc.func))
     {
@@ -19897,7 +19961,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
         BinExp bex = cast(BinExp)exp.copy();
         bex.e1 = ex;
         bex.e2 = ev;
-        ex = Expression.combine(e0, bex);
+        ex = combine(e0, bex);
         ex.isCommaExp().originalExp = exp;
         return ex.expressionSemantic(sc);
     }
@@ -19927,7 +19991,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
             }
             Expression condfound = new IdentifierExp(loc, idfound);
             ex = new CondExp(loc, condfound, ex, ey);
-            ex = Expression.combine(e0, ex);
+            ex = combine(e0, ex);
             ex.isCommaExp().originalExp = exp;
         }
         else
@@ -19945,7 +20009,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
     }
     else
     {
-        ex = Expression.combine(e0, ae);
+        ex = combine(e0, ae);
         ex.isCommaExp().originalExp = exp;
     }
     ex = ex.expressionSemantic(sc);
