@@ -5027,6 +5027,8 @@ public:
     FuncDeclaration* func;
     Array<Statement* >* cases;
     Array<ScopeStatement* >* gotos;
+    bool hasReturnExp;
+    Statement* lowering;
     ForeachStatement* syntaxCopy() override;
     bool hasBreak() const override;
     bool hasContinue() const override;
