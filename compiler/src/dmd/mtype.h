@@ -490,6 +490,8 @@ public:
     void isReturnScope(bool v);
     bool isRvalue() const;
     void isRvalue(bool v);
+    bool isCtfeOnly() const;
+    void isCtfeOnly(bool v);
     bool isScopeQual() const;
     void isScopeQual(bool v);
     bool isReturnInferred() const;

@@ -507,6 +507,11 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
     if (sc.traitsCompiles)
         funcdecl.skipCodegen = true;
 
+    /* @__ctfe functions should not be codegened
+     */
+    if (tf.isCtfeOnly)
+        funcdecl.skipCodegen = true;
+
     funcdecl._linkage = sc.linkage;
     if (sc.inCfile && funcdecl.isFuncLiteralDeclaration())
         funcdecl._linkage = LINK.d; // so they are uniquely mangled
