@@ -98,7 +98,6 @@ subPackage {
   excludedSourceFiles "compiler/src/dmd/backend/*"
   excludedSourceFiles "compiler/src/dmd/root/*"
   excludedSourceFiles "compiler/src/dmd/common/*"
-  excludedSourceFiles "compiler/src/dmd/iasm/*"
   excludedSourceFiles "compiler/src/dmd/lib/*"
   excludedSourceFiles "compiler/src/dmd/irgen/*"
   excludedSourceFiles "compiler/src/dmd/{\
