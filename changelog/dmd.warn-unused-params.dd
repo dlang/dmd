@@ -1,0 +1,22 @@
+New preview flag ``-preview=warnunusedparams`` to warn on  unused function parameters
+
+A new ``-preview=warnunusedparams`` introduces warnings for named function parameters that are not referenced by the function body.
+
+```d
+void foo(int x, int y) // Warning: function parameter `y` is never used
+{
+    return x * 2;
+}
+```
+
+To suppress the warning, either omit the parameter name or use ``cast(void)``:
+
+```d
+void callback(int x, int) {} // unnamed parameter inhibits warning
+
+void bar(int x, int y)
+{
+    cast(void)y; // explicitly mark as unused, useful in conditional compilation
+    use(x);
+}
+```

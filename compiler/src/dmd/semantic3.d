@@ -1441,6 +1441,16 @@ private extern(C++) final class Semantic3Visitor : Visitor
             }
         }
 
+        // Warn about unused named parameters
+        if (global.params.warnUnused && funcdecl.parameters && funcdecl.fbody)
+        {
+            foreach (v; *funcdecl.parameters)
+            {
+                if (!v.wasUsed && !(v.storage_class & STC.temp))
+                    .warning(v.loc, "function parameter `%s` is never used", v.ident.toChars());
+            }
+        }
+
         /* If this function had instantiated with gagging, error reproduction will be
          * done by TemplateInstance::semantic.
          * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.

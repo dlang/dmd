@@ -7163,6 +7163,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (auto v = e.var.isVarDeclaration())
         {
+            v.wasUsed = true;
             if (v.checkNestedReference(sc, e.loc))
                 return setError();
         }
@@ -7212,6 +7213,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (vd)
         {
+            vd.wasUsed = true;
             if (vd.checkNestedReference(sc, e.loc))
                 return setError();
 
