@@ -4,6 +4,8 @@ $(SPEC_S Garbage Collection,
 
 $(HEADERNAV_TOC)
 
+        $(HTMLTAG3V img, src="$(ROOT_DIR)images/MemoryLeak.png" border="0" align="right" alt="Memory Leak" width="300" height="347")
+
         $(P D is a systems programming language with support for garbage collection.
         Usually it is not necessary
         to free memory explicitly. Just allocate as needed, and the garbage collector will
