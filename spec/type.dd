@@ -379,6 +379,79 @@ immutable(Base)[3] ia = (immutable(Derived)[3]).init; // `immutable` elements
 -------------------
 )
 
+$(H4 $(LNAME2 covariance, Function Pointer Conversions))
+
+    $(P A function pointer type `Source` implicitly converts to another type `Target` if:)
+
+    - Its $(LINK2 https://en.wikipedia.org/wiki/Covariant_return_type,
+      return type is *covariant*) with `Target`'s.
+    - Its $(DDLINK spec/function, Functions, function attributes) are *covariant* with `Target`'s.
+    - Each $(LINK2 https://en.wikipedia.org/wiki/Type_variance#Contravariant_method_parameter_type,
+      parameter is *contravariant*) with the corresponding parameter in `Target`.
+
+    $(P A conversion is covariant if the source type is more restricted than the target type.
+    The following function pointer type conversions are covariant:)
+
+    $(TABLE
+    $(THEAD Source type, Target type, When)
+    $(TROW `pure FP`, `FP` - a function pointer)
+    $(TROW `nothrow FP`, `FP`)
+    $(TROW `@nogc FP`, `FP`)
+    $(TROW `@safe FP`, `@trusted FP` or `@system FP`)
+    $(TROW `S function(Args)`, `B function(Args)`,
+        S is a subtype of B and neither function pointer is
+        $(DDSUBLINK spec/function, ref-functions, `ref`))
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+// removing function attributes
+pure nothrow @nogc @safe int f0();
+int function() fp0 = &f0; // OK, calling fp0 can't violate f0's attributes
+static assert(!is(typeof(fp0) : typeof(&f0))); // cannot add attributes to fp0
+
+// qualifying return type
+int* f1();
+const(int*) function() fp1 = &f1; // OK, const(int*) is a subtype of int*
+static assert(!is(typeof(fp1) : typeof(&f1))); // cannot unqualify return type of fp1
+
+// returning a base type
+int* f2();
+void* function() fp2 = &f2; // OK, void* is a subtype of int*
+static assert(!is(typeof(fp2) : typeof(&f2))); // fp2 cannot return subtype
+---
+)
+
+    $(P A conversion is contravariant if the source type is more general than the target type.
+    The following conversions are contravariant:)
+
+    $(TABLE
+    $(THEAD Source type, Target type, When)
+    $(TROW `@trusted FP`, `@safe FP` or `@system FP`)
+    $(TROW `R function(`$(GLINK TypeCtors)`(P))`, `R function(P)`,
+        P is a reference type and `is(P : `*TypeCtors*`(P))`)
+    $(TROW `R function(scope P)`, `R function(P)`)
+    )
+
+    $(NOTE A `const` parameter is more general than a mutable one because
+    $(DDSUBLINK spec/const3, implicit_qualifier_conversions,
+    it accepts both) mutable and const arguments.)
+
+    $(P See also $(DDSUBLINK spec/function, rsr_covariance, `return` attribute variance).)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+// unqualifying a parameter
+void f3(const int*);
+void function(int*) fp3 = &f3; // OK
+static assert(!is(typeof(fp3) : typeof(&f3))); // cannot qualify parameter
+---
+)
+    $(P See also:)
+
+    - $(DDSUBLINK spec/expression, is-type-convert, `is(T : U)`)
+    - $(DDSUBLINK spec/function, covariance, `override` method covariance)
+
 $(H3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions))
 
     $(P Integer Promotions are conversions of the following types:

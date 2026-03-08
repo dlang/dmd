@@ -545,7 +545,7 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
 
         $(P A pure function can override an impure function,
             but cannot be overridden by an impure function.
-            I.e. it is covariant with an impure function.
+            I.e. it is $(DDSUBLINK spec/type, covariance, covariant) with an impure function.
         )
 
 $(H3 $(LNAME2 weak-purity, Strong vs Weak Purity))
@@ -756,7 +756,7 @@ $(H2 $(LNAME2 nothrow-functions, Nothrow Functions))
         from $(LINK2 https://dlang.org/phobos/object.html#.Error, $(D class Error)).
         )
 
-        $(P Nothrow functions are covariant with throwing ones.)
+        $(P Nothrow functions are $(DDSUBLINK spec/type, covariance, covariant) with throwing ones.)
 
 $(H2 $(LNAME2 ref-functions, Ref Functions))
 
@@ -1142,7 +1142,8 @@ void test()
 
 $(H3 $(LNAME2 covariance, Covariance))
 
-        $(P An overriding function may be covariant with the overridden function.
+        $(P An overriding function may be $(DDSUBLINK spec/type, covariance, covariant)
+        with the overridden function.
         A covariant function has a type that is implicitly convertible to the
         type of the overridden function.
         )
@@ -1162,6 +1163,8 @@ class Bar : Foo
     // overrides and is covariant with Foo.test()
     override B test() { return null; }
 }
+
+static assert(is(typeof(&Bar.test) : typeof(&Foo.test)));
 ------
 )
 
@@ -2936,24 +2939,26 @@ int* foo(return ref int i) { return &i; }
 ref int foo(int* p) { return *p; }
 ---
 
-$(H3 $(LNAME2 rsr_covariance, Covariance))
+$(H3 $(LNAME2 rsr_covariance, Contravariance))
 
-    $(P Covariance means a parameter with restrictions can be converted to a parameter with
-    fewer restrictions. This is deducible from the description of each state.
+    $(P $(DDSUBLINK spec/type, covariance, Contravariance) means a function with a parameter
+    restriction can be overridden by a function with a corresponding parameter with fewer
+    restrictions. This is deducible from the description of each state.
+    The following tables show which of the attributes can be loosened:
     )
 
-    $(NOTE `ref` is not covariant with non-`ref`, so those entries are omitted from the
-    table for simplicity.
+    $(NOTE There is no variance between `ref` and non-`ref` types, so those entries are
+    omitted from the table for simplicity.
     )
 
-    $(TABLE2 Covariance,
+    $(TABLE2 Non-Ref Contravariance,
     $(THEAD From\To,          None,     ReturnScope, Scope)
     $(TROW None,              $(CHECK),            ,         )
     $(TROW ReturnScope,       $(CHECK), $(CHECK)   ,         )
     $(TROW Scope,             $(CHECK), $(CHECK)   , $(CHECK))
     )
 
-    $(TABLE2 Ref Covariance,
+    $(TABLE2 Ref Contravariance,
     $(THEAD From\To,          Ref     , ReturnRef, RefScope, ReturnRef-Scope, Ref-ReturnScope)
     $(TROW Ref,               $(CHECK), $(CHECK) ,         ,                ,          )
     $(TROW ReturnRef,                 , $(CHECK) ,         ,                ,          )
@@ -2962,9 +2967,25 @@ $(H3 $(LNAME2 rsr_covariance, Covariance))
     $(TROW Ref-ReturnScope,   $(CHECK), $(CHECK) ,         ,                ,  $(CHECK))
     )
 
-    $(P For example, `scope` matches all non-ref parameters, and `ref scope` matches all
-    ref parameters.)
+    $(P For example, `scope` can be overridden by all non-ref parameters,
+    and `ref scope` can be overridden by all ref parameters:)
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    // cannot escape parameter
+    void f1(scope int*);
+    // can escape, but doesn't have to
+    void function(int*) fp1 = &f1;
+
+    void f2(ref scope int*);
+    void function(ref int*) fp2 = &f2;
+
+    // cannot return parameter
+    ref int f3(ref int);
+    // can return parameter, but doesn't have to
+    ref int function(ref return int) fp3 = &f3;
+    ---
+    )
 
 
 $(H2 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
@@ -3508,7 +3529,7 @@ $(H3 $(LNAME2 function-pointer-attributes, Attributes))
         $(P A function pointer or delegate can have $(GLINK FunctionAttributes) or
         $(GLINK MemberFunctionAttributes) respectively. A function pointer/delegate type
         implicitly converts to a more-loosely qualified type (i.e. when the original
-        type is covariant with the destination type).)
+        type is $(DDSUBLINK spec/type, covariance, covariant) with the destination type).)
 
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
@@ -3941,9 +3962,10 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
             ---
 
         $(P $(D @nogc) affects the type of the function. A $(D @nogc)
-            function is covariant with a non-$(D @nogc) function.
+            function is $(DDSUBLINK spec/type, covariance, covariant) with a non-$(D @nogc) function.
         )
 
+            $(SPEC_RUNNABLE_EXAMPLE_COMPILE
             ---
             void function() fp;
             void function() @nogc gp;  // pointer to @nogc function
@@ -3953,12 +3975,13 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
 
             void test()
             {
-                fp = &foo; // ok
+                fp = &foo; // same type
                 fp = &bar; // ok, it's covariant
-                gp = &foo; // error, not contravariant
-                gp = &bar; // ok
+                //gp = &foo; // error, not covariant
+                gp = &bar; // same type
             }
             ---
+            )
 
         $(BEST_PRACTICE Since a function marked `@nogc` will not do any GC allocations,
         that implies it will not cause any GC collections to run. However,
@@ -4039,7 +4062,8 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         safe functions.
         )
 
-        $(P Safe functions are covariant with trusted or system functions.)
+        $(P Safe functions are $(DDSUBLINK spec/type, covariance, covariant) with
+        trusted or system functions.)
 
         $(BEST_PRACTICE Mark as many functions `@safe` as practical.)
 
@@ -4099,10 +4123,9 @@ $(H3 $(LNAME2 trusted-functions, Trusted Functions))
         }
         ---
 
-        $(P Trusted functions may call safe, trusted, or system functions.
-        )
-
-        $(P Trusted functions are covariant with safe or system functions.)
+        - Trusted functions may call safe, trusted, or system functions.
+        - Trusted functions are $(DDSUBLINK spec/type, covariance, contravariant)
+          with safe or system functions.
 
         $(BEST_PRACTICE Trusted functions should be kept small so
         that they are easier to manually verify.
@@ -4118,10 +4141,9 @@ $(H3 $(LNAME2 system-functions, System Functions))
         means that its safety must be manually verified.
         )
 
-        $(P System functions are $(B not) covariant with trusted or safe functions.
-        )
-
-        $(P System functions can call safe and trusted functions.)
+        - System functions can call safe and trusted functions.
+        - System functions are $(B not) $(DDSUBLINK spec/type, covariance, covariant)
+          with trusted or safe functions.
 
         $(BEST_PRACTICE When in doubt, mark `extern (C)` and `extern (C++)` functions as
         `@system` when their implementations are not in D, as the D compiler will be
@@ -4310,7 +4332,7 @@ $(H3 $(LNAME2 safe-values, Safe Values))
         )
 
         $(P A function pointer is safe when it is `null` or it refers to a valid
-        function that has the same or a covariant signature.)
+        function that has the same or a $(DDSUBLINK spec/type, covariance, covariant) signature.)
 
         $(P A `delegate` is safe when:)
         $(OL
