@@ -2396,7 +2396,7 @@ template _d_delstructImpl(T)
         private enum errorMessage = "Cannot delete struct if compiling without support for runtime type information!";
 
         /**
-         * TraceGC wrapper around $(REF _d_delstruct, core,lifetime,_d_delstructImpl).
+         * TraceGC wrapper around $(REF _d_delstruct, core,lifetime).
          *
          * Bugs:
          *   This function template was ported from a much older runtime hook that

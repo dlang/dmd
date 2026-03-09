@@ -27,28 +27,30 @@ DOCS=\
 	$(DOCDIR)\core_internal_abort.html \
 	$(DOCDIR)\core_internal_atomic.html \
 	$(DOCDIR)\core_internal_attributes.html \
+	$(DOCDIR)\core_internal_convert.html \
+	$(DOCDIR)\core_internal_dassert.html \
 	$(DOCDIR)\core_internal_destruction.html \
 	$(DOCDIR)\core_internal_entrypoint.html \
 	$(DOCDIR)\core_internal_execinfo.html \
 	$(DOCDIR)\core_internal_hash.html \
+	$(DOCDIR)\core_internal_lifetime.html \
 	$(DOCDIR)\core_internal_moving.html \
 	$(DOCDIR)\core_internal_newaa.html \
 	$(DOCDIR)\core_internal_parseoptions.html \
 	$(DOCDIR)\core_internal_postblit.html \
+	$(DOCDIR)\core_internal_qsort.html \
 	$(DOCDIR)\core_internal_spinlock.html \
 	$(DOCDIR)\core_internal_string.html \
 	$(DOCDIR)\core_internal_switch_.html \
-	$(DOCDIR)\core_internal_utf.html \
-	$(DOCDIR)\core_internal_convert.html \
-	$(DOCDIR)\core_internal_qsort.html \
 	$(DOCDIR)\core_internal_traits.html \
-	$(DOCDIR)\core_internal_lifetime.html \
-	$(DOCDIR)\core_internal_dassert.html \
+	$(DOCDIR)\core_internal_utf.html \
 	\
+	$(DOCDIR)\core_internal_array_arrayassign.html \
 	$(DOCDIR)\core_internal_array_capacity.html \
 	$(DOCDIR)\core_internal_array_casting.html \
 	$(DOCDIR)\core_internal_array_comparison.html \
 	$(DOCDIR)\core_internal_array_concatenation.html \
+	$(DOCDIR)\core_internal_array_duplication.html \
 	$(DOCDIR)\core_internal_array_equality.html \
 	$(DOCDIR)\core_internal_array_operations.html \
 	$(DOCDIR)\core_internal_array_utils.html \
@@ -59,7 +61,7 @@ DOCS=\
 	$(DOCDIR)\core_internal_elf_io.html \
 	\
 	$(DOCDIR)\core_internal_util_array.html \
-	$(IMPDIR)\core\internal\util\math.d \
+	$(DOCDIR)\core_internal_util_math.html \
 	\
 	$(DOCDIR)\core_internal_vararg_aapcs64.html \
 	$(DOCDIR)\core_internal_vararg_sysv_x64.html \
@@ -86,6 +88,7 @@ DOCS=\
 	$(DOCDIR)\core_stdc_inttypes.html \
 	$(DOCDIR)\core_stdc_locale.html \
 	$(DOCDIR)\core_stdc_signal.html \
+	$(DOCDIR)\core_stdc_stdatomic.html \
 	$(DOCDIR)\core_stdc_stddef.html \
 	$(DOCDIR)\core_stdc_stdio.html \
 	$(DOCDIR)\core_stdc_string.html \
@@ -214,6 +217,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_linux_ifaddrs.html \
 	$(DOCDIR)\core_sys_linux_io_uring.html \
 	$(DOCDIR)\core_sys_linux_link.html \
+	$(DOCDIR)\core_sys_linux_perf_event.html \
 	$(DOCDIR)\core_sys_linux_sched.html \
 	$(DOCDIR)\core_sys_linux_stdio.html \
 	$(DOCDIR)\core_sys_linux_string.html \

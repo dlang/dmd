@@ -961,7 +961,10 @@ alias html = makeRule!((htmlBuilder, htmlRule) {
         return htmlFilePrefix ~ ".html";
     }
     const stddocs = env.get("STDDOC", "").split();
-    auto docSources = .sources.common ~ .sources.root ~ .sources.lexer ~ .sources.dmd.all ~ env["D"].buildPath("frontend.d");
+    auto docSources = .sources.common ~ .sources.root ~ .sources.lexer ~ .sources.dmd.all
+        ~ env["D"].buildPath("astbase.d")
+        ~ env["D"].buildPath("cxxfrontend.d")
+        ~ env["D"].buildPath("frontend.d");
     htmlBuilder.deps(docSources.chunks(1).map!(sourceArray =>
         methodInit!(BuildRule, (docBuilder, docRule) {
             const source = sourceArray[0];
@@ -1642,8 +1645,7 @@ auto sourceFiles()
             x86/nteh.d x86/cgreg.d x86/cg87.d x86/cgxmm.d x86/disasm86.d
             x86/cgcod.d x86/cod1.d x86/cod2.d x86/cod3.d x86/cod4.d x86/cod5.d
             arm/disasmarm.d arm/instr.d arm/cod1.d arm/cod2.d arm/cod3.d arm/cod4.d
-            "
-        ),
+        "),
     };
 
     return sources;
