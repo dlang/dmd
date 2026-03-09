@@ -5385,6 +5385,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
+    override void visit(DollarExp exp)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("DollarExp::semantic('%s')\n", exp.ident.toChars());
+        }
+
+        Dsymbol scopesym;
+        Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
+        if (s)
+        {
+            // if we found it, it's the expected length of an array slice, etc.
+            visit(cast(IdentifierExp)exp);
+            return;
+        }
+
+        // if not found, it's $ waiting for type inference via implicitCastTo
+        exp.type = Type.tvoid;
+        result = exp;
+    }
+
     override void visit(IdentifierExp exp)
     {
         static if (LOGSEMANTIC)
@@ -7766,6 +7787,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.e1;
             return;
         }
+
+        if (exp.e1.type == Type.tvoid)
+        {
+            if (exp.e1.isDollarExp())
+            {
+                exp.type = Type.tvoid;
+                result = exp;
+                return;
+            }
+        }
+
         if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc) ||
             preFunctionParameters(sc, exp.argumentList, global.errorSink))
             return setError();
@@ -15636,6 +15668,16 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
     if (Expression ex = unaSemantic(exp, sc))
         return ex;
 
+    if (exp.e1.type == Type.tvoid)
+    {
+        if (exp.e1.isDollarExp())
+        {
+            auto n = new DotIdExp(exp.loc, exp.e1, exp.ident);
+            n.type = Type.tvoid;
+            return n;
+        }
+    }
+
     if (!sc.inCfile && exp.ident == Id._mangleof)
     {
         // symbol.mangleof
@@ -16645,6 +16687,16 @@ bool checkValue(Expression e)
 
     if (e.type && e.type.toBasetype().ty == Tvoid)
     {
+        if (e.isDollarExp()) return false;
+        if (auto ce = e.isCallExp())
+        {
+            if (ce.e1.isDollarExp()) return false;
+        }
+        if (auto de = e.isDotIdExp())
+        {
+            if (de.e1.isDollarExp()) return false;
+        }
+
         error(e.loc, "expression `%s` is `void` and has no value", e.toErrMsg());
         //print(); assert(0);
         if (!global.gag)

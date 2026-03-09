@@ -2328,8 +2328,28 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (inferred)
             {
+                bool hasDollarInit = false;
+                if (auto ei = dsym._init.isExpInitializer())
+                {
+                    if (ei.exp.isDollarExp() ||
+                        (ei.exp.op == EXP.call && (cast(CallExp)ei.exp).e1.isDollarExp()) ||
+                        (ei.exp.op == EXP.dotIdentifier && (cast(DotIdExp)ei.exp).e1.isDollarExp()))
+                    {
+                        hasDollarInit = true;
+                    }
+                }
+
+                if (hasDollarInit)
+                {
+                    .error(dsym.loc, "%s `%s` - `$` requires a known type context for inference, but type is inferred from initializer `%s`",
+                        dsym.kind, dsym.toPrettyChars, toChars(dsym._init));
+                    .errorSupplemental(dsym.loc, "`auto` does not provide a type context for `$`, consider using an explicit type", dsym.ident.toChars());
+                }
+                else
+                {
                 .error(dsym.loc, "%s `%s` - type `%s` is inferred from initializer `%s`, and variables cannot be of type `void`",
                     dsym.kind, dsym.toPrettyChars, dsym.type.toChars(), toChars(dsym._init));
+                }
             }
             else
                 .error(dsym.loc, "%s `%s` - variables cannot be of type `void`", dsym.kind, dsym.toPrettyChars);

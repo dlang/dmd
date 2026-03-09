@@ -34,6 +34,7 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.location;
 import dmd.impcnvtab;
+import dmd.id;
 import dmd.importc;
 import dmd.init;
 import dmd.intrange;
@@ -284,6 +285,33 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         return result;
     }
 
+    Expression visitIdentifier(IdentifierExp e)
+    {
+        if (e.isDollarExp() && e.type && e.type.ty == Tvoid)
+            return (new TypeExp(e.loc, t)).expressionSemantic(sc);
+        return visit(e);
+    }
+
+    Expression visitCall(CallExp e)
+    {
+        if (e.e1.isDollarExp() && e.e1.type && e.e1.type.ty == Tvoid)
+        {
+            auto n = new CallExp(e.loc, new TypeExp(e.e1.loc, t), e.arguments);
+            return n.expressionSemantic(sc);
+        }
+        return visit(e);
+    }
+
+    Expression visitDotId(DotIdExp e)
+    {
+        if (e.e1.isDollarExp() && e.e1.type && e.e1.type.ty == Tvoid)
+        {
+            auto n = new DotIdExp(e.loc, new TypeExp(e.e1.loc, t), e.ident);
+            return n.expressionSemantic(sc);
+        }
+        return visit(e);
+    }
+
     switch (e.op)
     {
         default              : return visit            (e);
@@ -292,6 +320,10 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         case EXP.function_   : return visitFunc        (e.isFuncExp());
         case EXP.arrayLiteral: return visitArrayLiteral(e.isArrayLiteralExp());
         case EXP.slice       : return visitSlice       (e.isSliceExp());
+        case EXP.identifier  : return visitIdentifier  (cast(IdentifierExp)e);
+        case EXP.dollar      : return visitIdentifier  (cast(IdentifierExp)e);
+        case EXP.call        : return visitCall        (e.isCallExp());
+        case EXP.dotIdentifier: return visitDotId      (e.isDotIdExp());
     }
 }
 
@@ -325,7 +357,15 @@ MATCH implicitConvTo(Expression e, Type t)
             error(e.loc, "`%s` is not an expression", e.toChars());
             e.type = Type.terror;
         }
-
+        if (e.type.ty == Tvoid)
+        {
+            if (e.isDollarExp() ||
+                (e.op == EXP.call && (cast(CallExp)e).e1.isDollarExp()) ||
+                (e.op == EXP.dotIdentifier && (cast(DotIdExp)e).e1.isDollarExp()))
+            {
+                return MATCH.convert;
+            }
+        }
         Expression ex = e.optimize(WANTvalue);
         if (ex.type.equals(t))
         {
@@ -3280,12 +3320,54 @@ Expression inferType(Expression e, Type t, int flag = 0)
         return ce;
     }
 
+    Expression visitDollar(DollarExp de)
+    {
+        // $ with a known target type becomes a TypeExp
+        // This allows $(args) for construction and $.member for member access
+        if (t)
+            return new TypeExp(de.loc, t);
+        return de;
+    }
+
+    Expression visitDotId(DotIdExp die)
+    {
+        // Handle $.ident - infer $ from the context type
+        // Note: DollarExp extends IdentifierExp, so we check the identifier
+        if (auto ie = die.e1.isIdentifierExp())
+        {
+            if (ie.ident == Id.dollar && t)
+            {
+                die.e1 = inferType(die.e1, t, flag);
+            }
+        }
+        return die;
+    }
+
+    Expression visitCall(CallExp ce)
+    {
+        // Handle $(args) - infer $ from the context type
+        if (auto ie = ce.e1.isIdentifierExp())
+        {
+            if (ie.ident == Id.dollar && t)
+            {
+                ce.e1 = inferType(ce.e1, t, flag);
+            }
+        }
+        return ce;
+    }
+
+    // Handle DollarExp - note: DollarExp has op == EXP.identifier
+    if (auto de = e.isDollarExp())
+        return visitDollar(de);
+
     if (t) switch (e.op)
     {
         case EXP.arrayLiteral:      return visitAle(e.isArrayLiteralExp());
         case EXP.assocArrayLiteral: return visitAar(e.isAssocArrayLiteralExp());
         case EXP.function_:         return visitFun(e.isFuncExp());
         case EXP.question:          return visitTer(e.isCondExp());
+        case EXP.dotIdentifier:     return visitDotId(e.isDotIdExp());
+        case EXP.call:              return visitCall(e.isCallExp());
         default:
     }
     return e;
