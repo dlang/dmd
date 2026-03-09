@@ -32,5 +32,5 @@ void main() {
 
     MyEnum m = $.VALUE_C;
 
-    int x = $; 
+    int x = $;
 }
