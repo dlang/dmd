@@ -57,4 +57,10 @@ void main() {
     t.data = [1, 2, 3, 4, 5];
     auto x = t[0 .. $];
     assert(x.length == 5);
+
+    int idx(int i) { return i; }
+    int[42] arr;
+    arr[$-1] = 5;
+    int i = arr[idx(cast(uint)$-1)];
+    assert(i == 5);
 }

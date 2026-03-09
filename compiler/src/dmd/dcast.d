@@ -285,13 +285,6 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         return result;
     }
 
-    Expression visitIdentifier(IdentifierExp e)
-    {
-        if (e.isDollarExp() && e.type && e.type.ty == Tvoid)
-            return (new TypeExp(e.loc, t)).expressionSemantic(sc);
-        return visit(e);
-    }
-
     Expression visitCall(CallExp e)
     {
         if (e.e1.isDollarExp() && e.e1.type && e.e1.type.ty == Tvoid)
@@ -320,8 +313,6 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         case EXP.function_   : return visitFunc        (e.isFuncExp());
         case EXP.arrayLiteral: return visitArrayLiteral(e.isArrayLiteralExp());
         case EXP.slice       : return visitSlice       (e.isSliceExp());
-        case EXP.identifier  : return visitIdentifier  (cast(IdentifierExp)e);
-        case EXP.dollar      : return visitIdentifier  (cast(IdentifierExp)e);
         case EXP.call        : return visitCall        (e.isCallExp());
         case EXP.dotIdentifier: return visitDotId      (e.isDotIdExp());
     }
@@ -3324,8 +3315,13 @@ Expression inferType(Expression e, Type t, int flag = 0)
     {
         // $ with a known target type becomes a TypeExp
         // This allows $(args) for construction and $.member for member access
+        // Only do this for aggregate types (struct, enum, class), not basic types
         if (t)
-            return new TypeExp(de.loc, t);
+        {
+            Type tb = t.toBasetype();
+            if (tb.ty == Tstruct || tb.ty == Tenum || tb.ty == Tclass)
+                return new TypeExp(de.loc, t);
+        }
         return de;
     }
 
@@ -3340,12 +3336,6 @@ Expression inferType(Expression e, Type t, int flag = 0)
                 die.e1 = inferType(die.e1, t, flag);
             }
         }
-        else if (die.e1.op == EXP.call || die.e1.op == EXP.dotIdentifier)
-        {
-            // Handle chained expressions like $.a(10).b(20) or $.a.b.c
-            // Recursively infer type for the left side
-            die.e1 = inferType(die.e1, t, flag);
-        }
         return die;
     }
 
@@ -3358,11 +3348,6 @@ Expression inferType(Expression e, Type t, int flag = 0)
             {
                 ce.e1 = inferType(ce.e1, t, flag);
             }
-        }
-        else if (ce.e1.op == EXP.call || ce.e1.op == EXP.dotIdentifier)
-        {
-            // Handle chained calls like $.a(10)(20) or $.a.b(20)
-            ce.e1 = inferType(ce.e1, t, flag);
         }
         return ce;
     }
