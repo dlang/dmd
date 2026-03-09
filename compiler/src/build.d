@@ -1572,9 +1572,9 @@ auto sourceFiles()
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
-            arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d attribsem.d blockexit.d builtin.d canthrow.d chkformat.d
+            arraytypes.d astenums.d ast_node.d astbase.d astcodegen.d asttypename.d attrib.d attribsem.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d cond.d constfold.d  cpreprocess.d ctfeexpr.d
-            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d deps.d dimport.d
+            ctorflow.d cxxfrontend.d dcast.d dclass.d declaration.d delegatize.d denum.d deps.d dimport.d
             dinterpret.d dmacro.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
             dtemplate.d dtoh.d dversion.d enumsem.d escape.d expression.d expressionsem.d func.d funcsem.d hdrgen.d
             impcnvtab.d imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
@@ -1591,12 +1591,23 @@ auto sourceFiles()
             dfa/entry.d dfa/utils.d dfa/fast/structure.d dfa/fast/analysis.d dfa/fast/report.d dfa/fast/expression.d dfa/fast/statement.d
         "),
         backendHeaders: fileArray(env["C"], "
-            cc.d cdef.d cgcv.d code.d dt.d el.d global.d
-            obj.d oper.d rtlsym.d iasm.d codebuilder.d
-            ty.d type.d dlist.d
-            dwarf.d dwarf2.d cv4.d
-            melf.d mscoff.d mach.d
-            x86/code_x86.d x86/xmm.d
+            aarray.d arm/cod1.d arm/cod2.d arm/cod3.d arm/cod4.d arm/disasmarm.d arm/instr.d
+            backconfig.d barray.d bcomplex.d blockopt.d
+            cc.d cdef.d cgcs.d cgcse.d cgcv.d cg.d cgelem.d cgen.d cgsched.d codebuilder.d code.d cv4.d cv8.d
+            dcgcv.d dcode.d debugprint.d divcoeff.d dlist.d dout.d drtlsym.d dt.d dtype.d dvarstats.d dvec.d dwarf2.d dwarf.d dwarfdbginf.d dwarfeh.d
+            ee.d eh.d el.d elem.d elfobj.d elpicpie.d evalu8.d
+            fp.d
+            gdag.d gflow.d global.d glocal.d gloop.d go.d goh.d gother.d gsroa.d
+            iasm.d inliner.d
+            mach.d machobj.d melf.d mem.d mscoff.d mscoffobj.d
+            obj.d oper.d
+            pdata.d ptrntab.d
+            README.md rtlsym.d
+            symbol.d symtab.d
+            ty.d type.d
+            util2.d
+            var.d
+            x86/cg87.d x86/cgcod.d x86/cgreg.d x86/cgxmm.d x86/cod1.d x86/cod2.d x86/cod3.d x86/cod4.d x86/cod5.d x86/code_x86.d x86/disasm86.d x86/nteh.d x86/xmm.d
         "),
     };
     foreach (member; __traits(allMembers, DmdSources))
