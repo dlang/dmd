@@ -1,32 +1,32 @@
 Ddoc
 
-$(SPEC_S Garbage Collection,
+$(SPEC_S Automatic Memory Management,
 
 $(HEADERNAV_TOC)
 
         $(HTMLTAG3V img, src="$(ROOT_DIR)images/MemoryLeak.png" border="0" align="right" alt="Memory Leak" width="300" height="347")
 
-        $(P D is a systems programming language with support for garbage collection.
-        Usually it is not necessary
-        to free memory explicitly. Just allocate as needed, and the garbage collector will
+        $(P D is a systems programming language with support for optional automatic
+        memory mangagement. Usually it is not necessary
+        to free memory explicitly. Just allocate as needed, and the automatic memory manager's $(I collector) will
         periodically return all unused memory to the pool of available memory.
         )
 
-        $(P D also provides the mechanisms to write code where the garbage collector
+        $(P D also provides the mechanisms to write code where automatic memory mangagement
         is $(B not involved). More information is provided below.
         )
 
         $(P Programmers accustomed to explicitly managing memory
         allocation and
         deallocation will likely be skeptical of the benefits and efficacy of
-        garbage collection. Experience both with new projects written with
-        garbage collection in mind, and converting existing projects to garbage
-        collection shows that:
+        automatic memory management. Experience both with new projects written with
+        automatic memory management in mind, and converting existing projects to automatic
+        memory management shows that:
         )
 
         $(UL
 
-        $(LI Garbage collected programs are often faster. This is
+        $(LI Programs using automatic memory management are often faster. This is
         counterintuitive, but the reasons are:
 
         $(UL
@@ -40,7 +40,7 @@ $(HEADERNAV_TOC)
 
             $(LI Destructors are used to deallocate resources acquired by an object.
             For most classes, this resource is allocated memory.
-            With garbage collection, most destructors then become empty and
+            With automatic memory management, most destructors then become empty and
             can be discarded entirely.
             )
 
@@ -52,41 +52,41 @@ $(HEADERNAV_TOC)
             stack frames to handle exceptions, and the code runs faster.
             )
 
-            $(LI Garbage collection kicks in only when memory gets tight. When
+            $(LI Collection kicks in only when memory gets tight. When
             memory is not tight, the program runs at full speed and does not
             spend any time tracing and freeing memory.
             )
 
-            $(LI Garbage collected programs do not suffer from gradual deterioration
-            due to an accumulation of memory leaks.
+            $(LI Programs using automatic memory management do not suffer from
+            gradual deterioration due to an accumulation of memory leaks.
             )
         )
         )
 
-        $(LI Garbage collectors reclaim unused memory, therefore they do not suffer
+        $(LI Automatic memory management's collector reclaims unused memory, therefore it does not suffer
         from "memory leaks" which can cause long running applications to gradually
-        consume more and more memory until they bring down the system. GC programs
-        have longer term stability.
+        consume more and more memory until they bring down the system. Automatic memory
+        management programs have longer term stability.
         )
 
-        $(LI Garbage collected programs have fewer hard-to-find pointer bugs. This
+        $(LI Programs using automatic memory management have fewer hard-to-find pointer bugs. This
         is because there are no dangling references to freed memory. There is no
         code to explicitly manage memory, hence no bugs in such code.
         )
 
-        $(LI Garbage collected programs are faster to develop and debug, because
+        $(LI Programs using automatic memory management are faster to develop and debug, because
         there's no need for developing, debugging, testing, or maintaining the
         explicit deallocation code.
         )
 
         )
 
-        $(P Garbage collection is not a panacea. There are some downsides:
+        $(P Automatic memory management is not a panacea. There are some downsides:
         )
 
         $(UL
 
-        $(LI It is not always obvious when the GC allocates memory, which in
+        $(LI It is not always obvious when the automatic memory manager allocates memory, which in
         turn can trigger a collection, so the program can pause unexpectedly.
         )
 
@@ -98,44 +98,42 @@ $(HEADERNAV_TOC)
         halted while the collection is in progress.
         )
 
-        $(LI Garbage collectors can keep around some memory that an explicit
+        $(LI Automatic memory managers can keep around some memory that an explicit
         deallocator would not.
         )
 
-        $(LI Garbage collection should be implemented as a basic operating
-        system
-        kernel service. But since it is not, garbage collecting programs must
-        carry around with them the garbage collection implementation. While this
+        $(LI Automatic memory managing programs must
+        carry around with them the collector implementation. While this
         can be a shared library, it is still there.
         )
         )
 
         $(P These constraints are addressed by techniques outlined
         in $(LINK2 https://wiki.dlang.org/Memory_Management, Memory Management), including the mechanisms provided by
-        D to control allocations outside the GC heap.
+        D to control allocations outside the collector heap.
         )
 
-        $(P There is currently work in progress to make the runtime library free of GC heap allocations,
-        to allow its use in scenarios where the use of GC infrastructure is not possible.
+        $(P There is currently work in progress to make the runtime library free of automatic heap allocations,
+        to allow its use in scenarios where the use of automatic memory management infrastructure is not possible.
         )
 
-$(H2 $(LNAME2 how_gc_works, How Garbage Collection Works))
+$(H2 $(LNAME2 how_gc_works, How Automatic Memory Management Works))
 
-        $(P The GC works by:)
+        $(P It works by:)
 
         $(OL
         $(LI Stopping all other threads than the thread currently trying to
-        allocate GC memory.)
+        allocate memory.)
 
-        $(LI $(SINGLEQUOTE Hijacking) the current thread for GC work.)
+        $(LI $(SINGLEQUOTE Hijacking) the current thread for collection work.)
 
         $(LI Scanning all $(SINGLEQUOTE root) memory ranges for pointers into
-        GC allocated memory.)
+        allocated memory.)
 
         $(LI Recursively scanning all allocated memory pointed to by
-        roots looking for more pointers into GC allocated memory.)
+        roots looking for more pointers into allocated memory.)
 
-        $(LI Freeing all GC allocated memory that has no active pointers
+        $(LI Freeing all allocated memory that has no active pointers
         to it and do not need destructors to run.)
 
         $(LI Queueing all unreachable memory that needs destructors to run.)
@@ -149,9 +147,9 @@ $(H2 $(LNAME2 how_gc_works, How Garbage Collection Works))
         $(LI Returning the current thread to whatever work it was doing.)
         )
 
-$(H2 $(LNAME2 gc_foreign_obj, Interfacing Garbage Collected Objects With Foreign Code))
+$(H2 $(LNAME2 gc_foreign_obj, Interfacing Automatic Memory Management Allocated Objects With Foreign Code))
 
-        $(P The garbage collector looks for roots in:)
+        $(P The collector looks for roots in:)
         $(OL
         $(LI the static data segment)
         $(LI the stacks and register contents of each thread)
@@ -179,20 +177,20 @@ $(H2 $(LNAME2 gc_foreign_obj, Interfacing Garbage Collected Objects With Foreign
         )
         )
 
-$(H2 $(LNAME2 pointers_and_gc, Pointers and the Garbage Collector))
+$(H2 $(LNAME2 pointers_and_gc, Pointers and the Automatic Memeory Management Collector))
 
         $(P Pointers in D can be broadly divided into two categories: Those that
-        point to garbage collected memory, and those that do not. Examples
+        point to collector memory, and those that do not. Examples
         of the latter are pointers created by calls to C's malloc(), pointers
         received from C library routines, pointers to static data,
         pointers to objects on the stack, etc. For those pointers, anything
         that is legal in C can be done with them.
         )
 
-        $(P For garbage collected pointers and references, however, there are
+        $(P For collector pointers and references, however, there are
         some
         restrictions. These restrictions are minor, but they are intended
-        to enable the maximum flexibility in garbage collector design.
+        to enable the maximum flexibility in collector design.
         )
 
         $(UNDEFINED_BEHAVIOR
@@ -215,7 +213,8 @@ void* p;
 int x = cast(int)p;   // error: undefined behavior
 ------
 
-        The garbage collector does not scan non-pointer fields for GC pointers.
+        The collector does not scan non-pointer fields for pointers into allocated
+        memory.
         )
 
         $(LI Do not take advantage of alignment of pointers to store bit flags
@@ -227,13 +226,13 @@ p = cast(void*)(cast(int)p | 1);  // error: undefined behavior
         )
 
         $(LI Do not store into pointers values that may point into the
-        garbage collected heap:
+        collector's heap:
 
 ------
 p = cast(void*)12345678;   // error: undefined behavior
 ------
 
-        A copying garbage collector may change this value.
+        A copying collector may change this value.
         )
 
         $(LI Do not store magic values into pointers, other than $(D null).
@@ -244,7 +243,7 @@ p = cast(void*)12345678;   // error: undefined behavior
         )
 
         $(LI Do not use pointer values to compute a hash function. A copying
-        garbage collector can arbitrarily move objects around in memory,
+        collector can arbitrarily move objects around in memory,
         thus invalidating
         the computed hash value.
         )
@@ -255,12 +254,12 @@ p = cast(void*)12345678;   // error: undefined behavior
 if (p1 < p2)  // error: undefined behavior
     ...
 ------
-        since, again, the garbage collector can move objects around in
+        since, again, the collector can move objects around in
         memory.
         )
 
         $(LI Do not add or subtract an offset to a pointer such that the result
-        points outside of the bounds of the garbage collected object originally
+        points outside of the bounds of the collected object originally
         allocated.
 
 ------
@@ -272,7 +271,7 @@ q = p - 1;       // error: undefined behavior
         )
 
         $(LI Do not misalign pointers if those pointers may
-        point into the GC heap, such as:
+        point into the collector heap, such as:
 
 ------
 struct Foo
@@ -285,12 +284,12 @@ struct Foo
 
         Misaligned pointers may be used if the underlying hardware
         supports them $(B and) the pointer is never used to point
-        into the GC heap.
+        into the collector heap.
         )
 
         $(LI Do not use byte-by-byte memory copies to copy pointer values.
         This may result in intermediate conditions where there is
-        not a valid pointer, and if the GC pauses the thread in such a
+        not a valid pointer, and if the collector pauses the thread in such a
         condition, it can corrupt memory.
         Most implementations of $(D memcpy()) will work since the
         internal implementation of it does the copy in aligned chunks
@@ -319,7 +318,7 @@ union U { void* ptr; int value }
 ------
         )
 
-        $(LI A pointer to the start of a garbage collected object need not
+        $(LI A pointer to the start of a collector object need not
         be maintained if a pointer to the interior of the object exists.
 
 ------
@@ -335,16 +334,16 @@ char[] q = p[3..6];
         features
         rendering most explicit pointer uses obsolete, such as reference
         objects,
-        dynamic arrays, and garbage collection. Pointers
+        dynamic arrays, and automatic memory management. Pointers
         are provided in order to interface successfully with C APIs and for
         some low level work.
         )
 
-$(H2 $(LNAME2 working_with_the_gc, Working with the Garbage Collector))
+$(H2 $(LNAME2 working_with_the_gc, Working with the Collector))
 
-        $(P Garbage collection doesn't solve every memory deallocation problem.
+        $(P Automatic memory allocation doesn't solve every memory deallocation problem.
         For
-        example, if a pointer to a large data structure is kept, the garbage
+        example, if a pointer to a large data structure is kept, the
         collector cannot reclaim it, even if it is never referred to again. To
         eliminate this problem, it is good practice to set a reference or
         pointer to an object to null when no longer needed.
@@ -355,19 +354,19 @@ $(H2 $(LNAME2 working_with_the_gc, Working with the Garbage Collector))
         stack to be nulled because new stack frames are initialized anyway.
         )
 
-$(H2 $(LNAME2 obj_pinning_and_gc, Object Pinning and a Moving Garbage Collector))
+$(H2 $(LNAME2 obj_pinning_and_gc, Object Pinning and a Moving Collector))
 
-        $(P Although D does not currently use a moving garbage collector, by following
+        $(P Although D does not currently use a moving collector, by following
         the rules listed above one can be implemented. No special action is required
         to pin objects. A moving collector will only move objects for which there
         are no ambiguous references, and for which it can update those references.
         All other objects will be automatically pinned.
         )
 
-$(H2 D $(LNAME2 op_involving_gc, Operations That Involve the Garbage Collector))
+$(H2 D $(LNAME2 op_involving_gc, Operations That Involve the Collector))
 
-        $(P Some sections of code may need to avoid using the garbage collector.
-        The following constructs may allocate memory using the garbage collector:
+        $(P Some sections of code may need to avoid using the collector.
+        The following constructs may allocate memory using the collector:
         )
 
         $(UL
@@ -385,12 +384,12 @@ $(H2 D $(LNAME2 op_involving_gc, Operations That Involve the Garbage Collector))
         )
 
         $(P There is a $(DDSUBLINK spec/function, nogc-functions, `@nogc` function attribute)
-        which will error at compile-time if any construct is used which would make a GC
+        which will error at compile-time if any construct is used which would make a collector
         allocation.)
 
-$(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
+$(H2 $(LNAME2 gc_config, Configuring the Collector))
 
-    $(P Since version 2.067, The garbage collector can now be configured
+    $(P Since version 2.067, The collector can now be configured
         through the command line, the environment or by options embedded
         into the executable.
     )
@@ -406,7 +405,7 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
         $(UL
         $(LI disable:0|1    - start disabled)
         $(LI profile:0|1    - enable profiling with summary when terminating program)
-        $(LI gc:conservative|precise|manual - select GC implementation (default = conservative))
+        $(LI gc:conservative|precise|manual - select collector implementation (default = conservative))
         $(LI initReserve:N  - initial memory to reserve in MB)
         $(LI minPoolSize:N  - initial and minimum pool size in MB)
         $(LI maxPoolSize:N  - maximum pool size in MB)
@@ -452,7 +451,7 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
 
 $(H2 $(LNAME2 precise_gc, Precise Heap Scanning))
 
-    $(P Selecting `precise` as the garbage collector via the options above means type
+    $(P Selecting `precise` as the collector via the options above means type
         information will be used to identify actual or possible pointers or
         references within heap allocated data objects. Non-pointer data will not
         be interpreted as a reference to other memory as a "false pointer". The collector
@@ -460,7 +459,7 @@ $(H2 $(LNAME2 precise_gc, Precise Heap Scanning))
         an integer value, it will still be scanned (e.g. in a `union`).
     )
 
-    $(P To use the GC memory functions from `core.memory`
+    $(P To use the collector memory functions from `core.memory`
         for data with a mixture of pointers and non-pointer data, pass the
         TypeInfo of the allocated struct, class, or type as the optional parameter.
         The default `null` is interpreted as memory that might contain pointers everywhere.)
@@ -491,7 +490,7 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
     )
 
     $(P Precise scanning can be enabled with the D runtime option "scanDataSeg". Possible option
-        values are "conservative" (default) and "precise". As with the GC options, it can be
+        values are "conservative" (default) and "precise". As with the collector options, it can be
         specified on the command line, in the environment or embedded into the executable, e.g.)
         ---------
         extern(C) __gshared string[] rt_options = [ "scanDataSeg=precise" ];
@@ -529,20 +528,20 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
 
 $(H2 $(LNAME2 gc_parallel, Parallel marking))
 
-    $(P By default the garbage collector uses all available CPU cores to mark the heap.)
+    $(P By default the collector uses all available CPU cores to mark the heap.)
 
     $(P This might affect your application if it has threads that are not suspended
         during the mark phase of the collection. Configure the number of
-        additional threads used for marking by GC option `parallel`,
+        additional threads used for marking by collector option `parallel`,
         e.g. by passing `--DRT-gcopt=parallel:2` on the command
         line or embedding the option into the binary via `rt_options`.
         The number of threads actually created is limited to
         $(LINK2 $(ROOT_DIR)library/core/cpuid/threads_per_cpu.html, `core.cpuid.threadsPerCPU-1`).
         A value of `0` disables parallel marking completely.)
 
-$(H2 $(LNAME2 gc_registry, Adding your own Garbage Collector))
+$(H2 $(LNAME2 gc_registry, Adding your own Collector))
 
-    $(P GC implementations are added to a registry that allows to supply
+    $(P Collector implementations are added to a registry that allows to supply
         more implementations by just linking them into
         the binary. To do so add a function that is executed before the
         D runtime initialization using `pragma(crt_constructor)`:)
@@ -563,12 +562,12 @@ $(H2 $(LNAME2 gc_registry, Adding your own Garbage Collector))
         class MyGC : GC { /*...*/ }
         ---
 
-    $(P [The GC modules defining the interface (gc.interface) and registration
+    $(P [The collector modules defining the interface (gc.interface) and registration
         (gc.registry) are currently not public and are subject to
         change from version to version. Add an import search path to the
         druntime/src path to compile the example.])
 
-    $(P The new GC is added to the list of available garbage collectors that
+    $(P The new collector is added to the list of available collectors that
         can be selected via the usual configuration options, e.g. by embedding
         `rt_options` into the binary:)
         ---
@@ -578,7 +577,7 @@ $(H2 $(LNAME2 gc_registry, Adding your own Garbage Collector))
     $(P The standard GC implementation from a statically
         linked binary can be removed by redefining the function `extern(C) void* register_default_gcs()`.
         If no custom garbage collector has been registered
-        all attempts to allocate GC managed memory will terminate
+        all attempts to allocate collector managed memory will terminate
         the application with an appropriate message.)
 
 $(H2 $(LNAME2 references, References))
@@ -595,4 +594,4 @@ $(SPEC_SUBNAV_PREV_NEXT unittest, Unit Tests, float, Floating Point)
 
 Macros:
         CHAPTER=29
-        TITLE=Garbage Collection
+        TITLE=Automatic Memory Management
