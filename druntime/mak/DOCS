@@ -27,23 +27,23 @@ DOCS=\
 	$(DOCDIR)\core_internal_abort.html \
 	$(DOCDIR)\core_internal_atomic.html \
 	$(DOCDIR)\core_internal_attributes.html \
+	$(DOCDIR)\core_internal_convert.html \
+	$(DOCDIR)\core_internal_dassert.html \
 	$(DOCDIR)\core_internal_destruction.html \
 	$(DOCDIR)\core_internal_entrypoint.html \
 	$(DOCDIR)\core_internal_execinfo.html \
 	$(DOCDIR)\core_internal_hash.html \
+	$(DOCDIR)\core_internal_lifetime.html \
 	$(DOCDIR)\core_internal_moving.html \
 	$(DOCDIR)\core_internal_newaa.html \
 	$(DOCDIR)\core_internal_parseoptions.html \
 	$(DOCDIR)\core_internal_postblit.html \
+	$(DOCDIR)\core_internal_qsort.html \
 	$(DOCDIR)\core_internal_spinlock.html \
 	$(DOCDIR)\core_internal_string.html \
 	$(DOCDIR)\core_internal_switch_.html \
-	$(DOCDIR)\core_internal_utf.html \
-	$(DOCDIR)\core_internal_convert.html \
-	$(DOCDIR)\core_internal_qsort.html \
 	$(DOCDIR)\core_internal_traits.html \
-	$(DOCDIR)\core_internal_lifetime.html \
-	$(DOCDIR)\core_internal_dassert.html \
+	$(DOCDIR)\core_internal_utf.html \
 	\
 	$(DOCDIR)\core_internal_array_capacity.html \
 	$(DOCDIR)\core_internal_array_casting.html \
