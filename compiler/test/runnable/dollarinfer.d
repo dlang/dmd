@@ -1,7 +1,7 @@
 enum MyEnum { VALUE_A, VALUE_B, VALUE_C }
 
-struct Data { 
-    int x, y; 
+struct Data {
+    int x, y;
 }
 
 struct Nested {
@@ -11,6 +11,13 @@ struct Nested {
 
 void checkEnum(MyEnum m) {
     assert(m == MyEnum.VALUE_B);
+
+    switch (m)
+    {
+        case $.VALUE_A: assert(false); break;
+        case $.VALUE_B: assert(true); break;
+        default: assert(false);
+    }
 }
 
 void checkStruct(Data d) {
@@ -33,11 +40,10 @@ void main() {
     assert(n.status == MyEnum.VALUE_C);
 
     int[] pointerBitmap = [10, 20, 30, 40, 50];
-    
-    int[] slice = pointerBitmap[1 .. $]; 
+
+    int[] slice = pointerBitmap[1 .. $];
     assert(slice.length == 4);
     assert(slice[0] == 20);
-    
-    assert(slice[$ - 1] == 50);
 
+    assert(slice[$ - 1] == 50);
 }
