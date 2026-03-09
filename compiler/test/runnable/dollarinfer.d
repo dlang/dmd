@@ -1,3 +1,9 @@
+struct HasSlicing {
+    int[] data;
+    auto opSlice(size_t i, size_t j) { return data[i .. j]; }
+    @property size_t opDollar() { return data.length; }
+}
+
 enum MyEnum { VALUE_A, VALUE_B, VALUE_C }
 
 struct Data {
@@ -46,4 +52,9 @@ void main() {
     assert(slice[0] == 20);
 
     assert(slice[$ - 1] == 50);
+
+    HasSlicing t;
+    t.data = [1, 2, 3, 4, 5];
+    auto x = t[0 .. $];
+    assert(x.length == 5);
 }

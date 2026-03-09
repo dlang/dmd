@@ -3340,6 +3340,12 @@ Expression inferType(Expression e, Type t, int flag = 0)
                 die.e1 = inferType(die.e1, t, flag);
             }
         }
+        else if (die.e1.op == EXP.call || die.e1.op == EXP.dotIdentifier)
+        {
+            // Handle chained expressions like $.a(10).b(20) or $.a.b.c
+            // Recursively infer type for the left side
+            die.e1 = inferType(die.e1, t, flag);
+        }
         return die;
     }
 
@@ -3352,6 +3358,11 @@ Expression inferType(Expression e, Type t, int flag = 0)
             {
                 ce.e1 = inferType(ce.e1, t, flag);
             }
+        }
+        else if (ce.e1.op == EXP.call || ce.e1.op == EXP.dotIdentifier)
+        {
+            // Handle chained calls like $.a(10)(20) or $.a.b(20)
+            ce.e1 = inferType(ce.e1, t, flag);
         }
         return ce;
     }

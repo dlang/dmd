@@ -5401,6 +5401,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if (sc.scopesym && sc.scopesym.isArrayScopeSymbol())
+        {
+            visit(cast(IdentifierExp)exp);
+            return;
+        }
+
         // if not found, it's $ waiting for type inference via implicitCastTo
         exp.type = Type.tvoid;
         result = exp;
@@ -15662,6 +15668,22 @@ private Expression expressionSemanticWithParent(Expression e, Scope* sc, Express
     return v.result;
 }
 
+/******
+ * Check if an expression contains a DollarExp (for chained $ inference)
+ */
+private bool containsDollarExp(Expression e)
+{
+    if (!e)
+        return false;
+    if (e.isDollarExp())
+        return true;
+    if (auto ce = e.isCallExp())
+        return containsDollarExp(ce.e1);
+    if (auto die = e.isDotIdExp())
+        return containsDollarExp(die.e1);
+    return false;
+}
+
 private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
 {
     //printf("dotIdSemanticPropX() %s\n", toChars(exp));
@@ -15670,7 +15692,7 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
 
     if (exp.e1.type == Type.tvoid)
     {
-        if (exp.e1.isDollarExp())
+        if (exp.e1.isDollarExp() || containsDollarExp(exp.e1))
         {
             auto n = new DotIdExp(exp.loc, exp.e1, exp.ident);
             n.type = Type.tvoid;

@@ -2347,8 +2347,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 else
                 {
-                .error(dsym.loc, "%s `%s` - type `%s` is inferred from initializer `%s`, and variables cannot be of type `void`",
-                    dsym.kind, dsym.toPrettyChars, dsym.type.toChars(), toChars(dsym._init));
+                    .error(dsym.loc, "%s `%s` - type `%s` is inferred from initializer `%s`, and variables cannot be of type `void`",
+                        dsym.kind, dsym.toPrettyChars, dsym.type.toChars(), toChars(dsym._init));
                 }
             }
             else
