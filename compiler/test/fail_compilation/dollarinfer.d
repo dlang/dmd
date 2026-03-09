@@ -8,7 +8,7 @@ and:
 fail_compilation/dollarinfer.d(26):     `dollarinfer.ambig(Other o)`
 `$` type inference is ambiguous - consider using an explicit type cast
 fail_compilation/dollarinfer.d(31): Error: variable `dollarinfer.main.unknown` - `$` requires a known type context for inference, but type is inferred from initializer `dollar.VALUE_A`
-fail_compilation/dollarinfer.d(31):        `auto` does not provide a type context for `$` - consider using an explicit type like `unknown = MyType.value`
+fail_compilation/dollarinfer.d(31):        `auto` does not provide a type context for `$`, consider using an explicit type
 fail_compilation/dollarinfer.d(33): Error: no property `VALUE_C` for type `MyEnum`. Did you mean `MyEnum.VALUE_A` ?
 fail_compilation/dollarinfer.d(19):        enum `MyEnum` defined here
 fail_compilation/dollarinfer.d(35): Error: type `int` has no value
