@@ -1602,7 +1602,7 @@ auto sourceFiles()
             mach.d machobj.d melf.d mem.d mscoff.d mscoffobj.d
             obj.d oper.d
             pdata.d ptrntab.d
-            README.md rtlsym.d
+            rtlsym.d
             symbol.d symtab.d
             ty.d type.d
             util2.d
