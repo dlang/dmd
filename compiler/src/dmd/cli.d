@@ -115,7 +115,7 @@ struct Usage
     /**
     * Representation of a CLI `Option`
     *
-    * The DDoc description `ddoxText` is only available when compiled with `-version=DdocOptions`.
+    * The DDoc description `ddocText` is only available when compiled with `-version=DdocOptions`.
     */
     struct Option
     {
@@ -859,7 +859,7 @@ dmd -cov -unittest myprog.d
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
-        Option("target=<arch>-[<vendor>-]<os>[-<cenv>[-<cppenv]]",
+        Option("target=<arch>-[<vendor>-]<os>[-<cenv>[-<cppenv>]]",
                "set CPU architecture, OS, C runtime and C++ runtime",
                "Set CPU architecture, OS, C runtime and C++ runtime:
                $(UL
@@ -880,7 +880,7 @@ dmd -cov -unittest myprog.d
                        $(LI `gnu` or `glibc` for the GCC C runtime)
                        $(LI `newlib` or `uclibc` for their respective C runtimes)
                    )
-                   $(LI ($I cppenv) is the C++ runtime environment:)
+                   $(LI $(I cppenv) is the C++ runtime environment:)
                    $(UL
                        $(LI `clang` for the LLVM C++ runtime)
                        $(LI `gcc` for GCC's C++ runtime)
