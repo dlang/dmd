@@ -1121,6 +1121,13 @@ enum class FeatureState : uint8_t
     enabled = 2u,
 };
 
+enum LintFlags : uint32_t
+{
+    LintFlags_none         = 0,
+    LintFlags_constSpecial = 1 << 0,
+    LintFlags_all          = ~(uint32_t)0
+};
+
 struct Previews final
 {
 private:
@@ -7047,6 +7054,7 @@ public:
     bool explicitVisibility() const;
     bool explicitVisibility(bool v);
     Previews previews;
+    uint32_t lintFlags;
     UserAttributeDeclaration* userAttribDecl;
     void* lastdc;
     void* anchorCounts;
@@ -7085,6 +7093,7 @@ public:
         bitFields(0u),
         bitFields2(),
         previews(),
+        lintFlags(0),
         userAttribDecl(),
         lastdc(),
         prevAnchor(),
@@ -7125,6 +7134,7 @@ public:
         bitFields(bitFields),
         bitFields2(bitFields2),
         previews(previews),
+        lintFlags(lintFlags),
         userAttribDecl(userAttribDecl),
         lastdc(lastdc),
         anchorCounts(anchorCounts),
