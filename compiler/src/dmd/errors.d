@@ -29,6 +29,7 @@ import dmd.sarif;
 nothrow:
 
 /// Constants used to discriminate kinds of error messages.
+extern (C++)
 enum ErrorKind
 {
     warning,

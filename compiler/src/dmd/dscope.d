@@ -44,6 +44,7 @@ enum Contract : ubyte
 }
 
 /// Active linting rules for the current scope
+extern (C++)
 enum LintFlags : uint
 {
     none         = 0,
