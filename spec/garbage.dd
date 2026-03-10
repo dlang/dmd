@@ -177,7 +177,7 @@ $(H2 $(LNAME2 gc_foreign_obj, Interfacing Automatic Memory Management Allocated 
         )
         )
 
-$(H2 $(LNAME2 pointers_and_gc, Pointers and the Automatic Memeory Management Collector))
+$(H2 $(LNAME2 pointers_and_gc, Pointers and the Automatic Memory Management Collector))
 
         $(P Pointers in D can be broadly divided into two categories: Those that
         point to collector memory, and those that do not. Examples
