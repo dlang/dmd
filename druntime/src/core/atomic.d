@@ -33,6 +33,13 @@ import core.internal.atomic;
 import core.internal.attributes : betterC;
 import core.internal.traits : hasUnsharedIndirections;
 
+// Low-level atomic helpers still need to hand shared reference payloads to the
+// backend intrinsics under `-preview=nosharedaccess`.
+private T unsharedLoadRef(T)(scope ref shared T value) pure nothrow @nogc @trusted
+{
+    return *cast(T*)&value;
+}
+
 /**
  * Specifies the memory ordering semantics of an atomic operation.
  *
@@ -259,7 +266,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     static assert (is (V : T), "Can't assign `exchangeWith` of type `" ~ shared(V).stringof ~ "` to `" ~ shared(T).stringof ~ "`.");
 
-    return cast(shared)core.internal.atomic.atomicExchange!ms(cast(T*)here, cast(V)exchangeWith);
+    return cast(shared)core.internal.atomic.atomicExchange!ms(cast(T*)here, unsharedLoadRef(exchangeWith));
 }
 
 /**
@@ -326,7 +333,7 @@ template cas(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.
     in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
     {
         return atomicCompareExchangeStrongNoResult!(succ, fail)(
-            cast(T*)here, cast(V1)ifThis, cast(V2)writeThis);
+            cast(T*)here, unsharedLoadRef(ifThis), unsharedLoadRef(writeThis));
     }
 
     /// Compare-and-exchange for non-`shared` types
@@ -378,7 +385,7 @@ template cas(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.
     in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
     {
         return atomicCompareExchangeStrong!(succ, fail)(
-            cast(T*)here, cast(T*)ifThis, cast(V)writeThis);
+            cast(T*)here, cast(T*)ifThis, unsharedLoadRef(writeThis));
     }
 }
 
@@ -835,11 +842,11 @@ version (CoreUnittest)
         T         base = cast(T)null;
         shared(T) atom = cast(shared(T))null;
 
-        assert(base !is val, T.stringof);
-        assert(atom is base, T.stringof);
+        assert(atomicLoad(base) !is atomicLoad(val), T.stringof);
+        assert(atomicLoad(atom) is atomicLoad(base), T.stringof);
 
-        assert(atomicExchange(&atom, val) is base, T.stringof);
-        assert(atom is val, T.stringof);
+        assert(atomicExchange(&atom, atomicLoad(val)) is atomicLoad(base), T.stringof);
+        assert(atomicLoad(atom) is atomicLoad(val), T.stringof);
     }
 
     void testCAS(T)(T val) pure nothrow @nogc @trusted
@@ -852,25 +859,26 @@ version (CoreUnittest)
         T         base = cast(T)null;
         shared(T) atom = cast(shared(T))null;
 
-        assert(base !is val, T.stringof);
-        assert(atom is base, T.stringof);
+        assert(atomicLoad(base) !is atomicLoad(val), T.stringof);
+        assert(atomicLoad(atom) is atomicLoad(base), T.stringof);
 
-        assert(cas(&atom, base, val), T.stringof);
-        assert(atom is val, T.stringof);
-        assert(!cas(&atom, base, base), T.stringof);
-        assert(atom is val, T.stringof);
+        assert(cas(&atom, atomicLoad(base), atomicLoad(val)), T.stringof);
+        assert(atomicLoad(atom) is atomicLoad(val), T.stringof);
+        assert(!cas(&atom, atomicLoad(base), atomicLoad(base)), T.stringof);
+        assert(atomicLoad(atom) is atomicLoad(val), T.stringof);
 
-        atom = cast(shared(T))null;
+        atomicStore(atom, cast(shared(T))null);
 
-        shared(T) arg = base;
-        assert(cas(&atom, &arg, val), T.stringof);
-        assert(arg is base, T.stringof);
-        assert(atom is val, T.stringof);
+        shared(T) arg = cast(shared(T))null;
+        atomicStore(arg, atomicLoad(base));
+        assert(cas(&atom, &arg, atomicLoad(val)), T.stringof);
+        assert(atomicLoad(arg) is atomicLoad(base), T.stringof);
+        assert(atomicLoad(atom) is atomicLoad(val), T.stringof);
 
-        arg = base;
-        assert(!cas(&atom, &arg, base), T.stringof);
-        assert(arg is val, T.stringof);
-        assert(atom is val, T.stringof);
+        atomicStore(arg, atomicLoad(base));
+        assert(!cas(&atom, &arg, atomicLoad(base)), T.stringof);
+        assert(atomicLoad(arg) is atomicLoad(val), T.stringof);
+        assert(atomicLoad(atom) is atomicLoad(val), T.stringof);
     }
 
     void testLoadStore(MemoryOrder ms = MemoryOrder.seq, T)(T val = T.init + 1) pure nothrow @nogc @trusted
@@ -878,23 +886,34 @@ version (CoreUnittest)
         T         base = cast(T) 0;
         shared(T) atom = cast(T) 0;
 
-        assert(base !is val);
-        assert(atom is base);
-        atomicStore!(ms)(atom, val);
-        base = atomicLoad!(ms)(atom);
+        assert(atomicLoad(base) !is atomicLoad(val));
+        assert(atomicLoad(atom) is atomicLoad(base));
+        atomicStore!(ms)(atom, atomicLoad(val));
+        auto loaded = atomicLoad!(ms)(atom);
 
-        assert(base is val, T.stringof);
-        assert(atom is val);
+        assert(loaded is atomicLoad(val), T.stringof);
+        assert(atomicLoad(atom) is atomicLoad(val));
     }
 
 
-    void testType(T)(T val = T.init + 1) pure nothrow @nogc @safe
+    // This test-only helper synthesizes distinct sentinel values for low-level
+    // atomic operations, including shared pointers that cannot be formed in
+    // @safe code.
+    private T testValue(T)() pure nothrow @nogc @trusted
+    {
+        static if (is(T == U*, U))
+            return cast(T)1;
+        else
+            return T.init + 1;
+    }
+
+    void testType(T)(T val = testValue!T()) pure nothrow @nogc @safe
     {
         static if (T.sizeof < 8 || has64BitXCHG)
-            testXCHG!(T)(val);
-        testCAS!(T)(val);
-        testLoadStore!(MemoryOrder.seq, T)(val);
-        testLoadStore!(MemoryOrder.raw, T)(val);
+            testXCHG!(T)(atomicLoad(val));
+        testCAS!(T)(atomicLoad(val));
+        testLoadStore!(MemoryOrder.seq, T)(atomicLoad(val));
+        testLoadStore!(MemoryOrder.raw, T)(atomicLoad(val));
     }
 
     @betterC @safe pure nothrow unittest
@@ -946,30 +965,30 @@ version (CoreUnittest)
                 shared(Big) arg;
                 shared(Big) val = Big(1, 2);
 
-                assert(cas(&atom, arg, val), Big.stringof);
-                assert(atom is val, Big.stringof);
-                assert(!cas(&atom, arg, val), Big.stringof);
-                assert(atom is val, Big.stringof);
+                assert(cas(&atom, atomicLoad(arg), atomicLoad(val)), Big.stringof);
+                assert(atomicLoad(atom) is atomicLoad(val), Big.stringof);
+                assert(!cas(&atom, atomicLoad(arg), atomicLoad(val)), Big.stringof);
+                assert(atomicLoad(atom) is atomicLoad(val), Big.stringof);
 
-                atom = Big();
-                assert(cas(&atom, &arg, val), Big.stringof);
-                assert(arg is base, Big.stringof);
-                assert(atom is val, Big.stringof);
+                atomicStore(atom, Big());
+                assert(cas(&atom, &arg, atomicLoad(val)), Big.stringof);
+                assert(atomicLoad(arg) is atomicLoad(base), Big.stringof);
+                assert(atomicLoad(atom) is atomicLoad(val), Big.stringof);
 
-                arg = Big();
-                assert(!cas(&atom, &arg, base), Big.stringof);
-                assert(arg is val, Big.stringof);
-                assert(atom is val, Big.stringof);
+                atomicStore(arg, Big());
+                assert(!cas(&atom, &arg, atomicLoad(base)), Big.stringof);
+                assert(atomicLoad(arg) is atomicLoad(val), Big.stringof);
+                assert(atomicLoad(atom) is atomicLoad(val), Big.stringof);
             }();
         }
 
         shared(size_t) i;
 
         atomicOp!"+="(i, cast(size_t) 1);
-        assert(i == 1);
+        assert(atomicLoad(i) == 1);
 
         atomicOp!"-="(i, cast(size_t) 1);
-        assert(i == 0);
+        assert(atomicLoad(i) == 0);
 
         shared float f = 0.1f;
         atomicOp!"+="(f, 0.1f);
@@ -995,10 +1014,12 @@ version (CoreUnittest)
 
             align(16) shared DoubleValue a;
             atomicStore(a, DoubleValue(1,2));
-            assert(a.value1 == 1 && a.value2 ==2);
+            auto initial = atomicLoad(a);
+            assert(initial.value1 == 1 && initial.value2 == 2);
 
             while (!cas(&a, DoubleValue(1,2), DoubleValue(3,4))){}
-            assert(a.value1 == 3 && a.value2 ==4);
+            auto updated = atomicLoad(a);
+            assert(updated.value1 == 3 && updated.value2 == 4);
 
             align(16) DoubleValue b = atomicLoad(a);
             assert(b.value1 == 3 && b.value2 ==4);
@@ -1056,7 +1077,8 @@ version (CoreUnittest)
     @betterC pure nothrow unittest
     {
         static struct S { int val; }
-        auto s = shared(S)(1);
+        shared S s;
+        atomicStore(s, S(1));
 
         shared(S*) ptr;
 
@@ -1070,7 +1092,7 @@ version (CoreUnittest)
         // head shared
         shared(S*) ifThis2 = writeThis;
         shared(S*) writeThis2 = null;
-        assert(cas(&ptr, ifThis2, writeThis2));
+        assert(cas(&ptr, atomicLoad(ifThis2), atomicLoad(writeThis2)));
         assert(ptr is null);
     }
 
@@ -1174,12 +1196,12 @@ version (CoreUnittest)
         shared ulong a = 2;
         uint b = 1;
         atomicOp!"-="(a, b);
-        assert(a == 1);
+        assert(atomicLoad(a) == 1);
 
         shared uint c = 2;
         ubyte d = 1;
         atomicOp!"-="(c, d);
-        assert(c == 1);
+        assert(atomicLoad(c) == 1);
     }
 
     pure nothrow @safe unittest // https://issues.dlang.org/show_bug.cgi?id=16230
@@ -1232,6 +1254,6 @@ version (CoreUnittest)
         shared uint si2 = 38;
         shared uint* psi = &si1;
 
-        assert((&psi).cas(cast(const) psi, &si2));
+        assert((&psi).cas(cast(const) atomicLoad(psi), &si2));
     }
 }

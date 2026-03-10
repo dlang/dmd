@@ -94,7 +94,14 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
 {
     import core.internal.traits : hasElaborateAssign;
 
-    static if (__traits(isZeroInit, T))
+    static if (is(T == shared U, U))
+    {
+        // Initialization happens before the shared object is published, so the
+        // helper has to operate on the backing storage instead of performing an
+        // ordinary shared write that `-preview=nosharedaccess` rejects.
+        emplaceInitializer(*cast(U*) &chunk);
+    }
+    else static if (__traits(isZeroInit, T))
     {
         import core.stdc.string : memset;
         memset(cast(void*) &chunk, 0, T.sizeof);
@@ -135,7 +142,9 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
         {
             shared T dst = void;
             emplaceInitializer(dst);
-            assert(dst is shared(T).init);
+            // The initializer has not been published yet, so the test may read
+            // the backing storage directly to verify that emplace wrote T.init.
+            assert((() @trusted => (*cast(T*) &dst) is T.init)());
         }
 
         // const T
