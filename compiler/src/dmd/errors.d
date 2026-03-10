@@ -36,6 +36,7 @@ enum ErrorKind
     error,
     tip,
     message,
+    lint,
 }
 
 /********************************
@@ -119,6 +120,7 @@ enum Classification : Color
     warning = Color.brightYellow,     /// for warnings
     deprecation = Color.brightCyan,   /// for deprecations
     tip = Color.brightGreen,          /// for tip messages
+    lint = Color.brightMagenta,       /// for lint messages
 }
 
 
@@ -220,6 +222,31 @@ extern(C++) void errorBackend(const(char)* filename, uint linnum, uint charnum, 
     vreportDiagnostic(loc, format, ap, ErrorKind.error);
     va_end(ap);
 }
+
+/**
+ * Print a lint message with the prefix and highlighting.
+ * Does NOT increase error or warning counts.
+ * Params:
+ * loc    = location of message
+ * format = printf-style format specification
+ * ...    = printf-style variadic arguments
+ */
+static if (__VERSION__ < 2092)
+    extern (C++) void lint(Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vreportDiagnostic(loc, format, ap, ErrorKind.lint);
+        va_end(ap);
+    }
+else
+    pragma(printf) extern (C++) void lint(Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vreportDiagnostic(loc, format, ap, ErrorKind.lint);
+        va_end(ap);
+    }
 
 /**
  * Print additional details about an error message.
@@ -577,6 +604,19 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             return;
         }
         return;
+
+    case ErrorKind.lint:
+        if (!global.gag)
+        {
+            info.headerColor = Classification.lint;
+            if (global.params.v.messageStyle == MessageStyle.sarif)
+            {
+                addSarifDiagnostic(loc, format, ap, kind);
+                return;
+            }
+            printDiagnostic(format, ap, info);
+        }
+        return;
     }
 }
 
@@ -636,6 +676,16 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
         }
         return;
 
+    case ErrorKind.lint:
+    case ErrorKind.tip:
+    case ErrorKind.message:
+        if (!global.gag)
+        {
+            info.headerColor = Classification.lint;
+            printDiagnostic(format, ap, info);
+        }
+        return;
+
     default:
         assert(false, "internal error: unhandled kind in error report");
     }
@@ -663,6 +713,7 @@ private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticCont
             case ErrorKind.warning:     header = "Warning: "; break;
             case ErrorKind.tip:         header = "  Tip: "; break;
             case ErrorKind.message:     assert(0);
+            case ErrorKind.lint:        header = "Lint: "; break;
         }
     }
 
