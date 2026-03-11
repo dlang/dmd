@@ -146,6 +146,7 @@ else version (FreeBSD)
 else version (NetBSD)
 {
     ///
+    pragma(mangle, "__tzset50")
     void tzset();                            // non-standard
     ///
     extern __gshared const(char)*[2] tzname; // non-standard
