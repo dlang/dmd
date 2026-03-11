@@ -349,7 +349,8 @@ dmd -cov -unittest myprog.d
         ),
         Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",
-            "Standards supported are:
+            "set C++ name mangling compatibility with <standard>.
+            Standards supported are:
             $(UL
                 $(LI $(I c++98): Use C++98 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `199711`)
@@ -444,7 +445,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("HC[=[?|h|help|silent|verbose]]",
             "write C++ 'header' equivalent to stdout",
-            `write C++ 'header' equivalent to stdout configured with:",
+            `write C++ 'header' equivalent to stdout configured with:
             $(DL
             $(DT ?|h|help)$(DD list available options for C++ 'header' file generation)
             $(DT silent)$(DD only list extern(C[++]) declarations (default))
@@ -453,7 +454,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("HCd=<directory>",
             "write C++ 'header' file to directory",
-            "write C++ 'header' file to directory, ignored if -HCf=<filename> is not present",
+            "write C++ 'header' file to directory, ignored if `-HCf=<filename>` is not present",
         ),
         Option("HCf=<filename>",
             "write C++ 'header' file to filename instead of stdout"
