@@ -2113,10 +2113,25 @@ struct Gcx
      */
     void updateCollectThresholds() nothrow
     {
-        static float max(float a, float b) nothrow
-        {
-            return a >= b ? a : b;
-        }
+        import core.internal.util.math : min, max;
+
+        // Reserve half of the remaining heap budget to small and large heaps.
+        immutable maxPageUsed = config.heapSizeLimit / PAGESIZE;
+        immutable usedPages = usedSmallPages + usedLargePages;
+        immutable heapBudget = maxPageUsed > usedPages
+            ? maxPageUsed - usedPages
+            : 0;
+
+        immutable smTargetHeap = usedSmallPages + heapBudget / 2;
+        immutable lgTargetHeap = usedLargePages + heapBudget / 2;
+
+        // Compute the target sizes based on the growth factor.
+        immutable smTargetGrowth = usedSmallPages * config.heapSizeFactor;
+        immutable lgTargetGrowth = usedLargePages * config.heapSizeFactor;
+
+        // Collect when either is reached.
+        immutable smTarget = min(smTargetHeap, smTargetGrowth);
+        immutable lgTarget = min(lgTargetHeap, lgTargetGrowth);
 
         // instantly increases, slowly decreases
         static float smoothDecay(float oldVal, float newVal) nothrow
@@ -2128,9 +2143,7 @@ struct Gcx
             return max(newVal, decay);
         }
 
-        immutable smTarget = usedSmallPages * config.heapSizeFactor;
         smallCollectThreshold = smoothDecay(smallCollectThreshold, smTarget);
-        immutable lgTarget = usedLargePages * config.heapSizeFactor;
         largeCollectThreshold = smoothDecay(largeCollectThreshold, lgTarget);
     }
 
