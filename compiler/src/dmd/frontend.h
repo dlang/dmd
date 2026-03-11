@@ -8881,6 +8881,7 @@ struct Id final
     static Identifier* udaOptional;
     static Identifier* udaMustUse;
     static Identifier* udaStandalone;
+    static Identifier* udaSection;
     static Identifier* TRUE;
     static Identifier* FALSE;
     static Identifier* ImportC;

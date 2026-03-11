@@ -1401,8 +1401,8 @@ int MsCoffObj_jmpTableSegment(Symbol* s)
 segidx_t MsCoffObj_getsegment(const(char)* sectname, uint flags)
 {
     //printf("getsegment(%s)\n", sectname);
-    assert(strlen(sectname) <= 8);      // so it won't go into string_table
-    if (!(flags & IMAGE_SCN_LNK_COMDAT))
+    //assert(strlen(sectname) <= 8);      // so it won't go into string_table
+    if (!(flags & IMAGE_SCN_LNK_COMDAT) && strlen(sectname) <= 8)
     {
         for (segidx_t seg = 1; seg < SegData.length; seg++)
         {   seg_data* pseg = SegData[seg];
