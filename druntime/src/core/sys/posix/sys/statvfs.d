@@ -180,7 +180,9 @@ else version (NetBSD)
         ST_NOSUID = 2
     }
 
+    pragma(mangle, "__statvfs90")
     int statvfs (const char * file, statvfs_t* buf);
+    pragma(mangle, "__fstatvfs90")
     int fstatvfs (int fildes, statvfs_t *buf) @trusted;
 }
 else version (OpenBSD)
