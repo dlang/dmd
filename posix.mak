@@ -5,7 +5,7 @@ $(warning ============================== )
 # forward everything to Makefile
 
 all:
-	"$(MAKE)" -f Makefile $@
+	$(MAKE) -f Makefile $@
 
 %:
-	"$(MAKE)" -f Makefile $@
+	$(MAKE) -f Makefile $@

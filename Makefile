@@ -84,7 +84,7 @@ clean:
 	rm -rf $(GENERATED)
 	cd compiler/test && rm -rf test_results *.lst trace.log trace.def
 	$(RM) tags
-	$(QUIET)"$(MAKE)" -C druntime clean
+	$(QUIET)$(MAKE) -C druntime clean
 
 dmd: $(BUILD_EXE)
 	$(BUILD_CMD) $@
@@ -96,10 +96,10 @@ dmd-test: dmd-unittest dmd druntime $(RUN_EXE)
 	$(RUN_EXE) --environment
 
 druntime: dmd
-	$(QUIET)"$(MAKE)" -C druntime
+	$(QUIET)$(MAKE) -C druntime
 
 druntime-test: dmd
-	$(QUIET)"$(MAKE)" -C druntime unittest
+	$(QUIET)$(MAKE) -C druntime unittest
 
 test: dmd-test druntime-test
 
@@ -120,7 +120,7 @@ install: $(BUILD_EXE)
 	$(BUILD_CMD) install INSTALL_DIR='$(if $(findstring $(OS),windows),$(shell cygpath -w '$(INSTALL_DIR)'),$(INSTALL_DIR))'
 	mkdir -p '$(INSTALL_DIR)'/man
 	cp -r $(GENERATED)/docs/man/* '$(INSTALL_DIR)'/man/
-	$(QUIET)"$(MAKE)" -C druntime install INSTALL_DIR='$(INSTALL_DIR)'
+	$(QUIET)$(MAKE) -C druntime install INSTALL_DIR='$(INSTALL_DIR)'
 endif
 
 # Checks that all files have been committed and no temporary, untracked files exist.
