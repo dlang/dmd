@@ -2,31 +2,31 @@
 
 
 all:
-	$(QUIET)"$(MAKE)" -C .. $@
+	$(QUIET)$(MAKE) -C .. $@
 
 buildkite-test:
-	$(QUIET)"$(MAKE)" -C .. $@
+	$(QUIET)$(MAKE) -C .. $@
 
 toolchain-info:
-	$(QUIET)"$(MAKE)" -C .. $@
+	$(QUIET)$(MAKE) -C .. $@
 
 clean:
-	$(QUIET)"$(MAKE)" -C .. $@
+	$(QUIET)$(MAKE) -C .. $@
 
 test:
-	$(QUIET)"$(MAKE)" -C .. $@
+	$(QUIET)$(MAKE) -C .. $@
 
 html:
-	$(QUIET)"$(MAKE)" -C .. $@
+	$(QUIET)$(MAKE) -C .. $@
 
 tags:
-	$(QUIET)"$(MAKE)" -C .. $@
+	$(QUIET)$(MAKE) -C .. $@
 
 install:
-	$(QUIET)"$(MAKE)" -C .. $@
+	$(QUIET)$(MAKE) -C .. $@
 
 check-clean-git:
-	$(QUIET)"$(MAKE)" -C .. $@
+	$(QUIET)$(MAKE) -C .. $@
 
 style:
-	$(QUIET)"$(MAKE)" -C .. $@
+	$(QUIET)$(MAKE) -C .. $@
