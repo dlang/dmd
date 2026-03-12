@@ -579,7 +579,7 @@ DOCS=\
 	$(DOCDIR)\rt_profilegc.html \
 	$(DOCDIR)\rt_sections_elf_shared.html \
 	$(DOCDIR)\rt_sections_osx_x86.html \
-	$(DOCDIR)\rt_sections_osx_x86_64.html \
+	$(DOCDIR)\rt_sections_osx_64.html \
 	$(DOCDIR)\rt_monitor_.html \
 	$(DOCDIR)\rt_cover.html \
 	\

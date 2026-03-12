@@ -592,7 +592,7 @@ SRCS=\
 	src\rt\sections_darwin_64.d \
 	src\rt\sections_elf_shared.d \
 	src\rt\sections_osx_x86.d \
-	src\rt\sections_osx_x86_64.d \
+	src\rt\sections_osx_64.d \
 	src\rt\sections_solaris.d \
 	src\rt\sections_win64.d \
 	src\rt\tlsgc.d \
