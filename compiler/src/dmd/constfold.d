@@ -611,8 +611,6 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     int cmp = 0;
-    real_t r1 = CTFloat.zero;
-    real_t r2 = CTFloat.zero;
     //printf("Equal(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
     assert(op == EXP.equal || op == EXP.notEqual);
     if (e1.op == EXP.null_)
@@ -691,17 +689,17 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
             }
         }
     }
-    else if (e1.op == EXP.arrayLiteral && e2.op == EXP.string_)
+    else if ((e1.op == EXP.arrayLiteral && e2.op == EXP.string_) ||
+             (e1.op == EXP.string_ && e2.op == EXP.arrayLiteral))
     {
-        // Swap operands and use common code
-        Expression etmp = e1;
-        e1 = e2;
-        e2 = etmp;
-        goto Lsa;
-    }
-    else if (e1.op == EXP.string_ && e2.op == EXP.arrayLiteral)
-    {
-    Lsa:
+        if (e1.op == EXP.arrayLiteral)
+        {
+            // Swap operands and use common code
+            Expression etmp = e1;
+            e1 = e2;
+            e2 = etmp;
+        }
+
         StringExp es1 = e1.isStringExp();
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
         size_t dim1 = es1.len;
@@ -766,17 +764,12 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
         cantExp(ue);
         return ue;
     }
-    else if (e1.type.isReal())
+    else if (e1.type.isReal() || e1.type.isImaginary())
     {
-        r1 = e1.toReal();
-        r2 = e2.toReal();
-        goto L1;
-    }
-    else if (e1.type.isImaginary())
-    {
-        r1 = e1.toImaginary();
-        r2 = e2.toImaginary();
-    L1:
+        const bool isReal = e1.type.isReal();
+        real_t r1 = isReal ? e1.toReal() : e1.toImaginary();
+        real_t r2 = isReal ? e2.toReal() : e2.toImaginary();
+
         if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
         {
             cmp = 0;
@@ -854,8 +847,6 @@ UnionExp Cmp(EXP op, Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     dinteger_t n;
-    real_t r1 = CTFloat.zero;
-    real_t r2 = CTFloat.zero;
     //printf("Cmp(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
     if (e1.op == EXP.string_ && e2.op == EXP.string_)
     {
@@ -878,17 +869,11 @@ UnionExp Cmp(EXP op, Loc loc, Type type, Expression e1, Expression e2)
         cantExp(ue);
         return ue;
     }
-    else if (e1.type.isReal())
+    else if (e1.type.isReal() || e1.type.isImaginary())
     {
-        r1 = e1.toReal();
-        r2 = e2.toReal();
-        goto L1;
-    }
-    else if (e1.type.isImaginary())
-    {
-        r1 = e1.toImaginary();
-        r2 = e2.toImaginary();
-    L1:
+        const bool isReal = e1.type.isReal();
+        real_t r1 = isReal ? e1.toReal() : e1.toImaginary();
+        real_t r2 = isReal ? e2.toReal() : e2.toImaginary();
         n = realCmp(op, r1, r2);
     }
     else if (e1.type.isComplex())
@@ -938,16 +923,22 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
         ue.exp().type = type;
         return ue;
     }
+    UnionExp retExpType()
+    {
+        Expression ex = expType(to, e1);
+        emplaceExp!(UnionExp)(&ue, ex);
+        return ue;
+    }
     if (e1.type.implicitConvTo(to) >= MATCH.constant || to.implicitConvTo(e1.type) >= MATCH.constant)
     {
-        goto L1;
+        return retExpType();
     }
     // Allow covariant converions of delegates
     // (Perhaps implicit conversion from pure to impure should be a MATCH.constant,
     // then we wouldn't need this extra check.)
     if (e1.type.toBasetype().ty == Tdelegate && e1.type.implicitConvTo(to) == MATCH.convert)
     {
-        goto L1;
+        return retExpType();
     }
     /* Allow casting from one string type to another
      */
@@ -955,15 +946,12 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
     {
         if (tb.ty == Tarray && typeb.ty == Tarray && tb.nextOf().size() == typeb.nextOf().size())
         {
-            goto L1;
+            return retExpType();
         }
     }
     if (e1.op == EXP.arrayLiteral && typeb == tb)
     {
-    L1:
-        Expression ex = expType(to, e1);
-        emplaceExp!(UnionExp)(&ue, ex);
-        return ue;
+        return retExpType();
     }
     if (e1.isConst() != 1)
     {
@@ -1602,15 +1590,12 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e1.op == EXP.arrayLiteral && e2.op == EXP.null_ && t1.nextOf().equals(t2.nextOf()))
+    else if ((e1.op == EXP.arrayLiteral && e2.op == EXP.null_)
+              || (e1.op == EXP.null_ && e2.op == EXP.arrayLiteral)
+             && t1.nextOf().equals(t2.nextOf()))
     {
-        e = e1;
-        goto L3;
-    }
-    else if (e1.op == EXP.null_ && e2.op == EXP.arrayLiteral && t1.nextOf().equals(t2.nextOf()))
-    {
-        e = e2;
-    L3:
+        e = (e1.op == EXP.arrayLiteral) ? e1 : e2;
+
         // Concatenate the array with null
         auto elems = copyElements(e);
 
@@ -1660,17 +1645,13 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e1.op == EXP.null_ && e2.op == EXP.string_)
+    else if ((e1.op == EXP.null_   && e2.op == EXP.string_) ||
+             (e1.op == EXP.string_ && e2.op == EXP.null_))
     {
-        t = e1.type;
-        e = e2;
-        goto L1;
-    }
-    else if (e1.op == EXP.string_ && e2.op == EXP.null_)
-    {
-        e = e1;
-        t = e2.type;
-    L1:
+        const bool b = e1.op == EXP.null_;
+        t = b ? e1.type : e2.type;
+        e = b ? e2 : e1;
+
         Type tb = t.toBasetype();
         if (tb.ty == Tarray && tb.nextOf().equivalent(e.type))
         {
