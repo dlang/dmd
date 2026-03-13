@@ -47,6 +47,7 @@ import dmd.mtype;
 import dmd.opover;
 import dmd.optimize;
 import dmd.root.array;
+import dmd.root.string : toDString;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.semantic2;
@@ -911,11 +912,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     }
 
     timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstance);
-    scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstance, tempinst);
-
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstance, tempinst,
+        () => tempinst.toPrettyChars().toDString());
     // Get the enclosing template instance from the scope tinst
     tempinst.tinst = sc.tinst;
-
     // Get the instantiating module from the scope minst
     tempinst.minst = sc.minst;
     // https://issues.dlang.org/show_bug.cgi?id=10920
