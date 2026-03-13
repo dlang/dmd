@@ -54,6 +54,18 @@ jobs:
             container_image: alpine:3.21
             host_dmd: ldmd2
           # macOS
+          - job_name: macOS 15-intel x64, LDC (latest)
+            os: macos-15-intel
+            host_dmd: ldc
+          # Disabled due to segfault
+          #- job_name: macOS 15-intel x64, DMD (bootstrap)
+          #  os: macos-15-intel
+          #  host_dmd: dmd-2.107.1
+          # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
+          #- job_name: macOS 15-intel, DMD (coverage)
+          #  os: macos-15-intel
+          #  host_dmd: dmd
+          #  coverage: true
           - job_name: macOS 14 x64, DMD (latest)
             os: macos-14
             host_dmd: dmd
