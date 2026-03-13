@@ -13,6 +13,83 @@ module core.internal.atomic;
 import core.atomic : has128BitCAS, MemoryOrder;
 
 version (DigitalMars)
+version (AArch64)
+{
+    /* These functions are all stubbed out. They await someone who knows what
+       they are doing with AArch64 atomics.
+     */
+    enum IsAtomicLockFree(T) = T.sizeof <= size_t.sizeof * 2;
+
+    inout(T) atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(inout(T)* src) pure nothrow @nogc @trusted
+        if (CanCAS!T)
+    {
+        return *src;
+    }
+
+    void atomicStore(MemoryOrder order = MemoryOrder.seq, T)(T* dest, T value) pure nothrow @nogc @trusted
+        if (CanCAS!T)
+    {
+        *dest = value;
+    }
+
+    T atomicFetchAdd(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @trusted
+        if (is(T : ulong))
+    {
+	return *dest + value;
+    }
+
+    T atomicFetchSub(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @trusted
+        if (is(T : ulong))
+    {
+        return atomicFetchAdd(dest, cast(T)-cast(IntOrLong!T)value);
+    }
+
+    T atomicExchange(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @trusted
+    if (CanCAS!T)
+    {
+        size_t storage = void;
+        return *cast(T*)&storage;
+    }
+
+    alias atomicCompareExchangeWeak = atomicCompareExchangeStrong;
+
+    bool atomicCompareExchangeStrong(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, T)(T* dest, T* compare, T value) pure nothrow @nogc @trusted
+        if (CanCAS!T)
+    {
+        if (*dest != *compare)
+        {
+            *compare = *dest;
+            return false;
+        }
+        *dest = value;
+        return true;
+    }
+
+    alias atomicCompareExchangeWeakNoResult = atomicCompareExchangeStrongNoResult;
+
+    bool atomicCompareExchangeStrongNoResult(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, T)(T* dest, const T compare, T value) pure nothrow @nogc @trusted
+        if (CanCAS!T)
+    {
+        if (*dest != *compare)
+            return false;
+        *dest = value;
+        return true;
+    }
+
+    void atomicFence(MemoryOrder order = MemoryOrder.seq)() pure nothrow @nogc @trusted
+    {
+    }
+
+    void atomicSignalFence(MemoryOrder order = MemoryOrder.seq)() pure nothrow @nogc @trusted
+    {
+        // no-op, dmd doesn't reorder instructions
+    }
+
+    void pause() pure nothrow @nogc @trusted
+    {
+    }
+}
+else // X86 and X86_64
 {
     private
     {
