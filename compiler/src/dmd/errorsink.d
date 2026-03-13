@@ -21,7 +21,6 @@ import dmd.location;
 abstract class ErrorSink
 {
   nothrow:
-  extern (C++):
 
     void verror(Loc loc, const(char)* format, va_list ap);
     void verrorSupplemental(Loc loc, const(char)* format, va_list ap);
@@ -103,7 +102,6 @@ abstract class ErrorSink
 class ErrorSinkNull : ErrorSink
 {
   nothrow:
-  extern (C++):
   override:
 
     void verror(Loc loc, const(char)* format, va_list ap) { }
@@ -127,7 +125,6 @@ class ErrorSinkNull : ErrorSink
 class ErrorSinkLatch : ErrorSinkNull
 {
   nothrow:
-  extern (C++):
   override:
 
     bool sawErrors;
@@ -145,7 +142,6 @@ class ErrorSinkStderr : ErrorSink
     import core.stdc.stdarg;
 
   nothrow:
-  extern (C++):
   override:
 
     void verror(Loc loc, const(char)* format, va_list ap)

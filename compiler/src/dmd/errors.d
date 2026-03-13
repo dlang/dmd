@@ -57,7 +57,6 @@ __gshared Diagnostic[] diagnostics = [];
 class ErrorSinkCompiler : ErrorSink
 {
   nothrow:
-  extern (C++):
   override:
 
     void verror(Loc loc, const(char)* format, va_list ap)
@@ -243,55 +242,6 @@ else
         va_list ap;
         va_start(ap, format);
         vsupplementalDiagnostic(loc, format, ap, ErrorKind.error);
-        va_end(ap);
-    }
-
-/**
- * Print a warning message, increasing the global warning count.
- * Params:
- *      loc    = location of warning
- *      format = printf-style format specification
- *      ...    = printf-style variadic arguments
- */
-static if (__VERSION__ < 2092)
-    extern (C++) void warning(Loc loc, const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        vreportDiagnostic(loc, format, ap, ErrorKind.warning);
-        va_end(ap);
-    }
-else
-    pragma(printf) extern (C++) void warning(Loc loc, const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        vreportDiagnostic(loc, format, ap, ErrorKind.warning);
-        va_end(ap);
-    }
-
-/**
- * Print additional details about a warning message.
- * Doesn't increase the warning count or print an additional warning prefix.
- * Params:
- *      loc    = location of warning
- *      format = printf-style format specification
- *      ...    = printf-style variadic arguments
- */
-static if (__VERSION__ < 2092)
-    extern (C++) void warningSupplemental(Loc loc, const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        vsupplementalDiagnostic(loc, format, ap, ErrorKind.warning);
-        va_end(ap);
-    }
-else
-    pragma(printf) extern (C++) void warningSupplemental(Loc loc, const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        vsupplementalDiagnostic(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 
