@@ -221,6 +221,7 @@ enum TY : ubyte
 
     Tnull,
     Tvector,
+    Tfloat16,
     Tint128,
     Tuns128,
     Ttraits,
@@ -251,6 +252,7 @@ alias Tint32 = TY.Tint32;
 alias Tuns32 = TY.Tuns32;
 alias Tint64 = TY.Tint64;
 alias Tuns64 = TY.Tuns64;
+alias Tfloat16 = TY.Tfloat16;
 alias Tfloat32 = TY.Tfloat32;
 alias Tfloat64 = TY.Tfloat64;
 alias Tfloat80 = TY.Tfloat80;
