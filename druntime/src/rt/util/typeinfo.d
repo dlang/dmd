@@ -7,7 +7,6 @@
  * Source: $(DRUNTIMESRC rt/util/_typeinfo.d)
  */
 module rt.util.typeinfo;
-import rt.util.utility : d_cfloat, d_cdouble, d_creal, isComplex;
 static import core.internal.hash;
 
 // Three-way compare for integrals: negative if `lhs < rhs`, positive if `lhs > rhs`, 0 otherwise.
@@ -34,15 +33,6 @@ if (is(T == float) || is(T == double) || is(T == real))
     return (d1 > d2) - !(d1 >= d2);
 }
 
-// Three-way compare for complex types.
-pragma(inline, true)
-private int cmp3(T)(const T f1, const T f2)
-if (isComplex!T)
-{
-    int result;
-    return (result = cmp3(f1.re, f2.re)) != 0 ? result : cmp3(f1.im, f2.im);
-}
-
 unittest
 {
     assert(cmp3(short.max, short.min) > 0);
@@ -61,22 +51,6 @@ unittest
     y = 42;
     assert(cmp3(x, y) == 0);
     assert(cmp3(y, x) == 0);
-
-    d_cdouble u, v;
-    assert(cmp3(u, v) == 0);
-    assert(cmp3(v, u) == 0);
-    u = d_cdouble(42, 42);
-    assert(cmp3(u, v) > 0);
-    assert(cmp3(v, u) < 0);
-    v = d_cdouble(43, 42);
-    assert(cmp3(u, v) < 0);
-    assert(cmp3(v, u) > 0);
-    v = d_cdouble(42, 43);
-    assert(cmp3(u, v) < 0);
-    assert(cmp3(v, u) > 0);
-    v = d_cdouble(42, 42);
-    assert(cmp3(u, v) == 0);
-    assert(cmp3(v, u) == 0);
 }
 
 // @@@DEPRECATED_2.105@@@
@@ -272,8 +246,7 @@ if (T.sizeof == Base.sizeof && T.alignof == Base.alignof)
 
     static if (is(T == Base))
     {
-        static if ((__traits(isFloating, T) && T.mant_dig != 64) ||
-                   (isComplex!T && T.re.mant_dig != 64))
+        static if ((__traits(isFloating, T) && T.mant_dig != 64))
             // FP types except 80-bit X87 are passed in SIMD register.
             override @property uint flags() const { return 2; }
     }
@@ -451,52 +424,6 @@ deprecated class TypeInfo_j : TypeInfoGeneric!real
     override string toString() const pure nothrow @safe { return "ireal"; }
 }
 
-// All complex floating-point types.
-
-// cfloat @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_q : TypeInfoGeneric!d_cfloat
-{
-    override string toString() const pure nothrow @safe { return "cfloat"; }
-
-    const: nothrow: pure: @trusted:
-    static if (__traits(hasMember, TypeInfo, "argTypes"))
-        override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-        {
-            arg1 = typeid(double);
-            return 0;
-        }
-}
-
-// cdouble @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_r : TypeInfoGeneric!d_cdouble
-{
-    override string toString() const pure nothrow @safe { return "cdouble"; }
-
-    const: nothrow: pure: @trusted:
-    static if (__traits(hasMember, TypeInfo, "argTypes"))
-        override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-        {
-            arg1 = typeid(double);
-            arg2 = typeid(double);
-            return 0;
-        }
-}
-
-// creal @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_c : TypeInfoGeneric!d_creal
-{
-    override string toString() const pure nothrow @safe { return "creal"; }
-
-    const: nothrow: pure: @trusted:
-    static if (__traits(hasMember, TypeInfo, "argTypes"))
-        override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-        {
-            arg1 = typeid(real);
-            arg2 = typeid(real);
-            return 0;
-        }
-}
-
 // Arrays of all integrals.
 class TypeInfo_Ah : TypeInfoArrayGeneric!ubyte {}
 class TypeInfo_Ab : TypeInfoArrayGeneric!(bool, ubyte) {}
@@ -579,26 +506,6 @@ deprecated class TypeInfo_Ap : TypeInfoArrayGeneric!double
 deprecated class TypeInfo_Aj : TypeInfoArrayGeneric!real
 {
     override string toString() const pure nothrow @safe { return "ireal[]"; }
-}
-
-// Arrays of all complex floating-point types.
-
-// cfloat @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Aq : TypeInfoArrayGeneric!d_cfloat
-{
-    override string toString() const pure nothrow @safe { return "cfloat[]"; }
-}
-
-// cdouble @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Ar : TypeInfoArrayGeneric!d_cdouble
-{
-    override string toString() const pure nothrow @safe { return "cdouble[]"; }
-}
-
-// creal @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Ac : TypeInfoArrayGeneric!d_creal
-{
-    override string toString() const pure nothrow @safe { return "creal[]"; }
 }
 
 // void[] is a bit different, behaves like ubyte[] for comparison purposes.
