@@ -218,6 +218,49 @@ void testMultiDim()
     assert(aa3 == aa4);
 }
 
+// from https://github.com/dlang/dmd/issues/20542
+void testRegression21773()
+{
+    static struct S
+    {
+        int[string] aa;
+		this(int[string] _aa) { aa = _aa; }
+    }
+
+    S[] aa = [
+        ["x": 1, "y": 2],
+        ["x": 3, "y": 4],
+        ["x": 5, "y": 6],
+    ];
+}
+
+// https://github.com/dlang/dmd/issues/19209
+void test19209()
+{
+    int[int][] a = [[1 : 2]]; // ok
+    int[int][] b = [[0 : 2]]; // expression ([[1]]) of type int[][]
+    int[int][int] c = [1 : [0 : 2]]; // expression ([1:[2]]) of type int[][int]
+    int[int][int] d = [1 : [3 : 2]]; // Error: not an associative array initializer
+
+    enum int[][] x = [[2 : 0]]; // fails
+	static assert(x[0].length == 3);
+    enum int[][int] y = [1 : [2 : 1]]; // fails
+	static assert(y[1][2] == 1);
+
+	static assert(!__traits(compiles, { immutable int[7] z = [ 2 : 1, 4 : 2, 8 : 3 ]; })); // Error: mismatched array lengths, 7 and 9
+}
+
+// https://github.com/dlang/dmd/issues/18360
+void test18360()
+{
+    alias string[string][string] sss;
+    sss stat =
+    [
+        "one" : ["a":"A", "b":"B"],
+        "two" : ["d":"D", "e":"E"],
+    ];
+}
+
 /////////////////////////////////////////////
 
 // https://github.com/dlang/dmd/issues/17804
