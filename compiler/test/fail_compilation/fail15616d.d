@@ -3,8 +3,8 @@ REQUIRED_ARGS: -verror-supplements=2
 TEST_OUTPUT:
 ---
 fail_compilation/fail15616d.d(44): Error: none of the overloads of `foo` are callable using argument types `(double)`
-fail_compilation/fail15616d.d(17):        Candidates are: `fail15616d.foo(int a)`
-fail_compilation/fail15616d.d(20):                        `fail15616d.foo(int a, int b)`
+fail_compilation/fail15616d.d(17):        Candidate 1 is: `fail15616d.foo(int a)`
+fail_compilation/fail15616d.d(20):        Candidate 2 is: `fail15616d.foo(int a, int b)`
 fail_compilation/fail15616d.d(44):        ... (6 more, -v to show) ...
 ---
 */

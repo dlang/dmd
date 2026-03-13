@@ -2,12 +2,12 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail15616a.d(41): Error: none of the overloads of `foo` are callable using argument types `(double)`
-fail_compilation/fail15616a.d(14):        Candidates are: `fail15616a.foo(int a)`
-fail_compilation/fail15616a.d(17):                        `fail15616a.foo(int a, int b)`
-fail_compilation/fail15616a.d(26):                        `fail15616a.foo(int a, int b, int c)`
-fail_compilation/fail15616a.d(29):                        `fail15616a.foo(string a)`
-fail_compilation/fail15616a.d(32):                        `fail15616a.foo(string a, string b)`
-fail_compilation\fail15616a.d(35):                        `fail15616a.foo(string a, string b, string c)`
+fail_compilation/fail15616a.d(14):        Candidate 1 is: `fail15616a.foo(int a)`
+fail_compilation/fail15616a.d(17):        Candidate 2 is: `fail15616a.foo(int a, int b)`
+fail_compilation/fail15616a.d(26):        Candidate 3 is: `fail15616a.foo(int a, int b, int c)`
+fail_compilation/fail15616a.d(29):        Candidate 4 is: `fail15616a.foo(string a)`
+fail_compilation/fail15616a.d(32):        Candidate 5 is: `fail15616a.foo(string a, string b)`
+fail_compilation/fail15616a.d(35):        Candidate 6 is: `fail15616a.foo(string a, string b, string c)`
 fail_compilation/fail15616a.d(41):        ... (2 more, -v to show) ...
 ---
 */
