@@ -1915,6 +1915,24 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         ss._body = ss._body.statementSemantic(sc);
         sc.inLoop = inLoopSave;
 
+        // Check for duplicate cases in O(n) using a hash map instead of O(n^2)
+        {
+            import dmd.root.aav : AssocArray;
+            scope seen = AssocArray!(Expression, CaseStatement)();
+            foreach (cs; *ss.cases)
+            {
+                if (cs.exp.isErrorExp())
+                    continue;
+                if (auto prev = seen[cs.exp])
+                {
+                    // https://issues.dlang.org/show_bug.cgi?id=15909
+                    error(cs.loc, "duplicate `case %s` in `switch` statement", cs.exp.toChars());
+                }
+                else
+                    *seen.getLvalue(cs.exp) = cs;
+            }
+        }
+
         if (conditionError || (ss._body && ss._body.isErrorStatement()))
         {
             sc.pop();
@@ -2244,19 +2262,6 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         L1:
             // // Don't check other cases if this has errors
-            if (!cs.exp.isErrorExp())
-            foreach (cs2; *sw.cases)
-            {
-                //printf("comparing '%s' with '%s'\n", exp.toChars(), cs.exp.toChars());
-                if (cs2.exp.equals(cs.exp))
-                {
-                    // https://issues.dlang.org/show_bug.cgi?id=15909
-                    error(cs.loc, "duplicate `case %s` in `switch` statement", initialExp.toChars());
-                    errors = true;
-                    break;
-                }
-            }
-
             sw.cases.push(cs);
 
             // Resolve any goto case's with no exp to this case statement
