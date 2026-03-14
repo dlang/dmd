@@ -118,8 +118,14 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
             }
             else
                 return s;
-
         }
+
+	auto token = s.tokens;
+	if (token.value == TOK.identifier)
+	{
+	    const id = token.ident.toString();
+	    if (strcmp(id.ptr, "naked".ptr) == 0) { printf("found naked\n"); }
+	}
     }
 
     /* For example,
