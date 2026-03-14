@@ -208,7 +208,7 @@ struct Usage
         ),
         Option("check=[assert|bounds|in|invariant|out|switch][=[on|off]]",
             "enable or disable specific checks",
-            `Overrides default, -boundscheck, -release and -unittest options to enable or disable specific checks.
+            q"{Overrides default, `-boundscheck`, `-release` and `-unittest` options to enable or disable specific checks.
                 $(UL
                     $(LI $(B assert): assertion checking)
                     $(LI $(B bounds): array bounds)
@@ -220,7 +220,7 @@ struct Usage
                 $(UL
                     $(LI $(B on) or not specified: specified check is enabled.)
                     $(LI $(B off): specified check is disabled.)
-                )`
+                )}"
         ),
         Option("check=[h|help|?]",
             "list information on all available checks"
@@ -397,7 +397,7 @@ dmd -cov -unittest myprog.d
             Set too low, and the profiler overhead will be larger, and the output will be cluttered with tiny events."
         ),
         Option("ftime-trace-file=<filename>",
-            "specify output file for -ftime-trace",
+            "specify output file for `-ftime-trace`",
             "By default, the output name is the same as the first object file name, but with the `.time-trace` extension appended.
             A different filename can be chosen with this option, including a path relative to the current directory or an absolute path."
         ),
@@ -592,7 +592,7 @@ dmd -cov -unittest myprog.d
             $(LINK2 $(ROOT_DIR)spec/expression.html#ImportExpression, $(I ImportExpression))s.
             This switch is required in order to use $(I ImportExpression)s.
             $(I path) is a ; separated
-            list of paths. Multiple $(B -J)'s can be used, and the paths
+            list of paths. Multiple $(TT -J)'s can be used, and the paths
             are searched in the same order.`,
         ),
         Option("L=<linkerflag>",
@@ -624,7 +624,7 @@ dmd -cov -unittest myprog.d
             cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.DragonFlyBSD)  // available on all OS'es except DragonFly, which does not support 32-bit binaries
         ),
         Option("m32mscoff",
-            "generate 32 bit code and write MS-COFF object files (deprecated use -m32)",
+            "generate 32 bit code and write MS-COFF object files (deprecated use `-m32`)",
             TargetOS.Windows
         ),
         Option("m64",
@@ -645,7 +645,7 @@ dmd -cov -unittest myprog.d
             `Print dependencies in Makefile compatible format.
             If filename is omitted, it prints to stdout.
             The emitted targets are the compiled artifacts (executable, object files, libraries).
-            The emitted dependencies are imported modules and imported string files (via $(B -J) switch).
+            The emitted dependencies are imported modules and imported string files (via $(SWLINK -J) switch).
             Special characters in a dependency or target filename are escaped in the GNU Make manner.
             `,
         ),
@@ -719,7 +719,7 @@ dmd -cov -unittest myprog.d
             can be omitted if they are the same.`,
         ),
         Option("noboundscheck",
-            "no array bounds checking (deprecated, use -boundscheck=off)",
+            "no array bounds checking (deprecated, use `-boundscheck=off`)",
             `Turns off all array bounds checking, even for safe functions. $(RED Deprecated
             (use $(TT $(SWLINK -boundscheck)=off) instead).)`,
         ),
