@@ -1600,7 +1600,10 @@ private extern(D) void* getStackTop() nothrow @nogc
     else version (D_InlineAsm_X86_64)
         asm pure nothrow @nogc { naked; mov RAX, RSP; ret; }
     else version (AArch64)
-        asm pure nothrow @nogc { naked; mov x0, SP; ret; }    // TODO AArch64
+        //asm pure nothrow @nogc { naked; mov x0, SP; ret; }    // TODO AArch64
+    {
+        return null;
+    }
     else version (GNU)
         return __builtin_frame_address(0);
     else
