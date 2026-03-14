@@ -675,7 +675,7 @@ dmd -cov -unittest myprog.d
             `Generate a $(TT .map) file`,
         ),
         Option("mcpu=<id>",
-            "generate instructions for architecture identified by 'id'",
+            "generate instructions for architecture identified by <id>",
             `Set the target architecture for code generation,
             where:
             $(DL
@@ -791,7 +791,7 @@ dmd -cov -unittest myprog.d
             $(UNIX cpp)`,
         ),
         Option("preview=<name>",
-            "enable an upcoming language change identified by 'name'",
+            "enable an upcoming language change identified by <name>",
             `Preview an upcoming language change identified by <name>`,
         ),
         Option("preview=[h|help|?]",
@@ -843,7 +843,7 @@ dmd -cov -unittest myprog.d
             are undefined behaviour.`
         ),
         Option("revert=<name>",
-            "revert language change identified by 'name'",
+            "revert language change identified by <name>",
             `Revert language change identified by <name>`,
         ),
         Option("revert=[h|help|?]",
@@ -878,7 +878,7 @@ dmd -cov -unittest myprog.d
                "
         ),
         Option("transition=<name>",
-            "help with language change identified by 'name'",
+            "help with language change identified by <name>",
             `Show additional info about language change identified by <name>`,
         ),
         Option("transition=[h|help|?]",
