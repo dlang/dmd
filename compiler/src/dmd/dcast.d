@@ -3313,9 +3313,7 @@ Expression inferType(Expression e, Type t, int flag = 0)
 
     Expression visitDollar(DollarExp de)
     {
-        // $ with a known target type becomes a TypeExp
-        // This allows $(args) for construction and $.member for member access
-        // Only do this for aggregate types (struct, enum, class), not basic types
+        // Handle $ - infer $ from the context type
         if (t)
         {
             if (t.ty == Tstruct || t.ty == Tenum || t.ty == Tclass)
@@ -3329,13 +3327,19 @@ Expression inferType(Expression e, Type t, int flag = 0)
 
     Expression visitDotId(DotIdExp die)
     {
+        // Handle $.ident - infer $ from the context type
         if (die.e1.isDollarExp() && t)
         {
             if (t.ty == Tstruct || t.ty == Tenum || t.ty == Tclass)
-                return new DotIdExp(die.loc, new TypeExp(die.e1.loc, t), die.ident);
-            Type tb = t.toBasetype();
-            if (tb.ty == Tstruct || tb.ty == Tenum || tb.ty == Tclass)
-                return new DotIdExp(die.loc, new TypeExp(die.e1.loc, t), die.ident);
+            {
+                die.e1 = new TypeExp(die.e1.loc, t);
+            }
+            else
+            {
+                Type tb = t.toBasetype();
+                if (tb.ty == Tstruct || tb.ty == Tenum || tb.ty == Tclass)
+                    die.e1 = new TypeExp(die.e1.loc, t);
+            }
         }
         return die;
     }
@@ -3346,10 +3350,15 @@ Expression inferType(Expression e, Type t, int flag = 0)
         if (ce.e1.isDollarExp() && t)
         {
             if (t.ty == Tstruct || t.ty == Tenum || t.ty == Tclass)
-                return new CallExp(ce.loc, new TypeExp(ce.e1.loc, t), ce.arguments);
-            Type tb = t.toBasetype();
-            if (tb.ty == Tstruct || tb.ty == Tenum || tb.ty == Tclass)
-                return new CallExp(ce.loc, new TypeExp(ce.e1.loc, t), ce.arguments);
+            {
+                ce.e1 = new TypeExp(ce.e1.loc, t);
+            }
+            else
+            {
+                Type tb = t.toBasetype();
+                if (tb.ty == Tstruct || tb.ty == Tenum || tb.ty == Tclass)
+                    ce.e1 = new TypeExp(ce.e1.loc, t);
+            }
         }
         return ce;
     }
