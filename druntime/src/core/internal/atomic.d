@@ -17,6 +17,7 @@ version (AArch64)
 {
     /* These functions are all stubbed out. They await someone who knows what
        they are doing with AArch64 atomics.
+       TODO AArch64
      */
     enum IsAtomicLockFree(T) = T.sizeof <= size_t.sizeof * 2;
 
