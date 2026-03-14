@@ -10233,3 +10233,8 @@ extern (D) bool oneMembers(Dsymbols* members, out Dsymbol ps, Identifier ident)
     //printf("\ttrue\n");
     return true;
 }
+
+extern (C++) LINK resolvedLinkage(const Declaration d)
+{
+    return d._linkage == LINK.system ? target.systemLinkage() : d._linkage;
+}
