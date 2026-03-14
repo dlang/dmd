@@ -1,0 +1,1349 @@
+Ddoc
+
+$(SPEC_S Embedded Documentation,
+
+$(HEADERNAV_TOC)
+
+$(P
+The D programming language enables embedding both contracts and test
+code along side the actual code, which helps to keep them all
+consistent with each other. One thing lacking is the documentation,
+as ordinary comments are usually unsuitable for automated extraction
+and formatting into manual pages.
+Embedding the user documentation into the source code has important
+advantages, such as not having to write the documentation twice, and
+the likelihood of the documentation staying consistent with the code.
+)
+
+$(P
+Some existing approaches to this are:
+)
+
+$(UL
+$(LI $(LINK2 https://www.doxygen.nl/, Doxygen) which already has some support for D)
+$(LI Java's $(LINK2 https://docs.oracle.com/javase/7/docs/technotes/guides/javadoc/index.html, Javadoc),
+ probably the most well-known)
+$(LI C$(HASH)'s $(LINK2 https://msdn.microsoft.com/en-us/library/b2s063f7.aspx, embedded XML))
+$(LI Other $(LINK2 https://doc.rust-lang.org/rustdoc/what-is-rustdoc.html, documentation tools))
+)
+
+$(P
+D's goals for embedded documentation are:
+)
+
+$(OL
+    $(LI It looks good as embedded documentation, not just after it
+    is extracted and processed.)
+    $(LI It's easy and natural to write,
+    i.e. minimal reliance on $(LT)tags$(GT) and other clumsy forms one
+    would never see in a finished document.)
+    $(LI It does not repeat information that the compiler already
+    knows from parsing the code.)
+    $(LI It doesn't rely on embedded HTML, as such will impede
+    extraction and formatting for other purposes.)
+    $(LI It's based on existing D comment forms, so it
+    is completely independent of parsers only interested in D code.)
+    $(LI It should look and feel different from code, so it won't
+    be visually confused with code.)
+    $(LI It should be possible for the user to use Doxygen or other
+    documentation extractor if desired.)
+)
+
+$(H2 $(LNAME2 specifications, Specification))
+
+$(P
+The specification for the form of embedded documentation comments only
+specifies how information is to be presented to the compiler.
+It is implementation-defined how that information is used and the form
+of the final presentation. Whether the final presentation form is an
+HTML web page, a man page, a PDF file, etc. is not specified as part of the
+D Programming Language.
+)
+
+$(H3 $(LNAME2 phases_of_processing, Phases of Processing))
+
+$(P
+Embedded documentation comments are processed in a series of phases:
+)
+
+$(OL
+    $(LI Lexical - documentation comments are identified and attached
+    to tokens.)
+    $(LI Parsing - documentation comments are associated with
+    specific declarations and combined.)
+    $(LI Sections - each documentation comment is divided up into
+    a sequence of sections.)
+    $(LI Special sections are processed.)
+    $(LI Highlighting of non-special sections is done.)
+    $(LI All sections for the module are combined.)
+    $(LI Macro and Escape text substitution is performed to produce the final result.)
+)
+
+$(H3 $(LNAME2 lexical, Lexical))
+
+$(P
+Embedded documentation comments are one of the following forms:
+)
+
+$(OL
+    $(LI $(D_COMMENT /** ... */) The two *'s after the opening /)
+    $(LI $(D_COMMENT /++ ... +/) The two +'s after the opening /)
+    $(LI $(D_COMMENT ///) The three slashes)
+)
+
+$(P The following are all embedded documentation comments:)
+
+---------------------------
+/// This is a one line documentation comment.
+
+/** So is this. */
+
+/++ And this. +/
+
+/**
+   This is a brief documentation comment.
+ */
+
+/**
+ * The leading * on this line is not part of the documentation comment.
+ */
+
+/*********************************
+   The extra *'s immediately following the /** are not
+   part of the documentation comment.
+ */
+
+/++
+   This is a brief documentation comment.
+ +/
+
+/++
+ + The leading + on this line is not part of the documentation comment.
+ +/
+
+/+++++++++++++++++++++++++++++++++
+   The extra +'s immediately following the / ++ are not
+   part of the documentation comment.
+ +/
+
+/**************** Closing *'s are not part *****************/
+---------------------------
+
+$(P
+The extra *'s and +'s on the comment opening, closing and left margin are
+ignored and are not part
+of the embedded documentation.
+Comments not following one of those forms are not documentation comments.
+)
+
+$(H3 $(LNAME2 parsing, Parsing))
+
+$(P
+Each documentation comment is associated with a declaration.
+If the documentation comment is on a line by itself or with only whitespace
+to the left, it refers to the next
+declaration.
+Multiple documentation comments applying to the same declaration
+are concatenated.
+Documentation comments not associated with a declaration are ignored.
+Documentation comments preceding the $(I ModuleDeclaration) apply to the
+entire module.
+If the documentation comment appears on the same line to the right of a
+declaration, it applies to that.
+)
+
+$(P
+If a documentation comment for a declaration consists only of the
+identifier $(D ditto)
+then the documentation comment for the previous declaration at the same
+declaration scope is applied to this declaration as well.
+)
+
+$(P
+If there is no documentation comment for a declaration, that declaration
+may not appear in the output. To ensure it does appear in the output,
+put an empty declaration comment for it.
+)
+
+------------------------------------
+int a;  /// documentation for a; b has no documentation
+int b;
+
+/** documentation for c and d */
+/** more documentation for c and d */
+int c;
+/** ditto */
+int d;
+
+/** documentation for e and f */ int e;
+int f;  /// ditto
+
+/** documentation for g */
+int g; /// more documentation for g
+
+/// documentation for C and D
+class C
+{
+    int x; /// documentation for C.x
+
+    /** documentation for C.y and C.z */
+    int y;
+    int z; /// ditto
+}
+
+/// ditto
+class D { }
+------------------------------------
+
+$(H3 $(LNAME2 sections, Sections))
+
+$(P
+The document comment is a series of $(I Section)s.
+A $(I Section) is a name that is the first non-blank character on
+a line immediately followed by a ':'. This name forms the section name.
+The section name is not case-sensitive.
+)
+
+$(P
+Section names starting with 'http://' or 'https://' are not recognized as section names.
+)
+
+$(H4 $(LNAME2 summary, Summary))
+
+$(P
+The first section is the $(I Summary), and does not have a section name.
+It is first paragraph, up to a blank line or a section name.
+While the summary can be any length, try to keep it to one line.
+The $(I Summary) section is optional.
+)
+
+$(H4 $(LNAME2 description, Description))
+
+$(P
+The next unnamed section is the $(I Description).
+It consists of all the paragraphs following the $(I Summary) until
+a section name is encountered or the end of the comment.
+)
+
+$(P
+While the $(I Description) section is optional,
+there cannot be a $(I Description) without a $(I Summary) section.
+)
+
+------------------------------------
+/***********************************
+ * Brief summary of what
+ * myfunc does, forming the summary section.
+ *
+ * First paragraph of synopsis description.
+ *
+ * Second paragraph of
+ * synopsis description.
+ */
+
+void myfunc() { }
+------------------------------------
+
+$(P
+Named sections follow the $(I Summary) and $(I Description) unnamed sections.
+)
+
+$(H3 $(LNAME2 standard_sections, Standard Sections))
+
+$(P
+For consistency and predictability, there are several standard sections.
+None of these are required to be present.
+)
+
+$(DL
+$(DT $(B Authors:))
+$(DD Lists the author(s) of the declaration.)
+------------------------------------
+/**
+ * Authors: Melvin D. Nerd, melvin@mailinator.com
+ */
+------------------------------------
+
+$(DT  $(B Bugs:))
+$(DD Lists any known bugs.)
+------------------------------------
+/**
+ * Bugs: Doesn't work for negative values.
+ */
+------------------------------------
+
+$(DT  $(B Date:))
+$(DD Specifies the date of the current revision. The date should be in a form
+     parseable by std.date.)
+
+------------------------------------
+/**
+ * Date: March 14, 2003
+ */
+------------------------------------
+
+$(DT  $(B Deprecated:))
+$(DD Provides an explanation for and corrective action to take if the associated
+     declaration is marked as deprecated.)
+
+------------------------------------
+/**
+ * Deprecated: superseded by function bar().
+ */
+
+deprecated void foo() { ... }
+------------------------------------
+
+$(DT  $(B Examples:))
+$(DD Any usage examples)
+------------------------------------
+/**
+ * Examples:
+ * --------------------
+ * writeln("3"); // writes '3' to stdout
+ * --------------------
+ */
+------------------------------------
+
+$(DT  $(B History:))
+$(DD Revision history.)
+------------------------------------
+/**
+ * History:
+ *      V1 is initial version
+ *
+ *      V2 added feature X
+ */
+------------------------------------
+
+$(DT  $(B License:))
+$(DD Any license information for copyrighted code.)
+------------------------------------
+/**
+ * License: use freely for any purpose
+ */
+
+void bar() { ... }
+------------------------------------
+
+$(DT  $(B Returns:))
+$(DD Explains the return value of the function.
+     If the function returns $(B void), don't redundantly document it.)
+------------------------------------
+/**
+ * Read the file.
+ * Returns: The contents of the file.
+ */
+
+void[] readFile(const(char)[] filename) { ... }
+------------------------------------
+
+$(DT  $(B See$(UNDERSCORE)Also:))
+$(DD List of other symbols and URLs to related items.)
+------------------------------------
+/**
+ * See_Also:
+ *    foo, bar, http://www.digitalmars.com/d/phobos/index.html
+ */
+------------------------------------
+
+$(DT  $(B Standards:))
+$(DD If this declaration is compliant with any particular standard,
+the description of it goes here.)
+------------------------------------
+/**
+ * Standards: Conforms to DSPEC-1234
+ */
+------------------------------------
+
+$(DT $(B Throws:))
+$(DD Lists exceptions thrown and under what circumstances they are thrown.)
+------------------------------------
+/**
+ * Write the file.
+ * Throws: WriteException on failure.
+ */
+
+void writeFile(string filename) { ... }
+------------------------------------
+
+$(DT  $(B Version:))
+$(DD Specifies the current version of the declaration.)
+------------------------------------
+/**
+ * Version: 1.6a
+ */
+------------------------------------
+)
+
+$(H3 $(LNAME2 special_sections, Special Sections))
+
+$(P
+Some sections have specialized meanings and syntax.
+)
+
+$(DL
+$(DT  $(B Copyright:))
+$(DD This contains the copyright notice. The macro COPYRIGHT is set to
+     the contents of the section when it documents the module declaration.
+     The copyright section only gets this special treatment when it
+     is for the module declaration.)
+
+------------------------------------
+/** Copyright: Public Domain */
+
+module foo;
+------------------------------------
+
+$(DT  $(B Params:))
+$(DD Function parameters can be documented by listing them in a params
+     section. Each line that starts with an identifier followed by
+     an '=' starts a new parameter description. A description can
+     span multiple lines.)
+
+------------------------
+/***********************************
+ * foo does this.
+ * Params:
+ *      x =     is for this
+ *              and not for that
+ *      y =     is for that
+ */
+
+void foo(int x, int y)
+{
+}
+-------------------------
+
+$(DT  $(B Macros:))
+$(DD The macros section follows the same syntax as the $(B Params:) section.
+     It's a series of $(I NAME)=$(I value) pairs.
+     The $(I NAME) is the macro name, and $(I value) is the replacement
+     text.)
+------------------------------------
+/**
+ * Macros:
+ *      FOO =   now is the time for
+ *              all good men
+ *      BAR =   bar
+ *      MAGENTA =   <font color="magenta">$0</font>
+ */
+------------------------------------
+)
+
+
+$(H2 $(LNAME2 highlighting, Highlighting))
+
+$(H3 $(LNAME2 embedded_comments, Embedded Comments))
+
+$(P
+    The documentation comments can themselves be commented using
+    the $(DOLLAR)$(D (DDOC_COMMENT comment text)) syntax. These comments do not
+    nest.
+)
+
+$(H3 $(LNAME2 embedded_code, Embedded Code))
+
+$(P
+    D code can be embedded using lines beginning with at least three hyphens `-`,
+    backticks $(DDOC_BACKQUOTED $(BACKTICK)) or tildes `~` (ignoring whitespace) to
+    delineate the code section:
+)
+
+------------------------------------
+/++
+ + Our function.
+ +
+ + Example:
+ + ---
+ + import std.stdio;
+ +
+ + void foo()
+ + {
+ +     writeln("foo!");  /* print the string */
+ + }
+ + ---
+ +/
+------------------------------------
+
+$(P
+    Note that in the above example the documentation comment uses the
+    $(D_COMMENT /++ ... +/) form so that $(D_COMMENT /* ... */) can be used
+    inside the code section.
+)
+
+$(P
+    D code gets automatic syntax highlighting. To include code in another
+    language without syntax highlighting, add a language string at the end of
+    the top delimiter line:
+)
+
+------------------------------------
+/++
+ + Some C++
+ + ``` cpp
+ + #include <iostream>
+ +
+ + void foo()
+ + {
+ +     std::cout << "foo!";
+ + }
+ + ```
+ +/
+------------------------------------
+
+$(H3 $(LNAME2 inline_code, Inline Code))
+
+$(P
+    Inline code can be written between backtick characters (`$(BACKTICK)`), similarly
+    to the syntax used on GitHub, Reddit, Stack Overflow, and other websites. Both
+    the opening and closing `$(BACKTICK)` character must appear on the same line to trigger this
+    behavior.
+    Note that macros are still expanded inside backticks. See also
+    $(RELATIVE_LINK2 punctuation_escapes, escaping).
+)
+
+$(P
+    Text inside these sections will be escaped according to the rules described above,
+    then wrapped in a `$(DOLLAR)(DDOC_BACKQUOTED)` macro. By default, this macro expands
+    to be displayed as an inline text span, formatted as code.
+)
+
+$(P
+    A literal backtick character can be output either as a non-paired `$(BACKTICK)` on a single
+    line or by using the `$(DOLLAR)(BACKTICK)` macro.
+)
+
+---
+ /// Returns `true` if `a == b`.
+ void foo() {}
+
+ /// Backquoted `<html>` will be displayed to the user instead
+ /// of passed through as embedded HTML (see below).
+ void bar() {}
+---
+
+$(H3 $(LNAME2 embedded_html, Embedded HTML))
+
+$(P
+HTML can be embedded into the documentation comments, and it will
+be passed through to the HTML output unchanged.
+However, since it is not necessarily true that HTML will be the desired
+output format of the embedded documentation comment extractor, it is
+best to avoid using it where practical.
+)
+
+------------------------------------
+/**
+ * Example of embedded HTML:
+ *
+ * <ol>
+ *   <li><a href="http://www.digitalmars.com">Digital Mars</a></li>
+ *   <li><a href="http://www.classicempire.com">Empire</a></li>
+ * </ol>
+ */
+------------------------------------
+
+$(H3 $(LNAME2 headings, Headings))
+
+$(P
+A long documentation section can be subdivided by adding headings. A heading is
+a line of text that starts with one to six `#` characters followed by whitespace
+and then the heading text. The number of `#` characters determines the heading
+level. Headings may optionally end with any number of trailing `#` characters.
+)
+
+---
+/**
+ * # H1
+ * ## H2
+ * ### H3
+ * #### H4 ###
+ * ##### H5 ##
+ * ###### H6 #
+ */
+---
+
+$(H3 $(LNAME2 links, Links))
+
+$(P
+Documentation may link to other documentation or to a URL. There are four
+styles of links:
+)
+
+---
+/**
+ * Some links:
+ *
+ * 1. A [reference link][ref] and bare reference links: [ref] or [Object]
+ * 2. An [inline link](https://dlang.org)
+ * 3. A bare URL: https://dlang.org
+ * 4. An ![image](https://dlang.org/images/d3.png)
+ *
+ * [ref]: https://dlang.org "The D Language Website"
+ */
+---
+
+$(H4 $(LNAME2 reference_links, Reference Links))
+
+$(P
+Reference-style links enclose a reference label in square brackets. They may
+optionally be preceded by some link text, also enclosed in square brackets.
+)
+
+$(P
+The reference label must match a reference defined elsewhere. This may be a D
+symbol in scope of the source code being documented, like `[Object]` in the
+example above, or it may be an explicit reference that is defined in the same
+documentation comment, like `[ref]` in the example above. In the example both
+instances of `[ref]` in item `1.` will be replaced with the URL and title text
+from the matching definition at the bottom of the example. The first link will
+read `reference link` and the second will read `ref`.
+)
+
+$(P
+Reference definitions start with a label in square brackets, followed by a
+colon, a URL and an optional title wrapped in single or double quotes, or in
+parentheses. If a reference label would match both a D symbol and a reference
+definition then the reference definition is used.
+)
+
+$(P
+The generated links to D symbols are relative if they have the same root package
+as the module being documented. If not, their URLs are preceded by a
+`$(DOLLAR)(DDOC_ROOT_pkg)` macro, where `pkg` is the root package of the symbol
+being linked to. Links to D symbols are generated with a `$(DOLLAR)(DOC_EXTENSION)`
+macro after the module name. Then the generated URL for `[Object]` in the above
+example is as if it had been written:
+)
+
+---
+$(DOLLAR)(DOC_ROOT_object)object$(DOLLAR)(DOC_EXTENSION)#.Object
+---
+
+$(P
+`DOC_ROOT_` macros can be defined for any external packages
+to link to using a $(LINK2 #macros, Macros section).
+)
+
+$(H4 $(LNAME2 inline_links, Inline Links))
+
+$(P
+Inline-style links enclose link text in square brackets and the link URL in
+parentheses. Like reference links, the URL may optionally be followed by title
+text wrapped in single or double quotes, or in parentheses:
+)
+
+---
+/// [a link with title text](https://dlang.org 'Some title text')
+---
+
+$(H4 $(LNAME2 urls, Bare URLs))
+
+$(P
+Bare URLs are sequences of characters that start with `http://` or `https://`,
+continue with one or more characters from the set of letters, digits and
+`-_?=%&/+#~.`, and contain at least one period.
+URL recognition happens before all macro text substitution.
+The URL is wrapped in a `$(DOLLAR)(DDOC_LINK_AUTODETECT)` macro and is otherwise
+left untouched.
+)
+
+$(H4 $(LNAME2 images, Images))
+
+$(P
+Images have the same form as reference or inline links, but add an exclamation
+point `!` before the initial square bracket. What would be the link text in a
+normal link is used as the image's alt text.
+)
+
+$(H3 $(LNAME2 lists, Lists))
+
+$(P
+Documentation may contain lists. Start an ordered list with a number followed by
+a period:
+)
+
+---
+/**
+ * 1. First this
+ * 2. Then this
+ *    1. A sub-item
+ */
+---
+
+$(P
+Start an unordered list with a hyphen (`-`), an asterisk (`*`) or a plus (`+`).
+Subsequent items in the same list must also start with the same symbol:
+)
+
+---
+/**
+ * - A list
+ * - With a second item
+ *
+ * + A different list
+ *   - With a sub-item
+ *
+ * * A third list (note the double asterisks)
+ */
+---
+
+$(P
+Note the double asterisks in the example above. This is because the list is
+inside a documentation comment that is delimited with asterisks, so the initial
+asterisk is considered part of the documentation comment, not a list item. This
+is even true when other lines don't start with an asterisk:
+)
+
+---
+/**
+ - A list
+ * Not a list because the asterisk is part of the documentation comment
+ */
+
+/++
+ + + The caveat also applies to plus-delimited documentation comments
+ +/
+---
+
+$(P
+List items can include content like new paragraphs, headings, embedded code, or
+child list items. Simply indent the content to match the indent of the text
+after the list symbol:
+)
+
+----
+/**
+ * - A parent list item
+ *
+ *   With a second paragraph
+ *
+ *   - A sub-item
+ *     ---
+ *     // A code example inside the sub-item
+ *     ---
+ */
+----
+
+$(H3 $(LNAME2 tables, Tables))
+
+$(P
+Data may be placed into a table. Tables consist of a single header row, a
+delimiter row, and zero or more data rows. Cells in each row are separated by
+pipe (`|`) characters. Initial and trailing `|`'s are optional. The number of
+cells in the delimiter row must match the number of cells in the header row:
+)
+
+---
+/**
+ *  | Item | Price |
+ *  | ---- | ----: |
+ *  | Wigs | $10 |
+ *    Wheels | $13
+ *  | Widgets | $200 |
+ */
+---
+
+$(P
+Cells in the delimiter row contain hyphens (`-`) and optional colons (`:`).
+A `:` to the left of the hyphens creates a left-aligned column, a `:` to the
+right of the hyphens creates a right-aligned column (like the example above),
+and `:`'s on both sides of the hyphens create a center-aligned column.
+)
+
+$(H3 $(LNAME2 quotes, Quotes))
+
+$(P
+Documentation may include a section of quoted material by prefixing each line of
+the section with a `>`. Quotes may include headings, lists, embedded code, etc.
+)
+
+---
+/**
+ * > To D, or not to D. -- Willeam NerdSpeare
+ */
+---
+
+$(P
+Lines of text that directly follow a quoted line are considered part of the quote:
+)
+
+---
+/**
+ * > This line
+ * and this line are both part of the quote
+ *
+ * This line is not part of the quote.
+ */
+---
+
+$(H3 $(LNAME2 hrules, Horizontal Rules))
+
+$(P
+Create a horizontal rule by adding a line containing three or more asterisks,
+underscores or hyphens:
+)
+
+---
+/**
+ * ***
+ * ___
+ */
+---
+
+$(P
+As with $(LINK2 #lists, lists), note that the initial `*` in the example above
+will be stripped because it is part of a documentation comment that is delimited
+with asterisks. At least three subsequent asterisks are needed.
+)
+
+$(P
+To create a horizontal rule with hyphens, add spaces between the hyphens.
+Without the spaces they would be treated as the start or end of an $(LINK2
+#embedded_code, embedded code block). Note that any horizontal rule may contain
+spaces:
+)
+
+---
+/**
+ * - - -
+ * _ _ _
+ * * * *
+ */
+---
+
+$(H3 $(LNAME2 text_emphasis, Text Emphasis))
+
+$(P
+A span of text wrapped in asterisks (`*`) is emphasized, and text wrapped in
+two asterisks (`**`) is strongly emphasized:
+)
+
+$(P
+`*single asterisks*` is rendered as $(EM single asterisks).
+)
+
+$(P
+`**double asterisks**` is rendered as $(STRONG double asterisks).
+)
+
+$(P
+Insert a literal asterisk by $(LINK2 #punctuation_escapes,
+backslash-escaping) it: `\*` is rendered as *.
+)
+
+$(P
+Unlike $(LINK2 https://daringfireball.net/projects/markdown/syntax, Markdown),
+underscores (`$(UNDERSCORE)`) are not supported for emphasizing text because it
+would break snake$(UNDERSCORE)case names and underscore prefix processing in
+$(LINK2 #emphasis, identifier emphasis).
+)
+
+$(H3 $(LNAME2 emphasis, Identifier Emphasis))
+
+$(P
+Identifiers in documentation comments that are function parameters or are
+names that are in scope at the associated declaration are emphasized in
+the output.
+This emphasis can take the form of italics, boldface, a hyperlink, etc.
+How it is emphasized depends on what it is $(MDASH) a function parameter, type,
+D keyword, etc.
+To prevent unintended emphasis of an identifier, it can be preceded by
+an underscore ($(UNDERSCORE)). The underscore will be stripped from the output.
+)
+
+$(H3 $(LNAME2 character_entities, Character Entities))
+
+$(P
+    Some characters have special meaning
+    to the documentation processor, to avoid confusion it can be best
+    to replace them with their corresponding character entities:
+)
+
+    $(TABLE2 Characters and Entities,
+    $(THEAD Character, Entity)
+    $(TROW $(D <), $(AMP)lt;)
+    $(TROW $(D >), $(AMP)gt;)
+    $(TROW $(CODE_AMP), $(AMP)amp;))
+
+$(P
+    It is not necessary to do this inside a code section, or if the
+    special character is not immediately followed by a $(HASH) or a letter.
+)
+
+$(H3 $(LNAME2 punctuation_escapes, Punctuation Escapes))
+
+$(P
+    Escape any ASCII punctuation symbol with a backslash `\`.
+    Doing so outputs the original character without the backslash, except for
+    the following characters which output predefined macros instead:
+)
+
+    $(TABLE2 Characters and Escape Macros,
+    $(THEAD Character, Macro)
+    $(TROW $(D $(LPAREN)), $(DOLLAR)(LPAREN))
+    $(TROW $(D $(RPAREN)), $(DOLLAR)(RPAREN))
+    $(TROW $(D $(COMMA)), $(DOLLAR)(COMMA))
+    $(TROW $(D $(DOLLAR)), $(DOLLAR)(DOLLAR)))
+
+$(P
+    To output a backslash, simply use two backslashes in a row: `\\`.
+    Note that backslashes inside embedded or inline code do $(EM not) escape
+    punctuation and are included in the output as-is. Backslashes before
+    non-punctation are also included in the output as-is. For example,
+    `C:\dmd2\bin\dmd.exe` does not require escaping its embedded backslashes.
+)
+
+$(H3 $(LNAME2 no_documentation, No Documentation))
+
+$(P
+    No documentation is generated for the following constructs,
+    even if they have a documentation comment:
+)
+
+    $(UL
+    $(LI Invariants)
+    $(LI Postblits)
+    $(LI Destructors)
+    $(LI Static constructors and static destructors)
+    $(LI Class info, type info, and $(DDSUBLINK abi, ModuleInfo, module info))
+    )
+
+$(H2 $(LNAME2 macros, Macros))
+
+$(P
+    The documentation comment processor includes a simple macro
+    text preprocessor.
+    When $(D $)`(NAME)` appears
+    in section text it is replaced with the corresponding `NAME` macro's
+    replacement text.
+    Macros can take arguments: $(D $)`(NAME argument)`.
+)
+
+    For example:
+    ---------
+    /**
+    Macros:
+     PARAM = <u>$1</u>
+     MATH_DOCS = <a href="https://dlang.org/phobos/std_math.html">Math Docs</a>
+    */
+    module math;
+
+    /**
+     * This function returns the sum of $(PARAM a) and $(PARAM b).
+     * See also the $(MATH_DOCS).
+     */
+    int sum(int a, int b) { return a + b; }
+    ---------
+
+$(P
+    The above would generate output such as:)
+
+    ------------------------------------
+    <h1>math</h1>
+    <dl><dt><big><a name="sum"></a>int <u>sum</u>(int <i>a</i>, int <i>b</i>);
+    </big></dt>
+    <dd>This function returns the <u>sum</u> of <u><i>a</i></u> and <u><i>b</i></u>.
+     See also the <a href="https://dlang.org/phobos/std_math.html">Math Docs</a>.
+    </dd>
+    </dl>
+    ------------------------------------
+
+$(P
+    The replacement text is recursively scanned for more macros.
+    If found, they are expanded in turn.
+    If a macro already expanded is recursively encountered, with no argument or with
+    the same argument text as the enclosing macro, it is replaced
+    with no text.
+)
+$(UL
+    $(LI
+    Macro invocations that cut across replacement text boundaries are
+    not expanded.
+    )
+    $(LI
+    If the macro name is undefined, the replacement text will
+    be $(D $)`(DDOC_UNDEFINED_MACRO(NAME))`. This defaults to empty.
+    )
+    $(LI
+    If $(D $)`(NAME)` is required to exist in the output without being
+    macro expanded, the `$` can be $(RELATIVE_LINK2 punctuation_escapes,
+    backslash-escaped): `\$`.
+    )
+)
+
+$(H3 $(LNAME2 macro_arguments, Macro Arguments))
+
+$(P
+    When invoking a macro, any text from the end of the identifier
+    to the closing $(SINGLEQUOTE $(RPAREN)) is passed as arguments to
+    the macro, and can be referred to using the
+    $(D $)`0` parameter inside the macro definition.
+    A $(D $)`0` in the replacement text is
+    replaced with the text of each argument, separated by commas.
+)
+$(P
+    If there are commas in the argument text, this denotes multiple arguments.
+    Inside a macro definition, $(D $)`1` will represent the
+    argument text up to the first comma, $(D $)`2` from the first comma to
+    the second comma, etc., up to $(D $)`9`.
+    $(D $)`+` represents the text from the first comma to the closing $(SINGLEQUOTE $(RPAREN)).
+)
+$(UL
+    $(LI
+    The argument text can contain nested parentheses, `""` or `''` strings,
+    $(D <)$(D !--) $(D ...) $(D --)$(D >) comments, or tags.
+    )
+    $(LI
+    If stray, unnested parentheses are used, they can be
+    $(RELATIVE_LINK2 punctuation_escapes, backslash-escaped): `\(` or `\)`.
+    )
+    $(LI
+    Any literal commas not intended as an argument separator can be
+    escaped when invoking a macro expecting separate arguments.
+    Defining an `ARGS=`$(D $)`0` macro can be useful to handle commas -
+    these are equivalent:
+    * $(D $)`(FOO one, `$(D $)`(ARGS two, dwa, dos), three)`
+    * $(D $)`(FOO one, two\, dwa\, dos, three)`.
+    )
+)
+
+$(H3 $(LNAME2 macro_definitions, Macro Definitions))
+
+$(P
+    Macro definitions come from the following sources,
+    in the specified order:
+)
+
+    $(OL
+    $(LI Predefined macros.)
+    $(LI Definitions from file specified by
+    $(DPLLINK dmd-windows.html, sc.ini)'s
+    or $(DDSUBLINK dmd-linux, dmd_conf, dmd.conf) DDOCFILE setting.)
+    $(LI Definitions from *.ddoc files specified on the command line.)
+    $(LI Runtime definitions generated by Ddoc.)
+    $(LI Definitions from any `Macros:` sections.)
+    )
+
+$(P
+    Macro redefinitions replace previous definitions of the same name.
+    This means that the sequence of macro definitions from the various
+    sources forms a hierarchy.
+)
+
+$(P
+    Macro names beginning with "D$(UNDERSCORE)" and "DDOC$(UNDERSCORE)" are reserved.
+)
+
+$(H3 $(LNAME2 predefined_macros, Predefined Macros))
+
+$(P
+    A number of macros are predefined Ddoc, and represent the
+    minimal definitions needed by Ddoc to format and highlight
+    the presentation.
+    The definitions are for simple HTML.)
+
+$(P The implementations of all predefined macros are implementation-defined. The
+reference implementation's macro definitions can be found $(HTTPS
+github.com/dlang/dmd/blob/master/compiler/src/dmd/res/default_ddoc_theme.ddoc, here).)
+
+$(P
+    Ddoc does not generate HTML code. It formats into the basic
+    formatting macros, which (in their predefined form)
+    are then expanded into HTML.
+    If output other than HTML is desired, then these macros
+    need to be redefined.
+)
+
+    $(LONGTABLE_2COLS 0.7, Predefined Formatting Macros,
+    $(THEAD Name, Description),
+    $(TROW $(ARGS $(D B)), $(ARGS boldface the argument))
+    $(TROW $(ARGS $(D I)), $(ARGS italicize the argument))
+    $(TROW $(ARGS $(D U)), $(ARGS underline the argument))
+    $(TROW $(ARGS $(D P)), $(ARGS argument is a paragraph))
+    $(TROW $(ARGS $(D DL)), $(ARGS argument is a definition list))
+    $(TROW $(ARGS $(D DT)), $(ARGS argument is a definition in a definition list))
+    $(TROW $(ARGS $(D DD)), $(ARGS argument is a description of a definition))
+    $(TROW $(ARGS $(D TABLE)), $(ARGS argument is a table))
+    $(TROW $(ARGS $(D TR)), $(ARGS argument is a row in a table))
+    $(TROW $(ARGS $(D TH)), $(ARGS argument is a header entry in a row))
+    $(TROW $(ARGS $(D TD)), $(ARGS argument is a data entry in a row))
+    $(TROW $(ARGS $(D OL)), $(ARGS argument is an ordered list))
+    $(TROW $(ARGS $(D UL)), $(ARGS argument is an unordered list))
+    $(TROW $(ARGS $(D LI)), $(ARGS argument is an item in a list))
+    $(TROW $(ARGS $(D BIG)), $(ARGS argument is one font size bigger))
+    $(TROW $(ARGS $(D SMALL)), $(ARGS argument is one font size smaller))
+    $(TROW $(ARGS $(D BR)), $(ARGS start new line))
+    $(TROW $(ARGS $(D LINK)), $(ARGS generate clickable link on argument))
+    $(TROW $(ARGS $(D LINK2)), $(ARGS generate clickable link, first arg is address))
+    $(TROW $(ARGS $(D RED)), $(ARGS argument is set to be red))
+    $(TROW $(ARGS $(D BLUE)), $(ARGS argument is set to be blue))
+    $(TROW $(ARGS $(D GREEN)), $(ARGS argument is set to be green))
+    $(TROW $(ARGS $(D YELLOW)), $(ARGS argument is set to be yellow))
+    $(TROW $(ARGS $(D BLACK)), $(ARGS argument is set to be black))
+    $(TROW $(ARGS $(D WHITE)), $(ARGS argument is set to be white))
+    $(TROW $(ARGS $(D D_CODE)), $(ARGS argument is D code))
+    $(TROW $(ARGS $(D D_INLINECODE)), $(ARGS argument is inline D code))
+    $(TROW $(ARGS $(D LF)), $(ARGS Insert a line feed (newline)))
+    $(TROW $(ARGS $(D LPAREN)), $(ARGS Insert a left parenthesis))
+    $(TROW $(ARGS $(D RPAREN)), $(ARGS Insert a right parenthesis))
+    $(TROW $(ARGS $(D BACKTICK)), $(ARGS Insert a backtick))
+    $(TROW $(ARGS $(D DOLLAR)), $(ARGS Insert a dollar sign))
+    $(TROW $(ARGS $(D DDOC)), $(ARGS overall template for output))
+    $(TROW $(ARGS $(D ESCAPES)), $(ARGS characters to substitute))
+    )
+
+$(P
+    $(D DDOC) is special in that it specifies the boilerplate into
+    which the entire generated text is inserted (represented by the
+    Ddoc generated macro $(D BODY)). For example, in order
+    to use a style sheet, $(D DDOC) would be redefined as:
+)
+
+$(DDOCCODE
+DDOC = $(LT)!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+        "http://www.w3.org/TR/html4/strict.dtd"$(GT)
+    $(LT)html$(GT)$(LT)head$(GT)
+    $(LT)META http-equiv="content-type" content="text/html; charset=utf-8"$(GT)
+    $(LT)title$(GT)$(DOLLAR)(TITLE)$(LT)/title$(GT)
+    $(LT)link rel="stylesheet" type="text/css" href="style.css"$(GT)
+    $(LT)/head$(GT)$(LT)body$(GT)
+    $(LT)h1$(GT)$(DOLLAR)(TITLE)$(LT)/h1$(GT)
+    $(DOLLAR)(BODY)
+    $(LT)/body$(GT)$(LT)/html$(GT)
+)
+
+$(P
+    $(D ESCAPES) defines a series of substitutions which replace special
+    characters with a string. It's useful when the output format requires
+    escaping of certain characters, for example in HTML $(D $(AMP)) should be
+    escaped with $(D $(AMP)amp;).
+    The syntax is $(D /c/string/), where $(D c)
+    is either a single character, or multiple characters separated by
+    whitespace or commas, and $(D string) is the replacement text.)
+
+------------------------------------
+ESCAPES = /&/AddressOf!/
+          /!/Exclamation/
+          /?/QuestionMark/
+          /,/Comma/
+          /{ }/Parens/
+          /<,>/Arrows/
+------------------------------------
+
+$(P
+    Highlighting of D code is performed by the following macros:
+)
+
+    $(LONGTABLE_2COLS 0.7, D Code Formatting Macros,
+    $(THEAD Name, Description),
+    $(TROW $(ARGS $(D D_COMMENT)), $(ARGS Highlighting of comments))
+    $(TROW $(ARGS $(D D_STRING)), $(ARGS Highlighting of string literals))
+    $(TROW $(ARGS $(D D_KEYWORD)), $(ARGS Highlighting of D keywords))
+    $(TROW $(ARGS $(D D_PSYMBOL)), $(ARGS Highlighting of current declaration name))
+    $(TROW $(ARGS $(D D_PARAM)), $(ARGS Highlighting of current function declaration parameters))
+    )
+
+$(P
+    The highlighting macros start with $(D DDOC_).
+    They control the formatting of individual parts of the presentation.
+)
+
+    $(LONGTABLE_2COLS 0.55, Ddoc Section Formatting Macros,
+    $(THEAD Name, Description),
+    $(TROW $(ARGS $(D DDOC_CONSTRAINT)), $(ARGS Highlighting of a template constraint.))
+    $(TROW $(ARGS $(D DDOC_COMMENT)), $(ARGS Inserts a comment in the output.))
+    $(TROW $(ARGS $(D DDOC_DECL)), $(ARGS Highlighting of the declaration.))
+    $(TROW $(ARGS $(D DDOC_DECL_DD)), $(ARGS Highlighting of the description of a declaration.))
+    $(TROW $(ARGS $(D DDOC_DITTO)), $(ARGS Highlighting of ditto declarations.))
+    $(TROW $(ARGS $(D DDOC_SECTIONS)), $(ARGS Highlighting of all the sections.))
+    $(TROW $(ARGS $(D DDOC_SUMMARY)), $(ARGS Highlighting of the summary section.))
+    $(TROW $(ARGS $(D DDOC_DESCRIPTION)), $(ARGS Highlighting of the description section.))
+    $(TROW $(ARGS $(D DDOC_AUTHORS)), $(ARGS Highlighting of the authors section.))
+    $(TROW $(ARGS $(D DDOC_BUGS)), $(ARGS Highlighting of the bugs section.))
+    $(TROW $(ARGS $(D DDOC_COPYRIGHT)), $(ARGS Highlighting of the copyright section.))
+    $(TROW $(ARGS $(D DDOC_DATE)), $(ARGS Highlighting of the date section.))
+    $(TROW $(ARGS $(D DDOC_DEPRECATED)), $(ARGS Highlighting of the deprecated section.))
+    $(TROW $(ARGS $(D DEPRECATED)), $(ARGS Wrapper for deprecated declarations.))
+    $(TROW $(ARGS $(D DDOC_EXAMPLES)), $(ARGS Highlighting of the examples section.))
+    $(TROW $(ARGS $(D DDOC_HISTORY)), $(ARGS Highlighting of the history section.))
+    $(TROW $(ARGS $(D DDOC_LICENSE)), $(ARGS Highlighting of the license section.))
+    $(TROW $(ARGS $(D DDOC_OVERLOAD_SEPARATOR)), $(ARGS Inserts a separator between overloads of a given name.))
+    $(TROW $(ARGS $(D DDOC_RETURNS)), $(ARGS Highlighting of the returns section.))
+    $(TROW $(ARGS $(D DDOC_SEE_ALSO)), $(ARGS Highlighting of the see-also section.))
+    $(TROW $(ARGS $(D DDOC_STANDARDS)), $(ARGS Highlighting of the standards section.))
+    $(TROW $(ARGS $(D DDOC_THROWS)), $(ARGS Highlighting of the throws section.))
+    $(TROW $(ARGS $(D DDOC_VERSION)), $(ARGS Highlighting of the version section.))
+    $(TROW $(ARGS $(D DDOC_SECTION_H)), $(ARGS Highlighting of the section name of a non-standard section.))
+    $(TROW $(ARGS $(D DDOC_SECTION)), $(ARGS Highlighting of the contents of a non-standard section.))
+    $(TROW $(ARGS $(D DDOC_MEMBERS)), $(ARGS Default highlighting of all the members of a class, struct, etc.))
+    $(TROW $(ARGS $(D DDOC_MODULE_MEMBERS)), $(ARGS Highlighting of all the members of a module.))
+    $(TROW $(ARGS $(D DDOC_CLASS_MEMBERS)), $(ARGS Highlighting of all the members of a class.))
+    $(TROW $(ARGS $(D DDOC_STRUCT_MEMBERS)), $(ARGS Highlighting of all the members of a struct.))
+    $(TROW $(ARGS $(D DDOC_ENUM_MEMBERS)), $(ARGS Highlighting of all the members of an enum.))
+    $(TROW $(ARGS $(D DDOC_TEMPLATE_PARAM)), $(ARGS Highlighting of a template's individual parameters.))
+    $(TROW $(ARGS $(D DDOC_TEMPLATE_PARAM_LIST)), $(ARGS Highlighting of a template's parameter list.))
+    $(TROW $(ARGS $(D DDOC_TEMPLATE_MEMBERS)), $(ARGS Highlighting of all the members of a template.))
+    $(TROW $(ARGS $(D DDOC_ENUM_BASETYPE)), $(ARGS Highlighting of the type an enum is based upon))
+    $(TROW $(ARGS $(D DDOC_PARAMS)), $(ARGS Highlighting of a function parameter section.))
+    $(TROW $(ARGS $(D DDOC_PARAM_ROW)), $(ARGS Highlighting of a name=value function parameter.))
+    $(TROW $(ARGS $(D DDOC_PARAM_ID)), $(ARGS Highlighting of the parameter name.))
+    $(TROW $(ARGS $(D DDOC_PARAM_DESC)), $(ARGS Highlighting of the parameter value.))
+    $(TROW $(ARGS $(D DDOC_BLANKLINE)), $(ARGS Inserts a blank line.))
+    $(TROW $(ARGS $(D DDOC_ANCHOR)), $(ARGS Expands to a named anchor used for hyperlinking to a
+        particular declaration section. Argument $(DOLLAR)1 expands to the qualified declaration name.))
+    $(TROW $(ARGS $(D DDOC_PSYMBOL)), $(ARGS Highlighting of declaration name to which a particular section is referring.))
+    $(TROW $(ARGS $(D DDOC_PSUPER_SYMBOL)), $(ARGS Highlighting of the base type of a class.))
+    $(TROW $(ARGS $(D DDOC_KEYWORD)), $(ARGS Highlighting of D keywords.))
+    $(TROW $(ARGS $(D DDOC_PARAM)), $(ARGS Highlighting of function parameters.))
+    $(TROW $(ARGS $(D DDOC_BACKQUOTED)), $(ARGS Inserts inline code.))
+    $(TROW $(ARGS $(D DDOC_AUTO_PSYMBOL_SUPPRESS)), $(ARGS Highlighting of auto-detected symbol that starts with underscore))
+    $(TROW $(ARGS $(D DDOC_AUTO_PSYMBOL)), $(ARGS Highlighting of auto-detected symbol))
+    $(TROW $(ARGS $(D DDOC_AUTO_KEYWORD)), $(ARGS Highlighting of auto-detected keywords))
+    $(TROW $(ARGS $(D DDOC_AUTO_PARAM)), $(ARGS Highlighting of auto-detected parameters))
+    )
+
+$(P
+    For example, one could redefine $(D DDOC_SUMMARY):
+)
+
+$(DDOCCODE
+DDOC_SUMMARY = $(DOLLAR)(GREEN $(DOLLAR)0)
+)
+
+$(P
+    And all the summary sections will now be green.
+)
+
+$(H3 $(LNAME2 macro_def_scini, Macro Definitions from `sc.ini`'s DDOCFILE))
+
+$(P
+    A text file of macro definitions can be created,
+    and specified in $(D sc.ini):
+)
+
+$(DDOCCODE
+DDOCFILE=myproject.ddoc
+)
+
+$(H3 $(LNAME2 macro_def_ddoc_file, Macro Definitions from .ddoc Files on the Command Line))
+
+$(P
+    File names on the DMD command line with the extension
+    .ddoc are text files that are read and processed in order.
+)
+
+$(H3 $(LNAME2 macro_def_ddocgenerated, Macro Definitions Generated by Ddoc))
+
+    $(LONGTABLE_2COLS 0.6, Generated Macro Definitions,
+    $(THEAD Macro Name, Content),
+    $(TROW
+    $(ARGS $(B BODY)),
+    $(ARGS Set to the generated document text.)
+    )
+    $(TROW
+    $(ARGS $(B TITLE)),
+    $(ARGS Set to the module name.)
+    )
+    $(TROW
+    $(ARGS $(B DATETIME)),
+    $(ARGS Set to the current date and time.)
+    )
+    $(TROW
+    $(ARGS $(B YEAR)),
+    $(ARGS Set to the current year.)
+    )
+    $(TROW
+    $(ARGS $(B COPYRIGHT)),
+    $(ARGS Set to the contents of any $(B Copyright:) section that is part
+    of the module comment.)
+    )
+    $(TROW
+    $(ARGS $(B DOCFILENAME)),
+    $(ARGS Set to the name of the generated output file.)
+    )
+    $(TROW
+    $(ARGS $(B SRCFILENAME)),
+    $(ARGS Set to the name of the source file the documentation is being
+    generated from.)
+    )
+    )
+
+$(H2 $(LNAME2 using_ddoc_to_generate_examples, Using Ddoc to generate examples from unit tests))
+
+$(P
+    Ddoc can automatically generate usage examples for declarations
+    using unit tests. If a declaration is followed by a documented
+    unit test, the code from the test will be inserted into the
+    example section of the declaration. This avoids the frequent
+    problem of having outdated documentation for pieces of code.
+)
+
+$(P
+    To create a documented unit test just add three forward
+    slashes before the unittest block, like this:)
+
+------
+///
+unittest
+{
+    ...
+}
+------
+
+    $(P For more information please see the full section on
+    $(LINK2 unittest.html#documented-unittests, documented unit tests).
+)
+
+$(H2 $(LNAME2 using_ddoc_for_other_documentation, Using Ddoc for other Documentation))
+
+$(P
+    Ddoc is primarily designed for use in producing documentation
+    from embedded comments. It can also, however, be used for
+    processing other general documentation.
+    The reason for doing this would be to take advantage of the
+    macro capability of Ddoc and the D code syntax highlighting
+    capability.
+)
+
+$(P
+    If the .d source file starts with the string "Ddoc" then it
+    is treated as general purpose documentation, not as a D
+    code source file. From immediately after the "Ddoc" string
+    to the end of the file or any "Macros:" section forms
+    the document. No automatic highlighting is done to that text,
+    other than highlighting of D code embedded between lines
+    delineated with --- lines. Only macro processing is done.
+)
+
+$(P
+    Much of the D documentation itself is generated this way,
+    including this page.
+    Such documentation is marked at the bottom as being
+    generated by Ddoc.
+)
+
+$(H2 $(LNAME2 security, Security considerations))
+
+$(P
+    Note that DDoc comments may embed raw HTML, including
+    $(LT)script$(GT) tags. Be careful when publishing or distributing
+    rendered DDoc HTML generated from untrusted sources, as this may
+    allow $(LINK2 https://en.wikipedia.org/wiki/Cross-site_scripting,
+    cross-site scripting).
+)
+
+$(H2 $(LNAME2 links_to_d_documentation_generators, Links to D documentation generators))
+
+$(P
+    A list of current D documentation generators which use Ddoc
+    can be found on our $(LINK2 https://wiki.dlang.org/Open_Source_Projects#Documentation_Generators, wiki page).
+)
+
+$(SPEC_SUBNAV_PREV_NEXT iasm, D x86 Inline Assembler, interfaceToC, Interfacing to C)
+)
+
+Macros:
+    CHAPTER=32
+    TITLE=Documentation Generator

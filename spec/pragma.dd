@@ -1,0 +1,497 @@
+Ddoc
+
+$(SPEC_S Pragmas,
+
+$(HEADERNAV_TOC)
+
+$(GRAMMAR
+$(GNAME PragmaDeclaration):
+    $(GLINK Pragma) $(D ;)
+    $(GLINK Pragma) $(GLINK2 attribute, DeclarationBlock)
+
+$(GNAME PragmaStatement):
+    $(GLINK Pragma) $(D ;)
+    $(GLINK Pragma) $(GLINK2 statement, NoScopeStatement)
+
+$(GNAME Pragma):
+    $(D pragma) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN))
+    $(D pragma) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D ,) $(GLINK2 expression, ArgumentList) $(D $(RPAREN))
+)
+
+
+        $(P Pragmas pass special information to the implementation
+        and can add vendor specific extensions.
+        Pragmas can be used by themselves terminated with a $(TT ;),
+        and can apply to a statement, a block of statements, a declaration, or
+        a block of declarations.
+        )
+
+        $(P Pragmas can be either a $(GLINK PragmaDeclaration)
+        or a $(GLINK PragmaStatement).
+        )
+
+-----------------
+pragma(ident);        // just by itself
+
+pragma(ident) declaration; // influence one declaration
+
+pragma(ident): // influence subsequent declarations
+    declaration;
+    declaration;
+
+pragma(ident)   // influence block of declarations
+{
+    declaration;
+    declaration;
+}
+
+pragma(ident) statement; // influence one statement
+
+pragma(ident)   // influence block of statements
+{
+    statement;
+    statement;
+}
+-----------------
+
+        $(P The kind of pragma it is determined by the $(I Identifier).
+        $(GLINK2 expression, ArgumentList) is a comma-separated list of
+        $(ASSIGNEXPRESSION)s. The $(ASSIGNEXPRESSION)s must be
+        parsable as expressions, but their meaning
+        is up to the individual pragma semantics.
+        )
+
+$(H2 $(LEGACY_LNAME2 Predefined-Pragmas, predefined-pragmas, Predefined Pragmas))
+
+$(P All implementations must support these, even if by just ignoring them:)
+
+$(UL
+    $(LI $(LINK2 #crtctor, pragma crt$(UNDERSCORE)constructor))
+    $(LI $(LINK2 #crtdtor, pragma crt$(UNDERSCORE)destructor))
+    $(LI $(LINK2 #inline, pragma inline))
+    $(LI $(LINK2 #lib, pragma lib))
+    $(LI $(LINK2 #linkerDirective, pragma linkerDirective))
+    $(LI $(LINK2 #mangle, pragma mangle))
+    $(LI $(LINK2 #msg, pragma msg))
+    $(LI $(LINK2 #printf, pragma printf))
+    $(LI $(LINK2 #scanf, pragma scanf))
+    $(LI $(LINK2 #startaddress, pragma startaddress))
+)
+
+    $(IMPLEMENTATION_DEFINED An implementation may ignore these pragmas.)
+
+$(H3 $(LNAME2 crtctor, $(D pragma crt_constructor)))
+
+    $(P Annotates a function so it is run after the C runtime library is initialized
+        and before the D runtime library is initialized.
+    )
+
+    $(P The function must:)
+
+    $(OL
+        $(LI be `extern (C)`)
+        $(LI not have any parameters)
+        $(LI not be a non-static member function)
+        $(LI be a function definition, not a declaration (i.e. it must have a function body))
+        $(LI not return a type that has a destructor)
+        $(LI not be a nested function)
+    )
+
+    ---
+    __gshared int initCount;
+
+    pragma(crt_constructor)
+    extern(C) void initializer() { initCount += 1; }
+    ---
+
+    $(P No arguments to the pragma are allowed.)
+
+    $(P A function may be annotated with both `pragma(crt_constructor)`
+        and `pragma(crt_destructor)`.
+    )
+
+    $(P Annotating declarations other than function definitions has no effect.)
+
+    $(P Annotating a struct or class definition does not affect the members of
+    the aggregate.)
+
+    $(P A function that is annotated with `pragma(crt_constructor)` may initialize
+    `const` or `immutable` variables.)
+
+    $(BEST_PRACTICE Use for system programming and interfacing with C/C++,
+        for example to allow for initialization of the runtime when loading a DSO,
+        or as a simple replacement for `shared static this` in
+        $(DDLINK spec/betterc, betterC mode, betterC mode).
+    )
+
+    $(IMPLEMENTATION_DEFINED The order in which functions annotated with `pragma(crt_constructor)`
+        are run is implementation defined.
+    )
+
+    $(BEST_PRACTICE to control the order in which the functions are called within one module, write
+        a single function that calls them in the desired order, and only annotate that function.
+    )
+
+    $(IMPLEMENTATION_DEFINED This uses the mechanism C compilers use to run
+        code before `main()` is called. C++ compilers use it to run static
+        constructors and destructors.
+        For example, GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((constructor))`)
+        is equivalent.
+        Digital Mars C uses $(TT _STI) and $(TT _STD) identifier prefixes to mark crt_constructor and crt_destructor functions.
+    )
+
+    $(IMPLEMENTATION_DEFINED
+        A reference to the annotated function will be inserted in
+        the $(TT .init_array) section for Elf systems,
+        the $(TT XI) section for Win32 OMF systems,
+        the $(TT .CRT$XCU) section for Windows MSCOFF systems,
+        and the $(TT __mod_init_func) section for OSX systems.
+    )
+
+    $(NOTE `crt_constructor` and `crt_destructor` were implemented in
+        $(LINK2 $(ROOT_DIR)changelog/2.078.0.html, v2.078.0 (2018-01-01)).
+        Some compilers exposed non-standard, compiler-specific mechanism before.
+    )
+
+$(H3 $(LNAME2 crtdtor, $(D pragma crt_destructor)))
+
+    $(P `pragma(crt_destructor)` works the same as `pragma(crt_constructor)` except:)
+
+    $(OL
+        $(LI Annotates a function so it is run after the D runtime library is terminated
+             and before the C runtime library is terminated.
+             Calling C's `exit()` function also causes the annotated functions to run.)
+        $(LI The order in which the annotated functions are run is the reverse of those functions
+             annotated with `pragma(crt_constructor)`.)
+    )
+
+    $(IMPLEMENTATION_DEFINED This uses the mechanism C compilers use to run
+        code after `main()` returns or `exit()` is called. C++ compilers use it to run static
+        destructors.
+        For example, GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((destructor))`)
+        is equivalent.
+        Digital Mars C uses $(TT _STI) and $(TT _STD) identifier prefixes to mark crt_constructor and crt_destructor functions.
+    )
+
+    $(IMPLEMENTATION_DEFINED
+        A reference to the annotated function will be inserted in
+        the $(TT .fini_array) section for Elf systems,
+        the $(TT XC) section for Win32 OMF systems,
+        the $(TT .CRT$XPU) section for Windows MSCOFF systems,
+        and the $(TT __mod_term_func) section for OSX systems.
+    )
+
+---
+__gshared int initCount;
+
+pragma(crt_constructor)
+extern(C) void initialize() { initCount += 1; }
+
+pragma(crt_destructor)
+extern(C) void deinitialize() { initCount -= 1; }
+
+pragma(crt_constructor)
+pragma(crt_destructor)
+extern(C) void innuendo() { printf("Inside a constructor... Or destructor?\n"); }
+---
+
+
+$(H3 $(LNAME2 inline, $(D pragma inline)))
+
+    $(P Affects whether functions are inlined or not. If at the declaration level, it
+     affects the functions declared in the block it controls. If inside a function, it
+     affects the function it is enclosed by.)
+
+     $(P It takes two forms:)
+     $(OL
+        $(LI
+---
+pragma(inline)
+---
+        Sets the behavior to match the implementation's default behavior.
+        )
+        $(LI
+---
+pragma(inline, AssignExpression)
+---
+        The $(GLINK2 expression, AssignExpression) is evaluated and must have a type that can be converted
+        to a boolean.
+        If the result is false the functions are never inlined, otherwise they are always inlined.
+        )
+      )
+
+    $(P More than one $(I AssignExpression) is not allowed.)
+
+    $(P If there are multiple pragma inlines in a function,
+    the lexically last one takes effect.)
+---
+pragma(inline):
+int foo(int x) // foo() is never inlined
+{
+    pragma(inline, true);
+    ++x;
+    pragma(inline, false); // supercedes the others
+    return x + 3;
+}
+---
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI The default inline behavior is typically selectable with a compiler switch
+    such as $(DDSUBLINK dmd, switch-inline, $(TT -inline).))
+    $(LI Whether a particular function can be inlined or not is implementation defined.)
+    $(LI What happens for `pragma(inline, true)` if the function cannot be inlined.
+    An error message is typical.)
+    ))
+
+$(H3 $(LNAME2 lib, $(D pragma lib)))
+
+    $(P There must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
+    )
+-----------------
+pragma(lib, "foo.lib");
+-----------------
+
+    $(IMPLEMENTATION_DEFINED
+    The string literal specifies the file name of a library file. This name
+    is inserted into the generated object file, or otherwise passed to the linker,
+    so the linker automatically links in that library.
+    )
+
+$(H3 $(LNAME2 linkerDirective, $(D pragma linkerDirective)))
+
+    $(P There must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
+    )
+-----------------
+pragma(linkerDirective, "/FAILIFMISMATCH:_ITERATOR_DEBUG_LEVEL=2");
+-----------------
+
+    $(IMPLEMENTATION_DEFINED
+    The string literal specifies a linker directive to be embedded in the generated object file.
+    Linker directives are only supported for MS-COFF output.
+    )
+
+$(H3 $(LNAME2 mangle, $(D pragma mangle)))
+
+    $(P Overrides the default mangling for a symbol.)
+
+    $(P For variables and functions there must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
+        For aggregates there may be one or two $(ASSIGNEXPRESSION)s, one of which must evaluate at compile time to a string literal and
+        one which must evaluate to a symbol. If that symbol is a $(I TemplateInstance), the aggregate is treated as a template
+        that has the signature and arguments of the $(I TemplateInstance). The identifier of the symbol is used when no string is supplied.
+        Both arguments may be used used when an aggregate's name is a D keyword.
+    )
+
+    $(P It only applies to function and variable symbols. Other symbols are ignored.)
+
+    $(IMPLEMENTATION_DEFINED On macOS and Win32, an extra underscore (`_`) is prepended to the string
+        since 2.079, as is done by the C/C++ toolchain. This allows using the same `pragma(mangle)`
+        for all compatible (POSIX in one case, win64 in another) platforms instead of having to special-case.
+    )
+
+    $(RATIONALE
+        $(UL
+        $(LI Enables linking to symbol names that D cannot represent.)
+        $(LI Enables linking to a symbol which is a D keyword, since an $(GLINK_LEX Identifier)
+        cannot be a keyword.)
+        )
+        ---
+        pragma(mangle, "body")
+        extern(C) void body_func();
+        pragma(mangle, "function")
+        extern(C++) struct _function {}
+        template ScopeClass(C)
+        {
+            pragma(mangle, C)
+            struct ScopeClass { align(__traits(classInstanceAlignment, C)) void[__traits(classInstanceSize, C)] buffer; }
+        }
+        extern(C++)
+        {
+            class MyClassA(T) {}
+            void func(ref ScopeClass!(MyClassA!int)); // mangles as MyClass<int>&
+        }
+        ---
+    )
+
+
+$(H3 $(LNAME2 msg, $(D pragma msg)))
+
+    $(P Each $(ASSIGNEXPRESSION) is evaluated at compile time and then all are combined into a message.)
+
+    ---
+    pragma(msg, "compiling...", 6, 1.0); // prints "compiling...61.0" at compile time
+    ---
+
+    $(IMPLEMENTATION_DEFINED The form the message takes and how it is presented to the user.
+    One way is by printing them to the standard error stream.)
+
+    $(RATIONALE Analogously to how `writeln()` performs a role of writing informational messages during runtime,
+        `pragma(msg)` performs the equivalent role at compile time.
+        For example,
+        ---
+        static if (kilroy)
+            pragma(msg, "Kilroy was here");
+        else
+            pragma(msg, "Kilroy got lost");
+        ---
+    )
+
+$(H3 $(LNAME2 printf, $(D pragma printf)))
+
+    $(P `pragma(printf)` specifies that a function declaration is a printf-like function, meaning
+    it is an `extern (C)` or `extern (C++)` function with a `format` parameter accepting a
+    pointer to a 0-terminated `char` string conforming to the C99 Standard 7.19.6.1, immediately followed
+    by either a `...` variadic argument list or a parameter of type `va_list` as the last parameter.
+    )
+
+    $(P If the `format` argument is a string literal, it is verified to be a valid format string
+    per the C99 Standard. If the `format` parameter is followed by `...`, the number and types
+    of the variadic arguments are checked against the format string.)
+
+    $(P Diagnosed incompatibilities are:)
+
+    $(UL
+    $(LI incompatible sizes which may cause argument misalignment)
+    $(LI deferencing arguments that are not pointers)
+    $(LI insufficient number of arguments)
+    $(LI struct arguments)
+    $(LI array and slice arguments)
+    $(LI non-pointer arguments to `s` specifier)
+    $(LI non-standard formats)
+    $(LI undefined behavior per C99)
+    )
+
+    $(P Per the C99 Standard, extra arguments are ignored.)
+
+    $(P Ignored mismatches are:)
+
+    $(UL
+    $(LI sign mismatches, such as printing an `int` with a `%u` format)
+    $(LI integral promotion mismatches, where the format specifies a smaller integral
+    type than `int` or `uint`, such as printing a `short` with the `%d` format rather than `%hd`)
+    )
+
+    ---
+    printf("%k\n", value); // error: non-Standard format k
+    printf("%d\n");        // error: not enough arguments
+    printf("%d\n", 1, 2);  // ok, extra arguments ignored
+    ---
+
+    $(BEST_PRACTICE
+    In order to use non-Standard printf/scanf formats, an easy workaround is:
+    ---
+    const format = "%k\n";
+    printf(format.ptr, value);  // no error
+    ---
+    )
+
+    $(BEST_PRACTICE
+    Most of the errors detected are portability issues. For instance,
+
+    ---
+    string s;
+    printf("%.*s\n", s.length, s.ptr);
+    printf("%d\n", s.sizeof);
+    ulong u;
+    scanf("%lld%*c\n", &u);
+    ---
+    should be replaced with:
+    ---
+    string s;
+    printf("%.*s\n", cast(int) s.length, s.ptr);
+    printf("%zd\n", s.sizeof);
+    ulong u;
+    scanf("%llu%*c\n", &u);
+    ---
+    )
+
+    $(P `pragma(printf)` applied to declarations that are not functions are ignored.
+    In particular, it has no effect on the declaration of a pointer to function type.
+    )
+
+
+$(H3 $(LNAME2 scanf, $(D pragma scanf)))
+
+    $(P `pragma(scanf)` specifies that a function declaration is a scanf-like function, meaning
+    it is an `extern (C)` or `extern (C++)` function with a `format` parameter accepting a
+    pointer to a 0-terminated `char` string conforming to the C99 Standard 7.19.6.2, immediately followed
+    by either a `...` variadic argument list or a parameter of type `va_list` as the last parameter.
+    )
+
+    $(P If the `format` argument is a string literal, it is verified to be a valid format string
+    per the C99 Standard. If the `format` parameter is followed by `...`, the number and types
+    of the variadic arguments are checked against the format string.)
+
+    $(P Diagnosed incompatibilities are:)
+
+    $(UL
+    $(LI argument is not a pointer to the format specified type)
+    $(LI insufficient number of arguments)
+    $(LI non-standard formats)
+    $(LI undefined behavior per C99)
+    )
+
+    $(P Per the C99 Standard, extra arguments are ignored.)
+
+    $(P `pragma(scanf)` applied to declarations that are not functions are ignored.
+    In particular, it has no effect on the declaration of a pointer to function type.
+    )
+
+
+
+
+$(H3 $(LNAME2 startaddress, $(D pragma startaddress)))
+
+    $(P There must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a function symbol.)
+
+    $(IMPLEMENTATION_DEFINED The function symbol specifies the start address for the program.
+    The symbol is inserted into the object file or is otherwise presented to the linker to
+    set the start address.
+    This is not normally used for application level programming,
+    but is for specialized systems work.
+    For applications code, the start address is taken care of
+    by the runtime library.
+
+-----------------
+void foo() { ... }
+pragma(startaddress, foo);
+-----------------
+
+    )
+
+$(H2 $(LNAME2 vendor_specific_pragmas, Vendor Specific Pragmas))
+
+        $(P Vendor specific pragma $(I Identifier)s can be defined if they
+        are prefixed by the vendor's trademarked name, in a similar manner
+        to version identifiers:
+        )
+
+    ---
+    pragma(DigitalMars_extension) { ... }
+    ---
+
+    $(P Implementations must diagnose an error for unrecognized $(I Pragma)s,
+    even if they are vendor specific ones.
+    )
+
+    $(IMPLEMENTATION_DEFINED Vendor specific pragmas.)
+
+
+    $(BEST_PRACTICE vendor
+        specific pragmas should be wrapped in version statements
+
+    ---
+    version (DigitalMars)
+    {
+        pragma(DigitalMars_extension)
+        {   ... }
+    }
+    ---
+    )
+
+$(SPEC_SUBNAV_PREV_NEXT attribute, Attributes, expression, Expressions)
+)
+
+Macros:
+        CHAPTER=10
+        TITLE=Pragmas

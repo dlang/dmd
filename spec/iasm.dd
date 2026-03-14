@@ -1,0 +1,1392 @@
+Ddoc
+
+$(SPEC_S D x86 Inline Assembler,
+
+$(HEADERNAV_TOC)
+
+    $(HTMLTAG3 a,
+      href="http://digitalmars.com/gift/index.html" title="Gift Shop" target="_top",
+      $(HTMLTAG3V img, src="$(ROOT_DIR)images/SomeAssemblySmall.png" border="0" align="right" alt="Some Assembly Required" width="284" height="186")
+    )
+
+    $(P D, being a systems programming language, provides an inline
+        assembler.
+        The inline assembler is standardized for D implementations across
+        the same CPU family, for example, the Intel Pentium inline assembler
+        for a Win32 D compiler will be syntax compatible with the inline
+        assembler for Linux running on an Intel Pentium.
+    )
+
+    $(P Implementations of D on different architectures, however, are
+        free to innovate upon the memory model, function call/return conventions,
+        argument passing conventions, etc.
+    )
+
+    $(P This document describes the $(D x86) and $(D x86_64) implementations of
+        the inline assembler. The inline assembler platform support that a compiler
+        provides is indicated by the $(D D_InlineAsm_X86) and
+        $(D D_InlineAsm_X86_64) version identifiers, respectively.
+    )
+
+$(H2 $(LNAME2 asmstatements, Asm statement))
+
+$(GRAMMAR
+$(GNAME AsmStatement):
+    $(D asm) $(GLINK2 function, FunctionAttributes)$(OPT) $(D {) $(GLINK AsmInstructionList)$(OPT) $(D })
+
+$(GNAME AsmInstructionList):
+    $(GLINK AsmInstruction) $(D ;)
+    $(GLINK AsmInstruction) $(D ;) $(GSELF AsmInstructionList)
+)
+
+    $(P Assembler instructions must be located inside an `asm` block.
+        Like functions, `asm` statements must be anotated with adequate function attributes to be compatible with the caller.
+        Asm statements attributes must be explicitly defined, they are not inferred.
+    )
+    $(P `@safe` is not allowed as an attribute, as the compiler does no safety checking of
+        assembly statements - use `@trusted` instead.)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+void ok() pure nothrow @safe @nogc
+{
+    asm pure nothrow @trusted @nogc
+    {}
+}
+
+void error() @safe @nogc
+{
+    asm @nogc // Error: asm statement is assumed to be @system - mark it with '@trusted' if it is not
+    {}
+    asm @safe @nogc // Deprecation: asm statement cannot be @safe, use @trusted instead
+    {}
+}
+---
+)
+
+$(H2 $(LNAME2 asminstruction, Asm instruction))
+
+$(GRAMMAR
+$(GNAME AsmInstruction):
+    $(GLINK_LEX Identifier) $(D :) $(GSELF AsmInstruction)
+    $(D align) $(GLINK IntegerExpression)
+    $(D even)
+    $(D naked)
+    $(D db) $(GLINK Operands)
+    $(D ds) $(GLINK Operands)
+    $(D di) $(GLINK Operands)
+    $(D dl) $(GLINK Operands)
+    $(D df) $(GLINK Operands)
+    $(D dd) $(GLINK Operands)
+    $(D de) $(GLINK Operands)
+    $(D db) $(GLINK_LEX StringLiteral)
+    $(D ds) $(GLINK_LEX StringLiteral)
+    $(D di) $(GLINK_LEX StringLiteral)
+    $(D dl) $(GLINK_LEX StringLiteral)
+    $(D dw) $(GLINK_LEX StringLiteral)
+    $(D dq) $(GLINK_LEX StringLiteral)
+    $(GLINK Opcode)
+    $(GLINK Opcode) $(GLINK Operands)
+
+$(GNAME Opcode):
+    $(GLINK_LEX Identifier)
+    $(D int)
+    $(D in)
+    $(D out)
+
+$(GNAME Operands):
+    $(GLINK Operand)
+    $(GLINK Operand) $(D ,) $(GSELF Operands)
+)
+
+$(H2 $(LNAME2 labels, Labels))
+
+    $(P Assembler instructions can be labeled just like other statements.
+        They can be the target of goto statements.
+        For example:
+    )
+
+--------------
+void *pc;
+asm
+{
+    call L1          ;
+  L1:                ;
+    pop  EBX         ;
+    mov  pc[EBP],EBX ; // pc now points to code at L1
+}
+--------------
+
+$(H2 $(LNAME2 align, align $(I IntegerExpression)))
+
+$(GRAMMAR
+$(GNAME IntegerExpression):
+    $(GLINK_LEX IntegerLiteral)
+    $(GLINK_LEX Identifier)
+)
+
+    $(P Causes the assembler to emit NOP instructions to align the next
+        assembler instruction on an $(I IntegerExpression) boundary.
+        $(I IntegerExpression) must evaluate at compile time to an integer that is
+        a power of 2.
+    )
+
+    $(P Aligning the start of a loop body can sometimes have a dramatic
+        effect on the execution speed.
+    )
+
+$(H2 $(LNAME2 even, even))
+
+    $(P Causes the assembler to emit NOP instructions to align the next
+        assembler instruction on an even boundary.
+    )
+
+$(H2 $(LNAME2 naked, naked))
+
+    $(P Causes the compiler to not generate the function prolog and epilog
+        sequences. This means such is the responsibility of inline
+        assembly programmer, and is normally used when the entire function
+        is to be written in assembler.
+    )
+
+$(H2 $(LNAME2 raw_data, db, ds, di, dl, df, dd, de))
+
+    $(P These pseudo ops are for inserting raw data directly into
+        the code.
+        $(D db) is for bytes,
+        $(D ds) is for 16 bit words,
+        $(D di) is for 32 bit words,
+        $(D dl) is for 64 bit words,
+        $(D df) is for 32 bit floats,
+        $(D dd) is for 64 bit doubles,
+        and $(D de) is for 80 bit extended reals.
+        Each can have multiple operands.
+        If an operand is a string literal, it is as if there were $(I length)
+        operands, where $(I length) is the number of characters in the string.
+        One character is used per operand.
+        For example:)
+
+        --------------
+        asm
+        {
+            db 5,6,0x83;   // insert bytes 0x05, 0x06, and 0x83 into code
+            ds 0x1234;     // insert bytes 0x34, 0x12
+            di 0x1234;     // insert bytes 0x34, 0x12, 0x00, 0x00
+            dl 0x1234;     // insert bytes 0x34, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            df 1.234;      // insert float 1.234
+            dd 1.234;      // insert double 1.234
+            de 1.234;      // insert real 1.234
+            db "abc";      // insert bytes 0x61, 0x62, and 0x63
+            ds "abc";      // insert bytes 0x61, 0x00, 0x62, 0x00, 0x63, 0x00
+        }
+        --------------
+
+$(H2 $(LNAME2 opcodes, Opcodes))
+
+    $(P A list of supported opcodes is at the end.
+    )
+
+    $(P The following registers are supported. Register names
+        are always in upper case.
+    )
+
+$(GRAMMAR
+$(GNAME Register):
+    $(D AL)
+    $(D AH)
+    $(D AX)
+    $(D EAX)
+
+    $(D BL)
+    $(D BH)
+    $(D BX)
+    $(D EBX)
+
+    $(D CL)
+    $(D CH)
+    $(D CX)
+    $(D ECX)
+
+    $(D DL)
+    $(D DH)
+    $(D DX)
+    $(D EDX)
+
+    $(D BP)
+    $(D EBP)
+
+    $(D SP)
+    $(D ESP)
+
+    $(D DI)
+    $(D EDI)
+
+    $(D SI)
+    $(D ESI)
+
+    $(D ES)
+    $(D CS)
+    $(D SS)
+    $(D DS)
+    $(D GS)
+    $(D FS)
+
+    $(D CR0)
+    $(D CR2)
+    $(D CR3)
+    $(D CR4)
+
+    $(D DR0)
+    $(D DR1)
+    $(D DR2)
+    $(D DR3)
+    $(D DR6)
+    $(D DR7)
+
+    $(D TR3)
+    $(D TR4)
+    $(D TR5)
+    $(D TR6)
+    $(D TR7)
+
+    $(D ST)
+
+    $(D ST(0))
+    $(D ST(1))
+    $(D ST(2))
+    $(D ST(3))
+    $(D ST(4))
+    $(D ST(5))
+    $(D ST(6))
+    $(D ST(7))
+
+    $(D MM0)
+    $(D MM1)
+    $(D MM2)
+    $(D MM3)
+    $(D MM4)
+    $(D MM5)
+    $(D MM6)
+    $(D MM7)
+
+    $(D XMM0)
+    $(D XMM1)
+    $(D XMM2)
+    $(D XMM3)
+    $(D XMM4)
+    $(D XMM5)
+    $(D XMM6)
+    $(D XMM7)
+)
+
+    $(P $(D x86_64) adds these additional registers.)
+
+$(GRAMMAR
+$(GNAME Register64):
+    $(D RAX)
+    $(D RBX)
+    $(D RCX)
+    $(D RDX)
+
+    $(D BPL)
+    $(D RBP)
+
+    $(D SPL)
+    $(D RSP)
+
+    $(D DIL)
+    $(D RDI)
+
+    $(D SIL)
+    $(D RSI)
+
+    $(D R8B)
+    $(D R8W)
+    $(D R8D)
+    $(D R8)
+
+    $(D R9B)
+    $(D R9W)
+    $(D R9D)
+    $(D R9)
+
+    $(D R10B)
+    $(D R10W)
+    $(D R10D)
+    $(D R10)
+
+    $(D R11B)
+    $(D R11W)
+    $(D R11D)
+    $(D R11)
+
+    $(D R12B)
+    $(D R12W)
+    $(D R12D)
+    $(D R12)
+
+    $(D R13B)
+    $(D R13W)
+    $(D R13D)
+    $(D R13)
+
+    $(D R14B)
+    $(D R14W)
+    $(D R14D)
+    $(D R14)
+
+    $(D R15B)
+    $(D R15W)
+    $(D R15D)
+    $(D R15)
+
+    $(D XMM8)
+    $(D XMM9)
+    $(D XMM10)
+    $(D XMM11)
+    $(D XMM12)
+    $(D XMM13)
+    $(D XMM14)
+    $(D XMM15)
+
+    $(D YMM0)
+    $(D YMM1)
+    $(D YMM2)
+    $(D YMM3)
+    $(D YMM4)
+    $(D YMM5)
+    $(D YMM6)
+    $(D YMM7)
+
+    $(D YMM8)
+    $(D YMM9)
+    $(D YMM10)
+    $(D YMM11)
+    $(D YMM12)
+    $(D YMM13)
+    $(D YMM14)
+    $(D YMM15)
+)
+
+$(H3 $(LNAME2 special_cases, Special Cases))
+
+$(DL
+    $(DT $(D lock), $(D rep), $(D repe), $(D repne), $(D repnz), $(D repz))
+    $(DD These prefix instructions do not appear in the same statement
+        as the instructions they prefix; they appear in their own statement.
+        For example:)
+
+        --------------
+        asm
+        {
+            rep   ;
+            movsb ;
+        }
+        --------------
+
+    $(DT $(D pause))
+    $(DD This opcode is not supported by the assembler, instead use
+
+        --------------
+        asm
+        {
+            rep  ;
+            nop  ;
+        }
+        --------------
+
+        which produces the same result.
+    )
+
+    $(DT $(D floating point ops))
+    $(DD Use the two operand form of the instruction format;
+
+        --------------
+        fdiv ST(1);     // wrong
+        fmul ST;        // wrong
+        fdiv ST,ST(1);  // right
+        fmul ST,ST(0);  // right
+        --------------
+    )
+)
+
+$(H2 $(LNAME2 operands, Operands))
+
+$(GRAMMAR
+$(GNAME Operand):
+    $(GLINK AsmExp)
+
+$(GNAME AsmExp):
+    $(GLINK AsmLogOrExp)
+    $(GLINK AsmLogOrExp) $(D ?) $(GSELF AsmExp) $(D :) $(GSELF AsmExp)
+
+$(GNAME AsmLogOrExp):
+    $(GLINK AsmLogAndExp)
+    $(GSELF AsmLogOrExp) $(D ||) $(GLINK AsmLogAndExp)
+
+$(GNAME AsmLogAndExp):
+    $(GLINK AsmOrExp)
+    $(GSELF AsmLogAndExp) $(D &&) $(GLINK AsmOrExp)
+
+$(GNAME AsmOrExp):
+    $(GLINK AsmXorExp)
+    $(GSELF AsmOrExp) $(D |) $(GLINK AsmXorExp)
+
+$(GNAME AsmXorExp):
+    $(GLINK AsmAndExp)
+    $(GSELF AsmXorExp) $(D ^) $(GLINK AsmAndExp)
+
+$(GNAME AsmAndExp):
+    $(GLINK AsmEqualExp)
+    $(GSELF AsmAndExp) $(D &) $(GLINK AsmEqualExp)
+
+$(GNAME AsmEqualExp):
+    $(GLINK AsmRelExp)
+    $(GSELF AsmEqualExp) $(D ==) $(GLINK AsmRelExp)
+    $(GSELF AsmEqualExp) $(D !=) $(GLINK AsmRelExp)
+
+$(GNAME AsmRelExp):
+    $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D <) $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D <=) $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D >) $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D >=) $(GLINK AsmShiftExp)
+
+$(GNAME AsmShiftExp):
+    $(GLINK AsmAddExp)
+    $(GSELF AsmShiftExp) $(D <<) $(GLINK AsmAddExp)
+    $(GSELF AsmShiftExp) $(D >>) $(GLINK AsmAddExp)
+    $(GSELF AsmShiftExp) $(D >>>) $(GLINK AsmAddExp)
+
+$(GNAME AsmAddExp):
+    $(GLINK AsmMulExp)
+    $(GSELF AsmAddExp) $(D +) $(GLINK AsmMulExp)
+    $(GSELF AsmAddExp) $(D -) $(GLINK AsmMulExp)
+
+$(GNAME AsmMulExp):
+    $(GLINK AsmBrExp)
+    $(GSELF AsmMulExp) $(D *) $(GLINK AsmBrExp)
+    $(GSELF AsmMulExp) $(D /) $(GLINK AsmBrExp)
+    $(GSELF AsmMulExp) $(D %) $(GLINK AsmBrExp)
+
+$(GNAME AsmBrExp):
+    $(GLINK AsmUnaExp)
+    $(GSELF AsmBrExp) $(D [) $(GLINK AsmExp) $(D ])
+
+$(GNAME AsmUnaExp):
+    $(GLINK AsmTypePrefix) $(GLINK AsmExp)
+    $(D offsetof) $(GLINK AsmExp)
+    $(D seg) $(GLINK AsmExp)
+    $(D +) $(GSELF AsmUnaExp)
+    $(D -) $(GSELF AsmUnaExp)
+    $(D !) $(GSELF AsmUnaExp)
+    $(D ~) $(GSELF AsmUnaExp)
+    $(GLINK AsmPrimaryExp)
+
+$(GNAME AsmPrimaryExp):
+    $(GLINK_LEX IntegerLiteral)
+    $(GLINK_LEX FloatLiteral)
+    $(D __LOCAL_SIZE)
+    $(D $)
+    $(GLINK Register)
+    $(GLINK Register) $(D :) $(GLINK AsmExp)
+    $(GLINK Register64)
+    $(GLINK Register64) $(D :) $(GLINK AsmExp)
+    $(GLINK DotIdentifier)
+    $(D this)
+
+$(GNAME DotIdentifier):
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D .) $(GSELF DotIdentifier)
+    $(GLINK2 type, FundamentalType) $(D .) $(GLINK_LEX Identifier)
+)
+
+    $(P The operand syntax more or less follows the Intel CPU documentation
+        conventions.
+        In particular, the convention is that for two operand instructions
+        the source is the right operand and the destination is the left
+        operand.
+        The syntax differs from that of Intel's in order to be compatible
+        with the D language tokenizer and to simplify parsing.
+    )
+
+    $(P The $(D seg) means load the segment number that the symbol is
+        in. This is not relevant for flat model code.
+        Instead, do a move from the relevant segment register.
+    )
+
+    $(P A dotted expression is evaluated during the compilation and then
+        must either give a constant or indicate a higher level variable
+        that fits in the target register or variable.
+    )
+
+$(H3 $(LNAME2 operand_types, Operand Types))
+
+$(GRAMMAR
+$(GNAME AsmTypePrefix):
+    $(D near ptr)
+    $(D far ptr)
+    $(D word ptr)
+    $(D dword ptr)
+    $(D qword ptr)
+    $(GLINK2 type, FundamentalType) $(D ptr)
+)
+
+    $(P In cases where the operand size is ambiguous, as in:)
+
+--------------
+add [EAX],3     ;
+--------------
+
+    it can be disambiguated by using an $(GLINK AsmTypePrefix):
+
+        --------------
+        add  byte ptr [EAX],3 ;
+        add  int ptr [EAX],7  ;
+        --------------
+
+    $(P $(D far ptr) is not relevant for flat model code.
+    )
+
+$(H3 $(LNAME2 agregate_member_offsets, Struct/Union/Class Member Offsets))
+
+    $(P To access members of an aggregate, given a pointer to the aggregate
+        is in a register, use the $(D .offsetof) property of the qualified name
+        of the member:)
+
+        --------------
+        struct Foo { int a,b,c; }
+        int bar(Foo *f)
+        {
+            asm
+            {
+                mov EBX,f                   ;
+                mov EAX,Foo.b.offsetof[EBX] ;
+            }
+        }
+        void main()
+        {
+            Foo f = Foo(0, 2, 0);
+            assert(bar(&f) == 2);
+        }
+        --------------
+
+    $(P Alternatively, inside the scope of an aggregate, only the member name is needed:)
+
+        --------------
+        struct Foo   // or class
+        {
+            int a,b,c;
+            int bar()
+            {
+                asm
+                {
+                    mov EBX, this   ;
+                    mov EAX, b[EBX] ;
+                }
+            }
+        }
+        void main()
+        {
+            Foo f = Foo(0, 2, 0);
+            assert(f.bar() == 2);
+        }
+        --------------
+
+$(H3 $(LNAME2 stack_variables, Stack Variables))
+
+    $(P Stack variables (variables local to a function and allocated
+        on the stack) are accessed via the name of the variable indexed
+        by EBP:)
+
+        ---
+        int foo(int x)
+        {
+            asm
+            {
+                mov EAX,x[EBP] ; // loads value of parameter x into EAX
+                mov EAX,x      ; // does the same thing
+            }
+        }
+        ---
+
+    $(P If the [EBP] is omitted, it is assumed for local variables.
+        If $(D naked) is used, this no longer holds.
+    )
+
+$(H3 $(LNAME2 special_symbols, Special Symbols))
+
+$(DL
+    $(DT $(DOLLAR))
+    $(DD Represents the program counter of the start of the next instruction. So,
+
+        --------------
+        jmp  $  ;
+        --------------
+
+        branches to the instruction following the jmp instruction.
+        The $(DOLLAR) can only appear as the target of a jmp or call
+        instruction.
+    )
+
+    $(DT $(D __LOCAL_SIZE))
+    $(DD This gets replaced by the number of local bytes in the local
+        stack frame. It is most handy when the $(D naked) is invoked
+        and a custom stack frame is programmed.
+    )
+)
+
+$(H2 $(LNAME2 supported_opcodes, Opcodes Supported))
+
+    $(LONGTABLE_5COLS Opcodes, ,
+        $(TROW $(TT aaa)
+        , $(TT aad)
+        , $(TT aam)
+        , $(TT aas)
+        , $(TT adc))
+        $(TROW $(TT add)
+        , $(TT addpd)
+        , $(TT addps)
+        , $(TT addsd)
+        , $(TT addss)
+        )$(TROW $(TT and)
+        , $(TT andnpd)
+        , $(TT andnps)
+        , $(TT andpd)
+        , $(TT andps)
+        )$(TROW $(TT arpl)
+        , $(TT bound)
+        , $(TT bsf)
+        , $(TT bsr)
+        , $(TT bswap)
+        )$(TROW $(TT bt)
+        , $(TT btc)
+        , $(TT btr)
+        , $(TT bts)
+        , $(TT call)
+        )$(TROW $(TT cbw)
+        , $(TT cdq)
+        , $(TT clc)
+        , $(TT cld)
+        , $(TT clflush)
+        )$(TROW $(TT cli)
+        , $(TT clts)
+        , $(TT cmc)
+        , $(TT cmova)
+        , $(TT cmovae)
+        )$(TROW $(TT cmovb)
+        , $(TT cmovbe)
+        , $(TT cmovc)
+        , $(TT cmove)
+        , $(TT cmovg)
+        )$(TROW $(TT cmovge)
+        , $(TT cmovl)
+        , $(TT cmovle)
+        , $(TT cmovna)
+        , $(TT cmovnae)
+        )$(TROW $(TT cmovnb)
+        , $(TT cmovnbe)
+        , $(TT cmovnc)
+        , $(TT cmovne)
+        , $(TT cmovng)
+        )$(TROW $(TT cmovnge)
+        , $(TT cmovnl)
+        , $(TT cmovnle)
+        , $(TT cmovno)
+        , $(TT cmovnp)
+        )$(TROW $(TT cmovns)
+        , $(TT cmovnz)
+        , $(TT cmovo)
+        , $(TT cmovp)
+        , $(TT cmovpe)
+        )$(TROW $(TT cmovpo)
+        , $(TT cmovs)
+        , $(TT cmovz)
+        , $(TT cmp)
+        , $(TT cmppd)
+        )$(TROW $(TT cmpps)
+        , $(TT cmps)
+        , $(TT cmpsb)
+        , $(TT cmpsd)
+        , $(TT cmpss)
+        )$(TROW $(TT cmpsw)
+        , $(TT cmpxchg)
+        , $(TT cmpxchg8b)
+        , $(TT cmpxchg16b)
+        , $(TT )
+        )$(TROW $(TT comisd)
+        , $(TT comiss)
+        , $(TT )
+        , $(TT )
+        , $(TT )
+        )$(TROW $(TT cpuid)
+        , $(TT cvtdq2pd)
+        , $(TT cvtdq2ps)
+        , $(TT cvtpd2dq)
+        , $(TT cvtpd2pi)
+        )$(TROW $(TT cvtpd2ps)
+        , $(TT cvtpi2pd)
+        , $(TT cvtpi2ps)
+        , $(TT cvtps2dq)
+        , $(TT cvtps2pd)
+        )$(TROW $(TT cvtps2pi)
+        , $(TT cvtsd2si)
+        , $(TT cvtsd2ss)
+        , $(TT cvtsi2sd)
+        , $(TT cvtsi2ss)
+        )$(TROW $(TT cvtss2sd)
+        , $(TT cvtss2si)
+        , $(TT cvttpd2dq)
+        , $(TT cvttpd2pi)
+        , $(TT cvttps2dq)
+        )$(TROW $(TT cvttps2pi)
+        , $(TT cvttsd2si)
+        , $(TT cvttss2si)
+        , $(TT cwd)
+        , $(TT cwde)
+        )$(TROW $(TT da)
+        , $(TT daa)
+        , $(TT das)
+        , $(TT db)
+        , $(TT dd)
+        )$(TROW $(TT de)
+        , $(TT dec)
+        , $(TT df)
+        , $(TT di)
+        , $(TT div)
+        )$(TROW $(TT divpd)
+        , $(TT divps)
+        , $(TT divsd)
+        , $(TT divss)
+        , $(TT dl)
+        )$(TROW $(TT dq)
+        , $(TT ds)
+        , $(TT dt)
+        , $(TT dw)
+        , $(TT emms)
+        )$(TROW $(TT enter)
+        , $(TT f2xm1)
+        , $(TT fabs)
+        , $(TT fadd)
+        , $(TT faddp)
+        )$(TROW $(TT fbld)
+        , $(TT fbstp)
+        , $(TT fchs)
+        , $(TT fclex)
+        , $(TT fcmovb)
+        )$(TROW $(TT fcmovbe)
+        , $(TT fcmove)
+        , $(TT fcmovnb)
+        , $(TT fcmovnbe)
+        , $(TT fcmovne)
+        )$(TROW $(TT fcmovnu)
+        , $(TT fcmovu)
+        , $(TT fcom)
+        , $(TT fcomi)
+        , $(TT fcomip)
+        )$(TROW $(TT fcomp)
+        , $(TT fcompp)
+        , $(TT fcos)
+        , $(TT fdecstp)
+        , $(TT fdisi)
+        )$(TROW $(TT fdiv)
+        , $(TT fdivp)
+        , $(TT fdivr)
+        , $(TT fdivrp)
+        , $(TT feni)
+        )$(TROW $(TT ffree)
+        , $(TT fiadd)
+        , $(TT ficom)
+        , $(TT ficomp)
+        , $(TT fidiv)
+        )$(TROW $(TT fidivr)
+        , $(TT fild)
+        , $(TT fimul)
+        , $(TT fincstp)
+        , $(TT finit)
+        )$(TROW $(TT fist)
+        , $(TT fistp)
+        , $(TT fisub)
+        , $(TT fisubr)
+        , $(TT fld)
+        )$(TROW $(TT fld1)
+        , $(TT fldcw)
+        , $(TT fldenv)
+        , $(TT fldl2e)
+        , $(TT fldl2t)
+        )$(TROW $(TT fldlg2)
+        , $(TT fldln2)
+        , $(TT fldpi)
+        , $(TT fldz)
+        , $(TT fmul)
+        )$(TROW $(TT fmulp)
+        , $(TT fnclex)
+        , $(TT fndisi)
+        , $(TT fneni)
+        , $(TT fninit)
+        )$(TROW $(TT fnop)
+        , $(TT fnsave)
+        , $(TT fnstcw)
+        , $(TT fnstenv)
+        , $(TT fnstsw)
+        )$(TROW $(TT fpatan)
+        , $(TT fprem)
+        , $(TT fprem1)
+        , $(TT fptan)
+        , $(TT frndint)
+        )$(TROW $(TT frstor)
+        , $(TT fsave)
+        , $(TT fscale)
+        , $(TT fsetpm)
+        , $(TT fsin)
+        )$(TROW $(TT fsincos)
+        , $(TT fsqrt)
+        , $(TT fst)
+        , $(TT fstcw)
+        , $(TT fstenv)
+        )$(TROW $(TT fstp)
+        , $(TT fstsw)
+        , $(TT fsub)
+        , $(TT fsubp)
+        , $(TT fsubr)
+        )$(TROW $(TT fsubrp)
+        , $(TT ftst)
+        , $(TT fucom)
+        , $(TT fucomi)
+        , $(TT fucomip)
+        )$(TROW $(TT fucomp)
+        , $(TT fucompp)
+        , $(TT fwait)
+        , $(TT fxam)
+        , $(TT fxch)
+        )$(TROW $(TT fxrstor)
+        , $(TT fxsave)
+        , $(TT fxtract)
+        , $(TT fyl2x)
+        , $(TT fyl2xp1)
+        )$(TROW $(TT hlt)
+        , $(TT idiv)
+        , $(TT imul)
+        , $(TT in)
+        , $(TT inc)
+        )$(TROW $(TT ins)
+        , $(TT insb)
+        , $(TT insd)
+        , $(TT insw)
+        , $(TT int)
+        )$(TROW $(TT into)
+        , $(TT invd)
+        , $(TT invlpg)
+        , $(TT iret)
+        , $(TT iretd)
+        )$(TROW $(TT iretq)
+        , $(TT ja)
+        , $(TT jae)
+        , $(TT jb)
+        , $(TT jbe)
+        )$(TROW $(TT jc)
+        , $(TT jcxz)
+        , $(TT je)
+        , $(TT jecxz)
+        , $(TT jg)
+        )$(TROW $(TT jge)
+        , $(TT jl)
+        , $(TT jle)
+        , $(TT jmp)
+        , $(TT jna)
+        )$(TROW $(TT jnae)
+        , $(TT jnb)
+        , $(TT jnbe)
+        , $(TT jnc)
+        , $(TT jne)
+        )$(TROW $(TT jng)
+        , $(TT jnge)
+        , $(TT jnl)
+        , $(TT jnle)
+        , $(TT jno)
+        )$(TROW $(TT jnp)
+        , $(TT jns)
+        , $(TT jnz)
+        , $(TT jo)
+        , $(TT jp)
+        )$(TROW $(TT jpe)
+        , $(TT jpo)
+        , $(TT js)
+        , $(TT jz)
+        , $(TT lahf)
+        )$(TROW $(TT lar)
+        , $(TT ldmxcsr)
+        , $(TT lds)
+        , $(TT lea)
+        , $(TT leave)
+        )$(TROW $(TT les)
+        , $(TT lfence)
+        , $(TT lfs)
+        , $(TT lgdt)
+        , $(TT lgs)
+        )$(TROW $(TT lidt)
+        , $(TT lldt)
+        , $(TT lmsw)
+        , $(TT lock)
+        , $(TT lods)
+        )$(TROW $(TT lodsb)
+        , $(TT lodsd)
+        , $(TT lodsw)
+        , $(TT loop)
+        , $(TT loope)
+        )$(TROW $(TT loopne)
+        , $(TT loopnz)
+        , $(TT loopz)
+        , $(TT lsl)
+        , $(TT lss)
+        )$(TROW $(TT ltr)
+        , $(TT maskmovdqu)
+        , $(TT maskmovq)
+        , $(TT maxpd)
+        , $(TT maxps)
+        )$(TROW $(TT maxsd)
+        , $(TT maxss)
+        , $(TT mfence)
+        , $(TT minpd)
+        , $(TT minps)
+        )$(TROW $(TT minsd)
+        , $(TT minss)
+        , $(TT mov)
+        , $(TT movapd)
+        , $(TT movaps)
+        )$(TROW $(TT movd)
+        , $(TT movdq2q)
+        , $(TT movdqa)
+        , $(TT movdqu)
+        , $(TT movhlps)
+        )$(TROW $(TT movhpd)
+        , $(TT movhps)
+        , $(TT movlhps)
+        , $(TT movlpd)
+        , $(TT movlps)
+        )$(TROW $(TT movmskpd)
+        , $(TT movmskps)
+        , $(TT movntdq)
+        , $(TT movnti)
+        , $(TT movntpd)
+        )$(TROW $(TT movntps)
+        , $(TT movntq)
+        , $(TT movq)
+        , $(TT movq2dq)
+        , $(TT movs)
+        )$(TROW $(TT movsb)
+        , $(TT movsd)
+        , $(TT movss)
+        , $(TT movsw)
+        , $(TT movsx)
+        )$(TROW $(TT movupd)
+        , $(TT movups)
+        , $(TT movzx)
+        , $(TT mul)
+        , $(TT mulpd)
+        )$(TROW $(TT mulps)
+        , $(TT mulsd)
+        , $(TT mulss)
+        , $(TT neg)
+        , $(TT nop)
+        )$(TROW $(TT not)
+        , $(TT or)
+        , $(TT orpd)
+        , $(TT orps)
+        , $(TT out)
+        )$(TROW $(TT outs)
+        , $(TT outsb)
+        , $(TT outsd)
+        , $(TT outsw)
+        , $(TT packssdw)
+        )$(TROW $(TT packsswb)
+        , $(TT packuswb)
+        , $(TT paddb)
+        , $(TT paddd)
+        , $(TT paddq)
+        )$(TROW $(TT paddsb)
+        , $(TT paddsw)
+        , $(TT paddusb)
+        , $(TT paddusw)
+        , $(TT paddw)
+        )$(TROW $(TT pand)
+        , $(TT pandn)
+        , $(TT pavgb)
+        , $(TT pavgw)
+        , $(TT pcmpeqb)
+        )$(TROW $(TT pcmpeqd)
+        , $(TT pcmpeqw)
+        , $(TT pcmpgtb)
+        , $(TT pcmpgtd)
+        , $(TT pcmpgtw)
+        )$(TROW $(TT pextrw)
+        , $(TT pinsrw)
+        , $(TT pmaddwd)
+        , $(TT pmaxsw)
+        , $(TT pmaxub)
+        )$(TROW $(TT pminsw)
+        , $(TT pminub)
+        , $(TT pmovmskb)
+        , $(TT pmulhuw)
+        , $(TT pmulhw)
+        )$(TROW $(TT pmullw)
+        , $(TT pmuludq)
+        , $(TT pop)
+        , $(TT popa)
+        , $(TT popad)
+        )$(TROW $(TT popf)
+        , $(TT popfd)
+        , $(TT por)
+        , $(TT prefetchnta)
+        , $(TT prefetcht0)
+        )$(TROW $(TT prefetcht1)
+        , $(TT prefetcht2)
+        , $(TT psadbw)
+        , $(TT pshufd)
+        , $(TT pshufhw)
+        )$(TROW $(TT pshuflw)
+        , $(TT pshufw)
+        , $(TT pslld)
+        , $(TT pslldq)
+        , $(TT psllq)
+        )$(TROW $(TT psllw)
+        , $(TT psrad)
+        , $(TT psraw)
+        , $(TT psrld)
+        , $(TT psrldq)
+        )$(TROW $(TT psrlq)
+        , $(TT psrlw)
+        , $(TT psubb)
+        , $(TT psubd)
+        , $(TT psubq)
+        )$(TROW $(TT psubsb)
+        , $(TT psubsw)
+        , $(TT psubusb)
+        , $(TT psubusw)
+        , $(TT psubw)
+        )$(TROW $(TT punpckhbw)
+        , $(TT punpckhdq)
+        , $(TT punpckhqdq)
+        , $(TT punpckhwd)
+        , $(TT punpcklbw)
+        )$(TROW $(TT punpckldq)
+        , $(TT punpcklqdq)
+        , $(TT punpcklwd)
+        , $(TT push)
+        , $(TT pusha)
+        )$(TROW $(TT pushad)
+        , $(TT pushf)
+        , $(TT pushfd)
+        , $(TT pxor)
+        , $(TT rcl)
+        )$(TROW $(TT rcpps)
+        , $(TT rcpss)
+        , $(TT rcr)
+        , $(TT rdmsr)
+        , $(TT rdpmc)
+        )$(TROW $(TT rdtsc)
+        , $(TT rep)
+        , $(TT repe)
+        , $(TT repne)
+        , $(TT repnz)
+        )$(TROW $(TT repz)
+        , $(TT ret)
+        , $(TT retf)
+        , $(TT rol)
+        , $(TT ror)
+        )$(TROW $(TT rsm)
+        , $(TT rsqrtps)
+        , $(TT rsqrtss)
+        , $(TT sahf)
+        , $(TT sal)
+        )$(TROW $(TT sar)
+        , $(TT sbb)
+        , $(TT scas)
+        , $(TT scasb)
+        , $(TT scasd)
+        )$(TROW $(TT scasw)
+        , $(TT seta)
+        , $(TT setae)
+        , $(TT setb)
+        , $(TT setbe)
+        )$(TROW $(TT setc)
+        , $(TT sete)
+        , $(TT setg)
+        , $(TT setge)
+        , $(TT setl)
+        )$(TROW $(TT setle)
+        , $(TT setna)
+        , $(TT setnae)
+        , $(TT setnb)
+        , $(TT setnbe)
+        )$(TROW $(TT setnc)
+        , $(TT setne)
+        , $(TT setng)
+        , $(TT setnge)
+        , $(TT setnl)
+        )$(TROW $(TT setnle)
+        , $(TT setno)
+        , $(TT setnp)
+        , $(TT setns)
+        , $(TT setnz)
+        )$(TROW $(TT seto)
+        , $(TT setp)
+        , $(TT setpe)
+        , $(TT setpo)
+        , $(TT sets)
+        )$(TROW $(TT setz)
+        , $(TT sfence)
+        , $(TT sgdt)
+        , $(TT shl)
+        , $(TT shld)
+        )$(TROW $(TT shr)
+        , $(TT shrd)
+        , $(TT shufpd)
+        , $(TT shufps)
+        , $(TT sidt)
+        )$(TROW $(TT sldt)
+        , $(TT smsw)
+        , $(TT sqrtpd)
+        , $(TT sqrtps)
+        , $(TT sqrtsd)
+        )$(TROW $(TT sqrtss)
+        , $(TT stc)
+        , $(TT std)
+        , $(TT sti)
+        , $(TT stmxcsr)
+        )$(TROW $(TT stos)
+        , $(TT stosb)
+        , $(TT stosd)
+        , $(TT stosw)
+        , $(TT str)
+        )$(TROW $(TT sub)
+        , $(TT subpd)
+        , $(TT subps)
+        , $(TT subsd)
+        , $(TT subss)
+        )$(TROW $(TT syscall)
+        , $(TT sysenter)
+        , $(TT sysexit)
+        , $(TT sysret)
+        , $(TT test)
+        )$(TROW $(TT ucomisd)
+        , $(TT ucomiss)
+        , $(TT ud2)
+        , $(TT unpckhpd)
+        , $(TT unpckhps)
+        )$(TROW $(TT unpcklpd)
+        , $(TT unpcklps)
+        , $(TT verr)
+        , $(TT verw)
+        , $(TT wait)
+        )$(TROW $(TT wbinvd)
+        , $(TT wrmsr)
+        , $(TT xadd)
+        , $(TT xchg)
+        , $(TT xlat)
+        )$(TROW $(TT xlatb)
+        , $(TT xor)
+        , $(TT xorpd)
+        , $(TT xorps)
+        , $(TT  )
+        )
+    )
+
+$(H3 $(LNAME2 P4_opcode_support, Pentium 4 (Prescott) Opcodes Supported))
+
+    $(LONGTABLE_5COLS Pentium 4 Opcodes, ,
+        $(TROW $(TT addsubpd)
+        , $(TT addsubps)
+        , $(TT fisttp)
+        , $(TT haddpd)
+        , $(TT haddps)
+        )$(TROW $(TT hsubpd)
+        , $(TT hsubps)
+        , $(TT lddqu)
+        , $(TT monitor)
+        , $(TT movddup)
+        )$(TROW $(TT movshdup)
+        , $(TT movsldup)
+        , $(TT mwait)
+        , $(TT  )
+        , $(TT  )
+        )
+    )
+
+$(H3 $(LNAME2 amd_opcode_support, AMD Opcodes Supported))
+
+    $(LONGTABLE_5COLS AMD Opcodes, ,
+        $(TROW $(TT pavgusb)
+        , $(TT pf2id)
+        , $(TT pfacc)
+        , $(TT pfadd)
+        , $(TT pfcmpeq)
+        )$(TROW $(TT pfcmpge)
+        , $(TT pfcmpgt)
+        , $(TT pfmax)
+        , $(TT pfmin)
+        , $(TT pfmul)
+        )$(TROW $(TT pfnacc)
+        , $(TT pfpnacc)
+        , $(TT pfrcp)
+        , $(TT pfrcpit1)
+        , $(TT pfrcpit2)
+        )$(TROW $(TT pfrsqit1)
+        , $(TT pfrsqrt)
+        , $(TT pfsub)
+        , $(TT pfsubr)
+        , $(TT pi2fd)
+        )$(TROW $(TT pmulhrw)
+        , $(TT pswapd)
+        , $(TT  )
+        , $(TT  )
+        , $(TT  )
+        )
+    )
+
+$(H3 $(LNAME2 simd, SIMD))
+
+    $(P SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2 and AVX are supported.)
+
+$(COMMENT
+$(H3 $(LNAME2 other, Other))
+    $(P AES, CMUL, FSGSBASE, RDRAND, FP16C and FMA are supported.)
+)
+
+$(COMMENT
+SSE4.1
+
+blendpd
+blendps
+blendvpd
+blendvps
+dppd
+dpps
+extractps
+insertps
+movntdqa
+mpsadbw
+packusdw
+pblendub
+pblendw
+pcmpeqq
+pextrb
+pextrd
+pextrq
+pextrw
+phminposuw
+pinsrb
+pinsrd
+pinsrq
+pmaxsb
+pmaxsd
+pmaxud
+pmaxuw
+pminsb
+pminsd
+pminud
+pminuw
+pmovsxbd
+pmovsxbq
+pmovsxbw
+pmovsxwd
+pmovsxwq
+pmovsxdq
+pmovzxbd
+pmovzxbq
+pmovzxbw
+pmovzxwd
+pmovzxwq
+pmovzxdq
+pmuldq
+pmulld
+ptest
+roundpd
+roundps
+roundsd
+roundss
+
+SSE4.2
+
+crc32
+pcmpestri
+pcmpestrm
+pcmpistri
+pcmpistrm
+pcmpgtq
+popcnt
+
+VMS
+
+invept
+invvpid
+vmcall
+vmclear
+vmlaunch
+vmresume
+vmptrld
+vmptrst
+vmread
+vmwrite
+vmxoff
+vmxon
+
+SMX
+
+getsec
+)
+
+$(H2 $(LNAME2 gcc, GCC syntax))
+
+$(P The $(LINK2 https://gdcproject.org/, GNU D Compiler) uses an alternative, GCC-based syntax for inline assembler:)
+
+$(GRAMMAR
+$(GNAME GccAsmStatement):
+    $(D asm) $(GLINK2 function, FunctionAttributes)$(OPT) $(D {) $(GLINK GccAsmInstructionList) $(D })
+
+$(GNAME GccAsmInstructionList):
+    $(GLINK GccAsmInstruction) $(D ;)
+    $(GLINK GccAsmInstruction) $(D ;) $(GSELF GccAsmInstructionList)
+
+$(GNAME GccAsmInstruction):
+    $(GLINK GccBasicAsmInstruction)
+    $(GLINK GccExtAsmInstruction)
+    $(GLINK GccGotoAsmInstruction)
+
+$(GNAME GccBasicAsmInstruction):
+    $(GLINK2 expression, GccAsmStringExpression)
+
+$(GNAME GccExtAsmInstruction):
+    $(GLINK2 expression, GccAsmStringExpression) $(D :) $(GLINK GccAsmOperands)$(OPT)
+    $(GLINK2 expression, GccAsmStringExpression) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmOperands)$(OPT)
+    $(GLINK2 expression, GccAsmStringExpression) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmClobbers)$(OPT)
+
+$(GNAME GccGotoAsmInstruction):
+    $(GLINK2 expression, GccAsmStringExpression) $(D :) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmClobbers)$(OPT) $(D :) $(GLINK GccAsmGotoLabels)$(OPT)
+
+$(GNAME GccAsmStringExpression):
+    $(GLINK_LEX StringLiteral)
+    $(D $(LPAREN)) $(GLINK2 expression, ConditionalExpression) $(D $(RPAREN))
+
+$(GNAME GccAsmOperands):
+    $(GLINK GccSymbolicName)$(OPT) $(GLINK_LEX GccAsmStringExpression) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
+    $(GLINK GccSymbolicName)$(OPT) $(GLINK_LEX GccAsmStringExpression) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN)) $(D ,) $(GSELF GccAsmOperands)
+
+$(GNAME GccSymbolicName):
+    $(D [) $(GLINK_LEX Identifier) $(D ])
+
+$(GNAME GccAsmClobbers):
+    $(GLINK_LEX GccAsmStringExpression)
+    $(GLINK_LEX GccAsmStringExpression) $(D ,) $(GSELF GccAsmClobbers)
+
+$(GNAME GccAsmGotoLabels):
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D ,) $(GSELF GccAsmGotoLabels)
+)
+
+$(SPEC_SUBNAV_PREV_NEXT float, Floating Point, ddoc, Embedded Documentation)
+)
+
+Macros:
+        CHAPTER=31
+        TITLE=Inline Assembler
