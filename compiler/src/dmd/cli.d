@@ -333,8 +333,8 @@ dmd -cov -unittest myprog.d
             With $(I filename), write module dependencies as text to $(I filename)
             (only imports).`,
         ),
-        Option("dllimport=<value>",
-            "Windows only: select symbols to dllimport (none/defaultLibsOnly/externalOnly/all)",
+        Option("dllimport=[none|defaultLibsOnly|externalOnly|all]",
+            "Windows only: select symbols to dllimport",
             `Which symbols to dllimport implicitly if not defined in a module that is being compiled
             $(UL
                 $(LI $(I none): None)
