@@ -256,14 +256,14 @@ struct Usage
             )`
         ),
         Option("conf=<filename>",
-            "use config file at filename"
+            "use config file at <filename>"
         ),
         Option("cov",
             "do code coverage analysis"
         ),
         Option("cov=ctfe", "Include code executed during CTFE in coverage report"),
         Option("cov=<nnn>",
-            "require at least nnn% code coverage",
+            "require at least <nnn>% code coverage",
             `Perform $(LINK2 $(ROOT_DIR)code_coverage.html, code coverage analysis) and generate
             $(TT .lst) file with report.)
 ---
@@ -272,7 +272,7 @@ dmd -cov -unittest myprog.d
             `,
         ),
         Option("cpp=<filename>",
-            "use filename as the name of the C preprocessor to use for ImportC files",
+            "use <filename> as the name of the C preprocessor to use for ImportC files",
             `Normally the C preprocessor used by the associated C compiler is used to
             preprocess ImportC files,
             this is overridden by the $(TT -cpp) switch.`
@@ -284,13 +284,13 @@ dmd -cov -unittest myprog.d
             `,
         ),
         Option("Dd<directory>",
-            "write documentation file to directory",
+            "write documentation file to <directory>",
             `Write documentation file to $(I directory) . $(SWLINK -op)
             can be used if the original package hierarchy should
             be retained`,
         ),
         Option("Df<filename>",
-            "write documentation file to filename"
+            "write documentation file to <filename>"
         ),
         Option("d",
             "silently allow deprecated features and symbols",
@@ -308,17 +308,17 @@ dmd -cov -unittest myprog.d
             `Compile in $(LINK2 spec/version.html#debug, debug) code`,
         ),
         Option("debug=<ident>",
-            "compile in debug code identified by ident",
+            "compile in debug code identified by <ident>",
             `Compile in $(LINK2 spec/version.html#debug, debug identifier) $(I ident)`,
         ),
         Option("debuglib=<libname>",
-            "set symbolic debug library to libname",
+            "set symbolic debug library to <libname>",
             `Link in $(I libname) as the default library when
             compiling for symbolic debugging instead of $(B $(LIB)).
             If $(I libname) is not supplied, then no default library is linked in.`
         ),
         Option("defaultlib=<libname>",
-            "set default library to libname",
+            "set default library to <libname>",
             `Link in $(I libname) as the default library when
             not compiling for symbolic debugging instead of $(B $(LIB)).
             If $(I libname) is not supplied, then no default library is linked in.`,
@@ -327,7 +327,7 @@ dmd -cov -unittest myprog.d
             "print module dependencies (imports/file/version/debug/lib)"
         ),
         Option("deps=<filename>",
-            "write module dependencies to filename (only imports)",
+            "write module dependencies to <filename> (only imports)",
             `Without $(I filename), print module dependencies
             (imports/file/version/debug/lib).
             With $(I filename), write module dependencies as text to $(I filename)
@@ -415,7 +415,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("gdwarf=<version>",
             "add DWARF symbolic debug info",
-            "The value of version may be 3, 4 or 5, defaulting to 3.",
+            "The value of <version> may be 3, 4 or 5, defaulting to 3.",
             cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.Windows)
         ),
         Option("gf",
@@ -435,13 +435,13 @@ dmd -cov -unittest myprog.d
             `Generate $(RELATIVE_LINK2 $(ROOT_DIR)interface-files, D interface file)`,
         ),
         Option("Hd=<directory>",
-            "write 'header' file to directory",
+            "write 'header' file to <directory>",
             `Write D interface file to $(I directory). $(SWLINK -op)
             can be used if the original package hierarchy should
             be retained.`,
         ),
         Option("Hf=<filename>",
-            "write 'header' file to filename"
+            "write 'header' file to <filename>"
         ),
         Option("HC=[silent|verbose]",
             "write C++ 'header' equivalent to stdout",
@@ -455,17 +455,17 @@ dmd -cov -unittest myprog.d
             "list available options for C++ 'header' file generation"
         ),
         Option("HCd=<directory>",
-            "write C++ 'header' file to directory",
-            "write C++ 'header' file to directory, ignored if `-HCf=<filename>` is not present",
+            "write C++ 'header' file to <directory>",
+            "write C++ 'header' file to <directory>, ignored if `-HCf=<filename>` is not present",
         ),
         Option("HCf=<filename>",
-            "write C++ 'header' file to filename instead of stdout"
+            "write C++ 'header' file to <filename> instead of stdout"
         ),
         Option("-help",
             "print help and exit"
         ),
         Option("I=<directory>",
-            "look for imports also in directory",
+            "look for imports also in <directory>",
             q"{$(P Adds $(I directory) to the list of paths to be searched for imports.
              Multiple `-I`'s can be used, and the paths are searched in the same order.)
 
@@ -587,7 +587,7 @@ dmd -cov -unittest myprog.d
             it more difficult to use a debugger on it.`,
         ),
         Option("J=<directory>",
-            "look for string imports also in directory",
+            "look for string imports also in <directory>",
             `Where to look for files for
             $(LINK2 $(ROOT_DIR)spec/expression.html#ImportExpression, $(I ImportExpression))s.
             This switch is required in order to use $(I ImportExpression)s.
@@ -596,7 +596,7 @@ dmd -cov -unittest myprog.d
             are searched in the same order.`,
         ),
         Option("L=<linkerflag>",
-            "pass linkerflag to link",
+            "pass <linkerflag> to link",
             `Pass $(I linkerflag) to the
             $(WINDOWS linker $(OPTLINK))
             $(UNIX linker), for example, ld`,
@@ -641,9 +641,9 @@ dmd -cov -unittest myprog.d
             in a library without having to manually define an entry-point function.`,
         ),
         Option("makedeps[=<filename>]",
-            "print dependencies in Makefile compatible format to filename or stdout.",
+            "print dependencies in Makefile compatible format to <filename> or stdout.",
             `Print dependencies in Makefile compatible format.
-            If filename is omitted, it prints to stdout.
+            If <filename> is omitted, it prints to stdout.
             The emitted targets are the compiled artifacts (executable, object files, libraries).
             The emitted dependencies are imported modules and imported string files (via $(SWLINK -J) switch).
             Special characters in a dependency or target filename are escaped in the GNU Make manner.
@@ -674,8 +674,8 @@ dmd -cov -unittest myprog.d
             "generate linker .map file",
             `Generate a $(TT .map) file`,
         ),
-        Option("mcpu=<id>",
-            "generate instructions for architecture identified by <id>",
+        Option("mcpu=[baseline|avx|native]",
+            "Set the target architecture for code generation",
             `Set the target architecture for code generation,
             where:
             $(DL
@@ -745,14 +745,14 @@ dmd -cov -unittest myprog.d
             conjuction with $(SWLINK -D) or $(SWLINK -H) flags.`
         ),
         Option("od=<directory>",
-            "write object & library files to directory",
-            `Write object files relative to directory $(I objdir)
+            "write object & library files to <directory>",
+            `Write object files relative to $(I directory)
             instead of to the current directory. $(SWLINK -op)
             can be used if the original package hierarchy should
             be retained`,
         ),
         Option("of=<filename>",
-            "name output file to filename",
+            "name output file to <filename>",
             `Set output file name to $(I filename) in the output
             directory. The output file can be an object file,
             executable file, or library file depending on the other
@@ -785,7 +785,7 @@ dmd -cov -unittest myprog.d
                 )`
         ),
         Option("P=<preprocessorflag>",
-            "pass preprocessorflag to C preprocessor",
+            "pass <preprocessorflag> to C preprocessor",
             `Pass $(I preprocessorflag) to
             $(WINDOWS cl.exe)
             $(UNIX cpp)`,
@@ -850,7 +850,7 @@ dmd -cov -unittest myprog.d
             "list all revertable language changes"
         ),
         Option("run <srcfile>",
-            "compile, link, and run the program srcfile",
+            "compile, link, and run the program <srcfile>",
             `Compile, link, and run the program $(I srcfile) with the
             rest of the
             command line, $(I args...), as the arguments to the program.
@@ -930,7 +930,7 @@ dmd -cov -unittest myprog.d
             "print compiler version and exit"
         ),
         Option("version=<ident>",
-            "compile in version code identified by ident",
+            "compile in version code identified by <ident>",
             `Compile in $(LINK2 $(ROOT_DIR)spec/version.html#version, version identifier) $(I ident)`
         ),
         Option("vgc",
@@ -973,10 +973,10 @@ dmd -cov -unittest myprog.d
             "generate JSON file"
         ),
         Option("Xf=<filename>",
-            "write JSON file to filename"
+            "write JSON file to <filename>"
         ),
         Option("Xcc=<driverflag>",
-            "pass driverflag to linker driver (cc)",
+            "pass <driverflag> to linker driver (cc)",
             "Pass $(I driverflag) to the linker driver (`$CC` or `cc`)",
             cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.Windows)
         ),
