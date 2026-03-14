@@ -209,7 +209,14 @@ dinteger_t toInteger(Expression _this)
     // import dmd.hdrgen : EXPtoString;
     //printf("Expression %s\n", EXPtoString(op).ptr);
     if (!_this.type || !_this.type.isTypeError())
+    {
+        if (auto ide = _this.isIdentifierExp())
+        {
+            if (ide.ident == Id.dollar)
+                return 0;
+        }
         error(_this.loc, "integer constant expression expected instead of `%s`", _this.toChars());
+    }
     return 0;
 }
 
