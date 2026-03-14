@@ -63,13 +63,20 @@ import dmd.backend.iasm;
  */
 public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
 {
-    static if (0)
+    static if (1)
     {
         printf("InlineAsmAArch64Statement.semantic()\n");
         for (auto token = s.tokens; token; token = token.next)
         {
-            printf("token: %s\n", token.toChars());
+            printf("TOK.%s %s\n", token.toString(token.value).ptr, token.toChars());
         }
+
+	auto token = s.tokens;
+	if (token.value == TOK.identifier)
+	{
+	    const id = token.ident.toString();
+	    if (strcmp(id.ptr, "naked".ptr) == 0) { printf("found naked\n"); }
+	}
     }
 
     /* For example,
