@@ -30,6 +30,11 @@ void checkStruct(Data d) {
     assert(d.x == 10 && d.y == 20);
 }
 
+MyEnum getB()
+{
+	return $.VALUE_B;
+}
+
 void main() {
     Data data = $(1, 2);
     assert(data.x == 1);
@@ -63,4 +68,6 @@ void main() {
     arr[$-1] = 5;
     int i = arr[idx(cast(uint)$-1)];
     assert(i == 5);
+
+    assert(getB() == $.VALUE_B);
 }

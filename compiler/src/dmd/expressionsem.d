@@ -15583,8 +15583,33 @@ Expression binSemantic(BinExp e, Scope* sc)
     {
         printf("BinExp::semantic('%s')\n", e.toChars());
     }
+
+    static bool containsDollarExp(Expression exp)
+    {
+        if (!exp)
+            return false;
+        if (exp.isDollarExp())
+            return true;
+        if (auto ce = exp.isCallExp())
+            return containsDollarExp(ce.e1);
+        if (auto die = exp.isDotIdExp())
+            return containsDollarExp(die.e1);
+        return false;
+    }
+
     Expression e1x = e.e1.expressionSemantic(sc);
+    // If e1 has a type and e2 contains a DollarExp, infer type from e1
+    if (e1x.type && e1x.type.ty != Tvoid && e1x.type.ty != Terror && containsDollarExp(e.e2))
+    {
+        e.e2 = inferType(e.e2, e1x.type);
+    }
     Expression e2x = e.e2.expressionSemantic(sc);
+    // If e2 has a type and e1 is still void (could happen if e1 was DollarExp), infer type from e2
+    if (e2x.type && e2x.type.ty != Tvoid && e2x.type.ty != Terror && e1x.type && e1x.type.ty == Tvoid && containsDollarExp(e.e1))
+    {
+        e.e1 = inferType(e.e1, e2x.type);
+        e.e1 = e.e1.expressionSemantic(sc);
+    }
 
     // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
     if (e1x.op == EXP.type)

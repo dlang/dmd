@@ -3318,6 +3318,8 @@ Expression inferType(Expression e, Type t, int flag = 0)
         // Only do this for aggregate types (struct, enum, class), not basic types
         if (t)
         {
+            if (t.ty == Tstruct || t.ty == Tenum || t.ty == Tclass)
+                return new TypeExp(de.loc, t);
             Type tb = t.toBasetype();
             if (tb.ty == Tstruct || tb.ty == Tenum || tb.ty == Tclass)
                 return new TypeExp(de.loc, t);
@@ -3327,14 +3329,13 @@ Expression inferType(Expression e, Type t, int flag = 0)
 
     Expression visitDotId(DotIdExp die)
     {
-        // Handle $.ident - infer $ from the context type
-        // Note: DollarExp extends IdentifierExp, so we check the identifier
-        if (auto ie = die.e1.isIdentifierExp())
+        if (die.e1.isDollarExp() && t)
         {
-            if (ie.ident == Id.dollar && t)
-            {
-                die.e1 = inferType(die.e1, t, flag);
-            }
+            if (t.ty == Tstruct || t.ty == Tenum || t.ty == Tclass)
+                return new DotIdExp(die.loc, new TypeExp(die.e1.loc, t), die.ident);
+            Type tb = t.toBasetype();
+            if (tb.ty == Tstruct || tb.ty == Tenum || tb.ty == Tclass)
+                return new DotIdExp(die.loc, new TypeExp(die.e1.loc, t), die.ident);
         }
         return die;
     }
@@ -3342,12 +3343,13 @@ Expression inferType(Expression e, Type t, int flag = 0)
     Expression visitCall(CallExp ce)
     {
         // Handle $(args) - infer $ from the context type
-        if (auto ie = ce.e1.isIdentifierExp())
+        if (ce.e1.isDollarExp() && t)
         {
-            if (ie.ident == Id.dollar && t)
-            {
-                ce.e1 = inferType(ce.e1, t, flag);
-            }
+            if (t.ty == Tstruct || t.ty == Tenum || t.ty == Tclass)
+                return new CallExp(ce.loc, new TypeExp(ce.e1.loc, t), ce.arguments);
+            Type tb = t.toBasetype();
+            if (tb.ty == Tstruct || tb.ty == Tenum || tb.ty == Tclass)
+                return new CallExp(ce.loc, new TypeExp(ce.e1.loc, t), ce.arguments);
         }
         return ce;
     }
