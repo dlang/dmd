@@ -1,0 +1,1312 @@
+Ddoc
+
+$(SPEC_S Operator Overloading,
+
+$(HEADERNAV_TOC)
+
+        $(P Operator overloading is accomplished by rewriting operators whose
+        operands are class or struct objects into calls to specially named
+        members. No additional syntax is used.
+        )
+
+$(H2 $(LEGACY_LNAME2 Unary, unary, Unary Operator Overloading))
+
+        $(TABLE2 Overloadable Unary Operators,
+        $(THEAD $(I op), $(I rewrite))
+        $(TROW
+        $(ARGS $(D -)$(I e)),
+        $(ARGS $(I e)$(D .opUnary!("-")()))
+        )
+        $(TROW
+        $(ARGS $(D +)$(I e)),
+        $(ARGS $(I e)$(D .opUnary!("+")()))
+        )
+        $(TROW
+        $(ARGS $(D ~)$(I e)),
+        $(ARGS $(I e)$(D .opUnary!("~")()))
+        )
+
+        $(TROW
+        $(ARGS $(D *)$(I e)),
+        $(ARGS $(I e)$(D .opUnary!("*")()))
+        )
+
+        $(TROW
+        $(ARGS $(D ++)$(I e)),
+        $(ARGS $(I e)$(D .opUnary!("++")()))
+        )
+
+        $(TROW
+        $(ARGS $(D --)$(I e)),
+        $(ARGS $(I e)$(D .opUnary!("--")()))
+        )
+        )
+
+        $(P For example, in order to overload the $(D -) (negation) operator for struct S, and
+        no other operator:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int m;
+
+    int opUnary(string s)() if (s == "-")
+    {
+        return -m;
+    }
+}
+
+void main()
+{
+    S s = {2};
+    assert(-s == -2);
+}
+---
+)
+
+$(NOTE *opUnary* above can also be declared using a template parameter specialization:)
+---
+    int opUnary(string s : "-")()
+---
+
+$(H3 $(LNAME2 postincrement_postdecrement_operators, Postincrement $(I e)$(D ++) and Postdecrement $(I e)$(D --) Operators))
+
+        $(P These are not directly overloadable, but instead are rewritten
+        in terms of the ++$(I e) and --$(I e) prefix operators:
+        )
+
+        $(TABLE2 Postfix Operator Rewrites,
+        $(THEAD $(I op), $(I rewrite))
+        $(TROW
+        $(ARGS $(I e)$(D --)),
+        $(ARGS $(D $(LPAREN)auto t =) $(I e)$(D , )$(I e)`.opUnary!"--"`$(D , t$(RPAREN))))
+        $(TROW
+        $(ARGS $(I e)$(D ++)),
+        $(ARGS $(D $(LPAREN)auto t =) $(I e)$(D , )$(I e)`.opUnary!"++"`$(D , t$(RPAREN))))
+        )
+
+$(H3 $(LNAME2 index_unary_operators, Overloading Index Unary Operators))
+
+        $(P Indexing can be $(RELATIVE_LINK2 array, overloaded).
+        A unary operation on an index expression can also be overloaded independently.
+        This works for multidimensional indexing.)
+
+        $(TABLE2 Overloadable Index Unary Operators,
+        $(THEAD $(I op), $(I rewrite))
+        $(TROW
+        $(D -)$(I a)`[`$(ARGUMENTS)`]`,
+        $(ARGS $(I a)`.opIndexUnary!("-")$(LPAREN)`$(ARGUMENTS)`$(RPAREN)`))
+        $(TROW
+        $(D +)$(I a)`[`$(ARGUMENTS)`]`,
+        $(I a)$(D .opIndexUnary!("+")$(LPAREN))$(ARGUMENTS)`$(RPAREN)`
+        )
+        $(TROW
+        `~`$(I a)`[`$(ARGUMENTS)`]`,
+        $(I a)$(D .opIndexUnary!("~")$(LPAREN))$(ARGUMENTS)`$(RPAREN)`
+        )
+        $(TROW
+        `*`$(I a)`[`$(ARGUMENTS)`]`,
+        $(I a)$(D .opIndexUnary!("*")$(LPAREN))$(ARGUMENTS)`$(RPAREN)`
+        )
+        $(TROW
+        `++`$(I a)`[`$(ARGUMENTS)`]`,
+        $(I a)`.opIndexUnary!("++")$(LPAREN)`$(ARGUMENTS)`$(RPAREN)`
+        )
+        $(TROW
+        `--`$(I a)`[`$(ARGUMENTS)`]`,
+        $(I a)`.opIndexUnary!("--")$(LPAREN)`$(ARGUMENTS)`$(RPAREN)`
+        )
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    private int[] a;
+
+    void opIndexUnary(string s: "++")(size_t i) { ++a[i]; }
+}
+
+S s = {[4]};
+++s[0];
+assert(s.a[0] == 5);
+---
+)
+
+$(H3 $(LNAME2 slice_unary_operators, Overloading Slice Unary Operators))
+
+        $(P Slicing can be $(RELATIVE_LINK2 slice, overloaded).
+        A unary operation on a slice can also be overloaded independently.
+        `opIndexUnary` is defined either with no function arguments for a full slice,
+        or with two arguments for the start and end indices of the slice.)
+
+        $(TABLE2 Overloadable Slice Unary Operators,
+        $(THEAD $(I op), $(I rewrite))
+        $(TROW
+        $(D -)$(I a)$(D [)$(SLICE)$(D ]),
+        $(I a)$(D .opIndexUnary!("-")$(LPAREN))$(I a)$(D .opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
+        )
+
+        $(TROW
+        $(D +)$(I a)$(D [)$(SLICE)$(D ]),
+        $(I a)$(D .opIndexUnary!("+")$(LPAREN))$(I a)$(D .opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
+        )
+
+        $(TROW
+        $(D ~)$(I a)$(D [)$(SLICE)$(D ]),
+        $(I a)$(D .opIndexUnary!("~")$(LPAREN))$(I a)$(D .opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
+        )
+
+        $(TROW
+        $(D *)$(I a)$(D [)$(SLICE)$(D ]),
+        $(I a)$(D .opIndexUnary!("*")$(LPAREN))$(I a)$(D .opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
+        )
+
+        $(TROW
+        $(D ++)$(I a)$(D [)$(SLICE)$(D ]),
+        $(I a)$(D .opIndexUnary!("++")$(LPAREN))$(I a)$(D .opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
+        )
+
+        $(TROW
+        $(D --)$(I a)$(D [)$(SLICE)$(D ]),
+        $(I a)$(D .opIndexUnary!("--")$(LPAREN))$(I a)$(D .opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
+        )
+
+        $(TROW
+        $(D -)$(I a)$(D [ ]),
+        $(I a)$(D .opIndexUnary!("-")())
+        )
+
+        $(TROW
+        $(D +)$(I a)$(D [ ]),
+        $(I a)$(D .opIndexUnary!("+")())
+        )
+
+        $(TROW
+        $(D ~)$(I a)$(D [ ]),
+        $(I a)$(D .opIndexUnary!("~")())
+        )
+
+        $(TROW
+        $(D *)$(I a)$(D [ ]),
+        $(I a)$(D .opIndexUnary!("*")())
+        )
+
+        $(TROW
+        $(D ++)$(I a)$(D [ ]),
+        $(I a)$(D .opIndexUnary!("++")())
+        )
+
+        $(TROW
+        $(D --)$(I a)$(D [ ]),
+        $(I a)$(D .opIndexUnary!("--")())
+        )
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    private int[] a;
+
+    void opIndexUnary(string s: "--")() { --a[]; }
+}
+
+S s = {[1, 2]};
+--s[];
+assert(s.a == [0, 1]);
+---
+)
+
+        $(NOTE For backward compatibility, if the above rewrites fail to compile and
+        $(D opSliceUnary) is defined, then the rewrites
+        $(D a.opSliceUnary!(op)(i, j)) and
+        $(D a.opSliceUnary!(op)) are tried instead, respectively.)
+
+$(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
+
+    $(P To define how one type can be cast to another, define the
+      `opCast` template method, which is used as follows:)
+        $(TABLE2 Cast Operators,
+        $(THEAD $(I op), $(I rewrite))
+        $(TROW
+        `cast$(LPAREN)`$(I type)`$(RPAREN)` $(I e),
+        $(I e)`.opCast!$(LPAREN)`$(I type)`$(RPAREN)()`
+        )
+        )
+
+    $(P Note that `opCast` is only ever used with an explicit `cast`
+        expression, except in the case of boolean operations (see next
+        section).)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    void* mem;
+
+    bool opCast(T)()
+    if (is(T == bool)) => mem !is null;
+}
+
+S s = S(new int);
+auto b = cast(bool) s;
+assert(b);
+//b = s; // error
+---
+)
+    $(P If the return type of `opCast` differs from the *type* parameter of
+        the `cast`, then the result is implicitly converted to *type*.)
+
+$(H3 $(LNAME2 boolean_operators, Boolean Operations))
+
+        $(P Notably absent from the list of overloaded unary operators is the `!`
+        logical negation operator. More obscurely absent is a unary operator
+        to convert to a `bool` result.
+        Instead, for structs these are covered by a rewrite to:
+        )
+---
+opCast!(bool)(e)
+---
+
+        $(P So,)
+
+---
+if (e)   =>  if (e.opCast!(bool))
+if (!e)  =>  if (!e.opCast!(bool))
+---
+
+        $(P and similarly for other boolean conditional expressions and
+        $(DDSUBLINK spec/expression, logical_expressions, logical operators) used
+        on the struct instance.)
+
+        $(P This only happens, however, for
+        instances of structs. Class references are converted to `bool` by checking to
+        see if the class reference is null or not.
+        )
+
+
+$(H2 $(LEGACY_LNAME2 Binary, binary, Binary Operator Overloading))
+
+        $(P The following binary operators are overloadable:)
+
+        $(TABLE2 Overloadable Binary Operators,
+        $(TROW $(D +), $(D -), $(D *), $(D /), $(CODE_PERCENT), $(D ^^), $(CODE_AMP))
+        $(TROW $(CODE_PIPE), $(D ^), $(D <)$(D <), $(D >)$(D >), $(D >)$(D >)$(D >), $(D ~), $(DDSUBLINK spec/expression, InExpression, $(D in)))
+        )
+
+        $(P The expression:)
+---
+a $(METACODE op) b
+---
+        $(P is rewritten as one of:)
+---
+a.opBinary!($(METACODE "op"))(b)
+b.opBinaryRight!($(METACODE "op"))(a)
+---
+
+        $(P and the one with the $(SINGLEQUOTE better) match is selected.
+        It is an error for both to equally match. Example:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int[] data;
+
+    // this ~ rhs
+    int[] opBinary(string op : "~")(int rhs)
+    {
+        return data ~ rhs;
+    }
+    // lhs ~ this
+    int[] opBinaryRight(string op : "~")(int lhs)
+    {
+        return lhs ~ data;
+    }
+}
+
+void main()
+{
+    auto s = S([2,3]);
+    assert(s ~ 4 == [2,3,4]); // opBinary
+    assert(1 ~ s == [1,2,3]); // opBinaryRight
+}
+---
+)
+
+        $(P Operator overloading for a number of operators can be done at the same time.
+        For example, if only the + or - operators are supported:)
+
+---
+T opBinary(string op)(T rhs)
+{
+    static if (op == "+") return data + rhs.data;
+    else static if (op == "-") return data - rhs.data;
+    else static assert(0, "Operator " ~ op ~ " not implemented");
+}
+---
+
+        $(P To do them all en masse:)
+
+---
+T opBinary(string op)(T rhs)
+{
+    return mixin("data " ~ op ~ " rhs.data");
+}
+---
+
+        $(P Note that `opIn` and `opIn_r` have been deprecated in favor of
+        `opBinary!"in"` and `opBinaryRight!"in"` respectively.)
+
+$(H2 $(LNAME2 eqcmp, Overloading the Comparison Operators))
+
+        $(P D allows overloading of the comparison operators $(D ==), $(D !=),
+        $(D <), $(D <=), $(D >=), $(D >) via two functions, $(D opEquals) and
+        $(D opCmp).)
+
+        $(P The equality and inequality operators are treated separately
+        from comparison operators
+        because while practically all user-defined types can be compared for
+        equality, only a subset of types have a meaningful ordering. For
+        example, while it makes sense to determine if two RGB color vectors are
+        equal, it is not meaningful to say that one color is greater than
+        another, because colors do not have an ordering. Thus, one would define
+        $(D opEquals) for a $(D Color) type, but not $(D opCmp).)
+
+        $(P Furthermore, even with orderable types, the order relation may not
+        be linear. For example, one may define an ordering on sets via the
+        subset relation, such that $(D x < y) is true if $(D x) is a (strict)
+        subset of $(D y). If $(D x) and $(D y) are disjoint sets, then neither
+        $(D x < y) nor $(D y < x) holds, but that does not imply that
+        $(D x == y). Thus, it is insufficient to determine equality purely based on
+        $(D opCmp) alone. For this reason, $(D opCmp) is only used for the
+        $(GLINK2 RelExpression) operators $(D <), $(D <=), $(D >=), and $(D >). The equality
+        operators $(D ==) and $(D !=) always employ $(D opEquals) instead.)
+
+        $(P Therefore, it is the programmer's responsibility to ensure that
+        `opCmp` and $(D opEquals) are consistent with each other. If
+        `opEquals` is not specified for a struct, the compiler provides a
+        $(DDSUBLINK spec/expression, struct_equality, default version) of it
+        that does member-wise comparison. If this suffices, one may define only
+        $(D opCmp) to customize the behaviour of the *RelExpression* operators.  But
+        if not, then a custom version of $(D opEquals) should be defined as
+        well, in order to preserve consistent semantics between the two kinds
+        of comparison operators.)
+
+        $(P Finally, if a user-defined type is to be used as a key in the
+        built-in associative arrays, then the programmer must ensure that the
+        semantics of $(D opEquals) and $(D toHash) are consistent. If not, the
+        associative array may not work in the expected manner.)
+
+$(H3 $(LNAME2 equals, Overloading $(D ==) and $(D !=)))
+
+        $(P Expressions of the form $(CODE a != b) are rewritten as $(CODE !(a == b)).)
+
+        $(P Given $(CODE a == b) :)
+
+$(OL
+        $(LI If a and b are both class objects, then the expression is rewritten as:
+    ---
+    .object.opEquals(a, b)
+    ---
+        $(P and that function is similar to:)
+    ---
+    bool opEquals(Object a, Object b)
+    {
+        if (a is b) return true;
+        if (a is null || b is null) return false;
+        if (typeid(a) == typeid(b)) return a.opEquals(b);
+        return a.opEquals(b) && b.opEquals(a);
+    }
+    ---
+        )
+        $(LI Otherwise the expressions `a.opEquals(b)` and
+        `b.opEquals(a)` are tried. If both resolve to the same `opEquals` function, then the expression is rewritten to be `a.opEquals(b)`.
+        )
+        $(LI If one is a better match than the other, or one compiles and the other
+        does not, the first is selected.)
+        $(LI Otherwise, an error results.)
+)
+
+        $(P If overriding $(D Object.opEquals()) for classes, the class member
+        function should take an `Object` parameter and dynamically check
+        that it is a compatible class, e.g.:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    class C
+    {
+        int i;
+
+        this(int i) { this.i = i; }
+
+        override bool opEquals(Object o)
+        {
+            if (auto c = cast(C) o)
+                return c.i == i;
+            else
+                assert(0, __FUNCTION__ ~ ": Cannot compare a " ~ typeid(o).toString);
+        }
+    }
+
+    static assert(new C(2) == new C(2));
+    static assert(new C(2) != new C(3));
+    ---
+    )
+
+        $(P If structs declare an $(D opEquals) member function for the
+        identity comparison, it could have several forms, such as:)
+    ---
+    struct S
+    {
+        // lhs should be mutable object
+        bool opEquals(const S s) { ... }        // for r-values (e.g. temporaries)
+        bool opEquals(ref const S s) { ... }    // for l-values (e.g. variables)
+
+        // both hand side can be const object
+        bool opEquals(const S s) const { ... }  // for r-values (e.g. temporaries)
+    }
+    ---
+
+        $(P Alternatively, declare a single templated $(D opEquals)
+        function with an $(DDSUBLINK spec/template, auto-ref-parameters, auto ref)
+        parameter:)
+    ---
+    struct S
+    {
+        // for l-values and r-values,
+        // with converting both hand side implicitly to const
+        bool opEquals()(auto ref const S s) const { ... }
+    }
+    ---
+        $(NOTE See $(DDSUBLINK spec/expression, struct_equality, Struct Equality)
+        for best practices on implementing `opEquals` for structs.)
+
+
+$(H3 $(LNAME2 compare, Overloading $(D <), $(D <)$(D =), $(D >), and $(D >)$(D =)))
+
+        $(P Class references are first $(DDSUBLINK spec/expression, class-comparisons,
+        compared by reference). If they refer to different objects and neither is `null`,
+        they are then compared by calling a matching `opCmp` method, as for structs.)
+
+        $(P Struct comparison operations are rewritten as follows:)
+
+        $(TABLE2 Rewriting of comparison operations,
+        $(THEAD comparison, rewrite 1, rewrite 2)
+        $(TROW $(D a) $(D <) $(D b), $(D a.opCmp(b)) $(D <)
+        $(D 0), $(ARGS $(D b.opCmp(a)) $(D >) $(D 0)))
+        $(TROW $(D a) $(D <)$(D= b), $(ARGS $(D a.opCmp(b))
+        $(D <)$(D= 0)), $(ARGS $(D b.opCmp(a)) $(D >)$(D = 0)))
+        $(TROW $(D a) $(D >) $(D b), $(ARGS $(D a.opCmp(b))
+        $(D >) $(D 0)), $(ARGS $(D b.opCmp(a)) $(D <) $(D 0)))
+        $(TROW $(D a) $(D >)$(D = b), $(ARGS $(D a.opCmp(b))
+        $(D >)$(D = 0)), $(ARGS $(D b.opCmp(a)) $(D <)$(D= 0)))
+        )
+
+        $(P Both rewrites are tried. If only one compiles, that one is taken.
+        If they both resolve to the same function, the first rewrite is done.
+        If they resolve to different functions, the best matching one is used.
+        If they both match the same, but are different functions, an ambiguity
+        error results.)
+---
+struct B
+{
+    int opCmp(int)         { return -1; }
+    int opCmp(ref const S) { return -1; }
+    int opCmp(ref const C) { return -1; }
+}
+
+struct S
+{
+    int opCmp(ref const S) { return 1; }
+    int opCmp(ref B)       { return 0; }
+}
+
+struct C
+{
+    int opCmp(ref const B) { return 0; }
+}
+
+void main()
+{
+    S s;
+    const S cs;
+    B b;
+    C c;
+    assert(s > s);      // s.opCmp(s) > 0
+    assert(!(s < b));   // s.opCmp(b) > 0  - S.opCmp(ref B) is exact match
+    assert(!(b < s));   // s.opCmp(b) < 0  - S.opCmp(ref B) is exact match
+    assert(b < cs);     // b.opCmp(s) < 0  - B.opCmp(ref const S) is  exact match
+    static assert(!__traits(compiles, b < c)); // both C.opCmp and B.opcmp match exactly
+}
+---
+        $(P If overriding $(D Object.opCmp()) for classes, the class member
+        function should take an `Object` parameter and dynamically check
+        that it is a compatible class for the comparison (like when overriding
+        $(RELATIVE_LINK2 equals, `opEquals`)).)
+
+---
+class C
+{
+    override int opCmp(Object o) { ... }
+}
+---
+
+        $(P If structs declare an $(D opCmp) member function, it should have
+        the following form:)
+---
+struct S
+{
+    int opCmp(ref const S s) const { ... }
+}
+---
+
+        $(P Note that $(D opCmp) is only used for
+        $(GLINK2 expression, RelExpression) operators;
+        expressions like $(D a == b) always use $(RELATIVE_LINK2 equals, `opEquals`).)
+
+        $(P For structs, if $(D opCmp) is defined but $(D opEquals) isn't,
+        the compiler will supply $(DDSUBLINK spec/expression, struct_equality, a default
+        version) of $(D opEquals) that performs member-wise comparison. However, the
+        member-wise comparison may not be consistent with the user-defined
+        `opCmp`.)
+
+        $(P It is up to the programmer to also supply a
+        version of $(D opEquals) when appropriate. Otherwise,
+        a *RelExpression* like $(D a <= b)
+        will behave inconsistently with equalities like $(D a == b).)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int i, j;
+    int opCmp(ref const S s) const { return (i > s.i) - (i < s.i); } // ignore j
+}
+
+S a = {2, 3};
+S b = {2, 1};
+S c = {3, 0};
+assert(a < c);
+assert(a <= b);
+assert(!(a < b)); // opCmp ignores j
+assert(a != b);   // generated opEquals tests both i and j members
+---
+)
+
+$(BEST_PRACTICE Using `(i > s.i) - (i < s.i)` instead of `i - s.i` to
+compare integers avoids overflow.)
+
+
+$(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloading))
+
+        $(P The function call operator, $(D ()), can be overloaded by
+        declaring a function named $(CODE opCall):
+        )
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    -------
+    struct F
+    {
+        int opCall();
+        int opCall(int x, int y, int z);
+    }
+
+    void main()
+    {
+        F f;
+        int i;
+
+        i = f();      // same as i = f.opCall();
+        i = f(3,4,5); // same as i = f.opCall(3,4,5);
+    }
+    -------
+    )
+
+        $(P In this way a struct or class object can behave as if it
+        were a function.
+        )
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    -------
+    struct Multiplier
+    {
+        int factor;
+        this(int num) { factor = num; }
+        int opCall(int value) { return value * factor; }
+    }
+
+    void main()
+    {
+        Multiplier m = Multiplier(10);  // invoke constructor
+        assert(m.factor == 10);
+        int result = m(5);              // invoke opCall
+        assert(result == 50);
+    }
+    -------
+    )
+
+$(H3 $(LNAME2 static-opcall, Static opCall))
+
+        $(P $(CODE static opCall) also works as expected for a function call operator with
+        type names.
+        )
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    -------
+    struct Double
+    {
+        static int opCall(int x) { return x * 2; }
+    }
+
+    void main()
+    {
+        int i = Double(2);
+        assert(i == 4);
+    }
+    -------
+    )
+
+        $(P Note that merely declaring a $(D static opCall) automatically disables
+        $(DDSUBLINK spec/struct, StructLiteral, struct literal) syntax.
+        )
+
+        $(P Mixing struct constructors and $(D static opCall) is not allowed.)
+
+    ---
+    struct S
+    {
+        this(int i) {}
+        static S opCall()  // disallowed due to constructor
+        {
+            return S.init;
+        }
+    }
+    ---
+
+        $(P Note: $(D static opCall) can be used to simulate struct
+        constructors with no arguments, but this is not recommended
+        practice. Instead, the preferred solution is to use a factory
+        function to create struct instances.
+        )
+
+$(H2 $(LEGACY_LNAME2 Assignment, assignment, Assignment Operator Overloading))
+
+        $(P The assignment operator $(CODE =) can be overloaded if the
+        left hand side is an aggregate, and $(CODE opAssign)
+        is a member function of that aggregate.)
+
+        $(P For struct types, operator overloading for the
+        $(DDSUBLINK spec/struct, assign-overload, identity assignment)
+        is allowed, as well as assignment from other types.)
+
+    ---
+    struct S
+    {
+        // identity assignment, allowed.
+        void $(CODE_HIGHLIGHT opAssign)(S rhs);
+
+        // not identity assignment, also allowed.
+        void $(CODE_HIGHLIGHT opAssign)(int);
+    }
+    S s;
+    s = S();      // Rewritten to s.opAssign(S());
+    s = 1;        // Rewritten to s.opAssign(1);
+    ---
+
+        $(P However for class types, assignment can only be overridden from a type
+        which does not convert to `typeof(this)`.)
+
+        $(RATIONALE All class types have reference semantics, so identity assignment
+        rebinds the left-hand-side class reference to the one on the right. If this
+        was overridable then it would conflict conceptually with a subclass implicitly
+        converting to its base class.)
+
+    ---
+    class C
+    {
+        // If X is the same type as C or a type which is
+        // implicitly convertible to C, then opAssign would
+        // accept identity assignment, which is disallowed.
+        // C opAssign(...);
+        // C opAssign(X);
+        // C opAssign(X, ...);
+        // C opAssign(X ...);
+        // C opAssign(X, U = defaultValue, etc.);
+
+        // not an identity assignment - allowed
+        void $(CODE_HIGHLIGHT opAssign)(int);
+    }
+    C c = new C();
+    c = new C();  // Rebinding referencee
+    c = 1;        // Rewritten to c.opAssign(1);
+    ---
+
+$(H3 $(LNAME2 index_assignment_operator, Index Assignment Operator Overloading))
+
+        $(P If the left hand side of an assignment is an index operation
+        on a struct or class instance,
+        it can be overloaded by providing an $(D opIndexAssign) member function.
+        Expressions of the form `a[`$(ARGUMENTS)`] = c` are rewritten
+        as `a.opIndexAssign$(LPAREN)c,` $(ARGUMENTS)`$(RPAREN)`.
+        )
+
+-------
+struct A
+{
+    int $(CODE_HIGHLIGHT opIndexAssign)(int value, size_t i1, size_t i2);
+}
+
+void test()
+{
+    A a;
+    a$(CODE_HIGHLIGHT [)i,3$(CODE_HIGHLIGHT ]) = 7;  // same as a.opIndexAssign(7,i,3);
+}
+-------
+
+$(H3 $(LNAME2 slice_assignment_operator, Slice Assignment Operator Overloading))
+
+        $(P If the left hand side of an assignment is a slice operation on a
+        struct or class instance, it can be overloaded by implementing an
+        `opIndexAssign` member function that takes the return value of the
+        `opSlice` function as parameter(s).
+        Expressions of the form $(CODE a[)$(SLICE)$(D ] = c) are rewritten as
+        $(CODE a.opIndexAssign$(LPAREN)c,) $(D a.opSlice!0$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN)),
+        and $(CODE a[] = c) as $(CODE a.opIndexAssign(c)).
+        )
+
+        $(P See $(RELATIVE_LINK2 array-ops, Array
+        Indexing and Slicing Operators Overloading) for more details.
+        )
+
+-------
+struct A
+{
+    int opIndexAssign(int v);  // overloads a[] = v
+    int opIndexAssign(int v, size_t[2] slice);  // overloads a[i .. j] = v
+    size_t[2] opSlice(size_t dim)(size_t i, size_t j);  // overloads i .. j
+}
+
+void test()
+{
+    A a;
+    int v;
+
+    a[] = v;  // same as a.opIndexAssign(v);
+    a[3..4] = v;  // same as a.opIndexAssign(v, a.opSlice!0(3,4));
+}
+-------
+
+        $(P For backward compatibility, if rewriting $(D a[)$(SLICE)$(D ]) as
+        $(D a.opIndexAssign$(LPAREN)a.opSlice!0$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
+        fails to compile, the legacy rewrite
+        $(D opSliceAssign$(LPAREN)c,) $(SLICE2)$(D $(RPAREN)) is used instead.
+        )
+
+$(H2 $(LEGACY_LNAME2 OpAssign, op-assign, Op Assignment Operator Overloading))
+
+        $(P The following op assignment operators are overloadable:)
+
+        $(TABLE2 Overloadable Op Assignment Operators,
+        $(TROW $(D +=), $(D -=), $(D *=), $(D /=), $(CODE_PERCENT)$(D =), $(D ^^=), $(CODE_AMP)$(D =))
+        $(TROW $(CODE_PIPE)$(D =), $(D ^=), $(D <)$(D <)$(D =),
+        $(D >)$(D >)$(D =), $(D >)$(D >)$(D >)$(D =), $(D ~=), $(NBSP))
+        )
+
+        $(P The expression:)
+---
+a $(METACODE op)= b
+---
+
+        $(P is rewritten as:)
+
+---
+a.opOpAssign!($(METACODE "op"))(b)
+---
+
+Example:
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int i;
+    void opOpAssign(string op: "+")(int rhs) { i += rhs; }
+}
+
+S s = {2};
+s += 3;
+assert(s.i == 5);
+---
+)
+
+$(H3 $(LNAME2 index_op_assignment, Index Op Assignment Operator Overloading))
+
+        $(P If the left hand side of an $(I op)= is an index expression on
+        a struct or class instance and $(D opIndexOpAssign) is a member:)
+
+---
+a[$(METACODE $(ARGUMENTS))] $(METACODE op)= c
+---
+
+        $(P it is rewritten as:)
+
+---
+a.opIndexOpAssign!($(METACODE "op"))(c, $(METACODE $(ARGUMENTS)))
+---
+
+$(H3 $(LNAME2 slice_op_assignment, Slice Op Assignment Operator Overloading))
+
+        $(P If the left hand side of an $(I op)= is a slice expression on
+        a struct or class instance and $(D opIndexOpAssign) is a member:)
+
+---
+a[$(METACODE $(SLICE))] $(METACODE op)= c
+---
+
+        $(P it is rewritten as:)
+
+---
+a.opIndexOpAssign!($(METACODE "op"))(c, a.opSlice($(METACODE $(SLICE2))))
+---
+
+        $(P and)
+
+---
+a[] $(METACODE op)= c
+---
+
+        $(P it is rewritten as:)
+
+---
+a.opIndexOpAssign!($(METACODE "op"))(c)
+---
+
+        $(P For backward compatibility, if the above rewrites fail and
+        `opSliceOpAssign` is defined, then the rewrites
+        $(D a.opSliceOpAssign(c, i, j)) and $(D a.opSliceOpAssign(c)) are
+        tried, respectively.
+        )
+
+
+$(H2 $(LEGACY_LNAME2 ArrayOps, array-ops, Array Indexing and Slicing Operators Overloading))
+
+        $(P The array indexing and slicing operators are overloaded by
+        implementing the $(D opIndex), $(D opSlice), and $(D opDollar) methods.
+        These may be combined to implement multidimensional arrays.
+        )
+
+$(H3 $(LEGACY_LNAME2 Array, array, Index Operator Overloading))
+
+        $(P Expressions of the form $(D arr[)$(ARGUMENTS)$(D ]) are translated
+        into $(D arr.opIndex$(LPAREN))$(ARGUMENTS)$(D $(RPAREN)). For example:
+        )
+
+-------
+struct A
+{
+    int $(CODE_HIGHLIGHT opIndex)(size_t i1, size_t i2, size_t i3);
+}
+
+void test()
+{
+    A a;
+    int i;
+    i = a[5,6,7];  // same as i = a.opIndex(5,6,7);
+}
+-------
+
+        $(P In this way a struct or class object can behave as if it
+        were an array.
+        )
+
+        $(P If an index expression can be rewritten using $(D opIndexAssign) or
+        $(D opIndexOpAssign), those are preferred over $(D opIndex).
+        )
+
+$(H3 $(LEGACY_LNAME2 Slice, slice, Slice Operator Overloading))
+
+        $(P Overloading the slicing operator means overloading expressions
+        like $(D a[]) or $(D a[)$(SLICE)$(D ]), where the expressions inside
+        the square brackets contain slice expressions of the form $(SLICE).
+        )
+
+        $(P To overload $(D a[]), simply define $(D opIndex) with no parameters:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-----
+struct S
+{
+    int[] impl;
+    int[] opIndex()
+    {
+        return impl[];
+    }
+}
+
+void main()
+{
+    auto s = S([1,2,3]);
+    int[] t = s[]; // calls s.opIndex()
+    assert(t == [1,2,3]);
+}
+-----
+)
+
+        $(P To overload array slicing of the form $(D a[)$(SLICE)$(D ]),
+        two steps are needed.  First, the expressions of the form $(SLICE) are
+        translated via $(D opSlice!0) into objects that encapsulate
+        the endpoints $(I i) and $(I j). Then these objects are
+        passed to $(D opIndex) to perform the actual slicing.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int[] impl;
+
+    int[] opSlice(size_t dim: 0)(size_t i, size_t j)
+    {
+        return impl[i..j];
+    }
+    int[] opIndex()(int[] slice) { return slice; }
+}
+
+void main()
+{
+    auto s = S([1, 2, 3]);
+    int[] t = s[0..2]; // calls s.opIndex(s.opSlice!0(0, 2))
+    assert(t == [1, 2]);
+}
+---
+)
+
+        $(P This design was
+        chosen in order to support mixed indexing and slicing in
+        multidimensional arrays; for example, in translating expressions like
+        $(D arr[1, 2..3, 4]).
+        More precisely, an expression of the form $(D arr[)$(ARGUMENTS)$(D ])
+        is translated into $(D arr.opIndex$(LPAREN))$(ARGUMENTS2)$(D $(RPAREN)).
+        Each argument $(I b)$(SUBSCRIPT i) can be either a single expression,
+        in which case it is passed directly as the corresponding argument $(I
+        c)$(SUBSCRIPT i) to $(D opIndex); or it can be a slice expression of
+        the form $(I x)$(SUBSCRIPT i)$(D ..)$(I y)$(SUBSCRIPT i), in which case
+        the corresponding argument $(I c)$(SUBSCRIPT i) to $(D opIndex) is
+        $(D arr.opSlice!i$(LPAREN))$(I x)$(SUBSCRIPT i)$(D , )$(I y)$(SUBSCRIPT i)$(D $(RPAREN)). Namely:
+        )
+
+        $(TABLE2 ,
+                $(THEAD $(I op), $(I rewrite))
+                $(TROW
+                        $(D arr[1, 2, 3]),
+                        $(D arr.opIndex(1, 2, 3))
+                )
+                $(TROW
+                        $(D arr[1..2, 3..4, 5..6]),
+                        $(D arr.opIndex(arr.opSlice!0(1,2), arr.opSlice!1(3,4), arr.opSlice!2(5,6)))
+                )
+                $(TROW
+                        $(D arr[1, 2..3, 4]),
+                        $(D arr.opIndex(1, arr.opSlice!1(2,3), 4))
+                )
+        )
+
+        $(P Similar translations are done for assignment operators involving
+        slicing, for example:
+        )
+
+        $(TABLE2 ,
+                $(THEAD $(I op), $(I rewrite))
+                $(TROW
+                        $(D arr[1, 2..3, 4] = c),
+                        $(D arr.opIndexAssign(c, 1, arr.opSlice!1(2, 3), 4))
+                )
+                $(TROW
+                        $(D arr[2, 3..4] += c),
+                        $(D arr.opIndexOpAssign!"+"(c, 2, arr.opSlice!1(2, 3)))
+                )
+        )
+
+        $(P The intention is that $(D opSlice!i) should return a user-defined
+        object that represents an interval of indices along the $(D i)'th
+        dimension of the array. This object is then passed to $(D opIndex) to
+        perform the actual slicing operation.  If only one-dimensional slicing
+        is desired, $(D opSlice) may be declared without the compile-time
+        parameter $(D i).
+        )
+
+        $(P Note that in all cases, $(D arr) is only evaluated once. Thus, an
+        expression like $(D getArray()[1, 2..3, $-1]=c) has the effect of:)
+
+------
+auto __tmp = getArray();
+__tmp.opIndexAssign(c, 1, __tmp.opSlice!1(2,3), __tmp.opDollar!2 - 1);
+------
+        $(P where the initial function call to $(D getArray) is only executed
+        once.
+        )
+
+        $(NOTE For backward compatibility, $(D a[]) and $(D a[)$(SLICE)$(D ]) can
+        also be overloaded by implementing $(D opSlice()) with no arguments and
+        $(D opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)) with two arguments,
+        respectively.  This only applies for one-dimensional slicing, and dates
+        from when D did not have full support for multidimensional arrays. This
+        usage of $(D opSlice) is discouraged.
+        )
+
+$(H3 $(LEGACY_LNAME2 Dollar, dollar, Dollar Operator Overloading))
+
+        $(P Within the arguments to array index and slicing operators, $(D $)
+        gets translated to $(D opDollar!i), where $(D i) is the position of the
+        expression $(D $) appears in. For example:
+        )
+
+        $(TABLE2 ,
+                $(THEAD $(I op), $(I rewrite))
+                $(TROW
+                        $(D arr[$-1, $-2, 3]),
+                        $(D arr.opIndex(arr.opDollar!0 - 1, arr.opDollar!1 - 2, 3))
+                )
+                $(TROW
+                        $(D arr[1, 2, 3..$]),
+                        $(D arr.opIndex(1, 2, arr.opSlice!2(3, arr.opDollar!2)))
+                )
+        )
+
+        $(P The intention is that $(D opDollar!i) should return the length of
+        the array along its $(D i)'th dimension, or a user-defined object
+        representing the end of the array along that dimension, that is
+        understood by $(D opSlice) and $(D opIndex).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+------
+struct Rectangle
+{
+    int width, height;
+    int[][] impl;
+
+    this(int w, int h)
+    {
+        width = w;
+        height = h;
+        impl = new int[][](w, h);
+    }
+    int opIndex(size_t i1, size_t i2)
+    {
+        return impl[i1][i2];
+    }
+    int opDollar(size_t pos)()
+    {
+        static if (pos==0)
+            return width;
+        else
+            return height;
+    }
+}
+
+void main()
+{
+    auto r = Rectangle(10,20);
+    int i = r[$-1, 0];    // same as: r.opIndex(r.opDollar!0, 0),
+                          // which is r.opIndex(r.width-1, 0)
+    int j = r[0, $-1];    // same as: r.opIndex(0, r.opDollar!1)
+                          // which is r.opIndex(0, r.height-1)
+}
+------
+)
+
+        $(P As the above example shows, a different compile-time argument is
+        passed to $(D opDollar) depending on which argument it appears in. A
+        $(D $) appearing in the first argument gets translated to `opDollar!0`,
+    a $(D $) appearing in the second argument gets translated
+        to $(D opDollar!1), and so on. Thus, the appropriate value for $(D $)
+        can be returned to implement multidimensional arrays.
+        )
+
+        $(P Note that $(D opDollar!i) is only evaluated once for each $(D i)
+        where $(D $) occurs in the corresponding position in the indexing
+        operation.  Thus, an expression like $(D arr[$-sqrt($), 0, $-1]) has
+        the effect of:
+        )
+------
+auto __tmp1 = arr.opDollar!0;
+auto __tmp2 = arr.opDollar!2;
+arr.opIndex(__tmp1 - sqrt(__tmp1), 0, __tmp2 - 1);
+------
+
+        $(P If $(D opIndex) is declared with only one argument, the
+        compile-time argument to $(D opDollar) may be omitted. In this case, it
+        is illegal to use $(D $) inside an array indexing expression with more
+        than one argument.
+        )
+
+$(H3 $(LNAME2 index-slicing-example, Complete Example))
+
+        $(P The code example below shows a simple implementation of a
+        2-dimensional array with overloaded indexing and slicing operators. The
+        explanations of the various constructs employed are given in the
+        sections following.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------
+struct Array2D(E)
+{
+    E[] impl;
+    int stride;
+    int width, height;
+
+    this(int width, int height, E[] initialData = [])
+    {
+        impl = initialData;
+        this.stride = this.width = width;
+        this.height = height;
+        impl.length = width * height;
+    }
+
+    // Index a single element, e.g., arr[0, 1]
+    ref E opIndex(int i, int j) { return impl[i + stride*j]; }
+
+    // Array slicing, e.g., arr[1..2, 1..2], arr[2, 0..$], arr[0..$, 1].
+    Array2D opIndex(int[2] r1, int[2] r2)
+    {
+        Array2D result;
+
+        auto startOffset = r1[0] + r2[0]*stride;
+        auto endOffset = r1[1] + (r2[1] - 1)*stride;
+        result.impl = this.impl[startOffset .. endOffset];
+
+        result.stride = this.stride;
+        result.width = r1[1] - r1[0];
+        result.height = r2[1] - r2[0];
+
+        return result;
+    }
+    auto opIndex(int[2] r1, int j) { return opIndex(r1, [j, j+1]); }
+    auto opIndex(int i, int[2] r2) { return opIndex([i, i+1], r2); }
+
+    // Support for `x..y` notation in slicing operator for the given dimension.
+    int[2] opSlice(size_t dim)(int start, int end)
+        if (dim >= 0 && dim < 2)
+    in { assert(start >= 0 && end <= this.opDollar!dim); }
+    do
+    {
+        return [start, end];
+    }
+
+    // Support `$` in slicing notation, e.g., arr[1..$, 0..$-1].
+    @property int opDollar(size_t dim : 0)() { return width; }
+    @property int opDollar(size_t dim : 1)() { return height; }
+}
+
+void main()
+{
+    auto arr = Array2D!int(4, 3, [
+        0, 1, 2,  3,
+        4, 5, 6,  7,
+        8, 9, 10, 11
+    ]);
+
+    // Basic indexing
+    assert(arr[0, 0] == 0);
+    assert(arr[1, 0] == 1);
+    assert(arr[0, 1] == 4);
+
+    // Use of opDollar
+    assert(arr[$-1, 0] == 3);
+    assert(arr[0, $-1] == 8);   // Note the value of $ differs by dimension
+    assert(arr[$-1, $-1] == 11);
+
+    // Slicing
+    auto slice1 = arr[1..$, 0..$];
+    assert(slice1[0, 0] == 1 && slice1[1, 0] == 2  && slice1[2, 0] == 3 &&
+           slice1[0, 1] == 5 && slice1[1, 1] == 6  && slice1[2, 1] == 7 &&
+           slice1[0, 2] == 9 && slice1[1, 2] == 10 && slice1[2, 2] == 11);
+
+    auto slice2 = slice1[0..2, 1..$];
+    assert(slice2[0, 0] == 5 && slice2[1, 0] == 6 &&
+           slice2[0, 1] == 9 && slice2[1, 1] == 10);
+
+    // Thin slices
+    auto slice3 = arr[2, 0..$];
+    assert(slice3[0, 0] == 2 &&
+           slice3[0, 1] == 6 &&
+           slice3[0, 2] == 10);
+
+    auto slice4 = arr[0..3, 2];
+    assert(slice4[0, 0] == 8 && slice4[1, 0] == 9 && slice4[2, 0] == 10);
+}
+-------
+)
+
+
+$(H2 $(LEGACY_LNAME2 Dispatch, dispatch, Forwarding))
+
+        $(P Member names not found in a class or struct can be forwarded
+        to a template function named $(CODE opDispatch) for resolution.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+import std.stdio;
+
+struct S
+{
+    void opDispatch(string s, T)(T i)
+    {
+        writefln("S.opDispatch('%s', %s)", s, i);
+    }
+}
+
+class C
+{
+    void opDispatch(string s)(int i)
+    {
+        writefln("C.opDispatch('%s', %s)", s, i);
+    }
+}
+
+struct D
+{
+    template opDispatch(string s)
+    {
+        enum int opDispatch = 8;
+    }
+}
+
+void main()
+{
+    S s;
+    s.opDispatch!("hello")(7);
+    s.foo(7);
+
+    auto c = new C();
+    c.foo(8);
+
+    D d;
+    writefln("d.foo = %s", d.foo);
+    assert(d.foo == 8);
+}
+---
+)
+
+$(H2 $(LEGACY_LNAME2 Old-Style, old-style, D1 style operator overloading))
+
+        $(P
+        The $(LINK2 http://digitalmars.com/d/1.0/operatoroverloading.html, D1 operator overload mechanisms)
+        are deprecated.
+        )
+$(SPEC_SUBNAV_PREV_NEXT function, Functions, template, Templates)
+)
+
+Macros:
+        CHAPTER=21
+        TITLE=Operator Overloading
+        ARGUMENTS=$(I b)$(SUBSCRIPT 1), $(I b)$(SUBSCRIPT 2), ... $(I b)$(SUBSCRIPT n)
+        ARGUMENTS2=$(I c)$(SUBSCRIPT 1), $(I c)$(SUBSCRIPT 2), ... $(I c)$(SUBSCRIPT n)
+        SLICE=$(I i)..$(I j)
+        SLICE2=$(I i), $(I j)
+        _=

@@ -1,0 +1,2200 @@
+Ddoc
+
+$(SPEC_S Traits,
+
+$(HEADERNAV_TOC)
+
+$(H2 $(LNAME2 grammar, Grammar))
+
+        $(P Traits are extensions to the language to enable
+        programs, at compile time, to get at information
+        internal to the compiler. This is also known as
+        compile time reflection.
+        It is done as a special, easily extended syntax (similar
+        to Pragmas) so that new capabilities can be added
+        as required.
+        )
+
+$(GRAMMAR
+$(GNAME TraitsExpression):
+    $(D __traits) $(D $(LPAREN)) $(GLINK TraitsKeyword) $(D ,) $(GLINK TraitsArguments) $(D $(RPAREN))
+
+$(GNAME TraitsKeyword):
+    $(RELATIVE_LINK2 isAbstractClass, $(D isAbstractClass))
+    $(RELATIVE_LINK2 isArithmetic, $(D isArithmetic))
+    $(RELATIVE_LINK2 isOverlapped, $(D isOverlapped))
+    $(RELATIVE_LINK2 isAssociativeArray, $(D isAssociativeArray))
+    $(RELATIVE_LINK2 isFinalClass, $(D isFinalClass))
+    $(RELATIVE_LINK2 isPOD, $(D isPOD))
+    $(RELATIVE_LINK2 isNested, $(D isNested))
+    $(RELATIVE_LINK2 isFuture, $(D isFuture))
+    $(RELATIVE_LINK2 isDeprecated, $(D isDeprecated))
+    $(RELATIVE_LINK2 isFloating, $(D isFloating))
+    $(RELATIVE_LINK2 isIntegral, $(D isIntegral))
+    $(RELATIVE_LINK2 isScalar, $(D isScalar))
+    $(RELATIVE_LINK2 isStaticArray, $(D isStaticArray))
+    $(RELATIVE_LINK2 isUnsigned, $(D isUnsigned))
+    $(RELATIVE_LINK2 isDisabled, $(D isDisabled))
+    $(RELATIVE_LINK2 isVirtualFunction, $(D isVirtualFunction))
+    $(RELATIVE_LINK2 isVirtualMethod, $(D isVirtualMethod))
+    $(RELATIVE_LINK2 isAbstractFunction, $(D isAbstractFunction))
+    $(RELATIVE_LINK2 isFinalFunction, $(D isFinalFunction))
+    $(RELATIVE_LINK2 isStaticFunction, $(D isStaticFunction))
+    $(RELATIVE_LINK2 isOverrideFunction, $(D isOverrideFunction))
+    $(RELATIVE_LINK2 isTemplate, $(D isTemplate))
+    $(RELATIVE_LINK2 isRef, $(D isRef))
+    $(RELATIVE_LINK2 isOut, $(D isOut))
+    $(RELATIVE_LINK2 isLazy, $(D isLazy))
+    $(RELATIVE_LINK2 isReturnOnStack, $(D isReturnOnStack))
+    $(RELATIVE_LINK2 isCopyable, $(D isCopyable))
+    $(RELATIVE_LINK2 isZeroInit, $(D isZeroInit))
+    $(RELATIVE_LINK2 isModule, $(D isModule))
+    $(RELATIVE_LINK2 isPackage, $(D isPackage))
+    $(RELATIVE_LINK2 isCOMClass, $(D isCOMClass))
+    $(RELATIVE_LINK2 hasMember, $(D hasMember))
+    $(RELATIVE_LINK2 hasCopyConstructor, $(D hasCopyConstructor))
+    $(RELATIVE_LINK2 hasMoveConstructor, $(D hasMoveConstructor))
+    $(RELATIVE_LINK2 hasPostblit, $(D hasPostblit))
+    $(RELATIVE_LINK2 needsDestruction, $(D needsDestruction))
+    $(RELATIVE_LINK2 identifier, $(D identifier))
+    $(RELATIVE_LINK2 fullyQualifiedName, $(D fullyQualifiedName))
+    $(RELATIVE_LINK2 getAliasThis, $(D getAliasThis))
+    $(RELATIVE_LINK2 getAttributes, $(D getAttributes))
+    $(RELATIVE_LINK2 isBitfield, $(D isBitfield))
+    $(RELATIVE_LINK2 getBitfieldOffset, $(D getBitfieldOffset))
+    $(RELATIVE_LINK2 getBitfieldWidth, $(D getBitfieldWidth))
+    $(RELATIVE_LINK2 getFunctionAttributes, $(D getFunctionAttributes))
+    $(RELATIVE_LINK2 getFunctionVariadicStyle, $(D getFunctionVariadicStyle))
+    $(RELATIVE_LINK2 getLinkage, $(D getLinkage))
+    $(RELATIVE_LINK2 getLocation, $(D getLocation))
+    $(RELATIVE_LINK2 getMember, $(D getMember))
+    $(RELATIVE_LINK2 getOverloads, $(D getOverloads))
+    $(RELATIVE_LINK2 getParameterStorageClasses, $(D getParameterStorageClasses))
+    $(RELATIVE_LINK2 getPointerBitmap, $(D getPointerBitmap))
+    $(RELATIVE_LINK2 getCppNamespaces, $(D getCppNamespaces))
+    $(RELATIVE_LINK2 getVisibility, $(D getVisibility))
+    $(RELATIVE_LINK2 getProtection, $(D getProtection))
+    $(RELATIVE_LINK2 getTargetInfo, $(D getTargetInfo))
+    $(RELATIVE_LINK2 getVirtualFunctions, $(D getVirtualFunctions))
+    $(RELATIVE_LINK2 getVirtualMethods, $(D getVirtualMethods))
+    $(RELATIVE_LINK2 getUnitTests, $(D getUnitTests))
+    $(RELATIVE_LINK2 parent, $(D parent))
+    $(RELATIVE_LINK2 child, $(D child))
+    $(RELATIVE_LINK2 classInstanceSize, $(D classInstanceSize))
+    $(RELATIVE_LINK2 classInstanceAlignment, $(D classInstanceAlignment))
+    $(RELATIVE_LINK2 getVirtualIndex, $(D getVirtualIndex))
+    $(RELATIVE_LINK2 allMembers, $(D allMembers))
+    $(RELATIVE_LINK2 derivedMembers, $(D derivedMembers))
+    $(RELATIVE_LINK2 isSame, $(D isSame))
+    $(RELATIVE_LINK2 compiles, $(D compiles))
+    $(RELATIVE_LINK2 toType, $(D toType))
+    $(RELATIVE_LINK2 initSymbol, $(D initSymbol))
+    $(RELATIVE_LINK2 parameters, $(D parameters))
+
+$(GNAME TraitsArguments):
+    $(GLINK TraitsArgument)
+    $(GLINK TraitsArgument) $(D ,) $(GSELF TraitsArguments)
+
+$(GNAME TraitsArgument):
+    $(GLINK2 expression, AssignExpression)
+    $(GLINK2 type, Type)
+)
+
+
+$(H2 $(LNAME2 types, Type Traits))
+
+$(H3 $(GNAME isArithmetic))
+
+        $(P If the arguments are all either a type that is an $(GLINK2 type, ArithmeticType),
+        or an expression that is typed as such, then $(D true) is returned.
+        Otherwise, $(D false) is returned.
+        If there are no arguments, $(D false) is returned.)
+
+        $(P Arithmetic types are integral types and floating point types.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+void main()
+{
+    int i;
+    static assert(__traits(isArithmetic, int));
+    static assert(__traits(isArithmetic, i, i+1, int));
+    static assert(!__traits(isArithmetic));
+    static assert(!__traits(isArithmetic, int*));
+}
+---
+)
+
+$(H3 $(GNAME isOverlapped))
+
+        $(P Takes one argument, which must be a field of an aggregate type.
+        Returns $(D true) if the field's memory is overlapped with other fields
+        (i.e., the field is a member of a union, either anonymous or named),
+        $(D false) otherwise.
+        )
+
+        $(P For non-field arguments (types, literals, aggregate types themselves),
+        returns $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int a;
+    union
+    {
+        int x;
+        float y;
+    }
+}
+
+static assert(__traits(isOverlapped, S.x));
+static assert(__traits(isOverlapped, S.y));
+static assert(!__traits(isOverlapped, S.a));
+
+union U
+{
+    int x;
+    float y;
+}
+
+static assert(__traits(isOverlapped, U.x));
+static assert(__traits(isOverlapped, U.y));
+---
+)
+
+$(H3 $(GNAME isFloating))
+
+        $(P If the arguments are all either types that are floating point types,
+        or expressions that are typed as floating point types, then $(D true)
+        is returned.
+        Otherwise, $(D false) is returned.
+        If there are no arguments, $(D false) is returned.)
+
+        $(P The floating point types are:
+        `float`, `double`, `real`,
+        `ifloat`, `idouble`, `ireal`,
+        `cfloat`, `cdouble`, `creal`,
+        vectors of floating point types, and enums with a floating point base type.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.simd : float4;
+
+enum E : float { a, b }
+
+static assert(__traits(isFloating, float));
+static assert(__traits(isFloating, E));
+static assert(__traits(isFloating, float4));
+
+static assert(!__traits(isFloating, float[4]));
+---
+)
+
+$(H3 $(GNAME isIntegral))
+
+        $(P If the arguments are all either types that are integral types,
+        or expressions that are typed as integral types, then $(D true)
+        is returned.
+        Otherwise, $(D false) is returned.
+        If there are no arguments, $(D false) is returned.)
+
+        $(P The integral types are:
+        `byte`, `ubyte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `cent`, `ucent`,
+        `bool`, `char`, `wchar`, `dchar`,
+        vectors of integral types, and enums with an integral base type.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.simd : int4;
+
+enum E { a, b }
+
+static assert(__traits(isIntegral, bool));
+static assert(__traits(isIntegral, char));
+static assert(__traits(isIntegral, int));
+static assert(__traits(isIntegral, E));
+static assert(__traits(isIntegral, int4));
+
+static assert(!__traits(isIntegral, float));
+static assert(!__traits(isIntegral, int[4]));
+static assert(!__traits(isIntegral, void*));
+---
+)
+
+$(H3 $(GNAME isScalar))
+
+        $(P If the arguments are all either types that are scalar types,
+        or expressions that are typed as scalar types, then $(D true)
+        is returned.
+        Otherwise, $(D false) is returned.
+        If there are no arguments, $(D false) is returned.)
+
+        $(P Scalar types are integral types,
+        floating point types,
+        pointer types,
+        vectors of scalar types,
+        and enums with a scalar base type.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.simd : int4, void16;
+
+enum E { a, b }
+
+static assert(__traits(isScalar, bool));
+static assert(__traits(isScalar, char));
+static assert(__traits(isScalar, int));
+static assert(__traits(isScalar, float));
+static assert(__traits(isScalar, E));
+static assert(__traits(isScalar, int4));
+static assert(__traits(isScalar, void*)); // Includes pointers!
+
+static assert(!__traits(isScalar, int[4]));
+static assert(!__traits(isScalar, void16));
+static assert(!__traits(isScalar, void));
+static assert(!__traits(isScalar, typeof(null)));
+static assert(!__traits(isScalar, Object));
+---
+)
+
+$(H3 $(GNAME isUnsigned))
+
+        $(P If the arguments are all either types that are unsigned types,
+        or expressions that are typed as unsigned types, then $(D true)
+        is returned.
+        Otherwise, $(D false) is returned.
+        If there are no arguments, $(D false) is returned.)
+
+        $(P The unsigned types are:
+        `ubyte`, `ushort`, `uint`, `ulong`, `ucent`,
+        `bool`, `char`, `wchar`, `dchar`,
+        vectors of unsigned types, and enums with an unsigned base type.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.simd : uint4;
+
+enum SignedEnum { a, b }
+enum UnsignedEnum : uint { a, b }
+
+static assert(__traits(isUnsigned, bool));
+static assert(__traits(isUnsigned, char));
+static assert(__traits(isUnsigned, uint));
+static assert(__traits(isUnsigned, UnsignedEnum));
+static assert(__traits(isUnsigned, uint4));
+
+static assert(!__traits(isUnsigned, int));
+static assert(!__traits(isUnsigned, float));
+static assert(!__traits(isUnsigned, SignedEnum));
+static assert(!__traits(isUnsigned, uint[4]));
+static assert(!__traits(isUnsigned, void*));
+---
+)
+
+$(H3 $(GNAME isStaticArray))
+
+        $(P Works like $(D isArithmetic), except it's for static array
+        types.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.simd : int4;
+
+enum E : int[4] { a = [1, 2, 3, 4] }
+
+static array = [1, 2, 3]; // Not a static array: the type is inferred as int[] not int[3].
+
+static assert(__traits(isStaticArray, void[0]));
+static assert(__traits(isStaticArray, E));
+static assert(!__traits(isStaticArray, int4));
+static assert(!__traits(isStaticArray, array));
+---
+)
+
+$(H3 $(GNAME isAssociativeArray))
+
+        $(P Works like $(D isArithmetic), except it's for associative array
+        types.)
+
+$(H3 $(GNAME isAbstractClass))
+
+        $(P If the arguments are all either types that are abstract classes,
+        or expressions that are typed as abstract classes, then $(D true)
+        is returned.
+        Otherwise, $(D false) is returned.
+        If there are no arguments, $(D false) is returned.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+abstract class C { int foo(); }
+
+void main()
+{
+    C c;
+    writeln(__traits(isAbstractClass, C));
+    writeln(__traits(isAbstractClass, c, C));
+    writeln(__traits(isAbstractClass));
+    writeln(__traits(isAbstractClass, int*));
+}
+---
+)
+
+        Prints:
+
+$(CONSOLE
+true
+true
+false
+false
+)
+
+$(H3 $(GNAME isFinalClass))
+
+        $(P Works like $(D isAbstractClass), except it's for final
+        classes.)
+
+$(H3 $(GNAME isCOMClass))
+
+        $(P Takes one argument. If that argument is a symbol that refers to a
+        $(DDSUBLINK spec/class, ClassDeclaration, class declaration) which is a
+        $(DDSUBLINK spec/interface, com-interfaces, COM) class then $(D true) is returned,
+        otherwise $(D false).
+        )
+
+$(H3 $(GNAME isCopyable))
+
+$(P Takes one argument. If that argument is a copyable type then $(D true) is returned,
+otherwise $(D false).
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+}
+static assert( __traits(isCopyable, S));
+
+struct T
+{
+    @disable this(this); // disable copy construction
+}
+static assert(!__traits(isCopyable, T));
+---
+)
+
+$(H3 $(GNAME isPOD))
+
+        $(P Takes one argument, which must be a type. It returns
+        $(D true) if the type is a $(DDSUBLINK spec/glossary, pod, POD) type, otherwise $(D false).)
+
+$(H3 $(GNAME toType))
+
+        $(P Takes a single argument, which must evaluate to an expression of type `string`.
+        The contents of the string must correspond to the $(DDSUBLINK spec/abi, name_mangling, mangled contents of a type)
+        that has been seen by the implementation.)
+
+        $(P Only D mangling is supported. Other manglings, such as C++ mangling, are not.)
+
+        $(P The value returned is a type.)
+
+        ---
+        template Type(T) { alias Type = T; }
+
+        Type!(__traits(toType, "i")) j = 3; // j is declared as type `int`
+
+        static assert(is(Type!(__traits(toType, (int*).mangleof)) == int*));
+
+        __traits(toType, "i") x = 4; // x is also declared as type `int`
+        ---
+
+        $(RATIONALE Provides the inverse operation of the $(DDSUBLINK spec/property, mangleof, `.mangleof`) property.)
+
+$(H3 $(GNAME isZeroInit))
+
+        $(P Takes one argument which must be a type. If the type's
+        $(DDSUBLINK spec/property, init, default initializer) is all zero
+        bits then `true` is returned, otherwise `false`.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S1 { int x; }
+struct S2 { int x = -1; }
+
+static assert(__traits(isZeroInit, S1));
+static assert(!__traits(isZeroInit, S2));
+
+void test()
+{
+    int x = 3;
+    static assert(__traits(isZeroInit, typeof(x)));
+}
+
+// `isZeroInit` will always return true for a class C
+// because `C.init` is null reference.
+
+class C { int x = -1; }
+
+static assert(__traits(isZeroInit, C));
+
+// For initializing arrays of element type `void`.
+static assert(__traits(isZeroInit, void));
+---
+)
+
+$(H3 $(GNAME hasCopyConstructor))
+
+        $(P The argument is a type.
+        If it is a struct with a copy constructor, returns $(D true). Otherwise, return $(D false).
+        A copy constructor is distinct from a move constructor or a postblit.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+
+import std.stdio;
+
+struct S { }
+
+class C { }
+
+struct P
+{
+    this(ref P rhs) {} // copy constructor
+}
+
+struct B
+{
+    this(this) {} // postblit
+}
+
+void main()
+{
+    writeln(__traits(hasCopyConstructor, S)); // false
+    writeln(__traits(hasCopyConstructor, C)); // false
+    writeln(__traits(hasCopyConstructor, P)); // true
+    writeln(__traits(hasCopyConstructor, B)); // false, this is a postblit
+}
+---
+)
+
+$(H3 $(GNAME hasMoveConstructor))
+
+        $(P The argument is a type.
+        If it is a struct with a move constructor, returns $(D true). Otherwise, return $(D false).
+        A move constructor is distinct from a copy constructor or a postblit.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+
+import std.stdio;
+
+struct S
+{
+    this(S rhs) {} // move constructor
+}
+
+class C { }
+
+struct P
+{
+    this(ref P rhs) {} // copy constructor
+}
+
+struct B
+{
+    this(this) {} // postblit
+}
+
+void main()
+{
+    writeln(__traits(hasMoveConstructor, S)); // true
+    writeln(__traits(hasMoveConstructor, C)); // false
+    writeln(__traits(hasMoveConstructor, P)); // false
+    writeln(__traits(hasMoveConstructor, B)); // false, this is a postblit
+}
+---
+)
+
+$(H3 $(GNAME hasPostblit))
+
+        $(P The argument is a type. If it is a struct with a postblit, returns $(D true). Otherwise, return $(D false). Note a postblit is distinct from a copy constructor.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+
+import std.stdio;
+
+struct S
+{
+}
+
+class C
+{
+}
+
+struct P
+{
+    this(ref P rhs) {}
+}
+
+struct B
+{
+    this(this) {}
+}
+
+
+void main()
+{
+    writeln(__traits(hasPostblit, S)); // false
+    writeln(__traits(hasPostblit, C)); // false
+    writeln(__traits(hasPostblit, P)); // false, this is a copy ctor
+    writeln(__traits(hasPostblit, B)); // true
+}
+---
+)
+
+$(H3 $(GNAME needsDestruction))
+
+    $(P The result is `true` if T is a value type needing elaborate destruction.
+        This includes structs with explicit `~this()` destructors and/or
+        compiler-generated destructors (caused by fields needing destruction),
+        static arrays thereof, and enums with such base types.
+    )
+
+$(COMMENT SPEC_RUNNABLE_EXAMPLE_COMPILE)
+---
+class C { ~this(); }
+struct S { ~this(); }
+
+static assert(!__traits(needsDestruction, C));
+static assert(__traits(needsDestruction, S));
+static assert(!__traits(needsDestruction, S[0]));
+static assert(__traits(needsDestruction, S[1]));
+---
+
+$(H3 $(GNAME getAliasThis))
+
+    $(P Takes one argument, a type. If the type has `alias this` declarations,
+        returns a *ValueSeq* of the names (as `string`s) of the members used in
+        those declarations. Otherwise returns an empty sequence.
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+alias AliasSeq(T...) = T;
+
+struct S1
+{
+    string var;
+    alias var this;
+}
+static assert(__traits(getAliasThis, S1) == AliasSeq!("var"));
+static assert(__traits(getAliasThis, int).length == 0);
+
+pragma(msg, __traits(getAliasThis, S1));
+pragma(msg, __traits(getAliasThis, int));
+---
+)
+
+        Prints:
+
+$(CONSOLE
+AliasSeq!("var")
+AliasSeq!()
+)
+
+$(H3 $(GNAME getPointerBitmap))
+
+    $(P The argument is a type.
+    The result is an array of $(D size_t) describing the memory used by an instance of the given type.
+    )
+    $(P The first element of the array is the size of the type (for classes it is
+    the $(GLINK classInstanceSize)).)
+    $(P The following elements describe the locations of GC managed pointers within the
+    memory occupied by an instance of the type.
+    For type T, there are $(D T.sizeof / size_t.sizeof) possible pointers represented
+    by the bits of the array values.)
+    $(P This array can be used by a precise GC to avoid false pointers.)
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void main()
+{
+    static class C
+    {
+        // implicit virtual function table pointer not marked
+        // implicit monitor field not marked, usually managed manually
+        C next;
+        size_t sz;
+        void* p;
+        void function () fn; // not a GC managed pointer
+    }
+
+    static struct S
+    {
+        size_t val1;
+        void* p;
+        C c;
+        byte[] arr;          // { length, ptr }
+        void delegate () dg; // { context, func }
+    }
+
+    static assert (__traits(getPointerBitmap, C) == [6*size_t.sizeof, 0b010100]);
+    static assert (__traits(getPointerBitmap, S) == [7*size_t.sizeof, 0b0110110]);
+}
+---
+)
+
+$(H3 $(GNAME getVirtualFunctions))
+
+        $(P The same as $(GLINK getVirtualMethods), except that
+        final functions that do not override anything are included.
+        )
+
+$(H3 $(GNAME getVirtualMethods))
+
+        $(P The first argument is a class type or an expression of
+        class type.
+        The second argument is a string that matches the name of
+        one of the functions of that class.
+        The result is a symbol sequence of the virtual overloads of that function.
+        It does not include final functions that do not override anything.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+class D
+{
+    this() { }
+    ~this() { }
+    void foo() { }
+    int foo(int) { return 2; }
+}
+
+void main()
+{
+    D d = new D();
+
+    foreach (t; __traits(getVirtualMethods, D, "foo"))
+        writeln(typeid(typeof(t)));
+
+    alias b = typeof(__traits(getVirtualMethods, D, "foo"));
+    foreach (t; b)
+        writeln(typeid(t));
+
+    auto i = __traits(getVirtualMethods, d, "foo")[1](1);
+    writeln(i);
+}
+---
+)
+
+        Prints:
+
+$(CONSOLE
+void()
+int()
+void()
+int()
+2
+)
+
+$(H3 $(GNAME classInstanceSize))
+
+        $(P Takes a single argument, which must evaluate to either
+        a class type or an expression of class type.
+        The result
+        is of type $(CODE size_t), and the value is the number of
+        bytes in the runtime instance of the class type.
+        It is based on the static type of a class, not the
+        polymorphic type.
+        )
+
+$(H3 $(GNAME classInstanceAlignment))
+
+        $(P Takes a single argument, which must evaluate to either
+        a class type or an expression of class type.
+        The result
+        is of type $(CODE size_t), and the value is the alignment
+        of a runtime instance of the class type.
+        It is based on the static type of a class, not the
+        polymorphic type.
+        )
+
+$(H3 $(GNAME initSymbol))
+
+        $(P Takes a single argument, which must evaluate to a `class`, `struct` or `union` type.
+            Returns a `const(void)[]` that holds the initial state of any instance of the supplied type.
+            The slice is constructed for any type `T` as follows:
+        )
+
+            - `ptr` points to either the initializer symbol of `T`
+               or `null` if `T` is a $(RELATIVE_LINK2 isZeroInit, zero-initialized) struct/union.
+
+            - `length` is equal to the size of an instance, i.e. `T.sizeof` for a struct/union and
+              $(RELATIVE_LINK2 classInstanceSize, $(D __traits(classInstanceSize, T))) for a class.
+
+        $(P
+            This trait matches the behaviour of `TypeInfo.initializer()` but can also be used when
+            `TypeInfo` is not available.
+        )
+
+        $(P
+            This trait is not available during $(DDSUBLINK spec/glossary, ctfe, CTFE) because the actual address
+            of the initializer symbol will be set by the linker and hence is not available at compile time.
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        import core.stdc.stdlib;
+
+        class C
+        {
+            int i = 4;
+        }
+
+        /// Initializes a malloc'ed instance of `C`
+        void main()
+        {
+            const void[] initSym = __traits(initSymbol, C);
+
+            void* ptr = malloc(initSym.length);
+            scope (exit) free(ptr);
+
+            // Note: allocated memory will only be written to through `c`, so cast is safe
+            ptr[0..initSym.length] = cast(void[]) initSym[];
+
+            C c = cast(C) ptr;
+            assert(c.i == 4);
+        }
+        ---
+        )
+
+
+$(H2 $(LNAME2 functions, Function Traits))
+
+$(H3 $(GNAME getVirtualIndex))
+
+  $(P Takes a single argument which must evaluate to a function.
+  The result is a $(CODE ptrdiff_t) containing the index
+  of that function within the vtable of the parent type.
+  If the function passed in is final and does not override
+  a virtual function, $(D -1) is returned instead.
+  )
+
+$(H3 $(GNAME isVirtualFunction))
+
+        $(P The same as $(GLINK isVirtualMethod), except
+        that final functions that don't override anything return true.
+        )
+
+$(H3 $(GNAME isVirtualMethod))
+
+        $(P Takes one argument. If that argument is a virtual function,
+        $(D true) is returned, otherwise $(D false).
+        Final functions that don't override anything return false.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+struct S
+{
+    void bar() { }
+}
+
+class C
+{
+    void bar() { }
+}
+
+void main()
+{
+    writeln(__traits(isVirtualMethod, C.bar));  // true
+    writeln(__traits(isVirtualMethod, S.bar));  // false
+}
+---
+)
+
+$(H3 $(GNAME isAbstractFunction))
+
+        $(P Takes one argument. If that argument is an abstract function,
+        $(D true) is returned, otherwise $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+struct S
+{
+    void bar() { }
+}
+
+class C
+{
+    void bar() { }
+}
+
+class AC
+{
+    abstract void foo();
+}
+
+void main()
+{
+    writeln(__traits(isAbstractFunction, C.bar));   // false
+    writeln(__traits(isAbstractFunction, S.bar));   // false
+    writeln(__traits(isAbstractFunction, AC.foo));  // true
+}
+---
+)
+
+$(H3 $(GNAME isFinalFunction))
+
+        $(P Takes one argument. If that argument is a final function,
+        $(D true) is returned, otherwise $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+struct S
+{
+    void bar() { }
+}
+
+class C
+{
+    void bar() { }
+    final void foo();
+}
+
+final class FC
+{
+    void foo();
+}
+
+void main()
+{
+    writeln(__traits(isFinalFunction, C.bar));  // false
+    writeln(__traits(isFinalFunction, S.bar));  // false
+    writeln(__traits(isFinalFunction, C.foo));  // true
+    writeln(__traits(isFinalFunction, FC.foo)); // true
+}
+---
+)
+
+$(H3 $(GNAME isOverrideFunction))
+
+        $(P Takes one argument. If that argument is a function marked with
+        $(D_KEYWORD override), $(D true) is returned, otherwise $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+class Base
+{
+    void foo() { }
+}
+
+class Foo : Base
+{
+    override void foo() { }
+    void bar() { }
+}
+
+void main()
+{
+    writeln(__traits(isOverrideFunction, Base.foo)); // false
+    writeln(__traits(isOverrideFunction, Foo.foo));  // true
+    writeln(__traits(isOverrideFunction, Foo.bar));  // false
+}
+---
+)
+
+$(H3 $(GNAME isStaticFunction))
+
+        $(P Takes one argument. If that argument is a static function,
+        meaning it has no context pointer,
+        $(D true) is returned, otherwise $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct A
+{
+    int foo() { return 3; }
+    static int boo(int a) { return a; }
+}
+
+void main()
+{
+    assert(__traits(isStaticFunction, A.boo));
+    assert(!__traits(isStaticFunction, A.foo));
+    assert(__traits(isStaticFunction, main));
+}
+---
+)
+
+$(H3 $(GNAME isReturnOnStack))
+
+    $(P
+        Takes one argument which must either be a function symbol, function literal,
+        a delegate, or a function pointer.
+        It returns a `bool` which is `true` if the return value of the function is
+        returned on the stack via a pointer to it passed as a hidden extra
+        parameter to the function.
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    struct S { int[20] a; }
+    int test1();
+    S test2();
+
+    static assert(__traits(isReturnOnStack, test1) == false);
+    static assert(__traits(isReturnOnStack, test2) == true);
+    ---
+)
+
+    $(IMPLEMENTATION_DEFINED
+        This is determined by the function ABI calling convention in use,
+        which is often complex.
+    )
+
+    $(BEST_PRACTICE This has applications in:
+    $(OL
+    $(LI Returning values in registers is often faster, so this can be used as
+    a check on a hot function to ensure it is using the fastest method.)
+    $(LI When using inline assembly to correctly call a function.)
+    $(LI Testing that the compiler does this correctly is normally hackish and awkward,
+    this enables efficient, direct, and simple testing.)
+    ))
+
+$(SECTION3 $(GNAME getFunctionVariadicStyle),
+    $(P
+        Takes one argument which must either be a function symbol, or a type
+        that is a function, delegate or a function pointer.
+        It returns a string identifying the kind of
+        $(DDSUBLINK spec/function, variadic, variadic arguments) that are supported.
+    )
+
+    $(TABLE2 getFunctionVariadicStyle,
+        $(THEAD result, kind, access, example)
+        $(TROW $(D "none"), not a variadic function, $(NBSP), $(D void foo();))
+        $(TROW $(D "argptr"), D style variadic function, $(D _argptr) and $(D _arguments), $(D void bar(...)))
+        $(TROW $(D "stdarg"), C style variadic function, $(MREF core,stdc,stdarg),
+            $(D extern (C) void abc(int, ...)))
+        $(TROW $(D "typesafe"), typesafe variadic function, array on stack, $(D void def(int[] ...)))
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.stdc.stdarg;
+
+void novar() {}
+extern(C) void cstyle(int, ...) {}
+extern(C++) void cppstyle(int, ...) {}
+void dstyle(...) {}
+void typesafe(int[]...) {}
+
+static assert(__traits(getFunctionVariadicStyle, novar) == "none");
+static assert(__traits(getFunctionVariadicStyle, cstyle) == "stdarg");
+static assert(__traits(getFunctionVariadicStyle, cppstyle) == "stdarg");
+static assert(__traits(getFunctionVariadicStyle, dstyle) == "argptr");
+static assert(__traits(getFunctionVariadicStyle, typesafe) == "typesafe");
+
+static assert(__traits(getFunctionVariadicStyle, (int[] a...) {}) == "typesafe");
+static assert(__traits(getFunctionVariadicStyle, typeof(cstyle)) == "stdarg");
+---
+)
+)
+
+$(SECTION3 $(GNAME getFunctionAttributes),
+    $(P
+        Takes one argument which must either be a function symbol, function literal,
+        or a function pointer. It returns a string *ValueSeq* of all the attributes of
+        that function $(B excluding) any user-defined attributes (UDAs can be
+        retrieved with the $(GLINK getAttributes) trait).
+        If no attributes exist it will return an empty sequence.
+    )
+
+
+        $(B Note:) The order of the attributes in the returned sequence is
+        implementation-defined and should not be relied upon.
+
+        $(P
+            A list of currently supported attributes are:)
+            $(UL $(LI $(D pure), $(D nothrow), $(D @nogc), $(D @property), $(D @system), $(D @trusted), $(D @safe), $(D ref) and $(D @live)))
+            $(B Note:) $(D ref) is a function attribute even though it applies to the return type.
+
+        $(P
+            Additionally the following attributes are only valid for non-static member functions:)
+            $(UL $(LI $(D const), $(D immutable), $(D inout), $(D shared)))
+
+    For example:
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+int sum(int x, int y) pure nothrow { return x + y; }
+
+pragma(msg, __traits(getFunctionAttributes, sum));
+
+struct S
+{
+    void test() const @system { }
+}
+
+pragma(msg, __traits(getFunctionAttributes, S.test));
+---
+)
+
+        Prints:
+
+$(CONSOLE
+AliasSeq!("pure", "nothrow", "@system")
+AliasSeq!("const", "@system")
+)
+
+    $(P Note that some attributes can be inferred. For example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+pragma(msg, __traits(getFunctionAttributes, (int x) @trusted { return x * 2; }));
+---
+)
+
+        Prints:
+
+$(CONSOLE
+AliasSeq!("pure", "nothrow", "@nogc", "@trusted")
+)
+)
+)
+
+
+$(H2 $(LNAME2 variables, Variable Traits))
+
+$(H3 $(GNAME isRef))
+
+        $(P Takes one argument. If that argument is a variable/parameter declaration
+        which has the $(DDSUBLINK spec/declaration, ref-storage, $(D ref) storage class),
+        `true` is returned, otherwise $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void foo(ref int x, int y)
+{
+    static assert(__traits(isRef, x));
+    static assert(!__traits(isRef, y));
+
+    int i;
+    ref j = i;
+    static assert(!__traits(isRef, i));
+    static assert(__traits(isRef, j));
+}
+
+ref int get();
+// get returns by reference, but it's not a ref itself
+static assert(!__traits(isRef, get));
+---
+)
+
+$(H2 $(LNAME2 function-parameters, Function Parameter Traits))
+
+$(H3 $(GNAME isOut), $(GNAME isLazy))
+
+        $(P Takes one argument. If that argument is a declaration which
+        is $(D_KEYWORD out) or $(D_KEYWORD lazy), $(D true) is returned,
+        otherwise $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void fooref(ref int x)
+{
+    static assert(__traits(isRef, x));
+    static assert(!__traits(isOut, x));
+    static assert(!__traits(isLazy, x));
+}
+
+void fooout(out int x)
+{
+    static assert(!__traits(isRef, x));
+    static assert(__traits(isOut, x));
+    static assert(!__traits(isLazy, x));
+}
+
+void foolazy(lazy int x)
+{
+    static assert(!__traits(isRef, x));
+    static assert(!__traits(isOut, x));
+    static assert(__traits(isLazy, x));
+}
+---
+)
+
+$(H3 $(GNAME getParameterStorageClasses))
+
+    $(P
+        Takes two arguments.
+        The first must either be a function symbol, a function call, or a type
+        that is a function, delegate or a function pointer.
+        The second is an integer identifying which parameter, where the first parameter is
+        0.
+        It returns a *ValueSeq* of strings representing the storage classes of that parameter.
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+ref int foo(return ref const int* p, scope int* a, out int b, lazy int c);
+
+static assert(__traits(getParameterStorageClasses, foo, 0)[0] == "return");
+static assert(__traits(getParameterStorageClasses, foo, 0)[1] == "ref");
+
+static assert(__traits(getParameterStorageClasses, foo, 1)[0] == "scope");
+static assert(__traits(getParameterStorageClasses, foo, 2)[0] == "out");
+static assert(__traits(getParameterStorageClasses, typeof(&foo), 3)[0] == "lazy");
+
+int* p, a;
+int b, c;
+
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 1)[0] == "scope");
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 2)[0] == "out");
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 3)[0] == "lazy");
+---
+)
+
+$(H3 $(GNAME parameters))
+
+        $(P May only be used inside a function. Takes no arguments, and returns
+        an $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequence) of the
+        enclosing function's parameters.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        alias AliasSeq(A...) = A;
+
+        void f(int n, char c)
+        {
+            alias PS = __traits(parameters);
+            PS[0]++; // increment n
+            static assert(is(typeof(PS) == AliasSeq!(int, char)));
+
+            // output parameter names
+            static foreach (i, p; PS)
+            {
+                pragma(msg, __traits(identifier, p));
+            }
+        }
+
+        int add(int x, int y)
+        {
+            return x + y;
+        }
+
+        int forwardToAdd(int x, int y)
+        {
+            return add(__traits(parameters));
+            // equivalent to;
+            //return add(x, y);
+        }
+        ---
+        )
+
+        $(P If the function is nested, the parameters returned are those of the
+        inner function, not the outer one.)
+
+        ---
+        int nestedExample(int x)
+        {
+            // outer function's parameters
+            static assert(typeof(__traits(parameters)).length == 1);
+
+            int add(int x, int y)
+            {
+                // inner function's parameters
+                static assert(typeof(__traits(parameters)).length == 2);
+                return x + y;
+            }
+
+            return add(x, x);
+        }
+        ---
+        ---
+        class C
+        {
+            int opApply(int delegate(size_t, C) dg)
+            {
+                if (dg(0, this)) return 1;
+                return 0;
+            }
+        }
+
+        void foreachExample(C c, int x)
+        {
+            foreach(idx; 0..5)
+            {
+                static assert(is(typeof(__traits(parameters)) == AliasSeq!(C, int)));
+            }
+            foreach(idx, elem; c)
+            {
+                //  __traits(parameters) sees past the delegate passed to opApply
+                static assert(is(typeof(__traits(parameters)) == AliasSeq!(C, int)));
+            }
+        }
+        ---
+
+
+$(H2 $(LNAME2 symbols, Symbol Traits))
+
+$(H3 $(GNAME fullyQualifiedName))
+
+    $(P Gets the fully qualified name of a type or symbol.
+    Takes one argument, which can be a type, expression, or symbol, and returns a string.
+    If the argument is an expression `e` which is not a symbol, the result will be the
+    same as for an argument `typeof(e)`.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+module plugh;
+
+static assert(__traits(fullyQualifiedName, int) == "int"); // type
+static assert(__traits(fullyQualifiedName, new Object) == "object.Object"); // expression
+
+int i;
+static assert(__traits(fullyQualifiedName, i) == "plugh.i"); // symbol
+
+struct MyStruct {}
+static assert(__traits(fullyQualifiedName, const MyStruct[]) == "const(plugh.MyStruct[])"); // type
+---
+)
+
+$(H3 $(GNAME isNested))
+
+    $(P Takes one argument.
+    It returns $(D true) if the argument is a nested type which internally
+    stores a context pointer, otherwise it returns $(D false).
+    Nested types can be  $(DDSUBLINK spec/class, nested, classes),
+    $(DDSUBLINK spec/struct, nested, structs), and
+    $(DDSUBLINK spec/function, nested, functions).)
+
+$(H3 $(GNAME isFuture))
+
+    $(P Takes one argument. It returns `true` if the argument is a symbol
+    marked with the $(DDSUBLINK spec/attribute, future, `@__future` attribute),
+    otherwise `false`. Currently, only
+    functions and variable declarations have support for the `@__future` keyword.)
+
+$(H3 $(GNAME isDeprecated))
+
+    $(P Takes one argument. It returns `true` if the argument is a symbol
+    marked with the $(DDSUBLINK spec/attribute, deprecated, `deprecated`) keyword,
+    otherwise `false`.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+deprecated("No longer supported")
+int i;
+
+struct A
+{
+    int foo() { return 1; }
+
+    deprecated("please use foo")
+    int bar() { return 1; }
+}
+
+static assert(__traits(isDeprecated, i));
+static assert(!__traits(isDeprecated, A.foo));
+static assert(__traits(isDeprecated, A.bar));
+---
+)
+
+$(H3 $(GNAME isDisabled))
+
+    $(P Takes one argument and returns `true` if it's a function, variable,
+    manifest constant or enum member declaration marked with
+    $(DDSUBLINK spec/attribute, disable, `@disable`).)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct Foo
+{
+    @disable int i;
+    @disable void foo();
+    void bar(){}
+}
+
+static assert(__traits(isDisabled, Foo.i));
+static assert(__traits(isDisabled, Foo.foo));
+static assert(!__traits(isDisabled, Foo.bar));
+---
+)
+
+    $(P For any other declaration, even if `@disable` is a syntactically valid
+    attribute, `false` is returned because the annotation has no effect.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+@disable struct Bar{}
+
+static assert(!__traits(isDisabled, Bar));
+---
+)
+
+$(H3 $(GNAME isTemplate))
+
+        $(P Takes one argument. If that argument or any of its overloads is a template
+        then $(D true) is returned, otherwise $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void foo(T)(){}
+static assert(__traits(isTemplate, foo));
+static assert(!__traits(isTemplate, foo!int()));
+static assert(!__traits(isTemplate, "string"));
+---
+)
+
+$(H3 $(GNAME isModule))
+
+        $(P Takes one argument. If that argument is a symbol that refers to a
+        $(DDLINK spec/module, Modules, module) then $(D true) is returned, otherwise $(D false).
+        $(DDSUBLINK spec/module, package-module, Package modules) are considered to be
+        modules even if they have not been directly imported as modules.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.thread;
+import std.algorithm.sorting;
+
+// A regular package (no package.d)
+static assert(!__traits(isModule, core));
+// A package module (has a package.d file)
+// Note that we haven't imported std.algorithm directly.
+// (In other words, we don't have an "import std.algorithm;" directive.)
+static assert(__traits(isModule, std.algorithm));
+// A regular module
+static assert(__traits(isModule, std.algorithm.sorting));
+---
+)
+
+$(H3 $(GNAME isPackage))
+
+        $(P Takes one argument. If that argument is a symbol that refers to a
+        $(DDSUBLINK spec/module, PackageName, package) then $(D true) is returned,
+        otherwise $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.algorithm.sorting;
+static assert(__traits(isPackage, std));
+static assert(__traits(isPackage, std.algorithm));
+static assert(!__traits(isPackage, std.algorithm.sorting));
+---
+)
+
+$(H3 $(GNAME hasMember))
+
+        $(P The first argument is a type that has members, or
+        is an expression of a type that has members.
+        The second argument is a string.
+        If the string is a valid property of the type,
+        $(D true) is returned, otherwise $(D false).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+struct S
+{
+    int m;
+}
+
+void main()
+{
+    S s;
+
+    static assert(__traits(hasMember, S, "m"));
+    static assert(__traits(hasMember, s, "m"));
+    static assert(!__traits(hasMember, S, "y"));
+    static assert(!__traits(hasMember, S, "write")); // false, but callable like a member via UFCS
+    static assert(__traits(hasMember, int, "sizeof"));
+    static assert(__traits(hasMember, 5, "sizeof"));
+}
+---
+)
+
+$(H3 $(GNAME identifier))
+
+        $(P Takes one argument, a symbol. Returns the identifier
+        for that symbol as a string literal.
+        )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+int var = 123;
+static assert(__traits(identifier, var) == "var");
+---
+)
+
+$(SECTION3 $(GNAME getAttributes),
+    $(P
+        Takes one argument, a symbol. Returns a sequence of all attached
+        $(DDSUBLINK spec/attribute, uda, user-defined attributes).
+        If no UDAs exist it will return an empty sequence.
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+@(3) int a;
+@("string", 7) int b;
+
+enum Foo;
+@Foo int c;
+
+pragma(msg, __traits(getAttributes, a));
+pragma(msg, __traits(getAttributes, b));
+pragma(msg, __traits(getAttributes, c));
+---
+)
+
+        Prints:
+
+$(CONSOLE
+AliasSeq!(3)
+AliasSeq!("string", 7)
+AliasSeq!((Foo))
+)
+)
+
+$(SECTION3 $(GNAME isBitfield),
+     $(P Takes one argument, a qualified symbol that resolves to a field in a struct or class.
+     The result is `true` if the symbol is a $(DDSUBLINK spec/struct, bitfields, bitfield).
+     )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int a;
+    int b:2, c:6;
+}
+
+static assert(!__traits(isBitfield, S.a));
+static assert(__traits(isBitfield, S.b));
+static assert(__traits(isBitfield, S.c));
+---
+)
+)
+
+$(SECTION3 $(GNAME getBitfieldOffset),
+     $(P Takes one argument, a qualified symbol that resolves to a field in a struct or class.
+     The result is a `uint`.
+     )
+     $(P If the field is a bitfield, it returns the bit number of the least significant
+     bit in the field. The rightmost bit is at offset 0, the leftmost bit is at offset 31 (for
+     32 bit int fields).
+     )
+     $(P If the field is not a bitfield, it returns the number 0.
+     )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int a, b;
+    int :2, c:3;
+}
+
+static assert(__traits(getBitfieldOffset, S.b) == 0);
+static assert(__traits(getBitfieldOffset, S.c) == 2);
+---
+)
+
+)
+
+$(SECTION3 $(GNAME getBitfieldWidth),
+     $(P Takes one argument, a qualified symbol that resolves to a field in a struct or class.
+     The result is a `uint`.
+     )
+     $(P If the field is a bitfield, it returns the width of the bit field as
+     a number of bits.
+     )
+     $(P If the field is not a bitfield, it returns the number of bits in the type.
+     )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int a, b;
+    int :2, c:3;
+}
+
+static assert(__traits(getBitfieldWidth, S.b) == 32);
+static assert(__traits(getBitfieldWidth, S.c) == 3);
+---
+)
+)
+
+$(H3 $(GNAME getLinkage))
+
+        $(P Takes one argument, which is a declaration symbol, or the type of a function, delegate,
+        pointer to function, struct, class, or interface.
+        Returns a string representing the $(GLINK2 attribute, LinkageAttribute)
+        of the declaration.
+        The string is one of:
+        )
+
+        $(UL
+        $(LI $(D "D"))
+        $(LI $(D "C"))
+        $(LI $(D "C++"))
+        $(LI $(D "Windows"))
+        $(LI $(D "Objective-C"))
+        $(LI $(D "System"))
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+extern (C) int fooc();
+alias aliasc = fooc;
+
+static assert(__traits(getLinkage, fooc) == "C");
+static assert(__traits(getLinkage, aliasc) == "C");
+
+extern (C++) struct FooCPPStruct {}
+extern (C++) class FooCPPClass {}
+extern (C++) interface FooCPPInterface {}
+
+static assert(__traits(getLinkage, FooCPPStruct) == "C++");
+static assert(__traits(getLinkage, FooCPPClass) == "C++");
+static assert(__traits(getLinkage, FooCPPInterface) == "C++");
+---
+)
+
+$(H3 $(GNAME getLocation))
+        $(P Takes one argument which is a symbol.
+        To disambiguate between overloads, pass the result of $(GLINK getOverloads) with the desired index, to `getLocation`.
+        Returns a *ValueSeq* of a string and two `int`s which correspond to the filename, line number and column number where the argument
+        was declared.
+        )
+
+$(H3 $(GNAME getMember))
+
+        $(P Takes two arguments, the second must be a string.
+        The result is an expression formed from the first
+        argument, followed by a $(SINGLEQUOTE .), followed by the second
+        argument as an identifier.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+struct S
+{
+    int mx;
+    static int my;
+}
+
+void main()
+{
+    S s;
+
+    __traits(getMember, s, "mx") = 1;  // same as s.mx=1;
+    writeln(__traits(getMember, s, "m" ~ "x")); // 1
+
+    // __traits(getMember, S, "mx") = 1;  // error, no this for S.mx
+    __traits(getMember, S, "my") = 2;  // ok
+}
+---
+)
+
+$(H3 $(GNAME getOverloads))
+
+        * The first argument is an aggregate type or instance, or a module.
+        * The second argument is a `string` that matches the name of
+          the member(s) to return.
+        * The third argument is a `bool`, and is optional.  If `true`, the
+          result will also include template overloads.
+        * The result is a $(DDSUBLINK spec/template, homogeneous_sequences, symbol sequence)
+          of all the overloads of the supplied name.
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+class D
+{
+    void foo() { }
+    int foo(int) { return 2; }
+    void bar(T)() { return T.init; }
+    class bar(int n) {}
+}
+
+void main()
+{
+    D d = new D();
+
+    alias fooOverloads = __traits(getOverloads, D, "foo");
+    foreach (o; fooOverloads)
+        writeln(typeid(typeof(o)));
+
+    // typeof on a symbol sequence gives a type sequence
+    foreach (T; typeof(fooOverloads))
+        writeln(typeid(T));
+
+    // calls d.foo(3)
+    auto i = __traits(getOverloads, d, "foo")[1](3);
+    assert(i == 2);
+
+    // pass true to include templates
+    // calls std.stdio.writeln(i)
+    __traits(getOverloads, std.stdio, "writeln", true)[0](i);
+
+    foreach (o; __traits(getOverloads, D, "bar", true))
+        writeln(o.stringof);
+}
+---
+)
+
+        Prints:
+
+$(CONSOLE
+void function()
+int function(int)
+void function()
+int function(int)
+2
+bar(T)()
+bar(int n)
+)
+
+$(H3 $(GNAME getCppNamespaces))
+
+    $(P The argument is a symbol.
+    The result is a *ValueSeq* of strings, possibly empty, that correspond to the namespaces the symbol resides in.
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+extern(C++, "ns") struct Foo {}
+struct Bar {}
+extern(C++, __traits(getCppNamespaces, Foo)) struct Baz {}
+
+static assert(__traits(getCppNamespaces, Foo) ==  __traits(getCppNamespaces, Baz));
+
+void main()
+{
+    static assert(__traits(getCppNamespaces, Foo)[0] == "ns");
+    static assert(!__traits(getCppNamespaces, Bar).length);
+    static assert(__traits(getCppNamespaces, Foo) ==  __traits(getCppNamespaces, Baz));
+}
+---
+)
+
+$(H3 $(GNAME getVisibility))
+
+        $(P The argument is a symbol.
+        The result is a string giving its visibility level: "public", "private", "protected", "export", or "package".
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+class D
+{
+    export void foo() { }
+    public int bar;
+}
+
+void main()
+{
+    D d = new D();
+
+    auto i = __traits(getVisibility, d.foo);
+    writeln(i);
+
+    auto j = __traits(getVisibility, d.bar);
+    writeln(j);
+}
+---
+)
+
+        Prints:
+
+$(CONSOLE
+export
+public
+)
+
+$(H3 $(GNAME getProtection))
+
+        $(P A backward-compatible alias for $(GLINK getVisibility).)
+
+$(H3 $(GNAME getTargetInfo))
+
+        $(P Receives a string key as argument.
+        The result is an expression describing the requested target information.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+version (CppRuntime_Microsoft)
+    static assert(__traits(getTargetInfo, "cppRuntimeLibrary") == "libcmt");
+---
+)
+
+        $(P Keys are implementation defined, allowing relevant data for exotic targets.
+        A reliable subset exists which are always available:
+        )
+
+        $(UL
+        $(LI $(D "cppRuntimeLibrary") - The C++ runtime library affinity for this toolchain)
+        $(LI $(D "cppStd") - The version of the C++ standard supported by $(D extern$(LPAREN)C++$(RPAREN)) code, equivalent to the `__cplusplus` macro in a C++ compiler)
+        $(LI $(D "floatAbi") - Floating point ABI; may be $(D "hard"), $(D "soft"), or $(D "softfp"))
+        $(LI $(D "objectFormat") - Target object format)
+        )
+
+$(H3 $(GNAME getUnitTests))
+
+        $(P
+                Takes one argument, a symbol of an aggregate (e.g. struct/class/module).
+                The result is a symbol sequence of all the unit test functions of that aggregate.
+                The functions returned are like normal nested static functions,
+                $(DDSUBLINK spec/glossary, ctfe, CTFE) will work and
+                $(DDSUBLINK spec/attribute, uda, UDAs) will be accessible.
+        )
+
+        $(NOTE
+                The `-unittest` flag needs to be passed to the compiler. If the flag
+                is not passed, $(CODE __traits(getUnitTests)) will always return an
+                empty sequence.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+module foo;
+
+import core.runtime;
+import std.stdio;
+
+struct name { string name; }
+
+class Foo
+{
+    unittest
+    {
+        writeln("foo.Foo.unittest");
+    }
+}
+
+@name("foo") unittest
+{
+    writeln("foo.unittest");
+}
+
+template Tuple (T...)
+{
+    alias Tuple = T;
+}
+
+shared static this()
+{
+  // Override the default unit test runner to do nothing. After that, "main" will
+  // be called.
+  Runtime.moduleUnitTester = { return true; };
+}
+
+void main()
+{
+    writeln("start main");
+
+    alias tests = Tuple!(__traits(getUnitTests, foo));
+    static assert(tests.length == 1);
+
+    alias attributes = Tuple!(__traits(getAttributes, tests[0]));
+    static assert(attributes.length == 1);
+
+    foreach (test; tests)
+        test();
+
+    foreach (test; __traits(getUnitTests, Foo))
+        test();
+}
+---
+)
+
+        $(P By default, the above will print:)
+
+$(CONSOLE
+start main
+foo.unittest
+foo.Foo.unittest
+)
+
+$(H3 $(GNAME parent))
+
+        $(P Takes a single argument which must evaluate to a symbol.
+        The result is the symbol that is the parent of it.
+        )
+
+$(H3 $(GNAME child))
+
+        $(P Takes two arguments.
+        The first must be a symbol or expression.
+        The second is a symbol, such as an alias to a member of the first
+        argument.
+        The result is the second argument interpreted with its $(D this)
+        context set to the value of the first argument.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+struct A
+{
+    int i;
+    int foo(int j) {
+        return i * j;
+    }
+    T bar(T)(T t) {
+        return i + t;
+    }
+}
+
+alias Ai = A.i;
+alias Abar = A.bar!int;
+
+void main()
+{
+    A a;
+
+    __traits(child, a, Ai) = 3;
+    writeln(a.i);
+    writeln(__traits(child, a, A.foo)(2));
+    writeln(__traits(child, a, Abar)(5));
+}
+---
+)
+
+        Prints:
+
+$(CONSOLE
+3
+6
+8
+)
+
+$(H3 $(GNAME allMembers))
+
+        $(P Takes a single argument, which must evaluate to either
+        a module, a struct, a union, a class, an interface, an enum, or a
+        template instantiation.
+        )
+        $(P
+        A sequence of string literals is returned, each of which
+        is the name of a member of that argument combined with all
+        of the members of its base classes (if the argument is a class).
+        No name is repeated.
+        Builtin properties are not included.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+class D
+{
+    this() { }
+    ~this() { }
+    void foo() { }
+    int foo(int) { return 0; }
+}
+
+void main()
+{
+    auto b = [ __traits(allMembers, D) ];
+    writeln(b);
+    // ["__ctor", "__dtor", "foo", "toString", "toHash", "opCmp", "opEquals",
+    // "Monitor", "factory"]
+}
+---
+)
+
+        $(P The order in which the strings appear in the result
+        is not defined.)
+
+$(H3 $(GNAME derivedMembers))
+
+        $(P Takes a single argument, which must evaluate to either
+        a type or an expression of type.
+        A sequence of string literals is returned, each of which
+        is the name of a member of that type.
+        No name is repeated.
+        Base class member names are not included.
+        Builtin properties are not included.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+class D
+{
+    this() { }
+    ~this() { }
+    void foo() { }
+    int foo(int) { return 0; }
+}
+
+void main()
+{
+    auto a = [__traits(derivedMembers, D)];
+    writeln(a);    // ["__ctor", "__dtor", "foo"]
+}
+---
+)
+
+        $(P The order in which the strings appear in the result
+        is not defined.)
+
+$(H3 $(GNAME isSame))
+
+        $(P Compares two arguments and evaluates to `bool`.)
+
+        $(P The result is `true` if the two arguments are the same symbol
+        (once aliases are resolved).)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S { }
+
+int foo();
+int bar();
+
+static assert(__traits(isSame, foo, foo));
+static assert(!__traits(isSame, foo, bar));
+static assert(!__traits(isSame, foo, S));
+static assert(__traits(isSame, S, S));
+static assert(!__traits(isSame, object, S));
+static assert(__traits(isSame, object, object));
+
+alias daz = foo;
+static assert(__traits(isSame, foo, daz));
+---
+)
+        $(P isSame matches against non-instantiated templates.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct Foo(T){
+    T x;
+}
+
+struct Bar(T){
+    T x;
+}
+
+struct Point(T){
+    T x;
+    T y;
+}
+
+enum isFooOrBar(alias FB) = __traits(isSame, FB, Foo) || __traits(isSame, FB, Bar);
+
+static assert(isFooOrBar!(Foo));
+static assert(isFooOrBar!(Bar));
+static assert(!isFooOrBar!(Point));
+---
+)
+
+        $(P The result is `true` if the two arguments are expressions
+        made up of literals or enums that evaluate to the same value.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+enum e = 3;
+static assert(__traits(isSame, (e), 3));
+static assert(__traits(isSame, 5, 2 + e));
+---
+)
+        $(P If the two arguments are both
+        $(DDSUBLINK spec/expression, function_literals, lambda functions) (or aliases
+        to lambda functions), then they are compared for equality. For
+        the comparison to be computed correctly, the following conditions
+        must be met for both lambda functions:)
+
+        $(OL
+        $(LI The lambda function arguments must not have a template
+        instantiation as an explicit argument type. Any other argument
+        types (basic, user-defined, template) are supported.)
+        $(LI The lambda function body must contain a single expression
+        (no return statement) which contains only numeric values,
+        manifest constants, enum values, function arguments and function
+        calls. If the expression contains local variables or return
+        statements, the function is considered incomparable.)
+        )
+
+        $(P If these constraints aren't fulfilled, the function is considered
+        incomparable and the result is $(D false).)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    static assert(__traits(isSame, (a, b) => a + b, (c, d) => c + d));
+    static assert(__traits(isSame, a => ++a, b => ++b));
+    static assert(!__traits(isSame, (int a, int b) => a + b, (a, b) => a + b));
+    static assert(__traits(isSame, (a, b) => a + b + 10, (c, d) => c + d + 10));
+    ---
+    )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+int f() { return 2; }
+
+void test(alias pred)()
+{
+    // f() from main is a different function from top-level f()
+    static assert(!__traits(isSame, (int a) => a + f(), pred));
+}
+
+void main()
+{
+    // lambdas accessing local variables are considered incomparable
+    int b;
+    static assert(!__traits(isSame, a => a + b, a => a + b));
+
+    // lambdas calling other functions are comparable
+    int f() { return 3;}
+    static assert(__traits(isSame, a => a + f(), a => a + f()));
+    test!((int a) => a + f())();
+}
+---
+)
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    class A
+    {
+        int a;
+        this(int a)
+        {
+            this.a = a;
+        }
+    }
+
+    class B
+    {
+        int a;
+        this(int a)
+        {
+            this.a = a;
+        }
+    }
+
+    static assert(__traits(isSame, (A a) => ++a.a, (A b) => ++b.a));
+    // lambdas with different data types are considered incomparable,
+    // even if the memory layout is the same
+    static assert(!__traits(isSame, (A a) => ++a.a, (B a) => ++a.a));
+    ---
+    )
+
+        $(P If the two arguments are tuples then the result is `true` if the
+        two tuples, after expansion, have the same length and if each pair
+        of nth argument respects the constraints previously specified.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.meta;
+
+struct S { }
+
+// like __traits(isSame,0,0) && __traits(isSame,1,1)
+static assert(__traits(isSame, AliasSeq!(0,1), AliasSeq!(0,1)));
+// like __traits(isSame,S,std.meta) && __traits(isSame,1,1)
+static assert(!__traits(isSame, AliasSeq!(S,1), AliasSeq!(std.meta,1)));
+// the length of the sequences is different
+static assert(!__traits(isSame, AliasSeq!(1), AliasSeq!(1,2)));
+---
+)
+
+$(H3 $(GNAME compiles))
+
+        $(P Returns a bool $(D true) if all of the arguments
+        compile (are semantically correct).
+        The arguments can be symbols, types, or expressions that
+        are syntactically correct.
+        The arguments cannot be statements or declarations - instead
+        these can be wrapped in a $(DDSUBLINK spec/expression, function_literals,
+        function literal) expression.
+        )
+
+        $(P If there are no arguments, the result is $(D false).)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+static assert(!__traits(compiles));
+static assert(__traits(compiles, 1 + 1)); // expression
+static assert(__traits(compiles, typeof(1))); // type
+static assert(__traits(compiles, object)); // symbol
+static assert(__traits(compiles, 1, 2, 3, int, long));
+static assert(!__traits(compiles, 3[1])); // semantic error
+static assert(!__traits(compiles, 1, 2, 3, int, long, 3[1]));
+
+enum n = 3;
+// wrap a declaration/statement in a function literal
+static assert(__traits(compiles, { int[n] arr; }));
+static assert(!__traits(compiles, { foreach (e; n) {} }));
+
+struct S
+{
+    static int s1;
+    int s2;
+}
+
+static assert(__traits(compiles, S.s1 = 0));
+static assert(!__traits(compiles, S.s2 = 0));
+static assert(!__traits(compiles, S.s3));
+
+int foo();
+
+static assert(__traits(compiles, foo));
+static assert(__traits(compiles, foo + 1)); // call foo with optional parens
+static assert(!__traits(compiles, &foo + 1));
+---
+)
+
+        $(P This is useful for:)
+
+        $(UL
+        $(LI Giving better error messages (using $(DDSUBLINK spec/version, static-assert,
+        `static assert`)) inside generic code than
+        the sometimes hard to follow compiler ones.)
+        $(LI Doing a finer grained specialization than template
+        partial specialization allows for.)
+        )
+
+$(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling)
+
+Macros:
+        CHAPTER=26
+        TITLE=Traits

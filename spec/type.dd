@@ -1,0 +1,1115 @@
+Ddoc
+
+$(SPEC_S Types,
+
+$(HEADERNAV_TOC)
+
+$(H2 $(LNAME2 grammar, Grammar))
+
+    $(P D is statically typed. Every expression has a type. Types constrain the values
+    an expression can hold, and determine the semantics of operations on those values.
+    )
+
+$(GRAMMAR
+$(GNAME Type):
+    $(GLINK TypeCtors)$(OPT) $(GLINK BasicType) $(GLINK TypeSuffixes)$(OPT)
+
+$(GNAME TypeCtors):
+    $(GLINK TypeCtor)
+    $(GLINK TypeCtor) $(GSELF TypeCtors)
+
+$(GNAME TypeCtor):
+    $(D const)
+    $(D immutable)
+    $(D inout)
+    $(D shared)
+
+$(GNAME BasicType):
+    $(GLINK FundamentalType)
+    $(D .) $(GLINK QualifiedIdentifier)
+    $(GLINK QualifiedIdentifier)
+    $(GLINK Typeof)
+    $(GLINK Typeof) $(D .) $(GLINK QualifiedIdentifier)
+    $(GLINK TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN))
+    $(GLINK Vector)
+    $(GLINK2 traits, TraitsExpression)
+    $(GLINK MixinType)
+
+$(GNAME Vector):
+    $(D __vector) $(D $(LPAREN)) $(GLINK VectorBaseType) $(D $(RPAREN))
+
+$(GNAME VectorBaseType):
+    $(GLINK Type)
+
+$(GNAME FundamentalType):
+    $(D void)
+    $(GLINK ArithmeticType)
+
+$(GNAME ArithmeticType):
+    $(D bool)
+    $(D byte)
+    $(D ubyte)
+    $(D short)
+    $(D ushort)
+    $(D int)
+    $(D uint)
+    $(D long)
+    $(D ulong)
+    $(D cent)
+    $(D ucent)
+    $(D char)
+    $(D wchar)
+    $(D dchar)
+    $(D float)
+    $(D double)
+    $(D real)
+    $(D ifloat)
+    $(D idouble)
+    $(D ireal)
+    $(D cfloat)
+    $(D cdouble)
+    $(D creal)
+
+$(GNAME TypeSuffixes):
+    $(GLINK TypeSuffix) $(GSELF TypeSuffixes)$(OPT)
+
+$(GNAME TypeSuffix):
+    $(D *)
+    $(D [ ])
+    $(D [) $(GLINK2 expression, AssignExpression) $(D ])
+    $(D [) $(GLINK2 expression, AssignExpression) $(D ..) $(GLINK2 expression, AssignExpression) $(D ])
+    $(D [) $(GLINK Type) $(D ])
+    $(D delegate) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+    $(D function) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
+
+$(GNAME QualifiedIdentifier):
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D .) $(GSELF QualifiedIdentifier)
+    $(GLINK2 template, TemplateInstance)
+    $(GLINK2 template, TemplateInstance) $(D .) $(GSELF QualifiedIdentifier)
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D])
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D] .) $(GSELF QualifiedIdentifier)
+)
+
+    * $(RELATIVE_LINK2 basic-data-types, Basic Data Types) are leaf types.
+    * $(RELATIVE_LINK2 derived-data-types, Derived Data Types) build on leaf types.
+    * $(RELATIVE_LINK2 user-defined-types, User-Defined Types) are aggregates of basic and derived types.
+
+$(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
+
+    $(TABLE_3COLS Basic Data Types,
+    $(THEAD Keyword, Default Initializer ($(D .init)), Description)
+    $(TROW $(RELATIVE_LINK2 void, $(D void)), no default initializer, `void` has no value)
+    $(TROW $(RELATIVE_LINK2 bool, $(D bool)), $(D false), boolean value)
+    $(TROW $(D byte), $(D 0), signed 8 bits)
+    $(TROW $(D ubyte), $(D 0u), unsigned 8 bits)
+    $(TROW $(D short), $(D 0), signed 16 bits)
+    $(TROW $(D ushort), $(D 0u), unsigned 16 bits)
+    $(TROW $(D int), $(D 0), signed 32 bits)
+    $(TROW $(D uint), $(D 0u), unsigned 32 bits)
+    $(TROW $(D long), $(D 0L), signed 64 bits)
+    $(TROW $(D ulong), $(D 0uL), unsigned 64 bits)
+    $(TROW $(GDEPRECATED $(D cent)), $(D 0), signed 128 bits)
+    $(TROW $(GDEPRECATED $(D ucent)), $(D 0u), unsigned 128 bits)
+    $(TROW $(D float), $(D float.nan), 32 bit floating point)
+    $(TROW $(D double), $(D double.nan), 64 bit floating point)
+    $(TROW $(D real), $(D real.nan), largest floating point size available)
+    $(TROW $(GDEPRECATED $(D ifloat)), $(D ifloat.nan), imaginary float)
+    $(TROW $(GDEPRECATED $(D idouble)), $(D idouble.nan), imaginary double)
+    $(TROW $(GDEPRECATED $(D ireal)), $(D ireal.nan), imaginary real)
+    $(TROW $(GDEPRECATED $(D cfloat)), $(D cfloat.nan), a complex number of two float values)
+    $(TROW $(GDEPRECATED $(D cdouble)), $(D cdouble.nan), complex double)
+    $(TROW $(GDEPRECATED $(D creal)), $(D creal.nan), complex real)
+    $(TROW $(D char), $(D '\xFF'), unsigned 8 bit (UTF-8 code unit))
+    $(TROW $(D wchar), $(D '\uFFFF'), unsigned 16 bit (UTF-16 code unit))
+    $(TROW $(D dchar), $(D '\U0000FFFF'), unsigned 32 bit (UTF-32 code unit))
+    $(TROW $(D typeof(null)), $(D null), type of the null literal)
+    $(TROW $(RELATIVE_LINK2 noreturn, $(D typeof(*null))), $(D assert(0)), bottom type that has no values)
+    )
+
+    $(P Endianness of basic types is part of the $(DDSUBLINK spec/abi, endianness, ABI))
+
+    $(IMPLEMENTATION_DEFINED The real floating point type has at least the range and precision
+    of the `double` type. On x86 CPUs it is often implemented as the 80 bit Extended Real
+    type supported by the x86 FPU.
+    )
+
+    $(NOTE 128-bit integer types `cent` and `ucent`
+    $(DDSUBLINK deprecate, 128-bit integer types, have been deprecated).)
+
+    $(NOTE Complex and imaginary types `ifloat`, `idouble`, `ireal`, `cfloat`, `cdouble`,
+    and `creal` $(DDSUBLINK deprecate, Imaginary and complex types,
+    have been deprecated) in favor of `std.complex.Complex`.)
+
+$(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types))
+
+    $(P A derived data type is a $(GLINK Type) which either:)
+
+    * is $(GRAMMAR_INLINE $(GLINK TypeCtor) $(GLINK Type))
+    * is $(GRAMMAR_INLINE $(GLINK TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)))
+    * is a $(DDSUBLINK spec/template, homogeneous_sequences, type sequence)
+    * has a $(GLINK TypeSuffix)
+
+    $(P Types with a *TypeSuffix* are:)
+
+    $(UL
+    $(LI $(RELATIVE_LINK2 pointers, Pointers))
+        - $(RELATIVE_LINK2 function-pointers, Function Pointer Types)
+    $(LI $(RELATIVE_LINK2 delegates, Delegate Types))
+    $(LI $(DDSUBLINK spec/arrays, static-arrays, Static Arrays))
+    $(LI $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Arrays))
+    $(LI $(DDLINK spec/hash-map, Associative Array, Associative Arrays))
+    $(LI $(DDSUBLINK spec/template, seq-ops, Indexed/sliced) type sequences)
+    )
+    $(P Examples:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+int* p; // pointer
+int[2] sa; // static array
+int[] da; // dynamic array/slice
+
+int[string] aa; // associative array
+void function() fp; // function pointer
+
+const(int) v = 2; // constant
+
+import std.meta : AliasSeq;
+AliasSeq!(int, string) tsi; // type sequence instance
+---
+)
+
+    $(NOTE A derived data type is distinct from a
+    $(DDLINK spec/class, Classes, derived class type).)
+
+$(H3 $(LNAME2 component-types, Component Types))
+
+    $(P A derived data type has at least one *component type*:)
+
+    $(TABLE
+    $(THEAD Type, Component Types)
+    $(TROW *TypeCtor*`(T)`, `T`)
+    $(TROW `T*`, `T`)
+    $(COMMENT TROW `R function(Params)`,
+        $(ARGS `R(Params)` - see $(RELATIVE_LINK2 functions, Function Types)))
+    $(COMMENT It's unclear if delegates should have component types)
+    $(COMMENT TROW `R delegate(Params)`,
+        $(ARGS `R function(Params)`, `void*`))
+    $(TROW `T[]`, `T`)
+    $(TROW `T[`*AssignExpression*`]`, `T`)
+    $(TROW `V[K]`, $(ARGS `K`, `V`))
+    $(TROW `AliasSeq!(Params)`, `Params`)
+    )
+    $(P $(DDLINK spec/const3, Type Qualifiers, Applying a type qualifier) to
+    a derived data type will also apply it to all its component types.)
+
+    $(P See also: $(DDSUBLINK spec/expression, is-derived-data-type,
+        Pattern Matching a Derived Data Type).)
+
+$(H3 $(LNAME2 pointers, Pointers))
+
+        $(P A pointer value is a memory address.
+        A pointer to type $(D T) has a value which is a reference to an
+        instance of type $(D T). It is commonly called a $(I pointer to T) and its type is
+        `T*`. To access the pointed-to value, use the `*` dereference operator:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int* p;
+
+assert(p == null);
+p = new int(5);
+assert(p != null);
+
+assert(*p == 5);
+(*p)++;
+assert(*p == 6);
+---------
+)
+
+        $(P If a pointer has a $(I null) value, it is not pointing to valid data.)
+
+        $(P When a pointer to $(I T) is dereferenced, it must either have a $(I null) value,
+        or point to a valid instance of type $(I T).)
+
+        $(IMPLEMENTATION_DEFINED
+        $(OL
+        $(LI The behavior when a $(I null) pointer is dereferenced. Typically the program
+        will be aborted - $(DDSUBLINK spec/function, null-dereferences, that is required)
+        in `@safe` code.)
+        ))
+
+        $(UNDEFINED_BEHAVIOR dereferencing a pointer that is not $(I null) and does not point
+        to a valid instance of type $(I T).)
+
+        $(P To set a pointer to point at an existing $(DDSUBLINK spec/expression, .define-lvalue, lvalue), use the
+        `&` *address of* operator:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int i = 2;
+int* p = &i;
+
+assert(p == &i);
+assert(*p == 2);
+*p = 4;
+assert(i == 4);
+---------
+)
+        $(P See also:)
+        * $(DDSUBLINK spec/expression, pointer_arithmetic, Pointer Arithmetic)
+        * $(DDSUBLINK spec/expression, slice_expressions, Pointer Slicing)
+        * $(RELATIVE_LINK2 pointer-conversions, Pointer Conversions)
+
+        $(BEST_PRACTICE Use a $(DDSUBLINK spec/function, ref-params,
+        `ref` function parameter) or a $(DDSUBLINK spec/declaration, ref-variables,
+        `ref` local variable) when the address doesn't escape.)
+
+
+$(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
+
+    $(UL
+    $(LI $(DDLINK spec/enum, Enums, Enums))
+    $(LI $(DDLINK spec/struct, Structs and Unions, Structs and Unions))
+    $(LI $(DDLINK spec/class, Classes, Classes))
+    $(LI $(DDLINK spec/interface, Interfaces, Interfaces))
+    )
+
+$(H2 $(LNAME2 type-conversions, Type Conversions))
+
+    See also: $(GLINK2 expression, CastExpression).
+
+$(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
+
+    $(P Any $(RELATIVE_LINK2 pointers, pointer) implicitly converts to a `void` pointer -
+    see below.)
+
+    $(P $(DDSUBLINK spec/expression, cast_pointers, Casting between)
+    pointers and non-pointers is allowed. Some pointer casts
+    are disallowed in $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe` code).)
+
+    $(BEST_PRACTICE do not cast any pointer to a non-pointer type that points to data
+    allocated by the garbage collector.
+    )
+
+$(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions))
+
+    $(P Implicit conversions are used to automatically convert
+    types as required. The rules for integers are detailed in the next sections.
+    )
+
+    $(UL
+    $(LI An enum can be $(DDSUBLINK spec/enum, named_enums, implicitly converted) to its base
+    type (but going the other way requires an explicit conversion).)
+    $(LI $(RELATIVE_LINK2 noreturn, `noreturn`) implicitly converts to any type.)
+    $(LI Static and dynamic arrays implicitly convert to $(DDSUBLINK spec/arrays, void_arrays, `void` arrays).
+        The `void` element type for the array may need a
+        $(DDLINK spec/const3, Type Qualifiers, type qualifier), depending on the source
+        element type:
+    )
+        * An array with non-mutable elements will implicitly convert to `const(void)[]`, but not `void[]`.
+        * An array with `shared` elements will implicitly convert to `shared(void)[]`, but not `void[]`.
+    $(LI Any pointer implicitly converts to a void pointer. As for void arrays, the
+        `void` element type may need a type qualifier.)
+    $(LI $(DDSUBLINK spec/function, function-pointers-delegates, Function pointers and delegates)
+        can convert to covariant types.)
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void main()
+{
+    noreturn n;
+    int i = n;
+    void* p = &i;
+
+    const int[] a;
+    const(void)[] cv = a;
+    //void[] va = a; // error
+}
+
+void f(int x) pure;
+void function(int) fp = &f; // pure is covariant with non-pure
+---
+)
+    $(P See also $(DDSUBLINK spec/const3, implicit_qualifier_conversions,
+    Implicit Qualifier Conversions).)
+
+$(H4 $(LNAME2 class-conversions, Class Conversions))
+
+    $(P A derived class can be implicitly converted to its base class, but going
+    the other way requires an $(DDSUBLINK spec/expression, cast_class, explicit cast).
+    For example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------------
+class Base {}
+class Derived : Base {}
+Base bd = new Derived();              // implicit conversion
+Derived db = cast(Derived)new Base(); // explicit conversion
+-------------------
+)
+
+    $(P A dynamic array, say `x`, of a derived class can be implicitly converted
+    to a dynamic array, say `y`, of a base class iff elements of `x` and `y` are
+    qualified as being either both `const` or both `immutable`.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------------
+class Base {}
+class Derived : Base {}
+const(Base)[] ca = (const(Derived)[]).init; // `const` elements
+immutable(Base)[] ia = (immutable(Derived)[]).init; // `immutable` elements
+-------------------
+)
+
+    $(P A static array, say `x`, of a derived class can be implicitly converted
+    to a static array, say `y`, of a base class iff elements of `x` and `y` are
+    qualified as being either both `const` or both `immutable` or both mutable
+    (neither `const` nor `immutable`).)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------------
+class Base {}
+class Derived : Base {}
+Base[3] ma = (Derived[3]).init; // mutable elements
+const(Base)[3] ca = (const(Derived)[3]).init; // `const` elements
+immutable(Base)[3] ia = (immutable(Derived)[3]).init; // `immutable` elements
+-------------------
+)
+
+$(H4 $(LNAME2 covariance, Function Pointer Conversions))
+
+    $(P A function pointer type `Source` implicitly converts to another type `Target` if:)
+
+    - Its $(LINK2 https://en.wikipedia.org/wiki/Covariant_return_type,
+      return type is *covariant*) with `Target`'s.
+    - Its $(DDLINK spec/function, Functions, function attributes) are *covariant* with `Target`'s.
+    - Each $(LINK2 https://en.wikipedia.org/wiki/Type_variance#Contravariant_method_parameter_type,
+      parameter is *contravariant*) with the corresponding parameter in `Target`.
+
+    $(P A conversion is covariant if the source type is more restricted than the target type.
+    The following function pointer type conversions are covariant:)
+
+    $(TABLE
+    $(THEAD Source type, Target type, When)
+    $(TROW `pure FP`, `FP` - a function pointer)
+    $(TROW `nothrow FP`, `FP`)
+    $(TROW `@nogc FP`, `FP`)
+    $(TROW `@safe FP`, `@trusted FP` or `@system FP`)
+    $(TROW `S function(Args)`, `B function(Args)`,
+        S is a subtype of B and neither function pointer is
+        $(DDSUBLINK spec/function, ref-functions, `ref`))
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+// removing function attributes
+pure nothrow @nogc @safe int f0();
+int function() fp0 = &f0; // OK, calling fp0 can't violate f0's attributes
+static assert(!is(typeof(fp0) : typeof(&f0))); // cannot add attributes to fp0
+
+// qualifying return type
+int* f1();
+const(int*) function() fp1 = &f1; // OK, const(int*) is a subtype of int*
+static assert(!is(typeof(fp1) : typeof(&f1))); // cannot unqualify return type of fp1
+
+// returning a base type
+int* f2();
+void* function() fp2 = &f2; // OK, void* is a subtype of int*
+static assert(!is(typeof(fp2) : typeof(&f2))); // fp2 cannot return subtype
+---
+)
+
+    $(P A conversion is contravariant if the source type is more general than the target type.
+    The following conversions are contravariant:)
+
+    $(TABLE
+    $(THEAD Source type, Target type, When)
+    $(TROW `@trusted FP`, `@safe FP` or `@system FP`)
+    $(TROW `R function(`$(GLINK TypeCtors)`(P))`, `R function(P)`,
+        P is a reference type and `is(P : `*TypeCtors*`(P))`)
+    $(TROW `R function(scope P)`, `R function(P)`)
+    )
+
+    $(NOTE A `const` parameter is more general than a mutable one because
+    $(DDSUBLINK spec/const3, implicit_qualifier_conversions,
+    it accepts both) mutable and const arguments.)
+
+    $(P See also $(DDSUBLINK spec/function, rsr_covariance, `return` attribute variance).)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+// unqualifying a parameter
+void f3(const int*);
+void function(int*) fp3 = &f3; // OK
+static assert(!is(typeof(fp3) : typeof(&f3))); // cannot qualify parameter
+---
+)
+    $(P See also:)
+
+    - $(DDSUBLINK spec/expression, is-type-convert, `is(T : U)`)
+    - $(DDSUBLINK spec/function, covariance, `override` method covariance)
+
+$(H3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions))
+
+    $(P Integer Promotions are conversions of the following types:
+    )
+
+    $(TABLE2 Integer Promotions,
+    $(THEAD from, to)
+    $(TROW
+    $(ARGS $(D bool)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D byte)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D ubyte)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D short)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D ushort)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D char)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D wchar)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D dchar)),
+    $(ARGS $(D uint))
+    )
+    )
+
+    $(P If an enum has as a base type one of the types
+    in the left column, it is converted to the type in the right
+    column.
+    )
+
+    $(P Integer promotion applies to each operand of a binary expression:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    void fun()
+    {
+        byte a;
+        auto b = a + a;
+        static assert(is(typeof(b) == int));
+        // error: can't implicitly convert expression of type int to byte:
+        //byte c = a + a;
+
+        ushort d;
+        // error: can't implicitly convert expression of type int to ushort:
+        //d = d * d;
+        int e = d * d; // OK
+        static assert(is(typeof(int() * d) == int));
+
+        dchar f;
+        static assert(is(typeof(f - f) == uint));
+    }
+    ---
+    )
+
+    $(RATIONALE
+    * 32-bit integer operations are often faster than smaller integer types
+      for single variables on modern architectures.
+    * Promotion helps avoid accidental overflow which is more common with small integer types.
+    )
+
+$(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions, Usual Arithmetic Conversions))
+
+    $(P The usual arithmetic conversions convert operands of binary
+    operators to a common type. The operands must already be
+    of arithmetic types.
+    The following rules are applied
+    in order, looking at the base type:
+    )
+
+    $(OL
+    $(LI If either operand is `real`, the other operand is
+    converted to `real`.)
+
+    $(LI Else if either operand is `double`, the other operand is
+    converted to `double`.)
+
+    $(LI Else if either operand is `float`, the other operand is
+    converted to `float`.)
+
+    $(LI Else the integer promotions above are done on each operand,
+    followed by:
+
+    $(OL
+        $(LI If both are the same type, no more conversions are done.)
+
+        $(LI If both are signed or both are unsigned, the
+        smaller type is converted to the larger.)
+
+        $(LI If the signed type is larger than the unsigned
+        type, the unsigned type is converted to the signed type.)
+
+        $(LI The signed type is converted to the unsigned type.)
+    )
+    )
+    )
+
+    $(RATIONALE The above rules follow C99, which makes porting code from C easier.)
+
+    $(P $(B Example:) Signed and unsigned conversions:)
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    int i;
+    uint u;
+    static assert(is(typeof(i + u) == uint));
+    static assert(is(typeof(short() + u) == uint));
+    static assert(is(typeof(ulong() + i) == ulong));
+    static assert(is(typeof(long() - u) == long));
+    static assert(is(typeof(long() * ulong()) == ulong));
+    ---
+    )
+
+    $(P $(B Example:) Floating point:)
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    float f;
+    static assert(is(typeof(f + ulong()) == float));
+
+    double d;
+    static assert(is(typeof(f * d) == double));
+    static assert(is(typeof(real() / d) == real));
+    ---
+    )
+
+$(H4 $(LNAME2 enum-ops, Enum Operations))
+
+    $(P If one or both of the operand types is an $(DDLINK spec/enum, Enums, enum) after
+    undergoing the above conversions, the result type is determined as follows:)
+
+    $(OL
+    $(LI If the operands are the same type, the result will be of
+    that type.)
+    $(LI If one operand is an enum  and the other is the base type
+    of that  enum, the result is the base type.)
+    $(LI If the two operands are different  enums,
+    the result is the closest base type common to both. A base type being closer
+    means there is a shorter sequence of conversions to base type to get there from the
+    original type.)
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+enum E { a, b, c }
+enum F { x, y }
+
+void test()
+{
+    E e = E.a;
+    e = e | E.c;
+    //e = e + 4; // error, can't assign int to E
+    int i = e + 4;
+    e += 4; // OK, see below
+
+    F f;
+    //f = e | f; // error, can't assign int to F
+    i = e | f;
+}
+---
+)
+
+    $(NOTE Above, `e += 4` compiles because the
+    $(DDSUBLINK spec/expression, assignment_operator_expressions, operator assignment)
+    is equivalent to `e = cast(E)(e + 4)`.)
+
+$(H3 $(LEGACY_LNAME2 disallowed-conversions, integer-conversions, Integer Type Conversions))
+
+    $(P An integer of type `I` implicitly converts to another integer type `J` when
+    `J.sizeof >= I.sizeof`.)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+void f(byte b, ubyte ub, short s)
+{
+    b = ub; // OK, bit pattern same
+    ub = b; // OK, bit pattern same
+    s = b; // OK, widening conversion
+    b = s; // error, implicit narrowing
+}
+---
+)
+
+    $(P Integer values cannot be implicitly converted to another
+    type that cannot represent the integer bit pattern after
+    $(RELATIVE_LINK2 integer-promotions, integral promotion). For example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+ubyte  u1 = -1; // error, -1 cannot be represented in a ubyte
+ushort u2 = -1; // error, -1 cannot be represented in a ushort
+uint   u3 = -1; // ok, -1 can be represented in an int, which can be converted to a uint
+ulong  u4 = -1; // ok, -1 can be represented in a long, which can be converted to a ulong
+---
+)
+
+$(H3 $(LNAME2 floating-point-conversions, Floating Point Type Conversions))
+
+    * Integral types implicitly convert to floating point types.
+    * Floating point types cannot be implicitly converted to integral types.
+
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
+    ---
+    void f(int i, float f)
+    {
+        f = i; // OK
+        i = f; // error
+    }
+    ---
+    )
+
+    * Complex or imaginary floating point types cannot be implicitly converted
+      to non-complex floating point types.
+    * Non-complex floating point types cannot be implicitly converted to imaginary floating
+      point types.
+
+$(H3 $(LNAME2 vrp, Value Range Propagation))
+
+    $(P Besides type-based implicit conversions, D allows certain integer
+        expressions to implicitly convert to a narrower type after
+        integer promotion. This works by analysing the minimum and
+        maximum possible range of values for each expression.
+        If that range of values matches or is a subset of a narrower
+        target type's value range, implicit
+        conversion is allowed. If a subexpression is known at compile-time,
+        that can further narrow the range of values.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    void fun(char c, int i, ubyte b)
+    {
+        // min is c.min + 100 > short.min
+        // max is c.max + 100 < short.max
+        short s = c + 100; // OK
+
+        ubyte j = i & 0x3F; // OK, 0 ... 0x3F
+        //ubyte k = i & 0x14A; // error, 0x14A > ubyte.max
+        ushort k = i & 0x14A; // OK
+
+        k = i & b; // OK, 0 ... b.max
+        //b = b + b; // error, b.max + b.max > b.max
+        s = b + b; // OK, 0 ... b.max + b.max
+    }
+    ---
+    )
+    $(P Note the implementation does not track the range of possible values for
+    mutable variables:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    void fun(int i)
+    {
+        ushort s = i & 0xff; // OK
+        // s is now assumed to be s.min ... s.max, not 0 ... 0xff
+        //ubyte b = s; // error
+        ubyte b = s & 0xff; // OK
+
+        const int c = i & 0xff;
+        // c's range is fixed and known
+        b = c; // OK
+    }
+    ---
+    )
+    * For more information, see $(LINK2 https://digitalmars.com/articles/b62.html, the dmc article).
+    * See also: $(LINK https://en.wikipedia.org/wiki/Value_range_analysis).
+
+
+$(H2 $(LNAME2 void, $(D void)))
+
+    $(P A `void` value cannot be accessed directly. The `void` type is notably used for:)
+
+    * The return type of a function that doesn't have a result.
+    * The base type for an untyped pointer -
+      see $(RELATIVE_LINK2 pointer-conversions, Pointer Conversions).
+    * $(DDSUBLINK spec/arrays, void_arrays, Void arrays).
+    * $(DDSUBLINK spec/expression, cast_void, Ignoring a value) by casting to `void`.
+
+    $(P `void.sizeof` is 1 (not 0).)
+
+    $(RATIONALE The size must be 1 to make `void*` arithmetic work like it does in C.
+    It also makes the length of a void array equivalent to the number of
+    bytes in the array.)
+
+
+$(H2 $(LNAME2 bool, $(D bool)))
+
+$(P The bool type is a byte-size type that can only hold the value `true` or
+`false`.)
+
+$(P The only operators that directly accept operands of type bool are: $(CODE_AMP),
+$(CODE_PIPE), $(D ^), $(CODE_AMP)$(D =), $(CODE_PIPE)$(D =), $(D ^=), !,
+$(CODE_AMP)$(CODE_AMP), $(CODE_PIPE)$(CODE_PIPE), and $(D ?:).)
+
+$(P A `bool` value can be implicitly converted to any integral type, with
+`false` becoming 0 and `true` becoming 1.)
+
+$(P The numeric literals `0` and `1` can be implicitly converted to the `bool`
+values `false` and `true`, respectively. Casting an expression to `bool` means
+testing `!=0` for an $(GLINK ArithmeticType), and `!=null` for
+pointers or reference types. See $(DDSUBLINK spec/statement, boolean-conditions,
+Boolean Conversion) for details.)
+
+$(UNDEFINED_BEHAVIOR)
+* Interpreting a value with a byte representation
+  other than 0 or 1 as `bool` (e.g. an overlapped union field).
+* Reading a `void`-initialized `bool`.
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+bool b = 1; // int literal converted to `true`
+assert(b);
+assert(b + b == 2); // b promoted to int
+
+byte i = 2;
+//b = i; // Error
+b = cast(bool) i; // OK, same as `i != 0`
+assert(b);
+
+bool* p = cast(bool*) &i; // unsafe cast
+// `*p` holds 0x2, an invalid bool value
+// reading `*p` is undefined behavior
+---
+)
+
+$(H2 $(LNAME2 functions, Function Types))
+
+$(P A function type has the form:)
+
+$(GRAMMAR_INFORMATIVE
+$(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK Type) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
+)
+
+$(P Function types are not included in the $(GLINK Type) grammar.
+A function type e.g. `int(int)` $(DDSUBLINK spec/declaration, alias-function, can be aliased).
+A function type is only used for type tests (see below) or as the target type of a pointer.)
+
+$(P Instantiating a function type is illegal. Instead, a pointer to function
+or delegate can be used.)
+
+$(H3 $(LNAME2 function-pointers, Function Pointers))
+
+$(P A function pointer type has the following form:)
+
+$(GRAMMAR_INFORMATIVE
+$(GLINK Type) `function` $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void f(int);
+alias Fun = void(int);
+static assert(is(typeof(f) == Fun));
+static assert(is(Fun* == void function(int)));
+---
+)
+
+$(P See $(DDSUBLINK spec/function, function-pointers, Function Pointers).)
+
+$(H3 $(LNAME2 delegates, Delegates))
+
+$(GRAMMAR_INFORMATIVE
+$(GLINK Type) `delegate` $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+)
+
+$(P A delegate is an aggregate of two pieces of data, a *context pointer* and
+a *function pointer*. A valid delegate holds either:)
+
+* An object reference and a pointer to a non-static
+  $(DDSUBLINK spec/class, member-functions, member function).
+  The object reference forms the `this` pointer when the function is called.
+* A pointer to a $(DDSUBLINK spec/function, closures, closure)
+  and a pointer to a $(DDSUBLINK spec/function, nested, nested function).
+
+$(P The $(D .ptr) property of a delegate will return the
+$(I context pointer) value as a $(D void*).
+)
+
+$(P The $(D .funcptr) property of a delegate will return the
+$(I function pointer) value as a function type.
+)
+
+$(P Delegates are declared and initialized similarly to function pointers:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------------
+void func(int) {}
+void function(int) fp; // fp is a function pointer
+void delegate(int) dg; // dg is a delegate to a function
+
+class OB
+{
+    void member(int) {}
+}
+
+void main()
+{
+    OB o = new OB;
+
+    fp = &func; // fp points to function `func`
+
+    dg = &o.member; // dg is a delegate to object `o` and member function `member`
+    assert(dg.ptr == cast(void*) o);
+    assert(dg.funcptr == &OB.member);
+
+    dg = (int i) { o.member(i); }; // dg holds a delegate literal with main's execution context
+}
+-------------------
+)
+
+    $(P Delegates cannot be initialized with static member functions
+    or non-member functions.
+    )
+
+    $(P Delegates are called analogously to function pointers:
+    )
+
+-------------------
+fp(3);   // call func(3)
+dg(3);   // call o.member(3)
+-------------------
+
+    $(P See:)
+
+    * $(DDSUBLINK spec/function, closures, Delegates and Closures)
+    * $(DDSUBLINK spec/function, method-delegates, Method Delegates)
+
+    $(P The equivalent of member function pointers can be constructed
+    using $(DDSUBLINK spec/expression, function_literals, anonymous lambda functions):)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+class C
+{
+    int a;
+    int foo(int i) { return i + a; }
+}
+
+// mfp is the member function pointer
+auto mfp = function(C self, int i) { return self.foo(i); };
+auto c = new C();  // create an instance of C
+mfp(c, 1);  // and call c.foo(1)
+---
+)
+
+$(H2 $(LNAME2 typeof, $(D typeof)))
+
+$(GRAMMAR
+$(GNAME Typeof):
+    $(D typeof $(LPAREN)) $(GLINK2 expression, Expression) $(D $(RPAREN))
+    $(D typeof $(LPAREN)) $(D return) $(D $(RPAREN))
+)
+
+        $(P
+        The first form gives the type of an expression.
+        It can be used anywhere a $(GLINK BasicType) is expected, such as in a
+        declaration. It is also useful as a $(GLINK2 expression, PrimaryExpression)
+        in a sub-expression. For example:
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        --------------------
+        void func(int i)
+        {
+            typeof(i) j;       // j is of type int
+            typeof(3 + 6.0) x; // x is of type double
+
+            // as part of a derived type:
+            typeof(1)* p;
+            static assert(is(typeof(p) == int*));
+            typeof(p)[int] aa;
+            static assert(is(typeof(aa) == int*[int]));
+
+            auto d = cast(typeof(1.0)) i; // cast i to double
+            static assert(is(typeof(d) == double));
+
+            // as a sub-expression:
+            static assert(typeof('c').sizeof == 1); // char.sizeof
+            Exception[2] sa;
+            Exception ex = new typeof(sa[0])("message"); // new Exception("message")
+        }
+        --------------------
+        )
+
+        $(P
+        $(I Expression) is not evaluated, it is used purely to
+        generate the type:
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        --------------------
+        void main()
+        {
+            int i = 1;
+            typeof(++i) j; // j is declared to be an int, i is not incremented
+            assert(i == 1);
+        }
+        --------------------
+        )
+
+        $(P If *Expression* is a
+        $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq)), `typeof`
+        will produce a *TypeSeq* containing the types of each element.)
+
+        $(P `typeof(null)` is useful to get the type of the
+        $(DDSUBLINK spec/expression, null, `null`) literal.)
+
+        $(BEST_PRACTICE $(I Typeof) is most useful in writing generic
+        template code.)
+
+$(H3 $(LNAME2 typeof-special, Special Cases))
+
+    $(OL
+        $(LI $(D typeof(return)) will, when inside a function scope,
+        give the return type of that function.
+        )
+        $(LI $(LNAME2 typeof-this, $(D typeof(this))) will generate the type of what $(D this)
+        would be in a non-static member function, even if not in a member
+        function.
+        )
+        $(LI Analogously, $(D typeof(super)) will generate the type of what
+        $(D super) would be in a non-static member function.
+        )
+
+        --------------------
+        class A { }
+
+        class B : A
+        {
+            typeof(this) x;  // x is declared to be a B
+            typeof(super) y; // y is declared to be an A
+        }
+
+        struct C
+        {
+            static typeof(this) z;  // z is declared to be a C
+
+            typeof(super) q; // error, no super struct for C
+        }
+
+        typeof(this) r;   // error, no enclosing struct or class
+        --------------------
+    )
+
+        $(P If the expression is a $(DDSUBLINK spec/function, property-functions,
+        Property Function), $(D typeof) gives its return type.
+        )
+
+        --------------------
+        struct S
+        {
+            @property int foo() { return 1; }
+        }
+        typeof(S.foo) n;  // n is declared to be an int
+        --------------------
+
+        $(P If the expression is a $(DDLINK spec/template, Template, Template),
+        $(D typeof) gives the type $(D void).
+        )
+
+        --------------------
+        template t {}
+        static assert(is(typeof(t) == void));
+        --------------------
+
+
+$(H2 $(LNAME2 mixin_types, Mixin Types))
+
+$(GRAMMAR
+$(GNAME MixinType):
+    $(D mixin $(LPAREN)) $(GLINK2 expression, ArgumentList) $(D $(RPAREN))
+)
+
+    $(P Each $(GLINK2 expression, AssignExpression) in the $(I ArgumentList) is
+        evaluated at compile time, and the result must be representable
+        as a string.
+        The resulting strings are concatenated to form a string.
+        The text contents of the string must be compilable as a valid
+        $(GLINK2 type, Type), and is compiled as such.)
+
+        ---
+        void test(mixin("int")* p) // int* p
+        {
+            mixin("int")[] a;      // int[] a;
+            mixin("int[]") b;      // int[] b;
+        }
+        ---
+
+
+$(H2 $(LNAME2 aliased-types, Aliased Types))
+
+$(H3 $(LNAME2 size_t, $(D size_t)))
+
+    $(P $(D size_t) is an alias to one of the unsigned integral basic types,
+    and represents a type that is large enough to represent an offset into
+    all addressable memory.)
+
+$(H3 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)))
+    $(P $(D ptrdiff_t) is an alias to the signed integral basic type the same size as $(D size_t).)
+
+$(H3 $(LNAME2 string, $(D string)))
+
+    $(P A $(DDSUBLINK spec/arrays, strings, $(I string) is a special case of an array.))
+
+$(H3 $(LNAME2 noreturn, $(D noreturn)))
+
+    $(P `noreturn` is the $(LINK2 https://en.wikipedia.org/wiki/Bottom_type, bottom type)
+    which can implicitly convert to any type, including `void`.
+    A value of type `noreturn` will never be produced and the compiler can
+    optimize such code accordingly.)
+
+    $(P `noreturn.init` lowers to $(DDSUBLINK spec/expression, assert-ct, `assert(0)`).)
+
+    $(P A function that $(DDSUBLINK spec/function, function-return-values, never returns)
+    has the return type `noreturn`. This can
+    occur due to e.g. an infinite loop or always throwing an exception.
+    A function returning type `noreturn` is covariant with a function returning any other type.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+noreturn abort(string message);
+
+int function(string) fp = &abort; // OK
+
+int example(int i)
+{
+    if (i < 0)
+    {
+        // abort does not return, so it doesn't need to produce an int
+        int val = abort("less than zero");
+    }
+    // ternary expression's common type is still int
+    return i != 0 ? 1024 / i : abort("calculation went awry.");
+}
+---
+)
+
+    $(P `noreturn` is defined as $(D typeof(*null)). This is because
+    dereferencing a null literal (typically) halts execution.)
+
+    $(P See also: $(GLINK2 expression, ThrowExpression))
+
+
+$(SPEC_SUBNAV_PREV_NEXT declaration, Declarations, property, Properties)
+)
+
+Macros:
+    CHAPTER=7
+    TITLE=Types

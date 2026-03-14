@@ -1,0 +1,145 @@
+ROOT_DIR = ../
+ROOT = ..
+SEARCHDEFAULT_SPEC = selected
+DDOC_BLANKLINE = $(DIVC blankline)
+
+
+_ = special specification boxes
+$(COMMENT While not part of the spec, best practices offers advice on how to best use a feature)
+BEST_PRACTICE= $(DIVC spec-boxes best-practice, $(B Best Practices:) $0)
+
+$(COMMENT Identifies implementation-defined behavior in the spec)
+IMPLEMENTATION_DEFINED=$(DIVC spec-boxes implementation-defined, $(B Implementation Defined:) $0)
+
+$(COMMENT Identifies undefined-defined behavior in the spec)
+UNDEFINED_BEHAVIOR=$(DIVC spec-boxes undefined-behavior, $(B Undefined Behavior:) $0)
+
+$(COMMENT While not part of the spec, an explanation for something unexpected)
+RATIONALE= $(DIVC spec-boxes rationale, $(B Rationale:) $0)
+
+$(COMMENT While not part of the spec, provides additional relevant information)
+NOTE= $(DIVC spec-boxes note, $(B Note:) $0)
+
+_ =
+
+BODY_PREFIX =
+$(T style,
+    body { counter-reset: h1 $(CHAPTER); counter-increment: h1 -1; }
+    h1 { counter-reset: h2 h3 p; }
+    h2 { counter-reset: h3 h4 p; }
+    h3 { counter-reset: h4 p; }
+    h4 { counter-reset: p; }
+    h1::before {
+        counter-increment: h1;
+        content: counter(h1) ". ";
+    }
+    .hyphenate h2::before {
+        counter-increment: h2;
+        content: counter(h1) "." counter(h2) " ";
+    }
+    h3::before {
+        counter-increment: h3;
+        content: counter(h1) "." counter(h2) "." counter(h3) " ";
+    }
+    h4::before {
+        counter-increment: h4;
+        content: counter(h1) "." counter(h2) "." counter(h3) "." counter(h4) " ";
+    }
+    p::before, .spec-boxes::before {
+        counter-increment: p;
+        content: counter(p) ". ";
+    }
+    h1::before, h2::before, h3::before, h4::before, p::before, .spec-boxes::before
+    {
+        color: #999;
+        font-size: 80%;
+        margin-right: 0.25em;
+    }
+)
+
+SUBNAV_HEAD = $(DIVC head, $(H2 $1) $(TC p, $4, $(LINK2 $2, $3)))
+SUBNAV=$(SUBNAV_SPEC)
+SUBNAV_SPEC=
+$(SUBNAV_TEMPLATE
+    $(SUBNAV_HEAD Language Reference, $(ROOT_DIR)spec/spec.html, table of contents, subnav-duplicate)
+    $(UL
+        $(SUBMENU2
+            $(ROOT_DIR)spec/intro.html, Introduction,
+            $(ROOT_DIR)spec/lex.html, Lexical,
+            $(ROOT_DIR)spec/istring.html, Interpolation Expression Sequence,
+            $(ROOT_DIR)spec/grammar.html, Grammar,
+            $(ROOT_DIR)spec/module.html, Modules,
+            $(ROOT_DIR)spec/declaration.html, Declarations,
+            $(ROOT_DIR)spec/type.html, Types,
+            $(ROOT_DIR)spec/property.html, Properties,
+            $(ROOT_DIR)spec/attribute.html, Attributes,
+            $(ROOT_DIR)spec/pragma.html, Pragmas,
+            $(ROOT_DIR)spec/expression.html, Expressions,
+            $(ROOT_DIR)spec/statement.html, Statements,
+            $(ROOT_DIR)spec/arrays.html, Arrays,
+            $(ROOT_DIR)spec/hash-map.html, Associative Arrays,
+            $(ROOT_DIR)spec/struct.html, Structs and Unions,
+            $(ROOT_DIR)spec/class.html, Classes,
+            $(ROOT_DIR)spec/interface.html, Interfaces,
+            $(ROOT_DIR)spec/enum.html, Enums,
+            $(ROOT_DIR)spec/const3.html, Type Qualifiers,
+            $(ROOT_DIR)spec/function.html, Functions,
+            $(ROOT_DIR)spec/operatoroverloading.html, Operator Overloading,
+            $(ROOT_DIR)spec/template.html, Templates,
+            $(ROOT_DIR)spec/template-mixin.html, Template Mixins,
+            $(ROOT_DIR)spec/contracts.html, Contract Programming,
+            $(ROOT_DIR)spec/version.html, Conditional Compilation,
+            $(ROOT_DIR)spec/traits.html, Traits,
+            $(ROOT_DIR)spec/errors.html, Error Handling,
+            $(ROOT_DIR)spec/unittest.html, Unit Tests,
+            $(ROOT_DIR)spec/garbage.html, Garbage Collection,
+            $(ROOT_DIR)spec/float.html, Floating Point,
+            $(ROOT_DIR)spec/iasm.html, D x86 Inline Assembler,
+            $(ROOT_DIR)spec/ddoc.html, Embedded Documentation,
+            $(ROOT_DIR)spec/interfaceToC.html, Interfacing to C,
+            $(ROOT_DIR)spec/cpp_interface.html, Interfacing to C++,
+            $(ROOT_DIR)spec/objc_interface.html, Interfacing to Objective-C,
+            $(ROOT_DIR)spec/portability.html, Portability Guide,
+            $(ROOT_DIR)spec/entity.html, Named Character Entities,
+            $(ROOT_DIR)spec/memory-safe-d.html, Memory Safety,
+            $(ROOT_DIR)spec/abi.html, Application Binary Interface,
+            $(ROOT_DIR)spec/simd.html, Vector Extensions,
+            $(ROOT_DIR)spec/betterc.html, Better C,
+            $(ROOT_DIR)spec/importc.html, ImportC,
+            $(ROOT_DIR)spec/ob.html, Live Functions,
+            $(ROOT_DIR)spec/windows.html, Windows Programming,
+            $(ROOT_DIR)spec/glossary.html, Glossary,
+            $(ROOT_DIR)spec/legacy.html, Legacy Code,
+            $(ROOT_DIR)spec/editions.html, Editions
+        )
+    )
+)
+SPEC_RUNNABLE_EXAMPLE=$(RUNNABLE_EXAMPLE $0)
+SPEC_RUNNABLE_EXAMPLE_COMPILE=$(RUNNABLE_EXAMPLE_COMPILE $0)
+SPEC_RUNNABLE_EXAMPLE_FAIL=$(RUNNABLE_EXAMPLE $0)
+SPEC_RUNNABLE_EXAMPLE_RUN=$(RUNNABLE_EXAMPLE $0)
+SPEC_SUBNAV_NEXT=
+$(SPEC_NEXT $(LINK2 $(ROOT_DIR)spec/$1.html, $2))
+$(CLEAR)
+
+SPEC_SUBNAV_PREV_NEXT=
+$(SPEC_PREV $(LINK2 $(ROOT_DIR)spec/$1.html, $2))
+$(SPEC_NEXT $(LINK2 $(ROOT_DIR)spec/$3.html, $4))
+$(CLEAR)
+
+SPEC_SUBNAV_PREV=
+$(SPEC_PREV $(LINK2 $(ROOT_DIR)spec/$1.html, $2))
+$(CLEAR)
+
+SPEC_NEXT=<div style="float: right">$1 $(FA_ICON angle-right)</div>
+SPEC_PREV=<div style="float: left">$(FA_ICON angle-left) $1</div>
+
+_=
+
+CLEAR=<div style="clear:both"></div>
+RAWHTML=$0
+_=
+LAYOUT_SUFFIX =
+$(SCRIPTLOAD ../js/listanchors.js)
+$(SCRIPT jQuery(document).ready(addVersionSelector);)
+_=
