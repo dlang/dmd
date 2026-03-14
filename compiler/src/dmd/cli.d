@@ -311,14 +311,14 @@ dmd -cov -unittest myprog.d
             "compile in debug code identified by ident",
             `Compile in $(LINK2 spec/version.html#debug, debug identifier) $(I ident)`,
         ),
-        Option("debuglib=<name>",
-            "set symbolic debug library to name",
+        Option("debuglib=<libname>",
+            "set symbolic debug library to libname",
             `Link in $(I libname) as the default library when
             compiling for symbolic debugging instead of $(B $(LIB)).
             If $(I libname) is not supplied, then no default library is linked in.`
         ),
-        Option("defaultlib=<name>",
-            "set default library to name",
+        Option("defaultlib=<libname>",
+            "set default library to libname",
             `Link in $(I libname) as the default library when
             not compiling for symbolic debugging instead of $(B $(LIB)).
             If $(I libname) is not supplied, then no default library is linked in.`,
@@ -443,14 +443,16 @@ dmd -cov -unittest myprog.d
         Option("Hf=<filename>",
             "write 'header' file to filename"
         ),
-        Option("HC[=[?|h|help|silent|verbose]]",
+        Option("HC=[silent|verbose]",
             "write C++ 'header' equivalent to stdout",
             `write C++ 'header' equivalent to stdout configured with:
             $(DL
-            $(DT ?|h|help)$(DD list available options for C++ 'header' file generation)
             $(DT silent)$(DD only list extern(C[++]) declarations (default))
             $(DT verbose)$(DD also add comments for ignored declarations (e.g. extern(D)))
             )`,
+        ),
+        Option("HC=[?|h|help]",
+            "list available options for C++ 'header' file generation"
         ),
         Option("HCd=<directory>",
             "write C++ 'header' file to directory",
@@ -555,7 +557,7 @@ dmd -cov -unittest myprog.d
 
              $(P Note that multiple `-i=...` options are allowed, each one adds a pattern.)}"
         ),
-        Option("identifiers=<table>",
+        Option("identifiers=[UAX31|c99|c11|all]",
             "Specify the non-ASCII tables for D identifiers",
             `Set the identifier table to use for the non-ASCII values.
                 $(UL
@@ -565,7 +567,7 @@ dmd -cov -unittest myprog.d
                     $(LI $(I all): All, the least restrictive set, which comes with all others (default))
                 )`
         ),
-        Option("identifiers-importc=<table>",
+        Option("identifiers-importc=[UAX31|c99|c11|all]",
             "Specify the non-ASCII tables for ImportC identifiers",
             `Set the identifier table to use for the non-ASCII values.
                 $(UL
@@ -677,7 +679,6 @@ dmd -cov -unittest myprog.d
             `Set the target architecture for code generation,
             where:
             $(DL
-            $(DT help)$(DD list alternatives)
             $(DT baseline)$(DD the minimum architecture for the target platform (default))
             $(DT avx)$(DD
             generate $(LINK2 https://en.wikipedia.org/wiki/Advanced_Vector_Extensions, AVX)
@@ -791,7 +792,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("preview=<name>",
             "enable an upcoming language change identified by 'name'",
-            `Preview an upcoming language change identified by $(I id)`,
+            `Preview an upcoming language change identified by <name>`,
         ),
         Option("preview=[h|help|?]",
             "list all upcoming language changes"
@@ -843,7 +844,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("revert=<name>",
             "revert language change identified by 'name'",
-            `Revert language change identified by $(I id)`,
+            `Revert language change identified by <name>`,
         ),
         Option("revert=[h|help|?]",
             "list all revertable language changes"
@@ -853,7 +854,7 @@ dmd -cov -unittest myprog.d
             `Compile, link, and run the program $(I srcfile) with the
             rest of the
             command line, $(I args...), as the arguments to the program.
-            No .$(OBJEXT) or executable file is left behind.`
+            No $(TT .$(OBJEXT)) or executable file is left behind.`
         ),
         Option("shared",
             "generate shared library (DLL)",
@@ -878,7 +879,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("transition=<name>",
             "help with language change identified by 'name'",
-            `Show additional info about language change identified by $(I id)`,
+            `Show additional info about language change identified by <name>`,
         ),
         Option("transition=[h|help|?]",
             "list all language changes"
@@ -935,11 +936,11 @@ dmd -cov -unittest myprog.d
         Option("vgc",
             "list all gc allocations including hidden ones"
         ),
-        Option("visibility=<value>",
-            "default visibility of symbols (default/hidden/public)",
+        Option("visibility=[default|hidden|public]",
+            "default visibility of symbols",
             "$(UL
-               $(LI $(I default): Hidden for Windows targets without -shared, otherwise public)
-               $(LI $(I hidden):  Only export symbols marked with 'export')
+               $(LI $(I default): <hidden> for Windows targets without $(SWLINK -shared), otherwise <public>)
+               $(LI $(I hidden):  Only export symbols marked with `export`)
                $(LI $(I public):  Export all symbols)
             )",
         ),
