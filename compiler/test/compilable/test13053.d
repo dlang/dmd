@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -w -wi
+// PERMUTE_ARGS: -w
 @system:
 
 struct S
