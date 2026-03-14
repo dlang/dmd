@@ -111,6 +111,12 @@ private
 
 void terminate()
 {
+    version (AArch64)
+    {
+        int* p = null;
+        *p = 0;             // TODO AArch64
+    }
+    else
     asm
     {
         hlt ;
@@ -242,6 +248,10 @@ extern (C) void _d_throwc(Throwable h)
         {
             mov regebp,RBP  ;
         }
+    else version (AArch64)
+    {
+        assert(0);  // TODO AArch64
+    }
     else
         static assert(0);
 
@@ -407,6 +417,10 @@ extern (C) void _d_throwc(Throwable h)
                                     mov     RSP,RAX         ; // reset stack
                                     ret                     ; // jump to catch block
                                 }
+                            else version (AArch64)
+                            {
+                                assert(0);    // TODO AArch64
+                            }
                             else
                                 static assert(0);
                         }
@@ -456,6 +470,10 @@ extern (C) void _d_throwc(Throwable h)
                             pop     RBX             ;
                             add     RSP,8           ;
                         }
+                    else version (AArch64)
+                    {
+                        assert(0);    // TODO AArch64
+                    }
                     else
                         static assert(0);
                 }
@@ -485,6 +503,10 @@ extern (C) void _d_throwc(Throwable h)
                             pop     RBX             ;
                             add     RSP,8           ;
                         }
+                    else version (AArch64)
+                    {
+                        assert(0);    // TODO AArch64
+                    }
                     else
                         static assert(0);
                 }

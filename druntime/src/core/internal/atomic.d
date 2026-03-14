@@ -71,7 +71,7 @@ version (AArch64)
     bool atomicCompareExchangeStrongNoResult(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, T)(T* dest, const T compare, T value) pure nothrow @nogc @trusted
         if (CanCAS!T)
     {
-        if (*dest != *compare)
+        if (*dest != compare)
             return false;
         *dest = value;
         return true;
