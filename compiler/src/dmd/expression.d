@@ -2188,16 +2188,19 @@ extern (C++) final class DotIdExp : UnaExp
     bool noderef;       // true if the result of the expression will never be dereferenced
     bool wantsym;       // do not replace Symbol with its initializer during semantic()
     bool arrow;         // ImportC: if -> instead of .
+    /// Location of the identifier (for accurate error reporting). Loc.initial when not from source.
+    Loc identLoc;
 
-    extern (D) this(Loc loc, Expression e, Identifier ident) @safe
+    extern (D) this(Loc loc, Expression e, Identifier ident, Loc identLoc = Loc.initial) @safe
     {
         super(loc, EXP.dotIdentifier, e);
         this.ident = ident;
+        this.identLoc = identLoc;
     }
 
-    static DotIdExp create(Loc loc, Expression e, Identifier ident) @safe
+    static DotIdExp create(Loc loc, Expression e, Identifier ident, Loc identLoc = Loc.initial) @safe
     {
-        return new DotIdExp(loc, e, ident);
+        return new DotIdExp(loc, e, ident, identLoc);
     }
 
     override void accept(Visitor v)
