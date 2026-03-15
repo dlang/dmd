@@ -717,6 +717,7 @@ class AsmStatement : public Statement
 {
 public:
     Token *tokens;
+    Expression* exp;
 private:
     uint8_t bitFields;
 public:
