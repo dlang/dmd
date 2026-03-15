@@ -1919,8 +1919,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         // https://issues.dlang.org/show_bug.cgi?id=15909
         {
             import dmd.root.aav : AssocArray;
+            import dmd.root.hash : calcHash;
             scope intSeen = AssocArray!(ulong, CaseStatement)();
-            scope strSeen = AssocArray!(const(char)[], CaseStatement)();
+            scope strSeen = AssocArray!(uint, CaseStatement)();
             foreach (cs; *ss.cases)
             {
                 if (cs.exp.isErrorExp())
@@ -1935,11 +1936,17 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 }
                 else if (auto se = cs.exp.toStringExp())
                 {
-                    auto val = se.peekString();
-                    if (auto prev = strSeen[val])
-                        error(cs.loc, "duplicate `case %s` in `switch` statement", cs.exp.toChars());
+                    auto str = se.peekString();
+                    uint h = calcHash(str);
+                    if (auto prev = strSeen[h])
+                    {
+                        if (prev.exp.equals(cs.exp))
+                            error(cs.loc, "duplicate `case %s` in `switch` statement", cs.exp.toChars());
+                        else
+                            *strSeen.getLvalue(h) = cs;
+                    }
                     else
-                        *strSeen.getLvalue(val) = cs;
+                        *strSeen.getLvalue(h) = cs;
                 }
             }
         }
