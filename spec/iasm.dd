@@ -1,6 +1,6 @@
 Ddoc
 
-$(SPEC_S D x86 Inline Assembler,
+$(SPEC_S D X86 and X86_64 Inline Assembler,
 
 $(HEADERNAV_TOC)
 
