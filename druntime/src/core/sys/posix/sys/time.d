@@ -160,9 +160,13 @@ else version (NetBSD)
         timeval it_value;
     }
 
+    pragma(mangle, "__getitimer50")
     int getitimer(int, itimerval*);
+    pragma(mangle, "__gettimeofday50")
     int gettimeofday(timeval*, void*); // timezone_t* is normally void*
+    pragma(mangle, "__setitimer50")
     int setitimer(int, const scope itimerval*, itimerval*);
+    pragma(mangle, "__utimes50")
     int utimes(const scope char*, ref const(timeval)[2]);
 }
 else version (OpenBSD)
