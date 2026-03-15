@@ -519,6 +519,7 @@ public:
     Expression *exp;
     size_t caseDim;
     FuncDeclaration *fesFunc;   // nested function for foreach it is in
+    d_bool inCtfeBlock;
 
     ReturnStatement *syntaxCopy() override;
 
