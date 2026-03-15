@@ -1915,21 +1915,32 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         ss._body = ss._body.statementSemantic(sc);
         sc.inLoop = inLoopSave;
 
-        // Check for duplicate cases in O(n) using a hash map instead of O(n^2)
+        // Check for duplicate cases in O(n) using hash maps instead of O(n^2)
+        // https://issues.dlang.org/show_bug.cgi?id=15909
         {
             import dmd.root.aav : AssocArray;
-            scope seen = AssocArray!(Expression, CaseStatement)();
+            scope intSeen = AssocArray!(ulong, CaseStatement)();
+            scope strSeen = AssocArray!(const(char)[], CaseStatement)();
             foreach (cs; *ss.cases)
             {
                 if (cs.exp.isErrorExp())
                     continue;
-                if (auto prev = seen[cs.exp])
+                if (auto ie = cs.exp.isIntegerExp())
                 {
-                    // https://issues.dlang.org/show_bug.cgi?id=15909
-                    error(cs.loc, "duplicate `case %s` in `switch` statement", cs.exp.toChars());
+                    ulong val = cast(ulong)ie.toInteger();
+                    if (auto prev = intSeen[val])
+                        error(cs.loc, "duplicate `case %s` in `switch` statement", cs.exp.toChars());
+                    else
+                        *intSeen.getLvalue(val) = cs;
                 }
-                else
-                    *seen.getLvalue(cs.exp) = cs;
+                else if (auto se = cs.exp.toStringExp())
+                {
+                    auto val = se.peekString();
+                    if (auto prev = strSeen[val])
+                        error(cs.loc, "duplicate `case %s` in `switch` statement", cs.exp.toChars());
+                    else
+                        *strSeen.getLvalue(val) = cs;
+                }
             }
         }
 
