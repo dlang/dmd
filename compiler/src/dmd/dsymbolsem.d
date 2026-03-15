@@ -2349,55 +2349,55 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
 
             tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+            auto ne = ie.isNewExp();
+            if (!ne)
+                return;
 
-            if (auto ne = ie.isNewExp())
+            Type nb = ne.newtype.toBasetype();
+            if (auto nsa = nb.isTypeSArray())
             {
-                Type nb = ne.newtype.toBasetype();
-                if (auto nsa = nb.isTypeSArray())
-                {
-                    tsa.dim = nsa.dim;
-                    return;
-                }
-
-                if (ne.arguments && ne.arguments.length == 1)
-                {
-                    auto arg = (*ne.arguments)[0];
-                    if (auto intExp = arg.isIntegerExp())
-                        tsa.dim = new IntegerExp(loc, intExp.value, Type.tsize_t);
-                }
-            }
-
-        }
-
-        if (auto tsa = dsym.type.isTypeSArray())
-        {
-            if (hasDollarDimension(tsa))
-            {
-                if (!dsym._init || dsym._init.isVoidInitializer())
-                {
-                    .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
-                    tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
-                }
-                else
-                {
-                    Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
-                    if (ie && ie.op != EXP.error)
-                    {
-                        ie = ie.expressionSemantic(sc);
-                        ie = ie.optimize(WANTvalue);
-                        inferSArrayDim(tsa, ie, dsym.loc, sc);
-                        if (auto ale = ie.isArrayLiteralExp())
-                            dsym._init = new ExpInitializer(dsym.loc, ale);
-                    }
-                }
-            }
-            if (hasUnresolvedDollar(tsa.next))
-            {
-                .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
-                resolveDollarToZero(tsa.next, dsym.loc);
+                tsa.dim = nsa.dim;
                 return;
             }
+
+            if (ne.arguments && ne.arguments.length == 1)
+            {
+                auto arg = (*ne.arguments)[0];
+                if (auto intExp = arg.isIntegerExp())
+                    tsa.dim = new IntegerExp(loc, intExp.value, Type.tsize_t);
+            }
+
+
         }
+
+        auto tsa = dsym.type.isTypeSArray();
+        if (tsa && hasDollarDimension(tsa))
+        {
+            if (!dsym._init || dsym._init.isVoidInitializer())
+            {
+                .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+                tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+            }
+            else
+            {
+                Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
+                if (ie && ie.op != EXP.error)
+                {
+                    ie = ie.expressionSemantic(sc);
+                    ie = ie.optimize(WANTvalue);
+                    inferSArrayDim(tsa, ie, dsym.loc, sc);
+                    if (auto ale = ie.isArrayLiteralExp())
+                        dsym._init = new ExpInitializer(dsym.loc, ale);
+                }
+            }
+        }
+        if (hasUnresolvedDollar(tsa.next))
+        {
+            .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+            resolveDollarToZero(tsa.next, dsym.loc);
+            return;
+        }
+
         //printf(" semantic type = %s\n", dsym.type ? dsym.type.toChars() : "null");
         if (dsym.type.ty == Terror)
             dsym.errors = true;
