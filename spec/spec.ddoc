@@ -1,5 +1,6 @@
 ROOT_DIR = ../
 ROOT = ..
+PROJECT=dmd
 SEARCHDEFAULT_SPEC = selected
 DDOC_BLANKLINE = $(DIVC blankline)
 
