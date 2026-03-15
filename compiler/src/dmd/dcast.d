@@ -3181,7 +3181,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         }
 
         auto ini = t.defaultInitLiteral(e.loc);
-        return Expression.combine(e, ini);
+        return combine(e, ini);
     }
 
     switch (e.op)
@@ -4593,5 +4593,5 @@ IntRange getIntRange(Expression e)
  */
 Expression specialNoreturnCast(Expression toBeCasted, Type to)
 {
-    return Expression.combine(toBeCasted, to.defaultInitLiteral(toBeCasted.loc));
+    return combine(toBeCasted, to.defaultInitLiteral(toBeCasted.loc));
 }
