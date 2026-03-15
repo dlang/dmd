@@ -563,6 +563,7 @@ int ld_cmp(longdouble_soft x, longdouble_soft y)
             mov     res, EAX;
         }
     }
+    return res;
 }
 
 
