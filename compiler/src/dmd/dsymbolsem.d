@@ -2304,37 +2304,39 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!tsa || !ie)
                 return;
 
-            if (hasDollarDimension(tsa))
+            if (!hasDollarDimension(tsa))
+                return;
+
+            if (auto ale = ie.isArrayLiteralExp())
             {
-                if (auto ale = ie.isArrayLiteralExp())
+                dinteger_t len = ale.elements.length;
+                tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
+                if (auto innerTsa = tsa.next.isTypeSArray())
                 {
-                    dinteger_t len = ale.elements.length;
-                    tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
-                    if (auto innerTsa = tsa.next.isTypeSArray())
+                    if (ale.elements.length > 0)
                     {
-                        if (ale.elements.length > 0)
-                        {
-                            auto firstElem = (*ale.elements)[0];
-                            inferSArrayDim(innerTsa, firstElem, loc, sc);
-                        }
+                        auto firstElem = (*ale.elements)[0];
+                        inferSArrayDim(innerTsa, firstElem, loc, sc);
                     }
                 }
-                else if (auto se = ie.isStringExp())
+            }
+            else if (auto se = ie.isStringExp())
+            {
+                Type next = tsa.next.toBasetype();
+                if (next.ty == TY.Tchar || next.ty == TY.Twchar || next.ty == TY.Tdchar)
+                    tsa.dim = new IntegerExp(loc, se.len, Type.tsize_t);
+                else
+                    tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+            }
+            else if (ie.type)
+            {
+                if (auto tsan = ie.type.toBasetype().isTypeSArray())
+                    tsa.dim = tsan.dim;
+                else
                 {
-                    Type next = tsa.next.toBasetype();
-                    if (next.ty == TY.Tchar || next.ty == TY.Twchar || next.ty == TY.Tdchar)
-                        tsa.dim = new IntegerExp(loc, se.len, Type.tsize_t);
-                    else
-                        tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
-                }
-                else if (ie.type)
-                {
-                    Type tb = ie.type.toBasetype();
-                    if (auto tsan = tb.isTypeSArray())
-                    {
-                        tsa.dim = tsan.dim;
-                    }
-                    else if (auto ne = ie.isNewExp())
+                    tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+
+                    if (auto ne = ie.isNewExp())
                     {
                         Type nb = ne.newtype.toBasetype();
                         if (auto nsa = nb.isTypeSArray())
@@ -2345,52 +2347,33 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         {
                             auto arg = (*ne.arguments)[0];
                             if (auto intExp = arg.isIntegerExp())
-                            {
                                 tsa.dim = new IntegerExp(loc, intExp.value, Type.tsize_t);
-                            }
-                            else
-                            {
-                                tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
-                            }
                         }
-                        else
-                        {
-                            tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
-                        }
-                    }
-                    else
-                    {
-                        tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
                     }
                 }
             }
+
         }
 
         if (auto tsa = dsym.type.isTypeSArray())
         {
-            if (auto d = tsa.dim)
+            if (hasDollarDimension(tsa))
             {
-                if (auto ide = d.isIdentifierExp())
+                if (!dsym._init || dsym._init.isVoidInitializer())
                 {
-                    if (ide.ident == Id.dollar)
+                    .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+                    tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                }
+                else
+                {
+                    Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
+                    if (ie && ie.op != EXP.error)
                     {
-                        if (!dsym._init || dsym._init.isVoidInitializer())
-                        {
-                            .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
-                            tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
-                        }
-                        else
-                        {
-                            Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
-                            if (ie && ie.op != EXP.error)
-                            {
-                                ie = ie.expressionSemantic(sc);
-                                ie = ie.optimize(WANTvalue);
-                                inferSArrayDim(tsa, ie, dsym.loc, sc);
-                                if (auto ale = ie.isArrayLiteralExp())
-                                    dsym._init = new ExpInitializer(dsym.loc, ale);
-                            }
-                        }
+                        ie = ie.expressionSemantic(sc);
+                        ie = ie.optimize(WANTvalue);
+                        inferSArrayDim(tsa, ie, dsym.loc, sc);
+                        if (auto ale = ie.isArrayLiteralExp())
+                            dsym._init = new ExpInitializer(dsym.loc, ale);
                     }
                 }
             }
