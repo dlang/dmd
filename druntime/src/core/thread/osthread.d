@@ -1529,6 +1529,27 @@ in (fn)
             mov sp[RBP], RSP;
         }
     }
+    else version (AArch64)
+    {
+	// Callee-save registers, x19-x28 according to AAPCS64, section
+	// 5.1.1.  Include x29 fp because it optionally can be a callee
+	// saved reg
+	size_t[11] regs = void;
+	// store the registers in pairs
+	asm pure nothrow @nogc
+	{
+	/*
+	    stp x19, x20, regs[0];
+	    stp x21, x22, regs[2];
+	    stp x23, x24, regs[4];
+	    stp x25, x26, regs[6];
+	    stp x27, x28, regs[8];
+	    str x29, regs[10];
+	    mov [sp], sp;
+	 */
+	}
+	assert(0, "implement AArch64 inline assembler for callWithStackShell()"); // TODO AArch64
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -1578,6 +1599,11 @@ private extern(D) void* getStackTop() nothrow @nogc
         asm pure nothrow @nogc { naked; mov EAX, ESP; ret; }
     else version (D_InlineAsm_X86_64)
         asm pure nothrow @nogc { naked; mov RAX, RSP; ret; }
+    else version (AArch64)
+        //asm pure nothrow @nogc { naked; mov x0, SP; ret; }    // TODO AArch64
+    {
+        return null;
+    }
     else version (GNU)
         return __builtin_frame_address(0);
     else

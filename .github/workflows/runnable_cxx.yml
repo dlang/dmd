@@ -193,11 +193,13 @@ jobs:
     - name: Build compiler & standard library
       run: |
         set -eux
+        extraFlags=()
         if [[ '${{ matrix.os }}' == macos-14 ]]; then
-          # don't try compiling a native arm64 DMD on macOS (doesn't work)
-          make -C dmd  -j$N dmd DFLAGS="-mtriple=x86_64-apple-macos14"
+          # DMD doesn't work on arm64 yet. Make LDC host compiler cross-compile
+          # DMD to x86_64, and then use implicit Rosetta emulation.
+          extraFlags=(HOST_DFLAGS="-mtriple=x86_64-apple-macos14")
         fi
-        make -C dmd    -j$N
+        make -C dmd    -j$N "${extraFlags[@]}"
         make -C phobos -j$N
 
     ########################################
@@ -213,10 +215,8 @@ jobs:
       if: runner.os != 'Windows' # not supported by build.d yet
       run: |
         set -eux
+        extraFlags=()
         if [[ '${{ matrix.os }}' == macos-14 ]]; then
-          # switch from LDC to freshly built DMD as host compiler
-          export HOST_DMD="$PWD/dmd/generated/osx/release/64/dmd"
-          export CXXFLAGS="-arch x86_64"
-          rm ./dmd/generated/osx/release/64/*.o
+          extraFlags=(HOST_DMD=ldmd2 DFLAGS="-mtriple=x86_64-apple-macos14" CXXFLAGS="-arch x86_64")
         fi
-        ./dmd/generated/build cxx-unittest
+        ./dmd/generated/build cxx-unittest "${extraFlags[@]}"

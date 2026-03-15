@@ -285,33 +285,9 @@ template hasElaborateMove(S)
     }
 }
 
-// std.traits.hasElaborateDestructor
-template hasElaborateDestructor(S)
-{
-    static if (__traits(isStaticArray, S))
-    {
-        enum bool hasElaborateDestructor = S.sizeof && hasElaborateDestructor!(BaseElemOf!S);
-    }
-    else static if (is(S == struct))
-    {
-        // Once https://issues.dlang.org/show_bug.cgi?id=24865 is fixed, then
-        // this should be the implementation, but until that's fixed, we need the
-        // uncommented code.
-        // enum hasElaborateDestructor = __traits(hasMember, S, "__xdtor");
-        // Note: we have to avoid triggering opDispatch to placate runnable/b6400.d
-        enum hasElaborateDestructor = __traits(compiles, {
-            static struct S2
-            {
-                S s;
-                static assert(is(typeof(__xdtor)));
-            }
-        });
-    }
-    else
-    {
-        enum bool hasElaborateDestructor = false;
-    }
-}
+// Used by std.traits.hasElaborateDestructor
+// TODO inline this in druntime
+enum hasElaborateDestructor(S) = __traits(needsDestruction, S);
 
 @safe unittest
 {

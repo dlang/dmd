@@ -5075,8 +5075,7 @@ final class CParser(AST) : Parser!AST
             if (pt && *pt)
                 t = *pt;
         }
-        if (t.mcache && t.mcache.typedefIdent)
-        {
+        if ((t.mcache && t.mcache.typedefIdent) || t.isTypeBasic()) {
             t = t.copy();
             t.mcache = null;
         }

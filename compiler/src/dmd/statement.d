@@ -1308,6 +1308,7 @@ extern (C++) final class ReturnStatement : Statement
 {
     Expression exp;
     size_t caseDim;
+    FuncDeclaration fesFunc; // nested function for foreach it is in
 
     extern (D) this(Loc loc, Expression exp) @safe
     {

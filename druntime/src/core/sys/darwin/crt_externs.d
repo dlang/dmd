@@ -8,7 +8,7 @@
  */
 module core.sys.darwin.crt_externs;
 
-version (CoreDoc)
+version (CoreDdoc)
 {
     /**
      * In reality this will be $(REF mach_header, core, sys, darwin, mach, loader)

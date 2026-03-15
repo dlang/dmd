@@ -63,12 +63,10 @@ build() {
     if [ "$OS_NAME" != "windows" ]; then
         source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
     fi
-    $DMD compiler/src/build.d -ofgenerated/build
     if [ $unittest -eq 1 ]; then
-        generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
+        make -j$N MODEL=$MODEL HOST_DMD=$DMD HOST_DFLAGS="$CI_DFLAGS" BUILD=debug dmd-unittest
     fi
-    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
-    make -j$N -C druntime MODEL=$MODEL
+    make -j$N MODEL=$MODEL HOST_DMD=$DMD HOST_DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1}
     make -j$N -C ../phobos MODEL=$MODEL
     if [ "$OS_NAME" != "windows" ]; then
         deactivate # deactivate host compiler
@@ -93,7 +91,7 @@ rebuild() {
     cp $build_path/dmd$dotexe _${build_path}/host_dmd$dotexe
     cp $build_path/$conf _${build_path}/
     rm -rf $build_path
-    generated/build -j$N MODEL=$MODEL HOST_DMD=_${build_path}/host_dmd$dotexe DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
+    make -j$N MODEL=$MODEL HOST_DMD=_${build_path}/host_dmd$dotexe HOST_DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
 
     # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then

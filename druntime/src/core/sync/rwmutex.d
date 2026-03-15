@@ -20,6 +20,7 @@ public import core.sync.exception;
 import core.sync.condition;
 import core.sync.mutex;
 import core.memory;
+import core.atomic : atomicLoad;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -107,11 +108,11 @@ class ReadWriteMutex
         if ( !m_commonMutex )
             throw new SyncError( "Unable to initialize mutex" );
 
-        m_readerQueue = new shared Condition( m_commonMutex );
+        m_readerQueue = new shared Condition(atomicLoad(m_commonMutex));
         if ( !m_readerQueue )
             throw new SyncError( "Unable to initialize mutex" );
 
-        m_writerQueue = new shared Condition( m_commonMutex );
+        m_writerQueue = new shared Condition(atomicLoad(m_commonMutex));
         if ( !m_writerQueue )
             throw new SyncError( "Unable to initialize mutex" );
 
@@ -139,7 +140,7 @@ class ReadWriteMutex
     ///ditto
     @property Policy policy() shared @safe nothrow
     {
-        return m_policy;
+        return atomicLoad(m_policy);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -161,7 +162,7 @@ class ReadWriteMutex
     ///ditto
     @property shared(Reader) reader() shared @safe nothrow
     {
-        return m_reader;
+        return atomicLoad(m_reader);
     }
 
     /**
@@ -178,7 +179,7 @@ class ReadWriteMutex
     ///ditto
     @property shared(Writer) writer() shared @safe nothrow
     {
-        return m_writer;
+        return atomicLoad(m_writer);
     }
 
 
@@ -200,7 +201,7 @@ class ReadWriteMutex
         this(this Q)() @trusted nothrow
             if (is(Q == Reader) || is(Q == shared Reader))
         {
-            m_proxy.link = this;
+            m_proxy.link = cast(typeof(m_proxy.link)) this;
             this.__monitor = cast(void*) &m_proxy;
         }
 
@@ -223,15 +224,7 @@ class ReadWriteMutex
         /// ditto
         @trusted void lock() shared
         {
-            synchronized( m_commonMutex )
-            {
-                ++(cast()m_numQueuedReaders);
-                scope(exit) --(cast()m_numQueuedReaders);
-
-                while ( shouldQueueReader )
-                    m_readerQueue.wait();
-                ++(cast()m_numActiveReaders);
-            }
+            (cast() this).lock();
         }
 
         /**
@@ -252,14 +245,7 @@ class ReadWriteMutex
         /// ditto
         @trusted void unlock() shared
         {
-            synchronized( m_commonMutex )
-            {
-                if ( --(cast()m_numActiveReaders) < 1 )
-                {
-                    if ( m_numQueuedWriters > 0 )
-                        m_writerQueue.notify();
-                }
-            }
+            (cast() this).unlock();
         }
 
         /**
@@ -284,13 +270,7 @@ class ReadWriteMutex
         /// ditto
         @trusted bool tryLock() shared
         {
-            synchronized( m_commonMutex )
-            {
-                if ( shouldQueueReader )
-                    return false;
-                ++(cast()m_numActiveReaders);
-                return true;
-            }
+            return (cast() this).tryLock();
         }
 
         /**
@@ -341,25 +321,7 @@ class ReadWriteMutex
         /// ditto
         @trusted bool tryLock(Duration timeout) shared
         {
-            const initialTime = MonoTime.currTime;
-            synchronized( m_commonMutex )
-            {
-                ++(cast()m_numQueuedReaders);
-                scope(exit) --(cast()m_numQueuedReaders);
-
-                while (shouldQueueReader)
-                {
-                    const timeElapsed = MonoTime.currTime - initialTime;
-                    if (timeElapsed >= timeout)
-                        return false;
-                    auto nextWait = timeout - timeElapsed;
-                    // Avoid problems calling wait(Duration) with huge arguments.
-                    enum maxWaitPerCall = dur!"hours"(24 * 365);
-                    m_readerQueue.wait(nextWait < maxWaitPerCall ? nextWait : maxWaitPerCall);
-                }
-                ++(cast()m_numActiveReaders);
-                return true;
-            }
+            return (cast() this).tryLock(timeout);
         }
 
 
@@ -410,7 +372,7 @@ class ReadWriteMutex
         this(this Q)() @trusted nothrow
             if (is(Q == Writer) || is(Q == shared Writer))
         {
-            m_proxy.link = this;
+            m_proxy.link = cast(typeof(m_proxy.link)) this;
             this.__monitor = cast(void*) &m_proxy;
         }
 
@@ -434,15 +396,7 @@ class ReadWriteMutex
         /// ditto
         @trusted void lock() shared
         {
-            synchronized( m_commonMutex )
-            {
-                ++(cast()m_numQueuedWriters);
-                scope(exit) --(cast()m_numQueuedWriters);
-
-                while ( shouldQueueWriter )
-                    m_writerQueue.wait();
-                ++(cast()m_numActiveWriters);
-            }
+            (cast() this).lock();
         }
 
 
@@ -477,27 +431,7 @@ class ReadWriteMutex
         /// ditto
         @trusted void unlock() shared
         {
-            synchronized( m_commonMutex )
-            {
-                if ( --(cast()m_numActiveWriters) < 1 )
-                {
-                    switch ( m_policy )
-                    {
-                    default:
-                    case Policy.PREFER_READERS:
-                        if ( m_numQueuedReaders > 0 )
-                            m_readerQueue.notifyAll();
-                        else if ( m_numQueuedWriters > 0 )
-                            m_writerQueue.notify();
-                        break;
-                    case Policy.PREFER_WRITERS:
-                        if ( m_numQueuedWriters > 0 )
-                            m_writerQueue.notify();
-                        else if ( m_numQueuedReaders > 0 )
-                            m_readerQueue.notifyAll();
-                    }
-                }
-            }
+            (cast() this).unlock();
         }
 
 
@@ -523,13 +457,7 @@ class ReadWriteMutex
         /// ditto
         @trusted bool tryLock() shared
         {
-            synchronized( m_commonMutex )
-            {
-                if ( shouldQueueWriter )
-                    return false;
-                ++(cast()m_numActiveWriters);
-                return true;
-            }
+            return (cast() this).tryLock();
         }
 
         /**
@@ -580,25 +508,7 @@ class ReadWriteMutex
         /// ditto
         @trusted bool tryLock(Duration timeout) shared
         {
-            const initialTime = MonoTime.currTime;
-            synchronized( m_commonMutex )
-            {
-                ++(cast()m_numQueuedWriters);
-                scope(exit) --(cast()m_numQueuedWriters);
-
-                while (shouldQueueWriter)
-                {
-                    const timeElapsed = MonoTime.currTime - initialTime;
-                    if (timeElapsed >= timeout)
-                        return false;
-                    auto nextWait = timeout - timeElapsed;
-                    // Avoid problems calling wait(Duration) with huge arguments.
-                    enum maxWaitPerCall = dur!"hours"(24 * 365);
-                    m_writerQueue.wait(nextWait < maxWaitPerCall ? nextWait : maxWaitPerCall);
-                }
-                ++(cast()m_numActiveWriters);
-                return true;
-            }
+            return (cast() this).tryLock(timeout);
         }
 
     private:

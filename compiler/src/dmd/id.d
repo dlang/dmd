@@ -418,6 +418,7 @@ immutable Msgtable[] msgtable =
     { "isAbstractClass" },
     { "isArithmetic" },
     { "isAssociativeArray" },
+    { "isOverlapped" },
     { "isBitfield" },
     { "isFinalClass" },
     { "isTemplate" },
@@ -483,6 +484,7 @@ immutable Msgtable[] msgtable =
     { "isCopyable" },
     { "toType" },
     { "parameters" },
+    { "needsDestruction" },
 
     // For C++ mangling
     { "allocator" },

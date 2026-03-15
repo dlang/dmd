@@ -1,0 +1,146 @@
+Ddoc
+
+$(SPEC_S Legacy Code,
+
+$(HEADERNAV_TOC)
+
+    $(P To maintain compatibility with older D code, many legacy features remain supported.
+$(COMMENT
+    If the $(TT -wo) compiler command line switch is used, the compiler will give warning messages
+    for each use of a legacy feature.
+)
+    This page describes each legacy feature that is supported, with a suggestion of how to
+    modernize the code.
+    )
+
+    $(TABLE2 Legacy Features,
+        $(THEAD Feature, Summary, $(DDLINK spec/editions, Editions, Edition) check)
+
+        $(COMMENT 2024)
+        $(TROW $(RELATIVE_LINK2 body, `body` keyword), $(D body) after a contract statement -
+            use $(D do) instead, 2024)
+        $(TROW $(RELATIVE_LINK2 alias-syntax, `alias target name;` syntax), use `alias name = target;` instead, 2024)
+        $(TROW $(RELATIVE_LINK2 alias-instance-member, Aliasing an instance member),
+            Use `typeof(instance).member` instead, 2024)
+        $(TROW Escaping $(DDSUBLINK spec/attribute, scope, `scope`) data,
+            `scope` is $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md,
+            enforced) in `@safe` code, 2024)
+        $(TROW $(RELATIVE_LINK2 struct-assign, Assigning to struct rvalue),
+            Disallow for structs which overload e.g. `opAssign`, 2024)
+
+        $(COMMENT Not enforced yet)
+        $(TROW Struct/union postblit, use a $(DDSUBLINK spec/struct, struct-copy-constructor,
+            copy constructor) instead.)
+    )
+
+$(H2 $(LNAME2 body, `body` keyword))
+    $(P `body` was a keyword used to specify a function/method's body after a contract statement:)
+        ---
+        class Foo
+        {
+            void bar(int i)
+            in { assert(i >= 42); }
+            body { /* Do something interesting */ }
+
+            string method(string s)
+            out(v) { assert(v.length == s.length); }
+            body { /* Do something even more interesting */ }
+
+            void noBody() { /* No contracts, no body */ }
+        }
+        ---
+
+$(H3 Corrective Action)
+
+    $(P Use the `do` keyword instead (introduced in v2.075.0):)
+        ---
+        void bar(int i)
+        in { assert(i >= 42); }
+        do { /* Look ma, no body! */ }
+        ---
+
+    $(RATIONALE The `body` keyword was only used for this single purpose.
+        Since D grammar aims to be context free, this common word was reserved,
+        which led to frequent trouble for people interfacing with other languages
+        (e.g. javascript) or auto-generating code.
+    )
+
+$(H2 $(LNAME2 alias-syntax, `alias target name;` syntax))
+
+    $(P From the 2024 edition, $(GLINK2 declaration, AliasDeclaration) only supports
+    `alias name = target;` syntax. This is easier to find the symbol identifier,
+    particularly when `target` is a complex symbol. The target first order came
+    from C's `typedef` syntax.)
+
+$(H2 $(LNAME2 alias-instance-member, Aliasing an instance member))
+
+    $(P E.g. `alias a = instance.field;`.
+        Such an alias actually aliases a member of the instance's *type*, not
+        the instance member itself. That could be confusing.
+        Instead, alias a member of the type.)
+
+    $(NOTE Aliasing `this.member` and `super.member` are valid inside
+        methods.)
+
+---
+struct Bar
+{
+    Foo f;
+    alias v = f.v; // Error, use `typeof(f).v`
+}
+
+struct Foo
+{
+    int v;
+    void test(Foo that) const
+    {
+        alias a = this.v; // OK
+        alias b = that.v; // Error, use `typeof(that).v` instead
+        assert(&a is &b); // passes
+        assert(&b !is &that.v);
+    }
+}
+---
+
+$(H2 $(LNAME2 struct-assign, Assigning to struct rvalue))
+
+    $(P It has always been an error for $(DDSUBLINK spec/struct, POD, POD) structs
+        to assign from an rvalue.)
+
+    $(P From the 2024 edition, it is an error to discard the result of an
+        assignment from a struct rvalue when it would call `opAssign`, `opOpAssign`,
+        `opUnary!"++"`, or `opUnary!"--"` and the struct has no pointer
+        fields:)
+
+---
+struct S
+{
+    int i;
+
+    void opAssign(S s);
+}
+
+S foo();
+
+void main()
+{
+    foo() = S(2); // Error, possible no-op
+}
+---
+    $(P Above, unless `opAssign` mutates global data, the assignment in `main`
+    will have no effect and indicates a bug.)
+
+$(H3 Corrective Action)
+
+    $(P If a struct rvalue assignment is needed to mutate global state, either
+    call the operator overload method directly or use an lvalue.
+    Note: Calling a non-const method on a struct rvalue
+    $(DDSUBLINK spec/struct, member-functions, is allowed).)
+
+
+$(SPEC_SUBNAV_PREV_NEXT glossary, Glossary, editions, Editions)
+)
+
+Macros:
+        CHAPTER=46
+        TITLE=Legacy Code

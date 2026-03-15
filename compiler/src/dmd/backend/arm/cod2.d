@@ -38,7 +38,8 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
 import dmd.backend.arm.cod1 : loadFromEA, storeToEA, getlvalue, CLIB_A, callclib;
-import dmd.backend.arm.cod3 : conditionCode, genBranch, genCompBranch, gentstreg, movregconst, COND, loadFloatRegConst;
+import dmd.backend.arm.cod3 : conditionCode, genBranch, genCompBranch, gentstreg, movregconst,
+                        movregconstant, COND, loadFloatRegConst;
 import dmd.backend.arm.instr;
 
 nothrow:
@@ -188,6 +189,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     break;
 
                 default:
+                    elem_print(e);
                     assert(0);
             }
         }
@@ -2325,7 +2327,16 @@ static if (0)
                     op = 1;     // sub
                     off = -off;
                 }
-                cdb.gen1(INSTR.addsub_imm(1,op,0,sh,off,reg,reg)); // ADD/SUB reg,reg,Voffset
+                if (off >= 0x1000)
+                {
+                    enum R16 = 16;
+                    movregconstant(cdb,R16,off,0);
+                    // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_shift.html
+                    cdb.gen1(INSTR.addsub_shift(1,0,0,0,R16,0,reg,reg)); // ADD/SUB reg,reg,R16
+                }
+                else
+                    // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
+                    cdb.gen1(INSTR.addsub_imm(1,op,0,sh,off,reg,reg)); // ADD/SUB reg,reg,Voffset
                 // TODO AArch64 common subexpressions?
                 //loadea(cdb,e,cs,LEA,reg,0,0,0);   // LEA reg,EA
             }

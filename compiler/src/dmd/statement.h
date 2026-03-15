@@ -518,6 +518,7 @@ class ReturnStatement final : public Statement
 public:
     Expression *exp;
     size_t caseDim;
+    FuncDeclaration *fesFunc;   // nested function for foreach it is in
 
     ReturnStatement *syntaxCopy() override;
 

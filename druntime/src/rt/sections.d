@@ -45,9 +45,11 @@ else version (Solaris)
 else version (Darwin)
 {
     version (X86_64)
-        public import rt.sections_osx_x86_64;
+        public import rt.sections_osx_64;
     else version (X86)
         public import rt.sections_osx_x86;
+    else version (AArch64)
+        public import rt.sections_osx_64;
     else
         static assert(0, "unimplemented");
 }

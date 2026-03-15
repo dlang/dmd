@@ -2481,8 +2481,12 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         //printf("ReturnStatement.dsymbolSemantic() %s\n", toChars(rs));
 
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
+
         if (fd.fes)
+        {
+            rs.fesFunc = fd;
             fd = fd.fes.func; // fd is now function enclosing foreach
+        }
 
         auto tf = fd.type.isTypeFunction();
 

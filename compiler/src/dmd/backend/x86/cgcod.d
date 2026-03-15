@@ -1389,7 +1389,9 @@ private void blcodgen(ref CGstate cg, block* bl)
         CodeBuilder cdbload; cdbload.ctor();
         CodeBuilder cdbstore; cdbstore.ctor();
 
-        sflsave = cast(FL*) alloca(globsym.length * FL.sizeof);
+        // BUG AArch64 alloca() not implemented yet for AArch64
+        //sflsave = cast(FL*) alloca(globsym.length * FL.sizeof);
+        sflsave = cast(FL*) mem_malloc(globsym.length * FL.sizeof);
         foreach (i, s; globsym[])
         {
             sflsave[i] = s.Sfl;
@@ -1461,6 +1463,8 @@ private void blcodgen(ref CGstate cg, block* bl)
         Symbol* s = globsym[i];
         s.Sfl = sflsave[i];    // undo block register assignments
     }
+    if (sflsave)
+        mem_free(sflsave);
 
     if (cg.reflocal)
         bl.Bflags |= BFL.reflocal;
@@ -1617,10 +1621,18 @@ static if (0)
                 return true;
 
             case FL.pseudo:
-                assert(!cgstate.AArch64);       // pseudo-registers are only for the X86 and X86_64
-                uint u = s.Sreglsw;
+                reg_t u = s.Sreglsw;
                 regm_t m = mask(u);
-                if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
+                if (cgstate.AArch64)
+                {
+                    if (m & (INSTR.ALLREGS | INSTR.FLOATREGS))
+                    {
+                        preg = u;
+                        pregm = m;
+                        return true;
+                    }
+                }
+                else if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
                 {
                     preg = u & 7;
                     pregm = m;

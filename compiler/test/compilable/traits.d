@@ -169,6 +169,7 @@ class C1 {}
 static assert( __traits(isCopyable, S1));
 static assert( __traits(isCopyable, S2));
 static assert(!__traits(isCopyable, S3));
+static assert(!__traits(isCopyable, S3[1]));
 static assert(!__traits(isCopyable, S4));
 static assert(__traits(isCopyable, C1));
 static assert(__traits(isCopyable, int));

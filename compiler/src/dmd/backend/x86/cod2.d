@@ -81,7 +81,7 @@ bool movOnly(const elem* e)
  * Determine index registers used by addressing mode.
  * Index is rm of modregrm field.
  * Params:
- *	c = code with EA filled in
+ *      c = code with EA filled in
  * Returns:
  *      mask of index registers
  */

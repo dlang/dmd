@@ -286,6 +286,7 @@ struct V12
 {
     S12 s;
     this(int) { s = S12(1); }
+    int opApply(int delegate(Object)) { return 0; }
 }
 
 S12 foo12()
@@ -293,10 +294,33 @@ S12 foo12()
     return __rvalue(V12(1).s);
 }
 
+S12 bar12()
+{
+    S12 s = S12(1); // NRVO
+    foreach (_; V12(1))
+        return s;
+    return s;
+}
+
+S12 baz12()
+{
+    S12 s1 = S12(1);
+    S12 s2 = S12(1); // No NRVO
+    foreach (_; V12(1))
+        return s1;
+    return s2;
+}
+
 void test12()
 {
     S12 s = foo12();
     assert(&s == s.ptr);
+
+    S12 s2 = bar12();
+    assert(&s2 == s2.ptr);
+
+    S12 s3 = baz12();
+    assert(&s3 == s3.ptr);
 }
 
 /********************************/

@@ -143,6 +143,15 @@ void addObjcSymbols(Dsymbol _this, ClassDeclarations* classes, ClassDeclarations
         objc.addSymbols(cd, classes, categories);
 }
 
+private void fixupInvariantIdent(InvariantDeclaration invd, size_t offset)
+{
+    OutBuffer idBuf;
+    idBuf.writestring("__invariant");
+    idBuf.print(offset);
+
+    invd.ident = Identifier.idPool(idBuf[]);
+}
+
 /************************************
  * Maybe `ident` was a C or C++ name. Check for that,
  * and suggest the D equivalent.
@@ -3555,7 +3564,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         sc = sc.push();
         sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.gshared);
-        sc.inunion = scd.isunion ? scd : null;
+        sc.inunion = scd.isunion ? scd : sc.inunion;
         sc.resetAllFlags();
         for (size_t i = 0; i < scd.decl.length; i++)
         {
@@ -9365,59 +9374,6 @@ Lfail:
     return false;
 }
 
-void addComment(Dsymbol d, const(char)* comment)
-{
-    scope v = new AddCommentVisitor(comment);
-    d.accept(v);
-}
-
-extern (C++) class AddCommentVisitor: Visitor
-{
-    alias visit = Visitor.visit;
-
-    const(char)* comment;
-
-    this(const(char)* comment)
-    {
-        this.comment = comment;
-    }
-
-    override void visit(Dsymbol d)
-    {
-        if (!comment || !*comment)
-            return;
-
-        //printf("addComment '%s' to Dsymbol %p '%s'\n", comment, this, toChars());
-        void* h = cast(void*)d;      // just the pointer is the key
-        auto p = h in d.commentHashTable;
-        if (!p)
-        {
-            d.commentHashTable[h] = comment;
-            return;
-        }
-        if (strcmp(*p, comment) != 0)
-        {
-            // Concatenate the two
-            *p = Lexer.combineComments((*p).toDString(), comment.toDString(), true);
-        }
-    }
-    override void visit(AttribDeclaration atd)
-    {
-        if (comment)
-        {
-            atd.include(null).foreachDsymbol( s => s.addComment(comment) );
-        }
-    }
-    override void visit(ConditionalDeclaration cd)
-    {
-        if (comment)
-        {
-            cd.decl    .foreachDsymbol( s => s.addComment(comment) );
-            cd.elsedecl.foreachDsymbol( s => s.addComment(comment) );
-        }
-    }
-    override void visit(StaticForeachDeclaration sfd) {}
-}
 
 void checkCtorConstInit(Dsymbol d)
 {
