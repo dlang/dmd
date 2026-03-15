@@ -2794,6 +2794,7 @@ public:
     bool noderef;
     bool wantsym;
     bool arrow;
+    Loc identLoc;  // location of the identifier (for accurate error reporting)
     static DotIdExp* create(Loc loc, Expression* e, Identifier* ident);
     void accept(Visitor* v) override;
 };

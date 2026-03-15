@@ -9064,6 +9064,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (token.value == TOK.identifier)
                 {
                     Identifier id = token.ident;
+                    const identLoc = token.loc;
 
                     nextToken();
                     if (token.value == TOK.not && peekNext() != TOK.is_ && peekNext() != TOK.in_)
@@ -9072,7 +9073,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         e = new AST.DotTemplateInstanceExp(loc, e, id, tiargs);
                     }
                     else
-                        e = new AST.DotIdExp(loc, e, id);
+                        e = new AST.DotIdExp(loc, e, id, identLoc);
                     continue;
                 }
                 if (token.value == TOK.new_)
