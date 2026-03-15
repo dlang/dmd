@@ -3676,6 +3676,17 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
          */
 
         //printf("AsmStatement()::semantic()\n");
+        if (s.exp)
+        {
+            // Must evaluate to a constant, like an enum member does
+            Expression e = s.exp;
+            e = e.expressionSemantic(sc);
+            e = resolveProperties(sc, e);
+            e = e.ctfeInterpret();
+            s.exp = e;
+            if (s.exp.op == EXP.error)
+                return setError();
+        }
         result = asmSemantic(s, sc);
     }
 

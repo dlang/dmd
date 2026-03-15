@@ -7121,6 +7121,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         Identifier label = null;
         auto statements = new AST.Statements();
         size_t nestlevel = 0;
+        AST.Expression value;
         while (1)
         {
             if (endOfLine)
@@ -7128,7 +7129,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             switch (token.value)
             {
             case TOK.identifier:
-                if (!toklist)
+                if (!toklist)   // i.e. beginning of asm statement
                 {
                     // Look ahead to see if it is a label
                     if (peekNext() == TOK.colon)
@@ -7139,6 +7140,21 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         nextToken();
                         nextToken();
                         continue;
+                    }
+                    if (token.ident == Id.op)   // parse: op AssignExp ;
+                    {
+                        *ptoklist = allocateToken();
+                        **ptoklist = this.token;
+                        ptoklist = &(*ptoklist).next;
+                        *ptoklist = null;
+
+                        nextToken();
+                        value = parseAssignExp();
+                        if (token.value != TOK.semicolon)
+                        {
+                            error("`asm` statements must end in `;`");
+                        }
+                        goto case TOK.semicolon;
                     }
                 }
                 goto default;
@@ -7171,6 +7187,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     // Create AsmStatement from list of tokens we've saved
                     AST.AsmStatement as = new AST.AsmStatement(token.loc, toklist);
+                    as.exp = value;
+                    value = null;
                     as.caseSensitive = !endOfLine;
                     AST.Statement s = as;
                     toklist = null;

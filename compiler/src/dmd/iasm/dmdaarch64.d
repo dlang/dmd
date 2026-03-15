@@ -38,7 +38,7 @@ import dmd.optimize;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : pointerTo, size;
+import dmd.typesem : pointerTo, size, isIntegral;
 
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
@@ -63,6 +63,7 @@ import dmd.backend.iasm;
  */
 public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
 {
+    int errors;
     static if (1)
     {
         printf("InlineAsmAArch64Statement.semantic()\n");
@@ -71,12 +72,36 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
             printf("TOK.%s %s\n", token.toString(token.value).ptr, token.toChars());
         }
 
-	auto token = s.tokens;
-	if (token.value == TOK.identifier)
-	{
-	    const id = token.ident.toString();
-	    if (strcmp(id.ptr, "naked".ptr) == 0) { printf("found naked\n"); }
-	}
+        auto token = s.tokens;
+        if (token.value == TOK.identifier)
+        {
+            if (token.ident == Id.naked)
+            {
+                s.naked = true;
+                sc.func.isNaked = true;
+                token = token.next;
+                if (token && !errors)
+                {
+                    error(s.loc, "end of instruction expected, not `%s`", token.toChars());
+                    return new ErrorStatement();
+                }
+                else
+                    return s;
+            }
+            else if (token.ident == Id.op)
+            {
+                //printf("expression: %s\n", s.exp.toChars());
+                token = token.next;
+                Type t = s.exp.type;
+                if (!(size(t) == 4 && isIntegral(t)))
+                    error(s.loc, "size of opcode must be 4 of integral type\n");
+                code* pc = code_calloc();
+                pc.Iflags |= CFpsw;            // assume we want to keep the flags
+                pc.Iop = cast(int)s.exp.toInteger();
+                s.asmcode = pc;
+                return s;
+            }
+        }
     }
 
     /* For example,

@@ -1751,6 +1751,7 @@ extern (C++) final class LabelDsymbol : Dsymbol
 extern (C++) class AsmStatement : Statement
 {
     Token* tokens;       // linked list of tokens for one instruction or pseudo op
+    Expression exp;      // AArch64: constant-expression for an operand, 86: does its own constant expressions
     static struct BitFields
     {
     bool caseSensitive;  // for register names, and only turned on when doing MASM style inline asm

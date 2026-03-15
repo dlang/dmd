@@ -4811,6 +4811,7 @@ class AsmStatement : public Statement
 {
 public:
     Token* tokens;
+    Expression* exp;
     struct BitFields final
     {
         bool caseSensitive;
@@ -8910,6 +8911,7 @@ struct Id final
     static Identifier* undef;
     static Identifier* ident;
     static Identifier* packed;
+    static Identifier* op;
     static void initialize();
     Id()
     {

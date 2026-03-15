@@ -83,6 +83,7 @@ Statement asmSemantic(AsmStatement s, Scope* sc)
             return statementSemantic(se, sc);
         }
         auto ias = new InlineAsmStatement(s.loc, s.tokens);
+        ias.exp = s.exp;
         ias.caseSensitive = s.caseSensitive;
         return (target.isAArch64)
             ? inlineAsmAArch64Semantic(ias, sc)
