@@ -2268,106 +2268,99 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.inuse--;
             sc2.pop();
         }
+        static bool hasDollarDimension(TypeSArray tsa)
+        {
+            auto d = tsa.dim;
+            if (!d)
+                return false;
+            auto ide = d.isIdentifierExp();
+            if (!ide)
+                return false;
+            return ide.ident == Id.dollar;
+        }
         static bool hasUnresolvedDollar(Type t)
         {
-            if (auto tsa = t.isTypeSArray())
-            {
-                if (auto d = tsa.dim)
-                {
-                    if (auto ide = d.isIdentifierExp())
-                    {
-                        if (ide.ident == Id.dollar)
-                            return true;
-                    }
-                }
-                return hasUnresolvedDollar(tsa.next);
-            }
-            return false;
+            auto tsa = t.isTypeSArray();
+            if (!tsa)
+                return false;
+            if (hasDollarDimension(tsa))
+                return true;
+            return hasUnresolvedDollar(tsa.next);
         }
 
         static void resolveDollarToZero(Type t, Loc loc)
         {
-            if (auto tsa = t.isTypeSArray())
-            {
-                if (auto d = tsa.dim)
-                {
-                    if (auto ide = d.isIdentifierExp())
-                    {
-                        if (ide.ident == Id.dollar)
-                            tsa.dim = new IntegerExp(loc, 0, Type.tsize_t);
-                    }
-                }
-                resolveDollarToZero(tsa.next, loc);
+            auto tsa = t.isTypeSArray();
+            if (!tsa)
+                return;
+            if (hasDollarDimension(tsa)) {
+                tsa.dim = new IntegerExp(loc, 0, Type.tsize_t);
             }
+            resolveDollarToZero(tsa.next, loc);
         }
 
         static void inferSArrayDim(TypeSArray tsa, Expression ie, Loc loc, Scope* sc)
         {
             if (!tsa || !ie)
                 return;
-            if (auto d = tsa.dim)
+
+            if (hasDollarDimension(tsa))
             {
-                if (auto ide = d.isIdentifierExp())
+                if (auto ale = ie.isArrayLiteralExp())
                 {
-                    if (ide.ident == Id.dollar)
+                    dinteger_t len = ale.elements.length;
+                    tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
+                    if (auto innerTsa = tsa.next.isTypeSArray())
                     {
-                        if (auto ale = ie.isArrayLiteralExp())
+                        if (ale.elements.length > 0)
                         {
-                            dinteger_t len = ale.elements.length;
-                            tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
-                            if (auto innerTsa = tsa.next.isTypeSArray())
-                            {
-                                if (ale.elements.length > 0)
-                                {
-                                    auto firstElem = (*ale.elements)[0];
-                                    inferSArrayDim(innerTsa, firstElem, loc, sc);
-                                }
-                            }
+                            auto firstElem = (*ale.elements)[0];
+                            inferSArrayDim(innerTsa, firstElem, loc, sc);
                         }
-                        else if (auto se = ie.isStringExp())
+                    }
+                }
+                else if (auto se = ie.isStringExp())
+                {
+                    Type next = tsa.next.toBasetype();
+                    if (next.ty == TY.Tchar || next.ty == TY.Twchar || next.ty == TY.Tdchar)
+                        tsa.dim = new IntegerExp(loc, se.len, Type.tsize_t);
+                    else
+                        tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+                }
+                else if (ie.type)
+                {
+                    Type tb = ie.type.toBasetype();
+                    if (auto tsan = tb.isTypeSArray())
+                    {
+                        tsa.dim = tsan.dim;
+                    }
+                    else if (auto ne = ie.isNewExp())
+                    {
+                        Type nb = ne.newtype.toBasetype();
+                        if (auto nsa = nb.isTypeSArray())
                         {
-                            Type next = tsa.next.toBasetype();
-                            if (next.ty == TY.Tchar || next.ty == TY.Twchar || next.ty == TY.Tdchar)
-                                tsa.dim = new IntegerExp(loc, se.len, Type.tsize_t);
-                            else
-                                tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+                            tsa.dim = nsa.dim;
                         }
-                        else if (ie.type)
+                        else if (ne.arguments && ne.arguments.length == 1)
                         {
-                            Type tb = ie.type.toBasetype();
-                            if (auto tsan = tb.isTypeSArray())
+                            auto arg = (*ne.arguments)[0];
+                            if (auto intExp = arg.isIntegerExp())
                             {
-                                tsa.dim = tsan.dim;
-                            }
-                            else if (auto ne = ie.isNewExp())
-                            {
-                                Type nb = ne.newtype.toBasetype();
-                                if (auto nsa = nb.isTypeSArray())
-                                {
-                                    tsa.dim = nsa.dim;
-                                }
-                                else if (ne.arguments && ne.arguments.length == 1)
-                                {
-                                    auto arg = (*ne.arguments)[0];
-                                    if (auto intExp = arg.isIntegerExp())
-                                    {
-                                        tsa.dim = new IntegerExp(loc, intExp.value, Type.tsize_t);
-                                    }
-                                    else
-                                    {
-                                        tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
-                                    }
-                                }
-                                else
-                                {
-                                    tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
-                                }
+                                tsa.dim = new IntegerExp(loc, intExp.value, Type.tsize_t);
                             }
                             else
                             {
                                 tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
                             }
                         }
+                        else
+                        {
+                            tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+                        }
+                    }
+                    else
+                    {
+                        tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
                     }
                 }
             }
