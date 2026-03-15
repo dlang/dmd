@@ -560,6 +560,7 @@ int ld_cmp(longdouble_soft x, longdouble_soft y)
             sub     AL, AH;
             movsx   EAX, AL;
             fstp    ST(0);
+            mov     res, EAX;
         }
     }
     return res;
