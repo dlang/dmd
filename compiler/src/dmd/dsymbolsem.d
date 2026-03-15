@@ -2319,6 +2319,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         inferSArrayDim(innerTsa, firstElem, loc, sc);
                     }
                 }
+                return;
             }
             else if (auto se = ie.isStringExp())
             {
@@ -2327,29 +2328,33 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     tsa.dim = new IntegerExp(loc, se.len, Type.tsize_t);
                 else
                     tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+                return;
             }
-            else if (ie.type)
-            {
-                if (auto tsan = ie.type.toBasetype().isTypeSArray())
-                    tsa.dim = tsan.dim;
-                else
-                {
-                    tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+            else if (!ie.type)
+                return;
 
-                    if (auto ne = ie.isNewExp())
-                    {
-                        Type nb = ne.newtype.toBasetype();
-                        if (auto nsa = nb.isTypeSArray())
-                        {
-                            tsa.dim = nsa.dim;
-                        }
-                        else if (ne.arguments && ne.arguments.length == 1)
-                        {
-                            auto arg = (*ne.arguments)[0];
-                            if (auto intExp = arg.isIntegerExp())
-                                tsa.dim = new IntegerExp(loc, intExp.value, Type.tsize_t);
-                        }
-                    }
+            if (auto tsan = ie.type.toBasetype().isTypeSArray())
+            {
+                tsa.dim = tsan.dim;
+                return;
+            }
+
+            tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
+
+            if (auto ne = ie.isNewExp())
+            {
+                Type nb = ne.newtype.toBasetype();
+                if (auto nsa = nb.isTypeSArray())
+                {
+                    tsa.dim = nsa.dim;
+                    return;
+                }
+
+                if (ne.arguments && ne.arguments.length == 1)
+                {
+                    auto arg = (*ne.arguments)[0];
+                    if (auto intExp = arg.isIntegerExp())
+                        tsa.dim = new IntegerExp(loc, intExp.value, Type.tsize_t);
                 }
             }
 
