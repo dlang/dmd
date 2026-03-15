@@ -542,6 +542,9 @@ immutable Msgtable[] msgtable =
     { "undef" },
     { "ident" },
     { "packed" },
+
+    // for inline assembler
+    { "op" },
 ];
 
 
