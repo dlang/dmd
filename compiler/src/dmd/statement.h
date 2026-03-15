@@ -335,6 +335,9 @@ public:
     Statements *cases;          // put breaks, continues, gotos and returns here
     ScopeStatements *gotos;     // forward referenced goto's go here
 
+    bool hasReturnExp;          // has return exp; statement
+    Statement *lowering;        // statement we lower to
+
     ForeachStatement *syntaxCopy() override;
     bool hasBreak() const override;
     bool hasContinue() const override;
