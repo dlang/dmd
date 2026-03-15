@@ -4608,6 +4608,7 @@ string EXPtoString(EXP op)
         EXP.dotVariable : "dotvar",
         EXP.scope_ : "scope",
         EXP.identifier : "identifier",
+        EXP.dollar : "$",
         EXP.this_ : "this",
         EXP.super_ : "super",
         EXP.int64 : "long",
