@@ -2366,8 +2366,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (auto intExp = arg.isIntegerExp())
                     tsa.dim = new IntegerExp(loc, intExp.value, Type.tsize_t);
             }
-
-
         }
 
         auto tsa = dsym.type.isTypeSArray();
@@ -2391,7 +2389,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
             }
         }
-        if (hasUnresolvedDollar(tsa.next))
+        if (tsa && hasUnresolvedDollar(tsa.next))
         {
             .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
             resolveDollarToZero(tsa.next, dsym.loc);
