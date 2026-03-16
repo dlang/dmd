@@ -391,7 +391,7 @@ else version (NetBSD)
     alias clock_t = uint; // unsigned int
     alias id_t = long;
     alias key_t = c_long;
-    alias suseconds_t = c_long;
+    alias suseconds_t = int; // int
     alias useconds_t = uint;
 }
 else version (OpenBSD)
