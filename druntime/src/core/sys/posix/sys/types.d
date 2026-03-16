@@ -388,7 +388,7 @@ else version (NetBSD)
 {
     alias fsblkcnt_t = ulong;
     alias fsfilcnt_t = ulong;
-    alias clock_t = c_long;
+    alias clock_t = uint; // unsigned int
     alias id_t = long;
     alias key_t = c_long;
     alias suseconds_t = c_long;
