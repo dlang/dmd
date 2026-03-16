@@ -251,7 +251,7 @@ else version (NetBSD)
     alias pid_t = int;
     //size_t (defined in core.stdc.stddef)
     alias ssize_t = c_long;
-    alias time_t = c_long;
+    alias time_t = long; // _BSD_TIME_T_ mapped to __int64_t
     alias uid_t = uint;
 }
 else version (OpenBSD)
