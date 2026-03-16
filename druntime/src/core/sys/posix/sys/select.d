@@ -268,7 +268,9 @@ else version (NetBSD)
             _p.fds_bits[--_n] = 0;
     }
 
+    pragma(mangle, "__pselect50")
     int pselect(int, fd_set*, fd_set*, fd_set*, const scope timespec*, const scope sigset_t*);
+    pragma(mangle, "__select50")
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
 else version (OpenBSD)

@@ -251,7 +251,7 @@ else version (NetBSD)
     alias pid_t = int;
     //size_t (defined in core.stdc.stddef)
     alias ssize_t = c_long;
-    alias time_t = c_long;
+    alias time_t = long; // _BSD_TIME_T_ mapped to __int64_t
     alias uid_t = uint;
 }
 else version (OpenBSD)
@@ -388,10 +388,10 @@ else version (NetBSD)
 {
     alias fsblkcnt_t = ulong;
     alias fsfilcnt_t = ulong;
-    alias clock_t = c_long;
+    alias clock_t = uint; // unsigned int
     alias id_t = long;
     alias key_t = c_long;
-    alias suseconds_t = c_long;
+    alias suseconds_t = int; // int
     alias useconds_t = uint;
 }
 else version (OpenBSD)
