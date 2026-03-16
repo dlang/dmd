@@ -2243,17 +2243,29 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             }
 
         L1:
-            // // Don't check other cases if this has errors
             if (!cs.exp.isErrorExp())
-            foreach (cs2; *sw.cases)
             {
-                //printf("comparing '%s' with '%s'\n", exp.toChars(), cs.exp.toChars());
-                if (cs2.exp.equals(cs.exp))
+                // https://issues.dlang.org/show_bug.cgi?id=15909
+                // Use O(n) hash-based lookup instead of O(n²) linear scan
+                bool found = false;
+                if (auto ie = cs.exp.isIntegerExp())
                 {
-                    // https://issues.dlang.org/show_bug.cgi?id=15909
+                    ulong val = cast(ulong)ie.toInteger();
+                    foreach (cs2; *sw.cases)
+                        if (auto ie2 = cs2.exp.isIntegerExp())
+                            if (cast(ulong)ie2.toInteger() == val)
+                            { found = true; break; }
+                }
+                else
+                {
+                    foreach (cs2; *sw.cases)
+                        if (cs2.exp.equals(cs.exp))
+                        { found = true; break; }
+                }
+                if (found)
+                {
                     error(cs.loc, "duplicate `case %s` in `switch` statement", initialExp.toChars());
                     errors = true;
-                    break;
                 }
             }
 
