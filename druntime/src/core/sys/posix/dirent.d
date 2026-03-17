@@ -450,7 +450,7 @@ int dirfd(DIR*);
 version (NetBSD)
 {
     // On NetBSD, this is a macro in dirent.h, not a function.
-    extern (D) int dirfd(DIR* dir) nothrow @nogc
+    extern (D) int dirfd()(DIR* dir) nothrow @nogc
     {
         // ABI guarantees dd_fd remains the first field
         return *(cast(int*) dir);
