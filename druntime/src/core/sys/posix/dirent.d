@@ -441,6 +441,22 @@ else
     static assert(false, "Unsupported platform");
 }
 
+// Missing druntime declaration
+version (NetBSD)
+{
+    // On NetBSD, this is a macro in dirent.h, not a function.
+    extern (D) int dirfd(DIR* dir) nothrow @nogc
+    {
+        // ABI guarantees dd_fd remains the first field
+        return *(cast(int*) dir);
+    }
+}
+else
+{
+    pragma(mangle, "dirfd")
+    nothrow @nogc int dirfd(DIR* dir);
+}
+
 // Only OS X out of the Darwin family needs special treatment.  Other Darwins
 // (iOS, TVOS, WatchOS) are fine with normal symbol names for these functions
 // in else below.
