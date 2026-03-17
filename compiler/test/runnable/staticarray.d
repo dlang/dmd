@@ -19,10 +19,10 @@ void main()
 	static assert(arr4.length == 2);
 	static assert(arr4[0].length == 1);
 
-	int[$] arr5 = 3;
-	assert(arr5.length == 1);
-	assert(arr5[0] == 3);
-	static assert(arr5.length == 1);
+	static assert(!__traits(compiles,
+	{
+		int[$] arr5 = 3;
+	}));
 
 	int[$] arr6 = new int[2];
 	assert(arr6.length == 2);
@@ -50,15 +50,15 @@ void main()
 	static assert(arr9[0].length == 1);
 	static assert(arr9[0][0].length == 2);
 
-	float[$] arr10 = 3.0f;
-	assert(arr10.length == 1);
-	assert(arr10[0] == 3.0f);
-	static assert(arr10.length == 1);
+	static assert(!__traits(compiles,
+	{
+		float[$] arr10 = 3.0f;
+	}));
 
-	string[$] arr11 = "abc";
-	assert(arr11.length == 1);
-	assert(arr11[0] == "abc");
-	static assert(arr11.length == 1);
+	static assert(!__traits(compiles,
+	{
+		string[$] arr11 = "abc";
+	}));
 
 	char[$] arr12 = "abc";
 	assert(arr12.length == 3);

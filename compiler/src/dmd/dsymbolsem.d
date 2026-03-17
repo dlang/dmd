@@ -2308,13 +2308,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             resolveDollarToZero(tsa.next, loc);
         }
 
-        static void inferSArrayDim(TypeSArray tsa, Expression ie, Loc loc, Scope* sc)
+        static bool inferSArrayDim(TypeSArray tsa, Expression ie, Loc loc, Scope* sc)
         {
             if (!tsa || !ie)
-                return;
+                return false;
 
             if (!hasDollarDimension(tsa))
-                return;
+                return false;
 
             if (auto ale = ie.isArrayLiteralExp())
             {
@@ -2328,47 +2328,55 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         inferSArrayDim(innerTsa, firstElem, loc, sc);
                     }
                 }
-                return;
+                return true;
             }
             else if (auto se = ie.isStringExp())
             {
                 Type next = tsa.next.toBasetype();
                 if (next.ty == TY.Tchar || next.ty == TY.Twchar || next.ty == TY.Tdchar)
+                {
                     tsa.dim = new IntegerExp(loc, se.len, Type.tsize_t);
-                else
-                    tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
-                return;
+                    return true;
+                }
+                return false;
             }
             else if (!ie.type)
-                return;
+                return false;
 
             if (auto tsan = ie.type.toBasetype().isTypeSArray())
             {
                 tsa.dim = tsan.dim;
-                return;
+                return true;
             }
 
             tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
             auto ne = ie.isNewExp();
             if (!ne)
-                return;
+                return false;
+
 
             Type nb = ne.newtype.toBasetype();
             if (auto nsa = nb.isTypeSArray())
             {
                 tsa.dim = nsa.dim;
-                return;
+                return true;
             }
 
             if (ne.arguments && ne.arguments.length == 1)
             {
                 auto arg = (*ne.arguments)[0];
                 if (auto intExp = arg.isIntegerExp())
+                {
                     tsa.dim = new IntegerExp(loc, intExp.value, Type.tsize_t);
+                    return true;
+                }
             }
+
+            return false;
         }
 
         auto tsa = dsym.type.isTypeSArray();
+
         if (tsa && hasDollarDimension(tsa))
         {
             if (!dsym._init || dsym._init.isVoidInitializer())
@@ -2383,7 +2391,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     ie = ie.expressionSemantic(sc);
                     ie = ie.optimize(WANTvalue);
-                    inferSArrayDim(tsa, ie, dsym.loc, sc);
+                    bool dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
+                    if (!dimInferred)
+                    {
+                        .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+                        tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                    }
                     if (auto ale = ie.isArrayLiteralExp())
                         dsym._init = new ExpInitializer(dsym.loc, ale);
                 }
@@ -9371,7 +9384,6 @@ Lfail:
     }
     return false;
 }
-
 
 void checkCtorConstInit(Dsymbol d)
 {
