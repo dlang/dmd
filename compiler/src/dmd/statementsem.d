@@ -2283,9 +2283,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 // https://issues.dlang.org/show_bug.cgi?id=15909
                 // Use O(n) AA-based duplicate detection instead of O(n²) linear scan
                 
-                auto seen = cast(bool[CaseExpressionBox]*) sc.switchCases;
+                auto seen = *cast(bool[CaseExpressionBox]*) &sc.switchCases;
                 auto box = CaseExpressionBox(cs.exp);
-                if (box in *seen)
+                if (box in seen)
                 {
                     error(cs.loc, "duplicate `case %s` in `switch` statement", initialExp.toChars());
                     errors = true;
