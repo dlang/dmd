@@ -1840,6 +1840,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
     }
 
     void visitSwitch(SwitchStatement ss)
+
     {
         /* https://dlang.org/spec/statement.html#switch-statement
          */
@@ -1941,6 +1942,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         sc = sc.push();
         sc.sbreak = ss;
         sc.switchStatement = ss;
+        sc.switchCases = cast(void*) new bool[CaseExpressionBox];
 
         ss.cases = new CaseStatements();
         const inLoopSave = sc.inLoop;
@@ -2280,11 +2282,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=15909
                 // Use O(n) AA-based duplicate detection instead of O(n²) linear scan
-                if (sc.switchCases is null)
-                {
-                    auto aa = new bool[CaseExpressionBox];
-                    sc.switchCases = cast(void*) aa;
-                }
+                
                 auto seen = cast(bool[CaseExpressionBox]*) sc.switchCases;
                 auto box = CaseExpressionBox(cs.exp);
                 if (box in *seen)
