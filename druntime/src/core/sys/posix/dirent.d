@@ -441,7 +441,12 @@ else
     static assert(false, "Unsupported platform");
 }
 
-// Missing druntime declaration
+//
+// POSIX.1-2008
+//
+/*
+int dirfd(DIR*);
+*/
 version (NetBSD)
 {
     // On NetBSD, this is a macro in dirent.h, not a function.
