@@ -2308,6 +2308,66 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             resolveDollarToZero(tsa.next, loc);
         }
 
+        static bool inferExprLength(Expression e, out dinteger_t len)
+        {
+            if (!e)
+                return false;
+
+            if (auto ale = e.isArrayLiteralExp())
+            {
+                len = ale.elements.length;
+                return true;
+            }
+
+            if (auto ce = e.isCatExp())
+            {
+                dinteger_t l1;
+                dinteger_t l2;
+                if (inferExprLength(ce.e1, l1) && inferExprLength(ce.e2, l2))
+                {
+                    len = l1 + l2;
+                    return true;
+                }
+            }
+
+            if (auto ne = e.isNewExp())
+            {
+                Type nb = ne.newtype.toBasetype();
+                if (auto nsa = nb.isTypeSArray())
+                {
+                    if (auto dim = nsa.dim.isIntegerExp())
+                    {
+                        len = dim.value;
+                        return true;
+                    }
+                }
+
+                if (ne.arguments && ne.arguments.length == 1)
+                {
+                    auto arg = (*ne.arguments)[0];
+                    if (auto intExp = arg.isIntegerExp())
+                    {
+                        len = intExp.value;
+                        return true;
+                    }
+                }
+            }
+
+            if (!e.type)
+                return false;
+
+            auto tsan = e.type.toBasetype().isTypeSArray();
+            if (!tsan)
+                return false;
+
+            auto dim = tsan.dim.isIntegerExp();
+            if (!dim)
+                return false;
+
+            len = dim.value;
+            return true;
+        }
+
         static bool inferSArrayDim(TypeSArray tsa, Expression ie, Loc loc, Scope* sc)
         {
             if (!tsa || !ie)
@@ -2340,39 +2400,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 return false;
             }
-            else if (!ie.type)
+
+            dinteger_t len;
+            if (!inferExprLength(ie, len))
                 return false;
 
-            if (auto tsan = ie.type.toBasetype().isTypeSArray())
-            {
-                tsa.dim = tsan.dim;
-                return true;
-            }
-
-            tsa.dim = new IntegerExp(loc, 1, Type.tsize_t);
-            auto ne = ie.isNewExp();
-            if (!ne)
-                return false;
-
-
-            Type nb = ne.newtype.toBasetype();
-            if (auto nsa = nb.isTypeSArray())
-            {
-                tsa.dim = nsa.dim;
-                return true;
-            }
-
-            if (ne.arguments && ne.arguments.length == 1)
-            {
-                auto arg = (*ne.arguments)[0];
-                if (auto intExp = arg.isIntegerExp())
-                {
-                    tsa.dim = new IntegerExp(loc, intExp.value, Type.tsize_t);
-                    return true;
-                }
-            }
-
-            return false;
+            tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
+            return true;
         }
 
         auto tsa = dsym.type.isTypeSArray();
