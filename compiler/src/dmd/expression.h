@@ -696,7 +696,7 @@ public:
     d_bool arrow;         // ImportC: if -> instead of .
     Loc identLoc;         // location of the identifier (for accurate error reporting)
 
-    static DotIdExp *create(Loc loc, Expression *e, Identifier *ident);
+    static DotIdExp *create(Loc loc, Expression *e, Identifier *ident, Loc identLoc = Loc());
     void accept(Visitor *v) override { v->visit(this); }
 };
 
