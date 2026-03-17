@@ -8910,6 +8910,7 @@ struct Id final
     static Identifier* undef;
     static Identifier* ident;
     static Identifier* packed;
+    static Identifier* op;
     static void initialize();
     Id()
     {
