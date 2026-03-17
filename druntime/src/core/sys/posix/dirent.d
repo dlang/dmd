@@ -453,7 +453,6 @@ version (NetBSD)
 }
 else
 {
-    pragma(mangle, "dirfd")
     nothrow @nogc int dirfd(DIR* dir);
 }
 
