@@ -67,6 +67,39 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
+/**
+ * This struct is needed for the Expression of a CaseStatement to be the key
+ * in an associative array.
+ */
+private struct CaseExpressionBox
+{
+    Expression exp;
+    size_t hash;
+
+    this(Expression exp)
+    {
+        assert(exp.op == EXP.int64 || exp.op == EXP.string_);
+        this.exp = exp;
+
+        if (exp.isIntegerExp())
+            hash = hashOf(exp.toInteger());
+        else
+            hash = hashOf(exp.toStringExp().peekData());
+    }
+
+    size_t toHash() const @safe pure nothrow
+    {
+        return hash;
+    }
+
+    bool opEquals(ref const CaseExpressionBox s) @trusted const
+    {
+        static if (__VERSION__ < 2099)
+            return s.exp.equals(exp);
+        else
+            return exp.equals(s.exp);
+    }
+}
 version (DMDLIB)
 {
     version = CallbackAPI;
@@ -2246,27 +2279,21 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             if (!cs.exp.isErrorExp())
             {
                 // https://issues.dlang.org/show_bug.cgi?id=15909
-                // Use O(n) hash-based lookup instead of O(n²) linear scan
-                bool found = false;
-                if (auto ie = cs.exp.isIntegerExp())
+                // Use O(n) AA-based duplicate detection instead of O(n²) linear scan
+                auto seen = cast(bool[CaseExpressionBox]*) sc.switchCases;
+                if (seen is null)
                 {
-                    ulong val = cast(ulong)ie.toInteger();
-                    foreach (cs2; *sw.cases)
-                        if (auto ie2 = cs2.exp.isIntegerExp())
-                            if (cast(ulong)ie2.toInteger() == val)
-                            { found = true; break; }
+                    seen = new bool[CaseExpressionBox];
+                    sc.switchCases = seen;
                 }
-                else
-                {
-                    foreach (cs2; *sw.cases)
-                        if (cs2.exp.equals(cs.exp))
-                        { found = true; break; }
-                }
-                if (found)
+                auto box = CaseExpressionBox(cs.exp);
+                if (box in *seen)
                 {
                     error(cs.loc, "duplicate `case %s` in `switch` statement", initialExp.toChars());
                     errors = true;
                 }
+                else
+                    (*seen)[box] = true;
             }
 
             sw.cases.push(cs);
