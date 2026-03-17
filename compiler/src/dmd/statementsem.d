@@ -2280,10 +2280,10 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=15909
                 // Use O(n) AA-based duplicate detection instead of O(n²) linear scan
-                auto seen = cast(bool[CaseExpressionBox]*) sc.switchCases;
+                auto seen = cast(Expression[CaseExpressionBox]*) sc.switchCases;
                 if (seen is null)
                 {
-                    seen = new bool[CaseExpressionBox];
+                    seen = new Expression[CaseExpressionBox];
                     sc.switchCases = seen;
                 }
                 auto box = CaseExpressionBox(cs.exp);
