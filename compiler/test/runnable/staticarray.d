@@ -2,9 +2,13 @@ void main()
 {
 	int[3] arr1 = [1,2,3];
 	int[$] arr2 = [1,2,3];
+	const(int)[$] arr13 = [1,2,3];
 	assert(arr1.length == 3);
 	assert(arr2.length == 3);
+	assert(arr13.length == 3);
 	static assert(arr2.length == 3);
+	static assert(arr13.length == 3);
+	static assert(is(typeof(arr13) == const(int)[3]));
 	assert(arr1 == arr2);
 
 	int[$] arr3 = [10] ~ [20];
@@ -12,6 +16,15 @@ void main()
 	assert(arr3[0] == 10);
 	assert(arr3[1] == 20);
 	static assert(arr3.length == 2);
+
+	int[$] arrConcatA = [2];
+	int[$] arrConcatB = [2];
+	int[$] arrConcatC = arrConcatA ~ arrConcatB;
+	assert(arrConcatC.length == 2);
+	assert(arrConcatC[0] == 2);
+	assert(arrConcatC[1] == 2);
+	static assert(arrConcatC.length == 2);
+	static assert(is(typeof(arrConcatC) == int[2]));
 
 	int[$][$] arr4 = [[10], [10]];
 	assert(arr4.length == 2);
