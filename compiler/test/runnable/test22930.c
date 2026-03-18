@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -wi
+// REQUIRED_ARGS: -w
 
 // https://issues.dlang.org/show_bug.cgi?id=22930
 

@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -wi
+/* REQUIRED_ARGS: -w
 TEST_OUTPUT:
 ---
 fail_compilation/cerrors.d(13): Error: C preprocessor directive `#if` is not supported, use `version` or `static if`
