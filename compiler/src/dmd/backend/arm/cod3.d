@@ -1118,7 +1118,39 @@ Lret:
 }
 
 // cod3_spoff
-// gen_spill_reg
+
+@trusted
+void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
+{
+    code cs;
+    const regm_t keepmsk = 0;
+    const RM rm = toreg ? RM.load : RM.store;
+
+    elem* e = el_var(s); // so we can trick getlvalue() into working for us
+
+    int sz = cast(int)type_size(s.Stype);
+    bool isPair = isRegisterPair(true, tybasic(s.Stype.Tty), 0);
+    if (isPair)
+        sz /= 2;
+    getlvalue(cdb,cs,e,keepmsk,rm);
+    if (toreg)
+        loadFromEA(cs,s.Sreglsw,(sz < 4 ? 4 : sz),sz);
+    else
+        storeToEA(cs,s.Sreglsw,sz);
+    cdb.gen(&cs);
+    if (isPair)
+    {
+        if (cs.IFL1 != FL.reg)
+            cs.IEV1.Voffset += sz;
+        if (toreg)
+            loadFromEA(cs,s.Sregmsw,(sz < 4 ? 4 : sz),sz);
+        else
+            storeToEA(cs,s.Sregmsw,sz);
+        cdb.gen(&cs);
+    }
+
+    el_free(e);
+}
 
 /****************************
  * Generate code for, and output a thunk.

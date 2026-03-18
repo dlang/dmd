@@ -118,7 +118,6 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
             }
             else
                 return s;
-
         }
     }
 

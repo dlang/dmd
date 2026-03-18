@@ -5165,6 +5165,12 @@ targ_size_t cod3_spoff()
 @trusted
 void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod3 : gen_spill_reg;
+        return gen_spill_reg(cdb, s, toreg);
+    }
+
     code cs;
     const regm_t keepmsk = 0;
     const RM rm = toreg ? RM.load : RM.store;
