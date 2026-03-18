@@ -2330,29 +2330,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
             }
 
-            if (auto ne = e.isNewExp())
-            {
-                Type nb = ne.newtype.toBasetype();
-                if (auto nsa = nb.isTypeSArray())
-                {
-                    if (auto dim = nsa.dim.isIntegerExp())
-                    {
-                        len = dim.value;
-                        return true;
-                    }
-                }
-
-                if (ne.arguments && ne.arguments.length == 1)
-                {
-                    auto arg = (*ne.arguments)[0];
-                    if (auto intExp = arg.isIntegerExp())
-                    {
-                        len = intExp.value;
-                        return true;
-                    }
-                }
-            }
-
             if (!e.type)
                 return false;
 
@@ -2401,6 +2378,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return false;
             }
 
+            // For other initializer forms, infer `$` only when the extent is
+            // compile-time known: either a concatenation whose operands are
+            // inferable, or any expression whose type is a static array.
             dinteger_t len;
             if (!inferExprLength(ie, len))
                 return false;

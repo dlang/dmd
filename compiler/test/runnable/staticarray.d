@@ -37,8 +37,10 @@ void main()
 		int[$] arr5 = 3;
 	}));
 
-	int[$] arr6 = new int[2];
-	assert(arr6.length == 2);
+	static assert(!__traits(compiles,
+	{
+		int[$] arr6 = new int[2];
+	}));
 
 	int[N] arrn(size_t N)()
 	{
