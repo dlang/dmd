@@ -261,7 +261,7 @@ struct Usage
         Option("cov",
             "perform code coverage and generate `.lst` file",
             `Perform $(LINK2 $(ROOT_DIR)code_coverage.html, code coverage analysis) and generate
-            $(TT .lst) file with report.
+            $(TT .lst) file with report.)
 ---
 dmd -cov -unittest myprog.d
 ---
