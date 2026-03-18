@@ -2571,15 +2571,15 @@ private enum hasTypeBackRef = (int function(void**,void**)).mangleof[$-4 .. $] =
     assert(mangleFunc!(int function(int))("a.b") == "_D1a1bFiZi");
     static if (hasTypeBackRef)
     {
-        assert(mangleFunc!(int function(Object))("object.Object.opEquals") == "_D6object6Object8opEqualsFCQsZi");
-        assert(mangleFunc!(int function(Object, Object))("object.Object.opEquals") == "_D6object6Object8opEqualsFCQsQdZi");
+        assert(mangleFunc!(int function(Object))("object.Object.opEquals") == "_D6object06Object8opEqualsFCQsZi");
+        assert(mangleFunc!(int function(Object, Object))("object.Object.opEquals") == "_D6object06Object8opEqualsFCQsQdZi");
     }
     else
     {
         auto mngl = mangleFunc!(int function(Object))("object.Object.opEquals");
-        assert(mngl == "_D6object6Object8opEqualsFC6ObjectZi");
+        assert(mngl == "_D6object06Object8opEqualsFC6ObjectZi");
         auto remngl = reencodeMangled(mngl);
-        assert(remngl == "_D6object6Object8opEqualsFCQsZi");
+        assert(remngl == "_D6object06Object8opEqualsFCQsZi");
     }
     // trigger back tracking with ambiguity on '__T', template or identifier
     assert(reencodeMangled("_D3std4conv4conv7__T3std4convi") == "_D3std4convQf7__T3stdQpi");
@@ -2653,7 +2653,7 @@ else
         ["_D3barQeFIKAyaZv", "void bar.bar(in ref immutable(char)[])" ],
         ["_D4test3fooAa", "char[] test.foo"],
         ["_D8demangle8demangleFAaZAa", "char[] demangle.demangle(char[])"],
-        ["_D6object6Object8opEqualsFC6ObjectZi", "int object.Object.opEquals(Object)"],
+        ["_D6object06Object8opEqualsFC6ObjectZi", "int object.Object.opEquals(Object)"],
         ["_D4test2dgDFiYd", "double delegate(int, ...) test.dg"],
         ["_D4test2dgDxFNfiYd", "double delegate(int, ...) @safe const test.dg"],
         //["_D4test58__T9factorialVde67666666666666860140VG5aa5_68656c6c6fVPvnZ9factorialf", ""],
@@ -2700,6 +2700,11 @@ else
         ["_D3foo3Bar6__vtblZ", "foo.Bar.__vtbl"],
         ["_D3foo3Bar11__interfaceZ", "foo.Bar.__interface"],
         ["_D3foo7__arrayZ", "foo.__array"],
+        // https://github.com/dlang/dmd/issues/22688
+        // Zero-padded length prefix for non-module symbols (struct/class/enum)
+        // to disambiguate from module names with the same identifier.
+        ["_D10issue226883bar3zenFZi", "int issue22688.bar.zen()"],   // module bar (no leading zero)
+        ["_D10issue2268803bar3zenFZi", "int issue22688.bar.zen()"],  // struct bar (leading zero in length)
         ["_D8link657428__T3fooVE8link65746Methodi0Z3fooFZi", "int link6574.foo!(0).foo()"],
         ["_D8link657429__T3fooHVE8link65746Methodi0Z3fooFZi", "int link6574.foo!(0).foo()"],
         ["_D4test22__T4funcVAyaa3_610a62Z4funcFNaNbNiNmNfZAya", `pure nothrow @nogc @live @safe immutable(char)[] test.func!("a\x0ab").func()`],
