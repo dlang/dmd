@@ -72,13 +72,15 @@ $(GNAME VersionCondition):
         )
 
         $(P The $(I version identifier) can be set on the command line
-        by the $(D -version) switch or in the module itself with a
+        by the $(DDSUBLINK dmd, switch-version, $(D -version) switch)
+        or in the module itself with a
         $(GLINK VersionSpecification), or they can be predefined
         by the compiler.
         )
 
         $(P Version identifiers are in their own unique name space, they do
-        not conflict with debug identifiers or other symbols in the module.
+        not conflict with $(RELATIVE_LINK2 version-specification, debug identifiers)
+        or other symbols in the module.
         Version identifiers defined in one module have no influence
         over other imported modules.
         )
@@ -106,7 +108,7 @@ else
 }
 ------
 
-        $(P The $(D version(unittest)) is satisfied if and only if the code is
+        $(P $(D version (unittest)) is satisfied if and only if the code is
         compiled with unit tests enabled (the $(DDSUBLINK dmd, switch-unittest, $(TT -unittest)) option on $(TT dmd)).
         )
 
@@ -118,7 +120,8 @@ $(GNAME VersionSpecification):
     $(D version =) $(GLINK_LEX Identifier) $(D ;)
 )
 
-        $(P The version specification makes it straightforward to group
+        $(P A version specification defines a specific version identifier.
+        This makes it straightforward to group
         a set of features under one major version, for example:
         )
 
@@ -140,7 +143,7 @@ version (FeatureB)
 }
 ------
 
-        $(P Version identifiers or levels may not be forward referenced:
+        $(P Version identifiers may not be forward referenced:
         )
 
 ------
@@ -152,8 +155,8 @@ version = Foo;  // error, Foo already used
 ------
         $(P $(I VersionSpecification)s may only appear at module scope.)
 
-        $(P While the debug and version conditions superficially behave the
-        same,
+        $(P While the $(RELATIVE_LINK2 debug, debug) and version conditions
+        superficially behave the same,
         they are intended for very different purposes. Debug statements
         are for adding debug code that is removed for the release version.
         Version statements are to aid in portability and multiple release
@@ -168,7 +171,7 @@ class Foo
 {
     int a, b;
 
-    version(full)
+    version (full)
     {
         int extrafunctionality()
         {
@@ -192,7 +195,7 @@ class Foo
 
 ------
 
-version($(CODE_HIGHLIGHT identifier)) // add in version code if version
+version ($(CODE_HIGHLIGHT identifier)) // add in version code if version
                          // keyword is identifier
 {
     ... version code ...
@@ -410,7 +413,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         )
 
 ------
-version(DigitalMars_funky_extension)
+version (DigitalMars_funky_extension)
 {
     ...
 }
@@ -441,11 +444,12 @@ $(GNAME DebugCondition):
         with $(CODE #ifdef DEBUG) / $(CODE #endif) pairs.
         )
 
-        $(P The $(D debug) condition is satisfied when the $(D -debug) switch is
+        $(P The $(GRAMMAR_INLINE `debug`) condition is satisfied when the
+        $(DDSUBLINK dmd, switch-debug, $(D -debug) switch) is
         passed to the compiler.
         )
 
-        $(P The $(D debug $(LPAREN)) $(I Identifier) $(D $(RPAREN)) condition is satisfied
+        $(P The $(GRAMMAR_INLINE `debug (` $(I Identifier) `)`) condition is satisfied
         when the debug identifier matches $(I Identifier).
         )
 
@@ -484,7 +488,7 @@ $(GNAME DebugSpecification):
 )
 
         $(P Debug identifiers are set either by the command line switch
-        $(D -debug) or by a $(I DebugSpecification).
+        `-debug=`$(I identifier) or by a $(I DebugSpecification).
         )
 
         $(P Debug specifications only affect the module they appear in, they
@@ -497,7 +501,7 @@ $(GNAME DebugSpecification):
         )
 
 ------
-debug(foo) writeln("Foo");
+debug (foo) writeln("Foo");
 debug = foo;    // error, foo used before set
 ------
 
@@ -508,11 +512,11 @@ debug = foo;    // error, foo used before set
         )
 
 ------
-debug(identifier) { } // add in debug code if debug keyword is identifier
+debug ($(CODE_HIGHLIGHT identifier)) { } // add in debug code if debug keyword is identifier
 ------
 
-        $(P These are presumably set by the command line as
-        and $(D -debug=)$(I identifier).
+        $(P These are presumably set on the command line, e.g.
+        $(D -debug=)$(I identifier).
         )
 
 $(H2 $(LNAME2 staticif, Static If Condition))
