@@ -259,23 +259,25 @@ struct Usage
             "use config file at <filename>"
         ),
         Option("cov",
-            "do code coverage analysis"
-        ),
-        Option("cov=ctfe", "Include code executed during CTFE in coverage report"),
-        Option("cov=<nnn>",
-            "require at least <nnn>% code coverage",
+            "perform code coverage and generate `.lst` file",
             `Perform $(LINK2 $(ROOT_DIR)code_coverage.html, code coverage analysis) and generate
-            $(TT .lst) file with report.)
+            $(TT .lst) file with report.
 ---
 dmd -cov -unittest myprog.d
 ---
             `,
         ),
+        Option("cov=ctfe", "Include code executed during CTFE in coverage report"),
+        Option("cov=<nnn>",
+            "require at least <nnn>% code coverage",
+            "Perform code coverage analysis, requiring at least <nnn>% code coverage.
+            Options can be combined, e.g. `-cov=100 -cov=ctfe`."
+        ),
         Option("cpp=<filename>",
             "use <filename> as the name of the C preprocessor to use for ImportC files",
-            `Normally the C preprocessor used by the associated C compiler is used to
-            preprocess ImportC files,
-            this is overridden by the $(TT -cpp) switch.`
+            `Sets the C preprocessor to <filename>.
+            Normally the C preprocessor used by the associated C compiler is used to
+            preprocess ImportC files.`
         ),
         Option("D",
             "generate documentation",
@@ -309,7 +311,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("debug=<ident>",
             "compile in debug code identified by <ident>",
-            `Compile in $(LINK2 spec/version.html#debug, debug identifier) $(I ident)`,
+            `Compile in debug code with $(LINK2 spec/version.html#debug_specification, debug identifier) $(I ident)`,
         ),
         Option("debuglib=<libname>",
             "set symbolic debug library to <libname>",
@@ -328,9 +330,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("deps=<filename>",
             "write module dependencies to <filename> (only imports)",
-            `Without $(I filename), print module dependencies
-            (imports/file/version/debug/lib).
-            With $(I filename), write module dependencies as text to $(I filename)
+            `Write module dependencies as text to $(I filename)
             (only imports).`,
         ),
         Option("dllimport=[none|defaultLibsOnly|externalOnly|all]",
@@ -382,23 +382,26 @@ dmd -cov -unittest myprog.d
         ),
         Option("ftime-trace",
             "turn on compile time profiler, generate JSON file with results",
-            "Per function, the time to analyze it, call it from CTFE, generate code for it etc. will be measured,
-            and events with a time longer than 500 microseconds (adjustable with `-ftime-trace-granularity`)
+            "Measure the time to analyze, call from CTFE, and generate code for a function.
+            Events with a time longer than 500 microseconds (adjustable with `-ftime-trace-granularity`)
             will be recorded.
             The profiling result is output in the Chrome Trace Event Format,
             $(LINK2 https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview, described here).
             This can be turned into a more readable text file with the included tool `timetrace2txt`, or inspected
             with an interactive viewer such as $(LINK2 https://ui.perfetto.dev/, Perfetto)."
         ),
-        Option("ftime-trace-granularity=",
+        Option("ftime-trace-granularity=<μsecs>",
             "Minimum time granularity (in microseconds) traced by time profiler (default: 500)",
-            "Measured events shorter than the specified time will be discarded from the output.
+            "Minimum time granularity (in microseconds) traced by time profiler.
+            The default is `500`.
+            Measured events shorter than the specified time will be discarded from the output.
             Set it too high, and interesting events may not show up in the output.
             Set too low, and the profiler overhead will be larger, and the output will be cluttered with tiny events."
         ),
         Option("ftime-trace-file=<filename>",
             "specify output file for `-ftime-trace`",
-            "By default, the output name is the same as the first object file name, but with the `.time-trace` extension appended.
+            "Specify output file for `-ftime-trace`.
+            By default, the output name is the same as the first object file name, but with the `.time-trace` extension appended.
             A different filename can be chosen with this option, including a path relative to the current directory or an absolute path."
         ),
         Option("g",
@@ -409,18 +412,19 @@ dmd -cov -unittest myprog.d
             )
             $(UNIX
                 Add symbolic debug info in DWARF format
-                for debuggers such as
-                $(D gdb)
+                for debuggers such as $(D gdb).
             )`,
         ),
         Option("gdwarf=<version>",
-            "add DWARF symbolic debug info",
-            "The value of <version> may be 3, 4 or 5, defaulting to 3.",
+            "add DWARF symbolic debug info (default: 3)",
+            "Add DWARF symbolic debug info.
+            The value of <version> may be 3, 4 or 5, defaulting to 3.",
             cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.Windows)
         ),
         Option("gf",
             "emit debug info for all referenced types",
-            `Symbolic debug info is emitted for all types referenced by the compiled code,
+            `Emit debug info for all referenced types.
+             Symbolic debug info is emitted for all types referenced by the compiled code,
              even if the definition is in an imported file not currently being compiled.`,
         ),
         Option("gs",
@@ -588,12 +592,12 @@ dmd -cov -unittest myprog.d
         ),
         Option("J=<directory>",
             "look for string imports also in <directory>",
-            `Where to look for files for
+            "Where to look for files for
             $(LINK2 $(ROOT_DIR)spec/expression.html#ImportExpression, $(I ImportExpression))s.
             This switch is required in order to use $(I ImportExpression)s.
-            $(I path) is a ; separated
+            $(I directory) is a `;` separated
             list of paths. Multiple $(TT -J)'s can be used, and the paths
-            are searched in the same order.`,
+            are searched in the same order.",
         ),
         Option("L=<linkerflag>",
             "pass <linkerflag> to link",
@@ -760,15 +764,17 @@ dmd -cov -unittest myprog.d
         ),
         Option("op",
             "preserve source path for output files",
-            `Normally the path for $(B .d) source files is stripped
+            `Preserve source path for output files.
+            Normally the path for $(B .d) source files is stripped
             off when generating an object, interface, or Ddoc file
-            name. $(SWLINK -op) will leave it on.`,
+            name.`,
         ),
         Option("oq",
             "Write object files with fully qualified file names",
-            `When compiling pkg/app.d, the resulting object file name will be pkg_app.obj
-            instead of app.o. This helps to prevent name conflicts when compiling multiple
-            packages in the same directory with the $(SWLINK -od) flag.`,
+            "Write object files with fully qualified file names.
+            When compiling `pkg/app.d`, the resulting object file name will be `pkg_app.o`
+            instead of `app.o`. This helps to prevent name conflicts when compiling multiple
+            packages in the same directory with the $(SWLINK -od) flag.",
         ),
         Option("os=<os>",
             "sets target operating system to <os>",
@@ -786,9 +792,9 @@ dmd -cov -unittest myprog.d
         ),
         Option("P=<preprocessorflag>",
             "pass <preprocessorflag> to C preprocessor",
-            `Pass $(I preprocessorflag) to
-            $(WINDOWS cl.exe)
-            $(UNIX cpp)`,
+            "Pass $(I preprocessorflag) to
+            $(WINDOWS `cl.exe`)
+            $(UNIX `cpp`). See also $(SWLINK -cpp)",
         ),
         Option("preview=<name>",
             "enable an upcoming language change identified by <name>",
@@ -802,7 +808,7 @@ dmd -cov -unittest myprog.d
             `Instrument the generated code so that runtime performance data is collected
             when the generated program is run.
             Upon completion of the generated program, the files $(TT trace.log) and $(TT trace.def)
-            are generated. $(TT trace.log) has two sections,
+            are generated. $(TT trace.log) has two sections:
             $(OL
             $(LI Fan in and fan out for each profiled function. The name of the function is left-justified,
             the functions immediately preceding it are the other functions that call it (fan in) and how many times
@@ -816,13 +822,12 @@ dmd -cov -unittest myprog.d
             )
             The $(TT trace.def) file contains linker commands to associate functions which are strongly coupled
             so they appear adjacent in the resulting executable file.
-            For more information see $(LINK2 https://www.digitalmars.com/ctg/trace.html, profile)
+            For more information see $(LINK2 https://www.digitalmars.com/ctg/trace.html, profile).
             `,
         ),
         Option("profile=gc",
             "profile runtime allocations",
-            `$(UL
-                $(LI $(B gc): Instrument calls to GC memory allocation and
+                `Instrument calls to GC memory allocation and
                 write a report to the file $(TT profilegc.log) upon program
                 termination.  $(B Note:) Only instrumented calls will be
                 logged. These include:
@@ -832,8 +837,8 @@ dmd -cov -unittest myprog.d
                        $(LI GC allocations via core.memory.GC)
                    )
                    Allocations made by other means will not be logged,
-                   including direct calls to the GC's C API.)
-            )`,
+                   including direct calls to the GC's C API.
+            `,
         ),
         Option("release",
             "contracts and asserts are not emitted, and bounds checking is performed only in @safe functions",
@@ -849,7 +854,7 @@ dmd -cov -unittest myprog.d
         Option("revert=[h|help|?]",
             "list all revertable language changes"
         ),
-        Option("run <srcfile>",
+        Option("run <srcfile> <args>",
             "compile, link, and run the program <srcfile>",
             `Compile, link, and run the program $(I srcfile) with the
             rest of the
@@ -924,7 +929,7 @@ dmd -cov -unittest myprog.d
             )`,
         ),
         Option("verrors=spec",
-            "show errors from speculative compiles such as __traits(compiles,...)"
+            "show errors from speculative compiles such as `__traits(compiles, ...)`"
         ),
         Option("-version",
             "print compiler version and exit"
@@ -934,7 +939,7 @@ dmd -cov -unittest myprog.d
             `Compile in $(LINK2 $(ROOT_DIR)spec/version.html#version, version identifier) $(I ident)`
         ),
         Option("vgc",
-            "list all gc allocations including hidden ones"
+            "list all GC allocations including hidden ones"
         ),
         Option("visibility=[default|hidden|public]",
             "default visibility of symbols",
@@ -947,10 +952,10 @@ dmd -cov -unittest myprog.d
         Option("vtls",
             "list all variables going into thread local storage"
         ),
-        Option("vtemplates=[list-instances]",
+        Option("vtemplates[=list-instances]",
             "list statistics on template instantiations",
-            `An optional argument determines extra diagnostics,
-            where:
+            `List statistics on template instantiations.
+            An optional argument determines extra diagnostics:
             $(DL
             $(DT list-instances)$(DD Also shows all instantiation contexts for each template.)
             )`,
@@ -961,8 +966,8 @@ dmd -cov -unittest myprog.d
         ),
         Option("wi",
             "warnings as messages (compilation will continue)",
-            `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, informational warnings (i.e. compilation
-            still proceeds normally))`,
+            `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, informational warnings) (i.e. compilation
+            still proceeds normally)`,
         ),
         Option("wo",
             "warnings about use of obsolete features (compilation will continue)",
