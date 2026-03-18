@@ -2302,7 +2302,7 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
                 buf.writestring(failMessage);
             }
             // Try opImplicitCast if direct match failed
-            if (m == MATCH.nomatch && sc)
+            if (m == MATCH.nomatch && sc && !sc.traitsCompiles && sc.intypeof != 1)
             {
                 AggregateDeclaration ad = isAggregate(arg.type);
                 if (ad)
