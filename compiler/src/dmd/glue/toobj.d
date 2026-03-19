@@ -671,38 +671,15 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 StringExp se = e.isStringExp();
                 string s;
                 const cu = se.numberOfCodeUnits(0, s);
-                char *name = cast(char *)mem.xmalloc(cu + 1);
-                auto str = name[0 .. cu];
                 int[string] uniqueTab = pd.ident == Id.lib
                             ? pragmaLibSet
                             : pragmaLinkerDirectiveSet;
-                bool found = false;
 
-                se.writeTo(name, true);
-
-                if (auto pkey = str in uniqueTab)
+                void emitPragma(char* name, const(char)[] str)
                 {
-                    found = true;
-                    mem.xfree(name);
-                }
-                else
-                {
-                    uniqueTab[cast(string)str] = 1;
-                    found = false;
-                }
-                if (found)
-                {
-                    // Already emitted
-                }
-                else if (pd.ident == Id.linkerDirective)
-                    obj_linkerdirective(name);
-                else
-                {
-                    /* Embed the library names into the object file.
-                     * The linker will then automatically
-                     * search that library, too.
-                     */
-                    if (!obj_includelib(str))
+                    if (pd.ident == Id.linkerDirective)
+                        obj_linkerdirective(name);
+                    else if (!obj_includelib(str))
                     {
                         /* The format does not allow embedded library names,
                          * so instead append the library name to the list to be passed
@@ -711,6 +688,35 @@ void toObjFile(Dsymbol ds, bool multiobj)
                         global.params.libfiles.push(name);
                     }
                 }
+
+                // Fast path for the most common case (regular char strings).
+                if (se.sz == 1)
+                {
+                    auto str = se.peekString();
+                    if (str in uniqueTab)
+                        return;
+
+                    char* name = cast(char*)mem.xmalloc(cu + 1);
+                    name[0..cu] = str[];
+                    name[cu] = '\0';
+                    uniqueTab[cast(string)name[0..cu]] = 1;
+                    emitPragma(name, str);
+                    return;
+                }
+
+                // Slow path, requires conversion
+                char *name = cast(char *)mem.xmalloc(cu + 1);
+                auto str = name[0 .. cu];
+                se.writeTo(name, true);
+
+                if (str in uniqueTab)
+                {
+                    mem.xfree(name);
+                    return;
+                }
+
+                uniqueTab[cast(string)str] = 1;
+                emitPragma(name, str);
             }
             else if (pd.ident == Id.startaddress)
             {
