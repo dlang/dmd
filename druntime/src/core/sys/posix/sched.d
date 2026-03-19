@@ -262,6 +262,7 @@ else version (NetBSD)
 {
     int sched_get_priority_min(int);
     int sched_get_priority_max(int);
+    pragma(mangle, "__sched_rr_get_interval50")
     int sched_rr_get_interval(pid_t, timespec*);
 }
 else version (OpenBSD)
