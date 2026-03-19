@@ -2291,7 +2291,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     errors = true;
                 }
                 else
-                    (*seen)[box] = true;
+                    seen[box] = true;
             }
 
             sw.cases.push(cs);
