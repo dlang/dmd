@@ -1,0 +1,10 @@
+The `Object.__monitor` field has been moved to druntime
+
+This field was previously hard coded into the compiler, and is used as a mutex for `synchronized(obj)` blocks.
+By declaring it explicitly in druntime's `Object`, custom druntimes can now omit it entirely, saving 8 bytes per class instance when `synchronized` is not needed.
+
+The field is treated specially by the compiler and remains excluded from:
+
+- `__traits(allMembers, Object)`
+- `Object.tupleof`
+- `__traits(getPointerBitmap, T)` (it is not GC-managed)

@@ -37,6 +37,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
+import dmd.id;
 import dmd.expressionsem : toBool, toInteger;
 import dmd.func;
 import dmd.globals;
@@ -781,6 +782,11 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             size_t index = 0;
             for (ClassDeclaration c = cdb.baseClass; c; c = c.baseClass)
                 index += c.fields.length;
+            // CTFE elements exclude __monitor (emitted separately).
+            // Subtract it from the index, but only when Object is actually
+            // in the base hierarchy (index > 0 means cdb is not itself Object).
+            if (index > 0)
+                index -= cdb.hasMonitor();
             membersToDt(cdb, dtb, elements, index, concreteType, null);
             offset = cdb.structsize;
         }
@@ -845,9 +851,12 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         offset = 0;
     // `offset` now is where the fields start
 
+    // __monitor is emitted separately (not from CTFE elements), so exclude it from the count.
+    // This applies to Object itself (the root class with no base class), not to interfaces.
+    const size_t monitorExcluded = (cd && !cd.isInterfaceDeclaration() && !cd.baseClass && cd.hasMonitor()) ? 1 : 0;
     assert(!elements ||
            firstFieldIndex <= elements.length &&
-           firstFieldIndex + ad.fields.length <= elements.length);
+           firstFieldIndex + ad.fields.length - monitorExcluded <= elements.length);
 
     uint bitByteOffset = 0;     // byte offset of bit field
     uint bitOffset = 0;         // starting bit number
@@ -900,6 +909,10 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
     foreach (i, field; ad.fields)
     {
+        // __monitor is emitted separately (not from CTFE elements), skip it here
+        if (field.ident == Id.__monitor)
+            continue;
+
         // skip if no element for this field
         if (elements && !(*elements)[firstFieldIndex + i])
             continue;
@@ -1166,6 +1179,9 @@ void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, ref DtBuilder dtb)
     size_t firstFieldIndex = 0;
     for (ClassDeclaration c = cd.baseClass; c; c = c.baseClass)
         firstFieldIndex += c.fields.length;
+    // CTFE elements exclude __monitor (it is emitted separately by membersToDt),
+    // so adjust the index to match the elements array layout.
+    firstFieldIndex -= cd.hasMonitor();
     membersToDt(cd, dtb, ce.value.elements, firstFieldIndex, cd, null);
 }
 

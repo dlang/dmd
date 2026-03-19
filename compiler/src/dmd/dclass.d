@@ -333,11 +333,17 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     }
 
     /**************
-     * Returns: true if there's a __monitor field
+     * Returns: true if there's a __monitor field, i.e. the druntime `Object` class declares it
      */
     final bool hasMonitor()
     {
-        return classKind == ClassKind.d;
+        if (classKind != ClassKind.d)
+            return false;
+        // Check if Object in druntime actually declares a __monitor field.
+        // Custom druntimes can omit it by not declaring it in Object.
+        if (!object || !object.symtab)
+            return true; // conservative: Object not yet loaded, assume monitor present
+        return object.symtab.lookup(Id.__monitor) !is null;
     }
 
     /****************************************

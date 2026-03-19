@@ -105,11 +105,17 @@ else version (AArch64)
     else version = WithArgTypes;
 }
 
+static assert(Object.__monitor.offsetof == size_t.sizeof);
+
 /**
  * All D class objects inherit from Object.
  */
 class Object
 {
+    // This is an internal field that is omitted from .tupleof, __traits(allMembers), pointer bitmaps etc.
+    // It can be removed in a custom druntime, but if it's there it must remain the first field.
+    void* __monitor;
+
     /**
      * Convert Object to a human readable string.
      */
