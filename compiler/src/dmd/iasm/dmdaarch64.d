@@ -64,15 +64,6 @@ import dmd.backend.iasm;
  */
 public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
 {
-    const bool doUnittests = global.params.parsingUnittestsRequired();
-    scope p = new Parser!ASTCodegen(sc._module, "", false, global.errorSink, &global.compileEnv, doUnittests);
-
-    // Adjust starting line number of the parser.
-    p.token = *s.tokens;
-    p.baseLoc.startLine = s.loc.linnum;
-    p.linnum = s.loc.linnum;
-
-    int errors;
     static if (1)
     {
         printf("InlineAsmAArch64Statement.semantic()\n");
@@ -80,7 +71,18 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
         {
             printf("TOK.%s %s\n", token.toString(token.value).ptr, token.toChars());
         }
+    }
 
+    const bool doUnittests = global.params.parsingUnittestsRequired();
+    scope p = new Parser!ASTCodegen(sc._module, "", false, global.errorSink, &global.compileEnv, doUnittests);
+
+    /* Set list of tokens that will be the input to the parser, and starting line number to use.
+     */
+    p.setTokenList(s.tokens, s.loc.linnum);
+
+    int errors;
+    static if (1)
+    {
         if (p.token.value == TOK.identifier)
         {
             if (p.token.ident == Id.naked)
