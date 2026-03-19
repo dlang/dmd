@@ -188,6 +188,8 @@ else version (NetBSD)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
+    // NetBSD 10.0
+    pragma(mangle, "__dup3100") int   dup3(int, int, int) @trusted;
     int   faccessat(int, const scope char*, int, int);
     int   fchownat(int, const scope char*, uid_t, gid_t, int);
     int   fexecve(int, const scope char**, const scope char**);
@@ -2702,7 +2704,7 @@ else version (NetBSD)
     int        truncate(const scope char*, off_t);
     useconds_t ualarm(useconds_t, useconds_t) @trusted;
     int        usleep(useconds_t) @trusted;
-    pid_t      vfork();
+    pragma(mangle, "__vfork14") pid_t      vfork();
 }
 else version (OpenBSD)
 {
