@@ -200,7 +200,10 @@ struct msgbuf
     char[1] mtext = 0;
 }
 
-int msgctl(int msqid, int cmd, msqid_ds* __buf);
+version (NetBSD)
+    pragma(mangle, "__msgctl50") int msgctl(int msqid, int cmd, msqid_ds* __buf);
+else
+    int msgctl(int msqid, int cmd, msqid_ds* __buf);
 int msgget(key_t key, int msgflg);
 ssize_t msgrcv(int msqid, void* msgp, size_t msgsz, c_long msgtyp, int msgflg);
 int msgsnd(int msqid, msgbuf* msgp, int msgsz, int msgflg);
