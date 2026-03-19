@@ -659,6 +659,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
         {
             if (pd.ident == Id.lib || pd.ident == Id.linkerDirective)
             {
+                __gshared int[string] pragmaLibSet;
+                __gshared int[string] pragmaLinkerDirectiveSet;
+
                 assert(pd.args && pd.args.length == 1);
 
                 Expression e = (*pd.args)[0];
@@ -667,11 +670,31 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 StringExp se = e.isStringExp();
                 string s;
-                char* name = cast(char *)mem.xmalloc(se.numberOfCodeUnits(0, s) + 1);
+                const cu = se.numberOfCodeUnits(0, s);
+                char *name = cast(char *)mem.xmalloc(cu + 1);
+                auto str = name[0 .. cu];
+                int[string] uniqueTab = pd.ident == Id.lib
+                            ? pragmaLibSet
+                            : pragmaLinkerDirectiveSet;
+                bool found = false;
 
                 se.writeTo(name, true);
 
-                if (pd.ident == Id.linkerDirective)
+                if (auto pkey = str in uniqueTab)
+                {
+                    found = true;
+                    mem.xfree(name);
+                }
+                else
+                {
+                    uniqueTab[cast(string)str] = 1;
+                    found = false;
+                }
+                if (found)
+                {
+                    // Already emitted
+                }
+                else if (pd.ident == Id.linkerDirective)
                     obj_linkerdirective(name);
                 else
                 {
@@ -679,7 +702,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                      * The linker will then automatically
                      * search that library, too.
                      */
-                    if (!obj_includelib(name[0 .. strlen(name)]))
+                    if (!obj_includelib(str))
                     {
                         /* The format does not allow embedded library names,
                          * so instead append the library name to the list to be passed
