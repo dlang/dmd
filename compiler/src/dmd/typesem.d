@@ -9233,6 +9233,9 @@ MATCH implicitConvToWithoutAliasThis(TypeStruct from, Type to)
     /* Check all the fields. If they can all be converted,
      * allow the conversion.
      */
+    import dmd.dsymbolsem : size;
+    if (from.sym.size(Loc.initial) == SIZE_INVALID)
+        return MATCH.nomatch;
     MATCH m = MATCH.constant;
     uint offset = ~0; // must never match a field offset
     foreach (v; from.sym.fields[])
