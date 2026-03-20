@@ -1475,10 +1475,22 @@ size_t fwrite(scope const void* ptr, size_t size, size_t nmemb, FILE* stream);
 // No unsafe pointer manipulation.
 @trusted
 {
-    ///
-    int fgetpos(FILE* stream, scope fpos_t * pos);
-    ///
-    int fsetpos(FILE* stream, scope const fpos_t* pos);
+    version (NetBSD)
+    {
+        ///
+        pragma(mangle, "__fgetpos50")
+        int fgetpos(FILE* stream, scope fpos_t * pos);
+        ///
+        pragma(mangle, "__fsetpos50")
+        int fsetpos(FILE* stream, scope const fpos_t* pos);
+    }
+    else
+    {
+        ///
+        int fgetpos(FILE* stream, scope fpos_t * pos);
+        ///
+        int fsetpos(FILE* stream, scope const fpos_t* pos);
+    }
 
     ///
     int    fseek(FILE* stream, c_long offset, int whence);

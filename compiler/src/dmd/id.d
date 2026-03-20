@@ -505,6 +505,7 @@ immutable Msgtable[] msgtable =
     { "udaOptional", "optional"},
     { "udaMustUse", "mustuse" },
     { "udaStandalone", "standalone" },
+    { "udaSection", "section" },
 
     // Editions
     { "__edition_latest_do_not_use", },
@@ -547,6 +548,9 @@ immutable Msgtable[] msgtable =
     { "undef" },
     { "ident" },
     { "packed" },
+
+    // for inline assembler
+    { "op" },
 ];
 
 

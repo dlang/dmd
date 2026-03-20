@@ -8000,6 +8000,7 @@ enum class ErrorKind
     message = 4,
     lint = 5,
 };
+extern bool isAlphaASCII(const char32_t c);
 
 extern void error(Loc loc, const char* format, ...);
 
@@ -8910,6 +8911,7 @@ struct Id final
     static Identifier* udaOptional;
     static Identifier* udaMustUse;
     static Identifier* udaStandalone;
+    static Identifier* udaSection;
     static Identifier* TRUE;
     static Identifier* FALSE;
     static Identifier* ImportC;
@@ -8939,6 +8941,7 @@ struct Id final
     static Identifier* undef;
     static Identifier* ident;
     static Identifier* packed;
+    static Identifier* op;
     static void initialize();
     Id()
     {

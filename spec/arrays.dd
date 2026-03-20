@@ -27,6 +27,27 @@ int[3] s;
         $(P Static arrays have a length fixed at compile time.
         )
 
+        $(P A static array dimension can be written as $(D $) in a declaration
+        with an initializer. In that case, the compiler infers the dimension
+        from the initializer.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---------
+int[$] a = [1, 2, 3];
+static assert(is(typeof(a) == int[3]));
+
+int[$][$] m = [[1, 2, 3], [4, 5, 6]];
+static assert(is(typeof(m) == int[3][2]));
+---------
+)
+
+        $(P In multidimensional static arrays, inference starts from the
+        outermost static-array dimension. Any inner static-array dimension
+        written as $(D $) must also be inferable from the initializer shape,
+        otherwise it is an error.
+        )
+
         $(P The total size of a static array cannot exceed 16Mb.
         )
 

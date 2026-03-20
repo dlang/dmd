@@ -209,7 +209,14 @@ dinteger_t toInteger(Expression _this)
     // import dmd.hdrgen : EXPtoString;
     //printf("Expression %s\n", EXPtoString(op).ptr);
     if (!_this.type || !_this.type.isTypeError())
+    {
+        if (auto ide = _this.isIdentifierExp())
+        {
+            if (ide.ident == Id.dollar)
+                return 0;
+        }
         error(_this.loc, "integer constant expression expected instead of `%s`", _this.toChars());
+    }
     return 0;
 }
 
@@ -6985,8 +6992,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (!global.params.useGC && sc.needsCodegen())
             {
-                error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-%s`", exp.toErrMsg(), SwitchVariadic.ptr);
-                return setError();
+                if (sc.func)
+                {
+                    sc.func.skipCodegen = true; // same net result as calling checkGC
+                    goto LskipNewArrayLowering; // not checked in sc.needsCodegen() !?
+                }
             }
 
             if (!sc.needsCodegen())
@@ -8510,7 +8520,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 exp.type = tf.next;
                 auto casted_exp = exp.castTo(sc, t);
-                if (auto cex = casted_exp.isCastExp())
+                if (auto cex = lastComma(casted_exp).isCastExp())
                 {
                     lowerCastExp(cex, sc);
                 }
@@ -10927,7 +10937,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        if (auto cex = ex.isCastExp())
+        if (auto cex = lastComma(ex).isCastExp())
         {
             lowerCastExp(cex, sc);
         }
@@ -15073,12 +15083,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        // When array comparison is not lowered to `__equals`, `memcmp` is used, but
-        // GC checks occur before the expression is lowered to `memcmp` in e2ir.d.
-        // Thus, we will consider the literal arrays as on-stack arrays to avoid issues
-        // during GC checks.
+        // Remaining array comparisons are trivially memcmp-able.
+        // Allocate array-literal operands on the stack, since they don't
+        // escape during the comparison; enabling @nogc for these.
         if (isArrayComparison)
         {
+            exp.e1 = exp.e1.optimize(WANTvalue);
+            exp.e2 = exp.e2.optimize(WANTvalue);
+
             if (auto ale1 = exp.e1.isArrayLiteralExp())
             {
                 ale1.onstack = true;
@@ -16670,6 +16682,8 @@ bool checkValue(Expression e)
  */
 bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
 {
+    Expression root = e;
+
     if (!sc ||
         !sc.previews.noSharedAccess ||
         sc.intypeof ||
@@ -16847,6 +16861,12 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             case EXP.star:        return visitPtr(e.isPtrExp());
             case EXP.dotVariable: return visitDotVar(e.isDotVarExp());
             case EXP.index:       return visitIndex(e.isIndexExp());
+            case EXP.structLiteral:
+                // Allow constructing a shared struct literal as a value,
+                // but keep rejecting later accesses through that temporary.
+                if (e is root && e.type && e.type.isShared())
+                    return false;
+                return visit(e);
         }
     }
 
@@ -19731,12 +19751,12 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
     auto call = new CallExp(loc, func, arguments);
     e0 = Expression.combine(e0, call);
 
-    if (arrayBoundsCheck(sc.func))
+    if (sc.func && arrayBoundsCheck(sc.func))
     {
         // __aaget = _d_aaGetRvalueX(aa, key), __aaget ? __aaget : onRangeError(__FILE__, __LINE__)
         auto ei = new ExpInitializer(loc, e0);
-        auto vartmp = Identifier.generateId("__aaget");
-        auto vardecl = new VarDeclaration(loc, null, vartmp, ei, STC.exptemp);
+        auto id = Identifier.generateId("__aaget");
+        auto vardecl = new VarDeclaration(loc, null, id, ei, STC.exptemp);
         auto declexp = new DeclarationExp(loc, vardecl);
 
         //Expression idrange = new IdentifierExp(loc, Identifier.idPool("_d_arraybounds"));
@@ -19746,9 +19766,9 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
         auto locargs = new Expressions(new FileInitExp(loc, EXP.file), new LineInitExp(loc));
         auto ex = new CallExp(loc, idrange, locargs);
 
-        auto idvar1 = new IdentifierExp(loc, vartmp);
-        auto idvar2 = new IdentifierExp(loc, vartmp);
-        auto cond = new CondExp(loc, idvar1, idvar2, ex);
+        auto ve1 = new VarExp(loc, vardecl);
+        auto ve2 = new VarExp(loc, vardecl);
+        auto cond = new CondExp(loc, ve1, ve2, ex);
         auto comma = new CommaExp(loc, declexp, cond);
         return comma;
     }
@@ -19779,6 +19799,26 @@ Expression revertIndexAssignToRvalues(IndexExp ie, Scope* sc)
 
     assert(ie.modifiable);
     return lowerAAIndexRead(ie, sc);
+}
+
+// Ditto, but traverses DotVarExp from `alias this` rewrites.
+private Expression revertModifiableAAIndexReads(Expression e, Scope* sc)
+{
+    // Recurse through dot-accesses (alias this produces DotVarExp on an inner IndexExp)
+    if (auto dve = e.isDotVarExp())
+    {
+        dve.e1 = revertModifiableAAIndexReads(dve.e1, sc);
+        return e;
+    }
+    if (auto ie = e.isIndexExp())
+    {
+        // Recurse first to handle deeper nesting
+        ie.e1 = revertModifiableAAIndexReads(ie.e1, sc);
+        // Lower a modifiable AA IndexExp to an rvalue read
+        if (ie.modifiable && ie.e1.type.isTypeAArray())
+            return lowerAAIndexRead(ie, sc);
+    }
+    return e;
 }
 
 // helper for rewriteAAIndexAssign
@@ -19831,6 +19871,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
     // find the AA of multi dimensional access
     for (auto ieaa = ie.e1.isIndexExp(); ieaa && ieaa.e1.type.isTypeAArray(); ieaa = ieaa.e1.isIndexExp())
         eaa = ieaa.e1;
+    eaa = revertModifiableAAIndexReads(eaa, sc);
     eaa = extractSideEffect(sc, "__aatmp", e0, eaa);
     // collect all keys of multi dimensional access
     Expressions ekeys;
@@ -19869,7 +19910,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
         auto tiargs = new Objects(taa.index, taa.next);
         func = new DotTemplateInstanceExp(loc, func, hook, tiargs);
 
-        auto arguments = new Expressions(eaa, ekeys[i-1], new IdentifierExp(loc, idfound));
+        auto arguments = new Expressions(eaa, ekeys[i-1], new VarExp(loc, varfound));
         eaa = new CallExp(loc, func, arguments);
         if (i > 1)
         {
@@ -19926,7 +19967,7 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
                 ex = new CastExp(ex.loc, ex, Type.tvoid);
                 ey = new CastExp(ey.loc, ey, Type.tvoid);
             }
-            Expression condfound = new IdentifierExp(loc, idfound);
+            Expression condfound = new VarExp(loc, varfound);
             ex = new CondExp(loc, condfound, ex, ey);
             ex = Expression.combine(e0, ex);
             ex.isCommaExp().originalExp = exp;

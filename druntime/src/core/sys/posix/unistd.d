@@ -188,6 +188,8 @@ else version (NetBSD)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
+    // NetBSD 10.0
+    pragma(mangle, "__dup3100") int   dup3(int, int, int) @trusted;
     int   faccessat(int, const scope char*, int, int);
     int   fchownat(int, const scope char*, uid_t, gid_t, int);
     int   fexecve(int, const scope char**, const scope char**);
@@ -671,7 +673,21 @@ version (CRuntime_Glibc)
         _SC_LEVEL4_CACHE_LINESIZE,
 
         _SC_IPV6 = _SC_LEVEL1_ICACHE_SIZE + 50,
-        _SC_RAW_SOCKETS
+        _SC_RAW_SOCKETS,
+        _SC_V7_ILP32_OFF32,
+        _SC_V7_ILP32_OFFBIG,
+        _SC_V7_LP64_OFF64,
+        _SC_V7_LPBIG_OFFBIG,
+        _SC_SS_REPL_MAX,
+        _SC_TRACE_EVENT_NAME_MAX,
+        _SC_TRACE_NAME_MAX,
+        _SC_TRACE_SYS_MAX,
+        _SC_TRACE_USER_EVENT_MAX,
+        _SC_XOPEN_STREAMS,
+        _SC_THREAD_ROBUST_PRIO_INHERIT,
+        _SC_THREAD_ROBUST_PRIO_PROTECT,
+        _SC_MINSIGSTKSZ,
+        _SC_SIGSTKSZ,
     }
 }
 else version (Darwin)
@@ -2702,7 +2718,7 @@ else version (NetBSD)
     int        truncate(const scope char*, off_t);
     useconds_t ualarm(useconds_t, useconds_t) @trusted;
     int        usleep(useconds_t) @trusted;
-    pid_t      vfork();
+    pragma(mangle, "__vfork14") pid_t      vfork();
 }
 else version (OpenBSD)
 {

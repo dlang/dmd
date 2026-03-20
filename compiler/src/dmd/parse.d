@@ -79,6 +79,21 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         this.doUnittests = doUnittests;
     }
 
+    /** Instead of parsing text to get tokens, provide a list of tokens ending with null.
+     * Note that the token list will be consumed (added to the tokenFreelist) by the lexer4.
+     * Params:
+     *    pToken = pointer to first token in list, take ownership of list
+     *    linnum = line number to use for the tokens
+     */
+    extern (D)
+    void setTokenList(ref Token* pToken, int linnum)
+    {
+        this.token = *pToken;
+        pToken = null;          // take ownership
+        this.baseLoc.startLine = linnum;
+        this.linnum = linnum;
+    }
+
     /++
      + Parse a module, i.e. the optional `module x.y.z` declaration and all declarations
      + found in the current file.

@@ -2277,6 +2277,152 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.inuse--;
             sc2.pop();
         }
+        static bool hasDollarDimension(TypeSArray tsa)
+        {
+            auto d = tsa.dim;
+            if (!d)
+                return false;
+            auto ide = d.isIdentifierExp();
+            if (!ide)
+                return false;
+            return ide.ident == Id.dollar;
+        }
+        static bool hasUnresolvedDollar(Type t)
+        {
+            auto tsa = t.isTypeSArray();
+            if (!tsa)
+                return false;
+            if (hasDollarDimension(tsa))
+                return true;
+            return hasUnresolvedDollar(tsa.next);
+        }
+
+        static void resolveDollarToZero(Type t, Loc loc)
+        {
+            auto tsa = t.isTypeSArray();
+            if (!tsa)
+                return;
+            if (hasDollarDimension(tsa)) {
+                tsa.dim = new IntegerExp(loc, 0, Type.tsize_t);
+            }
+            resolveDollarToZero(tsa.next, loc);
+        }
+
+        static bool inferExprLength(Expression e, out dinteger_t len)
+        {
+            if (!e)
+                return false;
+
+            if (auto ale = e.isArrayLiteralExp())
+            {
+                len = ale.elements.length;
+                return true;
+            }
+
+            if (auto ce = e.isCatExp())
+            {
+                dinteger_t l1;
+                dinteger_t l2;
+                if (inferExprLength(ce.e1, l1) && inferExprLength(ce.e2, l2))
+                {
+                    len = l1 + l2;
+                    return true;
+                }
+            }
+
+            if (!e.type)
+                return false;
+
+            auto tsan = e.type.toBasetype().isTypeSArray();
+            if (!tsan)
+                return false;
+
+            auto dim = tsan.dim.isIntegerExp();
+            if (!dim)
+                return false;
+
+            len = dim.value;
+            return true;
+        }
+
+        static bool inferSArrayDim(TypeSArray tsa, Expression ie, Loc loc, Scope* sc)
+        {
+            if (!tsa || !ie)
+                return false;
+
+            if (!hasDollarDimension(tsa))
+                return false;
+
+            if (auto ale = ie.isArrayLiteralExp())
+            {
+                dinteger_t len = ale.elements.length;
+                tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
+                if (auto innerTsa = tsa.next.isTypeSArray())
+                {
+                    if (ale.elements.length > 0)
+                    {
+                        auto firstElem = (*ale.elements)[0];
+                        inferSArrayDim(innerTsa, firstElem, loc, sc);
+                    }
+                }
+                return true;
+            }
+            else if (auto se = ie.isStringExp())
+            {
+                Type next = tsa.next.toBasetype();
+                if (next.ty == TY.Tchar || next.ty == TY.Twchar || next.ty == TY.Tdchar)
+                {
+                    tsa.dim = new IntegerExp(loc, se.len, Type.tsize_t);
+                    return true;
+                }
+                return false;
+            }
+
+            // For other initializer forms, infer `$` only when the extent is
+            // compile-time known: either a concatenation whose operands are
+            // inferable, or any expression whose type is a static array.
+            dinteger_t len;
+            if (!inferExprLength(ie, len))
+                return false;
+
+            tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
+            return true;
+        }
+
+        auto tsa = dsym.type.isTypeSArray();
+
+        if (tsa && hasDollarDimension(tsa))
+        {
+            if (!dsym._init || dsym._init.isVoidInitializer())
+            {
+                .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+                tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+            }
+            else
+            {
+                Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
+                if (ie && ie.op != EXP.error)
+                {
+                    ie = ie.expressionSemantic(sc);
+                    ie = ie.optimize(WANTvalue);
+                    bool dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
+                    if (!dimInferred)
+                    {
+                        .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+                        tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                    }
+                    if (auto ale = ie.isArrayLiteralExp())
+                        dsym._init = new ExpInitializer(dsym.loc, ale);
+                }
+            }
+        }
+        if (tsa && hasUnresolvedDollar(tsa.next))
+        {
+            .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+            resolveDollarToZero(tsa.next, dsym.loc);
+            return;
+        }
+
         //printf(" semantic type = %s\n", dsym.type ? dsym.type.toChars() : "null");
         if (dsym.type.ty == Terror)
             dsym.errors = true;
@@ -9277,7 +9423,6 @@ Lfail:
     }
     return false;
 }
-
 
 void checkCtorConstInit(Dsymbol d)
 {

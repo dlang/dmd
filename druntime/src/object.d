@@ -518,11 +518,15 @@ unittest
 // https://issues.dlang.org/show_bug.cgi?id=23291
 @system unittest
 {
+    import core.atomic : atomicLoad;
+
     static shared class C { bool opEquals(const(shared(C)) rhs) const shared  { return true;}}
     const(C) c = new C();
     const(C)[] a = [c];
     const(C)[] b = [c];
-    assert(a[0] == b[0]);
+    // Call the shared-aware overload directly to avoid `==` introducing
+    // additional shared reads during lowering.
+    assert(atomicLoad(a[0]).opEquals(atomicLoad(b[0])));
 }
 
 private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
@@ -541,6 +545,8 @@ void setSameMutex(shared Object ownee, shared Object owner)
 
 @system unittest
 {
+    import core.atomic : atomicLoad;
+
     shared Object obj1 = new Object;
     synchronized class C
     {
@@ -552,7 +558,7 @@ void setSameMutex(shared Object ownee, shared Object owner)
     assert(obj1.__monitor != obj2.__monitor);
     assert(obj1.__monitor is null);
 
-    setSameMutex(obj1, obj2);
+    setSameMutex(atomicLoad(obj1), atomicLoad(obj2));
     assert(obj1.__monitor == obj2.__monitor);
     assert(obj1.__monitor !is null);
 }
@@ -2986,14 +2992,28 @@ alias AssociativeArray(Key, Value) = Value[Key];
  *      aa =     The associative array.
  */
 void clear(Value, Key)(Value[Key] aa) @trusted
+if (!is(Value == shared))
 {
     _aaClear(aa);
 }
 
 /** ditto */
 void clear(Value, Key)(Value[Key]* aa) @trusted
+if (!is(Value == shared))
 {
     (*aa).clear();
+}
+
+/** ditto */
+void clear(Value, Key)(shared(Value)[Key] aa)
+{
+    return (cast(Value[Key])aa).clear();
+}
+
+/** ditto */
+void clear(Value, Key)(shared(Value)[Key]* aa)
+{
+    (cast(Value[Key])*aa).clear();
 }
 
 ///
@@ -3066,11 +3086,23 @@ Value[Key] rehash(T : shared Value[Key], Value, Key)(T* aa)
  */
 auto dup(T : V[K], K, V)(T aa)
 {
-    // Bug10720 - check whether V is copyable
-    static assert(is(typeof({ V v = aa[K.init]; })),
-        "cannot call " ~ T.stringof ~ ".dup because " ~ V.stringof ~ " is not copyable");
+    import core.internal.traits : substInout, Unconst;
 
-    return _aaDup(aa);
+    // Bug10720 - check whether V is copyable
+    static if (is(typeof({ Unconst!V v = aa[K.init]; })))
+        alias Vret = Unconst!V;
+    else static if (is(typeof({ V v = aa[K.init]; })))
+        alias Vret = V;
+    else
+        static assert(false, "cannot call " ~ T.stringof ~ ".dup because " ~ V.stringof ~ " is not copyable");
+    alias Kret = typeof([K.init][0]); // strip const if possible by copy
+
+    alias K1 = substInout!K;
+    alias V1 = substInout!Vret;
+
+    auto naa = _aaDup((() @trusted => cast(V1[K1])aa)());
+    auto maa = ((inout T) @trusted => cast(Vret[Kret])naa)(aa);
+    return maa;
 }
 
 /** ditto */

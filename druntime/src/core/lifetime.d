@@ -77,9 +77,11 @@ T* emplace(T, Args...)(T* chunk, auto ref Args args)
 @betterC
 @system unittest
 {
+    import core.atomic : atomicLoad;
+
     shared int i;
     emplace(&i, 42);
-    assert(i == 42);
+    assert(atomicLoad(i) == 42);
 }
 
 /**
@@ -1246,9 +1248,21 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     if (is(immutable S == immutable T))
 {
     import core.internal.traits : BaseElemOf, hasElaborateCopyConstructor, Unconst, Unqual;
+    enum isSharedReference = is(S == shared U, U) && is(T == shared V, V) &&
+        (is(U == class) || is(U == interface)) &&
+        (is(V == class) || is(V == interface));
 
     // cannot have the following as simple template constraint due to nested-struct special case...
-    static if (!__traits(compiles, (ref S src) { T tgt = src; }))
+    static if (isSharedReference)
+    {
+        static assert(__traits(compiles, (ref S src, ref T tgt)
+        {
+            import core.atomic : atomicLoad, atomicStore;
+            atomicStore(tgt, atomicLoad(src));
+        }), "cannot copy shared reference " ~ T.stringof ~ " from " ~ S.stringof ~
+            " via atomic load/store");
+    }
+    else static if (!__traits(compiles, (ref S src) { T tgt = src; }))
     {
         alias B = BaseElemOf!T;
         enum isNestedStruct = is(B == struct) && __traits(isNested, B);
@@ -1307,6 +1321,11 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
         {
             blit(); // all elements at once
         }
+    }
+    else static if (isSharedReference)
+    {
+        import core.atomic : atomicLoad, atomicStore;
+        atomicStore(target, atomicLoad(source));
     }
     else
     {
@@ -2762,7 +2781,10 @@ if (is(T == class))
         static if (!hasIndirections!T)
             attr |= BlkAttr.NO_SCAN;
 
-        p = GC.malloc(init.length, attr, typeid(T));
+        version(D_TypeInfo)
+            p = GC.malloc(init.length, attr, typeid(T));
+        else
+            p = GC.malloc(init.length, attr, null);
         debug(PRINTF) printf(" p = %p\n", p);
     }
 
@@ -2834,7 +2856,10 @@ T* _d_newitemT(T)() @trusted
     if (TypeInfoSize!T)
         flags |= GC.BlkAttr.FINALIZE;
 
-    auto p = GC.malloc(itemSize, flags, typeid(T));
+    version(D_TypeInfo)
+        auto p = GC.malloc(itemSize, flags, typeid(T));
+    else
+        auto p = GC.malloc(itemSize, flags, null);
 
     emplaceInitializer(*(cast(T*) p));
 

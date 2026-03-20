@@ -142,7 +142,10 @@ do
     auto attrs = __typeAttrs!T((*p).ptr) | BlkAttr.APPENDABLE;
 
     // use this static enum to avoid recomputing TypeInfo for every call.
-    static enum ti = typeid(T);
+    version (D_TypeInfo)
+        static enum ti = typeid(T);
+    else
+        static enum ti = null;
     auto ptr = GC.malloc(reqsize, attrs, ti);
     if (ptr is null)
     {
@@ -222,7 +225,16 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(return ref scope Tarr arr, size_t newle
     // Call the implementation with the unqualified array and sharedness flag
     size_t result = _d_arraysetlengthT_(unqual_arr, newlength, isShared);
 
-    arr = cast(Tarr) unqual_arr;
+    static if (isShared)
+    {
+        // This low-level primitive mutates the caller's shared slice header, so
+        // the caller must already provide whatever synchronization makes that
+        // header update valid; the cast only preserves that existing contract
+        // under `-preview=nosharedaccess`.
+        *cast(UnqT[]*) &arr = unqual_arr;
+    }
+    else
+        arr = cast(Tarr) unqual_arr;
     // Return the result
     return result;
 }
@@ -392,6 +404,8 @@ version (D_ProfileGC)
     shared S[] arr2;
     _d_arraysetlengthT!(typeof(arr2))(arr2, 16);
     assert(arr2.length == 16);
-    foreach (s; arr2)
+    // The resized slice has not been published yet, so the test may inspect
+    // the backing storage directly to verify initialization.
+    foreach (s; (() @trusted => *cast(S[]*) &arr2)())
         assert(s == S.init);
 }

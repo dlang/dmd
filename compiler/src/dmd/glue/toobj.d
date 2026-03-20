@@ -466,6 +466,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
+            // Check to see if we're doing special section mangling, these are not regular variables.
+            // Do not prepend an underscore to the name, it won't work.
+            if (config.objfmt == OBJ_MACH && vd.mangleOverride.length > 8 && vd.mangleOverride[0 .. 8] == "section$")
+                vd.noUnderscore = true;
+
             if (!vd.isDataseg() || vd.storage_class & STC.extern_)
                 return;
 
@@ -484,6 +489,101 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             Dsymbol parent = vd.toParent();
             s.Sclass = SC.global;
+
+            {
+                string userDefinedSection;
+
+                // find the @section("name") uda
+                foreachUdaNoSemantic(vd, (e) {
+                    import dmd.expressionsem : toUTF8;
+
+                    if (!e.isStructLiteralExp())
+                        return 0;
+
+                    auto literal = e.isStructLiteralExp();
+                    assert(literal.sd);
+
+                    if (!isCoreUda(literal.sd, Id.udaSection))
+                        return 0;
+
+                    if (userDefinedSection)
+                    {
+                        error(vd.loc, "%s `%s` can only have one section attribute", vd.kind, vd.toPrettyChars);
+                        return 1;
+                    }
+
+                    assert(literal.elements.length == 1);
+                    auto se = (*literal.elements)[0].isStringExp();
+                    assert(se);
+
+                    userDefinedSection = cast(string)se.toUTF8(vd._scope).toStringz();
+                    return 0;
+                });
+
+                if (userDefinedSection)
+                {
+                    import core.bitop;
+                    const canBeReadOnly = !vd.type.isMutable;
+
+                    // Alignment of a type will be a power of 2 and will not be 0.
+                    const alignTo = vd.type.alignsize();
+                    const alignToPower = bsr(alignTo);
+
+                    switch (config.objfmt)
+                    {
+                        case OBJ_MACH:
+                            import dmd.backend.mach;
+
+                            // name does not start with a _
+                            //s.Sflags |= SFLnounderscore;
+
+                            s.Sseg = Obj.getsegment(
+                                userDefinedSection.ptr,
+                                canBeReadOnly ? "__TEXT" : "__DATA",
+                                alignToPower, // convert alignment to the power of
+
+                                //S_ATTR_NO_DEAD_STRIP |
+                                S_REGULAR // flags
+                            );
+                            break;
+                        case OBJ_ELF:
+                            import dmd.backend.elfobj;
+                            import dmd.backend.melf;
+
+                            s.Sseg = Obj.getsegment(
+                                userDefinedSection.ptr,
+                                null, // suffix
+                                SHT_PROGBITS, // type
+
+                                //SHF_GNU_RETAIN |
+                                SHF_ALLOC | (canBeReadOnly ? 0 : SHF_WRITE), // flags
+
+                                alignTo // align
+                            );
+                            break;
+                        case OBJ_MSCOFF:
+                            import dmd.backend.mscoff;
+
+                            const alignTo2 = IMAGE_SCN_ALIGN_1BYTES * (alignToPower + 1);
+                            const alignTo3 = alignTo2 <= IMAGE_SCN_ALIGN_8192BYTES ? alignTo2 : IMAGE_SCN_ALIGN_8192BYTES;
+
+                            // Windows will not dead strip symbols, as long as start/end are used.
+
+                            s.Sseg = Obj.getsegment(
+                                userDefinedSection.ptr,
+
+                                // flags
+                                alignTo3
+                                | IMAGE_SCN_MEM_READ
+                                | IMAGE_SCN_CNT_INITIALIZED_DATA
+                                | (canBeReadOnly ? 0 : IMAGE_SCN_MEM_WRITE)
+                            );
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
 
             /* Make C static functions SCstatic
              */
@@ -1225,17 +1325,13 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
 Louter:
     for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
     {
-        if (pc.members)
+        foreach (vd; pc.fields)
         {
-            for (size_t i = 0; i < pc.members.length; i++)
+            //printf("vd = %s %s\n", vd.kind(), vd.toChars());
+            if (vd.hasPointers())
             {
-                Dsymbol sm = (*pc.members)[i];
-                //printf("sm = %s %s\n", sm.kind(), sm.toChars());
-                if (sm.hasPointers())
-                {
-                    flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
-                    break Louter;
-                }
+                flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
+                break Louter;
             }
         }
     }

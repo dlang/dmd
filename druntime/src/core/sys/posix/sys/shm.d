@@ -219,7 +219,7 @@ else version (NetBSD)
     enum SHMLBA = 1 << 12; // PAGE_SIZE = (1<<PAGE_SHIFT)
 
     void* shmat(int, const scope void*, int);
-    int   shmctl(int, int, shmid_ds*);
+    pragma(mangle, "__shmctl50") int   shmctl(int, int, shmid_ds*);
     int   shmdt(const scope void*);
     int   shmget(key_t, size_t, int);
 }
