@@ -867,8 +867,8 @@ private immutable ubyte[8] uopsx = [ 1,1,2,5,1,1,1,5 ];
 private ubyte uops(code* c)
 {
     ubyte n;
-    int op;
-    int op2;
+    opcode_t op;
+    opcode_t op2;
 
     op = c.Iop & 0xFF;
     if ((c.Iop & 0xFF00) == 0x0F00)
