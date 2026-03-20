@@ -1941,8 +1941,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         sc = sc.push();
         sc.sbreak = ss;
         sc.switchStatement = ss;
-        sc.switchCases = cast(void*) new bool[CaseExpressionBox];
-
+        sc.switchCases = cast(void*) new CaseStatement[CaseExpressionBox];
         ss.cases = new CaseStatements();
         const inLoopSave = sc.inLoop;
         sc.inLoop = true;        // BUG: should use Scope::mergeCallSuper() for each case instead
