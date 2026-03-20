@@ -244,7 +244,10 @@ bool atomic_flag_test_and_set_explicit_impl()(atomic_flag* obj, memory_order ord
 pragma(inline, true)
 void atomic_init(A, C)(out shared(A) obj, C desired) @trusted
 {
-    obj = cast(shared) desired;
+    // C11 atomic_init is a low-level initialization primitive for atomic storage
+    // before it is published for concurrent access, so it must be able to write
+    // the backing object without demonstrating ordinary shared access.
+    *cast(A*) &obj = cast(A) desired;
 }
 
 ///

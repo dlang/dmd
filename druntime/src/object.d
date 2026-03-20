@@ -518,11 +518,15 @@ unittest
 // https://issues.dlang.org/show_bug.cgi?id=23291
 @system unittest
 {
+    import core.atomic : atomicLoad;
+
     static shared class C { bool opEquals(const(shared(C)) rhs) const shared  { return true;}}
     const(C) c = new C();
     const(C)[] a = [c];
     const(C)[] b = [c];
-    assert(a[0] == b[0]);
+    // Call the shared-aware overload directly to avoid `==` introducing
+    // additional shared reads during lowering.
+    assert(atomicLoad(a[0]).opEquals(atomicLoad(b[0])));
 }
 
 private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
@@ -541,6 +545,8 @@ void setSameMutex(shared Object ownee, shared Object owner)
 
 @system unittest
 {
+    import core.atomic : atomicLoad;
+
     shared Object obj1 = new Object;
     synchronized class C
     {
@@ -552,7 +558,7 @@ void setSameMutex(shared Object ownee, shared Object owner)
     assert(obj1.__monitor != obj2.__monitor);
     assert(obj1.__monitor is null);
 
-    setSameMutex(obj1, obj2);
+    setSameMutex(atomicLoad(obj1), atomicLoad(obj2));
     assert(obj1.__monitor == obj2.__monitor);
     assert(obj1.__monitor !is null);
 }
