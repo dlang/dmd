@@ -2278,7 +2278,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             }
 
         L1:
-            if (!cs.exp.isErrorExp())
+            if (cs.exp.isIntegerExp() || cs.exp.isStringExp())
             {
                 // https://issues.dlang.org/show_bug.cgi?id=15909
                 // Use O(n) AA-based duplicate detection instead of O(n^2) linear scan
