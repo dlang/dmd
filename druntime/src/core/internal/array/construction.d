@@ -672,7 +672,10 @@ void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
         static if (is(T == struct) && hasElaborateDestructor!T)
             attrs |= BlkAttr.FINALIZE;
 
-        return GC.malloc(allocsize, attrs, typeid(T));
+        version (D_TypeInfo)
+            return GC.malloc(allocsize, attrs, typeid(T));
+        else
+            return GC.malloc(allocsize, attrs, null);
     }
 }
 
