@@ -2992,14 +2992,28 @@ alias AssociativeArray(Key, Value) = Value[Key];
  *      aa =     The associative array.
  */
 void clear(Value, Key)(Value[Key] aa) @trusted
+if (!is(Value == shared))
 {
     _aaClear(aa);
 }
 
 /** ditto */
 void clear(Value, Key)(Value[Key]* aa) @trusted
+if (!is(Value == shared))
 {
     (*aa).clear();
+}
+
+/** ditto */
+void clear(Value, Key)(shared(Value)[Key] aa)
+{
+    return (cast(Value[Key])aa).clear();
+}
+
+/** ditto */
+void clear(Value, Key)(shared(Value)[Key]* aa)
+{
+    (cast(Value[Key])*aa).clear();
 }
 
 ///
@@ -3072,11 +3086,23 @@ Value[Key] rehash(T : shared Value[Key], Value, Key)(T* aa)
  */
 auto dup(T : V[K], K, V)(T aa)
 {
-    // Bug10720 - check whether V is copyable
-    static assert(is(typeof({ V v = aa[K.init]; })),
-        "cannot call " ~ T.stringof ~ ".dup because " ~ V.stringof ~ " is not copyable");
+    import core.internal.traits : substInout, Unconst;
 
-    return _aaDup(aa);
+    // Bug10720 - check whether V is copyable
+    static if (is(typeof({ Unconst!V v = aa[K.init]; })))
+        alias Vret = Unconst!V;
+    else static if (is(typeof({ V v = aa[K.init]; })))
+        alias Vret = V;
+    else
+        static assert(false, "cannot call " ~ T.stringof ~ ".dup because " ~ V.stringof ~ " is not copyable");
+    alias Kret = typeof([K.init][0]); // strip const if possible by copy
+
+    alias K1 = substInout!K;
+    alias V1 = substInout!Vret;
+
+    auto naa = _aaDup((() @trusted => cast(V1[K1])aa)());
+    auto maa = ((inout T) @trusted => cast(Vret[Kret])naa)(aa);
+    return maa;
 }
 
 /** ditto */

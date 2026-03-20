@@ -142,7 +142,10 @@ do
     auto attrs = __typeAttrs!T((*p).ptr) | BlkAttr.APPENDABLE;
 
     // use this static enum to avoid recomputing TypeInfo for every call.
-    static enum ti = typeid(T);
+    version (D_TypeInfo)
+        static enum ti = typeid(T);
+    else
+        static enum ti = null;
     auto ptr = GC.malloc(reqsize, attrs, ti);
     if (ptr is null)
     {

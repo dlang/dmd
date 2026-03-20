@@ -2010,12 +2010,14 @@ else version (Darwin)
         version (AArch64)
         {
             int fstat(int, stat_t*);
+            int fstatat(int, const scope char*, stat_t*, int);
             int lstat(const scope char*, stat_t*);
             int stat(const scope char*, stat_t*);
         }
         else
         {
             pragma(mangle, "fstat$INODE64") int fstat(int, stat_t*);
+            pragma(mangle, "fstatat$INODE64") int fstatat(int, const scope char*, stat_t*, int);
             pragma(mangle, "lstat$INODE64") int lstat(const scope char*, stat_t*);
             pragma(mangle, "stat$INODE64")  int stat(const scope char*, stat_t*);
         }
@@ -2023,11 +2025,11 @@ else version (Darwin)
     else
     {
         int fstat(int, stat_t*);
+        int fstatat(int, const scope char*, stat_t*, int);
         int lstat(const scope char*, stat_t*);
         int stat(const scope char*, stat_t*);
     }
     int   fchmodat(int, const scope char*, mode_t, int);
-    int   fstatat(int, const scope char*, stat_t*, int);
     int   futimens(int, ref const(timespec)[2]);
     int   mkdirat(int, const scope char*, mode_t);
     int   mkfifoat(int, const scope char*, mode_t);
