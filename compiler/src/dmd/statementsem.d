@@ -1941,7 +1941,20 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         sc = sc.push();
         sc.sbreak = ss;
         sc.switchStatement = ss;
-        sc.switchCases = cast(void*) new CaseStatement[CaseExpressionBox];
+        static if (__VERSION__ >= 2101)
+            sc.switchCases = cast(void*) new bool[CaseExpressionBox];
+        else
+        {
+            // _aaNew didn't exist prior to 2.101.0, need to be a bit more
+            // creative to initialize a new "empty" hash table for switchCases.
+            static CaseExpressionBox csbox;
+            if (csbox.exp is null)
+            {
+                csbox.exp = new NullExp(Loc.initial);
+                csbox.hash = ~0;
+            }
+            sc.switchCases = cast(void*)[csbox: false];
+        }
         ss.cases = new CaseStatements();
         const inLoopSave = sc.inLoop;
         sc.inLoop = true;        // BUG: should use Scope::mergeCallSuper() for each case instead
