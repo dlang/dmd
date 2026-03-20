@@ -1840,7 +1840,6 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
     }
 
     void visitSwitch(SwitchStatement ss)
-
     {
         /* https://dlang.org/spec/statement.html#switch-statement
          */
