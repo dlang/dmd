@@ -2,22 +2,30 @@
 DISABLED: win32 win64 freebsd32 openbsd32 linux32 osx32
 TEST_OUTPUT:
 ---
-fail_compilation/safeprintf.d(20): Error: `@safe` function `safeprintf.func` cannot call `@system` function `safeprintf.printf`
-fail_compilation/safeprintf.d(15):        `safeprintf.printf` is declared here
-fail_compilation/safeprintf.d(21): Error: `@safe` function `safeprintf.func` cannot call `@system` function `safeprintf.printf`
-fail_compilation/safeprintf.d(15):        `safeprintf.printf` is declared here
-fail_compilation/safeprintf.d(22): Error: `@safe` function `safeprintf.func` cannot call `@system` function `safeprintf.printf`
-fail_compilation/safeprintf.d(15):        `safeprintf.printf` is declared here
-fail_compilation/safeprintf.d(22): Deprecation: format specifier `"%Z"` is invalid
+fail_compilation/safeprintf.d(26): Error: calling `pragma(printf)` function `safeprintf.printf` with format string `"s: %s\n"` is not `@safe`
+fail_compilation/safeprintf.d(19):        `safeprintf.printf` is declared here
+fail_compilation/safeprintf.d(27): Error: calling `pragma(printf)` function `safeprintf.printf` with format string `"s: %S\n"` is not `@safe`
+fail_compilation/safeprintf.d(19):        `safeprintf.printf` is declared here
+fail_compilation/safeprintf.d(28): Error: calling `pragma(printf)` function `safeprintf.printf` with format string `"s: %Z\n"` is not `@safe`
+fail_compilation/safeprintf.d(19):        `safeprintf.printf` is declared here
+fail_compilation/safeprintf.d(28): Deprecation: format specifier `"%Z"` is invalid
+fail_compilation/safeprintf.d(29): Error: calling `pragma(printf)` function `safeprintf.printf` with non-literal format string is not `@safe`
+fail_compilation/safeprintf.d(19):        `safeprintf.printf` is declared here
+fail_compilation/safeprintf.d(30): Error: `@safe` function `safeprintf.func` cannot call `@system` function `safeprintf.sys_printf`
+fail_compilation/safeprintf.d(20):        `safeprintf.sys_printf` is declared here
 ---
 */
 
-extern (C) @system pragma(printf) int printf(const(char)* format, ...);
+extern (C) @trusted pragma(printf) int printf(const(char)* format, ...);
+extern (C) @system pragma(printf) int sys_printf(const(char)* format, ...);
 
 @safe void func(int i, char* s, dchar* d)
 {
-    printf("i: %d\n", i);
+    printf("no specs"); // OK
+    printf("i: %d\n", i); // OK
     printf("s: %s\n", s);
     printf("s: %S\n", d);
     printf("s: %Z\n", s);
+    printf(s, i); // non-literal
+    sys_printf("d", i);
 }
