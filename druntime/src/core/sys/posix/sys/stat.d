@@ -2352,7 +2352,7 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
-    int mknod(const scope char*, mode_t, dev_t);
+    pragma(mangle, "__mknod50") int mknod(const scope char*, mode_t, dev_t);
     int mknodat(int, const scope char*, mode_t, dev_t);
 }
 else version (OpenBSD)

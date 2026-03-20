@@ -93,7 +93,7 @@ else version (NetBSD)
         time_t  modtime;
     }
 
-    int utime(const scope char*, const scope utimbuf*);
+    pragma(mangle, "__utime50") int utime(const scope char*, const scope utimbuf*);
 }
 else version (OpenBSD)
 {
