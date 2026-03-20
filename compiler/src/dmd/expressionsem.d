@@ -16669,6 +16669,8 @@ bool checkValue(Expression e)
  */
 bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
 {
+    Expression root = e;
+
     if (!sc ||
         !sc.previews.noSharedAccess ||
         sc.intypeof ||
@@ -16846,6 +16848,12 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             case EXP.star:        return visitPtr(e.isPtrExp());
             case EXP.dotVariable: return visitDotVar(e.isDotVarExp());
             case EXP.index:       return visitIndex(e.isIndexExp());
+            case EXP.structLiteral:
+                // Allow constructing a shared struct literal as a value,
+                // but keep rejecting later accesses through that temporary.
+                if (e is root && e.type && e.type.isShared())
+                    return false;
+                return visit(e);
         }
     }
 
