@@ -2292,7 +2292,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             if (cs.exp.isIntegerExp() || cs.exp.isStringExp())
             {
                 // https://issues.dlang.org/show_bug.cgi?id=15909
-                // Use O(n) AA-based duplicate detection instead of O(n^2) linear scan 
+                // Use O(n) AA-based duplicate detection instead of O(n^2) linear scan
                 auto seen = *cast(bool[CaseExpressionBox]*) &sc.switchCases;
                 auto box = CaseExpressionBox(cs.exp);
                 if (box in seen)
