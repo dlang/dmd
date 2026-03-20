@@ -2781,7 +2781,10 @@ if (is(T == class))
         static if (!hasIndirections!T)
             attr |= BlkAttr.NO_SCAN;
 
-        p = GC.malloc(init.length, attr, typeid(T));
+        version(D_TypeInfo)
+            p = GC.malloc(init.length, attr, typeid(T));
+        else
+            p = GC.malloc(init.length, attr, null);
         debug(PRINTF) printf(" p = %p\n", p);
     }
 
@@ -2853,7 +2856,10 @@ T* _d_newitemT(T)() @trusted
     if (TypeInfoSize!T)
         flags |= GC.BlkAttr.FINALIZE;
 
-    auto p = GC.malloc(itemSize, flags, typeid(T));
+    version(D_TypeInfo)
+        auto p = GC.malloc(itemSize, flags, typeid(T));
+    else
+        auto p = GC.malloc(itemSize, flags, null);
 
     emplaceInitializer(*(cast(T*) p));
 
