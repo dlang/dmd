@@ -1401,8 +1401,12 @@ int MsCoffObj_jmpTableSegment(Symbol* s)
 segidx_t MsCoffObj_getsegment(const(char)* sectname, uint flags)
 {
     //printf("getsegment(%s)\n", sectname);
-    assert(strlen(sectname) <= 8);      // so it won't go into string_table
-    if (!(flags & IMAGE_SCN_LNK_COMDAT))
+
+    // As of writing there is no way to lookup where in the string_table sectname may be.
+    // Instead if the section name is > 8 characters long, we'll create a new section.
+    // This isn't an issue in practice, the linker will combine them, but it is less than ideal.
+
+    if (!(flags & IMAGE_SCN_LNK_COMDAT) && strlen(sectname) <= 8)
     {
         for (segidx_t seg = 1; seg < SegData.length; seg++)
         {   seg_data* pseg = SegData[seg];
