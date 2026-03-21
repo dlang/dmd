@@ -27,6 +27,8 @@ else version (Solaris)
     enum os = "solaris";
 else version (SunOS)
     enum os = "solaris";
+else version (Hurd)
+    enum os = "hurd";
 else
     static assert(0, "Unrecognized or unsupported OS.");
 

@@ -2,7 +2,7 @@
 // PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
 // EXTRA_FILES: extra-files/cppb.h
-// CXXFLAGS(linux freebsd osx openbsd netbsd dragonflybsd): -std=c++11
+// CXXFLAGS(linux freebsd osx openbsd netbsd dragonflybsd hurd): -std=c++11
 // druntime isn't linked, this prevents missing symbols '_d_arraybounds_slicep':
 // REQUIRED_ARGS: -checkaction=C
 // TRANSFORM_OUTPUT: remove_lines("warning: vsprintf\(\) is often misused")
