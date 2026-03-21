@@ -1,7 +1,7 @@
 // Test printf format checking for C long size-dependent cases (64-bit: long = 8 bytes)
 /*
 REQUIRED_ARGS: -de
-DISABLED: win32 win64 freebsd32 openbsd32 linux32 osx32
+DISABLED: win32 win64 freebsd32 openbsd32 linux32 osx32 hurd32
 TEST_OUTPUT:
 ---
 fail_compilation/chkformat_clong.d(21): Deprecation: argument `p` of type `char*` does not match format specification
