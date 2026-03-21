@@ -7332,8 +7332,9 @@ struct Target final
         FreeBSD = 16u,
         Solaris = 32u,
         DragonFlyBSD = 64u,
-        all = 127u,
-        Posix = 125u,
+        Hurd = 128u,
+        all = 255u,
+        Posix = 253u,
     };
 
     OS os;
