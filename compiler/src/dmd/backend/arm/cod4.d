@@ -2203,7 +2203,6 @@ void cdpopcnt(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t vregs = INSTR.FLOATREGS;     // possible floating point registers
     reg_t Vx = allocreg(cdb, vregs, TYdouble);
 
-    Vx &= 31;                                           // to AArch64 register number
     cdb.gen1(INSTR.fmov_float_gen(1,1,0,7,R1,Vx));      // FMOV Dx,X1
     cdb.gen1(INSTR.cnt_advsimd(0,0,Vx,Vx));             // CNT  Vx.8b,Vx.8b
     cdb.gen1(INSTR.addv_advsimd(0,0,Vx,Vx));            // ADDV Bx,Vx.8b
