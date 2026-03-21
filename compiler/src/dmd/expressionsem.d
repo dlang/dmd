@@ -3411,20 +3411,30 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
         return false;
     }
 
-    if (f.printf)
+    if (f.printf && (f.isSafe() || f.isTrusted()))
     {
         TypeFunction tf = f.type.isTypeFunction();
         assert(tf);
         const isVa_list = tf.parameterList.varargs == VarArg.none;
         const nparams = tf.parameterList.length;
         const nargs = arguments ? arguments.length : 0;
-        if (nparams == 1 && nargs)
+        assert(nparams && nargs); // should have been verified already
+        if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
         {
-            if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
+            if (!isFormatSafe(se.peekString()))
             {
-                if (isFormatSafe(se.peekString()))
-                    return false;
+                error(loc, "calling `pragma(printf)` %s `%s` with format string `%s` is not `@safe`",
+                    f.kind(), f.toPrettyChars(), se.toChars());
+                .errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
+                return true;
             }
+        }
+        else
+        {
+            error(loc, "calling `pragma(printf)` %s `%s` with non-literal format string is not `@safe`",
+                f.kind(), f.toPrettyChars());
+            .errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
+            return true;
         }
     }
 
