@@ -869,6 +869,8 @@ public:
                 item("solaris");
                 item("bsd");
             }
+            else if (target.os == Target.OS.Hurd)
+                item("hurd");
         }
         arrayEnd();
 

@@ -227,6 +227,8 @@ struct Triple
             os =  Target.OS.OpenBSD;
         else if (matches("linux"))
             os =  Target.OS.linux;
+        else if (matches("hurd")) // "gnu"?
+            os =  Target.OS.Hurd;
         else if (matches("windows"))
             os =  Target.OS.Windows;
         else

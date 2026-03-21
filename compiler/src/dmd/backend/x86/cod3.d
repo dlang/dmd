@@ -2460,7 +2460,7 @@ void outjmptab(block* b)
                 break;
             }
         }
-        if (config.exe & (EX_LINUX64 | EX_FREEBSD64 | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS64))
+        if (config.exe & (EX_LINUX64 | EX_FREEBSD64 | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS64 | EX_HURD64))
         {
             if (config.flags3 & CFG3pic)
             {
@@ -2473,7 +2473,7 @@ void outjmptab(block* b)
                 *poffset += 8;
             }
         }
-        else if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
+        else if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS | EX_HURD))
         {
             if (config.flags3 & CFG3pic)
             {
@@ -3126,7 +3126,7 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 @trusted
 void load_localgot(ref CodeBuilder cdb)
 {
-    if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS)) // note: I32 only
+    if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS | EX_HURD)) // note: I32 only
     {
         if (config.flags3 & CFG3pic)
         {

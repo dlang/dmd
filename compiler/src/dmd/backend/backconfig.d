@@ -288,6 +288,42 @@ void out_config_init(
         cfg.objfmt = OBJ_ELF;
         cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
+    else if (cfg.exe & (EX_HURD | EX_HURD64))
+    {
+        cfg.fpxmmregs = true;
+        cfg.avx = avx;
+        if (model == 64)
+        {
+            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        }
+        else
+        {
+            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            if (!exe)
+                cfg.flags |= CFGromable; // put switch tables in code segment
+        }
+        cfg.flags |= CFGnoebp;
+        switch (pic)
+        {
+            case 0:         // PIC.fixed
+                break;
+
+            case 1:         // PIC.pic
+                cfg.flags3 |= CFG3pic;
+                break;
+
+            case 2:         // PIC.pie
+                cfg.flags3 |= CFG3pic | CFG3pie;
+                break;
+
+            default:
+                assert(0);
+        }
+        if (symdebug)
+            cfg.flags |= CFGalwaysframe;
+
+        cfg.objfmt = OBJ_ELF;
+    }
 
     cfg.flags2 |= CFG2nodeflib;      // no default library
     cfg.flags3 |= CFG3eseqds;
@@ -320,7 +356,7 @@ static if (0)
     if (symdebug)
     {
         if (cfg.exe & (EX_LINUX | EX_LINUX64 | EX_OPENBSD | EX_OPENBSD64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64 |
-                          EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64))
+                          EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64 | EX_HURD | EX_HURD64))
         {
             configv.addlinenumbers = 1;
             cfg.fulltypes = (symdebug == 1) ? CVDWARF_D : CVDWARF_C;
@@ -446,7 +482,7 @@ void util_set32(exefmt_t exe)
     _tysize[TYnullptr] = LONGSIZE;
     _tysize[TYnptr] = LONGSIZE;
     _tysize[TYnref] = LONGSIZE;
-if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
+if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_HURD | EX_HURD64))
 {
     _tysize[TYreal] = 12;
     _tysize[TYireal] = 12;
@@ -477,7 +513,7 @@ if (exe & EX_windos)
     _tyalignsize[TYnullptr] = LONGSIZE;
     _tyalignsize[TYnref] = LONGSIZE;
     _tyalignsize[TYnptr] = LONGSIZE;
-if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
+if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_HURD | EX_HURD64))
 {
     _tyalignsize[TYreal] = 4;
     _tyalignsize[TYireal] = 4;
@@ -533,7 +569,7 @@ void util_set64(exefmt_t exe)
     _tysize[TYnptr] = 8;
     _tysize[TYnref] = 8;
     if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD |
-                      EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64))
+                      EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64 | EX_HURD | EX_HURD64))
     {
         _tysize[TYreal] = 16;
         _tysize[TYireal] = 16;
@@ -557,7 +593,7 @@ void util_set64(exefmt_t exe)
     _tyalignsize[TYnullptr] = 8;
     _tyalignsize[TYnptr] = 8;
     _tyalignsize[TYnref] = 8;
-    if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
+    if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_HURD | EX_HURD64))
     {
         _tyalignsize[TYreal] = 16;
         _tyalignsize[TYireal] = 16;
