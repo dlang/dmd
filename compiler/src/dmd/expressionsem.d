@@ -3423,17 +3423,17 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
         {
             if (!isFormatSafe(se.peekString()))
             {
-                error(loc, "calling `pragma(printf)` %s `%s` with format string `%s` is not `@safe`",
-                    f.kind(), f.toPrettyChars(), se.toChars());
-                .errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
+                if (sc.setUnsafe(false, loc,
+                    "calling `pragma(printf)` function `%s` with format string `%s`", f, se))
+                    .errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
                 return true;
             }
         }
         else
         {
-            error(loc, "calling `pragma(printf)` %s `%s` with non-literal format string is not `@safe`",
-                f.kind(), f.toPrettyChars());
-            .errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
+            if (sc.setUnsafe(false, loc,
+                "calling `pragma(printf)` function `%s` with non-literal format string", f))
+                .errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
             return true;
         }
     }

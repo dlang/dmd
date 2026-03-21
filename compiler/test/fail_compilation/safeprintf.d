@@ -2,16 +2,16 @@
 DISABLED: win32 win64 freebsd32 openbsd32 linux32 osx32
 TEST_OUTPUT:
 ---
-fail_compilation/safeprintf.d(29): Error: calling `pragma(printf)` function `safeprintf.printf` with format string `"s: %s\n"` is not `@safe`
+fail_compilation/safeprintf.d(29): Error: calling `pragma(printf)` function `printf` with format string `"s: %s\n"` is not allowed in a `@safe` function
 fail_compilation/safeprintf.d(21):        `safeprintf.printf` is declared here
-fail_compilation/safeprintf.d(30): Error: calling `pragma(printf)` function `safeprintf.printf` with format string `"s: %S\n"` is not `@safe`
+fail_compilation/safeprintf.d(30): Error: calling `pragma(printf)` function `printf` with format string `"s: %S\n"` is not allowed in a `@safe` function
 fail_compilation/safeprintf.d(21):        `safeprintf.printf` is declared here
-fail_compilation/safeprintf.d(31): Error: calling `pragma(printf)` function `safeprintf.printf` with format string `"s: %Z\n"` is not `@safe`
+fail_compilation/safeprintf.d(31): Error: calling `pragma(printf)` function `printf` with format string `"s: %Z\n"` is not allowed in a `@safe` function
 fail_compilation/safeprintf.d(21):        `safeprintf.printf` is declared here
 fail_compilation/safeprintf.d(31): Deprecation: format specifier `"%Z"` is invalid
-fail_compilation/safeprintf.d(32): Error: calling `pragma(printf)` function `safeprintf.printf` with non-literal format string is not `@safe`
+fail_compilation/safeprintf.d(32): Error: calling `pragma(printf)` function `printf` with non-literal format string is not allowed in a `@safe` function
 fail_compilation/safeprintf.d(21):        `safeprintf.printf` is declared here
-fail_compilation/safeprintf.d(33): Error: calling `pragma(printf)` function `safeprintf.bar` with format string `"%s"` is not `@safe`
+fail_compilation/safeprintf.d(33): Error: calling `pragma(printf)` function `bar` with format string `"%s"` is not allowed in a `@safe` function
 fail_compilation/safeprintf.d(22):        `safeprintf.bar` is declared here
 fail_compilation/safeprintf.d(34): Error: `@safe` function `safeprintf.func` cannot call `@system` function `safeprintf.sys_printf`
 fail_compilation/safeprintf.d(23):        `safeprintf.sys_printf` is declared here
@@ -31,5 +31,12 @@ extern (C) @system pragma(printf) int sys_printf(const(char)* format, ...);
     printf("s: %Z\n", s);
     printf(s, i); // non-literal
     bar(1, "%s", s); // preceding args
-    sys_printf("d", i);
+    sys_printf("%d", i); // not safe
+}
+
+// no errors
+@system void sys(char* s)
+{
+    printf(s); // non-literal
+    printf("%s", s);
 }
