@@ -818,8 +818,8 @@ struct Symbol
         uint Stypidx;           // SCstruct,SCunion,SCclass,SCenum,SCtypedef: debug info type index
         struct
         {
-            ubyte Sreglsw;
-            ubyte Sregmsw;
+            reg_t Sreglsw;
+            reg_t Sregmsw;
           regm_t Sregm;         // mask of registers
         }                       // SCregister,SCregpar,SCpseudo: register number
     }
