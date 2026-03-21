@@ -856,7 +856,7 @@ $(GNAME Destructor):
 
         * Only one destructor can be declared per class, although
           other destructors $(DDSUBLINK spec/template-mixin, destructors, can be mixed in).
-        * A destructor does not have any parameters or attributes.
+        * A destructor does not have any parameters.
         * A destructor is always virtual.
 
         $(P The destructor is expected to release any non-GC resources held by the
