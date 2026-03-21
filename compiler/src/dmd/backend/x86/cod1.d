@@ -2161,7 +2161,8 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
                           EX_FREEBSD | EX_FREEBSD64 |
                           EX_OPENBSD | EX_OPENBSD64 |
                           EX_DRAGONFLYBSD64 |
-                          EX_SOLARIS | EX_SOLARIS64);
+                          EX_SOLARIS | EX_SOLARIS64 |
+                          EX_HURD    | EX_HURD64);
 
     switch (clib)
     {
@@ -2183,7 +2184,7 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
 
         case CLIB.ldiv:
             cinfo.retregs16 = mDX|mAX;
-            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
+            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_HURD))
             {
                 s = symboly("__divdi3", mAX|mBX|mCX|mDX);
                 cinfo.flags = INFpushebx;
@@ -2211,7 +2212,7 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
 
         case CLIB.lmod:
             cinfo.retregs16 = mCX|mBX;
-            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
+            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_HURD))
             {
                 s = symboly("__moddi3", mAX|mBX|mCX|mDX);
                 cinfo.flags = INFpushebx;
@@ -2239,7 +2240,7 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
 
         case CLIB.uldiv:
             cinfo.retregs16 = mDX|mAX;
-            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
+            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_HURD))
             {
                 s = symboly("__udivdi3", mAX|mBX|mCX|mDX);
                 cinfo.flags = INFpushebx;
@@ -2267,7 +2268,7 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
 
         case CLIB.ulmod:
             cinfo.retregs16 = mCX|mBX;
-            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
+            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_HURD))
             {
                 s = symboly("__umoddi3", mAX|mBX|mCX|mDX);
                 cinfo.flags = INFpushebx;
@@ -2908,7 +2909,7 @@ void callclib(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint clib, ref regm_
         }
         if (pushebx)
         {
-            if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64))
+            if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_HURD | EX_HURD64))
             {
                 cdb.gen1(0x50 + CX);                             // PUSH ECX
                 cdb.gen1(0x50 + BX);                             // PUSH EBX
@@ -2929,7 +2930,7 @@ void callclib(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint clib, ref regm_
             cdb.gen1(0x50 + DX);                                 // PUSH EDX
             cdb.gen1(0x50 + AX);                                 // PUSH EAX
         }
-        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
+        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS | EX_HURD))
         {
             // Note: not for OSX
             /* Pass EBX on the stack instead, this is because EBX is used
@@ -3418,7 +3419,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
     /* Assume called function access statics
      */
-    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64) &&
+    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_HURD | EX_HURD64) &&
         config.flags3 & CFG3pic)
         cg.accessedTLS = true;
 
@@ -3465,7 +3466,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         parameters[i].numalign = 0;
         if (alignsize > stackalign &&
             (I64 || (alignsize >= 16 &&
-                (config.exe & (EX_OSX | EX_LINUX) && (tyaggregate(ep.Ety) || tyvector(ep.Ety))))))
+                     (config.exe & (EX_OSX | EX_LINUX | EX_HURD) && (tyaggregate(ep.Ety) || tyvector(ep.Ety))))))
         {
             if (alignsize > STACKALIGN)
             {
@@ -4035,7 +4036,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
         tym_t e11ty = tybasic(e11.Ety);
         assert(!I16 || (e11ty == (farfunc ? TYfptr : TYnptr)));
         load_localgot(cg,cdb);
-        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS)) // 32 bit only
+        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS | EX_HURD)) // 32 bit only
         {
             if (config.flags3 & CFG3pic)
                 keepmsk |= mBX;
