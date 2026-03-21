@@ -102,7 +102,7 @@ class Mutex :
 
         auto self = cast(Mutex) this;
         self.m_proxy.link = self;
-        this.__monitor = cast(void*) &m_proxy;
+        *cast(void**) &this.__monitor = cast(void*) &m_proxy;
     }
 
 
@@ -136,7 +136,7 @@ class Mutex :
     do
     {
         this();
-        obj.__monitor = cast(void*) &m_proxy;
+        *cast(void**) &obj.__monitor = cast(void*) &m_proxy;
     }
 
 

@@ -151,7 +151,12 @@ imported!()
 }
 RTInfo!(C)
 {
-	enum immutable(void)* RTInfo = null;
+	enum immutable(ulong)* RTInfo = & RTInfoImpl;
+
+}
+RTInfoImpl!([16LU, 2LU])
+{
+	immutable immutable(ulong[2]) RTInfoImpl = [16LU, 2LU];
 
 }
 values!(__c_wchar_t)

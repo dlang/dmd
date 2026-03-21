@@ -3129,6 +3129,12 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 ss.exp = new CastExp(ss.loc, ss.exp, t);
                 ss.exp = ss.exp.expressionSemantic(sc);
             }
+            if (!cd.hasMonitor())
+            {
+                error(ss.loc, "cannot `synchronize` on a `%s` because `object.Object` has no `__monitor` field",
+                    cd.toChars());
+                return setError();
+            }
             version (all)
             {
                 /* Rewrite as:

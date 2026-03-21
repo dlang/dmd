@@ -1328,7 +1328,7 @@ Louter:
         foreach (vd; pc.fields)
         {
             //printf("vd = %s %s\n", vd.kind(), vd.toChars());
-            if (vd.hasPointers())
+            if (vd.ident !is Id.__monitor && vd.hasPointers())
             {
                 flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
                 break Louter;

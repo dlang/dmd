@@ -202,7 +202,7 @@ class ReadWriteMutex
             if (is(Q == Reader) || is(Q == shared Reader))
         {
             m_proxy.link = cast(typeof(m_proxy.link)) this;
-            this.__monitor = cast(void*) &m_proxy;
+            *cast(void**) &this.__monitor = cast(void*) &m_proxy;
         }
 
         /**
@@ -373,7 +373,7 @@ class ReadWriteMutex
             if (is(Q == Writer) || is(Q == shared Writer))
         {
             m_proxy.link = cast(typeof(m_proxy.link)) this;
-            this.__monitor = cast(void*) &m_proxy;
+            *cast(void**) &this.__monitor = cast(void*) &m_proxy;
         }
 
 

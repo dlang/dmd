@@ -744,7 +744,7 @@
             {
                 "char": 14,
                 "deco": "VALUE_REMOVED_FOR_TEST",
-                "init": "Object()",
+                "init": "Object(null)",
                 "kind": "variable",
                 "line": 120,
                 "name": "c_10011",

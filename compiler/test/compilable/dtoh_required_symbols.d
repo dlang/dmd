@@ -47,6 +47,9 @@ struct ExternDStructTemplate final
 
 class Object
 {
+public:
+    void* __monitor_;
+private:
     virtual void __vtable_slot_0();
     virtual void __vtable_slot_1();
     virtual void __vtable_slot_2();

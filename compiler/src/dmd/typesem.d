@@ -7182,18 +7182,6 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 return e;
             }
 
-            if (ident == Id.__monitor && mt.sym.hasMonitor())
-            {
-                /* The handle to the monitor (call it a void*)
-                 * *(cast(void**)e + 1)
-                 */
-                e = e.castTo(sc, mt.tvoidptr.pointerTo());
-                e = new AddExp(e.loc, e, IntegerExp.literal!1);
-                e = new PtrExp(e.loc, e);
-                e = e.expressionSemantic(sc);
-                return e;
-            }
-
             if (ident == Id.outer && mt.sym.vthis)
             {
                 if (mt.sym.vthis.semanticRun == PASS.initial)

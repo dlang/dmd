@@ -9,7 +9,7 @@ int
 !! immutable(int)[]
 int(int i, long j = 7L)
 long
-C10390(C10390(C10390(<recursion>)))
+C10390(null, C10390(null, C10390(<recursion>)))
 AliasSeq!(height)
 AliasSeq!(get, get)
 AliasSeq!(clear)
@@ -4772,7 +4772,7 @@ abstract class C2997 : B2997, I2997 {}
 
 void test2997()
 {
-    enum ObjectMembers = ["toString","toHash","opCmp","opEquals","Monitor","factory"];
+    enum ObjectMembers = ["__monitor", "toString","toHash","opCmp","opEquals","Monitor","factory"];
 
     static assert([__traits(allMembers, C2997)] == ["foo"] ~ ObjectMembers ~ ["bar"]);
 }
@@ -5732,7 +5732,7 @@ void test7168()
         void bar(){}
     }
 
-    enum ObjectMembers = ["toString","toHash","opCmp","opEquals","Monitor","factory"];
+    enum ObjectMembers = ["__monitor", "toString","toHash","opCmp","opEquals","Monitor","factory"];
 
     static assert([__traits(allMembers, X)] == ["foo"]~ObjectMembers);          // pass
     static assert([__traits(allMembers, Y)] == ["bar", "foo"]~ObjectMembers);   // fail

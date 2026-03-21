@@ -337,7 +337,17 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      */
     final bool hasMonitor()
     {
-        return classKind == ClassKind.d;
+        if (classKind != ClassKind.d)
+            return false;
+        else if (this.baseClass !is null)
+            return this.baseClass.hasMonitor();
+
+        foreach(field; this.fields)
+        {
+            if (field.ident is Id.__monitor)
+                return true;
+        }
+        return false;
     }
 
     /****************************************

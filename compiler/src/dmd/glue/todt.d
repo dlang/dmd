@@ -764,7 +764,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     //printf("+dtb.length: %d\n", dtb.length);
 
     /* Order:
-     *  { base class } or { __vptr, __monitor }
+     *  { base class } or { __vptr }
      *  interfaces
      *  fields
      */
@@ -808,14 +808,9 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         }
         else
         {
-            // Insert { __vptr, __monitor }
+            // Insert { __vptr }
             dtb.xoff(toVtblSymbol(concreteType), 0);  // __vptr
             offset = target.ptrsize;
-            if (cd.hasMonitor())
-            {
-                dtb.size(0);              // __monitor
-                offset += target.ptrsize;
-            }
         }
 
         // Interface vptr initializations

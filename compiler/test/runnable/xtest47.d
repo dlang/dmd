@@ -2,6 +2,7 @@
 /* TEST_OUTPUT:
 ---
 f
+__monitor
 toString
 toHash
 opCmp

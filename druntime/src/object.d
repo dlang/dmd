@@ -110,6 +110,8 @@ else version (AArch64)
  */
 class Object
 {
+    void* __monitor;
+
     /**
      * Convert Object to a human readable string.
      */
