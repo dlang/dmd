@@ -10,13 +10,13 @@ import dmd.diagreport.renderer;
 import dmd.location;
 // import std.stdio;
 // import std.conv;
-import std.range;
+// import std.range;
 // import std.array;
-import std.string;
+// import std.string;
 
 
 /// Function to convert dmd.errors.Diagnostic object to dmd.diagreport.defs.Diagnostic objects
-dmd.diagreport.defs.Diagnostic convert(dmd.errors.Diagnostic d) nothrow
+dmd.diagreport.defs.Diagnostic convert(dmd.errors.Diagnostic d) 
 {
     dmd.diagreport.defs.Diagnostic obj;
     obj.start = d.loc.line;
@@ -28,7 +28,7 @@ dmd.diagreport.defs.Diagnostic convert(dmd.errors.Diagnostic d) nothrow
 }
 
 /// function to call event() for diagnostics
-void callEvent(ref dmd.errors.Diagnostic[] diagnostics) nothrow
+void callEvent(ref dmd.errors.Diagnostic[] diagnostics)
 {
     foreach(d; diagnostics)
     {
@@ -37,10 +37,10 @@ void callEvent(ref dmd.errors.Diagnostic[] diagnostics) nothrow
     }
 }
 
-void event(string filename, string source, int firstLineNumber, dmd.diagreport.defs.Diagnostic[] diagnostics, string[] messagesText, Help[] help) nothrow
+void event(string filename, string source, int firstLineNumber, dmd.diagreport.defs.Diagnostic[] diagnostics, string[] messagesText, Help[] help)
 {
     OutBuffer buf;
-    string[] lines = source.splitLines;
+    // string[] lines = source.splitLines;
 
     Renderer renderer;
     renderer.filename = filename;
@@ -65,7 +65,23 @@ void event(string filename, string source, int firstLineNumber, dmd.diagreport.d
     renderer.emitHelpMultiLinePrefix = () => buf.printDiagnostic("      ");
     renderer.emitGutter = (string text) => buf.printDiagnostic("\x1b[34m", text, "\x1b[0m");
     renderer.emitSquiggle = (string text) => buf.printDiagnostic("\x1b[31m", text, "\x1b[0m");
-    renderer.getSourceCode = (int lineNumber) => lines[lineNumber - firstLineNumber];
+    //renderer.getSourceCode = (int lineNumber) => lines[lineNumber - firstLineNumber];
+    renderer.getSourceCode = (int lineNumber)
+    {
+        auto range = LineRange(source); // Start at the beginning of the file
+        int current = firstLineNumber; 
+
+        while (!range.empty && current < lineNumber)
+        {
+            range.popFront();
+            current++;
+        }       
+
+        if (!range.empty && current == lineNumber)
+            return range.front();
+
+        return "";
+    };
 
     renderer.emitMessageSingleLine = (ref Message message) {
         if (message.id > 0 && message.id <= messagesText.length)
@@ -76,7 +92,7 @@ void event(string filename, string source, int firstLineNumber, dmd.diagreport.d
         if (message.id > 0 && message.id <= messagesText.length)
         {
             string text1 = messagesText[message.id - 1];
-            size_t done;
+            /*size_t done;
 
             foreach (text2; text1.lineSplitter!(Yes.keepTerminator))
             {
@@ -88,7 +104,39 @@ void event(string filename, string source, int firstLineNumber, dmd.diagreport.d
 
                 if (isLast)
                     buf.writeByte('\n');
-            }
+            }*/ 
+            size_t start = 0;
+
+            while (start < text1.length)
+            {
+                size_t i = start;
+                // Scan until we find a newline character
+                while (i < text1.length && text1[i] != '\n' && text1[i] != '\r')
+                {
+                    i++;
+                }
+
+                // Handle the terminator (mimicking Yes.keepTerminator)
+                if (i < text1.length)
+                {
+                    if (text1[i] == '\r' && i + 1 < text1.length && text1[i + 1] == '\n')
+                        i += 2; // Include \r\n
+                    else
+                        i += 1; // Include \r or \n
+                }
+
+                string text2 = cast(string) text1[start .. i];
+                start = i; // Move start to the beginning of the next line
+                    
+                const isLast = (start == text1.length);
+
+                // Execute your existing logic
+                beforeTextOnLine(isLast);
+                printDiagnostic(buf, text2);
+
+                if (isLast)
+                    buf.writeByte('\n');
+            }            
         }
     };
     renderer.render();
@@ -143,4 +191,33 @@ size_t getMessageStartColumn(const(char)[] text, size_t offset) nothrow @safe
             caretColumn = currentColumn;
     }
     return caretColumn;
+}
+
+/// Line splitter to get rid of phobos string and range libraries
+struct LineRange
+{
+    private const(char)[] content;
+    private size_t pos;
+
+    this(const(char)[] source) { this.content = source; }
+
+    bool empty() const { return pos >= content.length; }
+
+    string front() const
+    {
+        size_t end = pos;
+        while (end < content.length && content[end] != '\n' && content[end] != '\r')
+            end++;
+        return cast(string)content[pos .. end];
+    }
+
+    void popFront()
+    {
+        while (pos < content.length && content[pos] != '\n' && content[pos] != '\r')
+            pos++;
+        if (pos < content.length && content[pos] == '\r')
+            pos++;
+        if (pos < content.length && content[pos] == '\n')
+            pos++;
+    }
 }
