@@ -2027,8 +2027,16 @@ private elem* elnot(elem* e, Goal goal)
             if (OTrel(op))                      /* ! OTrel => !OTrel            */
             {
                   /* Find the logical negation of the operator  */
+                  const e11ty = e1.E1.Ety;
+                  if (config.target_cpu == TARGET_AArch64 &&
+                     tyfloating(e11ty) &&
+                     !(op == OPeqeq || op == OPne))
+                  {
+                        break;  // no support for OPlg, OPnge, etc.
+                  }
+
                   auto op2 = rel_not(op);
-                  if (!tyfloating(e1.E1.Ety))
+                  if (!tyfloating(e11ty))
                   {   op2 = rel_integral(op2);
                       assert(OTrel(op2));
                   }
