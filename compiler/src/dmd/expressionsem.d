@@ -5852,8 +5852,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 arguments.push(makeTemplateItem(Id.InterpolatedExpression, str));
                 Expressions* mix = new Expressions(new StringExp(e.loc, str));
-                // FIXME: i'd rather not use MixinExp but idk how to do it lol
-                arguments.push(new MixinExp(e.loc, mix));
+                auto mixinExp = new MixinExp(e.loc, mix);
+                auto res = mixinExp.expressionSemantic(sc);
+                res = resolveProperties(sc, res);
+                arguments.push(res);
             }
         }
 
