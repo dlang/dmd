@@ -1,4 +1,4 @@
-/* PERMUTE_ARGS: -preview=rvaluerefparam
+/* REQUIRED_ARGS: -preview=rvaluerefparam
 /* testing __rvalue */
 
 import core.stdc.stdio;
@@ -243,6 +243,87 @@ void test10()
 }
 
 /********************************/
+// https://github.com/dlang/dmd/issues/22111
+
+__gshared int copyCount11;
+__gshared int moveCount11;
+__gshared int dtorCount11;
+
+struct S11
+{
+    int i;
+    this(S11 rhs) { moveCount11++; }
+    this(ref S rhs) { copyCount11++; }
+    ~this() { dtorCount11++; }
+}
+
+__gshared S11 s11obj;
+
+ref S11 refS11() { return s11obj; }
+ref S11 moveS11() __rvalue { return s11obj; }
+S11 copyRefS11() { return __rvalue(refS11()); }
+S11 copyMoveS11() { return moveS11(); }
+
+void test11()
+{
+    copyRefS11();
+    assert(copyCount11 == 0 && moveCount11 == 1 && dtorCount11 == 2);
+    moveCount11 = dtorCount11 = 0;
+    copyMoveS11();
+    assert(copyCount11 == 0 && moveCount11 == 1 && dtorCount11 == 2);
+}
+
+/********************************/
+
+struct S12{
+    S12* ptr;
+    this(int) { ptr = &this; }
+    this(ref inout S12) { ptr = &this; }
+    this(S12) { ptr = &this; }
+}
+
+struct V12
+{
+    S12 s;
+    this(int) { s = S12(1); }
+    int opApply(int delegate(Object)) { return 0; }
+}
+
+S12 foo12()
+{
+    return __rvalue(V12(1).s);
+}
+
+S12 bar12()
+{
+    S12 s = S12(1); // NRVO
+    foreach (_; V12(1))
+        return s;
+    return s;
+}
+
+S12 baz12()
+{
+    S12 s1 = S12(1);
+    S12 s2 = S12(1); // No NRVO
+    foreach (_; V12(1))
+        return s1;
+    return s2;
+}
+
+void test12()
+{
+    S12 s = foo12();
+    assert(&s == s.ptr);
+
+    S12 s2 = bar12();
+    assert(&s2 == s2.ptr);
+
+    S12 s3 = baz12();
+    assert(&s3 == s3.ptr);
+}
+
+/********************************/
 
 int main()
 {
@@ -255,6 +336,9 @@ int main()
     test7();
     test8();
     test9();
+    test10();
+    test11();
+    test12();
 
     return 0;
 }

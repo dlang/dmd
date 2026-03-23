@@ -653,7 +653,9 @@ class Thread : ThreadBase
             auto local = atomicLoad(mixin("cache." ~ which));
             if (local != local.min) return local;
             // There will be benign races
-            cache = loadPriorities;
+            auto loaded = loadPriorities;
+            static foreach (i, _; loaded.tupleof)
+                atomicStore(cache.tupleof[i], loaded.tupleof[i]);
             return atomicLoad(mixin("cache." ~ which));
         }
 
@@ -1416,7 +1418,7 @@ in (fn)
                 enum int j = 13 + i; // source register
                 asm pure nothrow @nogc
                 {
-                    "stw "~regname~j.stringof~", %0" : "=m" (regs[i]);
+                    ("stw "~regname~j.stringof~", %0") : "=m" (regs[i]);
                 }
             }}
             sp = cast(void*)&regs[0];
@@ -1433,7 +1435,7 @@ in (fn)
                 enum int j = 13 + i; // source register
                 asm pure nothrow @nogc
                 {
-                    "std "~regname~j.stringof~", %0" : "=m" (regs[i]);
+                    ("std "~regname~j.stringof~", %0") : "=m" (regs[i]);
                 }
             }}
             sp = cast(void*)&regs[0];
@@ -1527,6 +1529,27 @@ in (fn)
             mov sp[RBP], RSP;
         }
     }
+    else version (AArch64)
+    {
+	// Callee-save registers, x19-x28 according to AAPCS64, section
+	// 5.1.1.  Include x29 fp because it optionally can be a callee
+	// saved reg
+	size_t[11] regs = void;
+	// store the registers in pairs
+	asm pure nothrow @nogc
+	{
+	/*
+	    stp x19, x20, regs[0];
+	    stp x21, x22, regs[2];
+	    stp x23, x24, regs[4];
+	    stp x25, x26, regs[6];
+	    stp x27, x28, regs[8];
+	    str x29, regs[10];
+	    mov [sp], sp;
+	 */
+	}
+	assert(0, "implement AArch64 inline assembler for callWithStackShell()"); // TODO AArch64
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -1576,6 +1599,11 @@ private extern(D) void* getStackTop() nothrow @nogc
         asm pure nothrow @nogc { naked; mov EAX, ESP; ret; }
     else version (D_InlineAsm_X86_64)
         asm pure nothrow @nogc { naked; mov RAX, RSP; ret; }
+    else version (AArch64)
+        //asm pure nothrow @nogc { naked; mov x0, SP; ret; }    // TODO AArch64
+    {
+        return null;
+    }
     else version (GNU)
         return __builtin_frame_address(0);
     else
@@ -2372,7 +2400,9 @@ version (Windows)
 
             void append( Throwable t )
             {
-                obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
+                obj.filterCaughtThrowable(t);
+                if (t !is null)
+                    obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
             }
 
             version (D_InlineAsm_X86)
@@ -2543,7 +2573,9 @@ else version (Posix)
 
             void append( Throwable t )
             {
-                obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
+                obj.filterCaughtThrowable(t);
+                if (t !is null)
+                    obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
             }
             try
             {
@@ -2773,43 +2805,38 @@ private
 
     version (CRuntime_Microsoft)
         extern(C) extern __gshared ubyte msvcUsesUCRT; // from rt/msvc.d
+    extern(C) extern __gshared void* __ImageBase; // symbol at the beginning of module, added by linker
+    enum HMODULE runtimeModule = &__ImageBase;
 
     /// set during termination of a DLL on Windows, i.e. while executing DllMain(DLL_PROCESS_DETACH)
     public __gshared bool thread_DLLProcessDetaching;
 
-    __gshared HMODULE ll_dllModule;
     __gshared ThreadID ll_dllMonitorThread;
 
-    int ll_countLowLevelThreadsWithDLLUnloadCallback() nothrow
+    int ll_countLowLevelThreadsWithDLLUnloadCallback(HMODULE hMod) nothrow
     {
         lowlevelLock.lock_nothrow();
         scope(exit) lowlevelLock.unlock_nothrow();
 
         int cnt = 0;
         foreach (i; 0 .. ll_nThreads)
-            if (ll_pThreads[i].cbDllUnload)
+            if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod == hMod)
                 cnt++;
         return cnt;
     }
 
-    bool ll_dllHasExternalReferences() nothrow
+    bool ll_dllHasExternalReferences(HMODULE hMod) nothrow
     {
-        int internalReferences =  msvcUsesUCRT ? 1 + ll_countLowLevelThreadsWithDLLUnloadCallback() : 1;
-        int refcnt = dll_getRefCount(ll_dllModule);
+        int unloadCallbacks = ll_countLowLevelThreadsWithDLLUnloadCallback(hMod);
+        int internalReferences = hMod != runtimeModule ? unloadCallbacks
+            : (ll_dllMonitorThread ? 1 : 0) + (msvcUsesUCRT ? unloadCallbacks : 0);
+        int refcnt = dll_getRefCount(hMod);
         return refcnt > internalReferences;
     }
 
-    private void monitorDLLRefCnt() nothrow
+    void notifyUnloadLowLevelThreads(HMODULE hMod) nothrow
     {
-        // this thread keeps the DLL alive until all external references are gone
-        while (ll_dllHasExternalReferences())
-        {
-            Thread.sleep(100.msecs);
-        }
-
-        // the current thread will be terminated below
-        ll_removeThread(GetCurrentThreadId());
-
+        HMODULE toFree;
         for (;;)
         {
             ThreadID tid;
@@ -2819,36 +2846,70 @@ private
                 scope(exit) lowlevelLock.unlock_nothrow();
 
                 foreach (i; 0 .. ll_nThreads)
-                    if (ll_pThreads[i].cbDllUnload)
+                    if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod == hMod)
                     {
+                        if (!toFree)
+                            toFree = ll_getModuleHandle(hMod, true); // keep the module alive until the callback returns
                         cbDllUnload = ll_pThreads[i].cbDllUnload;
-                        tid = ll_pThreads[0].tid;
+                        tid = ll_pThreads[i].tid;
+                        break;
                     }
             }
             if (!cbDllUnload)
                 break;
-            cbDllUnload();
+            cbDllUnload(); // must wait for thread termination
             assert(!findLowLevelThread(tid));
         }
-
-        FreeLibraryAndExitThread(ll_dllModule, 0);
+        if (toFree)
+            FreeLibrary(toFree);
     }
 
-    int ll_getDLLRefCount() nothrow @nogc
+    private void monitorDLLRefCnt() nothrow
     {
-        if (!ll_dllModule &&
-            !GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                                cast(const(wchar)*) &ll_getDLLRefCount, &ll_dllModule))
-            return -1;
-        return dll_getRefCount(ll_dllModule);
+        // this thread keeps the DLL alive until all external references are gone
+        // (including those from DLLs using druntime in a shared DLL)
+        while (ll_dllHasExternalReferences(runtimeModule))
+        {
+            // find and unload module that only has internal references left
+            HMODULE hMod;
+            {
+                lowlevelLock.lock_nothrow();
+                scope(exit) lowlevelLock.unlock_nothrow();
+
+                foreach (i; 0 .. ll_nThreads)
+                    if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod != runtimeModule)
+                        if (!ll_dllHasExternalReferences(ll_pThreads[i].hMod))
+                        {
+                            hMod = ll_pThreads[i].hMod;
+                            break;
+                        }
+            }
+            if (hMod)
+                notifyUnloadLowLevelThreads(hMod);
+            else
+                Thread.sleep(100.msecs);
+        }
+
+        notifyUnloadLowLevelThreads(runtimeModule);
+
+        // the current thread will be terminated without cleanup within the thread
+        ll_removeThread(GetCurrentThreadId());
+
+        FreeLibraryAndExitThread(runtimeModule, 0);
+    }
+
+    HMODULE ll_getModuleHandle(void* funcptr, bool addref = false) nothrow @nogc
+    {
+        HMODULE hmod;
+        DWORD refflag = addref ? 0 : GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+        if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | refflag,
+                                cast(const(wchar)*) funcptr, &hmod))
+            return null;
+        return hmod;
     }
 
     bool ll_startDLLUnloadThread() nothrow @nogc
     {
-        int refcnt = ll_getDLLRefCount();
-        if (refcnt < 0)
-            return false; // not a dynamically loaded DLL
-
         if (ll_dllMonitorThread !is ThreadID.init)
             return true;
 
@@ -2856,13 +2917,10 @@ private
         // to avoid the DLL being unloaded while the thread is still running. Mimick this behavior here for all
         // runtimes not doing this
         bool needRef = !msvcUsesUCRT;
-
         if (needRef)
-        {
-            HMODULE hmod;
-            GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, cast(const(wchar)*) &ll_getDLLRefCount, &hmod);
-        }
+            ll_getModuleHandle(runtimeModule, true);
 
+        // the monitor thread must be a low-level thread so the runtime does not attach to it
         ll_dllMonitorThread = createLowLevelThread(() { monitorDLLRefCnt(); });
         return ll_dllMonitorThread != ThreadID.init;
     }
@@ -2886,8 +2944,15 @@ private
 ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
                               void delegate() nothrow cbDllUnload = null) nothrow @nogc
 {
-    void delegate() nothrow* context = cast(void delegate() nothrow*)malloc(dg.sizeof);
-    *context = dg;
+    static struct Context
+    {
+        void delegate() nothrow dg;
+        version (Windows)
+            HMODULE cbMod;
+    }
+    auto context = cast(Context*)malloc(Context.sizeof);
+    scope(exit) free(context);
+    context.dg = dg;
 
     ThreadID tid;
     version (Windows)
@@ -2895,14 +2960,30 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
         // the thread won't start until after the DLL is unloaded
         if (thread_DLLProcessDetaching)
             return ThreadID.init;
+        context.cbMod = cbDllUnload ? ll_getModuleHandle(cbDllUnload.funcptr) : null;
+        if (context.cbMod)
+        {
+            int refcnt = dll_getRefCount(context.cbMod);
+            if (refcnt < 0)
+            {
+                // not a dynamically loaded DLL, so never unloaded
+                cbDllUnload = null;
+                context.cbMod = null;
+            }
+            if (refcnt == 0)
+                return ThreadID.init; // createLowLevelThread called while DLL is unloading
+        }
 
         static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
         {
-            auto dg = *cast(void delegate() nothrow*)ctx;
+            auto context = *cast(Context*)ctx;
             free(ctx);
 
-            dg();
+            context.dg();
+
             ll_removeThread(GetCurrentThreadId());
+            if (context.cbMod && context.cbMod != runtimeModule)
+                FreeLibrary(context.cbMod);
             return 0;
         }
 
@@ -2918,11 +2999,20 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
 
     ll_nThreads++;
     ll_pThreads = cast(ll_ThreadData*)realloc(ll_pThreads, ll_ThreadData.sizeof * ll_nThreads);
+    ll_pThreads[ll_nThreads - 1] = ll_ThreadData.init;
 
     version (Windows)
     {
         ll_pThreads[ll_nThreads - 1].tid = tid;
-        ll_pThreads[ll_nThreads - 1].cbDllUnload = cbDllUnload;
+        // ignore callback if not a dynamically loaded DLL
+        if (cbDllUnload)
+        {
+            ll_pThreads[ll_nThreads - 1].cbDllUnload = cbDllUnload;
+            ll_pThreads[ll_nThreads - 1].hMod = context.cbMod;
+            if (context.cbMod != runtimeModule)
+                ll_getModuleHandle(context.cbMod, true); // increment ref count
+        }
+
         if (ResumeThread(hThread) == -1)
             onThreadError("Error resuming thread");
         CloseHandle(hThread);
@@ -2934,10 +3024,10 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
     {
         static extern (C) void* thread_lowlevelEntry(void* ctx) nothrow
         {
-            auto dg = *cast(void delegate() nothrow*)ctx;
+            auto context = *cast(Context*)ctx;
             free(ctx);
 
-            dg();
+            context.dg();
             ll_removeThread(pthread_self());
             return null;
         }
@@ -2953,11 +3043,12 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
             return ThreadID.init;
         if ((rc = pthread_create(&tid, &attr, &thread_lowlevelEntry, context)) != 0)
             return ThreadID.init;
-        if ((rc = pthread_attr_destroy(&attr)) != 0)
-            return ThreadID.init;
+        rc = pthread_attr_destroy(&attr);
+        assert(rc == 0);
 
         ll_pThreads[ll_nThreads - 1].tid = tid;
     }
+    context = null; // free'd in thread
     return tid;
 }
 

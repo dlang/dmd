@@ -45,6 +45,7 @@ void main()
     testTypeInfoCollect();
     testNew();
     testAliasThis();
+    testAliasThis2();
 }
 
 void testKeysValues1()
@@ -1020,6 +1021,32 @@ void testAliasThis()
         *p = 4;
     s.remove(1);
     assert(S.numCopies == 0);
+}
+
+void testAliasThis2()
+{
+    static struct A
+    {
+        bool extra;
+        uint id;
+    }
+
+    static struct B
+    {
+        uint id;
+
+        A toA() const pure nothrow
+        {
+            return A(false, id);
+        }
+
+        alias toA this;
+    }
+
+    bool[A] aa;
+    aa[B(5)] = true;
+    assert(B(5) in aa);
+    assert(A(false, 5) in aa);
 }
 
 void test22510()

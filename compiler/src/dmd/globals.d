@@ -1,7 +1,7 @@
 /**
  * Stores command line options and contains other miscellaneous declarations.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/globals.d, _globals.d)
@@ -181,6 +181,8 @@ extern (C++) struct Param
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
     bool bitfields = true;  // support C style bit fields
+    bool rewriteNoExceptionToSeq; // Allow finally statements that do not throw an Exception
+                                  // in try body to rewrite to a sequence.
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
@@ -216,11 +218,13 @@ extern (C++) struct Param
     FeatureState dtorFields;     // destruct fields of partially constructed objects
                                  // https://issues.dlang.org/show_bug.cgi?id=14246
     FeatureState systemVariables; // limit access to variables marked @system from @safe code
+    bool useFastDFA;                 // Use fast data flow analysis engine
 
     CHECKENABLE useInvariants  = CHECKENABLE._default;  // generate class invariant checks
     CHECKENABLE useIn          = CHECKENABLE._default;  // generate precondition checks
     CHECKENABLE useOut         = CHECKENABLE._default;  // generate postcondition checks
     CHECKENABLE useArrayBounds = CHECKENABLE._default;  // when to generate code for array bounds checks
+    CHECKENABLE useNullCheck   = CHECKENABLE._default;  // when to generate code for null dereference checks
     CHECKENABLE useAssert      = CHECKENABLE._default;  // when to generate code for assert()'s
     CHECKENABLE useSwitchError = CHECKENABLE._default;  // check for switches without a default
     CHECKENABLE boundscheck    = CHECKENABLE._default;  // state of -boundscheck switch
@@ -297,7 +301,7 @@ extern (C++) struct Global
 {
     const(char)[] inifilename; /// filename of configuration file as given by `-conf=`, or default value
 
-    string copyright = "Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved";
+    string copyright = "Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
     Array!(ImportPathInfo) path;       /// Array of path informations which form the import lookup path
@@ -305,7 +309,7 @@ extern (C++) struct Global
     Array!(const(char)*) filePath;     /// Array of char*'s which form the file import lookup path
 
     private enum string _version = import("VERSION");
-    char[26] datetime;      /// string returned by ctime()
+    char[26] datetime;      /// string returned by asctime()
     CompileEnv compileEnv;
 
     Param params;           /// command line parameters
@@ -404,15 +408,19 @@ extern (C++) struct Global
         import core.stdc.stdlib : getenv;
 
         time_t ct;
+        const(char)* p;
         // https://issues.dlang.org/show_bug.cgi?id=20444
-        if (auto p = getenv("SOURCE_DATE_EPOCH"))
+        if (auto epoch = getenv("SOURCE_DATE_EPOCH"))
         {
-            if (!ct.parseDigits(p[0 .. strlen(p)]))
-                errorSink.error(Loc.initial, "value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", p);
+            if (!ct.parseDigits(epoch[0 .. strlen(epoch)]))
+                errorSink.error(Loc.initial, "value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", epoch);
+            p = asctime(gmtime(&ct));
         }
         else
+        {
             core.stdc.time.time(&ct);
-        const p = ctime(&ct);
+            p = ctime(&ct); // asctime(localtime(&ct))
+        }
         assert(p);
         datetime[] = p[0 .. 26];
 

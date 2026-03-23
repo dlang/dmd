@@ -154,7 +154,7 @@ struct COMMPROP {
 
     WCHAR* wcProvChar() return { return &_wcProvChar; }
 }
-alias COMMPROP* LPCOMMPROP;
+alias LPCOMMPROP = COMMPROP*;
 
 // ----------
 
@@ -907,7 +907,7 @@ struct FILETIME {
     DWORD dwLowDateTime;
     DWORD dwHighDateTime;
 }
-alias FILETIME* PFILETIME, LPFILETIME;
+alias PFILETIME = FILETIME*, LPFILETIME = FILETIME*;
 
 struct BY_HANDLE_FILE_INFORMATION {
     DWORD    dwFileAttributes;
@@ -921,7 +921,7 @@ struct BY_HANDLE_FILE_INFORMATION {
     DWORD    nFileIndexHigh;
     DWORD    nFileIndexLow;
 }
-alias BY_HANDLE_FILE_INFORMATION* LPBY_HANDLE_FILE_INFORMATION;
+alias LPBY_HANDLE_FILE_INFORMATION = BY_HANDLE_FILE_INFORMATION*;
 
 struct DCB {
     DWORD DCBlength = DCB.sizeof;
@@ -984,7 +984,7 @@ struct DCB {
     char EvtChar = 0;
     WORD wReserved1;
 }
-alias DCB* LPDCB;
+alias LPDCB = DCB*;
 
 struct COMMCONFIG {
     DWORD dwSize = COMMCONFIG.sizeof;
@@ -998,7 +998,7 @@ struct COMMCONFIG {
 
     WCHAR* wcProviderData() return { return &_wcProviderData; }
 }
-alias COMMCONFIG* LPCOMMCONFIG;
+alias LPCOMMCONFIG = COMMCONFIG*;
 
 struct COMMTIMEOUTS {
     DWORD ReadIntervalTimeout;
@@ -1007,7 +1007,7 @@ struct COMMTIMEOUTS {
     DWORD WriteTotalTimeoutMultiplier;
     DWORD WriteTotalTimeoutConstant;
 }
-alias COMMTIMEOUTS* LPCOMMTIMEOUTS;
+alias LPCOMMTIMEOUTS = COMMTIMEOUTS*;
 
 struct COMSTAT {
 /+
@@ -1040,7 +1040,7 @@ struct COMSTAT {
     DWORD cbInQue;
     DWORD cbOutQue;
 }
-alias COMSTAT* LPCOMSTAT;
+alias LPCOMSTAT = COMSTAT*;
 
 struct CREATE_PROCESS_DEBUG_INFO {
     HANDLE hFile;
@@ -1054,30 +1054,30 @@ struct CREATE_PROCESS_DEBUG_INFO {
     LPVOID lpImageName;
     WORD   fUnicode;
 }
-alias CREATE_PROCESS_DEBUG_INFO* LPCREATE_PROCESS_DEBUG_INFO;
+alias LPCREATE_PROCESS_DEBUG_INFO = CREATE_PROCESS_DEBUG_INFO*;
 
 struct CREATE_THREAD_DEBUG_INFO {
     HANDLE hThread;
     LPVOID lpThreadLocalBase;
     LPTHREAD_START_ROUTINE lpStartAddress;
 }
-alias CREATE_THREAD_DEBUG_INFO* LPCREATE_THREAD_DEBUG_INFO;
+alias LPCREATE_THREAD_DEBUG_INFO = CREATE_THREAD_DEBUG_INFO*;
 
 struct EXCEPTION_DEBUG_INFO {
     EXCEPTION_RECORD ExceptionRecord;
     DWORD            dwFirstChance;
 }
-alias EXCEPTION_DEBUG_INFO* LPEXCEPTION_DEBUG_INFO;
+alias LPEXCEPTION_DEBUG_INFO = EXCEPTION_DEBUG_INFO*;
 
 struct EXIT_THREAD_DEBUG_INFO {
     DWORD dwExitCode;
 }
-alias EXIT_THREAD_DEBUG_INFO* LPEXIT_THREAD_DEBUG_INFO;
+alias LPEXIT_THREAD_DEBUG_INFO = EXIT_THREAD_DEBUG_INFO*;
 
 struct EXIT_PROCESS_DEBUG_INFO {
     DWORD dwExitCode;
 }
-alias EXIT_PROCESS_DEBUG_INFO* LPEXIT_PROCESS_DEBUG_INFO;
+alias LPEXIT_PROCESS_DEBUG_INFO = EXIT_PROCESS_DEBUG_INFO*;
 
 struct LOAD_DLL_DEBUG_INFO {
     HANDLE hFile;
@@ -1087,25 +1087,25 @@ struct LOAD_DLL_DEBUG_INFO {
     LPVOID lpImageName;
     WORD   fUnicode;
 }
-alias LOAD_DLL_DEBUG_INFO* LPLOAD_DLL_DEBUG_INFO;
+alias LPLOAD_DLL_DEBUG_INFO = LOAD_DLL_DEBUG_INFO*;
 
 struct UNLOAD_DLL_DEBUG_INFO {
     LPVOID lpBaseOfDll;
 }
-alias UNLOAD_DLL_DEBUG_INFO* LPUNLOAD_DLL_DEBUG_INFO;
+alias LPUNLOAD_DLL_DEBUG_INFO = UNLOAD_DLL_DEBUG_INFO*;
 
 struct OUTPUT_DEBUG_STRING_INFO {
     LPSTR lpDebugStringData;
     WORD  fUnicode;
     WORD  nDebugStringLength;
 }
-alias OUTPUT_DEBUG_STRING_INFO* LPOUTPUT_DEBUG_STRING_INFO;
+alias LPOUTPUT_DEBUG_STRING_INFO = OUTPUT_DEBUG_STRING_INFO*;
 
 struct RIP_INFO {
     DWORD dwError;
     DWORD dwType;
 }
-alias RIP_INFO* LPRIP_INFO;
+alias LPRIP_INFO = RIP_INFO*;
 
 struct DEBUG_EVENT {
     DWORD dwDebugEventCode;
@@ -1123,7 +1123,7 @@ struct DEBUG_EVENT {
         RIP_INFO                  RipInfo;
     }
 }
-alias DEBUG_EVENT* LPDEBUG_EVENT;
+alias LPDEBUG_EVENT = DEBUG_EVENT*;
 
 struct OVERLAPPED {
     ULONG_PTR Internal;
@@ -1137,7 +1137,7 @@ struct OVERLAPPED {
     }
     HANDLE    hEvent;
 }
-alias OVERLAPPED* POVERLAPPED, LPOVERLAPPED;
+alias POVERLAPPED = OVERLAPPED*, LPOVERLAPPED = OVERLAPPED*;
 
 struct STARTUPINFOA {
     DWORD  cb = STARTUPINFOA.sizeof;
@@ -1159,7 +1159,7 @@ struct STARTUPINFOA {
     HANDLE hStdOutput;
     HANDLE hStdError;
 }
-alias STARTUPINFOA* LPSTARTUPINFOA;
+alias LPSTARTUPINFOA = STARTUPINFOA*;
 
 struct STARTUPINFOW {
     DWORD  cb = STARTUPINFOW.sizeof;
@@ -1181,8 +1181,8 @@ struct STARTUPINFOW {
     HANDLE hStdOutput;
     HANDLE hStdError;
 }
-alias STARTUPINFOW STARTUPINFO_W;
-alias STARTUPINFOW* LPSTARTUPINFOW, LPSTARTUPINFO_W;
+alias STARTUPINFO_W = STARTUPINFOW;
+alias LPSTARTUPINFOW = STARTUPINFOW*, LPSTARTUPINFO_W = STARTUPINFOW*;
 
 struct PROCESS_INFORMATION {
     HANDLE hProcess;
@@ -1190,7 +1190,7 @@ struct PROCESS_INFORMATION {
     DWORD  dwProcessId;
     DWORD  dwThreadId;
 }
-alias PROCESS_INFORMATION* PPROCESS_INFORMATION, LPPROCESS_INFORMATION;
+alias PPROCESS_INFORMATION = PROCESS_INFORMATION*, LPPROCESS_INFORMATION = PROCESS_INFORMATION*;
 
 /*
 struct CRITICAL_SECTION_DEBUG {
@@ -1216,10 +1216,10 @@ alias CRITICAL_SECTION* PCRITICAL_SECTION, LPCRITICAL_SECTION;
 */
 
 alias CRITICAL_SECTION_DEBUG = RTL_CRITICAL_SECTION_DEBUG;
-alias CRITICAL_SECTION_DEBUG* PCRITICAL_SECTION_DEBUG;
+alias PCRITICAL_SECTION_DEBUG = CRITICAL_SECTION_DEBUG*;
 
 alias CRITICAL_SECTION = RTL_CRITICAL_SECTION;
-alias CRITICAL_SECTION* PCRITICAL_SECTION, LPCRITICAL_SECTION;
+alias PCRITICAL_SECTION = CRITICAL_SECTION*, LPCRITICAL_SECTION = CRITICAL_SECTION*;
 
 struct SYSTEMTIME {
     WORD wYear;
@@ -1231,7 +1231,7 @@ struct SYSTEMTIME {
     WORD wSecond;
     WORD wMilliseconds;
 }
-alias SYSTEMTIME* LPSYSTEMTIME;
+alias LPSYSTEMTIME = SYSTEMTIME*;
 
 struct WIN32_FILE_ATTRIBUTE_DATA {
     DWORD    dwFileAttributes;
@@ -1241,7 +1241,7 @@ struct WIN32_FILE_ATTRIBUTE_DATA {
     DWORD    nFileSizeHigh;
     DWORD    nFileSizeLow;
 }
-alias WIN32_FILE_ATTRIBUTE_DATA* LPWIN32_FILE_ATTRIBUTE_DATA;
+alias LPWIN32_FILE_ATTRIBUTE_DATA = WIN32_FILE_ATTRIBUTE_DATA*;
 
 struct WIN32_FIND_DATAA {
     DWORD          dwFileAttributes;
@@ -1261,7 +1261,7 @@ struct WIN32_FIND_DATAA {
     CHAR[14]       cAlternateFileName = 0;
 // #endif
 }
-alias WIN32_FIND_DATAA* PWIN32_FIND_DATAA, LPWIN32_FIND_DATAA;
+alias PWIN32_FIND_DATAA = WIN32_FIND_DATAA*, LPWIN32_FIND_DATAA = WIN32_FIND_DATAA*;
 
 struct WIN32_FIND_DATAW {
     DWORD           dwFileAttributes;
@@ -1281,7 +1281,7 @@ struct WIN32_FIND_DATAW {
     WCHAR[14]       cAlternateFileName = 0;
 // #endif
 }
-alias WIN32_FIND_DATAW* PWIN32_FIND_DATAW, LPWIN32_FIND_DATAW;
+alias PWIN32_FIND_DATAW = WIN32_FIND_DATAW*, LPWIN32_FIND_DATAW = WIN32_FIND_DATAW*;
 
 struct WIN32_STREAM_ID {
     DWORD         dwStreamId;
@@ -1292,7 +1292,7 @@ struct WIN32_STREAM_ID {
 
     WCHAR* cStreamName() return { return &_cStreamName; }
 }
-alias WIN32_STREAM_ID* LPWIN32_STREAM_ID;
+alias LPWIN32_STREAM_ID = WIN32_STREAM_ID*;
 
 static if (_WIN32_WINNT >= 0x601) {
     enum FINDEX_INFO_LEVELS {
@@ -1324,14 +1324,14 @@ struct HW_PROFILE_INFOA {
     CHAR[HW_PROFILE_GUIDLEN] szHwProfileGuid = 0;
     CHAR[MAX_PROFILE_LEN]    szHwProfileName = 0;
 }
-alias HW_PROFILE_INFOA* LPHW_PROFILE_INFOA;
+alias LPHW_PROFILE_INFOA = HW_PROFILE_INFOA*;
 
 struct HW_PROFILE_INFOW {
     DWORD dwDockInfo;
     WCHAR[HW_PROFILE_GUIDLEN] szHwProfileGuid = 0;
     WCHAR[MAX_PROFILE_LEN]    szHwProfileName = 0;
 }
-alias HW_PROFILE_INFOW* LPHW_PROFILE_INFOW;
+alias LPHW_PROFILE_INFOW = HW_PROFILE_INFOW*;
 
 /*  ??? MSDN documents this only for Windows CE/Mobile, but it's used by
  *  GetFileAttributesEx, which is in desktop Windows.
@@ -1404,7 +1404,7 @@ struct SYSTEM_INFO {
     WORD  wProcessorLevel;
     WORD  wProcessorRevision;
 }
-alias SYSTEM_INFO* LPSYSTEM_INFO;
+alias LPSYSTEM_INFO = SYSTEM_INFO*;
 
 static if (_WIN32_WINNT >= 0x500) {
     struct SYSTEM_POWER_STATUS {
@@ -1415,7 +1415,7 @@ static if (_WIN32_WINNT >= 0x500) {
         DWORD BatteryLifeTime;
         DWORD BatteryFullLifeTime;
     }
-    alias SYSTEM_POWER_STATUS* LPSYSTEM_POWER_STATUS;
+    alias LPSYSTEM_POWER_STATUS = SYSTEM_POWER_STATUS*;
 }
 
 struct TIME_ZONE_INFORMATION {
@@ -1427,7 +1427,7 @@ struct TIME_ZONE_INFORMATION {
     SYSTEMTIME DaylightDate;
     LONG       DaylightBias;
 }
-alias TIME_ZONE_INFORMATION* LPTIME_ZONE_INFORMATION;
+alias LPTIME_ZONE_INFORMATION = TIME_ZONE_INFORMATION*;
 
 // Does not exist in Windows headers, only MSDN
 // documentation (for TIME_ZONE_INFORMATION).
@@ -1452,7 +1452,7 @@ struct MEMORYSTATUS {
     SIZE_T dwTotalVirtual;
     SIZE_T dwAvailVirtual;
 }
-alias MEMORYSTATUS* LPMEMORYSTATUS;
+alias LPMEMORYSTATUS = MEMORYSTATUS*;
 
 static if (_WIN32_WINNT >= 0x500) {
     struct MEMORYSTATUSEX {
@@ -1466,7 +1466,7 @@ static if (_WIN32_WINNT >= 0x500) {
         DWORDLONG ullAvailVirtual;
         DWORDLONG ullAvailExtendedVirtual;
     }
-    alias MEMORYSTATUSEX* LPMEMORYSTATUSEX;
+    alias LPMEMORYSTATUSEX = MEMORYSTATUSEX*;
 }
 
 struct LDT_ENTRY {
@@ -1520,7 +1520,7 @@ struct LDT_ENTRY {
     }
 +/
 }
-alias LDT_ENTRY* PLDT_ENTRY, LPLDT_ENTRY;
+alias PLDT_ENTRY = LDT_ENTRY*, LPLDT_ENTRY = LDT_ENTRY*;
 
 /*  As with the other memory management functions and structures, MSDN's
  *  Windows version info shall be taken with a cup of salt.
@@ -1546,7 +1546,7 @@ struct PROCESS_HEAP_ENTRY {
         _Region Region;
     }
 }
-alias PROCESS_HEAP_ENTRY* LPPROCESS_HEAP_ENTRY;
+alias LPPROCESS_HEAP_ENTRY = PROCESS_HEAP_ENTRY*;
 
 struct OFSTRUCT {
     BYTE      cBytes = OFSTRUCT.sizeof;
@@ -1556,7 +1556,7 @@ struct OFSTRUCT {
     WORD      Reserved2;
     CHAR[128] szPathName = 0; // const OFS_MAXPATHNAME = 128;
 }
-alias OFSTRUCT* LPOFSTRUCT, POFSTRUCT;
+alias LPOFSTRUCT = OFSTRUCT*, POFSTRUCT = OFSTRUCT*;
 
 /*  ??? MSDN documents this only for Windows CE, but it's used by
  *  ImageGetCertificateData, which is in desktop Windows.
@@ -1569,7 +1569,7 @@ struct WIN_CERTIFICATE {
 
     BYTE* bCertificate() return { return &_bCertificate; }
 }
-alias WIN_CERTIFICATE* LPWIN_CERTIFICATE;
+alias LPWIN_CERTIFICATE = WIN_CERTIFICATE*;
 
 static if (_WIN32_WINNT >= 0x500) {
     enum COMPUTER_NAME_FORMAT {
@@ -1597,8 +1597,8 @@ static if (_WIN32_WINNT >= 0x501) {
         LPCSTR lpApplicationName;
         HMODULE hModule;
     }
-    alias ACTCTXA*        PACTCTXA;
-    alias const(ACTCTXA)* PCACTCTXA;
+    alias PACTCTXA = ACTCTXA*;
+    alias PCACTCTXA = const(ACTCTXA)*;
 
     struct ACTCTXW {
         ULONG cbSize = this.sizeof;
@@ -1611,8 +1611,8 @@ static if (_WIN32_WINNT >= 0x501) {
         LPCWSTR lpApplicationName;
         HMODULE hModule;
     }
-    alias ACTCTXW*        PACTCTXW;
-    alias const(ACTCTXW)* PCACTCTXW;
+    alias PACTCTXW = ACTCTXW*;
+    alias PCACTCTXW = const(ACTCTXW)*;
 
     struct ACTCTX_SECTION_KEYED_DATA {
         ULONG cbSize = this.sizeof;
@@ -1626,8 +1626,8 @@ static if (_WIN32_WINNT >= 0x501) {
         HANDLE hActCtx;
         HANDLE ulAssemblyRosterIndex;
     }
-    alias ACTCTX_SECTION_KEYED_DATA*        PACTCTX_SECTION_KEYED_DATA;
-    alias const(ACTCTX_SECTION_KEYED_DATA)* PCACTCTX_SECTION_KEYED_DATA;
+    alias PACTCTX_SECTION_KEYED_DATA = ACTCTX_SECTION_KEYED_DATA*;
+    alias PCACTCTX_SECTION_KEYED_DATA = const(ACTCTX_SECTION_KEYED_DATA)*;
 
     enum MEMORY_RESOURCE_NOTIFICATION_TYPE {
         LowMemoryResourceNotification,
@@ -1640,7 +1640,7 @@ static if (_WIN32_WINNT >= 0x410) {
     /*  apparently used only by SetThreadExecutionState (Win2000+)
      *  and DDK functions (version compatibility not established)
      */
-    alias DWORD EXECUTION_STATE;
+    alias EXECUTION_STATE = DWORD;
 }
 
 // CreateSymbolicLink, GetFileInformationByHandleEx
@@ -1673,26 +1673,26 @@ static if (_WIN32_WINNT >= 0x600) {
 
 // Callbacks
 extern (Windows) {
-    alias DWORD function(LPVOID) LPTHREAD_START_ROUTINE;
-    alias DWORD function(LARGE_INTEGER, LARGE_INTEGER, LARGE_INTEGER, LARGE_INTEGER,
-        DWORD, DWORD, HANDLE, HANDLE, LPVOID)  LPPROGRESS_ROUTINE;
-    alias void function(PVOID) LPFIBER_START_ROUTINE;
+    alias LPTHREAD_START_ROUTINE = DWORD function(LPVOID);
+    alias LPPROGRESS_ROUTINE = DWORD function(LARGE_INTEGER, LARGE_INTEGER, LARGE_INTEGER, LARGE_INTEGER,
+        DWORD, DWORD, HANDLE, HANDLE, LPVOID);
+    alias LPFIBER_START_ROUTINE = void function(PVOID);
 
-    alias BOOL function(HMODULE, LPCSTR, LPCSTR, WORD, LONG_PTR) ENUMRESLANGPROCA;
-    alias BOOL function(HMODULE, LPCWSTR, LPCWSTR, WORD, LONG_PTR) ENUMRESLANGPROCW;
-    alias BOOL function(HMODULE, LPCSTR, LPSTR, LONG_PTR) ENUMRESNAMEPROCA;
-    alias BOOL function(HMODULE, LPCWSTR, LPWSTR, LONG_PTR) ENUMRESNAMEPROCW;
-    alias BOOL function(HMODULE, LPSTR, LONG_PTR) ENUMRESTYPEPROCA;
-    alias BOOL function(HMODULE, LPWSTR, LONG_PTR) ENUMRESTYPEPROCW;
-    alias void function(DWORD, DWORD, LPOVERLAPPED) LPOVERLAPPED_COMPLETION_ROUTINE;
-    alias LONG function(LPEXCEPTION_POINTERS) PTOP_LEVEL_EXCEPTION_FILTER;
-    alias PTOP_LEVEL_EXCEPTION_FILTER LPTOP_LEVEL_EXCEPTION_FILTER;
+    alias ENUMRESLANGPROCA = BOOL function(HMODULE, LPCSTR, LPCSTR, WORD, LONG_PTR);
+    alias ENUMRESLANGPROCW = BOOL function(HMODULE, LPCWSTR, LPCWSTR, WORD, LONG_PTR);
+    alias ENUMRESNAMEPROCA = BOOL function(HMODULE, LPCSTR, LPSTR, LONG_PTR);
+    alias ENUMRESNAMEPROCW = BOOL function(HMODULE, LPCWSTR, LPWSTR, LONG_PTR);
+    alias ENUMRESTYPEPROCA = BOOL function(HMODULE, LPSTR, LONG_PTR);
+    alias ENUMRESTYPEPROCW = BOOL function(HMODULE, LPWSTR, LONG_PTR);
+    alias LPOVERLAPPED_COMPLETION_ROUTINE = void function(DWORD, DWORD, LPOVERLAPPED);
+    alias PTOP_LEVEL_EXCEPTION_FILTER = LONG function(LPEXCEPTION_POINTERS);
+    alias LPTOP_LEVEL_EXCEPTION_FILTER = PTOP_LEVEL_EXCEPTION_FILTER;
 
-    alias void function(ULONG_PTR) PAPCFUNC;
-    alias void function(PVOID, DWORD, DWORD) PTIMERAPCROUTINE;
+    alias PAPCFUNC = void function(ULONG_PTR);
+    alias PTIMERAPCROUTINE = void function(PVOID, DWORD, DWORD);
 
     static if (_WIN32_WINNT >= 0x500) {
-        alias void function(PVOID, BOOLEAN) WAITORTIMERCALLBACK;
+        alias WAITORTIMERCALLBACK = void function(PVOID, BOOLEAN);
     }
 }
 
@@ -1895,7 +1895,7 @@ WINBASEAPI DWORD WINAPI GetCurrentThreadId(void);
 */
     DWORD GetCurrentThreadId();
 
-    alias GetTickCount GetCurrentTime;
+    alias GetCurrentTime = GetTickCount;
 
     BOOL GetDefaultCommConfigA(LPCSTR, LPCOMMCONFIG, PDWORD);
     BOOL GetDefaultCommConfigW(LPCWSTR, LPCOMMCONFIG, PDWORD);
@@ -2574,368 +2574,368 @@ version (LittleEndian) nothrow @nogc
 mixin DECLARE_AW!("STARTUPINFO");
 version (Unicode) {
     //alias STARTUPINFOW STARTUPINFO;
-    alias WIN32_FIND_DATAW WIN32_FIND_DATA;
-    alias ENUMRESLANGPROCW ENUMRESLANGPROC;
-    alias ENUMRESNAMEPROCW ENUMRESNAMEPROC;
-    alias ENUMRESTYPEPROCW ENUMRESTYPEPROC;
-    alias AddAtomW AddAtom;
-    alias BeginUpdateResourceW BeginUpdateResource;
-    alias BuildCommDCBW BuildCommDCB;
-    alias BuildCommDCBAndTimeoutsW BuildCommDCBAndTimeouts;
-    alias CallNamedPipeW CallNamedPipe;
-    alias CommConfigDialogW CommConfigDialog;
-    alias CopyFileW CopyFile;
-    alias CopyFileExW CopyFileEx;
-    alias CreateDirectoryW CreateDirectory;
-    alias CreateDirectoryExW CreateDirectoryEx;
-    alias CreateEventW CreateEvent;
-    alias CreateFileW CreateFile;
-    alias CreateMailslotW CreateMailslot;
-    alias CreateMutexW CreateMutex;
-    alias CreateProcessW CreateProcess;
-    alias CreateSemaphoreW CreateSemaphore;
-    alias DeleteFileW DeleteFile;
-    alias EndUpdateResourceW EndUpdateResource;
-    alias EnumResourceLanguagesW EnumResourceLanguages;
-    alias EnumResourceNamesW EnumResourceNames;
-    alias EnumResourceTypesW EnumResourceTypes;
-    alias ExpandEnvironmentStringsW ExpandEnvironmentStrings;
-    alias FatalAppExitW FatalAppExit;
-    alias FindAtomW FindAtom;
-    alias FindFirstChangeNotificationW FindFirstChangeNotification;
-    alias FindFirstFileW FindFirstFile;
-    alias FindNextFileW FindNextFile;
-    alias FindResourceW FindResource;
-    alias FindResourceExW FindResourceEx;
-    alias FormatMessageW FormatMessage;
-    alias FreeEnvironmentStringsW FreeEnvironmentStrings;
-    alias GetAtomNameW GetAtomName;
-    alias GetCommandLineW GetCommandLine;
-    alias GetComputerNameW GetComputerName;
-    alias GetCurrentDirectoryW GetCurrentDirectory;
-    alias GetDefaultCommConfigW GetDefaultCommConfig;
-    alias GetDiskFreeSpaceW GetDiskFreeSpace;
-    alias GetDiskFreeSpaceExW GetDiskFreeSpaceEx;
-    alias GetDriveTypeW GetDriveType;
-    alias GetEnvironmentStringsW GetEnvironmentStrings;
-    alias GetEnvironmentVariableW GetEnvironmentVariable;
-    alias GetFileAttributesW GetFileAttributes;
-    alias GetFullPathNameW GetFullPathName;
-    alias GetLogicalDriveStringsW GetLogicalDriveStrings;
-    alias GetModuleFileNameW GetModuleFileName;
-    alias GetModuleHandleW GetModuleHandle;
-    alias GetNamedPipeHandleStateW GetNamedPipeHandleState;
-    alias GetPrivateProfileIntW GetPrivateProfileInt;
-    alias GetPrivateProfileSectionW GetPrivateProfileSection;
-    alias GetPrivateProfileSectionNamesW GetPrivateProfileSectionNames;
-    alias GetPrivateProfileStringW GetPrivateProfileString;
-    alias GetPrivateProfileStructW GetPrivateProfileStruct;
-    alias GetProfileIntW GetProfileInt;
-    alias GetProfileSectionW GetProfileSection;
-    alias GetProfileStringW GetProfileString;
-    alias GetShortPathNameW GetShortPathName;
-    alias GetStartupInfoW GetStartupInfo;
-    alias GetSystemDirectoryW GetSystemDirectory;
-    alias GetTempFileNameW GetTempFileName;
-    alias GetTempPathW GetTempPath;
-    alias GetUserNameW GetUserName;
-    alias GetVersionExW GetVersionEx;
-    alias GetVolumeInformationW GetVolumeInformation;
-    alias GetWindowsDirectoryW GetWindowsDirectory;
-    alias GlobalAddAtomW GlobalAddAtom;
-    alias GlobalFindAtomW GlobalFindAtom;
-    alias GlobalGetAtomNameW GlobalGetAtomName;
-    alias IsBadStringPtrW IsBadStringPtr;
-    alias LoadLibraryW LoadLibrary;
-    alias LoadLibraryExW LoadLibraryEx;
-    alias lstrcatW lstrcat;
-    alias lstrcmpW lstrcmp;
-    alias lstrcmpiW lstrcmpi;
-    alias lstrcpyW lstrcpy;
-    alias lstrcpynW lstrcpyn;
-    alias lstrlenW lstrlen;
-    alias MoveFileW MoveFile;
-    alias OpenEventW OpenEvent;
-    alias OpenMutexW OpenMutex;
-    alias OpenSemaphoreW OpenSemaphore;
-    alias OutputDebugStringW OutputDebugString;
-    alias RemoveDirectoryW RemoveDirectory;
-    alias SearchPathW SearchPath;
-    alias SetComputerNameW SetComputerName;
-    alias SetCurrentDirectoryW SetCurrentDirectory;
-    alias SetDefaultCommConfigW SetDefaultCommConfig;
-    alias SetEnvironmentVariableW SetEnvironmentVariable;
-    alias SetFileAttributesW SetFileAttributes;
-    alias SetVolumeLabelW SetVolumeLabel;
-    alias WaitNamedPipeW WaitNamedPipe;
-    alias WritePrivateProfileSectionW WritePrivateProfileSection;
-    alias WritePrivateProfileStringW WritePrivateProfileString;
-    alias WritePrivateProfileStructW WritePrivateProfileStruct;
-    alias WriteProfileSectionW WriteProfileSection;
-    alias WriteProfileStringW WriteProfileString;
-    alias CreateWaitableTimerW CreateWaitableTimer;
-    alias GetFileAttributesExW GetFileAttributesEx;
-    alias GetLongPathNameW GetLongPathName;
-    alias QueryDosDeviceW QueryDosDevice;
+    alias WIN32_FIND_DATA = WIN32_FIND_DATAW;
+    alias ENUMRESLANGPROC = ENUMRESLANGPROCW;
+    alias ENUMRESNAMEPROC = ENUMRESNAMEPROCW;
+    alias ENUMRESTYPEPROC = ENUMRESTYPEPROCW;
+    alias AddAtom = AddAtomW;
+    alias BeginUpdateResource = BeginUpdateResourceW;
+    alias BuildCommDCB = BuildCommDCBW;
+    alias BuildCommDCBAndTimeouts = BuildCommDCBAndTimeoutsW;
+    alias CallNamedPipe = CallNamedPipeW;
+    alias CommConfigDialog = CommConfigDialogW;
+    alias CopyFile = CopyFileW;
+    alias CopyFileEx = CopyFileExW;
+    alias CreateDirectory = CreateDirectoryW;
+    alias CreateDirectoryEx = CreateDirectoryExW;
+    alias CreateEvent = CreateEventW;
+    alias CreateFile = CreateFileW;
+    alias CreateMailslot = CreateMailslotW;
+    alias CreateMutex = CreateMutexW;
+    alias CreateProcess = CreateProcessW;
+    alias CreateSemaphore = CreateSemaphoreW;
+    alias DeleteFile = DeleteFileW;
+    alias EndUpdateResource = EndUpdateResourceW;
+    alias EnumResourceLanguages = EnumResourceLanguagesW;
+    alias EnumResourceNames = EnumResourceNamesW;
+    alias EnumResourceTypes = EnumResourceTypesW;
+    alias ExpandEnvironmentStrings = ExpandEnvironmentStringsW;
+    alias FatalAppExit = FatalAppExitW;
+    alias FindAtom = FindAtomW;
+    alias FindFirstChangeNotification = FindFirstChangeNotificationW;
+    alias FindFirstFile = FindFirstFileW;
+    alias FindNextFile = FindNextFileW;
+    alias FindResource = FindResourceW;
+    alias FindResourceEx = FindResourceExW;
+    alias FormatMessage = FormatMessageW;
+    alias FreeEnvironmentStrings = FreeEnvironmentStringsW;
+    alias GetAtomName = GetAtomNameW;
+    alias GetCommandLine = GetCommandLineW;
+    alias GetComputerName = GetComputerNameW;
+    alias GetCurrentDirectory = GetCurrentDirectoryW;
+    alias GetDefaultCommConfig = GetDefaultCommConfigW;
+    alias GetDiskFreeSpace = GetDiskFreeSpaceW;
+    alias GetDiskFreeSpaceEx = GetDiskFreeSpaceExW;
+    alias GetDriveType = GetDriveTypeW;
+    alias GetEnvironmentStrings = GetEnvironmentStringsW;
+    alias GetEnvironmentVariable = GetEnvironmentVariableW;
+    alias GetFileAttributes = GetFileAttributesW;
+    alias GetFullPathName = GetFullPathNameW;
+    alias GetLogicalDriveStrings = GetLogicalDriveStringsW;
+    alias GetModuleFileName = GetModuleFileNameW;
+    alias GetModuleHandle = GetModuleHandleW;
+    alias GetNamedPipeHandleState = GetNamedPipeHandleStateW;
+    alias GetPrivateProfileInt = GetPrivateProfileIntW;
+    alias GetPrivateProfileSection = GetPrivateProfileSectionW;
+    alias GetPrivateProfileSectionNames = GetPrivateProfileSectionNamesW;
+    alias GetPrivateProfileString = GetPrivateProfileStringW;
+    alias GetPrivateProfileStruct = GetPrivateProfileStructW;
+    alias GetProfileInt = GetProfileIntW;
+    alias GetProfileSection = GetProfileSectionW;
+    alias GetProfileString = GetProfileStringW;
+    alias GetShortPathName = GetShortPathNameW;
+    alias GetStartupInfo = GetStartupInfoW;
+    alias GetSystemDirectory = GetSystemDirectoryW;
+    alias GetTempFileName = GetTempFileNameW;
+    alias GetTempPath = GetTempPathW;
+    alias GetUserName = GetUserNameW;
+    alias GetVersionEx = GetVersionExW;
+    alias GetVolumeInformation = GetVolumeInformationW;
+    alias GetWindowsDirectory = GetWindowsDirectoryW;
+    alias GlobalAddAtom = GlobalAddAtomW;
+    alias GlobalFindAtom = GlobalFindAtomW;
+    alias GlobalGetAtomName = GlobalGetAtomNameW;
+    alias IsBadStringPtr = IsBadStringPtrW;
+    alias LoadLibrary = LoadLibraryW;
+    alias LoadLibraryEx = LoadLibraryExW;
+    alias lstrcat = lstrcatW;
+    alias lstrcmp = lstrcmpW;
+    alias lstrcmpi = lstrcmpiW;
+    alias lstrcpy = lstrcpyW;
+    alias lstrcpyn = lstrcpynW;
+    alias lstrlen = lstrlenW;
+    alias MoveFile = MoveFileW;
+    alias OpenEvent = OpenEventW;
+    alias OpenMutex = OpenMutexW;
+    alias OpenSemaphore = OpenSemaphoreW;
+    alias OutputDebugString = OutputDebugStringW;
+    alias RemoveDirectory = RemoveDirectoryW;
+    alias SearchPath = SearchPathW;
+    alias SetComputerName = SetComputerNameW;
+    alias SetCurrentDirectory = SetCurrentDirectoryW;
+    alias SetDefaultCommConfig = SetDefaultCommConfigW;
+    alias SetEnvironmentVariable = SetEnvironmentVariableW;
+    alias SetFileAttributes = SetFileAttributesW;
+    alias SetVolumeLabel = SetVolumeLabelW;
+    alias WaitNamedPipe = WaitNamedPipeW;
+    alias WritePrivateProfileSection = WritePrivateProfileSectionW;
+    alias WritePrivateProfileString = WritePrivateProfileStringW;
+    alias WritePrivateProfileStruct = WritePrivateProfileStructW;
+    alias WriteProfileSection = WriteProfileSectionW;
+    alias WriteProfileString = WriteProfileStringW;
+    alias CreateWaitableTimer = CreateWaitableTimerW;
+    alias GetFileAttributesEx = GetFileAttributesExW;
+    alias GetLongPathName = GetLongPathNameW;
+    alias QueryDosDevice = QueryDosDeviceW;
 
-    alias HW_PROFILE_INFOW HW_PROFILE_INFO;
-    alias AccessCheckAndAuditAlarmW AccessCheckAndAuditAlarm;
-    alias BackupEventLogW BackupEventLog;
-    alias ClearEventLogW ClearEventLog;
-    alias CreateNamedPipeW CreateNamedPipe;
-    alias CreateProcessAsUserW CreateProcessAsUser;
-    alias DefineDosDeviceW DefineDosDevice;
-    alias FindFirstFileExW FindFirstFileEx;
-    alias GetBinaryTypeW GetBinaryType;
-    alias GetCompressedFileSizeW GetCompressedFileSize;
-    alias GetFileSecurityW GetFileSecurity;
-    alias LogonUserW LogonUser;
-    alias LookupAccountNameW LookupAccountName;
-    alias LookupAccountSidW LookupAccountSid;
-    alias LookupPrivilegeDisplayNameW LookupPrivilegeDisplayName;
-    alias LookupPrivilegeNameW LookupPrivilegeName;
-    alias LookupPrivilegeValueW LookupPrivilegeValue;
-    alias MoveFileExW MoveFileEx;
-    alias ObjectCloseAuditAlarmW ObjectCloseAuditAlarm;
-    alias ObjectDeleteAuditAlarmW ObjectDeleteAuditAlarm;
-    alias ObjectOpenAuditAlarmW ObjectOpenAuditAlarm;
-    alias ObjectPrivilegeAuditAlarmW ObjectPrivilegeAuditAlarm;
-    alias OpenBackupEventLogW OpenBackupEventLog;
-    alias OpenEventLogW OpenEventLog;
-    alias PrivilegedServiceAuditAlarmW PrivilegedServiceAuditAlarm;
-    alias ReadEventLogW ReadEventLog;
-    alias RegisterEventSourceW RegisterEventSource;
-    alias ReportEventW ReportEvent;
-    alias SetFileSecurityW SetFileSecurity;
-    alias UpdateResourceW UpdateResource;
+    alias HW_PROFILE_INFO = HW_PROFILE_INFOW;
+    alias AccessCheckAndAuditAlarm = AccessCheckAndAuditAlarmW;
+    alias BackupEventLog = BackupEventLogW;
+    alias ClearEventLog = ClearEventLogW;
+    alias CreateNamedPipe = CreateNamedPipeW;
+    alias CreateProcessAsUser = CreateProcessAsUserW;
+    alias DefineDosDevice = DefineDosDeviceW;
+    alias FindFirstFileEx = FindFirstFileExW;
+    alias GetBinaryType = GetBinaryTypeW;
+    alias GetCompressedFileSize = GetCompressedFileSizeW;
+    alias GetFileSecurity = GetFileSecurityW;
+    alias LogonUser = LogonUserW;
+    alias LookupAccountName = LookupAccountNameW;
+    alias LookupAccountSid = LookupAccountSidW;
+    alias LookupPrivilegeDisplayName = LookupPrivilegeDisplayNameW;
+    alias LookupPrivilegeName = LookupPrivilegeNameW;
+    alias LookupPrivilegeValue = LookupPrivilegeValueW;
+    alias MoveFileEx = MoveFileExW;
+    alias ObjectCloseAuditAlarm = ObjectCloseAuditAlarmW;
+    alias ObjectDeleteAuditAlarm = ObjectDeleteAuditAlarmW;
+    alias ObjectOpenAuditAlarm = ObjectOpenAuditAlarmW;
+    alias ObjectPrivilegeAuditAlarm = ObjectPrivilegeAuditAlarmW;
+    alias OpenBackupEventLog = OpenBackupEventLogW;
+    alias OpenEventLog = OpenEventLogW;
+    alias PrivilegedServiceAuditAlarm = PrivilegedServiceAuditAlarmW;
+    alias ReadEventLog = ReadEventLogW;
+    alias RegisterEventSource = RegisterEventSourceW;
+    alias ReportEvent = ReportEventW;
+    alias SetFileSecurity = SetFileSecurityW;
+    alias UpdateResource = UpdateResourceW;
 
     static if (_WIN32_WINNT >= 0x500) {
-        alias CreateFileMappingW CreateFileMapping;
-        alias CreateHardLinkW CreateHardLink;
-        alias CreateJobObjectW CreateJobObject;
-        alias DeleteVolumeMountPointW DeleteVolumeMountPoint;
-        alias DnsHostnameToComputerNameW DnsHostnameToComputerName;
-        alias EncryptFileW EncryptFile;
-        alias FileEncryptionStatusW FileEncryptionStatus;
-        alias FindFirstVolumeW FindFirstVolume;
-        alias FindFirstVolumeMountPointW FindFirstVolumeMountPoint;
-        alias FindNextVolumeW FindNextVolume;
-        alias FindNextVolumeMountPointW FindNextVolumeMountPoint;
-        alias GetModuleHandleExW GetModuleHandleEx;
-        alias GetSystemWindowsDirectoryW GetSystemWindowsDirectory;
-        alias GetVolumeNameForVolumeMountPointW GetVolumeNameForVolumeMountPoint;
-        alias GetVolumePathNameW GetVolumePathName;
-        alias OpenFileMappingW OpenFileMapping;
-        alias ReplaceFileW ReplaceFile;
-        alias SetVolumeMountPointW SetVolumeMountPoint;
-        alias VerifyVersionInfoW VerifyVersionInfo;
+        alias CreateFileMapping = CreateFileMappingW;
+        alias CreateHardLink = CreateHardLinkW;
+        alias CreateJobObject = CreateJobObjectW;
+        alias DeleteVolumeMountPoint = DeleteVolumeMountPointW;
+        alias DnsHostnameToComputerName = DnsHostnameToComputerNameW;
+        alias EncryptFile = EncryptFileW;
+        alias FileEncryptionStatus = FileEncryptionStatusW;
+        alias FindFirstVolume = FindFirstVolumeW;
+        alias FindFirstVolumeMountPoint = FindFirstVolumeMountPointW;
+        alias FindNextVolume = FindNextVolumeW;
+        alias FindNextVolumeMountPoint = FindNextVolumeMountPointW;
+        alias GetModuleHandleEx = GetModuleHandleExW;
+        alias GetSystemWindowsDirectory = GetSystemWindowsDirectoryW;
+        alias GetVolumeNameForVolumeMountPoint = GetVolumeNameForVolumeMountPointW;
+        alias GetVolumePathName = GetVolumePathNameW;
+        alias OpenFileMapping = OpenFileMappingW;
+        alias ReplaceFile = ReplaceFileW;
+        alias SetVolumeMountPoint = SetVolumeMountPointW;
+        alias VerifyVersionInfo = VerifyVersionInfoW;
     }
 
     static if (_WIN32_WINNT >= 0x501) {
-        alias ACTCTXW ACTCTX;
-        alias CheckNameLegalDOS8Dot3W CheckNameLegalDOS8Dot3;
-        alias CreateActCtxW CreateActCtx;
-        alias FindActCtxSectionStringW FindActCtxSectionString;
-        alias GetSystemWow64DirectoryW GetSystemWow64Directory;
-        alias GetVolumePathNamesForVolumeNameW GetVolumePathNamesForVolumeName;
-        alias SetFileShortNameW SetFileShortName;
+        alias ACTCTX = ACTCTXW;
+        alias CheckNameLegalDOS8Dot3 = CheckNameLegalDOS8Dot3W;
+        alias CreateActCtx = CreateActCtxW;
+        alias FindActCtxSectionString = FindActCtxSectionStringW;
+        alias GetSystemWow64Directory = GetSystemWow64DirectoryW;
+        alias GetVolumePathNamesForVolumeName = GetVolumePathNamesForVolumeNameW;
+        alias SetFileShortName = SetFileShortNameW;
     }
 
     static if (_WIN32_WINNT >= 0x502) {
-        alias SetFirmwareEnvironmentVariableW SetFirmwareEnvironmentVariable;
-        alias SetDllDirectoryW SetDllDirectory;
-        alias GetDllDirectoryW GetDllDirectory;
+        alias SetFirmwareEnvironmentVariable = SetFirmwareEnvironmentVariableW;
+        alias SetDllDirectory = SetDllDirectoryW;
+        alias GetDllDirectory = GetDllDirectoryW;
     }
 
     static if (_WIN32_WINNT >= 0x600) {
-        alias CreateSymbolicLinkW CreateSymbolicLink;
+        alias CreateSymbolicLink = CreateSymbolicLinkW;
     }
 
 } else {
     //alias STARTUPINFOA STARTUPINFO;
-    alias WIN32_FIND_DATAA WIN32_FIND_DATA;
-    alias ENUMRESLANGPROCW ENUMRESLANGPROC;
-    alias ENUMRESNAMEPROCW ENUMRESNAMEPROC;
-    alias ENUMRESTYPEPROCW ENUMRESTYPEPROC;
-    alias AddAtomA AddAtom;
-    alias BeginUpdateResourceA BeginUpdateResource;
-    alias BuildCommDCBA BuildCommDCB;
-    alias BuildCommDCBAndTimeoutsA BuildCommDCBAndTimeouts;
-    alias CallNamedPipeA CallNamedPipe;
-    alias CommConfigDialogA CommConfigDialog;
-    alias CopyFileA CopyFile;
-    alias CopyFileExA CopyFileEx;
-    alias CreateDirectoryA CreateDirectory;
-    alias CreateDirectoryExA CreateDirectoryEx;
-    alias CreateEventA CreateEvent;
-    alias CreateFileA CreateFile;
-    alias CreateMailslotA CreateMailslot;
-    alias CreateMutexA CreateMutex;
-    alias CreateProcessA CreateProcess;
-    alias CreateSemaphoreA CreateSemaphore;
-    alias DeleteFileA DeleteFile;
-    alias EndUpdateResourceA EndUpdateResource;
-    alias EnumResourceLanguagesA EnumResourceLanguages;
-    alias EnumResourceNamesA EnumResourceNames;
-    alias EnumResourceTypesA EnumResourceTypes;
-    alias ExpandEnvironmentStringsA ExpandEnvironmentStrings;
-    alias FatalAppExitA FatalAppExit;
-    alias FindAtomA FindAtom;
-    alias FindFirstChangeNotificationA FindFirstChangeNotification;
-    alias FindFirstFileA FindFirstFile;
-    alias FindNextFileA FindNextFile;
-    alias FindResourceA FindResource;
-    alias FindResourceExA FindResourceEx;
-    alias FormatMessageA FormatMessage;
-    alias FreeEnvironmentStringsA FreeEnvironmentStrings;
-    alias GetAtomNameA GetAtomName;
-    alias GetCommandLineA GetCommandLine;
-    alias GetComputerNameA GetComputerName;
-    alias GetCurrentDirectoryA GetCurrentDirectory;
-    alias GetDefaultCommConfigA GetDefaultCommConfig;
-    alias GetDiskFreeSpaceA GetDiskFreeSpace;
-    alias GetDiskFreeSpaceExA GetDiskFreeSpaceEx;
-    alias GetDriveTypeA GetDriveType;
-    alias GetEnvironmentStringsA GetEnvironmentStrings;
-    alias GetEnvironmentVariableA GetEnvironmentVariable;
-    alias GetFileAttributesA GetFileAttributes;
-    alias GetFullPathNameA GetFullPathName;
-    alias GetLogicalDriveStringsA GetLogicalDriveStrings;
-    alias GetNamedPipeHandleStateA GetNamedPipeHandleState;
-    alias GetModuleHandleA GetModuleHandle;
-    alias GetModuleFileNameA GetModuleFileName;
-    alias GetPrivateProfileIntA GetPrivateProfileInt;
-    alias GetPrivateProfileSectionA GetPrivateProfileSection;
-    alias GetPrivateProfileSectionNamesA GetPrivateProfileSectionNames;
-    alias GetPrivateProfileStringA GetPrivateProfileString;
-    alias GetPrivateProfileStructA GetPrivateProfileStruct;
-    alias GetProfileIntA GetProfileInt;
-    alias GetProfileSectionA GetProfileSection;
-    alias GetProfileStringA GetProfileString;
-    alias GetShortPathNameA GetShortPathName;
-    alias GetStartupInfoA GetStartupInfo;
-    alias GetSystemDirectoryA GetSystemDirectory;
-    alias GetTempFileNameA GetTempFileName;
-    alias GetTempPathA GetTempPath;
-    alias GetUserNameA GetUserName;
-    alias GetVersionExA GetVersionEx;
-    alias GetVolumeInformationA GetVolumeInformation;
-    alias GetWindowsDirectoryA GetWindowsDirectory;
-    alias GlobalAddAtomA GlobalAddAtom;
-    alias GlobalFindAtomA GlobalFindAtom;
-    alias GlobalGetAtomNameA GlobalGetAtomName;
-    alias IsBadStringPtrA IsBadStringPtr;
-    alias LoadLibraryA LoadLibrary;
-    alias LoadLibraryExA LoadLibraryEx;
-    alias lstrcatA lstrcat;
-    alias lstrcmpA lstrcmp;
-    alias lstrcmpiA lstrcmpi;
-    alias lstrcpyA lstrcpy;
-    alias lstrcpynA lstrcpyn;
-    alias lstrlenA lstrlen;
-    alias MoveFileA MoveFile;
-    alias OpenEventA OpenEvent;
-    alias OpenMutexA OpenMutex;
-    alias OpenSemaphoreA OpenSemaphore;
-    alias OutputDebugStringA OutputDebugString;
-    alias RemoveDirectoryA RemoveDirectory;
-    alias SearchPathA SearchPath;
-    alias SetComputerNameA SetComputerName;
-    alias SetCurrentDirectoryA SetCurrentDirectory;
-    alias SetDefaultCommConfigA SetDefaultCommConfig;
-    alias SetEnvironmentVariableA SetEnvironmentVariable;
-    alias SetFileAttributesA SetFileAttributes;
-    alias SetVolumeLabelA SetVolumeLabel;
-    alias WaitNamedPipeA WaitNamedPipe;
-    alias WritePrivateProfileSectionA WritePrivateProfileSection;
-    alias WritePrivateProfileStringA WritePrivateProfileString;
-    alias WritePrivateProfileStructA WritePrivateProfileStruct;
-    alias WriteProfileSectionA WriteProfileSection;
-    alias WriteProfileStringA WriteProfileString;
-    alias CreateWaitableTimerA CreateWaitableTimer;
-    alias GetFileAttributesExA GetFileAttributesEx;
-    alias GetLongPathNameA GetLongPathName;
-    alias QueryDosDeviceA QueryDosDevice;
+    alias WIN32_FIND_DATA = WIN32_FIND_DATAA;
+    alias ENUMRESLANGPROC = ENUMRESLANGPROCW;
+    alias ENUMRESNAMEPROC = ENUMRESNAMEPROCW;
+    alias ENUMRESTYPEPROC = ENUMRESTYPEPROCW;
+    alias AddAtom = AddAtomA;
+    alias BeginUpdateResource = BeginUpdateResourceA;
+    alias BuildCommDCB = BuildCommDCBA;
+    alias BuildCommDCBAndTimeouts = BuildCommDCBAndTimeoutsA;
+    alias CallNamedPipe = CallNamedPipeA;
+    alias CommConfigDialog = CommConfigDialogA;
+    alias CopyFile = CopyFileA;
+    alias CopyFileEx = CopyFileExA;
+    alias CreateDirectory = CreateDirectoryA;
+    alias CreateDirectoryEx = CreateDirectoryExA;
+    alias CreateEvent = CreateEventA;
+    alias CreateFile = CreateFileA;
+    alias CreateMailslot = CreateMailslotA;
+    alias CreateMutex = CreateMutexA;
+    alias CreateProcess = CreateProcessA;
+    alias CreateSemaphore = CreateSemaphoreA;
+    alias DeleteFile = DeleteFileA;
+    alias EndUpdateResource = EndUpdateResourceA;
+    alias EnumResourceLanguages = EnumResourceLanguagesA;
+    alias EnumResourceNames = EnumResourceNamesA;
+    alias EnumResourceTypes = EnumResourceTypesA;
+    alias ExpandEnvironmentStrings = ExpandEnvironmentStringsA;
+    alias FatalAppExit = FatalAppExitA;
+    alias FindAtom = FindAtomA;
+    alias FindFirstChangeNotification = FindFirstChangeNotificationA;
+    alias FindFirstFile = FindFirstFileA;
+    alias FindNextFile = FindNextFileA;
+    alias FindResource = FindResourceA;
+    alias FindResourceEx = FindResourceExA;
+    alias FormatMessage = FormatMessageA;
+    alias FreeEnvironmentStrings = FreeEnvironmentStringsA;
+    alias GetAtomName = GetAtomNameA;
+    alias GetCommandLine = GetCommandLineA;
+    alias GetComputerName = GetComputerNameA;
+    alias GetCurrentDirectory = GetCurrentDirectoryA;
+    alias GetDefaultCommConfig = GetDefaultCommConfigA;
+    alias GetDiskFreeSpace = GetDiskFreeSpaceA;
+    alias GetDiskFreeSpaceEx = GetDiskFreeSpaceExA;
+    alias GetDriveType = GetDriveTypeA;
+    alias GetEnvironmentStrings = GetEnvironmentStringsA;
+    alias GetEnvironmentVariable = GetEnvironmentVariableA;
+    alias GetFileAttributes = GetFileAttributesA;
+    alias GetFullPathName = GetFullPathNameA;
+    alias GetLogicalDriveStrings = GetLogicalDriveStringsA;
+    alias GetNamedPipeHandleState = GetNamedPipeHandleStateA;
+    alias GetModuleHandle = GetModuleHandleA;
+    alias GetModuleFileName = GetModuleFileNameA;
+    alias GetPrivateProfileInt = GetPrivateProfileIntA;
+    alias GetPrivateProfileSection = GetPrivateProfileSectionA;
+    alias GetPrivateProfileSectionNames = GetPrivateProfileSectionNamesA;
+    alias GetPrivateProfileString = GetPrivateProfileStringA;
+    alias GetPrivateProfileStruct = GetPrivateProfileStructA;
+    alias GetProfileInt = GetProfileIntA;
+    alias GetProfileSection = GetProfileSectionA;
+    alias GetProfileString = GetProfileStringA;
+    alias GetShortPathName = GetShortPathNameA;
+    alias GetStartupInfo = GetStartupInfoA;
+    alias GetSystemDirectory = GetSystemDirectoryA;
+    alias GetTempFileName = GetTempFileNameA;
+    alias GetTempPath = GetTempPathA;
+    alias GetUserName = GetUserNameA;
+    alias GetVersionEx = GetVersionExA;
+    alias GetVolumeInformation = GetVolumeInformationA;
+    alias GetWindowsDirectory = GetWindowsDirectoryA;
+    alias GlobalAddAtom = GlobalAddAtomA;
+    alias GlobalFindAtom = GlobalFindAtomA;
+    alias GlobalGetAtomName = GlobalGetAtomNameA;
+    alias IsBadStringPtr = IsBadStringPtrA;
+    alias LoadLibrary = LoadLibraryA;
+    alias LoadLibraryEx = LoadLibraryExA;
+    alias lstrcat = lstrcatA;
+    alias lstrcmp = lstrcmpA;
+    alias lstrcmpi = lstrcmpiA;
+    alias lstrcpy = lstrcpyA;
+    alias lstrcpyn = lstrcpynA;
+    alias lstrlen = lstrlenA;
+    alias MoveFile = MoveFileA;
+    alias OpenEvent = OpenEventA;
+    alias OpenMutex = OpenMutexA;
+    alias OpenSemaphore = OpenSemaphoreA;
+    alias OutputDebugString = OutputDebugStringA;
+    alias RemoveDirectory = RemoveDirectoryA;
+    alias SearchPath = SearchPathA;
+    alias SetComputerName = SetComputerNameA;
+    alias SetCurrentDirectory = SetCurrentDirectoryA;
+    alias SetDefaultCommConfig = SetDefaultCommConfigA;
+    alias SetEnvironmentVariable = SetEnvironmentVariableA;
+    alias SetFileAttributes = SetFileAttributesA;
+    alias SetVolumeLabel = SetVolumeLabelA;
+    alias WaitNamedPipe = WaitNamedPipeA;
+    alias WritePrivateProfileSection = WritePrivateProfileSectionA;
+    alias WritePrivateProfileString = WritePrivateProfileStringA;
+    alias WritePrivateProfileStruct = WritePrivateProfileStructA;
+    alias WriteProfileSection = WriteProfileSectionA;
+    alias WriteProfileString = WriteProfileStringA;
+    alias CreateWaitableTimer = CreateWaitableTimerA;
+    alias GetFileAttributesEx = GetFileAttributesExA;
+    alias GetLongPathName = GetLongPathNameA;
+    alias QueryDosDevice = QueryDosDeviceA;
 
-    alias HW_PROFILE_INFOA HW_PROFILE_INFO;
-    alias AccessCheckAndAuditAlarmA AccessCheckAndAuditAlarm;
-    alias BackupEventLogA BackupEventLog;
-    alias ClearEventLogA ClearEventLog;
-    alias CreateNamedPipeA CreateNamedPipe;
-    alias CreateProcessAsUserA CreateProcessAsUser;
-    alias DefineDosDeviceA DefineDosDevice;
-    alias FindFirstFileExA FindFirstFileEx;
-    alias GetBinaryTypeA GetBinaryType;
-    alias GetCompressedFileSizeA GetCompressedFileSize;
-    alias GetFileSecurityA GetFileSecurity;
-    alias LogonUserA LogonUser;
-    alias LookupAccountNameA LookupAccountName;
-    alias LookupAccountSidA LookupAccountSid;
-    alias LookupPrivilegeDisplayNameA LookupPrivilegeDisplayName;
-    alias LookupPrivilegeNameA LookupPrivilegeName;
-    alias LookupPrivilegeValueA LookupPrivilegeValue;
-    alias MoveFileExA MoveFileEx;
-    alias ObjectCloseAuditAlarmA ObjectCloseAuditAlarm;
-    alias ObjectDeleteAuditAlarmA ObjectDeleteAuditAlarm;
-    alias ObjectOpenAuditAlarmA ObjectOpenAuditAlarm;
-    alias ObjectPrivilegeAuditAlarmA ObjectPrivilegeAuditAlarm;
-    alias OpenBackupEventLogA OpenBackupEventLog;
-    alias OpenEventLogA OpenEventLog;
-    alias PrivilegedServiceAuditAlarmA PrivilegedServiceAuditAlarm;
-    alias ReadEventLogA ReadEventLog;
-    alias RegisterEventSourceA RegisterEventSource;
-    alias ReportEventA ReportEvent;
-    alias SetFileSecurityA SetFileSecurity;
-    alias UpdateResourceA UpdateResource;
+    alias HW_PROFILE_INFO = HW_PROFILE_INFOA;
+    alias AccessCheckAndAuditAlarm = AccessCheckAndAuditAlarmA;
+    alias BackupEventLog = BackupEventLogA;
+    alias ClearEventLog = ClearEventLogA;
+    alias CreateNamedPipe = CreateNamedPipeA;
+    alias CreateProcessAsUser = CreateProcessAsUserA;
+    alias DefineDosDevice = DefineDosDeviceA;
+    alias FindFirstFileEx = FindFirstFileExA;
+    alias GetBinaryType = GetBinaryTypeA;
+    alias GetCompressedFileSize = GetCompressedFileSizeA;
+    alias GetFileSecurity = GetFileSecurityA;
+    alias LogonUser = LogonUserA;
+    alias LookupAccountName = LookupAccountNameA;
+    alias LookupAccountSid = LookupAccountSidA;
+    alias LookupPrivilegeDisplayName = LookupPrivilegeDisplayNameA;
+    alias LookupPrivilegeName = LookupPrivilegeNameA;
+    alias LookupPrivilegeValue = LookupPrivilegeValueA;
+    alias MoveFileEx = MoveFileExA;
+    alias ObjectCloseAuditAlarm = ObjectCloseAuditAlarmA;
+    alias ObjectDeleteAuditAlarm = ObjectDeleteAuditAlarmA;
+    alias ObjectOpenAuditAlarm = ObjectOpenAuditAlarmA;
+    alias ObjectPrivilegeAuditAlarm = ObjectPrivilegeAuditAlarmA;
+    alias OpenBackupEventLog = OpenBackupEventLogA;
+    alias OpenEventLog = OpenEventLogA;
+    alias PrivilegedServiceAuditAlarm = PrivilegedServiceAuditAlarmA;
+    alias ReadEventLog = ReadEventLogA;
+    alias RegisterEventSource = RegisterEventSourceA;
+    alias ReportEvent = ReportEventA;
+    alias SetFileSecurity = SetFileSecurityA;
+    alias UpdateResource = UpdateResourceA;
 
     static if (_WIN32_WINNT >= 0x500) {
-        alias CreateFileMappingA CreateFileMapping;
-        alias CreateHardLinkA CreateHardLink;
-        alias CreateJobObjectA CreateJobObject;
-        alias DeleteVolumeMountPointA DeleteVolumeMountPoint;
-        alias DnsHostnameToComputerNameA DnsHostnameToComputerName;
-        alias EncryptFileA EncryptFile;
-        alias FileEncryptionStatusA FileEncryptionStatus;
-        alias FindFirstVolumeA FindFirstVolume;
-        alias FindFirstVolumeMountPointA FindFirstVolumeMountPoint;
-        alias FindNextVolumeA FindNextVolume;
-        alias FindNextVolumeMountPointA FindNextVolumeMountPoint;
-        alias GetModuleHandleExA GetModuleHandleEx;
-        alias GetSystemWindowsDirectoryA GetSystemWindowsDirectory;
-        alias GetVolumeNameForVolumeMountPointA GetVolumeNameForVolumeMountPoint;
-        alias GetVolumePathNameA GetVolumePathName;
-        alias OpenFileMappingA OpenFileMapping;
-        alias ReplaceFileA ReplaceFile;
-        alias SetVolumeMountPointA SetVolumeMountPoint;
-        alias VerifyVersionInfoA VerifyVersionInfo;
+        alias CreateFileMapping = CreateFileMappingA;
+        alias CreateHardLink = CreateHardLinkA;
+        alias CreateJobObject = CreateJobObjectA;
+        alias DeleteVolumeMountPoint = DeleteVolumeMountPointA;
+        alias DnsHostnameToComputerName = DnsHostnameToComputerNameA;
+        alias EncryptFile = EncryptFileA;
+        alias FileEncryptionStatus = FileEncryptionStatusA;
+        alias FindFirstVolume = FindFirstVolumeA;
+        alias FindFirstVolumeMountPoint = FindFirstVolumeMountPointA;
+        alias FindNextVolume = FindNextVolumeA;
+        alias FindNextVolumeMountPoint = FindNextVolumeMountPointA;
+        alias GetModuleHandleEx = GetModuleHandleExA;
+        alias GetSystemWindowsDirectory = GetSystemWindowsDirectoryA;
+        alias GetVolumeNameForVolumeMountPoint = GetVolumeNameForVolumeMountPointA;
+        alias GetVolumePathName = GetVolumePathNameA;
+        alias OpenFileMapping = OpenFileMappingA;
+        alias ReplaceFile = ReplaceFileA;
+        alias SetVolumeMountPoint = SetVolumeMountPointA;
+        alias VerifyVersionInfo = VerifyVersionInfoA;
     }
 
     static if (_WIN32_WINNT >= 0x501) {
-        alias ACTCTXA ACTCTX;
-        alias CheckNameLegalDOS8Dot3A CheckNameLegalDOS8Dot3;
-        alias CreateActCtxA CreateActCtx;
-        alias FindActCtxSectionStringA FindActCtxSectionString;
-        alias GetSystemWow64DirectoryA GetSystemWow64Directory;
-        alias GetVolumePathNamesForVolumeNameA GetVolumePathNamesForVolumeName;
-        alias SetFileShortNameA SetFileShortName;
+        alias ACTCTX = ACTCTXA;
+        alias CheckNameLegalDOS8Dot3 = CheckNameLegalDOS8Dot3A;
+        alias CreateActCtx = CreateActCtxA;
+        alias FindActCtxSectionString = FindActCtxSectionStringA;
+        alias GetSystemWow64Directory = GetSystemWow64DirectoryA;
+        alias GetVolumePathNamesForVolumeName = GetVolumePathNamesForVolumeNameA;
+        alias SetFileShortName = SetFileShortNameA;
     }
 
     static if (_WIN32_WINNT >= 0x502) {
-        alias GetDllDirectoryA GetDllDirectory;
-        alias SetDllDirectoryA SetDllDirectory;
-        alias SetFirmwareEnvironmentVariableA SetFirmwareEnvironmentVariable;
+        alias GetDllDirectory = GetDllDirectoryA;
+        alias SetDllDirectory = SetDllDirectoryA;
+        alias SetFirmwareEnvironmentVariable = SetFirmwareEnvironmentVariableA;
     }
 
     static if (_WIN32_WINNT >= 0x600) {
-        alias CreateSymbolicLinkA CreateSymbolicLink;
+        alias CreateSymbolicLink = CreateSymbolicLinkA;
     }
 }
 
-alias STARTUPINFO* LPSTARTUPINFO;
-alias WIN32_FIND_DATA* LPWIN32_FIND_DATA;
+alias LPSTARTUPINFO = STARTUPINFO*;
+alias LPWIN32_FIND_DATA = WIN32_FIND_DATA*;
 
-alias HW_PROFILE_INFO* LPHW_PROFILE_INFO;
+alias LPHW_PROFILE_INFO = HW_PROFILE_INFO*;
 
 static if (_WIN32_WINNT >= 0x501) {
-    alias ACTCTX* PACTCTX, PCACTCTX;
+    alias PACTCTX = ACTCTX*, PCACTCTX = ACTCTX*;
 }

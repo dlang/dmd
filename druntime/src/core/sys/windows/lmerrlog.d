@@ -209,7 +209,7 @@ struct ERROR_LOG {
     DWORD el_data_size;
     DWORD el_nstrings;
 }
-alias ERROR_LOG* PERROR_LOG, LPERROR_LOG;
+alias PERROR_LOG = ERROR_LOG*, LPERROR_LOG = ERROR_LOG*;
 
 extern (Windows) {
     deprecated {

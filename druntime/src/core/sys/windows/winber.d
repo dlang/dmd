@@ -34,16 +34,16 @@ version (Windows):
  */
 struct BerElement;
 
-alias int ber_int_t, ber_slen_t;
-alias uint ber_uint_t, ber_len_t, ber_tag_t;
+alias ber_int_t = int, ber_slen_t = int;
+alias ber_uint_t = uint, ber_len_t = uint, ber_tag_t = uint;
 
 align(4):
 struct BerValue {
     ber_len_t bv_len;
     char*     bv_val;
 }
-alias BerValue LDAP_BERVAL, BERVAL;
-alias BerValue* PLDAP_BERVAL, PBERVAL;
+alias LDAP_BERVAL = BerValue, BERVAL = BerValue;
+alias PLDAP_BERVAL = BerValue*, PBERVAL = BerValue*;
 
 enum ber_tag_t
     LBER_ERROR   = -1,

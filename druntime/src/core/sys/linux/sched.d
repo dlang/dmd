@@ -93,7 +93,7 @@ private // helpers
 }
 
 /// Type for array elements in 'cpu_set_t'.
-alias c_ulong cpu_mask;
+alias cpu_mask = c_ulong;
 
 /// Data structure to describe CPU mask.
 struct cpu_set_t

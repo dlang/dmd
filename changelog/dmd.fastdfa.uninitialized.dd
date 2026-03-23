@@ -1,0 +1,36 @@
+Fast DFA reports on uninitialized variable reads
+
+The fast DFA engine has gained the ability to error when a variable can be proven to being in an uninitialized state, and is read.
+
+```d
+void readFromUninit() @system
+{
+    int val1 = void;
+    int val2 = val1; // error
+
+    int* ptr = &val1;
+    int val3 = *ptr; // error
+}
+```
+
+As part of this it is now capable of looking through pointers and seeing properties of variables that are on the stack.
+
+An application of this feature is the prevention of mathematical operators from accessing default initialized floating point types.
+
+```d
+void checkFloatInit(bool condition)
+{
+    float v;
+    float t = v * 2; // error math op
+
+    if (condition)
+        v = 2;
+
+    float u = v * 2; // no error
+}
+```
+
+It will not activate for other expressions, or statements.
+Only in a mathematical expression.
+
+This was not originally part of the fast DFA engines scope, its continued existence depends upon community feedback as part of usage.

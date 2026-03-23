@@ -287,7 +287,7 @@ enum SCF_WORD       = 2;
 enum SCF_ALL        = 4;
 enum SCF_USEUIRULES = 8;
 
-alias DWORD TEXTMODE;
+alias TEXTMODE = DWORD;
 enum TM_PLAINTEXT=1;
 enum TM_RICHTEXT=2;
 enum TM_SINGLELEVELUNDO=4;
@@ -301,7 +301,7 @@ enum GT_USECRLF=1;
 enum yHeightCharPtsMost=1638;
 enum lDefaultTab=720;
 
-alias DWORD UNDONAMEID;
+alias UNDONAMEID = DWORD;
 enum UID_UNKNOWN    = 0;
 enum UID_TYPING     = 1;
 enum UID_DELETE     = 2;
@@ -388,7 +388,7 @@ struct COMPCOLOR {
 }
 
 extern (Windows) {
-    alias DWORD function(DWORD_PTR,PBYTE,LONG,LONG*) EDITSTREAMCALLBACK;
+    alias EDITSTREAMCALLBACK = DWORD function(DWORD_PTR,PBYTE,LONG,LONG*);
 }
 
 struct EDITSTREAM {
@@ -438,7 +438,7 @@ align(4):
     LPARAM lParam;
     CHARRANGE chrg;
 }
-alias ENPROTECTED* LPENPROTECTED;
+alias LPENPROTECTED = ENPROTECTED*;
 
 struct ENSAVECLIPBOARD {
 align(4):
@@ -568,7 +568,7 @@ align(4):
 }
 
 extern (Windows) {
-alias LONG function(char*,LONG,BYTE,INT) EDITWORDBREAKPROCEX;
+alias EDITWORDBREAKPROCEX = LONG function(char*,LONG,BYTE,INT);
 }
 
 /* Defines for EM_SETTYPOGRAPHYOPTIONS */
@@ -590,15 +590,15 @@ align(4):
 }
 
 version (Unicode) {
-    alias CHARFORMATW CHARFORMAT;
-    alias CHARFORMAT2W CHARFORMAT2;
-    alias FINDTEXTW FINDTEXT;
-    alias FINDTEXTEXW FINDTEXTEX;
-    alias TEXTRANGEW TEXTRANGE;
+    alias CHARFORMAT = CHARFORMATW;
+    alias CHARFORMAT2 = CHARFORMAT2W;
+    alias FINDTEXT = FINDTEXTW;
+    alias FINDTEXTEX = FINDTEXTEXW;
+    alias TEXTRANGE = TEXTRANGEW;
 } else {
-    alias CHARFORMATA CHARFORMAT;
-    alias CHARFORMAT2A CHARFORMAT2;
-    alias FINDTEXTA FINDTEXT;
-    alias FINDTEXTEXA FINDTEXTEX;
-    alias TEXTRANGEA TEXTRANGE;
+    alias CHARFORMAT = CHARFORMATA;
+    alias CHARFORMAT2 = CHARFORMAT2A;
+    alias FINDTEXT = FINDTEXTA;
+    alias FINDTEXTEX = FINDTEXTEXA;
+    alias TEXTRANGE = TEXTRANGEA;
 }

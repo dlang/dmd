@@ -1,7 +1,7 @@
 /**
  * Semantic analysis of initializers.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/initsem.d, _initsem.d)
@@ -14,8 +14,6 @@ module dmd.initsem;
 import core.stdc.stdio;
 import core.checkedint;
 
-import dmd.aggregate;
-import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.dcast;
@@ -424,6 +422,26 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         if (i.exp.op == EXP.type)
         {
             error(i.exp.loc, "initializer must be an expression, not `%s`", i.exp.toChars());
+            // If the error location differs from the initializer location, show where it was used
+            if (i.exp.loc != i.loc)
+                errorSupplemental(i.loc, "used in initialization here");
+            // If the type is a struct or class, suggest adding () to construct an instance
+            if (auto ts = i.exp.type.isTypeStruct())
+            {
+                // Check if the struct can be default-constructed (no required args)
+                if (!ts.sym.hasCopyCtor && (!ts.sym.ctor || ts.sym.defaultCtor))
+                    errorSupplemental(i.exp.loc, "perhaps use `%s()` to construct a value of the type", i.exp.toChars());
+                else if (ts.sym.ctor && !ts.sym.hasCopyCtor)
+                    errorSupplemental(i.exp.loc, "perhaps use `%s(...)` to construct a value of the type", i.exp.toChars());
+            }
+            else if (auto tc = i.exp.type.isTypeClass())
+            {
+                // Check if the class can be default-constructed
+                if (!tc.sym.noDefaultCtor && (!tc.sym.ctor || tc.sym.defaultCtor))
+                    errorSupplemental(i.exp.loc, "perhaps use `new %s()` to construct a value of the type", i.exp.toChars());
+                else if (tc.sym.ctor)
+                    errorSupplemental(i.exp.loc, "perhaps use `new %s(...)` to construct a value of the type", i.exp.toChars());
+            }
             return err();
         }
         // Make sure all pointers are constants
@@ -449,11 +467,17 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
-                typeb.isStaticOrDynamicArray() && tynto.isSomeChar &&
-                se.numberOfCodeUnits(tynto) < tb.isTypeSArray().dim.toInteger())
+                typeb.isStaticOrDynamicArray() && tynto.isSomeChar)
             {
-                i.exp = se.castTo(sc, t);
-                goto L1;
+                string s;
+                size_t len = se.numberOfCodeUnits(tynto, s);
+                if (s)
+                    error(se.loc, "%.*s", cast(int)s.length, s.ptr);
+                if (len < tb.isTypeSArray().dim.toInteger())
+                {
+                    i.exp = se.castTo(sc, t);
+                    goto L1;
+                }
             }
 
             /* Lop off terminating 0 of initializer for:
@@ -617,7 +641,6 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         static if (0)
             if (auto ts = tx.isTypeStruct())
             {
-                import dmd.common.outbuffer;
                 OutBuffer buf;
                 HdrGenState hgs;
                 toCBuffer(ts.sym, buf, hgs);
@@ -627,6 +650,19 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         /* Rewrite CInitializer into ExpInitializer, ArrayInitializer, or StructInitializer
          */
         t = t.toBasetype();
+
+        bool isComplexInitilaizer()
+        {
+            switch (t.ty)
+            {
+                case Tcomplex32:
+                case Tcomplex64:
+                case Tcomplex80:
+                    return true;
+                default:
+                    return false;
+            }
+        }
 
         if (auto tv = t.isTypeVector())
             t = tv.basetype;
@@ -1142,6 +1178,24 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         else if (ExpInitializer ei = isBraceExpression())
         {
             return visitExp(ei);
+        }
+        else if (isComplexInitilaizer())
+        {
+            /* just convert _Complex = { a, b} to _Complex =. a + b*i */
+            if (ci.initializerList[].length != 2)
+            {
+                error(ci.loc, "only two initializers required for complex type `%s`", t.toChars());
+                return err();
+            }
+            auto rexp = ci.initializerList[0].initializer.initializerToExpression();
+            auto imexp = ci.initializerList[1].initializer.initializerToExpression();
+
+            import dmd.root.ctfloat;
+            auto newExpr = new AddExp(ci.loc, rexp,
+            new MulExp(ci.loc, imexp, new RealExp(ci.loc, CTFloat.one, Type.timaginary64)));
+
+            auto ce = new ExpInitializer(ci.loc, newExpr);
+            return ce.initializerSemantic(sc, t, needInterpret);
         }
         else
         {

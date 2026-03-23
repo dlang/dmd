@@ -138,6 +138,13 @@ typedef unsigned long long __uint64_t;
 #define __volatile volatile
 #define __sync_synchronize()
 #define __sync_swap(A, B) 1
+
+// For whatever reason, sys/cdefs.h has to be included first even though
+// it doesn't undef __sym_compat. But without #including sys/cdefs.h first and
+// then undefing __sym_compat, the normal __sym_compat gets used.
+#include "sys/cdefs.h"
+#undef __sym_compat
+#define __sym_compat(sym, impl, verid)
 #endif
 
 #if _MSC_VER
@@ -151,10 +158,9 @@ typedef unsigned long long __uint64_t;
 #define _stdcall __stdcall
 #define _declspec __declspec
 
-// This header disables the Windows API Annotations macros
-// Need to include sal.h to get the pragma once to prevent macro redefinition.
-#include "sal.h"
-#include "no_sal2.h"
+// disable the Microsoft Source Code Annotation macros in "sal.h"
+#define _USE_DECLSPECS_FOR_SAL 0
+#define _USE_ATTRIBUTES_FOR_SAL 0
 #endif
 
 /****************************

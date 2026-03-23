@@ -22,7 +22,7 @@ enum
     RTLD_PROBE   = cast(void *)-4,
 }
 
-alias c_ulong Lmid_t;
+alias Lmid_t = c_ulong;
 
 void* dlmopen(Lmid_t, const scope char*, int);
 

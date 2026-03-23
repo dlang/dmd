@@ -8,7 +8,7 @@
  * i.e. rewriting trees to less expensive trees.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cgelem.d, backend/cgelem.d)
@@ -174,9 +174,9 @@ int elemisone(elem* e)
                 if (el_tolong(e) != 1)
                     goto nomatch;
                 break;
-            case TYldouble:
-            case TYildouble:
-                if (e.Vldouble != 1)
+            case TYreal:
+            case TYireal:
+                if (e.Vreal != 1)
                     goto nomatch;
                 break;
             case TYdouble:
@@ -239,9 +239,9 @@ int elemisnegone(elem* e)
                 if (el_tolong(e) != -1)
                     goto nomatch;
                 break;
-            case TYldouble:
-            //case TYildouble:
-                if (e.Vldouble != -1)
+            case TYreal:
+            //case TYireal:
+                if (e.Vreal != -1)
                     goto nomatch;
                 break;
             case TYdouble:
@@ -767,7 +767,7 @@ private elem* elmemset(elem* e, Goal goal)
      */
 
     const sz = tysize(evalue.Ety);
-    int nelems = cast(int)el_tolong(enelems);
+    long nelems = el_tolong(enelems);
     ulong value = el_tolong(evalue);
 
     if (sz * nelems > REGSIZE * 4)
@@ -795,9 +795,9 @@ private elem* elmemset(elem* e, Goal goal)
     }
     e.E1 = null;             // so we can free e later
 
-    for (int offset = 0; offset < sz * nelems; )
+    for (ulong offset = 0; offset < sz * nelems; )
     {
-        int left = sz * nelems - offset;
+        ulong left = sz * nelems - offset;
         if (left > REGSIZE)
             left = REGSIZE;
         tym_t tyv;
@@ -863,23 +863,30 @@ private elem* elmemcpy(elem* e, Goal goal)
                 el_free(ex);
                 return optelem(e, Goal.value);
             }
-            // Convert OPmemcpy to OPstreq
-            e.Eoper = OPstreq;
-            type* t = type_allocn(TYarray, tstypes[TYchar]);
-            t.Tdim = cast(uint)el_tolong(ex.E2);
-            e.ET = t;
-            t.Tcount++;
-            e.E1 = el_una(OPind,TYstruct,e.E1);
-            e.E2 = el_una(OPind,TYstruct,ex.E1);
-            ex.E1 = null;
-            el_free(ex);
-            ex = el_copytree(e.E1.E1);
-            if (tysize(e.Ety) > tysize(ex.Ety))
-                ex = el_una(OPnp_fp,e.Ety,ex);
-            e = el_bin(OPcomma,e.Ety,e,ex);
-            if (el_sideeffect(e.E2))
-                fixside(&e.E1.E1.E1,&e.E2);
-            return optelem(e, Goal.value);
+
+            // Unfortunately the optimizer casts type sizes to int
+            // Set up a safeguard for this optimization
+            const sz = el_tolong(ex.E2);
+            if (sz <= int.max)
+            {
+                // Convert OPmemcpy to OPstreq
+                e.Eoper = OPstreq;
+                type* t = type_allocn(TYarray, tstypes[TYchar]);
+                t.Tdim = sz;
+                e.ET = t;
+                t.Tcount++;
+                e.E1 = el_una(OPind,TYstruct,e.E1);
+                e.E2 = el_una(OPind,TYstruct,ex.E1);
+                ex.E1 = null;
+                el_free(ex);
+                ex = el_copytree(e.E1.E1);
+                if (tysize(e.Ety) > tysize(ex.Ety))
+                    ex = el_una(OPnp_fp,e.Ety,ex);
+                e = el_bin(OPcomma,e.Ety,e,ex);
+                if (el_sideeffect(e.E2))
+                    fixside(&e.E1.E1.E1,&e.E2);
+                return optelem(e, Goal.value);
+            }
         }
 
         /+ The following fails the autotester for Linux32 and FreeBSD32
@@ -1219,7 +1226,7 @@ private elem* elmin(elem* e, Goal goal)
         }
 
         // Replace (e - e) with (0)
-        if (el_match(e1,e2) && !el_sideeffect(e1))
+        if (el_match(e1,e2) && !el_sideeffect(e1) && !tyfloating(e1.Ety))
         {
             el_free(e);
             e = el_calloc();
@@ -2020,8 +2027,16 @@ private elem* elnot(elem* e, Goal goal)
             if (OTrel(op))                      /* ! OTrel => !OTrel            */
             {
                   /* Find the logical negation of the operator  */
+                  const e11ty = e1.E1.Ety;
+                  if (config.target_cpu == TARGET_AArch64 &&
+                     tyfloating(e11ty) &&
+                     !(op == OPeqeq || op == OPne))
+                  {
+                        break;  // no support for OPlg, OPnge, etc.
+                  }
+
                   auto op2 = rel_not(op);
-                  if (!tyfloating(e1.E1.Ety))
+                  if (!tyfloating(e11ty))
                   {   op2 = rel_integral(op2);
                       assert(OTrel(op2));
                   }
@@ -2143,6 +2158,10 @@ private elem* elcond(elem* e, Goal goal)
                 e1.E1 = null;
                 el_free(e1);
                 return elcond(e,goal);
+            }
+            if (e1.Ety == TYnoreturn)
+            {
+                return el_selecte1(e);
             }
             if (!OPTIMIZER)
                 break;
@@ -2475,6 +2494,12 @@ L2:
         goto L2;
     }
 
+    if (e1.Ety == TYnoreturn)
+    {
+        e = el_selecte1(e);
+        goto Lret;
+    }
+
     if ((OTopeq(e1op) || e1op == OPeq) &&
         (e1.E1.Eoper == OPvar || e1.E1.Eoper == OPind) &&
         !el_sideeffect(e1.E1)
@@ -2775,6 +2800,11 @@ private elem* eloror(elem* e, Goal goal)
         return eloror(e, goal);
     }
 
+    if (e1.Ety == TYnoreturn)
+    {
+        return el_selecte1(e);
+    }
+
     elem* e2 = e.E2;
     if (OTboolnop(e2.Eoper))
     {
@@ -3073,6 +3103,10 @@ private elem* elandand(elem* e, Goal goal)
         e1.E1 = null;
         el_free(e1);
         return elandand(e, goal);
+    }
+    if (e1.Ety == TYnoreturn)
+    {
+        return el_selecte1(e);
     }
     elem* e2 = e.E2;
     if (OTboolnop(e2.Eoper))
@@ -3590,9 +3624,9 @@ elem* elstruct(elem* e, Goal goal)
 
         case 10:
         case 12:
-            if (tysize(TYldouble) == sz && targ1 && !targ2 && tybasic(targ1.Tty) == TYldouble)
+            if (tysize(TYreal) == sz && targ1 && !targ2 && tybasic(targ1.Tty) == TYreal)
             {
-                tym = TYldouble;
+                tym = TYreal;
                 goto L1;
             }
             goto case 9;
@@ -3644,7 +3678,8 @@ elem* elstruct(elem* e, Goal goal)
                 }
                 else if (I64 && targ1 && targ2)
                 {
-                    if (tyfloating(tybasic(targ1.Tty)))
+                    if (tyfloating(tybasic(targ1.Tty)) &&
+                        !cgstate.AArch64) // TODO AArch64
                         tym = TYcdouble;
                     else if (0 && cgstate.AArch64)
                         goto Ldefault;
@@ -4521,7 +4556,7 @@ private elem* elcmp(elem* e, Goal goal)
             return optelem(e, Goal.value);
         }
 
-        if (e1.Eoper == OPd_ld && tysize(e1.Ety) == tysize(TYldouble) && cast(targ_double)e2.Vldouble == e2.Vldouble)
+        if (e1.Eoper == OPd_ld && tysize(e1.Ety) == tysize(TYreal) && cast(targ_double)e2.Vreal == e2.Vreal)
         {
             /* Remove unnecessary OPd_ld operator
              */
@@ -4529,7 +4564,7 @@ private elem* elcmp(elem* e, Goal goal)
             e1.E1 = null;
             el_free(e1);
             e2.Ety = e.E1.Ety;
-            e2.Vdouble = cast(targ_double)e2.Vldouble;
+            e2.Vdouble = cast(targ_double)e2.Vreal;
             return optelem(e, Goal.value);
         }
 
@@ -5221,7 +5256,7 @@ private elem* elu64_d(elem* e, Goal goal)
     {
         pu = &e.E1.E1;
         *pu = optelem(*pu, Goal.value);
-        ty = TYldouble;
+        ty = TYreal;
     }
     else if (e.Eoper == OPd_f && e.E1.Eoper == OPu64_d)
     {
@@ -5281,24 +5316,24 @@ private elem* elu64_d(elem* e, Goal goal)
             fixside(&u, &u1);
 
         elem* eop1 = el_una(OPs64_d, TYdouble, u1);
-        eop1 = el_una(OPd_ld, TYldouble, eop1);
+        eop1 = el_una(OPd_ld, TYreal, eop1);
 
         elem* eoff = el_calloc();
         eoff.Eoper = OPconst;
-        eoff.Ety = TYldouble;
-        eoff.Vldouble = 0x1p+64;
+        eoff.Ety = TYreal;
+        eoff.Vreal = 0x1p+64;
 
         elem* u2 = el_copytree(u1);
         u2 = el_una(OPs64_d, TYdouble, u2);
-        u2 = el_una(OPd_ld, TYldouble, u2);
+        u2 = el_una(OPd_ld, TYreal, u2);
 
-        elem* eop2 = el_bin(OPadd, TYldouble, u2, eoff);
+        elem* eop2 = el_bin(OPadd, TYreal, u2, eoff);
 
-        elem* r = el_bin(OPcond, TYldouble,
+        elem* r = el_bin(OPcond, TYreal,
                         el_bin(OPge, OPbool, u, el_long(TYllong, 0)),
-                        el_bin(OPcolon, TYldouble, eop1, eop2));
+                        el_bin(OPcolon, TYreal, eop1, eop2));
 
-        if (ty != TYldouble)
+        if (ty != TYreal)
             r = el_una(OPtoprec, e.Ety, r);
 
         *pu = null;
@@ -5540,11 +5575,13 @@ private elem* elclassinit(elem* e, Goal goal)
 }
 
 /********************************************
- * Handle OPva_start
+ * OPva_start
+ *     /  \
+ *   ap    parmn
  */
 
 @trusted
-private elem* elvalist(elem* e, Goal goal)
+private elem* elva_start(elem* e, Goal goal)
 {
     assert(e.Eoper == OPva_start);
 
@@ -5618,14 +5655,47 @@ if (config.exe & EX_windos)
     else
         e.E2 = el_long(TYnptr, 0);
     //elem_print(e);
-
+    return e;
 }
+
+    if (cgstate.AArch64 && config.exe & EX_OSX64)
+    {
+        assert(I64); // va_start is not an intrinsic on 32-bit
+
+        /* from stdarg.d:  void va_start(T)(out va_list ap, ref T parmn);
+         *
+         * parmn is ignored, and is replaced with __va_argsave.
+         * __va_argsave is initialized with a pointer to where the first variadic
+         * arg is
+         */
+        //elem_print(e);
+
+        // Find __va_argsave
+        Symbol* va_argsave = null;
+        foreach (s; globsym[])
+        {
+            if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
+            {
+                va_argsave = s;
+                break;
+            }
+        }
+
+        e.Eoper = OPeq;
+        e.E1 = el_una(OPind, TYnptr, ap);  // since ap is an `out` parameter
+        if (va_argsave)
+            e.E2 = el_var(va_argsave);  // *ap = __va_argsave
+        else
+            e.E2 = el_long(TYnptr, 0);
+        //elem_print(e);
+        return e;
+    }
 
 if (config.exe & EX_posix)
 {
     assert(I64); // va_start is not an intrinsic on 32-bit
     // (OPva_start &va)
-    // (OPeq (OPind E1) __va_argsave+offset)
+    // (OPeq (OPind E1) &__va_argsave+offset)
     //elem_print(e);
 
     // Find __va_argsave
@@ -5653,9 +5723,10 @@ if (config.exe & EX_posix)
     else
         e.E2 = el_long(TYnptr, 0);
     //elem_print(e);
+    return e;
 }
 
-    return e;
+    assert(0);
 }
 
 /******************************************
@@ -6447,8 +6518,9 @@ private bool canHappenAfter(elem* a, elem* b)
 @trusted private
 bool useOPnegass(tym_t tym)
 {
+    //printf("useOPnegass() tym: %s\n", tym_str(tym));
     const ty = tybasic(tym);
-    return !(config.target_cpu == TARGET_AArch64 && (ty == TYldouble || ty == TYildouble));
+    return !(config.target_cpu == TARGET_AArch64 && (ty == TYreal || ty == TYireal));
 }
 
 /***************************************************
@@ -6647,6 +6719,6 @@ private immutable elfp_t[OPMAX] elxxx =
     OPvector:  &elzot,
     OPvecsto:  &elzot,
     OPvecfill: &elzot,
-    OPva_start: &elvalist,
+    OPva_start: &elva_start,
     OPprefetch: &elzot,
 ];

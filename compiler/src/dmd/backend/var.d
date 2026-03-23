@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/var.d, backend/var.d)
@@ -20,6 +20,7 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.dlist;
 import dmd.backend.goh;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.symtab;
@@ -168,6 +169,7 @@ Cstate cstate;                  // compiler state
 uint numcse;        // number of common subexpressions
 
 GlobalOptimizer go;
+BlockOpt bo;
 
 /* From debug.c */
 const(char)*[32] regstring = ["AX","CX","DX","BX","SP","BP","SI","DI",
@@ -182,7 +184,7 @@ type* chartype;                 /* default 'char' type                  */
 Obj objmod = null;
 
 __gshared uint[256] tytab = tytab_init;
-extern (D) private enum tytab_init =
+private enum tytab_init =
 () {
     uint[256] tab;
     foreach (i; TXptr)        { tab[i] |= TYFLptr; }
@@ -296,15 +298,15 @@ __gshared const(char)*[TYMAX] tystring =
         TYuint      : "uint",
         TYulong     : "ulong",
 
-        TYldouble   : "real",
+        TYreal   : "real",
 
         TYifloat    : "ifloat",
         TYidouble   : "idouble",
-        TYildouble  : "ireal",
+        TYireal  : "ireal",
 
         TYcfloat    : "cfloat",
         TYcdouble   : "cdouble",
-        TYcldouble  : "creal",
+        TYcreal  : "creal",
 
         TYschar16   : "byte[16]",
         TYuchar16   : "ubyte[16]",
@@ -329,14 +331,14 @@ __gshared const(char)*[TYMAX] tystring =
     ];
 
     ret[TYullong] = ret[TYulong]; // c_ulong
-    ret[TYllong] = ret[TYlong]; // c_long
+    ret[TYllong]  = ret[TYlong]; // c_long
 
     return ret;
 } ();
 
 /// Map to unsigned version of type
 __gshared tym_t[256] tytouns = tytouns_init;
-extern (D) private enum tytouns_init =
+private enum tytouns_init =
 () {
     tym_t[256] tab;
     foreach (ty; 0 .. TYMAX)
@@ -380,7 +382,7 @@ extern (D) private enum tytouns_init =
 
 /// Map to relaxed version of type
 __gshared ubyte[TYMAX] _tyrelax = _tyrelax_init;
-extern(D) private enum _tyrelax_init = (){
+private enum _tyrelax_init = (){
     ubyte[TYMAX] tab;
     foreach (ty; 0 .. TYMAX)
     {
@@ -416,7 +418,7 @@ extern(D) private enum _tyrelax_init = (){
 
 /// Map to equivalent version of type
 __gshared ubyte[TYMAX] tyequiv = tyequiv_init;
-extern (D) private enum tyequiv_init =
+private enum tyequiv_init =
 () {
     ubyte[TYMAX] tab;
     foreach (ty; 0 .. TYMAX)
@@ -462,15 +464,15 @@ __gshared ubyte[TYMAX] dttab =
     TYfloat   : 0x88,
     TYdouble  : 0x89,
     TYdouble_alias : 0x89,
-    TYldouble : 0x89,
+    TYreal : 0x89,
 
     TYifloat   : 0x88,
     TYidouble  : 0x89,
-    TYildouble : 0x89,
+    TYireal : 0x89,
 
     TYcfloat   : 0x88,
     TYcdouble  : 0x89,
-    TYcldouble : 0x89,
+    TYcreal : 0x89,
 
     TYfloat4  : 0x00,
     TYdouble2 : 0x00,
@@ -573,15 +575,15 @@ __gshared ushort[TYMAX] dttab4 =
     TYfloat   : 0x40,
     TYdouble  : 0x41,
     TYdouble_alias : 0x41,
-    TYldouble : 0x42,
+    TYreal : 0x42,
 
     TYifloat   : 0x40,
     TYidouble  : 0x41,
-    TYildouble : 0x42,
+    TYireal : 0x42,
 
     TYcfloat   : 0x50,
     TYcdouble  : 0x51,
-    TYcldouble : 0x52,
+    TYcreal : 0x52,
 
     TYfloat4  : 0x00,
     TYdouble2 : 0x00,
@@ -685,15 +687,15 @@ __gshared byte[256] _tysize =
     TYfloat   : FLOATSIZE,
     TYdouble  : DOUBLESIZE,
     TYdouble_alias : 8,
-    TYldouble : -1,
+    TYreal : -1,
 
     TYifloat   : FLOATSIZE,
     TYidouble  : DOUBLESIZE,
-    TYildouble : -1,
+    TYireal : -1,
 
     TYcfloat   : 2*FLOATSIZE,
     TYcdouble  : 2*DOUBLESIZE,
-    TYcldouble : -1,
+    TYcreal : -1,
 
     TYfloat4  : 16,
     TYdouble2 : 16,
@@ -800,15 +802,15 @@ __gshared byte[256] _tyalignsize =
     TYfloat   : FLOATSIZE,
     TYdouble  : DOUBLESIZE,
     TYdouble_alias : 8,
-    TYldouble : SET_ALIGN,
+    TYreal : SET_ALIGN,
 
     TYifloat   : FLOATSIZE,
     TYidouble  : DOUBLESIZE,
-    TYildouble : SET_ALIGN,
+    TYireal : SET_ALIGN,
 
     TYcfloat   : 2*FLOATSIZE,
     TYcdouble  : DOUBLESIZE,
-    TYcldouble : SET_ALIGN,
+    TYcreal : SET_ALIGN,
 
     TYfloat4  : 16,
     TYdouble2 : 16,
@@ -890,13 +892,13 @@ extern(D):
 
 static immutable TXptr        = [ TYnptr ];
 static immutable TXptr_nflat  = [ TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr,TYimmutPtr,TYsharePtr,TYrestrictPtr,TYfgPtr ];
-static immutable TXreal       = [ TYfloat,TYdouble,TYdouble_alias,TYldouble,
+static immutable TXreal       = [ TYfloat,TYdouble,TYdouble_alias,TYreal,
                      TYfloat4,TYdouble2,
                      TYfloat8,TYdouble4,
                      TYfloat16,TYdouble8,
                    ];
-static immutable TXimaginary  = [ TYifloat,TYidouble,TYildouble, ];
-static immutable TXcomplex    = [ TYcfloat,TYcdouble,TYcldouble, ];
+static immutable TXimaginary  = [ TYifloat,TYidouble,TYireal, ];
+static immutable TXcomplex    = [ TYcfloat,TYcdouble,TYcreal, ];
 static immutable TXintegral   = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
                      TYwchar_t,TYushort,TYenum,TYint,TYuint,
                      TYlong,TYulong,TYllong,TYullong,TYdchar,

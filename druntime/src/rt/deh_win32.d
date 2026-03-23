@@ -157,7 +157,7 @@ struct CONTEXT {
     BYTE[MAXIMUM_SUPPORTED_EXTENSION] ExtendedRegisters;
 }
 
-alias CONTEXT* PCONTEXT, LPCONTEXT;
+alias PCONTEXT = CONTEXT*, LPCONTEXT = CONTEXT*;
 
 struct EXCEPTION_RECORD {
         DWORD ExceptionCode;
@@ -167,13 +167,13 @@ struct EXCEPTION_RECORD {
         DWORD NumberParameters;
         ULONG_PTR[EXCEPTION_MAXIMUM_PARAMETERS] ExceptionInformation;
 }
-alias EXCEPTION_RECORD* PEXCEPTION_RECORD, LPEXCEPTION_RECORD;
+alias PEXCEPTION_RECORD = EXCEPTION_RECORD*, LPEXCEPTION_RECORD = EXCEPTION_RECORD*;
 
 struct EXCEPTION_POINTERS {
         PEXCEPTION_RECORD ExceptionRecord;
         PCONTEXT          ContextRecord;
 }
-alias EXCEPTION_POINTERS* PEXCEPTION_POINTERS, LPEXCEPTION_POINTERS;
+alias PEXCEPTION_POINTERS = EXCEPTION_POINTERS*, LPEXCEPTION_POINTERS = EXCEPTION_POINTERS*;
 
 enum EXCEPTION_UNWIND = 6;  // Flag to indicate if the system is unwinding
 /+ Values used by Microsoft for Itanium and Win64 are:
@@ -292,11 +292,11 @@ each function which uses exceptions.
 extern(C)
 {
     alias
-    EXCEPTION_DISPOSITION function (
+    LanguageSpecificHandler = EXCEPTION_DISPOSITION function (
             EXCEPTION_RECORD *exceptionRecord,
             DEstablisherFrame *frame,
             CONTEXT *context,
-            void *dispatcherContext) LanguageSpecificHandler;
+            void *dispatcherContext);
 }
 
 
@@ -575,7 +575,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         // Jump to catch block. Does not return.
                         {
                             uint catch_esp;
-                            alias void function() fp_t; // generic function pointer
+                            alias fp_t = void function(); // generic function pointer
                             fp_t catch_addr = cast(fp_t)(pcb.code);
                             catch_esp = regebp - handlerTable.espoffset - fp_t.sizeof;
                             asm

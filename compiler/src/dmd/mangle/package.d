@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/abi.html#name_mangling, Name Mangling)
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mangle/package.d, _dmangle.d)
@@ -146,6 +146,7 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dsymbolsem : toAlias;
+import dmd.expressionsem : toInteger, toReal, toImaginary;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;

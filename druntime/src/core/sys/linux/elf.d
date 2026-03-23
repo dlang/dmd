@@ -16,7 +16,7 @@ public import core.sys.elf;
 extern (D)
 {
     auto ELF32_ST_VISIBILITY(O)(O o) { return o & 0x03; }
-    alias ELF32_ST_VISIBILITY ELF64_ST_VISIBILITY;
+    alias ELF64_ST_VISIBILITY = ELF32_ST_VISIBILITY;
 }
 
 struct Elf32_Nhdr

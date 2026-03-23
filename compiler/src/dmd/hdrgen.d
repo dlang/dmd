@@ -3,7 +3,7 @@
  *
  * Also used to convert AST nodes to D code in general, e.g. for error messages or `printf` debugging.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/hdrgen.d, _hdrgen.d)
@@ -22,7 +22,6 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.cond;
-import dmd.ctfeexpr;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -50,7 +49,6 @@ import dmd.root.string;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.typesem : castMod;
 import dmd.visitor;
 
 struct HdrGenState
@@ -60,6 +58,7 @@ struct HdrGenState
     bool fullDump;      /// true if generating a full AST dump file
     bool importcHdr;    /// true if generating a .di file from an ImportC file
     bool inCAlias;      /// Set to prevent ImportC translating typedefs as `alias X = X`
+    bool inFuncReturn;  /// Set when printing function return type to avoid typedef name
     bool doFuncBodies;  /// include function bodies in output
     bool vcg_ast;       /// write out codegen-ast
     bool skipConstraints;  // skip constraints when doing templates
@@ -2209,7 +2208,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitInteger(IntegerExp e)
     {
-        const ulong v = e.toInteger();
+        const ulong v = e.value;
         if (e.type)
         {
             Type t = e.type;
@@ -2224,7 +2223,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
                     {
                         foreach (em; *sym.members)
                         {
-                            if ((cast(EnumMember)em).value.toInteger == v)
+                            if ((cast(EnumMember)em).value.isIntegerExp().value == v)
                             {
                                 const id = em.ident.toString();
                                 buf.printf("%s.%.*s", sym.toChars(), cast(int)id.length, id.ptr);
@@ -2801,6 +2800,9 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitAssert(AssertExp e)
     {
+        if (e.loweredFrom)
+            return e.loweredFrom.expressionPrettyPrint(buf, hgs);
+
         buf.put("assert(");
         expToBuffer(e.e1, PREC.assign, buf, hgs);
         if (e.msg)
@@ -3186,7 +3188,8 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
 
     if (type)
     {
-        Type t = type.toBasetype();
+        Type t = type.toBaseTypeNonSemantic();
+
         switch (t.ty)
         {
         case Tfloat32:
@@ -3202,7 +3205,7 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
         default:
             break;
         }
-        if (t.isImaginary())
+        if (t.isImaginaryNonSemantic())
             buf.put('i');
     }
 }
@@ -3815,7 +3818,7 @@ private void sizeToBuffer(Expression e, ref OutBuffer buf, ref HdrGenState hgs)
     {
         Expression ex = (e.op == EXP.cast_ ? (cast(CastExp)e).e1 : e);
         ex = ex.optimize(WANTvalue);
-        const ulong uval = ex.op == EXP.int64 ? ex.toInteger() : cast(ulong)-1;
+        const ulong uval = ex.op == EXP.int64 ? ex.isIntegerExp().value : cast(ulong)-1;
         if (cast(long)uval >= 0)
         {
             if (uval <= 0xFFFFU)
@@ -4094,7 +4097,9 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
         buf.write("static ");
     if (t.next)
     {
+        hgs.inFuncReturn = true;
         typeToBuffer(t.next, null, buf, hgs);
+        hgs.inFuncReturn = false;
         if (ident)
             buf.put(' ');
     }
@@ -4163,7 +4168,9 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
     }
     else if (t.next)
     {
+        hgs.inFuncReturn = true;
         typeToBuffer(t.next, null, buf, hgs);
+        hgs.inFuncReturn = false;
         if (ident)
             buf.put(' ');
     }
@@ -4342,14 +4349,14 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitDArray(TypeDArray t)
     {
-        Type ut = t.castMod(0);
+        auto basetype = t.next;
         if (hgs.declstring)
             goto L1;
-        if (ut.equals(Type.tstring))
+        if (basetype.ty == Tchar && basetype.isImmutable())
             buf.put("string");
-        else if (ut.equals(Type.twstring))
+        else if (basetype.ty == Twchar && basetype.isImmutable())
             buf.put("wstring");
-        else if (ut.equals(Type.tdstring))
+        else if (basetype.ty == Tdchar && basetype.isImmutable())
             buf.put("dstring");
         else
         {
@@ -4545,7 +4552,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
         buf.put("noreturn");
     }
 
-    if (hgs.importcHdr && !hgs.inCAlias && t.mcache && t.mcache.typedefIdent)
+    if (hgs.importcHdr && !hgs.inCAlias && !hgs.inFuncReturn && t.mcache && t.mcache.typedefIdent)
     {
         buf.put(t.mcache.typedefIdent.toString());
         return;

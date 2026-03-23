@@ -1,0 +1,55 @@
+Ddoc
+
+$(SPEC_S Contract Programming,
+
+$(HEADERNAV_TOC)
+
+        $(P Contracts enable specifying conditions that must hold true
+        when the flow of runtime execution reaches the contract.
+        If a contract is not true, then the program is assumed to have entered
+        an undefined state.)
+
+        $(RATIONALE
+        $(P Building contract support into the language provides:)
+
+        $(OL
+        $(LI a consistent look and feel for the contracts)
+        $(LI tool support)
+        $(LI the implementation can generate better code using information gathered
+        from the contracts)
+        $(LI easier management and enforcement of contracts)
+        $(LI handling of contract inheritance)
+        )
+        )
+
+$(HTMLTAG3V img, src="$(ROOT_DIR)images/d4.gif" style="max-width:100%" alt="Contracts make D bug resistant" border="0")
+
+$(H2 $(LNAME2 assert_contracts, Assert Contract))
+
+        $(P See $(GLINK2 expression, AssertExpression).)
+
+$(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
+
+        $(P See:)
+        * $(DDSUBLINK spec/function, preconditions, $(D in) contracts).
+        * $(DDSUBLINK spec/function, postconditions, $(D out) contracts).
+
+
+$(H2 $(LNAME2 Invariants, Invariants))
+
+        $(P See $(DDSUBLINK spec/struct, Invariant, Struct Invariants) and $(DDSUBLINK spec/class, invariants, Class Invariants).)
+
+
+$(H2 $(LNAME2 references, References))
+
+        $(LIST
+        $(LINK2 https://web.archive.org/web/20080919174640/http://people.cs.uchicago.edu/~robby/contract-reading-list/, Contracts Reading List),
+        $(LINK2 http://jan.newmarch.name/java/contracts/paper-long.html, Adding Contracts to Java)
+        )
+
+$(SPEC_SUBNAV_PREV_NEXT template-mixin, Template Mixins, version, Conditional Compilation)
+)
+
+Macros:
+        CHAPTER=24
+        TITLE=Contract Programming

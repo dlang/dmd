@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2024-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/arm/instr.d, backend/cod3.d)
@@ -21,15 +21,22 @@ nothrow:
 
 enum Extend
 {
-    UXTB,
-    UXTH,
-    UXTW,
+    UXTB,       // extracts byte and zero extends it to size of register
+    UXTH,       // extracts half-word (16 bits) and zero extends it to size of register
+    UXTW,       // extracts word (32 bits) and zero extends it to size of register
     LSL,
-    UXTX = LSL,
-    SXTB,
+    UXTX = LSL, // extracts extended word (64 bits) and zero extends it to size of register, i.e. is a no-op
+    SXTB,       // signed versions...
     SXTH,
     SXTW,
-    SXTX,
+    SXTX,       // no practical difference from UXTX
+}
+
+@trusted
+const(char)* ExtendToStr(Extend e)
+{
+    static immutable char[8 * 5] table = "UXTB\0UXTH\0UXTW\0UXTX\0SXTB\0SXTH\0SXTW\0SXTX\0";
+    return &table[e * 5];
 }
 
 /************************
@@ -39,10 +46,31 @@ struct INSTR
 {
   pure nothrow:
 
-    /* Even though the floating point registers are 0..31, we call them V32..V63 so they fit
-     * into regm_t. Remember to and them with 31 to generate an instruction
+    /* Register usage per "AArch64 Procedure Call Standard"
+     * r31 SP  Stack Pointer
+     * r30 LR  Link Register
+     * r29 FP  Frame Pointer (BP) (on OSX r29 must always address a valid frame record)
+     * r19-r28 Callee-saved registers (if Callee modifies them)
+     * r18     Platform Register (do not use on OSX)
+     * r17 IP1 intra-procedure-call temporary register
+     * r16 IP0 intra-procedure-call scratch register
+     * r9-r15  temporary registers (caller saved)
+     * r8      Indirect result location register
+     * r0-r7   Parameter / result registers
+     *
+     * v0-v7   Parameter / result registers
+     * v8-v15  Callee-saved registers (only bottom 64 bits need to be saved)
+     * v16-31  Temporary registers (caller saved)
      */
-    enum FLOATREGS = 0x01FF_FFFF_0000_0000;
+
+    /* Integer registers r0-r7, r9-15, r19-28, r29(?)
+     */
+    enum ALLREGS = 0x1FFF_FFFF & ~(1 << 8) & ~(1 << 16) & ~(1 << 17) & ~(1 << 18);
+
+    /* Even though the floating point registers are 0..31, we call them V32..V63 so they fit
+     * into regm_t. Remember to AND them with 31 to generate an instruction
+     */
+    enum FLOATREGS = 0x01FF_FFFF_0000_0000; // V32..V56 (V57-V63 are used for X86_64 use)
     static assert((FLOATREGS & (1UL << 57 /*REGMAX*/)) == 0);
 
     /* most and least significant register masks
@@ -50,7 +78,12 @@ struct INSTR
     enum LSW = 0x5555_5555_5555_5555;
     enum MSW = LSW << 1;
 
+    enum BP = 29;
+    enum SP = 31;
+    enum mBP = 1 << BP;
+
     enum uint nop = 0xD503201F;
+    enum hlt = 0xD440_0000;          // https://www.scs.stanford.edu/~zyedidia/arm64/hlt.html
 
     alias reg_t = ubyte;
 
@@ -61,10 +94,26 @@ struct INSTR
                                                       3;    // half-precision
                                    }
 
-    /* Convert size of floating point type to size,opc
+    /* Convert size of floating point type to size,opc for LDR instructions
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
+     */
+    static void szToSizeOpcLdr(uint sz, out uint size, out uint opc)
+    {
+        switch (sz)
+        {
+            case 1:  size = 0; opc = 1; break;  // Bt byte
+            case 2:  size = 1; opc = 1; break;  // Ht half
+            case 4:  size = 2; opc = 1; break;  // St single
+            case 8:  size = 3; opc = 1; break;  // Dt double
+            case 16: size = 0; opc = 3; break;  // Qt quad
+            default: debug printf("sz: %u\n", sz); assert(0);
+        }
+    }
+
+    /* Convert size of floating point type to size,opc for STR instructions
      * https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
      */
-    static void szToSizeOpc(uint sz, ref uint size, ref uint opc)
+    static void szToSizeOpcStr(uint sz, out uint size, out uint opc)
     {
         switch (sz)
         {
@@ -73,7 +122,7 @@ struct INSTR
             case 4:  size = 2; opc = 0; break;  // St single
             case 8:  size = 3; opc = 0; break;  // Dt double
             case 16: size = 0; opc = 2; break;  // Qt quad
-            default: assert(0);
+            default: debug printf("sz: %u\n", sz); assert(0);
         }
     }
 
@@ -914,8 +963,27 @@ struct INSTR
      */
     static uint fmov_float_imm(uint ftype, uint imm8, reg_t Vd) { return (0x1E << 24) | (ftype << 22) | (1 << 21) | (imm8 << 13) | (4 << 10) | (Vd & 31); }
 
-    /* Floating-point condistional compare
+    /* Floating-point conditional compare https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatccmp
      */
+    static uint floatccmp(uint ftype, reg_t Vm, uint cond, reg_t Vn, uint op, uint nzcv)
+    {
+        assert(Vm >= 32 && Vn >= 32);
+        return (0x1E << 24) | (ftype << 22) | (1 << 21) | ((Vm & 31) << 16) | (cond << 12) | (1 << 10) | ((Vn & 31) << 5) | (op << 4) | nzcv;
+    }
+
+    /* FCCMP Vn,Vm,#nzcv,cond  https://www.scs.stanford.edu/~zyedidia/arm64/fccmp_float.html
+     */
+    static uint fccmp_float(uint ftype, reg_t Vm, uint cond, reg_t Vn, uint nzcv)
+    {
+        return floatccmp(ftype, Vm, cond, Vn, 0, nzcv);
+    }
+
+    /* FCCMPE Vn,Vm,#nzcv,cond  https://www.scs.stanford.edu/~zyedidia/arm64/fccmpe_float.html
+     */
+    static uint fccmpe_float(uint ftype, reg_t Vm, uint cond, reg_t Vn, uint nzcv)
+    {
+        return floatccmp(ftype, Vm, cond, Vn, 1, nzcv);
+    }
 
     /* Floating-point data-processing (2 source) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
      */
@@ -1127,7 +1195,8 @@ struct INSTR
         assert(imm12 <= 0xFFF);
         assert(VR == (Vt > 31));
         reg_t Rt = Vt & 31;
-        return (size  << 30) |
+        uint ins =
+               (size  << 30) |
                (7     << 27) |
                (VR    << 26) |
                (1     << 24) |
@@ -1135,28 +1204,31 @@ struct INSTR
                (imm12 << 10) |
                (Rn    <<  5) |
                 Rt;
+        return ins;
     }
 
     /* https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
      * STR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
      */
-    static uint str_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt)
+    static uint str_imm_fpsimd(uint size, uint opc, uint imm9, reg_t Rn, reg_t Vt)
     {
-        assert(imm12 < 0x1000);
+        assert(Vt & 32);
+        assert(imm9 < 0x200);
         assert(size < 4);
         assert(opc  < 4);
-        return ldst_pos(size,1,opc,imm12,Rn,Vt);
+        return ldst_pos(size,1,opc,imm9,Rn,Vt);
     }
 
     /* https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
      * LDR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
      */
-    static uint ldr_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt)
+    static uint ldr_imm_fpsimd(uint size, uint opc, uint imm9, reg_t Rn, reg_t Vt)
     {
-        assert(imm12 < 0x1000);
+        assert(Vt & 32);
+        assert(imm9 < 0x200);
         assert(size < 4);
         assert(opc  < 4);
-        return ldst_pos(size,1,opc | 1,imm12,Rn,Vt);
+        return ldst_pos(size,1,opc | 1,imm9,Rn,Vt);
     }
 
     /* https://www.scs.stanford.edu/~zyedidia/arm64/ldrsw_imm.html
@@ -1219,10 +1291,10 @@ struct INSTR
         return subs_imm(sf, sh, imm12, Rn, 31);
     }
 
-    /* SUBS Rd, Rn, Rm, shift, #imm6
+    /* SUBS Rd, Rn, Rm{, shift, #imm6}
      * http://www.scs.stanford.edu/~zyedidia/arm64/subs_addsub_shift.html
      */
-    static uint subs_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn, ubyte Rd)
+    static uint subs_addsub_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn, ubyte Rd)
     {
         return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, Rd);
     }
@@ -1230,7 +1302,7 @@ struct INSTR
     /* CMP Rn, Rm, shift, #imm6
      * http://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_shift.html
      */
-    static uint cmp_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn)
+    static uint cmp_subs_addsub_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn)
     {
         return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, 0x1F);
     }
@@ -1270,12 +1342,15 @@ struct INSTR
         return log_shift(sf, opc, shift, N, Rm, imm6, Rn, Rd);
     }
 
-    /* MOV Rd, Rn, Rm{, shift #amount}
+    /* MOV Rd, Rm
      * https://www.scs.stanford.edu/~zyedidia/arm64/mov_orr_log_shift.html
      */
     static uint mov_register(uint sf, ubyte Rm, ubyte Rd)
     {
-        return orr_shifted_register(sf, 0, Rm, 0, 31, Rd);
+        uint shift = 0;
+        uint imm6 = 0;
+        ubyte Rzr = 31; // zero register
+        return orr_shifted_register(sf, shift, Rm, imm6, Rzr, Rd);
     }
 
     /* CSINC Rd, Rn, Rm, <cond>?
@@ -1342,6 +1417,22 @@ struct INSTR
         uint size = 1;
         uint imm12 = offset & 0xFFF;
         return ldst_pos(1, 0, 0, imm12, Rn, Rt);
+    }
+
+    /* STR (immediate) Post-index
+     * https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_gen.html
+     */
+    static uint str_imm_gen_post_index(uint is64, int simm, ubyte Rn, ubyte Rt)
+    {
+        // STR Rt,[Xn],#simm
+        uint size = 2 + is64;
+        uint imm9 = simm & 0x1FF;
+        return (size << 30) |
+               (7    << 27) |
+               (imm9 << 12) |
+               (1    << 10) |
+               (Rn   <<  5) |
+                Rt;
     }
 
     /* STR (immediate) Unsigned offset
@@ -1487,6 +1578,8 @@ struct INSTR
     static uint ldr_reg_gen(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
     {
         // LDR Rt,Rbase,Rindex,extend S
+        assert(S <= 1);
+        assert((extend & 2) && extend < 8); // UXTW LSL SXTW SXTX
         return ldst_regoff(2 | sz, 0, 1, Rindex, extend, S, Rbase, Rt);
     }
 

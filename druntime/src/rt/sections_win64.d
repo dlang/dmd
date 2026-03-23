@@ -409,8 +409,8 @@ extern (C)
     void  gc_setProxy(void* p);
     void  gc_clrProxy();
 
-    alias void  function(void*) gcSetFn;
-    alias void  function()      gcClrFn;
+    alias gcSetFn = void  function(void*);
+    alias gcClrFn = void  function();
 }
 
 /*******************************************

@@ -10,7 +10,6 @@ void main ()
 {
     string[string] env = [
         "SOURCE_DATE_EPOCH": "704124840",
-        "TZ": "UTC",
         "LC_ALL": "C",
     ];
 

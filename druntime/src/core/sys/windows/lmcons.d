@@ -19,7 +19,7 @@ const TCHAR[]
     OS2MSG_FILENAME = "BASE",
     HELP_MSG_FILENAME = "NETH";
 
-alias DWORD NET_API_STATUS, API_RET_TYPE;
+alias NET_API_STATUS = DWORD, API_RET_TYPE = DWORD;
 
 enum MIN_LANMAN_MESSAGE_ID = NERR_BASE;
 enum MAX_LANMAN_MESSAGE_ID = 5799;
@@ -80,9 +80,9 @@ enum PLATFORM_ID_VMS = 700;
 
 // this is a new typedef in W2K, but it should be harmless for earlier Windows versions.
 version (Unicode) {
-    alias LPWSTR LMSTR;
-    alias LPCWSTR LMCSTR;
+    alias LMSTR = LPWSTR;
+    alias LMCSTR = LPCWSTR;
 } else {
-    alias LPSTR LMSTR;
-    alias LPCSTR LMCSTR;
+    alias LMSTR = LPSTR;
+    alias LMCSTR = LPCSTR;
 }

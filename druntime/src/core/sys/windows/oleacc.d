@@ -184,7 +184,7 @@ interface IAccessible : IDispatch {
     HRESULT put_accValue(VARIANT, BSTR);
 }
 
-alias IAccessible LPACCESSIBLE;
+alias LPACCESSIBLE = IAccessible;
 
 extern (Windows) nothrow @nogc {
     HRESULT AccessibleChildren(IAccessible, LONG, LONG, VARIANT*, LONG*);
@@ -206,11 +206,11 @@ extern (Windows) nothrow @nogc {
 }
 
 version (Unicode) {
-    alias CreateStdAccessibleProxyW CreateStdAccessibleProxy;
-    alias GetRoleTextW GetRoleText;
-    alias GetStateTextW GetStateText;
+    alias CreateStdAccessibleProxy = CreateStdAccessibleProxyW;
+    alias GetRoleText = GetRoleTextW;
+    alias GetStateText = GetStateTextW;
 } else {
-    alias CreateStdAccessibleProxyA CreateStdAccessibleProxy;
-    alias GetRoleTextA GetRoleText;
-    alias GetStateTextA GetStateText;
+    alias CreateStdAccessibleProxy = CreateStdAccessibleProxyA;
+    alias GetRoleText = GetRoleTextA;
+    alias GetStateText = GetStateTextA;
 }

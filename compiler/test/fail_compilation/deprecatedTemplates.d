@@ -4,8 +4,11 @@ REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ----
 fail_compilation/deprecatedTemplates.d(103): Deprecation: template `deprecatedTemplates.AliasSeq(V...)` is deprecated
+fail_compilation/deprecatedTemplates.d(101):        `AliasSeq(V...)` is declared here
 fail_compilation/deprecatedTemplates.d(107): Deprecation: struct `deprecatedTemplates.S1(V...)` is deprecated
+fail_compilation/deprecatedTemplates.d(105):        `S1(V...)` is declared here
 fail_compilation/deprecatedTemplates.d(115): Deprecation: template `deprecatedTemplates.C(V...)` is deprecated
+fail_compilation/deprecatedTemplates.d(109):        `C(V...)` is declared here
 ----
 */
 #line 100
@@ -30,6 +33,7 @@ alias D = C!();
 TEST_OUTPUT:
 ----
 fail_compilation/deprecatedTemplates.d(202): Deprecation: template `deprecatedTemplates.AliasSeqMsg(V...)` is deprecated - Reason
+fail_compilation/deprecatedTemplates.d(200):        `AliasSeqMsg(V...)` is declared here
 ----
 */
 #line 200

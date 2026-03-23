@@ -961,7 +961,10 @@ alias html = makeRule!((htmlBuilder, htmlRule) {
         return htmlFilePrefix ~ ".html";
     }
     const stddocs = env.get("STDDOC", "").split();
-    auto docSources = .sources.common ~ .sources.root ~ .sources.lexer ~ .sources.dmd.all ~ env["D"].buildPath("frontend.d");
+    auto docSources = .sources.common ~ .sources.root ~ .sources.lexer ~ .sources.dmd.all
+        ~ env["D"].buildPath("astbase.d")
+        ~ env["D"].buildPath("cxxfrontend.d")
+        ~ env["D"].buildPath("frontend.d");
     htmlBuilder.deps(docSources.chunks(1).map!(sourceArray =>
         methodInit!(BuildRule, (docBuilder, docRule) {
             const source = sourceArray[0];
@@ -1203,16 +1206,8 @@ void parseEnvironment()
         env.setDefault("ENABLE_DEBUG", "1");
 
     // detect Model
-    auto model = env.setDefault("MODEL", detectModel);
-    if (env.getDefault("DFLAGS", "").canFind("-mtriple", "-march"))
-    {
-        // Don't pass `-m32|64` flag when explicitly passing triple or arch.
-        env["MODEL_FLAG"] = "";
-    }
-    else
-    {
-        env["MODEL_FLAG"] = "-m" ~ env["MODEL"];
-    }
+    const model = env.setDefault("MODEL", detectModel);
+    env["MODEL_FLAG"] = "-m" ~ model;
 
     // detect PIC
     version(Posix)
@@ -1371,7 +1366,7 @@ void processEnvironment()
     else
         env.setDefault("ZIP", "zip");
 
-    string[] dflags = ["-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
+    string[] dflags = ["-w", "-de", env["PIC_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
 
     // TODO: add support for dObjc
     auto dObjc = false;
@@ -1438,13 +1433,17 @@ void processEnvironment()
         dflags ~= ["-fsanitize="~sanitizers];
     }
 
+    // Retain user-defined flags
+    const userDflags = flags.get("DFLAGS", []);
+    dflags ~= userDflags;
+
     // Determine the version of FreeBSD that we're building on if the target OS
     // version has not already been set.
     version (FreeBSD)
     {
         import std.ascii : isDigit;
 
-        if (flags.get("DFLAGS", []).find!(a => a.startsWith("-version=TARGET_FREEBSD"))().empty)
+        if (!userDflags.any!(f => f.startsWith("-version=TARGET_FREEBSD")))
         {
             // uname -K gives the kernel version, e.g. 1400097. The first two
             // digits correspond to the major version of the OS.
@@ -1455,8 +1454,11 @@ void processEnvironment()
         }
     }
 
-    // Retain user-defined flags
-    flags["DFLAGS"] = dflags ~= flags.get("DFLAGS", []);
+    // LDC errors when using `-m32|64` along with `-mtriple` or `-march`
+    if (!userDflags.any!(f => f.startsWith("-mtriple") || f.startsWith("-march")))
+        dflags ~= env["MODEL_FLAG"];
+
+    flags["DFLAGS"] = dflags;
 }
 
 /// Setup environment for a C++ compiler
@@ -1476,7 +1478,7 @@ void processEnvironmentCxx()
 
     auto cxxFlags = warnings ~ [
         "-g", "-fno-exceptions", "-fno-rtti", "-fno-common", "-fasynchronous-unwind-tables", "-DMARS=1",
-        env["MODEL_FLAG"], env["PIC_FLAG"],
+        env["PIC_FLAG"],
     ];
 
     if (env.getNumberedBool("ENABLE_COVERAGE"))
@@ -1498,7 +1500,14 @@ void processEnvironmentCxx()
     }
 
     // Retain user-defined flags
-    flags["CXXFLAGS"] = cxxFlags ~= flags.get("CXXFLAGS", []);
+    const userCxxFlags = flags.get("CXXFLAGS", []);
+    cxxFlags ~= userCxxFlags;
+
+    // omit model flag with user-specified `-arch` for clang
+    if (!userCxxFlags.any!(f => f.startsWith("-arch")))
+        cxxFlags ~= env["MODEL_FLAG"];
+
+    flags["CXXFLAGS"] = cxxFlags;
 }
 
 /// Returns: the host C++ compiler, either "g++" or "clang++"
@@ -1582,6 +1591,7 @@ auto sourceFiles()
             visitor/package.d visitor/foreachvar.d visitor/parsetime.d visitor/permissive.d visitor/postorder.d visitor/statement_rewrite_walker.d
             visitor/strict.d visitor/transitive.d
             cparse.d
+            dfa/entry.d dfa/utils.d dfa/fast/structure.d dfa/fast/analysis.d dfa/fast/report.d dfa/fast/expression.d dfa/fast/statement.d
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d dt.d el.d global.d
@@ -1621,7 +1631,7 @@ auto sourceFiles()
         "),
         rootHeaders: fileArray(env["ROOT"], "
             array.h bitarray.h complex_t.h ctfloat.h dcompat.h dsystem.h filename.h longdouble.h
-            optional.h port.h rmem.h root.h
+            optional.h port.h rmem.h
         "),
         backend: fileArray(env["C"], "
             bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
@@ -1635,8 +1645,7 @@ auto sourceFiles()
             x86/nteh.d x86/cgreg.d x86/cg87.d x86/cgxmm.d x86/disasm86.d
             x86/cgcod.d x86/cod1.d x86/cod2.d x86/cod3.d x86/cod4.d x86/cod5.d
             arm/disasmarm.d arm/instr.d arm/cod1.d arm/cod2.d arm/cod3.d arm/cod4.d
-            "
-        ),
+        "),
     };
 
     return sources;

@@ -63,7 +63,7 @@ enum : ubyte {
 
 enum ubyte MAX_OPT_SIZE = 40;
 
-alias uint IPAddr, IPMask, IP_STATUS;
+alias IPAddr = uint, IPMask = uint, IP_STATUS = uint;
 
 struct IP_OPTION_INFORMATION {
     ubyte  Ttl;
@@ -72,7 +72,7 @@ struct IP_OPTION_INFORMATION {
     ubyte  OptionsSize;
     ubyte* OptionsData;
 }
-alias IP_OPTION_INFORMATION* PIP_OPTION_INFORMATION;
+alias PIP_OPTION_INFORMATION = IP_OPTION_INFORMATION*;
 
 struct ICMP_ECHO_REPLY {
   IPAddr Address;
@@ -83,13 +83,13 @@ struct ICMP_ECHO_REPLY {
   void*  Data;
   IP_OPTION_INFORMATION Options;
 }
-alias ICMP_ECHO_REPLY* PICMP_ECHO_REPLY;
+alias PICMP_ECHO_REPLY = ICMP_ECHO_REPLY*;
 
 struct IP_ADAPTER_INDEX_MAP {
     ULONG                   Index;
     WCHAR[MAX_ADAPTER_NAME] Name = 0;
 }
-alias IP_ADAPTER_INDEX_MAP* PIP_ADAPTER_INDEX_MAP;
+alias PIP_ADAPTER_INDEX_MAP = IP_ADAPTER_INDEX_MAP*;
 
 struct IP_INTERFACE_INFO {
     LONG                    NumAdapters;
@@ -97,7 +97,7 @@ struct IP_INTERFACE_INFO {
 
     IP_ADAPTER_INDEX_MAP* Adapter() return { return _Adapter.ptr; }
 }
-alias IP_INTERFACE_INFO* PIP_INTERFACE_INFO;
+alias PIP_INTERFACE_INFO = IP_INTERFACE_INFO*;
 
 struct IP_UNIDIRECTIONAL_ADAPTER_ADDRESS {
     ULONG     NumAdapters;
@@ -105,4 +105,4 @@ struct IP_UNIDIRECTIONAL_ADAPTER_ADDRESS {
 
     IPAddr* Address() return { return _Address.ptr; }
 }
-alias IP_UNIDIRECTIONAL_ADAPTER_ADDRESS* PIP_UNIDIRECTIONAL_ADAPTER_ADDRESS;
+alias PIP_UNIDIRECTIONAL_ADAPTER_ADDRESS = IP_UNIDIRECTIONAL_ADAPTER_ADDRESS*;

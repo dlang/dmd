@@ -36,14 +36,14 @@ else
 //       may not be safe or desirable.  Thus, devt is only valid if impl is
 //       null.
 
-extern (C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow
+extern (C) void _d_setSameMutex(shared Object ownee, shared Object owner) @trusted nothrow
 in
 {
     assert(ownee.__monitor is null);
 }
 do
 {
-    auto m = ensureMonitor(cast(Object) owner);
+    auto m = ensureMonitor(cast(Object) cast(void*) owner);
     if (m.impl is null)
     {
         atomicOp!"+="(m.refs, size_t(1));
@@ -238,19 +238,19 @@ private:
 
 __gshared Mutex gmtx;
 
-@property ref shared(Monitor*) monitor(return scope Object h) pure nothrow @nogc
+shared(Monitor*)* monitorPtr(return scope Object h) pure nothrow @nogc @trusted
 {
-    return *cast(shared Monitor**)&h.__monitor;
+    return cast(shared(Monitor*)*) &h.__monitor;
 }
 
 shared(Monitor)* getMonitor(Object h) pure @nogc
 {
-    return atomicLoad!(MemoryOrder.acq)(h.monitor);
+    return atomicLoad!(MemoryOrder.acq)(*monitorPtr(h));
 }
 
 void setMonitor(Object h, shared(Monitor)* m) pure @nogc
 {
-    atomicStore!(MemoryOrder.rel)(h.monitor, m);
+    atomicStore!(MemoryOrder.rel)(*monitorPtr(h), m);
 }
 
 shared(Monitor)* ensureMonitor(Object h)

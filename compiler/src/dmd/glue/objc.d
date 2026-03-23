@@ -1,7 +1,7 @@
 /**
  * glue code for Objective-C interop.
  *
- * Copyright:   Copyright (C) 2015-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/objc_glue.d, _objc_glue.d)
@@ -31,7 +31,8 @@ import dmd.mtype;
 import dmd.objc;
 import dmd.target;
 
-import dmd.dsymbolsem: size;
+import dmd.dsymbolsem: size, addObjcSymbols;
+import dmd.typesem : nextOf;
 
 import dmd.root.stringtable;
 import dmd.root.array;
@@ -389,7 +390,7 @@ struct Segments
 
         const seg = segmentData[id];
 
-        version (OSX)
+        if (target.os == Target.OS.OSX)
         {
             return segments[id] = Obj.getsegment(
                 seg.sectionName,
@@ -401,7 +402,7 @@ struct Segments
 
         else
         {
-            // This should never happen. If the platform is not OSX an error
+            // This should never happen. If the target platform is not OSX an error
             // should have occurred sooner which should have prevented the
             // code from getting here.
             assert(0);
@@ -563,7 +564,8 @@ static:
 
         // create data
         auto dtb = DtBuilder(0);
-        dtb.nbytes(str.toStringz()[0 .. str.length + 1]);
+        dtb.nbytes(str);
+        dtb.nzeros(1);  // make it zero terminated
 
         // find segment
         auto seg = Segments[segment];
@@ -1604,44 +1606,4 @@ void xoffOrNull(ref DtBuilder dtb, Symbol* symbol) @safe
         dtb.xoff(symbol, 0);
     else
         dtb.size(0);
-}
-
-/**
- * Converts the given D string to a null terminated C string.
- *
- * Asserts if `str` is longer than `maxLength`, with assertions enabled. With
- * assertions disabled it will truncate the result to `maxLength`.
- *
- * Params:
- *  maxLength = the max length of `str`
- *  str = the string to convert
- *  buf = the buffer where to allocate the result. By default this will be
- *      allocated in the caller scope using `alloca`. If the buffer is created
- *      by the callee it needs to be able to fit at least `str.length + 1` bytes
- *
- * Returns: the given string converted to a C string, a slice of `str` or the
- *  given buffer `buffer`
- */
-const(char)* toStringz(size_t maxLength = 4095)(in const(char)[] str,
-    return scope void[] buffer = alloca(maxLength + 1)[0 .. maxLength + 1]) pure
-in
-{
-    assert(maxLength >= str.length);
-}
-out(result)
-{
-    assert(str.length == result.strlen);
-}
-do
-{
-    if (str.length == 0)
-        return "".ptr;
-
-    const maxLength = buffer.length - 1;
-    const len = str.length > maxLength ? maxLength : str.length;
-    auto buf = cast(char[]) buffer[0 .. len + 1];
-    buf[0 .. len] = str[0 .. len];
-    buf[len] = '\0';
-
-    return cast(const(char)*) buf.ptr;
 }

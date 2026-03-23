@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/dcgcv.d, backend/dcgcv.d)
@@ -738,7 +738,7 @@ idx_t cv4_struct(Classsym* s,int flags)
 
     // Determine if we should do a reference or a definition
     refonly = 1;                        // assume reference only
-    if (MARS || t.Tflags & TFsizeunknown || st.Sflags & STRoutdef)
+    if (MARS || t.Tflags & TF.sizeunknown || st.Sflags & STRoutdef)
     {
         //printf("ref only\n");
     }
@@ -1093,13 +1093,13 @@ L1:
         case TYfloat:
         case TYdouble:
         case TYdouble_alias:
-        case TYldouble:
+        case TYreal:
         case TYifloat:
         case TYidouble:
-        case TYildouble:
+        case TYireal:
         case TYcfloat:
         case TYcdouble:
-        case TYcldouble:
+        case TYcreal:
         case TYbool:
         case TYwchar_t:
         case TYdchar:
@@ -1303,7 +1303,7 @@ else
             break;
 
         case TYarray:
-        {   if (t.Tflags & TFsizeunknown)
+        {   if (t.Tflags & TF.sizeunknown)
                 size = 0;               // don't complain if don't know size
             else
                 size = type_size(t);
@@ -1978,13 +1978,13 @@ private void cv4_func(Funcsym* s, ref symtab_t symtab)
                 assert(I32);
                 goto case_edxeax;
 
-            case TYldouble:
-            case TYildouble:
+            case TYreal:
+            case TYireal:
                 goto case_st0;
 
             case TYcfloat:
             case TYcdouble:
-            case TYcldouble:
+            case TYcreal:
                 goto case_st01;
 
             case_ax:

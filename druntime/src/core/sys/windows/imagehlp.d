@@ -122,7 +122,7 @@ struct LOADED_IMAGE {
     LIST_ENTRY            Links;
     ULONG                 SizeOfImage;
 }
-alias LOADED_IMAGE* PLOADED_IMAGE;
+alias PLOADED_IMAGE = LOADED_IMAGE*;
 
 struct IMAGE_DEBUG_INFORMATION {
     LIST_ENTRY                 List;
@@ -156,7 +156,7 @@ struct IMAGE_DEBUG_INFORMATION {
     DWORD                      NumberOfDebugDirectories;
     DWORD[3]                   Reserved;
 }
-alias IMAGE_DEBUG_INFORMATION* PIMAGE_DEBUG_INFORMATION;
+alias PIMAGE_DEBUG_INFORMATION = IMAGE_DEBUG_INFORMATION*;
 
 enum ADDRESS_MODE {
     AddrMode1616,
@@ -170,7 +170,7 @@ struct ADDRESS {
     WORD         Segment;
     ADDRESS_MODE Mode;
 }
-alias ADDRESS* LPADDRESS;
+alias LPADDRESS = ADDRESS*;
 
 struct KDHELP {
     DWORD Thread;
@@ -186,7 +186,7 @@ struct KDHELP {
     DWORD StackLimit;
     DWORD[5] Reserved;
 }
-alias KDHELP* PKDHELP;
+alias PKDHELP = KDHELP*;
 
 struct STACKFRAME {
     ADDRESS  AddrPC;
@@ -201,7 +201,7 @@ struct STACKFRAME {
     KDHELP   KdHelp;
     ADDRESS  AddrBStore;
 }
-alias STACKFRAME* LPSTACKFRAME;
+alias LPSTACKFRAME = STACKFRAME*;
 
 /*
 struct API_VERSION {
@@ -212,7 +212,7 @@ struct API_VERSION {
 }
 */
 public import core.sys.windows.dbghelp_types : API_VERSION;
-alias API_VERSION* LPAPI_VERSION;
+alias LPAPI_VERSION = API_VERSION*;
 
 enum SYM_TYPE {
     SymNone,
@@ -232,7 +232,7 @@ struct IMAGEHLP_SYMBOL {
     DWORD   MaxNameLength;
     CHAR[1] Name = 0;
 }
-alias IMAGEHLP_SYMBOL* PIMAGEHLP_SYMBOL;
+alias PIMAGEHLP_SYMBOL = IMAGEHLP_SYMBOL*;
 
 struct IMAGEHLP_MODULE {
     DWORD     SizeOfStruct;
@@ -246,7 +246,7 @@ struct IMAGEHLP_MODULE {
     CHAR[256] ImageName = 0;
     CHAR[256] LoadedImageName = 0;
 }
-alias IMAGEHLP_MODULE* PIMAGEHLP_MODULE;
+alias PIMAGEHLP_MODULE = IMAGEHLP_MODULE*;
 
 struct IMAGEHLP_LINE {
     DWORD SizeOfStruct;
@@ -255,7 +255,7 @@ struct IMAGEHLP_LINE {
     PCHAR FileName;
     DWORD Address;
 }
-alias IMAGEHLP_LINE* PIMAGEHLP_LINE;
+alias PIMAGEHLP_LINE = IMAGEHLP_LINE*;
 
 struct IMAGEHLP_DEFERRED_SYMBOL_LOAD {
     DWORD          SizeOfStruct;
@@ -265,7 +265,7 @@ struct IMAGEHLP_DEFERRED_SYMBOL_LOAD {
     CHAR[MAX_PATH] FileName = 0;
     BOOLEAN        Reparse;
 }
-alias IMAGEHLP_DEFERRED_SYMBOL_LOAD* PIMAGEHLP_DEFERRED_SYMBOL_LOAD;
+alias PIMAGEHLP_DEFERRED_SYMBOL_LOAD = IMAGEHLP_DEFERRED_SYMBOL_LOAD*;
 
 struct IMAGEHLP_DUPLICATE_SYMBOL {
     DWORD            SizeOfStruct;
@@ -273,27 +273,21 @@ struct IMAGEHLP_DUPLICATE_SYMBOL {
     PIMAGEHLP_SYMBOL Symbol;
     ULONG            SelectedSymbol;
 }
-alias IMAGEHLP_DUPLICATE_SYMBOL* PIMAGEHLP_DUPLICATE_SYMBOL;
+alias PIMAGEHLP_DUPLICATE_SYMBOL = IMAGEHLP_DUPLICATE_SYMBOL*;
 
 alias DIGEST_HANDLE = HANDLE;
 
 extern (Windows) {
-    alias BOOL function(IMAGEHLP_STATUS_REASON, LPSTR, LPSTR, ULONG_PTR, ULONG_PTR)
-      PIMAGEHLP_STATUS_ROUTINE;
-    alias BOOL function(HANDLE , LPCVOID, LPVOID, DWORD, LPDWORD)
-      PREAD_PROCESS_MEMORY_ROUTINE;
-    alias LPVOID function(HANDLE, DWORD) PFUNCTION_TABLE_ACCESS_ROUTINE;
-    alias DWORD function(HANDLE, DWORD) PGET_MODULE_BASE_ROUTINE;
-    alias DWORD function(HANDLE, HANDLE, LPADDRESS)
-      PTRANSLATE_ADDRESS_ROUTINE;
-    alias BOOL function(LPSTR, ULONG, PVOID) PSYM_ENUMMODULES_CALLBACK;
-    alias BOOL function(LPSTR, ULONG, ULONG, PVOID) PSYM_ENUMSYMBOLS_CALLBACK;
-    alias BOOL function(LPSTR, ULONG, ULONG, PVOID)
-      PENUMLOADED_MODULES_CALLBACK;
-    alias BOOL function(HANDLE, ULONG, PVOID, PVOID)
-      PSYMBOL_REGISTERED_CALLBACK;
-    alias BOOL function(DIGEST_HANDLE refdata, PBYTE pData, DWORD dwLength)
-      DIGEST_FUNCTION;
+    alias PIMAGEHLP_STATUS_ROUTINE = BOOL function(IMAGEHLP_STATUS_REASON, LPSTR, LPSTR, ULONG_PTR, ULONG_PTR);
+    alias PREAD_PROCESS_MEMORY_ROUTINE = BOOL function(HANDLE , LPCVOID, LPVOID, DWORD, LPDWORD);
+    alias PFUNCTION_TABLE_ACCESS_ROUTINE = LPVOID function(HANDLE, DWORD);
+    alias PGET_MODULE_BASE_ROUTINE = DWORD function(HANDLE, DWORD);
+    alias PTRANSLATE_ADDRESS_ROUTINE = DWORD function(HANDLE, HANDLE, LPADDRESS);
+    alias PSYM_ENUMMODULES_CALLBACK = BOOL function(LPSTR, ULONG, PVOID);
+    alias PSYM_ENUMSYMBOLS_CALLBACK = BOOL function(LPSTR, ULONG, ULONG, PVOID);
+    alias PENUMLOADED_MODULES_CALLBACK = BOOL function(LPSTR, ULONG, ULONG, PVOID);
+    alias PSYMBOL_REGISTERED_CALLBACK = BOOL function(HANDLE, ULONG, PVOID, PVOID);
+    alias DIGEST_FUNCTION = BOOL function(DIGEST_HANDLE refdata, PBYTE pData, DWORD dwLength);
 
 nothrow @nogc:
     PIMAGE_NT_HEADERS CheckSumMappedFile(LPVOID, DWORD, LPDWORD, LPDWORD);
@@ -374,7 +368,7 @@ nothrow @nogc:
 }
 
 version (Unicode) {
-    alias MapFileAndCheckSumW MapFileAndCheckSum;
+    alias MapFileAndCheckSum = MapFileAndCheckSumW;
 } else {
-    alias MapFileAndCheckSumA MapFileAndCheckSum;
+    alias MapFileAndCheckSum = MapFileAndCheckSumA;
 }

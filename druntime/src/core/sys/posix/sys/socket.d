@@ -141,8 +141,8 @@ SHUT_WR
 
 version (linux)
 {
-    alias uint   socklen_t;
-    alias ushort sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ushort;
 
     struct sockaddr
     {
@@ -622,8 +622,8 @@ version (linux)
 }
 else version (Darwin)
 {
-    alias uint   socklen_t;
-    alias ubyte  sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
 
     struct sockaddr
     {
@@ -762,8 +762,8 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    alias uint   socklen_t;
-    alias ubyte  sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
 
     struct sockaddr
     {
@@ -920,8 +920,8 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
-    alias uint   socklen_t;
-    alias ubyte  sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
 
     struct sockaddr
     {
@@ -1098,8 +1098,8 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
-    alias uint   socklen_t;
-    alias ubyte  sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
 
     struct sockaddr
     {
@@ -1270,8 +1270,8 @@ else version (OpenBSD)
 }
 else version (DragonFlyBSD)
 {
-    alias uint   socklen_t;
-    alias ubyte  sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
 
     enum
     {
@@ -1470,8 +1470,8 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    alias uint socklen_t;
-    alias ushort sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ushort;
 
     struct sockaddr
     {
@@ -1479,7 +1479,7 @@ else version (Solaris)
         char[14] sa_data = 0;
     }
 
-    alias double sockaddr_maxalign_t;
+    alias sockaddr_maxalign_t = double;
 
     private
     {
@@ -1704,7 +1704,7 @@ else version (NetBSD)
     ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
     int     setsockopt(int, int, int, const scope void*, socklen_t);
     int     shutdown(int, int) @safe;
-    int     socket(int, int, int) @safe;
+    pragma(mangle, "__socket30") int     socket(int, int, int) @safe;
     int     sockatmark(int) @safe;
     int     socketpair(int, int, int, ref int[2]) @safe;
 }

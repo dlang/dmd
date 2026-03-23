@@ -313,7 +313,7 @@ shared static ~this()
             fprintf(flst, "%.*s is %d%% covered\n", cast(int)c.filename.length, c.filename.ptr, percent);
             if (percent < c.minPercent)
             {
-                fprintf(stderr, "Error: %.*s is %d%% covered, less than required %d%%\n",
+                fprintf(cast()stderr, "Error: %.*s is %d%% covered, less than required %d%%\n",
                     cast(int)c.filename.length, c.filename.ptr, percent, c.minPercent);
                 exit(EXIT_FAILURE);
             }

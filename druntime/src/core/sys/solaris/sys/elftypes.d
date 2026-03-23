@@ -18,5 +18,5 @@ public import core.sys.elf :
  Elf64_Sword, Elf64_Sxword,
  Elf64_Word, Elf64_Xword;
 
-alias uint64_t Elf64_Lword;
-alias uint64_t Elf32_Lword;
+alias Elf64_Lword = uint64_t;
+alias Elf32_Lword = uint64_t;

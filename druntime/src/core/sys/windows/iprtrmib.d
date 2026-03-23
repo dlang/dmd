@@ -63,7 +63,7 @@ struct MIB_IPADDRROW {
     ushort unused1;
     ushort unused2;
 }
-alias MIB_IPADDRROW* PMIB_IPADDRROW;
+alias PMIB_IPADDRROW = MIB_IPADDRROW*;
 
 struct MIB_IPADDRTABLE {
     DWORD            dwNumEntries;
@@ -71,7 +71,7 @@ struct MIB_IPADDRTABLE {
 
     MIB_IPADDRROW* table() return { return _table.ptr; }
 }
-alias MIB_IPADDRTABLE* PMIB_IPADDRTABLE;
+alias PMIB_IPADDRTABLE = MIB_IPADDRTABLE*;
 
 struct MIB_IPFORWARDROW {
     DWORD dwForwardDest;
@@ -89,7 +89,7 @@ struct MIB_IPFORWARDROW {
     DWORD dwForwardMetric4;
     DWORD dwForwardMetric5;
 }
-alias MIB_IPFORWARDROW* PMIB_IPFORWARDROW;
+alias PMIB_IPFORWARDROW = MIB_IPFORWARDROW*;
 
 struct MIB_IPFORWARDTABLE {
     DWORD               dwNumEntries;
@@ -97,7 +97,7 @@ struct MIB_IPFORWARDTABLE {
 
     MIB_IPFORWARDROW* table() return { return _table.ptr; }
 }
-alias MIB_IPFORWARDTABLE* PMIB_IPFORWARDTABLE;
+alias PMIB_IPFORWARDTABLE = MIB_IPFORWARDTABLE*;
 
 struct MIB_IPNETROW {
     DWORD dwIndex;
@@ -106,7 +106,7 @@ struct MIB_IPNETROW {
     DWORD dwAddr;
     DWORD dwType;
 }
-alias MIB_IPNETROW* PMIB_IPNETROW;
+alias PMIB_IPNETROW = MIB_IPNETROW*;
 
 struct MIB_IPNETTABLE {
     DWORD           dwNumEntries;
@@ -114,7 +114,7 @@ struct MIB_IPNETTABLE {
 
     MIB_IPNETROW* table() return { return _table.ptr; }
 }
-alias MIB_IPNETTABLE* PMIB_IPNETTABLE;
+alias PMIB_IPNETTABLE = MIB_IPNETTABLE*;
 
 struct MIBICMPSTATS {
     DWORD dwMsgs;
@@ -131,18 +131,18 @@ struct MIBICMPSTATS {
     DWORD dwAddrMasks;
     DWORD dwAddrMaskReps;
 }
-alias MIBICMPSTATS* PMIBICMPSTATS;
+alias PMIBICMPSTATS = MIBICMPSTATS*;
 
 struct MIBICMPINFO {
     MIBICMPSTATS icmpInStats;
     MIBICMPSTATS icmpOutStats;
 }
-alias MIBICMPINFO* PMIBICMPINFO;
+alias PMIBICMPINFO = MIBICMPINFO*;
 
 struct MIB_ICMP {
     MIBICMPINFO stats;
 }
-alias MIB_ICMP* PMIB_ICMP;
+alias PMIB_ICMP = MIB_ICMP*;
 
 struct MIB_IFROW {
     WCHAR[MAX_INTERFACE_NAME_LEN] wszName = 0;
@@ -170,7 +170,7 @@ struct MIB_IFROW {
     DWORD dwDescrLen;
     BYTE[MAXLEN_IFDESCR] bDescr;
 }
-alias MIB_IFROW* PMIB_IFROW;
+alias PMIB_IFROW = MIB_IFROW*;
 
 struct MIB_IFTABLE {
     DWORD        dwNumEntries;
@@ -178,7 +178,7 @@ struct MIB_IFTABLE {
 
     MIB_IFROW* table() return { return _table.ptr; }
 }
-alias MIB_IFTABLE* PMIB_IFTABLE;
+alias PMIB_IFTABLE = MIB_IFTABLE*;
 
 struct MIB_IPSTATS {
     DWORD dwForwarding;
@@ -205,7 +205,7 @@ struct MIB_IPSTATS {
     DWORD dwNumAddr;
     DWORD dwNumRoutes;
 }
-alias MIB_IPSTATS* PMIB_IPSTATS;
+alias PMIB_IPSTATS = MIB_IPSTATS*;
 
 struct MIB_TCPSTATS {
     DWORD dwRtoAlgorithm;
@@ -224,7 +224,7 @@ struct MIB_TCPSTATS {
     DWORD dwOutRsts;
     DWORD dwNumConns;
 }
-alias MIB_TCPSTATS* PMIB_TCPSTATS;
+alias PMIB_TCPSTATS = MIB_TCPSTATS*;
 
 struct MIB_TCPROW {
     DWORD dwState;
@@ -233,7 +233,7 @@ struct MIB_TCPROW {
     DWORD dwRemoteAddr;
     DWORD dwRemotePort;
 }
-alias MIB_TCPROW* PMIB_TCPROW;
+alias PMIB_TCPROW = MIB_TCPROW*;
 
 struct MIB_TCPTABLE {
     DWORD         dwNumEntries;
@@ -241,7 +241,7 @@ struct MIB_TCPTABLE {
 
     MIB_TCPROW* table() return { return _table.ptr; }
 }
-alias MIB_TCPTABLE* PMIB_TCPTABLE;
+alias PMIB_TCPTABLE = MIB_TCPTABLE*;
 
 struct MIB_UDPSTATS {
     DWORD dwInDatagrams;
@@ -250,13 +250,13 @@ struct MIB_UDPSTATS {
     DWORD dwOutDatagrams;
     DWORD dwNumAddrs;
 }
-alias MIB_UDPSTATS* PMIB_UDPSTATS;
+alias PMIB_UDPSTATS = MIB_UDPSTATS*;
 
 struct MIB_UDPROW {
     DWORD dwLocalAddr;
     DWORD dwLocalPort;
 }
-alias MIB_UDPROW* PMIB_UDPROW;
+alias PMIB_UDPROW = MIB_UDPROW*;
 
 struct MIB_UDPTABLE {
     DWORD         dwNumEntries;
@@ -264,4 +264,4 @@ struct MIB_UDPTABLE {
 
     MIB_UDPROW* table() return { return _table.ptr; }
 }
-alias MIB_UDPTABLE* PMIB_UDPTABLE;
+alias PMIB_UDPTABLE = MIB_UDPTABLE*;

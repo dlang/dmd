@@ -187,7 +187,7 @@ enum SHERB_NOCONFIRMATION = 1;
 enum SHERB_NOPROGRESSUI   = 2;
 enum SHERB_NOSOUND        = 4;
 
-alias WORD FILEOP_FLAGS, PRINTEROP_FLAGS;
+alias FILEOP_FLAGS = WORD, PRINTEROP_FLAGS = WORD;
 alias HDROP = HANDLE;
 
 //align(2): // 1 in Win32, default in Win64
@@ -200,7 +200,7 @@ struct APPBARDATA {
     RECT   rc;
     LPARAM lParam;
 }
-alias APPBARDATA* PAPPBARDATA;
+alias PAPPBARDATA = APPBARDATA*;
 
 struct NOTIFYICONDATAA {
     DWORD cbSize = NOTIFYICONDATAA.sizeof;
@@ -227,7 +227,7 @@ struct NOTIFYICONDATAA {
         GUID      guidItem;
     }
 }
-alias NOTIFYICONDATAA* PNOTIFYICONDATAA;
+alias PNOTIFYICONDATAA = NOTIFYICONDATAA*;
 
 struct NOTIFYICONDATAW {
     DWORD cbSize = NOTIFYICONDATAW.sizeof;
@@ -254,7 +254,7 @@ struct NOTIFYICONDATAW {
         GUID guidItem;
     }
 }
-alias NOTIFYICONDATAW* PNOTIFYICONDATAW;
+alias PNOTIFYICONDATAW = NOTIFYICONDATAW*;
 
 struct SHELLEXECUTEINFOA {
     DWORD     cbSize = SHELLEXECUTEINFOA.sizeof;
@@ -273,7 +273,7 @@ struct SHELLEXECUTEINFOA {
     HANDLE    hIcon;
     HANDLE    hProcess;
 }
-alias SHELLEXECUTEINFOA* LPSHELLEXECUTEINFOA;
+alias LPSHELLEXECUTEINFOA = SHELLEXECUTEINFOA*;
 
 struct SHELLEXECUTEINFOW {
     DWORD     cbSize = SHELLEXECUTEINFOW.sizeof;
@@ -292,7 +292,7 @@ struct SHELLEXECUTEINFOW {
     HANDLE    hIcon;
     HANDLE    hProcess;
 }
-alias SHELLEXECUTEINFOW* LPSHELLEXECUTEINFOW;
+alias LPSHELLEXECUTEINFOW = SHELLEXECUTEINFOW*;
 
 align(1) struct SHFILEOPSTRUCTA {
 align(1):
@@ -309,7 +309,7 @@ align(1):
     PVOID        hNameMappings;
     LPCSTR       lpszProgressTitle;
 }
-alias SHFILEOPSTRUCTA* LPSHFILEOPSTRUCTA;
+alias LPSHFILEOPSTRUCTA = SHFILEOPSTRUCTA*;
 
 align(1) struct SHFILEOPSTRUCTW {
 align(1):
@@ -326,7 +326,7 @@ align(1):
     PVOID        hNameMappings;
     LPCWSTR      lpszProgressTitle;
 }
-alias SHFILEOPSTRUCTW* LPSHFILEOPSTRUCTW;
+alias LPSHFILEOPSTRUCTW = SHFILEOPSTRUCTW*;
 
 struct SHFILEINFOA {
     HICON          hIcon;
@@ -352,7 +352,7 @@ align(1):
     long  i64Size;
     long  i64NumItems;
 }
-alias SHQUERYRBINFO* LPSHQUERYRBINFO;
+alias LPSHQUERYRBINFO = SHQUERYRBINFO*;
 
 extern (Windows) nothrow @nogc {
     LPWSTR* CommandLineToArgvW(LPCWSTR, int*);
@@ -391,43 +391,43 @@ extern (Windows) nothrow @nogc {
 }
 
 version (Unicode) {
-    alias NOTIFYICONDATAW NOTIFYICONDATA;
-    alias SHELLEXECUTEINFOW SHELLEXECUTEINFO;
-    alias SHFILEOPSTRUCTW SHFILEOPSTRUCT;
-    alias SHFILEINFOW SHFILEINFO;
-    alias DragQueryFileW DragQueryFile;
-    alias ExtractAssociatedIconW ExtractAssociatedIcon;
-    alias ExtractIconW ExtractIcon;
-    alias ExtractIconExW ExtractIconEx;
-    alias FindExecutableW FindExecutable;
-    alias Shell_NotifyIconW Shell_NotifyIcon;
-    alias ShellAboutW ShellAbout;
-    alias ShellExecuteW ShellExecute;
-    alias ShellExecuteExW ShellExecuteEx;
-    alias SHFileOperationW SHFileOperation;
-    alias SHGetFileInfoW SHGetFileInfo;
-    alias SHQueryRecycleBinW SHQueryRecycleBin;
-    alias SHEmptyRecycleBinW SHEmptyRecycleBin;
+    alias NOTIFYICONDATA = NOTIFYICONDATAW;
+    alias SHELLEXECUTEINFO = SHELLEXECUTEINFOW;
+    alias SHFILEOPSTRUCT = SHFILEOPSTRUCTW;
+    alias SHFILEINFO = SHFILEINFOW;
+    alias DragQueryFile = DragQueryFileW;
+    alias ExtractAssociatedIcon = ExtractAssociatedIconW;
+    alias ExtractIcon = ExtractIconW;
+    alias ExtractIconEx = ExtractIconExW;
+    alias FindExecutable = FindExecutableW;
+    alias Shell_NotifyIcon = Shell_NotifyIconW;
+    alias ShellAbout = ShellAboutW;
+    alias ShellExecute = ShellExecuteW;
+    alias ShellExecuteEx = ShellExecuteExW;
+    alias SHFileOperation = SHFileOperationW;
+    alias SHGetFileInfo = SHGetFileInfoW;
+    alias SHQueryRecycleBin = SHQueryRecycleBinW;
+    alias SHEmptyRecycleBin = SHEmptyRecycleBinW;
 } else {
-    alias NOTIFYICONDATAA NOTIFYICONDATA;
-    alias SHELLEXECUTEINFOA SHELLEXECUTEINFO;
-    alias SHFILEOPSTRUCTA SHFILEOPSTRUCT;
-    alias SHFILEINFOA SHFILEINFO;
-    alias DragQueryFileA DragQueryFile;
-    alias ExtractAssociatedIconA ExtractAssociatedIcon;
-    alias ExtractIconA ExtractIcon;
-    alias ExtractIconExA ExtractIconEx;
-    alias FindExecutableA FindExecutable;
-    alias Shell_NotifyIconA Shell_NotifyIcon;
-    alias ShellAboutA ShellAbout;
-    alias ShellExecuteA ShellExecute;
-    alias ShellExecuteExA ShellExecuteEx;
-    alias SHFileOperationA SHFileOperation;
-    alias SHGetFileInfoA SHGetFileInfo;
-    alias SHQueryRecycleBinA SHQueryRecycleBin;
-    alias SHEmptyRecycleBinA SHEmptyRecycleBin;
+    alias NOTIFYICONDATA = NOTIFYICONDATAA;
+    alias SHELLEXECUTEINFO = SHELLEXECUTEINFOA;
+    alias SHFILEOPSTRUCT = SHFILEOPSTRUCTA;
+    alias SHFILEINFO = SHFILEINFOA;
+    alias DragQueryFile = DragQueryFileA;
+    alias ExtractAssociatedIcon = ExtractAssociatedIconA;
+    alias ExtractIcon = ExtractIconA;
+    alias ExtractIconEx = ExtractIconExA;
+    alias FindExecutable = FindExecutableA;
+    alias Shell_NotifyIcon = Shell_NotifyIconA;
+    alias ShellAbout = ShellAboutA;
+    alias ShellExecute = ShellExecuteA;
+    alias ShellExecuteEx = ShellExecuteExA;
+    alias SHFileOperation = SHFileOperationA;
+    alias SHGetFileInfo = SHGetFileInfoA;
+    alias SHQueryRecycleBin = SHQueryRecycleBinA;
+    alias SHEmptyRecycleBin = SHEmptyRecycleBinA;
 }
 
-alias NOTIFYICONDATA* PNOTIFYICONDATA;
-alias SHELLEXECUTEINFO* LPSHELLEXECUTEINFO;
-alias SHFILEOPSTRUCT* LPSHFILEOPSTRUCT;
+alias PNOTIFYICONDATA = NOTIFYICONDATA*;
+alias LPSHELLEXECUTEINFO = SHELLEXECUTEINFO*;
+alias LPSHFILEOPSTRUCT = SHFILEOPSTRUCT*;

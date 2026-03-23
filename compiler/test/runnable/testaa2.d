@@ -328,6 +328,22 @@ void test21207()
 }
 
 /************************************************/
+void foo() @safe
+{
+    immutable key = 1;
+    int[int] aa;
+    aa[key] = 123;
+}
+
+// https://github.com/dlang/dmd/issues/22560
+void test22560()
+{
+    enum E { a }
+    bool[E] aa;
+    static assert(!__traits(compiles, aa[0]));
+}
+
+/************************************************/
 
 void testEvaluationOrder()
 {

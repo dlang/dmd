@@ -86,9 +86,9 @@ enum LA_ACT_DELETE     = 0x02;
 enum LA_ACT_MAX        = 3;
 
 version (D_LP64)
-    alias long lagreg_t;
+    alias lagreg_t = long;
 else
-    alias int lagreg_t;
+    alias lagreg_t = int;
 
 struct _la_sparc_regs
 {
@@ -104,7 +104,7 @@ struct _la_sparc_regs
 
 version (D_LP64)
 {
-    alias _la_sparc_regs La_sparcv9_regs;
+    alias La_sparcv9_regs = _la_sparc_regs;
     struct La_amd64_regs
     {
         lagreg_t  lr_rsp;
@@ -119,7 +119,7 @@ version (D_LP64)
 }
 else
 {
-    alias _la_sparc_regs La_sparcv8_regs;
+    alias La_sparcv8_regs = _la_sparc_regs;
     struct La_i86_regs
     {
         lagreg_t  lr_esp;
@@ -174,7 +174,7 @@ struct dl_phdr_info
     void*              dlpi_tls_data;   // since Solaris 11.5
 }
 
-private alias extern(C) int function(dl_phdr_info*, size_t, void *) dl_iterate_phdr_cb;
-private alias extern(C) int function(dl_phdr_info*, size_t, void *) @nogc dl_iterate_phdr_cb_ngc;
+private alias dl_iterate_phdr_cb = extern(C) int function(dl_phdr_info*, size_t, void *);
+private alias dl_iterate_phdr_cb_ngc = extern(C) int function(dl_phdr_info*, size_t, void *) @nogc;
 extern int dl_iterate_phdr(dl_iterate_phdr_cb __callback, void*__data);
 extern int dl_iterate_phdr(dl_iterate_phdr_cb_ngc __callback, void*__data) @nogc;

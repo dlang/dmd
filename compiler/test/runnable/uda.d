@@ -750,6 +750,22 @@ template test15804()
 alias a15804 = test15804!();
 
 /************************************************/
+// https://github.com/dlang/dmd/issues/22282
+
+struct S22282
+{
+    int a,b;
+    this(string a, string b) { }
+    ~this() { }
+}
+
+void issue22282()
+{
+	enum var;
+	@var S22282 file = S22282("tmp", "w");
+}
+
+/************************************************/
 
 int main()
 {
@@ -773,6 +789,7 @@ int main()
     test18();
     test19();
     test20();
+    issue22282();
 
     printf("Success\n");
     return 0;

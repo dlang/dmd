@@ -78,7 +78,7 @@ struct MODEMDEVCAPS {
 
     BYTE* abVariablePortion() return { return &_abVariablePortion; }
 }
-alias MODEMDEVCAPS* PMODEMDEVCAPS, LPMODEMDEVCAPS;
+alias PMODEMDEVCAPS = MODEMDEVCAPS*, LPMODEMDEVCAPS = MODEMDEVCAPS*;
 
 struct MODEMSETTINGS {
     DWORD dwActualSize;
@@ -96,4 +96,4 @@ struct MODEMSETTINGS {
 
     BYTE* abVariablePortion() return { return &_abVariablePortion; }
 }
-alias MODEMSETTINGS* PMODEMSETTINGS, LPMODEMSETTINGS;
+alias PMODEMSETTINGS = MODEMSETTINGS*, LPMODEMSETTINGS = MODEMSETTINGS*;

@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/machobj.d, backend/machobj.d)
@@ -68,7 +68,7 @@ void mach_relsort(OutBuffer* buf)
     qsort(buf.buf, buf.length() / Relocation.sizeof, Relocation.sizeof, &mach_rel_fp);
 }
 
-private extern (D) __gshared OutBuffer* fobjbuf;
+private __gshared OutBuffer* fobjbuf;
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
 
@@ -97,7 +97,7 @@ void MachObj_refGOTsym()
 // The object file is built is several separate pieces
 
 // String Table  - String table for all other names
-private extern (D) __gshared OutBuffer* symtab_strings;
+private __gshared OutBuffer* symtab_strings;
 
 // Section Headers
 __gshared OutBuffer  *SECbuf;             // Buffer to build section table in
@@ -198,7 +198,7 @@ __gshared
  *
  * This section is used for the variable symbol for TLS variables.
  */
-private extern (D) int seg_tlsseg = UNKNOWN;
+private int seg_tlsseg = UNKNOWN;
 
 /**
  * Section index for the __thread_bss section.
@@ -206,7 +206,7 @@ private extern (D) int seg_tlsseg = UNKNOWN;
  * This section is used for the data symbol ($tlv$init) for TLS variables
  * without an initializer.
  */
-private extern (D) int seg_tlsseg_bss = UNKNOWN;
+private int seg_tlsseg_bss = UNKNOWN;
 
 /**
  * Section index for the __thread_data section.
@@ -972,11 +972,13 @@ void MachObj_term(const(char)[] objfilename)
                                     }
                                     else
                                     {
-                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
-                                        //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                        // BUG AArch64: failing test20050.d, should pick RELOC_PAGEOFF12 ??!!
+                                        //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                         rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
                                     }
-                                    assert(s.Sfl != FL.tlsdata);
+                                    if (s.Sfl == FL.tlsdata && s.Sclass == SC.comdat)
+                                        goto case SC.global;
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = s.Sxtrnnum;
                                     rel.r_length = 2;
@@ -987,8 +989,8 @@ void MachObj_term(const(char)[] objfilename)
                                     break;
 
                                 case SC.global:
-                                    //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
-                                    rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                    //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                    rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     if (s.Sfl == FL.tlsdata || s.Sfl == FL.data && (s.ty() & mTYLINK) == mTYthread)
                                         rel.r_type = r.rtype == RELadd ? ARM64_RELOC_TLVP_LOAD_PAGEOFF12 : ARM64_RELOC_TLVP_LOAD_PAGE21;
 
@@ -1024,6 +1026,8 @@ void MachObj_term(const(char)[] objfilename)
                         }
                         else if (I64)
                         {
+                            //printf("I64\n");
+                            //symbol_print(*s);
                             rel.r_type = (r.rtype == RELrel)
                                     ? X86_64_RELOC_BRANCH
                                     : X86_64_RELOC_SIGNED;
@@ -2128,7 +2132,7 @@ void MachObj_alias(const(char)* n1,const(char)* n2)
 }
 
 @trusted
-private extern (D) char* unsstr (uint value)
+private char* unsstr (uint value)
 {
     __gshared char[64] buffer = void;
 
@@ -2143,7 +2147,7 @@ private extern (D) char* unsstr (uint value)
  */
 
 @trusted
-private extern (D)
+private
 char* obj_mangle2(Symbol* s,char* dest)
 {
     size_t len;
@@ -2922,8 +2926,7 @@ static if(TERMCODE)
 }+/
 
 @trusted
-private extern (D)
-int elf_align(targ_size_t size, int foffset)
+private int elf_align(targ_size_t size, int foffset)
 {
     if (size <= 1)
         return foffset;

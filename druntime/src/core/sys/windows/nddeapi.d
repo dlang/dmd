@@ -134,31 +134,31 @@ extern (Windows) {
 }
 
 version (Unicode) {
-    alias NDdeShareAddW NDdeShareAdd;
-    alias NDdeShareDelW NDdeShareDel;
-    alias NDdeSetShareSecurityW NDdeSetShareSecurity;
-    alias NDdeGetShareSecurityW NDdeGetShareSecurity;
-    alias NDdeShareEnumW NDdeShareEnum;
-    alias NDdeShareGetInfoW NDdeShareGetInfo;
-    alias NDdeShareSetInfoW NDdeShareSetInfo;
-    alias NDdeGetErrorStringW NDdeGetErrorString;
-    alias NDdeIsValidShareNameW NDdeIsValidShareName;
-    alias NDdeIsValidAppTopicListW NDdeIsValidAppTopicList;
-    alias NDdeSetTrustedShareW NDdeSetTrustedShare;
-    alias NDdeGetTrustedShareW NDdeGetTrustedShare;
-    alias NDdeTrustedShareEnumW NDdeTrustedShareEnum;
+    alias NDdeShareAdd = NDdeShareAddW;
+    alias NDdeShareDel = NDdeShareDelW;
+    alias NDdeSetShareSecurity = NDdeSetShareSecurityW;
+    alias NDdeGetShareSecurity = NDdeGetShareSecurityW;
+    alias NDdeShareEnum = NDdeShareEnumW;
+    alias NDdeShareGetInfo = NDdeShareGetInfoW;
+    alias NDdeShareSetInfo = NDdeShareSetInfoW;
+    alias NDdeGetErrorString = NDdeGetErrorStringW;
+    alias NDdeIsValidShareName = NDdeIsValidShareNameW;
+    alias NDdeIsValidAppTopicList = NDdeIsValidAppTopicListW;
+    alias NDdeSetTrustedShare = NDdeSetTrustedShareW;
+    alias NDdeGetTrustedShare = NDdeGetTrustedShareW;
+    alias NDdeTrustedShareEnum = NDdeTrustedShareEnumW;
 } else {
-    alias NDdeShareAddA NDdeShareAdd;
-    alias NDdeShareDelA NDdeShareDel;
-    alias NDdeSetShareSecurityA NDdeSetShareSecurity;
-    alias NDdeGetShareSecurityA NDdeGetShareSecurity;
-    alias NDdeShareEnumA NDdeShareEnum;
-    alias NDdeShareGetInfoA NDdeShareGetInfo;
-    alias NDdeShareSetInfoA NDdeShareSetInfo;
-    alias NDdeGetErrorStringA NDdeGetErrorString;
-    alias NDdeIsValidShareNameA NDdeIsValidShareName;
-    alias NDdeIsValidAppTopicListA NDdeIsValidAppTopicList;
-    alias NDdeSetTrustedShareA NDdeSetTrustedShare;
-    alias NDdeGetTrustedShareA NDdeGetTrustedShare;
-    alias NDdeTrustedShareEnumA NDdeTrustedShareEnum;
+    alias NDdeShareAdd = NDdeShareAddA;
+    alias NDdeShareDel = NDdeShareDelA;
+    alias NDdeSetShareSecurity = NDdeSetShareSecurityA;
+    alias NDdeGetShareSecurity = NDdeGetShareSecurityA;
+    alias NDdeShareEnum = NDdeShareEnumA;
+    alias NDdeShareGetInfo = NDdeShareGetInfoA;
+    alias NDdeShareSetInfo = NDdeShareSetInfoA;
+    alias NDdeGetErrorString = NDdeGetErrorStringA;
+    alias NDdeIsValidShareName = NDdeIsValidShareNameA;
+    alias NDdeIsValidAppTopicList = NDdeIsValidAppTopicListA;
+    alias NDdeSetTrustedShare = NDdeSetTrustedShareA;
+    alias NDdeGetTrustedShare = NDdeGetTrustedShareA;
+    alias NDdeTrustedShareEnum = NDdeTrustedShareEnumA;
 }

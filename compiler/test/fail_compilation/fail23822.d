@@ -5,7 +5,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail23822.d(21): Deprecation: alias `fail23822.S.value` is deprecated
+fail_compilation/fail23822.d(22): Deprecation: alias `fail23822.S.value` is deprecated
+fail_compilation/fail23822.d(17):        `value` is declared here
 ---
 */
 

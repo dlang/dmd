@@ -15,7 +15,7 @@
  * - $(LINK2 https://github.com/ldc-developers/ldc, LDC repository)
  * - $(LINK2 https://github.com/D-Programming-GDC/gcc, GDC repository)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/target.d, _target.d)
@@ -83,6 +83,8 @@ ubyte defaultTargetOSMajor() @safe
             return 13;
         else version (TARGET_FREEBSD14)
             return 14;
+        else version (TARGET_FREEBSD15)
+            return 15;
         else
             return 0;
     }
@@ -150,6 +152,9 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
 
+    if (params.trace)
+        VersionCondition.addPredefinedGlobalIdent("D_Profile");
+
     if (params.tracegc)
         VersionCondition.addPredefinedGlobalIdent("D_ProfileGC");
 
@@ -166,7 +171,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
     import dmd.cond : VersionCondition;
 
     alias predef = VersionCondition.addPredefinedGlobalIdent;
-    if (tgt.cpu >= CPU.sse2)
+    if ((tgt.isX86_64 || tgt.isX86) && tgt.cpu >= CPU.sse2)
     {
         predef("D_SIMD");
         if (tgt.cpu >= CPU.avx)
@@ -311,7 +316,7 @@ extern (C++) struct Target
     import dmd.location;
     import dmd.astenums : LINK, TY;
     import dmd.mtype : Type, TypeFunction, TypeTuple;
-    import dmd.typesem : pointerTo, size;
+    import dmd.typesem;
     import dmd.root.ctfloat : real_t;
     import dmd.statement : Statement;
     import dmd.tokens : EXP;
@@ -452,6 +457,8 @@ extern (C++) struct Target
         if (isLP64 || isAArch64)
         {
             ptrsize = 8;
+            /* This is affected by version WithArgTypes in object.d
+             */
             classinfosize = 0x98+16; // 168
         }
 
@@ -484,6 +491,13 @@ extern (C++) struct Target
                 realpad = 6;
                 realalignsize = 16;
             }
+        }
+
+        if (isAArch64 && os & Target.OS.OSX)  // OSX for AArch64 has 8 byte reals
+        {
+            realsize = 8;
+            realpad = 0;
+            realalignsize = 8;
         }
 
         c.initialize(params, this);
@@ -617,6 +631,7 @@ extern (C++) struct Target
      */
     extern (C++) uint fieldalign(Type type)
     {
+        import dmd.typesem : alignsize;
         const size = type.alignsize();
 
         if ((isX86_64 || isAArch64 || os == Target.OS.OSX) && (size == 16 || size == 32))
@@ -973,14 +988,35 @@ extern (C++) struct Target
      */
     extern (C++) TypeTuple toArgTypes(Type t)
     {
-        import dmd.argtypes_x86 : toArgTypes_x86;
         import dmd.argtypes_sysv_x64 : toArgTypes_sysv_x64;
-        if (isX86_64 || isAArch64)
+        if (isX86_64)
         {
             // no argTypes for Win64 yet
             return isPOSIX ? toArgTypes_sysv_x64(t) : null;
         }
-        return toArgTypes_x86(t);
+        else if (isX86)
+        {
+            import dmd.argtypes_x86 : toArgTypes_x86;
+            return toArgTypes_x86(t);
+        }
+        else if (isAArch64)
+        {
+            import dmd.argtypes_aarch64 : toArgTypes_aarch64;
+            static if (0)
+            {
+                auto tt = toArgTypes_aarch64(t);
+                if (tt)
+                    foreach (i; 0 .. tt.arguments.length)
+                    {
+                        Parameter p = (*tt.arguments)[i];
+                        printf("i: %d t: %s\n", cast(int)i, p.type.toChars());
+                    }
+                return tt;
+            }
+            return toArgTypes_aarch64(t);
+        }
+        else
+            assert(0);
     }
 
     /**
@@ -1058,9 +1094,19 @@ extern (C++) struct Target
                     return true;
             }
         }
-        else if ((isX86_64 || isAArch64) && isPOSIX)
+        else if (isX86_64 && isPOSIX)
         {
             TypeTuple tt = toArgTypes_sysv_x64(tn);
+            if (!tt)
+                return false; // void
+
+            return !tt.arguments.length;
+        }
+        else if (isAArch64 && isPOSIX)
+        {
+            import dmd.argtypes_aarch64 : toArgTypes_aarch64;
+
+            TypeTuple tt = toArgTypes_aarch64(tn);
             if (!tt)
                 return false; // void
 
@@ -1343,7 +1389,7 @@ extern (C++) struct Target
      */
     extern (D) bool isXmmSupported() @safe
     {
-        return (isX86_64 || isAArch64) || (isX86 && os == Target.OS.OSX);
+        return (isX86_64 /*|| isAArch64*/) || (isX86 && os == Target.OS.OSX);
     }
 
     /**
@@ -1483,7 +1529,7 @@ struct TargetC
         if (bitFieldStyle == BitFieldStyle.Gcc_Clang)
         {
             // sufficient for DMD's currently supported architectures
-            return !bfd.isAnonymous();
+            return !bfd.isAnonymous() || target.isAArch64;
         }
         assert(0);
     }

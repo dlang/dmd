@@ -60,7 +60,7 @@ enum DWORD
     REG_NOTIFY_CHANGE_LAST_SET   = 4,
     REG_NOTIFY_CHANGE_SECURITY   = 8;
 
-alias ACCESS_MASK REGSAM;
+alias REGSAM = ACCESS_MASK;
 
 struct VALENTA {
     LPSTR ve_valuename;
@@ -68,7 +68,7 @@ struct VALENTA {
     DWORD_PTR ve_valueptr;
     DWORD ve_type;
 }
-alias VALENTA* PVALENTA;
+alias PVALENTA = VALENTA*;
 
 struct VALENTW {
     LPWSTR ve_valuename;
@@ -76,7 +76,7 @@ struct VALENTW {
     DWORD_PTR ve_valueptr;
     DWORD  ve_type;
 }
-alias VALENTW* PVALENTW;
+alias PVALENTW = VALENTW*;
 
 // RRF - Registry Routine Flags (for RegGetValue)
 static if (_WIN32_WINNT >= 0x600) {
@@ -184,72 +184,72 @@ extern (Windows) nothrow @nogc {
 }
 
 version (Unicode) {
-    alias VALENTW VALENT;
-    alias RegConnectRegistryW RegConnectRegistry;
-    alias RegCreateKeyExW RegCreateKeyEx;
-    alias RegDeleteKeyW RegDeleteKey;
-    alias RegDeleteValueW RegDeleteValue;
-    alias RegEnumKeyExW RegEnumKeyEx;
-    alias RegEnumValueW RegEnumValue;
-    alias RegLoadKeyW RegLoadKey;
-    alias RegOpenKeyExW RegOpenKeyEx;
-    alias RegQueryInfoKeyW RegQueryInfoKey;
-    alias RegQueryMultipleValuesW RegQueryMultipleValues;
-    alias RegQueryValueExW RegQueryValueEx;
-    alias RegReplaceKeyW RegReplaceKey;
-    alias RegSaveKeyW RegSaveKey;
-    alias RegSetValueExW RegSetValueEx;
-    alias RegUnLoadKeyW RegUnLoadKey;
+    alias VALENT = VALENTW;
+    alias RegConnectRegistry = RegConnectRegistryW;
+    alias RegCreateKeyEx = RegCreateKeyExW;
+    alias RegDeleteKey = RegDeleteKeyW;
+    alias RegDeleteValue = RegDeleteValueW;
+    alias RegEnumKeyEx = RegEnumKeyExW;
+    alias RegEnumValue = RegEnumValueW;
+    alias RegLoadKey = RegLoadKeyW;
+    alias RegOpenKeyEx = RegOpenKeyExW;
+    alias RegQueryInfoKey = RegQueryInfoKeyW;
+    alias RegQueryMultipleValues = RegQueryMultipleValuesW;
+    alias RegQueryValueEx = RegQueryValueExW;
+    alias RegReplaceKey = RegReplaceKeyW;
+    alias RegSaveKey = RegSaveKeyW;
+    alias RegSetValueEx = RegSetValueExW;
+    alias RegUnLoadKey = RegUnLoadKeyW;
 
-    alias AbortSystemShutdownW AbortSystemShutdown;
-    alias InitiateSystemShutdownW InitiateSystemShutdown;
-    alias RegRestoreKeyW RegRestoreKey;
+    alias AbortSystemShutdown = AbortSystemShutdownW;
+    alias InitiateSystemShutdown = InitiateSystemShutdownW;
+    alias RegRestoreKey = RegRestoreKeyW;
     static if (_WIN32_WINNT >= 0x501) {
-        alias RegSaveKeyExA RegSaveKeyEx;
+        alias RegSaveKeyEx = RegSaveKeyExA;
     }
     static if (_WIN32_WINNT >= 0x600) {
-        alias RegGetValueW RegGetValue;
+        alias RegGetValue = RegGetValueW;
     }
     //deprecated {
-        alias RegCreateKeyW RegCreateKey;
-        alias RegEnumKeyW RegEnumKey;
-        alias RegOpenKeyW RegOpenKey;
-        alias RegQueryValueW RegQueryValue;
-        alias RegSetValueW RegSetValue;
+        alias RegCreateKey = RegCreateKeyW;
+        alias RegEnumKey = RegEnumKeyW;
+        alias RegOpenKey = RegOpenKeyW;
+        alias RegQueryValue = RegQueryValueW;
+        alias RegSetValue = RegSetValueW;
     //}
 } else {
-    alias VALENTA VALENT;
-    alias RegConnectRegistryA RegConnectRegistry;
-    alias RegCreateKeyExA RegCreateKeyEx;
-    alias RegDeleteKeyA RegDeleteKey;
-    alias RegDeleteValueA RegDeleteValue;
-    alias RegEnumKeyExA RegEnumKeyEx;
-    alias RegEnumValueA RegEnumValue;
-    alias RegLoadKeyA RegLoadKey;
-    alias RegOpenKeyExA RegOpenKeyEx;
-    alias RegQueryInfoKeyA RegQueryInfoKey;
-    alias RegQueryMultipleValuesA RegQueryMultipleValues;
-    alias RegQueryValueExA RegQueryValueEx;
-    alias RegReplaceKeyA RegReplaceKey;
-    alias RegSaveKeyA RegSaveKey;
-    alias RegSetValueExA RegSetValueEx;
-    alias RegUnLoadKeyA RegUnLoadKey;
-    alias AbortSystemShutdownA AbortSystemShutdown;
-    alias InitiateSystemShutdownA InitiateSystemShutdown;
-    alias RegRestoreKeyW RegRestoreKey;
+    alias VALENT = VALENTA;
+    alias RegConnectRegistry = RegConnectRegistryA;
+    alias RegCreateKeyEx = RegCreateKeyExA;
+    alias RegDeleteKey = RegDeleteKeyA;
+    alias RegDeleteValue = RegDeleteValueA;
+    alias RegEnumKeyEx = RegEnumKeyExA;
+    alias RegEnumValue = RegEnumValueA;
+    alias RegLoadKey = RegLoadKeyA;
+    alias RegOpenKeyEx = RegOpenKeyExA;
+    alias RegQueryInfoKey = RegQueryInfoKeyA;
+    alias RegQueryMultipleValues = RegQueryMultipleValuesA;
+    alias RegQueryValueEx = RegQueryValueExA;
+    alias RegReplaceKey = RegReplaceKeyA;
+    alias RegSaveKey = RegSaveKeyA;
+    alias RegSetValueEx = RegSetValueExA;
+    alias RegUnLoadKey = RegUnLoadKeyA;
+    alias AbortSystemShutdown = AbortSystemShutdownA;
+    alias InitiateSystemShutdown = InitiateSystemShutdownA;
+    alias RegRestoreKey = RegRestoreKeyW;
     static if (_WIN32_WINNT >= 0x501) {
-        alias RegSaveKeyExA RegSaveKeyEx;
+        alias RegSaveKeyEx = RegSaveKeyExA;
     }
     static if (_WIN32_WINNT >= 0x600) {
-        alias RegGetValueA RegGetValue;
+        alias RegGetValue = RegGetValueA;
     }
     //deprecated {
-        alias RegCreateKeyA RegCreateKey;
-        alias RegEnumKeyA RegEnumKey;
-        alias RegOpenKeyA RegOpenKey;
-        alias RegQueryValueA RegQueryValue;
-        alias RegSetValueA RegSetValue;
+        alias RegCreateKey = RegCreateKeyA;
+        alias RegEnumKey = RegEnumKeyA;
+        alias RegOpenKey = RegOpenKeyA;
+        alias RegQueryValue = RegQueryValueA;
+        alias RegSetValue = RegSetValueA;
     //}
 }
 
-alias VALENT* PVALENT;
+alias PVALENT = VALENT*;

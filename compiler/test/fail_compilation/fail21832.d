@@ -4,7 +4,9 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail21832.d(4): Deprecation: function `imports.imp21832.fun` is deprecated
+fail_compilation/imports/imp21832.d(16):        `fun` is declared here
 fail_compilation/fail21832.d(10): Deprecation: template `imports.imp21832.tpl()(char a)` is deprecated
+fail_compilation/imports/imp21832.d(20):        `tpl()(char a)` is declared here
 ---
 */
 #line 1

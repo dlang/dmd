@@ -32,9 +32,14 @@ extern (Windows):
         override void func()
         {
         int esp;
-        asm{
-                mov esp,ESP;
-        }
+        version (D_InlineAsm_X86)
+            asm{
+                    mov esp,ESP;
+            }
+        version (D_InlineAsm_X86_64)
+            asm{
+                    mov esp,ESP;
+            }
         printf("\n%d",esp);
         printf(`func`);
         }
@@ -47,15 +52,25 @@ int main()
 {
         auto inst= new invarianttest;
         int esp;
-        asm{
-                mov esp,ESP;
-        }
+        version (D_InlineAsm_X86)
+            asm{
+                    mov esp,ESP;
+            }
+        version (D_InlineAsm_X86_64)
+            asm{
+                    mov esp,ESP;
+            }
         inst.func();
         inst.method();
         printf("\n%d\n",esp);
-        asm{
-                mov esp,ESP;
-        }
+        version (D_InlineAsm_X86)
+            asm{
+                    mov esp,ESP;
+            }
+        version (D_InlineAsm_X86_64)
+            asm{
+                    mov esp,ESP;
+            }
         printf("\n%d\n",esp);
         return 0;
 }

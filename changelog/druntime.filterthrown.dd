@@ -1,0 +1,61 @@
+Gravedigger approach to Throwables escaping a thread entry point is now available
+
+A new method is added to `ThreadBase` enabling filtering of any `Throwable`'s before it is handled by the thread abstraction.
+This may be used per-thread and globally, to log that an `Error` has occured or to exit the process.
+
+A reasonable error handler that may be of use is:
+
+```d
+import core.exception;
+
+void main()
+{
+    filterThreadThrowableHandler = (ref Throwable t) {
+        import core.stdc.stdio;
+        import core.stdc.stdlib;
+
+        if (auto e = cast(Error) t)
+        {
+            auto msg = e.message();
+            fprintf(stderr, "Thread death due to error: %.*s\n", cast(int)msg.length, msg.ptr);
+            fflush(stderr);
+            abort();
+        }
+    };
+}
+```
+
+For a per thread handler the following example may be what you want:
+
+```d
+import core.thread;
+
+class MyThread : Thread
+{
+    this( void function() fn, size_t sz = 0 ) @safe pure nothrow @nogc
+    {
+        super(fn, sz);
+    }
+
+    this( void delegate() dg, size_t sz = 0 ) @safe pure nothrow @nogc
+    {
+        super(dg, sz);
+    }
+
+    override void filterCaughtThrowable(ref Throwable t) @system nothrow
+    {
+        import core.stdc.stdio;
+        import core.stdc.stdlib;
+
+        if (auto e = cast(Error) t)
+        {
+            auto msg = e.message();
+            fprintf(stderr, "Thread death due to error: %.*s\n", cast(int)msg.length, msg.ptr);
+            fflush(stderr);
+            abort();
+        }
+
+        super.filterCaughtThrowable(t);
+    }
+}
+```

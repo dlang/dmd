@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/ddoc.html, Documentation Generator)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/doc.d, _doc.d)
@@ -33,6 +33,7 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.errorsink;
 import dmd.func;
@@ -44,8 +45,6 @@ import dmd.lexer;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.array;
-import dmd.root.file;
-import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
@@ -53,6 +52,7 @@ import dmd.root.string;
 import dmd.root.utf;
 import dmd.tokens;
 import dmd.visitor;
+
 
 /****************************************************
  * Generate Ddoc text for Module `m` and append it to `outbuf`.
@@ -72,7 +72,7 @@ void gendocfile(Module m, const char[] ddoctext, const char* datetime, ErrorSink
     // Ddoc files override default macros
     DocComment.parseMacros(m.escapetable, m.macrotable, ddoctext);
 
-    Scope* sc = Scope.createGlobal(m, eSink); // create root scope
+    Scope* sc = scopeCreateGlobal(m, eSink); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
     dc.escapetable = m.escapetable;
@@ -211,44 +211,6 @@ public
 void gendocfile(Module m, const char* ddoctext_ptr, size_t ddoctext_length, const char* datetime, ErrorSink eSink, ref OutBuffer outbuf)
 {
     gendocfile(m, ddoctext_ptr[0 .. ddoctext_length], datetime, eSink, outbuf);
-}
-
-public
-struct Escape
-{
-    const(char)[][char.max] strings;
-
-    /***************************************
-     * Find character string to replace c with.
-     */
-    const(char)[] escapeChar(char c) @safe
-    {
-        version (all)
-        {
-            //printf("escapeChar('%c') => %p, %p\n", c, strings, strings[c].ptr);
-            return strings[c];
-        }
-        else
-        {
-            const(char)[] s;
-            switch (c)
-            {
-            case '<':
-                s = "&lt;";
-                break;
-            case '>':
-                s = "&gt;";
-                break;
-            case '&':
-                s = "&amp;";
-                break;
-            default:
-                s = null;
-                break;
-            }
-            return s;
-        }
-    }
 }
 
 /***********************************************************
@@ -661,6 +623,53 @@ struct DocComment
 
 private:
 
+/** Lazily initializes and returns the escape table.
+Turns out it eats a lot of memory.
+*/
+Escape* escapetable(Module _this) nothrow
+{
+    if (!_this._escapetable)
+        _this._escapetable = new Escape();
+    return cast(Escape*) _this._escapetable;
+}
+
+struct Escape
+{
+    const(char)[][char.max] strings;
+
+    /***************************************
+     * Find character string to replace c with.
+     */
+    const(char)[] escapeChar(char c) @safe
+    {
+        version (all)
+        {
+            //printf("escapeChar('%c') => %p, %p\n", c, strings, strings[c].ptr);
+            return strings[c];
+        }
+        else
+        {
+            const(char)[] s;
+            switch (c)
+            {
+            case '<':
+                s = "&lt;";
+                break;
+            case '>':
+                s = "&gt;";
+                break;
+            case '&':
+                s = "&amp;";
+                break;
+            default:
+                s = null;
+                break;
+            }
+            return s;
+        }
+    }
+}
+
 /***********************************************************
  */
 class Section
@@ -909,8 +918,9 @@ bool isCVariadicParameter(Dsymbols* a, const(char)[] p) @safe
     return false;
 }
 
-Dsymbol getEponymousMember(TemplateDeclaration td) @safe
+Dsymbol getEponymousMember(TemplateDeclaration td)
 {
+    td.computeOneMember();
     if (!td.onemember)
         return null;
     if (AggregateDeclaration ad = td.onemember.isAggregateDeclaration())
@@ -924,7 +934,7 @@ Dsymbol getEponymousMember(TemplateDeclaration td) @safe
     return null;
 }
 
-TemplateDeclaration getEponymousParent(Dsymbol s) @safe
+TemplateDeclaration getEponymousParent(Dsymbol s)
 {
     if (!s.parent)
         return null;
@@ -1091,8 +1101,9 @@ bool emitAnchorName(ref OutBuffer buf, Dsymbol s, Scope* sc, bool includeParent)
     if (dot)
         buf.writeByte('.');
     // Use "this" not "__ctor"
-    TemplateDeclaration td;
-    if (s.isCtorDeclaration() || ((td = s.isTemplateDeclaration()) !is null && td.onemember && td.onemember.isCtorDeclaration()))
+    TemplateDeclaration td = s.isTemplateDeclaration();
+    td.computeOneMember();
+    if (s.isCtorDeclaration() || (td !is null && td.onemember && td.onemember.isCtorDeclaration()))
     {
         buf.writestring("this");
     }
@@ -1380,11 +1391,11 @@ void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
         {
             if (s && sc.lastdc && isDitto(com))
             {
-                sc.lastdc.a.push(s);
+                (cast(DocComment*) sc.lastdc).a.push(s);
                 return;
             }
             // Put previous doc comment if exists
-            if (DocComment* dc = sc.lastdc)
+            if (auto dc = cast(DocComment*) sc.lastdc)
             {
                 assert(dc.a.length > 0, "Expects at least one declaration for a" ~
                     "documentation comment");
@@ -2622,11 +2633,12 @@ Parameter isFunctionParameter(Dsymbols* a, const(char)[] p) @safe
 
 /****************************************************
  */
-Parameter isEponymousFunctionParameter(Dsymbols* a, const(char)[] p) @safe
+Parameter isEponymousFunctionParameter(Dsymbols* a, const(char)[] p)
 {
     foreach (Dsymbol dsym; *a)
     {
         TemplateDeclaration td = dsym.isTemplateDeclaration();
+        td.computeOneMember();
         if (td && td.onemember)
         {
             /* Case 1: we refer to a template declaration inside the template
@@ -3109,7 +3121,9 @@ struct MarkdownLink
     {
         size_t iStart = i + 1;
         size_t iEnd = iStart;
-        if (iEnd >= buf.length || buf[iEnd] != '[' || (iEnd+1 < buf.length && buf[iEnd+1] == ']'))
+        if (iEnd >= buf.length)
+            return i;
+        if (buf[iEnd] != '[' || (iEnd+1 < buf.length && buf[iEnd+1] == ']'))
         {
             // collapsed reference [foo][] or shortcut reference [foo]
             iStart = delimiter.iStart + delimiter.count - 1;

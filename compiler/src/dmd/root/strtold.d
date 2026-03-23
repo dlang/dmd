@@ -2,7 +2,7 @@
  * Provides a D implementation of the standard C function `strtold` (String to long double).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/root/strtold.d, backend/strtold.c)
@@ -378,6 +378,34 @@ L1:
 Lerr:
     p = pinit;
     goto L1;
+}
+
+// use _atoldbl for decimal floating point parsing to avoid rounding issues in the version above
+private extern(C) int _atoldbl(longdouble_soft* value, const(char)* str);
+
+private enum _OVERFLOW  = 3;   /* overflow range error */
+private enum _UNDERFLOW = 4;   /* underflow range error */
+
+longdouble strtold_ms(const(char) *p, char** pend)
+{
+    longdouble_soft r;
+    if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X'))
+    {
+        // _atoldbl() limits hex exponents by decimal max/min eponents
+        import dmd.root.strtold;
+        r = strtold_dm(p, pend);
+    }
+    else
+    {
+        // strtold_dm() does not properly round decimal numbers
+        assert(pend is null); // not supported
+        int res = _atoldbl(&r, p);
+        if (r.exponent() == 0x7fff && r.mantissa == 0)
+            r.mantissa = 0x8000_0000_0000_0000UL; // pseudo-infinity -> infinity
+        if (res == _UNDERFLOW || res == _OVERFLOW)
+            errno = ERANGE;
+    }
+    return cast(longdouble) r;
 }
 
 /************************* Test ************************************/

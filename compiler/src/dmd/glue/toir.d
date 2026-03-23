@@ -1,7 +1,7 @@
 /**
  * Convert to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/toir.d, _toir.d)
@@ -48,6 +48,7 @@ import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem : followInstantiationContext, toParentP;
+import dmd.expressionsem : toInteger;
 import dmd.dtemplate;
 import dmd.errorsink;
 import dmd.func;
@@ -84,7 +85,6 @@ struct IRState
     Symbol* sclosure;               // pointer to closure instance
     BlockState* blx;
     Dsymbols* deferToObj;           // array of Dsymbol's to run toObjFile(bool multiobj) on later
-    elem* ehidden;                  // transmit hidden pointer to CallExp::toElem()
     Symbol* startaddress;
     Array!(elem*)* varsInScope;     // variables that are in scope that will need destruction later
     Label*[void*]* labels;          // table of labels used/declared in function
@@ -93,6 +93,7 @@ struct IRState
     ErrorSink eSink;                // sink for error messages
     bool mayThrow;                  // the expression being evaluated may throw
     bool Cfile;                     // use C semantics
+    int countNullDerefCheckDisable; // should the null check be disabled due to backend fragility
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
         const Param* params, const Target* target, ErrorSink eSink)
@@ -125,6 +126,15 @@ struct IRState
         if (m.filetype == FileType.c)
             return false;
         return dmd.funcsem.arrayBoundsCheck(getFunc());
+    }
+
+    /**********************
+     * Returns:
+     *    true if do null dereference checking for the current function
+     */
+    bool nullDerefCheck()
+    {
+        return countNullDerefCheckDisable == 0 && dmd.funcsem.nullDerefCheck(getFunc());
     }
 
     /****************************
@@ -587,10 +597,18 @@ int intrinsic_op(FuncDeclaration fd)
         if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)
             return NotIntrinsic;
     }
+    else if (target.isAArch64)
+    {
+        if (op == OPbsf || op == OPbsr || op == OPbtc || op == OPbtr || op == OPbts)
+            return NotIntrinsic;        // TODO AArch64
+        if (op == OPcos || op == OPsin || op == OPrint || op == OPsqrt || op == OPscale ||
+            op == OPrndtol || op == OPyl2xp1 || op == OPtoPrec)
+            return NotIntrinsic;        // x87 only
+    }
     return op;
 
 Lva_start:
-    if (target.isX86_64 &&
+    if ((target.isX86_64 || target.isAArch64) &&
         fd.toParent().isTemplateInstance() &&
         id3 == Id.va_start &&
         id2 == Id.stdarg &&
@@ -660,7 +678,7 @@ elem* resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
  *      sthis = the symbol of the current 'this' derived from fd.vthis
  *      fd = the nested function
  */
-TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
+type* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
 {
     if (sthis)
     {
@@ -1143,8 +1161,6 @@ void buildCapture(FuncDeclaration fd)
 {
     if (!driverParams.symdebug)
         return;
-    if (target.objectFormat() != Target.ObjectFormat.coff)  // toDebugClosure only implemented for CodeView,
-        return;                 //  but optlink crashes for negative field offsets
 
     if (fd.closureVars.length && !fd.needsClosure)
     {

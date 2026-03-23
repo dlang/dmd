@@ -1,7 +1,7 @@
 /**
  * Check the arguments to `printf` and `scanf` against the `format` string.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/chkformat.d, _chkformat.d)
@@ -24,6 +24,39 @@ import dmd.mtype;
 import dmd.typesem;
 import dmd.target;
 
+
+/**********************************************
+ * While in general printf is not @safe (and should be marked @system), many uses of printf are safe.
+ * This function determines if a particular call of printf is safe.
+ * Params:
+ *      format = printf format string
+ * Returns:
+ *      true if @safe
+ */
+public
+bool isFormatSafe(scope const char[] format)
+{
+    //printf("isFormatSafe('%.*s')\n", cast(int)format.length, format.ptr);
+    /* Only need to check the format string, any other errors are checked
+     * for later with checkPrintfFormat()
+     */
+    for (size_t i = 0; i < format.length;)
+    {
+        if (format[i] != '%')
+        {
+            ++i;
+            continue;
+        }
+        bool widthStar;
+        bool precisionStar;
+        size_t j = i;
+        const fmt = parsePrintfFormatSpecifier(format, j, widthStar, precisionStar);
+        i = j;
+        if (fmt == Format.s || fmt == Format.ls || fmt == Format.error)
+            return false;
+    }
+    return true;
+}
 
 /******************************************
  * Check that arguments to a printf format string are compatible
@@ -65,7 +98,7 @@ import dmd.target;
 public
 bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list, ErrorSink eSink)
 {
-    //printf("checkPrintFormat('%.*s')\n", cast(int)format.length, format.ptr);
+    //printf("checkPrintfFormat('%.*s')\n", cast(int)format.length, format.ptr);
     size_t n;    // index in args
     for (size_t i = 0; i < format.length;)
     {

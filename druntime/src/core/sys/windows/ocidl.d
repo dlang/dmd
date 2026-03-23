@@ -41,18 +41,18 @@ interface IBindHost : IUnknown
 
 
 //[Yes] #ifndef OLE2ANSI
-alias TEXTMETRICW TEXTMETRICOLE;
+alias TEXTMETRICOLE = TEXTMETRICW;
 //} else {
 //alias TEXTMETRIC TEXTMETRICOLE;
 //}
-alias TEXTMETRICOLE* LPTEXTMETRICOLE;
+alias LPTEXTMETRICOLE = TEXTMETRICOLE*;
 
-alias DWORD OLE_COLOR;
-alias UINT OLE_HANDLE;
-alias int OLE_XPOS_HIMETRIC;
-alias int OLE_YPOS_HIMETRIC;
-alias int OLE_XSIZE_HIMETRIC;
-alias int OLE_YSIZE_HIMETRIC;
+alias OLE_COLOR = DWORD;
+alias OLE_HANDLE = UINT;
+alias OLE_XPOS_HIMETRIC = int;
+alias OLE_YPOS_HIMETRIC = int;
+alias OLE_XSIZE_HIMETRIC = int;
+alias OLE_YSIZE_HIMETRIC = int;
 
 enum READYSTATE {
     READYSTATE_UNINITIALIZED = 0,
@@ -124,7 +124,7 @@ struct POINTF {
     float x;
     float y;
 }
-alias POINTF* LPPOINTF;
+alias LPPOINTF = POINTF*;
 
 struct CONTROLINFO {
     ULONG cb;
@@ -132,38 +132,38 @@ struct CONTROLINFO {
     USHORT cAccel;
     DWORD dwFlags;
 }
-alias CONTROLINFO* LPCONTROLINFO;
+alias LPCONTROLINFO = CONTROLINFO*;
 
 struct CONNECTDATA {
     LPUNKNOWN pUnk;
     DWORD dwCookie;
 }
-alias CONNECTDATA* LPCONNECTDATA;
+alias LPCONNECTDATA = CONNECTDATA*;
 
 struct LICINFO {
     int cbLicInfo;
     BOOL fRuntimeKeyAvail;
     BOOL fLicVerified;
 }
-alias LICINFO* LPLICINFO;
+alias LPLICINFO = LICINFO*;
 
 struct CAUUID {
     ULONG cElems;
     GUID* pElems;
 }
-alias CAUUID* LPCAUUID;
+alias LPCAUUID = CAUUID*;
 
 struct CALPOLESTR {
     ULONG cElems;
     LPOLESTR* pElems;
 }
-alias CALPOLESTR* LPCALPOLESTR;
+alias LPCALPOLESTR = CALPOLESTR*;
 
 struct CADWORD {
     ULONG cElems;
     DWORD* pElems;
 }
-alias CADWORD* LPCADWORD;
+alias LPCADWORD = CADWORD*;
 
 struct PROPPAGEINFO {
     ULONG cb;
@@ -173,7 +173,7 @@ struct PROPPAGEINFO {
     LPOLESTR pszHelpFile;
     DWORD dwHelpContext;
 }
-alias PROPPAGEINFO* LPPROPPAGEINFO;
+alias LPPROPPAGEINFO = PROPPAGEINFO*;
 
 interface IOleControl : IUnknown {
     HRESULT GetControlInfo(LPCONTROLINFO);
@@ -200,13 +200,13 @@ interface ISimpleFrameSite : IUnknown {
 interface IErrorLog : IUnknown {
     HRESULT AddError(LPCOLESTR, LPEXCEPINFO);
 }
-alias IErrorLog LPERRORLOG;
+alias LPERRORLOG = IErrorLog;
 
 interface IPropertyBag : IUnknown {
     HRESULT Read(LPCOLESTR, LPVARIANT, LPERRORLOG);
     HRESULT Write(LPCOLESTR, LPVARIANT);
 }
-alias IPropertyBag LPPROPERTYBAG;
+alias LPPROPERTYBAG = IPropertyBag;
 
 interface IPropertyBag2 : IUnknown {
     HRESULT Read(ULONG, PROPBAG2*, LPERRORLOG, VARIANT*, HRESULT*);
@@ -215,7 +215,7 @@ interface IPropertyBag2 : IUnknown {
     HRESULT GetPropertyInfo(ULONG, ULONG, PROPBAG2*, ULONG*);
     HRESULT LoadObject(LPCOLESTR, DWORD, IUnknown, LPERRORLOG);
 }
-alias IPropertyBag2 LPPROPERTYBAG2;
+alias LPPROPERTYBAG2 = IPropertyBag2;
 
 interface IPersistPropertyBag : IPersist {
     HRESULT InitNew();
@@ -270,7 +270,7 @@ interface IEnumConnectionPoints : IUnknown {
     HRESULT Reset();
     HRESULT Clone(LPENUMCONNECTIONPOINTS*);
 }
-alias IEnumConnectionPoints LPENUMCONNECTIONPOINTS;
+alias LPENUMCONNECTIONPOINTS = IEnumConnectionPoints;
 
 interface IConnectionPoint : IUnknown {
     HRESULT GetConnectionInterface(IID*);
@@ -279,7 +279,7 @@ interface IConnectionPoint : IUnknown {
     HRESULT Unadvise(DWORD);
     HRESULT EnumConnections(LPENUMCONNECTIONS*);
 }
-alias IConnectionPoint LPCONNECTIONPOINT;
+alias LPCONNECTIONPOINT = IConnectionPoint;
 
 interface IEnumConnections : IUnknown {
     HRESULT Next(ULONG, LPCONNECTDATA, PULONG);
@@ -287,7 +287,7 @@ interface IEnumConnections : IUnknown {
     HRESULT Reset();
     HRESULT Clone(LPENUMCONNECTIONS*);
 }
-alias IEnumConnections LPENUMCONNECTIONS;
+alias LPENUMCONNECTIONS = IEnumConnections;
 
 interface IClassFactory2 : IClassFactory {
     HRESULT GetLicInfo(LPLICINFO);
@@ -312,7 +312,7 @@ interface IPropertyPageSite : IUnknown {
     HRESULT GetPageContainer(LPUNKNOWN*);
     HRESULT TranslateAccelerator(LPMSG);
 }
-alias IPropertyPageSite LPPROPERTYPAGESITE;
+alias LPPROPERTYPAGESITE = IPropertyPageSite;
 
 interface IPropertyPage : IUnknown {
     HRESULT SetPageSite(LPPROPERTYPAGESITE);
@@ -359,11 +359,11 @@ interface IFont : IUnknown {
     HRESULT ReleaseHfont(HFONT);
     HRESULT SetHdc(HDC);
 }
-alias IFont LPFONT;
+alias LPFONT = IFont;
 
 interface IFontDisp : IDispatch {
 }
-alias IFontDisp LPFONTDISP;
+alias LPFONTDISP = IFontDisp;
 
 interface IPicture : IUnknown {
     HRESULT get_Handle(OLE_HANDLE*);
@@ -463,7 +463,7 @@ interface IOleUndoManager : IUnknown {
     HRESULT GetLastRedoDescription(BSTR*);
     HRESULT Enable(BOOL);
 }
-alias IOleUndoManager LPOLEUNDOMANAGER;
+alias LPOLEUNDOMANAGER = IOleUndoManager;
 
 interface IQuickActivate : IUnknown {
     HRESULT QuickActivate(QACONTAINER*, QACONTROL*);

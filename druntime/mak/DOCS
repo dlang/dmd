@@ -27,28 +27,30 @@ DOCS=\
 	$(DOCDIR)\core_internal_abort.html \
 	$(DOCDIR)\core_internal_atomic.html \
 	$(DOCDIR)\core_internal_attributes.html \
+	$(DOCDIR)\core_internal_convert.html \
+	$(DOCDIR)\core_internal_dassert.html \
 	$(DOCDIR)\core_internal_destruction.html \
 	$(DOCDIR)\core_internal_entrypoint.html \
 	$(DOCDIR)\core_internal_execinfo.html \
 	$(DOCDIR)\core_internal_hash.html \
+	$(DOCDIR)\core_internal_lifetime.html \
 	$(DOCDIR)\core_internal_moving.html \
 	$(DOCDIR)\core_internal_newaa.html \
 	$(DOCDIR)\core_internal_parseoptions.html \
 	$(DOCDIR)\core_internal_postblit.html \
+	$(DOCDIR)\core_internal_qsort.html \
 	$(DOCDIR)\core_internal_spinlock.html \
 	$(DOCDIR)\core_internal_string.html \
 	$(DOCDIR)\core_internal_switch_.html \
-	$(DOCDIR)\core_internal_utf.html \
-	$(DOCDIR)\core_internal_convert.html \
-	$(DOCDIR)\core_internal_qsort.html \
 	$(DOCDIR)\core_internal_traits.html \
-	$(DOCDIR)\core_internal_lifetime.html \
-	$(DOCDIR)\core_internal_dassert.html \
+	$(DOCDIR)\core_internal_utf.html \
 	\
+	$(DOCDIR)\core_internal_array_arrayassign.html \
 	$(DOCDIR)\core_internal_array_capacity.html \
 	$(DOCDIR)\core_internal_array_casting.html \
 	$(DOCDIR)\core_internal_array_comparison.html \
 	$(DOCDIR)\core_internal_array_concatenation.html \
+	$(DOCDIR)\core_internal_array_duplication.html \
 	$(DOCDIR)\core_internal_array_equality.html \
 	$(DOCDIR)\core_internal_array_operations.html \
 	$(DOCDIR)\core_internal_array_utils.html \
@@ -59,10 +61,11 @@ DOCS=\
 	$(DOCDIR)\core_internal_elf_io.html \
 	\
 	$(DOCDIR)\core_internal_util_array.html \
-	$(IMPDIR)\core\internal\util\math.d \
+	$(DOCDIR)\core_internal_util_math.html \
 	\
-	$(DOCDIR)\core_internal_vararg_aarch64.html \
+	$(DOCDIR)\core_internal_vararg_aapcs64.html \
 	$(DOCDIR)\core_internal_vararg_sysv_x64.html \
+	$(DOCDIR)\core_internal_vararg_gnu.html \
 	\
 	$(DOCDIR)\core_internal_backtrace_dwarf.html \
 	$(DOCDIR)\core_internal_backtrace_elf.html \
@@ -85,6 +88,7 @@ DOCS=\
 	$(DOCDIR)\core_stdc_inttypes.html \
 	$(DOCDIR)\core_stdc_locale.html \
 	$(DOCDIR)\core_stdc_signal.html \
+	$(DOCDIR)\core_stdc_stdatomic.html \
 	$(DOCDIR)\core_stdc_stddef.html \
 	$(DOCDIR)\core_stdc_stdio.html \
 	$(DOCDIR)\core_stdc_string.html \
@@ -152,6 +156,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_darwin_sys_cdefs.html \
 	$(DOCDIR)\core_sys_darwin_sys_event.html \
 	$(DOCDIR)\core_sys_darwin_sys_mman.html \
+	$(DOCDIR)\core_sys_darwin_sys_sysctl.html \
 	\
 	$(DOCDIR)\core_sys_dragonflybsd_dlfcn.html \
 	$(DOCDIR)\core_sys_dragonflybsd_err.html \
@@ -173,6 +178,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_dragonflybsd_sys_link_elf.html \
 	$(DOCDIR)\core_sys_dragonflybsd_sys_mman.html \
 	$(DOCDIR)\core_sys_dragonflybsd_sys_socket.html \
+	$(DOCDIR)\core_sys_dragonflybsd_sys_sysctl.html \
 	\
 	$(DOCDIR)\core_sys_elf_package.html \
 	\
@@ -198,6 +204,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_freebsd_sys_mman.html \
 	$(DOCDIR)\core_sys_freebsd_sys_event.html \
 	$(DOCDIR)\core_sys_freebsd_sys_mount.html \
+	$(DOCDIR)\core_sys_freebsd_sys_sysctl.html \
 	\
 	$(DOCDIR)\core_sys_linux_config.html \
 	$(DOCDIR)\core_sys_linux_dlfcn.html \
@@ -210,6 +217,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_linux_ifaddrs.html \
 	$(DOCDIR)\core_sys_linux_io_uring.html \
 	$(DOCDIR)\core_sys_linux_link.html \
+	$(DOCDIR)\core_sys_linux_perf_event.html \
 	$(DOCDIR)\core_sys_linux_sched.html \
 	$(DOCDIR)\core_sys_linux_stdio.html \
 	$(DOCDIR)\core_sys_linux_string.html \
@@ -249,6 +257,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_netbsd_sys_featuretest.html \
 	$(DOCDIR)\core_sys_netbsd_sys_link_elf.html \
 	$(DOCDIR)\core_sys_netbsd_sys_mman.html \
+	$(DOCDIR)\core_sys_netbsd_sys_sysctl.html \
 	\
 	$(DOCDIR)\core_sys_openbsd_dlfcn.html \
 	$(DOCDIR)\core_sys_openbsd_err.html \
@@ -262,6 +271,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_openbsd_sys_elf_common.html \
 	$(DOCDIR)\core_sys_openbsd_sys_link_elf.html \
 	$(DOCDIR)\core_sys_openbsd_sys_mman.html \
+	$(DOCDIR)\core_sys_openbsd_sys_sysctl.html \
 	\
 	$(DOCDIR)\core_sys_posix_config.html \
 	$(DOCDIR)\core_sys_posix_iconv.html \
@@ -530,6 +540,7 @@ DOCS=\
 	$(DOCDIR)\core_builtins.html \
 	\
 	$(DOCDIR)\etc_linux_memoryerror.html \
+	$(DOCDIR)\etc_valgrind_valgrind.html \
 	\
 	$(DOCDIR)\core_internal_gc_bits.html \
 	$(DOCDIR)\core_internal_gc_blkcache.html \
@@ -572,7 +583,7 @@ DOCS=\
 	$(DOCDIR)\rt_profilegc.html \
 	$(DOCDIR)\rt_sections_elf_shared.html \
 	$(DOCDIR)\rt_sections_osx_x86.html \
-	$(DOCDIR)\rt_sections_osx_x86_64.html \
+	$(DOCDIR)\rt_sections_osx_64.html \
 	$(DOCDIR)\rt_monitor_.html \
 	$(DOCDIR)\rt_cover.html \
 	\

@@ -201,8 +201,16 @@ else
     static assert(false, "Unsupported platform");
 }
 
-passwd* getpwnam(const scope char*);
-passwd* getpwuid(uid_t);
+version (NetBSD)
+{
+    pragma(mangle, "__getpwnam50") passwd* getpwnam(const scope char*);
+    pragma(mangle, "__getpwuid50") passwd* getpwuid(uid_t);
+}
+else
+{
+    passwd* getpwnam(const scope char*);
+    passwd* getpwuid(uid_t);
+}
 
 //
 // Thread-Safe Functions (TSF)
@@ -230,9 +238,9 @@ else version (FreeBSD)
 else version (NetBSD)
 {
     int __getpwnam_r50(const scope char*, passwd*, char*, size_t, passwd**);
-    alias __getpwnam_r50 getpwnam_r;
+    alias getpwnam_r = __getpwnam_r50;
     int __getpwuid_r50(uid_t, passwd*, char*, size_t, passwd**);
-    alias __getpwuid_r50 getpwuid_r;
+    alias getpwuid_r = __getpwuid_r50;
 }
 else version (OpenBSD)
 {
@@ -301,7 +309,7 @@ else version (FreeBSD)
 else version (NetBSD)
 {
     void    endpwent();
-    passwd* getpwent();
+    pragma(mangle, "__getpwent50") passwd* getpwent();
     void    setpwent();
 }
 else version (OpenBSD)

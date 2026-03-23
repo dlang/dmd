@@ -3,8 +3,10 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/test9701.d(69): Deprecation: enum member `test9701.Enum.value7` is deprecated
-compilable/test9701.d(69): Deprecation: enum member `test9701.Enum.value8` is deprecated - message
+compilable/test9701.d(71): Deprecation: enum member `test9701.Enum.value7` is deprecated
+compilable/test9701.d(36):        `value7` is declared here
+compilable/test9701.d(71): Deprecation: enum member `test9701.Enum.value8` is deprecated - message
+compilable/test9701.d(37):        `value8` is declared here
 ---
 */
 

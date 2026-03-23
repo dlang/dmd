@@ -30,7 +30,7 @@ struct AT_ENUM {
     UCHAR Flags;
     LPWSTR Command;
 }
-alias AT_ENUM* PAT_ENUM, LPAT_ENUM;
+alias PAT_ENUM = AT_ENUM*, LPAT_ENUM = AT_ENUM*;
 
 struct AT_INFO {
     DWORD_PTR JobTime;
@@ -39,7 +39,7 @@ struct AT_INFO {
     UCHAR Flags;
     LPWSTR Command;
 }
-alias AT_INFO* PAT_INFO, LPAT_INFO;
+alias PAT_INFO = AT_INFO*, LPAT_INFO = AT_INFO*;
 
 extern (Windows) {
     NET_API_STATUS NetScheduleJobAdd(LPWSTR, PBYTE, LPDWORD);

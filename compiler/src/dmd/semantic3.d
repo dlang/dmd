@@ -3,7 +3,7 @@
  * function bodies and late semantic checks for templates, mixins,
  * aggregates, and special members.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/semantic3.d, _semantic3.d)
@@ -60,6 +60,7 @@ import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
 import dmd.root.filename;
+import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
@@ -75,6 +76,12 @@ import dmd.targetcompiler;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
+
+version (IN_GCC) { /* Not using Fast DFA */ }
+else version = FastDFA;
+
+version (FastDFA)
+    import dmd.dfa.entry;
 
 enum LOG = false;
 
@@ -196,7 +203,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
         // gets imported, it is unaffected by context.
-        Scope* sc = Scope.createGlobal(mod, global.errorSink); // create root scope
+        Scope* sc = scopeCreateGlobal(mod, global.errorSink); // create root scope
         //printf("Module = %p\n", sc.scopesym);
         if (mod.members)
         {
@@ -226,20 +233,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         import dmd.root.string : toDString;
         timeTraceBeginEvent(TimeTraceEventType.sema3);
         scope (exit) timeTraceEndEvent(TimeTraceEventType.sema3, funcdecl);
-
-        /* Determine if function should add `return 0;`
-         */
-        bool addReturn0()
-        {
-            //printf("addReturn0()\n");
-            auto f = funcdecl.type.isTypeFunction();
-
-            // C11 5.1.2.2.3
-            if (sc.inCfile && funcdecl.isCMain() && f.next.ty == Tint32)
-                return true;
-
-            return f.next.ty == Tvoid && (funcdecl.isMain() || funcdecl.isCMain());
-        }
 
         VarDeclaration _arguments = null;
 
@@ -301,7 +294,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             return;
         funcdecl.semanticRun = PASS.semantic3;
         funcdecl.hasSemantic3Errors = false;
-        funcdecl.saferD = sc.previews.safer;
+        funcdecl.saferD = sc.previews.safer && !sc.inCfile;
 
         if (!funcdecl.type || funcdecl.type.ty != Tfunction)
             return;
@@ -643,7 +636,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         Expression exp = (*funcdecl.returns)[i].exp;
                         if (exp.op == EXP.variable && (cast(VarExp)exp).var == funcdecl.vresult)
                         {
-                            if (addReturn0())
+                            if (fds.addReturn0())
                                 exp.type = Type.tint32;
                             else
                                 exp.type = f.next;
@@ -835,7 +828,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 if (funcdecl.returns)
                 {
-                    bool implicit0 = addReturn0();
+                    bool implicit0 = fds.addReturn0();
                     Type tret = implicit0 ? Type.tint32 : f.next;
                     assert(tret.ty != Tvoid);
                     if (funcdecl.vresult || funcdecl.returnLabel)
@@ -968,8 +961,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                             /* https://issues.dlang.org/show_bug.cgi?id=10789
                              * If NRVO is not possible, all returned lvalues should call their postblits.
+                             * For functions with a __result variable, postblits will be called later
+                             * during initialization of __result.
                              */
-                            if (!funcdecl.isNRVO)
+                            if (!funcdecl.isNRVO && !funcdecl.vresult)
                                 exp = doCopyOrMove(sc2, exp, f.next, true, true);
 
                             if (tret.hasPointers())
@@ -980,9 +975,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                         if (funcdecl.vresult)
                         {
-                            // Create: return vresult = exp;
-                            exp = new BlitExp(rs.loc, funcdecl.vresult, exp);
-                            exp.type = funcdecl.vresult.type;
+                            Scope* scret = rs.fesFunc ? rs.fesFunc._scope : sc2;
+
+                            // Create: return (vresult = exp, vresult);
+                            exp = new ConstructExp(rs.loc, funcdecl.vresult, exp);
+                            exp = exp.expressionSemantic(scret);
+                            exp = Expression.combine(exp, new VarExp(rs.loc, funcdecl.vresult));
 
                             if (rs.caseDim)
                                 exp = Expression.combine(exp, new IntegerExp(rs.caseDim));
@@ -1105,6 +1103,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
             else
             {
                 auto a = new Statements();
+
+                size_t expectedSize = (funcdecl.parameters ? funcdecl.parameters.length : 0) + 7;
+                    a.reserve(expectedSize);
+
                 // Merge in initialization of 'out' parameters
                 if (funcdecl.parameters)
                 {
@@ -1186,7 +1188,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         a.push(s);
                     }
                 }
-                if (addReturn0())
+                if (fds.addReturn0())
                 {
                     // Add a return 0; statement
                     Statement s = new ReturnStatement(Loc.initial, IntegerExp.literal!0);
@@ -1402,7 +1404,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 return false;
             }
-            if (isCppNonMappableType(f.next.toBasetype()))
+            if (isCppNonMappableType(f.next.toBasetype()) && !funcdecl.skipCodegen)
             {
                 .error(funcdecl.loc, "%s `%s` cannot return type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), f.next.toChars());
                 if (f.next.isTypeDArray())
@@ -1427,6 +1429,16 @@ private extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.type.isTypeFunction().isLive)
         {
             oblive(funcdecl);
+        }
+
+        version (FastDFA)
+        {
+            if (global.params.useFastDFA && global.errors == oldErrors && funcdecl.fbody && funcdecl.type.ty != Terror)
+            {
+                // Don't run DFA if there are errors,
+                //  this is a costly enough operation that it warrents the explicit check.
+                dfaEntry(funcdecl, sc);
+            }
         }
 
         /* If this function had instantiated with gagging, error reproduction will be
@@ -1607,6 +1619,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
     override void visit(TypeInfoAssociativeArrayDeclaration ti)
     {
+        if (ti.semanticRun >= PASS.semantic3)
+            return;
+        ti.semanticRun = PASS.semantic3;
+
         auto t = ti.tinfo.isTypeAArray();
         Loc loc = t.loc;
         auto sc2 = sc ? sc : ti._scope;
@@ -1620,6 +1636,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
             id = new DotIdExp(loc, id, Id.object);
             id = new DotIdExp(loc, id, Id.TypeInfo_AssociativeArray);
             return new DotTemplateInstanceExp(loc, id, hook, tiargs);
+        }
+
+        void notTemplateFunction(Loc loc, Identifier id)
+        {
+            error(loc, "`%s` isn't a template function", id.toChars());
         }
 
         // generate ti.entry
@@ -1636,21 +1657,36 @@ private extern(C++) final class Semantic3Visitor : Visitor
         semanticTypeInfo(sc2, ti.entry); // might get deferred
 
         // generate ti.xtoHash
-        auto hashinst = makeDotExp(Identifier.idPool("aaGetHash"));
+        auto aaGetHash = Identifier.idPool("aaGetHash");
+        auto hashinst = makeDotExp(aaGetHash);
         e = expressionSemantic(hashinst, sc2);
-        assert(e.isVarExp() && e.type.isTypeFunction());
-        ti.xtoHash = e.isVarExp().var;
-        if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
-            tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+        if (!e.isErrorExp())
+        {
+            if (!e.isVarExp() || !e.type.isTypeFunction())
+                notTemplateFunction(e.loc, aaGetHash);
+            else
+            {
+                ti.xtoHash = e.isVarExp().var;
+                if (auto tmpl = ti.xtoHash.parent.isTemplateInstance())
+                    tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+            }
+        }
 
         // generate ti.xopEqual
-        auto equalinst = makeDotExp(Identifier.idPool("aaOpEqual"));
+        auto aaOpEqual = Identifier.idPool("aaOpEqual");
+        auto equalinst = makeDotExp(aaOpEqual);
         e = expressionSemantic(equalinst, sc2);
-        assert(e.isVarExp() && e.type.isTypeFunction());
-        ti.xopEqual = e.isVarExp().var;
-        if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
-            tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
-
+        if (!e.isErrorExp())
+        {
+            if (!e.isVarExp() || !e.type.isTypeFunction())
+                notTemplateFunction(e.loc, aaOpEqual);
+            else
+            {
+                ti.xopEqual = e.isVarExp().var;
+                if (auto tmpl = ti.xopEqual.parent.isTemplateInstance())
+                    tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+            }
+        }
         visit(cast(ASTCodegen.TypeInfoDeclaration)ti);
     }
 }
@@ -1688,6 +1724,21 @@ private struct FuncDeclSem3
             }
         }
     }
+
+    /* Determine if function should add `return 0;`
+     */
+    bool addReturn0()
+    {
+        //printf("addReturn0()\n");
+        auto f = funcdecl.type.isTypeFunction();
+        if (!f) return false;
+
+        // C11 5.1.2.2.3
+        if (sc.inCfile && funcdecl.isCMain() && f.next.ty == Tint32)
+            return true;
+
+        return f.next.ty == Tvoid && (funcdecl.isMain() || funcdecl.isCMain());
+    }
 }
 
 /***************************************
@@ -1723,25 +1774,20 @@ FuncDeclaration search_toString(StructDeclaration sd)
  */
 void semanticTypeInfoMembers(StructDeclaration sd)
 {
-    if (sd.xeq &&
-        sd.xeq._scope &&
-        sd.xeq.semanticRun < PASS.semantic3done)
+    void runSemantic(ref FuncDeclaration fd, ref FuncDeclaration errFd)
     {
-        const errors = global.startGagging();
-        sd.xeq.semantic3(sd.xeq._scope);
-        if (global.endGagging(errors))
-            sd.xeq = sd.xerreq;
+        if (fd && fd._scope && fd.semanticRun < PASS.semantic3done)
+        {
+            const errors = global.startGagging();
+            fd.semantic3(fd._scope);
+            if (global.endGagging(errors))
+                fd = errFd;
+        }
     }
 
-    if (sd.xcmp &&
-        sd.xcmp._scope &&
-        sd.xcmp.semanticRun < PASS.semantic3done)
-    {
-        const errors = global.startGagging();
-        sd.xcmp.semantic3(sd.xcmp._scope);
-        if (global.endGagging(errors))
-            sd.xcmp = sd.xerrcmp;
-    }
+    runSemantic(sd.xeq, sd.xerreq);
+    runSemantic(sd.xcmp, sd.xerrcmp);
+
 
     FuncDeclaration ftostr = search_toString(sd);
     if (ftostr &&
@@ -1843,10 +1889,37 @@ extern (D) bool checkClosure(FuncDeclaration fd)
     else
     {
         fd.printGCUsage(fd.loc, "using closure causes GC allocation");
+
+        findClosureVars(fd, (FuncDeclaration f, VarDeclaration v) {
+            if (!fd.vgcEnabled)
+                return;
+
+            .message(f.loc, "vgc: %s `%s` closes over variable `%s`",
+                f.kind, f.toErrMsg(), v.toErrMsg());
+            if (v.ident != Id.This)
+                .message(v.loc, "vgc: `%s` declared here", v.toErrMsg());
+        });
         return false;
     }
 
+    findClosureVars(fd, (FuncDeclaration f, VarDeclaration v) {
+        .errorSupplemental(f.loc, "%s `%s` closes over variable `%s`",
+            f.kind, f.toErrMsg(), v.toErrMsg());
+        if (v.ident != Id.This)
+            .errorSupplemental(v.loc, "`%s` declared here", v.toErrMsg());
+    });
+    return true;
+}
+
+/// For an outer function `fd`, find inner functions that cause a closure to be generated for it.
+/// Pass to `sink` each nested function along with the local variable that closes over `fd`'s stackframe
+private void findClosureVars(FuncDeclaration fd, scope void delegate(FuncDeclaration, VarDeclaration) sink)
+{
     FuncDeclarations a;
+
+    if (fd.closureVars.length > 0)
+        a.reserve(fd.closureVars.length);
+
     foreach (v; fd.closureVars)
     {
         foreach (f; v.nestedrefs)
@@ -1859,26 +1932,16 @@ extern (D) bool checkClosure(FuncDeclaration fd)
                 auto fx = s.isFuncDeclaration();
                 if (!fx)
                     continue;
-                if (fx.isThis() ||
-                    fx.tookAddressOf ||
-                    checkEscapingSiblings(fx, fd))
+                if (fx.isThis() || fx.tookAddressOf || checkEscapingSiblings(fx, fd))
                 {
-                    foreach (f2; a)
+                    if (!a.contains(f))
                     {
-                        if (f2 == f)
-                            break LcheckAncestorsOfANestedRef;
+                        a.push(f);
+                        sink(f, v);
                     }
-                    a.push(f);
-                    .errorSupplemental(f.loc, "%s `%s` closes over variable `%s`",
-                        f.kind, f.toErrMsg(), v.toChars());
-                    if (v.ident != Id.This)
-                        .errorSupplemental(v.loc, "`%s` declared here", v.toChars());
-
                     break LcheckAncestorsOfANestedRef;
                 }
             }
         }
     }
-
-    return true;
 }

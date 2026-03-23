@@ -1,7 +1,7 @@
 /**
  * Break down a D type into basic (register) types for the x86_64 System V ABI.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     Martin Kinkelin
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/argtypes_sysv_x64.d, _argtypes_sysv_x64.d)
@@ -11,11 +11,13 @@
 
 module dmd.argtypes_sysv_x64;
 
+import core.stdc.stdio;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.dsymbolsem : isPOD;
 import dmd.mtype;
 import dmd.typesem;
+import dmd.expressionsem : toInteger;
 import dmd.target;
 import dmd.visitor;
 
@@ -94,7 +96,10 @@ TypeTuple toArgTypes_sysv_x64(Type t)
                                       Type.tfloat32;
         }
         else
+        {
+            debug printf("class: %d\n", c);
             assert(0, "Unexpected class");
+        }
     }
 
     return N == 1

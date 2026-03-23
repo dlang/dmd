@@ -77,15 +77,15 @@ struct TLIBATTR {
     WORD wMinorVerNum;
     WORD wLibFlags;
 }
-alias TLIBATTR* LPTLIBATTR;
+alias LPTLIBATTR = TLIBATTR*;
 
-alias CY CURRENCY;
+alias CURRENCY = CY;
 
 struct SAFEARRAYBOUND {
     ULONG cElements;
     LONG lLbound;
 }
-alias SAFEARRAYBOUND* LPSAFEARRAYBOUND;
+alias LPSAFEARRAYBOUND = SAFEARRAYBOUND*;
 
 struct SAFEARR_BSTR {
     ULONG Size;
@@ -125,7 +125,7 @@ struct _wireBRECORD {
     LPRECORDINFO* pRecInfo;
     byte* pRecord;
 }
-alias _wireBRECORD* wireBRECORD;
+alias wireBRECORD = _wireBRECORD*;
 
 struct SAFEARR_BRECORD {
     ULONG Size;
@@ -163,9 +163,9 @@ struct _wireSAFEARRAY {
     SAFEARRAYUNION uArrayStructs;
     SAFEARRAYBOUND[1] rgsabound;
 }
-alias _wireSAFEARRAY* wireSAFEARRAY;
+alias wireSAFEARRAY = _wireSAFEARRAY*;
 
-alias wireSAFEARRAY* wirePSAFEARRAY;
+alias wirePSAFEARRAY = wireSAFEARRAY*;
 
 struct SAFEARRAY {
     USHORT cDims;
@@ -175,7 +175,7 @@ struct SAFEARRAY {
     PVOID pvData;
     SAFEARRAYBOUND[1] rgsabound;
 }
-alias SAFEARRAY* LPSAFEARRAY;
+alias LPSAFEARRAY = SAFEARRAY*;
 
 struct VARIANT {
     union {
@@ -238,10 +238,10 @@ struct VARIANT {
         DECIMAL decVal;
     }
 }
-alias VARIANT* LPVARIANT;
+alias LPVARIANT = VARIANT*;
 
-alias VARIANT VARIANTARG;
-alias VARIANT* LPVARIANTARG;
+alias VARIANTARG = VARIANT;
+alias LPVARIANTARG = VARIANT*;
 
 struct _wireVARIANT {
     DWORD clSize;
@@ -297,11 +297,11 @@ struct _wireVARIANT {
         UINT* puintVal;
     }
 }
-alias _wireVARIANT* wireVARIANT;
+alias wireVARIANT = _wireVARIANT*;
 
-alias LONG DISPID;
-alias DISPID MEMBERID;
-alias DWORD HREFTYPE;
+alias DISPID = LONG;
+alias MEMBERID = DISPID;
+alias HREFTYPE = DWORD;
 
 enum TYPEKIND {
     TKIND_ENUM, TKIND_RECORD, TKIND_MODULE, TKIND_INTERFACE, TKIND_DISPATCH,
@@ -327,19 +327,19 @@ struct PARAMDESCEX {
     ULONG cBytes;
     VARIANTARG varDefaultValue;
 }
-alias PARAMDESCEX* LPPARAMDESCEX;
+alias LPPARAMDESCEX = PARAMDESCEX*;
 
 struct PARAMDESC {
     LPPARAMDESCEX pparamdescex;
     USHORT wParamFlags;
 }
-alias PARAMDESC* LPPARAMDESC;
+alias LPPARAMDESC = PARAMDESC*;
 
 struct IDLDESC {
     ULONG_PTR dwReserved;
     USHORT wIDLFlags;
 }
-alias IDLDESC* LPIDLDESC;
+alias LPIDLDESC = IDLDESC*;
 
 struct ELEMDESC {
     TYPEDESC tdesc;
@@ -348,7 +348,7 @@ struct ELEMDESC {
         PARAMDESC paramdesc;
     }
 }
-alias ELEMDESC* LPELEMDESC;
+alias LPELEMDESC = ELEMDESC*;
 
 struct TYPEATTR {
     GUID guid;
@@ -370,7 +370,7 @@ struct TYPEATTR {
     TYPEDESC tdescAlias;
     IDLDESC idldescType;
 }
-alias TYPEATTR* LPTYPEATTR;
+alias LPTYPEATTR = TYPEATTR*;
 
 struct DISPPARAMS {
     VARIANTARG* rgvarg;
@@ -392,7 +392,7 @@ struct EXCEPINFO {
     }
     SCODE scode;
 }
-alias EXCEPINFO* LPEXCEPINFO;
+alias LPEXCEPINFO = EXCEPINFO*;
 
 enum CALLCONV {
     CC_FASTCALL,
@@ -437,7 +437,7 @@ struct FUNCDESC {
     ELEMDESC elemdescFunc;
     WORD wFuncFlags;
 }
-alias FUNCDESC* LPFUNCDESC;
+alias LPFUNCDESC = FUNCDESC*;
 
 enum VARKIND {
     VAR_PERINSTANCE, VAR_STATIC, VAR_CONST, VAR_DISPATCH
@@ -454,7 +454,7 @@ struct VARDESC {
     WORD wVarFlags;
     VARKIND varkind;
 }
-alias VARDESC* LPVARDESC;
+alias LPVARDESC = VARDESC*;
 
 enum TYPEFLAGS {
     TYPEFLAG_FAPPOBJECT     = 1,
@@ -515,13 +515,13 @@ struct CUSTDATAITEM {
     GUID guid;
     VARIANTARG varValue;
 }
-alias CUSTDATAITEM* LPCUSTDATAITEM;
+alias LPCUSTDATAITEM = CUSTDATAITEM*;
 
 struct CUSTDATA {
     DWORD cCustData;
     LPCUSTDATAITEM prgCustData;
 }
-alias CUSTDATA* LPCUSTDATA;
+alias LPCUSTDATA = CUSTDATA*;
 
 enum DESCKIND {
     DESCKIND_NONE = 0,
@@ -537,7 +537,7 @@ union BINDPTR {
     LPVARDESC lpvardesc;
     LPTYPECOMP lptcomp;
 }
-alias BINDPTR* LPBINDPTR;
+alias LPBINDPTR = BINDPTR*;
 
 interface IDispatch : IUnknown {
     HRESULT GetTypeInfoCount(UINT*);
@@ -545,7 +545,7 @@ interface IDispatch : IUnknown {
     HRESULT GetIDsOfNames(REFIID, LPOLESTR*, UINT, LCID, DISPID*);
     HRESULT Invoke(DISPID, REFIID, LCID, WORD, DISPPARAMS*, VARIANT*, EXCEPINFO*, UINT*);
 }
-alias IDispatch LPDISPATCH;
+alias LPDISPATCH = IDispatch;
 
 interface IEnumVARIANT : IUnknown {
     HRESULT Next(ULONG, VARIANT*, ULONG*);
@@ -553,13 +553,13 @@ interface IEnumVARIANT : IUnknown {
     HRESULT Reset();
     HRESULT Clone(IEnumVARIANT*);
 }
-alias IEnumVARIANT LPENUMVARIANT;
+alias LPENUMVARIANT = IEnumVARIANT;
 
 interface ITypeComp : IUnknown {
     HRESULT Bind(LPOLESTR, ULONG, WORD, LPTYPEINFO*, DESCKIND*, LPBINDPTR);
     HRESULT BindType(LPOLESTR, ULONG, LPTYPEINFO*, LPTYPECOMP*);
 }
-alias ITypeComp LPTYPECOMP;
+alias LPTYPECOMP = ITypeComp;
 
 interface ITypeInfo : IUnknown {
     HRESULT GetTypeAttr(LPTYPEATTR*);
@@ -583,7 +583,7 @@ interface ITypeInfo : IUnknown {
     void ReleaseFuncDesc(LPFUNCDESC);
     void ReleaseVarDesc(LPVARDESC);
 }
-alias ITypeInfo LPTYPEINFO;
+alias LPTYPEINFO = ITypeInfo;
 
 interface ITypeInfo2 : ITypeInfo {
     HRESULT GetTypeKind(TYPEKIND*);
@@ -602,7 +602,7 @@ interface ITypeInfo2 : ITypeInfo {
     HRESULT GetAllVarCustData(UINT, CUSTDATA*);
     HRESULT GetAllImplTypeCustData(UINT, CUSTDATA*);
 }
-alias ITypeInfo2 LPTYPEINFO2;
+alias LPTYPEINFO2 = ITypeInfo2;
 
 interface ITypeLib : IUnknown {
     UINT GetTypeInfoCount();
@@ -616,7 +616,7 @@ interface ITypeLib : IUnknown {
     HRESULT FindName(LPOLESTR, ULONG, ITypeInfo*, MEMBERID*, USHORT*);
     void ReleaseTLibAttr(TLIBATTR*);
 }
-alias ITypeLib LPTYPELIB;
+alias LPTYPELIB = ITypeLib;
 
 interface ITypeLib2 : ITypeLib {
     HRESULT GetCustData(REFGUID, VARIANT*);
@@ -624,7 +624,7 @@ interface ITypeLib2 : ITypeLib {
     HRESULT GetDocumentation2(INT, LCID, BSTR*, DWORD*, BSTR*);
     HRESULT GetAllCustData(CUSTDATA*);
 }
-alias ITypeLib2 LPTYPELIB2;
+alias LPTYPELIB2 = ITypeLib2;
 
 interface IErrorInfo : IUnknown {
     HRESULT GetGUID(GUID*);
@@ -633,7 +633,7 @@ interface IErrorInfo : IUnknown {
     HRESULT GetHelpFile(BSTR*);
     HRESULT GetHelpContext(DWORD*);
 }
-alias IErrorInfo LPERRORINFO;
+alias LPERRORINFO = IErrorInfo;
 
 interface ICreateErrorInfo : IUnknown {
     HRESULT SetGUID(REFGUID);
@@ -642,12 +642,12 @@ interface ICreateErrorInfo : IUnknown {
     HRESULT SetHelpFile(LPOLESTR);
     HRESULT SetHelpContext(DWORD);
 }
-alias ICreateErrorInfo LPCREATEERRORINFO;
+alias LPCREATEERRORINFO = ICreateErrorInfo;
 
 interface ISupportErrorInfo : IUnknown {
     HRESULT InterfaceSupportsErrorInfo(REFIID);
 }
-alias ISupportErrorInfo LPSUPPORTERRORINFO;
+alias LPSUPPORTERRORINFO = ISupportErrorInfo;
 
 interface IRecordInfo : IUnknown {
     HRESULT RecordInit(PVOID);
@@ -667,7 +667,7 @@ interface IRecordInfo : IUnknown {
     HRESULT RecordCreateCopy(PVOID, PVOID*);
     HRESULT RecordDestroy (PVOID);
 }
-alias IRecordInfo LPRECORDINFO;
+alias LPRECORDINFO = IRecordInfo;
 
 interface ITypeMarshal : IUnknown {
     HRESULT Size(PVOID, DWORD, PVOID, ULONG*);

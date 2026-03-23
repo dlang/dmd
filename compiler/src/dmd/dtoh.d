@@ -2,7 +2,7 @@
  * This module contains the implementation of the C++ header generation available through
  * the command line switch -Hc.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dtoh.d, _dtoh.d)
@@ -18,9 +18,10 @@ import core.stdc.ctype;
 import dmd.astcodegen;
 import dmd.astenums;
 import dmd.arraytypes;
-import dmd.attrib;
-import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.templatesem : computeOneMember;
+import dmd.expressionsem : toInteger;
+import dmd.funcsem : isVirtual;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.globals;
@@ -580,7 +581,6 @@ public:
         debug (Debug_DtoH)
         {
             mixin(traceVisit!s);
-            import dmd.asttypename;
             printf("[AST.Dsymbol enter] %s\n", s.astTypeName().ptr);
         }
     }
@@ -1065,6 +1065,9 @@ public:
 
         if (adparent)
         {
+            if (vd.ident && vd.ident == Id.__monitor)
+                return;
+
             writeProtection(vd.visibility.kind);
             typeToBuffer(type, vd, true);
             buf.writestringln(";");
@@ -1754,7 +1757,6 @@ public:
         // `this` but accessible via `outer`
         if (auto td = s.isThisDeclaration())
         {
-            import dmd.id;
             this.ident = Id.outer;
         }
         else
@@ -2147,6 +2149,7 @@ public:
         if (!shouldEmitAndMarkVisited(td))
             return;
 
+        td.computeOneMember();
         if (!td.parameters || !td.onemember || (!td.onemember.isStructDeclaration && !td.onemember.isClassDeclaration && !td.onemember.isFuncDeclaration))
         {
             visit(cast(AST.Dsymbol)td);
@@ -2703,7 +2706,6 @@ public:
         }
         else
         {
-            import dmd.hdrgen;
             // Hex floating point literals were introduced in C++ 17
             const allowHex = global.params.cplusplus >= CppStdRevision.cpp17;
             floatToBuffer(e.type, e.value, *buf, allowHex);

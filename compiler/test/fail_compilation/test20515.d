@@ -2,8 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test20515.d:16: Deprecation: function `test20515.foo` is deprecated
-fail_compilation/test20515.d:17: Error: undefined identifier `bar`
+fail_compilation/test20515.d:17: Deprecation: function `test20515.foo` is deprecated
+fail_compilation/test20515.d:13:        `foo` is declared here
+fail_compilation/test20515.d:18: Error: undefined identifier `bar`
 ---
 */
 

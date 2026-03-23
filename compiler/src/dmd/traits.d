@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/traits.html, Traits)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/traits.d, _traits.d)
@@ -17,14 +17,12 @@ import core.stdc.stdio;
 
 import dmd.aggregate;
 import dmd.arraytypes;
-import dmd.astcodegen;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.attribsem;
 import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
-import dmd.dimport;
 import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
@@ -46,7 +44,6 @@ import dmd.mangle : decoToType;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.optimize;
-import dmd.parse;
 import dmd.root.array;
 import dmd.root.speller;
 import dmd.root.stringtable;
@@ -54,9 +51,7 @@ import dmd.target;
 import dmd.templatesem : TemplateInstance_semanticTiargs, TemplateInstanceBox;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
 import dmd.rootobject;
-import dmd.common.outbuffer;
 import dmd.root.string;
 
 enum LOGSEMANTIC = false;
@@ -170,11 +165,14 @@ ulong getTypePointerBitmap(Loc loc, Type t, ref Array!(ulong) data, ErrorSink eS
             ulong nextsize = t.next.size();
             if (nextsize == SIZE_INVALID)
                 error = true;
-            ulong dim = t.dim.toInteger();
-            for (ulong i = 0; i < dim; i++)
+            if (t.hasPointers)
             {
-                offset = arrayoff + i * nextsize;
-                visit(t.next);
+                ulong dim = t.dim.toInteger();
+                for (ulong i = 0; i < dim; i++)
+                {
+                    offset = arrayoff + i * nextsize;
+                    visit(t.next);
+                }
             }
             offset = arrayoff;
         }
@@ -269,6 +267,8 @@ ulong getTypePointerBitmap(Loc loc, Type t, ref Array!(ulong) data, ErrorSink eS
                 visitTopLevelClass(t.sym.baseClass.type.isTypeClass());
             foreach (v; t.sym.fields)
             {
+                if (v.ident == Id.__monitor)
+                    continue; // __monitor is not GC-managed
                 offset = classoff + v.offset;
                 visit(v.type);
             }
@@ -445,6 +445,27 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         });
     }
 
+    if (e.ident == Id.isOverlapped)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        return isDeclX((d)
+        {
+            auto v = d.isVarDeclaration();
+            if (!v || !v.isField())
+                return false;
+
+            // Ensure semantic analysis is complete
+            if (auto agg = v.toParent().isAggregateDeclaration())
+            {
+                if (agg.semanticRun < PASS.semanticdone)
+                    agg.dsymbolSemantic(null);
+            }
+
+            return v.overlapped;
+        });
+    }
     if (e.ident == Id.isArithmetic)
     {
         return isTypeX(t => t.isIntegral() || t.isFloating());
@@ -590,7 +611,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
-        t = t.toBasetype();     // get the base in case `t` is an `enum`
+        // get enum base or static array element type
+        t = t.baseElemOf();
 
         if (auto ts = t.isTypeStruct())
         {
@@ -598,6 +620,36 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         return isCopyable(t) ? True() : False();
+    }
+    if (e.ident == Id.needsDestruction)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        auto t = isType(o);
+        if (!t)
+        {
+            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+                    e.ident.toChars(), o.toChars());
+            return ErrorExp.get();
+        }
+        // FIXME should just check t.needsDestruction() but that doesn't run dsymbolSemantic
+
+        // T[0]
+        if (!t.size())
+            return False();
+
+        // get the base in case `t` is an `enum`
+        // handle static arrays
+        t = t.baseElemOf();
+        if (auto ts = t.isTypeStruct())
+        {
+            ts.sym.dsymbolSemantic(sc);
+            if (ts.sym.dtor)
+                return True();
+        }
+        return False();
     }
 
     if (e.ident == Id.isNested)
@@ -1097,6 +1149,18 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 // Prevent semantic() from replacing Symbol with its initializer
                 die.wantsym = true;
             ex = ex.expressionSemantic(scx);
+            if (ex)
+            {
+                import dmd.access : symbolIsVisible;
+                import dmd.safe : setUnsafe;
+                auto msym = getDsymbolWithoutExpCtx(ex);
+                // https://github.com/dlang/dmd/issues/19721
+                if (msym && !symbolIsVisible(sc, msym))
+                {
+                    if (sc.setUnsafe(false, e.loc, "accessing member `%s`", id))
+                        return ErrorExp.get();
+                }
+            }
             return ex;
         }
         else if (e.ident == Id.getVirtualFunctions ||
@@ -1198,8 +1262,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                             // create an empty AA just to copy it
                             scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
                             auto tib = TemplateInstanceBox(ti);
-                            td.instances[tib] = null;
-                            td.instances.clear();
+                            (*(cast(TemplateInstance[TemplateInstanceBox]*) &td.instances))[tib] = null;
+                            (cast(TemplateInstance[TemplateInstanceBox])td.instances).clear();
                         }
                         td = td.syntaxCopy(null);
                         import core.stdc.string : memcpy;
@@ -1686,6 +1750,11 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", s.toChars());
             return ErrorExp.get();
         }
+        // https://issues.dlang.org/show_bug.cgi?id=13668
+        // https://github.com/dlang/dmd/issues/22524
+        // resolve forward references
+        if (sds.semanticRun < PASS.semanticdone)
+            sds.dsymbolSemantic(sc);
 
         auto idents = new Identifiers();
 
@@ -1719,6 +1788,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 // Skip over internal members in __traits(allMembers)
                 if ((sm.isCtorDeclaration() && sm.ident != Id.ctor) ||
                     (sm.isDtorDeclaration() && sm.ident != Id.dtor) ||
+                    (sm.ident == Id.__monitor) ||
                     (sm.isPostBlitDeclaration() && sm.ident != Id.postblit) ||
                     sm.isInvariantDeclaration() ||
                     sm.isUnitTestDeclaration())
@@ -1764,10 +1834,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto cd = sds.isClassDeclaration();
         if (cd && e.ident == Id.allMembers)
         {
-            if (cd.semanticRun < PASS.semanticdone)
-                cd.dsymbolSemantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668
-                                   // Try to resolve forward reference
-
             void pushBaseMembersDg(ClassDeclaration cd)
             {
                 for (size_t i = 0; i < cd.baseclasses.length; i++)
@@ -2244,8 +2310,8 @@ private bool isSame(RootObject o1, RootObject o2, Scope* sc)
     // https://issues.dlang.org/show_bug.cgi?id=12001, allow isSame, <BasicType>, <BasicType>
     Type t1 = isType(o1);
     Type t2 = isType(o2);
-    if (t1 && t2 && t1.equals(t2))
-        return true;
+    if (t1 && t2)
+        return t1.equals(t2);
 
     auto s1 = getDsymbol(o1);
     auto s2 = getDsymbol(o2);
@@ -2346,7 +2412,7 @@ private void traitNotFound(TraitsExp e)
         initialized = true;     // lazy initialization
 
         // All possible traits
-        __gshared Identifier*[59] idents =
+        __gshared Identifier*[60] idents =
         [
             &Id.allMembers,
             &Id.child,
@@ -2378,6 +2444,7 @@ private void traitNotFound(TraitsExp e)
             &Id.identifier,
             &Id.isAbstractClass,
             &Id.isAbstractFunction,
+            &Id.isOverlapped,
             &Id.isArithmetic,
             &Id.isAssociativeArray,
             &Id.isCopyable,

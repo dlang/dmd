@@ -1,7 +1,7 @@
 /**
  * Contains high-level interfaces for interacting with DMD as a library.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/frontend.d, _id.d)
@@ -125,6 +125,7 @@ void initDMD(
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target, defaultTargetOS, addDefaultVersionIdentifiers;
+    import dmd.typesem : Type_init;
 
     .diagnosticHandler = diagnosticHandler;
     .fatalErrorHandler = fatalErrorHandler;
@@ -147,7 +148,7 @@ void initDMD(
     target.isX86_64 = (size_t.sizeof == 8);
     target.isX86 = !target.isX86_64;
     target._init(global.params);
-    Type._init();
+    Type_init();
     Id.initialize();
     Module._init();
     Expression._init();
@@ -183,6 +184,7 @@ void deinitializeDMD()
     import dmd.objc : Objc;
     import dmd.target : target;
     import dmd.errors : diagnostics;
+    import dmd.dfa.fast.structure : DFAAllocator;
 
     diagnosticHandler = null;
     fatalErrorHandler = null;
@@ -198,6 +200,7 @@ void deinitializeDMD()
     Objc.deinitialize();
     Dsymbol.deinitialize();
     EscapeState.reset();
+    DFAAllocator.deinitialize();
 
     diagnostics.length = 0;
 }

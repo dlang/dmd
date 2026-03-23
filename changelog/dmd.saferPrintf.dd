@@ -1,0 +1,27 @@
+Allow certain `pragma(printf)` function calls to be treated as `@safe`
+
+`printf` function calls in general are unsafe. Many calls, however,
+can be automatically checked for safety.
+
+This change allows calling a $(DDSUBLINK spec/pragma, printf,
+`pragma(printf)`) function from @safe code when:
+
+- the callee is marked `@safe` or `@trusted`
+- the format string passed is a literal
+- no zero-terminated string format specifiers are used
+
+Note: `pragma(printf)` already enforces type safety.
+
+For example:
+
+```d
+extern(C) pragma(printf)
+void printf(const char* format, ...) @trusted;
+
+@safe void func(int i, char* s)
+{
+    printf("i is %d\n", i);  // allowed
+    printf("s is %s\n", s);  // Error: call is not safe
+    printf(s);               // Error: call is not safe
+}
+```

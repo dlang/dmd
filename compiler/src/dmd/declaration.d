@@ -2,7 +2,7 @@
  * Miscellaneous declarations, including typedef, alias, variable declarations including the
  * implicit this declaration, type tuples, ClassInfo, ModuleInfo and various TypeInfos.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/declaration.d, _declaration.d)
@@ -16,11 +16,6 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.ctorflow;
-import dmd.dclass;
-import dmd.delegatize;
-import dmd.dscope;
-import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
@@ -28,7 +23,6 @@ import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
-import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -36,11 +30,9 @@ import dmd.intrange;
 import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
-import dmd.rootobject;
 import dmd.root.filename;
 import dmd.target;
 import dmd.targetcompiler;
-import dmd.tokens;
 import dmd.visitor;
 
 
@@ -369,7 +361,7 @@ extern (C++) final class AliasDeclaration : Declaration
         //printf("AliasDeclaration::syntaxCopy()\n");
         assert(!s);
         AliasDeclaration sa = type ? new AliasDeclaration(loc, ident, type.syntaxCopy()) : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
-        sa.comment = comment;
+        sa.addComment(comment);
         sa.storage_class = storage_class;
         return sa;
     }
@@ -429,6 +421,8 @@ extern (C++) final class OverDeclaration : Declaration
 }
 
 /***********************************************************
+ * Note: dsymbolSemantic turns a VarDeclaration inside a function into
+ * AssignExp(e1: VarExp, e2: ConstructExp or BlitExp).
  */
 extern (C++) class VarDeclaration : Declaration
 {
@@ -518,7 +512,7 @@ extern (C++) class VarDeclaration : Declaration
         //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
         auto v = new VarDeclaration(loc, type ? type.syntaxCopy() : null, ident, _init ? _init.syntaxCopy() : null, storage_class);
-        v.comment = comment;
+        v.addComment(comment);
         return v;
     }
 
@@ -671,9 +665,9 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
     uint fieldWidth;
     uint bitOffset;
 
-    final extern (D) this(Loc loc, Type type, Identifier ident, Expression width)
+    final extern (D) this(Loc loc, Type type, Identifier ident, Expression width, Initializer _init = null)
     {
-        super(loc, type, ident, null);
+        super(loc, type, ident, _init);
         this.dsym = DSYM.bitFieldDeclaration;
         this.width = width;
         this.storage_class |= STC.field;
@@ -683,40 +677,14 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
     {
         //printf("BitFieldDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
-        auto bf = new BitFieldDeclaration(loc, type ? type.syntaxCopy() : null, ident, width.syntaxCopy());
-        bf.comment = comment;
+        auto bf = new BitFieldDeclaration(loc, type ? type.syntaxCopy() : null, ident, width.syntaxCopy(), _init ? _init.syntaxCopy() : null);
+        bf.addComment(comment);
         return bf;
     }
 
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    /***********************************
-     * Retrieve the .min or .max values.
-     * Only valid after semantic analysis.
-     * Params:
-     *  id = Id.min or Id.max
-     * Returns:
-     *  the min or max value
-     */
-    final ulong getMinMax(Identifier id)
-    {
-        const width = fieldWidth;
-        const uns = type.isUnsigned();
-        const min = id == Id.min;
-        ulong v;
-        assert(width != 0);  // should have been rejected in semantic pass
-        if (width == ulong.sizeof * 8)
-            v = uns ? (min ? ulong.min : ulong.max)
-                    : (min ?  long.min :  long.max);
-        else
-            v = uns ? (min ? 0
-                           : (1L << width) - 1)
-                    : (min ? -(1L << (width - 1))
-                           :  (1L << (width - 1)) - 1);
-        return v;
     }
 }
 
@@ -957,8 +925,8 @@ extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
 extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
 {
     Type entry; // type of TypeInfo_AssociativeArray.Entry!(t.index, t.next)
-    Dsymbol xopEqual; // implementation of TypeInfo_AssociativeArray.equals
-    Dsymbol xtoHash;  // implementation of TypeInfo_AssociativeArray.getHash
+    Declaration xopEqual; // implementation of TypeInfo_AssociativeArray.equals
+    Declaration xtoHash;  // implementation of TypeInfo_AssociativeArray.getHash
 
     extern (D) this(Type tinfo)
     {

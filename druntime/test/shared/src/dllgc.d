@@ -42,9 +42,9 @@ version(DLL)
 
     static ~this()
     {
-        // creating thread in shutdown should fail when statically linked
+        // creating thread in shutdown should fail (term no longer available)
         auto tsk = new Task;
-        assert((tsk.tid != ThreadID.init) == isSharedDRuntime());
+        assert(tsk.tid == ThreadID.init);
     }
 }
 else

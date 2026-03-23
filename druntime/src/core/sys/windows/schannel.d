@@ -69,30 +69,30 @@ struct SCHANNEL_CRED {
     DWORD           dwFlags;
     DWORD           reserved;
 }
-alias SCHANNEL_CRED* PSCHANNEL_CRED;
+alias PSCHANNEL_CRED = SCHANNEL_CRED*;
 
 struct SecPkgCred_SupportedAlgs {
     DWORD   cSupportedAlgs;
     ALG_ID* palgSupportedAlgs;
 }
-alias SecPkgCred_SupportedAlgs* PSecPkgCred_SupportedAlgs;
+alias PSecPkgCred_SupportedAlgs = SecPkgCred_SupportedAlgs*;
 
 struct SecPkgCred_CypherStrengths {
     DWORD dwMinimumCypherStrength;
     DWORD dwMaximumCypherStrength;
 }
-alias SecPkgCred_CypherStrengths* PSecPkgCred_CypherStrengths;
+alias PSecPkgCred_CypherStrengths = SecPkgCred_CypherStrengths*;
 
 struct SecPkgCred_SupportedProtocols {
     DWORD grbitProtocol;
 }
-alias SecPkgCred_SupportedProtocols* PSecPkgCred_SupportedProtocols;
+alias PSecPkgCred_SupportedProtocols = SecPkgCred_SupportedProtocols*;
 
 struct SecPkgContext_IssuerListInfoEx {
     PCERT_NAME_BLOB aIssuers;
     DWORD           cIssuers;
 }
-alias SecPkgContext_IssuerListInfoEx* PSecPkgContext_IssuerListInfoEx;
+alias PSecPkgContext_IssuerListInfoEx = SecPkgContext_IssuerListInfoEx*;
 
 struct SecPkgContext_ConnectionInfo {
     DWORD  dwProtocol;
@@ -103,4 +103,4 @@ struct SecPkgContext_ConnectionInfo {
     ALG_ID aiExch;
     DWORD  dwExchStrength;
 }
-alias SecPkgContext_ConnectionInfo* PSecPkgContext_ConnectionInfo;
+alias PSecPkgContext_ConnectionInfo = SecPkgContext_ConnectionInfo*;

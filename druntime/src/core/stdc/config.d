@@ -122,34 +122,34 @@ version (GNU)
 {
     import gcc.builtins;
 
-    alias __builtin_clong  c_long;
-    alias __builtin_culong c_ulong;
+    alias c_long = __builtin_clong;
+    alias c_ulong = __builtin_culong;
 
     enum __c_long  : __builtin_clong;
     enum __c_ulong : __builtin_culong;
 
-    alias __c_long  cpp_long;
-    alias __c_ulong cpp_ulong;
+    alias cpp_long = __c_long;
+    alias cpp_ulong = __c_ulong;
 
     enum __c_longlong  : __builtin_clonglong;
     enum __c_ulonglong : __builtin_culonglong;
 
-    alias __c_longlong  cpp_longlong;
-    alias __c_ulonglong cpp_ulonglong;
+    alias cpp_longlong = __c_longlong;
+    alias cpp_ulonglong = __c_ulonglong;
 }
 else version (Windows)
 {
     enum __c_long  : int;
     enum __c_ulong : uint;
 
-    alias int   c_long;
-    alias uint  c_ulong;
+    alias c_long = int;
+    alias c_ulong = uint;
 
-    alias __c_long   cpp_long;
-    alias __c_ulong  cpp_ulong;
+    alias cpp_long = __c_long;
+    alias cpp_ulong = __c_ulong;
 
-    alias long  cpp_longlong;
-    alias ulong cpp_ulonglong;
+    alias cpp_longlong = long;
+    alias cpp_ulonglong = ulong;
 }
 else version (Posix)
 {
@@ -158,28 +158,28 @@ else version (Posix)
     enum __c_longlong  : long;
     enum __c_ulonglong : ulong;
 
-    alias long  c_long;
-    alias ulong c_ulong;
+    alias c_long = long;
+    alias c_ulong = ulong;
 
-    alias long   cpp_long;
-    alias ulong  cpp_ulong;
+    alias cpp_long = long;
+    alias cpp_ulong = ulong;
 
-    alias __c_longlong  cpp_longlong;
-    alias __c_ulonglong cpp_ulonglong;
+    alias cpp_longlong = __c_longlong;
+    alias cpp_ulonglong = __c_ulonglong;
   }
   else
   {
     enum __c_long  : int;
     enum __c_ulong : uint;
 
-    alias int   c_long;
-    alias uint  c_ulong;
+    alias c_long = int;
+    alias c_ulong = uint;
 
-    alias __c_long   cpp_long;
-    alias __c_ulong  cpp_ulong;
+    alias cpp_long = __c_long;
+    alias cpp_ulong = __c_ulong;
 
-    alias long  cpp_longlong;
-    alias ulong cpp_ulonglong;
+    alias cpp_longlong = long;
+    alias cpp_ulonglong = ulong;
   }
 }
 else version (WASI)
@@ -189,28 +189,28 @@ else version (WASI)
         enum __c_longlong  : long;
         enum __c_ulonglong : ulong;
 
-        alias long  c_long;
-        alias ulong c_ulong;
+        alias c_long = long;
+        alias c_ulong = ulong;
 
-        alias long   cpp_long;
-        alias ulong  cpp_ulong;
+        alias cpp_long = long;
+        alias cpp_ulong = ulong;
 
-        alias __c_longlong  cpp_longlong;
-        alias __c_ulonglong cpp_ulonglong;
+        alias cpp_longlong = __c_longlong;
+        alias cpp_ulonglong = __c_ulonglong;
     }
     else
     {
         enum __c_long  : int;
         enum __c_ulong : uint;
 
-        alias int   c_long;
-        alias uint  c_ulong;
+        alias c_long = int;
+        alias c_ulong = uint;
 
-        alias __c_long   cpp_long;
-        alias __c_ulong  cpp_ulong;
+        alias cpp_long = __c_long;
+        alias cpp_ulong = __c_ulong;
 
-        alias long  cpp_longlong;
-        alias ulong cpp_ulonglong;
+        alias cpp_longlong = long;
+        alias cpp_ulonglong = ulong;
     }
 }
 
@@ -235,47 +235,47 @@ else version (CRuntime_Microsoft)
      */
     enum __c_long_double : double;
 
-    alias __c_long_double c_long_double;
+    alias c_long_double = __c_long_double;
 }
 else version (DigitalMars)
 {
     version (X86)
     {
-        alias real c_long_double;
+        alias c_long_double = real;
     }
     else version (X86_64)
     {
         version (linux)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (FreeBSD)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (OpenBSD)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (NetBSD)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (DragonFlyBSD)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (Solaris)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (Darwin)
-            alias real c_long_double;
+            alias c_long_double = real;
     }
     else version (AArch64)
     {
         version (linux)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (FreeBSD)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (OpenBSD)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (NetBSD)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (DragonFlyBSD)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (Solaris)
-            alias real c_long_double;
+            alias c_long_double = real;
         else version (Darwin)
-            alias real c_long_double;
+            alias c_long_double = real;
     }
 }
 

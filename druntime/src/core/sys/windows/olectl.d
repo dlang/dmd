@@ -291,35 +291,35 @@ enum {
     DISPID_PICT_RENDER // = 6
 }
 
-alias IOleControl LPOLECONTROL;
-alias IOleControlSite LPOLECONTROLSITE;
-alias ISimpleFrameSite LPSIMPLEFRAMESITE;
-alias IPersistPropertyBag LPPERSISTPROPERTYBAG;
-alias IPersistStreamInit LPPERSISTSTREAMINIT;
-alias IPersistMemory LPPERSISTMEMORY;
-alias IPropertyNotifySink LPPROPERTYNOTIFYSINK;
-alias IProvideClassInfo LPPROVIDECLASSINFO;
-alias IProvideClassInfo2 LPPROVIDECLASSINFO2;
-alias IConnectionPointContainer LPCONNECTIONPOINTCONTAINER;
-alias IClassFactory2 LPCLASSFACTORY2;
-alias ISpecifyPropertyPages LPSPECIFYPROPERTYPAGES;
-alias IPerPropertyBrowsing LPPERPROPERTYBROWSING;
-alias IPropertyPage LPPROPERTYPAGE;
-alias IPropertyPage2 LPPROPERTYPAGE2;
+alias LPOLECONTROL = IOleControl;
+alias LPOLECONTROLSITE = IOleControlSite;
+alias LPSIMPLEFRAMESITE = ISimpleFrameSite;
+alias LPPERSISTPROPERTYBAG = IPersistPropertyBag;
+alias LPPERSISTSTREAMINIT = IPersistStreamInit;
+alias LPPERSISTMEMORY = IPersistMemory;
+alias LPPROPERTYNOTIFYSINK = IPropertyNotifySink;
+alias LPPROVIDECLASSINFO = IProvideClassInfo;
+alias LPPROVIDECLASSINFO2 = IProvideClassInfo2;
+alias LPCONNECTIONPOINTCONTAINER = IConnectionPointContainer;
+alias LPCLASSFACTORY2 = IClassFactory2;
+alias LPSPECIFYPROPERTYPAGES = ISpecifyPropertyPages;
+alias LPPERPROPERTYBROWSING = IPerPropertyBrowsing;
+alias LPPROPERTYPAGE = IPropertyPage;
+alias LPPROPERTYPAGE2 = IPropertyPage2;
 
-alias IPicture LPPICTURE;
-alias IPictureDisp LPPICTUREDISP;
-alias int OLE_XPOS_PIXELS;
-alias int OLE_YPOS_PIXELS;
-alias int OLE_XSIZE_PIXELS;
-alias int OLE_YSIZE_PIXELS;
-alias float OLE_XPOS_CONTAINER;
-alias float OLE_YPOS_CONTAINER;
-alias float OLE_XSIZE_CONTAINER;
+alias LPPICTURE = IPicture;
+alias LPPICTUREDISP = IPictureDisp;
+alias OLE_XPOS_PIXELS = int;
+alias OLE_YPOS_PIXELS = int;
+alias OLE_XSIZE_PIXELS = int;
+alias OLE_YSIZE_PIXELS = int;
+alias OLE_XPOS_CONTAINER = float;
+alias OLE_YPOS_CONTAINER = float;
+alias OLE_XSIZE_CONTAINER = float;
 
-alias VARIANT_BOOL OLE_OPTEXCLUSIVE;
-alias VARIANT_BOOL OLE_CANCELBOOL;
-alias VARIANT_BOOL OLE_ENABLEDEFAULTBOOL;
+alias OLE_OPTEXCLUSIVE = VARIANT_BOOL;
+alias OLE_CANCELBOOL = VARIANT_BOOL;
+alias OLE_ENABLEDEFAULTBOOL = VARIANT_BOOL;
 
 align(8):
 
@@ -342,7 +342,7 @@ struct OCPFIPARAMS {
     LCID lcid;
     DISPID dispidInitialProperty;
 }
-alias OCPFIPARAMS* LPOCPFIPARAMS;
+alias LPOCPFIPARAMS = OCPFIPARAMS*;
 
 struct FONTDESC {
     UINT cbSizeofstruct;
@@ -354,7 +354,7 @@ struct FONTDESC {
     BOOL fUnderline;
     BOOL fStrikethrough;
 }
-alias FONTDESC* LPFONTDESC;
+alias LPFONTDESC = FONTDESC*;
 
 struct PICTDESC
 {
@@ -382,7 +382,7 @@ struct PICTDESC
         _emf emf;
     }
 }
-alias PICTDESC* LPPICTDESC;
+alias LPPICTDESC = PICTDESC*;
 
 extern(Windows) {
     HRESULT DllRegisterServer();

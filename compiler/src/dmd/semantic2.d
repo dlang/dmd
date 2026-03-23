@@ -1,7 +1,7 @@
 /**
  * Performs the semantic2 stage, which deals with initializer expressions.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/semantic2.d, _semantic2.d)
@@ -320,6 +320,48 @@ private extern(C++) final class Semantic2Visitor : Visitor
         vd.semanticRun = PASS.semantic2done;
     }
 
+    override void visit(BitFieldDeclaration bfd)
+    {
+        visit(cast(VarDeclaration)bfd);
+        if (bfd.semanticRun != PASS.semantic2done)
+            return;
+
+        if (bfd.fieldWidth == 0)
+            return;
+
+        if (!bfd._init)
+            return;
+
+        auto ei = bfd._init.isExpInitializer();
+        if (!ei)
+            return;
+
+        if (!ei.exp.isIntegerExp())
+            return;
+
+        import dmd.intrange;
+        auto value = getIntRange(ei.exp);
+
+        const bool isUnsigned = bfd.type.isUnsigned();
+        auto bounds = IntRange(
+            SignExtendedNumber(bfd.getMinMax(Id.min), !isUnsigned),
+            SignExtendedNumber(bfd.getMinMax(Id.max), false)
+        );
+
+        if (!bounds.contains(value))
+        {
+            const uwidth = bfd.fieldWidth;
+            error(ei.loc, "default initializer `%s` is not representable as bitfield type `%s:%lld`",
+                  ei.exp.toChars(), bfd.type.toBasetype().toChars(), cast(long)uwidth);
+            if (isUnsigned)
+                errorSupplemental(bfd.loc, "bitfield `%s` default initializer must be a value between `%llu..%llu`",
+                                  bfd.toChars(), bounds.imin.value, bounds.imax.value);
+            else
+                errorSupplemental(bfd.loc, "bitfield `%s` default initializer must be a value between `%lld..%lld`",
+                                  bfd.toChars(), bounds.imin.value, bounds.imax.value);
+        }
+    }
+
     override void visit(Module mod)
     {
         //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
@@ -329,7 +371,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
         // gets imported, it is unaffected by context.
-        Scope* sc = Scope.createGlobal(mod, global.errorSink); // create root scope
+        Scope* sc = scopeCreateGlobal(mod, global.errorSink); // create root scope
         //printf("Module = %p\n", sc.scopesym);
         if (mod.members)
         {
@@ -799,7 +841,9 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     // `const` (and nor is `StringExp`, by extension).
     static int predicate(const scope Expression* e1, const scope Expression* e2)
     {
-        return (cast(Expression*)e1).toStringExp().compare((cast(Expression*)e2).toStringExp());
+        Expression e11 = cast(Expression) *e1;
+        Expression e22 = cast(Expression) *e2;
+        return e11.toStringExp().compare(e22.toStringExp());
     }
     ale.elements.sort!predicate;
 }

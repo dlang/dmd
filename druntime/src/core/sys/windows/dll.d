@@ -34,9 +34,9 @@ extern (C)
             extern __gshared byte  _tls_start;
             extern __gshared byte  _tls_end;
             extern __gshared void*  __xl_a;
-            alias _tls_start _tlsstart;
-            alias _tls_end   _tlsend;
-            alias __xl_a     _tls_callbacks_a;
+            alias _tlsstart = _tls_start;
+            alias _tlsend = _tls_end;
+            alias _tls_callbacks_a = __xl_a;
         }
         extern __gshared int   _tls_index;
     }
@@ -221,7 +221,7 @@ version (Win32)
     }
 } // Win32
 
-    alias bool BOOLEAN;
+    alias BOOLEAN = bool;
 
     struct UNICODE_STRING
     {

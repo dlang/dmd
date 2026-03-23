@@ -1,0 +1,743 @@
+Ddoc
+
+$(SPEC_S Modules,
+
+$(HEADERNAV_TOC)
+
+$(GRAMMAR
+$(GNAME Module):
+    $(GLINK ModuleDeclaration)
+    $(GLINK ModuleDeclaration) $(GLINK DeclDefs)
+    $(GLINK DeclDefs)
+
+$(GNAME DeclDefs):
+    $(GLINK DeclDef)
+    $(GLINK DeclDef) $(GSELF DeclDefs)
+
+$(GNAME DeclDef):
+    $(GLINK2 attribute, AttributeSpecifier)
+    $(GLINK2 declaration, Declaration)
+    $(GLINK2 class, Constructor)
+    $(GLINK2 class, Destructor)
+    $(GLINK2 struct, Postblit)
+    $(GLINK2 class, Invariant)
+    $(GLINK2 unittest, UnitTest)
+    $(GLINK2 class, AliasThis)
+    $(GLINK2 class, StaticConstructor)
+    $(GLINK2 class, StaticDestructor)
+    $(GLINK2 class, SharedStaticConstructor)
+    $(GLINK2 class, SharedStaticDestructor)
+    $(GLINK2 version, ConditionalDeclaration)
+    $(GLINK2 version, DebugSpecification)
+    $(GLINK2 version, VersionSpecification)
+    $(GLINK MixinDeclaration)
+    $(GLINK EmptyDeclaration)
+
+$(GNAME EmptyDeclaration):
+    $(D ;)
+)
+
+$(P Modules have a one-to-one correspondence with source files. When not
+explicitly set via a $(GLINK ModuleDeclaration), a module's name defaults
+to the name of the file stripped of its path and extension.)
+
+$(P A module's name automatically acts as a namespace scope for its contents. Modules
+superficially resemble classes, but differ in that:)
+
+$(UL
+        $(LI Only one instance of a module exists, and it is
+        statically allocated.)
+
+        $(LI Modules do not have virtual tables.)
+
+        $(LI Modules do not inherit, do not have super modules, etc.)
+
+        $(LI A source file may contain only one module.)
+
+        $(LI Symbols in a module can be imported.)
+
+        $(LI Modules are always compiled at global scope and are unaffected
+        by surrounding attributes or other modifiers.)
+)
+
+$(P Modules can be grouped into hierarchies called $(I packages).)
+
+$(P Modules offer several guarantees:)
+
+$(UL
+
+        $(LI The order in which modules are imported does not affect their
+        semantics.)
+
+        $(LI The semantics of a module are not affected by the scope in which
+        it is imported.)
+
+        $(LI If a module $(D C) imports modules $(D A) and $(D B), any modifications
+        to $(D B) will not silently change code in $(D C) that is dependent on $(D A).)
+)
+
+$(H2 $(LNAME2 module_declaration, Module Declaration))
+
+$(P The $(I ModuleDeclaration) sets the name of the module and what package it
+belongs to. If absent, the module name is taken to be the same name (stripped of
+path and extension) of the source file name.)
+
+$(GRAMMAR
+$(GNAME ModuleDeclaration):
+    $(GLINK ModuleAttributes)$(OPT) $(D module) $(GLINK ModuleFullyQualifiedName) $(GLINK2 editions, Edition)$(OPT) $(D ;)
+
+$(GNAME ModuleAttributes):
+    $(GLINK ModuleAttribute)
+    $(GLINK ModuleAttribute) $(GSELF ModuleAttributes)
+
+$(GNAME ModuleAttribute):
+    $(GLINK2 attribute, DeprecatedAttribute)
+    $(GLINK2 attribute, UserDefinedAttribute)
+
+$(GNAME ModuleFullyQualifiedName):
+    $(GLINK ModuleName)
+    $(GLINK Packages) $(D .) $(GLINK ModuleName)
+
+$(GNAME ModuleName):
+    $(GLINK_LEX Identifier)
+)
+$(GRAMMAR
+$(GNAME Packages):
+    $(GLINK PackageName)
+    $(GSELF Packages) $(D .) $(GLINK PackageName)
+
+$(GNAME PackageName):
+    $(GLINK_LEX Identifier)
+)
+
+$(P The $(I Identifier)s preceding the rightmost $(I Identifier) are the $(I Packages) that the
+module is in. The packages correspond to directory names in the source file
+path. Package and module names cannot be $(GLINK_LEX Keyword)s.)
+
+$(P If present, the $(I ModuleDeclaration) must be the first and only such declaration
+in the source file, and may be preceded only by comments and $(D #line) directives.)
+
+$(P Example:)
+
+---------
+module c.stdio; // module stdio in the c package
+---------
+
+$(P By convention, package and module names are all lower case. This is because
+these names have a one-to-one correspondence with the operating system's
+directory and file names, and many file systems are not case sensitive. Using all
+lower case package and module names will avoid or minimize problems when moving projects
+between dissimilar file systems.)
+
+$(P If the file name of a module is an invalid module name (e.g.
+`foo-bar.d`), use a module declaration to set a valid module name:)
+
+---------
+module foo_bar;
+---------
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI The mapping of package and module identifiers to directory and file names.)
+    ))
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI $(GLINK PackageName)s and $(GLINK ModuleName)s should be composed of the ASCII
+    characters lower case letters, digits or `_` to ensure maximum portability and compatibility with
+    various file systems.)
+    $(LI The file names for packages and modules should be composed only of
+    the ASCII lower case letters, digits, and `_`s, and should not be a $(GLINK_LEX Keyword).)
+    ))
+
+$(H3 $(LNAME2 deprecated_modules, Deprecated modules))
+
+$(P A $(I ModuleDeclaration) can have an optional $(GLINK2 attribute,
+DeprecatedAttribute). The compiler will produce a message when the deprecated
+module is imported.)
+
+---------
+deprecated module foo;
+---------
+
+---------
+module bar;
+import foo;  // Deprecated: module foo is deprecated
+---------
+
+$(P A $(I DeprecatedAttribute) can have an optional $(ASSIGNEXPRESSION) argument to provide a
+more informative message. The $(I AssignExpression) must evaluate to a string at compile time.
+)
+
+---------
+deprecated("Please use foo2 instead.")
+module foo;
+---------
+
+---------
+module bar;
+import foo;  // Deprecated: module foo is deprecated - Please use foo2 instead.
+---------
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI How the deprecation messages are presented to the user.)
+    ))
+
+
+$(H2 $(LEGACY_LNAME2 ImportDeclaration, import-declaration, Import Declaration))
+
+$(P Symbols from one module are made available in another module by using the
+$(I ImportDeclaration):)
+
+$(GRAMMAR
+$(GNAME ImportDeclaration):
+    $(D import) $(GLINK ImportList) $(D ;)
+    $(D static import) $(GLINK ImportList) $(D ;)
+
+$(GNAME ImportList):
+    $(GLINK Import)
+    $(GLINK ImportBindings)
+    $(GLINK Import) $(D ,) $(GSELF ImportList)
+
+$(GNAME Import):
+    $(GLINK ModuleFullyQualifiedName)
+    $(GLINK ModuleAliasIdentifier) $(D =) $(GLINK ModuleFullyQualifiedName)
+
+$(GNAME ImportBindings):
+    $(GLINK Import) $(D :) $(GLINK ImportBindList)
+
+$(GNAME ImportBindList):
+    $(GLINK ImportBind)
+    $(GLINK ImportBind) $(D ,) $(GSELF ImportBindList)
+
+$(GNAME ImportBind):
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D =) $(GLINK_LEX Identifier)
+
+$(GNAME ModuleAliasIdentifier):
+    $(GLINK_LEX Identifier)
+)
+
+$(P There are several forms of the $(I ImportDeclaration), from generalized to
+fine-grained importing.)
+
+$(P The order in which $(I ImportDeclaration)s occur has no significance.)
+
+$(P $(I ModuleFullyQualifiedName)s in the $(I ImportDeclaration) must be fully
+qualified with whatever packages they are in. They are not considered to be
+relative to the module that imports them.)
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI How the compiler resolves the package and module identifiers in an
+    import declaration to its corresponding source files.)
+    ))
+
+$(H3 $(LNAME2 name_lookup, Symbol Name Lookup))
+
+$(P The simplest form of importing is to just list the modules being imported:)
+
+---------
+module myapp.main;
+
+import std.stdio; // import module stdio from package std
+
+class Foo : BaseClass
+{
+    import myapp.foo;  // import module myapp.foo in this class' scope
+    void bar ()
+    {
+        import myapp.bar;  // import module myapp.bar in this function' scope
+        writeln("hello!");  // calls std.stdio.writeln
+    }
+}
+---------
+
+$(P When a symbol name is used unqualified, a two-phase lookup is used.
+First, the module scope is searched, starting from the innermost scope.
+For example, in the previous example, while looking for `writeln`,
+the order will be:)
+
+$(UL
+    $(LI Declarations inside `bar`.)
+    $(LI Declarations inside `Foo`.)
+    $(LI Declarations inside `BaseClass`.)
+    $(LI Declarations at module scope.)
+)
+
+$(P If the first lookup isn't successful, a second one is performed on imports.
+In the second lookup phase inherited scopes are ignored.  This includes the scope of
+base classes and interfaces (in this example, `BaseClass`'s imports
+would be ignored), as well as imports in mixed-in $(D template).)
+
+$(P Symbol lookup stops as soon as a matching symbol is found. If two symbols with the
+same name are found at the same lookup phase, this ambiguity will result in a
+compilation error.)
+
+---
+module A;
+void foo();
+void bar();
+---
+
+---
+module B;
+void foo();
+void bar();
+---
+
+---
+module C;
+import A;
+void foo();
+void test()
+{
+    foo(); // C.foo() is called, it is found before imports are searched
+    bar(); // A.bar() is called, since imports are searched
+}
+---
+
+---
+module D;
+import A;
+import B;
+void test()
+{
+    foo();   // error, A.foo() or B.foo() ?
+    A.foo(); // ok, call A.foo()
+    B.foo(); // ok, call B.foo()
+}
+---
+
+---
+module E;
+import A;
+import B;
+alias foo = B.foo;
+void test()
+{
+    foo();   // call B.foo()
+    A.foo(); // call A.foo()
+    B.foo(); // call B.foo()
+}
+---
+
+$(H3 $(LNAME2 public_imports, Public Imports))
+
+$(P By default, imports are $(I private). This means that if module A imports
+module B, and module B imports module C, then names inside C are visible only inside
+B and not inside A.)
+
+$(P An import can be explicitly declared $(I public), which will cause
+names from the imported module to be visible to further imports. So in the above
+example where module A imports module B, if module B $(I publicly) imports
+module C, names from C will be visible in A as well.)
+
+$(P All symbols from a publicly imported module are also aliased in the
+importing module. Thus in the above example if C contains the name foo, it will
+be accessible in A as $(D foo), $(D B.foo) and $(D C.foo).)
+
+$(P For another example:)
+
+---
+module W;
+void foo() { }
+---
+
+---
+module X;
+void bar() { }
+---
+
+---
+module Y;
+import W;
+public import X;
+...
+foo();  // calls W.foo()
+bar();  // calls X.bar()
+---
+
+---
+module Z;
+import Y;
+...
+foo();   // error, foo() is undefined
+bar();   // ok, calls X.bar()
+X.bar(); // ditto
+Y.bar(); // ok, Y.bar() is an alias to X.bar()
+---
+
+$(H3 $(LNAME2 static_imports, Static Imports))
+
+$(P A static import requires the use of a fully qualified name
+to reference the module's names:)
+
+---
+static import std.stdio;
+
+void main()
+{
+    writeln("hello!");           // error, writeln is undefined
+    std.stdio.writeln("hello!"); // ok, writeln is fully qualified
+}
+---
+
+$(H3 $(LNAME2 renamed_imports, Renamed Imports))
+
+$(P A local name for an import can be given, through which all references to the
+module's symbols must be qualified with:)
+
+$(RUNNABLE_EXAMPLE
+---
+import io = std.stdio;
+
+void main()
+{
+    io.writeln("hello!");        // ok, calls std.stdio.writeln
+    std.stdio.writeln("hello!"); // error, std is undefined
+    writeln("hello!");           // error, writeln is undefined
+}
+---
+)
+
+    $(BEST_PRACTICE Renamed imports are handy when dealing with very long import names.)
+
+$(H3 $(LNAME2 selective_imports, Selective Imports))
+
+$(P Specific symbols can be exclusively imported from a module and bound into
+the current namespace:)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+import std.stdio : writeln, foo = write;
+
+void main()
+{
+    std.stdio.writeln("hello!"); // error, std is undefined
+    writeln("hello!");           // ok, writeln bound into current namespace
+    write("world");              // error, write is undefined
+    foo("world");                // ok, calls std.stdio.write()
+    fwritefln(stdout, "abc");    // error, fwritefln undefined
+}
+---
+)
+
+$(P $(D static) cannot be used with selective imports.)
+
+$(H3 $(LNAME2 renamed_selective_imports, Renamed and Selective Imports))
+
+$(P When renaming and selective importing are combined:)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+------------
+import io = std.stdio : foo = writeln;
+
+void main()
+{
+    writeln("bar");           // error, writeln is undefined
+    std.stdio.foo("bar");     // error, foo is bound into current namespace
+    std.stdio.writeln("bar"); // error, std is undefined
+    foo("bar");               // ok, foo is bound into current namespace,
+                              // FQN not required
+    io.writeln("bar");        // ok, io=std.stdio bound the name io in
+                              // the current namespace to refer to the entire
+                              //   module
+    io.foo("bar");            // error, foo is bound into current namespace,
+                              // foo is not a member of io
+}
+--------------
+)
+
+$(H3 $(LNAME2 scoped_imports, Scoped Imports))
+
+$(P Import declarations may be used at any scope. For example:)
+
+$(RUNNABLE_EXAMPLE
+--------------
+void main()
+{
+    import std.stdio;
+    writeln("bar");
+}
+--------------
+)
+
+$(P The imports are looked up to satisfy any unresolved symbols at that scope.
+Imported symbols may hide symbols from outer scopes.)
+
+$(P In function scopes, imported symbols only become visible after the import
+declaration lexically appears in the function body. In other words, imported
+symbols at function scope cannot be forward referenced.)
+
+$(RUNNABLE_EXAMPLE
+--------------
+void main()
+{
+    void writeln(string) {}
+    void foo()
+    {
+        writeln("bar"); // calls main.writeln
+        import std.stdio;
+        writeln("bar"); // calls std.stdio.writeln
+        void writeln(string) {}
+        writeln("bar"); // calls main.foo.writeln
+    }
+    writeln("bar"); // calls main.writeln
+    std.stdio.writeln("bar");  // error, std is undefined
+}
+--------------
+)
+
+$(H2 $(LNAME2 module_scope_operators, Module Scope Operator))
+
+    $(P A leading dot (`.`) causes the
+    identifier to be looked up in the module scope.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+const int x = 1;
+
+void main()
+{
+    int x = 5;
+    assert(x == 5); // main.x, not global x
+    assert(.x == 1); // global x
+}
+---------
+)
+
+
+$(H2 $(LNAME2 staticorder, Static Construction and Destruction))
+
+    $(P Static constructors are executed to initialize a module's state.
+    Static destructors terminate a module's state.
+    )
+
+    $(P A module may have multiple static constructors and static destructors.
+    The static constructors are run in lexical order, the static destructors
+    are run in reverse lexical order.)
+
+    $(P Non-shared static constructors and destructors are
+    run whenever threads are created or destroyed, including the main thread.)
+
+    $(P Shared static constructors are run once before `main()` is called.
+    Shared static destructors are run after the `main()` function returns.
+    )
+
+    ---
+    import resource;
+
+    Resource x;
+    shared Resource y;
+    __gshared Resource z;
+
+    static this()  // non-shared static constructor
+    {
+        x = acquireResource();
+    }
+
+    shared static this()  // shared static constructor
+    {
+        y = acquireSharedResource();
+        z = acquireSharedResource();
+    }
+
+    static ~this()  // non-shared static destructor
+    {
+        releaseResource(x);
+    }
+
+    shared static ~this()   // shared static destructor
+    {
+        releaseSharedResource(y);
+        releaseSharedResource(z);
+    }
+    ---
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI Shared static constructors and destructors are used to initialize and terminate
+    shared global data.)
+    $(LI Non-shared static constructors and destructors are used to initialize and terminate
+    thread local data.)
+    ))
+
+$(H3 $(LNAME2 order_of_static_ctor, Order of Static Construction))
+
+$(P Shared static constructors on all modules are run before any non-shared static
+constructors.)
+
+$(P The order of static initialization is implicitly determined by the $(I
+import) declarations in each module. Each module is assumed to depend on any
+imported modules being statically constructed first.
+There is no other order imposed on the execution of module static constructors.)
+
+$(P Cycles (circular dependencies) in the import declarations are allowed so
+long as neither, or one, but not both, of the modules, contains static constructors or static
+destructors. Violation of this rule will result in a runtime exception.)
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI An implementation may provide a means of overriding the cycle detection abort.
+    A typical method uses the D Runtime switch
+    `--DRT-oncycle=...` where the following behaviors are supported:
+    $(OL
+    $(LI `abort` The default behavior. The normal behavior as described
+            in the previous section.)
+    $(LI `print` Print all cycles detected, but do not abort execution.
+            When cycles are present, the order of static construction is
+            implementation defined, and not guaranteed to be valid.)
+    $(LI `ignore` Do not abort execution or print any cycles. When
+            cycles are present, the order of static construction is implementation
+            defined, and not guaranteed to be valid.)
+    )
+    ))
+    )
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI Avoid cyclical imports where practical. They can be an indication of poor
+    decomposition of a program's structure into independent modules. Two modules
+    that import each other can often be reorganized into three modules without
+    cycles, where the third contains the declarations needed by the other two.)
+    )
+    )
+
+$(H3 $(LNAME2 order_of_static_ctors, Order of Static Construction within a Module))
+
+$(P Within a module, static construction occurs in the lexical order in
+which they appear.)
+
+$(H3 $(LNAME2 order_static_dtor, Order of Static Destruction))
+
+$(P This is defined to be in exactly the reverse order of static construction.
+Static destructors for individual modules will only be run if the
+corresponding static constructor successfully completed.)
+
+$(P Shared static destructors are executed after static destructors.)
+
+$(H2 $(LNAME2 order_of_unittests, Order of Unit tests))
+
+$(P Unit tests are run in the lexical order in which they appear within a
+module.)
+
+$(H2 $(LEGACY_LNAME2 MixinDeclaration, mixin-declaration, Mixin Declaration))
+
+$(GRAMMAR
+$(GNAME MixinDeclaration):
+    $(D mixin) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList) $(D $(RPAREN)) $(D ;)
+)
+
+$(P Each $(GLINK2 expression, AssignExpression) in the $(I ArgumentList) is
+    evaluated at compile time, and the result must be representable
+    as a string.
+    The resulting strings are concatenated to form a string.
+    The text contents of the string must be compilable as valid
+    $(GLINK DeclDefs), and is compiled as such.)
+
+$(P The content of a mixin cannot be forward referenced by other *DeclDefs* of
+    the same scope because it is not yet pulled into the AST.)
+
+---------
+class B : A {}      // Error: undefined identifier `A`
+mixin ("class A {}");
+---------
+
+$(P Forward references may only work in function bodies because they
+    are processed after the declarations:)
+
+---------
+void v()
+{
+    class B : A {}
+}
+mixin ("class A {}");
+---------
+
+$(H2 $(LEGACY_LNAME2 PackageModule, package-module, Package Module))
+
+$(P A package module can be used to publicly import other modules, while
+providing a simpler import syntax. This enables the conversion of a module into a package
+of modules, without breaking existing code which uses that module. Example of a
+set of library modules:)
+
+$(B libweb/client.d:)
+
+---------
+module libweb.client;
+
+void runClient() { }
+---------
+
+$(B libweb/server.d:)
+
+---------
+module libweb.server;
+
+void runServer() { }
+---------
+
+$(B libweb/package.d:)
+
+---------
+module libweb;
+
+public import libweb.client;
+public import libweb.server;
+---------
+
+$(P The package module's file name must be $(D package.d). The module name
+is declared to be the fully qualified name of the package. Package modules can
+be imported just like any other modules:)
+
+$(B test.d:)
+
+---------
+module test;
+
+// import the package module
+import libweb;
+
+void main()
+{
+    runClient();
+    runServer();
+}
+---------
+
+$(P A package module can be nested inside of a sub-package:)
+
+$(B libweb/utils/package.d:)
+
+---------
+// must be declared as the fully qualified name of the package, not just 'utils'
+module libweb.utils;
+
+// publicly import modules from within the 'libweb.utils' package.
+public import libweb.utils.conv;
+public import libweb.utils.text;
+---------
+
+$(P The package module can then be imported with the standard module import
+declaration:)
+
+$(B test.d:)
+
+---------
+module test;
+
+// import the package module
+import libweb.utils;
+
+void main() { }
+---------
+
+$(SPEC_SUBNAV_PREV_NEXT grammar, Grammar, declaration, Declarations)
+)
+
+Macros:
+    CHAPTER=5
+        TITLE=Modules
+        _=

@@ -167,7 +167,7 @@ else version (NetBSD)
 {
     int setenv(const scope char*, const scope char*, int);
     int __unsetenv13(const scope char*);
-    alias __unsetenv13 unsetenv;
+    alias unsetenv = __unsetenv13;
     void* valloc(size_t); // LEGACY non-standard
 }
 else version (OpenBSD)
@@ -339,7 +339,7 @@ version (CRuntime_Glibc)
   static if ( __USE_LARGEFILE64 )
   {
     int    mkstemp64(char*);
-    alias  mkstemp64 mkstemp;
+    alias  mkstemp = mkstemp64;
   }
   else
   {
@@ -459,14 +459,14 @@ else version (NetBSD)
     c_long nrand48(ref ushort[3]);
     int    posix_openpt(int);
     char*  ptsname(int);
-    int    putenv(char*);
+    pragma(mangle, "__putenv50") int    putenv(char*);
     c_long random();
     char*  realpath(const scope char*, char*);
     ushort *seed48(ref ushort[3]);
     void   setkey(const scope char*);
     char*  setstate(const scope char*);
     void   srand48(c_long);
-    void   srandom(uint);
+    pragma(mangle, "__srandom60") void   srandom(uint);
     int    unlockpt(int);
 }
 else version (OpenBSD)
@@ -656,14 +656,14 @@ else version (Solaris)
         int mkstemp(char*);
 
         static if ( __USE_LARGEFILE64 )
-            alias mkstemp mkstemp64;
+            alias mkstemp64 = mkstemp;
     }
     else
     {
         int mkstemp64(char*);
 
         static if ( __USE_LARGEFILE64 )
-            alias mkstemp64 mkstemp;
+            alias mkstemp = mkstemp64;
         else
             int mkstemp(char*);
     }
@@ -702,7 +702,7 @@ else version (CRuntime_UClibc)
   static if ( __USE_LARGEFILE64 )
   {
     int    mkstemp64(char*);
-    alias  mkstemp64 mkstemp;
+    alias  mkstemp = mkstemp64;
   }
   else
   {

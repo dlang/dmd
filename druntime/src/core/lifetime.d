@@ -77,9 +77,11 @@ T* emplace(T, Args...)(T* chunk, auto ref Args args)
 @betterC
 @system unittest
 {
+    import core.atomic : atomicLoad;
+
     shared int i;
     emplace(&i, 42);
-    assert(i == 42);
+    assert(atomicLoad(i) == 42);
 }
 
 /**
@@ -1246,9 +1248,21 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     if (is(immutable S == immutable T))
 {
     import core.internal.traits : BaseElemOf, hasElaborateCopyConstructor, Unconst, Unqual;
+    enum isSharedReference = is(S == shared U, U) && is(T == shared V, V) &&
+        (is(U == class) || is(U == interface)) &&
+        (is(V == class) || is(V == interface));
 
     // cannot have the following as simple template constraint due to nested-struct special case...
-    static if (!__traits(compiles, (ref S src) { T tgt = src; }))
+    static if (isSharedReference)
+    {
+        static assert(__traits(compiles, (ref S src, ref T tgt)
+        {
+            import core.atomic : atomicLoad, atomicStore;
+            atomicStore(tgt, atomicLoad(src));
+        }), "cannot copy shared reference " ~ T.stringof ~ " from " ~ S.stringof ~
+            " via atomic load/store");
+    }
+    else static if (!__traits(compiles, (ref S src) { T tgt = src; }))
     {
         alias B = BaseElemOf!T;
         enum isNestedStruct = is(B == struct) && __traits(isNested, B);
@@ -1307,6 +1321,11 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
         {
             blit(); // all elements at once
         }
+    }
+    else static if (isSharedReference)
+    {
+        import core.atomic : atomicLoad, atomicStore;
+        atomicStore(target, atomicLoad(source));
     }
     else
     {
@@ -2396,7 +2415,7 @@ template _d_delstructImpl(T)
         private enum errorMessage = "Cannot delete struct if compiling without support for runtime type information!";
 
         /**
-         * TraceGC wrapper around $(REF _d_delstruct, core,lifetime,_d_delstructImpl).
+         * TraceGC wrapper around $(REF _d_delstruct, core,lifetime).
          *
          * Bugs:
          *   This function template was ported from a much older runtime hook that
@@ -2600,11 +2619,13 @@ pure nothrow @system unittest
 }
 
 // wipes source after moving
-pragma(inline, true)
 private void wipe(T, Init...)(return scope ref T source, ref const scope Init initializer) @trusted
 if (!Init.length ||
     ((Init.length == 1) && (is(immutable T == immutable Init[0]))))
 {
+    static if (!is(T == struct) || !__traits(isNested, T))
+        pragma(inline, true);
+
     static if (__traits(isStaticArray, T) && hasContextPointers!T)
     {
         for (auto i = 0; i < T.length; i++)

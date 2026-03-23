@@ -3,7 +3,7 @@
  *
  * Currently includes functions from `std.math`, `core.math` and `core.bitop`.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/builtin.d, _builtin.d)
@@ -17,6 +17,8 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem : toInteger, toReal;
+import dmd.typesem : isFloating, toBasetype;
 import dmd.func;
 import dmd.location;
 import dmd.mangle;
@@ -177,6 +179,7 @@ Expression eval_ctfeWrite(Loc loc, FuncDeclaration fd, Expression[] arguments)
     import core.stdc.stdio: fprintf, stderr;
     import dmd.expression: CTFEExp;
     import dmd.ctfeexpr: resolveSlice;
+    import dmd.expressionsem : toStringExp;
 
     Expression e = arguments[0];
     const se = resolveSlice(e).toStringExp();

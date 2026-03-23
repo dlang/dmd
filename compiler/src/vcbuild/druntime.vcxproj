@@ -41,7 +41,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <LinkIncremental>true</LinkIncremental>
-    <IntDir>..\..\..\generated\Windows\$(Configuration)\$(PlatformName)\</IntDir>
+    <IntDir>..\..\..\generated\Windows\$(Configuration)\$(PlatformName)\druntime\</IntDir>
     <OutDir>..\..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
     <LinkIncremental Condition="'$(Configuration)'=='Release'">false</LinkIncremental>
     <CCModel Condition="'$(Platform)'=='x64'">x64</CCModel>
@@ -52,8 +52,7 @@
     <DMDConfig Condition="!$(IsDebug)">Release</DMDConfig>
     <TargetName>druntime$(DMDModel)</TargetName>
     <DMDBinDir>..\..\..\generated\Windows\$(Configuration)\$(PlatformName)\</DMDBinDir>
-    <DRuntimeSrcDir Condition="Exists('src/object.d')">src</DRuntimeSrcDir>
-    <DRuntimeSrcDir Condition="'$(DRuntimeSrcDir)' == ''">..\..\..\druntime\src</DRuntimeSrcDir>
+    <DRuntimeSrcDir>..\..\..\druntime\src</DRuntimeSrcDir>
     <MakeTarget>
     </MakeTarget>
   </PropertyGroup>
@@ -70,11 +69,12 @@
       </ImportPaths>
       <CRuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</CRuntimeLibrary>
       <CRuntimeLibrary Condition="'$(Configuration)'!='Release'">MultiThreadedDebug</CRuntimeLibrary>
-      <AdditionalOptions>-lib -preview=shortenedMethods -preview=fieldwise
- -preview=dtorfields -preview=dip1000</AdditionalOptions>
+      <AdditionalOptions>-lib -preview=shortenedMethods -preview=fieldwise -preview=dtorfields -preview=dip1000</AdditionalOptions>
       <ShowCommandLine>true</ShowCommandLine>
       <PreviewShortenedMethods Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </PreviewShortenedMethods>
+      <VersionIdentifiers Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </VersionIdentifiers>
     </DCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -104,32 +104,41 @@
       <Project>{c4da4faf-a928-4230-8353-e80c76f223e0}</Project>
     </ProjectReference>
   </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <PropertyGroup>
+    <FiltersFile>$(MSBuildProjectDirectory)\$(MSBuildProjectName).vcxproj.filters</FiltersFile>
+    <SourcesFile>$(MSBuildProjectDirectory)\$(MSBuildProjectName).vcxproj.sources</SourcesFile>
+    <SourcesRoot>$(DRuntimeSrcDir)\</SourcesRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Define your source and header files here with wildcard includes -->
+    <SourceFiles Include="$(DRuntimeSrcDir)\core\**\*.d" />
+    <SourceFiles Include="$(DRuntimeSrcDir)\rt\**\*.d" />
+    <SourceFiles Include="$(DRuntimeSrcDir)\object.d" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="$(DRuntimeSrcDir)\__importc_builtins.di" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(DRuntimeSrcDir)\importc.h" />
   </ItemGroup>
-  <ItemGroup>
-    <DCompile Include="$(DRuntimeSrcDir)\core\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\gc\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\internal\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\internal\array\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\internal\container\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\internal\gc\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\internal\gc\impl\proto\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\internal\util\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\stdc\*d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\sync\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\sys\windows\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\sys\windows\stdc\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\thread\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\core\thread\fiber\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\object.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\rt\*.d" />
-    <DCompile Include="$(DRuntimeSrcDir)\rt\util\*.d" />
-  </ItemGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <Import Project="generateFilters.targets" />
+  <Import Project="$(SourcesFile)" Condition="exists('$(SourcesFile)')" />
+  <Choose>
+    <When Condition="!exists('$(SourcesFile)')">
+      <ItemGroup>
+        <DCompile Include="@(SourceFiles)" />
+      </ItemGroup>
+      <PropertyGroup>
+        <BuildDependsOn>GenerateSourcesFile;GenerateFiltersFile;$(BuildDependsOn)</BuildDependsOn>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <BuildDependsOn>VerifySourcesFile;$(BuildDependsOn)</BuildDependsOn>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
 </Project>

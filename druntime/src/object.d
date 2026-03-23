@@ -97,18 +97,25 @@ else version (X86_64)
 else version (AArch64)
 {
     // Apple uses a trivial varargs implementation
-    version (OSX) {}
+    version (DigitalMars) version = WithArgTypes; // is this needed?
+    else version (OSX) {}
     else version (iOS) {}
     else version (TVOS) {}
     else version (WatchOS) {}
     else version = WithArgTypes;
 }
 
+static assert(Object.__monitor.offsetof == size_t.sizeof);
+
 /**
  * All D class objects inherit from Object.
  */
 class Object
 {
+    // This is an internal field that is omitted from .tupleof, __traits(allMembers), pointer bitmaps etc.
+    // It can be removed in a custom druntime, but if it's there it must remain the first field.
+    void* __monitor;
+
     /**
      * Convert Object to a human readable string.
      */
@@ -517,11 +524,15 @@ unittest
 // https://issues.dlang.org/show_bug.cgi?id=23291
 @system unittest
 {
+    import core.atomic : atomicLoad;
+
     static shared class C { bool opEquals(const(shared(C)) rhs) const shared  { return true;}}
     const(C) c = new C();
     const(C)[] a = [c];
     const(C)[] b = [c];
-    assert(a[0] == b[0]);
+    // Call the shared-aware overload directly to avoid `==` introducing
+    // additional shared reads during lowering.
+    assert(atomicLoad(a[0]).opEquals(atomicLoad(b[0])));
 }
 
 private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
@@ -540,6 +551,8 @@ void setSameMutex(shared Object ownee, shared Object owner)
 
 @system unittest
 {
+    import core.atomic : atomicLoad;
+
     shared Object obj1 = new Object;
     synchronized class C
     {
@@ -551,7 +564,7 @@ void setSameMutex(shared Object ownee, shared Object owner)
     assert(obj1.__monitor != obj2.__monitor);
     assert(obj1.__monitor is null);
 
-    setSameMutex(obj1, obj2);
+    setSameMutex(atomicLoad(obj1), atomicLoad(obj2));
     assert(obj1.__monitor == obj2.__monitor);
     assert(obj1.__monitor !is null);
 }
@@ -3848,7 +3861,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     return hash;
 }
 
-/// Provide the .dup array property.
+/// Provide the .dup array property, which creates a duplicate.
 @property auto dup(T)(T[] a)
     if (!is(const(T) : T))
 {
@@ -3880,7 +3893,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 }
 
 
-/// Provide the .idup array property.
+/// Provide the .idup array property, which creates an immutable duplicate.
 @property immutable(T)[] idup(T)(T[] a)
 {
     import core.internal.array.duplication : _dup;

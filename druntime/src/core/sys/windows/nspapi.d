@@ -55,7 +55,7 @@ struct SOCKET_ADDRESS {
     LPSOCKADDR lpSockaddr;
     INT        iSockaddrLength;
 }
-alias SOCKET_ADDRESS* PSOCKET_ADDRESS, LPSOCKET_ADDRESS;
+alias PSOCKET_ADDRESS = SOCKET_ADDRESS*, LPSOCKET_ADDRESS = SOCKET_ADDRESS*;
 
 struct CSADDR_INFO {
     SOCKET_ADDRESS LocalAddr;
@@ -63,13 +63,13 @@ struct CSADDR_INFO {
     INT            iSocketType;
     INT            iProtocol;
 }
-alias CSADDR_INFO* PCSADDR_INFO, LPCSADDR_INFO;
+alias PCSADDR_INFO = CSADDR_INFO*, LPCSADDR_INFO = CSADDR_INFO*;
 
 struct BLOB {
     ULONG cbSize;
     BYTE* pBlobData;
 }
-alias BLOB* PBLOB, LPBLOB;
+alias PBLOB = BLOB*, LPBLOB = BLOB*;
 
 struct SERVICE_ADDRESS {
     DWORD dwAddressType;
@@ -86,7 +86,7 @@ struct SERVICE_ADDRESSES {
 
     SERVICE_ADDRESS* Addresses() return { return &_Addresses; }
 }
-alias SERVICE_ADDRESSES* PSERVICE_ADDRESSES, LPSERVICE_ADDRESSES;
+alias PSERVICE_ADDRESSES = SERVICE_ADDRESSES*, LPSERVICE_ADDRESSES = SERVICE_ADDRESSES*;
 
 struct SERVICE_INFOA {
     LPGUID lpServiceType;
@@ -100,7 +100,7 @@ struct SERVICE_INFOA {
     LPSERVICE_ADDRESSES lpServiceAddress;
     BLOB   ServiceSpecificInfo;
 }
-alias SERVICE_INFOA* LPSERVICE_INFOA;
+alias LPSERVICE_INFOA = SERVICE_INFOA*;
 
 struct SERVICE_INFOW {
     LPGUID lpServiceType;
@@ -114,9 +114,9 @@ struct SERVICE_INFOW {
     LPSERVICE_ADDRESSES lpServiceAddress;
     BLOB   ServiceSpecificInfo;
 }
-alias SERVICE_INFOW* LPSERVICE_INFOW;
+alias LPSERVICE_INFOW = SERVICE_INFOW*;
 
-alias void* LPSERVICE_ASYNC_INFO;
+alias LPSERVICE_ASYNC_INFO = void*;
 
 extern (Windows) {
     INT SetServiceA(DWORD, DWORD, DWORD, LPSERVICE_INFOA,
@@ -130,14 +130,14 @@ extern (Windows) {
 }
 
 version (Unicode) {
-    alias SERVICE_INFOW SERVICE_INFO;
-    alias SetServiceW SetService;
-    alias GetAddressByNameW GetAddressByName;
+    alias SERVICE_INFO = SERVICE_INFOW;
+    alias SetService = SetServiceW;
+    alias GetAddressByName = GetAddressByNameW;
 } else {
-    alias SERVICE_INFOA SERVICE_INFO;
-    alias SetServiceA SetService;
-    alias GetAddressByNameA GetAddressByName;
+    alias SERVICE_INFO = SERVICE_INFOA;
+    alias SetService = SetServiceA;
+    alias GetAddressByName = GetAddressByNameA;
 }
 
-alias SERVICE_INFO _SERVICE_INFO;
-alias SERVICE_INFO* LPSERVICE_INFO;
+alias _SERVICE_INFO = SERVICE_INFO;
+alias LPSERVICE_INFO = SERVICE_INFO*;

@@ -27,7 +27,7 @@ enum {
 
 enum MGMCTL_SETAGENTPORT = 1;
 
-alias PVOID LPSNMP_MGR_SESSION;
+alias LPSNMP_MGR_SESSION = PVOID;
 
 extern (Windows) nothrow @nogc {
     BOOL SnmpMgrClose(LPSNMP_MGR_SESSION);

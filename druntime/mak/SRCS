@@ -86,8 +86,9 @@ SRCS=\
 	src\core\internal\util\array.d \
 	src\core\internal\util\math.d \
 	\
-	src\core\internal\vararg\aarch64.d \
+	src\core\internal\vararg\aapcs64.d \
 	src\core\internal\vararg\sysv_x64.d \
+	src\core\internal\vararg\gnu.d \
 	\
 	src\core\stdc\assert_.d \
 	src\core\stdc\stdatomic.d \
@@ -591,7 +592,7 @@ SRCS=\
 	src\rt\sections_darwin_64.d \
 	src\rt\sections_elf_shared.d \
 	src\rt\sections_osx_x86.d \
-	src\rt\sections_osx_x86_64.d \
+	src\rt\sections_osx_64.d \
 	src\rt\sections_solaris.d \
 	src\rt\sections_win64.d \
 	src\rt\tlsgc.d \

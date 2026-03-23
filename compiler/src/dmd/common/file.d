@@ -4,7 +4,7 @@
  * Functions and objects dedicated to file I/O and management. TODO: Move here artifacts
  * from places such as root/ so both the frontend and the backend have access to them.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/common/file.d, common/_file.d)
@@ -32,10 +32,10 @@ version (Windows)
 {
     import core.stdc.wchar_;
     import core.sys.windows.winbase;
-    import core.sys.windows.winnls : CP_ACP;
+    import core.sys.windows.winnls : CP_UTF8;
     import core.sys.windows.winnt;
 
-    enum CodePage = CP_ACP; // assume filenames encoded in system default Windows ANSI code page
+    enum CodePage = CP_UTF8; // assume filenames already gone through Windows ANSI code page -> UTF8 conversion
     enum invalidHandle = INVALID_HANDLE_VALUE;
 }
 else version (Posix)
@@ -51,7 +51,6 @@ else version (Posix)
 }
 else
     static assert(0);
-
 
 
 
@@ -122,7 +121,7 @@ struct FileMapping(Datum)
 
             if (size > 0 && size != ulong.max && size <= size_t.max)
             {
-                auto p = mmap(null, cast(size_t) size, is(Datum == const) ? PROT_READ : PROT_WRITE, MAP_SHARED, handle, 0);
+                auto p = mmap(null, cast(size_t) size, is(Datum == const) ? PROT_READ : (PROT_READ | PROT_WRITE), MAP_SHARED, handle, 0);
                 if (p == MAP_FAILED)
                 {
                     fprintf(stderr, "mmap(null, %zu) for \"%s\" failed: %s\n", cast(size_t) size, filename, strerror(errno));
@@ -383,8 +382,8 @@ struct FileMapping(Datum)
                 }
                 if (size > 0)
                 {
-                    auto p = mmap(null, size, PROT_WRITE, MAP_SHARED, handle, 0);
-                    if (cast(ssize_t) p == -1)
+                    auto p = mmap(null, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle, 0);
+                    if (p == MAP_FAILED)
                     {
                         fprintf(stderr, "mmap() failed for \"%s\": %s\n", filename, strerror(errno));
                         exit(1);

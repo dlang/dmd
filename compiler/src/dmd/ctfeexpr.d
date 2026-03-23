@@ -1,7 +1,7 @@
 /**
  * CTFE for expressions involving pointers, slices, array concatenation etc.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ctfeexpr.d, _ctfeexpr.d)
@@ -25,19 +25,17 @@ import dmd.dstruct;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem : isIdentical;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.globals : dinteger_t, sinteger_t, uinteger_t;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.bitarray;
-import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
 
 /****************************************************************/
 /* A type meant as a union of all the Expression types,

@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1983-1998 by Symantec
- *              Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/ty.d, backend/_ty.d)
@@ -57,15 +57,15 @@ enum
 
     // long double is mapped to either of the following at runtime:
     TYdouble_alias      = 0x13, // 64 bit real (but distinct for overload purposes)
-    TYldouble           = 0x14, // 80 bit real
+    TYreal           = 0x14, // 80 bit real
 
     // Add imaginary and complex types for D and C99
     TYifloat            = 0x15,
     TYidouble           = 0x16,
-    TYildouble          = 0x17,
+    TYireal          = 0x17,
     TYcfloat            = 0x18,
     TYcdouble           = 0x19,
-    TYcldouble          = 0x1A,
+    TYcreal          = 0x1A,
 
     TYnullptr           = 0x1C,
     TYnptr              = 0x1D, // data segment relative pointer

@@ -292,13 +292,44 @@ int bt(const scope size_t* p, size_t bitnum) pure @system
 /**
  * Tests and complements the bit.
  */
-int btc(size_t* p, size_t bitnum) pure @system;
-
+int btc(size_t* p, size_t bitnum) pure @system
+{
+    static if (size_t.sizeof == 8)
+    {
+        int result = ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
+        p[bitnum >> 6] ^= (1L << (bitnum & 63));
+        return result;
+    }
+    else static if (size_t.sizeof == 4)
+    {
+        int result = ((p[bitnum >> 5] & (1L << (bitnum & 31)))) != 0;
+        p[bitnum >> 5] ^= (1L << (bitnum & 31));
+        return result;
+    }
+    else
+        static assert(0);
+}
 
 /**
  * Tests and resets (sets to 0) the bit.
  */
-int btr(size_t* p, size_t bitnum) pure @system;
+int btr(size_t* p, size_t bitnum) pure @system
+{
+    static if (size_t.sizeof == 8)
+    {
+        int result = ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
+        p[bitnum >> 6] &= ~(1L << (bitnum & 63));
+        return result;
+    }
+    else static if (size_t.sizeof == 4)
+    {
+        int result = ((p[bitnum >> 5] & (1L << (bitnum & 31)))) != 0;
+        p[bitnum >> 5] &= ~(1L << (bitnum & 31));
+        return result;
+    }
+    else
+        static assert(0);
+}
 
 
 /**
@@ -314,7 +345,23 @@ p[index / (size_t.sizeof*8)] & (1 << (index & ((size_t.sizeof*8) - 1)))
  *      A non-zero value if the bit was set, and a zero
  *      if it was clear.
  */
-int bts(size_t* p, size_t bitnum) pure @system;
+int bts(size_t* p, size_t bitnum) pure @system
+{
+    static if (size_t.sizeof == 8)
+    {
+        int result = ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
+        p[bitnum >> 6] |= (1L << (bitnum & 63));
+        return result;
+    }
+    else static if (size_t.sizeof == 4)
+    {
+        int result = ((p[bitnum >> 5] & (1L << (bitnum & 31)))) != 0;
+        p[bitnum >> 5] |= (1L << (bitnum & 31));
+        return result;
+    }
+    else
+        static assert(0);
+}
 
 ///
 @system pure unittest

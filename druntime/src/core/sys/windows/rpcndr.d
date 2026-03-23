@@ -37,12 +37,12 @@ enum uint NDR_CHAR_REP_MASK      = 0xF,
     NDR_LOCAL_DATA_REPRESENTATION = 0x10,
     NDR_LOCAL_ENDIAN              = NDR_LITTLE_ENDIAN;
 
-alias MIDL_user_allocate midl_user_allocate;
-alias MIDL_user_free midl_user_free;
+alias midl_user_allocate = MIDL_user_allocate;
+alias midl_user_free = MIDL_user_free;
 
-alias long hyper;
-alias ulong MIDL_uhyper;
-alias char small;
+alias hyper = long;
+alias MIDL_uhyper = ulong;
+alias small = char;
 
 enum cbNDRContext=20;
 //MACRO #define NDRSContextValue(hContext) (&(hContext)->userContext)
@@ -97,27 +97,27 @@ enum cbNDRContext=20;
 //MACRO #define NdrFcShort(s) (unsigned char)(s & 0xff), (unsigned char)(s >> 8)
 //MACRO #define NdrFcLong(s) (unsigned char)(s & 0xff), (unsigned char)((s & 0x0000ff00) >> 8), (unsigned char)((s & 0x00ff0000) >> 16), (unsigned char)(s >> 24)
 
-alias void * NDR_CCONTEXT;
+alias NDR_CCONTEXT = void *;
 struct tagNDR_SCONTEXT {
     void*[2] pad;
     void *userContext;
 }
-alias tagNDR_SCONTEXT * NDR_SCONTEXT;
+alias NDR_SCONTEXT = tagNDR_SCONTEXT *;
 
 struct SCONTEXT_QUEUE {
     uint NumberOfObjects;
     NDR_SCONTEXT *ArrayOfObjects;
 }
-alias SCONTEXT_QUEUE * PSCONTEXT_QUEUE;
+alias PSCONTEXT_QUEUE = SCONTEXT_QUEUE *;
 
 struct _MIDL_STUB_MESSAGE;
 struct _MIDL_STUB_DESC;
 struct _FULL_PTR_XLAT_TABLES;
 
-alias ubyte *RPC_BUFPTR;
-alias uint RPC_LENGTH;
+alias RPC_BUFPTR = ubyte *;
+alias RPC_LENGTH = uint;
 
-alias const(char)* PFORMAT_STRING;
+alias PFORMAT_STRING = const(char)*;
 
 struct ARRAY_INFO {
     int Dimension;
@@ -127,7 +127,7 @@ struct ARRAY_INFO {
     uint *OffsetArray;
     uint *ActualCountArray;
 }
-alias ARRAY_INFO * PARRAY_INFO;
+alias PARRAY_INFO = ARRAY_INFO *;
 
 RPC_BINDING_HANDLE  NDRCContextBinding(NDR_CCONTEXT);
 void  NDRCContextMarshall(NDR_CCONTEXT,void*);
@@ -212,16 +212,16 @@ const(_MIDL_STUB_DESC)* StubDesc;
     uint dwStubPhase;
     INT_PTR[5] w2kReserved;
 }
-alias MIDL_STUB_MESSAGE * PMIDL_STUB_MESSAGE;
+alias PMIDL_STUB_MESSAGE = MIDL_STUB_MESSAGE *;
 
 extern (Windows) {
-    alias void* function (void*) GENERIC_BINDING_ROUTINE;
-    alias void function (void*,ubyte*) GENERIC_UNBIND_ROUTINE;
-    alias uint function (uint *,uint,void *) USER_MARSHAL_SIZING_ROUTINE;
-    alias ubyte * function (uint *,ubyte *,void *) USER_MARSHAL_MARSHALLING_ROUTINE;
-    alias ubyte * function (uint *,ubyte *,void *) USER_MARSHAL_UNMARSHALLING_ROUTINE;
-    alias void function (uint *,void *) USER_MARSHAL_FREEING_ROUTINE;
-    alias void function () NDR_NOTIFY_ROUTINE;
+    alias GENERIC_BINDING_ROUTINE = void* function (void*);
+    alias GENERIC_UNBIND_ROUTINE = void function (void*,ubyte*);
+    alias USER_MARSHAL_SIZING_ROUTINE = uint function (uint *,uint,void *);
+    alias USER_MARSHAL_MARSHALLING_ROUTINE = ubyte * function (uint *,ubyte *,void *);
+    alias USER_MARSHAL_UNMARSHALLING_ROUTINE = ubyte * function (uint *,ubyte *,void *);
+    alias USER_MARSHAL_FREEING_ROUTINE = void function (uint *,void *);
+    alias NDR_NOTIFY_ROUTINE = void function ();
 }
 
 align:
@@ -229,7 +229,7 @@ struct GENERIC_BINDING_ROUTINE_PAIR {
     GENERIC_BINDING_ROUTINE pfnBind;
     GENERIC_UNBIND_ROUTINE pfnUnbind;
 }
-alias GENERIC_BINDING_ROUTINE_PAIR * PGENERIC_BINDING_ROUTINE_PAIR;
+alias PGENERIC_BINDING_ROUTINE_PAIR = GENERIC_BINDING_ROUTINE_PAIR *;
 
 struct GENERIC_BINDING_INFO {
     void *pObj;
@@ -237,7 +237,7 @@ struct GENERIC_BINDING_INFO {
     GENERIC_BINDING_ROUTINE pfnBind;
     GENERIC_UNBIND_ROUTINE pfnUnbind;
 }
-alias GENERIC_BINDING_INFO * PGENERIC_BINDING_INFO;
+alias PGENERIC_BINDING_INFO = GENERIC_BINDING_INFO *;
 
 
 struct XMIT_ROUTINE_QUINTUPLE {
@@ -246,7 +246,7 @@ struct XMIT_ROUTINE_QUINTUPLE {
     XMIT_HELPER_ROUTINE pfnFreeXmit;
     XMIT_HELPER_ROUTINE pfnFreeInst;
 }
-alias XMIT_ROUTINE_QUINTUPLE * PXMIT_ROUTINE_QUINTUPLE;
+alias PXMIT_ROUTINE_QUINTUPLE = XMIT_ROUTINE_QUINTUPLE *;
 
 struct MALLOC_FREE_STRUCT {
     void* function (uint) pfnAllocate;
@@ -310,9 +310,9 @@ const(NDR_CS_ROUTINES)* CsRoutineTables;
     void *Reserved4;
     ULONG_PTR Reserved5;
 }
-alias const(MIDL_STUB_DESC)* PMIDL_STUB_DESC;
+alias PMIDL_STUB_DESC = const(MIDL_STUB_DESC)*;
 
-alias void * PMIDL_XMIT_TYPE;
+alias PMIDL_XMIT_TYPE = void *;
 
 struct MIDL_FORMAT_STRING {
     short Pad;
@@ -326,14 +326,14 @@ const(SERVER_ROUTINE)* DispatchTable;
 const(ushort)* FmtStringOffset;
 const(STUB_THUNK)* ThunkTable;
 }
-alias MIDL_SERVER_INFO * PMIDL_SERVER_INFO;
+alias PMIDL_SERVER_INFO = MIDL_SERVER_INFO *;
 
 struct MIDL_STUBLESS_PROXY_INFO {
     PMIDL_STUB_DESC pStubDesc;
     PFORMAT_STRING ProcFormatString;
 const(ushort)* FormatStringOffset;
 }
-alias MIDL_STUBLESS_PROXY_INFO *PMIDL_STUBLESS_PROXY_INFO;
+alias PMIDL_STUBLESS_PROXY_INFO = MIDL_STUBLESS_PROXY_INFO *;
 
 union CLIENT_CALL_RETURN {
     void *Pointer;
@@ -350,7 +350,7 @@ struct FULL_PTR_TO_REFID_ELEMENT {
     uint RefId;
     ubyte State;
 }
-alias FULL_PTR_TO_REFID_ELEMENT * PFULL_PTR_TO_REFID_ELEMENT;
+alias PFULL_PTR_TO_REFID_ELEMENT = FULL_PTR_TO_REFID_ELEMENT *;
 
 struct FULL_PTR_XLAT_TABLES {
     struct _RefIdToPointer {
@@ -369,7 +369,7 @@ struct FULL_PTR_XLAT_TABLES {
     uint NextRefId;
     XLAT_SIDE XlatSide;
 }
-alias FULL_PTR_XLAT_TABLES * PFULL_PTR_XLAT_TABLES;
+alias PFULL_PTR_XLAT_TABLES = FULL_PTR_XLAT_TABLES *;
 
 
 enum STUB_PHASE {
@@ -387,25 +387,25 @@ enum PROXY_PHASE {
     PROXY_UNMARSHAL
 }
 
-alias void * RPC_SS_THREAD_HANDLE;
+alias RPC_SS_THREAD_HANDLE = void *;
 
 extern (Windows) {
-alias void function (void*) NDR_RUNDOWN;
-alias void function (_MIDL_STUB_MESSAGE*) EXPR_EVAL;
-alias void function(PMIDL_STUB_MESSAGE) XMIT_HELPER_ROUTINE;
-alias void function (RPC_BINDING_HANDLE,uint,uint,IDL_CS_CONVERT*,uint*,error_status_t*) CS_TYPE_NET_SIZE_ROUTINE;
-alias void function (RPC_BINDING_HANDLE,uint,uint,IDL_CS_CONVERT*,uint*,error_status_t*) CS_TYPE_LOCAL_SIZE_ROUTINE;
-alias void function (RPC_BINDING_HANDLE,uint,void*,uint,byte*,uint*,error_status_t*) CS_TYPE_TO_NETCS_ROUTINE;
-alias void function (RPC_BINDING_HANDLE,uint,byte*,uint,uint,void*,uint*,error_status_t*) CS_TYPE_FROM_NETCS_ROUTINE;
-alias void function (RPC_BINDING_HANDLE,int,uint*,uint*,uint*,error_status_t*) CS_TAG_GETTING_ROUTINE;
+alias NDR_RUNDOWN = void function (void*);
+alias EXPR_EVAL = void function (_MIDL_STUB_MESSAGE*);
+alias XMIT_HELPER_ROUTINE = void function(PMIDL_STUB_MESSAGE);
+alias CS_TYPE_NET_SIZE_ROUTINE = void function (RPC_BINDING_HANDLE,uint,uint,IDL_CS_CONVERT*,uint*,error_status_t*);
+alias CS_TYPE_LOCAL_SIZE_ROUTINE = void function (RPC_BINDING_HANDLE,uint,uint,IDL_CS_CONVERT*,uint*,error_status_t*);
+alias CS_TYPE_TO_NETCS_ROUTINE = void function (RPC_BINDING_HANDLE,uint,void*,uint,byte*,uint*,error_status_t*);
+alias CS_TYPE_FROM_NETCS_ROUTINE = void function (RPC_BINDING_HANDLE,uint,byte*,uint,uint,void*,uint*,error_status_t*);
+alias CS_TAG_GETTING_ROUTINE = void function (RPC_BINDING_HANDLE,int,uint*,uint*,uint*,error_status_t*);
 
 //alias void* RPC_CLIENT_ALLOC(uint);
 //alias void RPC_CLIENT_FREE(void*);
-alias void* function(uint) PRPC_CLIENT_ALLOC;
-alias void function(void*) PRPC_CLIENT_FREE;
+alias PRPC_CLIENT_ALLOC = void* function(uint);
+alias PRPC_CLIENT_FREE = void function(void*);
 
-    alias void function (PMIDL_STUB_MESSAGE) STUB_THUNK;
-    alias int function() SERVER_ROUTINE;
+    alias STUB_THUNK = void function (PMIDL_STUB_MESSAGE);
+    alias SERVER_ROUTINE = int function();
 }
 
 void  NdrSimpleTypeMarshall(PMIDL_STUB_MESSAGE,ubyte*,ubyte);

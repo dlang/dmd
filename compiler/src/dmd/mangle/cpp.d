@@ -4,7 +4,7 @@
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mangle/cpp.d, _cppmangle.d)
@@ -27,6 +27,8 @@ import dmd.attrib;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dsymbolsem : isGNUABITag, toAlias, equals;
+import dmd.expressionsem : toStringExp, toInteger, toUInteger;
+import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -509,6 +511,10 @@ private final class CppMangleVisitor : Visitor
             // `&function`
             Dsymbol d = isDsymbol(o);
             Expression e = isExpression(o);
+
+            if (d && d.isTemplateDeclaration())
+                d.isTemplateDeclaration().computeOneMember();
+
             if (d && d.isFuncDeclaration())
             {
                 // X .. E => template parameter is an expression

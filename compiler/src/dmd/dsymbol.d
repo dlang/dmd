@@ -1,7 +1,7 @@
 /**
  * The base class for a D symbol, which can be a module, variable, function, enum, etc.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dsymbol.d, _dsymbol.d)
@@ -17,7 +17,6 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 import dmd.aggregate;
-import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astenums;
@@ -34,10 +33,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
-import dmd.id;
 import dmd.identifier;
-import dmd.init;
-import dmd.lexer;
 import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
@@ -49,9 +45,7 @@ import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
-
 import dmd.common.outbuffer;
-
 /***************************************
  * Calls dg(Dsymbol* sym) for each Dsymbol.
  * If dg returns !=0, stops and returns that value else returns 0.
@@ -103,6 +97,62 @@ void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
         }
     }
 }
+
+private void addComment(Dsymbol d, const(char)* comment)
+{
+    scope v = new AddCommentVisitor(comment);
+    d.accept(v);
+}
+
+extern (C++) private class AddCommentVisitor: Visitor
+{
+    alias visit = Visitor.visit;
+
+    const(char)* comment;
+
+    this(const(char)* comment)
+    {
+        this.comment = comment;
+    }
+
+    override void visit(Dsymbol d)
+    {
+        if (!comment || !*comment)
+            return;
+
+        //printf("addComment '%s' to Dsymbol %p '%s'\n", comment, this, toChars());
+        void* h = cast(void*)d;      // just the pointer is the key
+        auto p = h in d.commentHashTable;
+        if (!p)
+        {
+            d.commentHashTable[h] = comment;
+            return;
+        }
+        if (strcmp(*p, comment) != 0)
+        {
+            // Concatenate the two
+            import dmd.lexer;
+            *p = Lexer.combineComments((*p).toDString(), comment.toDString(), true);
+        }
+    }
+    override void visit(AttribDeclaration atd)
+    {
+        if (comment && atd.decl)
+        {
+            atd.decl.foreachDsymbol( s => s.addComment(comment) );
+        }
+    }
+    override void visit(ConditionalDeclaration cd)
+    {
+        if (comment)
+        {
+            cd.decl    .foreachDsymbol( s => s.addComment(comment) );
+            cd.elsedecl.foreachDsymbol( s => s.addComment(comment) );
+        }
+    }
+    override void visit(StaticForeachDeclaration sfd) {}
+}
+
 
 struct Visibility
 {
@@ -179,8 +229,8 @@ enum PASS : ubyte
     semantic2done,  // semantic2() done
     semantic3,      // semantic3() started
     semantic3done,  // semantic3() done
-    inline,         // inline started
-    inlinedone,     // inline done
+    inlinePragma,   // inline pragma(inline, true) functions started
+    inlineAll,      // inline all functions started
     obj,            // toObjFile() run
 }
 
@@ -769,20 +819,6 @@ extern (C++) class Dsymbol : ASTNode
         assert(0);
     }
 
-    void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
-    {
-    }
-
-    /****************************************
-     * Add documentation comment to Dsymbol.
-     * Ignore NULL comments.
-     */
-    void addComment(const(char)* comment)
-    {
-        import dmd.dsymbolsem;
-        dmd.dsymbolsem.addComment(this, comment);
-    }
-
     /// get documentation comment for this Dsymbol
     final const(char)* comment()
     {
@@ -794,10 +830,10 @@ extern (C++) class Dsymbol : ASTNode
         }
         return null;
     }
-
-    /* Shell around addComment() to avoid disruption for the moment */
-    final void comment(const(char)* comment) { addComment(comment); }
-
+    final void addComment(const(char)* c)
+    {
+        .addComment(this, c);
+    }
     extern (D) __gshared const(char)*[void*] commentHashTable;
 
 
@@ -1080,7 +1116,7 @@ public:
     {
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
-        sds.comment = comment;
+        sds.addComment(comment);
         sds.members = arraySyntaxCopy(members);
         sds.endlinnum = endlinnum;
         return sds;

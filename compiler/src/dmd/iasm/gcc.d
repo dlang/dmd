@@ -1,7 +1,7 @@
 /**
  * Inline assembler for the GCC D compiler.
  *
- *              Copyright (C) 2018-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2018-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/iasmgcc.d, _iasmgcc.d)
@@ -30,6 +30,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.statement;
 import dmd.statementsem;
+import dmd.typesem;
 
 /***********************************
  * Parse and run semantic analysis on a GccAsmStatement.
@@ -188,7 +189,8 @@ Expression semanticAsmString(Scope* sc, Expression exp, const char *s)
 {
     import dmd.dcast : implicitCastTo;
     import dmd.dsymbolsem : resolveAliasThis;
-    import dmd.mtype : isAggregate, Type;
+    import dmd.mtype : Type;
+    import dmd.typesem : isAggregate;
 
     exp = expressionSemantic(exp, sc);
 
@@ -553,6 +555,7 @@ GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
 unittest
 {
     import dmd.mtype : TypeBasic;
+    import dmd.typesem : merge;
 
     if (!global.errorSink)
         global.errorSink = new ErrorSinkCompiler;
@@ -560,7 +563,7 @@ unittest
     const errors = global.startGagging();
     scope(exit) global.endGagging(errors);
 
-    // If this check fails, then Type._init() was called before reaching here,
+    // If this check fails, then Type_init() was called before reaching here,
     // and the entire chunk of code that follows can be removed.
     assert(ASTCodegen.Type.tint32 is null);
     // Minimally initialize the cached types in ASTCodegen.Type, as they are
@@ -573,8 +576,10 @@ unittest
         ASTCodegen.Type.tchar = null;
     }
     scope tint32 = new TypeBasic(ASTCodegen.Tint32);
+    tint32.merge();
     ASTCodegen.Type.tint32 = tint32;
     scope tchar = new TypeBasic(ASTCodegen.Tchar);
+    tchar.merge();
     ASTCodegen.Type.tchar = tchar;
 
     // Imitates asmSemantic if version = IN_GCC.

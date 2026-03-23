@@ -4,7 +4,7 @@
  * For standalone disasmarm: dmd disasmarm.d -version=StandAlone -fPIC
  *
  * Copyright:   Copyright (C) 1982-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Reference:   Arm A64 Instruction Set for A-profile Architecture ISA_A64_xml_A_profile-2025-03.pdf
@@ -2038,12 +2038,16 @@ void disassemble(uint c) @trusted
         uint o2 = field(ins,11,11);
         uint Rd = field(ins,4,0);
 
-        if (Q == 1 && op == 1 && cmode == 0xE)
+        if (op == 1 && cmode == 0xE)
         {
             url2 = "movi_advsimd";
             p1 = "movi";    // https://www.scs.stanford.edu/~zyedidia/arm64/movi_advsimd.html
             // TODO AArch64 implement https://www.scs.stanford.edu/~zyedidia/arm64/shared_pseudocode.html#impl-shared.AdvSIMDExpandImm.3
-            uint n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.2d,#0x%x", Rd, abcdefgh);
+            uint n;
+            if (Q)
+                n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.2d,#0x%x", Rd, abcdefgh);
+            else
+                n = snprintf(buf.ptr, cast(uint)buf.length, "d%d,#0x%x", Rd, abcdefgh);
             p2 = buf[0 .. n];
         }
     }
@@ -2209,6 +2213,7 @@ void disassemble(uint c) @trusted
             p3 = (Rm == 0 && (opcode2 & 8)) ? "#0.0" : fregString(rbuf[4..8],"sd h"[ftype],Rm);
         }
     }
+    else
 
     // Floating-point immediate http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatimm
     if (field(ins,31,24) == 0x1E && field(ins,21,21) == 1 && field(ins,12,10) == 4)
@@ -2226,7 +2231,33 @@ void disassemble(uint c) @trusted
     }
     else
 
-    // Floating-point conditional compare
+    // Floating-point conditional compare https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatccmp
+    if (field(ins, 30, 30) == 0 && field(ins, 28, 24) == 0x1E && field(ins,21,21) == 1 && field(ins, 11, 10) == 1)
+    {
+        url = "floatccmp";
+
+        uint M       = field(ins,31,31);
+        uint S       = field(ins,29,29);
+        uint ftype   = field(ins,23,22);
+        uint Rm      = field(ins,20,16);
+        uint cond    = field(ins,15,12);
+        uint Rn      = field(ins, 9, 5);
+        uint op      = field(ins, 4, 4);
+        uint nzcv    = field(ins, 3, 0);
+
+        if (M == 0 && S == 0)
+        {
+            // fccmp d5,d5,#0,vs
+            url = op ? "fccmpe_float" : "fccmp_float";
+            p1 = op ? "fccmpe" : "fccmp";
+            p2 = fregString(rbuf[0..4],"sd h"[ftype],Rn);
+            p3 = fregString(rbuf[4..8],"sd h"[ftype],Rm);
+            uint n = snprintf(buf.ptr, cast(uint)buf.length,"#0x%x", nzcv);
+            p4 = buf[0 .. n];
+            p5 = condstring[cond];
+        }
+    }
+    else
 
     // Floating-point data-processing (2 source) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
     if (field(ins, 30, 30) == 0 && field(ins, 28, 24) == 0x1E && field(ins,21,21) == 1 &&  field(ins, 11, 10) == 2)
@@ -2378,12 +2409,14 @@ void disassemble(uint c) @trusted
         uint size = field(ins, 31, 30);
         uint VR   = field(ins, 26, 26);
         uint opc  = field(ins, 23, 22);
-        uint imm9 = field(ins, 20, 12);
+         int imm9 = field(ins, 20, 12);
         uint Rn   = field(ins,  9,  5);
         uint Rt   = field(ins,  4,  0);
 
         uint ldur(uint size, uint VR, uint opc) { return (size << 3) | (VR << 2) | opc; }
 
+        if (imm9 & 0x100)
+            imm9 |= 0xFFFF_FE00;        // sign extend
         bool is64 = false;
         const(char)* format = "%s";
         switch (ldur(size,VR,opc))
@@ -2585,7 +2618,7 @@ void disassemble(uint c) @trusted
             case ldr(1,0,0): p1 = "strh";  factor = 2; goto Lldr;
             case ldr(1,0,1): p1 = "ldrh";  goto Lldr;
             case ldr(1,0,2): p1 = "ldrsh"; goto Lldr64;
-            case ldr(1,0,3): p1 = "ldrsh"; goto Lldr;
+            case ldr(1,0,3): p1 = "ldrsh"; factor = 2; goto Lldr;
             case ldr(2,0,0): p1 = "str";   format = "%s_imm_gen"; goto Lldr;
             case ldr(2,0,1): p1 = "ldr";   format = "%s_imm_gen"; goto Lldr;
             case ldr(2,0,2): p1 = "ldrsw"; goto Lldrsw;
@@ -2848,9 +2881,15 @@ const(char)[] wordtostring2(uint w)
 @trusted
 const(char)[] signedWordtostring(int w)
 {
-    __gshared char[1 + 3 + 1 + w.sizeof * 3 + 1 + 1] EA;
+    __gshared char[1 + 3 + 1 + 1 + w.sizeof * 3 + 1 + 1] EA;
 
-    const n = snprintf(EA.ptr, EA.length, ((w <= 16) ? "#%d" : "#0x%X"), w);
+    if (w < 0)
+    {
+        w = -w;
+        const n = snprintf(EA.ptr, EA.length, ((w < 10) ? "#-%d" : "#-0x%X"), w);
+        return EA[0 .. n];
+    }
+    const n = snprintf(EA.ptr, EA.length, ((w <= 10) ? "#%d" : "#0x%X"), w);
     return EA[0 .. n];
 }
 
@@ -2905,7 +2944,7 @@ const(char)[] eaString(uint op, ubyte Rn, int offset)
     switch (op)
     {
         case 1:
-            if (offset)
+            if (1 || offset)
             {
                 uint n = snprintf(EA.ptr, cast(uint)EA.length, "[%s],%s", regString(1, Rn).ptr, signedWordtostring(offset).ptr);
                 p = EA[0 .. n];
@@ -3208,8 +3247,14 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[93] cases64 =      // 64 bit code gen
+    string[100] cases64 =      // 64 bit code gen
     [
+        "1E 61 04 00         fccmp  d0,d1,#0x0,eq",
+        "1E 65 64 A0         fccmp  d5,d5,#0x0,vs",
+        "1E 65 64 B0         fccmpe d5,d5,#0x0,vs",
+        "79 C0 47 AB         ldrsh  w11,[x29,#0x22]",
+        "F8 1F 03 A8         stur   x8,[x29,#-0x10]",
+        "B8 00 04 62         str    w2,[x3],#0",
         "78 64 68 23         ldrh   w3,[x1, x4]",
         "78 24 68 43         strh   w3,[x2, x4]",
         "38 64 68 23         ldrb   w3,[x1, x4]",
@@ -3220,6 +3265,7 @@ unittest
         "B8 00 93 E0         stur   w0,[sp,#9]",
         "F8 00 84 5F         str    xzr,[x2],#8",
         "6F 00 E4 01         movi   v1.2d,#0x0",
+        "2F 00 E4 1F         movi   d31,#0x0",
         "9E AF 00 3E         fmov   v30.d[1],x1",
         "4E BE 1F C0         mov    v0.16b,v30.16b",
         "D4 20 00 20         brk    #1",
@@ -3256,10 +3302,10 @@ unittest
         "1A 9F A7 E0         cset  w0,lt",
         "91 40 00 00         add   x0,x0,#0,lsl #12",
         "D5 3B D0 40         mrs   x0,S3_3_c13_c0_2",
-        "A8 C1 7B FD         ldp   x29,x30,[sp],#16",
+        "A8 C1 7B FD         ldp   x29,x30,[sp],#0x10",
         "90 00 00 00         adrp  x0,#0",
-        "A9 01 7B FD         stp   x29,x30,[sp,#16]",
-        "A9 41 7B FD         ldp   x29,x30,[sp,#16]",
+        "A9 01 7B FD         stp   x29,x30,[sp,#0x10]",
+        "A9 41 7B FD         ldp   x29,x30,[sp,#0x10]",
         "B9 40 0B E0         ldr   w0,[sp,#8]",
         "F9 00 5F E3         str   x3,[sp,#0xB8]",
 

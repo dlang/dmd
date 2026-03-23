@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/pragma.html, Pragmas)
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/pragmasem.d, _pragmasem.d)
@@ -687,7 +687,7 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
     }
     if (args.length > 2)
     {
-        error(loc, "pragma(mangle)` expects 1 or 2 arguments");
+        error(loc, "`pragma(mangle)` expects 1 or 2 arguments");
         return false;
     }
 

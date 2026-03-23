@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              https://www.boost.org/LICENSE_1_0.txt
@@ -20,6 +20,7 @@ import core.stdc.string;
 import core.stdc.time;
 
 import dmd.backend.cc;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.global;
@@ -214,7 +215,7 @@ void dbg_optprint(char* title)
  */
 
 @trusted
-void optfunc(ref GlobalOptimizer go)
+void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     if (debugc) printf("optfunc()\n");
     dbg_optprint("optfunc\n");
@@ -288,14 +289,14 @@ void optfunc(ref GlobalOptimizer go)
             scanForInlines(funcsym_p);
 
         if (go.mfoptim & MFdc)
-            blockopt(go, 0);            // do block optimization
+            blockopt(go, bo);           // do block optimization
         out_regcand(&globsym);          // recompute register candidates
         go.changes = 0;                 // no changes yet
         sliceStructs(globsym, bo.startblock);
         if (go.mfoptim & MFcnp)
-            constprop(go);              /* make relationals unsigned     */
+            constprop(go, bo);              /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))
-            loopopt(go);                /* remove loop invariants and    */
+            loopopt(go, bo);                /* remove loop invariants and    */
                                         /* induction vars                */
                                         /* do loop rotation              */
         else
@@ -304,14 +305,14 @@ void optfunc(ref GlobalOptimizer go)
         dbg_optprint("boolopt\n");
 
         if (go.mfoptim & MFcnp)
-            boolopt(go);                  // optimize boolean values
+            boolopt(go, bo);              // optimize boolean values
         if (go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC)
             continue;
 
         if (go.mfoptim & MFcnp)
-            constprop(go);              /* constant propagation          */
+            constprop(go, bo);          /* constant propagation          */
         if (go.mfoptim & MFcp)
-            copyprop(go);               /* do copy propagation           */
+            copyprop(go, bo);           /* do copy propagation           */
 
         /* Floating point constants and string literals need to be
          * replaced with loads from variables in read-only data.
@@ -342,9 +343,9 @@ void optfunc(ref GlobalOptimizer go)
          * code generation which assumes at most one (localgotoffset).
          */
         if (go.mfoptim & MFlocal)
-            localize(go);                 // improve expression locality
+            localize(go, bo);             // improve expression locality
         if (go.mfoptim & MFda)
-            rmdeadass(go);                /* remove dead assignments       */
+            rmdeadass(go, bo);            /* remove dead assignments       */
 
         if (debugc) printf("changes = %d\n", go.changes);
         if (!(go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC))
@@ -353,7 +354,7 @@ void optfunc(ref GlobalOptimizer go)
     if (debugc) printf("%d iterations\n",iter);
 
     if (go.mfoptim & MFdc)
-        blockopt(go, 1);                // do block optimization
+        blockopt(go, bo);                 // do block optimization
 
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
@@ -361,9 +362,9 @@ void optfunc(ref GlobalOptimizer go)
             postoptelem(b.Belem);
     }
     if (go.mfoptim & MFvbe)
-        verybusyexp(go);              /* very busy expressions         */
+        verybusyexp(go, bo);          /* very busy expressions         */
     if (go.mfoptim & MFcse)
-        builddags(go);                /* common subexpressions         */
+        builddags(go, bo);            /* common subexpressions         */
     if (go.mfoptim & MFdv)
         deadvar();                  /* eliminate dead variables      */
 

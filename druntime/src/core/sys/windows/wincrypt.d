@@ -500,27 +500,21 @@ enum {
 }
 
 
-alias UINT ALG_ID;
-alias ULONG_PTR HCRYPTPROV, HCRYPTKEY, HCRYPTHASH;
-alias PVOID HCERTSTORE, HCRYPTMSG, HCERTCHAINENGINE;
+alias ALG_ID = UINT;
+alias HCRYPTPROV = ULONG_PTR, HCRYPTKEY = ULONG_PTR, HCRYPTHASH = ULONG_PTR;
+alias HCERTSTORE = PVOID, HCRYPTMSG = PVOID, HCERTCHAINENGINE = PVOID;
 
 struct VTableProvStruc {
     FARPROC FuncVerifyImage;
 }
-alias VTableProvStruc* PVTableProvStruc;
+alias PVTableProvStruc = VTableProvStruc*;
 
 struct _CRYPTOAPI_BLOB {
     DWORD cbData;
     BYTE* pbData;
 }
-alias _CRYPTOAPI_BLOB CRYPT_INTEGER_BLOB, CRYPT_UINT_BLOB,
-  CRYPT_OBJID_BLOB, CERT_NAME_BLOB, CERT_RDN_VALUE_BLOB, CERT_BLOB,
-  CRL_BLOB, DATA_BLOB, CRYPT_DATA_BLOB, CRYPT_HASH_BLOB,
-  CRYPT_DIGEST_BLOB, CRYPT_DER_BLOB, CRYPT_ATTR_BLOB;
-alias _CRYPTOAPI_BLOB* PCRYPT_INTEGER_BLOB, PCRYPT_UINT_BLOB,
-  PCRYPT_OBJID_BLOB, PCERT_NAME_BLOB, PCERT_RDN_VALUE_BLOB, PCERT_BLOB,
-  PCRL_BLOB, PDATA_BLOB, PCRYPT_DATA_BLOB, PCRYPT_HASH_BLOB,
-  PCRYPT_DIGEST_BLOB, PCRYPT_DER_BLOB, PCRYPT_ATTR_BLOB;
+alias CRYPT_INTEGER_BLOB = _CRYPTOAPI_BLOB, CRYPT_UINT_BLOB = _CRYPTOAPI_BLOB, CRYPT_OBJID_BLOB = _CRYPTOAPI_BLOB, CERT_NAME_BLOB = _CRYPTOAPI_BLOB, CERT_RDN_VALUE_BLOB = _CRYPTOAPI_BLOB, CERT_BLOB = _CRYPTOAPI_BLOB, CRL_BLOB = _CRYPTOAPI_BLOB, DATA_BLOB = _CRYPTOAPI_BLOB, CRYPT_DATA_BLOB = _CRYPTOAPI_BLOB, CRYPT_HASH_BLOB = _CRYPTOAPI_BLOB, CRYPT_DIGEST_BLOB = _CRYPTOAPI_BLOB, CRYPT_DER_BLOB = _CRYPTOAPI_BLOB, CRYPT_ATTR_BLOB = _CRYPTOAPI_BLOB;
+alias PCRYPT_INTEGER_BLOB = _CRYPTOAPI_BLOB*, PCRYPT_UINT_BLOB = _CRYPTOAPI_BLOB*, PCRYPT_OBJID_BLOB = _CRYPTOAPI_BLOB*, PCERT_NAME_BLOB = _CRYPTOAPI_BLOB*, PCERT_RDN_VALUE_BLOB = _CRYPTOAPI_BLOB*, PCERT_BLOB = _CRYPTOAPI_BLOB*, PCRL_BLOB = _CRYPTOAPI_BLOB*, PDATA_BLOB = _CRYPTOAPI_BLOB*, PCRYPT_DATA_BLOB = _CRYPTOAPI_BLOB*, PCRYPT_HASH_BLOB = _CRYPTOAPI_BLOB*, PCRYPT_DIGEST_BLOB = _CRYPTOAPI_BLOB*, PCRYPT_DER_BLOB = _CRYPTOAPI_BLOB*, PCRYPT_ATTR_BLOB = _CRYPTOAPI_BLOB*;
 
 // not described in SDK; has the same layout as HTTPSPolicyCallbackData
 struct SSL_EXTRA_CERT_CHAIN_POLICY_PARA {
@@ -529,9 +523,8 @@ struct SSL_EXTRA_CERT_CHAIN_POLICY_PARA {
     DWORD  fdwChecks;
     LPWSTR pwszServerName;
 }
-alias SSL_EXTRA_CERT_CHAIN_POLICY_PARA HTTPSPolicyCallbackData;
-alias SSL_EXTRA_CERT_CHAIN_POLICY_PARA* PSSL_EXTRA_CERT_CHAIN_POLICY_PARA,
-  PHTTPSPolicyCallbackData;
+alias HTTPSPolicyCallbackData = SSL_EXTRA_CERT_CHAIN_POLICY_PARA;
+alias PSSL_EXTRA_CERT_CHAIN_POLICY_PARA = SSL_EXTRA_CERT_CHAIN_POLICY_PARA*, PHTTPSPolicyCallbackData = SSL_EXTRA_CERT_CHAIN_POLICY_PARA*;
 
 /* #if (_WIN32_WINNT>=0x500) */
 struct CERT_CHAIN_POLICY_PARA {
@@ -539,7 +532,7 @@ struct CERT_CHAIN_POLICY_PARA {
     DWORD dwFlags;
     void* pvExtraPolicyPara;
 }
-alias CERT_CHAIN_POLICY_PARA* PCERT_CHAIN_POLICY_PARA;
+alias PCERT_CHAIN_POLICY_PARA = CERT_CHAIN_POLICY_PARA*;
 
 struct CERT_CHAIN_POLICY_STATUS {
     DWORD cbSize = CERT_CHAIN_POLICY_STATUS.sizeof;
@@ -548,34 +541,34 @@ struct CERT_CHAIN_POLICY_STATUS {
     LONG  lElementIndex;
     void* pvExtraPolicyStatus;
 }
-alias CERT_CHAIN_POLICY_STATUS* PCERT_CHAIN_POLICY_STATUS;
+alias PCERT_CHAIN_POLICY_STATUS = CERT_CHAIN_POLICY_STATUS*;
 /* #endif */
 
 struct CRYPT_ALGORITHM_IDENTIFIER {
     LPSTR pszObjId;
     CRYPT_OBJID_BLOB Parameters;
 }
-alias CRYPT_ALGORITHM_IDENTIFIER* PCRYPT_ALGORITHM_IDENTIFIER;
+alias PCRYPT_ALGORITHM_IDENTIFIER = CRYPT_ALGORITHM_IDENTIFIER*;
 
 struct CRYPT_BIT_BLOB {
     DWORD cbData;
     BYTE* pbData;
     DWORD cUnusedBits;
 }
-alias CRYPT_BIT_BLOB* PCRYPT_BIT_BLOB;
+alias PCRYPT_BIT_BLOB = CRYPT_BIT_BLOB*;
 
 struct CERT_PUBLIC_KEY_INFO {
     CRYPT_ALGORITHM_IDENTIFIER Algorithm;
     CRYPT_BIT_BLOB             PublicKey;
 }
-alias CERT_PUBLIC_KEY_INFO* PCERT_PUBLIC_KEY_INFO;
+alias PCERT_PUBLIC_KEY_INFO = CERT_PUBLIC_KEY_INFO*;
 
 struct CERT_EXTENSION {
     LPSTR            pszObjId;
     BOOL             fCritical;
     CRYPT_OBJID_BLOB Value;
 }
-alias CERT_EXTENSION* PCERT_EXTENSION;
+alias PCERT_EXTENSION = CERT_EXTENSION*;
 
 struct CERT_INFO {
     DWORD dwVersion;
@@ -591,7 +584,7 @@ struct CERT_INFO {
     DWORD cExtension;
     PCERT_EXTENSION rgExtension;
 }
-alias CERT_INFO* PCERT_INFO;
+alias PCERT_INFO = CERT_INFO*;
 
 struct CERT_CONTEXT {
     DWORD      dwCertEncodingType;
@@ -600,21 +593,21 @@ struct CERT_CONTEXT {
     PCERT_INFO pCertInfo;
     HCERTSTORE hCertStore;
 }
-alias CERT_CONTEXT*        PCERT_CONTEXT;
-alias const(CERT_CONTEXT)* PCCERT_CONTEXT;
+alias PCERT_CONTEXT = CERT_CONTEXT*;
+alias PCCERT_CONTEXT = const(CERT_CONTEXT)*;
 
 struct CTL_USAGE {
     DWORD  cUsageIdentifier;
     LPSTR* rgpszUsageIdentifier;
 }
-alias CTL_USAGE CERT_ENHKEY_USAGE;
-alias CTL_USAGE* PCTRL_USAGE, PCERT_ENHKEY_USAGE;
+alias CERT_ENHKEY_USAGE = CTL_USAGE;
+alias PCTRL_USAGE = CTL_USAGE*, PCERT_ENHKEY_USAGE = CTL_USAGE*;
 
 struct CERT_USAGE_MATCH {
     DWORD             dwType;
     CERT_ENHKEY_USAGE Usage;
 }
-alias CERT_USAGE_MATCH* PCERT_USAGE_MATCH;
+alias PCERT_USAGE_MATCH = CERT_USAGE_MATCH*;
 /* #if (_WIN32_WINNT>=0x500) */
 
 struct CERT_CHAIN_PARA {
@@ -627,10 +620,9 @@ struct CERT_CHAIN_PARA {
     DWORD            dwRevocationFreshnessTime;
 //#endif
 }
-alias CERT_CHAIN_PARA* PCERT_CHAIN_PARA;
+alias PCERT_CHAIN_PARA = CERT_CHAIN_PARA*;
 
-extern (Windows) alias BOOL function(PCCERT_CONTEXT, void*)
-  PFN_CERT_CHAIN_FIND_BY_ISSUER_CALLBACK;
+extern (Windows) alias PFN_CERT_CHAIN_FIND_BY_ISSUER_CALLBACK = BOOL function(PCCERT_CONTEXT, void*);
 
 struct CERT_CHAIN_FIND_BY_ISSUER_PARA {
     DWORD  cbSize = CERT_CHAIN_FIND_BY_ISSUER_PARA.sizeof;
@@ -644,14 +636,14 @@ struct CERT_CHAIN_FIND_BY_ISSUER_PARA {
     DWORD* pdwIssuerChainIndex;
     DWORD* pdwIssuerElementIndex;
 }
-alias CERT_CHAIN_FIND_BY_ISSUER_PARA* PCERT_CHAIN_FIND_BY_ISSUER_PARA;
+alias PCERT_CHAIN_FIND_BY_ISSUER_PARA = CERT_CHAIN_FIND_BY_ISSUER_PARA*;
 /* #endif */
 
 struct CERT_TRUST_STATUS {
     DWORD dwErrorStatus;
     DWORD dwInfoStatus;
 }
-alias CERT_TRUST_STATUS* PCERT_TRUST_STATUS;
+alias PCERT_TRUST_STATUS = CERT_TRUST_STATUS*;
 
 struct CRL_ENTRY {
     CRYPT_INTEGER_BLOB SerialNumber;
@@ -659,7 +651,7 @@ struct CRL_ENTRY {
     DWORD              cExtension;
     PCERT_EXTENSION    rgExtension;
 }
-alias CRL_ENTRY* PCRL_ENTRY;
+alias PCRL_ENTRY = CRL_ENTRY*;
 
 struct CRL_INFO {
     DWORD           dwVersion;
@@ -672,7 +664,7 @@ struct CRL_INFO {
     DWORD           cExtension;
     PCERT_EXTENSION rgExtension;
 }
-alias CRL_INFO* PCRL_INFO;
+alias PCRL_INFO = CRL_INFO*;
 
 struct CRL_CONTEXT {
     DWORD      dwCertEncodingType;
@@ -681,8 +673,8 @@ struct CRL_CONTEXT {
     PCRL_INFO  pCrlInfo;
     HCERTSTORE hCertStore;
 }
-alias CRL_CONTEXT*        PCRL_CONTEXT;
-alias const(CRL_CONTEXT)* PCCRL_CONTEXT;
+alias PCRL_CONTEXT = CRL_CONTEXT*;
+alias PCCRL_CONTEXT = const(CRL_CONTEXT)*;
 
 struct CERT_REVOCATION_CRL_INFO {
     DWORD         cbSize = CERT_REVOCATION_CRL_INFO.sizeof;
@@ -691,7 +683,7 @@ struct CERT_REVOCATION_CRL_INFO {
     PCRL_ENTRY    pCrlEntry;
     BOOL          fDeltaCrlEntry;
 }
-alias CERT_REVOCATION_CRL_INFO* PCERT_REVOCATION_CRL_INFO;
+alias PCERT_REVOCATION_CRL_INFO = CERT_REVOCATION_CRL_INFO*;
 
 struct CERT_REVOCATION_INFO {
     DWORD  cbSize = CERT_REVOCATION_INFO.sizeof;
@@ -702,7 +694,7 @@ struct CERT_REVOCATION_INFO {
     DWORD  dwFreshnessTime;
     PCERT_REVOCATION_CRL_INFO pCrlInfo;
 }
-alias CERT_REVOCATION_INFO* PCERT_REVOCATION_INFO;
+alias PCERT_REVOCATION_INFO = CERT_REVOCATION_INFO*;
 
 /* #if (_WIN32_WINNT>=0x500) */
 struct CERT_CHAIN_ELEMENT {
@@ -713,7 +705,7 @@ struct CERT_CHAIN_ELEMENT {
     PCERT_ENHKEY_USAGE    pIssuanceUsage;
     PCERT_ENHKEY_USAGE    pApplicationUsage;
 }
-alias CERT_CHAIN_ELEMENT* PCERT_CHAIN_ELEMENT;
+alias PCERT_CHAIN_ELEMENT = CERT_CHAIN_ELEMENT*;
 /* #endif */
 
 struct CRYPT_ATTRIBUTE {
@@ -721,14 +713,14 @@ struct CRYPT_ATTRIBUTE {
     DWORD            cValue;
     PCRYPT_ATTR_BLOB rgValue;
 }
-alias CRYPT_ATTRIBUTE* PCRYPT_ATTRIBUTE;
+alias PCRYPT_ATTRIBUTE = CRYPT_ATTRIBUTE*;
 
 struct CTL_ENTRY {
     CRYPT_DATA_BLOB  SubjectIdentifier;
     DWORD            cAttribute;
     PCRYPT_ATTRIBUTE rgAttribute;
 }
-alias CTL_ENTRY* PCTL_ENTRY;
+alias PCTL_ENTRY = CTL_ENTRY*;
 
 struct CTL_INFO {
     DWORD              dwVersion;
@@ -743,7 +735,7 @@ struct CTL_INFO {
     DWORD              cExtension;
     PCERT_EXTENSION    rgExtension;
 }
-alias CTL_INFO* PCTL_INFO;
+alias PCTL_INFO = CTL_INFO*;
 
 struct CTL_CONTEXT {
     DWORD      dwMsgAndCertEncodingType;
@@ -755,15 +747,15 @@ struct CTL_CONTEXT {
     BYTE*      pbCtlContent;
     DWORD      cbCtlContent;
 }
-alias CTL_CONTEXT*        PCTL_CONTEXT;
-alias const(CTL_CONTEXT)* PCCTL_CONTEXT;
+alias PCTL_CONTEXT = CTL_CONTEXT*;
+alias PCCTL_CONTEXT = const(CTL_CONTEXT)*;
 
 struct CERT_TRUST_LIST_INFO {
     DWORD         cbSize = CERT_TRUST_LIST_INFO.sizeof;
     PCTL_ENTRY    pCtlEntry;
     PCCTL_CONTEXT pCtlContext;
 }
-alias CERT_TRUST_LIST_INFO* PCERT_TRUST_LIST_INFO;
+alias PCERT_TRUST_LIST_INFO = CERT_TRUST_LIST_INFO*;
 
 struct CERT_SIMPLE_CHAIN {
     DWORD                 cbSize = CERT_SIMPLE_CHAIN.sizeof;
@@ -774,10 +766,10 @@ struct CERT_SIMPLE_CHAIN {
     BOOL                  fHasRevocationFreshnessTime;
     DWORD                 dwRevocationFreshnessTime;
 }
-alias CERT_SIMPLE_CHAIN* PCERT_SIMPLE_CHAIN;
+alias PCERT_SIMPLE_CHAIN = CERT_SIMPLE_CHAIN*;
 
 /* #if (_WIN32_WINNT>=0x500) */
-alias const(CERT_CHAIN_CONTEXT)* PCCERT_CHAIN_CONTEXT;
+alias PCCERT_CHAIN_CONTEXT = const(CERT_CHAIN_CONTEXT)*;
 struct CERT_CHAIN_CONTEXT {
     DWORD                 cbSize = CERT_CHAIN_CONTEXT.sizeof;
     CERT_TRUST_STATUS     TrustStatus;
@@ -788,7 +780,7 @@ struct CERT_CHAIN_CONTEXT {
     BOOL                  fHasRevocationFreshnessTime;
     DWORD                 dwRevocationFreshnessTime;
 }
-alias CERT_CHAIN_CONTEXT* PCERT_CHAIN_CONTEXT;
+alias PCERT_CHAIN_CONTEXT = CERT_CHAIN_CONTEXT*;
 /* #endif */
 
 struct PROV_ENUMALGS {
@@ -804,7 +796,7 @@ struct PUBLICKEYSTRUC {
     WORD   reserved;
     ALG_ID aiKeyAlg;
 }
-alias PUBLICKEYSTRUC BLOBHEADER;
+alias BLOBHEADER = PUBLICKEYSTRUC;
 
 struct RSAPUBKEY {
     DWORD magic;
@@ -819,7 +811,7 @@ struct HMAC_INFO {
     BYTE*  pbOuterString;
     DWORD  cbOuterString;
 }
-alias HMAC_INFO* PHMAC_INFO;
+alias PHMAC_INFO = HMAC_INFO*;
 
 extern (Windows) @nogc nothrow {
     BOOL CertCloseStore(HCERTSTORE, DWORD);
@@ -882,21 +874,21 @@ const(void)*, PCCERT_CHAIN_CONTEXT);
 }
 
 version (Unicode) {
-    alias CertNameToStrW CertNameToStr;
-    alias CryptAcquireContextW CryptAcquireContext;
-    alias CryptSignHashW CryptSignHash;
-    alias CryptVerifySignatureW CryptVerifySignature;
-    alias CryptSetProviderW CryptSetProvider;
-    alias CertOpenSystemStoreW CertOpenSystemStore;
+    alias CertNameToStr = CertNameToStrW;
+    alias CryptAcquireContext = CryptAcquireContextW;
+    alias CryptSignHash = CryptSignHashW;
+    alias CryptVerifySignature = CryptVerifySignatureW;
+    alias CryptSetProvider = CryptSetProviderW;
+    alias CertOpenSystemStore = CertOpenSystemStoreW;
     /+alias CERT_FIND_SUBJECT_STR_W CERT_FIND_SUBJECT_STR;
     alias CERT_FIND_ISSUER_STR_W CERT_FIND_ISSUER_STR;+/
 } else {
-    alias CertNameToStrA CertNameToStr;
-    alias CryptAcquireContextA CryptAcquireContext;
-    alias CryptSignHashA CryptSignHash;
-    alias CryptVerifySignatureA CryptVerifySignature;
-    alias CryptSetProviderA CryptSetProvider;
-    alias CertOpenSystemStoreA CertOpenSystemStore;
+    alias CertNameToStr = CertNameToStrA;
+    alias CryptAcquireContext = CryptAcquireContextA;
+    alias CryptSignHash = CryptSignHashA;
+    alias CryptVerifySignature = CryptVerifySignatureA;
+    alias CryptSetProvider = CryptSetProviderA;
+    alias CertOpenSystemStore = CertOpenSystemStoreA;
     /+alias CERT_FIND_SUBJECT_STR_A CERT_FIND_SUBJECT_STR;
     alias CERT_FIND_ISSUER_STR_A CERT_FIND_ISSUER_STR;+/
 }

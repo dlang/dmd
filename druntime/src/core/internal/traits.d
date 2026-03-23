@@ -285,38 +285,9 @@ template hasElaborateMove(S)
     }
 }
 
-// std.traits.hasElaborateDestructor
-template hasElaborateDestructor(S)
-{
-    static if (__traits(isStaticArray, S))
-    {
-        enum bool hasElaborateDestructor = S.sizeof && hasElaborateDestructor!(BaseElemOf!S);
-    }
-    else static if (is(S == struct))
-    {
-        // Once https://issues.dlang.org/show_bug.cgi?id=24865 is fixed, then
-        // this should be the implementation, but until that's fixed, we need the
-        // uncommented code.
-        // enum hasElaborateDestructor = __traits(hasMember, S, "__xdtor");
-
-        enum hasElaborateDestructor = hasDtor([__traits(allMembers, S)]);
-    }
-    else
-    {
-        enum bool hasElaborateDestructor = false;
-    }
-}
-
-private bool hasDtor(string[] members)
-{
-    foreach (name; members)
-    {
-        if (name == "__xdtor")
-            return true;
-    }
-
-    return false;
-}
+// Used by std.traits.hasElaborateDestructor
+// TODO inline this in druntime
+enum hasElaborateDestructor(S) = __traits(needsDestruction, S);
 
 @safe unittest
 {
@@ -331,6 +302,7 @@ private bool hasDtor(string[] members)
     static assert( hasElaborateDestructor!(HasDestructor[42]));
     static assert(!hasElaborateDestructor!(HasDestructor[0]));
     static assert(!hasElaborateDestructor!(HasDestructor[]));
+    static assert( hasElaborateDestructor!(immutable HasDestructor));
 
     static struct HasDestructor2 { HasDestructor s; }
     static assert( hasElaborateDestructor!HasDestructor2);
@@ -363,6 +335,25 @@ private bool hasDtor(string[] members)
     static assert( hasElaborateDestructor!S2);
     static assert( hasElaborateDestructor!S3);
     static assert(!hasElaborateDestructor!S6);
+}
+
+// https://github.com/dlang/dmd/issues/21967
+version (CoreUnittest)
+private struct Test21967
+{
+    // Note: Foward referencing was failing due to:
+    // https://github.com/dlang/dmd/issues/22524
+    static assert(hasElaborateDestructor!C);
+    enum before = hasElaborateDestructor!C;
+    static assert(before);
+
+    struct C
+    {
+        ~this() {}
+    }
+    static assert(hasElaborateDestructor!C);
+    enum after = hasElaborateDestructor!C;
+    static assert(after);
 }
 
 // std.traits.hasElaborateCopyDestructor
@@ -572,9 +563,11 @@ template hasIndirections(T)
     else static if (__traits(isAssociativeArray, T) || is(T == class) || is(T == interface))
         enum hasIndirections = true;
     else static if (is(T == E[N], E, size_t N))
-        enum hasIndirections = T.sizeof && (is(immutable E == immutable void) || hasIndirections!(BaseElemOf!E));
+        enum hasIndirections = T.sizeof && hasIndirections!(BaseElemOf!E);
     else static if (isFunctionPointer!T)
         enum hasIndirections = false;
+    else static if (is(immutable(T) == immutable(void)))
+        enum hasIndirections = true;
     else
         enum hasIndirections = isPointer!T || isDelegate!T || isDynamicArray!T;
 }
@@ -735,11 +728,11 @@ template hasIndirections(T)
 // https://github.com/dlang/dmd/issues/20812
 @safe unittest
 {
-    static assert(!hasIndirections!void);
-    static assert(!hasIndirections!(const void));
-    static assert(!hasIndirections!(inout void));
-    static assert(!hasIndirections!(immutable void));
-    static assert(!hasIndirections!(shared void));
+    static assert( hasIndirections!void);
+    static assert( hasIndirections!(const void));
+    static assert( hasIndirections!(inout void));
+    static assert( hasIndirections!(immutable void));
+    static assert( hasIndirections!(shared void));
 
     static assert( hasIndirections!(void*));
     static assert( hasIndirections!(const void*));
@@ -1041,8 +1034,8 @@ if (func.length == 1 /*&& isCallable!func*/)
     static assert(is( typeof(test) == FunctionTypeOf!test ));
     static assert(is( typeof(test) == FunctionTypeOf!test_fp ));
     static assert(is( typeof(test) == FunctionTypeOf!test_dg ));
-    alias int GetterType() @property;
-    alias int SetterType(int) @property;
+    alias GetterType = int() @property;
+    alias SetterType = int(int) @property;
     static assert(is( FunctionTypeOf!propGet == GetterType ));
     static assert(is( FunctionTypeOf!propSet == SetterType ));
 

@@ -2,7 +2,7 @@
  * Test the C++ compiler interface of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2017-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2017-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tests/cxxfrontend.c, _cxxfrontend.c)
@@ -72,6 +72,7 @@ static void frontend_init()
     global._init();
     global.compileEnv.vendor = "Front-End Tester";
     global.params.objname = NULL;
+    global.params.edition = Edition::v2023;
 
     target.os = Target::OS_linux;
     target.isX86_64 = true;
@@ -268,7 +269,7 @@ void test_semantic()
     /* Mini object.d source. Module::parse will add internal members also. */
     const char *buf =
         "module object;\n"
-        "class Object { }\n"
+        "class Object { void* __monitor; }\n"
         "class Throwable { }\n"
         "class Error : Throwable { this(immutable(char)[]); }";
 
@@ -337,7 +338,7 @@ void test_expression()
     assert(e);
     assert(e->isConst());
 
-    Optional<bool> res = e->toBool();
+    Optional<bool> res = dmd::toBool(e);
     assert(res.get());
 }
 
@@ -633,9 +634,9 @@ public:
     }
     void visit(TypeSArray *t) override
     {
-        if (t->dim->isConst() && t->dim->type->isIntegral())
+        if (t->dim->isConst() && dmd::isIntegral(t->dim->type))
         {
-            (void)t->dim->toUInteger();
+            (void)dmd::toUInteger(t->dim);
             t->next->accept(this);
             (void)t->ctype;
         }
@@ -644,7 +645,7 @@ public:
     }
     void visit(TypeVector *t) override
     {
-        (void)t->basetype->isTypeSArray()->dim->toUInteger();
+        (void)dmd::toUInteger(t->basetype->isTypeSArray()->dim);
         t->elementType()->accept(this);
         if (t->ty == TY::Tvoid)
             Type::tuns8->accept(this);
@@ -750,7 +751,7 @@ public:
                     if (member == NULL)
                         continue;
                     (void)member->ident->toChars();
-                    (void)member->value()->toInteger();
+                    (void)dmd::toInteger(member->value());
                 }
             }
         }
@@ -957,7 +958,7 @@ public:
         s->getRelatedLabeled()->accept(this);
         s->condition->accept(this);
         Type *condtype = s->condition->type->toBasetype();
-        if (!condtype->isScalar())
+        if (!dmd::isScalar(condtype))
             assert(0);
         if (s->cases)
         {
@@ -975,7 +976,7 @@ public:
     void visit(CaseStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
-        if (s->exp->type->isScalar())
+        if (dmd::isScalar(s->exp->type))
             s->exp->accept(this);
         else
             (void)s->index;
@@ -1137,7 +1138,7 @@ public:
             for (size_t i = 0; i < s->args->length; i++)
             {
                 (void)(*s->names)[i]->toChars();
-                (*s->constraints)[i]->toStringExp()->accept(this);
+                dmd::toStringExp((*s->constraints)[i])->accept(this);
                 (*s->args)[i]->accept(this);
                 (void)s->outputargs;
             }
@@ -1145,7 +1146,7 @@ public:
         if (s->clobbers)
         {
             for (size_t i = 0; i < s->clobbers->length; i++)
-                (*s->clobbers)[i]->toStringExp()->accept(this);
+                dmd::toStringExp((*s->clobbers)[i])->accept(this);
         }
         if (s->labels)
         {
@@ -1549,7 +1550,7 @@ public:
         }
         if (!d->canTakeAddressOf())
         {
-            if (!d->type->isScalar())
+            if (!dmd::isScalar(d->type))
                 visitDeclaration(d);
         }
         else if (d->isDataseg() && !(d->storage_class & STCextern))
@@ -1771,6 +1772,8 @@ void expression_h(Expression *e, Scope *sc, Type *t, Loc loc, Expressions *es)
     dmd::ctfeInterpret(e);
     dmd::expandTuples(es);
     dmd::optimize(e, 0);
+    dmd::isLvalue(e);
+    dmd::canElideCopy(e, t);
 }
 
 void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,
@@ -1869,6 +1872,7 @@ void template_h(TemplateParameter *tp, Scope *sc, TemplateParameters *tps,
     dmd::isTemplateParameter(o);
     dmd::isError(o);
     dmd::printTemplateStats(true, sink);
+    dmd::printInstantiationTrace (sc->tinst);
 }
 
 void typinf_h(Expression *e, Loc loc, Type *t, Scope *sc)

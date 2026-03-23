@@ -2,16 +2,26 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail244.d(27): Deprecation: variable `fail244.StructWithDeps.value` is deprecated
-fail_compilation/fail244.d(28): Deprecation: variable `fail244.StructWithDeps.value` is deprecated
-fail_compilation/fail244.d(29): Deprecation: variable `fail244.StructWithDeps.value` is deprecated
-fail_compilation/fail244.d(30): Deprecation: variable `fail244.StructWithDeps.value` is deprecated
-fail_compilation/fail244.d(32): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
-fail_compilation/fail244.d(33): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
-fail_compilation/fail244.d(34): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
-fail_compilation/fail244.d(35): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
-fail_compilation/fail244.d(36): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
-fail_compilation/fail244.d(37): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
+fail_compilation/fail244.d(37): Deprecation: variable `fail244.StructWithDeps.value` is deprecated
+fail_compilation/fail244.d(32):        `value` is declared here
+fail_compilation/fail244.d(38): Deprecation: variable `fail244.StructWithDeps.value` is deprecated
+fail_compilation/fail244.d(32):        `value` is declared here
+fail_compilation/fail244.d(39): Deprecation: variable `fail244.StructWithDeps.value` is deprecated
+fail_compilation/fail244.d(32):        `value` is declared here
+fail_compilation/fail244.d(40): Deprecation: variable `fail244.StructWithDeps.value` is deprecated
+fail_compilation/fail244.d(32):        `value` is declared here
+fail_compilation/fail244.d(42): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
+fail_compilation/fail244.d(33):        `staticValue` is declared here
+fail_compilation/fail244.d(43): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
+fail_compilation/fail244.d(33):        `staticValue` is declared here
+fail_compilation/fail244.d(44): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
+fail_compilation/fail244.d(33):        `staticValue` is declared here
+fail_compilation/fail244.d(45): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
+fail_compilation/fail244.d(33):        `staticValue` is declared here
+fail_compilation/fail244.d(46): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
+fail_compilation/fail244.d(33):        `staticValue` is declared here
+fail_compilation/fail244.d(47): Deprecation: variable `fail244.StructWithDeps.staticValue` is deprecated
+fail_compilation/fail244.d(33):        `staticValue` is declared here
 ---
 */
 

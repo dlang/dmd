@@ -41,6 +41,16 @@ alias __va_list = __va_list_tag;
  */
 alias va_list = __va_list*;
 
+version (DigitalMars)
+{
+    align(16) struct __va_argsave_t
+    {
+        size_t[6] regs;   // RDI,RSI,RDX,RCX,R8,R9
+        real[8] fpregs;   // XMM0..XMM7
+        __va_list va;
+    }
+}
+
 ///
 T va_arg(T)(va_list ap)
 {
@@ -55,7 +65,7 @@ T va_arg(T)(va_list ap)
         }
         else static if (U.length == 1)
         {   // Arg is passed in one register
-            alias U[0] T1;
+            alias T1 = U[0];
             static if (is(T1 == double) || is(T1 == float) || is(T1 == __vector))
             {   // Passed in XMM register
                 if (ap.offset_fpregs < (6 * 8 + 16 * 8))
@@ -89,8 +99,8 @@ T va_arg(T)(va_list ap)
         }
         else static if (U.length == 2)
         {   // Arg is passed in two registers
-            alias U[0] T1;
-            alias U[1] T2;
+            alias T1 = U[0];
+            alias T2 = U[1];
 
             T result = void;
             auto p1 = cast(T1*) &result;

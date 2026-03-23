@@ -1,0 +1,1310 @@
+Ddoc
+
+$(SPEC_S Attributes,
+
+$(HEADERNAV_TOC)
+
+$(H2 $(LNAME2 grammar, Grammar))
+
+$(GRAMMAR
+$(GNAME AttributeSpecifier):
+    $(GLINK Attribute) $(D :)
+    $(GLINK Attribute) $(GLINK DeclarationBlock)
+
+$(GNAME Attribute):
+    $(GLINK AlignAttribute)
+    $(GLINK AtAttribute)
+    $(GLINK DeprecatedAttribute)
+    $(GLINK FunctionAttributeKwd)
+    $(GLINK LinkageAttribute)
+    $(GLINK2 pragma, Pragma)
+    $(GLINK VisibilityAttribute)
+    $(RELATIVE_LINK2 abstract, $(D abstract))
+    $(RELATIVE_LINK2 auto, $(D auto))
+    $(RELATIVE_LINK2 const, $(D const))
+    $(RELATIVE_LINK2 final, `final`)
+    $(RELATIVE_LINK2 gshared, $(D __gshared))
+    $(RELATIVE_LINK2 linkage, $(D extern))
+    $(RELATIVE_LINK2 immutable, $(D immutable))
+    $(RELATIVE_LINK2 inout, $(D inout))
+    $(RELATIVE_LINK2 override, $(D override))
+    $(RELATIVE_LINK2 ref, $(D ref))
+    $(RELATIVE_LINK2 __rvalue, $(D __rvalue))
+    $(RELATIVE_LINK2 scope, $(D scope))
+    $(RELATIVE_LINK2 shared, $(D shared))
+    $(RELATIVE_LINK2 static, $(D static))
+    $(RELATIVE_LINK2 synchronized, `synchronized`)
+
+$(GNAME FunctionAttributeKwd):
+    $(RELATIVE_LINK2 nothrow, $(D nothrow))
+    $(RELATIVE_LINK2 pure, $(D pure))
+
+$(GNAME AtAttribute):
+    $(D @) $(RELATIVE_LINK2 disable, $(D disable))
+    $(D @) $(RELATIVE_LINK2 future, $(D __future))
+    $(D @) $(RELATIVE_LINK2 nogc, $(D nogc))
+    $(D @) $(DDLINK spec/ob, Live Functions, `live`)
+    $(GLINK Property)
+    $(D @) $(RELATIVE_LINK2 safe, $(D safe))
+    $(D @) $(RELATIVE_LINK2 safe, $(D system))
+    $(D @) $(RELATIVE_LINK2 safe, $(D trusted))
+    $(GLINK UserDefinedAttribute)
+
+$(GNAME Property):
+    $(D @) $(RELATIVE_LINK2 property, $(D property))
+
+$(GNAME DeclarationBlock):
+    $(GLINK2 module, DeclDef)
+    $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
+)
+
+        $(P Attributes are a way to modify one or more declarations.
+        The general forms are:
+        )
+
+---
+attribute declaration; // affects the declaration
+
+attribute:     // affects all declarations until the end of
+               // the current scope
+  declaration;
+  declaration;
+  ...
+
+attribute      // affects all declarations in the block
+{
+  declaration;
+  declaration;
+  ...
+}
+---
+        $(P Function attributes `@nogc`, `nothrow` and `pure` do not propagate inside
+        aggregate declarations.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+const pure @safe
+{
+    int i; // function attributes ignored for non-functions
+    void f(); // const attribute ignored for free function
+
+    struct S
+    {
+        int i;
+        void f(); // pure ignored inside struct
+    }
+}
+static assert(is(typeof(i) == const int));
+static assert(is(typeof(&f) == void function() pure @safe));
+static assert(is(typeof(S.i) == const int));
+static assert(is(typeof(&S().f) == void delegate() const @safe));
+---
+)
+        $(P See also: $(MREF core, attribute) for other compiler-recognized attributes.)
+
+
+$(H2 $(LNAME2 linkage, Linkage Attribute))
+
+$(GRAMMAR
+$(GNAME LinkageAttribute):
+    $(D extern) $(D $(LPAREN)) $(GLINK LinkageType) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(GLINK2 type, QualifiedIdentifier) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(GLINK NamespaceList) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(D class) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(D struct) $(D $(RPAREN))
+
+$(GNAME LinkageType):
+    $(D C)
+    $(D C) $(D ++)
+    $(D D)
+    $(D Windows)
+    $(D System)
+    $(D Objective) $(D -) $(D C)
+
+$(GNAME NamespaceList):
+    $(GLINK2 expression, ConditionalExpression)
+    $(GLINK2 expression, ConditionalExpression) $(D ,)
+    $(GLINK2 expression, ConditionalExpression) $(D ,) $(GSELF NamespaceList)
+)
+
+        $(P D provides an easy way to call C functions and operating
+        system API functions, as compatibility with both is essential.
+        The $(I LinkageType) is case sensitive, and is meant to be
+        extensible by the implementation ($(I they are not keywords)).
+        $(D C) and $(D D) must be supplied, the others are what
+        makes sense for the implementation.
+        $(D C++) offers limited compatibility with C++, see the
+        $(LINK2 cpp_interface.html, Interfacing to C++)
+        documentation for more information.
+        $(D Objective-C) offers compatibility with Objective-C,
+        see the $(LINK2 objc_interface.html, Interfacing to Objective-C)
+        documentation for more information.
+        $(D System) is the same as $(D Windows) on Windows platforms,
+        and $(D C) on other platforms.
+        )
+        $(P $(B Implementation Note:)
+        for Win32 platforms, $(D Windows) should exist.
+        )
+
+        $(P C function calling conventions are
+        specified by:
+        )
+
+---------------
+extern (C):
+    int foo(); // call foo() with C conventions
+---------------
+        Note that `extern(C)` can be provided for all types of
+        declarations, including `struct` or `class`, even though
+        there is no corresponding match on the `C` side. In that case,
+        the attribute is ignored. This behavior applies for nested
+        functions and nested variables as well. However, for `static` member
+        methods and `static` nested functions, adding `extern(C)` will
+        change the calling convention, but not the mangling.
+
+        $(P D conventions are:)
+
+---------------
+extern (D):
+---------------
+
+        $(P Windows API conventions are:)
+
+---------------
+extern (Windows):
+    void *VirtualAlloc(
+        void *lpAddress,
+        uint dwSize,
+        uint flAllocationType,
+        uint flProtect
+    );
+---------------
+
+        $(P The Windows convention is distinct from the C convention only on Win32 platforms,
+        where it is equivalent to the
+        $(LINK2 https://en.wikipedia.org/wiki/X86_calling_conventions, stdcall) convention.)
+
+        $(P Note that a $(DDSUBLINK spec/declaration, extern, lone $(D extern) keyword)
+        is used as a storage class.)
+
+$(H3 $(LNAME2 namespace, C++ Namespaces))
+
+        $(P The linkage form $(D extern $(LPAREN)C++, )$(I QualifiedIdentifier)$(D $(RPAREN))
+        creates C++ declarations that reside in C++ namespaces. The $(I QualifiedIdentifier)
+        specifies the namespaces.
+        )
+
+        ---
+        extern (C++, N) { void foo(); }
+        ---
+
+        $(P refers to the C++ declaration:)
+
+        $(CPPCODE namespace N { void foo(); })
+
+        $(P and can be referred to with or without qualification:)
+
+        ---
+        foo();
+        N.foo();
+        ---
+
+        $(P Namespaces create a new named scope that is imported into its enclosing scope.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        extern (C++, N) { void foo(); void bar(); }
+        extern (C++, M) { void foo(); }
+
+        void main()
+        {
+            bar();   // ok
+            //foo(); // error - N.foo() or M.foo() ?
+            M.foo(); // ok
+        }
+        ---
+        )
+
+        $(P Multiple dotted identifiers in the $(I QualifiedIdentifier) create nested namespaces:)
+
+        ---
+        extern (C++, N.M) { extern (C++) { extern (C++, R) { void foo(); } } }
+        N.M.R.foo();
+        ---
+
+        $(P refers to the C++ declaration:)
+
+        $(CPPCODE namespace N { namespace M { namespace R { void foo(); } } })
+
+
+$(H2 $(LNAME2 align, $(D align) Attribute))
+
+$(GRAMMAR
+$(GNAME AlignAttribute):
+    $(D align $(LPAREN) default $(RPAREN))
+    $(D align)
+    $(D align) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
+)
+
+
+        $(P Specifies the alignment of:)
+
+        $(OL
+        $(LI variables)
+        $(LI struct fields)
+        $(LI union fields)
+        $(LI class fields)
+        $(LI struct, union, and class types)
+        )
+
+        $(P $(D align$(LPAREN)default$(RPAREN)) (re)sets it to the default, which matches the default member alignment
+        of the companion C compiler. $(D align) by itself is the same as $(D align$(LPAREN)default$(RPAREN)).)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+--------
+struct S
+{
+  align(default): // same as `align:`
+    byte a;   // placed at offset 0
+    int b;    // placed at offset 4
+    long c;   // placed at offset 8
+}
+static assert(S.alignof == 8);
+static assert(S.c.offsetof == 8);
+static assert(S.sizeof == 16);
+--------
+)
+        $(P The $(I AssignExpression) specifies the alignment
+        which matches the behavior of the companion C compiler when non-default
+        alignments are used. It must be a non-negative power of 2.
+        )
+
+        $(P A value of 1 means that no alignment is done;
+        fields are packed together.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+--------
+struct S
+{
+  align (1):
+    byte a;   // placed at offset 0
+    int b;    // placed at offset 1
+    long c;   // placed at offset 5
+}
+static assert(S.alignof == 1);
+static assert(S.c.offsetof == 5);
+static assert(S.sizeof == 13);
+--------
+)
+        $(P The natural alignment of an aggregate is the maximum alignment of its
+        fields. It can be overridden by setting the alignment outside of the
+        aggregate.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+--------
+align (2) struct S
+{
+  align (1):
+    byte a;   // placed at offset 0
+    int b;    // placed at offset 1
+    long c;   // placed at offset 5
+}
+static assert(S.alignof == 2);
+static assert(S.c.offsetof == 5);
+static assert(S.sizeof == 14);
+--------
+)
+        $(P Setting the alignment of a field aligns it to that power of 2, regardless
+        of the size of the field.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+--------
+struct S
+{
+               byte a;  // placed at offset 0
+    align (4)  byte b;  // placed at offset 4
+    align (16) short c; // placed at offset 16
+}
+static assert(S.alignof == 16);
+static assert(S.c.offsetof == 16);
+static assert(S.sizeof == 32);
+--------
+)
+        $(P The $(I AlignAttribute) is reset to the default when
+        entering a function scope or a non-anonymous struct, union, class, and restored
+        when exiting that scope.
+        It is not inherited from a base class.
+        )
+
+        $(P See also: $(DDSUBLINK spec/struct, struct_layout, Struct Layout).)
+
+$(H3 $(LNAME2 align_gc, GC Compatibility))
+
+        $(P Do not align references or pointers that were allocated
+        using $(GLINK2 expression, NewExpression) on boundaries that are not
+        a multiple of $(D size_t). The garbage collector assumes that pointers
+        and references to GC allocated objects will be on $(D size_t)
+        byte boundaries.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+struct S
+{
+  align(1):
+    byte b;
+    int* p;
+}
+
+static assert(S.p.offsetof == 1);
+
+@safe void main()
+{
+    S s;
+    s.p = new int; // error: can't modify misaligned pointer in @safe code
+}
+---
+)
+        $(UNDEFINED_BEHAVIOR If any pointers and references to GC
+        allocated objects are not aligned on `size_t` byte boundaries.)
+
+
+$(H2 $(LNAME2 deprecated, $(D deprecated) Attribute))
+
+$(GRAMMAR
+$(GNAME DeprecatedAttribute):
+    $(D deprecated)
+    $(D deprecated $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
+)
+
+        $(P It is often necessary to deprecate a feature in a library,
+        yet retain it for backwards compatibility. Such
+        declarations can be marked as $(D deprecated), which means
+        that the compiler can be instructed to produce an error
+        if any code refers to deprecated declarations:
+        )
+
+        ---------------
+        deprecated
+        {
+            void oldFoo();
+        }
+
+        oldFoo();   // Deprecated: function test.oldFoo is deprecated
+        ---------------
+
+        $(P Optionally a string literal or manifest constant can be used
+        to provide additional information in the deprecation message.
+        )
+
+        ---------------
+        deprecated("Don't use bar") void oldBar();
+        oldBar();   // Deprecated: function test.oldBar is deprecated - Don't use bar
+        ---------------
+
+        $(P Calling CTFE-able functions or using manifest constants is also possible.
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---------------
+        import std.format;
+
+        enum message = format("%s and all its members are obsolete", Foobar.stringof);
+        deprecated(message) class Foobar {}
+        deprecated(format("%s is also obsolete", "This class")) class BarFoo {}
+
+        void main()
+        {
+            auto fb = new Foobar();   // Deprecated: class test.Foobar is deprecated - Foobar
+                                     // and all its members are obsolete
+            auto bf = new BarFoo();  // Deprecated: class test.BarFoo is deprecated - This
+                                     // class is also obsolete
+        }
+        ---------------
+        )
+
+        $(P $(B Implementation Note:) The compiler should have a switch
+        specifying if $(D deprecated) should be ignored, cause a warning, or cause an error during compilation.
+        )
+
+
+$(H2 $(LNAME2 future, `@__future` attribute))
+
+        $(P The `@__future` attribute is used to mark a new symbol which could
+        cause a name clash in another module. The other module using a symbol with the
+        same name will continue to compile as before but will show a deprecation message.
+        The message indicates that the new symbol will break the existing code in future,
+        and the other module should be updated.
+        )
+
+        $(NOTE Currently only methods that implicitly override a `@__future` base class
+        method show a deprecation message.)
+
+        $(P See $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1007.md,
+        DIP1007) for details.)
+
+        $(COMMENT
+        ---
+        module a;
+        @__future int i;
+
+        module b;
+        import a;
+        import c : i;
+        enum e = i; // Deprecation: `c.i` will conflict with `@__future` symbol `a.i`
+        ---
+        )
+
+
+$(H2 $(LNAME2 visibility_attributes, Visibility Attributes))
+
+$(GRAMMAR
+$(GNAME VisibilityAttribute):
+    $(D export)
+    $(D package)
+    $(D package) $(D $(LPAREN)) $(GLINK2 type, QualifiedIdentifier) $(D $(RPAREN))
+    $(D private)
+    $(D protected)
+    $(D public)
+)
+
+$(P Visibility is an attribute that is one of $(D private), $(D package),
+`protected`, $(D public), or $(D export). They may be referred to as protection
+attributes in documents predating $(LINK2 http://wiki.dlang.org/DIP22, DIP22).)
+
+        $(P Visibility participates in $(DDSUBLINK spec/module, name_lookup, symbol name lookup).
+        )
+
+$(H3 $(LNAME2 export, $(D export) Attribute))
+
+        $(P $(D export) means that a symbol can be accessed from outside the executable,
+        shared library, or DLL. The symbol is said to be exported from where it is defined
+        in an executable, shared library, or DLL, and imported by another executable, shared library,
+        or DLL.)
+
+        $(P $(D export) applied to the definition of a symbol will export it. $(D export) applied to
+        a declaration of a symbol will import it.
+        A variable is a definition unless `extern` is applied to it.)
+
+        ---
+        export int x = 3;    // definition, exporting `x`
+        export int y;        // definition, exporting `y`
+        export extern int z; // declaration, importing `z`
+
+        export __gshared h = 3;        // definition, exporting `h`
+        export __gshared i;            // definition, exporting `i`
+        export extern __gshared int j; // declaration, importing `j`
+        ---
+
+        $(P A function with a body is a definition, without a body is a declaration.)
+
+        ---
+        export void f() { }  // definition, exporting `f`
+        export void g();     // declaration, importing `g`
+        ---
+
+        $(P In Windows terminology, $(I dllexport) means exporting a symbol from a DLL, and $(I dllimport) means
+        a DLL or executable is importing a symbol from a DLL.)
+
+$(H3 $(LNAME2 package, $(D package) Attribute))
+
+        $(P $(D package) extends $(D private) so that package members can be accessed
+        from code in other modules that are in the same package.
+        If no identifier is provided, this applies to the innermost package only,
+        or defaults to $(D private) if a module is not nested in a package.
+        )
+
+        $(P $(D package) may have an optional parameter in the form of a dot-separated identifier
+        list which is resolved as the qualified package name. The package must be either the module's
+        parent package or one of its ancestors. If this parameter is present, the symbol
+        will be visible in the specified package and all of its descendants.
+        )
+
+$(H3 $(LNAME2 private, $(D private) Attribute))
+
+        $(P Symbols with $(D private) visibility can only be accessed from
+        within the same module.
+        Private member functions are implicitly $(DDSUBLINK spec/function, final, `final`)
+        and cannot be overridden.
+        )
+
+$(H3 $(LNAME2 protected, $(D protected) Attribute))
+
+        $(P $(D protected) only applies inside classes (and templates as they can be mixed in)
+        and means that a symbol can only be seen by members of the same module,
+        or by a derived class.
+        If accessing a protected instance member through a derived class member
+        function, that member can only be accessed for the object instance
+        which can be implicitly cast to the same type as $(SINGLEQUOTE this).
+        $(D protected) module members are illegal.
+        )
+
+$(H3 $(LNAME2 public, $(D public) Attribute))
+
+        $(P $(D public) means that any code within the executable can see the member.
+        It is the default visibility attribute.
+        )
+
+
+$(H2 $(LNAME2 mutability, Mutability Attributes))
+
+$(H3 $(LNAME2 const, $(D const) Attribute))
+
+        $(P The $(DDLINK spec/const3, Type Qualifiers, $(D const) type qualifier)
+        changes the type of the declared symbol from $(D T) to $(D const(T)),
+        where $(D T) is the type specified (or inferred) for the introduced symbol in the absence of $(D const).
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---------------
+        const int foo = 7;
+        static assert(is(typeof(foo) == const(int)));
+
+        const double bar = foo + 6;
+        static assert(is(typeof(bar) == const(double)));
+        ---
+        )
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        class C
+        {
+            const void foo();
+            const
+            {
+                void bar();
+            }
+            void baz() const;
+        }
+        pragma(msg, typeof(C.foo)); // const void()
+        pragma(msg, typeof(C.bar)); // const void()
+        pragma(msg, typeof(C.baz)); // const void()
+
+        static assert(is(typeof(C.foo) == typeof(C.bar)) &&
+                      is(typeof(C.bar) == typeof(C.baz)));
+        ---------------
+        )
+
+        $(P See also: $(DDSUBLINK spec/declaration, methods-returning-qualified, Methods Returning a Qualified Type).)
+
+$(H3 $(LNAME2 immutable, $(D immutable) Attribute))
+
+        $(P The $(D immutable) attribute modifies the type from $(D T) to $(D immutable(T)),
+        the same way as $(D const) does. See:
+        )
+        * $(DDSUBLINK spec/const3, immutable_storage_class, `immutable` storage class)
+        * $(DDSUBLINK spec/const3, immutable_type, $(D immutable) type qualifier)
+
+$(H3 $(LNAME2 inout, $(D inout) Attribute))
+
+        $(P The $(DDSUBLINK spec/const3, inout, $(D inout) attribute) modifies the type from $(D T) to $(D inout(T)),
+        the same way as $(D const) does.
+        )
+
+
+$(H2 $(LNAME2 shared-storage, Shared Storage Attributes))
+
+$(H3 $(LNAME2 shared, $(D shared) Attribute))
+
+        $(P See $(DDSUBLINK spec/const3, shared, $(D shared)).)
+
+$(H3 $(LNAME2 gshared, $(D __gshared) Attribute))
+
+        $(P By default, non-immutable global declarations reside in thread local
+        storage. When a global variable is marked with the $(D __gshared)
+        attribute, its value is shared across all threads.)
+
+        ---
+        int foo;            // Each thread has its own exclusive copy of foo.
+        __gshared int bar;  // bar is shared by all threads.
+        ---
+
+        $(P $(D __gshared) may also be applied to member variables and local
+        variables. In these cases, $(D __gshared) is equivalent to $(D static),
+        except that the variable is shared by all threads rather than being
+        thread local.)
+
+        ---
+        class Foo
+        {
+            __gshared int bar;
+        }
+
+        int foo()
+        {
+            __gshared int bar = 0;
+            return bar++; // Not thread safe.
+        }
+        ---
+
+        $(P $(RED Warning:)
+        Unlike the $(RELATIVE_LINK2 shared, `shared`) attribute, $(D __gshared) provides no
+        safeguards against data races or other multi-threaded synchronization
+        issues. It is the responsibility of the programmer to ensure that
+        access to variables marked $(D __gshared) is synchronized correctly.)
+
+        $(P $(D __gshared) is disallowed in `@safe` code.)
+
+$(H3 $(LNAME2 synchronized, $(D synchronized) Attribute))
+
+        $(P See $(DDSUBLINK spec/class, synchronized-methods, Synchronized Methods).)
+
+
+$(H2 $(LNAME2 disable, $(D @disable) Attribute))
+
+$(P A reference to a declaration marked with the $(CODE @disable) attribute
+causes a compile time error. This can be used to explicitly disallow certain
+operations or overloads at compile time rather than relying on generating a
+runtime error.)
+
+---
+@disable int x;
+@disable void foo();
+
+void main()
+{
+    x++;   // error, x is disabled
+    foo(); // error, foo is disabled
+}
+---
+
+    $(UL
+        $(LI An $(GLINK2 enum, EnumMember) can have the `@disable` attribute.
+        )
+        $(LI $(DDSUBLINK spec/struct, disable_default_construction, `@disable this();`)
+        inside a struct disallows default construction.
+        )
+        $(LI $(DDSUBLINK spec/struct, disable-copy, Disabling a struct copy constructor)
+        makes the struct not copyable.
+        )
+        $(LI $(DDSUBLINK spec/struct, disable-move, Disabling a struct move constructor)
+        makes the struct not movable.
+        )
+    )
+
+
+$(H2 $(LNAME2 safe, $(D @safe), $(D @trusted), and $(D @system) Attributes))
+
+    $(P See $(DDSUBLINK spec/function, function-safety, Function Safety).)
+
+$(H3 $(LNAME2 system-variables, System Variables))
+
+    $(P Variables marked `@system` cannot be accessed from `@safe` code.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+@system int* p;
+
+struct S
+{
+    @system int i;
+}
+
+void main() @safe
+{
+    int x = *p; // error with `-preview=systemVariables`, deprecation otherwise
+
+    S s;
+    s.i = 0; // ditto
+}
+---
+)
+
+
+$(H2 $(LNAME2 function-attributes, Function Attributes))
+
+$(H3 $(LNAME2 nogc, $(D @nogc) Attribute))
+
+    $(P See $(DDSUBLINK spec/function, nogc-functions, No-GC Functions).)
+
+$(H3 $(LNAME2 property, $(D @property) Attribute))
+
+    $(P See $(DDSUBLINK spec/function, property-functions, Property Functions).)
+
+$(H3 $(LNAME2 nothrow, $(D nothrow) Attribute))
+
+    $(P See $(DDSUBLINK spec/function, nothrow-functions, Nothrow Functions).)
+
+$(H3 $(LNAME2 pure, $(D pure) Attribute))
+
+    $(P See $(DDSUBLINK spec/function, pure-functions, Pure Functions).)
+
+$(H2 $(LNAME2 ref, $(D ref) Attribute))
+
+    $(P See $(DDSUBLINK spec/declaration, ref-storage, `ref` Storage Class).)
+
+$(H2 $(LNAME2 return, $(D return) Attribute))
+
+    * $(DDSUBLINK spec/function, return-ref-parameters, Return Ref Parameters).
+    * $(DDSUBLINK spec/function, return-scope-parameters, Return Scope Parameters).
+
+$(H2 $(LNAME2 __rvalue, $(D __rvalue) Attribute))
+
+    * $(DDSUBLINK spec/expression, __rvalue-function-attribute, $(I RvalueExpression)).
+
+$(H2 $(LNAME2 static, $(D static) Attribute))
+
+        $(P The $(D static) attribute applies to types, functions and data.
+        $(D static) is ignored when applied to other declarations.)
+
+        $(P Inside an aggregate type, a `static`
+        declaration does not apply to a particular
+        instance of an object, but to the type of the object. In
+        other words, it means there is no $(D this) reference.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------------
+class Foo
+{
+    static int x;
+    static int bar() { return x; }
+    int foobar() { return 7; }
+}
+
+Foo.x = 6; // no instance needed
+assert(Foo.bar() == 6);
+//Foo.foobar(); // error, no instance of Foo
+
+Foo f = new Foo;
+assert(f.bar() == 6);
+assert(f.foobar() == 7);
+---------------
+)
+
+$(P
+        Static methods are never $(DDSUBLINK spec/function, virtual-functions, virtual).
+)
+$(P
+        Static data has one instance per thread, not one per object.
+)
+
+$(P A static $(DDSUBLINK spec/function, nested, nested function)
+or $(DDSUBLINK spec/struct, nested, type) cannot
+access variables in the parent scope.)
+
+$(P Inside a function, a $(DDSUBLINK spec/function, local-static-variables,
+static local variable) persists after the function returns.)
+
+$(P
+        Static does not have the additional C meaning of being local
+        to a file. Use the $(RELATIVE_LINK2 VisibilityAttribute, `private`)
+        attribute in D to achieve that.
+        For example:
+)
+
+---------------
+module foo;
+int x = 3;         // x is global
+private int y = 4; // y is local to module foo
+---------------
+
+
+$(H2 $(LNAME2 auto, $(D auto) Attribute))
+
+        $(P The $(D auto) attribute is used when there are no other attributes
+        and $(DDSUBLINK spec/declaration, auto-declaration, type inference) is desired.
+        )
+
+---
+auto i = 6.8;   // declare i as a double
+---
+
+    $(P For functions, the `auto` attribute means return type inference.
+        See $(DDSUBLINK spec/function, auto-functions, Auto Functions).
+    )
+
+$(H2 $(LNAME2 scope, $(D scope) Attribute))
+
+$(P
+        The `scope` attribute signifies a variable's pointer values will not escape the scope that the variable is declared in.
+)
+
+$(P
+        If the variable has a type that does not contain any indirections, the `scope` attribute is ignored.
+)
+
+$(P
+        When applied to a global variable, `scope` is also ignored, since there is no scope larger than global scope that pointers could escape to.
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+scope int* x; // scope ignored, global variable
+
+void main()
+{
+    // scope static int* x;  // cannot be both scope and static
+    scope float y;           // scope ignored, no indirections
+    scope int[2] z;          // scope ignored, static array is value type
+    scope int[] w;           // scope dynamic array
+}
+---
+)
+
+$(P
+        When applied to a local variable with a type that has indirections,
+        its value may not be assigned to a variable with longer lifetime:
+)
+        $(UL
+            $(LI Variables outside the $(DDSUBLINK spec/statement, scope-statement, Scope Statement) that the variable is declared in)
+            $(LI Variables declared before the `scope` variable$(COMMA) since local variables are destructed in the reverse order that they are declared in)
+            $(LI `__gshared` or `static` variables)
+        )
+
+$(P
+        Other operations implicitly assigning them to variables with longer lifetime are also disallowed:
+)
+        $(UL
+            $(LI Returning a `scope` variable from a function)
+            $(LI Assigning a `scope` variable to a non-scope parameter by calling a function)
+            $(LI Putting a `scope` variable in an array literal)
+        )
+
+        $(NOTE escape analysis is only done in `@safe` code. The $(D -preview=dip1000) switch
+        must also be enabled.)
+$(P
+        The `scope` attribute is part of the variable declaration, not the type, and it only applies to the first level of indirection.
+        For example, it is impossible to declare a variable as a dynamic array of scope pointers, because `scope` only applies to the `.ptr`
+        of the array itself, not its elements. `scope` affects various types as follows:
+)
+
+        $(TABLE_2COLS ,
+        $(THEAD Type of local variable, What `scope` applies to)
+
+        $(TROW Any $(DDSUBLINK spec/type, basic-data-types, Basic Data Type), nothing)
+        $(TROW $(DDSUBLINK spec/type, pointers, Pointer) `T*`, the pointer value)
+        $(TROW $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Array) `T[]`, the `.ptr` to the elements)
+        $(TROW $(DDSUBLINK spec/arrays, static-arrays, Static Array) `T[n]`, each element `T`)
+        $(TROW $(GLINK2 hash-map, Associative Array) `K[V]`, the pointer to the implementation defined structure)
+        $(TROW `struct` or `union`, each of its member variables)
+        $(TROW `function` pointer, the pointer value)
+        $(TROW $(DDSUBLINK spec/function, closures, delegate), both the `.funcptr` and `.ptr` (closure context) pointer values)
+        $(TROW `class` or `interface`, the class reference)
+        $(TROW $(GLINK2 enum, enum), the base type)
+        )
+
+---
+struct S
+{
+    string str; // note: string = immutable(char)[]
+    string* strPtr;
+}
+
+string escape(scope S s, scope S* sPtr, scope string[2] sarray, scope string[] darray)
+{
+    return s.str;        // invalid, scope applies to struct members
+    return *s.strPtr;    // valid, scope struct member is dereferenced
+    return sPtr.str;     // valid, struct pointer is dereferenced
+    return *sPtr.strPtr; // valid, two pointers are dereferenced
+    return sarray[0];    // invalid, scope applies to static array elements
+    return sarray[1];    // invalid, ditto
+    return darray[0];    // valid, scope applies to array pointer, not elements
+}
+---
+
+$(H3 $(LNAME2 scope-values, Scope Values))
+
+$(P
+    A "`scope` value" is the value of a `scope` variable, or a generated value pointing to stack allocated memory.
+    Such values are generated by $(DDSUBLINK spec/arrays, slicing, slicing) a static array
+    or creating $(DDSUBLINK spec/type, pointers, a pointer)
+    to a variable that is (or may be) allocated on the stack:
+)
+    $(UL
+        $(LI A function parameter)
+        $(LI A local variable)
+        $(LI A struct member accessed through the implicit `this` parameter)
+        $(LI The return value of a $(DDSUBLINK spec/function, ref-functions, Ref Function))
+    )
+
+$(P
+    The variadic parameter from $(DDSUBLINK spec/function, typesafe_variadic_functions, Typesafe Variadic Functions) is also a scope value,
+    since the arguments are passed on the stack.
+)
+
+$(P
+    When a local variable is assigned a `scope` value, it is inferred `scope`, even when the variable has an explicit type and does not use the `auto` keyword.
+)
+
+---
+@safe:
+ref int[2] identity(return ref int[2] x) {return x;}
+
+int* escape(int[2] y, scope int* z)
+{
+    int x;
+
+    auto  xPtr  = &x;            // inferred `scope int*`
+    int[] yArr  = identity(y)[]; // inferred `scope int[]`
+    int*  zCopy = z;             // inferred `scope int*`
+
+    return zCopy; // error
+}
+
+void variadic(int[] a...)
+{
+    int[] x = a; // inferred `scope int[]`
+}
+
+void main()
+{
+    variadic(1, 2, 3);
+}
+---
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int x;
+
+    // this method may be called on a stack-allocated instance of S
+    void f() @safe
+    {
+        int* p = &x; // inferred `scope int* p`
+        int* q = &this.x; // equivalent
+    }
+}
+---
+)
+
+---
+@safe int[] foo() {
+    int[3] arr = [1,2,3];
+    int[] slice = arr[]; // slice picks up scope attribute
+    return slice;        // error, returning scope variable `slice` is not allowed
+}
+
+int[] slice;
+@safe void abc() {
+    int[3] arr = [1,2,3];
+    slice = arr[]; // error, assigning address of variable `arr` to `slice` with longer lifetime
+}
+---
+
+$(P
+    $(DDSUBLINK spec/function, scope-parameters, Scope Parameters) are treated the same as scope local variables,
+    except that returning them is allowed when the function has $(DDSUBLINK spec/function, function-attribute-inference, Function Attribute Inference).
+    In that case, they are inferred as $(DDSUBLINK spec/function, return-scope-parameters, Return Scope Parameters).
+)
+
+$(H3 $(LNAME2 scope-class-var, $(D scope) Class Instances))
+$(P
+        When used to allocate a class instance directly, a `scope` variable signifies the RAII
+        (Resource Acquisition Is Initialization) protocol.
+        This means that the destructor for an object is automatically called when the
+        reference to it goes out of scope. The destructor is called even
+        if the scope is exited via a thrown exception, thus $(D scope)
+        is used to guarantee cleanup.
+)
+$(P
+        When a class is constructed with `new` and assigned to a local `scope` variable,
+        it may be allocated on the stack and permitted in a `@nogc` context.
+)
+$(P
+        If there is more than one `scope` class variable going out of scope
+        at the same point, then the destructors are called in the reverse
+        order that the variables were constructed.
+)
+$(P
+        Assignment to a $(D scope) variable with class type,
+        other than initialization, is not allowed, because that would complicate
+        proper destruction of the variable.
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.stdc.stdio : puts;
+
+class C
+{
+    ~this() @nogc { puts(__FUNCTION__); }
+}
+
+void main() @nogc
+{
+    {
+        scope c0 = new C(); // allocated on the stack
+        scope c1 = new C();
+
+        //c1 = c0; // Error: cannot rebind scope variables
+
+        // destructor of `c1` and `c0` are called here in that order
+    }
+    puts("bye");
+}
+---
+)
+
+
+$(H2 $(LNAME2 class-attributes, OOP Attributes))
+
+$(H3 $(LNAME2 abstract, $(D abstract) Attribute))
+
+$(P
+        An $(DDSUBLINK spec/class, abstract, abstract class) must be overridden by a derived class.
+        Declaring an abstract member function makes the class abstract.
+)
+
+$(H3 $(LNAME2 final, `final` Attribute))
+
+$(UL
+$(LI A class can be declared $(DDSUBLINK spec/class, final, `final`) to prevent
+    subclassing.)
+$(LI A class method can be declared $(DDSUBLINK spec/function, final, `final`)
+    to prevent a derived class overriding it.)
+$(LI Interfaces can define $(DDSUBLINK spec/interface, method-bodies, `final` methods).)
+)
+
+$(H3 $(LNAME2 override, $(D override) Attribute))
+
+    $(P See $(DDSUBLINK spec/function, virtual-functions, Virtual Functions).)
+
+
+$(H2 $(LNAME2 mustuse-attribute, `@mustuse` Attribute))
+
+    $(P
+        The `@mustuse` attribute is a compiler-recognized $(RELATIVE_LINK2 uda,
+        UDA) defined in the D runtime module $(DPLLINK phobos/core_attribute.html,
+        `core.attribute`).
+    )
+
+
+    $(P
+        An expression is considered to be discarded if and only if either of the
+        following is true:
+    )
+    $(UL
+        $(LI
+            it is the top-level $(GLINK2 expression, Expression) in an $(GLINK2
+            statement, ExpressionStatement), or
+        )
+        $(LI
+            it is the $(GLINK2 expression, AssignExpression) on the left-hand
+            side of the comma in a $(GLINK2 expression, CommaExpression).
+        )
+    )
+
+    $(P
+        It is a compile-time error to discard an expression if all of the
+        following are true:
+    )
+
+    $(UL
+        $(LI
+            it is not an assignment expression, an increment expression, or a
+            decrement expression; and
+        )
+
+        $(LI
+            its type is a `struct` or `union` type whose declaration is
+            annotated with `@mustuse`.
+        )
+    )
+
+    $(P
+        "Assignment expression" means either a $(DDSUBLINK spec/expression, simple_assignment_expressions,
+        simple assignment expression) or an
+        $(DDSUBLINK spec/expression, assignment_operator_expressions, assignment
+        operator expression).
+    )
+
+    $(P
+        "Increment expression" means a $(GLINK2 expression, UnaryExpression) or
+        $(GLINK2 expression, PostfixExpression) whose operator is `++`.
+    )
+
+    $(P
+        "Decrement expression" means a $(GLINK2 expression, UnaryExpression) or
+        $(GLINK2 expression, PostfixExpression) whose operator is `--`.
+    )
+
+    $(P
+        It is a compile-time error to attach `@mustuse` to a function
+        declaration or to any aggregate declaration other than a `struct` or
+        `union` declaration. The purpose of this rule is to reserve such usage
+        for possible future expansion.
+    )
+
+$(H2 $(LNAME2 uda, User-Defined Attributes))
+
+$(GRAMMAR
+$(GNAME UserDefinedAttribute):
+    $(D @ $(LPAREN)) $(GLINK2 template, TemplateArgumentList) $(D $(RPAREN))
+    $(D @) $(GLINK2 template, TemplateSingleArgument)
+    $(D @) $(GLINK_LEX Identifier) $(D $(LPAREN)) $(GLINK2 expression, NamedArgumentList)$(OPT) $(D $(RPAREN))
+    $(D @) $(GLINK2 template, TemplateInstance)
+    $(D @) $(GLINK2 template, TemplateInstance) $(D $(LPAREN)) $(GLINK2 expression, NamedArgumentList)$(OPT) $(D $(RPAREN))
+)
+
+    $(P
+        User-Defined Attributes (UDAs) are compile-time annotations that can be attached
+        to a declaration. These attributes can then be queried, extracted, and manipulated
+        at compile time. There is no runtime component to them.
+    )
+
+A user-defined attribute is defined using:
+* A list of one or more $(GLINK2 template, TemplateArgument)s
+* A compile-time expression (matching the above grammar)
+* A symbol identifier
+* An expression (matching the above grammar) to invoke with an argument list at compile-time
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+@3 int a; // value attribute
+@("string", 7) int b; // multiple values
+
+// using compile-time constant
+enum val = 3;
+@val int a2; // has same attribute as `a`
+
+enum Foo;
+@Foo int c; // type name attribute
+
+struct Bar
+{
+    int x;
+}
+@Bar() int d; // type instance attribute
+@Bar(3) int e; // type instance attribute using initializer
+---
+)
+        $(P For `e`, the attribute is an instance of struct `Bar` which is
+        $(DDSUBLINK spec/struct, static_struct_init, statically initialized)
+        using its argument.)
+
+        $(P
+            If there are multiple UDAs in scope for a declaration, they are concatenated:
+        )
+
+---
+@(1)
+{
+    @(2) int a;         // has UDAs (1, 2)
+    @("string") int b;  // has UDAs (1, "string")
+}
+---
+
+        $(P A function parameter can have a UDA. Parameters do not inherit UDAs from outside the parameter list.)
+---
+@2 void f(@3 int p)
+{
+    pragma(msg, __traits(getAttributes, p)); // prints AliasSeq!(3)
+}
+
+---
+
+$(H3 $(LNAME2 getAttributes, `__traits(getAttributes)`))
+
+        $(P
+            UDAs can be extracted into a
+            $(DDSUBLINK spec/template, variadic-templates, compile-time sequence) using $(D __traits):
+        )
+
+---
+@('c') string s;
+pragma(msg, __traits(getAttributes, s)); // prints AliasSeq!('c')
+---
+
+        $(P
+            If there are no user-defined attributes for the symbol, an empty sequence is returned.
+            The result can be used just like any compile-time sequence - it can be indexed,
+            passed as template parameters, etc.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+enum e = 7;
+@("hello") struct SSS { }
+@(3)
+{
+    @(4) @e @SSS int foo;
+}
+
+alias TP = __traits(getAttributes, foo);
+
+pragma(msg, TP); // prints AliasSeq!(3, 4, 7, (SSS))
+pragma(msg, TP[2]); // prints 7
+---
+)
+
+        $(P
+            Any types in the sequence can be used to declare things:
+        )
+
+---
+TP[3] a; // a is declared as an SSS
+---
+
+        $(P
+            The attribute of the type name is not the same as the attribute of the variable:
+        )
+
+---
+pragma(msg, __traits(getAttributes, a)); // prints AliasSeq!()
+pragma(msg, __traits(getAttributes, typeof(a))); // prints AliasSeq!("hello")
+---
+
+$(H3 $(LNAME2 uda-usage, Usage))
+
+        $(P
+            Of course, the real value of UDAs is to be able to create user-defined types with
+            specific values. Having attribute values of basic types does not scale.
+        )
+
+        $(P
+            Whether the attributes are values or symbols is up to the user, and whether later
+            attributes accumulate or override earlier ones is also up to how the user
+            interprets them.
+        )
+
+$(H3 $(LNAME2 uda-templates, Templates))
+
+        $(P
+            If a UDA is attached to a template declaration, then it will be automatically
+            attached to all direct members of instances of that template. If any of those
+            members are templates themselves, this rule applies recursively:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+@("foo") template Outer(T)
+{
+    struct S
+    {
+        int x;
+    }
+    int y;
+    void fun() {}
+    @("bar") template Inner(U)
+    {
+        int z;
+    }
+}
+
+pragma(msg, __traits(getAttributes, Outer!int.S));
+// prints AliasSeq!("foo")
+pragma(msg, __traits(getAttributes, Outer!int.S.x));
+// prints AliasSeq!()
+pragma(msg, __traits(getAttributes, Outer!int.y));
+// prints AliasSeq!("foo")
+pragma(msg, __traits(getAttributes, Outer!int.fun));
+// prints AliasSeq!("foo")
+pragma(msg, __traits(getAttributes, Outer!int.Inner));
+// prints AliasSeq!("foo", "bar")
+pragma(msg, __traits(getAttributes, Outer!int.Inner!int.z));
+// prints AliasSeq!("foo", "bar")
+---
+)
+
+        $(P
+            UDAs cannot be attached to template parameters.
+        )
+$(SPEC_SUBNAV_PREV_NEXT property, Properties, pragma, Pragmas)
+)
+
+Macros:
+        CHAPTER=9
+        TITLE=Attributes

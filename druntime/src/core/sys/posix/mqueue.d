@@ -34,7 +34,7 @@ extern (C):
 version (CRuntime_Glibc)
 {
     /// Message queue descriptor.
-    alias int mqd_t;
+    alias mqd_t = int;
 
     /**
      * Used in getting and setting the attributes of a message queue.
