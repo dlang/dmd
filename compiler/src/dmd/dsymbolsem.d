@@ -2233,6 +2233,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* If auto type inference, do the inference
          */
         int inferred = 0;
+        Expression autoDollarDim;
+        if (auto tsa = dsym.type ? dsym.type.isTypeSArray() : null)
+        {
+            auto ide = tsa.dim ? tsa.dim.isIdentifierExp() : null;
+            if (ide && ide.ident == Id.dollar)
+            {
+                auto tid = tsa.next.isTypeIdentifier();
+                if (tid && tid.ident == Identifier.idPool(Token.toString(TOK.auto_)))
+                {
+                    autoDollarDim = tsa.dim.syntaxCopy();
+                    dsym.type = null;
+                }
+            }
+        }
         if (!dsym.type)
         {
             dsym.inuse++;
@@ -2248,6 +2262,19 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
             dsym._init = dsym._init.inferType(sc);
             dsym.type = dsym._init.initializerToExpression(null, sc.inCfile).type;
+
+            if (autoDollarDim)
+            {
+                Type elem = dsym.type.nextOf();
+                if (!elem)
+                {
+                    .error(dsym.loc, "cannot infer static array element type for `auto[$]`, provide an array initializer");
+                    dsym.type = Type.terror;
+                }
+                else
+                    dsym.type = new TypeSArray(elem, autoDollarDim);
+            }
+
             if (needctfe)
                 sc = sc.endCTFE();
 

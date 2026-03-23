@@ -677,6 +677,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 goto Lstc;
 
             case TOK.auto_:
+                if (peekNext() == TOK.leftBracket)
+                    goto Ldeclaration;
                 stc = STC.auto_;
                 if (peekNext() == TOK.ref_)
                     stc |= STC.autoref;
@@ -4613,8 +4615,20 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 else
                 {
-                    ts = parseBasicType();
-                    ts = parseTypeSuffixes(ts);
+                    if ((storage_class & STC.auto_) &&
+                        token.value == TOK.leftBracket &&
+                        peekNext() == TOK.dollar &&
+                        peekNext2() == TOK.rightBracket)
+                    {
+                        auto autoIdent = Identifier.idPool(Token.toString(TOK.auto_));
+                        ts = new AST.TypeIdentifier(token.loc, autoIdent);
+                        ts = parseTypeSuffixes(ts);
+                    }
+                    else
+                    {
+                        ts = parseBasicType();
+                        ts = parseTypeSuffixes(ts);
+                    }
                 }
             }
         }

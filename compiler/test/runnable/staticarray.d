@@ -11,6 +11,27 @@ void main()
 	static assert(is(typeof(arr13) == const(int)[3]));
 	assert(arr1 == arr2);
 
+	auto[$] arrAuto = [1, 2];
+	assert(arrAuto.length == 2);
+	assert(arrAuto[0] == 1);
+	assert(arrAuto[1] == 2);
+	static assert(arrAuto.length == 2);
+	static assert(is(typeof(arrAuto) == int[2]));
+
+	auto[$] autoConcatA = [2];
+	auto[$] autoConcatB = [2];
+	auto[$] autoConcatC = autoConcatA ~ autoConcatB;
+	assert(autoConcatC.length == 2);
+	assert(autoConcatC[0] == 2);
+	assert(autoConcatC[1] == 2);
+	static assert(autoConcatC.length == 2);
+	static assert(is(typeof(autoConcatC) == int[2]));
+
+	static assert(!__traits(compiles,
+	{
+		auto[$][$] arrAutoNested = [[10], [20, 30]];
+	}));
+
 	int[$] arr3 = [10] ~ [20];
 	assert(arr3.length == 2);
 	assert(arr3[0] == 10);
