@@ -440,7 +440,7 @@ else version (CRuntime_Musl)
         }
         alias fexcept_t = uint;
     }
-    else version (RICV64)
+    else version (RISCV64)
     {
         alias fenv_t = uint;
         alias fexcept_t = uint;
