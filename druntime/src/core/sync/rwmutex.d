@@ -201,8 +201,9 @@ class ReadWriteMutex
         this(this Q)() @trusted nothrow
             if (is(Q == Reader) || is(Q == shared Reader))
         {
-            m_proxy.link = cast(typeof(m_proxy.link)) this;
-            this.__monitor = cast(void*) &m_proxy;
+            auto self = cast(Reader) this;
+            self.m_proxy.link = cast(typeof(self.m_proxy.link)) this;
+            self.__monitor = cast(void*) &self.m_proxy;
         }
 
         /**
@@ -372,8 +373,9 @@ class ReadWriteMutex
         this(this Q)() @trusted nothrow
             if (is(Q == Writer) || is(Q == shared Writer))
         {
-            m_proxy.link = cast(typeof(m_proxy.link)) this;
-            this.__monitor = cast(void*) &m_proxy;
+            auto self = cast(Writer) this;
+            self.m_proxy.link = cast(typeof(self.m_proxy.link)) this;
+            self.__monitor = cast(void*) &self.m_proxy;
         }
 
 
