@@ -72,6 +72,11 @@ version (DigitalMars)
     alias __builtin_fabsf = imported!"core.stdc.math".fabsf;
     alias __builtin_fabsl = imported!"core.stdc.math".fabsl;
 
+    alias __builtin_memcmp = imported!"core.stdc.string".memcmp;
+    alias __builtin_memcpy = imported!"core.stdc.string".memcpy;
+    alias __builtin_memmove = imported!"core.stdc.string".memmove;
+    alias __builtin_memset = imported!"core.stdc.string".memset;
+
     ushort __builtin_bswap16()(ushort value)
     {
         return cast(ushort) (((value >> 8) & 0xFF) | ((value << 8) & 0xFF00U));
