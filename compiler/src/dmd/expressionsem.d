@@ -9901,20 +9901,43 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 case expression:
                     e = cast(Expression)o;
                     if (auto se = e.isDsymbolExp())
+                    {
                         var = se.s.isDeclaration();
+                        if (auto fd = var ? var.isFuncDeclaration() : null)
+                        {
+                            if (!fd.needThis())
+                                var = null;
+                        }
+                    }
                     else if (auto ve = e.isVarExp())
-                        if (!ve.var.isFuncDeclaration())
+                    {
+                        if (auto fd = ve.var.isFuncDeclaration())
+                        {
+                            // Preserve instance context for member functions.
+                            if (fd.needThis())
+                                var = fd;
+                        }
+                        else
                             // Exempt functions for backwards compatibility reasons.
                             // See: https://issues.dlang.org/show_bug.cgi?id=20470#c1
                             var = ve.var;
+                    }
                     break;
                 case dsymbol:
                     Dsymbol s = cast(Dsymbol) o;
                     Declaration d = s.isDeclaration();
-                    if (!d || d.isFuncDeclaration())
-                        // Exempt functions for backwards compatibility reasons.
-                        // See: https://issues.dlang.org/show_bug.cgi?id=20470#c1
+                    if (!d)
                         e = new DsymbolExp(exp.loc, s);
+                    else if (auto fd = d.isFuncDeclaration())
+                    {
+                        // Preserve instance context for member functions.
+                        if (fd.needThis())
+                            var = d;
+                        else
+                            // Exempt functions for backwards compatibility reasons.
+                            // See: https://issues.dlang.org/show_bug.cgi?id=20470#c1
+                            e = new DsymbolExp(exp.loc, s);
+                    }
                     else
                         var = d;
                     break;
