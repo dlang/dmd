@@ -1486,7 +1486,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         auto tc = d.tinfo.isTypeStruct();
         StructDeclaration sd = tc.sym;
 
-        if (!sd.members)
+        if (!sd.members || sd.ident is Id.__linkerlist)
             return;
 
         if (sd.semanticRun < PASS.semantic3done)

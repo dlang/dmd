@@ -427,15 +427,17 @@ extern (C++) final class OverDeclaration : Declaration
 extern (C++) class VarDeclaration : Declaration
 {
     Initializer _init;
-    FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
-    TupleDeclaration aliasTuple;    // when `this` is really a tuple of declarations
-    VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
-    Expression edtor;               // if !=null, does the destruction of the variable
-    IntRange* range;                // if !=null, the variable is known to be within the range
+    FuncDeclarations nestedrefs;       // referenced by these lexically nested functions
+    TupleDeclaration aliasTuple;       // when `this` is really a tuple of declarations
+    VarDeclaration lastVar;            // Linked list of variables for goto-skips-init detection
+    Expression edtor;                  // if !=null, does the destruction of the variable
+    IntRange* range;                   // if !=null, the variable is known to be within the range
 
-    uint endlinnum;                 // line number of end of scope that this var lives in
+    VarDeclaration entryForLinkerList; // if !=null, the linker list we're appending to
+
+    uint endlinnum;                    // line number of end of scope that this var lives in
     uint offset;
-    uint sequenceNumber;            // order the variables are declared
+    uint sequenceNumber;               // order the variables are declared
     structalign_t alignment;
 
     // When interpreting, these point to the value (NULL if value not determinable)
@@ -469,6 +471,8 @@ extern (C++) class VarDeclaration : Declaration
         bool dllExport;         /// __declspec(dllexport)
         mixin VarDeclarationExtra;
         bool systemInferred;    /// @system was inferred from initializer
+
+        bool isLinkerListDeclaration; /// This variable declares a linker list
     }
 
     import dmd.common.bitfields : generateBitFields;

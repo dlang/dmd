@@ -57,6 +57,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
 import dmd.location;
+import dmd.mangle : mangleToBuffer;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.statement;
@@ -466,6 +467,88 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
+            if (vd.isLinkerListDeclaration)
+            {
+                const canBeReadOnly = !vd.type.isMutable;
+                const isAlignedTo8 = (config.exe & EX_64) > 0;
+
+                switch (config.objfmt)
+                {
+                    case OBJ_MACH:
+                    case OBJ_ELF:
+                        // MACH and ELF uses start/end symbols that are extern, we declare them on usage.
+                        // We don't have to do anything at the linker link global variable declaration.
+                        break;
+
+                    case OBJ_MSCOFF:
+                        import dmd.backend.mscoff;
+                        // we need to generate two new variables based upon how we create the entries.
+
+                        char* startSectionNamePtr, endSectionNamePtr;
+
+                        {
+                            OutBuffer startSectionName, endSectionName;
+
+                            startSectionName.writestring(".");
+                            mangleToBuffer(vd, startSectionName);
+                            startSectionName.writestring("$A");
+
+                            endSectionName.writestring(startSectionName[]);
+                            endSectionName.peekSlice[$-1] = 'Z';
+
+                            startSectionNamePtr = startSectionName.extractChars;
+                            endSectionNamePtr = endSectionName.extractChars;
+                        }
+
+                        // Windows will not dead strip symbols, as long as start/end are used.
+
+                        void genStartEndWindows(string name, char* sectionNamePtr)
+                        {
+                            int sectionId = Obj.getsegment(
+                                sectionNamePtr,
+
+                                // flags
+                                IMAGE_SCN_ALIGN_4BYTES << isAlignedTo8 // 4-8 byte alignment
+                                | IMAGE_SCN_MEM_READ
+                                | IMAGE_SCN_CNT_INITIALIZED_DATA
+                                | (canBeReadOnly ? 0 : IMAGE_SCN_MEM_WRITE)
+                            );
+
+                            OutBuffer nameOB;
+                            mangleToBuffer(vd, nameOB);
+                            nameOB.writestring(name);
+
+                            Symbol* s = symbol_calloc(nameOB.extractSlice);
+                            s.Sclass = SC.global;
+                            s.Sseg = sectionId;
+                            s.Salignment = 4 + (isAlignedTo8 * 4); // 4-8 byte alignment
+
+                            s.lposscopestart = toSrcpos(vd.loc);
+                            s.lnoscopeend = vd.endlinnum;
+
+                            s.Stype = type_fake(TYnptr);
+                            s.Stype.Tcount++;
+
+                            auto dtbWrapper = DtBuilder(0);
+                            dtbWrapper.size(0);
+                            s.Sdt = dtbWrapper.finish();
+
+                            if (canBeReadOnly)
+                            out_readonly(s);
+                            outdata(s);
+                        }
+
+                        genStartEndWindows("_start", startSectionNamePtr);
+                        genStartEndWindows("_end", endSectionNamePtr);
+                        break;
+
+                    default:
+                        assert(0);
+                }
+
+                return;
+            }
+
             // Check to see if we're doing special section mangling, these are not regular variables.
             // Do not prepend an underscore to the name, it won't work.
             if (config.objfmt == OBJ_MACH && vd.mangleOverride.length > 8 && vd.mangleOverride[0 .. 8] == "section$")
@@ -489,6 +572,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             Dsymbol parent = vd.toParent();
             s.Sclass = SC.global;
+
+            // This symbol for whatever reason is known to be a bit internal,
+            //  and isn't allowed to be exported.
+            bool noExportInternal;
 
             {
                 string userDefinedSection;
@@ -585,6 +672,120 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 }
             }
 
+            if (vd.entryForLinkerList !is null)
+            {
+                // We're going into a linker list, so we need to configure the section
+                // A lot of this logic is copied into opApply emittance for linker lists in e2ir,
+                //  make sure to keep them in sync.
+
+                const canBeReadOnly = !vd.type.isMutable;
+                const isAlignedTo8 = (config.exe & EX_64) > 0;
+
+                OutBuffer nameOB;
+                mangleToBuffer(vd.entryForLinkerList, nameOB);
+
+                // Note: there is not meant to be a limit to the number of linker list entries,
+                //  but there may be due to bad compiler implementation details;
+
+                int sectionId = -1;
+                const(char)* sectionName;
+
+                switch (config.objfmt)
+                {
+                    case OBJ_MACH:
+                        import dmd.backend.mach;
+
+                        sectionName = nameOB.extractChars;
+
+                        // name does not start with a _
+                        //s.Sflags |= SFLnounderscore;
+
+                        sectionId = Obj.getsegment(
+                            sectionName,
+                            canBeReadOnly ? "__TEXT" : "__DATA",
+                            2^(2 + isAlignedTo8),
+
+                            S_ATTR_NO_DEAD_STRIP |
+                            S_REGULAR // flags
+                        );
+                        break;
+                    case OBJ_ELF:
+                        import dmd.backend.elfobj;
+                        import dmd.backend.melf;
+
+                        sectionName = nameOB.extractChars;
+
+                        sectionId = Obj.getsegment(
+                            sectionName,
+                            null, // suffix
+                            SHT_PROGBITS, // type
+
+                            SHF_GNU_RETAIN |
+                            SHF_ALLOC | (canBeReadOnly ? 0 : SHF_WRITE), // flags
+
+                            isAlignedTo8 ? 8 : 4 // align
+                        );
+                        break;
+                    case OBJ_MSCOFF:
+                        import dmd.backend.mscoff;
+
+                        nameOB.prependstring("."); //
+                        nameOB.writestring("$N"); // right into the middle of the section
+                        sectionName = nameOB.extractChars;
+
+                        // Windows will not dead strip symbols, as long as start/end are used.
+
+                        sectionId = Obj.getsegment(
+                            sectionName,
+
+                            // flags
+                            IMAGE_SCN_ALIGN_4BYTES << isAlignedTo8 // 4-8 byte alignment
+                            | IMAGE_SCN_MEM_READ
+                            | IMAGE_SCN_CNT_INITIALIZED_DATA
+                            | (canBeReadOnly ? 0 : IMAGE_SCN_MEM_WRITE)
+                        );
+                        break;
+                    default:
+                        break;
+                }
+
+                if (vd.type.isTypePointer || vd.type.isTypeDArray || vd.type.isTypeClass)
+                {
+                    // ok we've got a pointer, we can slap the section directly into our variable.
+                    // Note: a dynamic array aka a slice is a multiple of a pointer, and will be ok for alignment.
+                    s.Sseg = sectionId;
+                }
+                else
+                {
+                    // Okay so we need to generate a symbol that wraps this one.
+                    // Then we'll have it store a pointer to this var, and that'll go into the section.
+
+                    mangleToBuffer(vd, nameOB);
+                    nameOB.writestring("_wrap");
+
+                    Symbol* sWrapper = symbol_calloc(nameOB.extractSlice);
+                    sWrapper.Sclass = SC.global;
+                    sWrapper.Sseg = sectionId;
+                    sWrapper.Salignment = 4 + (isAlignedTo8 * 4); // 4-8 byte alignment
+
+                    sWrapper.lposscopestart = toSrcpos(vd.loc);
+                    sWrapper.lnoscopeend = vd.endlinnum;
+
+                    sWrapper.Stype = type_fake(TYnptr);
+                    sWrapper.Stype.Tcount++;
+
+                    auto dtbWrapper = DtBuilder(0);
+                    dtbWrapper.xoff(s, 0);
+                    sWrapper.Sdt = dtbWrapper.finish();
+
+                    if (canBeReadOnly)
+                        out_readonly(sWrapper);
+                    outdata(sWrapper);
+                }
+
+                noExportInternal = true;
+            }
+
             /* Make C static functions SCstatic
              */
             if (vd.storage_class & STC.static_ && vd.isCsymbol())
@@ -654,7 +855,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             outdata(s);
             if (vd.type.isMutable() || !vd._init)
                 write_pointers(vd.type, s, 0);
-            if (vd.isExport() || driverParams.exportVisibility == ExpVis.public_)
+            if (!noExportInternal && (vd.isExport() || driverParams.exportVisibility == ExpVis.public_))
                 objmod.export_symbol(s, 0);
         }
 

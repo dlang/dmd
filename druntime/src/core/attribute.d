@@ -346,3 +346,68 @@ enum mustuse;
  * This is only allowed on `shared` static constructors, not thread-local module constructors.
  */
 enum standalone;
+
+/**
+* Provides a global to the binary linker list that may be iterated at runtime, and appended to during CTFE.
+*
+* It will go into read only memory if the type is `const` or `immutable`.
+*
+* It will never be exported or made dllimport.
+*
+* Always prefer pointers as your list type, the compiler will automatically add an intermediary symbol to make it a pointer.
+*
+* Do not make assumptions regarding the location of the pointer in memory, it may not be contiguous between entries.
+*
+* Examples:
+* ---
+ *    __linkerlist!int myInts;
+ *    static assert(() { myInts ~= 1; return true; }());
+ * ---
+*/
+struct __linkerlist(Type)
+{
+    /// Callable at runtime, not during compile time.
+    int opApply(scope int delegate(ref Type) @system) @system;
+    /// Callable during CTFE, not available at runtime.
+    void opOpAssign(string op : "~")(Type) @safe nothrow @nogc pure;
+
+private:
+    static int _d_linkerlistApply(scope int delegate(ref Type) @system del, void* start, void* end) @system
+    {
+        // If the type is not a pointer, make it so to match the compiler.
+        static if (is(Type : U*, U) || is(Type == class) || is(Type == interface) || is(Type : U[], U))
+            alias Type2 = Type*;
+        else
+            alias Type2 = Type**;
+
+        Type2 start2 = cast(Type2)start, end2 = cast(Type2)end;
+
+        // Because of the way sections work for MSVC $A will not have a valid value in it, so skip it.
+        version(Windows)
+            start2++;
+
+        int result;
+
+        // Note: A pointer in the list could be null,
+        //        this can happen on Windows due to MSVC linker adding padding.
+        //       https://devblogs.microsoft.com/oldnewthing/20190114-00/?p=100695
+
+        while(result == 0 && start2 < end2)
+        {
+            static if (is(Type* == Type))
+            {
+                if (*start2 !is null)
+                    result = del(*start2);
+            }
+            else
+            {
+                if (*start2 !is null)
+                    result = del(**start2);
+            }
+
+            start2++;
+        }
+
+        return result;
+    }
+}
