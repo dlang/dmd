@@ -133,6 +133,8 @@ else version (Posix)
         // Use POSIX threads for suspend/resume
     }
 }
+else
+    static assert(0, "unsupported operating system");
 
 version (GNU)
 {
@@ -252,6 +254,8 @@ class Thread : ThreadBase
     {
         alias TLSKey = pthread_key_t;
     }
+    else
+        static assert(0, "unsupported os");
 
     ///////////////////////////////////////////////////////////////////////////
     // Initialization
@@ -315,11 +319,13 @@ class Thread : ThreadBase
             if (m_addr != m_addr.init)
                 pthread_detach( m_addr );
             m_addr = m_addr.init;
+            version (Darwin)
+            {
+                m_tmach = m_tmach.init;
+            }
         }
-        version (Darwin)
-        {
-            m_tmach = m_tmach.init;
-        }
+        else
+            static assert(0, "unsupported OS");
     }
 
     //
@@ -475,19 +481,6 @@ class Thread : ThreadBase
                 multiThreadedFlag = false;
         }
 
-        version (Windows) {} else
-        version (Posix)
-        {
-            size_t stksz = adjustStackSize( m_sz );
-
-            pthread_attr_t  attr;
-
-            if ( pthread_attr_init( &attr ) )
-                onThreadError( "Error initializing thread attributes" );
-            if ( stksz && pthread_attr_setstacksize( &attr, stksz ) )
-                onThreadError( "Error initializing thread stack size" );
-        }
-
         version (Windows)
         {
             // NOTE: If a thread is just executing DllMain()
@@ -504,6 +497,19 @@ class Thread : ThreadBase
             if ( cast(size_t) m_hndl == 0 )
                 onThreadError( "Error creating thread" );
         }
+        else version (Posix)
+        {
+            size_t stksz = adjustStackSize( m_sz );
+
+            pthread_attr_t  attr;
+
+            if ( pthread_attr_init( &attr ) )
+                onThreadError( "Error initializing thread attributes" );
+            if ( stksz && pthread_attr_setstacksize( &attr, stksz ) )
+                onThreadError( "Error initializing thread stack size" );
+        }
+        else
+            static assert(0, "unsupported OS");
 
         slock.lock_nothrow();
         scope(exit) slock.unlock_nothrow();
@@ -547,13 +553,16 @@ class Thread : ThreadBase
                 }
                 if ( pthread_attr_destroy( &attr ) != 0 )
                     onThreadError( "Error destroying thread attributes" );
+
+                version (Darwin)
+                {
+                    m_tmach = pthread_mach_thread_np( m_addr );
+                    if ( m_tmach == m_tmach.init )
+                        onThreadError( "Error creating thread" );
+                }
             }
-            version (Darwin)
-            {
-                m_tmach = pthread_mach_thread_np( m_addr );
-                if ( m_tmach == m_tmach.init )
-                    onThreadError( "Error creating thread" );
-            }
+            else
+                static assert(0, "unsupported OS");
 
             return this;
         }
@@ -598,6 +607,9 @@ class Thread : ThreadBase
             //       on object destruction.
             m_addr = m_addr.init;
         }
+        else
+            static assert(0, "unsupported OS");
+
         if ( m_unhandled )
         {
             if ( rethrow )
@@ -629,7 +641,7 @@ class Thread : ThreadBase
             return THREAD_PRIORITY_NORMAL;
         }
     }
-    else
+    else version (Posix)
     {
         private struct Priority
         {
@@ -715,7 +727,7 @@ class Thread : ThreadBase
                     result.PRIORITY_DEFAULT = 0;
                 }
             }
-            else version (Posix)
+            else
             {
                 int         policy;
                 sched_param param;
@@ -729,10 +741,6 @@ class Thread : ThreadBase
                 result.PRIORITY_MAX = sched_get_priority_max( policy );
                 result.PRIORITY_MAX != -1 ||
                     assert(0, "Internal error in sched_get_priority_max");
-            }
-            else
-            {
-                static assert(0, "Your code here.");
             }
             return result;
         }
@@ -773,6 +781,9 @@ class Thread : ThreadBase
                 &loadGlobal!"PRIORITY_DEFAULT")();
         }
     }
+    else
+        static assert(0, "unsupported OS");
+
 
     version (NetBSD)
     {
@@ -813,6 +824,8 @@ class Thread : ThreadBase
             }
             return param.sched_priority;
         }
+        else
+            static assert(0, "unsupported os");
     }
 
 
@@ -903,6 +916,8 @@ class Thread : ThreadBase
                 }
             }
         }
+        else
+            static assert(0, "unsupported os");
     }
 
 
@@ -953,6 +968,8 @@ class Thread : ThreadBase
         {
             return atomicLoad(m_isRunning);
         }
+        else
+            static assert(0, "unsupported os");
     }
 
 
@@ -1027,6 +1044,8 @@ class Thread : ThreadBase
                 tin = tout;
             }
         }
+        else
+            static assert(0, "unsupported os");
     }
 
 
@@ -1039,6 +1058,8 @@ class Thread : ThreadBase
             SwitchToThread();
         else version (Posix)
             sched_yield();
+        else
+            static assert(0, "unsupported os");
     }
 }
 
@@ -1265,6 +1286,8 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
 
         atomicStore!(MemoryOrder.raw)(thisThread.toThread.m_isRunning, true);
     }
+    else
+        static assert(0, "unsupported os");
     thisThread.m_isDaemon = true;
     thisThread.tlsRTdataInit();
     Thread.setThis( thisThread );
@@ -1531,24 +1554,24 @@ in (fn)
     }
     else version (AArch64)
     {
-	// Callee-save registers, x19-x28 according to AAPCS64, section
-	// 5.1.1.  Include x29 fp because it optionally can be a callee
-	// saved reg
-	size_t[11] regs = void;
-	// store the registers in pairs
-	asm pure nothrow @nogc
-	{
-	/*
-	    stp x19, x20, regs[0];
-	    stp x21, x22, regs[2];
-	    stp x23, x24, regs[4];
-	    stp x25, x26, regs[6];
-	    stp x27, x28, regs[8];
-	    str x29, regs[10];
-	    mov [sp], sp;
-	 */
-	}
-	assert(0, "implement AArch64 inline assembler for callWithStackShell()"); // TODO AArch64
+        // Callee-save registers, x19-x28 according to AAPCS64, section
+        // 5.1.1.  Include x29 fp because it optionally can be a callee
+        // saved reg
+        size_t[11] regs = void;
+        // store the registers in pairs
+        asm pure nothrow @nogc
+        {
+        /*
+            stp x19, x20, regs[0];
+            stp x21, x22, regs[2];
+            stp x23, x24, regs[4];
+            stp x25, x26, regs[6];
+            stp x27, x28, regs[8];
+            str x29, regs[10];
+            mov [sp], sp;
+         */
+        }
+        assert(0, "implement AArch64 inline assembler for callWithStackShell()"); // TODO AArch64
     }
     else
     {
@@ -1575,6 +1598,8 @@ else version (Windows)
 {
     alias getpid = imported!"core.sys.windows.winbase".GetCurrentProcessId;
 }
+else
+    static assert(0, "unsupported os");
 
 extern (C) @nogc nothrow
 {
@@ -2053,6 +2078,8 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             t.m_curr.tstack = getStackTop();
         }
     }
+    else
+        static assert(0, "unsupported os");
     return true;
 }
 
@@ -2138,6 +2165,11 @@ extern (C) void thread_suspendAll() nothrow
                 }
             }
         }
+        else version (Windows)
+        {
+        }
+        else
+            static assert(0, "unsupported os");
     }
 }
 
@@ -2247,7 +2279,10 @@ extern (C) void thread_init() @nogc nothrow
     initLowlevelThreads();
     Thread.initLocks();
 
-    version (Darwin)
+    version (Windows)
+    {
+    }
+    else version (Darwin)
     {
         // thread id different in forked child process
         static extern(C) void initChildAfterFork()
@@ -2339,6 +2374,8 @@ extern (C) void thread_init() @nogc nothrow
         status = sem_init( &suspendCount, 0, 0 );
         assert( status == 0 );
     }
+    else
+        static assert(0, "unsupported os");
     _mainThreadStore[] = cast(void[]) __traits(initSymbol, Thread)[];
     Thread.sm_main = attachThread((cast(Thread)_mainThreadStore.ptr).__ctor());
 }
@@ -3048,6 +3085,8 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
 
         ll_pThreads[ll_nThreads - 1].tid = tid;
     }
+    else
+        static assert(0, "unsupported os");
     context = null; // free'd in thread
     return tid;
 }
@@ -3088,6 +3127,8 @@ void joinLowLevelThread(ThreadID tid) nothrow @nogc
         if (pthread_join(tid, null) != 0)
             onThreadError("Unable to join thread");
     }
+    else
+        static assert(0, "unsupported os");
 }
 
 nothrow @nogc unittest
