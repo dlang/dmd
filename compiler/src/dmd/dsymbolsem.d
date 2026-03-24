@@ -2236,8 +2236,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.type)
         {
             Type t = dsym.type;
-            while (auto tsa = t.isTypeSArray())
+            while (true)
             {
+                auto tsa = t.isTypeSArray();
+                if (!tsa)
+                    break;
                 auto ide = tsa.dim ? tsa.dim.isIdentifierExp() : null;
                 if (!(ide && ide.ident == Id.dollar))
                 {
