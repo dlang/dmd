@@ -7991,6 +7991,8 @@ extern bool c_isxdigit(const int32_t c);
 
 extern bool c_isalnum(const int32_t c);
 
+extern bool isAlphaASCII(const char32_t c);
+
 enum class ErrorKind
 {
     warning = 0,
@@ -8000,7 +8002,6 @@ enum class ErrorKind
     message = 4,
     lint = 5,
 };
-extern bool isAlphaASCII(const char32_t c);
 
 extern void error(Loc loc, const char* format, ...);
 
