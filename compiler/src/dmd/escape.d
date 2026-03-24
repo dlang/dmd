@@ -714,12 +714,14 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
             inferReturn(fd, v, /*returnScope:*/ true);
         }
 
+        const vHasReturnScope = v.isReference() ? (v.storage_class & STC.returnScope) != 0 : v.isReturn();
+
         if (!(va && va.isScope()) || vaIsRef)
             doNotInferScope(v, e);
 
         if (v.isScope())
         {
-            if (vaIsFirstRef && v.isParameter() && v.isReturn())
+            if (vaIsFirstRef && v.isParameter() && vHasReturnScope)
             {
                 // va=v, where v is `return scope`
                 if (inferScope(va, e))
@@ -759,7 +761,7 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
             if (inferScope(va, e))
             {
                 // In case of `scope local = returnScopeParam`, do not infer return scope for `x`
-                if (!vaWasScope && v.isReturn() && !va.isReturn())
+                if (!vaWasScope && vHasReturnScope && !va.isReturn())
                 {
                     if (log) printf("infer return for %s\n", va.toChars());
                     va.storage_class |= STC.return_ | STC.returninferred;

@@ -1267,7 +1267,7 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         {
             auto elements = new Expressions(cast(size_t)(iupr - ilwr));
             memcpy(elements.tdata(), es1.elements.tdata() + ilwr, cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
-            emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, elements);
+            emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, es1.basis, elements);
         }
     }
     else
