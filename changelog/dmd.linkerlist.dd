@@ -1,0 +1,34 @@
+Linker lists are now supported
+
+A linker list is a list of symbols that a linker puts together into a section, allowing for each disparate module to provide entries within their object files.
+They cannot be exported or dllimport, you must register their contents by use of a module constructor (can be C).
+
+To iterate them, you may foreach over them at runtime.
+
+To append to them, you may do so from within a CTFE executed function.
+
+```d
+import core.attribute;
+
+__gshared __linkerlist!int myInts;
+
+static assert(() { myInts ~= 42; return true; }());
+
+void main() {
+    foreach(v; myInts)
+        assert(v == 42);
+}
+```
+
+Each declaration for the linker list, must be per executable or shared library.
+The declaration may trigger symbol emittance.
+
+If the type is ``const`` or ``immutable`` then the list entries will be marked as read only.
+
+An entry when emitted will go into the object file, associated with the module that initiated the function.
+It is recommended therefore that the function should always be templated.
+If the template is associated with a module that is not being compiled (imported), it will not be emitted into an object file.
+Note: that this module does NOT refer to the source file that contains the template.
+
+If you are already using linker lists using the section attribute, it is strongly recommended to swap to compiler backed linker lists.
+They are platform, linker, and compiler specific abstractions that are not portable.
