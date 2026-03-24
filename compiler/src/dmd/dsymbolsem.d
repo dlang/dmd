@@ -2230,22 +2230,31 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        /* If auto type inference, do the inference
-         */
         int inferred = 0;
-        Expression autoDollarDim;
-        if (auto tsa = dsym.type ? dsym.type.isTypeSArray() : null)
+        // Collect dimensions of static arrays with `auto` element type and `$` dimension,
+        Expression[] autoDollarDims;
+        if (dsym.type)
         {
-            auto ide = tsa.dim ? tsa.dim.isIdentifierExp() : null;
-            if (ide && ide.ident == Id.dollar)
+            Type t = dsym.type;
+            while (auto tsa = t.isTypeSArray())
             {
-                auto tid = tsa.next.isTypeIdentifier();
-                if (tid && tid.ident == Identifier.idPool(Token.toString(TOK.auto_)))
+                auto ide = tsa.dim ? tsa.dim.isIdentifierExp() : null;
+                if (!(ide && ide.ident == Id.dollar))
                 {
-                    autoDollarDim = tsa.dim.syntaxCopy();
-                    dsym.type = null;
+                    autoDollarDims = null;
+                    break;
                 }
+                autoDollarDims ~= tsa.dim.syntaxCopy();
+                t = tsa.next;
             }
+
+            auto tid = t ? t.isTypeIdentifier() : null;
+            auto autoIdent = Identifier.idPool(Token.toString(TOK.auto_));
+            if (autoDollarDims.length && tid && tid.ident == autoIdent)
+                // Intentionally set type to null to trigger type inference,
+                dsym.type = null;
+            else
+                autoDollarDims = null;
         }
         if (!dsym.type)
         {
@@ -2263,16 +2272,29 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym._init = dsym._init.inferType(sc);
             dsym.type = dsym._init.initializerToExpression(null, sc.inCfile).type;
 
-            if (autoDollarDim)
+            if (autoDollarDims.length)
             {
-                Type elem = dsym.type.nextOf();
-                if (!elem)
+                // dysm.type here is dynamic array type with `auto` element type,
+                // so peels off the array layers and then build static array type with `$` dimensions.
+                Type t = dsym.type;
+                foreach (_; 0 .. autoDollarDims.length)
                 {
-                    .error(dsym.loc, "cannot infer static array element type for `auto[$]`, provide an array initializer");
-                    dsym.type = Type.terror;
+                    auto elem = t.nextOf();
+                    if (!elem)
+                    {
+                        .error(dsym.loc, "cannot infer static array element type for `auto[$]`, provide an array initializer");
+                        t = Type.terror;
+                        break;
+                    }
+                    t = elem;
                 }
-                else
-                    dsym.type = new TypeSArray(elem, autoDollarDim);
+
+                if (t.ty != Terror)
+                {
+                    for (size_t i = autoDollarDims.length; i-- > 0;)
+                        t = new TypeSArray(t, autoDollarDims[i]);
+                }
+                dsym.type = t;
             }
 
             if (needctfe)
@@ -2372,6 +2394,27 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return true;
         }
 
+        static void inferInnerSArrayDimsFromType(TypeSArray dst, Type src, Loc loc)
+        {
+            if (!dst || !src)
+                return;
+
+            auto dstTsa = dst;
+            auto srcTsa = src.toBasetype().isTypeSArray();
+            while (dstTsa && srcTsa)
+            {
+                if (hasDollarDimension(dstTsa))
+                {
+                    auto dim = srcTsa.dim ? srcTsa.dim.isIntegerExp() : null;
+                    if (!dim)
+                        break;
+                    dstTsa.dim = new IntegerExp(loc, dim.value, Type.tsize_t);
+                }
+                dstTsa = dstTsa.next.isTypeSArray();
+                srcTsa = srcTsa.next ? srcTsa.next.toBasetype().isTypeSArray() : null;
+            }
+        }
+
         static bool inferSArrayDim(TypeSArray tsa, Expression ie, Loc loc, Scope* sc)
         {
             if (!tsa || !ie)
@@ -2413,6 +2456,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return false;
 
             tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
+
+            // For non-literal forms (e.g. concatenation), propagate any known
+            // nested static-array dimensions from the expression element type.
+            if (auto innerTsa = tsa.next.isTypeSArray())
+            {
+                Type elemType = ie.type ? ie.type.toBasetype().nextOf() : null;
+                inferInnerSArrayDimsFromType(innerTsa, elemType, loc);
+            }
+
             return true;
         }
 
