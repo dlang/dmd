@@ -4057,16 +4057,14 @@ private void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f,
     const p = (funcdecl.printf ? Id.printf : Id.scanf).toChars();
     if (!(f.linkage == LINK.c || f.linkage == LINK.cpp))
     {
-        .error(funcdecl.loc, "`pragma(%s)` function `%s` must have `extern(C)` or `extern(C++)` linkage,"
-            ~" not `extern(%s)`",
+        .error(funcdecl.loc, "`pragma(%s)` function `%s` must have `extern(C)` or `extern(C++)` linkage, not `extern(%s)`",
             p, funcdecl.toChars(), f.linkage.linkageToChars());
     }
     if (f.parameterList.varargs == VarArg.variadic)
     {
         if (!(nparams >= 1 && isPointerToChar(f.parameterList[nparams - 1])))
         {
-            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have"
-                ~ " signature `%s %s([parameters...], const(char)*, ...)` not `%s`",
+            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have signature `%s %s([parameters...], const(char)*, ...)` not `%s`",
                 p, funcdecl.toChars(), f.next.toChars(), funcdecl.toChars(), funcdecl.type.toChars());
         }
     }
@@ -4074,8 +4072,7 @@ private void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f,
     {
         if(!(nparams >= 2 && isPointerToChar(f.parameterList[nparams - 2]) &&
             isVa_list(f.parameterList[nparams - 1])))
-            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have"~
-                " signature `%s %s([parameters...], const(char)*, va_list)`",
+            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have signature `%s %s([parameters...], const(char)*, va_list)`",
                 p, funcdecl.toChars(), f.next.toChars(), funcdecl.toChars());
     }
     else
