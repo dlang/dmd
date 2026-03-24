@@ -2225,7 +2225,7 @@ private bool checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argume
     if (!argumentList.hasArgNames())
         return false;
 
-    const(char)[] commonError = null;
+    const(char)* commonError = null;
     bool allSame = true;
     bool anyError = false;
 
@@ -2247,10 +2247,13 @@ private bool checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argume
             if (!resolvedArgs && buf.length)
             {
                 anyError = true;
-                const(char)[] currentError = buf.peekChars().toDString();
+                const(char)* currentError = buf.peekChars();
                 if (commonError is null)
-                    commonError = currentError;
-                else if (commonError != currentError)
+                {
+                    import dmd.root.rmem : mem;
+                    commonError = mem.xstrdup(currentError);
+                }
+                else if (strcmp(commonError, currentError) != 0)
                     allSame = false;
             }
             else
@@ -2263,7 +2266,7 @@ private bool checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argume
 
     if (anyError && allSame && commonError !is null)
     {
-        .error(loc, "%s", commonError.ptr);
+        .error(loc, "%s", commonError);
         return true;
     }
     return false;
