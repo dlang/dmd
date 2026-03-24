@@ -28,6 +28,7 @@ import dmd.init;
 import dmd.mtype;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.root.string : toDString;
 import dmd.visitor;
 import dmd.visitor.postorder;
 
