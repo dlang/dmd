@@ -3411,20 +3411,30 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
         return false;
     }
 
-    if (f.printf)
+    if (f.printf && (f.isSafe() || f.isTrusted()))
     {
         TypeFunction tf = f.type.isTypeFunction();
         assert(tf);
         const isVa_list = tf.parameterList.varargs == VarArg.none;
         const nparams = tf.parameterList.length;
         const nargs = arguments ? arguments.length : 0;
-        if (nparams == 1 && nargs)
+        assert(nparams && nargs); // should have been verified already
+        if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
         {
-            if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
+            if (!isFormatSafe(se.peekString()))
             {
-                if (isFormatSafe(se.peekString()))
-                    return false;
+                if (sc.setUnsafe(false, loc,
+                    "calling `pragma(printf)` function `%s` with format string `%s`", f, se))
+                    .errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
+                return true;
             }
+        }
+        else
+        {
+            if (sc.setUnsafe(false, loc,
+                "calling `pragma(printf)` function `%s` with non-literal format string", f))
+                .errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
+            return true;
         }
     }
 
@@ -5842,8 +5852,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 arguments.push(makeTemplateItem(Id.InterpolatedExpression, str));
                 Expressions* mix = new Expressions(new StringExp(e.loc, str));
-                // FIXME: i'd rather not use MixinExp but idk how to do it lol
-                arguments.push(new MixinExp(e.loc, mix));
+                auto mixinExp = new MixinExp(e.loc, mix);
+                auto res = mixinExp.expressionSemantic(sc);
+                res = resolveProperties(sc, res);
+                arguments.push(res);
             }
         }
 
@@ -9972,7 +9984,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (t1.ty == Tpointer)
                 t1 = t1.nextOf();
 
-            exp.type = exp.type.addMod(t1.mod);
+            // __monitor is always void* regardless of shared - strip shared from the mod
+            auto t1mod = t1.mod;
+            if (exp.var.ident == Id.__monitor)
+                t1mod &= ~MODFlags.shared_;
+            exp.type = exp.type.addMod(t1mod);
 
             // https://issues.dlang.org/show_bug.cgi?id=23109
             // Run semantic on the DotVarExp type

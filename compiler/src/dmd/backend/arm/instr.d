@@ -83,6 +83,7 @@ struct INSTR
     enum mBP = 1 << BP;
 
     enum uint nop = 0xD503201F;
+    enum hlt = 0xD440_0000;          // https://www.scs.stanford.edu/~zyedidia/arm64/hlt.html
 
     alias reg_t = ubyte;
 

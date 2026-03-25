@@ -423,7 +423,8 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         case OPremquo:
         {
             regm_t regm = cg.allregs & ~(retregs1 | retregs2);
-            Rquo = allocreg(cdb, regm, ty);
+            allocreg(cdb, regm, ty);
+            Rquo = findreg(regm & INSTR.LSW);
             assert(Rquo != Rdividend && Rquo != Rdivisor);
             Rmod = findreg(regm & INSTR.MSW);
             assert(Rmod != Rquo);

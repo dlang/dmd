@@ -3656,109 +3656,108 @@ final class CParser(AST) : Parser!AST
         if (!isGnuAttributeName())
             return;
 
-        if (token.value == TOK.identifier)
+        if (token.value != TOK.identifier)
         {
-            if (token.ident == Id.aligned)
+            nextToken();
+            if (token.value == TOK.leftParenthesis)
+                cparseParens();
+            return;
+        }
+
+        if (token.ident == Id.aligned)
+        {
+            nextToken();
+            if (token.value == TOK.leftParenthesis)
             {
                 nextToken();
-                if (token.value == TOK.leftParenthesis)
-                {
-                    nextToken();
-                    AST.Expression exp = cparseConstantExp();
-                    if (!specifier.alignAttrs)
-                        specifier.alignAttrs = new AST.Expressions();
-                    specifier.alignAttrs.push(exp);
-                    check(TOK.rightParenthesis);
-                }
-                else
-                {
-                    /* ignore __attribute__((aligned)), which sets the alignment to the largest value for any data
-                     * type on the target machine. It's the opposite of __attribute__((packed))
-                     */
-                }
-            }
-            else if (token.ident == Id.packed)
-            {
-                specifier.packalign.set(1);
-                specifier.packalign.setPack();
-                nextToken();
-            }
-            else if (token.ident == Id.always_inline) // https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html
-            {
-                specifier.scw |= SCW.xinline;
-                nextToken();
-            }
-            else if (token.ident == Id._deprecated)
-            {
-                specifier._deprecated = true;
-                nextToken();
-                if (token.value == TOK.leftParenthesis)  // optional deprecation message
-                {
-                    nextToken();
-                    specifier.depMsg = cparseExpression();
-                    check(TOK.rightParenthesis);
-                }
-            }
-            else if (token.ident == Id.dllimport)
-            {
-                specifier.dllimport = true;
-                nextToken();
-            }
-            else if (token.ident == Id.dllexport)
-            {
-                specifier.dllexport = true;
-                nextToken();
-            }
-            else if (token.ident == Id.naked)
-            {
-                specifier.naked = true;
-                nextToken();
-            }
-            else if (token.ident == Id.noinline)
-            {
-                specifier.scw |= SCW.xnoinline;
-                nextToken();
-            }
-            else if (token.ident == Id.noreturn)
-            {
-                specifier.noreturn = true;
-                nextToken();
-            }
-            else if (token.ident == Id._nothrow)
-            {
-                specifier._nothrow = true;
-                nextToken();
-            }
-            else if (token.ident == Id._pure)
-            {
-                specifier._pure = true;
-                nextToken();
-            }
-            else if (token.ident == Id.vector_size)
-            {
-                nextToken();
-                check(TOK.leftParenthesis);
-                if (token.value == TOK.int32Literal)
-                {
-                    const n = token.unsvalue;
-                    if (n < 1 || n & (n - 1) || ushort.max < n)
-                        error("__attribute__((vector_size(%lld))) must be an integer positive power of 2 and be <= 32,768", cast(ulong)n);
-                    specifier.vector_size = cast(uint) n;
-                    nextToken();
-                }
-                else
-                {
-                    error("value for vector_size expected, not `%s`", token.toChars());
-                    nextToken();
-                }
+                AST.Expression exp = cparseConstantExp();
+                if (!specifier.alignAttrs)
+                    specifier.alignAttrs = new AST.Expressions();
+                specifier.alignAttrs.push(exp);
                 check(TOK.rightParenthesis);
             }
             else
             {
-                nextToken();
-                if (token.value == TOK.leftParenthesis)
-                    cparseParens();
+                /* ignore __attribute__((aligned)), which sets the alignment to the largest value for any data
+                 * type on the target machine. It's the opposite of __attribute__((packed))
+                 */
             }
+        }
+        else if (token.ident == Id.packed)
+        {
+            specifier.packalign.set(1);
+            specifier.packalign.setPack();
+            nextToken();
+        }
+        else if (token.ident == Id.always_inline) // https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html
+        {
+            specifier.scw |= SCW.xinline;
+            nextToken();
+        }
+        else if (token.ident == Id._deprecated)
+        {
+            specifier._deprecated = true;
+            nextToken();
+            if (token.value == TOK.leftParenthesis)  // optional deprecation message
+            {
+                nextToken();
+                specifier.depMsg = cparseExpression();
+                check(TOK.rightParenthesis);
+            }
+        }
+        else if (token.ident == Id.dllimport)
+        {
+            specifier.dllimport = true;
+            nextToken();
+        }
+        else if (token.ident == Id.dllexport)
+        {
+            specifier.dllexport = true;
+            nextToken();
+        }
+        else if (token.ident == Id.naked)
+        {
+            specifier.naked = true;
+            nextToken();
+        }
+        else if (token.ident == Id.noinline)
+        {
+            specifier.scw |= SCW.xnoinline;
+            nextToken();
+        }
+        else if (token.ident == Id.noreturn)
+        {
+            specifier.noreturn = true;
+            nextToken();
+        }
+        else if (token.ident == Id._nothrow)
+        {
+            specifier._nothrow = true;
+            nextToken();
+        }
+        else if (token.ident == Id._pure)
+        {
+            specifier._pure = true;
+            nextToken();
+        }
+        else if (token.ident == Id.vector_size)
+        {
+            nextToken();
+            check(TOK.leftParenthesis);
+            if (token.value == TOK.int32Literal)
+            {
+                const n = token.unsvalue;
+                if (n < 1 || n & (n - 1) || ushort.max < n)
+                    error("__attribute__((vector_size(%lld))) must be an integer positive power of 2 and be <= 32,768", cast(ulong)n);
+                specifier.vector_size = cast(uint) n;
+                nextToken();
+            }
+            else
+            {
+                error("value for vector_size expected, not `%s`", token.toChars());
+                nextToken();
+            }
+            check(TOK.rightParenthesis);
         }
         else
         {

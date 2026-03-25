@@ -10003,8 +10003,6 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
         {
             outerCd.alignsize = target.ptrsize;
             outerCd.structsize = target.ptrsize;      // allow room for __vptr
-            if (outerCd.hasMonitor())
-                outerCd.structsize += target.ptrsize; // allow room for __monitor
         }
 
         //printf("finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);

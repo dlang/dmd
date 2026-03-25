@@ -66,6 +66,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t varregm = 0;
     reg_t varreg;
     targ_int postinc;
+    opcode_t IopSave;
 
     elem* e1 = e.E1;
     elem* e2 = e.E2;
@@ -180,8 +181,8 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             regvar = true;
             retregs = varregm;
             reg = varreg;       // evaluate directly in target register
-            if (tysize(e1.Ety) == REGSIZE &&
-                tysize(e1.Vsym.Stype.Tty) == 2 * REGSIZE)
+            if (tysize(e1.Ety) * 2 ==
+                tysize(e1.Vsym.Stype.Tty))
             {
                 if (e1.Voffset)
                     retregs &= INSTR.MSW;
@@ -225,14 +226,16 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     getregs(cdb,varregm);
 
     reg = findreg(retregs & (isPair ? INSTR.LSW : allregs));
-    storeToEA(cs,reg,sz / 2);
+    IopSave = cs.Iop;
+    storeToEA(cs,reg,isPair ? sz / 2 : sz);
     cdb.gen(&cs);
     if (isPair)
     {
         // do the MSW
+        cs.Iop = IopSave;
         reg_t mswreg = findreg(retregs & INSTR.MSW);
         assert(cs.index == NOREG);  // BUG AArch64 cannot add the '8' offset
-        assert(cs.base != NOREG);
+        //assert(cs.base != NOREG);
         cs.IEV1.Voffset = sz / 2;
         storeToEA(cs, mswreg, sz / 2);
         cdb.gen(&cs);
@@ -2200,7 +2203,6 @@ void cdpopcnt(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t vregs = INSTR.FLOATREGS;     // possible floating point registers
     reg_t Vx = allocreg(cdb, vregs, TYdouble);
 
-    Vx &= 31;                                           // to AArch64 register number
     cdb.gen1(INSTR.fmov_float_gen(1,1,0,7,R1,Vx));      // FMOV Dx,X1
     cdb.gen1(INSTR.cnt_advsimd(0,0,Vx,Vx));             // CNT  Vx.8b,Vx.8b
     cdb.gen1(INSTR.addv_advsimd(0,0,Vx,Vx));            // ADDV Bx,Vx.8b
