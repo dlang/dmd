@@ -206,3 +206,19 @@ typedef struct {} __SVFloat64_t;
 #if __APPLE__
 #undef __SIZEOF_INT128__
 #endif
+
+#if __ANDROID__
+#undef __SIZEOF_INT128__
+#define __GNUC_VA_LIST
+#define _VA_LIST
+#define __builtin_va_list va_list
+#define __gnuc_va_list va_list
+#define BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD
+#define __alignof__(x) _Alignof(x)
+#define __builtin_memmove(a,b,c) memmove(a,b,c)
+#define __builtin_memset(a,b,c) memset(a,b,c)
+#define __builtin_ffs(x) ffs(x)
+#define __builtin_ffsl(x) ffsl(x)
+#define __builtin_ffsll(x) ffsll(x)
+#define __sync_synchronize()
+#endif
