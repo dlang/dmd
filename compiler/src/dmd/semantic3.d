@@ -975,7 +975,20 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                         if (funcdecl.vresult)
                         {
-                            Scope* scret = rs.fesFunc ? rs.fesFunc._scope : sc2;
+                            Scope* scret = sc2;
+
+                            if (rs.fesFunc)
+                            {
+                                // Create a scope with foreach body being `.parent`
+                                // and `funcdecl` as `.func`. So the return value
+                                // is aware of closure access, but picks up
+                                // attributes and instantiates templated copy/move
+                                // ctors in the context of `funcdecl`.
+                                // BUG: remove this fragile hack
+                                scret = rs.fesFunc._scope.push();
+                                scret.parent = rs.fesFunc;
+                                scret.func = funcdecl;
+                            }
 
                             // Create: return (vresult = exp, vresult);
                             exp = new ConstructExp(rs.loc, funcdecl.vresult, exp);
