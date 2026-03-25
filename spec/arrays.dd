@@ -32,6 +32,10 @@ int[3] s;
         from the initializer.
         )
 
+        $(P If type inference is used (e.g. with $(D auto)), the $(D $) can be used
+        to infer the dimension while the element type is inferred from the initializer.
+        )
+
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[$] a = [1, 2, 3];
@@ -39,6 +43,12 @@ static assert(is(typeof(a) == int[3]));
 
 int[$][$] m = [[1, 2, 3], [4, 5, 6]];
 static assert(is(typeof(m) == int[3][2]));
+
+auto[$] b = [1, 2, 3];
+static assert(is(typeof(b) == int[3]));
+
+auto[$][$] c = [[1, 2], [3, 4]];
+static assert(is(typeof(c) == int[2][2]));
 ---------
 )
 
