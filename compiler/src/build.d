@@ -1592,6 +1592,7 @@ auto sourceFiles()
             visitor/strict.d visitor/transitive.d
             cparse.d
             dfa/entry.d dfa/utils.d dfa/fast/structure.d dfa/fast/analysis.d dfa/fast/report.d dfa/fast/expression.d dfa/fast/statement.d
+            linter.d
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d dt.d el.d global.d

@@ -76,6 +76,7 @@ import dmd.targetcompiler;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.linter;
 
 version (IN_GCC) { /* Not using Fast DFA */ }
 else version = FastDFA;
@@ -93,61 +94,6 @@ void semantic3(Dsymbol dsym, Scope* sc)
 {
     scope v = new Semantic3Visitor(sc);
     dsym.accept(v);
-}
-
-/***************************************
- * Checks if a special method should be marked as `const` and emits a lint warning.
- */
-private void lintConstSpecial(FuncDeclaration fd, bool isKnownStructMember = false)
-{
-    if (!fd || !fd._scope || !(fd._scope.lintFlags & LintFlags.constSpecial))
-        return;
-
-    if (fd.isGenerated() || (fd.storage_class & STC.const_) || fd.type.isConst())
-        return;
-
-    if (!isKnownStructMember)
-    {
-        if (fd.ident != Id.opEquals && fd.ident != Id.opCmp &&
-            fd.ident != Id.tohash && fd.ident != Id.tostring)
-            return;
-
-        if (!fd.toParent2() || !fd.toParent2().isStructDeclaration())
-            return;
-    }
-
-    import dmd.errors : lint;
-
-    lint(fd.loc, "constSpecial".ptr, "special method `%s` should be marked as `const`".ptr, fd.ident ? fd.ident.toChars() : fd.toChars());
-}
-
-/***************************************
- * Checks for unused parameters in a function and emits a lint warning.
- */
-private void lintUnusedParams(FuncDeclaration funcdecl)
-{
-    if (!funcdecl || !funcdecl._scope || !(funcdecl._scope.lintFlags & LintFlags.unusedParams))
-        return;
-
-    if (!funcdecl.fbody || !funcdecl.parameters)
-        return;
-
-    const bool isRequiredByInterface = funcdecl.isOverride() ||
-                                       (funcdecl.isVirtual() && !funcdecl.isFinal());
-
-    if (isRequiredByInterface)
-        return;
-
-    foreach (v; *funcdecl.parameters)
-    {
-        bool isIgnoredName = v.ident && v.ident.toChars()[0] == '_';
-
-        if (v.ident && !v.wasUsed && !(v.storage_class & STC.temp) && !isIgnoredName)
-        {
-            import dmd.errors : lint;
-            lint(v.loc, "unusedParams".ptr, "function parameter `%s` is never used".ptr, v.ident.toChars());
-        }
-    }
 }
 
 private extern(C++) final class Semantic3Visitor : Visitor
@@ -350,8 +296,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         funcdecl.semanticRun = PASS.semantic3;
         funcdecl.hasSemantic3Errors = false;
         funcdecl.saferD = sc.previews.safer && !sc.inCfile;
-
-        lintConstSpecial(funcdecl);
 
         if (!funcdecl.type || funcdecl.type.ty != Tfunction)
             return;
@@ -1498,7 +1442,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
             }
         }
 
-        lintUnusedParams(funcdecl);
+        if (global.errors == oldErrors && funcdecl.fbody && funcdecl.type.ty != Terror)
+        {
+            lintFunction(funcdecl);
+        }
 
         /* If this function had instantiated with gagging, error reproduction will be
          * done by TemplateInstance::semantic.
@@ -1839,8 +1786,6 @@ void semanticTypeInfoMembers(StructDeclaration sd)
     {
         if (fd && fd._scope && fd.semanticRun < PASS.semantic3done)
         {
-            lintConstSpecial(fd, true);
-
             const errors = global.startGagging();
             fd.semantic3(fd._scope);
             if (global.endGagging(errors))
@@ -1856,7 +1801,6 @@ void semanticTypeInfoMembers(StructDeclaration sd)
         ftostr._scope &&
         ftostr.semanticRun < PASS.semantic3done)
     {
-        lintConstSpecial(ftostr, true);
         ftostr.semantic3(ftostr._scope);
     }
 
@@ -1864,7 +1808,6 @@ void semanticTypeInfoMembers(StructDeclaration sd)
         sd.xhash._scope &&
         sd.xhash.semanticRun < PASS.semantic3done)
     {
-        lintConstSpecial(sd.xhash, true);
         sd.xhash.semantic3(sd.xhash._scope);
     }
 
