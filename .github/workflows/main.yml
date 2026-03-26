@@ -2,8 +2,12 @@
 
 name: Main
 on:
-  - pull_request # without merge conflicts
-  - push # branch or tag
+  pull_request: # without merge conflicts
+    paths-ignore:
+      - 'spec/**'
+  push: # branch or tag
+    paths-ignore:
+      - 'spec/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

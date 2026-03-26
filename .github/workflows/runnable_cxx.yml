@@ -31,12 +31,16 @@ on:
     branches:
       - master
       - stable
+    paths-ignore:
+      - 'spec/**'
   push:
     branches:
       - master
       - stable
       # Use this branch name in your fork to test changes
       - github-actions
+    paths-ignore:
+      - 'spec/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
