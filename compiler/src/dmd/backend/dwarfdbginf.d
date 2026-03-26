@@ -114,10 +114,10 @@ static if (1)
          * g++ on FreeBSD does not generate mixed frames, while g++ on OSX and Linux does.
          */
         assert(!(cgstate.usednteh & ~(EHtry | EHcleanup)));
-        
+
         if (config.unwindTables)
             return true;
-        
+
         if (funcsym_p.Sfunc.Fflags3 & Feh_none)
         {
             return (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) != 0;
