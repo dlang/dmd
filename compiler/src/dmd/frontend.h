@@ -7103,6 +7103,7 @@ public:
         parent(parent),
         slabel(slabel),
         switchStatement(switchStatement),
+        switchCases(switchCases),
         tryBody(tryBody),
         tryFinally(tryFinally),
         scopeGuard(scopeGuard),
