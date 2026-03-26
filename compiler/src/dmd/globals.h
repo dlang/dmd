@@ -202,6 +202,7 @@ struct Param
     d_bool useExceptions; // support exception handling
     d_bool useGC;         // support features that require the D runtime GC
     d_bool betterC;       // be a "better C" compiler; no dependency on D runtime
+    d_bool unwindTables;  // emit unwind tables for stack tracing (-gu)
     d_bool addMain;       // add a default main() function
     d_bool allInst;       // generate code for all template instantiations
     d_bool bitfields;         // support C style bit fields
