@@ -642,6 +642,7 @@ void prolog(ref CGstate cg, ref CodeBuilder cdb)
          * so need frame if function can possibly throw
          */
         !(config.exe == EX_WIN32) && !(funcsym_p.Sfunc.Fflags3 & Fnothrow) ||
+        (config.unwindTables && config.ehmethod == EHmethod.EH_DWARF) ||
         cg.accessedTLS ||
         sv64 ||
         (0 && cg.calledafunc && cg.AArch64)
