@@ -1116,7 +1116,7 @@ string mangleSpecialName(Dsymbol sym)
  */
 bool mangleOperator(ref OutBuffer buf, TemplateInstance ti, ref const(char)[] symName, ref int firstTemplateArg)
 {
-    auto whichOp = isCppOperator(ti.name);
+    auto whichOp = isCppOperator(ti.tempdecl.ident);
     final switch (whichOp)
     {
     case CppOperator.Unknown:
