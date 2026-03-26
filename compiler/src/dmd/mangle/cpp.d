@@ -1234,7 +1234,7 @@ private final class CppMangleVisitor : Visitor
         string symName;
 
         // test for special symbols
-        CppOperator whichOp = isCppOperator(ti.name);
+        CppOperator whichOp = isCppOperator(ti.tempdecl.ident);
         final switch (whichOp)
         {
         case CppOperator.Unknown:
