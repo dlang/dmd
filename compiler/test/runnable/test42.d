@@ -1323,6 +1323,9 @@ void test79()
     assert(sc.__monitor == p);
 }
 
+// https://github.com/dlang/dmd/issues/22815
+__gshared Object o = new Object();
+
 /***************************************************/
 
 class Test80{
