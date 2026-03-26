@@ -112,15 +112,22 @@ $(GNAME MemberFunctionAttribute):
 )
     $(P *FunctionAttributes* come after function parameters in a $(GLINK FuncDeclaration)
     or $(RELATIVE_LINK2 function-pointer-attributes, function pointer), unlike
-    $(GLINK2 attribute, Attributes) which precede a declaration.)
+    $(GLINK2 attribute, Attribute)s which precede a declaration.)
 
     $(P A $(DDSUBLINK spec/struct, constructor-attributes, constructor),
     $(DDSUBLINK spec/struct, member-functions, member function),
     $(DDSUBLINK spec/type, delegates, delegate) or
     $(RELATIVE_LINK2 nested-qualifiers, nested function) can have *MemberFunctionAttributes*,
-    which extends *FunctionAttributes*. Note that some function/method attributes are also
-    declaration *Attributes* - see $(DDSUBLINK spec/declaration, methods-returning-qualified,
-    Methods Returning a Qualified Type).)
+    which extends *FunctionAttributes*.)
+
+    - Many function/method attributes are valid $(DDSUBLINK spec/attribute, Attribute,
+      declaration attributes). Note that the different attribute positions have different
+      meanings for a $(GLINK2 type, TypeCtor) attribute - see
+      $(DDSUBLINK spec/declaration, methods-returning-qualified,
+      Methods Returning a Qualified Type).
+    - Some function attributes $(RELATIVE_LINK2 function-attribute-inference, can be inferred).
+    - Some function attribute checks are turned off inside a
+      $(DDSUBLINK spec/version, DebugStatement, `debug` statement).
 
     $(P See also:)
 
@@ -4422,10 +4429,13 @@ $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
         * $(RELATIVE_LINK2 nothrow-functions, $(D nothrow))
         * $(RELATIVE_LINK2 safe-functions, $(D @safe))
         * $(RELATIVE_LINK2 nogc-functions, $(D @nogc))
-        * $(RELATIVE_LINK2 return-ref-parameters, return ref parameters)
-        * $(RELATIVE_LINK2 scope-parameters, scope parameters)
-        * $(RELATIVE_LINK2 return-scope-parameters, return scope parameters)
-        * $(RELATIVE_LINK2 ref-return-scope-parameters, ref return scope parameters)
+
+        $(P Likewise, the following parameter attributes will be inferred:)
+
+        * $(RELATIVE_LINK2 return-ref-parameters, `return ref`)
+        * $(RELATIVE_LINK2 scope-parameters, `scope`)
+        * $(RELATIVE_LINK2 return-scope-parameters, `return scope`)
+        * $(RELATIVE_LINK2 ref-return-scope-parameters, `ref return scope`)
 
         $(P Attribute inference is not done for other functions, even if the function
         body is present.
