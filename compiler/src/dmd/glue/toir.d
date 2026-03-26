@@ -107,7 +107,7 @@ struct IRState
         this.target = target;
         this.eSink = eSink;
         bool exceptionsEnabled = params.useExceptions &&
-            (ClassDeclaration.throwable || params.unwindTables);
+            (ClassDeclaration.throwable || driverParams.unwindTables);
         mayThrow = exceptionsEnabled && !(fd && fd.hasNoEH);
         this.Cfile = m.filetype == FileType.c;
     }

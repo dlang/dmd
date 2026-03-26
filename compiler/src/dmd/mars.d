@@ -988,7 +988,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         else if (arg == "-gu")  // https://dlang.org/dmd.html#switch-gu
         {
             driverParams.unwindTables = true;
-            global.params.unwindTables = true;
         }
         else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
             driverParams.stackstomp = true;
