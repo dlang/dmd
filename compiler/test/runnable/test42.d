@@ -1317,6 +1317,9 @@ void test79()
     }
 }
 
+// https://github.com/dlang/dmd/issues/22815
+__gshared Object o = new Object();
+
 /***************************************************/
 
 class Test80{

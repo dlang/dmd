@@ -737,7 +737,7 @@ void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
  */
 
 private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
-        Expressions* elements, size_t firstFieldIndex,
+        Expressions* elements, ptrdiff_t firstFieldIndex,
         ClassDeclaration concreteType,
         BaseClass*** ppb)
 {
@@ -859,9 +859,14 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         offset = 0;
     // `offset` now is where the fields start
 
-    assert(!elements ||
-           firstFieldIndex <= elements.length &&
-           firstFieldIndex + ad.fields.length <= elements.length);
+    // __monitor is emitted separately (not from CTFE elements), so exclude it from the count.
+    // This applies to Object itself (the root class with no base class), not to interfaces.
+    const size_t monitorExcluded = (cd && !cd.isInterfaceDeclaration() && !cd.baseClass && cd.hasMonitor()) ? 1 : 0;
+    if (elements && firstFieldIndex >= 0)
+    {
+        assert(firstFieldIndex <= elements.length);
+        assert(firstFieldIndex + ad.fields.length - monitorExcluded <= elements.length);
+    }
 
     uint bitByteOffset = 0;     // byte offset of bit field
     uint bitOffset = 0;         // starting bit number
