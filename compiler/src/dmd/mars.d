@@ -985,7 +985,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         }
         else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
             driverParams.alwaysframe = true;
-        else if (arg == "-gu")  // generate unwind tables for stack tracing
+        else if (arg == "-gu")  // https://dlang.org/dmd.html#switch-gu
         {
             driverParams.unwindTables = true;
             global.params.unwindTables = true;
