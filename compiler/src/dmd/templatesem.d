@@ -939,7 +939,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
      * last find most specialized template from overload list/set.
      */
     if (!tempinst.findTempDecl(sc, null))
-        goto Lerror;
+        return Lerror();
 
     // Trace template argument semantic analysis as a sub-span of the template instance
     {
@@ -951,7 +951,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
             tiargs_ok = tempinst.semanticTiargs(sc);
         }
         if (!tiargs_ok)
-            goto Lerror;
+            return Lerror();
     }
 
     // Trace overload resolution (findBestMatch) as a sub-span of the template instance
@@ -964,12 +964,11 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
             match_ok = tempinst.findBestMatch(sc, argumentList);
         }
         if (!match_ok)
-            goto Lerror;
+            return Lerror();
     }
 
-    if (false)
+    void Lerror()
     {
-    Lerror:
         if (tempinst.gagged)
         {
             // https://issues.dlang.org/show_bug.cgi?id=13220
@@ -993,12 +992,12 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     if (tempdecl.ismixin)
     {
         .error(tempinst.loc, "%s `%s` mixin templates are not regular templates", tempinst.kind, tempinst.toPrettyChars);
-        goto Lerror;
+        return Lerror();
     }
 
     tempinst.hasNestedArgs(tempinst.tiargs, tempdecl.isstatic);
     if (tempinst.errors)
-        goto Lerror;
+        return Lerror();
 
     // Copy the tempdecl namespace (not the scope one)
     tempinst.cppnamespace = tempdecl.cppnamespace;
@@ -5923,7 +5922,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                             if (scx == p.sc)
                             {
                                 error(loc, "recursive template expansion while looking for `%s.%s`", ti.toChars(), tdx.toChars());
-                                goto Lerror;
+                                return Lerror();
                             }
                         }
                     }
@@ -5946,7 +5945,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 fd = resolveFuncCall(loc, sc, s, null, tthis, argumentList, FuncResolveFlag.quiet);
             }
             else
-                goto Lerror;
+                return Lerror();
 
             if (!fd)
                 return 0;
@@ -6001,7 +6000,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         for (size_t ovi = 0; f; f = f.overnext0, ovi++)
         {
             if (f.type.ty != Tfunction || f.errors)
-                goto Lerror;
+                return Lerror();
 
             /* This is a 'dummy' instance to evaluate constraint properly.
              */
@@ -6167,7 +6166,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         tthis_best = m.lastf.needThis() && !m.lastf.isCtorDeclaration() ? tthis : null;
 
         if (m.lastf.type.ty == Terror)
-            goto Lerror;
+            return Lerror();
         auto tf = m.lastf.type.isTypeFunction();
         if (callMatch(m.lastf, tf, tthis_best, argumentList, 0, null, sc) == MATCH.nomatch)
             goto Lnomatch;
