@@ -4981,7 +4981,7 @@ Package resolveIsPackage(Dsymbol sym)
  *  cex = the CastExp to lower
  *  sc = the current scope
  */
-private void lowerCastExp(CastExp cex, Scope* sc)
+package void lowerCastExp(CastExp cex, Scope* sc)
 {
     Type t1b = cex.e1.type.toBasetype();
     Type tob = cex.to.toBasetype();
@@ -8531,10 +8531,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 exp.type = tf.next;
                 auto casted_exp = exp.castTo(sc, t);
-                if (auto cex = lastComma(casted_exp).isCastExp())
-                {
-                    lowerCastExp(cex, sc);
-                }
                 result = Expression.combine(argprefix, casted_exp);
                 return;
             }
@@ -10946,11 +10942,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 ex = new CastExp(exp.loc, ex, exp.to);
                 ex.type = exp.to;
             }
-        }
-
-        if (auto cex = lastComma(ex).isCastExp())
-        {
-            lowerCastExp(cex, sc);
         }
 
         result = ex;
