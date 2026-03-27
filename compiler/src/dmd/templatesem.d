@@ -866,6 +866,19 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
 
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList argumentList)
 {
+    void Lerror()
+    {
+        if (tempinst.gagged)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=13220
+            // Roll back status for later semantic re-running
+            tempinst.semanticRun = PASS.initial;
+        }
+        else
+            tempinst.inst = tempinst;
+        tempinst.errors = true;
+        return;
+    }
     //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);
     version (none)
     {
@@ -965,20 +978,6 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         }
         if (!match_ok)
             return Lerror();
-    }
-
-    void Lerror()
-    {
-        if (tempinst.gagged)
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=13220
-            // Roll back status for later semantic re-running
-            tempinst.semanticRun = PASS.initial;
-        }
-        else
-            tempinst.inst = tempinst;
-        tempinst.errors = true;
-        return;
     }
     TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
     assert(tempdecl);
