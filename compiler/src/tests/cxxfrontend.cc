@@ -269,7 +269,7 @@ void test_semantic()
     /* Mini object.d source. Module::parse will add internal members also. */
     const char *buf =
         "module object;\n"
-        "class Object { void* __monitor; }\n"
+        "class Object { }\n"
         "class Throwable { }\n"
         "class Error : Throwable { this(immutable(char)[]); }";
 

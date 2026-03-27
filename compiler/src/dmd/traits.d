@@ -267,8 +267,6 @@ ulong getTypePointerBitmap(Loc loc, Type t, ref Array!(ulong) data, ErrorSink eS
                 visitTopLevelClass(t.sym.baseClass.type.isTypeClass());
             foreach (v; t.sym.fields)
             {
-                if (v.ident == Id.__monitor)
-                    continue; // __monitor is not GC-managed
                 offset = classoff + v.offset;
                 visit(v.type);
             }
@@ -1788,7 +1786,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 // Skip over internal members in __traits(allMembers)
                 if ((sm.isCtorDeclaration() && sm.ident != Id.ctor) ||
                     (sm.isDtorDeclaration() && sm.ident != Id.dtor) ||
-                    (sm.ident == Id.__monitor) ||
                     (sm.isPostBlitDeclaration() && sm.ident != Id.postblit) ||
                     sm.isInvariantDeclaration() ||
                     sm.isUnitTestDeclaration())

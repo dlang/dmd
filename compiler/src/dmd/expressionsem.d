@@ -9983,11 +9983,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (t1.ty == Tpointer)
                 t1 = t1.nextOf();
 
-            // __monitor is always void* regardless of shared - strip shared from the mod
-            auto t1mod = t1.mod;
-            if (exp.var.ident == Id.__monitor)
-                t1mod &= ~MODFlags.shared_;
-            exp.type = exp.type.addMod(t1mod);
+            exp.type = exp.type.addMod(t1.mod);
 
             // https://issues.dlang.org/show_bug.cgi?id=23109
             // Run semantic on the DotVarExp type

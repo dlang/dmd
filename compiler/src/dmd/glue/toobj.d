@@ -1253,8 +1253,7 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
     }
 
     // m_init[]
-    // Class instances always have at least a vtable pointer
-    assert(cd.structsize >= target.ptrsize || (cd.classKind == ClassKind.cpp && cd.structsize >= 4));
+    assert(cd.structsize >= 8 || (cd.classKind == ClassKind.cpp && cd.structsize >= 4));
     dtb.size(cd.structsize);           // size
     dtb.xoff(sinit, 0, TYnptr);         // initializer
 
@@ -1329,8 +1328,6 @@ Louter:
         foreach (vd; pc.fields)
         {
             //printf("vd = %s %s\n", vd.kind(), vd.toChars());
-            if (vd.ident == Id.__monitor)
-                continue;   // __monitor is not GC-managed
             if (vd.hasPointers())
             {
                 flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
