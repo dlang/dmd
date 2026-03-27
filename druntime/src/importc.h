@@ -218,6 +218,5 @@ typedef struct {} __SVFloat64_t;
 // https://android.googlesource.com/platform/bionic/+/master/libc/include/bits/ioctl.h
 #define BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD
 
-#define __alignof__(x) _Alignof(x)
 #define __sync_synchronize()
 #endif
