@@ -1315,12 +1315,6 @@ void test79()
 //        writeln(c.__monitor);
         assert(c.__monitor !is null);
     }
-
-    // __monitor on a shared object is still void*, not shared(void*)
-    shared C79 sc = new shared C79();
-    void* p = cast(void*) 0x1;
-    sc.__monitor = p;
-    assert(sc.__monitor == p);
 }
 
 /***************************************************/

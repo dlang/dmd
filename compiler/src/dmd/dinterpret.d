@@ -2867,11 +2867,8 @@ public:
             size_t totalFieldCount = 0;
             for (ClassDeclaration c = cd; c; c = c.baseClass)
                 totalFieldCount += c.fields.length;
-
-            totalFieldCount -= cd.hasMonitor(); // skip __monitor field
-
             auto elems = new Expressions(totalFieldCount);
-            ptrdiff_t fieldsSoFar = totalFieldCount;
+            size_t fieldsSoFar = totalFieldCount;
             for (ClassDeclaration c = cd; c; c = c.baseClass)
             {
                 fieldsSoFar -= c.fields.length;
@@ -2883,9 +2880,6 @@ public:
                         result = CTFEExp.cantexp;
                         return;
                     }
-                    if (fieldsSoFar + ptrdiff_t(i) < 0) // field -1 = __monitor which we skip
-                        break;
-
                     Expression m;
                     if (v._init)
                     {
