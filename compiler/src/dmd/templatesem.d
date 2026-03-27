@@ -877,7 +877,6 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         else
             tempinst.inst = tempinst;
         tempinst.errors = true;
-        return;
     }
     //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);
     version (none)
@@ -5921,7 +5920,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                             if (scx == p.sc)
                             {
                                 error(loc, "recursive template expansion while looking for `%s.%s`", ti.toChars(), tdx.toChars());
-                                return Lerror();
+                                goto Lerror;
                             }
                         }
                     }
@@ -5944,7 +5943,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 fd = resolveFuncCall(loc, sc, s, null, tthis, argumentList, FuncResolveFlag.quiet);
             }
             else
-                return Lerror();
+                goto Lerror;
 
             if (!fd)
                 return 0;
@@ -5999,7 +5998,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         for (size_t ovi = 0; f; f = f.overnext0, ovi++)
         {
             if (f.type.ty != Tfunction || f.errors)
-                return Lerror();
+                goto Lerror;
 
             /* This is a 'dummy' instance to evaluate constraint properly.
              */
@@ -6165,7 +6164,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         tthis_best = m.lastf.needThis() && !m.lastf.isCtorDeclaration() ? tthis : null;
 
         if (m.lastf.type.ty == Terror)
-            return Lerror();
+            goto Lerror;
         auto tf = m.lastf.type.isTypeFunction();
         if (callMatch(m.lastf, tf, tthis_best, argumentList, 0, null, sc) == MATCH.nomatch)
             goto Lnomatch;
