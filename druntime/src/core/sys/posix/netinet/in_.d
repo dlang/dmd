@@ -85,18 +85,31 @@ version (CRuntime_Glibc)
     //{
     //    in_addr_t s_addr;
     //}
-
-    private enum __SOCK_SIZE__ = 16;
-
-    struct sockaddr_in
+    version (linux)
     {
-        sa_family_t sin_family;
-        in_port_t   sin_port;
-        in_addr     sin_addr;
+        private enum __SOCK_SIZE__ = 16;
 
-        /* Pad to size of `struct sockaddr'. */
-        ubyte[__SOCK_SIZE__ - sa_family_t.sizeof -
-              in_port_t.sizeof - in_addr.sizeof] __pad;
+        struct sockaddr_in
+        {
+            sa_family_t sin_family;
+            in_port_t   sin_port;
+            in_addr     sin_addr;
+
+            /* Pad to size of `struct sockaddr'. */
+            ubyte[__SOCK_SIZE__ - sa_family_t.sizeof -
+                  in_port_t.sizeof - in_addr.sizeof] __pad;
+        }
+    }
+    else version (Hurd)
+    {
+        struct sockaddr_in
+        {
+            ubyte       sin_len;
+            sa_family_t sin_family;
+            in_port_t   sin_port;
+            in_addr     sin_addr;
+            ubyte[8]    sin_zero;
+        }
     }
 
     enum
@@ -513,13 +526,28 @@ version (CRuntime_Glibc)
         }
     }
 
-    struct sockaddr_in6
+    version (linux)
     {
-        sa_family_t sin6_family;
-        in_port_t   sin6_port;
-        uint32_t    sin6_flowinfo;
-        in6_addr    sin6_addr;
-        uint32_t    sin6_scope_id;
+        struct sockaddr_in6
+        {
+            ushort      sin6_family;
+            uint16_t    sin6_port;
+            uint32_t    sin6_flowinfo;
+            in6_addr    sin6_addr;
+            uint32_t    sin6_scope_id;
+        }
+    }
+    else version (Hurd)
+    {
+        struct sockaddr_in6
+        {
+            uint8_t     sin6_len;
+            sa_family_t sin6_family;
+            uint16_t    sin6_port;
+            uint32_t    sin6_flowinfo;
+            in6_addr    sin6_addr;
+            uint32_t    sin6_scope_id;
+        }
     }
 
     extern __gshared immutable in6_addr in6addr_any;
