@@ -76,7 +76,7 @@ endif
 
 # build with shared library support
 # (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
-SHARED=$(if $(findstring $(OS),linux freebsd dragonflybsd),1,)
+SHARED=$(if $(findstring $(OS),linux freebsd dragonflybsd hurd),1,)
 
 LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
 

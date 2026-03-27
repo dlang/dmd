@@ -19,19 +19,36 @@ nothrow:
 
 version (CRuntime_Glibc)
 {
-    private enum utsNameLength = 65;
-
-    struct utsname
+    version(linux)
     {
-        char[utsNameLength] sysname = 0;
-        char[utsNameLength] nodename = 0;
-        char[utsNameLength] release = 0;
-        char[utsNameLength] version_ = 0;
-        // TODO Deprecate after version_ has been in an official release.
-        alias update = version_;
-        char[utsNameLength] machine = 0;
+        private enum utsNameLength = 65;
+        struct utsname
+        {
+            char[utsNameLength] sysname = 0;
+            char[utsNameLength] nodename = 0;
+            char[utsNameLength] release = 0;
+            char[utsNameLength] version_ = 0;
+            // TODO Deprecate after version_ has been in an official release.
+            alias update = version_;
+            char[utsNameLength] machine = 0;
 
-        char[utsNameLength] __domainname = 0;
+            char[utsNameLength] __domainname = 0;
+        }
+    }
+
+    else version(Hurd)
+    {
+        private enum utsNameLength = 1024;
+        struct utsname
+        {
+            char[utsNameLength] sysname = 0;
+            char[utsNameLength] nodename = 0;
+            char[utsNameLength] release = 0;
+            char[utsNameLength] version_ = 0;
+            // TODO Deprecate after version_ has been in an official release.
+            alias update = version_;
+            char[utsNameLength] machine = 0;
+        }
     }
 
     int uname(utsname* __name);
