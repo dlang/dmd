@@ -170,6 +170,14 @@ else version (DragonFlyBSD)
 else version (Solaris)
 {
 }
+else version (Hurd)
+{
+    enum POSIX_MADV_NORMAL      = 0;
+    enum POSIX_MADV_RANDOM      = 1;
+    enum POSIX_MADV_SEQUENTIAL  = 2;
+    enum POSIX_MADV_WILLNEED    = 3;
+    enum POSIX_MADV_DONTNEED    = 4;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -233,6 +241,13 @@ else version (Solaris)
     enum PROT_READ = 0x01;
     enum PROT_WRITE = 0x02;
     enum PROT_EXEC = 0x04;
+}
+else version (Hurd)
+{
+    enum PROT_NONE      = 0x00;
+    enum PROT_READ      = 0x04;
+    enum PROT_WRITE     = 0x02;
+    enum PROT_EXEC      = 0x01;
 }
 else
 {
@@ -475,6 +490,19 @@ else version (Solaris)
     enum MS_ASYNC = 0x0001;
     enum MS_INVALIDATE  = 0x0002;
 }
+ else version (Hurd)
+{
+    enum MAP_SHARED     = 0x0010;
+    enum MAP_PRIVATE    = 0x0000;
+    enum MAP_FIXED      = 0x0100;
+    enum MAP_ANON       = 0x0002;
+
+    enum MAP_FAILED     = cast(void*)-1;
+
+    enum MS_ASYNC       = 1;
+    enum MS_INVALIDATE  = 0;
+    enum MS_SYNC        = 2;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -590,6 +618,11 @@ else version (Solaris)
 {
     enum MCL_CURRENT = 0x0001;
     enum MCL_FUTURE = 0x0002;
+}
+else version (Hurd)
+{
+    enum MCL_CURRENT    = 0x0001;
+    enum MCL_FUTURE     = 0x0002;
 }
 else
 {

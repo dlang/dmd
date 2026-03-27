@@ -328,6 +328,32 @@ else version (Solaris)
     alias time_t = c_long;
     alias uid_t = uint;
 }
+else version (Hurd)
+{
+    static if ( __USE_FILE_OFFSET64 )
+    {
+        alias long      blkcnt_t;
+        alias ulong     ino_t;
+        alias long      off_t;
+    }
+    else
+    {
+        alias slong_t   blkcnt_t;
+        alias ulong_t   ino_t;
+        alias slong_t   off_t;
+    }
+    alias slong_t   blksize_t;
+    alias ulong_t   dev_t;
+    alias uint      gid_t;
+    alias uint      mode_t;
+    alias ulong_t   nlink_t;
+    alias int       pid_t;
+    //size_t (defined in core.stdc.stddef)
+    alias c_long    ssize_t;
+    alias uint      uid_t;
+
+    alias slong_t   time_t;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -439,6 +465,24 @@ else version (Solaris)
     alias zoneid_t = id_t;
     alias ctid_t = id_t;
 }
+else version (Hurd)
+{
+    static if ( __USE_FILE_OFFSET64 )
+    {
+        alias ulong     fsblkcnt_t;
+        alias ulong     fsfilcnt_t;
+    }
+    else
+    {
+        alias ulong_t   fsblkcnt_t;
+        alias ulong_t   fsfilcnt_t;
+    }
+    alias slong_t   clock_t;
+    alias uint      id_t;
+    alias int       key_t;
+    alias slong_t   suseconds_t;
+    alias uint      useconds_t;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -462,6 +506,8 @@ pthread_t
 
 version (CRuntime_Glibc)
 {
+  version (linux)
+  {
     version (X86)
     {
         enum __SIZEOF_PTHREAD_ATTR_T = 36;
@@ -743,6 +789,88 @@ version (CRuntime_Glibc)
     }
 
     alias pthread_t = c_ulong;
+  }
+  else version (Hurd)
+  {
+      import core.sys.hurd.sys.types;
+      import core.sys.posix.time: clockid_t;
+
+      struct pthread_attr_t
+      {
+          __sched_param schedparam;
+          void* stackaddr;
+          size_t __stacksize;
+          size_t __guardsize;
+          __pthread_detachstate __detachstate;
+          __pthread_inheritsched __inheritsched;
+          __pthread_contentionscope __contentionscope;
+          int __schedpolicy;
+      }
+
+      struct pthread_cond_t
+      {
+          pthread_spinlock_t __lock;
+          __pthread *__queue;
+          pthread_condattr_t *__attr;
+          uint __wrefs;
+          void *__data;
+      }
+
+      struct pthread_condattr_t
+      {
+          __pthread_process_shared __pshared;
+          clockid_t __clock;
+      }
+
+      alias int pthread_key_t;
+
+      struct pthread_mutex_t
+      {
+          uint __lock;
+          uint __owner_id;
+          uint __cnt;
+          int __shpid;
+          int __type;
+          int __flags;
+          union
+          {
+              uint[2] __reserved;
+              void *__pointer_aligned;
+          }
+      }
+
+      struct pthread_mutexattr_t
+      {
+          int __prioceiling;
+          __pthread_mutex_protocol __protocol;
+          __pthread_process_shared __pshared;
+          __pthread_mutex_type __mutex_type;
+      }
+
+      struct pthread_once_t
+      {
+          int __run;
+          pthread_spinlock_t __lock;
+      }
+
+      struct pthread_rwlock_t
+      {
+          pthread_spinlock_t __held;
+          pthread_spinlock_t __lock;
+          int __readers;
+          __pthread *__readerqueue;
+          __pthread *__writerqueue;
+          pthread_rwlockattr_t *__attr;
+          void *__data;
+      }
+
+      struct pthread_rwlockattr_t
+      {
+          __pthread_process_shared __pshared;
+      }
+
+      alias c_long pthread_t;
+  }
 }
 else version (CRuntime_Musl)
 {
@@ -1350,6 +1478,8 @@ pthread_barrierattr_t
 
 version (CRuntime_Glibc)
 {
+  version (linux)
+  {
     struct pthread_barrier_t
     {
         byte[__SIZEOF_PTHREAD_BARRIER_T] __size;
@@ -1361,6 +1491,24 @@ version (CRuntime_Glibc)
         byte[__SIZEOF_PTHREAD_BARRIERATTR_T] __size;
         int __align;
     }
+  }
+  else version (Hurd)
+  {
+      struct pthread_barrier_t
+      {
+          pthread_spinlock_t __lock;
+          __pthread *__queue;
+          uint __pending;
+          uint __count;
+          pthread_barrierattr_t *__attr;
+          void *__data;
+      }
+
+      struct pthread_barrierattr_t
+      {
+          __pthread_process_shared __pshared;
+      }
+  }
 }
 else version (FreeBSD)
 {

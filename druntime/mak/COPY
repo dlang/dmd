@@ -391,6 +391,16 @@ COPY=\
 	$(IMPDIR)\core\sys\solaris\sys\regset.d \
 	$(IMPDIR)\core\sys\solaris\sys\types.d \
 	\
+	$(IMPDIR)\core\sys\hurd\config.d \
+	$(IMPDIR)\core\sys\hurd\dlfcn.d \
+	$(IMPDIR)\core\sys\hurd\elf.d \
+	$(IMPDIR)\core\sys\hurd\execinfo.d \
+	$(IMPDIR)\core\sys\hurd\errno.d \
+	$(IMPDIR)\core\sys\hurd\link.d \
+	$(IMPDIR)\core\sys\hurd\sys\types.d \
+	$(IMPDIR)\core\sys\hurd\time.d \
+	$(IMPDIR)\core\sys\hurd\unistd.d \
+	\
 	$(IMPDIR)\core\sys\windows\accctrl.d \
 	$(IMPDIR)\core\sys\windows\aclapi.d \
 	$(IMPDIR)\core\sys\windows\aclui.d \

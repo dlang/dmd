@@ -831,6 +831,104 @@ else version (Solaris)
     enum B460800 = 22;
     enum B921600 = 23;
 }
+else version (Hurd)
+{
+    alias ubyte cc_t;
+    alias uint  speed_t;
+    alias uint  tcflag_t;
+
+    enum NCCS   = 32;
+
+    struct termios
+    {
+        tcflag_t   c_iflag;
+        tcflag_t   c_oflag;
+        tcflag_t   c_cflag;
+        tcflag_t   c_lflag;
+        cc_t       c_line;
+        cc_t[NCCS] c_cc;
+        speed_t    c_ispeed;
+        speed_t    c_ospeed;
+    }
+
+    enum VEOF       = 4;
+    enum VEOL       = 11;
+    enum VERASE     = 2;
+    enum VINTR      = 0;
+    enum VKILL      = 3;
+    enum VMIN       = 6;
+    enum VQUIT      = 1;
+    enum VSTART     = 8;
+    enum VSTOP      = 9;
+    enum VSUSP      = 10;
+    enum VTIME      = 5;
+
+    enum BRKINT     = 0x0000002; // 0000002
+    enum ICRNL      = 0x0000100; // 0000400
+    enum IGNBRK     = 0x0000001; // 0000001
+    enum IGNCR      = 0x0000080; // 0000200
+    enum IGNPAR     = 0x0000004; // 0000004
+    enum INLCR      = 0x0000040; // 0000100
+    enum INPCK      = 0x0000010; // 0000020
+    enum ISTRIP     = 0x0000020; // 0000040
+    enum IXOFF      = 0x0001000; // 0010000
+    enum IXON       = 0x0000400; // 0002000
+    enum PARMRK     = 0x0000008; // 0000010
+
+    enum OPOST      = 0x0000001; // 0000001
+
+    enum B0         = 0x0000000; // 0000000
+    enum B50        = 0x0000001; // 0000001
+    enum B75        = 0x0000002; // 0000002
+    enum B110       = 0x0000003; // 0000003
+    enum B134       = 0x0000004; // 0000004
+    enum B150       = 0x0000005; // 0000005
+    enum B200       = 0x0000006; // 0000006
+    enum B300       = 0x0000007; // 0000007
+    enum B600       = 0x0000008; // 0000010
+    enum B1200      = 0x0000009; // 0000011
+    enum B1800      = 0x000000A; // 0000012
+    enum B2400      = 0x000000B; // 0000013
+    enum B4800      = 0x000000C; // 0000014
+    enum B9600      = 0x000000D; // 0000015
+    enum B19200     = 0x000000E; // 0000016
+    enum B38400     = 0x000000F; // 0000017
+
+    enum CSIZE      = 0x0000030; // 0000060
+    enum   CS5      = 0x0000000; // 0000000
+    enum   CS6      = 0x0000010; // 0000020
+    enum   CS7      = 0x0000020; // 0000040
+    enum   CS8      = 0x0000030; // 0000060
+    enum CSTOPB     = 0x0000040; // 0000100
+    enum CREAD      = 0x0000080; // 0000200
+    enum PARENB     = 0x0000100; // 0000400
+    enum PARODD     = 0x0000200; // 0001000
+    enum HUPCL      = 0x0000400; // 0002000
+    enum CLOCAL     = 0x0000800; // 0004000
+
+    enum ECHO       = 0x0000008; // 0000010
+    enum ECHOE      = 0x0000010; // 0000020
+    enum ECHOK      = 0x0000020; // 0000040
+    enum ECHONL     = 0x0000040; // 0000100
+    enum ICANON     = 0x0000002; // 0000002
+    enum IEXTEN     = 0x0008000; // 0100000
+    enum ISIG       = 0x0000001; // 0000001
+    enum NOFLSH     = 0x0000080; // 0000200
+    enum TOSTOP     = 0x0000100; // 0000400
+
+    enum TCSANOW    = 0;
+    enum TCSADRAIN  = 1;
+    enum TCSAFLUSH  = 2;
+
+    enum TCIFLUSH   = 0;
+    enum TCOFLUSH   = 1;
+    enum TCIOFLUSH  = 2;
+
+    enum TCIOFF     = 2;
+    enum TCION      = 3;
+    enum TCOOFF     = 0;
+    enum TCOON      = 1;
+}
 
 /*
 speed_t cfgetispeed(const scope termios*);

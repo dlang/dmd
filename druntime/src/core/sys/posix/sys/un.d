@@ -104,3 +104,11 @@ else version (Solaris)
         byte[108]    sun_path;
     }
 }
+else version (Hurd)
+{
+    struct sockaddr_un
+    {
+        sa_family_t  sun_family;
+        byte[108]    sun_path;
+    }
+}

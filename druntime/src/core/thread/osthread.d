@@ -2315,6 +2315,14 @@ extern (C) void thread_init() @nogc nothrow
             enum SIGRTMIN = SIGUSR1;
             enum SIGRTMAX = 32;
         }
+        else version (Hurd)
+        {
+            // Hurd does not support SIGRTMIN or SIGRTMAX
+            // Use SIGUSR1 for SIGRTMIN, SIGUSR2 for SIGRTMIN + 1
+            // And use 32 for SIGRTMAX (32 is the max signal number on Hurd)
+            enum SIGRTMIN = SIGUSR1;
+            enum SIGRTMAX = 32;
+        }
         else
         {
             import core.sys.posix.signal : SIGRTMAX, SIGRTMIN;

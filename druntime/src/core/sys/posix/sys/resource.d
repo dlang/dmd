@@ -477,6 +477,84 @@ else version (Solaris)
         RLIMIT_AS     = 6,
     }
 }
+else version (Hurd)
+{
+    enum
+    {
+        PRIO_PROCESS = 0,
+        PRIO_PGRP    = 1,
+        PRIO_USER    = 2,
+    }
+
+    static if (__USE_FILE_OFFSET64)
+         alias ulong rlim_t;
+    else
+         alias c_ulong rlim_t;
+
+    static if (__USE_FILE_OFFSET64)
+        enum RLIM_INFINITY = 0xffffffffffffffffUL;
+    else
+        enum RLIM_INFINITY = cast(c_ulong)(~0UL);
+
+    enum RLIM_SAVED_MAX = RLIM_INFINITY;
+    enum RLIM_SAVED_CUR = RLIM_INFINITY;
+
+    enum
+    {
+        RUSAGE_SELF     =  0,
+        RUSAGE_CHILDREN = -1,
+        RUSAGE_THREAD = 1
+    }
+
+    struct rusage
+    {
+        timeval ru_utime;
+        timeval ru_stime;
+        c_long ru_maxrss;
+        c_long ru_ixrss;
+        c_long ru_idrss;
+        c_long ru_isrss;
+        c_long ru_minflt;
+        c_long ru_majflt;
+        c_long ru_nswap;
+        c_long ru_inblock;
+        c_long ru_oublock;
+        c_long ru_msgsnd;
+        c_long ru_msgrcv;
+        c_long ru_nsignals;
+        c_long ru_nvcsw;
+        c_long ru_nivcsw;
+        version (CRuntime_Musl)
+            c_long[16] __reserved;
+    }
+
+    version (MIPS_Any)
+    {
+        enum
+        {
+            RLIMIT_CORE   = 4,
+            RLIMIT_CPU    = 0,
+            RLIMIT_DATA   = 2,
+            RLIMIT_FSIZE  = 1,
+            RLIMIT_NOFILE = 5,
+            RLIMIT_STACK  = 3,
+            RLIMIT_AS     = 6,
+        }
+    }
+    else
+    {
+        enum
+        {
+            RLIMIT_CORE   = 4,
+            RLIMIT_CPU    = 0,
+            RLIMIT_DATA   = 2,
+            RLIMIT_FSIZE  = 1,
+            RLIMIT_NOFILE = 7,
+            RLIMIT_STACK  = 3,
+            RLIMIT_AS     = 9,
+        }
+    }
+}
 else
     static assert (false, "Unsupported platform");
 

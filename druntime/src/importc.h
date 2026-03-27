@@ -178,7 +178,7 @@ typedef unsigned long long __uint64_t;
 #endif
 
 #define _Float16 float
-#ifdef __linux__  // Microsoft won't allow the following macro
+#if defined(__linux__) || defined(__GNU__)  // Microsoft won't allow the following macro
 // Ubuntu's assert.h uses this
 #define __PRETTY_FUNCTION__ __func__
 
@@ -201,7 +201,7 @@ typedef struct {} __SVFloat32_t;
 typedef struct {} __SVFloat64_t;
 #endif
 
-#endif // __linux__
+#endif // __linux__ || __GNU__
 
 #if __APPLE__
 #undef __SIZEOF_INT128__
