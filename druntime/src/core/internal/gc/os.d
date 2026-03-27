@@ -95,6 +95,8 @@ else version (Posix)
         version = GCSignalsUnblock;
     version (Solaris)
         version = GCSignalsUnblock;
+    version (Hurd)
+        version = GCSignalsUnblock;
 
     //version = GC_Use_Alloc_MMap;
 }
