@@ -938,7 +938,36 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
      * then run semantic on each argument (place results in tiargs[]),
      * last find most specialized template from overload list/set.
      */
-    if (!tempinst.findTempDecl(sc, null) || !tempinst.semanticTiargs(sc) || !tempinst.findBestMatch(sc, argumentList))
+    if (!tempinst.findTempDecl(sc, null))
+        goto Lerror;
+
+    // Trace template argument semantic analysis as a sub-span of the template instance
+    {
+        bool tiargs_ok;
+        {
+            timeTraceBeginEvent(TimeTraceEventType.sema1TemplateArgSemantic);
+            scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateArgSemantic, tempinst,
+                () => tempinst.toPrettyChars().toDString());
+            tiargs_ok = tempinst.semanticTiargs(sc);
+        }
+        if (!tiargs_ok)
+            goto Lerror;
+    }
+
+    // Trace overload resolution (findBestMatch) as a sub-span of the template instance
+    {
+        bool match_ok;
+        {
+            timeTraceBeginEvent(TimeTraceEventType.sema1TemplateOverloadResolution);
+            scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateOverloadResolution, tempinst,
+                () => tempinst.toPrettyChars().toDString());
+            match_ok = tempinst.findBestMatch(sc, argumentList);
+        }
+        if (!match_ok)
+            goto Lerror;
+    }
+
+    if (false)
     {
     Lerror:
         if (tempinst.gagged)
@@ -1280,7 +1309,12 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     sc2.tinst = tempinst;
     sc2.minst = tempinst.minst;
     sc2.stc &= ~STC.deprecated_;
-    tempinst.tryExpandMembers(sc2);
+    {
+        timeTraceBeginEvent(TimeTraceEventType.sema1TemplateMembers);
+        tempinst.tryExpandMembers(sc2);
+        timeTraceEndEvent(TimeTraceEventType.sema1TemplateMembers, tempinst,
+            () => tempinst.toPrettyChars().toDString());
+    }
 
     tempinst.semanticRun = PASS.semanticdone;
 
@@ -1341,7 +1375,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
          * are forward referenced. Find a way to defer semantic()
          * on this template.
          */
+        timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstanceSema2);
         tempinst.semantic2(sc2);
+        timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstanceSema2, tempinst,
+            () => tempinst.toPrettyChars().toDString());
     }
     if (global.errors != errorsave)
         goto Laftersemantic;
@@ -1368,7 +1405,12 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         if (sc.isDeprecated() && isDRuntimeHook(tempinst.name))
             global.params.useDeprecated = DiagnosticReporting.off;
 
-        tempinst.trySemantic3(sc2);
+        {
+            timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstanceSema3);
+            tempinst.trySemantic3(sc2);
+            timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstanceSema3, tempinst,
+                () => tempinst.toPrettyChars().toDString());
+        }
 
         global.params.useDeprecated = saveUseDeprecated;
 

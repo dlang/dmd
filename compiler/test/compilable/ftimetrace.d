@@ -23,12 +23,17 @@ Sema1: Function fun, object.fun
 Sema1: Function id, object.id!int.id
 Sema1: Function uses, object.uses
 Sema1: Module object, object
+Sema1: Overload Resolution: id!int, id!int
+Sema1: Template Arg Semantic: id!int, id!int
 Sema1: Template Declaration id(T)(T t), object.id(T)(T t)
 Sema1: Template Instance id!int, object.id!int
+Sema1: Template Members: id!int, object.id!int
+Sema2: Template Instance: id!int, object.id!int
 Sema2: add, object.add
 Sema2: fun, object.fun
 Sema2: id, object.id!int.id
 Sema2: uses, object.uses
+Sema3: Template Instance: id!int, object.id!int
 Sema3: add, object.add
 Sema3: fun, object.fun
 Sema3: id, object.id!int.id
