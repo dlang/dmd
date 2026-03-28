@@ -1241,7 +1241,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoDeclaration d)
     {
         //printf("TypeInfoDeclaration.toDt() %s\n", toChars());
-        classFieldsToDt(Type.dtypeinfo, new Expressions(0), *dtb);
+        classFieldsToDt(Type.dtypeinfo, null, *dtb);
     }
 
     override void visit(TypeInfoConstDeclaration d)
