@@ -3415,11 +3415,12 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
     {
         TypeFunction tf = f.type.isTypeFunction();
         assert(tf);
-        const isVa_list = tf.parameterList.varargs == VarArg.none;
+        // safe/trusted va_list pragma(printf) is an error
+        assert(tf.parameterList.varargs != VarArg.none);
         const nparams = tf.parameterList.length;
-        const nargs = arguments ? arguments.length : 0;
-        assert(nparams && nargs); // should have been verified already
-        if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
+        // verified by pragma(printf) and argument matching already
+        assert(nparams && arguments && arguments.length);
+        if (auto se = (*arguments)[nparams - 1].isStringExp())
         {
             if (!isFormatSafe(se.peekString()))
             {
