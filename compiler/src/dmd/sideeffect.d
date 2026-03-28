@@ -264,9 +264,10 @@ bool discardValue(Expression e)
         {
             if (auto dve = ce.e1.isDotVarExp())
             {
+                import dmd.dcast : implicitConvTo;
                 auto lhs = dve.e1;
                 auto ts = lhs.type.isTypeStruct();
-                if (ts && !lhs.isLvalue() && !ts.sym.hasPointerField) // Don't disallow writing to data through a pointer field
+                if (ts && !lhs.isLvalue() && ts.constOf().implicitConvTo(ts)) // Don't disallow writing to data through a *mutable* pointer field
                 {
                     error(lhs.loc, "assignment to struct rvalue `%s` is discarded",
                         lhs.toChars());
