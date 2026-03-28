@@ -310,7 +310,7 @@ tym_t totym(Type tx)
         case Ttypeof:
         case Tmixin:
             //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
-            error(Loc.initial, "forward reference of `%s`", tx.toChars());
+            error(Loc.initial, "forward reference of `%s`", tx.toErrMsg());
             t = TYint;
             break;
 

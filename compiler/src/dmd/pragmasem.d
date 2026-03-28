@@ -208,7 +208,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
     }
     else if (!global.params.ignoreUnsupportedPragmas)
     {
-        error(pd.loc, "unrecognized `pragma(%s)`", pd.ident.toChars());
+        error(pd.loc, "unrecognized `pragma(%s)`", pd.ident.toErrMsg());
         return declarations();
     }
 
@@ -331,7 +331,7 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
     }
     else if (!global.params.ignoreUnsupportedPragmas)
     {
-        error(ps.loc, "unrecognized `pragma(%s)`", ps.ident.toChars());
+        error(ps.loc, "unrecognized `pragma(%s)`", ps.ident.toErrMsg());
         return false;
     }
 
@@ -339,7 +339,7 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
     {
         if (ps.ident == Id.msg || ps.ident == Id.startaddress)
         {
-            error(ps.loc, "`pragma(%s)` is missing a terminating `;`", ps.ident.toChars());
+            error(ps.loc, "`pragma(%s)` is missing a terminating `;`", ps.ident.toErrMsg());
             return false;
         }
         ps._body = ps._body.statementSemantic(sc);
@@ -378,7 +378,7 @@ package PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args)
         e = e.ctfeInterpret();
         e = e.toBoolean(sc);
         if (e.isErrorExp())
-            .error(loc, "pragma(`inline`, `true` or `false`) expected, not `%s`", (*args)[0].toChars());
+            .error(loc, "pragma(`inline`, `true` or `false`) expected, not `%s`", (*args)[0].toErrMsg());
         (*args)[0] = e;
     }
 
@@ -475,7 +475,7 @@ private bool pragmaStartAddressSemantic(Loc loc, Scope* sc, Expressions* args)
         Dsymbol sa = getDsymbol(e);
         if (!sa || !sa.isFuncDeclaration())
         {
-            .error(loc, "function name expected for start address, not `%s`", e.toChars());
+            .error(loc, "function name expected for start address, not `%s`", e.toErrMsg());
             return false;
         }
     }
@@ -571,14 +571,14 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
                     bool expectedString()
                     {
                         error(e.loc, "`string` expected for pragma mangle argument, not `%s` of type `%s`",
-                              e.toChars(), e.type.toChars());
+                              e.toErrMsg(), e.type.toErrMsg());
                         return false;
                     }
 
                     bool expectedType()
                     {
                         error(e.loc, "`class` or `struct` type expected for pragma mangle argument, not `%s` of type `%s`",
-                              e.toChars(), e.type.toChars());
+                              e.toErrMsg(), e.type.toErrMsg());
                         return false;
                     }
 

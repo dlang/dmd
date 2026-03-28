@@ -18,6 +18,7 @@ import dmd.astenums;
 import dmd.blockexit : BE, checkThrow;
 import dmd.dsymbol;
 import dmd.dsymbolsem : include, toAlias;
+import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
@@ -142,7 +143,7 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
                 auto e1 = ce.e1;
                 if (auto pe = e1.isPtrExp())   // print 'fp' if e1 is (*fp)
                     e1 = pe.e1;
-                eSink.error(ce.loc, "`%s` is not `nothrow`", e1.toChars());
+                eSink.error(ce.loc, "`%s` is not `nothrow`", e1.toErrMsg());
             }
             result |= CT.exception;
         }

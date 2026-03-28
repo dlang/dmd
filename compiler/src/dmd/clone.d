@@ -1732,7 +1732,7 @@ void needCopyOrMoveCtor(StructDeclaration sd, out bool hasCopyCtor, out bool has
 
     if (0 && fieldWithCpCtor && moveCtor)
     {
-        .error(sd.loc, "`struct %s` may not define a rvalue constructor and have fields with copy constructors", sd.toChars());
+        .error(sd.loc, "`struct %s` may not define a rvalue constructor and have fields with copy constructors", sd.toErrMsg());
         errorSupplemental(moveCtor.loc,"rvalue constructor defined here");
         errorSupplemental(fieldWithCpCtor.loc, "field with copy constructor defined here");
         return;

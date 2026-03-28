@@ -692,7 +692,7 @@ elem* toElem(Expression e, ref IRState irs)
         //printf("\tparent = '%s'\n", se.var.parent ? se.var.parent.toChars() : "null");
         if (se.op == EXP.variable && se.var.needThis())
         {
-            irs.eSink.error(se.loc, "need `this` to access member `%s`", se.toChars());
+            irs.eSink.error(se.loc, "need `this` to access member `%s`", se.toErrMsg());
             return el_long(TYsize_t, 0);
         }
 
@@ -1340,7 +1340,7 @@ elem* toElem(Expression e, ref IRState irs)
 
                 if (!cd.vthis)
                 {
-                    irs.eSink.error(ne.loc, "forward reference to `%s`", cd.toChars());
+                    irs.eSink.error(ne.loc, "forward reference to `%s`", cd.toErrMsg());
                 }
                 else
                 {
@@ -1515,7 +1515,7 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else
         {
-            irs.eSink.error(ne.loc, "internal compiler error: cannot new type `%s`\n", t.toChars());
+            irs.eSink.error(ne.loc, "internal compiler error: cannot new type `%s`\n", t.toErrMsg());
             assert(0);
         }
 
@@ -1939,7 +1939,7 @@ elem* toElem(Expression e, ref IRState irs)
          */
         if (!irs.params.useGC)
         {
-            irs.eSink.error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
+            irs.eSink.error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toErrMsg());
             return el_long(TYint, 0);
         }
 
@@ -3069,7 +3069,7 @@ elem* toElem(Expression e, ref IRState irs)
                 {
                     irs.eSink.error(ce.loc,
                         "appending to array in `%s` requires the GC which is not available with -betterC",
-                        ce.toChars());
+                        ce.toErrMsg());
                     return el_long(TYint, 0);
                 }
 
@@ -3324,13 +3324,13 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitType(TypeExp e)
     {
         //printf("TypeExp.toElem()\n");
-        irs.eSink.error(e.loc, "type `%s` is not an expression", e.toChars());
+        irs.eSink.error(e.loc, "type `%s` is not an expression", e.toErrMsg());
         return el_long(TYint, 0);
     }
 
     elem* visitScope(ScopeExp e)
     {
-        irs.eSink.error(e.loc, "`%s` is not an expression", e.sds.toChars());
+        irs.eSink.error(e.loc, "`%s` is not an expression", e.sds.toErrMsg());
         return el_long(TYint, 0);
     }
 
@@ -3343,7 +3343,7 @@ elem* toElem(Expression e, ref IRState irs)
         VarDeclaration v = dve.var.isVarDeclaration();
         if (!v)
         {
-            irs.eSink.error(dve.loc, "`%s` is not a field, but a %s", dve.var.toChars(), dve.var.kind());
+            irs.eSink.error(dve.loc, "`%s` is not a field, but a %s", dve.var.toErrMsg(), dve.var.kind());
             return el_long(TYint, 0);
         }
 
@@ -5374,7 +5374,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
                 //dump(0);
                 //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
                 // This error should really be pushed to the front end
-                irs.eSink.error(ce.loc, "e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
+                irs.eSink.error(ce.loc, "e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toErrMsg(), ce.e1.type.toErrMsg(), t.toErrMsg());
                 e = el_long(TYint, 0);
                 return e;
 
@@ -5516,7 +5516,7 @@ elem* callfunc(Loc loc,
         {
             Expression arg = (*arguments)[0];
             if (arg.op != EXP.int64)
-                irs.eSink.error(arg.loc, "simd operator must be an integer constant, not `%s`", arg.toChars());
+                irs.eSink.error(arg.loc, "simd operator must be an integer constant, not `%s`", arg.toErrMsg());
         }
 
         /* Convert arguments[] to elems[] in left-to-right order

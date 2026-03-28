@@ -771,7 +771,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         if (sc.scopesym && sc.scopesym.isAggregateDeclaration())
             .error(funcdecl.loc, "%s `%s` `static` member has no `this` to which `return` can apply", funcdecl.kind, funcdecl.toPrettyChars);
         else
-            error(funcdecl.loc, "top-level function `%s` has no `this` to which `return` can apply", funcdecl.toChars());
+            error(funcdecl.loc, "top-level function `%s` has no `this` to which `return` can apply", funcdecl.toErrMsg());
     }
 
     if (funcdecl.isAbstract() && !funcdecl.isVirtual())
@@ -807,15 +807,15 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
     {
         funcdecl.storage_class |= STC.abstract_;
         if (funcdecl.isCtorDeclaration() || funcdecl.isPostBlitDeclaration() || funcdecl.isDtorDeclaration() || funcdecl.isInvariantDeclaration() || funcdecl.isNewDeclaration() || funcdecl.isDelete())
-            .error(funcdecl.loc, "%s `%s` constructors, destructors, postblits, invariants, new and delete functions are not allowed in interface `%s`", funcdecl.kind, funcdecl.toPrettyChars, id.toChars());
+            .error(funcdecl.loc, "%s `%s` constructors, destructors, postblits, invariants, new and delete functions are not allowed in interface `%s`", funcdecl.kind, funcdecl.toPrettyChars, id.toErrMsg());
         if (funcdecl.fbody && funcdecl.isVirtual())
-            .error(funcdecl.loc, "%s `%s` function body only allowed in `final` functions in interface `%s`", funcdecl.kind, funcdecl.toPrettyChars, id.toChars());
+            .error(funcdecl.loc, "%s `%s` function body only allowed in `final` functions in interface `%s`", funcdecl.kind, funcdecl.toPrettyChars, id.toErrMsg());
     }
 
     if (UnionDeclaration ud = parent.isUnionDeclaration())
     {
         if (funcdecl.isPostBlitDeclaration() || funcdecl.isDtorDeclaration() || funcdecl.isInvariantDeclaration())
-            .error(funcdecl.loc, "%s `%s` destructors, postblits and invariants are not allowed in union `%s`", funcdecl.kind, funcdecl.toPrettyChars, ud.toChars());
+            .error(funcdecl.loc, "%s `%s` destructors, postblits and invariants are not allowed in union `%s`", funcdecl.kind, funcdecl.toPrettyChars, ud.toErrMsg());
     }
 
     if (StructDeclaration sd = parent.isStructDeclaration())
@@ -873,7 +873,7 @@ Ldone:
             // If it's a member template
             if (ClassDeclaration cd = ti.tempdecl.isClassMember())
             {
-                .error(funcdecl.loc, "%s `%s` cannot use template to add virtual function to class `%s`", funcdecl.kind, funcdecl.toPrettyChars, cd.toChars());
+                .error(funcdecl.loc, "%s `%s` cannot use template to add virtual function to class `%s`", funcdecl.kind, funcdecl.toPrettyChars, cd.toErrMsg());
             }
         }
     }
@@ -1113,7 +1113,7 @@ private int classFuncSemantic(ClassDeclaration cd, FuncDeclaration funcdecl,
                 /* the derived class cd doesn't have its vtbl[] allocated yet.
                  * https://issues.dlang.org/show_bug.cgi?id=21008
                  */
-                .error(funcdecl.loc, "%s `%s` circular reference to class `%s`", funcdecl.kind, funcdecl.toPrettyChars, cd.toChars());
+                .error(funcdecl.loc, "%s `%s` circular reference to class `%s`", funcdecl.kind, funcdecl.toPrettyChars, cd.toErrMsg());
                 funcdecl.errors = true;
                 return 2;
             }
@@ -1307,7 +1307,7 @@ Linterfaces:
                         {
                             if (!funcdecl.tintro.nextOf().equals(ti.nextOf()) && !funcdecl.tintro.nextOf().isBaseOf(ti.nextOf(), null) && !ti.nextOf().isBaseOf(funcdecl.tintro.nextOf(), null))
                             {
-                                .error(funcdecl.loc, "%s `%s` incompatible covariant types `%s` and `%s`", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.tintro.toChars(), ti.toChars());
+                                .error(funcdecl.loc, "%s `%s` incompatible covariant types `%s` and `%s`", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.tintro.toErrMsg(), ti.toErrMsg());
                             }
                         }
                         else
@@ -1359,7 +1359,7 @@ Linterfaces:
                 if (fd.errors)
                 {
                     error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
-                        funcdecl.toChars(), fd.toPrettyChars());
+                        funcdecl.toErrMsg(), fd.toPrettyChars());
                     errorSupplemental(fd.loc, "Function `%s` contains errors in its declaration, therefore it cannot be correctly overridden",
                         fd.toPrettyChars());
                 }
@@ -1470,7 +1470,7 @@ L2:
                 {
                     f2 = f2.overloadExactMatch(funcdecl.type);
                     if (f2 && f2.isFinalFunc() && f2.visible().kind != Visibility.Kind.private_)
-                        .error(funcdecl.loc, "%s `%s` cannot override `final` function `%s.%s`", funcdecl.kind, funcdecl.toPrettyChars, b.sym.toChars(), f2.toPrettyChars());
+                        .error(funcdecl.loc, "%s `%s` cannot override `final` function `%s.%s`", funcdecl.kind, funcdecl.toPrettyChars, b.sym.toErrMsg(), f2.toPrettyChars());
                 }
             }
         }
@@ -1498,7 +1498,7 @@ private TypeFunction getFunctionType(FuncDeclaration fd)
 
     if (!fd.type.isTypeError())
     {
-        .error(fd.loc, "%s `%s` `%s` must be a function instead of `%s`", fd.kind, fd.toPrettyChars, fd.toChars(), fd.type.toChars());
+        .error(fd.loc, "%s `%s` `%s` must be a function instead of `%s`", fd.kind, fd.toPrettyChars, fd.toErrMsg(), fd.type.toErrMsg());
         fd.type = Type.terror;
     }
     fd.errors = true;
@@ -1706,7 +1706,7 @@ extern (D) bool checkForwardRef(FuncDeclaration fd, Loc loc)
         bool inSemantic3 = (fd.inferRetType && fd.semanticRun >= PASS.semantic3);
         .error(loc, "forward reference to %s`%s`",
             (inSemantic3 ? "inferred return type of function " : "").ptr,
-            fd.toChars());
+            fd.toErrMsg());
         return true;
     }
     return false;
@@ -1992,7 +1992,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
         }
 
         .error(loc, "`%s.%s` called with argument types `%s` matches multiple overloads %.*s:\n%s:     `%s%s%s`\nand:\n%s:     `%s%s%s`",
-            s.parent.toPrettyChars(), s.ident.toChars(),
+            s.parent.toPrettyChars(), s.ident.toErrMsg(),
             fargsBuf.peekChars(),
             match.fTuple.expand,
             m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, tf1.modToChars(),
@@ -2004,7 +2004,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     if (flags & FuncResolveFlag.ufcs)
     {
         auto arg = (*fargs)[0];
-        .error(loc, "no property `%s` for `%s` of type `%s`", s.ident.toChars(), arg.toChars(), arg.type.toChars());
+        .error(loc, "no property `%s` for `%s` of type `%s`", s.ident.toErrMsg(), arg.toErrMsg(), arg.type.toErrMsg());
         .errorSupplemental(loc, "the following error occured while looking for a UFCS match");
     }
 
@@ -2016,14 +2016,14 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             if (!od && !td.overnext)
             {
                 .error(loc, "%s `%s` is not callable using argument types `!(%s)%s`",
-                    td.kind(), td.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
+                    td.kind(), td.ident.toErrMsg(), tiargsBuf.peekChars(), fargsBuf.peekChars());
 
                 checkNamedArgErrorAndReport(td, argumentList, loc);
             }
             else
             {
                 .error(loc, "none of the overloads of %s `%s.%s` are callable using argument types `!(%s)%s`",
-                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
+                    td.kind(), td.parent.toPrettyChars(), td.ident.toErrMsg(),
                     tiargsBuf.peekChars(), fargsBuf.peekChars());
 
                 checkNamedArgErrorAndReport(td, argumentList, loc);
@@ -2046,7 +2046,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     if (od)
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `!(%s)%s`",
-            od.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
+            od.ident.toErrMsg(), tiargsBuf.peekChars(), fargsBuf.peekChars());
 
         checkNamedArgErrorAndReportOverload(od, argumentList, loc);
         if (!global.gag || global.params.v.showGaggedErrors)
@@ -2081,14 +2081,14 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             {
                 if (tthis.mod & MODFlags.immutable_)
                     .error(loc, "none of the overloads of `%s` can construct an immutable object with argument types `(%s)`. Expected `immutable(%s)`",
-                        fd.toChars(), buf.peekChars(), buf.peekChars());
+                        fd.toErrMsg(), buf.peekChars(), buf.peekChars());
                 else
                     .error(loc, "none of the overloads of `%s` can construct a %sobject with argument types `(%s)`",
-                        fd.toChars(), thisBuf.peekChars(), buf.peekChars());
+                        fd.toErrMsg(), thisBuf.peekChars(), buf.peekChars());
             }
             else
                 .error(loc, "none of the overloads of `%s` are callable using a %sobject with argument types `(%s)`",
-                    fd.toChars(), thisBuf.peekChars(), buf.peekChars());
+                    fd.toErrMsg(), thisBuf.peekChars(), buf.peekChars());
 
             if (!global.gag || global.params.v.showGaggedErrors)
                 printCandidates(loc, fd, sc.isDeprecated());
@@ -2127,7 +2127,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     if (hasOverloads)
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `%s`",
-               fd.toChars(), fargsBuf.peekChars());
+               fd.toErrMsg(), fargsBuf.peekChars());
         if (!global.gag || global.params.v.showGaggedErrors)
             printCandidates(loc, fd, sc.isDeprecated());
         return null;
@@ -2696,7 +2696,7 @@ int getLevelAndCheck(FuncDeclaration fd, Loc loc, Scope* sc, FuncDeclaration tar
         const(char)* xstatic = fd.isStatic() ? "`static` " : "";
         // better diagnostics for static functions
         .error(loc, "%s%s `%s` cannot access %s `%s` in frame of function `%s`",
-               xstatic, fd.kind(), fd.toPrettyChars(), decl.kind(), decl.toChars(),
+               xstatic, fd.kind(), fd.toPrettyChars(), decl.kind(), decl.toErrMsg(),
                target.toPrettyChars());
             .errorSupplemental(decl.loc, "`%s` declared here", decl.toChars());
         return LevelError;
@@ -2787,7 +2787,7 @@ void buildResultVar(FuncDeclaration fd, Scope* sc, Type tret)
         fd.vresult.type = tret;
         fd.vresult.dsymbolSemantic(sc);
         if (!sc.insert(fd.vresult))
-            .error(fd.loc, "%s `%s` out result %s is already defined", fd.kind, fd.toPrettyChars, fd.vresult.toChars());
+            .error(fd.loc, "%s `%s` out result %s is already defined", fd.kind, fd.toPrettyChars, fd.vresult.toErrMsg());
         assert(fd.vresult.parent == fd);
     }
 }
@@ -3325,7 +3325,7 @@ extern (D) void checkMain(FuncDeclaration fd)
     retType = retType.toBasetype();
 
     if (retType.ty != Tint32 && retType.ty != Tvoid && retType.ty != Tnoreturn)
-        .error(fd.loc, "%s `%s` must return `int`, `void` or `noreturn`, not `%s`", fd.kind, fd.toPrettyChars, tf.nextOf().toChars());
+        .error(fd.loc, "%s `%s` must return `int`, `void` or `noreturn`, not `%s`", fd.kind, fd.toPrettyChars, tf.nextOf().toErrMsg());
 }
 
 enum LevelError = -2;
@@ -4025,7 +4025,7 @@ private void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f,
     {
         .error(funcdecl.loc, "`pragma(%s)` function `%s` must have `extern(C)` or `extern(C++)` linkage,"
             ~" not `extern(%s)`",
-            p, funcdecl.toChars(), f.linkage.linkageToChars());
+            p, funcdecl.toErrMsg(), f.linkage.linkageToChars());
     }
     if (f.parameterList.varargs == VarArg.variadic)
     {
@@ -4033,7 +4033,7 @@ private void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f,
         {
             .error(funcdecl.loc, "`pragma(%s)` function `%s` must have"
                 ~ " signature `%s %s([parameters...], const(char)*, ...)` not `%s`",
-                p, funcdecl.toChars(), f.next.toChars(), funcdecl.toChars(), funcdecl.type.toChars());
+                p, funcdecl.toErrMsg(), f.next.toErrMsg(), funcdecl.toErrMsg(), funcdecl.type.toErrMsg());
         }
     }
     else if (f.parameterList.varargs == VarArg.none)
@@ -4043,15 +4043,15 @@ private void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f,
             isVa_list(f.parameterList[nparams - 1])))
             .error(funcdecl.loc, "`pragma(%s)` function `%s` must have"~
                 " signature `%s %s([parameters...], const(char)*, va_list)`",
-                p, funcdecl.toChars(), f.next.toChars(), funcdecl.toChars());
+                p, funcdecl.toErrMsg(), f.next.toErrMsg(), funcdecl.toErrMsg());
         else if (funcdecl.isSafe() || funcdecl.isTrusted())
             .error(funcdecl.loc, "`pragma(%s)` %s `%s` of `va_list` form must be `@system`",
-                p, funcdecl.kind(), funcdecl.toChars());
+                p, funcdecl.kind(), funcdecl.toErrMsg());
     }
     else
     {
         .error(funcdecl.loc, "`pragma(%s)` function `%s` must have C-style variadic `...` or `va_list` parameter",
-            p, funcdecl.toChars());
+            p, funcdecl.toErrMsg());
     }
 }
 

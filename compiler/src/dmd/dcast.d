@@ -182,7 +182,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
 
         if (!t.deco)
         {
-            error(e.loc, "forward reference to type `%s`", t.toChars());
+            error(e.loc, "forward reference to type `%s`", t.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -211,14 +211,14 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
             // Const -> mutable conversion (disallowed)
             if (fromPointee.isConst() && !toPointee.isConst())
             {
-                error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toChars(), t.toChars());
+                error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toErrMsg(), t.toErrMsg());
                 errorSupplemental(e.loc, "Note: Converting const to mutable requires an explicit cast (`cast(int*)`).");
                 return ErrorExp.get();
             }
             // Incompatible pointee types (e.g., int* -> float* )
             else if (fromPointee.toBasetype().ty != toPointee.toBasetype().ty)
             {
-                error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toChars(), t.toChars());
+                error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toErrMsg(), t.toErrMsg());
                 errorSupplemental(e.loc, "Note: Pointer types point to different base types (`%s` vs `%s`)", fromPointee.toChars(), toPointee.toChars());
                 return ErrorExp.get();
             }
@@ -322,7 +322,7 @@ MATCH implicitConvTo(Expression e, Type t)
             return MATCH.nomatch;
         if (!e.type)
         {
-            error(e.loc, "`%s` is not an expression", e.toChars());
+            error(e.loc, "`%s` is not an expression", e.toErrMsg());
             e.type = Type.terror;
         }
 
@@ -2171,7 +2171,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 if (auto result = tryAliasThisCast())
                     return result;
             }
-            error(e.loc, "cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
+            error(e.loc, "cannot cast expression `%s` of type `%s` to `%s`", e.toErrMsg(), e.type.toErrMsg(), t.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -2251,7 +2251,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 
             auto ts = toAutoQualChars(e.type, t);
             error(e.loc, "cannot cast expression `%s` of type `%s` to `%s` because of different sizes",
-                e.toChars(), ts[0], ts[1]);
+                e.toErrMsg(), ts[0], ts[1]);
             return ErrorExp.get();
         }
 
@@ -2280,7 +2280,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     if (tsize == 0 || (dim * fsize) % tsize != 0)
                     {
                         error(e.loc, "cannot cast expression `%s` of type `%s` to `%s` since sizes don't line up",
-                                e.toChars(), e.type.toChars(), t.toChars());
+                                e.toErrMsg(), e.type.toErrMsg(), t.toErrMsg());
                         return ErrorExp.get();
                     }
                 }
@@ -2322,7 +2322,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 // void delegate() dg;
                 // cast(U*)dg; // ==> cast(U*)dg.ptr;
                 // Note that it happens even when U is a Tfunction!
-                deprecation(e.loc, "casting from %s to %s is deprecated", e.type.toChars(), t.toChars());
+                deprecation(e.loc, "casting from %s to %s is deprecated", e.type.toErrMsg(), t.toErrMsg());
                 return ok();
             }
             return fail();
@@ -2956,7 +2956,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     }
                     else if (f.needThis())
                     {
-                        error(e.loc, "no `this` to create delegate for `%s`", f.toChars());
+                        error(e.loc, "no `this` to create delegate for `%s`", f.toErrMsg());
                         return ErrorExp.get();
                     }
                     else if (f.isNested())
@@ -3163,7 +3163,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         }
         auto ts = toAutoQualChars(tsa ? tsa : e.type, t);
         error(e.loc, "cannot cast expression `%s` of type `%s` to `%s`",
-            e.toChars(), ts[0], ts[1]);
+            e.toErrMsg(), ts[0], ts[1]);
         return ErrorExp.get();
     }
 
@@ -4357,7 +4357,7 @@ void fix16997(Scope* sc, UnaExp ue)
         case Twchar:
         case Tdchar:
             deprecation(ue.loc, "integral promotion not done for `%s`, remove '-revert=intpromote' switch or `%scast(int)(%s)`",
-                ue.toChars(), EXPtoString(ue.op).ptr, ue.e1.toChars());
+                ue.toErrMsg(), EXPtoString(ue.op).ptr, ue.e1.toErrMsg());
             return;
 
         default:

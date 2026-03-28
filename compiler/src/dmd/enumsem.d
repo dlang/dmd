@@ -92,7 +92,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
     if (ed.semanticRun == PASS.semantic)
     {
         assert(ed.memtype);
-        error(ed.loc, "circular reference to enum base type `%s`", ed.memtype.toChars());
+        error(ed.loc, "circular reference to enum base type `%s`", ed.memtype.toErrMsg());
         ed.errors = true;
         ed.semanticRun = PASS.semanticdone;
         return;
@@ -188,7 +188,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
 
     if (ed.members.length == 0)
     {
-        .error(ed.loc, "%s `%s` enum `%s` must have at least one member", ed.kind, ed.toPrettyChars, ed.toChars());
+        .error(ed.loc, "%s `%s` enum `%s` must have at least one member", ed.kind, ed.toPrettyChars, ed.toErrMsg());
         ed.errors = true;
         ed.semanticRun = PASS.semanticdone;
         return;
@@ -295,7 +295,7 @@ Expression getDefaultValue(EnumDeclaration ed, Loc loc)
         {
             if (em.semanticRun < PASS.semanticdone)
             {
-                error(loc, "%s `%s` forward reference of `%s.init`", ed.kind, ed.toPrettyChars, ed.toChars());
+                error(loc, "%s `%s` forward reference of `%s.init`", ed.kind, ed.toPrettyChars, ed.toErrMsg());
                 return handleErrors();
             }
 
@@ -511,7 +511,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         if (global.endGagging(errors) || terror)
         {
             error(em.loc, "cannot generate 0 value of type `%s` for `%s`",
-                em.ed.memtype.toChars(), em.toChars());
+                em.ed.memtype.toErrMsg(), em.toErrMsg());
         }
         // save origValue for better json output
         em.origValue = e;
@@ -550,7 +550,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
             {
                 error(em.loc,
                       "cannot automatically assign value to enum member `%s` because base type `%s` is an enum; provide an explicit value",
-                      em.toPrettyChars(), em.ed.memtype.toChars());
+                      em.toPrettyChars(), em.ed.memtype.toErrMsg());
                 return errorReturn();
             }
         }
@@ -600,7 +600,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
             if (!mt)
                 mt = eprev.type;
             .error(em.loc, "%s `%s` initialization with `%s.%s+1` causes overflow for type `%s`", em.kind, em.toPrettyChars,
-                emprev.ed.toChars(), emprev.toChars(), mt.toChars());
+                emprev.ed.toErrMsg(), emprev.toErrMsg(), mt.toErrMsg());
             return errorReturn();
         }
         errors = global.startGagging();

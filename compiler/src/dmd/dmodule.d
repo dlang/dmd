@@ -880,7 +880,7 @@ extern (C++) final class Module : Package
             if (Module mprev = prev.isModule())
             {
                 if (!FileName.equals(srcname, mprev.srcfile.toChars()))
-                    error(loc, "%s `%s` from file %s conflicts with another module %s from file %s", kind, toPrettyChars, srcname, mprev.toChars(), mprev.srcfile.toChars());
+                    error(loc, "%s `%s` from file %s conflicts with another module %s from file %s", kind, toPrettyChars, srcname, mprev.toErrMsg(), mprev.srcfile.toChars());
                 else if (isRoot() && mprev.isRoot())
                     error(loc, "%s `%s` from file %s is specified twice on the command line", kind, toPrettyChars, srcname);
                 else
@@ -895,7 +895,7 @@ extern (C++) final class Module : Package
                 if (isPackageFile)
                     amodules.push(this); // Add to global array of all modules
                 else
-                    error(md ? md.loc : loc, "%s `%s` from file %s conflicts with package name %s", kind, toPrettyChars, srcname, pkg.toChars());
+                    error(md ? md.loc : loc, "%s `%s` from file %s conflicts with package name %s", kind, toPrettyChars, srcname, pkg.toErrMsg());
             }
             else
                 assert(global.errors);

@@ -488,7 +488,7 @@ bool setUnsafe(Scope* sc, bool gag, Loc loc, VarDeclaration scopeVar,
             if (sc.varDecl.storage_class & STC.safe)
             {
                 string action = AttributeViolation(loc, format, args).action;
-                .error(loc, "%.*s can't initialize `@safe` variable `%s`", action.fTuple.expand, sc.varDecl.toChars());
+                .error(loc, "%.*s can't initialize `@safe` variable `%s`", action.fTuple.expand, sc.varDecl.toErrMsg());
                 return true;
             }
             else if (!(sc.varDecl.storage_class & STC.trusted))

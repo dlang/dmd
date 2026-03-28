@@ -292,7 +292,7 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
         // For ++ and --, rewrites to += and -= are also tried, so don't error yet
         if (!e.isPreExp())
         {
-            error(e.loc, "operator `%s` is not defined for `%s`", EXPtoString(e.op).ptr, ad.toChars());
+            error(e.loc, "operator `%s` is not defined for `%s`", EXPtoString(e.op).ptr, ad.toErrMsg());
             errorSupplemental(ad.loc, "perhaps overload the operator with `auto opUnary(string op : \"%s\")() {}`",
                 EXPtoString(e.op).ptr);
             return ErrorExp.get();
@@ -509,7 +509,7 @@ Expression binAliasThis(BinExp e, Scope* sc, Type[2] aliasThisStop)
     if (rewrittenLhs)
     {
         error(e.loc, "cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`",
-                e.e1.toChars(), ad1.toChars(), rewrittenLhs.toChars());
+                e.e1.toErrMsg(), ad1.toErrMsg(), rewrittenLhs.toErrMsg());
         return ErrorExp.get();
     }
     return null;
@@ -555,14 +555,14 @@ Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
 
     if (s && !(s.isTemplateDeclaration() || s.isOverloadSet))
     {
-        error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toChars());
+        error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toErrMsg());
         return ErrorExp.get();
     }
 
     Dsymbol s_r = search_function(ad2, Id.opBinaryRight);
     if (s_r && !(s_r.isTemplateDeclaration() || s_r.isOverloadSet()))
     {
-        error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toChars());
+        error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toErrMsg());
         return ErrorExp.get();
     }
     if (s_r && s_r == s) // https://issues.dlang.org/show_bug.cgi?id=12778
@@ -634,7 +634,7 @@ bool suggestOpOpAssign(BinAssignExp exp, Scope* sc, Expression parent)
 
     if (parent && (parent.isPreExp() || parent.isPostExp()))
     {
-        error(exp.loc, "operator `%s` not supported for `%s` of type `%s`", EXPtoString(parent.op).ptr, exp.e1.toChars(), ad.toChars());
+        error(exp.loc, "operator `%s` not supported for `%s` of type `%s`", EXPtoString(parent.op).ptr, exp.e1.toErrMsg(), ad.toErrMsg());
         errorSupplemental(ad.loc,
             "perhaps implement `auto opUnary(string op : \"%s\")() {}`"~
             " or `auto opOpAssign(string op : \"%s\")(int) {}`",
@@ -651,7 +651,7 @@ bool suggestOpOpAssign(BinAssignExp exp, Scope* sc, Expression parent)
     }
     else
     {
-        error(exp.loc, "operator `%s` not supported for `%s` of type `%s`", EXPtoString(exp.op).ptr, exp.e1.toChars(), ad.toChars());
+        error(exp.loc, "operator `%s` not supported for `%s` of type `%s`", EXPtoString(exp.op).ptr, exp.e1.toErrMsg(), ad.toErrMsg());
         errorSupplemental(ad.loc, "perhaps implement `auto opOpAssign(string op : \"%s\")(%s) {}`",
             EXPtoString(stripAssignOp(exp.op)).ptr, exp.e2.type.toChars());
     }
@@ -1008,7 +1008,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
     Dsymbol s = search_function(ad1, Id.opOpAssign);
     if (s && !(s.isTemplateDeclaration() || s.isOverloadSet()))
     {
-        error(e.loc, "`%s.opOpAssign` isn't a template", e.e1.toChars());
+        error(e.loc, "`%s.opOpAssign` isn't a template", e.e1.toErrMsg());
         return ErrorExp.get();
     }
 
@@ -1080,7 +1080,7 @@ private Expression pickBestBinaryOverload(Scope* sc, Objects* tiargs, Dsymbol s,
         if (!(m.lastf == lastf && m.count == 2 && count == 1))
         {
             // Error, ambiguous
-            error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+            error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toErrMsg(), m.nextf.type.toErrMsg(), m.lastf.toErrMsg());
         }
     }
     else if (m.last == MATCH.nomatch)
@@ -1527,7 +1527,7 @@ private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration f
     if (fd_ambig)
     {
         .error(ethis.loc, "`%s.%s` matches more than one declaration:",
-            ethis.toChars(), fstart.ident.toChars());
+            ethis.toErrMsg(), fstart.ident.toErrMsg());
         .errorSupplemental(fd_best.loc, "`%s`\nand:", fd_best.type.toChars());
         .errorSupplemental(fd_ambig.loc, "`%s`", fd_ambig.type.toChars());
         return null;

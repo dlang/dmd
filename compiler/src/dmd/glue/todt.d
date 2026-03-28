@@ -241,7 +241,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             printf("Expression.toDt() op = %d e = %s \n", e.op, e.toChars());
         }
-        error(e.loc, "non-constant expression `%s`", e.toChars());
+        error(e.loc, "non-constant expression `%s`", e.toErrMsg());
         dtb.nzeros(1);
     }
 
@@ -545,7 +545,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             if ((v.isConst() || v.isImmutable()) &&
                 e.type.toBasetype().ty != Tsarray && v._init)
             {
-                error(e.loc, "recursive reference `%s`", e.toChars());
+                error(e.loc, "recursive reference `%s`", e.toErrMsg());
                 return;
             }
             v.inuse++;
@@ -1206,7 +1206,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                     typeclass.toChars(), cast(uint)typeclass.structsize);
             }
             error(typeclass.loc, "`%s`: mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
-                typeclass.toChars(), cast(uint)expected, cast(uint)typeclass.structsize);
+                typeclass.toErrMsg(), cast(uint)expected, cast(uint)typeclass.structsize);
             errorSupplemental(typeclass.loc, "check installation and import paths with `-v` compiler switch");
             fatal();
         }

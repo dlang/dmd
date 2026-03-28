@@ -804,7 +804,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
         TemplateParameter tp = (*tempdecl.parameters)[i];
         if (!tp.declareParameter(paramscope))
         {
-            error(tp.loc, "parameter `%s` multiply defined", tp.ident.toChars());
+            error(tp.loc, "parameter `%s` multiply defined", tp.ident.toErrMsg());
             tempdecl.errors = true;
         }
         if (!tp.tpsemantic(paramscope, tempdecl.parameters))
@@ -1193,7 +1193,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     if (tempdecl.semanticRun == PASS.initial)
     {
         .error(tempinst.loc, "%s `%s` template instantiation `%s` forward references template declaration `%s`",
-           tempinst.kind, tempinst.toPrettyChars, tempinst.toChars(), tempdecl.toChars());
+           tempinst.kind, tempinst.toPrettyChars, tempinst.toErrMsg(), tempdecl.toErrMsg());
         return;
     }
 
@@ -1609,8 +1609,8 @@ private bool hasNestedArgs(TemplateInstance _this, Objects* args, bool isstatic)
         if (search(dparent, _this.enclosing))
         {
             .error(_this.loc, "%s `%s` `%s` is nested in both `%s` and `%s`",
-                   _this.kind, _this.toPrettyChars(), _this.toChars(),
-                   _this.enclosing.toChars(), dparent.toChars());
+                   _this.kind, _this.toPrettyChars(), _this.toErrMsg(),
+                   _this.enclosing.toErrMsg(), dparent.toErrMsg());
             _this.errors = true;
         }
         //printf("\tnested inside %s as it references %s\n", enclosing.toChars(), sa.toChars());
@@ -1679,7 +1679,7 @@ private bool hasNestedArgs(TemplateInstance _this, Objects* args, bool isstatic)
         if (ea.op != EXP.int64 && ea.op != EXP.float64 && ea.op != EXP.complex80 && ea.op != EXP.null_ && ea.op != EXP.string_ && ea.op != EXP.arrayLiteral && ea.op != EXP.assocArrayLiteral && ea.op != EXP.structLiteral)
         {
             if (!ea.type.isTypeError())
-                .error(ea.loc, "%s `%s` expression `%s` is not a valid template value argument", _this.kind, _this.toPrettyChars, ea.toChars());
+                .error(ea.loc, "%s `%s` expression `%s` is not a valid template value argument", _this.kind, _this.toPrettyChars, ea.toErrMsg());
             _this.errors = true;
         }
     }
@@ -2018,9 +2018,9 @@ bool findTempDecl(TemplateInstance ti, Scope* sc, WithScopeSymbol* pwithsym)
         {
             s = sc.search_correct(id);
             if (s)
-                .error(ti.loc, "%s `%s` template `%s` is not defined, did you mean %s?", ti.kind, ti.toPrettyChars(), id.toChars(), s.toChars());
+                .error(ti.loc, "%s `%s` template `%s` is not defined, did you mean %s?", ti.kind, ti.toPrettyChars(), id.toErrMsg(), s.toErrMsg());
             else
-                .error(ti.loc, "%s `%s` template `%s` is not defined", ti.kind, ti.toPrettyChars(), id.toChars());
+                .error(ti.loc, "%s `%s` template `%s` is not defined", ti.kind, ti.toPrettyChars(), id.toErrMsg());
             return false;
         }
         static if (LOG)
@@ -2089,7 +2089,7 @@ bool findTempDecl(TemplateInstance ti, Scope* sc, WithScopeSymbol* pwithsym)
                 if (td.semanticRun == PASS.initial)
                 {
                     .error(ti.loc, "%s `%s` `%s` forward references template declaration `%s`",
-                           ti.kind, ti.toPrettyChars(), ti.toChars(), td.toChars());
+                           ti.kind, ti.toPrettyChars(), ti.toErrMsg(), td.toErrMsg());
                     return 1;
                 }
             }
@@ -2141,7 +2141,7 @@ bool findMixinTempDecl(TemplateMixin tm, Scope* sc)
         if (!tm.tempdecl)
         {
             .error(tm.loc, "%s `%s` - `%s` is a %s, not a template", tm.kind,
-                   tm.toPrettyChars, s.toChars(), s.kind());
+                   tm.toPrettyChars, s.toErrMsg(), s.kind());
             return false;
         }
     }
@@ -2804,7 +2804,7 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
                 else
                 {
                     error(tap.loc, "template parameter specialization for a type must be a type and not `%s`",
-                        tap.specAlias.toChars());
+                        tap.specAlias.toErrMsg());
                     return matchArgNoMatch();
                 }
             }
@@ -2919,7 +2919,7 @@ bool updateTempDecl(TemplateInstance ti, Scope* sc, Dsymbol s)
         }
         if (!s)
         {
-            .error(ti.loc, "%s `%s` template `%s` is not defined", ti.kind, ti.toPrettyChars, id.toChars());
+            .error(ti.loc, "%s `%s` template `%s` is not defined", ti.kind, ti.toPrettyChars, id.toErrMsg());
             return false;
         }
     }
@@ -2950,7 +2950,7 @@ bool updateTempDecl(TemplateInstance ti, Scope* sc, Dsymbol s)
         Dsymbol s2 = dmd.dsymbolsem.getType(s).toDsymbol(sc);
         if (!s2)
         {
-            .error(ti.loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", ti.toChars(), id.toChars(), id.toChars(), dmd.dsymbolsem.getType(s).kind());
+            .error(ti.loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", ti.toErrMsg(), id.toErrMsg(), id.toErrMsg(), dmd.dsymbolsem.getType(s).kind());
             return false;
         }
         // because s can be the alias created for a TemplateParameter
@@ -2991,7 +2991,7 @@ bool updateTempDecl(TemplateInstance ti, Scope* sc, Dsymbol s)
     else
     {
         .error(ti.loc, "%s `%s` `%s` is not a template declaration, it is a %s",
-               ti.kind, ti.toPrettyChars, id.toChars(), s.kind());
+               ti.kind, ti.toPrettyChars, id.toErrMsg(), s.kind());
         return false;
     }
 }
@@ -3511,7 +3511,7 @@ private bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Sco
             if (!ti.symtab)
                 ti.symtab = new DsymbolTable();
             if (!scx.insert(v))
-                .error(td.loc, "%s `%s` parameter `%s.%s` is already defined", td.kind, td.toPrettyChars, td.toChars(), v.toChars());
+                .error(td.loc, "%s `%s` parameter `%s.%s` is already defined", td.kind, td.toPrettyChars, td.toErrMsg(), v.toErrMsg());
             else
                 v.parent = fd;
         }
@@ -3713,7 +3713,7 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
         if (td_ambig)
         {
             .error(ti.loc, "%s `%s.%s` matches more than one template declaration:",
-                td_best.kind(), td_best.parent.toPrettyChars(), td_best.ident.toChars());
+                td_best.kind(), td_best.parent.toPrettyChars(), td_best.ident.toErrMsg());
             .errorSupplemental(td_best.loc, "`%s`\nand:", td_best.toChars());
             .errorSupplemental(td_ambig.loc, "`%s`", td_ambig.toChars());
             return false;
@@ -4576,7 +4576,7 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                                     matchTiargs = m2; // pick worst match
                                 if (!rootObjectsEqual((*dedtypes)[i], oded))
                                     .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`",
-                                        td.kind, td.toPrettyChars, td.kind, td.toPrettyChars, tparam.ident.toChars());
+                                        td.kind, td.toPrettyChars, td.kind, td.toPrettyChars, tparam.ident.toErrMsg());
                             }
                             else
                             {
@@ -4978,7 +4978,7 @@ Lmatch:
                 if (m2 < matchTiargs)
                     matchTiargs = m2; // pick worst match
                 if (!rootObjectsEqual((*dedtypes)[i],oded))
-                    .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`", td.kind, td.toPrettyChars, tparam.ident.toChars());
+                    .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`", td.kind, td.toPrettyChars, tparam.ident.toErrMsg());
             }
             else
             {
@@ -5025,7 +5025,7 @@ Lmatch:
                 if (m2 < matchTiargs)
                     matchTiargs = m2; // pick worst match
                 if (!rootObjectsEqual((*dedtypes)[i], oded))
-                    .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`", td.kind, td.toPrettyChars, tparam.ident.toChars());
+                    .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`", td.kind, td.toPrettyChars, tparam.ident.toErrMsg());
             }
         }
         oded = td.declareParameter(paramscope, tparam, oded);
@@ -5282,7 +5282,7 @@ private RootObject declareParameter(TemplateDeclaration td, Scope* sc, TemplateP
     }
 
     if (!sc.insert(d))
-        .error(td.loc, "%s `%s` declaration `%s` is already defined", td.kind, td.toPrettyChars, tp.ident.toChars());
+        .error(td.loc, "%s `%s` declaration `%s` is already defined", td.kind, td.toPrettyChars, tp.ident.toErrMsg());
     d.dsymbolSemantic(sc);
     /* So the caller's o gets updated with the result of semantic() being run on o
      */
@@ -5661,7 +5661,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         }
         if (fd.semanticRun < PASS.semanticdone)
         {
-            .error(loc, "forward reference to template `%s`", fd.toChars());
+            .error(loc, "forward reference to template `%s`", fd.toErrMsg());
             return 1;
         }
         //printf("fd = %s %s, fargs = %s\n", fd.toChars(), fd.type.toChars(), fargs.toChars());
@@ -5834,7 +5834,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         }
         if (td.semanticRun == PASS.initial)
         {
-            .error(loc, "forward reference to template `%s`", td.toChars());
+            .error(loc, "forward reference to template `%s`", td.toErrMsg());
         Lerror:
             m.lastf = null;
             m.count = 0;
@@ -5880,7 +5880,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                         {
                             if (scx == p.sc)
                             {
-                                error(loc, "recursive template expansion while looking for `%s.%s`", ti.toChars(), tdx.toChars());
+                                error(loc, "recursive template expansion while looking for `%s.%s`", ti.toErrMsg(), tdx.toErrMsg());
                                 goto Lerror;
                             }
                         }
