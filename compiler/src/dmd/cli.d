@@ -115,7 +115,7 @@ struct Usage
     /**
     * Representation of a CLI `Option`
     *
-    * The DDoc description `ddoxText` is only available when compiled with `-version=DdocOptions`.
+    * The DDoc description `ddocText` is only available when compiled with `-version=DdocOptions`.
     */
     struct Option
     {
@@ -866,20 +866,35 @@ dmd -cov -unittest myprog.d
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
-        Option("target=<triple>",
-               "use <triple> as <arch>-[<vendor>-]<os>[-<cenv>[-<cppenv]]",
-               "$(I arch) is the architecture: either `x86`, `x64`, `x86_64` or `x32`,
-               $(I vendor) is always ignored, but supported for easier interoperability,
-               $(I os) is the operating system, this may have a trailing version number:
-               `freestanding` for no operating system,
-               `darwin` or `osx` for MacOS, `dragonfly` or `dragonflybsd` for DragonflyBSD,
-               `freebsd`, `openbsd`, `linux`, `solaris` or `windows` for their respective operating systems.
-               $(I cenv) is the C runtime environment and is optional: `musl` for musl-libc,
-               `msvc` for the MSVC runtime, `bionic` for the Andriod libc, `gnu` or `glibc`
-               for the GCC C runtime, `newlib` or `uclibc` for their respective C runtimes.
-               ($ I cppenv) is the C++ runtime environment: `clang` for the LLVM C++ runtime,
-               `gcc` for GCC's C++ runtime, `msvc` for microsoft's MSVC C++ runtime,
-               `sun` for Sun's C++ runtime.
+        Option("target=<arch>-[<vendor>-]<os>[-<cenv>[-<cppenv>]]",
+               "set CPU architecture, OS, C runtime and C++ runtime",
+               "Set CPU architecture, OS, C runtime and C++ runtime:
+               $(UL
+                   $(LI $(I arch) is the architecture: either `x86`, `x64`, `x86_64` or `x32`)
+                   $(LI $(I vendor) is always ignored, but supported for easier interoperability)
+                   $(LI $(I os) is the operating system, this may have a trailing version number:)
+                   $(UL
+                       $(LI `freestanding` for no operating system)
+                       $(LI `darwin` or `osx` for MacOS)
+                       $(LI `dragonfly` or `dragonflybsd` for DragonflyBSD)
+                       $(LI `freebsd`, `openbsd`, `linux`, `solaris` or `windows` for their respective operating systems)
+                   )
+                   $(LI $(I cenv) is the C runtime environment and is optional:)
+                   $(UL
+                       $(LI `musl` for musl-libc)
+                       $(LI `msvc` for the MSVC runtime)
+                       $(LI `bionic` for the Android libc)
+                       $(LI `gnu` or `glibc` for the GCC C runtime)
+                       $(LI `newlib` or `uclibc` for their respective C runtimes)
+                   )
+                   $(LI $(I cppenv) is the C++ runtime environment:)
+                   $(UL
+                       $(LI `clang` for the LLVM C++ runtime)
+                       $(LI `gcc` for GCC's C++ runtime)
+                       $(LI `msvc` for microsoft's MSVC C++ runtime)
+                       $(LI `sun` for Sun's C++ runtime)
+                   )
+               )
                "
         ),
         Option("transition=<name>",
