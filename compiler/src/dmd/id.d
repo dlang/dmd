@@ -269,6 +269,8 @@ immutable Msgtable[] msgtable =
     { "_d_aaLen" },
     { "_d_aaApply" },
     { "_d_aaApply2" },
+    { "_d_pow" },
+    { "_d_sqrt" },
     { "monitorenter", "_d_monitorenter" },
     { "monitorexit", "_d_monitorexit" },
     { "criticalenter", "_d_criticalenter2" },

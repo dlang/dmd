@@ -8682,6 +8682,8 @@ struct Id final
     static Identifier* _d_aaLen;
     static Identifier* _d_aaApply;
     static Identifier* _d_aaApply2;
+    static Identifier* _d_pow;
+    static Identifier* _d_sqrt;
     static Identifier* monitorenter;
     static Identifier* monitorexit;
     static Identifier* criticalenter;

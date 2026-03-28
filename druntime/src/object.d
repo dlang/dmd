@@ -4753,6 +4753,23 @@ public import core.internal.switch_: __switch;
 public import core.internal.switch_: __switch_error;
 
 public import core.lifetime : _d_delstructImpl;
+
+// Forwarding hook for the ^^ (pow) operator on floating-point types.
+// TODO: move implementation to druntime instead of Phobos.
+auto _d_pow(Base, Exp)(Base base, Exp exp)
+{
+    import std.math : pow;
+    return pow(base, exp);
+}
+
+// Forwarding hook for the e1 ^^ 0.5 optimisation (square root).
+// TODO: move implementation to druntime instead of Phobos.
+auto _d_sqrt(T)(T x)
+{
+    import std.math : sqrt;
+    return sqrt(x);
+}
+
 public import core.lifetime : _d_newThrowable;
 public import core.lifetime : _d_newclassT;
 public import core.lifetime : _d_newclassTTrace;
