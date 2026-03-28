@@ -206,3 +206,17 @@ typedef struct {} __SVFloat64_t;
 #if __APPLE__
 #undef __SIZEOF_INT128__
 #endif
+
+#if __ANDROID__
+#undef __SIZEOF_INT128__
+#define __GNUC_VA_LIST
+#define _VA_LIST
+#define __builtin_va_list va_list
+#define __gnuc_va_list va_list
+
+// This macro resolves the ambiguity between Bionic and library ioctl.
+// https://android.googlesource.com/platform/bionic/+/master/libc/include/bits/ioctl.h
+#define BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD
+
+#define __sync_synchronize()
+#endif
