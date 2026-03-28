@@ -98,7 +98,7 @@ public:
         if (checkImmutableShared(type, loc))
             return;
 
-        eSink.error(loc, "internal compiler error: type `%s` cannot be mapped to C++\n", type.toChars());
+        eSink.error(loc, "internal compiler error: type `%s` cannot be mapped to C++\n", type.toErrMsg());
         errors = true;
     }
 
@@ -550,7 +550,7 @@ extern(D):
     {
         if (!tv.valType.isIntegral())
         {
-            eSink.error(sym.loc, "%s `%s` internal compiler error: C++ %s template value parameter is not supported", sym.kind, sym.toPrettyChars, tv.valType.toChars());
+            eSink.error(sym.loc, "%s `%s` internal compiler error: C++ %s template value parameter is not supported", sym.kind, sym.toPrettyChars, tv.valType.toErrMsg());
             errors = true;
             return;
         }
@@ -626,7 +626,7 @@ extern(D):
         }
         else
         {
-            eSink.error(sym.loc, "%s `%s` internal compiler error: `%s` is unsupported parameter for C++ template", sym.kind, sym.toPrettyChars, o.toChars());
+            eSink.error(sym.loc, "%s `%s` internal compiler error: `%s` is unsupported parameter for C++ template", sym.kind, sym.toPrettyChars, o.toErrMsg());
             errors = true;
         }
     }
@@ -765,7 +765,7 @@ extern(D):
                 if (t is null)
                 {
                     eSink.error(actualti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported",
-                        actualti.kind, actualti.toPrettyChars, o.toChars());
+                        actualti.kind, actualti.toPrettyChars, o.toErrMsg());
                     errors = true;
                     return;
                 }
@@ -823,7 +823,7 @@ extern(D):
     {
         if (type.isImmutable() || type.isShared())
         {
-            eSink.error(loc, "internal compiler error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toChars());
+            eSink.error(loc, "internal compiler error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toErrMsg());
             errors = true;
             return true;
         }
