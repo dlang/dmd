@@ -27,8 +27,9 @@ fail_compilation/format.d(204): Error: `pragma(printf)` function `vprintf2` must
 fail_compilation/format.d(205): Error: `pragma(printf)` function `vprintf3` must have signature `int vprintf3([parameters...], const(char)*, va_list)`
 fail_compilation/format.d(206): Error: `pragma(printf)` function `vprintf4` must have signature `int vprintf4([parameters...], const(char)*, va_list)`
 fail_compilation/format.d(207): Error: `pragma(printf)` function `vprintf5` must have C-style variadic `...` or `va_list` parameter
-fail_compilation/format.d(208): Error: `pragma(scanf)` function `vscanf1` must have `extern(C)` or `extern(C++)` linkage, not `extern(Windows)`
-fail_compilation/format.d(208): Error: `pragma(scanf)` function `vscanf1` must have signature `int vscanf1([parameters...], const(char)*, va_list)`
+fail_compilation/format.d(208): Error: `pragma(printf)` function `vprintf8` of `va_list` form must be `@system`
+fail_compilation/format.d(209): Error: `pragma(scanf)` function `vscanf1` must have `extern(C)` or `extern(C++)` linkage, not `extern(Windows)`
+fail_compilation/format.d(209): Error: `pragma(scanf)` function `vscanf1` must have signature `int vscanf1([parameters...], const(char)*, va_list)`
 ---
  */
 
@@ -41,8 +42,10 @@ pragma(printf) extern (C) int vprintf2(const(int )*, va_list);
 pragma(printf) extern (C) int vprintf3(const(char)*);
 pragma(printf) extern (C) int vprintf4(const(char)*, int, va_list);
 pragma(printf) extern (C) int vprintf5(char*, int[] a...);
+pragma(printf) extern (C) int vprintf8(const char*, va_list) @trusted;
 pragma(scanf)  extern (Windows) int vscanf1();
 
-pragma(printf) extern (C) int vprintf5(const(char)*, va_list);
+// OK:
+pragma(printf) extern (C) int vprintf0(const(char)*, va_list);
 pragma(printf) extern (C) int vprintf6(immutable(char)*, va_list);
 pragma(printf) extern (C) int vprintf7(char*, va_list);

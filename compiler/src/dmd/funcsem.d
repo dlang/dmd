@@ -4038,11 +4038,15 @@ private void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f,
     }
     else if (f.parameterList.varargs == VarArg.none)
     {
-        if(!(nparams >= 2 && isPointerToChar(f.parameterList[nparams - 2]) &&
+        import dmd.safe;
+        if (!(nparams >= 2 && isPointerToChar(f.parameterList[nparams - 2]) &&
             isVa_list(f.parameterList[nparams - 1])))
             .error(funcdecl.loc, "`pragma(%s)` function `%s` must have"~
                 " signature `%s %s([parameters...], const(char)*, va_list)`",
                 p, funcdecl.toChars(), f.next.toChars(), funcdecl.toChars());
+        else if (funcdecl.isSafe() || funcdecl.isTrusted())
+            .error(funcdecl.loc, "`pragma(%s)` %s `%s` of `va_list` form must be `@system`",
+                p, funcdecl.kind(), funcdecl.toChars());
     }
     else
     {
