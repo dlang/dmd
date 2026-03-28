@@ -988,6 +988,20 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     return retError();
                 }
 
+                if (dim == 2)
+                {
+                    auto p0 = (*fs.parameters)[0];
+                    if (p0.storageClass & STC.ref_)
+                    {
+                        // @@@DEPRECATED_2.121@@@
+                        // turn deprecation into an error & uncomment return
+                        deprecation(fs.loc, "`foreach` array index variable `%s` cannot be `ref`",
+                            p0.toChars());
+                        deprecationSupplemental(fs.loc, "use a `for` loop instead");
+                        //return retError();
+                    }
+                }
+
                 // Finish semantic on all foreach parameter types.
                 foreach (i; 0 .. dim)
                 {
@@ -1532,6 +1546,18 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         if (fs.param.type.ty == Terror || fs.lwr.op == EXP.error || fs.upr.op == EXP.error)
         {
             return setError();
+        }
+
+        // a struct is allowed to be `ref` to prevent destructor calls
+        // see runnable/foreach5.d:test6659
+        if (fs.param.storageClass & STC.ref_ && !fs.param.type.isTypeStruct())
+        {
+            // @@@DEPRECATED_2.121@@@
+            // turn deprecation into an error & uncomment return
+            deprecation(fs.loc, "`foreach` range variable `%s` cannot be `ref`",
+                fs.param.toChars());
+            deprecationSupplemental(fs.loc, "use a `for` loop instead");
+            //return setError();
         }
 
         /* Convert to a for loop:
