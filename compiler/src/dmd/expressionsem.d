@@ -14377,23 +14377,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        Module mmath = loadStdMath();
-        if (!mmath)
-        {
-            error(e.loc, "`%s` requires `std.math` for `^^` operators", e.toErrMsg());
-            return setError();
-        }
-        e = new ScopeExp(exp.loc, mmath);
-
         if (exp.e2.op == EXP.float64 && exp.e2.toReal() == CTFloat.half)
         {
-            // Replace e1 ^^ 0.5 with .std.math.sqrt(e1)
-            e = new CallExp(exp.loc, new DotIdExp(exp.loc, e, Id._sqrt), exp.e1);
+            // Replace e1 ^^ 0.5 with object._d_sqrt(e1)
+            if (!verifyHookExist(exp.loc, *sc, Id._d_sqrt, "the operation `^^ 0.5`"))
+                return setError();
+            Expression id = new IdentifierExp(exp.loc, Id.empty);
+            id = new DotIdExp(exp.loc, id, Id.object);
+            id = new DotIdExp(exp.loc, id, Id._d_sqrt);
+            e = new CallExp(exp.loc, id, exp.e1);
         }
         else
         {
-            // Replace e1 ^^ e2 with .std.math.pow(e1, e2)
-            e = new CallExp(exp.loc, new DotIdExp(exp.loc, e, Id._pow), exp.e1, exp.e2);
+            // Replace e1 ^^ e2 with object._d_pow(e1, e2)
+            if (!verifyHookExist(exp.loc, *sc, Id._d_pow, "the ^^ operator"))
+                return setError();
+            Expression id = new IdentifierExp(exp.loc, Id.empty);
+            id = new DotIdExp(exp.loc, id, Id.object);
+            id = new DotIdExp(exp.loc, id, Id._d_pow);
+            e = new CallExp(exp.loc, id, exp.e1, exp.e2);
         }
         e = e.expressionSemantic(sc);
         result = e;

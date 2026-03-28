@@ -7375,19 +7375,6 @@ private Module loadCoreAtomic()
     return loadModuleFromLibrary(core_atomic, pkgids, Id.atomic);
 }
 
-/****************************
- * A Singleton that loads std.math
- * Returns:
- *  Module of std.math, null if couldn't find it
- */
-Module loadStdMath()
-{
-    __gshared Module std_math;
-    auto pkgids = new Identifier[1];
-    pkgids[0] = Id.std;
-    return loadModuleFromLibrary(std_math, pkgids, Id.math);
-}
-
 /**********************************
  * Load a Module from the library.
  * Params:
