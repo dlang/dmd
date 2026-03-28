@@ -358,6 +358,9 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
  */
 package PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args)
 {
+    if (global.params.cov)
+        return PINLINE.never;
+
     if (!args || args.length == 0)
         return PINLINE.default_;
 
