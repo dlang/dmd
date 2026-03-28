@@ -260,7 +260,7 @@ else version (DigitalMars)
         else version (Darwin)
             alias c_long_double = real;
         else version (Hurd)
-            alias real c_long_double;
+            alias c_long_double = real;
     }
     else version (AArch64)
     {
@@ -279,7 +279,7 @@ else version (DigitalMars)
         else version (Darwin)
             alias c_long_double = real;
         else version (Hurd)
-            alias real c_long_double;
+            alias c_long_double = real;
     }
 }
 

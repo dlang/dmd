@@ -332,27 +332,27 @@ else version (Hurd)
 {
     static if ( __USE_FILE_OFFSET64 )
     {
-        alias long      blkcnt_t;
-        alias ulong     ino_t;
-        alias long      off_t;
+        alias blkcnt_t = long;
+        alias ino_t = ulong;
+        alias off_t = long;
     }
     else
     {
-        alias slong_t   blkcnt_t;
-        alias ulong_t   ino_t;
-        alias slong_t   off_t;
+        alias blkcnt_t = slong_t;
+        alias ino_t = ulong_t;
+        alias off_t = slong_t;
     }
-    alias slong_t   blksize_t;
-    alias ulong_t   dev_t;
-    alias uint      gid_t;
-    alias uint      mode_t;
-    alias ulong_t   nlink_t;
-    alias int       pid_t;
+    alias blksize_t = slong_t;
+    alias dev_t = ulong_t;
+    alias gid_t = uint;
+    alias mode_t = uint;
+    alias nlink_t = ulong_t;
+    alias pid_t = int;
     //size_t (defined in core.stdc.stddef)
-    alias c_long    ssize_t;
-    alias uint      uid_t;
+    alias ssize_t = c_long;
+    alias uid_t = uint;
 
-    alias slong_t   time_t;
+    alias time_t = slong_t;
 }
 else
 {
@@ -469,19 +469,19 @@ else version (Hurd)
 {
     static if ( __USE_FILE_OFFSET64 )
     {
-        alias ulong     fsblkcnt_t;
-        alias ulong     fsfilcnt_t;
+        alias fsblkcnt_t = ulong;
+        alias fsfilcnt_t = ulong;
     }
     else
     {
-        alias ulong_t   fsblkcnt_t;
-        alias ulong_t   fsfilcnt_t;
+        alias fsblkcnt_t = ulong_t;
+        alias fsfilcnt_t = ulong_t;
     }
-    alias slong_t   clock_t;
-    alias uint      id_t;
-    alias int       key_t;
-    alias slong_t   suseconds_t;
-    alias uint      useconds_t;
+    alias clock_t = slong_t;
+    alias id_t = uint;
+    alias key_t = int;
+    alias suseconds_t = slong_t;
+    alias useconds_t = uint;
 }
 else
 {
@@ -822,7 +822,7 @@ version (CRuntime_Glibc)
           clockid_t __clock;
       }
 
-      alias int pthread_key_t;
+      alias pthread_key_t = int;
 
       struct pthread_mutex_t
       {
@@ -869,7 +869,7 @@ version (CRuntime_Glibc)
           __pthread_process_shared __pshared;
       }
 
-      alias c_long pthread_t;
+      alias pthread_t = c_long;
   }
 }
 else version (CRuntime_Musl)

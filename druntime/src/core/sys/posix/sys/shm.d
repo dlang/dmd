@@ -187,7 +187,7 @@ else version (Hurd)
     enum SHM_RND        = 0x02000; // 020000
     enum SHM_REMAP      = 0x4000; // 040000
 
-    alias short   shmatt_t;
+    alias shmatt_t = short;
 
     struct shmid_ds
     {

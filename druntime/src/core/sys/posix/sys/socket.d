@@ -1600,8 +1600,8 @@ else version (Solaris)
 }
 else version (Hurd)
 {
-    alias uint   socklen_t;
-    alias ushort sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ushort;
 
     struct sockaddr
     {

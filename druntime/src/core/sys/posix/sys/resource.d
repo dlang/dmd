@@ -487,9 +487,9 @@ else version (Hurd)
     }
 
     static if (__USE_FILE_OFFSET64)
-         alias ulong rlim_t;
+         alias rlim_t = ulong;
     else
-         alias c_ulong rlim_t;
+         alias rlim_t = c_ulong;
 
     static if (__USE_FILE_OFFSET64)
         enum RLIM_INFINITY = 0xffffffffffffffffUL;

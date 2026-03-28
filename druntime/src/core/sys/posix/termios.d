@@ -833,9 +833,9 @@ else version (Solaris)
 }
 else version (Hurd)
 {
-    alias ubyte cc_t;
-    alias uint  speed_t;
-    alias uint  tcflag_t;
+    alias cc_t = ubyte;
+    alias speed_t = uint;
+    alias tcflag_t = uint;
 
     enum NCCS   = 32;
 
