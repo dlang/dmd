@@ -112,3 +112,7 @@ else version (Hurd)
         byte[108]    sun_path;
     }
 }
+else
+{
+    static assert(false, "Unsupported platform");
+}

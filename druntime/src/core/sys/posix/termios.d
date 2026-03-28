@@ -929,6 +929,11 @@ else version (Hurd)
     enum TCOOFF     = 0;
     enum TCOON      = 1;
 }
+else
+{
+    static assert(false, "Unsupported platform");
+}
+
 
 /*
 speed_t cfgetispeed(const scope termios*);
