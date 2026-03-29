@@ -780,6 +780,10 @@ bool isLvalue(Expression _this)
  * a typed storage. This basically elides a restricted subset of so-called
  * "pure" rvalues, i.e. expressions with no reference semantics.
  *
+ * Please try to keep `dmd.glue.e2ir.toElemRVO()` in sync with this.
+ * It is not destructive to fail to elide a copy, but it is always better
+ * to stay consistent.
+ *
  * Note: Please avoid using `checkMod` parameter because `canElideCopy()`
  * essentially defines a value category and should eventually be merged with
  * `isLvalue()` to return [isLvalue, allowEmplacement].
@@ -12379,7 +12383,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         ? cast(DotVarExp)ce.e1 : null;
                     if (sd.ctor && ce && dve && dve.var.isCtorDeclaration() &&
                         // https://issues.dlang.org/show_bug.cgi?id=19389
-                        dve.e1.op != EXP.dotVariable &&
+                        canElideCopy(ce, t1) &&
                         e2y.type.implicitConvTo(t1))
                     {
                         /* Look for form of constructor call which is:
@@ -12491,22 +12495,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 return;
                             }
                         }
-                        else if (sd.hasMoveCtor && (!e2x.isCallExp() || e2x.rvalue) && !e2x.isStructLiteralExp())
+                        else if (sd.hasMoveCtor && !canElideCopy(e2x, t1))
                         {
                             // #move
-                            /* The !e2x.isCallExp() is because it is already an rvalue
-                               and the move constructor is unnecessary:
-                                struct S {
-                                    alias TT this;
-                                    long TT();
-                                    this(T)(int x) {}
-                                    this(S);
-                                    this(ref S);
-                                    ~this();
-                                }
-                                S fun(ref S arg);
-                                void test() { S st; fun(st); }
-                             */
                             /* Rewrite as:
                              * e1 = init, e1.moveCtor(e2);
                              */
