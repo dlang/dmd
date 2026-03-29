@@ -251,11 +251,13 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         }
         i.type = t;
         length = 0;
+        bool hasIndices = false;
         for (size_t j = 0; j < i.index.length; j++) // don't replace with foreach; j is modified
         {
             Expression idx = i.index[j];
             if (idx)
             {
+                hasIndices = true;
                 sc = sc.startCTFE();
                 idx = idx.expressionSemantic(sc);
                 sc = sc.endCTFE();
@@ -324,6 +326,11 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 {
                     error(i.loc, "array initializer has %u elements, but array length is %llu", i.dim, edim);
                     return err();
+                }
+                if (!sc.inCfile && i.dim > 0 && !hasIndices && i.dim < edim)
+                {
+                    deprecation(i.loc, "array initializer has only %u elements, but array length is %llu", i.dim, edim);
+                    deprecationSupplemental(i.loc, "use an index in the array initializer (example: `[0: 10, 20, 30]`) to auto-fill the remaining elements");
                 }
             }
         }

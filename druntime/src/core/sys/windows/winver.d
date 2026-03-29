@@ -256,7 +256,7 @@ VERSIONHELPERAPI IsWindows10OrGreater()
 
 VERSIONHELPERAPI IsWindowsServer()
 {
-    OSVERSIONINFOEXW osvi = { OSVERSIONINFOEXW.sizeof, 0, 0, 0, 0, [0], 0, 0, 0, VER_NT_WORKSTATION };
+    OSVERSIONINFOEXW osvi = { OSVERSIONINFOEXW.sizeof, 0, 0, 0, 0, 0, 0, 0, 0, VER_NT_WORKSTATION };
     const DWORDLONG dwlConditionMask = VerSetConditionMask( 0, VER_PRODUCT_TYPE, VER_EQUAL );
 
     return !VerifyVersionInfoW(&osvi, VER_PRODUCT_TYPE, dwlConditionMask);

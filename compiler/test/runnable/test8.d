@@ -609,7 +609,7 @@ enum Int3_4 : Int3[4] {
 
 struct S35
 {
-    int[3][3] arr = [2, 1];
+    int[3][3] arr = [2, 1, 0];
 }
 
 void test35()

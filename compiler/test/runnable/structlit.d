@@ -671,7 +671,7 @@ struct Bug1914c
     const char[2] i = ['a', 'b'];
     const char[2][3] j = [['x', 'y'], ['p', 'q'], ['r', 's']];
     const char[2][3] k = ["cd", "ef", "gh"];
-    const char[2][3] l = [['x', 'y'], ['p'], ['h', 'k']];
+    const char[2][3] l = [['x', 'y'], ['p', char.init], ['h', 'k']];
     char[2][3] x = i;
     int y = 5;
     char[2][3] z = j;
