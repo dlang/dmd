@@ -2194,7 +2194,11 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     }
 
     if (!s)
-        return ue.e1.type.getProperty(sc, loc, ident, 0, ue.e1);
+    {
+        auto die = ue.isDotIdExp();
+        const identLoc = (die && die.identLoc != Loc.initial) ? die.identLoc : Loc.initial;
+        return ue.e1.type.getProperty(sc, loc, ident, 0, ue.e1, identLoc);
+    }
 
     FuncDeclaration f = s.isFuncDeclaration();
     if (f)
@@ -15754,7 +15758,7 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
     if (exp.e1.isVarExp() && exp.e1.type.toBasetype().isTypeSArray() && exp.ident == Id.length)
     {
         // bypass checkPurity
-        return exp.e1.type.dotExp(sc, exp.e1, exp.ident, cast(DotExpFlag) (exp.noderef * DotExpFlag.noDeref));
+        return exp.e1.type.dotExp(sc, exp.e1, exp.ident, cast(DotExpFlag) (exp.noderef * DotExpFlag.noDeref), exp.identLoc);
     }
 
     if (!exp.e1.isDotExp())
@@ -16119,7 +16123,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
         Expression e = new PtrExp(exp.loc, exp.e1);
         e = e.expressionSemantic(sc);
         const newFlag = cast(DotExpFlag) (gag * DotExpFlag.gag | exp.noderef * DotExpFlag.noDeref);
-        return e.type.dotExp(sc, e, exp.ident, newFlag);
+        return e.type.dotExp(sc, e, exp.ident, newFlag, exp.identLoc);
     }
     else if (exp.ident == Id.__xalignof &&
              exp.e1.isVarExp() &&
@@ -16146,7 +16150,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
 
         const flag = cast(DotExpFlag) (exp.noderef * DotExpFlag.noDeref | gag * DotExpFlag.gag);
 
-        Expression e = dotExp(exp.e1.type, sc, exp.e1, exp.ident, flag);
+        Expression e = dotExp(exp.e1.type, sc, exp.e1, exp.ident, flag, exp.identLoc);
         if (e)
         {
             e = e.expressionSemantic(sc);

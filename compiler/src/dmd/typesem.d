@@ -5023,11 +5023,12 @@ Expression defaultInitLiteral(Type t, Loc loc)
  *  ident = the identifier of the property
  *  flag = if flag & 1, don't report "not a property" error and just return NULL.
  *  src = expression for type `t` or null.
+ *  identLoc = location of the identifier (for accurate error reporting); use when != Loc.initial.
  * Returns:
  *      expression representing the property, or null if not a property and (flag & 1)
  */
 Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int flag,
-    Expression src = null)
+    Expression src = null, Loc identLoc = Loc.initial)
 {
     Expression visitType(Type mt)
     {
@@ -5103,21 +5104,22 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
         if (mt == Type.terror)
             return ErrorExp.get();
 
+        const errLoc = identLoc != Loc.initial ? identLoc : loc;
         if (s)
         {
-            error(loc, "no property `%s` for type `%s`", ident.toErrMsg(), mt.toErrMsg());
+            error(errLoc, "no property `%s` for type `%s`", ident.toErrMsg(), mt.toErrMsg());
             errorSupplemental(s.loc, "did you mean `%s`?", ident == s.ident ? s.toPrettyChars() : s.toErrMsg());
         }
         else if (ident == Id.opCall && mt.ty == Tclass)
-            error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toErrMsg(), mt.toErrMsg(), mt.toPrettyChars());
+            error(errLoc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toErrMsg(), mt.toErrMsg(), mt.toPrettyChars());
 
         else if (const n = importHint(ident.toString()))
-                error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toErrMsg(), mt.toErrMsg(), cast(int)n.length, n.ptr);
+                error(errLoc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toErrMsg(), mt.toErrMsg(), cast(int)n.length, n.ptr);
         else
         {
             if (src)
             {
-                error(loc, "no property `%s` for `%s` of type `%s`",
+                error(errLoc, "no property `%s` for `%s` of type `%s`",
                     ident.toErrMsg(), src.toErrMsg(), mt.toPrettyChars(true));
                 auto s2 = scope_.search_correct(ident);
                 // UFCS
@@ -5134,7 +5136,7 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
                 }
             }
             else
-                error(loc, "no property `%s` for type `%s`", ident.toErrMsg(), mt.toPrettyChars(true));
+                error(errLoc, "no property `%s` for type `%s`", ident.toErrMsg(), mt.toPrettyChars(true));
 
             if (auto dsym = derefType.toDsymbol(scope_))
             {
@@ -5434,7 +5436,7 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
         }
         else
         {
-            e = mt.toBasetype().getProperty(scope_, loc, ident, flag);
+            e = mt.toBasetype().getProperty(scope_, loc, ident, flag, null, identLoc);
         }
         return e;
     }
@@ -6160,7 +6162,7 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
  * Returns:
  *  resulting expression with e.ident resolved
  */
-Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag flag)
+Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag flag, Loc identLoc = Loc.initial)
 {
     enum LOGDOTEXP = false;
     if (LOGDOTEXP)
@@ -6237,7 +6239,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             e = new StringExp(e.loc, e.toString());
         }
         else
-            e = mt.getProperty(sc, e.loc, ident, flag & DotExpFlag.gag);
+            e = mt.getProperty(sc, e.loc, ident, flag & DotExpFlag.gag, null, identLoc);
 
     Lreturn:
         if (e)
@@ -6297,7 +6299,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 break;
 
             default:
-                e = mt.Type.getProperty(sc, e.loc, ident, flag);
+                e = mt.Type.getProperty(sc, e.loc, ident, flag, null, identLoc);
                 break;
             }
         }
@@ -6348,7 +6350,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 break;
 
             default:
-                e = mt.Type.getProperty(sc, e.loc, ident, flag);
+                e = mt.Type.getProperty(sc, e.loc, ident, flag, null, identLoc);
                 break;
             }
         }
@@ -6398,11 +6400,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             ident == Id.nan || ident == Id.infinity || ident == Id.epsilon)
         {
             auto vet = mt.basetype.isTypeSArray().next; // vector element type
-            if (auto ev = getProperty(vet, sc, e.loc, ident, DotExpFlag.gag))
+            if (auto ev = getProperty(vet, sc, e.loc, ident, DotExpFlag.gag, null, identLoc))
                 return ev.castTo(sc, mt); // 'broadcast' ev to the vector elements
         }
 
-        return mt.basetype.dotExp(sc, e.castTo(sc, mt.basetype), ident, flag);
+        return mt.basetype.dotExp(sc, e.castTo(sc, mt.basetype), ident, flag, identLoc);
     }
 
     Expression visitArray(TypeArray mt)
@@ -6550,7 +6552,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             printf("TypeReference::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
         // References just forward things along
-        return mt.next.dotExp(sc, e, ident, flag);
+        return mt.next.dotExp(sc, e, ident, flag, identLoc);
     }
 
     Expression visitDelegate(TypeDelegate mt)
@@ -6725,7 +6727,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         // https://issues.dlang.org/show_bug.cgi?id=14010
         if (!sc.inCfile && ident == Id._mangleof)
         {
-            return mt.getProperty(sc, e.loc, ident, flag & 1);
+            return mt.getProperty(sc, e.loc, ident, flag & 1, null, identLoc);
         }
 
         /* If e.tupleof
@@ -6985,7 +6987,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         // https://issues.dlang.org/show_bug.cgi?id=14010
         if (ident == Id._mangleof)
         {
-            return mt.getProperty(sc, e.loc, ident, flag & 1);
+            return mt.getProperty(sc, e.loc, ident, flag & 1, null, identLoc);
         }
 
         if (mt.sym.semanticRun < PASS.semanticdone)
@@ -6996,24 +6998,25 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         {
             if (ident == Id._init)
             {
-                return mt.getProperty(sc, e.loc, ident, flag & 1);
+                return mt.getProperty(sc, e.loc, ident, flag & 1, null, identLoc);
             }
 
             /* Allow special enums to not need a member list
              */
             if ((ident == Id.max || ident == Id.min) && (mt.sym.members || !mt.sym.isSpecial()))
             {
-                return mt.getProperty(sc, e.loc, ident, flag & 1);
+                return mt.getProperty(sc, e.loc, ident, flag & 1, null, identLoc);
             }
 
-            Expression res = mt.sym.getMemtype(Loc.initial).dotExp(sc, e, ident, DotExpFlag.gag);
+            Expression res = mt.sym.getMemtype(Loc.initial).dotExp(sc, e, ident, DotExpFlag.gag, identLoc);
             if (!(flag & 1) && !res)
             {
+                const errLoc = identLoc != Loc.initial ? identLoc : e.loc;
                 if (auto ns = mt.sym.search_correct(ident))
-                    error(e.loc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toChars(), mt.toChars(), mt.toChars(),
+                    error(errLoc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toChars(), mt.toChars(), mt.toChars(),
                         ns.toChars());
                 else
-                    error(e.loc, "no property `%s` for type `%s`", ident.toChars(),
+                    error(errLoc, "no property `%s` for type `%s`", ident.toChars(),
                         mt.toChars());
 
                 errorSupplemental(mt.sym.loc, "%s `%s` defined here",
@@ -7038,7 +7041,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         // https://issues.dlang.org/show_bug.cgi?id=12543
         if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
         {
-            return mt.Type.getProperty(sc, e.loc, ident, 0);
+            return mt.Type.getProperty(sc, e.loc, ident, 0, null, identLoc);
         }
 
         /* If e.tupleof
@@ -7104,7 +7107,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             {
                 if (e.op == EXP.type)
                 {
-                    return mt.Type.getProperty(sc, e.loc, ident, 0);
+                    return mt.Type.getProperty(sc, e.loc, ident, 0, null, identLoc);
                 }
                 e = new DotTypeExp(e.loc, e, mt.sym);
                 e = e.expressionSemantic(sc);
@@ -7114,7 +7117,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             {
                 if (e.op == EXP.type)
                 {
-                    return mt.Type.getProperty(sc, e.loc, ident, 0);
+                    return mt.Type.getProperty(sc, e.loc, ident, 0, null, identLoc);
                 }
                 if (auto ifbase = cbase.isInterfaceDeclaration())
                     e = new CastExp(e.loc, e, ifbase.type);
