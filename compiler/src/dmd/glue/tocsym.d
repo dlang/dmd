@@ -342,6 +342,15 @@ Symbol* toSymbol(Dsymbol s)
 
         override void visit(FuncDeclaration fd)
         {
+            /* @__ctfe functions cannot be used at runtime
+             */
+            if (fd.storage_class & STC.ctfeOnly)
+            {
+                error(fd.loc, "function `%s` is `@__ctfe` and cannot be used at runtime", fd.toPrettyChars());
+                result = null;
+                return;
+            }
+
             const(char)* id = mangleExact(fd);
 
             //printf("FuncDeclaration.toSymbol(%s %s)\n", fd.kind(), fd.toChars());

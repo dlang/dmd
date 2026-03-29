@@ -9715,15 +9715,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     static STC isBuiltinAtAttribute(Identifier ident)
     {
-        return (ident == Id.property) ? STC.property :
-               (ident == Id.nogc)     ? STC.nogc     :
-               (ident == Id.safe)     ? STC.safe     :
-               (ident == Id.trusted)  ? STC.trusted  :
-               (ident == Id.system)   ? STC.system   :
-               (ident == Id.live)     ? STC.live     :
-               (ident == Id.future)   ? STC.future   :
-               (ident == Id.disable)  ? STC.disable  :
-               STC.none;
+        STC result = (ident == Id.property) ? STC.property :
+             (ident == Id.nogc)     ? STC.nogc     :
+             (ident == Id.safe)     ? STC.safe     :
+             (ident == Id.trusted)  ? STC.trusted  :
+             (ident == Id.system)   ? STC.system   :
+             (ident == Id.live)     ? STC.live     :
+             (ident == Id.future)   ? STC.future   :
+             (ident == Id.disable)  ? STC.disable  :
+             (ident == Id.ctfe)     ? STC.ctfeOnly :
+             STC.none;
+        return result;
     }
 
     enum STC atAttrGroup =
@@ -9734,7 +9736,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 STC.system   |
                 STC.live     |
                 /*STC.future   |*/ // probably should be included
-                STC.disable;
+                STC.disable  |
+                STC.ctfeOnly;
 
     void usageOfBodyKeyword()
     {
