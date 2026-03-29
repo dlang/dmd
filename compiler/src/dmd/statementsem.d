@@ -970,7 +970,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             if (!ec)
                 return null;
 
-            e = Expression.combine(e, ec);
+            e = combine(e, ec);
             return loopReturn(e, fs.cases, loc);
         }
 
@@ -2631,7 +2631,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             }
 
             // Extract side-effect part
-            rs.exp = Expression.extractLast(rs.exp, e0);
+            rs.exp = extractLast(rs.exp, e0);
             if (rs.exp.isCallExp())
                 rs.exp = valueNoDtor(rs.exp);
 
@@ -2670,7 +2670,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                  * with:
                  *      exp; return;
                  */
-                e0 = Expression.combine(e0, rs.exp);
+                e0 = combine(e0, rs.exp);
                 rs.exp = null;
             }
             if (e0)
@@ -2906,7 +2906,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         {
             if (e0.isDeclarationExp() || e0.isCommaExp())
             {
-                rs.exp = Expression.combine(e0, rs.exp);
+                rs.exp = combine(e0, rs.exp);
             }
             else
             {

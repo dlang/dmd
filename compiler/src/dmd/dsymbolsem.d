@@ -2634,7 +2634,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                         iexps.remove(pos);
                         iexps.insert(pos, te.exps);
-                        (*iexps)[pos] = Expression.combine(te.e0, (*iexps)[pos]);
+                        (*iexps)[pos] = combine(te.e0, (*iexps)[pos]);
                         goto Lexpand1;
                     }
                     else if (isAliasThisTuple(e))
@@ -2716,7 +2716,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         einit = (*te.exps)[i];
                         if (i == 0)
-                            einit = Expression.combine(te.e0, einit);
+                            einit = combine(te.e0, einit);
                     }
                     // Use the original initializer location, not the tuple element's location,
                     // so error messages point to the declaration site

@@ -980,10 +980,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             // Create: return (vresult = exp, vresult);
                             exp = new ConstructExp(rs.loc, funcdecl.vresult, exp);
                             exp = exp.expressionSemantic(scret);
-                            exp = Expression.combine(exp, new VarExp(rs.loc, funcdecl.vresult));
+                            exp = combine(exp, new VarExp(rs.loc, funcdecl.vresult));
 
                             if (rs.caseDim)
-                                exp = Expression.combine(exp, new IntegerExp(rs.caseDim));
+                                exp = combine(exp, new IntegerExp(rs.caseDim));
                         }
                         else if (funcdecl.tintro && !tret.equals(funcdecl.tintro.nextOf()))
                         {
