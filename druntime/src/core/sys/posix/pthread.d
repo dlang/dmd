@@ -30,6 +30,9 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
+version (Hurd)
+    import core.sys.hurd.sys.types;
+
 version (Posix):
 extern (C)
 nothrow:
@@ -104,6 +107,8 @@ void pthread_testcancel();
 */
 version (CRuntime_Glibc)
 {
+  version (linux)
+  {
     enum
     {
         PTHREAD_CANCEL_ENABLE,
@@ -140,6 +145,47 @@ version (CRuntime_Glibc)
         PTHREAD_PROCESS_PRIVATE,
         PTHREAD_PROCESS_SHARED
     }
+  }
+  else version (Hurd)
+  {
+    enum
+    {
+        PTHREAD_CANCEL_DISABLE,
+        PTHREAD_CANCEL_ENABLE,
+    }
+
+    enum
+    {
+        PTHREAD_CANCEL_DEFERRED,
+        PTHREAD_CANCEL_ASYNCHRONOUS
+    }
+
+    enum PTHREAD_CANCELED = cast(void*) -1;
+
+    // enum __pthread_cond PTHREAD_COND_INITIALIZER = { __PTHREAD_SPIN_LOCK_INITIALIZER, NULL, NULL, 0, NULL }
+
+
+    enum
+    {
+        PTHREAD_CREATE_JOINABLE = __pthread_detachstate.__PTHREAD_CREATE_JOINABLE,
+        PTHREAD_CREATE_DETACHED = __pthread_detachstate.__PTHREAD_CREATE_DETACHED,
+    }
+
+    enum
+    {
+        PTHREAD_EXPLICIT_SCHED = __pthread_inheritsched.__PTHREAD_EXPLICIT_SCHED,
+        PTHREAD_INHERIT_SCHED = __pthread_inheritsched.__PTHREAD_INHERIT_SCHED,
+    }
+
+    enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
+    enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
+
+    enum
+    {
+        PTHREAD_PROCESS_PRIVATE = __pthread_process_shared.__PTHREAD_PROCESS_PRIVATE,
+        PTHREAD_PROCESS_SHARED =  __pthread_process_shared.__PTHREAD_PROCESS_SHARED,
+    }
+  }
 }
 else version (Darwin)
 {
@@ -477,6 +523,8 @@ alias _pthread_cleanup_routine = void function(void*);
 alias _pthread_cleanup_routine_nogc = void function(void*) @nogc;
 version (CRuntime_Glibc)
 {
+  version (linux)
+  {
     struct _pthread_cleanup_buffer
     {
         _pthread_cleanup_routine    __routine;
@@ -503,6 +551,60 @@ version (CRuntime_Glibc)
             _pthread_cleanup_pop( &buffer, execute );
         }
     }
+   }
+  else version (Hurd)
+  {
+    // glibc/sysdeps/htl/pthread.h
+    // glibc/sysdeps/htl/bits/cancellation.h
+      struct __pthread_cancelation_handler
+      {
+          _pthread_cleanup_routine       __handler;
+          void*                          __arg;
+          __pthread_cancelation_handler* __next;
+      }
+
+      __pthread_cancelation_handler** __pthread_get_cleanup_stack();
+
+      // glibc/sysdeps/htl/bits/cancellation.h
+      // Reimplement the macros in D.
+      // Not sure what to do with that.
+      // void pthread_cleanup_push(__pthread_cancelation_handler*, _pthread_cleanup_routine_nogc, void*) @nogc;
+      void pthread_cleanup_push(__pthread_cancelation_handler* , _pthread_cleanup_routine __handler, void* __arg){
+          __pthread_cancelation_handler** handlers =  __pthread_get_cleanup_stack();
+          __pthread_cancelation_handler handler = {
+              __handler, __arg, * handlers
+          };
+          *handlers = &handler;
+      }
+
+      void pthread_cleanup_pop(int execute)
+      {
+          __pthread_cancelation_handler** handlers =  __pthread_get_cleanup_stack();
+          if (execute)
+              (*handlers).__handler((*handlers).__arg);
+          *handlers = (*handlers).__next;
+      }
+
+      struct pthread_cleanup
+      {
+          __pthread_cancelation_handler cancelation_handler = void;
+
+          extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg )
+          {
+              pthread_cleanup_push( &cancelation_handler, routine, arg );
+          }
+
+          extern (D) void pop()( int execute )
+          {
+              pthread_cleanup_pop(execute);
+          }
+      }
+  }
+  else
+    {
+      static assert(false, "Unsupported platform");
+    }
+
 }
 else version (Darwin)
 {
@@ -1064,9 +1166,24 @@ int pthread_setconcurrency(int);
 
 version (CRuntime_Glibc)
 {
-    enum PTHREAD_MUTEX_NORMAL       = 0;
-    enum PTHREAD_MUTEX_RECURSIVE    = 1;
-    enum PTHREAD_MUTEX_ERRORCHECK   = 2;
+
+    version(linux)
+    {
+        enum PTHREAD_MUTEX_NORMAL       = 0;
+        enum PTHREAD_MUTEX_RECURSIVE    = 1;
+        enum PTHREAD_MUTEX_ERRORCHECK   = 2;
+    }
+    else version(Hurd)
+    {
+        enum PTHREAD_MUTEX_NORMAL       = __pthread_mutex_type.__PTHREAD_MUTEX_TIMED;
+        enum PTHREAD_MUTEX_ERRORCHECK   = __pthread_mutex_type.__PTHREAD_MUTEX_ERRORCHECK;
+        enum PTHREAD_MUTEX_RECURSIVE    = __pthread_mutex_type.__PTHREAD_MUTEX_RECURSIVE;
+
+    }
+    else
+    {
+        static assert(false, "Unsupported platform");
+    }
     enum PTHREAD_MUTEX_DEFAULT      = PTHREAD_MUTEX_NORMAL;
 
     int pthread_attr_getguardsize(const scope pthread_attr_t*, size_t*);
@@ -1400,6 +1517,22 @@ else version (Solaris)
     int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int);
     int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int);
 }
+else version (Hurd)
+{
+  enum
+  {
+      PTHREAD_PRIO_NONE =__pthread_mutex_protocol.__PTHREAD_PRIO_NONE,
+      PTHREAD_PRIO_INHERIT =__pthread_mutex_protocol.__PTHREAD_PRIO_INHERIT,
+      PTHREAD_PRIO_PROTECT =__pthread_mutex_protocol.__PTHREAD_PRIO_PROTECT,
+  }
+
+  int pthread_mutex_getprioceiling(const scope pthread_mutex_t*, int*);
+  int pthread_mutex_setprioceiling(pthread_mutex_t*, int, int*);
+  int pthread_mutexattr_getprioceiling(const scope pthread_mutexattr_t*, int*);
+  int pthread_mutexattr_getprotocol(const scope pthread_mutexattr_t*, int*);
+  int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int);
+  int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int);
+}
 
 //
 // Scheduling (TPS)
@@ -1421,11 +1554,22 @@ int pthread_setschedprio(pthread_t, int);
 
 version (CRuntime_Glibc)
 {
+  version (linux)
+  {
     enum
     {
         PTHREAD_SCOPE_SYSTEM,
         PTHREAD_SCOPE_PROCESS
     }
+  }
+  else version (Hurd)
+  {
+     enum
+     {
+         PTHREAD_SCOPE_SYSTEM = __pthread_contentionscope.__PTHREAD_SCOPE_SYSTEM,
+         PTHREAD_SCOPE_PROCESS = __pthread_contentionscope.__PTHREAD_SCOPE_PROCESS,
+     }
+  }
 
     int pthread_attr_getinheritsched(const scope pthread_attr_t*, int*);
     int pthread_attr_getschedpolicy(const scope pthread_attr_t*, int*);

@@ -400,6 +400,10 @@ else version (DragonFlyBSD)
 else version (Solaris)
 {
 }
+else version (Hurd)
+{
+  // What is needed here?
+}
 else
 {
     static assert(false, "Unsupported platform");

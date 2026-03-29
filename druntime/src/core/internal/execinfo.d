@@ -68,6 +68,8 @@ else version (DragonFlyBSD)
     import _execinfo = core.sys.dragonflybsd.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
 else version (Solaris)
     import _execinfo = core.sys.solaris.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
+else version (Hurd)
+    import _execinfo = core.sys.hurd.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
 
 /// Indicates the availability of backtrace functions
 enum bool hasExecinfo = is(_execinfo == module);

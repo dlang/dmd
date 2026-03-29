@@ -68,7 +68,7 @@ else
     enum DMDV2 = false;
 bool REQUIRE_DSO_REGISTRY()
 {
-    return DMDV2 && (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64));
+    return DMDV2 && (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64 | EX_HURD | EX_HURD64));
 }
 
 /**
@@ -81,7 +81,7 @@ bool USE_INIT_ARRAY() { return true; }
  * FreeBSD defaults to lld as of FreeBSD 13 (2021); OpenBSD as of 6.5 (2019).
  */
 
-bool ELF_COMDAT() { return (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64)) != 0; }
+bool ELF_COMDAT() { return (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_HURD | EX_HURD64)) != 0; }
 
 /***************************************************
  * Correspondence of relocation types
@@ -1237,6 +1237,11 @@ void ElfObj_term(const(char)[] objfilename)
         case EX_OPENBSD:
         case EX_OPENBSD64:
             ELFOSABI = ELFOSABI_OPENBSD;
+            break;
+
+        case EX_HURD:
+        case EX_HURD64:
+            ELFOSABI = ELFOSABI_GNU;
             break;
 
         case EX_SOLARIS:

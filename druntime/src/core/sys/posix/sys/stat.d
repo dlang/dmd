@@ -1540,6 +1540,65 @@ else version (Solaris)
     enum S_ISGID = 0x400;
     enum S_ISVTX = 0x200;
 }
+else version (Hurd)
+{
+    private  alias fsid_t = ulong;
+    static assert (fsid_t.sizeof != int.sizeof);
+    static if (__USE_FILE_OFFSET64)
+        private enum SPARE_SIZE = 8;
+    else
+        private enum SPARE_SIZE = 11;
+
+    struct stat_t
+    {
+        int       st_fstype;            /* File system type.  */
+        fsid_t    st_fsid;              /* File system ID.  */
+        alias st_dev = st_fsid;
+        ino_t     st_ino;               /* File number. */
+        uint      st_gen;
+        dev_t     st_rdev;
+        mode_t    st_mode;
+        nlink_t   st_nlink;
+        uid_t     st_uid;
+        gid_t     st_gid;
+        off_t     st_size;
+
+        static if (_DEFAULT_SOURCE || _XOPEN_SOURCE >= 700)
+        {
+            timespec    st_atim;
+            timespec    st_mtim;
+            timespec    st_ctim;
+            extern(D) @safe @property inout pure nothrow
+            {
+                ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+                ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+                ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
+            }
+      }
+      else
+      {
+            time_t      st_atime;
+            c_ulong     st_atimensec;
+            time_t      st_mtime;
+            c_ulong     st_mtimensec;
+            time_t      st_ctime;
+            c_ulong     st_ctimensec;
+      }
+
+        blksize_t   st_blksize;
+        blkcnt_t    st_blocks;
+
+        uid_t       st_author;
+        uint        st_flags;
+        int[SPARE_SIZE]      st_spare;
+    }
+    version (X86)     static assert(stat_t.sizeof == 128);
+    version (X86_64)  static assert(stat_t.sizeof == 176);
+
+    enum S_ISUID    = 0x800; // octal 0004000
+    enum S_ISGID    = 0x400; // octal 0002000
+    enum S_ISVTX    = 0x200; // octal 0001000
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -2211,6 +2270,11 @@ else version (Solaris)
     enum UTIME_NOW = -1;
     enum UTIME_OMIT = -2;
 }
+else version (Hurd)
+{
+    enum UTIME_NOW = -1;
+    enum UTIME_OMIT = -2;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -2316,6 +2380,17 @@ else version (Solaris)
     enum S_IFSOCK = 0xC000;
     enum S_IFDOOR = 0xD000;
     enum S_IFPORT = 0xE000;
+}
+else version (Hurd)
+{
+    enum S_IFMT     = 0xF000; // octal 0170000
+    enum S_IFBLK    = 0x6000; // octal 0060000
+    enum S_IFCHR    = 0x2000; // octal 0020000
+    enum S_IFIFO    = 0x1000; // octal 0010000
+    enum S_IFREG    = 0x8000; // octal 0100000
+    enum S_IFDIR    = 0x4000; // octal 0040000
+    enum S_IFLNK    = 0xA000; // octal 0120000
+    enum S_IFSOCK   = 0xC000; // octal 0140000
 }
 else
 {

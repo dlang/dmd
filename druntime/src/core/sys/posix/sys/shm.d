@@ -181,6 +181,26 @@ else version (Solaris)
 {
 
 }
+else version (Hurd)
+{
+    enum SHM_RDONLY     = 0x01000; // 010000
+    enum SHM_RND        = 0x02000; // 020000
+    enum SHM_REMAP      = 0x4000; // 040000
+
+    alias shmatt_t = short;
+
+    struct shmid_ds
+    {
+        ipc_perm    shm_perm;
+        size_t      shm_segsz;
+        time_t      shm_atime;
+        time_t      shm_dtime;
+        time_t      shm_ctime;
+        pid_t       shm_cpid;
+        pid_t       shm_lpid;
+        shmatt_t    shm_nattch;
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");

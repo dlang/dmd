@@ -2,7 +2,7 @@
 #
 # Detects and sets the macros:
 #
-#   OS         = one of {windows,osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris}
+#   OS         = one of {windows,osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris,hurd}
 #   MODEL      = one of { 32, 64 }
 #   MODEL_FLAG = one of { -m32, -m64 }
 #   ARCH       = one of { x86, x86_64, aarch64 }
@@ -39,6 +39,9 @@ ifeq (,$(OS))
     endif
     ifeq (SunOS,$(uname_S))
       OS:=solaris
+    endif
+    ifeq (GNU,$(uname_S))
+      OS:=hurd
     endif
     ifeq (,$(OS))
       $(error Unrecognized or unsupported OS for uname: $(uname_S))
@@ -87,7 +90,7 @@ ifeq (,$(MODEL))
       MODEL:=64
       ARCH:=aarch64
     endif
-    ifneq (,$(findstring $(uname_M),i386 i586 i686))
+    ifneq (,$(findstring $(uname_M),i386 i586 i686 i686-AT386))
       MODEL:=32
       ARCH:=x86
     endif

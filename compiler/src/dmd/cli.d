@@ -33,10 +33,11 @@ enum TargetOS : ubyte
     FreeBSD      = 0x10,
     Solaris      = 0x20,
     DragonFlyBSD = 0x40,
+    Hurd         = 0x80,
 
     // Combination masks
-    all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
-    Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
+    all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD | Hurd,
+    Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD | Hurd,
 }
 
 // Detect the current TargetOS
@@ -67,6 +68,10 @@ else version(DragonFlyBSD)
 else version(Solaris)
 {
     private enum targetOS = TargetOS.Solaris;
+}
+else version(Hurd)
+{
+    private enum targetOS = TargetOS.Hurd;
 }
 else
 {
@@ -787,6 +792,7 @@ dmd -cov -unittest myprog.d
                     $(LI $(I openbsd): OpenBSD)
                     $(LI $(I osx): OSX)
                     $(LI $(I solaris): Solaris)
+                    $(LI $(I hurd): Hurd)
                     $(LI $(I windows): Windows)
                 )`
         ),
@@ -877,7 +883,7 @@ dmd -cov -unittest myprog.d
                        $(LI `freestanding` for no operating system)
                        $(LI `darwin` or `osx` for MacOS)
                        $(LI `dragonfly` or `dragonflybsd` for DragonflyBSD)
-                       $(LI `freebsd`, `openbsd`, `linux`, `solaris` or `windows` for their respective operating systems)
+                       $(LI `freebsd`, `openbsd`, `linux`, `solaris`, `hurd` or `windows` for their respective operating systems)
                    )
                    $(LI $(I cenv) is the C runtime environment and is optional:)
                    $(UL

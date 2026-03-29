@@ -34,6 +34,8 @@ OpenBSD: https://github.com/openbsd/src/blob/master/include/spawn.h
 DragonFlyBSD: https://github.com/DragonFlyBSD/DragonFlyBSD/blob/master/include/spawn.h
 
 Solaris: https://github.com/illumos/illumos-gate/blob/master/usr/src/head/spawn.h
+
+Hurd: https://sourceware.org/git/?p=glibc.git;a=blob;f=posix/spawn.h;hb=HEAD
 */
 
 version (OSX) // macOS and iOS only as this API is prohibited on WatchOS and TVOS
@@ -368,6 +370,46 @@ else version (Solaris)
                                 posix_spawnattr_t* attr);
         int posix_spawnattr_getsigignore_np(const posix_spawnattr_t* attr, sigset_t* sigignore);
         int posix_spawnattr_setsigignore_np(posix_spawnattr_t* attr, const sigset_t* sigignore);
+    }
+}
+else version (Hurd)
+{
+    // Source: https://sourceware.org/git/?p=glibc.git;a=blob;f=posix/spawn.h;hb=HEAD
+    enum
+    {
+        POSIX_SPAWN_RESETIDS = 0x01,
+        POSIX_SPAWN_SETPGROUP = 0x02,
+        POSIX_SPAWN_SETSIGDEF = 0x04,
+        POSIX_SPAWN_SETSIGMASK = 0x08,
+        POSIX_SPAWN_SETSCHEDPARAM = 0x10,
+         POSIX_SPAWN_SETSCHEDULER = 0x20
+    }
+    import core.sys.posix.config : _GNU_SOURCE;
+    static if (_GNU_SOURCE)
+    {
+        enum
+        {
+            POSIX_SPAWN_USEVFORK = 0x40,
+            POSIX_SPAWN_SETSID = 0x80
+        }
+    }
+    struct posix_spawnattr_t
+    {
+        short __flags;
+        pid_t __pgrp;
+        sigset_t __sd;
+        sigset_t __ss;
+        sched_param __sp;
+        int __policy;
+        int[16] __pad;
+    }
+    struct __spawn_action;
+    struct posix_spawn_file_actions_t
+    {
+        int __allocated;
+        int __used;
+        __spawn_action* __actions;
+        int[16] __pad;
     }
 }
 else

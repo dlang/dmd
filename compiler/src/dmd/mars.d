@@ -377,7 +377,7 @@ void setDefaultLibraries(const ref Target target, ref const(char)[] defaultlibna
         {
             defaultlibname = target.isX86_64 ? "phobos64" : "phobos32mscoff";
         }
-        else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
+        else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD | Target.OS.Hurd))
         {
             defaultlibname = "libphobos2.a";
         }
@@ -1171,7 +1171,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             enum len = "-os=".length;
             // Parse:
             //      -os=identifier
-            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd` allowed for `-os`";
+            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd`, `hurd` allowed for `-os`";
             if (Identifier.isValidIdentifier(p + len))
             {
                 const ident = p + len;
@@ -1185,6 +1185,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 case "freebsd":      target.os = Target.OS.FreeBSD;      break;
                 case "solaris":      target.os = Target.OS.Solaris;      break;
                 case "dragonflybsd": target.os = Target.OS.DragonFlyBSD; break;
+                case "hurd":         target.os = Target.OS.Hurd;         break;
                 default:
                     errorInvalidSwitch(p, msg);
                     return false;
@@ -1919,7 +1920,7 @@ bool createModule(const(char)* file, ref Strings libmodules, ref Param params, c
         libmodules.push(file);
         return false;
     }
-    if (target.os & (Target.OS.linux | Target.OS.OSX| Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
+    if (target.os & (Target.OS.linux | Target.OS.OSX| Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD | Target.OS.Hurd))
     {
         if (FileName.equals(ext, target.dll_ext))
         {
