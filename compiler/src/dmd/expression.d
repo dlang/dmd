@@ -770,9 +770,9 @@ extern (C++) class IdentifierExp : Expression
 {
     Identifier ident;
 
-    extern (D) this(Loc loc, Identifier ident) scope @safe
+    extern (D) this(Loc loc, Identifier ident, EXP op = EXP.identifier) scope @safe
     {
-        super(loc, EXP.identifier);
+        super(loc, op);
         this.ident = ident;
     }
 
@@ -796,7 +796,7 @@ extern (C++) final class DollarExp : IdentifierExp
 {
     extern (D) this(Loc loc)
     {
-        super(loc, Id.dollar);
+        super(loc, Id.dollar, EXP.dollar);
     }
 
     override void accept(Visitor v)

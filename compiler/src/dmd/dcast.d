@@ -34,6 +34,7 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.location;
 import dmd.impcnvtab;
+import dmd.id;
 import dmd.importc;
 import dmd.init;
 import dmd.intrange;
@@ -284,6 +285,26 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         return result;
     }
 
+    Expression visitCall(CallExp e)
+    {
+        if (e.e1.isDollarExp() && e.e1.type && e.e1.type.ty == Tvoid)
+        {
+            auto n = new CallExp(e.loc, new TypeExp(e.e1.loc, t), e.arguments);
+            return n.expressionSemantic(sc);
+        }
+        return visit(e);
+    }
+
+    Expression visitDotId(DotIdExp e)
+    {
+        if (e.e1.isDollarExp() && e.e1.type && e.e1.type.ty == Tvoid)
+        {
+            auto n = new DotIdExp(e.loc, new TypeExp(e.e1.loc, t), e.ident);
+            return n.expressionSemantic(sc);
+        }
+        return visit(e);
+    }
+
     switch (e.op)
     {
         default              : return visit            (e);
@@ -292,6 +313,8 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         case EXP.function_   : return visitFunc        (e.isFuncExp());
         case EXP.arrayLiteral: return visitArrayLiteral(e.isArrayLiteralExp());
         case EXP.slice       : return visitSlice       (e.isSliceExp());
+        case EXP.call        : return visitCall        (e.isCallExp());
+        case EXP.dotIdentifier: return visitDotId      (e.isDotIdExp());
     }
 }
 
@@ -325,7 +348,15 @@ MATCH implicitConvTo(Expression e, Type t)
             error(e.loc, "`%s` is not an expression", e.toChars());
             e.type = Type.terror;
         }
-
+        if (e.type.ty == Tvoid)
+        {
+            if (e.isDollarExp() ||
+                (e.op == EXP.call && (cast(CallExp)e).e1.isDollarExp()) ||
+                (e.op == EXP.dotIdentifier && (cast(DotIdExp)e).e1.isDollarExp()))
+            {
+                return MATCH.convert;
+            }
+        }
         Expression ex = e.optimize(WANTvalue);
         if (ex.type.equals(t))
         {
@@ -3280,12 +3311,70 @@ Expression inferType(Expression e, Type t, int flag = 0)
         return ce;
     }
 
+    Expression visitDollar(DollarExp de)
+    {
+        // Handle $ - infer $ from the context type
+        if (t)
+        {
+            if (t.ty == Tstruct || t.ty == Tenum || t.ty == Tclass)
+                return new TypeExp(de.loc, t);
+            Type tb = t.toBasetype();
+            if (tb.ty == Tstruct || tb.ty == Tenum || tb.ty == Tclass)
+                return new TypeExp(de.loc, t);
+        }
+        return de;
+    }
+
+    Expression visitDotId(DotIdExp die)
+    {
+        // Handle $.ident - infer $ from the context type
+        if (die.e1.isDollarExp() && t)
+        {
+            if (t.ty == Tstruct || t.ty == Tenum || t.ty == Tclass)
+            {
+                die.e1 = new TypeExp(die.e1.loc, t);
+            }
+            else
+            {
+                Type tb = t.toBasetype();
+                if (tb.ty == Tstruct || tb.ty == Tenum || tb.ty == Tclass)
+                    die.e1 = new TypeExp(die.e1.loc, t);
+            }
+        }
+        return die;
+    }
+
+    Expression visitCall(CallExp ce)
+    {
+        // Handle $(args) - infer $ from the context type
+        if (ce.e1.isDollarExp() && t)
+        {
+            if (t.ty == Tstruct || t.ty == Tenum || t.ty == Tclass)
+            {
+                ce.e1 = new TypeExp(ce.e1.loc, t);
+            }
+            else
+            {
+                Type tb = t.toBasetype();
+                if (tb.ty == Tstruct || tb.ty == Tenum || tb.ty == Tclass)
+                    ce.e1 = new TypeExp(ce.e1.loc, t);
+            }
+        }
+        return ce;
+    }
+
+    // Handle DollarExp - note: DollarExp has op == EXP.identifier
+    if (auto de = e.isDollarExp())
+        return visitDollar(de);
+
     if (t) switch (e.op)
     {
         case EXP.arrayLiteral:      return visitAle(e.isArrayLiteralExp());
         case EXP.assocArrayLiteral: return visitAar(e.isAssocArrayLiteralExp());
         case EXP.function_:         return visitFun(e.isFuncExp());
         case EXP.question:          return visitTer(e.isCondExp());
+        case EXP.dotIdentifier:     return visitDotId(e.isDotIdExp());
+        case EXP.call:              return visitCall(e.isCallExp());
         default:
     }
     return e;

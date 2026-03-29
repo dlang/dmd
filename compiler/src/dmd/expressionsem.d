@@ -5403,6 +5403,33 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
+    override void visit(DollarExp exp)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("DollarExp::semantic('%s')\n", exp.ident.toChars());
+        }
+
+        Dsymbol scopesym;
+        Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
+        if (s)
+        {
+            // if we found it, it's the expected length of an array slice, etc.
+            visit(cast(IdentifierExp)exp);
+            return;
+        }
+
+        if (sc.scopesym && sc.scopesym.isArrayScopeSymbol())
+        {
+            visit(cast(IdentifierExp)exp);
+            return;
+        }
+
+        // if not found, it's $ waiting for type inference via implicitCastTo
+        exp.type = Type.tvoid;
+        result = exp;
+    }
+
     override void visit(IdentifierExp exp)
     {
         static if (LOGSEMANTIC)
@@ -7789,6 +7816,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.e1;
             return;
         }
+
+        if (exp.e1.type == Type.tvoid)
+        {
+            if (exp.e1.isDollarExp())
+            {
+                exp.type = Type.tvoid;
+                result = exp;
+                return;
+            }
+        }
+
         if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc) ||
             preFunctionParameters(sc, exp.argumentList, global.errorSink))
             return setError();
@@ -15599,8 +15637,33 @@ Expression binSemantic(BinExp e, Scope* sc)
     {
         printf("BinExp::semantic('%s')\n", e.toChars());
     }
+
+    static bool containsDollarExp(Expression exp)
+    {
+        if (!exp)
+            return false;
+        if (exp.isDollarExp())
+            return true;
+        if (auto ce = exp.isCallExp())
+            return containsDollarExp(ce.e1);
+        if (auto die = exp.isDotIdExp())
+            return containsDollarExp(die.e1);
+        return false;
+    }
+
     Expression e1x = e.e1.expressionSemantic(sc);
+    // If e1 has a type and e2 contains a DollarExp, infer type from e1
+    if (e1x.type && e1x.type.ty != Tvoid && e1x.type.ty != Terror && containsDollarExp(e.e2))
+    {
+        e.e2 = inferType(e.e2, e1x.type);
+    }
     Expression e2x = e.e2.expressionSemantic(sc);
+    // If e2 has a type and e1 is still void (could happen if e1 was DollarExp), infer type from e2
+    if (e2x.type && e2x.type.ty != Tvoid && e2x.type.ty != Terror && e1x.type && e1x.type.ty == Tvoid && containsDollarExp(e.e1))
+    {
+        e.e1 = inferType(e.e1, e2x.type);
+        e.e1 = e.e1.expressionSemantic(sc);
+    }
 
     // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
     if (e1x.op == EXP.type)
@@ -15689,6 +15752,16 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
     //printf("dotIdSemanticPropX() %s\n", toChars(exp));
     if (Expression ex = unaSemantic(exp, sc))
         return ex;
+
+    if (exp.e1.type == Type.tvoid)
+    {
+        if (exp.e1.isDollarExp())
+        {
+            auto n = new DotIdExp(exp.loc, exp.e1, exp.ident);
+            n.type = Type.tvoid;
+            return n;
+        }
+    }
 
     if (!sc.inCfile && exp.ident == Id._mangleof)
     {
@@ -16699,6 +16772,16 @@ bool checkValue(Expression e)
 
     if (e.type && e.type.toBasetype().ty == Tvoid)
     {
+        if (e.isDollarExp()) return false;
+        if (auto ce = e.isCallExp())
+        {
+            if (ce.e1.isDollarExp()) return false;
+        }
+        if (auto de = e.isDotIdExp())
+        {
+            if (de.e1.isDollarExp()) return false;
+        }
+
         error(e.loc, "expression `%s` is `void` and has no value", e.toErrMsg());
         //print(); assert(0);
         if (!global.gag)
