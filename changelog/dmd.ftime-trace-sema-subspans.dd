@@ -1,37 +1,9 @@
-$(CHANGELOG_NAV_INJECT)
+`-ftime-trace`: break up the template instance span into sub-phases
 
-$(VERSION $(CHANGELOG_VERSION_NIGHTLY), =================================================,
+The `-ftime-trace` output previously showed template instantiation as a single
+flat block, making it hard to tell where the time was actually going.
 
-$(BUGSTITLE_TEXT_HEADER Compiler changes,
-
-$(LI $(RELATIVE_LINK2 ftime-trace-sema-subspans,`-ftime-trace`: add sub-spans for template argument semantic and overload resolution))
-
-)
-
-$(BUGSTITLE_TEXT_BODY Compiler changes,
-
-$(LI $(LNAME2 ftime-trace-sema-subspans,`-ftime-trace`: add sub-spans for template argument semantic and overload resolution)
-$(CHANGELOG_SOURCE_FILE dmd, changelog/dmd.ftime-trace-sema-subspans.dd)
-
-The `-ftime-trace` output previously showed `semantic_analysis` as a single
-monolithic block with no sub-breakdown, making it hard to attribute
-compile-time regressions to specific phases (see $(BUGZILLA 22711)).
-
-Two new sub-spans are now emitted inside each `Sema1: Template Instance` event:
-
-$(UL
-    $(LI `Sema1: Template Arg Semantic` — time spent in `semanticTiargs`, which
-         runs semantic analysis on the template arguments)
-    $(LI `Sema1: Overload Resolution` — time spent in `findBestMatch`, which
-         selects the best-matching template overload)
-)
-
-These sub-spans are visible in trace viewers such as
-$(LINK2 https://ui.perfetto.dev/, Perfetto) and make it possible to identify
-whether a compile-time regression is caused by argument evaluation or overload
-resolution.
-
-)
-
-)
-)
+The `Sema1: Template Instance` span now contains sub-spans for each phase:
+`Sema1: Template Arg Semantic`, `Sema1: Overload Resolution`,
+`Sema1: Expand Members`, `Sema2: Template Instance`, and `Sema3: Template Instance`.
+These are visible in trace viewers like $(LINK2 https://ui.perfetto.dev/, Perfetto).
