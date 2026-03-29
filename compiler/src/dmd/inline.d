@@ -205,100 +205,153 @@ public:
             result = exp;
     }
 
-    override void visit(CompoundStatement s)
+    static if (asStatements)
+        alias StatementsResult = Statements*;
+    else
+        alias StatementsResult = Expression;
+
+    static StatementsResult statementsDoInline(Statements* stmts, InlineDoState ids)
     {
-        //printf("CompoundStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
         static if (asStatements)
         {
-            auto as = new Statements();
-            as.reserve(s.statements.length);
+            auto result = new Statements();
+            result.reserve(stmts.length);
+        }
+        else
+        {
+            Expression result;
         }
 
-        foreach (i, sx; *s.statements)
+        foreach (i, sx; *stmts)
         {
             if (!sx)
                 continue;
-            static if (asStatements)
+
+            if (auto ifs = sx.isIfStatement())
             {
-                as.push(doInlineAs!Statement(sx, ids));
-            }
-            else
-            {
-                /* Specifically allow:
-                 *  if (condition)
-                 *      return exp1;
-                 *  return exp2;
-                 */
-                IfStatement ifs;
-                Statement s3;
-                if ((ifs = sx.isIfStatement()) !is null &&
-                    ifs.ifbody &&
-                    ifs.ifbody.endsWithReturnStatement() &&
-                    !ifs.elsebody &&
-                    i + 1 < s.statements.length &&
-                    (s3 = (*s.statements)[i + 1]) !is null &&
-                    s3.endsWithReturnStatement()
-                   )
+                assert(!ifs.param);
+                auto econd = doInlineAs!Expression(ifs.condition, ids);
+                assert(econd);
+
+                ids.foundReturn = false;
+                auto ifbody = doInlineAs!Result(ifs.ifbody, ids);
+                bool ifReturned = ids.foundReturn;
+
+                ids.foundReturn = false;
+                auto elsebody = doInlineAs!Result(ifs.elsebody, ids);
+                bool elseReturned = ids.foundReturn;
+
+                if (ifReturned != elseReturned)
                 {
-                    /* Rewrite as ?:
+                    /* One branch returns, but the other does not.
+                     * Merge the remaining statements in stmts into
+                     * the branch that does not return, and recurse.
                      */
-                    auto econd = doInlineAs!Expression(ifs.condition, ids);
-                    assert(econd);
-                    auto e1 = doInlineAs!Expression(ifs.ifbody, ids);
-                    assert(ids.foundReturn);
-                    auto e2 = doInlineAs!Expression(s3, ids);
-                    assert(e2);
-                    Expression e = new CondExp(econd.loc, econd, e1, e2);
-                    e.type = e1.type;
-                    if (e.type.ty == Ttuple)
+
+                    if (elseReturned)
                     {
-                        e1.type = Type.tvoid;
-                        e2.type = Type.tvoid;
-                        e.type = Type.tvoid;
+                        /* Rewrite
+                         *   if (cond) stmt; else return exp;
+                         * into
+                         *   if (!cond) return exp; else stmt;
+                         */
+                        econd = new NotExp(econd.loc, econd);
+                        econd.type = Type.tbool;
+
+                        auto tmp = ifbody;
+                        ifbody = elsebody;
+                        elsebody = tmp;
                     }
-                    result = Expression.combine(result, e);
+
+                    if (i < stmts.length - 1)
+                    {
+                        ids.foundReturn = false;
+                        scope rem = Statements((*stmts)[i + 1 .. $]);
+                        auto rembody = statementsDoInline(&rem, ids);
+
+                        static if (asStatements)
+                        {
+                            /* Rewrite
+                             *   if (cond) return exp; else stmt1; stmt2;
+                             * into
+                             *   if (cond) return exp; else { { stmt1; } stmt2; }
+                             */
+                            auto ss = new ScopeStatement(ifs.loc, elsebody, ifs.endloc);
+                            auto cs = new CompoundStatement(ifs.loc, ss);
+                            cs.statements.append(rembody);
+                            elsebody = cs;
+                        }
+                        else
+                        {
+                            elsebody = Expression.combine(elsebody, rembody);
+                        }
+                    }
+
+                    ids.foundReturn = true;
+
+                    static if (asStatements)
+                    {
+                        auto s = new IfStatement(ifs.loc, ifs.param, econd, ifbody, elsebody, ifs.endloc);
+                        result.push(s);
+                    }
+                    else
+                    {
+                        auto e = buildBranchExp(econd, ifbody, elsebody);
+                        result = Expression.combine(result, e);
+                    }
+
+                    return result;
+                }
+
+                ids.foundReturn = ifReturned && elseReturned;
+
+                static if (asStatements)
+                {
+                    auto s = new IfStatement(ifs.loc, ifs.param, econd, ifbody, elsebody, ifs.endloc);
+                    result.push(s);
                 }
                 else
                 {
-                    ids.foundReturn = false;
-                    auto e = doInlineAs!Expression(sx, ids);
+                    auto e = buildBranchExp(econd, ifbody, elsebody);
                     result = Expression.combine(result, e);
                 }
+            }
+            else
+            {
+                ids.foundReturn = false;
+
+                auto r = doInlineAs!Result(sx, ids);
+                static if (asStatements)
+                    result.push(r);
+                else
+                    result = Expression.combine(result, r);
             }
 
             if (ids.foundReturn)
                 break;
         }
 
+        return result;
+    }
+
+    override void visit(CompoundStatement s)
+    {
+        //printf("CompoundStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
+        auto r = statementsDoInline(s.statements, ids);
         static if (asStatements)
-            result = new CompoundStatement(s.loc, as);
+            result = new CompoundStatement(s.loc, r);
+        else
+            result = r;
     }
 
     override void visit(UnrolledLoopStatement s)
     {
         //printf("UnrolledLoopStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
+        auto r = statementsDoInline(s.statements, ids);
         static if (asStatements)
-        {
-            auto as = new Statements();
-            as.reserve(s.statements.length);
-        }
-
-        foreach (sx; *s.statements)
-        {
-            if (!sx)
-                continue;
-            auto r = doInlineAs!Result(sx, ids);
-            static if (asStatements)
-                as.push(r);
-            else
-                result = Expression.combine(result, r);
-
-            if (ids.foundReturn)
-                break;
-        }
-
-        static if (asStatements)
-            result = new UnrolledLoopStatement(s.loc, as);
+            result = new UnrolledLoopStatement(s.loc, r);
+        else
+            result = r;
     }
 
     override void visit(ScopeStatement s)
@@ -317,47 +370,23 @@ public:
         auto econd = doInlineAs!Expression(s.condition, ids);
         assert(econd);
 
+        ids.foundReturn = false;
         auto ifbody = doInlineAs!Result(s.ifbody, ids);
-        bool bodyReturn = ids.foundReturn;
+        bool ifReturned = ids.foundReturn;
 
         ids.foundReturn = false;
         auto elsebody = doInlineAs!Result(s.elsebody, ids);
+        bool elseReturned = ids.foundReturn;
+
+        // Top-level if statements should have been handled in statementsDoInline().
+        // Here we're handling nested if statements, which must be symmetrical.
+        assert(ifReturned == elseReturned);
+        ids.foundReturn = ifReturned && elseReturned;
 
         static if (asStatements)
-        {
             result = new IfStatement(s.loc, s.param, econd, ifbody, elsebody, s.endloc);
-        }
         else
-        {
-            alias e1 = ifbody;
-            alias e2 = elsebody;
-            if (e1 && e2)
-            {
-                result = new CondExp(econd.loc, econd, e1, e2);
-                result.type = e1.type;
-                if (result.type.ty == Ttuple)
-                {
-                    e1.type = Type.tvoid;
-                    e2.type = Type.tvoid;
-                    result.type = Type.tvoid;
-                }
-            }
-            else if (e1)
-            {
-                result = new LogicalExp(econd.loc, EXP.andAnd, econd, e1);
-                result.type = Type.tvoid;
-            }
-            else if (e2)
-            {
-                result = new LogicalExp(econd.loc, EXP.orOr, econd, e2);
-                result.type = Type.tvoid;
-            }
-            else
-            {
-                result = econd;
-            }
-        }
-        ids.foundReturn = ids.foundReturn && bodyReturn;
+            result = buildBranchExp(econd, ifbody, elsebody);
     }
 
     override void visit(ReturnStatement s)
@@ -450,6 +479,32 @@ public:
         //printf("ImportStatement.doInlineAs!%s()\n", Result.stringof.ptr);
     }
 
+    override void visit(WhileStatement s)
+    {
+        //printf("WhileStatement.doInlineAs!%s()\n", Result.stringof.ptr);
+        static if (asStatements)
+        {
+            auto scond = doInlineAs!Expression(s.condition, ids);
+            auto sbody = doInlineAs!Statement(s._body, ids);
+            result = new WhileStatement(s.loc, scond, sbody, s.endloc, s.param);
+        }
+        else
+            assert(0);  // cannot be inlined as an Expression
+    }
+
+    override void visit(DoStatement s)
+    {
+        //printf("DoStatement.doInlineAs!%s()\n", Result.stringof.ptr);
+        static if (asStatements)
+        {
+            auto scond = doInlineAs!Expression(s.condition, ids);
+            auto sbody = doInlineAs!Statement(s._body, ids);
+            result = new DoStatement(s.loc, sbody, scond, s.endloc);
+        }
+        else
+            assert(0);  // cannot be inlined as an Expression
+    }
+
     override void visit(ForStatement s)
     {
         //printf("ForStatement.doInlineAs!%s()\n", Result.stringof.ptr);
@@ -462,7 +517,25 @@ public:
             result = new ForStatement(s.loc, sinit, scond, sincr, sbody, s.endloc);
         }
         else
-            result = null;  // cannot be inlined as an Expression
+            assert(0);  // cannot be inlined as an Expression
+    }
+
+    override void visit(BreakStatement s)
+    {
+        //printf("BreakStatement.doInlineAs!%s()\n", Result.stringof.ptr);
+        static if (asStatements)
+            result = new BreakStatement(s.loc, s.ident);
+        else
+            assert(0);  // cannot be inlined as an Expression
+    }
+
+    override void visit(ContinueStatement s)
+    {
+        //printf("ContinueStatement.doInlineAs!%s()\n", Result.stringof.ptr);
+        static if (asStatements)
+            result = new ContinueStatement(s.loc, s.ident);
+        else
+            assert(0);  // cannot be inlined as an Expression
     }
 
     override void visit(ThrowStatement s)
@@ -763,6 +836,7 @@ public:
                 vto.parent = ids.parent;
                 vto.csym = null;
                 vto.nrvo = ids.propagateNRVO && varIsNRVO;
+                vto.ctfeAdrOnStack = VarDeclaration.AdrOnStackNone;
 
                 ids.from.push(vd);
                 ids.to.push(vto);
@@ -850,14 +924,8 @@ public:
         {
             auto ce = cast(CastExp)e.copy();
             if (auto lowering = ce.lowering)
-            {
                 ce.lowering = doInlineAs!Expression(lowering, ids);
-            }
-            else
-            {
-                ce.e1 = doInlineAs!Expression(e.e1, ids);
-            }
-
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
             result = ce;
         }
 
@@ -875,11 +943,9 @@ public:
 
             if (auto lowering = ce.lowering)
                 ce.lowering = doInlineAs!Expression(lowering, ids);
-            else
-            {
-                ce.e1 = doInlineAs!Expression(e.e1, ids);
-                ce.e2 = doInlineAs!Expression(e.e2, ids);
-            }
+
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
+            ce.e2 = doInlineAs!Expression(e.e2, ids);
 
             result = ce;
         }
@@ -889,12 +955,10 @@ public:
             auto cae = cast(CatAssignExp) e.copy();
 
             if (auto lowering = cae.lowering)
-                cae.lowering = doInlineAs!Expression(cae.lowering, ids);
-            else
-            {
-                cae.e1 = doInlineAs!Expression(e.e1, ids);
-                cae.e2 = doInlineAs!Expression(e.e2, ids);
-            }
+                cae.lowering = doInlineAs!Expression(lowering, ids);
+
+            cae.e1 = doInlineAs!Expression(e.e1, ids);
+            cae.e2 = doInlineAs!Expression(e.e2, ids);
 
             result = cae;
         }
@@ -922,14 +986,12 @@ public:
 
         override void visit(ConstructExp e)
         {
-            if (e.lowering)
-            {
-                auto ce = cast(ConstructExp)e.copy();
+            auto ce = cast(ConstructExp)e.copy();
+            if (ce.lowering)
                 ce.lowering = doInlineAs!Expression(ce.lowering, ids);
-                result = ce;
-            }
-            else
-                visit(cast(AssignExp) e);
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
+            ce.e2 = doInlineAs!Expression(e.e2, ids);
+            result = ce;
         }
 
         override void visit(LoweredAssignExp e)
@@ -977,6 +1039,7 @@ public:
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
                 vto.csym = null;
+                vto.ctfeAdrOnStack = VarDeclaration.AdrOnStackNone;
 
                 ids.from.push(vd);
                 ids.to.push(vto);
@@ -1005,6 +1068,7 @@ public:
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
                 vto.csym = null;
+                vto.ctfeAdrOnStack = VarDeclaration.AdrOnStackNone;
 
                 ids.from.push(vd);
                 ids.to.push(vto);
@@ -2621,4 +2685,46 @@ private bool expNeedsDtor(Expression exp)
 
     scope NeedsDtor ct = new NeedsDtor(exp);
     return walkPostorder(exp, ct);
+}
+
+/***********************************************************
+ * Build an expression with the semantics of
+ *   if (econd) e1; else e2;
+ */
+Expression buildBranchExp(Expression econd, Expression e1, Expression e2)
+{
+    if (e1 && e2)
+    {
+        auto ce = new CondExp(econd.loc, econd, e1, e2);
+
+        if (e1.type.ty == Tvoid || e2.type.ty == Tvoid)
+            ce.type = Type.tvoid;
+        else if (e1.type.ty == Tnoreturn)
+            ce.type = e2.type;
+        else
+            ce.type = e1.type;
+
+        if (ce.type.ty == Ttuple)
+        {
+            ce.e1.type = Type.tvoid;
+            ce.e2.type = Type.tvoid;
+            ce.type = Type.tvoid;
+        }
+
+        return ce;
+    }
+    else if (e1)
+    {
+        auto le = new LogicalExp(econd.loc, EXP.andAnd, econd, e1);
+        le.type = Type.tvoid;
+        return le;
+    }
+    else if (e2)
+    {
+        auto le = new LogicalExp(econd.loc, EXP.orOr, econd, e2);
+        le.type = Type.tvoid;
+        return le;
+    }
+
+    return econd;
 }
