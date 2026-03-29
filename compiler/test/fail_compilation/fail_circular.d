@@ -1,16 +1,22 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_circular.d(16): Error: circular reference to variable `fail_circular.a1`
-fail_compilation/fail_circular.d(17): Error: circular reference to variable `fail_circular.a2`
-fail_compilation/fail_circular.d(19): Error: circular reference to variable `fail_circular.b1`
-fail_compilation/fail_circular.d(20): Error: circular reference to variable `fail_circular.b2`
-fail_compilation/fail_circular.d(22): Error: circular reference to variable `fail_circular.c1`
-fail_compilation/fail_circular.d(23): Error: circular reference to variable `fail_circular.c2`
-fail_compilation/fail_circular.d(25): Error: circular initialization of variable `fail_circular.d1`
-fail_compilation/fail_circular.d(26): Error: circular initialization of variable `fail_circular.d2`
-fail_compilation/fail_circular.d(28): Error: circular initialization of variable `fail_circular.e1`
-fail_compilation/fail_circular.d(29): Error: circular initialization of variable `fail_circular.e2`
+fail_compilation/fail_circular.d(22): Error: circular reference to variable `fail_circular.a1`
+fail_compilation/fail_circular.d(22):        while resolving `fail_circular.a1`
+fail_compilation/fail_circular.d(23): Error: circular reference to variable `fail_circular.a2`
+fail_compilation/fail_circular.d(23):        while resolving `fail_circular.a2`
+fail_compilation/fail_circular.d(25): Error: circular reference to variable `fail_circular.b1`
+fail_compilation/fail_circular.d(25):        while resolving `fail_circular.b1`
+fail_compilation/fail_circular.d(26): Error: circular reference to variable `fail_circular.b2`
+fail_compilation/fail_circular.d(26):        while resolving `fail_circular.b2`
+fail_compilation/fail_circular.d(28): Error: circular reference to variable `fail_circular.c1`
+fail_compilation/fail_circular.d(28):        while resolving `fail_circular.c1`
+fail_compilation/fail_circular.d(29): Error: circular reference to variable `fail_circular.c2`
+fail_compilation/fail_circular.d(29):        while resolving `fail_circular.c2`
+fail_compilation/fail_circular.d(31): Error: circular initialization of variable `fail_circular.d1`
+fail_compilation/fail_circular.d(32): Error: circular initialization of variable `fail_circular.d2`
+fail_compilation/fail_circular.d(34): Error: circular initialization of variable `fail_circular.e1`
+fail_compilation/fail_circular.d(35): Error: circular initialization of variable `fail_circular.e2`
 ---
 */
 auto a1 =  a1;          // semantic error (cannot determine expression type)
@@ -31,16 +37,28 @@ enum int e2 = .e2;      // CTFE error
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_circular.d(47): Error: circular reference to variable `fail_circular.a1a`
-fail_compilation/fail_circular.d(49): Error: circular reference to variable `fail_circular.a2a`
-fail_compilation/fail_circular.d(52): Error: circular reference to variable `fail_circular.b1a`
-fail_compilation/fail_circular.d(54): Error: circular reference to variable `fail_circular.b2a`
-fail_compilation/fail_circular.d(57): Error: circular reference to variable `fail_circular.c1a`
-fail_compilation/fail_circular.d(59): Error: circular reference to variable `fail_circular.c2a`
-fail_compilation/fail_circular.d(62): Error: circular initialization of variable `fail_circular.d1a`
-fail_compilation/fail_circular.d(64): Error: circular initialization of variable `fail_circular.d2a`
-fail_compilation/fail_circular.d(67): Error: circular initialization of variable `fail_circular.e1a`
-fail_compilation/fail_circular.d(69): Error: circular initialization of variable `fail_circular.e2a`
+fail_compilation/fail_circular.d(65): Error: circular reference to variable `fail_circular.a1a`
+fail_compilation/fail_circular.d(65):        while resolving `fail_circular.a1b`
+fail_compilation/fail_circular.d(64):        while resolving `fail_circular.a1a`
+fail_compilation/fail_circular.d(67): Error: circular reference to variable `fail_circular.a2a`
+fail_compilation/fail_circular.d(67):        while resolving `fail_circular.a2b`
+fail_compilation/fail_circular.d(66):        while resolving `fail_circular.a2a`
+fail_compilation/fail_circular.d(70): Error: circular reference to variable `fail_circular.b1a`
+fail_compilation/fail_circular.d(70):        while resolving `fail_circular.b1b`
+fail_compilation/fail_circular.d(69):        while resolving `fail_circular.b1a`
+fail_compilation/fail_circular.d(72): Error: circular reference to variable `fail_circular.b2a`
+fail_compilation/fail_circular.d(72):        while resolving `fail_circular.b2b`
+fail_compilation/fail_circular.d(71):        while resolving `fail_circular.b2a`
+fail_compilation/fail_circular.d(75): Error: circular reference to variable `fail_circular.c1a`
+fail_compilation/fail_circular.d(75):        while resolving `fail_circular.c1b`
+fail_compilation/fail_circular.d(74):        while resolving `fail_circular.c1a`
+fail_compilation/fail_circular.d(77): Error: circular reference to variable `fail_circular.c2a`
+fail_compilation/fail_circular.d(77):        while resolving `fail_circular.c2b`
+fail_compilation/fail_circular.d(76):        while resolving `fail_circular.c2a`
+fail_compilation/fail_circular.d(80): Error: circular initialization of variable `fail_circular.d1a`
+fail_compilation/fail_circular.d(82): Error: circular initialization of variable `fail_circular.d2a`
+fail_compilation/fail_circular.d(85): Error: circular initialization of variable `fail_circular.e1a`
+fail_compilation/fail_circular.d(87): Error: circular initialization of variable `fail_circular.e2a`
 ---
 */
 auto a1a =  a1b;
@@ -71,12 +89,21 @@ enum int e2b = .e2a;    // CTFE error
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_circular.d(84): Error: circular reference to variable `fail_circular.S1.a1`
-fail_compilation/fail_circular.d(88): Error: circular reference to variable `fail_circular.S2.b1`
-fail_compilation/fail_circular.d(92): Error: circular reference to variable `fail_circular.S3.c1`
-fail_compilation/fail_circular.d(97): Error: circular reference to variable `fail_circular.S4.a1a`
-fail_compilation/fail_circular.d(102): Error: circular reference to variable `fail_circular.S5.b1a`
-fail_compilation/fail_circular.d(107): Error: circular reference to variable `fail_circular.S6.c1a`
+fail_compilation/fail_circular.d(111): Error: circular reference to variable `fail_circular.S1.a1`
+fail_compilation/fail_circular.d(111):        while resolving `fail_circular.S1.a1`
+fail_compilation/fail_circular.d(115): Error: circular reference to variable `fail_circular.S2.b1`
+fail_compilation/fail_circular.d(115):        while resolving `fail_circular.S2.b1`
+fail_compilation/fail_circular.d(119): Error: circular reference to variable `fail_circular.S3.c1`
+fail_compilation/fail_circular.d(119):        while resolving `fail_circular.S3.c1`
+fail_compilation/fail_circular.d(124): Error: circular reference to variable `fail_circular.S4.a1a`
+fail_compilation/fail_circular.d(124):        while resolving `fail_circular.S4.a1b`
+fail_compilation/fail_circular.d(123):        while resolving `fail_circular.S4.a1a`
+fail_compilation/fail_circular.d(129): Error: circular reference to variable `fail_circular.S5.b1a`
+fail_compilation/fail_circular.d(129):        while resolving `fail_circular.S5.b1b`
+fail_compilation/fail_circular.d(128):        while resolving `fail_circular.S5.b1a`
+fail_compilation/fail_circular.d(134): Error: circular reference to variable `fail_circular.S6.c1a`
+fail_compilation/fail_circular.d(134):        while resolving `fail_circular.S6.c1b`
+fail_compilation/fail_circular.d(133):        while resolving `fail_circular.S6.c1a`
 ---
 */
 struct S1
@@ -110,15 +137,24 @@ struct S6
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_circular.d(126): Error: circular reference to variable `fail_circular.C.a1`
-fail_compilation/fail_circular.d(128): Error: circular reference to variable `fail_circular.C.b1`
-fail_compilation/fail_circular.d(130): Error: circular reference to variable `fail_circular.C.c1`
-fail_compilation/fail_circular.d(133): Error: circular reference to variable `fail_circular.C.a1a`
-fail_compilation/fail_circular.d(132): Error: type of variable `fail_circular.C.a1b` has errors
-fail_compilation/fail_circular.d(136): Error: circular reference to variable `fail_circular.C.b1a`
-fail_compilation/fail_circular.d(135): Error: type of variable `fail_circular.C.b1b` has errors
-fail_compilation/fail_circular.d(139): Error: circular reference to variable `fail_circular.C.c1a`
-fail_compilation/fail_circular.d(138): Error: type of variable `fail_circular.C.c1b` has errors
+fail_compilation/fail_circular.d(162): Error: circular reference to variable `fail_circular.C.a1`
+fail_compilation/fail_circular.d(162):        while resolving `fail_circular.C.a1`
+fail_compilation/fail_circular.d(164): Error: circular reference to variable `fail_circular.C.b1`
+fail_compilation/fail_circular.d(164):        while resolving `fail_circular.C.b1`
+fail_compilation/fail_circular.d(166): Error: circular reference to variable `fail_circular.C.c1`
+fail_compilation/fail_circular.d(166):        while resolving `fail_circular.C.c1`
+fail_compilation/fail_circular.d(169): Error: circular reference to variable `fail_circular.C.a1a`
+fail_compilation/fail_circular.d(169):        while resolving `fail_circular.C.a1b`
+fail_compilation/fail_circular.d(168):        while resolving `fail_circular.C.a1a`
+fail_compilation/fail_circular.d(168): Error: type of variable `fail_circular.C.a1b` has errors
+fail_compilation/fail_circular.d(172): Error: circular reference to variable `fail_circular.C.b1a`
+fail_compilation/fail_circular.d(172):        while resolving `fail_circular.C.b1b`
+fail_compilation/fail_circular.d(171):        while resolving `fail_circular.C.b1a`
+fail_compilation/fail_circular.d(171): Error: type of variable `fail_circular.C.b1b` has errors
+fail_compilation/fail_circular.d(175): Error: circular reference to variable `fail_circular.C.c1a`
+fail_compilation/fail_circular.d(175):        while resolving `fail_circular.C.c1b`
+fail_compilation/fail_circular.d(174):        while resolving `fail_circular.C.c1a`
+fail_compilation/fail_circular.d(174): Error: type of variable `fail_circular.C.c1b` has errors
 ---
 */
 class C
