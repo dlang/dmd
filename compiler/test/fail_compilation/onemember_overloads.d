@@ -2,8 +2,8 @@
 TEST_OUTPUT:
 ---
 fail_compilation/onemember_overloads.d(29): Error: none of the overloads of `skipOver` are callable using argument types `()`
-fail_compilation/onemember_overloads.d(25):        Candidates are: `onemember_overloads.skipOver(string)`
-fail_compilation/onemember_overloads.d(18):                        `skipOver(alias pred = (a, b) => a == b)`
+fail_compilation/onemember_overloads.d(25):        Candidate 1 is: `onemember_overloads.skipOver(string)`
+fail_compilation/onemember_overloads.d(18):        Candidate 2 is: `skipOver(alias pred = (a, b) => a == b)`
 fail_compilation/onemember_overloads.d(20):          - Containing: `skipOver(Haystack, Needles...)(ref Haystack haystack, Needles needles)`
 fail_compilation/onemember_overloads.d(21):          - Containing: `skipOver(R)(ref R r1)`
 fail_compilation/onemember_overloads.d(22):          - Containing: `skipOver(R, Es...)(ref R r, Es es)`
