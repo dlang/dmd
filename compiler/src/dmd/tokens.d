@@ -283,6 +283,7 @@ enum TOK : ubyte
     __thread,
     __pragma,
     __int128,
+    float16,
     __attribute__,
 }
 
@@ -594,6 +595,7 @@ private immutable TOK[] keywords =
     TOK.__thread,
     TOK.__pragma,
     TOK.__int128,
+    TOK.float16,
     TOK.__attribute__,
 ];
 
@@ -623,7 +625,7 @@ static immutable TOK[TOK.max + 1] Ckeywords =
                        union_, unsigned, void_, volatile, while_, asm_, typeof_,
                        _Alignas, _Alignof, _Atomic, _Bool, _Complex, _Generic, _Imaginary, _Noreturn,
                        _Static_assert, _Thread_local,
-                       _import, _module, __cdecl, __declspec, __stdcall, __thread, __pragma, __int128, __attribute__,
+                       _import, _module, __cdecl, __declspec, __stdcall, __thread, __pragma, __int128, float16, __attribute__,
                        _assert ];
 
         foreach (kw; Ckwds)
@@ -910,6 +912,7 @@ extern (C++) struct Token
         TOK.__pragma       : "__pragma",
         TOK.__int128       : "__int128",
         TOK.__attribute__  : "__attribute__",
+        TOK.float16         : "_Float16",
     ];
 
     static assert(() {
@@ -1115,6 +1118,7 @@ nothrow:
         case TOK.uns64:
         case TOK.int128:
         case TOK.uns128:
+        case TOK.float16:
         case TOK.float32:
         case TOK.float64:
         case TOK.float80:

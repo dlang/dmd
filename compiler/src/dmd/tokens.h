@@ -289,6 +289,7 @@ enum class TOK : unsigned char
     thread,
     pragma,
     int128_,
+    float16,
     attribute__,
 
     MAX,
