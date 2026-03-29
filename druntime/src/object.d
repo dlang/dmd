@@ -4763,10 +4763,9 @@ auto _d_pow(Base, Exp)(Base base, Exp exp)
 }
 
 // Forwarding hook for the e1 ^^ 0.5 optimisation (square root).
-// TODO: move implementation to druntime instead of Phobos.
 auto _d_sqrt(T)(T x)
 {
-    import std.math : sqrt;
+    import core.math : sqrt;
     return sqrt(x);
 }
 
