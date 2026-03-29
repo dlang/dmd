@@ -5,5 +5,5 @@ flat block, making it hard to tell where the time was actually going.
 
 The `Sema1: Template Instance` span now contains sub-spans for each phase:
 `Sema1: Template Arg Semantic`, `Sema1: Overload Resolution`,
-`Sema1: Expand Members`, `Sema2: Template Instance`, and `Sema3: Template Instance`.
+`Sema1: Template Members`, `Sema2: Template Instance`, and `Sema3: Template Instance`.
 These are visible in trace viewers like $(LINK2 https://ui.perfetto.dev/, Perfetto).
