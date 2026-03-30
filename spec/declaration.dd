@@ -333,10 +333,35 @@ $(H3 $(LNAME2 global_static_init, Global and Static Initializers))
         )
 
         $(IMPLEMENTATION_DEFINED
-        $(OL
-        $(LI Whether some pointers can be initialized with the addresses of other
-        functions or data.)
-        ))
+        Whether some pointers can be initialized with the addresses of other
+        functions or data.
+        )
+
+
+$(H2 $(LNAME2 static, Statically Allocated Data))
+
+    $(P $(GLINK VarDeclarations) outside a function or aggregate type will be statically
+    allocated. By default, they will be thread-local unless marked
+    $(DDSUBLINK spec/const3, shared, `shared`) or
+    $(DDSUBLINK spec/attribute, gshared, `__gshared`).)
+
+    $(P By default, *VarDeclarations* inside a function will be allocated on the stack.
+    The following $(GLINK StorageClasses) will statically allocate data,
+    $(DDSUBLINK spec/function, local-static-variables, even inside a function) or
+    aggregate type:)
+
+    - $(DDSUBLINK spec/attribute, static, `static`) - allocate thread-local data
+    - $(DDSUBLINK spec/const3, shared, `shared`) or
+      $(DDSUBLINK spec/attribute, gshared, `__gshared`) - allocate global data
+
+    $(NOTE When *StorageClasses* includes `enum`, a variable declaration
+    $(DDSUBLINK spec/enum, single_member, will not have) any storage allocated.)
+
+    $(IMPLEMENTATION_DEFINED Static declarations whose initializer is `void` or whose
+    bits are all zero may be listed in the
+    $(LINK2 https://en.wikipedia.org/wiki/.bss, `.bss`) section of the binary to save
+    storage space.
+    Otherwise, static data will be stored in the `.data` section.)
 
 
 $(H2 $(LNAME2 alias, Alias Declarations))

@@ -3044,7 +3044,7 @@ $(H2 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
 
 $(H3 $(LEGACY_LNAME2 Local Static Variables, local-static-variables, Local Static Variables))
 
-        $(P Local variables in functions declared as `static`, `shared static`
+        $(P Local variables declared as `static`, `shared static`
         or $(D __gshared) are statically allocated
         rather than being allocated on the stack.
         The lifetime of `__gshared` and `shared static` variables begins
