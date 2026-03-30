@@ -745,7 +745,7 @@ $(H2 $(LNAME2 __rvalue, $(D __rvalue) Attribute))
 
 $(H2 $(LNAME2 static, $(D static) Attribute))
 
-        $(P The $(D static) attribute applies to types, functions and data.
+        $(P The $(D static) attribute applies to types, functions and variables.
         $(D static) is ignored when applied to other declarations.)
 
         $(P Inside an aggregate type, a `static`
