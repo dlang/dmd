@@ -1309,6 +1309,7 @@ extern (C++) final class ReturnStatement : Statement
     Expression exp;
     size_t caseDim;
     FuncDeclaration fesFunc; // nested function for foreach it is in
+    bool inCtfeBlock;        /// set if return is inside an `if (__ctfe)` block
 
     extern (D) this(Loc loc, Expression exp) @safe
     {
