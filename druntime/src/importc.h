@@ -199,6 +199,8 @@ typedef unsigned long long __uint64_t;
 typedef struct {} __SVBool_t;
 typedef struct {} __SVFloat32_t;
 typedef struct {} __SVFloat64_t;
+typedef float  __Float32x4_t __attribute__((vector_size(16)));
+typedef double __Float64x2_t __attribute__((vector_size(16)));
 #endif
 
 #endif // __linux__
