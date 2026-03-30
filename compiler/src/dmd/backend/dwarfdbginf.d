@@ -109,16 +109,20 @@ static if (1)
      */
     bool doUnwindEhFrame()
     {
-        if (funcsym_p.Sfunc.Fflags3 & Feh_none)
-        {
-            return (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) != 0;
-        }
-
         /* FreeBSD fails when having some frames as having unwinding info and some not.
          * (It hangs in unittests for std.datetime.)
          * g++ on FreeBSD does not generate mixed frames, while g++ on OSX and Linux does.
          */
         assert(!(cgstate.usednteh & ~(EHtry | EHcleanup)));
+
+        if (config.unwindTables)
+            return true;
+
+        if (funcsym_p.Sfunc.Fflags3 & Feh_none)
+        {
+            return (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) != 0;
+        }
+
         return (cgstate.usednteh & (EHtry | EHcleanup)) ||
                (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) && config.useExceptions;
     }
@@ -1759,11 +1763,16 @@ static if (1)
             OutBuffer* buf = SegData[dfseg].SDbuf;
             buf.reserve(1000);
 
-            uint* poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
+            // When unwind tables are enabled, don't reference personality function (no druntime)
+            bool usePersonality = ehunwind && !config.unwindTables;
+            uint* poffset = usePersonality ? &CIE_offset_unwind : &CIE_offset_no_unwind;
             if (*poffset == ~0)
-                *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
+            {
+                Symbol* personality = usePersonality ? getRtlsymPersonality() : null;
+                *poffset = writeEhFrameHeader(dfseg, buf, personality, usePersonality);
+            }
 
-            writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
+            writeEhFrameFDE(dfseg, sfunc, usePersonality, *poffset);
         }
         if (!config.fulltypes)
             return;
