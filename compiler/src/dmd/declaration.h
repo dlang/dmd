@@ -236,6 +236,7 @@ public:
     VarDeclaration *lastVar;    // Linked list of variables for goto-skips-init detection
     Expression *edtor;          // if !=NULL, does the destruction of the variable
     IntRange *range;            // if !NULL, the variable is known to be within the range
+    VarDeclaration* entryForLinkerList;
 
     unsigned endlinnum;         // line number of end of scope that this var lives in
     unsigned offset;
@@ -282,6 +283,8 @@ public:
 #endif
     bool systemInferred() const;
     bool systemInferred(bool v);
+    bool isLinkerListDeclaration() const;
+    bool isLinkerListDeclaration(bool v);
     static VarDeclaration *create(Loc loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
     VarDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;

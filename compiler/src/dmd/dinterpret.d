@@ -4652,6 +4652,39 @@ public:
         Expression pthis = null;
         FuncDeclaration fd = null;
 
+        if (e.f !is null && e.f.ident is Id.opOpAssign)
+        {
+            DotVarExp dve = e.e1.isDotVarExp();
+            VarExp ve;
+            VarDeclaration vd, linkerListEntry;
+
+            if (dve !is null &&
+                (ve = dve.e1.isVarExp()) !is null &&
+                (vd = ve.var.isVarDeclaration()) !is null &&
+                vd.isLinkerListDeclaration)
+            {
+                auto root = istate.fd.getModule;
+                // If we don't have a root module, to put it in we'll ignore it.
+                // We ignore it because it may have already been emitted in a different compilation step.
+
+                if (root.isRoot)
+                {
+                    auto initExp = interpret((*e.arguments)[0], istate).copyRegionExp;
+                    auto init = new ExpInitializer(e.loc, initExp);
+                    linkerListEntry = new VarDeclaration(e.loc, null, Identifier.generateIdWithLoc("_d_linkerlistentry", e.loc), init);
+
+                    linkerListEntry.entryForLinkerList = vd;
+                    linkerListEntry.visibility.kind = Visibility.Kind.private_;
+                    linkerListEntry.storage_class |= STC.gshared;
+
+                    root.members.push(linkerListEntry);
+                    linkerListEntry.dsymbolSemantic(root._scope);
+                }
+
+                return;
+            }
+        }
+
         Expression ecall = interpretRegion(e.e1, istate);
         if (exceptionOrCant(ecall))
             return;

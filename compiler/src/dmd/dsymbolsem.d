@@ -2592,6 +2592,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // Flag variable as error to avoid invalid error messages due to unknown size
                 dsym.type = Type.terror;
             }
+            else if (ts.sym.ident is Id.__linkerlist)
+            {
+                // Okay we've got a linker list
+
+                if (dsym.visibility.kind == Visibility.Kind.export_)
+                {
+                    .error(dsym.loc, "Linker lists cannot be exported");
+                    dsym.type = Type.terror;
+                }
+                else if (dsym.storage_class & STC.extern_)
+                {
+                    .error(dsym.loc, "Linker lists cannot be `extern` they must live at declaration site");
+                    dsym.type = Type.terror;
+                }
+                else
+                    dsym.isLinkerListDeclaration = true;
+            }
         }
         if ((dsym.storage_class & STC.auto_) && !inferred && !(dsym.storage_class & STC.autoref))
             .error(dsym.loc, "%s `%s` - storage class `auto` has no effect if type is not inferred, did you mean `scope`?", dsym.kind, dsym.toPrettyChars);

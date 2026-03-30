@@ -6598,6 +6598,7 @@ public:
     VarDeclaration* lastVar;
     Expression* edtor;
     IntRange* range;
+    VarDeclaration* entryForLinkerList;
     uint32_t endlinnum;
     uint32_t offset;
     uint32_t sequenceNumber;
@@ -6639,6 +6640,8 @@ public:
     bool inAlignSection(bool v);
     bool systemInferred() const;
     bool systemInferred(bool v);
+    bool isLinkerListDeclaration() const;
+    bool isLinkerListDeclaration(bool v);
 private:
     uint32_t bitFields;
 public:
@@ -8668,6 +8671,7 @@ struct Id final
     static Identifier* classDelete;
     static Identifier* apply;
     static Identifier* applyReverse;
+    static Identifier* linkerlistApply;
     static Identifier* Fempty;
     static Identifier* Ffront;
     static Identifier* Fback;

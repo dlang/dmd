@@ -21,6 +21,7 @@ import dmd.root.ctfloat;
 import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.stringtable;
+import dmd.common.outbuffer;
 
 import dmd.glue;
 import dmd.glue.objc;
@@ -56,6 +57,8 @@ import dmd.id;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
+import dmd.mangle : mangleToBuffer;
+import dmd.opover : search_function;
 import dmd.printast;
 import dmd.sideeffect;
 import dmd.statement;
@@ -5408,7 +5411,7 @@ elem* callfunc(Loc loc,
     version (none)
     {
         printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p, op = %d)\n",
-            directcall, tret.toChars(), ec, fd);
+            directcall, tret.toChars(), ec, fd, op);
         printf("ec: "); elem_print(ec);
         if (fd)
             printf("fd = '%s', vtblIndex = %d, isVirtual() = %d\n", fd.toChars(), fd.vtblIndex, fd.isVirtual());
@@ -5521,7 +5524,7 @@ elem* callfunc(Loc loc,
 
         /* Convert arguments[] to elems[] in left-to-right order
          */
-        const n = arguments.length;
+        const n = arguments.length + (fd !is null && fd.ident is Id.linkerlistApply);
         debug
             elem*[2] elems_array = void;
         else
@@ -5538,8 +5541,64 @@ elem* callfunc(Loc loc,
         const int j = tf.isDstyleVariadic();
         const osx_aapcs64 = irs.target.isAArch64 && irs.target.os == Target.OS.OSX;
 
+        void linkerlistArg(Expression arg)
+        {
+            // We are swapping a __linkerlist!T global variable with its respective start+stop symbols as arguments.
+            // The transformation takes place at offset 1 of the elems array, and will result in three arguments total.
+
+            VarExp ve = arg.isVarExp;
+            assert(ve !is null);
+            VarDeclaration vd  = ve.var.isVarDeclaration;
+            assert(vd !is null);
+            const canBeReadOnly = !vd.type.isMutable;
+
+            elem* genStartEndExtern(string name, bool noUnderscore = false)
+            {
+                OutBuffer nameOB;
+                mangleToBuffer(vd, nameOB);
+                nameOB.writestring(name);
+
+                Symbol* s = symbol_calloc(nameOB.extractSlice);
+                s.Sclass = SC.extern_;
+                s.Sfl = FL.extern_;
+                s.Stype = type_fake(TYnptr); // always a pointer in size, regardless of linker list type.
+
+                if (noUnderscore)
+                    s.Sflags |= SFLnounderscore;
+
+                return el_ptr(s);
+            }
+
+            switch (config.objfmt)
+            {
+                case OBJ_MACH:
+                    elems[1] = genStartEndExtern(canBeReadOnly ? "section$start$__TEXT$" : "section$start$__DATA$", true);
+                    elems[2] = genStartEndExtern(canBeReadOnly ? "section$end$__TEXT$" : "section$end$__DATA$", true);
+                    break;
+
+                case OBJ_ELF:
+                    elems[1] = genStartEndExtern("__start_");
+                    elems[2] = genStartEndExtern("__stop_");
+                    break;
+                case OBJ_MSCOFF:
+                    elems[1] = genStartEndExtern("_start");
+                    elems[2] = genStartEndExtern("_end");
+                    break;
+
+                default:
+                    assert(0);
+            }
+        }
+
         foreach (const i, arg; *arguments)
         {
+            if (i == 1 && fd !is null && fd.ident is Id.linkerlistApply)
+            {
+                // do not generate symbol for the linker list global
+                linkerlistArg(arg);
+                break; // This completes the argument list.
+            }
+
             elem* ea = toElem(arg, irs);
             Parameter param = null;
 
@@ -6555,8 +6614,10 @@ elem* toElemCall(CallExp ce, ref IRState irs, elem* ehidden = null)
     if (ce.e1.op == EXP.dotVariable && t1.ty != Tdelegate)
     {
         DotVarExp dve = cast(DotVarExp)ce.e1;
+        FuncDeclaration linkerListApply;
 
         fd = dve.var.isFuncDeclaration();
+        ectype = dve.e1.type.toBasetype();
 
         if (auto sle = dve.e1.isStructLiteralExp())
         {
@@ -6564,6 +6625,17 @@ elem* toElemCall(CallExp ce, ref IRState irs, elem* ehidden = null)
                 fd.type.isMutable() ||
                 sle.type.size() <= 8)          // more efficient than fPIC
                 sle.useStaticInit = false;     // don't modify initializer, so make copy
+        }
+        else if (fd.ident is Id.apply)
+        {
+            if (auto ts = ectype.isTypeStruct)
+            {
+                if (ts.sym.ident is Id.__linkerlist)
+                {
+                    Dsymbol applyImpl = search_function(ts.sym, Id.linkerlistApply);
+                    linkerListApply = applyImpl !is null ? applyImpl.isFuncDeclaration : null;
+                }
+            }
         }
 
         // Special cases for constructor RVO
@@ -6584,10 +6656,21 @@ elem* toElemCall(CallExp ce, ref IRState irs, elem* ehidden = null)
 
             ehidden = null;
         }
+        else if (linkerListApply !is null)
+        {
+            // Point ec to the implementation function and update the function/type to match.
+            // Append to the arguments list the global variable that contains the linker list.
+
+            ec = el_ptr(toSymbol(linkerListApply));
+            ectype = linkerListApply.type;
+            t1 = linkerListApply.type;
+            fd = linkerListApply;
+
+            assert(ce.arguments !is null && ce.arguments.length == 1);
+            ce.arguments.push(dve.e1);
+        }
         else
             ec = toElem(dve.e1, irs);
-
-        ectype = dve.e1.type.toBasetype();
 
         /* Recognize:
          *   [1] ce:  ((S __ctmp = initializer),__ctmp).ctor(args)
