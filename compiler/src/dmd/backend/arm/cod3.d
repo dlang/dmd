@@ -1030,6 +1030,10 @@ void epilog(block* b)
             else
             {
                 if (log) printf("epilog: mov sp,bp\n");
+                if (cgstate.setSPtoFPonEpilog)
+                {
+                    genmovreg(cdbx,INSTR.SP,29);
+                }
                 if (16 + xlocalsize <= 512) // or localsize??
                     cdbx.gen1(INSTR.ldstpair_post(2, 0, 1, cast(uint)(16 + localsize) / 8, 30, 31, 29)); // LDP x29,x30,[sp],#16 + localsize
                 else
@@ -1054,6 +1058,10 @@ void epilog(block* b)
         else
         {
             if (log) printf("epilog: LDP\n");
+            if (cgstate.setSPtoFPonEpilog)
+            {
+                genmovreg(cdbx,INSTR.SP,29);
+            }
             cdbx.gen1(INSTR.ldstpair_post(2, 0, 1, 16 / 8, 30, 31, 29));     // LDP x29,x30,[sp],#16
         }
     }
