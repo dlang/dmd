@@ -176,6 +176,11 @@ enum TimeTraceEventType
     sema1Module,
     sema1TemplateDecl,
     sema1TemplateInstance,
+    sema1TemplateArgSemantic,        /// semantic analysis of template arguments (semanticTiargs)
+    sema1TemplateOverloadResolution, /// overload resolution / best-match selection (findBestMatch)
+    sema1TemplateMembers,            /// sema1 pass on template instance members (expandMembers)
+    sema1TemplateInstanceSema2,      /// sema2 pass on template instance members
+    sema1TemplateInstanceSema3,      /// sema3 pass on template instance members
     sema1Function,
     sema2,
     sema3,
@@ -198,6 +203,11 @@ private immutable string[] eventPrefixes = [
     "Sema1: Module ",
     "Sema1: Template Declaration ",
     "Sema1: Template Instance ",
+    "Sema1: Template Arg Semantic: ", /// sema1TemplateArgSemantic
+    "Sema1: Overload Resolution: ",   /// sema1TemplateOverloadResolution
+    "Sema1: Template Members: ",      /// sema1TemplateMembers
+    "Sema2: Template Instance: ",     /// sema1TemplateInstanceSema2
+    "Sema3: Template Instance: ",     /// sema1TemplateInstanceSema3
     "Sema1: Function ",
     "Sema2: ",
     "Sema3: ",

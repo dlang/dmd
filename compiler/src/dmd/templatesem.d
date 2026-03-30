@@ -866,6 +866,18 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
 
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList argumentList)
 {
+    void Lerror()
+    {
+        if (tempinst.gagged)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=13220
+            // Roll back status for later semantic re-running
+            tempinst.semanticRun = PASS.initial;
+        }
+        else
+            tempinst.inst = tempinst;
+        tempinst.errors = true;
+    }
     //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);
     version (none)
     {
@@ -938,19 +950,33 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
      * then run semantic on each argument (place results in tiargs[]),
      * last find most specialized template from overload list/set.
      */
-    if (!tempinst.findTempDecl(sc, null) || !tempinst.semanticTiargs(sc) || !tempinst.findBestMatch(sc, argumentList))
+    if (!tempinst.findTempDecl(sc, null))
+        return Lerror();
+
+    // Trace template argument semantic analysis as a sub-span of the template instance
     {
-    Lerror:
-        if (tempinst.gagged)
+        bool tiargs_ok;
         {
-            // https://issues.dlang.org/show_bug.cgi?id=13220
-            // Roll back status for later semantic re-running
-            tempinst.semanticRun = PASS.initial;
+            timeTraceBeginEvent(TimeTraceEventType.sema1TemplateArgSemantic);
+            scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateArgSemantic, tempinst,
+                () => tempinst.toPrettyChars().toDString());
+            tiargs_ok = tempinst.semanticTiargs(sc);
         }
-        else
-            tempinst.inst = tempinst;
-        tempinst.errors = true;
-        return;
+        if (!tiargs_ok)
+            return Lerror();
+    }
+
+    // Trace overload resolution (findBestMatch) as a sub-span of the template instance
+    {
+        bool match_ok;
+        {
+            timeTraceBeginEvent(TimeTraceEventType.sema1TemplateOverloadResolution);
+            scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateOverloadResolution, tempinst,
+                () => tempinst.toPrettyChars().toDString());
+            match_ok = tempinst.findBestMatch(sc, argumentList);
+        }
+        if (!match_ok)
+            return Lerror();
     }
     TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
     assert(tempdecl);
@@ -964,12 +990,12 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     if (tempdecl.ismixin)
     {
         .error(tempinst.loc, "%s `%s` mixin templates are not regular templates", tempinst.kind, tempinst.toPrettyChars);
-        goto Lerror;
+        return Lerror();
     }
 
     tempinst.hasNestedArgs(tempinst.tiargs, tempdecl.isstatic);
     if (tempinst.errors)
-        goto Lerror;
+        return Lerror();
 
     // Copy the tempdecl namespace (not the scope one)
     tempinst.cppnamespace = tempdecl.cppnamespace;
@@ -1280,7 +1306,12 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     sc2.tinst = tempinst;
     sc2.minst = tempinst.minst;
     sc2.stc &= ~STC.deprecated_;
-    tempinst.tryExpandMembers(sc2);
+    {
+        timeTraceBeginEvent(TimeTraceEventType.sema1TemplateMembers);
+        tempinst.tryExpandMembers(sc2);
+        timeTraceEndEvent(TimeTraceEventType.sema1TemplateMembers, tempinst,
+            () => tempinst.toPrettyChars().toDString());
+    }
 
     tempinst.semanticRun = PASS.semanticdone;
 
@@ -1341,7 +1372,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
          * are forward referenced. Find a way to defer semantic()
          * on this template.
          */
+        timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstanceSema2);
         tempinst.semantic2(sc2);
+        timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstanceSema2, tempinst,
+            () => tempinst.toPrettyChars().toDString());
     }
     if (global.errors != errorsave)
         goto Laftersemantic;
@@ -1368,7 +1402,12 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         if (sc.isDeprecated() && isDRuntimeHook(tempinst.name))
             global.params.useDeprecated = DiagnosticReporting.off;
 
-        tempinst.trySemantic3(sc2);
+        {
+            timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstanceSema3);
+            tempinst.trySemantic3(sc2);
+            timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstanceSema3, tempinst,
+                () => tempinst.toPrettyChars().toDString());
+        }
 
         global.params.useDeprecated = saveUseDeprecated;
 
