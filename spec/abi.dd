@@ -410,6 +410,16 @@ $(GNAME Digit):
         the number of characters in the $(GLINK Name).
         )
 
+        $(P When a non-module, non-package symbol such as a `struct`, `class`,
+        or `enum` appears as a parent component in a $(GLINK QualifiedName),
+        its $(GLINK LName) is encoded with a leading $(B 0) before the
+        $(GLINK Number) length prefix. This disambiguates it from a module
+        name with the same identifier, since leading zeros do not change
+        the numeric value of the length. For example, a module named $(D bar)
+        is mangled as $(D 3bar), while a `struct` named $(D bar) in the same
+        scope is mangled as $(D 03bar).
+        )
+
 $(H3 $(LNAME2 back_ref, Back references))
 
     $(P Any $(GLINK LName) or non-basic $(GLINK Type) (i.e. any type
