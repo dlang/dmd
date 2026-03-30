@@ -2113,6 +2113,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 /******************************
  * Call function. All parameters have already been pushed onto the stack.
  * Params:
+ *      cdb        = generated code sink
  *      e          = function call
  *      numpara    = size in bytes of all the parameters
  *      numalign   = amount the stack was aligned by before the parameters were pushed
@@ -2154,6 +2155,63 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         if (s == funcsym_p || !s.Sfunc || !(s.Sfunc.Fflags3 & Fnothrow))
             funcsym_p.Sfunc.Fflags3 &= ~Fnothrow;
 
+        if (strcmp(s.Sident.ptr, "alloca") == 0)
+        {
+            cgstate.needframe = true;
+            cgstate.setSPtoFPonEpilog = true;
+
+            //Symbol* schkstk = getRtlsym(RTLSYM.CHKSTK);
+            //makeitextern(schkstk);
+
+            Symbol* schkstk = s;                // BUG AArch64 should be ___chkstk_darwin
+            FL fl = schkstk.Sfl;
+
+            enum reg_t R9 = 9;                  // argument to __chkstk_darwin
+            regm_t maskR9 = mask(R9);
+            codelem(cgstate,cdbe,e.E2,maskR9,0);            // R9 = e2
+
+            cdbe.gen1(INSTR.add_addsub_imm(1,0,0xF,R9,R9)); // ADD R9,R9,#0xF
+
+            uint N,immr,imms;
+            assert(encodeNImmrImms(0xFFFF_FFFF_FFFF_FFF0,N,immr,imms));
+            cdbe.gen1(INSTR.log_imm(1,0,N,immr,imms,R9,R9));    // AND R9,R9,#0xFFFF_FFFF_FFFF_FFF0
+
+            //cgstate.Alloca.size = REGSIZE;
+
+            enum regm_t DESREGS = mask(R9) | mask(10) | mask(11);       // registers destroyed by ___chkstk_darwin
+            getregs(cdbe, DESREGS);
+
+            regm_t regm = INSTR.ALLREGS & ~DESREGS;
+            reg_t r = allocreg(cdbe, regm, TYnptr); // r becomes amount to allocate
+            genmovreg(cdbe,r,R9,TYMAX);             // MOV r,R9  since r is preserved by ___chkstk_darwin
+
+            enum reg_t R16 = 16;                    // scratch register
+
+            uint ins = INSTR.adr(1,0,R16);          // ADRP R16,0x0 GOT_LOAD_PAGE21
+            cdbe.gencs1(ins,0,fl,schkstk);
+            ins = INSTR.ldr_imm_gen(1,R16,R16,0);   // LDR  R16,[R16] GOT_LOAD_PAGEOFF12
+            cdbe.gencs1(ins,0,fl,schkstk);
+            cdbe.last.Iflags |= CFadd;
+            cdbe.gen1(INSTR.blr(R16));              // BLR R16
+
+            retregs = INSTR.ALLREGS & pretregs;
+            if (!retregs)
+                retregs = INSTR.ALLREGS;
+            reg_t r2 = allocreg(cdbe, retregs, TYnptr);
+            genmovreg(cdbe,r2,INSTR.SP,TYMAX);                 // MOV  r2,SP
+            cdbe.gen1(INSTR.subs_addsub_shift(1,r,0,0,r2,r2)); // SUBS r2,r2,r
+            genmovreg(cdbe,INSTR.SP,r2,TYMAX);                 // MOV  SP,r2
+
+            cdb.append(cdbe);
+            freenode(e1);
+
+            fixresult(cdb,e,retregs,pretregs);
+            return;
+
+            // MOV SP, x29   restore SP value
+
+        }
+
         if (s.Sflags & SFLexit)
         {
             // Function doesn't return, so don't worry about registers
@@ -2164,17 +2222,6 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             getregs(cdbe,~fregsaved & (INSTR.ALLREGS | INSTR.FLOATREGS));
         else
             getregs(cdbe,~s.Sregsaved & (INSTR.ALLREGS | INSTR.FLOATREGS));
-        if (strcmp(s.Sident.ptr, "alloca") == 0)
-        {
-            s = getRtlsym(RTLSYM.ALLOCA);
-            makeitextern(s);
-            reg_t areg = CX;
-            if (config.exe == EX_WIN64)
-                areg = DX;
-            getregs(cdbe, mask(areg));
-            cdbe.genc(LEA, modregrm(2, areg, BPRM), FL.allocatmp, 0, FL.unde, 0);  // LEA areg,&localsize[BP]
-            cgstate.Alloca.size = REGSIZE;
-        }
         if (sytab[s.Sclass] & SCSS)    // if function is on stack (!)
         {
             retregs = (INSTR.ALLREGS | INSTR.FLOATREGS) & ~keepmsk;
