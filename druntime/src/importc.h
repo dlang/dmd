@@ -39,6 +39,7 @@
 #define __volatile__ volatile
 #define __attribute __attribute__
 #define __alignof _Alignof
+#define __alignof__ _Alignof
 #define __vector_size__ vector_size
 #define __typeof typeof
 #define __typeof__ typeof
