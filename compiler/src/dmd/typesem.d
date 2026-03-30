@@ -4041,8 +4041,11 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 }
                 else if (!fparam.isLazy() && t.ty == Tvoid)
                 {
-                    .error(loc, "cannot have parameter of type `%s`", fparam.type.toChars());
-                    errors = true;
+                    if (!(sc.stc & STC.templateparameter)) 
+                    {
+                        .error(loc, "cannot have parameter of type `%s`", fparam.type.toChars());
+                        errors = true;
+                    }
                 }
 
                 const bool isTypesafeVariadic = i + 1 == dim && tf.parameterList.varargs == VarArg.typesafe;
