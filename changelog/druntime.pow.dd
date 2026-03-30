@@ -1,0 +1,9 @@
+Translate ^^ operator to druntime hook
+
+The exponentiation operator (^^) is now lowered to a druntime hook call instead of being expanded inline by the compiler.
+This change moves the implementation logic into the runtime library, allowing for easier maintenance and platform-specific optimizations without requiring compiler modifications.
+
+```d
+auto _d_pow(Base, Exp)(Base base, Exp exp);
+auto _d_sqrt(T)(T x);
+```
